@@ -6,6 +6,7 @@ import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.drawing.Coordinates2D;
@@ -16,10 +17,10 @@ import java.util.Collections;
 
 import static org.xper.drawing.TestDrawingWindow.initXperLibs;
 
-public class TwobyTwoMatchStickTest {
+public class TwoByTwoMatchStickTest {
 
     private String testBin;
-    private TwobyTwoMatchStick baseMStick;
+    private TwoByTwoMatchStick baseMStick;
     private AllenPNGMaker pngMaker;
 
     public static final ReceptiveField PARTIAL_RF = new ReceptiveField() {
@@ -56,7 +57,7 @@ public class TwobyTwoMatchStickTest {
         pngMaker.createDrawerWindow();
 
 
-        baseMStick = new TwobyTwoMatchStick();
+        baseMStick = new TwoByTwoMatchStick(new GaussianNoiseMapper());
         baseMStick.setProperties(8, "SHADE");
         baseMStick.genMatchStickRand();
 
@@ -67,52 +68,52 @@ public class TwobyTwoMatchStickTest {
 
     @Test
     public void test_msticks() {
-        TwobyTwoMatchStick firstMStick = new TwobyTwoMatchStick();
+        TwoByTwoMatchStick firstMStick = new TwoByTwoMatchStick(new GaussianNoiseMapper());
         firstMStick.setProperties(40, "SHADE");
         firstMStick.genMatchStickFromComponent(baseMStick, 1, 2, firstMStick.maxAttempts);
         drawPng(firstMStick, 2L);
 
-        TwobyTwoMatchStick secondMStick = new TwobyTwoMatchStick();
+        TwoByTwoMatchStick secondMStick = new TwoByTwoMatchStick(new GaussianNoiseMapper());
         secondMStick.setProperties(40, "SHADE");
-        secondMStick.genMorphedBaseMatchStick(firstMStick, 1, secondMStick.maxAttempts, true, true, 0.7, 1 / 3.0);
+        secondMStick.genMorphedBaseMatchStick(firstMStick, 1, secondMStick.maxAttempts, true, true);
         drawPng(secondMStick, 3L);
 
-        TwobyTwoMatchStick thirdMStick = new TwobyTwoMatchStick();
+        TwoByTwoMatchStick thirdMStick = new TwoByTwoMatchStick(new GaussianNoiseMapper());
         thirdMStick.setProperties(40, "SHADE");
-        thirdMStick.genMorphedDrivingComponentMatchStick(firstMStick, 0.5, 0.5, true, true);
+        thirdMStick.genMorphedDrivingComponentMatchStick(firstMStick, 0.5, 0.5, true, true, firstMStick.maxAttempts);
         drawPng(thirdMStick, 4L);
 
-        TwobyTwoMatchStick fourthMStick = new TwobyTwoMatchStick();
+        TwoByTwoMatchStick fourthMStick = new TwoByTwoMatchStick(new GaussianNoiseMapper());
         fourthMStick.setProperties(40, "SHADE");
-        fourthMStick.genSwappedBaseAndDrivingComponentMatchStick(secondMStick, 1, thirdMStick, true);
+        fourthMStick.genSwappedBaseAndDrivingComponentMatchStick(secondMStick, 1, thirdMStick, true, 15);
         drawPng(fourthMStick, 5L);
     }
 
     @Test
     public void test_partially_inside(){
-        EStimShapeTwoByTwoMatchStick firstMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);
+        EStimShapeTwoByTwoMatchStick firstMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF, null);
         firstMStick.setProperties(5, "SHADE");
         firstMStick.genMatchStickFromComponent(baseMStick, 1, 2, firstMStick.maxAttempts);
         drawPng(firstMStick, 11L);
 
 
-        EStimShapeTwoByTwoMatchStick secondMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);
+        EStimShapeTwoByTwoMatchStick secondMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF, null);
         secondMStick.setProperties(5, "SHADE");
-        secondMStick.genMorphedBaseMatchStick(firstMStick, 1, secondMStick.maxAttempts, true, true, 0.7, 1 / 3.0);
+        secondMStick.genMorphedBaseMatchStick(firstMStick, 1, secondMStick.maxAttempts, true, true);
         drawPng(secondMStick, 12L);
 
-        EStimShapeTwoByTwoMatchStick thirdMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);
+        EStimShapeTwoByTwoMatchStick thirdMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF, null);
         thirdMStick.setProperties(5, "SHADE");
-        thirdMStick.genMorphedDrivingComponentMatchStick(firstMStick, 0.5, 0.5, true, true);
+        thirdMStick.genMorphedDrivingComponentMatchStick(firstMStick, 0.5, 0.5, true, true, firstMStick.maxAttempts);
         drawPng(thirdMStick, 13L);
 
-        EStimShapeTwoByTwoMatchStick fourthMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);
+        EStimShapeTwoByTwoMatchStick fourthMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF, null);
         fourthMStick.setProperties(5, "SHADE");
-        fourthMStick.genSwappedBaseAndDrivingComponentMatchStick(secondMStick, 1, thirdMStick, true);
+        fourthMStick.genSwappedBaseAndDrivingComponentMatchStick(secondMStick, 1, thirdMStick, true, 15);
         drawPng(fourthMStick, 14L);
     }
 
-    private void drawPng(TwobyTwoMatchStick matchStick, long id) {
+    private void drawPng(TwoByTwoMatchStick matchStick, long id) {
 //        pngMaker = new AllenPNGMaker(500, 500);
         AllenMStickSpec spec = new AllenMStickSpec();
         spec.setMStickInfo(matchStick, true);

@@ -1,6 +1,6 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
-import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
+import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
@@ -13,7 +13,7 @@ public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim
 
     private ReceptiveField rf;
 
-    public EStimShapeProceduralBehavioralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ReceptiveField rf) {
+    public EStimShapeProceduralBehavioralStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, ReceptiveField rf) {
         super(
                 generator,
                 parameters,
@@ -83,12 +83,12 @@ public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim
         //Generate Sample
         EStimShapeProceduralMatchStick sample = new EStimShapeProceduralMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
-                rf
+                rf, generator.getPngMaker().getNoiseMapper()
         );
-        sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
+        sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimShapeExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees()), parameters.textureType);
         sample.setStimColor(parameters.color);
         baseMatchStick.setMaxAttempts(3);
-        sample.genMatchStickFromComponentInNoise(baseMatchStick, randLeaf, 0, true);
+        sample.genMatchStickFromComponentInNoise(baseMatchStick, randLeaf, 0, true, sample.maxAttempts, generator.getPngMaker().getNoiseMapper());
 
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));
@@ -97,8 +97,8 @@ public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim
     }
 
     private ProceduralMatchStick genRandBaseMStick() {
-        ProceduralMatchStick baseMStick = new ProceduralMatchStick();
-        baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
+        ProceduralMatchStick baseMStick = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
+        baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimShapeExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees()), parameters.textureType);
         baseMStick.setStimColor(parameters.color);
         baseMStick.genMatchStickRand();
 

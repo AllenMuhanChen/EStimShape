@@ -1,6 +1,6 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
-import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
+import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
@@ -16,7 +16,7 @@ public class EStimShapeDeltaStim extends EStimShapeProceduralStim{
 
     public EStimShapeDeltaStim(EStimShapeProceduralStim baseStim, boolean isDeltaMorph, boolean isDeltaNoise){
         super(
-                (EStimExperimentTrialGenerator) baseStim.generator,
+                (EStimShapeExperimentTrialGenerator) baseStim.generator,
                 baseStim.getParameters(),
                 baseStim.baseMatchStick,
                 -1, true);
@@ -85,7 +85,7 @@ public class EStimShapeDeltaStim extends EStimShapeProceduralStim{
             labels.add("deltaMorph");
         }
         for (int i = 0; i < numProceduralDistractors; i++) {
-            String proceduralDistractorPath = pngMaker.createAndSavePNG(mSticks.proceduralDistractors.get(i),stimObjIds.proceduralDistractors.get(i), labels, generatorPngPath);
+            String proceduralDistractorPath = pngMaker.createAndSavePNG(mSticks.getProceduralDistractors().get(i), stimObjIds.getProceduralDistractors().get(i), labels, generatorPngPath);
             experimentPngPaths.addProceduralDistractor(generator.convertPngPathToExperiment(proceduralDistractorPath));
             System.out.println("Procedural Distractor Path: " + proceduralDistractorPath);
         }
@@ -101,7 +101,7 @@ public class EStimShapeDeltaStim extends EStimShapeProceduralStim{
         } else {
             System.out.println("Not Delta: Noise Component Index: " + noiseComponentIndex);
         }
-        String generatorNoiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorNoiseMapPath(), parameters.noiseChance, noiseComponentIndex);
+        String generatorNoiseMapPath = generator.getPngMaker().createAndSaveNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorNoiseMapPath(), parameters.noiseChance, noiseComponentIndex);
         experimentNoiseMapPath = generator.convertGeneratorNoiseMapToExperiment(generatorNoiseMapPath);
     }
 

@@ -1,6 +1,7 @@
 package org.xper.allen.drawing.composition.noisy;
 
 
+import javax.vecmath.Point2d;
 import java.util.*;
 
 /**
@@ -16,8 +17,8 @@ import java.util.*;
  * https://repositorium.sdum.uminho.pt/bitstream/1822/6429/1/ConcaveHull_ACM_MYS.pdf
  *
  * With help from https://github.com/detlevn/QGIS-ConcaveHull-Plugin/blob/master/concavehull.py
- * 
- * AC: made pointInPolygon() method public static. 
+ *
+ * AC: made pointInPolygon() method public static.
  */
 public class ConcaveHull {
 
@@ -62,6 +63,10 @@ public class ConcaveHull {
             // http://www.cs.upc.edu/~alvarez/calculabilitat/enumerabilitat.pdf
             int tmp = (int) (y + ((x + 1) / 2));
             return Math.abs((int) (x + (tmp * tmp)));
+        }
+
+        public double distance(Point2d point2d) {
+            return Math.sqrt(Math.pow(x - point2d.x, 2) + Math.pow(y - point2d.y, 2));
         }
     }
 
@@ -282,5 +287,3 @@ public class ConcaveHull {
     }
 
 }
-
-

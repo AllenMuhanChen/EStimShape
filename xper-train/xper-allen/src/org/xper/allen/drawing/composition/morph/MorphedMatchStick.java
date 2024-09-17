@@ -41,9 +41,9 @@ public class MorphedMatchStick extends AllenMatchStick {
     public void genMorphedComponentsMatchStick(Map<Integer, ComponentMorphParameters> morphParametersForComponents, MorphedMatchStick matchStickToMorph, boolean doPositionShape){
         this.showComponents = false;
 
-        MorphedMatchStick backup = new MorphedMatchStick();
-        backup.copyFrom(matchStickToMorph);
-//        copyFrom(backup);
+        localBackup = new MorphedMatchStick();
+        localBackup.copyFrom(matchStickToMorph);
+        copyFrom(localBackup);
 
 
         // Attempt to morph every component. If we fail, then restart with the backup.
@@ -51,7 +51,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         while (numAttempts < getMaxTotalAttempts()) {
             try {
                 numAttempts++;
-                copyFrom(backup);
+
                 findCompsToPreserve(morphParametersForComponents.keySet());
                 morphAllComponents(morphParametersForComponents);
 //                MutateSUB_reAssignJunctionRadius();
@@ -64,6 +64,7 @@ public class MorphedMatchStick extends AllenMatchStick {
             } catch (MorphException e) {
                 cleanData();
                 this.setObj1(null);
+                copyFrom(localBackup);
 //                e.printStackTrace();
                 System.err.println(e.getMessage());
                 System.out.println("Failed to morph matchstick.");
@@ -312,8 +313,6 @@ public class MorphedMatchStick extends AllenMatchStick {
 
      */
     private void attemptToMorphComponent(Integer componentIndex, ComponentMorphParameters morphParams) {
-        localBackup = new MorphedMatchStick();
-        localBackup.copyFrom(this);
 
         int numAttempts=0;
         while (numAttempts < NUM_ATTEMPTS_PER_COMPONENT) {
@@ -327,7 +326,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 return;
             } catch (MorphException e) {
                 System.err.println(e.getMessage());
-                System.out.println("Failed to Morph Component " + componentIndex + " with parameters " + morphParams);
+                System.out.println("Failed to Morph Component " + componentIndex + " with parameters " + morphParams + " because of " + e.getMessage());
                 morphParams.distribute();
                 copyFrom(localBackup);
             } finally {
@@ -356,6 +355,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 checkForCollisions(id);
                 return;
             } catch (MorphException e){
+                copyFrom(localBackup);
                 System.err.println(e.getMessage());
             } finally {
                 numAttempts++;

@@ -2,7 +2,6 @@ package org.xper.allen.pga;
 
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
-import org.xper.allen.drawing.ga.RandomPointInConvexPolygon;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.drawing.Coordinates2D;
 
@@ -13,13 +12,13 @@ import java.util.Collections;
 import java.util.List;
 
 public class RFUtils {
-    public static double calculateMStickMaxSizeDiameterDegrees(RFStrategy rfStrategy, ReceptiveFieldSource rfSource) {
+    public static double calculateMStickMaxSizeDiameterDegrees(RFStrategy rfStrategy, double rfRadiusDegrees) {
         if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
-            int maxLimbs = 6;
-            return rfSource.getRFRadiusDegrees() * maxLimbs;
+            int maxLimbs = 4;
+            return rfRadiusDegrees * maxLimbs;
         } else {
             //TODO:
-            return rfSource.getRFRadiusDegrees() * 2;
+            return rfRadiusDegrees * 2;
         }
     }
 
@@ -31,7 +30,7 @@ public class RFUtils {
             double percentageInsideRF = 1.0;
 
             double initialThresholdPercentageOutOfRF = 0.8;
-            double reductionStep = 0.05; // Step to reduce thresholdPercentageOutOfRF
+            double reductionStep = 0.1; // Step to reduce thresholdPercentageOutOfRF
             double minThresholdPercentageOutOfRF = 0.5; // Minimum threshold percentage allowed
 
             int numPointsToTry = 100;

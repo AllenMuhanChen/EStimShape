@@ -1,6 +1,7 @@
 package org.xper.allen.drawing.composition.experiment;
 
 import org.lwjgl.opengl.GL11;
+import org.xper.allen.drawing.composition.noisy.NoiseMapper;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
@@ -20,10 +21,11 @@ import java.util.*;
 public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
     public ReceptiveField rf;
 
-    public EStimShapeProceduralMatchStick(RFStrategy rfStrategy, ReceptiveField rf) {
+    public EStimShapeProceduralMatchStick(RFStrategy rfStrategy, ReceptiveField rf, NoiseMapper noiseMapper) {
+        super(noiseMapper);
         this.rfStrategy = rfStrategy;
         this.rf = rf;
-        this.noiseRadiusMm = rf.radius*2;
+        this.noiseRadiusMm = rf.radius*3;
     }
 
 

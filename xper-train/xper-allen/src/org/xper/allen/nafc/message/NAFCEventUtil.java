@@ -3,7 +3,7 @@ package org.xper.allen.nafc.message;
 import java.util.List;
 
 import org.xper.allen.nafc.experiment.NAFCTrialContext;
-import org.xper.classic.vo.TrialContext;
+import org.xper.drawing.Context;
 
 public class NAFCEventUtil {
 
@@ -87,10 +87,10 @@ public class NAFCEventUtil {
 	}
 
 	public static void fireChoiceSelectionCorrectEvent(long timestamp,
-													   List<?extends ChoiceEventListener> choiceEventListeners, int[] rewardList) {
+													   List<?extends ChoiceEventListener> choiceEventListeners, int[] rewardList, Context context) {
 
 		for (ChoiceEventListener listener: choiceEventListeners) {
-			listener.choiceSelectionCorrect(timestamp, rewardList);
+			listener.choiceSelectionCorrect(timestamp, rewardList, context);
 		}
 	}
 

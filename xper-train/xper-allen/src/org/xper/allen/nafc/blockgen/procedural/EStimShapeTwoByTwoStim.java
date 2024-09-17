@@ -1,9 +1,9 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
-import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
+import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.experiment.EStimShapeTwoByTwoMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
-import org.xper.allen.drawing.composition.experiment.TwobyTwoMatchStick;
+import org.xper.allen.drawing.composition.experiment.TwoByTwoMatchStick;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 import org.xper.time.TimeUtil;
@@ -15,7 +15,12 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
     protected int baseDrivingComponent;
     protected int nComp;
 
-    public EStimShapeTwoByTwoStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled, int nComp) {
+    public EStimShapeTwoByTwoStim(EStimShapeExperimentTrialGenerator generator,
+                                  ProceduralStimParameters parameters,
+                                  ProceduralMatchStick baseMatchStick,
+                                  int morphComponentIndex,
+                                  boolean isEStimEnabled,
+                                  int nComp) {
         super(generator, parameters, baseMatchStick, morphComponentIndex, isEStimEnabled);
         this.baseDrivingComponent = morphComponentIndex;
         if (nComp == 0){
@@ -71,42 +76,42 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
 
     @Override
     protected void generateProceduralDistractors(ProceduralMatchStick match) {
-        TwobyTwoMatchStick swappedBaseMStick = new TwobyTwoMatchStick();
+        TwoByTwoMatchStick swappedBaseMStick = new TwoByTwoMatchStick(generator.getPngMaker().getNoiseMapper());
         if (numProceduralDistractors >= 1) {
             correctNoiseRadius(swappedBaseMStick);
             swappedBaseMStick.setProperties(parameters.getSize(), parameters.textureType);
             swappedBaseMStick.setStimColor(parameters.color);
             swappedBaseMStick.genMorphedBaseMatchStick(match,
                     morphComponentIndex,
-                    100,
+                    30,
                     false,
-                    true, 0.7, 1 / 3.0);
-            mSticks.proceduralDistractors.add(swappedBaseMStick);
-            mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedBaseMStick));
+                    true);
+            mSticks.addProceduralDistractor(swappedBaseMStick);
+            mStickSpecs.addProceduralDistractor(mStickToSpec(swappedBaseMStick));
         }
 
-        TwobyTwoMatchStick swappedInNoiseMStick = new TwobyTwoMatchStick();
+        TwoByTwoMatchStick swappedInNoiseMStick = new TwoByTwoMatchStick(generator.getPngMaker().getNoiseMapper());
         if (numProceduralDistractors >= 2) {
             correctNoiseRadius(swappedInNoiseMStick);
             swappedInNoiseMStick.setProperties(parameters.getSize(), parameters.textureType);
             swappedInNoiseMStick.setStimColor(parameters.color);
             swappedInNoiseMStick.genMorphedDrivingComponentMatchStick(match,
                     0.7, 1.0/3.0,
-                    false, true);
-            mSticks.proceduralDistractors.add(swappedInNoiseMStick);
-            mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedInNoiseMStick));
+                    false, true, 30);
+            mSticks.addProceduralDistractor(swappedInNoiseMStick);
+            mStickSpecs.addProceduralDistractor(mStickToSpec(swappedInNoiseMStick));
         }
 
-        TwobyTwoMatchStick swappedBothMStick = new TwobyTwoMatchStick();
+        TwoByTwoMatchStick swappedBothMStick = new TwoByTwoMatchStick(generator.getPngMaker().getNoiseMapper());
         if (numProceduralDistractors >= 3) {
             correctNoiseRadius(swappedBothMStick);
             swappedBothMStick.setProperties(parameters.getSize(), parameters.textureType);
             swappedBothMStick.setStimColor(parameters.color);
             swappedBothMStick.genSwappedBaseAndDrivingComponentMatchStick(swappedBaseMStick,
                     morphComponentIndex,
-                    swappedInNoiseMStick, false);
-            mSticks.proceduralDistractors.add(swappedBothMStick);
-            mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedBothMStick));
+                    swappedInNoiseMStick, false, 15);
+            mSticks.addProceduralDistractor(swappedBothMStick);
+            mStickSpecs.addProceduralDistractor(mStickToSpec(swappedBothMStick));
         }
     }
 
@@ -116,13 +121,13 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
         //Generate Sample
         EStimShapeTwoByTwoMatchStick sample = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
-                ((EStimExperimentTrialGenerator) generator).getRF()
-        );
+                ((EStimShapeExperimentTrialGenerator) generator).getRF(),
+                null);
         sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE,
-                ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
+                ((EStimShapeExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees()), parameters.textureType);
         sample.setStimColor(parameters.color);
         sample.genMatchStickFromComponentInNoise(baseMatchStick, baseDrivingComponent, nComp,
-                true);
+                true, 15, generator.getPngMaker().getNoiseMapper());
 
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));
@@ -132,7 +137,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
 
     @Override
     protected void generateMatch(ProceduralMatchStick sample) {
-        TwobyTwoMatchStick match = new TwobyTwoMatchStick();
+        TwoByTwoMatchStick match = new TwoByTwoMatchStick(generator.getPngMaker().getNoiseMapper());
         match.setProperties(parameters.getSize(), parameters.textureType);
         match.setStimColor(parameters.color);
         match.genMatchStickFromShapeSpec(mStickSpecs.getSample(), new double[]{0,0,0});

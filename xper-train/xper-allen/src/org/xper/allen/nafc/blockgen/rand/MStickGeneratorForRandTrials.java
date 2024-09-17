@@ -165,10 +165,10 @@ public class MStickGeneratorForRandTrials {
 		specs.setSample(mStickToSpec(sample));
 		specs.setMatch(mStickToSpec(match));
 		for (AllenMatchStick qmDistractor: qualitativeMorphDistractors) {
-			specs.getQualitativeMorphDistractors().add(mStickToSpec(qmDistractor));
+			specs.addQualitativeMorphDistractor(mStickToSpec(qmDistractor));
 		}
 		for (AllenMatchStick randDistractor: randDistractors) {
-			specs.getRandDistractors().add(mStickToSpec(randDistractor));
+			specs.addRandDistractor(mStickToSpec(randDistractor));
 		}
 		return specs;
 	}

@@ -15,6 +15,7 @@ import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
+import org.xper.allen.drawing.composition.noisy.NoiseMapper;
 import org.xper.allen.util.DPIUtil;
 import org.xper.utils.RGBColor;
 
@@ -30,10 +31,11 @@ public class AllenPNGMaker{
 	@Dependency
 	private double depth;
 	@Dependency
-	int height;
+	public int height;
 	@Dependency
-	int width;
-
+	public int width;
+	@Dependency
+	NoiseMapper noiseMapper;
 
 	public AllenDrawingManager window = null;
 
@@ -45,7 +47,7 @@ public class AllenPNGMaker{
 
 	public void createDrawerWindow() {
 		if(window == null || !window.isOpen()) { //Only make a new window if there isn't one already
-			window = new AllenDrawingManager(width, height);
+			window = new AllenDrawingManager(width, height, noiseMapper);
 			window.setPngMaker(this);
 			window.init();
 		}
@@ -74,19 +76,30 @@ public class AllenPNGMaker{
 		return window.drawStimulus(obj, stimObjId, emptyLabels);
 	}
 
-	public String createAndSaveNoiseMap(AllenMatchStick obj, Long stimObjId, List<String> labels, String destinationFolder) {
+	public String createAndSaveCompGraphNoiseMap(AllenMatchStick obj, Long stimObjId, List<String> labels, String destinationFolder) {
 		window.setImageFolderName(destinationFolder);
 		window.setBackgroundColor(1.0f, 0.0f, 0.0f);
 		System.out.println("creating and saving NoiseMap PNG...");
-		return window.drawNoiseMap(obj, stimObjId,labels);
+		return window.drawCompGraphNoiseMap(obj, stimObjId,labels);
 	}
 
-	public String createAndSaveGaussNoiseMap(ProceduralMatchStick obj, Long stimObjId, List<String> labels, String destinationFolder, double amplitude, int specialCompIndx) {
+	public String createAndSaveNoiseMap(ProceduralMatchStick obj, Long stimObjId, List<String> labels, String destinationFolder, double amplitude, int specialCompIndx) {
 		window.setImageFolderName(destinationFolder);
 		window.setBackgroundColor(1.0f, 0.0f, 0.0f);
 		System.out.println("creating and saving NoiseMap PNG...");
 		try {
-			return window.drawGaussNoiseMap(obj, stimObjId,labels, amplitude, specialCompIndx);
+			return window.drawNoiseMap(obj, stimObjId,labels, amplitude, specialCompIndx);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public String createAndSaveNoiseMap(ProceduralMatchStick obj, Long stimObjId, List<String> labels, String destinationFolder, double amplitude, List<Integer> specialCompIndcs) {
+		window.setImageFolderName(destinationFolder);
+		window.setBackgroundColor(1.0f, 0.0f, 0.0f);
+		System.out.println("creating and saving NoiseMap PNG...");
+		try {
+			return window.drawNoiseMap(obj, stimObjId,labels, amplitude, specialCompIndcs);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -148,7 +161,7 @@ public class AllenPNGMaker{
 
 		int index=0;
 		for(AllenMatchStick obj:objs) {
-			String path = createAndSaveNoiseMap(obj, stimObjIds.get(index), additionalLabels.get(index), destinationFolder);
+			String path = createAndSaveCompGraphNoiseMap(obj, stimObjIds.get(index), additionalLabels.get(index), destinationFolder);
 			paths.add(path);
 			index++;
 		}
@@ -183,7 +196,7 @@ public class AllenPNGMaker{
 		return saveImage(stimObjId, labels, height, width, imageFolderName);
 	}
 
-	public String saveImage(long stimObjId, List<String> labels, int height, int width,String imageFolderName) {
+	public static String saveImage(long stimObjId, List<String> labels, int height, int width,String imageFolderName) {
 		byte[] data = screenShotBinary(width,height);
 
 		String path = imageFolderName + "/" + stimObjId;
@@ -324,4 +337,11 @@ public class AllenPNGMaker{
 		this.depth = depth;
 	}
 
+	public NoiseMapper getNoiseMapper() {
+		return noiseMapper;
+	}
+
+	public void setNoiseMapper(NoiseMapper noiseMapper) {
+		this.noiseMapper = noiseMapper;
+	}
 }

@@ -3756,10 +3756,7 @@ public class AllenMatchStick extends MatchStick {
 	{
 		double screenDist = 500;
 		double maxDiameterDegrees = getScaleForMAxisShape(); // DIAMETER in degrees
-		System.out.println("In validMStickSize: size " + maxDiameterDegrees);
-		double maxDiameterRadians = maxDiameterDegrees * Math.PI / 180;
-		double maxRadiusRadians = maxDiameterRadians / 2;
-		double radiusMm = screenDist * Math.tan(maxRadiusRadians);
+		double radiusMm = degToMm(maxDiameterDegrees, screenDist) / 2;
 		int i, j;
 
 //		Point3d ori = getMassCenter();
@@ -3776,6 +3773,12 @@ public class AllenMatchStick extends MatchStick {
 		return true;
 	}
 
+	public static double degToMm(double maxDiameterDegrees, double screenDist) {
+		System.out.println("In validMStickSize: size " + maxDiameterDegrees);
+		double maxDiameterRadians = maxDiameterDegrees * Math.PI / 180;
+		double diameterMm = screenDist * Math.tan(maxDiameterRadians);
+		return diameterMm;
+	}
 
 	public void setScale(double minScale, double maxScale) {
 		setMinScaleForMAxisShape(minScale);
@@ -3815,7 +3818,8 @@ public class AllenMatchStick extends MatchStick {
 			getJuncPt()[i] = new JuncPt_struct();
 			getJuncPt()[i].copyFrom(in.getJuncPt()[i]);
 		}
-		this.setObj1(new MStickObj4Smooth(in.getObj1()));
+		if (in.getObj1() != null)
+			this.setObj1(new MStickObj4Smooth(in.getObj1()));
 
 		for (i=1; i<=getnComponent(); i++)
 			getLeafBranch()[i] = in.getLeafBranch()[i];

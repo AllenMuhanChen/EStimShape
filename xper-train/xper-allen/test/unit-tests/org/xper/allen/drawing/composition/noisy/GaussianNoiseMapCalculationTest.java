@@ -34,7 +34,7 @@ public class GaussianNoiseMapCalculationTest {
         double amplitude = 1.0;
         double background = 0.5;
 
-        BufferedImage noiseMap = GaussianNoiseMapCalculation.generateGaussianNoiseMap(width, height,
+        BufferedImage noiseMap = GaussianNoiseMapper.generateGaussianNoiseMap(width, height,
                 centerX, centerY,
                 sigmaX, sigmaY,
                 amplitude, background);

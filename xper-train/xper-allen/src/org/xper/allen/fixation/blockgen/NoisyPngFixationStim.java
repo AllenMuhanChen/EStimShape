@@ -30,7 +30,7 @@ public class NoisyPngFixationStim implements Stim {
     @Override
     public void writeStim() {
         //Generate MStick
-        ProceduralMatchStick mStick = new ProceduralMatchStick();
+        ProceduralMatchStick mStick = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
         mStick.setProperties(generator.getImageDimensionsDegrees(), "SHADE");
         mStick.setStimColor(params.color);
         mStick.genMatchStickRand();
@@ -45,7 +45,7 @@ public class NoisyPngFixationStim implements Stim {
 
         //Create NoiseMap
         int noiseCompIndx = mStick.chooseRandLeaf();
-        String noiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap((ProceduralMatchStick) mStick, id, Collections.singletonList(""), generator.getGeneratorPngPath(), params.noiseChance, noiseCompIndx);
+        String noiseMapPath = generator.getPngMaker().createAndSaveNoiseMap((ProceduralMatchStick) mStick, id, Collections.singletonList(""), generator.getGeneratorPngPath(), params.noiseChance, noiseCompIndx);
         noiseMapPath = generator.convertPngPathToExperiment(noiseMapPath);
 
         //Assign Coordinates

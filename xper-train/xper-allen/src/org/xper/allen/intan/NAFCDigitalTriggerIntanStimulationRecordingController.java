@@ -57,7 +57,7 @@ public class NAFCDigitalTriggerIntanStimulationRecordingController extends NAFCI
                     stimulationChannels.add(channel);
                 }
             } catch (Exception e) {
-                System.out.println("Could not get channel amplitude for " + channel.toString() + " " + e.getMessage());
+//                System.out.println("Could not get channel amplitude for " + channel.toString() + " " + e.getMessage());
             }
 
         }

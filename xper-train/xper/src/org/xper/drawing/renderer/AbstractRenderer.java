@@ -58,6 +58,14 @@ public abstract class AbstractRenderer implements Renderer {
 		return Math.tan(deg * Math.PI / 180.0) * distance;
 	}
 
+	public static double deg2mm(double deg, double distance){
+		return Math.tan(deg * Math.PI / 180.0) * distance;
+	}
+
+	public static double mm2deg(double mm, double distance){
+		return Math.atan(mm / distance) * 180.0 / Math.PI;
+	}
+
 	/**
 	 * Convert rectangle from mm to pixel.
 	 *

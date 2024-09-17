@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class NormalDistributedComponentMorphParameters implements ComponentMorphParameters {
 
+    private double maxOrientationChange = -1;
     public Double magnitude;
     private NormalMorphDistributer normalMorphDistributer;
 
@@ -15,6 +16,13 @@ public class NormalDistributedComponentMorphParameters implements ComponentMorph
         this.magnitude = magnitude;
         this.normalMorphDistributer = normalMorphDistributer;
 
+        distributeMagnitude();
+    }
+
+    public NormalDistributedComponentMorphParameters(Double magnitude, NormalMorphDistributer normalMorphDistributer, double maxRotationRadians) {
+        this.magnitude = magnitude;
+        this.normalMorphDistributer = normalMorphDistributer;
+        this.maxOrientationChange = maxRotationRadians;
         distributeMagnitude();
     }
 
@@ -30,7 +38,13 @@ public class NormalDistributedComponentMorphParameters implements ComponentMorph
 
     @Override
     public Vector3d morphOrientation(Vector3d oldOrientation){
-        Vector3DMorpher vector3DMorpher = new Vector3DMorpher();
+        Vector3DMorpher vector3DMorpher;
+        if (maxOrientationChange != -1){
+            vector3DMorpher = new Vector3DMorpher(maxOrientationChange);
+        } else{
+            vector3DMorpher = new Vector3DMorpher();
+        }
+
         orientation = vector3DMorpher.morphVector(oldOrientation, orientationMagnitude);
         return orientation;
     }

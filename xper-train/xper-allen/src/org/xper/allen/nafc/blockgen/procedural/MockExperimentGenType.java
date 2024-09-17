@@ -32,7 +32,7 @@ public class MockExperimentGenType extends ProceduralRandGenType<MockExperimentG
         List<NAFCStim> newBlock = new LinkedList<>();
 
         //Generate the base matchstick
-        ProceduralMatchStick baseMStick = new ProceduralMatchStick();
+        ProceduralMatchStick baseMStick = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
         baseMStick.setProperties(generator.getImageDimensionsDegrees(), "SHADE");
         baseMStick.setStimColor(parameters.getProceduralStimParameters().color);
         baseMStick.genMatchStickRand();

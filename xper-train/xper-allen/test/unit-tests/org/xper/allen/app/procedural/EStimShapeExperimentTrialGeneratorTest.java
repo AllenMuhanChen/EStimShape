@@ -1,7 +1,7 @@
 package org.xper.allen.app.procedural;
 
 import org.junit.Test;
-import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
+import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
 import org.xper.allen.drawing.ga.CircleReceptiveField;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.drawing.Coordinates2D;
@@ -11,7 +11,7 @@ import java.util.function.Predicate;
 
 import static org.junit.Assert.assertEquals;
 
-public class EStimExperimentTrialGeneratorTest {
+public class EStimShapeExperimentTrialGeneratorTest {
 
     @Test
     public void testAssigningRFs() {
@@ -19,7 +19,7 @@ public class EStimExperimentTrialGeneratorTest {
         int numDeltaTrials = 10;
         int numBehavioralTrials = 60;
         CircleReceptiveField realRF = new CircleReceptiveField(new Coordinates2D(0, 10), 10);
-        List<ReceptiveField> behTrialRFs = EStimExperimentTrialGenerator.assignRFsToBehTrials(numEStimTrials, numDeltaTrials, numBehavioralTrials, realRF);
+        List<ReceptiveField> behTrialRFs = EStimShapeExperimentTrialGenerator.assignRFsToBehTrials(numEStimTrials, numDeltaTrials, numBehavioralTrials, realRF);
 
         assertEquals(60, behTrialRFs.size());
         //real RF is assigned number of beh trials equal to number of test trials

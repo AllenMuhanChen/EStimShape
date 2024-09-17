@@ -6,6 +6,7 @@ import org.lwjgl.opengl.GL11;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.drawing.ga.TestMatchStickDrawer;
 import org.xper.allen.pga.RFStrategy;
@@ -17,6 +18,7 @@ import javax.vecmath.Vector3d;
 import java.awt.*;
 
 public class CoordinatesTest {
+    private final GaussianNoiseMapper noiseMapper = new GaussianNoiseMapper();
     private TestMatchStickDrawer testMatchStickDrawer;
     private EStimShapeProceduralMatchStick mStick;
     private ProceduralMatchStick baseMStick;
@@ -49,14 +51,14 @@ public class CoordinatesTest {
                 return (x- h)*(x- h) + (y- k)*(y- k) < r * r;
             }
         };
-        mStick = new EStimShapeProceduralMatchStick(RFStrategy.COMPLETELY_INSIDE, receptiveField);
+        mStick = new EStimShapeProceduralMatchStick(RFStrategy.COMPLETELY_INSIDE, receptiveField, noiseMapper);
         mStick.setProperties(2, "SHADE");
 
-        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true);
+        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true, mStick.maxAttempts, noiseMapper);
     }
 
     private static ProceduralMatchStick genBaseMStick() {
-        ProceduralMatchStick baseMStick = new ProceduralMatchStick();
+        ProceduralMatchStick baseMStick = new ProceduralMatchStick(new GaussianNoiseMapper());
         baseMStick.setProperties(4, "SHADE");
         baseMStick.setStimColor(new Color(255,255,255));
         baseMStick.genMatchStickRand();
@@ -82,10 +84,10 @@ public class CoordinatesTest {
                 return (x- h)*(x- h) + (y- k)*(y- k) < r * r;
             }
         };
-        mStick = new EStimShapeProceduralMatchStick(RFStrategy.PARTIALLY_INSIDE, receptiveField);
+        mStick = new EStimShapeProceduralMatchStick(RFStrategy.PARTIALLY_INSIDE, receptiveField, noiseMapper);
         mStick.setProperties(2, "SHADE");
 
-        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true);
+        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true, mStick.maxAttempts, noiseMapper);
     }
 
     @Test

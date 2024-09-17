@@ -17,7 +17,6 @@ import org.xper.config.AcqConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.drawing.object.BlankScreen;
 
-
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
@@ -58,6 +57,7 @@ public class NAFCMStickPngAppConfig{
 		gen.setQmpGenerator(qmpGenerator());
 		return gen;
 	}
+
 
 
 	@Bean

@@ -8,6 +8,8 @@ import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.composition.AllenDrawingManager;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
+import org.xper.allen.drawing.composition.noisy.NoiseMapper;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.drawing.ga.TestMatchStickDrawer;
 import org.xper.allen.pga.RFStrategy;
@@ -33,6 +35,7 @@ public class EStimShapeProceduralMatchStickTest {
     private int numNoiseFrames;
     private EStimShapeProceduralMatchStick testMStick;
     private JavaConfigApplicationContext context;
+    private NoiseMapper noiseMapper = new GaussianNoiseMapper();
 
     @Before
     public void setUp() throws Exception {
@@ -45,7 +48,7 @@ public class EStimShapeProceduralMatchStickTest {
         testMatchStickDrawer = new TestMatchStickDrawer();
         testMatchStickDrawer.setup(500, 500);
 
-        baseMStick = new ProceduralMatchStick();
+        baseMStick = new ProceduralMatchStick(new GaussianNoiseMapper());
         baseMStick.setProperties(4, "SHADE");
         baseMStick.setStimColor(new Color(255,255,255));
         baseMStick.genMatchStickRand();
@@ -75,11 +78,11 @@ public class EStimShapeProceduralMatchStickTest {
                 return (x- h)*(x- h) + (y- k)*(y- k) < r * r;
             }
         };
-        EStimShapeProceduralMatchStick mStick = new EStimShapeProceduralMatchStick(RFStrategy.COMPLETELY_INSIDE, receptiveField);
+        EStimShapeProceduralMatchStick mStick = new EStimShapeProceduralMatchStick(RFStrategy.COMPLETELY_INSIDE, receptiveField, noiseMapper);
 
         mStick.setProperties(2.5, "SHADE");
 
-        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true);
+        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true, mStick.maxAttempts, noiseMapper);
         testMatchStickDrawer.draw(new Drawable() {
             @Override
             public void draw() {
@@ -88,7 +91,7 @@ public class EStimShapeProceduralMatchStickTest {
                 // Now, draw the circle
                 GL11.glColor3f(1.0f, 0.0f, 0.0f);
                 System.out.println(mStick.getSpecialEndComp().get(0));
-                Point3d circle = mStick.calculateNoiseOrigin(mStick.getSpecialEndComp().get(0)); // Replace with the circle's center X-coordinate
+                Point3d circle = mStick.calculateGaussNoiseOrigin(mStick.getSpecialEndComp().get(0)); // Replace with the circle's center X-coordinate
 
                 System.out.println(circle.getX() + " " + circle.getY());
 
@@ -120,7 +123,7 @@ public class EStimShapeProceduralMatchStickTest {
                 // Now, draw the circle
                 GL11.glColor3f(1.0f, 0.0f, 0.0f);
                 System.out.println(mStick.getSpecialEndComp().get(0));
-                Point3d circle = mStick.calculateNoiseOrigin(mStick.getSpecialEndComp().get(0)); // Replace with the circle's center X-coordinate
+                Point3d circle = mStick.calculateGaussNoiseOrigin(mStick.getSpecialEndComp().get(0)); // Replace with the circle's center X-coordinate
                 System.out.println(circle.getX() + " " + circle.getY());
 
                 double radius = 10;
@@ -165,11 +168,11 @@ public class EStimShapeProceduralMatchStickTest {
             }
         };
         EStimShapeProceduralMatchStick mStick = new EStimShapeProceduralMatchStick(
-                RFStrategy.PARTIALLY_INSIDE, receptiveField);
+                RFStrategy.PARTIALLY_INSIDE, receptiveField, noiseMapper);
 
         mStick.setProperties(4.5, "SHADE");
 
-        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true);
+        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true, mStick.maxAttempts, noiseMapper);
         testMatchStickDrawer.draw(new Drawable() {
             @Override
             public void draw() {
@@ -178,7 +181,7 @@ public class EStimShapeProceduralMatchStickTest {
 
                 // Now, draw the circle
                 GL11.glColor3f(1.0f, 0.0f, 0.0f);
-                Point3d circle = mStick.calculateNoiseOrigin(mStick.getSpecialEndComp().get(0)); // Replace with the circle's center X-coordinate
+                Point3d circle = mStick.calculateGaussNoiseOrigin(mStick.getSpecialEndComp().get(0)); // Replace with the circle's center X-coordinate
 
 
                 double radius = mStick.noiseRadiusMm;
@@ -225,11 +228,11 @@ public class EStimShapeProceduralMatchStickTest {
             }
         };
         EStimShapeProceduralMatchStick mStick = new EStimShapeProceduralMatchStick(
-                RFStrategy.PARTIALLY_INSIDE, receptiveField);
+                RFStrategy.PARTIALLY_INSIDE, receptiveField, noiseMapper);
 
         mStick.setProperties(5, "SHADE");
 
-        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true);
+        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true, mStick.maxAttempts, noiseMapper);
 
         drawPng(mStick, "partially_in_rf");
     }
@@ -243,7 +246,7 @@ public class EStimShapeProceduralMatchStickTest {
         spec.setMStickInfo(matchStick, true);
         spec.writeInfo2File(testBin + "/" + label, true);
         pngMaker.createAndSavePNG(matchStick, 1L, Collections.singletonList(Long.toString(1)), testBin);
-        pngMaker.createAndSaveGaussNoiseMap(matchStick, 1L, Collections.singletonList(Long.toString(1)), testBin, 0.5, 1);
+        pngMaker.createAndSaveNoiseMap(matchStick, 1L, Collections.singletonList(Long.toString(1)), testBin, 0.5, 1);
     }
 
 

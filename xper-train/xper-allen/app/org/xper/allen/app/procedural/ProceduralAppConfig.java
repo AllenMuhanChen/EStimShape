@@ -12,9 +12,10 @@ import org.xper.allen.nafc.blockgen.procedural.NAFCTrialParamDbUtil;
 import org.xper.allen.nafc.blockgen.procedural.NAFCBlockGen;
 import org.xper.allen.nafc.blockgen.procedural.ProceduralRandGenType;
 import org.xper.allen.nafc.experiment.juice.LinearControlPointFunction;
-import org.xper.allen.nafc.experiment.juice.NAFCNoiseScalingNoiseController;
+import org.xper.allen.nafc.experiment.juice.NAFCDynamicNoiseController;
 import org.xper.allen.nafc.message.ChoiceEventListener;
 import org.xper.allen.noisy.nafc.NoisyNAFCPngScene;
+import org.xper.classic.MarkStimTrialDrawingController;
 import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.object.FixationPoint;
 
@@ -116,9 +117,11 @@ public class ProceduralAppConfig {
 
     @Bean
     public ChoiceEventListener juiceController(){
-        NAFCNoiseScalingNoiseController controller = new NAFCNoiseScalingNoiseController();
+        NAFCDynamicNoiseController controller = new NAFCDynamicNoiseController();
         controller.setJuice(pngConfig.classicConfig.xperDynamicJuice());
         controller.setNoiseRewardFunction(noiseRewardFunction());
+        controller.setRenderer(pngConfig.config.experimentGLRenderer());
+        controller.setDrawingController((MarkStimTrialDrawingController) pngConfig.config.drawingController());
         return controller;
     }
 
@@ -142,12 +145,12 @@ public class ProceduralAppConfig {
 
     @Bean
     public List<Double> xperNoiseRewardFunctionNoises() {
-        return Arrays.asList(0.0, 0.2, 0.5);
+        return Arrays.asList(0.0, 0.3, 0.5);
     }
 
 
     @Bean
     public List<Double> xperNoiseRewardFunctionRewards() {
-        return Arrays.asList(3.0, 2.5, 3.0);
+        return Arrays.asList(3.0, 4.0, 4.0);
     }
 }

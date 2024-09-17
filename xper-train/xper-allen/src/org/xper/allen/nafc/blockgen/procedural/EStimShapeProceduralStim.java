@@ -1,6 +1,6 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
-import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
+import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
@@ -14,15 +14,13 @@ import org.xper.rfplot.drawing.png.ImageDimensions;
 
 import javax.vecmath.Point3d;
 import java.awt.*;
-import java.util.LinkedList;
-import java.util.List;
 
 public class EStimShapeProceduralStim extends ProceduralStim{
     protected final ReceptiveFieldSource rfSource;
     protected final boolean isEStimEnabled;
     protected long[] eStimObjData;
 
-    public EStimShapeProceduralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled) {
+    public EStimShapeProceduralStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled) {
         super(generator, parameters, baseMatchStick, morphComponentIndex);
         this.rfSource = generator.getRfSource();
         this.isEStimEnabled = isEStimEnabled;
@@ -73,11 +71,11 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         //Generate Sample
         EStimShapeProceduralMatchStick sample = new EStimShapeProceduralMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
-                ((EStimExperimentTrialGenerator) generator).getRF()
+                ((EStimShapeExperimentTrialGenerator) generator).getRF(), generator.getPngMaker().getNoiseMapper()
         );
-        sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
+        sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimShapeExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees()), parameters.textureType);
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0, true);
+        sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0, true, sample.maxAttempts, generator.getPngMaker().getNoiseMapper());
 
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));
@@ -86,8 +84,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     }
 
     private void generateSampleCompMap() {
-        List<String> labels = new LinkedList<>();
-        generator.getPngMaker().createAndSaveCompMap(mSticks.getSample(), stimObjIds.getSample(), labels, generator.getGeneratorPngPath());
+        generator.getPngMaker().createAndSaveCompMap(mSticks.getSample(), stimObjIds.getSample(), labels.getSample(), generator.getGeneratorPngPath());
     }
 
     /**
@@ -98,7 +95,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
      */
     @Override
     protected void generateMatch(ProceduralMatchStick sample) {
-        ProceduralMatchStick match = new ProceduralMatchStick();
+        ProceduralMatchStick match = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
         match.setProperties(parameters.getSize(), parameters.textureType);
         match.setStimColor(parameters.color);
         match.genMatchStickFromShapeSpec(mStickSpecs.getSample(), new double[]{0,0,0});
@@ -124,7 +121,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     @Override
     protected void generateProceduralDistractors(ProceduralMatchStick sample) {
         for (int i = 0; i < numProceduralDistractors; i++) {
-            ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick();
+            ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
             correctNoiseRadius(proceduralDistractor);
             proceduralDistractor.setProperties(parameters.getSize(), parameters.textureType);
             proceduralDistractor.setStimColor(parameters.color);
@@ -142,7 +139,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
      * @param proceduralDistractor
      */
     protected void correctNoiseRadius(ProceduralMatchStick proceduralDistractor) {
-        double scaleFactor = generator.getImageDimensionsDegrees() / RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource);
+        double scaleFactor = generator.getImageDimensionsDegrees() / RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource.getRFRadiusDegrees());
         proceduralDistractor.noiseRadiusMm = rfSource.getRFRadiusMm() * scaleFactor;
     }
 
@@ -183,7 +180,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         double imageSizeSample = generator.getImageDimensionsDegrees();
         ImageDimensions dimensionsSample = new ImageDimensions(imageSizeSample, imageSizeSample);
 
-        double imageSizeChoices = RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource);
+        double imageSizeChoices = RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource.getRFRadiusDegrees());
         ImageDimensions dimensionsChoices = new ImageDimensions(imageSizeChoices, imageSizeChoices);
 
         //Sample
@@ -221,32 +218,32 @@ public class EStimShapeProceduralStim extends ProceduralStim{
 
         //Procedural Distractors
         for (int i = 0; i < numProceduralDistractors; i++) {
-            xCenter = coords.proceduralDistractors.get(i).getX();
-            yCenter = coords.proceduralDistractors.get(i).getY();
-            path = experimentPngPaths.proceduralDistractors.get(i);
+            xCenter = coords.getProceduralDistractors().get(i).getX();
+            yCenter = coords.getProceduralDistractors().get(i).getY();
+            path = experimentPngPaths.getProceduralDistractors().get(i);
             NoisyPngSpec proceduralDistractorSpec = new NoisyPngSpec(
                     xCenter, yCenter,
                     dimensionsChoices,
                     path,
                     noiseMapPath,
                     color);
-            MStickStimObjData proceduralDistractorMStickObjData = new MStickStimObjData("procedural", mStickSpecs.proceduralDistractors.get(i));
-            dbUtil.writeStimObjData(stimObjIds.proceduralDistractors.get(i), proceduralDistractorSpec.toXml(), proceduralDistractorMStickObjData.toXml());
+            MStickStimObjData proceduralDistractorMStickObjData = new MStickStimObjData("procedural", mStickSpecs.getProceduralDistractors().get(i));
+            dbUtil.writeStimObjData(stimObjIds.getProceduralDistractors().get(i), proceduralDistractorSpec.toXml(), proceduralDistractorMStickObjData.toXml());
         }
 
         //Rand Distractors
         for (int i = 0; i < numRandDistractors; i++) {
-            xCenter = coords.randDistractors.get(i).getX();
-            yCenter = coords.randDistractors.get(i).getY();
-            path = experimentPngPaths.randDistractors.get(i);
+            xCenter = coords.getRandDistractors().get(i).getX();
+            yCenter = coords.getRandDistractors().get(i).getY();
+            path = experimentPngPaths.getRandDistractors().get(i);
             NoisyPngSpec randDistractorSpec = new NoisyPngSpec(
                     xCenter, yCenter,
                     dimensionsChoices,
                     path,
                     noiseMapPath,
                     color);
-            MStickStimObjData randDistractorMStickObjData = new MStickStimObjData("rand", mStickSpecs.randDistractors.get(i));
-            dbUtil.writeStimObjData(stimObjIds.randDistractors.get(i), randDistractorSpec.toXml(), randDistractorMStickObjData.toXml());
+            MStickStimObjData randDistractorMStickObjData = new MStickStimObjData("rand", mStickSpecs.getRandDistractors().get(i));
+            dbUtil.writeStimObjData(stimObjIds.getRandDistractors().get(i), randDistractorSpec.toXml(), randDistractorMStickObjData.toXml());
         }
     }
 }

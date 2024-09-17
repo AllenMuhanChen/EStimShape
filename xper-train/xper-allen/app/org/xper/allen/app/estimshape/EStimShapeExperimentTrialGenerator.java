@@ -6,9 +6,11 @@ import org.xper.allen.Stim;
 import org.xper.allen.app.procedural.RadialSquares;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
+import org.xper.allen.drawing.composition.noisy.NoiseMapper;
 import org.xper.allen.drawing.ga.CircleReceptiveField;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.nafc.blockgen.Lims;
+import org.xper.allen.nafc.blockgen.estimshape.EStimShapePsychometricTwoByTwoParameters;
 import org.xper.allen.nafc.blockgen.estimshape.EStimShapePsychometricTwoByTwoStim;
 import org.xper.allen.nafc.blockgen.procedural.*;
 import org.xper.allen.nafc.blockgen.procedural.ProceduralStim.ProceduralStimParameters;
@@ -29,11 +31,10 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.List;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class EStimExperimentTrialGenerator extends NAFCBlockGen {
+public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
     @Dependency
     String gaSpecPath;
 
@@ -42,6 +43,9 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
     @Dependency
     String generatorSetPath;
+
+    @Dependency
+    NoiseMapper noiseMapper;
 
     public static void main(String[] args) {
         try {
@@ -52,7 +56,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.config_class"));
-        EStimExperimentTrialGenerator generator = context.getBean(EStimExperimentTrialGenerator.class);
+        EStimShapeExperimentTrialGenerator generator = context.getBean(EStimShapeExperimentTrialGenerator.class);
         generator.generate();
     }
 
@@ -69,33 +73,26 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
         //Parameters
         //Num Repetitions of Each Condition
-        int X = 10;
-
+        int X = 1;
+        double baseMagnitude = 1.5;
+        double drivingMagnitude = 1.5;
         //Noise
         Map<Double, Integer> noiseConditions = new LinkedHashMap<>();
-//        noiseConditions.put(0.5, 1);
-//        noiseConditions.put(0.4, 1);
-//        noiseConditions.put(0.3, 1);
-//        noiseConditions.put(0.25, 1);
-//        noiseConditions.put(0.2, 1);
-//        noiseConditions.put(0.15, 1);
+        noiseConditions.put(1.0, 1);
 //        noiseConditions.put(0.1, 1);
-//        noiseConditions.put(0.05, 1);
-        noiseConditions.put(0.0, 1);
+//        noiseConditions.put(0.2, 1);
+//        noiseConditions.put(0.3, 1);
 
 
         Map<String, Double> emphasizeChancesForConditions = new HashMap<>();
-//        emphasizeChancesForConditions.put("IV", 0.5);
-//        emphasizeChancesForConditions.put("III", 0.0);
+
         HashMap<String, Integer> emphNumToRemoveForConditions = new HashMap<>();
-//        emphNumToRemoveForConditions.put("IV", 1);
-//        emphNumToRemoveForConditions.put("III", 1);
+
 
 
 
         Map<String, Double> minimizeChancesForConditions = new HashMap<>();
-//        minimizeChancesForConditions.put("II", 0.25);
-//        minimizeChancesForConditions.put("III", 0.75);
+
 
 
 
@@ -105,6 +102,11 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 //        isEStimEnabledConditions.add(false);
 //        isEStimEnabledConditions.add(false);
         isEStimEnabledConditions.add(false);
+
+        //Delta Noise
+        List<Boolean> isDeltaNoiseConditions = new LinkedList<>();
+        isDeltaNoiseConditions.add(true);
+        isDeltaNoiseConditions.add(false);
 
         //Assigning
         List<Path> paths = findSetSpecPaths(Paths.get(generatorSetPath));
@@ -155,61 +157,68 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
                 List<ProceduralStimParameters> behavioralTrialParams = assignTrialParams(
                         stimColor, noiseConditions);
-                //Noise Chance
-                for (ProceduralStimParameters parameters : behavioralTrialParams) {
 
-                    //Calculate do emphasize for each condition
-                    Map<String, Boolean> doEmphasizeConditionsForConditions = new HashMap<>();
-                    for (String condition : emphasizeChancesForConditions.keySet()){
-                        doEmphasizeConditionsForConditions.put(condition, emphasizeChancesForConditions.get(condition) > Math.random());
-                    }
+                // Delta Noise
+                for (Boolean isDeltaNoise: isDeltaNoiseConditions)
+                {
+                    //Noise Chance
+                    for (ProceduralStimParameters proceduralStimParameters : behavioralTrialParams) {
 
-                    Map<String, AllenMStickSpec> baseProceduralDistractorSpecs =
-                            new LinkedHashMap<>(setConditions);
-                    baseProceduralDistractorSpecs.remove(sampleCondition);
-
-                    //MANAGING BIASES
-                    parameters.numRandDistractors = 0;
-                    if (isEmphasize(sampleCondition, doEmphasizeConditionsForConditions)){
-                        for (int i=0; i<emphNumToRemoveForConditions.get(sampleCondition); i++){
-
-                            if (baseProceduralDistractorSpecs.isEmpty()){
-                                break;
-                            }
-                            //remove a random one
-                            String randomKey = new ArrayList<>(baseProceduralDistractorSpecs.keySet()).get(
-                                    (int) (Math.random() * baseProceduralDistractorSpecs.size())
-                            );
-                            baseProceduralDistractorSpecs.remove(randomKey);
-                            parameters.numRandDistractors++;
+                        //Calculate do emphasize for each condition
+                        Map<String, Boolean> doEmphasizeConditionsForConditions = new HashMap<>();
+                        for (String condition : emphasizeChancesForConditions.keySet()){
+                            doEmphasizeConditionsForConditions.put(condition, emphasizeChancesForConditions.get(condition) > Math.random());
                         }
-                    }
 
+                        Map<String, AllenMStickSpec> baseProceduralDistractorSpecs =
+                                new LinkedHashMap<>(setConditions);
+                        baseProceduralDistractorSpecs.remove(sampleCondition);
 
-                    //If minimize condition (i.e III) is NOT the current sample condition, don't include it as an option
-                    for (String condition : minimizeChancesForConditions.keySet()){
-                        if (!sampleCondition.equals(condition) && minimizeChancesForConditions.get(condition) > Math.random()){
-                            if (baseProceduralDistractorSpecs.containsKey(condition)) {
-                                baseProceduralDistractorSpecs.remove(condition);
-                                parameters.numRandDistractors++;
+                        //MANAGING BIASES
+                        proceduralStimParameters.numRandDistractors = 0;
+                        if (isEmphasize(sampleCondition, doEmphasizeConditionsForConditions)){
+                            for (int i=0; i<emphNumToRemoveForConditions.get(sampleCondition); i++){
+
+                                if (baseProceduralDistractorSpecs.isEmpty()){
+                                    break;
+                                }
+                                //remove a random one
+                                String randomKey = new ArrayList<>(baseProceduralDistractorSpecs.keySet()).get(
+                                        (int) (Math.random() * baseProceduralDistractorSpecs.size())
+                                );
+                                baseProceduralDistractorSpecs.remove(randomKey);
+                                proceduralStimParameters.numRandDistractors++;
                             }
                         }
+
+
+                        //If minimize condition (i.e III) is NOT the current sample condition, don't include it as an option
+                        for (String condition : minimizeChancesForConditions.keySet()){
+                            if (!sampleCondition.equals(condition) && minimizeChancesForConditions.get(condition) > Math.random()){
+                                if (baseProceduralDistractorSpecs.containsKey(condition)) {
+                                    baseProceduralDistractorSpecs.remove(condition);
+                                    proceduralStimParameters.numRandDistractors++;
+                                }
+                            }
+                        }
+
+                        //Repetitions for each condition
+                        for (int i=0; i<X; i++) {
+                            EStimShapePsychometricTwoByTwoStim behavioralTrial = new EStimShapePsychometricTwoByTwoStim(
+                                    this,
+                                    new EStimShapePsychometricTwoByTwoParameters(proceduralStimParameters,
+                                            sampleSpec,
+                                            baseProceduralDistractorSpecs,
+                                            isEStimEnabled,
+                                            sampleCondition,
+                                            baseMagnitude,
+                                            drivingMagnitude,
+                                            isDeltaNoise));
+
+                            stims.add(behavioralTrial);
+                        }
+
                     }
-
-                    //Repetitions for each condition
-                    for (int i=0; i<X; i++) {
-                        EStimShapePsychometricTwoByTwoStim behavioralTrial = new EStimShapePsychometricTwoByTwoStim(
-                                this,
-                                parameters,
-                                sampleSpec,
-                                baseProceduralDistractorSpecs,
-                                isEStimEnabled,
-                                sampleCondition
-                        );
-
-                        stims.add(behavioralTrial);
-                    }
-
                 }
             }
         }
@@ -306,8 +315,8 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
     private void addTrials_ProceduralTwoByTwo(){
         //input Parameters
         Color stimColor = new Color(0.5f, 0.5f, 0.5f);
-        long stimId = 1717531847396095L;
-        int compId = 2;
+        long stimId = 1717531847398316L;
+        int compId = 3;
 
         //Parameters
         Map<Double, Integer> numEStimTrialsForNoiseChances = new LinkedHashMap<>();
@@ -339,8 +348,8 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         List<Stim> eStimTrials = new LinkedList<>();
         //Add EStim Trials
         for (ProceduralStimParameters parameters : eStimTrialParams) {
-            ProceduralMatchStick baseMStick = new ProceduralMatchStick();
-            baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource), "SHADE");
+            ProceduralMatchStick baseMStick = new ProceduralMatchStick(noiseMapper);
+            baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource.getRFRadiusDegrees()), "SHADE");
             baseMStick.setStimColor(stimColor);
             baseMStick.genMatchStickFromFile(gaSpecPath + "/" + stimId + "_spec.xml");
             //using estim values set on the IntanGUI
@@ -437,13 +446,13 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         List<ReceptiveField> behTrialRFs = new LinkedList<>();
         //Assign To Fake RFs
         fakeRFs.forEach(new java.util.function.Consumer<ReceptiveField>() {
-            @Override
-            public void accept(ReceptiveField fakeRF) {
-                for (int i = 0; i < numTrialsPerRF; i++){
-                    behTrialRFs.add(fakeRF);
-                }
-            }
-        }
+                            @Override
+                            public void accept(ReceptiveField fakeRF) {
+                                for (int i = 0; i < numTrialsPerRF; i++){
+                                    behTrialRFs.add(fakeRF);
+                                }
+                            }
+                        }
         );
         //Assign to Real RF
         for (int i=0; i<numTrialsPerRF/2; i++){
@@ -456,8 +465,8 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         List<Stim> eStimTrials = new LinkedList<>();
         //Add EStim Trials
         for (ProceduralStimParameters parameters : eStimTrialParams) {
-            ProceduralMatchStick baseMStick = new ProceduralMatchStick();
-            baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource), "SHADE");
+            ProceduralMatchStick baseMStick = new ProceduralMatchStick(noiseMapper);
+            baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource.getRFRadiusDegrees()), "SHADE");
             baseMStick.setStimColor(stimColor);
             baseMStick.genMatchStickFromFile(gaSpecPath + "/" + stimId + "_spec.xml");
             //using estim values set on the IntanGUI
@@ -578,7 +587,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
     }
 
     private double calculateEyeWinRadius() {
-        double shapeSquareLength = RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource);
+        double shapeSquareLength = RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource.getRFRadiusDegrees());
         double squareDiagonal = Math.sqrt(2) * shapeSquareLength;
         double eyeWinRadius = squareDiagonal /2;
         return eyeWinRadius;
@@ -610,5 +619,13 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
     public void setGeneratorSetPath(String generatorSetPath) {
         this.generatorSetPath = generatorSetPath;
+    }
+
+    public NoiseMapper getNoiseMapper() {
+        return noiseMapper;
+    }
+
+    public void setNoiseMapper(NoiseMapper noiseMapper) {
+        this.noiseMapper = noiseMapper;
     }
 }

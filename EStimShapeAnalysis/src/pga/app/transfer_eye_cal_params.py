@@ -11,7 +11,7 @@ def main():
     for dest_db in dest_dbs:
         params.write_params(dest_db)
 
-    copy_rfinfo_table(config.ga_database, config.nafc_database, ga_db)
+    # copy_rfinfo_table(config.ga_database, config.nafc_database, ga_db)
 
 def copy_rfinfo_table(source_schema: str, target_schema: str, conn: Connection):
     """

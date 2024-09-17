@@ -5,6 +5,7 @@ import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.nafc.experiment.NAFCTrialContext;
 import org.xper.allen.nafc.message.ChoiceEventListener;
 import org.xper.classic.vo.TrialContext;
+import org.xper.drawing.Context;
 import org.xper.intan.IntanRecordingController;
 import org.xper.intan.stimulation.*;
 
@@ -123,7 +124,7 @@ public class NAFCIntanStimulationRecordingController extends IntanRecordingContr
 	}
 
 	@Override
-	public void choiceSelectionCorrect(long timestamp, int[] rewardList) {
+	public void choiceSelectionCorrect(long timestamp, int[] rewardList, Context context) {
 
 	}
 

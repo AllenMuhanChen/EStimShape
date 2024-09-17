@@ -97,7 +97,7 @@ public class DeltaStim extends ProceduralStim {
         }
         List<String> proceduralDistractorLabels = labels;
         for (int i = 0; i < numProceduralDistractors; i++) {
-            String proceduralDistractorPath = pngMaker.createAndSavePNG(mSticks.proceduralDistractors.get(i),stimObjIds.proceduralDistractors.get(i), proceduralDistractorLabels, generatorPngPath);
+            String proceduralDistractorPath = pngMaker.createAndSavePNG(mSticks.getProceduralDistractors().get(i), stimObjIds.getProceduralDistractors().get(i), proceduralDistractorLabels, generatorPngPath);
             experimentPngPaths.addProceduralDistractor(generator.convertPngPathToExperiment(proceduralDistractorPath));
             System.out.println("Procedural Distractor Path: " + proceduralDistractorPath);
         }
@@ -113,7 +113,7 @@ public class DeltaStim extends ProceduralStim {
         } else {
             System.out.println("Not Delta: Noise Component Index: " + noiseComponentIndex);
         }
-        String generatorNoiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorNoiseMapPath(), parameters.noiseChance, noiseComponentIndex);
+        String generatorNoiseMapPath = generator.getPngMaker().createAndSaveNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorNoiseMapPath(), parameters.noiseChance, noiseComponentIndex);
         experimentNoiseMapPath = generator.convertGeneratorNoiseMapToExperiment(generatorNoiseMapPath);
     }
 
