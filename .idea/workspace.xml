@@ -1,47 +1,131 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
   <component name="ChangeListManager">
     <list default="true" id="ef850e9a-559c-45d1-83f3-a8817ba93678" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/plotweights.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../Neuromimetics/starting-point-robustness-analysis.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/EStimShapeAnalysis/src/analysis/nafc/psychometric_curves.py" beforeDir="false" afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/analysis/nafc/psychometric_curves.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/xper-train/shellScripts/cCal" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/shellScripts/cCal" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/xper-train/shellScripts/xper.properties.ga" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/shellScripts/xper.properties.ga" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/xper-train/shellScripts/xper.properties.isogabor" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/shellScripts/xper.properties.isogabor" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/xper-train/shellScripts/xper.properties.procedural" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/shellScripts/xper.properties.procedural" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/xper-train/xper-allen/app/org/xper/allen/app/estimshape/EStimExperimentTrialGenerator.java" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/xper-allen/app/org/xper/allen/app/estimshape/EStimExperimentTrialGenerator.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/xper-train/xper-allen/app/org/xper/allen/app/procedural/ProceduralAppConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/xper-allen/app/org/xper/allen/app/procedural/ProceduralAppConfig.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/xper-train/xper-allen/src/org/xper/allen/nafc/blockgen/estimshape/EStimShapeTwoByTwoStim.java" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/xper-allen/src/org/xper/allen/nafc/blockgen/estimshape/EStimShapePsychometricTwoByTwoStim.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/xper-train/xper-allen/src/org/xper/allen/nafc/blockgen/procedural/EStimShapeProceduralTwoByTwoBehavioralStim.java" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/xper-allen/src/org/xper/allen/nafc/blockgen/procedural/EStimShapeTwoByTwoBehavioralStim.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/xper-train/xper-allen/src/org/xper/allen/nafc/blockgen/procedural/EStimShapeProceduralTwoByTwoStim.java" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/xper-allen/src/org/xper/allen/nafc/blockgen/procedural/EStimShapeTwoByTwoStim.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/xper-train/xper-allen/src/org/xper/allen/nafc/experiment/juice/NAFCNoiseScalingNoiseController.java" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/xper-allen/src/org/xper/allen/nafc/experiment/juice/NAFCNoiseScalingNoiseController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/xper-train/xper-allen/src/org/xper/allen/specs/NAFCStimSpecSpec.java" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/xper-allen/src/org/xper/allen/specs/NAFCStimSpecSpec.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/xper-train/xper-allen/test/unit-tests/org/xper/allen/nafc/blockgen/procedural/EStimShapeProceduralTwoByTwoStimTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/xper-allen/test/unit-tests/org/xper/allen/nafc/blockgen/procedural/EStimShapeTwoByTwoStimTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Neuromimetics/mimnets/177/loss.npy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Neuromimetics/mimnets/177/weights.pth" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Neuromimetics/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/../Neuromimetics/train.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Neuromimetics/utils/backtrace.py" beforeDir="false" afterPath="$PROJECT_DIR$/../Neuromimetics/utils/backtrace.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="master" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 7
 }</component>
   <component name="ProjectId" id="2gbKgcTNAsAUHFrR0RlyWOLtai1" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Python.plotweights.executor": "Run",
+    "Python.train.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "WebServerToolWindowFactoryState": "false",
-    "last_opened_file_path": "/home/r2_allen/git/EStimShape/EStimShapeAnalysis",
+    "git-widget-placeholder": "alexnet",
+    "last_opened_file_path": "/home/connorlab/PycharmProjects/EStimShape",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
+  <component name="RunManager" selected="Python.plotweights">
+    <configuration name="plotweights" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="EStimShape" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/plotweights.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="train_cifar" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="EStimShape" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/train_cifar.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.plotweights" />
+        <item itemvalue="Python.train_cifar" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-d68999036c7f-b11f5e8da5ad-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-233.14475.56" />
+      </set>
+    </attachedChunks>
+  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
@@ -53,10 +137,39 @@
       <workItem from="1715960951732" duration="23000" />
       <workItem from="1720024580919" duration="24000" />
       <workItem from="1720024611945" duration="10000" />
+      <workItem from="1726600295148" duration="87000" />
+      <workItem from="1726600382948" duration="1520000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="origin/alexnet" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/EStimShape$plotweights.coverage" NAME="plotweights Coverage Results" MODIFIED="1726603514737" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
+    <SUITE FILE_PATH="coverage/EStimShape$train.coverage" NAME="train Coverage Results" MODIFIED="1726600562800" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
   </component>
 </project>
