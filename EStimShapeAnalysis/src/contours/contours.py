@@ -11,7 +11,7 @@ def normalize_lightness(lightness):
 
 
 def create_lab_colormap(hue_values):
-    L = np.full_like(hue_values, 70)  # Constant lightness
+    L = np.full_like(hue_values, 75)  # Constant lightness
     a = np.cos(2 * np.pi * hue_values) * 100
     b = np.sin(2 * np.pi * hue_values) * 100
     lab = np.dstack((L, a, b))
@@ -54,7 +54,7 @@ def process_image(input_path, grayscale_output_path, colormap_output_path, final
 
 
 # Example usage
-input_image_path = "/home/r2_allen/Documents/EStimShape/allen_estimshape_ga_train_240604/stimuli/ga/pngs/1717521925194310_0.png"
+input_image_path = "/home/r2_allen/Documents/EStimShape/allen_estimshape_train_240604/stimuli/240723/procedural/pngs/1721836111082299_procedural_I.png"
 grayscale_output_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/contours/grayscale_image.png"
 colormap_output_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/contours/lab_colormap.png"
 final_output_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/contours/final_multiplied_image.png"
