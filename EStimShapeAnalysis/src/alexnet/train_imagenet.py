@@ -74,7 +74,7 @@ train_dataset = datasets.ImageFolder(train_dir, transform=train_transform)
 val_dataset = ImageNetValidation(val_dir, val_label_file, transform=val_transform)
 
 # DataLoaders
-batch_size = 256
+batch_size = 128
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=12, pin_memory=True)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=12, pin_memory=True)
 

@@ -5,11 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ef850e9a-559c-45d1-83f3-a8817ba93678" name="Changes" comment="plotweights.py">
-      <change afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/compare.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/standardalexnet_cifar.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/train_imagenet.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/alexnetparallelgpus.py" beforeDir="false" afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/alexnetparallelgpus.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/standardalexnet_cifar.py" beforeDir="false" afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/standardalexnet_cifar.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/train_imagenet.py" beforeDir="false" afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/train_imagenet.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -45,28 +43,28 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.compare.executor": "Debug",
-    "Python.plotweights.executor": "Run",
-    "Python.standardalexnet_cifar.executor": "Run",
-    "Python.train.executor": "Run",
-    "Python.train_imagenet.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "alexnet",
-    "last_opened_file_path": "/home/connorlab/PycharmProjects/EStimShape",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.compare.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.plotweights.executor&quot;: &quot;Run&quot;,
+    &quot;Python.standardalexnet_cifar.executor&quot;: &quot;Run&quot;,
+    &quot;Python.train.executor&quot;: &quot;Run&quot;,
+    &quot;Python.train_imagenet.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;alexnet&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/connorlab/PycharmProjects/EStimShape&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
-  <component name="RunManager" selected="Python.train_imagenet">
+}</component>
+  <component name="RunManager" selected="Python.standardalexnet_cifar">
     <configuration name="compare" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="EStimShape" />
       <option name="ENV_FILES" value="" />
@@ -185,8 +183,8 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python.train_imagenet" />
-        <item itemvalue="Python.compare" />
         <item itemvalue="Python.standardalexnet_cifar" />
+        <item itemvalue="Python.compare" />
         <item itemvalue="Python.plotweights" />
         <item itemvalue="Python.train_cifar" />
       </list>
@@ -266,10 +264,10 @@
     </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/EStimShape$standardalexnet_cifar.coverage" NAME="standardalexnet_cifar Coverage Results" MODIFIED="1726606758012" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
+    <SUITE FILE_PATH="coverage/EStimShape$standardalexnet_cifar.coverage" NAME="standardalexnet_cifar Coverage Results" MODIFIED="1726681223325" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
     <SUITE FILE_PATH="coverage/EStimShape$compare.coverage" NAME="compare Coverage Results" MODIFIED="1726608040156" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
     <SUITE FILE_PATH="coverage/EStimShape$plotweights.coverage" NAME="plotweights Coverage Results" MODIFIED="1726603706638" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
-    <SUITE FILE_PATH="coverage/EStimShape$train_imagenet.coverage" NAME="train_imagenet Coverage Results" MODIFIED="1726676719560" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
+    <SUITE FILE_PATH="coverage/EStimShape$train_imagenet.coverage" NAME="train_imagenet Coverage Results" MODIFIED="1726681294045" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
     <SUITE FILE_PATH="coverage/EStimShape$train.coverage" NAME="train Coverage Results" MODIFIED="1726600562800" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
   </component>
 </project>
