@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+import torch.nn.init as init
 
 class AlexNetGPUSimulated(nn.Module):
     def __init__(self):
@@ -64,6 +64,27 @@ class AlexNetGPUSimulated(nn.Module):
             nn.Linear(4096, 1000)
         )
 
+        self._initialize_weights()
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                init.normal_(m.weight, mean=0, std=0.01)
+                if m.bias is not None:
+                    if m in [self.features_gpu1_1[3], self.features_gpu2_1[3],
+                             self.features_gpu1_2[0], self.features_gpu1_2[2], self.features_gpu1_2[4],
+                             self.features_gpu2_2[0], self.features_gpu2_2[2], self.features_gpu2_2[4]]:
+                        init.constant_(m.bias, 1)
+                    else:
+                        init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                init.normal_(m.weight, mean=0, std=0.01)
+                if m.bias is not None:
+                    if m in [self.classifier[1], self.classifier[4]]:
+                        init.constant_(m.bias, 1)
+                    else:
+                        init.constant_(m.bias, 0)
+
     def forward(self, x):
         # Split input for GPU simulation
         x1, x2 = torch.split(x, [3, 3], dim=1)
@@ -93,7 +114,6 @@ class AlexNetGPUSimulated(nn.Module):
         x = self.classifier(x)
 
         return x
-
 
 # Instantiate the model
 model = AlexNetGPUSimulated()
