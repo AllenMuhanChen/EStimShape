@@ -10,6 +10,7 @@ class AlexNetGPUSimulated(nn.Module):
         self.features_gpu1_1 = nn.Sequential(
             nn.Conv2d(3, 48, kernel_size=11, stride=4, padding=2),
             nn.ReLU(inplace=True),
+            nn.LocalResponseNorm(size=5, alpha=0.0001, beta=0.75, k=2),  # section 3.3
             nn.MaxPool2d(kernel_size=3, stride=2),
             nn.Conv2d(48, 128, kernel_size=5, padding=2),
             nn.ReLU(inplace=True),
@@ -19,6 +20,7 @@ class AlexNetGPUSimulated(nn.Module):
         self.features_gpu2_1 = nn.Sequential(
             nn.Conv2d(3, 48, kernel_size=11, stride=4, padding=2),
             nn.ReLU(inplace=True),
+            nn.LocalResponseNorm(size=5, alpha=0.0001, beta=0.75, k=2),
             nn.MaxPool2d(kernel_size=3, stride=2),
             nn.Conv2d(48, 128, kernel_size=5, padding=2),
             nn.ReLU(inplace=True),
@@ -64,23 +66,23 @@ class AlexNetGPUSimulated(nn.Module):
             nn.Linear(4096, 1000)
         )
 
-        self._initialize_weights()
+        # self._initialize_weights()
 
     def _initialize_weights(self):
+        conv_layer_count = 0
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
+                conv_layer_count += 1
                 init.normal_(m.weight, mean=0, std=0.01)
                 if m.bias is not None:
-                    if m in [self.features_gpu1_1[3], self.features_gpu2_1[3],
-                             self.features_gpu1_2[0], self.features_gpu1_2[2], self.features_gpu1_2[4],
-                             self.features_gpu2_2[0], self.features_gpu2_2[2], self.features_gpu2_2[4]]:
+                    if conv_layer_count in [2, 4, 5]:
                         init.constant_(m.bias, 1)
                     else:
                         init.constant_(m.bias, 0)
             elif isinstance(m, nn.Linear):
                 init.normal_(m.weight, mean=0, std=0.01)
                 if m.bias is not None:
-                    if m in [self.classifier[1], self.classifier[4]]:
+                    if m in [self.classifier[1], self.classifier[4]]:  # Hidden layers
                         init.constant_(m.bias, 1)
                     else:
                         init.constant_(m.bias, 0)

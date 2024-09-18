@@ -3,6 +3,8 @@ import torch.nn as nn
 from torchvision import models, datasets, transforms
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
+
+from EStimShapeAnalysis.src.alexnet.standardalexnet_cifar import CustomAlexNet
 from alexnetparallelgpus import AlexNetGPUSimulated
 import os
 
@@ -59,9 +61,9 @@ parallel_model.classifier[-1] = nn.Linear(4096, 10)
 parallel_model.load_state_dict(torch.load('alexnet_cifar10.pth'))
 parallel_model = parallel_model.to(device)
 
-standard_model = models.alexnet(weights=None)
+standard_model = CustomAlexNet()
 standard_model.classifier[-1] = nn.Linear(4096, 10)
-standard_model.load_state_dict(torch.load('alexnet_standard_cifar10.pth'))
+standard_model.load_state_dict(torch.load('alexnet_custom_cifar10.pth'))
 standard_model = standard_model.to(device)
 
 # Visualize filters

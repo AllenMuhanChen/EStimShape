@@ -3,18 +3,21 @@ import torch.nn as nn
 import torch.optim as optim
 from torch import autocast
 from torch.cuda.amp import GradScaler
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, ConcatDataset
 from torchvision import transforms, datasets
 from PIL import Image
 import os
 from tqdm import tqdm
-from alexnetparallelgpus import AlexNetGPUSimulated  # Make sure this import matches your file name
+
+from EStimShapeAnalysis.src.alexnet.coloraugment.coloraugment import PCAAugmentation
+from alexnetparallelgpus import AlexNetGPUSimulated
 
 # Set up paths
 imagenet_path = '/home/connorlab/imagenet/imagenet-object-localization-challenge/ILSVRC/Data/CLS-LOC/'
 train_dir = os.path.join(imagenet_path, 'train')
 val_dir = os.path.join(imagenet_path, 'val')
 val_label_file = "/home/connorlab/imagenet/imagenet-object-localization-challenge/LOC_val_solution.csv"
+
 
 # Custom dataset for validation set
 class ImageNetValidation(Dataset):
@@ -58,6 +61,7 @@ class ImageNetValidation(Dataset):
 train_transform = transforms.Compose([
     transforms.RandomResizedCrop(224),
     transforms.RandomHorizontalFlip(),
+    PCAAugmentation(alphastd=0.1),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 ])
@@ -84,9 +88,10 @@ model = AlexNetGPUSimulated()
 model = model.to(device)
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(), lr=batch_size/128*.01, momentum=0.9, weight_decay=5e-4)
+optimizer = optim.SGD(model.parameters(), lr=batch_size / 128 * .01, momentum=0.9, weight_decay=5e-4)
 scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
 scaler = GradScaler()
+
 
 # Checkpointing functions
 def save_checkpoint(epoch, model, optimizer, scheduler, scaler, train_loss, train_acc, val_loss, val_acc):
@@ -104,13 +109,16 @@ def save_checkpoint(epoch, model, optimizer, scheduler, scaler, train_loss, trai
     torch.save(checkpoint, f'checkpoint_epoch_{epoch}.pth')
     print(f"Checkpoint saved for epoch {epoch}")
 
+
 def load_checkpoint(checkpoint_path):
     checkpoint = torch.load(checkpoint_path)
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
     scaler.load_state_dict(checkpoint['scaler_state_dict'])
-    return checkpoint['epoch'], checkpoint['train_loss'], checkpoint['train_acc'], checkpoint['val_loss'], checkpoint['val_acc']
+    return checkpoint['epoch'], checkpoint['train_loss'], checkpoint['train_acc'], checkpoint['val_loss'], checkpoint[
+        'val_acc']
+
 
 # Training function with mixed precision
 def train_one_epoch(model, loader, criterion, optimizer, device, scaler):
@@ -148,6 +156,7 @@ def train_one_epoch(model, loader, criterion, optimizer, device, scaler):
     epoch_acc = correct / total
     return epoch_loss, epoch_acc
 
+
 # Validation function
 def validate(model, loader, criterion, device):
     model.eval()
@@ -172,10 +181,11 @@ def validate(model, loader, criterion, device):
     epoch_acc = correct / total
     return epoch_loss, epoch_acc
 
+
 # Training loop with checkpointing
 num_epochs = 90
 start_epoch = 0
-checkpoint_interval = 1  # Save a checkpoint every 5 epochs
+checkpoint_interval = 1  # Save a checkpoint every epoch
 
 # Check if a checkpoint exists
 checkpoint_files = [f for f in os.listdir('.') if f.startswith('checkpoint_epoch_')]
@@ -204,3 +214,8 @@ for epoch in range(start_epoch, num_epochs):
 # Save the final trained model
 torch.save(model.state_dict(), 'alexnet_imagenet_final.pth')
 print("Training completed. Final model saved as 'alexnet_imagenet_final.pth'")
+
+# Print dataset sizes
+print(f"Original training dataset size: {len(train_dataset)}")
+print(f"Augmented training dataset size: {len(train_dataset)}")
+print(f"Validation dataset size: {len(val_dataset)}")
