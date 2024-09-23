@@ -49,6 +49,7 @@ public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
     @Override
     public void drawCompMap(){
         super.drawCompMap();
+
         drawRF();
         //NOISE
         double radius = noiseRadiusMm;
@@ -210,6 +211,7 @@ public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
     public boolean smoothizeMStick()
     {
         showDebug = false;
+
 
         int i;
         MStickObj4Smooth[] MObj = new MStickObj4Smooth[getnComponent()+1];
