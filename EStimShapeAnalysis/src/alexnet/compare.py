@@ -58,12 +58,12 @@ def visualize_filters(parallel_model, standard_model):
 # Load models
 parallel_model = AlexNetGPUSimulated()
 parallel_model.classifier[-1] = nn.Linear(4096, 10)
-parallel_model.load_state_dict(torch.load('alexnet_cifar10.pth'))
+parallel_model.load_state_dict(torch.load('data/segregated_6conv_cifar/alexnet_cifar10.pth'))
 parallel_model = parallel_model.to(device)
 
 standard_model = CustomAlexNet()
 standard_model.classifier[-1] = nn.Linear(4096, 10)
-standard_model.load_state_dict(torch.load('alexnet_custom_cifar10.pth'))
+standard_model.load_state_dict(torch.load('data/standard_full_cifar/alexnet_custom_cifar10.pth'))
 standard_model = standard_model.to(device)
 
 # Visualize filters

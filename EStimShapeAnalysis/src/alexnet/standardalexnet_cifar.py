@@ -119,7 +119,7 @@ optimizer = optim.SGD(custom_model.parameters(), lr=learning_rate, momentum=mome
 scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
 
 # Check if the custom model has already been trained
-if not os.path.exists('alexnet_custom_cifar10.pth'):
+if not os.path.exists('data/standard_full_cifar/alexnet_custom_cifar10.pth'):
     print("Training Custom AlexNet on CIFAR-10")
     for epoch in range(num_epochs):
         print(f"Epoch {epoch + 1}/{num_epochs}")
@@ -129,11 +129,11 @@ if not os.path.exists('alexnet_custom_cifar10.pth'):
         print(f"Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.4f}")
         scheduler.step()
 
-    torch.save(custom_model.state_dict(), 'alexnet_custom_cifar10.pth')
+    torch.save(custom_model.state_dict(), 'data/standard_full_cifar/alexnet_custom_cifar10.pth')
     print("Custom AlexNet training completed. Model saved as 'alexnet_custom_cifar10.pth'")
 else:
     print("Loading pre-trained Custom AlexNet")
-    custom_model.load_state_dict(torch.load('alexnet_custom_cifar10.pth'))
+    custom_model.load_state_dict(torch.load('data/standard_full_cifar/alexnet_custom_cifar10.pth'))
 
 # Final evaluation
 test_loss, test_acc = validate_model(custom_model, test_loader, criterion, device)

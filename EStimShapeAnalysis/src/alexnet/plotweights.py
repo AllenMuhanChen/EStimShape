@@ -31,7 +31,7 @@ def visualize_filters(model, gpu_name):
 
 
 # Load the saved model
-model_path = 'alexnet_cifar10.pth'  # Update this to your model's path
+model_path = 'data/segregated_6conv_cifar/alexnet_cifar10.pth'  # Update this to your model's path
 
 # Load the state dict
 state_dict = torch.load(model_path)

@@ -37,8 +37,6 @@ class AlexNetGPUSimulated(nn.Module):
         self.features_gpu1_2 = nn.Sequential(
             nn.Conv2d(192, 192, kernel_size=3, padding=1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(192, 192, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
             nn.Conv2d(192, 128, kernel_size=3, padding=1),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2)
@@ -46,8 +44,6 @@ class AlexNetGPUSimulated(nn.Module):
 
         # GPU 2 Post-Shared Layer
         self.features_gpu2_2 = nn.Sequential(
-            nn.Conv2d(192, 192, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
             nn.Conv2d(192, 192, kernel_size=3, padding=1),
             nn.ReLU(inplace=True),
             nn.Conv2d(192, 128, kernel_size=3, padding=1),
@@ -89,11 +85,10 @@ class AlexNetGPUSimulated(nn.Module):
 
     def forward(self, x):
         # Split input for GPU simulation
-        x1, x2 = torch.split(x, [3, 3], dim=1)
-
+        # x1, x2 = torch.split(x, [3, 3], dim=1)
         # Process through initial GPU-specific layers
-        x1 = self.features_gpu1_1(x1)
-        x2 = self.features_gpu2_1(x2)
+        x1 = self.features_gpu1_1(x)
+        x2 = self.features_gpu2_1(x)
 
         # Concatenate for shared layer (connection point)
         x = torch.cat((x1, x2), 1)
@@ -122,8 +117,3 @@ model = AlexNetGPUSimulated()
 
 # Print model summary
 print(model)
-
-# Example input
-example_input = torch.randn(1, 6, 224, 224)
-output = model(example_input)
-print(f"Output shape: {output.shape}")
