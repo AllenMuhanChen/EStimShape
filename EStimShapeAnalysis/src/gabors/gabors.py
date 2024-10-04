@@ -38,18 +38,25 @@ def create_isochromatic_gabor(size, lambda_px, theta, sigma, phase, color, backg
 
 
 def create_isoluminant_gabor(size, lambda_px, theta, sigma, phase, color1, color2):
-    """Create an isoluminant Gabor patch."""
+    """Create a truly isoluminant Gabor patch."""
     gabor = create_gabor(size, lambda_px, theta, sigma, phase, 0.5)
 
-    lab1 = cspace_convert(plt.cm.colors.to_rgb(color1), "sRGB1", "CAM02-UCS")
-    lab2 = cspace_convert(plt.cm.colors.to_rgb(color2), "sRGB1", "CAM02-UCS")
+    jab1 = cspace_convert(plt.cm.colors.to_rgb(color1), "sRGB1", "CAM02-UCS")
+    jab2 = cspace_convert(plt.cm.colors.to_rgb(color2), "sRGB1", "CAM02-UCS")
 
-    # Interpolate in CAM02-UCS space
-    lab_gabor = lab1[np.newaxis, np.newaxis, :] * (1 - gabor)[..., np.newaxis] + lab2[np.newaxis, np.newaxis, :] * \
-                gabor[..., np.newaxis]
+    # Use the average lightness (J) for both colors
+    J_avg = (jab1[0] + jab2[0]) / 2
+    jab1[0] = J_avg
+    jab2[0] = J_avg
+
+    # Interpolate only the chromatic components (a and b)
+    jab_gabor = np.zeros((*gabor.shape, 3))
+    jab_gabor[..., 0] = J_avg
+    jab_gabor[..., 1:] = jab1[np.newaxis, np.newaxis, 1:] * (1 - gabor)[..., np.newaxis] + \
+                         jab2[np.newaxis, np.newaxis, 1:] * gabor[..., np.newaxis]
 
     # Convert back to sRGB
-    return cspace_convert(lab_gabor, "CAM02-UCS", "sRGB1")
+    return cspace_convert(jab_gabor, "CAM02-UCS", "sRGB1")
 
 
 def create_mixed_gabor(size, lambda_px_color, theta_color, sigma_color, phase_color, color1, color2,
@@ -79,42 +86,36 @@ def create_misaligned_mixed_gabor(size, lambda_px, theta, sigma, phase, color1, 
 
 # Example usage
 size = 256
-lambda_px = 20
+lambda_px = 40
 theta = np.pi / 4
 sigma = 40
 phase = 0
 
-# Isochromatic (black/white)
+# Generate Gabor patches
 bw_gabor = create_isochromatic_gabor(size, lambda_px, theta, sigma, phase, "black", "white")
-
-# Isochromatic (red/black)
 rb_gabor = create_isochromatic_gabor(size, lambda_px, theta, sigma, phase, "red", "black")
-
-# Isoluminant (red/green)
 rg_gabor = create_isoluminant_gabor(size, lambda_px, theta, sigma, phase, "red", "green")
-
-# Isoluminant (blue/yellow)
-by_gabor = create_isoluminant_gabor(size, lambda_px, theta, sigma, phase, "blue", "yellow")
-
-# Aligned mixed Gabor (red/green on top of brightness)
+by_gabor = create_isoluminant_gabor(size, lambda_px, theta, sigma, phase, "cyan", "orange")
 aligned_mixed_gabor = create_aligned_mixed_gabor(size, lambda_px, theta, sigma, phase, "red", "green", 0.3)
-
-# Misaligned mixed Gabor (red/green on top of brightness)
 misaligned_mixed_gabor = create_misaligned_mixed_gabor(size, lambda_px, theta, sigma, phase, "red", "green", 0.3)
 
 # Display results
-fig, axs = plt.subplots(2, 3, figsize=(15, 10))
-axs[0, 0].imshow(bw_gabor, cmap='gray')
-axs[0, 0].set_title("Brightness Contrast Only (White)")
-axs[0, 1].imshow(rb_gabor)
-axs[0, 1].set_title("Brightness Contrast Only (Red)")
-axs[0, 2].imshow(misaligned_mixed_gabor)
-axs[0, 2].set_title("Mixed Contrast (Misaligned)")
-axs[1, 0].imshow(rg_gabor)
-axs[1, 0].set_title("Chromatic Contrast Only (Red/Green)")
-axs[1, 1].imshow(by_gabor)
-axs[1, 1].set_title("Chromatic Contrast Only Blue/Yellow")
-axs[1, 2].imshow(aligned_mixed_gabor)
-axs[1, 2].set_title("Mixed Contrast (Aligned)")
+fig, axs = plt.subplots(2, 3, figsize=(18, 12))  # Increased figure size
+
+gabors = [bw_gabor, rb_gabor, misaligned_mixed_gabor,
+          rg_gabor, by_gabor, aligned_mixed_gabor]
+
+titles = ["Brightness Contrast Only (White)",
+          "Brightness Contrast Only (Red)",
+          "Mixed Contrast (Misaligned)",
+          "Chromatic Contrast Only (Red/Green)",
+          "Chromatic Contrast Only (Cyan/Orange)",
+          "Mixed Contrast (Aligned)"]
+
+for ax, gabor, title in zip(axs.flatten(), gabors, titles):
+    im = ax.imshow(gabor, cmap='gray' if gabor.ndim == 2 else None)
+    ax.set_title(title, fontsize=16, pad=20)  # Increased font size and padding
+    ax.axis('off')  # This removes all axis ticks, numbers, and labels
+
 plt.tight_layout()
 plt.show()
