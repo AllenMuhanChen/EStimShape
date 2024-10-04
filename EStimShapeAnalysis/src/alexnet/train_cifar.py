@@ -115,5 +115,5 @@ for epoch in range(num_epochs):
     scheduler.step()
 
 # Save the trained model
-torch.save(model.state_dict(), 'alexnet_cifar10.pth')
+torch.save(model.state_dict(), 'data/segregated_6conv_cifar/alexnet_cifar10.pth')
 print("Training completed. Model saved as 'alexnet_cifar10.pth'")
