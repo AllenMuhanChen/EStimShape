@@ -7,7 +7,6 @@ from src.pga.zooming_phase import ZoomingPhaseParentSelector, ZoomingPhaseMutati
 
 
 class RFGeneticAlgorithmConfig(GeneticAlgorithmConfig):
-    database = "allen_estimshape_ga_dev_240207"
     zoom_set_handler: ZoomSetHandler
 
     def make_phases(self):

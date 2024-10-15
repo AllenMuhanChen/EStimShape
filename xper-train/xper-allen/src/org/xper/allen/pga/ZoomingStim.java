@@ -45,13 +45,13 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
                 break;
             } catch (MorphedMatchStick.MorphException me) {
                 mStick = null;
-                System.out.println("Morphing failed, trying again with new parameters");
+                System.out.println(me.getMessage());
+                System.out.println("FAILED TO CREATE PARTIAL MATCHSTICK OF TYPE: " + this.getClass().getSimpleName() + " TRYING AGAIN...");
             }
         }
 
         if (nTries == maxTries && mStick == null) {
-            System.err.println("CRITICAL ERROR: COULD NOT GENERATE MORPHED MATCHSTICK  OF TYPE" + this.getClass().getSimpleName()+"AFTER 10 TRIES. GENERATING RAND...");
-            mStick = createRandMStick();
+            throw new RuntimeException("CRITICAL ERROR: COULD NOT GENERATE MORPHED MATCHSTICK  OF TYPE" + this.getClass().getSimpleName()+"AFTER " + maxTries + " TRIES");
         }
 
 

@@ -22,7 +22,7 @@ public class RFUtils {
         }
     }
 
-    public static void positionAroundRF(RFStrategy rfStrategy, AllenMatchStick mStick, ReceptiveField rf) throws MorphedMatchStick.MorphException {
+    public static void positionAroundRF(RFStrategy rfStrategy, AllenMatchStick mStick, ReceptiveField rf, int numPointsToTry) throws MorphedMatchStick.MorphException {
         Coordinates2D rfCenter;
         if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
             int compInRF = mStick.getSpecialEndComp().get(0);
@@ -33,7 +33,6 @@ public class RFUtils {
             double reductionStep = 0.1; // Step to reduce thresholdPercentageOutOfRF
             double minThresholdPercentageOutOfRF = 0.5; // Minimum threshold percentage allowed
 
-            int numPointsToTry = 100;
             double thresholdPercentageOutOfRF = initialThresholdPercentageOutOfRF;
             while (thresholdPercentageOutOfRF >= minThresholdPercentageOutOfRF) {
                 // Generate a uniform span of points within the RF
