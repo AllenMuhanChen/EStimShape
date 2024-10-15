@@ -145,7 +145,7 @@ def reset_task_to_do_ga_and_gen_ready(dest_ga_db_config):
     conn = Connection(dest_ga_db_config['database'], dest_ga_db_config['user'], dest_ga_db_config['password'],
                       dest_ga_db_config['host'])
     db_util = MultiGaDbUtil(conn)
-    db_util.update_ready_gas_and_generations_info(conn, 0)
+    db_util.update_ready_gas_and_generations_info("New3D", 0)
 
 
 def reset_task_to_do_gen_ready(dest_ga_db_config):
