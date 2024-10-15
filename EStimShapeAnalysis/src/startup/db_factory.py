@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import mysql.connector
 
 from clat.util.connection import Connection
@@ -6,15 +8,22 @@ from src.pga.multi_ga_db_util import MultiGaDbUtil
 HOST = '172.30.6.80'
 USER = 'xper_rw'
 PASS = 'up2nite'
+TEMPLATE_DATE = '240604'
 
 
-def main(type: str, date: str):
-    ga_database = "allen_estimshape_ga_%s_%s" % (type, date)
-    nafc_database = "allen_estimshape_%s_%s" % (type, date)
-    isogabor_database = "allen_isogabor_%s_%s" % (type, date)
+def main():
+    # Get current date in YYMMDD format
+    current_date = datetime.now().strftime("%y%m%d")
+
+    # Prompt user for TYPE
+    type = input("Enter the type (e.g., train, test): ").strip().lower()
+
+    ga_database = f"allen_estimshape_ga_{type}_{current_date}"
+    nafc_database = f"allen_estimshape_{type}_{current_date}"
+    isogabor_database = f"allen_isogabor_{type}_{current_date}"
 
     # GA Database
-    create_db_from_template('allen_estimshape_ga_train_240604',
+    create_db_from_template(f'allen_estimshape_ga_train_{TEMPLATE_DATE}',
                             ga_database,
                             [
                                 "SystemVar",
@@ -22,14 +31,14 @@ def main(type: str, date: str):
                                 "GAVar"])
 
     # NAFC Database
-    create_db_from_template("allen_estimshape_train_240604",
+    create_db_from_template(f"allen_estimshape_train_{TEMPLATE_DATE}",
                             nafc_database,
                             [
                                 "SystemVar",
                                 "InternalState"])
 
     # ISOGABOR Database
-    create_db_from_template("allen_isogabor_train_240604",
+    create_db_from_template(f"allen_isogabor_train_{TEMPLATE_DATE}",
                             isogabor_database,
                             [
                                 "SystemVar",
