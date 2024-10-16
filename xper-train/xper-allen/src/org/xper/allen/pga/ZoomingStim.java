@@ -9,6 +9,7 @@ import org.xper.drawing.RGBColor;
 public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
 
     private final Integer compIdInRF;
+    private double scaleFactor = 1;
 
     public ZoomingStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Integer compIdInRF, Coordinates2D coords, double magnitude, String textureType, RGBColor color) {
         super(stimId, generator, parentId, coords, textureType, color,
@@ -22,7 +23,8 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
                 generator.getReceptiveField(),
                 RFStrategy.PARTIALLY_INSIDE,
                 "SHADE");
-        mStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees()), textureType);
+        System.out.println("Scale Factor: " + scaleFactor);
+        mStick.setProperties(scaleFactor * RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees()), textureType);
         mStick.setStimColor(color);
         mStick.genPartialFromFile(
                 generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml",
@@ -46,7 +48,11 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
             } catch (MorphedMatchStick.MorphException me) {
                 mStick = null;
                 System.out.println(me.getMessage());
-                System.out.println("FAILED TO CREATE PARTIAL MATCHSTICK OF TYPE: " + this.getClass().getSimpleName() + " TRYING AGAIN...");
+                System.out.println("FAILED TO CREATE PARTIAL MATCHSTICK OF TYPE: " + this.getClass().getSimpleName() + " SCALING SIZE DOWN AND TRYING AGAIN...");
+                System.out.println("MASS CENTER OF STIM: " + mStick.getMassCenter());
+                System.out.println("RF CENTER: " + generator.getReceptiveField().getCenter());
+                scaleFactor = scaleFactor * 0.9;
+
             }
         }
 
