@@ -11,6 +11,7 @@ import org.xper.drawing.RGBColor;
 import org.xper.drawing.object.Circle;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.*;
+import org.xper.rfplot.Point;
 import org.xper.rfplot.drawing.RFPlotBlankObject;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 
@@ -393,7 +394,28 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     @Override
     public void drawCanvas(Context context, String devId) {
         plotter.draw();
-        GLUtil.drawCircle(new Circle(true, 5), currentStimPosition.getX(), currentStimPosition.getY(), 0, 255, 255, 255);
+        drawCurrentStimPosition();
+    }
+
+    private void drawCurrentStimPosition() {
+        AbstractRenderer renderer = consoleRenderer.getRenderer();
+        RFPlotDrawable currentDrawable = getNamesForDrawables().get(stimType);
+        List<Coordinates2D> outlinePoints = currentDrawable.getOutlinePoints(renderer);
+
+        //Shift the outline points to the current stim position
+        for (Coordinates2D point : outlinePoints) {
+            point.setX(point.getX() + currentStimPosition.getX());
+            point.setY(point.getY() + currentStimPosition.getY());
+        }
+
+        //Draw the outline
+        for (int i = 0; i < outlinePoints.size(); i++) {
+            Coordinates2D start = outlinePoints.get(i);
+            Coordinates2D end = outlinePoints.get((i + 1) % outlinePoints.size()); // Ensures the last point connects back to the first
+            GLUtil.drawLine(start.getX(), start.getY(), end.getX(), end.getY(), 1, 1, 1);
+        }
+
+//        GLUtil.drawCircle(new Circle(true, 5), currentStimPosition.getX(), currentStimPosition.getY(), 0, 255, 255, 255);
     }
 
     @Override
