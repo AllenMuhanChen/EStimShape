@@ -4022,7 +4022,6 @@ public class AllenMatchStick extends MatchStick {
 		// but, just do it for now
 
 		for (i=1; i<=nComp; i++) {
-			System.out.println("finalPos of comp: " + getComp()[i].getmAxisInfo().getTransRotHis_finalPos());
 			getComp()[i].getmAxisInfo().genArc( getComp()[i].getmAxisInfo().getRad(), getComp()[i].getmAxisInfo().getArcLen());
 			getComp()[i].getmAxisInfo().transRotMAxis(getComp()[i].getmAxisInfo().getTransRotHis_alignedPt(),
 					getComp()[i].getmAxisInfo().getTransRotHis_finalPos(),
