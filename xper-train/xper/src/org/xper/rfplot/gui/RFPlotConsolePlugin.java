@@ -6,13 +6,14 @@ import org.xper.console.ConsoleRenderer;
 import org.xper.console.IConsolePlugin;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
+import org.xper.drawing.GLUtil;
 import org.xper.drawing.RGBColor;
+import org.xper.drawing.object.Circle;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.*;
 import org.xper.rfplot.drawing.RFPlotBlankObject;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 
-import org.xper.rfplot.drawing.gabor.Gabor;
 import org.xper.rfplot.gui.scroller.ScrollerParams;
 import org.xper.time.TimeUtil;
 import org.xper.util.DbUtil;
@@ -20,6 +21,7 @@ import org.xper.util.DbUtil;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.security.Key;
 import java.util.*;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -56,7 +58,8 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     private String xfmSpec;
     private String stimSpec;
     private CyclicIterator<String> stimTypeSpecs;
-    private boolean isMoveStimuliModeOn = true;
+    private boolean isMouseMoveStimuliModeOn = true;
+    private Coordinates2D currentStimPosition;
 
     @Override
     /**
@@ -70,6 +73,10 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_S,0));
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_Q,0));
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_UP,0));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT,0));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT,0));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN,0));
         return commandKeys;
     }
 
@@ -95,13 +102,35 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             scrollerModeLabel.setText(modulator.getMode());
         }
         if(KeyStroke.getKeyStroke(KeyEvent.VK_Q,0).equals(k)){
-            isMoveStimuliModeOn = !isMoveStimuliModeOn;
-            System.out.println("Move Stimuli Mode: " + isMoveStimuliModeOn);
+            isMouseMoveStimuliModeOn = !isMouseMoveStimuliModeOn;
+            System.out.println("Move Stimuli Mode: " + isMouseMoveStimuliModeOn);
         }
         if(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK).equals(k)){
             System.out.println("Saving RFInfo");
             save();
         }
+        if(KeyStroke.getKeyStroke(KeyEvent.VK_UP,0).equals(k)){
+            updateStimPosition(new Coordinates2D(currentStimPosition.getX(), currentStimPosition.getY() + 1));
+        }
+        if(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN,0).equals(k)){
+            updateStimPosition(new Coordinates2D(currentStimPosition.getX(), currentStimPosition.getY() - 1));
+        }
+        if(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT,0).equals(k)){
+            updateStimPosition(new Coordinates2D(currentStimPosition.getX() - 1, currentStimPosition.getY()));
+        }
+        if(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT,0).equals(k)){
+            updateStimPosition(new Coordinates2D(currentStimPosition.getX() + 1, currentStimPosition.getY()));
+        }
+    }
+
+    private void updateStimPosition(Coordinates2D newStimPosition) {
+        RFPlotXfmSpec nowXfmSpec = RFPlotXfmSpec.fromXml(xfmSpec);
+
+        currentStimPosition = newStimPosition;
+        nowXfmSpec.setTranslation(newStimPosition);
+
+        xfmSpec = nowXfmSpec.toXml();
+        client.changeRFPlotXfm(xfmSpec);
     }
 
     private void changeStimType(String stimType) {
@@ -364,17 +393,13 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     @Override
     public void drawCanvas(Context context, String devId) {
         plotter.draw();
+        GLUtil.drawCircle(new Circle(true, 5), currentStimPosition.getX(), currentStimPosition.getY(), 0, 255, 255, 255);
     }
 
     @Override
     public void handleMouseMove(int x, int y) {
-        if (isMoveStimuliModeOn) {
-            RFPlotXfmSpec nowXfmSpec = RFPlotXfmSpec.fromXml(xfmSpec);
-
-            nowXfmSpec.setTranslation(mouseWorldPosition(x, y));
-
-            xfmSpec = nowXfmSpec.toXml();
-            client.changeRFPlotXfm(xfmSpec);
+        if (isMouseMoveStimuliModeOn) {
+            updateStimPosition(mouseWorldPosition(x, y));
         }
     }
 
