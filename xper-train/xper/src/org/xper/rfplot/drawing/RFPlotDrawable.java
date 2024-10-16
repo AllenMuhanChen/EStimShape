@@ -11,6 +11,6 @@ public interface RFPlotDrawable {
 	public void setSpec(String spec);
 	public void setDefaultSpec();
 	public String getSpec();
-
 	public List<Coordinates2D> getOutlinePoints(AbstractRenderer renderer);
+	public String getOutputData();
 }

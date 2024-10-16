@@ -108,6 +108,11 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
         return hullCoordinates;
     }
 
+    @Override
+    public String getOutputData() {
+        return matchStickSpec.getColor().toString();
+    }
+
     public static class RFPlotMatchStickSpec implements XMLizable {
         public AllenMStickSpec spec;
         public double sizeDiameterDegrees;

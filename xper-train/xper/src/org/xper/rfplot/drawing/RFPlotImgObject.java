@@ -101,4 +101,9 @@ public class RFPlotImgObject extends DefaultSpecRFPlotDrawable{
 
         return profilePoints;
     }
+
+    @Override
+    public String getOutputData() {
+        return spec.toXml();
+    }
 }

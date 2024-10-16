@@ -44,6 +44,11 @@ public class RFPlotGratingObject extends DefaultSpecRFPlotDrawable {
 		return new ArrayList<>();
 	}
 
+	@Override
+	public String getOutputData() {
+		return spec.toXml();
+	}
+
 	static ByteBuffer makeTexture(int w, int h) {
 		ByteBuffer texture = ByteBuffer.allocateDirect(
 				w * w * Float.SIZE / 8).order(
@@ -190,6 +195,8 @@ public class RFPlotGratingObject extends DefaultSpecRFPlotDrawable {
 	public void setSpec(String spec) {
 		this.spec = GaborSpec.fromXml(spec);
 	}
+
+
 
 
 }

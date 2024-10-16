@@ -1,5 +1,6 @@
 package org.xper.rfplot.gui;
 
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.Dependency;
 import org.xper.console.ConsoleRenderer;
 import org.xper.console.IConsolePlugin;
@@ -11,6 +12,7 @@ import org.xper.rfplot.*;
 import org.xper.rfplot.drawing.RFPlotBlankObject;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 
+import org.xper.rfplot.drawing.gabor.Gabor;
 import org.xper.rfplot.gui.scroller.ScrollerParams;
 import org.xper.time.TimeUtil;
 import org.xper.util.DbUtil;
@@ -109,11 +111,20 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             }
         });
 
-//        RFPlotMatchStick rfPlotMatchStick = (RFPlotMatchStick) namesForDrawables.get(RFPlotMatchStick.class.getName());
-//        RGBColor rfColor = rfPlotMatchStick.matchStickSpec.color;
-//
-//        Gabor gabor = (Gabor) namesForDrawables.get(Gabor.class.getName());
-//        double rfOrientation = gabor.getGaborSpec().getOrientation();
+        namesForDrawables.forEach(new BiConsumer<String, RFPlotDrawable>() {
+            @Override
+            public void accept(String objectName, RFPlotDrawable rfPlotDrawable) {
+                String data = rfPlotDrawable.getOutputData();
+                writeRFObjectData(currentChannel, objectName, data, timeUtil.currentTimeMicros());
+            }
+        });
+    }
+
+    private void writeRFObjectData(String channel, String object, String data, long timestamp) {
+        JdbcTemplate jt = new JdbcTemplate(dbUtil.getDataSource());
+        jt.update(
+                "INSERT INTO RFObjectData (tstamp, channel, object, data) VALUES (?, ?, ?, ?)",
+                new Object[] {timestamp, channel, object, data});
 
     }
 

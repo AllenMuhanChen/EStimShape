@@ -189,6 +189,11 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 		return new LinkedList<>();
 	}
 
+	@Override
+	public String getOutputData() {
+		return spec.toXml();
+	}
+
 	public double deg2mm(double deg) {
 		return Math.tan(deg * Math.PI / 180.0) * distance;
 	}
