@@ -8,23 +8,26 @@ from src.pga.multi_ga_db_util import MultiGaDbUtil
 HOST = '172.30.6.80'
 USER = 'xper_rw'
 PASS = 'up2nite'
-TEMPLATE_TYPE = 'test'
-TEMPLATE_DATE = '241015'
-
+TEMPLATE_TYPE = 'dev'
+TEMPLATE_DATE = '241017'
+TEMPLATE_LOCATION_ID = '0'
 
 def main():
     # Get current date in YYMMDD format
     current_date = datetime.now().strftime("%y%m%d")
 
     # Prompt user for TYPE
-    type = input("Enter the type (e.g., train, test): ").strip().lower()
+    type = input("Enter the type (e.g., train, test, exp): ").strip().lower()
 
-    ga_database = f"allen_estimshape_ga_{type}_{current_date}"
-    nafc_database = f"allen_estimshape_{type}_{current_date}"
-    isogabor_database = f"allen_isogabor_{type}_{current_date}"
+    # Prompt user for location ID
+    location_id = input("Enter the location ID: ").strip()
+
+    ga_database = create_unique_database_name(f"allen_ga_{type}_{current_date}", location_id)
+    nafc_database = create_unique_database_name(f"allen_estimshape_{type}_{current_date}", location_id)
+    isogabor_database = create_unique_database_name(f"allen_isogabor_{type}_{current_date}", location_id)
 
     # GA Database
-    create_db_from_template(f'allen_estimshape_ga_{TEMPLATE_TYPE}_{TEMPLATE_DATE}',
+    create_db_from_template(f'allen_ga_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}',
                             ga_database,
                             [
                                 "SystemVar",
@@ -32,14 +35,14 @@ def main():
                                 "GAVar"])
 
     # NAFC Database
-    create_db_from_template(f"allen_estimshape_{TEMPLATE_TYPE}_{TEMPLATE_DATE}",
+    create_db_from_template(f"allen_estimshape_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}",
                             nafc_database,
                             [
                                 "SystemVar",
                                 "InternalState"])
 
     # ISOGABOR Database
-    create_db_from_template(f"allen_isogabor_{TEMPLATE_TYPE}_{TEMPLATE_DATE}",
+    create_db_from_template(f"allen_isogabor_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}",
                             isogabor_database,
                             [
                                 "SystemVar",
@@ -49,6 +52,25 @@ def main():
                             )
 
     update_config_file(ga_database, nafc_database, isogabor_database)
+
+
+def create_unique_database_name(base_name, recording_id):
+    conn = mysql.connector.connect(host=HOST, user=USER, password=PASS)
+    cursor = conn.cursor()
+
+    db_name = f"{base_name}_{recording_id}"
+
+    if not database_exists(cursor, db_name):
+        conn.close()
+        return db_name
+
+    replace = input(f"Database {db_name} already exists. Do you want to replace it? (yes/no): ").strip().lower()
+    conn.close()
+
+    if replace == 'yes':
+        return db_name
+    else:
+        return None  # Return None if user doesn't want to replace
 
 
 def update_config_file(ga_db, nafc_db, isogabor_db):
