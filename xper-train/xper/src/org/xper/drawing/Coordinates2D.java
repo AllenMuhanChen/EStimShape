@@ -2,10 +2,10 @@ package org.xper.drawing;
 
 import java.util.Objects;
 
-public class Coordinates2D {
+public class Coordinates2D implements Cloneable {
 	double x;
 	double y;
-	
+
 	public double getX() {
 		return x;
 	}
@@ -39,12 +39,16 @@ public class Coordinates2D {
 
 	public Coordinates2D() {
 	}
-	
+
 	public String toString() {
 		return "("+x+","+y+")";
 	}
-	
+
 	public double distance(Coordinates2D point) {
 		return Math.hypot(x-point.x, y-point.y);
+	}
+
+	public Coordinates2D clone() {
+		return new Coordinates2D(x, y);
 	}
 }

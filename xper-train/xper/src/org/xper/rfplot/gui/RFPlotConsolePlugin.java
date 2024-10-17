@@ -404,7 +404,6 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         List<Coordinates2D> outlinePoints = new ArrayList<>(currentDrawable.getOutlinePoints(renderer));
         //Shift the outline points to the current stim position
 
-        System.out.println("Current Stim Position: " + currentStimPosition);
 
         List<Coordinates2D> shiftedOutlinePoints = new ArrayList<>();
         for (Coordinates2D point : outlinePoints) {
@@ -543,18 +542,10 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         //Middle Mouse Click
         if (e.getButton() == MouseEvent.BUTTON2 && !e.isShiftDown()) {
             List<Coordinates2D> outlinePoints = currentDrawable.getOutlinePoints(renderer);
-            List<Coordinates2D> correctedPoints = new ArrayList<>();
 
-            //jank method of making depe copy of Coordinates List
-            for (Coordinates2D point : outlinePoints) {
-                correctedPoints.add(new Coordinates2D(
-                        point.getX(),
-                        point.getY()));
-            }
+            correctOutlinePoints(outlinePoints);
 
-            correctOutlinePoints(correctedPoints);
-
-            plotter.addOutlinePoints(correctedPoints);
+            plotter.addOutlinePoints(outlinePoints);
         }
 
         //Shift Middle Mouse Click

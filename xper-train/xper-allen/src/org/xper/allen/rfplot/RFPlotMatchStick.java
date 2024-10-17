@@ -107,7 +107,11 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
                 }
             }
         }
-        return new ArrayList<>(currentHullCoords);
+        ArrayList<Coordinates2D> currentHullCoordsCopy = new ArrayList<>();
+        for (Coordinates2D coord : currentHullCoords) {
+            currentHullCoordsCopy.add(coord.clone());
+        }
+        return currentHullCoordsCopy;
     }
 
     @Override
