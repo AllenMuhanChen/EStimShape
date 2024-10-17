@@ -8,7 +8,8 @@ from src.pga.multi_ga_db_util import MultiGaDbUtil
 HOST = '172.30.6.80'
 USER = 'xper_rw'
 PASS = 'up2nite'
-TEMPLATE_DATE = '240604'
+TEMPLATE_TYPE = 'test'
+TEMPLATE_DATE = '241015'
 
 
 def main():
@@ -23,7 +24,7 @@ def main():
     isogabor_database = f"allen_isogabor_{type}_{current_date}"
 
     # GA Database
-    create_db_from_template(f'allen_estimshape_ga_train_{TEMPLATE_DATE}',
+    create_db_from_template(f'allen_estimshape_ga_{TEMPLATE_TYPE}_{TEMPLATE_DATE}',
                             ga_database,
                             [
                                 "SystemVar",
@@ -31,14 +32,14 @@ def main():
                                 "GAVar"])
 
     # NAFC Database
-    create_db_from_template(f"allen_estimshape_train_{TEMPLATE_DATE}",
+    create_db_from_template(f"allen_estimshape_{TEMPLATE_TYPE}_{TEMPLATE_DATE}",
                             nafc_database,
                             [
                                 "SystemVar",
                                 "InternalState"])
 
     # ISOGABOR Database
-    create_db_from_template(f"allen_isogabor_train_{TEMPLATE_DATE}",
+    create_db_from_template(f"allen_isogabor_{TEMPLATE_TYPE}_{TEMPLATE_DATE}",
                             isogabor_database,
                             [
                                 "SystemVar",

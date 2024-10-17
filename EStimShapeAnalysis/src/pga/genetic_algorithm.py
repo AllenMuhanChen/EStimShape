@@ -52,7 +52,7 @@ class GeneticAlgorithm:
             # because we already parse to db in another script to do the clustering
             if self.gen_id != 2:
                 self.response_parser.parse_to_db(self.name)
-                self.response_processor.process_to_db(self.name)
+            self.response_processor.process_to_db(self.name)
             #
 
             self._construct_lineages_from_db()
