@@ -402,9 +402,8 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         AbstractRenderer renderer = consoleRenderer.getRenderer();
         RFPlotDrawable currentDrawable = getNamesForDrawables().get(stimType);
         List<Coordinates2D> outlinePoints = new ArrayList<>(currentDrawable.getOutlinePoints(renderer));
+
         //Shift the outline points to the current stim position
-
-
         List<Coordinates2D> shiftedOutlinePoints = new ArrayList<>();
         for (Coordinates2D point : outlinePoints) {
             shiftedOutlinePoints.add(new Coordinates2D(
@@ -419,8 +418,6 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             Coordinates2D end = shiftedOutlinePoints.get((i + 1) % shiftedOutlinePoints.size()); // Ensures the last point connects back to the first
             GLUtil.drawLine(start.getX(), start.getY(), end.getX(), end.getY(), 1, 1, 1);
         }
-
-//        GLUtil.drawCircle(new Circle(true, 5), currentStimPosition.getX(), currentStimPosition.getY(), 0, 255, 255, 255);
     }
 
     @Override
