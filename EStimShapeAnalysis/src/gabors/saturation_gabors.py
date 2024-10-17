@@ -24,7 +24,7 @@ def create_saturation_grating(size, lambda_px, theta, phase):
 
 # Parameters
 size = 256
-lambda_px = 40
+lambda_px = 20
 theta = np.pi / 4
 phase = 0
 
