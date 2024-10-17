@@ -1,5 +1,6 @@
 package org.xper.rfplot.gui;
 
+import org.lwjgl.opengl.GL11;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.Dependency;
 import org.xper.console.ConsoleRenderer;
@@ -400,18 +401,23 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     private void drawCurrentStimPosition() {
         AbstractRenderer renderer = consoleRenderer.getRenderer();
         RFPlotDrawable currentDrawable = getNamesForDrawables().get(stimType);
-        List<Coordinates2D> outlinePoints = currentDrawable.getOutlinePoints(renderer);
-
+        List<Coordinates2D> outlinePoints = new ArrayList<>(currentDrawable.getOutlinePoints(renderer));
         //Shift the outline points to the current stim position
+
+        System.out.println("Current Stim Position: " + currentStimPosition);
+
+        List<Coordinates2D> shiftedOutlinePoints = new ArrayList<>();
         for (Coordinates2D point : outlinePoints) {
-            point.setX(point.getX() + currentStimPosition.getX());
-            point.setY(point.getY() + currentStimPosition.getY());
+            shiftedOutlinePoints.add(new Coordinates2D(
+                    point.getX() + currentStimPosition.getX(),
+                    point.getY() + currentStimPosition.getY()
+            ));
         }
 
         //Draw the outline
-        for (int i = 0; i < outlinePoints.size(); i++) {
-            Coordinates2D start = outlinePoints.get(i);
-            Coordinates2D end = outlinePoints.get((i + 1) % outlinePoints.size()); // Ensures the last point connects back to the first
+        for (int i = 0; i < shiftedOutlinePoints.size(); i++) {
+            Coordinates2D start = shiftedOutlinePoints.get(i);
+            Coordinates2D end = shiftedOutlinePoints.get((i + 1) % shiftedOutlinePoints.size()); // Ensures the last point connects back to the first
             GLUtil.drawLine(start.getX(), start.getY(), end.getX(), end.getY(), 1, 1, 1);
         }
 
@@ -537,10 +543,18 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         //Middle Mouse Click
         if (e.getButton() == MouseEvent.BUTTON2 && !e.isShiftDown()) {
             List<Coordinates2D> outlinePoints = currentDrawable.getOutlinePoints(renderer);
+            List<Coordinates2D> correctedPoints = new ArrayList<>();
 
-            correctOutlinePoints(outlinePoints);
+            //jank method of making depe copy of Coordinates List
+            for (Coordinates2D point : outlinePoints) {
+                correctedPoints.add(new Coordinates2D(
+                        point.getX(),
+                        point.getY()));
+            }
 
-            plotter.addOutlinePoints(outlinePoints);
+            correctOutlinePoints(correctedPoints);
+
+            plotter.addOutlinePoints(correctedPoints);
         }
 
         //Shift Middle Mouse Click
