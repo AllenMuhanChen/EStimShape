@@ -2,4 +2,4 @@
 #All we need to do is change VERSION. 
 VERSION_PROCEDURAL=allen_estimshape_test_241017
 VERSION_ISOGABOR=allen_isogabor_test_241017
-VERSION_GA=allen_estimshape_ga_test_241017
+VERSION_GA=allen_ga_test_241017

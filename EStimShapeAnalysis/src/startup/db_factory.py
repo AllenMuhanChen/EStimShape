@@ -9,22 +9,25 @@ HOST = '172.30.6.80'
 USER = 'xper_rw'
 PASS = 'up2nite'
 TEMPLATE_TYPE = 'test'
-TEMPLATE_DATE = '241015'
-
+TEMPLATE_DATE = '241017'
+TEMPLATE_LOCATION_ID = '0'
 
 def main():
     # Get current date in YYMMDD format
     current_date = datetime.now().strftime("%y%m%d")
 
     # Prompt user for TYPE
-    type = input("Enter the type (e.g., train, test): ").strip().lower()
+    type = input("Enter the type (e.g., train, test, exp): ").strip().lower()
 
-    ga_database = f"allen_estimshape_ga_{type}_{current_date}"
-    nafc_database = f"allen_estimshape_{type}_{current_date}"
-    isogabor_database = f"allen_isogabor_{type}_{current_date}"
+    # Prompt user for location ID
+    location_id = input("Enter the location ID: ").strip()
+
+    ga_database = create_unique_database_name(f"allen_ga_{type}_{current_date}", location_id)
+    nafc_database = create_unique_database_name(f"allen_estimshape_{type}_{current_date}", location_id)
+    isogabor_database = create_unique_database_name(f"allen_isogabor_{type}_{current_date}", location_id)
 
     # GA Database
-    create_db_from_template(f'allen_estimshape_ga_{TEMPLATE_TYPE}_{TEMPLATE_DATE}',
+    create_db_from_template(f'allen_ga_{TEMPLATE_TYPE}_{TEMPLATE_DATE}',
                             ga_database,
                             [
                                 "SystemVar",
@@ -49,6 +52,29 @@ def main():
                             )
 
     update_config_file(ga_database, nafc_database, isogabor_database)
+
+
+def create_unique_database_name(base_name, location_id):
+    conn = mysql.connector.connect(host=HOST, user=USER, password=PASS)
+    cursor = conn.cursor()
+
+    number = 0
+    while True:
+        db_name = f"{base_name}_{location_id}_{number}"
+        if not database_exists(cursor, db_name):
+            conn.close()
+            return db_name
+
+        exists = database_exists(cursor, db_name)
+        if exists:
+            replace = input(f"Database {db_name} already exists. Do you want to replace it? (yes/no): ").strip().lower()
+            if replace == 'yes':
+                conn.close()
+                return db_name
+
+        number += 1
+
+    conn.close()
 
 
 def update_config_file(ga_db, nafc_db, isogabor_db):
