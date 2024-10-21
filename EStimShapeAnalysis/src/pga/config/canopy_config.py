@@ -21,6 +21,8 @@ from src.pga.regime_zero import SeedingPhaseParentSelector, SeedingPhaseMutation
     SeedingPhaseMutationMagnitudeAssigner, SeedingPhaseTransitioner
 from clat.util.connection import Connection
 
+from src.pga.trial_generators import GAJarTrialGenerator, TrialGenerator
+
 
 def singleton(method):
     """Decorator for singleton methods in a class."""
@@ -56,7 +58,8 @@ class GeneticAlgorithmConfig:
             lineage_distributor=self.make_lineage_distributor(),
             response_parser=self.make_response_parser(),
             response_processor=self.response_processor,
-            num_catch_trials=self.num_catch_trials
+            num_catch_trials=self.num_catch_trials,
+            trial_generator=self.xper_trial_generator()
         )
         return ga
 
@@ -216,6 +219,9 @@ class GeneticAlgorithmConfig:
     @singleton
     def get_db_util(self):
         return MultiGaDbUtil(self.connection())
+
+    def xper_trial_generator(self) -> TrialGenerator:
+        return GAJarTrialGenerator()
 
 
 class GAVarParameterFetcher:

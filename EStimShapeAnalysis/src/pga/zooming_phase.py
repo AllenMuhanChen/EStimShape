@@ -85,18 +85,6 @@ class ZoomSetHandler(Protocol):
             return False
         else:
             raise ValueError(f"Unknown RF strategy: {rf_strategy}")
-    # def is_zoomed_already(self, stimulus: Stimulus) -> bool:
-    #     query = "SELECT data FROM StimSpec WHERE id=%s"
-    #     self.conn.execute(query, (stimulus.id,))
-    #     data = self.conn.fetch_one()
-    #     data_dict = xmltodict.parse(data)
-    #     rf_strategy = data_dict["AllenMStickData"]['analysisMStickSpec']['rfStrategy']
-    #     if rf_strategy == "PARTIALLY_INSIDE":
-    #         return True
-    #     elif rf_strategy == "COMPLETELY_INSIDE":
-    #         return False
-    #     else:
-    #         raise ValueError(f"Unknown RF strategy: {rf_strategy}")
 
 
 class ZoomingPhaseTransitioner(RegimeTransitioner):

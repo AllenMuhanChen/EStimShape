@@ -3,9 +3,9 @@ from src.pga.mock.alexnet_mock_ga import FullAutoAlexNetMockGeneticAlgorithmConf
     TrainingAlexNetMockGeneticAlgorithmConfig
 
 ga_name = "New3D"
-ga_database = "allen_estimshape_ga_test_241015"
-nafc_database = "allen_estimshape_test_241015"
-isogabor_database = "allen_isogabor_test_241015"
+ga_database = "allen_ga_dev_241017_1"
+nafc_database = "allen_estimshape_dev_241017_1"
+isogabor_database = "allen_isogabor_dev_241017_1"
 allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
 image_path = f"/home/r2_allen/Documents/EStimShape/{ga_database}/stimuli/ga/pngs"
 java_output_dir = f"/home/r2_allen/Documents/EStimShape/{ga_database}/java_output"

@@ -49,8 +49,6 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
                 mStick = null;
                 System.out.println(me.getMessage());
                 System.out.println("FAILED TO CREATE PARTIAL MATCHSTICK OF TYPE: " + this.getClass().getSimpleName() + " SCALING SIZE DOWN AND TRYING AGAIN...");
-                System.out.println("MASS CENTER OF STIM: " + mStick.getMassCenter());
-                System.out.println("RF CENTER: " + generator.getReceptiveField().getCenter());
                 scaleFactor = scaleFactor * 0.9;
 
             }

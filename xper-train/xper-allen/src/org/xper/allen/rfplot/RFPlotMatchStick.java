@@ -21,7 +21,8 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
     AllenMatchStick matchStick;
     public RFPlotMatchStickSpec matchStickSpec;
     double sizeDiameterDegrees = 10;
-    private ArrayList<Point> meshPoints;
+    private ArrayList<Point> meshPoints = new ArrayList<>();
+    private ArrayList<Coordinates2D> currentHullCoords;
 
     public RFPlotMatchStick() {
         setDefaultSpec();
@@ -84,28 +85,33 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
                 nextMeshPoints.add(hullPoint);
             }
         }
-        meshPoints = new ArrayList<>(nextMeshPoints);
 
+        if (!meshPoints.equals(nextMeshPoints)) {
+            meshPoints = new ArrayList<>(nextMeshPoints);
 
-        int numComponents = matchStick.getNComponent();
-        int totalPoints = NUM_POINTS_PER_COMPONENT * numComponents;
+            int numComponents = matchStick.getNComponent();
+            int totalPoints = NUM_POINTS_PER_COMPONENT * numComponents;
 
+            // Gather points to use for hull calculation
+            ConcaveHull concaveHull = new ConcaveHull();
 
-        // Gather points to use for hull calculation
-        ConcaveHull concaveHull = new ConcaveHull();
+            ArrayList<Point> concaveHullPoints = concaveHull.calculateConcaveHull(meshPoints, 3);
 
-        ArrayList<Point> concaveHullPoints = concaveHull.calculateConcaveHull(meshPoints, 3);
-
-        //Convert the hull points to Coordinates2D
-        ArrayList<Coordinates2D> hullCoordinates = new ArrayList<>();
-        for (Point point : concaveHullPoints) {
-            //plot only numPoints points, distributed evenly
-            int everyOther = concaveHullPoints.size() / totalPoints;
-            if (concaveHullPoints.indexOf(point) % everyOther == 0) {
-                hullCoordinates.add(new Coordinates2D(point.getX(), point.getY()));
+            //Convert the hull points to Coordinates2D
+            currentHullCoords = new ArrayList<>();
+            for (Point point : concaveHullPoints) {
+                //plot only numPoints points, distributed evenly
+                int everyOther = concaveHullPoints.size() / totalPoints;
+                if (concaveHullPoints.indexOf(point) % everyOther == 0) {
+                    currentHullCoords.add(new Coordinates2D(point.getX(), point.getY()));
+                }
             }
         }
-        return hullCoordinates;
+        ArrayList<Coordinates2D> currentHullCoordsCopy = new ArrayList<>();
+        for (Coordinates2D coord : currentHullCoords) {
+            currentHullCoordsCopy.add(coord.clone());
+        }
+        return currentHullCoordsCopy;
     }
 
     @Override

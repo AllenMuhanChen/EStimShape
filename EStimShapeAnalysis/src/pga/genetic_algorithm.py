@@ -4,16 +4,16 @@ import time
 from dataclasses import dataclass, field
 from typing import List
 
+from clat.util import time_util
 from mysql.connector import DatabaseError
 
-from src.pga.spike_parsing import ResponseParser
-from src.pga.response_processing import ResponseProcessor
-from src.pga.ga_classes import LineageDistributor, Node, Stimulus, LineageFactory
-from src.pga.lineage_selection import ClassicLineageDistributor
-from src.pga.regime_type import RegimeType
-from src.pga.multi_ga_db_util import MultiGaDbUtil
+from src.pga.ga_classes import Node, Stimulus, LineageFactory
 from src.pga.ga_classes import Phase, Lineage
-from clat.util import time_util
+from src.pga.lineage_selection import ClassicLineageDistributor
+from src.pga.multi_ga_db_util import MultiGaDbUtil
+from src.pga.response_processing import ResponseProcessor
+from src.pga.spike_parsing import ResponseParser
+from src.pga.trial_generators import TrialGenerator
 
 
 @dataclass(kw_only=True)
@@ -27,6 +27,7 @@ class GeneticAlgorithm:
     response_parser: ResponseParser
     response_processor: ResponseProcessor
     num_catch_trials: int
+    trial_generator: TrialGenerator
 
     # Instance Variables
     experiment_id: int = field(init=False, default=None)
@@ -48,8 +49,10 @@ class GeneticAlgorithm:
         elif self.gen_id > 1:
             # recover experiment_id
             self.experiment_id = self.db_util.read_current_experiment_id(self.name)
-            # Could be run outside of this class
-            self.response_parser.parse_to_db(self.name)
+
+            # because we already parse to db in another script to do the clustering
+            if self.gen_id != 2:
+                self.response_parser.parse_to_db(self.name)
             self.response_processor.process_to_db(self.name)
             #
 
@@ -61,6 +64,7 @@ class GeneticAlgorithm:
             raise ValueError("gen_id must be >= 1")
 
         self._update_db()
+        self.trial_generator.generate_trials(experiment_id=self.experiment_id, generation=self.gen_id)
 
     def _transition_lineages_if_needed(self):
         for lineage in self.lineages:

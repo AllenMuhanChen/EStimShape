@@ -1,18 +1,21 @@
 package org.xper.rfplot.gui;
 
+import org.lwjgl.opengl.GL11;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.Dependency;
 import org.xper.console.ConsoleRenderer;
 import org.xper.console.IConsolePlugin;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
+import org.xper.drawing.GLUtil;
 import org.xper.drawing.RGBColor;
+import org.xper.drawing.object.Circle;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.*;
+import org.xper.rfplot.Point;
 import org.xper.rfplot.drawing.RFPlotBlankObject;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 
-import org.xper.rfplot.drawing.gabor.Gabor;
 import org.xper.rfplot.gui.scroller.ScrollerParams;
 import org.xper.time.TimeUtil;
 import org.xper.util.DbUtil;
@@ -20,6 +23,7 @@ import org.xper.util.DbUtil;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.security.Key;
 import java.util.*;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -56,10 +60,31 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     private String xfmSpec;
     private String stimSpec;
     private CyclicIterator<String> stimTypeSpecs;
+    private boolean isMouseMoveStimuliModeOn = true;
+    private Coordinates2D currentStimPosition;
 
+    @Override
+    /**
+     * Must modify this to include all the command keys you want to use
+     */
+    public List<KeyStroke> getCommandKeys() {
+        List<KeyStroke> commandKeys = new LinkedList<>();
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_A,0));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_D,0));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_W,0));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_S,0));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_Q,0));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_UP,0));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT,0));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT,0));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN,0));
+        return commandKeys;
+    }
 
     @Override
     public void handleKeyStroke(KeyStroke k) {
+        System.out.println("KeyStroke: " + k.getKeyCode());
         if (KeyStroke.getKeyStroke(KeyEvent.VK_W, 0).equals(k)) {
             String nextType = stimTypeSpecs.next();
             changeStimType(nextType);
@@ -78,10 +103,36 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             modulator.previousMode();
             scrollerModeLabel.setText(modulator.getMode());
         }
+        if(KeyStroke.getKeyStroke(KeyEvent.VK_Q,0).equals(k)){
+            isMouseMoveStimuliModeOn = !isMouseMoveStimuliModeOn;
+            System.out.println("Move Stimuli Mode: " + isMouseMoveStimuliModeOn);
+        }
         if(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK).equals(k)){
             System.out.println("Saving RFInfo");
             save();
         }
+        if(KeyStroke.getKeyStroke(KeyEvent.VK_UP,0).equals(k)){
+            updateStimPosition(new Coordinates2D(currentStimPosition.getX(), currentStimPosition.getY() + 1));
+        }
+        if(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN,0).equals(k)){
+            updateStimPosition(new Coordinates2D(currentStimPosition.getX(), currentStimPosition.getY() - 1));
+        }
+        if(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT,0).equals(k)){
+            updateStimPosition(new Coordinates2D(currentStimPosition.getX() - 1, currentStimPosition.getY()));
+        }
+        if(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT,0).equals(k)){
+            updateStimPosition(new Coordinates2D(currentStimPosition.getX() + 1, currentStimPosition.getY()));
+        }
+    }
+
+    private void updateStimPosition(Coordinates2D newStimPosition) {
+        RFPlotXfmSpec nowXfmSpec = RFPlotXfmSpec.fromXml(xfmSpec);
+
+        currentStimPosition = newStimPosition;
+        nowXfmSpec.setTranslation(newStimPosition);
+
+        xfmSpec = nowXfmSpec.toXml();
+        client.changeRFPlotXfm(xfmSpec);
     }
 
     private void changeStimType(String stimType) {
@@ -344,17 +395,36 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     @Override
     public void drawCanvas(Context context, String devId) {
         plotter.draw();
+        drawCurrentStimPosition();
+    }
+
+    private void drawCurrentStimPosition() {
+        AbstractRenderer renderer = consoleRenderer.getRenderer();
+        RFPlotDrawable currentDrawable = getNamesForDrawables().get(stimType);
+        List<Coordinates2D> outlinePoints = new ArrayList<>(currentDrawable.getOutlinePoints(renderer));
+
+        //Shift the outline points to the current stim position
+        List<Coordinates2D> shiftedOutlinePoints = new ArrayList<>();
+        for (Coordinates2D point : outlinePoints) {
+            shiftedOutlinePoints.add(new Coordinates2D(
+                    point.getX() + currentStimPosition.getX(),
+                    point.getY() + currentStimPosition.getY()
+            ));
+        }
+
+        //Draw the outline
+        for (int i = 0; i < shiftedOutlinePoints.size(); i++) {
+            Coordinates2D start = shiftedOutlinePoints.get(i);
+            Coordinates2D end = shiftedOutlinePoints.get((i + 1) % shiftedOutlinePoints.size()); // Ensures the last point connects back to the first
+            GLUtil.drawLine(start.getX(), start.getY(), end.getX(), end.getY(), 1, 1, 1);
+        }
     }
 
     @Override
     public void handleMouseMove(int x, int y) {
-
-        RFPlotXfmSpec nowXfmSpec = RFPlotXfmSpec.fromXml(xfmSpec);
-
-        nowXfmSpec.setTranslation(mouseWorldPosition(x,y));
-
-        xfmSpec = nowXfmSpec.toXml();
-        client.changeRFPlotXfm(xfmSpec);
+        if (isMouseMoveStimuliModeOn) {
+            updateStimPosition(mouseWorldPosition(x, y));
+        }
     }
 
     public Coordinates2D mouseWorldPosition(int x, int y) {
@@ -432,16 +502,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         return KeyStroke.getKeyStroke(KeyEvent.VK_R, 0);
     }
 
-    @Override
-    public List<KeyStroke> getCommandKeys() {
-        List<KeyStroke> commandKeys = new LinkedList<>();
-        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_A,0));
-        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_D,0));
-        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_W,0));
-        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_S,0));
-        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
-        return commandKeys;
-    }
+
 
     @Override
     public String getPluginHelp() {
