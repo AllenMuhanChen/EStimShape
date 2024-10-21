@@ -20,7 +20,6 @@ class GAJarTrialGenerator(TrialGenerator):
 
     def generate_trials(self, *, experiment_id: int, generation: int):
         output_file = os.path.join(config.java_output_dir, f"experiment_{experiment_id}_generation_{generation}.txt")
-        # TODO change jar to real jar
         trial_generator_path = os.path.join(config.allen_dist, "GAGenerator.jar")
         trial_generator_command = f"java -jar {trial_generator_path} {self.r} {self.g} {self.b}"
 

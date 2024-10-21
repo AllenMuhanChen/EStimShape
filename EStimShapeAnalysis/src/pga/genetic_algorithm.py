@@ -4,19 +4,16 @@ import time
 from dataclasses import dataclass, field
 from typing import List
 
+from clat.util import time_util
 from mysql.connector import DatabaseError
 
-from src.pga.app.run_ga import prompt_rgb_values
-from src.pga.spike_parsing import ResponseParser
-from src.pga.response_processing import ResponseProcessor
-from src.pga.ga_classes import LineageDistributor, Node, Stimulus, LineageFactory
-from src.pga.lineage_selection import ClassicLineageDistributor
-from src.pga.regime_type import RegimeType
-from src.pga.multi_ga_db_util import MultiGaDbUtil
+from src.pga.ga_classes import Node, Stimulus, LineageFactory
 from src.pga.ga_classes import Phase, Lineage
-from clat.util import time_util
-
-from src.pga.trial_generators import GAJarTrialGenerator, TrialGenerator
+from src.pga.lineage_selection import ClassicLineageDistributor
+from src.pga.multi_ga_db_util import MultiGaDbUtil
+from src.pga.response_processing import ResponseProcessor
+from src.pga.spike_parsing import ResponseParser
+from src.pga.trial_generators import TrialGenerator
 
 
 @dataclass(kw_only=True)

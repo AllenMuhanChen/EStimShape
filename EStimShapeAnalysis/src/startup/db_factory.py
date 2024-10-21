@@ -1,7 +1,5 @@
 from datetime import datetime
-
 import mysql.connector
-
 from clat.util.connection import Connection
 from src.pga.multi_ga_db_util import MultiGaDbUtil
 
@@ -11,6 +9,7 @@ PASS = 'up2nite'
 TEMPLATE_TYPE = 'dev'
 TEMPLATE_DATE = '241017'
 TEMPLATE_LOCATION_ID = '0'
+
 
 def main():
     # Get current date in YYMMDD format
@@ -29,27 +28,17 @@ def main():
     # GA Database
     create_db_from_template(f'allen_ga_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}',
                             ga_database,
-                            [
-                                "SystemVar",
-                                "InternalState",
-                                "GAVar"])
+                            copy_data_tables=["SystemVar", "InternalState", "GAVar"])
 
     # NAFC Database
     create_db_from_template(f"allen_estimshape_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}",
                             nafc_database,
-                            [
-                                "SystemVar",
-                                "InternalState"])
+                            copy_data_tables=["SystemVar", "InternalState"])
 
     # ISOGABOR Database
     create_db_from_template(f"allen_isogabor_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}",
                             isogabor_database,
-                            [
-                                "SystemVar",
-                                "InternalState",
-                                "SinGain",
-                                "MonitorLin"]
-                            )
+                            copy_data_tables=["SystemVar", "InternalState", "SinGain", "MonitorLin"])
 
     update_config_file(ga_database, nafc_database, isogabor_database)
 
@@ -97,14 +86,17 @@ def update_config_file(ga_db, nafc_db, isogabor_db):
         file.writelines(new_lines)
 
 
-def create_db_from_template(source_db_name, dest_db_name, copy_data_tables):
+def create_db_from_template(source_db_name, dest_db_name, copy_data_tables=None, copy_structure_tables=None):
     '''
     Create a new database from a template database
     :param source_db_name: The name of the database to copy from
     :param dest_db_name: The name of the new database
     :param copy_data_tables: A list of tables to copy data from
+    :param copy_structure_tables: A list of tables to copy structure only from. If None, copy all tables' structures.
 
-    all other tables not listed in copy_data_tables will only have structure copied.
+    Tables listed in copy_data_tables will have both structure and data copied.
+    Tables listed in copy_structure_tables (or all tables if None) will have only their structure copied.
+    Tables not listed in either parameter will be ignored.
     '''
     source_ga_db_config = {
         'host': HOST,
@@ -120,14 +112,13 @@ def create_db_from_template(source_db_name, dest_db_name, copy_data_tables):
         'database': dest_db_name
     }
 
-    migrate_database(source_ga_db_config, dest_ga_db_config, copy_data_tables=copy_data_tables)
+    migrate_database(source_ga_db_config, dest_ga_db_config, copy_data_tables=copy_data_tables,
+                     copy_structure_tables=copy_structure_tables)
 
     reset_internal_state(dest_ga_db_config)
 
 
 def replace_xml_in_table(connection):
-    # XML string with the specified content and formatting
-    # the weird spacing here is to get it to match the formatting of the existing XML strings
     xml_string = \
         """<GenerationInfo>
   <genId>0</genId>
@@ -223,7 +214,7 @@ def recreate_database(cursor, db_name):
     cursor.execute(f"CREATE DATABASE {db_name}")
 
 
-def migrate_database(source_config, dest_config, copy_data_tables=[]):
+def migrate_database(source_config, dest_config, copy_data_tables=None, copy_structure_tables=None):
     # Connect to the source database
     source_conn = mysql.connector.connect(**source_config)
     source_cursor = source_conn.cursor()
@@ -260,23 +251,25 @@ def migrate_database(source_config, dest_config, copy_data_tables=[]):
     # Get all tables in the source database
     all_tables = get_all_tables(source_cursor)
 
+    # If copy_structure_tables is None, copy all tables' structures
+    if copy_structure_tables is None:
+        copy_structure_tables = all_tables
+
     # Copy tables
     for table in all_tables:
-        create_table_sql = create_table_structure(source_cursor, table)
-        dest_cursor.execute(create_table_sql)
+        if table in copy_structure_tables or table in copy_data_tables:
+            create_table_sql = create_table_structure(source_cursor, table)
+            dest_cursor.execute(create_table_sql)
 
-        # Copy data if the table is specified in copy_data_tables
-        if table in copy_data_tables:
-            copy_data(source_cursor, dest_cursor, table)
+            # Copy data if the table is specified in copy_data_tables
+            if copy_data_tables and table in copy_data_tables:
+                copy_data(source_cursor, dest_cursor, table)
 
     # Commit changes and close connections
     dest_conn.commit()
     source_conn.close()
     dest_conn.close()
     dest_server_conn.close()
-
-
-# Example usage:
 
 
 if __name__ == '__main__':
