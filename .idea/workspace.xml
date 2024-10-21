@@ -4,19 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ef850e9a-559c-45d1-83f3-a8817ba93678" name="Changes" comment="final touches in the adventure of retraining AlexNet">
-      <change afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat/visualize.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/trainnew/__init__.py" afterDir="false" />
+    <list default="true" id="ef850e9a-559c-45d1-83f3-a8817ba93678" name="Changes" comment="moved stuff around, incomplete visualization of ONNX netowrk">
+      <change afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat/print_layers.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/alexnetparallelgpus.py" beforeDir="false" afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/trainnew/alexnetparallelgpus.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/compare.py" beforeDir="false" afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/trainnew/compare.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/plot_lr.py" beforeDir="false" afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/trainnew/plot_lr.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/plotweights.py" beforeDir="false" afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/trainnew/plotweights.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/standardalexnet_cifar.py" beforeDir="false" afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/trainnew/standardalexnet_cifar.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/train_cifar.py" beforeDir="false" afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/trainnew/train_cifar.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/train_imagenet.py" beforeDir="false" afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/trainnew/train_imagenet.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/visualize_checkpoints.py" beforeDir="false" afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/trainnew/visualize_checkpoints.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat/visualize.py" beforeDir="false" afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat/visualize_c1.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -60,13 +51,15 @@
     "Python.coloraugment.executor": "Run",
     "Python.compare.executor": "Run",
     "Python.imagenetpca.executor": "Run",
+    "Python.load.executor": "Debug",
     "Python.plot_lr.executor": "Run",
     "Python.plotweights.executor": "Run",
     "Python.standardalexnet_cifar.executor": "Run",
     "Python.train.executor": "Run",
     "Python.train_cifar.executor": "Run",
     "Python.train_imagenet.executor": "Run",
-    "Python.visualize.executor": "Run",
+    "Python.visualize.executor": "Debug",
+    "Python.visualize_c2.executor": "Debug",
     "Python.visualize_checkpoints.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
@@ -94,30 +87,7 @@
       <recent name="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/data/segregated/checkpoints" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.visualize">
-    <configuration name="coloraugment" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="EStimShape" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/coloraugment" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/coloraugment/coloraugment.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
+  <component name="RunManager" selected="Python.print_layers">
     <configuration name="plot_lr" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="EStimShape" />
       <option name="ENV_FILES" value="" />
@@ -141,30 +111,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="train_imagenet" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="EStimShape" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/trainnew/train_imagenet.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="visualize" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="print_layers" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="EStimShape" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -178,7 +125,53 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat/visualize.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat/print_layers.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="visualize_c1" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="EStimShape" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat/visualize_c1.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="visualize_c2" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="EStimShape" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat/visualize_c2.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -212,11 +205,11 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.visualize" />
+        <item itemvalue="Python.print_layers" />
+        <item itemvalue="Python.visualize_c1" />
+        <item itemvalue="Python.visualize_c2" />
         <item itemvalue="Python.visualize_checkpoints" />
         <item itemvalue="Python.plot_lr" />
-        <item itemvalue="Python.train_imagenet" />
-        <item itemvalue="Python.coloraugment" />
       </list>
     </recent_temporary>
   </component>
@@ -249,7 +242,7 @@
       <workItem from="1726850858015" duration="382000" />
       <workItem from="1726855265899" duration="2037000" />
       <workItem from="1726859738640" duration="25000" />
-      <workItem from="1727110360388" duration="20684000" />
+      <workItem from="1727110360388" duration="24963000" />
     </task>
     <task id="LOCAL-00001" summary="plotweights.py">
       <option name="closed" value="true" />
@@ -299,7 +292,15 @@
       <option name="project" value="LOCAL" />
       <updated>1729530272389</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="moved stuff around, incomplete visualization of ONNX netowrk">
+      <option name="closed" value="true" />
+      <created>1729531239923</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1729531239923</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -334,7 +335,8 @@
     <MESSAGE value="added PCA color augmentation to transformsand local response norm layers" />
     <MESSAGE value="some path organizations. Code that was used to train segregated final" />
     <MESSAGE value="final touches in the adventure of retraining AlexNet" />
-    <option name="LAST_COMMIT_MESSAGE" value="final touches in the adventure of retraining AlexNet" />
+    <MESSAGE value="moved stuff around, incomplete visualization of ONNX netowrk" />
+    <option name="LAST_COMMIT_MESSAGE" value="moved stuff around, incomplete visualization of ONNX netowrk" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -350,20 +352,28 @@
           <option name="timeStamp" value="3" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat/visualize.py</url>
-          <line>49</line>
-          <option name="timeStamp" value="6" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat/visualize.py</url>
+          <url>file://$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat/visualize_c1.py</url>
           <line>13</line>
           <option name="timeStamp" value="7" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat/print_layers.py</url>
+          <line>36</line>
+          <option name="timeStamp" value="9" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat/visualize_c1.py</url>
+          <line>48</line>
+          <option name="timeStamp" value="10" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/EStimShape$train_cifar.coverage" NAME="train_cifar Coverage Results" MODIFIED="1726684040880" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
+    <SUITE FILE_PATH="coverage/EStimShape$plot_lr.coverage" NAME="plot_lr Coverage Results" MODIFIED="1727206250161" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
+    <SUITE FILE_PATH="coverage/EStimShape$visualize_c2.coverage" NAME="visualize_c2 Coverage Results" MODIFIED="1729533200185" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat" />
+    <SUITE FILE_PATH="coverage/EStimShape$load.coverage" NAME="load Coverage Results" MODIFIED="1729534012085" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat" />
     <SUITE FILE_PATH="coverage/EStimShape$visualize_checkpoints.coverage" NAME="visualize_checkpoints Coverage Results" MODIFIED="1727206345104" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
     <SUITE FILE_PATH="coverage/EStimShape$coloraugment.coverage" NAME="coloraugment Coverage Results" MODIFIED="1726692269951" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/coloraugment" />
     <SUITE FILE_PATH="coverage/EStimShape$standardalexnet_cifar.coverage" NAME="standardalexnet_cifar Coverage Results" MODIFIED="1726683308255" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
@@ -371,8 +381,7 @@
     <SUITE FILE_PATH="coverage/EStimShape$plotweights.coverage" NAME="plotweights Coverage Results" MODIFIED="1726603706638" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
     <SUITE FILE_PATH="coverage/EStimShape$imagenetpca.coverage" NAME="imagenetpca Coverage Results" MODIFIED="1726688563265" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
     <SUITE FILE_PATH="coverage/EStimShape$train_imagenet.coverage" NAME="train_imagenet Coverage Results" MODIFIED="1727117092305" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
-    <SUITE FILE_PATH="coverage/EStimShape$plot_lr.coverage" NAME="plot_lr Coverage Results" MODIFIED="1727206250161" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
-    <SUITE FILE_PATH="coverage/EStimShape$visualize.coverage" NAME="visualize Coverage Results" MODIFIED="1729531138498" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat" />
+    <SUITE FILE_PATH="coverage/EStimShape$visualize.coverage" NAME="visualize Coverage Results" MODIFIED="1729533289439" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat" />
     <SUITE FILE_PATH="coverage/EStimShape$train.coverage" NAME="train Coverage Results" MODIFIED="1726600562800" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
   </component>
 </project>

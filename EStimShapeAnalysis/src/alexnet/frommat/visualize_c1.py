@@ -47,7 +47,6 @@ onnx_model = load_onnx_model(model_path)
 
 # Get weights for the first convolutional layer of each GPU
 weights_gpu1 = get_conv_weights(onnx_model, "conv1_W")
-weights_gpu2 = get_conv_weights(onnx_model, "conv1_W")  # Note: This is the same as GPU1 for now
 
 if weights_gpu1 is not None:
     # Visualize filters for GPU1
