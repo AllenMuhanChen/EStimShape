@@ -340,8 +340,10 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         return profilePoints;
     }
 
-
-
+    @Override
+    public String getOutputData() {
+        return gaborSpec.toXml();
+    }
 
     public String getSpec() {
         return getGaborSpec().toXml();

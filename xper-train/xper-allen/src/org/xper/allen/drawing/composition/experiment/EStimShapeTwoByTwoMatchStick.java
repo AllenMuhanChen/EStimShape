@@ -164,7 +164,7 @@ public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
 
     @Override
     public void positionShape() throws MorphedMatchStick.MorphException {
-        RFUtils.positionAroundRF(rfStrategy, this, rf);
+        RFUtils.positionAroundRF(rfStrategy, this, rf, 100);
     }
 
 

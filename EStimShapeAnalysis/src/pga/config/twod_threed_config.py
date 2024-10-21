@@ -7,8 +7,6 @@ from src.pga.stim_types import StimType
 
 
 class TwoDThreeDGAConfig(RFGeneticAlgorithmConfig):
-    database = "allen_estimshape_ga_dev_240207"
-
     def seeding_phase_mutation_assigner(self):
         return SeedingPhase2D3DMutationAssigner()
 

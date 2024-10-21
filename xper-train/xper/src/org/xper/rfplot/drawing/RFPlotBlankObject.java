@@ -33,4 +33,9 @@ public class RFPlotBlankObject implements RFPlotDrawable {
         return new LinkedList<>();
     }
 
+    @Override
+    public String getOutputData() {
+        return null;
+    }
+
 }

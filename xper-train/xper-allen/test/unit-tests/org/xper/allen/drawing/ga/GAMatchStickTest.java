@@ -85,8 +85,8 @@ public class GAMatchStickTest {
         complete.genMatchStickRand();
 
 
-        testMatchStickDrawer.drawMStick(complete);
-        testMatchStickDrawer.drawCompMap(complete);
+//        testMatchStickDrawer.drawMStick(complete);
+//        testMatchStickDrawer.drawCompMap(complete);
 
 
         AllenMStickSpec spec = new AllenMStickSpec();
@@ -96,7 +96,8 @@ public class GAMatchStickTest {
         GAMatchStick partial = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE, "SHADE");
         partial.setProperties(2.5, "SHADE");
         partial.genMatchStickFromShapeSpec(spec, new double[]{0,0,0}, spec.getmAxis().getSpecialEndComp());
-
+        partial.setRfStrategy(RFStrategy.PARTIALLY_INSIDE);
+        partial.positionShape();
         testMatchStickDrawer.drawMStick(partial);
         testMatchStickDrawer.drawCompMap(partial);
         ThreadUtil.sleep(10000);
