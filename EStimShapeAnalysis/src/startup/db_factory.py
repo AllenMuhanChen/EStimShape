@@ -22,9 +22,9 @@ def main():
     # Prompt user for location ID
     location_id = input("Enter the location ID: ").strip()
 
-    ga_database = create_unique_database_name(f"allen_ga_{type}_{current_date}", location_id)
-    nafc_database = create_unique_database_name(f"allen_estimshape_{type}_{current_date}", location_id)
-    isogabor_database = create_unique_database_name(f"allen_isogabor_{type}_{current_date}", location_id)
+    ga_database = prompt_name(f"allen_ga_{type}_{current_date}", location_id)
+    nafc_database = prompt_name(f"allen_estimshape_{type}_{current_date}", location_id)
+    isogabor_database = prompt_name(f"allen_isogabor_{type}_{current_date}", location_id)
 
     # GA Database
     create_db_from_template(f'allen_ga_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}',
@@ -54,7 +54,7 @@ def main():
     update_config_file(ga_database, nafc_database, isogabor_database)
 
 
-def create_unique_database_name(base_name, recording_id):
+def prompt_name(base_name, recording_id):
     conn = mysql.connector.connect(host=HOST, user=USER, password=PASS)
     cursor = conn.cursor()
 
