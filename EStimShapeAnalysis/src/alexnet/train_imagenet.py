@@ -218,6 +218,8 @@ def main():
 
         scheduler.step(val_loss)
 
+
+
         # Save checkpoint
         if (epoch) % checkpoint_interval == 0:
             save_checkpoint(epoch, model, optimizer, scheduler, scaler, train_loss, train_acc, val_loss, val_acc)

@@ -14,6 +14,7 @@ class AlexNetGPUSimulated(nn.Module):
             nn.MaxPool2d(kernel_size=3, stride=2),
             nn.Conv2d(48, 128, kernel_size=5, padding=2),
             nn.ReLU(inplace=True),
+            nn.LocalResponseNorm(size=5, alpha=0.0001, beta=0.75, k=2),  # section 3.3
             nn.MaxPool2d(kernel_size=3, stride=2)
         )
         # GPU 2 Pre-Shared Layer
@@ -24,6 +25,7 @@ class AlexNetGPUSimulated(nn.Module):
             nn.MaxPool2d(kernel_size=3, stride=2),
             nn.Conv2d(48, 128, kernel_size=5, padding=2),
             nn.ReLU(inplace=True),
+            nn.LocalResponseNorm(size=5, alpha=0.0001, beta=0.75, k=2),  # section 3.3
             nn.MaxPool2d(kernel_size=3, stride=2)
         )
 
