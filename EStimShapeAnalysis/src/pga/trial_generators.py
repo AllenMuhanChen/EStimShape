@@ -1,7 +1,5 @@
 import os
 import subprocess
-
-from src.startup import config
 from typing import Protocol
 
 
@@ -18,9 +16,15 @@ class GAJarTrialGenerator(TrialGenerator):
     g = 255
     b = 255
 
+    def __init__(self, java_output_dir: str, allen_dist: str) -> None:
+        super().__init__()
+        self.java_output_dir = java_output_dir
+        self.allen_dist = allen_dist
+
     def generate_trials(self, *, experiment_id: int, generation: int):
-        output_file = os.path.join(config.java_output_dir, f"experiment_{experiment_id}_generation_{generation}.txt")
-        trial_generator_path = os.path.join(config.allen_dist, "GAGenerator.jar")
+
+        output_file = os.path.join(self.java_output_dir, f"experiment_{experiment_id}_generation_{generation}.txt")
+        trial_generator_path = os.path.join(self.allen_dist, "GAGenerator.jar")
         trial_generator_command = f"java -jar {trial_generator_path} {self.r} {self.g} {self.b}"
 
         with open(output_file, "w") as file:

@@ -67,9 +67,6 @@ class FullAutoAlexNetMockGeneticAlgorithmConfig(TwoDThreeDGAConfig):
 
 
 class TrainingAlexNetMockGeneticAlgorithmConfig(TwoDThreeDGAConfig):
-    def __init__(self, *, database: str, base_intan_path: str):
-        super().__init__(database=database, base_intan_path=base_intan_path)
-
     def make_response_parser(self):
         return AlexNetMockResponseParser(db_util=self.db_util)
 

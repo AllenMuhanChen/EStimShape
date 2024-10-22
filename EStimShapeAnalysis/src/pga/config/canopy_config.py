@@ -1,4 +1,3 @@
-from math import prod
 from typing import Any
 
 from numpy import mean
@@ -12,7 +11,7 @@ from src.pga.regime_three import LeafingPhaseParentSelector, LeafingPhaseMutatio
 from src.pga.regime_two import CanopyPhaseParentSelector, CanopyPhaseMutationAssigner, \
     CanopyPhaseMutationMagnitudeAssigner, \
     CanopyPhaseTransitioner
-from src.pga.ga_classes import Phase, ParentSelector, MutationAssigner, MutationMagnitudeAssigner, RegimeTransitioner
+from src.pga.ga_classes import Phase
 from src.pga.genetic_algorithm import GeneticAlgorithm
 from src.pga.regime_one import GrowingPhaseParentSelector, GrowingPhaseMutationAssigner, \
     GrowingPhaseMutationMagnitudeAssigner, \
@@ -40,7 +39,10 @@ class GeneticAlgorithmConfig:
     ga_name = "New3D"
     num_trials_per_generation = 40
 
-    def __init__(self, *, database: str, base_intan_path: str):
+    def __init__(self, *, database: str,
+                 base_intan_path: str,
+                 java_output_dir: str,
+                 allen_dist_dir: str):
         self.database = database
         self.base_intan_path = base_intan_path
         self.var_fetcher = GAVarParameterFetcher(self.connection())
@@ -48,6 +50,8 @@ class GeneticAlgorithmConfig:
         self.response_processor = self.make_response_processor()
         self.regimes = self.make_phases()
         self.num_catch_trials = 2
+        self.java_output_dir = java_output_dir
+        self.allen_dist_dir = allen_dist_dir
 
     def make_genetic_algorithm(self) -> GeneticAlgorithm:
         ga = GeneticAlgorithm(
@@ -217,7 +221,7 @@ class GeneticAlgorithmConfig:
         return MultiGaDbUtil(self.connection())
 
     def xper_trial_generator(self) -> TrialGenerator:
-        return GAJarTrialGenerator()
+        return GAJarTrialGenerator(self.java_output_dir, self.allen_dist_dir)
 
 
 class GAVarParameterFetcher:

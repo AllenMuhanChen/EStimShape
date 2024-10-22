@@ -1,8 +1,10 @@
+import numpy as np
+
 from src.pga.alexnet.AlexNetStimType import StimType
 from src.pga.config.canopy_config import GeneticAlgorithmConfig
-from src.pga.config.twod_threed_config import TwoDThreeDGAConfig
 from src.pga.ga_classes import Phase, ParentSelector, Lineage, MutationAssigner, Stimulus, MutationMagnitudeAssigner, \
     RegimeTransitioner
+from src.pga.regime_one import GrowingPhaseMutationMagnitudeAssigner
 
 
 class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
@@ -17,16 +19,14 @@ class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
             RFLocPhaseParentSelector(),
             RFLocPhaseMutationAssigner(),
             RFLocPhaseMutationMagnitudeAssigner(),
-            self.rf_loc_phase_transitioner()
+            RFLocPhaseTransitioner()
         )
 
 
 class RFLocPhaseParentSelector(ParentSelector):
-    def select_parent(self, lineage: Lineage, batch_size: int):
-        # We choose any parent with an above zero response?
-        # We choose the parents with the highest response?
-        # We should be able to do multiple generations of this if we need to
-        pass
+    def select_parents(self, lineage: Lineage, batch_size: int) -> list[Stimulus]:
+        sorted_responses = sorted(lineage.stimuli, reverse=True, key=lambda x: x.response_rate)
+        return [stimulus for stimulus in sorted_responses[:batch_size]]
 
 
 class RFLocPhaseMutationAssigner(MutationAssigner):
@@ -35,10 +35,10 @@ class RFLocPhaseMutationAssigner(MutationAssigner):
         return StimType.RF_LOCATE.value
 
 
-class RFLocPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
-
-    def assign_mutation_magnitude(self, lineage: Lineage, stimulus: Stimulus) -> float:
-        return 1.0
+class RFLocPhaseMutationMagnitudeAssigner(GrowingPhaseMutationMagnitudeAssigner):
+    min_magnitude = 0.1
+    max_magnitude = 1.0
+    overlap = 0.5
 
 
 class RFLocPhaseTransitioner(RegimeTransitioner):
@@ -46,5 +46,3 @@ class RFLocPhaseTransitioner(RegimeTransitioner):
     def should_transition(self, lineage: Lineage) -> bool:
         # check if we have enough stimuli with above zero response
         pass
-
-

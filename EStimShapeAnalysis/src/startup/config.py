@@ -1,4 +1,4 @@
-from src.pga.config.twod_threed_config import TwoDThreeDGAConfig
+
 from src.pga.mock.alexnet_mock_ga import FullAutoAlexNetMockGeneticAlgorithmConfig, \
     TrainingAlexNetMockGeneticAlgorithmConfig
 
@@ -16,6 +16,8 @@ base_intan_path = f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Docu
 # ga_config = TwoDThreeDGAConfig(database=ga_database,
 #                                base_intan_path=base_intan_path)
 ga_config = TrainingAlexNetMockGeneticAlgorithmConfig(database=ga_database,
-                                                      base_intan_path=base_intan_path)
+                                                      base_intan_path=base_intan_path,
+                                                      java_output_dir=java_output_dir,
+                                                      allen_dist_dir=allen_dist)
 
 ga_config.ga_name = ga_name

@@ -169,9 +169,15 @@ class GrowingPhaseMutationAssigner(MutationAssigner):
 class GrowingPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
     min_magnitude = 0.1
     max_magnitude = 0.5
-
-    def assign_mutation_magnitude(self, lineage: Lineage, stimulus: Stimulus):
-        # Calculate the response rates of the stimuli and normalize them to the range [0, 1].
+    overlap = 0.5
+    def assign_mutation_magnitude(self, lineage: Lineage, parent: Stimulus):
+        """
+        Calculates a normalized response for each stimulus in the lineage.
+        Then assigns a range of possible mutation magnitudes to each stimulus based on its normalized response
+        such that higher response stimuli have smaller ranges of possible mutation magnitudes
+        overlap field controls how much each range overlaps with its neighbors
+        """
+        # Normalize response rates
         response_rates = np.array([s.response_rate for s in lineage.stimuli])
         normalized_response_rates = []
         for rate in response_rates:
@@ -180,14 +186,29 @@ class GrowingPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
             else:
                 normalized_response_rates.append(0)
 
-
-        # Assign mutation magnitudes probabilistically based on normalized response rates.
-        # We subtract the normalized response rates from 1.1 so that higher ranked stimuli have higher probabilities of receiving smaller mutations.
         if len(normalized_response_rates) > 1:
-            scores = [1.1 - normalized_response_rate for normalized_response_rate in normalized_response_rates]
-            probabilities = [s / sum(scores) for s in scores]  # Ensure probabilities sum to 1
-            return np.random.choice(np.linspace(self.min_magnitude, self.max_magnitude, len(lineage.stimuli)),
-                                p=probabilities)
+            # Create overlapping subranges
+            # Full range size is still divided by number of stimuli
+            magnitude_step = (self.max_magnitude - self.min_magnitude) / len(lineage.stimuli)
+            # But each range extends 50% into neighboring ranges
+
+            overlap = magnitude_step * self.overlap
+            magnitude_ranges = []
+            for i in range(len(lineage.stimuli)):
+                range_min = max(self.min_magnitude, self.min_magnitude + (i * magnitude_step) - overlap)
+                range_max = min(self.max_magnitude, self.min_magnitude + ((i + 1) * magnitude_step) + overlap)
+                magnitude_ranges.append((range_min, range_max))
+
+            # Sort stimuli by normalized response rate (highest to lowest)
+            sorted_indices = np.argsort(normalized_response_rates)[::-1]
+
+            # Find parent's position in sorted list
+            parent_idx = lineage.stimuli.index(parent)
+            parent_rank = list(sorted_indices).index(parent_idx)
+
+            # Sample from parent's corresponding magnitude range
+            parent_range = magnitude_ranges[parent_rank]
+            return np.random.uniform(parent_range[0], parent_range[1])
         else:
             return np.random.uniform(self.min_magnitude, self.max_magnitude)
 
@@ -225,7 +246,6 @@ class GrowingPhaseTransitioner(RegimeTransitioner):
                 generations_analyzed += 1
 
             latest_gen_id -= 1
-
 
         for gen_id in gen_ids_to_analyze:
             responses_up_to_and_including_generation = [s.response_rate for s in lineage.stimuli if s.gen_id <= gen_id]
