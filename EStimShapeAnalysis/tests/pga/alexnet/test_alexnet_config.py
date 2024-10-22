@@ -1,6 +1,7 @@
 import unittest
 
-from src.pga.alexnet.alexnet_config import RFLocPhaseParentSelector, RFLocPhaseMutationMagnitudeAssigner
+from src.pga.alexnet.alexnet_config import RFLocPhaseParentSelector, RFLocPhaseMutationMagnitudeAssigner, \
+    RFLocPhaseTransitioner
 from src.pga.ga_classes import Stimulus, LineageFactory
 
 
@@ -28,5 +29,9 @@ class TestAlexNetPhases(unittest.TestCase):
         mutation_magnitude = mutationAssigner.assign_mutation_magnitude(self.lineage, self.stimuli[2])
         print(mutation_magnitude)
 
+    def test_transitioner(self):
+        transitioner = RFLocPhaseTransitioner()
+        self.assertFalse(transitioner.should_transition(self.lineage))
+        print(transitioner.get_transition_data(self.lineage))
 
 

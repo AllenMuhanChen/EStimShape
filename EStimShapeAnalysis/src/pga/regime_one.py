@@ -170,6 +170,7 @@ class GrowingPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
     min_magnitude = 0.1
     max_magnitude = 0.5
     overlap = 0.5
+
     def assign_mutation_magnitude(self, lineage: Lineage, parent: Stimulus):
         """
         Calculates a normalized response for each stimulus in the lineage.
