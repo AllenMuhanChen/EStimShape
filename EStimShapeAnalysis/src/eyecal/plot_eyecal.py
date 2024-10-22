@@ -6,13 +6,13 @@ from clat.eyecal.params import EyeCalibrationParameters
 from clat.eyecal.plot_eyecal import filter_messages_after_experiment_start, CalibrationPointPositionField, \
     SlideOnOffTimestampField, AverageVoltsField, DegreesField, plot_average_volts
 from clat.util import time_util
-from src.startup import config
+from src.startup import context
 import os
 
 
 def main():
-    current_conn = config.ga_config.connection()
-    eyecal_path = config.eyecal_dir
+    current_conn = context.ga_config.connection()
+    eyecal_path = context.eyecal_dir
 
     trial_collector = TrialCollector(conn=current_conn, when=time_util.from_x_days_ago(0))
     calibration_trial_times = trial_collector.collect_calibration_trials()

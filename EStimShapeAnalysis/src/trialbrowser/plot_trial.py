@@ -152,9 +152,9 @@ def plot_trial_images(stim_spec_id: int, conn: Connection, fig):
 
 if __name__ == "__main__":
     # This block is for testing purposes
-    from src.startup import config
+    from src.startup import context
 
-    conn = Connection(config.nafc_database)
+    conn = Connection(context.nafc_database)
     fig, ax = plt.subplots(figsize=(12, 6))
     plot_trial_images(1722374738207048, conn, fig)  # Replace with a valid stim_spec_id
     plt.show()

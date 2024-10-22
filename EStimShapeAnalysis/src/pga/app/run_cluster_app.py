@@ -10,7 +10,7 @@ from src.pga.gui.cluster.dimensionality_reduction import PCAReducer, MDSReducer,
 from src.pga.gui.cluster.mock_cluster_app import get_qapplication_instance
 from src.pga.gui.cluster.probe_mapping import DBCChannelMapper
 from src.pga.multi_ga_db_util import MultiGaDbUtil
-from src.startup import config
+from src.startup import context
 
 
 def channels_for_prefix(prefix: str):
@@ -70,8 +70,8 @@ class DbDataExporter(DataExporter):
         channels_to_export = channels_for_clusters[cluster_to_export]
         print(f"Exporting channels for cluster {cluster_to_export}: {channels_to_export}")
 
-        current_experiment_id = self.db_util.read_current_experiment_id(config.ga_name)
-        current_gen_id = self.db_util.read_ready_gas_and_generations_info().get(config.ga_name)
+        current_experiment_id = self.db_util.read_current_experiment_id(context.ga_name)
+        current_gen_id = self.db_util.read_ready_gas_and_generations_info().get(context.ga_name)
 
         print(f"Current experiment id: {current_experiment_id}")
         print(f"Current generation id: {current_gen_id}")
@@ -82,8 +82,8 @@ class DbDataExporter(DataExporter):
 
 def main():
     app = get_qapplication_instance()
-    window = ClusterApplicationWindow(DbDataLoader(config.ga_config.connection()),
-                                      DbDataExporter(config.ga_config.db_util),
+    window = ClusterApplicationWindow(DbDataLoader(context.ga_config.connection()),
+                                      DbDataExporter(context.ga_config.db_util),
                                       [PCAReducer(),
                                        MDSReducer(),
                                        TSNEReducer(),

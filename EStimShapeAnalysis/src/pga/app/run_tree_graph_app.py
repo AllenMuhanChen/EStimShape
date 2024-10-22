@@ -18,9 +18,9 @@ from clat.util.connection import Connection
 
 import xml.etree.ElementTree as ET
 
-from src.startup import config
+from src.startup import context
 
-conn = config.ga_config.connection()
+conn = context.ga_config.connection()
 
 
 class MockTreeGraphApp(TreeGraphApp):
@@ -233,7 +233,7 @@ class GATreeGraph(ColoredTreeGraph):
         edges = recursive_tree_to_edges(tree_spec)
         self.stim_ids = [stim_id for edge in edges for stim_id in edge]
         y_values_for_stim_ids = fetch_responses_for(self.stim_ids)
-        image_folder = config.image_path
+        image_folder = context.image_path
         edge_colors = get_edge_colors(edges)
         super().__init__(y_values_for_stim_ids, edges, edge_colors, image_folder)
         self.highlighted_nodes = []

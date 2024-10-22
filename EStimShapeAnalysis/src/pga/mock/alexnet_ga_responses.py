@@ -11,7 +11,7 @@ import torchvision.transforms as transforms
 from torchvision import models
 from PIL import Image
 
-from src.startup import config
+from src.startup import context
 
 
 def main():
@@ -19,7 +19,7 @@ def main():
     run_training()
 
 def run_training():
-    conn = config.ga_config.connection()
+    conn = context.ga_config.connection()
 
     channel_numbers_top_to_bottom = [15, 16, 1, 30, 8, 23, 0, 31, 14, 17, 2, 29, 13, 18, 7, 24, 3, 28, 12, 19, 4, 27, 9,
                                      22, 11, 20, 5, 26, 10, 21, 6, 25]

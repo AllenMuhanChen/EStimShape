@@ -3,14 +3,14 @@ from tkinter import filedialog
 from clat.eyecal.params import EyeCalibrationParameters
 from clat.util.connection import Connection
 
-from src.startup import config
+from src.startup import context
 
 
 def main():
-    current_conn = config.ga_config.connection()
+    current_conn = context.ga_config.connection()
 
     #Open a GUI window to select a file
-    filename = filedialog.askopenfilename(initialdir = config.eyecal_dir,title = "Select file")
+    filename = filedialog.askopenfilename(initialdir = context.eyecal_dir, title ="Select file")
 
     #Read the file as one big string
     with open(filename, 'r') as f:

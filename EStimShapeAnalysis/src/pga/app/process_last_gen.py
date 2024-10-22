@@ -1,12 +1,12 @@
-from src.startup import config
+from src.startup import context
 
 
 def main():
-    ga = config.ga_config.make_genetic_algorithm()
+    ga = context.ga_config.make_genetic_algorithm()
     parser = ga.response_parser
-    parser.parse_to_db(config.ga_name)
+    parser.parse_to_db(context.ga_name)
     processor = ga.response_processor
-    processor.process_to_db(config.ga_name)
+    processor.process_to_db(context.ga_name)
 
 
 if __name__ == "__main__":

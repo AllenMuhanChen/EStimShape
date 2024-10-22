@@ -5,7 +5,7 @@ from clat.compile.task.base_database_fields import StimSpecIdField, StimSpecFiel
 from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.compile.task.task_field import TaskFieldList, TaskField
 from src.pga.multi_ga_db_util import MultiGaDbUtil
-from src.startup import config
+from src.startup import context
 
 
 def main():
@@ -13,7 +13,7 @@ def main():
 
 
 def calculate_spontaneous_firing():
-    conn = config.ga_config.connection()
+    conn = context.ga_config.connection()
     task_id_collector = TaskIdCollector(conn)
     task_ids = task_id_collector.collect_task_ids()
 
@@ -27,10 +27,10 @@ def calculate_spontaneous_firing():
     data = data[data["path"] == "catch"]
 
     db_util = MultiGaDbUtil(conn)
-    current_gen_id = db_util.read_ready_gas_and_generations_info().get(config.ga_name)
-    current_experiment_id = db_util.read_current_experiment_id(config.ga_name)
+    current_gen_id = db_util.read_ready_gas_and_generations_info().get(context.ga_name)
+    current_experiment_id = db_util.read_current_experiment_id(context.ga_name)
 
-    cluster_channels = db_util.read_current_cluster(config.ga_name)
+    cluster_channels = db_util.read_current_cluster(context.ga_name)
 
     # calculate mean response for each cluster channel for catch trials
     mean_responses_for_channels = []
@@ -67,7 +67,7 @@ class ChannelResponseField(StimSpecField):
     def __init__(self, conn, channel):
         super().__init__(conn, name=channel)
         self.db_util = MultiGaDbUtil(conn)
-        self.cluster_channels = self.db_util.read_current_cluster(config.ga_name)
+        self.cluster_channels = self.db_util.read_current_cluster(context.ga_name)
 
     def get(self, task_id):
         self.db_util.read_responses_for(task_id, )

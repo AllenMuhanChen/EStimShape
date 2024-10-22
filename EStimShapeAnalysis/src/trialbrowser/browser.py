@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHB
 from PyQt5.QtCore import Qt
 
 from clat.util.connection import Connection
-from src.startup import config
+from src.startup import context
 from plot_trial import plot_trial_images
 from plot_set import plot_set
 
@@ -102,7 +102,7 @@ def get_recent_stim_spec_ids(conn: Connection, n: int) -> list:
 
 
 def main():
-    conn = Connection(config.nafc_database)
+    conn = Connection(context.nafc_database)
 
     # Get the 100 most recent stim_spec_ids
     n_recent = 100

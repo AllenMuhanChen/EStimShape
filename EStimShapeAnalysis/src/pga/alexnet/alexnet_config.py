@@ -6,9 +6,16 @@ from src.pga.ga_classes import Phase, ParentSelector, Lineage, MutationAssigner,
     RegimeTransitioner
 from src.pga.regime_one import GrowingPhaseMutationMagnitudeAssigner, GrowingPhaseParentSelector, \
     GrowingPhaseTransitioner
+from src.pga.response_processing import ResponseProcessor
 
 
 class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
+
+
+    def __init__(self, *, database: str, java_output_dir: str, allen_dist_dir: str):
+        super().__init__(database=database,
+                         java_output_dir=java_output_dir,
+                         allen_dist_dir=allen_dist_dir)
 
     def make_phases(self):
         return [self.seeding_phase(),
@@ -32,6 +39,21 @@ class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
                 self.convergence_threshold()
             )
         )
+
+    def make_response_parser(self):
+        """
+        This response parser will differ in that all it needs to do is read Stim paths
+        and show those to AlexNet and save those activations into UnitActivations table.
+        """
+        pass
+
+    def make_response_processor(self) -> ResponseProcessor:
+        """
+        This one will be different in that it just needs to read the one Unit activation to
+        StimGaInfo
+        """
+        pass
+
 
 
 class AlexNetGrowingPhaseMutationAssigner(MutationAssigner):
@@ -78,4 +100,4 @@ class RFLocPhaseTransitioner(RegimeTransitioner):
 
     def get_transition_data(self, lineage: Lineage) -> str:
         data = {"threshold": self.threshold_response, "num_passed": len(self.passed_threshold)}
-        return data
+        return str(data)

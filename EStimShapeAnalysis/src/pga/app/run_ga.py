@@ -1,12 +1,12 @@
 import os
 import subprocess
 
-from src.startup import config
+from src.startup import context
 
 
 def main(r, g, b):
     r, g, b = prompt_rgb_values()
-    ga = config.ga_config.make_genetic_algorithm()
+    ga = context.ga_config.make_genetic_algorithm()
     ga.trial_generator.set_color(r, g, b)
     ga.run()
     # experiment_id = ga.experiment_id
@@ -28,9 +28,9 @@ def prompt_rgb_values():
 
 
 def run_trial_generator(experiment_id: int, generation: int, r: int, g: int, b: int):
-    output_file = os.path.join(config.java_output_dir, f"experiment_{experiment_id}_generation_{generation}.txt")
+    output_file = os.path.join(context.java_output_dir, f"experiment_{experiment_id}_generation_{generation}.txt")
     # TODO change jar to real jar
-    trial_generator_path = os.path.join(config.allen_dist, "GAGenerator.jar")
+    trial_generator_path = os.path.join(context.allen_dist, "GAGenerator.jar")
     trial_generator_command = f"java -jar {trial_generator_path} {r} {g} {b}"
 
     with open(output_file, "w") as file:

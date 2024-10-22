@@ -63,7 +63,7 @@ def prompt_name(base_name, recording_id):
 
 
 def update_config_file(ga_db, nafc_db, isogabor_db):
-    target_file = '/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/startup/config.py'
+    target_file = '/src/startup/context'
 
     # Read the target file
     with open(target_file, 'r') as file:

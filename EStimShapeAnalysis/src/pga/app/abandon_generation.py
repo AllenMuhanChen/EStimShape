@@ -1,6 +1,6 @@
 from typing import List, Tuple, Optional
 from clat.util.connection import Connection
-from src.startup import config
+from src.startup import context
 import xml.etree.ElementTree as ET
 
 class GenerationIdentifier:
@@ -27,7 +27,7 @@ class GenerationIdentifier:
 
         if current_gen_info:
             root = ET.fromstring(current_gen_info)
-            gen_id_element = root.find(f".//entry[string='{config.ga_name}']")
+            gen_id_element = root.find(f".//entry[string='{context.ga_name}']")
             if gen_id_element is not None:
                 return int(gen_id_element.find('long').text)
         return None
@@ -54,7 +54,7 @@ class GenerationAbandonner:
 
         if current_gen_info:
             root = ET.fromstring(current_gen_info)
-            gen_id_element = root.find(f".//entry[string='{config.ga_name}']")
+            gen_id_element = root.find(f".//entry[string='{context.ga_name}']")
             if gen_id_element is not None:
                 gen_id_element.find('long').text = str(new_gen)
                 updated_xml = ET.tostring(root, encoding='unicode')
@@ -63,7 +63,7 @@ class GenerationAbandonner:
                 self.connection.execute(update_query, (updated_xml,))
                 print(f"Updated generation number from {current_gen} to {new_gen}")
             else:
-                print(f"No generation info found for GA: {config.ga_name}")
+                print(f"No generation info found for GA: {context.ga_name}")
         else:
             print("No generation info found in InternalState")
 
@@ -78,7 +78,7 @@ def get_user_input_generation() -> Optional[int]:
     return None
 
 def main():
-    connection = Connection(config.ga_database)
+    connection = Connection(context.ga_database)
     identifier = GenerationIdentifier(connection)
     abandonner = GenerationAbandonner(connection)
 

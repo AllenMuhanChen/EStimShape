@@ -1,7 +1,7 @@
 import os
 import re
 from datetime import datetime
-from src.startup import config
+from src.startup import context
 
 
 def main():
@@ -83,7 +83,7 @@ class XperPropertiesModifier:
 
 def setup_ga_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
     # Define the necessary versions directly
-    version_ga = config.ga_database
+    version_ga = context.ga_database
     recording_computer_sftp = r2_sftp
     # Define paths to the properties file and directories
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.ga'
@@ -129,7 +129,7 @@ def setup_ga_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"
 
 def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
     # Define the necessary versions directly
-    version_nafc = config.nafc_database
+    version_nafc = context.nafc_database
     recording_computer_sftp = r2_sftp
 
     # Get current date in YYMMDD format
@@ -150,7 +150,7 @@ def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.8
     generator_set_path = f"{stimuli_base_r}/{current_date}/sets"
     experiment_noisemap_path = experiment_png_path
 
-    version_ga = config.ga_database
+    version_ga = context.ga_database
     ga_stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_ga}/stimuli"
     r_ga_path = f"{ga_stimuli_base_r}/ga"
     ga_spec_path = f"{r_ga_path}/specs"
@@ -189,7 +189,7 @@ def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.8
 
 def setup_isogabor_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
     # Define the necessary versions directly
-    version_isogabor = config.isogabor_database
+    version_isogabor = context.isogabor_database
     recording_computer_sftp = r2_sftp
     # Define paths to the properties file and directories
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.isogabor'
@@ -211,9 +211,9 @@ def setup_isogabor_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30
 
 def update_version_shellscript():
     # Retrieve versions from the config or define directly
-    version_ga = config.ga_database
-    version_isogabor = config.isogabor_database  # Replace with how you retrieve this information
-    version_procedural = config.nafc_database  # Replace with how you retrieve this information
+    version_ga = context.ga_database
+    version_isogabor = context.isogabor_database  # Replace with how you retrieve this information
+    version_procedural = context.nafc_database  # Replace with how you retrieve this information
 
     # Path to the version file
     version_file_path = "/home/r2_allen/git/EStimShape/xper-train/shellScripts/version"
@@ -235,9 +235,9 @@ def update_version_shellscript():
 
 
 def make_misc_dirs():
-    make_path(config.java_output_dir)
-    make_path(config.rwa_output_dir)
-    make_path(config.eyecal_dir)
+    make_path(context.java_output_dir)
+    make_path(context.rwa_output_dir)
+    make_path(context.eyecal_dir)
 
 
 

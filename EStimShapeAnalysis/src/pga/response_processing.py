@@ -8,7 +8,8 @@ from src.pga.multi_ga_db_util import MultiGaDbUtil
 class ResponseProcessor:
     db_util: MultiGaDbUtil
     repetition_combination_strategy: Callable[[list[float]], float]
-    cluster_combination_strategy: Callable[[list[float]], int]
+    cluster_combination_strategy: Callable[[list[float]], int] #TODO: this currently isn't being
+    # used, but it should be used to combine the responses from the different channels into a single
 
     def process_to_db(self, ga_name: str) -> None:
         # Aggregate responses to process
@@ -22,15 +23,16 @@ class ResponseProcessor:
             self.db_util.update_driving_response(stim_id, driving_response)
 
     def fetch_response_vector_for(self, stim_id, *, ga_name: str):
-        channels = self.db_util.read_current_cluster(ga_name)
+        cluster_channels = self.db_util.read_current_cluster(ga_name)
         vector_per_channel = {}
-        for channel in channels:
+        for channel in cluster_channels:
             responses_per_task = self.db_util.read_responses_for(stim_id, channel=channel.value)
             vector_per_channel[channel] = responses_per_task
 
         response_vector = []
         length_of_vectors = len(list(vector_per_channel.values())[0])
         for i in range(length_of_vectors):
+            #TODO: REPLACE THIS WITH ACTUAL COMBINATION STRATEGY
             sum_for_task = 0
             for channel, vector in vector_per_channel.items():
                 sum_for_task += vector[i]

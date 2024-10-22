@@ -1,6 +1,9 @@
 import unittest
 from unittest.mock import MagicMock, Mock
-from src.intan.response_processing import ResponseProcessor
+
+from clat.intan.channels import Channel
+
+from src.pga.response_processing import ResponseProcessor
 
 
 class TestResponseProcessor(unittest.TestCase):
@@ -10,9 +13,12 @@ class TestResponseProcessor(unittest.TestCase):
 
         # Mock db_util methods
         self.db_util_mock = Mock()
-        self.db_util_mock.read_stims_with_no_driving_response.return_value = [1, 2, 3]
-        self.db_util_mock.read_current_cluster.return_value = [1, 2, 3]
-        self.db_util_mock.read_responses_for = lambda stim_id, channel: channel
+        responses = [1, 2, 3]
+        channels = [Channel.A_000, Channel.A_001, Channel.A_002]
+        channels_vals = [channel.value for channel in channels]
+        self.db_util_mock.read_stims_with_no_driving_response.return_value = responses
+        self.db_util_mock.read_current_cluster.return_value = channels
+        self.db_util_mock.read_responses_for = lambda stim_id, channel: responses[channels_vals.index(channel)]
 
         # Store the arguments passed to update_driving_response in self.update_driving_response_args
         self.db_util_mock.update_driving_response.side_effect = lambda stim_id, driving_response: self.update_driving_response_args.append(
