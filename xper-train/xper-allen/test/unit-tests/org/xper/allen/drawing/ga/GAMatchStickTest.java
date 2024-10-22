@@ -358,7 +358,7 @@ public class GAMatchStickTest {
     @Test
     public void testPartialMStickData(){
         GAMatchStick GAMatchStick = genPartiallyInside();
-        AllenMStickData mStickData = GAMatchStick.getMStickData();
+        AllenMStickData mStickData = (AllenMStickData) GAMatchStick.getMStickData();
 
         testMatchStickDrawer.drawMStick(GAMatchStick);
         GL11.glDisable(GL11.GL_DEPTH_TEST);

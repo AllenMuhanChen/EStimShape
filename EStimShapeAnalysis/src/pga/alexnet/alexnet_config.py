@@ -9,12 +9,14 @@ from src.pga.alexnet.onnx_parser import AlexNetResponseParser, UnitIdentifier
 
 
 class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
+    unit_id = None
 
     def __init__(self, *, database: str, java_output_dir: str, allen_dist_dir: str, unit: UnitIdentifier):
+        self.unit_id = unit
         super().__init__(database=database,
+                         base_intan_path="None",
                          java_output_dir=java_output_dir,
                          allen_dist_dir=allen_dist_dir)
-        self.unit_id = unit
 
     def make_phases(self):
         return [self.seeding_phase(),

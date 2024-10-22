@@ -2,7 +2,7 @@ from src.pga.alexnet.alexnet_config import AlexNetExperimentGeneticAlgorithmConf
 from src.pga.alexnet.onnx_parser import UnitIdentifier, LayerType
 
 ga_name = "C31"
-ga_database = "allen_ga_dev_241017_1"
+ga_database = "allen_alexnet_ga_dev_241021_0"
 allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
 image_path = f"/home/r2_allen/Documents/EStimShape/{ga_database}/stimuli/ga/pngs"
 java_output_dir = f"/home/r2_allen/Documents/EStimShape/{ga_database}/java_output"

@@ -96,7 +96,7 @@ public class AllenMStickDataTest {
         matchStick.setProperties(5, "SHADE");
         matchStick.genMatchStickRand();
 
-        data = matchStick.getMStickData();
+        data = (AllenMStickData) matchStick.getMStickData();
     }
 
     @Test
@@ -120,7 +120,7 @@ public class AllenMStickDataTest {
         matchStick.setProperties(5, "SHADE");
         matchStick.genMatchStickRand();
 
-        AllenMStickData data = matchStick.getMStickData();
+        AllenMStickData data = (AllenMStickData) matchStick.getMStickData();
         drawMStick(matchStick);
 
         int numJunctions = data.getJunctionData().size();
@@ -355,7 +355,7 @@ public class AllenMStickDataTest {
         AllenMatchStick mStick = new AllenMatchStick();
         mStick.genMatchStickFromFile(mStickSpecPath);
 
-        AllenMStickData reloadedData = mStick.getMStickData();
+        AllenMStickData reloadedData = (AllenMStickData) mStick.getMStickData();
         return reloadedData;
     }
 

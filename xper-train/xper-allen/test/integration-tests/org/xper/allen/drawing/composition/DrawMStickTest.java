@@ -56,7 +56,7 @@ public class DrawMStickTest {
         for (File mstick_file : mstick_paths){
             AllenMatchStick mStick = new AllenMatchStick();
             mStick.genAllenMatchStickFromMatchStickFile(mstick_file.getAbsolutePath());
-            AllenMStickData mStickData = mStick.getMStickData();
+            AllenMStickData mStickData = (AllenMStickData) mStick.getMStickData();
             mstickDatas.add(mStickData);
             mstickIds.add(mstick_file.getName().replace(".txt", ""));
         }

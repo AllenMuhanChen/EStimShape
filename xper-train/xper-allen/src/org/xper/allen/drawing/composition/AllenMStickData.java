@@ -8,7 +8,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.util.List;
 
-public class AllenMStickData {
+public class AllenMStickData implements MStickData {
     List<ShaftData> shaftData;
     List<TerminationData> terminationData;
     List<JunctionData> junctionData;

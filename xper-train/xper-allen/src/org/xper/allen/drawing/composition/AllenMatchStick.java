@@ -4456,7 +4456,7 @@ public class AllenMatchStick extends MatchStick {
 		getComp()[i] = new AllenTubeComp();
 	}
 
-	public AllenMStickData getMStickData(){
+	public MStickData getMStickData(){
 		AllenMStickData data = new AllenMStickData();
 
 		//WE HAVE TO BECAREFUL OF SIDE EFFECTS OF THIS METHOD. Must be the last thing.

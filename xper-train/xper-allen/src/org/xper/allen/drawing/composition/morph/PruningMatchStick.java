@@ -54,7 +54,7 @@ public class PruningMatchStick extends GAMatchStick {
 
     @Override
     public PruningMStickData getMStickData(){
-        AllenMStickData superData = super.getMStickData();
+        AllenMStickData superData = (AllenMStickData) super.getMStickData();
 
         return new PruningMStickData(superData, toPreserve);
 

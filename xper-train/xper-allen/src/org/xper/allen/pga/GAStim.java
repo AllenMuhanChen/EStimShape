@@ -14,9 +14,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> implements Stim {
-
-
-
     protected final FromDbGABlockGenerator generator;
     protected final Long parentId;
     protected final Coordinates2D imageCenterCoords;
@@ -59,7 +56,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
 
         if (nTries == maxTries && mStick == null) {
             System.err.println("CRITICAL ERROR: COULD NOT GENERATE MORPHED MATCHSTICK  OF TYPE" + this.getClass().getSimpleName()+"AFTER 10 TRIES. GENERATING RAND...");
-            mStick = createRandMStick();
+            throw new RuntimeException("CRITICAL ERROR: COULD NOT GENERATE MORPHED MATCHSTICK  OF TYPE" + this.getClass().getSimpleName());
         }
 
 
