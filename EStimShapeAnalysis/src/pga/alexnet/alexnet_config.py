@@ -1,21 +1,20 @@
-import numpy as np
-
 from src.pga.alexnet.AlexNetStimType import StimType
+from src.pga.alexnet.alexnet_processor import AlexNetResponseProcessor
 from src.pga.config.canopy_config import GeneticAlgorithmConfig
-from src.pga.ga_classes import Phase, ParentSelector, Lineage, MutationAssigner, Stimulus, MutationMagnitudeAssigner, \
-    RegimeTransitioner
+from src.pga.ga_classes import Phase, ParentSelector, Lineage, MutationAssigner, Stimulus, RegimeTransitioner
 from src.pga.regime_one import GrowingPhaseMutationMagnitudeAssigner, GrowingPhaseParentSelector, \
     GrowingPhaseTransitioner
 from src.pga.response_processing import ResponseProcessor
+from src.pga.alexnet.onnx_parser import AlexNetResponseParser, UnitIdentifier
 
 
 class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
 
-
-    def __init__(self, *, database: str, java_output_dir: str, allen_dist_dir: str):
+    def __init__(self, *, database: str, java_output_dir: str, allen_dist_dir: str, unit: UnitIdentifier):
         super().__init__(database=database,
                          java_output_dir=java_output_dir,
                          allen_dist_dir=allen_dist_dir)
+        self.unit_id = unit
 
     def make_phases(self):
         return [self.seeding_phase(),
@@ -45,15 +44,16 @@ class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
         This response parser will differ in that all it needs to do is read Stim paths
         and show those to AlexNet and save those activations into UnitActivations table.
         """
-        pass
+        return AlexNetResponseParser(self.connection(),
+                                     "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX",
+                                     self.unit_id)
 
-    def make_response_processor(self) -> ResponseProcessor:
+    def make_response_processor(self) -> AlexNetResponseProcessor:
         """
         This one will be different in that it just needs to read the one Unit activation to
         StimGaInfo
         """
-        pass
-
+        return AlexNetResponseProcessor(self.connection(), self.unit_id)
 
 
 class AlexNetGrowingPhaseMutationAssigner(MutationAssigner):
