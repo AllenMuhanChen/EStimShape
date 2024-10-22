@@ -102,11 +102,7 @@ class GeneticAlgorithmConfig:
 
     def growing_phase(self):
         return Phase(
-            GrowingPhaseParentSelector(
-                self.get_all_stimuli_func(),
-                self.growing_phase_bin_proportions(),
-                self.growing_phase_bin_sample_sizes()
-            ),
+            GrowingPhaseParentSelector(self.growing_phase_bin_proportions(), self.growing_phase_bin_sample_sizes()),
             self.growing_phase_mutation_assigner(),
             GrowingPhaseMutationMagnitudeAssigner(),
             GrowingPhaseTransitioner(

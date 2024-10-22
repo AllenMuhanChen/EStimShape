@@ -162,7 +162,8 @@ class Phase:
         parents = self.parent_selector.select_parents(lineage, batch_size)
         new_children = []
         for parent in parents:
-            new_children.append(Stimulus(time_util.now(), self.mutation_assigner.assign_mutation(lineage, parent),
+            new_children.append(Stimulus(time_util.now(),
+                                         self.mutation_assigner.assign_mutation(lineage, parent),
                                          mutation_magnitude=self.mutation_magnitude_assigner.assign_mutation_magnitude(
                                              lineage,
                                              parent),

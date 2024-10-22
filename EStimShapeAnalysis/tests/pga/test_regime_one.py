@@ -121,8 +121,7 @@ class TestRankOrderedDistribution(unittest.TestCase):
 class TestRegimeOneParentSelector(unittest.TestCase):
     def setUp(self):
         self.get_all_stimuli_func = mock_get_all_stimuli_func
-        self.selector = GrowingPhaseParentSelector(self.get_all_stimuli_func, [0.1, 0.2, 0.2, 0.2, 0.3],
-                                                   [10, 10, 10, 10, 10])
+        self.selector = GrowingPhaseParentSelector([0.1, 0.2, 0.2, 0.2, 0.3], [10, 10, 10, 10, 10])
 
         stimuli = [Stimulus(None, i, response_rate=i) for i in [10, 8, 6, 5, 1]]
         self.lineage = LineageFactory.create_lineage_from_stimuli(stimuli)

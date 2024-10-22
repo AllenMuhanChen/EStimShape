@@ -100,14 +100,10 @@ class RankOrderedDistribution:
 
 class GrowingPhaseParentSelector(ParentSelector):
     """
-    Samples stimuli from the rank-ordered distribution across all lineages.
-    When sampling stimuli for each lineage, it checks if any of its stimuli are in the sample
-    and adds them to the list of parents.
+    Samples stimuli from the rank-ordered distribution across its lineage.
     """
 
-    def __init__(self, get_all_stimuli_func: Callable[[], List[Stimulus]], proportions: [float],
-                 bin_sample_proportions: [int]) -> None:
-        self.get_all_stimuli_func = get_all_stimuli_func
+    def __init__(self, proportions: [float], bin_sample_proportions: [int]) -> None:
         self.proportions = proportions
         self.bin_sample_sizes_proportions = bin_sample_proportions
 
@@ -127,12 +123,6 @@ class GrowingPhaseParentSelector(ParentSelector):
             bin_sample_probabilities=self.bin_sample_sizes_proportions, total=batch_size)
 
         parents = sampled_stimuli_from_lineage
-        # # Identify the stimuli from the current lineage in the rank-ordered distribution
-        # #TODO: not sure if this is needed
-        # parents = []
-        # for stimulus in sampled_stimuli_from_lineage:
-        #     if any([stimulus == stimulus_from_lineage for stimulus_from_lineage in lineage.stimuli]):
-        #         parents.append(stimulus)
         return parents
 
 
