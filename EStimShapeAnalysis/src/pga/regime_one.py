@@ -149,7 +149,7 @@ class GetAllStimuliFunc:
             stim_ga_info_entry = self.db_util.read_stim_ga_info_entry(stim_id)
             mutation_type = stim_ga_info_entry.stim_type
             response = stim_ga_info_entry.response
-            response_vector = self.response_processor.fetch_response_vector_for(stim_id, ga_name=self.ga_name)
+            response_vector = self.response_processor.fetch_response_vector_for_repetitions_of(stim_id, ga_name=self.ga_name)
             return Stimulus(stim_id, mutation_type, response_vector=response_vector, response_rate=response)
 
         stimuli = []

@@ -120,7 +120,7 @@ class GeneticAlgorithm:
             mutation_type = stim_ga_info_entry.stim_type
             mutation_magnitude = stim_ga_info_entry.mutation_magnitude
             response = stim_ga_info_entry.response
-            response_vector = self.response_processor.fetch_response_vector_for(stim_id, ga_name=self.name)
+            response_vector = self.response_processor.fetch_response_vector_for_repetitions_of(stim_id, ga_name=self.name)
             gen_id = stim_ga_info_entry.gen_id
             return Stimulus(stim_id, mutation_type, response_vector=response_vector, response_rate=response,
                             mutation_magnitude=mutation_magnitude, gen_id=gen_id)
