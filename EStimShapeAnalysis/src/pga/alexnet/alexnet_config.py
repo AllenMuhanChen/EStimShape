@@ -4,7 +4,8 @@ from src.pga.alexnet.AlexNetStimType import StimType
 from src.pga.config.canopy_config import GeneticAlgorithmConfig
 from src.pga.ga_classes import Phase, ParentSelector, Lineage, MutationAssigner, Stimulus, MutationMagnitudeAssigner, \
     RegimeTransitioner
-from src.pga.regime_one import GrowingPhaseMutationMagnitudeAssigner
+from src.pga.regime_one import GrowingPhaseMutationMagnitudeAssigner, GrowingPhaseParentSelector, \
+    GrowingPhaseTransitioner
 
 
 class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
@@ -21,6 +22,21 @@ class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
             RFLocPhaseMutationMagnitudeAssigner(),
             RFLocPhaseTransitioner()
         )
+
+    def growing_phase(self):
+        return Phase(
+            GrowingPhaseParentSelector(self.growing_phase_bin_proportions(), self.growing_phase_bin_sample_sizes()),
+            AlexNetGrowingPhaseMutationAssigner(),
+            GrowingPhaseMutationMagnitudeAssigner(),
+            GrowingPhaseTransitioner(
+                self.convergence_threshold()
+            )
+        )
+
+
+class AlexNetGrowingPhaseMutationAssigner(MutationAssigner):
+    def assign_mutation(self, lineage, parent: Stimulus) -> str:
+        return StimType.GROWING.value
 
 
 class RFLocPhaseParentSelector(ParentSelector):
