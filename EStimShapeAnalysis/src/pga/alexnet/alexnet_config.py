@@ -42,7 +42,24 @@ class RFLocPhaseMutationMagnitudeAssigner(GrowingPhaseMutationMagnitudeAssigner)
 
 
 class RFLocPhaseTransitioner(RegimeTransitioner):
+    def __init__(self):
+        self.threshold_response = None
+        self.threshold_percentage_of_max = 0.5  # percentage of max response to consider a stimulus passed the threshold
+        self.percent_pass_required = 0.9 #percentage of stimuli that must pass the threshold
+
+        # data
+        self.passed_threshold = None
 
     def should_transition(self, lineage: Lineage) -> bool:
-        # check if we have enough stimuli with above zero response
-        pass
+        # check if we have enough stimuli in the top 90% of the highest response
+        sorted_responses = sorted(lineage.stimuli, reverse=True, key=lambda x: x.response_rate)
+        highest_response = sorted_responses[0].response_rate
+        self.threshold_response = self.threshold_percentage_of_max * highest_response
+        self.passed_threshold = [stimulus for stimulus in sorted_responses if
+                                 stimulus.response_rate >= self.threshold_response]
+
+        return len(self.passed_threshold) >= self.percent_pass_required * len(sorted_responses)
+
+    def get_transition_data(self, lineage: Lineage) -> str:
+        data = {"threshold": self.threshold_response, "num_passed": len(self.passed_threshold)}
+        return data
