@@ -32,11 +32,11 @@ class ResponseProcessor:
         response_vector = []
         length_of_vectors = len(list(vector_per_channel.values())[0])
         for i in range(length_of_vectors):
-            #TODO: REPLACE THIS WITH ACTUAL COMBINATION STRATEGY
-            sum_for_task = 0
+            responses_for_current_task = []
             for channel, vector in vector_per_channel.items():
-                sum_for_task += vector[i]
-            response_vector.append(sum_for_task)
+                responses_for_current_task.append(vector[i])
+            combined_response = self.cluster_combination_strategy(responses_for_current_task)
+            response_vector.append(combined_response)
 
         response_vector = [float(f) for f in response_vector]
         return response_vector

@@ -18,7 +18,7 @@ class TestResponseProcessor(unittest.TestCase):
         channels_vals = [channel.value for channel in channels]
         self.db_util_mock.read_stims_with_no_driving_response.return_value = responses
         self.db_util_mock.read_current_cluster.return_value = channels
-        self.db_util_mock.read_responses_for = lambda stim_id, channel: responses[channels_vals.index(channel)]
+        self.db_util_mock.read_responses_for = lambda stim_id, channel: [responses[channels_vals.index(channel)], responses[channels_vals.index(channel)], responses[channels_vals.index(channel)]]
 
         # Store the arguments passed to update_driving_response in self.update_driving_response_args
         self.db_util_mock.update_driving_response.side_effect = lambda stim_id, driving_response: self.update_driving_response_args.append(
@@ -27,7 +27,8 @@ class TestResponseProcessor(unittest.TestCase):
         # Define the response_processor as sum
         self.response_processor = sum
 
-    def test_process_to_db(self):
+    def test_sum_cluster_combo(self):
+
         # Create an instance of ResponseProcessor
         rp = ResponseProcessor(db_util=self.db_util_mock, repetition_combination_strategy=sum, cluster_combination_strategy=sum)
 
@@ -35,9 +36,26 @@ class TestResponseProcessor(unittest.TestCase):
         rp.process_to_db('test_ga')
 
         # Check if the arguments of update_driving_response are correct
-        expected_args = [(1, 6.0), (2, 6.0), (3, 6.0)]
+        expected_args = [(1, 18.0), (2, 18.0), (3, 18.0)]
+        print(self.update_driving_response_args)
         self.assertEqual(self.update_driving_response_args, expected_args)
 
+
+    def test_average_cluster_combo(self):
+
+        #TESTING AVERAGE ONE
+        average = lambda x: sum(x) / len(x)
+        # Create an instance of ResponseProcessor
+        rp = ResponseProcessor(db_util=self.db_util_mock, repetition_combination_strategy=sum,
+                               cluster_combination_strategy=average)
+
+        # Call the process_to_db method
+        rp.process_to_db('test_ga')
+
+        # Check if the arguments of update_driving_response are correct
+        expected_args = [(1, 6.0), (2, 6.0), (3, 6.0)]
+        print(self.update_driving_response_args)
+        self.assertEqual(self.update_driving_response_args, expected_args)
 
 if __name__ == "__main__":
     unittest.main()
