@@ -83,6 +83,32 @@ public class AlexNetGAMAtchStick extends MorphedMatchStick {
         moveCenterOfMassTo(new Point3d(location.getX(), location.getY(), 0));
     }
 
+    /**
+     * Compares to mass center rather 0,0
+     * @return
+     */
+    @Override
+    protected boolean validMStickSize()
+    {
+        double screenDist = 500;
+        double maxDiameterPixels = getScaleForMAxisShape(); // DIAMETER in degrees
+        double radiusMm = degToMm(maxDiameterPixels, screenDist) / 2;
+        int i, j;
+
+        Point3d ori = getMassCenter();
+//		Point3d ori = new Point3d(0,0,0);
+        double dis;
+        for (i=1; i<=getnComponent(); i++)
+            for (j=1; j<= getComp()[i].getnVect(); j++) {
+                dis = getComp()[i].getVect_info()[j].distance(ori);
+                if ( dis > radiusMm ) {
+                    System.out.println("Component " + i + " has a vector that is too long: " + dis + " mm" + " when the " + radiusMm + " mm is the max");
+                    return false;
+                }
+            }
+        return true;
+    }
+
     public AlexNetGAMStickData getMStickData(){
         return new AlexNetGAMStickData();
     }

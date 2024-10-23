@@ -3746,11 +3746,6 @@ public class AllenMatchStick extends MatchStick {
 //		return true;
 //	}
 
-	/**
-	 * This version checks compared to mass center instead of 0,0 because we can have stimuli that
-	 * are located off of the center of the screen before calling this.
-	 * @return
-	 */
 	@Override
 	protected boolean validMStickSize()
 	{
@@ -3759,8 +3754,9 @@ public class AllenMatchStick extends MatchStick {
 		double radiusMm = degToMm(maxDiameterDegrees, screenDist) / 2;
 		int i, j;
 
-		Point3d ori = getMassCenter();
-//		Point3d ori = new Point3d(0,0,0);
+		//TODO: Figure out which of these is best
+//		Point3d ori = getMassCenter();
+		Point3d ori = new Point3d(0,0,0);
 		double dis;
 		for (i=1; i<=getnComponent(); i++)
 			for (j=1; j<= getComp()[i].getnVect(); j++) {
@@ -3774,7 +3770,6 @@ public class AllenMatchStick extends MatchStick {
 	}
 
 	public static double degToMm(double maxDiameterDegrees, double screenDist) {
-		System.out.println("In validMStickSize: size " + maxDiameterDegrees);
 		double maxDiameterRadians = maxDiameterDegrees * Math.PI / 180;
 		double diameterMm = screenDist * Math.tan(maxDiameterRadians);
 		return diameterMm;
