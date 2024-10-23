@@ -3759,8 +3759,8 @@ public class AllenMatchStick extends MatchStick {
 		double radiusMm = degToMm(maxDiameterDegrees, screenDist) / 2;
 		int i, j;
 
-//		Point3d ori = getMassCenter();
-		Point3d ori = new Point3d(0,0,0);
+		Point3d ori = getMassCenter();
+//		Point3d ori = new Point3d(0,0,0);
 		double dis;
 		for (i=1; i<=getnComponent(); i++)
 			for (j=1; j<= getComp()[i].getnVect(); j++) {

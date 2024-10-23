@@ -15,6 +15,7 @@ import java.util.*;
 
 /**
  * Matchsticks procedurally generated from base components, and delta versions of those matchsticks
+ * Noiseable
  */
 public class ProceduralMatchStick extends MorphedMatchStick {
 

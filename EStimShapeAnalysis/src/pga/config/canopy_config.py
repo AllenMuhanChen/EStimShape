@@ -237,7 +237,10 @@ class GAVarParameterFetcher:
         LIMIT 1
         """
         self.connection.execute(query, (var_name,))
-        result = self.connection.fetch_all()[0]
+        try:
+            result = self.connection.fetch_all()[0]
+        except IndexError:
+            return None, None
         return result if result else (None, None)
 
     def get(self, name, dtype=str) -> Any:

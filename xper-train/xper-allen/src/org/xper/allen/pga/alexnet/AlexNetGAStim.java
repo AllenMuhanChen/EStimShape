@@ -84,7 +84,6 @@ public abstract class AlexNetGAStim <T extends AlexNetGAMAtchStick, D extends Al
         List<String> labels = new LinkedList<>();
         labels.add(Long.toString(parentId));
         String pngPath = generator.getPngMaker().createAndSavePNG(mStick, stimId, labels, generator.getGeneratorPngPath());
-        pngPath = generator.convertPngPathToExperiment(pngPath);
         return pngPath;
     }
 

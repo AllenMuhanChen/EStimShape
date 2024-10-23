@@ -12,6 +12,9 @@ public class SeedingStim extends AlexNetGAStim<AlexNetGAMAtchStick, AlexNetGAMSt
 
     @Override
     protected AlexNetGAMAtchStick createMStick() {
-        return null;
+        AlexNetGAMAtchStick mStick = new AlexNetGAMAtchStick(light_position, color, location, sizeDiameter, textureType);
+        mStick.genMatchStickRand();
+
+        return mStick;
     }
 }

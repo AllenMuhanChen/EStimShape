@@ -285,6 +285,10 @@ public class AllenPNGMaker{
 		this.backColor = backColor;
 	}
 
+	public void setBackColor(org.xper.drawing.RGBColor backColor) {
+		this.backColor = new RGBColor(backColor.getRed(), backColor.getGreen(), backColor.getBlue());
+	}
+
 	public DPIUtil getDpiUtil() {
 		return dpiUtil;
 	}
