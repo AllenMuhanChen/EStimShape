@@ -39,7 +39,7 @@ public class FromDbAlexNetGABlockGenerator extends AbstractTrialGenerator<Stim> 
     protected String generatorSpecPath;
 
     @Dependency
-    AllenPNGMaker pngMaker;
+    AlexNetDrawingManager drawingManager;
 
     public static void main(String[] args) throws IOException, ClassNotFoundException {
         // Load the properties file
@@ -76,10 +76,10 @@ public class FromDbAlexNetGABlockGenerator extends AbstractTrialGenerator<Stim> 
                 stimType = StimType.valueOf(stimInfo.getStimType());
 
                 String textureType = "SHADE";
-                RGBColor color = new RGBColor(0, 0, 0);
+                RGBColor color = new RGBColor(1f, 0f, 0f);
                 Coordinates2D location = new Coordinates2D(0, 0);
-                float[] lightingDirection = {0, 0, 0};
-                double sizeDiameter = 0.0;
+                float[] lightingDirection = {0.0f, 354.0f, 354.0f, 1.0f};
+                double sizeDiameter = 5.0;
 
                 Stim stim;
                 switch (stimType) {
@@ -105,8 +105,15 @@ public class FromDbAlexNetGABlockGenerator extends AbstractTrialGenerator<Stim> 
 
     }
 
+    //We don't need TaskToDo in here
+    protected void writeTrials() {
+        for (Stim stim : getStims()) {
+            stim.writeStim();
+        }
+    }
+
     protected void init(){
-        getPngMaker().createDrawerWindow();
+        drawingManager.createDrawerWindow();
     }
 
     @Override
@@ -150,11 +157,11 @@ public class FromDbAlexNetGABlockGenerator extends AbstractTrialGenerator<Stim> 
         this.generatorSpecPath = generatorSpecPath;
     }
 
-    public AllenPNGMaker getPngMaker() {
-        return pngMaker;
+    public AlexNetDrawingManager getDrawingManager() {
+        return drawingManager;
     }
 
-    public void setPngMaker(AllenPNGMaker pngMaker) {
-        this.pngMaker = pngMaker;
+    public void setDrawingManager(AlexNetDrawingManager drawingManager) {
+        this.drawingManager = drawingManager;
     }
 }

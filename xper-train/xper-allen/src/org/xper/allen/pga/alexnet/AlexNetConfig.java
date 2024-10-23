@@ -7,18 +7,19 @@ import org.springframework.config.java.annotation.ExternalValue;
 import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
-import org.xper.alden.drawing.drawables.PNGmaker;
+import org.xper.XperConfig;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
-import org.xper.allen.util.DPIUtil;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.exception.DbException;
+import org.xper.exception.ExperimentSetupException;
 import org.xper.time.DefaultTimeUtil;
 import org.xper.time.TimeUtil;
-import org.xper.util.DbUtil;
 import org.xper.drawing.RGBColor;
 
 import javax.sql.DataSource;
 import java.beans.PropertyVetoException;
+import java.util.LinkedList;
+import java.util.List;
 
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -48,6 +49,9 @@ public class AlexNetConfig {
     @ExternalValue("experiment.ga.name")
     public String gaName;
 
+    @ExternalValue("xper.native_library_path")
+    public String nativeLibraryPath;
+
     @Bean
     public FromDbAlexNetGABlockGenerator generator(){
         FromDbAlexNetGABlockGenerator generator = new FromDbAlexNetGABlockGenerator();
@@ -56,7 +60,7 @@ public class AlexNetConfig {
         generator.setGeneratorPngPath(generatorPngPath);
         generator.setExperimentPngPath(experimentPngPath);
         generator.setGeneratorSpecPath(generatorSpecPath);
-        generator.setPngMaker(pngMaker());
+        generator.setDrawingManager(drawingManager());
         generator.setGaName(gaName);
         return generator;
     }
@@ -88,17 +92,22 @@ public class AlexNetConfig {
     }
 
     @Bean
-    public AllenPNGMaker pngMaker(){
-        AllenPNGMaker pngMaker = new AllenPNGMaker();
-        pngMaker.setWidth(227);
-        pngMaker.setHeight(227);
-        pngMaker.setNoiseMapper(null);
-        pngMaker.setDistance(500);
-        pngMaker.setDepth(0);
-        pngMaker.setPupilDistance(50);
-        pngMaker.setBackColor(new RGBColor(0.5,0.5,0.5));
-        return pngMaker;
+    public AlexNetDrawingManager drawingManager(){
+        AlexNetDrawingManager drawingManager = new AlexNetDrawingManager();
+        drawingManager.setGeneratorDPI(81.59);
+        return drawingManager;
     }
+
+    @Bean(lazy = Lazy.FALSE)
+    public XperConfig xperConfig() {
+        List<String> libs = new LinkedList<String>();
+        libs.add("xper");
+        XperConfig config = new XperConfig(nativeLibraryPath, libs);
+        return config;
+    }
+
+
+
 
 //    @Bean
 //    public DPIUtil dpiUtil(){

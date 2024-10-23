@@ -83,7 +83,7 @@ public abstract class AlexNetGAStim <T extends AlexNetGAMAtchStick, D extends Al
         //draw pngs
         List<String> labels = new LinkedList<>();
         labels.add(Long.toString(parentId));
-        String pngPath = generator.getPngMaker().createAndSavePNG(mStick, stimId, labels, generator.getGeneratorPngPath());
+        String pngPath = generator.getDrawingManager().createAndSavePNG(mStick, stimId, labels, generator.getGeneratorPngPath());
         return pngPath;
     }
 
@@ -97,7 +97,7 @@ public abstract class AlexNetGAStim <T extends AlexNetGAMAtchStick, D extends Al
 
     @Override
     public Long getStimId() {
-        return null;
+        return stimId;
     }
 
     public void writeStimPath(Long stimId, String path) {
@@ -119,7 +119,7 @@ public abstract class AlexNetGAStim <T extends AlexNetGAMAtchStick, D extends Al
     }
 
     public void writeStimSpec(Long stimId, String spec) {
-        String query = "INSERT INTO StimSpec (stim_id, spec) VALUES (?, ?) " +
+        String query = "INSERT INTO StimSpec (id, spec) VALUES (?, ?) " +
                 "ON DUPLICATE KEY UPDATE spec = ?";
 
         try (Connection conn = generator.dbUtil.getDataSource().getConnection();

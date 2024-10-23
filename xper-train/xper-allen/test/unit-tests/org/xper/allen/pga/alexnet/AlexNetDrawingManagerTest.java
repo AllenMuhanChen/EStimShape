@@ -31,7 +31,7 @@ public class AlexNetDrawingManagerTest {
         AlexNetGAMAtchStick mStick = new AlexNetGAMAtchStick(new float[]{0.0f, 354.0f, 354.0f, 1.0f},
                 new RGBColor(1.0, 0, 0),
                 new Coordinates2D(0,0),
-                15,
+                10,
                 "SHADE");
         mStick.genMatchStickRand();
 

@@ -102,7 +102,6 @@ public class AlexNetGAMAtchStick extends MorphedMatchStick {
             for (j=1; j<= getComp()[i].getnVect(); j++) {
                 dis = getComp()[i].getVect_info()[j].distance(ori);
                 if ( dis > radiusMm ) {
-                    System.out.println("Component " + i + " has a vector that is too long: " + dis + " mm" + " when the " + radiusMm + " mm is the max");
                     return false;
                 }
             }
