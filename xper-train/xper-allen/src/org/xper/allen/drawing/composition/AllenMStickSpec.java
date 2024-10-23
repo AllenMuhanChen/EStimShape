@@ -34,6 +34,38 @@ public class AllenMStickSpec {
 
     }
 
+    public void setMStickInfo(AllenMatchStick inStick, boolean saveVertexInfo)
+    {
+        getmAxis().setAllenMAxisInfo(inStick);
+
+//		setSpecialEnd(inStick.getSpecialEnd());
+//		setSpecialEndComp(inStick.getSpecialEndComp());
+        if (saveVertexInfo)
+            try {
+                vertex.setVertexInfo(inStick.getSmoothObj());
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new RuntimeException("Could not set vertex info");
+            }
+
+
+        AllenTubeComp[] tubes = inStick.getComp();
+
+        compPosTanStr = "";
+        for (int i=1; i<=getNComponent(); i++) {
+            AllenMAxisArc tempArc = tubes[i].getmAxisInfo();
+            compPosTanStr = compPosTanStr + i + "," + i + "," + i + "," +
+                    tempArc.getCurvature() + "," + tempArc.getArcLen() + "," + tempArc.getRad() + "\n";
+            for (int j=1; j<=51; j++) {
+                compPosTanStr = compPosTanStr + tempArc.getmPts()[j].x + "," + tempArc.getmPts()[j].y + "," +
+                        tempArc.getmPts()[j].z + "," + tempArc.getmTangent()[j].x + "," +
+                        tempArc.getmTangent()[j].y + "," + tempArc.getmTangent()[j].z + "\n";
+            }
+        }
+
+        this.rfStrategy = inStick.getRfStrategy();
+    }
+
     /**
      *   Write the Match Stick information into a file
      */
@@ -186,38 +218,6 @@ public class AllenMStickSpec {
 
     public void setAnimation(boolean animation) {
         this.animation = animation;
-    }
-
-    public void setMStickInfo(AllenMatchStick inStick, boolean saveVertexInfo)
-    {
-		getmAxis().setAllenMAxisInfo(inStick);
-
-//		setSpecialEnd(inStick.getSpecialEnd());
-//		setSpecialEndComp(inStick.getSpecialEndComp());
-        if (saveVertexInfo)
-            try {
-                vertex.setVertexInfo(inStick.getSmoothObj());
-            } catch (Exception e) {
-                e.printStackTrace();
-                throw new RuntimeException("Could not set vertex info");
-            }
-
-
-        AllenTubeComp[] tubes = inStick.getComp();
-
-        compPosTanStr = "";
-        for (int i=1; i<=getNComponent(); i++) {
-            AllenMAxisArc tempArc = tubes[i].getmAxisInfo();
-            compPosTanStr = compPosTanStr + i + "," + i + "," + i + "," +
-                    tempArc.getCurvature() + "," + tempArc.getArcLen() + "," + tempArc.getRad() + "\n";
-            for (int j=1; j<=51; j++) {
-                compPosTanStr = compPosTanStr + tempArc.getmPts()[j].x + "," + tempArc.getmPts()[j].y + "," +
-                        tempArc.getmPts()[j].z + "," + tempArc.getmTangent()[j].x + "," +
-                        tempArc.getmTangent()[j].y + "," + tempArc.getmTangent()[j].z + "\n";
-            }
-        }
-
-        this.rfStrategy = inStick.getRfStrategy();
     }
 
 

@@ -11,7 +11,6 @@ import org.xper.util.ThreadUtil;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.LinkedList;
 import java.util.List;
 
 import static org.xper.allen.drawing.composition.AllenPNGMaker.screenShotBinary;

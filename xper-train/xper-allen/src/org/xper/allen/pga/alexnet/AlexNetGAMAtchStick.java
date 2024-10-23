@@ -2,6 +2,10 @@ package org.xper.allen.pga.alexnet;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
+import org.xper.allen.drawing.composition.AllenMStickSpec;
+import org.xper.allen.drawing.composition.JunctionData;
+import org.xper.allen.drawing.composition.ShaftData;
+import org.xper.allen.drawing.composition.TerminationData;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
@@ -9,6 +13,7 @@ import org.xper.utils.Lighting;
 
 import javax.vecmath.Point3d;
 import java.nio.FloatBuffer;
+import java.util.List;
 
 public class AlexNetGAMAtchStick extends MorphedMatchStick {
 
@@ -109,7 +114,26 @@ public class AlexNetGAMAtchStick extends MorphedMatchStick {
     }
 
     public AlexNetGAMStickData getMStickData(){
-        return new AlexNetGAMStickData();
+        modifyMStickFinalInfoForAnalysis();
+        AllenMStickSpec analysisMStickSpec = new AllenMStickSpec();
+        analysisMStickSpec.setMStickInfo(this, false);
+
+
+        Point3d massCenter = getMassCenter();
+
+        List<ShaftData> shaftData = calculateShaftData();
+        List<TerminationData> terminationData = calculateTerminationData();
+        List<JunctionData> junctionData = calculateJunctionData();
+
+        return new AlexNetGAMStickData(shaftData,
+                terminationData,
+                junctionData,
+                analysisMStickSpec,
+                massCenter,
+                light_position,
+                stimColor,
+                location,
+                size);
     }
 
 

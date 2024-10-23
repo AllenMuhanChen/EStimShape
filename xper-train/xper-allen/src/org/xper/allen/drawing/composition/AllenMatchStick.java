@@ -32,7 +32,7 @@ import org.xper.drawing.RGBColor;
  *
  */
 public class AllenMatchStick extends MatchStick {
-
+	//TODO: this should really be moved to a sub class perhaps.
 	protected RFStrategy rfStrategy;
 
 	@Override
@@ -4479,7 +4479,7 @@ public class AllenMatchStick extends MatchStick {
 	}
 
 
-	private List<JunctionData> calculateJunctionData() {
+	protected List<JunctionData> calculateJunctionData() {
 		List<JunctionData> junctionDatas = new LinkedList<>();
 		for (int i=1; i<=getNJuncPt(); i++){
 			//Position - Spherical Coordinates
@@ -4567,7 +4567,7 @@ public class AllenMatchStick extends MatchStick {
 		return junctionDatas;
 	}
 
-	private List<TerminationData> calculateTerminationData() {
+	protected List<TerminationData> calculateTerminationData() {
 		List<TerminationData> terminationDatas = new LinkedList<>();
 		for (int i=1; i<= getNEndPt(); i++){
 			TerminationData terminationData = new TerminationData();
@@ -4596,7 +4596,7 @@ public class AllenMatchStick extends MatchStick {
 	 * Gets the data in the reference of object center as calculated by massCenter()
 	 * @return
 	 */
-	private List<ShaftData> calculateShaftData() {
+	protected List<ShaftData> calculateShaftData() {
 		List<ShaftData> shaftDatas = new LinkedList<>();
 		for (int i=1; i<=getNComponent(); i++){
 			ShaftData shaftData = new ShaftData();
