@@ -19,7 +19,6 @@ public class AlexNetGAMAtchStick extends MorphedMatchStick {
 
     public float[] light_position;
     public Coordinates2D location;
-    public double size;
 
     public AlexNetGAMAtchStick(float[] light_position, RGBColor stimColor, Coordinates2D location, double size, String textureType) {
         this.light_position = light_position;
@@ -133,7 +132,7 @@ public class AlexNetGAMAtchStick extends MorphedMatchStick {
                 light_position,
                 stimColor,
                 location,
-                size);
+                getScaleForMAxisShape());
     }
 
 

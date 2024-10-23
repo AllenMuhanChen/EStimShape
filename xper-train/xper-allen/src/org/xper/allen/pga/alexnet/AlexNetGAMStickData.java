@@ -47,7 +47,11 @@ public class AlexNetGAMStickData implements MStickData {
 
     @Override
     public String toXml() {
-        return null;
+        return AlexNetGAMStickData.toXml(this);
+    }
+
+    private static String toXml(AlexNetGAMStickData alexNetGAMStickData) {
+        return s.toXML(alexNetGAMStickData);
     }
 
 }
