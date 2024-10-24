@@ -4,16 +4,16 @@ import com.thoughtworks.xstream.XStream;
 import org.xper.allen.drawing.composition.*;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
-import org.xper.drawing.stick.MStickSpec;
 
 import javax.vecmath.Point3d;
 import java.util.List;
 
 public class AlexNetGAMStickData implements MStickData {
+    AllenMStickSpec stickSpec;
     List<ShaftData> shaftData;
     List<TerminationData> terminationData;
     List<JunctionData> junctionData;
-    AllenMStickSpec mStickSpec;
+    AllenMStickSpec analysisStickSpec;
     Point3d massCenter;
     float[] light_position;
     RGBColor stimColor;
@@ -23,16 +23,17 @@ public class AlexNetGAMStickData implements MStickData {
     public AlexNetGAMStickData() {
     }
 
-    public AlexNetGAMStickData(List<ShaftData> shaftData, List<TerminationData> terminationData, List<JunctionData> junctionData, AllenMStickSpec mStickSpec, Point3d massCenter, float[] light_position, RGBColor stimColor, Coordinates2D location, double sizeDiameter) {
+    public AlexNetGAMStickData(List<ShaftData> shaftData, List<TerminationData> terminationData, List<JunctionData> junctionData, AllenMStickSpec mStickSpec, Point3d massCenter, float[] light_position, RGBColor stimColor, Coordinates2D location, double sizeDiameter, AllenMStickSpec stickSpec) {
         this.shaftData = shaftData;
         this.terminationData = terminationData;
         this.junctionData = junctionData;
-        this.mStickSpec = mStickSpec;
+        this.analysisStickSpec = mStickSpec;
         this.massCenter = massCenter;
         this.light_position = light_position;
         this.stimColor = stimColor;
         this.location = location;
         this.sizeDiameter = sizeDiameter;
+        this.stickSpec = stickSpec;
     }
 
     static XStream s;

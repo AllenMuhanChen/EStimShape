@@ -2,10 +2,7 @@ package org.xper.allen.pga.alexnet;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
-import org.xper.allen.drawing.composition.AllenMStickSpec;
-import org.xper.allen.drawing.composition.JunctionData;
-import org.xper.allen.drawing.composition.ShaftData;
-import org.xper.allen.drawing.composition.TerminationData;
+import org.xper.allen.drawing.composition.*;
 import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.drawing.Coordinates2D;
@@ -39,19 +36,19 @@ public class AlexNetGAMatchStick extends MorphedMatchStick {
         //Removing Comps - Non RF operation
         HashSet<Integer> componentsToRemove = specifyCompsToRemove(parent, magnitude);
         AlexNetGAMatchStick componentRemovedMStick = new AlexNetGAMatchStick(light_position, stimColor, location, getScaleForMAxisShape(), textureType);
-        genRemovedLimbsMatchStick(parent, componentsToRemove);
-//        componentRemovedMStick.genRemovedLimbsMatchStick(parent, componentsToRemove);
+
+        componentRemovedMStick.genRemovedLimbsMatchStick(parent, componentsToRemove);
 
 
-//        //Morphing Existing Comps - Either NON RF or RF Operation
-//        Map<Integer, ComponentMorphParameters> paramsForComps = specifyCompMorphParams(componentRemovedMStick, magnitude, 1/3.0);
-//        AlexNetGAMatchStick morphedMStick = new AlexNetGAMatchStick(light_position, stimColor, location, getScaleForMAxisShape(), textureType);
-//        morphedMStick.genMorphedComponentsMatchStick(paramsForComps, componentRemovedMStick, true);
-//
-//        //Adding New Comps - NON RF Operation
-//
-//        int nCompsToAdd = specifyNCompsToAdd(morphedMStick, magnitude);
-//        genAddedLimbsMatchStick(morphedMStick, nCompsToAdd);
+        //Morphing Existing Comps - Either NON RF or RF Operation
+        Map<Integer, ComponentMorphParameters> paramsForComps = specifyCompMorphParams(componentRemovedMStick, magnitude, 1/3.0);
+        AlexNetGAMatchStick morphedMStick = new AlexNetGAMatchStick(light_position, stimColor, location, getScaleForMAxisShape(), textureType);
+        morphedMStick.genMorphedComponentsMatchStick(paramsForComps, componentRemovedMStick, true);
+
+        //Adding New Comps - NON RF Operation
+
+        int nCompsToAdd = specifyNCompsToAdd(morphedMStick, magnitude);
+        genAddedLimbsMatchStick(morphedMStick, nCompsToAdd);
     }
 
     private HashSet<Integer> specifyCompsToRemove(MorphedMatchStick matchStickToMorph, double magnitude) {
@@ -192,6 +189,8 @@ public class AlexNetGAMatchStick extends MorphedMatchStick {
     }
 
     public AlexNetGAMStickData getMStickData(){
+        AllenMStickSpec stickSpec = new AllenMStickSpec();
+        stickSpec.setMStickInfo(this, false);
         modifyMStickFinalInfoForAnalysis();
         AllenMStickSpec analysisMStickSpec = new AllenMStickSpec();
         analysisMStickSpec.setMStickInfo(this, false);
@@ -211,7 +210,8 @@ public class AlexNetGAMatchStick extends MorphedMatchStick {
                 light_position,
                 stimColor,
                 location,
-                getScaleForMAxisShape());
+                getScaleForMAxisShape(),
+                stickSpec);
     }
 
 

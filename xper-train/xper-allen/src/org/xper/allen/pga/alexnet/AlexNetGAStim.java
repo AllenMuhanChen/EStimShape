@@ -64,10 +64,8 @@ public abstract class AlexNetGAStim <T extends AlexNetGAMatchStick, D extends Al
 
 
         saveMStickSpec(mStick);
-
-        D mStickData = (D) mStick.getMStickData();
-//        drawCompMaps(mStick);
         String pngPath = drawPngs(mStick);
+        D mStickData = (D) mStick.getMStickData();
         writeStimSpec(pngPath, mStickData);
     }
 

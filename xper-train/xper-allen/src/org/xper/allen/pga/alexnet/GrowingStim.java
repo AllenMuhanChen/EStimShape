@@ -1,6 +1,5 @@
 package org.xper.allen.pga.alexnet;
 
-import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 
@@ -18,14 +17,11 @@ public class GrowingStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMSt
         //TODO: This correction is because when you load from a file / spec, the size is multiplied again by scale.
         //TODO: we either need to fix the genFromShapeSpec to undo scaling, or finalize what we're doing in smoothize
 
-//        double parentSizeDiameter = parentData.sizeDiameter;
-//        double newSizeDiameter = sizeDiameter / parentSizeDiameter;
-//        this.sizeDiameter = newSizeDiameter;
-
 
         //Generate Parent Stick
         AlexNetGAMatchStick parentMStick = new AlexNetGAMatchStick(parentData.light_position, parentData.stimColor, parentData.location, parentData.sizeDiameter, textureType);
-        parentMStick.genMatchStickFromShapeSpec(parentData.mStickSpec, new double[]{0,0,0});
+        parentMStick.genMatchStickFromShapeSpec(parentData.stickSpec, new double[]{0,0,0});
+        parentMStick.positionShape();
 
 
         //Generate Child Stick
