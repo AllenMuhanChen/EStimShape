@@ -5,18 +5,17 @@ import org.xper.drawing.RGBColor;
 
 public class GrowingStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMStickData>{
 
-    public GrowingStim(FromDbAlexNetGABlockGenerator generator, Long parentId, Long stimId, String textureType, RGBColor color, Coordinates2D location, float[] light_position, double sizeDiameter, double magnitude) {
-        super(generator, parentId, stimId, textureType, color, location, light_position, sizeDiameter, magnitude);
+    public GrowingStim(FromDbAlexNetGABlockGenerator generator, Long parentId, Long stimId, String textureType, RGBColor color, float[] light_position, double magnitude) {
+        super(generator, parentId, stimId, textureType, color, null, light_position, 0, magnitude);
+
     }
 
     @Override
     public AlexNetGAMatchStick createMStick() {
         //Read the parent properties, including position, size, etc.
         AlexNetGAMStickData parentData = AlexNetGAMStickData.fromXml(generator.getDbUtil().readStimSpec(parentId).getSpec());
-
-        //TODO: This correction is because when you load from a file / spec, the size is multiplied again by scale.
-        //TODO: we either need to fix the genFromShapeSpec to undo scaling, or finalize what we're doing in smoothize
-
+        sizeDiameter = parentData.sizeDiameter;
+        location = parentData.location;
 
         //Generate Parent Stick
         AlexNetGAMatchStick parentMStick = new AlexNetGAMatchStick(parentData.light_position, parentData.stimColor, parentData.location, parentData.sizeDiameter, textureType);
@@ -28,7 +27,7 @@ public class GrowingStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMSt
         AlexNetGAMatchStick childMStick = new AlexNetGAMatchStick(light_position, color, location, sizeDiameter, textureType);
         childMStick.genGrowingMatchStick(parentMStick, magnitude);
 
-
         return childMStick;
     }
+
 }

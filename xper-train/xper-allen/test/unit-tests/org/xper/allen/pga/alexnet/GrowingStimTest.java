@@ -4,7 +4,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
-import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 import org.xper.util.FileUtil;
 
@@ -50,6 +49,27 @@ public class GrowingStimTest {
     }
 
     @Test
+    public void testRFLocStim(){
+        SeedingStim seedingStim = new SeedingStim(generator,  0L, 1L,
+                "SHADE",
+                new RGBColor(1f,0f,0f),
+                new float[]{0.0f, 354.0f, 354.0f, 1.0f});
+
+        seedingStim.writeStim();
+        System.out.println(seedingStim.sizeDiameter);
+
+        RFLocStim rfLocStim = new RFLocStim(generator, 1L, 2L,
+                "SHADE",
+                new RGBColor(1f,0f,0f),
+                new float[]{0.0f, 354.0f, 354.0f, 1.0f},
+                0.5
+                );
+
+        rfLocStim.writeStim();
+        System.out.println(rfLocStim.sizeDiameter);
+    }
+
+    @Test
     public void testGrowingStim(){
         SeedingStim seedingStim = new SeedingStim(generator,  0L, 1L,
                 "SHADE",
@@ -57,19 +77,17 @@ public class GrowingStimTest {
                 new float[]{0.0f, 354.0f, 354.0f, 1.0f});
 
         seedingStim.writeStim();
-
+        System.out.println(seedingStim.sizeDiameter);
 
         GrowingStim growingStim = new GrowingStim(generator, 1L, 2L,
                 "SHADE",
                 new RGBColor(1f,0f,0f),
-                seedingStim.location,
                 new float[]{0.0f, 354.0f, 354.0f, 1.0f},
-                seedingStim.sizeDiameter,
-                0.5
+                0.75
                 );
 
         growingStim.writeStim();
-
+        System.out.println(growingStim.sizeDiameter);
     }
 
 
