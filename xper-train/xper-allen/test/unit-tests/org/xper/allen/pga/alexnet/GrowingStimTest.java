@@ -50,23 +50,36 @@ public class GrowingStimTest {
 
     @Test
     public void testRFLocStim(){
+        /**
+         * Should be able to create a SeedingStim and then create a RFLocStim from it
+         * The RFLocStim should have a location and size that is different from the SeedingStim
+         * magnitude controls how different size and location are and should be between 0 and 1
+         * 0 means no change, 1 means maximum change
+         *
+         * There's always a 50/50 chance of changing size or location
+         * If size is changed, location has a magnitude chance of being changed as well
+         * If location is changed, size has a magnitude chance of being changed as well
+         *
+         */
         SeedingStim seedingStim = new SeedingStim(generator,  0L, 1L,
                 "SHADE",
                 new RGBColor(1f,0f,0f),
                 new float[]{0.0f, 354.0f, 354.0f, 1.0f});
 
         seedingStim.writeStim();
-        System.out.println(seedingStim.sizeDiameter);
+        System.out.println("Pre Size Diameter: " + seedingStim.sizeDiameter);
+        System.out.println("Pre Location: " + seedingStim.location.getX() + ", " + seedingStim.location.getY());
 
         RFLocStim rfLocStim = new RFLocStim(generator, 1L, 2L,
                 "SHADE",
                 new RGBColor(1f,0f,0f),
                 new float[]{0.0f, 354.0f, 354.0f, 1.0f},
-                0.5
+                1.0
                 );
 
         rfLocStim.writeStim();
-        System.out.println(rfLocStim.sizeDiameter);
+        System.out.println("Post Size Diameter: " + rfLocStim.sizeDiameter);
+        System.out.println("Post Location: " + rfLocStim.location.getX() + ", " + rfLocStim.location.getY());
     }
 
     @Test
