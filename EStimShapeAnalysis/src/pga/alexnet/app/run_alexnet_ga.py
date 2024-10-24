@@ -24,15 +24,5 @@ def prompt_rgb_values():
             print("Invalid format. Please ensure you enter three comma-separated numbers.")
 
 
-def run_trial_generator(experiment_id: int, generation: int, r: int, g: int, b: int):
-    output_file = os.path.join(alexnet_context.java_output_dir, f"experiment_{experiment_id}_generation_{generation}.txt")
-    trial_generator_path = os.path.join(alexnet_context.allen_dist, "AlexNetGAGenerator.jar")
-    trial_generator_command = f"java -jar {trial_generator_path} {r} {g} {b}"
-
-    with open(output_file, "w") as file:
-        result = subprocess.run(trial_generator_command, shell=True, stdout=file, stderr=subprocess.STDOUT, text=True)
-    return result.returncode
-
-
 if __name__ == "__main__":
     main()

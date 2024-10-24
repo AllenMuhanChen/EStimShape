@@ -9,6 +9,7 @@ import org.xper.allen.pga.StimGaInfoEntry;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
+import org.xper.exception.VariableNotFoundException;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -82,7 +83,7 @@ public class FromDbAlexNetGABlockGenerator extends AbstractTrialGenerator<Stim> 
                 stimType = StimType.valueOf(stimInfo.getStimType());
 
                 String textureType = "SHADE";
-                float[] lightingDirection = {500.0f, 0.0f, 0.0f, 1.0f};
+                float[] lightingDirection = {000.0f, 0.0f, 500.0f, 1.0f};
 
                 Stim stim;
                 switch (stimType) {
@@ -106,6 +107,26 @@ public class FromDbAlexNetGABlockGenerator extends AbstractTrialGenerator<Stim> 
             }
         }
 
+    }
+
+    @Override
+    protected void updateReadyGeneration() {
+        getDbUtil().updateReadyGAsAndGenerationsInfo(gaName, genId);
+
+        System.out.println("Done Generating...");
+    }
+
+
+    @Override
+    protected void updateGenId() {
+        try {
+			/*
+			  Gen ID is important for xper to be able to load new tasks on the fly. It will only do so if the generation Id is upticked.
+			 */
+            genId = getDbUtil().readMultiGAReadyGenerationInfo().getGenIdForGA(gaName) + 1;
+        } catch (VariableNotFoundException e) {
+            getDbUtil().writeReadyGenerationInfo(0, 0);
+        }
     }
 
     //We don't need TaskToDo in here

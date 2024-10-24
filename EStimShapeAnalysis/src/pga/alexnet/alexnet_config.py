@@ -44,6 +44,9 @@ class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
     def seeding_phase_mutation_assigner(self):
         return AlexNetSeedingPhaseMutationAssigner()
 
+    def seeding_phase_transitioner(self):
+        return AlexNetSeedingPhaseTransitioner()
+
     def rf_location_phase(self):
         return Phase(
             RFLocPhaseParentSelector(),
@@ -88,6 +91,12 @@ class AlexNetSeedingPhaseMutationAssigner(MutationAssigner):
         # In Regime Zero, all stimuli are assigned the "RegimeZero" mutation.
         return StimType.SEEDING.value
 
+class AlexNetSeedingPhaseTransitioner(RegimeTransitioner):
+    def should_transition(self, lineage: Lineage) -> bool:
+        return True
+
+    def get_transition_data(self, lineage: Lineage) -> str:
+        return "True"
 
 class AlexNetGrowingPhaseMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage, parent: Stimulus) -> str:

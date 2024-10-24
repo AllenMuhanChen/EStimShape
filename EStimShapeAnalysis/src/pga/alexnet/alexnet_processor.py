@@ -17,6 +17,9 @@ class AlexNetResponseProcessor:
             if activation is not None:
                 self._update_stim_response(stim_id, activation)
 
+    def fetch_response_vector_for_repetitions_of(self, stim_id, *, ga_name: str) -> list[float]:
+        return [self._get_unit_activation(stim_id)]
+
     def _get_stims_without_responses(self) -> List[int]:
         """Get all stim_ids from StimGaInfo that have no response."""
         query = """

@@ -23,7 +23,7 @@ class ResponseProcessor:
         for stim_id, driving_response in driving_response_for_each_stim_id.items():
             self.db_util.update_driving_response(stim_id, driving_response)
 
-    def fetch_response_vector_for_repetitions_of(self, stim_id, *, ga_name: str):
+    def fetch_response_vector_for_repetitions_of(self, stim_id, *, ga_name: str) -> list[float]:
         """
         response vector is defined as the response for each repetition of stim_id
         one response number is obtaind by combining the responses from all the cluster channels
