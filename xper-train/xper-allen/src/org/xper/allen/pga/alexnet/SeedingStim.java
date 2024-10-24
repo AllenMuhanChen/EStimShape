@@ -4,15 +4,15 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 
 public class SeedingStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMStickData> {
-    public SeedingStim(FromDbAlexNetGABlockGenerator generator, Long parentId, Long stimId, String textureType, RGBColor color, float[] light_position) {
-        super(generator, parentId, stimId, textureType, color, null, light_position, 0.0, 0);
+    public SeedingStim(FromDbAlexNetGABlockGenerator generator, Long parentId, Long stimId, RGBColor color, float[] light_position) {
+        super(generator, parentId, stimId, null, color, null, light_position, 0.0, 0);
         this.location = randomLocation();
         this.sizeDiameter = randomSize();
    }
 
     private double randomSize() {
         double minSize = 1;
-        double maxSize = 5;
+        double maxSize = 3;
         return Math.random() * (maxSize - minSize) + minSize;
     }
 
@@ -36,6 +36,25 @@ public class SeedingStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMSt
 
     @Override
     protected AlexNetGAMatchStick createMStick() {
+        //ALLEN TEST - random color
+//        int r = Math.random() < 0.5 ? 0 : 1;
+//        int g = Math.random() < 0.5 ? 0 : 1;
+//        int b = Math.random() < 0.5 ? 0 : 1;
+//        color = new RGBColor(r, g, b);
+
+        //ALLEN TEST - random texture
+        if (Math.random() < 0.5) {
+            if (Math.random() < 0.5) {
+                textureType = "SPECULAR";
+            }
+            else {
+                textureType = "SHADE";
+            }
+        }
+        else {
+            textureType = "2D";
+        }
+
         AlexNetGAMatchStick mStick = new AlexNetGAMatchStick(light_position, color, location, sizeDiameter, textureType);
         mStick.genMatchStickRand();
 

@@ -13,19 +13,21 @@ public class RFLocStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMStic
     private static final double MAX_SIZE = 5.0;
     private static final double MAX_SIZE_CHANGE = (MAX_SIZE - MIN_SIZE) / 2.0; // Maximum size change for magnitude 1.0
 
-    public RFLocStim(FromDbAlexNetGABlockGenerator generator, Long parentId, Long stimId, String textureType, RGBColor color, float[] light_position, double magnitude) {
-        super(generator, parentId, stimId, textureType, color, null, light_position, 0, magnitude);
+    public RFLocStim(FromDbAlexNetGABlockGenerator generator, Long parentId, Long stimId, RGBColor color, float[] light_position, double magnitude) {
+        super(generator, parentId, stimId, null, color, null, light_position, 0, magnitude);
     }
 
     @Override
     protected AlexNetGAMatchStick createMStick() {
         //Read the parent properties, including position, size, etc.
         AlexNetGAMStickData parentData = AlexNetGAMStickData.fromXml(generator.getDbUtil().readStimSpec(parentId).getSpec());
+        textureType = parentData.textureType;
+        color = parentData.stimColor;
 
         mutateSizeAndLocation(parentData);
 
         //Generate Parent Stick with Mutated Size and Location
-        AlexNetGAMatchStick newMStick = new AlexNetGAMatchStick(parentData.light_position, parentData.stimColor, location, sizeDiameter, textureType);
+        AlexNetGAMatchStick newMStick = new AlexNetGAMatchStick(parentData.light_position, color, location, sizeDiameter, textureType);
         newMStick.genMatchStickFromShapeSpec(parentData.stickSpec, new double[]{0,0,0});
         newMStick.positionShape();
 
@@ -36,6 +38,7 @@ public class RFLocStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMStic
         // Initialize with parent values
         sizeDiameter = parentData.sizeDiameter;
         location = parentData.location;
+
 
         // Always do one mutation with 50/50 chance
         boolean doSize = Math.random() < 0.5;

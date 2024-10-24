@@ -55,8 +55,7 @@ class AlexNetIntanResponseParser(ResponseParser):
         self.session = self._load_onnx_model()
         self.transform = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225])
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
 
         # Define unit to monitor
@@ -74,6 +73,26 @@ class AlexNetIntanResponseParser(ResponseParser):
             activation = self._process_image(image_path)
             self._store_activation(stim_id, activation)
             self._update_stim_response(stim_id, activation)
+
+    def _process_image(self, image_path: str) -> float:
+        """Process an image and return single unit activation."""
+        # Load and preprocess image
+        image = Image.open(image_path).convert('RGB')
+        input_tensor = self.transform(image)
+        input_tensor = input_tensor.unsqueeze(0)  # Add batch dimension
+
+        # Get model prediction
+        input_name = self.session.get_inputs()[0].name
+        conv3_output_name = "conv3"  # This needs to match the ONNX model's layer name
+        outputs = self.session.run([conv3_output_name], {input_name: input_tensor.numpy()})
+
+        # outputs is a list with a single element containing the conv3 features
+        features = outputs[0]  # Shape should be [1, num_channels, height, width]
+
+        # Get activation for specified unit and location
+        activation = float(features[0, self.unit_id.unit-1, self.unit_id.x, self.unit_id.y])
+        activation = activation + 30  # Add 30 to make activations positive
+        return activation
 
     def _load_onnx_model(self) -> onnxruntime.InferenceSession:
         """Load the ONNX model."""
@@ -96,25 +115,6 @@ class AlexNetIntanResponseParser(ResponseParser):
         self.conn.execute(query, (stim_id,))
         result = self.conn.fetch_one()
         return result if result else None
-
-    def _process_image(self, image_path: str) -> float:
-        """Process an image and return single unit activation."""
-        # Load and preprocess image
-        image = Image.open(image_path).convert('RGB')
-        input_tensor = self.transform(image)
-        input_tensor = input_tensor.unsqueeze(0)  # Add batch dimension
-
-        # Get model prediction
-        input_name = self.session.get_inputs()[0].name
-        conv3_output_name = "conv3"  # This needs to match the ONNX model's layer name
-        outputs = self.session.run([conv3_output_name], {input_name: input_tensor.numpy()})
-
-        # outputs is a list with a single element containing the conv3 features
-        features = outputs[0]  # Shape should be [1, num_channels, height, width]
-
-        # Get activation for specified unit and location
-        activation = float(features[0, self.unit_id.unit-1, self.unit_id.x, self.unit_id.y])
-        return activation
 
     def _store_activation(self, stim_id: int, activation: float) -> None:
         """Store activation in UnitActivations table."""

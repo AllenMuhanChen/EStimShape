@@ -19,11 +19,12 @@ public class AlexNetGAMStickData implements MStickData {
     RGBColor stimColor;
     Coordinates2D location;
     double sizeDiameter;
+    String textureType;
 
     public AlexNetGAMStickData() {
     }
 
-    public AlexNetGAMStickData(List<ShaftData> shaftData, List<TerminationData> terminationData, List<JunctionData> junctionData, AllenMStickSpec mStickSpec, Point3d massCenter, float[] light_position, RGBColor stimColor, Coordinates2D location, double sizeDiameter, AllenMStickSpec stickSpec) {
+    public AlexNetGAMStickData(List<ShaftData> shaftData, List<TerminationData> terminationData, List<JunctionData> junctionData, AllenMStickSpec mStickSpec, Point3d massCenter, float[] light_position, RGBColor stimColor, Coordinates2D location, double sizeDiameter, AllenMStickSpec stickSpec, String textureType) {
         this.shaftData = shaftData;
         this.terminationData = terminationData;
         this.junctionData = junctionData;
@@ -34,6 +35,7 @@ public class AlexNetGAMStickData implements MStickData {
         this.location = location;
         this.sizeDiameter = sizeDiameter;
         this.stickSpec = stickSpec;
+        this.textureType = textureType;
     }
 
     static XStream s;

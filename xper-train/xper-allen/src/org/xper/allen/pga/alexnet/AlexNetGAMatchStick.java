@@ -127,8 +127,6 @@ public class AlexNetGAMatchStick extends MorphedMatchStick {
         float mat_shininess = light.getShine();
 
 
-
-
         FloatBuffer mat_specularBuffer = BufferUtils.createFloatBuffer(mat_specular.length);
         mat_specularBuffer.put(mat_specular).flip();
 
@@ -211,7 +209,8 @@ public class AlexNetGAMatchStick extends MorphedMatchStick {
                 stimColor,
                 location,
                 getScaleForMAxisShape(),
-                stickSpec);
+                stickSpec,
+                textureType);
     }
 
 

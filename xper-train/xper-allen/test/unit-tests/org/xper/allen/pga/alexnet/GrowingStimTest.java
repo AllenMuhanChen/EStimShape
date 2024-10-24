@@ -28,7 +28,6 @@ public class GrowingStimTest {
     @Test
     public void testLoadingFromSpec(){
         SeedingStim seedingStim = new SeedingStim(generator,  0L, 3L,
-                "SHADE",
                 new RGBColor(1f,0f,0f),
                 new float[]{0.0f, 354.0f, 354.0f, 1.0f});
 
@@ -62,7 +61,6 @@ public class GrowingStimTest {
          *
          */
         SeedingStim seedingStim = new SeedingStim(generator,  0L, 1L,
-                "SHADE",
                 new RGBColor(1f,0f,0f),
                 new float[]{0.0f, 354.0f, 354.0f, 1.0f});
 
@@ -71,7 +69,6 @@ public class GrowingStimTest {
         System.out.println("Pre Location: " + seedingStim.location.getX() + ", " + seedingStim.location.getY());
 
         RFLocStim rfLocStim = new RFLocStim(generator, 1L, 2L,
-                "SHADE",
                 new RGBColor(1f,0f,0f),
                 new float[]{0.0f, 354.0f, 354.0f, 1.0f},
                 1.0
@@ -85,7 +82,6 @@ public class GrowingStimTest {
     @Test
     public void testGrowingStim(){
         SeedingStim seedingStim = new SeedingStim(generator,  0L, 1L,
-                "SHADE",
                 new RGBColor(1f,0f,0f),
                 new float[]{0.0f, 354.0f, 354.0f, 1.0f});
 
@@ -93,7 +89,6 @@ public class GrowingStimTest {
         System.out.println(seedingStim.sizeDiameter);
 
         GrowingStim growingStim = new GrowingStim(generator, 1L, 2L,
-                "SHADE",
                 new RGBColor(1f,0f,0f),
                 new float[]{0.0f, 354.0f, 354.0f, 1.0f},
                 0.75

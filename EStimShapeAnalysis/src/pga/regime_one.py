@@ -216,6 +216,8 @@ class GrowingPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
 
 def calculate_peak_response(responses, across_n=3):
     # Ensure the list of responses is at least of length across_n, filling missing values with 0
+    # remove nones
+    responses = [response for response in responses if response is not None]
     extended_responses = responses + [0] * (across_n - len(responses))
 
     # Calculate the peak response for the current batch of stimuli as the average of the top 3 responses.

@@ -1,21 +1,23 @@
+import time
+
 from src.pga.genetic_algorithm import GeneticAlgorithm
 
 
 class AlexNetGeneticAlgorithm(GeneticAlgorithm):
     num_catch_trials = 0
+
     def run(self):
-        self.process_responses()
         self.gen_id = self._read_gen_id()
         self.gen_id += 1
 
         if self.gen_id == 1:
             self._update_db_with_new_experiment()
             self._run_first_generation()
-            self.response_parser.parse_to_db(self.name)
-            self.response_processor.process_to_db(self.name)
         elif self.gen_id > 1:
             # recover experiment_id
             self.experiment_id = self.db_util.read_current_experiment_id(self.name)
+            self.response_parser.parse_to_db(self.name)
+            self.response_processor.process_to_db(self.name)
             self._construct_lineages_from_db()
             self._transition_lineages_if_needed()
 
@@ -25,8 +27,15 @@ class AlexNetGeneticAlgorithm(GeneticAlgorithm):
 
         self._update_db()
         self.trial_generator.generate_trials(experiment_id=self.experiment_id, generation=self.gen_id)
+
         self.response_parser.parse_to_db(self.name)
         self.response_processor.process_to_db(self.name)
+
+    def _run_first_generation(self):
+        # Initialize lineages
+        for trial in range(self.trials_per_generation*3):
+            self._create_lineage()
+            time.sleep(1 / 1_000)
 
     def _update_db(self) -> None:
         # Write lineages - instructions for Java side of GA
@@ -48,4 +57,3 @@ class AlexNetGeneticAlgorithm(GeneticAlgorithm):
                                                     stim_type=stim.mutation_type,
                                                     mutation_magnitude=stim.mutation_magnitude,
                                                     gen_id=self.gen_id)
-

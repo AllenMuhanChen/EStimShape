@@ -7,7 +7,6 @@ import org.xper.allen.nafc.blockgen.AbstractTrialGenerator;
 import org.xper.allen.pga.StimGaInfoEntry;
 
 import org.xper.allen.util.MultiGaDbUtil;
-import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 import org.xper.exception.VariableNotFoundException;
 
@@ -82,19 +81,19 @@ public class FromDbAlexNetGABlockGenerator extends AbstractTrialGenerator<Stim> 
                 StimType stimType;
                 stimType = StimType.valueOf(stimInfo.getStimType());
 
-                String textureType = "RAND";
+
                 float[] lightingDirection = {000.0f, 0.0f, 500.0f, 1.0f};
 
                 Stim stim;
                 switch (stimType) {
                     case SEEDING:
-                        stim = new SeedingStim(this, parentId, stimId, textureType, color, lightingDirection);
+                        stim = new SeedingStim(this, parentId, stimId, color, lightingDirection);
                         break;
                     case RF_LOCATE:
-                        stim = new RFLocStim(this, parentId, stimId, textureType, color, lightingDirection, magnitude);
+                        stim = new RFLocStim(this, parentId, stimId, color, lightingDirection, magnitude);
                         break;
                     case GROWING:
-                        stim = new GrowingStim(this, parentId, stimId, textureType, color, lightingDirection, magnitude);
+                        stim = new GrowingStim(this, parentId, stimId, color, lightingDirection, magnitude);
                         break;
                     default:
                         throw new IllegalArgumentException("No enum constant found for value: " + stimInfo.getStimType());

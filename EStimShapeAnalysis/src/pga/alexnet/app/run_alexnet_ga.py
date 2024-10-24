@@ -1,16 +1,19 @@
 import os
 import subprocess
+from time import sleep
 
 from src.pga.alexnet import alexnet_context
 
 
 def main():
     r, g, b = prompt_rgb_values()
-    ga = alexnet_context.ga_config.make_genetic_algorithm()
-    ga.trial_generator.set_color(r, g, b)
 
-    while ga.gen_id < 20:
+
+    while True:
+        ga = alexnet_context.ga_config.make_genetic_algorithm()
+        ga.trial_generator.set_color(r, g, b)
         ga.run()
+        sleep(5)
 
 
 

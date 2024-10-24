@@ -94,9 +94,12 @@ class AlexNetSeedingPhaseMutationAssigner(MutationAssigner):
 class AlexNetSeedingPhaseTransitioner(RegimeTransitioner):
     def should_transition(self, lineage: Lineage) -> bool:
         return True
+        # for stimulus in lineage.stimuli:
+        #     if stimulus.response_rate > 0:
+        #         return True
 
     def get_transition_data(self, lineage: Lineage) -> str:
-        return "True"
+        return "None"
 
 class AlexNetGrowingPhaseMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage, parent: Stimulus) -> str:
@@ -155,7 +158,10 @@ class RFLocPhaseTransitioner(RegimeTransitioner):
         # check if we have enough stimuli in the top 90% of the highest response
         sorted_responses = sorted(lineage.stimuli, reverse=True, key=lambda x: x.response_rate)
         highest_response = sorted_responses[0].response_rate
-        self.threshold_response = self.threshold_percentage_of_max * highest_response
+        if highest_response < 0:
+            self.threshold_response = ((1 - self.threshold_percentage_of_max) + 1) * highest_response
+        else:
+            self.threshold_response = self.threshold_percentage_of_max * highest_response
         self.passed_threshold = [stimulus for stimulus in sorted_responses if
                                  stimulus.response_rate >= self.threshold_response]
 
