@@ -1,13 +1,11 @@
 package org.xper.allen.pga.alexnet;
 
-import org.xper.allen.drawing.composition.AllenMStickData;
-import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 
-public class SeedingStim extends AlexNetGAStim<AlexNetGAMAtchStick, AlexNetGAMStickData> {
-    public SeedingStim(FromDbAlexNetGABlockGenerator generator, Long parentId, Long stimId, String textureType, RGBColor color, Coordinates2D location, float[] light_position, double sizeDiameter) {
-        super(generator, parentId, stimId, textureType, color, location, light_position, sizeDiameter);
+public class SeedingStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMStickData> {
+    public SeedingStim(FromDbAlexNetGABlockGenerator generator, Long parentId, Long stimId, String textureType, RGBColor color, float[] light_position) {
+        super(generator, parentId, stimId, textureType, color, null, light_position, 0.0, 0);
         this.location = randomLocation();
         this.sizeDiameter = randomSize();
    }
@@ -37,8 +35,8 @@ public class SeedingStim extends AlexNetGAStim<AlexNetGAMAtchStick, AlexNetGAMSt
 
 
     @Override
-    protected AlexNetGAMAtchStick createMStick() {
-        AlexNetGAMAtchStick mStick = new AlexNetGAMAtchStick(light_position, color, location, sizeDiameter, textureType);
+    protected AlexNetGAMatchStick createMStick() {
+        AlexNetGAMatchStick mStick = new AlexNetGAMatchStick(light_position, color, location, sizeDiameter, textureType);
         mStick.genMatchStickRand();
 
         return mStick;

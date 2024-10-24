@@ -20,6 +20,9 @@ public class AlexNetGAMStickData implements MStickData {
     Coordinates2D location;
     double sizeDiameter;
 
+    public AlexNetGAMStickData() {
+    }
+
     public AlexNetGAMStickData(List<ShaftData> shaftData, List<TerminationData> terminationData, List<JunctionData> junctionData, AllenMStickSpec mStickSpec, Point3d massCenter, float[] light_position, RGBColor stimColor, Coordinates2D location, double sizeDiameter) {
         this.shaftData = shaftData;
         this.terminationData = terminationData;
@@ -44,7 +47,9 @@ public class AlexNetGAMStickData implements MStickData {
         s.alias("AllenMSickSpec", AllenMStickSpec.class);
     }
 
-
+    static AlexNetGAMStickData fromXml(String xml) {
+        return (AlexNetGAMStickData) s.fromXML(xml);
+    }
     @Override
     public String toXml() {
         return AlexNetGAMStickData.toXml(this);

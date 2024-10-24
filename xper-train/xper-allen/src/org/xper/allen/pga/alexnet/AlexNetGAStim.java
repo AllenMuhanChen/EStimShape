@@ -1,14 +1,10 @@
 package org.xper.allen.pga.alexnet;
 
 import org.xper.allen.Stim;
-import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
-import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
-import org.xper.rfplot.drawing.png.ImageDimensions;
-import org.xper.rfplot.drawing.png.PngSpec;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -16,7 +12,7 @@ import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
 
-public abstract class AlexNetGAStim <T extends AlexNetGAMAtchStick, D extends AlexNetGAMStickData> implements Stim {
+public abstract class AlexNetGAStim <T extends AlexNetGAMatchStick, D extends AlexNetGAMStickData> implements Stim {
     protected final FromDbAlexNetGABlockGenerator generator;
     protected final Long parentId;
     protected Long stimId;
@@ -25,8 +21,9 @@ public abstract class AlexNetGAStim <T extends AlexNetGAMAtchStick, D extends Al
     protected Coordinates2D location;
     protected float[] light_position;
     protected double sizeDiameter;
+    protected double magnitude;
 
-    public AlexNetGAStim(FromDbAlexNetGABlockGenerator generator, Long parentId, Long stimId, String textureType, RGBColor color, Coordinates2D location, float[] light_position, double sizeDiameter) {
+    public AlexNetGAStim(FromDbAlexNetGABlockGenerator generator, Long parentId, Long stimId, String textureType, RGBColor color, Coordinates2D location, float[] light_position, double sizeDiameter, double magnitude) {
         this.generator = generator;
         this.parentId = parentId;
         this.stimId = stimId;
@@ -35,6 +32,7 @@ public abstract class AlexNetGAStim <T extends AlexNetGAMAtchStick, D extends Al
         this.location = location;
         this.light_position = light_position;
         this.sizeDiameter = sizeDiameter;
+        this.magnitude = magnitude;
     }
 
     @Override

@@ -41,7 +41,7 @@ public class GrowingMatchStick extends GAMatchStick {
             MorphedMatchStick removedLimbMatchStick = genRemovedLimbsMatchStick(matchStickToMorph, componentsToRemove);
 
             //Morphing Existing Comps - Either NON RF or RF Operation
-            Map<Integer, ComponentMorphParameters> paramsForComps = specifyCompMorphParams(removedLimbMatchStick, magnitude);
+            Map<Integer, ComponentMorphParameters> paramsForComps = specifyCompMorphParams(removedLimbMatchStick, magnitude, sigma);
             MorphedMatchStick compMorphedMatchStick = genComponentMorphMatchStick(matchStickToMorph, paramsForComps, removedLimbMatchStick);
 
             //Adding New Comps - NON RF Operation
@@ -167,7 +167,7 @@ public class GrowingMatchStick extends GAMatchStick {
     }
 
     // Helper method to calculate the number of components to add
-    private int calculateNComponentsToAdd(int currentNComp, int maxNComp, int minNComp, double magnitude) {
+    public static int calculateNComponentsToAdd(int currentNComp, int maxNComp, int minNComp, double magnitude) {
         if (minNComp == maxNComp) return 0; // No addition if min and max are the same
         if (currentNComp >= maxNComp) return 0; // No addition if current is at or above max
         if (Math.random() < magnitude)
@@ -210,21 +210,21 @@ public class GrowingMatchStick extends GAMatchStick {
         return componentsToRemove;
     }
 
-    private int findMaxIndex(double[] array) {
+    public static int findMaxIndex(double[] array) {
         for (int i = array.length - 1; i >= 0; i--) {
             if (array[i] != 0.0) return i;
         }
         return -1; // Default case, though this should not happen with valid data
     }
 
-    private int findMinIndex(double[] array) {
+    public static int findMinIndex(double[] array) {
         for (int i = 0; i < array.length; i++) {
             if (array[i] != 0.0) return i;
         }
         return -1; // Default case, though this should not happen with valid data
     }
 
-    private int calculateNCompsToRemove(int currentNComp, int minNComp, int maxNComp, double magnitude) {
+    public static int calculateNCompsToRemove(int currentNComp, int minNComp, int maxNComp, double magnitude) {
         if (minNComp == maxNComp) return 0; // No removal if min and max are the same
         if (currentNComp <= minNComp) return 0; // No removal if current is at or below min
         if (Math.random()< magnitude)
@@ -262,8 +262,8 @@ public class GrowingMatchStick extends GAMatchStick {
         return paramsForComps;
     }
 
-    private Map<Integer, ComponentMorphParameters> specifyCompMorphParams(MorphedMatchStick matchStickToMorph, double magnitude) {
-        NormalMorphDistributer normalMorphDistributer = new NormalMorphDistributer(sigma);
+    public static Map<Integer, ComponentMorphParameters> specifyCompMorphParams(MorphedMatchStick matchStickToMorph, double magnitude, double sigma1) {
+        NormalMorphDistributer normalMorphDistributer = new NormalMorphDistributer(sigma1);
         // Construct MorphParameters for components
         Map<Integer, ComponentMorphParameters> paramsForComps = new HashMap<Integer, ComponentMorphParameters>();
         for (int i = 1; i<= matchStickToMorph.getNComponent(); i++) {

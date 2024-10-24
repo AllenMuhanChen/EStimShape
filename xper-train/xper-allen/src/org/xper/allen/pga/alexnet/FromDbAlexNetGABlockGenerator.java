@@ -1,14 +1,9 @@
 package org.xper.allen.pga.alexnet;
 
-import com.mchange.v2.c3p0.ComboPooledDataSource;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.Dependency;
-import org.xper.alden.drawing.drawables.PNGmaker;
 import org.xper.allen.Stim;
-import org.xper.allen.drawing.composition.AllenPNGMaker;
-import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.nafc.blockgen.AbstractTrialGenerator;
-import org.xper.allen.pga.alexnet.SeedingStim;
 import org.xper.allen.pga.StimGaInfoEntry;
 
 import org.xper.allen.util.MultiGaDbUtil;
@@ -16,7 +11,6 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
@@ -84,7 +78,7 @@ public class FromDbAlexNetGABlockGenerator extends AbstractTrialGenerator<Stim> 
                 Stim stim;
                 switch (stimType) {
                     case SEEDING:
-                        stim = new SeedingStim(this, parentId, stimId, textureType, color, location, lightingDirection, sizeDiameter);
+                        stim = new SeedingStim(this, parentId, stimId, textureType, color, lightingDirection);
                         break;
 //                    case RF_LOCATE:
 //                        stim = new RFStim(stimId, this, new Coordinates2D(0, 0), "SHADE", new RGBColor(0, 0, 0), RFStrategy.PARTIALLY_INSIDE);
