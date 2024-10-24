@@ -1,12 +1,61 @@
 from datetime import datetime
 
-from src.startup.db_factory import create_db_from_template, prompt_name
+from src.pga.alexnet import alexnet_context
+from src.startup.db_factory import create_db_from_template, check_if_exists
+from src.startup.setup_xper_properties_and_dirs import XperPropertiesModifier, make_path
+
+HOST = '172.30.6.80'
+USER = 'xper_rw'
+PASS = 'up2nite'
+TEMPLATE_TYPE = 'dev'
+TEMPLATE_DATE = '241021'
+TEMPLATE_LOCATION_ID = '1'
 
 
+def setup_xper_properties_and_dirs(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
+    version_ga = alexnet_context.ga_database
+    recording_computer_sftp = r2_sftp
+    # Define paths to the properties file and directories
+    xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.alexnet'
+    # DB URL
+    db_url = f"jdbc:mysql://172.30.6.80/{version_ga}?rewriteBatchedStatements=true"
+    # STIM PATHS
+    stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_ga}/stimuli"
+    r_ga_path = f"{stimuli_base_r}/ga"
+    generator_png_path = f"{r_ga_path}/pngs"
+    experiment_png_path = f"{recording_computer_sftp}{r_ga_path}/pngs"
+    generator_spec_path = f"{r_ga_path}/specs"
+
+    modifier = XperPropertiesModifier(xper_properties_file_path)
+    # ALL PROPERTIES to REPLACE:
+    properties_dict = {
+        "jdbc.url": db_url,
+        "generator.png_path": generator_png_path,
+        "experiment.png_path": experiment_png_path,
+        "generator.spec_path": generator_spec_path,
+    }
+
+    # Replace properties using the dictionary
+    for var_name, new_value in properties_dict.items():
+        modifier.replace_property(var_name, new_value)
+    # Save changes
+    modifier.save_changes()
+    print("xper.properties.ga file modified successfully.")
+    make_path(generator_png_path)
+    make_path(generator_spec_path)
 def main():
-    database = "allen_alexnet_ga_dev_241021_1"
+    # Get current date in YYMMDD format
+    current_date = datetime.now().strftime("%y%m%d")
 
-    create_db_from_template(f'allen_alexnet_ga_dev_241021_0',
+    # Prompt user for TYPE
+    type = input("Enter the type (e.g., train, test, exp): ").strip().lower()
+
+    # Prompt user for location ID
+    location_id = input("Enter the location ID: ").strip()
+
+    database = f"allen_alexnet_ga_{type}_{current_date}_{location_id}"
+
+    create_db_from_template(f'allen_alexnet_ga_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}',
                             database,
                             [
                                 "InternalState",
@@ -22,7 +71,35 @@ def main():
                              "StimPath"]
                             )
 
-    # update_config_file(ga_database, nafc_database, isogabor_database)
+    update_context_file(database)
+    setup_xper_properties_and_dirs(database)
+    make_path(alexnet_context.java_output_dir)
+    make_path(alexnet_context.rwa_output_dir)
+
+def update_context_file(database):
+    target_file = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/pga/alexnet/alexnet_context.py"
+
+    # Read the target file
+    with open(target_file, 'r') as file:
+        lines = file.readlines()
+
+    # Prepare the new content
+    new_lines = []
+    for line in lines:
+        if line.startswith("ga_database"):
+            new_lines.append(f'ga_database = "{database}"\n')
+        elif line.startswith("image_path"):
+            new_lines.append(f'image_path = "/home/r2_allen/Documents/EStimShape/{database}/stimuli/ga/pngs"\n')
+        elif line.startswith("java_output_dir"):
+            new_lines.append(f'java_output_dir = "/home/r2_allen/Documents/EStimShape/{database}/java_output"\n')
+        elif line.startswith("rwa_output_dir"):
+            new_lines.append(f'rwa_output_dir = "/home/r2_allen/Documents/EStimShape/{database}/rwa"\n')
+        else:
+            new_lines.append(line)
+
+    # Write the modified content back to the file
+    with open(target_file, 'w') as file:
+        file.writelines(new_lines)
 
 
 if __name__ == '__main__':

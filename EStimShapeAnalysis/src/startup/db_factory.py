@@ -21,9 +21,9 @@ def main():
     # Prompt user for location ID
     location_id = input("Enter the location ID: ").strip()
 
-    ga_database = prompt_name(f"allen_ga_{type}_{current_date}", location_id)
-    nafc_database = prompt_name(f"allen_estimshape_{type}_{current_date}", location_id)
-    isogabor_database = prompt_name(f"allen_isogabor_{type}_{current_date}", location_id)
+    ga_database = f"allen_ga_{type}_{current_date}_{location_id}"
+    nafc_database = f"allen_estimshape_{type}_{current_date}_{location_id}"
+    isogabor_database = f"allen_isogabor_{type}_{current_date}_{location_id}"
 
     # GA Database
     create_db_from_template(f'allen_ga_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}',
@@ -40,10 +40,10 @@ def main():
                             isogabor_database,
                             copy_data_tables=["SystemVar", "InternalState", "SinGain", "MonitorLin"])
 
-    update_config_file(ga_database, nafc_database, isogabor_database)
+    update_context_file(ga_database, nafc_database, isogabor_database)
 
 
-def prompt_name(base_name, recording_id):
+def check_if_exists(base_name, recording_id):
     conn = mysql.connector.connect(host=HOST, user=USER, password=PASS)
     cursor = conn.cursor()
 
@@ -62,7 +62,7 @@ def prompt_name(base_name, recording_id):
         return None  # Return None if user doesn't want to replace
 
 
-def update_config_file(ga_db, nafc_db, isogabor_db):
+def update_context_file(ga_db, nafc_db, isogabor_db):
     target_file = '/src/startup/context'
 
     # Read the target file
