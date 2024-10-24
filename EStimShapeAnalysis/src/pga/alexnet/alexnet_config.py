@@ -105,9 +105,30 @@ class AlexNetGrowingPhaseMutationAssigner(MutationAssigner):
 
 class RFLocPhaseParentSelector(ParentSelector):
     def select_parents(self, lineage: Lineage, batch_size: int) -> list[Stimulus]:
-        sorted_responses = sorted(lineage.stimuli, reverse=True, key=lambda x: x.response_rate)
-        return [stimulus for stimulus in sorted_responses[:batch_size]]
+        stimuli = lineage.stimuli
+        if not stimuli:
+            return []
 
+        # Calculate probabilities based on response rates
+        response_rates = [stimulus.response_rate for stimulus in stimuli]
+        total_response = sum(response_rates)
+
+        # Handle case where all responses are 0
+        if total_response == 0:
+            probabilities = [1 / len(stimuli)] * len(stimuli)
+        else:
+            probabilities = [rate / total_response for rate in response_rates]
+
+        # Use numpy's choice function for weighted random sampling with replacement
+        import numpy as np
+        selected_indices = np.random.choice(
+            len(stimuli),
+            size=batch_size,
+            p=probabilities,
+            replace=True
+        )
+
+        return [stimuli[i] for i in selected_indices]
 
 class RFLocPhaseMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage: Lineage, parent: Stimulus):

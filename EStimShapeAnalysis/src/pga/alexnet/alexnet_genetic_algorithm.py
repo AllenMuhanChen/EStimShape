@@ -3,7 +3,6 @@ from src.pga.genetic_algorithm import GeneticAlgorithm
 
 class AlexNetGeneticAlgorithm(GeneticAlgorithm):
     def run(self):
-        self.process_responses()
         self.gen_id = self._read_gen_id()
         self.gen_id += 1
 
@@ -23,6 +22,6 @@ class AlexNetGeneticAlgorithm(GeneticAlgorithm):
             raise ValueError("gen_id must be >= 1")
 
         self._update_db()
-        self.trial_generator.generate_trials(experiment_id=self.experiment_id, generation=self.gen_id)
-        self.response_parser.parse_to_db(self.name)
-        self.response_processor.process_to_db(self.name)
+        # self.trial_generator.generate_trials(experiment_id=self.experiment_id, generation=self.gen_id)
+        # self.response_parser.parse_to_db(self.name)
+        # self.response_processor.process_to_db(self.name)
