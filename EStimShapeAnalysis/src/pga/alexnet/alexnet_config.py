@@ -1,11 +1,15 @@
 from src.pga.alexnet.AlexNetStimType import StimType
+from src.pga.alexnet.alexnet_genetic_algorithm import AlexNetGeneticAlgorithm
 from src.pga.alexnet.alexnet_processor import AlexNetResponseProcessor
 from src.pga.config.canopy_config import GeneticAlgorithmConfig
 from src.pga.ga_classes import Phase, ParentSelector, Lineage, MutationAssigner, Stimulus, RegimeTransitioner
+from src.pga.genetic_algorithm import GeneticAlgorithm
 from src.pga.regime_one import GrowingPhaseMutationMagnitudeAssigner, GrowingPhaseParentSelector, \
     GrowingPhaseTransitioner
 from src.pga.response_processing import ResponseProcessor
-from src.pga.alexnet.onnx_parser import AlexNetResponseParser, UnitIdentifier
+from src.pga.alexnet.onnx_parser import AlexNetIntanResponseParser, UnitIdentifier
+from src.pga.spike_parsing import ResponseParser
+from src.pga.trial_generators import AlexNetGAJarTrialGenerator, TrialGenerator
 
 
 class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
@@ -18,12 +22,24 @@ class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
                          java_output_dir=java_output_dir,
                          allen_dist_dir=allen_dist_dir)
 
+    def make_genetic_algorithm(self) -> GeneticAlgorithm:
+        ga = AlexNetGeneticAlgorithm(
+            name=self.ga_name,
+            regimes=self.regimes,
+            db_util=self.db_util,
+            trials_per_generation=self.num_trials_per_generation,
+            lineage_distributor=self.make_lineage_distributor(),
+            response_parser=self.make_response_parser(),
+            response_processor=self.response_processor,
+            num_catch_trials=self.num_catch_trials,
+            trial_generator=self.xper_trial_generator()
+        )
+        return ga
+
     def make_phases(self):
         return [self.seeding_phase(),
                 self.rf_location_phase(),
                 self.growing_phase()]
-
-
 
     def seeding_phase_mutation_assigner(self):
         return AlexNetSeedingPhaseMutationAssigner()
@@ -46,14 +62,14 @@ class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
             )
         )
 
-    def make_response_parser(self):
+    def make_response_parser(self) -> ResponseParser:
         """
         This response parser will differ in that all it needs to do is read Stim paths
         and show those to AlexNet and save those activations into UnitActivations table.
         """
-        return AlexNetResponseParser(self.connection(),
+        return AlexNetIntanResponseParser(self.connection(),
                                      "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX",
-                                     self.unit_id)
+                                          self.unit_id)
 
     def make_response_processor(self) -> AlexNetResponseProcessor:
         """
@@ -62,10 +78,16 @@ class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
         """
         return AlexNetResponseProcessor(self.connection(), self.unit_id)
 
+    def xper_trial_generator(self) -> TrialGenerator:
+        return AlexNetGAJarTrialGenerator(self.java_output_dir, self.allen_dist_dir)
+
+
+
 class AlexNetSeedingPhaseMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage, parent: Stimulus):
         # In Regime Zero, all stimuli are assigned the "RegimeZero" mutation.
         return StimType.SEEDING.value
+
 
 class AlexNetGrowingPhaseMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage, parent: Stimulus) -> str:

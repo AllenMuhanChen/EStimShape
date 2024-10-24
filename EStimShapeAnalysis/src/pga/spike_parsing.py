@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import Dict, List, Callable
+from typing import Dict, List, Callable, Protocol
 
 import numpy as np
 import pandas as pd
@@ -15,7 +15,12 @@ from clat.util.connection import Connection
 from src.pga.multi_ga_db_util import MultiGaDbUtil
 
 
-class ResponseParser:
+class ResponseParser(Protocol):
+    def parse_to_db(self, ga_name: str) -> None:
+        pass
+
+
+class IntanResponseParser(ResponseParser):
     """
     Responsible for parsing the spike count from intan files and uploading them to the database as
     a spike count per second for each channel and task
@@ -30,7 +35,6 @@ class ResponseParser:
         self.intan_spike_path = os.path.join(self.intan_spike_path, self.date)
         # self.channels = get_channels()
         self.db_util = db_util
-
 
     def parse_to_db(self, ga_name: str) -> None:
         intan_dirs_for_this_gen = self.find_matching_folders(ga_name)
@@ -108,6 +112,7 @@ class ResponseParser:
                         matching_folders.append(full_path)
 
         return matching_folders
+
     def _read_task_ids_per_stim_id_to_parse_from_db(self, ga_name, stims_to_parse) -> Dict[int, List[int]]:
         '''
         returns: Dict[stim_id, List[task_id]]
@@ -236,4 +241,3 @@ def count_spikes_for_channels(spike_tstamps_for_channels) -> dict[Channel, int]:
     for channel_name, spike_tstamps in spike_tstamps_for_channels.items():
         spike_counts_for_channels[channel_name] = len(spike_tstamps)
     return spike_counts_for_channels
-

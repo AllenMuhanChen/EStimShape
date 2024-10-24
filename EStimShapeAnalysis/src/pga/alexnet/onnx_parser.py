@@ -6,6 +6,8 @@ from PIL import Image
 import onnxruntime
 from typing import List
 
+from src.pga.spike_parsing import IntanResponseParser, ResponseParser
+
 
 class LayerType(Enum):
     CONV1 = "conv1"
@@ -46,14 +48,12 @@ class UnitIdentifier:
         return UnitIdentifier(layer, unit)
 
 
-class AlexNetResponseParser:
+class AlexNetIntanResponseParser(ResponseParser):
     def __init__(self, conn, onnx_path: str, unit: UnitIdentifier) -> None:
         self.conn = conn
         self.onnx_path = onnx_path
         self.session = self._load_onnx_model()
         self.transform = transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
@@ -95,7 +95,7 @@ class AlexNetResponseParser:
         query = "SELECT path FROM StimPath WHERE stim_id = %s"
         self.conn.execute(query, (stim_id,))
         result = self.conn.fetch_one()
-        return result[0] if result else None
+        return result if result else None
 
     def _process_image(self, image_path: str) -> float:
         """Process an image and return single unit activation."""

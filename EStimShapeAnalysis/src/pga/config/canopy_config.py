@@ -2,7 +2,7 @@ from typing import Any
 
 from numpy import mean
 
-from src.pga.spike_parsing import ResponseParser
+from src.pga.spike_parsing import IntanResponseParser
 from src.pga.response_processing import ResponseProcessor
 from src.pga.lineage_selection import ClassicLineageDistributor
 from src.pga.multi_ga_db_util import MultiGaDbUtil
@@ -192,7 +192,7 @@ class GeneticAlgorithmConfig:
         return self.var_fetcher.get("regime_three_transition_under_sampling_threshold", dtype=float)
 
     def make_response_parser(self):
-        return ResponseParser(self.base_intan_path, self.db_util)
+        return IntanResponseParser(self.base_intan_path, self.db_util)
 
     def make_lineage_distributor(self):
         return ClassicLineageDistributor(

@@ -35,7 +35,12 @@ public class FromDbAlexNetGABlockGenerator extends AbstractTrialGenerator<Stim> 
     @Dependency
     AlexNetDrawingManager drawingManager;
 
+
+    private RGBColor color;
+
     public static void main(String[] args) throws IOException, ClassNotFoundException {
+
+
         // Load the properties file
         Properties props = new Properties();
         props.load(new FileInputStream("/home/r2_allen/git/EStimShape/xper-train/xper-allen/app/xper.properties.alexnet"));
@@ -51,6 +56,13 @@ public class FromDbAlexNetGABlockGenerator extends AbstractTrialGenerator<Stim> 
 
         // Get and run generator
         FromDbAlexNetGABlockGenerator generator = context.getBean(FromDbAlexNetGABlockGenerator.class);
+
+        //Handle input
+        int r = Integer.parseInt(args[0]);
+        int g = Integer.parseInt(args[1]);
+        int b = Integer.parseInt(args[2]);
+        generator.color = new RGBColor(r/255f,g/255f,b/255f);
+
         generator.generate();
     }
 
@@ -70,22 +82,19 @@ public class FromDbAlexNetGABlockGenerator extends AbstractTrialGenerator<Stim> 
                 stimType = StimType.valueOf(stimInfo.getStimType());
 
                 String textureType = "SHADE";
-                RGBColor color = new RGBColor(1f, 0f, 0f);
-                Coordinates2D location = new Coordinates2D(0, 0);
-                float[] lightingDirection = {0.0f, 354.0f, 354.0f, 1.0f};
-                double sizeDiameter = 5.0;
+                float[] lightingDirection = {500.0f, 0.0f, 0.0f, 1.0f};
 
                 Stim stim;
                 switch (stimType) {
                     case SEEDING:
                         stim = new SeedingStim(this, parentId, stimId, textureType, color, lightingDirection);
                         break;
-//                    case RF_LOCATE:
-//                        stim = new RFStim(stimId, this, new Coordinates2D(0, 0), "SHADE", new RGBColor(0, 0, 0), RFStrategy.PARTIALLY_INSIDE);
-//                        break;
-//                    case GROWING:
-//                        stim = new GrowingStim(stimId, this, new Coordinates2D(0, 0), "SHADE", new RGBColor(0, 0, 0), RFStrategy.PARTIALLY_INSIDE);
-//                        break;
+                    case RF_LOCATE:
+                        stim = new RFLocStim(this, parentId, stimId, textureType, color, lightingDirection, magnitude);
+                        break;
+                    case GROWING:
+                        stim = new GrowingStim(this, parentId, stimId, textureType, color, lightingDirection, magnitude);
+                        break;
                     default:
                         throw new IllegalArgumentException("No enum constant found for value: " + stimInfo.getStimType());
                 }

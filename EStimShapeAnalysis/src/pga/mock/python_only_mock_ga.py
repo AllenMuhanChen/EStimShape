@@ -6,7 +6,7 @@ from clat.intan.channels import Channel
 from src.pga.config.canopy_config import GeneticAlgorithmConfig
 from src.pga.mock.combined_mock_ga import FakeNeuronMockGeneticAlgorithmConfig
 from src.pga.multi_ga_db_util import MultiGaDbUtil
-from src.pga.spike_parsing import ResponseParser
+from src.pga.spike_parsing import IntanResponseParser
 
 
 class TestPythonOnlyMockWithNonNeuralResponse(unittest.TestCase):
@@ -27,7 +27,7 @@ class TestPythonOnlyMockWithNonNeuralResponse(unittest.TestCase):
         self.mock_config.db_util.update_ready_gas_and_generations_info("New3D", 0)
 
 
-class MockResponseParser(ResponseParser):
+class MockIntanResponseParser(IntanResponseParser):
     """
     This class is a mock of ResponseParser that:
     1. Does not need Intan to generate responses. It mocks out fake random responses.
@@ -54,7 +54,7 @@ class MockGeneticAlgorithmConfig(GeneticAlgorithmConfig):
         super().__init__()
 
     def make_response_parser(self):
-        return MockResponseParser(db_util=self.db_util)
+        return MockIntanResponseParser(db_util=self.db_util)
 
     def get_db_util(self) -> MultiGaDbUtil:
         return MockMultiGaDbUtil(self.connection)

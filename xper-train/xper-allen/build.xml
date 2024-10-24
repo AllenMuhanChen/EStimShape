@@ -250,6 +250,14 @@
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar"/>
 			</manifest>
 		</jar>
-
+		<jar jarfile="${allen.home}/AlexNetGAGenerator.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/pga/alexnet/FromDbAlexNetGABlockGenerator" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.pga.alexnet.FromDbAlexNetGABlockGenerator" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar"/>
+			</manifest>
+		</jar>
 	</target>
 </project>
