@@ -18,9 +18,9 @@ public class GrowingStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMSt
         //TODO: This correction is because when you load from a file / spec, the size is multiplied again by scale.
         //TODO: we either need to fix the genFromShapeSpec to undo scaling, or finalize what we're doing in smoothize
 
-        double parentSizeDiameter = parentData.sizeDiameter;
-        double newSizeDiameter = sizeDiameter / parentSizeDiameter;
-        this.sizeDiameter = newSizeDiameter;
+//        double parentSizeDiameter = parentData.sizeDiameter;
+//        double newSizeDiameter = sizeDiameter / parentSizeDiameter;
+//        this.sizeDiameter = newSizeDiameter;
 
 
         //Generate Parent Stick

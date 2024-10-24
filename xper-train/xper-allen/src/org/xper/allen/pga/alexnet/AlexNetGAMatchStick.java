@@ -38,15 +38,20 @@ public class AlexNetGAMatchStick extends MorphedMatchStick {
     public void genGrowingMatchStick(AlexNetGAMatchStick parent, double magnitude) {
         //Removing Comps - Non RF operation
         HashSet<Integer> componentsToRemove = specifyCompsToRemove(parent, magnitude);
+        AlexNetGAMatchStick componentRemovedMStick = new AlexNetGAMatchStick(light_position, stimColor, location, getScaleForMAxisShape(), textureType);
         genRemovedLimbsMatchStick(parent, componentsToRemove);
+//        componentRemovedMStick.genRemovedLimbsMatchStick(parent, componentsToRemove);
 
-        //Morphing Existing Comps - Either NON RF or RF Operation
-        Map<Integer, ComponentMorphParameters> paramsForComps = specifyCompMorphParams(this, magnitude, 1/3.0);
-        genMorphedComponentsMatchStick(paramsForComps, this, true);
 
-        //Adding New Comps - NON RF Operation
-        int nCompsToAdd = specifyNCompsToAdd(this, magnitude);
-        genAddedLimbsMatchStick(this, nCompsToAdd);
+//        //Morphing Existing Comps - Either NON RF or RF Operation
+//        Map<Integer, ComponentMorphParameters> paramsForComps = specifyCompMorphParams(componentRemovedMStick, magnitude, 1/3.0);
+//        AlexNetGAMatchStick morphedMStick = new AlexNetGAMatchStick(light_position, stimColor, location, getScaleForMAxisShape(), textureType);
+//        morphedMStick.genMorphedComponentsMatchStick(paramsForComps, componentRemovedMStick, true);
+//
+//        //Adding New Comps - NON RF Operation
+//
+//        int nCompsToAdd = specifyNCompsToAdd(morphedMStick, magnitude);
+//        genAddedLimbsMatchStick(morphedMStick, nCompsToAdd);
     }
 
     private HashSet<Integer> specifyCompsToRemove(MorphedMatchStick matchStickToMorph, double magnitude) {

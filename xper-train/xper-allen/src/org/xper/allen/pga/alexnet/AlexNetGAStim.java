@@ -72,9 +72,14 @@ public abstract class AlexNetGAStim <T extends AlexNetGAMatchStick, D extends Al
     }
 
     protected void saveMStickSpec(T mStick) {
+        AllenMStickSpec mStickSpec = createMStickSpec(mStick);
+        mStickSpec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(stimId), true);
+    }
+
+    public static <T extends AlexNetGAMatchStick> AllenMStickSpec createMStickSpec(T mStick) {
         AllenMStickSpec mStickSpec = new AllenMStickSpec();
         mStickSpec.setMStickInfo(mStick, true);
-        mStickSpec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(stimId), true);
+        return mStickSpec;
     }
 
     protected String drawPngs(T mStick) {
