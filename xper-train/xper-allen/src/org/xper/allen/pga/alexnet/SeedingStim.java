@@ -12,7 +12,7 @@ public class SeedingStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMSt
 
     private double randomSize() {
         double minSize = 1;
-        double maxSize = 10;
+        double maxSize = 5;
         return Math.random() * (maxSize - minSize) + minSize;
     }
 
@@ -25,8 +25,8 @@ public class SeedingStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMSt
      * @return
      */
     private Coordinates2D randomLocation() {
-        double length = 10;
-        double height = 10;
+        double length = 5;
+        double height = 5;
 
         double x = Math.random() * length - length/2;
         double y = Math.random() * height - height/2;

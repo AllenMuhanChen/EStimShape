@@ -2,6 +2,7 @@ from src.pga.genetic_algorithm import GeneticAlgorithm
 
 
 class AlexNetGeneticAlgorithm(GeneticAlgorithm):
+    num_catch_trials = 0
     def run(self):
         self.process_responses()
         self.gen_id = self._read_gen_id()
@@ -26,3 +27,25 @@ class AlexNetGeneticAlgorithm(GeneticAlgorithm):
         self.trial_generator.generate_trials(experiment_id=self.experiment_id, generation=self.gen_id)
         self.response_parser.parse_to_db(self.name)
         self.response_processor.process_to_db(self.name)
+
+    def _update_db(self) -> None:
+        # Write lineages - instructions for Java side of GA
+        for lineage in self.lineages:
+            id_tree = lineage.tree.new_tree_from_function(lambda stimulus: stimulus.id)
+            self.db_util.write_lineage_ga_info(lineage.id, id_tree.to_xml(), lineage.lineage_data, self.experiment_id,
+                                               self.gen_id,
+                                               lineage.current_regime_index)
+
+        # Write stimuli
+        for lineage in self.lineages:
+            for stim in lineage.stimuli:
+                try:
+                    self.db_util.read_stim_ga_info_entry(stim.id)
+                except Exception:
+                    # If the stim is not in the db, write it
+                    self.db_util.write_stim_ga_info(stim_id=stim.id, parent_id=stim.parent_id,
+                                                    lineage_id=lineage.id,
+                                                    stim_type=stim.mutation_type,
+                                                    mutation_magnitude=stim.mutation_magnitude,
+                                                    gen_id=self.gen_id)
+

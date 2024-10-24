@@ -44,7 +44,7 @@ public class FromDbAlexNetGABlockGenerator extends AbstractTrialGenerator<Stim> 
 
         // Load the properties file
         Properties props = new Properties();
-        props.load(new FileInputStream("/home/r2_allen/git/EStimShape/xper-train/xper-allen/app/xper.properties.alexnet"));
+        props.load(new FileInputStream("/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.alexnet"));
 
         // Set as system properties
         Properties sysProps = System.getProperties();
@@ -82,7 +82,7 @@ public class FromDbAlexNetGABlockGenerator extends AbstractTrialGenerator<Stim> 
                 StimType stimType;
                 stimType = StimType.valueOf(stimInfo.getStimType());
 
-                String textureType = "SHADE";
+                String textureType = "RAND";
                 float[] lightingDirection = {000.0f, 0.0f, 500.0f, 1.0f};
 
                 Stim stim;

@@ -6,11 +6,11 @@ import org.xper.drawing.RGBColor;
 public class RFLocStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMStickData>{
     // Distance Constraints
     private static final double TOTAL_SPACE = 30.0; // Total available space (-15 to 15)
-    private static final double MAX_DISTANCE_MORPH = TOTAL_SPACE / 2.0; // Maximum radius for magnitude 1.0
+    private static final double MAX_DISTANCE_MORPH = TOTAL_SPACE / 6; // Maximum radius for magnitude 1.0
 
     // Size constraints
     private static final double MIN_SIZE = 1.0;
-    private static final double MAX_SIZE = 10.0;
+    private static final double MAX_SIZE = 5.0;
     private static final double MAX_SIZE_CHANGE = (MAX_SIZE - MIN_SIZE) / 2.0; // Maximum size change for magnitude 1.0
 
     public RFLocStim(FromDbAlexNetGABlockGenerator generator, Long parentId, Long stimId, String textureType, RGBColor color, float[] light_position, double magnitude) {

@@ -1,14 +1,17 @@
 import os
 import subprocess
 
-from src.startup import alexnet_context
+from src.pga.alexnet import alexnet_context
 
 
 def main():
     r, g, b = prompt_rgb_values()
     ga = alexnet_context.ga_config.make_genetic_algorithm()
     ga.trial_generator.set_color(r, g, b)
-    ga.run()
+
+    while ga.gen_id < 20:
+        ga.run()
+
 
 
 def prompt_rgb_values():
