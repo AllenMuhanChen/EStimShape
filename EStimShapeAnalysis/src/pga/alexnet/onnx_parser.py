@@ -106,17 +106,11 @@ class AlexNetIntanResponseParser(ResponseParser):
 
         # Get model prediction
         input_name = self.session.get_inputs()[0].name
-        outputs = self.session.run(None, {input_name: input_tensor.numpy()})
+        conv3_output_name = "conv3"  # This needs to match the ONNX model's layer name
+        outputs = self.session.run([conv3_output_name], {input_name: input_tensor.numpy()})
 
-        # Extract conv3 features (adjust index based on layer)
-        layer_index = {
-            LayerType.CONV1: 0,
-            LayerType.CONV2: 1,
-            LayerType.CONV3: 2,
-            LayerType.CONV4: 3,
-            LayerType.CONV5: 4,
-        }
-        features = outputs[layer_index[self.unit_id.layer]]
+        # outputs is a list with a single element containing the conv3 features
+        features = outputs[0]  # Shape should be [1, num_channels, height, width]
 
         # Get activation for specified unit and location
         activation = float(features[0, self.unit_id.unit, self.unit_id.x, self.unit_id.y])

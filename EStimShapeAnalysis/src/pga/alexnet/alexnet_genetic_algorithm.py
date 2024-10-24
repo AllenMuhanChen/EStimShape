@@ -3,6 +3,7 @@ from src.pga.genetic_algorithm import GeneticAlgorithm
 
 class AlexNetGeneticAlgorithm(GeneticAlgorithm):
     def run(self):
+        self.process_responses()
         self.gen_id = self._read_gen_id()
         self.gen_id += 1
 

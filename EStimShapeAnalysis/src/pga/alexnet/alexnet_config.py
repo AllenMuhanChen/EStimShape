@@ -68,7 +68,7 @@ class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
         and show those to AlexNet and save those activations into UnitActivations table.
         """
         return AlexNetIntanResponseParser(self.connection(),
-                                     "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX",
+                                     "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3",
                                           self.unit_id)
 
     def make_response_processor(self) -> AlexNetResponseProcessor:
