@@ -3,7 +3,7 @@ import org.xper.drawing.RGBColor;
 
 public class Lighting {
 	RGBColor color = new RGBColor(1f,0f,0f);
-	String textureType = "SPECULAR";
+	public String textureType = "SPECULAR";
 
 	float shine;
 	float [] amb;

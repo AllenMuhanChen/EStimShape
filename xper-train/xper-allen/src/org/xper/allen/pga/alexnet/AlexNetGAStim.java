@@ -22,8 +22,9 @@ public abstract class AlexNetGAStim <T extends AlexNetGAMatchStick, D extends Al
     protected float[] light_position;
     protected double sizeDiameter;
     protected double magnitude;
+    protected double contrast;
 
-    public AlexNetGAStim(FromDbAlexNetGABlockGenerator generator, Long parentId, Long stimId, String textureType, RGBColor color, Coordinates2D location, float[] light_position, double sizeDiameter, double magnitude) {
+    public AlexNetGAStim(FromDbAlexNetGABlockGenerator generator, Long parentId, Long stimId, String textureType, RGBColor color, Coordinates2D location, float[] light_position, double sizeDiameter, double magnitude, double contrast) {
         this.generator = generator;
         this.parentId = parentId;
         this.stimId = stimId;
@@ -33,6 +34,7 @@ public abstract class AlexNetGAStim <T extends AlexNetGAMatchStick, D extends Al
         this.light_position = light_position;
         this.sizeDiameter = sizeDiameter;
         this.magnitude = magnitude;
+        this.contrast = contrast;
     }
 
     @Override

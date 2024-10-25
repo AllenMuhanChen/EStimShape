@@ -39,7 +39,7 @@ public class GrowingStimTest {
                 new RGBColor(1.0, 0, 0),
                 originalData.location,
                 originalData.sizeDiameter,
-                "SHADE");
+                "SHADE", 0.5);
 
         loadedMStick.genMatchStickFromShapeSpec(spec, new double[]{0,0,0});
         loadedMStick.positionShape();

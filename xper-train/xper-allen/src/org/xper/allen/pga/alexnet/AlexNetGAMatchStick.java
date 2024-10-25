@@ -21,28 +21,28 @@ public class AlexNetGAMatchStick extends MorphedMatchStick {
 
     public float[] light_position;
     public Coordinates2D location;
+    public double contrast;
 
-    public AlexNetGAMatchStick(float[] light_position, RGBColor stimColor, Coordinates2D location, double size, String textureType) {
+    public AlexNetGAMatchStick(float[] light_position, RGBColor stimColor, Coordinates2D location, double size, String textureType, double contrast) {
         this.light_position = light_position;
         this.location = location;
         this.setScaleForMAxisShape(size);
         setTextureType(textureType);
         setStimColor(stimColor);
-        setContrast(0.5);
-
+        setContrast(contrast);
     }
 
     public void genGrowingMatchStick(AlexNetGAMatchStick parent, double magnitude) {
         //Removing Comps - Non RF operation
         HashSet<Integer> componentsToRemove = specifyCompsToRemove(parent, magnitude);
-        AlexNetGAMatchStick componentRemovedMStick = new AlexNetGAMatchStick(light_position, stimColor, location, getScaleForMAxisShape(), textureType);
+        AlexNetGAMatchStick componentRemovedMStick = new AlexNetGAMatchStick(light_position, stimColor, location, getScaleForMAxisShape(), textureType, 0.5);
 
         componentRemovedMStick.genRemovedLimbsMatchStick(parent, componentsToRemove);
 
 
         //Morphing Existing Comps - Either NON RF or RF Operation
         Map<Integer, ComponentMorphParameters> paramsForComps = specifyCompMorphParams(componentRemovedMStick, magnitude, 1/3.0);
-        AlexNetGAMatchStick morphedMStick = new AlexNetGAMatchStick(light_position, stimColor, location, getScaleForMAxisShape(), textureType);
+        AlexNetGAMatchStick morphedMStick = new AlexNetGAMatchStick(light_position, stimColor, location, getScaleForMAxisShape(), textureType, 0.5);
         morphedMStick.genMorphedComponentsMatchStick(paramsForComps, componentRemovedMStick, true);
 
         //Adding New Comps - NON RF Operation
@@ -210,7 +210,8 @@ public class AlexNetGAMatchStick extends MorphedMatchStick {
                 location,
                 getScaleForMAxisShape(),
                 stickSpec,
-                textureType);
+                textureType,
+                contrast);
     }
 
 
