@@ -7,9 +7,9 @@ from src.startup.setup_xper_properties_and_dirs import XperPropertiesModifier, m
 HOST = '172.30.6.80'
 USER = 'xper_rw'
 PASS = 'up2nite'
-TEMPLATE_TYPE = 'dev'
-TEMPLATE_DATE = '241021'
-TEMPLATE_LOCATION_ID = '1'
+TEMPLATE_TYPE = 'test'
+TEMPLATE_DATE = '241024'
+TEMPLATE_LOCATION_ID = '0'
 
 
 def setup_xper_properties_and_dirs(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
@@ -20,7 +20,8 @@ def setup_xper_properties_and_dirs(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30
     # DB URL
     db_url = f"jdbc:mysql://172.30.6.80/{version_ga}?rewriteBatchedStatements=true"
     # STIM PATHS
-    stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_ga}/stimuli"
+    estimshape_base = f"/home/r2_allen/Documents/EStimShape/{version_ga}"
+    stimuli_base_r = f"{estimshape_base}/stimuli"
     r_ga_path = f"{stimuli_base_r}/ga"
     generator_png_path = f"{r_ga_path}/pngs"
     experiment_png_path = f"{recording_computer_sftp}{r_ga_path}/pngs"
@@ -41,6 +42,7 @@ def setup_xper_properties_and_dirs(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30
     # Save changes
     modifier.save_changes()
     print("xper.properties.ga file modified successfully.")
+    make_path(estimshape_base)
     make_path(generator_png_path)
     make_path(generator_spec_path)
 def main():
