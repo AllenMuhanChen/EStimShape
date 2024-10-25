@@ -1,11 +1,19 @@
 package org.xper.allen.pga.alexnet.lightingposthoc;
 
+import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.Dependency;
 import org.xper.allen.Stim;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.nafc.blockgen.AbstractTrialGenerator;
 import org.xper.allen.pga.alexnet.AlexNetDrawingManager;
+import org.xper.allen.pga.alexnet.FromDbAlexNetGABlockGenerator;
 import org.xper.allen.util.MultiGaDbUtil;
+import org.xper.drawing.RGBColor;
+
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Properties;
 
 public class LightingPostHocGenerator extends AbstractTrialGenerator<Stim> {
     @Dependency
@@ -20,6 +28,25 @@ public class LightingPostHocGenerator extends AbstractTrialGenerator<Stim> {
     @Dependency
     AlexNetDrawingManager drawingManager;
 
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
+        // Load the properties file
+        Properties props = new Properties();
+        props.load(new FileInputStream("/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.alexnet.lightingposthoc"));
+
+        // Set as system properties
+        Properties sysProps = System.getProperties();
+        sysProps.putAll(props);
+        System.setProperties(sysProps);
+
+        // Get the config class and create context
+        Class<?> configClass = Class.forName(props.getProperty("experiment.ga.config_class"));
+        JavaConfigApplicationContext context = new JavaConfigApplicationContext(configClass);
+
+        // Get and run generator
+        LightingPostHocGenerator generator = context.getBean(LightingPostHocGenerator.class);
+
+        generator.generate();
+    }
     @Override
     protected void addTrials() {
         //read StimInstruction

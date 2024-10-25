@@ -77,20 +77,20 @@ def main():
 
     # Update context file for GA database
     update_context_file(ga_database, lighting_database)
-    setup_xper_properties_and_dirs(ga_database)
+    setup_ga_xper_properties_and_dirs(ga_database)
     make_path(alexnet_context.java_output_dir)
     make_path(alexnet_context.rwa_output_dir)
 
     # Create directories for lighting experiment
+    setup_lighting_posthoc_xper_properties_and_dirs(lighting_database)
     make_path(f"/home/r2_allen/Documents/EStimShape/{lighting_database}")
-    make_path(f"/home/r2_allen/Documents/EStimShape/{lighting_database}/stimuli/ga/pngs")
-    make_path(f"/home/r2_allen/Documents/EStimShape/{lighting_database}/stimuli/ga/specs")
-    make_path(f"/home/r2_allen/Documents/EStimShape/{lighting_database}/java_output")
-    make_path(f"/home/r2_allen/Documents/EStimShape/{lighting_database}/rwa")
 
 
-def setup_xper_properties_and_dirs(database):
-    version_ga = database
+def setup_lighting_posthoc_xper_properties_and_dirs(lighting_database):
+    version_lighting = lighting_database
+
+def setup_ga_xper_properties_and_dirs(ga_database):
+    version_ga = ga_database
     # Define paths to the properties file and directories
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.alexnet'
     # DB URL
