@@ -21,7 +21,6 @@ public class AlexNetGAMatchStick extends MorphedMatchStick {
 
     public float[] light_position;
     public Coordinates2D location;
-    public double contrast;
 
     public AlexNetGAMatchStick(float[] light_position, RGBColor stimColor, Coordinates2D location, double size, String textureType, double contrast) {
         this.light_position = light_position;
@@ -35,14 +34,14 @@ public class AlexNetGAMatchStick extends MorphedMatchStick {
     public void genGrowingMatchStick(AlexNetGAMatchStick parent, double magnitude) {
         //Removing Comps - Non RF operation
         HashSet<Integer> componentsToRemove = specifyCompsToRemove(parent, magnitude);
-        AlexNetGAMatchStick componentRemovedMStick = new AlexNetGAMatchStick(light_position, stimColor, location, getScaleForMAxisShape(), textureType, 0.5);
+        AlexNetGAMatchStick componentRemovedMStick = new AlexNetGAMatchStick(light_position, stimColor, location, getScaleForMAxisShape(), textureType, parent.getContrast());
 
         componentRemovedMStick.genRemovedLimbsMatchStick(parent, componentsToRemove);
 
 
         //Morphing Existing Comps - Either NON RF or RF Operation
         Map<Integer, ComponentMorphParameters> paramsForComps = specifyCompMorphParams(componentRemovedMStick, magnitude, 1/3.0);
-        AlexNetGAMatchStick morphedMStick = new AlexNetGAMatchStick(light_position, stimColor, location, getScaleForMAxisShape(), textureType, 0.5);
+        AlexNetGAMatchStick morphedMStick = new AlexNetGAMatchStick(light_position, stimColor, location, getScaleForMAxisShape(), textureType, parent.getContrast());
         morphedMStick.genMorphedComponentsMatchStick(paramsForComps, componentRemovedMStick, true);
 
         //Adding New Comps - NON RF Operation
@@ -107,12 +106,13 @@ public class AlexNetGAMatchStick extends MorphedMatchStick {
 
 
     protected void initLight() {
+        getObj1().contrast = contrast;
         if (textureType.compareTo("2D") == 0) {
-            getObj1().contrast = contrast;
             getObj1().doLighting = false;
             getObj1().getStimColor().setRed((float)(stimColor.getRed()*contrast));
             getObj1().getStimColor().setBlue((float)(stimColor.getBlue()*contrast));
             getObj1().getStimColor().setGreen((float)(stimColor.getGreen()*contrast));
+            System.out.println("Obj1 color:"+ getObj1().getStimColor().getBlue());
         } else {
             getObj1().doLighting = true;
         }

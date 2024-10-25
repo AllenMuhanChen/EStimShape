@@ -55,6 +55,7 @@ public class SeedingStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMSt
         else {
             textureType = "2D";
             contrast = Math.random();
+            System.out.println("Contrast: " + contrast);
         }
 
         AlexNetGAMatchStick mStick = new AlexNetGAMatchStick(light_position, color, location, sizeDiameter, textureType, contrast);

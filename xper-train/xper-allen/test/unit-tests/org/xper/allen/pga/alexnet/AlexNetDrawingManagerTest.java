@@ -29,7 +29,7 @@ public class AlexNetDrawingManagerTest {
                 new RGBColor(1.0, 1.0, 1.0),
                 new Coordinates2D(0,0),
                 10,
-                "SPECULAR", 0.5);
+                "2D", 1.0);
         mStick.genMatchStickRand();
 
         alexNetDrawingManager.createAndSavePNG(mStick, 1L, new ArrayList<>(), "/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin");
