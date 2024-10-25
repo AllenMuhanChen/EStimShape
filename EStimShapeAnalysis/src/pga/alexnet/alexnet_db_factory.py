@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from clat.util.connection import Connection
+
 from src.pga.alexnet import alexnet_context
 from src.startup.db_factory import create_db_from_template, check_if_exists
 from src.startup.setup_xper_properties_and_dirs import XperPropertiesModifier, make_path
@@ -12,8 +14,83 @@ TEMPLATE_DATE = '241024'
 TEMPLATE_LOCATION_ID = '0'
 
 
-def setup_xper_properties_and_dirs(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
-    version_ga = alexnet_context.ga_database
+def main():
+    # Get current date in YYMMDD format
+    current_date = datetime.now().strftime("%y%m%d")
+
+    # Prompt user for TYPE
+    type = input("Enter the type (e.g., train, test, exp): ").strip().lower()
+
+    # Prompt user for location ID
+    location_id = input("Enter the location ID: ").strip()
+
+    # Create GA database name
+    ga_database = f"allen_alexnet_ga_{type}_{current_date}_{location_id}"
+
+    # Create lighting database name
+    lighting_database = f"allen_alexnet_lighting_{type}_{current_date}_{location_id}"
+
+    # Create GA database
+    create_db_from_template(f'allen_alexnet_ga_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}',
+                            ga_database,
+                            ["InternalState", "GAVar"],
+                            copy_structure_tables=[
+                                "InternalState",
+                                "GAVar",
+                                "LineageGaInfo",
+                                "StimGaInfo",
+                                "UnitActivations",
+                                "CurrentExperiments",
+                                "StimSpec",
+                                "StimPath"
+                            ])
+
+    # Create lighting database with necessary tables
+    create_db_from_template(f'allen_alexnet_ga_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}',
+                            lighting_database,
+                            [],
+                            copy_structure_tables=[
+                                "StimPath",
+                                "StimSpec",
+                                "UnitActivations"
+                            ])
+
+    # Add StimInstructions table to lighting database only
+    try:
+        conn = Connection(host=HOST, user=USER, password=PASS, database=lighting_database)
+        conn.execute("""
+        CREATE TABLE StimInstructions (
+            stim_id BIGINT PRIMARY KEY,
+            parent_id BIGINT,
+            stim_type VARCHAR(20),
+            texture_type VARCHAR(20),
+            light_pos_x FLOAT,
+            light_pos_y FLOAT,
+            light_pos_z FLOAT,
+            light_pos_w FLOAT,
+            contrast DOUBLE
+        )
+        """)
+        conn.mydb.commit()
+    except:
+        print("StimInstructions table already exists in the database.")
+
+    # Update context file for GA database
+    update_context_file(ga_database, lighting_database)
+    setup_xper_properties_and_dirs(ga_database)
+    make_path(alexnet_context.java_output_dir)
+    make_path(alexnet_context.rwa_output_dir)
+
+    # Create directories for lighting experiment
+    make_path(f"/home/r2_allen/Documents/EStimShape/{lighting_database}")
+    make_path(f"/home/r2_allen/Documents/EStimShape/{lighting_database}/stimuli/ga/pngs")
+    make_path(f"/home/r2_allen/Documents/EStimShape/{lighting_database}/stimuli/ga/specs")
+    make_path(f"/home/r2_allen/Documents/EStimShape/{lighting_database}/java_output")
+    make_path(f"/home/r2_allen/Documents/EStimShape/{lighting_database}/rwa")
+
+
+def setup_xper_properties_and_dirs(database, r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
+    version_ga = database
     recording_computer_sftp = r2_sftp
     # Define paths to the properties file and directories
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.alexnet'
@@ -45,40 +122,9 @@ def setup_xper_properties_and_dirs(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30
     make_path(estimshape_base)
     make_path(generator_png_path)
     make_path(generator_spec_path)
-def main():
-    # Get current date in YYMMDD format
-    current_date = datetime.now().strftime("%y%m%d")
 
-    # Prompt user for TYPE
-    type = input("Enter the type (e.g., train, test, exp): ").strip().lower()
 
-    # Prompt user for location ID
-    location_id = input("Enter the location ID: ").strip()
-
-    database = f"allen_alexnet_ga_{type}_{current_date}_{location_id}"
-
-    create_db_from_template(f'allen_alexnet_ga_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}',
-                            database,
-                            [
-                                "InternalState",
-                                "GAVar"],
-                            copy_structure_tables=
-                            ["InternalState",
-                             "GAVar",
-                             "LineageGaInfo",
-                             "StimGaInfo",
-                             "UnitActivations",
-                             "CurrentExperiments",
-                             "StimSpec",
-                             "StimPath"]
-                            )
-
-    update_context_file(database)
-    setup_xper_properties_and_dirs(database)
-    make_path(alexnet_context.java_output_dir)
-    make_path(alexnet_context.rwa_output_dir)
-
-def update_context_file(database):
+def update_context_file(ga_database, lighting_database):
     target_file = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/pga/alexnet/alexnet_context.py"
 
     # Read the target file
@@ -89,13 +135,15 @@ def update_context_file(database):
     new_lines = []
     for line in lines:
         if line.startswith("ga_database"):
-            new_lines.append(f'ga_database = "{database}"\n')
+            new_lines.append(f'ga_database = "{ga_database}"\n')
+        elif line.startswith("lighting_database"):
+            new_lines.append(f'lighting_database = "{lighting_database}"\n')
         elif line.startswith("image_path"):
-            new_lines.append(f'image_path = "/home/r2_allen/Documents/EStimShape/{database}/stimuli/ga/pngs"\n')
+            new_lines.append(f'image_path = "/home/r2_allen/Documents/EStimShape/{ga_database}/stimuli/ga/pngs"\n')
         elif line.startswith("java_output_dir"):
-            new_lines.append(f'java_output_dir = "/home/r2_allen/Documents/EStimShape/{database}/java_output"\n')
+            new_lines.append(f'java_output_dir = "/home/r2_allen/Documents/EStimShape/{ga_database}/java_output"\n')
         elif line.startswith("rwa_output_dir"):
-            new_lines.append(f'rwa_output_dir = "/home/r2_allen/Documents/EStimShape/{database}/rwa"\n')
+            new_lines.append(f'rwa_output_dir = "/home/r2_allen/Documents/EStimShape/{ga_database}/rwa"\n')
         else:
             new_lines.append(line)
 

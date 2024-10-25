@@ -21,7 +21,7 @@ experiment.ga.name=New3D
 #path of computer running stimulus generator
 generator.png_path=/home/r2_allen/Documents/EStimShape/allen_alexnet_ga_test_241025_0/stimuli/ga/pngs
 #path of computer running experiment
-experiment.png_path=allen_alexnet_ga_test_241025_0/home/r2_allen/Documents/EStimShape/allen_alexnet_ga_test_241025_0/stimuli/ga/pngs
+experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_alexnet_ga_test_241025_0/stimuli/ga/pngs
 generator.spec_path=/home/r2_allen/Documents/EStimShape/allen_alexnet_ga_test_241025_0/stimuli/ga/specs
 generator.noisemap_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_240604/stimuli/240723/procedural/pngs
 generator.set_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_240604/stimuli/240723/sets

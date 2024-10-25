@@ -115,7 +115,10 @@ def create_db_from_template(source_db_name, dest_db_name, copy_data_tables=None,
     migrate_database(source_ga_db_config, dest_ga_db_config, copy_data_tables=copy_data_tables,
                      copy_structure_tables=copy_structure_tables)
 
-    reset_internal_state(dest_ga_db_config)
+    try:
+        reset_internal_state(dest_ga_db_config)
+    except Exception as e:
+        print(f"Error resetting internal state: {e}")
 
 
 def replace_xml_in_table(connection):

@@ -40,7 +40,6 @@ public class FromDbAlexNetGABlockGenerator extends AbstractTrialGenerator<Stim> 
 
     public static void main(String[] args) throws IOException, ClassNotFoundException {
 
-
         // Load the properties file
         Properties props = new Properties();
         props.load(new FileInputStream("/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.alexnet"));

@@ -105,21 +105,4 @@ public class AlexNetConfig {
         XperConfig config = new XperConfig(nativeLibraryPath, libs);
         return config;
     }
-
-
-
-
-//    @Bean
-//    public DPIUtil dpiUtil(){
-//        DPIUtil dpiUtil = new DPIUtil();
-//        dpiUtil.setRenderer(classicConfig.experimentGLRenderer());
-//        dpiUtil.setDpi(xperMonkeyScreenDPI());
-//        dpiUtil.setMaxStimulusDimensionDegrees(xperMaxImageDimensionDegrees());
-////        dpiUtil.setGeneratorDPI(91.79);
-//        dpiUtil.setGeneratorDPI(81.59);
-//        return dpiUtil;
-//    }
-
-
-
 }
