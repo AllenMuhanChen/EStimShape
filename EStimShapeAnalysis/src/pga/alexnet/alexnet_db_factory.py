@@ -82,21 +82,44 @@ def main():
     make_path(alexnet_context.rwa_output_dir)
 
     # Create directories for lighting experiment
-    setup_lighting_posthoc_xper_properties_and_dirs(lighting_database)
     make_path(f"/home/r2_allen/Documents/EStimShape/{lighting_database}")
+    setup_lighting_posthoc_xper_properties_and_dirs(lighting_database)
 
 
 def setup_lighting_posthoc_xper_properties_and_dirs(lighting_database):
-    version_lighting = lighting_database
+    version = lighting_database
+    xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.alexnet.lightingposthoc'
+    db_url = f"jdbc:mysql://172.30.6.80/{version}?rewriteBatchedStatements=true"
+    estimshape_base = f"/home/r2_allen/Documents/EStimShape/{version}"
+    stimuli_base_r = f"{estimshape_base}/stimuli"
+    r_ga_path = f"{stimuli_base_r}/ga"
+    generator_png_path = f"{r_ga_path}/pngs"
+    generator_spec_path = f"{r_ga_path}/specs"
+    modifier = XperPropertiesModifier(xper_properties_file_path)
+    # ALL PROPERTIES to REPLACE:
+    properties_dict = {
+        "jdbc.url": db_url,
+        "generator.png_path": generator_png_path,
+        "generator.spec_path": generator_spec_path,
+    }
+
+    # Replace properties using the dictionary
+    for var_name, new_value in properties_dict.items():
+        modifier.replace_property(var_name, new_value)
+    # Save changes
+    modifier.save_changes()
+    make_path(estimshape_base)
+    make_path(generator_png_path)
+    make_path(generator_spec_path)
 
 def setup_ga_xper_properties_and_dirs(ga_database):
-    version_ga = ga_database
+    version = ga_database
     # Define paths to the properties file and directories
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.alexnet'
     # DB URL
-    db_url = f"jdbc:mysql://172.30.6.80/{version_ga}?rewriteBatchedStatements=true"
+    db_url = f"jdbc:mysql://172.30.6.80/{version}?rewriteBatchedStatements=true"
     # STIM PATHS
-    estimshape_base = f"/home/r2_allen/Documents/EStimShape/{version_ga}"
+    estimshape_base = f"/home/r2_allen/Documents/EStimShape/{version}"
     stimuli_base_r = f"{estimshape_base}/stimuli"
     r_ga_path = f"{stimuli_base_r}/ga"
     generator_png_path = f"{r_ga_path}/pngs"
@@ -115,7 +138,6 @@ def setup_ga_xper_properties_and_dirs(ga_database):
         modifier.replace_property(var_name, new_value)
     # Save changes
     modifier.save_changes()
-    print("xper.properties.ga file modified successfully.")
     make_path(estimshape_base)
     make_path(generator_png_path)
     make_path(generator_spec_path)
