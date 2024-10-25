@@ -27,9 +27,6 @@ public class FromDbAlexNetGABlockGenerator extends AbstractTrialGenerator<Stim> 
     protected String generatorPngPath;
 
     @Dependency
-    protected String experimentPngPath;
-
-    @Dependency
     protected String generatorSpecPath;
 
     @Dependency
@@ -161,14 +158,6 @@ public class FromDbAlexNetGABlockGenerator extends AbstractTrialGenerator<Stim> 
 
     public void setGeneratorPngPath(String generatorPngPath) {
         this.generatorPngPath = generatorPngPath;
-    }
-
-    public String getExperimentPngPath() {
-        return experimentPngPath;
-    }
-
-    public void setExperimentPngPath(String experimentPngPath) {
-        this.experimentPngPath = experimentPngPath;
     }
 
     public String getGeneratorSpecPath() {

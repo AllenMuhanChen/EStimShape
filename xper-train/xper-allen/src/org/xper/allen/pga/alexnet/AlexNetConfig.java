@@ -40,9 +40,6 @@ public class AlexNetConfig {
     @ExternalValue("generator.png_path")
     public String generatorPngPath;
 
-    @ExternalValue("experiment.png_path")
-    public String experimentPngPath;
-
     @ExternalValue("generator.spec_path")
     public String generatorSpecPath;
 
@@ -58,7 +55,6 @@ public class AlexNetConfig {
         generator.setDbUtil(dbUtil());
         generator.setGlobalTimeUtil(localTimeUtil());
         generator.setGeneratorPngPath(generatorPngPath);
-        generator.setExperimentPngPath(experimentPngPath);
         generator.setGeneratorSpecPath(generatorSpecPath);
         generator.setDrawingManager(drawingManager());
         generator.setGaName(gaName);

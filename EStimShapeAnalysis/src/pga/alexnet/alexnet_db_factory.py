@@ -89,9 +89,8 @@ def main():
     make_path(f"/home/r2_allen/Documents/EStimShape/{lighting_database}/rwa")
 
 
-def setup_xper_properties_and_dirs(database, r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
+def setup_xper_properties_and_dirs(database):
     version_ga = database
-    recording_computer_sftp = r2_sftp
     # Define paths to the properties file and directories
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.alexnet'
     # DB URL
@@ -101,7 +100,6 @@ def setup_xper_properties_and_dirs(database, r2_sftp="/run/user/1004/gvfs/sftp:h
     stimuli_base_r = f"{estimshape_base}/stimuli"
     r_ga_path = f"{stimuli_base_r}/ga"
     generator_png_path = f"{r_ga_path}/pngs"
-    experiment_png_path = f"{recording_computer_sftp}{r_ga_path}/pngs"
     generator_spec_path = f"{r_ga_path}/specs"
 
     modifier = XperPropertiesModifier(xper_properties_file_path)
@@ -109,7 +107,6 @@ def setup_xper_properties_and_dirs(database, r2_sftp="/run/user/1004/gvfs/sftp:h
     properties_dict = {
         "jdbc.url": db_url,
         "generator.png_path": generator_png_path,
-        "experiment.png_path": experiment_png_path,
         "generator.spec_path": generator_spec_path,
     }
 
