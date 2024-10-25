@@ -14,6 +14,9 @@ def main():
         ga.trial_generator.set_color(r, g, b)
         ga.run()
         sleep(5)
+        print("Gen ID: ", ga.gen_id)
+        if ga.gen_id >= 100:
+            break
 
 
 

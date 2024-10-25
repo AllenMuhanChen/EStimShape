@@ -142,7 +142,7 @@ class RFLocPhaseTransitioner(RegimeTransitioner):
     def __init__(self):
         self.threshold_response = None
         self.threshold_percentage_of_max = 0.9  # percentage of max response to consider a stimulus passed the threshold
-        self.percent_pass_required = 0.33  # percentage of stimuli that must pass the threshold
+        self.num_pass_required = 5  # percentage of stimuli that must pass the threshold
 
         # data
         self.passed_threshold = None
@@ -158,8 +158,9 @@ class RFLocPhaseTransitioner(RegimeTransitioner):
         self.passed_threshold = [stimulus for stimulus in sorted_responses if
                                  stimulus.response_rate >= self.threshold_response]
 
-        return len(self.passed_threshold) >= self.percent_pass_required * len(sorted_responses)
+        self.num_required_to_pass = self.num_pass_required
+        return len(self.passed_threshold) >= self.num_required_to_pass
 
     def get_transition_data(self, lineage: Lineage) -> str:
-        data = {"threshold": self.threshold_response, "num_passed": len(self.passed_threshold)}
+        data = {"threshold": self.threshold_response, "num_passed": len(self.passed_threshold), "num_required": self.num_required_to_pass}
         return str(data)
