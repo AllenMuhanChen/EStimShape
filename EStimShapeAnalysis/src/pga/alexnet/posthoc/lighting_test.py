@@ -21,37 +21,29 @@ def main():
     n_stimuli = 10  # Adjust as needed
     top_stims = get_top_n_stimuli(ga_conn, n_stimuli, most_negative=False)
 
-    # Copy parent stim data for each top stim
+    # Copy stim data for each top stim
     for stim in top_stims:
-        # Get parent info
-        ga_conn.execute("""
-            SELECT parent_id FROM StimGaInfo 
-            WHERE stim_id = %s
-        """, (stim.stim_id,))
-        result = ga_conn.fetch_one()
+        parent_id = stim.stim_id
 
-        if result:
-            parent_id = result
+        # Copy parent's StimPath
+        ga_conn.execute("SELECT path FROM StimPath WHERE stim_id = %s", (parent_id,))
+        path_result = ga_conn.fetch_one()
+        if path_result:
+            lighting_conn.execute(
+                "INSERT INTO StimPath (stim_id, path) VALUES (%s, %s) ON DUPLICATE KEY UPDATE path = VALUES(path)",
+                (parent_id, path_result)
+            )
 
-            # Copy parent's StimPath
-            ga_conn.execute("SELECT path FROM StimPath WHERE stim_id = %s", (parent_id,))
-            path_result = ga_conn.fetch_one()
-            if path_result:
-                lighting_conn.execute(
-                    "INSERT INTO StimPath (stim_id, path) VALUES (%s, %s) ON DUPLICATE KEY UPDATE path = VALUES(path)",
-                    (parent_id, path_result)
-                )
+        # Copy parent's StimSpec
+        ga_conn.execute("SELECT spec FROM StimSpec WHERE id = %s", (parent_id,))
+        spec_result = ga_conn.fetch_one()
+        if spec_result:
+            lighting_conn.execute(
+                "INSERT INTO StimSpec (id, spec) VALUES (%s, %s) ON DUPLICATE KEY UPDATE spec = VALUES(spec)",
+                (parent_id, spec_result)
+            )
 
-            # Copy parent's StimSpec
-            ga_conn.execute("SELECT spec FROM StimSpec WHERE id = %s", (parent_id,))
-            spec_result = ga_conn.fetch_one()
-            if spec_result:
-                lighting_conn.execute(
-                    "INSERT INTO StimSpec (id, spec) VALUES (%s, %s) ON DUPLICATE KEY UPDATE spec = VALUES(spec)",
-                    (parent_id, spec_result)
-                )
-
-            lighting_conn.mydb.commit()
+        lighting_conn.mydb.commit()
 
     # Generate lighting positions
     light_positions = generate_lighting_positions(n_angles=8)
