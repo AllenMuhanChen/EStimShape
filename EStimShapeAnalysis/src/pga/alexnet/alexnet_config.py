@@ -39,7 +39,7 @@ class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
     def make_phases(self):
         return [self.seeding_phase(),
                 self.rf_location_phase(),
-                self.growing_phase()]
+                self.growing_phase]
 
     def seeding_phase_mutation_assigner(self):
         return AlexNetSeedingPhaseMutationAssigner()
@@ -55,15 +55,15 @@ class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
             RFLocPhaseTransitioner()
         )
 
+    @property
     def growing_phase(self):
         return Phase(
             GrowingPhaseParentSelector(self.growing_phase_bin_proportions(), self.growing_phase_bin_sample_sizes()),
             AlexNetGrowingPhaseMutationAssigner(),
             GrowingPhaseMutationMagnitudeAssigner(),
-            GrowingPhaseTransitioner(
-                self.convergence_threshold()
-            )
+            DontTransitioner()
         )
+
 
     def make_response_parser(self) -> ResponseParser:
         """
@@ -85,7 +85,12 @@ class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
         return AlexNetGAJarTrialGenerator(self.java_output_dir, self.allen_dist_dir)
 
 
+class DontTransitioner(RegimeTransitioner):
+    def should_transition(self, lineage: Lineage) -> bool:
+        return False
 
+    def get_transition_data(self, lineage: Lineage) -> str:
+        return "None"
 class AlexNetSeedingPhaseMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage, parent: Stimulus):
         # In Regime Zero, all stimuli are assigned the "RegimeZero" mutation.

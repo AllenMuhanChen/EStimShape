@@ -54,8 +54,8 @@ class AlexNetIntanResponseParser(ResponseParser):
         self.onnx_path = onnx_path
         self.session = self._load_onnx_model()
         self.transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            transforms.PILToTensor(),
+            lambda x: x * 1.0
         ])
 
         # Define unit to monitor
@@ -91,7 +91,6 @@ class AlexNetIntanResponseParser(ResponseParser):
 
         # Get activation for specified unit and location
         activation = float(features[0, self.unit_id.unit-1, self.unit_id.x, self.unit_id.y])
-        activation = activation + 30  # Add 30 to make activations positive
         return activation
 
     def _load_onnx_model(self) -> onnxruntime.InferenceSession:
