@@ -1,32 +1,25 @@
 package org.xper.allen.pga.alexnet.lightingposthoc;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.xper.Dependency;
 import org.xper.allen.Stim;
-import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.nafc.blockgen.AbstractTrialGenerator;
 import org.xper.allen.pga.alexnet.AlexNetDrawingManager;
 import org.xper.allen.pga.alexnet.FromDbAlexNetGABlockGenerator;
 import org.xper.allen.util.MultiGaDbUtil;
-import org.xper.drawing.RGBColor;
+import org.xper.exception.VariableNotFoundException;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
 import java.util.Properties;
 
-public class LightingPostHocGenerator extends AbstractTrialGenerator<Stim> {
-    @Dependency
-    MultiGaDbUtil dbUtil;
+public class LightingPostHocGenerator extends FromDbAlexNetGABlockGenerator {
 
-    @Dependency
-    protected String generatorPngPath;
-
-    @Dependency
-    protected String generatorSpecPath;
-
-    @Dependency
-    AlexNetDrawingManager drawingManager;
 
     public static void main(String[] args) throws IOException, ClassNotFoundException {
         // Load the properties file
@@ -47,53 +40,120 @@ public class LightingPostHocGenerator extends AbstractTrialGenerator<Stim> {
 
         generator.generate();
     }
+
+
     @Override
     protected void addTrials() {
-        //read StimInstruction
+        List<StimInstruction> stimInstructions = readStimInstructions();
+        for (StimInstruction instruction : stimInstructions) {
+            if (!hasStimPathEntry(instruction.getStimId())) {
+                // TODO: Handle stim generation based on instruction type
+                if (instruction.getStimType().equals("TEXTURE_3D_VARIATION")) {
+                    // Generate stimuli using instructions and save to StimSpec and StimPath
+                    stims.add(new PostHocStim(this, instruction));
+                } else if (instruction.getStimType().equals("2D")) {
+                    // Generate using new contrast and 2D instructions
+                }
+            }
+        }
+    }
+    private List<StimInstruction> readStimInstructions() {
+        JdbcTemplate jt = new JdbcTemplate(getDbUtil().getDataSource());
+        return jt.query(
+                "SELECT * FROM StimInstructions",
+                new RowMapper() {
+                    @Override
+                    public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
+                        StimInstruction instruction = new StimInstruction();
+                        instruction.setStimId(rs.getLong("stim_id"));
+                        instruction.setParentId(rs.getLong("parent_id"));
+                        instruction.setStimType(rs.getString("stim_type"));
+                        instruction.setTextureType(rs.getString("texture_type"));
+                        instruction.setLightPosX(rs.getFloat("light_pos_x"));
+                        instruction.setLightPosY(rs.getFloat("light_pos_y"));
+                        instruction.setLightPosZ(rs.getFloat("light_pos_z"));
+                        instruction.setLightPosW(rs.getFloat("light_pos_w"));
+                        instruction.setContrast(rs.getDouble("contrast"));
+                        return instruction;
+                    }
+                }
+        );
+    }
 
-        //check if stim has an entry in StimPath
+    private boolean hasStimPathEntry(long stimId) {
+        JdbcTemplate jt = new JdbcTemplate(getDbUtil().getDataSource());
+        int count = (int) jt.queryForObject(
+                "SELECT COUNT(*) FROM StimPath WHERE stim_id = ?",
+                new Object[]{stimId},
+                Integer.class
+        );
+        return count > 0;
+    }
 
-        //if not:
+    @Override
+    protected void writeTrials() {
+        for (Stim stim : getStims()) {
+            stim.writeStim();
+        }
+    }
 
-        //if type is TEXTURE_3D_VARIATION
-            //Generate stimuli using instructions and save to StimSpec and StimPath
-
-        //if type is 2D
-            // Generate using new contrast and 2D instructions
-
+    @Override
+    protected void updateReadyGeneration() {
 
     }
 
     @Override
-    public MultiGaDbUtil getDbUtil() {
-        return dbUtil;
+    protected void updateGenId() {
     }
 
-    public void setDbUtil(MultiGaDbUtil dbUtil) {
-        this.dbUtil = dbUtil;
+    @Override
+    protected void init() {
+        getDrawingManager().createDrawerWindow();
     }
 
-    public String getGeneratorPngPath() {
-        return generatorPngPath;
-    }
 
-    public void setGeneratorPngPath(String generatorPngPath) {
-        this.generatorPngPath = generatorPngPath;
-    }
+}
 
-    public String getGeneratorSpecPath() {
-        return generatorSpecPath;
-    }
+class StimInstruction {
+    private long stimId;
+    private long parentId;
+    private String stimType;
+    private String textureType;
+    private float lightPosX;
+    private float lightPosY;
+    private float lightPosZ;
+    private float lightPosW;
+    private double contrast;
 
-    public void setGeneratorSpecPath(String generatorSpecPath) {
-        this.generatorSpecPath = generatorSpecPath;
-    }
+    // Getters and setters
+    public long getStimId() { return stimId; }
+    public void setStimId(long stimId) { this.stimId = stimId; }
 
-    public AlexNetDrawingManager getDrawingManager() {
-        return drawingManager;
-    }
+    public long getParentId() { return parentId; }
+    public void setParentId(long parentId) { this.parentId = parentId; }
 
-    public void setDrawingManager(AlexNetDrawingManager drawingManager) {
-        this.drawingManager = drawingManager;
+    public String getStimType() { return stimType; }
+    public void setStimType(String stimType) { this.stimType = stimType; }
+
+    public String getTextureType() { return textureType; }
+    public void setTextureType(String textureType) { this.textureType = textureType; }
+
+    public float getLightPosX() { return lightPosX; }
+    public void setLightPosX(float lightPosX) { this.lightPosX = lightPosX; }
+
+    public float getLightPosY() { return lightPosY; }
+    public void setLightPosY(float lightPosY) { this.lightPosY = lightPosY; }
+
+    public float getLightPosZ() { return lightPosZ; }
+    public void setLightPosZ(float lightPosZ) { this.lightPosZ = lightPosZ; }
+
+    public float getLightPosW() { return lightPosW; }
+    public void setLightPosW(float lightPosW) { this.lightPosW = lightPosW; }
+
+    public double getContrast() { return contrast; }
+    public void setContrast(double contrast) { this.contrast = contrast; }
+
+    public float[] getLightPosition() {
+        return new float[]{lightPosX, lightPosY, lightPosZ, lightPosW};
     }
 }

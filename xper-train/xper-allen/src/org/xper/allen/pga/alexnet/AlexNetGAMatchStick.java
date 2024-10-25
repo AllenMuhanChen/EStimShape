@@ -157,7 +157,7 @@ public class AlexNetGAMatchStick extends MorphedMatchStick {
         GL11.glEnable(GL11.GL_LIGHT0);
     }
 
-    protected void positionShape(){
+    public void positionShape(){
         moveCenterOfMassTo(new Point3d(location.getX(), location.getY(), 0));
     }
 

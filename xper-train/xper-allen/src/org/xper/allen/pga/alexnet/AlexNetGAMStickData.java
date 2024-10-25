@@ -9,17 +9,17 @@ import javax.vecmath.Point3d;
 import java.util.List;
 
 public class AlexNetGAMStickData implements MStickData {
-    AllenMStickSpec stickSpec;
+    public AllenMStickSpec stickSpec;
     List<ShaftData> shaftData;
     List<TerminationData> terminationData;
     List<JunctionData> junctionData;
     AllenMStickSpec analysisStickSpec;
     Point3d massCenter;
-    float[] light_position;
-    RGBColor stimColor;
-    Coordinates2D location;
-    double sizeDiameter;
-    String textureType;
+    public float[] light_position;
+    public RGBColor stimColor;
+    public Coordinates2D location;
+    public double sizeDiameter;
+    public String textureType;
     double contrast;
 
     public AlexNetGAMStickData() {
@@ -52,7 +52,7 @@ public class AlexNetGAMStickData implements MStickData {
         s.alias("AllenMSickSpec", AllenMStickSpec.class);
     }
 
-    static AlexNetGAMStickData fromXml(String xml) {
+    public static AlexNetGAMStickData fromXml(String xml) {
         return (AlexNetGAMStickData) s.fromXML(xml);
     }
     @Override
