@@ -5,7 +5,7 @@ from src.pga.config.canopy_config import GeneticAlgorithmConfig
 from src.pga.ga_classes import Phase, ParentSelector, Lineage, MutationAssigner, Stimulus, RegimeTransitioner
 from src.pga.genetic_algorithm import GeneticAlgorithm
 from src.pga.regime_one import GrowingPhaseMutationMagnitudeAssigner, GrowingPhaseParentSelector, \
-    GrowingPhaseTransitioner
+    GrowingPhaseTransitioner, RankOrderedDistribution
 from src.pga.response_processing import ResponseProcessor
 from src.pga.alexnet.onnx_parser import AlexNetIntanResponseParser, UnitIdentifier
 from src.pga.spike_parsing import ResponseParser
@@ -112,37 +112,19 @@ class AlexNetGrowingPhaseMutationAssigner(MutationAssigner):
 
 
 class RFLocPhaseParentSelector(ParentSelector):
+    proportions = [0.5, 0.2, 0.2, 0.1]
+    bin_sample_sizes_proportions = [0.0, 0.25, 0.25, 0.5]
     def select_parents(self, lineage: Lineage, batch_size: int) -> list[Stimulus]:
         stimuli = lineage.stimuli
+
+        rank_ordered_distribution = RankOrderedDistribution(lineage.stimuli, self.proportions)
         if not stimuli:
             return []
 
-        response_rates = [stimulus.response_rate for stimulus in stimuli]
+        sampled_stimuli_from_lineage = rank_ordered_distribution.sample_total_amount_across_bins(
+            bin_sample_probabilities=self.bin_sample_sizes_proportions, total=batch_size)
 
-        # Normalize to 0-1 range
-        min_rate = min(response_rates)
-        max_rate = max(response_rates)
-
-        # Handle case where all rates are identical
-        if max_rate == min_rate:
-            probabilities = [1 / len(stimuli)] * len(stimuli)
-        else:
-            # First normalize to 0-1
-            normalized = [(rate - min_rate) / (max_rate - min_rate) for rate in response_rates]
-            # Then normalize to make probabilities sum to 1
-            total = sum(normalized)
-            probabilities = [n / total for n in normalized]
-
-        # Use numpy's choice function for weighted random sampling with replacement
-        import numpy as np
-        selected_indices = np.random.choice(
-            len(stimuli),
-            size=batch_size,
-            p=probabilities,
-            replace=True
-        )
-
-        return [stimuli[i] for i in selected_indices]
+        return sampled_stimuli_from_lineage
 
 class RFLocPhaseMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage: Lineage, parent: Stimulus):

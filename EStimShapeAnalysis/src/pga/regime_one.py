@@ -105,7 +105,7 @@ class GrowingPhaseParentSelector(ParentSelector):
 
     def __init__(self, proportions: [float], bin_sample_proportions: [int]) -> None:
         self.proportions = proportions
-        self.bin_sample_sizes_proportions = bin_sample_proportions
+        self.bin_sample_probabilities = bin_sample_proportions
 
     def distribute_samples_to_bins(self, total_sample_size: int) -> [int]:
         # if total_sample_size
@@ -120,7 +120,7 @@ class GrowingPhaseParentSelector(ParentSelector):
     def select_parents(self, lineage, batch_size):
         rank_ordered_distribution = RankOrderedDistribution(lineage.stimuli, self.proportions)
         sampled_stimuli_from_lineage = rank_ordered_distribution.sample_total_amount_across_bins(
-            bin_sample_probabilities=self.bin_sample_sizes_proportions, total=batch_size)
+            bin_sample_probabilities=self.bin_sample_probabilities, total=batch_size)
 
         parents = sampled_stimuli_from_lineage
         return parents
