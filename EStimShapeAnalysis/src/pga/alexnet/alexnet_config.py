@@ -117,15 +117,21 @@ class RFLocPhaseParentSelector(ParentSelector):
         if not stimuli:
             return []
 
-        # Calculate probabilities based on response rates
         response_rates = [stimulus.response_rate for stimulus in stimuli]
-        total_response = sum(response_rates)
 
-        # Handle case where all responses are 0
-        if total_response == 0:
+        # Normalize to 0-1 range
+        min_rate = min(response_rates)
+        max_rate = max(response_rates)
+
+        # Handle case where all rates are identical
+        if max_rate == min_rate:
             probabilities = [1 / len(stimuli)] * len(stimuli)
         else:
-            probabilities = [rate / total_response for rate in response_rates]
+            # First normalize to 0-1
+            normalized = [(rate - min_rate) / (max_rate - min_rate) for rate in response_rates]
+            # Then normalize to make probabilities sum to 1
+            total = sum(normalized)
+            probabilities = [n / total for n in normalized]
 
         # Use numpy's choice function for weighted random sampling with replacement
         import numpy as np

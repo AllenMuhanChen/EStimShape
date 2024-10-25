@@ -34,6 +34,4 @@ public class AlexNetDrawingManagerTest {
 
         alexNetDrawingManager.createAndSavePNG(mStick, 1L, new ArrayList<>(), "/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin");
     }
-
-
 }
