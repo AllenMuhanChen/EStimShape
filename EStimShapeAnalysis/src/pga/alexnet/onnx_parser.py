@@ -70,11 +70,11 @@ class AlexNetIntanResponseParser(ResponseParser):
             if not image_path:
                 continue
 
-            activation = self._process_image(image_path)
+            activation = self.process_image(image_path)
             self._store_activation(stim_id, activation)
             self._update_stim_response(stim_id, activation)
 
-    def _process_image(self, image_path: str) -> float:
+    def process_image(self, image_path: str) -> float:
         """Process an image and return single unit activation."""
         # Load and preprocess image
         image = Image.open(image_path).convert('RGB')

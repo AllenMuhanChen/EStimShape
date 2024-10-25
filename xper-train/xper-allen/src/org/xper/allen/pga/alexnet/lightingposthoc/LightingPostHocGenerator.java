@@ -48,12 +48,7 @@ public class LightingPostHocGenerator extends FromDbAlexNetGABlockGenerator {
         for (StimInstruction instruction : stimInstructions) {
             if (!hasStimPathEntry(instruction.getStimId())) {
                 // TODO: Handle stim generation based on instruction type
-                if (instruction.getStimType().equals("TEXTURE_3D_VARIATION")) {
-                    // Generate stimuli using instructions and save to StimSpec and StimPath
-                    stims.add(new PostHocStim(this, instruction));
-                } else if (instruction.getStimType().equals("2D")) {
-                    // Generate using new contrast and 2D instructions
-                }
+                stims.add(new PostHocStim(this, instruction));
             }
         }
     }

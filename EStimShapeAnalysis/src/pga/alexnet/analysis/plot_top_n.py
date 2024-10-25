@@ -22,37 +22,58 @@ def get_top_n_stimuli(conn: Connection, n: int, most_negative=False):
     return [{'stim_id': r[0], 'response': r[1], 'path': r[2], 'lineage_id': r[3]} for r in results]
 
 
-def normalize_responses(stimuli, most_negative=False):
-    """Normalize responses to 0-1 range."""
-    if most_negative:
-        responses = [abs(float(stim['response'])) for stim in stimuli]
-    else:
-        responses = [max(0, float(stim['response'])) for stim in stimuli]
+def normalize_responses(stimuli):
+    """
+    Normalize responses to the range -1 to 1, preserving the original signs and mapping 0 to 0.
 
-    if len(responses) == 0:
+    Parameters:
+    stimuli (list): A list of dictionaries, each containing a 'response' key with the value to be normalized.
+
+    Returns:
+    list: A list of normalized response values in the range -1 to 1.
+    """
+    responses = [float(stim['response']) for stim in stimuli]
+
+    if not responses:
         return []
-    max_response = max(responses)
-    if max_response == 0:
+
+    # Find the minimum and maximum values for normalization
+    min_val = min(responses)
+    max_val = max(responses)
+
+    # Handle the case where all responses are 0
+    if min_val == 0 and max_val == 0:
         return [0] * len(responses)
-    return [r / max_response for r in responses]
+
+    # Normalize the responses while preserving the original signs and mapping 0 to 0
+    normalized = []
+    for r in responses:
+        if r == 0:
+            normalized.append(0)
+        elif r > 0:
+            normalized.append(r / max_val)
+        else:
+            normalized.append(r / abs(min_val))
+
+    return normalized
 
 
-def add_colored_border(image, normalized_response, border_width=5, most_negative=False):
-    """Add a colored border to the image based on normalized response."""
-    if most_negative:
-        border_color = (0, 0, int(255 * normalized_response))  # Blue scale for negative
+def add_colored_border(image, response, border_width=5):
+    """Add a colored border to the image based on response value (red for positive, blue for negative)."""
+    if response >= 0:
+        border_color = (int(255 * response), 0, 0)  # Red scale for positive
     else:
-        border_color = (int(255 * normalized_response), 0, 0)  # Red scale for positive
+        border_color = (0, 0, int(255 * abs(response)))  # Blue scale for negative
     return ImageOps.expand(image, border=border_width, fill=border_color)
 
 
-def plot_stimuli_row(stimuli, normalized_responses, axes, most_negative=False):
-    """Plot a row of stimuli on given axes."""
-    for i, (stim, norm_response) in enumerate(zip(stimuli, normalized_responses)):
+def plot_stimuli_row(stimuli, normalized_responses, axes):
+    """Plot a row of stimuli with red borders for positive responses and blue for negative."""
+    for i, (stim, response) in enumerate(zip(stimuli, normalized_responses)):
         img_path = Path(stim['path'])
         if img_path.exists():
             img = Image.open(img_path)
-            img_with_border = add_colored_border(img, norm_response, most_negative=most_negative)
+            img_with_border = add_colored_border(img, response)
 
             axes[i].imshow(img_with_border)
             axes[i].axis('off')
@@ -79,7 +100,7 @@ def plot_top_and_bottom_stimuli(n=5, fig_size=(20, 4)):
     neg_stimuli = get_top_n_stimuli(conn, n, most_negative=True)
 
     pos_normalized = normalize_responses(pos_stimuli)
-    neg_normalized = normalize_responses(neg_stimuli, most_negative=True)
+    neg_normalized = normalize_responses(neg_stimuli)
 
     # Calculate grid dimensions
     ncols = min(10, n)  # 10 images per row maximum
@@ -99,7 +120,7 @@ def plot_top_and_bottom_stimuli(n=5, fig_size=(20, 4)):
 
     # Plot negative responses in bottom rows
     neg_axes = axes[(nrows // 2):].flatten()
-    plot_stimuli_row(neg_stimuli, neg_normalized, neg_axes, most_negative=True)
+    plot_stimuli_row(neg_stimuli, neg_normalized, neg_axes)
 
     # Turn off any unused subplots
     for ax_row in axes:

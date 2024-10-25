@@ -1,3 +1,4 @@
+import subprocess
 from dataclasses import dataclass
 from time import sleep
 
@@ -8,6 +9,7 @@ from PIL import Image
 from clat.util import time_util
 from clat.util.connection import Connection
 from src.pga.alexnet import alexnet_context
+from src.pga.alexnet.onnx_parser import AlexNetIntanResponseParser
 
 
 def main():
@@ -19,8 +21,79 @@ def main():
 
     # Get top stimuli
     n_stimuli = 10  # Adjust as needed
+
     top_stims = get_top_n_stimuli(ga_conn, n_stimuli, most_negative=False)
 
+    copy_top_n_to_lighting_db(ga_conn, lighting_conn, top_stims) # so java code can access original spec info
+
+    light_positions = generate_lighting_positions(n_angles=8)
+
+    # Continue with rest of the code...
+    write_3d_instructions(lighting_conn, top_stims, light_positions)
+    print(f"Written 3D instructions for {len(top_stims)} stimuli with {len(light_positions)} lighting variations")
+
+    # Run the jar file
+    jar_path = f"{alexnet_context.allen_dist}/AlexNetLightingPostHocGenerator.jar"
+    subprocess.run(["java", "-jar", jar_path], check=True)
+
+    query = """
+    SELECT sp.path, si.stim_id
+    FROM StimPath sp
+    JOIN StimInstructions si ON sp.stim_id = si.stim_id
+    WHERE si.stim_type = 'TEXTURE_3D_VARIATION'
+    """
+    lighting_conn.execute(query)
+    processed_paths, parent_ids = zip(*lighting_conn.fetch_all())
+
+    write_2d_match_instructions(lighting_conn, processed_paths, parent_ids)
+    print("Written 2D match instructions")
+
+    # Run the jar file again
+    print("Running jar file again to generate 2D images")
+    jar_path = f"{alexnet_context.allen_dist}/AlexNetLightingPostHocGenerator.jar"
+    subprocess.run(["java", "-jar", jar_path], check=True)
+
+    # Get unit from context and process all variations
+    print("Processing lighting variations through AlexNet")
+    unit = alexnet_context.unit
+    process_lighting_variations_through_alexnet(lighting_conn, unit)
+
+def process_lighting_variations_through_alexnet(lighting_conn, unit_id):
+    """Process all stimuli through AlexNet and save activations to lighting db."""
+    # Create parser but only use its process_image functionality
+    parser = AlexNetIntanResponseParser(
+        lighting_conn,
+        "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3",
+        unit_id
+    )
+
+    # Get all stim paths from StimInstructions
+    query = """
+    SELECT si.stim_id, sp.path 
+    FROM StimInstructions si
+    JOIN StimPath sp ON si.stim_id = sp.stim_id
+    """
+    lighting_conn.execute(query)
+    stims = lighting_conn.fetch_all()
+
+    for stim_id, path in stims:
+        # Get activation using existing process_image method
+        activation = parser.process_image(path)
+
+        # Store in UnitActivations
+        query = """
+        INSERT INTO UnitActivations (stim_id, unit, activation) 
+        VALUES (%s, %s, %s)
+        ON DUPLICATE KEY UPDATE activation = %s
+        """
+        lighting_conn.execute(query, (
+            stim_id,
+            unit_id.to_string(),
+            activation,
+            activation
+        ))
+        lighting_conn.mydb.commit()
+def copy_top_n_to_lighting_db(ga_conn, lighting_conn, top_stims):
     # Copy stim data for each top stim
     for stim in top_stims:
         parent_id = stim.stim_id
@@ -45,26 +118,7 @@ def main():
 
         lighting_conn.mydb.commit()
 
-    # Generate lighting positions
-    light_positions = generate_lighting_positions(n_angles=8)
 
-    # Continue with rest of the code...
-    write_3d_instructions(lighting_conn, top_stims, light_positions)
-    print(f"Written 3D instructions for {len(top_stims)} stimuli with {len(light_positions)} lighting variations")
-
-    input("Press Enter after Java has processed all 3D variations...")
-
-    query = """
-    SELECT sp.path, si.parent_id
-    FROM StimPath sp
-    JOIN StimInstructions si ON sp.stim_id = si.stim_id
-    WHERE si.stim_type = 'TEXTURE_3D_VARIATION'
-    """
-    lighting_conn.execute(query)
-    processed_paths, parent_ids = zip(*lighting_conn.fetch_all())
-
-    write_2d_match_instructions(lighting_conn, processed_paths, parent_ids)
-    print("Written 2D match instructions")
 @dataclass
 class StimData:
     stim_id: int
@@ -134,20 +188,35 @@ def write_3d_instructions(lighting_conn, stimuli, light_positions):
 
 
 def calculate_average_luminance(image_path):
-    """Calculate average luminance of an image."""
+    """Calculate average luminance of an image, excluding gray background (127/128 RGB)."""
     img = Image.open(image_path).convert('RGB')
     img_array = np.array(img)
 
-    # Convert RGB to luminance using standard coefficients
-    luminance = 0.2126 * img_array[:, :, 0] + 0.7152 * img_array[:, :, 1] + 0.0722 * img_array[:, :, 2]
-    return np.mean(luminance) / 255.0  # Normalize to 0-1
+    # Create mask to exclude pixels that are exactly background gray (both 127 and 128)
+    background_mask = ((img_array[:, :, 0] == 127) & (img_array[:, :, 1] == 127) & (img_array[:, :, 2] == 127)) | \
+                      ((img_array[:, :, 0] == 128) & (img_array[:, :, 1] == 128) & (img_array[:, :, 2] == 128))
+    foreground_mask = ~background_mask
 
+    # Get only foreground pixels
+    foreground_pixels = img_array[foreground_mask]
+
+    if len(foreground_pixels) == 0:
+        return 0.0
+
+    # Calculate luminance only for foreground pixels
+    luminance = (0.2126 * foreground_pixels[:, 0] +
+                 0.7152 * foreground_pixels[:, 1] +
+                 0.0722 * foreground_pixels[:, 2])
+
+    return np.mean(luminance) / 255.0  # Normalize to 0-1
 
 def write_2d_match_instructions(lighting_conn, processed_3d_paths, parent_ids):
     """Write instructions for 2D matches based on processed 3D images."""
     for path, parent_id in zip(processed_3d_paths, parent_ids):
         luminance = calculate_average_luminance(path)
-        stim_id = int(datetime.now().strftime("%Y%m%d%H%M%S%f"))
+        stim_id = time_util.now()
+        sleep(.001)
+
 
         query = """
         INSERT INTO StimInstructions 
