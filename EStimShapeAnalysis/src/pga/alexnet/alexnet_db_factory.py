@@ -1,3 +1,4 @@
+from asyncio import sleep
 from datetime import datetime
 
 from clat.util.connection import Connection
@@ -11,7 +12,7 @@ USER = 'xper_rw'
 PASS = 'up2nite'
 TEMPLATE_TYPE = 'test'
 TEMPLATE_DATE = '241025'
-TEMPLATE_LOCATION_ID = '0'
+TEMPLATE_LOCATION_ID = '2'
 
 
 def main():
@@ -77,6 +78,7 @@ def main():
 
     # Update context file for GA database
     update_context_file(ga_database, lighting_database)
+    sleep(1)
     setup_ga_xper_properties_and_dirs(ga_database)
     make_path(alexnet_context.java_output_dir)
     make_path(alexnet_context.rwa_output_dir)

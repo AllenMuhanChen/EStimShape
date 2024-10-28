@@ -58,7 +58,8 @@ class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
     @property
     def growing_phase(self):
         return Phase(
-            GrowingPhaseParentSelector(self.growing_phase_bin_proportions(), self.growing_phase_bin_sample_sizes()),
+            AlexNetGrowingPhaseParentSelector(self.growing_phase_bin_proportions(),
+                                              self.growing_phase_bin_sample_sizes()),
             AlexNetGrowingPhaseMutationAssigner(),
             GrowingPhaseMutationMagnitudeAssigner(),
             DontTransitioner()
@@ -108,11 +109,6 @@ class AlexNetSeedingPhaseTransitioner(RegimeTransitioner):
         return "None"
 
 
-class AlexNetGrowingPhaseMutationAssigner(MutationAssigner):
-    def assign_mutation(self, lineage, parent: Stimulus) -> str:
-        return StimType.GROWING.value
-
-
 class RFLocPhaseParentSelector(ParentSelector):
     proportions = [0.5, 0.2, 0.2, 0.1]
     bin_sample_sizes_proportions = [0.0, 0.25, 0.25, 0.5]
@@ -155,12 +151,10 @@ class RFLocPhaseTransitioner(RegimeTransitioner):
 
     def should_transition(self, lineage: Lineage) -> bool:
         # check if we have enough stimuli in the top 90% of the highest response
-        sorted_responses = sorted(lineage.stimuli, reverse=True, key=lambda x: x.response_rate)
+        stimuli = [stimulus for stimulus in lineage.stimuli if stimulus.response_rate > 0]
+        sorted_responses = sorted(stimuli, reverse=True, key=lambda x: x.response_rate)
         highest_response = sorted_responses[0].response_rate
-        if highest_response < 0:
-            self.threshold_response = ((1 - self.threshold_percentage_of_max) + 1) * highest_response
-        else:
-            self.threshold_response = self.threshold_percentage_of_max * highest_response
+        self.threshold_response = self.threshold_percentage_of_max * highest_response
         self.passed_threshold = [stimulus for stimulus in sorted_responses if
                                  stimulus.response_rate >= self.threshold_response]
 
@@ -171,3 +165,41 @@ class RFLocPhaseTransitioner(RegimeTransitioner):
         data = {"threshold": self.threshold_response, "num_passed": len(self.passed_threshold),
                 "num_required": self.num_required_to_pass}
         return str(data)
+
+
+class AlexNetGrowingPhaseMutationAssigner(MutationAssigner):
+    def assign_mutation(self, lineage, parent: Stimulus) -> str:
+        return StimType.GROWING.value
+
+
+class AlexNetGrowingPhaseParentSelector(GrowingPhaseParentSelector):
+
+    def select_parents(self, lineage: Lineage, batch_size: int) -> list[Stimulus]:
+        # filter out negative stimuli
+        stimuli = [stimulus for stimulus in lineage.stimuli if stimulus.response_rate > 0]
+
+        stimuli = self._filter_to_best_rf(stimuli)
+
+        rank_ordered_distribution = RankOrderedDistribution(lineage.stimuli, self.bin_proportions)
+        if not stimuli:
+            return []
+
+        sampled_stimuli_from_lineage = rank_ordered_distribution.sample_total_amount_across_bins(
+            bin_sample_probabilities=self.bin_sample_probabilities, total=batch_size)
+
+        return sampled_stimuli_from_lineage
+
+    def _filter_to_best_rf(self, stimuli):
+        # filter out all RF_LOCATE/SEED that isn't the best in the lineage by response rate
+        candidates = []
+        for stimulus in stimuli:
+            if self._is_rf_related(stimulus):
+                candidates.append(stimulus)
+        best_rf_candidate = max(candidates, key=lambda x: x.response_rate)
+        # remove all rf_locate/seed stimuli that aren't the best candidate
+        stimuli = [stimulus for stimulus in stimuli if
+                   not self._is_rf_related(stimulus) or stimulus == best_rf_candidate]
+        return stimuli
+
+    def _is_rf_related(self, stimulus):
+        return stimulus.mutation_type == StimType.RF_LOCATE.value or stimulus.mutation_type == StimType.SEEDING.value

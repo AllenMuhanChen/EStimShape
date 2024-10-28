@@ -101,24 +101,28 @@ class RankOrderedDistribution:
 class GrowingPhaseParentSelector(ParentSelector):
     """
     Samples stimuli from the rank-ordered distribution across its lineage.
+
+    bin_proportions:  what percent of stimuli should be in each bin (i.e .5, .3, .2) for 3 bins means 50% in bin 1, 30% in bin 2, 20% in bin 3
+    bin_sample_proportions: what percent of samples should be taken from each bin (i.e .5, .3, .2) for 3 bins means 50% of samples from bin 1, 30% from bin 2, 20% from bin 3
     """
+    bin_sample_probabilities: [int]
 
     def __init__(self, proportions: [float], bin_sample_proportions: [int]) -> None:
-        self.proportions = proportions
+        self.bin_proportions = proportions
         self.bin_sample_probabilities = bin_sample_proportions
 
     def distribute_samples_to_bins(self, total_sample_size: int) -> [int]:
         # if total_sample_size
-        num_samples = [round(total_sample_size * proportion) for proportion in self.proportions]
+        num_samples = [round(total_sample_size * proportion) for proportion in self.bin_proportions]
         remainder = total_sample_size - sum(num_samples)
         if remainder > 0:
-            random_indices = np.random.choice(len(self.proportions), remainder, p=self.proportions)
+            random_indices = np.random.choice(len(self.bin_proportions), remainder, p=self.bin_proportions)
             for index in random_indices:
                 num_samples[index] += 1
         return num_samples
 
     def select_parents(self, lineage, batch_size):
-        rank_ordered_distribution = RankOrderedDistribution(lineage.stimuli, self.proportions)
+        rank_ordered_distribution = RankOrderedDistribution(lineage.stimuli, self.bin_proportions)
         sampled_stimuli_from_lineage = rank_ordered_distribution.sample_total_amount_across_bins(
             bin_sample_probabilities=self.bin_sample_probabilities, total=batch_size)
 
