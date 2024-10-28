@@ -64,14 +64,13 @@ class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
             DontTransitioner()
         )
 
-
     def make_response_parser(self) -> ResponseParser:
         """
         This response parser will differ in that all it needs to do is read Stim paths
         and show those to AlexNet and save those activations into UnitActivations table.
         """
         return AlexNetIntanResponseParser(self.connection(),
-                                     "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3",
+                                          "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3",
                                           self.unit_id)
 
     def make_response_processor(self) -> AlexNetResponseProcessor:
@@ -91,20 +90,23 @@ class DontTransitioner(RegimeTransitioner):
 
     def get_transition_data(self, lineage: Lineage) -> str:
         return "None"
+
+
 class AlexNetSeedingPhaseMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage, parent: Stimulus):
         # In Regime Zero, all stimuli are assigned the "RegimeZero" mutation.
         return StimType.SEEDING.value
 
+
 class AlexNetSeedingPhaseTransitioner(RegimeTransitioner):
     def should_transition(self, lineage: Lineage) -> bool:
-        return True
-        # for stimulus in lineage.stimuli:
-        #     if stimulus.response_rate > 0:
-        #         return True
+        for stimulus in lineage.stimuli:
+            if stimulus.response_rate > 0:
+                return True
 
     def get_transition_data(self, lineage: Lineage) -> str:
         return "None"
+
 
 class AlexNetGrowingPhaseMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage, parent: Stimulus) -> str:
@@ -114,8 +116,11 @@ class AlexNetGrowingPhaseMutationAssigner(MutationAssigner):
 class RFLocPhaseParentSelector(ParentSelector):
     proportions = [0.5, 0.2, 0.2, 0.1]
     bin_sample_sizes_proportions = [0.0, 0.25, 0.25, 0.5]
+
     def select_parents(self, lineage: Lineage, batch_size: int) -> list[Stimulus]:
         stimuli = lineage.stimuli
+        # filter out negative stimuli
+        stimuli = [stimulus for stimulus in stimuli if stimulus.response_rate > 0]
 
         rank_ordered_distribution = RankOrderedDistribution(lineage.stimuli, self.proportions)
         if not stimuli:
@@ -125,6 +130,7 @@ class RFLocPhaseParentSelector(ParentSelector):
             bin_sample_probabilities=self.bin_sample_sizes_proportions, total=batch_size)
 
         return sampled_stimuli_from_lineage
+
 
 class RFLocPhaseMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage: Lineage, parent: Stimulus):
@@ -162,5 +168,6 @@ class RFLocPhaseTransitioner(RegimeTransitioner):
         return len(self.passed_threshold) >= self.num_required_to_pass
 
     def get_transition_data(self, lineage: Lineage) -> str:
-        data = {"threshold": self.threshold_response, "num_passed": len(self.passed_threshold), "num_required": self.num_required_to_pass}
+        data = {"threshold": self.threshold_response, "num_passed": len(self.passed_threshold),
+                "num_required": self.num_required_to_pass}
         return str(data)

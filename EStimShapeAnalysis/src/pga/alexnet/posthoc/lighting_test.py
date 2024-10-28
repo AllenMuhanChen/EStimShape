@@ -24,8 +24,9 @@ def main():
 
     top_stims = get_top_n_stimuli(ga_conn, n_stimuli, most_negative=False)
 
-    copy_top_n_to_lighting_db(ga_conn, lighting_conn, top_stims) # so java code can access original spec info
+    copy_top_n_to_lighting_db(ga_conn, lighting_conn, top_stims)  # so java code can access original spec info
 
+    ### 3D PORTION
     light_positions = generate_lighting_positions(n_angles=8)
 
     # Continue with rest of the code...
@@ -36,6 +37,7 @@ def main():
     jar_path = f"{alexnet_context.allen_dist}/AlexNetLightingPostHocGenerator.jar"
     subprocess.run(["java", "-jar", jar_path], check=True)
 
+    ### 2D PORTION
     query = """
     SELECT sp.path, si.stim_id
     FROM StimPath sp
@@ -53,10 +55,12 @@ def main():
     jar_path = f"{alexnet_context.allen_dist}/AlexNetLightingPostHocGenerator.jar"
     subprocess.run(["java", "-jar", jar_path], check=True)
 
-    # Get unit from context and process all variations
+
+    ### GETTING DATA VIA ALEXNET
     print("Processing lighting variations through AlexNet")
     unit = alexnet_context.unit
     process_lighting_variations_through_alexnet(lighting_conn, unit)
+
 
 def process_lighting_variations_through_alexnet(lighting_conn, unit_id):
     """Process all stimuli through AlexNet and save activations to lighting db."""
@@ -93,6 +97,8 @@ def process_lighting_variations_through_alexnet(lighting_conn, unit_id):
             activation
         ))
         lighting_conn.mydb.commit()
+
+
 def copy_top_n_to_lighting_db(ga_conn, lighting_conn, top_stims):
     # Copy stim data for each top stim
     for stim in top_stims:
@@ -204,11 +210,15 @@ def calculate_average_luminance(image_path):
         return 0.0
 
     # Calculate luminance only for foreground pixels
+    # Calculate average pixel color:
+    average = np.mean(foreground_pixels, axis=0)
+    # calculate average brightness
     luminance = (0.2126 * foreground_pixels[:, 0] +
                  0.7152 * foreground_pixels[:, 1] +
                  0.0722 * foreground_pixels[:, 2])
 
-    return np.mean(luminance) / 255.0  # Normalize to 0-1
+    return max(average) / 255.0  # Normalize to 0-1
+
 
 def write_2d_match_instructions(lighting_conn, processed_3d_paths, parent_ids):
     """Write instructions for 2D matches based on processed 3D images."""
@@ -216,7 +226,6 @@ def write_2d_match_instructions(lighting_conn, processed_3d_paths, parent_ids):
         luminance = calculate_average_luminance(path)
         stim_id = time_util.now()
         sleep(.001)
-
 
         query = """
         INSERT INTO StimInstructions 
