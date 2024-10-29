@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from torchvision import transforms as transforms
 
 
-def trace_one_activation(model_path: str, image_path: str, unit: int, x: int, y: int):
+def trace_one_activation(model_path: str, image_path: str, unit: int, x: int, y: int, M: int = 3, N: int = 5):
     # Get conv3 weights
     model = onnx.load(model_path)
     conv3_weights = None
@@ -17,6 +17,8 @@ def trace_one_activation(model_path: str, image_path: str, unit: int, x: int, y:
             unit_weights = conv3_weights[unit]  # Shape should be [256, 3, 3]
         elif initializer.name == 'conv2_W':
             conv2_weights = onnx.numpy_helper.to_array(initializer)
+        elif initializer.name == 'conv1_W':
+            conv1_weights = onnx.numpy_helper.to_array(initializer)
 
     # Set up runtime session
     session = onnxruntime.InferenceSession(model_path)
@@ -44,74 +46,73 @@ def trace_one_activation(model_path: str, image_path: str, unit: int, x: int, y:
     norm1_activations = outputs[6][0]  # [96, 55, 55]
 
     ### PURE MATH BELOW
-
     pool2_contributions = calculate_pool_2_contributions(pool2_activations, unit_weights, x, y)
+    print(np.max(pool2_contributions))
     conv2s_for_contributions = associate_with_conv2_units(norm2_activations)
 
-    # Get max contributing conv2
-    max_contributing_pool2_indx = np.unravel_index(np.argmax(pool2_contributions), pool2_contributions.shape)
-    max_contributing_conv2 = conv2s_for_contributions[max_contributing_pool2_indx]
-    channel, conv2_x, conv2_y = max_contributing_conv2
-    print(f"Max contributing conv2: channel {channel} at position ({conv2_x}, {conv2_y})")
+    # Get top M contributing conv2 units
+    top_m_indices = np.argsort(pool2_contributions.flatten())[-M:][::-1]
 
-    # Get weights for this specific conv2 unit
-    unit_conv2_weights = conv2_weights[channel]  # [96, 5, 5]
+    # Create figure for all visualizations
+    fig = plt.figure(figsize=(N * 4, M * 4))
 
-    # Calculate pool1 contributions
-    pool1_contributions = calculate_pool_1_contributions(pool1_activations,
-                                                         unit_conv2_weights,
-                                                         channel,
-                                                         conv2_x,
-                                                         conv2_y)
-    conv1s_for_contributions = associate_with_conv1_units(norm1_activations)
+    # For each top conv2 unit
+    for m, conv2_idx in enumerate(top_m_indices):
+        # Get conv2 unit info
+        channel, conv2_x, conv2_y = conv2s_for_contributions[np.unravel_index(conv2_idx, conv2s_for_contributions.shape)]
+        contribution = pool2_contributions[np.unravel_index(conv2_idx, pool2_contributions.shape)]
+        print(f"\nConv2 #{m + 1}: channel {channel} at ({conv2_x}, {conv2_y}), contribution: {contribution:.4f}")
 
+        # Get weights for this conv2 unit
+        unit_conv2_weights = conv2_weights[channel]
 
-    # Get top N contributing conv1 filters
-    N = 5  # Number of top filters to visualize
-    top_n_indices = np.argsort(pool1_contributions.flatten())[-N:]
-    top_contributing_conv1s = [conv1s_for_contributions[np.unravel_index(idx, pool1_contributions.shape)]
-                               for idx in top_n_indices]
+        # Calculate pool1 contributions for this conv2 unit
+        pool1_contributions = calculate_pool_1_contributions(pool1_activations,
+                                                             unit_conv2_weights,
+                                                             channel,
+                                                             conv2_x,
+                                                             conv2_y)
+        conv1s_for_contributions = associate_with_conv1_units(norm1_activations)
 
-    # Get conv1 weights
-    for initializer in model.graph.initializer:
-        if initializer.name == 'conv1_W':
-            conv1_weights = onnx.numpy_helper.to_array(initializer)
-            break
+        # Get top N contributing conv1 units for this conv2 unit
+        top_n_indices = np.argsort(pool1_contributions.flatten())[-N:][::-1]
+        top_contributing_conv1s = [conv1s_for_contributions[np.unravel_index(idx, pool1_contributions.shape)]
+                                   for idx in top_n_indices]
 
-    # Visualize the filters
-    fig, axes = plt.subplots(1, N, figsize=(4 * N, 4))
-    fig.suptitle(f'Top {N} contributing Conv1 filters to Conv2 unit {channel}')
+        # Create subplot row for this conv2 unit
+        for n, (conv1_channel, conv1_x, conv1_y) in enumerate(top_contributing_conv1s):
+            ax = plt.subplot(M, N, m * N + n + 1)
 
-    for i, (conv1_channel, _, _) in enumerate(top_contributing_conv1s):
-        # Get the filter weights
-        filter_weights = conv1_weights[conv1_channel]  # Shape should be [3, 11, 11]
+            # Get and normalize filter weights
+            filter_weights = conv1_weights[conv1_channel]
+            filter_weights = (filter_weights - filter_weights.min()) / (filter_weights.max() - filter_weights.min())
 
-        # Normalize weights for visualization
-        filter_weights = (filter_weights - filter_weights.min()) / (filter_weights.max() - filter_weights.min())
+            # Display filter
+            ax.imshow(np.transpose(filter_weights, (1, 2, 0)))
+            ax.axis('off')
 
-        # Display the filter
-        axes[i].imshow(np.transpose(filter_weights, (1, 2, 0)))  # Transpose to [11, 11, 3] for RGB display
-        axes[i].axis('off')
-        axes[i].set_title(f'Channel {conv1_channel}')
+            # Title only for first row
+            if m == 0:
+                ax.set_title(f'Conv1 {conv1_channel}')
+
+            # Conv2 info on left side
+            if n == 0:
+                ax.set_ylabel(f'Conv2 {channel}\nPos ({conv2_x},{conv2_y})\nContr: {contribution:.2f}')
 
     plt.tight_layout()
     plt.show()
 
-    return top_contributing_conv1s
 
-
-def calculate_pool_2_contributions(pool2_activations, unit_weights, x, y) -> np.ndarray:
+def calculate_pool_2_contributions(pool2_activations, conv3_unit_weights, x, y) -> np.ndarray:
     '''
     # Calculate contributions from pool2
     # For conv3 position (x,y), we need a 3x3 window of pool2 centered at that position
 
     '''
-    # 256,3,3 contributions matrix
-    contributions = np.ndarray(shape=(256, 13, 13))
+    contributions = np.zeros(shape=(256, 13, 13))
 
     kernel_size = 3
     pad = kernel_size // 2
-    total_contribution = 0
     for i in range(256):  # For each pool2 channel
         for kx in range(kernel_size):
             for ky in range(kernel_size):
@@ -121,12 +122,11 @@ def calculate_pool_2_contributions(pool2_activations, unit_weights, x, y) -> np.
 
                 # Check boundaries
                 if 0 <= pool2_x < 13 and 0 <= pool2_y < 13:
-                    weight = unit_weights[i, kx, ky]
+                    weight = conv3_unit_weights[i, kx, ky]
                     pool2_activation = pool2_activations[i, pool2_x, pool2_y]
-                    contribution = weight * pool2_activation
-                    contributions[i, kx, ky] += contribution
-                    total_contribution += contribution
-
+                    contribution = float(weight * pool2_activation)
+                    contributions[i, pool2_x, pool2_y] = contribution
+    print(np.max(contributions))
     return contributions
 
 
@@ -211,7 +211,7 @@ def calculate_pool_1_contributions(pool1_activations, conv2_weights, channel, x,
                 if 0 <= pool1_x < 27 and 0 <= pool1_y < 27:
                     weight = conv2_weights[i, kx, ky]  # weight from this pool1 to our conv2
                     pool1_activation = pool1_activations[pool1_channel, pool1_x, pool1_y]
-                    contribution = weight * pool1_activation
+                    contribution = float(weight * pool1_activation)
                     contributions[pool1_channel, pool1_x, pool1_y] = contribution
 
     return contributions
@@ -265,7 +265,7 @@ def associate_with_conv1_units(norm1_activations):
 
 if __name__ == "__main__":
     model_path = '/home/connorlab/PycharmProjects/EStimShape/EStimShapeAnalysis/src/alexnet/frommat/data/AlexNetONNX_with_conv3'
-    image_path = '/run/user/1000/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_alexnet_lighting_exp_241028_0/stimuli/ga/pngs/1730133711234972_1730132722800937.png'
+    image_path = '/run/user/1000/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_alexnet_lighting_exp_241028_0/stimuli/ga/pngs/1730133711318240_1730132722800937.png'
 
     # Get activation for unit 3 at position (6,6)
-    trace_one_activation(model_path, image_path, unit=374, x=6, y=6)
+    trace_one_activation(model_path, image_path, unit=374, x=6, y=6, M=10, N=10)
