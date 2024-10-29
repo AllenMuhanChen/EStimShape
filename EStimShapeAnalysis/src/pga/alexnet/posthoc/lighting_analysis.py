@@ -77,6 +77,30 @@ def organize_3d_stims(stims_3d: List[dict]) -> Dict[int, Dict[str, List[dict]]]:
 from src.pga.alexnet.analysis.plot_top_n import plot_stimuli_row, normalize_responses
 
 
+def main():
+    conn = Connection(
+        host='172.30.6.80',
+        user='xper_rw',
+        password='up2nite',
+        database=alexnet_context.lighting_database
+    )
+
+    # Load data
+    stims: dict[str, list[dict]] = load_stim_data(conn)
+    print("Total 3D stims:", len(stims['3D']))
+    print("Total 2D stims:", len(stims['2D']))
+
+    # Create plots
+    all_stims = []
+    all_stims.extend(stims['3D'])
+    all_stims.extend(stims['2D'])
+    normalize_responses(all_stims)
+    plot_stims(stims['3D'], stims['2D'])
+
+    # Show all figures
+    plt.show()
+
+
 def plot_stims(stims_3d: List[dict], stims_2d: List[dict], n_cols: int = 8):
     # Find max absolute activation for normalization
     organized_3d = organize_3d_stims(stims_3d)
@@ -137,30 +161,6 @@ def plot_stims(stims_3d: List[dict], stims_2d: List[dict], n_cols: int = 8):
         plt.tight_layout()
 
     return figs
-
-
-def main():
-    conn = Connection(
-        host='172.30.6.80',
-        user='xper_rw',
-        password='up2nite',
-        database=alexnet_context.lighting_database
-    )
-
-    # Load data
-    stims: dict[str, list[dict]] = load_stim_data(conn)
-    print("Total 3D stims:", len(stims['3D']))
-    print("Total 2D stims:", len(stims['2D']))
-
-    # Create plots
-    all_stims = []
-    all_stims.extend(stims['3D'])
-    all_stims.extend(stims['2D'])
-    normalized_responses = normalize_responses(all_stims)
-    figs = plot_stims(stims['3D'], stims['2D'])
-
-    # Show all figures
-    plt.show()
 
 
 if __name__ == "__main__":

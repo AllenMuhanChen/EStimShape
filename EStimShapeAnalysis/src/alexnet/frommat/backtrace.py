@@ -1,3 +1,5 @@
+from typing import Tuple, List
+
 import numpy as np
 import onnx
 import onnxruntime
@@ -5,16 +7,32 @@ from PIL import Image
 from matplotlib import pyplot as plt
 from torchvision import transforms as transforms
 
+from src.pga.alexnet.onnx_parser import UnitIdentifier, LayerType
 
-def trace_one_activation(model_path: str, image_path: str, unit: int, x: int, y: int, M: int = 3, N: int = 5):
-    # Get conv3 weights
+
+def backtrace(model_path: str, image_path: str, unit: int, x: int, y: int, exporter_function, top_conv2: int = 10,
+              top_conv1: int = 10, top_pixels: int = 25):
+    """
+    Backtrace contributions through AlexNet layers, focusing on top N positive and negative contributions
+
+    Args:
+        model_path: Path to ONNX model
+        image_path: Path to input image
+        unit: Conv3 unit to analyze
+        x: x-coordinate in Conv3 layer
+        y: y-coordinate in Conv3 layer
+        exporter_function: Function to export contribution data
+        top_conv2: Number of top positive/negative Conv2 contributions to track
+        top_conv1: Number of top positive/negative Conv1 contributions to track
+    """
+    # Get layer weights
     model = onnx.load(model_path)
     conv3_weights = None
     conv2_weights = None
     for initializer in model.graph.initializer:
         if initializer.name == 'conv3_W':
             conv3_weights = onnx.numpy_helper.to_array(initializer)
-            unit_weights = conv3_weights[unit]  # Shape should be [256, 3, 3]
+            unit_weights = conv3_weights[unit]
         elif initializer.name == 'conv2_W':
             conv2_weights = onnx.numpy_helper.to_array(initializer)
         elif initializer.name == 'conv1_W':
@@ -34,7 +52,8 @@ def trace_one_activation(model_path: str, image_path: str, unit: int, x: int, y:
 
     # Get activations
     input_name = session.get_inputs()[0].name
-    outputs = session.run(['conv3', 'pool2', 'norm2', 'relu2', 'conv2', 'pool1', 'norm1'],
+    outputs = session.run(['conv3', 'pool2', 'norm2', 'relu2', 'conv2', 'pool1',
+                           'norm1', 'relu1', 'conv1', 'data_Sub'],
                           {input_name: input_tensor.numpy()})
 
     conv3_activation = outputs[0][0, unit, x, y]
@@ -44,64 +63,219 @@ def trace_one_activation(model_path: str, image_path: str, unit: int, x: int, y:
     conv2_activations = outputs[4][0]  # [256, 27, 27]
     pool1_activations = outputs[5][0]  # [96, 27, 27]
     norm1_activations = outputs[6][0]  # [96, 55, 55]
+    relu1_activations = outputs[7][0]  # [96, 55, 55]
+    conv1_activations = outputs[8][0]  # [96, 55, 55]
+    image_data = outputs[9][0]  # [3, 224, 224]
 
-    ### PURE MATH BELOW
+    # Calculate Conv2 contributions
     pool2_contributions = calculate_pool_2_contributions(pool2_activations, unit_weights, x, y)
-    print(np.max(pool2_contributions))
     conv2s_for_contributions = associate_with_conv2_units(norm2_activations)
 
-    # Get top M contributing conv2 units
-    top_m_indices = np.argsort(pool2_contributions.flatten())[-M:][::-1]
+    # Get top N positive and negative Conv2 contributions
+    flat_contributions = pool2_contributions.flatten()
+    flat_indices = np.arange(len(flat_contributions))
 
-    # Create figure for all visualizations
-    fig = plt.figure(figsize=(N * 4, M * 4))
+    # Top positive Conv2
+    top_pos_conv2_indices = flat_indices[flat_contributions > 0][
+        np.argsort(flat_contributions[flat_contributions > 0])[-top_conv2:]]
+    # Top negative Conv2
+    top_neg_conv2_indices = flat_indices[flat_contributions < 0][
+        np.argsort(-flat_contributions[flat_contributions < 0])[-top_conv2:]]
 
-    # For each top conv2 unit
-    for m, conv2_idx in enumerate(top_m_indices):
-        # Get conv2 unit info
-        channel, conv2_x, conv2_y = conv2s_for_contributions[np.unravel_index(conv2_idx, conv2s_for_contributions.shape)]
-        contribution = pool2_contributions[np.unravel_index(conv2_idx, pool2_contributions.shape)]
-        print(f"\nConv2 #{m + 1}: channel {channel} at ({conv2_x}, {conv2_y}), contribution: {contribution:.4f}")
+    conv3_unit = UnitIdentifier(LayerType.CONV3, unit + 1, x + 1, y + 1)
 
-        # Get weights for this conv2 unit
-        unit_conv2_weights = conv2_weights[channel]
+    # Process top Conv2 contributions
+    for conv2_idx in np.concatenate([top_pos_conv2_indices, top_neg_conv2_indices]):
+        conv2_coords = np.unravel_index(conv2_idx, pool2_contributions.shape)
+        conv2_channel, conv2_x, conv2_y = conv2s_for_contributions[conv2_coords]
+        conv2_unit = UnitIdentifier(LayerType.CONV2, conv2_channel + 1, conv2_x + 1, conv2_y + 1)
+        contribution = pool2_contributions[conv2_coords]
 
-        # Calculate pool1 contributions for this conv2 unit
+        # Export Conv3-Conv2 connection
+        connection = (conv3_unit, conv2_unit)
+        exporter_function(connection, contribution)
+
+        # Calculate Conv1 contributions for this Conv2 unit
+        unit_conv2_weights = conv2_weights[conv2_channel]
         pool1_contributions = calculate_pool_1_contributions(pool1_activations,
                                                              unit_conv2_weights,
-                                                             channel,
+                                                             conv2_channel,
                                                              conv2_x,
                                                              conv2_y)
         conv1s_for_contributions = associate_with_conv1_units(norm1_activations)
 
-        # Get top N contributing conv1 units for this conv2 unit
-        top_n_indices = np.argsort(pool1_contributions.flatten())[-N:][::-1]
-        top_contributing_conv1s = [conv1s_for_contributions[np.unravel_index(idx, pool1_contributions.shape)]
-                                   for idx in top_n_indices]
+        # Get top N positive and negative Conv1 contributions
+        flat_conv1_contributions = pool1_contributions.flatten()
+        flat_conv1_indices = np.arange(len(flat_conv1_contributions))
 
-        # Create subplot row for this conv2 unit
-        for n, (conv1_channel, conv1_x, conv1_y) in enumerate(top_contributing_conv1s):
-            ax = plt.subplot(M, N, m * N + n + 1)
+        # Top positive Conv1
+        top_pos_conv1_indices = flat_conv1_indices[flat_conv1_contributions > 0][
+            np.argsort(flat_conv1_contributions[flat_conv1_contributions > 0])[-top_conv1:]]
+        # Top negative Conv1
+        top_neg_conv1_indices = flat_conv1_indices[flat_conv1_contributions < 0][
+            np.argsort(-flat_conv1_contributions[flat_conv1_contributions < 0])[-top_conv1:]]
+
+        # Process top Conv1 contributions
+        for conv1_idx in np.concatenate([top_pos_conv1_indices, top_neg_conv1_indices]):
+            conv1_coords = np.unravel_index(conv1_idx, pool1_contributions.shape)
+            conv1_channel, conv1_x, conv1_y = conv1s_for_contributions[conv1_coords]
+            conv1_unit = UnitIdentifier(LayerType.CONV1, conv1_channel + 1, conv1_x + 1, conv1_y + 1)
+            conv1_contribution = pool1_contributions[conv1_coords]
+
+            # Export Conv2-Conv1 connection
+            connection = (conv2_unit, conv1_unit)
+            exporter_function(connection, conv1_contribution)
+
+            # Calculate pixel contributions for this Conv1 unit
+            unit_conv1_weights = conv1_weights[conv1_channel]  # Shape [3, 11, 11]
+            pixel_contributions = calculate_pixel_contributions(
+                image_data,
+                unit_conv1_weights,
+                conv1_activations[conv1_channel],
+                conv1_x,
+                conv1_y
+            )
+
+            # Export pixel contributions
+            pixels = get_top_contributing_pixels(pixel_contributions, top_k=top_pixels)
+            for px, py, contribution in pixels:
+                pixel_id = UnitIdentifier(LayerType.IMAGE, 0, px, py)
+                connection = (conv1_unit, pixel_id)
+                exporter_function(connection, contribution)
+
+
+def plot_one_activation(model_path: str, image_path: str, unit: int, x: int, y: int, M: int = 3, N: int = 5):
+    """Plot visualization of unit contributions with pixel importance overlays"""
+    # Get conv1 weights for visualization
+    model = onnx.load(model_path)
+    conv1_weights = None
+    for initializer in model.graph.initializer:
+        if initializer.name == 'conv1_W':
+            conv1_weights = onnx.numpy_helper.to_array(initializer)
+            break
+
+    # Load original image for overlays
+    orig_image = plt.imread(image_path)
+
+    # List to store all contribution data
+    contribution_data = []
+    current_conv2 = None
+    current_conv1s = []
+    current_pixels = []
+
+    def collect_for_plot(connection: tuple[UnitIdentifier, UnitIdentifier], contribution: float):
+        nonlocal current_conv2, current_conv1s, current_pixels
+        from_unit, to_unit = connection
+
+        if from_unit.layer == LayerType.CONV3:
+            # Save previous group if exists
+            if current_conv2 is not None and current_conv1s:
+                contribution_data.append((current_conv2, current_conv1s[:], current_pixels[:]))
+            # Start new Conv2 group
+            current_conv2 = (to_unit.unit, to_unit.x, to_unit.y, contribution)
+            current_conv1s = []
+            current_pixels = []
+        elif from_unit.layer == LayerType.CONV2:
+            current_conv1s.append((to_unit.unit, to_unit.x, to_unit.y, contribution))
+        elif isinstance(to_unit, str) and to_unit.startswith('pixel'):
+            # Parse pixel coordinates from the ID
+            px = int(to_unit.split('_')[1][1:])
+            py = int(to_unit.split('_')[2][1:])
+            current_pixels.append((px, py, contribution))
+
+    # Collect contributions using backtrace
+    backtrace(model_path, image_path, unit, x, y, collect_for_plot,
+              top_conv2=M, top_conv1=N)
+
+    # Save final group if exists
+    if current_conv2 is not None and current_conv1s:
+        contribution_data.append((current_conv2, current_conv1s[:], current_pixels[:]))
+
+    if not contribution_data:
+        print("No contributions found!")
+        return []
+
+    # Sort by positive Conv2 contribution and take top M
+    contribution_data.sort(key=lambda x: x[0][3], reverse=True)
+    contribution_data = contribution_data[:M]
+
+    # Create figure with two columns per Conv1 unit: filter and pixel overlay
+    fig = plt.figure(figsize=(N * 8, M * 4))
+
+    # For each top Conv2 unit
+    for m, (conv2_info, conv1_list, pixel_list) in enumerate(contribution_data):
+        conv2_channel, conv2_x, conv2_y, conv2_contribution = conv2_info
+
+        # Sort Conv1s by contribution and take top N
+        conv1_list.sort(key=lambda x: x[3], reverse=True)
+        top_conv1s = conv1_list[:N]
+
+        # For each Conv1, create filter visualization and pixel overlay
+        for n, (conv1_channel, conv1_x, conv1_y, conv1_contribution) in enumerate(top_conv1s):
+            # Calculate subplot indices
+            subplot_idx = m * (N * 2) + (n * 2) + 1
+
+            # Filter visualization
+            ax_filter = plt.subplot(M, N * 2, subplot_idx)
 
             # Get and normalize filter weights
             filter_weights = conv1_weights[conv1_channel]
-            filter_weights = (filter_weights - filter_weights.min()) / (filter_weights.max() - filter_weights.min())
+            filter_weights = (filter_weights - filter_weights.min()) / (
+                    filter_weights.max() - filter_weights.min())
 
             # Display filter
-            ax.imshow(np.transpose(filter_weights, (1, 2, 0)))
-            ax.axis('off')
+            ax_filter.imshow(np.transpose(filter_weights, (1, 2, 0)))
+            ax_filter.axis('off')
 
-            # Title only for first row
+            # Pixel contribution overlay
+            ax_pixels = plt.subplot(M, N * 2, subplot_idx + 1)
+
+            # Show original image
+            ax_pixels.imshow(orig_image)
+
+            # Create heatmap overlay
+            overlay = np.zeros((224, 224))
+
+            # Only use pixels associated with this Conv1 unit
+            # Filter pixel_list to only include pixels for current Conv1
+            relevant_pixels = [(px, py, val) for px, py, val in pixel_list]
+
+            if relevant_pixels:
+                pixel_coords = [(px, py) for px, py, _ in relevant_pixels]
+                pixel_values = [val for _, _, val in relevant_pixels]
+
+                # Normalize contribution values
+                pixel_values = np.array(pixel_values)
+                pixel_values = (pixel_values - pixel_values.min()) / (pixel_values.max() - pixel_values.min())
+
+                # Place values in overlay
+                for (px, py), val in zip(pixel_coords, pixel_values):
+                    if 0 <= px < 224 and 0 <= py < 224:  # Check bounds
+                        overlay[px, py] = val
+
+                # Apply Gaussian blur to make overlay smoother
+                from scipy.ndimage import gaussian_filter
+                overlay = gaussian_filter(overlay, sigma=3)
+
+                # Show overlay with transparency
+                ax_pixels.imshow(overlay, cmap='hot', alpha=0.6)
+
+            ax_pixels.axis('off')
+
+            # Titles and labels
             if m == 0:
-                ax.set_title(f'Conv1 {conv1_channel}')
+                ax_filter.set_title(f'Conv1 {conv1_channel}\nContr: {conv1_contribution:.2f}')
+                ax_pixels.set_title('Important Pixels')
 
-            # Conv2 info on left side
             if n == 0:
-                ax.set_ylabel(f'Conv2 {channel}\nPos ({conv2_x},{conv2_y})\nContr: {contribution:.2f}')
+                ax_filter.set_ylabel(f'Conv2 {conv2_channel}\n'
+                                     f'Pos ({conv2_x},{conv2_y})\n'
+                                     f'Contr: {conv2_contribution:.2f}')
 
     plt.tight_layout()
     plt.show()
 
+    return contribution_data
 
 def calculate_pool_2_contributions(pool2_activations, conv3_unit_weights, x, y) -> np.ndarray:
     '''
@@ -137,10 +311,7 @@ def associate_with_conv2_units(norm2_activations):
         norm2_activations:
 
     Returns:
-        np.ndarray of size 256,13,13,2
-        256: number of neurons in conv2
-        13: kernel size of pool2 (is half of size of conv2 because pooling reduces by half)
-        2: x,y coordinates of winner of relu, norm and mapping in conv2 space.
+
     '''
     # Map each pool2 to its source conv2
     associated_conv2s = np.zeros((256, 13, 13),
@@ -263,9 +434,57 @@ def associate_with_conv1_units(norm1_activations):
     return associated_conv1s
 
 
+def calculate_pixel_contributions(image_data: np.ndarray, conv1_weights: np.ndarray,
+                                  conv1_activation: float, x: int, y: int) -> np.ndarray:
+    """
+    Calculate contribution of each input pixel to a Conv1 unit's activation using model's preprocessed input
+
+    Args:
+        image_data: Preprocessed image data from model [3, 224, 224]
+        conv1_weights: Weights for this Conv1 unit [3, 11, 11]
+        conv1_activation: Activation value for this Conv1 unit
+        x, y: Position of Conv1 unit
+    Returns:
+        contributions: Array of shape [224, 224] with contribution values
+    """
+    kernel_size = 11  # Conv1 uses 11x11 kernels
+    stride = 4  # Conv1 uses stride 4
+
+    # Calculate input field bounds
+    start_x = x * stride - kernel_size // 2
+    start_y = y * stride - kernel_size // 2
+
+    # Initialize contributions array to match image dimensions
+    contributions = np.zeros((224, 224), dtype=float)
+
+    # For each pixel in receptive field
+    for kx in range(kernel_size):
+        for ky in range(kernel_size):
+            img_x = start_x + kx
+            img_y = start_y + ky
+
+            # Check image boundaries
+            if 0 <= img_x < 224 and 0 <= img_y < 224:
+                # Calculate contribution across channels
+                for c in range(3):  # RGB channels
+                    weight = conv1_weights[c, kx, ky]
+                    pixel_value = image_data[c, img_x, img_y]
+                    contributions[img_x, img_y] += (weight * pixel_value)
+
+    return contributions
+
+def get_top_contributing_pixels(contributions: np.ndarray, top_k: int = 25) -> List[Tuple[int, int, float]]:
+    """Get coordinates and values of top contributing pixels"""
+    flat_idx = np.argsort(contributions.ravel())[-top_k:]
+    coords = np.unravel_index(flat_idx, contributions.shape)
+
+    return [(coords[0][i], coords[1][i], contributions[coords[0][i], coords[1][i]])
+            for i in range(len(flat_idx))]
+
 if __name__ == "__main__":
-    model_path = '/home/connorlab/PycharmProjects/EStimShape/EStimShapeAnalysis/src/alexnet/frommat/data/AlexNetONNX_with_conv3'
-    image_path = '/run/user/1000/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_alexnet_lighting_exp_241028_0/stimuli/ga/pngs/1730133857913319_1730133711750773.png'
+    model_path = '/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3'
+    image_path = '/home/r2_allen/Documents/EStimShape/allen_alexnet_lighting_exp_241028_0/stimuli/ga/pngs/1730133711234972_1730132722800937.png'
 
     # Get activation for unit 3 at position (6,6)
-    trace_one_activation(model_path, image_path, unit=373, x=6, y=6, M=10, N=10)
+    # backtrace(model_path, image_path, unit=373, x=6, y=6, exporter_function=lambda x, y: None)
+    plot_one_activation(model_path, image_path, unit=373, x=6, y=6, M=10, N=10)
