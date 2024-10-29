@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ef850e9a-559c-45d1-83f3-a8817ba93678" name="Changes" comment="backtracing code, exporting with everything needed for backtracing">
+    <list default="true" id="ef850e9a-559c-45d1-83f3-a8817ba93678" name="Changes" comment="fixed bug causing unstable behavior">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat/backtrace.py" beforeDir="false" afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat/backtrace.py" afterDir="false" />
     </list>
@@ -251,7 +251,7 @@
       <workItem from="1726855265899" duration="2037000" />
       <workItem from="1726859738640" duration="25000" />
       <workItem from="1727110360388" duration="24963000" />
-      <workItem from="1730144628985" duration="11844000" />
+      <workItem from="1730144628985" duration="12057000" />
     </task>
     <task id="LOCAL-00001" summary="plotweights.py">
       <option name="closed" value="true" />
@@ -341,7 +341,15 @@
       <option name="project" value="LOCAL" />
       <updated>1730220544328</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="fixed bug causing unstable behavior">
+      <option name="closed" value="true" />
+      <created>1730231102707</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1730231102707</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -392,7 +400,8 @@
     <MESSAGE value="fully working backtrace up until visualizing the C1 filters" />
     <MESSAGE value="refractor from test_one_firing.pyto a backtrace class" />
     <MESSAGE value="backtracing code, exporting with everything needed for backtracing" />
-    <option name="LAST_COMMIT_MESSAGE" value="backtracing code, exporting with everything needed for backtracing" />
+    <MESSAGE value="fixed bug causing unstable behavior" />
+    <option name="LAST_COMMIT_MESSAGE" value="fixed bug causing unstable behavior" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -401,6 +410,11 @@
           <url>file://$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat/test_one_firing.py</url>
           <line>20</line>
           <option name="timeStamp" value="12" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat/backtrace.py</url>
+          <line>115</line>
+          <option name="timeStamp" value="26" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
@@ -420,7 +434,7 @@
     <SUITE FILE_PATH="coverage/EStimShape$compare.coverage" NAME="compare Coverage Results" MODIFIED="1726687623517" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
     <SUITE FILE_PATH="coverage/EStimShape$visualize_c1.coverage" NAME="visualize_c1 Coverage Results" MODIFIED="1730229160162" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat" />
     <SUITE FILE_PATH="coverage/EStimShape$plotweights.coverage" NAME="plotweights Coverage Results" MODIFIED="1726603706638" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
-    <SUITE FILE_PATH="coverage/EStimShape$backtrace.coverage" NAME="backtrace Coverage Results" MODIFIED="1730231050722" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat" />
+    <SUITE FILE_PATH="coverage/EStimShape$backtrace.coverage" NAME="backtrace Coverage Results" MODIFIED="1730231249573" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat" />
     <SUITE FILE_PATH="coverage/EStimShape$imagenetpca.coverage" NAME="imagenetpca Coverage Results" MODIFIED="1726688563265" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />
     <SUITE FILE_PATH="coverage/EStimShape$save.coverage" NAME="save Coverage Results" MODIFIED="1729541376294" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet/frommat" />
     <SUITE FILE_PATH="coverage/EStimShape$train_imagenet.coverage" NAME="train_imagenet Coverage Results" MODIFIED="1727117092305" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/EStimShapeAnalysis/src/alexnet" />

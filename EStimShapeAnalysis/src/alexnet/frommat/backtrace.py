@@ -265,7 +265,7 @@ def associate_with_conv1_units(norm1_activations):
 
 if __name__ == "__main__":
     model_path = '/home/connorlab/PycharmProjects/EStimShape/EStimShapeAnalysis/src/alexnet/frommat/data/AlexNetONNX_with_conv3'
-    image_path = '/run/user/1000/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_alexnet_lighting_exp_241028_0/stimuli/ga/pngs/1730133711318240_1730132722800937.png'
+    image_path = '/run/user/1000/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_alexnet_lighting_exp_241028_0/stimuli/ga/pngs/1730133857913319_1730133711750773.png'
 
     # Get activation for unit 3 at position (6,6)
-    trace_one_activation(model_path, image_path, unit=374, x=6, y=6, M=10, N=10)
+    trace_one_activation(model_path, image_path, unit=373, x=6, y=6, M=10, N=10)
