@@ -10,6 +10,7 @@ from src.pga.spike_parsing import IntanResponseParser, ResponseParser
 
 
 class LayerType(Enum):
+    IMAGE = "image"
     CONV1 = "conv1"
     CONV2 = "conv2"
     CONV3 = "conv3"
@@ -48,7 +49,7 @@ class UnitIdentifier:
         return UnitIdentifier(layer, unit)
 
 
-class AlexNetIntanResponseParser(ResponseParser):
+class AlexNetONNXResponseParser(ResponseParser):
     def __init__(self, conn, onnx_path: str, unit: UnitIdentifier) -> None:
         self.conn = conn
         self.onnx_path = onnx_path

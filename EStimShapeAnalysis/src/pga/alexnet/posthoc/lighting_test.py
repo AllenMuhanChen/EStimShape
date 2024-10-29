@@ -9,7 +9,7 @@ from PIL import Image
 from clat.util import time_util
 from clat.util.connection import Connection
 from src.pga.alexnet import alexnet_context
-from src.pga.alexnet.onnx_parser import AlexNetIntanResponseParser
+from src.pga.alexnet.onnx_parser import AlexNetONNXResponseParser
 
 
 def main():
@@ -65,7 +65,7 @@ def main():
 def process_lighting_variations_through_alexnet(lighting_conn, unit_id):
     """Process all stimuli through AlexNet and save activations to lighting db."""
     # Create parser but only use its process_image functionality
-    parser = AlexNetIntanResponseParser(
+    parser = AlexNetONNXResponseParser(
         lighting_conn,
         "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3",
         unit_id

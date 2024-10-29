@@ -7,7 +7,7 @@ from src.pga.genetic_algorithm import GeneticAlgorithm
 from src.pga.regime_one import GrowingPhaseMutationMagnitudeAssigner, GrowingPhaseParentSelector, \
     GrowingPhaseTransitioner, RankOrderedDistribution
 from src.pga.response_processing import ResponseProcessor
-from src.pga.alexnet.onnx_parser import AlexNetIntanResponseParser, UnitIdentifier
+from src.pga.alexnet.onnx_parser import AlexNetONNXResponseParser, UnitIdentifier
 from src.pga.spike_parsing import ResponseParser
 from src.pga.trial_generators import AlexNetGAJarTrialGenerator, TrialGenerator
 
@@ -70,9 +70,9 @@ class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
         This response parser will differ in that all it needs to do is read Stim paths
         and show those to AlexNet and save those activations into UnitActivations table.
         """
-        return AlexNetIntanResponseParser(self.connection(),
+        return AlexNetONNXResponseParser(self.connection(),
                                           "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3",
-                                          self.unit_id)
+                                         self.unit_id)
 
     def make_response_processor(self) -> AlexNetResponseProcessor:
         """
