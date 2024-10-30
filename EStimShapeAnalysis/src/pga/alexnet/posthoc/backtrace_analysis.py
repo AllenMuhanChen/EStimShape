@@ -34,17 +34,18 @@ def main():
 
         is_positive_conv2 = True
         is_positive_conv1 = False
-        fig = plot_variations(conn, variations, parent_path, combination_func, is_positive_conv2=is_positive_conv2, is_positive_conv1=is_positive_conv1)
+        fig = plot_variations(conn, variations, parent_path, combination_func, is_positive_conv2=is_positive_conv2,
+                              is_positive_conv1=is_positive_conv1)
         plt.figure(fig.number)
         plt.suptitle('Lighting variations for Parent ID: ' + str(parent_id))
         pos_or_neg = '_pos' if is_positive_conv2 else '_neg'
-        plt.savefig('/home/r2_allen/Documents/EStimShape/allen_alexnet_lighting_exp_241028_0/plots/' + str(parent_id) + pos_or_neg + '.png')
+        plt.savefig('/home/r2_allen/Documents/EStimShape/allen_alexnet_lighting_exp_241028_0/plots/' + str(
+            parent_id) + pos_or_neg + '.png')
         plt.show()
 
 
 def plot_variations(conn: Connection, variations: list, parent_image_path: str, combination_func=np.mean,
                     is_positive_conv2=True, is_positive_conv1=True):
-
     specular_vars = [v for v in variations if v[1] == 'SPECULAR']
     shade_vars = [v for v in variations if v[1] == 'SHADE']
     n_cols = max(len(specular_vars), len(shade_vars)) + 1
@@ -61,14 +62,14 @@ def plot_variations(conn: Connection, variations: list, parent_image_path: str, 
         conn.execute("SELECT path FROM StimPath WHERE stim_id = %s", (stim_id,))
         variant_path = conn.fetch_one()
 
-        # Original image
+        # Plot Original image
         ax = plt.subplot(6, n_cols, idx + 1)
         img = Image.open(variant_path)
         ax.imshow(img)
         ax.set_title(f'SPECULAR\nActivation: {activation:.3f}')
         ax.axis('off')
 
-        # Contribution map
+        # Plot Contribution map
         ax_map = plt.subplot(6, n_cols, n_cols + idx + 1)
         heatmap = np.zeros((*norm_map.shape, 4))
         heatmap[..., 0] = 1.0
@@ -165,6 +166,7 @@ def plot_variations(conn: Connection, variations: list, parent_image_path: str, 
     plt.subplots_adjust(hspace=0.0, wspace=0.1)
     return fig
 
+
 def calculate_contribution_map(conn: Connection, stim_id: int, is_positive_conv2, is_positive_conv1) -> np.ndarray:
     """Find all positive conv2 contributions:"""
     if is_positive_conv2:
@@ -232,6 +234,15 @@ def calculate_contribution_map(conn: Connection, stim_id: int, is_positive_conv2
     return contribution_map
 
 
+def calculate_each_contribution_map(conn: Connection, stim_id: int) -> list[np.ndarray]:
+    contrib_maps = []
+    conditions = [(True, True), (True, False), (False, True), (False, False)]
+    for is_positive_conv2, is_positive_conv1 in conditions:
+        contrib_map = calculate_contribution_map(conn, stim_id, is_positive_conv2, is_positive_conv1)
+        contrib_maps.append(contrib_map)
+    return contrib_maps
+
+
 def get_stim_lighting_variations(conn: Connection, parent_id: int) -> list:
     """Get all lighting variations for a given parent stimulus."""
     query = """
@@ -262,7 +273,8 @@ def calculate_average_contribution_map(conn: Connection, variations: list, is_po
     return avg_map
 
 
-def calculate_combined_contribution_map(conn: Connection, variations: list, combination_func, is_positive) -> np.ndarray:
+def calculate_combined_contribution_map(conn: Connection, variations: list, combination_func,
+                                        is_positive) -> np.ndarray:
     """Calculate average contribution map across lighting variations."""
     all_maps = []
 
@@ -277,8 +289,6 @@ def calculate_combined_contribution_map(conn: Connection, variations: list, comb
     avg_map = combination_func(all_maps)
     # Smooth the map slightly for better visualization
     return avg_map
-
-
 
 
 if __name__ == "__main__":
