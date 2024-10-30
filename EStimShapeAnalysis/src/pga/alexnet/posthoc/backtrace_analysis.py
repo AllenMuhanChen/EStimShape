@@ -24,8 +24,8 @@ def main():
         password='up2nite',
         database=alexnet_context.lighting_database
     )
-    conv2_contribution = ContributionType.POSITIVE
-    conv1_contribution = ContributionType.NEGATIVE
+    conv2_contribution = ContributionType.BOTH
+    conv1_contribution = ContributionType.BOTH
 
     # Get unique parent IDs
     query = """
@@ -205,7 +205,7 @@ def calculate_contribution_map(conn: Connection, stim_id: int, conv2_contributio
 
         conn.execute(query, (stim_id, conv2))
         results = conn.fetch_all()
-        contributions_for_conv1s: dict = {result[0]: np.sqrt(abs(result[1] * conv2_activation)) for result in
+        contributions_for_conv1s: dict = {result[0]: abs(result[1] * conv2_activation) for result in
                                           results}
         # conv1s = [result[0] for result in conn.fetch_all()]
         contributions_for_all_conv1s.update(contributions_for_conv1s)
@@ -230,7 +230,7 @@ def calculate_contribution_map(conn: Connection, stim_id: int, conv2_contributio
                 x = int(unit_id.split('_')[2][1:])
                 y = int(unit_id.split('_')[3][1:])
                 if 0 <= x < 227 and 0 <= y < 227:
-                    contribution_map[x, y] += float(np.sqrt(abs(pixel_contribution * conv1_times_conv2_contribution)))
+                    contribution_map[x, y] += float(abs(pixel_contribution * conv1_times_conv2_contribution))
 
     return contribution_map
 
