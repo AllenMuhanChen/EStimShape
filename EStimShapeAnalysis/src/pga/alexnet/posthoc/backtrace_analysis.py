@@ -16,19 +16,35 @@ def main():
         database=alexnet_context.lighting_database
     )
 
-    variations = get_stim_lighting_variations(conn, 1730132722800937)
-    conn.execute("SELECT path FROM StimPath WHERE stim_id = %s", (1730132722800937,))
-    parent_path = conn.fetch_one()
-    # combination_func = lambda x: np.prod(x, axis=0)
-    combination_func = lambda x: np.mean(x, axis=0)
+    # Get unique parent IDs
+    query = """
+       SELECT DISTINCT parent_id 
+       FROM StimInstructions 
+       WHERE stim_type = 'TEXTURE_3D_VARIATION'
+       """
+    conn.execute(query)
+    parent_ids = [row[0] for row in conn.fetch_all()]
 
-    fig = plot_variations(conn, variations, parent_path,
-                          combination_func)
+    for parent_id in parent_ids:
+        variations = get_stim_lighting_variations(conn, parent_id)
+        conn.execute("SELECT path FROM StimPath WHERE stim_id = %s", (parent_id,))
+        parent_path = conn.fetch_one()
+        # combination_func = lambda x: np.prod(x, axis=0)
+        combination_func = lambda x: np.mean(x, axis=0)
 
-    plt.show()
+        is_positive_conv2 = True
+        is_positive_conv1 = False
+        fig = plot_variations(conn, variations, parent_path, combination_func, is_positive_conv2=is_positive_conv2, is_positive_conv1=is_positive_conv1)
+        plt.figure(fig.number)
+        plt.suptitle('Lighting variations for Parent ID: ' + str(parent_id))
+        pos_or_neg = '_pos' if is_positive_conv2 else '_neg'
+        plt.savefig('/home/r2_allen/Documents/EStimShape/allen_alexnet_lighting_exp_241028_0/plots/' + str(parent_id) + pos_or_neg + '.png')
+        plt.show()
 
 
-def plot_variations(conn: Connection, variations: list, parent_image_path: str, combination_func=np.mean):
+def plot_variations(conn: Connection, variations: list, parent_image_path: str, combination_func=np.mean,
+                    is_positive_conv2=True, is_positive_conv1=True):
+
     specular_vars = [v for v in variations if v[1] == 'SPECULAR']
     shade_vars = [v for v in variations if v[1] == 'SHADE']
     n_cols = max(len(specular_vars), len(shade_vars)) + 1
@@ -38,7 +54,7 @@ def plot_variations(conn: Connection, variations: list, parent_image_path: str, 
 
     # Plot SPECULAR variations
     for idx, (stim_id, texture_type, activation) in enumerate(specular_vars):
-        contrib_map = calculate_contribution_map(conn, stim_id)
+        contrib_map = calculate_contribution_map(conn, stim_id, is_positive_conv2, is_positive_conv1)
         all_maps['SPECULAR'].append(contrib_map)
         norm_map = contrib_map / contrib_map.max() if contrib_map.max() > 0 else contrib_map
 
@@ -83,7 +99,7 @@ def plot_variations(conn: Connection, variations: list, parent_image_path: str, 
 
     # Plot SHADE variations
     for idx, (stim_id, texture_type, activation) in enumerate(shade_vars):
-        contrib_map = calculate_contribution_map(conn, stim_id)
+        contrib_map = calculate_contribution_map(conn, stim_id, is_positive_conv2, is_positive_conv1)
         all_maps['SHADE'].append(contrib_map)
         norm_map = contrib_map / contrib_map.max() if contrib_map.max() > 0 else contrib_map
 
@@ -149,6 +165,73 @@ def plot_variations(conn: Connection, variations: list, parent_image_path: str, 
     plt.subplots_adjust(hspace=0.0, wspace=0.1)
     return fig
 
+def calculate_contribution_map(conn: Connection, stim_id: int, is_positive_conv2, is_positive_conv1) -> np.ndarray:
+    """Find all positive conv2 contributions:"""
+    if is_positive_conv2:
+        query = """
+        SELECT to_unit_id 
+        FROM UnitContributions 
+        WHERE stim_id = %s 
+        AND from_unit_id LIKE 'conv3_%%'
+        AND contribution > 0
+        """
+    else:
+        query = """
+        SELECT to_unit_id 
+        FROM UnitContributions 
+        WHERE stim_id = %s 
+        AND from_unit_id LIKE 'conv3_%%'
+        AND contribution < 0
+        """
+    conn.execute(query, (stim_id,))
+    conv2s = [result[0] for result in conn.fetch_all()]
+    """Find all is_positive contributions for each conv2 unit:"""
+    all_conv1s = []
+    for conv2 in conv2s:
+        if is_positive_conv1:
+            query = """
+            SELECT to_unit_id 
+            FROM UnitContributions 
+            WHERE stim_id = %s 
+            AND from_unit_id = %s 
+            # AND contribution > 0
+            """
+        else:
+            query = """
+            SELECT to_unit_id 
+            FROM UnitContributions 
+            WHERE stim_id = %s 
+            AND from_unit_id = %s 
+            AND contribution < 0
+            """
+        conn.execute(query, (stim_id, conv2))
+        conv1s = [result[0] for result in conn.fetch_all()]
+        all_conv1s.extend(conv1s)
+
+    contribution_map = np.zeros((227, 227))
+    for conv1 in all_conv1s:
+
+        """Calculate summed positive contributions for a single stimulus."""
+        query = """
+            SELECT to_unit_id, contribution 
+            FROM UnitContributions 
+            WHERE stim_id = %s 
+            AND from_unit_id = %s
+            """
+
+        conn.execute(query, (stim_id, conv1))
+        contributions_for_to_unit_ids = conn.fetch_all()
+
+        for unit_id, contribution in contributions_for_to_unit_ids:
+            # Parse x,y from format IMAGE_u0_x{num}_y{num}
+            x = int(unit_id.split('_')[2][1:])
+            y = int(unit_id.split('_')[3][1:])
+            if 0 <= x < 227 and 0 <= y < 227:
+                contribution_map[x, y] += abs(float(contribution))
+
+    return contribution_map
+
+
 def get_stim_lighting_variations(conn: Connection, parent_id: int) -> list:
     """Get all lighting variations for a given parent stimulus."""
     query = """
@@ -162,36 +245,12 @@ def get_stim_lighting_variations(conn: Connection, parent_id: int) -> list:
     return conn.fetch_all()
 
 
-def calculate_contribution_map(conn: Connection, stim_id: int) -> np.ndarray:
-    """Calculate summed positive contributions for a single stimulus."""
-    contribution_map = np.zeros((227, 227))
-
-    query = """
-    SELECT to_unit_id, contribution 
-    FROM UnitContributions 
-    WHERE stim_id = %s 
-    AND to_unit_id LIKE 'IMAGE_%%'
-    AND contribution > 0
-    """
-    conn.execute(query, (stim_id,))
-    contributions = conn.fetch_all()
-
-    for unit_id, contribution in contributions:
-        # Parse x,y from format IMAGE_u0_x{num}_y{num}
-        x = int(unit_id.split('_')[2][1:])
-        y = int(unit_id.split('_')[3][1:])
-        if 0 <= x < 227 and 0 <= y < 227:
-            contribution_map[x, y] += float(contribution)
-
-    return contribution_map
-
-
-def calculate_average_contribution_map(conn: Connection, variations: list) -> np.ndarray:
+def calculate_average_contribution_map(conn: Connection, variations: list, is_positive) -> np.ndarray:
     """Calculate average contribution map across lighting variations."""
     all_maps = []
 
     for stim_id, _, _ in variations:
-        contrib_map = calculate_contribution_map(conn, stim_id)
+        contrib_map = calculate_contribution_map(conn, stim_id, is_positive, is_positive_conv1)
         if contrib_map.max() > 0:  # Only include non-zero maps
             all_maps.append(contrib_map)
 
@@ -203,12 +262,12 @@ def calculate_average_contribution_map(conn: Connection, variations: list) -> np
     return avg_map
 
 
-def calculate_combined_contribution_map(conn: Connection, variations: list, combination_func) -> np.ndarray:
+def calculate_combined_contribution_map(conn: Connection, variations: list, combination_func, is_positive) -> np.ndarray:
     """Calculate average contribution map across lighting variations."""
     all_maps = []
 
     for stim_id, _, _ in variations:
-        contrib_map = calculate_contribution_map(conn, stim_id)
+        contrib_map = calculate_contribution_map(conn, stim_id, is_positive, is_positive_conv1)
         if contrib_map.max() > 0:  # Only include non-zero maps
             all_maps.append(contrib_map)
 
