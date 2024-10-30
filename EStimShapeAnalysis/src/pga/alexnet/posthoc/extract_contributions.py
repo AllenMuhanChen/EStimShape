@@ -55,7 +55,7 @@ class AlexNetContributionCalculator:
             self.conn.mydb.commit()
 
         # Call backtrace with our export function
-        backtrace(self.onnx_path, image_path, unit, x, y, export_to_db, 10, 10)
+        backtrace(self.onnx_path, image_path, unit, x, y, export_to_db, 20, 20, 10)
 
     def _get_stim_id_from_path(self, path: str) -> int:
         """

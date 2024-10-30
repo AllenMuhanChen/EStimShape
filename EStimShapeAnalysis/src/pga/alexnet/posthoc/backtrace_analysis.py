@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import math
 from enum import Enum
 
 import numpy as np
@@ -22,6 +24,8 @@ def main():
         password='up2nite',
         database=alexnet_context.lighting_database
     )
+    conv2_contribution = ContributionType.POSITIVE
+    conv1_contribution = ContributionType.NEGATIVE
 
     # Get unique parent IDs
     query = """
@@ -39,8 +43,6 @@ def main():
         # combination_func = lambda x: np.prod(x, axis=0)
         combination_func = lambda x: np.mean(x, axis=0)
 
-        conv2_contribution = ContributionType.POSITIVE
-        conv1_contribution = ContributionType.BOTH
         fig = plot_variations(conn, variations, parent_path, combination_func, conv2_contribution_type=conv2_contribution,
                               conv1_contribution_type=conv1_contribution)
         plt.figure(fig.number)
@@ -177,21 +179,24 @@ def calculate_contribution_map(conn: Connection, stim_id: int, conv2_contributio
     """Find all positive conv2 contributions:"""
     contribution_line = build_sql_contribution_line(conv2_contribution_type)
     query = f"""
-    SELECT to_unit_id
+    SELECT (to_unit_id), (contribution)
     FROM UnitContributions
     WHERE stim_id = %s
     AND from_unit_id LIKE 'conv3%%'
     {contribution_line}
+    ORDER BY contribution DESC
     """
 
     conn.execute(query, (stim_id,))
-    conv2s = [result[0] for result in conn.fetch_all()]
+    activations_for_conv2s: dict = {result[0]: result[1] for result in conn.fetch_all()}
+
+
     """Find all is_positive contributions for each conv2 unit:"""
     contribution_line = build_sql_contribution_line(conv1_contribution_type)
-    all_conv1s = []
-    for conv2 in conv2s:
+    contributions_for_all_conv1s = {}
+    for conv2, conv2_activation in activations_for_conv2s.items():
         query = f"""
-        SELECT to_unit_id 
+        SELECT to_unit_id, contribution 
         FROM UnitContributions 
         WHERE stim_id = %s 
         AND from_unit_id = %s 
@@ -199,29 +204,33 @@ def calculate_contribution_map(conn: Connection, stim_id: int, conv2_contributio
         """
 
         conn.execute(query, (stim_id, conv2))
-        conv1s = [result[0] for result in conn.fetch_all()]
-        all_conv1s.extend(conv1s)
+        results = conn.fetch_all()
+        contributions_for_conv1s: dict = {result[0]: np.sqrt(abs(result[1] * conv2_activation)) for result in
+                                          results}
+        # conv1s = [result[0] for result in conn.fetch_all()]
+        contributions_for_all_conv1s.update(contributions_for_conv1s)
 
     contribution_map = np.zeros((227, 227))
 
-    for conv1 in all_conv1s:
-        """Calculate summed positive contributions for a single stimulus."""
-        query = """
-            SELECT to_unit_id, contribution 
-            FROM UnitContributions 
-            WHERE stim_id = %s 
-            AND from_unit_id = %s
-            """
+    for conv1, conv1_times_conv2_contribution in contributions_for_all_conv1s.items():
+        # if int(conv1.split('_')[1][1:]) < 47:
+            """Calculate summed positive contributions for a single stimulus."""
+            query = """
+                SELECT to_unit_id, contribution 
+                FROM UnitContributions 
+                WHERE stim_id = %s 
+                AND from_unit_id = %s
+                """
 
-        conn.execute(query, (stim_id, conv1))
-        contributions_for_to_unit_ids = conn.fetch_all()
+            conn.execute(query, (stim_id, conv1))
+            contributions_for_pixels = conn.fetch_all()
 
-        for unit_id, contribution in contributions_for_to_unit_ids:
-            # Parse x,y from format IMAGE_u0_x{num}_y{num}
-            x = int(unit_id.split('_')[2][1:])
-            y = int(unit_id.split('_')[3][1:])
-            if 0 <= x < 227 and 0 <= y < 227:
-                contribution_map[x, y] += abs(float(contribution))
+            for unit_id, pixel_contribution in contributions_for_pixels:
+                # Parse x,y from format IMAGE_u0_x{num}_y{num}
+                x = int(unit_id.split('_')[2][1:])
+                y = int(unit_id.split('_')[3][1:])
+                if 0 <= x < 227 and 0 <= y < 227:
+                    contribution_map[x, y] += float(np.sqrt(abs(pixel_contribution * conv1_times_conv2_contribution)))
 
     return contribution_map
 
@@ -232,7 +241,7 @@ def build_sql_contribution_line(contribution_type):
     elif contribution_type == ContributionType.NEGATIVE:
         contribution_line = "AND contribution < 0"
     else:
-        contribution_line = ""
+        contribution_line = "AND (contribution > 0 OR contribution < 0)"
     return contribution_line
 
 
