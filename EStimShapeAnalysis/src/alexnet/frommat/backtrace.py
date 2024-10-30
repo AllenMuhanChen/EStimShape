@@ -11,7 +11,7 @@ from src.pga.alexnet.onnx_parser import UnitIdentifier, LayerType
 
 
 def backtrace(model_path: str, image_path: str, unit: int, x: int, y: int, exporter_function, top_conv2: int = 10,
-              top_conv1: int = 10, top_pixels: int = 25):
+              top_conv1: int = 10, top_pixels: int = 10):
     """
     Backtrace contributions through AlexNet layers, focusing on top N positive and negative contributions
 
@@ -24,6 +24,7 @@ def backtrace(model_path: str, image_path: str, unit: int, x: int, y: int, expor
         exporter_function: Function to export contribution data
         top_conv2: Number of top positive/negative Conv2 contributions to track
         top_conv1: Number of top positive/negative Conv1 contributions to track
+        top_pixels: Number of top positive/negative pixel contributions to track
     """
     # Get layer weights
     model = onnx.load(model_path)
