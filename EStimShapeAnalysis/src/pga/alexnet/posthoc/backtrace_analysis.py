@@ -1,4 +1,5 @@
-import functools
+from __future__ import annotations
+from enum import Enum
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -6,6 +7,12 @@ from clat.util.connection import Connection
 from PIL import Image
 
 from src.pga.alexnet import alexnet_context
+
+
+class ContributionType(Enum):
+    POSITIVE = 'POSITIVE'
+    NEGATIVE = 'NEGATIVE'
+    BOTH = 'BOTH'
 
 
 def main():
@@ -32,30 +39,29 @@ def main():
         # combination_func = lambda x: np.prod(x, axis=0)
         combination_func = lambda x: np.mean(x, axis=0)
 
-        is_positive_conv2 = True
-        is_positive_conv1 = False
-        fig = plot_variations(conn, variations, parent_path, combination_func, is_positive_conv2=is_positive_conv2,
-                              is_positive_conv1=is_positive_conv1)
+        conv2_contribution = ContributionType.POSITIVE
+        conv1_contribution = ContributionType.BOTH
+        fig = plot_variations(conn, variations, parent_path, combination_func, conv2_contribution_type=conv2_contribution,
+                              conv1_contribution_type=conv1_contribution)
         plt.figure(fig.number)
         plt.suptitle('Lighting variations for Parent ID: ' + str(parent_id))
-        pos_or_neg = '_pos' if is_positive_conv2 else '_neg'
         plt.savefig('/home/r2_allen/Documents/EStimShape/allen_alexnet_lighting_exp_241028_0/plots/' + str(
-            parent_id) + pos_or_neg + '.png')
+            parent_id) + str(conv2_contribution) + str(conv1_contribution) + '.png')
         plt.show()
 
 
 def plot_variations(conn: Connection, variations: list, parent_image_path: str, combination_func=np.mean,
-                    is_positive_conv2=True, is_positive_conv1=True):
+                    conv2_contribution_type=ContributionType.POSITIVE, conv1_contribution_type=ContributionType.BOTH):
     specular_vars = [v for v in variations if v[1] == 'SPECULAR']
     shade_vars = [v for v in variations if v[1] == 'SHADE']
     n_cols = max(len(specular_vars), len(shade_vars)) + 1
 
-    fig = plt.figure(figsize=(20, 17))  # Increased height for double rows
+    fig = plt.figure(figsize=(20, 17))
     all_maps = {'SPECULAR': [], 'SHADE': []}
 
     # Plot SPECULAR variations
     for idx, (stim_id, texture_type, activation) in enumerate(specular_vars):
-        contrib_map = calculate_contribution_map(conn, stim_id, is_positive_conv2, is_positive_conv1)
+        contrib_map = calculate_contribution_map(conn, stim_id, conv2_contribution_type, conv1_contribution_type)
         all_maps['SPECULAR'].append(contrib_map)
         norm_map = contrib_map / contrib_map.max() if contrib_map.max() > 0 else contrib_map
 
@@ -100,7 +106,7 @@ def plot_variations(conn: Connection, variations: list, parent_image_path: str, 
 
     # Plot SHADE variations
     for idx, (stim_id, texture_type, activation) in enumerate(shade_vars):
-        contrib_map = calculate_contribution_map(conn, stim_id, is_positive_conv2, is_positive_conv1)
+        contrib_map = calculate_contribution_map(conn, stim_id, conv2_contribution_type, conv1_contribution_type)
         all_maps['SHADE'].append(contrib_map)
         norm_map = contrib_map / contrib_map.max() if contrib_map.max() > 0 else contrib_map
 
@@ -167,52 +173,38 @@ def plot_variations(conn: Connection, variations: list, parent_image_path: str, 
     return fig
 
 
-def calculate_contribution_map(conn: Connection, stim_id: int, is_positive_conv2, is_positive_conv1) -> np.ndarray:
+def calculate_contribution_map(conn: Connection, stim_id: int, conv2_contribution_type: ContributionType, conv1_contribution_type: ContributionType) -> np.ndarray:
     """Find all positive conv2 contributions:"""
-    if is_positive_conv2:
-        query = """
-        SELECT to_unit_id 
-        FROM UnitContributions 
-        WHERE stim_id = %s 
-        AND from_unit_id LIKE 'conv3_%%'
-        AND contribution > 0
-        """
-    else:
-        query = """
-        SELECT to_unit_id 
-        FROM UnitContributions 
-        WHERE stim_id = %s 
-        AND from_unit_id LIKE 'conv3_%%'
-        AND contribution < 0
-        """
+    contribution_line = build_sql_contribution_line(conv2_contribution_type)
+    query = f"""
+    SELECT to_unit_id
+    FROM UnitContributions
+    WHERE stim_id = %s
+    AND from_unit_id LIKE 'conv3%%'
+    {contribution_line}
+    """
+
     conn.execute(query, (stim_id,))
     conv2s = [result[0] for result in conn.fetch_all()]
     """Find all is_positive contributions for each conv2 unit:"""
+    contribution_line = build_sql_contribution_line(conv1_contribution_type)
     all_conv1s = []
     for conv2 in conv2s:
-        if is_positive_conv1:
-            query = """
-            SELECT to_unit_id 
-            FROM UnitContributions 
-            WHERE stim_id = %s 
-            AND from_unit_id = %s 
-            # AND contribution > 0
-            """
-        else:
-            query = """
-            SELECT to_unit_id 
-            FROM UnitContributions 
-            WHERE stim_id = %s 
-            AND from_unit_id = %s 
-            AND contribution < 0
-            """
+        query = f"""
+        SELECT to_unit_id 
+        FROM UnitContributions 
+        WHERE stim_id = %s 
+        AND from_unit_id = %s 
+        {contribution_line}
+        """
+
         conn.execute(query, (stim_id, conv2))
         conv1s = [result[0] for result in conn.fetch_all()]
         all_conv1s.extend(conv1s)
 
     contribution_map = np.zeros((227, 227))
-    for conv1 in all_conv1s:
 
+    for conv1 in all_conv1s:
         """Calculate summed positive contributions for a single stimulus."""
         query = """
             SELECT to_unit_id, contribution 
@@ -234,13 +226,14 @@ def calculate_contribution_map(conn: Connection, stim_id: int, is_positive_conv2
     return contribution_map
 
 
-def calculate_each_contribution_map(conn: Connection, stim_id: int) -> list[np.ndarray]:
-    contrib_maps = []
-    conditions = [(True, True), (True, False), (False, True), (False, False)]
-    for is_positive_conv2, is_positive_conv1 in conditions:
-        contrib_map = calculate_contribution_map(conn, stim_id, is_positive_conv2, is_positive_conv1)
-        contrib_maps.append(contrib_map)
-    return contrib_maps
+def build_sql_contribution_line(contribution_type):
+    if contribution_type == ContributionType.POSITIVE:
+        contribution_line = "AND contribution > 0"
+    elif contribution_type == ContributionType.NEGATIVE:
+        contribution_line = "AND contribution < 0"
+    else:
+        contribution_line = ""
+    return contribution_line
 
 
 def get_stim_lighting_variations(conn: Connection, parent_id: int) -> list:
@@ -254,41 +247,6 @@ def get_stim_lighting_variations(conn: Connection, parent_id: int) -> list:
     """
     conn.execute(query, (parent_id,))
     return conn.fetch_all()
-
-
-def calculate_average_contribution_map(conn: Connection, variations: list, is_positive) -> np.ndarray:
-    """Calculate average contribution map across lighting variations."""
-    all_maps = []
-
-    for stim_id, _, _ in variations:
-        contrib_map = calculate_contribution_map(conn, stim_id, is_positive, is_positive_conv1)
-        if contrib_map.max() > 0:  # Only include non-zero maps
-            all_maps.append(contrib_map)
-
-    if not all_maps:
-        return np.zeros((227, 227))
-
-    avg_map = np.mean(all_maps, axis=0)
-    # Smooth the map slightly for better visualization
-    return avg_map
-
-
-def calculate_combined_contribution_map(conn: Connection, variations: list, combination_func,
-                                        is_positive) -> np.ndarray:
-    """Calculate average contribution map across lighting variations."""
-    all_maps = []
-
-    for stim_id, _, _ in variations:
-        contrib_map = calculate_contribution_map(conn, stim_id, is_positive, is_positive_conv1)
-        if contrib_map.max() > 0:  # Only include non-zero maps
-            all_maps.append(contrib_map)
-
-    if not all_maps:
-        return np.zeros((227, 227))
-
-    avg_map = combination_func(all_maps)
-    # Smooth the map slightly for better visualization
-    return avg_map
 
 
 if __name__ == "__main__":
