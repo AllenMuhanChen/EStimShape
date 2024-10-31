@@ -11,6 +11,8 @@ from src.pga.alexnet.onnx_parser import AlexNetONNXResponseParser, UnitIdentifie
 from src.pga.spike_parsing import ResponseParser
 from src.pga.trial_generators import AlexNetGAJarTrialGenerator, TrialGenerator
 
+MIN_RESPONSE = -25
+
 
 class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
     unit_id = None
@@ -102,7 +104,7 @@ class AlexNetSeedingPhaseMutationAssigner(MutationAssigner):
 class AlexNetSeedingPhaseTransitioner(RegimeTransitioner):
     def should_transition(self, lineage: Lineage) -> bool:
         for stimulus in lineage.stimuli:
-            if stimulus.response_rate > 0:
+            if stimulus.response_rate > MIN_RESPONSE:
                 return True
 
     def get_transition_data(self, lineage: Lineage) -> str:
@@ -116,9 +118,9 @@ class RFLocPhaseParentSelector(ParentSelector):
     def select_parents(self, lineage: Lineage, batch_size: int) -> list[Stimulus]:
         stimuli = lineage.stimuli
         # filter out negative stimuli
-        stimuli = [stimulus for stimulus in stimuli if stimulus.response_rate > 0]
+        stimuli = [stimulus for stimulus in stimuli if stimulus.response_rate > MIN_RESPONSE]
 
-        rank_ordered_distribution = RankOrderedDistribution(lineage.stimuli, self.proportions)
+        rank_ordered_distribution = RankOrderedDistribution(stimuli, self.proportions)
         if not stimuli:
             return []
 
@@ -143,27 +145,29 @@ class RFLocPhaseMutationMagnitudeAssigner(GrowingPhaseMutationMagnitudeAssigner)
 class RFLocPhaseTransitioner(RegimeTransitioner):
     def __init__(self):
         self.threshold_response = None
-        self.threshold_percentage_of_max = 0.9  # percentage of max response to consider a stimulus passed the threshold
+        self.threshold_percentage_of_max = 0.8  # percentage of max response to consider a stimulus passed the threshold
         self.num_pass_required = 5  # percentage of stimuli that must pass the threshold
 
         # data
-        self.passed_threshold = None
+        self.passed_threshold = []
 
     def should_transition(self, lineage: Lineage) -> bool:
         # check if we have enough stimuli in the top 90% of the highest response
         stimuli = [stimulus for stimulus in lineage.stimuli if stimulus.response_rate > 0]
+        if not stimuli:
+            return False
         sorted_responses = sorted(stimuli, reverse=True, key=lambda x: x.response_rate)
         highest_response = sorted_responses[0].response_rate
         self.threshold_response = self.threshold_percentage_of_max * highest_response
         self.passed_threshold = [stimulus for stimulus in sorted_responses if
                                  stimulus.response_rate >= self.threshold_response]
 
-        self.num_required_to_pass = self.num_pass_required
-        return len(self.passed_threshold) >= self.num_required_to_pass
+
+        return len(self.passed_threshold) >= self.num_pass_required
 
     def get_transition_data(self, lineage: Lineage) -> str:
         data = {"threshold": self.threshold_response, "num_passed": len(self.passed_threshold),
-                "num_required": self.num_required_to_pass}
+                "num_required": self.num_pass_required}
         return str(data)
 
 
@@ -180,7 +184,7 @@ class AlexNetGrowingPhaseParentSelector(GrowingPhaseParentSelector):
 
         stimuli = self._filter_to_best_rf(stimuli)
 
-        rank_ordered_distribution = RankOrderedDistribution(lineage.stimuli, self.bin_proportions)
+        rank_ordered_distribution = RankOrderedDistribution(stimuli, self.bin_proportions)
         if not stimuli:
             return []
 

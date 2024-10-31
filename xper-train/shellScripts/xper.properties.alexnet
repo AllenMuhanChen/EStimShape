@@ -3,7 +3,7 @@ matlab.home=/usr/local/matlab70_sp1
 xper.native_library_path=${matlab.home}/bin/glnx86;${matlab.home}/sys/os/glnx86
 
 jdbc.driver=com.mysql.jdbc.Driver
-jdbc.url=jdbc:mysql://172.30.6.80/allen_alexnet_ga_exp_241028_0?rewriteBatchedStatements=true
+jdbc.url=jdbc:mysql://172.30.6.80/allen_alexnet_ga_exp_241031_2?rewriteBatchedStatements=true
 
 
 jdbc.username=xper_rw
@@ -19,10 +19,10 @@ experiment.ga.name=New3D
 # parameters
 #############################################################################
 #path of computer running stimulus generator
-generator.png_path=/home/r2_allen/Documents/EStimShape/allen_alexnet_ga_exp_241028_0/stimuli/ga/pngs
+generator.png_path=/home/r2_allen/Documents/EStimShape/allen_alexnet_ga_exp_241031_2/stimuli/ga/pngs
 #path of computer running experiment
 experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_alexnet_ga_test_241025_0/stimuli/ga/pngs
-generator.spec_path=/home/r2_allen/Documents/EStimShape/allen_alexnet_ga_exp_241028_0/stimuli/ga/specs
+generator.spec_path=/home/r2_allen/Documents/EStimShape/allen_alexnet_ga_exp_241031_2/stimuli/ga/specs
 generator.noisemap_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_240604/stimuli/240723/procedural/pngs
 generator.set_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_240604/stimuli/240723/sets
 experiment.noisemap_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_estimshape_train_240604/stimuli/240723/procedural/pngs

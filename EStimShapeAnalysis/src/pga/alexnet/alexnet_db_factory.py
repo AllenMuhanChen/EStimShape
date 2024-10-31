@@ -10,9 +10,9 @@ from src.startup.setup_xper_properties_and_dirs import XperPropertiesModifier, m
 HOST = '172.30.6.80'
 USER = 'xper_rw'
 PASS = 'up2nite'
-TEMPLATE_TYPE = 'test'
-TEMPLATE_DATE = '241025'
-TEMPLATE_LOCATION_ID = '2'
+TEMPLATE_TYPE = 'exp'
+TEMPLATE_DATE = '241028'
+TEMPLATE_LOCATION_ID = '0'
 
 
 def main():
@@ -47,34 +47,36 @@ def main():
                             ])
 
     # Create lighting database with necessary tables
-    create_db_from_template(f'allen_alexnet_ga_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}',
+    create_db_from_template(f'allen_alexnet_lighting_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}',
                             lighting_database,
                             [],
                             copy_structure_tables=[
                                 "StimPath",
                                 "StimSpec",
-                                "UnitActivations"
+                                "StimInstructions",
+                                "UnitActivations",
+                                "UnitContributions"
                             ])
-
-    # Add StimInstructions table to lighting database only
-    try:
-        conn = Connection(host=HOST, user=USER, password=PASS, database=lighting_database)
-        conn.execute("""
-        CREATE TABLE StimInstructions (
-            stim_id BIGINT PRIMARY KEY,
-            parent_id BIGINT,
-            stim_type VARCHAR(20),
-            texture_type VARCHAR(20),
-            light_pos_x FLOAT,
-            light_pos_y FLOAT,
-            light_pos_z FLOAT,
-            light_pos_w FLOAT,
-            contrast DOUBLE
-        )
-        """)
-        conn.mydb.commit()
-    except:
-        print("StimInstructions table already exists in the database.")
+    #
+    # # Add StimInstructions table to lighting database only
+    # try:
+    #     conn = Connection(host=HOST, user=USER, password=PASS, database=lighting_database)
+    #     conn.execute("""
+    #     CREATE TABLE StimInstructions (
+    #         stim_id BIGINT PRIMARY KEY,
+    #         parent_id BIGINT,
+    #         stim_type VARCHAR(20),
+    #         texture_type VARCHAR(20),
+    #         light_pos_x FLOAT,
+    #         light_pos_y FLOAT,
+    #         light_pos_z FLOAT,
+    #         light_pos_w FLOAT,
+    #         contrast DOUBLE
+    #     )
+    #     """)
+    #     conn.mydb.commit()
+    # except:
+    #     print("StimInstructions table already exists in the database.")
 
     # Update context file for GA database
     update_context_file(ga_database, lighting_database)

@@ -24,8 +24,8 @@ def main():
         password='up2nite',
         database=alexnet_context.lighting_database
     )
-    conv2_contribution = ContributionType.BOTH
-    conv1_contribution = ContributionType.BOTH
+    conv2_contribution = ContributionType.NEGATIVE
+    conv1_contribution = ContributionType.NEGATIVE
 
     # Get unique parent IDs
     query = """

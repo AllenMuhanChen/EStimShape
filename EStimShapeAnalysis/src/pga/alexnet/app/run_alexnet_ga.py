@@ -3,6 +3,7 @@ import subprocess
 from time import sleep
 
 from src.pga.alexnet import alexnet_context
+from src.pga.alexnet.posthoc import lighting_test, extract_contributions
 
 
 def main():
@@ -15,9 +16,11 @@ def main():
         ga.run()
         sleep(5)
         print("Gen ID: ", ga.gen_id)
-        if ga.gen_id >= 100:
+        if ga.gen_id >= 80:
             break
 
+    lighting_test.main()
+    extract_contributions.main()
 
 
 def prompt_rgb_values():
