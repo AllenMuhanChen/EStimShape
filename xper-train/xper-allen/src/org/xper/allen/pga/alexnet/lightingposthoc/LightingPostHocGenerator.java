@@ -13,6 +13,8 @@ import org.xper.exception.VariableNotFoundException;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
@@ -22,9 +24,14 @@ public class LightingPostHocGenerator extends FromDbAlexNetGABlockGenerator {
 
 
     public static void main(String[] args) throws IOException, ClassNotFoundException {
-        // Load the properties file
         Properties props = new Properties();
-        props.load(new FileInputStream("/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.alexnet.lightingposthoc"));
+        try {
+            String type = args[0];
+            // Load the properties file
+            props.load(Files.newInputStream(Paths.get("/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.alexnet." + type)));
+        } catch (Exception e) {
+            props.load(new FileInputStream("/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.alexnet.lightingposthoc"));
+        }
 
         // Set as system properties
         Properties sysProps = System.getProperties();

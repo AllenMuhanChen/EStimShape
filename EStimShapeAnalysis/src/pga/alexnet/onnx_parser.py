@@ -95,7 +95,7 @@ class AlexNetONNXResponseParser(ResponseParser):
         features = outputs[0]  # Shape should be [1, num_channels, height, width]
 
         # Get activation for specified unit and location
-        activation = float(features[0, self.unit_id.unit - 1, self.unit_id.x, self.unit_id.y])
+        activation = float(features[0, self.unit_id.unit - 1, self.unit_id.x-1, self.unit_id.y-1])
         return activation
 
     def _load_onnx_model(self) -> onnxruntime.InferenceSession:

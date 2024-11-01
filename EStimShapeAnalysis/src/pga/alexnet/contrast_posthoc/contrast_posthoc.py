@@ -15,9 +15,9 @@ from src.pga.alexnet.onnx_parser import AlexNetONNXResponseParser
 def main():
     # Create database connections
     ga_conn = Connection(host='172.30.6.80', user='xper_rw', password='up2nite',
-                       database=alexnet_context.ga_database)
+                         database=alexnet_context.ga_database)
     contrast_conn = Connection(host='172.30.6.80', user='xper_rw', password='up2nite',
-                           database=alexnet_context.contrast_database)
+                               database=alexnet_context.contrast_database)
 
     # Get top stimuli
     n_stimuli = 10  # Adjust as needed
@@ -27,22 +27,15 @@ def main():
     copy_top_n_to_contrast_db(ga_conn, contrast_conn, top_stims)
 
     # Generate contrasts between 0.2 and 1.0
-    contrasts = np.linspace(0.2, 1.0, 9)  # 9 contrast levels
+    contrasts = np.linspace(0.1, 1.0, 9)  # 9 contrast levels
 
     # Write instructions for both 3D and 2D variations
-    write_3d_instructions(contrast_conn, top_stims, contrasts)
+    write_instructions(contrast_conn, top_stims, contrasts)
     print(f"Written 3D instructions for {len(top_stims)} stimuli with {len(contrasts)} contrast variations")
 
     # Run the jar file to generate 3D images
-    jar_path = f"{alexnet_context.allen_dist}/AlexNetContrastPostHocGenerator.jar"
-    subprocess.run(["java", "-jar", jar_path], check=True)
-
-    # Write 2D match instructions
-    write_2d_match_instructions(contrast_conn, top_stims, contrasts)
-    print("Written 2D match instructions")
-
-    # Run the jar file again for 2D images
-    subprocess.run(["java", "-jar", jar_path], check=True)
+    jar_path = f"{alexnet_context.allen_dist}/AlexNetLightingPostHocGenerator.jar"
+    subprocess.run(["java", "-jar", jar_path, 'contrastposthoc'], check=True)
 
     # Process through AlexNet
     print("Processing contrast variations through AlexNet")
@@ -100,29 +93,36 @@ def copy_top_n_to_contrast_db(ga_conn, contrast_conn, top_stims):
         contrast_conn.mydb.commit()
 
 
-def write_3d_instructions(contrast_conn, stimuli, contrasts):
+def write_instructions(contrast_conn, stimuli, contrasts, light_position=(0, 0, 500, 1)):
     """Write instructions for 3D contrast variations."""
+    texture_types = ["SHADE", "SPECULAR", "2D"]
     for stim in stimuli:
-        for contrast_value in contrasts:
-            stim_id = time_util.now()
-            sleep(.001)
+        for texture_type in texture_types:
+            for contrast_value in contrasts:
+                stim_id = time_util.now()
+                sleep(.001)
 
-            query = """
-            INSERT INTO StimInstructions 
-            (stim_id, parent_id, stim_type, texture_type, contrast)
-            VALUES (%s, %s, %s, %s, %s)
-            """
+                query = """
+               INSERT INTO StimInstructions 
+               (stim_id, parent_id, stim_type, texture_type, contrast,
+                light_pos_x, light_pos_y, light_pos_z, light_pos_w)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+               """
 
-            params = (
-                stim_id,
-                stim.stim_id,
-                'CONTRAST_3D_VARIATION',
-                'SPECULAR',  # Using SPECULAR as default 3D type
-                contrast_value
-            )
+                params = (
+                    stim_id,
+                    stim.stim_id,
+                    'CONTRAST_VARIATION',
+                    texture_type,
+                    contrast_value,
+                    light_position[0],  # x
+                    light_position[1],  # y
+                    light_position[2],  # z
+                    light_position[3]  # w
+                )
 
-            contrast_conn.execute(query, params)
-            contrast_conn.mydb.commit()
+                contrast_conn.execute(query, params)
+                contrast_conn.mydb.commit()
 
 
 def write_2d_match_instructions(contrast_conn, stimuli, contrasts):
@@ -152,7 +152,7 @@ def write_2d_match_instructions(contrast_conn, stimuli, contrasts):
 
 def process_contrast_variations_through_alexnet(contrast_conn, unit_id):
     """Process all stimuli through AlexNet and save activations to contrast db."""
-    parser = AlexNetIntanResponseParser(
+    parser = AlexNetONNXResponseParser(
         contrast_conn,
         "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3",
         unit_id

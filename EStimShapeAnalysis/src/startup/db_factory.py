@@ -13,7 +13,9 @@ TEMPLATE_LOCATION_ID = '0'
 
 def main():
     # Get current date in YYMMDD format
-    current_date = datetime.now().strftime("%y%m%d")
+    current_date = input("Enter the date yymmdd, press enter to default to current date: ").strip().lower()
+    if current_date == "":
+        current_date = datetime.now().strftime("%y%m%d")
 
     # Prompt user for TYPE
     type = input("Enter the type (e.g., train, test, exp): ").strip().lower()

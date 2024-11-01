@@ -84,7 +84,7 @@ def main():
     )
     contribution_calc = AlexNetContributionCalculator(conn,
                                                       "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3",
-                                                      alexnet_context.unit, )
+                                                      alexnet_context.unit)
     # Load data
     stims: dict[str, list[dict]] = load_stim_data(conn)
     print("Total 3D stims:", len(stims['3D']))

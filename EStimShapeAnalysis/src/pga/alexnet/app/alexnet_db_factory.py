@@ -11,13 +11,15 @@ HOST = '172.30.6.80'
 USER = 'xper_rw'
 PASS = 'up2nite'
 TEMPLATE_TYPE = 'exp'
-TEMPLATE_DATE = '241028'
-TEMPLATE_LOCATION_ID = '0'
+TEMPLATE_DATE = '241031'
+TEMPLATE_LOCATION_ID = '2'
 
 
 def main():
     # Get current date in YYMMDD format
-    current_date = datetime.now().strftime("%y%m%d")
+    current_date = input("Enter the date yymmdd, press enter to default to current date: ").strip().lower()
+    if current_date == "":
+        current_date = datetime.now().strftime("%y%m%d")
 
     # Prompt user for TYPE
     type = input("Enter the type (e.g., train, test, exp): ").strip().lower()
@@ -32,6 +34,12 @@ def main():
 
     # Create lighting database name
     lighting_database = f"allen_alexnet_lighting_{type}_{current_date}_{location_id}"
+
+
+    # Create directories for lighting experiment
+    make_path(f"/home/r2_allen/Documents/EStimShape/{ga_database}")
+    make_path(f"/home/r2_allen/Documents/EStimShape/{lighting_database}")
+    make_path(f"/home/r2_allen/Documents/EStimShape/{contrast_database}")
 
     # Create GA database
     create_db_from_template(f'allen_alexnet_ga_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}',
@@ -72,7 +80,7 @@ def main():
                                 "UnitActivations",
                                 "UnitContributions"
                             ])
-
+    setup_alexnet_xper_properties_and_dirs(lighting_database, "lightingposthoc")
 
 
     # Update context file for GA database
@@ -83,9 +91,7 @@ def main():
     make_path(alexnet_context.rwa_output_dir)
 
 
-    # Create directories for lighting experiment
-    make_path(f"/home/r2_allen/Documents/EStimShape/{lighting_database}")
-    make_path(f"/home/r2_allen/Documents/EStimShape/{contrast_database}")
+
 
 
 

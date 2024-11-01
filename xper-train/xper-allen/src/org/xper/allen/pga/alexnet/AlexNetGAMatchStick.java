@@ -11,6 +11,7 @@ import org.xper.utils.Lighting;
 
 import javax.vecmath.Point3d;
 import java.nio.FloatBuffer;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +24,12 @@ public class AlexNetGAMatchStick extends MorphedMatchStick {
     public Coordinates2D location;
 
     public AlexNetGAMatchStick(float[] light_position, RGBColor stimColor, Coordinates2D location, double size, String textureType, double contrast) {
-        this.light_position = light_position;
+        if (Arrays.equals(light_position, new float[]{0.0f, 0.0f, 0.0f, 0.0f})) {
+            this.light_position = new float[]{0.0f, 0.0f, 500.0f, 1.0f};
+        } else {
+            this.light_position = light_position;
+
+        }
         this.location = location;
         this.setScaleForMAxisShape(size);
         setTextureType(textureType);
@@ -118,7 +124,9 @@ public class AlexNetGAMatchStick extends MorphedMatchStick {
         }
 
         Lighting light = new Lighting();
-        light.setLightColor(stimColor);
+        light.setLightColor(new RGBColor(stimColor.getRed()*contrast,
+                stimColor.getGreen()*contrast,
+                stimColor.getBlue()*contrast));
         light.setTextureType(textureType);
 
         float[] mat_ambient = light.getAmbient();
