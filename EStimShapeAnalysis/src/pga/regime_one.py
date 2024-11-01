@@ -153,7 +153,8 @@ class GetAllStimuliFunc:
             stim_ga_info_entry = self.db_util.read_stim_ga_info_entry(stim_id)
             mutation_type = stim_ga_info_entry.stim_type
             response = stim_ga_info_entry.response
-            response_vector = self.response_processor.fetch_response_vector_for_repetitions_of(stim_id, ga_name=self.ga_name)
+            response_vector = self.response_processor.fetch_response_vector_for_repetitions_of(stim_id,
+                                                                                               ga_name=self.ga_name)
             return Stimulus(stim_id, mutation_type, response_vector=response_vector, response_rate=response)
 
         stimuli = []
@@ -169,54 +170,63 @@ class GrowingPhaseMutationAssigner(MutationAssigner):
 
 
 # regime_one.py
+import numpy as np
+from scipy.stats import truncnorm
+
 
 class GrowingPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
-    min_magnitude = 0.1
-    max_magnitude = 0.8
-    overlap = 0.5
+    def __init__(self, std_dev=0.075, min_magnitude=0.1):
+        """
+        Initialize with standard deviation for normal distribution and minimum magnitude.
+        std_dev of 0.075 means:
+        - ~68% of values will be within ±0.075 of the mean (within 0.15 range)
+        - ~95% of values will be within ±0.15 of the mean (within 0.3 range)
+        min_magnitude sets the absolute minimum mutation magnitude possible.
+        """
+        self.std_dev = std_dev
+        self.min_magnitude = min_magnitude
+    def get_truncated_normal(self, mean):
+        """
+        Returns a value from a truncated normal distribution between [min_magnitude, 1]
+        with specified mean and class-defined standard deviation
+        """
+        # Ensure mean stays within reasonable bounds
+        mean = np.clip(mean, self.min_magnitude, 1.0)
+
+        # Calculate normalized bounds for truncated normal
+        a_norm = (self.min_magnitude - mean) / self.std_dev
+        b_norm = (1.0 - mean) / self.std_dev
+
+        # Sample from truncated normal
+        return truncnorm.rvs(
+            a_norm,
+            b_norm,
+            loc=mean,
+            scale=self.std_dev,
+            size=1
+        )[0]
 
     def assign_mutation_magnitude(self, lineage: Lineage, parent: Stimulus):
         """
-        Calculates a normalized response for each stimulus in the lineage.
-        Then assigns a range of possible mutation magnitudes to each stimulus based on its normalized response
-        such that higher response stimuli' ranges of possible mutation magnitudes is lower magnitudes
-        overlap field controls how much each range overlaps with its neighbors
+        Assigns mutation magnitude by sampling from a truncated normal distribution
+        centered at (1.1 - normalized_response_rate). Higher response rates lead to
+        sampling from distributions centered closer to 0.1, resulting in smaller
+        mutation magnitudes. All magnitudes are guaranteed to be >= 0.1.
         """
-        # Normalize response rates
-        response_rates = np.array([s.response_rate for s in lineage.stimuli])
-        normalized_response_rates = []
-        for rate in response_rates:
-            if max(response_rates) != 0:
-                normalized_response_rates.append(rate / max(response_rates))
-            else:
-                normalized_response_rates.append(0)
-
-        if len(normalized_response_rates) > 1:
-            # Create overlapping subranges
-            # Full range size is still divided by number of stimuli
-            magnitude_step = (self.max_magnitude - self.min_magnitude) / len(lineage.stimuli)
-            # But each range extends 50% into neighboring ranges
-
-            overlap = magnitude_step * self.overlap
-            magnitude_ranges = []
-            for i in range(len(lineage.stimuli)):
-                range_min = max(self.min_magnitude, self.min_magnitude + (i * magnitude_step) - overlap)
-                range_max = min(self.max_magnitude, self.min_magnitude + ((i + 1) * magnitude_step) + overlap)
-                magnitude_ranges.append((range_min, range_max))
-
-            # Sort stimuli by normalized response rate (highest to lowest)
-            sorted_indices = np.argsort(normalized_response_rates)[::-1]
-
-            # Find parent's position in sorted list
-            parent_idx = lineage.stimuli.index(parent)
-            parent_rank = list(sorted_indices).index(parent_idx)
-
-            # Sample from parent's corresponding magnitude range
-            parent_range = magnitude_ranges[parent_rank]
-            return np.random.uniform(parent_range[0], parent_range[1])
+        # Normalize response rates, only considering positive responses
+        response_rates = np.array([s.response_rate for s in lineage.stimuli if s.response_rate > 0])
+        if len(response_rates) == 0 or max(response_rates) == 0:
+            normalized_rate = 0
         else:
-            return np.random.uniform(self.min_magnitude, self.max_magnitude)
+            parent_rate = parent.response_rate
+            normalized_rate = parent_rate / max(response_rates)
 
+        # Center distribution mean at (1.1 - normalized_rate)
+        # This makes high response rates sample from distributions centered near 0.1
+        mean = 1.1 - normalized_rate
+
+        # Sample from truncated normal distribution between min_magnitude and 1
+        return self.get_truncated_normal(mean)
 
 def calculate_peak_response(responses, across_n=3):
     # Ensure the list of responses is at least of length across_n, filling missing values with 0

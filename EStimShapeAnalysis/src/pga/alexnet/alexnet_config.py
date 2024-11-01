@@ -11,7 +11,10 @@ from src.pga.alexnet.onnx_parser import AlexNetONNXResponseParser, UnitIdentifie
 from src.pga.spike_parsing import ResponseParser
 from src.pga.trial_generators import AlexNetGAJarTrialGenerator, TrialGenerator
 
-MIN_RESPONSE = -25
+MIN_RESPONSE = 0
+
+
+
 
 
 class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
@@ -63,7 +66,7 @@ class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
             AlexNetGrowingPhaseParentSelector(self.growing_phase_bin_proportions(),
                                               self.growing_phase_bin_sample_sizes()),
             AlexNetGrowingPhaseMutationAssigner(),
-            GrowingPhaseMutationMagnitudeAssigner(),
+            AlexNetGrowingPhaseMutationMagnitudeAssigner(),
             DontTransitioner()
         )
 
@@ -211,3 +214,7 @@ class AlexNetGrowingPhaseParentSelector(GrowingPhaseParentSelector):
 
     def _is_rf_related(self, stimulus):
         return stimulus.mutation_type == StimType.RF_LOCATE.value or stimulus.mutation_type == StimType.SEEDING.value
+
+class AlexNetGrowingPhaseMutationMagnitudeAssigner(GrowingPhaseMutationMagnitudeAssigner):
+
+    pass
