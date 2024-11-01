@@ -73,7 +73,7 @@ class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
         and show those to AlexNet and save those activations into UnitActivations table.
         """
         return AlexNetONNXResponseParser(self.connection(),
-                                          "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3",
+                                         "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3",
                                          self.unit_id)
 
     def make_response_processor(self) -> AlexNetResponseProcessor:
@@ -146,12 +146,17 @@ class RFLocPhaseTransitioner(RegimeTransitioner):
     def __init__(self):
         self.threshold_response = None
         self.threshold_percentage_of_max = 0.8  # percentage of max response to consider a stimulus passed the threshold
-        self.num_pass_required = 5  # percentage of stimuli that must pass the threshold
+        self.num_pass_required = 10  # number of stimuli that must pass the threshold
+        self.min_generations = 5  # minimum number of generations before we start checking for transition
 
         # data
         self.passed_threshold = []
 
     def should_transition(self, lineage: Lineage) -> bool:
+        gen_id = lineage.gen_id
+        if gen_id < self.min_generations:
+            return False
+
         # check if we have enough stimuli in the top 90% of the highest response
         stimuli = [stimulus for stimulus in lineage.stimuli if stimulus.response_rate > 0]
         if not stimuli:
@@ -161,7 +166,6 @@ class RFLocPhaseTransitioner(RegimeTransitioner):
         self.threshold_response = self.threshold_percentage_of_max * highest_response
         self.passed_threshold = [stimulus for stimulus in sorted_responses if
                                  stimulus.response_rate >= self.threshold_response]
-
 
         return len(self.passed_threshold) >= self.num_pass_required
 

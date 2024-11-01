@@ -9,7 +9,7 @@ from PIL import Image
 from clat.util import time_util
 from clat.util.connection import Connection
 from src.pga.alexnet import alexnet_context
-from src.pga.alexnet.onnx_parser import AlexNetONNXResponseParser
+from src.pga.alexnet.onnx_parser import AlexNetONNXResponseParser, UnitIdentifier
 
 
 def main():
@@ -62,7 +62,7 @@ def main():
     process_lighting_variations_through_alexnet(lighting_conn, unit)
 
 
-def process_lighting_variations_through_alexnet(lighting_conn, unit_id):
+def process_lighting_variations_through_alexnet(lighting_conn, unit_id: UnitIdentifier):
     """Process all stimuli through AlexNet and save activations to lighting db."""
     # Create parser but only use its process_image functionality
     parser = AlexNetONNXResponseParser(
@@ -177,8 +177,8 @@ def write_3d_instructions(lighting_conn, stimuli, light_positions):
                 query = """
                 INSERT INTO StimInstructions 
                 (stim_id, parent_id, stim_type, texture_type, 
-                 light_pos_x, light_pos_y, light_pos_z, light_pos_w)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                 light_pos_x, light_pos_y, light_pos_z, light_pos_w, contrast)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
 
                 params = (
@@ -186,7 +186,8 @@ def write_3d_instructions(lighting_conn, stimuli, light_positions):
                     stim.stim_id,
                     'TEXTURE_3D_VARIATION',
                     texture,
-                    light_pos[0], light_pos[1], light_pos[2], light_pos[3]
+                    light_pos[0], light_pos[1], light_pos[2], light_pos[3],
+                    1.0
                 )
 
                 lighting_conn.execute(query, params)

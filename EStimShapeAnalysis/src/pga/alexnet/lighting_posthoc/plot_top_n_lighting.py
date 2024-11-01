@@ -21,7 +21,7 @@ class StimData:
     activation: float
 
 
-def load_stim_data(conn: Connection) -> Dict[str, List[dict]]:
+def load_all_stim_data(conn: Connection) -> Dict[str, List[dict]]:
     """Load all stimuli data, organized by type (3D vs 2D)"""
     query = """
     SELECT si.stim_id, sp.path, si.parent_id, si.texture_type, 
@@ -86,7 +86,7 @@ def main():
     )
 
     # Load data
-    stims: dict[str, list[dict]] = load_stim_data(conn)
+    stims: dict[str, list[dict]] = load_all_stim_data(conn)
     print("Total 3D stims:", len(stims['3D']))
     print("Total 2D stims:", len(stims['2D']))
 

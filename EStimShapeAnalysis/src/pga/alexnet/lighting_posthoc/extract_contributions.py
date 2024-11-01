@@ -11,7 +11,7 @@ from torchvision import transforms as transforms
 from src.alexnet.frommat.backtrace import calculate_pool_2_contributions, associate_with_conv2_units, backtrace
 from src.pga.alexnet import alexnet_context
 from src.pga.alexnet.onnx_parser import LayerType, AlexNetONNXResponseParser, UnitIdentifier
-from src.pga.alexnet.lighting_posthoc.plot_top_n_lighting import load_stim_data
+from src.pga.alexnet.lighting_posthoc.plot_top_n_lighting import load_all_stim_data
 
 
 class AlexNetContributionCalculator:
@@ -86,13 +86,16 @@ def main():
                                                       "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3",
                                                       alexnet_context.unit)
     # Load data
-    stims: dict[str, list[dict]] = load_stim_data(conn)
+    stims: dict[str, list[dict]] = load_all_stim_data(conn)
     print("Total 3D stims:", len(stims['3D']))
 
+
+
     for stim in stims['3D']:
-        print(stim['path'])
-        output = contribution_calc.process_image(stim['path'])
-        print(output)
+        if stim['parent_id'] == 1730131310638022:
+            print(stim['path'])
+            output = contribution_calc.process_image(stim['path'])
+            print(output)
 
 
 if __name__ == '__main__':

@@ -22,7 +22,10 @@ def make_path(path):
         path: A string representing the directory path to add.
     """
     os.makedirs(path, exist_ok=True)
-    print(f"Path {path} created.")
+    if os.path.exists(path):
+        print(f"Path {path} created.")
+    else:
+        print(f"Failed to create path {path}.")
 
 
 

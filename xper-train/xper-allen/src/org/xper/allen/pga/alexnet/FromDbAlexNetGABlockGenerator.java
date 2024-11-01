@@ -39,7 +39,7 @@ public class FromDbAlexNetGABlockGenerator extends AbstractTrialGenerator<Stim> 
 
         // Load the properties file
         Properties props = new Properties();
-        props.load(new FileInputStream("/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.alexnet"));
+        props.load(new FileInputStream("/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.alexnet.ga"));
 
         // Set as system properties
         Properties sysProps = System.getProperties();
