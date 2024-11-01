@@ -107,12 +107,12 @@ public class AlexNetGAMatchStick extends MorphedMatchStick {
 
     protected void initLight() {
         getObj1().contrast = contrast;
+        getObj1().getStimColor().setRed((float)(stimColor.getRed()*contrast));
+        getObj1().getStimColor().setBlue((float)(stimColor.getBlue()*contrast));
+        getObj1().getStimColor().setGreen((float)(stimColor.getGreen()*contrast));
+
         if (textureType.compareTo("2D") == 0) {
             getObj1().doLighting = false;
-            getObj1().getStimColor().setRed((float)(stimColor.getRed()*contrast));
-            getObj1().getStimColor().setBlue((float)(stimColor.getBlue()*contrast));
-            getObj1().getStimColor().setGreen((float)(stimColor.getGreen()*contrast));
-            System.out.println("Obj1 color:"+ getObj1().getStimColor().getBlue());
         } else {
             getObj1().doLighting = true;
         }

@@ -3,7 +3,7 @@ import subprocess
 from time import sleep
 
 from src.pga.alexnet import alexnet_context
-from src.pga.alexnet.posthoc import lighting_test, extract_contributions
+from src.pga.alexnet.lighting_posthoc import lighting_test, extract_contributions
 
 
 def main():

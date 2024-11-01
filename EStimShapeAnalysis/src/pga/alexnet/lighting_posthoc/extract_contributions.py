@@ -11,7 +11,7 @@ from torchvision import transforms as transforms
 from src.alexnet.frommat.backtrace import calculate_pool_2_contributions, associate_with_conv2_units, backtrace
 from src.pga.alexnet import alexnet_context
 from src.pga.alexnet.onnx_parser import LayerType, AlexNetONNXResponseParser, UnitIdentifier
-from src.pga.alexnet.posthoc.plot_top_n_lighting import load_stim_data
+from src.pga.alexnet.lighting_posthoc.plot_top_n_lighting import load_stim_data
 
 
 class AlexNetContributionCalculator:

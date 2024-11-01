@@ -5,7 +5,7 @@ import org.xper.drawing.RGBColor;
 
 public class SeedingStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMStickData> {
     public SeedingStim(FromDbAlexNetGABlockGenerator generator, Long parentId, Long stimId, RGBColor color, float[] light_position) {
-        super(generator, parentId, stimId, null, color, null, light_position, 0.0, 0, 0.5);
+        super(generator, parentId, stimId, null, color, null, light_position, 0.0, 0, 1.0);
         this.location = randomLocation();
         this.sizeDiameter = randomSize();
    }
@@ -50,13 +50,11 @@ public class SeedingStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMSt
             else {
                 textureType = "SHADE";
             }
-            contrast = 0.5; //doens't really matter if not 2D
         }
         else {
             textureType = "2D";
-            contrast = Math.random();
-            System.out.println("Contrast: " + contrast);
         }
+        contrast = Math.random();
 
         AlexNetGAMatchStick mStick = new AlexNetGAMatchStick(light_position, color, location, sizeDiameter, textureType, contrast);
         mStick.genMatchStickRand();

@@ -14,7 +14,7 @@ public class RFLocStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMStic
     private static final double MAX_SIZE_CHANGE = (MAX_SIZE - MIN_SIZE) / 2.0; // Maximum size change for magnitude 1.0
 
     public RFLocStim(FromDbAlexNetGABlockGenerator generator, Long parentId, Long stimId, RGBColor color, float[] light_position, double magnitude) {
-        super(generator, parentId, stimId, null, color, null, light_position, 0, magnitude, 0.5);
+        super(generator, parentId, stimId, null, color, null, light_position, 0, magnitude, 1.0);
     }
 
     @Override

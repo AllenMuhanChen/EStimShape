@@ -465,7 +465,7 @@ def calculate_pixel_contributions(image_data: np.ndarray, conv1_weights: np.ndar
             img_y = start_y + ky
 
             # Check image boundaries
-            if 0 <= img_x < 224 and 0 <= img_y < 224:
+            if 0 <= img_x < 227 and 0 <= img_y < 227:
                 # Calculate contribution across channels
                 for c in range(3):  # RGB channels
                     weight = conv1_weights[c, kx, ky]

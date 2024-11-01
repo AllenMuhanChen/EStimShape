@@ -3,6 +3,7 @@ from src.pga.alexnet.onnx_parser import UnitIdentifier, LayerType
 
 ga_name = "New3D"
 ga_database = "allen_alexnet_ga_exp_241031_2"
+contrast_database = "allen_alexnet_contrast_exp_241031_2"  # Added contrast database name
 lighting_database = "allen_alexnet_lighting_exp_241031_2"
 allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
 image_path = "/home/r2_allen/Documents/EStimShape/allen_alexnet_ga_exp_241031_2/stimuli/ga/pngs"

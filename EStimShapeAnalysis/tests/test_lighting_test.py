@@ -1,4 +1,4 @@
-from src.pga.alexnet.posthoc.lighting_test import generate_lighting_positions
+from src.pga.alexnet.lighting_posthoc.lighting_test import generate_lighting_positions
 
 
 def test_generate_lighting_positions():

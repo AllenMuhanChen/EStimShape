@@ -4,7 +4,7 @@ from PIL import Image
 from clat.util.connection import Connection
 
 from src.pga.alexnet import alexnet_context
-from src.pga.alexnet.posthoc.backtrace_analysis import calculate_contribution_map, get_stim_lighting_variations, \
+from src.pga.alexnet.lighting_posthoc.backtrace_analysis import calculate_contribution_map, get_stim_lighting_variations, \
     ContributionType
 
 

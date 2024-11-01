@@ -28,6 +28,8 @@ def main():
     # Create GA database name
     ga_database = f"allen_alexnet_ga_{type}_{current_date}_{location_id}"
 
+    contrast_database = f"allen_alexnet_contrast_{type}_{current_date}_{location_id}"
+
     # Create lighting database name
     lighting_database = f"allen_alexnet_lighting_{type}_{current_date}_{location_id}"
 
@@ -45,6 +47,19 @@ def main():
                                 "StimSpec",
                                 "StimPath"
                             ])
+    setup_alexnet_xper_properties_and_dirs(ga_database, "ga")
+    # Create contrast database with necessary tables
+    create_db_from_template(f'allen_alexnet_contrast_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}',
+                            contrast_database,
+                            [],
+                            copy_structure_tables=[
+                                "StimPath",
+                                "StimSpec",
+                                "StimInstructions",
+                                "UnitActivations"
+                            ])
+    make_path(f"/home/r2_allen/Documents/EStimShape/{contrast_database}")
+    setup_alexnet_xper_properties_and_dirs(contrast_database, "contrastposthoc")
 
     # Create lighting database with necessary tables
     create_db_from_template(f'allen_alexnet_lighting_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}',
@@ -57,72 +72,28 @@ def main():
                                 "UnitActivations",
                                 "UnitContributions"
                             ])
-    #
-    # # Add StimInstructions table to lighting database only
-    # try:
-    #     conn = Connection(host=HOST, user=USER, password=PASS, database=lighting_database)
-    #     conn.execute("""
-    #     CREATE TABLE StimInstructions (
-    #         stim_id BIGINT PRIMARY KEY,
-    #         parent_id BIGINT,
-    #         stim_type VARCHAR(20),
-    #         texture_type VARCHAR(20),
-    #         light_pos_x FLOAT,
-    #         light_pos_y FLOAT,
-    #         light_pos_z FLOAT,
-    #         light_pos_w FLOAT,
-    #         contrast DOUBLE
-    #     )
-    #     """)
-    #     conn.mydb.commit()
-    # except:
-    #     print("StimInstructions table already exists in the database.")
+
+
 
     # Update context file for GA database
-    update_context_file(ga_database, lighting_database)
+    update_context_file(ga_database, lighting_database, contrast_database)
     sleep(1)
-    setup_ga_xper_properties_and_dirs(ga_database)
+
     make_path(alexnet_context.java_output_dir)
     make_path(alexnet_context.rwa_output_dir)
 
+
     # Create directories for lighting experiment
     make_path(f"/home/r2_allen/Documents/EStimShape/{lighting_database}")
-    setup_lighting_posthoc_xper_properties_and_dirs(lighting_database)
+    make_path(f"/home/r2_allen/Documents/EStimShape/{contrast_database}")
 
 
-def setup_lighting_posthoc_xper_properties_and_dirs(lighting_database):
-    version = lighting_database
-    xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.alexnet.lightingposthoc'
+
+def setup_alexnet_xper_properties_and_dirs(database, analysis_type):
+    """Setup properties for analysis databases (lighting or contrast)"""
+    version = database
+    xper_properties_file_path = f'/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.alexnet.{analysis_type}'
     db_url = f"jdbc:mysql://172.30.6.80/{version}?rewriteBatchedStatements=true"
-    estimshape_base = f"/home/r2_allen/Documents/EStimShape/{version}"
-    stimuli_base_r = f"{estimshape_base}/stimuli"
-    r_ga_path = f"{stimuli_base_r}/ga"
-    generator_png_path = f"{r_ga_path}/pngs"
-    generator_spec_path = f"{r_ga_path}/specs"
-    modifier = XperPropertiesModifier(xper_properties_file_path)
-    # ALL PROPERTIES to REPLACE:
-    properties_dict = {
-        "jdbc.url": db_url,
-        "generator.png_path": generator_png_path,
-        "generator.spec_path": generator_spec_path,
-    }
-
-    # Replace properties using the dictionary
-    for var_name, new_value in properties_dict.items():
-        modifier.replace_property(var_name, new_value)
-    # Save changes
-    modifier.save_changes()
-    make_path(estimshape_base)
-    make_path(generator_png_path)
-    make_path(generator_spec_path)
-
-def setup_ga_xper_properties_and_dirs(ga_database):
-    version = ga_database
-    # Define paths to the properties file and directories
-    xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.alexnet'
-    # DB URL
-    db_url = f"jdbc:mysql://172.30.6.80/{version}?rewriteBatchedStatements=true"
-    # STIM PATHS
     estimshape_base = f"/home/r2_allen/Documents/EStimShape/{version}"
     stimuli_base_r = f"{estimshape_base}/stimuli"
     r_ga_path = f"{stimuli_base_r}/ga"
@@ -130,24 +101,24 @@ def setup_ga_xper_properties_and_dirs(ga_database):
     generator_spec_path = f"{r_ga_path}/specs"
 
     modifier = XperPropertiesModifier(xper_properties_file_path)
-    # ALL PROPERTIES to REPLACE:
     properties_dict = {
         "jdbc.url": db_url,
         "generator.png_path": generator_png_path,
         "generator.spec_path": generator_spec_path,
     }
 
-    # Replace properties using the dictionary
     for var_name, new_value in properties_dict.items():
         modifier.replace_property(var_name, new_value)
-    # Save changes
     modifier.save_changes()
+
     make_path(estimshape_base)
     make_path(generator_png_path)
     make_path(generator_spec_path)
 
 
-def update_context_file(ga_database, lighting_database):
+
+
+def update_context_file(ga_database, lighting_database, contrast_database):
     target_file = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/pga/alexnet/alexnet_context.py"
 
     # Read the target file
@@ -161,6 +132,8 @@ def update_context_file(ga_database, lighting_database):
             new_lines.append(f'ga_database = "{ga_database}"\n')
         elif line.startswith("lighting_database"):
             new_lines.append(f'lighting_database = "{lighting_database}"\n')
+        elif line.startswith("contrast_database"):
+            new_lines.append(f'contrast_database = "{contrast_database}"\n')
         elif line.startswith("image_path"):
             new_lines.append(f'image_path = "/home/r2_allen/Documents/EStimShape/{ga_database}/stimuli/ga/pngs"\n')
         elif line.startswith("java_output_dir"):
