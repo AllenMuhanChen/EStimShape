@@ -174,7 +174,7 @@ def update_context_file(ga_database, lighting_database, contrast_database, unit)
         elif line.startswith("contrast_plots_dir"):
             new_lines.append(f'contrast_plots_dir = "/home/r2_allen/Documents/EStimShape/{contrast_database}/plots\n')
         elif line.startswith("unit_string"):
-            new_lines.append(f'unit_string = "{unit.to_string}"\n')
+            new_lines.append(f'unit_string = "{unit}"\n')
 
         else:
             new_lines.append(line)

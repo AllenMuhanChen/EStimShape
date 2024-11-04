@@ -15,7 +15,7 @@ lighting_database = "allen_alexnet_lighting_exp_241028_0"
 lighting_plots_dir = "/home/r2_allen/Documents/EStimShape/allen_alexnet_lighting_exp_241028_0/plots"
 
 allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
-unit_string = "conv3_u109_x7_y7"
+unit_string = "conv3_u374_x7_y7"
 
 
 unit = UnitIdentifier.from_string(unit_string)

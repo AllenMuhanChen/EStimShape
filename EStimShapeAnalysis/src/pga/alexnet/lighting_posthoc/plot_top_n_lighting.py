@@ -21,6 +21,30 @@ class StimData:
     activation: float
 
 
+def main():
+    conn = Connection(
+        host='172.30.6.80',
+        user='xper_rw',
+        password='up2nite',
+        database=alexnet_context.lighting_database
+    )
+
+    # Load data
+    stims: dict[str, list[dict]] = load_all_stim_data(conn)
+    print("Total 3D stims:", len(stims['3D']))
+    print("Total 2D stims:", len(stims['2D']))
+
+    # Create plots
+    all_stims = []
+    all_stims.extend(stims['3D'])
+    all_stims.extend(stims['2D'])
+    normalize_responses(all_stims)
+    plot_stims(stims['3D'], stims['2D'])
+
+    # Show all figures
+    plt.show()
+
+
 def load_all_stim_data(conn: Connection) -> Dict[str, List[dict]]:
     """Load all stimuli data, organized by type (3D vs 2D)"""
     query = """
@@ -75,30 +99,6 @@ def organize_3d_stims(stims_3d: List[dict]) -> Dict[int, Dict[str, List[dict]]]:
 
 
 from src.pga.alexnet.analysis.plot_top_n import plot_stimuli_row, normalize_responses
-
-
-def main():
-    conn = Connection(
-        host='172.30.6.80',
-        user='xper_rw',
-        password='up2nite',
-        database=alexnet_context.lighting_database
-    )
-
-    # Load data
-    stims: dict[str, list[dict]] = load_all_stim_data(conn)
-    print("Total 3D stims:", len(stims['3D']))
-    print("Total 2D stims:", len(stims['2D']))
-
-    # Create plots
-    all_stims = []
-    all_stims.extend(stims['3D'])
-    all_stims.extend(stims['2D'])
-    normalize_responses(all_stims)
-    plot_stims(stims['3D'], stims['2D'])
-
-    # Show all figures
-    plt.show()
 
 
 def plot_stims(stims_3d: List[dict], stims_2d: List[dict], n_cols: int = 8):
@@ -159,6 +159,7 @@ def plot_stims(stims_3d: List[dict], stims_2d: List[dict], n_cols: int = 8):
         axes[3, 0].set_title('2D match for SHADE')
 
         plt.tight_layout()
+        plt.savefig(f"{alexnet_context.lighting_plots_dir}/{parent_id}_responses.png")
 
     return figs
 
