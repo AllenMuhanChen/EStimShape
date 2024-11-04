@@ -175,30 +175,34 @@ from scipy.stats import truncnorm
 
 
 class GrowingPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
-    def __init__(self, std_dev=0.075, min_magnitude=0.1):
+    def __init__(self, std_dev=0.075, min_magnitude=0.1, max_magnitude=0.85):
         """
-        Initialize with standard deviation for normal distribution and minimum magnitude.
+        Initialize with standard deviation for normal distribution and magnitude bounds.
         std_dev of 0.075 means:
         - ~68% of values will be within ±0.075 of the mean (within 0.15 range)
         - ~95% of values will be within ±0.15 of the mean (within 0.3 range)
         min_magnitude sets the absolute minimum mutation magnitude possible.
+        max_magnitude sets the absolute maximum mutation magnitude possible.
         """
         self.std_dev = std_dev
         self.min_magnitude = min_magnitude
+        self.max_magnitude = max_magnitude
+
     def get_truncated_normal(self, mean):
         """
-        Returns a value from a truncated normal distribution between [min_magnitude, 1]
-        with specified mean and class-defined standard deviation
+        Returns a value from a truncated normal distribution between
+        [min_magnitude, max_magnitude] with specified mean and class-defined
+        standard deviation
         """
         # Ensure mean stays within reasonable bounds
-        mean = np.clip(mean, self.min_magnitude, 1.0)
+        mean = np.clip(mean, self.min_magnitude, self.max_magnitude)
 
         # Calculate normalized bounds for truncated normal
         a_norm = (self.min_magnitude - mean) / self.std_dev
-        b_norm = (1.0 - mean) / self.std_dev
+        b_norm = (self.max_magnitude - mean) / self.std_dev
 
         # Sample from truncated normal
-        return truncnorm.rvs(
+        sample = truncnorm.rvs(
             a_norm,
             b_norm,
             loc=mean,
@@ -206,12 +210,16 @@ class GrowingPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
             size=1
         )[0]
 
+        # Double-ensure bounds are respected
+        return np.clip(sample, self.min_magnitude, self.max_magnitude)
+
     def assign_mutation_magnitude(self, lineage: Lineage, parent: Stimulus):
         """
         Assigns mutation magnitude by sampling from a truncated normal distribution
         centered at (1.1 - normalized_response_rate). Higher response rates lead to
         sampling from distributions centered closer to 0.1, resulting in smaller
-        mutation magnitudes. All magnitudes are guaranteed to be >= 0.1.
+        mutation magnitudes. All magnitudes are guaranteed to be between
+        min_magnitude and max_magnitude.
         """
         # Normalize response rates, only considering positive responses
         response_rates = np.array([s.response_rate for s in lineage.stimuli if s.response_rate > 0])
@@ -221,13 +229,12 @@ class GrowingPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
             parent_rate = parent.response_rate
             normalized_rate = parent_rate / max(response_rates)
 
-        # Center distribution mean at (1.1 - normalized_rate)
-        # This makes high response rates sample from distributions centered near 0.1
-        mean = 1.1 - normalized_rate
+        # Center distribution mean at (1.1 - normalized_rate), but ensure it doesn't
+        # push the mean beyond max_magnitude
+        mean = min(1.1 - normalized_rate, self.max_magnitude)
 
-        # Sample from truncated normal distribution between min_magnitude and 1
+        # Sample from truncated normal distribution between min_magnitude and max_magnitude
         return self.get_truncated_normal(mean)
-
 def calculate_peak_response(responses, across_n=3):
     # Ensure the list of responses is at least of length across_n, filling missing values with 0
     # remove nones

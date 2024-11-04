@@ -73,10 +73,16 @@ public class AlexNetGAMatchStick extends MorphedMatchStick {
         System.out.println("Removing " + componentsToRemoveCount + " components");
         // Randomly choose components to remove
 
+        int nTries = 0;
         while (componentsToRemove.size() < componentsToRemoveCount) {
+            nTries++;
+            if (nTries > 1000) {
+                throw new MorphException("Could not find a component to remove after 1000 tries");
+            }
             int componentId = (int) (Math.random() * currentNComp) + 1; // Assuming component IDs start at 1
             if (matchStickToMorph.getLeafBranch()[componentId]) continue; // Skip if it is a branch
             componentsToRemove.add(componentId);
+
         }
         return componentsToRemove;
     }

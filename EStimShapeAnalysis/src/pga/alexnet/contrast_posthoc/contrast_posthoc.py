@@ -124,32 +124,6 @@ def write_instructions(contrast_conn, stimuli, contrasts, light_position=(0, 0, 
                 contrast_conn.execute(query, params)
                 contrast_conn.mydb.commit()
 
-
-def write_2d_match_instructions(contrast_conn, stimuli, contrasts):
-    """Write instructions for 2D matches with corresponding contrasts."""
-    for stim in stimuli:
-        for contrast_value in contrasts:
-            stim_id = time_util.now()
-            sleep(.001)
-
-            query = """
-            INSERT INTO StimInstructions 
-            (stim_id, parent_id, stim_type, texture_type, contrast)
-            VALUES (%s, %s, %s, %s, %s)
-            """
-
-            params = (
-                stim_id,
-                stim.stim_id,
-                '2D_MATCH',
-                '2D',
-                contrast_value
-            )
-
-            contrast_conn.execute(query, params)
-            contrast_conn.mydb.commit()
-
-
 def process_contrast_variations_through_alexnet(contrast_conn, unit_id):
     """Process all stimuli through AlexNet and save activations to contrast db."""
     parser = AlexNetONNXResponseParser(

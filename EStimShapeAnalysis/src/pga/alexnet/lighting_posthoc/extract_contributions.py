@@ -92,10 +92,10 @@ def main():
 
 
     for stim in stims['3D']:
-        if stim['parent_id'] == 1730131310638022:
-            print(stim['path'])
-            output = contribution_calc.process_image(stim['path'])
-            print(output)
+        # if stim['parent_id'] == 1730131310638022:
+        print(stim['path'])
+        output = contribution_calc.process_image(stim['path'])
+        print(output)
 
 
 if __name__ == '__main__':

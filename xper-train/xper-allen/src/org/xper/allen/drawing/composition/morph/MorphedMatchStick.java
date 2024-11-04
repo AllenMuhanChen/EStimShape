@@ -182,7 +182,9 @@ public class MorphedMatchStick extends AllenMatchStick {
                             removeFlags[i] = true;
                         else {
                             System.err.println("ERROR, you have specified a branch to remove, not a leaf." +
-                                    "Not removing.");                        }
+                                    "Not removing.");
+                            componentsToRemove.remove(i);
+                        }
                     }
                 }
                 removeComponent(removeFlags);

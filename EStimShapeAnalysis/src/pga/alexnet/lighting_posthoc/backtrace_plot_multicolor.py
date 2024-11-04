@@ -25,8 +25,8 @@ def main():
     conn.execute(query)
     parent_ids = [row[0] for row in conn.fetch_all()]
 
-    # for parent_id in parent_ids:
-    for parent_id in [1730131310638022]:
+    for parent_id in parent_ids:
+    # for parent_id in [1730131310638022]:
         variations = get_stim_lighting_variations(conn, parent_id)
         conn.execute("SELECT path FROM StimPath WHERE stim_id = %s", (parent_id,))
         parent_path = conn.fetch_one()
