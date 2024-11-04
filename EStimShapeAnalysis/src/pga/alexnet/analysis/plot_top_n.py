@@ -141,4 +141,5 @@ def get_top_n_stimuli(conn: Connection, n: int, most_negative=False):
 
 if __name__ == "__main__":
     fig = plot_top_and_bottom_stimuli(n=20)
+    plt.savefig(f"{alexnet_context.ga_plots_dir}/top_and_bottom_stimuli.png")
     plt.show()

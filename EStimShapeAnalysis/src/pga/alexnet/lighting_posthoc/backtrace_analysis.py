@@ -47,8 +47,7 @@ def main():
                               conv1_contribution_type=conv1_contribution)
         plt.figure(fig.number)
         plt.suptitle('Lighting variations for Parent ID: ' + str(parent_id))
-        plt.savefig('/home/r2_allen/Documents/EStimShape/allen_alexnet_lighting_exp_241028_0/plots/' + str(
-            parent_id) + str(conv2_contribution) + str(conv1_contribution) + '.png')
+        plt.savefig(f"{alexnet_context.lighting_plots_dir}/{parent_id}_{variations[0]}_{variations[1]}.png")
         plt.show()
 
 

@@ -56,6 +56,7 @@ def main():
                                 "StimPath"
                             ])
     setup_alexnet_xper_properties_and_dirs(ga_database, "ga")
+
     # Create contrast database with necessary tables
     create_db_from_template(f'allen_alexnet_contrast_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}',
                             contrast_database,
@@ -66,7 +67,6 @@ def main():
                                 "StimInstructions",
                                 "UnitActivations"
                             ])
-    make_path(f"/home/r2_allen/Documents/EStimShape/{contrast_database}")
     setup_alexnet_xper_properties_and_dirs(contrast_database, "contrastposthoc")
 
     # Create lighting database with necessary tables
@@ -87,8 +87,13 @@ def main():
     update_context_file(ga_database, lighting_database, contrast_database)
     sleep(1)
 
+    # Dirs specified only in context file
     make_path(alexnet_context.java_output_dir)
     make_path(alexnet_context.rwa_output_dir)
+
+    make_path(alexnet_context.ga_plots_dir)
+    make_path(alexnet_context.lighting_plots_dir)
+    make_path(alexnet_context.contrast_plots_dir)
 
 
 
@@ -148,6 +153,12 @@ def update_context_file(ga_database, lighting_database, contrast_database):
             new_lines.append(f'java_output_dir = "/home/r2_allen/Documents/EStimShape/{ga_database}/java_output"\n')
         elif line.startswith("rwa_output_dir"):
             new_lines.append(f'rwa_output_dir = "/home/r2_allen/Documents/EStimShape/{ga_database}/rwa"\n')
+        elif line.startswith("ga_plots_dir"):
+            new_lines.append(f'ga_plots_dir = "/home/r2_allen/Documents/EStimShape/{ga_database}/plots\n')
+        elif line.startswith("lighting_plots_dir"):
+            new_lines.append(f'lighting_plots_dir = "/home/r2_allen/Documents/EStimShape/{lighting_database}/plots\n')
+        elif line.startswith("contrast_plots_dir"):
+            new_lines.append(f'contrast_plots_dir = "/home/r2_allen/Documents/EStimShape/{contrast_database}/plots\n')
         else:
             new_lines.append(line)
 

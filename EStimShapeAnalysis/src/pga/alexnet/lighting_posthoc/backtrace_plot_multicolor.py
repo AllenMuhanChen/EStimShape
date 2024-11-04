@@ -4,7 +4,8 @@ from PIL import Image
 from clat.util.connection import Connection
 
 from src.pga.alexnet import alexnet_context
-from src.pga.alexnet.lighting_posthoc.backtrace_analysis import calculate_contribution_map, get_stim_lighting_variations, \
+from src.pga.alexnet.lighting_posthoc.backtrace_analysis import calculate_contribution_map, \
+    get_stim_lighting_variations, \
     ContributionType
 
 
@@ -16,6 +17,11 @@ def main():
         database=alexnet_context.lighting_database
     )
 
+    contribution_types = [
+        (ContributionType.POSITIVE, ContributionType.BOTH),
+        (ContributionType.NEGATIVE, ContributionType.BOTH)
+    ]
+
     # Get unique parent IDs
     query = """
        SELECT DISTINCT parent_id 
@@ -26,27 +32,28 @@ def main():
     parent_ids = [row[0] for row in conn.fetch_all()]
 
     for parent_id in parent_ids:
-    # for parent_id in [1730131310638022]:
+        # for parent_id in [1730131310638022]:
         variations = get_stim_lighting_variations(conn, parent_id)
         conn.execute("SELECT path FROM StimPath WHERE stim_id = %s", (parent_id,))
         parent_path = conn.fetch_one()
         # combination_func = lambda x: np.prod(x, axis=0)
         combination_func = lambda x: np.mean(x, axis=0)
 
-        fig = plot_variations_multi_colors(conn, variations, parent_path, combination_func)
+        fig = plot_variations_multi_colors(conn, variations, parent_path, combination_func,
+                                           contribution_types=contribution_types)
         plt.figure(fig.number)
         plt.suptitle('Lighting variations for Parent ID: ' + str(parent_id))
-        plt.savefig('/home/r2_allen/Documents/EStimShape/allen_alexnet_lighting_exp_241028_0/plots/' + str(
-            parent_id) + "_multi" + '.png')
+        plt.savefig(f"{alexnet_context.lighting_plots_dir}/{parent_id}_{contribution_types[0]}_{contribution_types[1]}_multi.png")
         plt.show()
 
 
-def plot_variations_multi_colors(conn: Connection, variations: list, parent_image_path: str, combination_func=np.mean):
-    contribution_types = [
-        (ContributionType.POSITIVE, ContributionType.BOTH),
-        (ContributionType.NEGATIVE, ContributionType.BOTH)
-    ]
-
+def plot_variations_multi_colors(conn: Connection, variations: list, parent_image_path: str, combination_func=np.mean,
+                                 contribution_types=None):
+    if contribution_types is None:
+        contribution_types = [
+            (ContributionType.POSITIVE, ContributionType.BOTH),
+            (ContributionType.NEGATIVE, ContributionType.BOTH)
+        ]
     specular_vars = [v for v in variations if v[1] == 'SPECULAR']
     shade_vars = [v for v in variations if v[1] == 'SHADE']
     n_cols = max(len(specular_vars), len(shade_vars)) + 1
@@ -199,7 +206,9 @@ def plot_variations_multi_colors(conn: Connection, variations: list, parent_imag
     plt.subplots_adjust(hspace=0.0, wspace=0.1)
     return fig
 
-def calculate_each_contribution_map(conn: Connection, stim_id: int, conditions: list[tuple[ContributionType, ContributionType]]) -> list[np.ndarray]:
+
+def calculate_each_contribution_map(conn: Connection, stim_id: int,
+                                    conditions: list[tuple[ContributionType, ContributionType]]) -> list[np.ndarray]:
     contrib_maps = []
     for contrib_type_conv2, contrib_type_conv1 in conditions:
         contrib_map = calculate_contribution_map(conn, stim_id, contrib_type_conv2, contrib_type_conv1)

@@ -107,6 +107,7 @@ def plot_contrast_variations(conn: Connection):
         plt.tight_layout()
         plt.subplots_adjust(hspace=0.3)  # Add space for contrast value labels
 
+        plt.savefig(f'{alexnet_context.contrast_plots_dir}/{parent_id}_contrast_variations.png')
     return figs
 
 
@@ -124,8 +125,7 @@ def main():
     # Save and show all figures
     for i, fig in enumerate(figs):
         plt.figure(fig.number)
-        plt.savefig(
-            f'/home/r2_allen/Documents/EStimShape/{alexnet_context.contrast_database}/plots/contrast_variation_{i}.png')
+
         plt.show()
 
 
