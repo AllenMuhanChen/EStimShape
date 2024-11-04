@@ -1,9 +1,10 @@
 from datetime import datetime
 
 from src.pga.alexnet.app.alexnet_db_factory import update_context_file, setup_alexnet_xper_properties_and_dirs
+from src.pga.alexnet.onnx_parser import UnitIdentifier
 
 
-def switch_context(*, type: str, date: str, location_id: str) -> None:
+def switch_context(*, type: str, date: str, location_id: str, unit_string: str) -> None:
     """
     Switch the context files and properties to a different version.
 
@@ -18,7 +19,7 @@ def switch_context(*, type: str, date: str, location_id: str) -> None:
     contrast_database = f"allen_alexnet_contrast_{type}_{date}_{location_id}"
 
     # Update context file
-    update_context_file(ga_database, lighting_database, contrast_database)
+    update_context_file(ga_database, lighting_database, contrast_database, unit_string)
 
     # Update properties files for each type
     setup_alexnet_xper_properties_and_dirs(ga_database, "ga")
@@ -41,7 +42,13 @@ def main():
     # Prompt user for location ID
     location_id = input("Enter the location ID: ").strip()
 
-    switch_context(type=type, date=date, location_id=location_id)
+    try:
+        unit = UnitIdentifier.from_string(location_id)
+        unit_str = unit.to_string()
+    except ValueError:
+        unit_str = input("Enter the unit string (e.g., conv3_u134_7_7): ").strip()
+
+    switch_context(type=type, date=date, location_id=location_id, unit_string=unit_str)
 
 
 if __name__ == "__main__":

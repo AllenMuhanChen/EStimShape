@@ -4,6 +4,7 @@ from PIL import Image
 from clat.util.connection import Connection
 
 from src.pga.alexnet import alexnet_context
+from src.pga.alexnet.analysis.plot_top_n import normalize_responses
 from src.pga.alexnet.lighting_posthoc.backtrace_analysis import calculate_contribution_map, \
     get_stim_lighting_variations, \
     ContributionType
@@ -34,6 +35,7 @@ def main():
     for parent_id in parent_ids:
         # for parent_id in [1730131310638022]:
         variations = get_stim_lighting_variations(conn, parent_id)
+
         conn.execute("SELECT path FROM StimPath WHERE stim_id = %s", (parent_id,))
         parent_path = conn.fetch_one()
         # combination_func = lambda x: np.prod(x, axis=0)

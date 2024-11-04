@@ -4,6 +4,7 @@ from datetime import datetime
 from clat.util.connection import Connection
 
 from src.pga.alexnet import alexnet_context
+from src.pga.alexnet.onnx_parser import UnitIdentifier, LayerType
 from src.startup.db_factory import create_db_from_template, check_if_exists
 from src.startup.setup_xper_properties_and_dirs import XperPropertiesModifier, make_path
 
@@ -24,8 +25,21 @@ def main():
     # Prompt user for TYPE
     type = input("Enter the type (e.g., train, test, exp): ").strip().lower()
 
+
     # Prompt user for location ID
-    location_id = input("Enter the location ID: ").strip()
+    # Prompt user for unit number
+    while True:
+        try:
+            unit_num = int(input("Enter the Conv3 unit number: ").strip())
+            if 1 <= unit_num <= 384:  # Conv3 has 384 units
+                break
+            print("Unit number must be between 1 and 384")
+        except ValueError:
+            print("Please enter a valid number")
+
+    # Create unit identifier
+    unit = UnitIdentifier(layer=LayerType.CONV3, unit=unit_num, x=7, y=7)
+    location_id = unit.to_string()
 
     # Create GA database name
     ga_database = f"allen_alexnet_ga_{type}_{current_date}_{location_id}"
@@ -84,7 +98,7 @@ def main():
 
 
     # Update context file for GA database
-    update_context_file(ga_database, lighting_database, contrast_database)
+    update_context_file(ga_database, lighting_database, contrast_database, unit)
     sleep(1)
 
     # Dirs specified only in context file
@@ -131,7 +145,7 @@ def setup_alexnet_xper_properties_and_dirs(database, analysis_type):
 
 
 
-def update_context_file(ga_database, lighting_database, contrast_database):
+def update_context_file(ga_database, lighting_database, contrast_database, unit):
     target_file = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/pga/alexnet/alexnet_context.py"
 
     # Read the target file
@@ -159,6 +173,9 @@ def update_context_file(ga_database, lighting_database, contrast_database):
             new_lines.append(f'lighting_plots_dir = "/home/r2_allen/Documents/EStimShape/{lighting_database}/plots\n')
         elif line.startswith("contrast_plots_dir"):
             new_lines.append(f'contrast_plots_dir = "/home/r2_allen/Documents/EStimShape/{contrast_database}/plots\n')
+        elif line.startswith("unit_string"):
+            new_lines.append(f'unit_string = "{unit.to_string}"\n')
+
         else:
             new_lines.append(line)
 
