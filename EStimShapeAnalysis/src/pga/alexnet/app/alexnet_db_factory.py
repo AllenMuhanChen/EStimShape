@@ -102,6 +102,7 @@ def setup_alexnet_xper_properties_and_dirs(database, analysis_type):
     db_url = f"jdbc:mysql://172.30.6.80/{version}?rewriteBatchedStatements=true"
     estimshape_base = f"/home/r2_allen/Documents/EStimShape/{version}"
     stimuli_base_r = f"{estimshape_base}/stimuli"
+    plots_path = f"{estimshape_base}/plots"
     r_ga_path = f"{stimuli_base_r}/ga"
     generator_png_path = f"{r_ga_path}/pngs"
     generator_spec_path = f"{r_ga_path}/specs"
@@ -118,6 +119,7 @@ def setup_alexnet_xper_properties_and_dirs(database, analysis_type):
     modifier.save_changes()
 
     make_path(estimshape_base)
+    make_path(plots_path)
     make_path(generator_png_path)
     make_path(generator_spec_path)
 
