@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import ot
 from PIL import Image
 from scipy.stats import wasserstein_distance
 from clat.util.connection import Connection
@@ -153,6 +154,8 @@ def plot_emd_correlation(brightness_emd: np.ndarray,
 
     plt.tight_layout()
     return fig
+
+
 def calculate_luminance(image_path: str) -> np.ndarray:
     """Calculate luminance values for each pixel in the image."""
     img = Image.open(image_path).convert('RGB')
@@ -192,39 +195,97 @@ def calculate_contribution_distribution(conn: Connection, stim_id: int,
     return contrib_map
 
 
+def calculate_shuffle_distance(arr: np.ndarray, n_shuffles: int = 10) -> float:
+    """
+    Calculate average EMD between array and randomly shuffled versions of itself.
+
+    Args:
+        arr: 2D numpy array of contributions/brightness
+        n_shuffles: number of random shuffles to average over
+
+    Returns:
+        float: average EMD between original and shuffled versions
+    """
+    distances = []
+    for _ in range(n_shuffles):
+        # Create shuffled version preserving zeros
+        shuffled = arr.copy()
+        non_zero_mask = shuffled > 0
+        non_zero_values = shuffled[non_zero_mask]
+        np.random.shuffle(non_zero_values)
+        shuffled[non_zero_mask] = non_zero_values
+        # plt.imshow(shuffled)
+        # plt.show()
+        # Calculate EMD
+        distance = ot.sliced_wasserstein_distance(arr, shuffled)
+        distances.append(distance)
+
+    return np.mean(distances)
+
+
 def compute_emd_matrix(data_arrays: List[np.ndarray]) -> np.ndarray:
     """
-    Compute EMD between all pairs of distributions.
+    Compute normalized EMD between all pairs of distributions.
+    Normalizes by shuffle distance so that 1 represents maximum expected distance.
 
     Args:
         data_arrays: List of 2D numpy arrays containing distributions
 
     Returns:
-        2D numpy array containing EMD values between all pairs
+        2D numpy array containing normalized EMD values between all pairs
     """
     n_arrays = len(data_arrays)
     emd_matrix = np.zeros((n_arrays, n_arrays))
 
-    # Preprocess arrays: flatten and filter non-zero values
-    processed_data = []
-    for arr in data_arrays:
-        flat_data = arr[arr > 0].flatten()
-        if len(flat_data) > 0:  # Only normalize if there are non-zero values
-            flat_data = flat_data / flat_data.sum()
-        processed_data.append(flat_data)
+    # Calculate shuffle distances for normalization
+    shuffle_distances = [calculate_shuffle_distance(arr) for arr in data_arrays]
 
-    # Compute EMD between all pairs
+    # Compute normalized EMD between all pairs
     for i in range(n_arrays):
         for j in range(n_arrays):
-            if len(processed_data[i]) > 0 and len(processed_data[j]) > 0:
-                emd_matrix[i, j] = wasserstein_distance(
-                    processed_data[i],
-                    processed_data[j]
+            if data_arrays[i].size > 0 and data_arrays[j].size > 0:
+                # Calculate EMD
+                emd = ot.sliced_wasserstein_distance(
+                    data_arrays[i],
+                    data_arrays[j]
                 )
+
+                # Normalize by average of shuffle distances
+                normalization_factor = (shuffle_distances[i] + shuffle_distances[j]) / 2
+                if normalization_factor > 0:
+                    emd_matrix[i, j] = emd / normalization_factor
+                else:
+                    emd_matrix[i, j] = np.nan
             else:
                 emd_matrix[i, j] = np.nan
 
     return emd_matrix
+
+def compute_spatial_wasserstein(arr1, arr2):
+    height, width = arr1.shape
+    # Create coordinate weightings
+    x_coords = np.arange(width)
+    y_coords = np.arange(height)
+
+    # Get marginal distributions along x and y
+    x_dist1 = arr1.sum(axis=0)  # Sum along y to get x distribution
+    x_dist2 = arr2.sum(axis=0)
+    y_dist1 = arr1.sum(axis=1)  # Sum along x to get y distribution
+    y_dist2 = arr2.sum(axis=1)
+
+    # Normalize
+    x_dist1 = x_dist1 / x_dist1.sum()
+    x_dist2 = x_dist2 / x_dist2.sum()
+    y_dist1 = y_dist1 / y_dist1.sum()
+    y_dist2 = y_dist2 / y_dist2.sum()
+
+    # Compute 1D Wasserstein along each axis
+    x_distance = wasserstein_distance(x_coords, x_coords, x_dist1, x_dist2)
+    y_distance = wasserstein_distance(y_coords, y_coords, y_dist1, y_dist2)
+
+    # Combine (could use different combination methods)
+    return np.sqrt(x_distance ** 2 + y_distance ** 2)
+
 
 def plot_emd_matrices(brightness_emd: np.ndarray,
                       both_contrib_emd: np.ndarray,
