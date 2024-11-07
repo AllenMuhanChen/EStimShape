@@ -63,24 +63,6 @@ class EMDMetric(DistanceMetric):
         return np.mean(distances)
 
 
-class SpatialEMDMetric(EMDMetric):
-    """
-    EMD metric that only considers spatial information (ignores intensity)
-    if the intensity is above a certain threshold
-    then set the value to 1. Otherwise, set it to 0.
-    """
-
-    def __init__(self, threshold=0.1, n_shuffles=10):
-        super().__init__(n_shuffles)
-        self.threshold = threshold
-
-    def normalize_array(self, arr: np.ndarray) -> np.ndarray:
-        return (arr > self.threshold).astype(float)
-
-    def _calculate_shuffle_distance(self, arr: np.ndarray) -> float:
-        return 1
-
-
 class OverlapMetric(DistanceMetric):
 
     def __init__(self, threshold: float = 0.01, spatial_tolerance: int = 1):
@@ -169,5 +151,4 @@ class WeightedOverlapMetric(OverlapMetric):
 class DistanceType(Enum):
     EMD = "emd"
     OVERLAP = "overlap"
-    SPATIAL_EMD = "spatial emd"
     WEIGHTED_OVERLAP = "weighted overlap"

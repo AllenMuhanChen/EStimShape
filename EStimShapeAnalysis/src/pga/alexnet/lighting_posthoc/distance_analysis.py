@@ -323,10 +323,6 @@ def create_distance_calculator(brightness_type: DistanceType,
             threshold=kwargs.get('threshold', 0.5),
             spatial_tolerance=kwargs.get('spatial_tolerance', 5)
         ),
-        DistanceType.SPATIAL_EMD: lambda: SpatialEMDMetric(
-            n_shuffles=kwargs.get('n_shuffles', 3),
-            threshold=kwargs.get('threshold', 0.5),
-        ),
         DistanceType.WEIGHTED_OVERLAP: lambda: WeightedOverlapMetric(
             threshold=kwargs.get('threshold', 0.1),
             spatial_tolerance=kwargs.get('spatial_tolerance', 0)
