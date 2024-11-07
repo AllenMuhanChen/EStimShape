@@ -21,7 +21,7 @@ def main():
         contribution_type=contribution_metric,
         n_shuffles=3,
         threshold=0.1,
-        spatial_tolerance=5
+        spatial_tolerance=2
     )
 
     # Connect to database

@@ -116,9 +116,16 @@ class OverlapMetric(DistanceMetric):
                     matches += 1
                     break
 
+        for p2 in active2:
+            for p1 in active1:
+                if (abs(p1[0] - p2[0]) <= self.spatial_tolerance and
+                        abs(p1[1] - p2[1]) <= self.spatial_tolerance):
+                    matches += 1
+                    break
+
         # Return similarity score (convert to distance by subtracting from 1)
-        similarity = 2 * matches / total_active
-        return 1 - similarity
+        percent_overlap = matches / total_active
+        return percent_overlap
 
 
 class DistanceType(Enum):
