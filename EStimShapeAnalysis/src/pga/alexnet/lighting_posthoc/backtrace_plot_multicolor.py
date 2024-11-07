@@ -5,7 +5,7 @@ from clat.util.connection import Connection
 
 from src.pga.alexnet import alexnet_context
 from src.pga.alexnet.analysis.plot_top_n import normalize_responses
-from src.pga.alexnet.lighting_posthoc.backtrace_analysis import calculate_contribution_map, \
+from src.pga.alexnet.lighting_posthoc.backtrace_analysis import calculate_raw_contribution_map, \
     get_stim_lighting_variations, \
     ContributionType
 
@@ -213,7 +213,7 @@ def calculate_each_contribution_map(conn: Connection, stim_id: int,
                                     conditions: list[tuple[ContributionType, ContributionType]]) -> list[np.ndarray]:
     contrib_maps = []
     for contrib_type_conv2, contrib_type_conv1 in conditions:
-        contrib_map = calculate_contribution_map(conn, stim_id, contrib_type_conv2, contrib_type_conv1)
+        contrib_map = calculate_raw_contribution_map(conn, stim_id, contrib_type_conv2, contrib_type_conv1)
         contrib_maps.append(contrib_map)
     return contrib_maps
 

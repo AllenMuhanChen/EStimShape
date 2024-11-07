@@ -1,3 +1,6 @@
+import math
+import random
+
 import numpy as np
 import matplotlib.pyplot as plt
 import ot
@@ -5,7 +8,7 @@ from PIL import Image
 from scipy.stats import wasserstein_distance
 from clat.util.connection import Connection
 from src.pga.alexnet import alexnet_context
-from src.pga.alexnet.lighting_posthoc.backtrace_analysis import calculate_contribution_map, ContributionType
+from src.pga.alexnet.lighting_posthoc.backtrace_analysis import calculate_raw_contribution_map, ContributionType
 from typing import Dict, List, Tuple, Optional
 
 
@@ -181,7 +184,7 @@ def calculate_contribution_distribution(conn: Connection, stim_id: int,
                                         contribution_type: ContributionType) -> np.ndarray:
     """Calculate contribution distribution for a given stimulus."""
     # Get contribution map using existing function
-    contrib_map = calculate_contribution_map(
+    contrib_map = calculate_raw_contribution_map(
         conn,
         stim_id,
         contribution_type,  # for conv2
@@ -207,15 +210,16 @@ def calculate_shuffle_distance(arr: np.ndarray, n_shuffles: int = 10) -> float:
         float: average EMD between original and shuffled versions
     """
     distances = []
-    for _ in range(n_shuffles):
+    for i in range(n_shuffles):
         # Create shuffled version preserving zeros
         shuffled = arr.copy()
         non_zero_mask = shuffled > 0
         non_zero_values = shuffled[non_zero_mask]
         np.random.shuffle(non_zero_values)
         shuffled[non_zero_mask] = non_zero_values
-        # plt.imshow(shuffled)
-        # plt.show()
+        # if random.random()<0.01:
+        #     plt.imshow(shuffled)
+        #     plt.show()
         # Calculate EMD
         distance = ot.sliced_wasserstein_distance(arr, shuffled)
         distances.append(distance)

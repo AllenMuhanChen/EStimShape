@@ -62,7 +62,7 @@ def plot_variations(conn: Connection, variations: list, parent_image_path: str, 
 
     # Plot SPECULAR variations
     for idx, (stim_id, texture_type, activation) in enumerate(specular_vars):
-        contrib_map = calculate_contribution_map(conn, stim_id, conv2_contribution_type, conv1_contribution_type)
+        contrib_map = calculate_raw_contribution_map(conn, stim_id, conv2_contribution_type, conv1_contribution_type)
         all_maps['SPECULAR'].append(contrib_map)
         norm_map = contrib_map / contrib_map.max() if contrib_map.max() > 0 else contrib_map
 
@@ -107,7 +107,7 @@ def plot_variations(conn: Connection, variations: list, parent_image_path: str, 
 
     # Plot SHADE variations
     for idx, (stim_id, texture_type, activation) in enumerate(shade_vars):
-        contrib_map = calculate_contribution_map(conn, stim_id, conv2_contribution_type, conv1_contribution_type)
+        contrib_map = calculate_raw_contribution_map(conn, stim_id, conv2_contribution_type, conv1_contribution_type)
         all_maps['SHADE'].append(contrib_map)
         norm_map = contrib_map / contrib_map.max() if contrib_map.max() > 0 else contrib_map
 
@@ -174,8 +174,7 @@ def plot_variations(conn: Connection, variations: list, parent_image_path: str, 
     return fig
 
 
-def calculate_contribution_map(conn: Connection, stim_id: int, conv2_contribution_type: ContributionType, conv1_contribution_type: ContributionType) -> np.ndarray:
-    """Find all positive conv2 contributions:"""
+def calculate_raw_contribution_map(conn: Connection, stim_id: int, conv2_contribution_type: ContributionType, conv1_contribution_type: ContributionType) -> np.ndarray:
     contribution_line = build_sql_contribution_line(conv2_contribution_type)
     query = f"""
     SELECT (to_unit_id), (contribution)
