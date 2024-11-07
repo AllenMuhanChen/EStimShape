@@ -127,8 +127,47 @@ class OverlapMetric(DistanceMetric):
         percent_overlap = matches / total_active
         return percent_overlap
 
+class WeightedOverlapMetric(OverlapMetric):
+    def compute_distance(self, arr1: np.ndarray, arr2: np.ndarray) -> float:
+        if arr1.size == 0 or arr2.size == 0:
+            return np.nan
+
+        # Normalize arrays
+        arr1_norm = self.normalize_array(arr1)
+        arr2_norm = self.normalize_array(arr2)
+
+        # Get active pixels
+        active1 = set((x, y) for x, y in zip(*np.where(arr1_norm > self.threshold)))
+        active2 = set((x, y) for x, y in zip(*np.where(arr2_norm > self.threshold)))
+
+        # Count matches
+        contribution_weighted_sum = 0
+        total_active = len(active1) + len(active2)
+
+        if total_active == 0:
+            return 0.0
+
+        for p1 in active1:
+            for p2 in active2:
+                if (abs(p1[0] - p2[0]) <= self.spatial_tolerance and
+                        abs(p1[1] - p2[1]) <= self.spatial_tolerance):
+                    contribution_weighted_sum += arr1_norm[p1[0], p1[1]]
+                    break
+
+        for p2 in active2:
+            for p1 in active1:
+                if (abs(p1[0] - p2[0]) <= self.spatial_tolerance and
+                        abs(p1[1] - p2[1]) <= self.spatial_tolerance):
+                    contribution_weighted_sum += arr2_norm[p2[0], p2[1]]
+                    break
+
+        # Return similarity score (convert to distance by subtracting from 1)
+
+        return contribution_weighted_sum
+
 
 class DistanceType(Enum):
     EMD = "emd"
     OVERLAP = "overlap"
     SPATIAL_EMD = "spatial emd"
+    WEIGHTED_OVERLAP = "weighted overlap"
