@@ -168,11 +168,11 @@ def update_context_file(ga_database, lighting_database, contrast_database, unit)
         elif line.startswith("rwa_output_dir"):
             new_lines.append(f'rwa_output_dir = "/home/r2_allen/Documents/EStimShape/{ga_database}/rwa"\n')
         elif line.startswith("ga_plots_dir"):
-            new_lines.append(f'ga_plots_dir = "/home/r2_allen/Documents/EStimShape/{ga_database}/plots\n')
+            new_lines.append(f'ga_plots_dir = "/home/r2_allen/Documents/EStimShape/{ga_database}/plots"\n')
         elif line.startswith("lighting_plots_dir"):
-            new_lines.append(f'lighting_plots_dir = "/home/r2_allen/Documents/EStimShape/{lighting_database}/plots\n')
+            new_lines.append(f'lighting_plots_dir = "/home/r2_allen/Documents/EStimShape/{lighting_database}/plots"\n')
         elif line.startswith("contrast_plots_dir"):
-            new_lines.append(f'contrast_plots_dir = "/home/r2_allen/Documents/EStimShape/{contrast_database}/plots\n')
+            new_lines.append(f'contrast_plots_dir = "/home/r2_allen/Documents/EStimShape/{contrast_database}/plots"\n')
         elif line.startswith("unit_string"):
             new_lines.append(f'unit_string = "{unit}"\n')
 

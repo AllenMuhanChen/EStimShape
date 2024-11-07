@@ -8,13 +8,13 @@ from matplotlib import pyplot as plt
 from src.pga.alexnet import alexnet_context
 from src.pga.alexnet.lighting_posthoc.backtrace_analysis import ContributionType, calculate_raw_contribution_map
 from src.pga.alexnet.lighting_posthoc.distance.distance_metrics import DistanceType, \
-    DistanceMetric, EMDMetric, OverlapMetric, SpatialEMDMetric, WeightedOverlapMetric
+    DistanceMetric, EMDMetric, OverlapMetric, WeightedOverlapMetric
 
 
 def main():
     # Create calculator instances for different metric combinations
     brightness_metric = DistanceType.EMD
-    contribution_metric = DistanceType.WEIGHTED_OVERLAP
+    contribution_metric = DistanceType.OVERLAP
 
     calc_distance = create_distance_calculator(
         brightness_type=brightness_metric,
