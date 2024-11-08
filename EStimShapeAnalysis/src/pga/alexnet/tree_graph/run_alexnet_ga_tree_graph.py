@@ -5,26 +5,25 @@ import pyperclip
 from dash import dash, dcc, html, Output, Input, State
 from dash.exceptions import PreventUpdate
 
+from src.pga.alexnet.tree_graph.alexnet_ga_tree_graph import AlexNetDataAccess
 from src.tree_graph.tree_graph_app import TreeGraphApp
-from src.tree_graph.ga_tree_graph import GATreeGraph, MySQLTreeDataAccess
-from src.startup import context
+from src.tree_graph.ga_tree_graph import GATreeGraph
+from src.pga.alexnet import alexnet_context
 
 
-class GATreeGraphApp(TreeGraphApp):
+class AlexNetTreeGraphApp(TreeGraphApp):
     def __init__(self):
-        self.data_layer = MySQLTreeDataAccess(
-            conn=context.ga_config.connection(),
-            image_base_path=context.image_path
+        self.data_layer = AlexNetDataAccess(
+            conn=alexnet_context.ga_config.connection(),
+            image_base_path=alexnet_context.image_path
         )
-        self.app = dash.Dash("Tree Graphs")
+        self.app = dash.Dash("AlexNet Tree Graphs")
         self._update_app()
         self.run()
 
     def _update_app(self):
-        # Define the lineage_id options
         lineage_id_options = self.data_layer.get_all_lineages()
 
-        # Create the app layout
         self.app.layout = html.Div([
             dcc.Dropdown(id="lineage-id", options=lineage_id_options, value=1),
             dcc.Graph(id="tree", clear_on_unhover=True),
@@ -76,11 +75,9 @@ class GATreeGraphApp(TreeGraphApp):
             if ctx.triggered:
                 button_id = ctx.triggered[0]["prop_id"].split(".")[0]
                 if button_id == "increase-size-btn":
-                    zoom_factor = zoom_factor + 5
-                    return zoom_factor
+                    return zoom_factor + 5
                 elif button_id == "decrease-size-btn":
-                    zoom_factor = zoom_factor - 5
-                    return zoom_factor
+                    return zoom_factor - 5
             raise PreventUpdate
 
         @self.app.callback(
@@ -93,17 +90,13 @@ class GATreeGraphApp(TreeGraphApp):
             if ctx.triggered:
                 input_id = ctx.triggered[0]['prop_id'].split('.')[0]
                 if input_id == "tree":
-                    nodes_to_highlight = []
                     if clickData:
                         stim_id = clickData["points"][0]["text"]
-                        nodes_to_highlight.append(float(stim_id))
-                        return nodes_to_highlight
-                    else:
-                        return dash.no_update
+                        return [float(stim_id)]
+                    return dash.no_update
                 elif input_id == "reset-highlight-btn":
                     return self.tree_graph.stim_ids
-                else:
-                    return dash.no_update
+            return dash.no_update
 
         @self.app.callback(
             Output("node-info", "children"),
@@ -114,35 +107,28 @@ class GATreeGraphApp(TreeGraphApp):
                 node_label = clickData["points"][0]["text"]
                 component_print = []
 
-                # Get node metadata
+                # Get node information
                 parent_id = self.data_layer.get_parent_id(node_label)
                 stim_type = self.data_layer.get_regime(node_label)
                 metadata = self.data_layer.get_metadata(node_label)
 
                 # Print Parent Info
-                component_print.append(f"ParentID: {parent_id}\n")
+                component_print.append(f"Parent ID: {parent_id}\n")
                 component_print.append(html.Br())
 
                 # Print Regime Info
-                component_print.append(f"StimType: {stim_type}\n")
+                component_print.append(f"Stim Type: {stim_type}\n")
                 component_print.append(html.Br())
 
-                # If Regime TWO
-                if stim_type == "RegimeTwo" and metadata.get("components_to_preserve"):
-                    component_print.append(f"Components to Preserve: {metadata['components_to_preserve']}\n")
+                # Print Activation Value
+                if "activation" in metadata:
+                    component_print.append(f"Activation: {metadata['activation']:.4f}\n")
                     component_print.append(html.Br())
 
-                # If Regime THREE
-                if stim_type == "RegimeThree":
-                    components_exploring = metadata.get("components_exploring", "All")
-                    component_print.append(f"Components Exploring: {components_exploring}\n")
+                # Print Mutation Magnitude
+                if "mutation_magnitude" in metadata:
+                    component_print.append(f"Mutation Magnitude: {metadata['mutation_magnitude']:.4f}\n")
                     component_print.append(html.Br())
-
-                # Print Shaft Info
-                if metadata.get("shaft_data"):
-                    for component in metadata["shaft_data"]:
-                        component_print.append(f"{component}\n")
-                        component_print.append(html.Br())
 
                 return component_print
             return ""
@@ -161,7 +147,7 @@ class GATreeGraphApp(TreeGraphApp):
 
 
 def main():
-    app = GATreeGraphApp()
+    app = AlexNetTreeGraphApp()
     app.run()
 
 

@@ -1,68 +1,13 @@
-from __future__ import annotations
+from typing import Dict, List, Tuple
 
-import os
-import dash
-import pyperclip
-from dash import dcc
-from dash import html
-from dash.dependencies import Input, Output
 import networkx as nx
-import plotly.graph_objects as go
+import os
 from PIL import Image
-from plotly import graph_objects as go
-
-
-class TreeGraphApp:
-    def __init__(self, tree_graph):
-        self.tree_graph = tree_graph
-        self.app = dash.Dash("Tree Graph")
-        self._update_app(tree_graph.fig)
-        self.run()
-
-    def run(self):
-        self.app.run_server(port=8052)
-
-    def _update_app(self, fig):
-
-        # Create the app layout
-        self.app.layout = html.Div(
-            [
-                dcc.Graph(id="tree",
-                          figure=fig, clear_on_unhover=True,
-                          autosize=False, ),
-                html.Div(id="clipboard-data"),
-                html.Div(id="node-info"),
-            ]
-        )
-
-        # Define the callback for click events
-        @self.app.callback(
-            Output("node-info", "children"), Input("tree", "clickData")
-        )
-        def display_click_data(clickData):
-            if clickData:
-                node_label = clickData["points"][0]["text"]
-                print(f"Node {node_label} clicked")  # Print the node information
-                return f"Node {node_label} clicked"
-            else:
-                return ""
-
-        # Define the callback for copying to clipboard
-        @self.app.callback(
-            Output("clipboard-data", "children"), Input("tree", "clickData")
-        )
-        def copy_to_clipboard(clickData):
-            if clickData:
-                node_label = clickData["points"][0]["text"]
-                print(f"Node {node_label} copied to clipboard")  # Print the node information
-                pyperclip.copy(node_label)
-                return f"Node {node_label} copied to clipboard"
-            else:
-                return ""
+import plotly.graph_objects as go
 
 
 class TreeGraph:
-    def __init__(self, y_values_for_stim_ids, edges: list[tuple], image_folder):
+    def __init__(self, y_values_for_stim_ids: Dict[int, float], edges: List[Tuple[int, int]], image_folder: str):
         self.edges = edges
         self.image_folder = image_folder
         self._create_tree_graph(y_values_for_stim_ids, edges)
@@ -136,9 +81,20 @@ class TreeGraph:
     def _get_images_for_stims(self):
         images = []
         for stim_id in self.tree.nodes():
-            image = go.layout.Image(name=stim_id, source=self._get_image(stim_id), xref="x", yref="y", x=self.pos[stim_id][0],
-                                    y=self.pos[stim_id][1], sizex=self.node_size, sizey=self.node_size,
-                                    xanchor="center", yanchor="middle", sizing="contain", layer="above")
+            image = go.layout.Image(
+                name=stim_id,
+                source=self._get_image(stim_id),
+                xref="x",
+                yref="y",
+                x=self.pos[stim_id][0],
+                y=self.pos[stim_id][1],
+                sizex=self.node_size,
+                sizey=self.node_size,
+                xanchor="center",
+                yanchor="middle",
+                sizing="contain",
+                layer="above"
+            )
             images.append(image)
         return images
 
@@ -148,21 +104,19 @@ class TreeGraph:
 
 
 class ColoredTreeGraph(TreeGraph):
-    def __init__(self, y_values_for_stim_ids, edges, edge_colors, image_folder):
+    def __init__(self, y_values_for_stim_ids: Dict[int, float], edges: List[Tuple[int, int]],
+                 edge_colors: Dict[Tuple[int, int], str], image_folder: str):
         self.edge_colors = edge_colors
         super().__init__(y_values_for_stim_ids, edges, image_folder)
 
-
-    def _create_edges(self, pos, tree):
-        print("COLORED EDGES CALLED")
-        self.ids_for_edge_traces = []
+    def _create_edges(self, pos, tree) -> List[go.Scatter]:
         edge_traces = []
         for edge in tree.edges():
             x = [pos[edge[0]][0], pos[edge[1]][0], None]
             y = [pos[edge[0]][1], pos[edge[1]][1], None]
             color = self.edge_colors[edge]
             edge_trace = go.Scatter(
-                name=str((edge[0], edge[1])),
+                name=str(edge),
                 x=x,
                 y=y,
                 mode="lines",

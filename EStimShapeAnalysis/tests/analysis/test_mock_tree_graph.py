@@ -1,12 +1,13 @@
 from unittest import TestCase
 
-from src.pga.app.run_tree_graph_app import _parse_recursive_xml, recursive_tree_to_edges, MockTreeGraphApp
+from src.pga.app.run_tree_graph_app import GATreeGraphApp
+from src.tree_graph.ga_tree_graph import recursive_tree_to_edges, _parse_recursive_xml
 
 lineage_id = "1680721659342212"
 
 class TestMockTreeGraph(TestCase):
     def test_app(self):
-        app = MockTreeGraphApp()
+        app = GATreeGraphApp()
         app.run()
 
 

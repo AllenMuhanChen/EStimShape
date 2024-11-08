@@ -4,7 +4,8 @@ from PIL.ImageQt import rgb
 from dash import dash
 
 from src.tree_graph import tree_graph
-from src.tree_graph.tree_graph import TreeGraph, TreeGraphApp
+from src.tree_graph.tree_graph import TreeGraph
+from src.tree_graph.tree_graph_app import TreeGraphApp
 import plotly.graph_objects as go
 
 

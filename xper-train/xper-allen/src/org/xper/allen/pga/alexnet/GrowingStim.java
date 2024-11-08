@@ -6,7 +6,7 @@ import org.xper.drawing.RGBColor;
 public class GrowingStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMStickData>{
 
     public static final double TOTAL_MAX_CONTRAST_CHANGE = 1.0;
-    public static final double PERCENTAGE_MUTATE_2D_3D = 0.33;
+    public static final double PERCENTAGE_MUTATE_2D_3D = 0.333;
 
     // Distance Constraints
     private static final double TOTAL_SPACE = 30.0; // Total available space (-15 to 15)
@@ -54,6 +54,10 @@ public class GrowingStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMSt
         sizeDiameter = parentData.sizeDiameter;
         location = parentData.location;
 
+        boolean doMutate = Math.random() < magnitude;
+        if (!doMutate) {
+            return;
+        }
 
         // Always do one mutation with 50/50 chance
         boolean doSize = Math.random() < 0.5;
@@ -122,7 +126,7 @@ public class GrowingStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMSt
             // Turn 2D into either specular or shade
             if (parentData.textureType.equals("2D")){
                 textureType = Math.random() < 0.5 ? "SPECULAR" : "SHADE";
-            // Turn specular or shade into 2D
+                // Turn specular or shade into 2D
             } else {
                 textureType = "2D";
             }
@@ -132,6 +136,13 @@ public class GrowingStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMSt
     }
 
     private void mutateContrast(AlexNetGAMStickData parentData) {
+        boolean doMutate = Math.random() < magnitude * 3;
+
+        if (!doMutate) {
+            contrast = parentData.contrast;
+            return;
+        }
+
         double parentContrast = parentData.contrast;
         double maxContrastChange = TOTAL_MAX_CONTRAST_CHANGE * magnitude;
         double contrastChange = Math.random() * maxContrastChange;

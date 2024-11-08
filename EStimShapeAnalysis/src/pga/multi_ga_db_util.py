@@ -11,6 +11,8 @@ from numpy import float64
 from clat.intan.channels import Channel
 from clat.util.connection import Connection
 
+import src.tree_graph.ga_tree_graph
+
 
 class MultiGaDbUtil:
     conn: Connection
@@ -58,7 +60,7 @@ class MultiGaDbUtil:
             "SELECT regime FROM LineageGaInfo WHERE lineage_id = %s",
             (lineage_id,)
         )
-        regime_str = self.db_util.conn.fetch_one()
+        regime_str = src.tree_graph.ga_tree_graph.conn.fetch_one()
         return regime_str
 
     def read_lineage_ga_info_for_experiment_id_and_gen_id(self, experiment_id: int, gen_id: int) -> list[

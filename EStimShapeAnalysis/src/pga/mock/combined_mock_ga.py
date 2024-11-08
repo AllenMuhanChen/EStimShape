@@ -6,6 +6,8 @@ from time import sleep
 import numpy as np
 
 from clat.intan.channels import Channel
+
+import src.tree_graph.ga_tree_graph
 from src.pga.config.rf_config import RFGeneticAlgorithmConfig
 from src.pga.spike_parsing import IntanResponseParser
 from src.pga.mock import mock_ga_responses
@@ -31,12 +33,12 @@ class TestCombinedMockWithFakeNeuronResponse(unittest.TestCase):
             generation += 1
 
     def test_util_reset_db(self):
-        self.mock_config.db_util.conn.truncate("StimGaInfo")
-        self.mock_config.db_util.conn.truncate("LineageGaInfo")
-        self.mock_config.db_util.conn.truncate("StimSpec")
-        self.mock_config.db_util.conn.truncate("TaskToDo")
-        self.mock_config.db_util.conn.truncate("TaskDone")
-        self.mock_config.db_util.conn.truncate("BehMsg")
+        src.tree_graph.ga_tree_graph.conn.truncate("StimGaInfo")
+        src.tree_graph.ga_tree_graph.conn.truncate("LineageGaInfo")
+        src.tree_graph.ga_tree_graph.conn.truncate("StimSpec")
+        src.tree_graph.ga_tree_graph.conn.truncate("TaskToDo")
+        src.tree_graph.ga_tree_graph.conn.truncate("TaskDone")
+        src.tree_graph.ga_tree_graph.conn.truncate("BehMsg")
         self.mock_config.db_util.update_ready_gas_and_generations_info("New3D", 0)
 
 

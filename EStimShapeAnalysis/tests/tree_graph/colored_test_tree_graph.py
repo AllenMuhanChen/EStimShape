@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from src.tree_graph.tree_graph import TreeGraphApp
+from src.tree_graph.tree_graph_app import TreeGraphApp
 from tree_graph.tree_graph import ColoredTreeGraph
 
 
