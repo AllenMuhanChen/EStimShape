@@ -200,16 +200,16 @@ class AlexNetGrowingPhaseParentSelector(GrowingPhaseParentSelector):
 
         return sampled_stimuli_from_lineage
 
-    def _filter_to_best_rf(self, stimuli):
+    def _filter_to_best_rf(self, stimuli, n=5):
         # filter out all RF_LOCATE/SEED that isn't the best in the lineage by response rate
         candidates = []
         for stimulus in stimuli:
             if self._is_rf_related(stimulus):
                 candidates.append(stimulus)
-        best_rf_candidate = max(candidates, key=lambda x: x.response_rate)
+        best_rf_candidates = sorted(candidates, key=lambda x: x.response_rate)[-n:]
         # remove all rf_locate/seed stimuli that aren't the best candidate
         stimuli = [stimulus for stimulus in stimuli if
-                   not self._is_rf_related(stimulus) or stimulus == best_rf_candidate]
+                   not self._is_rf_related(stimulus) or stimulus in best_rf_candidates]
         return stimuli
 
     def _is_rf_related(self, stimulus):

@@ -61,29 +61,53 @@ class GATreeGraph(ColoredTreeGraph):
         parent_id = self.data_layer.get_parent_id(nodes_to_highlight[0])
         children_ids = self.data_layer.get_children_ids(nodes_to_highlight[0])
 
+        # Get parent of parent unitl no more
+        all_parents = [parent_id]
+        while parent_id != 0:
+            parent_id = self.data_layer.get_parent_id(parent_id)
+            if parent_id != 0:
+                all_parents.append(parent_id)
+
+        print(all_parents)
+
+
+
         # Update image opacities
         for img in self.fig.layout.images:
             try:
                 img_id = int(img.name)
-                if img_id in nodes_to_highlight or img_id == parent_id:
-                    img.opacity = 1
-                elif img_id in children_ids:
+                if img_id in children_ids:
                     img.opacity = 1.0
+                elif img_id in all_parents:
+                    #first gets 1.0, last gets 0.5, reduce opaqueness for in between
+                    img.opacity = 1 - (all_parents.index(img_id) / len(all_parents) / 2)
                 else:
-                    img.opacity = 0.0
+                    img.opacity = 0.05
             except (ValueError, TypeError):
                 continue
 
+
+
         self.fig.update_layout(images=self.fig.layout.images)
+
+        # Specify Edge Opacities
+        edge_opacities_for_nodes = {
+            node: 1 for node in nodes_to_highlight
+        }
+        for i, parent in enumerate(all_parents):
+            edge_opacities_for_nodes[parent] = 1 - (i / len(all_parents) / 2)
+        for child in children_ids:
+            edge_opacities_for_nodes[child] = 1
 
         # Update edge opacities
         for edge in self.fig.data[1:]:
             try:
                 edge_nodes = make_tuple(edge.name)
-                if edge_nodes[0] in nodes_to_highlight or edge_nodes[1] in nodes_to_highlight:
-                    edge.update(opacity=1)
+                if edge_nodes[0] in edge_opacities_for_nodes.keys() and edge_nodes[1] in edge_opacities_for_nodes.keys():
+                    opacity = min(edge_opacities_for_nodes[edge_nodes[0]], edge_opacities_for_nodes[edge_nodes[1]])
+                    edge.update(opacity=opacity)
                 else:
-                    edge.update(opacity=0.1)
+                    edge.update(opacity=0.05)
             except:
                 continue
 

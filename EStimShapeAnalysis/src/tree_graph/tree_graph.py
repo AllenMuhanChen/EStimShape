@@ -52,6 +52,7 @@ class TreeGraph:
             yaxis_side="left",
             images=self._get_images_for_stims(),
             uirevision=True,
+            height=750
         )
         return layout
 
