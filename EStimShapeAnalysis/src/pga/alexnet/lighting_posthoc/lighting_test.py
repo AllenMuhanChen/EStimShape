@@ -3,17 +3,18 @@ from dataclasses import dataclass
 from time import sleep
 
 import numpy as np
-from datetime import datetime
-
 from PIL import Image
 from clat.util import time_util
 from clat.util.connection import Connection
+
 from src.pga.alexnet import alexnet_context
 from src.pga.alexnet.onnx_parser import AlexNetONNXResponseParser, UnitIdentifier
 
 
 def main():
     # Create database connections
+    contrast = input("Enter the contrast value: ")
+
     ga_conn = Connection(host='172.30.6.80', user='xper_rw', password='up2nite',
                          database=alexnet_context.ga_database)
     lighting_conn = Connection(host='172.30.6.80', user='xper_rw', password='up2nite',
@@ -30,7 +31,7 @@ def main():
     light_positions = generate_lighting_positions(n_angles=8)
 
     # Continue with rest of the code...
-    write_3d_instructions(lighting_conn, top_stims, light_positions)
+    write_3d_instructions(lighting_conn, top_stims, light_positions, contrast)
     print(f"Written 3D instructions for {len(top_stims)} stimuli with {len(light_positions)} lighting variations")
 
     # Run the jar file
@@ -166,7 +167,7 @@ def generate_lighting_positions(n_angles=8):
     return positions
 
 
-def write_3d_instructions(lighting_conn, stimuli, light_positions):
+def write_3d_instructions(lighting_conn, stimuli, light_positions, contrast):
     """Write instructions for 3D texture variations."""
     for stim in stimuli:
         for texture in ['SPECULAR', 'SHADE']:
@@ -187,7 +188,7 @@ def write_3d_instructions(lighting_conn, stimuli, light_positions):
                     'TEXTURE_3D_VARIATION',
                     texture,
                     light_pos[0], light_pos[1], light_pos[2], light_pos[3],
-                    1.0
+                    contrast
                 )
 
                 lighting_conn.execute(query, params)

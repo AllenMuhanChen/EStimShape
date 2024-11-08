@@ -13,7 +13,8 @@ from src.pga.alexnet.onnx_parser import UnitIdentifier, LayerType
 def backtrace(model_path: str, image_path: str, unit: int, x: int, y: int, exporter_function, top_conv2: int = 10,
               top_conv1: int = 10, top_pixels: int = 10):
     """
-    Backtrace contributions through AlexNet layers, focusing on top N positive and negative contributions
+    Backtrace contributions through AlexNet layers, focusing on top N positive and negative contributions.
+    Now supports batch export of contributions.
 
     Args:
         model_path: Path to ONNX model
@@ -21,7 +22,7 @@ def backtrace(model_path: str, image_path: str, unit: int, x: int, y: int, expor
         unit: Conv3 unit to analyze
         x: x-coordinate in Conv3 layer
         y: y-coordinate in Conv3 layer
-        exporter_function: Function to export contribution data
+        exporter_function: Function to export contribution data (supports both single and batch exports)
         top_conv2: Number of top positive/negative Conv2 contributions to track
         top_conv1: Number of top positive/negative Conv1 contributions to track
         top_pixels: Number of top positive/negative pixel contributions to track
@@ -39,10 +40,8 @@ def backtrace(model_path: str, image_path: str, unit: int, x: int, y: int, expor
         elif initializer.name == 'conv1_W':
             conv1_weights = onnx.numpy_helper.to_array(initializer)
 
-    # Set up runtime session
+    # Set up runtime session and process image
     session = onnxruntime.InferenceSession(model_path)
-
-    # Preprocess image
     transform = transforms.Compose([
         transforms.PILToTensor(),
         lambda x: x * 1.0
@@ -57,92 +56,85 @@ def backtrace(model_path: str, image_path: str, unit: int, x: int, y: int, expor
                            'norm1', 'relu1', 'conv1', 'data_Sub'],
                           {input_name: input_tensor.numpy()})
 
-    conv3_activation = outputs[0][0, unit, x, y]
-    pool2_activations = outputs[1][0]  # [256, 13, 13]
-    norm2_activations = outputs[2][0]  # [256, 27, 27]
-    relu2_activations = outputs[3][0]  # [256, 27, 27]
-    conv2_activations = outputs[4][0]  # [256, 27, 27]
-    pool1_activations = outputs[5][0]  # [96, 27, 27]
-    norm1_activations = outputs[6][0]  # [96, 55, 55]
-    relu1_activations = outputs[7][0]  # [96, 55, 55]
-    conv1_activations = outputs[8][0]  # [96, 55, 55]
-    image_data = outputs[9][0]  # [3, 224, 224]
+    [conv3_activation, pool2_activations, norm2_activations, relu2_activations,
+     conv2_activations, pool1_activations, norm1_activations, relu1_activations,
+     conv1_activations, image_data] = outputs
 
-    # Calculate Conv2 contributions
-    pool2_contributions = calculate_pool_2_contributions(pool2_activations, unit_weights, x, y)
-    conv2s_for_contributions = associate_with_conv2_units(norm2_activations)
+    pool2_contributions = calculate_pool_2_contributions(pool2_activations[0], unit_weights, x, y)
+    conv2s_for_contributions = associate_with_conv2_units(norm2_activations[0])
 
     # Get top N positive and negative Conv2 contributions
     flat_contributions = pool2_contributions.flatten()
     flat_indices = np.arange(len(flat_contributions))
 
-    # Top positive Conv2
+    # Top positive and negative Conv2
     top_pos_conv2_indices = flat_indices[flat_contributions > 0][
         np.argsort(flat_contributions[flat_contributions > 0])[-top_conv2:]]
-    # Top negative Conv2
     top_neg_conv2_indices = flat_indices[flat_contributions < 0][
         np.argsort(-flat_contributions[flat_contributions < 0])[-top_conv2:]]
 
     conv3_unit = UnitIdentifier(LayerType.CONV3, unit + 1, x + 1, y + 1)
 
-    # Process top Conv2 contributions
+    # Dictionary to store all contributions for batch export
+    all_contributions = {}
+
+    # Process all Conv2 contributions
     for conv2_idx in np.concatenate([top_pos_conv2_indices, top_neg_conv2_indices]):
         conv2_coords = np.unravel_index(conv2_idx, pool2_contributions.shape)
         conv2_channel, conv2_x, conv2_y = conv2s_for_contributions[conv2_coords]
         conv2_unit = UnitIdentifier(LayerType.CONV2, conv2_channel + 1, conv2_x + 1, conv2_y + 1)
         contribution = pool2_contributions[conv2_coords]
 
-        # Export Conv3-Conv2 connection
-        connection = (conv3_unit, conv2_unit)
-        exporter_function(connection, contribution)
+        # Store Conv3-Conv2 connection
+        all_contributions[(conv3_unit, conv2_unit)] = contribution
 
         # Calculate Conv1 contributions for this Conv2 unit
         unit_conv2_weights = conv2_weights[conv2_channel]
-        pool1_contributions = calculate_pool_1_contributions(pool1_activations,
+        pool1_contributions = calculate_pool_1_contributions(pool1_activations[0],
                                                              unit_conv2_weights,
                                                              conv2_channel,
                                                              conv2_x,
                                                              conv2_y)
-        conv1s_for_contributions = associate_with_conv1_units(norm1_activations)
+        conv1s_for_contributions = associate_with_conv1_units(norm1_activations[0])
 
         # Get top N positive and negative Conv1 contributions
         flat_conv1_contributions = pool1_contributions.flatten()
         flat_conv1_indices = np.arange(len(flat_conv1_contributions))
 
-        # Top positive Conv1
+        # Top positive and negative Conv1
         top_pos_conv1_indices = flat_conv1_indices[flat_conv1_contributions > 0][
             np.argsort(flat_conv1_contributions[flat_conv1_contributions > 0])[-top_conv1:]]
-        # Top negative Conv1
         top_neg_conv1_indices = flat_conv1_indices[flat_conv1_contributions < 0][
             np.argsort(-flat_conv1_contributions[flat_conv1_contributions < 0])[-top_conv1:]]
 
-        # Process top Conv1 contributions
+        # Process Conv1 contributions
         for conv1_idx in np.concatenate([top_pos_conv1_indices, top_neg_conv1_indices]):
             conv1_coords = np.unravel_index(conv1_idx, pool1_contributions.shape)
             conv1_channel, conv1_x, conv1_y = conv1s_for_contributions[conv1_coords]
             conv1_unit = UnitIdentifier(LayerType.CONV1, conv1_channel + 1, conv1_x + 1, conv1_y + 1)
             conv1_contribution = pool1_contributions[conv1_coords]
 
-            # Export Conv2-Conv1 connection
-            connection = (conv2_unit, conv1_unit)
-            exporter_function(connection, conv1_contribution)
+            # Store Conv2-Conv1 connection
+            all_contributions[(conv2_unit, conv1_unit)] = conv1_contribution
 
             # Calculate pixel contributions for this Conv1 unit
-            unit_conv1_weights = conv1_weights[conv1_channel]  # Shape [3, 11, 11]
+            unit_conv1_weights = conv1_weights[conv1_channel]
             pixel_contributions = calculate_pixel_contributions(
-                image_data,
+                image_data[0],
                 unit_conv1_weights,
-                conv1_activations[conv1_channel],
+                conv1_activations[0][conv1_channel],
                 conv1_x,
                 conv1_y
             )
 
-            # Export pixel contributions
+            # Get and store top pixel contributions
             pixels = get_top_contributing_pixels(pixel_contributions, top_k=top_pixels)
-            for px, py, contribution in pixels:
-                pixel_id = UnitIdentifier(LayerType.IMAGE, 0, px, py)
-                connection = (conv1_unit, pixel_id)
-                exporter_function(connection, contribution)
+            for px, py, contrib in pixels:
+                pixel_id = UnitIdentifier(LayerType.IMAGE, 0, px + 1, py + 1)
+                all_contributions[(conv1_unit, pixel_id)] = contrib
+
+    # Export all contributions in one batch
+    exporter_function(all_contributions)
 
 
 def plot_one_activation(model_path: str, image_path: str, unit: int, x: int, y: int, M: int = 3, N: int = 5):
@@ -277,6 +269,7 @@ def plot_one_activation(model_path: str, image_path: str, unit: int, x: int, y: 
     plt.show()
 
     return contribution_data
+
 
 def calculate_pool_2_contributions(pool2_activations, conv3_unit_weights, x, y) -> np.ndarray:
     '''
@@ -474,6 +467,7 @@ def calculate_pixel_contributions(image_data: np.ndarray, conv1_weights: np.ndar
 
     return contributions
 
+
 def get_top_contributing_pixels(contributions: np.ndarray, top_k: int = 25) -> List[Tuple[int, int, float]]:
     """Get coordinates and values of top contributing pixels"""
     flat_idx = np.argsort(contributions.ravel())[-top_k:]
@@ -481,6 +475,7 @@ def get_top_contributing_pixels(contributions: np.ndarray, top_k: int = 25) -> L
 
     return [(coords[0][i], coords[1][i], contributions[coords[0][i], coords[1][i]])
             for i in range(len(flat_idx))]
+
 
 if __name__ == "__main__":
     model_path = '/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3'

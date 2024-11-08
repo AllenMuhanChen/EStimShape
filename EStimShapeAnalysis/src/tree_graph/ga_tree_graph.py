@@ -58,10 +58,10 @@ class GATreeGraph(ColoredTreeGraph):
             return self.reset_highlighted_nodes()
 
         # Get parent and children for highlighted nodes
-        parent_id = self.data_layer.get_parent_id(nodes_to_highlight[0])
         children_ids = self.data_layer.get_children_ids(nodes_to_highlight[0])
 
         # Get parent of parent unitl no more
+        parent_id = self.data_layer.get_parent_id(nodes_to_highlight[0])
         all_parents = [parent_id]
         while parent_id != 0:
             parent_id = self.data_layer.get_parent_id(parent_id)
@@ -76,7 +76,9 @@ class GATreeGraph(ColoredTreeGraph):
         for img in self.fig.layout.images:
             try:
                 img_id = int(img.name)
-                if img_id in children_ids:
+                if img_id in nodes_to_highlight:
+                    img.opacity = 1.0
+                elif img_id in children_ids:
                     img.opacity = 1.0
                 elif img_id in all_parents:
                     #first gets 1.0, last gets 0.5, reduce opaqueness for in between

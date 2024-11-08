@@ -175,7 +175,7 @@ from scipy.stats import truncnorm
 
 
 class GrowingPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
-    def __init__(self, std_dev=0.075, min_magnitude=0.1, max_magnitude=0.5):
+    def __init__(self, std_dev=0.075, min_magnitude=0.05, max_magnitude=0.5):
         """
         Initialize with standard deviation for normal distribution and magnitude bounds.
         std_dev of 0.075 means:
@@ -231,7 +231,7 @@ class GrowingPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
 
         # Center distribution mean at (1.1 - normalized_rate), but ensure it doesn't
         # push the mean beyond max_magnitude
-        mean = min(1.1 - normalized_rate, self.max_magnitude)
+        mean = min(1 + self.min_magnitude - normalized_rate, self.max_magnitude)
 
         # Sample from truncated normal distribution between min_magnitude and max_magnitude
         return self.get_truncated_normal(mean)

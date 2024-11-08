@@ -125,10 +125,15 @@ public class GrowingStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMSt
         if (Math.random() < PERCENTAGE_MUTATE_2D_3D){
             // Turn 2D into either specular or shade
             if (parentData.textureType.equals("2D")){
+                System.out.println("PARENT IS 2D");
                 textureType = Math.random() < 0.5 ? "SPECULAR" : "SHADE";
                 // Turn specular or shade into 2D
             } else {
                 textureType = "2D";
+            }
+            //When changing between 2D and 3D, shift contrasts a little
+            for (int i = 0; i < 1; i++){
+                mutateContrast(parentData);
             }
         } else {
             textureType = parentData.textureType;
@@ -148,8 +153,8 @@ public class GrowingStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMSt
         double contrastChange = Math.random() * maxContrastChange;
         //add or subtract contrast
         double newContrast = Math.random() < 0.5 ? parentContrast + contrastChange : parentContrast - contrastChange;
-        //ensure contrast is between 0 and 1
-        contrast = Math.min(1, Math.max(0, newContrast));
+        //ensure contrast is between 0 and 0.1
+        contrast = Math.min(1, Math.max(0.1, newContrast));
     }
 
 }
