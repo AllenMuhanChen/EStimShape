@@ -99,7 +99,7 @@ def main():
 
     # Update context file for GA database
     update_context_file(ga_database, lighting_database, contrast_database, location_id)
-    sleep(1)
+
 
     # Dirs specified only in context file
     make_path(alexnet_context.java_output_dir)

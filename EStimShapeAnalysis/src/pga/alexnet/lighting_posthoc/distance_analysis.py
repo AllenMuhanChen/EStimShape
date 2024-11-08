@@ -235,6 +235,9 @@ def plot_distance_correlation(brightness_dist: np.ndarray,
     ax.legend()
     # ax.set_aspect('equal')
     ax.grid(True, alpha=0.3)
+    #set axis limits
+    y_axis_max = max(y) if max(y) > 1 else 1
+    ax.set_ylim(0, y_axis_max)
 
     plt.tight_layout()
     return fig

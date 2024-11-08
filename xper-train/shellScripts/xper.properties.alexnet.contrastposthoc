@@ -3,7 +3,7 @@ matlab.home=/usr/local/matlab70_sp1
 xper.native_library_path=${matlab.home}/bin/glnx86;${matlab.home}/sys/os/glnx86
 
 jdbc.driver=com.mysql.jdbc.Driver
-jdbc.url=jdbc:mysql://172.30.6.80/allen_alexnet_contrast_exp_241108_conv3_u342_x7_y7?rewriteBatchedStatements=true
+jdbc.url=jdbc:mysql://172.30.6.80/allen_alexnet_contrast_exp_241108_conv3_u344_x7_y7?rewriteBatchedStatements=true
 
 
 jdbc.username=xper_rw
@@ -19,7 +19,7 @@ experiment.ga.name=New3D
 # parameters
 #############################################################################
 #path of computer running stimulus generator
-generator.png_path=/home/r2_allen/Documents/EStimShape/allen_alexnet_contrast_exp_241108_conv3_u342_x7_y7/stimuli/ga/pngs
+generator.png_path=/home/r2_allen/Documents/EStimShape/allen_alexnet_contrast_exp_241108_conv3_u344_x7_y7/stimuli/ga/pngs
 #path of computer running experiment
-generator.spec_path=/home/r2_allen/Documents/EStimShape/allen_alexnet_contrast_exp_241108_conv3_u342_x7_y7/stimuli/ga/specs
+generator.spec_path=/home/r2_allen/Documents/EStimShape/allen_alexnet_contrast_exp_241108_conv3_u344_x7_y7/stimuli/ga/specs
 #############
