@@ -124,10 +124,14 @@ class WeightedOverlapMetric(OverlapMetric):
 
         # Count matches
         contribution_weighted_sum = 0
-        total_active = len(active1) + len(active2)
 
-        if total_active == 0:
-            return 0.0
+
+        total_possible_sum = 0
+        for p1 in active1:
+            total_possible_sum += arr1_norm[p1[0], p1[1]]
+        for p2 in active2:
+            total_possible_sum += arr2_norm[p2[0], p2[1]]
+
 
         for p1 in active1:
             for p2 in active2:
@@ -145,7 +149,7 @@ class WeightedOverlapMetric(OverlapMetric):
 
         # Return similarity score (convert to distance by subtracting from 1)
 
-        return contribution_weighted_sum
+        return contribution_weighted_sum / total_possible_sum
 
 
 class DistanceType(Enum):

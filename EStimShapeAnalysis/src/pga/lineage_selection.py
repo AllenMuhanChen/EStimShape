@@ -18,9 +18,6 @@ def filter_to_lineages_past_regime(regime_index: int, *, lineages: list[Lineage]
     return [lineage for lineage in lineages if lineage.current_regime_index > regime_index]
 
 
-
-
-
 def filter_by_high_peak_response(lineages_with_regimes_past_regime_one, threshold=0.5):
     if len(lineages_with_regimes_past_regime_one) == 0:
         return []
@@ -68,10 +65,13 @@ class ClassicLineageDistributor:
                                                             self.number_of_trials_per_generation)
         # IF below threshold: distribute to all lineages regime>0 equally and generate some new lineages
         elif num_qualifying_lineages < self.max_lineages_to_build:
-            print("Number of qualifying lineages below num lineages to build")
+            print("Number of qualifying lineages is below num lineages to build. Adding new Lineages")
             num_trials_to_distribute_to_existing_lineages = self.number_of_trials_per_generation - self.number_of_new_lineages_per_generation
-            num_trials_for_lineages = self.distribute_to_non_regime_zero_lineages(lineages, num_trials_to_distribute_to_existing_lineages, max_lineages=self.max_lineages_to_explore)
-            num_trials_for_lineages = self.add_new_lineages(num_trials_for_lineages, self.number_of_new_lineages_per_generation)
+            num_trials_for_lineages = self.distribute_to_non_regime_zero_lineages(lineages,
+                                                                                  num_trials_to_distribute_to_existing_lineages,
+                                                                                  max_lineages=self.max_lineages_to_explore)
+            num_trials_for_lineages = self.add_new_lineages(num_trials_for_lineages,
+                                                            self.number_of_new_lineages_per_generation)
 
         # IF above threshold: distribute to qualifying lineages equally and don't generate new lineages
         elif num_qualifying_lineages >= self.max_lineages_to_build:
@@ -80,8 +80,6 @@ class ClassicLineageDistributor:
             # Divide equally among qualifying lineages
             num_trials_for_lineages = distribute_amount_equally_among(qualifying_lineages,
                                                                       amount=num_trials_to_distribute_to_existing_lineages)
-
-
 
         return num_trials_for_lineages
 
@@ -95,12 +93,15 @@ class ClassicLineageDistributor:
     def distribute_to_non_regime_zero_lineages(self, lineages, number_of_trials_to_distribute, max_lineages=None):
         non_regime_zero_lineages = filter_to_lineages_past_regime(0, lineages=lineages)
         if max_lineages is not None:
-            #sort by peak response and get only the top max
+            # sort by peak response and get only the top max
             peak_response_for_lineages = get_peak_response_for(non_regime_zero_lineages)
-            non_regime_zero_lineages = sorted(non_regime_zero_lineages, key=lambda lineage: peak_response_for_lineages[lineage], reverse=True)
+            non_regime_zero_lineages = sorted(non_regime_zero_lineages,
+                                              key=lambda lineage: peak_response_for_lineages[lineage], reverse=True)
             non_regime_zero_lineages = non_regime_zero_lineages[:max_lineages]
-        num_trials_for_lineages = distribute_amount_equally_among(non_regime_zero_lineages, amount=number_of_trials_to_distribute)
+        num_trials_for_lineages = distribute_amount_equally_among(non_regime_zero_lineages,
+                                                                  amount=number_of_trials_to_distribute)
         return num_trials_for_lineages
+
 
 def distribute_amount_equally_among(distributees: list[Any], *, amount: int) -> dict[Any: int]:
     lowest_whole_amount = amount // len(distributees)
@@ -135,10 +136,12 @@ class DatabaseLineageDistributor(LineageDistributor):
         num_to_distribute_between = len(qualifying_lineages)
         if num_to_distribute_between < self.number_of_lineages_to_build:
             all_lineages = list(regime_for_all_lineages.keys())
-            num_trials_for_lineages = distribute_amount_equally_among(all_lineages, amount=self.num_trials_per_generation)
+            num_trials_for_lineages = distribute_amount_equally_among(all_lineages,
+                                                                      amount=self.num_trials_per_generation)
         else:
             # Divide equally among qualifying lineages
-            num_trials_for_lineages = distribute_amount_equally_among(qualifying_lineages, amount=self.num_trials_per_generation)
+            num_trials_for_lineages = distribute_amount_equally_among(qualifying_lineages,
+                                                                      amount=self.num_trials_per_generation)
 
         return num_trials_for_lineages
 
@@ -163,8 +166,6 @@ class DatabaseLineageDistributor(LineageDistributor):
             peak_response = calculate_peak_response(driving_responses_of_lineage)
             peak_response_for_lineages[lineage_id] = peak_response
         return peak_response_for_lineages
-
-
 
     # def read_lineages(self, lineage_ids: list[int]) -> list[Lineage]:
     #     lineages = []

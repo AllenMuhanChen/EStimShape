@@ -98,7 +98,7 @@ def main():
 
 
     # Update context file for GA database
-    update_context_file(ga_database, lighting_database, contrast_database, unit)
+    update_context_file(ga_database, lighting_database, contrast_database, location_id)
     sleep(1)
 
     # Dirs specified only in context file
@@ -145,7 +145,7 @@ def setup_alexnet_xper_properties_and_dirs(database, analysis_type):
 
 
 
-def update_context_file(ga_database, lighting_database, contrast_database, unit):
+def update_context_file(ga_database, lighting_database, contrast_database, unit_string):
     target_file = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/pga/alexnet/alexnet_context.py"
 
     # Read the target file
@@ -174,7 +174,7 @@ def update_context_file(ga_database, lighting_database, contrast_database, unit)
         elif line.startswith("contrast_plots_dir"):
             new_lines.append(f'contrast_plots_dir = "/home/r2_allen/Documents/EStimShape/{contrast_database}/plots"\n')
         elif line.startswith("unit_string"):
-            new_lines.append(f'unit_string = "{unit}"\n')
+            new_lines.append(f'unit_string = "{unit_string}"\n')
 
         else:
             new_lines.append(line)

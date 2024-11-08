@@ -15,7 +15,7 @@ public class GrowingStim extends AlexNetGAStim<AlexNetGAMatchStick, AlexNetGAMSt
     // Size constraints
     private static final double MIN_SIZE = 1.0;
     private static final double MAX_SIZE = 5.0;
-    private static final double MAX_SIZE_CHANGE = (MAX_SIZE - MIN_SIZE) / 4.0; // Maximum size change for magnitude 1.0
+    private static final double MAX_SIZE_CHANGE = (MAX_SIZE - MIN_SIZE) / 10.0; // Maximum size change for magnitude 1.0
 
     public GrowingStim(FromDbAlexNetGABlockGenerator generator, Long parentId, Long stimId, RGBColor color, float[] light_position, double magnitude) {
         super(generator, parentId, stimId, null, color, null, light_position, 0, magnitude, 1.0);
