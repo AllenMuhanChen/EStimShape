@@ -154,10 +154,10 @@ public class AlexNetGAMatchStick extends MorphedMatchStick {
         light_positionBuffer.put(light_position).flip();
 
 
-        GL11.glMaterial(GL11.GL_FRONT, GL11.GL_SPECULAR, mat_specularBuffer);
-        GL11.glMaterialf(GL11.GL_FRONT, GL11.GL_SHININESS, mat_shininess);
-        GL11.glMaterial(GL11.GL_FRONT, GL11.GL_AMBIENT, mat_ambientBuffer);
-        GL11.glMaterial(GL11.GL_FRONT, GL11.GL_DIFFUSE, mat_diffuseBuffer);
+        GL11.glMaterial(GL11.GL_FRONT_AND_BACK, GL11.GL_SPECULAR, mat_specularBuffer);
+        GL11.glMaterialf(GL11.GL_FRONT_AND_BACK, GL11.GL_SHININESS, mat_shininess);
+        GL11.glMaterial(GL11.GL_FRONT_AND_BACK, GL11.GL_AMBIENT, mat_ambientBuffer);
+        GL11.glMaterial(GL11.GL_FRONT_AND_BACK, GL11.GL_DIFFUSE, mat_diffuseBuffer);
 
         GL11.glLight(GL11.GL_LIGHT0, GL11.GL_POSITION, light_positionBuffer);
 
