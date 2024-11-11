@@ -12,19 +12,12 @@ from src.pga.alexnet.lighting_posthoc.distance.distance_metrics import DistanceT
 
 
 def main():
-    # Create calculator instances for different metric combinations
-    brightness_metric = DistanceType.EMD
-    contribution_metric = DistanceType.EMD
+    metrics = [
+        (DistanceType.EMD, DistanceType.EMD),
+        (DistanceType.EMD, DistanceType.WEIGHTED_OVERLAP),
+        (DistanceType.EMD, DistanceType.OVERLAP),
+    ]
 
-    calc_distance = create_distance_calculator(
-        brightness_type=brightness_metric,
-        contribution_type=contribution_metric,
-        n_shuffles=3,
-        threshold=0.1,
-        spatial_tolerance=0
-    )
-
-    # Connect to database
     conn = Connection(
         host='172.30.6.80',
         user='xper_rw',
@@ -32,6 +25,21 @@ def main():
         database=alexnet_context.lighting_database
     )
 
+    make_response_plot = True
+    for brightness_metric, contribution_metric in metrics:
+        create_plots(brightness_metric, contribution_metric, conn, make_response_plot)
+        make_response_plot = False
+
+
+def create_plots(brightness_metric, contribution_metric, conn, make_response_plot = True):
+    calc_distance = create_distance_calculator(
+        brightness_type=brightness_metric,
+        contribution_type=contribution_metric,
+        n_shuffles=3,
+        threshold=0.1,
+        spatial_tolerance=0
+    )
+    # Connect to database
     # Get parent IDs
     query = """
     SELECT DISTINCT parent_id 
@@ -40,7 +48,6 @@ def main():
     """
     conn.execute(query)
     parent_ids = [row[0] for row in conn.fetch_all()]
-
     for parent_id in parent_ids:
         # Get variations for this parent
         query = """
@@ -105,20 +112,20 @@ def main():
         plt.show()
         plt.close()
 
-        # Add this at the bottom of main():
-        resp_fig = plot_response_correlation(
-            brightness_dist,
-            images,
-            conn,
-            f'Parent ID: {parent_id}',
-            f"Brightness {brightness_metric.value}"
-        )
+        if make_response_plot:
+            resp_fig = plot_response_correlation(
+                brightness_dist,
+                images,
+                conn,
+                f'Parent ID: {parent_id}',
+                f"Brightness {brightness_metric.value}"
+            )
 
-        plt.savefig(
-            f"{alexnet_context.lighting_plots_dir}/{parent_id}_response_correlation_{brightness_metric.value}.png",
-            bbox_inches='tight', dpi=300)
-        plt.show()
-        plt.close()
+            plt.savefig(
+                f"{alexnet_context.lighting_plots_dir}/{parent_id}_response_correlation_{brightness_metric.value}.png",
+                bbox_inches='tight', dpi=300)
+            plt.show()
+            plt.close()
 
 
 class DistanceCalculator:
@@ -422,5 +429,7 @@ def plot_response_correlation(brightness_dist: np.ndarray,
 
     plt.tight_layout()
     return fig
+
+
 if __name__ == "__main__":
     main()
