@@ -16,7 +16,7 @@ class DistanceMetric(ABC):
         pass
 
     @abstractmethod
-    def normalize_array(self, arr: np.ndarray) -> np.ndarray:
+    def _normalize_array(self, arr: np.ndarray) -> np.ndarray:
         """Normalize input array for distance computation"""
         pass
 
@@ -25,17 +25,15 @@ class EMDMetric(DistanceMetric):
 
     def __init__(self, n_shuffles: int = 3):
         self.n_shuffles = n_shuffles
-
-    def normalize_array(self, arr: np.ndarray) -> np.ndarray:
-        return arr / arr.max()
+        self.n_bins = 50
 
     def compute_distance(self, arr1: np.ndarray, arr2: np.ndarray) -> float:
         if arr1.size == 0 or arr2.size == 0:
             return np.nan
 
         # Normalize arrays
-        arr1_norm = self.normalize_array(arr1)
-        arr2_norm = self.normalize_array(arr2)
+        arr1_norm = self._normalize_array(arr1)
+        arr2_norm = self._normalize_array(arr2)
 
         # Calculate EMD
         emd = ot.sliced_wasserstein_distance(arr1_norm, arr2_norm)
@@ -47,19 +45,47 @@ class EMDMetric(DistanceMetric):
 
         return emd / normalization_factor if normalization_factor > 0 else np.nan
 
+    def _normalize_array(self, arr: np.ndarray) -> np.ndarray:
+        return arr / arr.max()
+
     def _calculate_shuffle_distance(self, arr: np.ndarray) -> float:
         distances = []
+
+        # Get non-zero mask and positions
+        non_zero_mask = arr > 0
+        non_zero_positions = list(zip(*np.where(non_zero_mask)))
+        non_zero_values = arr[non_zero_mask]
+
+        # Calculate histogram of original values
+        hist, bin_edges = np.histogram(non_zero_values, bins=self.n_bins, density=True)
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+        # Calculate total sum to preserve
+        total_sum = np.sum(non_zero_values)
+
         for _ in range(self.n_shuffles):
-            shuffled = arr.copy()
-            non_zero_mask = shuffled > 0
-            non_zero_values = shuffled[non_zero_mask]
-            np.random.shuffle(non_zero_values)
-            shuffled[non_zero_mask] = non_zero_values
-            # if random.random() < 0.001:
-            #     plt.imshow(shuffled)
-            #     plt.show()
+            # Create empty array for shuffled values
+            shuffled = np.zeros_like(arr)
+
+            # Generate random positions within non-zero area
+            n_values = len(non_zero_values)
+            random_positions = random.sample(non_zero_positions, n_values)
+
+            # Generate random values following original distribution
+            random_values = np.random.choice(bin_centers, size=n_values, p=hist / np.sum(hist))
+
+            # Scale values to maintain total sum
+            scale_factor = total_sum / np.sum(random_values)
+            random_values *= scale_factor
+
+            # Place random values at random positions
+            for pos, val in zip(random_positions, random_values):
+                shuffled[pos] = val
+
+            # Calculate distance between original and shuffled
             distance = ot.sliced_wasserstein_distance(arr, shuffled)
             distances.append(distance)
+
         return np.mean(distances)
 
 
@@ -69,16 +95,13 @@ class OverlapMetric(DistanceMetric):
         self.threshold = threshold
         self.spatial_tolerance = spatial_tolerance
 
-    def normalize_array(self, arr: np.ndarray) -> np.ndarray:
-        return arr / arr.max()
-
     def compute_distance(self, arr1: np.ndarray, arr2: np.ndarray) -> float:
         if arr1.size == 0 or arr2.size == 0:
             return np.nan
 
         # Normalize arrays
-        arr1_norm = self.normalize_array(arr1)
-        arr2_norm = self.normalize_array(arr2)
+        arr1_norm = self._normalize_array(arr1)
+        arr2_norm = self._normalize_array(arr2)
 
         # Get active pixels
         active1 = set((x, y) for x, y in zip(*np.where(arr1_norm > self.threshold)))
@@ -109,14 +132,17 @@ class OverlapMetric(DistanceMetric):
         percent_overlap = matches / total_active
         return percent_overlap
 
+    def _normalize_array(self, arr: np.ndarray) -> np.ndarray:
+        return arr / arr.max()
+
 class WeightedOverlapMetric(OverlapMetric):
     def compute_distance(self, arr1: np.ndarray, arr2: np.ndarray) -> float:
         if arr1.size == 0 or arr2.size == 0:
             return np.nan
 
         # Normalize arrays
-        arr1_norm = self.normalize_array(arr1)
-        arr2_norm = self.normalize_array(arr2)
+        arr1_norm = self._normalize_array(arr1)
+        arr2_norm = self._normalize_array(arr2)
 
         # Get active pixels
         active1 = set((x, y) for x, y in zip(*np.where(arr1_norm > self.threshold)))

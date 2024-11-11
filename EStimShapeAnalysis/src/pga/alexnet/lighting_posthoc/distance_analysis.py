@@ -14,7 +14,7 @@ from src.pga.alexnet.lighting_posthoc.distance.distance_metrics import DistanceT
 def main():
     # Create calculator instances for different metric combinations
     brightness_metric = DistanceType.EMD
-    contribution_metric = DistanceType.WEIGHTED_OVERLAP
+    contribution_metric = DistanceType.EMD
 
     calc_distance = create_distance_calculator(
         brightness_type=brightness_metric,
@@ -83,8 +83,9 @@ def main():
             f"Contribution {contribution_metric.value}"
         )
 
-        plt.savefig(f"{alexnet_context.lighting_plots_dir}/{parent_id}_distance_matrices_{brightness_metric}_{contribution_metric}.png",
-                    bbox_inches='tight', dpi=300)
+        plt.savefig(
+            f"{alexnet_context.lighting_plots_dir}/{parent_id}_distance_matrices_{brightness_metric}_{contribution_metric}.png",
+            bbox_inches='tight', dpi=300)
         plt.show()
         plt.close()
 
@@ -98,8 +99,24 @@ def main():
             f"Contribution {contribution_metric.value}"
         )
 
-        plt.savefig(f"{alexnet_context.lighting_plots_dir}/{parent_id}_correlation_{brightness_metric.value}_{contribution_metric.value}.png",
-                    bbox_inches='tight', dpi=300)
+        plt.savefig(
+            f"{alexnet_context.lighting_plots_dir}/{parent_id}_correlation_{brightness_metric.value}_{contribution_metric.value}.png",
+            bbox_inches='tight', dpi=300)
+        plt.show()
+        plt.close()
+
+        # Add this at the bottom of main():
+        resp_fig = plot_response_correlation(
+            brightness_dist,
+            images,
+            conn,
+            f'Parent ID: {parent_id}',
+            f"Brightness {brightness_metric.value}"
+        )
+
+        plt.savefig(
+            f"{alexnet_context.lighting_plots_dir}/{parent_id}_response_correlation_{brightness_metric.value}.png",
+            bbox_inches='tight', dpi=300)
         plt.show()
         plt.close()
 
@@ -205,7 +222,6 @@ def plot_distance_correlation(brightness_dist: np.ndarray,
 
     fig, ax = plt.subplots(figsize=(10, 10))
 
-
     def plot_masked_comparisons(mask, color, label):
         x = brightness_dist[mask]
         y = contrib_dist[mask]
@@ -220,8 +236,6 @@ def plot_distance_correlation(brightness_dist: np.ndarray,
     y = contrib_dist[all_valid_mask]
     correlation = np.corrcoef(x, y)[0, 1]
 
-
-
     # Fit correlation line
     z = np.polyfit(x, y, 1)
     p = np.poly1d(z)
@@ -235,7 +249,7 @@ def plot_distance_correlation(brightness_dist: np.ndarray,
     ax.legend()
     # ax.set_aspect('equal')
     ax.grid(True, alpha=0.3)
-    #set axis limits
+    # set axis limits
     y_axis_max = max(y) if max(y) > 1 else 1
     ax.set_ylim(0, y_axis_max)
 
@@ -299,7 +313,6 @@ def calculate_contribution_map(conn: Connection,
     # areas in the contribution map
     epsilon = 1e-6
 
-
     # Apply foreground mask and add perturbation
     masked_contrib_map = (contrib_map + epsilon) * foreground_mask
 
@@ -338,5 +351,76 @@ def create_distance_calculator(brightness_type: DistanceType,
     return DistanceCalculator(brightness_metric, contribution_metric)
 
 
+def plot_response_correlation(brightness_dist: np.ndarray,
+                              images: List[dict],
+                              conn: Connection,
+                              title: str,
+                              x_label: str = "Brightness Distance") -> plt.Figure:
+    """Create a scatter plot comparing brightness distance to response differences."""
+    # Get responses for all stimuli
+    query = """
+    SELECT stim_id, activation 
+    FROM UnitActivations 
+    WHERE stim_id IN ({})
+    """.format(','.join(str(img['stim_id']) for img in images))
+    conn.execute(query)
+    responses = {row[0]: row[1] for row in conn.fetch_all()}
+
+    specular_idx = [i for i, img in enumerate(images) if img['texture_type'] == 'SPECULAR']
+    shade_idx = [i for i, img in enumerate(images) if img['texture_type'] == 'SHADE']
+
+    n_images = len(images)
+    within_spec_mask = np.zeros((n_images, n_images), dtype=bool)
+    within_shade_mask = np.zeros((n_images, n_images), dtype=bool)
+    between_mask = np.zeros((n_images, n_images), dtype=bool)
+
+    # Create response difference matrix
+    response_diff = np.zeros_like(brightness_dist)
+    for i in range(n_images):
+        for j in range(i + 1, n_images):
+            if i in specular_idx and j in specular_idx:
+                within_spec_mask[i, j] = True
+            elif i in shade_idx and j in shade_idx:
+                within_shade_mask[i, j] = True
+            elif (i in specular_idx and j in shade_idx) or (i in shade_idx and j in specular_idx):
+                between_mask[i, j] = True
+
+            # Calculate absolute difference in responses
+            response_diff[i, j] = abs(responses[images[i]['stim_id']] - responses[images[j]['stim_id']])
+
+    fig, ax = plt.subplots(figsize=(10, 10))
+
+    def plot_masked_comparisons(mask, color, label):
+        x = brightness_dist[mask]
+        y = response_diff[mask]
+        ax.scatter(x, y, c=color, label=label, alpha=0.6)
+
+    plot_masked_comparisons(within_spec_mask, 'blue', 'Within Specular')
+    plot_masked_comparisons(within_shade_mask, 'red', 'Within Shade')
+    plot_masked_comparisons(between_mask, 'green', 'Between Shade-Specular')
+
+    all_valid_mask = within_spec_mask | within_shade_mask | between_mask
+    x = brightness_dist[all_valid_mask]
+    y = response_diff[all_valid_mask]
+    correlation = np.corrcoef(x, y)[0, 1]
+
+    # Fit correlation line
+    z = np.polyfit(x, y, 1)
+    p = np.poly1d(z)
+    x_range = np.linspace(x.min(), x.max(), 100)
+    ax.plot(x_range, p(x_range), 'k--', alpha=0.5,
+            label=f'Correlation: {correlation:.3f}')
+
+    ax.set_xlabel(x_label)
+    ax.set_ylabel('Response Difference')
+    ax.set_title(f'{title}\nCorrelation between {x_label} and Response Difference')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    y_axis_max = max(y) if max(y) > 1 else 1
+    ax.set_ylim(0, y_axis_max)
+
+    plt.tight_layout()
+    return fig
 if __name__ == "__main__":
     main()
