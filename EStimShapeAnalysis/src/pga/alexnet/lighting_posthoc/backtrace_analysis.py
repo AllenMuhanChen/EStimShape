@@ -191,7 +191,7 @@ def calculate_raw_contribution_map(conn: Connection, stim_id: int, conv2_contrib
 
     """Find all is_positive contributions for each conv2 unit:"""
     contribution_line = build_sql_contribution_line(conv1_contribution_type)
-    contributions_for_all_conv1s = {}
+    weighted_contributions_for_all_conv1s = {}
     for conv2, conv2_activation in activations_for_conv2s.items():
         query = f"""
         SELECT to_unit_id, contribution 
@@ -203,14 +203,14 @@ def calculate_raw_contribution_map(conn: Connection, stim_id: int, conv2_contrib
 
         conn.execute(query, (stim_id, conv2))
         results = conn.fetch_all()
-        contributions_for_conv1s: dict = {result[0]: abs(result[1] * conv2_activation) for result in
+        weighted_contributions_for_conv1s: dict = {result[0]: abs(result[1] * conv2_activation) for result in
                                           results}
-        # conv1s = [result[0] for result in conn.fetch_all()]
-        contributions_for_all_conv1s.update(contributions_for_conv1s)
+
+        weighted_contributions_for_all_conv1s.update(weighted_contributions_for_conv1s)
 
     contribution_map = np.zeros((227, 227))
 
-    for conv1, conv1_times_conv2_contribution in contributions_for_all_conv1s.items():
+    for conv1, conv1_times_conv2_contribution in weighted_contributions_for_all_conv1s.items():
         # if int(conv1.split('_')[1][1:]) < 47:
             """Calculate summed positive contributions for a single stimulus."""
             query = """

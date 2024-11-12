@@ -329,7 +329,6 @@ def calculate_contribution_map(conn: Connection,
     else:
         normalized_map = masked_contrib_map
 
-    # Set background areas to zero
     return normalized_map
 
 
