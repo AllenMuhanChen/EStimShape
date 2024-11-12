@@ -57,7 +57,7 @@ class AlexNetContributionCalculator:
                 raise ValueError("Data must be either a connection-contribution tuple or a dictionary")
 
         # Call backtrace with our export function
-        backtrace(self.onnx_path, image_path, unit, x, y, export_to_db, 20, 20, 10)
+        backtrace(self.onnx_path, image_path, unit, x, y, export_to_db, 20, 20, 20)
 
     def _insert_contribution(self, stim_id: int, from_unit: UnitIdentifier,
                              to_unit: UnitIdentifier, contribution: float) -> None:

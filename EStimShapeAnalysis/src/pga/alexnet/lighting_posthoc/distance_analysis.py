@@ -11,12 +11,12 @@ from src.pga.alexnet.lighting_posthoc.distance.distance_metrics import DistanceT
     DistanceMetric, EMDMetric, OverlapMetric, WeightedOverlapMetric
 
 
+metrics = [
+    (DistanceType.EMD, DistanceType.WEIGHTED_OVERLAP),
+    (DistanceType.EMD, DistanceType.EMD),
+
+]
 def main():
-    metrics = [
-        (DistanceType.EMD, DistanceType.EMD),
-        (DistanceType.EMD, DistanceType.WEIGHTED_OVERLAP),
-        (DistanceType.EMD, DistanceType.OVERLAP),
-    ]
 
     conn = Connection(
         host='172.30.6.80',
@@ -25,10 +25,10 @@ def main():
         database=alexnet_context.lighting_database
     )
 
-    make_response_plot = True
+    make_contrib_response_plot = True
     for brightness_metric, contribution_metric in metrics:
-        create_plots(brightness_metric, contribution_metric, conn, make_response_plot)
-        make_response_plot = False
+        create_plots(brightness_metric, contribution_metric, conn, make_contrib_response_plot)
+        # make_response_plot = False
 
 
 def create_plots(brightness_metric, contribution_metric, conn, make_response_plot = True):
@@ -113,16 +113,16 @@ def create_plots(brightness_metric, contribution_metric, conn, make_response_plo
         plt.close()
 
         if make_response_plot:
-            resp_fig = plot_response_correlation(
-                brightness_dist,
+            resp_fig = plot_contribution_response_correlation(
+                both_contrib_dist,
                 images,
                 conn,
                 f'Parent ID: {parent_id}',
-                f"Brightness {brightness_metric.value}"
+                f"Contribution {contribution_metric.value}"
             )
 
             plt.savefig(
-                f"{alexnet_context.lighting_plots_dir}/{parent_id}_response_correlation_{brightness_metric.value}.png",
+                f"{alexnet_context.lighting_plots_dir}/{parent_id}_{contribution_metric.value}_response_correlation.png",
                 bbox_inches='tight', dpi=300)
             plt.show()
             plt.close()
@@ -358,11 +358,11 @@ def create_distance_calculator(brightness_type: DistanceType,
     return DistanceCalculator(brightness_metric, contribution_metric)
 
 
-def plot_response_correlation(brightness_dist: np.ndarray,
-                              images: List[dict],
-                              conn: Connection,
-                              title: str,
-                              x_label: str = "Brightness Distance") -> plt.Figure:
+def plot_contribution_response_correlation(contribution_dist: np.ndarray,
+                                           images: List[dict],
+                                           conn: Connection,
+                                           title: str,
+                                           y_label: str) -> plt.Figure:
     """Create a scatter plot comparing brightness distance to response differences."""
     # Get responses for all stimuli
     query = """
@@ -382,7 +382,7 @@ def plot_response_correlation(brightness_dist: np.ndarray,
     between_mask = np.zeros((n_images, n_images), dtype=bool)
 
     # Create response difference matrix
-    response_diff = np.zeros_like(brightness_dist)
+    response_diff = np.zeros_like(contribution_dist)
     for i in range(n_images):
         for j in range(i + 1, n_images):
             if i in specular_idx and j in specular_idx:
@@ -398,8 +398,8 @@ def plot_response_correlation(brightness_dist: np.ndarray,
     fig, ax = plt.subplots(figsize=(10, 10))
 
     def plot_masked_comparisons(mask, color, label):
-        x = brightness_dist[mask]
-        y = response_diff[mask]
+        x = response_diff[mask]
+        y = contribution_dist[mask]
         ax.scatter(x, y, c=color, label=label, alpha=0.6)
 
     plot_masked_comparisons(within_spec_mask, 'blue', 'Within Specular')
@@ -407,8 +407,8 @@ def plot_response_correlation(brightness_dist: np.ndarray,
     plot_masked_comparisons(between_mask, 'green', 'Between Shade-Specular')
 
     all_valid_mask = within_spec_mask | within_shade_mask | between_mask
-    x = brightness_dist[all_valid_mask]
-    y = response_diff[all_valid_mask]
+    x = response_diff[all_valid_mask]
+    y = contribution_dist[all_valid_mask]
     correlation = np.corrcoef(x, y)[0, 1]
 
     # Fit correlation line
@@ -418,9 +418,9 @@ def plot_response_correlation(brightness_dist: np.ndarray,
     ax.plot(x_range, p(x_range), 'k--', alpha=0.5,
             label=f'Correlation: {correlation:.3f}')
 
-    ax.set_xlabel(x_label)
-    ax.set_ylabel('Response Difference')
-    ax.set_title(f'{title}\nCorrelation between {x_label} and Response Difference')
+    ax.set_ylabel(y_label)
+    ax.set_xlabel('Response Difference')
+    ax.set_title(f'{title}\nCorrelation between {y_label} and Response Difference')
     ax.legend()
     ax.grid(True, alpha=0.3)
 
