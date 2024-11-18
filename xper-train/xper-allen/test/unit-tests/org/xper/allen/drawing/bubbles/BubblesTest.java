@@ -50,9 +50,9 @@ public class BubblesTest {
     @Test
     public void spatial_frequency_bubbles_generates_bubbles() throws IOException {
         // Arrange
-        Bubbles bubbles = new SpatialFrequencyBubbles();
-        int nBubbles = 5;
-        double bubbleSigma = 0.2/3;
+        Bubbles bubbles = new FourierBubbles();
+        int nBubbles = 3;
+        double bubbleSigma = 0.1/3.0;
 
         // Act and visualize
         visualizeBubbles(bubbles, nBubbles, bubbleSigma, outputPath, "Spatial Frequency Bubbles");
