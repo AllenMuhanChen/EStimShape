@@ -100,16 +100,9 @@ public class FourierBubbles implements Bubbles {
                         maxFreq = Math.max(maxFreq, freq);
                         double orientation = Math.atan2(dj, di);
                         significantPoints.add(new FrequencyPoint(freq, orientation));
-
-                        System.out.println("Found significant point: freq=" + freq +
-                                ", orientation=" + orientation +
-                                ", magnitude=" + magnitudeSpectrum[i][j]);
                     }
                 }
             }
-
-            System.out.println("Found " + significantPoints.size() + " significant points");
-            System.out.println("Max frequency: " + maxFreq);
 
             if (significantPoints.isEmpty()) {
                 System.out.println("No significant points found!");
@@ -119,8 +112,6 @@ public class FourierBubbles implements Bubbles {
             // Calculate sigmas
             double sigmaFreq = maxFreq * bubbleSigmaPercent;
             double sigmaOrientation = Math.PI * bubbleSigmaPercent;
-
-            System.out.println("Sigmas: freq=" + sigmaFreq + ", orientation=" + sigmaOrientation);
 
             List<BubblePixel> allBubblePixels = new ArrayList<>();
 
@@ -137,8 +128,7 @@ public class FourierBubbles implements Bubbles {
                             random.nextInt(significantPoints.size())
                     );
 
-                    System.out.println("Trying bubble at freq=" + centerPoint.frequency +
-                            ", orientation=" + centerPoint.orientation);
+
 
                     for (Point p : foregroundPoints) {
                         FrequencyComponent pixelFreq = getDominantFrequency(p.x, p.y, magnitudeSpectrum, center);
@@ -154,12 +144,14 @@ public class FourierBubbles implements Bubbles {
                         }
                     }
 
-                    System.out.println("Bubble affected " + bubblePixels.size() + " pixels");
 
                     if (bubblePixels.size() >= MIN_PIXELS_PER_BUBBLE) {
                         allBubblePixels.addAll(bubblePixels);
                         successfulBubbles++;
+                        System.out.println("Tried bubble at freq=" + centerPoint.frequency +
+                                ", orientation=" + centerPoint.orientation);
                         System.out.println("Successful bubble " + successfulBubbles + " placed");
+                        System.out.println("Bubble affected " + bubblePixels.size() + " pixels");
                         break;
                     }
 
