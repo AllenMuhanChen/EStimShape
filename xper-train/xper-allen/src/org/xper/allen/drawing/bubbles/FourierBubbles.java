@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Random;
 
 public class FourierBubbles implements Bubbles {
-    private static final int MIN_PIXELS_PER_BUBBLE = 100;
+    private static final int MIN_PIXELS_PER_BUBBLE = 1;
     private static final int MAX_ATTEMPTS_PER_BUBBLE = 10000;
     public static final double SIGNIFICANCE_THRESHOLD = 0.01;
     private Random random = new Random();
@@ -30,16 +30,6 @@ public class FourierBubbles implements Bubbles {
             this.frequency = frequency;
             this.orientation = orientation;
             this.magnitude = magnitude;
-        }
-    }
-
-    private static class FrequencyPoint {
-        final double frequency;
-        final double orientation;
-
-        FrequencyPoint(double frequency, double orientation) {
-            this.frequency = frequency;
-            this.orientation = orientation;
         }
     }
 
@@ -72,9 +62,13 @@ public class FourierBubbles implements Bubbles {
             Complex[][] fftData = perform2DFFT(paddedData);
             double[][] magnitudeSpectrum = calculateMagnitudeSpectrum(fftData);
 
-            // Find maximum magnitude to set threshold (excluding DC)
+            // Find frequency range in FFT
             double maxMagnitude = 0;
+            double minFreq = Double.MAX_VALUE;
+            double maxFreq = 0;
             int center = magnitudeSpectrum.length / 2;
+
+            // First find max magnitude
             for (int i = 0; i < magnitudeSpectrum.length; i++) {
                 for (int j = 0; j < magnitudeSpectrum[0].length; j++) {
                     if (!(i == center && j == center)) {  // Skip DC
@@ -83,39 +77,34 @@ public class FourierBubbles implements Bubbles {
                 }
             }
 
-            // Collect significant frequency points (above threshold)
-            List<FrequencyPoint> significantPoints = new ArrayList<>();
-            double magnitudeThreshold = maxMagnitude * SIGNIFICANCE_THRESHOLD; // Lower threshold to 1%
-            double maxFreq = 0;
-
-            // Scan frequency space relative to center
+            // Then find frequency range of significant components
+            double magnitudeThreshold = maxMagnitude * SIGNIFICANCE_THRESHOLD;
             for (int i = 0; i < magnitudeSpectrum.length; i++) {
                 for (int j = 0; j < magnitudeSpectrum[0].length; j++) {
-                    // Calculate frequency coordinates relative to center
                     int di = i - center;
                     int dj = j - center;
                     double freq = Math.sqrt(di*di + dj*dj);
 
                     if (freq > 0 && magnitudeSpectrum[i][j] > magnitudeThreshold) {
+                        minFreq = Math.min(minFreq, freq);
                         maxFreq = Math.max(maxFreq, freq);
-                        double orientation = Math.atan2(dj, di);
-                        significantPoints.add(new FrequencyPoint(freq, orientation));
                     }
                 }
             }
 
-            if (significantPoints.isEmpty()) {
-                System.out.println("No significant points found!");
+            if (maxFreq == 0) {
+                System.out.println("No significant frequencies found!");
                 return new ArrayList<>();
             }
 
             // Calculate sigmas
-            double sigmaFreq = maxFreq * bubbleSigmaPercent;
+            double freqRange = maxFreq - minFreq;
+            double sigmaFreq = freqRange * bubbleSigmaPercent;
             double sigmaOrientation = Math.PI * bubbleSigmaPercent;
 
             List<BubblePixel> allBubblePixels = new ArrayList<>();
 
-            // Generate bubbles by sampling from significant points
+            // Generate bubbles by sampling uniformly
             int successfulBubbles = 0;
             while (successfulBubbles < nBubbles) {
                 List<BubblePixel> bubblePixels = new ArrayList<>();
@@ -124,32 +113,29 @@ public class FourierBubbles implements Bubbles {
                 while (attempts < MAX_ATTEMPTS_PER_BUBBLE) {
                     bubblePixels.clear();
 
-                    FrequencyPoint centerPoint = significantPoints.get(
-                            random.nextInt(significantPoints.size())
-                    );
-
-
+                    // Choose random frequency and orientation uniformly
+                    double centerFreq = minFreq + (random.nextDouble() * freqRange);
+                    double centerOrientation = random.nextDouble() * 2 * Math.PI - Math.PI;
 
                     for (Point p : foregroundPoints) {
                         FrequencyComponent pixelFreq = getDominantFrequency(p.x, p.y, magnitudeSpectrum, center);
 
                         double noiseChance = calculate2DGaussian(
                                 pixelFreq.frequency, pixelFreq.orientation,
-                                centerPoint.frequency, centerPoint.orientation,
+                                centerFreq, centerOrientation,
                                 sigmaFreq, sigmaOrientation
                         );
 
-                        if (noiseChance > 0.01) {
+                        if (noiseChance > 0.1) {
                             bubblePixels.add(new BubblePixel(p.x, p.y, noiseChance));
                         }
                     }
 
-
                     if (bubblePixels.size() >= MIN_PIXELS_PER_BUBBLE) {
                         allBubblePixels.addAll(bubblePixels);
                         successfulBubbles++;
-                        System.out.println("Tried bubble at freq=" + centerPoint.frequency +
-                                ", orientation=" + centerPoint.orientation);
+                        System.out.println("Bubble at freq=" + centerFreq +
+                                ", orientation=" + centerOrientation);
                         System.out.println("Successful bubble " + successfulBubbles + " placed");
                         System.out.println("Bubble affected " + bubblePixels.size() + " pixels");
                         break;
@@ -193,14 +179,6 @@ public class FourierBubbles implements Bubbles {
         double dominantFreq = 0;
         double dominantOrientation = 0;
 
-        // Get the FFT coefficients for this pixel
-        // In a real FFT analysis, we'd typically want to:
-        // 1. Take a small patch around the pixel
-        // 2. Apply a window function
-        // 3. Compute FFT of that patch
-        // 4. Find dominant frequencies in that local region
-
-        // For now, let's do a simplified version:
         int patchSize = 8;  // Look at 8x8 patch around pixel
 
         // Extract patch centered on pixel
@@ -242,7 +220,6 @@ public class FourierBubbles implements Bubbles {
         return new FrequencyComponent(dominantFreq, dominantOrientation, maxMagnitude);
     }
 
-    // Rest of the helper methods remain the same
     private double[][] imageToGrayscale(BufferedImage image, boolean[][] foregroundMask) {
         double[][] data = new double[image.getHeight()][image.getWidth()];
         for (int y = 0; y < image.getHeight(); y++) {

@@ -51,8 +51,8 @@ public class BubblesTest {
     public void fourier_bubbles_generates_bubbles() throws IOException {
         // Arrange
         Bubbles bubbles = new FourierBubbles();
-        int nBubbles = 3;
-        double bubbleSigma = 0.1/3.0;
+        int nBubbles = 5;
+        double bubbleSigma = 0.2/3.0;
 
         // Act and visualize
         visualizeBubbles(bubbles, nBubbles, bubbleSigma, outputPath, "Spatial Frequency Bubbles");
