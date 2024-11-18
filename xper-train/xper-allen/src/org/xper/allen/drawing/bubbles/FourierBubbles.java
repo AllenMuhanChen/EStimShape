@@ -14,19 +14,32 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class SpatialFrequencyBubbles implements Bubbles {
+public class FourierBubbles implements Bubbles {
+    private static final int MIN_PIXELS_PER_BUBBLE = 100;
+    private static final int MAX_ATTEMPTS_PER_BUBBLE = 10000;
+    public static final double SIGNIFICANCE_THRESHOLD = 0.01;
     private Random random = new Random();
     private FastFourierTransformer transformer = new FastFourierTransformer(DftNormalization.STANDARD);
 
     private static class FrequencyComponent {
-        final double frequency;    // Radial distance from DC
-        final double orientation;  // Angle in radians [-π, π]
-        final double magnitude;    // Strength of this component
+        final double frequency;
+        final double orientation;
+        final double magnitude;
 
         FrequencyComponent(double frequency, double orientation, double magnitude) {
             this.frequency = frequency;
             this.orientation = orientation;
             this.magnitude = magnitude;
+        }
+    }
+
+    private static class FrequencyPoint {
+        final double frequency;
+        final double orientation;
+
+        FrequencyPoint(double frequency, double orientation) {
+            this.frequency = frequency;
+            this.orientation = orientation;
         }
     }
 
@@ -59,59 +72,80 @@ public class SpatialFrequencyBubbles implements Bubbles {
             Complex[][] fftData = perform2DFFT(paddedData);
             double[][] magnitudeSpectrum = calculateMagnitudeSpectrum(fftData);
 
-            // Find active frequency ranges in foreground FFT
-            double minActiveFreq = Double.MAX_VALUE;
-            double maxActiveFreq = 0;
-            double significantMagnitudeThreshold = 0.01;  // Threshold to consider a frequency "active"
-
-            // First pass: find maximum magnitude to set relative threshold
+            // Find maximum magnitude to set threshold (excluding DC)
             double maxMagnitude = 0;
-            for (int i = 0; i < magnitudeSpectrum.length/2; i++) {
-                for (int j = 0; j < magnitudeSpectrum[0].length/2; j++) {
-                    maxMagnitude = Math.max(maxMagnitude, magnitudeSpectrum[i][j]);
-                }
-            }
-
-            // Set threshold relative to maximum magnitude
-            significantMagnitudeThreshold = maxMagnitude * 0.01;  // Consider frequencies with >1% of max magnitude
-
-            // Second pass: find active frequency range
-            for (int i = 0; i < magnitudeSpectrum.length/2; i++) {
-                for (int j = 0; j < magnitudeSpectrum[0].length/2; j++) {
-                    double freq = Math.sqrt(i*i + j*j);
-                    if (freq > 0 && magnitudeSpectrum[i][j] > significantMagnitudeThreshold) {
-                        minActiveFreq = Math.min(minActiveFreq, freq);
-                        maxActiveFreq = Math.max(maxActiveFreq, freq);
+            int center = magnitudeSpectrum.length / 2;
+            for (int i = 0; i < magnitudeSpectrum.length; i++) {
+                for (int j = 0; j < magnitudeSpectrum[0].length; j++) {
+                    if (!(i == center && j == center)) {  // Skip DC
+                        maxMagnitude = Math.max(maxMagnitude, magnitudeSpectrum[i][j]);
                     }
                 }
             }
 
-            if (maxActiveFreq == 0 || minActiveFreq == Double.MAX_VALUE) {
-                return new ArrayList<>();  // No significant frequencies found
+            // Collect significant frequency points (above threshold)
+            List<FrequencyPoint> significantPoints = new ArrayList<>();
+            double magnitudeThreshold = maxMagnitude * SIGNIFICANCE_THRESHOLD; // Lower threshold to 1%
+            double maxFreq = 0;
+
+            // Scan frequency space relative to center
+            for (int i = 0; i < magnitudeSpectrum.length; i++) {
+                for (int j = 0; j < magnitudeSpectrum[0].length; j++) {
+                    // Calculate frequency coordinates relative to center
+                    int di = i - center;
+                    int dj = j - center;
+                    double freq = Math.sqrt(di*di + dj*dj);
+
+                    if (freq > 0 && magnitudeSpectrum[i][j] > magnitudeThreshold) {
+                        maxFreq = Math.max(maxFreq, freq);
+                        double orientation = Math.atan2(dj, di);
+                        significantPoints.add(new FrequencyPoint(freq, orientation));
+
+                        System.out.println("Found significant point: freq=" + freq +
+                                ", orientation=" + orientation +
+                                ", magnitude=" + magnitudeSpectrum[i][j]);
+                    }
+                }
             }
 
-            // Calculate sigmas based on active frequency range
-            double activeFreqRange = maxActiveFreq - minActiveFreq;
-            double sigmaFreq = activeFreqRange * bubbleSigmaPercent;
+            System.out.println("Found " + significantPoints.size() + " significant points");
+            System.out.println("Max frequency: " + maxFreq);
+
+            if (significantPoints.isEmpty()) {
+                System.out.println("No significant points found!");
+                return new ArrayList<>();
+            }
+
+            // Calculate sigmas
+            double sigmaFreq = maxFreq * bubbleSigmaPercent;
             double sigmaOrientation = Math.PI * bubbleSigmaPercent;
 
-            List<BubblePixel> bubblePixels = new ArrayList<>();
+            System.out.println("Sigmas: freq=" + sigmaFreq + ", orientation=" + sigmaOrientation);
 
-            // Generate bubbles in frequency-orientation space
-            for (int b = 0; b < nBubbles; b++) {
-                // Choose random center from active frequency range
-                double centerFreq = minActiveFreq + (random.nextDouble() * activeFreqRange);
-                double centerOrientation = random.nextDouble() * 2 * Math.PI - Math.PI; // [-π, π]
+            List<BubblePixel> allBubblePixels = new ArrayList<>();
 
-                // Calculate dominant frequency components for each foreground pixel
-                for (Point p : foregroundPoints) {
-                    FrequencyComponent pixelFreq = getDominantFrequency(p.x, p.y, magnitudeSpectrum);
+            // Generate bubbles by sampling from significant points
+            int successfulBubbles = 0;
+            while (successfulBubbles < nBubbles) {
+                List<BubblePixel> bubblePixels = new ArrayList<>();
+                int attempts = 0;
 
-                    // Only process pixels with significant frequency components
-                    if (pixelFreq.magnitude > significantMagnitudeThreshold) {
+                while (attempts < MAX_ATTEMPTS_PER_BUBBLE) {
+                    bubblePixels.clear();
+
+                    FrequencyPoint centerPoint = significantPoints.get(
+                            random.nextInt(significantPoints.size())
+                    );
+
+                    System.out.println("Trying bubble at freq=" + centerPoint.frequency +
+                            ", orientation=" + centerPoint.orientation);
+
+                    for (Point p : foregroundPoints) {
+                        FrequencyComponent pixelFreq = getDominantFrequency(p.x, p.y, magnitudeSpectrum, center);
+
                         double noiseChance = calculate2DGaussian(
                                 pixelFreq.frequency, pixelFreq.orientation,
-                                centerFreq, centerOrientation,
+                                centerPoint.frequency, centerPoint.orientation,
                                 sigmaFreq, sigmaOrientation
                         );
 
@@ -119,10 +153,27 @@ public class SpatialFrequencyBubbles implements Bubbles {
                             bubblePixels.add(new BubblePixel(p.x, p.y, noiseChance));
                         }
                     }
+
+                    System.out.println("Bubble affected " + bubblePixels.size() + " pixels");
+
+                    if (bubblePixels.size() >= MIN_PIXELS_PER_BUBBLE) {
+                        allBubblePixels.addAll(bubblePixels);
+                        successfulBubbles++;
+                        System.out.println("Successful bubble " + successfulBubbles + " placed");
+                        break;
+                    }
+
+                    attempts++;
+                }
+
+                if (attempts == MAX_ATTEMPTS_PER_BUBBLE) {
+                    System.out.println("Warning: Could not place bubble after " + MAX_ATTEMPTS_PER_BUBBLE +
+                            " attempts with minimum " + MIN_PIXELS_PER_BUBBLE + " pixels");
+                    break;
                 }
             }
 
-            return bubblePixels;
+            return allBubblePixels;
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to load image: " + imagePath, e);
@@ -145,19 +196,23 @@ public class SpatialFrequencyBubbles implements Bubbles {
         );
     }
 
-    private FrequencyComponent getDominantFrequency(int x, int y, double[][] magnitudeSpectrum) {
+    private FrequencyComponent getDominantFrequency(int x, int y, double[][] magnitudeSpectrum, int center) {
         int size = magnitudeSpectrum.length;
         double maxMagnitude = 0;
         double dominantFreq = 0;
         double dominantOrientation = 0;
 
         // Search local neighborhood in frequency domain
-        int windowSize = 3;
+        int windowSize = 5;  // Increased window size
         for (int i = Math.max(0, x-windowSize); i <= Math.min(size-1, x+windowSize); i++) {
             for (int j = Math.max(0, y-windowSize); j <= Math.min(size-1, y+windowSize); j++) {
-                double freq = Math.sqrt(i*i + j*j);
-                if (freq > 0) {  // Ignore DC
-                    double orientation = Math.atan2(j, i);  // [-π, π]
+                // Calculate frequency coordinates relative to center
+                int di = i - center;
+                int dj = j - center;
+                double freq = Math.sqrt(di*di + dj*dj);
+
+                if (freq > 0) {
+                    double orientation = Math.atan2(dj, di);
                     double magnitude = magnitudeSpectrum[i][j];
 
                     if (magnitude > maxMagnitude) {
@@ -172,7 +227,7 @@ public class SpatialFrequencyBubbles implements Bubbles {
         return new FrequencyComponent(dominantFreq, dominantOrientation, maxMagnitude);
     }
 
-    // Helper methods remain the same
+    // Rest of the helper methods remain the same
     private double[][] imageToGrayscale(BufferedImage image, boolean[][] foregroundMask) {
         double[][] data = new double[image.getHeight()][image.getWidth()];
         for (int y = 0; y < image.getHeight(); y++) {
