@@ -5,19 +5,15 @@ import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
-import org.xper.alden.drawing.renderer.AbstractRenderer;
 import org.xper.allen.app.fixation.PngScene;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
-import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
-import org.xper.allen.drawing.composition.noisy.NoiseMapper;
+import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.util.DPIUtil;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.drawing.object.BlankScreen;
 import org.xper.utils.RGBColor;
-
-import java.awt.image.BufferedImage;
 
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -67,7 +63,7 @@ public class MStickPngConfig {
     }
 
     @Bean
-    public NoiseMapper noiseMapper() {
+    public NAFCNoiseMapper noiseMapper() {
         GaussianNoiseMapper noiseMapper = new GaussianNoiseMapper();
         noiseMapper.setBackground(0);
         noiseMapper.setWidth(dpiUtil().calculateMinResolution());

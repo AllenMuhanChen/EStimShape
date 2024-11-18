@@ -9,7 +9,7 @@ import org.xper.allen.drawing.composition.experiment.EStimShapeTwoByTwoMatchStic
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.TwoByTwoMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
-import org.xper.allen.drawing.composition.noisy.NoiseMapper;
+import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.nafc.blockgen.estimshape.StickProvider;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
@@ -33,7 +33,7 @@ public class EStimShapeExperimentSetGenerator {
     String generatorSetPath;
 
     @Dependency
-    NoiseMapper noiseMapper;
+    NAFCNoiseMapper noiseMapper;
 
     private AllenPNGMaker pngMaker;
     private double maxSizeDiameterDegreesFromRF;
@@ -275,11 +275,11 @@ public class EStimShapeExperimentSetGenerator {
         this.generatorSetPath = generatorSetPath;
     }
 
-    public NoiseMapper getNoiseMapper() {
+    public NAFCNoiseMapper getNoiseMapper() {
         return noiseMapper;
     }
 
-    public void setNoiseMapper(NoiseMapper noiseMapper) {
+    public void setNoiseMapper(NAFCNoiseMapper noiseMapper) {
         this.noiseMapper = noiseMapper;
     }
 }

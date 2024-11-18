@@ -10,7 +10,6 @@ import java.util.List;
 
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.PixelFormat;
-import org.xper.Dependency;
 import org.xper.alden.drawing.drawables.BaseWindow;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.alden.drawing.renderer.AbstractRenderer;
@@ -18,13 +17,13 @@ import org.xper.alden.drawing.renderer.PerspectiveRenderer;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.drawing.composition.noisy.NoiseMapCalculation;
-import org.xper.allen.drawing.composition.noisy.NoiseMapper;
+import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.util.ThreadUtil;
 
 import javax.imageio.ImageIO;
 
 public class AllenDrawingManager implements Drawable {
-	private final NoiseMapper noiseMapper;
+	private final NAFCNoiseMapper noiseMapper;
 	Drawable stimObj;
 
 	List<AllenMatchStick> stimObjs = new ArrayList<>();
@@ -50,7 +49,7 @@ public class AllenDrawingManager implements Drawable {
 
 
 
-	public AllenDrawingManager(int width, int height, NoiseMapper noiseMapper) {
+	public AllenDrawingManager(int width, int height, NAFCNoiseMapper noiseMapper) {
 		super();
 		this.width = width;
 		this.height = height;

@@ -15,7 +15,7 @@ import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
-import org.xper.allen.drawing.composition.noisy.NoiseMapper;
+import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.util.DPIUtil;
 import org.xper.utils.RGBColor;
 
@@ -35,7 +35,7 @@ public class AllenPNGMaker{
 	@Dependency
 	public int width;
 	@Dependency
-	NoiseMapper noiseMapper;
+    NAFCNoiseMapper noiseMapper;
 
 	public AllenDrawingManager window = null;
 
@@ -341,11 +341,11 @@ public class AllenPNGMaker{
 		this.depth = depth;
 	}
 
-	public NoiseMapper getNoiseMapper() {
+	public NAFCNoiseMapper getNoiseMapper() {
 		return noiseMapper;
 	}
 
-	public void setNoiseMapper(NoiseMapper noiseMapper) {
+	public void setNoiseMapper(NAFCNoiseMapper noiseMapper) {
 		this.noiseMapper = noiseMapper;
 	}
 }

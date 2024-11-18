@@ -6,7 +6,7 @@ import org.xper.allen.Stim;
 import org.xper.allen.app.procedural.RadialSquares;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
-import org.xper.allen.drawing.composition.noisy.NoiseMapper;
+import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.drawing.ga.CircleReceptiveField;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.nafc.blockgen.Lims;
@@ -45,7 +45,7 @@ public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
     String generatorSetPath;
 
     @Dependency
-    NoiseMapper noiseMapper;
+    NAFCNoiseMapper noiseMapper;
 
     public static void main(String[] args) {
         try {
@@ -621,11 +621,11 @@ public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
         this.generatorSetPath = generatorSetPath;
     }
 
-    public NoiseMapper getNoiseMapper() {
+    public NAFCNoiseMapper getNoiseMapper() {
         return noiseMapper;
     }
 
-    public void setNoiseMapper(NoiseMapper noiseMapper) {
+    public void setNoiseMapper(NAFCNoiseMapper noiseMapper) {
         this.noiseMapper = noiseMapper;
     }
 }

@@ -9,7 +9,7 @@ import org.xper.allen.drawing.composition.AllenDrawingManager;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
-import org.xper.allen.drawing.composition.noisy.NoiseMapper;
+import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.drawing.ga.TestMatchStickDrawer;
 import org.xper.allen.pga.RFStrategy;
@@ -35,7 +35,7 @@ public class EStimShapeProceduralMatchStickTest {
     private int numNoiseFrames;
     private EStimShapeProceduralMatchStick testMStick;
     private JavaConfigApplicationContext context;
-    private NoiseMapper noiseMapper = new GaussianNoiseMapper();
+    private NAFCNoiseMapper noiseMapper = new GaussianNoiseMapper();
 
     @Before
     public void setUp() throws Exception {

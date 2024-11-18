@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.function.IntPredicate;
 
-public class GaussianNoiseMapper implements NoiseMapper {
+public class GaussianNoiseMapper implements NAFCNoiseMapper {
     @Dependency
     public int width;
     @Dependency

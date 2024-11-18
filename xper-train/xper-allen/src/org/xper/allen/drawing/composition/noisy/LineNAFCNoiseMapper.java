@@ -13,7 +13,7 @@ import java.util.List;
 
 import static org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper.convertMmToPixelCoordinates;
 
-public class LineNoiseMapper implements NoiseMapper{
+public class LineNAFCNoiseMapper implements NAFCNoiseMapper {
     private int width;
     private int height;
     private double background;

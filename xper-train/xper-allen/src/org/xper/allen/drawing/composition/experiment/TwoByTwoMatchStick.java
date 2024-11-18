@@ -3,8 +3,7 @@ package org.xper.allen.drawing.composition.experiment;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.morph.*;
-import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
-import org.xper.allen.drawing.composition.noisy.NoiseMapper;
+import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 import org.xper.drawing.stick.JuncPt_struct;
 
@@ -16,7 +15,7 @@ import java.util.Map;
 
 public class TwoByTwoMatchStick extends ProceduralMatchStick {
 
-    public TwoByTwoMatchStick(NoiseMapper noiseMapper) {
+    public TwoByTwoMatchStick(NAFCNoiseMapper noiseMapper) {
         super(noiseMapper);
     }
 
@@ -92,7 +91,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
 
 
     public void genMatchStickFromComponentInNoise(ProceduralMatchStick baseMatchStick, int fromCompId, int nComp,
-                                                  boolean doCompareObjCenteredPos, int maxAttempts, NoiseMapper noiseMapper) {
+                                                  boolean doCompareObjCenteredPos, int maxAttempts, NAFCNoiseMapper noiseMapper) {
         SphericalCoordinates originalObjCenteredPos = null;
         if (doCompareObjCenteredPos) {
             originalObjCenteredPos = calcObjCenteredPosForComp(baseMatchStick, fromCompId);

@@ -3,7 +3,7 @@ package org.xper.allen.drawing.composition.experiment;
 import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.morph.*;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
-import org.xper.allen.drawing.composition.noisy.NoiseMapper;
+import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.util.CoordinateConverter;
 import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 import org.xper.drawing.stick.JuncPt_struct;
@@ -27,9 +27,9 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     public int maxAttempts = 5;
     private Point3d noiseOrigin;
     public Vector3d projectedTangent;
-    public NoiseMapper noiseMapper;
+    public NAFCNoiseMapper noiseMapper;
 
-    public ProceduralMatchStick(NoiseMapper noiseMapper) {
+    public ProceduralMatchStick(NAFCNoiseMapper noiseMapper) {
         this.noiseMapper = noiseMapper;
     }
 
@@ -109,7 +109,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     protected void positionShape() {
     }
 
-    public void genMatchStickFromComponentInNoise(ProceduralMatchStick baseMatchStick, int fromCompId, int nComp, boolean doCompareObjCenteredPos, int maxAttempts1, NoiseMapper noiseMapper) {
+    public void genMatchStickFromComponentInNoise(ProceduralMatchStick baseMatchStick, int fromCompId, int nComp, boolean doCompareObjCenteredPos, int maxAttempts1, NAFCNoiseMapper noiseMapper) {
         if (nComp == 0){
             nComp = chooseNumComps();
         }

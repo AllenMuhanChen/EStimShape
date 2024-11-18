@@ -34,7 +34,7 @@ import java.util.List;
 
 import static org.xper.drawing.TestDrawingWindow.initXperLibs;
 
-public class GaussianNoiseMapperTest {
+public class GaussianNAFCNoiseMapperTest {
 
     private String testBin;
     private TestMatchStickDrawer testMatchStickDrawer;

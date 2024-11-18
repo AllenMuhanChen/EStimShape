@@ -2,22 +2,10 @@ package org.xper.allen.drawing.composition.noisy;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.alden.drawing.drawables.Drawable;
-import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.TwoByTwoMatchStick;
 import org.xper.allen.drawing.ga.TestMatchStickDrawer;
-import org.xper.allen.drawing.composition.noisy.LineNoiseMapper;
-import org.xper.allen.noisy.NoisyTranslatableResizableImages;
-import org.xper.drawing.Context;
-import org.xper.drawing.Coordinates2D;
-import org.xper.drawing.renderer.AbstractRenderer;
-import org.xper.drawing.renderer.PerspectiveRenderer;
-import org.xper.rfplot.drawing.png.ImageDimensions;
-import org.xper.util.FileUtil;
 import org.xper.util.ResourceUtil;
-import org.xper.util.ThreadUtil;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -29,12 +17,12 @@ import java.util.Collections;
 
 import static org.xper.drawing.TestDrawingWindow.initXperLibs;
 
-public class LineNoiseMapperTest {
+public class LineNAFCNoiseMapperTest {
 
     private String testBin;
     private AllenPNGMaker pngMaker;
     private TestMatchStickDrawer drawer;
-    private LineNoiseMapper lineNoiseMapper;
+    private LineNAFCNoiseMapper lineNoiseMapper;
 
     @Before
     public void setUp() throws Exception {
@@ -44,7 +32,7 @@ public class LineNoiseMapperTest {
         drawer = new TestMatchStickDrawer();
         drawer.setup(190, 190);
 
-        lineNoiseMapper = new LineNoiseMapper();
+        lineNoiseMapper = new LineNAFCNoiseMapper();
         lineNoiseMapper.setWidth(190);
         lineNoiseMapper.setHeight(190);
         lineNoiseMapper.setBackground(0); // Set background to black
@@ -53,7 +41,7 @@ public class LineNoiseMapperTest {
     @Test
     public void testLineNoiseMatchStick() throws IOException {
         // Generate a match stick
-        TwoByTwoMatchStick matchStick = new TwoByTwoMatchStick(new LineNoiseMapper());
+        TwoByTwoMatchStick matchStick = new TwoByTwoMatchStick(new LineNAFCNoiseMapper());
         matchStick.setProperties(8, "SHADE");
         matchStick.genMatchStickRand(2);
 

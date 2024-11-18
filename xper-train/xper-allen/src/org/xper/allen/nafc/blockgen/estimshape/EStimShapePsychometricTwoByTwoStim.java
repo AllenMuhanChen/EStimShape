@@ -7,7 +7,7 @@ import org.xper.allen.drawing.composition.experiment.EStimShapeTwoByTwoMatchStic
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.TwoByTwoMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
-import org.xper.allen.drawing.composition.noisy.NoiseMapper;
+import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.nafc.blockgen.MStickGenerationUtils;
 import org.xper.allen.nafc.blockgen.procedural.EStimShapeProceduralStim;
 import org.xper.allen.pga.RFStrategy;
@@ -34,7 +34,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
     Map<String, AllenMStickSpec> setSpecs = new LinkedHashMap<>();
     Map<String, AllenMStickSpec> morphedSetSpecs;
     private final List<Integer> compIdsToNoise = new ArrayList<>();
-    private NoiseMapper noiseMapper;
+    private NAFCNoiseMapper noiseMapper;
 
     public EStimShapePsychometricTwoByTwoStim(
             EStimShapeExperimentTrialGenerator generator, EStimShapePsychometricTwoByTwoParameters parameters) {
