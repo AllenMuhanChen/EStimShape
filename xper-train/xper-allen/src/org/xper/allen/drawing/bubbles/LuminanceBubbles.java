@@ -13,7 +13,8 @@ public class LuminanceBubbles implements Bubbles {
     private Random random = new Random();
 
     @Override
-    public List<BubblePixel> generateBubbles(String imagePath, int nBubbles, double bubbleSigmaPercent) {
+    public List<NoisyPixel> generateBubbles(String imagePath, int nBubbles, double bubbleSigmaPercent) {
+        List<Bubble> bubbles = new ArrayList<>();
         try {
             BufferedImage image = ImageIO.read(new File(imagePath));
             int backgroundColor = image.getRGB(0, 0);
@@ -34,47 +35,23 @@ public class LuminanceBubbles implements Bubbles {
 
             double luminanceRange = maxLuminance - minLuminance;
             double sigma = luminanceRange * bubbleSigmaPercent;
-            List<BubblePixel> bubblePixels = new ArrayList<>();
+            List<NoisyPixel> noisyPixels = new ArrayList<>();
 
             // Generate nBubbles by choosing random luminance values
             for (int i = 0; i < nBubbles; i++) {
                 // Pick random luminance value uniformly from the range
                 double centerLuminance = minLuminance + (random.nextDouble() * luminanceRange);
 
-                // Generate Gaussian bubble in luminance space
-                generateLuminanceBubble(centerLuminance, sigma, image, backgroundColor, bubblePixels);
+                LuminanceBubble bubble = new LuminanceBubble(centerLuminance, sigma, imagePath);
+                bubble.generateBubblePixels();
+                bubbles.add(bubble);
+                noisyPixels.addAll(bubble.getBubblePixels());
             }
 
-            return bubblePixels;
+            return noisyPixels;
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to load image: " + imagePath, e);
-        }
-    }
-
-    private void generateLuminanceBubble(double centerLuminance, double sigma,
-                                         BufferedImage image, int backgroundColor,
-                                         List<BubblePixel> pixels) {
-        // Check all pixels in the image
-        for (int x = 0; x < image.getWidth(); x++) {
-            for (int y = 0; y < image.getHeight(); y++) {
-                int pixelColor = image.getRGB(x, y);
-                if (pixelColor == backgroundColor) {
-                    continue;
-                }
-
-                double pixelLuminance = getLuminance(new Color(pixelColor));
-                double luminanceDiff = Math.abs(pixelLuminance - centerLuminance);
-
-                double noiseChance = Math.exp(
-                        -(luminanceDiff * luminanceDiff) /
-                                (2 * sigma * sigma)
-                );
-
-                if (noiseChance > 0.01) {
-                    pixels.add(new BubblePixel(x, y, noiseChance));
-                }
-            }
         }
     }
 

@@ -16,11 +16,11 @@ public class GaussianBubble extends Bubble<PixelLocation, Double>{
     @Override
     public void generateBubblePixels() throws IOException {;
         BufferedImage image = ImageIO.read(new File(imgPath));
-        this.bubblePixels = generateGaussianBubble(location, size, image.getWidth(), image.getHeight());
+        this.noisyPixels = generateGaussianBubble(location, size, image.getWidth(), image.getHeight());
     }
 
-    private List<BubblePixel> generateGaussianBubble(PixelLocation center, double sigma, int width, int height) {
-        List<BubblePixel> pixels = new ArrayList<>();
+    private List<NoisyPixel> generateGaussianBubble(PixelLocation center, double sigma, int width, int height) {
+        List<NoisyPixel> pixels = new ArrayList<>();
 
         int range = (int) Math.ceil(4 * sigma);
 
@@ -46,7 +46,7 @@ public class GaussianBubble extends Bubble<PixelLocation, Double>{
 
                 // Add pixel if noise chance is significant
                 if (noiseChance > 0.01) {  // Threshold to avoid too many tiny values
-                    pixels.add(new BubblePixel(x, y, noiseChance));
+                    pixels.add(new NoisyPixel(x, y, noiseChance));
                 }
             }
         }

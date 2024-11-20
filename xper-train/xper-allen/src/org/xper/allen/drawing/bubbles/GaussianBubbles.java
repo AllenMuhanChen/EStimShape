@@ -13,7 +13,7 @@ public class GaussianBubbles implements Bubbles {
     private Random random = new Random();
 
     @Override
-    public List<BubblePixel> generateBubbles(String imagePath, int nBubbles, double bubbleSigma) {
+    public List<NoisyPixel> generateBubbles(String imagePath, int nBubbles, double bubbleSigma) {
         try {
             List<Bubble> bubbles = new ArrayList<>();
             BufferedImage image = ImageIO.read(new File(imagePath));
@@ -35,7 +35,7 @@ public class GaussianBubbles implements Bubbles {
                 return new ArrayList<>(); // No foreground pixels found
             }
 
-            List<BubblePixel> bubblePixels = new ArrayList<>();
+            List<NoisyPixel> noisyPixels = new ArrayList<>();
 
             // Generate nBubbles centers in foreground
             for (int i = 0; i < nBubbles; i++) {
@@ -45,17 +45,17 @@ public class GaussianBubbles implements Bubbles {
                 // Generate Gaussian bubble around center
                 GaussianBubble bubble = new GaussianBubble(center, bubbleSigma, imagePath);
                 bubble.generateBubblePixels();
-                bubblePixels.addAll(bubble.getBubblePixels());
+                noisyPixels.addAll(bubble.getBubblePixels());
             }
 
-            return bubblePixels;
+            return noisyPixels;
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to load image: " + imagePath, e);
         }
     }
 
-    private void generateGaussianBubble(Point center, double sigma, int width, int height, List<BubblePixel> pixels) {
+    private void generateGaussianBubble(Point center, double sigma, int width, int height, List<NoisyPixel> pixels) {
         // Calculate range to check (3 sigma covers 99.7% of distribution)
         int range = (int) Math.ceil(3 * sigma);
 
@@ -81,7 +81,7 @@ public class GaussianBubbles implements Bubbles {
 
                 // Add pixel if noise chance is significant
                 if (noiseChance > 0.01) {  // Threshold to avoid too many tiny values
-                    pixels.add(new BubblePixel(x, y, noiseChance));
+                    pixels.add(new NoisyPixel(x, y, noiseChance));
                 }
             }
         }

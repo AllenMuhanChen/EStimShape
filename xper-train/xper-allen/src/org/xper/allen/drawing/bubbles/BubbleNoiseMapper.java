@@ -1,8 +1,5 @@
 package org.xper.allen.drawing.bubbles;
 
-import org.xper.allen.drawing.composition.AllenMatchStick;
-import org.xper.drawing.renderer.AbstractRenderer;
-
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -25,7 +22,7 @@ public class BubbleNoiseMapper {
             int height = inputImage.getHeight();
 
             // Generate bubbles
-            List<BubblePixel> noisePixels = bubbles.generateBubbles(imgPath, numBubbles, bubbleSigma);
+            List<NoisyPixel> noisePixels = bubbles.generateBubbles(imgPath, numBubbles, bubbleSigma);
 
             // Create noise map image
             BufferedImage noiseMap = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
@@ -37,7 +34,7 @@ public class BubbleNoiseMapper {
             g.dispose();
 
             // Set bubble pixels in red channel
-            for (BubblePixel pixel : noisePixels) {
+            for (NoisyPixel pixel : noisePixels) {
                 if (pixel.x >= 0 && pixel.x < width && pixel.y >= 0 && pixel.y < height) {
                     // Convert noise chance to red intensity (0-255)
                     int redValue = (int)(255 * pixel.noiseChance);

@@ -13,7 +13,7 @@ public abstract class Bubble<LocationT, SizeT> {
         this.imgPath = imgPath;
     }
 
-    public List<BubblePixel> bubblePixels;
+    public List<NoisyPixel> noisyPixels;
 
     public abstract void generateBubblePixels() throws IOException;
 
@@ -34,7 +34,7 @@ public abstract class Bubble<LocationT, SizeT> {
         this.size = size;
     }
 
-    public List<BubblePixel> getBubblePixels() {
-        return bubblePixels;
+    public List<NoisyPixel> getBubblePixels() {
+        return noisyPixels;
     }
 }

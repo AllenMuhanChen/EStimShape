@@ -34,7 +34,7 @@ public class FourierBubbles implements Bubbles {
     }
 
     @Override
-    public List<BubblePixel> generateBubbles(String imagePath, int nBubbles, double bubbleSigmaPercent) {
+    public List<NoisyPixel> generateBubbles(String imagePath, int nBubbles, double bubbleSigmaPercent) {
         try {
             BufferedImage image = ImageIO.read(new File(imagePath));
             int backgroundColor = image.getRGB(0, 0);
@@ -102,16 +102,16 @@ public class FourierBubbles implements Bubbles {
             double sigmaFreq = freqRange * bubbleSigmaPercent;
             double sigmaOrientation = Math.PI * bubbleSigmaPercent;
 
-            List<BubblePixel> allBubblePixels = new ArrayList<>();
+            List<NoisyPixel> allNoisyPixels = new ArrayList<>();
 
             // Generate bubbles by sampling uniformly
             int successfulBubbles = 0;
             while (successfulBubbles < nBubbles) {
-                List<BubblePixel> bubblePixels = new ArrayList<>();
+                List<NoisyPixel> noisyPixels = new ArrayList<>();
                 int attempts = 0;
 
                 while (attempts < MAX_ATTEMPTS_PER_BUBBLE) {
-                    bubblePixels.clear();
+                    noisyPixels.clear();
 
                     // Choose random frequency and orientation uniformly
                     double centerFreq = minFreq + (random.nextDouble() * freqRange);
@@ -127,17 +127,17 @@ public class FourierBubbles implements Bubbles {
                         );
 
                         if (noiseChance > 0.1) {
-                            bubblePixels.add(new BubblePixel(p.x, p.y, noiseChance));
+                            noisyPixels.add(new NoisyPixel(p.x, p.y, noiseChance));
                         }
                     }
 
-                    if (bubblePixels.size() >= MIN_PIXELS_PER_BUBBLE) {
-                        allBubblePixels.addAll(bubblePixels);
+                    if (noisyPixels.size() >= MIN_PIXELS_PER_BUBBLE) {
+                        allNoisyPixels.addAll(noisyPixels);
                         successfulBubbles++;
                         System.out.println("Bubble at freq=" + centerFreq +
                                 ", orientation=" + centerOrientation);
                         System.out.println("Successful bubble " + successfulBubbles + " placed");
-                        System.out.println("Bubble affected " + bubblePixels.size() + " pixels");
+                        System.out.println("Bubble affected " + noisyPixels.size() + " pixels");
                         break;
                     }
 
@@ -151,7 +151,7 @@ public class FourierBubbles implements Bubbles {
                 }
             }
 
-            return allBubblePixels;
+            return allNoisyPixels;
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to load image: " + imagePath, e);

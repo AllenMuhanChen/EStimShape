@@ -61,7 +61,7 @@ public class BubblesTest {
     private void visualizeBubbles(Bubbles bubbles, int nBubbles, double sigma, String outputPath, String windowTitle)
             throws IOException {
         // Generate bubbles
-        List<BubblePixel> bubblePixels = bubbles.generateBubbles(testImagePath, nBubbles, sigma);
+        List<NoisyPixel> noisyPixels = bubbles.generateBubbles(testImagePath, nBubbles, sigma);
 
         // Load original image
         BufferedImage originalImage = ImageIO.read(new File(testImagePath));
@@ -79,7 +79,7 @@ public class BubblesTest {
         }
 
         // Set bubble pixels - now using alpha for noise chance
-        for (BubblePixel pixel : bubblePixels) {
+        for (NoisyPixel pixel : noisyPixels) {
             // Convert noise chance to alpha (0-255)
             int alpha = (int)(255 * pixel.noiseChance);
             Color pixelColor = new Color(255, 0, 0, alpha);  // Full red with variable alpha
