@@ -21,7 +21,7 @@ public class FourierBubbles implements Bubbles {
     private Random random = new Random();
     private FastFourierTransformer transformer = new FastFourierTransformer(DftNormalization.STANDARD);
 
-    private static class FrequencyComponent {
+    static class FrequencyComponent {
         final double frequency;
         final double orientation;
         final double magnitude;
@@ -35,6 +35,7 @@ public class FourierBubbles implements Bubbles {
 
     @Override
     public List<NoisyPixel> generateBubbles(String imagePath, int nBubbles, double bubbleSigmaPercent) {
+        List<Bubble> bubbles = new ArrayList<>();
         try {
             BufferedImage image = ImageIO.read(new File(imagePath));
             int backgroundColor = image.getRGB(0, 0);
@@ -117,19 +118,11 @@ public class FourierBubbles implements Bubbles {
                     double centerFreq = minFreq + (random.nextDouble() * freqRange);
                     double centerOrientation = random.nextDouble() * 2 * Math.PI - Math.PI;
 
-                    for (Point p : foregroundPoints) {
-                        FrequencyComponent pixelFreq = getDominantFrequency(p.x, p.y, magnitudeSpectrum, center);
-
-                        double noiseChance = calculate2DGaussian(
-                                pixelFreq.frequency, pixelFreq.orientation,
-                                centerFreq, centerOrientation,
-                                sigmaFreq, sigmaOrientation
-                        );
-
-                        if (noiseChance > 0.1) {
-                            noisyPixels.add(new NoisyPixel(p.x, p.y, noiseChance));
-                        }
-                    }
+                    FourierBubble bubble = new FourierBubble(new FrequencyComponent(centerFreq, centerOrientation, 0),
+                            new FrequencyComponent(sigmaFreq, sigmaOrientation, 0), imagePath);
+                    bubble.generateBubblePixels();
+                    bubbles.add(bubble);
+                    noisyPixels.addAll(bubble.getBubblePixels());
 
                     if (noisyPixels.size() >= MIN_PIXELS_PER_BUBBLE) {
                         allNoisyPixels.addAll(noisyPixels);

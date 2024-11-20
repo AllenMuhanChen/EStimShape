@@ -1,6 +1,7 @@
 package org.xper.allen.drawing.bubbles;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public abstract class Bubble<LocationT, SizeT> {
@@ -13,7 +14,7 @@ public abstract class Bubble<LocationT, SizeT> {
         this.imgPath = imgPath;
     }
 
-    public List<NoisyPixel> noisyPixels;
+    public List<NoisyPixel> noisyPixels = new ArrayList<>();
 
     public abstract void generateBubblePixels() throws IOException;
 
