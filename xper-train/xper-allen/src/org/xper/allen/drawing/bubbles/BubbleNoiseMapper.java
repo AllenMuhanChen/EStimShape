@@ -16,6 +16,13 @@ public class BubbleNoiseMapper {
                            int numBubbles,
                             double bubbleSigma,
                            String outputPath) {
+        List<Bubble> bubbles = bubbleFactory.generateBubbles(imgPath, numBubbles, bubbleSigma);
+        return mapNoise(imgPath, bubbles, outputPath);
+    }
+
+    public String mapNoise(String imgPath,
+                           List<Bubble> bubbles,
+                           String outputPath) {
         try {
             // Get dimensions from input image
             BufferedImage inputImage = ImageIO.read(new File(imgPath));
@@ -23,7 +30,6 @@ public class BubbleNoiseMapper {
             int height = inputImage.getHeight();
 
             // Generate bubbles
-            List<Bubble> bubbles = bubbleFactory.generateBubbles(imgPath, numBubbles, bubbleSigma);
             List<NoisyPixel> bubblePixels = new ArrayList<>();
             for (Bubble bubble : bubbles) {
                 bubble.generateBubblePixels();
