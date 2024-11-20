@@ -28,7 +28,7 @@ public class BubblesTest {
     @Test
     public void gaussian_bubbles_generates_bubbles() throws IOException {
         // Arrange
-        Bubbles bubbles = new GaussianBubbles();
+        Bubbles bubbles = new CartesianBubbles();
         int nBubbles = 20;
         double bubbleSigma = 3/3.0;
 

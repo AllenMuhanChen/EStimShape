@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class GaussianBubbles implements Bubbles {
+public class CartesianBubbles implements Bubbles {
     private Random random = new Random();
 
     @Override
@@ -43,7 +43,7 @@ public class GaussianBubbles implements Bubbles {
                 PixelLocation center = foregroundPixels.get(random.nextInt(foregroundPixels.size()));
 
                 // Generate Gaussian bubble around center
-                GaussianBubble bubble = new GaussianBubble(center, bubbleSigma, imagePath);
+                CartesianBubble bubble = new CartesianBubble(center, bubbleSigma, imagePath);
                 bubble.generateBubblePixels();
                 noisyPixels.addAll(bubble.getBubblePixels());
             }

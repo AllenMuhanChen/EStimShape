@@ -32,7 +32,7 @@ public class BubbleNoiseMapperTest {
         // Try different types of bubbles
 //        testBubbles("Gaussian Bubbles", new GaussianBubbles(), 20, 1.0);
 //        testBubbles("Luminance Bubbles", new LuminanceBubbles(), 3, 0.1);
-        testBubbles("Fourier Bubbles", new FourierBubbles(), 3, 0.1);
+        testBubbles("Fourier Bubbles", new FourierBubbles(), 2, 0.1);
 
         // Keep window open to examine results
         try {

@@ -7,9 +7,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GaussianBubble extends Bubble<PixelLocation, Double>{
+public class CartesianBubble extends Bubble<PixelLocation, Double>{
 
-    public GaussianBubble(PixelLocation location, Double size, String imgPath) {
+    public CartesianBubble(PixelLocation location, Double size, String imgPath) {
         super(location, size, imgPath);
     }
 
