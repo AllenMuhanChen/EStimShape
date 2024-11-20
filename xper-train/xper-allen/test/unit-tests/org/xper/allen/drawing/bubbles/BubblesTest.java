@@ -10,6 +10,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class BubblesTest {
@@ -26,42 +27,49 @@ public class BubblesTest {
     }
 
     @Test
-    public void gaussian_bubbles_generates_bubbles() throws IOException {
+    public void cartesian_bubbles_generates_bubbles() throws IOException {
         // Arrange
-        Bubbles bubbles = new CartesianBubbles();
+        CartesianBubbles cartesianBubbles = new CartesianBubbles();
         int nBubbles = 20;
-        double bubbleSigma = 3/3.0;
+        double bubbleSigma = 1.0;
+        List<Bubble> bubbles = cartesianBubbles.generateBubbles(testImagePath, nBubbles, bubbleSigma);
 
         // Act and visualize
-        visualizeBubbles(bubbles, nBubbles, bubbleSigma, outputPath, "Gaussian Bubbles");
+        visualizeBubbles(bubbles, outputPath, "Gaussian Bubbles");
     }
 
     @Test
     public void luminance_bubbles_generates_bubbles() throws IOException {
         // Arrange
-        Bubbles bubbles = new LuminanceBubbles();
+        Bubbles luminanceBubbles = new LuminanceBubbles();
         int nBubbles = 3;
         double bubbleSigma = 0.1/3;
+        List<Bubble> bubbles = luminanceBubbles.generateBubbles(testImagePath, nBubbles, bubbleSigma);
 
         // Act and visualize
-        visualizeBubbles(bubbles, nBubbles, bubbleSigma, outputPathLuminance, "Luminance Bubbles");
+        visualizeBubbles(bubbles, outputPathLuminance, "Luminance Bubbles");
     }
 
     @Test
     public void fourier_bubbles_generates_bubbles() throws IOException {
         // Arrange
-        Bubbles bubbles = new FourierBubbles();
+        Bubbles fourierBubbles = new FourierBubbles();
         int nBubbles = 5;
         double bubbleSigma = 0.2/3.0;
+        List<Bubble> bubbles = fourierBubbles.generateBubbles(testImagePath, nBubbles, bubbleSigma);
 
         // Act and visualize
-        visualizeBubbles(bubbles, nBubbles, bubbleSigma, outputPath, "Spatial Frequency Bubbles");
+        visualizeBubbles(bubbles, outputPath, "Spatial Frequency Bubbles");
     }
 
-    private void visualizeBubbles(Bubbles bubbles, int nBubbles, double sigma, String outputPath, String windowTitle)
+    private void visualizeBubbles(List<Bubble> bubbles, String outputPath, String windowTitle)
             throws IOException {
         // Generate bubbles
-        List<NoisyPixel> noisyPixels = bubbles.generateBubbles(testImagePath, nBubbles, sigma);
+        List<NoisyPixel> noisyPixels = new ArrayList<>();
+        for (Bubble bubble : bubbles) {
+            bubble.generateBubblePixels();
+            noisyPixels.addAll(bubble.getBubblePixels());
+        }
 
         // Load original image
         BufferedImage originalImage = ImageIO.read(new File(testImagePath));

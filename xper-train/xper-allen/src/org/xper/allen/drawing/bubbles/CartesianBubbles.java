@@ -13,7 +13,7 @@ public class CartesianBubbles implements Bubbles {
     private Random random = new Random();
 
     @Override
-    public List<NoisyPixel> generateBubbles(String imagePath, int nBubbles, double bubbleSigma) {
+    public List<Bubble> generateBubbles(String imagePath, int nBubbles, double bubbleSigma) {
         try {
             List<Bubble> bubbles = new ArrayList<>();
             BufferedImage image = ImageIO.read(new File(imagePath));
@@ -45,10 +45,11 @@ public class CartesianBubbles implements Bubbles {
                 // Generate Gaussian bubble around center
                 CartesianBubble bubble = new CartesianBubble(center, bubbleSigma, imagePath);
                 bubble.generateBubblePixels();
+                bubbles.add(bubble);
                 noisyPixels.addAll(bubble.getBubblePixels());
             }
 
-            return noisyPixels;
+            return bubbles;
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to load image: " + imagePath, e);

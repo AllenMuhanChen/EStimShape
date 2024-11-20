@@ -5,13 +5,14 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class BubbleNoiseMapper {
     private static final double DEFAULT_THRESHOLD = 0.01;
 
     public String mapNoise(String imgPath,
-                           Bubbles bubbles,
+                           Bubbles bubblesGenerator,
                            int numBubbles,
                             double bubbleSigma,
                            String outputPath) {
@@ -22,7 +23,12 @@ public class BubbleNoiseMapper {
             int height = inputImage.getHeight();
 
             // Generate bubbles
-            List<NoisyPixel> noisePixels = bubbles.generateBubbles(imgPath, numBubbles, bubbleSigma);
+            List<Bubble> bubbles = bubblesGenerator.generateBubbles(imgPath, numBubbles, bubbleSigma);
+            List<NoisyPixel> bubblePixels = new ArrayList<>();
+            for (Bubble bubble : bubbles) {
+                bubble.generateBubblePixels();
+                bubblePixels.addAll(bubble.getBubblePixels());
+            }
 
             // Create noise map image
             BufferedImage noiseMap = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
@@ -34,7 +40,7 @@ public class BubbleNoiseMapper {
             g.dispose();
 
             // Set bubble pixels in red channel
-            for (NoisyPixel pixel : noisePixels) {
+            for (NoisyPixel pixel : bubblePixels) {
                 if (pixel.x >= 0 && pixel.x < width && pixel.y >= 0 && pixel.y < height) {
                     // Convert noise chance to red intensity (0-255)
                     int redValue = (int)(255 * pixel.noiseChance);

@@ -34,7 +34,7 @@ public class FourierBubbles implements Bubbles {
     }
 
     @Override
-    public List<NoisyPixel> generateBubbles(String imagePath, int nBubbles, double bubbleSigmaPercent) {
+    public List<Bubble> generateBubbles(String imagePath, int nBubbles, double bubbleSigmaPercent) {
         List<Bubble> bubbles = new ArrayList<>();
         try {
             BufferedImage image = ImageIO.read(new File(imagePath));
@@ -144,7 +144,7 @@ public class FourierBubbles implements Bubbles {
                 }
             }
 
-            return allNoisyPixels;
+            return bubbles;
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to load image: " + imagePath, e);

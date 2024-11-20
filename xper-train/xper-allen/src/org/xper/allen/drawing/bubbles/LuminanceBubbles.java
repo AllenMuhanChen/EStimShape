@@ -13,7 +13,7 @@ public class LuminanceBubbles implements Bubbles {
     private Random random = new Random();
 
     @Override
-    public List<NoisyPixel> generateBubbles(String imagePath, int nBubbles, double bubbleSigmaPercent) {
+    public List<Bubble> generateBubbles(String imagePath, int nBubbles, double bubbleSigmaPercent) {
         List<Bubble> bubbles = new ArrayList<>();
         try {
             BufferedImage image = ImageIO.read(new File(imagePath));
@@ -48,7 +48,7 @@ public class LuminanceBubbles implements Bubbles {
                 noisyPixels.addAll(bubble.getBubblePixels());
             }
 
-            return noisyPixels;
+            return bubbles;
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to load image: " + imagePath, e);
