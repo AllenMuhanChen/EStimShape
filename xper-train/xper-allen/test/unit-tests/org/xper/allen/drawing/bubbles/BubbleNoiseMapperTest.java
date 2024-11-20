@@ -32,7 +32,7 @@ public class BubbleNoiseMapperTest {
         // Try different types of bubbles
 //        testBubbles("Gaussian Bubbles", new GaussianBubbles(), 20, 1.0);
 //        testBubbles("Luminance Bubbles", new LuminanceBubbles(), 3, 0.1);
-        testBubbles("Fourier Bubbles", new FourierBubbles(), 2, 0.1);
+        testBubbles("Fourier Bubbles", new FourierBubbleFactory(), 2, 0.1);
 
         // Keep window open to examine results
         try {
@@ -42,11 +42,11 @@ public class BubbleNoiseMapperTest {
         }
     }
 
-    private void testBubbles(String title, Bubbles bubbles, int nBubbles, double sigma) throws IOException {
+    private void testBubbles(String title, BubbleFactory bubbleFactory, int nBubbles, double sigma) throws IOException {
         // Generate noise map
         BubbleNoiseMapper mapper = new BubbleNoiseMapper();
         String outputPath = outputPathBubbles.replace(".png", "_" + title.toLowerCase().replace(" ", "_") + ".png");
-        String resultPath = mapper.mapNoise(testImagePath, bubbles, nBubbles, sigma, outputPath);
+        String resultPath = mapper.mapNoise(testImagePath, bubbleFactory, nBubbles, sigma, outputPath);
 
         // Display results
         BufferedImage originalImage = ImageIO.read(new File(testImagePath));

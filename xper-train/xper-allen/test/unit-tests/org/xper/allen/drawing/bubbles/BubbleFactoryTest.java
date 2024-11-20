@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BubblesTest {
+public class BubbleFactoryTest {
     private String testImagePath;
     private String outputPath;
     private String outputPathLuminance;
@@ -29,7 +29,7 @@ public class BubblesTest {
     @Test
     public void cartesian_bubbles_generates_bubbles() throws IOException {
         // Arrange
-        CartesianBubbles cartesianBubbles = new CartesianBubbles();
+        CartesianBubbleFactory cartesianBubbles = new CartesianBubbleFactory();
         int nBubbles = 20;
         double bubbleSigma = 1.0;
         List<Bubble> bubbles = cartesianBubbles.generateBubbles(testImagePath, nBubbles, bubbleSigma);
@@ -41,10 +41,10 @@ public class BubblesTest {
     @Test
     public void luminance_bubbles_generates_bubbles() throws IOException {
         // Arrange
-        Bubbles luminanceBubbles = new LuminanceBubbles();
+        BubbleFactory luminanceBubbleFactory = new LuminanceBubbleFactory();
         int nBubbles = 3;
         double bubbleSigma = 0.1/3;
-        List<Bubble> bubbles = luminanceBubbles.generateBubbles(testImagePath, nBubbles, bubbleSigma);
+        List<Bubble> bubbles = luminanceBubbleFactory.generateBubbles(testImagePath, nBubbles, bubbleSigma);
 
         // Act and visualize
         visualizeBubbles(bubbles, outputPathLuminance, "Luminance Bubbles");
@@ -53,10 +53,10 @@ public class BubblesTest {
     @Test
     public void fourier_bubbles_generates_bubbles() throws IOException {
         // Arrange
-        Bubbles fourierBubbles = new FourierBubbles();
+        BubbleFactory fourierBubbleFactory = new FourierBubbleFactory();
         int nBubbles = 5;
         double bubbleSigma = 0.2/3.0;
-        List<Bubble> bubbles = fourierBubbles.generateBubbles(testImagePath, nBubbles, bubbleSigma);
+        List<Bubble> bubbles = fourierBubbleFactory.generateBubbles(testImagePath, nBubbles, bubbleSigma);
 
         // Act and visualize
         visualizeBubbles(bubbles, outputPath, "Spatial Frequency Bubbles");

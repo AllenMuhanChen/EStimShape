@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class FourierBubbles implements Bubbles {
+public class FourierBubbleFactory implements BubbleFactory {
     private static final int MIN_PIXELS_PER_BUBBLE = 1;
     private static final int MAX_ATTEMPTS_PER_BUBBLE = 10000;
     public static final double SIGNIFICANCE_THRESHOLD = 0.01;

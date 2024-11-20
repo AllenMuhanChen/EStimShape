@@ -13,9 +13,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FourierBubble extends Bubble<FourierBubbles.FrequencyComponent, FourierBubbles.FrequencyComponent>{
+public class FourierBubble extends Bubble<FourierBubbleFactory.FrequencyComponent, FourierBubbleFactory.FrequencyComponent>{
     private FastFourierTransformer transformer = new FastFourierTransformer(DftNormalization.STANDARD);
-    public FourierBubble(FourierBubbles.FrequencyComponent location, FourierBubbles.FrequencyComponent size, String imgPath) {
+    public FourierBubble(FourierBubbleFactory.FrequencyComponent location, FourierBubbleFactory.FrequencyComponent size, String imgPath) {
         super(location, size, imgPath);
     }
 
@@ -45,7 +45,7 @@ public class FourierBubble extends Bubble<FourierBubbles.FrequencyComponent, Fou
 
 
         for (PixelLocation p : foregroundPoints) {
-            FourierBubbles.FrequencyComponent pixelFreq = getDominantFrequency(p.x, p.y, magnitudeSpectrum);
+            FourierBubbleFactory.FrequencyComponent pixelFreq = getDominantFrequency(p.x, p.y, magnitudeSpectrum);
 
             double noiseChance = calculate2DGaussian(
                     pixelFreq.frequency, pixelFreq.orientation,
@@ -61,7 +61,7 @@ public class FourierBubble extends Bubble<FourierBubbles.FrequencyComponent, Fou
 
     }
 
-    private FourierBubbles.FrequencyComponent getDominantFrequency(int x, int y, double[][] magnitudeSpectrum) {
+    private FourierBubbleFactory.FrequencyComponent getDominantFrequency(int x, int y, double[][] magnitudeSpectrum) {
         double maxMagnitude = 0;
         double dominantFreq = 0;
         double dominantOrientation = 0;
@@ -104,7 +104,7 @@ public class FourierBubble extends Bubble<FourierBubbles.FrequencyComponent, Fou
             }
         }
 
-        return new FourierBubbles.FrequencyComponent(dominantFreq, dominantOrientation, maxMagnitude);
+        return new FourierBubbleFactory.FrequencyComponent(dominantFreq, dominantOrientation, maxMagnitude);
     }
 
     private double calculate2DGaussian(double pixelFreq, double pixelOrientation,

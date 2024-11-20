@@ -12,7 +12,7 @@ public class BubbleNoiseMapper {
     private static final double DEFAULT_THRESHOLD = 0.01;
 
     public String mapNoise(String imgPath,
-                           Bubbles bubblesGenerator,
+                           BubbleFactory bubbleFactory,
                            int numBubbles,
                             double bubbleSigma,
                            String outputPath) {
@@ -23,7 +23,7 @@ public class BubbleNoiseMapper {
             int height = inputImage.getHeight();
 
             // Generate bubbles
-            List<Bubble> bubbles = bubblesGenerator.generateBubbles(imgPath, numBubbles, bubbleSigma);
+            List<Bubble> bubbles = bubbleFactory.generateBubbles(imgPath, numBubbles, bubbleSigma);
             List<NoisyPixel> bubblePixels = new ArrayList<>();
             for (Bubble bubble : bubbles) {
                 bubble.generateBubblePixels();

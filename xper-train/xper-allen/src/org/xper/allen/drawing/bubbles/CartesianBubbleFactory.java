@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class CartesianBubbles implements Bubbles {
+public class CartesianBubbleFactory implements BubbleFactory {
     private Random random = new Random();
 
     @Override
