@@ -1,5 +1,6 @@
 package org.xper.allen.drawing.bubbles;
 
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +19,10 @@ public abstract class Bubble<LocationT, SizeT> {
 
     public abstract void generateBubblePixels() throws IOException;
 
+    protected int getBackgroundColor(BufferedImage image) {
+        int backgroundColor = image.getRGB(0, 0);
+        return backgroundColor;
+    }
 
     public LocationT getLocation() {
         return location;

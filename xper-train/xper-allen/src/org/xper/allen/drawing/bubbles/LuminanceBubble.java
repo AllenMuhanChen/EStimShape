@@ -16,7 +16,7 @@ public class LuminanceBubble extends Bubble<Double, Double>{
     @Override
     public void generateBubblePixels() throws IOException {
         BufferedImage image = ImageIO.read(new File(imgPath));
-        int backgroundColor = image.getRGB(0, 0);
+        int backgroundColor = getBackgroundColor(image);
         this.noisyPixels = generateLuminanceBubble(location, size, image, backgroundColor);
     }
 

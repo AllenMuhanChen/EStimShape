@@ -22,7 +22,7 @@ public class FourierBubble extends Bubble<FourierBubbles.FrequencyComponent, Fou
     @Override
     public void generateBubblePixels() throws IOException {
         BufferedImage image = ImageIO.read(new File(imgPath));
-        int backgroundColor = image.getRGB(0, 0);
+        int backgroundColor = getBackgroundColor(image);
 
         // Get foreground mask and pixels
         boolean[][] foregroundMask = new boolean[image.getHeight()][image.getWidth()];

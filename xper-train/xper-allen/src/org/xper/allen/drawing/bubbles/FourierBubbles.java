@@ -151,68 +151,6 @@ public class FourierBubbles implements Bubbles {
         }
     }
 
-    private double calculate2DGaussian(double pixelFreq, double pixelOrientation,
-                                       double centerFreq, double centerOrientation,
-                                       double sigmaFreq, double sigmaOrientation) {
-        // Handle circular nature of orientation
-        double orientationDiff = Math.min(
-                Math.abs(pixelOrientation - centerOrientation),
-                2 * Math.PI - Math.abs(pixelOrientation - centerOrientation)
-        );
-
-        // 2D gaussian
-        return Math.exp(
-                -(Math.pow(pixelFreq - centerFreq, 2) / (2 * sigmaFreq * sigmaFreq) +
-                        Math.pow(orientationDiff, 2) / (2 * sigmaOrientation * sigmaOrientation))
-        );
-    }
-
-    private FrequencyComponent getDominantFrequency(int x, int y, double[][] magnitudeSpectrum, int center) {
-        double maxMagnitude = 0;
-        double dominantFreq = 0;
-        double dominantOrientation = 0;
-
-        int patchSize = 8;  // Look at 8x8 patch around pixel
-
-        // Extract patch centered on pixel
-        double[][] patch = new double[patchSize][patchSize];
-        for(int i = 0; i < patchSize; i++) {
-            for(int j = 0; j < patchSize; j++) {
-                int pi = x + i - patchSize/2;
-                int pj = y + j - patchSize/2;
-
-                // Check bounds
-                if(pi >= 0 && pi < magnitudeSpectrum.length &&
-                        pj >= 0 && pj < magnitudeSpectrum[0].length) {
-                    patch[i][j] = magnitudeSpectrum[pi][pj];
-                }
-            }
-        }
-
-        // Now find dominant frequency in this patch
-        for(int i = 0; i < patchSize; i++) {
-            for(int j = 0; j < patchSize; j++) {
-                // Convert patch coordinates to frequency coordinates
-                double di = (i - patchSize/2.0) / patchSize;  // Normalize to [-0.5, 0.5]
-                double dj = (j - patchSize/2.0) / patchSize;
-
-                double freq = Math.sqrt(di*di + dj*dj);  // Radial frequency
-                if(freq > 0) {  // Ignore DC
-                    double orientation = Math.atan2(dj, di);
-                    double magnitude = patch[i][j];
-
-                    if(magnitude > maxMagnitude) {
-                        maxMagnitude = magnitude;
-                        dominantFreq = freq;
-                        dominantOrientation = orientation;
-                    }
-                }
-            }
-        }
-
-        return new FrequencyComponent(dominantFreq, dominantOrientation, maxMagnitude);
-    }
-
     private double[][] imageToGrayscale(BufferedImage image, boolean[][] foregroundMask) {
         double[][] data = new double[image.getHeight()][image.getWidth()];
         for (int y = 0; y < image.getHeight(); y++) {
