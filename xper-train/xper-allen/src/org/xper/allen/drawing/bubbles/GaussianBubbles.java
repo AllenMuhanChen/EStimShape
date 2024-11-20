@@ -15,17 +15,18 @@ public class GaussianBubbles implements Bubbles {
     @Override
     public List<BubblePixel> generateBubbles(String imagePath, int nBubbles, double bubbleSigma) {
         try {
+            List<Bubble> bubbles = new ArrayList<>();
             BufferedImage image = ImageIO.read(new File(imagePath));
 
             // Get background color (assume top-left pixel is background)
             int backgroundColor = image.getRGB(0, 0);
 
             // Create foreground mask and find valid pixel positions
-            List<Point> foregroundPixels = new ArrayList<>();
+            List<PixelLocation> foregroundPixels = new ArrayList<>();
             for (int x = 0; x < image.getWidth(); x++) {
                 for (int y = 0; y < image.getHeight(); y++) {
                     if (image.getRGB(x, y) != backgroundColor) {
-                        foregroundPixels.add(new Point(x, y));
+                        foregroundPixels.add(new PixelLocation(x, y));
                     }
                 }
             }
@@ -39,10 +40,12 @@ public class GaussianBubbles implements Bubbles {
             // Generate nBubbles centers in foreground
             for (int i = 0; i < nBubbles; i++) {
                 // Pick random foreground pixel as center
-                Point center = foregroundPixels.get(random.nextInt(foregroundPixels.size()));
+                PixelLocation center = foregroundPixels.get(random.nextInt(foregroundPixels.size()));
 
                 // Generate Gaussian bubble around center
-                generateGaussianBubble(center, bubbleSigma, image.getWidth(), image.getHeight(), bubblePixels);
+                GaussianBubble bubble = new GaussianBubble(center, bubbleSigma, imagePath);
+                bubble.generateBubblePixels();
+                bubblePixels.addAll(bubble.getBubblePixels());
             }
 
             return bubblePixels;
