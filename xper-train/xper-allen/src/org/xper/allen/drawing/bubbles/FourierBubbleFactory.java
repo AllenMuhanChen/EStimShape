@@ -122,7 +122,7 @@ public class FourierBubbleFactory implements BubbleFactory {
                             new FrequencyComponent(sigmaFreq, sigmaOrientation, 0), imagePath);
                     bubble.generateBubblePixels();
                     bubbles.add(bubble);
-                    noisyPixels.addAll(bubble.getBubblePixels());
+                    noisyPixels.addAll(bubble.getNoisyPixels());
 
                     if (noisyPixels.size() >= MIN_PIXELS_PER_BUBBLE) {
                         allNoisyPixels.addAll(noisyPixels);

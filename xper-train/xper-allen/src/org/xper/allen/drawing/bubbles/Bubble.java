@@ -40,7 +40,7 @@ public abstract class Bubble<LocationT, SizeT> {
         this.size = size;
     }
 
-    public List<NoisyPixel> getBubblePixels() {
+    public List<NoisyPixel> getNoisyPixels() {
         return noisyPixels;
     }
 }

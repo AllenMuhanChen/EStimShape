@@ -68,7 +68,7 @@ public class BubbleFactoryTest {
         List<NoisyPixel> noisyPixels = new ArrayList<>();
         for (Bubble bubble : bubbles) {
             bubble.generateBubblePixels();
-            noisyPixels.addAll(bubble.getBubblePixels());
+            noisyPixels.addAll(bubble.getNoisyPixels());
         }
 
         // Load original image

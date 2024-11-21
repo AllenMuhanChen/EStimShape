@@ -51,7 +51,6 @@ public class CartesianBubble extends Bubble<PixelLocation, Double>{
             }
         }
         return pixels;
-
     }
 
 }

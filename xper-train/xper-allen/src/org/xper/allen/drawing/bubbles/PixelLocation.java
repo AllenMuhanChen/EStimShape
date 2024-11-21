@@ -1,5 +1,7 @@
 package org.xper.allen.drawing.bubbles;
 
+import java.util.Objects;
+
 public class PixelLocation {
     public int x;
     public int y;
@@ -23,5 +25,18 @@ public class PixelLocation {
 
     public void setY(int y) {
         this.y = y;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof PixelLocation)) return false;
+        PixelLocation that = (PixelLocation) o;
+        return getX() == that.getX() && getY() == that.getY();
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getX(), getY());
     }
 }

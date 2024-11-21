@@ -45,7 +45,7 @@ public class LuminanceBubbleFactory implements BubbleFactory {
                 LuminanceBubble bubble = new LuminanceBubble(centerLuminance, sigma, imagePath);
                 bubble.generateBubblePixels();
                 bubbles.add(bubble);
-                noisyPixels.addAll(bubble.getBubblePixels());
+                noisyPixels.addAll(bubble.getNoisyPixels());
             }
 
             return bubbles;

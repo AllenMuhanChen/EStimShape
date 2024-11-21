@@ -46,7 +46,7 @@ public class CartesianBubbleFactory implements BubbleFactory {
                 CartesianBubble bubble = new CartesianBubble(center, bubbleSigma, imagePath);
                 bubble.generateBubblePixels();
                 bubbles.add(bubble);
-                noisyPixels.addAll(bubble.getBubblePixels());
+                noisyPixels.addAll(bubble.getNoisyPixels());
             }
 
             return bubbles;
