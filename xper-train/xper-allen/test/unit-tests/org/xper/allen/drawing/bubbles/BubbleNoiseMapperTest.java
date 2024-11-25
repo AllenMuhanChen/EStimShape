@@ -33,13 +33,17 @@ public class BubbleNoiseMapperTest {
         LuminanceBubbleFactory luminanceBubbleFactory = new LuminanceBubbleFactory();
         FourierBubbleFactory fourierBubbleFactory = new FourierBubbleFactory();
 
-//        bubbles.addAll(luminanceBubbleFactory.generateBubbles(testImagePath, 3, 0.1/3));
-        bubbles.addAll(fourierBubbleFactory.generateBubbles(testImagePath, 2, 0.3/3));
-        bubbles.addAll(cartesianBubbleFactory.generateBubbles(testImagePath, 10, 2.0));
-
         // Create both maps
-        BubbleMap addMap = new BubbleMap(bubbles, CombinationStrategy.ADD);
-        BubbleMap andMap = new BubbleMap(bubbles, CombinationStrategy.AND);
+        BubbleMap cartesianMap = new SingleBubbleMap(cartesianBubbleFactory.generateBubbles(testImagePath, 10, 2.0));
+        BubbleMap luminanceMap = new SingleBubbleMap(luminanceBubbleFactory.generateBubbles(testImagePath, 3, 0.1/3));
+        BubbleMap fourierMap = new SingleBubbleMap(fourierBubbleFactory.generateBubbles(testImagePath, 2, 0.3/3));
+        List<BubbleMap> bubbleMaps = new ArrayList<>();
+        bubbleMaps.add(cartesianMap);
+        bubbleMaps.add(luminanceMap);
+        bubbleMaps.add(fourierMap);
+
+        BubbleMap addMap = new CombinationBubbleMap(bubbleMaps, new AddCombinationStrategy());
+        BubbleMap andMap = new CombinationBubbleMap(bubbleMaps, new AndCombinationStrategy());
 
         // Generate both noise maps
         BubbleNoiseMapper mapper = new BubbleNoiseMapper();

@@ -3,7 +3,9 @@ package org.xper.allen.drawing.bubbles;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public abstract class Bubble<LocationT, SizeT> {
     public LocationT location;
@@ -17,6 +19,13 @@ public abstract class Bubble<LocationT, SizeT> {
 
     public List<NoisyPixel> noisyPixels = new ArrayList<>();
 
+    public Map<PixelLocation, Double> getNoiseMap(){
+        Map<PixelLocation, Double> noiseMap = new HashMap<>();
+        for (NoisyPixel pixel : noisyPixels) {
+            noiseMap.put(pixel.getPixelLocation(), pixel.getNoiseChance());
+        }
+        return noiseMap;
+    }
     public abstract void generateBubblePixels() throws IOException;
 
     protected int getBackgroundColor(BufferedImage image) {

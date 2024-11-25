@@ -57,8 +57,6 @@ public class FourierBubble extends Bubble<FourierBubbleFactory.FrequencyComponen
                 noisyPixels.add(new NoisyPixel(p.x, p.y, noiseChance));
             }
         }
-
-
     }
 
     private FourierBubbleFactory.FrequencyComponent getDominantFrequency(int x, int y, double[][] magnitudeSpectrum) {
