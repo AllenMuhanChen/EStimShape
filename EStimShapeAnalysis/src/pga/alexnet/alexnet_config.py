@@ -27,6 +27,8 @@ class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
                          java_output_dir=java_output_dir,
                          allen_dist_dir=allen_dist_dir)
 
+        self.onnx_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3"
+
     def make_genetic_algorithm(self) -> GeneticAlgorithm:
         ga = AlexNetGeneticAlgorithm(
             name=self.ga_name,
@@ -76,7 +78,7 @@ class AlexNetExperimentGeneticAlgorithmConfig(GeneticAlgorithmConfig):
         and show those to AlexNet and save those activations into UnitActivations table.
         """
         return AlexNetONNXResponseParser(self.connection(),
-                                         "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3",
+                                         self.onnx_path,
                                          self.unit_id)
 
     def make_response_processor(self) -> AlexNetResponseProcessor:
