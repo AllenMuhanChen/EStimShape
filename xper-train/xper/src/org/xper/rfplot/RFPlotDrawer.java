@@ -64,6 +64,9 @@ public class RFPlotDrawer {
     }
 
     public void addCirclePoint(Coordinates2D point){
+        if (currentChannel == null){
+            System.err.println("No channel selected. Please select a channel type and number");
+        }
         rfsForChannels.get(currentChannel).addCirclePoint(point);
         System.out.println("Added point: " + point.toString());
         onPointsUpdated();

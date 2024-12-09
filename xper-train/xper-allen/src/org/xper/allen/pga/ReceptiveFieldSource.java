@@ -93,13 +93,19 @@ public class ReceptiveFieldSource {
     }
 
     private Long readMaxTstampFromRFInfo() {
+
         JdbcTemplate jt = new JdbcTemplate(dataSource);
         String sql = "SELECT MAX(tstamp) FROM RFInfo WHERE channel = 'SUPRA-000'";
 
         // Execute the query and return the result
         Long maxTstamp = (Long) jt.queryForObject(sql, Long.class);
 
+        if (maxTstamp == null) {
+            throw new RuntimeException("No RFInfo found in database");
+        }
+
         return maxTstamp;
+
     }
 
     public DataSource getDataSource() {
