@@ -5,19 +5,19 @@ local_data_dir = "/home/r2_allen/Documents/EStimShape"
 allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
 
 ga_name = "New3D"
-ga_database = "allen_alexnet_ga_exp_241101_0"
-image_path = f"{local_data_dir}/allen_alexnet_ga_exp_241101_0/stimuli/ga/pngs"
-java_output_dir = f"{local_data_dir}/allen_alexnet_ga_exp_241101_0/java_output"
-rwa_output_dir = f"{local_data_dir}/allen_alexnet_ga_exp_241101_0/rwa"
-ga_plots_dir = f"{local_data_dir}/allen_alexnet_ga_exp_241101_0/plots"
+ga_database = "allen_alexnet_ga_exp_241028_0"
+image_path = "/home/r2_allen/Documents/EStimShape/allen_alexnet_ga_exp_241028_0/stimuli/ga/pngs"
+java_output_dir = "/home/r2_allen/Documents/EStimShape/allen_alexnet_ga_exp_241028_0/java_output"
+rwa_output_dir = "/home/r2_allen/Documents/EStimShape/allen_alexnet_ga_exp_241028_0/rwa"
+ga_plots_dir = "/home/r2_allen/Documents/EStimShape/allen_alexnet_ga_exp_241028_0/plots"
 
-contrast_database = "allen_alexnet_contrast_exp_241101_0"
-contrast_plots_dir = f"{local_data_dir}/allen_alexnet_contrast_exp_241101_0/plots"
+contrast_database = "allen_alexnet_contrast_exp_241028_0"
+contrast_plots_dir = "/home/r2_allen/Documents/EStimShape/allen_alexnet_contrast_exp_241028_0/plots"
 
-lighting_database = "allen_alexnet_lighting_exp_241101_0"
-lighting_plots_dir = f"{local_data_dir}/allen_alexnet_lighting_exp_241101_0/plots"
+lighting_database = "allen_alexnet_lighting_exp_241028_0"
+lighting_plots_dir = "/home/r2_allen/Documents/EStimShape/allen_alexnet_lighting_exp_241028_0/plots"
 
-unit_string = "conv3_u109_x7_y7"
+unit_string = "conv3_u374_x7_y7"
 
 
 

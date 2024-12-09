@@ -283,7 +283,7 @@ def calculate_luminance(image_path: str) -> np.ndarray:
 
 def calculate_contribution_map(conn: Connection,
                                stim_id: int,
-                               contribution_type: ContributionType) -> np.ndarray:
+                               contribution_type: ContributionType, contribution_type_c1=ContributionType.BOTH) -> np.ndarray:
     """Calculate contribution map for a given stimulus.
     Normalize it
     And set all areas in background to zero"""
@@ -313,7 +313,7 @@ def calculate_contribution_map(conn: Connection,
         conn,
         stim_id,
         contribution_type,
-        ContributionType.BOTH
+        contribution_type_c1
     )
 
     # Add small random perturbation to foreground areas so that we can quickly identify foreground
