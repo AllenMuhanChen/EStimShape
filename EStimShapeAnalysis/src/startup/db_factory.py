@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 import mysql.connector
 from clat.util.connection import Connection
@@ -65,7 +66,10 @@ def check_if_exists(base_name, recording_id):
 
 
 def update_context_file(ga_db, nafc_db, isogabor_db):
-    target_file = '/src/startup/context'
+    cwd = os.getcwd()  # Get the current working directory (cwd)
+    files = os.listdir(cwd)  # Get all the files in that directory
+    print("Files in %r: %s" % (cwd, files))
+    target_file = 'context.py'
 
     # Read the target file
     with open(target_file, 'r') as file:
