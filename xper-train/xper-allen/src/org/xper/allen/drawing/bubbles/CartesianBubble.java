@@ -16,7 +16,27 @@ public class CartesianBubble extends Bubble<PixelLocation, Double>{
     @Override
     public void generateBubblePixels() throws IOException {;
         BufferedImage image = ImageIO.read(new File(imgPath));
-        this.noisyPixels = generateGaussianBubble(location, size, image.getWidth(), image.getHeight());
+        this.noisyPixels = generateCircleBubble(location, size, image.getWidth(), image.getHeight());
+    }
+
+    private List<NoisyPixel> generateCircleBubble(PixelLocation center, double radius, int width, int height){
+        List<NoisyPixel> pixels = new ArrayList<>();
+        int range = (int) Math.ceil(radius);
+        for (int x = center.x - range; x <= center.x + range; x++) {
+            for (int y = center.y - range; y <= center.y + range; y++) {
+                if (x < 0 || x >= width || y < 0 || y >= height) {
+                    continue;
+                }
+                double distance = Math.sqrt(
+                        Math.pow(x - center.x, 2) +
+                                Math.pow(y - center.y, 2)
+                );
+                if (distance <= radius) {
+                    pixels.add(new NoisyPixel(x, y, 1.0));
+                }
+            }
+        }
+        return pixels;
     }
 
     private List<NoisyPixel> generateGaussianBubble(PixelLocation center, double sigma, int width, int height) {

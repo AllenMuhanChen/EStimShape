@@ -30,8 +30,8 @@ public class BubbleFactoryTest {
     public void cartesian_bubbles_generates_bubbles() throws IOException {
         // Arrange
         CartesianBubbleFactory cartesianBubbles = new CartesianBubbleFactory();
-        int nBubbles = 20;
-        double bubbleSigma = 1.0;
+        int nBubbles = 5;
+        double bubbleSigma = 5.0;
         List<Bubble> bubbles = cartesianBubbles.generateBubbles(testImagePath, nBubbles, bubbleSigma);
 
         // Act and visualize
