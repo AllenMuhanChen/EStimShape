@@ -31,7 +31,7 @@ public class RFUtils {
 
             double initialThresholdPercentageOutOfRF = 0.8;
             double reductionStep = 0.1; // Step to reduce thresholdPercentageOutOfRF
-            double minThresholdPercentageOutOfRF = 0.5; // Minimum threshold percentage allowed
+            double minThresholdPercentageOutOfRF = 0.0; // Minimum threshold percentage allowed
 
             double thresholdPercentageOutOfRF = initialThresholdPercentageOutOfRF;
             while (thresholdPercentageOutOfRF >= minThresholdPercentageOutOfRF) {
@@ -53,7 +53,7 @@ public class RFUtils {
                 thresholdPercentageOutOfRF -= reductionStep; // Reduce threshold for next outer loop iteration
             }
 
-            throw new MorphedMatchStick.MorphException("Could not find a point in the RF after testing " + numPointsToTry + " points per threshold reduction");
+            throw new MorphedMatchStick.MorphException("Could not find a point in the RF with at least" + thresholdPercentageOutOfRF + "% points outisde of RF after testing " + numPointsToTry + " points per threshold reduction");
 
         } else if (rfStrategy.equals(RFStrategy.COMPLETELY_INSIDE)) {
 
