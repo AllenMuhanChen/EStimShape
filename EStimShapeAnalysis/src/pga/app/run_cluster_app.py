@@ -3,12 +3,12 @@ import pandas as pd
 
 from clat.intan.channels import Channel
 from clat.util.connection import Connection
-from src.pga.gui.cluster.cluster_app import ClusterApplicationWindow
-from src.pga.gui.cluster.cluster_app_classes import DataLoader, DataExporter
-from src.pga.gui.cluster.dimensionality_reduction import PCAReducer, MDSReducer, TSNEReducer, KernelPCAReducer, \
+from src.cluster.cluster_app import ClusterApplicationWindow
+from src.cluster.cluster_app_classes import DataLoader, DataExporter
+from src.cluster.dimensionality_reduction import PCAReducer, MDSReducer, TSNEReducer, KernelPCAReducer, \
     SparsePCAReducer
-from src.pga.gui.cluster.mock_cluster_app import get_qapplication_instance
-from src.pga.gui.cluster.probe_mapping import DBCChannelMapper
+from src.cluster.mock_cluster_app import get_qapplication_instance
+from src.cluster.probe_mapping import DBCChannelMapper
 from src.pga.multi_ga_db_util import MultiGaDbUtil
 from src.startup import context
 

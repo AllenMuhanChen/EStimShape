@@ -5,7 +5,10 @@ from src.startup import context
 
 
 def main(r, g, b):
-    r, g, b = prompt_rgb_values()
+    if r is None or g is None or b is None:
+        r, g, b = prompt_rgb_values()
+    else:
+        r, g, b = int(r), int(g), int(b)
     ga = context.ga_config.make_genetic_algorithm()
     ga.trial_generator.set_color(r, g, b)
     ga.run()
@@ -39,4 +42,4 @@ def run_trial_generator(experiment_id: int, generation: int, r: int, g: int, b: 
 
 
 if __name__ == "__main__":
-    main(255, 0, 0)
+    main(None,None,None)

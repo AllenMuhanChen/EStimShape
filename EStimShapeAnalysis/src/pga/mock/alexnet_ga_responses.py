@@ -1,3 +1,4 @@
+import onnxruntime
 import pandas as pd
 import xmltodict
 
@@ -11,12 +12,14 @@ import torchvision.transforms as transforms
 from torchvision import models
 from PIL import Image
 
+from src.pga.mock.exp_to_alexnet_transform import ShapePreprocessTransform
 from src.startup import context
 
 
 def main():
     # run_full_auto()
     run_training()
+
 
 def run_training():
     conn = context.ga_config.connection()
@@ -25,11 +28,9 @@ def run_training():
                                      22, 11, 20, 5, 26, 10, 21, 6, 25]
     channel_strings_top_to_bottom = [f"A-{num:03}" for num in channel_numbers_top_to_bottom]
 
-    units = [70, 71, 117, 30, 36, 22, 28, 10]
-    loc_xs = [6, 7]
-    loc_ys = [6, 7]
-
-
+    units = [373]
+    loc_xs = [4, 5, 6, 7, 8, 9]
+    loc_ys = [4, 5, 6, 7, 8, 9]
 
     # Prepare task fields
     fields = TaskFieldList()
@@ -46,13 +47,13 @@ def run_training():
     data = data[data["StimPath"] != "catch"]
     catch_data = data[data["StimPath"] == "catch"]
 
-
     paths = list(data["StimPath"])
 
     # print how many paths
     print("Processing " + str(len(paths)) + " Paths")
     # Extract activations
-    activations = extract_activations(paths)
+    activations = extract_activations(paths,
+                                      "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3")
 
     # Process regular data
     channel_index = 0
@@ -63,6 +64,8 @@ def run_training():
                 unit_activations = [activation[0, unit, loc_x, loc_y].item() for activation in activations]
 
                 # Get the current channel string
+                if channel_index >= len(channel_strings_top_to_bottom):
+                    break
                 channel = channel_strings_top_to_bottom[channel_index]
 
                 # Insert activations into the database
@@ -77,6 +80,8 @@ def run_training():
     for unit in units:
         for loc_x in loc_xs:
             for loc_y in loc_ys:
+                if channel_index >= len(channel_strings_top_to_bottom):
+                    break
                 # Get the current channel string
                 channel = channel_strings_top_to_bottom[channel_index]
 
@@ -85,6 +90,7 @@ def run_training():
 
                 # Update the channel index for the next iteration
                 channel_index += 1
+
 
 def fetch_existing_task_ids(conn):
     """
@@ -96,6 +102,7 @@ def fetch_existing_task_ids(conn):
     # Fetch all distinct task IDs already present in ChannelResponses
     existing_task_ids = {row[0] for row in conn.fetch_all()}
     return existing_task_ids
+
 
 def run_full_auto_mock():
     # PARAMETERS
@@ -110,7 +117,6 @@ def run_full_auto_mock():
     fields.append(StimSpecField(conn=conn, name="StimSpec"))
     fields.append(StimPathField(conn=conn, name="StimPath"))
     data = fields.to_data(collect_task_ids(conn))
-
 
     paths = list(data["StimPath"])
     activations = extract_activations(paths)
@@ -127,6 +133,7 @@ def insert_to_channel_responses(conn, response_rates: list, data: pd.DataFrame):
         conn.execute(query, params)
         conn.mydb.commit()
 
+
 def insert_to_channel_responses(conn, response_rates: list, data: pd.DataFrame, channel: str):
     for (stim_id, task_id), response_rate in zip(data[["StimId", "TaskId"]].values, response_rates):
         query = ("INSERT IGNORE INTO ChannelResponses "
@@ -135,6 +142,8 @@ def insert_to_channel_responses(conn, response_rates: list, data: pd.DataFrame, 
         params = (int(stim_id), int(task_id), channel, float(response_rate))
         conn.execute(query, params)
         conn.mydb.commit()
+
+
 def extract_activations(paths):
     # Load the pre-trained AlexNet model
     alexnet = models.alexnet(pretrained=True)
@@ -147,6 +156,33 @@ def extract_activations(paths):
     activations = get_activations_from_layer3(alexnet, images)
 
     return activations
+
+
+def extract_activations(paths, onnx_path: str):
+    # Load the ONNX model
+    onnx_model = load_onnx_model(onnx_path)
+
+    transform = transforms.Compose([
+        ShapePreprocessTransform(bbox_scale=0.4),
+    ])
+    outputs = []
+    for image_path in paths:
+        image = Image.open(image_path).convert('RGB')
+        input_tensor = transform(image)
+        input_tensor = input_tensor.unsqueeze(0)  # Add batch dimension
+
+        # Get model prediction
+        input_name = onnx_model.get_inputs()[0].name
+        conv3_output_name = "conv3"  # This needs to match the ONNX model's layer name
+        output = onnx_model.run([conv3_output_name], {input_name: input_tensor.numpy()})
+        outputs.extend(output)
+    return outputs
+
+
+def load_onnx_model(onnx_path) -> onnxruntime.InferenceSession:
+    """Load the ONNX model."""
+    session = onnxruntime.InferenceSession(onnx_path)
+    return session
 
 
 def collect_task_ids(conn):
@@ -213,6 +249,7 @@ class StimPathField(StimSpecField):
                 stim_path = stim_path[home_index:]
 
         return stim_path
+
 
 if __name__ == "__main__":
     main()

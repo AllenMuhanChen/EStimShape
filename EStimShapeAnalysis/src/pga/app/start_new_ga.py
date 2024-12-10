@@ -6,15 +6,16 @@ from src.startup import context
 
 def main():
     context.ga_config.db_util.update_ready_gas_and_generations_info(context.ga_name, 0)
-    src.tree_graph.ga_tree_graph.conn.truncate("StimGaInfo")
-    src.tree_graph.ga_tree_graph.conn.truncate("LineageGaInfo")
-    src.tree_graph.ga_tree_graph.conn.truncate("StimSpec")
-    src.tree_graph.ga_tree_graph.conn.truncate("TaskToDo")
-    src.tree_graph.ga_tree_graph.conn.truncate("TaskDone")
-    src.tree_graph.ga_tree_graph.conn.truncate("BehMsg")
-    src.tree_graph.ga_tree_graph.conn.truncate("ChannelResponses")
-    src.tree_graph.ga_tree_graph.conn.truncate("CurrentExperiments")
-    src.tree_graph.ga_tree_graph.conn.truncate("ClusterInfo")
+    conn = context.ga_config.connection()
+    conn.truncate("StimGaInfo")
+    conn.truncate("LineageGaInfo")
+    conn.truncate("StimSpec")
+    conn.truncate("TaskToDo")
+    conn.truncate("TaskDone")
+    conn.truncate("BehMsg")
+    conn.truncate("ChannelResponses")
+    conn.truncate("CurrentExperiments")
+    conn.truncate("ClusterInfo")
 
 
 if __name__ == "__main__":

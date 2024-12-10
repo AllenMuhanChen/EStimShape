@@ -10,8 +10,8 @@ from matplotlib.path import Path
 from matplotlib.widgets import LassoSelector, RectangleSelector
 
 from clat.intan.channels import Channel
-from src.pga.gui.cluster.cluster_app_classes import ClusterManager, DataLoader, DataExporter, ChannelMapper, Annotator
-from src.pga.gui.cluster.dimensionality_reduction import DimensionalityReducer
+from src.cluster.cluster_app_classes import ClusterManager, DataLoader, DataExporter, ChannelMapper, Annotator
+from src.cluster.dimensionality_reduction import DimensionalityReducer
 
 MAX_GROUPS = 10
 
