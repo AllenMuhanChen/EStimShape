@@ -101,7 +101,6 @@ public class MultiGATaskDataSource extends DatabaseTaskDataSource {
                 System.out.println("Checking for new tasks for " + readyGaName + " with genId " + readyGenId);
                 System.out.println("Current genId for " + readyGaName + " is " + currentGenIdsForGAs.get(readyGaName));
                 if (currentGenIdsForGAs.get(readyGaName) < readyGenId) {
-                    System.out.println("IF STATEMENT REACHED");
                     LinkedList<MultiGAExperimentTask> newTasks = (LinkedList<MultiGAExperimentTask>) dbUtil
                             .readExperimentTasks(readyGaName, readyGenId, lastDoneTaskId);
                     System.out.println("New tasks size: " + newTasks.size());
