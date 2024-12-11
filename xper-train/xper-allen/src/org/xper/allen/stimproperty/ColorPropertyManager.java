@@ -7,12 +7,12 @@ import org.xper.drawing.RGBColor;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class ColorPropertyManager implements StimPropertyManager<RGBColor> {
-    private final JdbcTemplate jdbcTemplate;
+public class ColorPropertyManager extends StimPropertyManager<RGBColor> {
     private static final String TABLE_NAME = "StimColor";
 
     public ColorPropertyManager(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+        super(jdbcTemplate);
+
     }
 
     @Override

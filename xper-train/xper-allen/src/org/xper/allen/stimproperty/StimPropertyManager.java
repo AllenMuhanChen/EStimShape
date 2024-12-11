@@ -1,9 +1,17 @@
 package org.xper.allen.stimproperty;
 
+import org.springframework.jdbc.core.JdbcTemplate;
 
-public interface StimPropertyManager<T> {
-    void createTableIfNotExists();
-    void writeProperty(Long stimId);
-    T readProperty(Long stimId);
-    String getTableName();
+public abstract class StimPropertyManager<T> {
+
+    protected final JdbcTemplate jdbcTemplate;
+
+    public StimPropertyManager(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+        createTableIfNotExists();
+    }
+    abstract void createTableIfNotExists();
+    abstract void writeProperty(Long stimId);
+    abstract T readProperty(Long stimId);
+    abstract String getTableName();
 }

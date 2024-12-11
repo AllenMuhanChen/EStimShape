@@ -80,9 +80,6 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         ColorPropertyManager colorManager = new ColorPropertyManager(jdbcTemplate);
         TexturePropertyManager textureManager = new TexturePropertyManager(jdbcTemplate);
 
-        colorManager.createTableIfNotExists();
-        textureManager.createTableIfNotExists();
-
         colorManager.writeProperty(stimId, color);
         textureManager.writeProperty(stimId, textureType);
     }

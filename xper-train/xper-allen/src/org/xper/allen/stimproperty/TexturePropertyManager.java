@@ -5,12 +5,11 @@ import org.springframework.jdbc.core.RowMapper;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class TexturePropertyManager implements StimPropertyManager<String> {
-    private final JdbcTemplate jdbcTemplate;
+public class TexturePropertyManager extends StimPropertyManager<String> {
     private static final String TABLE_NAME = "StimTexture";
 
     public TexturePropertyManager(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+        super(jdbcTemplate);
     }
 
     @Override
