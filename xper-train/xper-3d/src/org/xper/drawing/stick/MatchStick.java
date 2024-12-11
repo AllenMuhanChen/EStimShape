@@ -4326,9 +4326,9 @@ public class MatchStick implements Drawable {
 	protected void initLight() {
 		if (textureType.compareTo("2D") == 0) {
 			getObj1().setDoLighting(false);
-			getObj1().getStimColor().setRed((float)(getStimColor().getRed()*contrast));
-			getObj1().getStimColor().setBlue((float)(getStimColor().getBlue()*contrast));
-			getObj1().getStimColor().setGreen((float)(getStimColor().getGreen()*contrast));
+			getObj1().getStimColor().setRed((float)(getStimColor().getRed()));
+			getObj1().getStimColor().setBlue((float)(getStimColor().getBlue()));
+			getObj1().getStimColor().setGreen((float)(getStimColor().getGreen()));
 		} else
 			getObj1().setDoLighting(true);
 
