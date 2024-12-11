@@ -1,10 +1,13 @@
 package org.xper.allen.pga;
 
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.ga.GAMatchStick;
+import org.xper.allen.stimproperty.ColorPropertyManager;
+import org.xper.allen.stimproperty.TexturePropertyManager;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 import org.xper.rfplot.drawing.png.ImageDimensions;
@@ -66,6 +69,22 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         drawCompMaps(mStick);
         String pngPath = drawPngs(mStick);
         writeStimSpec(pngPath, mStickData);
+
+        //write additional data here?
+        writeStimData();
+    }
+
+    protected void writeStimData() {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
+
+        ColorPropertyManager colorManager = new ColorPropertyManager(jdbcTemplate);
+        TexturePropertyManager textureManager = new TexturePropertyManager(jdbcTemplate);
+
+        colorManager.createTableIfNotExists();
+        textureManager.createTableIfNotExists();
+
+        colorManager.writeProperty(stimId, color);
+        textureManager.writeProperty(stimId, textureType);
     }
 
     protected T createRandMStick() {
