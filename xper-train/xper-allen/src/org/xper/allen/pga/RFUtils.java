@@ -26,7 +26,7 @@ public class RFUtils {
         Coordinates2D rfCenter;
         if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
             int compInRF = mStick.getSpecialEndComp().get(0);
-            checkCompCanFitInRF(mStick, rf, compInRF);
+//            checkCompCanFitInRF(mStick, rf, compInRF);
             double percentageInsideRF = 1.0;
 
             double initialThresholdPercentageOutOfRF = 0.8;
