@@ -26,6 +26,10 @@ public class RFUtils {
         Coordinates2D rfCenter;
         if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
             int compInRF = mStick.getSpecialEndComp().get(0);
+            if (mStick.getComp()[compInRF] == null){
+                throw new MorphedMatchStick.MorphException("Component " + compInRF + " is null");
+
+            }
 //            checkCompCanFitInRF(mStick, rf, compInRF);
             double percentageInsideRF = 1.0;
 
