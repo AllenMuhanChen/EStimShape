@@ -21,6 +21,8 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected final Long parentId;
     protected final Coordinates2D imageCenterCoords;
     protected final RFStrategy rfStrategy;
+    protected final ColorPropertyManager colorManager;
+    protected final TexturePropertyManager textureManager;
     protected Long stimId;
     protected String textureType;
     protected RGBColor color;
@@ -33,6 +35,10 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         this.textureType = textureType;
         this.color = color;
         this.rfStrategy = rfStrategy;
+
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
+        colorManager = new ColorPropertyManager(jdbcTemplate);
+        textureManager = new TexturePropertyManager(jdbcTemplate);
     }
 
     @Override
@@ -75,17 +81,12 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     }
 
     protected void writeStimData() {
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
-
-        ColorPropertyManager colorManager = new ColorPropertyManager(jdbcTemplate);
-        TexturePropertyManager textureManager = new TexturePropertyManager(jdbcTemplate);
-
         colorManager.writeProperty(stimId, color);
         textureManager.writeProperty(stimId, textureType);
     }
 
     protected T createRandMStick() {
-        GAMatchStick mStick = new GAMatchStick(generator.getReceptiveField(), rfStrategy, "SHADE");
+        GAMatchStick mStick = new GAMatchStick(generator.getReceptiveField(), rfStrategy);
         mStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees()), textureType);
         mStick.setStimColor(color);
         mStick.genMatchStickRand();

@@ -24,10 +24,9 @@ public class GAMatchStick extends MorphedMatchStick {
     ReceptiveField rf;
 
 
-    public GAMatchStick(ReceptiveField rf, RFStrategy rfStrategy, String textureType) {
+    public GAMatchStick(ReceptiveField rf, RFStrategy rfStrategy) {
         this.rf = rf;
         this.rfStrategy = rfStrategy;
-        this.textureType = textureType;
     }
 
 

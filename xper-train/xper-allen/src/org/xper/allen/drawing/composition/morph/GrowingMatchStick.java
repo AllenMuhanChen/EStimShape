@@ -19,7 +19,7 @@ public class GrowingMatchStick extends GAMatchStick {
 
 
     public GrowingMatchStick(ReceptiveField rf, double sigma, RFStrategy rfStrategy, String textureType1) {
-        super(rf, rfStrategy, textureType1);
+        super(rf, rfStrategy);
         this.sigma = sigma;
     }
 

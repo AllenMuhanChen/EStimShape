@@ -15,7 +15,7 @@ public class PruningMatchStick extends GAMatchStick {
     private List<Integer> componentsToMorph;
 
     public PruningMatchStick(ReceptiveField rf, RFStrategy rfStrategy) {
-        super(rf, rfStrategy, "SHADE");
+        super(rf, rfStrategy);
     }
 
     public PruningMatchStick() {

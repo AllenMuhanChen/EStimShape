@@ -80,7 +80,7 @@ public class GAMatchStickTest {
 
     @Test
     public void draws_mstick_from_file_with_assigned_compId(){
-        GAMatchStick complete = new GAMatchStick(PARTIAL_RF, RFStrategy.COMPLETELY_INSIDE, "SHADE");
+        GAMatchStick complete = new GAMatchStick(PARTIAL_RF, RFStrategy.COMPLETELY_INSIDE);
         complete.setProperties(2.5, "SHADE");
         complete.genMatchStickRand();
 
@@ -93,7 +93,7 @@ public class GAMatchStickTest {
         spec.setMStickInfo(complete, false);
         ThreadUtil.sleep(1000);
 
-        GAMatchStick partial = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE, "SHADE");
+        GAMatchStick partial = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
         partial.setProperties(2.5, "SHADE");
         partial.genMatchStickFromShapeSpec(spec, new double[]{0,0,0}, spec.getmAxis().getSpecialEndComp());
         partial.setRfStrategy(RFStrategy.PARTIALLY_INSIDE);
@@ -342,14 +342,14 @@ public class GAMatchStickTest {
 
 
     private static GAMatchStick genPartiallyInside() {
-        GAMatchStick GAMatchStick = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE, "SHADE");
+        GAMatchStick GAMatchStick = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
         GAMatchStick.setProperties(5, "SHADE");
         GAMatchStick.genMatchStickRand();
         return GAMatchStick;
     }
 
     private static GAMatchStick genCompleteleyInside() {
-        GAMatchStick GAMatchStick = new GAMatchStick(COMPLETE_RF, RFStrategy.COMPLETELY_INSIDE, "SHADE");
+        GAMatchStick GAMatchStick = new GAMatchStick(COMPLETE_RF, RFStrategy.COMPLETELY_INSIDE);
         GAMatchStick.setProperties(2.5, "SHADE");
         GAMatchStick.genMatchStickRand();
         return GAMatchStick;
