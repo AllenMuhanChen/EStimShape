@@ -14,12 +14,18 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     private static final Random random = new Random();
     private static final double MAX_LUMINANCE_CHANGE = 0.5;
 
-    public GrowingStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, double magnitude, String textureType, RGBColor color) {
+    public GrowingStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double magnitude, String textureType, RGBColor color) {
         super(stimId, generator, parentId, textureType, color, null);
         this.magnitude = magnitude;
     }
 
 
+    @Override
+    protected void chooseRFStrategy() {
+        rfStrategy = rfStrategyManager.readProperty(parentId);
+    }
+
+    @Override
     protected void chooseSize() {
         double maxSizeDiameterDegrees = RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees());
         double minSizeDiameterDegrees = maxSizeDiameterDegrees / 2;
@@ -29,6 +35,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
         sizeDiameterDegrees = Math.min(maxSizeDiameterDegrees, Math.max(minSizeDiameterDegrees, parentSizeDiameterDegrees + randomChange));
     }
 
+    @Override
     protected void chooseColor() {
         RGBColor originalColor = colorManager.readProperty(parentId);
         // Get current luminance
@@ -48,7 +55,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     protected GrowingMatchStick createMStick() {
         //Generate MStick
         GrowingMatchStick parentMStick = initializeFromFile(generator.getReceptiveField(), textureType);
-        parentMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees()), textureType);
+        parentMStick.setProperties(sizeDiameterDegrees, textureType);
         parentMStick.genMatchStickFromFile(
                 generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 

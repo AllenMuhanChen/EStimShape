@@ -26,6 +26,7 @@ public class ColorPropertyManager extends StimPropertyManager<RGBColor> {
         );
     }
 
+    @Override
     public void writeProperty(Long stimId, RGBColor color) {
         jdbcTemplate.update(
                 "INSERT INTO " + TABLE_NAME + " (stim_id, red, green, blue) " +
@@ -34,11 +35,6 @@ public class ColorPropertyManager extends StimPropertyManager<RGBColor> {
                 new Object[]{stimId, color.getRed(), color.getGreen(), color.getBlue(),
                         color.getRed(), color.getGreen(), color.getBlue()}
         );
-    }
-
-    @Override
-    public void writeProperty(Long stimId) {
-        throw new UnsupportedOperationException("Must provide color value when writing");
     }
 
     @Override

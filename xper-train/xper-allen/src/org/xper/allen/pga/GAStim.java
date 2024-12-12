@@ -7,6 +7,7 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.stimproperty.ColorPropertyManager;
+import org.xper.allen.stimproperty.RFStrategyPropertyManager;
 import org.xper.allen.stimproperty.SizePropertyManager;
 import org.xper.allen.stimproperty.TexturePropertyManager;
 import org.xper.drawing.Coordinates2D;
@@ -25,6 +26,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected final ColorPropertyManager colorManager;
     protected final TexturePropertyManager textureManager;
     protected final SizePropertyManager sizeManager;
+    protected final RFStrategyPropertyManager rfStrategyManager;
     protected Long stimId;
     protected String textureType;
     protected RGBColor color;
@@ -43,6 +45,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         colorManager = new ColorPropertyManager(jdbcTemplate);
         textureManager = new TexturePropertyManager(jdbcTemplate);
         sizeManager = new SizePropertyManager(jdbcTemplate);
+        rfStrategyManager = new RFStrategyPropertyManager(jdbcTemplate);
     }
 
     @Override
@@ -89,7 +92,23 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         chooseTextureType();
         chooseSize();
         chooseColor();
+        chooseRFStrategy();
+
+        if (rfStrategy == null) {
+            throw new IllegalArgumentException("RF Strategy cannot be null");
+        }
+        if (textureType == null) {
+            throw new IllegalArgumentException("Texture Type cannot be null");
+        }
+        if (color == null) {
+            throw new IllegalArgumentException("Color cannot be null");
+        }
+        if (sizeDiameterDegrees == 0) {
+            throw new IllegalArgumentException("Size cannot be 0");
+        }
     }
+
+    protected abstract void chooseRFStrategy();
 
     protected abstract void chooseColor();
 
@@ -99,6 +118,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         colorManager.writeProperty(stimId, color);
         textureManager.writeProperty(stimId, textureType);
         sizeManager.writeProperty(stimId, (float) sizeDiameterDegrees);
+        rfStrategyManager.writeProperty(stimId, rfStrategy);
     }
 
     protected T createRandMStick() {

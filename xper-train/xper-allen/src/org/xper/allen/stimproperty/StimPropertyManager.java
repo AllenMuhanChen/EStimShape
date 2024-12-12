@@ -11,7 +11,7 @@ public abstract class StimPropertyManager<T> {
         createTableIfNotExists();
     }
     abstract void createTableIfNotExists();
-    abstract void writeProperty(Long stimId);
+    abstract void writeProperty(Long stimId, T property);
     abstract T readProperty(Long stimId);
     abstract String getTableName();
 }

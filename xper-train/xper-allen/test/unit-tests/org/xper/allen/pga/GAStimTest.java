@@ -64,8 +64,6 @@ public class GAStimTest {
                 generator,
                 1L,
                 1,
-                new Coordinates2D(0,0),
-                0.5,
                 "SHADE",
                 new RGBColor(1.0, 1.0, 1.0));
 
@@ -79,8 +77,6 @@ public class GAStimTest {
                 generator,
                 1L,
                 2,
-                new Coordinates2D(0,0),
-                0.5,
                 "SHADE",
                 new RGBColor(1.0, 1.0, 1.0));
 
@@ -111,8 +107,6 @@ public class GAStimTest {
                 generator,
                 1L,
                 1,
-                new Coordinates2D(0,0),
-                0.5,
                 "SHADE",
                 new RGBColor(1.0, 1.0, 1.0));
 

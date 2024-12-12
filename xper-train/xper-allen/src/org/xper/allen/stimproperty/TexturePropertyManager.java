@@ -21,6 +21,7 @@ public class TexturePropertyManager extends StimPropertyManager<String> {
         );
     }
 
+    @Override
     public void writeProperty(Long stimId, String textureType) {
         jdbcTemplate.update(
                 "INSERT INTO " + TABLE_NAME + " (stim_id, texture_type) " +
@@ -30,10 +31,6 @@ public class TexturePropertyManager extends StimPropertyManager<String> {
         );
     }
 
-    @Override
-    public void writeProperty(Long stimId) {
-        throw new UnsupportedOperationException("Must provide texture type when writing");
-    }
 
     @Override
     public String readProperty(Long stimId) {

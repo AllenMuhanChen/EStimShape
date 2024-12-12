@@ -11,11 +11,17 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
     private final Integer compIdInRF;
     private double scaleFactor = 1;
 
-    public ZoomingStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Integer compIdInRF, Coordinates2D coords, double magnitude, String textureType, RGBColor color) {
+    public ZoomingStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Integer compIdInRF, String textureType, RGBColor color) {
         super(stimId, generator, parentId, textureType, color,
                 RFStrategy.PARTIALLY_INSIDE);
         this.compIdInRF = compIdInRF;
     }
+
+    @Override
+    protected void chooseRFStrategy() {
+        rfStrategy = RFStrategy.PARTIALLY_INSIDE;
+    }
+
     @Override
     protected void chooseColor() {
         color = colorManager.readProperty(parentId);
