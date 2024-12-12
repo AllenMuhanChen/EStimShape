@@ -11,7 +11,7 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
     private double scaleFactor = 1;
 
     public ZoomingStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Integer compIdInRF, String textureType, RGBColor color) {
-        super(stimId, generator, parentId, textureType, color
+        super(stimId, generator, parentId, textureType
         );
         this.compIdInRF = compIdInRF;
     }

@@ -6,7 +6,7 @@ import org.xper.drawing.RGBColor;
 
 public class PruningStim extends GAStim<PruningMatchStick, PruningMatchStick.PruningMStickData>{
     public PruningStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, String textureType, RGBColor color, RFStrategy rfStrategy) {
-        super(stimId, generator, parentId, textureType, color);
+        super(stimId, generator, parentId, textureType);
     }
 
     @Override
