@@ -11,8 +11,8 @@ public class SeedingStim extends GAStim<GAMatchStick, AllenMStickData> {
     private static final Random random = new Random();
     private static final double MAX_LUMINANCE_CHANGE = 0.25; // 25% maximum change
 
-    public SeedingStim(Long stimId, FromDbGABlockGenerator generator, Coordinates2D coords, String textureType, RGBColor color) {
-        super(stimId, generator, 0L, coords, textureType, color, RFStrategy.COMPLETELY_INSIDE);
+    public SeedingStim(Long stimId, FromDbGABlockGenerator generator, String textureType, RGBColor color) {
+        super(stimId, generator, 0L, textureType, color, RFStrategy.COMPLETELY_INSIDE);
     }
 
 

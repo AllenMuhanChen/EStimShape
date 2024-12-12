@@ -15,7 +15,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     private static final double MAX_LUMINANCE_CHANGE = 0.5;
 
     public GrowingStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, double magnitude, String textureType, RGBColor color, RFStrategy rfStrategy) {
-        super(stimId, generator, parentId, coords, textureType, color, rfStrategy);
+        super(stimId, generator, parentId, textureType, color, rfStrategy);
         this.magnitude = magnitude;
     }
 

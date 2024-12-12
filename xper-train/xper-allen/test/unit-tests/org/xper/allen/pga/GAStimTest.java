@@ -35,7 +35,6 @@ public class GAStimTest {
     public void test_regime_zero_stim(){
         SeedingStim seedingStim = new SeedingStim(1L,
                 generator,
-                new Coordinates2D(0,0),
                 "SHADE",
                 new RGBColor(1.0, 1.0, 1.0)
         );
@@ -51,7 +50,6 @@ public class GAStimTest {
     public void test_zooming_stim_from_regime_zero(){
         SeedingStim seedingStim = new SeedingStim(1L,
                 generator,
-                new Coordinates2D(0,0),
                 "SHADE",
                 new RGBColor(1.0, 1.0, 1.0)
         );
@@ -98,7 +96,6 @@ public class GAStimTest {
 
         SeedingStim seedingStim = new SeedingStim(1L,
                 generator,
-                new Coordinates2D(0,0),
                 "SHADE",
                 new RGBColor(1.0, 1.0, 1.0)
         );
@@ -135,7 +132,6 @@ public class GAStimTest {
         for (int i = 0; i < numStim; i++){
             SeedingStim seedingStim = new SeedingStim((long)i,
                     generator,
-                    new Coordinates2D(0,0),
                     "SHADE",
                     new RGBColor(1.0, 1.0, 1.0)
             );

@@ -85,11 +85,11 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
                 // Create a new Stim object with the stim_type and magnitude (if applicable)
                 Stim stim;
                 if(stimType.equals(StimType.REGIME_ZERO)){
-                    stim = new SeedingStim(stimId, this, pngCoordinates, "3D", color);
+                    stim = new SeedingStim(stimId, this, "3D", color);
                 }
                 else if (stimType.equals(StimType.REGIME_ZERO_2D))
                 {
-                    stim = new SeedingStim(stimId, this, pngCoordinates, "2D", color);
+                    stim = new SeedingStim(stimId, this, "2D", color);
                 }
                 else if(stimType.equals(StimType.REGIME_ONE)){
                     stim = new GrowingStim(stimId, this, parentId, pngCoordinates, magnitude, "3D", color, rfStrategy);
