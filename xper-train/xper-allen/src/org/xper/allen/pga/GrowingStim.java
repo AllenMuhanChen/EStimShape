@@ -4,7 +4,6 @@ import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.drawing.ColorUtils;
-import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 
 import java.util.Random;
@@ -15,7 +14,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     private static final double MAX_LUMINANCE_CHANGE = 0.5;
 
     public GrowingStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double magnitude, String textureType, RGBColor color) {
-        super(stimId, generator, parentId, textureType, color, null);
+        super(stimId, generator, parentId, textureType, color);
         this.magnitude = magnitude;
     }
 

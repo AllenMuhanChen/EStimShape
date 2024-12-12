@@ -32,14 +32,13 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected RGBColor color;
     protected double sizeDiameterDegrees;
 
-    public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, String textureType, RGBColor color, RFStrategy rfStrategy) {
+    public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, String textureType, RGBColor color) {
         this.generator = generator;
         this.parentId = parentId;
         this.imageCenterCoords = new Coordinates2D(0, 0);;
         this.stimId = stimId;
         this.textureType = textureType;
         this.color = color;
-        this.rfStrategy = rfStrategy;
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
         colorManager = new ColorPropertyManager(jdbcTemplate);

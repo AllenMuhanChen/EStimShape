@@ -9,7 +9,7 @@ public class LeafingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     private final double magnitude;
 
     public LeafingStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, double magnitude, String textureType, RGBColor color, RFStrategy rfStrategy) {
-        super(stimId, generator, parentId, textureType, color, rfStrategy);
+        super(stimId, generator, parentId, textureType, color);
         this.magnitude = magnitude;
     }
 

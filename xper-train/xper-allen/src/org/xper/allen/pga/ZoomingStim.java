@@ -3,7 +3,6 @@ package org.xper.allen.pga;
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.ga.GAMatchStick;
-import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 
 public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
@@ -12,8 +11,8 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
     private double scaleFactor = 1;
 
     public ZoomingStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Integer compIdInRF, String textureType, RGBColor color) {
-        super(stimId, generator, parentId, textureType, color,
-                RFStrategy.PARTIALLY_INSIDE);
+        super(stimId, generator, parentId, textureType, color
+        );
         this.compIdInRF = compIdInRF;
     }
 
