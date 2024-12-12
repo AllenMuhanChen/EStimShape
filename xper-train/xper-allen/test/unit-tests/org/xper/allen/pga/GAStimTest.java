@@ -64,8 +64,8 @@ public class GAStimTest {
                 generator,
                 1L,
                 1,
-                "SHADE",
-                new RGBColor(1.0, 1.0, 1.0));
+                "SHADE"
+                );
 
         GAMatchStick mStick1 = zoomingStim.createMStick();
         testMatchStickDrawer.clear();
@@ -77,8 +77,7 @@ public class GAStimTest {
                 generator,
                 1L,
                 2,
-                "SHADE",
-                new RGBColor(1.0, 1.0, 1.0));
+                "SHADE");
 
         GAMatchStick mStick2 = zoomingStim2.createMStick();
         testMatchStickDrawer.drawMStick(mStick2);
@@ -107,8 +106,8 @@ public class GAStimTest {
                 generator,
                 1L,
                 1,
-                "SHADE",
-                new RGBColor(1.0, 1.0, 1.0));
+                "SHADE"
+                );
 
         GAMatchStick mStick1 = zoomingStim.createMStick();
         testMatchStickDrawer.clear();

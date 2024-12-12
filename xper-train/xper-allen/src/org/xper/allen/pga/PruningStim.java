@@ -5,7 +5,7 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 
 public class PruningStim extends GAStim<PruningMatchStick, PruningMatchStick.PruningMStickData>{
-    public PruningStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, String textureType, RGBColor color, RFStrategy rfStrategy) {
+    public PruningStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, String textureType) {
         super(stimId, generator, parentId, textureType);
     }
 

@@ -10,7 +10,7 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
     private final Integer compIdInRF;
     private double scaleFactor = 1;
 
-    public ZoomingStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Integer compIdInRF, String textureType, RGBColor color) {
+    public ZoomingStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Integer compIdInRF, String textureType) {
         super(stimId, generator, parentId, textureType
         );
         this.compIdInRF = compIdInRF;
@@ -35,7 +35,7 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
 
         GAMatchStick mStick = new GAMatchStick(
                 generator.getReceptiveField(),
-                RFStrategy.PARTIALLY_INSIDE
+                rfStrategy
         );
         System.out.println("Scale Factor: " + scaleFactor);
 

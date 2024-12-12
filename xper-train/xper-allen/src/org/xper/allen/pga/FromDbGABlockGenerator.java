@@ -92,22 +92,22 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
                     stim = new SeedingStim(stimId, this, "2D", color);
                 }
                 else if(stimType.equals(StimType.REGIME_ONE)){
-                    stim = new GrowingStim(stimId, this, parentId, magnitude, "3D", color);
+                    stim = new GrowingStim(stimId, this, parentId, magnitude, "3D");
                 }
                 else if(stimType.equals(StimType.REGIME_ONE_2D)){
-                    stim = new GrowingStim(stimId, this, parentId, magnitude, "2D", color);
+                    stim = new GrowingStim(stimId, this, parentId, magnitude, "2D");
                 }
                 else if(stimType.equals(StimType.REGIME_TWO)){
-                    stim = new PruningStim(stimId, this, parentId, pngCoordinates, "3D", color, rfStrategy);
+                    stim = new PruningStim(stimId, this, parentId, "3D");
                 }
                 else if(stimType.equals(StimType.REGIME_TWO_2D)){
-                    stim = new PruningStim(stimId, this, parentId, pngCoordinates, "2D", color, rfStrategy);
+                    stim = new PruningStim(stimId, this, parentId, "2D");
                 }
                 else if(stimType.equals(StimType.REGIME_THREE)){
-                    stim = new LeafingStim(stimId, this, parentId, pngCoordinates, magnitude, "3D", color, rfStrategy);
+                    stim = new LeafingStim(stimId, this, parentId, magnitude, "3D");
                 }
                 else if(stimType.equals(StimType.REGIME_THREE_2D)){
-                    stim = new LeafingStim(stimId, this, parentId, pngCoordinates, magnitude, "2D", color, rfStrategy);
+                    stim = new LeafingStim(stimId, this, parentId, magnitude, "2D");
                 }
                 else if (stimType.equals(StimType.CATCH)){
                     stim = new CatchStim(stimId, this);
@@ -128,7 +128,7 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
                     int zoomingValue = Integer.parseInt(matcher.group(1));
                     System.out.println("Detected Zooming_x with x = " + zoomingValue);
 
-                    stims.add(new ZoomingStim(stimId, this, parentId, zoomingValue, "3D", color));
+                    stims.add(new ZoomingStim(stimId, this, parentId, zoomingValue, "3D"));
                 } else {
                    throw new RuntimeException("Stim Type not recognized");
                 }

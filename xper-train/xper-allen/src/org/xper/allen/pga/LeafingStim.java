@@ -8,7 +8,7 @@ import org.xper.drawing.RGBColor;
 public class LeafingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     private final double magnitude;
 
-    public LeafingStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, double magnitude, String textureType, RGBColor color, RFStrategy rfStrategy) {
+    public LeafingStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double magnitude, String textureType) {
         super(stimId, generator, parentId, textureType);
         this.magnitude = magnitude;
     }

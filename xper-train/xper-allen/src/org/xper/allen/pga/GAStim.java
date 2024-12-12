@@ -88,10 +88,10 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     }
 
     protected void setProperties(){
-        chooseTextureType();
+        chooseRFStrategy(); //must be first otherwise chooseSize may fail
         chooseSize();
+        chooseTextureType();
         chooseColor();
-        chooseRFStrategy();
 
         if (rfStrategy == null) {
             throw new IllegalArgumentException("RF Strategy cannot be null");
