@@ -53,6 +53,7 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
         while(nTries < maxTries) {
             nTries++;
             try {
+                setProperties();
                 mStick = createMStick();
                 System.out.println("SUCCESSFUL CREATION OF MORPHED MATCHSTICK OF TYPE: " + this.getClass().getSimpleName());
                 break;

@@ -18,7 +18,7 @@ class ScriptRunnerApp:
         self.scripts = {
             "DB Factory": {
                 "func": db_factory.main,
-                "params": ["Type", "Date"]
+                "params": []
             },
             "Setup Properties & Dirs": {
                 "func": setup_xper_properties_and_dirs.main,

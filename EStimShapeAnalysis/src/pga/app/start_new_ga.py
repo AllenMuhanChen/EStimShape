@@ -16,6 +16,9 @@ def main():
     conn.truncate("ChannelResponses")
     conn.truncate("CurrentExperiments")
     conn.truncate("ClusterInfo")
+    conn.truncate("StimTexture")
+    conn.truncate("StimColor")
+    conn.truncate("StimSize")
 
 
 if __name__ == "__main__":
