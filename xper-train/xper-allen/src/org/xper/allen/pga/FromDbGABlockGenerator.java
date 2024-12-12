@@ -92,10 +92,10 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
                     stim = new SeedingStim(stimId, this, "2D", color);
                 }
                 else if(stimType.equals(StimType.REGIME_ONE)){
-                    stim = new GrowingStim(stimId, this, parentId, pngCoordinates, magnitude, "3D", color, rfStrategy);
+                    stim = new GrowingStim(stimId, this, parentId, pngCoordinates, magnitude, "3D", color);
                 }
                 else if(stimType.equals(StimType.REGIME_ONE_2D)){
-                    stim = new GrowingStim(stimId, this, parentId, pngCoordinates, magnitude, "2D", color, rfStrategy);
+                    stim = new GrowingStim(stimId, this, parentId, pngCoordinates, magnitude, "2D", color);
                 }
                 else if(stimType.equals(StimType.REGIME_TWO)){
                     stim = new PruningStim(stimId, this, parentId, pngCoordinates, "3D", color, rfStrategy);

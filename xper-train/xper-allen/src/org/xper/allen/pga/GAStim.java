@@ -21,7 +21,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected final FromDbGABlockGenerator generator;
     protected final Long parentId;
     protected final Coordinates2D imageCenterCoords;
-    protected final RFStrategy rfStrategy;
+    protected RFStrategy rfStrategy;
     protected final ColorPropertyManager colorManager;
     protected final TexturePropertyManager textureManager;
     protected final SizePropertyManager sizeManager;
