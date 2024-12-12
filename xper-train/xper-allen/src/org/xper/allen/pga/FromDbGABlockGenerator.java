@@ -85,26 +85,26 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
                 // Create a new Stim object with the stim_type and magnitude (if applicable)
                 Stim stim;
                 if(stimType.equals(StimType.REGIME_ZERO)){
-                    stim = new SeedingStim(stimId, this, pngCoordinates, "SHADE", color, rfStrategy);
+                    stim = new SeedingStim(stimId, this, pngCoordinates, "3D", color, rfStrategy);
                 }
                 else if (stimType.equals(StimType.REGIME_ZERO_2D))
                 {
                     stim = new SeedingStim(stimId, this, pngCoordinates, "2D", color, rfStrategy);
                 }
                 else if(stimType.equals(StimType.REGIME_ONE)){
-                    stim = new GrowingStim(stimId, this, parentId, pngCoordinates, magnitude, "SHADE", color, rfStrategy);
+                    stim = new GrowingStim(stimId, this, parentId, pngCoordinates, magnitude, "3D", color, rfStrategy);
                 }
                 else if(stimType.equals(StimType.REGIME_ONE_2D)){
                     stim = new GrowingStim(stimId, this, parentId, pngCoordinates, magnitude, "2D", color, rfStrategy);
                 }
                 else if(stimType.equals(StimType.REGIME_TWO)){
-                    stim = new PruningStim(stimId, this, parentId, pngCoordinates, "SHADE", color, rfStrategy);
+                    stim = new PruningStim(stimId, this, parentId, pngCoordinates, "3D", color, rfStrategy);
                 }
                 else if(stimType.equals(StimType.REGIME_TWO_2D)){
                     stim = new PruningStim(stimId, this, parentId, pngCoordinates, "2D", color, rfStrategy);
                 }
                 else if(stimType.equals(StimType.REGIME_THREE)){
-                    stim = new LeafingStim(stimId, this, parentId, pngCoordinates, magnitude, "SHADE", color, rfStrategy);
+                    stim = new LeafingStim(stimId, this, parentId, pngCoordinates, magnitude, "3D", color, rfStrategy);
                 }
                 else if(stimType.equals(StimType.REGIME_THREE_2D)){
                     stim = new LeafingStim(stimId, this, parentId, pngCoordinates, magnitude, "2D", color, rfStrategy);

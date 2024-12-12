@@ -16,7 +16,15 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
                 RFStrategy.PARTIALLY_INSIDE);
         this.compIdInRF = compIdInRF;
     }
+    @Override
+    protected void chooseColor() {
+        color = colorManager.readProperty(parentId);
+    }
 
+    @Override
+    protected void chooseSize() {
+        sizeDiameterDegrees = scaleFactor * RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees());
+    }
     @Override
     protected GAMatchStick createMStick() {
 
@@ -25,9 +33,10 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
                 RFStrategy.PARTIALLY_INSIDE
         );
         System.out.println("Scale Factor: " + scaleFactor);
-        sizeDiameterDegrees = scaleFactor * RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees());
+
         mStick.setProperties(sizeDiameterDegrees, textureType);
         mStick.setStimColor(color);
+
         mStick.genPartialFromFile(
                 generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml",
                 compIdInRF);
@@ -71,4 +80,6 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
         //write additional data here?
         writeStimData();
     }
+
+
 }

@@ -15,14 +15,13 @@ public class SeedingStim extends GAStim<GAMatchStick, AllenMStickData> {
         super(stimId, generator, 0L, coords, textureType, color, rfStrategy);
     }
 
+
     @Override
     protected GAMatchStick createMStick() {
         GAMatchStick mStick = new GAMatchStick(
                 generator.getReceptiveField(),
                 RFStrategy.COMPLETELY_INSIDE);
 
-        initSize();
-        initLuminance(color);
 
         mStick.setProperties(sizeDiameterDegrees, textureType);
         mStick.setStimColor(color);
@@ -31,14 +30,15 @@ public class SeedingStim extends GAStim<GAMatchStick, AllenMStickData> {
         return mStick;
     }
 
-    private void initSize() {
+    protected void chooseSize() {
         double maxSizeDiameterDegrees = RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees());
         double minSizeDiameterDegrees = maxSizeDiameterDegrees / 2;
 
         sizeDiameterDegrees = minSizeDiameterDegrees + random.nextDouble() * (maxSizeDiameterDegrees - minSizeDiameterDegrees);
     }
 
-    private void initLuminance(RGBColor originalColor) {
+    protected void chooseColor() {
+        RGBColor originalColor = color;
         // Get current luminance
         float currentLuminance = ColorUtils.getLuminance(originalColor);
 

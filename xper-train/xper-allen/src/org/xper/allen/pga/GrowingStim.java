@@ -20,34 +20,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     }
 
 
-    @Override
-    protected GrowingMatchStick createMStick() {
-        //Generate MStick
-        GrowingMatchStick parentMStick = initializeFromFile(generator.getReceptiveField(), textureType);
-        parentMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees()), textureType);
-        parentMStick.genMatchStickFromFile(
-                generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
-
-        RGBColor parentColor = colorManager.readProperty(parentId);
-        String parentTextureType = textureManager.readProperty(parentId);
-
-        color = mutateLuminance(parentColor);
-        textureType = parentTextureType;
-        mutateSize();
-
-        GrowingMatchStick childMStick = new GrowingMatchStick(
-                generator.getReceptiveField(),
-                1/3.0,
-                parentMStick.getRfStrategy(),
-                parentTextureType);
-
-        childMStick.setProperties(sizeDiameterDegrees, textureType);
-        childMStick.setStimColor(color);
-        childMStick.genGrowingMatchStick(parentMStick, magnitude);
-        return childMStick;
-    }
-
-    private void mutateSize() {
+    protected void chooseSize() {
         double maxSizeDiameterDegrees = RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees());
         double minSizeDiameterDegrees = maxSizeDiameterDegrees / 2;
         double parentSizeDiameterDegrees = sizeManager.readProperty(parentId);
@@ -56,14 +29,8 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
         sizeDiameterDegrees = Math.min(maxSizeDiameterDegrees, Math.max(minSizeDiameterDegrees, parentSizeDiameterDegrees + randomChange));
     }
 
-    public static GrowingMatchStick initializeFromFile(ReceptiveField receptiveField, String textureType) {
-        return new GrowingMatchStick(receptiveField,
-                1 / 3.0,
-                null,
-                textureType);
-    }
-
-    private RGBColor mutateLuminance(RGBColor originalColor) {
+    protected void chooseColor() {
+        RGBColor originalColor = colorManager.readProperty(parentId);
         // Get current luminance
         float currentLuminance = ColorUtils.getLuminance(originalColor);
 
@@ -74,7 +41,36 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
         // Apply change while keeping within valid range [0,1]
         double newLuminance = Math.min(1.0, Math.max(0.0, currentLuminance + randomChange));
 
-        return ColorUtils.changeLuminance(originalColor, newLuminance);
+        color = ColorUtils.changeLuminance(originalColor, newLuminance);
+    }
+
+    @Override
+    protected GrowingMatchStick createMStick() {
+        //Generate MStick
+        GrowingMatchStick parentMStick = initializeFromFile(generator.getReceptiveField(), textureType);
+        parentMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees()), textureType);
+        parentMStick.genMatchStickFromFile(
+                generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
+
+
+
+        GrowingMatchStick childMStick = new GrowingMatchStick(
+                generator.getReceptiveField(),
+                1/3.0,
+                parentMStick.getRfStrategy(),
+                textureType);
+
+        childMStick.setProperties(sizeDiameterDegrees, textureType);
+        childMStick.setStimColor(color);
+        childMStick.genGrowingMatchStick(parentMStick, magnitude);
+        return childMStick;
+    }
+
+    public static GrowingMatchStick initializeFromFile(ReceptiveField receptiveField, String textureType) {
+        return new GrowingMatchStick(receptiveField,
+                1 / 3.0,
+                null,
+                textureType);
     }
 
 }

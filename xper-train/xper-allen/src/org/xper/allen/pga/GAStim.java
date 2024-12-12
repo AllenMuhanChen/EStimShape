@@ -58,6 +58,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         while(nTries < maxTries) {
             nTries++;
             try {
+                setProperties();
                 mStick = createMStick();
                 System.out.println("SUCCESSFUL CREATION OF MORPHED MATCHSTICK OF TYPE: " + this.getClass().getSimpleName());
                 break;
@@ -83,6 +84,16 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         //write additional data here?
         writeStimData();
     }
+
+    protected void setProperties(){
+        chooseTextureType();
+        chooseSize();
+        chooseColor();
+    }
+
+    protected abstract void chooseColor();
+
+    protected abstract void chooseSize();
 
     protected void writeStimData() {
         colorManager.writeProperty(stimId, color);
@@ -137,7 +148,25 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         generator.getDbUtil().writeStimSpec(stimId, stimSpec.toXml(), mStickData.toXml());
     }
 
+    protected void chooseTextureType() {
+        switch (textureType){
+            case "2D":
+                textureType = "2D";
+                break;
+            case "3D":
+                textureType = Math.random() < 0.5 ? "SHADE" : "SPECULAR";
+                break;
+            case "SHADE":
+                textureType = "SHADE";
+                break;
+            case "SPECULAR":
+                textureType = "SPECULAR";
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid texture type: " + textureType);
 
+        }
+    }
 
     //    public RGBColor getRFColor(){
 //        RGBColor rfColor;

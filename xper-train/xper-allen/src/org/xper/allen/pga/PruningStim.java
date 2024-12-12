@@ -10,13 +10,23 @@ public class PruningStim extends GAStim<PruningMatchStick, PruningMatchStick.Pru
     }
 
     @Override
+    protected void chooseColor() {
+        color = colorManager.readProperty(parentId);
+    }
+
+    @Override
+    protected void chooseSize() {
+        sizeDiameterDegrees = sizeManager.readProperty(parentId);
+    }
+
+    @Override
     protected PruningMatchStick createMStick() {
         PruningMatchStick parentMStick = new PruningMatchStick();
-        parentMStick.setProperties(generator.getImageDimensionsDegrees(), textureType);
+        parentMStick.setProperties(sizeDiameterDegrees, textureType);
         parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 
         PruningMatchStick childMStick = new PruningMatchStick(generator.getReceptiveField(), rfStrategy);
-        childMStick.setProperties(generator.getImageDimensionsDegrees(), textureType);
+        childMStick.setProperties(sizeDiameterDegrees, textureType);
         childMStick.setStimColor(color);
         childMStick.genPruningMatchStick(parentMStick, 0.75, 1);
         return childMStick;
