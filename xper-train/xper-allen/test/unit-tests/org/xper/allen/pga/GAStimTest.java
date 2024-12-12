@@ -4,7 +4,6 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.drawing.ga.TestMatchStickDrawer;
 import org.xper.drawing.Coordinates2D;
@@ -38,8 +37,8 @@ public class GAStimTest {
                 generator,
                 new Coordinates2D(0,0),
                 "SHADE",
-                new RGBColor(1.0, 1.0, 1.0),
-                RFStrategy.COMPLETELY_INSIDE);
+                new RGBColor(1.0, 1.0, 1.0)
+        );
 
         GAMatchStick mStick = seedingStim.createMStick();
         testMatchStickDrawer.drawMStick(mStick);
@@ -54,8 +53,8 @@ public class GAStimTest {
                 generator,
                 new Coordinates2D(0,0),
                 "SHADE",
-                new RGBColor(1.0, 1.0, 1.0),
-                RFStrategy.COMPLETELY_INSIDE);
+                new RGBColor(1.0, 1.0, 1.0)
+        );
 
         GAMatchStick mStick = seedingStim.createMStick();
         testMatchStickDrawer.drawMStick(mStick);
@@ -101,8 +100,8 @@ public class GAStimTest {
                 generator,
                 new Coordinates2D(0,0),
                 "SHADE",
-                new RGBColor(1.0, 1.0, 1.0),
-                RFStrategy.COMPLETELY_INSIDE);
+                new RGBColor(1.0, 1.0, 1.0)
+        );
 
         GAMatchStick mStick = seedingStim.createMStick();
         testMatchStickDrawer.drawMStick(mStick);
@@ -138,8 +137,8 @@ public class GAStimTest {
                     generator,
                     new Coordinates2D(0,0),
                     "SHADE",
-                    new RGBColor(1.0, 1.0, 1.0),
-                    RFStrategy.COMPLETELY_INSIDE);
+                    new RGBColor(1.0, 1.0, 1.0)
+            );
 
             GAMatchStick mStick = seedingStim.createMStick();
             testMatchStickDrawer.drawMStick(mStick);

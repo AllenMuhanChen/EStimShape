@@ -85,11 +85,11 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
                 // Create a new Stim object with the stim_type and magnitude (if applicable)
                 Stim stim;
                 if(stimType.equals(StimType.REGIME_ZERO)){
-                    stim = new SeedingStim(stimId, this, pngCoordinates, "3D", color, rfStrategy);
+                    stim = new SeedingStim(stimId, this, pngCoordinates, "3D", color);
                 }
                 else if (stimType.equals(StimType.REGIME_ZERO_2D))
                 {
-                    stim = new SeedingStim(stimId, this, pngCoordinates, "2D", color, rfStrategy);
+                    stim = new SeedingStim(stimId, this, pngCoordinates, "2D", color);
                 }
                 else if(stimType.equals(StimType.REGIME_ONE)){
                     stim = new GrowingStim(stimId, this, parentId, pngCoordinates, magnitude, "3D", color, rfStrategy);
@@ -128,7 +128,7 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
                     int zoomingValue = Integer.parseInt(matcher.group(1));
                     System.out.println("Detected Zooming_x with x = " + zoomingValue);
 
-                    stims.add(new ZoomingStim(stimId, this, parentId, zoomingValue, pngCoordinates, magnitude, "SHADE", color));
+                    stims.add(new ZoomingStim(stimId, this, parentId, zoomingValue, pngCoordinates, magnitude, "3D", color));
                 } else {
                    throw new RuntimeException("Stim Type not recognized");
                 }

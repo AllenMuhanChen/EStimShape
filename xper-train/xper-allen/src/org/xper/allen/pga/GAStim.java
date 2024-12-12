@@ -33,7 +33,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, String textureType, RGBColor color, RFStrategy rfStrategy) {
         this.generator = generator;
         this.parentId = parentId;
-        this.imageCenterCoords = coords;
+        this.imageCenterCoords = new Coordinates2D(0, 0);;
         this.stimId = stimId;
         this.textureType = textureType;
         this.color = color;
