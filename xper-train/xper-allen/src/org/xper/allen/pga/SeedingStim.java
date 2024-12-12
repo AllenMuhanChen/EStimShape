@@ -20,16 +20,25 @@ public class SeedingStim extends GAStim<GAMatchStick, AllenMStickData> {
         GAMatchStick mStick = new GAMatchStick(
                 generator.getReceptiveField(),
                 RFStrategy.COMPLETELY_INSIDE);
-        mStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees()), textureType);
 
-        color = mutateLuminance(color);
+        initSize();
+        initLuminance(color);
+
+        mStick.setProperties(sizeDiameterDegrees, textureType);
         mStick.setStimColor(color);
 
         mStick.genMatchStickRand();
         return mStick;
     }
 
-    private RGBColor mutateLuminance(RGBColor originalColor) {
+    private void initSize() {
+        double maxSizeDiameterDegrees = RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees());
+        double minSizeDiameterDegrees = maxSizeDiameterDegrees / 2;
+
+        sizeDiameterDegrees = minSizeDiameterDegrees + random.nextDouble() * (maxSizeDiameterDegrees - minSizeDiameterDegrees);
+    }
+
+    private void initLuminance(RGBColor originalColor) {
         // Get current luminance
         float currentLuminance = ColorUtils.getLuminance(originalColor);
 
@@ -39,6 +48,6 @@ public class SeedingStim extends GAStim<GAMatchStick, AllenMStickData> {
         // Apply change while keeping within valid range [0,1]
         double newLuminance = Math.min(1.0, Math.max(0.0, currentLuminance + randomChange));
 
-        return ColorUtils.changeLuminance(originalColor, newLuminance);
+        color = ColorUtils.changeLuminance(originalColor, newLuminance);
     }
 }

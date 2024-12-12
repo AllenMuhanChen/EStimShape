@@ -19,12 +19,14 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
 
     @Override
     protected GAMatchStick createMStick() {
+
         GAMatchStick mStick = new GAMatchStick(
                 generator.getReceptiveField(),
                 RFStrategy.PARTIALLY_INSIDE
         );
         System.out.println("Scale Factor: " + scaleFactor);
-        mStick.setProperties(scaleFactor * RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees()), textureType);
+        sizeDiameterDegrees = scaleFactor * RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees());
+        mStick.setProperties(sizeDiameterDegrees, textureType);
         mStick.setStimColor(color);
         mStick.genPartialFromFile(
                 generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml",

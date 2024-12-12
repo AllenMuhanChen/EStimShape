@@ -7,6 +7,7 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.stimproperty.ColorPropertyManager;
+import org.xper.allen.stimproperty.SizePropertyManager;
 import org.xper.allen.stimproperty.TexturePropertyManager;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
@@ -23,9 +24,11 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected final RFStrategy rfStrategy;
     protected final ColorPropertyManager colorManager;
     protected final TexturePropertyManager textureManager;
+    protected final SizePropertyManager sizeManager;
     protected Long stimId;
     protected String textureType;
     protected RGBColor color;
+    protected double sizeDiameterDegrees;
 
     public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, String textureType, RGBColor color, RFStrategy rfStrategy) {
         this.generator = generator;
@@ -39,6 +42,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
         colorManager = new ColorPropertyManager(jdbcTemplate);
         textureManager = new TexturePropertyManager(jdbcTemplate);
+        sizeManager = new SizePropertyManager(jdbcTemplate);
     }
 
     @Override
@@ -83,6 +87,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected void writeStimData() {
         colorManager.writeProperty(stimId, color);
         textureManager.writeProperty(stimId, textureType);
+        sizeManager.writeProperty(stimId, (float) sizeDiameterDegrees);
     }
 
     protected T createRandMStick() {
@@ -131,6 +136,8 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
 
         generator.getDbUtil().writeStimSpec(stimId, stimSpec.toXml(), mStickData.toXml());
     }
+
+
 
     //    public RGBColor getRFColor(){
 //        RGBColor rfColor;
