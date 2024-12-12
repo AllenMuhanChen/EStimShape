@@ -10,6 +10,11 @@ public class PruningStim extends GAStim<PruningMatchStick, PruningMatchStick.Pru
     }
 
     @Override
+    protected void chooseRFStrategy() {
+        rfStrategy = rfStrategyManager.readProperty(parentId);
+    }
+
+    @Override
     protected void chooseColor() {
         color = colorManager.readProperty(parentId);
     }

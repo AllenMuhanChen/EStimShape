@@ -14,6 +14,11 @@ public class LeafingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     }
 
     @Override
+    protected void chooseRFStrategy() {
+        rfStrategy = rfStrategyManager.readProperty(parentId);
+    }
+
+    @Override
     protected void chooseColor() {
         color = colorManager.readProperty(parentId);
     }
