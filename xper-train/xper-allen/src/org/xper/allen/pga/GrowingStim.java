@@ -12,7 +12,7 @@ import java.util.Random;
 public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     private final double magnitude;
     private static final Random random = new Random();
-    private static final double MAX_LUMINANCE_CHANGE = 0.25; // 25% maximum change
+    private static final double MAX_LUMINANCE_CHANGE = 0.5;
 
     public GrowingStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, double magnitude, String textureType, RGBColor color, RFStrategy rfStrategy) {
         super(stimId, generator, parentId, coords, textureType, color, rfStrategy);
@@ -57,7 +57,8 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
         float currentLuminance = ColorUtils.getLuminance(originalColor);
 
         // Calculate random change between -25% and +25% of possible range
-        double randomChange = (random.nextDouble() * 2 - 1) * MAX_LUMINANCE_CHANGE;
+        double randomChange = (random.nextDouble()*magnitude * 2 - 1) * MAX_LUMINANCE_CHANGE;
+
 
         // Apply change while keeping within valid range [0,1]
         double newLuminance = Math.min(1.0, Math.max(0.0, currentLuminance + randomChange));
