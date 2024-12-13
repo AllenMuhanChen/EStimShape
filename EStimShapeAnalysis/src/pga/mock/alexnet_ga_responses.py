@@ -62,7 +62,7 @@ def run_training():
             for loc_y in loc_ys:
                 # Compute unit activation for each channel configuration
                 unit_activations = [activation[0, unit, loc_x, loc_y].item() for activation in activations]
-
+                unit_activations = [activation if activation > 0 else 0 for activation in unit_activations]
                 # Get the current channel string
                 if channel_index >= len(channel_strings_top_to_bottom):
                     break

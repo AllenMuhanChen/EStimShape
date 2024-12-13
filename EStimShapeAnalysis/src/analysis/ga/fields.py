@@ -57,25 +57,26 @@ class LineageField(StimIdField):
         return "Lineage"
 
 
-class RegimeField(LineageField):
+class StimTypeField(StimIdField):
+
     def get(self, when: When) -> str:
-        lineage_id = self.get_cached_super(when, LineageField)
-        self.conn.execute("SELECT regime FROM LineageGaInfo WHERE lineage_id"
-                          " = %s ORDER BY gen_id DESC LIMIT 1",
-                          params=(lineage_id,))
-        regime = self.conn.fetch_one()
-        return regime
+        stim_spec_id = self.get_cached_super(when, StimIdField)
+        self.conn.execute("SELECT stim_type FROM StimGaInfo WHERE stim_id = %s",
+                          params=(stim_spec_id,))
+        stim_type = self.conn.fetch_one()
+        return stim_type
 
     def get_name(self):
-        return "Regime"
+        return "StimType"
 
 
 class ClusterResponseField(StimIdField):
 
-    def __init__(self, conn: Connection):
+    def __init__(self, conn: Connection, cluster_combination_strategy):
         super().__init__(conn)
         self.db_util = MultiGaDbUtil(conn)
         self.cluster_channels = self.db_util.read_current_cluster(context.ga_name)
+        self.cluster_combination_strategy = cluster_combination_strategy
 
     def get(self, when: When) -> list:
         task_id = self.get_cached_super(when, TaskIdField)
@@ -86,7 +87,7 @@ class ClusterResponseField(StimIdField):
             responses = self.conn.fetch_all()
             all_responses.extend([float(response[0]) for response in responses])
 
-        return all_responses
+        return self.cluster_combination_strategy(all_responses)
 
     def get_name(self):
-        return "Cluster Responses"
+        return "Cluster Response"
