@@ -74,17 +74,20 @@ class ZoomSetHandler(Protocol):
         return int(n_comp)
 
     def is_zoomed_already(self, stimulus: Stimulus) -> bool:
-        query = "SELECT data FROM StimSpec WHERE id=%s"
-        self.conn.execute(query, (stimulus.id,))
-        data = self.conn.fetch_one()
-        data_dict = xmltodict.parse(data)
-        rf_strategy = data_dict["AllenMStickData"]['analysisMStickSpec']['rfStrategy']
-        if rf_strategy == "PARTIALLY_INSIDE":
-            return True
-        elif rf_strategy == "COMPLETELY_INSIDE":
-            return False
-        else:
-            raise ValueError(f"Unknown RF strategy: {rf_strategy}")
+        is_zooming_in_name = "Zooming" in stimulus.mutation_type
+        print(f"Is zooming in: {is_zooming_in_name}")
+        return is_zooming_in_name
+        # query = "SELECT data FROM StimSpec WHERE id=%s"
+        # self.conn.execute(query, (stimulus.id,))
+        # data = self.conn.fetch_one()
+        # data_dict = xmltodict.parse(data)
+        # rf_strategy = data_dict["AllenMStickData"]['analysisMStickSpec']['rfStrategy']
+        # if rf_strategy == "PARTIALLY_INSIDE":
+        #     return True
+        # elif rf_strategy == "COMPLETELY_INSIDE":
+        #     return False
+        # else:
+        #     raise ValueError(f"Unknown RF strategy: {rf_strategy}")
 
 
 class ZoomingPhaseTransitioner(RegimeTransitioner):
@@ -159,9 +162,14 @@ class ZoomingPhaseParentSelector(ParentSelector):
         return stimuli_above_significance
 
     def filter_out_already_zoomed(self, stimuli):
+        to_remove = []
         for stimulus in stimuli:
             if self.zoom_set_handler.is_zoomed_already(stimulus):
-                stimuli.remove(stimulus)
+                to_remove.append(stimulus)
+
+        for stimulus in to_remove:
+            stimuli.remove(stimulus)
+
 
     def _prioritize_potential_parents(self, potential_parents):
         empty_sets, partial_sets = (
