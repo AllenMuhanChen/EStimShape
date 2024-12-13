@@ -62,6 +62,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     private CyclicIterator<String> stimTypeSpecs;
     private boolean isMouseMoveStimuliModeOn = true;
     private Coordinates2D currentStimPosition;
+    private JLabel rfDiameterLabel;
 
     @Override
     /**
@@ -228,6 +229,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         jpanel.setBorder(BorderFactory.createTitledBorder("RFPlot"));
 
         rfCenterLabel(jpanel);
+        rfDiameterLabel(jpanel);
         scrollerModeLabel(jpanel);
         scrollerValueLabel(jpanel);
         channelSelectors(jpanel); // Initialize and add the channel selectors
@@ -272,6 +274,23 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         jpanel.add(rfCenterLabel, centerValueConstraints);
         rfCenterLabel.setHorizontalAlignment(SwingConstants.LEFT);
         rfCenterLabel.setPreferredSize(new Dimension(320,20));
+    }
+
+    private void rfDiameterLabel(JPanel jpanel) {
+        GridBagConstraints diameterLabelConstraints = new GridBagConstraints();
+        diameterLabelConstraints.gridwidth = 1;
+        diameterLabelConstraints.ipadx = 5;
+        diameterLabelConstraints.anchor = PAGE_START;
+        jpanel.add(new JLabel("Diameter"), diameterLabelConstraints);
+
+        rfDiameterLabel = new JLabel("None");
+        GridBagConstraints diameterValueConstraints = new GridBagConstraints();
+        diameterValueConstraints.gridwidth = 1;
+        diameterValueConstraints.ipadx = 5;
+        diameterValueConstraints.anchor = PAGE_END;
+        jpanel.add(rfDiameterLabel, diameterValueConstraints);
+        rfDiameterLabel.setHorizontalAlignment(SwingConstants.LEFT);
+        rfDiameterLabel.setPreferredSize(new Dimension(320, 20));
     }
 
     private void scrollerModeLabel(JPanel jpanel){
@@ -552,8 +571,10 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
         try {
             rfCenterLabel.setText(mm2deg(plotter.getRFCenter()).toString());
+            rfDiameterLabel.setText(Double.toString(renderer.mm2deg(plotter.getRFDiameter())));
         } catch (Exception ex) {
             rfCenterLabel.setText("None");
+            rfDiameterLabel.setText("None");
         }
     }
 

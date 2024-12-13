@@ -224,6 +224,10 @@ public class RFPlotDrawer {
         return rfsForChannels.get(currentChannel).getCircleCenter();
     }
 
+    public double getRFDiameter(){
+        return rfsForChannels.get(currentChannel).getCircleRadius() * 2;
+    }
+
 
     public List<Coordinates2D> getInterpolatedOutline(String channel) {
         Coordinates2D circleCenter = rfsForChannels.get(channel).getCircleCenter();
