@@ -21,6 +21,7 @@ def main():
     conn.truncate("StimSize")
 
 
+
 if __name__ == "__main__":
     main()
 
