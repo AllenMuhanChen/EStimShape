@@ -176,6 +176,7 @@ public class ExperimentConsole extends JFrame implements
             	if (isMonitorMode()) {
             		mousePosition(evt.getX(), evt.getY());
             	} else {
+					mousePosition(evt.getX(), evt.getY());
             		currentPlugin.handleMouseMove(evt.getX(), evt.getY());
             	}
 				consoleCanvas.repaint(); //AC added to have canvas updating when adding control points
