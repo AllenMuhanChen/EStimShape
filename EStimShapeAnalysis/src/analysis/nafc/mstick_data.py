@@ -1,8 +1,8 @@
 import xmltodict
+from clat.compile.trial.cached_fields import CachedDatabaseField, CachedFieldList
 
 from src.analysis.nafc.nafc_database_fields import get_stim_spec
 from src.analysis.nafc.psychometric_curves import collect_choice_trials
-from clat.compile import CachedDatabaseField, CachedFieldList
 from clat.util import time_util
 from clat.util.connection import Connection
 from clat.util.time_util import When
