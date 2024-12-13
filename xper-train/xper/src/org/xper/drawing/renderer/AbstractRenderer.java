@@ -178,6 +178,7 @@ public abstract class AbstractRenderer implements Renderer {
 
 	public void init() {
 		calculateCoordinates();
+		System.out.println("vpWidth: " + vpWidth + " vpHeight: " + vpHeight);
 		GL11.glViewport(0, 0, vpWidth, vpHeight);
 	}
 
@@ -202,8 +203,10 @@ public abstract class AbstractRenderer implements Renderer {
 
 		// coordinate in actual measurement
 		xmin = -width / 2.0 + hunit / 2.0;
+		System.out.println("xmin: " + xmin);
 		// max visible point; actual max coord is xmax + hunit
 		xmax = width / 2.0 - hunit / 2.0;
+		System.out.println("xmax: " + xmax);
 
 		ymin = -height / 2.0 + vunit / 2.0;
 		ymax = height / 2.0 - vunit / 2.0;

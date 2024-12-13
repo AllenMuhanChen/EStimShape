@@ -28,9 +28,9 @@ public class DPIUtil {
 	public int calculateMinResolution(){
 		maxDimMm = renderer.deg2mm(maxImageDimensionDegrees);
 		double maxDimInches = maxDimMm / 25.4;
-		int minPixels = (int) Math.round(monkeyDPI*maxDimInches);
+		int minPixels = (int) (monkeyDPI*maxDimInches) + 1;
 
-		return minPixels+1;
+		return minPixels;
 	}
 
 	public double calculateMmForRenderer() {

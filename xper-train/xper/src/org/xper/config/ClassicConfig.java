@@ -142,7 +142,7 @@ public class ClassicConfig {
 		console.setPaused(xperExperimentInitialPause());
 		console.setConsoleRenderer(consoleRenderer());
 //		console.setMonkeyScreenDimension(monkeyWindow().getScreenDimension()); // old original line
-		console.setMonkeyScreenDimension(new Coordinates2D(xperMonkeyScreenWidth(), xperMonkeyScreenHeight()));
+		console.setMonkeyScreenDimension(new Coordinates2D(xperMonkeyScreenWidth(), xperMonkeyScreenHeight())); //AC
 		console.setModel(experimentConsoleModel());
 		console.setCanvasScaleFactor(1.5);
 

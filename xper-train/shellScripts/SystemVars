@@ -29,8 +29,8 @@ EOF
 
 #RIG ASSOCIATED SystemVars
 mysql --host=172.30.6.80 --user=xper_rw --password=up2nite $VERSION_GA <<EOF
-UPDATE SystemVar SET val=1448 WHERE name='xper_monkey_screen_width';
-UPDATE SystemVar SET val=825 WHERE name='xper_monkey_screen_height';
+UPDATE SystemVar SET val=1428 WHERE name='xper_monkey_screen_width';
+UPDATE SystemVar SET val=802 WHERE name='xper_monkey_screen_height';
 UPDATE SystemVar SET val=0 WHERE name='xper_monkey_screen_depth';
 UPDATE SystemVar SET val=500 WHERE name='xper_monkey_screen_distance';
 UPDATE SystemVar SET val='false' WHERE name='xper_monkey_screen_inverted';
