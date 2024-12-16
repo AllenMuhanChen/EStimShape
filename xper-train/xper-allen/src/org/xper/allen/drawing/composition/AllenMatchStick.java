@@ -4477,7 +4477,6 @@ public class AllenMatchStick extends MatchStick {
 
 	private Point3d toObjCenteredCoords(Point3d point){
 		Point3d massCenter = getMassCenter();
-//		massCenter.scale(getScaleForMAxisShape()); //AC Disabled because we re-enabled scaling vect info in modifyForAnalysis
 		Point3d objectCenteredCoords = new Point3d(point);
 		objectCenteredCoords.sub(massCenter);
 		return objectCenteredCoords;
@@ -4765,8 +4764,7 @@ public class AllenMatchStick extends MatchStick {
 		{
 			scaleComps(i);
 
-
-			// 1. rot X
+			//Translation Corrected Scaling
 			TubeComp tubeComp = getComp()[i];
 			MAxisArc mAxisArc = tubeComp.getmAxisInfo();
 
@@ -4779,6 +4777,7 @@ public class AllenMatchStick extends MatchStick {
 			mAxisArc.getTransRotHis_finalPos().set(transCorScalePoint(mAxisArc.getTransRotHis_finalPos()));
 
 
+			// 1. rot X
 			if ( rotVec[0] != 0.0)
 			{
 				Vector3d RotAxis = new Vector3d(1,0,0);
@@ -4850,11 +4849,7 @@ public class AllenMatchStick extends MatchStick {
 
 
 
-			for (j=1; j<= tubeComp.getnVect(); j++)
-			{
-//				getComp()[i].getVect_info()[j].scale(this.getScaleForMAxisShape());
-				// comp[i].vect_info[j].add(finalShiftinDepth);
-			}
+
 
 			// comp[i].mAxisInfo.transRotHis_finalPos.add(this.finalShiftinDepth);
 			// no scale/add for the tangent, since it is a unit vector
