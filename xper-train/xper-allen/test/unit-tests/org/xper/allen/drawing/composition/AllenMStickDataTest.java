@@ -54,13 +54,13 @@ public class AllenMStickDataTest {
     private ReceptiveField receptiveField;
 
     private void setMStickData() {
-//        matchStick = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
-//        matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, 2), "SHADE");
-//        matchStick.genMatchStickRand();
-
-        matchStick = new GAMatchStick(COMPLETE_RF, RFStrategy.COMPLETELY_INSIDE);
-        matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.COMPLETELY_INSIDE, 5), "SHADE");
+        matchStick = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
+        matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, 2), "SHADE");
         matchStick.genMatchStickRand();
+
+//        matchStick = new GAMatchStick(COMPLETE_RF, RFStrategy.COMPLETELY_INSIDE);
+//        matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.COMPLETELY_INSIDE, 5), "SHADE");
+//        matchStick.genMatchStickRand();
 
 //        matchStick = new AllenMatchStick();
 //        matchStick.setProperties(5, "SHADE");
@@ -216,8 +216,8 @@ public class AllenMStickDataTest {
         int numTerminations = data.getTerminationData().size();
         for (int i=0; i<numTerminations; i++){
             TerminationData terminationData = data.terminationData.get(i);
-//            testSphericalPosition(i, terminationData.angularPosition, terminationData.radialPosition);
-//            testTerminationOrientation(i, terminationData);
+            testSphericalPosition(i, terminationData.angularPosition, terminationData.radialPosition);
+            testTerminationOrientation(i, terminationData);
             testTerminationRadius(i, terminationData);
         }
 
@@ -231,13 +231,16 @@ public class AllenMStickDataTest {
         drawLine(CoordinateConverter.vectorToLine(tangent, 50, endPtPosition), COMP_COLORS.get(i));
     }
 
+    private void testTerminationRadius(int i, TerminationData terminationData) {
+        Point3d startPoint = CoordinateConverter.sphericalToPoint(terminationData.getRadialPosition(), terminationData.getAngularPosition());
+        Point3d massCenter = data.getMassCenter();
+        startPoint.add(massCenter);
+        Vector3d orientation = CoordinateConverter.sphericalToVector(1, terminationData.direction);
+        testRadius(i, orientation, terminationData.radius, startPoint);
+    }
+
     @Test
     public void testJunctionData(){
-        AllenMatchStick matchStick = new AllenMatchStick();
-        matchStick.setProperties(5, "SHADE");
-        matchStick.genMatchStickRand();
-
-        AllenMStickData data = (AllenMStickData) matchStick.getMStickData();
         drawMStick(matchStick);
 
         int numJunctions = data.getJunctionData().size();
@@ -255,8 +258,10 @@ public class AllenMStickDataTest {
     private void testJunctionBisector(JunctionData junctionData, JuncPt_struct juncPt_struct) {
             Vector3d angleBisector = CoordinateConverter.sphericalToVector(20, junctionData.getAngleBisectorDirection());
             Point3d juncLocation = CoordinateConverter.sphericalToPoint(junctionData.getRadialPosition(), junctionData.getAngularPosition());
+            juncLocation.add(data.getMassCenter());
+
             List<Point3d> angleBisectorLine = CoordinateConverter.vectorToLine(angleBisector, 50, juncLocation);
-            drawLine(angleBisectorLine, new RGBColor(0,1,0));
+            drawLine(angleBisectorLine, new RGBColor(1,1,0));
 
             Vector3d bisectedVector1 = juncPt_struct.getTangent()[1];
             bisectedVector1.scale(10);
@@ -267,14 +272,6 @@ public class AllenMStickDataTest {
             bisectedVector2.scale(10);
             List<Point3d> bisectedLine2 = CoordinateConverter.vectorToLine(bisectedVector2, 50, juncLocation);
             drawLine(bisectedLine2, new RGBColor(0,1,0));
-    }
-
-    private void testTerminationRadius(int i, TerminationData terminationData) {
-        Point3d startPoint = CoordinateConverter.sphericalToPoint(terminationData.getRadialPosition(), terminationData.getAngularPosition());
-        Point3d massCenter = data.getMassCenter();
-        startPoint.add(massCenter);
-        Vector3d orientation = CoordinateConverter.sphericalToVector(1, terminationData.direction);
-        testRadius(i, orientation, terminationData.radius, startPoint);
     }
 
     private void testShaftCurvature(ShaftData shaftData, AllenMAxisArc mAxis, int i) {

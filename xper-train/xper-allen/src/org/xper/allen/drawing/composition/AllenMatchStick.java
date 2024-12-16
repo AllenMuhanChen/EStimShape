@@ -4914,6 +4914,58 @@ public class AllenMatchStick extends MatchStick {
 		}
 	}
 
+
+	public void modifyJuncPtFinalInfoForAnalysis(){
+		for (int juncPtIndx = 1; juncPtIndx <= getNJuncPt(); juncPtIndx++) {
+			JuncPt_struct juncPt = getJuncPt()[juncPtIndx];
+
+			//Scale
+			//Pos
+//			juncPt.getPos().scale(getScaleForMAxisShape());
+			juncPt.getPos().set(transCorScalePoint(juncPt.getPos()));
+			//Radius
+			juncPt.setRad(juncPt.getRad()*getScaleForMAxisShape());
+
+			//Rotate
+			double[] rotVec = new double[3];
+			rotVec[0] = this.getFinalRotation()[0];
+			rotVec[1] = this.getFinalRotation()[1];
+			rotVec[2] = this.getFinalRotation()[2];
+			//Rot X
+			if(rotVec[0] != 0.0) {
+				Transform3D transMat = getRotation(rotVec[0], new Vector3d(1, 0, 0));
+				//Pos
+				transMat.transform(juncPt.getPos());
+				//Tangent
+				for (int compIndx = 1; compIndx <= juncPt.getnComp(); compIndx++) {
+					transMat.transform(juncPt.getTangent()[compIndx]);
+				}
+			}
+			//Rot Y
+			if(rotVec[1] != 0.0) {
+				Transform3D transMat = getRotation(toRadians(rotVec[1]), new Vector3d(0, 1, 0));
+				//Pos
+				transMat.transform(juncPt.getPos());
+				//Tangent
+				for (int compIndx = 1; compIndx <= juncPt.getnComp(); compIndx++) {
+					transMat.transform(juncPt.getTangent()[compIndx]);
+				}
+			}
+			//Rot Z
+			if(rotVec[2] != 0.0){
+				Transform3D transMat = getRotation(toRadians(rotVec[2]), new Vector3d(0, 0, 1));
+				//Pos
+				transMat.transform(juncPt.getPos());
+				//Tangent
+				for (int compIndx = 1; compIndx <= juncPt.getnComp(); compIndx++) {
+					transMat.transform(juncPt.getTangent()[compIndx]);
+				}
+			}
+
+		}
+	}
+
+
 	public RFStrategy getRfStrategy() {
 		return rfStrategy;
 	}
