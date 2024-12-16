@@ -3811,7 +3811,7 @@ public class MatchStick implements Drawable {
 	}
 
 
-	private void scaleComps(int i) {
+	protected void scaleComps(int i) {
 		int j;
 		// 1. scale up the (r1,r2,r3), rad(1/k), and arcLen
 		for (j=0; j<3; j++)

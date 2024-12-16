@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.*;
 
+import javax.media.j3d.Transform3D;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
@@ -4476,7 +4477,7 @@ public class AllenMatchStick extends MatchStick {
 
 	private Point3d toObjCenteredCoords(Point3d point){
 		Point3d massCenter = getMassCenter();
-		massCenter.scale(getScaleForMAxisShape()); //AC Disabled because we re-enabled scaling vect info in modifyForAnalysis
+//		massCenter.scale(getScaleForMAxisShape()); //AC Disabled because we re-enabled scaling vect info in modifyForAnalysis
 		Point3d objectCenteredCoords = new Point3d(point);
 		objectCenteredCoords.sub(massCenter);
 		return objectCenteredCoords;
@@ -4728,6 +4729,139 @@ public class AllenMatchStick extends MatchStick {
 
 
 		return true;
+	}
+
+	/**
+	 * Translation Corrected Scaling. Subtract by massCenter before scaling and add it back after scaling
+	 * @param point
+	 * @return
+	 */
+	public Point3d transCorScalePoint(Point3d point){
+		Point3d scaledPoint = new Point3d(point);
+		scaledPoint.sub(getMassCenter());
+		scaledPoint.scale(getScaleForMAxisShape());
+		scaledPoint.add(getMassCenter());
+		return scaledPoint;
+	}
+	/**
+	 * Adding some functionality to correct information
+	 * because of shifting.
+	 *
+	 * Subtracting massCenter before scaling and adding it back after scaling
+	 * to avoid propogating scaling through offset from origin
+	 */
+	protected void modifyMAxisFinalInfo()
+	{
+
+		int i,j;
+		double[] rotVec = new double[3];
+		rotVec[0] = this.getFinalRotation()[0];
+		rotVec[1] = this.getFinalRotation()[1];
+		rotVec[2] = this.getFinalRotation()[2];
+
+
+
+		for (i=1; i<= this.getnComponent(); i++)
+		{
+			scaleComps(i);
+
+
+			// 1. rot X
+			TubeComp tubeComp = getComp()[i];
+			MAxisArc mAxisArc = tubeComp.getmAxisInfo();
+
+			for (j=0; j<=51; j++)
+			{
+				mAxisArc.getmPts()[j] = transCorScalePoint(mAxisArc.getmPts()[j]);
+				// comp[i].mAxisInfo.mPts[j].add(this.finalShiftinDepth);
+			}
+
+			mAxisArc.getTransRotHis_finalPos().set(transCorScalePoint(mAxisArc.getTransRotHis_finalPos()));
+
+
+			if ( rotVec[0] != 0.0)
+			{
+				Vector3d RotAxis = new Vector3d(1,0,0);
+				double Angle = toRadians(rotVec[0]);
+				Transform3D transMat = getRotation(Angle, RotAxis);
+
+				for (j=1; j<=51; j++)
+				{
+					transMat.transform(mAxisArc.getmPts()[j]);
+					transMat.transform(mAxisArc.getmTangent()[j]);
+				}
+				for (j=1; j<= tubeComp.getnVect(); j++)
+				{
+					transMat.transform(tubeComp.getVect_info()[j]);
+					transMat.transform(tubeComp.getNormMat_info()[j]);
+				}
+				transMat.transform(mAxisArc.getTransRotHis_finalPos());
+				transMat.transform(mAxisArc.getTransRotHis_finalTangent());
+
+			}
+			// 2. rot Y
+			if ( rotVec[1] != 0.0)
+			{
+				Vector3d RotAxis = new Vector3d(0,1,0);
+				double Angle = toRadians(rotVec[1]);
+				Transform3D transMat = getRotation(Angle, RotAxis);
+
+				for (j=1; j<=51; j++)
+				{
+					transMat.transform(mAxisArc.getmPts()[j]);
+					transMat.transform(mAxisArc.getmTangent()[j]);
+				}
+				for (j=1; j<= tubeComp.getnVect(); j++)
+				{
+					transMat.transform(tubeComp.getVect_info()[j]);
+					transMat.transform(tubeComp.getNormMat_info()[j]);
+				}
+				transMat.transform(mAxisArc.getTransRotHis_finalPos());
+				transMat.transform(mAxisArc.getTransRotHis_finalTangent());
+
+			}
+
+			// 3. rot Z
+			if ( rotVec[2] != 0.0)
+			{
+				Vector3d RotAxis = new Vector3d(0,0,1);
+				double Angle = toRadians(rotVec[2]);
+				Transform3D transMat = getRotation(Angle, RotAxis);
+
+				for (j=1; j<=51; j++)
+				{
+					transMat.transform(mAxisArc.getmPts()[j]);
+					transMat.transform(mAxisArc.getmTangent()[j]);
+				}
+				for (j=1; j<= tubeComp.getnVect(); j++)
+				{
+					transMat.transform(tubeComp.getVect_info()[j]);
+					transMat.transform(tubeComp.getNormMat_info()[j]);
+				}
+				transMat.transform(mAxisArc.getTransRotHis_finalPos());
+				transMat.transform(mAxisArc.getTransRotHis_finalTangent());
+
+			}
+			for (j=1; j<=51; j++)
+			{
+//				mAxisArc.getmTangent()[j].negate();
+			}
+
+
+
+
+			for (j=1; j<= tubeComp.getnVect(); j++)
+			{
+//				getComp()[i].getVect_info()[j].scale(this.getScaleForMAxisShape());
+				// comp[i].vect_info[j].add(finalShiftinDepth);
+			}
+
+			// comp[i].mAxisInfo.transRotHis_finalPos.add(this.finalShiftinDepth);
+			// no scale/add for the tangent, since it is a unit vector
+
+			// don't change the devAngle
+			//comp[i].mAxisInfo.transRotHis_devAngle =
+		}
 	}
 
 	public RFStrategy getRfStrategy() {

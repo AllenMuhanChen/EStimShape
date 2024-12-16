@@ -37,13 +37,12 @@ public class AllenMStickDataTest {
 
     private static final LinkedHashMap<Integer, RGBColor> COMP_COLORS = new LinkedHashMap<>();
     static {
+        COMP_COLORS.put(0, new RGBColor(1,0,0));
         COMP_COLORS.put(1, new RGBColor(0,1,0));
         COMP_COLORS.put(2, new RGBColor(0,0,1));
         COMP_COLORS.put(3, new RGBColor(1,1,0));
         COMP_COLORS.put(4, new RGBColor(0,1,1));
         COMP_COLORS.put(5, new RGBColor(1,0,1));
-        COMP_COLORS.put(6, new RGBColor(1,1,1));
-        COMP_COLORS.put(0, new RGBColor(1,0,0));
     }
 
     private List<Drawable> drawables;
@@ -99,12 +98,10 @@ public class AllenMStickDataTest {
             AllenTubeComp tubeComp = matchStick.getComp()[i + 1];
             AllenMAxisArc mAxis = tubeComp.getmAxisInfo();
 
-//            testShaftLength(i, shaftData);
-//            testSphericalPosition(i, shaftData.angularPosition, shaftData.radialPosition);
-//            testShaftOrientation(i, shaftData);
-//
-//
-//            testShaftRadius(i, shaftData);
+            testShaftLength(i, shaftData);
+            testSphericalPosition(i, shaftData.angularPosition, shaftData.radialPosition);
+            testShaftOrientation(i, shaftData);
+            testShaftRadius(i, shaftData);
             testShaftCurvature(shaftData, mAxis, i);
 
             System.out.println(shaftData.radialPosition);
@@ -284,7 +281,7 @@ public class AllenMStickDataTest {
         Point3d correction = new Point3d(data.massCenter);
         correction.scale(matchStick.getScaleForMAxisShape()-1);
         for (Point3d point:line){
-            point.sub(correction);
+//            point.sub(correction);
         }
         drawLine(line, COMP_COLORS.get(i));
     }
