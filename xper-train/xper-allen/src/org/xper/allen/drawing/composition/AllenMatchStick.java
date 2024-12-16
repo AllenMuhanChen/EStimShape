@@ -4908,9 +4908,6 @@ public class AllenMatchStick extends MatchStick {
 				transMat.transform(endPt.getTangent());
 			}
 			endPt.getTangent().negate();
-
-
-
 		}
 	}
 

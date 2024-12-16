@@ -5,6 +5,7 @@ import org.junit.After;
 import org.junit.Test;
 import org.lwjgl.opengl.GL11;
 import org.xper.alden.drawing.drawables.Drawable;
+import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
@@ -54,9 +55,18 @@ public class AllenMStickDataTest {
     private ReceptiveField receptiveField;
 
     private void setMStickData() {
-        matchStick = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
+        GAMatchStick parentStick = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
+        parentStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, 2), "SHADE");
+        parentStick.genMatchStickRand();
+
+        matchStick = new GrowingMatchStick(PARTIAL_RF, 1/3.0, RFStrategy.PARTIALLY_INSIDE, "SHADE");
         matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, 2), "SHADE");
-        matchStick.genMatchStickRand();
+
+        ((GrowingMatchStick) matchStick).genGrowingMatchStick(parentStick, 0.5);
+
+//        matchStick = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
+//        matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, 2), "SHADE");
+//        matchStick.genMatchStickRand();
 
 //        matchStick = new GAMatchStick(COMPLETE_RF, RFStrategy.COMPLETELY_INSIDE);
 //        matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.COMPLETELY_INSIDE, 5), "SHADE");

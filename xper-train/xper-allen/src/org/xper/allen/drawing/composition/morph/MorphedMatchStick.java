@@ -701,6 +701,12 @@ public class MorphedMatchStick extends AllenMatchStick {
         {
             Point3d newPos = new Point3d(  getComp()[ getEndPt()[i].getComp()].getmAxisInfo().getmPts()[ getEndPt()[i].getuNdx()]);
             getEndPt()[i].getPos().set(newPos);
+
+            Vector3d newTangent = new Vector3d( getComp()[ getEndPt()[i].getComp()].getmAxisInfo().getmTangent()[ getEndPt()[i].getuNdx()]);
+            int in_undx = getEndPt()[i].getuNdx();
+            if (in_undx == 51)
+                newTangent.negate();
+            getEndPt()[i].setTangent(newTangent);
         }
         for (int i=1; i<=getnJuncPt(); i++)
         {
