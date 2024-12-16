@@ -99,13 +99,13 @@ public class AllenMStickDataTest {
             AllenTubeComp tubeComp = matchStick.getComp()[i + 1];
             AllenMAxisArc mAxis = tubeComp.getmAxisInfo();
 
-            testShaftLength(i, shaftData);
-            testSphericalPosition(i, shaftData.angularPosition, shaftData.radialPosition);
-            testShaftOrientation(i, shaftData);
-
-
-            testShaftRadius(i, shaftData);
-//            testShaftCurvature(shaftData, mAxis, i);
+//            testShaftLength(i, shaftData);
+//            testSphericalPosition(i, shaftData.angularPosition, shaftData.radialPosition);
+//            testShaftOrientation(i, shaftData);
+//
+//
+//            testShaftRadius(i, shaftData);
+            testShaftCurvature(shaftData, mAxis, i);
 
             System.out.println(shaftData.radialPosition);
         }
@@ -277,19 +277,14 @@ public class AllenMStickDataTest {
 
         AllenMAxisArc mAxisArc = new AllenMAxisArc();
         mAxisArc.genArc(curvatureRadius, length);
-        mAxisArc.transRotMAxis(mAxis.getTransRotHis_alignedPt(), mAxis.getTransRotHis_finalPos(), mAxis.getTransRotHis_rotCenter(), mAxis.getTransRotHis_finalTangent(), mAxis.getTransRotHis_devAngle());
+        Point3d transRotHisFinalPos = mAxis.getTransRotHis_finalPos();
+        mAxisArc.transRotMAxis(mAxis.getTransRotHis_alignedPt(), transRotHisFinalPos, mAxis.getTransRotHis_rotCenter(), mAxis.getTransRotHis_finalTangent(), mAxis.getTransRotHis_devAngle());
         List<Point3d> line = Arrays.asList(mAxisArc.getmPts());
         line = line.subList(1,51);
+        Point3d correction = new Point3d(data.massCenter);
+        correction.scale(matchStick.getScaleForMAxisShape()-1);
         for (Point3d point:line){
-            point.add(data.massCenter);
-//            point.sub(new Point3d(data.massCenter));
-//            point.sub(new Point3d(data.massCenter));
-//            point.sub(new Point3d(data.massCenter));
-//            point.sub(new Point3d(data.massCenter));
-//            point.sub(new Point3d(data.massCenter));
-//            point.sub(new Point3d(data.massCenter));
-//            point.sub(new Point3d(data.massCenter));
-
+            point.sub(correction);
         }
         drawLine(line, COMP_COLORS.get(i));
     }

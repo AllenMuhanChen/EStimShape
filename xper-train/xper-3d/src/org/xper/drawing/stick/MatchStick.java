@@ -3715,6 +3715,16 @@ public class MatchStick implements Drawable {
 			// 1. rot X
 			TubeComp tubeComp = getComp()[i];
 			MAxisArc mAxisArc = tubeComp.getmAxisInfo();
+
+			for (j=0; j<=51; j++)
+			{
+				mAxisArc.getmPts()[j].scale(this.getScaleForMAxisShape());
+				// comp[i].mAxisInfo.mPts[j].add(this.finalShiftinDepth);
+			}
+
+			mAxisArc.getTransRotHis_finalPos().scale(this.getScaleForMAxisShape());
+
+
 			if ( rotVec[0] != 0.0)
 			{
 				Vector3d RotAxis = new Vector3d(1,0,0);
@@ -3784,18 +3794,14 @@ public class MatchStick implements Drawable {
 			}
 
 
-			for (j=0; j<=51; j++)
-			{
-				mAxisArc.getmPts()[j].scale(this.getScaleForMAxisShape());
-				// comp[i].mAxisInfo.mPts[j].add(this.finalShiftinDepth);
-			}
+
 
 			for (j=1; j<= tubeComp.getnVect(); j++)
 			{
 //				getComp()[i].getVect_info()[j].scale(this.getScaleForMAxisShape());
 				// comp[i].vect_info[j].add(finalShiftinDepth);
 			}
-			mAxisArc.getTransRotHis_finalPos().scale(this.getScaleForMAxisShape());
+
 			// comp[i].mAxisInfo.transRotHis_finalPos.add(this.finalShiftinDepth);
 			// no scale/add for the tangent, since it is a unit vector
 
