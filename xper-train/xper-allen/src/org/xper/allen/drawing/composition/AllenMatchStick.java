@@ -4451,6 +4451,10 @@ public class AllenMatchStick extends MatchStick {
 		getComp()[i] = new AllenTubeComp();
 	}
 
+	/**
+	 * MUST BE CAREFUL OF SIDE EFFECTS OF THIS METHOD
+	 * @return
+	 */
 	public MStickData getMStickData(){
 		AllenMStickData data = new AllenMStickData();
 
@@ -4472,7 +4476,7 @@ public class AllenMatchStick extends MatchStick {
 
 	private Point3d toObjCenteredCoords(Point3d point){
 		Point3d massCenter = getMassCenter();
-		massCenter.scale(getScaleForMAxisShape());
+		massCenter.scale(getScaleForMAxisShape()); //AC Disabled because we re-enabled scaling vect info in modifyForAnalysis
 		Point3d objectCenteredCoords = new Point3d(point);
 		objectCenteredCoords.sub(massCenter);
 		return objectCenteredCoords;

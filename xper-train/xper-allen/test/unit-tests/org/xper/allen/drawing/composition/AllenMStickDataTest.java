@@ -5,14 +5,16 @@ import org.junit.After;
 import org.junit.Test;
 import org.lwjgl.opengl.GL11;
 import org.xper.alden.drawing.drawables.Drawable;
+import org.xper.allen.drawing.ga.GAMatchStick;
+import org.xper.allen.drawing.ga.ReceptiveField;
+import org.xper.allen.pga.RFStrategy;
+import org.xper.allen.pga.RFUtils;
 import org.xper.allen.util.CoordinateConverter;
 import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 import org.xper.drawing.RGBColor;
 import org.xper.drawing.stick.JuncPt_struct;
 import org.xper.drawing.TestDrawingWindow;
 
-
-import org.xper.drawing.stick.stickMath_lib;
 import org.xper.util.ResourceUtil;
 
 import javax.vecmath.Vector3d;
@@ -28,6 +30,7 @@ import java.sql.SQLException;
 import java.util.*;
 
 import static org.junit.Assert.assertTrue;
+import static org.xper.allen.drawing.ga.GAMatchStickTest.PARTIAL_RF;
 
 public class AllenMStickDataTest {
     private TestDrawingWindow window;
@@ -48,12 +51,27 @@ public class AllenMStickDataTest {
 
     private AllenMatchStick matchStick;
     private final static String FILE_NAME = Paths.get(ResourceUtil.getResource("testBin"), "AllenMStickDataTest_testFile").toString();;
+    private ReceptiveField receptiveField;
+
+    private void setMStickData() {
+        matchStick = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
+        matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, 2), "SHADE");
+        matchStick.genMatchStickRand();
+
+//        matchStick = new AllenMatchStick();
+//        matchStick.setProperties(5, "SHADE");
+//        matchStick.genMatchStickRand();
+//
+
+
+        data = (AllenMStickData) matchStick.getMStickData();
+    }
 
     @Before
     public void setUp() throws Exception {
         drawables = new LinkedList<>();
-        setMStickData();
         getTestDrawingWindow();
+        setMStickData();
     }
 
     @After
@@ -82,22 +100,108 @@ public class AllenMStickDataTest {
             AllenMAxisArc mAxis = tubeComp.getmAxisInfo();
 
             testShaftLength(i, shaftData);
-            testSphericalPosition(matchStick, i, shaftData.angularPosition, shaftData.radialPosition);
+            testSphericalPosition(i, shaftData.angularPosition, shaftData.radialPosition);
             testShaftOrientation(i, shaftData);
-            testRadius(i, shaftData.radius, mAxis.getmPts()[26], mAxis.getmTangent()[26]);
-            testShaftCurvature(shaftData, mAxis, i);
+
+
+            testShaftRadius(i, shaftData);
+//            testShaftCurvature(shaftData, mAxis, i);
+
+            System.out.println(shaftData.radialPosition);
         }
 
         window.animateRotation(drawables, 1, 10000);
+
     }
 
-    private void setMStickData() {
-        matchStick = new AllenMatchStick();
-        matchStick.setProperties(5, "SHADE");
-        matchStick.genMatchStickRand();
+    private void testShaftRadius(int i, ShaftData shaftData) {
+        Point3d massCenter = data.getMassCenter();
+        Point3d shaftCenter = CoordinateConverter.sphericalToPoint(new SphericalCoordinates(shaftData.radialPosition, shaftData.angularPosition));
+        shaftCenter.add(massCenter);
 
-        data = (AllenMStickData) matchStick.getMStickData();
+        double radius = shaftData.radius;
+        Vector3d tangent = CoordinateConverter.sphericalToVector(1, shaftData.orientation);
+        tangent.normalize();
+
+        // 1. Create two vectors that define the plane of our disk
+        // First basis vector - perpendicular to tangent
+        Vector3d normalizedTangent = new Vector3d(tangent);
+        normalizedTangent.normalize();
+
+        Vector3d basis1 = new Vector3d();
+        basis1.cross(normalizedTangent, new Vector3d(1,0,0));
+        if (basis1.length() < 1e-6) {
+            basis1.cross(normalizedTangent, new Vector3d(0,1,0));
+        }
+        basis1.normalize();
+
+        // Second basis vector - also perpendicular to tangent
+        Vector3d basis2 = new Vector3d();
+        basis2.cross(normalizedTangent, basis1);
+        basis2.normalize();
+
+        // 2. Generate points around the circle
+        List<Point3d> disk = new LinkedList<>();
+        for (double theta = 0; theta < 2*Math.PI; theta += Math.PI/100) {
+            // For each angle theta, compute position using:
+            // point = center + radius * (basis1*cos(theta) + basis2*sin(theta))
+            Vector3d circleVector = new Vector3d();
+            circleVector.scaleAdd(Math.cos(theta), basis1,
+                    new Vector3d(basis2.x * Math.sin(theta),
+                            basis2.y * Math.sin(theta),
+                            basis2.z * Math.sin(theta)));
+            circleVector.scale(radius);
+
+            Point3d diskPoint = new Point3d(shaftCenter);
+            diskPoint.add(circleVector);
+            disk.add(diskPoint);
+        }
+
+        drawLine(disk, COMP_COLORS.get(i));
     }
+
+    private void testShaftOrientation(int i, ShaftData shaftData) {
+        Point3d massCenter = data.getMassCenter();
+        Vector3d orientation = CoordinateConverter.sphericalToVector(5, shaftData.orientation);
+
+        Point3d startPoint = CoordinateConverter.sphericalToPoint(shaftData.radialPosition, shaftData.angularPosition);
+        startPoint.add(massCenter);
+
+        List<Point3d> tangentLine = CoordinateConverter.vectorToLine(orientation, 50, startPoint);
+
+        raiseLine(tangentLine);
+        drawLine(tangentLine, new RGBColor(1,0,1));
+    }
+
+    private void testShaftLength(int i, ShaftData shaftData) {
+        double length = shaftData.length;
+//           Point3d startPoint = new Point3d(-50,-50 - i*10,0);
+        Point3d startPoint = new Point3d(-5,-25 + (i *5),-10);
+        List<Point3d> shaftLengthLine = CoordinateConverter.vectorToLine(new Vector3d(length, 0, 0), 50, startPoint);
+        raiseLine(shaftLengthLine);
+        drawLine(shaftLengthLine, COMP_COLORS.get(i));
+    }
+
+    private void testSphericalPosition(int i, AngularCoordinates angularPosition, double radialPosition) {
+
+        Point3d massCenter = data.getMassCenter();
+
+        Vector3d shaftAxis = CoordinateConverter.sphericalToVector(new SphericalCoordinates(radialPosition, angularPosition));
+        List<Point3d> shaftLine = CoordinateConverter.vectorToLine(shaftAxis, 100, massCenter);
+
+        raiseLine(shaftLine);
+        drawLine(shaftLine, COMP_COLORS.get(i));
+    }
+
+
+
+//    private void setMStickData() {
+//        matchStick = new AllenMatchStick();
+//        matchStick.setProperties(5, "SHADE");
+//        matchStick.genMatchStickRand();
+//
+//        data = (AllenMStickData) matchStick.getMStickData();
+//    }
 
     @Test
     public void testTerminationData(){
@@ -106,7 +210,7 @@ public class AllenMStickDataTest {
         int numTerminations = data.getTerminationData().size();
         for (int i=0; i<numTerminations; i++){
             TerminationData terminationData = data.terminationData.get(i);
-            testSphericalPosition(matchStick, i, terminationData.angularPosition, terminationData.radialPosition);
+            testSphericalPosition(i, terminationData.angularPosition, terminationData.radialPosition);
             testTerminationOrientation(i, terminationData);
             testTerminationRadius(i, terminationData);
         }
@@ -128,7 +232,7 @@ public class AllenMStickDataTest {
             JunctionData junctionData = data.junctionData.get(i);
             JuncPt_struct juncPt_struct = matchStick.getJuncPt()[i + 1];
 
-            testSphericalPosition(matchStick, i, junctionData.angularPosition, junctionData.radialPosition);
+            testSphericalPosition(i, junctionData.angularPosition, junctionData.radialPosition);
             testJunctionBisector(junctionData, juncPt_struct);
 
         }
@@ -155,7 +259,7 @@ public class AllenMStickDataTest {
     private void testTerminationRadius(int i, TerminationData terminationData) {
         Point3d startPoint = CoordinateConverter.sphericalToPoint(terminationData.getRadialPosition(), terminationData.getAngularPosition());
         Vector3d orientation = CoordinateConverter.sphericalToVector(1, terminationData.direction);
-        testRadius(i, terminationData.radius, startPoint, orientation);
+//        testRadius(i, terminationData.radius, startPoint, orientation);
     }
 
     private void testTerminationOrientation(int i, TerminationData terminationData) {
@@ -173,58 +277,24 @@ public class AllenMStickDataTest {
 
         AllenMAxisArc mAxisArc = new AllenMAxisArc();
         mAxisArc.genArc(curvatureRadius, length);
-        mAxisArc.transRotMAxis(mAxis.getTransRotHis_alignedPt(), mAxisArc.getTransRotHis_finalPos(), mAxisArc.getTransRotHis_rotCenter(), mAxisArc.getTransRotHis_finalTangent(), mAxisArc.getTransRotHis_devAngle());
-        List<Point3d> line = Arrays.asList(mAxis.getmPts());
+        mAxisArc.transRotMAxis(mAxis.getTransRotHis_alignedPt(), mAxis.getTransRotHis_finalPos(), mAxis.getTransRotHis_rotCenter(), mAxis.getTransRotHis_finalTangent(), mAxis.getTransRotHis_devAngle());
+        List<Point3d> line = Arrays.asList(mAxisArc.getmPts());
         line = line.subList(1,51);
         for (Point3d point:line){
-            point.add(new Point3d(20,0,0));
+            point.add(data.massCenter);
+//            point.sub(new Point3d(data.massCenter));
+//            point.sub(new Point3d(data.massCenter));
+//            point.sub(new Point3d(data.massCenter));
+//            point.sub(new Point3d(data.massCenter));
+//            point.sub(new Point3d(data.massCenter));
+//            point.sub(new Point3d(data.massCenter));
+//            point.sub(new Point3d(data.massCenter));
+
         }
         drawLine(line, COMP_COLORS.get(i));
     }
 
-    private void testRadius(int i, double radius, Point3d startPoint, Vector3d tangent) {
-        Vector3d normal = new Vector3d();
-        normal.cross(tangent, new Vector3d(1,0,0));
-        List<Point3d> disk = new LinkedList<>();
-        for (double rot_degree=0; rot_degree < 2* Math.PI; rot_degree+=Math.PI/100){
-            Vector3d nextDiskPoint = stickMath_lib.rotVecArAxis(normal, tangent, rot_degree);
-            nextDiskPoint.normalize();
-            nextDiskPoint.scale(radius);
-            nextDiskPoint.add(startPoint);
-            disk.add(new Point3d(nextDiskPoint.x, nextDiskPoint.y, nextDiskPoint.z));
-        }
 
-        drawLine(disk, COMP_COLORS.get(i));
-
-    }
-
-    private void testShaftOrientation(int i, ShaftData shaftData) {
-        Vector3d orientation = CoordinateConverter.sphericalToVector(5, shaftData.orientation);
-        Point3d startPoint = CoordinateConverter.sphericalToPoint(shaftData.radialPosition, shaftData.angularPosition);
-        List<Point3d> tangentLine = CoordinateConverter.vectorToLine(orientation, 50, startPoint);
-        raiseLine(tangentLine);
-        drawLine(tangentLine, new RGBColor(1,0,1));
-    }
-
-    private void testShaftLength(int i, ShaftData shaftData) {
-        double length = shaftData.length;
-//           Point3d startPoint = new Point3d(-50,-50 - i*10,0);
-        Point3d startPoint = new Point3d(-5,-25 + (i *5),-10);
-        List<Point3d> shaftLengthLine = CoordinateConverter.vectorToLine(new Vector3d(length, 0, 0), 50, startPoint);
-        raiseLine(shaftLengthLine);
-        drawLine(shaftLengthLine, COMP_COLORS.get(i));
-    }
-
-    private void testSphericalPosition(AllenMatchStick matchStick, int i, AngularCoordinates angularPosition, double radialPosition) {
-
-        Point3d massCenter = matchStick.getMassCenter();
-
-        Vector3d shaftAxis = CoordinateConverter.sphericalToVector(new SphericalCoordinates(radialPosition, angularPosition));
-        List<Point3d> shaftLine = CoordinateConverter.vectorToLine(shaftAxis, 100, massCenter);
-
-        raiseLine(shaftLine);
-        drawLine(shaftLine, COMP_COLORS.get(i));
-    }
 
     private void raiseLine(List<Point3d> line) {
         for(Point3d point: line){
@@ -235,7 +305,7 @@ public class AllenMStickDataTest {
 
 
     private void getTestDrawingWindow() {
-        window = TestDrawingWindow.createDrawerWindow(500, 500);
+        window = TestDrawingWindow.createDrawerWindow(1000, 1000);
     }
 
 

@@ -77,9 +77,9 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
 
 
         saveMStickSpec(mStick);
+        drawCompMaps(mStick);
 
         D mStickData = (D) mStick.getMStickData();
-        drawCompMaps(mStick);
         String pngPath = drawPngs(mStick);
         writeStimSpec(pngPath, mStickData);
 
