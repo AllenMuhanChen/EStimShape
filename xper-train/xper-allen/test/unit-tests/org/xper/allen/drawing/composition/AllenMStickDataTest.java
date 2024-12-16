@@ -125,6 +125,10 @@ public class AllenMStickDataTest {
         Vector3d tangent = CoordinateConverter.sphericalToVector(1, shaftData.orientation);
         tangent.normalize();
 
+        testRadius(i, tangent, radius, shaftCenter);
+    }
+
+    private void testRadius(int i, Vector3d tangent, double radius, Point3d ringCenter) {
         // 1. Create two vectors that define the plane of our disk
         // First basis vector - perpendicular to tangent
         Vector3d normalizedTangent = new Vector3d(tangent);
@@ -154,7 +158,7 @@ public class AllenMStickDataTest {
                             basis2.z * Math.sin(theta)));
             circleVector.scale(radius);
 
-            Point3d diskPoint = new Point3d(shaftCenter);
+            Point3d diskPoint = new Point3d(ringCenter);
             diskPoint.add(circleVector);
             disk.add(diskPoint);
         }
@@ -213,11 +217,18 @@ public class AllenMStickDataTest {
         for (int i=0; i<numTerminations; i++){
             TerminationData terminationData = data.terminationData.get(i);
 //            testSphericalPosition(i, terminationData.angularPosition, terminationData.radialPosition);
-            testTerminationOrientation(i, terminationData);
-//            testTerminationRadius(i, terminationData);
+//            testTerminationOrientation(i, terminationData);
+            testTerminationRadius(i, terminationData);
         }
 
         window.animateRotation(drawables, 1, 10000);
+    }
+
+    private void testTerminationOrientation(int i, TerminationData terminationData) {
+        Vector3d tangent = CoordinateConverter.sphericalToVector(10, terminationData.direction);
+        Point3d endPtPosition = CoordinateConverter.sphericalToPoint(terminationData.getRadialPosition(), terminationData.angularPosition);
+        endPtPosition.add(data.getMassCenter());
+        drawLine(CoordinateConverter.vectorToLine(tangent, 50, endPtPosition), COMP_COLORS.get(i));
     }
 
     @Test
@@ -260,14 +271,10 @@ public class AllenMStickDataTest {
 
     private void testTerminationRadius(int i, TerminationData terminationData) {
         Point3d startPoint = CoordinateConverter.sphericalToPoint(terminationData.getRadialPosition(), terminationData.getAngularPosition());
+        Point3d massCenter = data.getMassCenter();
+        startPoint.add(massCenter);
         Vector3d orientation = CoordinateConverter.sphericalToVector(1, terminationData.direction);
-//        testRadius(i, terminationData.radius, startPoint, orientation);
-    }
-
-    private void testTerminationOrientation(int i, TerminationData terminationData) {
-        Vector3d tangent = CoordinateConverter.sphericalToVector(10, terminationData.direction);
-        Point3d endPtPosition = CoordinateConverter.sphericalToPoint(terminationData.getRadialPosition(), terminationData.angularPosition);
-        drawLine(CoordinateConverter.vectorToLine(tangent, 50, endPtPosition), COMP_COLORS.get(i));
+        testRadius(i, orientation, terminationData.radius, startPoint);
     }
 
     private void testShaftCurvature(ShaftData shaftData, AllenMAxisArc mAxis, int i) {
