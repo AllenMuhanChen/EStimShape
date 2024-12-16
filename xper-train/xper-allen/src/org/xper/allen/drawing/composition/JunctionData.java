@@ -10,6 +10,8 @@ public class JunctionData {
     double radius;
     Double angularSubtense;
     Double planarRotation;
+    List<Integer> connectedCompIds = new LinkedList<>();
+    Integer id;
 
     public JunctionData(AngularCoordinates angularPosition, double radialPosition, AngularCoordinates angleBisectorDirection, double radius, Double angularSubtense, Double planarRotation) {
         this.angularPosition = angularPosition;
@@ -69,6 +71,22 @@ public class JunctionData {
 
     public void setPlanarRotation(Double planarRotation) {
         this.planarRotation = planarRotation;
+    }
+
+    public List<Integer> getConnectedCompIds() {
+        return connectedCompIds;
+    }
+
+    public void setConnectedCompIds(List<Integer> connectedCompIds) {
+        this.connectedCompIds = connectedCompIds;
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
     }
 
     @Override

@@ -4562,6 +4562,8 @@ public class AllenMatchStick extends MatchStick {
 					jData.angleBisectorDirection = new AngularCoordinates(angleBisectorDirection.get(index));
 					jData.angularSubtense = angularSubtense.get(index);
 					jData.planarRotation = planarRotations.get(index);
+					jData.setConnectedCompIds(Arrays.asList(juncPt.getCompIds()[j], juncPt.getCompIds()[k]));
+					jData.setId(i);
 					junctionDatas.add(jData);
 					index++;
 				}

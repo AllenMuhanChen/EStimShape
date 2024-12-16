@@ -106,7 +106,7 @@ public class MorphedMatchStick extends AllenMatchStick {
             }
         }
         if (numAttempts >= getMaxTotalAttempts()) {
-            throw new MorphException("Failed to morph matchstick after " + getMaxTotalAttempts() + " attempts.");
+            throw new MorphException("Failed to add limbs to matchstick after " + getMaxTotalAttempts() + " attempts.");
         }
     }
 

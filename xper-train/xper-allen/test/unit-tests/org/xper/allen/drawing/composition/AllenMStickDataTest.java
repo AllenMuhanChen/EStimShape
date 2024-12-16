@@ -31,7 +31,6 @@ import java.sql.SQLException;
 import java.util.*;
 
 import static org.junit.Assert.assertTrue;
-import static org.xper.allen.drawing.ga.GAMatchStickTest.COMPLETE_RF;
 import static org.xper.allen.drawing.ga.GAMatchStickTest.PARTIAL_RF;
 
 public class AllenMStickDataTest {
@@ -60,7 +59,7 @@ public class AllenMStickDataTest {
         parentStick.genMatchStickRand();
 
         matchStick = new GrowingMatchStick(PARTIAL_RF, 1/3.0, RFStrategy.PARTIALLY_INSIDE, "SHADE");
-        matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, 2), "SHADE");
+        matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, 1.5), "SHADE");
 
         ((GrowingMatchStick) matchStick).genGrowingMatchStick(parentStick, 0.5);
 
@@ -253,32 +252,33 @@ public class AllenMStickDataTest {
     public void testJunctionData(){
         drawMStick(matchStick);
 
-        int numJunctions = data.getJunctionData().size();
-        for (int i=0; i<numJunctions; i++){
+
+        for (int i=0; i<data.junctionData.size(); i++) {
             JunctionData junctionData = data.junctionData.get(i);
-            JuncPt_struct juncPt_struct = matchStick.getJuncPt()[i + 1];
+            JuncPt_struct juncPt_struct = matchStick.getJuncPt()[junctionData.getId()];
 
-            testSphericalPosition(i, junctionData.angularPosition, junctionData.radialPosition);
-            testJunctionBisector(junctionData, juncPt_struct);
-
+//            testSphericalPosition(i, junctionData.angularPosition, junctionData.radialPosition);
+            testJunctionBisector(junctionData, juncPt_struct,junctionData.getConnectedCompIds().get(0), junctionData.getConnectedCompIds().get(1) );
         }
+
+
         window.animateRotation(drawables, 1, 10000);
     }
 
-    private void testJunctionBisector(JunctionData junctionData, JuncPt_struct juncPt_struct) {
-            Vector3d angleBisector = CoordinateConverter.sphericalToVector(20, junctionData.getAngleBisectorDirection());
+    private void testJunctionBisector(JunctionData junctionData, JuncPt_struct juncPt_struct, int comp1, int comp2) {
+            Vector3d angleBisector = CoordinateConverter.sphericalToVector(10, junctionData.getAngleBisectorDirection());
             Point3d juncLocation = CoordinateConverter.sphericalToPoint(junctionData.getRadialPosition(), junctionData.getAngularPosition());
             juncLocation.add(data.getMassCenter());
 
-            List<Point3d> angleBisectorLine = CoordinateConverter.vectorToLine(angleBisector, 50, juncLocation);
-            drawLine(angleBisectorLine, new RGBColor(1,1,0));
+//            List<Point3d> angleBisectorLine = CoordinateConverter.vectorToLine(angleBisector, 50, juncLocation);
+//            drawLine(angleBisectorLine, new RGBColor(1,1,0));
 
-            Vector3d bisectedVector1 = juncPt_struct.getTangent()[1];
+            Vector3d bisectedVector1 = juncPt_struct.getTangentOfOwner(comp1);
             bisectedVector1.scale(10);
             List<Point3d> bisectedLine1 = CoordinateConverter.vectorToLine(bisectedVector1, 50, juncLocation);
             drawLine(bisectedLine1, new RGBColor(0,1,0));
 
-            Vector3d bisectedVector2 = juncPt_struct.getTangent()[2];
+            Vector3d bisectedVector2 = juncPt_struct.getTangentOfOwner(comp2);
             bisectedVector2.scale(10);
             List<Point3d> bisectedLine2 = CoordinateConverter.vectorToLine(bisectedVector2, 50, juncLocation);
             drawLine(bisectedLine2, new RGBColor(0,1,0));
