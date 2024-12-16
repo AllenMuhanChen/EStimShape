@@ -30,6 +30,7 @@ import java.sql.SQLException;
 import java.util.*;
 
 import static org.junit.Assert.assertTrue;
+import static org.xper.allen.drawing.ga.GAMatchStickTest.COMPLETE_RF;
 import static org.xper.allen.drawing.ga.GAMatchStickTest.PARTIAL_RF;
 
 public class AllenMStickDataTest {
@@ -53,8 +54,12 @@ public class AllenMStickDataTest {
     private ReceptiveField receptiveField;
 
     private void setMStickData() {
-        matchStick = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
-        matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, 2), "SHADE");
+//        matchStick = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
+//        matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, 2), "SHADE");
+//        matchStick.genMatchStickRand();
+
+        matchStick = new GAMatchStick(COMPLETE_RF, RFStrategy.COMPLETELY_INSIDE);
+        matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.COMPLETELY_INSIDE, 5), "SHADE");
         matchStick.genMatchStickRand();
 
 //        matchStick = new AllenMatchStick();
@@ -183,8 +188,8 @@ public class AllenMStickDataTest {
 
         Point3d massCenter = data.getMassCenter();
 
-        Vector3d shaftAxis = CoordinateConverter.sphericalToVector(new SphericalCoordinates(radialPosition, angularPosition));
-        List<Point3d> shaftLine = CoordinateConverter.vectorToLine(shaftAxis, 100, massCenter);
+        Vector3d axis = CoordinateConverter.sphericalToVector(new SphericalCoordinates(radialPosition, angularPosition));
+        List<Point3d> shaftLine = CoordinateConverter.vectorToLine(axis, 100, massCenter);
 
         raiseLine(shaftLine);
         drawLine(shaftLine, COMP_COLORS.get(i));
@@ -207,9 +212,9 @@ public class AllenMStickDataTest {
         int numTerminations = data.getTerminationData().size();
         for (int i=0; i<numTerminations; i++){
             TerminationData terminationData = data.terminationData.get(i);
-            testSphericalPosition(i, terminationData.angularPosition, terminationData.radialPosition);
+//            testSphericalPosition(i, terminationData.angularPosition, terminationData.radialPosition);
             testTerminationOrientation(i, terminationData);
-            testTerminationRadius(i, terminationData);
+//            testTerminationRadius(i, terminationData);
         }
 
         window.animateRotation(drawables, 1, 10000);

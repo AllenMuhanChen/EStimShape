@@ -19,8 +19,8 @@ public class GAMatchStickTest {
     String figPath = "/home/r2_allen/Pictures";
 
     public static final ReceptiveField PARTIAL_RF = new ReceptiveField() {
-        double h = 20;
-        double k = 20;
+        double h = 30;
+        double k = 30;
         double r = 10;
 
         {
@@ -38,9 +38,9 @@ public class GAMatchStickTest {
         }
     };
     public static final ReceptiveField COMPLETE_RF = new ReceptiveField() {
-        double h = 20;
-        double k = 30;
-        double r = 10;
+        double h = 50;
+        double k = 50;
+        double r = 20;
 
         {
             center = new Coordinates2D(h, k);

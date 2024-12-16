@@ -4702,8 +4702,8 @@ public class AllenMatchStick extends MatchStick {
 
 
 		this.setObj1(MObj[1]);
-		this.getObj1().rotateMesh(getFinalRotation());
 		this.getObj1().scaleTheObj(getScaleForMAxisShape()); //AC: IMPORTANT CHANGE
+		this.getObj1().rotateMesh(getFinalRotation());
 
 
 		if (isDoCenterObject()) {
@@ -4722,6 +4722,7 @@ public class AllenMatchStick extends MatchStick {
 			for (Point3d point : vect_info) {
 				if (point != null) {
 					point.scale(getScaleForMAxisShape());
+//					point.set(transCorScalePoint(point));
 				}
 			}
 		}
@@ -4856,6 +4857,60 @@ public class AllenMatchStick extends MatchStick {
 
 			// don't change the devAngle
 			//comp[i].mAxisInfo.transRotHis_devAngle =
+		}
+	}
+
+
+	public void modifyEndPtFinalInfoForAnalysis(){
+		// end of the change of component info
+		for (int endPtIndx=1; endPtIndx<=getNEndPt(); endPtIndx++){
+			EndPt_struct endPt = getEndPt()[endPtIndx];
+
+			//Scale
+			//Pos
+//			endPt.getPos().scale(this.getScaleForMAxisShape());
+			endPt.getPos().set(transCorScalePoint(endPt.getPos()));
+
+			//Rad
+			endPt.setRad(endPt.getRad()*getScaleForMAxisShape());
+
+			//Rotation
+			double[] rotVec = new double[3];
+			rotVec[0] = this.getFinalRotation()[0];
+			rotVec[1] = this.getFinalRotation()[1];
+			rotVec[2] = this.getFinalRotation()[2];
+			//Rot X
+			if (rotVec[0] != 0.0){
+				Transform3D transMat = getRotation(toRadians(rotVec[0]), new Vector3d(1,0,0));
+				//Pos
+				transMat.transform(endPt.getPos());
+				//Tangent
+				transMat.transform(endPt.getTangent());
+			}
+
+			//Rot Y
+			if (rotVec[1] != 0.0){
+				Transform3D transMat = getRotation(toRadians(rotVec[1]),
+						new Vector3d(0,1,0));
+				//Pos
+				transMat.transform(endPt.getPos());
+				//Tangent
+				transMat.transform(endPt.getTangent());
+			}
+
+			//Rot Z
+			if (rotVec[2] != 0.0){
+				Transform3D transMat = getRotation(toRadians(rotVec[2]),
+						new Vector3d(0,0,1));
+				//Pos
+				transMat.transform(endPt.getPos());
+				//Tangent
+				transMat.transform(endPt.getTangent());
+			}
+			endPt.getTangent().negate();
+
+
+
 		}
 	}
 
