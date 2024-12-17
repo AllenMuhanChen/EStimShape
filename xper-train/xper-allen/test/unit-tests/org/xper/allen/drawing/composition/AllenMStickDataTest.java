@@ -61,7 +61,7 @@ public class AllenMStickDataTest {
         matchStick = new GrowingMatchStick(PARTIAL_RF, 1/3.0, RFStrategy.PARTIALLY_INSIDE, "SHADE");
         matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, 1.5), "SHADE");
 
-        ((GrowingMatchStick) matchStick).genGrowingMatchStick(parentStick, 0.5);
+        ((GrowingMatchStick) matchStick).genAddedLimbsMatchStick(parentStick, 1);
 
 //        matchStick = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 //        matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, 2), "SHADE");
@@ -78,6 +78,12 @@ public class AllenMStickDataTest {
 
 
         data = (AllenMStickData) matchStick.getMStickData();
+        System.out.println("Mass Center Data: ");
+        System.out.println(data.getMassCenter());
+        System.out.println("Termination Data: ");
+        System.out.println(data.getTerminationData());
+
+//        System.out.println(data.toXml());
     }
 
     @Before
@@ -257,8 +263,8 @@ public class AllenMStickDataTest {
             JunctionData junctionData = data.junctionData.get(i);
             JuncPt_struct juncPt_struct = matchStick.getJuncPt()[junctionData.getId()];
 
-//            testSphericalPosition(i, junctionData.angularPosition, junctionData.radialPosition);
-            testJunctionBisector(junctionData, juncPt_struct,junctionData.getConnectedCompIds().get(0), junctionData.getConnectedCompIds().get(1) );
+            testSphericalPosition(i, junctionData.angularPosition, junctionData.radialPosition);
+//            testJunctionBisector(junctionData, juncPt_struct,junctionData.getConnectedCompIds().get(0), junctionData.getConnectedCompIds().get(1) );
         }
 
 

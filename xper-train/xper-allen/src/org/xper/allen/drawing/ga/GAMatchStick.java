@@ -153,7 +153,6 @@ public class GAMatchStick extends MorphedMatchStick {
 
     @Override
     protected void positionShape() throws MorphException {
-
         RFUtils.positionAroundRF(rfStrategy, this, rf, 1000);
     }
 

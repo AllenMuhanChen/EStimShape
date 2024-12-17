@@ -1,6 +1,7 @@
 package org.xper.allen.drawing.composition.morph;
 
 import org.xper.allen.drawing.composition.AllenMAxisArc;
+import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.drawing.stick.EndPt_struct;
@@ -50,6 +51,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         int numAttempts = 0;
         while (numAttempts < getMaxTotalAttempts()) {
             try {
+                System.out.println("Attempting to genMorpheedComponechStick");
                 numAttempts++;
 
                 findCompsToPreserve(morphParametersForComponents.keySet());
@@ -80,6 +82,11 @@ public class MorphedMatchStick extends AllenMatchStick {
         this.showComponents = false;
 
         MorphedMatchStick backup = new MorphedMatchStick();
+//        backup.setProperties(this.getScaleForMAxisShape(), getTextureType());
+//        backup.setStimColor(getStimColor());
+//        AllenMStickSpec backupSpec = new AllenMStickSpec();
+//        backupSpec.setMStickInfo(matchStickToMorph, false);
+//        backup.genMatchStickFromShapeSpec(backupSpec, new double[]{0.0,0.0,0.0});
         backup.copyFrom(matchStickToMorph);
         copyFrom(backup);
 
@@ -88,12 +95,19 @@ public class MorphedMatchStick extends AllenMatchStick {
         int numAttempts = 0;
         while (numAttempts < getMaxTotalAttempts()) {
             try {
+                System.out.println("Attempting to add limbs to matchstick");
                 numAttempts++;
                 addComps(nCompsToAdd);
+                updateEndPtsAndJunctionPositions();
                 centerShape();
                 applyRadiusProfile();
                 attemptSmoothizeMStick();
                 positionShape();
+                System.out.println("massCenter in morph: ");
+                System.out.println(getMassCenter().toString());
+                System.out.println("EndPtInfo in Morph:");
+                System.out.println(getEndPt()[1].toString());
+                System.out.println("Successfully added limbs to matchstick");
                 return;
             } catch (MorphException e) {
                 cleanData();
@@ -188,6 +202,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                     }
                 }
                 removeComponent(removeFlags);
+                updateEndPtsAndJunctionPositions();
                 centerShape();
                 applyRadiusProfile();
                 attemptSmoothizeMStick();

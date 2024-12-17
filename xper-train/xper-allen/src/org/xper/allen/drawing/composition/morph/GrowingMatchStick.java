@@ -72,12 +72,15 @@ public class GrowingMatchStick extends GAMatchStick {
 
 
             if (morphOutsideRF && !morphInsideRF){
+                System.out.println("Morphing outside RF");
                 genOutsideRFMorphedMStick(matchStickToMorph, magnitude);
             }
             if (morphInsideRF && !morphOutsideRF) {
+                System.out.println("Morphing inside RF");
                 genInsideRFMorphedMStick(matchStickToMorph, magnitude);
             }
             if (morphOutsideRF && morphInsideRF) {
+                System.out.println("Morphing both inside and outside RF");
                 genOutsideRFMorphedMStick(matchStickToMorph, magnitude);
                 genInsideRFMorphedMStick(this, magnitude);
             }

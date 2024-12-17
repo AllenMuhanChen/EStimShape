@@ -8,6 +8,7 @@ import javax.media.j3d.Transform3D;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
+import com.thoughtworks.xstream.converters.ConversionException;
 import org.lwjgl.opengl.GL11;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
@@ -1194,6 +1195,7 @@ public class AllenMatchStick extends MatchStick {
 		for (int i=1; i<=getnJuncPt(); i++)
 		{
 			getJuncPt()[i].getPos().add(shiftVec);
+
 		}
 		for (int i=1; i<=getnEndPt(); i++)
 		{
@@ -3422,6 +3424,8 @@ public class AllenMatchStick extends MatchStick {
 			int[] compList = { getEndPt()[nowPtNdx].getComp(), nowComp};
 			int[] uNdxList = { getEndPt()[nowPtNdx].getuNdx(), 1};
 			Vector3d[] tangentList = { oriTangent, finalTangent};
+//			tangentList[0].negate();
+
 			getJuncPt()[getnJuncPt()] = new JuncPt_struct(2, compList, uNdxList, finalPos, 2, tangentList, compList, getEndPt()[nowPtNdx].getRad());
 			getComp()[nowComp].initSet( nowArc, false, 1); // the MAxisInfo, and the branchUsed
 
@@ -4712,24 +4716,6 @@ public class AllenMatchStick extends MatchStick {
 			setFinalShiftinDepth(this.getObj1().subCenterOfMass());
 		}
 
-		//AC addition for RF relative positioning: scale the comp vect_info as well.
-		//We do the scaling here instead of relying on TubeComp to do it because
-		//tubecomp will only do it during drawSurfPt, but we want to be able to rely
-		//on this information being accurate before and if we don't call drawSurfPt.
-		//If we are properly calling RadAppliedFactory then we don't have to worry about keeping this
-		//information stable for smoothing the next morph of this mStick.
-		for (i = 1; i <= getnComponent(); i++) {
-			getComp()[i].setScaleOnce(false); //don't scale it again when drawSurfPt is called because we do it here
-			Point3d[] vect_info = getComp()[i].getVect_info();
-			for (Point3d point : vect_info) {
-				if (point != null) {
-					point.scale(getScaleForMAxisShape());
-//					point.set(transCorScalePoint(point));
-				}
-			}
-		}
-
-
 		return true;
 	}
 
@@ -4740,11 +4726,14 @@ public class AllenMatchStick extends MatchStick {
 	 */
 	public Point3d transCorScalePoint(Point3d point){
 		Point3d scaledPoint = new Point3d(point);
-		scaledPoint.sub(getMassCenter());
+		Point3d massCenter = getMassCenter();
+		scaledPoint.sub(massCenter);
 		scaledPoint.scale(getScaleForMAxisShape());
-		scaledPoint.add(getMassCenter());
+		scaledPoint.add(massCenter);
+
 		return scaledPoint;
 	}
+
 	/**
 	 * Adding some functionality to correct information
 	 * because of shifting.
@@ -4771,7 +4760,7 @@ public class AllenMatchStick extends MatchStick {
 			TubeComp tubeComp = getComp()[i];
 			MAxisArc mAxisArc = tubeComp.getmAxisInfo();
 
-			for (j=0; j<=51; j++)
+			for (j=1; j<=51; j++)
 			{
 				mAxisArc.getmPts()[j] = transCorScalePoint(mAxisArc.getmPts()[j]);
 				// comp[i].mAxisInfo.mPts[j].add(this.finalShiftinDepth);
@@ -4871,7 +4860,14 @@ public class AllenMatchStick extends MatchStick {
 			//Scale
 			//Pos
 //			endPt.getPos().scale(this.getScaleForMAxisShape());
+//			endPt.getPos().sub(getMassCenter());
+			System.out.println("EndPt Diff from MassCenter: ");
+			System.out.println(endPt.getPos().distance(getMassCenter()));
+			System.out.println("EndPt Pos Before transCorScale:");
+			System.out.println(endPt.getPos());
 			endPt.getPos().set(transCorScalePoint(endPt.getPos()));
+			System.out.println("EndPt Pos After transCorScale:");
+			System.out.println(endPt.getPos());
 
 			//Rad
 			endPt.setRad(endPt.getRad()*getScaleForMAxisShape());

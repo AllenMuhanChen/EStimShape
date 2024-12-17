@@ -6,10 +6,7 @@ import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.drawing.Coordinates2D;
 
 import javax.vecmath.Point3d;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 public class RFUtils {
     public static double calculateMStickMaxSizeDiameterDegrees(RFStrategy rfStrategy, double rfRadiusDegrees) {
@@ -97,29 +94,60 @@ public class RFUtils {
     }
 
     private static boolean checkCompInRF(int compIndx, double thresholdPercentageInRF, AllenMatchStick mStick, ReceptiveField rf) {
-        int numPoints = 0;
         int numPointsInside = 0;
-        for (Point3d point: mStick.getComp()[compIndx].getVect_info()){
-            if (point != null) {
+        List<Point3d> pointsToCheck = getCorrectedVectPoints(compIndx, mStick);
+
+        int numPoints = 0;
+        for (Point3d correctedPoint: pointsToCheck){
+            if (correctedPoint != null) {
                 numPoints++;
-                if (rf.isInRF(point.x, point.y)) {
+                if (rf.isInRF(correctedPoint.x, correctedPoint.y)) {
                     numPointsInside++;
                 }
             }
         }
 
+
+
         double percentageInRF = (double) numPointsInside / numPoints;
         return percentageInRF >= thresholdPercentageInRF;
+    }
+
+    /**
+     * matchstick comps' vect_info is not scaled by scale, however it is translated.
+     *
+     * We need to undo the translation by mass center to center it around the origin by its mass center, then do
+     * the scaling, then translate it back to its original position.
+     * @param compIndx
+     * @param mStick
+     * @return
+     */
+    public static List<Point3d> getCorrectedVectPoints(int compIndx, AllenMatchStick mStick) {
+        Point3d massCenter = mStick.getMassCenter();
+        List<Point3d> pointsToCheck = new ArrayList<>();
+        for (Point3d point : mStick.getComp()[compIndx].getVect_info()){
+            if (point != null)
+                pointsToCheck.add(new Point3d(point));
+        }
+
+        for (Point3d pointToCorrect: pointsToCheck){
+            if (pointToCorrect != null) {
+                pointToCorrect.sub(massCenter);
+                pointToCorrect.scale(mStick.getScaleForMAxisShape());
+                pointToCorrect.add(massCenter);
+
+            }
+        }
+        return pointsToCheck;
     }
 
     private static boolean checkAllInRF(double thresholdPercentageInRF, ReceptiveField rf, AllenMatchStick mStick) {
         List<Point3d> pointsToCheck = new ArrayList<>();
         List<Point3d> pointsInside = new ArrayList<>();
 
-        for (int i=1; i<=mStick.getnComponent(); i++){
-            pointsToCheck.addAll(Arrays.asList(mStick.getComp()[i].getVect_info()));
+        for (int i = 1; i <= mStick.getnComponent(); i++) {
+            pointsToCheck.addAll(getCorrectedVectPoints(i, mStick));
         }
-//        pointsToCheck.addAll(Arrays.asList(mStick.getObj1().vect_info));
 
         int numPoints = 0;
         for (Point3d point: pointsToCheck){
@@ -142,7 +170,7 @@ public class RFUtils {
 
         for (int i = 1; i<= matchStick.getnComponent(); i++){
             if (i != compInRF) {
-                pointsToCheck.addAll(Arrays.asList(matchStick.getComp()[i].getVect_info()));
+                pointsToCheck.addAll(getCorrectedVectPoints(i, matchStick));
             }
         }
 
