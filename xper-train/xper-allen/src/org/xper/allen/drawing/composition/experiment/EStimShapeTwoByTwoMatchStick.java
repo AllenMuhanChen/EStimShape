@@ -261,17 +261,17 @@ public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
         //on this information being accurate before and if we don't call drawSurfPt.
         //If we are properly calling RadAppliedFactory then we don't have to worry about keeping this
         //information stable for smoothing the next morph of this mStick.
-        for (i = 1; i <= getnComponent(); i++) {
-            getComp()[i].setScaleOnce(false); //don't scale it again when drawSurfPt is called because we do it here
-            Point3d[] vect_info = getComp()[i].getVect_info();
-            for (Point3d point : vect_info) {
-                if (point != null) {
-                    point.sub(shiftVec);
-                    point.scale(getScaleForMAxisShape());
-                    point.add(shiftVec);
-                }
-            }
-        }
+//        for (i = 1; i <= getnComponent(); i++) {
+//            getComp()[i].setScaleOnce(false); //don't scale it again when drawSurfPt is called because we do it here
+//            Point3d[] vect_info = getComp()[i].getVect_info();
+//            for (Point3d point : vect_info) {
+//                if (point != null) {
+//                    point.sub(shiftVec);
+//                    point.scale(getScaleForMAxisShape());
+//                    point.add(shiftVec);
+//                }
+//            }
+//        }
 
 
         return true;

@@ -23,7 +23,12 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
 
     @Override
     protected void chooseColor() {
-        color = colorManager.readProperty(parentId);
+        try {
+            color = colorManager.readProperty(parentId);
+        } catch (Exception e) {
+            color = new RGBColor(1, 1, 1);
+            System.err.println("Failed to read color from database, using default color: " + color.toString());
+        }
     }
 
     @Override

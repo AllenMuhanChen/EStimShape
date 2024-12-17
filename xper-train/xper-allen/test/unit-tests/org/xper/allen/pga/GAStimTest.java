@@ -38,7 +38,7 @@ public class GAStimTest {
                 "SHADE",
                 new RGBColor(1.0, 1.0, 1.0)
         );
-
+        seedingStim.setProperties();
         GAMatchStick mStick = seedingStim.createMStick();
         testMatchStickDrawer.drawMStick(mStick);
         testMatchStickDrawer.drawCompMap(mStick);

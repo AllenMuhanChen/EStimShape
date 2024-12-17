@@ -718,6 +718,7 @@ public class AllenMatchStick extends MatchStick {
 	@Override
 	public void drawSkeleton(boolean showComponents) {
 //		this.showComponents = true;
+		Point3d massCenter = getMassCenter();
 		int i;
 		if (showComponents)
 			for (i=1; i<=getnComponent(); i++) {
@@ -731,8 +732,7 @@ public class AllenMatchStick extends MatchStick {
 						{1.0f, 1.0f, 0.0f},
 						{0.4f, 0.1f, 0.6f}
 				};
-
-				getComp()[i].drawSurfPt(colorCode[i-1],getScaleForMAxisShape());
+				getComp()[i].drawSurfPt(colorCode[i-1],getScaleForMAxisShape(), massCenter);
 
 			}
 		else
@@ -1210,24 +1210,6 @@ public class AllenMatchStick extends MatchStick {
 		}
 	}
 
-	/**
-	 * This version applies translation to vect_info in smoothized matchstick if it exists AS WELL.
-	 * @param shiftVec
-	 */
-	protected void translateVectInfo(Vector3d shiftVec) {
-		for (int i=1; i<= getnComponent(); i++)
-		{
-			Point3d finalPos = new Point3d();
-			getComp()[i].translateVectInfo(finalPos);
-		}
-
-		if (getObj1()!=null){
-			for (int i=1; i<=getObj1().getnVect(); i++)
-			{
-				getObj1().vect_info[i].add(shiftVec);
-			}
-		}
-	}
 
 	public void finalMoveCenterOfMassTo(Point3d destination){
 		Point3d centerOfMass = getMassCenter();

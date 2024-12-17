@@ -110,7 +110,7 @@ public class GAMatchStickTest {
 
         testMatchStickDrawer.drawMStick(GAMatchStick);
 
-        ThreadUtil.sleep(100);
+        ThreadUtil.sleep(1000);
 
         testMatchStickDrawer.draw(new Drawable() {
             @Override
