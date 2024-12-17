@@ -53,6 +53,7 @@ public class GAStimTest {
                 "SHADE",
                 new RGBColor(1.0, 1.0, 1.0)
         );
+        seedingStim.setProperties();
 
         GAMatchStick mStick = seedingStim.createMStick();
         testMatchStickDrawer.drawMStick(mStick);
@@ -66,6 +67,7 @@ public class GAStimTest {
                 1,
                 "SHADE"
                 );
+        zoomingStim.setProperties();
 
         GAMatchStick mStick1 = zoomingStim.createMStick();
         testMatchStickDrawer.clear();
@@ -78,7 +80,7 @@ public class GAStimTest {
                 1L,
                 2,
                 "SHADE");
-
+        zoomingStim2.setProperties();
         GAMatchStick mStick2 = zoomingStim2.createMStick();
         testMatchStickDrawer.drawMStick(mStick2);
         testMatchStickDrawer.drawCompMap(mStick2);

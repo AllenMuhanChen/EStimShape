@@ -21,7 +21,7 @@ public class GAMatchStickTest {
     public static final ReceptiveField PARTIAL_RF = new ReceptiveField() {
         double h = 30;
         double k = 30;
-        double r = 10;
+        double r = 20;
 
         {
             center = new Coordinates2D(h, k);

@@ -4667,13 +4667,7 @@ public class AllenMatchStick extends MatchStick {
 
 	@Override
 	/**
-	 * isScale parameter was added to this. This is because brand new match sticks (i.e rand)
-	 * need to scale everything to match the proper size, however morphs inherit size from its parent,
-	 * so there's no need to scale everything again.
-	 *
-	 * I also added scaling of TubeComp vect_info because we need to use this for checking
-	 * whether certain limbs are in RF or not.
-	 */
+	 Added correction for translation before scaling. This is to avoid propogating scaling through offset from origin	 */
 	public boolean smoothizeMStick()
 	{
 		showDebug = false;
@@ -4708,8 +4702,10 @@ public class AllenMatchStick extends MatchStick {
 
 
 		this.setObj1(MObj[1]);
+		Point3d shiftVec = getMassCenter();
+		getObj1().translateFwd(shiftVec);
 		this.getObj1().scaleTheObj(getScaleForMAxisShape()); //AC: IMPORTANT CHANGE
-		this.getObj1().rotateMesh(getFinalRotation());
+		getObj1().translateBack(shiftVec);
 
 
 		if (isDoCenterObject()) {
