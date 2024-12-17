@@ -61,7 +61,8 @@ public class AllenMStickDataTest {
         matchStick = new GrowingMatchStick(PARTIAL_RF, 1/3.0, RFStrategy.PARTIALLY_INSIDE, "SHADE");
         matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, 1.5), "SHADE");
 
-        ((GrowingMatchStick) matchStick).genAddedLimbsMatchStick(parentStick, 1);
+        ((GrowingMatchStick) matchStick).genGrowingMatchStick(parentStick, 0.5);
+//        ((GrowingMatchStick) matchStick).genAddedLimbsMatchStick(parentStick, 2);
 
 //        matchStick = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 //        matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, 2), "SHADE");
@@ -263,8 +264,8 @@ public class AllenMStickDataTest {
             JunctionData junctionData = data.junctionData.get(i);
             JuncPt_struct juncPt_struct = matchStick.getJuncPt()[junctionData.getId()];
 
-            testSphericalPosition(i, junctionData.angularPosition, junctionData.radialPosition);
-//            testJunctionBisector(junctionData, juncPt_struct,junctionData.getConnectedCompIds().get(0), junctionData.getConnectedCompIds().get(1) );
+//            testSphericalPosition(i, junctionData.angularPosition, junctionData.radialPosition);
+            testJunctionBisector(junctionData, juncPt_struct,junctionData.getConnectedCompIds().get(0), junctionData.getConnectedCompIds().get(1) );
         }
 
 
@@ -280,11 +281,13 @@ public class AllenMStickDataTest {
 //            drawLine(angleBisectorLine, new RGBColor(1,1,0));
 
             Vector3d bisectedVector1 = juncPt_struct.getTangentOfOwner(comp1);
+            bisectedVector1.normalize();
             bisectedVector1.scale(10);
             List<Point3d> bisectedLine1 = CoordinateConverter.vectorToLine(bisectedVector1, 50, juncLocation);
             drawLine(bisectedLine1, new RGBColor(0,1,0));
 
             Vector3d bisectedVector2 = juncPt_struct.getTangentOfOwner(comp2);
+            bisectedVector2.normalize();
             bisectedVector2.scale(10);
             List<Point3d> bisectedLine2 = CoordinateConverter.vectorToLine(bisectedVector2, 50, juncLocation);
             drawLine(bisectedLine2, new RGBColor(0,1,0));

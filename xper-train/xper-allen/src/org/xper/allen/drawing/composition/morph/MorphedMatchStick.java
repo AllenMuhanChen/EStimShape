@@ -82,11 +82,6 @@ public class MorphedMatchStick extends AllenMatchStick {
         this.showComponents = false;
 
         MorphedMatchStick backup = new MorphedMatchStick();
-//        backup.setProperties(this.getScaleForMAxisShape(), getTextureType());
-//        backup.setStimColor(getStimColor());
-//        AllenMStickSpec backupSpec = new AllenMStickSpec();
-//        backupSpec.setMStickInfo(matchStickToMorph, false);
-//        backup.genMatchStickFromShapeSpec(backupSpec, new double[]{0.0,0.0,0.0});
         backup.copyFrom(matchStickToMorph);
         copyFrom(backup);
 
@@ -740,12 +735,12 @@ public class MorphedMatchStick extends AllenMatchStick {
     protected void updateJuncPtsForNewComp(int id) {
         forEachJunctionThatContainsComp(id, new BiConsumer<JuncPt_struct, Integer>() {
             @Override
-            public void accept(JuncPt_struct junction, Integer compIndxInComp) {
-                int nowUNdx = junction.getuNdx()[compIndxInComp];
-                Vector3d finalTangent = newArc.getmTangent()[nowUNdx];
+            public void accept(JuncPt_struct junction, Integer jIndex) {
+                int nowUNdx = junction.getuNdx()[jIndex];
+                Vector3d finalTangent = new Vector3d(newArc.getmTangent()[nowUNdx]);
                 if (nowUNdx == 51)
                     finalTangent.negate();
-                Point3d newPos = newArc.getmPts()[nowUNdx];
+                Point3d newPos = new Point3d(newArc.getmPts()[nowUNdx]);
                 //Define shiftVec as distance between new position and the current incorrect junction position
                 Point3d shiftVec = new Point3d();
                 shiftVec.sub(newPos, junction.getPos());
@@ -771,22 +766,22 @@ public class MorphedMatchStick extends AllenMatchStick {
 
                 //Set the new position of the junction
                 junction.setPos(newPos);
-
-                // Set the new tangent of the junction
-                boolean secondFlg = false; // determine if the first or second tangent
-                for ( int j = 1; j <= junction.getnTangent(); j++)
-                {
-                    if (junction.getTangentOwner()[j] == id && secondFlg == false)
-                    {
-                        junction.getTangent()[j].set(finalTangent);
-                        secondFlg = true;
-                    }
-                    else if ( junction.getTangentOwner()[j] == id && secondFlg == true)
-                    {
-                        finalTangent.negate();
-                        junction.getTangent()[j].set(finalTangent);
-                    }
-                }
+                junction.getTangent()[jIndex].set(finalTangent);
+//                // Set the new tangent of the junction
+//                boolean secondFlg = false; // determine if the first or second tangent
+//                for ( int j = 1; j <= junction.getnTangent(); j++)
+//                {
+//                    if (junction.getTangentOwner()[j] == id && secondFlg == false)
+//                    {
+//                        junction.getTangent()[j].set(finalTangent);
+//                        secondFlg = true;
+//                    }
+//                    else if ( junction.getTangentOwner()[j] == id && secondFlg == true)
+//                    {
+//                        finalTangent.negate();
+//                        junction.getTangent()[j].set(finalTangent);
+//                    }
+//                }
             }
         });
     }
@@ -821,7 +816,7 @@ public class MorphedMatchStick extends AllenMatchStick {
 
                 Vector3d finalTangent;
                 boolean midBranchFlg = false;
-                finalTangent = newArc.getmTangent()[nowUNdx];
+                finalTangent = new Vector3d(newArc.getmTangent()[nowUNdx]);
                 if (nowUNdx == 1) {
                     //do nothing
                 }
