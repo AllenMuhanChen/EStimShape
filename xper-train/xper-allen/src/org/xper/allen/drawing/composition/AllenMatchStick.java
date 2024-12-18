@@ -2274,7 +2274,7 @@ public class AllenMatchStick extends MatchStick {
 			//VET THE RELATIVE SIZE BETWEEN LEAF AND BASE (IN TERMS OF BOUNDING BOX)
 			boolean sizeVetSuccess = false;
 			if (smoothSuccess){ // success to smooth
-				sizeVetSuccess = vetLeafBaseSize(leafIndx);
+				sizeVetSuccess = vetLeafBaseSize(1);
 				if (!sizeVetSuccess){
 					System.out.println("Failed to vet leaf base size");
 				}
@@ -2556,7 +2556,7 @@ public class AllenMatchStick extends MatchStick {
 						compIndxInJunctStruct = notSpecialJunc.getJIndexOfComp(leafIndx);
 						nseUNdx = notSpecialJunc.getuNdx()[compIndxInJunctStruct];
 						nsePos = new Point3d(notSpecialJunc.getPos());
-						nseTangent = new Vector3d(notSpecialJunc.getTangent()[notSpecialJunc.getTangentOwner()[compIndxInJunctStruct]]);
+						nseTangent = new Vector3d(notSpecialJunc.getTangentOfOwner(leafIndx));
 						nseRad = notSpecialJunc.getRad();
 
 						//DEFINE SPECIAL END TO BE THE OTHER END PT
@@ -2565,12 +2565,13 @@ public class AllenMatchStick extends MatchStick {
 							int end_uNdx = amsOfLeaf.getEndPtStruct(endIndx).getuNdx();
 							boolean notJuncFlag = end_uNdx != nseUNdx;
 							boolean notBranchFlag = end_uNdx == 1 || end_uNdx == 51;
-							System.out.println("end_uNDX: " + end_uNdx);
 							if (notJuncFlag && notBranchFlag) {
-								specialEnd.copyFrom(amsOfLeaf.getEndPtStruct(endIndx));
-							}
-							if (specialEnd.getuNdx() == 51) {
-								specialEnd.getTangent().negate();
+								EndPt_struct endPtStruct = amsOfLeaf.getEndPtStruct(endIndx);
+								specialEnd.setComp(leafIndx);
+								specialEnd.setPos(new Point3d(endPtStruct.getPos()));
+								specialEnd.setTangent(new Vector3d(endPtStruct.getTangent()));
+								specialEnd.setRad(endPtStruct.getRad());
+								specialEnd.setuNdx(end_uNdx);
 							}
 						}
 					}
@@ -2603,7 +2604,10 @@ public class AllenMatchStick extends MatchStick {
 			int seComp = getSpecialEndComp().get(0);
 			int seUNdx = specialEnd.getuNdx();
 			Point3d sePos = specialEnd.getPos();
-			Vector3d seTangent = specialEnd.getTangent();
+//			Vector3d seTangent = specialEnd.getTangent();
+//			seTangent.negate();
+			Vector3d seTangent = getComp()[seComp].getmAxisInfo().getmTangent()[seUNdx];
+			nseTangent = getComp()[seComp].getmAxisInfo().getmTangent()[nseUNdx];
 			double seRad = specialEnd.getRad();
 
 			getEndPt()[1] = new EndPt_struct(seComp, seUNdx, sePos, seTangent, seRad);
@@ -2750,9 +2754,7 @@ public class AllenMatchStick extends MatchStick {
 			int alignedPt = 1;
 			Point3d finalPos = new Point3d(getEndPt()[nowPtNdx].getPos());
 			Vector3d oriTangent = new Vector3d(getEndPt()[nowPtNdx].getTangent());
-			if (getEndPt()[nowPtNdx].getuNdx() == 51){
-				oriTangent.negate();
-			}
+
 
 			Vector3d finalTangent = new Vector3d();
 			trialCount = 1;
@@ -2916,9 +2918,7 @@ public class AllenMatchStick extends MatchStick {
 			int alignedPt = 1;
 			Point3d finalPos = new Point3d(getEndPt()[nowPtNdx].getPos());
 			Vector3d oriTangent = new Vector3d(getEndPt()[nowPtNdx].getTangent());
-			if (getEndPt()[nowPtNdx].getuNdx() == 51){
-				oriTangent.negate();
-			}
+
 
 			Vector3d finalTangent = new Vector3d();
 			trialCount = 1;

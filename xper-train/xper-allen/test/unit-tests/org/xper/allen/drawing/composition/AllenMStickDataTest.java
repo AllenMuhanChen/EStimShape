@@ -77,6 +77,11 @@ public class AllenMStickDataTest {
         parentSpec.writeInfo2File(FILE_NAME);
 
         switch (stimType){
+            case "EStimShapeProceduralRand":
+                matchStick = new EStimShapeProceduralMatchStick(rfStrategy, receptiveField, noiseMapper);
+                matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE");
+                matchStick.genMatchStickRand();
+                break;
             case "EStimShapeProcedural":
                 EStimShapeProceduralMatchStick baseMStick = new EStimShapeProceduralMatchStick(rfStrategy, receptiveField, noiseMapper);
                 baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE");
@@ -85,8 +90,8 @@ public class AllenMStickDataTest {
 
                 matchStick = new EStimShapeProceduralMatchStick(rfStrategy, receptiveField, noiseMapper);
                 matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE");
-
-                ((EStimShapeProceduralMatchStick) matchStick).genMatchStickFromComponentInNoise(baseMStick, baseMStick.chooseRandLeaf(), 4, true, -1, noiseMapper);
+                ((EStimShapeProceduralMatchStick) matchStick).genMatchStickFromComponentInNoise(baseMStick, baseMStick.chooseRandLeaf(),
+                        4, true, -1, noiseMapper);
                 break;
             case "Seeding":
                 matchStick = new GAMatchStick(receptiveField, rfStrategy);
@@ -199,6 +204,8 @@ public class AllenMStickDataTest {
 
 //            testSphericalPosition(i, junctionData.angularPosition, junctionData.radialPosition);
             testJunctionBisector(junctionData, juncPt_struct,junctionData.getConnectedCompIds().get(0), junctionData.getConnectedCompIds().get(1) );
+
+            System.out.println(data.getJunctionData().toString());
         }
 
 
@@ -329,13 +336,13 @@ public class AllenMStickDataTest {
             bisectedVector1.normalize();
             bisectedVector1.scale(10);
             List<Point3d> bisectedLine1 = CoordinateConverter.vectorToLine(bisectedVector1, 50, juncLocation);
-            drawLine(bisectedLine1, new RGBColor(0,1,0));
+            drawLine(bisectedLine1, COMP_COLORS.get(comp1-1));
 
             Vector3d bisectedVector2 = juncPt_struct.getTangentOfOwner(comp2);
             bisectedVector2.normalize();
             bisectedVector2.scale(10);
             List<Point3d> bisectedLine2 = CoordinateConverter.vectorToLine(bisectedVector2, 50, juncLocation);
-            drawLine(bisectedLine2, new RGBColor(0,1,0));
+            drawLine(bisectedLine2, COMP_COLORS.get(comp2-1));
     }
 
     private void testShaftCurvature(ShaftData shaftData, AllenMAxisArc mAxis, int i) {
