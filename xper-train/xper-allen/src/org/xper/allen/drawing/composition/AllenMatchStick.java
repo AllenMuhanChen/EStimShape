@@ -2555,8 +2555,8 @@ public class AllenMatchStick extends MatchStick {
 						//SET NOT-SPECIAL END PARAMS BASED OFF THIS JUNC
 						compIndxInJunctStruct = notSpecialJunc.getJIndexOfComp(leafIndx);
 						nseUNdx = notSpecialJunc.getuNdx()[compIndxInJunctStruct];
-						nsePos = notSpecialJunc.getPos();
-						nseTangent = notSpecialJunc.getTangent()[notSpecialJunc.getTangentOwner()[compIndxInJunctStruct]]; //TODO: check this (might be wrong
+						nsePos = new Point3d(notSpecialJunc.getPos());
+						nseTangent = new Vector3d(notSpecialJunc.getTangent()[notSpecialJunc.getTangentOwner()[compIndxInJunctStruct]]);
 						nseRad = notSpecialJunc.getRad();
 
 						//DEFINE SPECIAL END TO BE THE OTHER END PT
@@ -2565,13 +2565,18 @@ public class AllenMatchStick extends MatchStick {
 							int end_uNdx = amsOfLeaf.getEndPtStruct(endIndx).getuNdx();
 							boolean notJuncFlag = end_uNdx != nseUNdx;
 							boolean notBranchFlag = end_uNdx == 1 || end_uNdx == 51;
+							System.out.println("end_uNDX: " + end_uNdx);
 							if (notJuncFlag && notBranchFlag) {
 								specialEnd.copyFrom(amsOfLeaf.getEndPtStruct(endIndx));
+							}
+							if (specialEnd.getuNdx() == 51) {
+								specialEnd.getTangent().negate();
 							}
 						}
 					}
 					//JUNC IS A MID POINT
 					else { //THERE SHOULD BE TWO END POINTS, ONE AT 1 and ANOTHER AT 51
+						System.out.println("MIDPOINT");
 						for (int endIndx : endList) {
 							int end_uNdx = amsOfLeaf.getEndPtStruct(endIndx).getuNdx();
 
@@ -2623,6 +2628,7 @@ public class AllenMatchStick extends MatchStick {
 			//Add E2J
 			if(stickMath_lib.rand01()<PROB_addToBaseEndNotBranch) {
 				addSuccess = Add_BaseMStick(nowComp, 1);
+
 			}
 			//Add B2J
 			else {
@@ -2744,7 +2750,10 @@ public class AllenMatchStick extends MatchStick {
 			int alignedPt = 1;
 			Point3d finalPos = new Point3d(getEndPt()[nowPtNdx].getPos());
 			Vector3d oriTangent = new Vector3d(getEndPt()[nowPtNdx].getTangent());
-//			oriTangent.negate(); //unsure if this breaks. tested for noise
+			if (getEndPt()[nowPtNdx].getuNdx() == 51){
+				oriTangent.negate();
+			}
+
 			Vector3d finalTangent = new Vector3d();
 			trialCount = 1;
 			while (true)
@@ -2907,6 +2916,10 @@ public class AllenMatchStick extends MatchStick {
 			int alignedPt = 1;
 			Point3d finalPos = new Point3d(getEndPt()[nowPtNdx].getPos());
 			Vector3d oriTangent = new Vector3d(getEndPt()[nowPtNdx].getTangent());
+			if (getEndPt()[nowPtNdx].getuNdx() == 51){
+				oriTangent.negate();
+			}
+
 			Vector3d finalTangent = new Vector3d();
 			trialCount = 1;
 			while (true)

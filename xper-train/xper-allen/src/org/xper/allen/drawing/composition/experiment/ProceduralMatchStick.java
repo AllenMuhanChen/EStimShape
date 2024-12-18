@@ -112,6 +112,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     }
 
     public void genMatchStickFromComponentInNoise(ProceduralMatchStick baseMatchStick, int fromCompId, int nComp, boolean doCompareObjCenteredPos, int maxAttempts1, NAFCNoiseMapper noiseMapper) {
+        this.maxAttempts = maxAttempts1;
         if (nComp == 0){
             nComp = chooseNumComps();
         }

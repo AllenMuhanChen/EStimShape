@@ -101,7 +101,7 @@ public class AllenMStickData implements MStickData {
                 ", terminationData=" + terminationData +
                 ", junctionData=" + junctionData +
                 ", analysisMStickSpec=" + analysisMStickSpec +
-                '}';
+                '}' + "\n";
     }
 
     public Point3d getMassCenter() {

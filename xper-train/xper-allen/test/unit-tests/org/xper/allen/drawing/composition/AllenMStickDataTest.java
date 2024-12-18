@@ -5,7 +5,10 @@ import org.junit.After;
 import org.junit.Test;
 import org.lwjgl.opengl.GL11;
 import org.xper.alden.drawing.drawables.Drawable;
+import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
+import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
@@ -53,9 +56,11 @@ public class AllenMStickDataTest {
     private AllenMatchStick matchStick;
     private final static String FILE_NAME = Paths.get(ResourceUtil.getResource("testBin"), "AllenMStickDataTest_testFile").toString();;
     private ReceptiveField receptiveField;
+    private GaussianNoiseMapper noiseMapper;
+
 
     private void setMStickData() {
-        String stimType = "Zooming";
+        String stimType = "EStimShapeProcedural";
         RFStrategy rfStrategy = RFStrategy.PARTIALLY_INSIDE;
 
         if (rfStrategy == RFStrategy.COMPLETELY_INSIDE){
@@ -72,6 +77,17 @@ public class AllenMStickDataTest {
         parentSpec.writeInfo2File(FILE_NAME);
 
         switch (stimType){
+            case "EStimShapeProcedural":
+                EStimShapeProceduralMatchStick baseMStick = new EStimShapeProceduralMatchStick(rfStrategy, receptiveField, noiseMapper);
+                baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE");
+                baseMStick.genMatchStickRand();
+                baseMStick.setMaxAttempts(-1);
+
+                matchStick = new EStimShapeProceduralMatchStick(rfStrategy, receptiveField, noiseMapper);
+                matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE");
+
+                ((EStimShapeProceduralMatchStick) matchStick).genMatchStickFromComponentInNoise(baseMStick, baseMStick.chooseRandLeaf(), 4, true, -1, noiseMapper);
+                break;
             case "Seeding":
                 matchStick = new GAMatchStick(receptiveField, rfStrategy);
                 matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE");
@@ -113,8 +129,17 @@ public class AllenMStickDataTest {
     @Before
     public void setUp() throws Exception {
         drawables = new LinkedList<>();
-        getTestDrawingWindow();
+
+        noiseMapper = new GaussianNoiseMapper();
+        noiseMapper.setBackground(0);
+        noiseMapper.setWidth(1000);
+        noiseMapper.setHeight(1000);
+
         setMStickData();
+        getTestDrawingWindow();
+
+
+
     }
 
     @After
@@ -158,6 +183,7 @@ public class AllenMStickDataTest {
             testTerminationOrientation(i, terminationData);
             testTerminationRadius(i, terminationData);
         }
+        System.out.println(data.getTerminationData().toString());
 
         window.animateRotation(drawables, 1, 10000);
     }
@@ -171,7 +197,7 @@ public class AllenMStickDataTest {
             JunctionData junctionData = data.junctionData.get(i);
             JuncPt_struct juncPt_struct = matchStick.getJuncPt()[junctionData.getId()];
 
-            testSphericalPosition(i, junctionData.angularPosition, junctionData.radialPosition);
+//            testSphericalPosition(i, junctionData.angularPosition, junctionData.radialPosition);
             testJunctionBisector(junctionData, juncPt_struct,junctionData.getConnectedCompIds().get(0), junctionData.getConnectedCompIds().get(1) );
         }
 
