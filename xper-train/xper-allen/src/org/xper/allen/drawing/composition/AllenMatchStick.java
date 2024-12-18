@@ -4839,12 +4839,9 @@ public class AllenMatchStick extends MatchStick {
 			//Pos
 //			endPt.getPos().scale(this.getScaleForMAxisShape());
 //			endPt.getPos().sub(getMassCenter());
-			System.out.println("EndPt Diff from MassCenter: ");
 			System.out.println(endPt.getPos().distance(getMassCenter()));
-			System.out.println("EndPt Pos Before transCorScale:");
 			System.out.println(endPt.getPos());
 			endPt.getPos().set(transCorScalePoint(endPt.getPos()));
-			System.out.println("EndPt Pos After transCorScale:");
 			System.out.println(endPt.getPos());
 
 			//Rad

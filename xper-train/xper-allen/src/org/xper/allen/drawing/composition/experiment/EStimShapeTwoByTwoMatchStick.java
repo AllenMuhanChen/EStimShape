@@ -51,10 +51,17 @@ public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
         super.drawCompMap();
 
         drawRF();
-        //NOISE
+        drawNoise();
+
+    }
+
+    private void drawNoise() {
         double radius = noiseRadiusMm;
 
         Point3d noiseOrigin = this.getNoiseOrigin();
+        if (noiseOrigin == null) {
+            return;
+        }
         Coordinates2D center = new Coordinates2D(noiseOrigin.getX(), noiseOrigin.getY());
         //draw noise
         if (radius <= 0 || center == null) {
@@ -83,7 +90,6 @@ public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
 
         GL11.glEnable(GL11.GL_DEPTH_TEST);
 //        draw_debug_gaussian_mapper();
-
     }
 
     /**

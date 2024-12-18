@@ -186,9 +186,6 @@ public class AllenTubeComp extends TubeComp{
 		  int maxStep = 51;*/
 
 		if (isScaleOnce()) {
-			System.out.println("AC: Scaling the object");
-			System.out.println("AC: scaleFactor: " + scaleFactor);
-			System.out.println("AC: massCenter: " + massCenter);
 			Vector3d shiftVec = new Vector3d(massCenter);
 			shiftVec.negate();
 			translateTheObj(shiftVec);

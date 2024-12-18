@@ -72,6 +72,11 @@ public class AllenMStickDataTest {
         parentSpec.writeInfo2File(FILE_NAME);
 
         switch (stimType){
+            case "Seeding":
+                matchStick = new GAMatchStick(receptiveField, rfStrategy);
+                matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE");
+                matchStick.genMatchStickRand();
+                break;
             case "Zooming":
                 matchStick = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
                 matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, 1.5), "SHADE");
@@ -92,11 +97,6 @@ public class AllenMStickDataTest {
                 matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE");
                 ((GrowingMatchStick) matchStick).genRemovedLimbsMatchStick(parentStick, new HashSet<>(Arrays.asList(1)));
                 break;
-            case "GARand":
-                matchStick = new GAMatchStick(receptiveField, rfStrategy);
-                matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE");
-                matchStick.genMatchStickRand();
-                break;
             case "Rand":
                 matchStick = new AllenMatchStick();
                 matchStick.setProperties(5, "SHADE");
@@ -107,11 +107,6 @@ public class AllenMStickDataTest {
 
 
         data = (AllenMStickData) matchStick.getMStickData();
-        System.out.println("Mass Center Data: ");
-        System.out.println(data.getMassCenter());
-        System.out.println("Termination Data: ");
-        System.out.println(data.getTerminationData());
-
 //        System.out.println(data.toXml());
     }
 
