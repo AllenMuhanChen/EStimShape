@@ -2321,8 +2321,6 @@ public class AllenMatchStick extends MatchStick {
 		Point3d[] baseVect_info = getComp()[getBaseComp()].getVect_info();
 		Point3d[] baseBox = getBoundingBoxForVects(baseNVect, baseVect_info);
 		double baseArea = findAreaOfBox(baseBox);
-		System.out.println("Leaf area: "+leafArea);
-		System.out.println("Base area: "+baseArea);
         return leafArea < baseArea * MAX_LEAF_TO_BASE_AREA_RATIO && leafArea > baseArea * MIN_LEAF_TO_BASE_AREA_RATIO;
 	}
 
@@ -2556,7 +2554,6 @@ public class AllenMatchStick extends MatchStick {
 						compIndxInJunctStruct = notSpecialJunc.getJIndexOfComp(leafIndx);
 						nseUNdx = notSpecialJunc.getuNdx()[compIndxInJunctStruct];
 						nsePos = new Point3d(notSpecialJunc.getPos());
-						nseTangent = new Vector3d(notSpecialJunc.getTangentOfOwner(leafIndx));
 						nseRad = notSpecialJunc.getRad();
 
 						//DEFINE SPECIAL END TO BE THE OTHER END PT
@@ -2589,7 +2586,6 @@ public class AllenMatchStick extends MatchStick {
 						}
 						nseUNdx = notSpecialEnd.getuNdx();
 						nsePos = notSpecialEnd.getPos();
-						nseTangent = notSpecialEnd.getTangent();
 						nseRad = notSpecialEnd.getRad();
 					}
 				}
@@ -2604,8 +2600,6 @@ public class AllenMatchStick extends MatchStick {
 			int seComp = getSpecialEndComp().get(0);
 			int seUNdx = specialEnd.getuNdx();
 			Point3d sePos = specialEnd.getPos();
-//			Vector3d seTangent = specialEnd.getTangent();
-//			seTangent.negate();
 			Vector3d seTangent = getComp()[seComp].getmAxisInfo().getmTangent()[seUNdx];
 			nseTangent = getComp()[seComp].getmAxisInfo().getmTangent()[nseUNdx];
 			double seRad = specialEnd.getRad();
@@ -4852,10 +4846,7 @@ public class AllenMatchStick extends MatchStick {
 			//Pos
 //			endPt.getPos().scale(this.getScaleForMAxisShape());
 //			endPt.getPos().sub(getMassCenter());
-			System.out.println(endPt.getPos().distance(getMassCenter()));
-			System.out.println(endPt.getPos());
 			endPt.getPos().set(transCorScalePoint(endPt.getPos()));
-			System.out.println(endPt.getPos());
 
 			//Rad
 			endPt.setRad(endPt.getRad()*getScaleForMAxisShape());

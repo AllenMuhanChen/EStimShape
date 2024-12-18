@@ -98,10 +98,6 @@ public class MorphedMatchStick extends AllenMatchStick {
                 applyRadiusProfile();
                 attemptSmoothizeMStick();
                 positionShape();
-                System.out.println("massCenter in morph: ");
-                System.out.println(getMassCenter().toString());
-                System.out.println("EndPtInfo in Morph:");
-                System.out.println(getEndPt()[1].toString());
                 System.out.println("Successfully added limbs to matchstick");
                 return;
             } catch (MorphException e) {

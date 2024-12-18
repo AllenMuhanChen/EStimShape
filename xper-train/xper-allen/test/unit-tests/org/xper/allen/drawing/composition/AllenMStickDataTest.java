@@ -169,8 +169,6 @@ public class AllenMStickDataTest {
             testShaftOrientation(i, shaftData);
             testShaftRadius(i, shaftData);
             testShaftCurvature(shaftData, mAxis, i);
-
-            System.out.println(shaftData.radialPosition);
         }
 
         window.animateRotation(drawables, 1, 10000);
@@ -188,7 +186,7 @@ public class AllenMStickDataTest {
             testTerminationOrientation(i, terminationData);
             testTerminationRadius(i, terminationData);
         }
-        System.out.println(data.getTerminationData().toString());
+
 
         window.animateRotation(drawables, 1, 10000);
     }
@@ -205,7 +203,6 @@ public class AllenMStickDataTest {
 //            testSphericalPosition(i, junctionData.angularPosition, junctionData.radialPosition);
             testJunctionBisector(junctionData, juncPt_struct,junctionData.getConnectedCompIds().get(0), junctionData.getConnectedCompIds().get(1) );
 
-            System.out.println(data.getJunctionData().toString());
         }
 
 
