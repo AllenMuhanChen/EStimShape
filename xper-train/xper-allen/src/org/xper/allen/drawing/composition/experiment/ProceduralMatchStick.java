@@ -29,6 +29,8 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     public Vector3d projectedTangent;
     public NAFCNoiseMapper noiseMapper;
 
+    public boolean noiseDebugMode = false;
+
     public ProceduralMatchStick(NAFCNoiseMapper noiseMapper) {
         this.noiseMapper = noiseMapper;
     }
@@ -129,6 +131,9 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 this.noiseMapper = noiseMapper;
                 this.noiseMapper.checkInNoise(this, compsToNoise, 0.5);
             } catch (Exception e) {
+                if (noiseDebugMode){
+                    return;
+                }
                 System.out.println("Error with noise, retrying");
                 System.out.println(e.getMessage());
                 continue;

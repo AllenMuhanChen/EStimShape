@@ -78,11 +78,28 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
         }
 
         ArrayList<ConcaveHull.Point> pointsToCheck = new ArrayList<>();
+        Point3d massCenter = proceduralMatchStick.getMassCenter();
         int index = 0;
         for (int mustBeInNoiseCompId : mustBeInNoiseCompIds) {
             AllenTubeComp testingComp = proceduralMatchStick.getComp()[mustBeInNoiseCompId];
+
+            //Must Correct the points here:
             Point3d[] compVect_info = testingComp.getVect_info();
-            for (Point3d point3d : compVect_info) {
+            Point3d[] correctedVect_info = new Point3d[compVect_info.length];
+
+            for (Point3d in : compVect_info) {
+                if (in != null) {
+                    Point3d correctedPoint = new Point3d(in);
+                    correctedPoint.sub(massCenter);
+                    correctedPoint.scale(proceduralMatchStick.getScaleForMAxisShape());
+                    correctedPoint.add(massCenter);
+                    correctedVect_info[index] = correctedPoint;
+                    index++;
+                }
+            }
+
+            index=0;
+            for (Point3d point3d : correctedVect_info) {
                 if (point3d != null) {
                     debug_points_vect.add(new Point2d(point3d.getX(), point3d.getY()));
                     pointsToCheck.add(new ConcaveHull.Point(point3d.getX(), point3d.getY()));
@@ -97,9 +114,9 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
                 numPointsInside++;
             } else{
                 debug_points_outside.add(new Point2d(point.getX(), point.getY()));
-//                double error = Math.abs(point.distance(new Point2d(proceduralMatchStick.getNoiseOrigin().getX(), proceduralMatchStick.getNoiseOrigin().getY())) - proceduralMatchStick.noiseRadiusMm);
-////                System.out.println("OUTSIDE: " + point.getX() + ", " + point.getY()
-//                        + " with error: " + error);
+                double error = Math.abs(point.distance(new Point2d(proceduralMatchStick.getNoiseOrigin().getX(), proceduralMatchStick.getNoiseOrigin().getY())) - proceduralMatchStick.noiseRadiusMm);
+                System.out.println("OUTSIDE: " + point.getX() + ", " + point.getY()
+                        + " with error: " + error);
             }
         }
         //TODO: potential improvement: we could replace the mechanism for this by somehow identifying points in the junction itself

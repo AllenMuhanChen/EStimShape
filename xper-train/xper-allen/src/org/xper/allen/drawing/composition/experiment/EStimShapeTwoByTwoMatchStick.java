@@ -89,7 +89,8 @@ public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
         GL11.glEnd(); // Finish drawing
 
         GL11.glEnable(GL11.GL_DEPTH_TEST);
-//        draw_debug_gaussian_mapper();
+        if (noiseDebugMode)
+            draw_debug_gaussian_mapper();
     }
 
     /**
