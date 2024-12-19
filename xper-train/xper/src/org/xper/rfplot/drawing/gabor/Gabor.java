@@ -25,6 +25,7 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
     protected float verticalPosition;
     protected float phase;
     protected int stepsPerHalfCycle;
+    protected AbstractRenderer renderer;
 
     public Gabor() {
 //        this.array = ByteBuffer.allocateDirect(STEPS * (3 + 2 + 3) * 4 * Float.SIZE / 8)
@@ -96,17 +97,18 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
 
         // Convert frequency from cycles per degree to cycles per mm
         float frequencyCyclesPerDegree = (float) getGaborSpec().getFrequency();
-        frequencyCyclesPerMm = frequencyCyclesPerDegree / context.getRenderer().deg2mm(1.0);
+        renderer = context.getRenderer();
+        frequencyCyclesPerMm = frequencyCyclesPerDegree / renderer.deg2mm(1.0);
 
         System.out.println("stepsPerHalfCycle " + stepsPerHalfCycle);
         STEPS = calcNumSteps(frequencyCyclesPerDegree, stepsPerHalfCycle);
 //        STEPS = calcNumSteps(context);
         System.out.println("STEPS: " + STEPS);
 
-        float heightMm = (float) context.getRenderer().deg2mm(getGaborSpec().getDiameter()*3);
+        float heightMm = (float) renderer.deg2mm(getGaborSpec().getDiameter()*3);
         float widthMm = heightMm;
-        float widthVp = (float) context.getRenderer().getVpWidthmm();
-        float heightVp = (float) context.getRenderer().getVpHeightmm();
+        float widthVp = (float) renderer.getVpWidthmm();
+        float heightVp = (float) renderer.getVpHeightmm();
 
         for (int i = 0; i < STEPS; i++) {
             verticalPosition = -heightMm + 2*heightMm * (i / (float) STEPS);

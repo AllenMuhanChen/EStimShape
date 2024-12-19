@@ -161,23 +161,36 @@ public class IsoGaborTest {
     }
 
     @Test
-    public void testMixedAligned(){
+    public void testMixedAligned() {
         int size = 20;
-        GaborSpec spec = new GaborSpec();
-        spec.setOrientation(45);
-        spec.setPhase(0);
-        spec.setFrequency(1);
-        spec.setXCenter(0);
-        spec.setYCenter(0);
-        spec.setSize(size);
-        spec.setAnimation(false);
 
-        IsoGaborSpec isoGaborSpec = new IsoGaborSpec(
-                spec, "RedGreen");
-        GaborSpec luminanceGaborSpec = new GaborSpec(spec);
-        CombinedGabor gabor = new CombinedGabor(isoGaborSpec, luminanceGaborSpec, 150, lutCorrector, sinusoidGainCorrector);
-        gabor.setGaborSpec(isoGaborSpec);
-        gabor.setSpec(isoGaborSpec.toXml());
+        // Create base specs with different frequencies
+        GaborSpec baseSpec = new GaborSpec();
+        baseSpec.setOrientation(45);
+        baseSpec.setPhase(0);
+        baseSpec.setXCenter(0);
+        baseSpec.setYCenter(0);
+        baseSpec.setSize(size);
+        baseSpec.setAnimation(false);
+
+        // Chromatic component with frequency 1.0
+        IsoGaborSpec chromaticSpec = new IsoGaborSpec(baseSpec, "CyanYellow");
+        chromaticSpec.setFrequency(1.0);
+        chromaticSpec.setPhase(0);
+
+        // Luminance component with frequency 2.0
+        GaborSpec luminanceSpec = new GaborSpec(baseSpec);
+        luminanceSpec.setFrequency(1.0);
+        luminanceSpec.setPhase(0);
+
+        // Create combined gabor with different frequencies
+        CombinedGabor gabor = new CombinedGabor(
+                chromaticSpec,
+                luminanceSpec,
+                150,
+                lutCorrector,
+                sinusoidGainCorrector
+        );
 
         window.draw(new Drawable() {
             @Override
@@ -189,12 +202,52 @@ public class IsoGaborTest {
             }
         });
 
-        double diskSize = perspectiveRenderer.deg2mm(size);
-        double fadeSize = perspectiveRenderer.deg2mm(2 * 0.5 * size);
-        double ratio = (diskSize + fadeSize) / perspectiveRenderer.getVpWidthmm();
-        System.out.println("The Gabor should span approx: " + ratio + " of the screen width.");
+        ThreadUtil.sleep(10000);
+    }
 
-        ThreadUtil.sleep(100000);
+    @Test
+    public void testMixedUnaligned() {
+        int size = 20;
+
+        // Create base specs with different frequencies
+        GaborSpec baseSpec = new GaborSpec();
+        baseSpec.setOrientation(45);
+        baseSpec.setPhase(0);
+        baseSpec.setXCenter(0);
+        baseSpec.setYCenter(0);
+        baseSpec.setSize(size);
+        baseSpec.setAnimation(false);
+
+        // Chromatic component with frequency 1.0
+        IsoGaborSpec chromaticSpec = new IsoGaborSpec(baseSpec, "CyanYellow");
+        chromaticSpec.setFrequency(1.0);
+        chromaticSpec.setPhase(0);
+
+        // Luminance component with frequency 2.0
+        GaborSpec luminanceSpec = new GaborSpec(baseSpec);
+        luminanceSpec.setFrequency(1.333);
+        luminanceSpec.setPhase(0);
+
+        // Create combined gabor with different frequencies
+        CombinedGabor gabor = new CombinedGabor(
+                chromaticSpec,
+                luminanceSpec,
+                150,
+                lutCorrector,
+                sinusoidGainCorrector
+        );
+
+        window.draw(new Drawable() {
+            @Override
+            public void draw() {
+                RGBColor gray = lutCorrector.correctSingleColor(150, "gray");
+                GL11.glClearColor(gray.getRed(), gray.getGreen(), gray.getBlue(), 1.0f);
+                GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
+                gabor.draw(context);
+            }
+        });
+
+        ThreadUtil.sleep(10000);
     }
 
     public DataSource dataSource() {
