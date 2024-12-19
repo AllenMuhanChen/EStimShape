@@ -1,32 +1,30 @@
 package org.xper.allen.isoluminant;
 
-import org.lwjgl.opengl.GL11;
 import org.xper.allen.monitorlinearization.LookUpTableCorrector;
 import org.xper.allen.monitorlinearization.SinusoidGainCorrector;
-import org.xper.drawing.Context;
 import org.xper.drawing.RGBColor;
+import org.xper.rfplot.drawing.GaborSpec;
 import org.xper.rfplot.drawing.gabor.Gabor;
 import org.xper.rfplot.drawing.gabor.IsoGaborSpec;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-
-public class IsoluminantGabor extends Gabor {
-
-    IsoGaborSpec spec;
+public class CombinedGabor extends Gabor {
+    private final GaborSpec isochromaticSpec;
     double luminanceCandela;
-    private LookUpTableCorrector lutCorrector;
-    private SinusoidGainCorrector sinusoidGainCorrector;
+    private final IsoGaborSpec isoluminantSpec;
+    private final LookUpTableCorrector lutCorrector;
+    private final SinusoidGainCorrector sinusoidGainCorrector;
 
-    public IsoluminantGabor(IsoGaborSpec spec, double luminanceCandela, LookUpTableCorrector lutCorrector, SinusoidGainCorrector sinusoidGainCorrector) {
+    public CombinedGabor(IsoGaborSpec isoluminantSpec,
+                         GaborSpec isochromaticSpec,
+                         double luminanceCandela,
+                         LookUpTableCorrector lutCorrector,
+                         SinusoidGainCorrector sinusoidGainCorrector) {
         super();
-        this.spec = spec;
+        this.isoluminantSpec = isoluminantSpec;
+        this.isochromaticSpec = isoluminantSpec;
         this.luminanceCandela = luminanceCandela;
         this.lutCorrector = lutCorrector;
         this.sinusoidGainCorrector = sinusoidGainCorrector;
-
-        stepsPerHalfCycle = 100;
-//        stepsPerHalfCycle = 25;
     }
 
     @Override
@@ -43,45 +41,39 @@ public class IsoluminantGabor extends Gabor {
         // Ensure modFactor is within 0 and 1
         modFactor = Math.max(0, Math.min(modFactor, 1));
 
-        // get an angle of cosine out of the modFactor
+        double min = 10;
+        double max = 290;
+
+
+
+        double targetCandela = modFactor * luminanceCandela;
+        targetCandela = Math.max(min, Math.min(max, targetCandela));
+
         double angle = modFactor * 180;
+        // get an angle of cosine out of the modFactor
 
         double gain;
         RGBColor corrected;
-        if (spec.type.equals("RedGreen")) {
-            double luminanceRed = luminanceCandela * (1 + Math.cos(Math.toRadians(angle)))/2;
-            double luminanceGreen = luminanceCandela * (1 + Math.cos(Math.toRadians(angle-180)))/2;
+        if (isoluminantSpec.type.equals("RedGreen")) {
+            double luminanceRed = targetCandela * (1 + Math.cos(Math.toRadians(angle)))/2;
+            double luminanceGreen = targetCandela * (1 + Math.cos(Math.toRadians(angle-180)))/2;
             gain = sinusoidGainCorrector.getGain(angle, "RedGreen");
             corrected = lutCorrector.correctRedGreen(luminanceRed * gain, luminanceGreen * gain);
         }
-        else if (spec.type.equals("CyanYellow")){
-            double luminanceCyan = luminanceCandela * (1 + Math.cos(Math.toRadians(angle)))/2;
-            double luminanceYellow = luminanceCandela * (1 + Math.cos(Math.toRadians(angle-180)))/2;
+        else if (isoluminantSpec.type.equals("CyanYellow")){
+            double luminanceCyan = targetCandela * (1 + Math.cos(Math.toRadians(angle)))/2;
+            double luminanceYellow = targetCandela * (1 + Math.cos(Math.toRadians(angle-180)))/2;
             gain = sinusoidGainCorrector.getGain(angle, "CyanYellow");
             corrected = lutCorrector.correctCyanYellow(luminanceCyan * gain, luminanceYellow * gain);
         }
         else {
-            throw new RuntimeException("Unknown color space: " + spec.type);
+            throw new RuntimeException("Unknown color space: " + isoluminantSpec.type);
         }
         return new float[]{corrected.getRed(), corrected.getGreen(), corrected.getBlue()};
     }
 
 
-    @Override
-    public IsoGaborSpec getGaborSpec() {
-        return spec;
-    }
 
-    public void setGaborSpec(IsoGaborSpec spec) {
-        this.spec = spec;
-    }
 
-    @Override
-    public void setDefaultSpec() {
-    }
-
-    public String getSpec() {
-        return getGaborSpec().toXml();
-    }
 
 }
