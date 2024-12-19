@@ -27,6 +27,8 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
     protected int stepsPerHalfCycle;
     protected AbstractRenderer renderer;
 
+    private boolean textureGenerated = false;
+
     public Gabor() {
 //        this.array = ByteBuffer.allocateDirect(STEPS * (3 + 2 + 3) * 4 * Float.SIZE / 8)
 //                .order(ByteOrder.nativeOrder());
@@ -67,6 +69,8 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
         GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
         GL11.glTexEnvf(GL11.GL_TEXTURE_ENV, GL11.GL_TEXTURE_ENV_MODE, GL11.GL_MODULATE);
+
+
     }
 
     @Override
@@ -260,25 +264,6 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         texture.flip();
         return texture;
     }
-
-//    protected ByteBuffer makeTexture(int w, int h, double std) {
-//        ByteBuffer texture = ByteBuffer.allocateDirect(w * h * Float.SIZE / 8).order(ByteOrder.nativeOrder());
-//        double aspectRatio = (double) w / h;
-//        NormalDistribution distribution = new NormalDistribution(0, std);
-//        double norm_max = distribution.density(0);
-//
-//        for (int i = 0; i < h; i++) {
-//            double y = ((double) i / (h - 1) * 2 - 1) / aspectRatio; // Adjust x-coordinate by aspect ratio
-//            for (int j = 0; j < w; j++) {
-//                double x = ((double) j / (w - 1) * 2 - 1);
-//                double dist = Math.sqrt(y * y + x * x);
-//                float n = (float) (distribution.density(dist) / norm_max);
-//                texture.putFloat(n);
-//            }
-//        }
-//        texture.flip();
-//        return texture;
-//    }
 
     public static double normal(double mean, double standardDeviation) {
         double x = Math.random();

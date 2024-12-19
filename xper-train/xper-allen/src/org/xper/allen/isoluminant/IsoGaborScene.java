@@ -1,5 +1,6 @@
 package org.xper.allen.isoluminant;
 
+import com.thoughtworks.xstream.converters.ConversionException;
 import org.xper.Dependency;
 import org.xper.allen.monitorlinearization.LookUpTableCorrector;
 import org.xper.allen.monitorlinearization.SinusoidGainCorrector;
@@ -31,20 +32,30 @@ public class IsoGaborScene extends AbstractTaskScene {
     public void setTask(ExperimentTask task) {
         String stimSpecXml = task.getStimSpec();
 
-        IsoGaborSpec stimSpec;
-        stimSpec = IsoGaborSpec.fromXml(stimSpecXml);
-        if (stimSpec.getType().equals("RedGreen") || stimSpec.getType().equals("CyanYellow")) {
-            obj = new IsoluminantGabor(stimSpec, targetLuminanceCandela, lutCorrector, sinusoidGainCorrector);
-        } else if (stimSpec.getType().equals("Red") ||
-                stimSpec.getType().equals("Green") ||
-                stimSpec.getType().equals("Blue") ||
-                stimSpec.getType().equals("Yellow") ||
-                stimSpec.getType().equals("Cyan") ||
-                stimSpec.getType().equals("Gray")) {
-            obj = new IsochromaticGabor(stimSpec, targetLuminanceCandela, lutCorrector);
-        } else {
-            throw new RuntimeException("Unknown color space: " + stimSpec.getType());
+        try {
+            IsoGaborSpec stimSpec;
+            stimSpec = IsoGaborSpec.fromXml(stimSpecXml);
+            if (stimSpec.getType().equals("RedGreen") || stimSpec.getType().equals("CyanYellow")) {
+                obj = new IsoluminantGabor(stimSpec, targetLuminanceCandela, lutCorrector, sinusoidGainCorrector);
+            } else if (stimSpec.getType().equals("Red") ||
+                    stimSpec.getType().equals("Green") ||
+                    stimSpec.getType().equals("Blue") ||
+                    stimSpec.getType().equals("Yellow") ||
+                    stimSpec.getType().equals("Cyan") ||
+                    stimSpec.getType().equals("Gray")) {
+                obj = new IsochromaticGabor(stimSpec, targetLuminanceCandela, lutCorrector);
+            } else {
+                throw new RuntimeException("Unknown color space: " + stimSpec.getType());
+            }
+        } catch (ConversionException ce) {
+            try{
+                MixedGaborSpec stimSpec = MixedGaborSpec.fromXml(stimSpecXml);
+                obj = new CombinedGabor(stimSpec.chromaticSpec, stimSpec.luminanceSpec, targetLuminanceCandela, lutCorrector, sinusoidGainCorrector);
+            } catch (Exception e) {
+                throw new RuntimeException("Error in parsing stimulus spec: " + stimSpecXml, e);
+            }
         }
+
     }
 
 

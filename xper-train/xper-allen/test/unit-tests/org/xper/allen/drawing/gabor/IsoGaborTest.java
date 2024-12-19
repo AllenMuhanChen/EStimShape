@@ -225,7 +225,7 @@ public class IsoGaborTest {
 
         // Luminance component with frequency 2.0
         GaborSpec luminanceSpec = new GaborSpec(baseSpec);
-        luminanceSpec.setFrequency(1.333);
+        luminanceSpec.setFrequency(0.5);
         luminanceSpec.setPhase(0.25);
 
         // Create combined gabor with different frequencies
