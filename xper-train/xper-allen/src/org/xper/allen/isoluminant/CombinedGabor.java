@@ -29,7 +29,7 @@ public class CombinedGabor extends Gabor {
 
     protected float calcChromaticModFactor(float position) {
         double chromFreqCyclesPerMm = isoluminantSpec.getFrequency() / renderer.deg2mm(1);
-        double chromPhase = isoluminantSpec.getPhase();
+        double chromPhase = renderer.deg2mm(isoluminantSpec.getPhase());
         return (float) Math.abs(((Math.abs(chromFreqCyclesPerMm * (position + chromPhase))) % 1) * 2 - 1);
     }
 
@@ -37,8 +37,8 @@ public class CombinedGabor extends Gabor {
         // Note: We need to handle isochromaticSpec's frequency separately since
         // frequencyCyclesPerMm is based on the current spec
         double lumFreqCyclesPerMm = isochromaticSpec.getFrequency() / renderer.deg2mm(1);
-        double lumPhase = isochromaticSpec.getPhase();
-        return (float) ((Math.sin(2 * Math.PI * lumFreqCyclesPerMm * (position + lumPhase)) + 1) / 2);
+        double lumPhase = renderer.deg2mm(isochromaticSpec.getPhase());
+        return (float) ((Math.cos(2 * Math.PI * lumFreqCyclesPerMm * (position + lumPhase)) + 1) / 2);
     }
 
     @Override

@@ -162,7 +162,7 @@ public class IsoGaborTest {
 
     @Test
     public void testMixedAligned() {
-        int size = 20;
+        int size = 5;
 
         // Create base specs with different frequencies
         GaborSpec baseSpec = new GaborSpec();
@@ -181,7 +181,7 @@ public class IsoGaborTest {
         // Luminance component with frequency 2.0
         GaborSpec luminanceSpec = new GaborSpec(baseSpec);
         luminanceSpec.setFrequency(1.0);
-        luminanceSpec.setPhase(0);
+        luminanceSpec.setPhase(0.5);
 
         // Create combined gabor with different frequencies
         CombinedGabor gabor = new CombinedGabor(
@@ -207,7 +207,7 @@ public class IsoGaborTest {
 
     @Test
     public void testMixedUnaligned() {
-        int size = 20;
+        int size = 5;
 
         // Create base specs with different frequencies
         GaborSpec baseSpec = new GaborSpec();
@@ -226,7 +226,7 @@ public class IsoGaborTest {
         // Luminance component with frequency 2.0
         GaborSpec luminanceSpec = new GaborSpec(baseSpec);
         luminanceSpec.setFrequency(1.333);
-        luminanceSpec.setPhase(0);
+        luminanceSpec.setPhase(0.25);
 
         // Create combined gabor with different frequencies
         CombinedGabor gabor = new CombinedGabor(
@@ -247,7 +247,7 @@ public class IsoGaborTest {
             }
         });
 
-        ThreadUtil.sleep(10000);
+        ThreadUtil.sleep(100000);
     }
 
     public DataSource dataSource() {

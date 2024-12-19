@@ -93,7 +93,6 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
     private void drawGabor(Context context) {
         GL11.glBegin(GL11.GL_QUADS);
 
-        phase = (float) getGaborSpec().getPhase();
 
         // Convert frequency from cycles per degree to cycles per mm
         float frequencyCyclesPerDegree = (float) getGaborSpec().getFrequency();
@@ -109,6 +108,8 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         float widthMm = heightMm;
         float widthVp = (float) renderer.getVpWidthmm();
         float heightVp = (float) renderer.getVpHeightmm();
+
+        phase = (float) renderer.deg2mm(getGaborSpec().getPhase());
 
         for (int i = 0; i < STEPS; i++) {
             verticalPosition = -heightMm + 2*heightMm * (i / (float) STEPS);
@@ -179,7 +180,7 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
     }
 
     protected float calcModFactor(float i, int STEPS){
-        return (float) ((Math.sin(2 * Math.PI * frequencyCyclesPerMm * (verticalPosition + phase)) + 1) / 2);
+        return (float) ((Math.cos(2 * Math.PI * frequencyCyclesPerMm * (verticalPosition + phase)) + 1) / 2);
     }
 
     protected void bindGaussianTexture(Context context) {
