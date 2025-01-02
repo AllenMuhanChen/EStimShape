@@ -2,6 +2,7 @@ package org.xper.rfplot.drawing.gabor;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -75,7 +76,7 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
 
     @Override
     public void draw(Context context) {
-
+        double startTime = System.currentTimeMillis();
         Gabor.initGL(context.getRenderer().getVpWidth(), context.getRenderer().getVpHeight());
         w = context.getRenderer().getVpWidth(); //in pixels
         h = context.getRenderer().getVpHeight(); //in pixels
@@ -86,12 +87,19 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
 
         translateGrating(context);
         rotateGrating();
+
+        double startTime2 = System.currentTimeMillis();
         bindGaussianTexture(context);
+        double endTime2 = System.currentTimeMillis();
+        System.out.println("Time to bind texture: " + (endTime2 - startTime2) + " ms");
+
         drawGabor(context);
 
         if (getGaborSpec().isAnimation()){
             getGaborSpec().setPhase(getGaborSpec().getPhase() + 0.1);
         }
+        double endTime = System.currentTimeMillis();
+        System.out.println("Time to draw Gabor: " + (endTime - startTime) + " ms");
     }
 
     private void drawGabor(Context context) {
@@ -103,10 +111,8 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         renderer = context.getRenderer();
         frequencyCyclesPerMm = frequencyCyclesPerDegree / renderer.deg2mm(1.0);
 
-        System.out.println("stepsPerHalfCycle " + stepsPerHalfCycle);
         STEPS = calcNumSteps(frequencyCyclesPerDegree, stepsPerHalfCycle);
-//        STEPS = calcNumSteps(context);
-        System.out.println("STEPS: " + STEPS);
+
 
         float heightMm = (float) renderer.deg2mm(getGaborSpec().getDiameter()*3);
         float widthMm = heightMm;
@@ -231,40 +237,33 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
 
     protected ByteBuffer makeTexture(int w, int h, double diskDiameter, double std) {
         ByteBuffer texture = ByteBuffer.allocateDirect(w * h * Float.SIZE / 8).order(ByteOrder.nativeOrder());
+        FloatBuffer floatBuffer = texture.asFloatBuffer();
 
-        double circleRadius = diskDiameter/4; // Specify the radius of the disk where the texture is shown normally
-        //we divide by four because one division by two converts to radius,
-        //and another because the coordinate system we use here is -1 to 1, but the diameter
-        //is specified as 0-1. So we divide by 2 to get the radius in the -1 to 1 coordinate system.
-
-        double diskAlpha = 1.0; // Specify the alpha level within the disk
-
+        double circleRadius = diskDiameter/4;
         double aspectRatio = (double) w / h;
+
+        // Pre-compute Gaussian falloff for radii (1D)
+        int maxRadius = (int)Math.ceil(Math.sqrt(2)) * Math.max(w, h);
+        float[] falloff = new float[maxRadius];
+        for (int r = 0; r < maxRadius; r++) {
+            double offsetDistance = (double) r /maxRadius - circleRadius;
+            falloff[r] = offsetDistance <= 0 ? 1.0f :
+                    (float)Math.min(Math.exp(-0.5 * (Math.pow(offsetDistance / std, 2))), 1.0);
+        }
+
+        // Fill texture using lookup. If radius is greater than maxRadius, use 0.0f,
+        // otherwise use the precomputed falloff value
         for (int i = 0; i < h; i++) {
-            double y = ((double) i / (h - 1) * 2 - 1) / aspectRatio; // Adjust y-coordinate by aspect ratio
+            double y = ((double) i / (h - 1) * 2 - 1) / aspectRatio;
             for (int j = 0; j < w; j++) {
                 double x = ((double) j / (w - 1) * 2 - 1);
-                double distanceToCenter = Math.sqrt(x * x + y * y);
-
-                float n;
-
-                if (distanceToCenter <= circleRadius) {
-                    // Within the disk
-                    n = (float) diskAlpha;
-                } else {
-                    // Calculate Gaussian fade from the disk's edge
-                    double offsetDistance = distanceToCenter - circleRadius;
-                    double gaussValue = diskAlpha * Math.exp(-0.5 * (Math.pow(offsetDistance / std, 2)));
-                    n = (float) Math.min(gaussValue, 1.0);
-                }
-
-                texture.putFloat(n);
+                int r = (int)(Math.sqrt(x * x + y * y) * maxRadius);
+                floatBuffer.put(r < maxRadius ? falloff[r] : 0.0f);
             }
         }
-        texture.flip();
+
         return texture;
     }
-
     public static double normal(double mean, double standardDeviation) {
         double x = Math.random();
         double y = Math.random();
