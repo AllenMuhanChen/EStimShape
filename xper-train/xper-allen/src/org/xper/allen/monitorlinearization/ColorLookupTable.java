@@ -78,28 +78,37 @@ public class ColorLookupTable {
         }
     }
 
+
     public Map<Object, Float> getClosestColors(float targetLuminance, String colorType, int n) {
         List<ColorEntry> entries = colorMap.get(colorType.toLowerCase());
         if (entries == null) return Collections.emptyMap();
 
-        List<ColorEntry> sortedEntries = new ArrayList<>(entries);
-        Collections.sort(sortedEntries, new Comparator<ColorEntry>() {
-            @Override
-            public int compare(ColorEntry e1, ColorEntry e2) {
-                return Float.compare(
-                        Math.abs(e1.luminance - targetLuminance),
-                        Math.abs(e2.luminance - targetLuminance)
-                );
-            }
-        });
-
         Map<Object, Float> result = new LinkedHashMap<Object, Float>();
-        for (int i = 0; i < Math.min(n, sortedEntries.size()); i++) {
-            ColorEntry e = sortedEntries.get(i);
+
+        // Binary search for closest luminance value
+        int index = Collections.binarySearch(entries, new ColorEntry(0, 0, 0, targetLuminance),
+                new Comparator<ColorEntry>() {
+                    @Override
+                    public int compare(ColorEntry e1, ColorEntry e2) {
+                        return Float.compare(e1.luminance, e2.luminance);
+                    }
+                });
+
+        if (index < 0) {
+            index = -(index + 1);
+        }
+
+        // Get n closest entries around the index
+        int start = Math.max(0, index - n/2);
+        int end = Math.min(entries.size(), start + n);
+
+        for (int i = start; i < end; i++) {
+            ColorEntry e = entries.get(i);
             result.put(getColorObject(e, colorType), e.luminance);
         }
         return result;
     }
+
     private Object getColorObject(ColorEntry entry, String colorType) {
         switch (colorType.toLowerCase()) {
             case "red":
