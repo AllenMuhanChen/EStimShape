@@ -7,6 +7,8 @@ import org.lwjgl.opengl.GL11;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.alden.drawing.renderer.PerspectiveRenderer;
 import org.xper.allen.isoluminant.CombinedGabor;
+import org.xper.allen.monitorlinearization.ColorLookupTable;
+import org.xper.allen.monitorlinearization.GainLookupTable;
 import org.xper.allen.monitorlinearization.LookUpTableCorrector;
 import org.xper.allen.monitorlinearization.SinusoidGainCorrector;
 import org.xper.drawing.Context;
@@ -53,8 +55,17 @@ public class IsoGaborTest {
         context.setRenderer(perspectiveRenderer);
 
         DataSource dataSource = dataSource();
-        lutCorrector.setDataSource(dataSource);
-        sinusoidGainCorrector.setGainLookupTable(dataSource);
+
+        ColorLookupTable clt = new ColorLookupTable();
+        clt.setDataSource(dataSource);
+        clt.init();
+
+        lutCorrector.setLookupTable(clt);
+
+        GainLookupTable glt = new GainLookupTable();
+        glt.setDataSource(dataSource);
+        glt.init();
+        sinusoidGainCorrector.setGainLookupTable(glt);
     }
 
     @Test
@@ -178,7 +189,7 @@ public class IsoGaborTest {
         chromaticSpec.setFrequency(1.0);
         chromaticSpec.setPhase(0);
 
-        // Luminance component with frequency 2.0
+        // Luminance component with frequency 1.0
         GaborSpec luminanceSpec = new GaborSpec(baseSpec);
         luminanceSpec.setFrequency(1.0);
         luminanceSpec.setPhase(0.5);

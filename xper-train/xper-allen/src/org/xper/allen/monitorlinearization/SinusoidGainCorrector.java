@@ -2,20 +2,15 @@ package org.xper.allen.monitorlinearization;
 
 import org.xper.Dependency;
 
-import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 public class SinusoidGainCorrector {
     @Dependency
-    private GainLookupTable gainLookup;
+    private GainLookupTable gainLookupTable;
 
     public double getGain(double angle, String colors) {
-        return gainLookup.getGain(angle, colors);
+        return gainLookupTable.getGain(angle, colors);
     }
 
-    public void setGainLookup(GainLookupTable gainLookup) {
-        this.gainLookup = gainLookup;
+    public void setGainLookupTable(GainLookupTable gainLookup) {
+        this.gainLookupTable = gainLookup;
     }
 }

@@ -242,7 +242,7 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         double circleRadius = diskDiameter/4;
         double aspectRatio = (double) w / h;
 
-        // Pre-compute Gaussian falloff for radii (1D)
+        // Pre-compute Gaussian falloff for each radii (1D)
         int maxRadius = (int)Math.ceil(Math.sqrt(2)) * Math.max(w, h);
         float[] falloff = new float[maxRadius];
         for (int r = 0; r < maxRadius; r++) {

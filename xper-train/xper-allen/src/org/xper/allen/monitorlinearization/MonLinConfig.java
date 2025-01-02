@@ -51,7 +51,7 @@ public class MonLinConfig {
     @Bean
     public SinusoidGainCorrector sinusoidCorrector() {
         SinusoidGainCorrector sc = new SinusoidGainCorrector();
-        sc.setGainLookup(gainLookupTable());
+        sc.setGainLookupTable(gainLookupTable());
         return sc;
     }
 
