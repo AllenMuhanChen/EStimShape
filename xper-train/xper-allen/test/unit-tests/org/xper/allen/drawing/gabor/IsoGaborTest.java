@@ -54,7 +54,7 @@ public class IsoGaborTest {
 
         DataSource dataSource = dataSource();
         lutCorrector.setDataSource(dataSource);
-        sinusoidGainCorrector.setDataSource(dataSource);
+        sinusoidGainCorrector.setGainLookupTable(dataSource);
     }
 
     @Test

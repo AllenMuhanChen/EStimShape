@@ -7,6 +7,8 @@ import org.springframework.config.java.annotation.Import;
 import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
+import org.xper.allen.monitorlinearization.ColorLookupTable;
+import org.xper.allen.monitorlinearization.GainLookupTable;
 import org.xper.allen.monitorlinearization.LookUpTableCorrector;
 import org.xper.allen.monitorlinearization.SinusoidGainCorrector;
 import org.xper.config.BaseConfig;
@@ -51,15 +53,31 @@ public class IsoGaborConfig {
     @Bean
     public LookUpTableCorrector lookUpTableCorrector() {
         LookUpTableCorrector lut = new LookUpTableCorrector();
+        lut.setLookupTable(colorLookupTable());
+        return lut;
+    }
+
+    @Bean
+    public ColorLookupTable colorLookupTable() {
+        ColorLookupTable lut = new ColorLookupTable();
         lut.setDataSource(baseConfig.dataSource());
+        lut.init();
         return lut;
     }
 
     @Bean
     public SinusoidGainCorrector sinusoidCorrector() {
         SinusoidGainCorrector sc = new SinusoidGainCorrector();
-        sc.setDataSource(baseConfig.dataSource());
+        sc.setGainLookup(gainLookupTable());
         return sc;
+    }
+
+    @Bean
+    public GainLookupTable gainLookupTable() {
+        GainLookupTable table = new GainLookupTable();
+        table.setDataSource(baseConfig.dataSource());
+        table.init();
+        return table;
     }
 
     @Bean
