@@ -23,8 +23,6 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("experiment.config_class"), IsoGaborConfig.class);
         IsoGaborTrialGenerator gen = context.getBean(IsoGaborTrialGenerator.class);
 
-
-
         gen.generate();
     }
 
