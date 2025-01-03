@@ -54,7 +54,7 @@ public class AllenMStickDataTest {
     private AllenMStickData data;
 
     private AllenMatchStick matchStick;
-    private final static String FILE_NAME = Paths.get(ResourceUtil.getResource("testBin"), "AllenMStickDataTest_testFile").toString();;
+    public final static String FILE_NAME = Paths.get(ResourceUtil.getResource("testBin"), "AllenMStickDataTest_testFile").toString();;
     private ReceptiveField receptiveField;
     private GaussianNoiseMapper noiseMapper;
 
