@@ -3,40 +3,25 @@ package org.xper.allen.drawing.mstickbubbles;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.lwjgl.BufferUtils;
-import org.lwjgl.opengl.GL11;
-import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
-import org.xper.allen.noisy.NoisyTranslatableResizableImages;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
-import org.xper.drawing.Context;
-import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.TestDrawingWindow;
-import org.xper.drawing.renderer.AbstractRenderer;
-import org.xper.drawing.renderer.PerspectiveRenderer;
-import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.util.ResourceUtil;
 import org.xper.util.ThreadUtil;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferByte;
-import java.awt.image.DataBufferInt;
 import java.io.File;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.IntBuffer;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashSet;
 
-import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 import static org.xper.allen.drawing.ga.GAMatchStickTest.COMPLETE_RF;
 import static org.xper.allen.drawing.ga.GAMatchStickTest.PARTIAL_RF;
 
@@ -106,7 +91,7 @@ public class MStickBubbleGeneratorTest {
         mStickBubbleGenerator.renderer = window.renderer;
         BufferedImage bubbleMap = null;
         try {
-            bubbleMap = mStickBubbleGenerator.generateBubbleMap(matchStick);
+            bubbleMap = mStickBubbleGenerator.generateBubbleMap(matchStick, 3);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
