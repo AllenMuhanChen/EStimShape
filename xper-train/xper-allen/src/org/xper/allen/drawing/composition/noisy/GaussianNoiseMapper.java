@@ -450,8 +450,8 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
 
     }
 
-    static double mmToPixels(AbstractRenderer renderer, double degrees) {
-        Coordinates2D pixels = renderer.mm2pixel(new Coordinates2D(degrees, degrees));
+    public static double mmToPixels(AbstractRenderer renderer, double mm) {
+        Coordinates2D pixels = renderer.mm2pixel(new Coordinates2D(mm, mm));
         return pixels.getX();
 
     }

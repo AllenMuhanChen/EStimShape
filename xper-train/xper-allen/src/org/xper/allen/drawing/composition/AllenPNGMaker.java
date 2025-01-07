@@ -219,7 +219,7 @@ public class AllenPNGMaker{
 		}
 	}
 
-	public String saveImage(String filename, int height, int width, String imageFolderName) {
+	public static String saveImage(String filename, int height, int width, String imageFolderName) {
 		byte[] data = screenShotBinary(width,height);
 
 		String path = imageFolderName + "/" + filename;

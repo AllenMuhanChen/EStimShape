@@ -15,28 +15,28 @@ public abstract class AbstractRenderer implements Renderer {
 	 */
 	double distance;
 	double pupilDistance;
-	
-	int widthInPixel;
-	int heightInPixel;
+
+	public int widthInPixel;
+	public int heightInPixel;
 
 	/**
 	 * coordinate system in mm
-	 */ 
+	 */
 	double xmin, xmax, ymin, ymax, zmin, zmax;
-	/** 
+	/**
 	 * viewport width and height
 	 */
 	int vpWidth, vpHeight;
 	double vpWidthmm, vpHeightmm;
 	/**
 	 * horiz and vert unit in mm/pixel
-	 */ 
+	 */
 	double hunit, vunit;
 	static final double PROJECTION_NEAR = 10.0;
 
 	/**
 	 * Convert distance in mm to angle in degree.
-	 * 
+	 *
 	 * @param mm
 	 * @return
 	 */
@@ -50,7 +50,7 @@ public abstract class AbstractRenderer implements Renderer {
 
 	/**
 	 * Convert rectangle from mm to pixel.
-	 * 
+	 *
 	 * @param mm
 	 * @return
 	 */
@@ -62,7 +62,7 @@ public abstract class AbstractRenderer implements Renderer {
 
 	/**
 	 * Convert rectangle from pixel to mm.
-	 * 
+	 *
 	 * @param pixel
 	 * @return
 	 */
@@ -74,10 +74,10 @@ public abstract class AbstractRenderer implements Renderer {
 
 	/**
 	 * Convert from window coordinate to world coordinate.
-	 * 
+	 *
 	 * window coord: (0, 0) is upper left corner, x rightward increase, y
 	 * downward increase
-	 * 
+	 *
 	 * @param p
 	 * @return
 	 */
@@ -89,10 +89,10 @@ public abstract class AbstractRenderer implements Renderer {
 
 	/**
 	 * Convert from world coordinate to window coordinate.
-	 * 
+	 *
 	 * window coord: (0, 0) is upper left corner, x rightward increase, y
 	 * downward increase
-	 * 
+	 *
 	 * @param c
 	 * @return
 	 */
@@ -104,9 +104,9 @@ public abstract class AbstractRenderer implements Renderer {
 
 	/**
 	 * Convert from world coordinate to viewport coordinate.
-	 * 
+	 *
 	 * viewport coord: (0, 0) is lower left corner, rightward, upward increase
-	 * 
+	 *
 	 * @param c
 	 * @return
 	 */
@@ -118,9 +118,9 @@ public abstract class AbstractRenderer implements Renderer {
 
 	/**
 	 * Convert from viewport coordinate to world coordinate.
-	 * 
+	 *
 	 * viewport coord: (0, 0) is lower left corner, rightward, upward increase
-	 * 
+	 *
 	 * @param p
 	 * @return
 	 */
@@ -132,9 +132,9 @@ public abstract class AbstractRenderer implements Renderer {
 
 	/**
 	 * Convert from world coordinate to normalized coordinate.
-	 * 
+	 *
 	 * normalized coordinated: [0,1][0,1]
-	 * 
+	 *
 	 * @param c
 	 * @return
 	 */
@@ -146,9 +146,9 @@ public abstract class AbstractRenderer implements Renderer {
 
 	/**
 	 * Convert from normalized coordinate to world coordinate.
-	 * 
+	 *
 	 * normalized coordinated: [0,1][0,1]
-	 * 
+	 *
 	 * @param n
 	 * @return
 	 */
@@ -171,18 +171,18 @@ public abstract class AbstractRenderer implements Renderer {
 		heightInPixel = h;
 		init();
 	}
-	
+
 	/**
 	 * Init without calling GL. Purely for initializing renderer to use unit conversion
-	 * methods without calling OpenGL for drawing. 
+	 * methods without calling OpenGL for drawing.
 	 */
 	public void softInit(int w, int h){
 		setPixelWidthHeight(w,h);
 		calculateCoordinates();
 	}
-	
+
 	/**
-	 * Allows setting width and height in pixel. 
+	 * Allows setting width and height in pixel.
 	 * @param w
 	 * @param h
 	 * @author r2_allen
