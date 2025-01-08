@@ -91,7 +91,7 @@ public class MStickBubbleGeneratorTest {
         mStickBubbleGenerator.renderer = window.renderer;
         BufferedImage bubbleMap = null;
         try {
-            bubbleMap = mStickBubbleGenerator.generateBubbleMap(matchStick, 3);
+            bubbleMap = mStickBubbleGenerator.generateBubbleMap(matchStick, 5);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
