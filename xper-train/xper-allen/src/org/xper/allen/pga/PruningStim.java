@@ -15,11 +15,6 @@ public class PruningStim extends GAStim<PruningMatchStick, PruningMatchStick.Pru
     }
 
     @Override
-    protected void chooseColor() {
-        color = colorManager.readProperty(parentId);
-    }
-
-    @Override
     protected void chooseSize() {
         sizeDiameterDegrees = sizeManager.readProperty(parentId);
     }

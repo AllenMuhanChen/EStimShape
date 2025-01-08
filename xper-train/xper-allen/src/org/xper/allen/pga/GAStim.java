@@ -109,8 +109,9 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
 
     protected abstract void chooseRFStrategy();
 
-    protected abstract void chooseColor();
-
+    protected void chooseColor() {
+        color = colorManager.readProperty(parentId);
+    }
     protected abstract void chooseSize();
 
     protected void writeStimData() {

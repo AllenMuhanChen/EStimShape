@@ -8,7 +8,6 @@ import java.util.Random;
 
 public class SeedingStim extends GAStim<GAMatchStick, AllenMStickData> {
     private static final Random random = new Random();
-    private static final double MAX_LUMINANCE_CHANGE = 0.25; // 25% maximum change
 
     public SeedingStim(Long stimId, FromDbGABlockGenerator generator, String textureType, RGBColor color) {
         super(stimId, generator, 0L, textureType);
@@ -31,17 +30,7 @@ public class SeedingStim extends GAStim<GAMatchStick, AllenMStickData> {
 
     @Override
     protected void chooseColor() {
-        RGBColor originalColor = color;
-        // Get current luminance
-        float currentLuminance = ColorUtils.getLuminance(originalColor);
-
-        // Calculate random change between -25% and +25% of possible range
-        double randomChange = (random.nextDouble() * 2 - 1) * MAX_LUMINANCE_CHANGE;
-
-        // Apply change while keeping within valid range [0,1]
-        double newLuminance = Math.min(1.0, Math.max(0.0, currentLuminance + randomChange));
-
-        color = ColorUtils.changeLuminance(originalColor, newLuminance);
+        //Do nothing: we assigned color in the constructor
     }
 
     @Override

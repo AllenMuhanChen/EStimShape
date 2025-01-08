@@ -11,7 +11,6 @@ import java.util.Random;
 public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     private final double magnitude;
     private static final Random random = new Random();
-    private static final double MAX_LUMINANCE_CHANGE = 0.5;
 
     public GrowingStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double magnitude, String textureType) {
         super(stimId, generator, parentId, textureType);
@@ -34,21 +33,6 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
         sizeDiameterDegrees = Math.min(maxSizeDiameterDegrees, Math.max(minSizeDiameterDegrees, parentSizeDiameterDegrees + randomChange));
     }
 
-    @Override
-    protected void chooseColor() {
-        RGBColor originalColor = colorManager.readProperty(parentId);
-        // Get current luminance
-        float currentLuminance = ColorUtils.getLuminance(originalColor);
-
-        // Calculate random change between -25% and +25% of possible range
-        double randomChange = (random.nextDouble()*magnitude * 2 - 1) * MAX_LUMINANCE_CHANGE;
-
-
-        // Apply change while keeping within valid range [0,1]
-        double newLuminance = Math.min(1.0, Math.max(0.0, currentLuminance + randomChange));
-
-        color = ColorUtils.changeLuminance(originalColor, newLuminance);
-    }
 
     @Override
     protected GrowingMatchStick createMStick() {
