@@ -91,12 +91,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         chooseRFStrategy(); //must be first otherwise chooseSize may fail
         chooseSize();
         chooseTextureType();
-
-        if (generator.doMorphColor) {
-            chooseColor();
-        } else{
-            color = colorManager.readProperty(parentId);
-        }
+        chooseColor();
 
         if (rfStrategy == null) {
             throw new IllegalArgumentException("RF Strategy cannot be null");
@@ -114,9 +109,6 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
 
     protected abstract void chooseRFStrategy();
 
-    /**
-     * Only called if generator.doMorphColor is true. Else, color is read from parent.
-     */
     protected abstract void chooseColor();
 
     protected abstract void chooseSize();

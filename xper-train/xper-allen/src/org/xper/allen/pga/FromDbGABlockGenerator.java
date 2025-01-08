@@ -38,9 +38,6 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
     @Dependency
     RFStrategy rfStrategy = RFStrategy.PARTIALLY_INSIDE;
 
-    @Dependency
-    boolean doMorphColor = false;
-
     //Parameters
     private RGBColor color;
 
