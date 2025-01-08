@@ -30,7 +30,10 @@ public class SeedingStim extends GAStim<GAMatchStick, AllenMStickData> {
 
     @Override
     protected void chooseColor() {
-        //Do nothing: we assigned color in the constructor
+        // Color set in constructor. This should be the max bright we want in shade
+
+        // See if texture is Shade or Specular
+
     }
 
     @Override

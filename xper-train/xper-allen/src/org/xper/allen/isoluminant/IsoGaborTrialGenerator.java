@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
-    private final int numRepeats = 1;
+    private final int numRepeats = 5;
     private GaborSpec gaborSpec;
     public static final List<Double> frequencies = Arrays.asList(0.5, 1.0, 2.0, 4.0);
     public static final List<Double> mixedPhases = Arrays.asList(0.0, 0.25, 0.5, 0.75);
