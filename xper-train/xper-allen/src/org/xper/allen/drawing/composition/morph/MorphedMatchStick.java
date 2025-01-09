@@ -63,10 +63,6 @@ public class MorphedMatchStick extends AllenMatchStick {
                 attemptSmoothizeMStick();
                 if (doPositionShape)
                     positionShape();
-
-                // Collect Component Morph Data
-
-
                 return;
             } catch (MorphException e) {
                 cleanData();
@@ -879,6 +875,16 @@ public class MorphedMatchStick extends AllenMatchStick {
 
         if (in instanceof MorphedMatchStick){
             this.morphData = new MorphData(((MorphedMatchStick) in).morphData);
+        }
+    }
+
+    @Override
+    protected void cleanData()
+    {
+        super.cleanData();
+
+        if (morphData != null){
+            morphData = new MorphData();
         }
     }
 
