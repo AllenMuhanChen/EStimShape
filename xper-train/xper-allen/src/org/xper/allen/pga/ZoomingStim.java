@@ -3,7 +3,6 @@ package org.xper.allen.pga;
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.ga.GAMatchStick;
-import org.xper.drawing.RGBColor;
 
 public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
 
@@ -80,7 +79,7 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
         writeStimSpec(pngPath, mStickData);
 
         //write additional data here?
-        writeStimData();
+        writeStimProperties();
     }
 
 

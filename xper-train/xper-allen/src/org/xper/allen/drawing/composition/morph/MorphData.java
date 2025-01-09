@@ -1,5 +1,7 @@
 package org.xper.allen.drawing.composition.morph;
 
+import com.thoughtworks.xstream.XStream;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -12,6 +14,10 @@ public class MorphData {
     public MorphData() {
     }
 
+    /**
+     * Deep copy constructor
+     * @param toDeepCopy
+     */
     public MorphData(MorphData toDeepCopy) {
         for (Map.Entry<Integer, ComponentMorphData> entry : toDeepCopy.getDataForComps().entrySet()) {
             dataForComps.put(entry.getKey(), new ComponentMorphData(entry.getValue()));
@@ -48,11 +54,43 @@ public class MorphData {
         removedComps.add(i);
     }
 
+    static XStream s;
+
+    static{
+        s = new XStream();
+        s.alias("MorphData", MorphData.class);
+    }
+
+    public String toXml(){
+        return s.toXML(this);
+    }
+
+    public static MorphData fromXml(String xml){
+        return (MorphData) s.fromXML(xml);
+    }
+
+
     public Map<Integer, ComponentMorphData> getDataForComps() {
         return dataForComps;
     }
 
     public void setDataForComps(Map<Integer, ComponentMorphData> dataForComps) {
         this.dataForComps = dataForComps;
+    }
+
+    public Map<Integer, String> getTypesForAddedComps() {
+        return typesForAddedComps;
+    }
+
+    public void setTypesForAddedComps(Map<Integer, String> typesForAddedComps) {
+        this.typesForAddedComps = typesForAddedComps;
+    }
+
+    public List<Integer> getRemovedComps() {
+        return removedComps;
+    }
+
+    public void setRemovedComps(List<Integer> removedComps) {
+        this.removedComps = removedComps;
     }
 }

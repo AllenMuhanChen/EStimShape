@@ -1,7 +1,6 @@
 package org.xper.allen.drawing.composition.morph;
 
 import org.xper.allen.drawing.composition.AllenMAxisArc;
-import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.drawing.stick.EndPt_struct;
@@ -158,7 +157,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 }
             }
             if (addSuccess) { // otherwise, we'll run this while loop again, and re-generate this component
-                morphData.addAddedComp(nextCompId, type);
+                getMorphData().addAddedComp(nextCompId, type);
                 if (nextCompId == targetNComps)
                     break;
                 nextCompId++;
@@ -206,7 +205,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 removeComponent(removeFlags);
                 for (int i=1; i<=getnComponent(); i++){
                     if (removeFlags[i]){
-                        morphData.addRemovedComp(i);
+                        getMorphData().addRemovedComp(i);
                     }
                 }
                 updateEndPtsAndJunctionPositions();
@@ -326,7 +325,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 attemptToMorphComponent(componentIndex, morphParams);
                 numSuccessfulMorphs[0]++;
                 System.out.println("Successfully morphed " + numSuccessfulMorphs[0] + " components out of " + morphParametersForComponents.size() + " components.");
-                morphData.addDataForComp(componentIndex, morphParams.getMorphData());
+                getMorphData().addDataForComp(componentIndex, morphParams.getMorphData());
             }
         });
     }
@@ -889,7 +888,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         super.copyFrom(in);
 
         if (in instanceof MorphedMatchStick){
-            this.morphData = new MorphData(((MorphedMatchStick) in).morphData);
+            this.setMorphData(new MorphData(((MorphedMatchStick) in).getMorphData()));
         }
     }
 
@@ -898,8 +897,8 @@ public class MorphedMatchStick extends AllenMatchStick {
     {
         super.cleanData();
 
-        if (morphData != null){
-            morphData = new MorphData();
+        if (getMorphData() != null){
+            setMorphData(new MorphData());
         }
     }
 
@@ -911,6 +910,14 @@ public class MorphedMatchStick extends AllenMatchStick {
     @Override
     public void setTangentSaveZone(double tangentSaveZone) {
         TangentSaveZone = tangentSaveZone;
+    }
+
+    public MorphData getMorphData() {
+        return morphData;
+    }
+
+    public void setMorphData(MorphData morphData) {
+        this.morphData = morphData;
     }
 
     public static class MorphException extends RuntimeException{

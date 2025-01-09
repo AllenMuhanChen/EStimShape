@@ -4,6 +4,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
+import org.xper.allen.drawing.composition.morph.MorphData;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.stimproperty.ColorPropertyManager;
@@ -83,8 +84,17 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         String pngPath = drawPngs(mStick);
         writeStimSpec(pngPath, mStickData);
 
-        //write additional data here?
-        writeStimData();
+        writeStimProperties();
+
+        writeMorphData(mStick);
+    }
+
+    protected void writeMorphData(T mStick) {
+        MorphData morphData = mStick.getMorphData();
+        String morphDataXml = morphData.toXml();
+        JdbcTemplate jt = new JdbcTemplate(generator.getDbUtil().getDataSource());
+        jt.update("insert into StimMorphData (stim_id, data) values (?, ?)",
+                new Object[] { stimId, morphDataXml });
     }
 
     protected void setProperties(){
@@ -114,7 +124,10 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     }
     protected abstract void chooseSize();
 
-    protected void writeStimData() {
+    /**
+     * For properties not specified by MStickSpec, but matter for what the stim looks like.
+     */
+    protected void writeStimProperties() {
         colorManager.writeProperty(stimId, color);
         textureManager.writeProperty(stimId, textureType);
         sizeManager.writeProperty(stimId, (float) sizeDiameterDegrees);
