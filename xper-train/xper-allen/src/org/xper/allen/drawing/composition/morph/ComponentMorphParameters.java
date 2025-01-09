@@ -4,7 +4,7 @@ import org.xper.allen.drawing.composition.AllenMAxisArc;
 
 import javax.vecmath.Vector3d;
 
-public interface ComponentMorphParameters<T> {
+public interface ComponentMorphParameters {
     Vector3d morphOrientation(Vector3d oldOrientation);
 
     /**
@@ -26,5 +26,5 @@ public interface ComponentMorphParameters<T> {
 
     void distribute();
 
-    T getMorphData();
+    ComponentMorphData getMorphData();
 }

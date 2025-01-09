@@ -37,6 +37,7 @@ public class MorphedMatchStick extends AllenMatchStick {
     private MorphedMatchStick localBackup;
     private List<Integer> compsToPreserve = new ArrayList<>();
 
+    public MorphData morphData = new MorphData();
 
 
     public void genMorphedComponentsMatchStick(Map<Integer, ComponentMorphParameters> morphParametersForComponents, MorphedMatchStick matchStickToMorph, boolean doPositionShape){
@@ -314,6 +315,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 attemptToMorphComponent(componentIndex, morphParams);
                 numSuccessfulMorphs[0]++;
                 System.out.println("Successfully morphed " + numSuccessfulMorphs[0] + " components out of " + morphParametersForComponents.size() + " components.");
+                morphData.addDataForComp(componentIndex, morphParams.getMorphData());
             }
         });
     }
@@ -868,6 +870,15 @@ public class MorphedMatchStick extends AllenMatchStick {
             if (getEndPt()[i].getComp() == id) {
                 endPtConsumer.accept(getEndPt()[i]);
             }
+        }
+    }
+
+    @Override
+    public void copyFrom(AllenMatchStick in) {
+        super.copyFrom(in);
+
+        if (in instanceof MorphedMatchStick){
+            this.morphData = new MorphData(((MorphedMatchStick) in).morphData);
         }
     }
 

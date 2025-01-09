@@ -1,13 +1,12 @@
 package org.xper.allen.drawing.composition.morph;
 
-import com.thoughtworks.xstream.XStream;
 import org.xper.allen.drawing.composition.AllenMAxisArc;
 
 import javax.vecmath.Vector3d;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class NormalDistributedComponentMorphParameters implements ComponentMorphParameters<NormalDistributedComponentMorphParameters.NormalDistributedMorphData> {
+public class NormalDistributedComponentMorphParameters implements ComponentMorphParameters {
 
     private double maxOrientationChange = -1;
     public Double magnitude;
@@ -115,8 +114,8 @@ public class NormalDistributedComponentMorphParameters implements ComponentMorph
 
 
     @Override
-    public NormalDistributedMorphData getMorphData() {
-        return new NormalDistributedMorphData(orientationMagnitude, rotationMagnitude, lengthMagnitude, curvatureMagnitude, radiusProfileMagnitude);
+    public ComponentMorphData getMorphData() {
+        return new ComponentMorphData(orientationMagnitude, rotationMagnitude, lengthMagnitude, curvatureMagnitude, radiusProfileMagnitude);
     }
 
     public Vector3d getOrientation() {
@@ -143,33 +142,4 @@ public class NormalDistributedComponentMorphParameters implements ComponentMorph
         return "Orientation: " + orientation + " Rotation: " + rotation + " Length: " + length + " Curvature: " + curvature + " RadiusProfile: " + radiusProfile;
     }
 
-    public static class NormalDistributedMorphData{
-        public Double orientationMagnitude;
-        public Double rotationMagnitude;
-        public Double lengthMagnitude;
-        public Double curvatureMagnitude;
-        public Double radiusProfileMagnitude;
-
-        public NormalDistributedMorphData(Double orientationMagnitude, Double rotationMagnitude, Double lengthMagnitude, Double curvatureMagnitude, Double radiusProfileMagnitude) {
-            this.orientationMagnitude = orientationMagnitude;
-            this.rotationMagnitude = rotationMagnitude;
-            this.lengthMagnitude = lengthMagnitude;
-            this.curvatureMagnitude = curvatureMagnitude;
-            this.radiusProfileMagnitude = radiusProfileMagnitude;
-        }
-
-        static XStream xstream;
-        static {
-            xstream = new XStream();
-            xstream.alias("NormalDistributedMorphData", NormalDistributedMorphData.class);
-        }
-
-        public String toXml(){
-            return xstream.toXML(this);
-        }
-
-        public static NormalDistributedMorphData fromXml(String xml){
-            return (NormalDistributedMorphData) xstream.fromXML(xml);
-        }
-    }
 }
