@@ -131,24 +131,34 @@ public class MorphedMatchStick extends AllenMatchStick {
         boolean addSuccess;
         while (true)
         {
-            if ( showDebug)
+            if ( showDebug) {
                 System.out.println("adding new MAxis on, now # " +  nextCompId);
+            }
+            int type;
             randNdx = stickMath_lib.rand01();
             if (randNdx < getPROB_addToEndorJunc())
             {
-                if (getnJuncPt() == 0 || stickMath_lib.rand01() < getPROB_addToEnd_notJunc())
-                    addSuccess = Add_MStick(nextCompId, 1);
-                else
-                    addSuccess = Add_MStick(nextCompId, 2);
+                if (getnJuncPt() == 0 || stickMath_lib.rand01() < getPROB_addToEnd_notJunc()) {
+                    type=1;
+                    addSuccess = Add_MStick(nextCompId, type);
+                } else {
+                    type=2;
+                    addSuccess = Add_MStick(nextCompId, type);
+                }
             }
             else
             {
-                if (stickMath_lib.rand01() < getPROB_addTiptoBranch())
-                    addSuccess = Add_MStick(nextCompId, 3);
-                else
-                    addSuccess = Add_MStick(nextCompId, 4);
+                if (stickMath_lib.rand01() < getPROB_addTiptoBranch()) {
+                    type=3;
+                    addSuccess = Add_MStick(nextCompId, type);
+                }
+                else {
+                    type=4;
+                    addSuccess = Add_MStick(nextCompId, type);
+                }
             }
             if (addSuccess) { // otherwise, we'll run this while loop again, and re-generate this component
+                morphData.addAddedComp(nextCompId, type);
                 if (nextCompId == targetNComps)
                     break;
                 nextCompId++;
