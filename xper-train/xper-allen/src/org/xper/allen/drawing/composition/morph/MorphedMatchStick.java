@@ -62,6 +62,10 @@ public class MorphedMatchStick extends AllenMatchStick {
                 attemptSmoothizeMStick();
                 if (doPositionShape)
                     positionShape();
+
+                // Collect Component Morph Data
+
+
                 return;
             } catch (MorphException e) {
                 cleanData();

@@ -1,12 +1,13 @@
 package org.xper.allen.drawing.composition.morph;
 
+import com.thoughtworks.xstream.XStream;
 import org.xper.allen.drawing.composition.AllenMAxisArc;
 
 import javax.vecmath.Vector3d;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class NormalDistributedComponentMorphParameters implements ComponentMorphParameters {
+public class NormalDistributedComponentMorphParameters implements ComponentMorphParameters<NormalDistributedComponentMorphParameters.NormalDistributedMorphData> {
 
     private double maxOrientationChange = -1;
     public Double magnitude;
@@ -29,6 +30,7 @@ public class NormalDistributedComponentMorphParameters implements ComponentMorph
     public void distribute() {
         distributeMagnitude();
     }
+
 
     Vector3d orientation;
     Double rotation;
@@ -111,6 +113,12 @@ public class NormalDistributedComponentMorphParameters implements ComponentMorph
         this.radiusProfileMagnitude = radiusProfileMagnitude.get();
     }
 
+
+    @Override
+    public NormalDistributedMorphData getMorphData() {
+        return new NormalDistributedMorphData(orientationMagnitude, rotationMagnitude, lengthMagnitude, curvatureMagnitude, radiusProfileMagnitude);
+    }
+
     public Vector3d getOrientation() {
         return orientation;
     }
@@ -133,5 +141,35 @@ public class NormalDistributedComponentMorphParameters implements ComponentMorph
 
     public String toString() {
         return "Orientation: " + orientation + " Rotation: " + rotation + " Length: " + length + " Curvature: " + curvature + " RadiusProfile: " + radiusProfile;
+    }
+
+    public static class NormalDistributedMorphData{
+        public Double orientationMagnitude;
+        public Double rotationMagnitude;
+        public Double lengthMagnitude;
+        public Double curvatureMagnitude;
+        public Double radiusProfileMagnitude;
+
+        public NormalDistributedMorphData(Double orientationMagnitude, Double rotationMagnitude, Double lengthMagnitude, Double curvatureMagnitude, Double radiusProfileMagnitude) {
+            this.orientationMagnitude = orientationMagnitude;
+            this.rotationMagnitude = rotationMagnitude;
+            this.lengthMagnitude = lengthMagnitude;
+            this.curvatureMagnitude = curvatureMagnitude;
+            this.radiusProfileMagnitude = radiusProfileMagnitude;
+        }
+
+        static XStream xstream;
+        static {
+            xstream = new XStream();
+            xstream.alias("NormalDistributedMorphData", NormalDistributedMorphData.class);
+        }
+
+        public String toXml(){
+            return xstream.toXML(this);
+        }
+
+        public static NormalDistributedMorphData fromXml(String xml){
+            return (NormalDistributedMorphData) xstream.fromXML(xml);
+        }
     }
 }
