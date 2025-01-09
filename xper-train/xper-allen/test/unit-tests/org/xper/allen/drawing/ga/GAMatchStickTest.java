@@ -162,6 +162,7 @@ public class GAMatchStickTest {
         }
         testMatchStickDrawer.drawMStick(growingMatchStick);
         testMatchStickDrawer.drawCompMap(growingMatchStick);
+        System.out.println(growingMatchStick.getMorphData().toXml());
         ThreadUtil.sleep(10000);
     }
 

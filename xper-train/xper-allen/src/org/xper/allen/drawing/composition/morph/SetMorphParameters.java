@@ -1,6 +1,8 @@
 package org.xper.allen.drawing.composition.morph;
 
 import org.xper.allen.drawing.composition.AllenMAxisArc;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
 import javax.vecmath.Vector3d;
 import java.util.Map;
 import java.util.Random;
@@ -162,6 +164,11 @@ public class SetMorphParameters implements ComponentMorphParameters {
                 case 2: doOrientation = true; break;
             }
         }
+    }
+
+    @Override
+    public ComponentMorphData getMorphData() {
+        throw new NotImplementedException();
     }
 
     // Getters and setters

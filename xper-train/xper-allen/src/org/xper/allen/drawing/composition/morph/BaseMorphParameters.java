@@ -7,6 +7,7 @@ import org.xper.allen.drawing.composition.metricmorphs.SizeMetricMorphMagnitude;
 import org.xper.allen.drawing.composition.qualitativemorphs.Bin;
 import org.xper.allen.drawing.composition.qualitativemorphs.CurvatureRotationQualitativeMorph;
 import org.xper.allen.drawing.composition.qualitativemorphs.RadProfileQualitativeMorph;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import javax.vecmath.Vector3d;
 import java.util.ArrayList;
@@ -211,6 +212,11 @@ public class BaseMorphParameters implements ComponentMorphParameters {
             thicknessMorph.percentChangeLowerBound = 0.19;
             thicknessMorph.percentChangeUpperBound = 0.2;
         }
+    }
+
+    @Override
+    public ComponentMorphData getMorphData() {
+        throw new NotImplementedException();
     }
 
 }

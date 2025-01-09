@@ -5,6 +5,7 @@ import org.junit.Test;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.composition.AllenMAxisArc;
 import org.xper.allen.drawing.composition.AllenMatchStick;
+import org.xper.allen.drawing.composition.morph.ComponentMorphData;
 import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
 import org.xper.allen.drawing.composition.morph.RadiusInfo;
 import org.xper.allen.drawing.composition.morph.RadiusProfile;
@@ -16,6 +17,7 @@ import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.util.ThreadUtil;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import javax.vecmath.Vector3d;
 import java.awt.*;
@@ -322,6 +324,11 @@ public class DepthLightingPostHocMatchStickTest {
             @Override
             public void distribute() {
 
+            }
+
+            @Override
+            public ComponentMorphData getMorphData() {
+                throw new NotImplementedException();
             }
         });
         newMStick.genMorphedComponentsMatchStick(morphParameters, baseMStick, true);

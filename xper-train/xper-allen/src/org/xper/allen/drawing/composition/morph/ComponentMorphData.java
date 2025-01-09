@@ -9,6 +9,9 @@ public class ComponentMorphData {
     public double curvatureMagnitude;
     public double radiusProfileMagnitude;
 
+    public ComponentMorphData() {
+    }
+
     public ComponentMorphData(Double orientationMagnitude, Double rotationMagnitude, Double lengthMagnitude, Double curvatureMagnitude, Double radiusProfileMagnitude) {
         this.orientationMagnitude = orientationMagnitude;
         this.rotationMagnitude = rotationMagnitude;
@@ -29,7 +32,7 @@ public class ComponentMorphData {
 
     static {
         xstream = new XStream();
-        xstream.alias("NormalDistributedMorphData", ComponentMorphData.class);
+        xstream.alias("ComponentMorphData", ComponentMorphData.class);
     }
 
     public String toXml() {

@@ -59,6 +59,7 @@ public class MorphData {
     static{
         s = new XStream();
         s.alias("MorphData", MorphData.class);
+        s.alias("ComponentMorphData", ComponentMorphData.class);
     }
 
     public String toXml(){

@@ -2,6 +2,7 @@ package org.xper.allen.drawing.composition.morph.depthposthoc;
 
 import org.xper.allen.drawing.composition.AllenMAxisArc;
 import org.xper.allen.drawing.composition.morph.*;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import javax.vecmath.Vector3d;
 
@@ -44,5 +45,10 @@ public class DepthLightingPostHocComponentMorphParameters implements ComponentMo
     @Override
     public void distribute() {
 
+    }
+
+    @Override
+    public ComponentMorphData getMorphData() {
+        throw new NotImplementedException();
     }
 }

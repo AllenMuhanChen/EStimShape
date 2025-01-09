@@ -44,6 +44,8 @@ public class MorphedMatchStickTest {
         growingMatchStick.genGrowingMatchStick(parentMStick, 0.2);
         ThreadUtil.sleep(500);
         drawPng(growingMatchStick, 2L);
+
+        System.out.println(growingMatchStick.getMorphData().toXml());
     }
 
     @Test
