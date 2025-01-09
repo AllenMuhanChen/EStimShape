@@ -2,11 +2,13 @@ package org.xper.allen.drawing.composition.morph;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class MorphData {
     public Map<Integer, ComponentMorphData> dataForComps = new HashMap<>();
     public Map<Integer, String> typesForAddedComps = new HashMap<>();
+    public List<Integer> removedComps = new ArrayList<>();
     public MorphData() {
     }
 
@@ -15,6 +17,7 @@ public class MorphData {
             dataForComps.put(entry.getKey(), new ComponentMorphData(entry.getValue()));
         }
         typesForAddedComps.putAll(toDeepCopy.typesForAddedComps);
+        removedComps.addAll(toDeepCopy.removedComps);
     }
 
     public void addDataForComp(int compId, ComponentMorphData data){
@@ -39,6 +42,10 @@ public class MorphData {
             throw new IllegalArgumentException("Invalid type of limb addition");
         }
         typesForAddedComps.put(compId, typeString);
+    }
+
+    public void addRemovedComp(int i) {
+        removedComps.add(i);
     }
 
     public Map<Integer, ComponentMorphData> getDataForComps() {

@@ -204,6 +204,11 @@ public class MorphedMatchStick extends AllenMatchStick {
                     }
                 }
                 removeComponent(removeFlags);
+                for (int i=1; i<=getnComponent(); i++){
+                    if (removeFlags[i]){
+                        morphData.addRemovedComp(i);
+                    }
+                }
                 updateEndPtsAndJunctionPositions();
                 centerShape();
                 applyRadiusProfile();
