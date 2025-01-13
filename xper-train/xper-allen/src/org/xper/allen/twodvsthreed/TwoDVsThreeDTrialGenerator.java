@@ -20,6 +20,8 @@ import java.util.Collections;
 import java.util.List;
 
 public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<Stim> {
+    public static final List<Double> LIGHTNESSES_TO_TEST = Arrays.asList(0.2, 0.4, 0.6, 0.8, 1.0);
+
     @Dependency
     DataSource gaDataSource;
 
@@ -146,12 +148,11 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
 
 
     private List<RGBColor> fetchColorsToTest(Long stimId) {
-        List<Double> lightnessesToTest = Arrays.asList(0.2, 0.4, 0.6, 0.8, 1.0);
         List<RGBColor> colorsToTest = new ArrayList<>();
 
         RGBColor originalStimColor  = fetchColorForStimId(stimId);
         float[] hsl = HSLUtils.rgbToHSL(originalStimColor);
-        for (Double lightness : lightnessesToTest) {
+        for (Double lightness : LIGHTNESSES_TO_TEST) {
             hsl[2] = lightness.floatValue();
             RGBColor newColor = HSLUtils.hslToRGB(hsl);
 
