@@ -198,6 +198,7 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
             while (taskId == lastTaskId) {
                 taskId = getGlobalTimeUtil().currentTimeMicros();
             }
+            lastTaskId = taskId;
 
             dbUtil.writeTaskToDo(taskId, stimId, -1, getGaName(), genId);
         }
