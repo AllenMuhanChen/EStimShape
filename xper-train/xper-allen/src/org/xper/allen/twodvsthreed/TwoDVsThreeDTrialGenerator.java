@@ -1,5 +1,7 @@
 package org.xper.allen.twodvsthreed;
 
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.xper.Dependency;
 import org.xper.allen.Stim;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
@@ -8,10 +10,13 @@ import org.xper.drawing.RGBColor;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import javax.sql.DataSource;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<Stim> {
     @Dependency
@@ -73,13 +78,72 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
         }
     }
 
+    private static final int TOP_N_STIMS_PER_LINEAGE = 5; // Number of top stimuli to select per lineage
+
+    private List<Long> getCompleteLineages() {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(gaDataSource);
+
+        // First, find the highest regime number
+        Integer maxRegime = (Integer) jdbcTemplate.queryForObject(
+                "SELECT MAX(CAST(regime AS SIGNED)) FROM LineageGaInfo",
+                Integer.class
+        );
+
+        if (maxRegime == null) {
+            return new ArrayList<>();
+        }
+
+        // Then find all lineages that reached this regime
+        return jdbcTemplate.query(
+                "SELECT DISTINCT lineage_id FROM LineageGaInfo WHERE regime = ?",
+                new Object[]{String.valueOf(maxRegime)},
+                new RowMapper() {
+                    @Override
+                    public Long mapRow(ResultSet rs, int rowNum) throws SQLException, SQLException {
+                        return rs.getLong("lineage_id");
+                    }
+                }
+        );
+    }
+
+    private List<Long> getTopStimsForLineage(Long lineageId) {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(gaDataSource);
+
+        return jdbcTemplate.query(
+                "SELECT stim_id FROM StimGaInfo " +
+                        "WHERE lineage_id = ? " +
+                        "ORDER BY response DESC " +
+                        "LIMIT ?",
+                new Object[]{lineageId, TOP_N_STIMS_PER_LINEAGE},
+                new RowMapper() {
+                    @Override
+                    public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
+                        return rs.getLong("stim_id");
+                    }
+                }
+        );
+    }
+
+    private List<Long> fetchStimIdsToTest() {
+        // Get all complete lineages
+        List<Long> completeLineages = getCompleteLineages();
+
+        // For each lineage, get top performing stimuli
+        List<Long> allTopStims = new ArrayList<>();
+        for (Long lineageId : completeLineages) {
+            List<Long> lineageTopStims = getTopStimsForLineage(lineageId);
+            allTopStims.addAll(lineageTopStims);
+        }
+
+        // Remove any duplicates and return
+        return allTopStims;
+    }
+
+
     private List<RGBColor> fetchColorsToTest() {
         throw new NotImplementedException();
     }
 
-    private List<Long> fetchStimIdsToTest() {
-        throw new NotImplementedException();
-    }
 
     public DataSource getGaDataSource() {
         return gaDataSource;
