@@ -6,7 +6,9 @@ import org.xper.Dependency;
 import org.xper.allen.Stim;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.pga.ReceptiveFieldSource;
+import org.xper.allen.stimproperty.ColorPropertyManager;
 import org.xper.drawing.RGBColor;
+import org.xper.rfplot.drawing.png.HSLUtils;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import javax.sql.DataSource;
@@ -16,7 +18,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<Stim> {
     @Dependency
@@ -29,17 +30,21 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
     ReceptiveFieldSource rfSource;
 
 
+
     public int numTrialsPerStim = 5;
+    private ColorPropertyManager colorManager;
 
     @Override
     protected void addTrials() {
+        colorManager = new ColorPropertyManager(new JdbcTemplate(gaDataSource));
+
         // TODO: Get top stimuli from GA
         List<Long> stimIdsToTest = fetchStimIdsToTest();
-        List<RGBColor> colorsToTest = fetchColorsToTest();
         List<String> textureTypesToTest = Arrays.asList("SHADE", "SPECULAR", "TWOD");
 
         // GENERATE TRIALS
         for (Long stimId : stimIdsToTest) {
+            List<RGBColor> colorsToTest = fetchColorsToTest(stimId);
             for (RGBColor color : colorsToTest) {
                 for (String textureType : textureTypesToTest) {
                     for (int i = 0; i < numTrialsPerStim; i++) {
@@ -140,10 +145,25 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
     }
 
 
-    private List<RGBColor> fetchColorsToTest() {
-        throw new NotImplementedException();
+    private List<RGBColor> fetchColorsToTest(Long stimId) {
+        List<Double> lightnessesToTest = Arrays.asList(0.2, 0.4, 0.6, 0.8, 1.0);
+        List<RGBColor> colorsToTest = new ArrayList<>();
+
+        RGBColor originalStimColor  = fetchColorForStimId(stimId);
+        float[] hsl = HSLUtils.rgbToHSL(originalStimColor);
+        for (Double lightness : lightnessesToTest) {
+            hsl[2] = lightness.floatValue();
+            RGBColor newColor = HSLUtils.hslToRGB(hsl);
+
+            colorsToTest.add(newColor);
+        }
+        return colorsToTest;
+
     }
 
+    private RGBColor fetchColorForStimId(Long stimId) {
+        colorManager.readProperty(stimId);
+    }
 
     public DataSource getGaDataSource() {
         return gaDataSource;
