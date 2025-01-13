@@ -5,7 +5,7 @@ from typing import List
 
 def main():
     ga_db = Connection(context.ga_database)
-    dest_db_names = [context.nafc_database, context.isogabor_database]
+    dest_db_names = [context.nafc_database, context.isogabor_database, context.twodvsthreed_database]
     dest_dbs = [Connection(dest_db_name) for dest_db_name in dest_db_names]
 
     # Write calibration parameters
@@ -14,7 +14,7 @@ def main():
         params.write_params(dest_db)
 
     # Define tables to copy
-    tables_to_copy = ["RFInfo", "RFObjectData"]  # Add more table names to this list as needed
+    tables_to_copy = ["RFInfo", "RFObjectData", "ClusterInfo"]  # Add more table names to this list as needed
 
     # Copy tables to each destination database
     for dest_db_name in dest_db_names:

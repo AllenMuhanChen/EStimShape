@@ -27,6 +27,8 @@ def main():
     ga_database = f"allen_ga_{type}_{current_date}_{location_id}"
     nafc_database = f"allen_estimshape_{type}_{current_date}_{location_id}"
     isogabor_database = f"allen_isogabor_{type}_{current_date}_{location_id}"
+    twodvsthreed_database = f"allen_twodvsthreed_{type}_{current_date}_{location_id}"
+
 
     # GA Database
     create_db_from_template(f'allen_ga_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}',
@@ -43,7 +45,11 @@ def main():
                             isogabor_database,
                             copy_data_tables=["SystemVar", "InternalState", "SinGain", "MonitorLin"])
 
-    update_context_file(ga_database, nafc_database, isogabor_database)
+    create_db_from_template(f"allen_twodvsthreed_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}",
+                            twodvsthreed_database,
+                            copy_data_tables=["SystemVar", "InternalState"])
+
+    update_context_file(ga_database, nafc_database, isogabor_database, twodvsthreed_database)
 
 
 def check_if_exists(base_name, recording_id):
@@ -65,7 +71,7 @@ def check_if_exists(base_name, recording_id):
         return None  # Return None if user doesn't want to replace
 
 
-def update_context_file(ga_db, nafc_db, isogabor_db):
+def update_context_file(ga_db, nafc_db, isogabor_db, two_d_vs_three_d_db):
     cwd = os.getcwd()  # Get the current working directory (cwd)
     files = os.listdir(cwd)  # Get all the files in that directory
     print("Files in %r: %s" % (cwd, files))
@@ -84,6 +90,8 @@ def update_context_file(ga_db, nafc_db, isogabor_db):
             new_lines.append(f'nafc_database = "{nafc_db}"\n')
         elif line.startswith("isogabor_database ="):
             new_lines.append(f'isogabor_database = "{isogabor_db}"\n')
+        elif line.startswith("twodvsthreed_database ="):
+            new_lines.append(f'twodvsthreed_database = "{two_d_vs_three_d_db}"\n')
         else:
             new_lines.append(line)
 
