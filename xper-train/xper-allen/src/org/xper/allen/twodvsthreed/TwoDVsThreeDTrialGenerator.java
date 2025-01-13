@@ -40,7 +40,6 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
     protected void addTrials() {
         colorManager = new ColorPropertyManager(new JdbcTemplate(gaDataSource));
 
-        // TODO: Get top stimuli from GA
         List<Long> stimIdsToTest = fetchStimIdsToTest();
         List<String> textureTypesToTest = Arrays.asList("SHADE", "SPECULAR", "TWOD");
 
@@ -163,7 +162,7 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
     }
 
     private RGBColor fetchColorForStimId(Long stimId) {
-        colorManager.readProperty(stimId);
+        return colorManager.readProperty(stimId);
     }
 
     public DataSource getGaDataSource() {
