@@ -14,10 +14,7 @@ import org.xml.sax.InputSource;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.StringReader;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
     private final int numRepeats = 5;
@@ -37,13 +34,27 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
 
     @Override
     protected void writeTrials() {
+        List<Long> allStimIds = new ArrayList<>();
+
         for (Stim stim : getStims()) {
             stim.writeStim();
             Long stimId = stim.getStimId();
             for (int i = 0; i < numRepeats; i++) {
-                long taskId = getGlobalTimeUtil().currentTimeMicros();
-                dbUtil.writeTaskToDo(taskId, stimId, -1, genId);
+                allStimIds.add(stimId);
             }
+        }
+
+        Collections.shuffle(allStimIds);
+
+        long lastTaskId = -1L;
+        for (Long stimId : allStimIds) {
+            long taskId = getGlobalTimeUtil().currentTimeMicros();
+            while (taskId == lastTaskId) {
+                taskId = getGlobalTimeUtil().currentTimeMicros();
+            }
+            lastTaskId = taskId;
+
+            getDbUtil().writeTaskToDo(taskId, stimId, -1, genId);
         }
     }
 

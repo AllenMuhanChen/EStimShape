@@ -48,16 +48,15 @@ import org.xper.eye.zero.MovingAverageEyeZeroAlgorithm;
 public class FixationPngAppConfig {
 	@Autowired ClassicConfig classicConfig;
 	@Autowired RewardButtonConfig rewardButtonConfig;
-	@Autowired HeadFreeConfig headFreeConfig;
 	@Autowired BaseConfig baseConfig;
 	@Autowired AcqConfig acqConfig;
-	
+
 	@ExternalValue("generator.png_path")
 	public String generatorPngPath;
 
 	@ExternalValue("experiment.png_path")
 	public String experimentPngPath;
-	
+
 	@Bean
 	public PngScene taskScene() {
 		PngScene scene = new PngScene();
@@ -71,9 +70,9 @@ public class FixationPngAppConfig {
 		scene.setBackgroundColor(xperBackgroundColor());
 		return scene;
 	}
-	
+
 	/**
-	 * Use PerspectiveStereoRenderer for mono and stereo, only changing the xper screen width accordingly. 
+	 * Use PerspectiveStereoRenderer for mono and stereo, only changing the xper screen width accordingly.
 	 * @return
 	 */
 	@Bean
@@ -86,7 +85,7 @@ public class FixationPngAppConfig {
 		renderer.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
 		return renderer;
 	}
-	
+
 	@Bean
 	public FixationPngBlockGen generator() {
 		FixationPngBlockGen gen = new FixationPngBlockGen();
@@ -97,15 +96,15 @@ public class FixationPngAppConfig {
 		return gen;
 	}
 
-	
+
 	@Bean
 	public AllenDbUtil allenDbUtil() {
 		AllenDbUtil dbUtil = new AllenDbUtil();
 		dbUtil.setDataSource(baseConfig.dataSource());
 		return dbUtil;
 	}
-	
-	
+
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public double[] xperBackgroundColor() {
 		return new double[]{Double.parseDouble(baseConfig.systemVariableContainer().get("xper_background_color", 0)),

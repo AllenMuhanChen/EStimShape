@@ -98,6 +98,10 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
         }
     }
 
+    protected void shuffleTrials() {
+        Collections.shuffle(getStims());
+    }
+
     private static final int TOP_N_STIMS_PER_LINEAGE = 5; // Number of top stimuli to select per lineage
 
     private List<Long> getCompleteLineages() {
