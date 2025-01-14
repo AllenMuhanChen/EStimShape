@@ -6,6 +6,7 @@ PROPERTIES_FILES=(
     "$XPER_PROPERTIES_GA"
     "$XPER_PROPERTIES_PROCEDURAL"
     "$XPER_PROPERTIES_ISOGABOR"
+    "$XPER_PROPERTIES_TWODVSTHREED"
 )
 
 # Function to update console.eye_simulation to true

@@ -7,5 +7,6 @@ DIST="$ESTIMSHAPE/xper-train/dist"
 XPER_PROPERTIES_GA="$SHELLSCRIPTS/xper.properties.ga"
 XPER_PROPERTIES_PROCEDURAL="$SHELLSCRIPTS/xper.properties.procedural"
 XPER_PROPERTIES_ISOGABOR="$SHELLSCRIPTS/xper.properties.isogabor"
+XPER_PROPERTIES_TWODVSTHREED="$SHELLSCRIPTS/xper.properties.twodvsthreed"
 
 

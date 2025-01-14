@@ -8,6 +8,7 @@ def main():
     setup_ga_xper_properties()
     setup_nafc_xper_properties()
     setup_isogabor_xper_properties()
+    setup_twodvsthreed_xper_properties()
 
     update_version_shellscript()
 
@@ -213,11 +214,65 @@ def setup_isogabor_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30
     print("xper.properties.ga file modified successfully.")
 
 
-def update_version_shellscript():
-    # Retrieve versions from the config or define directly
+def setup_twodvsthreed_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
+    # Define the necessary versions directly
+    version_twodvsthreed = context.twodvsthreed_database
     version_ga = context.ga_database
-    version_isogabor = context.isogabor_database  # Replace with how you retrieve this information
-    version_procedural = context.nafc_database  # Replace with how you retrieve this information
+    recording_computer_sftp = r2_sftp
+
+    # Define paths to the properties file and directories
+    xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.twodvsthreed'
+
+    # DB URLs
+    db_url = f"jdbc:mysql://172.30.6.80/{version_twodvsthreed}?rewriteBatchedStatements=true"
+    ga_db_url = f"jdbc:mysql://172.30.6.80/{version_ga}?rewriteBatchedStatements=true"
+
+    # PATHS
+    stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_twodvsthreed}/stimuli"
+    r_twodvsthreed_path = f"{stimuli_base_r}/twodvsthreed"
+
+    # PNG and SPEC paths
+    generator_png_path = f"{r_twodvsthreed_path}/pngs"
+    experiment_png_path = f"{recording_computer_sftp}{r_twodvsthreed_path}/pngs"
+    generator_spec_path = f"{r_twodvsthreed_path}/specs"
+
+    # GA spec path
+    ga_stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_ga}/stimuli"
+    r_ga_path = f"{ga_stimuli_base_r}/ga"
+    ga_spec_path = f"{r_ga_path}/specs"
+
+    # Create an instance of PropertiesModifier
+    modifier = XperPropertiesModifier(xper_properties_file_path)
+
+    # ALL PROPERTIES to REPLACE:
+    properties_dict = {
+        "jdbc.url": db_url,
+        "ga.jdbc.url": ga_db_url,
+        "generator.png_path": generator_png_path,
+        "experiment.png_path": experiment_png_path,
+        "generator.spec_path": generator_spec_path,
+        "ga.spec_path": ga_spec_path
+    }
+
+    # Replace properties using the dictionary
+    for var_name, new_value in properties_dict.items():
+        modifier.replace_property(var_name, new_value)
+
+    # Save changes
+    modifier.save_changes()
+    print("xper.properties.twodvsthreed file modified successfully.")
+
+    # Create necessary directories
+    make_path(generator_png_path)
+    make_path(generator_spec_path)
+
+
+def update_version_shellscript():
+    # Retrieve versions from the config
+    version_ga = context.ga_database
+    version_isogabor = context.isogabor_database
+    version_procedural = context.nafc_database
+    version_twodvsthreed = context.twodvsthreed_database
 
     # Path to the version file
     version_file_path = "/home/r2_allen/git/EStimShape/xper-train/shellScripts/version"
@@ -226,17 +281,18 @@ def update_version_shellscript():
     with open(version_file_path, 'r') as version_file:
         version_content = version_file.read()
 
-    # Replace VERSION_GA, VERSION_ISOGABOR, and VERSION_PROCEDURAL
+    # Replace all version variables
     version_content = re.sub(r"VERSION_GA=.*", f"VERSION_GA={version_ga}", version_content)
     version_content = re.sub(r"VERSION_ISOGABOR=.*", f"VERSION_ISOGABOR={version_isogabor}", version_content)
     version_content = re.sub(r"VERSION_PROCEDURAL=.*", f"VERSION_PROCEDURAL={version_procedural}", version_content)
+    version_content = re.sub(r"VERSION_TWODVSTHREED=.*", f"VERSION_TWODVSTHREED={version_twodvsthreed}",
+                             version_content)
 
     # Writing the modified content back to the version file
     with open(version_file_path, 'w') as version_file:
         version_file.write(version_content)
 
     print("Version file updated successfully.")
-
 
 def make_misc_dirs():
     make_path(context.java_output_dir)

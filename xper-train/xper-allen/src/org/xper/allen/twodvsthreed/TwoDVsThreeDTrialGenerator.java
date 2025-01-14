@@ -1,14 +1,19 @@
 package org.xper.allen.twodvsthreed;
 
+import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.xper.Dependency;
 import org.xper.allen.Stim;
+import org.xper.allen.app.twodvsthreed.TwoDVsThreeDConfig;
+import org.xper.allen.isoluminant.IsoGaborConfig;
+import org.xper.allen.isoluminant.IsoGaborTrialGenerator;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.allen.stimproperty.ColorPropertyManager;
 import org.xper.drawing.RGBColor;
 import org.xper.rfplot.drawing.png.HSLUtils;
+import org.xper.util.FileUtil;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import javax.sql.DataSource;
@@ -35,6 +40,15 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
 
     public int numTrialsPerStim = 5;
     private ColorPropertyManager colorManager;
+
+    public static void main(String[] args) {
+        JavaConfigApplicationContext context = new JavaConfigApplicationContext(
+                FileUtil.loadConfigClass("experiment.config_class"),
+                TwoDVsThreeDConfig.class
+        );
+        TwoDVsThreeDTrialGenerator gen = context.getBean(TwoDVsThreeDTrialGenerator.class);
+        gen.generate();
+    }
 
     @Override
     protected void addTrials() {

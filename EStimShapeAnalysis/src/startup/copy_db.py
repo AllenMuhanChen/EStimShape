@@ -9,7 +9,7 @@ PASS = 'up2nite'
 
 # Set your source and destination database names here
 SOURCE_DB = "allen_ga_train_241213_0"
-DEST_DB = "allen_twodvsthreed_241213_0"
+DEST_DB = "allen_twodvsthreed_train_241213_0"
 
 # List the tables you want to copy data from (empty list means structure only)
 COPY_DATA_TABLES = ["SystemVar", "InternalState"]
