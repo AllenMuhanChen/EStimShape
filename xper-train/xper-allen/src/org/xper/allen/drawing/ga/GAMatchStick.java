@@ -8,6 +8,7 @@ import org.xper.allen.pga.RFUtils;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.stick.stickMath_lib;
 
+import javax.vecmath.Point3d;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.*;
@@ -21,12 +22,17 @@ import java.util.*;
  */
 public class GAMatchStick extends MorphedMatchStick {
 
+    Point3d toMoveCenterOfMassLocation;
     ReceptiveField rf;
 
 
     public GAMatchStick(ReceptiveField rf, RFStrategy rfStrategy) {
         this.rf = rf;
         this.rfStrategy = rfStrategy;
+    }
+
+    public GAMatchStick(Point3d centerOfMassLocation){
+        this.toMoveCenterOfMassLocation = centerOfMassLocation;
     }
 
 
@@ -153,7 +159,13 @@ public class GAMatchStick extends MorphedMatchStick {
 
     @Override
     protected void positionShape() throws MorphException {
-        RFUtils.positionAroundRF(rfStrategy, this, rf, 1000);
+        if (rfStrategy != null) {
+            RFUtils.positionAroundRF(rfStrategy, this, rf, 1000);
+        }
+        if (toMoveCenterOfMassLocation != null){
+            moveCenterOfMassTo(toMoveCenterOfMassLocation);
+        }
+        throw new IllegalArgumentException("rfStrategy and toMoveCenterOfMassLocation both null");
     }
 
 
