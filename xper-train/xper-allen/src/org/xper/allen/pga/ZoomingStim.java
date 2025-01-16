@@ -73,9 +73,9 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
 
         saveMStickSpec(mStick);
         drawCompMaps(mStick);
+        String pngPath = drawPngs(mStick);
 
         AllenMStickData mStickData = (AllenMStickData) mStick.getMStickData();
-        String pngPath = drawPngs(mStick);
         writeStimSpec(pngPath, mStickData);
 
         //write additional data here?

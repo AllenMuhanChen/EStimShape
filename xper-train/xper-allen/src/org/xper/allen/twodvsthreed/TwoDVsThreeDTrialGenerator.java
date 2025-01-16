@@ -25,7 +25,9 @@ import java.util.Collections;
 import java.util.List;
 
 public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<Stim> {
-    public static final List<Double> LIGHTNESSES_TO_TEST = Arrays.asList(0.2, 0.4, 0.6, 0.8, 1.0);
+    public static final List<Double> LIGHTNESSES_TO_TEST= Arrays.asList(0.2, 0.4, 0.6, 0.8, 1.0);
+    private static final int TOP_N_STIMS_PER_LINEAGE = 5; // Number of top stimuli to select per lineage
+//    public static final List<Double> LIGHTNESSES_TO_TEST = Arrays.asList(0.2);
 
     @Dependency
     DataSource gaDataSource;
@@ -38,8 +40,9 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
 
 
 
-    public int numTrialsPerStim = 5;
+    public int numTrialsPerStim = 2;
     private ColorPropertyManager colorManager;
+
 
     public static void main(String[] args) {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
@@ -62,10 +65,8 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
             List<RGBColor> colorsToTest = fetchColorsToTest(stimId);
             for (RGBColor color : colorsToTest) {
                 for (String textureType : textureTypesToTest) {
-                    for (int i = 0; i < numTrialsPerStim; i++) {
-                        TwoDVsThreeDStim stim = new TwoDVsThreeDStim(this, stimId, textureType, color);
-                        stims.add(stim);
-                    }
+                    TwoDVsThreeDStim stim = new TwoDVsThreeDStim(this, stimId, textureType, color);
+                    stims.add(stim);
                 }
             }
         }
@@ -77,8 +78,8 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
         List<Long> allStimIds = new ArrayList<>();
 
         for (Stim stim : getStims()) {
-            Long stimId = stim.getStimId();
             stim.writeStim();
+            Long stimId = stim.getStimId();
             for (int i = 0; i < numTrialsPerStim; i++) {
                 allStimIds.add(stimId);
             }
@@ -101,8 +102,6 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
     protected void shuffleTrials() {
         Collections.shuffle(getStims());
     }
-
-    private static final int TOP_N_STIMS_PER_LINEAGE = 5; // Number of top stimuli to select per lineage
 
     private List<Long> getCompleteLineages() {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(gaDataSource);
@@ -168,10 +167,10 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
         List<RGBColor> colorsToTest = new ArrayList<>();
 
         RGBColor originalStimColor  = fetchColorForStimId(stimId);
-        float[] hsl = HSLUtils.rgbToHSL(originalStimColor);
+        float[] hsv = HSLUtils.rgbToHSV(originalStimColor);
         for (Double lightness : LIGHTNESSES_TO_TEST) {
-            hsl[2] = lightness.floatValue();
-            RGBColor newColor = HSLUtils.hslToRGB(hsl);
+            hsv[2] = lightness.floatValue();
+            RGBColor newColor = HSLUtils.hsvToRGB(hsv);
 
             colorsToTest.add(newColor);
         }

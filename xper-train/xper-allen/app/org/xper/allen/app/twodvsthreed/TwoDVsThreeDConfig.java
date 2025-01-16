@@ -6,6 +6,7 @@ import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.app.fixation.config.FixationPngAppConfig;
+import org.xper.allen.config.MStickPngConfig;
 import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.allen.twodvsthreed.TwoDVsThreeDTrialGenerator;
 import org.xper.config.BaseConfig;
@@ -18,13 +19,14 @@ import java.beans.PropertyVetoException;
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
-@Import(FixationPngAppConfig.class)
+@Import(MStickPngConfig.class)
 public class TwoDVsThreeDConfig {
     @Autowired
     ClassicConfig classicConfig;
-
     @Autowired
     BaseConfig baseConfig;
+    @Autowired
+    MStickPngConfig pngConfig;
 
     @ExternalValue("ga.jdbc.url")
     public String gaJdbcUrl;
@@ -32,13 +34,20 @@ public class TwoDVsThreeDConfig {
     @ExternalValue("ga.spec_path")
     public String gaSpecPath;
 
+
     @Bean
-    TwoDVsThreeDTrialGenerator generator(){
+    public TwoDVsThreeDTrialGenerator generator(){
         TwoDVsThreeDTrialGenerator generator = new TwoDVsThreeDTrialGenerator();
         generator.setGaDataSource(gaDataSource());
         generator.setGaSpecPath(gaSpecPath);
         generator.setRfSource(rfSource());
         generator.setDbUtil(baseConfig.dbUtil());
+        generator.setExperimentPngPath(pngConfig.experimentPngPath);
+        generator.setGeneratorPngPath(pngConfig.generatorPngPath);
+        generator.setGeneratorSpecPath(pngConfig.generatorSpecPath);
+        generator.setGlobalTimeUtil(baseConfig.localTimeUtil());
+        generator.setPngMaker(pngConfig.pngMaker());
+        generator.setImageDimensionDegrees(pngConfig.xperMaxImageDimensionDegrees());
         return generator;
     }
 

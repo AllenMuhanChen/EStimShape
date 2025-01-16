@@ -166,10 +166,10 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
     }
 
     private RFInfo getRFInfo(JdbcTemplate jdbcTemplate) {
-        long latestTimestamp = getLatestTimestamp(jdbcTemplate, "RFInfo");
         String rfInfoXml = (String) jdbcTemplate.queryForObject(
-                "SELECT info FROM RFInfo WHERE tstamp = ? AND channel = 'SUPRA-000'",
-                new Object[]{latestTimestamp},
+                "SELECT info FROM RFInfo WHERE tstamp = (" +
+                        "    SELECT MAX(tstamp) FROM RFInfo WHERE channel = 'SUPRA-000'" +
+                        ") AND channel = 'SUPRA-000' LIMIT 1",
                 String.class
         );
         return RFInfo.fromXml(rfInfoXml);

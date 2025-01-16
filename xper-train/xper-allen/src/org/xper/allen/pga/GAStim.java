@@ -36,7 +36,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, String textureType) {
         this.generator = generator;
         this.parentId = parentId;
-        this.imageCenterCoords = new Coordinates2D(0, 0);;
+        this.imageCenterCoords = new Coordinates2D(0, 0);
         this.stimId = stimId;
         this.textureType = textureType;
 
@@ -79,9 +79,9 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
 
         saveMStickSpec(mStick);
         drawCompMaps(mStick);
+        String pngPath = drawPngs(mStick);
 
         D mStickData = (D) mStick.getMStickData();
-        String pngPath = drawPngs(mStick);
         writeStimSpec(pngPath, mStickData);
 
         writeStimProperties();

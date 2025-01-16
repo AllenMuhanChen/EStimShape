@@ -9,6 +9,7 @@ import org.xper.allen.app.fixation.PngScene;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
+import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.DPIUtil;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
@@ -46,6 +47,12 @@ public class MStickPngConfig {
         return scene;
     }
 
+    @Bean
+    public AllenDbUtil dbUtil() {
+        AllenDbUtil dbUtil = new AllenDbUtil();
+        dbUtil.setDataSource(baseConfig.dataSource());
+        return dbUtil;
+    }
 
     @Bean
     public AllenPNGMaker pngMaker(){
