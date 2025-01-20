@@ -51,6 +51,9 @@ public class AllenMStickData implements MStickData {
         return s.toXML(data);
     }
 
+    public static AllenMStickData fromXml(String xml){
+        return (AllenMStickData) s.fromXML(xml);
+    }
     public void writeInfo2File(String fname){
         try {
             BufferedWriter out = new BufferedWriter(new FileWriter(fname + "_spec.xml"));

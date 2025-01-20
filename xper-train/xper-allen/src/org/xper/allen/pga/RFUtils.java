@@ -164,6 +164,14 @@ public class RFUtils {
         return percentageInRF >= thresholdPercentageInRF;
     }
 
+    /**
+     * Check what percentage of the shape that does NOT include the component in the RF is outside of the RF
+     * @param compInRF
+     * @param thresholdPercentageOutOfRF
+     * @param rf
+     * @param matchStick
+     * @return
+     */
     private static boolean checkEnoughShapeOutOfRF(int compInRF, double thresholdPercentageOutOfRF, ReceptiveField rf, AllenMatchStick matchStick){
         List<Point3d> pointsToCheck = new ArrayList<>();
         List<Point3d> pointsOutside = new ArrayList<>();

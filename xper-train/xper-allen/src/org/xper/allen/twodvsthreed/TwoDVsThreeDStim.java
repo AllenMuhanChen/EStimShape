@@ -5,8 +5,6 @@ import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
-import org.xper.allen.drawing.composition.MStickData;
-import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
@@ -20,6 +18,7 @@ import org.xper.drawing.RGBColor;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.rfplot.drawing.png.PngSpec;
 
+import javax.vecmath.Point3d;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -46,6 +45,7 @@ public class TwoDVsThreeDStim implements Stim {
         this.color = color;
 
 
+
         rfStrategyManager = new RFStrategyPropertyManager(new JdbcTemplate(generator.gaDataSource));
         sizeManager = new SizePropertyManager(new JdbcTemplate(generator.gaDataSource));
         colorManager = new ColorPropertyManager(new JdbcTemplate(generator.gaDataSource));
@@ -68,8 +68,8 @@ public class TwoDVsThreeDStim implements Stim {
     @Override
     public void writeStim() {
         stimId = generator.getGlobalTimeUtil().currentTimeMicros();
-
-        GAMatchStick mStick = new GAMatchStick(receptiveField, rfStrategy);
+        Point3d centerOfMass = getTargetsCenterOfMass();
+        GAMatchStick mStick = new GAMatchStick(centerOfMass);
         mStick.setProperties(sizeDiameterDegrees, textureType);
         mStick.setStimColor(color);
         mStick.genMatchStickFromFile(targetSpecPath, new double[]{0,0,0});
@@ -82,11 +82,48 @@ public class TwoDVsThreeDStim implements Stim {
         writeStimProperties();
     }
 
+    private Point3d getTargetsCenterOfMass() {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.gaDataSource);
+
+        // Read the data XML from StimSpec table
+        String dataXml = (String) jdbcTemplate.queryForObject(
+                "SELECT data FROM StimSpec WHERE id = ?",
+                new Object[]{targetStimId},
+                String.class
+        );
+
+        if (dataXml == null || dataXml.isEmpty()) {
+            throw new RuntimeException("No data found for stimId " + targetStimId + " in StimSpec table");
+        }
+
+        // Parse the XML into AllenMStickData
+        AllenMStickData mStickData = (AllenMStickData) AllenMStickData.fromXml(dataXml);
+
+
+        // Get center of mass
+        Point3d centerOfMass = mStickData.getMassCenter();
+        if (centerOfMass == null) {
+            throw new RuntimeException("No center of mass found for stimId " + targetStimId + " in StimSpec table");
+        }
+
+        return centerOfMass;
+    }
+
     private void writeStimProperties() {
         colorManager.writeProperty(stimId, color);
         textureManager.writeProperty(stimId, textureType);
         sizeManager.writeProperty(stimId, (float) sizeDiameterDegrees);
         rfStrategyManager.writeProperty(stimId, rfStrategy);
+        writeStimGaId(this.targetStimId);
+    }
+
+    private void writeStimGaId(long targetStimId) {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
+
+        jdbcTemplate.update(
+                "INSERT INTO StimGaId (stim_id, ga_stim_id) VALUES (?, ?)",
+                new Object[]{this.stimId,targetStimId}
+        );
     }
 
     protected String drawPng(AllenMatchStick mStick) {

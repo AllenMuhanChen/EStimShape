@@ -1220,7 +1220,6 @@ public class AllenMatchStick extends MatchStick {
 
 	public Vector3d moveCenterOfMassTo(Point3d destination)
 	{
-
 		Point3d centerOfMass = getMassCenter();
 		return movePointToDestination(centerOfMass, destination);
 	}
