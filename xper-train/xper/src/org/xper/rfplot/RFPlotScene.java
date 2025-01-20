@@ -103,7 +103,8 @@ public class RFPlotScene extends AbstractTaskScene {
 	}
 
 	public void drawStimulus(Context context) {
-		if (isOnInterval) {
+//		if (isOnInterval) {
+		if (true) {
 			if (spec == null) return;
 
 			GL11.glShadeModel(GL11.GL_SMOOTH);

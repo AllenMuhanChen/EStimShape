@@ -63,6 +63,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     private boolean isMouseMoveStimuliModeOn = true;
     private Coordinates2D currentStimPosition;
     private JLabel rfDiameterLabel;
+    private boolean isStimToggleOn = true;
 
     @Override
     /**
@@ -80,6 +81,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT,0));
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT,0));
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN,0));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_F,0));
         return commandKeys;
     }
 
@@ -124,6 +126,9 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         if(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT,0).equals(k)){
             updateStimPosition(new Coordinates2D(currentStimPosition.getX() + 1, currentStimPosition.getY()));
         }
+        if(KeyStroke.getKeyStroke(KeyEvent.VK_F,0).equals(k)) {
+            toggleStim();
+        }
     }
 
     private void updateStimPosition(Coordinates2D newStimPosition) {
@@ -141,6 +146,16 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         RFPlotDrawable firstStimObj = namesForDrawables.get(stimType);
         stimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(firstStimObj);
         client.changeRFPlotStim(stimSpec);
+    }
+
+    private void toggleStim() {
+        isStimToggleOn = !isStimToggleOn;
+        if (isStimToggleOn) {
+            RFPlotDrawable currentDrawable = new RFPlotBlankObject();
+            client.changeRFPlotStim(RFPlotStimSpec.getStimSpecFromRFPlotDrawable(currentDrawable));
+        } else{
+            changeStimType(stimType);
+        }
     }
 
     private void save(){
