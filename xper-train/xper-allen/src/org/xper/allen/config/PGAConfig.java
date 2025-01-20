@@ -1,13 +1,17 @@
 package org.xper.allen.config;
 
+import org.apache.commons.math.analysis.UnivariateRealFunction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.ga.*;
+import org.xper.allen.nafc.experiment.juice.LinearControlPointFunction;
 import org.xper.allen.pga.FromDbGABlockGenerator;
 import org.xper.allen.pga.ReceptiveFieldSource;
+import org.xper.allen.pga.StreakJuiceController;
 import org.xper.allen.util.MultiGaDbUtil;
+import org.xper.classic.TrialEventListener;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.config.IntanRHDConfig;
@@ -93,6 +97,22 @@ public class PGAConfig {
         strategy.setGaName(gaName());
         strategy.setDbUtil(dbUtil());
         return strategy;
+    }
+
+    @Bean
+    public TrialEventListener juiceController(){
+        StreakJuiceController controller = new StreakJuiceController();
+        controller.setJuice(classicConfig.xperDynamicJuice());
+        controller.setStreakRewardFunction(xperStreakRewardFunction());
+        return controller;
+    }
+
+    @Bean
+    public UnivariateRealFunction xperStreakRewardFunction() {
+        LinearControlPointFunction f = new LinearControlPointFunction();
+        f.setxValues(Arrays.asList(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 100.0)); //streak amounts
+        f.setyValues(Arrays.asList(1.0, 1.0, 2.0, 3.0, 4.0, 4.0, 4.0)); //reward amounts
+        return f;
     }
 
 }

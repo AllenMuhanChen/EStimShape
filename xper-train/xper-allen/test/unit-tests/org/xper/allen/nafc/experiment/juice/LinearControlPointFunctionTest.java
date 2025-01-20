@@ -18,6 +18,7 @@ public class LinearControlPointFunctionTest {
         f.setxValues(x);
         f.setyValues(y);
 
+        //Test Interpolation
         assertEquals(1.0, f.value(0.0), 0.0001);
         assertEquals(1.5, f.value(0.15), 0.0001);
         assertEquals(2.0, f.value(0.3), 0.0001);
@@ -25,5 +26,9 @@ public class LinearControlPointFunctionTest {
         assertEquals(3.0, f.value(0.5), 0.0001);
         assertEquals(3.5, f.value(0.75), 0.0001);
         assertEquals(4.0, f.value(1.0), 0.0001);
+
+        //Test out of bounds
+        assertEquals(1.0, f.value(-1), 0.0001);
+        assertEquals(4.0, f.value(1.5), 0.0001);
     }
 }

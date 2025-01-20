@@ -17,12 +17,24 @@ public class LinearControlPointFunction implements UnivariateRealFunction {
     }
 
     @Override
-    public double value(double v) throws FunctionEvaluationException {
+    public double value(double v){
         if (xValues.size() != yValues.size()) {
             throw new IllegalArgumentException("X and Y lists must be of the same size");
         }
-        if (v < xValues.get(0) || v > xValues.get(xValues.size() - 1)) {
-            throw new FunctionEvaluationException(v, "Input value is out of the xValues range");
+
+        //check if xValues is sorted
+        for (int i = 0; i < xValues.size() - 1; i++) {
+            if (xValues.get(i) > xValues.get(i + 1)) {
+                throw new IllegalArgumentException("X values must be sorted in ascending order");
+            }
+        }
+
+        //if argument is below or above the x-range, return the first or last y value
+        if (v < xValues.get(0)){
+            return yValues.get(0);
+        }
+        if (v > xValues.get(xValues.size() - 1)) {
+            return yValues.get(yValues.size() - 1);
         }
 
         // Find the interval v is in

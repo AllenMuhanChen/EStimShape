@@ -132,6 +132,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         textureManager.writeProperty(stimId, textureType);
         sizeManager.writeProperty(stimId, (float) sizeDiameterDegrees);
         rfStrategyManager.writeProperty(stimId, rfStrategy);
+
     }
 
     protected T createRandMStick() {

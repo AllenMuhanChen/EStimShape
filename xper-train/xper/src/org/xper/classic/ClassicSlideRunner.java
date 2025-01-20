@@ -74,7 +74,7 @@ public class ClassicSlideRunner implements SlideRunner {
                     return result;
                 }
             }
-            punisher.resetPunishment();
+//            punisher.resetPunishment();
             return TrialResult.TRIAL_COMPLETE;
             // end of SlideRunner.runSlide
         } finally {
@@ -131,7 +131,7 @@ public class ClassicSlideRunner implements SlideRunner {
             if (!eyeController.isEyeIn()) {
                 breakTrial(stateObject);
                 currentContext.setAnimationFrameIndex(0);
-                punisher.punish();
+//                punisher.punish();
                 return TrialResult.EYE_BREAK;
             }
             if (stateObject.isAnimation()) {

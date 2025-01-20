@@ -161,9 +161,11 @@ public class GAMatchStick extends MorphedMatchStick {
     protected void positionShape() throws MorphException {
         if (rfStrategy != null) {
             RFUtils.positionAroundRF(rfStrategy, this, rf, 1000);
+            return;
         }
         if (toMoveCenterOfMassLocation != null){
             moveCenterOfMassTo(toMoveCenterOfMassLocation);
+            return;
         }
         throw new IllegalArgumentException("rfStrategy and toMoveCenterOfMassLocation both null");
     }

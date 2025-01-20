@@ -67,9 +67,10 @@ public class ClassicSlideTrialRunner implements SlideTrialRunner {
 
             result = slideRunner.runSlides(stateObject, threadHelper);
             if (result != TrialResult.TRIAL_COMPLETE) {
+                punisher.punish();
                 return result;
             }
-
+            punisher.resetPunishment();
             completeTrial(stateObject, threadHelper);
 
             return TrialResult.TRIAL_COMPLETE;
