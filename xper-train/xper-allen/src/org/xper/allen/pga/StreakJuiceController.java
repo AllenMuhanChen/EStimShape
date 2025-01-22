@@ -62,13 +62,14 @@ public class StreakJuiceController implements TrialEventListener {
     @Override
     public void trialComplete(long timestamp, TrialContext context) {
         currentStreak++;
+        System.out.println("Streak: " + currentStreak);
         double rewardMultiplier;
         try {
             rewardMultiplier = streakRewardFunction.value(currentStreak);
         } catch (FunctionEvaluationException e) {
             throw new RuntimeException(e);
         }
-
+        System.out.println("Reward Multiplier: " + rewardMultiplier);
         for (int i = 0; i< Math.floor(rewardMultiplier); i++){
             juice.deliver();
             System.out.println("Multiplier Juice delivered @ " + new Timestamp(timestamp /1000).toString());

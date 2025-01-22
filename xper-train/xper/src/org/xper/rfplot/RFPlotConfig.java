@@ -61,7 +61,6 @@ public class RFPlotConfig {
 		return renderer;
 	}
 
-
 	@Bean
 	public TaskScene taskScene() {
 		RFPlotScene scene = new RFPlotScene();
@@ -102,8 +101,6 @@ public class RFPlotConfig {
 		RFPlotStimModulator gratingModulator = new RFPlotStimModulator(gaborScrollers());
 		return gratingModulator;
 	}
-
-
 
 	@Bean
 	public LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> imgModeScrollerMap(){
@@ -156,6 +153,7 @@ public class RFPlotConfig {
 		plugin.setTimeUtil(baseConfig.localTimeUtil());
 		return plugin;
 	}
+
 	@Bean
 	public RFPlotDrawer rfPlotter(){
 		RFPlotDrawer plotter = new RFPlotDrawer();

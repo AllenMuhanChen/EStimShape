@@ -111,7 +111,7 @@ public class PGAConfig {
     public UnivariateRealFunction xperStreakRewardFunction() {
         LinearControlPointFunction f = new LinearControlPointFunction();
         f.setxValues(Arrays.asList(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 100.0)); //streak amounts
-        f.setyValues(Arrays.asList(1.0, 1.0, 2.0, 3.0, 4.0, 4.0, 4.0)); //reward amounts
+        f.setyValues(Arrays.asList(1.0, 1.5, 2.0, 3.0, 4.5, 4.5, 4.5)); //reward amounts
         return f;
     }
 
