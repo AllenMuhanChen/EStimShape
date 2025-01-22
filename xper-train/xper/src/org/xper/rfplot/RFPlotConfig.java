@@ -114,7 +114,7 @@ public class RFPlotConfig {
 	public LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> defaultScrollers() {
 		LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> map = new LinkedHashMap<>();
 		map.put("Size", new SizeScroller());
-		map.put("Orientation", new OrientationScroller());
+//		map.put("Orientation", new OrientationScroller());
 		map.put("Hue", new HueScroller());
 		map.put("Saturation", new SaturationScroller());
 		map.put("Lightness", new LightnessScroller());
