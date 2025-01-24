@@ -143,6 +143,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     private void changeStimType(String stimType) {
         this.stimType = stimType;
+        isStimToggleOn = true;
         RFPlotDrawable firstStimObj = namesForDrawables.get(stimType);
         stimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(firstStimObj);
         client.changeRFPlotStim(stimSpec);
@@ -150,11 +151,13 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     private void toggleStim() {
         isStimToggleOn = !isStimToggleOn;
-        if (isStimToggleOn) {
+        if (!isStimToggleOn) {
             RFPlotDrawable currentDrawable = new RFPlotBlankObject();
             client.changeRFPlotStim(RFPlotStimSpec.getStimSpecFromRFPlotDrawable(currentDrawable));
         } else{
-            changeStimType(stimType);
+            RFPlotDrawable firstStimObj = namesForDrawables.get(stimType);
+            stimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(firstStimObj);
+            client.changeRFPlotStim(stimSpec);
         }
     }
 
@@ -446,11 +449,12 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             ));
         }
 
-        //Draw the outline
+        //Draw the outline with different colors based on toggle state
+        float color = isStimToggleOn ? 1.0f : 0.5f;  // 1.0 = white, 0.5 = gray
         for (int i = 0; i < shiftedOutlinePoints.size(); i++) {
             Coordinates2D start = shiftedOutlinePoints.get(i);
-            Coordinates2D end = shiftedOutlinePoints.get((i + 1) % shiftedOutlinePoints.size()); // Ensures the last point connects back to the first
-            GLUtil.drawLine(start.getX(), start.getY(), end.getX(), end.getY(), 1, 1, 1);
+            Coordinates2D end = shiftedOutlinePoints.get((i + 1) % shiftedOutlinePoints.size());
+            GLUtil.drawLine(start.getX(), start.getY(), end.getX(), end.getY(), color, color, color);
         }
     }
 

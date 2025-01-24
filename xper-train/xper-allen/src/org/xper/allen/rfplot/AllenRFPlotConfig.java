@@ -35,6 +35,7 @@ public class AllenRFPlotConfig {
         LinkedHashMap<String, RFPlotDrawable> refObjMap = new LinkedHashMap<String, RFPlotDrawable>();
         refObjMap.put(RFPlotBlankObject.class.getName(), new RFPlotBlankObject());
 //        refObjMap.put(RFPlotImgObject.class.getName(), new RFPlotImgObject(imgPathScroller().getFirstPath()));
+        refObjMap.put(RFPlotMatchStick.class.getName(), new RFPlotMatchStick());
         refObjMap.put(Gabor.class.getName(), new Gabor());
         refObjMap.put(RFPlotBar.class.getName(), new RFPlotBar());
         return refObjMap;
@@ -45,6 +46,7 @@ public class AllenRFPlotConfig {
         LinkedHashMap<String, RFPlotStimModulator> refModulatorMap = new LinkedHashMap<>();
 //        refModulatorMap.put(RFPlotImgObject.class.getName(), imgModulator());
         refModulatorMap.put(Gabor.class.getName(), rfPlotConfig.gaborModulator());
+        refModulatorMap.put(RFPlotMatchStick.class.getName(), mStickModulator());
         refModulatorMap.put(RFPlotBar.class.getName(), barModulator());
         return refModulatorMap;
     }

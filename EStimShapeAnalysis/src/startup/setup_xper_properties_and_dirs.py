@@ -107,7 +107,7 @@ def setup_ga_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"
     rfplot_intan_path = f"/home/i2_allen/Documents/EStimShape/{version_ga}/rfPlot"
 
     # INTAN
-    intan_path = f"/home/i2_allen/Documents/EStimShape/{version_ga}/ga"
+    intan_path = f"/home/i2_allen/Documents/EStimShape/{version_ga}"
 
     # Create an instance of PropertiesModifier
     modifier = XperPropertiesModifier(xper_properties_file_path)
@@ -161,7 +161,7 @@ def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.8
     ga_spec_path = f"{r_ga_path}/specs"
 
     # INTAN
-    intan_path = f"/home/i2_allen/Documents/EStimShape/{version_nafc}/nafc"
+    intan_path = f"/home/i2_allen/Documents/EStimShape/{version_nafc}"
 
     # Create an instance of PropertiesModifier
     modifier = XperPropertiesModifier(xper_properties_file_path)
@@ -201,10 +201,12 @@ def setup_isogabor_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30
     # DB URL
     db_url = f"jdbc:mysql://172.30.6.80/{version_isogabor}?rewriteBatchedStatements=true"
 
+    intan_path = f"/home/i2_allen/Documents/EStimShape/{version_isogabor}"
     modifier = XperPropertiesModifier(xper_properties_file_path)
     # ALL PROPERTIES to REPLACE:
     properties_dict = {
         "jdbc.url": db_url,
+        "intan.default_save_path": intan_path,
     }
     # Replace properties using the dictionary
     for var_name, new_value in properties_dict.items():
@@ -219,6 +221,7 @@ def setup_twodvsthreed_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=17
     version_twodvsthreed = context.twodvsthreed_database
     version_ga = context.ga_database
     recording_computer_sftp = r2_sftp
+
 
     # Define paths to the properties file and directories
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.twodvsthreed'
@@ -241,6 +244,9 @@ def setup_twodvsthreed_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=17
     r_ga_path = f"{ga_stimuli_base_r}/ga"
     ga_spec_path = f"{r_ga_path}/specs"
 
+    # Intan
+    intan_path = f"/home/i2_allen/Documents/EStimShape/{version_twodvsthreed}"
+
     # Create an instance of PropertiesModifier
     modifier = XperPropertiesModifier(xper_properties_file_path)
 
@@ -251,7 +257,8 @@ def setup_twodvsthreed_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=17
         "generator.png_path": generator_png_path,
         "experiment.png_path": experiment_png_path,
         "generator.spec_path": generator_spec_path,
-        "ga.spec_path": ga_spec_path
+        "ga.spec_path": ga_spec_path,
+        "intan.default_save_path": intan_path,
     }
 
     # Replace properties using the dictionary

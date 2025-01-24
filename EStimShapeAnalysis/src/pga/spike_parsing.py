@@ -52,21 +52,21 @@ class IntanResponseParser(ResponseParser):
         print(f"Using folder {intan_dir}")
 
         stims_to_parse = self.db_util.read_stims_with_no_responses(ga_name)
-        task_ids_for_stim_ids = self._read_task_ids_per_stim_id_to_parse_from_db(ga_name, stims_to_parse)
+        task_ids_by_stim_id = self._read_task_ids_per_stim_id_to_parse_from_db(ga_name, stims_to_parse)
 
         parser = OneFileParser()
-        spike_tstamps_for_channels_by_task_id, epoch_start_stop_by_task_id, sample_rate = parser.parse(intan_dir)
-        df_spike_rates = self._process_data_to_df(spike_tstamps_for_channels_by_task_id, epoch_start_stop_by_task_id,
-                                                  task_ids_for_stim_ids, sample_rate)
+        spike_tstamps_by_channel_by_task_id, epoch_start_stop_by_task_id, sample_rate = parser.parse(intan_dir)
+        df_spike_rates = self._process_data_to_df(spike_tstamps_by_channel_by_task_id, epoch_start_stop_by_task_id,
+                                                  task_ids_by_stim_id, sample_rate)
 
         self._write_to_db(df_spike_rates)
 
-    def _process_data_to_df(self, spikes, epochs, task_ids_for_stim_ids, sample_rate):
+    def _process_data_to_df(self, spikes, epochs, task_ids_by_stim_ids, sample_rate):
         data = []
-        for task_id, spikes_for_channels in spikes.items():
-            stim_id = self._find_stim_id_for_task(task_ids_for_stim_ids, task_id)
+        for task_id, spikes_by_channel in spikes.items():
+            stim_id = self._find_stim_id_for_task(task_ids_by_stim_ids, task_id)
             epoch = epochs[task_id]
-            for channel, spike_times in spikes_for_channels.items():
+            for channel, spike_times in spikes_by_channel.items():
                 print(f"Processing task {task_id} on channel {channel.value}")
                 spike_count = len([time for time in spike_times if epoch[0] <= time <= epoch[1]])
                 spike_rate = spike_count / (epoch[1] - epoch[0])
@@ -79,9 +79,9 @@ class IntanResponseParser(ResponseParser):
                 })
         return pd.DataFrame(data)
 
-    def _find_stim_id_for_task(self, task_ids_for_stim_ids, task_id):
+    def _find_stim_id_for_task(self, task_ids_by_stim_ids, task_id):
         # Search through the dictionary to find the stim_id that contains the task_id
-        for stim_id, task_ids in task_ids_for_stim_ids.items():
+        for stim_id, task_ids in task_ids_by_stim_ids.items():
             if task_id in task_ids:
                 return stim_id
         return -1  # Return a placeholder (-1) if no stim_id is found for the task_id
@@ -119,7 +119,7 @@ class IntanResponseParser(ResponseParser):
         '''
         task_ids_for_stim_ids: Dict[int, List[int]] = {}
         for stim_id in stims_to_parse:
-            task_ids = self.db_util.read_task_done_ids_for_stim_id(ga_name, stim_id)
+            task_ids = self.db_util.read_task_done_ids_by_stim_id(ga_name, stim_id)
             task_ids_for_stim_ids[stim_id] = task_ids
         return task_ids_for_stim_ids
 
@@ -237,7 +237,7 @@ def date_time_for_folder(folder_path: str) -> int:
 
 
 def count_spikes_for_channels(spike_tstamps_for_channels) -> dict[Channel, int]:
-    spike_counts_for_channels = {}
+    spike_counts_by_channel = {}
     for channel_name, spike_tstamps in spike_tstamps_for_channels.items():
-        spike_counts_for_channels[channel_name] = len(spike_tstamps)
-    return spike_counts_for_channels
+        spike_counts_by_channel[channel_name] = len(spike_tstamps)
+    return spike_counts_by_channel
