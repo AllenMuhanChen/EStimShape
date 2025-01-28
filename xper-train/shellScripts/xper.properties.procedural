@@ -37,13 +37,13 @@ mock.config_class=
 # parameters
 #############################################################################
 #path of computer running stimulus generator
-generator.png_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250116_0/stimuli/250116/procedural/pngs
+generator.png_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250116_0/stimuli/250124/procedural/pngs
 #path of computer running experiment
-experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250116_0/stimuli/250116/procedural/pngs
-generator.spec_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250116_0/stimuli/250116/procedural/specs
-generator.noisemap_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250116_0/stimuli/250116/procedural/pngs
-generator.set_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250116_0/stimuli/250116/sets
-experiment.noisemap_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250116_0/stimuli/250116/procedural/pngs
+experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250116_0/stimuli/250124/procedural/pngs
+generator.spec_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250116_0/stimuli/250124/procedural/specs
+generator.noisemap_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250116_0/stimuli/250124/procedural/pngs
+generator.set_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250116_0/stimuli/250124/sets
+experiment.noisemap_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250116_0/stimuli/250124/procedural/pngs
 #############
 ga.spec_path=/home/r2_allen/Documents/EStimShape/allen_ga_train_250116_0/stimuli/ga/specs
 
@@ -55,7 +55,7 @@ acq.driver_name=comedi
 
 console.host=172.30.6.80
 
-console.eye_simulation=false
+console.eye_simulation=true
 
 experiment.host=172.30.6.90
 
