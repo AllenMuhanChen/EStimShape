@@ -68,6 +68,7 @@ public class MonLinConfig {
     public ColorLookupTable colorLookupTable() {
         ColorLookupTable lut = new ColorLookupTable();
         lut.setDataSource(baseConfig.dataSource());
+        lut.init();
         return lut;
     }
 

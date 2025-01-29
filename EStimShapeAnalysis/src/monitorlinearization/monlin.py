@@ -13,7 +13,7 @@ from clat.util.connection import Connection
 matplotlib.use("Qt5Agg")
 
 def get_most_recent_pickle_path(type: str):
-    monitor_linearization_path = "/home/r2_allen/Documents/EStimShape/ga_dev_240207/monitor_linearization"
+    monitor_linearization_path = "/home/r2_allen/Documents/EStimShape/allen_monlin_250128"
     # Find the most recent file containing "red_green_sinusoidal" in the monitor_linearization_path
     files = [f for f in os.listdir(monitor_linearization_path) if type in f]
     latest_file = max(files, key=lambda x: os.path.getctime(os.path.join(monitor_linearization_path, x)))
@@ -21,7 +21,7 @@ def get_most_recent_pickle_path(type: str):
     return pickle_path
 
 def main():
-    conn = Connection("allen_monitorlinearization_240228")
+    conn = Connection("allen_monitorlinearization_250128")
     # Load data
     pickle_path = get_most_recent_pickle_path("monitor_linearization")
     df = pd.read_pickle(pickle_path)

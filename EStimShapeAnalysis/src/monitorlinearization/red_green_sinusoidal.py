@@ -4,12 +4,15 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from clat.util.connection import Connection
-from monitorlinearization.linear_repeats import plot_candela_vector
-from monitorlinearization.monlin import get_most_recent_pickle_path
+from src.monitorlinearization.linear_repeats import plot_candela_vector
+from src.monitorlinearization.monlin import get_most_recent_pickle_path
 
 matplotlib.use("Qt5Agg")
 def main():
-    conn = Connection("allen_monitorlinearization_240228")
+
+
+
+    conn = Connection("allen_monitorlinearization_250128")
     pickle_path = get_most_recent_pickle_path("red_green_sinusoidal")
     # pickle_path = "/home/r2_allen/Documents/EStimShape/ga_dev_240207/monitor_linearization/red_green_sinusoidal_TestRecording_240319_135800.pkl"
 
@@ -103,6 +106,7 @@ def plot_gain_for_luminance(df, target_luminance):
     plt.ylabel('Gain')
     plt.grid(True)
     plt.show()
+    plt.legend()
 
     return plot_angles, plot_gains
 

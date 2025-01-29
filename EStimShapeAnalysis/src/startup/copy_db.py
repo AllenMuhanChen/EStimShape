@@ -8,8 +8,8 @@ USER = 'xper_rw'
 PASS = 'up2nite'
 
 # Set your source and destination database names here
-SOURCE_DB = "allen_ga_train_241213_0"
-DEST_DB = "allen_twodvsthreed_train_241213_0"
+SOURCE_DB = "allen_monitorlinearization_240228"
+DEST_DB = "allen_monitorlinearization_250128"
 
 # List the tables you want to copy data from (empty list means structure only)
 COPY_DATA_TABLES = ["SystemVar", "InternalState"]

@@ -4,14 +4,14 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from clat.util.connection import Connection
-from monitorlinearization.compile_monlin import find_asymptote
-from monitorlinearization.monlin import get_most_recent_pickle_path, save_to_db
+from src.monitorlinearization.compile_monlin import find_asymptote
+from src.monitorlinearization.monlin import get_most_recent_pickle_path, save_to_db
 
 matplotlib.use("Qt5Agg")
 
 
 def main():
-    conn = Connection("allen_monitorlinearization_240228")
+    conn = Connection("allen_monitorlinearization_250128")
     pickle_path = get_most_recent_pickle_path("linear_repeats")
     # pickle_path = "/home/r2_allen/Documents/EStimShape/ga_dev_240207/monitor_linearization/linear_repeats_TestRecording_240319_130709.pkl"
     data = pd.read_pickle(
@@ -30,7 +30,6 @@ def main():
 def plot_candela_values(df):
     """
        Plots Candela values for non-zero entries of Red, Green, and Blue in a single plot,
-       fits a polynomial for each color, and calculates the variance of Candela values for each color.
 
        Args:
            df (pd.DataFrame): DataFrame containing the data with repeats of the same RGB values.

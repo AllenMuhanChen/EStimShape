@@ -1,21 +1,21 @@
 import os
 
-from clat.compile import StimSpecIdField
-from clat.compile import TaskIdCollector
-from clat.compile import TaskFieldList
+from clat.compile.task.base_database_fields import StimSpecIdField
+from clat.compile.task.compile_task_id import TaskIdCollector
+from clat.compile.task.task_field import TaskFieldList
 from clat.intan.analogin import read_analogin_file
 from clat.intan.livenotes import map_task_id_to_epochs_with_livenotes
 from clat.intan.marker_channels import epoch_using_marker_channels
 from clat.util.connection import Connection
-from monitorlinearization.compile_monlin import RedField, GreenField, BlueField, EpochField, CandelaField, \
+from src.monitorlinearization.compile_monlin import RedField, GreenField, BlueField, EpochField, CandelaField, \
     CandelaVectorField, get_most_recent_intan
 
 
 def main():
-    conn = Connection("allen_monitorlinearization_240228")
-    save_path = "/home/r2_allen/Documents/EStimShape/ga_dev_240207/monitor_linearization"
-    date = "2024-03-25"
-    base_path = "/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/Test/%s" % date
+    conn = Connection("allen_monitorlinearization_250128")
+    save_path = "/home/r2_allen/Documents/EStimShape/allen_monlin_250128"
+    date = "2025-01-28"
+    base_path = "/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/MonitorLinearization/%s" % date
 
     # Find the most recent file in base_path directory
     intan_filename = get_most_recent_intan(base_path)

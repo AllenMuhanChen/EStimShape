@@ -18,7 +18,7 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
 
     @Override
     protected void addTrials() {
-        int targetLuminance = 150;
+        int targetLuminance = 390;
         if (mode.equals("RedGreenIsoluminant")){
             int numRepeats = 2;
             for (int i = 0; i < numRepeats; i++) {
@@ -100,7 +100,7 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
         }
 
         //GAINS
-        List<Double> gains = range(0.80, 1.2, 20);
+        List<Double> gains = range(0.96, 1.04, 10);
 
         //for each angle, create a trial for each gain
         for (int i = 0; i < angles.size(); i++) {
