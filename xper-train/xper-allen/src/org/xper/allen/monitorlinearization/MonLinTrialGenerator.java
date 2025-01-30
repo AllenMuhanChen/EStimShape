@@ -301,15 +301,28 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
         }
 
         //Yellow
-        float[] yellowHSV = rgbToHsv(1, 1, 0);
-        double yellowHue = yellowHSV[0]; //degrees 0-360
-        double yellowSaturation = yellowHSV[1]; //0-1
-        double yellowValue; //0-1
+//        float[] yellowHSV = rgbToHsv(1, 1, 0);
+//        double yellowHue = yellowHSV[0]; //degrees 0-360
+//        double yellowSaturation = yellowHSV[1]; //0-1
+//        double yellowValue; //0-1
+//
+//        for (int i = 0; i < numSteps; i++) {
+//            yellowValue = (float) i / (numSteps -1);
+//            int[] RGB = hsvToRgb((float) yellowHue, (float) yellowSaturation, (float) yellowValue);
+//            System.out.println("Yellow: " + RGB[0] + " " + RGB[1] + " " + RGB[2]);
+//            stims.add(new MonLinStim(this, new RGBColor((float) RGB[0]/255f, (float) RGB[1]/255f, (float) RGB[2]/255f)));
+//        }
+
+        //Orange
+        float[] orangeHSV = rgbToHsv(2, 1, 0);
+        float orangeHue = orangeHSV[0]; //degrees 0-360
+        float orangeSaturation = orangeHSV[1]; //0-1
+        float orangeValue; //0-1
 
         for (int i = 0; i < numSteps; i++) {
-            yellowValue = (float) i / (numSteps -1);
-            int[] RGB = hsvToRgb((float) yellowHue, (float) yellowSaturation, (float) yellowValue);
-            System.out.println("Yellow: " + RGB[0] + " " + RGB[1] + " " + RGB[2]);
+            orangeValue = (float) i / (numSteps -1);
+            int[] RGB = hsvToRgb(orangeHue, orangeSaturation, orangeValue);
+            System.out.println("Orange: " + RGB[0] + " " + RGB[1] + " " + RGB[2]);
             stims.add(new MonLinStim(this, new RGBColor((float) RGB[0]/255f, (float) RGB[1]/255f, (float) RGB[2]/255f)));
         }
 
@@ -334,6 +347,8 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
 
             stims.add(new MonLinStim(this, newColor));
         }
+
+
 
         System.out.println("Added " + stims.size() + " trials");
 
