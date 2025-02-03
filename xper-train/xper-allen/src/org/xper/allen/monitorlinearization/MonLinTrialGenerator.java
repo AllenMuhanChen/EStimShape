@@ -18,7 +18,7 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
 
     @Override
     protected void addTrials() {
-        int targetLuminance = 390;
+        int targetLuminance = 400;
         if (mode.equals("RedGreenIsoluminant")){
             int numRepeats = 2;
             for (int i = 0; i < numRepeats; i++) {
@@ -44,6 +44,12 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
             int numRepeats = 1;
             for (int i = 0; i < numRepeats; i++) {
                 addRedGreenSinusoidalTrialsLargeSpan(targetLuminance);
+            }
+        }
+        else if (mode.equals("CyanOrangeSinusoidal")){
+            int numRepeats = 1;
+            for (int i = 0; i < numRepeats; i++) {
+                addCyanOrangeSinusoidalTrials(targetLuminance);
             }
         }
         else if (mode.equals("CyanYellowSinusoidal")){
@@ -108,6 +114,37 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
                 double redLuminance = redLuminances.get(i) * gain;
                 double greenLuminance = greenLuminances.get(i) * gain;
                 RGBColor corrected = lutCorrect.correctRedGreen(redLuminance, greenLuminance);
+                stims.add(new MonLinStim(this, corrected, angles.get(i), gain));
+            }
+        }
+    }
+    private void addCyanOrangeSinusoidalTrials(double targetLuminance){
+        //define some angles on a sine wave
+        List<Double> angles = range(0, 180, 100);
+
+        //calculate red and green luminances for each angle
+        List<Double> cyanLuminances = new LinkedList<>();
+        List<Double> orangeLuminances = new LinkedList<>();
+        for (double angle : angles) {
+            //each pair of red and green luminances should add to up to the target luminance
+            double cyanLuminance = targetLuminance * (1 + Math.cos(Math.toRadians(angle)))/2;
+            double orangeLuminance = targetLuminance * (1 + Math.cos(Math.toRadians(angle-180)))/2;
+            cyanLuminances.add(cyanLuminance);
+            orangeLuminances.add(orangeLuminance);
+        }
+
+        //GAINS
+        List<Double> gains = range(0.4, 1.0, 20);
+        if (!gains.contains(1.0)){
+            gains.add(1.0);
+        }
+
+        //for each angle, create a trial for each gain
+        for (int i = 0; i < angles.size(); i++) {
+            for (double gain : gains) {
+                double cyanLuminance = cyanLuminances.get(i) * gain;
+                double orangeLuminance = orangeLuminances.get(i) * gain;
+                RGBColor corrected = lutCorrect.correctCyanOrange(cyanLuminance, orangeLuminance);
                 stims.add(new MonLinStim(this, corrected, angles.get(i), gain));
             }
         }

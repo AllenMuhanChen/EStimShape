@@ -3,14 +3,8 @@ package org.xper.allen.monitorlinearization;
 import org.xper.Dependency;
 import org.xper.drawing.RGBColor;
 
-import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.function.BiConsumer;
+
 public class LookUpTableCorrector {
 
     @Dependency
@@ -73,7 +67,38 @@ public class LookUpTableCorrector {
 
         return new RGBColor(bestRed/255.0f, bestGreen/255.0f, 0);
     }
+    public RGBColor correctCyanOrange(double targetCyanLuminance, double targetOrangeLuminance){
+        Map<Object, Float> cyanColors = lookupTable.getClosestColors((float)targetCyanLuminance, "cyan", 5);
+        Map<Object, Float> orangeColors = lookupTable.getClosestColors((float)targetOrangeLuminance, "orange", 5);
 
+        double minDiff = Double.MAX_VALUE;
+        Cyan bestCyan = null;
+        Orange bestOrange = null;
+        double targetSumLuminance = targetCyanLuminance + targetOrangeLuminance;
+
+        for (Map.Entry<Object, Float> cyanEntry : cyanColors.entrySet()) {
+            for (Map.Entry<Object, Float> orangeEntry : orangeColors.entrySet()) {
+                double totalLuminance = cyanEntry.getValue() + orangeEntry.getValue();
+                double diff = Math.abs(totalLuminance - targetSumLuminance);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    bestCyan = (Cyan)cyanEntry.getKey();
+                    bestOrange = (Orange)orangeEntry.getKey();
+                }
+            }
+        }
+
+        if (bestCyan == null || bestOrange == null) {
+            throw new RuntimeException("No best combination found");
+        }
+
+        return new RGBColor(
+                bestOrange.getRed() / 255.0f,
+//                Math.max(bestCyan.getGreen(), bestOrange.getGreen()) / 255.0f,
+                Math.min((bestCyan.getGreen() + bestOrange.getGreen()) / 255.0f, 1.0f),
+                bestCyan.getBlue() / 255.0f
+        );
+    }
     public RGBColor correctCyanYellow(double targetCyanLuminance, double targetYellowLuminance) {
         Map<Object, Float> cyanColors = lookupTable.getClosestColors((float)targetCyanLuminance, "cyan", 5);
         Map<Object, Float> yellowColors = lookupTable.getClosestColors((float)targetYellowLuminance, "yellow", 5);

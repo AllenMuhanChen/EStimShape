@@ -56,6 +56,9 @@ public class ColorLookupTable {
                 if (entry.red != 0 && entry.green != 0 && entry.blue == 0) {
                     colorMap.computeIfAbsent("yellow", emptyEntry).add(entry);
                 }
+                if (entry.red != 0 && entry.green != 0 && entry.blue == 0 && entry.red > entry.green) {
+                    colorMap.computeIfAbsent("orange", emptyEntry).add(entry);
+                }
                 if (entry.red == entry.green && entry.green == entry.blue) {
                     colorMap.computeIfAbsent("gray", emptyEntry).add(entry);
                 }
@@ -120,6 +123,8 @@ public class ColorLookupTable {
                 return new Cyan(entry.green, entry.blue);
             case "yellow":
                 return new Yellow(entry.red, entry.green);
+            case "orange":
+                return new Orange(entry.red, entry.green);
             default:
                 throw new IllegalArgumentException("Unknown color type: " + colorType);
         }

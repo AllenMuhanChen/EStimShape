@@ -2,7 +2,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from clat.util.connection import Connection
-from monitorlinearization.monlin import get_most_recent_pickle_path
+from src.monitorlinearization.monlin import get_most_recent_pickle_path
 
 
 def main():

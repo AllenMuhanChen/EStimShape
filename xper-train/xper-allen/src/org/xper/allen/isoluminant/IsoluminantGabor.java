@@ -60,6 +60,12 @@ public class IsoluminantGabor extends Gabor {
             gain = sinusoidGainCorrector.getGain(angle, "CyanYellow");
             corrected = lutCorrector.correctCyanYellow(luminanceCyan * gain, luminanceYellow * gain);
         }
+        else if (spec.type.equals("CyanOrange")){
+            double luminanceCyan = luminanceCandela * (1 + Math.cos(Math.toRadians(angle)))/2;
+            double luminanceOrange = luminanceCandela * (1 + Math.cos(Math.toRadians(angle-180)))/2;
+            gain = sinusoidGainCorrector.getGain(angle, "CyanOrange");
+            corrected = lutCorrector.correctCyanOrange(luminanceCyan * gain, luminanceOrange * gain);
+        }
         else {
             throw new RuntimeException("Unknown color space: " + spec.type);
         }

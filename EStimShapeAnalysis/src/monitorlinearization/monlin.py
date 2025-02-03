@@ -1,124 +1,187 @@
 from __future__ import annotations
 
 import os
-
 import matplotlib
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from scipy.optimize import curve_fit
-
+from scipy.stats import linregress
 from clat.util.connection import Connection
+
+ORANGE_CUTOFF = 400
+CYAN_CUTOFF = 400
+GREEN_CUTOFF = 400
+RED_CUTOFF = 400
 
 matplotlib.use("Qt5Agg")
 
+
+def main():
+    conn = Connection("allen_monitorlinearization_250128")
+    pickle_path = get_most_recent_pickle_path("monitor_linearization")
+    df = pd.read_pickle(pickle_path)
+
+    # Store fitted parameters for database use
+    fitted_params = {}
+
+    # Plot and fit base colors
+    fitted_params.update(plot_base_colors(df))
+
+    # Plot and fit derived colors
+    plt.figure(figsize=(10, 6))
+    fitted_params.update(plot_derived_color(df, 'Cyan'))
+    fitted_params.update(plot_derived_color(df, 'Orange'))
+    plt.show()
+
+    # Save fitted curves to database
+    # save_fitted_curves_to_db(conn, fitted_params)
+    save_raw_to_db(conn, df)
+
+
+def gamma_function(x, A, gamma, max_value):
+    """Gamma function for monitor calibration."""
+    return A * (x ** gamma) * (x <= max_value) + A * (max_value ** gamma) * (x > max_value)
+
+
+def find_cutoff_x(x, y, cutoff_y) -> int:
+    """Find the point where the curve passes cutoff_y.
+    Returns x value"""
+    first_cross_above_cutoff = int(x[np.where(y >= cutoff_y)[0][0]])
+    return first_cross_above_cutoff-1
+
+
+def fit_gamma_curve(x, y, cutoff_y):
+    """Fit gamma function to data, handling cutoff."""
+    # Find cutoff
+    cutoff = find_cutoff_x(x, y, cutoff_y)
+    print(f"Cutoff: {cutoff}")
+    # Filter data up to cutoff
+    mask = x <= cutoff
+    x_fit = x[mask]
+    y_fit = y[mask]
+
+    # Initial parameter guesses
+    p0 = [0.001, 2.2, max(x_fit)]
+
+    try:
+        popt, _ = curve_fit(gamma_function, x_fit, y_fit, p0=p0, bounds=([0, 1, 0], [1, 5, np.inf]))
+        return popt, cutoff
+    except RuntimeError:
+        print("Curve fit failed")
+        return None, cutoff
+
+
 def get_most_recent_pickle_path(type: str):
     monitor_linearization_path = "/home/r2_allen/Documents/EStimShape/allen_monlin_250128"
-    # Find the most recent file containing "red_green_sinusoidal" in the monitor_linearization_path
     files = [f for f in os.listdir(monitor_linearization_path) if type in f]
     latest_file = max(files, key=lambda x: os.path.getctime(os.path.join(monitor_linearization_path, x)))
     pickle_path = os.path.join(monitor_linearization_path, latest_file)
     return pickle_path
 
-def main():
-    conn = Connection("allen_monitorlinearization_250128")
-    # Load data
-    pickle_path = get_most_recent_pickle_path("monitor_linearization")
-    df = pd.read_pickle(pickle_path)
-
-
-    # Plot Candela values for non-zero entries of Red, Green, and Blue
-    plot_base_colors(df)
-    plt.figure(figsize=(10, 6))
-    plot_derived_color(df, 'Cyan')
-    plot_derived_color(df, 'Orange')
-    plt.show()
-    save_to_db(conn, df)
-
 
 def plot_base_colors(df):
-    """
-    Plots Candela values for entries where only Red or only Green is above a threshold in a single plot.
-    Excludes entries that could contribute to derived colors like Cyan or Yellow.
-    """
+    """Plot and fit base colors (Red and Green)."""
     plt.figure(figsize=(10, 6))
+    fitted_params = {}
 
-    # Plot Red values where only Red is non-zero
+    # Red
     red_only = df[(df['Red'] > 0.001) & (df['Green'] <= 0.001) & (df['Blue'] <= 0.001)]
     if not red_only.empty:
-        plt.plot(red_only['Red'], red_only['Candela'], 'o-', label='Red Candela Value', color='red')
+        x = red_only['Red'].values
+        y = red_only['Candela'].values
+        popt, cutoff = fit_gamma_curve(x, y, RED_CUTOFF)
+        if popt is not None:
+            fitted_params['red'] = {'params': popt, 'cutoff': cutoff}
+            # Plot original data
+            plt.plot(x, y, 'o', label='Red Data', color='red', alpha=0.5)
+            # Plot fitted curve
+            x_fit = np.linspace(0, max(x), 100)
+            y_fit = gamma_function(x_fit, *popt)
+            plt.plot(x_fit, y_fit, '-', label='Red Fit', color='darkred')
 
-    # Plot Green values where only Green is non-zero
+    # Green
     green_only = df[(df['Green'] > 0.001) & (df['Red'] <= 0.001) & (df['Blue'] <= 0.001)]
     if not green_only.empty:
-        plt.plot(green_only['Green'], green_only['Candela'], 'o-', label='Green Candela Value', color='green')
+        x = green_only['Green'].values
+        y = green_only['Candela'].values
+        popt, cutoff = fit_gamma_curve(x, y, GREEN_CUTOFF)
+        if popt is not None:
+            fitted_params['green'] = {'params': popt, 'cutoff': cutoff}
+            # Plot original data
+            plt.plot(x, y, 'o', label='Green Data', color='green', alpha=0.5)
+            # Plot fitted curve
+            x_fit = np.linspace(0, max(x), 100)
+            y_fit = gamma_function(x_fit, *popt)
+            plt.plot(x_fit, y_fit, '-', label='Green Fit', color='darkgreen')
 
-    plt.title('Candela for Pure Base Color Values')
+    plt.title('Candela for Pure Base Colors with Gamma Fits')
     plt.xlabel('Color Value')
     plt.ylabel('Candela')
     plt.grid(True)
     plt.legend()
+    return fitted_params
+
 
 def plot_derived_color(df, color_name):
-    """
-    Plots a derived color (Cyan, Yellow, or Orange) with L value on the x-axis.
+    """Plot and fit derived colors (Cyan and Orange)."""
+    fitted_params = {}
 
-    Args:
-        df (pd.DataFrame): DataFrame containing the data.
-        color_name (str): Name of the derived color (Cyan, Yellow, or Orange).
-    """
-    # Filter rows based on the color combination we're looking for
     if color_name.lower() == 'cyan':
-        # Cyan: Only Green and Blue components, no Red
         non_zero_color = df[
             (df['Green'] > 0.001) &
             (df['Blue'] > 0.001) &
             (df['Red'] <= 0.001)
-        ]
-    elif color_name.lower() == 'yellow':
-        # Yellow: Equal Red and Green components, no Blue
-        non_zero_color = df[
-            (df['Red'] > 0.001) &
-            (df['Green'] > 0.001) &
-            (df['Blue'] <= 0.001) &
-            (abs(df['Red'] - df['Green']) < 0.01)  # Ensure Red and Green are approximately equal
-        ]
+            ]
     elif color_name.lower() == 'orange':
-        # Orange: Red is approximately twice Green, no Blue
         non_zero_color = df[
             (df['Red'] > 0.001) &
             (df['Green'] > 0.001) &
             (df['Blue'] <= 0.001) &
-            (abs(df['Red'] - 2 * df['Green']) < 0.1)  # Red is approximately double Green
-        ]
+            (abs(df['Red'] - 2 * df['Green']) < 0.1)
+            ]
     else:
         raise ValueError(f"Unsupported color: {color_name}")
 
     if not non_zero_color.empty:
-        # Calculate L values
-        L_values = np.linspace(0, 100, len(non_zero_color))
+        # For derived colors, use the maximum of the components as x value
+        if color_name.lower() == 'cyan':
+            x = non_zero_color[['Green', 'Blue']].max(axis=1).values
+        else:  # orange
+            x = non_zero_color['Red'].values
 
-        # Choose color for plotting
-        plot_color = 'black'
-        if color_name.lower() == 'yellow':
-            plot_color = 'goldenrod'
-        elif color_name.lower() == 'orange':
-            plot_color = 'darkorange'
-        elif color_name.lower() == 'cyan':
-            plot_color = 'darkcyan'
+        y = non_zero_color['Candela'].values
 
-        # Plotting Candela as a function of L value for the derived color
-        plt.plot(L_values, non_zero_color['Candela'], 'o-',
-                label=f'{color_name} Candela Value',
-                color=plot_color)
+        # Sort by x for proper plotting
+        sort_idx = np.argsort(x)
+        x = x[sort_idx]
+        y = y[sort_idx]
 
-        plt.title(f'Candela for {color_name}')
-        plt.xlabel('L Value')
-        plt.ylabel('Candela')
-        plt.grid(True)
-        plt.legend()
+        if color_name.lower() == 'cyan':
+            popt, cutoff = fit_gamma_curve(x, y, CYAN_CUTOFF)
+        else:  # orange
+            popt, cutoff = fit_gamma_curve(x, y, ORANGE_CUTOFF)
+        if popt is not None:
+            fitted_params[color_name.lower()] = {'params': popt, 'cutoff': cutoff}
 
-def save_to_db(conn, data):
+            # Plot original data
+            plot_color = 'darkcyan' if color_name.lower() == 'cyan' else 'darkorange'
+            plt.plot(x, y, 'o', label=f'{color_name} Data', color=plot_color, alpha=0.5)
+
+            # Plot fitted curve
+            x_fit = np.linspace(0, max(x), 100)
+            y_fit = gamma_function(x_fit, *popt)
+            plt.plot(x_fit, y_fit, '-', label=f'{color_name} Fit',
+                     color='cyan' if color_name.lower() == 'cyan' else 'orange')
+
+    plt.title(f'Candela for Derived Colors with Gamma Fits')
+    plt.xlabel('Color Value')
+    plt.ylabel('Candela')
+    plt.grid(True)
+    plt.legend()
+    return fitted_params
+
+def save_raw_to_db(conn, data):
     ## Save the data to the database
     # calculate average candela for repeats
     data['color'] = data.apply(lambda row: (row['Red'], row['Green'], row['Blue']), axis=1)
@@ -143,7 +206,54 @@ def save_to_db(conn, data):
             ON DUPLICATE KEY UPDATE luminance = VALUES(luminance)
         """, (red, green, blue, luminance))
 
+def save_fitted_curves_to_db(conn, fitted_params):
+    """Save sampled points from fitted curves to database."""
+    # Create table
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS MonitorLin (
+            red INT,
+            green INT,
+            blue INT,
+            luminance FLOAT,
+            PRIMARY KEY (red, green, blue)
+        )
+    """)
+    conn.execute("TRUNCATE TABLE MonitorLin")
 
+    # Sample points along each curve
+    num_samples = 256  # One for each possible color value
+
+    for color, params in fitted_params.items():
+        x = np.linspace(0, params['cutoff'], params['cutoff']+1)
+        y = gamma_function(x, *params['params'])
+
+        for i, (x_val, y_val) in enumerate(zip(x, y)):
+            if x_val == 0:
+                continue
+
+            color_val = int(x_val)  # Convert to 0-255 range
+
+            if color == 'red':
+                conn.execute("""
+                    INSERT INTO MonitorLin (red, green, blue, luminance)
+                    VALUES (%s, 0, 0, %s)
+                """, (color_val, float(y_val)))
+            elif color == 'green':
+                conn.execute("""
+                    INSERT INTO MonitorLin (red, green, blue, luminance)
+                    VALUES (0, %s, 0, %s)
+                """, (color_val, float(y_val)))
+            elif color == 'cyan':
+                conn.execute("""
+                    INSERT INTO MonitorLin (red, green, blue, luminance)
+                    VALUES (0, %s, %s, %s)
+                """, (color_val, color_val, float(y_val)))
+            elif color == 'orange':
+                green_val = int(color_val / 2)  # Orange has red ≈ 2*green
+                conn.execute("""
+                    INSERT INTO MonitorLin (red, green, blue, luminance)
+                    VALUES (%s, %s, 0, %s)
+                """, (color_val, green_val, float(y_val)))
 
 
 if __name__ == "__main__":

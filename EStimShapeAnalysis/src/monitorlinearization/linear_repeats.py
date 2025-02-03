@@ -5,7 +5,8 @@ from matplotlib import pyplot as plt
 
 from clat.util.connection import Connection
 from src.monitorlinearization.compile_monlin import find_asymptote
-from src.monitorlinearization.monlin import get_most_recent_pickle_path, save_to_db
+from src.monitorlinearization.gray import save_to_db
+from src.monitorlinearization.monlin import get_most_recent_pickle_path
 
 matplotlib.use("Qt5Agg")
 
