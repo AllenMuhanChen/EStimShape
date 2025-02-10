@@ -13,10 +13,10 @@ from src.monitorlinearization.compile_red_green_sinusoidal import AngleField, Ga
 
 
 def main():
-    conn = Connection("allen_monitorlinearization_240228")
-    save_path = "/home/r2_allen/Documents/EStimShape/ga_dev_240207/monitor_linearization"
-    date = "2024-03-27"
-    base_path = "/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/Test/%s" % date
+    conn = Connection("allen_monitorlinearization_250128")
+    save_path = "/home/r2_allen/Documents/EStimShape/allen_monlin_250128"
+    date = "2025-02-03"
+    base_path = "/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/MonitorLinearization/%s" % date
 
     # Find the most recent file in base_path directory
     intan_filename = get_most_recent_intan(base_path)

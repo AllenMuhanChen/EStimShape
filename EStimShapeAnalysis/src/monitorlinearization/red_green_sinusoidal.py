@@ -9,8 +9,7 @@ from src.monitorlinearization.monlin import get_most_recent_pickle_path
 
 matplotlib.use("Qt5Agg")
 def main():
-
-
+    TARGET_LUMINANCE = 400
 
     conn = Connection("allen_monitorlinearization_250128")
     pickle_path = get_most_recent_pickle_path("red_green_sinusoidal")
@@ -23,7 +22,7 @@ def main():
     print(df.to_string())
     # plot_candela_vector(df, 1710867286329547)
     plot_candela_values(avg_candela)
-    angles, gains = plot_gain_for_luminance(avg_candela, 150)
+    angles, gains = plot_gain_for_luminance(avg_candela, TARGET_LUMINANCE)
 
     # Insert the data into the LuminanceGain table
     luminance_gain_table = LuminanceGainTable(conn)

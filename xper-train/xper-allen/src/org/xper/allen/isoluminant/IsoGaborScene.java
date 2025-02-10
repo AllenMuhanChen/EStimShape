@@ -40,7 +40,7 @@ public class IsoGaborScene extends AbstractTaskScene {
             } else if (stimSpec.getType().equals("Red") ||
                     stimSpec.getType().equals("Green") ||
                     stimSpec.getType().equals("Blue") ||
-                    stimSpec.getType().equals("Yellow") ||
+                    stimSpec.getType().equals("Orange") ||
                     stimSpec.getType().equals("Cyan") ||
                     stimSpec.getType().equals("Gray")) {
                 obj = new IsochromaticGabor(stimSpec, targetLuminanceCandela, lutCorrector);

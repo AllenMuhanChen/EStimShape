@@ -110,8 +110,8 @@ public class PGAConfig {
     @Bean
     public UnivariateRealFunction xperStreakRewardFunction() {
         LinearControlPointFunction f = new LinearControlPointFunction();
-        f.setxValues(Arrays.asList(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 100.0)); //streak amounts
-        f.setyValues(Arrays.asList(1.0, 1.0, 2.0, 3.0, 4.0, 4.0, 4.0)); //reward amounts
+        f.setxValues(Arrays.asList(1.0, 2.0, 3.0, 15.0)); //streak amounts
+        f.setyValues(Arrays.asList(1.0, 1.0, 2.0, 3.0)); //reward amounts
         return f;
     }
 

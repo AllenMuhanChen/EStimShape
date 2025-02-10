@@ -37,8 +37,8 @@ public class IsochromaticGabor extends Gabor {
             corrected = lutCorrector.correctSingleColor(targetCandela, "red");
         } else if (gaborSpec.type.equals("Green")) {
             corrected = lutCorrector.correctSingleColor(targetCandela, "green");
-        } else if (gaborSpec.type.equals("Yellow")) {
-            corrected = lutCorrector.correctSingleColor(targetCandela, "yellow");
+        } else if (gaborSpec.type.equals("Orange")) {
+            corrected = lutCorrector.correctSingleColor(targetCandela, "orange");
         } else if (gaborSpec.type.equals("Cyan")) {
             corrected = lutCorrector.correctSingleColor(targetCandela, "cyan");
         } else if (gaborSpec.type.equals("Gray")){

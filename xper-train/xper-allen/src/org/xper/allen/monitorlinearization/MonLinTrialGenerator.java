@@ -25,10 +25,16 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
                 addRedGreenIsoluminantTrials(targetLuminance);
             }
         }
-        if (mode.equals("CyanYellowIsoluminant")){
+        else if (mode.equals("CyanYellowIsoluminant")){
             int numRepeats = 1;
             for (int i = 0; i < numRepeats; i++) {
                 addCyanYellowIsoluminantTrials(targetLuminance);
+            }
+        }
+        else if (mode.equals("CyanOrangeIsoluminant")){
+            int numRepeats = 1;
+            for (int i = 0; i < numRepeats; i++) {
+                addCyanOrangeIsoluminantTrials(targetLuminance);
             }
         }
         else if (mode.equals("Linear")){
@@ -318,6 +324,23 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
 
             System.out.println(lookUpCorrected.getRed());
             System.out.println(lookUpCorrected.getGreen());
+
+            stims.add(new MonLinStim(this, lookUpCorrected, angle, gain));
+        }
+    }
+
+    private void addCyanOrangeIsoluminantTrials(float targetLuminnance){
+        int steps = 100;
+        for (int i = 0; i < steps; i++) {
+            double angle = (double) (180 * i) / steps;
+            //each pair of red and green luminances should add to up to the target luminance
+            double luminanceCyan = targetLuminnance * (1 + Math.cos(Math.toRadians(angle))) / 2;
+            double luminanceOrange = targetLuminnance * (1 + Math.cos(Math.toRadians(angle - 180))) / 2;
+            System.out.println("Target Lum Cyan: " + luminanceCyan);
+            System.out.println("Target Lum Orange: " + luminanceOrange);
+            double gain = sinusoidGainCorrector.getGain(angle, "CyanOrange");
+            System.out.println("GAIN: " + gain);
+            RGBColor lookUpCorrected = lutCorrect.correctCyanOrange(luminanceCyan * gain, luminanceOrange * gain);
 
             stims.add(new MonLinStim(this, lookUpCorrected, angle, gain));
         }

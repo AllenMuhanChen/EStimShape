@@ -20,7 +20,7 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
     private final int numRepeats = 5;
     private GaborSpec gaborSpec;
     public static final List<Double> frequencies = Arrays.asList(0.5, 1.0, 2.0, 4.0);
-    public static final List<Double> mixedPhases = Arrays.asList(0.0, 0.25, 0.5, 0.75);
+    public static final List<Double> mixedPhases = Arrays.asList(0.0, 0.5);
 
     public static void main(String[] args) {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
@@ -142,13 +142,13 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
         stim = new IsoGaborStim(this, spec);
         getStims().add(stim);
 
-        spec = new IsoGaborSpec(gaborSpec, "Yellow");
+        spec = new IsoGaborSpec(gaborSpec, "Orange");
         stim = new IsoGaborStim(this, spec);
         getStims().add(stim);
     }
 
     private void addIsoluminantTrials() {
-        IsoGaborSpec spec = new IsoGaborSpec(gaborSpec, "CyanYellow");
+        IsoGaborSpec spec = new IsoGaborSpec(gaborSpec, "CyanOrange");
         IsoGaborStim stim = new IsoGaborStim(this, spec);
         getStims().add(stim);
 

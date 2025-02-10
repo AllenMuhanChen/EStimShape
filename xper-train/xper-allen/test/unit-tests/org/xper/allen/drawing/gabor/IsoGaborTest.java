@@ -78,16 +78,16 @@ public class IsoGaborTest {
         spec.setYCenter(0);
         spec.setSize(10);
         spec.setAnimation(false);
-        spec.setType("Yellow");
+        spec.setType("Orange");
 
 
-        IsochromaticGabor gabor = new IsochromaticGabor(spec, 150, lutCorrector);
+        IsochromaticGabor gabor = new IsochromaticGabor(spec, 400, lutCorrector);
         gabor.setSpec(spec.toXml());
 
         window.draw(new Drawable() {
             @Override
             public void draw() {
-                RGBColor gray = lutCorrector.correctSingleColor(150, "gray");
+                RGBColor gray = lutCorrector.correctSingleColor(400, "gray");
                 GL11.glClearColor(gray.getRed(), gray.getGreen(), gray.getBlue(), 1.0f);
                 GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
                 IsochromaticGabor.initGL(width, height);
@@ -136,19 +136,19 @@ public class IsoGaborTest {
     }
 
     @Test
-    public void testCyanYellowIsoluminant(){
-        int size = 20;
+    public void testCyanOrangeIsoluminant(){
+        int size = 10;
         GaborSpec spec = new GaborSpec();
         spec.setOrientation(45);
         spec.setPhase(0);
-        spec.setFrequency(1);
+        spec.setFrequency(0.5);
         spec.setXCenter(0);
         spec.setYCenter(0);
         spec.setSize(size);
         spec.setAnimation(false);
 
         IsoGaborSpec isoGaborSpec = new IsoGaborSpec(
-                spec, "CyanYellow");
+                spec, "CyanOrange");
         IsoluminantGabor gabor = new IsoluminantGabor(isoGaborSpec, 150, lutCorrector, sinusoidGainCorrector);
         gabor.setGaborSpec(isoGaborSpec);
         gabor.setSpec(isoGaborSpec.toXml());
@@ -268,7 +268,7 @@ public class IsoGaborTest {
         } catch (PropertyVetoException e) {
             throw new DbException(e);
         }
-        source.setJdbcUrl("jdbc:mysql://172.30.6.80/allen_monitorlinearization_240228?rewriteBatchedStatements=true");
+        source.setJdbcUrl("jdbc:mysql://172.30.6.80/allen_monitorlinearization_250128?rewriteBatchedStatements=true");
         source.setUser("xper_rw");
         source.setPassword("up2nite");
         return source;

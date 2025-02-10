@@ -21,7 +21,7 @@ def main():
     print(df.to_string())
 
     plot_candela_values(avg_candela)
-    angles, gains = plot_gain_for_luminance(avg_candela, 150)
+    angles, gains = plot_gain_for_luminance(avg_candela, 400)
 
     # Insert the data into the LuminanceGain table
     luminance_gain_table = LuminanceGainTable(conn)

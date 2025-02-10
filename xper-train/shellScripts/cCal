@@ -14,6 +14,10 @@ UPDATE SystemVar SET val=0 WHERE name='xper_fixation_point_color' AND arr_ind=1;
 UPDATE SystemVar SET val=0 WHERE name='xper_fixation_point_color' AND arr_ind=2;
 UPDATE SystemVar SET val='true' WHERE name='xper_do_empty_task';
 UPDATE SystemVar SET val=200 WHERE name='xper_required_eye_in_and_hold_time';
+UPDATE SystemVar SET val=150 WHERE name='xper_eye_monitor_out_time_threshold';
+UPDATE SystemVar SET val=0.15 WHERE name='xper_background_color' AND arr_ind=0;
+UPDATE SystemVar SET val=0.15 WHERE name='xper_background_color' AND arr_ind=1;
+UPDATE SystemVar SET val=0.15 WHERE name='xper_background_color' AND arr_ind=2;
 EOF
 
 sudo -S <<< r2_allen cp $XPER_PROPERTIES_GA $DIST/xper.properties

@@ -35,6 +35,9 @@ public class LookUpTableCorrector {
             case "yellow":
                 Yellow y = (Yellow)minColor;
                 return new RGBColor(y.getRed()/255.0f, y.getGreen()/255.0f, 0);
+            case "orange":
+                Orange o = (Orange)minColor;
+                return new RGBColor(o.getRed()/255.0f, o.getGreen()/255.0f, 0);
             case "cyan":
                 Cyan c = (Cyan)minColor;
                 return new RGBColor(0, c.getGreen()/255.0f, c.getBlue()/255.0f);
