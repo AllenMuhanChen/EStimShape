@@ -21,24 +21,50 @@ def main():
     conn = Connection("allen_monitorlinearization_250128")
     pickle_path = get_most_recent_pickle_path("monitor_linearization")
     df = pd.read_pickle(pickle_path)
+    print(df.to_string())
+    # Aggregate the measurements
+    df_aggregated = aggregate_measurements(df)
+    print("Original measurements:", len(df))
+    print("Unique RGB combinations:", len(df_aggregated))
 
     # Store fitted parameters for database use
     fitted_params = {}
 
-    # Plot and fit base colors
-    fitted_params.update(plot_base_colors(df))
+    # Plot and fit base colors using aggregated data
+    fitted_params.update(plot_base_colors(df_aggregated))
 
-    # Plot and fit derived colors
+    # Plot and fit derived colors using aggregated data
     plt.figure(figsize=(10, 6))
-    fitted_params.update(plot_derived_color(df, 'Cyan'))
-    fitted_params.update(plot_derived_color(df, 'Orange'))
+    fitted_params.update(plot_derived_color(df_aggregated, 'Cyan'))
+    fitted_params.update(plot_derived_color(df_aggregated, 'Orange'))
     plt.show()
 
-    # Save fitted curves to database
-    # save_fitted_curves_to_db(conn, fitted_params)
-    save_raw_to_db(conn, df)
+    # Save aggregated data to db
+    save_raw_to_db(conn, df_aggregated)
 
 
+def aggregate_measurements(df):
+    """
+    Aggregates measurements by unique RGB combinations while maintaining
+    exact same DataFrame format. Only Candela values are averaged.
+    """
+    # Keep one row for each unique RGB combination (with its StimSpecId and other columns)
+    result = df.drop_duplicates(['Red', 'Green', 'Blue']).copy()
+
+    # Calculate means
+    means = df.groupby(['Red', 'Green', 'Blue'])['Candela'].mean()
+
+    # Update Candela values directly using the index from the groupby
+    for idx in result.index:
+        rgb_key = (result.loc[idx, 'Red'],
+                   result.loc[idx, 'Green'],
+                   result.loc[idx, 'Blue'])
+        result.loc[idx, 'Candela'] = means[rgb_key]
+
+    print(f"Original measurements: {len(df)}")
+    print(f"Unique RGB combinations: {len(result)}")
+
+    return result
 def gamma_function(x, A, gamma, max_value):
     """Gamma function for monitor calibration."""
     return A * (x ** gamma) * (x <= max_value) + A * (max_value ** gamma) * (x > max_value)
@@ -67,7 +93,7 @@ def fit_gamma_curve(x, y, cutoff_y):
     try:
         popt, _ = curve_fit(gamma_function, x_fit, y_fit, p0=p0, bounds=([0, 1, 0], [1, 5, np.inf]))
         return popt, cutoff
-    except RuntimeError:
+    except:
         print("Curve fit failed")
         return None, cutoff
 
@@ -173,7 +199,10 @@ def plot_derived_color(df, color_name):
             y_fit = gamma_function(x_fit, *popt)
             plt.plot(x_fit, y_fit, '-', label=f'{color_name} Fit',
                      color='cyan' if color_name.lower() == 'cyan' else 'orange')
-
+        else:
+            # Plot original data
+            plot_color = 'darkcyan' if color_name.lower() == 'cyan' else 'darkorange'
+            plt.plot(x, y, 'o', label=f'{color_name} Data', color=plot_color, alpha=0.5)
     plt.title(f'Candela for Derived Colors with Gamma Fits')
     plt.xlabel('Color Value')
     plt.ylabel('Candela')

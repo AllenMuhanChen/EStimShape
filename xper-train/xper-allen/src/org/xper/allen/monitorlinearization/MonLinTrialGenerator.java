@@ -59,7 +59,7 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
             }
         }
         else if (mode.equals("CyanYellowSinusoidal")){
-            int numRepeats = 1;
+            int numRepeats = 5;
             for (int i = 0; i < numRepeats; i++) {
                 addCyanYellowSinusoidalTrials(targetLuminance);
             }

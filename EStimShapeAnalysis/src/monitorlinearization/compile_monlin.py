@@ -23,7 +23,7 @@ def get_most_recent_intan(base_path):
 def main():
     conn = Connection("allen_monitorlinearization_250128")
     save_path = "/home/r2_allen/Documents/EStimShape/allen_monlin_250128/"
-    date = "2025-01-30"
+    date = "2025-02-11"
     base_path = "/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/MonitorLinearization/%s" % date
 
     # Find the most recent file in base_path directory
@@ -40,7 +40,7 @@ def main():
                                                            false_positive_correction_duration=0)
     epochs_for_task_ids = map_task_id_to_epochs_with_livenotes(notes_path,
                                                                stim_epochs_from_markers,
-                                                               require_trial_complete=False)
+                                                               require_trial_complete=False, is_output_first_instance=False)
     volts = read_analogin_file(analog_in_path, 1)
     volts = volts[0]
     for index, volt in enumerate(volts):
@@ -56,6 +56,7 @@ def main():
     fields.append(CandelaField(volts, epochs_for_task_ids))
 
     data = fields.to_data(task_ids)
+    print(data.to_string())
     filename = f"monitor_linearization_{intan_filename}.pkl"
     save_filepath = os.path.join(save_path, filename)
 
