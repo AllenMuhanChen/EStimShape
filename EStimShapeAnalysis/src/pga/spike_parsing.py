@@ -42,20 +42,34 @@ class IntanResponseParser(ResponseParser):
 
         if not intan_dirs_for_this_gen:
             print("No matching folders found.")
+            print("Check if the gen_id and experiment_id on the intan file matches what InternalState says.")
             return
 
         if len(intan_dirs_for_this_gen) > 1:
             print("More than one matching folder found.")
+            spike_tstamps_for_channels_by_task_id = {}
+            epoch_start_stop_by_task_id = {}
+            sample_rate = None
+            for intan_dir in intan_dirs_for_this_gen:
+                parser = OneFileParser()
+                local_spike_tstamps_for_channels_by_task_id, local_epoch_start_stop_by_task_id, local_sample_rate = parser.parse(intan_dir)
+                spike_tstamps_for_channels_by_task_id.update(local_spike_tstamps_for_channels_by_task_id)
+                epoch_start_stop_by_task_id.update(local_epoch_start_stop_by_task_id)
+                if sample_rate is None:
+                    sample_rate = local_sample_rate
+                elif sample_rate != local_sample_rate:
+                    raise ValueError("Sample rates do not match")
             return
+        else:
+            intan_dir = intan_dirs_for_this_gen[0]
+            print(f"Using folder {intan_dir}")
 
-        intan_dir = intan_dirs_for_this_gen[0]
-        print(f"Using folder {intan_dir}")
+            stims_to_parse = self.db_util.read_stims_with_no_responses(ga_name)
+            task_ids_for_stim_ids = self._read_task_ids_per_stim_id_to_parse_from_db(ga_name, stims_to_parse)
 
-        stims_to_parse = self.db_util.read_stims_with_no_responses(ga_name)
-        task_ids_for_stim_ids = self._read_task_ids_per_stim_id_to_parse_from_db(ga_name, stims_to_parse)
+            parser = OneFileParser()
+            spike_tstamps_for_channels_by_task_id, epoch_start_stop_by_task_id, sample_rate = parser.parse(intan_dir)
 
-        parser = OneFileParser()
-        spike_tstamps_for_channels_by_task_id, epoch_start_stop_by_task_id, sample_rate = parser.parse(intan_dir)
         df_spike_rates = self._process_data_to_df(spike_tstamps_for_channels_by_task_id, epoch_start_stop_by_task_id,
                                                   task_ids_for_stim_ids, sample_rate)
 

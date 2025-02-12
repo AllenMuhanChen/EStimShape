@@ -26,25 +26,27 @@ public class IntanRecordingController implements TrialEventListener, ExperimentE
     private IntanRHD intan;
 
     protected boolean connected = false;
+    private long experimentId;
 
     @Override
     public void experimentStart(long timestamp) {
-        tryConnection();
-        if (toRecord()) {
-            fileNamingStrategy.rename(timestamp);
-            getIntan().record();
-        }
+//        tryConnection();
+//        if (toRecord()) {
+            experimentId = timestamp;
+//            fileNamingStrategy.rename(experimentId);
+//            getIntan().record();
+//        }
     }
 
     @Override
     public void trialInit(long timestamp, TrialContext context) {
-//        if (recordingEnabled && !connected) {
-//            tryConnection();
-//            if (toRecord()) {
-//                fileNamingStrategy.rename(timestamp);
-//                getIntan().record();
-//            }
-//        }
+        if (recordingEnabled && !connected) {
+            tryConnection();
+            if (toRecord()) {
+                fileNamingStrategy.rename(experimentId);
+                getIntan().record();
+            }
+        }
     }
 
     @Override
