@@ -185,7 +185,7 @@ public class IsoGaborTest {
         baseSpec.setAnimation(false);
 
         // Chromatic component with frequency 1.0
-        IsoGaborSpec chromaticSpec = new IsoGaborSpec(baseSpec, "CyanYellow");
+        IsoGaborSpec chromaticSpec = new IsoGaborSpec(baseSpec, "CyanOrange");
         chromaticSpec.setFrequency(1.0);
         chromaticSpec.setPhase(0);
 
@@ -230,7 +230,7 @@ public class IsoGaborTest {
         baseSpec.setAnimation(false);
 
         // Chromatic component with frequency 1.0
-        IsoGaborSpec chromaticSpec = new IsoGaborSpec(baseSpec, "CyanYellow");
+        IsoGaborSpec chromaticSpec = new IsoGaborSpec(baseSpec, "CyanOrange");
         chromaticSpec.setFrequency(1.0);
         chromaticSpec.setPhase(0);
 

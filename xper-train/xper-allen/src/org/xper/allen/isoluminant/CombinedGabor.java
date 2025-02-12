@@ -70,10 +70,10 @@ public class CombinedGabor extends Gabor {
             gain = sinusoidGainCorrector.getGain(angle, "RedGreen");
             corrected = lutCorrector.correctRedGreen(luminanceRed * gain, luminanceGreen * gain);
         }
-        else if (isoluminantSpec.type.equals("CyanYellow")) {
+        else if (isoluminantSpec.type.equals("CyanOrange")) {
             double luminanceCyan = targetCandela * (1 + Math.cos(Math.toRadians(angle))) / 2;
             double luminanceYellow = targetCandela * (1 + Math.cos(Math.toRadians(angle - 180))) / 2;
-            gain = sinusoidGainCorrector.getGain(angle, "CyanYellow");
+            gain = sinusoidGainCorrector.getGain(angle, "CyanOrange");
             corrected = lutCorrector.correctCyanYellow(luminanceCyan * gain, luminanceYellow * gain);
         }
         else {

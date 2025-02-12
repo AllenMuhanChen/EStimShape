@@ -41,7 +41,7 @@ class IntanResponseParser(ResponseParser):
         print(f"Found {len(intan_dirs_for_this_gen)} matching folders for GA {ga_name}")
 
         if not intan_dirs_for_this_gen:
-            print("No matching folders found")
+            print("No matching folders found.")
             return
 
         if len(intan_dirs_for_this_gen) > 1:
@@ -107,7 +107,7 @@ class IntanResponseParser(ResponseParser):
                     gen_id = int(parts[1])
 
                     # Check if this directory matches the current experiment and generation IDs
-                    if experiment_id == current_experiment_id and gen_id == current_gen_id:
+                    if experiment_id == current_experiment_id and gen_id == current_gen_id-1:
                         full_path = os.path.join(root, dir_name)
                         matching_folders.append(full_path)
 
