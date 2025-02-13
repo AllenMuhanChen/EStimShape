@@ -51,27 +51,4 @@ public class PerspectiveRenderer extends AbstractRenderer {
 		setup();
 		scene.draw(context);
 	}
-
-	public PerspectiveRenderer(org.xper.alden.drawing.renderer.AbstractRenderer other) {
-		this.width = other.getWidth();
-		this.height = other.getHeight();
-		this.depth = other.getDepth();
-		this.distance = other.getDistance();
-		this.pupilDistance = other.getPupilDistance();
-		this.widthInPixel = other.widthInPixel;
-		this.heightInPixel = other.heightInPixel;
-		this.xmin = other.getXmin();
-		this.xmax = other.getXmax();
-		this.ymin = other.getYmin();
-		this.ymax = other.getYmax();
-		this.zmin = other.getZmin();
-		this.zmax = other.getZmax();
-		this.vpWidth = other.getVpWidth();
-		this.vpHeight = other.getVpHeight();
-		this.vpWidthmm = other.getVpWidthmm();
-		this.vpHeightmm = other.getVpHeightmm();
-		this.hunit = other.getHunit();
-		this.vunit = other.getVunit();
-	}
-
 }

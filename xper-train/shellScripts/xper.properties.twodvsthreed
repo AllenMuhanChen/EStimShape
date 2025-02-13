@@ -82,7 +82,7 @@ intan.recording.enabled=true
 intan.host=172.30.9.78
 intan.port.command=5000
 intan.default_save_path=/home/i2_allen/Documents/Test
-intan.default_base_filename=IsoGabor
+intan.default_base_filename=TwoDVsThreeD
 intan.remote_directory=/run/user/1004/gvfs/sftp:host=172.30.9.78
 generator.spike_dat_path=/home/r2_allen/Documents/dev_221110/spikefiles_dev_221110
 

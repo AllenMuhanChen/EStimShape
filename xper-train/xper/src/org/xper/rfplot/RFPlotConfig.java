@@ -61,7 +61,6 @@ public class RFPlotConfig {
 		return renderer;
 	}
 
-
 	@Bean
 	public TaskScene taskScene() {
 		RFPlotScene scene = new RFPlotScene();
@@ -103,8 +102,6 @@ public class RFPlotConfig {
 		return gratingModulator;
 	}
 
-
-
 	@Bean
 	public LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> imgModeScrollerMap(){
 		LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> map = new LinkedHashMap<>();
@@ -117,7 +114,7 @@ public class RFPlotConfig {
 	public LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> defaultScrollers() {
 		LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> map = new LinkedHashMap<>();
 		map.put("Size", new SizeScroller());
-		map.put("Orientation", new OrientationScroller());
+//		map.put("Orientation", new OrientationScroller());
 		map.put("Hue", new HueScroller());
 		map.put("Saturation", new SaturationScroller());
 		map.put("Lightness", new LightnessScroller());
@@ -156,6 +153,7 @@ public class RFPlotConfig {
 		plugin.setTimeUtil(baseConfig.localTimeUtil());
 		return plugin;
 	}
+
 	@Bean
 	public RFPlotDrawer rfPlotter(){
 		RFPlotDrawer plotter = new RFPlotDrawer();

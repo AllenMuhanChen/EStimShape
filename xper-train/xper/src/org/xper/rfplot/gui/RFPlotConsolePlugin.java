@@ -63,6 +63,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     private boolean isMouseMoveStimuliModeOn = true;
     private Coordinates2D currentStimPosition;
     private JLabel rfDiameterLabel;
+    private boolean isStimToggleOn = true;
 
     @Override
     /**
@@ -80,6 +81,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT,0));
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT,0));
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN,0));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_F,0));
         return commandKeys;
     }
 
@@ -124,6 +126,9 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         if(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT,0).equals(k)){
             updateStimPosition(new Coordinates2D(currentStimPosition.getX() + 1, currentStimPosition.getY()));
         }
+        if(KeyStroke.getKeyStroke(KeyEvent.VK_F,0).equals(k)) {
+            toggleStim();
+        }
     }
 
     private void updateStimPosition(Coordinates2D newStimPosition) {
@@ -138,9 +143,22 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     private void changeStimType(String stimType) {
         this.stimType = stimType;
+        isStimToggleOn = true;
         RFPlotDrawable firstStimObj = namesForDrawables.get(stimType);
         stimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(firstStimObj);
         client.changeRFPlotStim(stimSpec);
+    }
+
+    private void toggleStim() {
+        isStimToggleOn = !isStimToggleOn;
+        if (!isStimToggleOn) {
+            RFPlotDrawable currentDrawable = new RFPlotBlankObject();
+            client.changeRFPlotStim(RFPlotStimSpec.getStimSpecFromRFPlotDrawable(currentDrawable));
+        } else{
+            RFPlotDrawable firstStimObj = namesForDrawables.get(stimType);
+            stimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(firstStimObj);
+            client.changeRFPlotStim(stimSpec);
+        }
     }
 
     private void save(){
@@ -431,11 +449,12 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             ));
         }
 
-        //Draw the outline
+        //Draw the outline with different colors based on toggle state
+        float color = isStimToggleOn ? 1.0f : 0.5f;  // 1.0 = white, 0.5 = gray
         for (int i = 0; i < shiftedOutlinePoints.size(); i++) {
             Coordinates2D start = shiftedOutlinePoints.get(i);
-            Coordinates2D end = shiftedOutlinePoints.get((i + 1) % shiftedOutlinePoints.size()); // Ensures the last point connects back to the first
-            GLUtil.drawLine(start.getX(), start.getY(), end.getX(), end.getY(), 1, 1, 1);
+            Coordinates2D end = shiftedOutlinePoints.get((i + 1) % shiftedOutlinePoints.size());
+            GLUtil.drawLine(start.getX(), start.getY(), end.getX(), end.getY(), color, color, color);
         }
     }
 

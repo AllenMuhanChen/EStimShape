@@ -104,7 +104,7 @@ class MultiGaDbUtil:
                                    response=float(response), mutation_magnitude=float_or_none(mutation_magnitude),
                                    gen_id=int(gen_id))
 
-    def read_task_done_ids_for_stim_id(self, ga_name: str, stim_id: int):
+    def read_task_done_ids_by_stim_id(self, ga_name: str, stim_id: int):
         self.conn.execute(
             "SELECT d.task_id "
             "FROM TaskDone d "

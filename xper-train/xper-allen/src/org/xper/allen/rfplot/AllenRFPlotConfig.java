@@ -12,9 +12,13 @@ import org.xper.rfplot.XMLizable;
 import org.xper.rfplot.drawing.RFPlotBlankObject;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 import org.xper.rfplot.drawing.RFPlotImgObject;
+import org.xper.rfplot.drawing.bar.*;
 import org.xper.rfplot.drawing.gabor.Gabor;
 import org.xper.rfplot.gui.RFPlotStimModulator;
+import org.xper.rfplot.gui.scroller.HueScroller;
+import org.xper.rfplot.gui.scroller.LightnessScroller;
 import org.xper.rfplot.gui.scroller.RFPlotScroller;
+import org.xper.rfplot.gui.scroller.SaturationScroller;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -30,20 +34,42 @@ public class AllenRFPlotConfig {
     public Map<String, RFPlotDrawable> namesForDrawables() {
         LinkedHashMap<String, RFPlotDrawable> refObjMap = new LinkedHashMap<String, RFPlotDrawable>();
         refObjMap.put(RFPlotBlankObject.class.getName(), new RFPlotBlankObject());
+//        refObjMap.put(RFPlotImgObject.class.getName(), new RFPlotImgObject(imgPathScroller().getFirstPath()));
         refObjMap.put(RFPlotMatchStick.class.getName(), new RFPlotMatchStick());
-//        refObjMap.put(RFPlotImgObject.class.getName(), new RFPlotImgObject(rfPlotConfig.imgPathScroller().getFirstPath()));
         refObjMap.put(Gabor.class.getName(), new Gabor());
+        refObjMap.put(RFPlotBar.class.getName(), new RFPlotBar());
         return refObjMap;
     }
 
     @Bean
     public Map<String, RFPlotStimModulator> modulatorsForDrawables(){
         LinkedHashMap<String, RFPlotStimModulator> refModulatorMap = new LinkedHashMap<>();
-        refModulatorMap.put(RFPlotMatchStick.class.getName(), mStickModulator());
-//        refModulatorMap.put(RFPlotImgObject.class.getName(), rfPlotConfig.imgModulator());
+//        refModulatorMap.put(RFPlotImgObject.class.getName(), imgModulator());
         refModulatorMap.put(Gabor.class.getName(), rfPlotConfig.gaborModulator());
+        refModulatorMap.put(RFPlotMatchStick.class.getName(), mStickModulator());
+        refModulatorMap.put(RFPlotBar.class.getName(), barModulator());
         return refModulatorMap;
     }
+
+    @Bean
+    public RFPlotStimModulator barModulator() {
+        RFPlotStimModulator barModulator = new RFPlotStimModulator(barScrollers());
+        return barModulator;
+    }
+
+    @Bean
+    public LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> barScrollers() {
+        LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> map = new LinkedHashMap<>();
+        map.put("Orientation", new BarOrientationScroller<>(RFPlotBar.RFPlotBarSpec.class));
+        map.put("Length", new BarLengthScroller<>(RFPlotBar.RFPlotBarSpec.class));
+        map.put("Width", new BarWidthScroller<>(RFPlotBar.RFPlotBarSpec.class));
+        map.put("Size", new BarSizeScroller<>(RFPlotBar.RFPlotBarSpec.class));
+        map.put("Hue", new HueScroller());
+        map.put("Saturation", new SaturationScroller());
+        map.put("Lightness", new LightnessScroller());
+        return map;
+    }
+
 
     @Bean
     public RFPlotStimModulator mStickModulator() {

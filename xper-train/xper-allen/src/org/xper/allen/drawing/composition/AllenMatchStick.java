@@ -4695,7 +4695,7 @@ public class AllenMatchStick extends MatchStick {
 		this.getObj1().scaleTheObj(getScaleForMAxisShape()); //AC: IMPORTANT CHANGE
 		getObj1().translateBack(shiftVec);
 
-
+		this.getObj1().rotateMesh(getFinalRotation());
 		if (isDoCenterObject()) {
 			setFinalShiftinDepth(this.getObj1().subCenterOfMass());
 		}

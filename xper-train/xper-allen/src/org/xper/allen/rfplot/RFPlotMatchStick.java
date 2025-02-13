@@ -33,7 +33,8 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
         AllenMatchStick nextMStick = new AllenMatchStick();
         nextMStick.setProperties(matchStickSpec.sizeDiameterDegrees, matchStickSpec.texture);
         nextMStick.setStimColor(matchStickSpec.color);
-        nextMStick.genMatchStickFromShapeSpec(matchStickSpec.getMStickSpec(), matchStickSpec.getRotation());
+        double[] rotation = matchStickSpec.getRotation();
+        nextMStick.genMatchStickFromShapeSpec(matchStickSpec.getMStickSpec(), rotation);
         nextMStick.drawFast();
 
         matchStick.copyFrom(nextMStick);
