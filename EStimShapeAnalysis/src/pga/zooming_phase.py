@@ -120,7 +120,9 @@ class ZoomingPhaseTransitioner(RegimeTransitioner):
             elif self.zoom_set_handler.is_partial_set(stim):
                 self.num_partial_sets += 1
 
-        # If the percentage of stimuli with full sets is greater than the threshold, transition
+        if self.total_num_eligible == 0:
+            return False
+            # If the percentage of stimuli with full sets is greater than the threshold, transition
         return self.num_full_sets / self.total_num_eligible >= self.percentage_full_set_threshold
 
     def get_transition_data(self, lineage):

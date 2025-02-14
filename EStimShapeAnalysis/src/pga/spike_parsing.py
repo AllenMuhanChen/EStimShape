@@ -51,7 +51,9 @@ class IntanResponseParser(ResponseParser):
         sample_rate = None
         for intan_dir in intan_dirs_for_this_gen:
             parser = OneFileParser()
-            local_spike_tstamps_for_channels_by_task_id, local_epoch_start_stop_by_task_id, local_sample_rate = parser.parse(intan_dir)
+            (local_spike_tstamps_for_channels_by_task_id,
+             local_epoch_start_stop_by_task_id,
+             local_sample_rate) = parser.parse(intan_dir)
             spike_tstamps_for_channels_by_task_id.update(local_spike_tstamps_for_channels_by_task_id)
             epoch_start_stop_by_task_id.update(local_epoch_start_stop_by_task_id)
             if sample_rate is None:
@@ -91,7 +93,10 @@ class IntanResponseParser(ResponseParser):
         for stim_id, task_ids in task_ids_for_stim_ids.items():
             if task_id in task_ids:
                 return stim_id
-        return -1  # Return a placeholder (-1) if no stim_id is found for the task_id
+        print(f"Task ID {task_id} not found in any stim_id")
+        return None
+
+
 
     def _write_to_db(self, df):
         # Convert DataFrame rows to a list of tuples for SQL execution
@@ -126,7 +131,7 @@ class IntanResponseParser(ResponseParser):
         '''
         task_ids_for_stim_ids: Dict[int, List[int]] = {}
         for stim_id in stims_to_parse:
-            task_ids = self.db_util.read_task_done_ids_for_stim_id(ga_name, stim_id)
+            task_ids = self.db_util.read_task_done_ids_by_stim_id(ga_name, stim_id)
             task_ids_for_stim_ids[stim_id] = task_ids
         return task_ids_for_stim_ids
 

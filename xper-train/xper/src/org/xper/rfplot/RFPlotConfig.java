@@ -235,7 +235,8 @@ public class RFPlotConfig {
 		console.setConsoleRenderer(classicConfig.consoleRenderer());
 		console.setMonkeyScreenDimension(new Coordinates2D(classicConfig.xperMonkeyScreenWidth(), classicConfig.xperMonkeyScreenHeight()));
 		console.setModel(classicConfig.experimentConsoleModel());
-		console.setCanvasScaleFactor(1.5);
+//		console.setCanvasScaleFactor(1.5);
+		console.setCanvasScaleFactor(1.25);
 
 		ExperimentMessageReceiver receiver = classicConfig.messageReceiver();
 		// register itself to avoid circular reference

@@ -115,6 +115,7 @@ class MultiGaDbUtil:
         rows = self.conn.fetch_all()
         task_ids = [row[0] for row in rows]
 
+
         return task_ids
 
     def read_stims_with_no_responses(self, ga_name: str):

@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 from typing import Callable, Dict, Optional, List
 
-from src.eyecal import plot_eyecal
+from src.eyecal import plot_eyecal, apply_eyecal
 from src.pga.app import run_ga, start_new_ga, process_first_gen, run_cluster_app, calculate_spontaneous_firing_rate, run_rwa, plot_rwa, transfer_eye_cal_params
 from src.startup import db_factory, setup_xper_properties_and_dirs
 
@@ -22,6 +22,10 @@ class ScriptRunnerApp:
             },
             "Setup Properties & Dirs": {
                 "func": setup_xper_properties_and_dirs.main,
+                "params": []
+            },
+            "Apply Eye Cal Params": {
+                "func": apply_eyecal.main,
                 "params": []
             },
             "Plot Eye Calibration": {

@@ -132,20 +132,23 @@ class GeneticAlgorithm:
         lineage_ga_info_entries_for_this_generation = self.db_util.read_lineage_ga_info_for_experiment_id_and_gen_id(
             self.experiment_id, self.gen_id - 1)
         for lineage_entry in lineage_ga_info_entries_for_this_generation:
-            # Reconstruct tree of Stimulus objects from a tree_spec of stim_ids
-            tree_spec = lineage_entry.tree_spec
-            tree_of_stim_ids = Node.from_xml(tree_spec)
-            tree_of_stim_ids = tree_of_stim_ids.new_tree_from_function(lambda id: int(id))
-            tree_of_stimuli = tree_of_stim_ids.new_tree_from_function(stim_id_to_stimulus)
-            tree_of_stimuli.have_parent_apply_to_children(add_parent_to_stimulus)
-            current_regime_index = int(lineage_entry.regime)
+            try:
+                # Reconstruct tree of Stimulus objects from a tree_spec of stim_ids
+                tree_spec = lineage_entry.tree_spec
+                tree_of_stim_ids = Node.from_xml(tree_spec)
+                tree_of_stim_ids = tree_of_stim_ids.new_tree_from_function(lambda id: int(id))
+                tree_of_stimuli = tree_of_stim_ids.new_tree_from_function(stim_id_to_stimulus)
+                tree_of_stimuli.have_parent_apply_to_children(add_parent_to_stimulus)
+                current_regime_index = int(lineage_entry.regime)
 
-            reconstructed_lineage = (
-                LineageFactory.create_lineage_from_tree(tree_of_stimuli,
-                                                        regimes=self.regimes,
-                                                        current_regime_index=current_regime_index,
-                                                        gen_id=self.gen_id))
-            self.lineages.append(reconstructed_lineage)
+                reconstructed_lineage = (
+                    LineageFactory.create_lineage_from_tree(tree_of_stimuli,
+                                                            regimes=self.regimes,
+                                                            current_regime_index=current_regime_index,
+                                                            gen_id=self.gen_id))
+                self.lineages.append(reconstructed_lineage)
+            except Exception as e:
+                print("Error while reconstructing lineage from db: ", e)
 
     def _update_db(self) -> None:
         # Write lineages - instructions for Java side of GA

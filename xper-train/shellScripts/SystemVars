@@ -1,47 +1,54 @@
 #!/bin/bash
+
+# Source version and paths files
 source version
 source paths
 
-#Often VARYING SystemVars - HeadFixed now. 
-mysql --host=172.30.6.80 --user=xper_rw --password=up2nite $VERSION_GA <<EOF
-UPDATE SystemVar SET val=375 WHERE name='xper_juice_reward_length';
-UPDATE SystemVar SET val=500 WHERE name='xper_required_eye_in_and_hold_time';
-UPDATE SystemVar SET val=0 WHERE name='xper_blank_target_screen_display_time';
-UPDATE SystemVar SET val=1 WHERE name='xper_left_iscan_eye_zero_algorithm_eye_window_threshold';
-UPDATE SystemVar SET val=1 WHERE name='xper_right_iscan_eye_zero_algorithm_eye_window_threshold';
-UPDATE SystemVar SET val=10 WHERE name='xper_left_iscan_eye_zero_algorithm_span';
-UPDATE SystemVar SET val=10 WHERE name='xper_right_iscan_eye_zero_algorithm_span';
-EOF
+# Define databases to update
+VERSIONS=(
+    "$VERSION_PROCEDURAL"
+    "$VERSION_ISOGABOR"
+    "$VERSION_GA"
+    "$VERSION_TWODVSTHREED"
+)
 
-#FIXED SystemVars. Experiment Associated
-mysql --host=172.30.6.80 --user=xper_rw --password=up2nite $VERSION_GA <<EOF
-UPDATE SystemVar SET val=0.5 WHERE name='xper_eye_window_algorithm_base_window_size';
-UPDATE SystemVar SET val=1.0 WHERE name='xper_eye_window_algorithm_initial_window_size';
-UPDATE SystemVar SET val=1000 WHERE name='xper_inter_trial_interval';
-UPDATE SystemVar SET val=1 WHERE name='xper_fixation_point_color' AND arr_ind=0;
-UPDATE SystemVar SET val=0 WHERE name='xper_fixation_point_color' AND arr_ind=1;
-UPDATE SystemVar SET val=0 WHERE name='xper_fixation_point_color' AND arr_ind=2;
-UPDATE SystemVar SET val=0.25 WHERE name='xper_fixation_point_size';
-UPDATE SystemVar SET val=0 WHERE name='xper_target_selection_eye_monitor_start_delay';
-UPDATE SystemVar SET val='false' WHERE name='xper_do_empty_task';
-UPDATE SystemVar SET val=0 WHERE name='xper_punishment_delay_length';
-EOF
+# MySQL connection parameters
+MYSQL_HOST="172.30.6.80"
+MYSQL_USER="xper_rw"
+MYSQL_PASS="up2nite"
 
-#RIG ASSOCIATED SystemVars
-mysql --host=172.30.6.80 --user=xper_rw --password=up2nite $VERSION_GA <<EOF
+# Function to update SystemVars for a given database
+update_systemvars() {
+    local DB=$1
+    echo "Updating SystemVars for database: $DB"
+
+    mysql --host=$MYSQL_HOST --user=$MYSQL_USER --password=$MYSQL_PASS $DB <<EOF
 UPDATE SystemVar SET val=1428 WHERE name='xper_monkey_screen_width';
 UPDATE SystemVar SET val=802 WHERE name='xper_monkey_screen_height';
 UPDATE SystemVar SET val=0 WHERE name='xper_monkey_screen_depth';
 UPDATE SystemVar SET val=500 WHERE name='xper_monkey_screen_distance';
 UPDATE SystemVar SET val='false' WHERE name='xper_monkey_screen_inverted';
 UPDATE SystemVar SET val=60 WHERE name='xper_noise_rate';
-UPDATE SystemVar SET val=0.5 WHERE name='xper_background_color' AND arr_ind=0;
-UPDATE SystemVar SET val=0.5 WHERE name='xper_background_color' AND arr_ind=1;
-UPDATE SystemVar SET val=0.5 WHERE name='xper_background_color' AND arr_ind=2;
+UPDATE SystemVar SET val=0.15 WHERE name='xper_background_color' AND arr_ind=0;
+UPDATE SystemVar SET val=0.15 WHERE name='xper_background_color' AND arr_ind=1;
+UPDATE SystemVar SET val=0.15 WHERE name='xper_background_color' AND arr_ind=2;
+UPDATE SystemVar SET val=30 WHERE name='xper_screen_marker_size';
+UPDATE SystemVar SET val='false' WHERE name='xper_do_empty_task';
 EOF
 
+    if [ $? -eq 0 ]; then
+        echo "Successfully updated $DB"
+    else
+        echo "Error updating $DB"
+        exit 1
+    fi
+}
 
+# Main execution
+echo "Starting SystemVar updates for all databases..."
 
+for VERSION in "${VERSIONS[@]}"; do
+    update_systemvars "$VERSION"
+done
 
-
-
+echo "All database updates completed successfully"

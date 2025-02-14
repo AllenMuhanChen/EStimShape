@@ -112,7 +112,7 @@ public class IsoGaborTest {
 
         IsoGaborSpec isoGaborSpec = new IsoGaborSpec(
                spec, "RedGreen");
-        IsoluminantGabor gabor = new IsoluminantGabor(isoGaborSpec, 150, lutCorrector, sinusoidGainCorrector);
+        IsoluminantGabor gabor = new IsoluminantGabor(isoGaborSpec, 400, lutCorrector, sinusoidGainCorrector);
         gabor.setGaborSpec(isoGaborSpec);
         gabor.setSpec(isoGaborSpec.toXml());
 
@@ -149,7 +149,7 @@ public class IsoGaborTest {
 
         IsoGaborSpec isoGaborSpec = new IsoGaborSpec(
                 spec, "CyanOrange");
-        IsoluminantGabor gabor = new IsoluminantGabor(isoGaborSpec, 150, lutCorrector, sinusoidGainCorrector);
+        IsoluminantGabor gabor = new IsoluminantGabor(isoGaborSpec, 400, lutCorrector, sinusoidGainCorrector);
         gabor.setGaborSpec(isoGaborSpec);
         gabor.setSpec(isoGaborSpec.toXml());
 
