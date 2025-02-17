@@ -35,7 +35,7 @@ public class IsoGaborScene extends AbstractTaskScene {
         try {
             IsoGaborSpec stimSpec;
             stimSpec = IsoGaborSpec.fromXml(stimSpecXml);
-            if (stimSpec.getType().equals("RedGreen") || stimSpec.getType().equals("CyanYellow")) {
+            if (stimSpec.getType().equals("RedGreen") || stimSpec.getType().equals("CyanOrange")) {
                 obj = new IsoluminantGabor(stimSpec, targetLuminanceCandela, lutCorrector, sinusoidGainCorrector);
             } else if (stimSpec.getType().equals("Red") ||
                     stimSpec.getType().equals("Green") ||

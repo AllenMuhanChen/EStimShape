@@ -4,8 +4,8 @@ from clat.intan.one_file_spike_parsing import OneFileParser
 
 
 class MultiFileParser:
-
     sample_rate: int = None
+
     def __init__(self):
         self.one_file_parser = OneFileParser()
 
@@ -45,7 +45,6 @@ class MultiFileParser:
                 print(f"Error reading notes file {notes_path}: {e}")
 
         return matching_dirs
-
 
     def parse(self, task_ids: List[int], intan_files_dir: str) -> Tuple[Dict[int, Any], Dict[int, Any]]:
         """
@@ -90,6 +89,5 @@ class MultiFileParser:
                 if task_id in task_id_set:
                     spikes_by_channel_by_task_id[task_id] = channel_data
                     epochs_by_task_id[task_id] = epoch_times[task_id]
-
 
         return spikes_by_channel_by_task_id, epochs_by_task_id

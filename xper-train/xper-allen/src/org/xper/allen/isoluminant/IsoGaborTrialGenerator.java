@@ -85,50 +85,13 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
             addIsoluminantTrials();
         }
 
-        // Mixed Gabors - frequencies
-        for (Double frequencyChromatic : frequencies) {
-            GaborSpec chromaticSpec = new GaborSpec(gaborSpec);
-            chromaticSpec.setFrequency(frequencyChromatic);
-            for (Double frequencyLuminance : frequencies) {
-                GaborSpec luminanceSpec = new GaborSpec(gaborSpec);
-                luminanceSpec.setFrequency(frequencyLuminance);
-
-                IsoGaborSpec rgMixedIsoSpec = new IsoGaborSpec(chromaticSpec, "RedGreen");
-                MixedGaborStim rgMixedIsoStim = new MixedGaborStim(this, rgMixedIsoSpec, luminanceSpec);
-                getStims().add(rgMixedIsoStim);
-
-                IsoGaborSpec cyMixedIsoSpec = new IsoGaborSpec(chromaticSpec, "CyanYellow");
-                MixedGaborStim cyMixedIsoStim = new MixedGaborStim(this, cyMixedIsoSpec, luminanceSpec);
-                getStims().add(cyMixedIsoStim);
-            }
-        }
-
-        // Mixed Gabors - Phases
-        for (double frequency : frequencies) {
-            GaborSpec chromaticSpec = new GaborSpec(gaborSpec);
-            chromaticSpec.setFrequency(frequency);
-            for (double phase : mixedPhases) {
-                double phaseLuminance = phase * frequency;
-
-                GaborSpec luminanceSpec = new GaborSpec(gaborSpec);
-                luminanceSpec.setFrequency(frequency);
-                luminanceSpec.setPhase(phaseLuminance);
-
-                IsoGaborSpec rgMixedIsoSpec = new IsoGaborSpec(gaborSpec, "RedGreen");
-                MixedGaborStim rgMixedIsoStim = new MixedGaborStim(this, rgMixedIsoSpec, luminanceSpec);
-                getStims().add(rgMixedIsoStim);
-
-                IsoGaborSpec cyMixedIsoSpec = new IsoGaborSpec(gaborSpec, "CyanYellow");
-                MixedGaborStim cyMixedIsoStim = new MixedGaborStim(this, cyMixedIsoSpec, luminanceSpec);
-                getStims().add(cyMixedIsoStim);
-            }
-        }
+//        addMixedGaborTrials();
     }
 
     private void addIsochromaticTrials() {
         IsoGaborSpec spec = new IsoGaborSpec(gaborSpec, "Gray");
         IsoGaborStim stim = new IsoGaborStim(this, spec);
-        getStims().add(stim);
+//        getStims().add(stim);
 
         spec = new IsoGaborSpec(gaborSpec, "Red");
         stim = new IsoGaborStim(this, spec);
@@ -157,6 +120,47 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
         getStims().add(stim);
     }
 
+    private void addMixedGaborTrials() {
+        // Mixed Gabors - frequencies
+        for (Double frequencyChromatic : frequencies) {
+            GaborSpec chromaticSpec = new GaborSpec(gaborSpec);
+            chromaticSpec.setFrequency(frequencyChromatic);
+            for (Double frequencyLuminance : frequencies) {
+                GaborSpec luminanceSpec = new GaborSpec(gaborSpec);
+                luminanceSpec.setFrequency(frequencyLuminance);
+
+                IsoGaborSpec rgMixedIsoSpec = new IsoGaborSpec(chromaticSpec, "RedGreen");
+                MixedGaborStim rgMixedIsoStim = new MixedGaborStim(this, rgMixedIsoSpec, luminanceSpec);
+                getStims().add(rgMixedIsoStim);
+
+                IsoGaborSpec cyMixedIsoSpec = new IsoGaborSpec(chromaticSpec, "CyanOrange");
+                MixedGaborStim cyMixedIsoStim = new MixedGaborStim(this, cyMixedIsoSpec, luminanceSpec);
+                getStims().add(cyMixedIsoStim);
+            }
+        }
+
+        // Mixed Gabors - Phases
+        for (double frequency : frequencies) {
+            GaborSpec chromaticSpec = new GaborSpec(gaborSpec);
+            chromaticSpec.setFrequency(frequency);
+            for (double phase : mixedPhases) {
+                double phaseLuminance = phase * frequency;
+
+                GaborSpec luminanceSpec = new GaborSpec(gaborSpec);
+                luminanceSpec.setFrequency(frequency);
+                luminanceSpec.setPhase(phaseLuminance);
+
+                IsoGaborSpec rgMixedIsoSpec = new IsoGaborSpec(gaborSpec, "RedGreen");
+                MixedGaborStim rgMixedIsoStim = new MixedGaborStim(this, rgMixedIsoSpec, luminanceSpec);
+                getStims().add(rgMixedIsoStim);
+
+                IsoGaborSpec cyMixedIsoSpec = new IsoGaborSpec(gaborSpec, "CyanOrange");
+                MixedGaborStim cyMixedIsoStim = new MixedGaborStim(this, cyMixedIsoSpec, luminanceSpec);
+                getStims().add(cyMixedIsoStim);
+            }
+        }
+    }
+
 
     private long getLatestTimestamp(JdbcTemplate jdbcTemplate, String table) {
         return (long) jdbcTemplate.queryForObject(
@@ -176,10 +180,9 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
     }
 
     private GaborSpec getStimSpec(JdbcTemplate jdbcTemplate) {
-        long latestTimestamp = getLatestTimestamp(jdbcTemplate, "RFObjectData");
+//        long latestTimestamp = getLatestTimestamp(jdbcTemplate, "RFObjectData");
         String stimSpecXml = (String) jdbcTemplate.queryForObject(
-                "SELECT data FROM RFObjectData WHERE tstamp = ? AND channel = 'SUPRA-000' AND object = 'org.xper.rfplot.drawing.gabor.Gabor'",
-                new Object[]{latestTimestamp},
+                "SELECT data FROM RFObjectData WHERE channel = 'SUPRA-000' AND object = 'org.xper.rfplot.drawing.gabor.Gabor' ORDER BY  tstamp DESC LIMIT 1",
                 String.class
         );
         return GaborSpec.fromXml(stimSpecXml);

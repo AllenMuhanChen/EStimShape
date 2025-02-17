@@ -42,7 +42,7 @@ public class IsoGaborConfig {
 
     @Bean
     public int targetLuminanceCandela() {
-        return 150;
+        return 400;
     }
 
     @Bean

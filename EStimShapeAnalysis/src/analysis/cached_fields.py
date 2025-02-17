@@ -41,6 +41,22 @@ class StimIdField(TaskIdField):
     def get_name(self):
         return "StimId"
 
+class StimSpecField(StimIdField):
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get(self, when: When) -> str:
+        # Execute the query to get the StimSpec based on task_id
+        # Note: Replace the query with the appropriate one for your schema
+        stim_id = self.get_cached_super(when, StimIdField)
+        query = "SELECT spec FROM StimSpec WHERE id = %s"
+        params = (stim_id,)
+        self.conn.execute(query, params)
+        stim_spec = self.conn.fetch_one()
+        return stim_spec
+
+    def get_name(self):
+        return "StimSpec"
 
 class LineageField(StimIdField):
     def get(self, when: When) -> str:

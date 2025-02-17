@@ -13,7 +13,7 @@ def create_saturation_grating(size, lambda_px, theta, phase):
     saturation = (np.sin(2 * np.pi * x_theta / lambda_px + phase) + 1) / 2  # Range [0, 1]
 
     # Create the HSL image
-    hue = 1  # Red hue
+    hue = 1.0  # Red hue
     lightness = 0.5  # Middle lightness
 
     # Convert HSL to RGB

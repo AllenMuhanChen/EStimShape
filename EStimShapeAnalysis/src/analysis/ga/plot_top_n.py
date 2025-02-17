@@ -12,8 +12,8 @@ from clat.util.connection import Connection
 from clat.util.time_util import When
 from matplotlib import pyplot as plt
 
-from src.analysis.ga.fields import ClusterResponseField, TaskIdField, StimIdField, LineageField, \
-    StimTypeField, StimPathField
+from src.analysis.cached_fields import TaskIdField, StimIdField, LineageField, StimTypeField, StimPathField, \
+    ClusterResponseField
 from src.analysis.matchstick_fields import ShaftField, TerminationField, JunctionField
 from src.pga.alexnet.analysis.plot_top_n import add_colored_border
 from src.startup import context

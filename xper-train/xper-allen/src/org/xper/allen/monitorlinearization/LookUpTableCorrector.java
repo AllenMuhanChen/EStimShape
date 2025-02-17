@@ -24,7 +24,7 @@ public class LookUpTableCorrector {
         }
 
         if (minColor == null) {
-            throw new RuntimeException("No closest color found");
+            throw new RuntimeException("No closest color found: " + targetLuminance + " " + colorChannel);
         }
 
         switch(colorChannel.toLowerCase()) {
