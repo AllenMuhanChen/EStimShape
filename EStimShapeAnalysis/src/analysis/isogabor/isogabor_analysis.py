@@ -85,7 +85,7 @@ def plot_group_rasters(data, types, ax, title):
 
     if current_y > 0:
         ax.set_ylim(-0.5, current_y + 0.5)
-        ax.set_xlim(0, 5)  # Adjust based on your trial duration
+        ax.set_xlim(0, 0.5)  # Adjust based on your trial duration
 
 
 def plot_raster_by_groups(conn, trial_tstamps, date):
