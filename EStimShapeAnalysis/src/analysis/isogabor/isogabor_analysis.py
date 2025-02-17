@@ -36,6 +36,8 @@ def compile_data(conn: Connection, trial_tstamps: list[When], date) -> pd.DataFr
     fields.append(StimIdField(conn))
     fields.append(TypeField(conn))
     fields.append(OrientationField(conn))
+    fields.append(FrequencyField(conn))
+    fields.append(PhaseField(conn))
     fields.append(SizeField(conn))
     fields.append(LocationField(conn))
     # fields.append(SpikesByChannelField(conn, spikes_by_channel_by_task_id))
@@ -128,6 +130,30 @@ class LocationField(StimSpecField):
 
     def get_name(self):
         return "Location"
+
+
+class FrequencyField(StimSpecField):
+    def get(self, when: When) -> float:
+        stim_spec = self.get_cached_super(when, StimSpecField)
+        stim_spec_dict = xmltodict.parse(stim_spec)
+
+        frequency = stim_spec_dict['StimSpec']['frequency']
+        return frequency
+
+    def get_name(self):
+        return "Frequency"
+
+
+class PhaseField(StimSpecField):
+    def get(self, when: When) -> float:
+        stim_spec = self.get_cached_super(when, StimSpecField)
+        stim_spec_dict = xmltodict.parse(stim_spec)
+
+        phase = stim_spec_dict['StimSpec']['phase']
+        return phase
+
+    def get_name(self):
+        return "phase"
 
 
 if __name__ == "__main__":

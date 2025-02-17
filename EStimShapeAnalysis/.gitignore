@@ -2,3 +2,7 @@
 /src/alexnet/data/
 /data/
 /src/alexnet/frommat/data/
+.claudesync
+claude
+claude.pub
+config.local.json
