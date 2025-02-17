@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 
-import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec
 import pandas as pd
 import xmltodict
+from matplotlib.gridspec import GridSpec
 
 from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.compile.trial.cached_fields import CachedFieldList
 from clat.compile.trial.trial_collector import TrialCollector
-from clat.intan.channels import Channel
 from clat.util.connection import Connection
 from clat.util.time_util import When
 from src.analysis.cached_fields import TaskIdField, StimIdField, StimSpecField
@@ -127,6 +125,9 @@ def compile_data(conn: Connection, trial_tstamps: list[When], date) -> pd.DataFr
     fields.append(StimIdField(conn))
     fields.append(TypeField(conn))
     fields.append(FrequencyField(conn))
+    fields.append(SizeField(conn))
+    fields.append(PhaseField(conn))
+    fields.append(LocationField(conn))
     fields.append(SpikesByChannelField(conn, spikes_by_channel_by_task_id, epochs_by_task_id))
 
     data = fields.to_data(trial_tstamps)
@@ -155,9 +156,6 @@ class SpikesByChannelField(TaskIdField):
 
 
 class SpikeRateByChannelField(SpikesByChannelField):
-    def __init__(self, conn: Connection, spikes_by_channel_by_task_id: dict, epochs_by_task_id):
-        super().__init__(conn, spikes_by_channel_by_task_id, epochs_by_task_id)
-
     def get(self, when: When) -> dict:
         task_id = self.get_cached_super(when, TaskIdField)
         spikes_for_channels = self.spikes_by_channel_by_task_id[task_id]
