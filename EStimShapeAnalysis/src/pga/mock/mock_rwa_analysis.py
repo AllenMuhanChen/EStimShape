@@ -1,5 +1,6 @@
 from __future__ import annotations
 import ast
+import os
 from math import pi
 
 import jsonpickle as jsonpickle
@@ -18,9 +19,7 @@ from clat.util.connection import Connection
 from clat.util.dictionary_util import apply_function_to_subdictionaries_values_with_keys, \
     check_condition_on_subdictionaries
 from clat.util.time_util import When
-
-
-
+from src.startup import context
 
 
 def main():
@@ -148,7 +147,8 @@ def compute_junction_rwa(data, n):
 
 
 def save(response_weighted_average, file_name):
-    filename = "/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/%s.json" % file_name
+    filepath = context.rwa_output_dir
+    filename = os.path.join(filepath, file_name + ".json")
     with open(filename, "w") as file:
         file.write(jsonpickle.encode(response_weighted_average))
         file.close()

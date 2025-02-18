@@ -1,9 +1,10 @@
 import tkinter as tk
 from tkinter import messagebox
-from typing import Callable, Dict, Optional, List
+from typing import Dict
 
 from src.eyecal import plot_eyecal, apply_eyecal
-from src.pga.app import run_ga, start_new_ga, process_first_gen, run_cluster_app, calculate_spontaneous_firing_rate, run_rwa, plot_rwa, transfer_eye_cal_params
+from src.pga.app import run_ga, start_new_ga, process_first_gen, run_cluster_app, calculate_spontaneous_firing_rate, \
+    run_rwa, plot_rwa, transfer_eye_cal_params, abandon_generation, process_last_gen
 from src.startup import db_factory, setup_xper_properties_and_dirs
 
 
@@ -55,6 +56,14 @@ class ScriptRunnerApp:
             "Run Next Gen of GA": {
                 "func": run_ga.main,
                 "params": ["R", "G", "B"]
+            },
+            "Abandon Generation":{
+                "func": abandon_generation.main,
+                "params": []
+            },
+            "Process Last Generation":{
+                "func": process_last_gen.main,
+                "params": []
             },
             "Run RWA": {
                 "func": run_rwa.main,

@@ -216,8 +216,11 @@ class AutomaticBinner(Binner):
                 extract_values_with_key_into_list(point, values, self.field_name)
             else:
                 values.append(point)
-        values = [float(v) for v in values]
-        return min(values), max(values)
+        float_values = []
+        for value in values:
+            if value is not None:
+                float_values.append(float(value))
+        return min(float_values), max(float_values)
 
 
 def normalize_and_combine_rwas(rwas):

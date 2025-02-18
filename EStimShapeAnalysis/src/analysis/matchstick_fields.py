@@ -38,6 +38,16 @@ class JunctionField(MatchStickField):
     def get(self, when: When) -> list[dict]:
         mstick_data = self.get_cached_super(when, MatchStickField, self.mstick_spec_source)
         junction_data = mstick_data["AllenMStickData"]['junctionData']['JunctionData']
+
+        # We don't need these for RWA so let's remove them
+        if isinstance(junction_data, list):
+            for junction in junction_data:
+                del junction['id']
+                del junction['connectedCompIds']
+        else:
+            del junction_data['id']
+            del junction_data['connectedCompIds']
+
         return junction_data
 
     def get_name(self):
