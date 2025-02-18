@@ -125,6 +125,8 @@ def print_top_stim_and_comp_ids(experiment_id, conn, distances_to_junction_peak,
 
 
 def plot_top_n_stimuli_comp_maps(experiment_id, n, conn, path_to_images: str):
+    if n < 2:
+        raise ValueError("n must be greater than 1")
     # CHOOSING THE BEST STIMULI & COMPONENTS
     top_n_stim_ids = _fetch_top_n_stim_ids(conn, n, get_time_range_for_experiment_id(conn, experiment_id))
 
@@ -200,7 +202,17 @@ def _process_junction_xml(top_n_junction_xml):
         junc_data = junc_data["AllenMStickData"]["junctionData"]["JunctionData"]
         apply_function_to_subdictionaries_values_with_keys(junc_data, ["theta", "phi"],
                                                            condition_theta_and_phi)
+        if isinstance(junc_data, list):
+            for junc in junc_data:
+                del junc['id']
+                del junc['connectedCompIds']
+        else:
+            del junc_data['id']
+            del junc_data['connectedCompIds']
+
         top_n_junction_data.append(junc_data)
+
+
     return top_n_junction_data
 
 
