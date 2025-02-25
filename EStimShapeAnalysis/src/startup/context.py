@@ -1,6 +1,4 @@
 from src.pga.config.twod_threed_config import TwoDThreeDGAConfig
-from src.pga.mock.alexnet_mock_ga import FullAutoAlexNetMockGeneticAlgorithmConfig, \
-    TrainingAlexNetMockGeneticAlgorithmConfig
 
 ga_name = "New3D"
 ga_database = "allen_ga_train_250213_0"

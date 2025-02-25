@@ -5,7 +5,7 @@ from typing import Dict
 from src.eyecal import plot_eyecal, apply_eyecal
 from src.pga.app import run_ga, start_new_ga, process_first_gen, run_cluster_app, calculate_spontaneous_firing_rate, \
     run_rwa, plot_rwa, transfer_eye_cal_params, abandon_generation, process_last_gen
-from src.startup import db_factory, setup_xper_properties_and_dirs
+from src.startup import db_factory, setup_xper_properties_and_dirs, backup
 
 
 class ScriptRunnerApp:
@@ -75,6 +75,10 @@ class ScriptRunnerApp:
             },
             "Transfer Eye Calibration": {
                 "func": transfer_eye_cal_params.main,
+                "params": []
+            },
+            "Backup Data": {
+                "func": backup.main,
                 "params": []
             },
             # Add more scripts here with their parameters
