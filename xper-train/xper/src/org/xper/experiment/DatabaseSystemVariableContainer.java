@@ -29,4 +29,5 @@ public class DatabaseSystemVariableContainer implements SystemVariableContainer 
 	public void refresh() {
 		vars = dbUtil.readSystemVar("%");
 	}
+
 }

@@ -197,6 +197,7 @@ public class RFPlotConfig {
 		listeners.add(classicConfig.eyeZeroLogger());
 		listeners.add(classicConfig.experimentCpuBinder());
 		listeners.add(intanConfig.intanController());
+		listeners.add(classicConfig.systemVarLogger());
 		return listeners;
 	}
 

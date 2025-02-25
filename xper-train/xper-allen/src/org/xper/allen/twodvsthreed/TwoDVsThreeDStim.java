@@ -23,12 +23,16 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class TwoDVsThreeDStim implements Stim {
-    private final RFStrategyPropertyManager rfStrategyManager;
-    private final SizePropertyManager sizeManager;
+    private final RFStrategyPropertyManager rfStrategyManager_ga;
+    private final SizePropertyManager sizeManager_ga;
     private final RFStrategy rfStrategy;
     private final double sizeDiameterDegrees;
-    private final ColorPropertyManager colorManager;
-    private final TexturePropertyManager textureManager;
+    private final ColorPropertyManager colorManager_ga;
+    private final TexturePropertyManager textureManager_ga;
+    private final RFStrategyPropertyManager rfStrategyManager_2dvs3d;
+    private final SizePropertyManager sizeManager_2dvs3d;
+    private final ColorPropertyManager colorManager_2dvs3d;
+    private final TexturePropertyManager textureManager_2dvs3d;
     TwoDVsThreeDTrialGenerator generator;
     long targetStimId;
     String textureType;
@@ -46,14 +50,18 @@ public class TwoDVsThreeDStim implements Stim {
 
 
 
-        rfStrategyManager = new RFStrategyPropertyManager(new JdbcTemplate(generator.gaDataSource));
-        sizeManager = new SizePropertyManager(new JdbcTemplate(generator.gaDataSource));
-        colorManager = new ColorPropertyManager(new JdbcTemplate(generator.gaDataSource));
-        textureManager = new TexturePropertyManager(new JdbcTemplate(generator.gaDataSource));
+        rfStrategyManager_ga = new RFStrategyPropertyManager(new JdbcTemplate(generator.gaDataSource));
+        sizeManager_ga = new SizePropertyManager(new JdbcTemplate(generator.gaDataSource));
+        colorManager_ga = new ColorPropertyManager(new JdbcTemplate(generator.gaDataSource));
+        textureManager_ga = new TexturePropertyManager(new JdbcTemplate(generator.gaDataSource));
 
+        rfStrategyManager_2dvs3d = new RFStrategyPropertyManager(new JdbcTemplate(generator.getDbUtil().getDataSource()));
+        sizeManager_2dvs3d = new SizePropertyManager(new JdbcTemplate(generator.getDbUtil().getDataSource()));
+        colorManager_2dvs3d = new ColorPropertyManager(new JdbcTemplate(generator.getDbUtil().getDataSource()));
+        textureManager_2dvs3d = new TexturePropertyManager(new JdbcTemplate(generator.getDbUtil().getDataSource()));
 
-        rfStrategy = rfStrategyManager.readProperty(targetStimId);
-        sizeDiameterDegrees = sizeManager.readProperty(targetStimId);
+        rfStrategy = rfStrategyManager_ga.readProperty(targetStimId);
+        sizeDiameterDegrees = sizeManager_ga.readProperty(targetStimId);
 
 
         targetSpecPath = generator.gaSpecPath + "/" + targetStimId + "_spec.xml";
@@ -110,10 +118,10 @@ public class TwoDVsThreeDStim implements Stim {
     }
 
     private void writeStimProperties() {
-        colorManager.writeProperty(stimId, color);
-        textureManager.writeProperty(stimId, textureType);
-        sizeManager.writeProperty(stimId, (float) sizeDiameterDegrees);
-        rfStrategyManager.writeProperty(stimId, rfStrategy);
+        colorManager_2dvs3d.writeProperty(stimId, color);
+        textureManager_2dvs3d.writeProperty(stimId, textureType);
+        sizeManager_2dvs3d.writeProperty(stimId, (float) sizeDiameterDegrees);
+        rfStrategyManager_2dvs3d.writeProperty(stimId, rfStrategy);
         writeStimGaId(this.targetStimId);
     }
 
