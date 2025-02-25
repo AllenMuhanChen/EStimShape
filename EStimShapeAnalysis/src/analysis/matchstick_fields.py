@@ -1,5 +1,8 @@
+import xmltodict
+
 from clat.compile.trial.cached_fields import CachedDatabaseField
 from clat.util.time_util import When
+from src.analysis.cached_fields import StimSpecDataField, StimIdField
 
 
 class MatchStickField(CachedDatabaseField):
@@ -52,3 +55,12 @@ class JunctionField(MatchStickField):
 
     def get_name(self):
         return "Junction"
+
+
+class AllenMStickDataField(StimSpecDataField):
+    def get(self, when: When) -> dict:
+        stim_spec_data = self.get_cached_super(when, StimIdField)
+        return xmltodict.parse(stim_spec_data)
+
+    def get_name(self):
+        return "AllenMStickData"

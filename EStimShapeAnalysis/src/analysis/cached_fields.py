@@ -41,6 +41,7 @@ class StimIdField(TaskIdField):
     def get_name(self):
         return "StimId"
 
+
 class StimSpecField(StimIdField):
     def __init__(self, conn: Connection):
         super().__init__(conn)
@@ -57,6 +58,19 @@ class StimSpecField(StimIdField):
 
     def get_name(self):
         return "StimSpec"
+
+
+class StimSpecDataField(StimSpecIdField):
+    def get(self, when: When) -> dict:
+        stim_spec_id = super().get(when)
+        self.conn.execute("SELECT data from StimSpec WHERE "
+                          "id = %s",
+                          params=(stim_spec_id,))
+
+        stim_spec_data_xml = self.conn.fetch_one()
+        stim_spec_data_dict = xmltodict.parse(stim_spec_data_xml)
+        return stim_spec_data_dict
+
 
 class LineageField(StimIdField):
     def get(self, when: When) -> str:
@@ -107,6 +121,7 @@ class ClusterResponseField(StimIdField):
 
     def get_name(self):
         return "Cluster Response"
+
 
 class StimPathField(StimIdField):
     def get(self, when: When) -> str:

@@ -14,6 +14,7 @@ rwa_output_dir = f"/home/r2_allen/Documents/EStimShape/{ga_database}/rwa"
 eyecal_dir=f"/home/r2_allen/Documents/EStimShape/{ga_database}/eyecal"
 ga_intan_path = f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{ga_database}"
 isogabor_intan_path = f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{isogabor_database}"
+twodvsthreed_intan_path = f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{twodvsthreed_database}"
 
 ga_config = TwoDThreeDGAConfig(database=ga_database,
                                base_intan_path=ga_intan_path,

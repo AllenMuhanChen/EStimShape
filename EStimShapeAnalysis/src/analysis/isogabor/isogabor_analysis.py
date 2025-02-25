@@ -166,7 +166,7 @@ class SpikeRateByChannelField(SpikesByChannelField):
             print(f"Processing task {task_id} on channel {channel.value}")
             spike_count = len([time for time in spike_times if epoch[0] <= time <= epoch[1]])
             spike_rate = spike_count / (epoch[1] - epoch[0])
-            spike_rate_by_channel[channel] = spike_rate
+            spike_rate_by_channel[channel.value] = spike_rate
 
         return spike_rate_by_channel
 

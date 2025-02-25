@@ -1,20 +1,17 @@
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 from PIL import Image
+from matplotlib import pyplot as plt
+
 from clat.compile.trial.cached_fields import CachedFieldList
-from clat.compile.trial.classic_database_fields import StimSpecDataField, NewGaNameField, NewGaLineageField, \
-    RegimeScoreField
+from clat.compile.trial.classic_database_fields import StimSpecDataField
 from clat.compile.trial.trial_collector import TrialCollector
 from clat.util import time_util
 from clat.util.connection import Connection
 from clat.util.time_util import When
-from matplotlib import pyplot as plt
-
 from src.analysis.cached_fields import TaskIdField, StimIdField, LineageField, StimTypeField, StimPathField, \
     ClusterResponseField
-from src.analysis.matchstick_fields import ShaftField, TerminationField, JunctionField
 from src.pga.alexnet.analysis.plot_top_n import add_colored_border
 from src.startup import context
 
