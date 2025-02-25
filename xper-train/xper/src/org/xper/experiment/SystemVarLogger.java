@@ -21,16 +21,17 @@ public class SystemVarLogger implements ExperimentEventListener {
 
     @Dependency
     DatabaseSystemVariableContainer systemVarContainer;
+    private long experimentStartTime;
 
     public SystemVarLogger() {
     }
 
-
     @Override
     public void experimentStart(long timestamp) {
+        experimentStartTime = timestamp;
         systemVarContainer.refresh();
         createSystemVarLogTableIfNotExists();
-        logSystemVariables(timestamp);
+        logSystemVariablesAtStart(experimentStartTime);
     }
 
     private void createSystemVarLogTableIfNotExists() {
@@ -40,14 +41,15 @@ public class SystemVarLogger implements ExperimentEventListener {
                 "CREATE TABLE IF NOT EXISTS SystemVarLog (" +
                         "name VARCHAR(255) NOT NULL, " +
                         "arr_ind INT NOT NULL, " +
-                        "tstamp BIGINT NOT NULL, " +
                         "val TEXT, " +
-                        "PRIMARY KEY (name, arr_ind, tstamp)" +
+                        "experiment_start_time BIGINT NOT NULL, " +
+                        "experiment_stop_time BIGINT, " +
+                        "PRIMARY KEY (name, arr_ind, experiment_start_time)" +
                         ")"
         );
     }
 
-    private void logSystemVariables(long timestamp) {
+    private void logSystemVariablesAtStart(long timestamp) {
         // Get all system variables
         Map<String, SystemVariable> systemVars = systemVarContainer.vars;
 
@@ -62,7 +64,7 @@ public class SystemVarLogger implements ExperimentEventListener {
             // Insert each value with its array index
             for (int i = 0; i < values.size(); i++) {
                 jt.update(
-                        "INSERT INTO SystemVarLog (name, arr_ind, tstamp, val) VALUES (?, ?, ?, ?)",
+                        "INSERT INTO SystemVarLog (name, arr_ind, experiment_start_time, val) VALUES (?, ?, ?, ?)",
                         new Object[] { name, i, timestamp, values.get(i) }
                 );
             }
@@ -71,9 +73,18 @@ public class SystemVarLogger implements ExperimentEventListener {
 
     @Override
     public void experimentStop(long timestamp) {
-
+        updateSystemVariablesWithStopTime(timestamp);
     }
 
+    private void updateSystemVariablesWithStopTime(long timestamp) {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+
+        // Update the stop_time for all rows that have NULL in that column
+        jt.update(
+                "UPDATE SystemVarLog SET experiment_stop_time = ? WHERE experiment_stop_time IS NULL AND experiment_start_time = ?",
+                new Object[]{timestamp, experimentStartTime}
+        );
+    }
 
     public void setDataSource(DataSource dataSource) {
         this.dataSource = dataSource;
