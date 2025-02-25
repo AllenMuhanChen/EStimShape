@@ -28,6 +28,7 @@ import org.xper.acq.ni.NiAnalogSamplingDevice;
 import org.xper.acq.ni.NiDigitalPortOutDevice;
 import org.xper.acq.vo.ComediChannelSpec;
 import org.xper.acq.vo.NiChannelSpec;
+import org.xper.experiment.*;
 import org.xper.classic.*;
 import org.xper.classic.vo.SlideTrialExperimentState;
 import org.xper.console.ExperimentConsole;
@@ -47,13 +48,6 @@ import org.xper.drawing.object.Square;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.exception.ExperimentSetupException;
-import org.xper.experiment.BatchTaskDoneCache;
-import org.xper.experiment.DatabaseTaskDataSource;
-import org.xper.experiment.Experiment;
-import org.xper.experiment.ExperimentRunner;
-import org.xper.experiment.ExperimentRunnerClient;
-import org.xper.experiment.TaskDataSource;
-import org.xper.experiment.TaskDoneCache;
 import org.xper.experiment.DatabaseTaskDataSource.UngetPolicy;
 import org.xper.experiment.listener.CpuBinder;
 import org.xper.experiment.listener.DatabaseTaskDataSourceController;
@@ -82,9 +76,7 @@ import org.xper.eye.win.RampEyeWindowAlgorithm;
 import org.xper.eye.zero.EyeZeroAdjustable;
 import org.xper.eye.zero.EyeZeroMessageListener;
 import org.xper.eye.zero.MovingAverageEyeZeroAlgorithm;
-import org.xper.intan.IntanFileNamingStrategy;
 import org.xper.intan.SlideTrialIntanRecordingController;
-import org.xper.intan.UpcomingTasksFileNamingStrategy;
 import org.xper.juice.AnalogJuice;
 import org.xper.juice.DynamicJuice;
 import org.xper.juice.mock.NullDynamicJuice;
@@ -325,7 +317,16 @@ public class ClassicConfig {
 		listeners.add(eyeZeroLogger());
 		listeners.add(experimentCpuBinder());
 		listeners.add(intanRecordingController());
+		listeners.add(systemVarLogger());
 		return listeners;
+	}
+
+	@Bean
+	public ExperimentEventListener systemVarLogger() {
+		SystemVarLogger logger = new SystemVarLogger();
+		logger.setSystemVarContainer((DatabaseSystemVariableContainer) baseConfig.systemVariableContainer());
+		logger.setDataSource(baseConfig.dataSource());
+		return logger;
 	}
 
 	@Bean(scope = DefaultScopes.PROTOTYPE)

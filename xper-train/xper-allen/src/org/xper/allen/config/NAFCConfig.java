@@ -368,6 +368,7 @@ public class NAFCConfig {
 		listeners.add(classicConfig.eyeZeroLogger());
 		listeners.add(classicConfig.experimentCpuBinder());
 		listeners.add(intanStimController());
+		listeners.add(classicConfig.systemVarLogger());
 		return listeners;
 	}
 
