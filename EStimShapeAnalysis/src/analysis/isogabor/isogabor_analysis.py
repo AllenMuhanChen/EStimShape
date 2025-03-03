@@ -128,13 +128,18 @@ def compile_data(conn: Connection, trial_tstamps: list[When], date) -> pd.DataFr
     fields.append(SizeField(conn))
     fields.append(PhaseField(conn))
     fields.append(LocationField(conn))
-    fields.append(SpikesByChannelField(conn, spikes_by_channel_by_task_id, epochs_by_task_id))
+    fields.append(IntanSpikesByChannelField(conn, spikes_by_channel_by_task_id, epochs_by_task_id))
 
     data = fields.to_data(trial_tstamps)
     return data
 
 
-class SpikesByChannelField(TaskIdField):
+class IntanSpikesByChannelField(TaskIdField):
+    """
+    Retrieves spike timestamps by channel from Intan files for a given task ID.
+
+    Retrieves the spikes that Intan software detects, saved in spike.dat files
+    """
     def __init__(self, conn: Connection, parser: type(MultiFileParser), all_task_ids: list[int], intan_files_dir: str):
         super().__init__(conn)
         self.parser = parser

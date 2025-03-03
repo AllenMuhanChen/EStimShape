@@ -4,6 +4,21 @@ from clat.intan.one_file_spike_parsing import OneFileParser
 
 
 class MultiFileParser:
+    """
+    Given a list of task Ids, this class will parse all intan files that contain those task_ids.
+    The parsed data will be combined and returned in a dictionary.
+
+    The data is returned in two dictionaries:
+    - spikes_by_channel_by_task_id:
+        - spikes_by_channel is a dictionary where the key is the channel (str) and the value is a list of spike times.
+        - spikes_by_channel_by_task_id is a dictionary where the key is the task_id (int) and the value is the spikes_by_channel dictionary.
+    - epochs_by_task_id is a dictionary where the key is the task_id (int) and the value is a list of epoch times (tuple: (start_time, stop_time)).
+
+    if to_cache is True:
+        - the parsed data will be saved in a cache directory.
+        - when parse is called and there is already cached data, data for the requested task_ids will be loaded from cache where it exists.
+            any non-cached task_ids will be parsed from the intan files.
+    """
     sample_rate: int = None
 
     def __init__(self, to_cache: bool = False, cache_dir: str = None):
