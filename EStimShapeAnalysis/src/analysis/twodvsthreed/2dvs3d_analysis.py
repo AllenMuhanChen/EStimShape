@@ -9,7 +9,7 @@ from clat.util import time_util
 from clat.util.connection import Connection
 from clat.util.time_util import When
 from src.analysis.cached_fields import TaskIdField, StimIdField
-from src.analysis.isogabor.isogabor_analysis import SpikesByChannelField, SpikeRateByChannelField, IntanSpikesField
+from src.analysis.isogabor.isogabor_analysis import SpikesByChannelField, SpikeRateByChannelField
 from src.intan.MultiFileParser import MultiFileParser
 from src.startup import context
 
@@ -31,11 +31,9 @@ def main():
     fields.append(StimIdField(conn))
     fields.append(TextureField(conn))
     fields.append(ColorField(conn))
-    fields.append(IntanSpikesField(conn, parser, task_ids, intan_files_dir, spikes_by_channel_by_task_id, epochs_by_task_id),
-    # fields.append(SpikesByChannelField(conn, parser, task_ids, intan_files_dir))
-    # fields.append(SpikeRateByChannelField(conn, parser, task_ids, intan_files_dir))
-    # fields.append(GAClusterResponseField(conn, parser, task_ids, intan_files_dir, np.sum)
-    )
+    fields.append(SpikesByChannelField(conn, parser, task_ids, intan_files_dir)),
+    fields.append(SpikeRateByChannelField(conn, parser, task_ids, intan_files_dir)),
+    fields.append(GAClusterResponseField(conn, parser, task_ids, intan_files_dir, np.sum))
     data = fields.to_data(trial_tstamps)
 
     print(data.to_string())
