@@ -134,16 +134,50 @@ def compile_data(conn: Connection, trial_tstamps: list[When], date) -> pd.DataFr
     return data
 
 
-class SpikesByChannelField(TaskIdField):
-    def __init__(self, conn: Connection, spikes_by_channel_by_task_id: dict, epochs_by_task_id: dict):
+class IntanSpikesField(TaskIdField):
+    """
+    Field for retrieving spikes from Intan recordings.
+    These are the spikes that were detected using Intan's spike detection, saved in spike.dat files.
+    """
+
+    def __init__(self, conn: Connection, parser: type(MultiFileParser), all_task_ids: list[int], intan_files_dir: str,
+                 spikes_by_channel_by_task_id: dict[int, dict[int, list[float]]], epochs_by_task_id: dict):
         super().__init__(conn)
+        self.parser = parser
+        self.intan_files_dir = intan_files_dir
+        self.all_task_ids = all_task_ids
         self.spikes_by_channel_by_task_id = spikes_by_channel_by_task_id
         self.epochs_by_task_id = epochs_by_task_id
 
-    def get(self, when: When) -> dict:
+    def get(self, when: When):
         task_id = self.get_cached_super(when, TaskIdField)
-        spikes_by_channel = self.spikes_by_channel_by_task_id[task_id]
-        epoch_start = self.epochs_by_task_id[task_id][0]
+        if task_id not in self.all_task_ids:
+            return None
+        if task_id not in self.spikes_by_channel_by_task_id.keys():
+            local_spikes_by_channel_by_task_id, local_epochs_by_task_id = self.parser.parse(self.all_task_ids,
+                                                                                            intan_files_dir=self.intan_files_dir)
+            self.spikes_by_channel_by_task_id.update(local_spikes_by_channel_by_task_id)
+            self.epochs_by_task_id.update(local_epochs_by_task_id)
+
+        return self.spikes_by_channel_by_task_id, self.epochs_by_task_id
+
+    def get_name(self):
+        return 'Intan Spikes'
+
+
+class SpikesByChannelField(IntanSpikesField):
+    def __init__(self, conn: Connection, parser: type(MultiFileParser), all_task_ids: list[int], intan_files_dir: str):
+        super().__init__(conn, parser, all_task_ids, intan_files_dir)
+        self.parser = parser
+        self.intan_files_dir = intan_files_dir
+        self.all_task_ids = all_task_ids
+
+    def get(self, when: When) -> dict:
+        spikes_by_channel_by_task_id, epochs_by_task_id = self.get_cached_super(when, IntanSpikesField, self.parser,
+                                                                                self.all_task_ids, self.intan_files_dir)
+        task_id = self.get_cached_super(when, TaskIdField)
+        spikes_by_channel = spikes_by_channel_by_task_id[task_id]
+        epoch_start = epochs_by_task_id[task_id][0]
         # convert timestamp to epoch_start relative
         spikes_by_channel = {channel.value: [spike - epoch_start for spike in spikes] for channel, spikes in
                              spikes_by_channel.items()}
@@ -158,8 +192,10 @@ class SpikesByChannelField(TaskIdField):
 class SpikeRateByChannelField(SpikesByChannelField):
     def get(self, when: When) -> dict:
         task_id = self.get_cached_super(when, TaskIdField)
-        spikes_for_channels = self.spikes_by_channel_by_task_id[task_id]
-        epoch = self.epochs_by_task_id[task_id]
+        spikes_by_channel_by_task_id, epochs_by_task_id = self.get_cached_super(when, IntanSpikesField, self.parser,
+                                                                                self.all_task_ids, self.intan_files_dir)
+        spikes_for_channels = spikes_by_channel_by_task_id[task_id]
+        epoch = epochs_by_task_id[task_id]
 
         spike_rate_by_channel = {}
         for channel, spike_times in spikes_for_channels.items():

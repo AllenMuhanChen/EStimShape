@@ -9,7 +9,7 @@ from clat.util import time_util
 from clat.util.connection import Connection
 from clat.util.time_util import When
 from src.analysis.cached_fields import TaskIdField, StimIdField
-from src.analysis.isogabor.isogabor_analysis import SpikesByChannelField, SpikeRateByChannelField
+from src.analysis.isogabor.isogabor_analysis import SpikesByChannelField, SpikeRateByChannelField, IntanSpikesField
 from src.intan.MultiFileParser import MultiFileParser
 from src.startup import context
 
@@ -17,21 +17,25 @@ from src.startup import context
 def main():
     date = '2025-02-19'
     conn = Connection(context.twodvsthreed_database)
-    trial_tstamps = TrialCollector(conn, time_util.from_x_days_ago(1)).collect_trials()
+    trial_tstamps = TrialCollector(conn, time_util.on_date(2025, 2, 19)).collect_trials()
     task_ids = TaskIdCollector(conn).collect_task_ids()
 
-    parser = MultiFileParser()
-    spikes_by_channel_by_task_id, epochs_by_task_id = parser.parse(task_ids,
-                                                                   intan_files_dir=context.twodvsthreed_intan_path + '/' + date)
+    parser = MultiFileParser(to_cache=True, cache_dir="/home/r2_allen/Documents/EStimShape/allen_twodvsthreed_train_250213_0/cached_parsed_spikes")
+    intan_files_dir = context.twodvsthreed_intan_path + '/' + date
+
+    spikes_by_channel_by_task_id = {}
+    epochs_by_task_id = {}
 
     fields = CachedFieldList()
     fields.append(TaskIdField(conn))
     fields.append(StimIdField(conn))
     fields.append(TextureField(conn))
     fields.append(ColorField(conn))
-    fields.append(SpikesByChannelField(conn, spikes_by_channel_by_task_id, epochs_by_task_id))
-    fields.append(SpikeRateByChannelField(conn, spikes_by_channel_by_task_id, epochs_by_task_id))
-    fields.append(GAClusterResponseField(conn, spikes_by_channel_by_task_id, epochs_by_task_id, np.sum))
+    fields.append(IntanSpikesField(conn, parser, task_ids, intan_files_dir, spikes_by_channel_by_task_id, epochs_by_task_id),
+    # fields.append(SpikesByChannelField(conn, parser, task_ids, intan_files_dir))
+    # fields.append(SpikeRateByChannelField(conn, parser, task_ids, intan_files_dir))
+    # fields.append(GAClusterResponseField(conn, parser, task_ids, intan_files_dir, np.sum)
+    )
     data = fields.to_data(trial_tstamps)
 
     print(data.to_string())
@@ -64,14 +68,14 @@ class ColorField(StimIdField):
 
 
 class GAClusterResponseField(SpikeRateByChannelField):
-    def __init__(self, conn: Connection, spikes_by_channel_by_task_id: dict, epochs_by_task_id: dict,
+    def __init__(self, conn: Connection, parser: MultiFileParser, all_task_ids: list[int], intan_files_dir: str,
                  cluster_combination_method: Callable[[list[float]], float]):
-        super().__init__(conn, spikes_by_channel_by_task_id, epochs_by_task_id)
+        super().__init__(conn, parser, all_task_ids, intan_files_dir)
         self.cluster_combination_method = cluster_combination_method
 
     def get(self, when: When) -> float:
-        spike_rate_by_channel = self.get_cached_super(when, SpikeRateByChannelField, self.spikes_by_channel_by_task_id,
-                                                      self.epochs_by_task_id)
+        spike_rate_by_channel = self.get_cached_super(when, SpikeRateByChannelField, self.parser, self.all_task_ids,
+                                                      self.intan_files_dir)
 
         channels = self._fetch_cluster_channels()
 
