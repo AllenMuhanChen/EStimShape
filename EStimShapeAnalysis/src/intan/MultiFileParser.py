@@ -39,14 +39,12 @@ class MultiFileParser:
             - Dictionary mapping task IDs to channel spike data
             - Dictionary mapping task IDs to epoch times
         """
-        # Convert task_ids to set for efficient lookup
-
         # Initialize combined results
         spikes_by_channel_by_task_id = {}
         epochs_by_task_id = {}
 
-        task_ids = set(task_ids)
-        remaining_task_ids = list(task_ids)  # Default to processing all task IDs
+        task_id_set = set(task_ids)
+        remaining_task_ids = list(task_id_set)  # Default to processing all task IDs
 
         # If cache is enabled, check if the data is already cached
         if self.to_cache and self.cache_dir is not None:
@@ -65,7 +63,7 @@ class MultiFileParser:
             # Otherwise, update the list of task IDs we still need to process
             remaining_task_ids = missing_task_ids
             print(
-                f"Found {len(task_ids) - len(missing_task_ids)} task IDs in cache. Still need to process: {missing_task_ids}")
+                f"Found {len(task_id_set) - len(missing_task_ids)} task IDs in cache. Still need to process: {missing_task_ids}")
 
         # Find relevant files for remaining task IDs
         remaining_task_id_set = set(remaining_task_ids)
@@ -78,6 +76,10 @@ class MultiFileParser:
             else:
                 raise ValueError(f"No files found containing task IDs {task_ids}")
 
+        # Create separate dictionaries for newly parsed data
+        new_spikes_by_channel_by_task_id = {}
+        new_epochs_by_task_id = {}
+
         # Process each matching directory
         for dir_path in matching_dirs:
             spikes_by_channel, epoch_times, file_sample_rate = self.one_file_parser.parse(dir_path)
@@ -88,16 +90,20 @@ class MultiFileParser:
             elif file_sample_rate != self.sample_rate:
                 raise ValueError(f"Inconsistent sample rates: {self.sample_rate} vs {file_sample_rate}")
 
-            # Combine results
+            # Combine results in both the complete result set and the new data set
             for task_id, channel_data in spikes_by_channel.items():
                 if task_id in remaining_task_id_set:
+                    # Add to the complete result set
                     spikes_by_channel_by_task_id[task_id] = channel_data
                     epochs_by_task_id[task_id] = epoch_times[task_id]
 
-        # Cache results if requested
-        if self.to_cache and self.cache_dir is not None and remaining_task_ids:
-            # Only cache if we processed new data
-            self._cache(spikes_by_channel_by_task_id, epochs_by_task_id)
+                    # Also add to the new data set (what we will cache)
+                    new_spikes_by_channel_by_task_id[task_id] = channel_data
+                    new_epochs_by_task_id[task_id] = epoch_times[task_id]
+
+        # Cache results if requested - only cache newly parsed data
+        if self.to_cache and self.cache_dir is not None and new_spikes_by_channel_by_task_id:
+            self._cache(new_spikes_by_channel_by_task_id, new_epochs_by_task_id)
 
         return spikes_by_channel_by_task_id, epochs_by_task_id
 
