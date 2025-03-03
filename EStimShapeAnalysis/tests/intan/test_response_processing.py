@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, Mock
 
 from clat.intan.channels import Channel
 
-from src.pga.response_processing import ResponseProcessor
+from src.pga.response_processing import GAResponseProcessor
 
 
 class TestResponseProcessor(unittest.TestCase):
@@ -30,7 +30,7 @@ class TestResponseProcessor(unittest.TestCase):
     def test_sum_cluster_combo(self):
 
         # Create an instance of ResponseProcessor
-        rp = ResponseProcessor(db_util=self.db_util_mock, repetition_combination_strategy=sum, cluster_combination_strategy=sum)
+        rp = GAResponseProcessor(db_util=self.db_util_mock, repetition_combination_strategy=sum, cluster_combination_strategy=sum)
 
         # Call the process_to_db method
         rp.process_to_db('test_ga')
@@ -46,8 +46,8 @@ class TestResponseProcessor(unittest.TestCase):
         #TESTING AVERAGE ONE
         average = lambda x: sum(x) / len(x)
         # Create an instance of ResponseProcessor
-        rp = ResponseProcessor(db_util=self.db_util_mock, repetition_combination_strategy=sum,
-                               cluster_combination_strategy=average)
+        rp = GAResponseProcessor(db_util=self.db_util_mock, repetition_combination_strategy=sum,
+                                 cluster_combination_strategy=average)
 
         # Call the process_to_db method
         rp.process_to_db('test_ga')

@@ -11,7 +11,7 @@ from src.pga.ga_classes import Node, Stimulus, LineageFactory
 from src.pga.ga_classes import Phase, Lineage
 from src.pga.lineage_selection import ClassicLineageDistributor
 from src.pga.multi_ga_db_util import MultiGaDbUtil
-from src.pga.response_processing import ResponseProcessor
+from src.pga.response_processing import GAResponseProcessor
 from src.pga.spike_parsing import IntanResponseParser, ResponseParser
 from src.pga.trial_generators import TrialGenerator
 
@@ -25,7 +25,7 @@ class GeneticAlgorithm:
     trials_per_generation: int
     lineage_distributor: ClassicLineageDistributor
     response_parser: ResponseParser
-    response_processor: ResponseProcessor
+    response_processor: GAResponseProcessor
     num_catch_trials: int
     trial_generator: TrialGenerator
 

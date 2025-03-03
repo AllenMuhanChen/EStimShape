@@ -3,7 +3,7 @@ from typing import Any
 from numpy import mean
 
 from src.pga.spike_parsing import IntanResponseParser
-from src.pga.response_processing import ResponseProcessor
+from src.pga.response_processing import GAResponseProcessor
 from src.pga.lineage_selection import ClassicLineageDistributor
 from src.pga.multi_ga_db_util import MultiGaDbUtil
 from src.pga.regime_three import LeafingPhaseParentSelector, LeafingPhaseMutationAssigner, \
@@ -129,8 +129,8 @@ class GeneticAlgorithmConfig:
     def get_all_stimuli_func(self):
         return GetAllStimuliFunc(db_util=self.db_util, ga_name=self.ga_name, response_processor=self.response_processor)
 
-    def make_response_processor(self) -> ResponseProcessor:
-        return ResponseProcessor(
+    def make_response_processor(self) -> GAResponseProcessor:
+        return GAResponseProcessor(
             db_util=self.db_util,
             repetition_combination_strategy=mean,
             cluster_combination_strategy=sum

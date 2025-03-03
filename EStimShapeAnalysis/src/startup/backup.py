@@ -1,10 +1,9 @@
-#!/usr/bin/env python3
 import os
 import subprocess
 import datetime
 import shutil
 import re
-import context
+from src.startup import context
 
 # MySQL connection parameters
 MYSQL_HOST = '172.30.6.80'

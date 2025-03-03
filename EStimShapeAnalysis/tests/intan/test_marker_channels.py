@@ -7,8 +7,10 @@ from clat.intan.marker_channels import get_epochs_start_and_stop_indices, read_d
 
 class TestEpoch(TestCase):
     def test_get_epochs(self):
-        digital_in = read_digitalin_file(
-            "/run/user/1003/gvfs/sftp:host=172.30.6.58/home/connorlab/Documents/IntanData/2023-09-22/1695411976234126_230922_154616/digitalin.dat")
+        """
+        Put in path of a digitalin.dat where you know the number of trials
+        """
+        digital_in = read_digitalin_file("/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/allen_twodvsthreed_train_250213_0/2025-02-19/1739990763444357_250219_134730/digitalin.dat")
         epochs = get_epochs_start_and_stop_indices(digital_in[1], digital_in[0])
 
         print(epochs)

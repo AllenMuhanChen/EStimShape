@@ -5,7 +5,7 @@ from src.pga.multi_ga_db_util import MultiGaDbUtil
 
 
 @dataclass(kw_only=True)
-class ResponseProcessor:
+class GAResponseProcessor:
     db_util: MultiGaDbUtil
     repetition_combination_strategy: Callable[[list[float]], float]
     cluster_combination_strategy: Callable[[list[float]], int]  # TODO: this currently isn't being

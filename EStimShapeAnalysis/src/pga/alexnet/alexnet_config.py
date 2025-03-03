@@ -6,7 +6,7 @@ from src.pga.ga_classes import Phase, ParentSelector, Lineage, MutationAssigner,
 from src.pga.genetic_algorithm import GeneticAlgorithm
 from src.pga.regime_one import GrowingPhaseMutationMagnitudeAssigner, GrowingPhaseParentSelector, \
     GrowingPhaseTransitioner, RankOrderedDistribution
-from src.pga.response_processing import ResponseProcessor
+from src.pga.response_processing import GAResponseProcessor
 from src.pga.alexnet.onnx_parser import AlexNetONNXResponseParser, UnitIdentifier
 from src.pga.spike_parsing import ResponseParser
 from src.pga.trial_generators import AlexNetGAJarTrialGenerator, TrialGenerator

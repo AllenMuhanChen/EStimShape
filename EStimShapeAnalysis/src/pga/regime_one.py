@@ -7,7 +7,7 @@ import numpy as np
 from src.pga.ga_classes import Stimulus, ParentSelector, MutationAssigner, MutationMagnitudeAssigner, \
     RegimeTransitioner, Lineage
 from src.pga.multi_ga_db_util import MultiGaDbUtil
-from src.pga.response_processing import ResponseProcessor
+from src.pga.response_processing import GAResponseProcessor
 from src.pga.stim_types import StimType
 
 
@@ -124,7 +124,7 @@ class GrowingPhaseParentSelector(ParentSelector):
 class GetAllStimuliFunc:
     db_util: MultiGaDbUtil
     ga_name: str
-    response_processor: ResponseProcessor
+    response_processor: GAResponseProcessor
 
     def __call__(self) -> List[Stimulus]:
         # Find out current experiment_id
