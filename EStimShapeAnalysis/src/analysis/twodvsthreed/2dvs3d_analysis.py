@@ -20,7 +20,7 @@ def main():
     trial_tstamps = TrialCollector(conn, time_util.on_date(2025, 2, 19)).collect_trials()
     task_ids = TaskIdCollector(conn).collect_task_ids()
 
-    parser = MultiFileParser(to_cache=True, cache_dir="/home/r2_allen/Documents/EStimShape/allen_twodvsthreed_train_250213_0/cached_parsed_spikes")
+    parser = MultiFileParser(to_cache=True, cache_dir=context.twodvsthreed_parsed_spikes_path)
     intan_files_dir = context.twodvsthreed_intan_path + '/' + date
 
     spikes_by_channel_by_task_id = {}

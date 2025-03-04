@@ -60,23 +60,6 @@ def update_context_file(ga_database, nafc_database, isogabor_database, twodvsthr
             new_lines.append(f'isogabor_database = "{isogabor_database}"\n')
         elif line.startswith("twodvsthreed_database ="):
             new_lines.append(f'twodvsthreed_database = "{twodvsthreed_database}"\n')
-        elif line.startswith("image_path ="):
-            new_lines.append(f'image_path = f"/home/r2_allen/Documents/EStimShape/{ga_database}/stimuli/ga/pngs"\n')
-        elif line.startswith("java_output_dir ="):
-            new_lines.append(f'java_output_dir = f"/home/r2_allen/Documents/EStimShape/{ga_database}/java_output"\n')
-        elif line.startswith("rwa_output_dir ="):
-            new_lines.append(f'rwa_output_dir = f"/home/r2_allen/Documents/EStimShape/{ga_database}/rwa"\n')
-        elif line.startswith("eyecal_dir="):
-            new_lines.append(f'eyecal_dir=f"/home/r2_allen/Documents/EStimShape/{ga_database}/eyecal"\n')
-        elif line.startswith("ga_intan_path ="):
-            new_lines.append(
-                f'ga_intan_path = f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{ga_database}"\n')
-        elif line.startswith("isogabor_intan_path ="):
-            new_lines.append(
-                f'isogabor_intan_path = f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{isogabor_database}"\n')
-        elif line.startswith("twodvsthreed_intan_path ="):
-            new_lines.append(
-                f'twodvsthreed_intan_path = f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{twodvsthreed_database}"\n')
         else:
             new_lines.append(line)
 

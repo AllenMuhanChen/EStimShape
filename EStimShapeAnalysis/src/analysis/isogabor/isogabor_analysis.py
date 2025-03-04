@@ -115,10 +115,7 @@ def plot_raster_by_groups(conn, trial_tstamps, date):
 def compile_data(conn: Connection, trial_tstamps: list[When], date) -> pd.DataFrame:
     # Set up parser
     task_ids = TaskIdCollector(conn).collect_task_ids()
-    parser = MultiFileParser()
-    spikes_by_channel_by_task_id, epochs_by_task_id = parser.parse(task_ids,
-                                                                   intan_files_dir=context.isogabor_intan_path + '/' + date)
-    sample_rate = parser.sample_rate
+    parser = MultiFileParser(to_cache=True, cache_dir=context.isogabor_parsed_spikes_path)
 
     fields = CachedFieldList()
     fields.append(TaskIdField(conn))
@@ -128,7 +125,7 @@ def compile_data(conn: Connection, trial_tstamps: list[When], date) -> pd.DataFr
     fields.append(SizeField(conn))
     fields.append(PhaseField(conn))
     fields.append(LocationField(conn))
-    fields.append(IntanSpikesByChannelField(conn, spikes_by_channel_by_task_id, epochs_by_task_id))
+    fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.isogabor_intan_path))
 
     data = fields.to_data(trial_tstamps)
     return data
@@ -136,7 +133,8 @@ def compile_data(conn: Connection, trial_tstamps: list[When], date) -> pd.DataFr
 
 class IntanSpikesByChannelField(TaskIdField):
     """
-    Retrieves spike timestamps by channel from Intan files for a given task ID.
+    Retrieves spike timestamps by channel from Intan files for a given task ID
+    and makes them relative to the start of the epoch
 
     Retrieves the spikes that Intan software detects, saved in spike.dat files
     """

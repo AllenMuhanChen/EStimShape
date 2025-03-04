@@ -6,13 +6,18 @@ from src.startup import context
 
 def main():
     setup_ga_xper_properties()
+    setup_ga_dirs()
+
     setup_nafc_xper_properties()
+
     setup_isogabor_xper_properties()
+    setup_isogabor_dirs()
+
     setup_twodvsthreed_xper_properties()
+    setup_twodvsthreed_dirs()
 
     update_version_shellscript()
 
-    make_misc_dirs()
 
 
 def make_path(path):
@@ -132,6 +137,13 @@ def setup_ga_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"
     make_path(generator_spec_path)
 
 
+
+def setup_ga_dirs():
+    make_path(context.java_output_dir)
+    make_path(context.rwa_output_dir)
+    make_path(context.eyecal_dir)
+
+
 def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
     # Define the necessary versions directly
     version_nafc = context.nafc_database
@@ -215,6 +227,12 @@ def setup_isogabor_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30
     modifier.save_changes()
     print("xper.properties.ga file modified successfully.")
 
+def setup_isogabor_dirs():
+    version_isogabor = context.isogabor_database
+    isogabor_path = f"/home/r2_allen/Documents/EStimShape/{version_isogabor}"
+    isogabor_parsed_spike_path = f"{isogabor_path}/parsed_spikes"
+    make_path(isogabor_parsed_spike_path)
+
 
 def setup_twodvsthreed_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
     # Define the necessary versions directly
@@ -273,6 +291,12 @@ def setup_twodvsthreed_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=17
     make_path(generator_png_path)
     make_path(generator_spec_path)
 
+def setup_twodvsthreed_dirs():
+    version_twodvsthreed = context.twodvsthreed_database
+    twodvsthreed_path = f"/home/r2_allen/Documents/EStimShape/{version_twodvsthreed}"
+    twodvsthreed_parsed_spike_path = f"{twodvsthreed_path}/parsed_spikes"
+    make_path(twodvsthreed_parsed_spike_path)
+
 
 def update_version_shellscript():
     # Retrieve versions from the config
@@ -301,10 +325,7 @@ def update_version_shellscript():
 
     print("Version file updated successfully.")
 
-def make_misc_dirs():
-    make_path(context.java_output_dir)
-    make_path(context.rwa_output_dir)
-    make_path(context.eyecal_dir)
+
 
 
 

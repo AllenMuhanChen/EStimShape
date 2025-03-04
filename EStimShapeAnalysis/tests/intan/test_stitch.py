@@ -1,6 +1,6 @@
 import unittest
 import os
-from src.intan.stitch import IntanFileStitcher
+from clat.intan.stitch import IntanFileStitcher
 
 
 class TestIntanFileStitcher(unittest.TestCase):
