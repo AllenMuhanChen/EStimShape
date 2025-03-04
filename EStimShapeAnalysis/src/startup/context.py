@@ -1,10 +1,10 @@
 from src.pga.config.twod_threed_config import TwoDThreeDGAConfig
 
 ga_name = "New3D"
-ga_database = "allen_ga_test_250304_1"
-nafc_database = "allen_estimshape_test_250304_1"
-isogabor_database = "allen_isogabor_test_250304_1"
-twodvsthreed_database = "allen_twodvsthreed_test_250304_1"
+ga_database = "allen_ga_train_250213_0"
+nafc_database = "allen_estimshape_train_250213_0"
+isogabor_database = "allen_isogabor_train_250213_0"
+twodvsthreed_database = "allen_twodvsthreed_train_250213_0"
 
 allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
 

@@ -37,13 +37,13 @@ mock.config_class=
 # parameters
 #############################################################################
 #path of computer running stimulus generator
-generator.png_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250213_0/stimuli/250303/procedural/pngs
+generator.png_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250213_0/stimuli/250304/procedural/pngs
 #path of computer running experiment
-experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250213_0/stimuli/250303/procedural/pngs
-generator.spec_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250213_0/stimuli/250303/procedural/specs
-generator.noisemap_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250213_0/stimuli/250303/procedural/pngs
-generator.set_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250213_0/stimuli/250303/sets
-experiment.noisemap_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250213_0/stimuli/250303/procedural/pngs
+experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250213_0/stimuli/250304/procedural/pngs
+generator.spec_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250213_0/stimuli/250304/procedural/specs
+generator.noisemap_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250213_0/stimuli/250304/procedural/pngs
+generator.set_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250213_0/stimuli/250304/sets
+experiment.noisemap_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_estimshape_train_250213_0/stimuli/250304/procedural/pngs
 #############
 ga.spec_path=/home/r2_allen/Documents/EStimShape/allen_ga_train_250213_0/stimuli/ga/specs
 

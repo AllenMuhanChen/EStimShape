@@ -15,9 +15,9 @@ from src.intan.MultiFileParser import MultiFileParser
 from src.startup import context
 
 
-def plot_raster_by_groups(conn, trial_tstamps, date):
+def plot_raster_by_groups(conn, trial_tstamps):
     # Compile the data first
-    data = compile_data(conn, trial_tstamps, date)
+    data = compile_data(conn, trial_tstamps)
     print(data.to_string())
 
     # Group stimuli types
@@ -88,31 +88,8 @@ def plot_group_rasters(data, types, ax, title):
         ax.set_xlim(0, 0.5)  # Adjust based on your trial duration
 
 
-def plot_raster_by_groups(conn, trial_tstamps, date):
-    # Compile the data first
-    data = compile_data(conn, trial_tstamps, date)
 
-    # Group stimuli types (changed ORed to Orange)
-    isochromatic_types = ['Orange', 'Green', 'Cyan', 'Red']
-    isoluminant_types = ['RedGreen', 'CyanOrange']
-
-    # Create figure with two subfigures for isochromatic and isoluminant
-    fig = plt.figure(figsize=(15, 10))
-    gs = GridSpec(2, 1, height_ratios=[len(isochromatic_types), len(isoluminant_types)])
-
-    # First subplot for isochromatic stimuli
-    ax1 = fig.add_subplot(gs[0])
-    plot_group_rasters(data, isochromatic_types, ax1, "Isochromatic Stimuli")
-
-    # Second subplot for isoluminant stimuli
-    ax2 = fig.add_subplot(gs[1])
-    plot_group_rasters(data, isoluminant_types, ax2, "Isoluminant Stimuli")
-
-    plt.tight_layout()
-    return fig
-
-
-def compile_data(conn: Connection, trial_tstamps: list[When], date) -> pd.DataFrame:
+def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
     # Set up parser
     task_ids = TaskIdCollector(conn).collect_task_ids()
     parser = MultiFileParser(to_cache=True, cache_dir=context.isogabor_parsed_spikes_path)
@@ -274,7 +251,7 @@ def main():
     trial_tstamps = trial_collector.collect_trials()
 
     # Create raster plots
-    fig = plot_raster_by_groups(conn, trial_tstamps, date)
+    fig = plot_raster_by_groups(conn, trial_tstamps)
     plt.show()
 
 
