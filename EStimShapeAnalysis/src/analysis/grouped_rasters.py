@@ -306,7 +306,7 @@ class GroupedRasterOutput(OutputHandler):
         return figure
 
 
-def create_grouped_raster_pipeline(
+def create_grouped_raster_module(
         primary_group_col: str,
         secondary_group_col: Optional[str] = None,
         filter_values: Optional[Dict[str, List[Any]]] = None,
@@ -315,7 +315,7 @@ def create_grouped_raster_pipeline(
         figsize: Tuple[float, float] = (15, 10),
         time_range: Tuple[float, float] = (0, 0.5),
         save_path: Optional[str] = None
-) -> AnalysisPipeline:
+) -> AnalysisModule:
     """
     Create a pipeline for grouped raster plots.
 
@@ -353,7 +353,4 @@ def create_grouped_raster_pipeline(
         name="grouped_raster_plot"
     )
 
-    # Create a simple pipeline
-    pipeline = create_pipeline().then(raster_plot_module).build()
-
-    return pipeline
+    return raster_plot_module

@@ -6,7 +6,7 @@ from clat.util.connection import Connection
 from clat.compile.trial.trial_collector import TrialCollector
 from clat.compile.task.compile_task_id import TaskIdCollector
 from src.analysis.grouped_rasters import GroupedRasterInputHandler, GroupedRasterPlotter, GroupedRasterOutput, \
-    create_grouped_raster_pipeline
+    create_grouped_raster_module
 from src.intan.MultiFileParser import MultiFileParser
 from src.startup import context
 from src.analysis.isogabor.isogabor_analysis import TypeField, FrequencyField, IntanSpikesByChannelField
@@ -29,7 +29,7 @@ def main():
     # STEP 2: Create and run the analysis pipeline
     # ----------------
     # For the isochromatic/isoluminant example:
-    pipeline = create_grouped_raster_pipeline(
+    grouped_raster_module = create_grouped_raster_module(
         primary_group_col='Type',
         secondary_group_col='Frequency',
         filter_values={
@@ -37,6 +37,9 @@ def main():
         },
         save_path=None
     )
+
+    # Create a simple pipeline
+    pipeline = create_pipeline().then(grouped_raster_module).build()
 
     # Run the pipeline
     result = pipeline.run(compiled_data)
