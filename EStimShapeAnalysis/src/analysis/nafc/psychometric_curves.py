@@ -3,8 +3,8 @@ import datetime
 import numpy as np
 import pandas as pd
 import pytz
-from clat.compile.trial.cached_fields import CachedFieldList
-from clat.compile.trial.trial_collector import TrialCollector
+from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
+from clat.compile.tstamp.trial_tstamp_collector import TrialCollector
 from matplotlib import pyplot as plt, cm
 
 from src.analysis.nafc.nafc_database_fields import IsCorrectField, NoiseChanceField, NumRandDistractorsField, \

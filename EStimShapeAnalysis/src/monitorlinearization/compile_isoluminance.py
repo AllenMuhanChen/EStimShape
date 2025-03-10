@@ -1,6 +1,6 @@
 import os
 
-from clat.compile.task.base_database_fields import StimSpecIdField
+from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.compile.task.task_field import TaskFieldList
 from clat.intan.analogin import read_analogin_file

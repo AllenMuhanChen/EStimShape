@@ -3,7 +3,7 @@ import pandas as pd
 from matplotlib.gridspec import GridSpec
 from typing import Dict, List, Any
 from clat.util.connection import Connection
-from clat.compile.trial.trial_collector import TrialCollector
+from clat.compile.tstamp.trial_tstamp_collector import TrialCollector
 from clat.compile.task.compile_task_id import TaskIdCollector
 from src.analysis.grouped_rasters import GroupedRasterInputHandler, GroupedRasterPlotter, GroupedRasterOutput, \
     create_grouped_raster_module
@@ -11,7 +11,7 @@ from src.intan.MultiFileParser import MultiFileParser
 from src.startup import context
 from src.analysis.isogabor.isogabor_analysis import TypeField, FrequencyField, IntanSpikesByChannelField
 # Import our pipeline framework
-from src.analysis.pipeline import (
+from clat.pipeline.pipeline_base_classes import (
     InputHandler, ComputationModule, OutputHandler, create_pipeline, AnalysisModuleFactory
 )
 
@@ -53,8 +53,9 @@ def main():
 
 def compile_data(conn, trial_tstamps):
     # Set up your existing fields
-    from clat.compile.trial.cached_fields import CachedFieldList
-    from src.analysis.cached_fields import TaskIdField, StimIdField
+    from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
+    from clat.compile.tstamp.classic_database_tstamp_fields import StimIdField
+    from clat.compile.tstamp.classic_database_tstamp_fields import TaskIdField
 
     # Import your field classes
 

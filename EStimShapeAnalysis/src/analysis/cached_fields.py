@@ -1,63 +1,10 @@
-import numpy as np
 import xmltodict
-from clat.compile.trial.cached_fields import CachedDatabaseField
-from clat.compile.trial.classic_database_fields import StimSpecIdField
+from clat.compile.tstamp.classic_database_tstamp_fields import StimSpecIdField, TaskIdField, StimIdField
 from clat.util.connection import Connection
 from clat.util.time_util import When
 
 from src.pga.multi_ga_db_util import MultiGaDbUtil
 from src.startup import context
-
-
-class TaskIdField(CachedDatabaseField):
-    def get(self, when: When) -> int:
-        try:
-            self.conn.execute(
-                "SELECT msg from BehMsg WHERE "
-                "type = 'SlideOn' AND "
-                "tstamp >= %s AND tstamp <= %s",
-                params=(int(when.start), int(when.stop)))
-            trial_msg_xml = self.conn.fetch_one()
-            trial_msg_dict = xmltodict.parse(trial_msg_xml)
-            taskId = int(trial_msg_dict['SlideEvent']['taskId'])
-
-            return taskId
-        except:
-            return "None"
-
-    def get_name(self):
-        return "TaskId"
-
-
-class StimIdField(TaskIdField):
-    def get(self, when: When) -> int:
-        task_id = self.get_cached_super(when, TaskIdField)
-        self.conn.execute("SELECT stim_id from TaskToDo WHERE "
-                          "task_id = %s",
-                          params=(task_id,))
-        stim_spec_id = self.conn.fetch_one()
-        return stim_spec_id
-
-    def get_name(self):
-        return "StimId"
-
-
-class StimSpecField(StimIdField):
-    def __init__(self, conn: Connection):
-        super().__init__(conn)
-
-    def get(self, when: When) -> str:
-        # Execute the query to get the StimSpec based on task_id
-        # Note: Replace the query with the appropriate one for your schema
-        stim_id = self.get_cached_super(when, StimIdField)
-        query = "SELECT spec FROM StimSpec WHERE id = %s"
-        params = (stim_id,)
-        self.conn.execute(query, params)
-        stim_spec = self.conn.fetch_one()
-        return stim_spec
-
-    def get_name(self):
-        return "StimSpec"
 
 
 class StimSpecDataField(StimSpecIdField):

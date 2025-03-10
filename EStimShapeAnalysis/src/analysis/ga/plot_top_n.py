@@ -4,13 +4,13 @@ import pandas as pd
 from PIL import Image
 from matplotlib import pyplot as plt
 
-from clat.compile.trial.cached_fields import CachedFieldList
-from clat.compile.trial.classic_database_fields import StimSpecDataField
-from clat.compile.trial.trial_collector import TrialCollector
+from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
+from clat.compile.tstamp.classic_database_tstamp_fields import StimSpecDataField, TaskIdField, StimIdField
+from clat.compile.tstamp.trial_tstamp_collector import TrialCollector
 from clat.util import time_util
 from clat.util.connection import Connection
 from clat.util.time_util import When
-from src.analysis.cached_fields import TaskIdField, StimIdField, LineageField, StimTypeField, StimPathField, \
+from src.analysis.cached_fields import LineageField, StimTypeField, StimPathField, \
     ClusterResponseField
 from src.pga.alexnet.analysis.plot_top_n import add_colored_border
 from src.startup import context

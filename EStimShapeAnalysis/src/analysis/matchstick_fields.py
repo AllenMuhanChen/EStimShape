@@ -1,8 +1,9 @@
 import xmltodict
 
-from clat.compile.trial.cached_fields import CachedDatabaseField
+from clat.compile.tstamp.cached_tstamp_fields import CachedDatabaseField
 from clat.util.time_util import When
-from src.analysis.cached_fields import StimSpecDataField, StimIdField
+from src.analysis.cached_fields import StimSpecDataField
+from clat.compile.tstamp.classic_database_tstamp_fields import StimIdField
 
 
 class MatchStickField(CachedDatabaseField):

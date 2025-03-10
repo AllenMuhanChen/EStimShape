@@ -6,11 +6,11 @@ import xmltodict
 from matplotlib.gridspec import GridSpec
 
 from clat.compile.task.compile_task_id import TaskIdCollector
-from clat.compile.trial.cached_fields import CachedFieldList
-from clat.compile.trial.trial_collector import TrialCollector
+from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
+from clat.compile.tstamp.trial_tstamp_collector import TrialCollector
 from clat.util.connection import Connection
 from clat.util.time_util import When
-from src.analysis.cached_fields import TaskIdField, StimIdField, StimSpecField
+from clat.compile.tstamp.classic_database_tstamp_fields import TaskIdField, StimIdField, StimSpecField
 from src.intan.MultiFileParser import MultiFileParser
 from src.startup import context
 
@@ -103,6 +103,7 @@ def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
     fields.append(PhaseField(conn))
     fields.append(LocationField(conn))
     fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.isogabor_intan_path))
+
 
     data = fields.to_data(trial_tstamps)
     return data

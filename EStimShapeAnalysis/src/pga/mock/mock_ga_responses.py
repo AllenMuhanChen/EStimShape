@@ -9,10 +9,10 @@ from matplotlib import pyplot as plt
 from numpy import double
 
 from src.analysis.matchstick_fields import ShaftField
-from clat.compile.task.base_database_fields import TaskIdField, StimSpecIdField
+from clat.compile.task.classic_database_task_fields import TaskIdField, StimSpecIdField
 from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.compile.task.task_field import TaskFieldList, get_data_from_tasks
-from clat.compile.trial.trial_collector import TrialCollector
+from clat.compile.tstamp.trial_tstamp_collector import TrialCollector
 from clat.intan.channels import Channel
 from src.analysis.ga.MultiCustomNormalTuningFunction import MultiCustomNormalTuningFunction
 

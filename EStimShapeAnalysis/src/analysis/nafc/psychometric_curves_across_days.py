@@ -1,5 +1,5 @@
 import numpy as np
-from clat.compile.trial.cached_fields import CachedFieldList
+from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
 # from clat.compile import CachedFieldList
 from clat.util import time_util
 from clat.util.connection import Connection

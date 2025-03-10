@@ -2,7 +2,7 @@ import ast
 import re
 
 import xmltodict
-from clat.compile.trial.cached_fields import CachedDatabaseField
+from clat.compile.tstamp.cached_tstamp_fields import CachedDatabaseField
 
 from clat.util.connection import Connection
 from clat.util.time_util import When

@@ -1,7 +1,7 @@
 from tkinter import filedialog
 import tkinter as tk
-from clat.compile.trial.cached_fields import CachedFieldList
-from clat.compile.trial.trial_collector import TrialCollector
+from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
+from clat.compile.tstamp.trial_tstamp_collector import TrialCollector
 from clat.eyecal.params import EyeCalibrationParameters
 from clat.eyecal.plot_eyecal import filter_messages_after_experiment_start, CalibrationPointPositionField, \
     SlideOnOffTimestampField, AverageVoltsField, DegreesField, plot_average_volts

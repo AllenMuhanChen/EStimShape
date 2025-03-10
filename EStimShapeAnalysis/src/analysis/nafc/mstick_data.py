@@ -1,5 +1,5 @@
 import xmltodict
-from clat.compile.trial.cached_fields import CachedDatabaseField, CachedFieldList
+from clat.compile.tstamp.cached_tstamp_fields import CachedDatabaseField, CachedFieldList
 
 from src.analysis.nafc.nafc_database_fields import get_stim_spec
 from src.analysis.nafc.psychometric_curves import collect_choice_trials
