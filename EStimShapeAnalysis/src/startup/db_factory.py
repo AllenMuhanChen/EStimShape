@@ -72,10 +72,7 @@ def check_if_exists(base_name, recording_id):
 
 
 def update_context_file(ga_db, nafc_db, isogabor_db, two_d_vs_three_d_db):
-    cwd = os.getcwd()  # Get the current working directory (cwd)
-    files = os.listdir(cwd)  # Get all the files in that directory
-    print("Files in %r: %s" % (cwd, files))
-    target_file = 'context.py'
+    target_file = '/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/startup/context.py'
 
     # Read the target file
     with open(target_file, 'r') as file:
