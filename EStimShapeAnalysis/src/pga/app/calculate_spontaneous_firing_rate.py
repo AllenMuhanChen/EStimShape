@@ -1,5 +1,6 @@
 import numpy as np
 import xmltodict
+from clat.compile.task.cached_task_fields import CachedTaskFieldList
 
 from clat.compile.task.classic_database_task_fields import StimSpecIdField, StimSpecField
 from clat.compile.task.compile_task_id import TaskIdCollector
@@ -17,8 +18,7 @@ def calculate_spontaneous_firing():
     task_id_collector = TaskIdCollector(conn)
     task_ids = task_id_collector.collect_task_ids()
 
-    fields = TaskFieldList()
-    fields.append(TaskField(name="TaskId"))
+    fields = CachedTaskFieldList()
     fields.append(StimSpecIdField(conn))
     fields.append(StimPathField(conn))
     data = fields.to_data(task_ids)
@@ -65,22 +65,29 @@ def calculate_spontaneous_firing():
 
 class ChannelResponseField(StimSpecField):
     def __init__(self, conn, channel):
-        super().__init__(conn, name=channel)
+        super().__init__(conn)
+        self.name = channel
         self.db_util = MultiGaDbUtil(conn)
         self.cluster_channels = self.db_util.read_current_cluster(context.ga_name)
 
     def get(self, task_id):
         self.db_util.read_responses_for(task_id, )
 
+    def get_name(self) -> str:
+        return self.channel
+
 
 class StimPathField(StimSpecField):
     def __init__(self, conn):
-        super().__init__(conn, name="path")
+        super().__init__(conn)
 
-    def get(self, task_id):
-        stim_spec_field = super().get(task_id)
+    def get(self, task_id: int):
+        stim_spec_field = self.get_cached_super(task_id, StimSpecField)
         stim_spec = xmltodict.parse(stim_spec_field)
         return stim_spec["StimSpec"]["path"]
+
+    def get_name(self) -> str:
+        return "path"
 
 
 if __name__ == "__main__":

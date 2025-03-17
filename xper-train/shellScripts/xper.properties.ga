@@ -47,7 +47,7 @@ number_of_repetitions_per_stimulus = 5
 #############################################################################
 # parameters - xper
 #############################################################################
-console.eye_simulation=true
+console.eye_simulation=false
 acq.server_host=172.30.6.80
 
 # none, comedi, ni

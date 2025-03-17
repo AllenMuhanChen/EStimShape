@@ -43,6 +43,7 @@ class TSNEReducer(DimensionalityReducer):
     def get_name(self):
         return "TSNE"
 
+
 class KernelPCAReducer(DimensionalityReducer):
     def fit_transform(self, X: np.ndarray):
         self.model = KernelPCA(n_components=self.n_components, kernel='rbf')
@@ -50,6 +51,7 @@ class KernelPCAReducer(DimensionalityReducer):
 
     def get_name(self):
         return "KernelPCA"
+
 
 class SparsePCAReducer(DimensionalityReducer):
     def fit_transform(self, X: np.ndarray):

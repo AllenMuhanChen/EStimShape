@@ -5,10 +5,10 @@ source paths
 mysql --host=172.30.6.80 --user=xper_rw --password=up2nite $VERSION_GA <<EOF
 UPDATE SystemVar SET val=0.5 WHERE name='xper_eye_window_algorithm_base_window_size';
 UPDATE SystemVar SET val=1 WHERE name='xper_eye_window_algorithm_initial_window_size';
-UPDATE SystemVar SET val=3000 WHERE name='xper_slide_length';
+UPDATE SystemVar SET val=4000 WHERE name='xper_slide_length';
 UPDATE SystemVar SET val=1 WHERE name='xper_slides_per_trial';
 UPDATE SystemVar SET val=0 WHERE name = 'xper_inter_slide_interval';
-UPDATE SystemVar SET val=1000 WHERE name='xper_inter_trial_interval';
+UPDATE SystemVar SET val=500 WHERE name='xper_inter_trial_interval';
 UPDATE SystemVar SET val=1 WHERE name='xper_fixation_point_color' AND arr_ind=0;
 UPDATE SystemVar SET val=0 WHERE name='xper_fixation_point_color' AND arr_ind=1;
 UPDATE SystemVar SET val=0 WHERE name='xper_fixation_point_color' AND arr_ind=2;
@@ -16,6 +16,7 @@ UPDATE SystemVar SET val=-1 WHERE name='xper_streak_to_start_punishment';
 UPDATE SystemVar SET val=0 WHERE name='xper_punishment_delay_length';
 UPDATE SystemVar SET val=6000 WHERE name='xper_monkey_screen_depth';
 UPDATE SystemVar SET val=150 WHERE name='xper_eye_monitor_out_time_threshold';
+UPDATE SystemVar SET val=0.2 WHERE name='xper_juice_bonus_probability';
 UPDATE SystemVar SET val=0.15 WHERE name='xper_background_color' AND arr_ind=0;
 UPDATE SystemVar SET val=0.15 WHERE name='xper_background_color' AND arr_ind=1;
 UPDATE SystemVar SET val=0.15 WHERE name='xper_background_color' AND arr_ind=2;

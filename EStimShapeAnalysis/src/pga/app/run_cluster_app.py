@@ -30,6 +30,8 @@ class DbDataLoader(DataLoader):
         data_for_channels = {}
         for index, channel in enumerate(channels_for_prefix("A")):
             spikes_data = self.get_spikes_per_channel(channel.value)
+            # if spikes_data.size == 0:
+            #     continue
             data_for_channels[channel] = spikes_data
         return data_for_channels
 
@@ -81,15 +83,25 @@ class DbDataExporter(DataExporter):
 
 
 def main():
+
     app = get_qapplication_instance()
     window = ClusterApplicationWindow(DbDataLoader(context.ga_config.connection()),
                                       DbDataExporter(context.ga_config.db_util),
                                       [PCAReducer(),
                                        MDSReducer(),
-                                       TSNEReducer(),
                                        KernelPCAReducer(),
                                        SparsePCAReducer()],
                                       DBCChannelMapper("A"))
+
+    #choosing the dimensionality reduction method
+    #MDS: Multidimensional Scaling, a method that projects the data into a lower dimensional space while preserving the distances between the data points
+    #    this is useful when we want to visualize the data in a lower dimensional space, while preserving the similarity relationships between the data.
+    #SparsePCA: Sparse Principal Component Analysis, a variant of PCA that introduces sparsity in the loadings matrix
+    #    this is useful when we want to make interpreting the PC's easier, as it enforces that each PC is a linear combination of only a few stimuli.
+    #    this is particularily useful when we expect few stimuli to be relevant to the neural response.
+    #KernelPCA: Kernel Principal Component Analysis, a variant of PCA that uses a kernel function to project the data into a higher dimensional space
+    #    this is useful when the data is not linearly separable in the original space, but is in a higher dimensional space.
+
     window.show()
     app.exec_()
 

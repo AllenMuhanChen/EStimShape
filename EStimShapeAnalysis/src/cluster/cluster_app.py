@@ -69,8 +69,11 @@ class ClusterApplicationWindow(QWidget):
         self.annotator = Annotator()
 
     def reduce_data(self, reducers: list[DimensionalityReducer],
-                    point_to_reduce_for_channels: dict[Channel, np.ndarray]):
-        high_dim_points = list(point_to_reduce_for_channels.values())
+                    points_to_reduce_for_channels: dict[Channel, np.ndarray]):
+
+        points_to_reduce_for_channels_with_data = self._filter_disabled_channels(points_to_reduce_for_channels)
+
+        high_dim_points = list(points_to_reduce_for_channels_with_data.values())
         # Concatenate all the data into a single 2D array
         stacked_points = np.vstack(high_dim_points)
         reduced_points_for_reducer = {}
@@ -80,12 +83,19 @@ class ClusterApplicationWindow(QWidget):
 
             # Split the reduced data back up into channels
             reduced_data_for_channels = {}
-            self.channels = list(point_to_reduce_for_channels.keys())
+            self.channels = list(points_to_reduce_for_channels_with_data.keys())
             for channel_index, channel in enumerate(self.channels):
                 reduced_data = all_reduced_data[channel_index, :]
                 reduced_data_for_channels[channel] = reduced_data
             reduced_points_for_reducer[reducer] = reduced_data_for_channels
         return reduced_points_for_reducer
+
+    def _filter_disabled_channels(self, points_to_reduce_for_channels):
+        points_to_reduce_for_channels_with_data = {}
+        for channel, points in points_to_reduce_for_channels.items():
+            if len(points) > 0:
+                points_to_reduce_for_channels_with_data[channel] = points
+        return points_to_reduce_for_channels_with_data
 
     def create_gui(self) -> None:
         # Create the GUI panels
