@@ -6,15 +6,13 @@ import org.xper.drawing.Coordinates2D;
 import java.util.List;
 
 public class RFInfo {
-    public List<Coordinates2D> outline;
     public Coordinates2D center;
     public double radius;
 
     public RFInfo() {
     }
 
-    public RFInfo(List<Coordinates2D> outline, Coordinates2D center, double radius) {
-        this.outline = outline;
+    public RFInfo(Coordinates2D center, double radius) {
         this.center = center;
         this.setRadius(radius);
     }
@@ -35,13 +33,6 @@ public class RFInfo {
         return p;
     }
 
-    public List<Coordinates2D> getOutline() {
-        return outline;
-    }
-
-    public void setOutline(List<Coordinates2D> outline) {
-        this.outline = outline;
-    }
 
     public Coordinates2D getCenter() {
         return center;

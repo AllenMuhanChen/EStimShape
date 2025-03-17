@@ -1,6 +1,5 @@
 package org.xper.rfplot.gui;
 
-import org.lwjgl.opengl.GL11;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.Dependency;
 import org.xper.console.ConsoleRenderer;
@@ -9,10 +8,8 @@ import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.GLUtil;
 import org.xper.drawing.RGBColor;
-import org.xper.drawing.object.Circle;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.*;
-import org.xper.rfplot.Point;
 import org.xper.rfplot.drawing.RFPlotBlankObject;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 
@@ -23,7 +20,6 @@ import org.xper.util.DbUtil;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.security.Key;
 import java.util.*;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -170,13 +166,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
                 Coordinates2D circleCenterDeg = mm2deg(circleRF.getCircleCenter());
                 double radiusDeg = renderer.mm2deg(circleRF.getCircleRadius());
 
-                List<Coordinates2D> interpolatedOutlineDeg = plotter.getInterpolatedOutline(channel);
-                for (Coordinates2D point : interpolatedOutlineDeg) {
-                    point.setX(point.getX());
-                    point.setY(point.getY());
-                }
-
-                RFInfo rfInfo = new RFInfo(interpolatedOutlineDeg, circleCenterDeg, radiusDeg);
+                RFInfo rfInfo = new RFInfo(circleCenterDeg, radiusDeg);
                 dbUtil.writeRFInfo(timeUtil.currentTimeMicros(), channel, rfInfo.toXml());
             }
         });
