@@ -21,8 +21,11 @@ class MultiFileParser:
     """
     sample_rate: int = None
 
-    def __init__(self, to_cache: bool = False, cache_dir: str = None):
-        self.one_file_parser = OneFileParser()
+    def __init__(self, to_cache: bool = False, cache_dir: str = None, one_file_parser: OneFileParser = None):
+        if one_file_parser is None:
+            self.one_file_parser = OneFileParser()
+        else:
+            self.one_file_parser = one_file_parser
         self.to_cache = to_cache
         self.cache_dir = cache_dir
 
