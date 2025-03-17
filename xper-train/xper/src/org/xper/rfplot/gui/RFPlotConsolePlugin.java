@@ -79,7 +79,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT,0));
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN,0));
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_F,0));
-        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_L,0));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_L,InputEvent.CTRL_DOWN_MASK));
         return commandKeys;
     }
 
@@ -112,7 +112,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             System.out.println("Saving RFInfo");
             save();
         }
-        if(KeyStroke.getKeyStroke(KeyEvent.VK_L, 0).equals(k)){
+        if(KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK).equals(k)){
             System.out.println("Loading RFInfo");
             load();
         }
