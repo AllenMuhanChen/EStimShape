@@ -188,6 +188,9 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     private void load(){
         long tstamp = getTstampToLoad();
+        if (tstamp == 0){
+            return;
+        }
         RFInfoEntry rfInfoEntry = dbUtil.readRFInfo(tstamp, tstamp).get(0);
         RFInfo rfInfo = RFInfo.fromXml(rfInfoEntry.getInfo());
 
@@ -198,7 +201,37 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     }
 
     private long getTstampToLoad() {
-        return 1741971853474405L;
+        // Default value to return if user cancels or enters invalid input
+
+        try {
+            // Show an input dialog to get the timestamp from the user
+            String userInput = JOptionPane.showInputDialog(
+                    null,
+                    "Enter timestamp to load RF data:",
+                    "Load RF Data",
+                    JOptionPane.QUESTION_MESSAGE
+            );
+
+            // Check if user cancelled the dialog or entered empty input
+            if (userInput == null || userInput.trim().isEmpty()) {
+                System.out.println("User cancelled or entered empty input. Using default timestamp.");
+                return 0;
+            }
+
+            // Parse the input as a long
+            long tstamp = Long.parseLong(userInput.trim());
+            System.out.println("Loading RF data from timestamp: " + tstamp);
+            return tstamp;
+        } catch (NumberFormatException e) {
+            // Handle invalid number format
+            JOptionPane.showMessageDialog(
+                    null,
+                    "Invalid timestamp format. Using default timestamp.",
+                    "Input Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            return 0;
+        }
     }
 
     private void writeRFObjectData(String channel, String object, String data, long timestamp) {
