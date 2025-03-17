@@ -3,18 +3,28 @@ package org.xper.rfplot;
 import com.thoughtworks.xstream.XStream;
 import org.xper.drawing.Coordinates2D;
 
+import java.util.LinkedList;
 import java.util.List;
 
 public class RFInfo {
     public Coordinates2D center;
     public double radius;
+    List<Coordinates2D> outline = new LinkedList<>();
 
     public RFInfo() {
     }
 
-    public RFInfo(Coordinates2D center, double radius) {
+    /**
+     *
+     * @param center - in degrees
+     * @param radius - in degrees
+     * @param controlPoints - in mm, should be original control points without any conversion.
+     *                      This is solely to reload the circles when reloading.
+     */
+    public RFInfo(Coordinates2D center, double radius, List<Coordinates2D> controlPoints) {
         this.center = center;
         this.setRadius(radius);
+        this.outline = controlPoints;
     }
 
     transient static XStream s;
@@ -48,5 +58,13 @@ public class RFInfo {
 
     public void setRadius(double radius) {
         this.radius = radius;
+    }
+
+    public List<Coordinates2D> getControlPoints() {
+        return outline;
+    }
+
+    public void setControlPoints(List<Coordinates2D> controlPoints) {
+        this.outline = controlPoints;
     }
 }

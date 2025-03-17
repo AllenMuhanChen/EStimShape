@@ -228,28 +228,6 @@ public class RFPlotDrawer {
         return rfsForChannels.get(currentChannel).getCircleRadius() * 2;
     }
 
-
-    public List<Coordinates2D> getInterpolatedOutline(String channel) {
-        Coordinates2D circleCenter = rfsForChannels.get(channel).getCircleCenter();
-        double circleRadius = rfsForChannels.get(channel).getCircleRadius();
-
-        List<Coordinates2D> outlinePoints = new ArrayList<>();
-        if (circleCenter == null || circleRadius <= 0) {
-            return outlinePoints; // Return an empty list if there's no valid circle.
-        }
-
-        // Calculate the points
-        double increment = 2 * Math.PI / 100; // 2*PI radians for a full circle, divided into 100 points.
-        for (int i = 0; i < 100; i++) {
-            double theta = i * increment;
-            double x = circleCenter.getX() + circleRadius * Math.cos(theta);
-            double y = circleCenter.getY() + circleRadius * Math.sin(theta);
-            outlinePoints.add(new Coordinates2D(x, y));
-        }
-
-        return outlinePoints;
-    }
-
     public Map<String, RGBColor> getColorsForChannels() {
         return colorsForChannels;
     }

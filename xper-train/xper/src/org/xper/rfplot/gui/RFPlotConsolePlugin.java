@@ -4,6 +4,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.Dependency;
 import org.xper.console.ConsoleRenderer;
 import org.xper.console.IConsolePlugin;
+import org.xper.db.vo.RFInfoEntry;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.GLUtil;
@@ -78,6 +79,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT,0));
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN,0));
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_F,0));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_L,0));
         return commandKeys;
     }
 
@@ -109,6 +111,10 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         if(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK).equals(k)){
             System.out.println("Saving RFInfo");
             save();
+        }
+        if(KeyStroke.getKeyStroke(KeyEvent.VK_L, 0).equals(k)){
+            System.out.println("Loading RFInfo");
+            load();
         }
         if(KeyStroke.getKeyStroke(KeyEvent.VK_UP,0).equals(k)){
             updateStimPosition(new Coordinates2D(currentStimPosition.getX(), currentStimPosition.getY() + 1));
@@ -165,8 +171,8 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
                 Coordinates2D circleCenterDeg = mm2deg(circleRF.getCircleCenter());
                 double radiusDeg = renderer.mm2deg(circleRF.getCircleRadius());
-
-                RFInfo rfInfo = new RFInfo(circleCenterDeg, radiusDeg);
+                List<Coordinates2D> circlePoints = circleRF.getCirclePoints();
+                RFInfo rfInfo = new RFInfo(circleCenterDeg, radiusDeg, circlePoints);
                 dbUtil.writeRFInfo(timeUtil.currentTimeMicros(), channel, rfInfo.toXml());
             }
         });
@@ -178,6 +184,21 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
                 writeRFObjectData(currentChannel, objectName, data, timeUtil.currentTimeMicros());
             }
         });
+    }
+
+    private void load(){
+        long tstamp = getTstampToLoad();
+        RFInfoEntry rfInfoEntry = dbUtil.readRFInfo(tstamp, tstamp).get(0);
+        RFInfo rfInfo = RFInfo.fromXml(rfInfoEntry.getInfo());
+
+        CircleRF circleRF = new CircleRF(rfInfo.getCenter(), rfInfo.getRadius(), rfInfo.getControlPoints());
+        for (Coordinates2D point : circleRF.getCirclePoints()) {
+            plotter.addCirclePoint(point);
+        }
+    }
+
+    private long getTstampToLoad() {
+        return 1741971853474405L;
     }
 
     private void writeRFObjectData(String channel, String object, String data, long timestamp) {
