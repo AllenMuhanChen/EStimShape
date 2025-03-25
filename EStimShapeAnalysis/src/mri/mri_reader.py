@@ -357,32 +357,22 @@ class MRIViewer:
         if x is None or y is None:
             return
 
-        # Convert to physical coordinates in mm using the affine transformation
-        if self.affine is not None:
-            # Create a voxel coordinate array with the current slice
-            voxel_coords = np.array([x, y, self.current_slice, 1])
+        # If EBZ is set, calculate relative coordinates
+        if self.ebz_set:
+            # EBZ marker world coordinates have already been calculated during initial setting
+            ebz_x, ebz_y = self.ebz_pixel_coords  # Store these when setting EBZ
 
-            # Apply the affine transformation to get RAS+ coordinates
-            world_coords = np.dot(self.affine, voxel_coords)
+            # Calculate relative coordinates
+            relative_x = x - ebz_x
+            relative_y = y - ebz_y
 
-            # Get the first 3 elements (x, y, z) in mm
-            # Map to neuroanatomical convention: x=AP, y=DV, z=ML
-            ap_mm, dv_mm, ml_mm = world_coords[0], -world_coords[1], world_coords[2]
-
-            # Apply EBZ offset if EBZ is set
-            if self.ebz_set:
-                ap_mm -= self.ebz_coordinates['x']
-                dv_mm -= self.ebz_coordinates['y']
-                ml_mm -= self.ebz_coordinates['z']
-
-            # Update the cursor position label - show in neuroanatomical terms
-            self.cursor_position_var.set(f"Cursor: AP={ap_mm:.2f}, DV={dv_mm:.2f}, ML={ml_mm:.2f} mm")
+            # Update cursor position
+            self.cursor_position_var.set(f"Cursor: AP={relative_x:.1f} px, DV={relative_y:.1f} px")
         else:
-            # No affine transformation available, just show pixel coordinates
+            # No EBZ, just show pixel coordinates
             self.cursor_position_var.set(f"Cursor: X={x:.1f} px, Y={y:.1f} px")
 
     def on_mouse_click(self, event):
-        """Handle mouse click to potentially set EBZ point"""
         if not hasattr(self, 'img') or self.img is None or not event.inaxes:
             return
 
@@ -393,34 +383,29 @@ class MRIViewer:
             if x is None or y is None:
                 return
 
-            # Convert to physical coordinates in mm
-            if self.affine is not None:
-                # Create a voxel coordinate array with the current slice
-                voxel_coords = np.array([x, y, self.current_slice, 1])
+            # Ask user to confirm EBZ coordinates
+            if messagebox.askyesno("Set EBZ Coordinates",
+                                   f"Set EBZ at pixel coordinates:\n"
+                                   f"X = {x:.2f}\n"
+                                   f"Y = {y:.2f}"):
+                # Set the coordinates
+                self.ebz_x_var.set(x)
+                self.ebz_y_var.set(y)
 
-                # Apply the affine transformation to get RAS+ coordinates
-                world_coords = np.dot(self.affine, voxel_coords)
+                # Store the pixel coordinates for relative tracking
+                self.ebz_pixel_coords = (x, y)
 
-                # Get the first 3 elements (x, y, z) in mm and convert to AP, DV, ML
-                ap_mm, dv_mm, ml_mm = world_coords[0], -world_coords[1], world_coords[2]
+                # If not previously set, set ML to middle slice
+                if not self.ebz_set and self.slice_positions and len(self.slice_positions) > 0:
+                    middle_slice_idx = len(self.slice_positions) // 2
+                    middle_slice_ml = self.slice_positions[middle_slice_idx]
+                    self.ebz_z_var.set(middle_slice_ml)
 
-                # Ask user if they want to set this as EBZ X and Y coordinates (keeping Z separate)
-                if messagebox.askyesno("Set EBZ AP,DV Coordinates",
-                                       f"Set EBZ AP,DV coordinates to:\nAP={ap_mm:.2f}, DV={dv_mm:.2f} mm?\n(ML coordinate will remain unchanged)"):
-                    # Set only AP and DV coordinates (X and Y in our interface)
-                    self.ebz_x_var.set(ap_mm)
-                    self.ebz_y_var.set(dv_mm)
-                    # Keep existing Z coordinate or set to middle slice if not set
-                    if not self.ebz_set:
-                        # Z coordinate relative to middle slice
-                        if self.slice_positions and len(self.slice_positions) > 0:
-                            middle_slice_idx = len(self.slice_positions) // 2
-                            middle_slice_z = self.slice_positions[middle_slice_idx]
-                            self.ebz_z_var.set(middle_slice_z)
+                # Apply the EBZ settings
+                self.set_ebz()
 
-                    # Apply the EBZ settings
-                    self.set_ebz()
-
+        # Optional: keep the existing slice display logic
+        self.display_current_slice()
     def extract_ebz_from_view(self):
         """Extract EBZ AP,DV coordinates from the current view center, ML coordinate remains unchanged"""
         if not hasattr(self, 'img') or self.img is None:
@@ -463,38 +448,113 @@ class MRIViewer:
                                 f"ML coordinate is set to: {self.ebz_z_var.get():.2f} mm")
 
     def set_ebz(self):
-        """Set the EBZ coordinates based on the current input values"""
+        """Set the EBZ coordinates with comprehensive validation"""
         try:
-            self.ebz_coordinates = {
-                "x": self.ebz_x_var.get(),
-                "y": self.ebz_y_var.get(),
-                "z": self.ebz_z_var.get()
-            }
-            self.ebz_set = True
-            self.status_var.set(f"EBZ set to AP={self.ebz_coordinates['x']:.2f}, "
-                                f"DV={self.ebz_coordinates['y']:.2f}, "
-                                f"ML={self.ebz_coordinates['z']:.2f} mm")
+            # Retrieve coordinates with error checking
+            x = self.ebz_x_var.get()
+            y = self.ebz_y_var.get()
+            z = self.ebz_z_var.get()
 
-            # Update the display to show coordinates relative to EBZ
+            # Validate coordinates (optional: add more specific validation if needed)
+            if not all(isinstance(coord, (int, float)) for coord in [x, y, z]):
+                raise ValueError("Coordinates must be numeric")
+
+            # Store coordinates in a consistent format
+            self.ebz_coordinates = {
+                "x": float(x),  # AP
+                "y": float(y),  # DV
+                "z": float(z)  # ML
+            }
+
+            # Validate against current image (if loaded)
+            if self.img is not None and self.affine is not None:
+                # Optional: Add additional sanity checks
+                # For example, check if coordinates are within reasonable range of the image
+                self._validate_ebz_coordinates()
+
+            # Mark EBZ as set
+            self.ebz_set = True
+
+            # Update status and UI
+            status_msg = (f"EBZ set to AP={self.ebz_coordinates['x']:.2f}, "
+                          f"DV={self.ebz_coordinates['y']:.2f}, "
+                          f"ML={self.ebz_coordinates['z']:.2f} mm")
+            self.status_var.set(status_msg)
+
+            # Update buttons
+            self.reset_ebz_button.config(state=tk.NORMAL)
+
+            # Redisplay current slice to reflect new EBZ
             self.display_current_slice()
 
-            # Update button states
-            self.reset_ebz_button.config(state=tk.NORMAL)
         except ValueError as e:
-            messagebox.showerror("Error", f"Invalid coordinate values: {str(e)}")
+            messagebox.showerror("EBZ Setting Error", str(e))
+            self.ebz_set = False
+
+    def _validate_ebz_coordinates(self):
+        """
+        Perform sanity checks on EBZ coordinates
+
+        This method can be expanded to include more sophisticated validation
+        based on the specific characteristics of the loaded image.
+        """
+        if self.img is None or self.affine is None:
+            return
+
+        # Get image dimensions in world coordinates
+        # This provides a rough bounds check
+        image_dims = self.data.shape
+
+        # Convert image corner coordinates to world space
+        corners = [
+            [0, 0, 0, 1],
+            [image_dims[0], 0, 0, 1],
+            [0, image_dims[1], 0, 1],
+            [0, 0, image_dims[2], 1]
+        ]
+
+        world_corners = [np.dot(self.affine, corner)[:3] for corner in corners]
+
+        # Calculate rough bounds
+        x_bounds = [min(c[0] for c in world_corners), max(c[0] for c in world_corners)]
+        y_bounds = [min(c[1] for c in world_corners), max(c[1] for c in world_corners)]
+        z_bounds = [min(c[2] for c in world_corners), max(c[2] for c in world_corners)]
+
+        # Check if EBZ coordinates are within a reasonable range
+        x, y, z = self.ebz_coordinates['x'], self.ebz_coordinates['y'], self.ebz_coordinates['z']
+
+        warnings = []
+        if not (x_bounds[0] - 50 <= x <= x_bounds[1] + 50):
+            warnings.append(f"AP coordinate {x} is far from expected range {x_bounds}")
+        if not (y_bounds[0] - 50 <= y <= y_bounds[1] + 50):
+            warnings.append(f"DV coordinate {y} is far from expected range {y_bounds}")
+        if not (z_bounds[0] - 50 <= z <= z_bounds[1] + 50):
+            warnings.append(f"ML coordinate {z} is far from expected range {z_bounds}")
+
+        # Optionally warn user about potentially incorrect coordinates
+        if warnings:
+            warning_msg = "Potential EBZ coordinate issues:\n" + "\n".join(warnings)
+            messagebox.showwarning("EBZ Coordinate Warning", warning_msg)
 
     def reset_ebz(self):
-        """Reset the EBZ coordinates to zero"""
-        self.ebz_coordinates = {"x": 0, "y": 0, "z": 0}
+        """Reset EBZ coordinates with clear state management"""
+        # Reset coordinate variables
         self.ebz_x_var.set(0)
         self.ebz_y_var.set(0)
         self.ebz_z_var.set(0)
+
+        # Reset coordinate dictionary
+        self.ebz_coordinates = {"x": 0, "y": 0, "z": 0}
+
+        # Clear EBZ set flag
         self.ebz_set = False
+
+        # Update UI
         self.status_var.set("EBZ reset to origin")
+        self.reset_ebz_button.config(state=tk.DISABLED)
 
-        # Update the display
+        # Redisplay current slice without EBZ offset
         self.display_current_slice()
-
     def save_default_path(self):
         """Save the current file path and EBZ coordinates as defaults"""
         current_path = self.file_path_var.get().strip()
@@ -802,200 +862,85 @@ class MRIViewer:
         # Create new axes
         ax = self.fig.add_subplot(111)
 
-        # Get the current slice data
         try:
+            # Get current slice data
             if self.has_dynamics:
                 img_data = self.data[self.current_slice, :, :, self.current_dynamic]
-                title = f'Slice {self.current_slice}/{self.slices - 1}, Dynamic {self.current_dynamic}/{self.dynamics - 1}'
             else:
                 img_data = self.data[self.current_slice, :, :]
-                title = f'Slice {self.current_slice}/{self.slices - 1}'
 
-            # Add position information if available
-            if self.slice_positions is not None and len(self.slice_positions) > self.current_slice:
-                # Get the position in mm (as ML coordinate)
+            # Display the image
+            img_display = ax.imshow(np.flipud(img_data), cmap='gray', aspect='equal')
+
+            # Adjust contrast
+            try:
+                vmin = np.percentile(img_data, 2)
+                vmax = np.percentile(img_data, 98)
+                if np.isfinite(vmin) and np.isfinite(vmax):
+                    img_display.set_clim(vmin, vmax)
+            except Exception as e:
+                print(f"Could not adjust contrast: {str(e)}")
+
+            # Add colorbar
+            self.fig.colorbar(img_display, ax=ax)
+
+            # If EBZ is set, add marker and axes
+            if self.ebz_set:
+                # Get image dimensions
+                rows, cols = img_data.shape
+
+                # Plot EBZ as a red star
+                star_y = self.ebz_pixel_coords[1]
+                star_x = self.ebz_pixel_coords[0]
+
+                ax.plot(star_x, star_y, 'r*', markersize=10)
+                ax.text(star_x, star_y - 10, "EBZ", color='red',
+                        fontsize=10, ha='center', va='bottom', weight='bold')
+
+                # Draw X-axis (horizontal green line)
+                x_line = np.linspace(0, cols - 1, cols)
+                ax.plot(x_line, [star_y] * cols, 'g-', linewidth=1, alpha=0.5)
+
+                # Draw Y-axis (vertical green line)
+                y_line = np.linspace(0, rows - 1, rows)
+                ax.plot([star_x] * rows, y_line, 'g-', linewidth=1, alpha=0.5)
+
+            # Construct title
+            title = f'Slice {self.current_slice}/{self.slices - 1}'
+            if self.has_dynamics:
+                title += f', Dynamic {self.current_dynamic}/{self.dynamics - 1}'
+
+            if self.slice_positions and len(self.slice_positions) > self.current_slice:
                 ml_pos_mm = self.slice_positions[self.current_slice]
-
-                # Apply EBZ offset if set
                 if self.ebz_set:
                     rel_ml_pos = ml_pos_mm - self.ebz_coordinates['z']
                     title += f', ML: {rel_ml_pos:.2f} mm from EBZ'
                 else:
                     title += f', ML: {ml_pos_mm:.2f} mm'
 
-                # Add thickness information if available
-                if hasattr(self, 'slice_thickness') and self.slice_thickness is not None:
-                    title += f', Thickness: {self.slice_thickness:.2f} mm'
-
-            # Add EBZ information to title if set
             if self.ebz_set:
                 title += f' (EBZ: AP={self.ebz_coordinates["x"]:.1f}, DV={self.ebz_coordinates["y"]:.1f}, ML={self.ebz_coordinates["z"]:.1f} mm)'
 
             ax.set_title(title)
 
-            # Make a copy of the data to avoid modifying the original
-            img_data_copy = np.copy(img_data)
+            # Set x and y axis labels relative to EBZ
+            if self.ebz_set:
+                ax.set_xlabel('Anterior-Posterior (mm)')
+                ax.set_ylabel('Dorsal-Ventral (mm)')
 
-            # Replace NaN and inf values
-            img_data_copy = np.nan_to_num(img_data_copy)
+                # Modify ticks to be relative to EBZ
+                def format_coord(x, y):
+                    # Calculate offsets from EBZ point
+                    ap_offset = x - star_x
+                    dv_offset = y - star_y
+                    return f'AP: {ap_offset:.1f} mm, DV: {-dv_offset:.1f} mm'
 
-            # Display the image - flip vertically to get proper orientation (top=dorsal)
-            img_display = ax.imshow(np.flipud(img_data_copy), cmap='gray', aspect='equal')
+                ax.format_coord = format_coord
 
-            # Adjust display range to improve contrast
-            try:
-                vmin = np.percentile(img_data_copy, 2)
-                vmax = np.percentile(img_data_copy, 98)
-                if np.isfinite(vmin) and np.isfinite(vmax):
-                    img_display.set_clim(vmin, vmax)
-            except Exception as e:
-                print(f"Could not adjust contrast: {str(e)}")
-
-            # Add a colorbar
-            self.fig.colorbar(img_display, ax=ax)
-
-            # Add AP (anterior-posterior) and DV (dorsal-ventral) axis labels
-            ax.set_xlabel('Anterior →', fontsize=10)
-            ax.set_ylabel('↑ Dorsal', fontsize=10)
-
-            # Add stereotaxic coordinate grid if EBZ is set
-            if self.ebz_set and self.affine is not None:
-                try:
-                    rows, cols = img_data.shape
-
-                    # Get the world coordinates for the corners of the slice to determine grid ranges
-                    voxel_coords = np.array([
-                        [0, 0, self.current_slice, 1],
-                        [cols, 0, self.current_slice, 1],
-                        [0, rows, self.current_slice, 1],
-                        [cols, rows, self.current_slice, 1]
-                    ])
-
-                    # Apply affine transformation to get world coordinates
-                    world_coords = np.dot(self.affine, voxel_coords.T).T
-
-                    # Get min/max values for AP and DV axes in world coordinates
-                    ap_min, ap_max = np.min(world_coords[:, 0]), np.max(world_coords[:, 0])
-                    dv_min, dv_max = -np.max(world_coords[:, 1]), -np.min(world_coords[:, 1])  # Flip DV
-
-                    # Apply EBZ offset
-                    ap_min -= self.ebz_coordinates['x']
-                    ap_max -= self.ebz_coordinates['x']
-                    dv_min -= self.ebz_coordinates['y']
-                    dv_max -= self.ebz_coordinates['y']
-
-                    # Calculate grid step size (in mm)
-                    ap_step = max(1, int((ap_max - ap_min) / 10))
-                    dv_step = max(1, int((dv_max - dv_min) / 10))
-
-                    # Round to get clean grid lines
-                    ap_start = int(np.floor(ap_min / ap_step) * ap_step)
-                    ap_end = int(np.ceil(ap_max / ap_step) * ap_step)
-                    dv_start = int(np.floor(dv_min / dv_step) * dv_step)
-                    dv_end = int(np.ceil(dv_max / dv_step) * dv_step)
-
-                    # Create grid lines in world coordinates
-                    ap_grid_lines = np.arange(ap_start, ap_end + 1, ap_step)
-                    dv_grid_lines = np.arange(dv_start, dv_end + 1, dv_step)
-
-                    # For each AP coordinate, create a vertical line
-                    for ap in ap_grid_lines:
-                        # Points along this AP world coordinate (vertical line)
-                        points = []
-                        for dv in np.linspace(dv_min, dv_max, 100):
-                            # Add back EBZ offset for inverse transformation
-                            world_ap = ap + self.ebz_coordinates['x']
-                            world_dv = -(dv + self.ebz_coordinates['y'])  # Negate for proper DV
-                            world_ml = self.slice_positions[self.current_slice] if self.slice_positions else 0
-
-                            # Get affine matrix inverse
-                            affine_inv = np.linalg.inv(self.affine)
-
-                            # Transform to voxel coordinates
-                            voxel = np.dot(affine_inv, np.array([world_ap, world_dv, world_ml, 1]))
-
-                            # Only add points that are inside the image
-                            if 0 <= voxel[0] < cols and 0 <= voxel[1] < rows:
-                                # Flip Y for display (image is flipped)
-                                points.append((voxel[0], rows - voxel[1]))
-
-                        if points:
-                            points = np.array(points)
-                            ax.plot(points[:, 0], points[:, 1], 'g-', alpha=0.3, linewidth=0.5)
-
-                            # Add coordinate label
-                            if len(points) > 0:
-                                mid_point = points[len(points) // 2]
-                                ax.text(mid_point[0], mid_point[1], f"AP {ap:.0f}", color='green',
-                                        fontsize=8, ha='center', va='top',
-                                        bbox=dict(facecolor='white', alpha=0.5, pad=1))
-
-                    # For each DV coordinate, create a horizontal line
-                    for dv in dv_grid_lines:
-                        points = []
-                        for ap in np.linspace(ap_min, ap_max, 100):
-                            # Add back EBZ offset for inverse transformation
-                            world_ap = ap + self.ebz_coordinates['x']
-                            world_dv = -(dv + self.ebz_coordinates['y'])  # Negate for proper DV
-                            world_ml = self.slice_positions[self.current_slice] if self.slice_positions else 0
-
-                            # Transform to voxel coordinates
-                            affine_inv = np.linalg.inv(self.affine)
-                            voxel = np.dot(affine_inv, np.array([world_ap, world_dv, world_ml, 1]))
-
-                            if 0 <= voxel[0] < cols and 0 <= voxel[1] < rows:
-                                # Flip Y for display (image is flipped)
-                                points.append((voxel[0], rows - voxel[1]))
-
-                        if points:
-                            points = np.array(points)
-                            ax.plot(points[:, 0], points[:, 1], 'g-', alpha=0.3, linewidth=0.5)
-
-                            # Add coordinate label
-                            if len(points) > 0:
-                                mid_point = points[len(points) // 2]
-                                ax.text(mid_point[0], mid_point[1], f"DV {dv:.0f}", color='green',
-                                        fontsize=8, ha='right', va='center',
-                                        bbox=dict(facecolor='white', alpha=0.5, pad=1))
-
-                    # Mark the EBZ point if it's in this slice
-                    if self.slice_positions:
-                        ebz_ml_voxel = None
-
-                        # Find which slice is closest to the EBZ z-coordinate (ML position)
-                        closest_slice = min(range(len(self.slice_positions)),
-                                            key=lambda i: abs(self.slice_positions[i] - self.ebz_coordinates['z']))
-
-                        # If current slice is close to the EBZ ML position (within half a slice thickness)
-                        if abs(self.current_slice - closest_slice) < 1:
-                            # The EBZ point in world coordinates (AP, DV, ML)
-                            ebz_world = np.array([self.ebz_coordinates['x'], -self.ebz_coordinates['y'],
-                                                  self.ebz_coordinates['z'], 1])
-
-                            # Transform to voxel coordinates
-                            affine_inv = np.linalg.inv(self.affine)
-                            ebz_voxel = np.dot(affine_inv, ebz_world)
-
-                            # Check if the point is inside the image
-                            if 0 <= ebz_voxel[0] < cols and 0 <= ebz_voxel[1] < rows:
-                                # Mark the EBZ point with a star marker (flipping Y)
-                                ax.plot(ebz_voxel[0], rows - ebz_voxel[1], 'r*', markersize=10)
-                                ax.text(ebz_voxel[0], rows - ebz_voxel[1] - 10, "EBZ", color='red',
-                                        fontsize=10, ha='center', va='bottom', weight='bold',
-                                        bbox=dict(facecolor='white', alpha=0.7, pad=2))
-                except Exception as e:
-                    print(f"Error drawing coordinate grid: {str(e)}")
         except Exception as e:
             print(f"Error displaying slice: {str(e)}")
-            # Show a message in the plot
             ax.text(0.5, 0.5, f"Error displaying slice:\n{str(e)}",
                     ha='center', va='center', transform=ax.transAxes, color='red', fontsize=12)
-
-        # Update the canvas
-        self.canvas.draw()
-        # Show a message in the plot
-        ax.text(0.5, 0.5, f"Error displaying slice:\n{str(e)}",
-                ha='center', va='center', transform=ax.transAxes, color='red', fontsize=12)
 
         # Update the canvas
         self.canvas.draw()
