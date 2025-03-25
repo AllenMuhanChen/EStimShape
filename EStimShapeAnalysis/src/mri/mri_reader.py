@@ -1,5 +1,154 @@
-import matplotlib
 import numpy as np
+
+
+def save_default_path(self):
+    """Save the current file path and EBZ coordinates as defaults"""
+    current_path = self.file_path_var.get().strip()
+    if not current_path:
+        messagebox.showerror("Error", "No file path to save as default.")
+        return
+
+    config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mri_viewer_config.json')
+    try:
+        config = {'default_path': current_path}
+
+        # Also save EBZ coordinates if set
+        if self.ebz_set:
+            config['ebz_coordinates'] = {
+                'x': self.ebz_coordinates['x'],
+                'y': self.ebz_coordinates['y'],
+                'z': self.ebz_coordinates['z']
+            }
+
+        with open(config_file, 'w') as f:
+            json.dump(config, f)
+
+        # Confirmation message with neuroanatomical terms
+        if self.ebz_set:
+            messagebox.showinfo("Success",
+                                f"Default path saved: {current_path}\n\n"
+                                f"Default EBZ coordinates saved:\n"
+                                f"AP: {self.ebz_coordinates['x']:.2f}, "
+                                f"DV: {self.ebz_coordinates['y']:.2f}, "
+                                f"ML: {self.ebz_coordinates['z']:.2f} mm")
+        else:
+            messagebox.showinfo("Success", f"Default path saved: {current_path}")
+
+        self.default_path = current_path
+    except Exception as e:
+        messagebox.showerror("Error", f"Could not save default path: {str(e)}")
+
+
+    par_file = self.file_path_var.get().strip()
+
+    if not par_file:
+        messagebox.showerror("Error", "Please select a PAR file.")
+        return
+
+    if not os.path.exists(par_file):
+        messagebox.showerror("Error", f"File {par_file} does not exist.")
+        return
+
+    if not par_file.upper().endswith('.PAR'):
+        if not messagebox.askyesno("Warning",
+                                   f"File {par_file} does not have a .PAR extension.\nDo you want to continue?"):
+            return
+
+    if not self.check_rec_file(par_file):
+        messagebox.showerror("Error", f"Corresponding REC file for {par_file} not found.")
+        return
+
+    try:
+        self.status_var.set(f"Loading {par_file}...")
+        self.root.update()
+
+        # Load the PAR/REC file
+        self.img = load_parrec(par_file)
+        self.data = self.img.get_fdata()
+
+        # Store the affine matrix for coordinate transformations
+        self.affine = self.img.affine
+        print("Affine matrix loaded:", self.affine)
+
+        # Get dimensions
+        if len(self.data.shape) == 4:
+            self.slices, rows, cols, self.dynamics = self.data.shape
+            self.has_dynamics = True
+        elif len(self.data.shape) == 3:
+            self.slices, rows, cols = self.data.shape
+            self.dynamics = 1
+            self.has_dynamics = False
+        else:
+            raise ValueError("Unexpected data dimensions. Expected 3D or 4D data.")
+
+        # Extract slice position information from header
+        self.slice_positions = []
+        try:
+            # Generate slice positions based on affine matrix
+            # This should work regardless of header structure
+            self.slice_positions = []
+            for i in range(self.slices):
+                voxel_coords = np.array([0, 0, i, 1])
+                world_coords = np.dot(self.affine, voxel_coords)
+                self.slice_positions.append(float(world_coords[2]))
+            print(f"Generated {len(self.slice_positions)} slice positions from affine matrix")
+
+            # Try to get slice thickness from header
+            try:
+                header = self.img.header
+                if hasattr(header, 'general_info') and isinstance(header.general_info, dict):
+                    self.slice_thickness = header.general_info.get('slice_thickness', None)
+                    if self.slice_thickness:
+                        print(f"Slice thickness: {self.slice_thickness} mm")
+            except Exception as e:
+                print(f"Could not get slice thickness: {str(e)}")
+                self.slice_thickness = None
+
+        except Exception as e:
+            print(f"Could not generate slice positions: {str(e)}")
+            self.slice_positions = None
+
+        # Initialize slice to middle
+        self.current_slice = self.slices // 2
+        self.current_dynamic = 0
+
+        # Update UI controls
+        self.slice_var.set(self.current_slice)
+        self.slice_scale.configure(from_=0, to=self.slices - 1)
+        self.slice_label.config(text=f"{self.current_slice}/{self.slices - 1}")
+
+        if self.has_dynamics:
+            self.dynamic_var.set(self.current_dynamic)
+            self.dynamic_scale.configure(from_=0, to=self.dynamics - 1)
+            self.dynamic_label.config(text=f"{self.current_dynamic}/{self.dynamics - 1}")
+            self.show_dynamic_controls()
+        else:
+            self.hide_dynamic_controls()
+
+        # Enable EBZ buttons
+        self.set_ebz_button.config(state=tk.NORMAL)
+        self.extract_ebz_button.config(state=tk.NORMAL)
+        self.set_z_button.config(state=tk.NORMAL)
+        self.set_z_mid_button.config(state=tk.NORMAL)
+        if self.ebz_set:
+            self.reset_ebz_button.config(state=tk.NORMAL)
+
+        # Display the initial image
+        self.display_current_slice()
+
+        # Add a debug button to show all header information
+        debug_button = ttk.Button(self.slice_control_frame, text="Show Header Info",
+                                  command=self.show_header_info)
+        debug_button.grid(row=0, column=3, padx=5, pady=5)
+
+        self.status_var.set(f"Loaded {par_file}. Dimensions: {self.data.shape}")
+    except Exception as e:
+        self.status_var.set("Error loading file")
+        messagebox.showerror("Error", f"Error visualizing file: {str(e)}")
+        import numpy as np
+
+
+import matplotlib
 
 matplotlib.use('TkAgg')  # Use TkAgg backend for better integration with Tkinter
 from matplotlib.figure import Figure
@@ -84,16 +233,16 @@ class MRIViewer:
         self.ebz_frame = ttk.LabelFrame(main_frame, text="EBZ (External Brain Zero) Coordinates")
         self.ebz_frame.pack(fill=tk.X, padx=5, pady=5)
 
-        # EBZ coordinate inputs
-        ttk.Label(self.ebz_frame, text="X (mm):").grid(row=0, column=0, padx=5, pady=5)
+        # EBZ coordinate inputs with neuroanatomical labels
+        ttk.Label(self.ebz_frame, text="AP (mm):").grid(row=0, column=0, padx=5, pady=5)
         self.ebz_x_var = tk.DoubleVar(value=0)
         ttk.Entry(self.ebz_frame, textvariable=self.ebz_x_var, width=10).grid(row=0, column=1, padx=5, pady=5)
 
-        ttk.Label(self.ebz_frame, text="Y (mm):").grid(row=0, column=2, padx=5, pady=5)
+        ttk.Label(self.ebz_frame, text="DV (mm):").grid(row=0, column=2, padx=5, pady=5)
         self.ebz_y_var = tk.DoubleVar(value=0)
         ttk.Entry(self.ebz_frame, textvariable=self.ebz_y_var, width=10).grid(row=0, column=3, padx=5, pady=5)
 
-        ttk.Label(self.ebz_frame, text="Z (mm):").grid(row=0, column=4, padx=5, pady=5)
+        ttk.Label(self.ebz_frame, text="ML (mm):").grid(row=0, column=4, padx=5, pady=5)
         self.ebz_z_var = tk.DoubleVar(value=0)
         ttk.Entry(self.ebz_frame, textvariable=self.ebz_z_var, width=10).grid(row=0, column=5, padx=5, pady=5)
 
@@ -105,28 +254,28 @@ class MRIViewer:
         self.reset_ebz_button = ttk.Button(self.ebz_frame, text="Reset EBZ", command=self.reset_ebz, state=tk.DISABLED)
         self.reset_ebz_button.grid(row=0, column=7, padx=5, pady=5)
 
-        # Add button to extract EBZ X,Y from current cursor position (keeping Z)
-        self.extract_ebz_button = ttk.Button(self.ebz_frame, text="Extract X,Y from View",
+        # Add button to extract EBZ AP,DV from current cursor position (keeping ML)
+        self.extract_ebz_button = ttk.Button(self.ebz_frame, text="Extract AP,DV from View",
                                              command=self.extract_ebz_from_view, state=tk.DISABLED)
         self.extract_ebz_button.grid(row=0, column=8, padx=5, pady=5)
 
-        # Add button to set Z to current slice
-        self.set_z_button = ttk.Button(self.ebz_frame, text="Set Z to Current Slice",
+        # Add button to set ML to current slice
+        self.set_z_button = ttk.Button(self.ebz_frame, text="Set ML to Current Slice",
                                        command=self.set_z_to_current_slice, state=tk.DISABLED)
         self.set_z_button.grid(row=1, column=0, columnspan=3, padx=5, pady=5, sticky=tk.W)
 
-        # Add button to set Z to middle slice
-        self.set_z_mid_button = ttk.Button(self.ebz_frame, text="Set Z to Middle Slice",
+        # Add button to set ML to middle slice
+        self.set_z_mid_button = ttk.Button(self.ebz_frame, text="Set ML to Middle Slice",
                                            command=self.set_z_to_middle_slice, state=tk.DISABLED)
         self.set_z_mid_button.grid(row=1, column=3, columnspan=3, padx=5, pady=5, sticky=tk.W)
 
         # Current cursor position label
-        self.cursor_position_var = tk.StringVar(value="Cursor: X=N/A, Y=N/A, Z=N/A mm")
+        self.cursor_position_var = tk.StringVar(value="Cursor: AP=N/A, DV=N/A, ML=N/A mm")
         ttk.Label(self.ebz_frame, textvariable=self.cursor_position_var).grid(row=2, column=0, columnspan=9, padx=5,
                                                                               pady=5, sticky=tk.W)
 
         # Instructions for setting EBZ
-        instructions = "Right-click on image to set X,Y coordinates. Use buttons to set Z coordinate to current or middle slice."
+        instructions = "Right-click on image to set AP,DV coordinates. Use buttons to set ML coordinate to current or middle slice."
         ttk.Label(self.ebz_frame, text=instructions, font=("", 9, "italic")).grid(row=3, column=0, columnspan=9, padx=5,
                                                                                   pady=0, sticky=tk.W)
 
@@ -182,19 +331,20 @@ class MRIViewer:
         self.canvas.mpl_connect('button_press_event', self.on_mouse_click)
 
     def set_z_to_current_slice(self):
-        """Set Z coordinate to current slice position"""
+        """Set ML coordinate to current slice position"""
         if self.slice_positions and len(self.slice_positions) > self.current_slice:
-            z_pos = self.slice_positions[self.current_slice]
-            self.ebz_z_var.set(z_pos)
-            self.status_var.set(f"Set Z coordinate to current slice: {z_pos:.2f} mm")
+            ml_pos = self.slice_positions[self.current_slice]
+            self.ebz_z_var.set(ml_pos)
+            self.status_var.set(f"Set ML coordinate to current slice: {ml_pos:.2f} mm")
 
     def set_z_to_middle_slice(self):
-        """Set Z coordinate to middle slice position"""
+        """Set ML coordinate to middle slice position"""
         if self.slice_positions and len(self.slice_positions) > 0:
             middle_slice_idx = len(self.slice_positions) // 2
-            middle_slice_z = self.slice_positions[middle_slice_idx]
-            self.ebz_z_var.set(middle_slice_z)
-            self.status_var.set(f"Set Z coordinate to middle slice: {middle_slice_z:.2f} mm (Slice {middle_slice_idx})")
+            middle_slice_ml = self.slice_positions[middle_slice_idx]
+            self.ebz_z_var.set(middle_slice_ml)
+            self.status_var.set(
+                f"Set ML coordinate to middle slice: {middle_slice_ml:.2f} mm (Slice {middle_slice_idx})")
 
     def on_mouse_move(self, event):
         """Update cursor position when mouse moves over the image"""
@@ -216,16 +366,17 @@ class MRIViewer:
             world_coords = np.dot(self.affine, voxel_coords)
 
             # Get the first 3 elements (x, y, z) in mm
-            x_mm, y_mm, z_mm = world_coords[:3]
+            # Map to neuroanatomical convention: x=AP, y=DV, z=ML
+            ap_mm, dv_mm, ml_mm = world_coords[0], -world_coords[1], world_coords[2]
 
             # Apply EBZ offset if EBZ is set
             if self.ebz_set:
-                x_mm -= self.ebz_coordinates['x']
-                y_mm -= self.ebz_coordinates['y']
-                z_mm -= self.ebz_coordinates['z']
+                ap_mm -= self.ebz_coordinates['x']
+                dv_mm -= self.ebz_coordinates['y']
+                ml_mm -= self.ebz_coordinates['z']
 
-            # Update the cursor position label
-            self.cursor_position_var.set(f"Cursor: X={x_mm:.2f}, Y={y_mm:.2f}, Z={z_mm:.2f} mm")
+            # Update the cursor position label - show in neuroanatomical terms
+            self.cursor_position_var.set(f"Cursor: AP={ap_mm:.2f}, DV={dv_mm:.2f}, ML={ml_mm:.2f} mm")
         else:
             # No affine transformation available, just show pixel coordinates
             self.cursor_position_var.set(f"Cursor: X={x:.1f} px, Y={y:.1f} px")
@@ -250,15 +401,15 @@ class MRIViewer:
                 # Apply the affine transformation to get RAS+ coordinates
                 world_coords = np.dot(self.affine, voxel_coords)
 
-                # Get the first 3 elements (x, y, z) in mm
-                x_mm, y_mm, z_mm = world_coords[:3]
+                # Get the first 3 elements (x, y, z) in mm and convert to AP, DV, ML
+                ap_mm, dv_mm, ml_mm = world_coords[0], -world_coords[1], world_coords[2]
 
                 # Ask user if they want to set this as EBZ X and Y coordinates (keeping Z separate)
-                if messagebox.askyesno("Set EBZ X,Y Coordinates",
-                                       f"Set EBZ X,Y coordinates to:\nX={x_mm:.2f}, Y={y_mm:.2f} mm?\n(Z coordinate will remain unchanged)"):
-                    # Set only X and Y coordinates
-                    self.ebz_x_var.set(x_mm)
-                    self.ebz_y_var.set(y_mm)
+                if messagebox.askyesno("Set EBZ AP,DV Coordinates",
+                                       f"Set EBZ AP,DV coordinates to:\nAP={ap_mm:.2f}, DV={dv_mm:.2f} mm?\n(ML coordinate will remain unchanged)"):
+                    # Set only AP and DV coordinates (X and Y in our interface)
+                    self.ebz_x_var.set(ap_mm)
+                    self.ebz_y_var.set(dv_mm)
                     # Keep existing Z coordinate or set to middle slice if not set
                     if not self.ebz_set:
                         # Z coordinate relative to middle slice
@@ -271,7 +422,7 @@ class MRIViewer:
                     self.set_ebz()
 
     def extract_ebz_from_view(self):
-        """Extract EBZ X,Y coordinates from the current view center, Z coordinate remains unchanged"""
+        """Extract EBZ AP,DV coordinates from the current view center, ML coordinate remains unchanged"""
         if not hasattr(self, 'img') or self.img is None:
             return
 
@@ -291,25 +442,25 @@ class MRIViewer:
             # Apply the affine transformation to get RAS+ coordinates
             world_coords = np.dot(self.affine, voxel_coords)
 
-            # Get the first 3 elements (x, y, z) in mm
-            x_mm, y_mm, z_mm = world_coords[:3]
+            # Get the first 3 elements (x, y, z) in mm and convert to AP, DV, ML
+            ap_mm, dv_mm, ml_mm = world_coords[0], -world_coords[1], world_coords[2]
 
-            # Set only the X and Y EBZ coordinate variables
-            self.ebz_x_var.set(x_mm)
-            self.ebz_y_var.set(y_mm)
+            # Set only the AP and DV EBZ coordinate variables
+            self.ebz_x_var.set(ap_mm)
+            self.ebz_y_var.set(dv_mm)
 
-            # Keep existing Z coordinate or set to middle slice if not set
+            # Keep existing ML coordinate or set to middle slice if not set
             if not self.ebz_set:
-                # Z coordinate relative to middle slice
+                # ML coordinate relative to middle slice
                 if self.slice_positions and len(self.slice_positions) > 0:
                     middle_slice_idx = len(self.slice_positions) // 2
-                    middle_slice_z = self.slice_positions[middle_slice_idx]
-                    self.ebz_z_var.set(middle_slice_z)
+                    middle_slice_ml = self.slice_positions[middle_slice_idx]
+                    self.ebz_z_var.set(middle_slice_ml)
 
             # Inform the user
             messagebox.showinfo("EBZ Coordinates",
-                                f"Extracted EBZ X,Y coordinates from view center:\nX={x_mm:.2f}, Y={y_mm:.2f} mm\n"
-                                f"Z coordinate is set to: {self.ebz_z_var.get():.2f} mm")
+                                f"Extracted EBZ AP,DV coordinates from view center:\nAP={ap_mm:.2f}, DV={dv_mm:.2f} mm\n"
+                                f"ML coordinate is set to: {self.ebz_z_var.get():.2f} mm")
 
     def set_ebz(self):
         """Set the EBZ coordinates based on the current input values"""
@@ -320,9 +471,9 @@ class MRIViewer:
                 "z": self.ebz_z_var.get()
             }
             self.ebz_set = True
-            self.status_var.set(f"EBZ set to X={self.ebz_coordinates['x']:.2f}, "
-                                f"Y={self.ebz_coordinates['y']:.2f}, "
-                                f"Z={self.ebz_coordinates['z']:.2f} mm")
+            self.status_var.set(f"EBZ set to AP={self.ebz_coordinates['x']:.2f}, "
+                                f"DV={self.ebz_coordinates['y']:.2f}, "
+                                f"ML={self.ebz_coordinates['z']:.2f} mm")
 
             # Update the display to show coordinates relative to EBZ
             self.display_current_slice()
@@ -662,15 +813,15 @@ class MRIViewer:
 
             # Add position information if available
             if self.slice_positions is not None and len(self.slice_positions) > self.current_slice:
-                # Get the position in mm
-                slice_pos_mm = self.slice_positions[self.current_slice]
+                # Get the position in mm (as ML coordinate)
+                ml_pos_mm = self.slice_positions[self.current_slice]
 
                 # Apply EBZ offset if set
                 if self.ebz_set:
-                    rel_slice_pos = slice_pos_mm - self.ebz_coordinates['z']
-                    title += f', Position: {rel_slice_pos:.2f} mm from EBZ'
+                    rel_ml_pos = ml_pos_mm - self.ebz_coordinates['z']
+                    title += f', ML: {rel_ml_pos:.2f} mm from EBZ'
                 else:
-                    title += f', Position: {slice_pos_mm:.2f} mm'
+                    title += f', ML: {ml_pos_mm:.2f} mm'
 
                 # Add thickness information if available
                 if hasattr(self, 'slice_thickness') and self.slice_thickness is not None:
@@ -678,7 +829,7 @@ class MRIViewer:
 
             # Add EBZ information to title if set
             if self.ebz_set:
-                title += f' (EBZ: {self.ebz_coordinates["x"]:.1f}, {self.ebz_coordinates["y"]:.1f}, {self.ebz_coordinates["z"]:.1f} mm)'
+                title += f' (EBZ: AP={self.ebz_coordinates["x"]:.1f}, DV={self.ebz_coordinates["y"]:.1f}, ML={self.ebz_coordinates["z"]:.1f} mm)'
 
             ax.set_title(title)
 
@@ -688,8 +839,8 @@ class MRIViewer:
             # Replace NaN and inf values
             img_data_copy = np.nan_to_num(img_data_copy)
 
-            # Display the image
-            img_display = ax.imshow(img_data_copy, cmap='gray')
+            # Display the image - flip vertically to get proper orientation (top=dorsal)
+            img_display = ax.imshow(np.flipud(img_data_copy), cmap='gray', aspect='equal')
 
             # Adjust display range to improve contrast
             try:
@@ -702,6 +853,10 @@ class MRIViewer:
 
             # Add a colorbar
             self.fig.colorbar(img_display, ax=ax)
+
+            # Add AP (anterior-posterior) and DV (dorsal-ventral) axis labels
+            ax.set_xlabel('Anterior →', fontsize=10)
+            ax.set_ylabel('↑ Dorsal', fontsize=10)
 
             # Add stereotaxic coordinate grid if EBZ is set
             if self.ebz_set and self.affine is not None:
@@ -719,49 +874,50 @@ class MRIViewer:
                     # Apply affine transformation to get world coordinates
                     world_coords = np.dot(self.affine, voxel_coords.T).T
 
-                    # Get min/max values for x and y axes in world coordinates
-                    x_min, x_max = np.min(world_coords[:, 0]), np.max(world_coords[:, 0])
-                    y_min, y_max = np.min(world_coords[:, 1]), np.max(world_coords[:, 1])
+                    # Get min/max values for AP and DV axes in world coordinates
+                    ap_min, ap_max = np.min(world_coords[:, 0]), np.max(world_coords[:, 0])
+                    dv_min, dv_max = -np.max(world_coords[:, 1]), -np.min(world_coords[:, 1])  # Flip DV
 
                     # Apply EBZ offset
-                    x_min -= self.ebz_coordinates['x']
-                    x_max -= self.ebz_coordinates['x']
-                    y_min -= self.ebz_coordinates['y']
-                    y_max -= self.ebz_coordinates['y']
+                    ap_min -= self.ebz_coordinates['x']
+                    ap_max -= self.ebz_coordinates['x']
+                    dv_min -= self.ebz_coordinates['y']
+                    dv_max -= self.ebz_coordinates['y']
 
                     # Calculate grid step size (in mm)
-                    x_step = max(1, int((x_max - x_min) / 10))
-                    y_step = max(1, int((y_max - y_min) / 10))
+                    ap_step = max(1, int((ap_max - ap_min) / 10))
+                    dv_step = max(1, int((dv_max - dv_min) / 10))
 
                     # Round to get clean grid lines
-                    x_start = int(np.floor(x_min / x_step) * x_step)
-                    x_end = int(np.ceil(x_max / x_step) * x_step)
-                    y_start = int(np.floor(y_min / y_step) * y_step)
-                    y_end = int(np.ceil(y_max / y_step) * y_step)
+                    ap_start = int(np.floor(ap_min / ap_step) * ap_step)
+                    ap_end = int(np.ceil(ap_max / ap_step) * ap_step)
+                    dv_start = int(np.floor(dv_min / dv_step) * dv_step)
+                    dv_end = int(np.ceil(dv_max / dv_step) * dv_step)
 
                     # Create grid lines in world coordinates
-                    x_grid_lines = np.arange(x_start, x_end + 1, x_step)
-                    y_grid_lines = np.arange(y_start, y_end + 1, y_step)
+                    ap_grid_lines = np.arange(ap_start, ap_end + 1, ap_step)
+                    dv_grid_lines = np.arange(dv_start, dv_end + 1, dv_step)
 
-                    # Convert grid lines back to voxel/pixel coordinates
-                    for x_world in x_grid_lines:
-                        # Points along this x world coordinate
+                    # For each AP coordinate, create a vertical line
+                    for ap in ap_grid_lines:
+                        # Points along this AP world coordinate (vertical line)
                         points = []
-                        for y_world in np.linspace(y_min, y_max, 100):
+                        for dv in np.linspace(dv_min, dv_max, 100):
                             # Add back EBZ offset for inverse transformation
-                            world_x = x_world + self.ebz_coordinates['x']
-                            world_y = y_world + self.ebz_coordinates['y']
-                            world_z = self.slice_positions[self.current_slice] if self.slice_positions else 0
+                            world_ap = ap + self.ebz_coordinates['x']
+                            world_dv = -(dv + self.ebz_coordinates['y'])  # Negate for proper DV
+                            world_ml = self.slice_positions[self.current_slice] if self.slice_positions else 0
 
                             # Get affine matrix inverse
                             affine_inv = np.linalg.inv(self.affine)
 
                             # Transform to voxel coordinates
-                            voxel = np.dot(affine_inv, np.array([world_x, world_y, world_z, 1]))
+                            voxel = np.dot(affine_inv, np.array([world_ap, world_dv, world_ml, 1]))
 
                             # Only add points that are inside the image
                             if 0 <= voxel[0] < cols and 0 <= voxel[1] < rows:
-                                points.append((voxel[0], voxel[1]))
+                                # Flip Y for display (image is flipped)
+                                points.append((voxel[0], rows - voxel[1]))
 
                         if points:
                             points = np.array(points)
@@ -770,25 +926,26 @@ class MRIViewer:
                             # Add coordinate label
                             if len(points) > 0:
                                 mid_point = points[len(points) // 2]
-                                ax.text(mid_point[0], mid_point[1], f"{x_world:.0f}", color='green',
+                                ax.text(mid_point[0], mid_point[1], f"AP {ap:.0f}", color='green',
                                         fontsize=8, ha='center', va='top',
                                         bbox=dict(facecolor='white', alpha=0.5, pad=1))
 
-                    # Same for y grid lines
-                    for y_world in y_grid_lines:
+                    # For each DV coordinate, create a horizontal line
+                    for dv in dv_grid_lines:
                         points = []
-                        for x_world in np.linspace(x_min, x_max, 100):
+                        for ap in np.linspace(ap_min, ap_max, 100):
                             # Add back EBZ offset for inverse transformation
-                            world_x = x_world + self.ebz_coordinates['x']
-                            world_y = y_world + self.ebz_coordinates['y']
-                            world_z = self.slice_positions[self.current_slice] if self.slice_positions else 0
+                            world_ap = ap + self.ebz_coordinates['x']
+                            world_dv = -(dv + self.ebz_coordinates['y'])  # Negate for proper DV
+                            world_ml = self.slice_positions[self.current_slice] if self.slice_positions else 0
 
                             # Transform to voxel coordinates
                             affine_inv = np.linalg.inv(self.affine)
-                            voxel = np.dot(affine_inv, np.array([world_x, world_y, world_z, 1]))
+                            voxel = np.dot(affine_inv, np.array([world_ap, world_dv, world_ml, 1]))
 
                             if 0 <= voxel[0] < cols and 0 <= voxel[1] < rows:
-                                points.append((voxel[0], voxel[1]))
+                                # Flip Y for display (image is flipped)
+                                points.append((voxel[0], rows - voxel[1]))
 
                         if points:
                             points = np.array(points)
@@ -797,22 +954,22 @@ class MRIViewer:
                             # Add coordinate label
                             if len(points) > 0:
                                 mid_point = points[len(points) // 2]
-                                ax.text(mid_point[0], mid_point[1], f"{y_world:.0f}", color='green',
+                                ax.text(mid_point[0], mid_point[1], f"DV {dv:.0f}", color='green',
                                         fontsize=8, ha='right', va='center',
                                         bbox=dict(facecolor='white', alpha=0.5, pad=1))
 
                     # Mark the EBZ point if it's in this slice
                     if self.slice_positions:
-                        ebz_z_voxel = None
+                        ebz_ml_voxel = None
 
-                        # Find which slice is closest to the EBZ z-coordinate
+                        # Find which slice is closest to the EBZ z-coordinate (ML position)
                         closest_slice = min(range(len(self.slice_positions)),
                                             key=lambda i: abs(self.slice_positions[i] - self.ebz_coordinates['z']))
 
-                        # If current slice is close to the EBZ Z-position (within half a slice thickness)
+                        # If current slice is close to the EBZ ML position (within half a slice thickness)
                         if abs(self.current_slice - closest_slice) < 1:
-                            # The EBZ point in world coordinates
-                            ebz_world = np.array([self.ebz_coordinates['x'], self.ebz_coordinates['y'],
+                            # The EBZ point in world coordinates (AP, DV, ML)
+                            ebz_world = np.array([self.ebz_coordinates['x'], -self.ebz_coordinates['y'],
                                                   self.ebz_coordinates['z'], 1])
 
                             # Transform to voxel coordinates
@@ -821,9 +978,9 @@ class MRIViewer:
 
                             # Check if the point is inside the image
                             if 0 <= ebz_voxel[0] < cols and 0 <= ebz_voxel[1] < rows:
-                                # Mark the EBZ point with a star marker
-                                ax.plot(ebz_voxel[0], ebz_voxel[1], 'r*', markersize=10)
-                                ax.text(ebz_voxel[0], ebz_voxel[1] - 10, "EBZ", color='red',
+                                # Mark the EBZ point with a star marker (flipping Y)
+                                ax.plot(ebz_voxel[0], rows - ebz_voxel[1], 'r*', markersize=10)
+                                ax.text(ebz_voxel[0], rows - ebz_voxel[1] - 10, "EBZ", color='red',
                                         fontsize=10, ha='center', va='bottom', weight='bold',
                                         bbox=dict(facecolor='white', alpha=0.7, pad=2))
                 except Exception as e:
@@ -833,6 +990,12 @@ class MRIViewer:
             # Show a message in the plot
             ax.text(0.5, 0.5, f"Error displaying slice:\n{str(e)}",
                     ha='center', va='center', transform=ax.transAxes, color='red', fontsize=12)
+
+        # Update the canvas
+        self.canvas.draw()
+        # Show a message in the plot
+        ax.text(0.5, 0.5, f"Error displaying slice:\n{str(e)}",
+                ha='center', va='center', transform=ax.transAxes, color='red', fontsize=12)
 
         # Update the canvas
         self.canvas.draw()
