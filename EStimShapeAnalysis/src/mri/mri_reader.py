@@ -12,10 +12,12 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 from tkinter import ttk
 import pprint
+import json
+import sys
 
 
 class MRIViewer:
-    def __init__(self, root):
+    def __init__(self, root, default_path=None):
         self.root = root
         self.root.title("PAR/REC MRI Viewer")
         self.root.geometry("1000x700")
@@ -29,6 +31,7 @@ class MRIViewer:
         self.slices = 0
         self.dynamics = 0
         self.has_dynamics = False
+        self.default_path = default_path
 
         self.setup_ui()
 
@@ -45,6 +48,10 @@ class MRIViewer:
         ttk.Label(control_frame, text="PAR File:").grid(column=0, row=0, sticky=tk.W, padx=5, pady=5)
 
         self.file_path_var = tk.StringVar()
+        # Set default path if provided
+        if self.default_path:
+            self.file_path_var.set(self.default_path)
+
         file_entry = ttk.Entry(control_frame, textvariable=self.file_path_var, width=60)
         file_entry.grid(column=1, row=0, sticky=(tk.W, tk.E), padx=5, pady=5)
 
@@ -54,6 +61,10 @@ class MRIViewer:
         # Load button
         load_button = ttk.Button(control_frame, text="Load and Visualize", command=self.load_and_visualize)
         load_button.grid(column=3, row=0, sticky=tk.W, padx=5, pady=5)
+
+        # Save default path button
+        save_default_button = ttk.Button(control_frame, text="Save as Default", command=self.save_default_path)
+        save_default_button.grid(column=4, row=0, sticky=tk.W, padx=5, pady=5)
 
         # Configure control frame grid
         control_frame.columnconfigure(1, weight=1)
@@ -109,6 +120,23 @@ class MRIViewer:
         # Hide dynamic controls initially
         self.hide_dynamic_controls()
 
+    def save_default_path(self):
+        """Save the current file path as the default"""
+        current_path = self.file_path_var.get().strip()
+        if not current_path:
+            messagebox.showerror("Error", "No file path to save as default.")
+            return
+
+        config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mri_viewer_config.json')
+        try:
+            config = {'default_path': current_path}
+            with open(config_file, 'w') as f:
+                json.dump(config, f)
+            messagebox.showinfo("Success", f"Default path saved: {current_path}")
+            self.default_path = current_path
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not save default path: {str(e)}")
+
     def hide_dynamic_controls(self):
         # Hide dynamic controls
         for widget in self.slice_control_frame.grid_slaves():
@@ -123,9 +151,19 @@ class MRIViewer:
 
     def browse_file(self):
         filetypes = [('PAR Files', '*.PAR *.par'), ('All Files', '*.*')]
+
+        # Start in the default directory if one was set
+        initial_dir = None
+        if self.default_path:
+            if os.path.isdir(self.default_path):
+                initial_dir = self.default_path
+            else:
+                initial_dir = os.path.dirname(self.default_path)
+
         filename = filedialog.askopenfilename(
             title="Select PAR File",
-            filetypes=filetypes
+            filetypes=filetypes,
+            initialdir=initial_dir
         )
         if filename:
             self.file_path_var.set(filename)
@@ -186,10 +224,22 @@ class MRIViewer:
             # Extract slice position information from header
             self.slice_positions = []
             try:
-                # Get slice positions from the header
+                # Get slice positions from the header's image_defs
                 header = self.img.header
-                self.slice_positions = header.get_slice_positions()
-                print(f"Extracted {len(self.slice_positions)} slice positions")
+                image_defs = header.image_defs
+
+                if image_defs is not None and len(image_defs) > 0:
+                    # Extract the z-component (index 2) of the slice offset center
+                    self.slice_positions = [float(slice_def['slice_offcentre'][2]) for slice_def in image_defs]
+                    print(f"Extracted {len(self.slice_positions)} slice positions")
+
+                    # Get slice thickness for additional info
+                    self.slice_thickness = header.general_info.get('slice_thickness', None)
+                    if self.slice_thickness:
+                        print(f"Slice thickness: {self.slice_thickness} mm")
+                else:
+                    print("No image_defs found in header")
+                    self.slice_positions = None
             except Exception as e:
                 print(f"Could not extract slice positions: {str(e)}")
                 self.slice_positions = None
@@ -233,7 +283,7 @@ class MRIViewer:
         # Create a new window
         header_window = tk.Toplevel(self.root)
         header_window.title("PAR/REC Header Information")
-        header_window.geometry("800x600")
+        header_window.geometry("900x700")
 
         # Create a frame with scrollbars
         frame = ttk.Frame(header_window)
@@ -255,24 +305,63 @@ class MRIViewer:
         # Insert header information
         text.insert(tk.END, "PAR/REC Header Information:\n\n")
 
-        # Try to get all available attributes and methods
-        for attr in dir(header):
-            if not attr.startswith('_'):  # Skip private attributes
-                try:
-                    value = getattr(header, attr)
-                    if callable(value):
-                        try:
-                            # Try to call method with no arguments
-                            result = value()
-                            text.insert(tk.END, f"{attr}:\n")
-                            text.insert(tk.END, f"{pprint.pformat(result)}\n\n")
-                        except:
-                            # Skip methods that require arguments
-                            pass
-                    else:
-                        text.insert(tk.END, f"{attr}: {value}\n\n")
-                except:
-                    pass
+        # First, show the most useful information for slice positions
+        text.insert(tk.END, "=== SLICE POSITION INFORMATION ===\n\n")
+
+        # Show general info about slices
+        if hasattr(header, 'general_info'):
+            text.insert(tk.END, "General Info:\n")
+            for key, value in header.general_info.items():
+                if 'slice' in key.lower() or 'thick' in key.lower() or 'gap' in key.lower() or 'pos' in key.lower() or 'off' in key.lower():
+                    text.insert(tk.END, f"  {key}: {value}\n")
+            text.insert(tk.END, "\n")
+
+        # Show image definitions with slice positions
+        if hasattr(header, 'image_defs') and header.image_defs:
+            # Show full details for first 5 slices
+            text.insert(tk.END, "Slice Position Info (first 5 slices):\n")
+            for i, img_def in enumerate(header.image_defs[:5]):
+                text.insert(tk.END, f"  Slice {i}:\n")
+                for key, value in img_def.items():
+                    if 'slice' in key.lower() or 'offcentre' in key.lower() or 'pos' in key.lower() or 'ang' in key.lower():
+                        text.insert(tk.END, f"    {key}: {value}\n")
+            text.insert(tk.END, "\n")
+
+            # Show relevant position data for all slices
+            text.insert(tk.END, "All Slice Positions (offcentre values in mm):\n")
+            for i, img_def in enumerate(header.image_defs):
+                if 'slice_offcentre' in img_def:
+                    offcentre = img_def['slice_offcentre']
+                    text.insert(tk.END, f"  Slice {i}: {offcentre}\n")
+            text.insert(tk.END, "\n")
+
+        # Then show a summary of the header structure
+        text.insert(tk.END, "=== HEADER STRUCTURE OVERVIEW ===\n\n")
+
+        # Basic header attributes
+        for attr in ['general_info', 'image_defs', 'dimension_info']:
+            if hasattr(header, attr):
+                value = getattr(header, attr)
+                if attr == 'general_info':
+                    # Show general_info in full
+                    text.insert(tk.END, f"{attr}:\n")
+                    for k, v in value.items():
+                        text.insert(tk.END, f"  {k}: {v}\n")
+                    text.insert(tk.END, "\n")
+                elif attr == 'image_defs':
+                    # Just show the count for image_defs
+                    text.insert(tk.END, f"{attr}: {len(value)} items\n\n")
+                else:
+                    text.insert(tk.END, f"{attr}: {value}\n\n")
+
+        # Show affine matrix
+        if hasattr(self.img, 'affine'):
+            text.insert(tk.END, "Affine Matrix (relates voxel indices to mm coordinates):\n")
+            text.insert(tk.END, f"{self.img.affine}\n\n")
+
+        # Show full header dump
+        text.insert(tk.END, "=== COMPLETE HEADER DUMP ===\n\n")
+        text.insert(tk.END, f"{pprint.pformat(header.__dict__)}\n\n")
 
         # Make the text widget read-only
         text.config(state=tk.DISABLED)
@@ -307,14 +396,13 @@ class MRIViewer:
 
         # Add position information if available
         if self.slice_positions is not None and len(self.slice_positions) > self.current_slice:
-            slice_pos = self.slice_positions[self.current_slice]
-            if isinstance(slice_pos, (list, tuple)) and len(slice_pos) >= 3:
-                # If it's a 3D position, use just the axis most likely to represent slice position
-                # Usually this is the z-axis (index 2)
-                pos_value = slice_pos[2]
-                title += f', Position: {pos_value:.2f} mm'
-            elif isinstance(slice_pos, (int, float)):
-                title += f', Position: {slice_pos:.2f} mm'
+            # Get the position in mm
+            slice_pos_mm = self.slice_positions[self.current_slice]
+            title += f', Position: {slice_pos_mm:.2f} mm'
+
+            # Add thickness information if available
+            if hasattr(self, 'slice_thickness') and self.slice_thickness is not None:
+                title += f', Thickness: {self.slice_thickness:.2f} mm'
 
         ax.set_title(title)
 
@@ -334,6 +422,37 @@ class MRIViewer:
 
 
 if __name__ == "__main__":
+    import sys
+
+    # Set up the default path
+    default_path = None
+
+    # Check if a path was provided as a command-line argument
+    if len(sys.argv) > 1:
+        default_path = sys.argv[1]
+
+    # You can also hardcode a default path here if needed
+    # default_path = "/path/to/your/default/directory/file.PAR"
+
+    # Initialize the application
     root = tk.Tk()
-    app = MRIViewer(root)
+    app = MRIViewer(root, default_path)
+
+    # Try to load saved default path from config file if no command line argument
+    config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mri_viewer_config.json')
+    if default_path is None and os.path.exists(config_file):
+        try:
+            with open(config_file, 'r') as f:
+                config = json.load(f)
+                default_path = config.get('default_path')
+                if default_path:
+                    app.default_path = default_path
+                    app.file_path_var.set(default_path)
+        except Exception as e:
+            print(f"Error loading config: {str(e)}")
+
+    # If a default path was provided and it exists, automatically load it
+    if default_path and os.path.exists(default_path):
+        app.load_and_visualize()
+
     root.mainloop()
