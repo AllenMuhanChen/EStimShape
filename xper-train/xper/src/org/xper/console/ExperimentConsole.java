@@ -43,6 +43,7 @@ import javax.swing.SwingUtilities;
 
 import org.apache.log4j.Logger;
 import org.lwjgl.LWJGLException;
+import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
 import org.xper.classic.TrialExperimentConsoleRenderer;
 import org.xper.classic.vo.TrialStatistics;
@@ -80,6 +81,10 @@ public class ExperimentConsole extends JFrame implements
 
 	@Dependency
 	List<IConsolePlugin> consolePlugins = new ArrayList<IConsolePlugin>();
+
+	// Add these fields to ExperimentConsole class
+	private double zoomFactor = 5.0;
+	private Coordinates2D viewportCenter = new Coordinates2D(0, 0);
 
 	KeyStroke monitorToken = KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0);
 
@@ -173,11 +178,19 @@ public class ExperimentConsole extends JFrame implements
 
         consoleCanvas.addMouseMotionListener(new MouseMotionAdapter() {
             public void mouseMoved(MouseEvent evt) {
+				// Apply zoom to mouse coordinates
+				double centerX = consoleCanvas.getWidth() / 2.0;
+				double centerY = consoleCanvas.getHeight() / 2.0;
+				double offsetX = evt.getX() - centerX;
+				double offsetY = evt.getY() - centerY;
+				int zoomedX = (int)(centerX + offsetX / zoomFactor);
+				int zoomedY = (int)(centerY + offsetY / zoomFactor);
+
             	if (isMonitorMode()) {
-            		mousePosition(evt.getX(), evt.getY());
+            		mousePosition(zoomedX, zoomedY);
             	} else {
-					mousePosition(evt.getX(), evt.getY());
-            		currentPlugin.handleMouseMove(evt.getX(), evt.getY());
+					mousePosition(zoomedX, zoomedY);
+            		currentPlugin.handleMouseMove(zoomedX, zoomedY);
             	}
 				consoleCanvas.repaint(); //AC added to have canvas updating when adding control points
             }
@@ -688,10 +701,19 @@ public class ExperimentConsole extends JFrame implements
 					Context context = new Context();
 					consoleRenderer.getRenderer().draw(new Drawable() {
 						public void draw(Context context) {
+							GL11.glPushMatrix();
+							GL11.glScaled(zoomFactor, zoomFactor, 1.0);
+
+
+							// Apply panning
+							GL11.glTranslated(-viewportCenter.getX(), -viewportCenter.getY(), 0);
+
 							consoleRenderer.drawCanvas(context, currentDeviceId.get());
 							if (!isMonitorMode()) {
 								currentPlugin.drawCanvas(context, currentDeviceId.get());
 							}
+							GL11.glPopMatrix();
+
 							updateEyeDeviceReading();
 							updateStatistics();
 							updateEyeZero();
