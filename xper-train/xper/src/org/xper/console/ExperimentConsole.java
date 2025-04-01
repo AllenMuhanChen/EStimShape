@@ -82,9 +82,15 @@ public class ExperimentConsole extends JFrame implements
 	@Dependency
 	List<IConsolePlugin> consolePlugins = new ArrayList<IConsolePlugin>();
 
-	// Add these fields to ExperimentConsole class
-	private double zoomFactor = 5.0;
+	// Zooming related
+	private double zoomFactor = 1.0;
 	private Coordinates2D viewportCenter = new Coordinates2D(0, 0);
+	private boolean isDragging = false;
+	private int lastDragX = 0;
+	private int lastDragY = 0;
+	private double zoomStep = 0.2; // Amount to zoom in/out per scroll click
+	private double minZoom = 0.5;  // Minimum zoom factor
+	private double maxZoom = 10.0; // Maximum zoom factor
 
 	KeyStroke monitorToken = KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0);
 
@@ -104,16 +110,16 @@ public class ExperimentConsole extends JFrame implements
 		return currentPlugin == null;
 	}
 
-    public void initComponents() {
-    	setTitle("Experiment Console");
-    	setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-    	setResizable(true);
+	public void initComponents() {
+		setTitle("Experiment Console");
+		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		setResizable(true);
 		GuiUtil.makeDisposeOnEscapeKey(this);
 		addWindowListener(new WindowAdapter() {
-            public void windowClosing(WindowEvent evt) {
-            	stop();
-            }
-        });
+			public void windowClosing(WindowEvent evt) {
+				stop();
+			}
+		});
 		getContentPane().setLayout(new BoxLayout(getContentPane(), BoxLayout.PAGE_AXIS));
 		InputMap keyMap = getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
 		ActionMap actMap = getRootPane().getActionMap();
@@ -170,43 +176,52 @@ public class ExperimentConsole extends JFrame implements
 			}
 		}
 
-        JPanel canvasPanel = new JPanel();
-        consoleCanvas = getCanvas();
-        consoleCanvas.setPreferredSize(new Dimension((int)(monkeyScreenDimension.getX() / (canvasScaleFactor)),
-        		(int)(monkeyScreenDimension.getY() / canvasScaleFactor)));
+		JPanel canvasPanel = new JPanel();
+		consoleCanvas = getCanvas();
+		consoleCanvas.setPreferredSize(new Dimension((int)(monkeyScreenDimension.getX() / (canvasScaleFactor)),
+				(int)(monkeyScreenDimension.getY() / canvasScaleFactor)));
 //        consoleCanvas.setPreferredSize(new Dimension(480,360));
 
-        consoleCanvas.addMouseMotionListener(new MouseMotionAdapter() {
-            public void mouseMoved(MouseEvent evt) {
-				// Apply zoom to mouse coordinates
-				double centerX = consoleCanvas.getWidth() / 2.0;
-				double centerY = consoleCanvas.getHeight() / 2.0;
-				double offsetX = evt.getX() - centerX;
-				double offsetY = evt.getY() - centerY;
-				int zoomedX = (int)(centerX + offsetX / zoomFactor);
-				int zoomedY = (int)(centerY + offsetY / zoomFactor);
-
-            	if (isMonitorMode()) {
-            		mousePosition(zoomedX, zoomedY);
-            	} else {
-					mousePosition(zoomedX, zoomedY);
-            		currentPlugin.handleMouseMove(zoomedX, zoomedY);
-            	}
+		consoleCanvas.addMouseMotionListener(new MouseMotionAdapter() {
+			public void mouseMoved(MouseEvent evt) {
+				MouseEvent zoomedEvt = correctForZoom(evt);
+				if (isMonitorMode()) {
+					mousePosition(zoomedEvt.getX(), zoomedEvt.getY());
+				} else {
+					mousePosition(zoomedEvt.getX(), zoomedEvt.getY());
+					currentPlugin.handleMouseMove(zoomedEvt.getX(), zoomedEvt.getY());
+				}
 				consoleCanvas.repaint(); //AC added to have canvas updating when adding control points
-            }
-        });
-        canvasPanel.add(consoleCanvas);
+			}
+		});
+		canvasPanel.add(consoleCanvas);
 
-        consoleCanvas.addMouseWheelListener(new MouseWheelListener() {
+
+
+		// Update the mouseWheelListener to handle zooming
+		consoleCanvas.addMouseWheelListener(new MouseWheelListener() {
 			@Override
 			public void mouseWheelMoved(MouseWheelEvent e) {
+				if(isMonitorMode()) {
+					// Handle zooming with scroll wheel
+					if (e.getWheelRotation() < 0) {
+						// Zoom in
+						zoomFactor = Math.min(maxZoom, zoomFactor + zoomStep);
+					} else {
+						// Zoom out
+						zoomFactor = Math.max(minZoom, zoomFactor - zoomStep);
+					}
+				}
+
+				// If not in monitor mode, call the plugin's handler too
 				if (!isMonitorMode()) {
 					currentPlugin.handleMouseWheel(e);
 				}
+
+				consoleCanvas.repaint();
 			}
 		});
-
-        consoleCanvas.addMouseListener(new MouseListener() {
+		consoleCanvas.addMouseListener(new MouseListener() {
 
 			@Override
 			public void mouseReleased(MouseEvent e) {
@@ -227,75 +242,55 @@ public class ExperimentConsole extends JFrame implements
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				if (!isMonitorMode()) {
-					// Apply zoom to mouse coordinate
-					double centerX = consoleCanvas.getWidth() / 2.0;
-					double centerY = consoleCanvas.getHeight() / 2.0;
-					double offsetX = e.getX() - centerX;
-					double offsetY = e.getY() - centerY;
-					int zoomedX = (int)(centerX + offsetX / zoomFactor);
-					int zoomedY = (int)(centerY + offsetY / zoomFactor);
-
-					// Create a new MouseEvent with the zoomed coordinates
-					MouseEvent zoomedEvent = new MouseEvent(
-							e.getComponent(),
-							e.getID(),
-							e.getWhen(),
-							e.getModifiersEx(),
-							zoomedX,
-							zoomedY,
-							e.getClickCount(),
-							e.isPopupTrigger(),
-							e.getButton()
-					);
-
+					MouseEvent zoomedEvent = correctForZoom(e);
 					currentPlugin.handleMouseClicked(zoomedEvent);
 				}
 			}
 		});
-        getContentPane().add(canvasPanel);
+		getContentPane().add(canvasPanel);
 
 
 
-        JPanel infoPanel = new JPanel();
-        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.LINE_AXIS));
+		JPanel infoPanel = new JPanel();
+		infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.LINE_AXIS));
 
-        getContentPane().add(infoPanel);
+		getContentPane().add(infoPanel);
 
-        JPanel trialPanel = new JPanel();
-        trialPanel.setLayout(new BoxLayout(trialPanel, BoxLayout.PAGE_AXIS));
-        infoPanel.add(trialPanel);
+		JPanel trialPanel = new JPanel();
+		trialPanel.setLayout(new BoxLayout(trialPanel, BoxLayout.PAGE_AXIS));
+		infoPanel.add(trialPanel);
 
-        JPanel eyePanel = new JPanel();
-        eyePanel.setLayout(new BoxLayout(eyePanel, BoxLayout.PAGE_AXIS));
-        infoPanel.add(eyePanel);
+		JPanel eyePanel = new JPanel();
+		eyePanel.setLayout(new BoxLayout(eyePanel, BoxLayout.PAGE_AXIS));
+		infoPanel.add(eyePanel);
 
-        JPanel commandPanel = new JPanel();
-        commandPanel.setLayout(new BoxLayout(commandPanel, BoxLayout.PAGE_AXIS));
-        infoPanel.add(commandPanel);
+		JPanel commandPanel = new JPanel();
+		commandPanel.setLayout(new BoxLayout(commandPanel, BoxLayout.PAGE_AXIS));
+		infoPanel.add(commandPanel);
 
-        JPanel mousePositionPanel = new JPanel();
-        mousePositionPanel.setBorder(BorderFactory.createTitledBorder("Mouse Position"));
-        mousePositionPanel.setLayout(new GridBagLayout());
-        trialPanel.add(mousePositionPanel);
+		JPanel mousePositionPanel = new JPanel();
+		mousePositionPanel.setBorder(BorderFactory.createTitledBorder("Mouse Position"));
+		mousePositionPanel.setLayout(new GridBagLayout());
+		trialPanel.add(mousePositionPanel);
 
-        JPanel trialStatPanel = new JPanel();
-        trialStatPanel.setBorder(BorderFactory.createTitledBorder("Trial Statistics"));
-        trialStatPanel.setLayout(new GridBagLayout());
-        trialPanel.add(trialStatPanel);
+		JPanel trialStatPanel = new JPanel();
+		trialStatPanel.setBorder(BorderFactory.createTitledBorder("Trial Statistics"));
+		trialStatPanel.setLayout(new GridBagLayout());
+		trialPanel.add(trialStatPanel);
 
-        JPanel eyeDevicePanel = new JPanel();
-        eyeDevicePanel.setBorder(BorderFactory.createTitledBorder("Eye Device"));
-        eyeDevicePanel.setLayout(new GridBagLayout());
-        eyePanel.add(eyeDevicePanel);
+		JPanel eyeDevicePanel = new JPanel();
+		eyeDevicePanel.setBorder(BorderFactory.createTitledBorder("Eye Device"));
+		eyeDevicePanel.setLayout(new GridBagLayout());
+		eyePanel.add(eyeDevicePanel);
 
-        JPanel eyeWinPanel = new JPanel();
-        eyeWinPanel.setBorder(BorderFactory.createTitledBorder("Eye Window"));
-        eyeWinPanel.setLayout(new GridBagLayout());
-        eyePanel.add(eyeWinPanel);
+		JPanel eyeWinPanel = new JPanel();
+		eyeWinPanel.setBorder(BorderFactory.createTitledBorder("Eye Window"));
+		eyeWinPanel.setLayout(new GridBagLayout());
+		eyePanel.add(eyeWinPanel);
 
-        pauseResumeButton = new JButton();
-        pauseResumeButton.setToolTipText("run/pause experiment");
-        Action action = new AbstractAction() {
+		pauseResumeButton = new JButton();
+		pauseResumeButton.setToolTipText("run/pause experiment");
+		Action action = new AbstractAction() {
 			private static final long serialVersionUID = 1L;
 
 			public void actionPerformed(ActionEvent e) {
@@ -303,16 +298,16 @@ public class ExperimentConsole extends JFrame implements
 			}
 		};
 		Dimension size = new Dimension(100, 25);
-        pauseResumeButton.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(pauseResumeKey, action);
-        pauseResumeButton.getActionMap().put(action, action);
-        pauseResumeButton.setMinimumSize(size);
-        pauseResumeButton.setMaximumSize(size);
-        pauseResumeButton.setPreferredSize(size);
-        pauseResumeButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent evt) {
-            	pauseResume();
-            }
-        });
+		pauseResumeButton.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(pauseResumeKey, action);
+		pauseResumeButton.getActionMap().put(action, action);
+		pauseResumeButton.setMinimumSize(size);
+		pauseResumeButton.setMaximumSize(size);
+		pauseResumeButton.setPreferredSize(size);
+		pauseResumeButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+				pauseResume();
+			}
+		});
 
 		if (paused) {
 			pauseResumeButton.setText("   Run   ");
@@ -320,109 +315,109 @@ public class ExperimentConsole extends JFrame implements
 			pauseResumeButton.setText("  Pause  ");
 		}
 
-        commandPanel.add(Box.createRigidArea(new Dimension(0,6)));
-        commandPanel.add(pauseResumeButton);
-        commandPanel.add(Box.createRigidArea(new Dimension(0,3)));
+		commandPanel.add(Box.createRigidArea(new Dimension(0,6)));
+		commandPanel.add(pauseResumeButton);
+		commandPanel.add(Box.createRigidArea(new Dimension(0,3)));
 
-        JLabel monitorLabel = new JLabel("<html><strong> " + GuiUtil.getKeyText(monitorToken.getKeyCode()) + "</strong>: monitor mode </html>");
+		JLabel monitorLabel = new JLabel("<html><strong> " + GuiUtil.getKeyText(monitorToken.getKeyCode()) + "</strong>: monitor mode </html>");
 		monitorLabel.setToolTipText("<html><strong>monitor mode commands</strong> <br><strong> " + GuiUtil.getKeyText(lockUnlockKey.getKeyCode()) + "</strong>: lock/unlock </html>");
-        commandPanel.add(monitorLabel);
+		commandPanel.add(monitorLabel);
 
-        for (IConsolePlugin p : consolePlugins) {
-        	JLabel pLabel = new JLabel("<html><strong> " + GuiUtil.getKeyText(p.getToken().getKeyCode()) + "</strong>: " + p.getPluginName() + " <html>");
-        	pLabel.setToolTipText(p.getPluginHelp());
-        	commandPanel.add(pLabel);
+		for (IConsolePlugin p : consolePlugins) {
+			JLabel pLabel = new JLabel("<html><strong> " + GuiUtil.getKeyText(p.getToken().getKeyCode()) + "</strong>: " + p.getPluginName() + " <html>");
+			pLabel.setToolTipText(p.getPluginHelp());
+			commandPanel.add(pLabel);
 		}
 
-        JLabel rpLabel = new JLabel("<html><strong> " + GuiUtil.getKeyText(pauseResumeKey.getKeyCode()) + "</strong>: run/pause </html>");
-        commandPanel.add(rpLabel);
+		JLabel rpLabel = new JLabel("<html><strong> " + GuiUtil.getKeyText(pauseResumeKey.getKeyCode()) + "</strong>: run/pause </html>");
+		commandPanel.add(rpLabel);
 
-        JLabel exitLabel = new JLabel("<html><strong> ESC</strong>: exit </html>");
-        commandPanel.add(exitLabel);
+		JLabel exitLabel = new JLabel("<html><strong> ESC</strong>: exit </html>");
+		commandPanel.add(exitLabel);
 
-        commandPanel.add(Box.createGlue());
-        modeLabel = new JLabel("");
-        commandPanel.add(modeLabel);
-        commandPanel.add(Box.createRigidArea(new Dimension(0,3)));
+		commandPanel.add(Box.createGlue());
+		modeLabel = new JLabel("");
+		commandPanel.add(modeLabel);
+		commandPanel.add(Box.createRigidArea(new Dimension(0,3)));
 
-        mousePositionPanel.add(new JLabel("Screen"),
-        		new GridBagConstraints(0,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        mouseXCanvas = new JLabel("0");
-        mouseYCanvas = new JLabel("0");
-        mousePositionPanel.add(mouseXCanvas,
-        		new GridBagConstraints(1,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        mousePositionPanel.add(mouseYCanvas,
-        		new GridBagConstraints(2,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        mousePositionPanel.add(new JLabel("World"),
-        		new GridBagConstraints(0,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        mouseXWorld = new JLabel("0");
-        mouseYWorld = new JLabel("0");
-        mousePositionPanel.add(mouseXWorld,
-        		new GridBagConstraints(1,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        mousePositionPanel.add(mouseYWorld,
-        		new GridBagConstraints(2,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        mousePositionPanel.add(new JLabel("Degree"),
-        		new GridBagConstraints(0,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        mouseXDegree = new JLabel("0");
-        mouseYDegree = new JLabel("0");
-        mousePositionPanel.add(mouseXDegree,
-        		new GridBagConstraints(1,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        mousePositionPanel.add(mouseYDegree,
-        		new GridBagConstraints(2,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		mousePositionPanel.add(new JLabel("Screen"),
+				new GridBagConstraints(0,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		mouseXCanvas = new JLabel("0");
+		mouseYCanvas = new JLabel("0");
+		mousePositionPanel.add(mouseXCanvas,
+				new GridBagConstraints(1,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		mousePositionPanel.add(mouseYCanvas,
+				new GridBagConstraints(2,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		mousePositionPanel.add(new JLabel("World"),
+				new GridBagConstraints(0,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		mouseXWorld = new JLabel("0");
+		mouseYWorld = new JLabel("0");
+		mousePositionPanel.add(mouseXWorld,
+				new GridBagConstraints(1,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		mousePositionPanel.add(mouseYWorld,
+				new GridBagConstraints(2,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		mousePositionPanel.add(new JLabel("Degree"),
+				new GridBagConstraints(0,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		mouseXDegree = new JLabel("0");
+		mouseYDegree = new JLabel("0");
+		mousePositionPanel.add(mouseXDegree,
+				new GridBagConstraints(1,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		mousePositionPanel.add(mouseYDegree,
+				new GridBagConstraints(2,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
 
-        mouseXCanvas.setPreferredSize(new Dimension(80,20));
-        mouseXCanvas.setHorizontalAlignment(SwingConstants.RIGHT);
-        mouseXCanvas.setToolTipText("Window Coordinate X");
-        mouseYCanvas.setPreferredSize(new Dimension(80,20));
-        mouseYCanvas.setHorizontalAlignment(SwingConstants.RIGHT);
-        mouseYCanvas.setToolTipText("Window Coordinate Y");
-        mouseXWorld.setToolTipText("World Coordinate X");
-        mouseYWorld.setToolTipText("World Coordinate Y");
-        mouseXDegree.setToolTipText("Degree X");
-        mouseYDegree.setToolTipText("Degree Y");
+		mouseXCanvas.setPreferredSize(new Dimension(80,20));
+		mouseXCanvas.setHorizontalAlignment(SwingConstants.RIGHT);
+		mouseXCanvas.setToolTipText("Window Coordinate X");
+		mouseYCanvas.setPreferredSize(new Dimension(80,20));
+		mouseYCanvas.setHorizontalAlignment(SwingConstants.RIGHT);
+		mouseYCanvas.setToolTipText("Window Coordinate Y");
+		mouseXWorld.setToolTipText("World Coordinate X");
+		mouseYWorld.setToolTipText("World Coordinate Y");
+		mouseXDegree.setToolTipText("Degree X");
+		mouseYDegree.setToolTipText("Degree Y");
 
-        trialStatPanel.add(new JLabel("Complete"),
-        		new GridBagConstraints(0,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));
-        completeTrialCount = new JLabel("0");
-        trialStatPanel.add(getCompleteTrialCount(),
-        		new GridBagConstraints(1,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
+		trialStatPanel.add(new JLabel("Complete"),
+				new GridBagConstraints(0,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));
+		completeTrialCount = new JLabel("0");
+		trialStatPanel.add(getCompleteTrialCount(),
+				new GridBagConstraints(1,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
 
-        trialStatPanel.add(new JLabel("Break"),
-        		new GridBagConstraints(0,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));
-        breakTrialCount = new JLabel("0");
-        trialStatPanel.add(breakTrialCount,
-        		new GridBagConstraints(1,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
+		trialStatPanel.add(new JLabel("Break"),
+				new GridBagConstraints(0,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));
+		breakTrialCount = new JLabel("0");
+		trialStatPanel.add(breakTrialCount,
+				new GridBagConstraints(1,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
 
-        trialStatPanel.add(new JLabel("Eye Fail"),
-        		new GridBagConstraints(0,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));
-        failTrialCount = new JLabel("0");
-        trialStatPanel.add(failTrialCount,
-        		new GridBagConstraints(1,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
+		trialStatPanel.add(new JLabel("Eye Fail"),
+				new GridBagConstraints(0,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));
+		failTrialCount = new JLabel("0");
+		trialStatPanel.add(failTrialCount,
+				new GridBagConstraints(1,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
 
-        // -- shs behavioral outcome labels:
-        trialStatPanel.add(new JLabel("PASS"),
-        		new GridBagConstraints(2,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        trialPassCount = new JLabel("0");
-        trialStatPanel.add(trialPassCount,
-        		new GridBagConstraints(3,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		// -- shs behavioral outcome labels:
+		trialStatPanel.add(new JLabel("PASS"),
+				new GridBagConstraints(2,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		trialPassCount = new JLabel("0");
+		trialStatPanel.add(trialPassCount,
+				new GridBagConstraints(3,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
 
-        trialStatPanel.add(new JLabel("FAIL"),
-        		new GridBagConstraints(2,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        trialFailCount = new JLabel("0");
-        trialStatPanel.add(trialFailCount,
-        		new GridBagConstraints(3,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		trialStatPanel.add(new JLabel("FAIL"),
+				new GridBagConstraints(2,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		trialFailCount = new JLabel("0");
+		trialStatPanel.add(trialFailCount,
+				new GridBagConstraints(3,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
 
-        trialStatPanel.add(new JLabel("BREAK"),
-        		new GridBagConstraints(2,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        trialBreakCount = new JLabel("0");
-        trialStatPanel.add(trialBreakCount,
-        		new GridBagConstraints(3,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		trialStatPanel.add(new JLabel("BREAK"),
+				new GridBagConstraints(2,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		trialBreakCount = new JLabel("0");
+		trialStatPanel.add(trialBreakCount,
+				new GridBagConstraints(3,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
 
-        trialStatPanel.add(new JLabel("NOGO"),
-        		new GridBagConstraints(2,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        trialNogoCount = new JLabel("0");
-        trialStatPanel.add(trialNogoCount,
-        		new GridBagConstraints(3,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		trialStatPanel.add(new JLabel("NOGO"),
+				new GridBagConstraints(2,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		trialNogoCount = new JLabel("0");
+		trialStatPanel.add(trialNogoCount,
+				new GridBagConstraints(3,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
 
 
 //        completeTrialCount.setHorizontalAlignment(SwingConstants.RIGHT);
@@ -430,81 +425,81 @@ public class ExperimentConsole extends JFrame implements
 //        failTrialCount.setHorizontalAlignment(SwingConstants.RIGHT);
 //        completeTrialCount.setPreferredSize(new Dimension(50,20));
 
-        trialPassCount.setHorizontalAlignment(SwingConstants.RIGHT);
-        trialPassCount.setPreferredSize(new Dimension(50,20));
-        trialFailCount.setHorizontalAlignment(SwingConstants.RIGHT);
-        trialBreakCount.setHorizontalAlignment(SwingConstants.RIGHT);
-        trialNogoCount.setHorizontalAlignment(SwingConstants.RIGHT);
+		trialPassCount.setHorizontalAlignment(SwingConstants.RIGHT);
+		trialPassCount.setPreferredSize(new Dimension(50,20));
+		trialFailCount.setHorizontalAlignment(SwingConstants.RIGHT);
+		trialBreakCount.setHorizontalAlignment(SwingConstants.RIGHT);
+		trialNogoCount.setHorizontalAlignment(SwingConstants.RIGHT);
 
-        eyeDeviceSelect = new JComboBox();
-        eyeDevicePanel.add(eyeDeviceSelect,
-        		new GridBagConstraints(0,0,3,1,0.0,0.0,GridBagConstraints.LINE_START,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        eyeDevicePanel.add(new JLabel("Degree"),
-        		new GridBagConstraints(0,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        eyeReadingDegreeX = new JLabel("0");
-        eyeDevicePanel.add(eyeReadingDegreeX,
-        		new GridBagConstraints(1,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        eyeReadingDegreeY = new JLabel("0");
-        eyeDevicePanel.add(eyeReadingDegreeY,
-        		new GridBagConstraints(2,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        eyeDevicePanel.add(new JLabel("Volt"),
-        		new GridBagConstraints(0,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        eyeReadingVoltX = new JLabel("0");
-        eyeDevicePanel.add(eyeReadingVoltX,
-        		new GridBagConstraints(1,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        eyeReadingVoltY = new JLabel("0");
-        eyeDevicePanel.add(eyeReadingVoltY,
-        		new GridBagConstraints(2,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        eyeDevicePanel.add(new JLabel("Zero"),
-        		new GridBagConstraints(0,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        eyeZeroX = new JLabel("0");
-        eyeDevicePanel.add(eyeZeroX,
-        		new GridBagConstraints(1,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        eyeZeroY = new JLabel("0");
-        eyeDevicePanel.add(eyeZeroY,
-        		new GridBagConstraints(2,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		eyeDeviceSelect = new JComboBox();
+		eyeDevicePanel.add(eyeDeviceSelect,
+				new GridBagConstraints(0,0,3,1,0.0,0.0,GridBagConstraints.LINE_START,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		eyeDevicePanel.add(new JLabel("Degree"),
+				new GridBagConstraints(0,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		eyeReadingDegreeX = new JLabel("0");
+		eyeDevicePanel.add(eyeReadingDegreeX,
+				new GridBagConstraints(1,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		eyeReadingDegreeY = new JLabel("0");
+		eyeDevicePanel.add(eyeReadingDegreeY,
+				new GridBagConstraints(2,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		eyeDevicePanel.add(new JLabel("Volt"),
+				new GridBagConstraints(0,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		eyeReadingVoltX = new JLabel("0");
+		eyeDevicePanel.add(eyeReadingVoltX,
+				new GridBagConstraints(1,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		eyeReadingVoltY = new JLabel("0");
+		eyeDevicePanel.add(eyeReadingVoltY,
+				new GridBagConstraints(2,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		eyeDevicePanel.add(new JLabel("Zero"),
+				new GridBagConstraints(0,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		eyeZeroX = new JLabel("0");
+		eyeDevicePanel.add(eyeZeroX,
+				new GridBagConstraints(1,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		eyeZeroY = new JLabel("0");
+		eyeDevicePanel.add(eyeZeroY,
+				new GridBagConstraints(2,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
 
-        eyeDeviceSelect.setPreferredSize(new Dimension(180,25));
-        eyeReadingDegreeX.setHorizontalAlignment(SwingConstants.RIGHT);
-        eyeReadingDegreeX.setPreferredSize(new Dimension(80,20));
-        eyeReadingDegreeY.setHorizontalAlignment(SwingConstants.RIGHT);
-        eyeReadingDegreeY.setPreferredSize(new Dimension(80,20));
+		eyeDeviceSelect.setPreferredSize(new Dimension(180,25));
+		eyeReadingDegreeX.setHorizontalAlignment(SwingConstants.RIGHT);
+		eyeReadingDegreeX.setPreferredSize(new Dimension(80,20));
+		eyeReadingDegreeY.setHorizontalAlignment(SwingConstants.RIGHT);
+		eyeReadingDegreeY.setPreferredSize(new Dimension(80,20));
 
-        eyeReadingDegreeX.setToolTipText("Degree X");
-        eyeReadingDegreeY.setToolTipText("Degre Y");
-        eyeReadingVoltX.setToolTipText("Volt X");
-        eyeReadingVoltY.setToolTipText("Volt Y");
-        eyeZeroX.setToolTipText("Zero X");
-        eyeZeroY.setToolTipText("Zero Y");
+		eyeReadingDegreeX.setToolTipText("Degree X");
+		eyeReadingDegreeY.setToolTipText("Degre Y");
+		eyeReadingVoltX.setToolTipText("Volt X");
+		eyeReadingVoltY.setToolTipText("Volt Y");
+		eyeZeroX.setToolTipText("Zero X");
+		eyeZeroY.setToolTipText("Zero Y");
 
-        eyeWinPanel.add(new JLabel("Center"),
-        		new GridBagConstraints(0,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        eyeWindowCenterX = new JLabel("0");
-        eyeWinPanel.add(eyeWindowCenterX,
-        		new GridBagConstraints(1,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        eyeWindowCenterY = new JLabel("0");
-        eyeWinPanel.add(eyeWindowCenterY,
-        		new GridBagConstraints(2,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        eyeWinPanel.add(new JLabel("Size"),
-        		new GridBagConstraints(0,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        eyeWindowSize = new JLabel("0");
-        eyeWinPanel.add(eyeWindowSize,
-        		new GridBagConstraints(1,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		eyeWinPanel.add(new JLabel("Center"),
+				new GridBagConstraints(0,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		eyeWindowCenterX = new JLabel("0");
+		eyeWinPanel.add(eyeWindowCenterX,
+				new GridBagConstraints(1,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		eyeWindowCenterY = new JLabel("0");
+		eyeWinPanel.add(eyeWindowCenterY,
+				new GridBagConstraints(2,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		eyeWinPanel.add(new JLabel("Size"),
+				new GridBagConstraints(0,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
+		eyeWindowSize = new JLabel("0");
+		eyeWinPanel.add(eyeWindowSize,
+				new GridBagConstraints(1,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
 
-        eyeWindowCenterX.setHorizontalAlignment(SwingConstants.RIGHT);
-        eyeWindowCenterX.setPreferredSize(new Dimension(80,20));
-        eyeWindowCenterY.setHorizontalAlignment(SwingConstants.RIGHT);
-        eyeWindowCenterY.setPreferredSize(new Dimension(80,20));
+		eyeWindowCenterX.setHorizontalAlignment(SwingConstants.RIGHT);
+		eyeWindowCenterX.setPreferredSize(new Dimension(80,20));
+		eyeWindowCenterY.setHorizontalAlignment(SwingConstants.RIGHT);
+		eyeWindowCenterY.setPreferredSize(new Dimension(80,20));
 
-        eyeWindowCenterX.setToolTipText("Degree X");
-        eyeWindowCenterY.setToolTipText("Degree Y");
-        eyeWindowSize.setToolTipText("Degree");
+		eyeWindowCenterX.setToolTipText("Degree X");
+		eyeWindowCenterY.setToolTipText("Degree Y");
+		eyeWindowSize.setToolTipText("Degree");
 
-        eyeDeviceSelect.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-            	changeCurrentDeviceId((String) eyeDeviceSelect.getSelectedItem());
-            }
-        });
+		eyeDeviceSelect.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				changeCurrentDeviceId((String) eyeDeviceSelect.getSelectedItem());
+			}
+		});
 
 		for (String id : model.getEyeDeviceIds()) {
 			eyeDeviceSelect.addItem(id);
@@ -516,7 +511,30 @@ public class ExperimentConsole extends JFrame implements
 			addPanel(p.pluginPanel());
 		}
 		pack();
-    }
+	}
+
+	private MouseEvent correctForZoom(MouseEvent e) {
+		// Apply zoom to mouse coordinates
+		double centerX = consoleCanvas.getWidth() / 2.0;
+		double centerY = consoleCanvas.getHeight() / 2.0;
+		double offsetX = e.getX() - centerX;
+		double offsetY = e.getY() - centerY;
+		int zoomedX = (int)(centerX + offsetX / zoomFactor + viewportCenter.getX());
+		int zoomedY = (int)(centerY + offsetY / zoomFactor + viewportCenter.getY());
+		// Create a new MouseEvent with the zoomed coordinates
+		MouseEvent zoomedEvent = new MouseEvent(
+				e.getComponent(),
+				e.getID(),
+				e.getWhen(),
+				e.getModifiersEx(),
+				zoomedX,
+				zoomedY,
+				e.getClickCount(),
+				e.isPopupTrigger(),
+				e.getButton()
+		);
+		return zoomedEvent;
+	}
 
 	private void addPanel(JPanel panel) {
 		try {
@@ -563,8 +581,8 @@ public class ExperimentConsole extends JFrame implements
 	void start() {
 		model.start();
 		for (IConsolePlugin p : consolePlugins) {
-    		p.startPlugin();
-    	}
+			p.startPlugin();
+		}
 	}
 
 	public void stop() {
@@ -572,8 +590,8 @@ public class ExperimentConsole extends JFrame implements
 		ThreadUtil.backgroundRun(new Runnable() {
 			public void run() {
 				for (IConsolePlugin p : consolePlugins) {
-            		p.stopPlugin();
-            	}
+					p.stopPlugin();
+				}
 				model.stop();
 			}
 		}, new Runnable() {
@@ -756,37 +774,37 @@ public class ExperimentConsole extends JFrame implements
 		}
 	}
 
-    protected JLabel breakTrialCount;
-    protected JLabel completeTrialCount;
-    protected Canvas consoleCanvas;
+	protected JLabel breakTrialCount;
+	protected JLabel completeTrialCount;
+	protected Canvas consoleCanvas;
 
 	public Canvas getConsoleCanvas() {
 		return consoleCanvas;
 	}
 
 	protected JComboBox eyeDeviceSelect;
-    protected JLabel eyeReadingDegreeX;
-    protected JLabel eyeReadingDegreeY;
-    protected JLabel eyeReadingVoltX;
-    protected JLabel eyeReadingVoltY;
-    protected JLabel eyeWindowCenterX;
-    protected JLabel eyeWindowCenterY;
-    protected JLabel eyeWindowSize;
-    protected JLabel eyeZeroX;
-    protected JLabel eyeZeroY;
-    protected JLabel failTrialCount;
-    protected JLabel mouseXCanvas;
-    protected JLabel mouseXDegree;
-    protected JLabel mouseXWorld;
-    protected JLabel mouseYCanvas;
-    protected JLabel mouseYDegree;
-    protected JLabel mouseYWorld;
-    protected JLabel modeLabel;
-    protected JButton pauseResumeButton;
-    protected JLabel trialPassCount;
-    protected JLabel trialFailCount;
-    protected JLabel trialBreakCount;
-    protected JLabel trialNogoCount;
+	protected JLabel eyeReadingDegreeX;
+	protected JLabel eyeReadingDegreeY;
+	protected JLabel eyeReadingVoltX;
+	protected JLabel eyeReadingVoltY;
+	protected JLabel eyeWindowCenterX;
+	protected JLabel eyeWindowCenterY;
+	protected JLabel eyeWindowSize;
+	protected JLabel eyeZeroX;
+	protected JLabel eyeZeroY;
+	protected JLabel failTrialCount;
+	protected JLabel mouseXCanvas;
+	protected JLabel mouseXDegree;
+	protected JLabel mouseXWorld;
+	protected JLabel mouseYCanvas;
+	protected JLabel mouseYDegree;
+	protected JLabel mouseYWorld;
+	protected JLabel modeLabel;
+	protected JButton pauseResumeButton;
+	protected JLabel trialPassCount;
+	protected JLabel trialFailCount;
+	protected JLabel trialBreakCount;
+	protected JLabel trialNogoCount;
 
 	public void messageReceived() {
 		SwingUtilities.invokeLater(new Runnable() {
