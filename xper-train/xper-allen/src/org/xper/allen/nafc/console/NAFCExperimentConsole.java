@@ -45,11 +45,6 @@ import org.apache.log4j.Logger;
 import org.lwjgl.LWJGLException;
 import org.xper.Dependency;
 import org.xper.drawing.renderer.AbstractRenderer;
-import org.xper.allen.saccade.console.SaccadeExperimentConsoleModel;
-import org.xper.allen.saccade.db.vo.SaccadeTrialStatistics;
-import org.xper.classic.TrialExperimentConsoleRenderer;
-import org.xper.classic.vo.TrialStatistics;
-import org.xper.console.ExperimentConsoleModel;
 import org.xper.console.IConsolePlugin;
 import org.xper.console.MessageReceiverEventListener;
 import org.xper.drawing.Context;
@@ -212,7 +207,7 @@ public class NAFCExperimentConsole extends JFrame implements
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				if (!isMonitorMode()) {
-					currentPlugin.handleMouseClicked(e);
+					currentPlugin.handleMouseClicked(e, e.getX(),e.getY() );
 				}
 			}
 		});

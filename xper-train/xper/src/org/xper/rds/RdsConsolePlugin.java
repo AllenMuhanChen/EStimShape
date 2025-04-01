@@ -19,7 +19,7 @@ import org.xper.util.GuiUtil;
 
 public class RdsConsolePlugin implements IConsolePlugin {
 	static Logger logger = Logger.getLogger(RdsConsolePlugin.class);
-	
+
 	@Dependency
 	float maxFixationSize = 100; // mm
 	@Dependency
@@ -55,23 +55,23 @@ public class RdsConsolePlugin implements IConsolePlugin {
 	RdsControlClient rdsControlClient;
 	@Dependency
 	FixationPoint consoleFixationPoint;
-	
+
 	float fixationSize;
 	float displacement;
 	float red;
 	float green;
 	float blue;
 	int direction;
-	
+
 	KeyStroke rdsToken = KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0);
-	
+
 	final int directionKey = KeyEvent.VK_1;
 	final int colorKey = KeyEvent.VK_2;
 	final int displacementKey = KeyEvent.VK_3;
 	final int sizeKey = KeyEvent.VK_4;
-	
+
 	int keyState = directionKey;
-	
+
 	@Override
 	public String getPluginHelp() {
 		StringBuffer buf = new StringBuffer();
@@ -85,7 +85,7 @@ public class RdsConsolePlugin implements IConsolePlugin {
 		buf.append("</html>");
 		return buf.toString();
 	}
-	
+
 	@Override
 	public List<KeyStroke> getCommandKeys() {
 		List<KeyStroke> keys = new ArrayList<KeyStroke>();
@@ -103,7 +103,7 @@ public class RdsConsolePlugin implements IConsolePlugin {
 		case directionKey:
 		case colorKey:
 		case displacementKey:
-		case sizeKey: 
+		case sizeKey:
 			keyState = keyCode;
 			if (logger.isDebugEnabled()) {
 				logger.debug(GuiUtil.keyStroke2String(k));
@@ -144,23 +144,23 @@ public class RdsConsolePlugin implements IConsolePlugin {
 	@Override
 	public void handleMouseMove(int x, int y) {
 	}
-	
+
 	float changeColor (float c, float bg, float fg, float step) {
 		float r = c + step;
 		if (r < bg) r = bg;
 		else if (r > fg) r = fg;
 		return r;
 	}
-	
+
 	void setCoordinate (int direction, float displacement) {
 		float x = (float)(fixationDirections.get(direction).getX()) * displacement;
 		float y = (float)(fixationDirections.get(direction).getY()) * displacement;
 		consoleFixationPoint.setFixationPosition(new Coordinates2D(x, y));
 		rdsControlClient.setCoordinate(x, y);
 	}
-	
+
 	@Override
-	public void handleMouseClicked(MouseEvent e) {
+	public void handleMouseClicked(MouseEvent e, int zoomedX, int zoomedY) {
 		int b = e.getButton();
 		if (logger.isDebugEnabled()) {
 			logger.debug("Mouse button: " + b);
@@ -171,7 +171,7 @@ public class RdsConsolePlugin implements IConsolePlugin {
 			changeFixation(-1);
 		}
 	}
-	
+
 	void changeFixation(int d) {
 		switch (keyState) {
 		case directionKey:

@@ -592,9 +592,9 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     }
 
     @Override
-    public void handleMouseClicked(MouseEvent e) {
+    public void handleMouseClicked(MouseEvent e, int zoomedX, int zoomedY) {
         AbstractRenderer renderer = consoleRenderer.getRenderer();
-        Coordinates2D worldCoords = mouseWorldPosition(e.getX(), e.getY());
+        Coordinates2D worldCoords = mouseWorldPosition(zoomedX, zoomedY);
         RFPlotDrawable currentDrawable = getNamesForDrawables().get(stimType);
 
         Coordinates2D mouseCoordinatesInDegrees = new Coordinates2D(

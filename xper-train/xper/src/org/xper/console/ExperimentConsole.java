@@ -227,7 +227,14 @@ public class ExperimentConsole extends JFrame implements
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				if (!isMonitorMode()) {
-					currentPlugin.handleMouseClicked(e);
+					// Apply zoom to mouse coordinates
+					double centerX = consoleCanvas.getWidth() / 2.0;
+					double centerY = consoleCanvas.getHeight() / 2.0;
+					double offsetX = e.getX() - centerX;
+					double offsetY = e.getY() - centerY;
+					int zoomedX = (int)(centerX + offsetX / zoomFactor);
+					int zoomedY = (int)(centerY + offsetY / zoomFactor);
+					currentPlugin.handleMouseClicked(e, zoomedX, zoomedY);
 				}
 			}
 		});
