@@ -166,14 +166,15 @@ public class RFPlotDrawer {
     private void drawRFCenter(RGBColor color, String channel) {
         rfCenter = rfsForChannels.get(channel).getCircleCenter();
         if (rfCenter != null) {
-            GLUtil.drawSquare(new Square(true, 10), rfCenter.getX(), rfCenter.getY(), 0, color.getRed(), color.getGreen(), color.getBlue()); // Blue
+            GLUtil.drawSquare(new Square(true, 2), rfCenter.getX(), rfCenter.getY(), 0, color.getRed(), color.getGreen(), color.getBlue()); // Blue
         }
     }
 
     private void drawCirclePoints(RGBColor color, String channel) {
         List<Coordinates2D> circlePoints = rfsForChannels.get(channel).getCirclePoints();
+        double radius = rfsForChannels.get(channel).getCircleRadius();
         for (Coordinates2D point : circlePoints) {
-            GLUtil.drawCircle(new org.xper.drawing.object.Circle(true, 5), point.getX(), point.getY(), 0, color.getRed(), color.getGreen(), color.getBlue()); // Yellow
+            GLUtil.drawCircle(new org.xper.drawing.object.Circle(true, radius/10), point.getX(), point.getY(), 0, color.getRed(), color.getGreen(), color.getBlue()); // Yellow
         }
     }
 
