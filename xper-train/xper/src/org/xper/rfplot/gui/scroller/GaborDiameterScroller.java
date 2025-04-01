@@ -5,6 +5,8 @@ import org.xper.rfplot.drawing.RFPlotDrawable;
 
 public class GaborDiameterScroller<T extends GaborSpec> extends RFPlotScroller<T>{
 
+    public static final double STEP_SIZE = 0.25;
+
     public GaborDiameterScroller(Class<T> type) {
         this.type = type;
     }
@@ -12,7 +14,7 @@ public class GaborDiameterScroller<T extends GaborSpec> extends RFPlotScroller<T
     @Override
     public ScrollerParams next(ScrollerParams scrollerParams) {
         double currentSigma = getCurrentDiameter(scrollerParams);
-        double newDiameter = currentSigma + 1;
+        double newDiameter = currentSigma + STEP_SIZE;
         setNewDiameter(scrollerParams, newDiameter);
         updateValue(scrollerParams, newDiameter);
         return scrollerParams;
@@ -25,7 +27,7 @@ public class GaborDiameterScroller<T extends GaborSpec> extends RFPlotScroller<T
     @Override
     public ScrollerParams previous(ScrollerParams scrollerParams) {
         double currentSigma = getCurrentDiameter(scrollerParams);
-        double newDiameter = currentSigma - 1;
+        double newDiameter = currentSigma - STEP_SIZE;
         setNewDiameter(scrollerParams, newDiameter);
         updateValue(scrollerParams, newDiameter);
         return scrollerParams;
