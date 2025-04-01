@@ -31,7 +31,7 @@ UPDATE SystemVar SET val=0 WHERE name='xper_fixation_point_color' AND arr_ind=2;
 UPDATE SystemVar SET val=1428 WHERE name='xper_monkey_screen_width';
 UPDATE SystemVar SET val=802 WHERE name='xper_monkey_screen_height';
 UPDATE SystemVar SET val=0 WHERE name='xper_monkey_screen_depth';
-UPDATE SystemVar SET val=500 WHERE name='xper_monkey_screen_distance';
+UPDATE SystemVar SET val=510 WHERE name='xper_monkey_screen_distance';
 UPDATE SystemVar SET val='false' WHERE name='xper_monkey_screen_inverted';
 UPDATE SystemVar SET val=60 WHERE name='xper_noise_rate';
 UPDATE SystemVar SET val=0.15 WHERE name='xper_background_color' AND arr_ind=0;

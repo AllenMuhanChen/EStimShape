@@ -399,7 +399,9 @@ class MRIViewer:
                 if not self.ebz_set and self.slice_positions and len(self.slice_positions) > 0:
                     middle_slice_idx = len(self.slice_positions) // 2
                     middle_slice_ml = self.slice_positions[middle_slice_idx]
-                    self.ebz_z_var.set(middle_slice_ml)
+                    offset = 1.855  # Offset from middle slice to EBZ (where true EBZ is)
+                    self.ebz_z_var.set(middle_slice_ml + offset)
+                    # self.ebz_z_var.set(middle_slice_ml-)
 
                 # Apply the EBZ settings
                 self.set_ebz()
@@ -662,7 +664,7 @@ class MRIViewer:
             self.root.update()
 
             # Load the PAR/REC file
-            self.img = load_parrec(par_file)
+            self.img = load_parrec(par_file, strict_sort=True)
             self.data = self.img.get_fdata()
 
             # Store the affine matrix for coordinate transformations
@@ -894,8 +896,8 @@ class MRIViewer:
                 star_x = self.ebz_pixel_coords[0]
 
                 ax.plot(star_x, star_y, 'r*', markersize=10)
-                ax.text(star_x, star_y - 10, "EBZ", color='red',
-                        fontsize=10, ha='center', va='bottom', weight='bold')
+                # ax.text(star_x, star_y - 10, "EBZ", color='red',
+                #         fontsize=10, ha='center', va='bottom', weight='bold')
 
                 # Draw X-axis (horizontal green line)
                 x_line = np.linspace(0, cols - 1, cols)
@@ -904,6 +906,28 @@ class MRIViewer:
                 # Draw Y-axis (vertical green line)
                 y_line = np.linspace(0, rows - 1, rows)
                 ax.plot([star_x] * rows, y_line, 'g-', linewidth=1, alpha=0.5)
+
+                # Set up custom tick locator
+                from matplotlib.ticker import FuncFormatter
+
+                def ap_tick_formatter(x, pos):
+                    # Convert pixel coordinate to mm offset from EBZ
+                    offset = (x - star_x)
+                    return f'{offset:.0f}'
+
+                def dv_tick_formatter(y, pos):
+                    # Convert pixel coordinate to mm offset from EBZ
+                    # Flip sign because image y-coordinate is inverted
+                    offset = -(y - star_y)
+                    return f'{offset:.0f}'
+
+                # Set x-axis ticks and labels
+                ax.xaxis.set_major_formatter(FuncFormatter(ap_tick_formatter))
+                ax.yaxis.set_major_formatter(FuncFormatter(dv_tick_formatter))
+
+                # Set axis labels
+                ax.set_xlabel('AP (mm)')
+                ax.set_ylabel('DV (mm)')
 
             # Construct title
             title = f'Slice {self.current_slice}/{self.slices - 1}'
@@ -922,20 +946,6 @@ class MRIViewer:
                 title += f' (EBZ: AP={self.ebz_coordinates["x"]:.1f}, DV={self.ebz_coordinates["y"]:.1f}, ML={self.ebz_coordinates["z"]:.1f} mm)'
 
             ax.set_title(title)
-
-            # Set x and y axis labels relative to EBZ
-            if self.ebz_set:
-                ax.set_xlabel('Anterior-Posterior (mm)')
-                ax.set_ylabel('Dorsal-Ventral (mm)')
-
-                # Modify ticks to be relative to EBZ
-                def format_coord(x, y):
-                    # Calculate offsets from EBZ point
-                    ap_offset = x - star_x
-                    dv_offset = y - star_y
-                    return f'AP: {ap_offset:.1f} mm, DV: {-dv_offset:.1f} mm'
-
-                ax.format_coord = format_coord
 
         except Exception as e:
             print(f"Error displaying slice: {str(e)}")
