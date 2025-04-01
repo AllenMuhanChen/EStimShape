@@ -85,9 +85,6 @@ public class ExperimentConsole extends JFrame implements
 	// Zooming related
 	private double zoomFactor = 1.0;
 	private Coordinates2D viewportCenter = new Coordinates2D(0, 0);
-	private boolean isDragging = false;
-	private int lastDragX = 0;
-	private int lastDragY = 0;
 	private double zoomStep = 0.2; // Amount to zoom in/out per scroll click
 	private double minZoom = 0.5;  // Minimum zoom factor
 	private double maxZoom = 10.0; // Maximum zoom factor
