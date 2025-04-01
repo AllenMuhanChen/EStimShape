@@ -44,6 +44,6 @@ public interface IConsolePlugin {
 
 	String getPluginHelp();
 
-	void handleMouseClicked(MouseEvent e, int zoomedX, int zoomedY);
+	void handleMouseClicked(MouseEvent e);
 
 }

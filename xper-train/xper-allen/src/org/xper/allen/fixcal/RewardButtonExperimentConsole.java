@@ -214,7 +214,7 @@ public class RewardButtonExperimentConsole extends JFrame implements
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				if (!isMonitorMode()) {
-					currentPlugin.handleMouseClicked(e, e.getX(), e.getY());
+					currentPlugin.handleMouseClicked(e);
 				}
 			}
 		});

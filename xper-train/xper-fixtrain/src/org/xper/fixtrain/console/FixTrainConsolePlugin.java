@@ -166,7 +166,7 @@ public class FixTrainConsolePlugin implements IConsolePlugin {
     }
 
     @Override
-    public void handleMouseClicked(MouseEvent e, int zoomedX, int zoomedY) {
+    public void handleMouseClicked(MouseEvent e) {
 
     }
 

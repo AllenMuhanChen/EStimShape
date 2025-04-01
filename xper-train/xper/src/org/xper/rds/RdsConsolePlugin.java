@@ -160,7 +160,7 @@ public class RdsConsolePlugin implements IConsolePlugin {
 	}
 
 	@Override
-	public void handleMouseClicked(MouseEvent e, int zoomedX, int zoomedY) {
+	public void handleMouseClicked(MouseEvent e) {
 		int b = e.getButton();
 		if (logger.isDebugEnabled()) {
 			logger.debug("Mouse button: " + b);
