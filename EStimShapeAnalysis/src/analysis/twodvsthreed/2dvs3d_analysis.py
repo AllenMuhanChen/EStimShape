@@ -15,9 +15,9 @@ from src.startup import context
 
 
 def main():
-    date = '2025-02-19'
+    date = '2025-04-03'
     conn = Connection(context.twodvsthreed_database)
-    trial_tstamps = TrialCollector(conn, time_util.on_date(2025, 2, 19)).collect_trials()
+    trial_tstamps = TrialCollector(conn, time_util.on_date(2025, 4, 3)).collect_trials()
     task_ids = TaskIdCollector(conn).collect_task_ids()
 
     parser = MultiFileParser(to_cache=True, cache_dir=context.twodvsthreed_parsed_spikes_path)

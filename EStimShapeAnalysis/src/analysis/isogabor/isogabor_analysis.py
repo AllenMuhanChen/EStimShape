@@ -246,7 +246,7 @@ class PhaseField(StimSpecField):
 
 
 def main():
-    date = '2025-02-17'
+    date = '2025-04-03'
     conn = Connection(context.isogabor_database)
     trial_collector = TrialCollector(conn)
     trial_tstamps = trial_collector.collect_trials()

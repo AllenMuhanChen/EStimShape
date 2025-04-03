@@ -73,7 +73,7 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
         gaborSpec = new GaborSpec();
         gaborSpec.setXCenter(rfInfo.getCenter().getX());
         gaborSpec.setYCenter(rfInfo.getCenter().getY());
-        gaborSpec.setSize(rfInfo.getRadius()*1.5);
+        gaborSpec.setSize((rfInfo.getRadius()*2.0)*2);
         gaborSpec.setOrientation(stimSpec.getOrientation());
         gaborSpec.setPhase(0);
         gaborSpec.setAnimation(false);

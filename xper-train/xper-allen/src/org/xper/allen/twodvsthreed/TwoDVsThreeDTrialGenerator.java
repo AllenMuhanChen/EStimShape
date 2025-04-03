@@ -26,7 +26,7 @@ import java.util.List;
 
 public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<Stim> {
     public static final List<Double> LIGHTNESSES_TO_TEST= Arrays.asList(0.2, 0.4, 0.6, 0.8, 1.0);
-    private static final int TOP_N_STIMS_PER_LINEAGE = 1; // Number of top stimuli to select per lineage
+    private static final int TOP_N_STIMS_PER_LINEAGE = 2; // Number of top stimuli to select per lineage
 //    public static final List<Double> LIGHTNESSES_TO_TEST = Arrays.asList(0.2);
 
     @Dependency

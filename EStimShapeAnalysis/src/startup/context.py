@@ -1,10 +1,10 @@
 from src.pga.config.twod_threed_config import TwoDThreeDGAConfig
 
 ga_name = "New3D"
-ga_database = "allen_ga_exp_250401_0"
-nafc_database = "allen_estimshape_exp_250401_0"
-isogabor_database = "allen_isogabor_exp_250401_0"
-twodvsthreed_database = "allen_twodvsthreed_exp_250401_0"
+ga_database = "allen_ga_exp_250403_0"
+nafc_database = "allen_estimshape_exp_250403_0"
+isogabor_database = "allen_isogabor_exp_250403_0"
+twodvsthreed_database = "allen_twodvsthreed_exp_250403_0"
 
 allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
 
@@ -16,7 +16,7 @@ eyecal_dir=f"/home/r2_allen/Documents/EStimShape/{ga_database}/eyecal"
 
 # Local path for Intan Files (.dat)
 ga_intan_path = f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{ga_database}"
-isogabor_intan_path = f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{isogabor_database}"
+isogabor_intan_path = f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{isogabor_database}/2025-04-03"
 twodvsthreed_intan_path = f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{twodvsthreed_database}"
 
 # Storage of Parsed Spikes from MultiFile Parser

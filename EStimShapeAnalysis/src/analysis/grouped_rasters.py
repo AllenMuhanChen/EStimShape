@@ -5,7 +5,7 @@ from matplotlib.gridspec import GridSpec
 from typing import Dict, List, Any, Optional, Tuple, Union
 
 # Import our pipeline framework
-from src.analysis.pipeline import (
+from clat.pipeline.pipeline_base_classes import (
     InputHandler, ComputationModule, OutputHandler, AnalysisModule,
     AnalysisPipeline, create_pipeline, create_branch,
     AnalysisModuleFactory
