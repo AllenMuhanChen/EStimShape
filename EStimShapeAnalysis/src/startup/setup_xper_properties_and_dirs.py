@@ -99,7 +99,7 @@ def setup_ga_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"
     # Define paths to the properties file and directories
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.ga'
     # DB URL
-    db_url = f"jdbc:mysql://172.30.6.80/{version_ga}?rewriteBatchedStatements=true"
+    db_url = f"jdbc:mysql://172.30.6.80/{version_ga}?rewriteBatchedStatements=true?useSSL=false"
     # STIM PATHS
     stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_ga}/stimuli"
     r_ga_path = f"{stimuli_base_r}/ga"
@@ -155,7 +155,7 @@ def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.8
     # Define paths to the properties file and directories
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.procedural'
     # DB URL
-    db_url = f"jdbc:mysql://172.30.6.80/{version_nafc}?rewriteBatchedStatements=true"
+    db_url = f"jdbc:mysql://172.30.6.80/{version_nafc}?rewriteBatchedStatements=true?useSSL=false"
 
     # PATHS
     stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_nafc}/stimuli"
@@ -212,7 +212,7 @@ def setup_isogabor_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30
     # Define paths to the properties file and directories
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.isogabor'
     # DB URL
-    db_url = f"jdbc:mysql://172.30.6.80/{version_isogabor}?rewriteBatchedStatements=true"
+    db_url = f"jdbc:mysql://172.30.6.80/{version_isogabor}?rewriteBatchedStatements=true?useSSL=false"
 
     intan_path = f"/home/i2_allen/Documents/EStimShape/{version_isogabor}"
     modifier = XperPropertiesModifier(xper_properties_file_path)
@@ -246,8 +246,8 @@ def setup_twodvsthreed_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=17
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.twodvsthreed'
 
     # DB URLs
-    db_url = f"jdbc:mysql://172.30.6.80/{version_twodvsthreed}?rewriteBatchedStatements=true"
-    ga_db_url = f"jdbc:mysql://172.30.6.80/{version_ga}?rewriteBatchedStatements=true"
+    db_url = f"jdbc:mysql://172.30.6.80/{version_twodvsthreed}?rewriteBatchedStatements=true?useSSL=false"
+    ga_db_url = f"jdbc:mysql://172.30.6.80/{version_ga}?rewriteBatchedStatements=true?useSSL=false"
 
     # PATHS
     stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_twodvsthreed}/stimuli"
@@ -310,8 +310,8 @@ def setup_twodthreedlightness_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.twodthreedlightness'
 
     # DB URLs
-    db_url = f"jdbc:mysql://172.30.6.80/{version_twodthreedlightness}?rewriteBatchedStatements=true"
-    ga_db_url = f"jdbc:mysql://172.30.6.80/{version_ga}?rewriteBatchedStatements=true"
+    db_url = f"jdbc:mysql://172.30.6.80/{version_twodthreedlightness}?rewriteBatchedStatements=true?useSSL=false"
+    ga_db_url = f"jdbc:mysql://172.30.6.80/{version_ga}?rewriteBatchedStatements=true?useSSL=false"
 
     # PATHS
     stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_twodthreedlightness}/stimuli"

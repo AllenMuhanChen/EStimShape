@@ -23,7 +23,7 @@ import java.util.List;
 
 public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<Stim> {
     private static final int TOP_N_STIMS_PER_LINEAGE = 2; // Number of top stimuli to select per lineage
-    private static final int MAX_STIMS_PER_TYPE = 10; // Maximum number of stimuli to select per type
+    // Maximum number of stimuli to select per type
 
     @Dependency
     DataSource gaDataSource;
@@ -36,13 +36,57 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
     private ColorPropertyManager colorManager;
 
     public int numTrialsPerStim = 5;
+    public int startRank = 5; // Starting rank for selecting stimuli (1-based)
+    public int endRank = 10; // Ending rank for selecting stimuli (inclusive)
 
     public static void main(String[] args) {
+        // Set default values
+        int startRank = 1;
+        int endRank = 10;
+
+        // Parse command line arguments if provided
+        if (args.length >= 1) {
+            try {
+                startRank = Integer.parseInt(args[0]);
+            } catch (NumberFormatException e) {
+                System.err.println("Error parsing startRank argument. Using default value: " + startRank);
+            }
+        }
+
+        if (args.length >= 2) {
+            try {
+                endRank = Integer.parseInt(args[1]);
+            } catch (NumberFormatException e) {
+                System.err.println("Error parsing endRank argument. Using default value: " + endRank);
+            }
+        }
+
+        // Validate the input
+        if (startRank < 1) {
+            System.err.println("startRank must be at least 1. Using default value: 1");
+            startRank = 1;
+        }
+
+        if (endRank < startRank) {
+            System.err.println("endRank must be greater than or equal to startRank. Using value: " + startRank);
+            endRank = startRank;
+        }
+
+        System.out.println("Using rank range: " + startRank + " to " + endRank);
+
+        // Create and configure the generator
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.config_class"),
                 TwoDVsThreeDConfig.class
         );
+
         TwoDVsThreeDTrialGenerator gen = context.getBean(TwoDVsThreeDTrialGenerator.class, "generator");
+
+        // Set the rank range
+        gen.startRank = startRank;
+        gen.endRank = endRank;
+
+        // Generate trials
         gen.generate();
     }
 
@@ -68,13 +112,17 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
     }
 
     /**
-     * Fetches top N stimuli ids for a specific texture type
+     * Fetches stimuli ids for a specific texture type within a specified rank range
      * @param textureType The texture type to fetch ("2D" or "3D")
      * @return List of stimuli IDs
      */
     private List<Long> fetchTopNStimIds(String textureType) {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(gaDataSource);
         List<Long> resultStimIds = new ArrayList<>();
+
+        // Calculate LIMIT and OFFSET parameters for pagination
+        int limit = endRank - startRank + 1;
+        int offset = startRank - 1; // MySQL is 0-based for OFFSET
 
         // If textureType is "3D", we need to look for both "SHADE" and "SPECULAR"
         if ("3D".equals(textureType)) {
@@ -84,8 +132,8 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
                             "JOIN StimTexture t ON s.stim_id = t.stim_id " +
                             "WHERE t.texture_type IN ('SHADE', 'SPECULAR') " +
                             "ORDER BY s.response DESC " +
-                            "LIMIT ?",
-                    new Object[]{MAX_STIMS_PER_TYPE},
+                            "LIMIT ? OFFSET ?",
+                    new Object[]{limit, offset},
                     new RowMapper() {
                         @Override
                         public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -93,6 +141,7 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
                         }
                     }
             );
+            System.out.println("3D Stimuli Ids: " + resultStimIds.toString());
         } else {
             // Query for stimuli with the specified texture type
             resultStimIds = jdbcTemplate.query(
@@ -100,8 +149,8 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
                             "JOIN StimTexture t ON s.stim_id = t.stim_id " +
                             "WHERE t.texture_type = ? " +
                             "ORDER BY s.response DESC " +
-                            "LIMIT ?",
-                    new Object[]{textureType, MAX_STIMS_PER_TYPE},
+                            "LIMIT ? OFFSET ?",
+                    new Object[]{textureType, limit, offset},
                     new RowMapper() {
                         @Override
                         public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -109,6 +158,7 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
                         }
                     }
             );
+            System.out.println("2D Stimuli Ids: " + resultStimIds.toString());
         }
 
         return resultStimIds;
