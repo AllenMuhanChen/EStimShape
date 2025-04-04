@@ -10,6 +10,7 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.drawing.Coordinates2D;
+import org.xper.drawing.RGBColor;
 import org.xper.util.ThreadUtil;
 
 import static org.junit.Assert.assertEquals;
@@ -94,12 +95,15 @@ public class GAMatchStickTest {
         ThreadUtil.sleep(1000);
 
         GAMatchStick partial = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
-        partial.setProperties(2.5, "SHADE");
+//        partial.setProperties(2.5, "2D");
+//        partial.setStimColor(new RGBColor(1.0, 1.0, 0));
+        partial.setProperties(2.5, "2D");
+        partial.setStimColor(new RGBColor(0.4, 0.4, 0));
         partial.genMatchStickFromShapeSpec(spec, new double[]{0,0,0}, spec.getmAxis().getSpecialEndComp());
         partial.setRfStrategy(RFStrategy.PARTIALLY_INSIDE);
         partial.positionShape();
         testMatchStickDrawer.drawMStick(partial);
-        testMatchStickDrawer.drawCompMap(partial);
+//        testMatchStickDrawer.drawCompMap(partial);
         ThreadUtil.sleep(10000);
 
     }

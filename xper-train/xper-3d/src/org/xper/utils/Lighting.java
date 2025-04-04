@@ -20,13 +20,21 @@ public class Lighting {
 		computeProperties();
 	}
 
+	/**
+	 * This combination of properties makes it so that the maximum contrast is 1.0x color
+	 * and the minimum contrast is 0.4x the color.
+	 * if the sum of spec, amb and diff goes over one, they're normalized. so 0.8 + 0.8 + 0.4 = 2.0
+	 * And the minimum is the amb, so 0.8 / 2.0 = 0.4 in specular.
+	 * In shade it is 0.4 (amb) / 1.0 (amb + diff) = 0.4
+	 *
+	 */
 	void computeProperties() {
 		if (textureType.equals("SPECULAR")) {
 			spec = new float[]{0.8f,0.8f,0.8f,1f};
 			shine = 0.7f*128f;
 
-			amb = new float[]{(float)(color.getRed() * 0.9),(float)(color.getGreen() * 0.9), (float)(color.getBlue() * 0.9),1f};
-			diff = new float[]{(float)(color.getRed() * 0.35),(float)(color.getGreen() * 0.35), (float)(color.getBlue() * 0.35),1f};
+			amb = new float[]{(float)(color.getRed() * 0.8),(float)(color.getGreen() * 0.8), (float)(color.getBlue() * 0.8),1f};
+			diff = new float[]{(float)(color.getRed() * 0.4),(float)(color.getGreen() * 0.4), (float)(color.getBlue() * 0.4),1f};
 		} else if (textureType.equals("SHADE")){
 			spec = new float[]{0f,0f,0f,1f};
 			shine = 0f;
@@ -37,7 +45,7 @@ public class Lighting {
 //			diff = new float[]{(float)(color.getRed() * 0),(float)(color.getGreen() * 0), (float)(color.getBlue() * 0),1f};
 		} else if (textureType.equals("2D")){
 			spec = new float[]{0f,0f,0f,1f};
-			amb = new float[]{(float)(color.getRed() * 1),(float)(color.getGreen() * 1), (float)(color.getBlue() * 1),100f};
+			amb = new float[]{(float)(color.getRed() * 1),(float)(color.getGreen() * 1), (float)(color.getBlue() * 1),1f};
 			diff = new float[]{(float)(color.getRed() * 0),(float)(color.getGreen() * 0), (float)(color.getBlue() * 0),1f};
 			shine = 0f;
 		}
