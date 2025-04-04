@@ -50,7 +50,7 @@ public class DepthLightingPostHocMatchStickTest {
 
         String filename = "/home/r2_allen/git/EStimShape/xper-train/stimuli/procedural/specs/1702588489214206_spec.xml";
         DepthLightingPostHocMatchStick baseMStick = new DepthLightingPostHocMatchStick();
-        baseMStick.setProperties(12, "SHADE");
+        baseMStick.setProperties(12, "SHADE", 1.0);
         baseMStick.setTextureType("2D");
         baseMStick.genMatchStickFromFile(filename);
 
@@ -58,7 +58,7 @@ public class DepthLightingPostHocMatchStickTest {
         ThreadUtil.sleep(TIME);
 
         DepthLightingPostHocMatchStick flippedStick = new DepthLightingPostHocMatchStick();
-        flippedStick.setProperties(12, "SHADE");
+        flippedStick.setProperties(12, "SHADE", 1.0);
         flippedStick.setTextureType("2D");
         int componentId = 1;
         flippedStick.genFlippedMatchStick(baseMStick, componentId);
@@ -79,7 +79,7 @@ public class DepthLightingPostHocMatchStickTest {
 
         String filename = "/home/r2_allen/git/EStimShape/plots/grant_240212/shape_variations/saved/bespoke/original_angle_spec_spec.xml";
         DepthLightingPostHocMatchStick baseMStick = new DepthLightingPostHocMatchStick();
-        baseMStick.setProperties(12, "SPECULAR");
+        baseMStick.setProperties(12, "SPECULAR", 1.0);
         baseMStick.genMatchStickFromFile(filename);
         int index=0;
         for (float[] lightPosition : lightPositions) {
@@ -93,7 +93,7 @@ public class DepthLightingPostHocMatchStickTest {
 
 
         DepthLightingPostHocMatchStick flippedStick = new DepthLightingPostHocMatchStick();
-        flippedStick.setProperties(12, "SPECULAR");
+        flippedStick.setProperties(12, "SPECULAR", 1.0);
         int componentId = 1;
         flippedStick.genFlippedMatchStick(baseMStick, componentId);
 
@@ -117,13 +117,13 @@ public class DepthLightingPostHocMatchStickTest {
         String filename = "/home/r2_allen/git/EStimShape/xper-train/stimuli/procedural/specs/1702588489214206_spec.xml";
         String shapeVariationsPath = figurePath + "/shape_variations";
         DepthLightingPostHocMatchStick baseMStick = new DepthLightingPostHocMatchStick();
-        baseMStick.setProperties(12, "SPECULAR");
+        baseMStick.setProperties(12, "SPECULAR", 1.0);
         baseMStick.genMatchStickFromFile(filename);
         originalAngleMSticks.add(baseMStick);
 
         for (int i=0; i<numShapeVariations; i++) {
             DepthLightingPostHocMatchStick newMStick = new DepthLightingPostHocMatchStick();
-            newMStick.setProperties(12, "SPECULAR");
+            newMStick.setProperties(12, "SPECULAR", 1.0);
             newMStick.genMorphedDrivingComponentMatchStick(baseMStick, 0.7, 0.5, true, true, baseMStick.maxAttempts);
             originalAngleMSticks.add(newMStick);
         }
@@ -143,7 +143,7 @@ public class DepthLightingPostHocMatchStickTest {
         List<DepthLightingPostHocMatchStick> flippedAngleMSticks = new LinkedList<>();
         for (DepthLightingPostHocMatchStick originalAngleMStick : originalAngleMSticks) {
             DepthLightingPostHocMatchStick flippedStick = new DepthLightingPostHocMatchStick();
-            flippedStick.setProperties(12, "SPECULAR");
+            flippedStick.setProperties(12, "SPECULAR", 1.0);
             int componentId = 1;
             flippedStick.genFlippedMatchStick(originalAngleMStick, componentId);
             flippedAngleMSticks.add(flippedStick);
@@ -170,13 +170,13 @@ public class DepthLightingPostHocMatchStickTest {
         String filename = "/home/r2_allen/git/EStimShape/plots/grant_240212/shape_variations/saved/bespoke/original_angle_spec_spec.xml";
         String oppositeShapeVariationsPath = figurePath + "/opposite_shape_variations";
         DepthLightingPostHocMatchStick baseMStick = new DepthLightingPostHocMatchStick();
-        baseMStick.setProperties(12, "SPECULAR");
+        baseMStick.setProperties(12, "SPECULAR", 1.0);
         baseMStick.genMatchStickFromFile(filename);
         originalAngleMSticks.add(baseMStick);
 
         for (int i=0; i<numShapeVariations; i++) {
             DepthLightingPostHocMatchStick newMStick = new DepthLightingPostHocMatchStick();
-            newMStick.setProperties(12, "SPECULAR");
+            newMStick.setProperties(12, "SPECULAR", 1.0);
             newMStick.genNewComponentMatchStick(baseMStick, 2, 0.75, 0.5, true, newMStick.maxAttempts);
             originalAngleMSticks.add(newMStick);
         }
@@ -196,7 +196,7 @@ public class DepthLightingPostHocMatchStickTest {
         List<DepthLightingPostHocMatchStick> flippedAngleMSticks = new LinkedList<>();
         for (DepthLightingPostHocMatchStick originalAngleMStick : originalAngleMSticks) {
             DepthLightingPostHocMatchStick flippedStick = new DepthLightingPostHocMatchStick();
-            flippedStick.setProperties(12, "SPECULAR");
+            flippedStick.setProperties(12, "SPECULAR", 1.0);
             int componentId = 1;
             flippedStick.genFlippedMatchStick(originalAngleMStick, componentId);
             flippedAngleMSticks.add(flippedStick);
@@ -222,7 +222,7 @@ public class DepthLightingPostHocMatchStickTest {
         //GENERATE SHAPE VARIATIONS
         String filename = "/home/r2_allen/git/EStimShape/plots/grant_240212/shape_variations/saved/bespoke/original_angle_spec_spec.xml";
         DepthLightingPostHocMatchStick baseMStick = new DepthLightingPostHocMatchStick();
-        baseMStick.setProperties(12, "SPECULAR");
+        baseMStick.setProperties(12, "SPECULAR", 1.0);
         baseMStick.genMatchStickFromFile(filename);
 
         String noiseMapPath = drawer.saveNoiseMap(filepath + "/original_noise_map", baseMStick, 1.0, 1);
@@ -263,7 +263,7 @@ public class DepthLightingPostHocMatchStickTest {
 
         AllenMatchStick randMStick = new AllenMatchStick();
 
-        randMStick.setProperties(12, "SPECULAR");
+        randMStick.setProperties(12, "SPECULAR", 1.0);
         randMStick.genMatchStickRand();
 
         drawer.clear();
@@ -276,11 +276,11 @@ public class DepthLightingPostHocMatchStickTest {
     public void make_bespoke_shape(){
         String filename = "/home/r2_allen/git/EStimShape/plots/grant_240212/shape_variations/saved/not_ambiguous/original_angle_with_shape_variation_1_spec.xml";
         DepthLightingPostHocMatchStick baseMStick = new DepthLightingPostHocMatchStick();
-        baseMStick.setProperties(12, "SPECULAR");
+        baseMStick.setProperties(12, "SPECULAR", 1.0);
         baseMStick.genMatchStickFromFile(filename);
 
         DepthLightingPostHocMatchStick newMStick = new DepthLightingPostHocMatchStick();
-        newMStick.setProperties(12, "SPECULAR");
+        newMStick.setProperties(12, "SPECULAR", 1.0);
         Map<Integer, ComponentMorphParameters> morphParameters = new LinkedHashMap<>();
         morphParameters.put(1, new ComponentMorphParameters(){
 
@@ -340,7 +340,7 @@ public class DepthLightingPostHocMatchStickTest {
 
         //Flipped Angle
         DepthLightingPostHocMatchStick flippedStick = new DepthLightingPostHocMatchStick();
-        flippedStick.setProperties(12, "SPECULAR");
+        flippedStick.setProperties(12, "SPECULAR", 1.0);
 
         flippedStick.genFlippedMatchStick(newMStick, 1);
         drawer.clear();
@@ -353,12 +353,12 @@ public class DepthLightingPostHocMatchStickTest {
     public void testCurvature(){
         String filename = "/home/r2_allen/git/EStimShape/plots/grant_240212/shape_variations/saved/weird_curvy/original_angle_with_shape_variation_2_spec.xml";
         DepthLightingPostHocMatchStick baseMStick = new DepthLightingPostHocMatchStick();
-        baseMStick.setProperties(12, "SHADE");
+        baseMStick.setProperties(12, "SHADE", 1.0);
         baseMStick.setTextureType("2D");
         baseMStick.genMatchStickFromFile(filename);
 
         DepthLightingPostHocMatchStick flippedMStick = new DepthLightingPostHocMatchStick();
-        flippedMStick.setProperties(12, "SHADE");
+        flippedMStick.setProperties(12, "SHADE", 1.0);
         flippedMStick.setTextureType("2D");
         flippedMStick.genFlippedMatchStick(baseMStick, 1);
 

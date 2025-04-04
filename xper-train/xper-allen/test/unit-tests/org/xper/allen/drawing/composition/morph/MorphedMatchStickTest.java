@@ -26,7 +26,7 @@ public class MorphedMatchStickTest {
         testBin = ResourceUtil.getResource("testBin");
 
         parentMStick = new MorphedMatchStick();
-        parentMStick.setProperties(30, "SHADE");
+        parentMStick.setProperties(30, "SHADE", 1.0);
 //        String test_stick_path = ResourceUtil.getResource("test-stick.xml");
 //        parentMStick.genMatchStickFromFile(test_stick_path);
         parentMStick.genMatchStickRand(3);
@@ -40,7 +40,7 @@ public class MorphedMatchStickTest {
     @Ignore
     public void growingMatchStick() {
         GrowingMatchStick growingMatchStick = new GrowingMatchStick(1/3.0);
-        growingMatchStick.setProperties(30.0, "SHADE");
+        growingMatchStick.setProperties(30.0, "SHADE", 1.0);
         growingMatchStick.genGrowingMatchStick(parentMStick, 0.2);
         ThreadUtil.sleep(500);
         drawPng(growingMatchStick, 2L);
@@ -52,7 +52,7 @@ public class MorphedMatchStickTest {
     @Ignore
     public void pruningMatchStick(){
         PruningMatchStick pruningMatchStick = new PruningMatchStick();
-        pruningMatchStick.setProperties(30.0, "SHADE");
+        pruningMatchStick.setProperties(30.0, "SHADE", 1.0);
         pruningMatchStick.genPruningMatchStick(parentMStick, 0.6, 1);
         ThreadUtil.sleep(500);
         drawPng(pruningMatchStick, 2L);
@@ -62,7 +62,7 @@ public class MorphedMatchStickTest {
     @Ignore
     public void removeLimbMatchStick(){
         MorphedMatchStick removeLimbMatchStick = new MorphedMatchStick();
-        removeLimbMatchStick.setProperties(30.0, "SHADE");
+        removeLimbMatchStick.setProperties(30.0, "SHADE", 1.0);
         removeLimbMatchStick.genRemovedLimbsMatchStick(parentMStick, new HashSet<>(Arrays.asList(1)));
         ThreadUtil.sleep(500);
         drawPng(removeLimbMatchStick, 2L);
@@ -72,7 +72,7 @@ public class MorphedMatchStickTest {
     @Ignore
     public void addLimbMatchStick(){
         MorphedMatchStick addLimbMatchStick = new MorphedMatchStick();
-        addLimbMatchStick.setProperties(30.0, "SHADE");
+        addLimbMatchStick.setProperties(30.0, "SHADE", 1.0);
         addLimbMatchStick.genAddedLimbsMatchStick(parentMStick, 1);
         ThreadUtil.sleep(500);
         drawPng(addLimbMatchStick, 2L);
@@ -87,7 +87,7 @@ public class MorphedMatchStickTest {
 
 
         MorphedMatchStick childMStick = new MorphedMatchStick();
-        childMStick.setProperties(30.0, "SHADE");
+        childMStick.setProperties(30.0, "SHADE", 1.0);
         childMStick.genMorphedComponentsMatchStick(morphParams, parentMStick, true);
         ThreadUtil.sleep(500);
         drawPng(childMStick, 2L);

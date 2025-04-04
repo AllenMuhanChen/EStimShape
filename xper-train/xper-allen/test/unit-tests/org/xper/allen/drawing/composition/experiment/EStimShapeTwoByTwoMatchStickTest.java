@@ -27,7 +27,7 @@ public class EStimShapeTwoByTwoMatchStickTest {
 
         baseMStick = new TwoByTwoMatchStick(noiseMapper);
         baseMStick.setMaxAttempts(-1);
-        baseMStick.setProperties(8, "SHADE");
+        baseMStick.setProperties(8, "SHADE", 1.0);
         baseMStick.genMatchStickRand();
 
         figPath = "/home/r2_allen/Pictures";
@@ -40,7 +40,7 @@ public class EStimShapeTwoByTwoMatchStickTest {
 
         EStimShapeTwoByTwoMatchStick firstMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF, noiseMapper);
         double maxSizeDiameterDegrees = 1.5;
-        firstMStick.setProperties(maxSizeDiameterDegrees, "SHADE");
+        firstMStick.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
         firstMStick.genMatchStickFromComponent(baseMStick, 1, 2, firstMStick.maxAttempts);
         testMatchStickDrawer.drawMStick(firstMStick);
         testMatchStickDrawer.drawCompMap(firstMStick);
@@ -49,7 +49,7 @@ public class EStimShapeTwoByTwoMatchStickTest {
 
 
         EStimShapeTwoByTwoMatchStick secondMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF, noiseMapper);
-        secondMStick.setProperties(maxSizeDiameterDegrees, "SHADE");
+        secondMStick.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
         secondMStick.genMorphedBaseMatchStick(firstMStick, 1, secondMStick.maxAttempts, true, true);
         testMatchStickDrawer.drawMStick(secondMStick);
         testMatchStickDrawer.drawCompMap(secondMStick);
@@ -57,7 +57,7 @@ public class EStimShapeTwoByTwoMatchStickTest {
         testMatchStickDrawer.clear();
 
         EStimShapeTwoByTwoMatchStick thirdMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF, noiseMapper);
-        thirdMStick.setProperties(maxSizeDiameterDegrees, "SHADE");
+        thirdMStick.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
         thirdMStick.genMorphedDrivingComponentMatchStick(firstMStick, 0.5, 0.5, true, true, firstMStick.maxAttempts);
         testMatchStickDrawer.drawMStick(thirdMStick);
         testMatchStickDrawer.drawCompMap(thirdMStick);
@@ -65,7 +65,7 @@ public class EStimShapeTwoByTwoMatchStickTest {
         testMatchStickDrawer.clear();
 
         EStimShapeTwoByTwoMatchStick fourthMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF, noiseMapper);
-        fourthMStick.setProperties(maxSizeDiameterDegrees, "SHADE");
+        fourthMStick.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
         fourthMStick.genSwappedBaseAndDrivingComponentMatchStick(secondMStick, 1, thirdMStick, true, 15);
         testMatchStickDrawer.drawMStick(fourthMStick);
         testMatchStickDrawer.drawCompMap(fourthMStick);

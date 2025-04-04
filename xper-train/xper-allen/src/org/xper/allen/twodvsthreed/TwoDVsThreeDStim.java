@@ -8,10 +8,7 @@ import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
-import org.xper.allen.stimproperty.ColorPropertyManager;
-import org.xper.allen.stimproperty.RFStrategyPropertyManager;
-import org.xper.allen.stimproperty.SizePropertyManager;
-import org.xper.allen.stimproperty.TexturePropertyManager;
+import org.xper.allen.stimproperty.*;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
@@ -29,10 +26,12 @@ public class TwoDVsThreeDStim implements Stim {
     private final double sizeDiameterDegrees;
     private final ColorPropertyManager colorManager_ga;
     private final TexturePropertyManager textureManager_ga;
+    private final ContrastPropertyManager contrastManager_ga;
     private final RFStrategyPropertyManager rfStrategyManager_2dvs3d;
     private final SizePropertyManager sizeManager_2dvs3d;
     private final ColorPropertyManager colorManager_2dvs3d;
     private final TexturePropertyManager textureManager_2dvs3d;
+    private final ContrastPropertyManager contrastManager_2dvs3d;
     TwoDVsThreeDTrialGenerator generator;
     long targetStimId;
     String textureType;
@@ -40,35 +39,41 @@ public class TwoDVsThreeDStim implements Stim {
     private String targetSpecPath;
     private ReceptiveField receptiveField;
     private Long stimId;
-    private Coordinates2D imageCenterCoords = new Coordinates2D(0, 0);;
+    private Coordinates2D imageCenterCoords = new Coordinates2D(0, 0);
+    private double contrast;
 
-    public TwoDVsThreeDStim(TwoDVsThreeDTrialGenerator generator, long targetStimId, String textureType, RGBColor color) {
+    public TwoDVsThreeDStim(TwoDVsThreeDTrialGenerator generator, long targetStimId, String textureType, RGBColor color, Double contrast) {
         this.generator = generator;
         this.targetStimId = targetStimId;
         this.textureType = textureType;
         this.color = color;
-
+        this.contrast = contrast;
 
 
         rfStrategyManager_ga = new RFStrategyPropertyManager(new JdbcTemplate(generator.gaDataSource));
         sizeManager_ga = new SizePropertyManager(new JdbcTemplate(generator.gaDataSource));
         colorManager_ga = new ColorPropertyManager(new JdbcTemplate(generator.gaDataSource));
         textureManager_ga = new TexturePropertyManager(new JdbcTemplate(generator.gaDataSource));
+        contrastManager_ga = new ContrastPropertyManager(new JdbcTemplate(generator.gaDataSource));
 
         rfStrategyManager_2dvs3d = new RFStrategyPropertyManager(new JdbcTemplate(generator.getDbUtil().getDataSource()));
         sizeManager_2dvs3d = new SizePropertyManager(new JdbcTemplate(generator.getDbUtil().getDataSource()));
         colorManager_2dvs3d = new ColorPropertyManager(new JdbcTemplate(generator.getDbUtil().getDataSource()));
         textureManager_2dvs3d = new TexturePropertyManager(new JdbcTemplate(generator.getDbUtil().getDataSource()));
+        contrastManager_2dvs3d = new ContrastPropertyManager(new JdbcTemplate(generator.getDbUtil().getDataSource()));
 
         rfStrategy = rfStrategyManager_ga.readProperty(targetStimId);
         sizeDiameterDegrees = sizeManager_ga.readProperty(targetStimId);
-
+        this.contrast = contrastManager_ga.readProperty(targetStimId);
 
         targetSpecPath = generator.gaSpecPath + "/" + targetStimId + "_spec.xml";
         receptiveField = generator.rfSource.getReceptiveField();
 
         if (color == null) {
             this.color = colorManager_ga.readProperty(targetStimId);
+        }
+        if (contrast == null) {
+            this.contrast = contrastManager_ga.readProperty(targetStimId);
         }
     }
 
@@ -82,7 +87,7 @@ public class TwoDVsThreeDStim implements Stim {
         stimId = generator.getGlobalTimeUtil().currentTimeMicros();
         Point3d centerOfMass = getTargetsCenterOfMass();
         GAMatchStick mStick = new GAMatchStick(centerOfMass);
-        mStick.setProperties(sizeDiameterDegrees, textureType);
+        mStick.setProperties(sizeDiameterDegrees, textureType, contrast);
         mStick.setStimColor(color);
         mStick.genMatchStickFromFile(targetSpecPath, new double[]{0,0,0});
 //
@@ -126,6 +131,7 @@ public class TwoDVsThreeDStim implements Stim {
         textureManager_2dvs3d.writeProperty(stimId, textureType);
         sizeManager_2dvs3d.writeProperty(stimId, (float) sizeDiameterDegrees);
         rfStrategyManager_2dvs3d.writeProperty(stimId, rfStrategy);
+        contrastManager_2dvs3d.writeProperty(stimId, contrast);
         writeStimGaId(this.targetStimId);
     }
 

@@ -82,7 +82,7 @@ public class GAMatchStickTest {
     @Test
     public void draws_mstick_from_file_with_assigned_compId(){
         GAMatchStick complete = new GAMatchStick(PARTIAL_RF, RFStrategy.COMPLETELY_INSIDE);
-        complete.setProperties(2.5, "SHADE");
+        complete.setProperties(2.5, "SHADE", 1.0);
         complete.genMatchStickRand();
 
 
@@ -97,8 +97,8 @@ public class GAMatchStickTest {
         GAMatchStick partial = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 //        partial.setProperties(2.5, "2D");
 //        partial.setStimColor(new RGBColor(1.0, 1.0, 0));
-        partial.setProperties(2.5, "2D");
-        partial.setStimColor(new RGBColor(0.4, 0.4, 0));
+        partial.setProperties(2.5, "2D", 0.4);
+        partial.setStimColor(new RGBColor(1.0, 1.0, 0));
         partial.genMatchStickFromShapeSpec(spec, new double[]{0,0,0}, spec.getmAxis().getSpecialEndComp());
         partial.setRfStrategy(RFStrategy.PARTIALLY_INSIDE);
         partial.positionShape();
@@ -155,7 +155,7 @@ public class GAMatchStickTest {
         while (true) {
             growingMatchStick = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 
-            growingMatchStick.setProperties(5, "SHADE");
+            growingMatchStick.setProperties(5, "SHADE", 1.0);
             try {
                 growingMatchStick.genInsideRFMorphedMStick(GAMatchStick, 0.2);
                 break;
@@ -181,7 +181,7 @@ public class GAMatchStickTest {
         while (true) {
             growingMatchStick = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 
-            growingMatchStick.setProperties(5, "SHADE");
+            growingMatchStick.setProperties(5, "SHADE", 1.0);
             try {
                 growingMatchStick.genOutsideRFMorphedMStick(GAMatchStick, 0.2);
                 break;
@@ -206,7 +206,7 @@ public class GAMatchStickTest {
         while (true) {
             growingMatchStick = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 
-            growingMatchStick.setProperties(2.5, "SHADE");
+            growingMatchStick.setProperties(2.5, "SHADE", 1.0);
             try {
                 growingMatchStick.genOutsideRFMorphedMStick(GAMatchStick, 0.2);
                 growingMatchStick.genInsideRFMorphedMStick(growingMatchStick, 0.2);
@@ -234,7 +234,7 @@ public class GAMatchStickTest {
         while (true) {
             inside = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 
-            inside.setProperties(5, "SHADE");
+            inside.setProperties(5, "SHADE", 1.0);
             try {
                 inside.genInsideRFMorphedMStick(baseMatchStick, 0.7);
                 break;
@@ -252,7 +252,7 @@ public class GAMatchStickTest {
         while (true) {
             outside = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 
-            outside.setProperties(5, "SHADE");
+            outside.setProperties(5, "SHADE", 1.0);
             try {
                 outside.genOutsideRFMorphedMStick(baseMatchStick, 0.4);
                 break;
@@ -268,7 +268,7 @@ public class GAMatchStickTest {
         while (true) {
             both = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 
-            both.setProperties(5, "SHADE");
+            both.setProperties(5, "SHADE", 1.0);
             try {
                 both.genOutsideRFMorphedMStick(baseMatchStick, 0.7);
                 both.genInsideRFMorphedMStick(both, 0.4);
@@ -295,7 +295,7 @@ public class GAMatchStickTest {
         while (true) {
             low = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 
-            low.setProperties(5, "SHADE");
+            low.setProperties(5, "SHADE", 1.0);
             try {
                 low.genOutsideRFMorphedMStick(baseMatchStick, 0.1);
                 break;
@@ -313,7 +313,7 @@ public class GAMatchStickTest {
         while (true) {
             mid = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 
-            mid.setProperties(5, "SHADE");
+            mid.setProperties(5, "SHADE", 1.0);
             try {
                 mid.genOutsideRFMorphedMStick(baseMatchStick, 0.4);
                 break;
@@ -331,7 +331,7 @@ public class GAMatchStickTest {
         while (true) {
             high = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 
-            high.setProperties(5, "SHADE");
+            high.setProperties(5, "SHADE", 1.0);
             try {
                 high.genOutsideRFMorphedMStick(baseMatchStick, 0.7);
                 break;
@@ -348,14 +348,14 @@ public class GAMatchStickTest {
 
     private static GAMatchStick genPartiallyInside() {
         GAMatchStick GAMatchStick = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
-        GAMatchStick.setProperties(5, "SHADE");
+        GAMatchStick.setProperties(5, "SHADE", 1.0);
         GAMatchStick.genMatchStickRand();
         return GAMatchStick;
     }
 
     private static GAMatchStick genCompleteleyInside() {
         GAMatchStick GAMatchStick = new GAMatchStick(COMPLETE_RF, RFStrategy.COMPLETELY_INSIDE);
-        GAMatchStick.setProperties(2.5, "SHADE");
+        GAMatchStick.setProperties(2.5, "SHADE", 1.0);
         GAMatchStick.genMatchStickRand();
         return GAMatchStick;
     }

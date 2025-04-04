@@ -8,7 +8,6 @@ import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
-import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
@@ -25,7 +24,6 @@ import javax.vecmath.Vector3d;
 import javax.vecmath.Point3d;
 
 import java.beans.PropertyVetoException;
-import java.io.File;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -70,7 +68,7 @@ public class AllenMStickDataTest {
         }
 
         GAMatchStick parentStick = new GAMatchStick(receptiveField, rfStrategy);
-        parentStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 2), "SHADE");
+        parentStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 2), "SHADE", 1.0);
         parentStick.genMatchStickRand();
         AllenMStickSpec parentSpec = new AllenMStickSpec();
         parentSpec.setMStickInfo(parentStick, true);
@@ -79,48 +77,48 @@ public class AllenMStickDataTest {
         switch (stimType){
             case "EStimShapeProceduralRand":
                 matchStick = new EStimShapeProceduralMatchStick(rfStrategy, receptiveField, noiseMapper);
-                matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE");
+                matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE", 1.0);
                 matchStick.genMatchStickRand();
                 break;
             case "EStimShapeProcedural":
                 EStimShapeProceduralMatchStick baseMStick = new EStimShapeProceduralMatchStick(rfStrategy, receptiveField, noiseMapper);
-                baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE");
+                baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE", 1.0);
                 baseMStick.genMatchStickRand();
                 baseMStick.setMaxAttempts(-1);
 
                 matchStick = new EStimShapeProceduralMatchStick(rfStrategy, receptiveField, noiseMapper);
-                matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE");
+                matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE", 1.0);
                 ((EStimShapeProceduralMatchStick) matchStick).genMatchStickFromComponentInNoise(baseMStick, baseMStick.chooseRandLeaf(),
                         4, true, -1, noiseMapper);
                 break;
             case "Seeding":
                 matchStick = new GAMatchStick(receptiveField, rfStrategy);
-                matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE");
+                matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE", 1.0);
                 matchStick.genMatchStickRand();
                 break;
             case "Zooming":
                 matchStick = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
-                matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, 1.5), "SHADE");
+                matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, 1.5), "SHADE", 1.0);
                 ((GAMatchStick) matchStick).genPartialFromFile(FILE_NAME + "_spec.xml", 1);
                 break;
             case "Growing":
                 matchStick = new GrowingMatchStick(receptiveField, 1/3.0, rfStrategy, "SHADE");
-                matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE");
+                matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE", 1.0);
                 ((GrowingMatchStick) matchStick).genGrowingMatchStick(parentStick, 0.5);
                 break;
             case "AddLimbs":
                 matchStick = new GAMatchStick(receptiveField, rfStrategy);
-                matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE");
+                matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE", 1.0);
                 ((GrowingMatchStick) matchStick).genAddedLimbsMatchStick(parentStick, 1);
                 break;
             case "RemoveLimbs":
                 matchStick = new GAMatchStick(receptiveField, rfStrategy);
-                matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE");
+                matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE", 1.0);
                 ((GrowingMatchStick) matchStick).genRemovedLimbsMatchStick(parentStick, new HashSet<>(Arrays.asList(1)));
                 break;
             case "Rand":
                 matchStick = new AllenMatchStick();
-                matchStick.setProperties(5, "SHADE");
+                matchStick.setProperties(5, "SHADE", 1.0);
                 matchStick.genMatchStickRand();
         }
 

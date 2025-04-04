@@ -2,7 +2,6 @@ package org.xper.allen.fixation.blockgen;
 
 import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
-import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.blockgen.NAFCCoordinateAssigner;
 
 import org.xper.allen.specs.NoisyPngSpec;
@@ -31,7 +30,7 @@ public class NoisyPngFixationStim implements Stim {
     public void writeStim() {
         //Generate MStick
         ProceduralMatchStick mStick = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
-        mStick.setProperties(generator.getImageDimensionsDegrees(), "SHADE");
+        mStick.setProperties(generator.getImageDimensionsDegrees(), "SHADE", 1.0);
         mStick.setStimColor(params.color);
         mStick.genMatchStickRand();
 

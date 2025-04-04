@@ -114,7 +114,7 @@ public class EStimShapeExperimentSetGenerator {
                 noiseMapper);
         maxSizeDiameterDegreesFromRF = RFUtils.calculateMStickMaxSizeDiameterDegrees(
                 RFStrategy.PARTIALLY_INSIDE, generator.getRfSource().getRFRadiusDegrees());
-        baseMStick.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
+        baseMStick.setProperties(maxSizeDiameterDegreesFromRF, "SHADE", 1.0);
         baseMStick.genMatchStickFromFile(generator.getGaSpecPath() + "/" + stimId + "_spec.xml");
         return baseMStick;
     }
@@ -127,7 +127,7 @@ public class EStimShapeExperimentSetGenerator {
                         RFStrategy.PARTIALLY_INSIDE,
                         generator.getRF(),
                         noiseMapper);
-                stick1.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
+                stick1.setProperties(maxSizeDiameterDegreesFromRF, "SHADE", 1.0);
                 stick1.genMatchStickFromComponentInNoise(baseMStick,
                         compId,
                         nComp,
@@ -151,7 +151,7 @@ public class EStimShapeExperimentSetGenerator {
                         RFStrategy.PARTIALLY_INSIDE,
                         generator.getRF(),
                         noiseMapper);
-                stick2.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
+                stick2.setProperties(maxSizeDiameterDegreesFromRF, "SHADE", 1.0);
                 stick2.genMorphedBaseMatchStick(
                         stick1,
                         stick1.getDrivingComponent(),
@@ -176,7 +176,7 @@ public class EStimShapeExperimentSetGenerator {
                         RFStrategy.PARTIALLY_INSIDE,
                         generator.getRF(),
                         noiseMapper);
-                stick3.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
+                stick3.setProperties(maxSizeDiameterDegreesFromRF, "SHADE", 1.0);
                 stick3.genMorphedDrivingComponentMatchStick(
                         stick1,
                         0.6,
@@ -199,7 +199,7 @@ public class EStimShapeExperimentSetGenerator {
                         RFStrategy.PARTIALLY_INSIDE,
                         generator.getRF(),
                         noiseMapper);
-                stick4.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
+                stick4.setProperties(maxSizeDiameterDegreesFromRF, "SHADE", 1.0);
                 stick4.genSwappedBaseAndDrivingComponentMatchStick(
                         stick2,
                         stick2.getDrivingComponent(),
@@ -229,7 +229,7 @@ public class EStimShapeExperimentSetGenerator {
 
     private void savePng(EStimShapeTwoByTwoMatchStick stick, long stimId, String type) {
         TwoByTwoMatchStick stickToDraw = new TwoByTwoMatchStick(noiseMapper);
-        stickToDraw.setProperties(generator.getImageDimensionsDegrees(), "SHADE");
+        stickToDraw.setProperties(generator.getImageDimensionsDegrees(), "SHADE", 1.0);
         AllenMStickSpec stickSpec = new AllenMStickSpec();
         stickSpec.setMStickInfo(stick, true);
         stickToDraw.genMatchStickFromShapeSpec(stickSpec, new double[]{0,0,0});

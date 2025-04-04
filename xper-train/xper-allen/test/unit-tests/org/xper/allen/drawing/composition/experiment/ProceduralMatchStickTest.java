@@ -59,7 +59,7 @@ public class ProceduralMatchStickTest {
         drawingManager = pngMaker.window;
 
         baseMStick = new ProceduralMatchStick(noiseMapper);
-        baseMStick.setProperties(4, "SHADE");
+        baseMStick.setProperties(4, "SHADE", 1.0);
         baseMStick.setStimColor(new Color(255,255,255));
         baseMStick.genMatchStickRand();
         baseMStick.setMaxAttempts(-1);
@@ -183,7 +183,7 @@ public class ProceduralMatchStickTest {
 
         baseMStick = new ProceduralMatchStick(noiseMapper);
         int size = 5;
-        baseMStick.setProperties(size, "SHADE");
+        baseMStick.setProperties(size, "SHADE", 1.0);
         baseMStick.setStimColor(new Color(255,255,255));
         baseMStick.genMatchStickRand();
         baseMStick.setMaxAttempts(-1);
@@ -195,7 +195,7 @@ public class ProceduralMatchStickTest {
             sampleMStick = new ProceduralMatchStick(noiseMapper);
 //            sampleMStick.showDebug = true;
             sampleMStick.PARAM_nCompDist = new double[]{0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-            sampleMStick.setProperties(size, "SHADE");
+            sampleMStick.setProperties(size, "SHADE", 1.0);
             sampleMStick.setStimColor(color);
             sampleMStick.genMatchStickFromComponent(baseMStick, 1, 0, sampleMStick.maxAttempts);
             System.out.println("special end comp:" + sampleMStick.getSpecialEndComp());
@@ -288,17 +288,17 @@ public class ProceduralMatchStickTest {
         drawPng(baseMStick, setId, 0L);
         ProceduralMatchStick sampleMStick = new ProceduralMatchStick(noiseMapper);
         int size = 2;
-        sampleMStick.setProperties(size, "SHADE");
+        sampleMStick.setProperties(size, "SHADE", 1.0);
         sampleMStick.genMatchStickFromComponent(baseMStick, 1, 0, sampleMStick.maxAttempts);
         drawPng(sampleMStick, setId, 1L);
 
         ProceduralMatchStick distractor1 = new ProceduralMatchStick(noiseMapper);
-        distractor1.setProperties(size, "SHADE");
+        distractor1.setProperties(size, "SHADE", 1.0);
         distractor1.genMorphedDrivingComponentMatchStick(sampleMStick, 0.5, 0.5, true, true, sampleMStick.maxAttempts);
         drawPng(distractor1, setId, 2L);
 
         ProceduralMatchStick distractor2 = new ProceduralMatchStick(noiseMapper);
-        distractor2.setProperties(size, "SHADE");
+        distractor2.setProperties(size, "SHADE", 1.0);
         distractor2.genMorphedDrivingComponentMatchStick(sampleMStick, 0.5, 0.5, true, true, sampleMStick.maxAttempts);
         drawPng(distractor2, setId, 3L);
     }

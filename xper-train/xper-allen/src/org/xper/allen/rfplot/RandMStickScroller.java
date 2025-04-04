@@ -34,7 +34,7 @@ public class RandMStickScroller<T extends RFPlotMatchStickSpec> extends RFPlotSc
 
         // Create a new matchstick with same size, color, texture, etc... as the current matchstick
         AllenMatchStick newMStick = new AllenMatchStick();
-        newMStick.setProperties(newSpec.getSizeDiameterDegrees(), newSpec.getTexture());
+        newMStick.setProperties(newSpec.getSizeDiameterDegrees(), newSpec.getTexture(), 1.0);
         newMStick.setStimColor(newSpec.getColor());
 
         AllenMStickSpec newMStickSpec = new AllenMStickSpec();

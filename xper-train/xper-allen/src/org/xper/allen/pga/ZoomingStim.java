@@ -34,7 +34,7 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
         );
         System.out.println("Scale Factor: " + scaleFactor);
 
-        mStick.setProperties(sizeDiameterDegrees, textureType);
+        mStick.setProperties(sizeDiameterDegrees, textureType, contrast);
         mStick.setStimColor(color);
 
         mStick.genPartialFromFile(

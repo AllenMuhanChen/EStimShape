@@ -42,7 +42,7 @@ public class LineNAFCNoiseMapperTest {
     public void testLineNoiseMatchStick() throws IOException {
         // Generate a match stick
         TwoByTwoMatchStick matchStick = new TwoByTwoMatchStick(new LineNAFCNoiseMapper());
-        matchStick.setProperties(8, "SHADE");
+        matchStick.setProperties(8, "SHADE", 1.0);
         matchStick.genMatchStickRand(2);
 
         // Draw the original match stick

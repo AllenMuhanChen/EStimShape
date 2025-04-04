@@ -3,8 +3,6 @@ package org.xper.allen.pga;
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
-import org.xper.drawing.ColorUtils;
-import org.xper.drawing.RGBColor;
 
 import java.util.Random;
 
@@ -35,10 +33,31 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
 
 
     @Override
+    protected void chooseContrast(){
+        contrast = contrastManager.readProperty(parentId);
+        if (is2D(textureType)) {
+            mutateContrast();
+        }
+    }
+
+    private void mutateContrast() {
+        boolean isMutate = Math.random() < magnitude;
+        if (isMutate){
+            if (contrast == 0.4){
+                contrast = 1.0;
+            } else if (contrast == 1.0){
+                contrast = 0.4;
+            } else {
+                throw new IllegalArgumentException("Invalid contrast value: " + contrast + ". Expected 0.4 or 1.0.");
+            }
+        }
+    }
+
+    @Override
     protected GrowingMatchStick createMStick() {
         //Generate MStick
         GrowingMatchStick parentMStick = initializeFromFile(generator.getReceptiveField(), textureType);
-        parentMStick.setProperties(sizeDiameterDegrees, textureType);
+        parentMStick.setProperties(sizeDiameterDegrees, textureType, contrast);
         parentMStick.genMatchStickFromFile(
                 generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 
@@ -50,7 +69,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
                 rfStrategy,
                 textureType);
 
-        childMStick.setProperties(sizeDiameterDegrees, textureType);
+        childMStick.setProperties(sizeDiameterDegrees, textureType, contrast);
         childMStick.setStimColor(color);
         childMStick.genGrowingMatchStick(parentMStick, magnitude);
         return childMStick;

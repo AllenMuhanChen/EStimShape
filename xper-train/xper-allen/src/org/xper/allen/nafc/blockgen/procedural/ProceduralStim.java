@@ -116,7 +116,7 @@ public class ProceduralStim implements NAFCStim {
             System.out.println("Trying to generate sample for ProceduralStim");
             //Generate Sample
             ProceduralMatchStick sample = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
-            sample.setProperties(parameters.getSize(), parameters.textureType);
+            sample.setProperties(parameters.getSize(), parameters.textureType, 1.0);
             sample.setStimColor(parameters.color);
             try {
                 sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0, true, sample.maxAttempts, generator.getPngMaker().getNoiseMapper());
@@ -140,7 +140,7 @@ public class ProceduralStim implements NAFCStim {
     protected void generateProceduralDistractors(ProceduralMatchStick sample) {
         for (int i = 0; i < numProceduralDistractors; i++) {
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
-            proceduralDistractor.setProperties(parameters.getSize(), parameters.textureType);
+            proceduralDistractor.setProperties(parameters.getSize(), parameters.textureType, 1.0);
             proceduralDistractor.setStimColor(parameters.color);
             proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts);
             mSticks.addProceduralDistractor(proceduralDistractor);
@@ -152,7 +152,7 @@ public class ProceduralStim implements NAFCStim {
         //Generate Rand Distractors
         for (int i = 0; i<numRandDistractors; i++) {
             ProceduralMatchStick randDistractor = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
-            randDistractor.setProperties(parameters.getSize(), parameters.textureType);
+            randDistractor.setProperties(parameters.getSize(), parameters.textureType, 1.0);
             randDistractor.setStimColor(parameters.color);
             randDistractor.genMatchStickRand();
             mSticks.addRandDistractor(randDistractor);

@@ -2,20 +2,13 @@ package org.xper.allen.twodvsthreed;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
-import org.xper.Dependency;
 import org.xper.allen.Stim;
 import org.xper.allen.app.twodvsthreed.TwoDVsThreeDConfig;
-import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
-import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.allen.stimproperty.ColorPropertyManager;
 import org.xper.drawing.RGBColor;
 import org.xper.rfplot.drawing.png.HSLUtils;
 import org.xper.util.FileUtil;
 
-import javax.sql.DataSource;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -96,11 +89,11 @@ public class TwoDThreeDLightnessTrialGenerator extends TwoDVsThreeDTrialGenerato
         List<String> textureTypesToTest = Arrays.asList("SHADE", "SPECULAR", "2D");
 
         // GENERATE TRIALS
-        for (Long stimId : stimIdsToTest) {
-            List<RGBColor> colorsToTest = fetchColorsToTest(stimId);
-            for (RGBColor color : colorsToTest) {
+        for (Long gaStimId : stimIdsToTest) {
+            List<Double> contrastsToTest = fetchContrastsToTest(gaStimId);
+            for (Double contrast : contrastsToTest) {
                 for (String textureType : textureTypesToTest) {
-                    TwoDVsThreeDStim stim = new TwoDVsThreeDStim(this, stimId, textureType, color);
+                    TwoDVsThreeDStim stim = new TwoDVsThreeDStim(this, gaStimId, textureType, fetchColorForStimId(gaStimId), contrast);
                     stims.add(stim);
                 }
             }
@@ -131,6 +124,13 @@ public class TwoDThreeDLightnessTrialGenerator extends TwoDVsThreeDTrialGenerato
 
             getDbUtil().writeTaskToDo(taskId, stimId, -1, genId);
         }
+    }
+
+    private List<Double> fetchContrastsToTest(Long stimId) {
+        List<Double> contrastsToTest = new ArrayList<>();
+        contrastsToTest.add(0.4);
+        contrastsToTest.add(1.0);
+        return contrastsToTest;
     }
 
     private List<RGBColor> fetchColorsToTest(Long stimId) {

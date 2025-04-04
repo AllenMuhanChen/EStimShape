@@ -61,7 +61,7 @@ public class GaussianNAFCNoiseMapperTest {
         gaussianNoiseMapper.setBackground(0); // Set background to black
 
         baseMStick = new ProceduralMatchStick(new GaussianNoiseMapper());
-        baseMStick.setProperties(4, "SHADE");
+        baseMStick.setProperties(4, "SHADE", 1.0);
         baseMStick.setStimColor(new Color(255,255,255));
         baseMStick.genMatchStickRand();
         baseMStick.setMaxAttempts(100);
@@ -87,7 +87,7 @@ public class GaussianNAFCNoiseMapperTest {
 
         int nComp = 2;
 
-        mStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, AbstractRenderer.mm2deg(receptiveField.getRadius(), 500)), "SHADE");
+        mStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, AbstractRenderer.mm2deg(receptiveField.getRadius(), 500)), "SHADE", 1.0);
         while (true) {
             try {
                 mStick.genMatchStickFromComponentInNoise(baseMStick, 1, nComp, true, mStick.maxAttempts, new GaussianNoiseMapper());

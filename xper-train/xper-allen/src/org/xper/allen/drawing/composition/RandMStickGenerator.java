@@ -12,7 +12,7 @@ public class RandMStickGenerator extends AbstractMStickGenerator{
 	@Override
 	protected void attemptToGenerate() {
 		mStick = new AllenMatchStick();
-		mStick.setProperties(maxImageDimensionDegrees, "SHADE");
+		mStick.setProperties(maxImageDimensionDegrees, "SHADE", 1.0);
 		mStick.genMatchStickRand();
 	}
 

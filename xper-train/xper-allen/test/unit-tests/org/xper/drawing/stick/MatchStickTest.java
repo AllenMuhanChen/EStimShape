@@ -26,7 +26,7 @@ public class MatchStickTest {
 
 
         AllenMatchStick allenMatchStick = new AllenMatchStick();
-        allenMatchStick.setProperties(1, "SHADE");
+        allenMatchStick.setProperties(1, "SHADE", 1.0);
         allenMatchStick.genAllenMatchStickFromMatchStickFile(pathToMatchStick);
 
         drawMStick(allenMatchStick);
@@ -36,7 +36,7 @@ public class MatchStickTest {
         allenMStickSpec.setMStickInfo(allenMatchStick, true);
 
         AllenMatchStick newAllenMStick = new AllenMatchStick();
-        newAllenMStick.setProperties(1, "SHADE");
+        newAllenMStick.setProperties(1, "SHADE", 1.0);
         newAllenMStick.genMatchStickFromShapeSpec(allenMStickSpec, new double[]{0,0,0});
         drawMStick(allenMatchStick);
         ThreadUtil.sleep(5000);

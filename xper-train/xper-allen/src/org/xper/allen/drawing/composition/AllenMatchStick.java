@@ -8,7 +8,6 @@ import javax.media.j3d.Transform3D;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
-import com.thoughtworks.xstream.converters.ConversionException;
 import org.lwjgl.opengl.GL11;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
@@ -4169,8 +4168,9 @@ public class AllenMatchStick extends MatchStick {
 	 *
 	 * @param maxSizeDiameterDegrees
 	 * @param shade
+	 * @param contrast
 	 */
-	public void setProperties(double maxSizeDiameterDegrees, String shade) {
+	public void setProperties(double maxSizeDiameterDegrees, String shade, double contrast) {
 		//OBJECT PROPERTIES
 		//SETTING SIZES
 		/**
@@ -4183,7 +4183,6 @@ public class AllenMatchStick extends MatchStick {
 		setScale(minScaleDegrees, maxSizeDiameterDegrees);
 
 		//CONTRAST
-		double contrast = 0.5;
 		setContrast(contrast);
 
 		//COLOR

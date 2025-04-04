@@ -31,7 +31,7 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
     @Override
     public void draw(Context context) {
         AllenMatchStick nextMStick = new AllenMatchStick();
-        nextMStick.setProperties(matchStickSpec.sizeDiameterDegrees, matchStickSpec.texture);
+        nextMStick.setProperties(matchStickSpec.sizeDiameterDegrees, matchStickSpec.texture, 1.0);
         nextMStick.setStimColor(matchStickSpec.color);
         double[] rotation = matchStickSpec.getRotation();
         nextMStick.genMatchStickFromShapeSpec(matchStickSpec.getMStickSpec(), rotation);
@@ -49,7 +49,7 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
     @Override
     public void setDefaultSpec() {
         matchStick = new AllenMatchStick();
-        matchStick.setProperties(sizeDiameterDegrees, "SHADE");
+        matchStick.setProperties(sizeDiameterDegrees, "SHADE", 1.0);
         matchStick.genMatchStickRand();
         AllenMStickSpec spec = new AllenMStickSpec();
         spec.setMStickInfo(matchStick, false);
@@ -73,7 +73,7 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
 
     public List<Coordinates2D> getOutlinePoints(AbstractRenderer renderer) {
         AllenMatchStick nextMStick = new AllenMatchStick();
-        nextMStick.setProperties(matchStickSpec.sizeDiameterDegrees, matchStickSpec.texture);
+        nextMStick.setProperties(matchStickSpec.sizeDiameterDegrees, matchStickSpec.texture, 1.0);
         nextMStick.setStimColor(matchStickSpec.color);
         nextMStick.genMatchStickFromShapeSpec(matchStickSpec.getMStickSpec(), matchStickSpec.getRotation());
 

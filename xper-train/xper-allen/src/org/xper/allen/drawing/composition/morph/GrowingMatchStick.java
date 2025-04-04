@@ -29,7 +29,7 @@ public class GrowingMatchStick extends GAMatchStick {
 
     private MorphedMatchStick genComponentMorphMatchStick(MorphedMatchStick matchStickToMorph, Map<Integer, ComponentMorphParameters> paramsForComps, MorphedMatchStick removedLimbMatchStick) {
         MorphedMatchStick compMorphedMatchStick = new MorphedMatchStick();
-        compMorphedMatchStick.setProperties(getScaleForMAxisShape(), matchStickToMorph.getTextureType());
+        compMorphedMatchStick.setProperties(getScaleForMAxisShape(), matchStickToMorph.getTextureType(), 1.0);
         compMorphedMatchStick.genMorphedComponentsMatchStick(paramsForComps, removedLimbMatchStick, true);
         return compMorphedMatchStick;
     }
@@ -183,7 +183,7 @@ public class GrowingMatchStick extends GAMatchStick {
 
     private MorphedMatchStick genRemovedLimbsMatchStick(MorphedMatchStick matchStickToMorph, HashSet<Integer> componentsToRemove) {
         MorphedMatchStick removedLimbMatchStick = new MorphedMatchStick();
-        removedLimbMatchStick.setProperties(getScaleForMAxisShape(), matchStickToMorph.getTextureType());
+        removedLimbMatchStick.setProperties(getScaleForMAxisShape(), matchStickToMorph.getTextureType(), 1.0);
         removedLimbMatchStick.genRemovedLimbsMatchStick(matchStickToMorph, componentsToRemove);
         return removedLimbMatchStick;
     }

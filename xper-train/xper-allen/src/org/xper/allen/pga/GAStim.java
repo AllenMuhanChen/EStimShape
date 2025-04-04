@@ -7,10 +7,7 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.morph.MorphData;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.ga.GAMatchStick;
-import org.xper.allen.stimproperty.ColorPropertyManager;
-import org.xper.allen.stimproperty.RFStrategyPropertyManager;
-import org.xper.allen.stimproperty.SizePropertyManager;
-import org.xper.allen.stimproperty.TexturePropertyManager;
+import org.xper.allen.stimproperty.*;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 import org.xper.rfplot.drawing.png.ImageDimensions;
@@ -23,6 +20,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected final FromDbGABlockGenerator generator;
     protected final Long parentId;
     protected final Coordinates2D imageCenterCoords;
+    protected final ContrastPropertyManager contrastManager;
     protected RFStrategy rfStrategy;
     protected final ColorPropertyManager colorManager;
     protected final TexturePropertyManager textureManager;
@@ -32,6 +30,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected String textureType;
     protected RGBColor color;
     protected double sizeDiameterDegrees;
+    protected double contrast;
 
     public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, String textureType) {
         this.generator = generator;
@@ -46,6 +45,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         textureManager = new TexturePropertyManager(jdbcTemplate);
         sizeManager = new SizePropertyManager(jdbcTemplate);
         rfStrategyManager = new RFStrategyPropertyManager(jdbcTemplate);
+        contrastManager = new ContrastPropertyManager(jdbcTemplate);
     }
 
     @Override
@@ -102,6 +102,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         chooseSize();
         chooseTextureType();
         chooseColor();
+        chooseContrast();
 
         if (rfStrategy == null) {
             throw new IllegalArgumentException("RF Strategy cannot be null");
@@ -117,11 +118,25 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         }
     }
 
+
     protected abstract void chooseRFStrategy();
 
     protected void chooseColor() {
         color = colorManager.readProperty(parentId);
     }
+
+    protected void chooseContrast() {
+        contrast = contrastManager.readProperty(parentId);
+    }
+
+    public static boolean is2D(String textureType) {
+        return textureType.equals("2D");
+    }
+
+    public static boolean is3D(String texture) {
+        return texture.equals("SHADE") || texture.equals("SPECULAR");
+    }
+
     protected abstract void chooseSize();
 
     /**
@@ -132,12 +147,12 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         textureManager.writeProperty(stimId, textureType);
         sizeManager.writeProperty(stimId, (float) sizeDiameterDegrees);
         rfStrategyManager.writeProperty(stimId, rfStrategy);
-
+        contrastManager.writeProperty(stimId, contrast);
     }
 
     protected T createRandMStick() {
         GAMatchStick mStick = new GAMatchStick(generator.getReceptiveField(), rfStrategy);
-        mStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees()), textureType);
+        mStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees()), textureType, 1.0);
         mStick.setStimColor(color);
         mStick.genMatchStickRand();
         return (T) mStick;

@@ -33,7 +33,7 @@ public class MockExperimentGenType extends ProceduralRandGenType<MockExperimentG
 
         //Generate the base matchstick
         ProceduralMatchStick baseMStick = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
-        baseMStick.setProperties(generator.getImageDimensionsDegrees(), "SHADE");
+        baseMStick.setProperties(generator.getImageDimensionsDegrees(), "SHADE", 1.0);
         baseMStick.setStimColor(parameters.getProceduralStimParameters().color);
         baseMStick.genMatchStickRand();
         int morphIndex = baseMStick.chooseRandLeaf();

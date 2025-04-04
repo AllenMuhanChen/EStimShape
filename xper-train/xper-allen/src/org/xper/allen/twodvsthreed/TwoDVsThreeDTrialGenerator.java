@@ -9,8 +9,6 @@ import org.xper.allen.app.twodvsthreed.TwoDVsThreeDConfig;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.allen.stimproperty.ColorPropertyManager;
-import org.xper.drawing.RGBColor;
-import org.xper.rfplot.drawing.png.HSLUtils;
 import org.xper.util.FileUtil;
 
 import javax.sql.DataSource;
@@ -92,22 +90,27 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
 
     @Override
     protected void addTrials() {
+        List<Double> contrastsToTest = Arrays.asList(0.4, 1.0);
+
         // For 2D, look for "2D", For 3D look for "SHADE" or "SPECULAR"
         List<Long> twoDStimIds = fetchTopNStimIds("2D");
         List<Long> threeDStimIds = fetchTopNStimIds("3D");
 
         // GENERATE TRIALS
         for (Long stimId : twoDStimIds) {
-            TwoDVsThreeDStim stim = new TwoDVsThreeDStim(this, stimId, "SHADE", null);
+            TwoDVsThreeDStim stim = new TwoDVsThreeDStim(this, stimId, "SHADE", null, null);
             stims.add(stim);
 
-            stim = new TwoDVsThreeDStim(this, stimId, "SPECULAR", null);
+            stim = new TwoDVsThreeDStim(this, stimId, "SPECULAR", null, null);
             stims.add(stim);
+
         }
 
         for (Long stimId : threeDStimIds) {
-            TwoDVsThreeDStim stim = new TwoDVsThreeDStim(this, stimId, "2D", null);
-            stims.add(stim);
+            for (Double contrast : contrastsToTest) {
+                TwoDVsThreeDStim stim = new TwoDVsThreeDStim(this, stimId, "2D", null, contrast);
+                stims.add(stim);
+            }
         }
     }
 

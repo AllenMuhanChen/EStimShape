@@ -47,7 +47,7 @@ public class MatchStick implements Drawable {
 	private int nowCenterTube;
 
 	protected String textureType = "SHADE";
-	protected double contrast = 0.5;
+	protected double contrast;
 	protected RGBColor stimColor = new RGBColor(1,1,1);
 
 	private boolean doCenterObject = false;
@@ -4332,9 +4332,9 @@ public class MatchStick implements Drawable {
 	protected void initLight() {
 		if (textureType.compareTo("2D") == 0) {
 			getObj1().setDoLighting(false);
-			getObj1().getStimColor().setRed((float)(getStimColor().getRed()));
-			getObj1().getStimColor().setBlue((float)(getStimColor().getBlue()));
-			getObj1().getStimColor().setGreen((float)(getStimColor().getGreen()));
+			getObj1().getStimColor().setRed((float)(getStimColor().getRed() * contrast));
+			getObj1().getStimColor().setBlue((float)(getStimColor().getBlue() * contrast));
+			getObj1().getStimColor().setGreen((float)(getStimColor().getGreen() * contrast));
 		} else
 			getObj1().setDoLighting(true);
 

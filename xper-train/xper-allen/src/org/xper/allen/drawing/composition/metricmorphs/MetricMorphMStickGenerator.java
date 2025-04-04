@@ -38,7 +38,7 @@ public class MetricMorphMStickGenerator extends AbstractMStickGenerator{
 
 	private void tryGenerateMetricMorph() {
 		mStick = new AllenMatchStick();
-		mStick.setProperties(maxImageDimensionDegrees, "SHADE");
+		mStick.setProperties(maxImageDimensionDegrees, "SHADE", 1.0);
 		boolean success = mStick.genMetricMorphedLeafMatchStick(leafToMorph, mStickToMorph, mmp);
 
 		if(!success) {

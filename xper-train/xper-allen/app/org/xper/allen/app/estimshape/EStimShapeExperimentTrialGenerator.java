@@ -349,7 +349,7 @@ public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
         //Add EStim Trials
         for (ProceduralStimParameters parameters : eStimTrialParams) {
             ProceduralMatchStick baseMStick = new ProceduralMatchStick(noiseMapper);
-            baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource.getRFRadiusDegrees()), "SHADE");
+            baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource.getRFRadiusDegrees()), "SHADE", 1.0);
             baseMStick.setStimColor(stimColor);
             baseMStick.genMatchStickFromFile(gaSpecPath + "/" + stimId + "_spec.xml");
             //using estim values set on the IntanGUI
@@ -466,7 +466,7 @@ public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
         //Add EStim Trials
         for (ProceduralStimParameters parameters : eStimTrialParams) {
             ProceduralMatchStick baseMStick = new ProceduralMatchStick(noiseMapper);
-            baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource.getRFRadiusDegrees()), "SHADE");
+            baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource.getRFRadiusDegrees()), "SHADE", 1.0);
             baseMStick.setStimColor(stimColor);
             baseMStick.genMatchStickFromFile(gaSpecPath + "/" + stimId + "_spec.xml");
             //using estim values set on the IntanGUI

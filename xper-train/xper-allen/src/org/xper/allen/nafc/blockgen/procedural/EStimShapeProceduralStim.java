@@ -73,7 +73,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
                 RFStrategy.PARTIALLY_INSIDE,
                 ((EStimShapeExperimentTrialGenerator) generator).getRF(), generator.getPngMaker().getNoiseMapper()
         );
-        sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimShapeExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees()), parameters.textureType);
+        sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimShapeExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees()), parameters.textureType, 1.0);
         sample.setStimColor(parameters.color);
         sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0, true, sample.maxAttempts, generator.getPngMaker().getNoiseMapper());
 
@@ -96,7 +96,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     @Override
     protected void generateMatch(ProceduralMatchStick sample) {
         ProceduralMatchStick match = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
-        match.setProperties(parameters.getSize(), parameters.textureType);
+        match.setProperties(parameters.getSize(), parameters.textureType, 1.0);
         match.setStimColor(parameters.color);
         match.genMatchStickFromShapeSpec(mStickSpecs.getSample(), new double[]{0,0,0});
         match.moveCenterOfMassTo(new Point3d(0,0,0));
@@ -123,7 +123,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         for (int i = 0; i < numProceduralDistractors; i++) {
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
             correctNoiseRadius(proceduralDistractor);
-            proceduralDistractor.setProperties(parameters.getSize(), parameters.textureType);
+            proceduralDistractor.setProperties(parameters.getSize(), parameters.textureType, 1.0);
             proceduralDistractor.setStimColor(parameters.color);
             proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts);
             mSticks.addProceduralDistractor(proceduralDistractor);

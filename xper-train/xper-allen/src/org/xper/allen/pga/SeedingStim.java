@@ -2,7 +2,6 @@ package org.xper.allen.pga;
 
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.ga.GAMatchStick;
-import org.xper.drawing.ColorUtils;
 import org.xper.drawing.RGBColor;
 import java.util.Random;
 
@@ -37,13 +36,19 @@ public class SeedingStim extends GAStim<GAMatchStick, AllenMStickData> {
     }
 
     @Override
+    protected void chooseContrast() {
+        contrast = Math.random() < 0.5 ? 0.4 : 1.0;
+    }
+
+    @Override
     protected GAMatchStick createMStick() {
         GAMatchStick mStick = new GAMatchStick(
                 generator.getReceptiveField(),
                 rfStrategy);
 
 
-        mStick.setProperties(sizeDiameterDegrees, textureType);
+        mStick.setProperties(sizeDiameterDegrees, textureType, contrast);
+        mStick.setContrast(contrast);
         mStick.setStimColor(color);
 
         mStick.genMatchStickRand();
