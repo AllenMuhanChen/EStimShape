@@ -5,10 +5,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
-import org.xper.allen.app.fixation.config.FixationPngAppConfig;
 import org.xper.allen.config.MStickPngConfig;
 import org.xper.allen.pga.ReceptiveFieldSource;
-import org.xper.allen.twodvsthreed.TwoDVsThreeDTrialGenerator;
+import org.xper.allen.twodvsthreed.TwoDThreeDLightnessTrialGenerator;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.exception.DbException;
@@ -36,8 +35,8 @@ public class TwoDVsThreeDConfig {
 
 
     @Bean
-    public TwoDVsThreeDTrialGenerator generator(){
-        TwoDVsThreeDTrialGenerator generator = new TwoDVsThreeDTrialGenerator();
+    public TwoDThreeDLightnessTrialGenerator generator(){
+        TwoDThreeDLightnessTrialGenerator generator = new TwoDThreeDLightnessTrialGenerator();
         generator.setGaDataSource(gaDataSource());
         generator.setGaSpecPath(gaSpecPath);
         generator.setRfSource(rfSource());

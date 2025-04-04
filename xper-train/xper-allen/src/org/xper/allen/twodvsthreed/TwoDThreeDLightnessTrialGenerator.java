@@ -6,15 +6,12 @@ import org.springframework.jdbc.core.RowMapper;
 import org.xper.Dependency;
 import org.xper.allen.Stim;
 import org.xper.allen.app.twodvsthreed.TwoDVsThreeDConfig;
-import org.xper.allen.isoluminant.IsoGaborConfig;
-import org.xper.allen.isoluminant.IsoGaborTrialGenerator;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.allen.stimproperty.ColorPropertyManager;
 import org.xper.drawing.RGBColor;
 import org.xper.rfplot.drawing.png.HSLUtils;
 import org.xper.util.FileUtil;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import javax.sql.DataSource;
 import java.sql.ResultSet;
@@ -24,7 +21,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<Stim> {
+public class TwoDThreeDLightnessTrialGenerator extends AbstractMStickPngTrialGenerator<Stim> {
     public static final List<Double> LIGHTNESSES_TO_TEST= Arrays.asList(0.2, 0.4, 0.6, 0.8, 1.0);
     private static final int TOP_N_STIMS_PER_LINEAGE = 2; // Number of top stimuli to select per lineage
 //    public static final List<Double> LIGHTNESSES_TO_TEST = Arrays.asList(0.2);
@@ -49,7 +46,7 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
                 FileUtil.loadConfigClass("experiment.config_class"),
                 TwoDVsThreeDConfig.class
         );
-        TwoDVsThreeDTrialGenerator gen = context.getBean(TwoDVsThreeDTrialGenerator.class);
+        TwoDThreeDLightnessTrialGenerator gen = context.getBean(TwoDThreeDLightnessTrialGenerator.class);
         gen.generate();
     }
 
