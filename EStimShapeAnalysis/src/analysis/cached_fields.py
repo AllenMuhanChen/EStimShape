@@ -95,6 +95,7 @@ class StimPathField(StimIdField):
     def get_name(self):
         return "StimPath"
 
+
 class ThumbnailField(StimIdField):
     def get(self, when: When) -> str:
         stim_id = self.get_cached_super(when, StimIdField)

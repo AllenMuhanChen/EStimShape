@@ -289,6 +289,8 @@ class MySQLTreeDataAccess(TreeDataAccess):
     def get_image_path(self, stim_id: int) -> Optional[str]:
         """Get the image path for a stimulus ID"""
         for filename in os.listdir(self.image_base_path):
+            if filename.startswith(str(stim_id)) and filename.endswith('thumbnail.png'):
+                return os.path.join(self.image_base_path, filename)
             if filename.startswith(str(stim_id)) and filename.endswith('compmap.png'):
                 return os.path.join(self.image_base_path, filename)
         return None
