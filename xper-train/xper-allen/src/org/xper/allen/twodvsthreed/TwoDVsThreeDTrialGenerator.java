@@ -58,7 +58,7 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
         colorManager = new ColorPropertyManager(new JdbcTemplate(gaDataSource));
 
         List<Long> stimIdsToTest = fetchStimIdsToTest();
-        List<String> textureTypesToTest = Arrays.asList("SHADE", "SPECULAR", "TWOD");
+        List<String> textureTypesToTest = Arrays.asList("SHADE", "SPECULAR", "2D");
 
         // GENERATE TRIALS
         for (Long stimId : stimIdsToTest) {

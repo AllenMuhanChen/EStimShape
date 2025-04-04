@@ -24,6 +24,8 @@ def main():
     trial_collector = TrialCollector(conn)
     trial_tstamps = trial_collector.collect_trials()
     compiled_data = compile_data(conn, trial_tstamps)
+    #filter out trials where Spikes by Channel is empty
+    compiled_data = compiled_data[compiled_data['Spikes by Channel'].notnull()]
 
     # ----------------
     # STEP 2: Create and run the analysis pipeline
@@ -52,7 +54,6 @@ def main():
 
 
 def compile_data(conn, trial_tstamps):
-    # Set up your existing fields
     from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
     from clat.compile.tstamp.classic_database_tstamp_fields import StimIdField
     from clat.compile.tstamp.classic_database_tstamp_fields import TaskIdField
