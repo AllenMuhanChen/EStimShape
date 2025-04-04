@@ -12,7 +12,7 @@ from clat.util.connection import Connection
 from clat.util.time_util import When
 from src.analysis.cached_fields import LineageField, StimTypeField, StimPathField, \
     ClusterResponseField
-from src.pga.alexnet.analysis.plot_top_n import add_colored_border
+from src.pga.alexnet.analysis.plot_top_n_alexnet import add_colored_border
 from src.startup import context
 
 
