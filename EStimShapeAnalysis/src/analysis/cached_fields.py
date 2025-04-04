@@ -1,3 +1,5 @@
+import os
+
 import xmltodict
 from clat.compile.tstamp.classic_database_tstamp_fields import StimSpecIdField, TaskIdField, StimIdField
 from clat.util.connection import Connection
@@ -92,3 +94,32 @@ class StimPathField(StimIdField):
 
     def get_name(self):
         return "StimPath"
+
+class ThumbnailField(StimIdField):
+    def get(self, when: When) -> str:
+        stim_id = self.get_cached_super(when, StimIdField)
+
+        # Get StimSpec XML
+        self.conn.execute("SELECT spec FROM StimSpec WHERE id = %s", (stim_id,))
+        stim_spec_xml = self.conn.fetch_one()
+
+        if stim_spec_xml:
+            # Parse XML to dict
+            stim_spec_dict = xmltodict.parse(stim_spec_xml)
+            path = stim_spec_dict['StimSpec']['path']
+
+            # Clean path - remove sftp prefix
+            if 'sftp:host=' in path:
+                path = path[path.find('/home/'):]
+            # Add thumbnail suffix before .png
+            if path.endswith('.png'):
+                thumbnail_path = path[:-4] + '_thumbnail.png'
+                if os.path.exists(thumbnail_path):
+                    return thumbnail_path
+                else:
+                    return path
+
+        return None
+
+    def get_name(self):
+        return "ThumbnailPath"
