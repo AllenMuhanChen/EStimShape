@@ -116,7 +116,7 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
      * @param textureType The texture type to fetch ("2D" or "3D")
      * @return List of stimuli IDs
      */
-    private List<Long> fetchTopNStimIds(String textureType) {
+    List<Long> fetchTopNStimIds(String textureType) {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(gaDataSource);
         List<Long> resultStimIds = new ArrayList<>();
 

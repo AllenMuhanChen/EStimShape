@@ -23,22 +23,58 @@ import java.util.List;
 
 public class TwoDThreeDLightnessTrialGenerator extends TwoDVsThreeDTrialGenerator {
     public static final List<Double> LIGHTNESSES_TO_TEST= Arrays.asList(0.2, 0.4, 0.6, 0.8, 1.0);
-    private static final int TOP_N_STIMS_PER_LINEAGE = 2; // Number of top stimuli to select per lineage
-//    public static final List<Double> LIGHTNESSES_TO_TEST = Arrays.asList(0.2);
-
-
-
 
     public int numTrialsPerStim = 5;
     private ColorPropertyManager colorManager;
 
-
     public static void main(String[] args) {
+        // Set default values
+        int startRank = 1;
+        int endRank = 3;
+
+        // Parse command line arguments if provided
+        if (args.length >= 1) {
+            try {
+                startRank = Integer.parseInt(args[0]);
+            } catch (NumberFormatException e) {
+                System.err.println("Error parsing startRank argument. Using default value: " + startRank);
+            }
+        }
+
+        if (args.length >= 2) {
+            try {
+                endRank = Integer.parseInt(args[1]);
+            } catch (NumberFormatException e) {
+                System.err.println("Error parsing endRank argument. Using default value: " + endRank);
+            }
+        }
+
+        // Validate the input
+        if (startRank < 1) {
+            System.err.println("startRank must be at least 1. Using default value: 1");
+            startRank = 1;
+        }
+
+        if (endRank < startRank) {
+            System.err.println("endRank must be greater than or equal to startRank. Using value: " + startRank);
+            endRank = startRank;
+        }
+
+        System.out.println("Using rank range: " + startRank + " to " + endRank);
+
+        // Create and configure the generator
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.config_class"),
                 TwoDVsThreeDConfig.class
         );
+
         TwoDThreeDLightnessTrialGenerator gen = context.getBean(TwoDThreeDLightnessTrialGenerator.class, "generator2");
+
+        // Set the rank range
+        gen.startRank = startRank;
+        gen.endRank = endRank;
+
+        // Generate trials
         gen.generate();
     }
 
@@ -46,7 +82,17 @@ public class TwoDThreeDLightnessTrialGenerator extends TwoDVsThreeDTrialGenerato
     protected void addTrials() {
         colorManager = new ColorPropertyManager(new JdbcTemplate(gaDataSource));
 
-        List<Long> stimIdsToTest = fetchStimIdsToTest();
+        // Use the fetchTopNStimIds method from parent class to get stimuli within the specified rank range
+        List<Long> twoDStimIds = fetchTopNStimIds("2D");
+        List<Long> threeDStimIds = fetchTopNStimIds("3D");
+
+        // Combine the lists
+        List<Long> stimIdsToTest = new ArrayList<>();
+        stimIdsToTest.addAll(twoDStimIds);
+        stimIdsToTest.addAll(threeDStimIds);
+
+        System.out.println("Using stimuli IDs: " + stimIdsToTest.toString());
+
         List<String> textureTypesToTest = Arrays.asList("SHADE", "SPECULAR", "2D");
 
         // GENERATE TRIALS
@@ -59,7 +105,6 @@ public class TwoDThreeDLightnessTrialGenerator extends TwoDVsThreeDTrialGenerato
                 }
             }
         }
-
     }
 
     @Override
@@ -88,110 +133,38 @@ public class TwoDThreeDLightnessTrialGenerator extends TwoDVsThreeDTrialGenerato
         }
     }
 
-    protected void shuffleTrials() {
-        Collections.shuffle(getStims());
-    }
-
-    private List<Long> getCompleteLineages() {
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(gaDataSource);
-
-        // First, find the highest regime number
-        Integer maxRegime = (Integer) jdbcTemplate.queryForObject(
-                "SELECT MAX(CAST(regime AS SIGNED)) FROM LineageGaInfo",
-                Integer.class
-        );
-
-        if (maxRegime == null) {
-            return new ArrayList<>();
-        }
-
-        // Then find all lineages that reached this regime
-        return jdbcTemplate.query(
-                "SELECT DISTINCT lineage_id FROM LineageGaInfo WHERE regime = ?",
-                new Object[]{String.valueOf(maxRegime)},
-                new RowMapper() {
-                    @Override
-                    public Long mapRow(ResultSet rs, int rowNum) throws SQLException, SQLException {
-                        return rs.getLong("lineage_id");
-                    }
-                }
-        );
-    }
-
-    private List<Long> getTopStimsForLineage(Long lineageId) {
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(gaDataSource);
-
-        return jdbcTemplate.query(
-                "SELECT stim_id FROM StimGaInfo " +
-                        "WHERE lineage_id = ? " +
-                        "ORDER BY response DESC " +
-                        "LIMIT ?",
-                new Object[]{lineageId, TOP_N_STIMS_PER_LINEAGE},
-                new RowMapper() {
-                    @Override
-                    public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
-                        return rs.getLong("stim_id");
-                    }
-                }
-        );
-    }
-
-    private List<Long> fetchStimIdsToTest() {
-        // Get all complete lineages
-        List<Long> completeLineages = getCompleteLineages();
-
-        // For each lineage, get top performing stimuli
-        List<Long> allTopStims = new ArrayList<>();
-        for (Long lineageId : completeLineages) {
-            List<Long> lineageTopStims = getTopStimsForLineage(lineageId);
-            allTopStims.addAll(lineageTopStims);
-        }
-
-        // Remove any duplicates and return
-        return allTopStims;
-    }
-
-
     private List<RGBColor> fetchColorsToTest(Long stimId) {
         List<RGBColor> colorsToTest = new ArrayList<>();
 
-        RGBColor originalStimColor  = fetchColorForStimId(stimId);
-        float[] hsv = HSLUtils.rgbToHSV(originalStimColor);
-        for (Double lightness : LIGHTNESSES_TO_TEST) {
-            hsv[2] = lightness.floatValue();
-            RGBColor newColor = HSLUtils.hsvToRGB(hsv);
-
-            colorsToTest.add(newColor);
+        RGBColor originalStimColor = fetchColorForStimId(stimId);
+        if (originalStimColor != null) {
+            float[] hsv = HSLUtils.rgbToHSV(originalStimColor);
+            for (Double lightness : LIGHTNESSES_TO_TEST) {
+                hsv[2] = lightness.floatValue();
+                RGBColor newColor = HSLUtils.hsvToRGB(hsv);
+                colorsToTest.add(newColor);
+            }
+        } else {
+            // Default color if original can't be found
+            System.err.println("Warning: No color found for stimId " + stimId + ". Using default colors.");
+            for (Double lightness : LIGHTNESSES_TO_TEST) {
+                colorsToTest.add(new RGBColor(lightness, lightness, lightness));
+            }
         }
         return colorsToTest;
-
     }
 
     private RGBColor fetchColorForStimId(Long stimId) {
         return colorManager.readProperty(stimId);
     }
 
-    public DataSource getGaDataSource() {
-        return gaDataSource;
+    @Override
+    public ColorPropertyManager getColorManager() {
+        return colorManager;
     }
 
-    public void setGaDataSource(DataSource gaDataSource) {
-        this.gaDataSource = gaDataSource;
-    }
-
-    public String getGaSpecPath() {
-        return gaSpecPath;
-    }
-
-    public void setGaSpecPath(String gaSpecPath) {
-        this.gaSpecPath = gaSpecPath;
-    }
-
-    public ReceptiveFieldSource getRfSource() {
-        return rfSource;
-    }
-
-    public void setRfSource(ReceptiveFieldSource rfSource) {
-        this.rfSource = rfSource;
+    @Override
+    public void setColorManager(ColorPropertyManager colorManager) {
+        this.colorManager = colorManager;
     }
 }
