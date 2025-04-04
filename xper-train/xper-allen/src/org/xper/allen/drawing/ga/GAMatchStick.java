@@ -20,7 +20,7 @@ import java.util.*;
  * 2. Checking if the shape is inside the Receptive Field partially or completely
  *
  */
-public class GAMatchStick extends MorphedMatchStick {
+public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
 
     Point3d toMoveCenterOfMassLocation;
     ReceptiveField rf;
@@ -132,6 +132,7 @@ public class GAMatchStick extends MorphedMatchStick {
         drawRF();
     }
 
+    @Override
     public void drawThumbnail(double imageWidthMm){
         GL11.glPushMatrix();
         double rfDiameter = rf.getRadius() * 2;

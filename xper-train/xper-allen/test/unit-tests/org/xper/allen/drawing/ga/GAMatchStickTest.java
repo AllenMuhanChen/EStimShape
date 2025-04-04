@@ -99,8 +99,17 @@ public class GAMatchStickTest {
         partial.setRfStrategy(RFStrategy.PARTIALLY_INSIDE);
         partial.positionShape();
         testMatchStickDrawer.drawMStick(partial);
-//        testMatchStickDrawer.drawCompMap(partial);
-        testMatchStickDrawer.drawThumbnail(partial);
+        testMatchStickDrawer.drawCompMap(partial);
+//        testMatchStickDrawer.drawThumbnail(partial);
+        ThreadUtil.sleep(10000);
+
+    }
+
+    @Test
+    public void test_draw_thumbnail() {
+        GAMatchStick GAMatchStick = genPartiallyInside();
+        testMatchStickDrawer.drawMStick(GAMatchStick);
+        testMatchStickDrawer.drawThumbnail(GAMatchStick);
         ThreadUtil.sleep(10000);
 
     }

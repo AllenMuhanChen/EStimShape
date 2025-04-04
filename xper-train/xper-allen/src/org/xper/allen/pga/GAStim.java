@@ -79,6 +79,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
 
         saveMStickSpec(mStick);
         drawCompMaps(mStick);
+        drawThumbnails(mStick);
         String pngPath = drawPngs(mStick);
 
         D mStickData = (D) mStick.getMStickData();
@@ -88,6 +89,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
 
         writeMorphData(mStick);
     }
+
 
     protected void writeMorphData(T mStick) {
         MorphData morphData = mStick.getMorphData();
@@ -147,6 +149,12 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         List<String> labels = new LinkedList<>();
         generator.getPngMaker().createAndSaveCompMap(mStick, stimId, labels, generator.getGeneratorPngPath());
     }
+
+    protected void drawThumbnails(T mStick) {
+        List<String> labels = new LinkedList<>();
+        generator.getPngMaker().createAndSaveThumbnail(mStick, stimId, labels, generator.getGeneratorPngPath());
+    }
+
 
     protected abstract T createMStick();
 
