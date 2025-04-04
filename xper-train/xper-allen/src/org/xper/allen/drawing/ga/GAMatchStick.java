@@ -133,7 +133,7 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
     }
 
     @Override
-    public void drawThumbnail(double imageWidthMm){
+    public void drawThumbnail(double imageWidthMm, double imageHeightMm){
         init();
         try {
             Thread.sleep(100);
@@ -142,10 +142,18 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
         }
         GL11.glPushMatrix();
 //        centerObjOrRFDependingOnBestFit(imageWidthMm);
-        centerRFAndScale(imageWidthMm);
+        centerRFAndScale(imageWidthMm, imageHeightMm);
         drawSkeleton(false);
         drawRF();
         GL11.glPopMatrix();
+    }
+
+    private void centerRFAndScale(double imageWidthMm, double imageHeightMm) {
+        double rfDiameter = rf.getRadius() * 2;
+        double widthScaleFactor = (imageWidthMm / rfDiameter)/2;
+        double heightScaleFactor = (imageHeightMm / rfDiameter)/2;
+        GL11.glScaled(widthScaleFactor, heightScaleFactor, 1);
+        GL11.glTranslated(-rf.getCenter().getX(), -rf.getCenter().getY(), 0);
     }
 
     private void centerObjOrRFDependingOnBestFit(double imageWidthMm) {
@@ -160,13 +168,6 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
         double scaleFactor = Math.max(shapeScaleFactor, rfScaleFactor); //choose the largest zoom
         GL11.glScaled(scaleFactor, scaleFactor, 1);
         GL11.glTranslated(-centerMass.x, -centerMass.y, 0);
-    }
-
-    private void centerRFAndScale(double imageWidthMm) {
-        double rfDiameter = rf.getRadius() * 2;
-        double scaleFactor = (imageWidthMm / rfDiameter)/2;
-        GL11.glScaled(scaleFactor, scaleFactor, 1);
-        GL11.glTranslated(-rf.getCenter().getX(), -rf.getCenter().getY(), 0);
     }
 
     public void drawRF() {

@@ -189,7 +189,7 @@ public class AllenDrawingManager implements Drawable {
 		renderer.draw(new Drawable() {
 			@Override
 			public void draw() {
-				obj.drawThumbnail(renderer.getWidth());
+				obj.drawThumbnail(renderer.getWidth(), renderer.getHeight());
 			}
 		});
 

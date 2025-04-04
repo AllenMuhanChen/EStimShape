@@ -138,7 +138,7 @@ public class TestMatchStickDrawer {
         window.draw(new Drawable() {
             @Override
             public void draw() {
-                mStick.drawThumbnail(window.renderer.getWidth());
+                mStick.drawThumbnail(window.renderer.getWidth(), window.renderer.getHeight());
             }
         });
     }
