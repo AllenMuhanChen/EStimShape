@@ -64,7 +64,7 @@ def main():
 
 def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
     response_processor = context.ga_config.make_response_processor()
-    cluster_combination_strategy = response_processor.repetition_combination_strategy
+    cluster_combination_strategy = response_processor.cluster_combination_strategy
     mstick_spec_data_source = StimSpecDataField(conn)
 
     fields = CachedFieldList()

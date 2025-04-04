@@ -139,7 +139,7 @@ class DatabaseLineageDistributor(LineageDistributor):
             num_trials_for_lineages = distribute_amount_equally_among(all_lineages,
                                                                       amount=self.num_trials_per_generation)
         else:
-            # Divide equally among qualifying lineages
+            # Divide equally among qualifying lineages - those that are past regime 1 and have high enough peak response
             num_trials_for_lineages = distribute_amount_equally_among(qualifying_lineages,
                                                                       amount=self.num_trials_per_generation)
 
