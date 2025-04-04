@@ -52,6 +52,22 @@ public class TwoDVsThreeDConfig {
     }
 
     @Bean
+    public TwoDThreeDLightnessTrialGenerator generator2(){
+        TwoDThreeDLightnessTrialGenerator generator = new TwoDThreeDLightnessTrialGenerator();
+        generator.setGaDataSource(gaDataSource());
+        generator.setGaSpecPath(gaSpecPath);
+        generator.setRfSource(rfSource());
+        generator.setDbUtil(baseConfig.dbUtil());
+        generator.setExperimentPngPath(pngConfig.experimentPngPath);
+        generator.setGeneratorPngPath(pngConfig.generatorPngPath);
+        generator.setGeneratorSpecPath(pngConfig.generatorSpecPath);
+        generator.setGlobalTimeUtil(baseConfig.localTimeUtil());
+        generator.setPngMaker(pngConfig.pngMaker());
+        generator.setImageDimensionDegrees(pngConfig.xperMaxImageDimensionDegrees());
+        return generator;
+    }
+
+    @Bean
     public ReceptiveFieldSource rfSource(){
         ReceptiveFieldSource rfSource = new ReceptiveFieldSource();
         rfSource.setDataSource(gaDataSource());

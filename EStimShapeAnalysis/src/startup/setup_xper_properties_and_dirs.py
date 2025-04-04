@@ -1,9 +1,11 @@
 import os
 import re
 from datetime import datetime
+from reloading import reloading
+
 from src.startup import context
 
-
+@reloading #reloads to get updates to context.py if those happened in same execution
 def main():
     setup_ga_xper_properties()
     setup_ga_dirs()
