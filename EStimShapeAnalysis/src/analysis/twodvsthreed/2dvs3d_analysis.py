@@ -13,7 +13,7 @@ from clat.compile.tstamp.classic_database_tstamp_fields import TaskIdField, Stim
 from clat.pipeline.pipeline_base_classes import (
     AnalysisModule, create_pipeline, create_branch, AnalysisModuleFactory
 )
-from src.analysis.cached_fields import StimPathField
+from src.analysis.cached_fields import StimPathField, ThumbnailField
 
 # Import custom modules
 from src.intan.MultiFileParser import MultiFileParser
@@ -133,6 +133,7 @@ def main():
     fields.append(StimIdField(conn))
     fields.append(StimGaIdField(conn))
     fields.append(StimPathField(conn))
+    fields.append(ThumbnailField(conn))
     fields.append(TextureField(conn))
     fields.append(ColorField(conn))
     fields.append(LightnessField(conn))
@@ -156,7 +157,7 @@ def main():
     # Manual aggregation by StimId
     # ---------------
     # Group by StimId and calculate aggregated values
-    aggregation_cols = ['StimId', 'Texture', 'Lightness', 'StimPath']
+    aggregation_cols = ['StimId', 'Texture', 'Lightness', 'ThumbnailPath']
     if 'StimGaId' in data.columns:
         aggregation_cols.append('StimGaId')
 
@@ -172,7 +173,7 @@ def main():
     # Create visualization module
     visualize_module = create_grouped_stimuli_module(
         response_col='Cluster Response',
-        path_col='StimPath',
+        path_col='ThumbnailPath',
         row_col='Texture',
         col_col='Lightness',
         subgroup_col='StimGaId',  # No subgrouping needed, we've already aggregated

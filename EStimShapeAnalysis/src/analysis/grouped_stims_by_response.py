@@ -272,10 +272,10 @@ class GroupedStimuliPlotter(ComputationModule):
                 img_with_border = self._add_colored_border(img, response, min_val, max_val)
                 ax.imshow(img_with_border)
 
-                # # Add response text
-                # ax.text(0.5, 0.95, f"Response: {response:.2f}",
-                #         transform=ax.transAxes, ha='center', va='top',
-                #         color='black', fontsize=8, bbox=dict(facecolor='white', alpha=0.7))
+                # Add response text
+                ax.text(0.5, 0.95, f"Response: {response:.2f}",
+                        transform=ax.transAxes, ha='center', va='top',
+                        color='black', fontsize=8, bbox=dict(facecolor='white', alpha=0.7))
 
             except Exception as e:
                 ax.text(0.5, 0.5, f"Error: {str(e)}", ha='center', va='center')
