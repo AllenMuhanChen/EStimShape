@@ -21,45 +21,97 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class TwoDThreeDLightnessTrialGenerator extends TwoDVsThreeDTrialGenerator {
-    public static final List<Double> LIGHTNESSES_TO_TEST= Arrays.asList(0.2, 0.4, 0.6, 0.8, 1.0);
+public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<Stim> {
     private static final int TOP_N_STIMS_PER_LINEAGE = 2; // Number of top stimuli to select per lineage
-//    public static final List<Double> LIGHTNESSES_TO_TEST = Arrays.asList(0.2);
+    private static final int MAX_STIMS_PER_TYPE = 10; // Maximum number of stimuli to select per type
 
+    @Dependency
+    DataSource gaDataSource;
 
+    @Dependency
+    String gaSpecPath;
 
-
-    public int numTrialsPerStim = 5;
+    @Dependency
+    ReceptiveFieldSource rfSource;
     private ColorPropertyManager colorManager;
 
+    public int numTrialsPerStim = 5;
 
     public static void main(String[] args) {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.config_class"),
                 TwoDVsThreeDConfig.class
         );
-        TwoDThreeDLightnessTrialGenerator gen = context.getBean(TwoDThreeDLightnessTrialGenerator.class);
+        TwoDVsThreeDTrialGenerator gen = context.getBean(TwoDVsThreeDTrialGenerator.class);
         gen.generate();
     }
 
     @Override
     protected void addTrials() {
-        colorManager = new ColorPropertyManager(new JdbcTemplate(gaDataSource));
-
-        List<Long> stimIdsToTest = fetchStimIdsToTest();
-        List<String> textureTypesToTest = Arrays.asList("SHADE", "SPECULAR", "2D");
+        // For 2D, look for "2D", For 3D look for "SHADE" or "SPECULAR"
+        List<Long> twoDStimIds = fetchTopNStimIds("2D");
+        List<Long> threeDStimIds = fetchTopNStimIds("3D");
 
         // GENERATE TRIALS
-        for (Long stimId : stimIdsToTest) {
-            List<RGBColor> colorsToTest = fetchColorsToTest(stimId);
-            for (RGBColor color : colorsToTest) {
-                for (String textureType : textureTypesToTest) {
-                    TwoDVsThreeDStim stim = new TwoDVsThreeDStim(this, stimId, textureType, color);
-                    stims.add(stim);
-                }
-            }
+        for (Long stimId : twoDStimIds) {
+            TwoDVsThreeDStim stim = new TwoDVsThreeDStim(this, stimId, "SHADE", null);
+            stims.add(stim);
+
+            stim = new TwoDVsThreeDStim(this, stimId, "SPECULAR", null);
+            stims.add(stim);
         }
 
+        for (Long stimId : threeDStimIds) {
+            TwoDVsThreeDStim stim = new TwoDVsThreeDStim(this, stimId, "2D", null);
+            stims.add(stim);
+        }
+    }
+
+    /**
+     * Fetches top N stimuli ids for a specific texture type
+     * @param textureType The texture type to fetch ("2D" or "3D")
+     * @return List of stimuli IDs
+     */
+    private List<Long> fetchTopNStimIds(String textureType) {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(gaDataSource);
+        List<Long> resultStimIds = new ArrayList<>();
+
+        // If textureType is "3D", we need to look for both "SHADE" and "SPECULAR"
+        if ("3D".equals(textureType)) {
+            // Query for stimuli with "SHADE" or "SPECULAR" texture types
+            resultStimIds = jdbcTemplate.query(
+                    "SELECT s.stim_id FROM StimGaInfo s " +
+                            "JOIN StimTexture t ON s.stim_id = t.stim_id " +
+                            "WHERE t.texture_type IN ('SHADE', 'SPECULAR') " +
+                            "ORDER BY s.response DESC " +
+                            "LIMIT ?",
+                    new Object[]{MAX_STIMS_PER_TYPE},
+                    new RowMapper() {
+                        @Override
+                        public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
+                            return rs.getLong("stim_id");
+                        }
+                    }
+            );
+        } else {
+            // Query for stimuli with the specified texture type
+            resultStimIds = jdbcTemplate.query(
+                    "SELECT s.stim_id FROM StimGaInfo s " +
+                            "JOIN StimTexture t ON s.stim_id = t.stim_id " +
+                            "WHERE t.texture_type = ? " +
+                            "ORDER BY s.response DESC " +
+                            "LIMIT ?",
+                    new Object[]{textureType, MAX_STIMS_PER_TYPE},
+                    new RowMapper() {
+                        @Override
+                        public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
+                            return rs.getLong("stim_id");
+                        }
+                    }
+            );
+        }
+
+        return resultStimIds;
     }
 
     @Override
@@ -111,7 +163,7 @@ public class TwoDThreeDLightnessTrialGenerator extends TwoDVsThreeDTrialGenerato
                 new Object[]{String.valueOf(maxRegime)},
                 new RowMapper() {
                     @Override
-                    public Long mapRow(ResultSet rs, int rowNum) throws SQLException, SQLException {
+                    public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
                         return rs.getLong("lineage_id");
                     }
                 }
@@ -151,26 +203,6 @@ public class TwoDThreeDLightnessTrialGenerator extends TwoDVsThreeDTrialGenerato
         return allTopStims;
     }
 
-
-    private List<RGBColor> fetchColorsToTest(Long stimId) {
-        List<RGBColor> colorsToTest = new ArrayList<>();
-
-        RGBColor originalStimColor  = fetchColorForStimId(stimId);
-        float[] hsv = HSLUtils.rgbToHSV(originalStimColor);
-        for (Double lightness : LIGHTNESSES_TO_TEST) {
-            hsv[2] = lightness.floatValue();
-            RGBColor newColor = HSLUtils.hsvToRGB(hsv);
-
-            colorsToTest.add(newColor);
-        }
-        return colorsToTest;
-
-    }
-
-    private RGBColor fetchColorForStimId(Long stimId) {
-        return colorManager.readProperty(stimId);
-    }
-
     public DataSource getGaDataSource() {
         return gaDataSource;
     }
@@ -193,5 +225,21 @@ public class TwoDThreeDLightnessTrialGenerator extends TwoDVsThreeDTrialGenerato
 
     public void setRfSource(ReceptiveFieldSource rfSource) {
         this.rfSource = rfSource;
+    }
+
+    public int getNumTrialsPerStim() {
+        return numTrialsPerStim;
+    }
+
+    public void setNumTrialsPerStim(int numTrialsPerStim) {
+        this.numTrialsPerStim = numTrialsPerStim;
+    }
+
+    public ColorPropertyManager getColorManager() {
+        return colorManager;
+    }
+
+    public void setColorManager(ColorPropertyManager colorManager) {
+        this.colorManager = colorManager;
     }
 }

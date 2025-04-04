@@ -33,7 +33,7 @@ public class TwoDVsThreeDStim implements Stim {
     private final SizePropertyManager sizeManager_2dvs3d;
     private final ColorPropertyManager colorManager_2dvs3d;
     private final TexturePropertyManager textureManager_2dvs3d;
-    TwoDThreeDLightnessTrialGenerator generator;
+    TwoDVsThreeDTrialGenerator generator;
     long targetStimId;
     String textureType;
     RGBColor color;
@@ -42,7 +42,7 @@ public class TwoDVsThreeDStim implements Stim {
     private Long stimId;
     private Coordinates2D imageCenterCoords = new Coordinates2D(0, 0);;
 
-    public TwoDVsThreeDStim(TwoDThreeDLightnessTrialGenerator generator, long targetStimId, String textureType, RGBColor color) {
+    public TwoDVsThreeDStim(TwoDVsThreeDTrialGenerator generator, long targetStimId, String textureType, RGBColor color) {
         this.generator = generator;
         this.targetStimId = targetStimId;
         this.textureType = textureType;
@@ -66,6 +66,10 @@ public class TwoDVsThreeDStim implements Stim {
 
         targetSpecPath = generator.gaSpecPath + "/" + targetStimId + "_spec.xml";
         receptiveField = generator.rfSource.getReceptiveField();
+
+        if (color == null) {
+            this.color = colorManager_ga.readProperty(targetStimId);
+        }
     }
 
     @Override

@@ -8,6 +8,7 @@ import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.config.MStickPngConfig;
 import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.allen.twodvsthreed.TwoDThreeDLightnessTrialGenerator;
+import org.xper.allen.twodvsthreed.TwoDVsThreeDTrialGenerator;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.exception.DbException;
@@ -35,8 +36,8 @@ public class TwoDVsThreeDConfig {
 
 
     @Bean
-    public TwoDThreeDLightnessTrialGenerator generator(){
-        TwoDThreeDLightnessTrialGenerator generator = new TwoDThreeDLightnessTrialGenerator();
+    public TwoDVsThreeDTrialGenerator generator(){
+        TwoDVsThreeDTrialGenerator generator = new TwoDVsThreeDTrialGenerator();
         generator.setGaDataSource(gaDataSource());
         generator.setGaSpecPath(gaSpecPath);
         generator.setRfSource(rfSource());
