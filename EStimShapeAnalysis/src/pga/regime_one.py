@@ -165,12 +165,12 @@ from scipy.stats import truncnorm
 
 
 class GrowingPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
-    def __init__(self, std_dev=0.075, min_magnitude=0.05, max_magnitude=0.5):
+    def __init__(self, std_dev=0.05, min_magnitude=0.05, max_magnitude=0.5):
         """
         Initialize with standard deviation for normal distribution and magnitude bounds.
         std_dev of 0.075 means:
-        - ~68% of values will be within ±0.075 of the mean (within 0.15 range)
-        - ~95% of values will be within ±0.15 of the mean (within 0.3 range)
+        - ~68% of values will be within ±0.05 of the mean (within 0.1 range)
+        - ~95% of values will be within ±0.10 of the mean (within 0.2 range)
         min_magnitude sets the absolute minimum mutation magnitude possible.
         max_magnitude sets the absolute maximum mutation magnitude possible.
         """
