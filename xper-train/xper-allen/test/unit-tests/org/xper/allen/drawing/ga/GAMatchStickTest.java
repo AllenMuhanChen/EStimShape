@@ -108,7 +108,7 @@ public class GAMatchStickTest {
     @Test
     public void test_draw_thumbnail() {
         GAMatchStick GAMatchStick = genPartiallyInside();
-        testMatchStickDrawer.drawMStick(GAMatchStick);
+//        testMatchStickDrawer.drawMStick(GAMatchStick);
         testMatchStickDrawer.drawThumbnail(GAMatchStick);
         ThreadUtil.sleep(10000);
 

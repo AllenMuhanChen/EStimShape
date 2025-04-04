@@ -45,10 +45,19 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.ga.config_class"));
         FromDbGABlockGenerator generator = context.getBean(FromDbGABlockGenerator.class);
-
-        int r = Integer.parseInt(args[0]);
-        int g = Integer.parseInt(args[1]);
-        int b = Integer.parseInt(args[2]);
+        int r;
+        int g;
+        int b;
+        try {
+            r = Integer.parseInt(args[0]);
+            g = Integer.parseInt(args[1]);
+            b = Integer.parseInt(args[2]);
+        } catch (Exception e) {
+            System.err.println("Error parsing RGB values. Using default color.");
+            r = 255;
+            g = 255;
+            b = 255;
+        }
 
         generator.setColor(new RGBColor(r/255f,g/255f,b/255f));
 
