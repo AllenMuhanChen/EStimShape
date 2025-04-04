@@ -132,6 +132,17 @@ public class GAMatchStick extends MorphedMatchStick {
         drawRF();
     }
 
+    public void drawThumbnail(double imageWidthMm){
+        GL11.glPushMatrix();
+        double rfDiameter = rf.getRadius() * 2;
+        double scaleFactor = (imageWidthMm / rfDiameter)/2;
+        GL11.glScaled(scaleFactor, scaleFactor, scaleFactor);
+        GL11.glTranslated(-rf.getCenter().getX(), -rf.getCenter().getY(), 0);
+        draw();
+        drawRF();
+        GL11.glPopMatrix();
+    }
+
     public void drawRF() {
         List<Coordinates2D> outline = rf.getOutline();
 

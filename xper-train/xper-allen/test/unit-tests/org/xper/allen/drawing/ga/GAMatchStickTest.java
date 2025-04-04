@@ -99,7 +99,8 @@ public class GAMatchStickTest {
         partial.setRfStrategy(RFStrategy.PARTIALLY_INSIDE);
         partial.positionShape();
         testMatchStickDrawer.drawMStick(partial);
-        testMatchStickDrawer.drawCompMap(partial);
+//        testMatchStickDrawer.drawCompMap(partial);
+        testMatchStickDrawer.drawThumbnail(partial);
         ThreadUtil.sleep(10000);
 
     }
