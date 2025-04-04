@@ -16,6 +16,9 @@ def main():
     setup_twodvsthreed_xper_properties()
     setup_twodvsthreed_dirs()
 
+    setup_twodthreedlightness_xper_properties()
+    setup_twodthreedlightness_dirs()
+
     update_version_shellscript()
 
 
@@ -302,7 +305,7 @@ def setup_twodthreedlightness_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:
     recording_computer_sftp = r2_sftp
 
     # Define paths to the properties file and directories
-    xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.twodvsthreed'
+    xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.twodthreedlightness'
 
     # DB URLs
     db_url = f"jdbc:mysql://172.30.6.80/{version_twodthreedlightness}?rewriteBatchedStatements=true"
@@ -352,7 +355,7 @@ def setup_twodthreedlightness_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:
     make_path(generator_spec_path)
 
 
-def setup_twodvsthreed_dirs():
+def setup_twodthreedlightness_dirs():
     version_twodthreedlightness = context.twodthreedlightness_database
     twodvsthreed_path = f"/home/r2_allen/Documents/EStimShape/{version_twodthreedlightness}"
     twodvsthreed_parsed_spike_path = f"{twodvsthreed_path}/parsed_spikes"
@@ -365,6 +368,7 @@ def update_version_shellscript():
     version_isogabor = context.isogabor_database
     version_procedural = context.nafc_database
     version_twodvsthreed = context.twodvsthreed_database
+    version_twodthreedlightness = context.twodthreedlightness_database
 
     # Path to the version file
     version_file_path = "/home/r2_allen/git/EStimShape/xper-train/shellScripts/version"
@@ -377,8 +381,8 @@ def update_version_shellscript():
     version_content = re.sub(r"VERSION_GA=.*", f"VERSION_GA={version_ga}", version_content)
     version_content = re.sub(r"VERSION_ISOGABOR=.*", f"VERSION_ISOGABOR={version_isogabor}", version_content)
     version_content = re.sub(r"VERSION_PROCEDURAL=.*", f"VERSION_PROCEDURAL={version_procedural}", version_content)
-    version_content = re.sub(r"VERSION_TWODVSTHREED=.*", f"VERSION_TWODVSTHREED={version_twodvsthreed}",
-                             version_content)
+    version_content = re.sub(r"VERSION_TWODVSTHREED=.*", f"VERSION_TWODVSTHREED={version_twodvsthreed}",version_content)
+    version_content = re.sub(r"VERSION_TWODTHREEDLIGHTNESS=.*", f"VERSION_TWODTHREEDLIGHTNESS={version_twodthreedlightness}",version_content)
 
     # Writing the modified content back to the version file
     with open(version_file_path, 'w') as version_file:
