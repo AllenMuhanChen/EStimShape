@@ -38,7 +38,7 @@ public class TwoDThreeDLightnessTrialGenerator extends TwoDVsThreeDTrialGenerato
                 FileUtil.loadConfigClass("experiment.config_class"),
                 TwoDVsThreeDConfig.class
         );
-        TwoDThreeDLightnessTrialGenerator gen = context.getBean(TwoDThreeDLightnessTrialGenerator.class);
+        TwoDThreeDLightnessTrialGenerator gen = context.getBean(TwoDThreeDLightnessTrialGenerator.class, "generator2");
         gen.generate();
     }
 

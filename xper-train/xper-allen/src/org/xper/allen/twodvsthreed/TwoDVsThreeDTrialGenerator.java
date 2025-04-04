@@ -42,7 +42,7 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
                 FileUtil.loadConfigClass("experiment.config_class"),
                 TwoDVsThreeDConfig.class
         );
-        TwoDVsThreeDTrialGenerator gen = context.getBean(TwoDVsThreeDTrialGenerator.class);
+        TwoDVsThreeDTrialGenerator gen = context.getBean(TwoDVsThreeDTrialGenerator.class, "generator");
         gen.generate();
     }
 
