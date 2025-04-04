@@ -150,11 +150,6 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         generator.getPngMaker().createAndSaveCompMap(mStick, stimId, labels, generator.getGeneratorPngPath());
     }
 
-    protected void drawThumbnails(T mStick) {
-        List<String> labels = new LinkedList<>();
-        generator.getPngMaker().createAndSaveThumbnail(mStick, stimId, labels, generator.getGeneratorPngPath());
-    }
-
 
     protected abstract T createMStick();
 
@@ -166,10 +161,14 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected String drawPngs(MorphedMatchStick mStick) {
         //draw pngs
         List<String> labels = new LinkedList<>();
-        labels.add(Long.toString(parentId));
         String pngPath = generator.getPngMaker().createAndSavePNG(mStick, stimId, labels, generator.getGeneratorPngPath());
         pngPath = generator.convertPngPathToExperiment(pngPath);
         return pngPath;
+    }
+
+    protected void drawThumbnails(T mStick) {
+        List<String> labels = new LinkedList<>();
+        generator.getPngMaker().createAndSaveThumbnail(mStick, stimId, labels, generator.getGeneratorPngPath());
     }
 
     protected void saveMStickSpec(T mStick) {
