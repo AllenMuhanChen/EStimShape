@@ -2,9 +2,12 @@
 source version
 source paths
 
+START_RANK=1
+END_RANK=10
+
 sudo -S <<< r2_allen cp $XPER_PROPERTIES_TWODVSTHREED $DIST/xper.properties
 sudo -S <<< r2_allen cp $XPER_PROPERTIES_TWODVSTHREED $DIST/allen/xper.properties
 cd $DIST/allen
 
-java -jar TwoDVsThreeDTrialGenerator.jar
+java -jar TwoDVsThreeDTrialGenerator.jar $START_RANK $END_RANK
 

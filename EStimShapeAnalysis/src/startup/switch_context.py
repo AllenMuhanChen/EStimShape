@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from src.startup import context
+from src.startup import context, setup_xper_properties_and_dirs
+from src.startup.db_factory import update_context_file
 from src.startup.setup_xper_properties_and_dirs import (
     setup_ga_xper_properties,
     setup_nafc_xper_properties,
@@ -25,12 +26,12 @@ def switch_context(*, type_name: str, date: str, location_id: str) -> None:
     nafc_database = f"allen_estimshape_{type_name}_{date}_{location_id}"
     isogabor_database = f"allen_isogabor_{type_name}_{date}_{location_id}"
     twodvsthreed_database = f"allen_twodvsthreed_{type_name}_{date}_{location_id}"
-
+    twodthreedlightness_database = f"allen_twodthreedlightness_{type_name}_{date}_{location_id}"
     # Update context file
-    update_context_file(ga_database, nafc_database, isogabor_database, twodvsthreed_database)
+    update_context_file(ga_database, nafc_database, isogabor_database, twodvsthreed_database, twodthreedlightness_database)
 
     # Update properties files and create necessary directories
-    update_properties_and_dirs(ga_database, nafc_database, isogabor_database, twodvsthreed_database)
+    setup_xper_properties_and_dirs.main()
 
     print(f"Successfully switched context to:")
     print(f"GA Database: {ga_database}")
@@ -39,56 +40,6 @@ def switch_context(*, type_name: str, date: str, location_id: str) -> None:
     print(f"2D vs 3D Database: {twodvsthreed_database}")
 
 
-def update_context_file(ga_database, nafc_database, isogabor_database, twodvsthreed_database):
-    """
-    Update the context.py file with new database names and paths.
-    """
-    target_file = '/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/startup/context.py'
-
-    # Read the target file
-    with open(target_file, 'r') as file:
-        lines = file.readlines()
-
-    # Prepare the new content
-    new_lines = []
-    for line in lines:
-        if line.startswith("ga_database ="):
-            new_lines.append(f'ga_database = "{ga_database}"\n')
-        elif line.startswith("nafc_database ="):
-            new_lines.append(f'nafc_database = "{nafc_database}"\n')
-        elif line.startswith("isogabor_database ="):
-            new_lines.append(f'isogabor_database = "{isogabor_database}"\n')
-        elif line.startswith("twodvsthreed_database ="):
-            new_lines.append(f'twodvsthreed_database = "{twodvsthreed_database}"\n')
-        else:
-            new_lines.append(line)
-
-    # Write the modified content back to the file
-    with open(target_file, 'w') as file:
-        file.writelines(new_lines)
-
-
-def update_properties_and_dirs(ga_database, nafc_database, isogabor_database, twodvsthreed_database):
-    """
-    Update all properties files and create directories by using existing functions
-    """
-    # Directly modify the global context to use new values
-    # No need to restore original values - we want the change to be permanent
-    context.ga_database = ga_database
-    context.nafc_database = nafc_database
-    context.isogabor_database = isogabor_database
-    context.twodvsthreed_database = twodvsthreed_database
-
-    # The context module's values are now updated both in memory and in the file
-    # Use existing functions to set up properties and directories
-    setup_ga_xper_properties()
-    setup_nafc_xper_properties()
-    setup_isogabor_xper_properties()
-    setup_twodvsthreed_xper_properties()
-    update_version_shellscript()
-
-    # Create additional required directories
-    create_required_directories(ga_database, nafc_database, isogabor_database, twodvsthreed_database)
 
 
 def create_required_directories(ga_database, nafc_database, isogabor_database, twodvsthreed_database):

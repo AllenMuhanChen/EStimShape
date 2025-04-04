@@ -1,9 +1,11 @@
 import os
 import re
 from datetime import datetime
+from reloading import reloading
+
 from src.startup import context
 
-
+@reloading #reloads to get updates to context.py if those happened in same execution
 def main():
     setup_ga_xper_properties()
     setup_ga_dirs()
@@ -16,8 +18,10 @@ def main():
     setup_twodvsthreed_xper_properties()
     setup_twodvsthreed_dirs()
 
-    update_version_shellscript()
+    setup_twodthreedlightness_xper_properties()
+    setup_twodthreedlightness_dirs()
 
+    update_version_shellscript()
 
 
 def make_path(path):
@@ -32,9 +36,6 @@ def make_path(path):
         print(f"Path {path} created.")
     else:
         print(f"Failed to create path {path}.")
-
-
-
 
 
 class XperPropertiesModifier:
@@ -98,7 +99,7 @@ def setup_ga_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"
     # Define paths to the properties file and directories
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.ga'
     # DB URL
-    db_url = f"jdbc:mysql://172.30.6.80/{version_ga}?rewriteBatchedStatements=true"
+    db_url = f"jdbc:mysql://172.30.6.80/{version_ga}?rewriteBatchedStatements=true?useSSL=false"
     # STIM PATHS
     stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_ga}/stimuli"
     r_ga_path = f"{stimuli_base_r}/ga"
@@ -137,7 +138,6 @@ def setup_ga_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"
     make_path(generator_spec_path)
 
 
-
 def setup_ga_dirs():
     make_path(context.java_output_dir)
     make_path(context.rwa_output_dir)
@@ -155,7 +155,7 @@ def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.8
     # Define paths to the properties file and directories
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.procedural'
     # DB URL
-    db_url = f"jdbc:mysql://172.30.6.80/{version_nafc}?rewriteBatchedStatements=true"
+    db_url = f"jdbc:mysql://172.30.6.80/{version_nafc}?rewriteBatchedStatements=true?useSSL=false"
 
     # PATHS
     stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_nafc}/stimuli"
@@ -204,6 +204,7 @@ def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.8
     make_path(generator_noisemap_path)
     make_path(generator_set_path)
 
+
 def setup_isogabor_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
     # Define the necessary versions directly
     version_isogabor = context.isogabor_database
@@ -211,7 +212,7 @@ def setup_isogabor_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30
     # Define paths to the properties file and directories
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.isogabor'
     # DB URL
-    db_url = f"jdbc:mysql://172.30.6.80/{version_isogabor}?rewriteBatchedStatements=true"
+    db_url = f"jdbc:mysql://172.30.6.80/{version_isogabor}?rewriteBatchedStatements=true?useSSL=false"
 
     intan_path = f"/home/i2_allen/Documents/EStimShape/{version_isogabor}"
     modifier = XperPropertiesModifier(xper_properties_file_path)
@@ -227,6 +228,7 @@ def setup_isogabor_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30
     modifier.save_changes()
     print("xper.properties.ga file modified successfully.")
 
+
 def setup_isogabor_dirs():
     version_isogabor = context.isogabor_database
     isogabor_path = f"/home/r2_allen/Documents/EStimShape/{version_isogabor}"
@@ -240,13 +242,12 @@ def setup_twodvsthreed_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=17
     version_ga = context.ga_database
     recording_computer_sftp = r2_sftp
 
-
     # Define paths to the properties file and directories
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.twodvsthreed'
 
     # DB URLs
-    db_url = f"jdbc:mysql://172.30.6.80/{version_twodvsthreed}?rewriteBatchedStatements=true"
-    ga_db_url = f"jdbc:mysql://172.30.6.80/{version_ga}?rewriteBatchedStatements=true"
+    db_url = f"jdbc:mysql://172.30.6.80/{version_twodvsthreed}?rewriteBatchedStatements=true?useSSL=false"
+    ga_db_url = f"jdbc:mysql://172.30.6.80/{version_ga}?rewriteBatchedStatements=true?useSSL=false"
 
     # PATHS
     stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_twodvsthreed}/stimuli"
@@ -291,9 +292,74 @@ def setup_twodvsthreed_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=17
     make_path(generator_png_path)
     make_path(generator_spec_path)
 
+
 def setup_twodvsthreed_dirs():
     version_twodvsthreed = context.twodvsthreed_database
     twodvsthreed_path = f"/home/r2_allen/Documents/EStimShape/{version_twodvsthreed}"
+    twodvsthreed_parsed_spike_path = f"{twodvsthreed_path}/parsed_spikes"
+    make_path(twodvsthreed_parsed_spike_path)
+
+
+def setup_twodthreedlightness_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
+    # Define the necessary versions directly
+    version_twodthreedlightness = context.twodthreedlightness_database
+    version_ga = context.ga_database
+    recording_computer_sftp = r2_sftp
+
+    # Define paths to the properties file and directories
+    xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.twodthreedlightness'
+
+    # DB URLs
+    db_url = f"jdbc:mysql://172.30.6.80/{version_twodthreedlightness}?rewriteBatchedStatements=true?useSSL=false"
+    ga_db_url = f"jdbc:mysql://172.30.6.80/{version_ga}?rewriteBatchedStatements=true?useSSL=false"
+
+    # PATHS
+    stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_twodthreedlightness}/stimuli"
+    r_twodvsthreed_path = f"{stimuli_base_r}/twodvsthreed"
+
+    # PNG and SPEC paths
+    generator_png_path = f"{r_twodvsthreed_path}/pngs"
+    experiment_png_path = f"{recording_computer_sftp}{r_twodvsthreed_path}/pngs"
+    generator_spec_path = f"{r_twodvsthreed_path}/specs"
+
+    # GA spec path
+    ga_stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_ga}/stimuli"
+    r_ga_path = f"{ga_stimuli_base_r}/ga"
+    ga_spec_path = f"{r_ga_path}/specs"
+
+    # Intan
+    intan_path = f"/home/i2_allen/Documents/EStimShape/{version_twodthreedlightness}"
+
+    # Create an instance of PropertiesModifier
+    modifier = XperPropertiesModifier(xper_properties_file_path)
+
+    # ALL PROPERTIES to REPLACE:
+    properties_dict = {
+        "jdbc.url": db_url,
+        "ga.jdbc.url": ga_db_url,
+        "generator.png_path": generator_png_path,
+        "experiment.png_path": experiment_png_path,
+        "generator.spec_path": generator_spec_path,
+        "ga.spec_path": ga_spec_path,
+        "intan.default_save_path": intan_path,
+    }
+
+    # Replace properties using the dictionary
+    for var_name, new_value in properties_dict.items():
+        modifier.replace_property(var_name, new_value)
+
+    # Save changes
+    modifier.save_changes()
+    print("xper.properties.twodvsthreed file modified successfully.")
+
+    # Create necessary directories
+    make_path(generator_png_path)
+    make_path(generator_spec_path)
+
+
+def setup_twodthreedlightness_dirs():
+    version_twodthreedlightness = context.twodthreedlightness_database
+    twodvsthreed_path = f"/home/r2_allen/Documents/EStimShape/{version_twodthreedlightness}"
     twodvsthreed_parsed_spike_path = f"{twodvsthreed_path}/parsed_spikes"
     make_path(twodvsthreed_parsed_spike_path)
 
@@ -304,6 +370,7 @@ def update_version_shellscript():
     version_isogabor = context.isogabor_database
     version_procedural = context.nafc_database
     version_twodvsthreed = context.twodvsthreed_database
+    version_twodthreedlightness = context.twodthreedlightness_database
 
     # Path to the version file
     version_file_path = "/home/r2_allen/git/EStimShape/xper-train/shellScripts/version"
@@ -316,17 +383,14 @@ def update_version_shellscript():
     version_content = re.sub(r"VERSION_GA=.*", f"VERSION_GA={version_ga}", version_content)
     version_content = re.sub(r"VERSION_ISOGABOR=.*", f"VERSION_ISOGABOR={version_isogabor}", version_content)
     version_content = re.sub(r"VERSION_PROCEDURAL=.*", f"VERSION_PROCEDURAL={version_procedural}", version_content)
-    version_content = re.sub(r"VERSION_TWODVSTHREED=.*", f"VERSION_TWODVSTHREED={version_twodvsthreed}",
-                             version_content)
+    version_content = re.sub(r"VERSION_TWODVSTHREED=.*", f"VERSION_TWODVSTHREED={version_twodvsthreed}",version_content)
+    version_content = re.sub(r"VERSION_TWODTHREEDLIGHTNESS=.*", f"VERSION_TWODTHREEDLIGHTNESS={version_twodthreedlightness}",version_content)
 
     # Writing the modified content back to the version file
     with open(version_file_path, 'w') as version_file:
         version_file.write(version_content)
 
     print("Version file updated successfully.")
-
-
-
 
 
 if __name__ == "__main__":

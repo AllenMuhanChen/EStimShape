@@ -277,5 +277,14 @@
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar"/>
 			</manifest>
 		</jar>
+		<jar jarfile="${allen.home}/TwoDThreeDLightnessTrialGenerator.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/twodvsthreed/TwoDThreeDLightnessTrialGenerator" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.twodvsthreed.TwoDThreeDLightnessTrialGenerator" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar"/>
+			</manifest>
+		</jar>
 	</target>
 </project>
