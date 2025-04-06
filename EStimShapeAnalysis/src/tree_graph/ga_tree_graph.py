@@ -291,7 +291,9 @@ class MySQLTreeDataAccess(TreeDataAccess):
         for filename in os.listdir(self.image_base_path):
             if filename.startswith(str(stim_id)) and filename.endswith('thumbnail.png'):
                 return os.path.join(self.image_base_path, filename)
-            if filename.startswith(str(stim_id)) and filename.endswith('compmap.png'):
+
+        for filename in os.listdir(self.image_base_path):
+            if filename.endswith(f"{stim_id}.png"):
                 return os.path.join(self.image_base_path, filename)
         return None
 
