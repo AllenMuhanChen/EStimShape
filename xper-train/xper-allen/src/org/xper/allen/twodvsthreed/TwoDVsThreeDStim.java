@@ -42,6 +42,8 @@ public class TwoDVsThreeDStim implements Stim {
     private Coordinates2D imageCenterCoords = new Coordinates2D(0, 0);
     private double contrast;
 
+
+
     public TwoDVsThreeDStim(TwoDVsThreeDTrialGenerator generator, long targetStimId, String textureType, RGBColor color, Double contrast) {
         this.generator = generator;
         this.targetStimId = targetStimId;
@@ -72,8 +74,10 @@ public class TwoDVsThreeDStim implements Stim {
         if (color == null) {
             this.color = colorManager_ga.readProperty(targetStimId);
         }
-        if (contrast == null) {
-            this.contrast = contrastManager_ga.readProperty(targetStimId);
+
+        if (contrast < 0) {
+            System.out.println("Contrast is negative, using default contrast of 1.0");
+            contrast = contrastManager_ga.readProperty(targetStimId);
         }
     }
 

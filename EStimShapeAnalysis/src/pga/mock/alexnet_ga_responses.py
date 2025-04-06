@@ -2,6 +2,7 @@ import onnxruntime
 import pandas as pd
 import xmltodict
 
+from clat.compile.task.cached_task_fields import CachedTaskFieldList
 from clat.compile.task.classic_database_task_fields import TaskIdField, StimSpecIdField, StimSpecField
 from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.compile.task.task_field import TaskFieldList
@@ -33,11 +34,11 @@ def run_training():
     loc_ys = [4, 5, 6, 7, 8, 9]
 
     # Prepare task fields
-    fields = TaskFieldList()
-    fields.append(TaskIdField(name="TaskId"))
-    fields.append(StimSpecIdField(conn=conn, name="StimId"))
-    fields.append(StimSpecField(conn=conn, name="StimSpec"))
-    fields.append(StimPathField(conn=conn, name="StimPath"))
+    fields = CachedTaskFieldList()
+    fields.append(TaskIdField(conn=conn))
+    fields.append(StimSpecIdField(conn=conn))
+    fields.append(StimSpecField(conn=conn))
+    fields.append(StimPathField(conn=conn))
     ids = collect_task_ids(conn)
     data = fields.to_data(ids)
     existing_task_ids = fetch_existing_task_ids(conn)
@@ -106,16 +107,16 @@ def fetch_existing_task_ids(conn):
 
 def run_full_auto_mock():
     # PARAMETERS
-    conn = Connection("allen_estimshape_ga_dev_240207")
+    conn = context.ga_config.connection
     # unit = 12 #check 7 next, which would 60 max resp from Mohammad
     unit = 70
     loc_x = 7
     loc_y = 7
-    fields = TaskFieldList()
-    fields.append(TaskIdField(name="TaskId"))
-    fields.append(StimSpecIdField(conn=conn, name="StimId"))
-    fields.append(StimSpecField(conn=conn, name="StimSpec"))
-    fields.append(StimPathField(conn=conn, name="StimPath"))
+    fields = CachedTaskFieldList()
+    fields.append(TaskIdField(conn=conn))
+    fields.append(StimSpecIdField(conn=conn))
+    fields.append(StimSpecField(conn=conn))
+    fields.append(StimPathField(conn=conn))
     data = fields.to_data(collect_task_ids(conn))
 
     paths = list(data["StimPath"])
@@ -125,7 +126,7 @@ def run_full_auto_mock():
 
 
 def insert_to_channel_responses(conn, response_rates: list, data: pd.DataFrame):
-    for (stim_id, task_id), response_rate in zip(data[["StimId", "TaskId"]].values, response_rates):
+    for (stim_id, task_id), response_rate in zip(data[["StimSpecId", "TaskId"]].values, response_rates):
         query = ("INSERT IGNORE INTO ChannelResponses "
                  "(stim_id, task_id, channel, spikes_per_second) "
                  "VALUES (%s, %s, %s, %s)")
@@ -135,7 +136,7 @@ def insert_to_channel_responses(conn, response_rates: list, data: pd.DataFrame):
 
 
 def insert_to_channel_responses(conn, response_rates: list, data: pd.DataFrame, channel: str):
-    for (stim_id, task_id), response_rate in zip(data[["StimId", "TaskId"]].values, response_rates):
+    for (stim_id, task_id), response_rate in zip(data[["StimSpecId", "TaskId"]].values, response_rates):
         query = ("INSERT IGNORE INTO ChannelResponses "
                  "(stim_id, task_id, channel, spikes_per_second) "
                  "VALUES (%s, %s, %s, %s)")
@@ -230,8 +231,8 @@ def get_activations_from_layer3(model, images):
 
 
 class StimPathField(StimSpecField):
-    def __init__(self, conn: Connection, name: str = "StimPath"):
-        super().__init__(conn, name)
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
 
     def get(self, task_id: int) -> str:
         # Execute the query to get the StimPath based on task_id
@@ -249,6 +250,9 @@ class StimPathField(StimSpecField):
                 stim_path = stim_path[home_index:]
 
         return stim_path
+
+    def get_name(self) -> str:
+        return "StimPath"
 
 
 if __name__ == "__main__":

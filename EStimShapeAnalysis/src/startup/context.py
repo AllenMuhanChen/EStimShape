@@ -1,4 +1,5 @@
 from src.pga.config.twod_threed_config import TwoDThreeDGAConfig
+from src.pga.mock.alexnet_mock_ga import TrainingAlexNetMockGeneticAlgorithmConfig
 
 ga_name = "New3D"
 ga_database = "allen_ga_test_250406_0"
@@ -26,14 +27,14 @@ isogabor_parsed_spikes_path = f"/home/r2_allen/Documents/EStimShape/{isogabor_da
 twodvsthreed_parsed_spikes_path = f"/home/r2_allen/Documents/EStimShape/{twodvsthreed_database}/parsed_spikes"
 
 try:
-    ga_config = TwoDThreeDGAConfig(database=ga_database,
-                                   base_intan_path=ga_intan_path,
-                                   java_output_dir=java_output_dir,
-                                   allen_dist_dir=allen_dist)
-    # ga_config = TrainingAlexNetMockGeneticAlgorithmConfig(database=ga_database,
-    #                                                       base_intan_path=base_intan_path,
-    #                                                       java_output_dir=java_output_dir,
-    #                                                       allen_dist_dir=allen_dist)
+    # ga_config = TwoDThreeDGAConfig(database=ga_database,
+    #                                base_intan_path=ga_intan_path,
+    #                                java_output_dir=java_output_dir,
+    #                                allen_dist_dir=allen_dist)
+    ga_config = TrainingAlexNetMockGeneticAlgorithmConfig(database=ga_database,
+                                                          base_intan_path=ga_intan_path,
+                                                          java_output_dir=java_output_dir,
+                                                          allen_dist_dir=allen_dist)
     ga_config.ga_name = ga_name
 except:
     print("Error in creating GA config")

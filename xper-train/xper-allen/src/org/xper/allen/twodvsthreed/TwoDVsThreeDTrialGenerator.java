@@ -98,10 +98,10 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
 
         // GENERATE TRIALS
         for (Long stimId : twoDStimIds) {
-            TwoDVsThreeDStim stim = new TwoDVsThreeDStim(this, stimId, "SHADE", null, null);
+            TwoDVsThreeDStim stim = new TwoDVsThreeDStim(this, stimId, "SHADE", null, -1.0);
             stims.add(stim);
 
-            stim = new TwoDVsThreeDStim(this, stimId, "SPECULAR", null, null);
+            stim = new TwoDVsThreeDStim(this, stimId, "SPECULAR", null, -1.0);
             stims.add(stim);
 
         }
