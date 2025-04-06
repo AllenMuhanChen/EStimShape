@@ -315,12 +315,12 @@ def setup_twodthreedlightness_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:
 
     # PATHS
     stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_twodthreedlightness}/stimuli"
-    r_twodvsthreed_path = f"{stimuli_base_r}/twodvsthreed"
+    r_twodvsthreedlightness_path = f"{stimuli_base_r}/twodvsthreedlightness"
 
     # PNG and SPEC paths
-    generator_png_path = f"{r_twodvsthreed_path}/pngs"
-    experiment_png_path = f"{recording_computer_sftp}{r_twodvsthreed_path}/pngs"
-    generator_spec_path = f"{r_twodvsthreed_path}/specs"
+    generator_png_path = f"{r_twodvsthreedlightness_path}/pngs"
+    experiment_png_path = f"{recording_computer_sftp}{r_twodvsthreedlightness_path}/pngs"
+    generator_spec_path = f"{r_twodvsthreedlightness_path}/specs"
 
     # GA spec path
     ga_stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_ga}/stimuli"

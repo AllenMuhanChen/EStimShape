@@ -23,11 +23,11 @@ experiment.ga.config_class=
 #############################################################################
 # parameters - paths
 #############################################################################
-generator.png_path=/home/r2_allen/Documents/EStimShape/allen_twodthreedlightness_test_250406_0/stimuli/twodvsthreed/pngs
+generator.png_path=/home/r2_allen/Documents/EStimShape/allen_twodthreedlightness_test_250406_0/stimuli/twodvsthreedlightness/pngs
 
-experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_twodthreedlightness_test_250406_0/stimuli/twodvsthreed/pngs
+experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_twodthreedlightness_test_250406_0/stimuli/twodvsthreedlightness/pngs
 
-generator.spec_path=/home/r2_allen/Documents/EStimShape/allen_twodthreedlightness_test_250406_0/stimuli/twodvsthreed/specs
+generator.spec_path=/home/r2_allen/Documents/EStimShape/allen_twodthreedlightness_test_250406_0/stimuli/twodvsthreedlightness/specs
 
 ga.spec_path=/home/r2_allen/Documents/EStimShape/allen_ga_test_250406_0/stimuli/ga/specs
 
