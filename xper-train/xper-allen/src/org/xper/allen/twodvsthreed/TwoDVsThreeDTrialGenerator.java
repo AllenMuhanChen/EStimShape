@@ -134,10 +134,10 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
 
     /**
      * Fetches stimuli ids for a specific texture type within a specified rank range
-     * @param textureType The texture type to fetch ("2D" or "3D")
+     * @param type The texture type to fetch ("2D" or "3D")
      * @return List of stimuli IDs
      */
-    List<Long> fetchTopNStimIds(String textureType) {
+    List<Long> fetchTopNStimIds(String type) {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(gaDataSource);
         List<Long> resultStimIds = new ArrayList<>();
 
@@ -146,7 +146,7 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
         int offset = startRank - 1; // MySQL is 0-based for OFFSET
 
         // If textureType is "3D", we need to look for both "SHADE" and "SPECULAR"
-        if ("3D".equals(textureType)) {
+        if ("3D".equals(type)) {
             // Query for stimuli with "SHADE" or "SPECULAR" texture types
             resultStimIds = jdbcTemplate.query(
                     "SELECT s.stim_id FROM StimGaInfo s " +
@@ -171,7 +171,7 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
                             "WHERE t.texture_type = ? " +
                             "ORDER BY s.response DESC " +
                             "LIMIT ? OFFSET ?",
-                    new Object[]{textureType, limit, offset},
+                    new Object[]{type, limit, offset},
                     new RowMapper() {
                         @Override
                         public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
