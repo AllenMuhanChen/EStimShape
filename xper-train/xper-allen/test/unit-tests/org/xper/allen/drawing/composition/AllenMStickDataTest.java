@@ -10,6 +10,7 @@ import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
+import org.xper.allen.drawing.ga.Thumbnailable;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 import org.xper.allen.util.CoordinateConverter;
@@ -19,6 +20,7 @@ import org.xper.drawing.stick.JuncPt_struct;
 import org.xper.drawing.TestDrawingWindow;
 
 import org.xper.util.ResourceUtil;
+import org.xper.util.ThreadUtil;
 
 import javax.vecmath.Vector3d;
 import javax.vecmath.Point3d;
@@ -58,7 +60,7 @@ public class AllenMStickDataTest {
 
 
     private void setMStickData() {
-        String stimType = "EStimShapeProcedural";
+        String stimType = "Growing";
         RFStrategy rfStrategy = RFStrategy.PARTIALLY_INSIDE;
 
         if (rfStrategy == RFStrategy.COMPLETELY_INSIDE){
@@ -153,6 +155,11 @@ public class AllenMStickDataTest {
 
     @Test
     public void testShaftData() {
+//        if (matchStick instanceof Thumbnailable){
+//            drawThumbnail((GAMatchStick) matchStick);
+//            ThreadUtil.sleep(1000);
+//        }
+
         drawMStick(matchStick);
 
         //SHAFTS
@@ -375,6 +382,16 @@ public class AllenMStickDataTest {
         window.draw(drawable = new Drawable() {
             @Override
             public void draw() {mStick.drawGhost();
+            }
+        });
+        drawables.add(drawable);
+    }
+
+    private void drawThumbnail(GAMatchStick mStick){
+        Drawable drawable;
+        window.draw(drawable = new Drawable() {
+            @Override
+            public void draw() {mStick.drawThumbnail(window.renderer.getWidth(), window.renderer.getHeight());
             }
         });
         drawables.add(drawable);

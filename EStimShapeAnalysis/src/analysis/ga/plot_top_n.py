@@ -11,13 +11,13 @@ from clat.util import time_util
 from clat.util.connection import Connection
 from clat.util.time_util import When
 from src.analysis.cached_fields import LineageField, StimTypeField, StimPathField, \
-    ClusterResponseField
-from src.pga.alexnet.analysis.plot_top_n import add_colored_border
+    ClusterResponseField, ThumbnailField
+from src.pga.alexnet.analysis.plot_top_n_alexnet import add_colored_border
 from src.startup import context
 
 
 def main():
-    # Setting up connection and time frame to analye in
+    # Setting up connection and time frame to analyse in
     conn = Connection(context.ga_database)
 
     experiment_id = context.ga_config.db_util.read_current_experiment_id(context.ga_name)
@@ -36,7 +36,7 @@ def main():
     data_for_stim_ids = data_for_all_tasks.groupby('StimId').agg({
         'Lineage': 'first',
         'StimType': 'first',
-        'StimPath': 'first',
+        'ThumbnailPath': 'first',
         'Cluster Response': 'mean'
     }).reset_index()
 
@@ -52,7 +52,7 @@ def main():
             'stim_id': row['StimId'],
             'response': row['Average Response'],
             'lineage_id': row['Lineage'],
-            'path': row['StimPath']
+            'path': row['ThumbnailPath']
         }
         stimuli_list.append(stim)
 
@@ -73,6 +73,7 @@ def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
     fields.append(LineageField(conn))
     fields.append(StimTypeField(conn))
     fields.append(StimPathField(conn))
+    fields.append(ThumbnailField(conn))
     fields.append(ClusterResponseField(conn, cluster_combination_strategy))
     # fields.append(ShaftField(conn, mstick_spec_data_source))
     # fields.append(TerminationField(conn, mstick_spec_data_source))

@@ -10,7 +10,6 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.drawing.Coordinates2D;
-import org.xper.drawing.RGBColor;
 import org.xper.util.ThreadUtil;
 
 import static org.junit.Assert.assertEquals;
@@ -103,7 +102,17 @@ public class GAMatchStickTest {
         partial.setRfStrategy(RFStrategy.PARTIALLY_INSIDE);
         partial.positionShape();
         testMatchStickDrawer.drawMStick(partial);
-//        testMatchStickDrawer.drawCompMap(partial);
+        testMatchStickDrawer.drawCompMap(partial);
+//        testMatchStickDrawer.drawThumbnail(partial);
+        ThreadUtil.sleep(10000);
+
+    }
+
+    @Test
+    public void test_draw_thumbnail() {
+        GAMatchStick GAMatchStick = genPartiallyInside();
+//        testMatchStickDrawer.drawMStick(GAMatchStick);
+        testMatchStickDrawer.drawThumbnail(GAMatchStick);
         ThreadUtil.sleep(10000);
 
     }
@@ -155,7 +164,7 @@ public class GAMatchStickTest {
         while (true) {
             growingMatchStick = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 
-            growingMatchStick.setProperties(5, "SHADE", 1.0);
+            growingMatchStick.setProperties(5, "SHADE");
             try {
                 growingMatchStick.genInsideRFMorphedMStick(GAMatchStick, 0.2);
                 break;
@@ -268,7 +277,7 @@ public class GAMatchStickTest {
         while (true) {
             both = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 
-            both.setProperties(5, "SHADE", 1.0);
+            both.setProperties(5, "SHADE");
             try {
                 both.genOutsideRFMorphedMStick(baseMatchStick, 0.7);
                 both.genInsideRFMorphedMStick(both, 0.4);

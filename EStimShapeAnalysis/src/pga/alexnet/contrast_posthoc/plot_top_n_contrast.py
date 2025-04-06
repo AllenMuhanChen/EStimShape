@@ -5,7 +5,7 @@ from typing import List, Dict
 from collections import defaultdict
 from clat.util.connection import Connection
 from src.pga.alexnet import alexnet_context
-from src.pga.alexnet.analysis.plot_top_n import normalize_responses, add_colored_border, plot_stimuli_row
+from src.pga.alexnet.analysis.plot_top_n_alexnet import normalize_responses, add_colored_border, plot_stimuli_row
 from PIL import Image
 
 

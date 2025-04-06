@@ -93,6 +93,7 @@ public class TwoDVsThreeDStim implements Stim {
 //
         saveMStickSpec(mStick);
         String pngPath = drawPng(mStick);
+        drawThumbnails(mStick);
         AllenMStickData mStickData = (AllenMStickData) mStick.getMStickData();
         writeStimSpec(pngPath, mStickData);
 
@@ -150,6 +151,11 @@ public class TwoDVsThreeDStim implements Stim {
         String pngPath = generator.getPngMaker().createAndSavePNG(mStick, stimId, labels, generator.getGeneratorPngPath());
         pngPath = generator.convertPngPathToExperiment(pngPath);
         return pngPath;
+    }
+
+    protected void drawThumbnails(GAMatchStick mStick) {
+        List<String> labels = new LinkedList<>();
+        generator.getPngMaker().createAndSaveThumbnail(mStick, stimId, labels, generator.getGeneratorPngPath());
     }
 
 

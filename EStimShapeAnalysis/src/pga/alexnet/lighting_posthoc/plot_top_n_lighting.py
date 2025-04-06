@@ -98,7 +98,7 @@ def organize_3d_stims(stims_3d: List[dict]) -> Dict[int, Dict[str, List[dict]]]:
     return organized
 
 
-from src.pga.alexnet.analysis.plot_top_n import plot_stimuli_row, normalize_responses
+from src.pga.alexnet.analysis.plot_top_n_alexnet import plot_stimuli_row, normalize_responses
 
 
 def plot_stims(stims_3d: List[dict], stims_2d: List[dict], n_cols: int = 8):

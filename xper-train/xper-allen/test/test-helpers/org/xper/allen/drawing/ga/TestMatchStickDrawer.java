@@ -134,6 +134,15 @@ public class TestMatchStickDrawer {
         });
     }
 
+    public void drawThumbnail(Thumbnailable mStick) {
+        window.draw(new Drawable() {
+            @Override
+            public void draw() {
+                mStick.drawThumbnail(window.renderer.getWidth(), window.renderer.getHeight());
+            }
+        });
+    }
+
     public void drawRF(GAMatchStick mStick) {
         window.draw(new Drawable() {
             @Override

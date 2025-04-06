@@ -16,6 +16,7 @@ import org.xper.Dependency;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
+import org.xper.allen.drawing.ga.Thumbnailable;
 import org.xper.allen.util.DPIUtil;
 import org.xper.utils.RGBColor;
 
@@ -59,6 +60,13 @@ public class AllenPNGMaker{
 		window.setBackgroundColor(backColor.getRed(), backColor.getGreen(), backColor.getGreen());
 		System.out.println("creating and saving PNG...");
 		return window.drawStimulus(obj, stimObjId, labels);
+	}
+
+	public String createAndSaveThumbnail(Thumbnailable obj, Long stimObjId, List<String> labels, String destinationFolder) {
+		window.setImageFolderName(destinationFolder);
+		window.setBackgroundColor(backColor.getRed(), backColor.getGreen(), backColor.getGreen());
+		System.out.println("creating and saving PNG...");
+		return window.drawThumbnail(obj, stimObjId, labels);
 	}
 
 	public String createAndSaveCompMap(AllenMatchStick obj, Long stimObjId, List<String> labels, String destinationFolder) {

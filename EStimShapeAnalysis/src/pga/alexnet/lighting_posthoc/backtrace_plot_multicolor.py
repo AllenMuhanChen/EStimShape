@@ -4,7 +4,7 @@ from PIL import Image
 from clat.util.connection import Connection
 
 from src.pga.alexnet import alexnet_context
-from src.pga.alexnet.analysis.plot_top_n import normalize_responses
+from src.pga.alexnet.analysis.plot_top_n_alexnet import normalize_responses
 from src.pga.alexnet.lighting_posthoc.backtrace_analysis import calculate_raw_contribution_map, \
     get_stim_lighting_variations, \
     ContributionType

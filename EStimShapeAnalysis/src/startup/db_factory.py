@@ -53,7 +53,7 @@ def main():
                             twodthreedlightness_database,
                             copy_data_tables=["SystemVar", "InternalState"])
 
-    update_context_file(ga_database, nafc_database, isogabor_database, twodvsthreed_database)
+    update_context_file(ga_database, nafc_database, isogabor_database, twodvsthreed_database, twodthreedlightness_database)
 
 
 

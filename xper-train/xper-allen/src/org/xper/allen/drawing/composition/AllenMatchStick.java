@@ -641,6 +641,8 @@ public class AllenMatchStick extends MatchStick {
 
 	}
 
+
+
 	public void drawGraphNoiseMap(NoiseMapCalculation noiseMap) {
 		setTextureType("2D");
 		init();
