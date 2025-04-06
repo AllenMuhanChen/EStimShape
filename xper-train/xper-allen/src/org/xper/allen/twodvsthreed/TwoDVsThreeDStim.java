@@ -42,11 +42,17 @@ public class TwoDVsThreeDStim implements Stim {
     private Coordinates2D imageCenterCoords = new Coordinates2D(0, 0);
     private double contrast;
 
-
-
-    public TwoDVsThreeDStim(TwoDVsThreeDTrialGenerator generator, long targetStimId, String textureType, RGBColor color, Double contrast) {
+    /**
+     *
+     * @param generator
+     * @param gaStimId: the stimulus id from the GA experiment we are changing the shading / color / contrast of for testing
+     * @param textureType: "2D", "SHADE", "SPECULAR" or "USE_PARENT"
+     * @param color
+     * @param contrast: -1 means use the contrast from the GA experiment, otherwise, 0-1.
+     */
+    public TwoDVsThreeDStim(TwoDVsThreeDTrialGenerator generator, long gaStimId, String textureType, RGBColor color, Double contrast) {
         this.generator = generator;
-        this.targetStimId = targetStimId;
+        this.targetStimId = gaStimId;
         this.textureType = textureType;
         this.color = color;
         this.contrast = contrast;
@@ -64,24 +70,24 @@ public class TwoDVsThreeDStim implements Stim {
         textureManager_2dvs3d = new TexturePropertyManager(new JdbcTemplate(generator.getDbUtil().getDataSource()));
         contrastManager_2dvs3d = new ContrastPropertyManager(new JdbcTemplate(generator.getDbUtil().getDataSource()));
 
-        rfStrategy = rfStrategyManager_ga.readProperty(targetStimId);
-        sizeDiameterDegrees = sizeManager_ga.readProperty(targetStimId);
-        this.contrast = contrastManager_ga.readProperty(targetStimId);
+        rfStrategy = rfStrategyManager_ga.readProperty(gaStimId);
+        sizeDiameterDegrees = sizeManager_ga.readProperty(gaStimId);
+        this.contrast = contrastManager_ga.readProperty(gaStimId);
 
-        targetSpecPath = generator.gaSpecPath + "/" + targetStimId + "_spec.xml";
+        targetSpecPath = generator.gaSpecPath + "/" + gaStimId + "_spec.xml";
         receptiveField = generator.rfSource.getReceptiveField();
 
         if (textureType.equals("USE_PARENT")){
-            this.textureType = textureManager_ga.readProperty(targetStimId);
+            this.textureType = textureManager_ga.readProperty(gaStimId);
         }
 
         if (color == null) {
-            this.color = colorManager_ga.readProperty(targetStimId);
+            this.color = colorManager_ga.readProperty(gaStimId);
         }
 
         if (contrast < 0) {
             System.out.println("Contrast is negative, using default contrast of 1.0");
-            contrast = contrastManager_ga.readProperty(targetStimId);
+            contrast = contrastManager_ga.readProperty(gaStimId);
         }
     }
 
