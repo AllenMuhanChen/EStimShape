@@ -164,7 +164,7 @@ public class GAMatchStickTest {
         while (true) {
             growingMatchStick = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 
-            growingMatchStick.setProperties(5, "SHADE");
+            growingMatchStick.setProperties(5, "SHADE", 1.0);
             try {
                 growingMatchStick.genInsideRFMorphedMStick(GAMatchStick, 0.2);
                 break;
@@ -277,7 +277,7 @@ public class GAMatchStickTest {
         while (true) {
             both = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 
-            both.setProperties(5, "SHADE");
+            both.setProperties(5, "SHADE", 1.0);
             try {
                 both.genOutsideRFMorphedMStick(baseMatchStick, 0.7);
                 both.genInsideRFMorphedMStick(both, 0.4);

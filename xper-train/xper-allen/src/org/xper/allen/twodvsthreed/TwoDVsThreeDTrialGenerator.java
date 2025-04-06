@@ -31,10 +31,11 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
 
     @Dependency
     ReceptiveFieldSource rfSource;
+
     private ColorPropertyManager colorManager;
 
     public int numTrialsPerStim = 5;
-    public int startRank = 5; // Starting rank for selecting stimuli (1-based)
+    public int startRank = 1; // Starting rank for selecting stimuli (1-based)
     public int endRank = 10; // Ending rank for selecting stimuli (inclusive)
 
     public static void main(String[] args) {
@@ -98,10 +99,11 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
 
         // GENERATE TRIALS
         for (Long stimId : twoDStimIds) {
-            TwoDVsThreeDStim stim = new TwoDVsThreeDStim(this, stimId, "SHADE", null, -1.0);
+            double useParentContrast = -1.0;
+            TwoDVsThreeDStim stim = new TwoDVsThreeDStim(this, stimId, "SHADE", null, useParentContrast);
             stims.add(stim);
 
-            stim = new TwoDVsThreeDStim(this, stimId, "SPECULAR", null, -1.0);
+            stim = new TwoDVsThreeDStim(this, stimId, "SPECULAR", null, useParentContrast);
             stims.add(stim);
 
         }

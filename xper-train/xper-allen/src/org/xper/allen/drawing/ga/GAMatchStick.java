@@ -25,12 +25,20 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
     Point3d toMoveCenterOfMassLocation;
     ReceptiveField rf;
 
-
+    /**
+     *  Use this contrusctor to have the stimulus positioned around the RF
+     * @param rf
+     * @param rfStrategy
+     */
     public GAMatchStick(ReceptiveField rf, RFStrategy rfStrategy) {
         this.rf = rf;
         this.rfStrategy = rfStrategy;
     }
 
+    /**
+     * Use this constructor to have the stimulus positioned at a specific location
+     * @param centerOfMassLocation
+     */
     public GAMatchStick(Point3d centerOfMassLocation){
         this.toMoveCenterOfMassLocation = centerOfMassLocation;
     }
@@ -209,8 +217,12 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
     }
 
 
-
-    public RFStrategy getRfStrategy() {
-        return rfStrategy;
+    public ReceptiveField getRf() {
+        return rf;
     }
+
+    public void setRf(ReceptiveField rf) {
+        this.rf = rf;
+    }
+
 }

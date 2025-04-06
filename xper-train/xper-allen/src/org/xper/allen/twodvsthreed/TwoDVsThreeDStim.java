@@ -91,6 +91,7 @@ public class TwoDVsThreeDStim implements Stim {
         stimId = generator.getGlobalTimeUtil().currentTimeMicros();
         Point3d centerOfMass = getTargetsCenterOfMass();
         GAMatchStick mStick = new GAMatchStick(centerOfMass);
+        mStick.setRf(receptiveField); //we need reference to this to calculate position for thumbnail
         mStick.setProperties(sizeDiameterDegrees, textureType, contrast);
         mStick.setStimColor(color);
         mStick.genMatchStickFromFile(targetSpecPath, new double[]{0,0,0});
