@@ -9,6 +9,7 @@ import org.xper.allen.app.twodvsthreed.TwoDVsThreeDConfig;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.allen.stimproperty.ColorPropertyManager;
+import org.xper.drawing.RGBColor;
 import org.xper.util.FileUtil;
 
 import javax.sql.DataSource;
@@ -91,26 +92,41 @@ public class TwoDVsThreeDTrialGenerator extends AbstractMStickPngTrialGenerator<
 
     @Override
     protected void addTrials() {
+        TwoDVsThreeDStim stim;
+        double useParentContrast = -1.0;
+        RGBColor useParentColor = null;
+
         List<Double> contrastsToTest = Arrays.asList(0.4, 1.0);
 
         // For 2D, look for "2D", For 3D look for "SHADE" or "SPECULAR"
         List<Long> twoDStimIds = fetchTopNStimIds("2D");
         List<Long> threeDStimIds = fetchTopNStimIds("3D");
 
-        // GENERATE TRIALS
-        for (Long stimId : twoDStimIds) {
-            double useParentContrast = -1.0;
-            TwoDVsThreeDStim stim = new TwoDVsThreeDStim(this, stimId, "SHADE", null, useParentContrast);
+        // GENERATE TRIALS - for 2D stimuli
+        for (Long gaStimId : twoDStimIds) {
+            //Repeat of Original 2D
+            stim = new TwoDVsThreeDStim(this, gaStimId, "2D", useParentColor, useParentContrast);
             stims.add(stim);
 
-            stim = new TwoDVsThreeDStim(this, stimId, "SPECULAR", null, useParentContrast);
+            //Test SHADE variant
+            stim = new TwoDVsThreeDStim(this, gaStimId, "SHADE", useParentColor, useParentContrast);
+            stims.add(stim);
+
+            //Test SPECULAR variant
+            stim = new TwoDVsThreeDStim(this, gaStimId, "SPECULAR", useParentColor, useParentContrast);
             stims.add(stim);
 
         }
 
-        for (Long stimId : threeDStimIds) {
+        // GENERATE Trials - for 3D stimuli
+        for (Long gaStimId : threeDStimIds) {
+            //Test original 3D
+            stim = new TwoDVsThreeDStim(this, gaStimId, "USE_PARENT", useParentColor, useParentContrast);
+            stims.add(stim);
+
+            // Test two contrast 2D variants
             for (Double contrast : contrastsToTest) {
-                TwoDVsThreeDStim stim = new TwoDVsThreeDStim(this, stimId, "2D", null, contrast);
+                stim = new TwoDVsThreeDStim(this, gaStimId, "2D", useParentColor, contrast);
                 stims.add(stim);
             }
         }

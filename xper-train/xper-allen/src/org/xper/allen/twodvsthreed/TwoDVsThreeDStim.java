@@ -71,6 +71,10 @@ public class TwoDVsThreeDStim implements Stim {
         targetSpecPath = generator.gaSpecPath + "/" + targetStimId + "_spec.xml";
         receptiveField = generator.rfSource.getReceptiveField();
 
+        if (textureType.equals("USE_PARENT")){
+            this.textureType = textureManager_ga.readProperty(targetStimId);
+        }
+
         if (color == null) {
             this.color = colorManager_ga.readProperty(targetStimId);
         }
