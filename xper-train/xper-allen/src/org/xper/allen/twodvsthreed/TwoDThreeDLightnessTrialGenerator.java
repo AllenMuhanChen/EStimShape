@@ -15,7 +15,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class TwoDThreeDLightnessTrialGenerator extends TwoDVsThreeDTrialGenerator {
-    public static final List<Double> LIGHTNESSES_TO_TEST= Arrays.asList(0.2, 0.4, 0.6, 0.8, 1.0);
+    public static final List<Double> VALUES_TO_TEST = Arrays.asList(0.2, 0.4, 0.6, 0.8, 1.0); //Value in HSV
 
     public int numTrialsPerStim = 5;
     private ColorPropertyManager colorManager;
@@ -90,7 +90,7 @@ public class TwoDThreeDLightnessTrialGenerator extends TwoDVsThreeDTrialGenerato
 
         // GENERATE TRIALS
         for (Long gaStimId : stimIdsToTest) {
-            for (RGBColor color : fetchColorsToTest(gaStimId)) {
+            for (RGBColor color : calculateColorsToTest(gaStimId)) {
                 for (String textureType : textureTypesToTest) {
                     // We use contrast 1.0 even for 2D stimuli because we used the lightness to calculate
                     // an RGB value in fetchColorsToTest(). We did this because contrast doesn't change drawing of
@@ -129,14 +129,22 @@ public class TwoDThreeDLightnessTrialGenerator extends TwoDVsThreeDTrialGenerato
         }
     }
 
-    private List<RGBColor> fetchColorsToTest(Long gaStimId) {
+    /**
+     * Calculate the colors to test for a given stimulus ID.
+     * We get the original color of the stimulus and then calculate
+     * the new colors by changing the value (as in HSV, rather than lightness in HSL).
+
+     * @param gaStimId
+     * @return
+     */
+    private List<RGBColor> calculateColorsToTest(Long gaStimId) {
         List<RGBColor> colorsToTest = new ArrayList<>();
 
         RGBColor originalStimColor = fetchColorForStimId(gaStimId);
         if (originalStimColor != null) {
             float[] hsv = HSLUtils.rgbToHSV(originalStimColor);
-            for (Double lightness : LIGHTNESSES_TO_TEST) {
-                hsv[2] = lightness.floatValue();
+            for (Double value : VALUES_TO_TEST) {
+                hsv[2] = value.floatValue();
                 RGBColor newColor = HSLUtils.hsvToRGB(hsv);
                 colorsToTest.add(newColor);
             }
