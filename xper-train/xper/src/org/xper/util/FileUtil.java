@@ -99,7 +99,7 @@ public class FileUtil {
 		String className = System.getProperty(propName);
 		if (className == null || className.trim().length() == 0) {
 			if (defaultClass == null) {
-				throw new ExperimentSetupException("Please provide the config class name in xper.properties.");
+				throw new ExperimentSetupException("Please provide the config class name in xper.properties");
 			} else {
 				return defaultClass;
 			}
