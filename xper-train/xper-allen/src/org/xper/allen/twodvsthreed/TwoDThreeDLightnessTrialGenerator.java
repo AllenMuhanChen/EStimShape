@@ -93,7 +93,12 @@ public class TwoDThreeDLightnessTrialGenerator extends TwoDVsThreeDTrialGenerato
             List<Double> contrastsToTest = fetchContrastsToTest(gaStimId);
             for (Double contrast : contrastsToTest) {
                 for (String textureType : textureTypesToTest) {
-                    TwoDVsThreeDStim stim = new TwoDVsThreeDStim(this, gaStimId, textureType, fetchColorForStimId(gaStimId), contrast);
+                    // Take the original color and apply the contrast we want to test to it, while keeping the
+                    // actual contrast variable the same. This is because contrast only applies to the drawing of the
+                    // 2D stimuli, not the 3D ones.
+                    RGBColor color = fetchColorForStimId(gaStimId);
+                    color = new RGBColor(color.getRed() * contrast, color.getGreen() * contrast, color.getBlue() * contrast);
+                    TwoDVsThreeDStim stim = new TwoDVsThreeDStim(this, gaStimId, textureType, color, 1.0);
                     stims.add(stim);
                 }
             }
