@@ -158,7 +158,7 @@ class GroupedStimuliPlotter(ComputationModule):
 
         # Total figure size
         fig_height = nrows * (single_grid_height + 1.5)  # Extra space for titles
-        fig_width = max(single_grid_width + 2, self.figsize[0])  # Extra space for labels
+        fig_width = single_grid_width + 2  # Extra space for labels
 
         # Create figure
         fig = plt.figure(figsize=(fig_width, fig_height))
@@ -167,18 +167,25 @@ class GroupedStimuliPlotter(ComputationModule):
 
         # Create one grid for each StimGaId
         for sg_idx, subgroup_value in enumerate(subgroup_values):
-            # Create a subplot for this StimGaId's grid
-            grid_pos = [0.1, 1.0 - (sg_idx + 1) * (single_grid_height / fig_height) + 0.05,
-                        0.8, single_grid_height / fig_height - 0.05]
+            # Calculate safer grid positions
+            total_grids = len(subgroup_values)
+            grid_height = 0.8 / total_grids  # Allow 20% of figure for margins and titles
+
+            # Position from top to bottom with fixed spacing
+            top_pos = 0.95 - (sg_idx * (grid_height + 0.05))
+            bottom_pos = top_pos - grid_height
+
+            # Ensure bottom < top with a minimum separation
+            if bottom_pos >= top_pos - 0.05:
+                bottom_pos = top_pos - 0.05
 
             # Create a subgrid for this StimGaId
             subgrid = fig.add_gridspec(nrows=len(row_values), ncols=len(col_values),
-                                       left=grid_pos[0], bottom=grid_pos[1],
-                                       right=grid_pos[0] + grid_pos[2],
-                                       top=grid_pos[1] + grid_pos[3])
+                                       left=0.1, bottom=bottom_pos,
+                                       right=0.9, top=top_pos)
 
             # Add a title for this StimGaId's grid
-            fig.text(0.5, grid_pos[1] + grid_pos[3] + 0.01,
+            fig.text(0.5, top_pos + 0.02,
                      f"{subgroup_col}: {subgroup_value}",
                      ha='center', fontsize=14)
 
@@ -215,6 +222,22 @@ class GroupedStimuliPlotter(ComputationModule):
 
         plt.tight_layout(rect=[0, 0, 1, 0.96])  # Leave room for main title
         return fig
+
+    # Calculate dynamic figure size based on data grid dimensions
+    def calculate_dynamic_figsize(self, data, row_col, col_col, cell_size=(2, 2), margin=0.5):
+        # Get number of unique row and column values
+        n_rows = data[row_col].nunique()
+        n_cols = data[col_col].nunique()
+
+        # Calculate minimum viable figure size with margins
+        width = (n_cols * cell_size[0]) + margin * 2
+        height = (n_rows * cell_size[1]) + margin * 2
+
+        # Ensure figure size is never smaller than 6x4
+        width = max(width, 6)
+        height = max(height, 4)
+
+        return (width, height)
 
     def _normalize_global(self, data: pd.DataFrame, response_col: str) -> Tuple[float, float]:
         """Normalize responses globally."""

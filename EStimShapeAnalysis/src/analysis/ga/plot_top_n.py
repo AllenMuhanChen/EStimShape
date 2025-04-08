@@ -4,14 +4,17 @@ import pandas as pd
 from PIL import Image
 from matplotlib import pyplot as plt
 
-from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
-from clat.compile.tstamp.classic_database_tstamp_fields import StimSpecDataField, TaskIdField, StimIdField
-from clat.compile.tstamp.trial_tstamp_collector import TrialCollector
+from clat.compile.task.cached_task_fields import CachedTaskFieldList
+from clat.compile.task.classic_database_task_fields import StimSpecIdField
+from clat.compile.task.compile_task_id import TaskIdCollector
+
 from clat.util import time_util
 from clat.util.connection import Connection
 from clat.util.time_util import When
-from src.analysis.cached_fields import LineageField, StimTypeField, StimPathField, \
-    ClusterResponseField, ThumbnailField
+
+from src.analysis.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, GAResponseField, \
+    ClusterResponseField, LineageField
+
 from src.pga.alexnet.analysis.plot_top_n_alexnet import add_colored_border
 from src.startup import context
 
@@ -25,19 +28,21 @@ def main():
     stop = time_util.now()
 
     # Collecting trials and compiling data
-    trial_tstamps = collect_trials(conn, When(start, stop))
-    data_for_all_tasks = compile_data(conn, trial_tstamps)
+
+
+    data_for_all_tasks = compile_data(conn)
 
     # Removing empty trials (no stim_id)
     # Remove trials with no response
     data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['Cluster Response'].apply(lambda x: x != 'nan')]
 
     # Group by StimId and aggregate
-    data_for_stim_ids = data_for_all_tasks.groupby('StimId').agg({
+    data_for_stim_ids = data_for_all_tasks.groupby('StimSpecId').agg({
         'Lineage': 'first',
         'StimType': 'first',
         'ThumbnailPath': 'first',
-        'Cluster Response': 'mean'
+        'Cluster Response': 'mean',
+        'GA Response': 'first'
     }).reset_index()
 
     # Rename the response column
@@ -48,13 +53,17 @@ def main():
     # Convert DataFrame to list of dicts for plotting
     stimuli_list = []
     for _, row in data_for_stim_ids.iterrows():
+
         stim = {
-            'stim_id': row['StimId'],
-            'response': row['Average Response'],
+            'stim_id': row['StimSpecId'],
+            'response': row['GA Response'],
             'lineage_id': row['Lineage'],
             'path': row['ThumbnailPath']
         }
-        stimuli_list.append(stim)
+
+        if stim['path'] is not None:
+            stimuli_list.append(stim)
+
 
     # Create and save plot
     fig = plot_top_n_stimuli(stimuli_list, n=20)
@@ -62,30 +71,28 @@ def main():
     plt.show()
 
 
-def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
+def compile_data(conn: Connection) -> pd.DataFrame:
+    collector = TaskIdCollector(conn)
+    task_ids = collector.collect_task_ids()
     response_processor = context.ga_config.make_response_processor()
     cluster_combination_strategy = response_processor.cluster_combination_strategy
-    mstick_spec_data_source = StimSpecDataField(conn)
 
-    fields = CachedFieldList()
-    fields.append(TaskIdField(conn))
-    fields.append(StimIdField(conn))
+
+    fields = CachedTaskFieldList()
+    fields.append(StimSpecIdField(conn))
     fields.append(LineageField(conn))
     fields.append(StimTypeField(conn))
     fields.append(StimPathField(conn))
     fields.append(ThumbnailField(conn))
+    fields.append(GAResponseField(conn))
     fields.append(ClusterResponseField(conn, cluster_combination_strategy))
     # fields.append(ShaftField(conn, mstick_spec_data_source))
     # fields.append(TerminationField(conn, mstick_spec_data_source))
     # fields.append(JunctionField(conn, mstick_spec_data_source))
 
-    data = fields.to_data(trial_tstamps)
+    data = fields.to_data(task_ids)
     return data
 
-
-def collect_trials(conn: Connection, when: When = time_util.all()) -> list[When]:
-    trial_collector = TrialCollector(conn, when)
-    return trial_collector.collect_trials()
 
 
 def plot_top_n_stimuli(stimuli: list[dict], n: int = 10, fig_size=(20, 4), min_response=None, max_response=None):

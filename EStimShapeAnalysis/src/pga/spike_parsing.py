@@ -68,6 +68,8 @@ class IntanResponseParser(ResponseParser):
         df_spike_rates = self._process_data_to_df(spike_tstamps_for_channels_by_task_id, epoch_start_stop_by_task_id,
                                                   task_ids_for_stim_ids, sample_rate)
 
+        df_spike_rates = df_spike_rates.dropna()
+
         self._write_to_db(df_spike_rates)
 
     def _process_data_to_df(self, spikes, epochs, task_ids_for_stim_ids, sample_rate):

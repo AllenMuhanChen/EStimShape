@@ -5,23 +5,22 @@ import pandas as pd
 import xmltodict
 from matplotlib.gridspec import GridSpec
 
+from clat.compile.task.cached_task_fields import CachedTaskFieldList, CachedTaskDatabaseField
+from clat.compile.task.classic_database_task_fields import StimSpecIdField, StimSpecField
 from clat.compile.task.compile_task_id import TaskIdCollector
-from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
-from clat.compile.tstamp.trial_tstamp_collector import TrialCollector
 from clat.util.connection import Connection
 from clat.util.time_util import When
-from clat.compile.tstamp.classic_database_tstamp_fields import TaskIdField, StimIdField, StimSpecField
 from src.intan.MultiFileParser import MultiFileParser
 from src.startup import context
 
 
-def plot_raster_by_groups(conn, trial_tstamps):
+def plot_raster_by_groups(conn, task_ids):
     # Compile the data first
-    data = compile_data(conn, trial_tstamps)
-    print(data.to_string())
+
+    data = compile_data(conn)
 
     # Group stimuli types
-    isochromatic_types = ['Red', 'Green', 'Cyan', 'Red']
+    isochromatic_types = ['Red', 'Green', 'Cyan', 'Orange']
     isoluminant_types = ['RedGreen', 'CyanOrange']
 
     # Create figure with two subfigures for isochromatic and isoluminant
@@ -89,14 +88,13 @@ def plot_group_rasters(data, types, ax, title):
 
 
 
-def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
+def compile_data(conn: Connection) -> pd.DataFrame:
     # Set up parser
     task_ids = TaskIdCollector(conn).collect_task_ids()
     parser = MultiFileParser(to_cache=True, cache_dir=context.isogabor_parsed_spikes_path)
 
-    fields = CachedFieldList()
-    fields.append(TaskIdField(conn))
-    fields.append(StimIdField(conn))
+    fields = CachedTaskFieldList()
+    fields.append(StimSpecIdField(conn))
     fields.append(TypeField(conn))
     fields.append(FrequencyField(conn))
     fields.append(SizeField(conn))
@@ -105,11 +103,11 @@ def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
     fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.isogabor_intan_path))
 
 
-    data = fields.to_data(trial_tstamps)
+    data = fields.to_data(task_ids)
     return data
 
 
-class IntanSpikesByChannelField(TaskIdField):
+class IntanSpikesByChannelField(CachedTaskDatabaseField):
     """
     Retrieves spike timestamps by channel from Intan files for a given task ID
     and makes them relative to the start of the epoch
@@ -122,14 +120,9 @@ class IntanSpikesByChannelField(TaskIdField):
         self.intan_files_dir = intan_files_dir
         self.all_task_ids = all_task_ids
 
-    def get(self, when: When) -> dict:
-        task_id = self.get_cached_super(when, TaskIdField)
-        if task_id not in self.all_task_ids:
-            return None
-
+    def get(self, task_id) -> dict:
         spikes_by_channel_by_task_id, epochs_by_task_id = self.parser.parse(self.all_task_ids,
                                                                             intan_files_dir=self.intan_files_dir)
-        task_id = self.get_cached_super(when, TaskIdField)
         spikes_by_channel = spikes_by_channel_by_task_id[task_id]
         epoch_start = epochs_by_task_id[task_id][0]
         # convert timestamp to epoch_start relative
@@ -143,18 +136,14 @@ class IntanSpikesByChannelField(TaskIdField):
         return "Spikes by Channel"
 
 
-class SpikeRateByChannelField(TaskIdField):
+class SpikeRateByChannelField(CachedTaskDatabaseField):
     def __init__(self, conn: Connection, parser: type(MultiFileParser), all_task_ids: list[int], intan_files_dir: str):
         super().__init__(conn)
         self.parser = parser
         self.intan_files_dir = intan_files_dir
         self.all_task_ids = all_task_ids
 
-    def get(self, when: When) -> dict:
-        task_id = self.get_cached_super(when, TaskIdField)
-        if task_id not in self.all_task_ids:
-            return None
-
+    def get(self, task_id) -> dict:
         spikes_by_channel_by_task_id, epochs_by_task_id = self.parser.parse(self.all_task_ids, self.intan_files_dir)
         spikes_by_channels = spikes_by_channel_by_task_id[task_id]
         epoch = epochs_by_task_id[task_id]
@@ -173,8 +162,8 @@ class SpikeRateByChannelField(TaskIdField):
 
 
 class TypeField(StimSpecField):
-    def get(self, when: When) -> str:
-        stim_spec = self.get_cached_super(when, StimSpecField)
+    def get(self, task_id) -> str:
+        stim_spec = self.get_cached_super(task_id, StimSpecField)
         stim_spec_dict = xmltodict.parse(stim_spec)
 
         stim_spec_type = stim_spec_dict['StimSpec']['type']
@@ -185,8 +174,8 @@ class TypeField(StimSpecField):
 
 
 class OrientationField(StimSpecField):
-    def get(self, when: When) -> str:
-        stim_spec = self.get_cached_super(when, StimSpecField)
+    def get(self, task_id) -> str:
+        stim_spec = self.get_cached_super(task_id, StimSpecField)
         stim_spec_dict = xmltodict.parse(stim_spec)
 
         stim_spec_type = stim_spec_dict['StimSpec']['orientation']
@@ -197,8 +186,8 @@ class OrientationField(StimSpecField):
 
 
 class SizeField(StimSpecField):
-    def get(self, when: When) -> str:
-        stim_spec = self.get_cached_super(when, StimSpecField)
+    def get(self, task_id) -> str:
+        stim_spec = self.get_cached_super(task_id, StimSpecField)
         stim_spec_dict = xmltodict.parse(stim_spec)
 
         stim_spec_type = stim_spec_dict['StimSpec']['size']
@@ -209,8 +198,8 @@ class SizeField(StimSpecField):
 
 
 class LocationField(StimSpecField):
-    def get(self, when: When) -> tuple[float, float]:
-        stim_spec = self.get_cached_super(when, StimSpecField)
+    def get(self, task_id) -> tuple[float, float]:
+        stim_spec = self.get_cached_super(task_id, StimSpecField)
         stim_spec_dict = xmltodict.parse(stim_spec)
 
         x = stim_spec_dict['StimSpec']['xCenter']
@@ -222,8 +211,8 @@ class LocationField(StimSpecField):
 
 
 class FrequencyField(StimSpecField):
-    def get(self, when: When) -> float:
-        stim_spec = self.get_cached_super(when, StimSpecField)
+    def get(self, task_id) -> float:
+        stim_spec = self.get_cached_super(task_id, StimSpecField)
         stim_spec_dict = xmltodict.parse(stim_spec)
 
         frequency = stim_spec_dict['StimSpec']['frequency']
@@ -234,8 +223,8 @@ class FrequencyField(StimSpecField):
 
 
 class PhaseField(StimSpecField):
-    def get(self, when: When) -> float:
-        stim_spec = self.get_cached_super(when, StimSpecField)
+    def get(self, task_id) -> float:
+        stim_spec = self.get_cached_super(task_id, StimSpecField)
         stim_spec_dict = xmltodict.parse(stim_spec)
 
         phase = stim_spec_dict['StimSpec']['phase']
@@ -248,11 +237,11 @@ class PhaseField(StimSpecField):
 def main():
     date = '2025-04-03'
     conn = Connection(context.isogabor_database)
-    trial_collector = TrialCollector(conn)
-    trial_tstamps = trial_collector.collect_trials()
+    task_collector = TaskIdCollector(conn)
+    task_ids = task_collector.collect_task_ids()
 
     # Create raster plots
-    fig = plot_raster_by_groups(conn, trial_tstamps)
+    fig = plot_raster_by_groups(conn, task_ids)
     plt.show()
 
 

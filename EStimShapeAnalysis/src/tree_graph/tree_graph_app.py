@@ -13,7 +13,7 @@ class TreeGraphApp:
         self.run()
 
     def run(self):
-        self.app.run_server(port=8052)
+        self.app.run_server(port=8054)
 
     def _update_app(self, fig):
 

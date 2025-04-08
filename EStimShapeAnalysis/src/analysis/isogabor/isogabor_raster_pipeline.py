@@ -2,6 +2,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.gridspec import GridSpec
 from typing import Dict, List, Any
+
+from clat.compile.task.cached_task_fields import CachedTaskFieldList
+from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.util.connection import Connection
 from clat.compile.tstamp.trial_tstamp_collector import TrialCollector
 from clat.compile.task.compile_task_id import TaskIdCollector
@@ -21,9 +24,7 @@ def main():
     # STEP 1: Compile data
     # ----------------
     conn = Connection(context.isogabor_database)
-    trial_collector = TrialCollector(conn)
-    trial_tstamps = trial_collector.collect_trials()
-    compiled_data = compile_data(conn, trial_tstamps)
+    compiled_data = compile_data(conn)
     #filter out trials where Spikes by Channel is empty
     compiled_data = compiled_data[compiled_data['Spikes by Channel'].notnull()]
 
@@ -36,7 +37,7 @@ def main():
         secondary_group_col='Frequency',
         spike_data_col='Spikes by Channel',
         filter_values={
-            'Type': ['Red', 'Green', 'Cyan', 'Blue', 'RedGreen', 'CyanOrange']
+            'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
         },
         save_path=None
     )
@@ -53,7 +54,7 @@ def main():
     return result
 
 
-def compile_data(conn, trial_tstamps):
+def compile_data(conn):
     from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
     from clat.compile.tstamp.classic_database_tstamp_fields import StimIdField
     from clat.compile.tstamp.classic_database_tstamp_fields import TaskIdField
@@ -65,15 +66,14 @@ def compile_data(conn, trial_tstamps):
     parser = MultiFileParser(to_cache=True, cache_dir=context.isogabor_parsed_spikes_path)
 
     # Create fields list
-    fields = CachedFieldList()
-    fields.append(TaskIdField(conn))
-    fields.append(StimIdField(conn))
+    fields = CachedTaskFieldList()
+    fields.append(StimSpecIdField(conn))
     fields.append(TypeField(conn))
     fields.append(FrequencyField(conn))
     fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.isogabor_intan_path))
 
     # Compile data
-    data = fields.to_data(trial_tstamps)
+    data = fields.to_data(task_ids)
     return data
 
 
