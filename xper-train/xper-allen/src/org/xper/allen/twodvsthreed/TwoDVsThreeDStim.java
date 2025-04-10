@@ -72,7 +72,6 @@ public class TwoDVsThreeDStim implements Stim {
 
         rfStrategy = rfStrategyManager_ga.readProperty(gaStimId);
         sizeDiameterDegrees = sizeManager_ga.readProperty(gaStimId);
-        this.contrast = contrastManager_ga.readProperty(gaStimId);
 
         targetSpecPath = generator.gaSpecPath + "/" + gaStimId + "_spec.xml";
         receptiveField = generator.rfSource.getReceptiveField();
@@ -87,7 +86,7 @@ public class TwoDVsThreeDStim implements Stim {
 
         if (contrast < 0) {
             System.out.println("Contrast is negative, using default contrast of 1.0");
-            contrast = contrastManager_ga.readProperty(gaStimId);
+            this.contrast = contrastManager_ga.readProperty(gaStimId);
         }
     }
 

@@ -158,7 +158,7 @@ def plot_top_n_stimuli(stimuli: list[dict], n: int = 10, fig_size=(20, 4), min_r
 
             ax.text(img_with_border.size[0] - 5, 5,
                     '\n'.join(label_parts),
-                    fontsize=5, color='black',
+                    fontsize=5, color='white',
                     transform=ax.transData,
                     ha='right', va='top')
         else:
