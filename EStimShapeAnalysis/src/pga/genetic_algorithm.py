@@ -166,9 +166,7 @@ class GeneticAlgorithm:
         # Write stimuli
         for lineage in self.lineages:
             for stim in lineage.stimuli:
-                try:
-                    self.db_util.read_stim_ga_info_entry(stim.id)
-                except Exception:
+                if self.db_util.read_stim_ga_info_entry(stim.id) is None:
                     # If the stim is not in the db, write it
                     self.db_util.write_stim_ga_info(stim_id=stim.id, parent_id=stim.parent_id,
                                                     lineage_id=lineage.id,
@@ -180,7 +178,7 @@ class GeneticAlgorithm:
         for i in range(self.num_catch_trials):
             self.db_util.write_stim_ga_info(stim_id=time_util.now(), parent_id=0, lineage_id=0, stim_type="CATCH",
                                             mutation_magnitude=0, gen_id=self.gen_id)
-            #wait 1 ms
+            #wait 1 ms because are we using time_util.now() and we don't want identical ids
             time.sleep(1 / 1_000)
 
 

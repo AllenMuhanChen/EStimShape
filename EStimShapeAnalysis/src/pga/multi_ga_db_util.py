@@ -84,7 +84,7 @@ class MultiGaDbUtil:
             "INSERT IGNORE INTO StimGaInfo (stim_id, parent_id, lineage_id, stim_type, mutation_magnitude, gen_id) VALUES (%s, %s, %s, %s, %s, %s)",
             (stim_id, parent_id, lineage_id, stim_type, mutation_magnitude, gen_id))
 
-    def read_stim_ga_info_entry(self, stim_id: int) -> StimGaInfoEntry:
+    def read_stim_ga_info_entry(self, stim_id: int) -> StimGaInfoEntry | None:
         def float_or_none(val: Any):
             if val is None:
                 return None
@@ -96,7 +96,7 @@ class MultiGaDbUtil:
             (stim_id,))
         rows = self.conn.fetch_all()
         if rows is None or len(rows) == 0:
-            raise Exception(f"Could not find StimGaInfo entry for stim_id {stim_id}")
+            return None
         else:
             parent_id, lineage_id, stim_type, response, mutation_magnitude, gen_id = rows[0]
             return StimGaInfoEntry(stim_id=int(stim_id), parent_id=int(parent_id),
