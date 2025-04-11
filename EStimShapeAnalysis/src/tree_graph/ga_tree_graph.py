@@ -318,7 +318,7 @@ class MySQLTreeDataAccess(TreeDataAccess):
             if re.match(r"Zooming_\d+", regime):
                 color = "orange"
             else:
-                color = colors_for_regimes.get(regime, "default_color")
+                color = colors_for_regimes.get(regime, "black")
             edge_colors[edge] = color
 
         return edge_colors
