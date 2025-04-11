@@ -9,17 +9,25 @@ from typing import Protocol, List
 
 from clat.util import time_util
 from src.pga.config.twod_threed_config import TwoDThreeDGAConfig
-from src.pga.ga_classes import Lineage, Stimulus
-from src.pga.regime_type import RegimeType
+from src.pga.ga_classes import Lineage, Stimulus, SideTest
+from src.pga.mock.alexnet_mock_ga import AlexNetMockResponseParser
 
 
 class Simultaneous3Dvs2DConfig(TwoDThreeDGAConfig):
     """
-    Configuration for a GA that takes top N 2D and top N 3D stimuli from previous generation
+    Configuration for a GA that runs a side test which takes top N 2D and top N 3D stimuli from previous generation
     and tests 2d vs 3d on them each generation. This ensures we have answers for 2D vs 3D
     no matter when we stop the GA.
+
+    @param is_alexnet_mock: If True, use the AlexNet mock response parser. Should also
+    set to use MockPGA java config class in xper.properties.
     """
-    pass
+
+    def __init__(self, *, is_alexnet_mock, database: str, base_intan_path: str, java_output_dir: str,
+                 allen_dist_dir: str):
+        super().__init__(database=database, base_intan_path=base_intan_path, java_output_dir=java_output_dir,
+                         allen_dist_dir=allen_dist_dir)
+        self.is_alexnet_mock = is_alexnet_mock
 
     def side_tests(self):
         """
@@ -29,11 +37,11 @@ class Simultaneous3Dvs2DConfig(TwoDThreeDGAConfig):
             DnessSideTest(n_top_3d=2, n_top_2d=2)
         ]
 
-
-class SideTest(Protocol):
-    @abstractmethod
-    def run(self, lineages: List[Lineage], gen_id: int):
-        pass
+    def make_response_parser(self):
+        if self.is_alexnet_mock:
+            return AlexNetMockResponseParser(db_util=self.db_util)
+        else:
+            return super().make_response_processor()
 
 
 class DnessSideTest(SideTest):
@@ -65,10 +73,11 @@ class DnessSideTest(SideTest):
         self.stimuli_from_this_gen_3d = []
         for lineage in lineages:
             for stim_to_test in lineage.stimuli:
-                if stim_to_test.gen_id == gen_id:
+                if stim_to_test.gen_id == gen_id - 1:
                     if not is_side_test_stimulus(stim_to_test):
-                        self._assign_2d_or_3d(stim_to_test, lineage)
-                        stim_to_test.lineage = lineage  # create new reference to containing lineage to use later
+                        if stim_to_test.response_rate is not None:
+                            self._assign_2d_or_3d(stim_to_test, lineage)
+                            stim_to_test.lineage = lineage  # create new reference to containing lineage to use later
 
         # Now we have all stimuli from this generation, we can extract top N
         # 2D and top N 3D stimuli
@@ -85,7 +94,7 @@ class DnessSideTest(SideTest):
         return top_2d, top_3d
 
     @staticmethod
-    def _generate_side_test_stim(stimulus, mutation_type: SIDETEST_2Dvs3D_Type, gen_id):
+    def _generate_side_test_stim(stim_to_test, mutation_type: SIDETEST_2Dvs3D_Type, gen_id):
         """
         Generate a new stimulus from the given stimulus with the given mutation type.
         Then will add this stimulus to the Lineage's stimuli list and tree structure.
@@ -94,14 +103,16 @@ class DnessSideTest(SideTest):
                                 mutation_type.value,
                                 mutation_magnitude=0,
                                 gen_id=gen_id,
-                                parent_id=stimulus.id
+                                parent_id=stim_to_test.id
                                 )
         time.sleep(0.001)
-        lineage = stimulus.lineage
-        lineage.tree.add_child_to(lineage.get_parent_of(stimulus), new_stimulus)
-        lineage.stimuli.extend(new_stimulus)
+        lineage = stim_to_test.lineage
+        lineage.tree.add_child_to(stim_to_test, new_stimulus)
+        lineage.stimuli.append(new_stimulus)
 
     def _assign_2d_or_3d(self, stimulus: Stimulus, lineage: Lineage):
+        if "CATCH" in stimulus.mutation_type:
+            pass
         if "Zooming" in stimulus.mutation_type:
             self._assign_2d_or_3d(lineage.get_parent_of(stimulus), lineage)
         elif "2D" in stimulus.mutation_type:
@@ -116,7 +127,7 @@ def is_side_test_stimulus(stimulus):
 
 
 class SIDETEST_2Dvs3D_Type(Enum):
-    THREED_SHADE = "3D_SHADE"
-    THREED_SPECULAR = "3D_SPECULAR"
-    TWOD_HIGH = "2D_HIGH"
-    TWOD_LOW = "2D_LOW"
+    THREED_SHADE = "SIDETEST_2Dvs3D_3D_SHADE"
+    THREED_SPECULAR = "SIDETEST_2Dvs3D_3D_SPECULAR"
+    TWOD_HIGH = "SIDETEST_2Dvs3D_2D_HIGH"
+    TWOD_LOW = "SIDETEST_2Dvs3D_2D_LOW"

@@ -7,8 +7,7 @@ from typing import List
 from clat.util import time_util
 from mysql.connector import DatabaseError
 
-from src.pga.config.simultaneous_2dvs3d_config import SideTest
-from src.pga.ga_classes import Node, Stimulus, LineageFactory
+from src.pga.ga_classes import Node, Stimulus, LineageFactory, SideTest
 from src.pga.ga_classes import Phase, Lineage
 from src.pga.lineage_selection import ClassicLineageDistributor
 from src.pga.multi_ga_db_util import MultiGaDbUtil

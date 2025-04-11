@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 import xml.etree.ElementTree as ET
 from abc import abstractmethod
-from typing import Protocol, Any
+from typing import Protocol, Any, List
 
 from clat.util import time_util
 
@@ -243,3 +243,9 @@ class LineageFactory:
         _, founders = regimes[0].generate_batch(None, 1, 1)
         founder = founders[0]
         return LineageFactory.create_new_lineage_from_founder(founder, regimes)
+
+
+class SideTest(Protocol):
+    @abstractmethod
+    def run(self, lineages: List[Lineage], gen_id: int):
+        pass

@@ -1,12 +1,12 @@
 from src.pga.config.twod_threed_config import TwoDThreeDGAConfig
 from src.pga.mock.alexnet_mock_ga import TrainingAlexNetMockGeneticAlgorithmConfig
-
+from src.pga.config.simultaneous_2dvs3d_config import Simultaneous3Dvs2DConfig
 ga_name = "New3D"
-ga_database = "allen_ga_exp_250410_2"
-nafc_database = "allen_estimshape_exp_250410_2"
-isogabor_database = "allen_isogabor_exp_250410_2"
-twodvsthreed_database = "allen_twodvsthreed_exp_250410_2"
-twodthreedlightness_database = "allen_twodthreedlightness_exp_250410_2"
+ga_database = "allen_ga_test_250411_0"
+nafc_database = "allen_estimshape_test_250411_0"
+isogabor_database = "allen_isogabor_test_250411_0"
+twodvsthreed_database = "allen_twodvsthreed_test_250411_0"
+twodthreedlightness_database = "allen_twodthreedlightness_test_250411_0"
 
 allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
 
@@ -27,7 +27,10 @@ isogabor_parsed_spikes_path = f"/home/r2_allen/Documents/EStimShape/{isogabor_da
 twodvsthreed_parsed_spikes_path = f"/home/r2_allen/Documents/EStimShape/{twodvsthreed_database}/parsed_spikes"
 
 try:
-    ga_config = TwoDThreeDGAConfig(database=ga_database,
+
+    ga_config = Simultaneous3Dvs2DConfig(
+                                   is_alexnet_mock=True,
+                                   database=ga_database,
                                    base_intan_path=ga_intan_path,
                                    java_output_dir=java_output_dir,
                                    allen_dist_dir=allen_dist)

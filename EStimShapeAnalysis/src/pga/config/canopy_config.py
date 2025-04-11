@@ -2,7 +2,6 @@ from typing import Any, List
 
 from numpy import mean
 
-from src.pga.config.simultaneous_2dvs3d_config import SideTest
 from src.pga.spike_parsing import IntanResponseParser
 from src.pga.response_processing import GAResponseProcessor
 from src.pga.lineage_selection import ClassicLineageDistributor
@@ -12,7 +11,7 @@ from src.pga.regime_three import LeafingPhaseParentSelector, LeafingPhaseMutatio
 from src.pga.regime_two import CanopyPhaseParentSelector, CanopyPhaseMutationAssigner, \
     CanopyPhaseMutationMagnitudeAssigner, \
     CanopyPhaseTransitioner
-from src.pga.ga_classes import Phase
+from src.pga.ga_classes import Phase, SideTest
 from src.pga.genetic_algorithm import GeneticAlgorithm
 from src.pga.regime_one import GrowingPhaseParentSelector, GrowingPhaseMutationAssigner, \
     GrowingPhaseMutationMagnitudeAssigner, \
