@@ -137,7 +137,7 @@ def main():
     """Main function to run the 2D vs 3D analysis pipeline."""
 
     # Set up database connection and date
-    date = '2025-04-08'
+    date = '2025-04-10'
     conn = Connection(context.twodvsthreed_database)
 
     # Collect trials
