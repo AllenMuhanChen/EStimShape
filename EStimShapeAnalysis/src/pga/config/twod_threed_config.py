@@ -7,6 +7,10 @@ from src.pga.stim_types import StimType
 
 
 class TwoDThreeDGAConfig(RFGeneticAlgorithmConfig):
+    """
+    Configuration for GA that presents 2D and 3D stimuli and allows morphs between them.
+    """
+
     def seeding_phase_mutation_assigner(self):
         return SeedingPhase2D3DMutationAssigner()
 

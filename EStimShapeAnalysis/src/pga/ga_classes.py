@@ -19,7 +19,7 @@ class Stimulus:
 
     def __init__(self, stim_id: int, mutation_type: str, mutation_magnitude: float = None, response_vector=None,
                  response_rate=None, parent_id=None, gen_id=None):
-        self.id = stim_id
+        self.id: int = stim_id
         self.mutation_type = mutation_type
         self.mutation_magnitude = mutation_magnitude
         self.response_vector = response_vector

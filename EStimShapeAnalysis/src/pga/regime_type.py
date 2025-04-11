@@ -6,6 +6,7 @@ class RegimeType(Enum):
     REGIME_ONE = "REGIME_ONE"
     REGIME_TWO = "REGIME_TWO"
     REGIME_THREE = "REGIME_THREE"
+    SIDETEST_2Dvs3D = "SIDETEST_2Dvs3D"
 
     def to_index(self):
         if self == RegimeType.REGIME_ZERO:

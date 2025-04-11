@@ -7,6 +7,7 @@ from typing import List
 from clat.util import time_util
 from mysql.connector import DatabaseError
 
+from src.pga.config.simultaneous_2dvs3d_config import SideTest
 from src.pga.ga_classes import Node, Stimulus, LineageFactory
 from src.pga.ga_classes import Phase, Lineage
 from src.pga.lineage_selection import ClassicLineageDistributor
@@ -28,6 +29,7 @@ class GeneticAlgorithm:
     response_processor: GAResponseProcessor
     num_catch_trials: int
     trial_generator: TrialGenerator
+    side_tests: List[SideTest]
 
     # Instance Variables
     experiment_id: int = field(init=False, default=None)
@@ -60,6 +62,9 @@ class GeneticAlgorithm:
             self._transition_lineages_if_needed()
 
             self._run_next_generation()
+
+            for side_test in self.side_tests:
+                side_test.run(self.experiment_id, self.lineages, self.gen_id)
         else:
             raise ValueError("gen_id must be >= 1")
 
