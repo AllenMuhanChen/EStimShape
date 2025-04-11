@@ -87,33 +87,43 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
             Long parentId = stimInfo.getParentId();
 
             //For the cases where the type is an ENUM type
-            parseZooming(stimId, stimInfo, parentId);
-            parseCatch(stimId, stimInfo);
-            parseGaStim(stimId, stimInfo, parentId, magnitude);
-            parseSideTest(stimId, stimInfo, parentId);
-
-
+            if (parseZooming(stimId, stimInfo, parentId)){
+                continue;
+            }
+            if (parseCatch(stimId, stimInfo)){
+                continue;
+            }
+            if (parseGaStim(stimId, stimInfo, parentId, magnitude)){
+                continue;
+            }
+            if (parseSideTest(stimId, stimInfo, parentId)){
+                continue;
+            } else{
+                throw new IllegalArgumentException("Stim type not recognized: " + stimInfo.getStimType());
+            }
         }
 
         System.err.println("Number of stims to generate: " + stims.size());
     }
 
-    private void parseCatch(Long stimId, StimGaInfoEntry stimInfo) {
+    private boolean parseCatch(Long stimId, StimGaInfoEntry stimInfo) {
         StimType stimType = StimType.valueOf(stimInfo.getStimType());
         if (stimType.equals(StimType.CATCH)){
             Stim stim = new CatchStim(stimId, this);
             stims.add(stim);
+            return true;
         }
+        return false;
     }
 
-    private void parseSideTest(Long stimId, StimGaInfoEntry stimInfo, Long parentId) {
+    private boolean parseSideTest(Long stimId, StimGaInfoEntry stimInfo, Long parentId) {
         Stim stim = null;
         StimType stimType;
 
         try {
             stimType = StimType.valueOf(stimInfo.getStimType());
         } catch (IllegalArgumentException e) {
-            return;
+            return false;
         }
         if (stimType.equals(StimType.SIDETEST_2Dvs3D_2D_HIGH) ||
                 stimType.equals(StimType.SIDETEST_2Dvs3D_2D_LOW) ||
@@ -122,10 +132,12 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
         ) {
             stim = new SideTestStim(stimId, this, parentId, stimType);
             stims.add(stim);
+            return true;
         }
+        return false;
     }
 
-    private void parseGaStim(Long stimId, StimGaInfoEntry stimInfo, Long parentId, double magnitude) {
+    private boolean parseGaStim(Long stimId, StimGaInfoEntry stimInfo, Long parentId, double magnitude) {
         Stim stim = null;
         StimType stimType = StimType.valueOf(stimInfo.getStimType());
         if(stimType.equals(StimType.REGIME_ZERO)){
@@ -155,10 +167,13 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
         }
         if (stim != null) {
             stims.add(stim);
+            return true;
+        } else{
+            return false;
         }
     }
 
-    private void parseZooming(Long stimId, StimGaInfoEntry stimInfo, Long parentId) {
+    private boolean parseZooming(Long stimId, StimGaInfoEntry stimInfo, Long parentId) {
         String stimTypeString = stimInfo.getStimType();
 
         // Check for "Zooming_x" pattern
@@ -169,7 +184,9 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
             System.out.println("Detected Zooming_x with x = " + zoomingValue);
 
             stims.add(new ZoomingStim(stimId, this, parentId, zoomingValue, "3D"));
+            return true;
         }
+        return false;
     }
 
     private static void addCatchLineage(List<Long> lineageIdsInThisExperiment) {
