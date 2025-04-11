@@ -64,7 +64,7 @@ class GeneticAlgorithm:
             self._run_next_generation()
 
             for side_test in self.side_tests:
-                side_test.run(self.experiment_id, self.lineages, self.gen_id)
+                side_test.run(self.lineages, self.gen_id)
         else:
             raise ValueError("gen_id must be >= 1")
 

@@ -21,10 +21,18 @@ class Simultaneous3Dvs2DConfig(TwoDThreeDGAConfig):
     """
     pass
 
+    def side_tests(self):
+        """
+        Returns a list of side tests to run.
+        """
+        return [
+            DnessSideTest(n_top_3d=2, n_top_2d=2)
+        ]
+
 
 class SideTest(Protocol):
     @abstractmethod
-    def run(self, experiment_id: int, lineages: List[Lineage], gen_id: int):
+    def run(self, lineages: List[Lineage], gen_id: int):
         pass
 
 
@@ -33,17 +41,14 @@ class DnessSideTest(SideTest):
     A side test that runs the 3Dvs2D experiment on the given lineages.
     """
 
-    def __init__(self, experiment_id: int, lineages: int, gen_id: int, n_top_3d=2, n_top_2d=2):
-        self.experiment_id = experiment_id
-        self.lineages = lineages
-        self.gen_id = gen_id
+    def __init__(self, n_top_3d=2, n_top_2d=2):
         self.n_top_3d = n_top_3d
         self.n_top_2d = n_top_2d
 
         self.stimuli_from_this_gen_2d: List[Stimulus] = []
         self.stimuli_from_this_gen_3d: List[Stimulus] = []
 
-    def run(self, experiment_id: int, lineages: List[Lineage], gen_id: int):
+    def run(self, lineages: List[Lineage], gen_id: int):
         top_2d, top_3d = self._collect_stims_to_test(gen_id, lineages)
 
         for stim_to_test in top_2d:

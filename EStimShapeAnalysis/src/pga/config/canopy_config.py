@@ -1,7 +1,8 @@
-from typing import Any
+from typing import Any, List
 
 from numpy import mean
 
+from src.pga.config.simultaneous_2dvs3d_config import SideTest
 from src.pga.spike_parsing import IntanResponseParser
 from src.pga.response_processing import GAResponseProcessor
 from src.pga.lineage_selection import ClassicLineageDistributor
@@ -63,7 +64,8 @@ class GeneticAlgorithmConfig:
             response_parser=self.make_response_parser(),
             response_processor=self.response_processor,
             num_catch_trials=self.num_catch_trials,
-            trial_generator=self.xper_trial_generator()
+            trial_generator=self.xper_trial_generator(),
+            side_tests=self.side_tests()
         )
         return ga
 
@@ -222,6 +224,9 @@ class GeneticAlgorithmConfig:
 
     def xper_trial_generator(self) -> TrialGenerator:
         return GAJarTrialGenerator(self.java_output_dir, self.allen_dist_dir)
+
+    def side_tests(self) -> List[SideTest]:
+        return []
 
 
 class GAVarParameterFetcher:
