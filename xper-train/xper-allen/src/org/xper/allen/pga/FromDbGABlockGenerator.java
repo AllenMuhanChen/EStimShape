@@ -6,6 +6,8 @@ import org.xper.allen.Stim;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 
+import org.xper.allen.pga.sidetest.SideTestStim;
+import org.xper.allen.twodvsthreed.TwoDVsThreeDStim;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
@@ -85,66 +87,89 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
             Long parentId = stimInfo.getParentId();
 
             //For the cases where the type is an ENUM type
-            try {
-                StimType stimType;
-                stimType = StimType.valueOf(stimInfo.getStimType());
+            parseZooming(stimId, stimInfo, parentId);
+            parseCatch(stimId, stimInfo);
+            parseGaStim(stimId, stimInfo, parentId, magnitude);
+            parseSideTest(stimId, stimInfo, parentId);
 
-                System.out.println("StimId: " + stimId + " StimType: " + stimType + " Magnitude: " + magnitude);
 
-                // Create a new Stim object with the stim_type and magnitude (if applicable)
-                Stim stim;
-                if(stimType.equals(StimType.REGIME_ZERO)){
-                    stim = new SeedingStim(stimId, this, "3D", color);
-                }
-                else if (stimType.equals(StimType.REGIME_ZERO_2D))
-                {
-                    stim = new SeedingStim(stimId, this, "2D", color);
-                }
-                else if(stimType.equals(StimType.REGIME_ONE)){
-                    stim = new GrowingStim(stimId, this, parentId, magnitude, "3D");
-                }
-                else if(stimType.equals(StimType.REGIME_ONE_2D)){
-                    stim = new GrowingStim(stimId, this, parentId, magnitude, "2D");
-                }
-                else if(stimType.equals(StimType.REGIME_TWO)){
-                    stim = new PruningStim(stimId, this, parentId, "3D");
-                }
-                else if(stimType.equals(StimType.REGIME_TWO_2D)){
-                    stim = new PruningStim(stimId, this, parentId, "2D");
-                }
-                else if(stimType.equals(StimType.REGIME_THREE)){
-                    stim = new LeafingStim(stimId, this, parentId, magnitude, "3D");
-                }
-                else if(stimType.equals(StimType.REGIME_THREE_2D)){
-                    stim = new LeafingStim(stimId, this, parentId, magnitude, "2D");
-                }
-                else if (stimType.equals(StimType.CATCH)){
-                    stim = new CatchStim(stimId, this);
-                }
-                else{
-                    throw new RuntimeException("Stim Type not recognized");
-                }
-                stims.add(stim);
-            //Non ENUM types
-            } catch (IllegalArgumentException e) {
-                String stimTypeString = stimInfo.getStimType();
-                System.err.println("StimType not recognized: " + stimTypeString);
-
-                // Check for "Zooming_x" pattern
-                Pattern pattern = Pattern.compile("Zooming_(\\d+)");
-                Matcher matcher = pattern.matcher(stimTypeString);
-                if (matcher.matches()) {
-                    int zoomingValue = Integer.parseInt(matcher.group(1));
-                    System.out.println("Detected Zooming_x with x = " + zoomingValue);
-
-                    stims.add(new ZoomingStim(stimId, this, parentId, zoomingValue, "3D"));
-                } else {
-                   throw new RuntimeException("Stim Type not recognized");
-                }
-            }
         }
 
         System.err.println("Number of stims to generate: " + stims.size());
+    }
+
+    private void parseCatch(Long stimId, StimGaInfoEntry stimInfo) {
+        StimType stimType = StimType.valueOf(stimInfo.getStimType());
+        if (stimType.equals(StimType.CATCH)){
+            Stim stim = new CatchStim(stimId, this);
+            stims.add(stim);
+        }
+    }
+
+    private void parseSideTest(Long stimId, StimGaInfoEntry stimInfo, Long parentId) {
+        Stim stim = null;
+        StimType stimType;
+
+        try {
+            stimType = StimType.valueOf(stimInfo.getStimType());
+        } catch (IllegalArgumentException e) {
+            return;
+        }
+        if (stimType.equals(StimType.SIDETEST_2Dvs3D_2D_HIGH) ||
+                stimType.equals(StimType.SIDETEST_2Dvs3D_2D_LOW) ||
+                stimType.equals(StimType.SIDETEST_2Dvs3D_3D_SHADE) ||
+                stimType.equals(StimType.SIDETEST_2Dvs3D_3D_SPECULAR)
+        ) {
+            stim = new SideTestStim(stimId, this, parentId, stimType);
+            stims.add(stim);
+        }
+    }
+
+    private void parseGaStim(Long stimId, StimGaInfoEntry stimInfo, Long parentId, double magnitude) {
+        Stim stim = null;
+        StimType stimType = StimType.valueOf(stimInfo.getStimType());
+        if(stimType.equals(StimType.REGIME_ZERO)){
+            stim = new SeedingStim(stimId, this, "3D", color);
+        }
+        else if (stimType.equals(StimType.REGIME_ZERO_2D))
+        {
+            stim = new SeedingStim(stimId, this, "2D", color);
+        }
+        else if(stimType.equals(StimType.REGIME_ONE)){
+            stim = new GrowingStim(stimId, this, parentId, magnitude, "3D");
+        }
+        else if(stimType.equals(StimType.REGIME_ONE_2D)){
+            stim = new GrowingStim(stimId, this, parentId, magnitude, "2D");
+        }
+        else if(stimType.equals(StimType.REGIME_TWO)){
+            stim = new PruningStim(stimId, this, parentId, "3D");
+        }
+        else if(stimType.equals(StimType.REGIME_TWO_2D)){
+            stim = new PruningStim(stimId, this, parentId, "2D");
+        }
+        else if(stimType.equals(StimType.REGIME_THREE)){
+            stim = new LeafingStim(stimId, this, parentId, magnitude, "3D");
+        }
+        else if(stimType.equals(StimType.REGIME_THREE_2D)){
+            stim = new LeafingStim(stimId, this, parentId, magnitude, "2D");
+        }
+        if (stim != null) {
+            stims.add(stim);
+        }
+    }
+
+    private void parseZooming(Long stimId, StimGaInfoEntry stimInfo, Long parentId) {
+        String stimTypeString = stimInfo.getStimType();
+
+        // Check for "Zooming_x" pattern
+        Pattern pattern = Pattern.compile("Zooming_(\\d+)");
+        Matcher matcher = pattern.matcher(stimTypeString);
+        if (matcher.matches()) {
+            int zoomingValue = Integer.parseInt(matcher.group(1));
+            System.out.println("Detected Zooming_x with x = " + zoomingValue);
+
+            stims.add(new ZoomingStim(stimId, this, parentId, zoomingValue, "3D"));
+        }
     }
 
     private static void addCatchLineage(List<Long> lineageIdsInThisExperiment) {

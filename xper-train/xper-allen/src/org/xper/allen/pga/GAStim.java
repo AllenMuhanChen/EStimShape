@@ -23,7 +23,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected final ContrastPropertyManager contrastManager;
     protected RFStrategy rfStrategy;
     protected final ColorPropertyManager colorManager;
-    protected final TexturePropertyManager textureManager;
+    protected   final TexturePropertyManager textureManager;
     protected final SizePropertyManager sizeManager;
     protected final RFStrategyPropertyManager rfStrategyManager;
     protected Long stimId;
@@ -39,6 +39,20 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         this.stimId = stimId;
         this.textureType = textureType;
 
+
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
+        colorManager = new ColorPropertyManager(jdbcTemplate);
+        textureManager = new TexturePropertyManager(jdbcTemplate);
+        sizeManager = new SizePropertyManager(jdbcTemplate);
+        rfStrategyManager = new RFStrategyPropertyManager(jdbcTemplate);
+        contrastManager = new ContrastPropertyManager(jdbcTemplate);
+    }
+
+    public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId) {
+        this.generator = generator;
+        this.parentId = parentId;
+        this.imageCenterCoords = new Coordinates2D(0, 0);
+        this.stimId = stimId;
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
         colorManager = new ColorPropertyManager(jdbcTemplate);

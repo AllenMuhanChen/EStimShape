@@ -82,4 +82,5 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
                 textureType);
     }
 
+
 }
