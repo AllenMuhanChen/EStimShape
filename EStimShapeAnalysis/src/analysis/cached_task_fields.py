@@ -99,7 +99,16 @@ class GAResponseField(StimSpecIdField):
         return "GA Response"
 
 
+class ParentIdField(StimSpecIdField):
+    def get(self, task_id) -> float:
+        stim_spec_id = self.get_cached_super(task_id, StimSpecIdField)
+        self.conn.execute("SELECT parent_id FROM StimGaInfo WHERE stim_id = %s",
+                          params=(stim_spec_id,))
+        ga_response = self.conn.fetch_all()
+        return float(ga_response[0][0])
 
+    def get_name(self):
+        return "ParentId"
 
 class ClusterResponseField(StimSpecIdField):
 

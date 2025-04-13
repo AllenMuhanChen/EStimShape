@@ -198,13 +198,8 @@ def main():
         row_col='StimGaId',
         # subgroup_col='StimGaId',
         filter_values={
-            'Texture': ['SHADE', 'SPECULAR', '2D']  # Include UNKNOWN as well
+            'Texture': ['SHADE', 'SPECULAR', '2D']
         },
-        figsize=(100,100),
-        cell_size=(2, 2),
-        border_width=5,
-        normalize_method='global',
-        color_mode='intensity',
         title='2D vs 3D Texture Response Analysis',
         # save_path=f"{context.twodvsthreed_plots_dir}/texture_by_lightness.png"
     )

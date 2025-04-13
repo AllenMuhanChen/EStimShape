@@ -15,6 +15,13 @@ from clat.pipeline.pipeline_base_classes import (
 class GroupedStimuliInputHandler(InputHandler):
     """
     Input handler that filters and prepares data for grouped stimuli visualization.
+
+    Will automatically compute aggeregated dataframe by averaging all rows' response_col that have the same
+    path_col value.
+
+    if filter_values are provided, only the rows that match the filter values will be included in the output.
+
+
     """
 
     def __init__(self,
@@ -38,6 +45,10 @@ class GroupedStimuliInputHandler(InputHandler):
         """
         Filter and organize compiled data for visualization.
         """
+        if compiled_data[self.path_col].duplicated().any():
+            column_map = {col: "first" for col in compiled_data.columns}
+            column_map[self.response_col] = 'mean'
+
         # Apply any filters
         filtered_data = compiled_data.copy()
         for col, values in self.filter_values.items():
