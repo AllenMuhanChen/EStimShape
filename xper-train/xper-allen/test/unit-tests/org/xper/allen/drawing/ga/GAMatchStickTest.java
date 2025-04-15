@@ -97,14 +97,14 @@ public class GAMatchStickTest {
         GAMatchStick partial = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 //        partial.setProperties(2.5, "2D");
 //        partial.setStimColor(new RGBColor(1.0, 1.0, 0));
-        partial.setProperties(2.5, "2D", 0.4);
-        partial.setStimColor(new RGBColor(1.0, 1.0, 0));
+        partial.setProperties(2.5, "SHADE", 0.4);
+        partial.setStimColor(new RGBColor(0.0, 1.0, 1.0));
         partial.genMatchStickFromShapeSpec(spec, new double[]{0,0,0}, spec.getmAxis().getSpecialEndComp());
         partial.setRfStrategy(RFStrategy.PARTIALLY_INSIDE);
         partial.positionShape();
-        testMatchStickDrawer.drawMStick(partial);
-        testMatchStickDrawer.drawCompMap(partial);
-//        testMatchStickDrawer.drawThumbnail(partial);
+//        testMatchStickDrawer.drawMStick(partial);
+//        testMatchStickDrawer.drawCompMap(partial);
+        testMatchStickDrawer.drawThumbnail(partial);
         ThreadUtil.sleep(10000);
 
     }
