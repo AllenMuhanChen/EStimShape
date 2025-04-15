@@ -20,7 +20,7 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
     private final int numRepeats = 5;
     private GaborSpec gaborSpec;
     public static final List<Double> frequencies = Arrays.asList(0.5, 1.0, 2.0, 4.0);
-    public static final List<Double> orientations = Arrays.asList(0.0, 45.0, 90.0, 135.0);
+    //    public static final List<Double> orientations = Arrays.asList(0.0, 45.0, 90.0, 135.0);
     public static final List<Double> mixedPhases = Arrays.asList(0.0, 0.5);
 
     public static void main(String[] args) {
@@ -28,6 +28,7 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
                 FileUtil.loadConfigClass("experiment.config_class"),
                 IsoGaborConfig.class
         );
+
         IsoGaborTrialGenerator gen = context.getBean(IsoGaborTrialGenerator.class);
         gen.generate();
     }
@@ -76,16 +77,16 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
         gaborSpec.setYCenter(rfInfo.getCenter().getY());
         gaborSpec.setSize((rfInfo.getRadius()*2.0)*2);
         gaborSpec.setPhase(0);
+        gaborSpec.setOrientation(stimSpec.getOrientation());
         gaborSpec.setAnimation(false);
 
         // Pure Gabors
         for (Double frequency : frequencies) {
-            for (Double orientation: orientations) {
-                gaborSpec.setFrequency(frequency);
-                gaborSpec.setOrientation(orientation);
-                addIsochromaticTrials();
-                addIsoluminantTrials();
-            }
+            gaborSpec.setFrequency(frequency);
+            gaborSpec.setOrientation(gaborSpec.getOrientation());
+            addIsochromaticTrials();
+            addIsoluminantTrials();
+
         }
 
 //        addMixedGaborTrials();

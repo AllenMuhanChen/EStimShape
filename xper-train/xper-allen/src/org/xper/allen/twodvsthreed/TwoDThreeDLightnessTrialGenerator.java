@@ -25,7 +25,7 @@ public class TwoDThreeDLightnessTrialGenerator extends TwoDVsThreeDTrialGenerato
         int startRank = 1;
         int endRank = 3;
 
-        // Parse command line arguments if provided
+        // Parse command line arguments if providedght
         if (args.length >= 1) {
             try {
                 startRank = Integer.parseInt(args[0]);

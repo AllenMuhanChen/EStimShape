@@ -4,6 +4,7 @@ from enum import Enum
 import time
 
 from abc import abstractmethod
+from numpy.ma import mean
 
 from typing import Protocol, List
 
@@ -11,6 +12,7 @@ from clat.util import time_util
 from src.pga.config.twod_threed_config import TwoDThreeDGAConfig
 from src.pga.ga_classes import Lineage, Stimulus, SideTest
 from src.pga.mock.alexnet_mock_ga import AlexNetMockResponseParser
+from src.pga.response_processing import GAResponseProcessor
 
 
 class Simultaneous3Dvs2DConfig(TwoDThreeDGAConfig):
@@ -41,7 +43,7 @@ class Simultaneous3Dvs2DConfig(TwoDThreeDGAConfig):
         if self.is_alexnet_mock:
             return AlexNetMockResponseParser(db_util=self.db_util)
         else:
-            return super().make_response_processor()
+            return super().make_response_parser()
 
 
 class DnessSideTest(SideTest):
@@ -55,6 +57,8 @@ class DnessSideTest(SideTest):
 
         self.stimuli_from_this_gen_2d: List[Stimulus] = []
         self.stimuli_from_this_gen_3d: List[Stimulus] = []
+
+        self.lineages_for_stim = {}
 
     def run(self, lineages: List[Lineage], gen_id: int):
         top_2d, top_3d = self._collect_stims_to_test(gen_id, lineages)
@@ -77,7 +81,8 @@ class DnessSideTest(SideTest):
                     if not is_side_test_stimulus(stim_to_test):
                         if stim_to_test.response_rate is not None:
                             self._assign_2d_or_3d(stim_to_test, lineage)
-                            stim_to_test.lineage = lineage  # create new reference to containing lineage to use later
+                            self.lineages_for_stim[stim_to_test.id] = lineage
+
 
         # Now we have all stimuli from this generation, we can extract top N
         # 2D and top N 3D stimuli
@@ -93,8 +98,8 @@ class DnessSideTest(SideTest):
         )[:self.n_top_3d]
         return top_2d, top_3d
 
-    @staticmethod
-    def _generate_side_test_stim(stim_to_test, mutation_type: SIDETEST_2Dvs3D_Type, gen_id):
+
+    def _generate_side_test_stim(self, stim_to_test, mutation_type: SIDETEST_2Dvs3D_Type, gen_id):
         """
         Generate a new stimulus from the given stimulus with the given mutation type.
         Then will add this stimulus to the Lineage's stimuli list and tree structure.
@@ -106,7 +111,7 @@ class DnessSideTest(SideTest):
                                 parent_id=stim_to_test.id
                                 )
         time.sleep(0.001)
-        lineage = stim_to_test.lineage
+        lineage = self.lineages_for_stim[stim_to_test.id]
         lineage.tree.add_child_to(stim_to_test, new_stimulus)
         lineage.stimuli.append(new_stimulus)
 

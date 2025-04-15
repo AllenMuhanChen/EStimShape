@@ -137,7 +137,7 @@ def main():
     """Main function to run the 2D vs 3D analysis pipeline."""
 
     # Set up database connection and date
-    date = '2025-04-10'
+    date = '2025-04-15'
     conn = Connection(context.twodvsthreed_database)
 
     # Collect trials
@@ -177,7 +177,7 @@ def main():
     # Manual aggregation by StimId
     # ---------------
     # Group by StimId and calculate aggregated values
-    aggregation_cols = ['StimSpecId', 'Texture', 'Type', 'ThumbnailPath']
+    aggregation_cols = ['StimSpecId', 'Texture', 'RGB', 'ThumbnailPath']
     if 'StimGaId' in data.columns:
         aggregation_cols.append('StimGaId')
 
@@ -194,9 +194,9 @@ def main():
     visualize_module = create_grouped_stimuli_module(
         response_col='Cluster Response',
         path_col='ThumbnailPath',
-        col_col='Type',
-        row_col='StimGaId',
-        # subgroup_col='StimGaId',
+        col_col='RGB',
+        row_col='Texture',
+        subgroup_col='StimGaId',
         filter_values={
             'Texture': ['SHADE', 'SPECULAR', '2D']
         },
