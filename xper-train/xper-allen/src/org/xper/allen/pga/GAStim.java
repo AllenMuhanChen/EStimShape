@@ -109,6 +109,8 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
                     String originalTextureType = textureType;
                     boolean originalDness = is2d;
                     textureType = underlyingTexture;
+
+
                     is2d = false;
                     mStick = createMStick(); //Make 3D version
                     AllenMStickSpec mStickSpec = new AllenMStickSpec();

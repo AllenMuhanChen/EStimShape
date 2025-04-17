@@ -85,28 +85,18 @@ public class AllenDrawingManager implements Drawable {
 	}
 
 	/**
-	 * Uses a stencil buffer to keep track of the pixels that were drawn to
-	 * when we draw the matchstick. Then we read the color buffer where the stencil
-	 * buffer is 1 and calculate the average color.
+	 * Calculates the average color of a rendered matchstick, excluding background pixels.
+	 * Background pixels are identified as pure black (0,0,0).
 	 *
-	 * Average color is then converted to HSV and the value is returned.
-	 * @param mStick
-	 * @return
+	 * @param mStick The matchstick object to render and analyze
+	 * @return The average brightness (V in HSV) of the non-background pixels
 	 */
 	public double calculateAverageContrast(AllenMatchStick mStick) {
-		// Set up stencil buffer
-		GL11.glEnable(GL11.GL_STENCIL_TEST);
-		GL11.glClearStencil(0);
-		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
+		// Clear the screen to pure black
+		GL11.glClearColor(0f, 0f, 0f, 0f);
+		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
 
-		// Configure stencil operations
-		// Write 1 to stencil buffer wherever we draw
-		GL11.glStencilFunc(GL11.GL_ALWAYS, 1, 0xFF);
-		GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE);
-		GL11.glStencilMask(0xFF);
-
-		// Draw your shape - this will mark "1" in the stencil buffer
-		// wherever the shape is drawn
+		// Draw the matchstick with its original texture
 		renderer.draw(new Drawable() {
 			@Override
 			public void draw() {
@@ -116,11 +106,10 @@ public class AllenDrawingManager implements Drawable {
 				mStick.setTextureType(originalTextureType);
 			}
 		});
-		window.swapBuffers();
 
-		// Disable stencil writing
-		GL11.glStencilMask(0x00);
-		GL11.glDisable(GL11.GL_STENCIL_TEST);
+		// Ensure all rendering is complete
+		window.swapBuffers();
+		ThreadUtil.sleep(100);
 
 		int width = this.width;
 		int height = this.height;
@@ -130,27 +119,22 @@ public class AllenDrawingManager implements Drawable {
 				.order(ByteOrder.nativeOrder());
 		GL11.glReadPixels(0, 0, width, height, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, colorBuffer);
 
-		// Read the stencil buffer - gives us a mask for the pixels we want to consider
-		ByteBuffer stencilBuffer = ByteBuffer.allocateDirect(width * height)
-				.order(ByteOrder.nativeOrder());
-		GL11.glReadPixels(0, 0, width, height, GL11.GL_STENCIL_INDEX, GL11.GL_UNSIGNED_BYTE, stencilBuffer);
-
 		long redSum = 0, greenSum = 0, blueSum = 0;
 		int pixelCount = 0;
 
-		// Use stencil buffer to identify foreground pixels
+		// Process pixels
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
-				int stencilIndex = y * width + x;
-				int colorIndex = stencilIndex * 4;
+				int index = (y * width + x) * 4;
 
-				// Check stencil value (1 = foreground, 0 = background)
-				byte stencilValue = stencilBuffer.get(stencilIndex);
-				if (stencilValue > 0) {
-					int red = colorBuffer.get(colorIndex) & 0xFF;
-					int green = colorBuffer.get(colorIndex + 1) & 0xFF;
-					int blue = colorBuffer.get(colorIndex + 2) & 0xFF;
+				int red = colorBuffer.get(index) & 0xFF;
+				int green = colorBuffer.get(index + 1) & 0xFF;
+				int blue = colorBuffer.get(index + 2) & 0xFF;
 
+				// Consider a pixel as foreground if it's not pure black
+				// We could use a small threshold here (e.g., red + green + blue > 3)
+				// to account for potential noise or anti-aliasing
+				if (red > 0 || green > 0 || blue > 0) {
 					redSum += red;
 					greenSum += green;
 					blueSum += blue;
@@ -158,6 +142,8 @@ public class AllenDrawingManager implements Drawable {
 				}
 			}
 		}
+
+		System.out.println("Pixel Count: " + pixelCount);
 
 		// Calculate average color
 		float[] avgColor = new float[3];
