@@ -102,18 +102,26 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
             nTries++;
             try {
                 setProperties();
-                if (!useAverageContrast || !is2d) {
+                if (!useAverageContrast) {
                     mStick = createMStick();
                 } else {
-                    //TODO: weird hack to get around that we have to draw something 3D first to get the average contrast
+                    //weird hack to get around that we have to draw something 3D first to get the average contrast
+                    String originalTextureType = textureType;
+                    boolean originalDness = is2d;
+                    textureType = underlyingTexture;
+                    is2d = false;
                     mStick = createMStick(); //Make 3D version
                     AllenMStickSpec mStickSpec = new AllenMStickSpec();
                     mStickSpec.setMStickInfo(mStick, false);
+
                     contrast = generator.getPngMaker().getWindow().calculateAverageContrast(mStick);
 
+                    textureType = originalTextureType;
+                    is2d = originalDness;
                     mStick = (T) new GAMatchStick(mStick.getMassCenter());
                     mStick.setRf(generator.getReceptiveField());
                     mStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
+                    mStick.setStimColor(color);
                     mStick.genMatchStickFromShapeSpec(mStickSpec, new double[]{0.0,0.0,0.0});
 
                 }
