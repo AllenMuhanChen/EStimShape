@@ -14,11 +14,9 @@ import static org.xper.allen.pga.GrowingStim.initializeFromFile;
 
 public class SideTestStim extends GAStim<GAMatchStick, AllenMStickData> {
 
-    private final StimType stimType;
 
-    public SideTestStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, StimType stimType) {
+    public SideTestStim(Long stimId, FromDbGABlockGenerator generator, Long parentId) {
         super(stimId, generator, parentId);
-        this.stimType = stimType;
     }
 
     @Override
@@ -33,21 +31,21 @@ public class SideTestStim extends GAStim<GAMatchStick, AllenMStickData> {
 
     @Override
     protected void chooseTextureType() {
-        if (stimType == StimType.SIDETEST_2Dvs3D_3D_SHADE) {
-            this.textureType = "SHADE";
-        }
-        else if (stimType == StimType.SIDETEST_2Dvs3D_3D_SPECULAR) {
-            this.textureType = "SPECULAR";
-        }
-        else if (stimType == StimType.SIDETEST_2Dvs3D_2D_LOW || stimType == StimType.SIDETEST_2Dvs3D_2D_HIGH){
+        // We just have SIDETEST_2Dvs3D instead of variations. Might not even need these to be HONEST.
+        if (isParent2D()) {
+            // We want to make a 3D stimulus from a 2D parent stimulus.
+            this.is2d = false;
+            this.textureType = underlyingTextureManager.readProperty(parentId);
+        } else {
+            // We want to make a 2D stimulus from a 3D parent stimulus.
+            this.is2d = true;
             this.textureType = "2D";
-        }
-        else {
-            throw new IllegalArgumentException("Unknown stimType: " + stimType + " for SideTestStim. You shouldn't" +
-                    "Give this stimType to this class.");
         }
     }
 
+    private boolean isParent2D() {
+        return this.textureManager.readProperty(parentId).equals("2D");
+    }
 
     @Override
     protected GAMatchStick createMStick() {
@@ -55,7 +53,7 @@ public class SideTestStim extends GAStim<GAMatchStick, AllenMStickData> {
 
         GAMatchStick mStick = new GAMatchStick(centerOfMass);
         mStick.setRf(generator.getReceptiveField());
-        mStick.setProperties(sizeDiameterDegrees, textureType, contrast);
+        mStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
         mStick.setStimColor(color);
         mStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
         return mStick;

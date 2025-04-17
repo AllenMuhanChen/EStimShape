@@ -9,7 +9,7 @@ public class SeedingStim extends GAStim<GAMatchStick, AllenMStickData> {
     private static final Random random = new Random();
 
     public SeedingStim(Long stimId, FromDbGABlockGenerator generator, String textureType, RGBColor color) {
-        super(stimId, generator, 0L, textureType);
+        super(stimId, generator, 0L, textureType, true);
         this.color = color;
         this.textureType = textureType;
     }
@@ -52,8 +52,7 @@ public class SeedingStim extends GAStim<GAMatchStick, AllenMStickData> {
                 rfStrategy);
 
 
-        mStick.setProperties(sizeDiameterDegrees, textureType, contrast);
-        mStick.setContrast(contrast);
+        mStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
         mStick.setStimColor(color);
 
         mStick.genMatchStickRand();

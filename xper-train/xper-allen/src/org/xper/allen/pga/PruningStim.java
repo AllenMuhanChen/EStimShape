@@ -4,7 +4,7 @@ import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 
 public class PruningStim extends GAStim<PruningMatchStick, PruningMatchStick.PruningMStickData>{
     public PruningStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, String textureType) {
-        super(stimId, generator, parentId, textureType);
+        super(stimId, generator, parentId, textureType, true);
     }
 
     @Override

@@ -7,7 +7,6 @@ import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 
 import org.xper.allen.pga.sidetest.SideTestStim;
-import org.xper.allen.twodvsthreed.TwoDVsThreeDStim;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
@@ -130,7 +129,7 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
                 stimType.equals(StimType.SIDETEST_2Dvs3D_3D_SHADE) ||
                 stimType.equals(StimType.SIDETEST_2Dvs3D_3D_SPECULAR)
         ) {
-            stim = new SideTestStim(stimId, this, parentId, stimType);
+            stim = new SideTestStim(stimId, this, parentId);
             stims.add(stim);
             return true;
         }

@@ -41,43 +41,21 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected String underlyingTexture;
 
     /**
-     * Constructor for 2D/3D stim with preserved average contrast
-     * @param generator
-     * @param parentId
-     * @param stimId
-     * @param is2d
-     */
-    public GAStim(FromDbGABlockGenerator generator, Long parentId, Long stimId, boolean is2d) {
-        this.generator = generator;
-        this.parentId = parentId;
-        this.stimId = stimId;
-        this.is2d = is2d;
-        this.imageCenterCoords = new Coordinates2D(0, 0);
-        this.useAverageContrast = true;
-
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
-        colorManager = new ColorPropertyManager(jdbcTemplate);
-        textureManager = new TexturePropertyManager(jdbcTemplate);
-        sizeManager = new SizePropertyManager(jdbcTemplate);
-        rfStrategyManager = new RFStrategyPropertyManager(jdbcTemplate);
-        contrastManager = new ContrastPropertyManager(jdbcTemplate);
-        underlyingTextureManager = new UnderlyingTexturePropertyManager(jdbcTemplate);
-    }
-
-    /**
      * Original constructor, deprecated
+     *
      * @param stimId
      * @param generator
      * @param parentId
      * @param textureType
+     * @param useAverageContrast
      */
-    public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, String textureType) {
+    public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, String textureType, boolean useAverageContrast) {
         this.generator = generator;
         this.parentId = parentId;
         this.imageCenterCoords = new Coordinates2D(0, 0);
         this.stimId = stimId;
         this.textureType = textureType;
-        this.useAverageContrast = false;
+        this.useAverageContrast = useAverageContrast;
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
         colorManager = new ColorPropertyManager(jdbcTemplate);
@@ -285,15 +263,19 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         switch (textureType){
             case "2D":
                 textureType = "2D";
+                is2d = true;
                 break;
             case "3D":
                 textureType = Math.random() < 0.5 ? "SHADE" : "SPECULAR";
+                is2d = false;
                 break;
             case "SHADE":
                 textureType = "SHADE";
+                is2d = false;
                 break;
             case "SPECULAR":
                 textureType = "SPECULAR";
+                is2d = false;
                 break;
             default:
                 throw new IllegalArgumentException("Invalid texture type: " + textureType);

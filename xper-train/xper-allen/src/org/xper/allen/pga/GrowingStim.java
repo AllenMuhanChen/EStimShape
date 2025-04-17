@@ -11,7 +11,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     private static final Random random = new Random();
 
     public GrowingStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double magnitude, String textureType) {
-        super(stimId, generator, parentId, textureType);
+        super(stimId, generator, parentId, textureType, true);
         this.magnitude = magnitude;
     }
 
@@ -49,7 +49,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     protected GrowingMatchStick createMStick() {
         //Generate MStick
         GrowingMatchStick parentMStick = initializeFromFile(generator.getReceptiveField(), textureType);
-        parentMStick.setProperties(sizeDiameterDegrees, textureType, contrast);
+        parentMStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
         parentMStick.genMatchStickFromFile(
                 generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 
@@ -61,7 +61,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
                 rfStrategy,
                 textureType);
 
-        childMStick.setProperties(sizeDiameterDegrees, textureType, contrast);
+        childMStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
         childMStick.setStimColor(color);
         childMStick.genGrowingMatchStick(parentMStick, magnitude);
         return childMStick;
