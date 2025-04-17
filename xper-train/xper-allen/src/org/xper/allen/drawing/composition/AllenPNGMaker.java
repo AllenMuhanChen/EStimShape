@@ -356,4 +356,8 @@ public class AllenPNGMaker{
 	public void setNoiseMapper(NAFCNoiseMapper noiseMapper) {
 		this.noiseMapper = noiseMapper;
 	}
+
+	public AllenDrawingManager getWindow() {
+		return window;
+	}
 }

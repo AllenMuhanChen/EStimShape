@@ -27,6 +27,7 @@ import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.stick.*;
 import org.xper.drawing.RGBColor;
+import org.xper.rfplot.drawing.png.HSLUtils;
 
 /**
  * MatchStick class with ability to make deep clones and manipulations of shapes
@@ -753,71 +754,6 @@ public class AllenMatchStick extends MatchStick {
 		getObj1().drawVectTranslucent(0.5F);
 	}
 
-	/**
-	 * Calculates average RGB color of the rendered object in the framebuffer
-	 * while ignoring the background color.
-	 *
-	 * @param backgroundColor The background color to ignore when calculating average
-	 * @return float[] containing the average RGB values [r, g, b] in range 0.0-1.0
-	 */
-	public float[] calculateAverageColor(float[] backgroundColor) {
-		int width = 500;
-		int height = 500;
-
-		// Allocate buffer for pixel data (RGBA format)
-		ByteBuffer frameBuffer = ByteBuffer.allocateDirect(width * height * 4)
-				.order(ByteOrder.nativeOrder());
-
-		// Read pixels from framebuffer
-		GL11.glReadPixels(0, 0, width, height, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, frameBuffer);
-
-		long redSum = 0, greenSum = 0, blueSum = 0;
-		int pixelCount = 0;
-
-		// Background color threshold - for determining if a pixel is background
-		// Adding small epsilon for floating point comparison
-		float bgThreshold = 0.05f;
-
-		// Process each pixel
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
-				int index = (y * width + x) * 4;
-
-				int red = frameBuffer.get(index) & 0xFF;
-				int green = frameBuffer.get(index + 1) & 0xFF;
-				int blue = frameBuffer.get(index + 2) & 0xFF;
-				int alpha = frameBuffer.get(index + 3) & 0xFF;
-
-				// Skip background pixels (those matching background color within threshold)
-				float normalizedRed = red / 255.0f;
-				float normalizedGreen = green / 255.0f;
-				float normalizedBlue = blue / 255.0f;
-
-				boolean isBackground =
-						Math.abs(normalizedRed - backgroundColor[0]) < bgThreshold &&
-								Math.abs(normalizedGreen - backgroundColor[1]) < bgThreshold &&
-								Math.abs(normalizedBlue - backgroundColor[2]) < bgThreshold;
-
-				// Only include non-background pixels with sufficient alpha
-				if (!isBackground && alpha > 10) {
-					redSum += red;
-					greenSum += green;
-					blueSum += blue;
-					pixelCount++;
-				}
-			}
-		}
-
-		// Calculate average, avoiding division by zero
-		float[] avgColor = new float[3];
-		if (pixelCount > 0) {
-			avgColor[0] = (float)redSum / (pixelCount * 255.0f);
-			avgColor[1] = (float)greenSum / (pixelCount * 255.0f);
-			avgColor[2] = (float)blueSum / (pixelCount * 255.0f);
-		}
-
-		return avgColor;
-	}
 
 
 	public void centerShapeAtPoint(int decidedCenterTube, Coordinates2D coords) {

@@ -98,16 +98,17 @@ public class GAMatchStickTest {
 //        partial.setProperties(2.5, "2D");
 //        partial.setStimColor(new RGBColor(1.0, 1.0, 0));
         partial.setProperties(2.5, "2D", 0.4);
-        partial.setStimColor(new RGBColor(0.0, 1.0, 1.0));
+        RGBColor color = new RGBColor(0.0, 1.0, 1.0);
+        partial.setStimColor(color);
         partial.genMatchStickFromShapeSpec(spec, new double[]{0,0,0}, spec.getmAxis().getSpecialEndComp());
         partial.setRfStrategy(RFStrategy.PARTIALLY_INSIDE);
         partial.positionShape();
 
         testMatchStickDrawer.drawMStick(partial);
+        double averageContrast = testMatchStickDrawer.calculateAverageContrast(partial);
+        System.out.println("Average contrast: " + averageContrast);
 //        testMatchStickDrawer.drawCompMap(partial);
 //        testMatchStickDrawer.drawThumbnail(partial);
-        float[] averageColor = partial.calculateAverageColor(new float[]{0, 0, 0});
-        System.out.println("Average color: " + averageColor[0] + ", " + averageColor[1] + ", " + averageColor[2]);
         ThreadUtil.sleep(10000);
 
     }

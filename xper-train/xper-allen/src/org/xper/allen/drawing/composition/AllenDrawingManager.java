@@ -3,6 +3,8 @@ package org.xper.allen.drawing.composition;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -19,6 +21,8 @@ import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.drawing.composition.noisy.NoiseMapCalculation;
 import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.drawing.ga.Thumbnailable;
+import org.xper.drawing.RGBColor;
+import org.xper.rfplot.drawing.png.HSLUtils;
 import org.xper.util.ThreadUtil;
 
 import javax.imageio.ImageIO;
@@ -79,6 +83,83 @@ public class AllenDrawingManager implements Drawable {
 
 		GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
 	}
+
+	public double calculateAverageContrast(AllenMatchStick mStick) {
+		// Set up stencil buffer
+		GL11.glEnable(GL11.GL_STENCIL_TEST);
+		GL11.glClearStencil(0);
+		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
+
+		// Configure stencil operations
+		// Write 1 to stencil buffer wherever we draw
+		GL11.glStencilFunc(GL11.GL_ALWAYS, 1, 0xFF);
+		GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE);
+		GL11.glStencilMask(0xFF);
+
+		// Draw your shape - this will mark "1" in the stencil buffer
+		// wherever the shape is drawn
+		renderer.draw(new Drawable() {
+			@Override
+			public void draw() {
+				mStick.draw();
+			}
+		});
+
+		// Disable stencil writing
+		GL11.glStencilMask(0x00);
+		GL11.glDisable(GL11.GL_STENCIL_TEST);
+
+		int width = this.width;
+		int height = this.height;
+
+		// Read the color buffer
+		ByteBuffer colorBuffer = ByteBuffer.allocateDirect(width * height * 4)
+				.order(ByteOrder.nativeOrder());
+		GL11.glReadPixels(0, 0, width, height, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, colorBuffer);
+
+		// Read the stencil buffer
+		ByteBuffer stencilBuffer = ByteBuffer.allocateDirect(width * height)
+				.order(ByteOrder.nativeOrder());
+		GL11.glReadPixels(0, 0, width, height, GL11.GL_STENCIL_INDEX, GL11.GL_UNSIGNED_BYTE, stencilBuffer);
+
+		long redSum = 0, greenSum = 0, blueSum = 0;
+		int pixelCount = 0;
+
+		// Use stencil buffer to identify foreground pixels
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				int stencilIndex = y * width + x;
+				int colorIndex = stencilIndex * 4;
+
+				// Check stencil value (1 = foreground, 0 = background)
+				byte stencilValue = stencilBuffer.get(stencilIndex);
+				if (stencilValue > 0) {
+					int red = colorBuffer.get(colorIndex) & 0xFF;
+					int green = colorBuffer.get(colorIndex + 1) & 0xFF;
+					int blue = colorBuffer.get(colorIndex + 2) & 0xFF;
+
+					redSum += red;
+					greenSum += green;
+					blueSum += blue;
+					pixelCount++;
+				}
+			}
+		}
+
+		// Calculate average color
+		float[] avgColor = new float[3];
+		if (pixelCount > 0) {
+			avgColor[0] = (float)redSum / (pixelCount * 255.0f);
+			avgColor[1] = (float)greenSum / (pixelCount * 255.0f);
+			avgColor[2] = (float)blueSum / (pixelCount * 255.0f);
+		}
+
+		float[] hsv = HSLUtils.rgbToHSV(new RGBColor(avgColor[0], avgColor[1], avgColor[2]));
+		float value = hsv[2];
+
+		return value;
+	}
+
 
 	/**
 	 * Draw single noise map using window that is already open.

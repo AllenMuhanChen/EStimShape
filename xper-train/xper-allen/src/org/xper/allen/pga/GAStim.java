@@ -31,6 +31,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected RGBColor color;
     protected double sizeDiameterDegrees;
     protected double contrast;
+    private T mStick;
 
     public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, String textureType) {
         this.generator = generator;
@@ -70,7 +71,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     @Override
     public void writeStim() {
         int nTries = 0;
-        T mStick = null;
+        mStick = null;
         int maxTries = 100;
         while(nTries < maxTries) {
             nTries++;
@@ -142,7 +143,10 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     }
 
     protected void chooseContrast() {
-        contrast = contrastManager.readProperty(parentId);
+//        contrast = contrastManager.readProperty(parentId);
+
+        contrast = generator.getPngMaker().getWindow().calculateAverageContrast(mStick);
+
     }
 
     public static boolean is2D(String textureType) {

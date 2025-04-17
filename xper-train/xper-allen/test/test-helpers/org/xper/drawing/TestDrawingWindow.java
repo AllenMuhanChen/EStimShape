@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TestDrawingWindow {
-    BaseWindow window;
+    public BaseWindow window;
     public PerspectiveRenderer renderer;
     private double dpmm = 3.2091;
 
