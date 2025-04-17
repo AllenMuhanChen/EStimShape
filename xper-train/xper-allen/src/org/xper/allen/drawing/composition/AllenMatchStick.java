@@ -38,6 +38,8 @@ import org.xper.rfplot.drawing.png.HSLUtils;
 public class AllenMatchStick extends MatchStick {
 	//TODO: this should really be moved to a sub class perhaps.
 	protected RFStrategy rfStrategy;
+	public boolean is2D; //else is 3d.
+	public String underlyingTexture; //if 2d, this is what texture is used to calculate averageContrast
 
 	@Override
 	public boolean equals(Object obj) {
@@ -4197,7 +4199,50 @@ public class AllenMatchStick extends MatchStick {
 
 		//TEXTURE
 		setTextureType(shade);
+	}
 
+	/**
+	 * setProperties to be used when wanted to use averageContrast calculated from 3D shape version.
+	 * @param maxSizeDiameterDegrees
+	 * @param textureForContrastCalculation
+	 * @param is2D
+	 * @param contrast
+	 */
+	public void setProperties(double maxSizeDiameterDegrees, String textureForContrastCalculation, boolean is2D, double contrast) {
+		this.is2D = is2D;
+		//OBJECT PROPERTIES
+		//SETTING SIZES
+		/**
+		 * With this strategy of scale setting, we set our maxImageDimensionDegrees to
+		 * twice about what we want the actual size of our stimuli to be. Then we try to draw the stimuli
+		 * to be approx half the size.
+		 */
+//        double scale = maxImageDimensionDegrees /1.5;
+		double minScaleDegrees = maxSizeDiameterDegrees /2;
+		setScale(minScaleDegrees, maxSizeDiameterDegrees);
+
+		//COLOR
+		RGBColor white = new RGBColor(1,1,1);
+		setStimColor(white);
+
+		if (is2D){
+			setTextureType("2D");
+			setUnderlyingTexture(textureForContrastCalculation);
+		} else{
+			setTextureType(textureForContrastCalculation);
+			setUnderlyingTexture(textureForContrastCalculation);
+		}
+
+		this.contrast = contrast;
+	}
+
+
+	public String getUnderlyingTexture() {
+		return underlyingTexture;
+	}
+
+	public void setUnderlyingTexture(String underlyingTexture) {
+		this.underlyingTexture = underlyingTexture;
 	}
 
 	/**

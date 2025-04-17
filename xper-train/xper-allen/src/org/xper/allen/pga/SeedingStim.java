@@ -36,9 +36,14 @@ public class SeedingStim extends GAStim<GAMatchStick, AllenMStickData> {
     }
 
     @Override
-    protected void chooseContrast() {
-        contrast = Math.random() < 0.5 ? 0.4 : 1.0;
+    protected void chooseUnderlyingTexture() {
+        if (is2d){
+            this.underlyingTexture = Math.random() < 0.5 ? "SHADE" : "SPECULAR";
+        } else{
+            this.underlyingTexture = this.textureType;
+        }
     }
+
 
     @Override
     protected GAMatchStick createMStick() {

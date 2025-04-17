@@ -20,26 +20,64 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected final FromDbGABlockGenerator generator;
     protected final Long parentId;
     protected final Coordinates2D imageCenterCoords;
-    protected final ContrastPropertyManager contrastManager;
     protected RFStrategy rfStrategy;
+
+    protected final ContrastPropertyManager contrastManager;
     protected final ColorPropertyManager colorManager;
     protected   final TexturePropertyManager textureManager;
     protected final SizePropertyManager sizeManager;
     protected final RFStrategyPropertyManager rfStrategyManager;
+    protected final UnderlyingTexturePropertyManager underlyingTextureManager;
+
     protected Long stimId;
     protected String textureType;
     protected RGBColor color;
     protected double sizeDiameterDegrees;
     protected double contrast;
     private T mStick;
+    // For swapping between 2D/3D textures with preserved average contrast
+    protected boolean useAverageContrast;
+    protected boolean is2d;
+    protected String underlyingTexture;
 
+    /**
+     * Constructor for 2D/3D stim with preserved average contrast
+     * @param generator
+     * @param parentId
+     * @param stimId
+     * @param is2d
+     */
+    public GAStim(FromDbGABlockGenerator generator, Long parentId, Long stimId, boolean is2d) {
+        this.generator = generator;
+        this.parentId = parentId;
+        this.stimId = stimId;
+        this.is2d = is2d;
+        this.imageCenterCoords = new Coordinates2D(0, 0);
+        this.useAverageContrast = true;
+
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
+        colorManager = new ColorPropertyManager(jdbcTemplate);
+        textureManager = new TexturePropertyManager(jdbcTemplate);
+        sizeManager = new SizePropertyManager(jdbcTemplate);
+        rfStrategyManager = new RFStrategyPropertyManager(jdbcTemplate);
+        contrastManager = new ContrastPropertyManager(jdbcTemplate);
+        underlyingTextureManager = new UnderlyingTexturePropertyManager(jdbcTemplate);
+    }
+
+    /**
+     * Original constructor, deprecated
+     * @param stimId
+     * @param generator
+     * @param parentId
+     * @param textureType
+     */
     public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, String textureType) {
         this.generator = generator;
         this.parentId = parentId;
         this.imageCenterCoords = new Coordinates2D(0, 0);
         this.stimId = stimId;
         this.textureType = textureType;
-
+        this.useAverageContrast = false;
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
         colorManager = new ColorPropertyManager(jdbcTemplate);
@@ -47,13 +85,21 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         sizeManager = new SizePropertyManager(jdbcTemplate);
         rfStrategyManager = new RFStrategyPropertyManager(jdbcTemplate);
         contrastManager = new ContrastPropertyManager(jdbcTemplate);
+        underlyingTextureManager = new UnderlyingTexturePropertyManager(jdbcTemplate);
     }
 
+    /**
+     * Constructor for SideTest
+     * @param stimId
+     * @param generator
+     * @param parentId
+     */
     public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId) {
         this.generator = generator;
         this.parentId = parentId;
         this.imageCenterCoords = new Coordinates2D(0, 0);
         this.stimId = stimId;
+        this.useAverageContrast = true;
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
         colorManager = new ColorPropertyManager(jdbcTemplate);
@@ -61,6 +107,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         sizeManager = new SizePropertyManager(jdbcTemplate);
         rfStrategyManager = new RFStrategyPropertyManager(jdbcTemplate);
         contrastManager = new ContrastPropertyManager(jdbcTemplate);
+        underlyingTextureManager = new UnderlyingTexturePropertyManager(jdbcTemplate);
     }
 
     @Override
@@ -119,6 +166,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         chooseSize();
         chooseTextureType();
         chooseColor();
+        chooseUnderlyingTexture();
         chooseContrast();
 
         if (rfStrategy == null) {
@@ -135,17 +183,27 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         }
     }
 
-
     protected abstract void chooseRFStrategy();
 
     protected void chooseColor() {
         color = colorManager.readProperty(parentId);
     }
 
+    protected void chooseUnderlyingTexture() {
+        if (is2d){
+            this.underlyingTexture = underlyingTextureManager.readProperty(parentId);
+        } else{
+            this.underlyingTexture = textureType; //not needed to draw in this 3d case, but we want to pass this along in genetic info
+        }
+    }
+
     protected void chooseContrast() {
         // By default, set contrast to average contrast of 3D image.
-        contrast = generator.getPngMaker().getWindow().calculateAverageContrast(mStick);
-
+        if (useAverageContrast)
+            contrast = generator.getPngMaker().getWindow().calculateAverageContrast(mStick);
+        else{
+            contrast = contrastManager.readProperty(parentId);
+        }
     }
 
     public static boolean is2D(String textureType) {
@@ -167,6 +225,8 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         sizeManager.writeProperty(stimId, (float) sizeDiameterDegrees);
         rfStrategyManager.writeProperty(stimId, rfStrategy);
         contrastManager.writeProperty(stimId, contrast);
+        underlyingTextureManager.writeProperty(stimId, underlyingTexture);
+
     }
 
     protected T createRandMStick() {

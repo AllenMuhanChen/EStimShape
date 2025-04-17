@@ -32,14 +32,6 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     }
 
 
-    @Override
-    protected void chooseContrast(){
-        contrast = contrastManager.readProperty(parentId);
-        if (is2D(textureType)) {
-            mutateContrast();
-        }
-    }
-
     private void mutateContrast() {
         boolean isMutate = Math.random() < magnitude;
         if (isMutate){

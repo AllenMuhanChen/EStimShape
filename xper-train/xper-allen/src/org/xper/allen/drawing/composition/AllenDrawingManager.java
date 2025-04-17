@@ -110,9 +110,10 @@ public class AllenDrawingManager implements Drawable {
 		renderer.draw(new Drawable() {
 			@Override
 			public void draw() {
-				if (mStick.getTextureType() != "2D"){
-					mStick.draw();
-				}
+				String originalTextureType = mStick.getTextureType();
+				mStick.setTextureType(mStick.getUnderlyingTexture());
+				mStick.draw();
+				mStick.setTextureType(originalTextureType);
 			}
 		});
 		window.swapBuffers();

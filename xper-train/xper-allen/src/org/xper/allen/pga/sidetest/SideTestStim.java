@@ -48,18 +48,6 @@ public class SideTestStim extends GAStim<GAMatchStick, AllenMStickData> {
         }
     }
 
-    @Override
-    protected void chooseContrast() {
-        if (stimType == StimType.SIDETEST_2Dvs3D_2D_LOW) {
-            this.contrast = 0.4;
-        }
-        else if (stimType == StimType.SIDETEST_2Dvs3D_2D_HIGH) {
-            this.contrast = 1.0;
-        }
-        else {
-            this.contrast = this.contrastManager.readProperty(parentId);
-        }
-    }
 
     @Override
     protected GAMatchStick createMStick() {
