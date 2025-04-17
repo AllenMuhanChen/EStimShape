@@ -36,6 +36,16 @@ public class SeedingStim extends GAStim<GAMatchStick, AllenMStickData> {
     }
 
     @Override
+    protected void chooseContrast(){
+        if (useAverageContrast){
+            contrast = 1.0; // we calculate this for real in GAStim writeStim(), can't calculate it in here.
+        }
+        else {
+            contrast = Math.random() < 0.5 ? 0.4 : 1.0; //our original behavior
+        }
+    }
+
+    @Override
     protected void chooseUnderlyingTexture() {
         if (is2d){
             this.underlyingTexture = Math.random() < 0.5 ? "SHADE" : "SPECULAR";

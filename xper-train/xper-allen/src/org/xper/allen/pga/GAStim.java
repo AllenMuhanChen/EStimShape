@@ -102,7 +102,22 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
             nTries++;
             try {
                 setProperties();
-                mStick = createMStick();
+                if (!useAverageContrast || !is2d) {
+                    mStick = createMStick();
+                } else {
+                    //TODO: weird hack to get around that we have to draw something 3D first to get the average contrast
+                    mStick = createMStick(); //Make 3D version
+                    AllenMStickSpec mStickSpec = new AllenMStickSpec();
+                    mStickSpec.setMStickInfo(mStick, false);
+                    contrast = generator.getPngMaker().getWindow().calculateAverageContrast(mStick);
+
+                    mStick = (T) new GAMatchStick(mStick.getMassCenter());
+                    mStick.setRf(generator.getReceptiveField());
+                    mStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
+                    mStick.genMatchStickFromShapeSpec(mStickSpec, new double[]{0.0,0.0,0.0});
+
+                }
+
                 System.out.println("SUCCESSFUL CREATION OF MORPHED MATCHSTICK OF TYPE: " + this.getClass().getSimpleName());
                 break;
             } catch (MorphedMatchStick.MorphException me) {
@@ -176,12 +191,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     }
 
     protected void chooseContrast() {
-        // By default, set contrast to average contrast of 3D image.
-        if (useAverageContrast)
-            contrast = generator.getPngMaker().getWindow().calculateAverageContrast(mStick);
-        else{
-            contrast = contrastManager.readProperty(parentId);
-        }
+        contrast = contrastManager.readProperty(parentId);
     }
 
     public static boolean is2D(String textureType) {

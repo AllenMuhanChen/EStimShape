@@ -169,7 +169,7 @@ public class AllenDrawingManager implements Drawable {
 
 		float[] hsv = HSLUtils.rgbToHSV(new RGBColor(avgColor[0], avgColor[1], avgColor[2]));
 		float value = hsv[2];
-
+		System.out.println("Average Contrast: " + value);
 		return value;
 	}
 

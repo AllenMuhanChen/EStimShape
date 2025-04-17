@@ -29,7 +29,7 @@ twodvsthreed_parsed_spikes_path = f"/home/r2_allen/Documents/EStimShape/{twodvst
 try:
 
     ga_config = Simultaneous3Dvs2DConfig(
-                                   is_alexnet_mock=False,
+                                   is_alexnet_mock=True,
                                    database=ga_database,
                                    base_intan_path=ga_intan_path,
                                    java_output_dir=java_output_dir,
