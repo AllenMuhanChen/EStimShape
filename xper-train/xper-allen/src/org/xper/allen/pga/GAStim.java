@@ -143,8 +143,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     }
 
     protected void chooseContrast() {
-//        contrast = contrastManager.readProperty(parentId);
-
+        // By default, set contrast to average contrast of 3D image.
         contrast = generator.getPngMaker().getWindow().calculateAverageContrast(mStick);
 
     }

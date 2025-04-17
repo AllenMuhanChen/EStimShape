@@ -84,6 +84,15 @@ public class AllenDrawingManager implements Drawable {
 		GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
 	}
 
+	/**
+	 * Uses a stencil buffer to keep track of the pixels that were drawn to
+	 * when we draw the matchstick. Then we read the color buffer where the stencil
+	 * buffer is 1 and calculate the average color.
+	 *
+	 * Average color is then converted to HSV and the value is returned.
+	 * @param mStick
+	 * @return
+	 */
 	public double calculateAverageContrast(AllenMatchStick mStick) {
 		// Set up stencil buffer
 		GL11.glEnable(GL11.GL_STENCIL_TEST);
@@ -101,9 +110,12 @@ public class AllenDrawingManager implements Drawable {
 		renderer.draw(new Drawable() {
 			@Override
 			public void draw() {
-				mStick.draw();
+				if (mStick.getTextureType() != "2D"){
+					mStick.draw();
+				}
 			}
 		});
+		window.swapBuffers();
 
 		// Disable stencil writing
 		GL11.glStencilMask(0x00);
@@ -117,7 +129,7 @@ public class AllenDrawingManager implements Drawable {
 				.order(ByteOrder.nativeOrder());
 		GL11.glReadPixels(0, 0, width, height, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, colorBuffer);
 
-		// Read the stencil buffer
+		// Read the stencil buffer - gives us a mask for the pixels we want to consider
 		ByteBuffer stencilBuffer = ByteBuffer.allocateDirect(width * height)
 				.order(ByteOrder.nativeOrder());
 		GL11.glReadPixels(0, 0, width, height, GL11.GL_STENCIL_INDEX, GL11.GL_UNSIGNED_BYTE, stencilBuffer);
