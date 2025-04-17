@@ -124,11 +124,7 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
         } catch (IllegalArgumentException e) {
             return false;
         }
-        if (stimType.equals(StimType.SIDETEST_2Dvs3D_2D_HIGH) ||
-                stimType.equals(StimType.SIDETEST_2Dvs3D_2D_LOW) ||
-                stimType.equals(StimType.SIDETEST_2Dvs3D_3D_SHADE) ||
-                stimType.equals(StimType.SIDETEST_2Dvs3D_3D_SPECULAR)
-        ) {
+        if (stimType.equals(StimType.SIDETEST_2Dvs3D)) {
             stim = new SideTestStim(stimId, this, parentId);
             stims.add(stim);
             return true;
