@@ -64,12 +64,14 @@ class DnessSideTest(SideTest):
         top_2d, top_3d = self._collect_stims_to_test(gen_id, lineages)
 
         for stim_to_test in top_2d:
-            self._generate_side_test_stim(stim_to_test, SIDETEST_2Dvs3D_Type.THREED_SHADE, gen_id)
-            self._generate_side_test_stim(stim_to_test, SIDETEST_2Dvs3D_Type.THREED_SPECULAR, gen_id)
+            self._generate_side_test_stim(stim_to_test, SIDETEST_2Dvs3D_Type.SIDETEST_2Dvs3D_Type, gen_id)
+            # self._generate_side_test_stim(stim_to_test, SIDETEST_2Dvs3D_Type.THREED_SHADE, gen_id)
+            # self._generate_side_test_stim(stim_to_test, SIDETEST_2Dvs3D_Type.THREED_SPECULAR, gen_id)
 
         for stim_to_test in top_3d:
-            self._generate_side_test_stim(stim_to_test, SIDETEST_2Dvs3D_Type.TWOD_HIGH, gen_id)
-            self._generate_side_test_stim(stim_to_test, SIDETEST_2Dvs3D_Type.TWOD_LOW, gen_id)
+            self._generate_side_test_stim(stim_to_test, SIDETEST_2Dvs3D_Type.SIDETEST_2Dvs3D_Type, gen_id)
+            # self._generate_side_test_stim(stim_to_test, SIDETEST_2Dvs3D_Type.TWOD_HIGH, gen_id)
+            # self._generate_side_test_stim(stim_to_test, SIDETEST_2Dvs3D_Type.TWOD_LOW, gen_id)
 
     def _collect_stims_to_test(self, gen_id, lineages):
         # Collect all stimuli from this generation
@@ -131,7 +133,10 @@ def is_side_test_stimulus(stimulus):
     return "SIDETEST" in stimulus.mutation_type
 
 
+
+
 class SIDETEST_2Dvs3D_Type(Enum):
+    SIDETEST_2Dvs3D_Type = "SIDETEST_2Dvs3D"
     THREED_SHADE = "SIDETEST_2Dvs3D_3D_SHADE"
     THREED_SPECULAR = "SIDETEST_2Dvs3D_3D_SPECULAR"
     TWOD_HIGH = "SIDETEST_2Dvs3D_2D_HIGH"
