@@ -121,7 +121,11 @@ class DnessSideTest(SideTest):
         if "CATCH" in stimulus.mutation_type:
             pass
         if "Zooming" in stimulus.mutation_type:
-            self._assign_2d_or_3d(lineage.get_parent_of(stimulus), lineage)
+            parent = lineage.get_parent_of(stimulus)
+            if "2D" in parent.mutation_type:
+                self.stimuli_from_this_gen_2d.append(stimulus)
+            else:
+                self.stimuli_from_this_gen_3d.append(stimulus)
         elif "2D" in stimulus.mutation_type:
             # Assign to 2D
             self.stimuli_from_this_gen_2d.append(stimulus)
