@@ -75,7 +75,7 @@ def normalize_responses(stimuli: list[dict]):
             stim['normalized_response'] = r / abs(min_val)
 
 
-def add_colored_border(image, normalized_response, border_width=5):
+def add_colored_border(image, normalized_response, border_width=40):
     """Add a colored border to the image based on response value (red for positive, blue for negative)."""
     if normalized_response >= 0:
         border_color = (int(255 * normalized_response), 0, 0)  # Red scale for positive
