@@ -43,6 +43,10 @@ public class HSLUtils {
         return new float[]{hue, saturation, value};
     }
 
+    public static float[] rgbToHSV(float r, float g, float b) {
+        return rgbToHSV((int)(r*255), (int)(g*255), (int)(b*255));
+    }
+
     public static float[] rgbToHSL(float r, float g, float b) {
         float max = Math.max(r, Math.max(g, b));
         float min = Math.min(r, Math.min(g, b));
@@ -146,8 +150,12 @@ public class HSLUtils {
 
     public static float adjustHue(float hue, float delta) {
         hue += delta;
-        while (hue < 0.0f) hue += 1.0f;
-        while (hue >= 1.0f) hue -= 1.0f;
+        hue = Math.round(hue);
+        if (hue > 360){
+            hue -= 360;
+        } else if (hue < 0){
+            hue += 360;
+        }
         System.out.println("HSLUtils: adjustHue: " + hue);
         return hue;
     }

@@ -7,10 +7,10 @@ import org.xper.rfplot.gui.scroller.ScrollerParams;
 
 import static org.xper.allen.rfplot.MStickHueScroller.updateValue;
 
-public class MStickLightnessScroller<T extends RFPlotMatchStick.RFPlotMatchStickSpec> extends RFPlotScroller<T> {
+public class MStickBrightnessScroller<T extends RFPlotMatchStick.RFPlotMatchStickSpec> extends RFPlotScroller<T> {
 
-    private static final float LIGHTNESS_INCREMENT = 0.05f;  // Adjust this value based on your needs
-    public MStickLightnessScroller(Class<T> type) {
+    private static final float BRIGHTNESS_INCREMENT = 0.05f;  // Adjust this value based on your needs
+    public MStickBrightnessScroller(Class<T> type) {
         this.type = type;
     }
 
@@ -21,14 +21,14 @@ public class MStickLightnessScroller<T extends RFPlotMatchStick.RFPlotMatchStick
         RGBColor currentColor = currentSpec.getColor();
 
 
-        float[] hsl = HSLUtils.rgbToHSL(currentColor.getRed(), currentColor.getGreen(), currentColor.getBlue());
-        hsl[2] = HSLUtils.adjustLightness(hsl[2], LIGHTNESS_INCREMENT);
+        float[] hsv = HSLUtils.rgbToHSV(currentColor.getRed(), currentColor.getGreen(), currentColor.getBlue());
+        hsv[2] = HSLUtils.adjustLightness(hsv[2], BRIGHTNESS_INCREMENT);
 
-        RGBColor newColor = HSLUtils.hslToRGB(hsl[0], hsl[1], hsl[2]);
+        RGBColor newColor = HSLUtils.hsvToRGB(hsv[0], hsv[1], hsv[2]);
 
         newSpec.setColor(newColor);
         scrollerParams.getRfPlotDrawable().setSpec(newSpec.toXml());
-        updateValue(scrollerParams, hsl, newColor);
+        updateValue(scrollerParams, hsv, newColor);
         return scrollerParams;
     }
 
@@ -38,14 +38,14 @@ public class MStickLightnessScroller<T extends RFPlotMatchStick.RFPlotMatchStick
         RFPlotMatchStick.RFPlotMatchStickSpec newSpec = new RFPlotMatchStick.RFPlotMatchStickSpec(currentSpec);
         RGBColor currentColor = currentSpec.getColor();
 
-        float[] hsl = HSLUtils.rgbToHSL(currentColor.getRed(), currentColor.getGreen(), currentColor.getBlue());
-        hsl[2] = HSLUtils.adjustLightness(hsl[2], -LIGHTNESS_INCREMENT);
+        float[] hsv = HSLUtils.rgbToHSV(currentColor.getRed(), currentColor.getGreen(), currentColor.getBlue());
+        hsv[2] = HSLUtils.adjustLightness(hsv[2], -BRIGHTNESS_INCREMENT);
 
-        RGBColor newColor = HSLUtils.hslToRGB(hsl[0], hsl[1], hsl[2]);
+        RGBColor newColor = HSLUtils.hsvToRGB(hsv[0], hsv[1], hsv[2]);
 
         newSpec.setColor(newColor);
         scrollerParams.getRfPlotDrawable().setSpec(newSpec.toXml());
-        updateValue(scrollerParams, hsl, newColor);
+        updateValue(scrollerParams, hsv, newColor);
         return scrollerParams;
     }
 }

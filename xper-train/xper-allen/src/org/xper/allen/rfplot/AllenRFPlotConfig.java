@@ -11,7 +11,6 @@ import org.xper.rfplot.RFPlotConfig;
 import org.xper.rfplot.XMLizable;
 import org.xper.rfplot.drawing.RFPlotBlankObject;
 import org.xper.rfplot.drawing.RFPlotDrawable;
-import org.xper.rfplot.drawing.RFPlotImgObject;
 import org.xper.rfplot.drawing.bar.*;
 import org.xper.rfplot.drawing.gabor.Gabor;
 import org.xper.rfplot.gui.RFPlotStimModulator;
@@ -81,12 +80,12 @@ public class AllenRFPlotConfig {
         LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> scrollers = new LinkedHashMap<String, RFPlotScroller<? extends XMLizable>>();
         scrollers.put("RandMStick", new RandMStickScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class));
         scrollers.put("Size", new MStickSizeScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class));
+        scrollers.put("Hue", new MStickHueScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class));
+        scrollers.put("Lightness", new MStickBrightnessScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class));
         scrollers.put("Rotation X", new MStickRotationScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class, 0));
         scrollers.put("Rotation Y", new MStickRotationScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class, 1));
         scrollers.put("Rotation Z", new MStickRotationScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class, 2));
-        scrollers.put("Hue", new MStickHueScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class));
         scrollers.put("Saturation", new MStickSaturationScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class));
-        scrollers.put("Lightness", new MStickLightnessScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class));
         scrollers.put("Texture", new MStickTextureScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class));
         return scrollers;
     }

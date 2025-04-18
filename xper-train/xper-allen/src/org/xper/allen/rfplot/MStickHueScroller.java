@@ -8,8 +8,9 @@ import org.xper.drawing.RGBColor;
 import static org.xper.rfplot.drawing.png.HSLUtils.isPureWhite;
 
 public class MStickHueScroller<T extends RFPlotMatchStick.RFPlotMatchStickSpec> extends RFPlotScroller<T> {
-    private static final float HUE_INCREMENT = 0.05f;
+    private static final float HUE_INCREMENT = 15f;
 
+    private boolean isWhite = false;
     public MStickHueScroller(Class<T> type) {
         this.type = type;
     }
@@ -20,23 +21,31 @@ public class MStickHueScroller<T extends RFPlotMatchStick.RFPlotMatchStickSpec> 
         RFPlotMatchStick.RFPlotMatchStickSpec newSpec = new RFPlotMatchStick.RFPlotMatchStickSpec(currentSpec);
         RGBColor currentColor = currentSpec.getColor();
 
-        float[] hsl = HSLUtils.rgbToHSL(currentColor);
+        float[] hsv = HSLUtils.rgbToHSV(currentColor);
+        System.out.println("Current HSV: " + hsv[0] + ", " + hsv[1] + ", " + hsv[2]);
+        if (Math.round(hsv[0]) == 360-HUE_INCREMENT) {
 
-        if (isPureWhite(currentColor)) {
-            hsl[0] = HSLUtils.adjustHue(hsl[0], HUE_INCREMENT);
-            hsl[1] = 1.0f; // Set saturation to max
-            hsl[2] = 0.5f; // Reduce lightness to allow color to show
-        } else if (isGrayscale(currentColor)) {
-            hsl[0] = HSLUtils.adjustHue(hsl[0], HUE_INCREMENT);
-            hsl[1] = 1.0f; // Set saturation to max
+            System.out.println("Setting to White");
+            hsv[0] = 0f;
+            hsv[1] = 0f;
+            isWhite = true;
+        }
+        else if (isWhite) {
+            System.out.println("Setting White to First Hue");
+            hsv[0] = 0f;
+            hsv[1] = 1f;
+            isWhite = false;
         } else {
-            hsl[0] = HSLUtils.adjustHue(hsl[0], HUE_INCREMENT);
+            hsv[0] = HSLUtils.adjustHue(hsv[0], HUE_INCREMENT);
         }
 
-        RGBColor newColor = HSLUtils.hslToRGB(hsl);
+
+
+
+        RGBColor newColor = HSLUtils.hsvToRGB(hsv);
         newSpec.setColor(newColor);
         scrollerParams.getRfPlotDrawable().setSpec(newSpec.toXml());
-        updateValue(scrollerParams, hsl, newColor);
+        updateValue(scrollerParams, hsv, newColor);
         return scrollerParams;
     }
 
@@ -46,33 +55,40 @@ public class MStickHueScroller<T extends RFPlotMatchStick.RFPlotMatchStickSpec> 
         RFPlotMatchStick.RFPlotMatchStickSpec newSpec = new RFPlotMatchStick.RFPlotMatchStickSpec(currentSpec);
         RGBColor currentColor = currentSpec.getColor();
 
-        float[] hsl = HSLUtils.rgbToHSL(currentColor);
-
-        if (isPureWhite(currentColor)) {
-            hsl[0] = HSLUtils.adjustHue(hsl[0], -HUE_INCREMENT);
-            hsl[1] = 1.0f; // Set saturation to max
-            hsl[2] = 0.5f; // Reduce lightness to allow color to show
-        } else if (isGrayscale(currentColor)) {
-            hsl[0] = HSLUtils.adjustHue(hsl[0], -HUE_INCREMENT);
-            hsl[1] = 1.0f; // Set saturation to max
+        float[] hsv = HSLUtils.rgbToHSV(currentColor);
+        System.out.println("Current HSV: " + hsv[0] + ", " + hsv[1] + ", " + hsv[2]);
+        if (Math.round(hsv[0]) == 0 && !isWhite) {
+            System.out.println("Setting to White");
+            hsv[0] = 360-HUE_INCREMENT; //doesn't matter what we set this, just NOT 0 or will retrigger
+            hsv[1] = 0f;
+            isWhite = true;
+        }
+        else if (isWhite) {
+            System.out.println("Setting White to Last Hue");
+            hsv[0] = 360-HUE_INCREMENT;
+            hsv[1] = 1f;
+            isWhite = false;
         } else {
-            hsl[0] = HSLUtils.adjustHue(hsl[0], -HUE_INCREMENT);
+            hsv[0] = HSLUtils.adjustHue(hsv[0], -HUE_INCREMENT);
         }
 
-        RGBColor newColor = HSLUtils.hslToRGB(hsl);
+
+
+
+        RGBColor newColor = HSLUtils.hsvToRGB(hsv);
         newSpec.setColor(newColor);
         scrollerParams.getRfPlotDrawable().setSpec(newSpec.toXml());
-        updateValue(scrollerParams, hsl, newColor);
+        updateValue(scrollerParams, hsv, newColor);
         return scrollerParams;
     }
 
 
 
-    public static void updateValue(ScrollerParams scrollerParams, float[] hsl, RGBColor newColor) {
+    public static void updateValue(ScrollerParams scrollerParams, float[] hsv, RGBColor newColor) {
         // Assuming hsl[0] is the hue component you're interested in formatting
         // Note: The term HSV might have been used interchangeably with HSL by mistake.
         // If you're working with HSV specifically, ensure the input reflects that.
-        String formattedHSL = String.format("HSL: %.2f, %.2f, %.2f", hsl[0], hsl[1], hsl[2]);
+        String formattedHSV = String.format("HSL: %.2f, %.2f, %.2f", hsv[0], hsv[1], hsv[2]);
 
         // Extract RGB values as integers
         int red = (int) (newColor.getRed() * 255);   // Replace with newColor.red if fields are public
@@ -81,7 +97,7 @@ public class MStickHueScroller<T extends RFPlotMatchStick.RFPlotMatchStickSpec> 
 
 
         // Concatenate the formatted string
-        String newValue = formattedHSL + " RGB: " + red + ", " + green + ", " + blue;
+        String newValue = formattedHSV + " RGB: " + red + ", " + green + ", " + blue;
 
         // Update the scrollerParams with the new value
         scrollerParams.setNewValue(newValue);

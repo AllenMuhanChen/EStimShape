@@ -5,7 +5,7 @@ import org.xper.rfplot.gui.scroller.ScrollerParams;
 
 public class MStickSizeScroller<T extends RFPlotMatchStick.RFPlotMatchStickSpec> extends RFPlotScroller<T> {
 
-    public static final double STEP_SIZE = 0.25;
+    public static final double STEP_SIZE = 1.0;
 
     public MStickSizeScroller(Class<T> type) {
         this.type = type;
