@@ -2,8 +2,6 @@ package org.xper.allen.drawing.composition;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.*;
 
 import javax.media.j3d.Transform3D;
@@ -27,7 +25,6 @@ import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.stick.*;
 import org.xper.drawing.RGBColor;
-import org.xper.rfplot.drawing.png.HSLUtils;
 
 /**
  * MatchStick class with ability to make deep clones and manipulations of shapes

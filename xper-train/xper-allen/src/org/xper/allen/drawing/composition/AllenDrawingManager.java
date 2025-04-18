@@ -22,7 +22,7 @@ import org.xper.allen.drawing.composition.noisy.NoiseMapCalculation;
 import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.drawing.ga.Thumbnailable;
 import org.xper.drawing.RGBColor;
-import org.xper.rfplot.drawing.png.HSLUtils;
+import org.xper.rfplot.drawing.png.HSVUtils;
 import org.xper.util.ThreadUtil;
 
 import javax.imageio.ImageIO;
@@ -153,7 +153,7 @@ public class AllenDrawingManager implements Drawable {
 			avgColor[2] = (float)blueSum / (pixelCount * 255.0f);
 		}
 
-		float[] hsv = HSLUtils.rgbToHSV(new RGBColor(avgColor[0], avgColor[1], avgColor[2]));
+		float[] hsv = HSVUtils.rgbToHSV(new RGBColor(avgColor[0], avgColor[1], avgColor[2]));
 		float value = hsv[2];
 		System.out.println("Average Contrast: " + value);
 		return value;

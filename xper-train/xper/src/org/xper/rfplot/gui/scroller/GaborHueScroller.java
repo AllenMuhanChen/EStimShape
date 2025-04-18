@@ -2,10 +2,7 @@ package org.xper.rfplot.gui.scroller;
 
 import org.xper.drawing.RGBColor;
 import org.xper.rfplot.drawing.GaborSpec;
-import org.xper.rfplot.drawing.png.HSLUtils;
-
-import static org.xper.rfplot.drawing.png.HSLUtils.isPureWhite;
-
+import org.xper.rfplot.drawing.png.HSVUtils;
 
 public class GaborHueScroller<T extends GaborSpec> extends RFPlotScroller<T>{
     private static final float HUE_INCREMENT = 15f;
@@ -18,7 +15,7 @@ public class GaborHueScroller<T extends GaborSpec> extends RFPlotScroller<T>{
     public ScrollerParams next(ScrollerParams scrollerParams)
     {
         RGBColor currentColor = getCurrentColor(scrollerParams);
-        float[] hsv = HSLUtils.rgbToHSV(currentColor);
+        float[] hsv = HSVUtils.rgbToHSV(currentColor);
         System.out.println("Current HSV: " + hsv[0] + ", " + hsv[1] + ", " + hsv[2]);
         if (Math.round(hsv[0]) == 360-HUE_INCREMENT) {
 
@@ -33,11 +30,11 @@ public class GaborHueScroller<T extends GaborSpec> extends RFPlotScroller<T>{
             hsv[1] = 1f;
             isWhite = false;
         } else {
-            hsv[0] = HSLUtils.adjustHue(hsv[0], HUE_INCREMENT);
+            hsv[0] = HSVUtils.adjustHue(hsv[0], HUE_INCREMENT);
         }
 
 
-        RGBColor newColor = HSLUtils.hsvToRGB(hsv);
+        RGBColor newColor = HSVUtils.hsvToRGB(hsv);
         setNewColor(scrollerParams, newColor);
         return scrollerParams;
     }
@@ -45,7 +42,7 @@ public class GaborHueScroller<T extends GaborSpec> extends RFPlotScroller<T>{
     @Override
     public ScrollerParams previous(ScrollerParams scrollerParams) {
         RGBColor currentColor = getCurrentColor(scrollerParams);
-        float[] hsv = HSLUtils.rgbToHSV(currentColor);
+        float[] hsv = HSVUtils.rgbToHSV(currentColor);
         System.out.println("Current HSV: " + hsv[0] + ", " + hsv[1] + ", " + hsv[2]);
         if (Math.round(hsv[0]) == 0f && !isWhite) {
             System.out.println("Setting to White");
@@ -59,10 +56,10 @@ public class GaborHueScroller<T extends GaborSpec> extends RFPlotScroller<T>{
             hsv[1] = 1f;
             isWhite = false;
         } else {
-            hsv[0] = HSLUtils.adjustHue(hsv[0], -HUE_INCREMENT);
+            hsv[0] = HSVUtils.adjustHue(hsv[0], -HUE_INCREMENT);
         }
 
-        RGBColor newColor = HSLUtils.hsvToRGB(hsv);
+        RGBColor newColor = HSVUtils.hsvToRGB(hsv);
         setNewColor(scrollerParams, newColor);
         return scrollerParams;
     }

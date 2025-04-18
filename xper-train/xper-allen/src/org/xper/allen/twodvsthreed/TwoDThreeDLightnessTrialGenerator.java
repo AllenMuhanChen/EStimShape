@@ -6,7 +6,7 @@ import org.xper.allen.Stim;
 import org.xper.allen.app.twodvsthreed.TwoDVsThreeDConfig;
 import org.xper.allen.stimproperty.ColorPropertyManager;
 import org.xper.drawing.RGBColor;
-import org.xper.rfplot.drawing.png.HSLUtils;
+import org.xper.rfplot.drawing.png.HSVUtils;
 import org.xper.util.FileUtil;
 
 import java.util.ArrayList;
@@ -142,10 +142,10 @@ public class TwoDThreeDLightnessTrialGenerator extends TwoDVsThreeDTrialGenerato
 
         RGBColor originalStimColor = fetchColorForStimId(gaStimId);
         if (originalStimColor != null) {
-            float[] hsv = HSLUtils.rgbToHSV(originalStimColor);
+            float[] hsv = HSVUtils.rgbToHSV(originalStimColor);
             for (Double value : VALUES_TO_TEST) {
                 hsv[2] = value.floatValue();
-                RGBColor newColor = HSLUtils.hsvToRGB(hsv);
+                RGBColor newColor = HSVUtils.hsvToRGB(hsv);
                 colorsToTest.add(newColor);
             }
         } else {

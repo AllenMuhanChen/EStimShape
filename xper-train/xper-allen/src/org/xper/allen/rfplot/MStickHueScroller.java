@@ -1,11 +1,9 @@
 package org.xper.allen.rfplot;
 
-import org.xper.rfplot.drawing.png.HSLUtils;
+import org.xper.rfplot.drawing.png.HSVUtils;
 import org.xper.rfplot.gui.scroller.RFPlotScroller;
 import org.xper.rfplot.gui.scroller.ScrollerParams;
 import org.xper.drawing.RGBColor;
-
-import static org.xper.rfplot.drawing.png.HSLUtils.isPureWhite;
 
 public class MStickHueScroller<T extends RFPlotMatchStick.RFPlotMatchStickSpec> extends RFPlotScroller<T> {
     private static final float HUE_INCREMENT = 15f;
@@ -21,7 +19,7 @@ public class MStickHueScroller<T extends RFPlotMatchStick.RFPlotMatchStickSpec> 
         RFPlotMatchStick.RFPlotMatchStickSpec newSpec = new RFPlotMatchStick.RFPlotMatchStickSpec(currentSpec);
         RGBColor currentColor = currentSpec.getColor();
 
-        float[] hsv = HSLUtils.rgbToHSV(currentColor);
+        float[] hsv = HSVUtils.rgbToHSV(currentColor);
         System.out.println("Current HSV: " + hsv[0] + ", " + hsv[1] + ", " + hsv[2]);
         if (Math.round(hsv[0]) == 360-HUE_INCREMENT) {
 
@@ -36,11 +34,11 @@ public class MStickHueScroller<T extends RFPlotMatchStick.RFPlotMatchStickSpec> 
             hsv[1] = 1f;
             isWhite = false;
         } else {
-            hsv[0] = HSLUtils.adjustHue(hsv[0], HUE_INCREMENT);
+            hsv[0] = HSVUtils.adjustHue(hsv[0], HUE_INCREMENT);
         }
 
 
-        RGBColor newColor = HSLUtils.hsvToRGB(hsv);
+        RGBColor newColor = HSVUtils.hsvToRGB(hsv);
         newSpec.setColor(newColor);
         scrollerParams.getRfPlotDrawable().setSpec(newSpec.toXml());
         updateValue(scrollerParams, hsv, newColor);
@@ -53,7 +51,7 @@ public class MStickHueScroller<T extends RFPlotMatchStick.RFPlotMatchStickSpec> 
         RFPlotMatchStick.RFPlotMatchStickSpec newSpec = new RFPlotMatchStick.RFPlotMatchStickSpec(currentSpec);
         RGBColor currentColor = currentSpec.getColor();
 
-        float[] hsv = HSLUtils.rgbToHSV(currentColor);
+        float[] hsv = HSVUtils.rgbToHSV(currentColor);
         if (Math.round(hsv[0]) == 0 && !isWhite) {
             System.out.println("Setting to White");
             hsv[0] = 360-HUE_INCREMENT; //doesn't matter what we set this, just NOT 0 or will retrigger
@@ -65,10 +63,10 @@ public class MStickHueScroller<T extends RFPlotMatchStick.RFPlotMatchStickSpec> 
             hsv[1] = 1f;
             isWhite = false;
         } else {
-            hsv[0] = HSLUtils.adjustHue(hsv[0], -HUE_INCREMENT);
+            hsv[0] = HSVUtils.adjustHue(hsv[0], -HUE_INCREMENT);
         }
 
-        RGBColor newColor = HSLUtils.hsvToRGB(hsv);
+        RGBColor newColor = HSVUtils.hsvToRGB(hsv);
         newSpec.setColor(newColor);
         scrollerParams.getRfPlotDrawable().setSpec(newSpec.toXml());
         updateValue(scrollerParams, hsv, newColor);

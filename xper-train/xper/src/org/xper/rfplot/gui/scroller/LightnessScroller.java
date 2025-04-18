@@ -2,7 +2,7 @@ package org.xper.rfplot.gui.scroller;
 
 import org.xper.drawing.RGBColor;
 import org.xper.rfplot.RFPlotXfmSpec;
-import org.xper.rfplot.drawing.png.HSLUtils;
+import org.xper.rfplot.drawing.png.HSVUtils;
 
 public class LightnessScroller extends RFPlotScroller {
 
@@ -22,18 +22,18 @@ public class LightnessScroller extends RFPlotScroller {
         RFPlotXfmSpec xfmSpec = scrollerParams.getXfmSpec();
         RGBColor currentColor = xfmSpec.getColor();
 
-        float[] hsl = HSLUtils.rgbToHSL(currentColor.getRed(), currentColor.getGreen(), currentColor.getBlue());
-        hsl[2] = HSLUtils.adjustLightness(hsl[2], delta);
+        float[] hsv = HSVUtils.rgbToHSV(currentColor.getRed(), currentColor.getGreen(), currentColor.getBlue());
+        hsv[2] = HSVUtils.adjustValue(hsv[2], delta);
 
-        RGBColor newColor = HSLUtils.hslToRGB(hsl[0], hsl[1], hsl[2]);
+        RGBColor newColor = HSVUtils.hsvToRGB(hsv[0], hsv[1], hsv[2]);
 
         xfmSpec.setColor(newColor);
         scrollerParams.setXfmSpec(xfmSpec);
-        updateValue(scrollerParams, hsl, newColor);
+        updateValue(scrollerParams, hsv, newColor);
         return scrollerParams;
     }
 
-    private static void updateValue(ScrollerParams scrollerParams, float[] hsl, RGBColor newColor) {
-        scrollerParams.setNewValue("Lightness: " + hsl[2] + " RGB: " + newColor.toString());
+    private static void updateValue(ScrollerParams scrollerParams, float[] hsv, RGBColor newColor) {
+        scrollerParams.setNewValue("Brightness: " + hsv[2] + " RGB: " + newColor.toString());
     }
 }

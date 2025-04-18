@@ -1,7 +1,7 @@
 package org.xper.allen.rfplot;
 
 import org.xper.drawing.RGBColor;
-import org.xper.rfplot.drawing.png.HSLUtils;
+import org.xper.rfplot.drawing.png.HSVUtils;
 import org.xper.rfplot.gui.scroller.RFPlotScroller;
 import org.xper.rfplot.gui.scroller.ScrollerParams;
 
@@ -21,10 +21,10 @@ public class MStickBrightnessScroller<T extends RFPlotMatchStick.RFPlotMatchStic
         RGBColor currentColor = currentSpec.getColor();
 
 
-        float[] hsv = HSLUtils.rgbToHSV(currentColor.getRed(), currentColor.getGreen(), currentColor.getBlue());
-        hsv[2] = HSLUtils.adjustLightness(hsv[2], BRIGHTNESS_INCREMENT);
+        float[] hsv = HSVUtils.rgbToHSV(currentColor.getRed(), currentColor.getGreen(), currentColor.getBlue());
+        hsv[2] = HSVUtils.adjustValue(hsv[2], BRIGHTNESS_INCREMENT);
 
-        RGBColor newColor = HSLUtils.hsvToRGB(hsv[0], hsv[1], hsv[2]);
+        RGBColor newColor = HSVUtils.hsvToRGB(hsv[0], hsv[1], hsv[2]);
 
         newSpec.setColor(newColor);
         scrollerParams.getRfPlotDrawable().setSpec(newSpec.toXml());
@@ -38,10 +38,10 @@ public class MStickBrightnessScroller<T extends RFPlotMatchStick.RFPlotMatchStic
         RFPlotMatchStick.RFPlotMatchStickSpec newSpec = new RFPlotMatchStick.RFPlotMatchStickSpec(currentSpec);
         RGBColor currentColor = currentSpec.getColor();
 
-        float[] hsv = HSLUtils.rgbToHSV(currentColor.getRed(), currentColor.getGreen(), currentColor.getBlue());
-        hsv[2] = HSLUtils.adjustLightness(hsv[2], -BRIGHTNESS_INCREMENT);
+        float[] hsv = HSVUtils.rgbToHSV(currentColor.getRed(), currentColor.getGreen(), currentColor.getBlue());
+        hsv[2] = HSVUtils.adjustValue(hsv[2], -BRIGHTNESS_INCREMENT);
 
-        RGBColor newColor = HSLUtils.hsvToRGB(hsv[0], hsv[1], hsv[2]);
+        RGBColor newColor = HSVUtils.hsvToRGB(hsv[0], hsv[1], hsv[2]);
 
         newSpec.setColor(newColor);
         scrollerParams.getRfPlotDrawable().setSpec(newSpec.toXml());

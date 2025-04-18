@@ -1,7 +1,7 @@
 package org.xper.allen.rfplot;
 
 import org.xper.drawing.RGBColor;
-import org.xper.rfplot.drawing.png.HSLUtils;
+import org.xper.rfplot.drawing.png.HSVUtils;
 import org.xper.rfplot.gui.scroller.RFPlotScroller;
 import org.xper.rfplot.gui.scroller.ScrollerParams;
 
@@ -21,20 +21,20 @@ public class MStickSaturationScroller<T extends RFPlotMatchStick.RFPlotMatchStic
         RFPlotMatchStick.RFPlotMatchStickSpec newSpec = new RFPlotMatchStick.RFPlotMatchStickSpec(currentSpec);
         RGBColor currentColor = currentSpec.getColor();
 
-        float[] hsl = HSLUtils.rgbToHSL(currentColor);
+        float[] hsv = HSVUtils.rgbToHSV(currentColor);
 
         // Adjust saturation
-        hsl[1] += SATURATION_INCREMENT;
-        if (hsl[1] > 1.0f) {
-            hsl[1] = 1.0f;
-        } else if (hsl[1] < 0.0f) {
-            hsl[1] = 0.0f;
+        hsv[1] += SATURATION_INCREMENT;
+        if (hsv[1] > 1.0f) {
+            hsv[1] = 1.0f;
+        } else if (hsv[1] < 0.0f) {
+            hsv[1] = 0.0f;
         }
 
-        RGBColor newColor = HSLUtils.hslToRGB(hsl);
+        RGBColor newColor = HSVUtils.hsvToRGB(hsv);
         newSpec.setColor(newColor);
         scrollerParams.getRfPlotDrawable().setSpec(newSpec.toXml());
-        updateValue(scrollerParams, hsl, newColor);
+        updateValue(scrollerParams, hsv, newColor);
         return scrollerParams;
 
     }
@@ -45,20 +45,20 @@ public class MStickSaturationScroller<T extends RFPlotMatchStick.RFPlotMatchStic
         RFPlotMatchStick.RFPlotMatchStickSpec newSpec = new RFPlotMatchStick.RFPlotMatchStickSpec(currentSpec);
         RGBColor currentColor = currentSpec.getColor();
 
-        float[] hsl = HSLUtils.rgbToHSL(currentColor);
+        float[] hsv = HSVUtils.rgbToHSV(currentColor);
 
         // Adjust saturation
-        hsl[1] -= SATURATION_INCREMENT;
-        if (hsl[1] > 1.0f) {
-            hsl[1] = 1.0f;
-        } else if (hsl[1] < 0.0f) {
-            hsl[1] = 0.0f;
+        hsv[1] -= SATURATION_INCREMENT;
+        if (hsv[1] > 1.0f) {
+            hsv[1] = 1.0f;
+        } else if (hsv[1] < 0.0f) {
+            hsv[1] = 0.0f;
         }
 
-        RGBColor newColor = HSLUtils.hslToRGB(hsl);
+        RGBColor newColor = HSVUtils.hsvToRGB(hsv);
         newSpec.setColor(newColor);
         scrollerParams.getRfPlotDrawable().setSpec(newSpec.toXml());
-        updateValue(scrollerParams, hsl, newColor);
+        updateValue(scrollerParams, hsv, newColor);
         return scrollerParams;
     }
 }

@@ -10,8 +10,7 @@ import org.xper.drawing.RGBColor;
 import org.xper.drawing.TestDrawingWindow;
 import org.xper.drawing.stick.MatchStick;
 import org.xper.drawing.stick.stickMath_lib;
-import org.xper.rfplot.drawing.png.HSLUtils;
-import org.xper.util.ThreadUtil;
+import org.xper.rfplot.drawing.png.HSVUtils;
 
 import javax.imageio.ImageIO;
 import javax.vecmath.Point3d;
@@ -129,7 +128,7 @@ public class TestMatchStickDrawer {
             avgColor[2] = (float)blueSum / (pixelCount * 255.0f);
         }
 
-        float[] hsv = HSLUtils.rgbToHSV(new RGBColor(avgColor[0], avgColor[1], avgColor[2]));
+        float[] hsv = HSVUtils.rgbToHSV(new RGBColor(avgColor[0], avgColor[1], avgColor[2]));
         float value = hsv[2];
 
         return value;
