@@ -19,13 +19,15 @@ def main():
 
     data_for_all_tasks = clean_data(data_for_all_tasks)
 
+    print(data_for_all_tasks.to_string())
+
     data_for_plotting = organize_data(data_for_all_tasks)
 
     visualize_module = create_grouped_stimuli_module(
         response_col='GA Response',
         path_col='ThumbnailPath',
-        col_col='TestType',
-        row_col='TestId',
+        col_col='TestId',
+        row_col='TestType',
         title='2D vs 3D Test',
     )
 
@@ -55,29 +57,31 @@ def organize_data(data_for_stim_ids):
             # PARENT
             parent_row = parent_row.iloc[0]
             # check if parent already exists in data_for_side_tests
+            parent_row['TestId'] = parent_row['StimSpecId']
+            if "2D" in parent_row['StimType']:
+                parent_row['TestType'] = "2D"
+            else:
+                parent_row['TestType'] = "3D"
             if not (data_for_plotting['StimSpecId'] == parent_row['StimSpecId']).any():
-                # Add column for testId to parent_row
-                parent_row['TestId'] = parent_row['StimSpecId']
-                parent_row['TestType'] = "Original"
-                # Add row for parent
                 data_for_plotting = pd.concat([data_for_plotting, parent_row.to_frame().T], ignore_index=True)
 
             new_row = side_test_stim_row.copy()
             new_row['TestId'] = parent_row['StimSpecId']
-            if "LOW" in new_row['StimType'] or "SHADE" in new_row['StimType']:
-                new_row['TestType'] = "Test 1"
-            elif "HIGH" in new_row['StimType'] or "SPECULAR" in new_row['StimType']:
-                new_row['TestType'] = "Test 2"
-            # Add row for stim
+            if "2D" in parent_row['TestType']:
+                new_row['TestType'] = "3D"
+            else:
+                new_row['TestType'] = "2D"
             data_for_plotting = pd.concat([data_for_plotting, new_row.to_frame().T], ignore_index=True)
     return data_for_plotting
 
 
 def clean_data(data_for_all_tasks):
     # Remove trials with no response
-    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['Cluster Response'].apply(lambda x: x != 'nan')]
+    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['GA Response'].apply(lambda x: x != 'nan')]
     # Remove NaNs
     data_for_all_tasks = data_for_all_tasks.dropna()
+    # Remove Catch
+    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['ThumbnailPath'].apply(lambda x: x is not "None")]
     return data_for_all_tasks
 
 
@@ -99,6 +103,8 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields.append(ClusterResponseField(conn, cluster_combination_strategy))
 
     data = fields.to_data(task_ids)
+
+
     return data
 
 if __name__ == "__main__":
