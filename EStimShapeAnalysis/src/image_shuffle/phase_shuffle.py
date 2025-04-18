@@ -116,7 +116,7 @@ def phase_randomize_preserve_contrast(image, mask=None):
 def main():
     # Load the image
     image = io.imread(
-        '/home/r2_allen/Documents/EStimShape/allen_ga_test_250417_0/stimuli/ga/pngs/1744994720396364.png')
+        '/home/r2_allen/Documents/EStimShape/allen_ga_test_250417_0/stimuli/ga/pngs/1744994720353694.png')
 
     # Create the randomized image
     randomized_image = phase_randomize_preserve_contrast(image)

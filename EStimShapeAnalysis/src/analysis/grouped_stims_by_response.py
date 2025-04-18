@@ -350,7 +350,7 @@ def create_grouped_stimuli_module(
         filter_values: Optional[Dict[str, List[Any]]] = None,
         figsize: Tuple[float, float] = (15, 10),
         cell_size: Tuple[float, float] = (3, 3),
-        border_width: int = 20,
+        border_width: int = 40,
         normalize_method: str = 'global',
         min_response: Optional[float] = None,
         max_response: Optional[float] = None,
