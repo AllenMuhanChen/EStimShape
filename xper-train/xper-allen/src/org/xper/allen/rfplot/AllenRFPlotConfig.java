@@ -60,10 +60,10 @@ public class AllenRFPlotConfig {
     public LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> barScrollers() {
         LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> map = new LinkedHashMap<>();
         map.put("Orientation", new BarOrientationScroller<>(RFPlotBar.RFPlotBarSpec.class));
-        map.put("Length", new BarLengthScroller<>(RFPlotBar.RFPlotBarSpec.class));
-        map.put("Width", new BarWidthScroller<>(RFPlotBar.RFPlotBarSpec.class));
         map.put("Size", new BarSizeScroller<>(RFPlotBar.RFPlotBarSpec.class));
         map.put("Hue", new HueScroller());
+        map.put("Length", new BarLengthScroller<>(RFPlotBar.RFPlotBarSpec.class));
+        map.put("Width", new BarWidthScroller<>(RFPlotBar.RFPlotBarSpec.class));
         map.put("Saturation", new SaturationScroller());
         map.put("Lightness", new LightnessScroller());
         return map;
