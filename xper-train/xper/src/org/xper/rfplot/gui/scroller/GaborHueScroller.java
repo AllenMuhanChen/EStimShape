@@ -8,8 +8,8 @@ import static org.xper.rfplot.drawing.png.HSLUtils.isPureWhite;
 
 
 public class GaborHueScroller<T extends GaborSpec> extends RFPlotScroller<T>{
-    private static final float HUE_INCREMENT = 0.05f;
-
+    private static final float HUE_INCREMENT = 15f;
+    private boolean isWhite = false;
     public GaborHueScroller(Class<T> type) {
         this.type = type;
     }
@@ -18,41 +18,54 @@ public class GaborHueScroller<T extends GaborSpec> extends RFPlotScroller<T>{
     public ScrollerParams next(ScrollerParams scrollerParams)
     {
         RGBColor currentColor = getCurrentColor(scrollerParams);
-        float[] hsl = HSLUtils.rgbToHSL(currentColor);
+        float[] hsv = HSLUtils.rgbToHSV(currentColor);
+        System.out.println("Current HSV: " + hsv[0] + ", " + hsv[1] + ", " + hsv[2]);
+        if (Math.round(hsv[0]) == 360-HUE_INCREMENT) {
 
-        if (isPureWhite(currentColor)) {
-            hsl[0] = HSLUtils.adjustHue(hsl[0], HUE_INCREMENT);
-            hsl[1] = 1.0f; // Set saturation to max
-            hsl[2] = 0.5f; // Reduce lightness to allow color to show
-        } else if (isGrayscale(currentColor)) {
-            hsl[0] = HSLUtils.adjustHue(hsl[0], HUE_INCREMENT);
-            hsl[1] = 1.0f; // Set saturation to max
+            System.out.println("Setting to White");
+            hsv[0] = 0f;
+            hsv[1] = 0f;
+            isWhite = true;
+        }
+        else if (isWhite) {
+            System.out.println("Setting White to First Hue");
+            hsv[0] = 0f;
+            hsv[1] = 1f;
+            isWhite = false;
         } else {
-            hsl[0] = HSLUtils.adjustHue(hsl[0], HUE_INCREMENT);
+            hsv[0] = HSLUtils.adjustHue(hsv[0], HUE_INCREMENT);
         }
 
-        RGBColor newColor = HSLUtils.hslToRGB(hsl);
-        setNewColor(scrollerParams, newColor);
-        updateValue(scrollerParams, hsl, newColor);
-        return scrollerParams;
-    }
 
-    private static void updateValue(ScrollerParams scrollerParams, float[] hsl, RGBColor newColor) {
-        scrollerParams.setNewValue("Hue: " + hsl[0] + " RGB: " + newColor.toString());
+        RGBColor newColor = HSLUtils.hsvToRGB(hsv);
+        setNewColor(scrollerParams, newColor);
+        return scrollerParams;
     }
 
     @Override
     public ScrollerParams previous(ScrollerParams scrollerParams) {
-        return setToWhite(scrollerParams);
-    }
+        RGBColor currentColor = getCurrentColor(scrollerParams);
+        float[] hsv = HSLUtils.rgbToHSV(currentColor);
+        System.out.println("Current HSV: " + hsv[0] + ", " + hsv[1] + ", " + hsv[2]);
+        if (Math.round(hsv[0]) == 0f && !isWhite) {
+            System.out.println("Setting to White");
+            hsv[0] = 360-HUE_INCREMENT;
+            hsv[1] = 0f;
+            isWhite = true;
+        }
+        else if (isWhite) {
+            System.out.println("Setting White to First Hue");
+            hsv[0] = 360-HUE_INCREMENT;
+            hsv[1] = 1f;
+            isWhite = false;
+        } else {
+            hsv[0] = HSLUtils.adjustHue(hsv[0], -HUE_INCREMENT);
+        }
 
-    private ScrollerParams setToWhite(ScrollerParams scrollerParams) {
-        RGBColor white = new RGBColor(1.0f, 1.0f, 1.0f); // RGB representation of white
-        setNewColor(scrollerParams, white);
-        updateValue(scrollerParams, new float[]{0.0f, 0.0f, 1.0f}, white);
+        RGBColor newColor = HSLUtils.hsvToRGB(hsv);
+        setNewColor(scrollerParams, newColor);
         return scrollerParams;
     }
-
 
     private void setNewColor(ScrollerParams scrollerParams, RGBColor newColor) {
         T currentGaborSpec = getCurrentSpec(scrollerParams);
@@ -65,10 +78,5 @@ public class GaborHueScroller<T extends GaborSpec> extends RFPlotScroller<T>{
         RGBColor currentColor = currentGaborSpec.getColor();
         return currentColor;
     }
-
-    private boolean isGrayscale(RGBColor color) {
-        return color.getRed() == color.getGreen() && color.getGreen() == color.getBlue();
-    }
-
 
 }

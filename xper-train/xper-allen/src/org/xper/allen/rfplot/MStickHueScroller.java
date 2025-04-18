@@ -40,8 +40,6 @@ public class MStickHueScroller<T extends RFPlotMatchStick.RFPlotMatchStickSpec> 
         }
 
 
-
-
         RGBColor newColor = HSLUtils.hsvToRGB(hsv);
         newSpec.setColor(newColor);
         scrollerParams.getRfPlotDrawable().setSpec(newSpec.toXml());
@@ -56,7 +54,6 @@ public class MStickHueScroller<T extends RFPlotMatchStick.RFPlotMatchStickSpec> 
         RGBColor currentColor = currentSpec.getColor();
 
         float[] hsv = HSLUtils.rgbToHSV(currentColor);
-        System.out.println("Current HSV: " + hsv[0] + ", " + hsv[1] + ", " + hsv[2]);
         if (Math.round(hsv[0]) == 0 && !isWhite) {
             System.out.println("Setting to White");
             hsv[0] = 360-HUE_INCREMENT; //doesn't matter what we set this, just NOT 0 or will retrigger
@@ -64,16 +61,12 @@ public class MStickHueScroller<T extends RFPlotMatchStick.RFPlotMatchStickSpec> 
             isWhite = true;
         }
         else if (isWhite) {
-            System.out.println("Setting White to Last Hue");
             hsv[0] = 360-HUE_INCREMENT;
             hsv[1] = 1f;
             isWhite = false;
         } else {
             hsv[0] = HSLUtils.adjustHue(hsv[0], -HUE_INCREMENT);
         }
-
-
-
 
         RGBColor newColor = HSLUtils.hsvToRGB(hsv);
         newSpec.setColor(newColor);
@@ -85,10 +78,7 @@ public class MStickHueScroller<T extends RFPlotMatchStick.RFPlotMatchStickSpec> 
 
 
     public static void updateValue(ScrollerParams scrollerParams, float[] hsv, RGBColor newColor) {
-        // Assuming hsl[0] is the hue component you're interested in formatting
-        // Note: The term HSV might have been used interchangeably with HSL by mistake.
-        // If you're working with HSV specifically, ensure the input reflects that.
-        String formattedHSV = String.format("HSL: %.2f, %.2f, %.2f", hsv[0], hsv[1], hsv[2]);
+        String formattedHSV = String.format("HSV: %.2f, %.2f, %.2f", hsv[0], hsv[1], hsv[2]);
 
         // Extract RGB values as integers
         int red = (int) (newColor.getRed() * 255);   // Replace with newColor.red if fields are public
