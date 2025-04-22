@@ -221,6 +221,8 @@ class MultiGaDbUtil:
         # select the current cluster by grouping largest gen_id
         cluster_as_strings = self.read_cluster_channels(current_experiment_id, most_recent_gen_id)
         cluster = [Channel.get_channel(channel_as_string) for channel_as_string in cluster_as_strings]
+        #remove duplicates
+        cluster = list(set(cluster))
         return cluster
 
     def write_cluster_info(self, experiment_id: int, gen_id: int, channel: str):

@@ -2,11 +2,11 @@ from src.pga.config.twod_threed_config import TwoDThreeDGAConfig
 from src.pga.mock.alexnet_mock_ga import TrainingAlexNetMockGeneticAlgorithmConfig
 from src.pga.config.simultaneous_2dvs3d_config import Simultaneous3Dvs2DConfig
 ga_name = "New3D"
-ga_database = "allen_ga_test_250417_0"
-nafc_database = "allen_estimshape_test_250417_0"
-isogabor_database = "allen_isogabor_test_250417_0"
-twodvsthreed_database = "allen_twodvsthreed_test_250417_0"
-twodthreedlightness_database = "allen_twodthreedlightness_test_250417_0"
+ga_database = "allen_ga_exp_250421_0"
+nafc_database = "allen_estimshape_exp_250421_0"
+isogabor_database = "allen_isogabor_exp_250421_0"
+twodvsthreed_database = "allen_twodvsthreed_exp_250421_0"
+twodthreedlightness_database = "allen_twodthreedlightness_exp_250421_0"
 
 allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
 
@@ -18,7 +18,7 @@ eyecal_dir=f"/home/r2_allen/Documents/EStimShape/{ga_database}/eyecal"
 
 # Local path for Intan Files (.dat)
 ga_intan_path = f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{ga_database}"
-isogabor_intan_path = f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{isogabor_database}/2025-04-15"
+isogabor_intan_path = f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{isogabor_database}/2025-04-21"
 twodvsthreed_intan_path = f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{twodvsthreed_database}"
 
 # Storage of Parsed Spikes from MultiFile Parser
@@ -29,7 +29,7 @@ twodvsthreed_parsed_spikes_path = f"/home/r2_allen/Documents/EStimShape/{twodvst
 try:
 
     ga_config = Simultaneous3Dvs2DConfig(
-                                   is_alexnet_mock=True,
+                                   is_alexnet_mock=False,
                                    database=ga_database,
                                    base_intan_path=ga_intan_path,
                                    java_output_dir=java_output_dir,
