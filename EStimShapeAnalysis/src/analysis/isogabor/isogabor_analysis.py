@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import pickle
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -87,7 +88,6 @@ def plot_group_rasters(data, types, ax, title):
         ax.set_xlim(0, 0.5)  # Adjust based on your trial duration
 
 
-
 def compile_data(conn: Connection) -> pd.DataFrame:
     # Set up parser
     task_ids = TaskIdCollector(conn).collect_task_ids()
@@ -102,9 +102,113 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields.append(LocationField(conn))
     fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.isogabor_intan_path))
 
-
     data = fields.to_data(task_ids)
     return data
+
+
+class EpochStartStopTimesField(CachedTaskDatabaseField):
+    def __init__(self, conn: Connection, parser: type(MultiFileParser), all_task_ids: list[int], intan_files_dir: str):
+        super().__init__(conn)
+        self.parser = parser
+        self.intan_files_dir = intan_files_dir
+        self.all_task_ids = all_task_ids
+
+    def get(self, task_id: int) -> tuple:
+        _, epochs_by_task_id = self.parser.parse(self.all_task_ids,
+                                                 intan_files_dir=self.intan_files_dir)
+        return epochs_by_task_id[task_id]
+
+    def get_name(self):
+        return "Epochs By Channel"
+
+
+def read_pickle(path: str):
+    try:
+        with open(path, 'rb') as f:
+            data = pickle.load(f)
+            if isinstance(data, dict):
+                return data
+            else:
+                print(f"Error: The pickle file does not contain a dictionary.")
+                return None
+    except Exception as e:
+        print(f"An error occurred while reading the pickle file: {e}")
+        return None
+
+
+class WindowSortSpikesByUnitField(EpochStartStopTimesField):
+    def __init__(self, conn: Connection, parser: type(MultiFileParser), all_task_ids: list[int], intan_files_dir: str,
+                 sort_dir: str):
+        super().__init__(conn, parser, all_task_ids, intan_files_dir)
+        self.sort_dir = sort_dir
+
+    def get(self, task_id: int) -> dict:
+        spike_tstamps_by_unit = {}
+        _, epochs_by_task_id = self.parser.parse(self.all_task_ids,
+                                                 intan_files_dir=self.intan_files_dir)
+        epochs = epochs_by_task_id[task_id]
+
+        spike_indices_by_unit_by_channel = read_pickle(self.sort_dir)
+        for channel, spike_indices_by_unit in spike_indices_by_unit_by_channel.items():
+            for unit_name, spike_indices in spike_indices_by_unit.items():
+                new_unit_name = f"{channel}_{unit_name}"
+                spikes = [spike_index / self.parser.sample_rate - epochs[0] for spike_index in spike_indices if epochs[0] <= spike_index / self.parser.sample_rate < epochs[1]]
+                spike_tstamps_by_unit[new_unit_name] = spikes
+        return spike_tstamps_by_unit
+
+    def get_and_cache(self, name: str, task_id: int) -> dict:
+        data = self.get(task_id)
+        self._cache_value(name, task_id, data)
+
+        # return the cached value rather than raw value to ensure same data-types are returned for all calls
+        cached_value = self._get_cached_value(name, task_id)
+        return self.convert_from_string(cached_value)
+    def get_name(self):
+        return "Window Sort Spikes By Unit"
+
+class WindowSortSpikeRatesByUnitField(WindowSortSpikesByUnitField):
+    def __init__(self, conn: Connection, parser: type(MultiFileParser), all_task_ids: list[int], intan_files_dir: str,
+                 sort_dir: str):
+        super().__init__(conn, parser, all_task_ids, intan_files_dir, sort_dir)
+
+    def get(self, task_id: int) -> dict:
+        spikes_by_unit = self.get_cached_super(task_id, WindowSortSpikesByUnitField, self.parser, self.all_task_ids, self.intan_files_dir, self.sort_dir)
+        epoch = self.get_cached_super(task_id, EpochStartStopTimesField, self.parser, self.all_task_ids, self.intan_files_dir)
+
+        trial_length = epoch[1] - epoch[0]
+        spike_rates_by_unit = {unit_name: len(spikes) / (trial_length) for unit_name, spikes in spikes_by_unit.items()}
+
+        return spike_rates_by_unit
+
+    def get_and_cache(self, name: str, task_id: int) -> dict:
+        data = self.get(task_id)
+        self._cache_value(name, task_id, data)
+
+        # return the cached value rather than raw value to ensure same data-types are returned for all calls
+        cached_value = self._get_cached_value(name, task_id)
+        return self.convert_from_string(cached_value)
+
+    def get_name(self):
+        return "Window Sort Spike Rates By Unit"
+
+class WindowSortSpikesForUnitField(WindowSortSpikesByUnitField):
+    def __init__(self, conn: Connection, parser: type(MultiFileParser), all_task_ids: list[int], intan_files_dir: str,
+                 sort_dir: str, unit_name: str):
+        super().__init__(conn, parser, all_task_ids, intan_files_dir, sort_dir)
+        self.unit_name = unit_name
+
+    def get(self, task_id: int) -> dict:
+        spikes_by_unit = self.get_cached_super(task_id, WindowSortSpikesByUnitField, self.parser, self.all_task_ids, self.intan_files_dir, self.sort_dir)
+
+        return spikes_by_unit.get(self.unit_name, [])
+
+    def get_and_cache(self, name: str, task_id: int) -> dict:
+        data = self.get(task_id)
+        self._cache_value(name, task_id, data)
+        return data
+    def get_name(self):
+        return "Window Sort Unit"
+
 
 
 class IntanSpikesByChannelField(CachedTaskDatabaseField):
@@ -114,6 +218,7 @@ class IntanSpikesByChannelField(CachedTaskDatabaseField):
 
     Retrieves the spikes that Intan software detects, saved in spike.dat files
     """
+
     def __init__(self, conn: Connection, parser: type(MultiFileParser), all_task_ids: list[int], intan_files_dir: str):
         super().__init__(conn)
         self.parser = parser

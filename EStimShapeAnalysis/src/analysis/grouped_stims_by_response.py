@@ -28,6 +28,7 @@ class GroupedStimuliInputHandler(InputHandler):
                  response_col: str,
                  path_col: str,
                  row_col: Optional[str] = None,
+                 response_key: Optional[str] = None,
                  col_col: Optional[str] = None,
                  subgroup_col: Optional[str] = None,
                  filter_values: Optional[Dict[str, List[Any]]] = None):
@@ -35,6 +36,7 @@ class GroupedStimuliInputHandler(InputHandler):
         Initialize the grouped stimuli input handler.
         """
         self.response_col = response_col
+        self.response_key = response_key
         self.path_col = path_col
         self.row_col = row_col
         self.col_col = col_col
@@ -91,6 +93,12 @@ class GroupedStimuliInputHandler(InputHandler):
                 subgroup_values = sorted(all_subgroup_values)
 
             print(f"Found {len(subgroup_values)} subgroup values: {subgroup_values}")
+
+        # if spike_data_col data is a dict and spike_data_key is provided, we need to extract the data
+        if isinstance(filtered_data[self.response_col].iloc[0], dict) and self.response_key:
+            filtered_data[self.response_col] = filtered_data[self.response_col].apply(
+                lambda x: x[self.response_key] if isinstance(x, dict) and self.response_key in x else 0
+            )
 
         # Return organized data structure
         return {
@@ -196,9 +204,10 @@ class GroupedStimuliPlotter(ComputationModule):
                                        right=0.9, top=top_pos)
 
             # Add a title for this StimGaId's grid
-            fig.text(0.5, top_pos + 0.02,
-                     f"{subgroup_col}: {subgroup_value}",
-                     ha='center', fontsize=14)
+            if subgroup_value is not None:
+                fig.text(0.5, top_pos + 0.02,
+                         f"{subgroup_col}: {subgroup_value}",
+                         ha='center', fontsize=14)
 
             # Plot each cell in this grid
             for row_idx, row_value in enumerate(row_values):
@@ -344,6 +353,7 @@ class GroupedStimuliOutput(OutputHandler):
 def create_grouped_stimuli_module(
         response_col: str,
         path_col: str,
+        response_key: str = None,
         row_col: Optional[str] = None,
         col_col: Optional[str] = None,
         subgroup_col: Optional[str] = None,
@@ -365,6 +375,7 @@ def create_grouped_stimuli_module(
     grouped_stimuli_module = AnalysisModuleFactory.create(
         input_handler=GroupedStimuliInputHandler(
             response_col=response_col,
+            response_key=response_key,
             path_col=path_col,
             row_col=row_col,
             col_col=col_col,

@@ -9,6 +9,9 @@ from clat.util.connection import Connection
 from src.analysis.cached_task_fields import LineageField, StimTypeField, StimPathField, ThumbnailField, GAResponseField, \
     ClusterResponseField, ParentIdField
 from src.analysis.grouped_stims_by_response import create_grouped_stimuli_module
+from src.analysis.isogabor.isogabor_analysis import WindowSortSpikesByUnitField, WindowSortSpikesForUnitField, \
+    WindowSortSpikeRatesByUnitField
+from src.intan.MultiFileParser import MultiFileParser
 from src.startup import context
 
 
@@ -23,14 +26,15 @@ def main():
 
     data_for_plotting = organize_data(data_for_all_tasks)
 
+    unit = "Channel.A_020_Unit 1"
     visualize_module = create_grouped_stimuli_module(
-        response_col='GA Response',
+        response_col='Window Sort Spike Rates By Unit',
         path_col='ThumbnailPath',
+        response_key=("%s" % unit),
         col_col='TestId',
         row_col='TestType',
-        title='2D vs 3D Test',
+        title=f'2D vs 3D Test: {unit}',
     )
-
     # Create and run pipeline with aggregated data
     plot_branch = create_branch().then(visualize_module)
     pipeline = create_pipeline().make_branch(
@@ -90,7 +94,8 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     task_ids = collector.collect_task_ids()
     response_processor = context.ga_config.make_response_processor()
     cluster_combination_strategy = response_processor.cluster_combination_strategy
-
+    sort_dir = "/home/r2_allen/Documents/EStimShape/allen_sort_250421_0/sorted_spikes.pkl"
+    parser = MultiFileParser(to_cache=True, cache_dir=context.ga_parsed_spikes_path)
 
     fields = CachedTaskFieldList()
     fields.append(StimSpecIdField(conn))
@@ -101,6 +106,11 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields.append(ThumbnailField(conn))
     fields.append(GAResponseField(conn))
     fields.append(ClusterResponseField(conn, cluster_combination_strategy))
+    # fields.append(WindowSortSpikesByUnitField(conn, parser, task_ids, context.ga_intan_path,
+    #                                           sort_dir))
+    fields.append(WindowSortSpikeRatesByUnitField(conn, parser, task_ids, context.ga_intan_path,
+                                                  sort_dir)
+    )
 
     data = fields.to_data(task_ids)
 

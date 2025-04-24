@@ -1,3 +1,5 @@
+import itertools
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -23,7 +25,8 @@ class GroupedRasterInputHandler(InputHandler):
                  primary_group_col: str,
                  secondary_group_col: Optional[str] = None,
                  filter_values: Optional[Dict[str, List[Any]]] = None,
-                 spike_data_col: str = 'Spikes by Channel'):
+                 spike_data_col: str = 'Spikes by Channel',
+                 spike_data_col_key: str = None):
         """
         Initialize the raster input handler.
 
@@ -37,6 +40,7 @@ class GroupedRasterInputHandler(InputHandler):
         self.secondary_group_col = secondary_group_col
         self.filter_values = filter_values or {}
         self.spike_data_col = spike_data_col
+        self.spike_data_col_key = spike_data_col_key
 
     def prepare(self, compiled_data: pd.DataFrame) -> Dict[str, Any]:
         """
@@ -63,6 +67,13 @@ class GroupedRasterInputHandler(InputHandler):
         else:
             primary_groups = sorted(all_primary_groups)
 
+        # If spike_data_col data is a dict and spike_data_col_key is provided, extract the relevant data
+        if isinstance(filtered_data[self.spike_data_col].iloc[0], dict) and self.spike_data_col_key:
+            filtered_data[self.spike_data_col] = filtered_data[self.spike_data_col].apply(
+                lambda x: x[self.spike_data_col_key]
+            )
+
+
         # Simple result structure - just the filtered data and configuration
         return {
             'data': filtered_data,
@@ -85,7 +96,8 @@ class GroupedRasterPlotter(ComputationModule):
                  equal_group_heights: bool = False,
                  figsize: Tuple[float, float] = (15, 10),
                  time_range: Tuple[float, float] = (0, 0.5),
-                 spike_color: str = 'black'):
+                 spike_color: str = 'black',
+                 title: Optional[str] = None,):
         """
         Initialize the raster visualization module.
 
@@ -99,6 +111,7 @@ class GroupedRasterPlotter(ComputationModule):
         self.figsize = figsize
         self.time_range = time_range
         self.spike_color = spike_color
+        self.title = title
 
     def compute(self, prepared_data: Dict[str, Any]) -> plt.Figure:
         """
@@ -149,7 +162,8 @@ class GroupedRasterPlotter(ComputationModule):
                 spike_data_col=spike_data_col,
                 secondary_group_col=secondary_group_col
             )
-
+        if self.title:
+            fig.suptitle(self.title, fontsize=16)
         plt.tight_layout()
         return fig
 
@@ -240,9 +254,17 @@ class GroupedRasterPlotter(ComputationModule):
                     y_pos = trial_positions[secondary_value][i]
                     spikes_by_channel = trial[spike_data_col]
 
-                    for channel, spike_times in spikes_by_channel.items():
-                        ax.vlines(spike_times, y_pos, y_pos + 0.9,
-                                  color=self.spike_color, lw=0.5)
+                    if isinstance(spikes_by_channel, dict):
+                        color_iterator = spike_color_iterator()
+                        for channel, spike_times in spikes_by_channel.items():
+                            color = next(color_iterator)
+                            ax.vlines(spike_times, y_pos, y_pos + 0.9,
+                                      color=color, lw=0.5)
+
+                    elif isinstance(spikes_by_channel, list):
+                        for spike_time in spikes_by_channel:
+                            ax.vlines(spike_time, y_pos, y_pos + 0.9,
+                                      color=self.spike_color, lw=0.5)
 
                 # Add label for this secondary group
                 if secondary_value in secondary_positions:
@@ -272,6 +294,13 @@ class GroupedRasterPlotter(ComputationModule):
         ax.set_ylim(-0.5, layout['total_height'] + 0.5)
         ax.set_xlim(*self.time_range)
 
+def spike_color_iterator():
+    # Need 32 colors
+    # Generate a list of colors
+    colors = plt.cm.viridis(np.linspace(0, 1, 32))
+    # conver tot list
+    colors = [tuple(color) for color in colors]
+    return itertools.cycle(colors)
 
 class GroupedRasterOutput(OutputHandler):
     """
@@ -311,10 +340,12 @@ def create_grouped_raster_module(
         secondary_group_col: Optional[str] = None,
         filter_values: Optional[Dict[str, List[Any]]] = None,
         spike_data_col: str = 'Spikes by Channel',
+        spike_data_col_key: str = None,
         equal_group_heights: bool = False,
         figsize: Tuple[float, float] = (15, 10),
-        time_range: Tuple[float, float] = (0, 0.5),
-        save_path: Optional[str] = None
+        time_range: Tuple[float, float] = (0.0, 0.5),
+        save_path: Optional[str] = None,
+        title: Optional[str] = None
 ) -> AnalysisModule:
     """
     Create a pipeline for grouped raster plots.
@@ -340,12 +371,14 @@ def create_grouped_raster_module(
             primary_group_col=primary_group_col,
             secondary_group_col=secondary_group_col,
             filter_values=filter_values,
-            spike_data_col=spike_data_col
+            spike_data_col=spike_data_col,
+            spike_data_col_key=spike_data_col_key
         ),
         computation=GroupedRasterPlotter(
             equal_group_heights=equal_group_heights,
             figsize=figsize,
-            time_range=time_range
+            time_range=time_range,
+            title=title
         ),
         output_handler=GroupedRasterOutput(
             save_path=save_path
