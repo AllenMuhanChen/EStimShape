@@ -134,7 +134,7 @@ public class AllenDrawingManager implements Drawable {
 				// Consider a pixel as foreground if it's not pure black
 				// We could use a small threshold here (e.g., red + green + blue > 3)
 				// to account for potential noise or anti-aliasing
-				if (red > 0 || green > 0 || blue > 0) {
+				if (red > 3 || green > 3 || blue > 3) {
 					redSum += red;
 					greenSum += green;
 					blueSum += blue;
@@ -152,7 +152,7 @@ public class AllenDrawingManager implements Drawable {
 			avgColor[1] = (float)greenSum / (pixelCount * 255.0f);
 			avgColor[2] = (float)blueSum / (pixelCount * 255.0f);
 		}
-
+		System.out.println("Average RGB: " + avgColor[0] + ", " + avgColor[1] + ", " + avgColor[2]);
 		float[] hsv = HSVUtils.rgbToHSV(new RGBColor(avgColor[0], avgColor[1], avgColor[2]));
 		float value = hsv[2];
 		System.out.println("Average Contrast: " + value);

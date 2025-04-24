@@ -130,3 +130,4 @@ class ClusterResponseField(StimSpecIdField):
 
     def get_name(self):
         return "Cluster Response"
+
