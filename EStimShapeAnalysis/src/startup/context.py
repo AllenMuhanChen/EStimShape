@@ -26,6 +26,9 @@ ga_parsed_spikes_path = f"/home/r2_allen/Documents/EStimShape/{ga_database}/pars
 isogabor_parsed_spikes_path = f"/home/r2_allen/Documents/EStimShape/{isogabor_database}/parsed_spikes"
 twodvsthreed_parsed_spikes_path = f"/home/r2_allen/Documents/EStimShape/{twodvsthreed_database}/parsed_spikes"
 
+# Storage of plots
+ga_plot_path = f"/home/r2_allen/Documents/EStimShape/{ga_database}/plots"
+isogabor_plot_path = f"/home/r2_allen/Documents/EStimShape/{isogabor_database}/plots"
 try:
 
     ga_config = Simultaneous3Dvs2DConfig(

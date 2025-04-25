@@ -33,7 +33,7 @@ def main():
     # STEP 2: Create and run the analysis pipeline
     # ----------------
     # For the isochromatic/isoluminant example:
-    unit = 'Channel.A_020_Unit 1'
+    unit = 'Channel.A_031_Unit 2'
     grouped_raster_module = create_grouped_raster_module(
         primary_group_col='Type',
         secondary_group_col='Frequency',
@@ -45,7 +45,7 @@ def main():
             'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
         },
         title=f"Color Experiment: {unit}",
-        save_path=None
+        save_path=f"{context.isogabor_plot_path}/color_experiment_{unit}.png",
     )
 
     # Create a simple pipeline

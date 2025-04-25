@@ -26,7 +26,7 @@ def main():
 
     data_for_plotting = organize_data(data_for_all_tasks)
 
-    unit = "Channel.A_020_Unit 1"
+    unit = "Channel.A_031_Unit 2"
     visualize_module = create_grouped_stimuli_module(
         response_col='Window Sort Spike Rates By Unit',
         path_col='ThumbnailPath',
@@ -34,6 +34,7 @@ def main():
         col_col='TestId',
         row_col='TestType',
         title=f'2D vs 3D Test: {unit}',
+        save_path=f"{context.ga_plot_path}/2Dvs3D_Test_{unit}.png",
     )
     # Create and run pipeline with aggregated data
     plot_branch = create_branch().then(visualize_module)
