@@ -26,15 +26,17 @@ def main():
 
     data_for_plotting = organize_data(data_for_all_tasks)
 
-    unit = "Channel.A_031_Unit 2"
+    # unit = "Channel.A_031_Unit 2"
     visualize_module = create_grouped_stimuli_module(
-        response_col='Window Sort Spike Rates By Unit',
+        # response_col='Window Sort Spike Rates By Unit',
+        response_col='GA Response',
+        # response_key=('%s' % "A-017"),
         path_col='ThumbnailPath',
-        response_key=("%s" % unit),
+        # response_key=("%s" % unit),
         col_col='TestId',
         row_col='TestType',
-        title=f'2D vs 3D Test: {unit}',
-        save_path=f"{context.ga_plot_path}/2Dvs3D_Test_{unit}.png",
+        # title=f'2D vs 3D Test: {unit}',
+        # save_path=f"{context.ga_plot_path}/2Dvs3D_Test_{unit}.png",
     )
     # Create and run pipeline with aggregated data
     plot_branch = create_branch().then(visualize_module)
@@ -82,9 +84,9 @@ def organize_data(data_for_stim_ids):
 
 def clean_data(data_for_all_tasks):
     # Remove trials with no response
-    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['GA Response'].apply(lambda x: x != 'nan')]
+    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['GA Response'].notna()]
     # Remove NaNs
-    data_for_all_tasks = data_for_all_tasks.dropna()
+    # data_for_all_tasks = data_for_all_tasks.dropna()
     # Remove Catch
     data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['ThumbnailPath'].apply(lambda x: x is not "None")]
     return data_for_all_tasks
@@ -114,7 +116,7 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     )
 
     data = fields.to_data(task_ids)
-
+    print(data.to_string())
 
     return data
 

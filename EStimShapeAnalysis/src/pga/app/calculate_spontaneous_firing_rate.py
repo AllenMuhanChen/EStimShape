@@ -60,7 +60,7 @@ def calculate_spontaneous_firing():
                           current_gen_id,
                           current_experiment_id,
                           0,
-                          mean_response_for_all_cluster_channels)
+                          float(mean_response_for_all_cluster_channels))
 
 
 class ChannelResponseField(StimSpecField):

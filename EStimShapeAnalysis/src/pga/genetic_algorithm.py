@@ -170,7 +170,7 @@ class GeneticAlgorithm:
                     self.db_util.write_stim_ga_info(stim_id=stim.id, parent_id=stim.parent_id,
                                                     lineage_id=lineage.id,
                                                     stim_type=stim.mutation_type,
-                                                    mutation_magnitude=stim.mutation_magnitude,
+                                                    mutation_magnitude=float(stim.mutation_magnitude) if stim.mutation_magnitude is not None else 0,
                                                     gen_id=self.gen_id)
 
         # Write Catch Trials

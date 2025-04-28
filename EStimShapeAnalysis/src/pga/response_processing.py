@@ -21,7 +21,7 @@ class GAResponseProcessor:
 
         # Write processed responses to database
         for stim_id, driving_response in driving_response_for_each_stim_id.items():
-            self.db_util.update_driving_response(stim_id, driving_response)
+            self.db_util.update_driving_response(stim_id, float(driving_response))
 
     def fetch_response_vector_for_repetitions_of(self, stim_id, *, ga_name: str) -> list[float]:
         """
