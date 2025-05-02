@@ -135,6 +135,17 @@ def main():
     """
     execute_query(connection, create_task_stim_mapping_table, "TaskStimMapping table creation")
 
+    # Create Epochs table with foreign key to TaskStimMapping
+    create_epochs_table = """
+    CREATE TABLE IF NOT EXISTS Epochs (
+        task_id BIGINT PRIMARY KEY,
+        epoch_start FLOAT NOT NULL,
+        epoch_end FLOAT NOT NULL,
+        FOREIGN KEY (task_id) REFERENCES TaskStimMapping(task_id) ON DELETE CASCADE
+    );
+    """
+    execute_query(connection, create_epochs_table, "Epochs table creation")
+
     # Create RawSpikeResponses table with foreign key to TaskStimMapping
     create_raw_spike_responses_table = """
     CREATE TABLE IF NOT EXISTS RawSpikeResponses (

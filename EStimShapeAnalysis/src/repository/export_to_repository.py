@@ -2,10 +2,11 @@ import pandas as pd
 import xmltodict
 import datetime
 from clat.util.connection import Connection
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List, Any, Hashable
 
 
-def export_to_repository(df: pd.DataFrame, db_name: str, exp_name: str):
+def export_to_repository(df: pd.DataFrame, db_name: str, exp_name: str,
+                         stim_info_table: str = "None", stim_info_columns: List[str] = None):
     repo_conn = Connection("allen_data_repository")
     to_export_conn = Connection(db_name)
 
@@ -30,12 +31,17 @@ def export_to_repository(df: pd.DataFrame, db_name: str, exp_name: str):
     write_stim_experiment_mapping(repo_conn, experiment_id, stim_task_mapping)
     write_task_stim_mapping(repo_conn, stim_task_mapping)
 
-    # Raw Spike Responses
+    # Epochs
+    epochs = read_epochs(df)
+    write_epochs_to_db(repo_conn, epochs)
 
+    # Raw Spike Responses
+    raw_spike_responses = read_raw_spike_responses(df)
+    write_raw_spike_responses(repo_conn, raw_spike_responses)
 
     # IsoGaborStimInfo
-
-
+    stim_info = read_stim_info(df, stim_info_columns)
+    write_stim_info_to_db(repo_conn, stim_info_table, stim_info, stim_task_mapping)
     print(f"Export complete for {db_name} to repository database.")
 
 
@@ -367,41 +373,123 @@ def write_task_stim_mapping(conn, stim_task_mapping):
     print(f"Successfully exported {len(task_stim_pairs)} task-stimulus mappings")
 
 
-def read_raw_spike_responses(df, to_export_conn):
+def read_epochs(df: pd.DataFrame) -> Dict[int, Tuple[float, float]]:
     """
-    Read raw spike responses from the dataframe and original database
+    Read epoch data from the DataFrame
 
     Args:
-        df: DataFrame containing TaskId information
-        to_export_conn: Connection to the source database
+        df: DataFrame containing TaskId and Epochs By Channel columns
 
     Returns:
-        List of tuples containing task-channel-response data
+        Dictionary mapping task IDs to (epoch_start, epoch_end) tuples
     """
-    # Get all task IDs from the dataframe
-    task_ids = df['TaskId'].unique().tolist()
+    epochs_data = {}
 
-    # For each task ID, get spike responses for all channels
+    # Check if the DataFrame has the required column
+    if 'Epoch' not in df.columns:
+        print("Warning: 'Epochs By Channel' column not found in DataFrame")
+        return epochs_data
+
+    # Extract epoch data for each task
+    for _, row in df.iterrows():
+        task_id = row['TaskId']
+        epoch = row['Epoch']
+
+        # Skip if no epoch data
+        if epoch is None or epoch == "None" or not epoch:
+            continue
+
+        # Assume all channels have the same epoch, so take the first one
+        # Epochs are typically stored as a dict with channel as key and (start, end) as value
+
+        epochs_data[task_id] = epoch
+
+    print(f"Found epoch data for {len(epochs_data)} tasks")
+    return epochs_data
+
+
+def write_epochs_to_db(conn: Connection, epochs_data: Dict[int, Tuple[float, float]]):
+    """
+    Write epoch data to the Epochs table
+
+    Args:
+        conn: Repository database connection
+        epochs_data: Dictionary mapping task IDs to (epoch_start, epoch_end) tuples
+    """
+    for task_id, (epoch_start, epoch_end) in epochs_data.items():
+        query = """
+        INSERT INTO Epochs (task_id, epoch_start, epoch_end)
+        VALUES (%s, %s, %s)
+        ON DUPLICATE KEY UPDATE epoch_start = %s, epoch_end = %s
+        """
+        params = (task_id, epoch_start, epoch_end, epoch_start, epoch_end)
+        conn.execute(query, params)
+
+    print(f"Successfully exported {len(epochs_data)} epoch records")
+
+
+def read_raw_spike_responses(df: pd.DataFrame) -> List[Tuple[int, str, str, float]]:
+    """
+    Read raw spike responses from the DataFrame and calculate accurate spike rates using epoch data.
+    Spike timestamps are already relative to epochs, so we just need the epoch duration.
+
+    Args:
+        df: DataFrame containing TaskId, Spikes by Channel, and Epochs By Channel columns
+
+    Returns:
+        List of tuples containing (task_id, channel_id, tstamps, response_rate)
+    """
     responses = []
-    for task_id in task_ids:
-        # Query to get spike data for this task
-        to_export_conn.execute(
-            """
-            SELECT channel_id, tstamps, response_rate 
-            FROM RawSpikeResponses 
-            WHERE task_id = %s
-            """,
-            params=(task_id,)
-        )
 
-        task_responses = to_export_conn.fetch_all()
-        for channel_id, tstamps, response_rate in task_responses:
-            responses.append((task_id, channel_id, tstamps, response_rate))
+    # Check if the DataFrame has the required columns
+    if 'Spikes by Channel' not in df.columns:
+        print("Warning: 'Spikes by Channel' column not found in DataFrame")
+        return responses
 
+    if 'Epoch' not in df.columns:
+        print("Warning: 'Epochs By Channel' column not found in DataFrame, using default epoch for rate calculation")
+
+    # Extract spike data for each task
+    for _, row in df.iterrows():
+        task_id = row['TaskId']
+        spikes_by_channel = row.get('Spikes by Channel')
+        epochs_by_channel = row.get('Epoch')
+
+        # Skip if no spike data
+        if not spikes_by_channel or spikes_by_channel == "None":
+            continue
+
+        # Process each channel's spike data
+        for channel, spike_times in spikes_by_channel.items():
+            # Skip if no spikes for this channel
+            if not spike_times:
+                continue
+
+            # Convert spike times list to a string that can be easily converted back to a list
+            # Using repr() ensures the output can be parsed by ast.literal_eval()
+            tstamps_str = repr(spike_times)
+
+            # Calculate response rate (spikes per second) using epoch duration
+            if epochs_by_channel and channel in epochs_by_channel:
+                epoch_start, epoch_end = epochs_by_channel[channel]
+                slide_length = epoch_end - epoch_start
+
+                # Count spikes between 0 and slide_length
+                spikes_in_window = [t for t in spike_times if 0 <= t <= slide_length]
+
+                # Calculate rate (spikes per second)
+                response_rate = len(spikes_in_window) / slide_length if slide_length > 0 else 0
+            else:
+                # Fallback: use simple count if no epoch data (less accurate)
+                response_rate = len(spike_times)
+
+            responses.append((task_id, channel, tstamps_str, response_rate))
+
+    print(f"Found spike response data for {len(responses)} task-channel pairs")
     return responses
 
 
-def write_raw_spike_responses(conn, raw_responses):
+def write_raw_spike_responses(conn: Connection, raw_responses: List[Tuple[int, str, str, float]]):
     """
     Write raw spike responses to repository database
 
@@ -409,69 +497,250 @@ def write_raw_spike_responses(conn, raw_responses):
         conn: Repository database connection
         raw_responses: List of tuples containing (task_id, channel_id, tstamps, response_rate)
     """
+    success_count = 0
+
     for task_id, channel_id, tstamps, response_rate in raw_responses:
-        conn.execute(
-            """
+        try:
+            query = """
             INSERT INTO RawSpikeResponses (task_id, channel_id, tstamps, response_rate) 
             VALUES (%s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE 
                 tstamps = VALUES(tstamps),
                 response_rate = VALUES(response_rate)
-            """,
-            params=(task_id, channel_id, tstamps, response_rate)
-        )
+            """
+            params = (task_id, channel_id, tstamps, response_rate)
+            conn.execute(query, params)
+            success_count += 1
+        except Exception as e:
+            print(f"Error storing response for task {task_id}, channel {channel_id}: {e}")
 
-    print(f"Successfully exported {len(raw_responses)} raw spike responses")
+    print(f"Successfully exported {success_count} of {len(raw_responses)} raw spike responses")
 
 
-def read_isogabor_stim_info(to_export_conn, stim_task_mapping):
+def read_stim_info(df: pd.DataFrame, stim_info_columns: List[str]) -> dict[Hashable, dict[str, Any]]:
     """
-    Read IsoGabor stimulus info from the source database
+    Read StimInfo data from the DataFrame
 
     Args:
-        to_export_conn: Connection to the source database
-        stim_task_mapping: Dictionary with unique stim IDs
+        df: DataFrame containing stimulus data
+        stim_info_columns: List of column names to extract
 
     Returns:
-        List of IsoGabor stim IDs
+        Dictionary mapping stim_ids to dictionaries of column_name->value pairs
     """
-    unique_stim_ids = stim_task_mapping['unique_stim_ids']
-    isogabor_stim_ids = []
+    stim_info_data = {}
 
-    for stim_id in unique_stim_ids:
-        # Check if this stimulus is an IsoGabor stimulus
-        to_export_conn.execute(
-            """
-            SELECT spec FROM StimSpec WHERE id = %s
-            """,
-            params=(stim_id,)
-        )
+    # Verify all columns exist
+    missing_columns = [col for col in stim_info_columns if col not in df.columns]
+    if missing_columns:
+        print(f"Warning: The following StimInfo columns were not found in the DataFrame: {missing_columns}")
+        stim_info_columns = [col for col in stim_info_columns if col in df.columns]
 
-        result = to_export_conn.fetch_all()
-        if result:
-            spec = result[0][0]
-            if spec and 'IsoGabor' in spec:  # Simple check for IsoGabor stimuli
-                isogabor_stim_ids.append(stim_id)
+    if not stim_info_columns:
+        print("No valid StimInfo columns found. Skipping StimInfo export.")
+        return stim_info_data
 
-    return isogabor_stim_ids
+    # Ensure 'StimSpecId' is in the dataframe
+    if 'StimSpecId' not in df.columns:
+        print("Error: 'StimSpecId' column not found in DataFrame. Cannot export StimInfo.")
+        return stim_info_data
+
+    # Group by StimSpecId and extract the specified columns
+    for stim_id, group in df.groupby('StimSpecId'):
+        # Get the first row for each stim_id
+        row = group.iloc[0]
+
+        # Extract the specified columns
+        stim_data = {}
+        for col in stim_info_columns:
+            if col in row:
+                stim_data[col] = row[col]
+
+        stim_info_data[stim_id] = stim_data
+
+    print(f"Found StimInfo data for {len(stim_info_data)} unique stimuli")
+    return stim_info_data
 
 
-def write_isogabor_stim_info(conn, isogabor_stim_ids):
+def write_stim_info_to_db(conn: Connection, table_name: str, stim_info_data: Dict[int, Dict[str, Any]],
+                          stim_task_mapping: Dict):
     """
-    Write IsoGabor stimulus info to repository database
+    Write StimInfo data to the specified repository table
 
     Args:
         conn: Repository database connection
-        isogabor_stim_ids: List of IsoGabor stim IDs
+        table_name: Name of the StimInfo table to write to
+        stim_info_data: Dictionary mapping stim_ids to dictionaries of column_name->value pairs
+        stim_task_mapping: Dictionary with unique_stim_ids list for checking against StimExperimentMapping
     """
-    for stim_id in isogabor_stim_ids:
-        conn.execute(
-            """
-            INSERT INTO IsoGaborStimInfo (stim_id) 
-            VALUES (%s)
-            ON DUPLICATE KEY UPDATE stim_id = VALUES(stim_id)
-            """,
-            params=(stim_id,)
-        )
+    # Get the list of unique stim IDs that are already in StimExperimentMapping
+    valid_stim_ids = set(stim_task_mapping['unique_stim_ids'])
 
-    print(f"Successfully exported {len(isogabor_stim_ids)} IsoGabor stimulus records")
+    # Check if the table exists
+    conn.execute(f"SHOW TABLES LIKE '{table_name}'")
+    if not conn.fetch_all():
+        print(f"Error: Table '{table_name}' does not exist in the repository database.")
+        return
+
+    # Get the table structure to determine columns
+    conn.execute(f"DESCRIBE {table_name}")
+    table_cols = [row[0] for row in conn.fetch_all()]
+
+    # Verify stim_id is in the table
+    if 'stim_id' not in table_cols:
+        print(f"Error: Table '{table_name}' does not have a 'stim_id' column.")
+        return
+
+    # Determine column data types by examining the actual data
+    column_types = detect_column_types(stim_info_data)
+
+    # Create a new table with dynamic columns if it doesn't have the required columns
+    required_cols = set(col for stim_data in stim_info_data.values() for col in stim_data.keys())
+    missing_cols = required_cols - set(table_cols)
+
+    if missing_cols:
+        # Add columns to the table
+        for col in missing_cols:
+            try:
+                # Use the detected data type, or VARCHAR as fallback
+                sql_type = column_types.get(col, 'VARCHAR(255)')
+                conn.execute(f"ALTER TABLE {table_name} ADD COLUMN {col} {sql_type}")
+                print(f"Added column '{col}' to table '{table_name}' with type '{sql_type}'")
+            except Exception as e:
+                print(f"Error adding column '{col}' to table '{table_name}': {e}")
+                # Remove from required columns if we couldn't add it
+                required_cols.discard(col)
+
+    # Prepare counter for successful exports
+    success_count = 0
+
+    # Insert data for each stim_id
+    for stim_id, stim_data in stim_info_data.items():
+        # Skip if this stim_id is not in StimExperimentMapping
+        if stim_id not in valid_stim_ids:
+            print(f"Skipping stim_id {stim_id} - not found in StimExperimentMapping")
+            continue
+
+        # Only include columns that exist in the table
+        valid_cols = ['stim_id'] + [col for col in stim_data.keys() if col in table_cols]
+
+        # Force all values to basic Python types
+        valid_data = [int(stim_id)]  # Force stim_id to int
+        for col in valid_cols[1:]:
+            value = stim_data[col]
+            # Force conversion to basic Python types
+            if hasattr(value, 'item'):  # This handles numpy types
+                try:
+                    value = value.item()  # Convert numpy scalar to Python scalar
+                except (ValueError, AttributeError):
+                    pass
+
+            if isinstance(value, float): # convert float64 to float otherwise SQL will fail
+                value = float(value)
+            elif isinstance(value, int):
+                value = int(value)
+            elif isinstance(value, bool):
+                value = bool(value)
+            elif isinstance(value, str):
+                value = str(value)
+            elif value is None:
+                value = None
+            else:
+                # For more complex types, convert to string
+                value = str(value)
+
+            valid_data.append(value)
+
+        # Prepare placeholders for SQL query
+        placeholders = ', '.join(['%s'] * len(valid_cols))
+        cols_str = ', '.join(valid_cols)
+        update_str = ', '.join([f"{col} = VALUES({col})" for col in valid_cols[1:]])
+
+        # Construct and execute the query
+        try:
+            query = f"""
+            INSERT INTO {table_name} ({cols_str}) 
+            VALUES ({placeholders})
+            """
+            # Add ON DUPLICATE KEY UPDATE clause if there are columns to update
+            if update_str:
+                query += f" ON DUPLICATE KEY UPDATE {update_str}"
+
+            conn.execute(query, tuple(valid_data))
+            success_count += 1
+        except Exception as e:
+            print(f"Error storing StimInfo for stim_id {stim_id}: {e}")
+            print(f"Values: {valid_data}")
+            print(f"Types: {[type(v).__name__ for v in valid_data]}")
+
+    print(f"Successfully exported {success_count} records to {table_name}")
+
+
+def detect_column_types(stim_info_data: Dict[int, Dict[str, Any]]) -> Dict[str, str]:
+    """
+    Detect appropriate SQL data types based on the actual data values.
+    Limited to basic types: VARCHAR, INT, BIGINT, FLOAT, and LONGTEXT.
+
+    Args:
+        stim_info_data: Dictionary mapping stim_ids to dictionaries of column_name->value pairs
+
+    Returns:
+        Dictionary mapping column names to SQL data types
+    """
+    import numpy as np
+
+    # Initialize dictionary to track the type of each column
+    column_types = {}
+    column_values = {}
+
+    # Collect all values for each column
+    for stim_data in stim_info_data.values():
+        for col, value in stim_data.items():
+            if col not in column_values:
+                column_values[col] = []
+            if value is not None:  # Skip None values for type detection
+                column_values[col].append(value)
+
+    # Analyze each column's values to determine the appropriate type
+    for col, values in column_values.items():
+        if not values:  # If no values (all None), default to VARCHAR
+            column_types[col] = 'VARCHAR(255)'
+            continue
+
+        # Sample some values (up to 100) to detect type
+        sample_values = values[:100]
+
+        # Check if all values are integers
+        if all(isinstance(v, (int, np.int64, np.int32)) for v in sample_values):
+            # Determine if it's a regular INT or BIGINT
+            max_val = max(sample_values)
+            min_val = min(sample_values)
+
+            if min_val >= -2147483648 and max_val <= 2147483647:
+                column_types[col] = 'INT'
+            else:
+                column_types[col] = 'BIGINT'
+
+        # Check if all values are floating point numbers
+        elif all(isinstance(v, (float, np.float64, np.float32)) for v in sample_values):
+            column_types[col] = 'FLOAT'
+
+        # For text content, consider length
+        elif all(isinstance(v, str) for v in sample_values):
+            max_length = max(len(str(v)) for v in sample_values)
+
+            # Use VARCHAR for shorter strings
+            if max_length <= 200:
+                column_types[col] = 'VARCHAR(255)'
+            # Use LONGTEXT for very long strings
+            elif max_length > 1000:
+                column_types[col] = 'LONGTEXT'
+            # Use medium VARCHAR for in-between
+            else:
+                column_types[col] = 'VARCHAR(1000)'
+
+        # Everything else is VARCHAR
+        else:
+            column_types[col] = 'VARCHAR(255)'
+
+    return column_types

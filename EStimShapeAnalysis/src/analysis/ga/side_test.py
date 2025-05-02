@@ -10,7 +10,7 @@ from src.analysis.cached_task_fields import LineageField, StimTypeField, StimPat
     ClusterResponseField, ParentIdField
 from src.analysis.grouped_stims_by_response import create_grouped_stimuli_module
 from src.analysis.isogabor.isogabor_analysis import WindowSortSpikesByUnitField, WindowSortSpikesForUnitField, \
-    WindowSortSpikeRatesByUnitField
+    WindowSortSpikeRatesByUnitField, IntanSpikesByChannelField, EpochStartStopTimesField
 from src.intan.MultiFileParser import MultiFileParser
 from src.startup import context
 
@@ -22,9 +22,11 @@ def main():
 
     data_for_all_tasks = clean_data(data_for_all_tasks)
 
-    print(data_for_all_tasks.to_string())
+    # print(data_for_all_tasks.to_string())
 
     data_for_plotting = organize_data(data_for_all_tasks)
+
+    print(data_for_plotting.to_string())
 
     # unit = "Channel.A_031_Unit 2"
     visualize_module = create_grouped_stimuli_module(
@@ -107,16 +109,18 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields.append(StimTypeField(conn))
     fields.append(StimPathField(conn))
     fields.append(ThumbnailField(conn))
+    fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
+    fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))
     fields.append(GAResponseField(conn))
-    fields.append(ClusterResponseField(conn, cluster_combination_strategy))
+    fields.append(ClusterResponseField(conn, cluster_combination_strategy),
     # fields.append(WindowSortSpikesByUnitField(conn, parser, task_ids, context.ga_intan_path,
     #                                           sort_dir))
-    fields.append(WindowSortSpikeRatesByUnitField(conn, parser, task_ids, context.ga_intan_path,
-                                                  sort_dir)
+    # fields.append(WindowSortSpikeRatesByUnitField(conn, parser, task_ids, context.ga_intan_path,
+    #                                               sort_dir)
     )
 
     data = fields.to_data(task_ids)
-    print(data.to_string())
+
 
     return data
 

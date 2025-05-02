@@ -119,7 +119,7 @@ class EpochStartStopTimesField(CachedTaskDatabaseField):
         return epochs_by_task_id[task_id]
 
     def get_name(self):
-        return "Epochs By Channel"
+        return "Epoch"
 
 
 def read_pickle(path: str):
@@ -321,7 +321,7 @@ class FrequencyField(StimSpecField):
         stim_spec_dict = xmltodict.parse(stim_spec)
 
         frequency = stim_spec_dict['StimSpec']['frequency']
-        return frequency
+        return float(frequency)
 
     def get_name(self):
         return "Frequency"

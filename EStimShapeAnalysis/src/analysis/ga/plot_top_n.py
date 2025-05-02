@@ -36,6 +36,8 @@ def main():
     # Remove trials with no response
     data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['Cluster Response'].apply(lambda x: x != 'nan')]
 
+
+
     # Group by StimId and aggregate
     data_for_stim_ids = data_for_all_tasks.groupby('StimSpecId').agg({
         'Lineage': 'first',

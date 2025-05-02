@@ -29,7 +29,9 @@ def main():
     compiled_data = compile_data(conn)
     #filter out trials where Spikes by Channel is empty
     compiled_data = compiled_data[compiled_data['Spikes by Channel'].notnull()]
-    export_to_repository(compiled_data, context.isogabor_database, "isogabor")
+    export_to_repository(compiled_data, context.isogabor_database, "isogabor",
+                         stim_info_table="IsoGaborStimInfo",
+                         stim_info_columns=['Type', 'Frequency'])
 
 
     # ----------------
@@ -75,7 +77,7 @@ def compile_data(conn):
     fields.append(TypeField(conn))
     fields.append(FrequencyField(conn))
     fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.isogabor_intan_path))
-
+    fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.isogabor_intan_path))
     # fields.append(WindowSortSpikesByUnitField(conn, parser, task_ids, context.isogabor_intan_path, "/home/r2_allen/Documents/EStimShape/allen_sort_250421_0/sorted_spikes.pkl"))
     # Compile data
     data = fields.to_data(task_ids)
