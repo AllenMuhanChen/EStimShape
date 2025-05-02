@@ -18,6 +18,7 @@ from src.analysis.isogabor.isogabor_analysis import TypeField, FrequencyField, I
 from clat.pipeline.pipeline_base_classes import (
     InputHandler, ComputationModule, OutputHandler, create_pipeline, AnalysisModuleFactory
 )
+from src.repository.export_to_repository import export_to_repository
 
 
 def main():
@@ -28,6 +29,8 @@ def main():
     compiled_data = compile_data(conn)
     #filter out trials where Spikes by Channel is empty
     compiled_data = compiled_data[compiled_data['Spikes by Channel'].notnull()]
+    export_to_repository(compiled_data, context.isogabor_database, "isogabor")
+
 
     # ----------------
     # STEP 2: Create and run the analysis pipeline
@@ -62,12 +65,6 @@ def main():
 
 
 def compile_data(conn):
-    from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
-    from clat.compile.tstamp.classic_database_tstamp_fields import StimIdField
-    from clat.compile.tstamp.classic_database_tstamp_fields import TaskIdField
-
-    # Import your field classes
-
     # Set up parser
     task_ids = TaskIdCollector(conn).collect_task_ids()
     parser = MultiFileParser(to_cache=True, cache_dir=context.isogabor_parsed_spikes_path)
@@ -78,8 +75,8 @@ def compile_data(conn):
     fields.append(TypeField(conn))
     fields.append(FrequencyField(conn))
     fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.isogabor_intan_path))
-    # fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.isogabor_intan_path))
-    fields.append(WindowSortSpikesByUnitField(conn, parser, task_ids, context.isogabor_intan_path, "/home/r2_allen/Documents/EStimShape/allen_sort_250421_0/sorted_spikes.pkl"))
+
+    # fields.append(WindowSortSpikesByUnitField(conn, parser, task_ids, context.isogabor_intan_path, "/home/r2_allen/Documents/EStimShape/allen_sort_250421_0/sorted_spikes.pkl"))
     # Compile data
     data = fields.to_data(task_ids)
     print(data.to_string())

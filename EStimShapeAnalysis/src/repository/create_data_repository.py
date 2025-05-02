@@ -67,7 +67,7 @@ def main():
     # Create Sessions table for grouping experiments conducted on the same day
     create_sessions_table = """
     CREATE TABLE IF NOT EXISTS Sessions (
-        session_id INT AUTO_INCREMENT PRIMARY KEY,
+        session_id VARCHAR(10) PRIMARY KEY,
         session_date DATE NOT NULL,
         location VARCHAR(255)
     );
@@ -77,7 +77,7 @@ def main():
     # Create ReceptiveFieldInfo table linked to Sessions
     create_rf_info_table = """
     CREATE TABLE IF NOT EXISTS ReceptiveFieldInfo (
-        session_id INT,
+        session_id VARCHAR(10),
         channel VARCHAR(255),
         radius FLOAT,
         x FLOAT,
@@ -91,8 +91,8 @@ def main():
     # Create Experiments table with session_id foreign key
     create_experiments_table = """
     CREATE TABLE IF NOT EXISTS Experiments (
-        experiment_id INT AUTO_INCREMENT PRIMARY KEY,
-        session_id INT NOT NULL,
+        experiment_id VARCHAR(255) PRIMARY KEY,
+        session_id VARCHAR(10) NOT NULL,
         experiment_name VARCHAR(255) NOT NULL,
         database_source VARCHAR(255),
         FOREIGN KEY (session_id) REFERENCES Sessions(session_id) ON DELETE CASCADE
@@ -103,7 +103,7 @@ def main():
     # Create ClusterInfo table
     create_cluster_info_table = """
     CREATE TABLE IF NOT EXISTS ClusterInfo (
-        experiment_id INT,
+        experiment_id VARCHAR(255),
         cluster_id VARCHAR(255),
         channel VARCHAR(255),
         gen_id INT,
@@ -116,8 +116,8 @@ def main():
     # StimExperimentMapping becomes the central table for all stimuli
     create_stim_experiment_mapping_table = """
     CREATE TABLE IF NOT EXISTS StimExperimentMapping (
-        stim_id INT,
-        experiment_id INT,
+        stim_id BIGINT,
+        experiment_id VARCHAR(255),
         PRIMARY KEY (stim_id, experiment_id),
         FOREIGN KEY (experiment_id) REFERENCES Experiments(experiment_id) ON DELETE CASCADE
     );
@@ -127,8 +127,8 @@ def main():
     # Create TaskStimMapping table with reference to StimExperimentMapping
     create_task_stim_mapping_table = """
     CREATE TABLE IF NOT EXISTS TaskStimMapping (
-        task_id INT,
-        stim_id INT,
+        task_id BIGINT,
+        stim_id BIGINT,
         PRIMARY KEY (task_id, stim_id),
         FOREIGN KEY (stim_id) REFERENCES StimExperimentMapping(stim_id) ON DELETE CASCADE
     );
@@ -138,7 +138,7 @@ def main():
     # Create RawSpikeResponses table with foreign key to TaskStimMapping
     create_raw_spike_responses_table = """
     CREATE TABLE IF NOT EXISTS RawSpikeResponses (
-        task_id INT,
+        task_id BIGINT,
         channel_id VARCHAR(255),
         tstamps TEXT,  -- Stored as comma-separated list of timestamps
         response_rate FLOAT,
@@ -151,7 +151,7 @@ def main():
     # Create WindowSortedResponses table with foreign key to TaskStimMapping
     create_window_sorted_responses_table = """
     CREATE TABLE IF NOT EXISTS WindowSortedResponses (
-        task_id INT,
+        task_id BIGINT,
         unit_id VARCHAR(255),
         tstamps TEXT,  -- Stored as comma-separated list of timestamps
         response_rate FLOAT,
@@ -164,7 +164,7 @@ def main():
     # Create specialized stimulus info tables with foreign keys to StimExperimentMapping (only using stim_id)
     create_lightness_test_info = """
     CREATE TABLE IF NOT EXISTS LightnessTestStimInfo (
-        stim_id INT PRIMARY KEY,
+        stim_id BIGINT PRIMARY KEY,
         FOREIGN KEY (stim_id) REFERENCES StimExperimentMapping(stim_id) ON DELETE CASCADE
     );
     """
@@ -173,7 +173,7 @@ def main():
     # Create GAStimInfo table with foreign key
     create_ga_stim_info_table = """
     CREATE TABLE IF NOT EXISTS GAStimInfo (
-        stim_id INT PRIMARY KEY,
+        stim_id BIGINT PRIMARY KEY,
         FOREIGN KEY (stim_id) REFERENCES StimExperimentMapping(stim_id) ON DELETE CASCADE
     );
     """
@@ -182,7 +182,7 @@ def main():
     # Create IsoGaborStimInfo table with foreign key
     create_isogabor_stim_info_table = """
     CREATE TABLE IF NOT EXISTS IsoGaborStimInfo (
-        stim_id INT PRIMARY KEY,
+        stim_id BIGINT PRIMARY KEY,
         FOREIGN KEY (stim_id) REFERENCES StimExperimentMapping(stim_id) ON DELETE CASCADE
     );
     """

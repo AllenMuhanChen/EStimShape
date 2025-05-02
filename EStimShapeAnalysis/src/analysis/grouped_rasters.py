@@ -95,7 +95,7 @@ class GroupedRasterPlotter(ComputationModule):
     def __init__(self,
                  equal_group_heights: bool = False,
                  figsize: Tuple[float, float] = (15, 10),
-                 time_range: Tuple[float, float] = (0, 0.5),
+                 time_range: Tuple[float, float] = (-0.2, 0.7),
                  spike_color: str = 'black',
                  title: Optional[str] = None,):
         """
@@ -343,7 +343,7 @@ def create_grouped_raster_module(
         spike_data_col_key: str = None,
         equal_group_heights: bool = False,
         figsize: Tuple[float, float] = (15, 10),
-        time_range: Tuple[float, float] = (0.0, 0.5),
+        time_range: Tuple[float, float] = (-0.2, 0.7),
         save_path: Optional[str] = None,
         title: Optional[str] = None
 ) -> AnalysisModule:
