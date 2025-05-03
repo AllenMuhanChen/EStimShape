@@ -44,7 +44,9 @@ def main():
                 spikes_relative_tstamps = [(spike_index / sample_rate) - epochs[0] for spike_index in qualifying_spikes]
                 spike_tstamps_by_task_id_by_unit[task_id][new_unit_name].extend(spikes_relative_tstamps)
                 # Calculate spike rate
-                spike_rate = len(qualifying_spikes) / task_duration
+                within_epoch_spikes = [spike_relative_tstamp for spike_relative_tstamp in spikes_relative_tstamps if
+                                       0 <= spike_relative_tstamp <= task_duration]
+                spike_rate = len(within_epoch_spikes) / task_duration
                 spike_rates_by_task_id_by_unit[task_id][new_unit_name] = spike_rate
 
     print(f"Found {len(spike_tstamps_by_task_id_by_unit)} task IDs with spikes")
