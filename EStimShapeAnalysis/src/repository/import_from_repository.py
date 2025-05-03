@@ -22,46 +22,10 @@ def import_from_repository(session_id: str, experiment_name: str,
     repo_conn = Connection("allen_data_repository")
 
     # Form the experiment_id from session_id and experiment_name
-    experiment_id = f"{session_id}_{experiment_name}"
-
-    print(f"Importing data for experiment: {experiment_id}")
-
-    # Check if experiment exists
-    repo_conn.execute(
-        "SELECT experiment_id FROM Experiments WHERE experiment_id = %s",
-        params=(experiment_id,)
-    )
-    result = repo_conn.fetch_all()
-
-    if not result:
-        raise ValueError(f"Experiment '{experiment_id}' not found in repository")
-
-    # 1. Get all stim_ids for this experiment from StimExperimentMapping
-    repo_conn.execute(
-        "SELECT stim_id FROM StimExperimentMapping WHERE experiment_id = %s",
-        params=(experiment_id,)
-    )
-    stim_ids = [row[0] for row in repo_conn.fetch_all()]
-
-    if not stim_ids:
-        raise ValueError(f"No stimuli found for experiment '{experiment_id}'")
-
-    print(f"Found {len(stim_ids)} stimuli for this experiment")
+    experiment_id, stim_ids = fetch_experiment_id_and_stims_for_session(session_id, experiment_name, repo_conn)
 
     # 2. Get task_ids from TaskStimMapping for these stim_ids
-    placeholders = ', '.join(['%s'] * len(stim_ids))
-    repo_conn.execute(
-        f"SELECT task_id, stim_id FROM TaskStimMapping WHERE stim_id IN ({placeholders})",
-        params=stim_ids
-    )
-    task_stim_pairs = [(row[0], row[1]) for row in repo_conn.fetch_all()]
-
-    task_ids = [pair[0] for pair in task_stim_pairs]
-
-    if not task_ids:
-        raise ValueError(f"No tasks found for stimuli in experiment '{experiment_id}'")
-
-    print(f"Found {len(task_ids)} tasks for this experiment")
+    task_ids, task_stim_pairs = fetch_task_ids_and_task_stim_mappings(experiment_id, repo_conn, stim_ids)
 
     # 3. Get stim info from specified table
     # First, get the column names from the specified table
@@ -194,6 +158,53 @@ def import_from_repository(session_id: str, experiment_name: str,
     print(f"Successfully compiled data into DataFrame with {len(df)} rows and {len(df.columns)} columns")
 
     return df
+
+
+def fetch_task_ids_and_task_stim_mappings(experiment_id, repo_conn, stim_ids):
+    placeholders = ', '.join(['%s'] * len(stim_ids))
+    repo_conn.execute(
+        f"SELECT task_id, stim_id FROM TaskStimMapping WHERE stim_id IN ({placeholders})",
+        params=stim_ids
+    )
+    task_stim_pairs = [(row[0], row[1]) for row in repo_conn.fetch_all()]
+    task_ids = [pair[0] for pair in task_stim_pairs]
+    if not task_ids:
+        raise ValueError(f"No tasks found for stimuli in experiment '{experiment_id}'")
+    print(f"Found {len(task_ids)} tasks for this experiment")
+    return task_ids, task_stim_pairs
+
+
+def fetch_experiment_id_and_stims_for_session(session_id, experiment_name, repo_conn):
+    experiment_id = f"{session_id}_{experiment_name}"
+    check_experiment_id_valid(experiment_id, repo_conn)
+    # 1. Get all stim_ids for this experiment from StimExperimentMapping
+    stim_ids = fetch_stim_ids_for_experiment_id(experiment_id, repo_conn)
+    return experiment_id, stim_ids
+
+
+def fetch_stim_ids_for_experiment_id(experiment_id, repo_conn):
+    repo_conn.execute(
+        "SELECT stim_id FROM StimExperimentMapping WHERE experiment_id = %s",
+        params=(experiment_id,)
+    )
+    stim_ids = [row[0] for row in repo_conn.fetch_all()]
+    if not stim_ids:
+        raise ValueError(f"No stimuli found for experiment '{experiment_id}'")
+    print(f"Found {len(stim_ids)} stimuli for this experiment")
+    return stim_ids
+
+
+def check_experiment_id_valid(experiment_id, repo_conn):
+    print(f"Importing data for experiment: {experiment_id}")
+    # Check if experiment exists
+    repo_conn.execute(
+        "SELECT experiment_id FROM Experiments WHERE experiment_id = %s",
+        params=(experiment_id,)
+    )
+    result = repo_conn.fetch_all()
+    if not result:
+        raise ValueError(f"Experiment '{experiment_id}' not found in repository")
+
 
 if __name__ == "__main__":
 

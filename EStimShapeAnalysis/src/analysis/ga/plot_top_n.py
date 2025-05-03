@@ -81,6 +81,7 @@ def main():
 
     # Merge the ranks back to the original dataframe
     data = data.merge(avg_response[['Lineage', 'StimSpecId', 'RankWithinLineage']], on=['Lineage', 'StimSpecId'], how='left')
+
     visualize_module = create_grouped_stimuli_module(
         response_rate_col='Response Rate',
         # response_rate_key='A-018',
