@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 from PIL import Image
+from clat.pipeline.pipeline_base_classes import create_pipeline
 from matplotlib import pyplot as plt
 
 from clat.compile.task.cached_task_fields import CachedTaskFieldList
@@ -13,7 +14,8 @@ from clat.util.connection import Connection
 from clat.util.time_util import When
 
 from src.analysis.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
-from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField
+from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField
+from src.analysis.grouped_stims_by_response import create_grouped_stimuli_module
 from src.analysis.isogabor.isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField
 from src.analysis.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
 from src.intan.MultiFileParser import MultiFileParser
@@ -24,6 +26,12 @@ from src.pga.mock.mock_rwa_analysis import condition_spherical_angles, hemispher
 from src.repository.export_to_repository import export_to_repository
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
+
+
+def get_top_n_lineages(data, n):
+    length_for_lineages = data.groupby("Lineage")["RegimeScore"].size()
+    top_n_lineages = length_for_lineages.nlargest(n).index
+    return list(top_n_lineages)
 
 
 def main():
@@ -43,6 +51,7 @@ def main():
                          stim_info_table="GAStimInfo",
                          stim_info_columns=[
                              "Lineage",
+                             "RegimeScore",
                              "StimType",
                              "StimPath",
                              "ThumbnailPath",
@@ -60,35 +69,57 @@ def main():
         "RawSpikeResponses"
     )
 
-    # Group by StimId and aggregate
-    data_for_stim_ids = data.groupby('StimSpecId').agg({
-        'Lineage': 'first',
-        'StimType': 'first',
-        'ThumbnailPath': 'first',
-        'GA_Response': 'mean',
-    }).reset_index()
+    # Break apart the response rate by channel
+    data['Response Rate'] = data['Response Rate by channel'].apply(lambda x: x['A-018'])
+    # Create a new column that is the rank of the response rate for its lineage
+    data['Rank'] = data.groupby('Lineage')['Response Rate'].rank(ascending=False, method='first')
 
-    # Rename the response column
-    data_for_stim_ids = data_for_stim_ids.rename(columns={'Cluster Response': 'Average Response'})
+    visualize_module = create_grouped_stimuli_module(
+        response_rate_col='Response Rate',
+        # response_rate_key='A-018',
+        path_col='ThumbnailPath',
+        col_col='Rank',
+        row_col='Lineage',
+        title='Top Stimuli Per Lineage',
+        filter_values={"Lineage": get_top_n_lineages(data, 3),
+                       "Rank": range(1, 21)}
+        # save_path=f"{context.twodvsthreed_plots_dir}/texture_by_lightness.png"
+    )
 
-    print(data_for_stim_ids.to_string())
+    # Create and run pipeline with aggregated data
+    pipeline = create_pipeline().then(visualize_module).build()
+    result = pipeline.run(data)
 
-    # Convert DataFrame to list of dicts for plotting
-    stimuli_list = []
-    for _, row in data_for_stim_ids.iterrows():
+    # # Group by StimId and aggregate
+    # data_for_stim_ids = data.groupby('StimSpecId').agg({
+    #     'Lineage': 'first',
+    #     'StimType': 'first',
+    #     'ThumbnailPath': 'first',
+    #     'GA_Response': 'mean',
+    # }).reset_index()
+    #
+    # # Rename the response column
+    # data_for_stim_ids = data_for_stim_ids.rename(columns={'Cluster Response': 'Average Response'})
+    #
+    # print(data_for_stim_ids.to_string())
+    #
+    # # Convert DataFrame to list of dicts for plotting
+    # stimuli_list = []
+    # for _, row in data_for_stim_ids.iterrows():
+    #
+    #     stim = {
+    #         'stim_id': row['StimSpecId'],
+    #         'response': row['GA_Response'],
+    #         'lineage_id': row['Lineage'],
+    #         'path': row['ThumbnailPath']
+    #     }
+    #
+    #     if stim['path'] is not None:
+    #         stimuli_list.append(stim)
+    #
+    # # Create and save plot
+    # fig = plot_top_n_stimuli(stimuli_list, n=20)
 
-        stim = {
-            'stim_id': row['StimSpecId'],
-            'response': row['GA_Response'],
-            'lineage_id': row['Lineage'],
-            'path': row['ThumbnailPath']
-        }
-
-        if stim['path'] is not None:
-            stimuli_list.append(stim)
-
-    # Create and save plot
-    fig = plot_top_n_stimuli(stimuli_list, n=20)
     # plt.savefig(f"{context.plots_dir}/top_responses.png")
     plt.show()
 
@@ -104,6 +135,7 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields = CachedTaskFieldList()
     fields.append(StimSpecIdField(conn))
     fields.append(LineageField(conn))
+    fields.append(RegimeScoreField(conn))
     fields.append(StimTypeField(conn))
     fields.append(StimPathField(conn))
     fields.append(ThumbnailField(conn))

@@ -192,16 +192,6 @@ def main():
     print(data.to_string())
 
 
-
-    # ---------------
-    # Manual aggregation by StimId
-    # ---------------
-    # Group by StimId and calculate aggregated values
-    aggregation_cols = ['StimSpecId', 'Texture', 'RGB', 'ThumbnailPath']
-    if 'StimGaId' in data.columns:
-        aggregation_cols.append('StimGaId')
-
-
     # Create visualization module
     visualize_module = create_grouped_stimuli_module(
         response_rate_col='Response Rate by channel',

@@ -31,7 +31,8 @@ class GroupedStimuliInputHandler(InputHandler):
                  response_key: Optional[str] = None,
                  col_col: Optional[str] = None,
                  subgroup_col: Optional[str] = None,
-                 filter_values: Optional[Dict[str, List[Any]]] = None):
+                 filter_values: Optional[Dict[str, List[Any]]] = None,
+                 ):
         """
         Initialize the grouped stimuli input handler.
         """
@@ -100,6 +101,11 @@ class GroupedStimuliInputHandler(InputHandler):
                 lambda x: x[self.response_key] if isinstance(x, dict) and self.response_key in x else 0
             )
 
+        # sort the data by response_col
+        # filtered_data = filtered_data.sort_values(by=self.col_col, ascending=True)
+
+        # limit the data to the first 100 rows
+        # filtered_data = filtered_data.head(10)
         # Return organized data structure
         return {
             'data': filtered_data,
@@ -152,9 +158,9 @@ class GroupedStimuliPlotter(ComputationModule):
         row_col = prepared_data['row_col']
         col_col = prepared_data['col_col']
         subgroup_col = prepared_data['subgroup_col']
-        row_values = prepared_data['row_values']
-        col_values = prepared_data['col_values']
-        subgroup_values = prepared_data['subgroup_values']
+        row_values = set(data[row_col]) if row_col else None
+        col_values = set(data[col_col]) if col_col else None
+        subgroup_values = set(data[subgroup_col]) if subgroup_col else None
 
         # Default to single row/column if not specified
         if not row_values:

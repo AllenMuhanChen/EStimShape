@@ -4,7 +4,7 @@ from clat.compile.tstamp.classic_database_tstamp_fields import get_new_ga_lineag
 
 
 class LineageField(StimSpecIdField):
-    def get(self, task_id) -> str:
+    def get(self, task_id) -> int:
         stim_spec_id = self.get_cached_super(task_id, StimSpecIdField)
 
         self.conn.execute("SELECT lineage_id FROM StimGaInfo WHERE"
@@ -12,7 +12,7 @@ class LineageField(StimSpecIdField):
                           params=(stim_spec_id,))
 
         lineage = self.conn.fetch_one()
-        return lineage
+        return int(lineage)
 
     def get_name(self):
         return "Lineage"
