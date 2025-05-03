@@ -296,17 +296,16 @@ class GroupedStimuliPlotter(ComputationModule):
 
         return ImageOps.expand(image, border=self.border_width, fill=border_color)
 
-    def _plot_cell(self, ax, cell_data, response_col, path_col, min_val, max_val):
+    def _plot_cell(self, ax, cell_data, response_rate_col, path_col, min_val, max_val):
         """Plot images in a single cell with colored borders."""
         if cell_data.empty:
             ax.text(0.5, 0.5, "No data", ha='center', va='center')
             ax.axis('off')
             return
 
-        # For each cell, just plot a single image - we expect at most one image
-        # after the data has been aggregated by Texture/Lightness/StimGaId
+        # For each cell, if there's multiple responses, take the mean.
         img_path = Path(cell_data.iloc[0][path_col])
-        responses = cell_data[response_col].values
+        responses = cell_data[response_rate_col].values
         response = np.mean(responses) if len(responses) > 0 else 0.0
 
 
@@ -352,9 +351,9 @@ class GroupedStimuliOutput(OutputHandler):
 
 
 def create_grouped_stimuli_module(
-        response_col: str,
+        response_rate_col: str,
         path_col: str,
-        response_key: str = None,
+        response_rate_key: str = None,
         row_col: Optional[str] = None,
         col_col: Optional[str] = None,
         subgroup_col: Optional[str] = None,
@@ -375,8 +374,8 @@ def create_grouped_stimuli_module(
     # Create the grouped stimuli module
     grouped_stimuli_module = AnalysisModuleFactory.create(
         input_handler=GroupedStimuliInputHandler(
-            response_col=response_col,
-            response_key=response_key,
+            response_col=response_rate_col,
+            response_key=response_rate_key,
             path_col=path_col,
             row_col=row_col,
             col_col=col_col,

@@ -201,19 +201,11 @@ def main():
     if 'StimGaId' in data.columns:
         aggregation_cols.append('StimGaId')
 
-    # # Perform groupby aggregation
-    # print(f"\nAggregating by: {aggregation_cols}")
-    # agg_dict = {'Response Rate by channel': 'mean'}
-    # agg_data = data.groupby(aggregation_cols).agg(agg_dict).reset_index()
-    #
-    # print("\nAfter aggregation:")
-    # print(f"Total rows: {len(agg_data)}")
-    # print(f"Unique StimIds: {agg_data['StimSpecId'].nunique()}")
 
     # Create visualization module
     visualize_module = create_grouped_stimuli_module(
-        response_col='Response Rate by channel',
-        response_key='A-018',
+        response_rate_col='Response Rate by channel',
+        response_rate_key='A-018',
         path_col='ThumbnailPath',
         col_col='RGB',
         row_col='Texture',
