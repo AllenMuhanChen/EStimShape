@@ -12,6 +12,7 @@ from src.analysis.grouped_stims_by_response import create_grouped_stimuli_module
 from src.analysis.isogabor.isogabor_analysis import WindowSortSpikesByUnitField, WindowSortSpikesForUnitField, \
     WindowSortSpikeRatesByUnitField, IntanSpikesByChannelField, EpochStartStopTimesField
 from src.intan.MultiFileParser import MultiFileParser
+from src.repository.export_to_repository import export_to_repository
 from src.startup import context
 
 
@@ -27,6 +28,14 @@ def main():
     data_for_plotting = organize_data(data_for_all_tasks)
 
     print(data_for_plotting.to_string())
+    export_to_repository(data_for_plotting,
+                         context.ga_database,
+                         "ga",
+                            stim_info_table="2Dvs3DStimInfo",
+                            stim_info_columns=['Lineage', 'StimType','StimPath','ThumbnailPath', 'GA Response', 'TestId', 'TestType'],
+                         )
+
+
 
     # unit = "Channel.A_031_Unit 2"
     visualize_module = create_grouped_stimuli_module(
@@ -99,7 +108,7 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     task_ids = collector.collect_task_ids()
     response_processor = context.ga_config.make_response_processor()
     cluster_combination_strategy = response_processor.cluster_combination_strategy
-    sort_dir = "/home/r2_allen/Documents/EStimShape/allen_sort_250421_0/sorted_spikes.pkl"
+    # sort_dir = "/home/r2_allen/Documents/EStimShape/allen_sort_250421_0/sorted_spikes.pkl"
     parser = MultiFileParser(to_cache=True, cache_dir=context.ga_parsed_spikes_path)
 
     fields = CachedTaskFieldList()

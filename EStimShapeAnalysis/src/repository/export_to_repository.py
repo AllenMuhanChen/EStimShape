@@ -343,7 +343,7 @@ def write_stim_experiment_mapping(conn, experiment_id, stim_task_mapping):
             VALUES (%s, %s)
             ON DUPLICATE KEY UPDATE experiment_id = VALUES(experiment_id)
             """,
-            params=(stim_id, experiment_id)
+            params=(int(stim_id), experiment_id)
         )
 
     print(f"Successfully exported {len(unique_stim_ids)} stimulus-experiment mappings")
@@ -367,7 +367,7 @@ def write_task_stim_mapping(conn, stim_task_mapping):
             VALUES (%s, %s)
             ON DUPLICATE KEY UPDATE stim_id = VALUES(stim_id)
             """,
-            params=(task_id, stim_id)
+            params=(int(task_id), int(stim_id))
         )
 
     print(f"Successfully exported {len(task_stim_pairs)} task-stimulus mappings")
@@ -422,7 +422,7 @@ def write_epochs_to_db(conn: Connection, epochs_data: Dict[int, Tuple[float, flo
         VALUES (%s, %s, %s)
         ON DUPLICATE KEY UPDATE epoch_start = %s, epoch_end = %s
         """
-        params = (task_id, epoch_start, epoch_end, epoch_start, epoch_end)
+        params = (int(task_id), float(epoch_start), epoch_end, epoch_start, epoch_end)
         conn.execute(query, params)
 
     print(f"Successfully exported {len(epochs_data)} epoch records")
@@ -508,7 +508,7 @@ def write_raw_spike_responses(conn: Connection, raw_responses: List[Tuple[int, s
                 tstamps = VALUES(tstamps),
                 response_rate = VALUES(response_rate)
             """
-            params = (task_id, channel_id, tstamps, response_rate)
+            params = (int(task_id), channel_id, tstamps, float(response_rate))
             conn.execute(query, params)
             success_count += 1
         except Exception as e:
@@ -573,6 +573,21 @@ def write_stim_info_to_db(conn: Connection, table_name: str, stim_info_data: Dic
         stim_info_data: Dictionary mapping stim_ids to dictionaries of column_name->value pairs
         stim_task_mapping: Dictionary with unique_stim_ids list for checking against StimExperimentMapping
     """
+    # Create a mapping of original column names to SQL-safe column names
+    column_name_mapping = {}
+
+    # Replace spaces with underscores in column names and create mapping
+    clean_stim_info_data = {}
+    for stim_id, stim_data in stim_info_data.items():
+        clean_data = {}
+        for col, value in stim_data.items():
+            clean_col = col.replace(' ', '_')
+            clean_data[clean_col] = value
+            column_name_mapping[col] = clean_col
+        clean_stim_info_data[stim_id] = clean_data
+
+    stim_info_data = clean_stim_info_data
+
     # Get the list of unique stim IDs that are already in StimExperimentMapping
     valid_stim_ids = set(stim_task_mapping['unique_stim_ids'])
 
@@ -580,7 +595,14 @@ def write_stim_info_to_db(conn: Connection, table_name: str, stim_info_data: Dic
     conn.execute(f"SHOW TABLES LIKE '{table_name}'")
     if not conn.fetch_all():
         print(f"Error: Table '{table_name}' does not exist in the repository database.")
-        return
+        # Create the table if it doesn't exist
+        create_table_query = f"""
+            CREATE TABLE IF NOT EXISTS {table_name} (
+           stim_id BIGINT PRIMARY KEY,
+            FOREIGN KEY (stim_id) REFERENCES StimExperimentMapping(stim_id) ON DELETE CASCADE
+        );
+        """
+        conn.execute(create_table_query)
 
     # Get the table structure to determine columns
     conn.execute(f"DESCRIBE {table_name}")
@@ -635,7 +657,7 @@ def write_stim_info_to_db(conn: Connection, table_name: str, stim_info_data: Dic
                 except (ValueError, AttributeError):
                     pass
 
-            if isinstance(value, float): # convert float64 to float otherwise SQL will fail
+            if isinstance(value, float):  # convert float64 to float otherwise SQL will fail
                 value = float(value)
             elif isinstance(value, int):
                 value = int(value)
