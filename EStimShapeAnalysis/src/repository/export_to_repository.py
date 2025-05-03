@@ -444,10 +444,10 @@ def read_raw_spike_responses(df: pd.DataFrame) -> List[Tuple[int, str, str, floa
     # Check if the DataFrame has the required columns
     if 'Spikes by Channel' not in df.columns:
         print("Warning: 'Spikes by Channel' column not found in DataFrame")
-        return responses
+        raise ValueError("Spikes by Channel column is missing from df. Please ensure the DataFrame contains the 'Spikes by Channel' column with spike data. ")
 
     if 'Epoch' not in df.columns:
-        print("Warning: 'Epochs By Channel' column not found in DataFrame, using default epoch for rate calculation")
+        raise ValueError("Epoch column is missing from df. Please ensure the DataFrame contains the 'Epoch' column with epoch data. ")
 
     # Extract spike data for each task
     for _, row in df.iterrows():
@@ -611,7 +611,7 @@ def write_stim_info_to_db(conn: Connection, table_name: str, stim_info_data: Dic
     # Verify stim_id is in the table
     if 'stim_id' not in table_cols:
         print(f"Error: Table '{table_name}' does not have a 'stim_id' column.")
-        return
+        raise ValueError(f"Table '{table_name}' must have a 'stim_id' column.")
 
     # Determine column data types by examining the actual data
     column_types = detect_column_types(stim_info_data)

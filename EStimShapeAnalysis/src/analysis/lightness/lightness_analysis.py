@@ -16,8 +16,11 @@ from src.analysis.cached_task_fields import StimPathField, ThumbnailField
 
 # Import custom modules
 from src.intan.MultiFileParser import MultiFileParser
+from src.monitorlinearization.compile_monlin import EpochField
+from src.repository.export_to_repository import export_to_repository
 from src.startup import context
-from src.analysis.isogabor.isogabor_analysis import IntanSpikesByChannelField, SpikeRateByChannelField
+from src.analysis.isogabor.isogabor_analysis import IntanSpikesByChannelField, SpikeRateByChannelField, \
+    EpochStartStopTimesField
 from src.analysis.grouped_stims_by_response import create_grouped_stimuli_module
 
 class StimGaIdField(StimSpecIdField):
@@ -137,7 +140,7 @@ def main():
     """Main function to run the 2D vs 3D analysis pipeline."""
 
     # Set up database connection and date
-    date = '2025-04-27'
+    # date = '2025-04-27'
     conn = Connection(context.twodvsthreed_database)
 
     # Collect trials
@@ -146,7 +149,7 @@ def main():
 
     # Set up parser for spike data
     parser = MultiFileParser(to_cache=True, cache_dir=context.twodvsthreed_parsed_spikes_path)
-    intan_files_dir = context.twodvsthreed_intan_path + '/' + date
+    intan_files_dir = context.twodvsthreed_intan_path
 
     # Set up fields for data compilation
     fields = CachedTaskFieldList()
@@ -158,11 +161,23 @@ def main():
     fields.append(ColorField(conn))
     fields.append(TypeField(conn))
     fields.append(IntanSpikesByChannelField(conn, parser, task_ids, intan_files_dir))
+    fields.append(EpochStartStopTimesField(conn, parser, task_ids, intan_files_dir))
     fields.append(SpikeRateByChannelField(conn, parser, task_ids, intan_files_dir))
     fields.append(GAClusterResponseField(conn, parser, task_ids, intan_files_dir))
 
     # Compile data
     raw_data = fields.to_data(task_ids)
+    export_to_repository(raw_data, context.twodvsthreed_database, "twodvsthreed",
+                         stim_info_table="LightnessTestStimInfo",
+                         stim_info_columns=[
+                             'Type',
+                             'RGB',
+                             'Texture',
+                             'StimGaId',
+                             'StimPath',
+                             'ThumbnailPath',
+                         ])
+
     print(raw_data.to_string())
     print("\nRaw data summary:")
     print(f"Total rows: {len(raw_data)}")
