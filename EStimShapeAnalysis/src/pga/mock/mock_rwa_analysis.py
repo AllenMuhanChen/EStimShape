@@ -78,7 +78,7 @@ def compute_shaft_rwa(data, n):
         "radius": AutomaticBinner("radius", data_shaft, 9),
     }
     shaft_rwa = compute_rwa_from_top_n_lineages(data, "Shaft",
-                                                "New3D", n, binner_for_shaft_fields,
+                                                n, binner_for_shaft_fields,
                                                 sigma_for_fields=sigma_for_fields,
                                                 padding_for_fields=padding_for_fields)
     return shaft_rwa
@@ -106,7 +106,7 @@ def compute_termination_rwa(data, n):
         "radius": AutomaticBinner("radius", data_termination, 9),
     }
     termination_rwa = compute_rwa_from_top_n_lineages(data, "Termination",
-                                                      "New3D", n, binner_for_termination_fields,
+                                                      n, binner_for_termination_fields,
                                                       sigma_for_fields=sigma_for_fields,
                                                       padding_for_fields=padding_for_fields)
     return termination_rwa
@@ -140,7 +140,7 @@ def compute_junction_rwa(data, n):
         "planarRotation": AutomaticBinner('planarRotation', data_junction, 9),
     }
     junction_rwa = compute_rwa_from_top_n_lineages(data, "Junction",
-                                                   "New3D", n, binner_for_junction_fields,
+                                                   n, binner_for_junction_fields,
                                                    sigma_for_fields=sigma_for_fields,
                                                    padding_for_fields=padding_for_fields)
     return junction_rwa
@@ -176,11 +176,11 @@ def compute_rwa_from_lineages(data, ga_type, binner_for_fields, sigma_for_fields
     return rwa_multiplied
 
 
-def compute_rwa_from_top_n_lineages(data, data_type, ga_type, n, binner_for_fields, sigma_for_fields=None,
+def compute_rwa_from_top_n_lineages(data, data_type, n, binner_for_fields, sigma_for_fields=None,
                                     padding_for_fields=None,
                                     ):
     """sigma_for_fields is expressed as a percentage of the number of bins for that dimension"""
-    data = data.loc[data['GaType'] == ga_type]
+    # data = data.loc[data['GaType'] == ga_type]
     rwas = []
     length_for_lineages = data.groupby("Lineage")["RegimeScore"].size()
     top_n_lineages = length_for_lineages.nlargest(n).index

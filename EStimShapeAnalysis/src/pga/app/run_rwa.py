@@ -6,6 +6,7 @@ import pandas as pd
 
 from clat.compile.task.cached_task_fields import CachedTaskFieldList
 from clat.compile.task.classic_database_task_fields import StimSpecIdField
+from clat.compile.task.compile_task_id import TaskIdCollector
 from src.analysis.ga.cached_ga_fields import RegimeScoreField, LineageField
 from src.analysis.ga.rwa import get_next
 from clat.util import time_util
@@ -26,8 +27,9 @@ def main():
 
     # PIPELINE
     experiment_id = context.ga_config.db_util.read_current_experiment_id(context.ga_name)
-    trial_tstamps = collect_trials(conn, when_for_most_recent_experiment())
-    data = compile_data(conn, trial_tstamps)
+    collector = TaskIdCollector(conn)
+    task_ids = collector.collect_task_ids()
+    data = compile_data(conn, task_ids)
     data = remove_empty_response_trials(data)
     data = remove_catch_trials(data)
     data = condition_spherical_angles(data)
