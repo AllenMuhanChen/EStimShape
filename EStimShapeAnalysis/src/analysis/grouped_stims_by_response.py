@@ -286,14 +286,6 @@ class GroupedStimuliPlotter(ComputationModule):
                 intensity = (center_point - response) / (center_point - min_val) if center_point > min_val else 0
                 border_color = (0, 0, int(255 * intensity))
 
-        # # Resize the image to a small size to avoid memory issues
-        # max_size = 1000
-        # width, height = image.size
-        # if width > max_size or height > max_size:
-        #     ratio = min(max_size / width, max_size / height)
-        #     new_size = (int(width * ratio), int(height * ratio))
-        #     image = image.resize(new_size, Image.BILINEAR)
-
         return ImageOps.expand(image, border=self.border_width, fill=border_color)
 
     def _plot_cell(self, ax, cell_data, response_rate_col, path_col, min_val, max_val):
@@ -307,8 +299,7 @@ class GroupedStimuliPlotter(ComputationModule):
         img_path = Path(cell_data.iloc[0][path_col])
         responses = cell_data[response_rate_col].values
         response = np.mean(responses) if len(responses) > 0 else 0.0
-
-
+        std = np.std(responses) if len(responses) > 0 else 0.0
         if img_path.exists():
             try:
                 img = Image.open(img_path)
@@ -316,7 +307,7 @@ class GroupedStimuliPlotter(ComputationModule):
                 ax.imshow(img_with_border)
 
                 # Add response text
-                ax.text(0.5, 0.95, f"Response: {response:.2f}",
+                ax.text(0.5, 0.95, f"Response: {response:.2f} ± {std:.2f}. ",
                         transform=ax.transAxes, ha='center', va='top',
                         color='black', fontsize=8, bbox=dict(facecolor='white', alpha=0.7))
 
