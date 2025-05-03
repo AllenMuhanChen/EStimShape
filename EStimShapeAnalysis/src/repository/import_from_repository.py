@@ -162,6 +162,10 @@ def import_from_repository(session_id: str, experiment_name: str,
     # 6. Compile all data into a DataFrame
     compiled_data = []
     for task_id, stim_id in task_stim_pairs:
+
+        if stim_id not in stim_info_data or task_id not in responses_data:
+            continue
+
         # Create base row with task and stim IDs
         row_data = {
             'TaskId': task_id,

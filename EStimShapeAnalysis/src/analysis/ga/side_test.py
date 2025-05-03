@@ -13,6 +13,7 @@ from src.analysis.isogabor.isogabor_analysis import WindowSortSpikesByUnitField,
     WindowSortSpikeRatesByUnitField, IntanSpikesByChannelField, EpochStartStopTimesField
 from src.intan.MultiFileParser import MultiFileParser
 from src.repository.export_to_repository import export_to_repository
+from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 
 
@@ -35,13 +36,18 @@ def main():
                             stim_info_columns=['Lineage', 'StimType','StimPath','ThumbnailPath', 'GA Response', 'TestId', 'TestType'],
                          )
 
-
+    data_for_plotting = import_from_repository(
+        "250427_0",
+        "ga",
+        "2Dvs3DStimInfo",
+        "RawSpikeResponses"
+    )
 
     # unit = "Channel.A_031_Unit 2"
     visualize_module = create_grouped_stimuli_module(
         # response_col='Window Sort Spike Rates By Unit',
-        response_col='GA Response',
-        # response_key=('%s' % "A-017"),
+        response_col='Response Rate by channel',
+        response_key="A-018",
         path_col='ThumbnailPath',
         # response_key=("%s" % unit),
         col_col='TestId',

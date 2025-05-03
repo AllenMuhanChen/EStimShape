@@ -305,9 +305,10 @@ class GroupedStimuliPlotter(ComputationModule):
 
         # For each cell, just plot a single image - we expect at most one image
         # after the data has been aggregated by Texture/Lightness/StimGaId
-        row = cell_data.iloc[0]
-        response = row[response_col]
-        img_path = Path(row[path_col])
+        img_path = Path(cell_data.iloc[0][path_col])
+        responses = cell_data[response_col].values
+        response = np.mean(responses) if len(responses) > 0 else 0.0
+
 
         if img_path.exists():
             try:

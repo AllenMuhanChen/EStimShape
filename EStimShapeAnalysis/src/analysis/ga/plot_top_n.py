@@ -22,6 +22,7 @@ from src.pga.alexnet.analysis.plot_top_n_alexnet import add_colored_border
 from src.pga.app.run_rwa import remove_catch_trials
 from src.pga.mock.mock_rwa_analysis import condition_spherical_angles, hemisphericalize_orientation
 from src.repository.export_to_repository import export_to_repository
+from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 
 
@@ -52,13 +53,19 @@ def main():
                              "Junction"
                          ])
 
+    data = import_from_repository(
+        "250427_0",
+        "ga",
+        "GAStimInfo",
+        "RawSpikeResponses"
+    )
+
     # Group by StimId and aggregate
     data_for_stim_ids = data.groupby('StimSpecId').agg({
         'Lineage': 'first',
         'StimType': 'first',
         'ThumbnailPath': 'first',
-        'Cluster Response': 'mean',
-        'GA Response': 'first'
+        'GA_Response': 'mean',
     }).reset_index()
 
     # Rename the response column
@@ -72,7 +79,7 @@ def main():
 
         stim = {
             'stim_id': row['StimSpecId'],
-            'response': row['GA Response'],
+            'response': row['GA_Response'],
             'lineage_id': row['Lineage'],
             'path': row['ThumbnailPath']
         }

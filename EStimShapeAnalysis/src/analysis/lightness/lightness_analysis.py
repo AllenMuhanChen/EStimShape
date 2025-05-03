@@ -18,6 +18,7 @@ from src.analysis.cached_task_fields import StimPathField, ThumbnailField
 from src.intan.MultiFileParser import MultiFileParser
 from src.monitorlinearization.compile_monlin import EpochField
 from src.repository.export_to_repository import export_to_repository
+from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 from src.analysis.isogabor.isogabor_analysis import IntanSpikesByChannelField, SpikeRateByChannelField, \
     EpochStartStopTimesField
@@ -140,7 +141,6 @@ def main():
     """Main function to run the 2D vs 3D analysis pipeline."""
 
     # Set up database connection and date
-    # date = '2025-04-27'
     conn = Connection(context.twodvsthreed_database)
 
     # Collect trials
@@ -167,7 +167,11 @@ def main():
 
     # Compile data
     raw_data = fields.to_data(task_ids)
-    export_to_repository(raw_data, context.twodvsthreed_database, "lightness",
+
+    # Filter out trials with no response data
+    data = raw_data[raw_data['Cluster Response'].notna()]
+
+    export_to_repository(data, context.twodvsthreed_database, "lightness",
                          stim_info_table="LightnessTestStimInfo",
                          stim_info_columns=[
                              'Type',
@@ -176,15 +180,16 @@ def main():
                              'StimGaId',
                              'StimPath',
                              'ThumbnailPath',
+                             'GA Response',
+                             'Cluster Response'
                          ])
-
-    print(raw_data.to_string())
-    print("\nRaw data summary:")
-    print(f"Total rows: {len(raw_data)}")
-    print(f"Columns: {raw_data.columns.tolist()}")
-
-    # Filter out trials with no response data
-    data = raw_data[raw_data['Cluster Response'].notna()]
+    data = import_from_repository(
+        "250427_0",
+        "lightness",
+        "LightnessTestStimInfo",
+        "RawSpikeResponses"
+    )
+    print(data.to_string())
 
 
 
@@ -196,18 +201,19 @@ def main():
     if 'StimGaId' in data.columns:
         aggregation_cols.append('StimGaId')
 
-    # Perform groupby aggregation
-    print(f"\nAggregating by: {aggregation_cols}")
-    agg_dict = {'Cluster Response': 'mean'}
-    agg_data = data.groupby(aggregation_cols).agg(agg_dict).reset_index()
-
-    print("\nAfter aggregation:")
-    print(f"Total rows: {len(agg_data)}")
-    print(f"Unique StimIds: {agg_data['StimSpecId'].nunique()}")
+    # # Perform groupby aggregation
+    # print(f"\nAggregating by: {aggregation_cols}")
+    # agg_dict = {'Response Rate by channel': 'mean'}
+    # agg_data = data.groupby(aggregation_cols).agg(agg_dict).reset_index()
+    #
+    # print("\nAfter aggregation:")
+    # print(f"Total rows: {len(agg_data)}")
+    # print(f"Unique StimIds: {agg_data['StimSpecId'].nunique()}")
 
     # Create visualization module
     visualize_module = create_grouped_stimuli_module(
-        response_col='Cluster Response',
+        response_col='Response Rate by channel',
+        response_key='A-018',
         path_col='ThumbnailPath',
         col_col='RGB',
         row_col='Texture',
@@ -221,7 +227,7 @@ def main():
 
     # Create and run pipeline with aggregated data
     pipeline = create_pipeline().then(visualize_module).build()
-    result = pipeline.run(agg_data)
+    result = pipeline.run(data)
 
     # Show the figure
     plt.show()
