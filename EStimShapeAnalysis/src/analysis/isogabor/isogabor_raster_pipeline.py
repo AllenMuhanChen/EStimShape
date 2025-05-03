@@ -36,10 +36,10 @@ def main():
 
 
     imported_data = import_from_repository(
-        '250427_0',
+        '250421_0',
         'isogabor',
         'IsoGaborStimInfo',
-        'RawSpikeResponses'
+        'WindowSortedResponses'
     )
     print(imported_data.to_string())
 
@@ -47,12 +47,12 @@ def main():
     # STEP 2: Create and run the analysis pipeline
     # ----------------
     # For the isochromatic/isoluminant example:
-    # unit = 'Channel.A_031_Unit 2'
-    unit = 'A-018'
+    unit = 'A-016_Unit 1'
+    # unit = 'A-018'
     grouped_raster_module = create_grouped_raster_module(
         primary_group_col='Type',
         secondary_group_col='Frequency',
-        spike_data_col= 'Spikes by channel',
+        spike_data_col= 'Spikes by unit',
         # spike_data_col_key= "A-016",
         # spike_data_col='Window Sort Spikes By Unit',
         spike_data_col_key=('%s' % unit),

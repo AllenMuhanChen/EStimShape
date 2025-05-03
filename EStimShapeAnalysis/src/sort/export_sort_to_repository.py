@@ -14,10 +14,9 @@ def main():
     rhs_data = load_intan_rhs_format.read_data(f"{sort_dir}/info.rhs")
     sample_rate = rhs_data['frequency_parameters']['amplifier_sample_rate']
 
-    # TODO: make this get all exp_name
-    experiment_id, stim_ids = fetch_experiment_id_and_stims_for_session("250427_0",
-                                                                        "Isogabor",
-                                                                        repo_conn)
+
+    experiment_id, stim_ids = fetch_experiment_id_and_stims_for_session("250421_0",
+                                                                        repo_conn=repo_conn)
 
     task_ids, task_stim_pairs = fetch_task_ids_and_task_stim_mappings(experiment_id, repo_conn, stim_ids)
     epochs_for_task_ids = fetch_epochs_for_task_ids(task_ids, repo_conn)
@@ -29,6 +28,9 @@ def main():
         spike_tstamps_by_task_id_by_unit[task_id] = {}
         spike_rates_by_task_id_by_unit[task_id] = {}
         epochs = epochs_for_task_ids[task_id]
+        if epochs is None:
+            print(f"Skipping task_id {task_id} because epochs are None")
+            continue
         task_duration = epochs[1] - epochs[0]
         for channel, spike_indices_by_unit in spike_indices_by_unit_by_channel.items():
             for unit_name, spike_indices in spike_indices_by_unit.items():

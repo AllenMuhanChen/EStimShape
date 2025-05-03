@@ -22,7 +22,7 @@ def import_from_repository(session_id: str, experiment_name: str,
     repo_conn = Connection("allen_data_repository")
 
     # Form the experiment_id from session_id and experiment_name
-    experiment_id, stim_ids = fetch_experiment_id_and_stims_for_session(session_id, experiment_name, repo_conn)
+    experiment_id, stim_ids = fetch_experiment_id_and_stims_for_session(session_id, experiment_name=experiment_name, repo_conn=repo_conn)
 
     # 2. Get task_ids from TaskStimMapping for these stim_ids
     task_ids, task_stim_pairs = fetch_task_ids_and_task_stim_mappings(experiment_id, repo_conn, stim_ids)
@@ -74,9 +74,10 @@ def import_from_repository(session_id: str, experiment_name: str,
 
     # Get response data
     placeholders = ', '.join(['%s'] * len(task_ids))
+    statement = f"SELECT task_id, {id_column}, tstamps, response_rate FROM {response_table} " \
+                    f"WHERE task_id IN ({placeholders})"
     repo_conn.execute(
-        f"SELECT task_id, {id_column}, tstamps, response_rate FROM {response_table} "
-        f"WHERE task_id IN ({placeholders})",
+        statement,
         params=task_ids
     )
 
@@ -161,6 +162,57 @@ def import_from_repository(session_id: str, experiment_name: str,
 
 
 def fetch_task_ids_and_task_stim_mappings(experiment_id, repo_conn, stim_ids):
+    """
+    Fetch task IDs and task-stim mappings for the given stim IDs.
+
+    Args:
+        experiment_id: Single experiment ID string or list of experiment ID strings
+        repo_conn: Database connection to repository
+        stim_ids: List of stimulus IDs or dictionary mapping experiment IDs to stimulus ID lists
+
+    Returns:
+        Tuple of (task_ids, task_stim_pairs)
+    """
+    # Handle different input types
+    if isinstance(experiment_id, list):
+        # Multiple experiments case
+        all_task_ids = []
+        all_task_stim_pairs = []
+
+        # If stim_ids is a dictionary mapping experiment IDs to stim lists
+        if isinstance(stim_ids, dict):
+            for exp_id in experiment_id:
+                exp_stim_ids = stim_ids.get(exp_id, [])
+                if not exp_stim_ids:
+                    print(f"Warning: No stimulus IDs found for experiment '{exp_id}'")
+                    continue
+
+                # Process this experiment's stimuli
+                task_ids, task_stim_pairs = _fetch_task_stim_mappings_for_stims(exp_id, repo_conn, exp_stim_ids)
+                all_task_ids.extend(task_ids)
+                all_task_stim_pairs.extend(task_stim_pairs)
+        else:
+            # If stim_ids is a flat list, use same stim_ids for all experiments
+            task_ids, task_stim_pairs = _fetch_task_stim_mappings_for_stims(experiment_id, repo_conn, stim_ids)
+            all_task_ids.extend(task_ids)
+            all_task_stim_pairs.extend(task_stim_pairs)
+
+        # Check if we found any tasks
+        if not all_task_ids:
+            raise ValueError(f"No tasks found for stimuli in experiments: {experiment_id}")
+
+        print(f"Found {len(all_task_ids)} tasks across {len(experiment_id)} experiments")
+        return all_task_ids, all_task_stim_pairs
+    else:
+        # Single experiment case - use the original logic
+        return _fetch_task_stim_mappings_for_stims(experiment_id, repo_conn, stim_ids)
+
+
+def _fetch_task_stim_mappings_for_stims(experiment_id, repo_conn, stim_ids):
+    """Helper function to fetch task-stim mappings for a list of stimulus IDs"""
+    if not stim_ids:
+        return [], []
+
     placeholders = ', '.join(['%s'] * len(stim_ids))
     repo_conn.execute(
         f"SELECT task_id, stim_id FROM TaskStimMapping WHERE stim_id IN ({placeholders})",
@@ -168,19 +220,56 @@ def fetch_task_ids_and_task_stim_mappings(experiment_id, repo_conn, stim_ids):
     )
     task_stim_pairs = [(row[0], row[1]) for row in repo_conn.fetch_all()]
     task_ids = [pair[0] for pair in task_stim_pairs]
+
     if not task_ids:
-        raise ValueError(f"No tasks found for stimuli in experiment '{experiment_id}'")
-    print(f"Found {len(task_ids)} tasks for this experiment")
+        print(f"Warning: No tasks found for stimuli in experiment '{experiment_id}'")
+        return [], []
+
+    print(f"Found {len(task_ids)} tasks for experiment '{experiment_id}'")
     return task_ids, task_stim_pairs
 
 
-def fetch_experiment_id_and_stims_for_session(session_id, experiment_name, repo_conn):
-    experiment_id = f"{session_id}_{experiment_name}"
-    check_experiment_id_valid(experiment_id, repo_conn)
-    # 1. Get all stim_ids for this experiment from StimExperimentMapping
-    stim_ids = fetch_stim_ids_for_experiment_id(experiment_id, repo_conn)
-    return experiment_id, stim_ids
+def fetch_experiment_id_and_stims_for_session(session_id, experiment_name=None, repo_conn=None):
+    """
+    Fetch experiment IDs and their associated stimuli for a given session.
 
+    Args:
+        session_id (str): The session ID to query
+        experiment_name (str, optional): If provided, returns data only for this specific experiment
+        repo_conn: Database connection to repository
+
+    Returns:
+        If experiment_name is provided:
+            Tuple of (experiment_id, stim_ids)
+        If experiment_name is None:
+            Tuple of (list_of_experiment_ids, dict_mapping_experiment_id_to_stim_ids)
+    """
+    if experiment_name:
+        # Original functionality - single experiment
+        experiment_id = f"{session_id}_{experiment_name}"
+        check_experiment_id_valid(experiment_id, repo_conn)
+        stim_ids = fetch_stim_ids_for_experiment_id(experiment_id, repo_conn)
+        return experiment_id, stim_ids
+    else:
+        # Get all experiments for this session
+        repo_conn.execute(
+            "SELECT experiment_id FROM Experiments WHERE session_id = %s",
+            params=(session_id,)
+        )
+        experiment_ids = [row[0] for row in repo_conn.fetch_all()]
+
+        if not experiment_ids:
+            raise ValueError(f"No experiments found for session '{session_id}'")
+
+        print(f"Found {len(experiment_ids)} experiments for session {session_id}")
+
+        # Get stim IDs for each experiment
+        experiment_to_stims = {}
+        for exp_id in experiment_ids:
+            stim_ids = fetch_stim_ids_for_experiment_id(exp_id, repo_conn)
+            experiment_to_stims[exp_id] = stim_ids
+
+        return experiment_ids, experiment_to_stims
 
 def fetch_stim_ids_for_experiment_id(experiment_id, repo_conn):
     repo_conn.execute(

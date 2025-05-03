@@ -37,17 +37,17 @@ def main():
                          )
 
     data_for_plotting = import_from_repository(
-        "250427_0",
+        "250421_0",
         "ga",
         "2Dvs3DStimInfo",
-        "RawSpikeResponses"
+        "WindowSortedResponses"
     )
 
     # unit = "Channel.A_031_Unit 2"
     visualize_module = create_grouped_stimuli_module(
         # response_col='Window Sort Spike Rates By Unit',
         response_rate_col='Response Rate by channel',
-        response_rate_key="A-018",
+        response_rate_key="A-016_Unit 1",
         path_col='ThumbnailPath',
         # response_key=("%s" % unit),
         col_col='TestId',
