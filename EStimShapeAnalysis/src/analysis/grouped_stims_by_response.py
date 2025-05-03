@@ -101,12 +101,6 @@ class GroupedStimuliInputHandler(InputHandler):
                 lambda x: x[self.response_key] if isinstance(x, dict) and self.response_key in x else 0
             )
 
-        # sort the data by response_col
-        # filtered_data = filtered_data.sort_values(by=self.col_col, ascending=True)
-
-        # limit the data to the first 100 rows
-        # filtered_data = filtered_data.head(10)
-        # Return organized data structure
         return {
             'data': filtered_data,
             'response_col': self.response_col,

@@ -77,19 +77,19 @@ def main():
     avg_response.rename(columns={'Response Rate': 'Avg Response Rate'}, inplace=True)
 
     # Rank the averages within each Lineage
-    avg_response['Rank'] = avg_response.groupby('Lineage')['Avg Response Rate'].rank(ascending=False, method='first')
+    avg_response['RankWithinLineage'] = avg_response.groupby('Lineage')['Avg Response Rate'].rank(ascending=False, method='first')
 
     # Merge the ranks back to the original dataframe
-    data = data.merge(avg_response[['Lineage', 'StimSpecId', 'Rank']], on=['Lineage', 'StimSpecId'], how='left')
+    data = data.merge(avg_response[['Lineage', 'StimSpecId', 'RankWithinLineage']], on=['Lineage', 'StimSpecId'], how='left')
     visualize_module = create_grouped_stimuli_module(
         response_rate_col='Response Rate',
         # response_rate_key='A-018',
         path_col='ThumbnailPath',
-        col_col='Rank',
+        col_col='RankWithinLineage',
         row_col='Lineage',
         title='Top Stimuli Per Lineage',
         filter_values={"Lineage": get_top_n_lineages(data, 3),
-                       "Rank": range(1, 21)}
+                       "RankWithinLineage": range(1, 21)}  # only show top 20 per lineage
         # save_path=f"{context.twodvsthreed_plots_dir}/texture_by_lightness.png"
     )
 
