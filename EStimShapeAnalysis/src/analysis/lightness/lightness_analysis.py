@@ -167,7 +167,7 @@ def main():
 
     # Compile data
     raw_data = fields.to_data(task_ids)
-    export_to_repository(raw_data, context.twodvsthreed_database, "twodvsthreed",
+    export_to_repository(raw_data, context.twodvsthreed_database, "lightness",
                          stim_info_table="LightnessTestStimInfo",
                          stim_info_columns=[
                              'Type',
