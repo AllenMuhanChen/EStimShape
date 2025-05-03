@@ -71,9 +71,16 @@ def main():
 
     # Break apart the response rate by channel
     data['Response Rate'] = data['Response Rate by channel'].apply(lambda x: x['A-018'])
-    # Create a new column that is the rank of the response rate for its lineage
-    data['Rank'] = data.groupby('Lineage')['Response Rate'].rank(ascending=False, method='first')
 
+    # Calculate average response rate for each StimSpecId within each Lineage
+    avg_response = data.groupby(['Lineage', 'StimSpecId'])['Response Rate'].mean().reset_index()
+    avg_response.rename(columns={'Response Rate': 'Avg Response Rate'}, inplace=True)
+
+    # Rank the averages within each Lineage
+    avg_response['Rank'] = avg_response.groupby('Lineage')['Avg Response Rate'].rank(ascending=False, method='first')
+
+    # Merge the ranks back to the original dataframe
+    data = data.merge(avg_response[['Lineage', 'StimSpecId', 'Rank']], on=['Lineage', 'StimSpecId'], how='left')
     visualize_module = create_grouped_stimuli_module(
         response_rate_col='Response Rate',
         # response_rate_key='A-018',
