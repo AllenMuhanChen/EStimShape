@@ -12,10 +12,16 @@ from clat.util import time_util
 from clat.util.connection import Connection
 from clat.util.time_util import When
 
-from src.analysis.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, GAResponseField, \
-    ClusterResponseField, LineageField
+from src.analysis.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
+from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField
+from src.analysis.isogabor.isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField
+from src.analysis.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
+from src.intan.MultiFileParser import MultiFileParser
 
 from src.pga.alexnet.analysis.plot_top_n_alexnet import add_colored_border
+from src.pga.app.run_rwa import remove_catch_trials
+from src.pga.mock.mock_rwa_analysis import condition_spherical_angles, hemisphericalize_orientation
+from src.repository.export_to_repository import export_to_repository
 from src.startup import context
 
 
@@ -23,23 +29,31 @@ def main():
     # Setting up connection and time frame to analyse in
     conn = Connection(context.ga_database)
 
-    experiment_id = context.ga_config.db_util.read_current_experiment_id(context.ga_name)
-    start = context.ga_config.db_util.read_current_experiment_id(context.ga_name)
-    stop = time_util.now()
-
-    # Collecting trials and compiling data
-
-
+    # Collect data and condition it
     data_for_all_tasks = compile_data(conn)
+    data = data_for_all_tasks[data_for_all_tasks['Cluster Response'].notna()]
+    data = data[data['StimSpecId'].notna()]
+    data = data[data['ThumbnailPath'].apply(lambda x: x != "None")]
+    data = remove_catch_trials(data)
+    data = condition_spherical_angles(data)
+    data = hemisphericalize_orientation(data)
 
-    # Removing empty trials (no stim_id)
-    # Remove trials with no response
-    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['Cluster Response'].apply(lambda x: x != 'nan')]
-
-
+    export_to_repository(data, context.ga_database, "ga",
+                         stim_info_table="GAStimInfo",
+                         stim_info_columns=[
+                             "Lineage",
+                             "StimType",
+                             "StimPath",
+                             "ThumbnailPath",
+                             "GA Response",
+                             "Cluster Response",
+                             "Shaft",
+                             "Termination",
+                             "Junction"
+                         ])
 
     # Group by StimId and aggregate
-    data_for_stim_ids = data_for_all_tasks.groupby('StimSpecId').agg({
+    data_for_stim_ids = data.groupby('StimSpecId').agg({
         'Lineage': 'first',
         'StimType': 'first',
         'ThumbnailPath': 'first',
@@ -66,7 +80,6 @@ def main():
         if stim['path'] is not None:
             stimuli_list.append(stim)
 
-
     # Create and save plot
     fig = plot_top_n_stimuli(stimuli_list, n=20)
     # plt.savefig(f"{context.plots_dir}/top_responses.png")
@@ -78,7 +91,8 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     task_ids = collector.collect_task_ids()
     response_processor = context.ga_config.make_response_processor()
     cluster_combination_strategy = response_processor.cluster_combination_strategy
-
+    parser = MultiFileParser(to_cache=True, cache_dir=context.ga_parsed_spikes_path)
+    mstick_spec_data_source = StimSpecDataField(conn)
 
     fields = CachedTaskFieldList()
     fields.append(StimSpecIdField(conn))
@@ -88,13 +102,14 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields.append(ThumbnailField(conn))
     fields.append(GAResponseField(conn))
     fields.append(ClusterResponseField(conn, cluster_combination_strategy))
-    # fields.append(ShaftField(conn, mstick_spec_data_source))
-    # fields.append(TerminationField(conn, mstick_spec_data_source))
-    # fields.append(JunctionField(conn, mstick_spec_data_source))
+    fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
+    fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))
+    fields.append(ShaftField(conn, mstick_spec_data_source))
+    fields.append(TerminationField(conn, mstick_spec_data_source))
+    fields.append(JunctionField(conn, mstick_spec_data_source))
 
     data = fields.to_data(task_ids)
     return data
-
 
 
 def plot_top_n_stimuli(stimuli: list[dict], n: int = 10, fig_size=(20, 4), min_response=None, max_response=None):
@@ -174,8 +189,6 @@ def plot_top_n_stimuli(stimuli: list[dict], n: int = 10, fig_size=(20, 4), min_r
 
     plt.tight_layout()
     return fig
-
-
 
 
 if __name__ == "__main__":

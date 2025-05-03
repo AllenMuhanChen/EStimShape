@@ -6,8 +6,8 @@ from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.pipeline.pipeline_base_classes import create_pipeline, create_branch
 from clat.util.connection import Connection
-from src.analysis.cached_task_fields import LineageField, StimTypeField, StimPathField, ThumbnailField, GAResponseField, \
-    ClusterResponseField, ParentIdField
+from src.analysis.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
+from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, ParentIdField
 from src.analysis.grouped_stims_by_response import create_grouped_stimuli_module
 from src.analysis.isogabor.isogabor_analysis import WindowSortSpikesByUnitField, WindowSortSpikesForUnitField, \
     WindowSortSpikeRatesByUnitField, IntanSpikesByChannelField, EpochStartStopTimesField
@@ -99,7 +99,7 @@ def clean_data(data_for_all_tasks):
     # Remove NaNs
     # data_for_all_tasks = data_for_all_tasks.dropna()
     # Remove Catch
-    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['ThumbnailPath'].apply(lambda x: x is not "None")]
+    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['ThumbnailPath'].apply(lambda x: x != "None")]
     return data_for_all_tasks
 
 

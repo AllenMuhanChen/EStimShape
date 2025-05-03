@@ -4,6 +4,9 @@ import jsonpickle
 import numpy as np
 import pandas as pd
 
+from clat.compile.task.cached_task_fields import CachedTaskFieldList
+from clat.compile.task.classic_database_task_fields import StimSpecIdField
+from src.analysis.ga.cached_ga_fields import RegimeScoreField, LineageField
 from src.analysis.ga.rwa import get_next
 from clat.util import time_util
 from clat.util.connection import Connection
@@ -13,11 +16,7 @@ from src.startup import context
 from src.pga.mock.mock_ga_responses import collect_trials
 from src.pga.mock.mock_rwa_analysis import remove_empty_response_trials, condition_spherical_angles, \
     hemisphericalize_orientation, compute_shaft_rwa, compute_termination_rwa, compute_junction_rwa, save
-from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
-from clat.compile.tstamp.classic_database_tstamp_fields import StimSpecDataField, StimSpecIdField, NewGaLineageField, \
-    NewGaNameField, RegimeScoreField
-from src.analysis.matchstick_fields import ShaftField, TerminationField, JunctionField
-
+from src.analysis.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
 
 
 def main():
@@ -50,10 +49,9 @@ def remove_catch_trials(data: pd.DataFrame):
 def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
     mstick_spec_data_source = StimSpecDataField(conn)
 
-    fields = CachedFieldList()
+    fields = CachedTaskFieldList()
     fields.append(StimSpecIdField(conn))
-    fields.append(NewGaNameField(conn))
-    fields.append(NewGaLineageField(conn))
+    fields.append(LineageField(conn))
     fields.append(RegimeScoreField(conn))
     fields.append(ClusterResponseField(conn))
     fields.append(ShaftField(conn, mstick_spec_data_source))

@@ -8,20 +8,6 @@ from src.pga.multi_ga_db_util import MultiGaDbUtil
 from src.startup import context
 
 
-class LineageField(StimSpecIdField):
-    def get(self, task_id) -> str:
-        stim_spec_id = self.get_cached_super(task_id, StimSpecIdField)
-
-        self.conn.execute("SELECT lineage_id FROM StimGaInfo WHERE"
-                          " stim_id = %s",
-                          params=(stim_spec_id,))
-
-        lineage = self.conn.fetch_one()
-        return lineage
-
-    def get_name(self):
-        return "Lineage"
-
 class StimTypeField(StimSpecIdField):
 
     def get(self, task_id) -> str:
@@ -86,29 +72,6 @@ class ThumbnailField(StimSpecIdField):
     def get_name(self):
         return "ThumbnailPath"
 
-
-class GAResponseField(StimSpecIdField):
-    def get(self, task_id) -> float:
-        stim_spec_id = self.get_cached_super(task_id, StimSpecIdField)
-        self.conn.execute("SELECT response FROM StimGaInfo WHERE stim_id = %s",
-                          params=(stim_spec_id,))
-        ga_response = self.conn.fetch_all()
-        return float(ga_response[0][0])
-
-    def get_name(self):
-        return "GA Response"
-
-
-class ParentIdField(StimSpecIdField):
-    def get(self, task_id) -> float:
-        stim_spec_id = self.get_cached_super(task_id, StimSpecIdField)
-        self.conn.execute("SELECT parent_id FROM StimGaInfo WHERE stim_id = %s",
-                          params=(stim_spec_id,))
-        ga_response = self.conn.fetch_all()
-        return float(ga_response[0][0])
-
-    def get_name(self):
-        return "ParentId"
 
 class ClusterResponseField(StimSpecIdField):
 
