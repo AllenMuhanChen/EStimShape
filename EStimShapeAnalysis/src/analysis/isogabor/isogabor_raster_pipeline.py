@@ -11,6 +11,7 @@ from clat.compile.task.compile_task_id import TaskIdCollector
 from src.analysis.grouped_rasters import GroupedRasterInputHandler, GroupedRasterPlotter, GroupedRasterOutput, \
     create_grouped_raster_module
 from src.intan.MultiFileParser import MultiFileParser
+from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 from src.analysis.isogabor.isogabor_analysis import TypeField, FrequencyField, IntanSpikesByChannelField, \
     EpochStartStopTimesField, WindowSortSpikesByUnitField
@@ -34,6 +35,14 @@ def main():
                          stim_info_columns=['Type', 'Frequency'])
 
 
+    imported_data = import_from_repository(
+        '250427_0',
+        'isogabor',
+        'IsoGaborStimInfo',
+        'RawSpikeResponses'
+    )
+    print(imported_data.to_string())
+
     # ----------------
     # STEP 2: Create and run the analysis pipeline
     # ----------------
@@ -43,7 +52,7 @@ def main():
     grouped_raster_module = create_grouped_raster_module(
         primary_group_col='Type',
         secondary_group_col='Frequency',
-        spike_data_col= 'Spikes by Channel',
+        spike_data_col= 'Spikes by channel',
         # spike_data_col_key= "A-016",
         # spike_data_col='Window Sort Spikes By Unit',
         spike_data_col_key=('%s' % unit),
@@ -58,7 +67,7 @@ def main():
     pipeline = create_pipeline().then(grouped_raster_module).build()
 
     # Run the pipeline
-    result = pipeline.run(compiled_data)
+    result = pipeline.run(imported_data)
 
     # Show the figure
     plt.show()
