@@ -29,6 +29,7 @@ class MultiFileParser:
         self.to_cache = to_cache
         self.cache_dir = cache_dir
 
+
     def parse(self, task_ids: List[int], intan_files_dir: str) -> Tuple[Dict[int, Any], Dict[int, Any]]:
         """
         Parse multiple Intan files and combine their data for specified task IDs.
@@ -120,8 +121,9 @@ class MultiFileParser:
         # Helper function to search a directory for matching task IDs
         def search_directory(directory: str) -> List[str]:
             results = []
-
-            for dir_name in os.listdir(directory):
+            dirs_to_check = [directory]
+            dirs_to_check.extend(os.listdir(directory))
+            for dir_name in dirs_to_check:
                 dir_path = os.path.join(directory, dir_name)
                 if not os.path.isdir(dir_path):
                     continue
@@ -292,3 +294,4 @@ class MultiFileParser:
                 continue
 
         return combined_spikes, combined_epochs, missing_task_ids
+

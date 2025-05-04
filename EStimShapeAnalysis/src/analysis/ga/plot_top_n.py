@@ -61,7 +61,7 @@ def main():
                          ])
 
     data = import_from_repository(
-        "250427_0",
+        "250425_0",
         "ga",
         "GAStimInfo",
         "RawSpikeResponses"

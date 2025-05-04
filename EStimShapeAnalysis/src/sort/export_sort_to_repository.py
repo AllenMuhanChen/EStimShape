@@ -1,32 +1,55 @@
+from typing import Optional
+
+from clat.intan.one_file_spike_parsing import OneFileParser
 from clat.intan.rhs import load_intan_rhs_format
 
 from clat.intan.channels import Channel
 from clat.util.connection import Connection
 from src.analysis.isogabor.isogabor_analysis import read_pickle
+from src.intan.MultiFileParser import MultiFileParser
+
 from src.repository.import_from_repository import fetch_experiment_id_and_stims_for_session, \
     fetch_task_ids_and_task_stim_mappings
 
 
 def main():
+    session_id = "250425_0"
+    label = "positive"
+    export_sorted_spikes(session_id, label=label)
+
+
+def export_sorted_spikes(session_id, label: Optional[str] = None):
+    """
+    Export sorted spikes to the Allen Data Repository.
+    :param session_id: The session ID to export.
+    :param label: Optional label to append to the sorted spikes file name. If
+    reading from a labelled spike sorting, then this label will be added to unit names
+    """
     repo_conn = Connection("allen_data_repository")
-    sort_dir = "/home/r2_allen/Documents/EStimShape/allen_sort_250421_0"
-    sorted_spikes_path = f"{sort_dir}/sorted_spikes.pkl"
+    sort_dir = "/home/r2_allen/Documents/EStimShape/allen_sort_%s" % session_id
+    if label:
+        sorted_spikes_path = f"{sort_dir}/sorted_spikes_{label}.pkl"
+    else:
+        sorted_spikes_path = f"{sort_dir}/sorted_spikes.pkl"
     rhs_data = load_intan_rhs_format.read_data(f"{sort_dir}/info.rhs")
     sample_rate = rhs_data['frequency_parameters']['amplifier_sample_rate']
-
-
-    experiment_id, stim_ids = fetch_experiment_id_and_stims_for_session("250421_0",
+    experiment_id, stim_ids = fetch_experiment_id_and_stims_for_session(session_id,
                                                                         repo_conn=repo_conn)
 
+    parser = OneFileParser()
     task_ids, task_stim_pairs = fetch_task_ids_and_task_stim_mappings(experiment_id, repo_conn, stim_ids)
-    epochs_for_task_ids = fetch_epochs_for_task_ids(task_ids, repo_conn)
-
+    epochs_for_task_ids = parser.parse_epochs(sort_dir, sample_rate)
+    print(len(epochs_for_task_ids))
+    # epochs_for_task_ids = fetch_epochs_for_task_ids(task_ids, repo_conn)
     spike_indices_by_unit_by_channel = read_pickle(sorted_spikes_path)
     spike_tstamps_by_task_id_by_unit = {}
     spike_rates_by_task_id_by_unit = {}
     for task_id in task_ids:
         spike_tstamps_by_task_id_by_unit[task_id] = {}
         spike_rates_by_task_id_by_unit[task_id] = {}
+        if task_id not in epochs_for_task_ids:
+            print(f"Skipping task_id {task_id} because it is not in epochs_for_task_ids")
+            continue
         epochs = epochs_for_task_ids[task_id]
         if epochs is None:
             print(f"Skipping task_id {task_id} because epochs are None")
@@ -34,7 +57,10 @@ def main():
         task_duration = epochs[1] - epochs[0]
         for channel, spike_indices_by_unit in spike_indices_by_unit_by_channel.items():
             for unit_name, spike_indices in spike_indices_by_unit.items():
-                new_unit_name = f"{channel.value}_{unit_name}"
+                if label:
+                    new_unit_name = f"{label}_{channel.value}_{unit_name}"
+                else:
+                    new_unit_name = f"{channel.value}_{unit_name}"
                 if new_unit_name not in spike_tstamps_by_task_id_by_unit[task_id]:
                     spike_tstamps_by_task_id_by_unit[task_id][new_unit_name] = []
 
@@ -50,9 +76,7 @@ def main():
                                        0 <= spike_relative_tstamp <= task_duration]
                 spike_rate = len(within_epoch_spikes) / task_duration
                 spike_rates_by_task_id_by_unit[task_id][new_unit_name] = spike_rate
-
     print(f"Found {len(spike_tstamps_by_task_id_by_unit)} task IDs with spikes")
-
     write_sorted_spikes_to_repository(spike_tstamps_by_task_id_by_unit, spike_rates_by_task_id_by_unit, repo_conn)
 
 
