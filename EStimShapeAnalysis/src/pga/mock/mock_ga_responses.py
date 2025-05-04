@@ -8,7 +8,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from numpy import double
 
-from src.analysis.matchstick_fields import ShaftField
+from src.analysis.fields.matchstick_fields import ShaftField
 from clat.compile.task.classic_database_task_fields import TaskIdField, StimSpecIdField
 from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.compile.task.task_field import TaskFieldList, get_data_from_tasks

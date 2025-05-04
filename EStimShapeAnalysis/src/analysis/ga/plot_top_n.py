@@ -9,15 +9,13 @@ from clat.compile.task.cached_task_fields import CachedTaskFieldList
 from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.compile.task.compile_task_id import TaskIdCollector
 
-from clat.util import time_util
 from clat.util.connection import Connection
-from clat.util.time_util import When
 
-from src.analysis.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
+from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField
-from src.analysis.grouped_stims_by_response import create_grouped_stimuli_module
+from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.analysis.isogabor.isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField
-from src.analysis.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
+from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
 from src.intan.MultiFileParser import MultiFileParser
 
 from src.pga.alexnet.analysis.plot_top_n_alexnet import add_colored_border

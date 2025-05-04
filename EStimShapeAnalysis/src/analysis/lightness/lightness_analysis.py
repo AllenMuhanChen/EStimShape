@@ -1,28 +1,24 @@
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
-from pathlib import Path
 
 from clat.compile.task.cached_task_fields import CachedTaskFieldList
 from clat.compile.task.classic_database_task_fields import StimSpecIdField
 # Import pipeline framework
 from clat.util.connection import Connection
-from clat.util.time_util import When
 from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.pipeline.pipeline_base_classes import (
-    AnalysisModule, create_pipeline, create_branch, AnalysisModuleFactory
+    create_pipeline
 )
-from src.analysis.cached_task_fields import StimPathField, ThumbnailField
+from src.analysis.fields.cached_task_fields import StimPathField, ThumbnailField
 
 # Import custom modules
 from src.intan.MultiFileParser import MultiFileParser
-from src.monitorlinearization.compile_monlin import EpochField
 from src.repository.export_to_repository import export_to_repository
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 from src.analysis.isogabor.isogabor_analysis import IntanSpikesByChannelField, SpikeRateByChannelField, \
     EpochStartStopTimesField
-from src.analysis.grouped_stims_by_response import create_grouped_stimuli_module
+from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 
 class StimGaIdField(StimSpecIdField):
     def get(self, task_id) -> int:

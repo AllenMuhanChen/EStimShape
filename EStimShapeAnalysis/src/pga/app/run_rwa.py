@@ -14,10 +14,9 @@ from clat.util.connection import Connection
 from clat.util.time_util import When
 from src.pga.multi_ga_db_util import MultiGaDbUtil
 from src.startup import context
-from src.pga.mock.mock_ga_responses import collect_trials
 from src.pga.mock.mock_rwa_analysis import remove_empty_response_trials, condition_spherical_angles, \
     hemisphericalize_orientation, compute_shaft_rwa, compute_termination_rwa, compute_junction_rwa, save
-from src.analysis.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
+from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
 
 
 def main():

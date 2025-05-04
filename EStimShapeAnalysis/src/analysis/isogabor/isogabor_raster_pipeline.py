@@ -1,23 +1,18 @@
 import matplotlib.pyplot as plt
-import pandas as pd
-from matplotlib.gridspec import GridSpec
-from typing import Dict, List, Any
 
 from clat.compile.task.cached_task_fields import CachedTaskFieldList
 from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.util.connection import Connection
-from clat.compile.tstamp.trial_tstamp_collector import TrialCollector
 from clat.compile.task.compile_task_id import TaskIdCollector
-from src.analysis.grouped_rasters import GroupedRasterInputHandler, GroupedRasterPlotter, GroupedRasterOutput, \
-    create_grouped_raster_module
+from src.analysis.modules.grouped_rasters import create_grouped_raster_module
 from src.intan.MultiFileParser import MultiFileParser
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 from src.analysis.isogabor.isogabor_analysis import TypeField, FrequencyField, IntanSpikesByChannelField, \
-    EpochStartStopTimesField, WindowSortSpikesByUnitField
+    EpochStartStopTimesField
 # Import our pipeline framework
 from clat.pipeline.pipeline_base_classes import (
-    InputHandler, ComputationModule, OutputHandler, create_pipeline, AnalysisModuleFactory
+    create_pipeline
 )
 from src.repository.export_to_repository import export_to_repository
 
@@ -52,7 +47,7 @@ def main():
     grouped_raster_module = create_grouped_raster_module(
         primary_group_col='Type',
         secondary_group_col='Frequency',
-        spike_data_col= 'Spikes by unit',
+        spike_data_col= 'Spikes by channel',
         # spike_data_col_key= "A-016",
         # spike_data_col='Window Sort Spikes By Unit',
         spike_data_col_key=('%s' % unit),

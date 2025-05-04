@@ -1,5 +1,4 @@
 from __future__ import annotations
-import ast
 import os
 from math import pi
 
@@ -11,7 +10,7 @@ from src.analysis.ga.rwa import Binner, AutomaticBinner, rwa, normalize_and_comb
 from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
 from clat.compile.tstamp.classic_database_tstamp_fields import StimSpecDataField, StimSpecIdField, NewGaLineageField, \
     NewGaNameField, RegimeScoreField
-from src.analysis.matchstick_fields import ShaftField, TerminationField, JunctionField
+from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField
 from clat.compile.tstamp.trial_tstamp_collector import TrialCollector
 
 from clat.util import time_util

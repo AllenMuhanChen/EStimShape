@@ -6,11 +6,10 @@ from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.pipeline.pipeline_base_classes import create_pipeline, create_branch
 from clat.util.connection import Connection
-from src.analysis.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
+from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, ParentIdField
-from src.analysis.grouped_stims_by_response import create_grouped_stimuli_module
-from src.analysis.isogabor.isogabor_analysis import WindowSortSpikesByUnitField, WindowSortSpikesForUnitField, \
-    WindowSortSpikeRatesByUnitField, IntanSpikesByChannelField, EpochStartStopTimesField
+from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
+from src.analysis.isogabor.isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField
 from src.intan.MultiFileParser import MultiFileParser
 from src.repository.export_to_repository import export_to_repository
 from src.repository.import_from_repository import import_from_repository
