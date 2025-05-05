@@ -13,9 +13,9 @@ from src.startup import context
 def main():
     # INPUTS #
     session_name = '250427_0'
-    unit = 'A-018_Unit 2'
+    unit = 'A-018_Unit 1'
     label = None
-    new_spikes = False
+    new_spikes = True
     ##########
     save_path = f"/home/r2_allen/Documents/EStimShape/allen_sort_{session_name}/plots"
     if label:

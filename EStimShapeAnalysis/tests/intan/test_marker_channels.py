@@ -10,7 +10,7 @@ class TestEpoch(TestCase):
         """
         Put in path of a digitalin.dat where you know the number of trials
         """
-        digital_in = read_digitalin_file("/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/allen_twodvsthreed_train_250213_0/2025-02-19/1739990763444357_250219_134730/digitalin.dat")
+        digital_in = read_digitalin_file("/home/r2_allen/Documents/EStimShape/allen_sort_250425_0/digitalin.dat")
         epochs = get_epochs_start_and_stop_indices(digital_in[1], digital_in[0])
 
         print(epochs)

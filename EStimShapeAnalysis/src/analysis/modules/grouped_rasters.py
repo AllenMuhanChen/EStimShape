@@ -70,7 +70,7 @@ class GroupedRasterInputHandler(InputHandler):
         # If spike_data_col data is a dict and spike_data_col_key is provided, extract the relevant data
         if isinstance(filtered_data[self.spike_data_col].iloc[0], dict) and self.spike_data_col_key:
             filtered_data[self.spike_data_col] = filtered_data[self.spike_data_col].apply(
-                lambda x: x[self.spike_data_col_key]
+                lambda x: x[self.spike_data_col_key] if self.spike_data_col_key in x else None
             )
 
 

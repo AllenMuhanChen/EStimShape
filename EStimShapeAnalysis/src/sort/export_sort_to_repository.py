@@ -39,17 +39,18 @@ def export_sorted_spikes(session_id, label: Optional[str] = None):
     parser = OneFileParser()
     task_ids, task_stim_pairs = fetch_task_ids_and_task_stim_mappings(experiment_id, repo_conn, stim_ids)
     epochs_for_task_ids = parser.parse_epochs(sort_dir, sample_rate)
-    print(len(epochs_for_task_ids))
+    for task_id, epoch in epochs_for_task_ids.items():
+        print(f"Epoch for {task_id} is {epoch}")
     # epochs_for_task_ids = fetch_epochs_for_task_ids(task_ids, repo_conn)
     spike_indices_by_unit_by_channel = read_pickle(sorted_spikes_path)
     spike_tstamps_by_task_id_by_unit = {}
     spike_rates_by_task_id_by_unit = {}
     for task_id in task_ids:
-        spike_tstamps_by_task_id_by_unit[task_id] = {}
-        spike_rates_by_task_id_by_unit[task_id] = {}
         if task_id not in epochs_for_task_ids:
             print(f"Skipping task_id {task_id} because it is not in epochs_for_task_ids")
             continue
+        spike_tstamps_by_task_id_by_unit[task_id] = {}
+        spike_rates_by_task_id_by_unit[task_id] = {}
         epochs = epochs_for_task_ids[task_id]
         if epochs is None:
             print(f"Skipping task_id {task_id} because epochs are None")

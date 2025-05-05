@@ -61,7 +61,6 @@ class MultiFileParser:
 
             # If all task IDs were found in the cache, return the cached data
             if not missing_task_ids:
-                print(f"All requested task IDs {task_ids} found in cache.")
                 return spikes_by_channel_by_task_id, epochs_by_task_id
 
             # Otherwise, update the list of task IDs we still need to process

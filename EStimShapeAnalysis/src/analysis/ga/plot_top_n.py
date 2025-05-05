@@ -61,7 +61,7 @@ def main():
                          ])
 
     data = import_from_repository(
-        "250425_0",
+        "250427_0",
         "ga",
         "GAStimInfo",
         "RawSpikeResponses"
@@ -81,8 +81,8 @@ def main():
     data = data.merge(avg_response[['Lineage', 'StimSpecId', 'RankWithinLineage']], on=['Lineage', 'StimSpecId'], how='left')
 
     visualize_module = create_grouped_stimuli_module(
-        response_rate_col='Response Rate',
-        # response_rate_key='A-018',
+        response_rate_col='Response Rate by channel',
+        response_rate_key="A-018",
         path_col='ThumbnailPath',
         col_col='RankWithinLineage',
         row_col='Lineage',

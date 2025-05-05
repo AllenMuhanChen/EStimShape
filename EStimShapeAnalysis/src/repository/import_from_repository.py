@@ -108,22 +108,6 @@ def import_from_repository(session_id: str, experiment_name: str,
 
     print(f"Retrieved response data from {response_table}")
 
-    # 5. Get epochs data for all tasks
-    placeholders = ', '.join(['%s'] * len(task_ids))
-    repo_conn.execute(
-        f"SELECT task_id, epoch_start, epoch_end FROM Epochs WHERE task_id IN ({placeholders})",
-        params=task_ids
-    )
-
-    epochs_data = {}
-    for row in repo_conn.fetch_all():
-        task_id = row[0]
-        epoch_start = row[1]
-        epoch_end = row[2]
-        epochs_data[task_id] = (epoch_start, epoch_end)
-
-    print(f"Retrieved epoch data for {len(epochs_data)} tasks")
-
     # 6. Compile all data into a DataFrame
     compiled_data = []
     for task_id, stim_id in task_stim_pairs:
@@ -148,9 +132,6 @@ def import_from_repository(session_id: str, experiment_name: str,
             row_data[f'Spikes by {id_column.replace("_id", "")}'] = responses_data[task_id]['tstamps']
             row_data[f'Response Rate by {id_column.replace("_id", "")}'] = responses_data[task_id]['response_rate']
 
-        # Add epoch data if available
-        if task_id in epochs_data:
-            row_data['Epoch'] = epochs_data[task_id]
 
         compiled_data.append(row_data)
 

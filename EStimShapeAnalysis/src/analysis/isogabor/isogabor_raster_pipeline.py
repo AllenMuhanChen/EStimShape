@@ -25,19 +25,20 @@ def main():
     compiled_data = compile_data(conn)
     #filter out trials where Spikes by Channel is empty
     compiled_data = compiled_data[compiled_data['Spikes by Channel'].notnull()]
-    export_to_repository(compiled_data, context.isogabor_database, "isogabor",
-                         stim_info_table="IsoGaborStimInfo",
-                         stim_info_columns=['Type', 'Frequency'])
 
-
-    imported_data = import_from_repository(
-        '250427_0',
-        'isogabor',
-        'IsoGaborStimInfo',
-        'RawSpikeResponses',
-    )
-    print(imported_data.to_string())
-
+    # export_to_repository(compiled_data, context.isogabor_database, "isogabor",
+    #                      stim_info_table="IsoGaborStimInfo",
+    #                      stim_info_columns=['Type', 'Frequency'])
+    #
+    #
+    # imported_data = import_from_repository(
+    #     '250427_0',
+    #     'isogabor',
+    #     'IsoGaborStimInfo',
+    #     'RawSpikeResponses',
+    # )
+    # print(imported_data.head())
+    imported_data = compiled_data
     # ----------------
     # STEP 2: Create and run the analysis pipeline
     # ----------------

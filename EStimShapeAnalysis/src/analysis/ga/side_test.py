@@ -36,7 +36,7 @@ def main():
                          )
 
     data_for_plotting = import_from_repository(
-        "250427_0",
+        "250425_0",
         "ga",
         "2Dvs3DStimInfo",
         "RawSpikeResponses"
@@ -46,7 +46,7 @@ def main():
     visualize_module = create_grouped_stimuli_module(
         # response_col='Window Sort Spike Rates By Unit',
         response_rate_col='Response Rate by channel',
-        response_rate_key="A-018",
+        response_rate_key="A-017",
         path_col='ThumbnailPath',
         # response_key=("%s" % unit),
         col_col='TestId',
@@ -79,14 +79,13 @@ def organize_data(data_for_stim_ids):
 
             # PARENT
             parent_row = parent_row.iloc[0]
-            # check if parent already exists in data_for_side_tests
             parent_row['TestId'] = parent_row['StimSpecId']
             if "2D" in parent_row['StimType']:
                 parent_row['TestType'] = "2D"
             else:
                 parent_row['TestType'] = "3D"
-            if not (data_for_plotting['StimSpecId'] == parent_row['StimSpecId']).any():
-                data_for_plotting = pd.concat([data_for_plotting, parent_row.to_frame().T], ignore_index=True)
+
+            data_for_plotting = pd.concat([data_for_plotting, parent_row.to_frame().T], ignore_index=True)
 
             new_row = side_test_stim_row.copy()
             new_row['TestId'] = parent_row['StimSpecId']

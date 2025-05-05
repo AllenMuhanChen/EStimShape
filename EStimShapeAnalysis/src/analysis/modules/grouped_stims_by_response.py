@@ -300,6 +300,7 @@ class GroupedStimuliPlotter(ComputationModule):
         responses = cell_data[response_rate_col].values
         response = np.mean(responses) if len(responses) > 0 else 0.0
         std = np.std(responses) if len(responses) > 0 else 0.0
+        n = len(responses)
         if img_path.exists():
             try:
                 img = Image.open(img_path)
@@ -307,7 +308,7 @@ class GroupedStimuliPlotter(ComputationModule):
                 ax.imshow(img_with_border)
 
                 # Add response text
-                ax.text(0.5, 0.95, f"Response: {response:.2f} ± {std:.2f}. ",
+                ax.text(0.5, 0.95, f"Response: {response:.2f} ± {std:.2f} ({n})",
                         transform=ax.transAxes, ha='center', va='top',
                         color='black', fontsize=8, bbox=dict(facecolor='white', alpha=0.7))
 
