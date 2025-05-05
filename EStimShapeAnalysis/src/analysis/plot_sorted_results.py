@@ -12,8 +12,8 @@ from src.startup import context
 
 def main():
     # INPUTS #
-    session_name = '250427_0'
-    unit = 'A-018_Unit 1'
+    session_name = '250425_0'
+    unit = 'A-017_Unit 1'
     label = None
     new_spikes = True
     ##########
