@@ -26,24 +26,24 @@ def main():
     #filter out trials where Spikes by Channel is empty
     compiled_data = compiled_data[compiled_data['Spikes by Channel'].notnull()]
 
-    # export_to_repository(compiled_data, context.isogabor_database, "isogabor",
-    #                      stim_info_table="IsoGaborStimInfo",
-    #                      stim_info_columns=['Type', 'Frequency'])
-    #
-    #
-    # imported_data = import_from_repository(
-    #     '250427_0',
-    #     'isogabor',
-    #     'IsoGaborStimInfo',
-    #     'RawSpikeResponses',
-    # )
-    # print(imported_data.head())
-    imported_data = compiled_data
+    export_to_repository(compiled_data, context.isogabor_database, "isogabor",
+                         stim_info_table="IsoGaborStimInfo",
+                         stim_info_columns=['Type', 'Frequency'])
+
+
+    imported_data = import_from_repository(
+        '250506_0',
+        'isogabor',
+        'IsoGaborStimInfo',
+        'RawSpikeResponses',
+    )
+    print(imported_data.head())
+
     # ----------------
     # STEP 2: Create and run the analysis pipeline
     # ----------------
     # For the isochromatic/isoluminant example:
-    channel = "A-018"
+    channel = "A-020"
     grouped_raster_module = create_grouped_raster_module(
         primary_group_col='Type',
         secondary_group_col='Frequency',

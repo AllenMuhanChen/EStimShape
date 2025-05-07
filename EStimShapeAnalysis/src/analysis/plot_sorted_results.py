@@ -12,10 +12,10 @@ from src.startup import context
 
 def main():
     # INPUTS #
-    session_name = '250425_0'
-    unit = 'A-017_Unit 1'
+    session_name = '250427_0'
+    unit = 'A-018_Unit 3'
     label = None
-    new_spikes = True
+    new_spikes = False
     ##########
     save_path = f"/home/r2_allen/Documents/EStimShape/allen_sort_{session_name}/plots"
     if label:

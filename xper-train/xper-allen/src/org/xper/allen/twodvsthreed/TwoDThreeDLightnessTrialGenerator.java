@@ -15,7 +15,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class TwoDThreeDLightnessTrialGenerator extends TwoDVsThreeDTrialGenerator {
-    public static final List<Double> VALUES_TO_TEST = Arrays.asList(0.2, 0.4, 0.6, 0.8, 1.0); //Value in HSV
+    public static final List<Double> VALUES_TO_TEST = Arrays.asList(0.1, 0.2, 0.4, 0.6, 0.8, 1.0); //Value in HSV
 
     public int numTrialsPerStim = 5;
     private ColorPropertyManager colorManager;
@@ -23,7 +23,7 @@ public class TwoDThreeDLightnessTrialGenerator extends TwoDVsThreeDTrialGenerato
     public static void main(String[] args) {
         // Set default values
         int startRank = 1;
-        int endRank = 3;
+        int endRank = 2;
 
         // Parse command line arguments if providedght
         if (args.length >= 1) {

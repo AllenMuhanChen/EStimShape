@@ -36,7 +36,7 @@ def main():
                          )
 
     data_for_plotting = import_from_repository(
-        "250425_0",
+        "250506_0",
         "ga",
         "2Dvs3DStimInfo",
         "RawSpikeResponses"
@@ -46,7 +46,7 @@ def main():
     visualize_module = create_grouped_stimuli_module(
         # response_col='Window Sort Spike Rates By Unit',
         response_rate_col='Response Rate by channel',
-        response_rate_key="A-017",
+        response_rate_key="A-020",
         path_col='ThumbnailPath',
         # response_key=("%s" % unit),
         col_col='TestId',
@@ -73,19 +73,22 @@ def organize_data(data_for_stim_ids):
     # Go through side test stimuli and add row for parent to dataframe if unique: add to a new dataframe with new column 'TestId'
     data_for_plotting = pd.DataFrame(columns=data_for_stim_ids.columns)
     for _, side_test_stim_row in data_for_side_test_stim.iterrows():
-        parent_row = data_for_stim_ids[data_for_stim_ids['StimSpecId'] == side_test_stim_row['ParentId']]
-        if not parent_row.empty:
+        parent_rows = data_for_stim_ids[data_for_stim_ids['StimSpecId'] == side_test_stim_row['ParentId']]
+        if not parent_rows.empty:
             #
 
             # PARENT
-            parent_row = parent_row.iloc[0]
-            parent_row['TestId'] = parent_row['StimSpecId']
-            if "2D" in parent_row['StimType']:
-                parent_row['TestType'] = "2D"
-            else:
-                parent_row['TestType'] = "3D"
+            for _, parent_row in parent_rows.iterrows():
+                parent_row['TestId'] = parent_row['StimSpecId']
+                if "2D" in parent_row['StimType']:
+                    parent_row['TestType'] = "2D"
+                else:
+                    parent_row['TestType'] = "3D"
 
-            data_for_plotting = pd.concat([data_for_plotting, parent_row.to_frame().T], ignore_index=True)
+                if data_for_plotting[data_for_plotting['TaskId'] == parent_row['TaskId']].empty: #if the parent row is not already in the dataframe
+                    data_for_plotting = pd.concat([data_for_plotting, parent_row.to_frame().T], ignore_index=True)
+
+
 
             new_row = side_test_stim_row.copy()
             new_row['TestId'] = parent_row['StimSpecId']
@@ -101,7 +104,7 @@ def clean_data(data_for_all_tasks):
     # Remove trials with no response
     data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['GA Response'].notna()]
     # Remove NaNs
-    # data_for_all_tasks = data_for_all_tasks.dropna()
+    data_for_all_tasks = data_for_all_tasks.dropna()
     # Remove Catch
     data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['ThumbnailPath'].apply(lambda x: x != "None")]
     return data_for_all_tasks

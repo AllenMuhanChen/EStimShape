@@ -113,7 +113,7 @@ public class PGAConfig {
 //        f.setxValues(Arrays.asList(1.0, 2.0, 3.0, 5.0, 15.0)); //streak amounts
 //        f.setyValues(Arrays.asList(2.0, 2.0, 2.5, 3.0, 3.0)); //reward amounts
         f.setxValues(Arrays.asList(1.0, 2.0, 3.0, 5.0, 15.0)); //streak amounts
-        f.setyValues(Arrays.asList(1.0, 1.0, 1.5, 2.0, 2.0)); //reward amounts
+        f.setyValues(Arrays.asList(1.0, 1.0, 1.0, 1.25, 1.5)); //reward amounts
         return f;
     }
 
