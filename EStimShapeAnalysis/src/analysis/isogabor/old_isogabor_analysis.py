@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import pickle
+from typing import List
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -244,7 +245,7 @@ class IntanSpikesByChannelField(CachedTaskDatabaseField):
         return spikes_by_channel
 
     def get_name(self):
-        return "Spikes by Channel"
+        return "Spikes by channel"
 
 
 class SpikeRateByChannelField(CachedTaskDatabaseField):
@@ -282,6 +283,19 @@ class TypeField(StimSpecField):
 
     def get_name(self):
         return "Type"
+
+class IsoTypeField(TypeField):
+    def get(self, task_id) -> str:
+        type = self.get_cached_super(task_id, TypeField)
+        if type in ["Red", "Green", "Cyan", "Orange"]:
+            return "Isochromatic"
+        elif type in ["RedGreen", "CyanOrange"]:
+            return "Isoluminant"
+        else:
+            return None
+
+    def get_name(self):
+        return "IsoType"
 
 
 class OrientationField(StimSpecField):
@@ -333,6 +347,71 @@ class FrequencyField(StimSpecField):
         return "Frequency"
 
 
+class MixedFrequencyField(StimSpecField):
+    def get(self, task_id) -> list[float] | None:
+        stim_spec = self.get_cached_super(task_id, StimSpecField)
+        stim_spec_dict = xmltodict.parse(stim_spec)
+
+        stim_type = stim_spec_dict['StimSpec']['type']
+        if 'Mixed' not in stim_type:
+            return None
+        chromatic_frequency = stim_spec_dict['StimSpec']['chromaticSpec']['frequency']
+        luminance_frequency = stim_spec_dict['StimSpec']['luminanceSpec']['frequency']
+        return f"{chromatic_frequency}, {luminance_frequency}"
+
+    def get_name(self):
+        return "Mixed Frequency"
+
+class MixedPhaseField(StimSpecField):
+    def get(self, task_id) -> list[float] | None:
+        stim_spec = self.get_cached_super(task_id, StimSpecField)
+        stim_spec_dict = xmltodict.parse(stim_spec)
+
+        stim_type = stim_spec_dict['StimSpec']['type']
+        if "Mixed" not in stim_type:
+            return None
+        chromatic_phase = stim_spec_dict['StimSpec']['chromaticSpec']['phase']
+        luminance_phase = stim_spec_dict['StimSpec']['luminanceSpec']['phase']
+        return f"{chromatic_phase}, {luminance_phase}"
+
+    def get_name(self):
+        return "Mixed Phase"
+
+class AlignedPhaseField(MixedPhaseField):
+    def get(self, task_id) -> str | None:
+        stim_spec = self.get_cached_super(task_id, StimSpecField)
+        stim_spec_dict = xmltodict.parse(stim_spec)
+
+        stim_type = stim_spec_dict['StimSpec']['type']
+        if "Mixed" not in stim_type:
+            return None
+        chromatic_phase = stim_spec_dict['StimSpec']['chromaticSpec']['phase']
+        luminance_phase = stim_spec_dict['StimSpec']['luminanceSpec']['phase']
+        if chromatic_phase == luminance_phase:
+            return "Aligned Phase"
+        else:
+            return "Misaligned Phase"
+
+    def get_name(self):
+        return "Aligned Phase"
+
+class AlignedFrequencyField(MixedFrequencyField):
+    def get(self, task_id) -> str | None:
+        stim_spec = self.get_cached_super(task_id, StimSpecField)
+        stim_spec_dict = xmltodict.parse(stim_spec)
+
+        stim_type = stim_spec_dict['StimSpec']['type']
+        if "Mixed" not in stim_type:
+            return None
+        chromatic_frequency = stim_spec_dict['StimSpec']['chromaticSpec']['frequency']
+        luminance_frequency = stim_spec_dict['StimSpec']['luminanceSpec']['frequency']
+        if chromatic_frequency == luminance_frequency:
+            return "Aligned Frequency"
+        else:
+            return "Misaligned Frequency"
+
+    def get_name(self):
+        return "Aligned Frequency"
 class PhaseField(StimSpecField):
     def get(self, task_id) -> float:
         stim_spec = self.get_cached_super(task_id, StimSpecField)

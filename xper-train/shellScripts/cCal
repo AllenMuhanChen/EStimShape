@@ -4,9 +4,9 @@ source paths
 
 # Add eyeWinSize variable with default value of 1.0
 eyeWinSize=${1:-1.0}
-
+eyeWinBase=${2:-$eyeWinSize}
 mysql --host=172.30.6.80 --user=xper_rw --password=up2nite $VERSION_GA << EOF
-UPDATE SystemVar SET val=$eyeWinSize WHERE name='xper_eye_window_algorithm_base_window_size';
+UPDATE SystemVar SET val=$eyeWinBase WHERE name='xper_eye_window_algorithm_base_window_size';
 UPDATE SystemVar SET val=$eyeWinSize WHERE name='xper_eye_window_algorithm_initial_window_size';
 UPDATE SystemVar SET val=1500 WHERE name='xper_slide_length';
 UPDATE SystemVar SET val=250 WHERE name='xper_inter_slide_interval';
@@ -21,6 +21,7 @@ UPDATE SystemVar SET val=150 WHERE name='xper_eye_monitor_out_time_threshold';
 UPDATE SystemVar SET val=0.15 WHERE name='xper_background_color' AND arr_ind=0;
 UPDATE SystemVar SET val=0.15 WHERE name='xper_background_color' AND arr_ind=1;
 UPDATE SystemVar SET val=0.15 WHERE name='xper_background_color' AND arr_ind=2;
+UPDATE SystemVar SET val=21 WHERE name='xper_eye_window_algorithm_ramp_length';
 EOF
 sudo -S <<< r2_allen cp $XPER_PROPERTIES_GA $DIST/xper.properties
 sudo -S <<< r2_allen cp $XPER_PROPERTIES_GA $DIST/allen/xper.properties

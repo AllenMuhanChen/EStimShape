@@ -5,7 +5,7 @@ from clat.intan.rhs import load_intan_rhs_format
 
 from clat.intan.channels import Channel
 from clat.util.connection import Connection
-from src.analysis.isogabor.isogabor_analysis import read_pickle
+from src.analysis.isogabor.old_isogabor_analysis import read_pickle
 from src.intan.MultiFileParser import MultiFileParser
 
 from src.repository.import_from_repository import fetch_experiment_id_and_stims_for_session, \

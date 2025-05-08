@@ -18,7 +18,8 @@ public class MixedGaborStim implements Stim {
         this.chromaticSpec = chromaticSpec;
         this.luminanceSpec = luminanceSpec;
 
-        this.mixedSpec = new MixedGaborSpec(chromaticSpec, luminanceSpec, "RedGreenMixed");
+        String type = chromaticSpec.getType() + "Mixed";
+        this.mixedSpec = new MixedGaborSpec(chromaticSpec, luminanceSpec, type);
     }
 
     public void preWrite() {

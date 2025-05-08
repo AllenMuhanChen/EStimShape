@@ -16,7 +16,7 @@ from src.intan.MultiFileParser import MultiFileParser
 from src.repository.export_to_repository import export_to_repository
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
-from src.analysis.isogabor.isogabor_analysis import IntanSpikesByChannelField, SpikeRateByChannelField, \
+from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, SpikeRateByChannelField, \
     EpochStartStopTimesField
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 
@@ -135,7 +135,8 @@ class GAClusterResponseField(SpikeRateByChannelField):
 
 def main():
     """Main function to run the 2D vs 3D analysis pipeline."""
-
+    session_id = "250507_0"
+    channel = 'A-002'
     # Set up database connection and date
     conn = Connection(context.twodvsthreed_database)
 
@@ -166,6 +167,7 @@ def main():
 
     # Filter out trials with no response data
     data = raw_data[raw_data['Cluster Response'].notna()]
+    data = data[data['StimSpecId'].notna()]
 
     export_to_repository(data, context.twodvsthreed_database, "lightness",
                          stim_info_table="LightnessTestStimInfo",
@@ -179,8 +181,9 @@ def main():
                              'GA Response',
                              'Cluster Response'
                          ])
+
     data = import_from_repository(
-        "250427_0",
+        session_id,
         "lightness",
         "LightnessTestStimInfo",
         "RawSpikeResponses"
@@ -191,7 +194,7 @@ def main():
     # Create visualization module
     visualize_module = create_grouped_stimuli_module(
         response_rate_col='Response Rate by channel',
-        response_rate_key='A-018',
+        response_rate_key=channel,
         path_col='ThumbnailPath',
         col_col='RGB',
         row_col='Texture',

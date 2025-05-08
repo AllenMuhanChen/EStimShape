@@ -14,7 +14,7 @@ UPDATE SystemVar SET val=1000 WHERE name='xper_inter_trial_interval';
 UPDATE SystemVar SET val=1000 WHERE name='xper_streak_to_start_punishment';
 UPDATE SystemVar SET val=1000 WHERE name='xper_punishment_delay_length';
 UPDATE SystemVar SET val='true' WHERE name='xper_fixation_on_with_stimuli';
-UPDATE SystemVar SET val=0.15 WHERE name='xper_png_background_color';
+UPDATE SystemVar SET val=0.5 WHERE name='xper_png_background_color';
 EOF
 sudo -S <<< r2_allen cp $XPER_PROPERTIES_TWODVSTHREED $DIST/xper.properties
 sudo -S <<< r2_allen cp $XPER_PROPERTIES_TWODVSTHREED $DIST/allen/xper.properties

@@ -9,7 +9,7 @@ from clat.util.connection import Connection
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, ParentIdField
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
-from src.analysis.isogabor.isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField
+from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField
 from src.intan.MultiFileParser import MultiFileParser
 from src.repository.export_to_repository import export_to_repository
 from src.repository.import_from_repository import import_from_repository
@@ -17,6 +17,9 @@ from src.startup import context
 
 
 def main():
+    session_id = "250507_0"
+    channel = "A-013"
+
     conn = Connection(context.ga_database)
 
     data_for_all_tasks = compile_data(conn)
@@ -36,17 +39,18 @@ def main():
                          )
 
     data_for_plotting = import_from_repository(
-        "250506_0",
+        session_id,
         "ga",
         "2Dvs3DStimInfo",
         "RawSpikeResponses"
     )
 
     # unit = "Channel.A_031_Unit 2"
+
     visualize_module = create_grouped_stimuli_module(
         # response_col='Window Sort Spike Rates By Unit',
         response_rate_col='Response Rate by channel',
-        response_rate_key="A-020",
+        response_rate_key=channel,
         path_col='ThumbnailPath',
         # response_key=("%s" % unit),
         col_col='TestId',
@@ -110,6 +114,89 @@ def clean_data(data_for_all_tasks):
     return data_for_all_tasks
 
 
+class LuminanceField(StimPathField):
+    def __init__(self, conn):
+        super().__init__(conn)
+        self.conn = conn
+
+    def get(self, task_id):
+        stim_path = self.get_cached_super(task_id, StimPathField)
+        if stim_path is None or stim_path == "None":
+            return None
+
+        try:
+            # Import necessary libraries
+            import cv2
+            import numpy as np
+            from scipy import stats
+            import os
+
+            # Check if the file exists
+            if not os.path.exists(stim_path):
+                print(f"File not found: {stim_path}")
+                return None
+
+            # Read the image
+            img = cv2.imread(stim_path)
+            if img is None:
+                print(f"Failed to read image: {stim_path}")
+                return None
+
+            # Convert to RGB if it's in BGR format (OpenCV default)
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+            # Reshape the image to a 2D array of pixels
+            pixels = img_rgb.reshape(-1, 3)
+
+            # Find the mode pixel value (background)
+            # We'll convert pixels to tuple strings to find the most common RGB combination
+            pixel_tuples = [tuple(pixel) for pixel in pixels]
+            mode_pixel = stats.mode(pixel_tuples, keepdims=False)[0]
+
+            # Create a mask where pixels are not the background color
+            # A small tolerance might be needed for slight variations in background color
+            tolerance = 5
+            mask = np.zeros(img_rgb.shape[:2], dtype=bool)  # Use boolean array
+
+            for i in range(3):  # For each RGB channel
+                channel_mask = np.abs(img_rgb[:, :, i] - mode_pixel[i]) > tolerance
+                mask = mask | channel_mask  # Boolean OR operation
+
+            # If mask is empty (all pixels considered background), return all pixels average
+            if np.sum(mask) == 0:
+                print(f"Warning: All pixels identified as background in {stim_path}")
+                avg_rgb = np.mean(pixels, axis=0).astype(int)
+                return {
+                    'r': int(avg_rgb[0]),
+                    'g': int(avg_rgb[1]),
+                    'b': int(avg_rgb[2]),
+                    'background_mode': tuple(int(v) for v in mode_pixel),
+                    'foreground_pixels': len(pixels),
+                    'note': 'All pixels considered background'
+                }
+
+            # Apply mask to get foreground pixels
+            foreground_pixels = img_rgb[mask]
+
+            # Calculate average RGB values of foreground
+            avg_rgb = np.mean(foreground_pixels, axis=0).astype(int)
+
+            # Return the result as a dictionary
+            return {
+                'r': int(avg_rgb[0]),
+                'g': int(avg_rgb[1]),
+                'b': int(avg_rgb[2]),
+                'background_mode': tuple(int(v) for v in mode_pixel),
+                'foreground_pixels': len(foreground_pixels)
+            }
+
+        except Exception as e:
+            print(f"Error processing image {stim_path}: {e}")
+            return None
+
+    def get_name(self):
+        return "LuminanceField"
+
 def compile_data(conn: Connection) -> pd.DataFrame:
     collector = TaskIdCollector(conn)
     task_ids = collector.collect_task_ids()
@@ -124,6 +211,7 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields.append(LineageField(conn))
     fields.append(StimTypeField(conn))
     fields.append(StimPathField(conn))
+    fields.append(LuminanceField(conn))
     fields.append(ThumbnailField(conn))
     fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
     fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))

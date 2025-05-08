@@ -43,6 +43,7 @@ UPDATE SystemVar SET val='false' WHERE name='xper_do_empty_task';
 UPDATE SystemVar SET val=150 WHERE name='xper_eye_monitor_out_time_threshold';
 UPDATE SystemVar SET val=30 WHERE name='xper_max_image_dimension_degrees';
 UPDATE SystemVar SET val=true WHERE name='xper_fixation_on_with_stimuli';
+UPDATE SystemVar SET val=10 WHERE name='xper_eye_window_algorithm_ramp_length';
 EOF
 
     if [ $? -eq 0 ]; then

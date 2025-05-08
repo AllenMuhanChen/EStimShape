@@ -14,7 +14,7 @@ from clat.util.connection import Connection
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
-from src.analysis.isogabor.isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField
+from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField
 from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
 from src.intan.MultiFileParser import MultiFileParser
 
@@ -33,6 +33,9 @@ def get_top_n_lineages(data, n):
 
 
 def main():
+    session_id = "250507_0"
+    channel = "A-013"
+
     # Setting up connection and time frame to analyse in
     conn = Connection(context.ga_database)
 
@@ -60,15 +63,16 @@ def main():
                              "Junction"
                          ])
 
+
     data = import_from_repository(
-        "250427_0",
+        session_id,
         "ga",
         "GAStimInfo",
         "RawSpikeResponses"
     )
 
     # Break apart the response rate by channel
-    data['Response Rate'] = data['Response Rate by channel'].apply(lambda x: x['A-018'])
+    data['Response Rate'] = data['Response Rate by channel'].apply(lambda x: x[channel])
 
     # Calculate average response rate for each StimSpecId within each Lineage
     avg_response = data.groupby(['Lineage', 'StimSpecId'])['Response Rate'].mean().reset_index()
@@ -80,9 +84,10 @@ def main():
     # Merge the ranks back to the original dataframe
     data = data.merge(avg_response[['Lineage', 'StimSpecId', 'RankWithinLineage']], on=['Lineage', 'StimSpecId'], how='left')
 
+
     visualize_module = create_grouped_stimuli_module(
         response_rate_col='Response Rate by channel',
-        response_rate_key="A-018",
+        response_rate_key=channel,
         path_col='ThumbnailPath',
         col_col='RankWithinLineage',
         row_col='Lineage',

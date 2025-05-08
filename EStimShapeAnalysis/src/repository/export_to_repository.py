@@ -442,7 +442,7 @@ def read_raw_spike_responses(df: pd.DataFrame) -> List[Tuple[int, str, str, floa
     responses = []
 
     # Check if the DataFrame has the required columns
-    if 'Spikes by Channel' not in df.columns:
+    if 'Spikes by channel' not in df.columns:
         print("Warning: 'Spikes by Channel' column not found in DataFrame")
         raise ValueError("Spikes by Channel column is missing from df. Please ensure the DataFrame contains the 'Spikes by Channel' column with spike data. ")
 
@@ -452,7 +452,7 @@ def read_raw_spike_responses(df: pd.DataFrame) -> List[Tuple[int, str, str, floa
     # Extract spike data for each task
     for _, row in df.iterrows():
         task_id = row['TaskId']
-        spikes_by_channel = row.get('Spikes by Channel')
+        spikes_by_channel = row.get('Spikes by channel')
         epochs_by_channel = row.get('Epoch')
 
         # Skip if no spike data

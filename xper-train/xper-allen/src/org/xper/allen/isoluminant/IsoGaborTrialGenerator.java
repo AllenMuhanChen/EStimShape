@@ -17,13 +17,21 @@ import java.io.StringReader;
 import java.util.*;
 
 public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
+    private static boolean isTestMixed;
     private final int numRepeats = 5;
     private GaborSpec gaborSpec;
     public static final List<Double> frequencies = Arrays.asList(0.5, 1.0, 2.0, 4.0);
     //    public static final List<Double> orientations = Arrays.asList(0.0, 45.0, 90.0, 135.0);
-    public static final List<Double> mixedPhases = Arrays.asList(0.0, 0.5);
+//    public static final List<Double> mixedPhases = Arrays.asList(0.0, 0.5);
 
     public static void main(String[] args) {
+        // Check if the argument is provided
+        try {
+            isTestMixed = Boolean.parseBoolean(args[0]);
+        } catch (ArrayIndexOutOfBoundsException e) {
+            isTestMixed = false;
+        }
+
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.config_class"),
                 IsoGaborConfig.class
@@ -88,8 +96,9 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
             addIsoluminantTrials();
 
         }
-
-//        addMixedGaborTrials();
+        if (isTestMixed) {
+            addMixedGaborTrials();
+        }
     }
 
     private void addIsochromaticTrials() {
@@ -143,26 +152,26 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
             }
         }
 
-        // Mixed Gabors - Phases
-        for (double frequency : frequencies) {
-            GaborSpec chromaticSpec = new GaborSpec(gaborSpec);
-            chromaticSpec.setFrequency(frequency);
-            for (double phase : mixedPhases) {
-                double phaseLuminance = phase * frequency;
-
-                GaborSpec luminanceSpec = new GaborSpec(gaborSpec);
-                luminanceSpec.setFrequency(frequency);
-                luminanceSpec.setPhase(phaseLuminance);
-
-                IsoGaborSpec rgMixedIsoSpec = new IsoGaborSpec(gaborSpec, "RedGreen");
-                MixedGaborStim rgMixedIsoStim = new MixedGaborStim(this, rgMixedIsoSpec, luminanceSpec);
-                getStims().add(rgMixedIsoStim);
-
-                IsoGaborSpec cyMixedIsoSpec = new IsoGaborSpec(gaborSpec, "CyanOrange");
-                MixedGaborStim cyMixedIsoStim = new MixedGaborStim(this, cyMixedIsoSpec, luminanceSpec);
-                getStims().add(cyMixedIsoStim);
-            }
-        }
+//        // Mixed Gabors - Phases
+//        for (double frequency : frequencies) {
+//            GaborSpec chromaticSpec = new GaborSpec(gaborSpec);
+//            chromaticSpec.setFrequency(frequency);
+//            for (double phase : mixedPhases) {
+//                double phaseLuminance = phase * frequency;
+//
+//                GaborSpec luminanceSpec = new GaborSpec(gaborSpec);
+//                luminanceSpec.setFrequency(frequency);
+//                luminanceSpec.setPhase(phaseLuminance);
+//
+//                IsoGaborSpec rgMixedIsoSpec = new IsoGaborSpec(gaborSpec, "RedGreen");
+//                MixedGaborStim rgMixedIsoStim = new MixedGaborStim(this, rgMixedIsoSpec, luminanceSpec);
+//                getStims().add(rgMixedIsoStim);
+//
+//                IsoGaborSpec cyMixedIsoSpec = new IsoGaborSpec(gaborSpec, "CyanOrange");
+//                MixedGaborStim cyMixedIsoStim = new MixedGaborStim(this, cyMixedIsoSpec, luminanceSpec);
+//                getStims().add(cyMixedIsoStim);
+//            }
+//        }
     }
 
 
