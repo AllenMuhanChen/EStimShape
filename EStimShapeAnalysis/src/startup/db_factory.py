@@ -7,8 +7,8 @@ from src.pga.multi_ga_db_util import MultiGaDbUtil
 HOST = '172.30.6.80'
 USER = 'xper_rw'
 PASS = 'up2nite'
-TEMPLATE_TYPE = 'exp'
-TEMPLATE_DATE = '250425'
+TEMPLATE_TYPE = 'test'
+TEMPLATE_DATE = '250508'
 TEMPLATE_LOCATION_ID = '0'
 
 

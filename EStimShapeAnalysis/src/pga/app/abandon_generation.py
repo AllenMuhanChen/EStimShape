@@ -41,9 +41,9 @@ class GenerationAbandonner:
         lineage_query = "DELETE FROM LineageGaInfo WHERE gen_id = %s"
         self.connection.execute(lineage_query, (gen_id,))
 
-        # Remove entries from StimGaInfo
-        stim_query = "DELETE FROM StimGaInfo WHERE gen_id = %s"
-        self.connection.execute(stim_query, (gen_id,))
+        # # Remove entries from StimGaInfo
+        # stim_query = "DELETE FROM StimGaInfo WHERE gen_id = %s"
+        # self.connection.execute(stim_query, (gen_id,))
 
         print(f"Removed entries for gen_id {gen_id}")
 

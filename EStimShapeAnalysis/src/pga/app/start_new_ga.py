@@ -7,8 +7,7 @@ from src.startup import context
 def main():
     context.ga_config.db_util.update_ready_gas_and_generations_info(context.ga_name, 0)
     conn = context.ga_config.connection()
-    conn.truncate("StimGaInfo")
-    conn.truncate("LineageGaInfo")
+    conn.execute("DELETE FROM LineageGaInfo") # StimGaInfo and ZoomingPhaseSets are cascaded to this
     conn.truncate("StimSpec")
     conn.truncate("TaskToDo")
     conn.truncate("TaskDone")
