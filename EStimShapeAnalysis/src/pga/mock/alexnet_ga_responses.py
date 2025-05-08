@@ -14,7 +14,7 @@ from torchvision import models
 from PIL import Image
 
 from src.pga.mock.exp_to_alexnet_transform import ShapePreprocessTransform
-from src.startup import context
+
 
 
 def main():
@@ -23,6 +23,7 @@ def main():
 
 
 def run_training():
+    from src.startup import context
     conn = context.ga_config.connection()
 
     channel_numbers_top_to_bottom = [15, 16, 1, 30, 8, 23, 0, 31, 14, 17, 2, 29, 13, 18, 7, 24, 3, 28, 12, 19, 4, 27, 9,

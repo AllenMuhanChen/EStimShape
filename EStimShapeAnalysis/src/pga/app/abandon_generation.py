@@ -37,13 +37,10 @@ class GenerationAbandonner:
         self.connection = connection
 
     def remove_generation(self, gen_id: int):
-        # Remove entries from LineageGaInfo
+        # Remove entries from LineageGaInfo - this will cascade to StimGaInfo and any other dependent tables
+        # To have this cascade, the foreign key constraint must be set to ON DELETE CASCADE in the dependent tables
         lineage_query = "DELETE FROM LineageGaInfo WHERE gen_id = %s"
         self.connection.execute(lineage_query, (gen_id,))
-
-        # # Remove entries from StimGaInfo
-        # stim_query = "DELETE FROM StimGaInfo WHERE gen_id = %s"
-        # self.connection.execute(stim_query, (gen_id,))
 
         print(f"Removed entries for gen_id {gen_id}")
 

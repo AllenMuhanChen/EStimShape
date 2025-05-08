@@ -219,7 +219,7 @@ class GeneticAlgorithmConfig:
 
     @singleton
     def get_db_util(self):
-        return MultiGaDbUtil(self.connection())
+        return MultiGaDbUtil(self.connection(self))
 
     def xper_trial_generator(self) -> TrialGenerator:
         return GAJarTrialGenerator(self.java_output_dir, self.allen_dist_dir)

@@ -1,5 +1,3 @@
-from src.pga.config.twod_threed_config import TwoDThreeDGAConfig
-from src.pga.mock.alexnet_mock_ga import TrainingAlexNetMockGeneticAlgorithmConfig
 from src.pga.config.simultaneous_2dvs3d_config import Simultaneous3Dvs2DConfig
 ga_name = "New3D"
 ga_database = "allen_ga_test_250508_0"
@@ -37,11 +35,10 @@ try:
                                    base_intan_path=ga_intan_path,
                                    java_output_dir=java_output_dir,
                                    allen_dist_dir=allen_dist)
-    #ga_config = TrainingAlexNetMockGeneticAlgorithmConfig(database=ga_database,
-    #                                                       base_intan_path=ga_intan_path,
-    #                                                       java_output_dir=java_output_dir,
-    #                                                       allen_dist_dir=allen_dist)
     ga_config.ga_name = ga_name
 except:
     print("Error in creating GA config")
+    # print exception:
+    import traceback
+    traceback.print_exc()
 

@@ -3,16 +3,12 @@ from enum import Enum
 
 import time
 
-from abc import abstractmethod
-from numpy.ma import mean
-
 from typing import Protocol, List
 
 from clat.util import time_util
 from src.pga.config.twod_threed_config import TwoDThreeDGAConfig
 from src.pga.ga_classes import Lineage, Stimulus, SideTest
 from src.pga.mock.alexnet_mock_ga import AlexNetMockResponseParser
-from src.pga.response_processing import GAResponseProcessor
 
 
 class Simultaneous3Dvs2DConfig(TwoDThreeDGAConfig):
