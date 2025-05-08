@@ -28,7 +28,7 @@ def main():
     nafc_database = f"allen_estimshape_{type}_{current_date}_{location_id}"
     isogabor_database = f"allen_isogabor_{type}_{current_date}_{location_id}"
     twodvsthreed_database = f"allen_twodvsthreed_{type}_{current_date}_{location_id}"
-    twodthreedlightness_database = f"allen_twodthreedlightness_{type}_{current_date}_{location_id}"
+
 
     # GA Database
     create_db_from_template(f'allen_ga_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}',
@@ -49,11 +49,8 @@ def main():
                             twodvsthreed_database,
                             copy_data_tables=["SystemVar", "InternalState"])
 
-    create_db_from_template(f"allen_twodthreedlightness_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}",
-                            twodthreedlightness_database,
-                            copy_data_tables=["SystemVar", "InternalState"])
 
-    update_context_file(ga_database, nafc_database, isogabor_database, twodvsthreed_database, twodthreedlightness_database)
+    update_context_file(ga_database, nafc_database, isogabor_database, twodvsthreed_database)
 
 
 
@@ -76,7 +73,7 @@ def check_if_exists(base_name, recording_id):
         return None  # Return None if user doesn't want to replace
 
 
-def update_context_file(ga_db, nafc_db, isogabor_db, two_d_vs_three_d_db, twodthreedlightness_db):
+def update_context_file(ga_db, nafc_db, isogabor_db, two_d_vs_three_d_db):
     target_file = '/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/startup/context.py'
 
     # Read the target file
@@ -94,8 +91,6 @@ def update_context_file(ga_db, nafc_db, isogabor_db, two_d_vs_three_d_db, twodth
             new_lines.append(f'isogabor_database = "{isogabor_db}"\n')
         elif line.startswith("twodvsthreed_database ="):
             new_lines.append(f'twodvsthreed_database = "{two_d_vs_three_d_db}"\n')
-        elif line.startswith("twodthreedlightness_database ="):
-            new_lines.append(f'twodthreedlightness_database = "{twodthreedlightness_db}"\n')
         else:
             new_lines.append(line)
 

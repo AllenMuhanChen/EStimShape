@@ -56,11 +56,10 @@ def main():
         response_rate_key=channel,
         # response_rate_col='GA Response',
         path_col='ThumbnailPath',
-        # response_key=("%s" % unit),
         col_col='TestId',
         row_col='TestType',
-        # title=f'2D vs 3D Test: {unit}',
-        # save_path=f"{context.ga_plot_path}/2Dvs3D_Test_{unit}.png",
+        title=f'2D vs 3D Test: {channel}',
+        save_path=f"{context.ga_plot_path}/2Dvs3D_Test_{unit}.png",
     )
     # Create and run pipeline with aggregated data
     plot_branch = create_branch().then(visualize_module)

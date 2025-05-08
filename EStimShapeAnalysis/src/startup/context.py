@@ -4,7 +4,7 @@ ga_database = "allen_ga_test_250508_0"
 nafc_database = "allen_estimshape_test_250508_0"
 isogabor_database = "allen_isogabor_test_250508_0"
 twodvsthreed_database = "allen_twodvsthreed_test_250508_0"
-twodthreedlightness_database = "allen_twodthreedlightness_test_250508_0"
+
 
 allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
 
@@ -27,6 +27,7 @@ twodvsthreed_parsed_spikes_path = f"/home/r2_allen/Documents/EStimShape/{twodvst
 # Storage of plots
 ga_plot_path = f"/home/r2_allen/Documents/EStimShape/{ga_database}/plots"
 isogabor_plot_path = f"/home/r2_allen/Documents/EStimShape/{isogabor_database}/plots"
+twodvsthreed_plot_path = f"/home/r2_allen/Documents/EStimShape/{twodvsthreed_database}/plots"
 try:
 
     ga_config = Simultaneous3Dvs2DConfig(
