@@ -27,17 +27,15 @@ public class SeedingStim extends GAStim<GAMatchStick, AllenMStickData> {
         sizeDiameterDegrees = minSizeDiameterDegrees + random.nextDouble() * (maxSizeDiameterDegrees - minSizeDiameterDegrees);
     }
 
-    @Override
     protected void chooseColor() {
-        // Color set in constructor. This should be the max bright we want in shade
-
-        // See if texture is Shade or Specular
+     //do nothing, use color passed in
 
     }
 
+
     @Override
     protected void chooseContrast(){
-        if (useAverageContrast){
+        if (useAverageRGB){
             contrast = 1.0; // we calculate this for real in GAStim writeStim(), can't calculate it in here.
         }
         else {

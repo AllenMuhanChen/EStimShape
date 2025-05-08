@@ -24,10 +24,11 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
 
     protected final ContrastPropertyManager contrastManager;
     protected final ColorPropertyManager colorManager;
-    protected   final TexturePropertyManager textureManager;
+    protected final TexturePropertyManager textureManager;
     protected final SizePropertyManager sizeManager;
     protected final RFStrategyPropertyManager rfStrategyManager;
     protected final UnderlyingTexturePropertyManager underlyingTextureManager;
+    protected final UnderlingAverageRGBPropertyManager underyingAverageRGBManager;
 
     protected Long stimId;
     protected String textureType;
@@ -36,9 +37,10 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected double contrast;
     private T mStick;
     // For swapping between 2D/3D textures with preserved average contrast
-    protected boolean useAverageContrast;
+    protected boolean useAverageRGB;
     protected boolean is2d;
     protected String underlyingTexture;
+    protected RGBColor averageRGB;
 
     /**
      * Original constructor, deprecated
@@ -47,15 +49,15 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
      * @param generator
      * @param parentId
      * @param textureType
-     * @param useAverageContrast
+     * @param useAverageRGB
      */
-    public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, String textureType, boolean useAverageContrast) {
+    public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, String textureType, boolean useAverageRGB) {
         this.generator = generator;
         this.parentId = parentId;
         this.imageCenterCoords = new Coordinates2D(0, 0);
         this.stimId = stimId;
         this.textureType = textureType;
-        this.useAverageContrast = useAverageContrast;
+        this.useAverageRGB = useAverageRGB;
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
         colorManager = new ColorPropertyManager(jdbcTemplate);
@@ -64,6 +66,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         rfStrategyManager = new RFStrategyPropertyManager(jdbcTemplate);
         contrastManager = new ContrastPropertyManager(jdbcTemplate);
         underlyingTextureManager = new UnderlyingTexturePropertyManager(jdbcTemplate);
+        underyingAverageRGBManager = new UnderlingAverageRGBPropertyManager(jdbcTemplate);
     }
 
     /**
@@ -77,7 +80,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         this.parentId = parentId;
         this.imageCenterCoords = new Coordinates2D(0, 0);
         this.stimId = stimId;
-        this.useAverageContrast = true;
+        this.useAverageRGB = true;
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
         colorManager = new ColorPropertyManager(jdbcTemplate);
@@ -86,6 +89,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         rfStrategyManager = new RFStrategyPropertyManager(jdbcTemplate);
         contrastManager = new ContrastPropertyManager(jdbcTemplate);
         underlyingTextureManager = new UnderlyingTexturePropertyManager(jdbcTemplate);
+        underyingAverageRGBManager = new UnderlingAverageRGBPropertyManager(jdbcTemplate);
     }
 
     @Override
@@ -102,30 +106,35 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
             nTries++;
             try {
                 setProperties();
-                if (!useAverageContrast) {
+                if (!useAverageRGB) {
                     mStick = createMStick();
                 } else {
                     //weird hack to get around that we have to draw something 3D first to get the average contrast
                     String originalTextureType = textureType;
                     boolean originalDness = is2d;
                     textureType = underlyingTexture;
-
-
                     is2d = false;
                     mStick = createMStick(); //Make 3D version
                     AllenMStickSpec mStickSpec = new AllenMStickSpec();
                     mStickSpec.setMStickInfo(mStick, false);
 
-                    contrast = generator.getPngMaker().getWindow().calculateAverageContrast(mStick);
-
+                    averageRGB = generator.getPngMaker().getWindow().calculateAverageRGB(mStick);
+                    contrast = 1.0; //if we are using average RGB, we don't want to change the contrast. Since we are
+                    //relying on the Average RGB to modulate contrast of 2D stimuli.
                     textureType = originalTextureType;
                     is2d = originalDness;
                     mStick = (T) new GAMatchStick(mStick.getMassCenter());
                     mStick.setRf(generator.getReceptiveField());
                     mStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
-                    mStick.setStimColor(color);
-                    mStick.genMatchStickFromShapeSpec(mStickSpec, new double[]{0.0,0.0,0.0});
+                    if (is2D()) {
+                        mStick.setStimColor(averageRGB); //use average RGB for 2D textures. We don't change color field because
+                        // we want the color saved in the database to be the original color so that 3D stim with 2D parent don't have
+                        // side effects from using averageRGB calculation.
+                    } else{
+                        mStick.setStimColor(color);
+                    }
 
+                    mStick.genMatchStickFromShapeSpec(mStickSpec, new double[]{0.0,0.0,0.0});
                 }
 
                 System.out.println("SUCCESSFUL CREATION OF MORPHED MATCHSTICK OF TYPE: " + this.getClass().getSimpleName());
@@ -188,8 +197,10 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
 
     protected abstract void chooseRFStrategy();
 
+
     protected void chooseColor() {
         color = colorManager.readProperty(parentId);
+
     }
 
     protected void chooseUnderlyingTexture() {
@@ -200,8 +211,17 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         }
     }
 
+    protected boolean is2D() {
+        return this.textureType.equals("2D");
+    }
+
     protected void chooseContrast() {
-        contrast = contrastManager.readProperty(parentId);
+        if (useAverageRGB) {
+            contrast = 1.0; //if we are using average RGB, we don't want to change the contrast. Since we are
+            //relying on the Average RGB to modulate contrast of 2D stimuli.
+        } else {
+            contrast = contrastManager.readProperty(parentId);
+        }
     }
 
     public static boolean is2D(String textureType) {
@@ -224,6 +244,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         rfStrategyManager.writeProperty(stimId, rfStrategy);
         contrastManager.writeProperty(stimId, contrast);
         underlyingTextureManager.writeProperty(stimId, underlyingTexture);
+        underyingAverageRGBManager.writeProperty(stimId, averageRGB);
 
     }
 

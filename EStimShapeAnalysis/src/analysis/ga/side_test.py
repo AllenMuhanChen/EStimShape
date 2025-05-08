@@ -114,7 +114,7 @@ def clean_data(data_for_all_tasks):
     return data_for_all_tasks
 
 
-class LuminanceField(StimPathField):
+class AverageRGBField(StimPathField):
     def __init__(self, conn):
         super().__init__(conn)
         self.conn = conn
@@ -195,7 +195,7 @@ class LuminanceField(StimPathField):
             return None
 
     def get_name(self):
-        return "LuminanceField"
+        return "AverageRGBField"
 
 def compile_data(conn: Connection) -> pd.DataFrame:
     collector = TaskIdCollector(conn)
@@ -211,7 +211,7 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields.append(LineageField(conn))
     fields.append(StimTypeField(conn))
     fields.append(StimPathField(conn))
-    fields.append(LuminanceField(conn))
+    fields.append(AverageRGBField(conn))
     fields.append(ThumbnailField(conn))
     fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
     fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))

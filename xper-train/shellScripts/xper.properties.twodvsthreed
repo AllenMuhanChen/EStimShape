@@ -3,8 +3,8 @@ matlab.home=/usr/local/matlab70_sp1
 xper.native_library_path=${matlab.home}/bin/glnx86;${matlab.home}/sys/os/glnx86
 
 jdbc.driver=com.mysql.jdbc.Driver
-jdbc.url=jdbc:mysql://172.30.6.80/allen_twodvsthreed_exp_250507_0?rewriteBatchedStatements=true
-ga.jdbc.url=jdbc:mysql://172.30.6.80/allen_ga_exp_250507_0?rewriteBatchedStatements=true
+jdbc.url=jdbc:mysql://172.30.6.80/allen_twodvsthreed_test_250508_0?rewriteBatchedStatements=true
+ga.jdbc.url=jdbc:mysql://172.30.6.80/allen_ga_test_250508_0?rewriteBatchedStatements=true
 
 jdbc.username=xper_rw
 jdbc.password=up2nite
@@ -23,13 +23,13 @@ experiment.ga.config_class=
 #############################################################################
 # parameters - paths
 #############################################################################
-generator.png_path=/home/r2_allen/Documents/EStimShape/allen_twodvsthreed_exp_250507_0/stimuli/twodvsthreed/pngs
+generator.png_path=/home/r2_allen/Documents/EStimShape/allen_twodvsthreed_test_250508_0/stimuli/twodvsthreed/pngs
 
-experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_twodvsthreed_exp_250507_0/stimuli/twodvsthreed/pngs
+experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_twodvsthreed_test_250508_0/stimuli/twodvsthreed/pngs
 
-generator.spec_path=/home/r2_allen/Documents/EStimShape/allen_twodvsthreed_exp_250507_0/stimuli/twodvsthreed/specs
+generator.spec_path=/home/r2_allen/Documents/EStimShape/allen_twodvsthreed_test_250508_0/stimuli/twodvsthreed/specs
 
-ga.spec_path=/home/r2_allen/Documents/EStimShape/allen_ga_exp_250507_0/stimuli/ga/specs
+ga.spec_path=/home/r2_allen/Documents/EStimShape/allen_ga_test_250508_0/stimuli/ga/specs
 
 # if not specified, the default isTrue org.xper.config.FixCalConfig
 fixcal.config_class=org.xper.allen.config.AllenFixCalConfig
@@ -81,7 +81,7 @@ fixcal.screen_setup=mono
 intan.recording.enabled=true
 intan.host=172.30.9.78
 intan.port.command=5000
-intan.default_save_path=/home/i2_allen/Documents/EStimShape/allen_twodvsthreed_exp_250507_0
+intan.default_save_path=/home/i2_allen/Documents/EStimShape/allen_twodvsthreed_test_250508_0
 intan.default_base_filename=TwoDVsThreeD
 intan.remote_directory=/run/user/1004/gvfs/sftp:host=172.30.9.78
 generator.spike_dat_path=/home/r2_allen/Documents/dev_221110/spikefiles_dev_221110

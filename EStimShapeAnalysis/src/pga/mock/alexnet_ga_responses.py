@@ -40,6 +40,8 @@ def run_training():
     fields.append(StimSpecField(conn=conn))
     fields.append(StimPathField(conn=conn))
     ids = collect_task_ids(conn)
+    if ids is None:
+        raise ValueError("No task IDs found in the database. Did you run ./cGA and ./ga with MockPGAConfig?")
     data = fields.to_data(ids)
     existing_task_ids = fetch_existing_task_ids(conn)
     data = data[~data['TaskId'].isin(existing_task_ids)]  # Filter out existing task IDs

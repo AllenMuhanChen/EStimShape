@@ -79,10 +79,15 @@ public class RGBColor {
 
 	@Override
 	public String toString() {
-		return "RGBColor{" +
-				"red=" + red +
-				", green=" + green +
-				", blue=" + blue +
-				'}';
+		return red + "," + green + "," + blue;
+	}
+
+
+	public static RGBColor fromString(String s){
+		String[] rgb = s.split(",");
+		if (rgb.length != 3) {
+			throw new IllegalArgumentException("Invalid RGB string: " + s);
+		}
+		return new RGBColor(Float.parseFloat(rgb[0]), Float.parseFloat(rgb[1]), Float.parseFloat(rgb[2]));
 	}
 }

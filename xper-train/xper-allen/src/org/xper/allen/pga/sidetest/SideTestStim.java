@@ -31,7 +31,6 @@ public class SideTestStim extends GAStim<GAMatchStick, AllenMStickData> {
 
     @Override
     protected void chooseTextureType() {
-        // We just have SIDETEST_2Dvs3D instead of variations. Might not even need these to be HONEST.
         if (isParent2D()) {
             // We want to make a 3D stimulus from a 2D parent stimulus.
             this.is2d = false;

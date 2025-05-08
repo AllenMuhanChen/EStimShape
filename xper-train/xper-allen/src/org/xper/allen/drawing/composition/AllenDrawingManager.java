@@ -134,7 +134,7 @@ public class AllenDrawingManager implements Drawable {
 				// Consider a pixel as foreground if it's not pure black
 				// We could use a small threshold here (e.g., red + green + blue > 3)
 				// to account for potential noise or anti-aliasing
-				if (red > 3 || green > 3 || blue > 3) {
+				if (red > 0 || green > 0 || blue > 0) {
 					redSum += red;
 					greenSum += green;
 					blueSum += blue;
@@ -157,6 +157,71 @@ public class AllenDrawingManager implements Drawable {
 		float value = hsv[2];
 		System.out.println("Average Contrast: " + value);
 		return value;
+	}
+
+	public RGBColor calculateAverageRGB(AllenMatchStick mStick){
+		// Clear the screen to pure black
+		GL11.glClearColor(0f, 0f, 0f, 0f);
+		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+
+		// Draw the matchstick with its original texture
+		renderer.draw(new Drawable() {
+			@Override
+			public void draw() {
+				String originalTextureType = mStick.getTextureType();
+				mStick.setTextureType(mStick.getUnderlyingTexture());
+				mStick.draw();
+				mStick.setTextureType(originalTextureType);
+			}
+		});
+
+		// Ensure all rendering is complete
+		window.swapBuffers();
+		ThreadUtil.sleep(100);
+
+		int width = this.width;
+		int height = this.height;
+
+		// Read the color buffer
+		ByteBuffer colorBuffer = ByteBuffer.allocateDirect(width * height * 4)
+				.order(ByteOrder.nativeOrder());
+		GL11.glReadPixels(0, 0, width, height, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, colorBuffer);
+
+		long redSum = 0, greenSum = 0, blueSum = 0;
+		int pixelCount = 0;
+
+		// Process pixels
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				int index = (y * width + x) * 4;
+
+				int red = colorBuffer.get(index) & 0xFF;
+				int green = colorBuffer.get(index + 1) & 0xFF;
+				int blue = colorBuffer.get(index + 2) & 0xFF;
+
+				// Consider a pixel as foreground if it's not pure black
+				// We could use a small threshold here (e.g., red + green + blue > 3)
+				// to account for potential noise or anti-aliasing
+				if (red > 0 || green > 0 || blue > 0) {
+					redSum += red;
+					greenSum += green;
+					blueSum += blue;
+					pixelCount++;
+				}
+			}
+		}
+
+		System.out.println("Pixel Count: " + pixelCount);
+
+		// Calculate average color
+		float[] avgColor = new float[3];
+		if (pixelCount > 0) {
+			avgColor[0] = (float)redSum / (pixelCount * 255.0f);
+			avgColor[1] = (float)greenSum / (pixelCount * 255.0f);
+			avgColor[2] = (float)blueSum / (pixelCount * 255.0f);
+		}
+		return new RGBColor(avgColor[0], avgColor[1], avgColor[2]);
+
 	}
 
 

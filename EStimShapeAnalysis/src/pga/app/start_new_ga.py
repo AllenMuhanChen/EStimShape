@@ -13,7 +13,6 @@ def main():
     conn.truncate("TaskDone")
     conn.truncate("BehMsg")
     conn.truncate("ChannelResponses")
-    # conn.truncate("CurrentExperiments")
     conn.truncate("ClusterInfo")
     conn.truncate("StimTexture")
     conn.truncate("StimColor")

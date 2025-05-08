@@ -35,13 +35,13 @@ public class GAStimTest {
     public void test_regime_zero_stim(){
         SeedingStim seedingStim = new SeedingStim(1L,
                 generator,
-                "SHADE",
-                new RGBColor(1.0, 1.0, 1.0)
+                "2D",
+                new RGBColor(0.0, 1.0, 1.0)
         );
         seedingStim.setProperties();
         GAMatchStick mStick = seedingStim.createMStick();
         testMatchStickDrawer.drawMStick(mStick);
-        testMatchStickDrawer.drawCompMap(mStick);
+//        testMatchStickDrawer.drawCompMap(mStick);
         ThreadUtil.sleep(10000);
 
     }
