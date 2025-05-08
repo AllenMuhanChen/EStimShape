@@ -30,7 +30,7 @@ isogabor_plot_path = f"/home/r2_allen/Documents/EStimShape/{isogabor_database}/p
 try:
 
     ga_config = Simultaneous3Dvs2DConfig(
-                                   is_alexnet_mock=True,
+                                   is_alexnet_mock=False,
                                    database=ga_database,
                                    base_intan_path=ga_intan_path,
                                    java_output_dir=java_output_dir,

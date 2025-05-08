@@ -14,8 +14,8 @@ jdbc.password=up2nite
 # if not specified, the default isTrue org.xper.config.AcqConfig
 acq.config_class=
 experiment.config_class=
-#experiment.ga.config_class=org.xper.allen.config.PGAConfig
-experiment.ga.config_class=org.xper.allen.config.MockPGAConfig
+experiment.ga.config_class=org.xper.allen.config.PGAConfig
+#experiment.ga.config_class=org.xper.allen.config.MockPGAConfig
 
 # if not specified, the default isTrue org.xper.config.FixCalConfig
 fixcal.config_class=org.xper.allen.config.AllenFixCalConfig

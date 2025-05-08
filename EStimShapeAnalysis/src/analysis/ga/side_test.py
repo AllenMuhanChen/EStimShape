@@ -24,41 +24,37 @@ def main():
 
     data_for_all_tasks = compile_data(conn)
 
-    # data_for_all_tasks = clean_data(data_for_all_tasks)
-
-    # print(data_for_all_tasks.to_string())
+    data_for_all_tasks = clean_data(data_for_all_tasks)
 
     data_for_plotting = organize_data(data_for_all_tasks)
 
-    print(data_for_plotting.to_string())
 
-    print(data_for_plotting[["TestId", "UnderlingAvgRGB", "AvgRGBFromImage", "TestType"]].groupby(["TestId", "TestType"]).agg(
-        {"UnderlingAvgRGB": "first",
-         "AvgRGBFromImage": "first"}).reset_index().to_string(index=False))
-
+    # print(data_for_plotting[["TestId", "UnderlingAvgRGB", "AvgRGBFromImage", "TestType"]].groupby(["TestId", "TestType"]).agg(
+    #     {"UnderlingAvgRGB": "first",
+    #      "AvgRGBFromImage": "first"}).reset_index().to_string(index=False))
 
 
-    # export_to_repository(data_for_plotting,
-    #                      context.ga_database,
-    #                      "ga",
-    #                         stim_info_table="2Dvs3DStimInfo",
-    #                         stim_info_columns=['Lineage', 'StimType','StimPath','ThumbnailPath', 'GA Response', 'TestId', 'TestType'],
-    #                      )
-    #
-    # data_for_plotting = import_from_repository(
-    #     session_id,
-    #     "ga",
-    #     "2Dvs3DStimInfo",
-    #     "RawSpikeResponses"
-    # )
+
+    export_to_repository(data_for_plotting,
+                         context.ga_database,
+                         "ga",
+                            stim_info_table="2Dvs3DStimInfo",
+                            stim_info_columns=['Lineage', 'StimType','StimPath','ThumbnailPath', 'GA Response', 'TestId', 'TestType'],
+                         )
+
+    data_for_plotting = import_from_repository(
+        session_id,
+        "ga",
+        "2Dvs3DStimInfo",
+        "RawSpikeResponses"
+    )
 
     # unit = "Channel.A_031_Unit 2"
 
     visualize_module = create_grouped_stimuli_module(
-        # response_col='Window Sort Spike Rates By Unit',
-        # response_rate_col='Response Rate by channel',
-        # response_rate_key=channel,
-        response_rate_col='GA Response',
+        response_rate_col='Response Rate by channel',
+        response_rate_key=channel,
+        # response_rate_col='GA Response',
         path_col='ThumbnailPath',
         # response_key=("%s" % unit),
         col_col='TestId',
@@ -77,6 +73,44 @@ def main():
     plt.show()
 
     return result
+
+
+def compile_data(conn: Connection) -> pd.DataFrame:
+    collector = TaskIdCollector(conn)
+    task_ids = collector.collect_task_ids()
+    response_processor = context.ga_config.make_response_processor()
+    cluster_combination_strategy = response_processor.cluster_combination_strategy
+    # sort_dir = "/home/r2_allen/Documents/EStimShape/allen_sort_250421_0/sorted_spikes.pkl"
+    parser = MultiFileParser(to_cache=True, cache_dir=context.ga_parsed_spikes_path)
+
+    fields = CachedTaskFieldList()
+    fields.append(StimSpecIdField(conn))
+    fields.append(ParentIdField(conn))
+    fields.append(LineageField(conn))
+    fields.append(StimTypeField(conn))
+    fields.append(StimPathField(conn))
+    # fields.append(AverageRGBField(conn))
+    fields.append(UnderlingAvgRGBField(conn))
+    fields.append(ThumbnailField(conn))
+    fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
+    fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))
+    fields.append(GAResponseField(conn))
+    fields.append(ClusterResponseField(conn, cluster_combination_strategy))
+
+    data = fields.to_data(task_ids)
+
+
+    return data
+
+
+def clean_data(data_for_all_tasks):
+    # Remove trials with no response
+    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['GA Response'].notna()]
+    # Remove NaNs
+    data_for_all_tasks = data_for_all_tasks.dropna()
+    # Remove Catch
+    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['ThumbnailPath'].apply(lambda x: x != "None")]
+    return data_for_all_tasks
 
 
 def organize_data(data_for_stim_ids):
@@ -111,16 +145,19 @@ def organize_data(data_for_stim_ids):
             data_for_plotting = pd.concat([data_for_plotting, new_row.to_frame().T], ignore_index=True)
     return data_for_plotting
 
+class UnderlingAvgRGBField(StimSpecIdField):
+    def __init__(self, conn):
+        super().__init__(conn)
+        self.conn = conn
 
-def clean_data(data_for_all_tasks):
-    # Remove trials with no response
-    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['GA Response'].notna()]
-    # Remove NaNs
-    data_for_all_tasks = data_for_all_tasks.dropna()
-    # Remove Catch
-    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['ThumbnailPath'].apply(lambda x: x != "None")]
-    return data_for_all_tasks
+    def get(self, task_id):
+        stim_spec_id = self.get_cached_super(task_id, StimSpecIdField)
+        self.conn.execute("SELECT average_rgb FROM UnderlyingAverageRGB WHERE stim_id = %s", params = (stim_spec_id,))
+        result = self.conn.fetch_one()
+        return result;
 
+    def get_name(self):
+        return "UnderlingAvgRGB"
 
 class AverageRGBField(StimPathField):
     def __init__(self, conn):
@@ -201,52 +238,6 @@ class AverageRGBField(StimPathField):
 
     def get_name(self):
         return "AvgRGBFromImage"
-
-class UnderlingAvgRGBField(StimSpecIdField):
-    def __init__(self, conn):
-        super().__init__(conn)
-        self.conn = conn
-
-    def get(self, task_id):
-        stim_spec_id = self.get_cached_super(task_id, StimSpecIdField)
-        self.conn.execute("SELECT average_rgb FROM UnderlyingAverageRGB WHERE stim_id = %s", params = (stim_spec_id,))
-        result = self.conn.fetch_one()
-        return result;
-
-    def get_name(self):
-        return "UnderlingAvgRGB"
-
-def compile_data(conn: Connection) -> pd.DataFrame:
-    collector = TaskIdCollector(conn)
-    task_ids = collector.collect_task_ids()
-    response_processor = context.ga_config.make_response_processor()
-    cluster_combination_strategy = response_processor.cluster_combination_strategy
-    # sort_dir = "/home/r2_allen/Documents/EStimShape/allen_sort_250421_0/sorted_spikes.pkl"
-    parser = MultiFileParser(to_cache=True, cache_dir=context.ga_parsed_spikes_path)
-
-    fields = CachedTaskFieldList()
-    fields.append(StimSpecIdField(conn))
-    fields.append(ParentIdField(conn))
-    fields.append(LineageField(conn))
-    fields.append(StimTypeField(conn))
-    fields.append(StimPathField(conn))
-    fields.append(AverageRGBField(conn))
-    fields.append(UnderlingAvgRGBField(conn))
-    fields.append(ThumbnailField(conn))
-    fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
-    fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))
-    fields.append(GAResponseField(conn))
-    fields.append(ClusterResponseField(conn, cluster_combination_strategy),
-                  # fields.append(WindowSortSpikesByUnitField(conn, parser, task_ids, context.ga_intan_path,
-                  #                                           sort_dir))
-                  # fields.append(WindowSortSpikeRatesByUnitField(conn, parser, task_ids, context.ga_intan_path,
-                  #                                               sort_dir)
-                  )
-
-    data = fields.to_data(task_ids)
-
-
-    return data
 
 if __name__ == "__main__":
     main()
