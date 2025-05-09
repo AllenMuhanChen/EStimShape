@@ -232,10 +232,10 @@ class IntanSpikesByChannelField(CachedTaskDatabaseField):
         spikes_by_channel_by_task_id, epochs_by_task_id = self.parser.parse(self.all_task_ids,
                                                                             intan_files_dir=self.intan_files_dir)
         if task_id not in spikes_by_channel_by_task_id.keys():
-            return None
+            raise ValueError(f"Task ID {task_id} not found in spikes_by_channel_by_task_id")
         spikes_by_channel = spikes_by_channel_by_task_id[task_id]
         if task_id not in epochs_by_task_id.keys():
-            return None
+            raise ValueError(f"Task ID {task_id} not found in epochs_by_task_id")
         epoch_start = epochs_by_task_id[task_id][0]
         # convert timestamp to epoch_start relative
         spikes_by_channel = {channel.value: [spike - epoch_start for spike in spikes] for channel, spikes in
@@ -270,7 +270,7 @@ class SpikeRateByChannelField(CachedTaskDatabaseField):
         return spike_rate_by_channel
 
     def get_name(self):
-        return "Spike Rate by Channel"
+        return "Spike Rate by channel"
 
 
 class TypeField(StimSpecField):

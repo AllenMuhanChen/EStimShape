@@ -36,6 +36,9 @@ def import_from_repository(session_id: str, experiment_name: str,
     if 'stim_id' in stim_info_columns:
         stim_info_columns.remove('stim_id')
 
+    # replace '_' with ' ' in stim_info_columns
+    stim_info_df_names = [col.replace('_', ' ') for col in stim_info_columns]
+
     # If no columns available
     if not stim_info_columns:
         print(f"Warning: No additional columns found in {stim_info_table}")
@@ -53,7 +56,7 @@ def import_from_repository(session_id: str, experiment_name: str,
         for row in repo_conn.fetch_all():
             stim_id = row[0]
             values = row[1:]
-            stim_info_data[stim_id] = dict(zip(stim_info_columns, values))
+            stim_info_data[stim_id] = dict(zip(stim_info_df_names, values))
 
     print(f"Retrieved stimulus information from {stim_info_table}")
 
@@ -130,7 +133,7 @@ def import_from_repository(session_id: str, experiment_name: str,
         if task_id in responses_data:
             # Store as dictionaries to match your existing format
             row_data[f'Spikes by {id_column.replace("_id", "")}'] = responses_data[task_id]['tstamps']
-            row_data[f'Response Rate by {id_column.replace("_id", "")}'] = responses_data[task_id]['response_rate']
+            row_data[f'Spike Rate by {id_column.replace("_id", "")}'] = responses_data[task_id]['response_rate']
 
 
         compiled_data.append(row_data)

@@ -310,7 +310,8 @@ class GroupedStimuliPlotter(ComputationModule):
                 ax.imshow(img_with_border)
 
                 # Add response text
-                ax.text(0.5, 0.95, f"Response: {response:.2f} ± {std:.2f} ({n})",
+                ax.text(0.5, 0.95, f"Response: {response:.2f} ± {std:.2f} ({n})\n"
+                                   f"Id: {cell_data.iloc[0]['StimSpecId']}",
                         transform=ax.transAxes, ha='center', va='top',
                         color='black', fontsize=8, bbox=dict(facecolor='white', alpha=0.7))
 

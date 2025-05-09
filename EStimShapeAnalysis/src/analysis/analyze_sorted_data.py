@@ -47,7 +47,7 @@ def analyse_2dvs3d(session_name, unit, save_path):
     )
     # unit = "Channel.A_031_Unit 2"
     visualize_module = create_grouped_stimuli_module(
-        # response_col='Window Sort Spike Rates By Unit',
+
         response_rate_col='Response Rate by unit',
         response_rate_key=unit,
         path_col='ThumbnailPath',

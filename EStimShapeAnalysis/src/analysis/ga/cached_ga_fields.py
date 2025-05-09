@@ -33,6 +33,8 @@ class GAResponseField(StimSpecIdField):
         self.conn.execute("SELECT response FROM StimGaInfo WHERE stim_id = %s",
                           params=(stim_spec_id,))
         ga_response = self.conn.fetch_all()
+        if not ga_response:
+            raise ValueError(f"No GA response found for stim_spec_id {stim_spec_id}")
         return float(ga_response[0][0])
 
     def get_name(self):

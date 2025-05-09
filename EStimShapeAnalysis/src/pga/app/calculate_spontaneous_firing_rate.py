@@ -5,6 +5,7 @@ from clat.compile.task.cached_task_fields import CachedTaskFieldList
 from clat.compile.task.classic_database_task_fields import StimSpecIdField, StimSpecField
 from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.compile.task.task_field import TaskFieldList, TaskField
+from clat.util.connection import Connection
 from src.pga.multi_ga_db_util import MultiGaDbUtil
 from src.startup import context
 
@@ -14,7 +15,7 @@ def main():
 
 
 def calculate_spontaneous_firing():
-    conn = context.ga_config.connection()
+    conn = Connection(context.ga_database)
     task_id_collector = TaskIdCollector(conn)
     task_ids = task_id_collector.collect_task_ids()
 

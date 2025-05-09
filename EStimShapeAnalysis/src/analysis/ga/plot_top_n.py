@@ -13,8 +13,10 @@ from clat.util.connection import Connection
 
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField
+from src.analysis.ga.side_test import clean_ga_data
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
-from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField
+from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
+    SpikeRateByChannelField
 from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
 from src.intan.MultiFileParser import MultiFileParser
 
@@ -33,21 +35,52 @@ def get_top_n_lineages(data, n):
 
 
 def main():
-    session_id = "250507_0"
-    channel = "A-013"
+    channel = "A-011"
 
+    compiled_data = compile()
+
+    analyze(channel, compiled_data=compiled_data)
+
+
+def analyze(channel, session_id: str = None, compiled_data: pd.DataFrame = None):
+    if compiled_data is None:
+        compiled_data = import_from_repository(
+            session_id,
+            "ga",
+            "GAStimInfo",
+            "RawSpikeResponses"
+        )
+    # Break apart the response rate by channel
+    compiled_data['Spike Rate'] = compiled_data['Spike Rate by channel'].apply(lambda x: x[channel] if channel in x else 0)
+    # Calculate average response rate for each StimSpecId within each Lineage
+    avg_response = compiled_data.groupby(['Lineage', 'StimSpecId'])['Spike Rate'].mean().reset_index()
+    avg_response.rename(columns={'Spike Rate': 'Avg Response Rate'}, inplace=True)
+    # Rank the averages within each Lineage
+    avg_response['RankWithinLineage'] = avg_response.groupby('Lineage')['Avg Response Rate'].rank(ascending=False,
+                                                                                                  method='first')
+    # Merge the ranks back to the original dataframe
+    compiled_data = compiled_data.merge(avg_response[['Lineage', 'StimSpecId', 'RankWithinLineage']], on=['Lineage', 'StimSpecId'],
+                      how='left')
+    visualize_module = create_grouped_stimuli_module(
+        response_rate_col='Spike Rate by channel',
+        response_rate_key=channel,
+        path_col='ThumbnailPath',
+        col_col='RankWithinLineage',
+        row_col='Lineage',
+        title='Top Stimuli Per Lineage',
+        filter_values={"Lineage": get_top_n_lineages(compiled_data, 3),
+                       "RankWithinLineage": range(1, 21)}  # only show top 20 per lineage
+        # save_path=f"{context.twodvsthreed_plots_dir}/texture_by_lightness.png"
+    )
+    # Create and run pipeline with aggregated data
+    pipeline = create_pipeline().then(visualize_module).build()
+    result = pipeline.run(compiled_data)
+    plt.show()
+
+
+def compile_and_export():
     # Setting up connection and time frame to analyse in
-    conn = Connection(context.ga_database)
-
-    # Collect data and condition it
-    data_for_all_tasks = compile_data(conn)
-    data = data_for_all_tasks[data_for_all_tasks['Cluster Response'].notna()]
-    data = data[data['StimSpecId'].notna()]
-    data = data[data['ThumbnailPath'].apply(lambda x: x != "None")]
-    data = remove_catch_trials(data)
-    data = condition_spherical_angles(data)
-    data = hemisphericalize_orientation(data)
-
+    data = compile()
     export_to_repository(data, context.ga_database, "ga",
                          stim_info_table="GAStimInfo",
                          stim_info_columns=[
@@ -62,77 +95,17 @@ def main():
                              "Termination",
                              "Junction"
                          ])
+    return data
 
 
-    data = import_from_repository(
-        session_id,
-        "ga",
-        "GAStimInfo",
-        "RawSpikeResponses"
-    )
-
-    # Break apart the response rate by channel
-    data['Response Rate'] = data['Response Rate by channel'].apply(lambda x: x[channel])
-
-    # Calculate average response rate for each StimSpecId within each Lineage
-    avg_response = data.groupby(['Lineage', 'StimSpecId'])['Response Rate'].mean().reset_index()
-    avg_response.rename(columns={'Response Rate': 'Avg Response Rate'}, inplace=True)
-
-    # Rank the averages within each Lineage
-    avg_response['RankWithinLineage'] = avg_response.groupby('Lineage')['Avg Response Rate'].rank(ascending=False, method='first')
-
-    # Merge the ranks back to the original dataframe
-    data = data.merge(avg_response[['Lineage', 'StimSpecId', 'RankWithinLineage']], on=['Lineage', 'StimSpecId'], how='left')
-
-
-    visualize_module = create_grouped_stimuli_module(
-        response_rate_col='Response Rate by channel',
-        response_rate_key=channel,
-        path_col='ThumbnailPath',
-        col_col='RankWithinLineage',
-        row_col='Lineage',
-        title='Top Stimuli Per Lineage',
-        filter_values={"Lineage": get_top_n_lineages(data, 3),
-                       "RankWithinLineage": range(1, 21)}  # only show top 20 per lineage
-        # save_path=f"{context.twodvsthreed_plots_dir}/texture_by_lightness.png"
-    )
-
-    # Create and run pipeline with aggregated data
-    pipeline = create_pipeline().then(visualize_module).build()
-    result = pipeline.run(data)
-
-    # # Group by StimId and aggregate
-    # data_for_stim_ids = data.groupby('StimSpecId').agg({
-    #     'Lineage': 'first',
-    #     'StimType': 'first',
-    #     'ThumbnailPath': 'first',
-    #     'GA_Response': 'mean',
-    # }).reset_index()
-    #
-    # # Rename the response column
-    # data_for_stim_ids = data_for_stim_ids.rename(columns={'Cluster Response': 'Average Response'})
-    #
-    # print(data_for_stim_ids.to_string())
-    #
-    # # Convert DataFrame to list of dicts for plotting
-    # stimuli_list = []
-    # for _, row in data_for_stim_ids.iterrows():
-    #
-    #     stim = {
-    #         'stim_id': row['StimSpecId'],
-    #         'response': row['GA_Response'],
-    #         'lineage_id': row['Lineage'],
-    #         'path': row['ThumbnailPath']
-    #     }
-    #
-    #     if stim['path'] is not None:
-    #         stimuli_list.append(stim)
-    #
-    # # Create and save plot
-    # fig = plot_top_n_stimuli(stimuli_list, n=20)
-
-    # plt.savefig(f"{context.plots_dir}/top_responses.png")
-    plt.show()
+def compile():
+    conn = Connection(context.ga_database)
+    # Collect data and condition it
+    data_for_all_tasks = compile_data(conn)
+    data = clean_ga_data(data_for_all_tasks)
+    data = condition_spherical_angles(data)
+    data = hemisphericalize_orientation(data)
+    return data
 
 
 def compile_data(conn: Connection) -> pd.DataFrame:
@@ -153,6 +126,7 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields.append(GAResponseField(conn))
     fields.append(ClusterResponseField(conn, cluster_combination_strategy))
     fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
+    fields.append(SpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))
     fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))
     fields.append(ShaftField(conn, mstick_spec_data_source))
     fields.append(TerminationField(conn, mstick_spec_data_source))

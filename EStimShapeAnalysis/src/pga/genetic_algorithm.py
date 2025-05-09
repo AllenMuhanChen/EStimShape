@@ -174,8 +174,9 @@ class GeneticAlgorithm:
                                                     gen_id=self.gen_id)
 
         # Write Catch Trials
+        catch_lineage_id = time_util.now()
         for i in range(self.num_catch_trials):
-            self.db_util.write_stim_ga_info(stim_id=time_util.now(), parent_id=0, lineage_id=0, stim_type="CATCH",
+            self.db_util.write_stim_ga_info(stim_id=time_util.now(), parent_id=0, lineage_id=catch_lineage_id, stim_type="CATCH",
                                             mutation_magnitude=0, gen_id=self.gen_id)
             #wait 1 ms because are we using time_util.now() and we don't want identical ids
             time.sleep(1 / 1_000)

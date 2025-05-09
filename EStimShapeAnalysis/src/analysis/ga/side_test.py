@@ -9,7 +9,8 @@ from clat.util.connection import Connection
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, ParentIdField
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
-from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField
+from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
+    SpikeRateByChannelField
 from src.intan.MultiFileParser import MultiFileParser
 from src.repository.export_to_repository import export_to_repository
 from src.repository.import_from_repository import import_from_repository
@@ -17,14 +18,14 @@ from src.startup import context
 
 
 def main():
-    session_id = "250507_0"
-    channel = "A-013"
+    session_id = "250509_0"
+    channel = "A-011"
 
     conn = Connection(context.ga_database)
 
     data_for_all_tasks = compile_data(conn)
 
-    data_for_all_tasks = clean_data(data_for_all_tasks)
+    data_for_all_tasks = clean_ga_data(data_for_all_tasks)
 
     data_for_plotting = organize_data(data_for_all_tasks)
 
@@ -49,17 +50,16 @@ def main():
         "RawSpikeResponses"
     )
 
-    # unit = "Channel.A_031_Unit 2"
 
     visualize_module = create_grouped_stimuli_module(
-        response_rate_col='Response Rate by channel',
+        response_rate_col='Spike Rate by channel',
         response_rate_key=channel,
         # response_rate_col='GA Response',
         path_col='ThumbnailPath',
         col_col='TestId',
         row_col='TestType',
         title=f'2D vs 3D Test: {channel}',
-        save_path=f"{context.ga_plot_path}/2Dvs3D_Test_{unit}.png",
+        save_path=f"{context.ga_plot_path}/2Dvs3D_Test_{channel}.png",
     )
     # Create and run pipeline with aggregated data
     plot_branch = create_branch().then(visualize_module)
@@ -92,6 +92,7 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields.append(UnderlingAvgRGBField(conn))
     fields.append(ThumbnailField(conn))
     fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
+    fields.append(SpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))
     fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))
     fields.append(GAResponseField(conn))
     fields.append(ClusterResponseField(conn, cluster_combination_strategy))
@@ -102,11 +103,11 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     return data
 
 
-def clean_data(data_for_all_tasks):
+def clean_ga_data(data_for_all_tasks):
     # Remove trials with no response
     data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['GA Response'].notna()]
     # Remove NaNs
-    data_for_all_tasks = data_for_all_tasks.dropna()
+    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['StimSpecId'].notna()]
     # Remove Catch
     data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['ThumbnailPath'].apply(lambda x: x != "None")]
     return data_for_all_tasks

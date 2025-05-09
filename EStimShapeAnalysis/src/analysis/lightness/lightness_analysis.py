@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 from clat.compile.task.cached_task_fields import CachedTaskFieldList
 from clat.compile.task.classic_database_task_fields import StimSpecIdField
@@ -23,40 +24,47 @@ from src.analysis.modules.grouped_stims_by_response import create_grouped_stimul
 
 def main():
     """Main function to run the 2D vs 3D analysis pipeline."""
-    session_id = "250507_0"
-    channel = 'A-002'
-    # Set up database connection and date
-    conn = Connection(context.twodvsthreed_database)
 
-    # Collect trials
-    task_id_collector = TaskIdCollector(conn)
-    task_ids = task_id_collector.collect_task_ids()
+    compiled_data = compile()
 
-    # Set up parser for spike data
-    parser = MultiFileParser(to_cache=True, cache_dir=context.twodvsthreed_parsed_spikes_path)
-    intan_files_dir = context.twodvsthreed_intan_path
+    channel = 'A-011'
+    return analyze(channel, compiled_data=compiled_data)
 
-    # Set up fields for data compilation
-    fields = CachedTaskFieldList()
-    fields.append(StimSpecIdField(conn))
-    fields.append(StimGaIdField(conn))
-    fields.append(StimPathField(conn))
-    fields.append(ThumbnailField(conn))
-    fields.append(TextureField(conn))
-    fields.append(ColorField(conn))
-    fields.append(TypeField(conn))
-    fields.append(IntanSpikesByChannelField(conn, parser, task_ids, intan_files_dir))
-    fields.append(EpochStartStopTimesField(conn, parser, task_ids, intan_files_dir))
-    fields.append(SpikeRateByChannelField(conn, parser, task_ids, intan_files_dir))
-    fields.append(GAClusterResponseField(conn, parser, task_ids, intan_files_dir))
 
-    # Compile data
-    raw_data = fields.to_data(task_ids)
+def analyze(channel, session_id: str = None, compiled_data: pd.DataFrame = None):
+    if compiled_data is None:
+        compiled_data = import_from_repository(
+            session_id,
+            'lightness',
+            'LightnessTestStimInfo',
+            'RawSpikeResponses'
+        )
 
-    # Filter out trials with no response data
-    data = raw_data[raw_data['Cluster Response'].notna()]
-    data = data[data['StimSpecId'].notna()]
+    # print(data.to_string())
+    # Create visualization module
+    visualize_module = create_grouped_stimuli_module(
+        response_rate_col='Spike Rate by channel',
+        response_rate_key=channel,
+        path_col='ThumbnailPath',
+        col_col='RGB',
+        row_col='Texture',
+        subgroup_col='StimGaId',
+        filter_values={
+            'Texture': ['SHADE', 'SPECULAR', '2D']
+        },
+        title='2D vs 3D Texture Response Analysis',
+        # save_path=f"{context.twodvsthreed_plots_dir}/texture_by_lightness.png"
+    )
+    # Create and run pipeline with aggregated data
+    pipeline = create_pipeline().then(visualize_module).build()
+    result = pipeline.run(compiled_data)
+    # Show the figure
+    plt.show()
+    return result
 
+
+def compile_and_export():
+    data = compile()
     export_to_repository(data, context.twodvsthreed_database, "lightness",
                          stim_info_table="LightnessTestStimInfo",
                          stim_info_columns=[
@@ -69,38 +77,38 @@ def main():
                              'GA Response',
                              'Cluster Response'
                          ])
+    return data
 
-    data = import_from_repository(
-        session_id,
-        "lightness",
-        "LightnessTestStimInfo",
-        "RawSpikeResponses"
-    )
-    print(data.to_string())
 
-    # Create visualization module
-    visualize_module = create_grouped_stimuli_module(
-        response_rate_col='Response Rate by channel',
-        response_rate_key=channel,
-        path_col='ThumbnailPath',
-        col_col='RGB',
-        row_col='Texture',
-        subgroup_col='StimGaId',
-        filter_values={
-            'Texture': ['SHADE', 'SPECULAR', '2D']
-        },
-        title='2D vs 3D Texture Response Analysis',
-        # save_path=f"{context.twodvsthreed_plots_dir}/texture_by_lightness.png"
-    )
+def compile():
+    conn = Connection(context.twodvsthreed_database)
+    # Collect trials
+    task_id_collector = TaskIdCollector(conn)
+    task_ids = task_id_collector.collect_task_ids()
+    # Set up parser for spike data
+    parser = MultiFileParser(to_cache=True, cache_dir=context.twodvsthreed_parsed_spikes_path)
+    intan_files_dir = context.twodvsthreed_intan_path
+    # Set up fields for data compilation
+    fields = CachedTaskFieldList()
+    fields.append(StimSpecIdField(conn))
+    fields.append(StimGaIdField(conn))
+    fields.append(StimPathField(conn))
+    fields.append(ThumbnailField(conn))
+    fields.append(TextureField(conn))
+    fields.append(ColorField(conn))
+    fields.append(TypeField(conn))
+    fields.append(IntanSpikesByChannelField(conn, parser, task_ids, intan_files_dir))
+    fields.append(SpikeRateByChannelField(conn, parser, task_ids, intan_files_dir))
+    fields.append(EpochStartStopTimesField(conn, parser, task_ids, intan_files_dir))
+    fields.append(SpikeRateByChannelField(conn, parser, task_ids, intan_files_dir))
+    fields.append(GAClusterResponseField(conn, parser, task_ids, intan_files_dir))
+    # Compile data
+    raw_data = fields.to_data(task_ids)
+    # Filter out trials with no response data
+    data = raw_data[raw_data['Cluster Response'].notna()]
+    data = data[data['StimSpecId'].notna()]
+    return data
 
-    # Create and run pipeline with aggregated data
-    pipeline = create_pipeline().then(visualize_module).build()
-    result = pipeline.run(data)
-
-    # Show the figure
-    plt.show()
-
-    return result
 
 class StimGaIdField(StimSpecIdField):
     def get(self, task_id) -> int:
@@ -112,6 +120,7 @@ class StimGaIdField(StimSpecIdField):
 
     def get_name(self):
         return "StimGaId"
+
 
 class TextureField(StimSpecIdField):
     """Field for extracting texture type information."""
@@ -125,6 +134,7 @@ class TextureField(StimSpecIdField):
 
     def get_name(self):
         return "Texture"
+
 
 class ContrastField(StimSpecIdField):
     """Field for extracting contrast information."""
@@ -202,8 +212,6 @@ class GAClusterResponseField(SpikeRateByChannelField):
 
         return self.cluster_combination_method(cluster_response_vector)
 
-
-
     def _fetch_cluster_channels(self):
         self.conn.execute("SELECT channel FROM ClusterInfo ORDER BY experiment_id DESC, gen_id")
         channels = self.conn.fetch_all()
@@ -212,9 +220,9 @@ class GAClusterResponseField(SpikeRateByChannelField):
         # Unpack tuples
         channels = [channel[0] for channel in channels]
         return channels
+
     def get_name(self):
         return "Cluster Response"
-
 
 
 if __name__ == "__main__":

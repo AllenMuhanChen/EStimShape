@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import pandas as pd
 
 from clat.compile.task.cached_task_fields import CachedTaskFieldList
 from clat.compile.task.classic_database_task_fields import StimSpecIdField
@@ -9,7 +10,7 @@ from src.intan.MultiFileParser import MultiFileParser
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 from src.analysis.isogabor.old_isogabor_analysis import TypeField, FrequencyField, IntanSpikesByChannelField, \
-    EpochStartStopTimesField, IsoTypeField
+    EpochStartStopTimesField, IsoTypeField, SpikeRateByChannelField
 # Import our pipeline framework
 from clat.pipeline.pipeline_base_classes import (
     create_pipeline, create_branch
@@ -21,33 +22,30 @@ def main():
     # ----------------
     # STEP 1: Compile data
     # ----------------
-    conn = Connection(context.isogabor_database)
-    compiled_data = compile_data(conn)
-    #filter out trials where Spikes by Channel is empty
-    compiled_data = compiled_data[compiled_data['Spikes by channel'].notnull()]
+    compile_and_export()
 
-    export_to_repository(compiled_data, context.isogabor_database, "isogabor",
-                         stim_info_table="IsoGaborStimInfo",
-                         stim_info_columns=['Type', 'Frequency', 'IsoType'])
+    session_id = '250509_0'
+    channel = "A-011"
+    return analyze(channel, session_id)
 
 
-    imported_data = import_from_repository(
-        '250507_0',
-        'isogabor',
-        'IsoGaborStimInfo',
-        'RawSpikeResponses',
-    )
-    print(imported_data.head())
-
+def analyze(channel, session_id: str = None, compiled_data: pd.DataFrame = None):
+    if compiled_data is None:
+        compiled_data = import_from_repository(
+            session_id,
+            'isogabor',
+            'IsoGaborStimInfo',
+            'RawSpikeResponses',
+        )
+        print(compiled_data.columns)
     # ----------------
     # STEP 2: Create and run the analysis pipeline
     # ----------------
     # For the isochromatic/isoluminant example:
-    channel = "A-013"
     grouped_raster_module = create_grouped_raster_module(
         primary_group_col='Type',
         secondary_group_col='Frequency',
-        spike_data_col= 'Spikes by channel',
+        spike_data_col='Spikes by channel',
         spike_data_col_key=channel,
         filter_values={
             'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
@@ -58,7 +56,7 @@ def main():
     grouped_raster_by_isotype_module = create_grouped_raster_module(
         primary_group_col='IsoType',
         secondary_group_col='Type',
-        spike_data_col= 'Spikes by channel',
+        spike_data_col='Spikes by channel',
         spike_data_col_key=channel,
         filter_values={
             'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
@@ -67,22 +65,27 @@ def main():
         save_path=f"{context.isogabor_plot_path}/color_experiment_by_isotype{channel}.png",
 
     )
-
     # Create a simple pipeline
     raster_branch = create_branch().then(grouped_raster_module)
     raster_by_isotype_branch = create_branch().then(grouped_raster_by_isotype_module)
     pipeline = create_pipeline().make_branch(raster_branch, raster_by_isotype_branch).build()
-
     # Run the pipeline
-    result = pipeline.run(imported_data)
-
+    result = pipeline.run(compiled_data)
     # Show the figure
     plt.show()
-
     return result
 
 
-def compile_data(conn):
+def compile_and_export():
+    compiled_data = compile()
+
+    export_to_repository(compiled_data, context.isogabor_database, "isogabor",
+                         stim_info_table="IsoGaborStimInfo",
+                         stim_info_columns=['Type', 'Frequency', 'IsoType'])
+
+
+def compile():
+    conn = Connection(context.isogabor_database)
     # Set up parser
     task_ids = TaskIdCollector(conn).collect_task_ids()
     parser = MultiFileParser(to_cache=True, cache_dir=context.isogabor_parsed_spikes_path)
@@ -94,12 +97,16 @@ def compile_data(conn):
     fields.append(FrequencyField(conn))
     fields.append(IsoTypeField(conn))
     fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.isogabor_intan_path))
+    fields.append(SpikeRateByChannelField(conn, parser, task_ids, context.isogabor_intan_path))
     fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.isogabor_intan_path))
     # fields.append(WindowSortSpikesByUnitField(conn, parser, task_ids, context.isogabor_intan_path, "/home/r2_allen/Documents/EStimShape/allen_sort_250421_0/sorted_spikes.pkl"))
     # Compile data
     data = fields.to_data(task_ids)
-    print(data.to_string())
+
+    # filter out trials where Spikes by Channel is empty
+    data = data[data['Spikes by channel'].notnull()]
     return data
+
 
 
 if __name__ == "__main__":

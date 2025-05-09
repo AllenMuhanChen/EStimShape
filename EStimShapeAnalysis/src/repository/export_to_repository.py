@@ -446,14 +446,18 @@ def read_raw_spike_responses(df: pd.DataFrame) -> List[Tuple[int, str, str, floa
         print("Warning: 'Spikes by Channel' column not found in DataFrame")
         raise ValueError("Spikes by Channel column is missing from df. Please ensure the DataFrame contains the 'Spikes by Channel' column with spike data. ")
 
-    if 'Epoch' not in df.columns:
-        raise ValueError("Epoch column is missing from df. Please ensure the DataFrame contains the 'Epoch' column with epoch data. ")
+    if 'Spike Rate by channel' not in df.columns:
+        print("Warning: 'Spike Rate by Channel' column not found in DataFrame")
+        raise ValueError("Spike Rate by Channel column is missing from df. Please ensure the DataFrame contains the 'Spike Rate by Channel' column with spike rate data. ")
+    # if 'Epoch' not in df.columns:
+    #     raise ValueError("Epoch column is missing from df. Please ensure the DataFrame contains the 'Epoch' column with epoch data. ")
 
     # Extract spike data for each task
     for _, row in df.iterrows():
         task_id = row['TaskId']
         spikes_by_channel = row.get('Spikes by channel')
-        epochs_by_channel = row.get('Epoch')
+        # epochs_by_channel = row.get('Epoch')
+        spike_rate_by_channel = row.get('Spike Rate by channel')
 
         # Skip if no spike data
         if not spikes_by_channel or spikes_by_channel == "None":
@@ -465,24 +469,11 @@ def read_raw_spike_responses(df: pd.DataFrame) -> List[Tuple[int, str, str, floa
             if not spike_times:
                 continue
 
+
             # Convert spike times list to a string that can be easily converted back to a list
             # Using repr() ensures the output can be parsed by ast.literal_eval()
             tstamps_str = repr(spike_times)
-
-            # Calculate response rate (spikes per second) using epoch duration
-            if epochs_by_channel and channel in epochs_by_channel:
-                epoch_start, epoch_end = epochs_by_channel[channel]
-                slide_length = epoch_end - epoch_start
-
-                # Count spikes between 0 and slide_length
-                spikes_in_window = [t for t in spike_times if 0 <= t <= slide_length]
-
-                # Calculate rate (spikes per second)
-                response_rate = len(spikes_in_window) / slide_length if slide_length > 0 else 0
-            else:
-                # Fallback: use simple count if no epoch data (less accurate)
-                response_rate = len(spike_times)
-
+            response_rate = spike_rate_by_channel[channel] if channel in spike_rate_by_channel else 0.0
             responses.append((task_id, channel, tstamps_str, response_rate))
 
     print(f"Found spike response data for {len(responses)} task-channel pairs")
