@@ -8,20 +8,16 @@ import org.xper.rfplot.RFInfo;
 import org.xper.rfplot.drawing.GaborSpec;
 import org.xper.rfplot.drawing.gabor.IsoGaborSpec;
 import org.xper.util.FileUtil;
-import org.w3c.dom.Document;
-import org.xml.sax.InputSource;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.StringReader;
 import java.util.*;
 
 public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
     private static boolean isTestMixed;
+    private static boolean isTestOrientations;
     private final int numRepeats = 5;
     private GaborSpec gaborSpec;
     public static final List<Double> frequencies = Arrays.asList(0.5, 1.0, 2.0, 4.0);
-    //    public static final List<Double> orientations = Arrays.asList(0.0, 45.0, 90.0, 135.0);
+        public static final List<Double> orientationOffsets = Arrays.asList(0.0, 45.0, 90.0, 135.0);
 //    public static final List<Double> mixedPhases = Arrays.asList(0.0, 0.5);
 
     public static void main(String[] args) {
@@ -30,6 +26,12 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
             isTestMixed = Boolean.parseBoolean(args[0]);
         } catch (ArrayIndexOutOfBoundsException e) {
             isTestMixed = false;
+        }
+
+        try{
+            isTestOrientations = Boolean.parseBoolean(args[1]);
+        } catch (ArrayIndexOutOfBoundsException e) {
+            isTestOrientations = false;
         }
 
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
@@ -43,32 +45,6 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
 
 
     @Override
-    protected void writeTrials() {
-        List<Long> allStimIds = new ArrayList<>();
-
-        for (Stim stim : getStims()) {
-            stim.writeStim();
-            Long stimId = stim.getStimId();
-            for (int i = 0; i < numRepeats; i++) {
-                allStimIds.add(stimId);
-            }
-        }
-
-        Collections.shuffle(allStimIds);
-
-        long lastTaskId = -1L;
-        for (Long stimId : allStimIds) {
-            long taskId = getGlobalTimeUtil().currentTimeMicros();
-            while (taskId == lastTaskId) {
-                taskId = getGlobalTimeUtil().currentTimeMicros();
-            }
-            lastTaskId = taskId;
-
-            getDbUtil().writeTaskToDo(taskId, stimId, -1, genId);
-        }
-    }
-
-    @Override
     protected void addTrials() {
         // Get database values
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dbUtil.getDataSource());
@@ -78,6 +54,7 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
 
         // Get StimSpec
         GaborSpec stimSpec = getStimSpec(jdbcTemplate);
+        double plottedOrientation = stimSpec.getOrientation();
 
         // Set up GaborSpec with database values
         gaborSpec = new GaborSpec();
@@ -85,18 +62,28 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
         gaborSpec.setYCenter(rfInfo.getCenter().getY());
         gaborSpec.setSize((rfInfo.getRadius()*2.0)*2);
         gaborSpec.setPhase(0);
-        gaborSpec.setOrientation(stimSpec.getOrientation());
         gaborSpec.setAnimation(false);
 
         // Pure Gabors
         for (Double frequency : frequencies) {
             gaborSpec.setFrequency(frequency);
-            gaborSpec.setOrientation(gaborSpec.getOrientation());
-            addIsochromaticTrials();
-            addIsoluminantTrials();
+            if (isTestOrientations) {
+                for (Double orientationOffset : orientationOffsets) {
+                    gaborSpec.setOrientation(orientationOffset + plottedOrientation);
+                    addIsochromaticTrials();
+                    addIsoluminantTrials();
+                }
+            }
+            else{
+                gaborSpec.setOrientation(plottedOrientation);
+                addIsochromaticTrials();
+                addIsoluminantTrials();
+
+            }
 
         }
         if (isTestMixed) {
+            gaborSpec.setOrientation(plottedOrientation);
             addMixedGaborTrials();
         }
     }
@@ -172,6 +159,32 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
 //                getStims().add(cyMixedIsoStim);
 //            }
 //        }
+    }
+
+    @Override
+    protected void writeTrials() {
+        List<Long> allStimIds = new ArrayList<>();
+
+        for (Stim stim : getStims()) {
+            stim.writeStim();
+            Long stimId = stim.getStimId();
+            for (int i = 0; i < numRepeats; i++) {
+                allStimIds.add(stimId);
+            }
+        }
+
+        Collections.shuffle(allStimIds);
+
+        long lastTaskId = -1L;
+        for (Long stimId : allStimIds) {
+            long taskId = getGlobalTimeUtil().currentTimeMicros();
+            while (taskId == lastTaskId) {
+                taskId = getGlobalTimeUtil().currentTimeMicros();
+            }
+            lastTaskId = taskId;
+
+            getDbUtil().writeTaskToDo(taskId, stimId, -1, genId);
+        }
     }
 
 

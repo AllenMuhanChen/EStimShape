@@ -20,6 +20,88 @@ from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelFiel
     EpochStartStopTimesField
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 
+
+def main():
+    """Main function to run the 2D vs 3D analysis pipeline."""
+    session_id = "250507_0"
+    channel = 'A-002'
+    # Set up database connection and date
+    conn = Connection(context.twodvsthreed_database)
+
+    # Collect trials
+    task_id_collector = TaskIdCollector(conn)
+    task_ids = task_id_collector.collect_task_ids()
+
+    # Set up parser for spike data
+    parser = MultiFileParser(to_cache=True, cache_dir=context.twodvsthreed_parsed_spikes_path)
+    intan_files_dir = context.twodvsthreed_intan_path
+
+    # Set up fields for data compilation
+    fields = CachedTaskFieldList()
+    fields.append(StimSpecIdField(conn))
+    fields.append(StimGaIdField(conn))
+    fields.append(StimPathField(conn))
+    fields.append(ThumbnailField(conn))
+    fields.append(TextureField(conn))
+    fields.append(ColorField(conn))
+    fields.append(TypeField(conn))
+    fields.append(IntanSpikesByChannelField(conn, parser, task_ids, intan_files_dir))
+    fields.append(EpochStartStopTimesField(conn, parser, task_ids, intan_files_dir))
+    fields.append(SpikeRateByChannelField(conn, parser, task_ids, intan_files_dir))
+    fields.append(GAClusterResponseField(conn, parser, task_ids, intan_files_dir))
+
+    # Compile data
+    raw_data = fields.to_data(task_ids)
+
+    # Filter out trials with no response data
+    data = raw_data[raw_data['Cluster Response'].notna()]
+    data = data[data['StimSpecId'].notna()]
+
+    export_to_repository(data, context.twodvsthreed_database, "lightness",
+                         stim_info_table="LightnessTestStimInfo",
+                         stim_info_columns=[
+                             'Type',
+                             'RGB',
+                             'Texture',
+                             'StimGaId',
+                             'StimPath',
+                             'ThumbnailPath',
+                             'GA Response',
+                             'Cluster Response'
+                         ])
+
+    data = import_from_repository(
+        session_id,
+        "lightness",
+        "LightnessTestStimInfo",
+        "RawSpikeResponses"
+    )
+    print(data.to_string())
+
+    # Create visualization module
+    visualize_module = create_grouped_stimuli_module(
+        response_rate_col='Response Rate by channel',
+        response_rate_key=channel,
+        path_col='ThumbnailPath',
+        col_col='RGB',
+        row_col='Texture',
+        subgroup_col='StimGaId',
+        filter_values={
+            'Texture': ['SHADE', 'SPECULAR', '2D']
+        },
+        title='2D vs 3D Texture Response Analysis',
+        # save_path=f"{context.twodvsthreed_plots_dir}/texture_by_lightness.png"
+    )
+
+    # Create and run pipeline with aggregated data
+    pipeline = create_pipeline().then(visualize_module).build()
+    result = pipeline.run(data)
+
+    # Show the figure
+    plt.show()
+
+    return result
+
 class StimGaIdField(StimSpecIdField):
     def get(self, task_id) -> int:
         stim_id = self.get_cached_super(task_id, StimSpecIdField)
@@ -120,6 +202,8 @@ class GAClusterResponseField(SpikeRateByChannelField):
 
         return self.cluster_combination_method(cluster_response_vector)
 
+
+
     def _fetch_cluster_channels(self):
         self.conn.execute("SELECT channel FROM ClusterInfo ORDER BY experiment_id DESC, gen_id")
         channels = self.conn.fetch_all()
@@ -128,92 +212,10 @@ class GAClusterResponseField(SpikeRateByChannelField):
         # Unpack tuples
         channels = [channel[0] for channel in channels]
         return channels
-
     def get_name(self):
         return "Cluster Response"
 
 
-def main():
-    """Main function to run the 2D vs 3D analysis pipeline."""
-    session_id = "250507_0"
-    channel = 'A-002'
-    # Set up database connection and date
-    conn = Connection(context.twodvsthreed_database)
-
-    # Collect trials
-    task_id_collector = TaskIdCollector(conn)
-    task_ids = task_id_collector.collect_task_ids()
-
-    # Set up parser for spike data
-    parser = MultiFileParser(to_cache=True, cache_dir=context.twodvsthreed_parsed_spikes_path)
-    intan_files_dir = context.twodvsthreed_intan_path
-
-    # Set up fields for data compilation
-    fields = CachedTaskFieldList()
-    fields.append(StimSpecIdField(conn))
-    fields.append(StimGaIdField(conn))
-    fields.append(StimPathField(conn))
-    fields.append(ThumbnailField(conn))
-    fields.append(TextureField(conn))
-    fields.append(ColorField(conn))
-    fields.append(TypeField(conn))
-    fields.append(IntanSpikesByChannelField(conn, parser, task_ids, intan_files_dir))
-    fields.append(EpochStartStopTimesField(conn, parser, task_ids, intan_files_dir))
-    fields.append(SpikeRateByChannelField(conn, parser, task_ids, intan_files_dir))
-    fields.append(GAClusterResponseField(conn, parser, task_ids, intan_files_dir))
-
-    # Compile data
-    raw_data = fields.to_data(task_ids)
-
-    # Filter out trials with no response data
-    data = raw_data[raw_data['Cluster Response'].notna()]
-    data = data[data['StimSpecId'].notna()]
-
-    export_to_repository(data, context.twodvsthreed_database, "lightness",
-                         stim_info_table="LightnessTestStimInfo",
-                         stim_info_columns=[
-                             'Type',
-                             'RGB',
-                             'Texture',
-                             'StimGaId',
-                             'StimPath',
-                             'ThumbnailPath',
-                             'GA Response',
-                             'Cluster Response'
-                         ])
-
-    data = import_from_repository(
-        session_id,
-        "lightness",
-        "LightnessTestStimInfo",
-        "RawSpikeResponses"
-    )
-    print(data.to_string())
-
-
-    # Create visualization module
-    visualize_module = create_grouped_stimuli_module(
-        response_rate_col='Response Rate by channel',
-        response_rate_key=channel,
-        path_col='ThumbnailPath',
-        col_col='RGB',
-        row_col='Texture',
-        subgroup_col='StimGaId',
-        filter_values={
-            'Texture': ['SHADE', 'SPECULAR', '2D']
-        },
-        title='2D vs 3D Texture Response Analysis',
-        # save_path=f"{context.twodvsthreed_plots_dir}/texture_by_lightness.png"
-    )
-
-    # Create and run pipeline with aggregated data
-    pipeline = create_pipeline().then(visualize_module).build()
-    result = pipeline.run(data)
-
-    # Show the figure
-    plt.show()
-
-    return result
 
 if __name__ == "__main__":
     main()

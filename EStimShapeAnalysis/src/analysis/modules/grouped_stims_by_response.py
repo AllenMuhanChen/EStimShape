@@ -1,3 +1,5 @@
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -337,6 +339,10 @@ class GroupedStimuliOutput(OutputHandler):
         """
         # Save if requested
         if self.save_path:
+            # if parent directory does not exist, create it
+            if not os.path.exists(os.path.dirname(self.save_path)):
+                print(f"Creating directory for {self.save_path}...")
+                os.makedirs(os.path.dirname(self.save_path), exist_ok=True)
             figure.savefig(self.save_path, dpi=300, bbox_inches='tight')
 
         return figure

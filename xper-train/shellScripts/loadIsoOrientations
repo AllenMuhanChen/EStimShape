@@ -6,5 +6,5 @@ sudo -S <<< r2_allen cp $XPER_PROPERTIES_ISOGABOR $DIST/xper.properties
 sudo -S <<< r2_allen cp $XPER_PROPERTIES_ISOGABOR $DIST/allen/xper.properties
 cd $DIST/allen
 
-java -jar IsoGaborGenerator.jar "false" "false"
+java -jar IsoGaborGenerator.jar "false" "true"
 

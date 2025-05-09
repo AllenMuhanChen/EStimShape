@@ -17,11 +17,30 @@ from clat.pipeline.pipeline_base_classes import (
 from src.repository.export_to_repository import export_to_repository
 
 def main():
+    session_id = "250507_0"
+    channel = "A-002"
     conn = Connection(context.isogabor_database)
     compiled_data = compile_data(conn)
     compiled_data = compiled_data[compiled_data['Spikes by channel'].notnull()]
     compiled_data = compiled_data[compiled_data['Mixed Frequency'].notnull()]
-    channel = "A-002"
+
+    export_to_repository(compiled_data, context.isogabor_database, "isogabor",
+                          stim_info_table="IsoGaborStimInfo",
+                          stim_info_columns=['Type', 'Aligned Frequency', 'Mixed Frequency'])
+
+    import_data = import_from_repository(
+        session_id,
+        'isogabor',
+        'IsoGaborStimInfo',
+        'RawSpikeResponses'
+    )
+
+    print(import_data.head())
+
+
+
+
+
     grouped_raster_module_phase = create_grouped_raster_module(
         primary_group_col='Aligned Phase',
         secondary_group_col='Type',

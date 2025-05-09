@@ -26,9 +26,8 @@ def switch_context(*, type_name: str, date: str, location_id: str) -> None:
     nafc_database = f"allen_estimshape_{type_name}_{date}_{location_id}"
     isogabor_database = f"allen_isogabor_{type_name}_{date}_{location_id}"
     twodvsthreed_database = f"allen_twodvsthreed_{type_name}_{date}_{location_id}"
-    twodthreedlightness_database = f"allen_twodthreedlightness_{type_name}_{date}_{location_id}"
     # Update context file
-    update_context_file(ga_database, nafc_database, isogabor_database, twodvsthreed_database, twodthreedlightness_database)
+    update_context_file(ga_database, nafc_database, isogabor_database, twodvsthreed_database)
 
     # Update properties files and create necessary directories
     setup_xper_properties_and_dirs.main()

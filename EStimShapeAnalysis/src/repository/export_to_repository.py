@@ -573,6 +573,8 @@ def write_stim_info_to_db(conn: Connection, table_name: str, stim_info_data: Dic
         stim_info_data: Dictionary mapping stim_ids to dictionaries of column_name->value pairs
         stim_task_mapping: Dictionary with unique_stim_ids list for checking against StimExperimentMapping
     """
+    import time
+
     # Create a mapping of original column names to SQL-safe column names
     column_name_mapping = {}
 
@@ -594,44 +596,84 @@ def write_stim_info_to_db(conn: Connection, table_name: str, stim_info_data: Dic
     # Check if the table exists
     conn.execute(f"SHOW TABLES LIKE '{table_name}'")
     if not conn.fetch_all():
-        print(f"Error: Table '{table_name}' does not exist in the repository database.")
+        print(f"Table '{table_name}' does not exist in the repository database. Creating it...")
         # Create the table if it doesn't exist
         create_table_query = f"""
             CREATE TABLE IF NOT EXISTS {table_name} (
-           stim_id BIGINT PRIMARY KEY,
+            stim_id BIGINT PRIMARY KEY,
             FOREIGN KEY (stim_id) REFERENCES StimExperimentMapping(stim_id) ON DELETE CASCADE
         );
         """
         conn.execute(create_table_query)
+        print(f"Table '{table_name}' created successfully")
 
-    # Get the table structure to determine columns
-    conn.execute(f"DESCRIBE {table_name}")
-    table_cols = [row[0] for row in conn.fetch_all()]
-
-    # Verify stim_id is in the table
-    if 'stim_id' not in table_cols:
-        print(f"Error: Table '{table_name}' does not have a 'stim_id' column.")
-        raise ValueError(f"Table '{table_name}' must have a 'stim_id' column.")
+        # Wait a moment to ensure the table is fully created
+        time.sleep(1)
 
     # Determine column data types by examining the actual data
     column_types = detect_column_types(stim_info_data)
 
     # Create a new table with dynamic columns if it doesn't have the required columns
     required_cols = set(col for stim_data in stim_info_data.values() for col in stim_data.keys())
-    missing_cols = required_cols - set(table_cols)
 
+    # Get current table columns and verify stim_id is in the table
+    def get_current_columns():
+        conn.execute(f"DESCRIBE {table_name}")
+        current_cols = [row[0] for row in conn.fetch_all()]
+        return current_cols
+
+    current_cols = get_current_columns()
+
+    if 'stim_id' not in current_cols:
+        print(f"Error: Table '{table_name}' does not have a 'stim_id' column.")
+        raise ValueError(f"Table '{table_name}' must have a 'stim_id' column.")
+
+    # Determine which columns need to be added
+    missing_cols = required_cols - set(current_cols)
+
+    # Add columns one by one, verifying each addition before proceeding
     if missing_cols:
-        # Add columns to the table
+        print(f"Adding {len(missing_cols)} missing columns to {table_name}...")
+
         for col in missing_cols:
             try:
                 # Use the detected data type, or VARCHAR as fallback
                 sql_type = column_types.get(col, 'VARCHAR(255)')
+                print(f"Adding column '{col}' with type '{sql_type}'...")
+
+                # Add the column
                 conn.execute(f"ALTER TABLE {table_name} ADD COLUMN {col} {sql_type}")
-                print(f"Added column '{col}' to table '{table_name}' with type '{sql_type}'")
+
+                # Verify the column was added with retries
+                max_retries = 5
+                column_added = False
+
+                for attempt in range(max_retries):
+                    # Wait a moment to allow the database to complete the operation
+                    time.sleep(0.5)
+
+                    # Check if the column exists now
+                    updated_cols = get_current_columns()
+                    if col in updated_cols:
+                        column_added = True
+                        print(f"Successfully added column '{col}'")
+                        break
+                    else:
+                        print(f"Waiting for column '{col}' to appear (attempt {attempt + 1}/{max_retries})...")
+
+                if not column_added:
+                    print(f"Warning: Could not verify column '{col}' was added after {max_retries} attempts")
+                    # Remove from required columns if we couldn't verify it was added
+                    required_cols.discard(col)
+
             except Exception as e:
                 print(f"Error adding column '{col}' to table '{table_name}': {e}")
                 # Remove from required columns if we couldn't add it
                 required_cols.discard(col)
+
+    # Final check of table columns before inserting data
+    current_cols = get_current_columns()
+    print(f"Current columns in {table_name}: {', '.join(current_cols)}")
 
     # Prepare counter for successful exports
     success_count = 0
@@ -644,7 +686,7 @@ def write_stim_info_to_db(conn: Connection, table_name: str, stim_info_data: Dic
             continue
 
         # Only include columns that exist in the table
-        valid_cols = ['stim_id'] + [col for col in stim_data.keys() if col in table_cols]
+        valid_cols = ['stim_id'] + [col for col in stim_data.keys() if col in current_cols]
 
         # Force all values to basic Python types
         valid_data = [int(stim_id)]  # Force stim_id to int
@@ -673,6 +715,11 @@ def write_stim_info_to_db(conn: Connection, table_name: str, stim_info_data: Dic
 
             valid_data.append(value)
 
+        # Skip if we have no valid columns other than stim_id
+        if len(valid_cols) <= 1:
+            print(f"Skipping stim_id {stim_id} - no valid columns to insert")
+            continue
+
         # Prepare placeholders for SQL query
         placeholders = ', '.join(['%s'] * len(valid_cols))
         cols_str = ', '.join(valid_cols)
@@ -696,7 +743,6 @@ def write_stim_info_to_db(conn: Connection, table_name: str, stim_info_data: Dic
             print(f"Types: {[type(v).__name__ for v in valid_data]}")
 
     print(f"Successfully exported {success_count} records to {table_name}")
-
 
 def detect_column_types(stim_info_data: Dict[int, Dict[str, Any]]) -> Dict[str, str]:
     """

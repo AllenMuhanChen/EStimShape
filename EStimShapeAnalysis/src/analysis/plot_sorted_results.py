@@ -1,3 +1,5 @@
+import os
+
 from matplotlib import pyplot as plt
 
 from clat.pipeline.pipeline_base_classes import create_pipeline, create_branch
@@ -12,21 +14,27 @@ from src.startup import context
 
 def main():
     # INPUTS #
-    session_name = '250427_0'
-    unit = 'A-018_Unit 3'
+    session_name = '250507_0'
+    unit = 'A-002_Unit 4'
     label = None
     new_spikes = False
     ##########
     save_path = f"/home/r2_allen/Documents/EStimShape/allen_sort_{session_name}/plots"
+    # if save_path is None: make it
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
     if label:
         unit = f"{label}_{unit}"
 
     if new_spikes:
         export_sorted_spikes(session_name, label)
 
-    analyse_isogabor(session_name, unit,save_path)
-    # analyse_plot_top_n(session_name, unit)
+    analyse_isogabor(session_name, unit, save_path)
+    analyse_plot_top_n(session_name, unit, save_path)
     analyse_2dvs3d(session_name, unit, save_path)
+    analyse_lightness(session_name, unit, save_path)
+    analyse_mixed_gabors(session_name, unit, save_path)
     plt.show()
 
 
@@ -82,7 +90,7 @@ def analyse_plot_top_n(session_name, unit, save_path):
         path_col='ThumbnailPath',
         col_col='RankWithinLineage',
         row_col='Lineage',
-        title='Top Stimuli Per Lineage',
+        title='Top Stimuli Per Lineage: %s' % unit,
         filter_values={"Lineage": get_top_n_lineages(data, 3),
                        "RankWithinLineage": range(1, 21)}, # only show top 20 per lineage
         save_path=f"{save_path}/top_n: {unit}.png",
@@ -117,6 +125,59 @@ def analyse_isogabor(session_name, unit, save_path):
     # Run the pipeline
     result = pipeline.run(imported_data)
 
+def analyse_lightness(session_name, unit, save_path):
+    imported_data = import_from_repository(
+        session_name,
+        'lightness',
+        'LightnessTestStimInfo',
+        'WindowSortedResponses')
+
+    # Create visualization module
+    visualize_module = create_grouped_stimuli_module(
+        response_rate_col='Response Rate by unit',
+        response_rate_key=unit,
+        path_col='ThumbnailPath',
+        col_col='RGB',
+        row_col='Texture',
+        subgroup_col='StimGaId',
+        filter_values={
+            'Texture': ['SHADE', 'SPECULAR', '2D']
+        },
+        title='2D vs 3D Texture Response Analysis: %s' % unit,
+        save_path=f"{save_path}/lightness_test_{unit}.png",
+    )
+
+    # Create and run pipeline with aggregated data
+    pipeline = create_pipeline().then(visualize_module).build()
+    result = pipeline.run(imported_data)
+
+    # Show the figure
+    plt.show()
+
+    return result
+
+def analyse_mixed_gabors(session_name, unit, save_path):
+    imported_data = import_from_repository(
+        session_name,
+        'isogabor',
+        'IsoGaborStimInfo',
+        'WindowSortedResponses')
+
+    grouped_raster_module_frequency = create_grouped_raster_module(
+        primary_group_col='Aligned_Frequency',
+        secondary_group_col='Type',
+        spike_data_col='Spikes by unit',
+        spike_data_col_key=unit,
+        filter_values={
+            'Type': ['RedGreenMixed', 'CyanOrangeMixed']
+        },
+        title=f"Misaligned vs Aligned Gabors: {unit}",
+        save_path=f"{save_path}/aligned_vs_misaligned_{unit}.png",
+    )
+    # Create a simple pipeline
+    pipeline = create_pipeline().then(grouped_raster_module_frequency).build()
+    # Run the pipeline
+    result = pipeline.run(imported_data)
 
 if __name__ == "__main__":
     main()
