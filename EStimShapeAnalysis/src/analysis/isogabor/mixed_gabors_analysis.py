@@ -8,12 +8,14 @@ from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.util.connection import Connection
 from clat.compile.task.compile_task_id import TaskIdCollector
 from src.analysis import parse_data_type
+from src.analysis.analyze_raw_data import Analysis
 from src.analysis.modules.grouped_rasters import create_grouped_raster_module
 from src.intan.MultiFileParser import MultiFileParser
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 from src.analysis.isogabor.old_isogabor_analysis import TypeField, FrequencyField, IntanSpikesByChannelField, \
-    EpochStartStopTimesField, MixedFrequencyField, MixedPhaseField, AlignedFrequencyField, AlignedPhaseField
+    EpochStartStopTimesField, MixedFrequencyField, MixedPhaseField, AlignedFrequencyField, AlignedPhaseField, \
+    IntanSpikeRateByChannelField
 # Import our pipeline framework
 from clat.pipeline.pipeline_base_classes import (
     create_pipeline, create_branch
@@ -24,16 +26,26 @@ from src.repository.export_to_repository import export_to_repository
 def main():
     compiled_data = compile_and_export()
 
-
     channel = "A-011"
-    analyze(channel, compiled_data=compiled_data)
+    analyze(channel, "raw", compiled_data=compiled_data)
+
+
+class MixedGaborsAnalysis(Analysis):
+    def analyze(self, channel, data_type: str, session_id: str = None, compiled_data: pd.DataFrame = None):
+        analyze(channel, data_type, session_id, compiled_data)
+
+    def compile_and_export(self):
+        compile_and_export()
+
+    def compile(self):
+        compile()
 
 
 def analyze(channel, data_type: str, session_id=None, compiled_data: pd.DataFrame = None):
     raw_save_dir = f"{context.isogabor_plot_path}"
     filename = f"mixed_gabor_experiment_{channel}.png"
-    response_table, save_path, spike_tstamps_col, spike_rates_col = parse_data_type(data_type, session_id, filename, raw_save_dir)
-
+    response_table, save_path, spike_tstamps_col, spike_rates_col = parse_data_type(data_type, session_id, filename,
+                                                                                    raw_save_dir)
 
     if compiled_data is None:
         compiled_data = import_from_repository(
@@ -42,7 +54,6 @@ def analyze(channel, data_type: str, session_id=None, compiled_data: pd.DataFram
             'IsoGaborStimInfo',
             response_table
         )
-
 
     grouped_raster_module_frequency = create_grouped_raster_module(
         primary_group_col='Aligned Frequency',
@@ -95,6 +106,7 @@ def collect_raw_data(conn):
     fields.append(AlignedFrequencyField(conn))
     fields.append(AlignedPhaseField(conn))
     fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.isogabor_intan_path))
+    fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.isogabor_intan_path))
     fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.isogabor_intan_path))
     # fields.append(WindowSortSpikesByUnitField(conn, parser, task_ids, context.isogabor_intan_path, "/home/r2_allen/Documents/EStimShape/allen_sort_250421_0/sorted_spikes.pkl"))
     # Compile data

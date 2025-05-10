@@ -248,7 +248,7 @@ class IntanSpikesByChannelField(CachedTaskDatabaseField):
         return "Spikes by channel"
 
 
-class SpikeRateByChannelField(CachedTaskDatabaseField):
+class IntanSpikeRateByChannelField(CachedTaskDatabaseField):
     def __init__(self, conn: Connection, parser: type(MultiFileParser), all_task_ids: list[int], intan_files_dir: str):
         super().__init__(conn)
         self.parser = parser

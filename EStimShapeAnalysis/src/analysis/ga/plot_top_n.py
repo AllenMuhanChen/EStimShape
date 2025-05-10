@@ -11,13 +11,14 @@ from clat.compile.task.compile_task_id import TaskIdCollector
 
 from clat.util.connection import Connection
 from src.analysis import parse_data_type
+from src.analysis.analyze_raw_data import Analysis
 
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField
 from src.analysis.ga.side_test import clean_ga_data
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
-    SpikeRateByChannelField
+    IntanSpikeRateByChannelField
 from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
 from src.intan.MultiFileParser import MultiFileParser
 
@@ -33,6 +34,18 @@ def get_top_n_lineages(data, n):
     length_for_lineages = data.groupby("Lineage")["RegimeScore"].size()
     top_n_lineages = length_for_lineages.nlargest(n).index
     return list(top_n_lineages)
+
+
+class PlotTopNAnalysis(Analysis):
+
+    def analyze(self, channel, data_type: str, session_id: str = None, compiled_data: pd.DataFrame = None):
+        analyze(channel, data_type, session_id, compiled_data)
+
+    def compile_and_export(self):
+        compile_and_export()
+
+    def compile(self):
+        compile()
 
 
 def main():
@@ -145,7 +158,7 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields.append(GAResponseField(conn))
     fields.append(ClusterResponseField(conn, cluster_combination_strategy))
     fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
-    fields.append(SpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))
+    fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))
     fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))
     fields.append(ShaftField(conn, mstick_spec_data_source))
     fields.append(TerminationField(conn, mstick_spec_data_source))

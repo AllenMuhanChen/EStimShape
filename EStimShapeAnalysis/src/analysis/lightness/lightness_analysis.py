@@ -13,6 +13,7 @@ from clat.pipeline.pipeline_base_classes import (
     create_pipeline
 )
 from src.analysis import parse_data_type
+from src.analysis.analyze_raw_data import Analysis
 from src.analysis.fields.cached_task_fields import StimPathField, ThumbnailField
 
 # Import custom modules
@@ -20,7 +21,7 @@ from src.intan.MultiFileParser import MultiFileParser
 from src.repository.export_to_repository import export_to_repository
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
-from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, SpikeRateByChannelField, \
+from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, IntanSpikeRateByChannelField, \
     EpochStartStopTimesField
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 
@@ -31,13 +32,26 @@ def main():
     compiled_data = compile()
 
     channel = 'A-011'
-    return analyze(channel, compiled_data=compiled_data)
+    return analyze(channel, "raw", compiled_data=compiled_data)
+
+
+class LightnessAnalysis(Analysis):
+
+    def analyze(self, channel, data_type: str, session_id: str = None, compiled_data: pd.DataFrame = None):
+        analyze(channel, data_type, session_id, compiled_data)
+
+    def compile_and_export(self):
+        compile_and_export()
+
+    def compile(self):
+        compile()
 
 
 def analyze(channel, data_type: str, session_id: str = None, compiled_data: pd.DataFrame = None):
     raw_save_dir = f"{context.twodvsthreed_plot_path}"
     filename = f"lightness_test_{channel}.png"
-    response_table, save_path, spike_data_col, spike_rates_col = parse_data_type(data_type, session_id, filename, raw_save_dir)
+    response_table, save_path, spike_data_col, spike_rates_col = parse_data_type(data_type, session_id, filename,
+                                                                                 raw_save_dir)
 
     if compiled_data is None:
         compiled_data = import_from_repository(
@@ -105,9 +119,9 @@ def compile():
     fields.append(ColorField(conn))
     fields.append(TypeField(conn))
     fields.append(IntanSpikesByChannelField(conn, parser, task_ids, intan_files_dir))
-    fields.append(SpikeRateByChannelField(conn, parser, task_ids, intan_files_dir))
+    fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, intan_files_dir))
     fields.append(EpochStartStopTimesField(conn, parser, task_ids, intan_files_dir))
-    fields.append(SpikeRateByChannelField(conn, parser, task_ids, intan_files_dir))
+    fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, intan_files_dir))
     fields.append(GAClusterResponseField(conn, parser, task_ids, intan_files_dir))
     # Compile data
     raw_data = fields.to_data(task_ids)
@@ -194,7 +208,7 @@ class TypeField(ColorField):
         return "Type"
 
 
-class GAClusterResponseField(SpikeRateByChannelField):
+class GAClusterResponseField(IntanSpikeRateByChannelField):
     """Field for calculating cluster responses."""
 
     def __init__(self, conn: Connection, parser: MultiFileParser, all_task_ids: list[int], intan_files_dir: str,
@@ -203,7 +217,8 @@ class GAClusterResponseField(SpikeRateByChannelField):
         self.cluster_combination_method = cluster_combination_method
 
     def get(self, task_id: int) -> float:
-        spike_rate_by_channel = self.get_cached_super(task_id, SpikeRateByChannelField, self.parser, self.all_task_ids,
+        spike_rate_by_channel = self.get_cached_super(task_id, IntanSpikeRateByChannelField, self.parser,
+                                                      self.all_task_ids,
                                                       self.intan_files_dir)
 
         channels = self._fetch_cluster_channels()

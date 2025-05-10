@@ -16,7 +16,7 @@ from src.startup import context
 def main():
     # INPUTS #
     session_name = '250507_0'
-    unit = 'A-002_Unit 4'
+    unit = 'A-002_Unit 2'
     label = None
     new_spikes = False
     ##########
@@ -33,11 +33,11 @@ def main():
 
     for analysis in analyses:
         analysis.analyze(unit, "sorted", session_id = session_name)
-    analyse_isogabor(session_name, unit, save_path)
-    analyse_plot_top_n(session_name, unit, save_path)
-    analyse_2dvs3d(session_name, unit, save_path)
-    analyse_lightness(session_name, unit, save_path)
-    analyse_mixed_gabors(session_name, unit, save_path)
+    # analyse_isogabor(session_name, unit, save_path)
+    # analyse_plot_top_n(session_name, unit, save_path)
+    # analyse_2dvs3d(session_name, unit, save_path)
+    # analyse_lightness(session_name, unit, save_path)
+    # analyse_mixed_gabors(session_name, unit, save_path)
     plt.show()
 
 

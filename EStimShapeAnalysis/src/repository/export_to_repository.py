@@ -448,7 +448,7 @@ def read_raw_spike_responses(df: pd.DataFrame) -> List[Tuple[int, str, str, floa
 
     if 'Spike Rate by channel' not in df.columns:
         print("Warning: 'Spike Rate by Channel' column not found in DataFrame")
-        raise ValueError("Spike Rate by Channel column is missing from df. Please ensure the DataFrame contains the 'Spike Rate by Channel' column with spike rate data. ")
+        raise ValueError("Spike Rate by channel column is missing from df. Please ensure the DataFrame contains the 'Spike Rate by Channel' column with spike rate data. ")
     # if 'Epoch' not in df.columns:
     #     raise ValueError("Epoch column is missing from df. Please ensure the DataFrame contains the 'Epoch' column with epoch data. ")
 

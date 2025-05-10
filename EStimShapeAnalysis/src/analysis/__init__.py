@@ -12,9 +12,8 @@ def parse_data_type(data_type, session_id, filename, raw_save_dir):
         spike_tstamps_col = 'Spikes by unit'
         spike_rates_col = 'Spike Rate by unit'
         save_path = f"/home/r2_allen/Documents/EStimShape/allen_sort_{session_id}/plots/{filename}"
-        # if save_path is None: make it
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
+
+
     else:
         raise ValueError(f"Unknown data type: {data_type}")
     return response_table, save_path, spike_tstamps_col, spike_rates_col

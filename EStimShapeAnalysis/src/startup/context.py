@@ -1,9 +1,9 @@
 from src.pga.config.simultaneous_2dvs3d_config import Simultaneous3Dvs2DConfig
 ga_name = "New3D"
-ga_database = "allen_ga_exp_250509_0"
-nafc_database = "allen_estimshape_exp_250509_0"
-isogabor_database = "allen_isogabor_exp_250509_0"
-twodvsthreed_database = "allen_twodvsthreed_exp_250509_0"
+ga_database = "allen_ga_exp_250506_0"
+nafc_database = "allen_estimshape_exp_250506_0"
+isogabor_database = "allen_isogabor_exp_250506_0"
+twodvsthreed_database = "allen_twodvsthreed_exp_250506_0"
 
 
 allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"

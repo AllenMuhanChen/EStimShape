@@ -7,11 +7,12 @@ from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.pipeline.pipeline_base_classes import create_pipeline, create_branch
 from clat.util.connection import Connection
 from src.analysis import parse_data_type
+from src.analysis.analyze_raw_data import Analysis
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, ParentIdField
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
-    SpikeRateByChannelField
+    IntanSpikeRateByChannelField
 from src.intan.MultiFileParser import MultiFileParser
 from src.repository.export_to_repository import export_to_repository
 from src.repository.import_from_repository import import_from_repository
@@ -21,16 +22,28 @@ from src.startup import context
 def main():
     session_id = "250509_0"
     channel = "A-011"
-    data_type = "raw"
     compile()
 
-    return analyze(channel, data_type, session_id)
+    return analyze(channel, "raw", session_id)
+
+
+class SideTestAnalysis(Analysis):
+
+    def analyze(self, channel, data_type: str, session_id: str = None, compiled_data: pd.DataFrame = None):
+        analyze(channel, data_type, session_id, compiled_data)
+
+    def compile_and_export(self):
+        compile_and_export()
+
+    def compile(self):
+        compile()
 
 
 def analyze(channel, data_type, session_id: str = None, compiled_data: pd.DataFrame = None):
     raw_save_dir = f"{context.ga_plot_path}"
     filename = f"2Dvs3D_Test_{channel}.png"
-    response_table, save_path, spike_tstamps_col, spike_rates_col = parse_data_type(data_type, session_id, filename,raw_save_dir)
+    response_table, save_path, spike_tstamps_col, spike_rates_col = parse_data_type(data_type, session_id, filename,
+                                                                                    raw_save_dir)
 
     if compiled_data is None:
         compiled_data = import_from_repository(
@@ -100,13 +113,12 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields.append(UnderlingAvgRGBField(conn))
     fields.append(ThumbnailField(conn))
     fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
-    fields.append(SpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))
+    fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))
     fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))
     fields.append(GAResponseField(conn))
     fields.append(ClusterResponseField(conn, cluster_combination_strategy))
 
     data = fields.to_data(task_ids)
-
 
     return data
 
@@ -139,10 +151,9 @@ def organize_data(data_for_stim_ids):
                 else:
                     parent_row['TestType'] = "3D"
 
-                if data_for_plotting[data_for_plotting['TaskId'] == parent_row['TaskId']].empty: #if the parent row is not already in the dataframe
+                if data_for_plotting[data_for_plotting['TaskId'] == parent_row[
+                    'TaskId']].empty:  # if the parent row is not already in the dataframe
                     data_for_plotting = pd.concat([data_for_plotting, parent_row.to_frame().T], ignore_index=True)
-
-
 
             new_row = side_test_stim_row.copy()
             new_row['TestId'] = parent_row['StimSpecId']
@@ -153,6 +164,7 @@ def organize_data(data_for_stim_ids):
             data_for_plotting = pd.concat([data_for_plotting, new_row.to_frame().T], ignore_index=True)
     return data_for_plotting
 
+
 class UnderlingAvgRGBField(StimSpecIdField):
     def __init__(self, conn):
         super().__init__(conn)
@@ -160,12 +172,13 @@ class UnderlingAvgRGBField(StimSpecIdField):
 
     def get(self, task_id):
         stim_spec_id = self.get_cached_super(task_id, StimSpecIdField)
-        self.conn.execute("SELECT average_rgb FROM UnderlyingAverageRGB WHERE stim_id = %s", params = (stim_spec_id,))
+        self.conn.execute("SELECT average_rgb FROM UnderlyingAverageRGB WHERE stim_id = %s", params=(stim_spec_id,))
         result = self.conn.fetch_one()
         return result;
 
     def get_name(self):
         return "UnderlingAvgRGB"
+
 
 class AverageRGBField(StimPathField):
     def __init__(self, conn):
@@ -238,7 +251,7 @@ class AverageRGBField(StimPathField):
             r = float(avg_rgb[0] / 255)
             g = float(avg_rgb[1] / 255)
             b = float(avg_rgb[2] / 255)
-            return (r,g,b)
+            return (r, g, b)
 
         except Exception as e:
             print(f"Error processing image {stim_path}: {e}")
@@ -246,6 +259,7 @@ class AverageRGBField(StimPathField):
 
     def get_name(self):
         return "AvgRGBFromImage"
+
 
 if __name__ == "__main__":
     main()
