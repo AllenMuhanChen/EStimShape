@@ -3,8 +3,12 @@ import os
 from matplotlib import pyplot as plt
 
 from clat.pipeline.pipeline_base_classes import create_pipeline, create_branch
-from src.analysis.compile_all import analyses
-from src.analysis.ga.plot_top_n import get_top_n_lineages
+
+from src.analysis.ga.plot_top_n import get_top_n_lineages, PlotTopNAnalysis
+from src.analysis.ga.side_test import SideTestAnalysis
+from src.analysis.isogabor.isogabor_raster_pipeline import IsogaborAnalysis
+from src.analysis.isogabor.mixed_gabors_analysis import MixedGaborsAnalysis
+from src.analysis.lightness.lightness_analysis import LightnessAnalysis
 
 from src.analysis.modules.grouped_rasters import create_grouped_raster_module
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
@@ -14,6 +18,13 @@ from src.startup import context
 
 
 def main():
+    analyses = [
+        IsogaborAnalysis(),
+        PlotTopNAnalysis(),
+        SideTestAnalysis(),
+        LightnessAnalysis(),
+        MixedGaborsAnalysis(),
+    ]
     # INPUTS #
     session_name = '250507_0'
     unit = 'A-002_Unit 2'
@@ -32,7 +43,7 @@ def main():
         export_sorted_spikes(session_name, label)
 
     for analysis in analyses:
-        analysis.analyze(unit, "sorted", session_id = session_name)
+        analysis.run(session_name, "sorted", unit)
     # analyse_isogabor(session_name, unit, save_path)
     # analyse_plot_top_n(session_name, unit, save_path)
     # analyse_2dvs3d(session_name, unit, save_path)
