@@ -8,7 +8,7 @@ from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.util.connection import Connection
 from clat.compile.task.compile_task_id import TaskIdCollector
 from src.analysis import parse_data_type
-from src.analysis.analyze_raw_data import Analysis
+from src.analysis import Analysis
 from src.analysis.modules.grouped_rasters import create_grouped_raster_module
 from src.intan.MultiFileParser import MultiFileParser
 from src.repository.import_from_repository import import_from_repository
@@ -20,60 +20,52 @@ from src.analysis.isogabor.old_isogabor_analysis import TypeField, FrequencyFiel
 from clat.pipeline.pipeline_base_classes import (
     create_pipeline, create_branch
 )
-from src.repository.export_to_repository import export_to_repository
+from src.repository.export_to_repository import export_to_repository, read_session_id_from_db_name
 
 
 def main():
-    compiled_data = compile_and_export()
-
     channel = "A-011"
-    analyze(channel, "raw", compiled_data=compiled_data)
+    compiled_data = compile_and_export()
+    analysis = MixedGaborsAnalysis()
+    session_id, _ = read_session_id_from_db_name(context.isogabor_database)
+    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
 class MixedGaborsAnalysis(Analysis):
-    def analyze(self, channel, data_type: str, session_id: str = None, compiled_data: pd.DataFrame = None):
-        analyze(channel, data_type, session_id, compiled_data)
+    def analyze(self, channel, compiled_data: pd.DataFrame = None):
+        if compiled_data is None:
+            compiled_data = import_from_repository(
+                self.session_id,
+                'isogabor',
+                'IsoGaborStimInfo',
+                self.response_table
+            )
+
+        grouped_raster_module_frequency = create_grouped_raster_module(
+            primary_group_col='Aligned Frequency',
+            secondary_group_col='Type',
+            spike_data_col=self.spike_tstamps_col,
+            spike_data_col_key=channel,
+            filter_values={
+                'Type': ['RedGreenMixed', 'CyanOrangeMixed']
+            },
+            title=f"Color Experiment: {channel}",
+            save_path=f"{self.save_path}/{channel}: mixed_gabors.png",
+        )
+        # Create a simple pipeline
+        frequency_branch = create_branch().then(grouped_raster_module_frequency)
+        # phase_branch = create_branch().then(grouped_raster_module_phase)
+        pipeline = create_pipeline().make_branch(frequency_branch).build()
+        # Run the pipeline
+        result = pipeline.run(compiled_data)
+        # Show the figure
+        plt.show()
 
     def compile_and_export(self):
         compile_and_export()
 
     def compile(self):
         compile()
-
-
-def analyze(channel, data_type: str, session_id=None, compiled_data: pd.DataFrame = None):
-    raw_save_dir = f"{context.isogabor_plot_path}"
-    filename = f"mixed_gabor_experiment_{channel}.png"
-    response_table, save_path, spike_tstamps_col, spike_rates_col = parse_data_type(data_type, session_id, filename,
-                                                                                    raw_save_dir)
-
-    if compiled_data is None:
-        compiled_data = import_from_repository(
-            session_id,
-            'isogabor',
-            'IsoGaborStimInfo',
-            response_table
-        )
-
-    grouped_raster_module_frequency = create_grouped_raster_module(
-        primary_group_col='Aligned Frequency',
-        secondary_group_col='Type',
-        spike_data_col=spike_tstamps_col,
-        spike_data_col_key=channel,
-        filter_values={
-            'Type': ['RedGreenMixed', 'CyanOrangeMixed']
-        },
-        title=f"Color Experiment: {channel}",
-        save_path=save_path,
-    )
-    # Create a simple pipeline
-    frequency_branch = create_branch().then(grouped_raster_module_frequency)
-    # phase_branch = create_branch().then(grouped_raster_module_phase)
-    pipeline = create_pipeline().make_branch(frequency_branch).build()
-    # Run the pipeline
-    result = pipeline.run(compiled_data)
-    # Show the figure
-    plt.show()
 
 
 def compile_and_export():

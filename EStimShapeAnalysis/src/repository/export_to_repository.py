@@ -11,7 +11,7 @@ def export_to_repository(df: pd.DataFrame, db_name: str, exp_name: str,
     to_export_conn = Connection(db_name)
 
     # session ID
-    session_id, date = read_session_id_from_db(db_name)
+    session_id, date = read_session_id_from_db_name(db_name)
     write_session_to_db(repo_conn, session_id, date)
 
     # RF INFO
@@ -45,7 +45,7 @@ def export_to_repository(df: pd.DataFrame, db_name: str, exp_name: str,
     print(f"Export complete for {db_name} to repository database.")
 
 
-def read_session_id_from_db(db_name: str) -> Tuple[str, datetime.date]:
+def read_session_id_from_db_name(db_name: str) -> Tuple[str, datetime.date]:
     """
     Extract session ID and date from database name in the format "allen_expname_type_date_locationId".
     Returns the "date_locationId" as the session ID and the date as a datetime.date object.

@@ -6,31 +6,55 @@ from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.pipeline.pipeline_base_classes import create_pipeline, create_branch
 from clat.util.connection import Connection
-from src.analysis import parse_data_type
-from src.analysis.analyze_raw_data import Analysis
+from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, ParentIdField
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
 from src.intan.MultiFileParser import MultiFileParser
-from src.repository.export_to_repository import export_to_repository
+from src.repository.export_to_repository import export_to_repository, read_session_id_from_db_name
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 
 
 def main():
-    session_id = "250509_0"
-    channel = "A-011"
-    compile()
 
-    return analyze(channel, "raw", session_id)
+    channel = "A-011"
+    compiled_data = compile()
+    analysis = SideTestAnalysis()
+    session_id, _ = read_session_id_from_db_name(context.ga_database)
+    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
 class SideTestAnalysis(Analysis):
 
-    def analyze(self, channel, data_type: str, session_id: str = None, compiled_data: pd.DataFrame = None):
-        analyze(channel, data_type, session_id, compiled_data)
+    def analyze(self, channel, compiled_data: pd.DataFrame = None):
+        if compiled_data is None:
+            compiled_data = import_from_repository(
+                self.session_id,
+                "ga",
+                "2Dvs3DStimInfo",
+                self.response_table
+            )
+        visualize_module = create_grouped_stimuli_module(
+            response_rate_col=self.spike_rates_col,
+            response_rate_key=channel,
+            path_col='ThumbnailPath',
+            col_col='TestId',
+            row_col='TestType',
+            title=f'2D vs 3D Test: {channel}',
+            save_path=f"{self.save_path}/{channel}: 2dvs3d.png",
+        )
+        # Create and run pipeline with aggregated data
+        plot_branch = create_branch().then(visualize_module)
+        pipeline = create_pipeline().make_branch(
+            plot_branch
+        ).build()
+        result = pipeline.run(compiled_data)
+        # Show the figure
+        plt.show()
+        return result
 
     def compile_and_export(self):
         compile_and_export()
@@ -39,38 +63,6 @@ class SideTestAnalysis(Analysis):
         compile()
 
 
-def analyze(channel, data_type, session_id: str = None, compiled_data: pd.DataFrame = None):
-    raw_save_dir = f"{context.ga_plot_path}"
-    filename = f"2Dvs3D_Test_{channel}.png"
-    response_table, save_path, spike_tstamps_col, spike_rates_col = parse_data_type(data_type, session_id, filename,
-                                                                                    raw_save_dir)
-
-    if compiled_data is None:
-        compiled_data = import_from_repository(
-            session_id,
-            "ga",
-            "2Dvs3DStimInfo",
-            response_table
-        )
-    visualize_module = create_grouped_stimuli_module(
-        response_rate_col=spike_rates_col,
-        response_rate_key=channel,
-        # response_rate_col='GA Response',
-        path_col='ThumbnailPath',
-        col_col='TestId',
-        row_col='TestType',
-        title=f'2D vs 3D Test: {channel}',
-        save_path=save_path
-    )
-    # Create and run pipeline with aggregated data
-    plot_branch = create_branch().then(visualize_module)
-    pipeline = create_pipeline().make_branch(
-        plot_branch
-    ).build()
-    result = pipeline.run(compiled_data)
-    # Show the figure
-    plt.show()
-    return result
 
 
 def compile_and_export():

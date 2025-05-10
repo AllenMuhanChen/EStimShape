@@ -5,8 +5,7 @@ from clat.compile.task.cached_task_fields import CachedTaskFieldList
 from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.util.connection import Connection
 from clat.compile.task.compile_task_id import TaskIdCollector
-from src.analysis import parse_data_type
-from src.analysis.analyze_raw_data import Analysis
+from src.analysis import parse_data_type, Analysis
 from src.analysis.isogabor.isogabor_psth import compute_and_plot_psth
 from src.analysis.modules.grouped_rasters import create_grouped_raster_module
 from src.intan.MultiFileParser import MultiFileParser
@@ -18,23 +17,77 @@ from src.analysis.isogabor.old_isogabor_analysis import TypeField, FrequencyFiel
 from clat.pipeline.pipeline_base_classes import (
     create_pipeline, create_branch
 )
-from src.repository.export_to_repository import export_to_repository
+from src.repository.export_to_repository import export_to_repository, read_session_id_from_db_name
 
 
 def main():
-    # ----------------
-    # STEP 1: Compile data
-    # ----------------
-    compile_and_export()
-
-    session_id = '250509_0'
     channel = "A-011"
-    return analyze(channel, session_id)
+    session_id, _ = read_session_id_from_db_name(context.isogabor_database)
+    compiled_data = compile()
+
+    analysis = IsogaborAnalysis()
+    return analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
 class IsogaborAnalysis(Analysis):
-    def analyze(self, channel, data_type: str, session_id: str = None, compiled_data: pd.DataFrame = None):
-        analyze(channel, data_type, session_id, compiled_data)
+    def analyze(self, channel, compiled_data: pd.DataFrame = None):
+        if compiled_data is None:
+            compiled_data = import_from_repository(
+                self.session_id,
+                'isogabor',
+                'IsoGaborStimInfo',
+                self.response_table,
+            )
+            print(compiled_data.columns)
+            # ----------------
+            # STEP 2: Create and run the analysis pipeline
+            # ----------------
+            # For the isochromatic/isoluminant example:
+
+        grouped_raster_module = create_grouped_raster_module(
+            primary_group_col='Type',
+            secondary_group_col='Frequency',
+            spike_data_col=self.spike_tstamps_col,
+            spike_data_col_key=channel,
+            filter_values={
+                'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
+            },
+            title=f"Color Experiment: {channel}",
+            save_path=f"{self.save_path}/{channel}: color_experiment.png",
+        )
+        grouped_raster_by_isotype_module = create_grouped_raster_module(
+            primary_group_col='IsoType',
+            secondary_group_col='Type',
+            spike_data_col=self.spike_tstamps_col,
+            spike_data_col_key=channel,
+            filter_values={
+                'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
+            },
+            title=f"Color Experiment: {channel}",
+            save_path=f"{context.isogabor_plot_path}/color_experiment_by_isotype{channel}.png",
+
+        )
+        # Create a simple pipeline
+        raster_branch = create_branch().then(grouped_raster_module)
+        raster_by_isotype_branch = create_branch().then(grouped_raster_by_isotype_module)
+        pipeline = create_pipeline().make_branch(raster_branch, raster_by_isotype_branch).build()
+        # Run the pipeline
+        result = pipeline.run(compiled_data)
+        # Show the figure
+
+        # Calculate and plot PSTH
+        psth_fig = compute_and_plot_psth(
+            compiled_data=compiled_data,
+            channel=channel,
+            spike_tstamps_col=self.spike_tstamps_col,
+            save_path=self.save_path.replace(".png", "_psth.png"),  # Add _psth suffix
+            bin_size=0.025,  # 10ms bins
+            time_window=(-0.2, 0.5),  # 0 to 500ms
+            # frequency_to_include=frequencies
+        )
+
+        plt.show()
+        return result
 
     def compile_and_export(self):
         compile_and_export()
@@ -42,70 +95,6 @@ class IsogaborAnalysis(Analysis):
     def compile(self):
         compile()
 
-
-def analyze(channel, data_type: str, session_id: str = None, compiled_data: pd.DataFrame = None):
-    raw_save_dir = f"{context.isogabor_plot_path}"
-    filename = f"color_experiment_{channel}.png"
-    response_table, save_path, spike_tstamps_col, spike_rates_col = parse_data_type(data_type, session_id, filename,
-                                                                                    raw_save_dir)
-
-    if compiled_data is None:
-        compiled_data = import_from_repository(
-            session_id,
-            'isogabor',
-            'IsoGaborStimInfo',
-            response_table,
-        )
-        print(compiled_data.columns)
-    # ----------------
-    # STEP 2: Create and run the analysis pipeline
-    # ----------------
-    # For the isochromatic/isoluminant example:
-
-    grouped_raster_module = create_grouped_raster_module(
-        primary_group_col='Type',
-        secondary_group_col='Frequency',
-        spike_data_col=spike_tstamps_col,
-        spike_data_col_key=channel,
-        filter_values={
-            'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
-        },
-        title=f"Color Experiment: {channel}",
-        save_path=save_path,
-    )
-    grouped_raster_by_isotype_module = create_grouped_raster_module(
-        primary_group_col='IsoType',
-        secondary_group_col='Type',
-        spike_data_col=spike_tstamps_col,
-        spike_data_col_key=channel,
-        filter_values={
-            'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
-        },
-        title=f"Color Experiment: {channel}",
-        save_path=f"{context.isogabor_plot_path}/color_experiment_by_isotype{channel}.png",
-
-    )
-    # Create a simple pipeline
-    raster_branch = create_branch().then(grouped_raster_module)
-    raster_by_isotype_branch = create_branch().then(grouped_raster_by_isotype_module)
-    pipeline = create_pipeline().make_branch(raster_branch, raster_by_isotype_branch).build()
-    # Run the pipeline
-    result = pipeline.run(compiled_data)
-    # Show the figure
-
-    # Calculate and plot PSTH
-    psth_fig = compute_and_plot_psth(
-        compiled_data=compiled_data,
-        channel=channel,
-        spike_tstamps_col=spike_tstamps_col,
-        save_path=save_path.replace(".png", "_psth.png"),  # Add _psth suffix
-        bin_size=0.025,  # 10ms bins
-        time_window=(-0.2, 0.5),  # 0 to 500ms
-        # frequency_to_include=frequencies
-    )
-
-    plt.show()
-    return result
 
 
 def compile_and_export():

@@ -1,98 +1,75 @@
+from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
 from PIL import Image
-from clat.pipeline.pipeline_base_classes import create_pipeline
 from matplotlib import pyplot as plt
 
 from clat.compile.task.cached_task_fields import CachedTaskFieldList
 from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.compile.task.compile_task_id import TaskIdCollector
-
+from clat.pipeline.pipeline_base_classes import create_pipeline
 from clat.util.connection import Connection
-from src.analysis import parse_data_type
-from src.analysis.analyze_raw_data import Analysis
-
+from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
+from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField
 from src.analysis.ga.side_test import clean_ga_data
-from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
-from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
+from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.intan.MultiFileParser import MultiFileParser
-
 from src.pga.alexnet.analysis.plot_top_n_alexnet import add_colored_border
-from src.pga.app.run_rwa import remove_catch_trials
 from src.pga.mock.mock_rwa_analysis import condition_spherical_angles, hemisphericalize_orientation
-from src.repository.export_to_repository import export_to_repository
+from src.repository.export_to_repository import export_to_repository, read_session_id_from_db_name
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
-
-
-def get_top_n_lineages(data, n):
-    length_for_lineages = data.groupby("Lineage")["RegimeScore"].size()
-    top_n_lineages = length_for_lineages.nlargest(n).index
-    return list(top_n_lineages)
-
-
-class PlotTopNAnalysis(Analysis):
-
-    def analyze(self, channel, data_type: str, session_id: str = None, compiled_data: pd.DataFrame = None):
-        analyze(channel, data_type, session_id, compiled_data)
-
-    def compile_and_export(self):
-        compile_and_export()
-
-    def compile(self):
-        compile()
 
 
 def main():
     channel = "A-011"
 
     compiled_data = compile()
+    analysis = PlotTopNAnalysis()
 
-    analyze(channel, "raw", compiled_data=compiled_data)
+    session_id, _ = read_session_id_from_db_name(context.ga_database)
+    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
-def analyze(channel, data_type: str, session_id: str = None, compiled_data: pd.DataFrame = None):
-    raw_save_dir = f"{context.ga_plot_path}"
-    filename = f"top_n_{channel}.png"
+class PlotTopNAnalysis(Analysis):
 
-    (response_table,
-     save_path,
-     spike_tstamps_col,
-     spike_rates_col) = parse_data_type(data_type,
-                                        session_id,
-                                        filename,
-                                        raw_save_dir)
+    def analyze(self, channel, compiled_data: pd.DataFrame = None):
+        if compiled_data is None:
+            compiled_data = import_from_repository(
+                self.session_id,
+                "ga",
+                "GAStimInfo",
+                self.response_table
+            )
+        # Break apart the response rate by channel
+        compiled_data = add_rank_to_df(compiled_data, self.spike_rates_col, channel)
 
-    if compiled_data is None:
-        compiled_data = import_from_repository(
-            session_id,
-            "ga",
-            "GAStimInfo",
-            response_table
+        visualize_module = create_grouped_stimuli_module(
+            response_rate_col=self.spike_rates_col,
+            response_rate_key=channel,
+            path_col='ThumbnailPath',
+            col_col='RankWithinLineage',
+            row_col='Lineage',
+            title='Top Stimuli Per Lineage',
+            filter_values={"Lineage": get_top_n_lineages(compiled_data, 3),
+                           "RankWithinLineage": range(1, 21)},  # only show top 20 per lineage
+            save_path=f"{self.save_path}/{channel}: plot_top_n.png",
         )
-    # Break apart the response rate by channel
-    compiled_data = add_rank_to_df(compiled_data, spike_rates_col, channel)
+        # Create and run pipeline with aggregated data
+        pipeline = create_pipeline().then(visualize_module).build()
+        result = pipeline.run(compiled_data)
+        plt.show()
 
-    visualize_module = create_grouped_stimuli_module(
-        response_rate_col=spike_rates_col,
-        response_rate_key=channel,
-        path_col='ThumbnailPath',
-        col_col='RankWithinLineage',
-        row_col='Lineage',
-        title='Top Stimuli Per Lineage',
-        filter_values={"Lineage": get_top_n_lineages(compiled_data, 3),
-                       "RankWithinLineage": range(1, 21)},  # only show top 20 per lineage
-        save_path=save_path
-    )
-    # Create and run pipeline with aggregated data
-    pipeline = create_pipeline().then(visualize_module).build()
-    result = pipeline.run(compiled_data)
-    plt.show()
+    def compile_and_export(self):
+        compile_and_export()
+
+    def compile(self):
+        compile()
 
 
 def add_rank_to_df(compiled_data, spike_rates_col, channel):
@@ -245,6 +222,12 @@ def plot_top_n_stimuli(stimuli: list[dict], n: int = 10, fig_size=(20, 4), min_r
 
     plt.tight_layout()
     return fig
+
+
+def get_top_n_lineages(data, n):
+    length_for_lineages = data.groupby("Lineage")["RegimeScore"].size()
+    top_n_lineages = length_for_lineages.nlargest(n).index
+    return list(top_n_lineages)
 
 
 if __name__ == "__main__":

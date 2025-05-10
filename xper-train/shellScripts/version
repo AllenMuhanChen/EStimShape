@@ -1,7 +1,7 @@
 #!/bin/bash
 #All we need to do is change VERSION. 
-VERSION_PROCEDURAL=allen_estimshape_exp_250427_0
-VERSION_ISOGABOR=allen_isogabor_exp_250427_0
-VERSION_GA=allen_ga_exp_250427_0
-VERSION_TWODVSTHREED=allen_twodvsthreed_exp_250427_0
+VERSION_PROCEDURAL=allen_estimshape_exp_250506_0
+VERSION_ISOGABOR=allen_isogabor_exp_250506_0
+VERSION_GA=allen_ga_exp_250506_0
+VERSION_TWODVSTHREED=allen_twodvsthreed_exp_250506_0
 VERSION_TWODTHREEDLIGHTNESS=allen_twodthreedlightness_test_250508_0

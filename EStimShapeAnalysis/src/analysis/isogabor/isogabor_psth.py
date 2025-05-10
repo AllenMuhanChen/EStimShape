@@ -1,6 +1,6 @@
 import pandas as pd
 
-from src.analysis import parse_data_type
+
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 

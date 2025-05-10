@@ -12,13 +12,12 @@ from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.pipeline.pipeline_base_classes import (
     create_pipeline
 )
-from src.analysis import parse_data_type
-from src.analysis.analyze_raw_data import Analysis
+from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimPathField, ThumbnailField
 
 # Import custom modules
 from src.intan.MultiFileParser import MultiFileParser
-from src.repository.export_to_repository import export_to_repository
+from src.repository.export_to_repository import export_to_repository, read_session_id_from_db_name
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, IntanSpikeRateByChannelField, \
@@ -29,16 +28,46 @@ from src.analysis.modules.grouped_stims_by_response import create_grouped_stimul
 def main():
     """Main function to run the 2D vs 3D analysis pipeline."""
 
-    compiled_data = compile()
-
     channel = 'A-011'
-    return analyze(channel, "raw", compiled_data=compiled_data)
+    compiled_data = compile()
+    analysis = LightnessAnalysis()
+    session_id, _ = read_session_id_from_db_name(context.twodvsthreed_database)
+
+    return analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
 class LightnessAnalysis(Analysis):
 
-    def analyze(self, channel, data_type: str, session_id: str = None, compiled_data: pd.DataFrame = None):
-        analyze(channel, data_type, session_id, compiled_data)
+    def analyze(self, channel, compiled_data: pd.DataFrame = None):
+        if compiled_data is None:
+            compiled_data = import_from_repository(
+                self.session_id,
+                'lightness',
+                'LightnessTestStimInfo',
+                self.response_table
+            )
+
+            # print(data.to_string())
+            # Create visualization module
+        visualize_module = create_grouped_stimuli_module(
+            response_rate_col=self.spike_rates_col,
+            response_rate_key=channel,
+            path_col='ThumbnailPath',
+            col_col='RGB',
+            row_col='Texture',
+            subgroup_col='StimGaId',
+            filter_values={
+                'Texture': ['SHADE', 'SPECULAR', '2D']
+            },
+            title='2D vs 3D Texture Response Analysis',
+            save_path=f"{self.save_path}/{channel}: lightness_test.png"
+        )
+        # Create and run pipeline with aggregated data
+        pipeline = create_pipeline().then(visualize_module).build()
+        result = pipeline.run(compiled_data)
+        # Show the figure
+        plt.show()
+        return result
 
     def compile_and_export(self):
         compile_and_export()
@@ -47,41 +76,7 @@ class LightnessAnalysis(Analysis):
         compile()
 
 
-def analyze(channel, data_type: str, session_id: str = None, compiled_data: pd.DataFrame = None):
-    raw_save_dir = f"{context.twodvsthreed_plot_path}"
-    filename = f"lightness_test_{channel}.png"
-    response_table, save_path, spike_data_col, spike_rates_col = parse_data_type(data_type, session_id, filename,
-                                                                                 raw_save_dir)
 
-    if compiled_data is None:
-        compiled_data = import_from_repository(
-            session_id,
-            'lightness',
-            'LightnessTestStimInfo',
-            response_table
-        )
-
-    # print(data.to_string())
-    # Create visualization module
-    visualize_module = create_grouped_stimuli_module(
-        response_rate_col=spike_rates_col,
-        response_rate_key=channel,
-        path_col='ThumbnailPath',
-        col_col='RGB',
-        row_col='Texture',
-        subgroup_col='StimGaId',
-        filter_values={
-            'Texture': ['SHADE', 'SPECULAR', '2D']
-        },
-        title='2D vs 3D Texture Response Analysis',
-        # save_path=f"{context.twodvsthreed_plots_dir}/texture_by_lightness.png"
-    )
-    # Create and run pipeline with aggregated data
-    pipeline = create_pipeline().then(visualize_module).build()
-    result = pipeline.run(compiled_data)
-    # Show the figure
-    plt.show()
-    return result
 
 
 def compile_and_export():
@@ -106,6 +101,8 @@ def compile():
     # Collect trials
     task_id_collector = TaskIdCollector(conn)
     task_ids = task_id_collector.collect_task_ids()
+    if not task_ids:
+        raise ValueError("No task IDs found in the database.")
     # Set up parser for spike data
     parser = MultiFileParser(to_cache=True, cache_dir=context.twodvsthreed_parsed_spikes_path)
     intan_files_dir = context.twodvsthreed_intan_path
@@ -126,7 +123,7 @@ def compile():
     # Compile data
     raw_data = fields.to_data(task_ids)
     # Filter out trials with no response data
-    data = raw_data[raw_data['Cluster Response'].notna()]
+    data = raw_data[raw_data['Spike Rate by channel'].notna()]
     data = data[data['StimSpecId'].notna()]
     return data
 

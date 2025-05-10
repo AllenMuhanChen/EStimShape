@@ -1,31 +1,25 @@
-from abc import ABC, abstractmethod
 
-import pandas as pd
-
-from src.analysis.compile_all import analyses
+from src.analysis.ga.plot_top_n import PlotTopNAnalysis
+from src.analysis.ga.side_test import SideTestAnalysis
+from src.analysis.isogabor.isogabor_raster_pipeline import IsogaborAnalysis
+from src.analysis.isogabor.mixed_gabors_analysis import MixedGaborsAnalysis
+from src.analysis.lightness.lightness_analysis import LightnessAnalysis
 
 
 def main():
-    session_id = "250427_0"
-    channel = "A-018"
+    analyses = [
+        IsogaborAnalysis(),
+        PlotTopNAnalysis(),
+        SideTestAnalysis(),
+        LightnessAnalysis(),
+        MixedGaborsAnalysis(),
+    ]
+    "/home/r2_allen/Documents/EStimShape/allen_sort_250506_0/raw"
+    session_id = "250506_0"
+    channel = "A-020"
     for analysis in analyses:
-        # TODO: we could refractor the parsing of data_type to here and pass in the cols and stuff
-        # and perhaps pack the parameters into a class so it can be more flexible!
+        analysis.run(session_id=session_id, data_type="raw", channels=channel)
 
-        analysis.analyze(channel, "raw", session_id=session_id)
-
-class Analysis(ABC):
-    @abstractmethod
-    def analyze(self, channel, data_type: str, session_id: str = None, compiled_data: pd.DataFrame = None):
-        pass
-
-    @abstractmethod
-    def compile_and_export(self):
-        pass
-
-    @abstractmethod
-    def compile(self):
-        pass
 
 
 

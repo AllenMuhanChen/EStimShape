@@ -1,19 +1,53 @@
 import os
+from abc import abstractmethod, ABC
+
+import pandas as pd
 
 
-def parse_data_type(data_type, session_id, filename, raw_save_dir):
-    if data_type == 'raw':
-        response_table = 'RawSpikeResponses'
-        save_path = f"{raw_save_dir}/{filename}"
-        spike_tstamps_col = 'Spikes by channel'
-        spike_rates_col = 'Spike Rate by channel'
-    elif data_type == 'sorted':
-        response_table = 'WindowSortedResponses'
-        spike_tstamps_col = 'Spikes by unit'
-        spike_rates_col = 'Spike Rate by unit'
-        save_path = f"/home/r2_allen/Documents/EStimShape/allen_sort_{session_id}/plots/{filename}"
+class Analysis(ABC):
 
+    def __init__(self):
+        self.session_id = None
+        self.spike_rates_col = None
+        self.spike_tstamps_col = None
+        self.save_path = None
+        self.response_table = None
 
-    else:
-        raise ValueError(f"Unknown data type: {data_type}")
-    return response_table, save_path, spike_tstamps_col, spike_rates_col
+    def parse_data_type(self, data_type, session_id, save_dir=None):
+        if save_dir is None:
+            save_dir = f"/home/r2_allen/Documents/plots"
+        self.save_path = f"{save_dir}/{session_id}"
+        if not os.path.exists(self.save_path):
+            os.makedirs(self.save_path)
+        if data_type == 'raw':
+            self.response_table = 'RawSpikeResponses'
+            self.spike_tstamps_col = 'Spikes by channel'
+            self.spike_rates_col = 'Spike Rate by channel'
+        elif data_type == 'sorted':
+            self.response_table = 'WindowSortedResponses'
+            self.spike_tstamps_col = 'Spikes by unit'
+            self.spike_rates_col = 'Spike Rate by unit'
+
+        else:
+            raise ValueError(f"Unknown data type: {data_type}")
+
+    def run(self, session_id, data_type: str, channels: str | list, compiled_data: pd.DataFrame = None):
+        self.session_id = session_id
+        self.parse_data_type(data_type, session_id=session_id)
+        if isinstance(channels, list):
+            for ch in channels:
+                self.analyze(ch, compiled_data=compiled_data)
+        else:
+            self.analyze(channels, compiled_data=compiled_data)
+
+    @abstractmethod
+    def analyze(self, channel, compiled_data: pd.DataFrame = None):
+        pass
+
+    @abstractmethod
+    def compile_and_export(self):
+        pass
+
+    @abstractmethod
+    def compile(self):
+        pass
