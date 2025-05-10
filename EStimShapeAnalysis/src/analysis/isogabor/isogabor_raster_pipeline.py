@@ -5,6 +5,7 @@ from clat.compile.task.cached_task_fields import CachedTaskFieldList
 from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.util.connection import Connection
 from clat.compile.task.compile_task_id import TaskIdCollector
+from src.analysis import parse_data_type
 from src.analysis.modules.grouped_rasters import create_grouped_raster_module
 from src.intan.MultiFileParser import MultiFileParser
 from src.repository.import_from_repository import import_from_repository
@@ -29,34 +30,39 @@ def main():
     return analyze(channel, session_id)
 
 
-def analyze(channel, session_id: str = None, compiled_data: pd.DataFrame = None):
+def analyze(channel, data_type: str, session_id: str = None, compiled_data: pd.DataFrame = None):
+    raw_save_dir = f"{context.isogabor_plot_path}"
+    filename = f"color_experiment_{channel}.png"
+    response_table, save_path, spike_tstamps_col, spike_rates_col = parse_data_type(data_type, session_id, filename, raw_save_dir)
+
     if compiled_data is None:
         compiled_data = import_from_repository(
             session_id,
             'isogabor',
             'IsoGaborStimInfo',
-            'RawSpikeResponses',
+            response_table,
         )
         print(compiled_data.columns)
     # ----------------
     # STEP 2: Create and run the analysis pipeline
     # ----------------
     # For the isochromatic/isoluminant example:
+
     grouped_raster_module = create_grouped_raster_module(
         primary_group_col='Type',
         secondary_group_col='Frequency',
-        spike_data_col='Spikes by channel',
+        spike_data_col=spike_tstamps_col,
         spike_data_col_key=channel,
         filter_values={
             'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
         },
         title=f"Color Experiment: {channel}",
-        save_path=f"{context.isogabor_plot_path}/color_experiment_{channel}.png",
+        save_path=save_path,
     )
     grouped_raster_by_isotype_module = create_grouped_raster_module(
         primary_group_col='IsoType',
         secondary_group_col='Type',
-        spike_data_col='Spikes by channel',
+        spike_data_col=spike_tstamps_col,
         spike_data_col_key=channel,
         filter_values={
             'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
@@ -106,7 +112,6 @@ def compile():
     # filter out trials where Spikes by Channel is empty
     data = data[data['Spikes by channel'].notnull()]
     return data
-
 
 
 if __name__ == "__main__":

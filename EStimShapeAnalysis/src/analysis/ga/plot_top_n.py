@@ -10,6 +10,7 @@ from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.compile.task.compile_task_id import TaskIdCollector
 
 from clat.util.connection import Connection
+from src.analysis import parse_data_type
 
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField
@@ -39,19 +40,50 @@ def main():
 
     compiled_data = compile()
 
-    analyze(channel, compiled_data=compiled_data)
+    analyze(channel, "raw", compiled_data=compiled_data)
 
 
-def analyze(channel, session_id: str = None, compiled_data: pd.DataFrame = None):
+def analyze(channel, data_type: str, session_id: str = None, compiled_data: pd.DataFrame = None):
+    raw_save_dir = f"{context.ga_plot_path}"
+    filename = f"top_n_{channel}.png"
+
+    (response_table,
+     save_path,
+     spike_tstamps_col,
+     spike_rates_col) = parse_data_type(data_type,
+                                        session_id,
+                                        filename,
+                                        raw_save_dir)
+
     if compiled_data is None:
         compiled_data = import_from_repository(
             session_id,
             "ga",
             "GAStimInfo",
-            "RawSpikeResponses"
+            response_table
         )
     # Break apart the response rate by channel
-    compiled_data['Spike Rate'] = compiled_data['Spike Rate by channel'].apply(lambda x: x[channel] if channel in x else 0)
+    compiled_data = add_rank_to_df(compiled_data, spike_rates_col, channel)
+
+    visualize_module = create_grouped_stimuli_module(
+        response_rate_col=spike_rates_col,
+        response_rate_key=channel,
+        path_col='ThumbnailPath',
+        col_col='RankWithinLineage',
+        row_col='Lineage',
+        title='Top Stimuli Per Lineage',
+        filter_values={"Lineage": get_top_n_lineages(compiled_data, 3),
+                       "RankWithinLineage": range(1, 21)},  # only show top 20 per lineage
+        save_path=save_path
+    )
+    # Create and run pipeline with aggregated data
+    pipeline = create_pipeline().then(visualize_module).build()
+    result = pipeline.run(compiled_data)
+    plt.show()
+
+
+def add_rank_to_df(compiled_data, spike_rates_col, channel):
+    compiled_data['Spike Rate'] = compiled_data[spike_rates_col].apply(lambda x: x[channel] if channel in x else 0)
     # Calculate average response rate for each StimSpecId within each Lineage
     avg_response = compiled_data.groupby(['Lineage', 'StimSpecId'])['Spike Rate'].mean().reset_index()
     avg_response.rename(columns={'Spike Rate': 'Avg Response Rate'}, inplace=True)
@@ -59,23 +91,10 @@ def analyze(channel, session_id: str = None, compiled_data: pd.DataFrame = None)
     avg_response['RankWithinLineage'] = avg_response.groupby('Lineage')['Avg Response Rate'].rank(ascending=False,
                                                                                                   method='first')
     # Merge the ranks back to the original dataframe
-    compiled_data = compiled_data.merge(avg_response[['Lineage', 'StimSpecId', 'RankWithinLineage']], on=['Lineage', 'StimSpecId'],
-                      how='left')
-    visualize_module = create_grouped_stimuli_module(
-        response_rate_col='Spike Rate by channel',
-        response_rate_key=channel,
-        path_col='ThumbnailPath',
-        col_col='RankWithinLineage',
-        row_col='Lineage',
-        title='Top Stimuli Per Lineage',
-        filter_values={"Lineage": get_top_n_lineages(compiled_data, 3),
-                       "RankWithinLineage": range(1, 21)}  # only show top 20 per lineage
-        # save_path=f"{context.twodvsthreed_plots_dir}/texture_by_lightness.png"
-    )
-    # Create and run pipeline with aggregated data
-    pipeline = create_pipeline().then(visualize_module).build()
-    result = pipeline.run(compiled_data)
-    plt.show()
+    compiled_data = compiled_data.merge(avg_response[['Lineage', 'StimSpecId', 'RankWithinLineage']],
+                                        on=['Lineage', 'StimSpecId'],
+                                        how='left')
+    return compiled_data
 
 
 def compile_and_export():

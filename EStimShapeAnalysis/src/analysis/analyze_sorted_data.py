@@ -3,6 +3,7 @@ import os
 from matplotlib import pyplot as plt
 
 from clat.pipeline.pipeline_base_classes import create_pipeline, create_branch
+from src.analysis.compile_all import analyses
 from src.analysis.ga.plot_top_n import get_top_n_lineages
 
 from src.analysis.modules.grouped_rasters import create_grouped_raster_module
@@ -30,6 +31,8 @@ def main():
     if new_spikes:
         export_sorted_spikes(session_name, label)
 
+    for analysis in analyses:
+        analysis.analyze(unit, "sorted", session_id = session_name)
     analyse_isogabor(session_name, unit, save_path)
     analyse_plot_top_n(session_name, unit, save_path)
     analyse_2dvs3d(session_name, unit, save_path)

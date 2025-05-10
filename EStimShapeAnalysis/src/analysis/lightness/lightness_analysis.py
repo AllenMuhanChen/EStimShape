@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -10,6 +12,7 @@ from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.pipeline.pipeline_base_classes import (
     create_pipeline
 )
+from src.analysis import parse_data_type
 from src.analysis.fields.cached_task_fields import StimPathField, ThumbnailField
 
 # Import custom modules
@@ -31,19 +34,23 @@ def main():
     return analyze(channel, compiled_data=compiled_data)
 
 
-def analyze(channel, session_id: str = None, compiled_data: pd.DataFrame = None):
+def analyze(channel, data_type: str, session_id: str = None, compiled_data: pd.DataFrame = None):
+    raw_save_dir = f"{context.twodvsthreed_plot_path}"
+    filename = f"lightness_test_{channel}.png"
+    response_table, save_path, spike_data_col, spike_rates_col = parse_data_type(data_type, session_id, filename, raw_save_dir)
+
     if compiled_data is None:
         compiled_data = import_from_repository(
             session_id,
             'lightness',
             'LightnessTestStimInfo',
-            'RawSpikeResponses'
+            response_table
         )
 
     # print(data.to_string())
     # Create visualization module
     visualize_module = create_grouped_stimuli_module(
-        response_rate_col='Spike Rate by channel',
+        response_rate_col=spike_rates_col,
         response_rate_key=channel,
         path_col='ThumbnailPath',
         col_col='RGB',

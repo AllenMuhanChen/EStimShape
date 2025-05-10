@@ -6,6 +6,7 @@ from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.pipeline.pipeline_base_classes import create_pipeline, create_branch
 from clat.util.connection import Connection
+from src.analysis import parse_data_type
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, ParentIdField
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
@@ -20,58 +21,65 @@ from src.startup import context
 def main():
     session_id = "250509_0"
     channel = "A-011"
+    data_type = "raw"
+    compile()
 
-    conn = Connection(context.ga_database)
-
-    data_for_all_tasks = compile_data(conn)
-
-    data_for_all_tasks = clean_ga_data(data_for_all_tasks)
-
-    data_for_plotting = organize_data(data_for_all_tasks)
+    return analyze(channel, data_type, session_id)
 
 
-    # print(data_for_plotting[["TestId", "UnderlingAvgRGB", "AvgRGBFromImage", "TestType"]].groupby(["TestId", "TestType"]).agg(
-    #     {"UnderlingAvgRGB": "first",
-    #      "AvgRGBFromImage": "first"}).reset_index().to_string(index=False))
+def analyze(channel, data_type, session_id: str = None, compiled_data: pd.DataFrame = None):
+    raw_save_dir = f"{context.ga_plot_path}"
+    filename = f"2Dvs3D_Test_{channel}.png"
+    response_table, save_path, spike_tstamps_col, spike_rates_col = parse_data_type(data_type, session_id, filename,raw_save_dir)
 
-
-
-    export_to_repository(data_for_plotting,
-                         context.ga_database,
-                         "ga",
-                            stim_info_table="2Dvs3DStimInfo",
-                            stim_info_columns=['Lineage', 'StimType','StimPath','ThumbnailPath', 'GA Response', 'TestId', 'TestType'],
-                         )
-
-    data_for_plotting = import_from_repository(
-        session_id,
-        "ga",
-        "2Dvs3DStimInfo",
-        "RawSpikeResponses"
-    )
-
-
+    if compiled_data is None:
+        compiled_data = import_from_repository(
+            session_id,
+            "ga",
+            "2Dvs3DStimInfo",
+            response_table
+        )
     visualize_module = create_grouped_stimuli_module(
-        response_rate_col='Spike Rate by channel',
+        response_rate_col=spike_rates_col,
         response_rate_key=channel,
         # response_rate_col='GA Response',
         path_col='ThumbnailPath',
         col_col='TestId',
         row_col='TestType',
         title=f'2D vs 3D Test: {channel}',
-        save_path=f"{context.ga_plot_path}/2Dvs3D_Test_{channel}.png",
+        save_path=save_path
     )
     # Create and run pipeline with aggregated data
     plot_branch = create_branch().then(visualize_module)
     pipeline = create_pipeline().make_branch(
         plot_branch
     ).build()
-    result = pipeline.run(data_for_plotting)
-
+    result = pipeline.run(compiled_data)
     # Show the figure
     plt.show()
-
     return result
+
+
+def compile_and_export():
+    data_for_plotting = compile()
+    # print(data_for_plotting[["TestId", "UnderlingAvgRGB", "AvgRGBFromImage", "TestType"]].groupby(["TestId", "TestType"]).agg(
+    #     {"UnderlingAvgRGB": "first",
+    #      "AvgRGBFromImage": "first"}).reset_index().to_string(index=False))
+    export_to_repository(data_for_plotting,
+                         context.ga_database,
+                         "ga",
+                         stim_info_table="2Dvs3DStimInfo",
+                         stim_info_columns=['Lineage', 'StimType', 'StimPath', 'ThumbnailPath', 'GA Response', 'TestId',
+                                            'TestType'],
+                         )
+
+
+def compile():
+    conn = Connection(context.ga_database)
+    data_for_all_tasks = compile_data(conn)
+    data_for_all_tasks = clean_ga_data(data_for_all_tasks)
+    data_for_plotting = organize_data(data_for_all_tasks)
+    return data_for_plotting
 
 
 def compile_data(conn: Connection) -> pd.DataFrame:
