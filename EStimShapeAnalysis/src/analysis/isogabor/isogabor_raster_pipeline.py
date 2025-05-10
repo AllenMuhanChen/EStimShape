@@ -64,7 +64,7 @@ class IsogaborAnalysis(Analysis):
                 'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
             },
             title=f"Color Experiment: {channel}",
-            save_path=f"{self.save_path}/{channel}: color_experiment_by_isotype{channel}.png",
+            save_path=f"{self.save_path}/{channel}: color_experiment_by_isotype.png",
 
         )
         # Create a simple pipeline
@@ -80,7 +80,7 @@ class IsogaborAnalysis(Analysis):
             compiled_data=compiled_data,
             channel=channel,
             spike_tstamps_col=self.spike_tstamps_col,
-            save_path=self.save_path.replace(".png", "_psth.png"),  # Add _psth suffix
+            save_path=f"{self.save_path}/{channel}: color_experiment_psth.png",
             bin_size=0.025,  # 10ms bins
             time_window=(-0.2, 0.5),  # 0 to 500ms
             # frequency_to_include=frequencies

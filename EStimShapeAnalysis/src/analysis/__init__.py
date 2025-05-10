@@ -31,14 +31,10 @@ class Analysis(ABC):
         else:
             raise ValueError(f"Unknown data type: {data_type}")
 
-    def run(self, session_id, data_type: str, channels: str | list, compiled_data: pd.DataFrame = None):
+    def run(self, session_id, data_type: str, channel: str, compiled_data: pd.DataFrame = None):
         self.session_id = session_id
         self.parse_data_type(data_type, session_id=session_id)
-        if isinstance(channels, list):
-            for ch in channels:
-                self.analyze(ch, compiled_data=compiled_data)
-        else:
-            self.analyze(channels, compiled_data=compiled_data)
+        self.analyze(channel, compiled_data=compiled_data)
 
     @abstractmethod
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
