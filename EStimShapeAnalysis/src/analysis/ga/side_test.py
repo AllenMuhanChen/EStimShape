@@ -9,22 +9,25 @@ from clat.util.connection import Connection
 from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, ParentIdField
-from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
+from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module, SortingUtils
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
 from src.intan.MultiFileParser import MultiFileParser
 from src.repository.export_to_repository import export_to_repository, read_session_id_from_db_name
+from src.repository.good_channels import read_cluster_channels
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 
 
 def main():
 
-    channel = "A-011"
+    channel = None
     compiled_data = compile()
     analysis = SideTestAnalysis()
     session_id, _ = read_session_id_from_db_name(context.ga_database)
-    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    if channel is None:
+        channel = read_cluster_channels(session_id)[0]
+    analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
 class SideTestAnalysis(Analysis):
@@ -43,6 +46,13 @@ class SideTestAnalysis(Analysis):
             path_col='ThumbnailPath',
             col_col='TestId',
             row_col='TestType',
+            sort_rules={
+                "col": "TestId",
+                "custom_func": SortingUtils.by_avg_value(
+                    column=self.spike_rates_col,
+                    comparison_col="TestType"
+                )
+            },
             title=f'2D vs 3D Test: {channel}',
             save_path=f"{self.save_path}/{channel}: 2dvs3d.png",
         )

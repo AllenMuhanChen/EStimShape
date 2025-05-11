@@ -1,6 +1,9 @@
 import pandas as pd
 
-
+from src.analysis import Analysis
+from src.analysis.isogabor import isogabor_raster_pipeline
+from src.repository.export_to_repository import read_session_id_from_db_name
+from src.repository.good_channels import read_cluster_channels
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 
@@ -10,44 +13,53 @@ import numpy as np
 from typing import List, Tuple, Optional
 
 def main():
-    analyze("A-013", "raw", session_id="250425_0")
+    channel = None
+    session_id, _ = read_session_id_from_db_name(context.isogabor_database)
+    if channel is None:
+        channel = read_cluster_channels(session_id)[0]
+
+    analysis = IsogaborPSTHAnalysis()
+    return analysis.run(session_id, "raw", channel)
 
 
-def analyze(channel, data_type: str, session_id: str = None, compiled_data: pd.DataFrame = None):
-    raw_save_dir = f"{context.isogabor_plot_path}"
-    filename = f"color_experiment_{channel}.png"
-    response_table, save_path, spike_tstamps_col, spike_rates_col = parse_data_type(data_type, session_id, filename,
-                                                                                    raw_save_dir)
+class IsogaborPSTHAnalysis(Analysis):
 
-    if compiled_data is None:
-        compiled_data = import_from_repository(
-            session_id,
-            'isogabor',
-            'IsoGaborStimInfo',
-            response_table,
+    def analyze(self, channel, compiled_data: pd.DataFrame = None):
+
+        if compiled_data is None:
+            compiled_data = import_from_repository(
+                self.session_id,
+                'isogabor',
+                'IsoGaborStimInfo',
+                self.response_table,
+            )
+            print(f"Imported data with columns: {compiled_data.columns}")
+
+        # Define frequencies to include - modify as needed based on your data
+        frequencies = None  # Use all frequencies
+
+        # Calculate and plot PSTH
+
+        psth_fig = compute_and_plot_psth(
+            compiled_data=compiled_data,
+            channel=channel,
+            spike_tstamps_col=self.spike_tstamps_col,
+            save_path=f"{self.save_path}/{channel}: color_experiment_psth.png",
+            bin_size=0.05,
+            time_window=(-0.2, 0.5),  # 0 to 500ms
+            frequency_to_include=frequencies
         )
-        print(f"Imported data with columns: {compiled_data.columns}")
 
-    # Define frequencies to include - modify as needed based on your data
-    frequencies = None  # Use all frequencies
+        # Show the figure
+        plt.show()
 
-    # Calculate and plot PSTH
+        return psth_fig
 
-    psth_fig = compute_and_plot_psth(
-        compiled_data=compiled_data,
-        channel=channel,
-        spike_tstamps_col=spike_tstamps_col,
-        save_path=save_path.replace(".png", "_psth.png"),  # Add _psth suffix
-        bin_size=0.05,
-        time_window=(-0.2, 0.5),  # 0 to 500ms
-        frequency_to_include=frequencies
-    )
+    def compile_and_export(self):
+        isogabor_raster_pipeline.compile_and_export()
 
-    # Show the figure
-    plt.show()
-
-    return psth_fig
-
+    def compile(self):
+        isogabor_raster_pipeline.compile()
 
 def compute_and_plot_psth(
         compiled_data: pd.DataFrame,
