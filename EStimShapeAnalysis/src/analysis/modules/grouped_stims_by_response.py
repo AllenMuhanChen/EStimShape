@@ -205,9 +205,6 @@ class GroupedStimuliPlotter(ComputationModule):
         col_values = prepared_data['col_values']
         subgroup_values = prepared_data['subgroup_values']
 
-        # IMPORTANT: Use the provided row_values, col_values, and subgroup_values directly
-        # instead of recalculating them. These are already sorted by the input handler.
-
         # Default to single row/column if not specified
         if not row_values:
             row_values = [None]
@@ -261,21 +258,26 @@ class GroupedStimuliPlotter(ComputationModule):
                          f"{subgroup_col}: {subgroup_value}",
                          ha='center', fontsize=14)
 
-            # Plot each cell in this grid - USE THE ORIGINAL ORDER FROM row_values and col_values
+            # Plot each cell in this grid - order of data in row_values and col_values matters
             for row_idx, row_value in enumerate(row_values):
+                if row_col and row_value is not None:
+                    # Calculate position for row label
+                    row_pos = bottom_pos + (1 - ((row_idx + 0.5) / len(row_values))) * (top_pos - bottom_pos)
+                    fig.text(0.09, row_pos, f"{row_value}", ha='right', va='center', fontsize=12)
+
                 for col_idx, col_value in enumerate(col_values):
                     # Filter data for this specific cell
                     cell_data = data.copy()
 
-                    # Apply row filter
+                    # Get all data for this row
                     if row_col is not None and row_value is not None:
                         cell_data = cell_data[cell_data[row_col] == row_value]
 
-                    # Apply column filter
+                    # Filter down to data that matches row AND column
                     if col_col is not None and col_value is not None:
                         cell_data = cell_data[cell_data[col_col] == col_value]
 
-                    # Apply subgroup filter
+                    # Filter down to data that matches row, column AND subgroup
                     if subgroup_col is not None and subgroup_value is not None:
                         cell_data = cell_data[cell_data[subgroup_col] == subgroup_value]
 
@@ -291,6 +293,8 @@ class GroupedStimuliPlotter(ComputationModule):
 
                     if row_idx == 0 and col_col:
                         ax.set_title(f"{col_col}: {col_value}", fontsize=10)
+
+
 
         plt.tight_layout(rect=[0, 0, 1, 0.96])  # Leave room for main title
         return fig
