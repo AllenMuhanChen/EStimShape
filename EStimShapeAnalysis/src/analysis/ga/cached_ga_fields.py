@@ -17,7 +17,17 @@ class LineageField(StimSpecIdField):
     def get_name(self):
         return "Lineage"
 
+class GenIdField(StimSpecIdField):
+    def get(self, task_id) -> int:
+        stim_spec_id = self.get_cached_super(task_id, StimSpecIdField)
+        self.conn.execute("SELECT gen_id FROM StimGaInfo WHERE"
+                          " stim_id = %s",
+                          params=(stim_spec_id,))
+        gen_id = self.conn.fetch_one()
+        return int(gen_id)
 
+    def get_name(self):
+        return "GenId"
 class RegimeScoreField(LineageField):
     def get(self, task_id: int) -> float:
         lineage_id = self.get_cached_super(task_id, LineageField)

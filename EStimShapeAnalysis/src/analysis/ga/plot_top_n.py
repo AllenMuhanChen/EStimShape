@@ -13,10 +13,11 @@ from clat.util.connection import Connection
 from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
-from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField
+from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField, GenIdField
 from src.analysis.ga.side_test import clean_ga_data
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
+from src.analysis.modules.grouped_rasters import create_grouped_raster_module
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.intan.MultiFileParser import MultiFileParser
 from src.pga.alexnet.analysis.plot_top_n_alexnet import add_colored_border
@@ -47,7 +48,7 @@ class PlotTopNAnalysis(Analysis):
                 self.response_table
             )
         # Break apart the response rate by channel
-        compiled_data = add_rank_to_df(compiled_data, self.spike_rates_col, channel)
+        compiled_data = add_lineage_rank_to_df(compiled_data, self.spike_rates_col, channel)
 
         visualize_module = create_grouped_stimuli_module(
             response_rate_col=self.spike_rates_col,
@@ -60,6 +61,8 @@ class PlotTopNAnalysis(Analysis):
                            "RankWithinLineage": range(1, 21)},  # only show top 20 per lineage
             save_path=f"{self.save_path}/{channel}: plot_top_n.png",
         )
+
+
         # Create and run pipeline with aggregated data
         pipeline = create_pipeline().then(visualize_module).build()
         result = pipeline.run(compiled_data)
@@ -72,7 +75,7 @@ class PlotTopNAnalysis(Analysis):
         compile()
 
 
-def add_rank_to_df(compiled_data, spike_rates_col, channel):
+def add_lineage_rank_to_df(compiled_data, spike_rates_col, channel):
     compiled_data['Spike Rate'] = compiled_data[spike_rates_col].apply(lambda x: x[channel] if channel in x else 0)
     # Calculate average response rate for each StimSpecId within each Lineage
     avg_response = compiled_data.groupby(['Lineage', 'StimSpecId'])['Spike Rate'].mean().reset_index()
@@ -128,6 +131,7 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields = CachedTaskFieldList()
     fields.append(StimSpecIdField(conn))
     fields.append(LineageField(conn))
+    fields.append(GenIdField(conn))
     fields.append(RegimeScoreField(conn))
     fields.append(StimTypeField(conn))
     fields.append(StimPathField(conn))

@@ -9,6 +9,7 @@ from clat.util.connection import Connection
 from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, ParentIdField
+from src.analysis.modules.grouped_rasters import create_grouped_raster_module
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module, SortingUtils
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
@@ -20,13 +21,15 @@ from src.startup import context
 
 
 def main():
-
     channel = None
-    compiled_data = compile()
+    # compiled_data = compile()
     analysis = SideTestAnalysis()
     session_id, _ = read_session_id_from_db_name(context.ga_database)
     if channel is None:
         channel = read_cluster_channels(session_id)[0]
+
+    session_id = "250427_0"
+    channel = "A-018"
     analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
@@ -56,10 +59,20 @@ class SideTestAnalysis(Analysis):
             title=f'2D vs 3D Test: {channel}',
             save_path=f"{self.save_path}/{channel}: 2dvs3d.png",
         )
+
+        raster_module = create_grouped_raster_module(
+            primary_group_col='TestType',
+            secondary_group_col='TestId',
+            spike_data_col=self.spike_tstamps_col,
+            spike_data_col_key=channel,
+            title=f'2D vs 3D Rasters: {channel}',
+            save_path=f"{self.save_path}/{channel}: 2dvs3d_rasters.png",
+        )
         # Create and run pipeline with aggregated data
         plot_branch = create_branch().then(visualize_module)
+        raster_branch = create_branch().then(raster_module)
         pipeline = create_pipeline().make_branch(
-            plot_branch
+            plot_branch, raster_branch
         ).build()
         result = pipeline.run(compiled_data)
         # Show the figure
@@ -71,8 +84,6 @@ class SideTestAnalysis(Analysis):
 
     def compile(self):
         compile()
-
-
 
 
 def compile_and_export():
@@ -131,7 +142,7 @@ def clean_ga_data(data_for_all_tasks):
     # Remove NaNs
     data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['StimSpecId'].notna()]
     # Remove Catch
-    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['ThumbnailPath'].apply(lambda x: x != "None")]
+    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['ThumbnailPath'].apply(lambda x: x is not None)]
     return data_for_all_tasks
 
 

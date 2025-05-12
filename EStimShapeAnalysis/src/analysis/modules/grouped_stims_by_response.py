@@ -163,6 +163,7 @@ class GroupedStimuliInputHandler(InputHandler):
             # Default to standard sorting
             return sorted(unique_values)
 
+
 class GroupedStimuliPlotter(ComputationModule):
     """
     Computation module that handles layout calculation and plotting of grouped stimuli.
@@ -599,6 +600,7 @@ class SortingUtils:
             return sorted_values
 
         return sorter
+
     @staticmethod
     def by_column_value(column, ascending=True):
         """
@@ -668,7 +670,7 @@ class SortingUtils:
 
             # Sort based on the lookup values
             sorted_values = sorted(values, key=lambda x: lookup.get(x, 0), reverse=not ascending)
-            #print values:
+            # print values:
             for value in sorted_values:
                 print(value, lookup.get(value, 0))
             return sorted_values
@@ -771,6 +773,3 @@ class SortingUtils:
             return sorted(values, key=lambda x: differences.get(x, 0), reverse=not ascending)
 
         return sorter
-
-
-
