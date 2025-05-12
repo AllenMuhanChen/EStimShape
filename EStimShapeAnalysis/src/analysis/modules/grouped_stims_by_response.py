@@ -225,7 +225,7 @@ class GroupedStimuliPlotter(ComputationModule):
         single_grid_width = len(col_values) * self.cell_size[0]
 
         # Total figure size
-        fig_height = nrows * (single_grid_height + 1.5)  # Extra space for titles
+        fig_height = nrows * (single_grid_height) + 1.5  # Extra space for titles
         fig_width = single_grid_width + 2  # Extra space for labels
 
         # Create figure
@@ -248,9 +248,11 @@ class GroupedStimuliPlotter(ComputationModule):
                 bottom_pos = top_pos - 0.05
 
             # Create a subgrid for this subgroup
+
             subgrid = fig.add_gridspec(nrows=len(row_values), ncols=len(col_values),
                                        left=0.1, bottom=bottom_pos,
-                                       right=0.9, top=top_pos)
+                                       right=0.9, top=top_pos,
+                                       wspace=0.05, hspace=-0.30)
 
             # Add a title for this subgroup's grid
             if subgroup_col and subgroup_value is not None:
@@ -259,12 +261,8 @@ class GroupedStimuliPlotter(ComputationModule):
                          ha='center', fontsize=14)
 
             # Plot each cell in this grid - order of data in row_values and col_values matters
+            bboxs_for_rows = []
             for row_idx, row_value in enumerate(row_values):
-                if row_col and row_value is not None:
-                    # Calculate position for row label
-                    row_pos = bottom_pos + (1 - ((row_idx + 0.5) / len(row_values))) * (top_pos - bottom_pos)
-                    fig.text(0.09, row_pos, f"{row_value}", ha='right', va='center', fontsize=12)
-
                 for col_idx, col_value in enumerate(col_values):
                     # Filter data for this specific cell
                     cell_data = data.copy()
@@ -284,19 +282,21 @@ class GroupedStimuliPlotter(ComputationModule):
                     # Create subplot for this cell
                     ax = fig.add_subplot(subgrid[row_idx, col_idx])
 
+                    print(f"Subplot position: {ax.get_position()}")
                     # Plot the image for this cell
                     self._plot_cell(ax, cell_data, response_col, path_col, min_val, max_val)
 
-                    # Add labels
-                    if col_idx == 0 and row_col:
-                        ax.set_ylabel(f"{row_col}: {row_value}", fontsize=10)
-
+                    # Set column label
                     if row_idx == 0 and col_col:
-                        ax.set_title(f"{col_col}: {col_value}", fontsize=10)
+                        ax.set_title(f"{col_col}: {col_value}", fontsize=10, pad=0)
+
+                    # Add row label
+                    if col_idx == 0 and row_col and row_value is not None:
+                        row_center = (ax.get_position().y0 + ax.get_position().y1) / 2
+                        fig.text(0.09, row_center, f"{row_value}", ha='right', va='center', fontsize=12)
 
 
 
-        plt.tight_layout(rect=[0, 0, 1, 0.96])  # Leave room for main title
         return fig
 
     # Calculate dynamic figure size based on data grid dimensions
@@ -362,6 +362,7 @@ class GroupedStimuliPlotter(ComputationModule):
                 img = Image.open(img_path)
                 img_with_border = self._add_colored_border(img, response, min_val, max_val)
                 ax.imshow(img_with_border)
+
 
                 # Add response text
                 ax.text(0.5, 0.95, f"Response: {response:.2f} ± {std:.2f} ({n})\n"
