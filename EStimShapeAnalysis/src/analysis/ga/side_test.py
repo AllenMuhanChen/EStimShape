@@ -9,12 +9,13 @@ from clat.util.connection import Connection
 from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, ParentIdField
-from src.analysis.ga.plot_top_n import add_lineage_rank_to_df, clean_ga_data
-from src.analysis.modules.grouped_rasters import create_grouped_raster_module
-from src.analysis.modules.grouped_rsth import create_grouped_psth_module
-from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module, SortingUtils
+from src.analysis.ga.plot_top_n import clean_ga_data
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
+from src.analysis.modules.grouped_rasters import create_grouped_raster_module
+from src.analysis.modules.grouped_rsth import create_grouped_psth_module
+from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
+from src.analysis.modules.utils.sorting_utils import SpikeRateSortingUtils
 from src.intan.MultiFileParser import MultiFileParser
 from src.repository.export_to_repository import export_to_repository, read_session_id_from_db_name
 from src.repository.good_channels import read_cluster_channels
@@ -30,8 +31,8 @@ def main():
     if channel is None:
         channel = read_cluster_channels(session_id)[0]
 
-    session_id = "250425_0"
-    channel = "A-013"
+    session_id = "250507_0"
+    channel = "A-002"
     analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
@@ -55,7 +56,7 @@ class SideTestAnalysis(Analysis):
             row_col='TestType',
             sort_rules={
                 "col": "TestId",
-                "custom_func": SortingUtils.by_avg_value(
+                "custom_func": SpikeRateSortingUtils.by_avg_value(
                     column=self.spike_rates_col,
                     comparison_col="TestType"
                 )
@@ -77,26 +78,46 @@ class SideTestAnalysis(Analysis):
         )
         raster_branch = create_branch().then(raster_module)
 
-
-        # PSTH MODULE
+        # Create a PSTH module sorted by average firing rate
         psth_module = create_grouped_psth_module(
             primary_group_col='TestType',
             secondary_group_col='TestId',
             spike_data_col=self.spike_tstamps_col,
             spike_data_col_key=channel,
-            time_window=(-0.2, 0.5),
             bin_size=0.025,
-            colors= {
-                "2D": "blue",
-                "3D": "red",
+            sort_rules={
+                "col": "TestId",
+                "custom_func": SpikeRateSortingUtils.by_avg_value(
+                    column=self.spike_rates_col,
+                    comparison_col="TestType",
+                    limit=5
+                )
             },
             title=f'2D vs 3D PSTH: {channel}',
             save_path=f"{self.save_path}/{channel}: 2dvs3d_psth.png",
         )
         psth_branch = create_branch().then(psth_module)
 
+        psth_examples = create_grouped_stimuli_module(
+            response_rate_col=self.spike_rates_col,
+            path_col='ThumbnailPath',
+            response_rate_key=channel,
+            row_col= "TestId",
+            col_col= "TestType",
+            sort_rules={
+                "col": "TestId",
+                "custom_func": SpikeRateSortingUtils.by_avg_value(
+                    column=self.spike_rates_col,
+                    comparison_col="TestType",
+                    limit=5)
+            },
+            title=f'2D vs 3D PSTH Examples: {channel}',
+            save_path=f"{self.save_path}/{channel}: 2dvs3d_psth_examples.png",
+        )
+        psth_examples_branch = create_branch().then(psth_examples)
+
         pipeline = create_pipeline().make_branch(
-            plot_branch, raster_branch, psth_branch
+            plot_branch, raster_branch, psth_branch, psth_examples_branch
         ).build()
         result = pipeline.run(compiled_data)
         # Show the figure

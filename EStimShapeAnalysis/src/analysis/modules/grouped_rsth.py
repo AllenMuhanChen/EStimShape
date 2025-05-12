@@ -9,6 +9,8 @@ from clat.pipeline.pipeline_base_classes import (
     AnalysisModuleFactory
 )
 from src.analysis.modules.figure_output import FigureSaverOutput
+# Import the existing SortingUtils
+
 
 
 class GroupedPSTHInputHandler(InputHandler):
@@ -72,11 +74,43 @@ class GroupedPSTHInputHandler(InputHandler):
         if self.spike_data_col not in filtered_data.columns:
             raise ValueError(f"Spike data column '{self.spike_data_col}' not found in data")
 
-        # Get ordered primary groups with optional sorting
-        primary_groups = self._get_sorted_values(filtered_data, self.primary_group_col)
+        # Get ordered primary groups
+        all_primary_groups = filtered_data[self.primary_group_col].unique()
+        if self.primary_group_col in self.filter_values:
+            primary_groups = [g for g in self.filter_values[self.primary_group_col]
+                              if g in all_primary_groups]
+        else:
+            primary_groups = sorted(all_primary_groups)
 
-        # Get ordered secondary groups with optional sorting
-        secondary_groups = self._get_sorted_values(filtered_data, self.secondary_group_col)
+        # Get ordered secondary groups
+        secondary_groups = []
+        if self.secondary_group_col and self.secondary_group_col in filtered_data.columns:
+            all_secondary_groups = filtered_data[self.secondary_group_col].unique()
+            if self.secondary_group_col in self.filter_values:
+                secondary_groups = [g for g in self.filter_values[self.secondary_group_col]
+                                    if g in all_secondary_groups]
+            else:
+                secondary_groups = sorted(all_secondary_groups)
+
+        # Get unique values for each grouping dimension with optional sorting
+        # Using same pattern as GroupedStimuliInputHandler
+        if self.sort_rules and "col" in self.sort_rules:
+            sort_col = self.sort_rules["col"]
+            custom_func = self.sort_rules.get("custom_func")
+            ascending = self.sort_rules.get("ascending", True)
+
+            if custom_func and callable(custom_func):
+                # Apply custom sorting function
+                if sort_col == self.primary_group_col:
+                    primary_groups = self._get_sorted_values(filtered_data, self.primary_group_col)
+                elif sort_col == self.secondary_group_col:
+                    secondary_groups = self._get_sorted_values(filtered_data, self.secondary_group_col)
+            else:
+                # Standard sorting
+                if sort_col == self.primary_group_col:
+                    primary_groups = sorted(primary_groups, reverse=not ascending)
+                elif sort_col == self.secondary_group_col:
+                    secondary_groups = sorted(secondary_groups, reverse=not ascending)
 
         # Handle column grouping
         column_primary_groups = {}
@@ -118,6 +152,9 @@ class GroupedPSTHInputHandler(InputHandler):
         """
         Get unique values for a column with optional sorting.
 
+        This method follows the same pattern as in the grouped_stims_by_response module
+        to maintain consistency across modules.
+
         Args:
             data: DataFrame containing the data
             col_name: Name of the column to get unique values from
@@ -132,22 +169,28 @@ class GroupedPSTHInputHandler(InputHandler):
 
         # Check if we need to sort this column
         if self.sort_rules and self.sort_rules.get("col") == col_name:
-            # Handle custom sort function that can access any column in the dataframe
             custom_func = self.sort_rules.get("custom_func")
             ascending = self.sort_rules.get("ascending", True)
 
             if custom_func and callable(custom_func):
-                # Before calling the custom function, make sure we've extracted relevant values
-                # if needed to prevent dict comparison errors in the sorting functions
+                # Before calling the custom function, create a copy of the data for sorting
                 filtered_data_for_sorting = self.filtered_data.copy()
 
-                # Check for dictionary values in relevant columns
-                for check_col in [self.spike_data_col]:
-                    if check_col in filtered_data_for_sorting.columns:
-                        first_value = filtered_data_for_sorting[check_col].iloc[
-                            0] if not filtered_data_for_sorting.empty else None
-                        if isinstance(first_value, dict) and self.spike_data_col_key is not None:
-                    # No need to modify for sorting as spike times aren't used for sorting
+                # The custom sorting function might reference a different column for its calculations
+                # (e.g., SortingUtils.by_avg_value uses a 'column' parameter)
+                # We need to process that column if it contains dictionaries
+
+                # We'll need to check all columns that might contain dictionaries
+                for check_col in filtered_data_for_sorting.columns:
+                    if len(filtered_data_for_sorting) > 0:
+                        first_val = filtered_data_for_sorting[check_col].iloc[0]
+                        # If this column contains dictionaries, extract the value using spike_data_col_key
+                        if isinstance(first_val, dict) and self.spike_data_col_key:
+                            # Create a temporary column with extracted values
+                            filtered_data_for_sorting[check_col] = filtered_data_for_sorting[check_col].apply(
+                                lambda x: x.get(self.spike_data_col_key, 0)
+                                if isinstance(x, dict) and self.spike_data_col_key in x else x
+                            )
 
                 return custom_func(unique_values, filtered_data_for_sorting, col_name)
             else:
@@ -497,7 +540,8 @@ def create_grouped_psth_module(
         primary_group_labels: Optional[Dict[str, str]] = None,
         secondary_group_labels: Optional[Dict[str, str]] = None,
         save_path: Optional[str] = None,
-        save_svg: bool = False
+        save_svg: bool = False,
+        sort_rules: Optional[Dict[str, Any]] = None
 ) -> AnalysisModule:
     """
     Create a pipeline module for grouped PSTH visualization.
@@ -524,6 +568,9 @@ def create_grouped_psth_module(
         secondary_group_labels: Optional custom labels for secondary groups
         save_path: Optional path to save the figure
         save_svg: Whether to also save as SVG format
+        sort_rules: Optional dict for sorting values with multiple options:
+                    - Basic form: {"col": "column_name", "ascending": True/False}
+                    - With custom function: {"col": "column_name", "custom_func": callable}
 
     Returns:
         Configured analysis module
@@ -536,11 +583,12 @@ def create_grouped_psth_module(
             filter_values=filter_values,
             spike_data_col=spike_data_col,
             spike_data_col_key=spike_data_col_key,
-            column_groups=column_groups
+            column_groups=column_groups,
+            sort_rules=sort_rules
         ),
         computation=GroupedPSTHComputation(
-            time_window=time_window,  # Moved to computation
-            bin_size=bin_size,  # Moved to computation
+            time_window=time_window,
+            bin_size=bin_size,
             figsize=figsize,
             colors=colors,
             y_max=y_max,

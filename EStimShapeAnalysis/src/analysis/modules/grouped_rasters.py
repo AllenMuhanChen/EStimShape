@@ -67,6 +67,8 @@ def create_grouped_raster_module(
     )
 
     return raster_plot_module
+
+
 class GroupedRasterInputHandler(InputHandler):
     """
     Input handler that filters and prepares data for raster plot visualization.
@@ -126,7 +128,6 @@ class GroupedRasterInputHandler(InputHandler):
                 lambda x: x[self.spike_data_col_key] if self.spike_data_col_key in x else None
             )
 
-
         # Simple result structure - just the filtered data and configuration
         return {
             'data': filtered_data,
@@ -150,7 +151,7 @@ class GroupedRasterPlotter(ComputationModule):
                  figsize: Tuple[float, float] = (15, 10),
                  time_range: Tuple[float, float] = (-0.2, 0.7),
                  spike_color: str = 'black',
-                 title: Optional[str] = None,):
+                 title: Optional[str] = None, ):
         """
         Initialize the raster visualization module.
 
@@ -347,6 +348,7 @@ class GroupedRasterPlotter(ComputationModule):
         ax.set_ylim(-0.5, layout['total_height'] + 0.5)
         ax.set_xlim(*self.time_range)
 
+
 def spike_color_iterator():
     # Need 32 colors
     # Generate a list of colors
@@ -354,37 +356,3 @@ def spike_color_iterator():
     # conver tot list
     colors = [tuple(color) for color in colors]
     return itertools.cycle(colors)
-
-class GroupedRasterOutput(OutputHandler):
-    """
-    Output handler that handles saving the figure.
-
-    Responsibility: Saving the figure and returning the result.
-    """
-
-    def __init__(self, save_path: Optional[str] = None):
-        """
-        Initialize the output handler.
-
-        Args:
-            save_path: Optional path to save the figure
-        """
-        self.save_path = save_path
-
-    def process(self, figure: plt.Figure) -> plt.Figure:
-        """
-        Process the figure (save if requested).
-
-        Args:
-            figure: The matplotlib figure from the computation module
-
-        Returns:
-            The same figure, unchanged
-        """
-        # Save if requested
-        if self.save_path:
-            figure.savefig(self.save_path, dpi=300, bbox_inches='tight')
-
-        return figure
-
-
