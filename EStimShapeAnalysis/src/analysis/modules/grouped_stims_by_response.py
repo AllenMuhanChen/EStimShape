@@ -378,7 +378,7 @@ class GroupedStimuliPlotter(ComputationModule):
         ax.axis('off')
 
 
-class GroupedStimuliOutput(OutputHandler):
+class FigureSaverOutput(OutputHandler):
     """
     Output handler that handles saving the figure.
     """
@@ -470,7 +470,7 @@ def create_grouped_stimuli_module(
             color_mode=color_mode,
             title=title
         ),
-        output_handler=GroupedStimuliOutput(
+        output_handler=FigureSaverOutput(
             save_path=save_path
         ),
         name="grouped_stimuli_visualization"

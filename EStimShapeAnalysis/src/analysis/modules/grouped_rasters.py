@@ -12,6 +12,7 @@ from clat.pipeline.pipeline_base_classes import (
     AnalysisPipeline, create_pipeline, create_branch,
     AnalysisModuleFactory
 )
+from src.analysis.modules.grouped_stims_by_response import FigureSaverOutput
 
 
 class GroupedRasterInputHandler(InputHandler):
@@ -380,7 +381,7 @@ def create_grouped_raster_module(
             time_range=time_range,
             title=title
         ),
-        output_handler=GroupedRasterOutput(
+        output_handler=FigureSaverOutput(
             save_path=save_path
         ),
         name="grouped_raster_plot"

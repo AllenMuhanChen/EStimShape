@@ -30,9 +30,10 @@ from src.startup import context
 def main():
     channel = "A-011"
 
-    compiled_data = compile()
+    # compiled_data = compile()
     analysis = PlotTopNAnalysis()
 
+    compiled_data = None
     session_id, _ = read_session_id_from_db_name(context.ga_database)
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
