@@ -32,8 +32,9 @@ def main():
     compiled_data = compile()
     analysis = LightnessAnalysis()
     session_id, _ = read_session_id_from_db_name(context.twodvsthreed_database)
-
-    return analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    session_id = "250425_0"
+    channel = "A-013"
+    return analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
 class LightnessAnalysis(Analysis):
@@ -60,7 +61,8 @@ class LightnessAnalysis(Analysis):
                 'Texture': ['SHADE', 'SPECULAR', '2D']
             },
             title='2D vs 3D Texture Response Analysis',
-            save_path=f"{self.save_path}/{channel}: lightness_test.png"
+            save_path=f"{self.save_path}/{channel}: lightness_test.png",
+            publish_mode=True,
         )
         # Create and run pipeline with aggregated data
         pipeline = create_pipeline().then(visualize_module).build()

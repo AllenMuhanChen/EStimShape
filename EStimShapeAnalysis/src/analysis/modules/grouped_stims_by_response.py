@@ -305,6 +305,7 @@ class GroupedStimuliPlotter(ComputationModule):
     def compute(self, prepared_data: Dict[str, Any]) -> plt.Figure:
         """
         Compute the visualization from prepared data with separate grids for each subgroup.
+        Ensures all subgroups are properly visible and spaced.
         """
         # Extract data and configuration
         data = prepared_data['data']
@@ -328,49 +329,84 @@ class GroupedStimuliPlotter(ComputationModule):
         # Normalize responses globally
         min_val, max_val = self._normalize_global(data, self.response_col)
 
-        # Create a figure with multiple subplots - one grid per subgroup
-        nrows = len(subgroup_values)
-        ncols = 1  # One column of grids
-
         # Calculate the size for each grid
-        single_grid_height = len(row_values) * self.cell_size[1]
-        single_grid_width = len(col_values) * self.cell_size[0]
+        single_group_height = len(row_values) * self.cell_size[1]
+        single_group_width = len(col_values) * self.cell_size[0]
 
-        # Total figure size
-        fig_height = nrows * (single_grid_height) + 1.5  # Extra space for titles
-        fig_width = single_grid_width + 2  # Extra space for labels
+        # Calculate better vertical spacing for subgroups
+        num_subgroups = len(subgroup_values)
+
+        # Size parameters
+        subgroup_spacing = 1.0  # Space between subgroups in inches
+        title_space = 0.2  # Space for title in inches
+        margin_space = 1.0  # Margin space in inches
+
+        # Calculate total figure height more precisely
+        total_subgroup_height = num_subgroups * single_group_height
+        total_spacing = (num_subgroups - 1) * subgroup_spacing if num_subgroups > 1 else 0
+        fig_height = total_subgroup_height + total_spacing + title_space + margin_space
+
+        # Calculate figure width
+        fig_width = single_group_width + 5  # Extra space for labels and colorbar
 
         # Create figure
         fig = plt.figure(figsize=(fig_width, fig_height))
         if self.title:
-            fig.suptitle(self.title, fontsize=16)
+            fig.suptitle(self.title, fontsize=16, y=0.98)
+
+        # Calculate positions for each subgroup grid
+        # We'll work in figure-relative coordinates, evenly distributing the subgroups
+        subgroup_positions = []
+
+        # Total height available for subgroups (excluding margins)
+        available_height = 0.90  # 90% of figure height
+
+        # Calculate the height for each subgroup as a fraction of figure height
+        subgroup_height_fraction = (single_group_height / fig_height) * 0.9
+        spacing_fraction = (subgroup_spacing / fig_height) * 0.9 if num_subgroups > 1 else 0
+
+        # Calculate positions from bottom to top
+        for i in range(num_subgroups):
+            # Calculate the bottom and top positions for this subgroup
+            # Start from the bottom (0.05) and work up
+            bottom = 0.05 + i * (subgroup_height_fraction + spacing_fraction)
+            top = bottom + subgroup_height_fraction
+            subgroup_positions.append((bottom, top))
+
+        # Flip the list so we go from top to bottom (makes it easier to match with subgroup_values)
+        subgroup_positions.reverse()
 
         # Create one grid for each subgroup
         for sg_idx, subgroup_value in enumerate(subgroup_values):
-            # Calculate safer grid positions
-            total_grids = len(subgroup_values)
-            grid_height = 0.8 / total_grids  # Allow 20% of figure for margins and titles
+            # Get the pre-calculated positions for this subgroup
+            bottom_pos, top_pos = subgroup_positions[sg_idx]
 
-            # Position from top to bottom with fixed spacing
-            top_pos = 0.95 - (sg_idx * (grid_height + 0.05))
-            bottom_pos = top_pos - grid_height
+            # Ensure positions are valid
+            if bottom_pos >= top_pos:
+                print(f"Warning: Invalid positions for subgroup {subgroup_value}: bottom={bottom_pos}, top={top_pos}")
+                bottom_pos = top_pos - 0.1
 
-            # Ensure bottom < top with a minimum separation
-            if bottom_pos >= top_pos - 0.05:
-                bottom_pos = top_pos - 0.05
-
-            # Create a subgrid for this subgroup
             # Adjust grid width to make room for the colorbar if needed
             right_edge = 0.85 if self.include_colorbar else 0.9
-            subgrid = fig.add_gridspec(nrows=len(row_values), ncols=len(col_values),
-                                       left=0.1, bottom=bottom_pos,
-                                       right=right_edge, top=top_pos,
-                                       wspace=0.05, hspace=-0.30)
+            left_edge = 0.2 if hasattr(self, 'include_row_labels') and self.include_row_labels else 0.1
+
+            # Create a subgrid for this subgroup
+            subgrid = fig.add_gridspec(
+                nrows=len(row_values),
+                ncols=len(col_values),
+                left=left_edge,
+                bottom=bottom_pos,
+                right=right_edge,
+                top=top_pos,
+                wspace=0.05,
+                hspace=0.05
+            )
 
             # Add a title for this subgroup's grid
             if subgroup_col and subgroup_value is not None:
                 if self.include_subgroup_labels:
-                    fig.text(0.5, top_pos + 0.02,
+                    # Position the title just above the grid
+                    fig.text(0.5, top_pos + 0.01,
                              f"{subgroup_col}: {subgroup_value}",
                              ha='center', fontsize=14)
 
@@ -395,7 +431,7 @@ class GroupedStimuliPlotter(ComputationModule):
                     # Create subplot for this cell
                     ax = fig.add_subplot(subgrid[row_idx, col_idx])
 
-                    # PLOT THE IMAGE FOR THIS CELL
+                    # Plot the image for this cell
                     self._plot_cell(ax, cell_data, self.response_col, path_col, min_val, max_val)
 
                     # Set column label
@@ -407,19 +443,19 @@ class GroupedStimuliPlotter(ComputationModule):
                     if self.include_row_labels:
                         if col_idx == 0 and row_col and row_value is not None:
                             row_center = (ax.get_position().y0 + ax.get_position().y1) / 2
-                            fig.text(0.09, row_center, f"{row_value}", ha='right', va='center', fontsize=36)
+                            fig.text(0.19, row_center, f"{row_value}", ha='right', va='center', fontsize=36)
 
             # Add colorbar for this subgroup if requested
             if self.include_colorbar:
                 self._add_colorbar(fig, min_val, max_val, bottom_pos, top_pos)
-            # Adjust layout - leave space for colorbar if needed
-        # margin_right = 0.15 if self.include_colorbar else 0.05
-        # plt.tight_layout(rect=[0, 0, 1 - margin_right, 0.96])  # Leave room for main title and colorbar
+
+        # No tight_layout here as it would mess up our carefully positioned elements
         return fig
 
     def _add_colorbar(self, fig, min_val, max_val, bottom_pos, top_pos):
         """
         Add a colorbar legend to the right side of the figure with intelligent positioning.
+        Font sizes scale automatically with the height of the colorbar.
 
         This method creates a colorbar that adapts to the figure layout and positions itself
         properly regardless of the number of subplots.
@@ -445,6 +481,27 @@ class GroupedStimuliPlotter(ComputationModule):
         # Calculate the height - respect the current grid's vertical span
         cbar_height = top_pos - bottom_pos
 
+        # Scale font sizes based on colorbar height
+        # Calculate height in inches for scaling
+        cbar_height_inches = cbar_height * fig_height
+
+        # Base font sizes - scale between min and max values based on height
+        min_fontsize = 8
+        max_fontsize = 14
+        optimal_height = 3.0  # Height in inches where we want the max font size
+
+        # Calculate font scaling factor
+        # For very small colorbars, use min_fontsize
+        # For very large colorbars, cap at max_fontsize
+        # Otherwise, scale linearly
+        font_scale = min(max_fontsize, max(min_fontsize,
+                                           min_fontsize + (
+                                                       max_fontsize - min_fontsize) * cbar_height_inches / optimal_height))
+
+        # Calculate font sizes for different elements
+        tick_fontsize = font_scale
+        label_fontsize = font_scale * 1.2  # Make label slightly larger than ticks
+
         # Create a new axes for the colorbar
         cbar_ax = fig.add_axes([cbar_left, bottom_pos, cbar_width, cbar_height])
 
@@ -462,7 +519,9 @@ class GroupedStimuliPlotter(ComputationModule):
         cbar = ColorbarBase(cbar_ax, cmap=cmap, norm=norm, orientation='vertical')
 
         # Generate Ticks
-        n_ticks = 5  # Number of ticks to display
+        # Adjust number of ticks based on height (more ticks for taller colorbars)
+        optimal_tick_spacing = 0.5  # inches between ticks
+        n_ticks = max(3, min(7, int(cbar_height_inches / optimal_tick_spacing) + 1))
         tick_values = np.linspace(min_val, max_val, n_ticks)
 
         # Set the ticks directly using the actual values
@@ -473,6 +532,9 @@ class GroupedStimuliPlotter(ComputationModule):
         tick_labels = [f'{val:.2f}' for val in tick_values]
         cbar.set_ticklabels(tick_labels)
 
+        # Apply font size to tick labels
+        cbar.ax.tick_params(labelsize=tick_fontsize)
+
         # For divergent colormap, add a line at the center
         if self.color_mode == 'divergent':
             center_point = (min_val + max_val) / 2
@@ -480,8 +542,8 @@ class GroupedStimuliPlotter(ComputationModule):
                 # Add center line - use the actual value, ColorbarBase will normalize it
                 cbar.ax.axhline(y=center_point, color='black', linestyle='-', linewidth=0.5)
 
-        # Add label with rotation for better layout
-        cbar_ax.set_ylabel('Response', rotation=270, labelpad=15)
+        # Add label with rotation for better layout (with scaled font size)
+        cbar_ax.set_ylabel('Response', rotation=270, labelpad=15, fontsize=label_fontsize)
 
     def calculate_dynamic_figsize(self, data, row_col, col_col, cell_size=(2, 2), margin=0.5):
         # Get number of unique row and column values
