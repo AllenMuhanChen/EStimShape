@@ -12,6 +12,7 @@ import pandas as pd
 import numpy as np
 from typing import List, Tuple, Optional
 
+
 def main():
     channel = None
     session_id, _ = read_session_id_from_db_name(context.isogabor_database)
@@ -25,7 +26,6 @@ def main():
 class IsogaborPSTHAnalysis(Analysis):
 
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
-
         if compiled_data is None:
             compiled_data = import_from_repository(
                 self.session_id,
@@ -60,6 +60,7 @@ class IsogaborPSTHAnalysis(Analysis):
 
     def compile(self):
         isogabor_raster_pipeline.compile()
+
 
 def compute_and_plot_psth(
         compiled_data: pd.DataFrame,
@@ -150,7 +151,6 @@ def compute_and_plot_psth(
     global_y_max = max(max_avg_rates) * 1.2  # Add 20% padding
     global_y_min = min(min_avg_rates)
 
-
     # Create figure with subplots
     n_rows = len(frequencies)
     fig, axes = plt.subplots(n_rows, 2, figsize=(16, 10), sharex=True)
@@ -218,6 +218,7 @@ def compute_and_plot_psth(
 
     return fig
 
+
 def process_and_plot_color_group(
         freq_data, color_list, channel, spike_tstamps_col,
         bins, bin_centers, bin_size, ax, colors
@@ -282,6 +283,6 @@ def process_and_plot_color_group(
     # Add legend
     ax.legend()
 
+
 if __name__ == "__main__":
     main()
-

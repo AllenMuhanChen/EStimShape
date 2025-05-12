@@ -14,7 +14,6 @@ from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField, GenIdField
-from src.analysis.ga.side_test import clean_ga_data
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
 from src.analysis.modules.grouped_rasters import create_grouped_raster_module
@@ -237,3 +236,13 @@ def get_top_n_lineages(data, n):
 
 if __name__ == "__main__":
     main()
+
+
+def clean_ga_data(data_for_all_tasks):
+    # Remove trials with no response
+    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['GA Response'].notna()]
+    # Remove NaNs
+    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['StimSpecId'].notna()]
+    # Remove Catch
+    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['ThumbnailPath'].apply(lambda x: x is not None)]
+    return data_for_all_tasks

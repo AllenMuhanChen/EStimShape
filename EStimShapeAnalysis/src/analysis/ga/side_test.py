@@ -9,7 +9,9 @@ from clat.util.connection import Connection
 from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, ParentIdField
+from src.analysis.ga.plot_top_n import add_lineage_rank_to_df, clean_ga_data
 from src.analysis.modules.grouped_rasters import create_grouped_raster_module
+from src.analysis.modules.grouped_rsth import create_grouped_psth_module
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module, SortingUtils
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
@@ -43,6 +45,8 @@ class SideTestAnalysis(Analysis):
                 "2Dvs3DStimInfo",
                 self.response_table
             )
+
+        # STIMS with RESPONSE for SIDE TEST
         visualize_module = create_grouped_stimuli_module(
             response_rate_col=self.spike_rates_col,
             response_rate_key=channel,
@@ -60,7 +64,9 @@ class SideTestAnalysis(Analysis):
             save_path=f"{self.save_path}/{channel}: 2dvs3d.png",
             publish_mode=True,
         )
+        plot_branch = create_branch().then(visualize_module)
 
+        # RASTERS for SIDE TEST
         raster_module = create_grouped_raster_module(
             primary_group_col='TestType',
             secondary_group_col='TestId',
@@ -69,11 +75,28 @@ class SideTestAnalysis(Analysis):
             title=f'2D vs 3D Rasters: {channel}',
             save_path=f"{self.save_path}/{channel}: 2dvs3d_rasters.png",
         )
-        # Create and run pipeline with aggregated data
-        plot_branch = create_branch().then(visualize_module)
         raster_branch = create_branch().then(raster_module)
+
+
+        # PSTH MODULE
+        psth_module = create_grouped_psth_module(
+            primary_group_col='TestType',
+            secondary_group_col='TestId',
+            spike_data_col=self.spike_tstamps_col,
+            spike_data_col_key=channel,
+            time_window=(-0.2, 0.5),
+            bin_size=0.025,
+            colors= {
+                "2D": "blue",
+                "3D": "red",
+            },
+            title=f'2D vs 3D PSTH: {channel}',
+            save_path=f"{self.save_path}/{channel}: 2dvs3d_psth.png",
+        )
+        psth_branch = create_branch().then(psth_module)
+
         pipeline = create_pipeline().make_branch(
-            plot_branch, raster_branch
+            plot_branch, raster_branch, psth_branch
         ).build()
         result = pipeline.run(compiled_data)
         # Show the figure
@@ -135,16 +158,6 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     data = fields.to_data(task_ids)
 
     return data
-
-
-def clean_ga_data(data_for_all_tasks):
-    # Remove trials with no response
-    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['GA Response'].notna()]
-    # Remove NaNs
-    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['StimSpecId'].notna()]
-    # Remove Catch
-    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['ThumbnailPath'].apply(lambda x: x is not None)]
-    return data_for_all_tasks
 
 
 def organize_data(data_for_stim_ids):

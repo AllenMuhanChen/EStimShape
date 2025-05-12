@@ -6,13 +6,15 @@ from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.util.connection import Connection
 from clat.compile.task.compile_task_id import TaskIdCollector
 from src.analysis import Analysis
-from src.analysis.isogabor.isogabor_psth import compute_and_plot_psth
 from src.analysis.modules.grouped_rasters import create_grouped_raster_module
+from src.analysis.modules.grouped_rsth import create_grouped_psth_module
+
 from src.intan.MultiFileParser import MultiFileParser
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 from src.analysis.isogabor.old_isogabor_analysis import TypeField, FrequencyField, IntanSpikesByChannelField, \
     EpochStartStopTimesField, IsoTypeField, IntanSpikeRateByChannelField
+
 # Import our pipeline framework
 from clat.pipeline.pipeline_base_classes import (
     create_pipeline, create_branch
@@ -21,12 +23,14 @@ from src.repository.export_to_repository import export_to_repository, read_sessi
 
 
 def main():
-    channel = "A-011"
-    session_id, _ = read_session_id_from_db_name(context.isogabor_database)
-    compiled_data = compile()
+    # channel = "A-011"
+    # session_id, _ = read_session_id_from_db_name(context.isogabor_database)
+    # compiled_data = compile()
 
+    session_id = "250425_0"
+    channel = "A-017"
     analysis = IsogaborAnalysis()
-    return analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    return analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
 class IsogaborAnalysis(Analysis):
@@ -39,11 +43,10 @@ class IsogaborAnalysis(Analysis):
                 self.response_table,
             )
             print(compiled_data.columns)
-            # ----------------
-            # STEP 2: Create and run the analysis pipeline
-            # ----------------
-            # For the isochromatic/isoluminant example:
 
+        # ----------------
+        # STEP 1: Create raster plot modules
+        # ----------------
         grouped_raster_module = create_grouped_raster_module(
             primary_group_col='Type',
             secondary_group_col='Frequency',
@@ -55,6 +58,7 @@ class IsogaborAnalysis(Analysis):
             title=f"Color Experiment: {channel}",
             save_path=f"{self.save_path}/{channel}: color_experiment.png",
         )
+
         grouped_raster_by_isotype_module = create_grouped_raster_module(
             primary_group_col='IsoType',
             secondary_group_col='Type',
@@ -63,28 +67,69 @@ class IsogaborAnalysis(Analysis):
             filter_values={
                 'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
             },
-            title=f"Color Experiment: {channel}",
+            title=f"Color Experiment by Type: {channel}",
             save_path=f"{self.save_path}/{channel}: color_experiment_by_isotype.png",
-
         )
-        # Create a simple pipeline
+
+        # ----------------
+        # STEP 2: Create PSTH module
+        # ----------------
+        # Define color scheme for PSTH plots
+        color_map = {
+            'Red': 'red',
+            'Green': 'green',
+            'RedGreen': 'darkred',
+            'Cyan': 'cyan',
+            'Orange': 'orange',
+            'CyanOrange': 'teal'
+        }
+
+        # Explicitly group the color types into two columns
+        column_groups = {
+            0: ['Red', 'Green', 'RedGreen'],  # Left column: warm colors
+            1: ['Cyan', 'Orange', 'CyanOrange']  # Right column: cool colors
+        }
+
+        # Define column titles
+        column_titles = [
+            "Red/Green/RedGreen",
+            "Cyan/Orange/CyanOrange"
+        ]
+
+        # Create the PSTH module with explicit column grouping
+        psth_module = create_grouped_psth_module(
+            primary_group_col='Type',
+            secondary_group_col='Frequency',
+            filter_values={
+                'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
+            },
+            spike_data_col=self.spike_tstamps_col,
+            spike_data_col_key=channel,
+            time_window=(-0.2, 0.5),
+            bin_size=0.025,
+            column_groups=column_groups,  # Specify explicit column grouping
+            colors=color_map,
+            show_std=False,  # Set to True if you want to show standard deviation
+            title=f"Peristimulus Time Histogram: Channel {channel}",
+            col_titles=column_titles,
+            save_path=f"{self.save_path}/{channel}: color_experiment_psth.png"
+        )
+
+        # ----------------
+        # STEP 3: Create and run the pipeline
+        # ----------------
         raster_branch = create_branch().then(grouped_raster_module)
         raster_by_isotype_branch = create_branch().then(grouped_raster_by_isotype_module)
-        pipeline = create_pipeline().make_branch(raster_branch, raster_by_isotype_branch).build()
+        psth_branch = create_branch().then(psth_module)
+
+        pipeline = create_pipeline().make_branch(
+            raster_branch,
+            raster_by_isotype_branch,
+            psth_branch
+        ).build()
+
         # Run the pipeline
         result = pipeline.run(compiled_data)
-        # Show the figure
-
-        # Calculate and plot PSTH
-        psth_fig = compute_and_plot_psth(
-            compiled_data=compiled_data,
-            channel=channel,
-            spike_tstamps_col=self.spike_tstamps_col,
-            save_path=f"{self.save_path}/{channel}: color_experiment_psth.png",
-            bin_size=0.025,  # 10ms bins
-            time_window=(-0.2, 0.5),  # 0 to 500ms
-            # frequency_to_include=frequencies
-        )
 
         plt.show()
         return result
@@ -94,7 +139,6 @@ class IsogaborAnalysis(Analysis):
 
     def compile(self):
         compile()
-
 
 
 def compile_and_export():
