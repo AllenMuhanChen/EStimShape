@@ -15,6 +15,58 @@ from clat.pipeline.pipeline_base_classes import (
 from src.analysis.modules.figure_output import FigureSaverOutput
 
 
+def create_grouped_raster_module(
+        primary_group_col: str,
+        secondary_group_col: Optional[str] = None,
+        filter_values: Optional[Dict[str, List[Any]]] = None,
+        spike_data_col: str = 'Spikes by Channel',
+        spike_data_col_key: str = None,
+        equal_group_heights: bool = False,
+        figsize: Tuple[float, float] = (15, 10),
+        time_range: Tuple[float, float] = (-0.2, 0.7),
+        save_path: Optional[str] = None,
+        title: Optional[str] = None,
+) -> AnalysisModule:
+    """
+    Create a pipeline for grouped raster plots.
+
+    The order of plots will match the order specified in filter_values if provided.
+
+    Args:
+        primary_group_col: The main column to group by (creates separate subplots)
+        secondary_group_col: Optional column for subgrouping within each primary group
+        filter_values: Optional dict mapping column names to lists of values to include
+        spike_data_col: Column containing the spike timestamp dictionaries
+        equal_group_heights: If True, all groups get equal height
+        figsize: Figure size (width, height) in inches
+        time_range: Time range to display (min, max) in seconds
+        save_path: Optional path to save the figure
+
+    Returns:
+        Configured analysis pipeline
+    """
+    # Create the raster plot module
+    raster_plot_module = AnalysisModuleFactory.create(
+        input_handler=GroupedRasterInputHandler(
+            primary_group_col=primary_group_col,
+            secondary_group_col=secondary_group_col,
+            filter_values=filter_values,
+            spike_data_col=spike_data_col,
+            spike_data_col_key=spike_data_col_key
+        ),
+        computation=GroupedRasterPlotter(
+            equal_group_heights=equal_group_heights,
+            figsize=figsize,
+            time_range=time_range,
+            title=title
+        ),
+        output_handler=FigureSaverOutput(
+            save_path=save_path
+        ),
+        name="grouped_raster_plot"
+    )
+
+    return raster_plot_module
 class GroupedRasterInputHandler(InputHandler):
     """
     Input handler that filters and prepares data for raster plot visualization.
@@ -336,55 +388,3 @@ class GroupedRasterOutput(OutputHandler):
         return figure
 
 
-def create_grouped_raster_module(
-        primary_group_col: str,
-        secondary_group_col: Optional[str] = None,
-        filter_values: Optional[Dict[str, List[Any]]] = None,
-        spike_data_col: str = 'Spikes by Channel',
-        spike_data_col_key: str = None,
-        equal_group_heights: bool = False,
-        figsize: Tuple[float, float] = (15, 10),
-        time_range: Tuple[float, float] = (-0.2, 0.7),
-        save_path: Optional[str] = None,
-        title: Optional[str] = None
-) -> AnalysisModule:
-    """
-    Create a pipeline for grouped raster plots.
-
-    The order of plots will match the order specified in filter_values if provided.
-
-    Args:
-        primary_group_col: The main column to group by (creates separate subplots)
-        secondary_group_col: Optional column for subgrouping within each primary group
-        filter_values: Optional dict mapping column names to lists of values to include
-        spike_data_col: Column containing the spike timestamp dictionaries
-        equal_group_heights: If True, all groups get equal height
-        figsize: Figure size (width, height) in inches
-        time_range: Time range to display (min, max) in seconds
-        save_path: Optional path to save the figure
-
-    Returns:
-        Configured analysis pipeline
-    """
-    # Create the raster plot module
-    raster_plot_module = AnalysisModuleFactory.create(
-        input_handler=GroupedRasterInputHandler(
-            primary_group_col=primary_group_col,
-            secondary_group_col=secondary_group_col,
-            filter_values=filter_values,
-            spike_data_col=spike_data_col,
-            spike_data_col_key=spike_data_col_key
-        ),
-        computation=GroupedRasterPlotter(
-            equal_group_heights=equal_group_heights,
-            figsize=figsize,
-            time_range=time_range,
-            title=title
-        ),
-        output_handler=FigureSaverOutput(
-            save_path=save_path
-        ),
-        name="grouped_raster_plot"
-    )
-
-    return raster_plot_module

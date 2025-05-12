@@ -28,8 +28,8 @@ def main():
     if channel is None:
         channel = read_cluster_channels(session_id)[0]
 
-    session_id = "250427_0"
-    channel = "A-018"
+    session_id = "250425_0"
+    channel = "A-013"
     analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
@@ -58,6 +58,7 @@ class SideTestAnalysis(Analysis):
             },
             title=f'2D vs 3D Test: {channel}',
             save_path=f"{self.save_path}/{channel}: 2dvs3d.png",
+            publish_mode=True,
         )
 
         raster_module = create_grouped_raster_module(

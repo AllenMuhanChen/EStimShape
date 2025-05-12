@@ -5,12 +5,114 @@ from PIL import Image, ImageOps
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 
+from matplotlib.colorbar import ColorbarBase
+from matplotlib.colors import LinearSegmentedColormap, Normalize
+
 # Import our pipeline framework
 from clat.pipeline.pipeline_base_classes import (
     InputHandler, ComputationModule, AnalysisModule,
     AnalysisModuleFactory
 )
 from src.analysis.modules.figure_output import FigureSaverOutput
+
+
+def create_grouped_stimuli_module(
+        response_rate_col: str,
+        path_col: str,
+        response_rate_key: str = None,
+        row_col: Optional[str] = None,
+        col_col: Optional[str] = None,
+        subgroup_col: Optional[str] = None,
+        filter_values: Optional[Dict[str, List[Any]]] = None,
+        sort_rules: Optional[Dict[str, Any]] = None,
+        figsize: Tuple[float, float] = (15, 10),
+        cell_size: Tuple[float, float] = (3, 3),
+        border_width: int = 40,
+        normalize_method: str = 'global',
+        min_response: Optional[float] = None,
+        max_response: Optional[float] = None,
+        color_mode: str = 'intensity',
+        title: Optional[str] = None,
+        save_path: Optional[str] = None,
+        cols_in_info_box=None,
+        publish_mode: bool = False,
+) -> AnalysisModule:
+    """
+    Create a pipeline module for visualizing grouped stimuli with colored borders.
+
+    Args:
+        response_rate_col: Column containing response values
+        path_col: Column containing paths to stimulus images
+        response_rate_key: Optional key to extract if response_rate_col contains dictionaries
+        row_col: Column for grouping stimuli into rows
+        col_col: Column for grouping stimuli into columns
+        subgroup_col: Column for subgrouping stimuli
+        filter_values: Dict mapping column names to lists of values to include
+        sort_rules: Optional dict for sorting values (see GroupedStimuliInputHandler docs)
+        figsize: Figure size (width, height) in inches
+        cell_size: Size of each cell (width, height) in inches
+        border_width: Width of colored border in pixels
+        normalize_method: Method for normalizing response values ('global')
+        min_response: Optional minimum response value for normalization
+        max_response: Optional maximum response value for normalization
+        color_mode: Color mode for borders ('intensity' or 'divergent')
+        title: Optional title for the figure
+        save_path: Optional path to save the figure
+        cols_in_info_box: Columns to include in the info box (if publish_mode is False)
+        publish_mode: If True, use publication mode to make certain asthetic changes, remove certain labels and save as
+            a svg file. Warning, may overwrite some parameters.
+
+    Returns:
+        Configured analysis module
+    """
+    # Initialize mutable default parameters
+    if cols_in_info_box is None:
+        cols_in_info_box = ["Response", "StimSpecId"]
+
+    # If publish_mode is True, override certain parameters
+    if publish_mode:
+        save_svg = True
+        cols_in_info_box = []
+        border_width = 60
+        include_colorbar = True
+        include_labels_for = {"row"}
+    else:
+        save_svg = False
+        include_colorbar = False
+        include_labels_for = {"row", "col", "subgroup"}
+
+    grouped_stimuli_module = AnalysisModuleFactory.create(
+        input_handler=GroupedStimuliInputHandler(
+            response_col=response_rate_col,
+            response_key=response_rate_key,
+            path_col=path_col,
+            row_col=row_col,
+            col_col=col_col,
+            subgroup_col=subgroup_col,
+            filter_values=filter_values,
+            sort_rules=sort_rules
+        ),
+        computation=GroupedStimuliPlotter(
+            figsize=figsize,
+            cell_size=cell_size,
+            border_width=border_width,
+            normalize_method=normalize_method,
+            min_response=min_response,
+            max_response=max_response,
+            color_mode=color_mode,
+            title=title,
+            info_box_columns=cols_in_info_box,
+            include_colorbar=include_colorbar,
+            include_labels_for=include_labels_for,
+        ),
+        output_handler=FigureSaverOutput(
+            save_path=save_path,
+            save_svg=save_svg
+        ),
+        name="grouped_stimuli_visualization"
+    )
+
+    return grouped_stimuli_module
 
 
 class GroupedStimuliInputHandler(InputHandler):
@@ -176,10 +278,16 @@ class GroupedStimuliPlotter(ComputationModule):
                  min_response: Optional[float] = None,
                  max_response: Optional[float] = None,
                  color_mode: str = 'intensity',
-                 title: Optional[str] = None):
+                 title: Optional[str] = None,
+                 info_box_columns=None,
+                 include_colorbar: bool = False,
+                 include_labels_for: Optional[set[str]] = None,
+                 ):
         """
         Initialize the grouped stimuli visualization module.
         """
+        if info_box_columns is None:
+            info_box_columns = ['Response', 'StimSpecId']
         self.figsize = figsize
         self.cell_size = cell_size
         self.border_width = border_width
@@ -188,6 +296,11 @@ class GroupedStimuliPlotter(ComputationModule):
         self.max_response = max_response
         self.color_mode = color_mode
         self.title = title
+        self.info_box_columns = info_box_columns
+        self.include_colorbar = include_colorbar
+        self.include_col_labels = "col" in include_labels_for
+        self.include_row_labels = "row" in include_labels_for
+        self.include_subgroup_labels = "subgroup" in include_labels_for
 
     def compute(self, prepared_data: Dict[str, Any]) -> plt.Figure:
         """
@@ -195,7 +308,7 @@ class GroupedStimuliPlotter(ComputationModule):
         """
         # Extract data and configuration
         data = prepared_data['data']
-        response_col = prepared_data['response_col']
+        self.response_col = prepared_data['response_col']
         path_col = prepared_data['path_col']
         row_col = prepared_data['row_col']
         col_col = prepared_data['col_col']
@@ -213,7 +326,7 @@ class GroupedStimuliPlotter(ComputationModule):
             subgroup_values = [None]
 
         # Normalize responses globally
-        min_val, max_val = self._normalize_global(data, response_col)
+        min_val, max_val = self._normalize_global(data, self.response_col)
 
         # Create a figure with multiple subplots - one grid per subgroup
         nrows = len(subgroup_values)
@@ -247,20 +360,21 @@ class GroupedStimuliPlotter(ComputationModule):
                 bottom_pos = top_pos - 0.05
 
             # Create a subgrid for this subgroup
-
+            # Adjust grid width to make room for the colorbar if needed
+            right_edge = 0.85 if self.include_colorbar else 0.9
             subgrid = fig.add_gridspec(nrows=len(row_values), ncols=len(col_values),
                                        left=0.1, bottom=bottom_pos,
-                                       right=0.9, top=top_pos,
+                                       right=right_edge, top=top_pos,
                                        wspace=0.05, hspace=-0.30)
 
             # Add a title for this subgroup's grid
             if subgroup_col and subgroup_value is not None:
-                fig.text(0.5, top_pos + 0.02,
-                         f"{subgroup_col}: {subgroup_value}",
-                         ha='center', fontsize=14)
+                if self.include_subgroup_labels:
+                    fig.text(0.5, top_pos + 0.02,
+                             f"{subgroup_col}: {subgroup_value}",
+                             ha='center', fontsize=14)
 
             # Plot each cell in this grid - order of data in row_values and col_values matters
-            bboxs_for_rows = []
             for row_idx, row_value in enumerate(row_values):
                 for col_idx, col_value in enumerate(col_values):
                     # Filter data for this specific cell
@@ -281,24 +395,94 @@ class GroupedStimuliPlotter(ComputationModule):
                     # Create subplot for this cell
                     ax = fig.add_subplot(subgrid[row_idx, col_idx])
 
-                    print(f"Subplot position: {ax.get_position()}")
-                    # Plot the image for this cell
-                    self._plot_cell(ax, cell_data, response_col, path_col, min_val, max_val)
+                    # PLOT THE IMAGE FOR THIS CELL
+                    self._plot_cell(ax, cell_data, self.response_col, path_col, min_val, max_val)
 
                     # Set column label
-                    if row_idx == 0 and col_col:
-                        ax.set_title(f"{col_col}: {col_value}", fontsize=10, pad=0)
+                    if self.include_col_labels:
+                        if row_idx == 0 and col_col:
+                            ax.set_title(f"{col_value}", fontsize=10, pad=0)
 
                     # Add row label
-                    if col_idx == 0 and row_col and row_value is not None:
-                        row_center = (ax.get_position().y0 + ax.get_position().y1) / 2
-                        fig.text(0.09, row_center, f"{row_value}", ha='right', va='center', fontsize=12)
+                    if self.include_row_labels:
+                        if col_idx == 0 and row_col and row_value is not None:
+                            row_center = (ax.get_position().y0 + ax.get_position().y1) / 2
+                            fig.text(0.09, row_center, f"{row_value}", ha='right', va='center', fontsize=36)
 
-
-
+            # Add colorbar for this subgroup if requested
+            if self.include_colorbar:
+                self._add_colorbar(fig, min_val, max_val, bottom_pos, top_pos)
+            # Adjust layout - leave space for colorbar if needed
+        # margin_right = 0.15 if self.include_colorbar else 0.05
+        # plt.tight_layout(rect=[0, 0, 1 - margin_right, 0.96])  # Leave room for main title and colorbar
         return fig
 
-    # Calculate dynamic figure size based on data grid dimensions
+    def _add_colorbar(self, fig, min_val, max_val, bottom_pos, top_pos):
+        """
+        Add a colorbar legend to the right side of the figure with intelligent positioning.
+
+        This method creates a colorbar that adapts to the figure layout and positions itself
+        properly regardless of the number of subplots.
+
+        Args:
+            fig: The matplotlib figure
+            min_val: Minimum response value for the colorbar
+            max_val: Maximum response value for the colorbar
+            bottom_pos: Bottom position of the current subplot grid
+            top_pos: Top position of the current subplot grid
+        """
+        # Get figure dimensions
+        fig_width, fig_height = fig.get_size_inches()
+
+        # Calculate appropriate positioning
+        # Width should be proportional to figure width but not too large
+        cbar_width = max(0.010, min(0.03, 0.6 / fig_width))
+
+        # Position - leave some space from the right edge of the main grid
+        right_margin = 0.025  # Space between main content and colorbar
+        cbar_left = 0.85 + right_margin
+
+        # Calculate the height - respect the current grid's vertical span
+        cbar_height = top_pos - bottom_pos
+
+        # Create a new axes for the colorbar
+        cbar_ax = fig.add_axes([cbar_left, bottom_pos, cbar_width, cbar_height])
+
+        # Create a colormap based on the color mode
+        if self.color_mode == 'intensity':
+            # Red scale intensity colormap - start with black for zero/low values
+            # to match the border coloring logic
+            cmap = LinearSegmentedColormap.from_list('intensity', [(0, 0, 0), (1, 0, 0)])
+        else:  # 'divergent'
+            # Red for positive, blue for negative colormap
+            cmap = LinearSegmentedColormap.from_list('divergent', [(0, 0, 1), (1, 1, 1), (1, 0, 0)])
+
+        # Create the colorbar with normalized values
+        norm = Normalize(vmin=min_val, vmax=max_val)
+        cbar = ColorbarBase(cbar_ax, cmap=cmap, norm=norm, orientation='vertical')
+
+        # Generate Ticks
+        n_ticks = 5  # Number of ticks to display
+        tick_values = np.linspace(min_val, max_val, n_ticks)
+
+        # Set the ticks directly using the actual values
+        # This uses the normalization built into the colorbar
+        cbar.set_ticks(tick_values)
+
+        # Format tick labels with proper precision
+        tick_labels = [f'{val:.2f}' for val in tick_values]
+        cbar.set_ticklabels(tick_labels)
+
+        # For divergent colormap, add a line at the center
+        if self.color_mode == 'divergent':
+            center_point = (min_val + max_val) / 2
+            if min_val < center_point < max_val:
+                # Add center line - use the actual value, ColorbarBase will normalize it
+                cbar.ax.axhline(y=center_point, color='black', linestyle='-', linewidth=0.5)
+
+        # Add label with rotation for better layout
+        cbar_ax.set_ylabel('Response', rotation=270, labelpad=15)
+
     def calculate_dynamic_figsize(self, data, row_col, col_col, cell_size=(2, 2), margin=0.5):
         # Get number of unique row and column values
         n_rows = data[row_col].nunique()
@@ -362,10 +546,15 @@ class GroupedStimuliPlotter(ComputationModule):
                 img_with_border = self._add_colored_border(img, response, min_val, max_val)
                 ax.imshow(img_with_border)
 
+                # Text box with various information
+                info_text = ""
 
-                # Add response text
-                ax.text(0.5, 0.95, f"Response: {response:.2f} ± {std:.2f} ({n})\n"
-                                   f"Id: {cell_data.iloc[0]['StimSpecId']}",
+                for column_name in self.info_box_columns:
+                    if column_name in ["Response", self.response_col]:
+                        info_text += f"Response: {response:.2f} ± {std:.2f} ({n})"
+                    if column_name in cell_data.columns:
+                        info_text += f"\n{column_name}: {cell_data.iloc[0][column_name]}"
+                ax.text(0.5, 0.95, info_text,
                         transform=ax.transAxes, ha='center', va='top',
                         color='black', fontsize=8, bbox=dict(facecolor='white', alpha=0.7))
 
@@ -375,81 +564,6 @@ class GroupedStimuliPlotter(ComputationModule):
             ax.text(0.5, 0.5, "Image not found", ha='center', va='center')
 
         ax.axis('off')
-
-
-def create_grouped_stimuli_module(
-        response_rate_col: str,
-        path_col: str,
-        response_rate_key: str = None,
-        row_col: Optional[str] = None,
-        col_col: Optional[str] = None,
-        subgroup_col: Optional[str] = None,
-        filter_values: Optional[Dict[str, List[Any]]] = None,
-        sort_rules: Optional[Dict[str, Any]] = None,
-        figsize: Tuple[float, float] = (15, 10),
-        cell_size: Tuple[float, float] = (3, 3),
-        border_width: int = 40,
-        normalize_method: str = 'global',
-        min_response: Optional[float] = None,
-        max_response: Optional[float] = None,
-        color_mode: str = 'intensity',
-        title: Optional[str] = None,
-        save_path: Optional[str] = None
-) -> AnalysisModule:
-    """
-    Create a pipeline module for visualizing grouped stimuli with colored borders.
-
-    Args:
-        response_rate_col: Column containing response values
-        path_col: Column containing paths to stimulus images
-        response_rate_key: Optional key to extract if response_rate_col contains dictionaries
-        row_col: Column for grouping stimuli into rows
-        col_col: Column for grouping stimuli into columns
-        subgroup_col: Column for subgrouping stimuli
-        filter_values: Dict mapping column names to lists of values to include
-        sort_rules: Optional dict for sorting values (see GroupedStimuliInputHandler docs)
-        figsize: Figure size (width, height) in inches
-        cell_size: Size of each cell (width, height) in inches
-        border_width: Width of colored border in pixels
-        normalize_method: Method for normalizing response values ('global')
-        min_response: Optional minimum response value for normalization
-        max_response: Optional maximum response value for normalization
-        color_mode: Color mode for borders ('intensity' or 'divergent')
-        title: Optional title for the figure
-        save_path: Optional path to save the figure
-
-    Returns:
-        Configured analysis module
-    """
-    # Create the grouped stimuli module
-    grouped_stimuli_module = AnalysisModuleFactory.create(
-        input_handler=GroupedStimuliInputHandler(
-            response_col=response_rate_col,
-            response_key=response_rate_key,
-            path_col=path_col,
-            row_col=row_col,
-            col_col=col_col,
-            subgroup_col=subgroup_col,
-            filter_values=filter_values,
-            sort_rules=sort_rules
-        ),
-        computation=GroupedStimuliPlotter(
-            figsize=figsize,
-            cell_size=cell_size,
-            border_width=border_width,
-            normalize_method=normalize_method,
-            min_response=min_response,
-            max_response=max_response,
-            color_mode=color_mode,
-            title=title
-        ),
-        output_handler=FigureSaverOutput(
-            save_path=save_path
-        ),
-        name="grouped_stimuli_visualization"
-    )
-
-    return grouped_stimuli_module
 
 
 class SortingUtils:
