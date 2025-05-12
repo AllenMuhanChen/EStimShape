@@ -24,7 +24,7 @@ class GroupedPSTHInputHandler(InputHandler):
                  primary_group_col: str,
                  secondary_group_col: Optional[str] = None,
                  filter_values: Optional[Dict[str, List[Any]]] = None,
-                 spike_data_col: str = 'Spikes by Channel',
+                 spike_data_col: str = None,
                  spike_data_col_key: Optional[str] = None,
                  column_groups: Optional[Dict[int, List[Any]]] = None,
                  sort_rules: Optional[Dict[str, Any]] = None):
@@ -541,7 +541,8 @@ def create_grouped_psth_module(
         secondary_group_labels: Optional[Dict[str, str]] = None,
         save_path: Optional[str] = None,
         save_svg: bool = False,
-        sort_rules: Optional[Dict[str, Any]] = None
+        sort_rules: Optional[Dict[str, Any]] = None,
+        publish_mode: bool = False,
 ) -> AnalysisModule:
     """
     Create a pipeline module for grouped PSTH visualization.
@@ -575,6 +576,9 @@ def create_grouped_psth_module(
     Returns:
         Configured analysis module
     """
+    if publish_mode:
+        save_svg = True
+
     # Create the PSTH module
     psth_module = AnalysisModuleFactory.create(
         input_handler=GroupedPSTHInputHandler(

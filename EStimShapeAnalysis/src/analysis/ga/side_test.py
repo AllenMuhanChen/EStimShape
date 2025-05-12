@@ -95,6 +95,8 @@ class SideTestAnalysis(Analysis):
             },
             title=f'2D vs 3D PSTH: {channel}',
             save_path=f"{self.save_path}/{channel}: 2dvs3d_psth.png",
+            figsize=(8, 10),
+            publish_mode=True,
         )
         psth_branch = create_branch().then(psth_module)
 
@@ -113,6 +115,8 @@ class SideTestAnalysis(Analysis):
             },
             title=f'2D vs 3D PSTH Examples: {channel}',
             save_path=f"{self.save_path}/{channel}: 2dvs3d_psth_examples.png",
+            cols_in_info_box=[],
+            publish_mode=True,
         )
         psth_examples_branch = create_branch().then(psth_examples)
 

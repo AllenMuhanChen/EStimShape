@@ -92,8 +92,8 @@ class IsogaborAnalysis(Analysis):
 
         # Define column titles
         column_titles = [
-            "Red/Green/RedGreen",
-            "Cyan/Orange/CyanOrange"
+            "Red / Green",
+            "Cyan / Orange"
         ]
 
         # Create the PSTH module with explicit column grouping
