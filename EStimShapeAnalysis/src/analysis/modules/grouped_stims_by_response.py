@@ -1,17 +1,16 @@
-import os
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from PIL import Image, ImageOps
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple, Union, Callable
+from typing import Dict, List, Any, Optional, Tuple
 
 # Import our pipeline framework
 from clat.pipeline.pipeline_base_classes import (
-    InputHandler, ComputationModule, OutputHandler, AnalysisModule,
+    InputHandler, ComputationModule, AnalysisModule,
     AnalysisModuleFactory
 )
+from src.analysis.modules.figure_output import FigureSaverOutput
 
 
 class GroupedStimuliInputHandler(InputHandler):
@@ -376,32 +375,6 @@ class GroupedStimuliPlotter(ComputationModule):
             ax.text(0.5, 0.5, "Image not found", ha='center', va='center')
 
         ax.axis('off')
-
-
-class FigureSaverOutput(OutputHandler):
-    """
-    Output handler that handles saving the figure.
-    """
-
-    def __init__(self, save_path: Optional[str] = None):
-        """
-        Initialize the output handler.
-        """
-        self.save_path = save_path
-
-    def process(self, figure: plt.Figure) -> plt.Figure:
-        """
-        Process the figure (save if requested).
-        """
-        # Save if requested
-        if self.save_path:
-            # if parent directory does not exist, create it
-            if not os.path.exists(os.path.dirname(self.save_path)):
-                print(f"Creating directory for {self.save_path}...")
-                os.makedirs(os.path.dirname(self.save_path), exist_ok=True)
-            figure.savefig(self.save_path, dpi=300, bbox_inches='tight')
-
-        return figure
 
 
 def create_grouped_stimuli_module(

@@ -12,7 +12,7 @@ from clat.pipeline.pipeline_base_classes import (
     AnalysisPipeline, create_pipeline, create_branch,
     AnalysisModuleFactory
 )
-from src.analysis.modules.grouped_stims_by_response import FigureSaverOutput
+from src.analysis.modules.figure_output import FigureSaverOutput
 
 
 class GroupedRasterInputHandler(InputHandler):
