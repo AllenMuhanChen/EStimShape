@@ -46,7 +46,7 @@ def create_plotly_grouped_stimuli_module(
         cols_in_info_box=None,
         publish_mode: bool = False,
         include_labels_for=None,
-) -> AnalysisModule:
+        subplot_spacing=None) -> AnalysisModule:
     """
     Create a pipeline module for visualizing grouped stimuli with colored borders using Plotly.
 
@@ -116,6 +116,7 @@ def create_plotly_grouped_stimuli_module(
             info_box_columns=cols_in_info_box,
             include_colorbar=include_colorbar,
             include_labels_for=include_labels_for,
+            subplot_spacing=subplot_spacing,
         ),
         output_handler=PlotlyFigureSaverOutput(
             save_path=save_path,
@@ -261,7 +262,7 @@ class PlotlyGroupedStimuliPlotter(ComputationModule):
 
     def __init__(self,
                  # Size in pixels for Plotly
-                 cell_size: Tuple[int, int] = (300, 300),
+                 cell_size: Tuple[int, int] = None,
                  border_width: int = 5,
                  normalize_method: str = 'global',
                  min_response: Optional[float] = None,
@@ -271,6 +272,7 @@ class PlotlyGroupedStimuliPlotter(ComputationModule):
                  info_box_columns=None,
                  include_colorbar: bool = True,
                  include_labels_for: Optional[set[str]] = None,
+                 subplot_spacing = None,  # (horizontal, vertical) spacing
                  ):
         """Initialize the grouped stimuli visualization module."""
         if info_box_columns is None:
@@ -284,6 +286,7 @@ class PlotlyGroupedStimuliPlotter(ComputationModule):
         self.title = title
         self.info_box_columns = info_box_columns
         self.include_colorbar = include_colorbar
+        self.subplot_spacing = subplot_spacing
         # Initialize as empty set if None is provided
         include_labels_for = include_labels_for or set()
         self.include_col_labels = "col" in include_labels_for
@@ -292,7 +295,7 @@ class PlotlyGroupedStimuliPlotter(ComputationModule):
 
     def compute(self, prepared_data: Dict[str, Any]) -> go.Figure:
         """
-        Compute the visualization from prepared data.
+        Compute the visualization from prepared data with exact cell sizing.
         """
         # Extract data and configuration
         data = prepared_data['data']
@@ -322,19 +325,28 @@ class PlotlyGroupedStimuliPlotter(ComputationModule):
         n_cols = len(col_values)
         n_subgroups = len(subgroup_values)
 
-        # Calculate figure dimensions
-        cell_width, cell_height = self.cell_size
-        title_space = 80 if self.title else 30
-        horiz_spacing_px = 20  # Space between cells
-        vert_spacing_px = 20  # Space between subgroups
+        # EXACT PIXEL DIMENSIONS
+        cell_width, cell_height = self.cell_size  # Use exactly these pixel dimensions
+        horiz_spacing_px = self.subplot_spacing[0]  # Horizontal spacing
+        vert_spacing_px = self.subplot_spacing[1]  # Vertical spacing
+        # horiz_spacing_px = 20  # Space between cells in pixels
+        # vert_spacing_px = 20  # Space between rows in pixels
+        subgroup_spacing_px = 100  # Space between subgroups in pixels
 
-        # Extra space for labels and colorbar
-        extra_width = 200 if self.include_row_labels else 50
-        # extra_height = 100 * n_subgroups  # Space for titles and margins
+        # Extra space for labels and colorbar in pixels
+        left_margin_px = 200 if self.include_row_labels else 50
+        right_margin_px = 150 if self.include_colorbar else 50  # More space for colorbar
+        top_margin_px = 100  # For title and column labels
 
-        # Calculate figure width and height
-        fig_width = n_cols * (cell_width + horiz_spacing_px) + extra_width
-        fig_height = n_subgroups * (n_rows * cell_height) + ((n_rows-1) * vert_spacing_px) + title_space
+
+        # Calculate EXACT figure dimensions in pixels
+        content_width_px = (n_cols * cell_width) + ((n_cols - 1) * horiz_spacing_px)
+        content_height_px = n_rows * cell_height + ((n_rows - 1) * vert_spacing_px)
+
+        # Total figure dimensions including all subgroups and margins
+        fig_width_px = left_margin_px + content_width_px + right_margin_px
+        fig_height_px = top_margin_px + (content_height_px * n_subgroups) + \
+                        ((n_subgroups - 1) * subgroup_spacing_px)
 
         # Create a new figure with fixed dimensions
         fig = go.Figure()
@@ -344,29 +356,39 @@ class PlotlyGroupedStimuliPlotter(ComputationModule):
             fig.update_layout(
                 title={
                     'text': self.title,
-                    'y': 0.98,
+                    'y': 0.99,
                     'x': 0.5,
                     'xanchor': 'center',
                     'yanchor': 'top',
-                    'font': {'size': 24}
+                    'font': {'size': 36}
                 }
             )
 
-        # Process each subgroup
-        subgroup_height = 1.0 / n_subgroups if n_subgroups > 0 else 1.0
+        # Store cell domains for annotations and content positioning
+        cell_domains = {}
 
+        # Calculate scale factors to convert pixels to paper coordinates (0-1 range)
+        x_scale = 1.0 / fig_width_px
+        y_scale = 1.0 / fig_height_px
+
+        # Process each subgroup with EXACT positioning
         for sg_idx, subgroup_value in enumerate(subgroup_values):
-            # Calculate vertical position for this subgroup
-            sg_bottom = 1.0 - (sg_idx + 1) * subgroup_height
-            sg_top = 1.0 - sg_idx * subgroup_height
-            sg_center = (sg_bottom + sg_top) / 2
+            # Calculate EXACT vertical position for this subgroup in pixels
+            # Start from top and work downward
+            subgroup_top_px = top_margin_px + (sg_idx * (content_height_px + subgroup_spacing_px))
+            subgroup_bottom_px = subgroup_top_px + content_height_px
+
+            # Convert to paper coordinates (0-1 range)
+            sg_top = 1.0 - (subgroup_top_px * y_scale)
+            sg_bottom = 1.0 - (subgroup_bottom_px * y_scale)
+            sg_center = (sg_top + sg_bottom) / 2
 
             # Add subgroup label if needed
             if self.include_subgroup_labels and subgroup_col and subgroup_value is not None:
                 fig.add_annotation(
                     text=f"{subgroup_col}: {subgroup_value}",
                     x=0.5,
-                    y=sg_top - 0.02,
+                    y=sg_top + 0.02,  # Just above the subgroup
                     xref="paper",
                     yref="paper",
                     showarrow=False,
@@ -374,33 +396,49 @@ class PlotlyGroupedStimuliPlotter(ComputationModule):
                     align="center"
                 )
 
-            # Process cells in this subgroup
+            # Process cells in this subgroup with EXACT sizing
             for row_idx, row_value in enumerate(row_values):
                 for col_idx, col_value in enumerate(col_values):
-                    # Calculate grid position
-                    cell_left = 0.05 + (col_idx / n_cols) * 0.9
-                    cell_right = 0.05 + ((col_idx + 1) / n_cols) * 0.9
-                    cell_width = cell_right - cell_left
+                    # Calculate EXACT pixel positions for this cell
+                    cell_left_px = left_margin_px + (col_idx * (cell_width + horiz_spacing_px))
+                    cell_right_px = cell_left_px + cell_width
 
-                    cell_bottom = sg_bottom + (row_idx / n_rows) * (sg_top - sg_bottom)
-                    cell_top = sg_bottom + ((row_idx + 1) / n_rows) * (sg_top - sg_bottom)
-                    cell_height = cell_top - cell_bottom
+                    # Y position is calculated from the top of the subgroup
+                    cell_top_px = subgroup_top_px + (row_idx * (cell_height + vert_spacing_px))
+                    cell_bottom_px = cell_top_px + cell_height
+                    # Convert to paper coordinates (0-1 range)
+                    cell_left = cell_left_px * x_scale
+                    cell_right = cell_right_px * x_scale
+                    cell_top = 1.0 - (cell_top_px * y_scale)
+                    cell_bottom = 1.0 - (cell_bottom_px * y_scale)
 
+                    # Calculate cell center
                     cell_center_x = (cell_left + cell_right) / 2
-                    cell_center_y = (cell_bottom + cell_top) / 2
+                    cell_center_y = (cell_top + cell_bottom) / 2
+
+                    # Store the domain for this cell
+                    cell_domains[(sg_idx, row_idx, col_idx)] = {
+                        'x': [cell_left, cell_right],
+                        'y': [cell_bottom, cell_top],
+                        'center_x': cell_center_x,
+                        'center_y': cell_center_y,
+                        'width': cell_right - cell_left,
+                        'height': cell_top - cell_bottom
+                    }
 
                     # Add row label if needed
                     if col_idx == 0 and self.include_row_labels and row_col and row_value is not None:
                         fig.add_annotation(
                             text=str(row_value),
-                            x=cell_left - 0.01,
+                            x=cell_left - (cell_width / 4 * x_scale),
                             y=cell_center_y,
                             xref="paper",
                             yref="paper",
                             showarrow=False,
-                            font=dict(size=24),
+                            font=dict(size=36),
                             align="right",
-                            xanchor="right"
+                            xanchor="right",
+                            yanchor="middle"
                         )
 
                     # Add column label if needed
@@ -412,7 +450,7 @@ class PlotlyGroupedStimuliPlotter(ComputationModule):
                             xref="paper",
                             yref="paper",
                             showarrow=False,
-                            font=dict(size=14),
+                            font=dict(size=36),
                             align="center"
                         )
 
@@ -438,25 +476,27 @@ class PlotlyGroupedStimuliPlotter(ComputationModule):
                             font=dict(size=12)
                         )
                     else:
-                        # Process and add the image
+                        # Process and add the image using the EXACT dimensions
+                        image_width = (cell_right - cell_left)
+                        image_height = (cell_top - cell_bottom)
                         self._add_cell_to_figure(
                             fig, cell_data, cell_center_x, cell_center_y,
-                            cell_width * 0.9, cell_height * 0.9,  # Use 90% of cell size for image
+                            image_width, image_height,
                             path_col, min_val, max_val
                         )
 
-        # Add a colorbar if requested
-        if self.include_colorbar:
-            self._add_colorbar(fig, min_val, max_val)
+            # Add a colorbar for this subgroup if requested
+            if self.include_colorbar:
+                self._add_subgroup_colorbar(fig, min_val, max_val, sg_center, sg_top, sg_bottom)
 
-        # Set layout properties
+        # Set layout properties with EXACT dimensions
         fig.update_layout(
-            width=fig_width,
-            height=fig_height,
+            width=fig_width_px,
+            height=fig_height_px,
             showlegend=False,
             plot_bgcolor='rgba(0,0,0,0)',  # Transparent background
             paper_bgcolor='rgba(255,255,255,1)',  # White paper
-            margin=dict(l=50, r=50, t=100, b=50),
+            margin=dict(l=0, r=0, t=0, b=0),  # No auto margins - we control everything
             xaxis=dict(
                 showgrid=False,
                 zeroline=False,
@@ -475,6 +515,43 @@ class PlotlyGroupedStimuliPlotter(ComputationModule):
 
         return fig
 
+    def _add_subgroup_colorbar(self, fig, min_val, max_val, sg_center, sg_top, sg_bottom):
+        """Add a colorbar aligned with a specific subgroup."""
+        # Create colorscale based on color mode
+        if self.color_mode == 'intensity':
+            colorscale = [[0, 'rgb(0,0,0)'], [1, 'rgb(255,0,0)']]
+        else:  # 'divergent'
+            colorscale = [
+                [0, 'rgb(0,0,255)'],  # Blue for minimum
+                [0.5, 'rgb(255,255,255)'],  # White for center
+                [1, 'rgb(255,0,0)']  # Red for maximum
+            ]
+
+        # Calculate colorbar height based on subgroup height
+        colorbar_height = sg_top - sg_bottom
+
+        # Add a hidden heatmap trace to create the colorbar
+        fig.add_trace(
+            go.Heatmap(
+                z=[[min_val, max_val]],  # Dummy data
+                colorscale=colorscale,
+                showscale=True,
+                zmin=min_val,
+                zmax=max_val,
+                colorbar=dict(
+                    title="Response",
+                    titleside="right",
+                    thickness=20,
+                    len=colorbar_height * 0.8,  # 80% of subgroup height
+                    y=sg_center,  # Center aligned with subgroup
+                    x=1.05,
+                    title_font=dict(size=36),
+                    tickfont=dict(size=36),
+                ),
+                hoverinfo='none',
+                opacity=0  # Make the heatmap invisible
+            )
+        )
     def _normalize_global(self, data: pd.DataFrame, response_col: str) -> Tuple[float, float]:
         """Normalize responses globally."""
         try:
@@ -665,13 +742,8 @@ class PlotlyGroupedStimuliPlotter(ComputationModule):
             # Add border to image
             img_with_border = ImageOps.expand(img, border=self.border_width, fill=border_color)
 
-            # Resize if image is too large (to reduce memory usage)
-            width, height = img_with_border.size
-            max_size = 800  # Maximum dimension in pixels
-            if width > max_size or height > max_size:
-                scale = max_size / max(width, height)
-                new_size = (int(width * scale), int(height * scale))
-                img_with_border = img_with_border.resize(new_size, Image.LANCZOS)
+
+            img_with_border = img_with_border.resize(self.cell_size, Image.LANCZOS)
 
             return img_with_border
 
@@ -705,7 +777,7 @@ class PlotlyGroupedStimuliPlotter(ComputationModule):
         # Add a hidden heatmap trace to create the colorbar
         fig.add_trace(
             go.Heatmap(
-                z=[[min_val, max_val]],  # Dummy data
+                z=[[min_val, max_val]],
                 colorscale=colorscale,
                 showscale=True,
                 zmin=min_val,
@@ -716,7 +788,9 @@ class PlotlyGroupedStimuliPlotter(ComputationModule):
                     thickness=20,
                     len=0.75,
                     y=0.5,
-                    x=1.05
+                    x=1.05,
+                    title_font=dict(size=36),
+                    tickfont=dict(size=36),
                 ),
                 hoverinfo='none',
                 opacity=0  # Make the heatmap invisible

@@ -34,7 +34,7 @@ def create_plotly_psth_module(
         width: int = None,
         cell_size: Optional[tuple] = None,
         template: str = "plotly_white",
-) -> AnalysisModule:
+        include_row_labels=None) -> AnalysisModule:
     """
     Create a pipeline module for grouped PSTH visualization using Plotly.
 
@@ -94,7 +94,8 @@ def create_plotly_psth_module(
             cell_size=cell_size,
             height=height,
             width=width,
-            template=template
+            template=template,
+            include_row_labels=include_row_labels,
         ),
         output_handler=PlotlyFigureSaverOutput(
             save_path=save_path,

@@ -14,6 +14,7 @@ from clat.pipeline.pipeline_base_classes import (
 )
 from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimPathField, ThumbnailField
+from src.analysis.modules.plotly_grouped_stims_by_response import create_plotly_grouped_stimuli_module
 
 # Import custom modules
 from src.intan.MultiFileParser import MultiFileParser
@@ -30,7 +31,7 @@ def main():
 
     channel = 'A-011'
     compiled_data = compile()
-    analysis = LightnessAnalysis()
+    analysis = LightnessAnalysis(use_plotly=True)
     session_id, _ = read_session_id_from_db_name(context.twodvsthreed_database)
     session_id = "250425_0"
     channel = "A-013"
@@ -55,7 +56,7 @@ class LightnessAnalysis(Analysis):
             # Create visualization module
         if self.use_plotly:
             # Create Plotly visualization module
-            visualize_module = create_grouped_stimuli_module(
+            visualize_module = create_plotly_grouped_stimuli_module(
                 response_rate_col=self.spike_rates_col,
                 response_rate_key=channel,
                 path_col='ThumbnailPath',

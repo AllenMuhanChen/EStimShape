@@ -64,13 +64,15 @@ class SideTestAnalysis(Analysis):
                     "col": "TestId",
                     "custom_func": SpikeRateSortingUtils.by_avg_value(
                         column=self.spike_rates_col,
-                        comparison_col="TestType"
+                        comparison_col="TestType",
+                        limit=5
                     )
                 },
                 title=f'2D vs 3D Test: {channel}',
                 save_path=f"{self.save_path}/{channel}: 2dvs3d_plotly.png",
                 include_labels_for={"row"},
                 publish_mode=True,
+                subplot_spacing=(20, 0)
             )
         else:
             visualize_module = create_grouped_stimuli_module(
@@ -123,7 +125,7 @@ class SideTestAnalysis(Analysis):
                 title=f'2D vs 3D PSTH: {channel}',
                 save_path=f"{self.save_path}/{channel}: 2dvs3d_psth_plotly.png",
                 cell_size=(600, 300),
-
+                include_row_labels=False,
             )
         else:
             psth_module = create_grouped_psth_module(
@@ -165,8 +167,9 @@ class SideTestAnalysis(Analysis):
                 save_path=f"{self.save_path}/{channel}: 2dvs3d_psth_examples_plotly.png",
                 cols_in_info_box=[],
                 cell_size=(300, 300),
-                # include_labels_for={"row"},
+                include_labels_for={},
                 publish_mode=True,
+                subplot_spacing=(20,20),
             )
         else:
             psth_examples = create_grouped_stimuli_module(
