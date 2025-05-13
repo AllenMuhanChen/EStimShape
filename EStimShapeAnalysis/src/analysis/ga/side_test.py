@@ -15,6 +15,8 @@ from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelFiel
 from src.analysis.modules.grouped_rasters import create_grouped_raster_module
 from src.analysis.modules.grouped_rsth import create_grouped_psth_module
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
+from src.analysis.modules.plotly_grouped_rsth import create_plotly_psth_module
+from src.analysis.modules.plotly_grouped_stims_by_response import create_plotly_grouped_stimuli_module
 from src.analysis.modules.utils.sorting_utils import SpikeRateSortingUtils
 from src.intan.MultiFileParser import MultiFileParser
 from src.repository.export_to_repository import export_to_repository, read_session_id_from_db_name
@@ -26,7 +28,7 @@ from src.startup import context
 def main():
     channel = None
     # compiled_data = compile()
-    analysis = SideTestAnalysis()
+    analysis = SideTestAnalysis(use_plotly=True)
     session_id, _ = read_session_id_from_db_name(context.ga_database)
     if channel is None:
         channel = read_cluster_channels(session_id)[0]
@@ -37,6 +39,9 @@ def main():
 
 
 class SideTestAnalysis(Analysis):
+    def __init__(self, use_plotly=False):
+        super().__init__()
+        self.use_plotly = use_plotly
 
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
         if compiled_data is None:
@@ -48,26 +53,46 @@ class SideTestAnalysis(Analysis):
             )
 
         # STIMS with RESPONSE for SIDE TEST
-        visualize_module = create_grouped_stimuli_module(
-            response_rate_col=self.spike_rates_col,
-            response_rate_key=channel,
-            path_col='ThumbnailPath',
-            col_col='TestId',
-            row_col='TestType',
-            sort_rules={
-                "col": "TestId",
-                "custom_func": SpikeRateSortingUtils.by_avg_value(
-                    column=self.spike_rates_col,
-                    comparison_col="TestType"
-                )
-            },
-            title=f'2D vs 3D Test: {channel}',
-            save_path=f"{self.save_path}/{channel}: 2dvs3d.png",
-            publish_mode=True,
-        )
+        if self.use_plotly:
+            visualize_module = create_plotly_grouped_stimuli_module(
+                response_rate_col=self.spike_rates_col,
+                response_rate_key=channel,
+                path_col='ThumbnailPath',
+                col_col='TestId',
+                row_col='TestType',
+                sort_rules={
+                    "col": "TestId",
+                    "custom_func": SpikeRateSortingUtils.by_avg_value(
+                        column=self.spike_rates_col,
+                        comparison_col="TestType"
+                    )
+                },
+                title=f'2D vs 3D Test: {channel}',
+                save_path=f"{self.save_path}/{channel}: 2dvs3d.png",
+                publish_mode=True,
+            )
+        else:
+            visualize_module = create_grouped_stimuli_module(
+                response_rate_col=self.spike_rates_col,
+                response_rate_key=channel,
+                path_col='ThumbnailPath',
+                col_col='TestId',
+                row_col='TestType',
+                sort_rules={
+                    "col": "TestId",
+                    "custom_func": SpikeRateSortingUtils.by_avg_value(
+                        column=self.spike_rates_col,
+                        comparison_col="TestType"
+                    )
+                },
+                title=f'2D vs 3D Test: {channel}',
+                save_path=f"{self.save_path}/{channel}: 2dvs3d.png",
+                publish_mode=True,
+            )
         plot_branch = create_branch().then(visualize_module)
 
         # RASTERS for SIDE TEST
+
         raster_module = create_grouped_raster_module(
             primary_group_col='TestType',
             secondary_group_col='TestId',
@@ -79,45 +104,86 @@ class SideTestAnalysis(Analysis):
         raster_branch = create_branch().then(raster_module)
 
         # Create a PSTH module sorted by average firing rate
-        psth_module = create_grouped_psth_module(
-            primary_group_col='TestType',
-            secondary_group_col='TestId',
-            spike_data_col=self.spike_tstamps_col,
-            spike_data_col_key=channel,
-            bin_size=0.025,
-            sort_rules={
-                "col": "TestId",
-                "custom_func": SpikeRateSortingUtils.by_avg_value(
-                    column=self.spike_rates_col,
-                    comparison_col="TestType",
-                    limit=5
-                )
-            },
-            title=f'2D vs 3D PSTH: {channel}',
-            save_path=f"{self.save_path}/{channel}: 2dvs3d_psth.png",
-            figsize=(8, 10),
-            publish_mode=True,
-        )
+        if self.use_plotly:
+            psth_module = create_plotly_psth_module(
+                primary_group_col='TestType',
+                secondary_group_col='TestId',
+                spike_data_col=self.spike_tstamps_col,
+                spike_data_col_key=channel,
+                bin_size=0.025,
+                sort_rules={
+                    "col": "TestId",
+                    "custom_func": SpikeRateSortingUtils.by_avg_value(
+                        column=self.spike_rates_col,
+                        comparison_col="TestType",
+                        limit=5
+                    )
+                },
+                title=f'2D vs 3D PSTH: {channel}',
+                save_path=f"{self.save_path}/{channel}: 2dvs3d_psth.png",
+                cell_size=(300,300),
+            )
+        else:
+            psth_module = create_grouped_psth_module(
+                primary_group_col='TestType',
+                secondary_group_col='TestId',
+                spike_data_col=self.spike_tstamps_col,
+                spike_data_col_key=channel,
+                bin_size=0.025,
+                sort_rules={
+                    "col": "TestId",
+                    "custom_func": SpikeRateSortingUtils.by_avg_value(
+                        column=self.spike_rates_col,
+                        comparison_col="TestType",
+                        limit=5
+                    )
+                },
+                title=f'2D vs 3D PSTH: {channel}',
+                save_path=f"{self.save_path}/{channel}: 2dvs3d_psth.png",
+                figsize=(8, 10),
+                publish_mode=True,
+            )
         psth_branch = create_branch().then(psth_module)
 
-        psth_examples = create_grouped_stimuli_module(
-            response_rate_col=self.spike_rates_col,
-            path_col='ThumbnailPath',
-            response_rate_key=channel,
-            row_col= "TestId",
-            col_col= "TestType",
-            sort_rules={
-                "col": "TestId",
-                "custom_func": SpikeRateSortingUtils.by_avg_value(
-                    column=self.spike_rates_col,
-                    comparison_col="TestType",
-                    limit=5)
-            },
-            title=f'2D vs 3D PSTH Examples: {channel}',
-            save_path=f"{self.save_path}/{channel}: 2dvs3d_psth_examples.png",
-            cols_in_info_box=[],
-            publish_mode=True,
-        )
+        if self.use_plotly:
+            psth_examples = create_plotly_grouped_stimuli_module(
+                response_rate_col=self.spike_rates_col,
+                path_col='ThumbnailPath',
+                response_rate_key=channel,
+                row_col= "TestId",
+                col_col= "TestType",
+                sort_rules={
+                    "col": "TestId",
+                    "custom_func": SpikeRateSortingUtils.by_avg_value(
+                        column=self.spike_rates_col,
+                        comparison_col="TestType",
+                        limit=5)
+                },
+                title=f'2D vs 3D PSTH Examples: {channel}',
+                save_path=f"{self.save_path}/{channel}: 2dvs3d_psth_examples.png",
+                cols_in_info_box=[],
+                cell_size=(300, 300),
+                publish_mode=True,
+            )
+        else:
+            psth_examples = create_grouped_stimuli_module(
+                response_rate_col=self.spike_rates_col,
+                path_col='ThumbnailPath',
+                response_rate_key=channel,
+                row_col= "TestId",
+                col_col= "TestType",
+                sort_rules={
+                    "col": "TestId",
+                    "custom_func": SpikeRateSortingUtils.by_avg_value(
+                        column=self.spike_rates_col,
+                        comparison_col="TestType",
+                        limit=5)
+                },
+                title=f'2D vs 3D PSTH Examples: {channel}',
+                save_path=f"{self.save_path}/{channel}: 2dvs3d_psth_examples.png",
+                cols_in_info_box=[],
+                publish_mode=True,
+            )
         psth_examples_branch = create_branch().then(psth_examples)
 
         pipeline = create_pipeline().make_branch(

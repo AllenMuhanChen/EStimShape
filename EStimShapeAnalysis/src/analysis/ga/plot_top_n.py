@@ -18,6 +18,7 @@ from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelFiel
     IntanSpikeRateByChannelField
 from src.analysis.modules.grouped_rasters import create_grouped_raster_module
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
+from src.analysis.modules.plotly_grouped_stims_by_response import create_plotly_grouped_stimuli_module
 from src.intan.MultiFileParser import MultiFileParser
 from src.pga.alexnet.analysis.plot_top_n_alexnet import add_colored_border
 from src.pga.mock.mock_rwa_analysis import condition_spherical_angles, hemisphericalize_orientation
@@ -30,14 +31,19 @@ def main():
     channel = "A-011"
 
     # compiled_data = compile()
-    analysis = PlotTopNAnalysis()
+    analysis = PlotTopNAnalysis(use_plotly=True)
 
     compiled_data = None
     session_id, _ = read_session_id_from_db_name(context.ga_database)
+    session_id = "250425_0"
+    channel = "A-017"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
 class PlotTopNAnalysis(Analysis):
+    def __init__(self, use_plotly=False):
+        super().__init__()
+        self.use_plotly = use_plotly
 
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
         if compiled_data is None:
@@ -50,22 +56,40 @@ class PlotTopNAnalysis(Analysis):
         # Break apart the response rate by channel
         compiled_data = add_lineage_rank_to_df(compiled_data, self.spike_rates_col, channel)
 
-        visualize_module = create_grouped_stimuli_module(
-            response_rate_col=self.spike_rates_col,
-            response_rate_key=channel,
-            path_col='ThumbnailPath',
-            col_col='RankWithinLineage',
-            row_col='Lineage',
-            title='Top Stimuli Per Lineage',
-            filter_values={"Lineage": get_top_n_lineages(compiled_data, 3),
-                           "RankWithinLineage": range(1, 21)},  # only show top 20 per lineage
-            save_path=f"{self.save_path}/{channel}: plot_top_n.png",
-        )
+        if self.use_plotly:
+            visualize_module = create_plotly_grouped_stimuli_module(
+                response_rate_col=self.spike_rates_col,
+                response_rate_key=channel,
+                path_col='ThumbnailPath',
+                col_col='RankWithinLineage',
+                row_col='Lineage',
+                title='Top Stimuli Per Lineage',
+                filter_values={"Lineage": get_top_n_lineages(compiled_data, 3),
+                               "RankWithinLineage": range(1, 21)},  # only show top 20 per lineage
+                save_path=f"{self.save_path}/{channel}: plot_top_n_plotly.png",
+                publish_mode=True,
+            )
+        else:
+            visualize_module = create_grouped_stimuli_module(
+                response_rate_col=self.spike_rates_col,
+                response_rate_key=channel,
+                path_col='ThumbnailPath',
+                col_col='RankWithinLineage',
+                row_col='Lineage',
+                title='Top Stimuli Per Lineage',
+                filter_values={"Lineage": get_top_n_lineages(compiled_data, 3),
+                               "RankWithinLineage": range(1, 21)},  # only show top 20 per lineage
+                save_path=f"{self.save_path}/{channel}: plot_top_n.png",
+                publish_mode=True
+            )
 
 
         # Create and run pipeline with aggregated data
         pipeline = create_pipeline().then(visualize_module).build()
         result = pipeline.run(compiled_data)
+
+
+
         plt.show()
 
     def compile_and_export(self):
