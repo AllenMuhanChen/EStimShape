@@ -45,6 +45,7 @@ def create_plotly_grouped_stimuli_module(
         save_path: Optional[str] = None,
         cols_in_info_box=None,
         publish_mode: bool = False,
+        include_labels_for=None,
 ) -> AnalysisModule:
     """
     Create a pipeline module for visualizing grouped stimuli with colored borders using Plotly.
@@ -86,7 +87,6 @@ def create_plotly_grouped_stimuli_module(
         cols_in_info_box = []
         border_width = 40
         include_colorbar = True
-        include_labels_for = {"row"}
     else:
         save_html = False
         save_svg = False
@@ -324,16 +324,17 @@ class PlotlyGroupedStimuliPlotter(ComputationModule):
 
         # Calculate figure dimensions
         cell_width, cell_height = self.cell_size
-        horiz_spacing = 20  # Space between cells
-        vert_spacing = 20  # Space between subgroups
+        title_space = 80 if self.title else 30
+        horiz_spacing_px = 20  # Space between cells
+        vert_spacing_px = 20  # Space between subgroups
 
         # Extra space for labels and colorbar
         extra_width = 200 if self.include_row_labels else 50
-        extra_height = 100 * n_subgroups  # Space for titles and margins
+        # extra_height = 100 * n_subgroups  # Space for titles and margins
 
         # Calculate figure width and height
-        fig_width = n_cols * (cell_width + horiz_spacing) + extra_width
-        fig_height = n_subgroups * (n_rows * (cell_height + 20) + vert_spacing) + extra_height
+        fig_width = n_cols * (cell_width + horiz_spacing_px) + extra_width
+        fig_height = n_subgroups * (n_rows * cell_height) + ((n_rows-1) * vert_spacing_px) + title_space
 
         # Create a new figure with fixed dimensions
         fig = go.Figure()

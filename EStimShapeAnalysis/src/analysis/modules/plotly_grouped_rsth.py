@@ -127,11 +127,12 @@ class PlotlyPSTHComputation(ComputationModule):
                  row_suffix: Optional[str] = None,
                  primary_group_labels: Optional[Dict[str, str]] = None,
                  secondary_group_labels: Optional[Dict[str, str]] = None,
-                 height: int = 800,
-                 width: int = 1000,
+                 height: int = None,
+                 width: int = None,
                  cell_size: Tuple[int, int] = None,  # (width, height) in pixels for each subplot
-                 subplot_spacing: Tuple[float, float] = (0.05, 0.01),  # (horizontal, vertical) spacing
-                 template: str = "plotly_white"):
+                 subplot_spacing: Tuple[float, float] = (30, 30),  # (horizontal, vertical) spacing
+                 template: str = "plotly_white",
+                 include_row_labels=True):
         """
         Initialize the Plotly PSTH computation module.
 
@@ -150,6 +151,7 @@ class PlotlyPSTHComputation(ComputationModule):
             width: Width of the figure in pixels
             template: Plotly template to use
         """
+        self.include_row_labels = include_row_labels
         self.time_window = time_window
         self.bin_size = bin_size
         self.colors = colors or {}
@@ -271,8 +273,8 @@ class PlotlyPSTHComputation(ComputationModule):
         row_label_space = 500
 
         # Calculate horizontal and vertical spacing in pixels
-        horiz_spacing_px = int(cell_width * self.subplot_spacing[0])
-        vert_spacing_px = int(cell_height * self.subplot_spacing[1])
+        horiz_spacing_px = self.subplot_spacing[0]
+        vert_spacing_px = self.subplot_spacing[1]
 
         # Calculate total figure dimensions
         figure_width = (n_columns * cell_width) + (
@@ -302,12 +304,35 @@ class PlotlyPSTHComputation(ComputationModule):
             cols=n_columns,
             shared_xaxes=True,
             shared_yaxes=True,
-            vertical_spacing=self.subplot_spacing[1],
-            horizontal_spacing=self.subplot_spacing[0],
-            subplot_titles=subplot_titles
         )
 
-        fig.update_annotations(font_size=24)
+        # Manually set domain for each subplot to ensure exact sizing
+        total_width = figure_width
+        total_height = figure_height
+
+        # Calculate actual pixel-to-domain ratio
+        width_ratio = cell_width / total_width
+        height_ratio = cell_height / total_height
+
+        # Spacing in domain coordinates
+        h_space = self.subplot_spacing[0] / total_width
+        v_space = self.subplot_spacing[1] / total_height
+
+        # Set exact domain for each subplot
+        for row_idx in range(n_rows):
+            for col_idx in range(n_columns):
+                # Calculate domain coordinates for each cell
+                x_start = (col_idx * (width_ratio + h_space)) + (row_label_space / total_width)
+                x_end = x_start + width_ratio
+
+                y_end = 1 - (row_idx * (height_ratio + v_space)) - (title_space / total_height)
+                y_start = y_end - height_ratio
+
+                # Update the subplot domains
+                fig.update_xaxes(domain=[x_start, x_end], row=row_idx + 1, col=col_idx + 1)
+                fig.update_yaxes(domain=[y_start, y_end], row=row_idx + 1, col=col_idx + 1)
+
+        fig.update_annotations(font_size=36)
 
         # Plot PSTHs for each secondary group and column
         for row_idx, secondary_value in enumerate(secondary_groups or [None]):
@@ -326,26 +351,29 @@ class PlotlyPSTHComputation(ComputationModule):
                     col=1
                 )
 
-                display_name = self.secondary_group_labels.get(secondary_value, secondary_value)
-                row_label = f"{display_name}{' ' + self.row_suffix if self.row_suffix else ''}"
+                # ADD ROW LABELS
+                if self.include_row_labels:
+                    display_name = self.secondary_group_labels.get(secondary_value, secondary_value)
+                    row_label = f"{display_name}{' ' + self.row_suffix if self.row_suffix else ''}"
 
-                # Calculate the y-position for each row's annotation
-                # This scales properly with multiple rows
-                y_position = 1 - ((row_idx + 0.5) / n_rows)  # Center in each row
+                    y_domain = fig.get_subplot(row=row_idx + 1, col=1).yaxis.domain
 
-                # Add left-side row label as annotation
-                fig.add_annotation(
-                    text=row_label,
-                    x=-0.2,  # Position to the left of the plot area
-                    y=y_position,  # Middle of the row
-                    xref="paper",
-                    yref="paper",
-                    showarrow=False,
-                    font=dict(size=36),
-                    textangle=0,  # Horizontal text
-                    xanchor="right",
-                    yanchor="middle"
-                )
+                    # Calculate the center of the domain for this row
+                    y_position = (y_domain[0] + y_domain[1]) / 2
+
+                    # Add left-side row label as annotation
+                    fig.add_annotation(
+                        text=row_label,
+                        x=-0.005,  # Position to the left of the plot area
+                        y=y_position,  # Middle of the row
+                        xref="paper",
+                        yref="paper",
+                        showarrow=False,
+                        font=dict(size=36),
+                        textangle=0,  # Horizontal text
+                        xanchor="right",
+                        yanchor="middle"
+                    )
 
             # Process each column
             for col_idx in range(n_columns):

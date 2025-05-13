@@ -119,8 +119,8 @@ class IsogaborAnalysis(Analysis):
                 title=f"Luminance vs Chromatic Contrast",
                 col_titles=column_titles,
                 row_suffix="(cycles/°)",
-                save_path=f"{self.save_path}/{channel}: color_experiment_psth.png",
-                cell_size=(300, 300),
+                save_path=f"{self.save_path}/{channel}: color_experiment_psth_plotly.png",
+                cell_size=(600, 300),
             )
         else:
             psth_module = create_grouped_psth_module(
