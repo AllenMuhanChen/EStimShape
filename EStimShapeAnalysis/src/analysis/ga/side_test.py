@@ -68,7 +68,7 @@ class SideTestAnalysis(Analysis):
                     )
                 },
                 title=f'2D vs 3D Test: {channel}',
-                save_path=f"{self.save_path}/{channel}: 2dvs3d.png",
+                save_path=f"{self.save_path}/{channel}: 2dvs3d_plotly.png",
                 publish_mode=True,
             )
         else:
@@ -120,7 +120,7 @@ class SideTestAnalysis(Analysis):
                     )
                 },
                 title=f'2D vs 3D PSTH: {channel}',
-                save_path=f"{self.save_path}/{channel}: 2dvs3d_psth.png",
+                save_path=f"{self.save_path}/{channel}: 2dvs3d_psth_plotly.png",
                 cell_size=(300,300),
             )
         else:
@@ -160,7 +160,7 @@ class SideTestAnalysis(Analysis):
                         limit=5)
                 },
                 title=f'2D vs 3D PSTH Examples: {channel}',
-                save_path=f"{self.save_path}/{channel}: 2dvs3d_psth_examples.png",
+                save_path=f"{self.save_path}/{channel}: 2dvs3d_psth_examples_plotly.png",
                 cols_in_info_box=[],
                 cell_size=(300, 300),
                 publish_mode=True,

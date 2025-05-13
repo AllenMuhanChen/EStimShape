@@ -80,9 +80,9 @@ def create_plotly_grouped_stimuli_module(
 
     # If publish_mode is True, override certain parameters
     if publish_mode:
-        save_html = True
+        save_html = False
         save_svg = True
-        save_pdf = False
+        save_pdf = True
         cols_in_info_box = []
         border_width = 40
         include_colorbar = True

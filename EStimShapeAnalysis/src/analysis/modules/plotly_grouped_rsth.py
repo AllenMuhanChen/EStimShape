@@ -24,6 +24,7 @@ def create_plotly_psth_module(
         show_stimulus_onset: bool = True,
         title: Optional[str] = None,
         col_titles: Optional[List[str]] = None,
+        row_suffix: Optional[str] = None,
         primary_group_labels: Optional[Dict[str, str]] = None,
         secondary_group_labels: Optional[Dict[str, str]] = None,
         save_path: Optional[str] = None,
@@ -54,6 +55,7 @@ def create_plotly_psth_module(
         show_stimulus_onset: Whether to show a vertical line at stimulus onset (t=0)
         title: Optional overall figure title
         col_titles: Optional custom titles for each column
+        row_suffix: Optional suffix to append to row value for row titles
         primary_group_labels: Optional custom labels for primary groups
         secondary_group_labels: Optional custom labels for secondary groups
         save_path: Optional path to save the figure
@@ -86,6 +88,7 @@ def create_plotly_psth_module(
             show_stimulus_onset=show_stimulus_onset,
             title=title,
             col_titles=col_titles,
+            row_suffix=row_suffix,
             primary_group_labels=primary_group_labels,
             secondary_group_labels=secondary_group_labels,
             cell_size=cell_size,
@@ -121,12 +124,13 @@ class PlotlyPSTHComputation(ComputationModule):
                  show_stimulus_onset: bool = True,
                  title: Optional[str] = None,
                  col_titles: Optional[List[str]] = None,
+                 row_suffix: Optional[str] = None,
                  primary_group_labels: Optional[Dict[str, str]] = None,
                  secondary_group_labels: Optional[Dict[str, str]] = None,
                  height: int = 800,
                  width: int = 1000,
                  cell_size: Tuple[int, int] = None,  # (width, height) in pixels for each subplot
-                 subplot_spacing: Tuple[float, float] = (0.05, 0.05),  # (horizontal, vertical) spacing
+                 subplot_spacing: Tuple[float, float] = (0.05, 0.01),  # (horizontal, vertical) spacing
                  template: str = "plotly_white"):
         """
         Initialize the Plotly PSTH computation module.
@@ -153,7 +157,9 @@ class PlotlyPSTHComputation(ComputationModule):
         self.show_std = show_std
         self.show_stimulus_onset = show_stimulus_onset
         self.title = title
+        self.y_axis_title = "Response Rate (spikes/s)"
         self.col_titles = col_titles
+        self.row_suffix = row_suffix
         self.primary_group_labels = primary_group_labels or {}
         self.secondary_group_labels = secondary_group_labels or {}
         self.cell_size = cell_size
@@ -261,7 +267,8 @@ class PlotlyPSTHComputation(ComputationModule):
         # s, legend, etc.
         title_space = 80 if self.title else 30
         legend_space = 150  # Space for legend on right side
-        axis_labels_space = 100  # Space for axis labels
+        axis_labels_space = 300  # Space for axis labels
+        row_label_space = 500
 
         # Calculate horizontal and vertical spacing in pixels
         horiz_spacing_px = int(cell_width * self.subplot_spacing[0])
@@ -269,7 +276,7 @@ class PlotlyPSTHComputation(ComputationModule):
 
         # Calculate total figure dimensions
         figure_width = (n_columns * cell_width) + (
-                    (n_columns - 1) * horiz_spacing_px) + legend_space + axis_labels_space
+                    (n_columns - 1) * horiz_spacing_px) + legend_space + axis_labels_space + row_label_space
         figure_height = (n_rows * cell_height) + ((n_rows - 1) * vert_spacing_px) + title_space + axis_labels_space
 
         # Use provided dimensions if specified
@@ -277,6 +284,17 @@ class PlotlyPSTHComputation(ComputationModule):
             figure_width = self.width
         if self.height is not None:
             figure_height = self.height
+
+        # Create column titles only for the first row
+        subplot_titles = []
+        for i in range(n_columns):
+            title = self.col_titles[i] if self.col_titles and i < len(
+                self.col_titles) else f"Groups: {', '.join(self._get_display_names(column_primary_groups.get(i, [])))}"
+            subplot_titles.append(title)
+
+        # Add empty strings for the remaining cells
+        for i in range(n_columns * (n_rows - 1)):
+            subplot_titles.append("")
 
         # Create figure with subplots
         fig = make_subplots(
@@ -286,29 +304,47 @@ class PlotlyPSTHComputation(ComputationModule):
             shared_yaxes=True,
             vertical_spacing=self.subplot_spacing[1],
             horizontal_spacing=self.subplot_spacing[0],
-            subplot_titles=[
-                               self.col_titles[i] if self.col_titles and i < len(self.col_titles)
-                               else f"Groups: {', '.join(self._get_display_names(column_primary_groups.get(i, [])))}"
-                               for i in range(n_columns)
-                           ] * (1 if n_rows == 0 else n_rows)
+            subplot_titles=subplot_titles
         )
+
+        fig.update_annotations(font_size=24)
 
         # Plot PSTHs for each secondary group and column
         for row_idx, secondary_value in enumerate(secondary_groups or [None]):
-            # Get data for this secondary group
             if secondary_group_col and secondary_value is not None:
-                secondary_data = data[data[secondary_group_col] == secondary_value]
-            else:
-                secondary_data = data
-
-            # Add row title if applicable
-            if secondary_group_col and secondary_value is not None:
-                display_name = self.secondary_group_labels.get(secondary_value, secondary_value)
-                # Add y-axis title for the first column in each row
+                # Get data for this secondary group
+                if secondary_group_col and secondary_value is not None:
+                    secondary_data = data[data[secondary_group_col] == secondary_value]
+                else:
+                    secondary_data = data
+                # Add a common y-axis title that appears once
+                y_axis_title = "Spike Rate"  # You can make this a parameter in your class
                 fig.update_yaxes(
-                    title_text=f"{secondary_group_col}: {display_name}",
-                    row=row_idx + 1,
+                    title_text=y_axis_title,
+                    title_font=dict(size=36),
+                    row=row_idx+1,
                     col=1
+                )
+
+                display_name = self.secondary_group_labels.get(secondary_value, secondary_value)
+                row_label = f"{display_name}{' ' + self.row_suffix if self.row_suffix else ''}"
+
+                # Calculate the y-position for each row's annotation
+                # This scales properly with multiple rows
+                y_position = 1 - ((row_idx + 0.5) / n_rows)  # Center in each row
+
+                # Add left-side row label as annotation
+                fig.add_annotation(
+                    text=row_label,
+                    x=-0.2,  # Position to the left of the plot area
+                    y=y_position,  # Middle of the row
+                    xref="paper",
+                    yref="paper",
+                    showarrow=False,
+                    font=dict(size=36),
+                    textangle=0,  # Horizontal text
+                    xanchor="right",
+                    yanchor="middle"
                 )
 
             # Process each column
@@ -336,7 +372,7 @@ class PlotlyPSTHComputation(ComputationModule):
 
                 # Add x-axis label on bottom row only
                 if row_idx == n_rows - 1:
-                    fig.update_xaxes(title_text="Time (s)", row=row_idx + 1, col=col_idx + 1)
+                    fig.update_xaxes(title_text="Time (s)", row=row_idx + 1, col=col_idx + 1, )
 
                 # Draw stimulus onset line if requested
                 if self.show_stimulus_onset:
@@ -350,26 +386,40 @@ class PlotlyPSTHComputation(ComputationModule):
 
         # Update layout
         fig.update_layout(
-            title_text=self.title,
+            margin=dict(l=row_label_space),
+            title={
+                'text': self.title,
+                'font': dict(size=36),
+                'xanchor': 'center',
+                'x': 0.5,
+            },
             showlegend=True,
             legend_title_text=primary_group_col,
+            legend_title_font=dict(size=36),
+            legend_font=dict(size=36),
             height=figure_height,
             width=figure_width,
             yaxis_range=[global_y_min, global_y_max],
         )
 
+        fig.update_traces(line=dict(width=4),)
+
         # Update all axes for consistent look and feel
         fig.update_xaxes(
             gridcolor='lightgray',
             zerolinecolor='gray',
-            zerolinewidth=1
+            zerolinewidth=1,
+            title_font=dict(size=36),
+            tickfont=dict(size=36),
         )
 
         fig.update_yaxes(
             gridcolor='lightgray',
             zerolinecolor='gray',
             zerolinewidth=1,
-            range=[global_y_min, global_y_max]
+            range=[global_y_min, global_y_max],
+            title_font=dict(size=36),
+            tickfont= dict(size=36),
         )
 
         return fig

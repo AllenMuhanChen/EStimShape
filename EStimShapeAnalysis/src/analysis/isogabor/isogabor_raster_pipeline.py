@@ -116,8 +116,9 @@ class IsogaborAnalysis(Analysis):
                 column_groups=column_groups,  # Specify explicit column grouping
                 colors=color_map,
                 show_std=False,  # Set to True if you want to show standard deviation
-                title=f"Peristimulus Time Histogram: Channel {channel}",
+                title=f"Luminance vs Chromatic Contrast",
                 col_titles=column_titles,
+                row_suffix="(cycles/°)",
                 save_path=f"{self.save_path}/{channel}: color_experiment_psth.png",
                 cell_size=(300, 300),
             )
