@@ -11,11 +11,11 @@ from src.repository.good_channels import read_good_channels, read_cluster_channe
 def main():
     # Initialize analysis modules
     analyses = [
-        # IsogaborAnalysis(use_plotly=True),
-        # PlotTopNAnalysis(use_plotly=True),
-        # SideTestAnalysis(use_plotly=True),
+        IsogaborAnalysis(use_plotly=True),
+        PlotTopNAnalysis(use_plotly=True),
+        SideTestAnalysis(use_plotly=True),
         LightnessAnalysis(use_plotly=True),
-        # MixedGaborsAnalysis(),
+        MixedGaborsAnalysis(),
     ]
 
     # Ask for session ID (empty for all sessions)
