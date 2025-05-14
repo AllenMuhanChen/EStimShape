@@ -22,7 +22,7 @@ from clat.pipeline.pipeline_base_classes import (
 # Set up logging
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger('plotly_grouped_stimuli')
+logger = logging.getLogger('grouped_stimuli')
 
 
 def create_grouped_stimuli_module(
@@ -129,6 +129,7 @@ def create_grouped_stimuli_module(
 
     return grouped_stimuli_module
 
+
 class GroupedStimuliPlotter(ComputationModule):
     """
     Computation module that handles layout and plotting of grouped stimuli using Plotly.
@@ -146,7 +147,7 @@ class GroupedStimuliPlotter(ComputationModule):
                  info_box_columns=None,
                  include_colorbar: bool = True,
                  include_labels_for: Optional[set[str]] = None,
-                 subplot_spacing = None,  # (horizontal, vertical) spacing
+                 subplot_spacing=None,  # (horizontal, vertical) spacing
                  ):
         """Initialize the grouped stimuli visualization module."""
         if info_box_columns is None:
@@ -211,7 +212,6 @@ class GroupedStimuliPlotter(ComputationModule):
         left_margin_px = 200 if self.include_row_labels else 50
         right_margin_px = 150 if self.include_colorbar else 50  # More space for colorbar
         top_margin_px = 100  # For title and column labels
-
 
         # Calculate EXACT figure dimensions in pixels
         content_width_px = (n_cols * cell_width) + ((n_cols - 1) * horiz_spacing_px)
@@ -426,6 +426,7 @@ class GroupedStimuliPlotter(ComputationModule):
                 opacity=0  # Make the heatmap invisible
             )
         )
+
     def _normalize_global(self, data: pd.DataFrame, response_col: str) -> Tuple[float, float]:
         """Normalize responses globally."""
         try:
@@ -616,7 +617,6 @@ class GroupedStimuliPlotter(ComputationModule):
             # Add border to image
             img_with_border = ImageOps.expand(img, border=self.border_width, fill=border_color)
 
-
             img_with_border = img_with_border.resize(self.cell_size, Image.LANCZOS)
 
             return img_with_border
@@ -678,9 +678,6 @@ import plotly.graph_objects as go
 from typing import Optional
 
 from clat.pipeline.pipeline_base_classes import OutputHandler
-
-# Set up logging
-logger = logging.getLogger('plotly_grouped_stimuli')
 
 
 class PlotlyFigureSaverOutput(OutputHandler):
