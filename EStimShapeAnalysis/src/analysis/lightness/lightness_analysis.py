@@ -69,6 +69,7 @@ class LightnessAnalysis(Analysis):
                 title='2D vs 3D Texture Response Analysis',
                 save_path=f"{self.save_path}/{channel}: lightness_test_plotly.png",
                 publish_mode=True,
+                subplot_spacing=(20, 0),
             )
         else:
             visualize_module = create_grouped_stimuli_module(

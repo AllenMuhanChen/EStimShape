@@ -356,7 +356,7 @@ class PlotlyGroupedStimuliPlotter(ComputationModule):
             fig.update_layout(
                 title={
                     'text': self.title,
-                    'y': 0.99,
+                    'y': 0.98,
                     'x': 0.5,
                     'xanchor': 'center',
                     'yanchor': 'top',
@@ -831,13 +831,13 @@ class PlotlyFigureSaverOutput(OutputHandler):
         self.save_path = save_path
         self.save_html = save_html
         self.save_svg = save_svg
-        self.save_pdf = save_pdf
+        self.save_pdf = True
 
     def process(self, figure: go.Figure) -> go.Figure:
         """
         Process the figure and save in requested formats.
         """
-        figure.show()
+        # figure.show()
 
         if not self.save_path:
             return figure
