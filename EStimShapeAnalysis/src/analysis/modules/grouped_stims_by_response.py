@@ -1,21 +1,17 @@
-import tempfile
-
-import plotly.graph_objects as go
-import pandas as pd
-import numpy as np
-from PIL import Image, ImageOps
-from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
 import base64
 import io
-import os
 import logging
+from pathlib import Path
+from typing import Dict, List, Any, Optional, Tuple
 
-from matplotlib import pyplot as plt, image as mpimg
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
+from PIL import Image, ImageOps
 
 # Import our pipeline framework
 from clat.pipeline.pipeline_base_classes import (
-    InputHandler, ComputationModule, OutputHandler, AnalysisModule,
+    InputHandler, ComputationModule, AnalysisModule,
     AnalysisModuleFactory
 )
 
@@ -34,7 +30,6 @@ def create_grouped_stimuli_module(
         subgroup_col: Optional[str] = None,
         filter_values: Optional[Dict[str, List[Any]]] = None,
         sort_rules: Optional[Dict[str, Any]] = None,
-        figsize: Tuple[float, float] = (1200, 800),
         cell_size: Tuple[int, int] = (300, 300),
         border_width: int = 20,
         normalize_method: str = 'global',
@@ -70,7 +65,6 @@ def create_grouped_stimuli_module(
         save_path: Optional path to save the figure
         cols_in_info_box: Columns to include in the info box
         publish_mode: If True, use publication mode with certain aesthetic changes
-        save_html: Whether to save an interactive HTML version of the plot
 
     Returns:
         An AnalysisModule that can be used in a pipeline.
@@ -81,17 +75,13 @@ def create_grouped_stimuli_module(
 
     # If publish_mode is True, override certain parameters
     if publish_mode:
-        save_html = False
-        save_svg = True
         save_pdf = True
         cols_in_info_box = []
         border_width = 40
         include_colorbar = True
     else:
-        save_html = False
-        save_svg = False
         save_pdf = False
-        include_colorbar = True
+        include_colorbar = False
         include_labels_for = {"row", "col", "subgroup"}
 
     grouped_stimuli_module = AnalysisModuleFactory.create(
@@ -124,7 +114,7 @@ def create_grouped_stimuli_module(
             save_svg=save_svg,
             save_pdf=save_pdf,
         ),
-        name="plotly_grouped_stimuli_visualization"
+        name="grouped_stimuli_visualization"
     )
 
     return grouped_stimuli_module
@@ -673,7 +663,6 @@ class GroupedStimuliPlotter(ComputationModule):
 
 
 import os
-import logging
 import plotly.graph_objects as go
 from typing import Optional
 
@@ -687,8 +676,8 @@ class PlotlyFigureSaverOutput(OutputHandler):
 
     def __init__(self,
                  save_path: Optional[str] = None,
-                 save_html: bool = True,
-                 save_svg: bool = True,
+                 save_html: bool = False,
+                 save_svg: bool = False,
                  save_pdf: bool = False):
         """
         Initialize the output handler.
@@ -702,7 +691,7 @@ class PlotlyFigureSaverOutput(OutputHandler):
         self.save_path = save_path
         self.save_html = save_html
         self.save_svg = save_svg
-        self.save_pdf = True
+        self.save_pdf = save_pdf
 
     def process(self, figure: go.Figure) -> go.Figure:
         """

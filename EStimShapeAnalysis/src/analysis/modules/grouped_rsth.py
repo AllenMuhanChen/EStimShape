@@ -28,13 +28,14 @@ def create_psth_module(
         primary_group_labels: Optional[Dict[str, str]] = None,
         secondary_group_labels: Optional[Dict[str, str]] = None,
         save_path: Optional[str] = None,
-        save_html: bool = True,
         sort_rules: Optional[Dict[str, Any]] = None,
         height: int = None,
         width: int = None,
         cell_size: Optional[tuple] = None,
         template: str = "plotly_white",
-        include_row_labels=None) -> AnalysisModule:
+        include_row_labels=None,
+        publish_mode: bool = False,
+) -> AnalysisModule:
     """
     Create a pipeline module for grouped PSTH visualization using Plotly.
 
@@ -69,6 +70,10 @@ def create_psth_module(
         Configured analysis module
     """
     # Create the Plotly PSTH module
+    if publish_mode:
+        save_pdf = True
+    else:
+        save_pdf = False
     psth_module = AnalysisModuleFactory.create(
         input_handler=GroupedPSTHInputHandler(
             primary_group_col=primary_group_col,
@@ -99,11 +104,11 @@ def create_psth_module(
         ),
         output_handler=PlotlyFigureSaverOutput(
             save_path=save_path,
-            save_html=save_html,
-            save_svg=True,
-            save_pdf=True,
+            save_html=False,
+            save_svg=False,
+            save_pdf=save_pdf,
         ),
-        name="plotly_psth_visualization"
+        name="psth_visualization"
     )
 
     return psth_module
