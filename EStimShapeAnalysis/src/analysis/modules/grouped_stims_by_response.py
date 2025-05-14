@@ -25,7 +25,7 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger('plotly_grouped_stimuli')
 
 
-def create_plotly_grouped_stimuli_module(
+def create_grouped_stimuli_module(
         response_rate_col: str,
         path_col: str,
         response_rate_key: str = None,

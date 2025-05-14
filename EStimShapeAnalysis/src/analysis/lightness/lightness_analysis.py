@@ -12,7 +12,7 @@ from clat.pipeline.pipeline_base_classes import (
 )
 from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimPathField, ThumbnailField
-from src.analysis.modules.grouped_stims_by_response import create_plotly_grouped_stimuli_module
+from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 
 # Import custom modules
 from src.intan.MultiFileParser import MultiFileParser
@@ -29,7 +29,7 @@ def main():
 
     channel = 'A-011'
     compiled_data = compile()
-    analysis = LightnessAnalysis(use_plotly=True)
+    analysis = LightnessAnalysis()
     session_id, _ = read_session_id_from_db_name(context.twodvsthreed_database)
     session_id = "250425_0"
     channel = "A-013"
@@ -37,9 +37,6 @@ def main():
 
 
 class LightnessAnalysis(Analysis):
-    def __init__(self, use_plotly=False):
-        super().__init__()
-        self.use_plotly = use_plotly
 
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
         if compiled_data is None:
@@ -49,41 +46,23 @@ class LightnessAnalysis(Analysis):
                 'LightnessTestStimInfo',
                 self.response_table
             )
+        # Create Plotly visualization module
+        visualize_module = create_grouped_stimuli_module(
+            response_rate_col=self.spike_rates_col,
+            response_rate_key=channel,
+            path_col='ThumbnailPath',
+            col_col='RGB',
+            row_col='Texture',
+            subgroup_col='StimGaId',
+            filter_values={
+                'Texture': ['SHADE', 'SPECULAR', '2D']
+            },
+            title='2D vs 3D Texture Response Analysis',
+            save_path=f"{self.save_path}/{channel}: lightness_test.png",
+            publish_mode=True,
+            subplot_spacing=(20, 0),
+        )
 
-            # print(data.to_string())
-            # Create visualization module
-        if self.use_plotly:
-            # Create Plotly visualization module
-            visualize_module = create_plotly_grouped_stimuli_module(
-                response_rate_col=self.spike_rates_col,
-                response_rate_key=channel,
-                path_col='ThumbnailPath',
-                col_col='RGB',
-                row_col='Texture',
-                subgroup_col='StimGaId',
-                filter_values={
-                    'Texture': ['SHADE', 'SPECULAR', '2D']
-                },
-                title='2D vs 3D Texture Response Analysis',
-                save_path=f"{self.save_path}/{channel}: lightness_test_plotly.png",
-                publish_mode=True,
-                subplot_spacing=(20, 0),
-            )
-        else:
-            visualize_module = create_grouped_stimuli_module(
-                response_rate_col=self.spike_rates_col,
-                response_rate_key=channel,
-                path_col='ThumbnailPath',
-                col_col='RGB',
-                row_col='Texture',
-                subgroup_col='StimGaId',
-                filter_values={
-                    'Texture': ['SHADE', 'SPECULAR', '2D']
-                },
-                title='2D vs 3D Texture Response Analysis',
-                save_path=f"{self.save_path}/{channel}: lightness_test.png",
-                publish_mode=True,
-            )
         # Create and run pipeline with aggregated data
         pipeline = create_pipeline().then(visualize_module).build()
         result = pipeline.run(compiled_data)

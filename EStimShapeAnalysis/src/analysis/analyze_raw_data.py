@@ -12,9 +12,9 @@ def main():
     # Initialize analysis modules
     analyses = [
         IsogaborAnalysis(),
-        PlotTopNAnalysis(use_plotly=True),
-        SideTestAnalysis(use_plotly=True),
-        LightnessAnalysis(use_plotly=True),
+        PlotTopNAnalysis(),
+        SideTestAnalysis(),
+        LightnessAnalysis(),
         MixedGaborsAnalysis(),
     ]
 
