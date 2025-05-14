@@ -60,6 +60,7 @@ class PlotTopNAnalysis(Analysis):
             save_path=f"{self.save_path}/{channel}: plot_top_n.png",
             publish_mode=True,
             subplot_spacing=(20, 0),
+            module_name="plot_top_n"
         )
 
         # Create and run pipeline with aggregated data

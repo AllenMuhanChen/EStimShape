@@ -53,6 +53,7 @@ class PlotGenerationsAnalysis(PlotTopNAnalysis):
                            },  # only show top 20 per lineage
             # sort_rules={"GenId": "descending"},
             save_path=f"{self.save_path}/{channel}: top_per_gen.png",
+            module_name="Top Stimuli Per Gen"
         )
 
         # Create and run pipeline with aggregated data

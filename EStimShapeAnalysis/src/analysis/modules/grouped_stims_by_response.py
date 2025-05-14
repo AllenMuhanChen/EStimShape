@@ -41,7 +41,8 @@ def create_grouped_stimuli_module(
         cols_in_info_box=None,
         publish_mode: bool = False,
         include_labels_for=None,
-        subplot_spacing=None) -> AnalysisModule:
+        subplot_spacing=None,
+        module_name="grouped_stimuli_visualization") -> AnalysisModule:
     """
     Create a pipeline module for visualizing grouped stimuli with colored borders using Plotly.
 
@@ -112,7 +113,7 @@ def create_grouped_stimuli_module(
             save_path=save_path,
             save_pdf=save_pdf,
         ),
-        name="grouped_stimuli_visualization"
+        name=module_name
     )
 
     return grouped_stimuli_module

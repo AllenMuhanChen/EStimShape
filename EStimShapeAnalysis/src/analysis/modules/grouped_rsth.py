@@ -580,6 +580,7 @@ class PSTHComputation(ComputationModule):
         return [self._get_display_name(group) for group in groups]
 
 
+
 class GroupedPSTHInputHandler(InputHandler):
     """
     Input handler that filters and prepares data for PSTH visualization.
@@ -771,3 +772,5 @@ class GroupedPSTHInputHandler(InputHandler):
         else:
             # Default to standard sorting
             return sorted(unique_values)
+
+

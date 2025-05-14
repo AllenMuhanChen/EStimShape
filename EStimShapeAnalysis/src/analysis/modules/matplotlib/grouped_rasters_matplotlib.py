@@ -107,6 +107,8 @@ class GroupedRasterInputHandler(InputHandler):
             if col in filtered_data.columns:
                 filtered_data = filtered_data[filtered_data[col].isin(values)]
 
+        if filtered_data.empty:
+            raise ValueError("Filtered data is empty after applying filters")
         # Verify required columns exist
         if self.primary_group_col not in filtered_data.columns:
             raise ValueError(f"Primary grouping column '{self.primary_group_col}' not found in data")
