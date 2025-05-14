@@ -21,7 +21,7 @@ from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, IntanSpikeRateByChannelField, \
     EpochStartStopTimesField
-from src.analysis.modules.matplotlib.grouped_stims_by_response_matplotlib import create_grouped_stimuli_module
+from src.analysis.modules.matplotlib.grouped_stims_by_response_matplotlib import create_grouped_stimuli_module_matplotlib
 
 
 def main():

@@ -10,13 +10,14 @@ from matplotlib.colors import LinearSegmentedColormap, Normalize
 
 # Import our pipeline framework
 from clat.pipeline.pipeline_base_classes import (
-    InputHandler, ComputationModule, AnalysisModule,
+    ComputationModule, AnalysisModule,
     AnalysisModuleFactory
 )
 from src.analysis.modules.figure_output import FigureSaverOutput
+from src.analysis.modules.grouped_stims_by_response import GroupedStimuliInputHandler
 
 
-def create_grouped_stimuli_module(
+def create_grouped_stimuli_module_matplotlib(
         response_rate_col: str,
         path_col: str,
         response_rate_key: str = None,
@@ -92,7 +93,7 @@ def create_grouped_stimuli_module(
             filter_values=filter_values,
             sort_rules=sort_rules
         ),
-        computation=GroupedStimuliPlotter(
+        computation=GroupedStimuliPlotter_matplotlib(
             figsize=figsize,
             cell_size=cell_size,
             border_width=border_width,
@@ -115,157 +116,7 @@ def create_grouped_stimuli_module(
     return grouped_stimuli_module
 
 
-class GroupedStimuliInputHandler(InputHandler):
-    """
-    Input handler that filters and prepares data for grouped stimuli visualization.
-
-    Will automatically compute aggregated dataframe by averaging all rows' response_col that have the same
-    path_col value.
-
-    if filter_values are provided, only the rows that match the filter values will be included in the output.
-    if sort_rules are provided, the data will be sorted according to the specified rules.
-    """
-
-    def __init__(self,
-                 response_col: str,
-                 path_col: str,
-                 row_col: Optional[str] = None,
-                 response_key: Optional[str] = None,
-                 col_col: Optional[str] = None,
-                 subgroup_col: Optional[str] = None,
-                 filter_values: Optional[Dict[str, List[Any]]] = None,
-                 sort_rules: Optional[Dict[str, Any]] = None
-                 ):
-        """
-        Initialize the grouped stimuli input handler.
-
-        Args:
-            response_col: Column containing response values
-            path_col: Column containing paths to stimulus images
-            row_col: Optional column for grouping stimuli into rows
-            response_key: Optional key to extract from response_col if it contains a dictionary
-            col_col: Optional column for grouping stimuli into columns
-            subgroup_col: Optional column for subgrouping stimuli
-            filter_values: Optional dict mapping column names to lists of values to include
-            sort_rules: Optional dict for sorting values with multiple options:
-                - Basic form: {"col": "column_name", "ascending": True/False}
-                - With custom function: {"col": "column_name", "custom_func": callable}
-                  The custom_func will receive: (values_to_sort, dataframe, column_name)
-        """
-        self.response_col = response_col
-        self.response_key = response_key
-        self.path_col = path_col
-        self.row_col = row_col
-        self.col_col = col_col
-        self.subgroup_col = subgroup_col
-        self.filter_values = filter_values or {}
-        self.sort_rules = sort_rules or {}
-        self.filtered_data = None  # Will store filtered DataFrame for use in sorting functions
-
-    def prepare(self, compiled_data: pd.DataFrame) -> Dict[str, Any]:
-        """
-        Filter, sort, and organize compiled data for visualization.
-        """
-        # Apply any filters
-        filtered_data = compiled_data.copy()
-        for col, filter_value in self.filter_values.items():
-            if col in filtered_data.columns:
-                filtered_data = filtered_data[filtered_data[col].isin(filter_value)]
-
-        # Store filtered data for use in sorting functions
-        self.filtered_data = filtered_data.copy()
-
-        # Verify required columns exist
-        required_cols = [self.response_col, self.path_col]
-        for col in [self.row_col, self.col_col, self.subgroup_col]:
-            if col is not None:
-                required_cols.append(col)
-
-        for col in required_cols:
-            if col not in filtered_data.columns:
-                raise ValueError(f"Required column '{col}' not found in data")
-
-        # If response_col data is a dict and response_key is provided, extract the data
-        if isinstance(filtered_data[self.response_col].iloc[0], dict) and self.response_key:
-            filtered_data[self.response_col] = filtered_data[self.response_col].apply(
-                lambda x: x[self.response_key] if isinstance(x, dict) and self.response_key in x else 0
-            )
-
-        # Get unique values for each grouping dimension with optional sorting
-        row_values = self._get_sorted_values(filtered_data, self.row_col)
-        col_values = self._get_sorted_values(filtered_data, self.col_col)
-        subgroup_values = self._get_sorted_values(filtered_data, self.subgroup_col)
-
-        if self.subgroup_col and subgroup_values:
-            print(f"Found {len(subgroup_values)} subgroup values: {subgroup_values}")
-
-        return {
-            'data': filtered_data,
-            'response_col': self.response_col,
-            'path_col': self.path_col,
-            'row_col': self.row_col,
-            'col_col': self.col_col,
-            'subgroup_col': self.subgroup_col,
-            'row_values': row_values,
-            'col_values': col_values,
-            'subgroup_values': subgroup_values,
-            'filter_values': self.filter_values
-        }
-
-    def _get_sorted_values(self, data: pd.DataFrame, col_name: Optional[str]) -> List[Any]:
-        """
-        Get unique values for a column with optional sorting.
-
-        Args:
-            data: DataFrame containing the data
-            col_name: Name of the column to get unique values from
-
-        Returns:
-            List of unique values, potentially sorted
-        """
-        if not col_name or col_name not in data.columns:
-            return []
-
-        unique_values = list(data[col_name].unique())
-
-        # Check if we need to sort this column
-        if self.sort_rules and self.sort_rules.get("col") == col_name:
-            # Handle custom sort function that can access any column in the dataframe
-            custom_func = self.sort_rules.get("custom_func")
-            ascending = self.sort_rules.get("ascending", True)
-
-            if custom_func and callable(custom_func):
-                # Before calling the custom function, make sure we've extracted response values
-                # if needed to prevent dict comparison errors in the sorting functions
-                filtered_data_for_sorting = self.filtered_data.copy()
-
-                # Check for dictionary values in the column used for sorting metrics
-                # (typically the response column)
-                if self.response_col in filtered_data_for_sorting.columns:
-                    first_value = filtered_data_for_sorting[self.response_col].iloc[
-                        0] if not filtered_data_for_sorting.empty else None
-                    if isinstance(first_value, dict) and self.response_key is not None:
-                        # Create a copy with extracted values for sorting
-                        filtered_data_for_sorting[self.response_col] = filtered_data_for_sorting[
-                            self.response_col].apply(
-                            lambda x: x.get(self.response_key, 0) if isinstance(x, dict) and self.response_key else 0
-                        )
-
-                return custom_func(unique_values, filtered_data_for_sorting, col_name)
-            else:
-                # Standard sorting
-                return sorted(unique_values, reverse=not ascending)
-
-        # If no sort rules matched or no sort_rules provided
-        if col_name in self.filter_values:
-            # If we have filter values for this column, use their order
-            return [v for v in self.filter_values[col_name] if v in unique_values]
-        else:
-            # Default to standard sorting
-            return sorted(unique_values)
-
-
-class GroupedStimuliPlotter(ComputationModule):
+class GroupedStimuliPlotter_matplotlib(ComputationModule):
     """
     Computation module that handles layout calculation and plotting of grouped stimuli.
     """

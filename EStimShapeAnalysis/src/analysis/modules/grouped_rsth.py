@@ -1,11 +1,11 @@
 from typing import Optional, Dict, List, Any, Tuple
 
 import numpy as np
+import pandas as pd
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-from clat.pipeline.pipeline_base_classes import ComputationModule, AnalysisModule, AnalysisModuleFactory
-from src.analysis.modules.matplotlib.grouped_rsth_matplotlib import GroupedPSTHInputHandler
+from clat.pipeline.pipeline_base_classes import ComputationModule, AnalysisModule, AnalysisModuleFactory, InputHandler
 from src.analysis.modules.grouped_stims_by_response import PlotlyFigureSaverOutput
 
 
@@ -79,7 +79,7 @@ def create_psth_module(
             column_groups=column_groups,
             sort_rules=sort_rules
         ),
-        computation=PlotlyPSTHComputation(
+        computation=PSTHComputation(
             time_window=time_window,
             bin_size=bin_size,
             colors=colors,
@@ -109,7 +109,7 @@ def create_psth_module(
     return psth_module
 
 
-class PlotlyPSTHComputation(ComputationModule):
+class PSTHComputation(ComputationModule):
     """
     Computation module that handles PSTH calculation and plotting using Plotly.
 
@@ -573,3 +573,196 @@ class PlotlyPSTHComputation(ComputationModule):
     def _get_display_names(self, groups):
         """Get display names for a list of groups, using custom labels if available."""
         return [self._get_display_name(group) for group in groups]
+
+
+class GroupedPSTHInputHandler(InputHandler):
+    """
+    Input handler that filters and prepares data for PSTH visualization.
+
+    Responsibility: Data filtering and organization for further computation.
+    """
+
+    def __init__(self,
+                 primary_group_col: str,
+                 secondary_group_col: Optional[str] = None,
+                 filter_values: Optional[Dict[str, List[Any]]] = None,
+                 spike_data_col: str = None,
+                 spike_data_col_key: Optional[str] = None,
+                 column_groups: Optional[Dict[int, List[Any]]] = None,
+                 sort_rules: Optional[Dict[str, Any]] = None):
+        """
+        Initialize the PSTH input handler.
+
+        Args:
+            primary_group_col: The main column to group data by (creates different lines)
+            secondary_group_col: Secondary column for subgrouping (creates rows of plots)
+            filter_values: Optional dict mapping column names to values to include
+            spike_data_col: Column containing spike timestamps
+            spike_data_col_key: Optional key for extracting data if spike_data_col contains dictionaries
+            column_groups: Optional dict mapping column indices (0, 1, 2...) to lists of primary_group_col values
+                           to explicitly group certain values together in each column.
+                           If not provided, all groups will be shown in a single column.
+            sort_rules: Optional dict for sorting values with multiple options:
+                - Basic form: {"col": "column_name", "ascending": True/False}
+                - With custom function: {"col": "column_name", "custom_func": callable}
+                  The custom_func will receive: (values_to_sort, dataframe, column_name)
+        """
+        self.primary_group_col = primary_group_col
+        self.secondary_group_col = secondary_group_col
+        self.filter_values = filter_values or {}
+        self.spike_data_col = spike_data_col
+        self.spike_data_col_key = spike_data_col_key
+        self.column_groups = column_groups or {}
+        self.sort_rules = sort_rules or {}
+        self.filtered_data = None  # Will store filtered DataFrame for use in sorting functions
+
+    def prepare(self, compiled_data: pd.DataFrame) -> Dict[str, Any]:
+        """
+        Filter and organize compiled data for PSTH visualization.
+        """
+        # Apply any filters
+        filtered_data = compiled_data.copy()
+        for col, values in self.filter_values.items():
+            if col in filtered_data.columns:
+                filtered_data = filtered_data[filtered_data[col].isin(values)]
+
+        # Store filtered data for use in sorting functions
+        self.filtered_data = filtered_data.copy()
+
+        # Verify required columns exist
+        if self.primary_group_col not in filtered_data.columns:
+            raise ValueError(f"Primary grouping column '{self.primary_group_col}' not found in data")
+
+        if self.spike_data_col not in filtered_data.columns:
+            raise ValueError(f"Spike data column '{self.spike_data_col}' not found in data")
+
+        # Get ordered primary groups
+        all_primary_groups = filtered_data[self.primary_group_col].unique()
+        if self.primary_group_col in self.filter_values:
+            primary_groups = [g for g in self.filter_values[self.primary_group_col]
+                              if g in all_primary_groups]
+        else:
+            primary_groups = sorted(all_primary_groups)
+
+        # Get ordered secondary groups
+        secondary_groups = []
+        if self.secondary_group_col and self.secondary_group_col in filtered_data.columns:
+            all_secondary_groups = filtered_data[self.secondary_group_col].unique()
+            if self.secondary_group_col in self.filter_values:
+                secondary_groups = [g for g in self.filter_values[self.secondary_group_col]
+                                    if g in all_secondary_groups]
+            else:
+                secondary_groups = sorted(all_secondary_groups)
+
+        # Get unique values for each grouping dimension with optional sorting
+        # Using same pattern as GroupedStimuliInputHandler
+        if self.sort_rules and "col" in self.sort_rules:
+            sort_col = self.sort_rules["col"]
+            custom_func = self.sort_rules.get("custom_func")
+            ascending = self.sort_rules.get("ascending", True)
+
+            if custom_func and callable(custom_func):
+                # Apply custom sorting function
+                if sort_col == self.primary_group_col:
+                    primary_groups = self._get_sorted_values(filtered_data, self.primary_group_col)
+                elif sort_col == self.secondary_group_col:
+                    secondary_groups = self._get_sorted_values(filtered_data, self.secondary_group_col)
+            else:
+                # Standard sorting
+                if sort_col == self.primary_group_col:
+                    primary_groups = sorted(primary_groups, reverse=not ascending)
+                elif sort_col == self.secondary_group_col:
+                    secondary_groups = sorted(secondary_groups, reverse=not ascending)
+
+        # Handle column grouping
+        column_primary_groups = {}
+        if self.column_groups:
+            # If column groups are explicitly defined, use them
+            for col_idx, group_list in self.column_groups.items():
+                # Only include groups that actually exist in the filtered data
+                column_primary_groups[col_idx] = [g for g in group_list if g in primary_groups]
+
+            # Check for any groups that weren't assigned to a column
+            assigned_groups = set()
+            for groups in column_primary_groups.values():
+                assigned_groups.update(groups)
+
+            unassigned = [g for g in primary_groups if g not in assigned_groups]
+            if unassigned:
+                print(
+                    f"Warning: The following groups were not assigned to any column and will not be plotted: {unassigned}")
+        else:
+            # Default behavior: everything in a single column (index 0)
+            column_primary_groups[0] = primary_groups
+
+        # Determine number of columns from column_groups
+        n_columns = max(column_primary_groups.keys()) + 1 if column_primary_groups else 1
+
+        return {
+            'data': filtered_data,
+            'primary_group_col': self.primary_group_col,
+            'secondary_group_col': self.secondary_group_col,
+            'spike_data_col': self.spike_data_col,
+            'spike_data_col_key': self.spike_data_col_key,
+            'primary_groups': primary_groups,
+            'secondary_groups': secondary_groups,
+            'column_primary_groups': column_primary_groups,
+            'n_columns': n_columns
+        }
+
+    def _get_sorted_values(self, data: pd.DataFrame, col_name: Optional[str]) -> List[Any]:
+        """
+        Get unique values for a column with optional sorting.
+
+        This method follows the same pattern as in the grouped_stims_by_response module
+        to maintain consistency across modules.
+
+        Args:
+            data: DataFrame containing the data
+            col_name: Name of the column to get unique values from
+
+        Returns:
+            List of unique values, potentially sorted
+        """
+        if not col_name or col_name not in data.columns:
+            return []
+
+        unique_values = list(data[col_name].unique())
+
+        # Check if we need to sort this column
+        if self.sort_rules and self.sort_rules.get("col") == col_name:
+            custom_func = self.sort_rules.get("custom_func")
+            ascending = self.sort_rules.get("ascending", True)
+
+            if custom_func and callable(custom_func):
+                # Before calling the custom function, create a copy of the data for sorting
+                filtered_data_for_sorting = self.filtered_data.copy()
+
+                # The custom sorting function might reference a different column for its calculations
+                # (e.g., SortingUtils.by_avg_value uses a 'column' parameter)
+                # We need to process that column if it contains dictionaries
+
+                # We'll need to check all columns that might contain dictionaries
+                for check_col in filtered_data_for_sorting.columns:
+                    if len(filtered_data_for_sorting) > 0:
+                        first_val = filtered_data_for_sorting[check_col].iloc[0]
+                        # If this column contains dictionaries, extract the value using spike_data_col_key
+                        if isinstance(first_val, dict) and self.spike_data_col_key:
+                            # Create a temporary column with extracted values
+                            filtered_data_for_sorting[check_col] = filtered_data_for_sorting[check_col].apply(
+                                lambda x: x.get(self.spike_data_col_key, 0)
+                                if isinstance(x, dict) and self.spike_data_col_key in x else x
+                            )
+
+                return custom_func(unique_values, filtered_data_for_sorting, col_name)
+            else:
+                # Standard sorting
+                return sorted(unique_values, reverse=not ascending)
+
+        # If no sort rules matched or no sort_rules provided
+        if col_name in self.filter_values:
+            # If we have filter values for this column, use their order
+            return [v for v in self.filter_values[col_name] if v in unique_values]
+        else:
+            # Default to standard sorting
+            return sorted(unique_values)

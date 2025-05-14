@@ -12,11 +12,9 @@ from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, Pare
 from src.analysis.ga.plot_top_n import clean_ga_data
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
-from src.analysis.modules.matplotlib.grouped_rasters_matplotlib import create_grouped_raster_module
-from src.analysis.modules.matplotlib.grouped_rsth_matplotlib import create_grouped_psth_module
-from src.analysis.modules.matplotlib.grouped_stims_by_response_matplotlib import create_grouped_stimuli_module
-from src.analysis.modules.grouped_rsth import create_psth_module
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
+from src.analysis.modules.matplotlib.grouped_rasters_matplotlib import create_grouped_raster_module
+from src.analysis.modules.grouped_rsth import create_psth_module
 from src.analysis.modules.utils.sorting_utils import SpikeRateSortingUtils
 from src.intan.MultiFileParser import MultiFileParser
 from src.repository.export_to_repository import export_to_repository, read_session_id_from_db_name
@@ -111,7 +109,7 @@ class SideTestAnalysis(Analysis):
         psth_branch = create_branch().then(psth_module)
 
 
-        psth_examples = create_grouped_stimuli_module(
+        psth_examples = create_grouped_stimuli_module_matplotlib(
             response_rate_col=self.spike_rates_col,
             path_col='ThumbnailPath',
             response_rate_key=channel,
