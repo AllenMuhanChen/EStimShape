@@ -12,11 +12,11 @@ from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, Pare
 from src.analysis.ga.plot_top_n import clean_ga_data
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
-from src.analysis.modules.matplotlib.grouped_rasters import create_grouped_raster_module
-from src.analysis.modules.matplotlib.grouped_rsth import create_grouped_psth_module
-from src.analysis.modules.matplotlib.grouped_stims_by_response import create_grouped_stimuli_module
-from src.analysis.modules.plotly_grouped_rsth import create_plotly_psth_module
-from src.analysis.modules.plotly_grouped_stims_by_response import create_plotly_grouped_stimuli_module
+from src.analysis.modules.matplotlib.grouped_rasters_matplotlib import create_grouped_raster_module
+from src.analysis.modules.matplotlib.grouped_rsth_matplotlib import create_grouped_psth_module
+from src.analysis.modules.matplotlib.grouped_stims_by_response_matplotlib import create_grouped_stimuli_module
+from src.analysis.modules.grouped_rsth import create_psth_module
+from src.analysis.modules.grouped_stims_by_response import create_plotly_grouped_stimuli_module
 from src.analysis.modules.utils.sorting_utils import SpikeRateSortingUtils
 from src.intan.MultiFileParser import MultiFileParser
 from src.repository.export_to_repository import export_to_repository, read_session_id_from_db_name
@@ -108,7 +108,7 @@ class SideTestAnalysis(Analysis):
 
         # Create a PSTH module sorted by average firing rate
         if self.use_plotly:
-            psth_module = create_plotly_psth_module(
+            psth_module = create_psth_module(
                 primary_group_col='TestType',
                 secondary_group_col='TestId',
                 spike_data_col=self.spike_tstamps_col,

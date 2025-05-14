@@ -12,7 +12,7 @@ from clat.pipeline.pipeline_base_classes import (
 )
 from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimPathField, ThumbnailField
-from src.analysis.modules.plotly_grouped_stims_by_response import create_plotly_grouped_stimuli_module
+from src.analysis.modules.grouped_stims_by_response import create_plotly_grouped_stimuli_module
 
 # Import custom modules
 from src.intan.MultiFileParser import MultiFileParser
@@ -21,7 +21,7 @@ from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, IntanSpikeRateByChannelField, \
     EpochStartStopTimesField
-from src.analysis.modules.matplotlib.grouped_stims_by_response import create_grouped_stimuli_module
+from src.analysis.modules.matplotlib.grouped_stims_by_response_matplotlib import create_grouped_stimuli_module
 
 
 def main():

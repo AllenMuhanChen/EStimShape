@@ -16,8 +16,8 @@ from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, 
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField, GenIdField
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
-from src.analysis.modules.matplotlib.grouped_stims_by_response import create_grouped_stimuli_module
-from src.analysis.modules.plotly_grouped_stims_by_response import create_plotly_grouped_stimuli_module
+from src.analysis.modules.matplotlib.grouped_stims_by_response_matplotlib import create_grouped_stimuli_module
+from src.analysis.modules.grouped_stims_by_response import create_plotly_grouped_stimuli_module
 from src.intan.MultiFileParser import MultiFileParser
 from src.pga.alexnet.analysis.plot_top_n_alexnet import add_colored_border
 from src.pga.mock.mock_rwa_analysis import condition_spherical_angles, hemisphericalize_orientation

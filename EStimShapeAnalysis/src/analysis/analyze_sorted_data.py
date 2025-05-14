@@ -10,8 +10,8 @@ from src.analysis.isogabor.isogabor_raster_pipeline import IsogaborAnalysis
 from src.analysis.isogabor.mixed_gabors_analysis import MixedGaborsAnalysis
 from src.analysis.lightness.lightness_analysis import LightnessAnalysis
 
-from src.analysis.modules.matplotlib.grouped_rasters import create_grouped_raster_module
-from src.analysis.modules.matplotlib.grouped_stims_by_response import create_grouped_stimuli_module
+from src.analysis.modules.matplotlib.grouped_rasters_matplotlib import create_grouped_raster_module
+from src.analysis.modules.matplotlib.grouped_stims_by_response_matplotlib import create_grouped_stimuli_module
 from src.repository.import_from_repository import import_from_repository
 from src.sort.export_sort_to_repository import export_sorted_spikes
 

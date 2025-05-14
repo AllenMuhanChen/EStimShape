@@ -5,11 +5,11 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
 from clat.pipeline.pipeline_base_classes import ComputationModule, AnalysisModule, AnalysisModuleFactory
-from src.analysis.modules.matplotlib.grouped_rsth import GroupedPSTHInputHandler
-from src.analysis.modules.plotly_grouped_stims_by_response import PlotlyFigureSaverOutput
+from src.analysis.modules.matplotlib.grouped_rsth_matplotlib import GroupedPSTHInputHandler
+from src.analysis.modules.grouped_stims_by_response import PlotlyFigureSaverOutput
 
 
-def create_plotly_psth_module(
+def create_psth_module(
         primary_group_col: str,
         secondary_group_col: Optional[str] = None,
         filter_values: Optional[Dict[str, List[Any]]] = None,

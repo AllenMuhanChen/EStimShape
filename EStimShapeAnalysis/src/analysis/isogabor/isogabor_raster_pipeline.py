@@ -6,9 +6,8 @@ from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.util.connection import Connection
 from clat.compile.task.compile_task_id import TaskIdCollector
 from src.analysis import Analysis
-from src.analysis.modules.matplotlib.grouped_rasters import create_grouped_raster_module
-from src.analysis.modules.matplotlib.grouped_rsth import create_grouped_psth_module
-from src.analysis.modules.plotly_grouped_rsth import create_plotly_psth_module
+from src.analysis.modules.matplotlib.grouped_rasters_matplotlib import create_grouped_raster_module
+from src.analysis.modules.grouped_rsth import create_psth_module
 
 from src.intan.MultiFileParser import MultiFileParser
 from src.repository.import_from_repository import import_from_repository
@@ -100,7 +99,7 @@ class IsogaborAnalysis(Analysis):
 
         # Create the PSTH module with explicit column grouping
 
-        psth_module = create_plotly_psth_module(
+        psth_module = create_psth_module(
             primary_group_col='Type',
             secondary_group_col='Frequency',
             filter_values={
