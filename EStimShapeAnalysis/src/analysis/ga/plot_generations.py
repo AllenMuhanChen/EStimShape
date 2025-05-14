@@ -30,7 +30,7 @@ class PlotGenerationsAnalysis(PlotTopNAnalysis):
 
         compiled_data['Spike Rate'] = compiled_data[self.spike_rates_col].apply(
             lambda x: x[channel] if channel in x else 0)
-        # Calculate average response rate for each StimSpecId within each Lineage
+        # Calculate average response rate for each StimSpecId within each subplot_Lineage
         avg_response = compiled_data.groupby(['GenId', 'StimSpecId'])['Spike Rate'].mean().reset_index()
         avg_response.rename(columns={'Spike Rate': 'Avg Response Rate'}, inplace=True)
         avg_response['RankWithinGeneration'] = avg_response.groupby('GenId')['Avg Response Rate'].rank(ascending=False,

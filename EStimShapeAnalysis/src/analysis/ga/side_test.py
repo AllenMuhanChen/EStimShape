@@ -108,8 +108,7 @@ class SideTestAnalysis(Analysis):
 
         psth_branch = create_branch().then(psth_module)
 
-
-        psth_examples = create_grouped_stimuli_module_matplotlib(
+        psth_examples = create_grouped_stimuli_module(
             response_rate_col=self.spike_rates_col,
             path_col='ThumbnailPath',
             response_rate_key=channel,

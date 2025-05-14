@@ -110,8 +110,6 @@ def create_grouped_stimuli_module(
         ),
         output_handler=PlotlyFigureSaverOutput(
             save_path=save_path,
-            save_html=save_html,
-            save_svg=save_svg,
             save_pdf=save_pdf,
         ),
         name="grouped_stimuli_visualization"
@@ -142,6 +140,8 @@ class GroupedStimuliPlotter(ComputationModule):
         """Initialize the grouped stimuli visualization module."""
         if info_box_columns is None:
             info_box_columns = ['Response', 'StimSpecId']
+        if subplot_spacing is None:
+            subplot_spacing = (20, 20)
         self.cell_size = cell_size
         self.border_width = border_width
         self.normalize_method = normalize_method

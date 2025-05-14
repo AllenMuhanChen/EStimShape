@@ -72,6 +72,9 @@ def main():
                     analysis.run(session_id=session_id, data_type="raw", channel=channel)
                 except Exception as e:
                     print(f"Error running {analysis.__class__.__name__} for session {session_id}, channel {channel}: {e}")
+                    # print full traceback
+                    import traceback
+                    traceback.print_exc()
 
 
 def fetch_session_ids() -> List[Tuple[str]]:

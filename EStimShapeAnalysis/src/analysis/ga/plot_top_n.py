@@ -59,6 +59,7 @@ class PlotTopNAnalysis(Analysis):
                            "RankWithinLineage": range(1, 21)},  # only show top 20 per lineage
             save_path=f"{self.save_path}/{channel}: plot_top_n.png",
             publish_mode=True,
+            subplot_spacing=(20, 0),
         )
 
         # Create and run pipeline with aggregated data
