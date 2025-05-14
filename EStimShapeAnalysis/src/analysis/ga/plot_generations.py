@@ -4,7 +4,7 @@ from clat.pipeline.pipeline_base_classes import create_pipeline
 
 from src.analysis.ga import plot_top_n
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
-from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
+from src.analysis.modules.matplotlib.grouped_stims_by_response import create_grouped_stimuli_module
 from src.repository.import_from_repository import import_from_repository
 
 

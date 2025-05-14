@@ -12,9 +12,9 @@ from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, Pare
 from src.analysis.ga.plot_top_n import clean_ga_data
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
-from src.analysis.modules.grouped_rasters import create_grouped_raster_module
-from src.analysis.modules.grouped_rsth import create_grouped_psth_module
-from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
+from src.analysis.modules.matplotlib.grouped_rasters import create_grouped_raster_module
+from src.analysis.modules.matplotlib.grouped_rsth import create_grouped_psth_module
+from src.analysis.modules.matplotlib.grouped_stims_by_response import create_grouped_stimuli_module
 from src.analysis.modules.plotly_grouped_rsth import create_plotly_psth_module
 from src.analysis.modules.plotly_grouped_stims_by_response import create_plotly_grouped_stimuli_module
 from src.analysis.modules.utils.sorting_utils import SpikeRateSortingUtils

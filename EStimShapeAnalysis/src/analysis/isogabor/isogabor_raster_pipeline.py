@@ -6,8 +6,8 @@ from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.util.connection import Connection
 from clat.compile.task.compile_task_id import TaskIdCollector
 from src.analysis import Analysis
-from src.analysis.modules.grouped_rasters import create_grouped_raster_module
-from src.analysis.modules.grouped_rsth import create_grouped_psth_module
+from src.analysis.modules.matplotlib.grouped_rasters import create_grouped_raster_module
+from src.analysis.modules.matplotlib.grouped_rsth import create_grouped_psth_module
 from src.analysis.modules.plotly_grouped_rsth import create_plotly_psth_module
 
 from src.intan.MultiFileParser import MultiFileParser
@@ -20,7 +20,7 @@ from src.analysis.isogabor.old_isogabor_analysis import TypeField, FrequencyFiel
 from clat.pipeline.pipeline_base_classes import (
     create_pipeline, create_branch
 )
-from src.repository.export_to_repository import export_to_repository, read_session_id_from_db_name
+from src.repository.export_to_repository import export_to_repository
 
 
 def main():
@@ -30,14 +30,11 @@ def main():
 
     session_id = "250425_0"
     channel = "A-017"
-    analysis = IsogaborAnalysis(use_plotly=True)
+    analysis = IsogaborAnalysis()
     return analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
 class IsogaborAnalysis(Analysis):
-    def __init__(self, use_plotly=False):
-        super().__init__()
-        self.use_plotly = use_plotly
 
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
         if compiled_data is None:
@@ -102,45 +99,28 @@ class IsogaborAnalysis(Analysis):
         ]
 
         # Create the PSTH module with explicit column grouping
-        if self.use_plotly:
-            psth_module = create_plotly_psth_module(
-                primary_group_col='Type',
-                secondary_group_col='Frequency',
-                filter_values={
-                    'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
-                },
-                spike_data_col=self.spike_tstamps_col,
-                spike_data_col_key=channel,
-                time_window=(-0.2, 0.5),
-                bin_size=0.025,
-                column_groups=column_groups,  # Specify explicit column grouping
-                colors=color_map,
-                show_std=False,  # Set to True if you want to show standard deviation
-                title=f"Luminance vs Chromatic Contrast",
-                col_titles=column_titles,
-                row_suffix="(cycles/°)",
-                save_path=f"{self.save_path}/{channel}: color_experiment_psth_plotly.png",
-                include_row_labels=True,
-                cell_size=(600, 300),
-            )
-        else:
-            psth_module = create_grouped_psth_module(
-                primary_group_col='Type',
-                secondary_group_col='Frequency',
-                filter_values={
-                    'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
-                },
-                spike_data_col=self.spike_tstamps_col,
-                spike_data_col_key=channel,
-                time_window=(-0.2, 0.5),
-                bin_size=0.025,
-                column_groups=column_groups,  # Specify explicit column grouping
-                colors=color_map,
-                show_std=False,  # Set to True if you want to show standard deviation
-                title=f"Peristimulus Time Histogram: Channel {channel}",
-                col_titles=column_titles,
-                save_path=f"{self.save_path}/{channel}: color_experiment_psth.png"
-            )
+
+        psth_module = create_plotly_psth_module(
+            primary_group_col='Type',
+            secondary_group_col='Frequency',
+            filter_values={
+                'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
+            },
+            spike_data_col=self.spike_tstamps_col,
+            spike_data_col_key=channel,
+            time_window=(-0.2, 0.5),
+            bin_size=0.025,
+            column_groups=column_groups,  # Specify explicit column grouping
+            colors=color_map,
+            show_std=False,  # Set to True if you want to show standard deviation
+            title=f"Luminance vs Chromatic Contrast",
+            col_titles=column_titles,
+            row_suffix="(cycles/°)",
+            save_path=f"{self.save_path}/{channel}: color_experiment_psth_plotly.png",
+            include_row_labels=True,
+            cell_size=(600, 300),
+        )
+
 
         # ----------------
         # STEP 3: Create and run the pipeline

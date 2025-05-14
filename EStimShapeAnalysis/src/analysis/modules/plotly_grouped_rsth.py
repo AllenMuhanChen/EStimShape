@@ -5,7 +5,7 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
 from clat.pipeline.pipeline_base_classes import ComputationModule, AnalysisModule, AnalysisModuleFactory
-from src.analysis.modules.grouped_rsth import GroupedPSTHInputHandler
+from src.analysis.modules.matplotlib.grouped_rsth import GroupedPSTHInputHandler
 from src.analysis.modules.plotly_grouped_stims_by_response import PlotlyFigureSaverOutput
 
 

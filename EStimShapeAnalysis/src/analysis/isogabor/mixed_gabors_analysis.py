@@ -1,5 +1,3 @@
-import os
-
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -8,11 +6,11 @@ from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.util.connection import Connection
 from clat.compile.task.compile_task_id import TaskIdCollector
 from src.analysis import Analysis
-from src.analysis.modules.grouped_rasters import create_grouped_raster_module
+from src.analysis.modules.matplotlib.grouped_rasters import create_grouped_raster_module
 from src.intan.MultiFileParser import MultiFileParser
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
-from src.analysis.isogabor.old_isogabor_analysis import TypeField, FrequencyField, IntanSpikesByChannelField, \
+from src.analysis.isogabor.old_isogabor_analysis import TypeField, IntanSpikesByChannelField, \
     EpochStartStopTimesField, MixedFrequencyField, MixedPhaseField, AlignedFrequencyField, AlignedPhaseField, \
     IntanSpikeRateByChannelField
 # Import our pipeline framework
