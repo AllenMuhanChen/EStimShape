@@ -82,8 +82,13 @@ public abstract class AbstractTaskScene implements TaskScene {
 		renderer.draw(new Drawable() {
 			public void draw(Context context) {
 				if (useStencil) {
-					// 0 will pass for stimulus region
-					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
+					if (fixationOn) {
+						// Normal behavior - stimulus only in region 0
+						GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
+					} else {
+						// Allow stimulus in both regions 0 and 1
+						GL11.glStencilFunc(GL11.GL_NOTEQUAL, 2, 3); // or disable stencil entirely
+					}
 				}
 				drawStimulus(context);
 				if (useStencil) {
