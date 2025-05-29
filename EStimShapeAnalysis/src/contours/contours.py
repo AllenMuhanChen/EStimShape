@@ -5,7 +5,7 @@ from skimage import color
 
 def normalize_lightness(lightness):
     lightness_zeros_removed = lightness[lightness > 0]
-    l_min, l_max = np.percentile(lightness_zeros_removed, [1, 99])
+    l_min, l_max = np.percentile(lightness_zeros_removed, [0, 100])
     lightness_normalized = np.clip((lightness - l_min) / (l_max - l_min), 0, 1)
     return lightness_normalized
 
@@ -54,7 +54,7 @@ def process_image(input_path, grayscale_output_path, colormap_output_path, final
 
 
 # Example usage
-input_image_path = "/home/r2_allen/Documents/EStimShape/allen_estimshape_train_240604/stimuli/240723/procedural/pngs/1721836111082299_procedural_I.png"
+input_image_path = "/home/r2_allen/Documents/EStimShape/allen_ga_exp_250506_0/stimuli/ga/pngs/1746543822317985_thumbnail.png"
 grayscale_output_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/contours/grayscale_image.png"
 colormap_output_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/contours/lab_colormap.png"
 final_output_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/contours/final_multiplied_image.png"
