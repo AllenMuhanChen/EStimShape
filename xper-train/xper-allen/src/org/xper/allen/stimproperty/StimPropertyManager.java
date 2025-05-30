@@ -10,8 +10,8 @@ public abstract class StimPropertyManager<T> {
         this.jdbcTemplate = jdbcTemplate;
         createTableIfNotExists();
     }
-    abstract void createTableIfNotExists();
-    abstract void writeProperty(Long stimId, T property);
-    abstract T readProperty(Long stimId);
-    abstract String getTableName();
+    public abstract void createTableIfNotExists();
+    public abstract void writeProperty(Long stimId, T property);
+    public abstract T readProperty(Long stimId);
+    public abstract String getTableName();
 }

@@ -1,5 +1,6 @@
 package org.xper.allen.shuffle;
 
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.contrasts.PythonImageProcessor;
 import org.xper.allen.drawing.ga.GAMatchStick;
@@ -21,6 +22,7 @@ public class ShuffleStim extends TwoDVsThreeDStim {
             put(ShuffleType.MAGNITUDE, "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/imageshuffle/magnitude_shuffle.py");
         }
     };
+    ShuffleTypePropertyManager shuffleTypeManager;
     /**
      * @param generator
      * @param gaStimId    : the stimulus id from the GA experiment we are changing the shading / color / contrast of for testing
@@ -29,6 +31,8 @@ public class ShuffleStim extends TwoDVsThreeDStim {
     public ShuffleStim(TwoDVsThreeDTrialGenerator generator, long gaStimId, String textureType, ShuffleType shuffleType) {
         super(generator, gaStimId, textureType, null, -1.0);
         this.shuffleType = shuffleType;
+
+        this.shuffleTypeManager = new ShuffleTypePropertyManager(new JdbcTemplate(generator.getDbUtil().getDataSource()));
 
     }
 
@@ -64,12 +68,17 @@ public class ShuffleStim extends TwoDVsThreeDStim {
             throw new RuntimeException(e);
         }
 
-        drawThumbnails(mStick);
         AllenMStickData mStickData = (AllenMStickData) mStick.getMStickData();
-        ShuffleStimData shuffledMStickData = new ShuffleStimData(mStickData, shuffleType);
-        writeStimSpec(shuffledPngPath, shuffledMStickData);
+//        ShuffleStimData shuffledMStickData = new ShuffleStimData(mStickData, shuffleType);
+        writeStimSpec(shuffledPngPath, mStickData);
 
         writeStimProperties();
+    }
+
+    protected void writeStimProperties() {
+        super.writeStimProperties();
+        shuffleTypeManager.writeProperty(stimId, shuffleType);
+
     }
 
 
