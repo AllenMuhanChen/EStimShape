@@ -2,6 +2,7 @@ package org.xper.allen.shuffle;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.allen.drawing.composition.AllenMStickData;
+import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.contrasts.PythonImageProcessor;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.twodvsthreed.TwoDVsThreeDStim;
@@ -11,6 +12,8 @@ import org.xper.drawing.RGBColor;
 import javax.vecmath.Point3d;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 public class ShuffleStim extends TwoDVsThreeDStim {
@@ -69,10 +72,18 @@ public class ShuffleStim extends TwoDVsThreeDStim {
         }
 
         AllenMStickData mStickData = (AllenMStickData) mStick.getMStickData();
-//        ShuffleStimData shuffledMStickData = new ShuffleStimData(mStickData, shuffleType);
         writeStimSpec(shuffledPngPath, mStickData);
 
         writeStimProperties();
+    }
+
+    protected String drawPng(AllenMatchStick mStick) {
+        //draw pngs
+        List<String> labels = new LinkedList<>();
+        labels.add("base");
+        String pngPath = generator.getPngMaker().createAndSavePNG(mStick, targetStimId, labels, generator.getGeneratorPngPath());
+        pngPath = generator.convertPngPathToExperiment(pngPath);
+        return pngPath;
     }
 
     protected void writeStimProperties() {
