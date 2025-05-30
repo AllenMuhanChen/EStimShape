@@ -17,8 +17,8 @@ import java.util.List;
 import java.util.Map;
 
 public class ShuffleStim extends TwoDVsThreeDStim {
-    ShuffleType shuffleType;
-    Map<ShuffleType, String> scriptPathsForShuffleTypes = new HashMap(){
+    protected ShuffleType shuffleType;
+    public static Map<ShuffleType, String> scriptPathsForShuffleTypes = new HashMap<ShuffleType, String>(){
         {
             put(ShuffleType.PIXEL, "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/imageshuffle/pixel_shuffle.py");
             put(ShuffleType.PHASE, "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/imageshuffle/phase_shuffle.py");
@@ -42,7 +42,6 @@ public class ShuffleStim extends TwoDVsThreeDStim {
     @Override
     public void writeStim() {
         //TODO: check if we've already drawn this stim once?
-
         stimId = generator.getGlobalTimeUtil().currentTimeMicros();
         Point3d centerOfMass = getTargetsCenterOfMass();
         GAMatchStick mStick = new GAMatchStick(centerOfMass); //this constructor ignores RF for purposes of drawing
@@ -50,8 +49,7 @@ public class ShuffleStim extends TwoDVsThreeDStim {
         mStick.setProperties(sizeDiameterDegrees, textureType, contrast);
         mStick.setStimColor(color);
         mStick.genMatchStickFromFile(targetSpecPath, new double[]{0,0,0});
-//
-        saveMStickSpec(mStick);
+
         String pngPath = drawPng(mStick);
 
         // using python image process
