@@ -50,25 +50,29 @@ public class ShuffleStim extends TwoDVsThreeDStim {
         mStick.setStimColor(color);
         mStick.genMatchStickFromFile(targetSpecPath, new double[]{0,0,0});
 
-        String pngPath = drawPng(mStick);
+        String originalPngPath = drawPng(mStick);
 
         // using python image process
-        String scriptPath = scriptPathsForShuffleTypes.get(shuffleType);
-        if (scriptPath == null) {
-            throw new IllegalArgumentException("No script path found for shuffle type: " + shuffleType);
-        }
-        PythonImageProcessor imageProcessor = new PythonImageProcessor(scriptPath);
         String shuffledPngPath;
-        try {
-            shuffledPngPath = imageProcessor.processImage(pngPath).getAbsolutePath();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        } catch (PythonImageProcessor.ImageProcessingException e) {
-            throw new RuntimeException(e);
+        if (shuffleType.equals(ShuffleType.NONE)) {
+            shuffledPngPath = originalPngPath; // no shuffling, use original PNG
+        } else {
+            String scriptPath = scriptPathsForShuffleTypes.get(shuffleType);
+            if (scriptPath == null) {
+                throw new IllegalArgumentException("No script path found for shuffle type: " + shuffleType);
+            }
+            PythonImageProcessor imageProcessor = new PythonImageProcessor(scriptPath);
+            try {
+                shuffledPngPath = imageProcessor.processImage(originalPngPath).getAbsolutePath();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } catch (PythonImageProcessor.ImageProcessingException e) {
+                throw new RuntimeException(e);
+            }
         }
-
+        shuffledPngPath = generator.convertPngPathToExperiment(shuffledPngPath);
         AllenMStickData mStickData = (AllenMStickData) mStick.getMStickData();
         writeStimSpec(shuffledPngPath, mStickData);
 
@@ -77,17 +81,20 @@ public class ShuffleStim extends TwoDVsThreeDStim {
 
     protected String drawPng(AllenMatchStick mStick) {
         //draw pngs
+        String pngPath;
         List<String> labels = new LinkedList<>();
-        labels.add("base");
-        String pngPath = generator.getPngMaker().createAndSavePNG(mStick, targetStimId, labels, generator.getGeneratorPngPath());
-        pngPath = generator.convertPngPathToExperiment(pngPath);
+        if (shuffleType.equals(ShuffleType.NONE)) {
+            pngPath = generator.getPngMaker().createAndSavePNG(mStick, stimId, labels, generator.getGeneratorPngPath());
+        } else {
+            labels.add("base");
+            pngPath = generator.getPngMaker().createAndSavePNG(mStick, targetStimId, labels, generator.getGeneratorPngPath());
+        }
         return pngPath;
     }
 
     protected void writeStimProperties() {
         super.writeStimProperties();
         shuffleTypeManager.writeProperty(stimId, shuffleType);
-
     }
 
 

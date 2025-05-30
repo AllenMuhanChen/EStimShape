@@ -1,5 +1,5 @@
 package org.xper.allen.shuffle;
 
 public enum ShuffleType {
-    PIXEL, PHASE, MAGNITUDE
+    NONE, PIXEL, PHASE, MAGNITUDE
 }
