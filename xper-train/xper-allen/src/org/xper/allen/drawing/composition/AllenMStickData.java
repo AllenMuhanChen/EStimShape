@@ -15,7 +15,7 @@ public class AllenMStickData implements MStickData {
     AllenMStickSpec analysisMStickSpec;
     Point3d massCenter;
 
-    static XStream s;
+    protected static XStream s;
 
     static {
         s = new XStream();

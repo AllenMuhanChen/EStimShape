@@ -20,27 +20,27 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class TwoDVsThreeDStim implements Stim {
-    private final RFStrategyPropertyManager rfStrategyManager_ga;
-    private final SizePropertyManager sizeManager_ga;
-    private final RFStrategy rfStrategy;
-    private final double sizeDiameterDegrees;
-    private final ColorPropertyManager colorManager_ga;
-    private final TexturePropertyManager textureManager_ga;
-    private final ContrastPropertyManager contrastManager_ga;
-    private final RFStrategyPropertyManager rfStrategyManager_2dvs3d;
-    private final SizePropertyManager sizeManager_2dvs3d;
-    private final ColorPropertyManager colorManager_2dvs3d;
-    private final TexturePropertyManager textureManager_2dvs3d;
-    private final ContrastPropertyManager contrastManager_2dvs3d;
-    TwoDVsThreeDTrialGenerator generator;
-    long targetStimId;
-    String textureType;
-    RGBColor color;
-    private String targetSpecPath;
-    private ReceptiveField receptiveField;
-    private Long stimId;
-    private Coordinates2D imageCenterCoords = new Coordinates2D(0, 0);
-    private double contrast;
+    protected final RFStrategyPropertyManager rfStrategyManager_ga;
+    protected final SizePropertyManager sizeManager_ga;
+    protected final RFStrategy rfStrategy;
+    protected final double sizeDiameterDegrees;
+    protected final ColorPropertyManager colorManager_ga;
+    protected final TexturePropertyManager textureManager_ga;
+    protected final ContrastPropertyManager contrastManager_ga;
+    protected final RFStrategyPropertyManager rfStrategyManager_2dvs3d;
+    protected final SizePropertyManager sizeManager_2dvs3d;
+    protected final ColorPropertyManager colorManager_2dvs3d;
+    protected final TexturePropertyManager textureManager_2dvs3d;
+    protected final ContrastPropertyManager contrastManager_2dvs3d;
+    protected TwoDVsThreeDTrialGenerator generator;
+    protected long targetStimId;
+    protected String textureType;
+    protected RGBColor color;
+    protected String targetSpecPath;
+    protected ReceptiveField receptiveField;
+    protected Long stimId;
+    protected Coordinates2D imageCenterCoords = new Coordinates2D(0, 0);
+    protected double contrast;
 
     /**
      *
@@ -114,7 +114,7 @@ public class TwoDVsThreeDStim implements Stim {
         writeStimProperties();
     }
 
-    private Point3d getTargetsCenterOfMass() {
+    protected Point3d getTargetsCenterOfMass() {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.gaDataSource);
 
         // Read the data XML from StimSpec table
@@ -141,7 +141,7 @@ public class TwoDVsThreeDStim implements Stim {
         return centerOfMass;
     }
 
-    private void writeStimProperties() {
+    protected void writeStimProperties() {
         colorManager_2dvs3d.writeProperty(stimId, color);
         textureManager_2dvs3d.writeProperty(stimId, textureType);
         sizeManager_2dvs3d.writeProperty(stimId, (float) sizeDiameterDegrees);
@@ -185,7 +185,7 @@ public class TwoDVsThreeDStim implements Stim {
         ((AllenDbUtil) generator.getDbUtil()).writeStimSpec(stimId, stimSpec.toXml(), mStickData.toXml());
     }
 
-    private void saveMStickSpec(GAMatchStick mStick) {
+    protected void saveMStickSpec(GAMatchStick mStick) {
         AllenMStickSpec spec = new AllenMStickSpec();
         spec.setMStickInfo(mStick, true);
         spec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(stimId), true);
