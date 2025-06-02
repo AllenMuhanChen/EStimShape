@@ -1,7 +1,23 @@
+#!/usr/bin/env python3
+"""
+Magnitude shuffle processing script for Java integration via direct process execution.
+Shuffles the magnitude while preserving phase information, color distribution,
+and average luminance through histogram matching.
+
+Usage: python magnitude_processing.py <input_path> <output_path> [--keep-intermediates]
+"""
+
+import sys
+import os
+import argparse
 import numpy as np
+from PIL import Image
+from scipy import fftpack
+from skimage import color as skcolor, exposure
 import matplotlib.pyplot as plt
-from scipy import fftpack, stats
-from skimage import io, color as skcolor, exposure
+import matplotlib
+
+matplotlib.use('Agg')  # Use non-interactive backend for server environments
 
 
 def magnitude_randomize_preserve_contrast(image, mask=None):
@@ -29,11 +45,26 @@ def magnitude_randomize_preserve_contrast(image, mask=None):
 
     # Handle mask creation if not provided
     if mask is None:
-        # Create a mask where pixels are NOT equal to [38, 38, 38, 255]
+        # Find the most common pixel value (background)
         if image.shape[2] == 4:  # Image has alpha channel
-            mask = np.logical_not(np.all(image[:, :, :3] == [38, 38, 38], axis=-1))
+            rgb_for_background = image[:, :, :3]
         else:  # RGB image
-            mask = np.logical_not(np.all(image == [38, 38, 38], axis=-1))
+            rgb_for_background = image
+
+        # Reshape to (num_pixels, num_channels) for easier processing
+        pixels = rgb_for_background.reshape(-1, rgb_for_background.shape[-1])
+
+        # Find unique pixels and their counts
+        unique_pixels, counts = np.unique(pixels, axis=0, return_counts=True)
+
+        # Get the most common pixel value (background)
+        background_pixel = unique_pixels[np.argmax(counts)]
+
+        # Create a mask where pixels are NOT equal to the background
+        if image.shape[2] == 4:  # Image has alpha channel
+            mask = np.logical_not(np.all(image[:, :, :3] == background_pixel, axis=-1))
+        else:  # RGB image
+            mask = np.logical_not(np.all(image == background_pixel, axis=-1))
 
     # Normalize RGB to 0-1 range if needed
     if rgb.max() > 1.0:
@@ -121,15 +152,16 @@ def magnitude_randomize_preserve_contrast(image, mask=None):
     return result
 
 
-def main():
-    # Load the image
-    image = io.imread(
-        '/home/r2_allen/Documents/EStimShape/allen_ga_test_250417_0/stimuli/ga/pngs/1744994720396364.png')
+def create_analysis_plot(original_image, randomized_image, output_path):
+    """
+    Create analysis plot showing histograms and power spectrum comparison.
 
-    # Create the randomized image
-    randomized_image = magnitude_randomize_preserve_contrast(image)
+    Args:
+        original_image: Original image array
+        randomized_image: Magnitude-shuffled image array
+        output_path: Path to save the analysis plot
+    """
 
-    # Test if statistical properties are preserved
     def analyze_image_stats(img, name="Image"):
         if img.shape[2] == 4:  # Handle alpha channel
             rgb = img[:, :, :3]
@@ -146,11 +178,26 @@ def main():
         lab = skcolor.rgb2lab(rgb_norm)
         L = lab[:, :, 0]  # Luminance
 
+        # Create mask for non-background pixels (find most common pixel as background)
+        if img.shape[2] == 4:  # Image has alpha channel
+            rgb_for_background = img[:, :, :3]
+        else:  # RGB image
+            rgb_for_background = img
+
+        # Reshape to (num_pixels, num_channels) for easier processing
+        pixels = rgb_for_background.reshape(-1, rgb_for_background.shape[-1])
+
+        # Find unique pixels and their counts
+        unique_pixels, counts = np.unique(pixels, axis=0, return_counts=True)
+
+        # Get the most common pixel value (background)
+        background_pixel = unique_pixels[np.argmax(counts)]
+
         # Create mask for non-background pixels
         if img.shape[2] == 4:  # Image has alpha channel
-            mask = np.logical_not(np.all(img[:, :, :3] == [38, 38, 38], axis=-1))
+            mask = np.logical_not(np.all(img[:, :, :3] == background_pixel, axis=-1))
         else:  # RGB image
-            mask = np.logical_not(np.all(img == [38, 38, 38], axis=-1))
+            mask = np.logical_not(np.all(img == background_pixel, axis=-1))
 
         # Get masked luminance values
         L_masked = L[mask]
@@ -161,53 +208,8 @@ def main():
         min_val = np.min(L_masked)
         max_val = np.max(L_masked)
 
-        print(f"{name} Statistics:")
-        print(f"  Mean Luminance: {mean:.2f}")
-        print(f"  Std Dev: {std:.2f}")
-        print(f"  Min: {min_val:.2f}")
-        print(f"  Max: {max_val:.2f}")
-        print(f"  Dynamic Range: {max_val - min_val:.2f}")
-
         return mean, std, min_val, max_val, L_masked
 
-    # Analyze both images
-    orig_mean, orig_std, orig_min, orig_max, orig_values = analyze_image_stats(image, "Original")
-    rand_mean, rand_std, rand_min, rand_max, rand_values = analyze_image_stats(randomized_image, "Randomized")
-
-    # Print differences
-    print("\nDifferences:")
-    print(f"  Mean: {abs(orig_mean - rand_mean):.2f}")
-    print(f"  Std Dev: {abs(orig_std - rand_std):.2f}")
-    print(f"  Min: {abs(orig_min - rand_min):.2f}")
-    print(f"  Max: {abs(orig_max - rand_max):.2f}")
-
-    # Display the original and randomized images along with histograms
-    fig = plt.figure(figsize=(15, 10))
-
-    # Image comparison
-    plt.subplot(2, 2, 1)
-    plt.title(f'Original Image\nMean: {orig_mean:.2f}, StdDev: {orig_std:.2f}')
-    plt.imshow(image)
-    plt.axis('off')
-
-    plt.subplot(2, 2, 2)
-    plt.title(f'Magnitude Randomized (Phase Preserved)\nMean: {rand_mean:.2f}, StdDev: {rand_std:.2f}')
-    plt.imshow(randomized_image)
-    plt.axis('off')
-
-    # Histogram comparison
-    plt.subplot(2, 2, 3)
-    plt.title('Luminance Histograms')
-    plt.hist(orig_values, bins=50, alpha=0.5, label='Original', color='blue')
-    plt.hist(rand_values, bins=50, alpha=0.5, label='Randomized', color='red')
-    plt.legend()
-    plt.grid(alpha=0.3)
-
-    # Add power spectrum comparison
-    plt.subplot(2, 2, 4)
-    plt.title('Power Spectrum Comparison')
-
-    # Function to calculate and plot power spectrum
     def plot_power_spectrum(img, plot_color, label, alpha=0.7):
         if img.shape[2] >= 3:
             # Convert to grayscale for spectrum analysis
@@ -237,8 +239,36 @@ def main():
         # Plot log-log scale
         plt.loglog(radial_bins[1:], color=plot_color, alpha=alpha, label=label)
 
-    # Plot power spectra
-    plot_power_spectrum(image, 'blue', 'Original')
+    # Analyze both images
+    orig_mean, orig_std, orig_min, orig_max, orig_values = analyze_image_stats(original_image, "Original")
+    rand_mean, rand_std, rand_min, rand_max, rand_values = analyze_image_stats(randomized_image, "Randomized")
+
+    # Create the analysis plot
+    fig = plt.figure(figsize=(15, 10))
+
+    # Image comparison
+    plt.subplot(2, 2, 1)
+    plt.title(f'Original Image\nMean: {orig_mean:.2f}, StdDev: {orig_std:.2f}')
+    plt.imshow(original_image)
+    plt.axis('off')
+
+    plt.subplot(2, 2, 2)
+    plt.title(f'Magnitude Randomized (Phase Preserved)\nMean: {rand_mean:.2f}, StdDev: {rand_std:.2f}')
+    plt.imshow(randomized_image)
+    plt.axis('off')
+
+    # Histogram comparison
+    plt.subplot(2, 2, 3)
+    plt.title('Luminance Histograms')
+    plt.hist(orig_values, bins=50, alpha=0.5, label='Original', color='blue')
+    plt.hist(rand_values, bins=50, alpha=0.5, label='Randomized', color='red')
+    plt.legend()
+    plt.grid(alpha=0.3)
+
+    # Power spectrum comparison
+    plt.subplot(2, 2, 4)
+    plt.title('Power Spectrum Comparison')
+    plot_power_spectrum(original_image, 'blue', 'Original')
     plot_power_spectrum(randomized_image, 'red', 'Randomized')
     plt.legend()
     plt.grid(alpha=0.3)
@@ -246,8 +276,99 @@ def main():
     plt.ylabel('Power')
 
     plt.tight_layout()
-    plt.show()
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.close()  # Close to free memory
+
+
+def process_image(input_path, output_path, keep_intermediates=False):
+    """
+    Process image with magnitude randomization while preserving contrast.
+
+    Args:
+        input_path: Path to input image
+        output_path: Path for final output image
+        keep_intermediates: Whether to save analysis plot showing histograms and power spectrum
+
+    Returns:
+        tuple: (analysis_plot_path, final_path) if keep_intermediates,
+               else (None, final_path)
+    """
+    try:
+        # Validate input file exists
+        if not os.path.exists(input_path):
+            raise FileNotFoundError(f"Input file not found: {input_path}")
+
+        # Create output directory if it doesn't exist
+        output_dir = os.path.dirname(output_path)
+        if output_dir and not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        # Generate analysis plot path
+        base_name = os.path.splitext(output_path)[0]
+        analysis_plot_path = f"{base_name}_analysis.png"
+
+        # Open and process the image
+        img = Image.open(input_path).convert('RGBA')
+        img_array = np.array(img)
+
+        # Apply magnitude randomization
+        processed_array = magnitude_randomize_preserve_contrast(img_array)
+
+        # Create analysis plot if requested
+        if keep_intermediates:
+            create_analysis_plot(img_array, processed_array, analysis_plot_path)
+
+        # Save final shuffled image
+        final_img = Image.fromarray(processed_array.astype(np.uint8))
+        final_img.save(output_path)
+
+        return (
+            analysis_plot_path if keep_intermediates else None,
+            output_path
+        )
+
+    except Exception as e:
+        # Print error to stderr so Java can capture it
+        print(f"ERROR: {str(e)}", file=sys.stderr)
+        raise
+
+
+def main():
+    """Main function for command-line execution."""
+    parser = argparse.ArgumentParser(
+        description='Process images with magnitude randomization while preserving phase and contrast',
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+
+    parser.add_argument('input_path', help='Path to input image')
+    parser.add_argument('output_path', help='Path for output image')
+    parser.add_argument('--keep-intermediates', '-k', action='store_true',
+                        help='Save intermediate processing files')
+    parser.add_argument('--quiet', '-q', action='store_true',
+                        help='Suppress output messages')
+
+    args = parser.parse_args()
+
+    try:
+        # Process the image
+        analysis_path, final_path = process_image(
+            args.input_path,
+            args.output_path,
+            args.keep_intermediates
+        )
+
+        if not args.quiet:
+            print(f"SUCCESS: {final_path}")
+            if args.keep_intermediates and analysis_path:
+                print(f"ANALYSIS: {analysis_path}")
+
+        return 0
+
+    except Exception as e:
+        if not args.quiet:
+            print(f"FAILED: {str(e)}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
