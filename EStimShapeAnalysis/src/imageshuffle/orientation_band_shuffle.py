@@ -19,7 +19,7 @@ import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend for server environments
 
 
-def orientation_preserving_scramble(image, mask=None, num_orientation_bands=1000):
+def orientation_preserving_scramble(image, mask=None, num_orientation_bands=180):
     """
     Scramble spatial location while preserving orientation and spatial frequency distributions.
 
@@ -86,7 +86,12 @@ def orientation_preserving_scramble(image, mask=None, num_orientation_bands=1000
     L_masked_orig = L[mask]
 
     # Apply mask to luminance channel
-    L_roi = L * mask
+    # L_roi = L * mask
+
+    # Use soft masking:
+    from scipy import ndimage
+    soft_mask = ndimage.gaussian_filter(mask.astype(float), sigma=5)
+    L_roi = L * soft_mask  # No sharp boundary artifacts
 
     # Apply Fourier transform to the MASKED ROI
     fft_L_roi = fftpack.fft2(L_roi)
@@ -380,8 +385,10 @@ def plot_orientation_spectrum(img, plot_color, label, alpha=0.7):
     else:  # RGB image
         mask = np.logical_not(np.all(img == background_pixel, axis=-1))
 
-    # Apply mask to gray image (same as processing)
-    gray_masked = gray * mask
+    # Apply same soft masking to analysis:
+    from scipy import ndimage
+    soft_mask = ndimage.gaussian_filter(mask.astype(float), sigma=5)
+    gray_masked = gray * soft_mask  # Consistent with processing
 
     # Calculate 2D FFT
     f_transform = fftpack.fft2(gray_masked)

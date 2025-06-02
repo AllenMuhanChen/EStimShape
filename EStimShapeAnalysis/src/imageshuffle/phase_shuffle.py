@@ -81,7 +81,11 @@ def phase_randomize_preserve_contrast(image, mask=None):
     L_masked_orig = L[mask]
 
     # Apply mask to luminance channel - this is the key fix!
-    L_roi = L * mask
+    # L_roi = L * mask
+    # Use soft masking:
+    from scipy import ndimage
+    soft_mask = ndimage.gaussian_filter(mask.astype(float), sigma=5)
+    L_roi = L * soft_mask  # No sharp boundary artifacts
 
     # Apply Fourier transform to the MASKED ROI
     fft_L_roi = fftpack.fft2(L_roi)

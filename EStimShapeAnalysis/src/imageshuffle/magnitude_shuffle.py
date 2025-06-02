@@ -17,6 +17,8 @@ from skimage import color as skcolor, exposure
 import matplotlib.pyplot as plt
 import matplotlib
 
+from src.imageshuffle.orientation_band_shuffle import plot_orientation_spectrum
+
 matplotlib.use('Agg')  # Use non-interactive backend for server environments
 
 
@@ -82,7 +84,11 @@ def magnitude_randomize_preserve_contrast(image, mask=None):
     L_masked_orig = L[mask]
 
     # Apply mask to luminance channel
-    L_roi = L * mask
+    # L_roi = L * mask
+    # Use soft masking:
+    from scipy import ndimage
+    soft_mask = ndimage.gaussian_filter(mask.astype(float), sigma=5)
+    L_roi = L * soft_mask  # No sharp boundary artifacts
 
     # Apply Fourier transform to the ROI
     fft_L_roi = fftpack.fft2(L_roi)
@@ -239,83 +245,6 @@ def create_analysis_plot(original_image, randomized_image, output_path):
         # Plot log-log scale
         plt.loglog(radial_bins[1:], color=plot_color, alpha=alpha, label=label)
 
-    def plot_orientation_spectrum(img, plot_color, label, alpha=0.7):
-        """Plot orientation-specific power spectrum"""
-        if img.shape[2] >= 3:
-            # Convert to grayscale for spectrum analysis
-            gray = skcolor.rgb2gray(img[:, :, :3])
-        else:
-            gray = img[:, :, 0]
-
-        # Apply the same masking as used in processing for fair comparison
-        if img.shape[2] == 4:  # Image has alpha channel
-            rgb_for_background = img[:, :, :3]
-        else:  # RGB image
-            rgb_for_background = img
-
-        # Find background pixel
-        pixels = rgb_for_background.reshape(-1, rgb_for_background.shape[-1])
-        unique_pixels, counts = np.unique(pixels, axis=0, return_counts=True)
-        background_pixel = unique_pixels[np.argmax(counts)]
-
-        # Create mask
-        if img.shape[2] == 4:  # Image has alpha channel
-            mask = np.logical_not(np.all(img[:, :, :3] == background_pixel, axis=-1))
-        else:  # RGB image
-            mask = np.logical_not(np.all(img == background_pixel, axis=-1))
-
-        # Apply mask to gray image (same as processing)
-        gray_masked = gray * mask
-
-        # Calculate 2D FFT
-        f_transform = fftpack.fft2(gray_masked)  # ← Change this line!
-        # f_transform = fftpack.fft2(gray)
-        f_transform_shifted = np.fft.fftshift(f_transform)
-
-        # Calculate power spectrum
-        power_spectrum = np.abs(f_transform_shifted) ** 2
-
-        # Get image dimensions and center
-        h, w = gray.shape
-        center_y, center_x = h // 2, w // 2
-
-        # Create coordinate arrays
-        y, x = np.ogrid[-center_y:h - center_y, -center_x:w - center_x]
-
-        # Calculate angles (orientation) for each point
-        angles = np.arctan2(y, x)
-
-        # Convert to degrees and normalize to 0-180 range (since power spectrum is symmetric)
-        angles_deg = np.degrees(angles) % 180
-
-        # EXCLUDE THE CENTER REGION to avoid DC dominance
-        center_radius = 5  # Exclude central region
-        distance_from_center = np.sqrt(y ** 2 + x ** 2)
-        non_center_mask = distance_from_center > center_radius
-
-        # Apply mask to both power spectrum and angles
-        power_spectrum_masked = power_spectrum[non_center_mask]
-        angles_deg_masked = angles_deg[non_center_mask]
-
-        # Create orientation bins
-        orientation_bins = np.arange(0, 181, 5)  # 5-degree bins from 0 to 180
-        orientation_power = np.zeros(len(orientation_bins) - 1)
-
-        # Calculate power for each orientation bin
-        for i in range(len(orientation_bins) - 1):
-            angle_min = orientation_bins[i]
-            angle_max = orientation_bins[i + 1]
-
-            # Create mask for this orientation range
-            mask = (angles_deg_masked >= angle_min) & (angles_deg_masked < angle_max)
-
-            # Sum power in this orientation
-            if np.any(mask):
-                orientation_power[i] = np.mean(power_spectrum_masked[mask])
-
-        # Plot orientation spectrum
-        bin_centers = (orientation_bins[:-1] + orientation_bins[1:]) / 2
-        plt.plot(bin_centers, orientation_power, color=plot_color, alpha=alpha, label=label, linewidth=2)
 
     def plot_2d_power_spectrum_diff(original_img, randomized_img):
         """Plot 2D power spectrum difference visualization"""
