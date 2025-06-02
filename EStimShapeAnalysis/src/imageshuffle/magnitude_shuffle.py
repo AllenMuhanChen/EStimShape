@@ -239,41 +239,141 @@ def create_analysis_plot(original_image, randomized_image, output_path):
         # Plot log-log scale
         plt.loglog(radial_bins[1:], color=plot_color, alpha=alpha, label=label)
 
+    def plot_orientation_spectrum(img, plot_color, label, alpha=0.7):
+        """Plot orientation-specific power spectrum"""
+        if img.shape[2] >= 3:
+            # Convert to grayscale for spectrum analysis
+            gray = skcolor.rgb2gray(img[:, :, :3])
+        else:
+            gray = img[:, :, 0]
+
+        # Calculate 2D FFT
+        f_transform = fftpack.fft2(gray)
+        f_transform_shifted = np.fft.fftshift(f_transform)
+
+        # Calculate power spectrum
+        power_spectrum = np.abs(f_transform_shifted) ** 2
+
+        # Get image dimensions and center
+        h, w = gray.shape
+        center_y, center_x = h // 2, w // 2
+
+        # Create coordinate arrays
+        y, x = np.ogrid[-center_y:h - center_y, -center_x:w - center_x]
+
+        # Calculate angles (orientation) for each point
+        angles = np.arctan2(y, x)
+
+        # Convert to degrees and normalize to 0-180 range (since power spectrum is symmetric)
+        angles_deg = np.degrees(angles) % 180
+
+        # EXCLUDE THE CENTER REGION to avoid DC dominance
+        center_radius = 5  # Exclude central region
+        distance_from_center = np.sqrt(y ** 2 + x ** 2)
+        non_center_mask = distance_from_center > center_radius
+
+        # Apply mask to both power spectrum and angles
+        power_spectrum_masked = power_spectrum[non_center_mask]
+        angles_deg_masked = angles_deg[non_center_mask]
+
+        # Create orientation bins
+        orientation_bins = np.arange(0, 181, 5)  # 5-degree bins from 0 to 180
+        orientation_power = np.zeros(len(orientation_bins) - 1)
+
+        # Calculate power for each orientation bin
+        for i in range(len(orientation_bins) - 1):
+            angle_min = orientation_bins[i]
+            angle_max = orientation_bins[i + 1]
+
+            # Create mask for this orientation range
+            mask = (angles_deg_masked >= angle_min) & (angles_deg_masked < angle_max)
+
+            # Sum power in this orientation
+            if np.any(mask):
+                orientation_power[i] = np.mean(power_spectrum_masked[mask])
+
+        # Plot orientation spectrum
+        bin_centers = (orientation_bins[:-1] + orientation_bins[1:]) / 2
+        plt.plot(bin_centers, orientation_power, color=plot_color, alpha=alpha, label=label, linewidth=2)
+
+    def plot_2d_power_spectrum_diff(original_img, randomized_img):
+        """Plot 2D power spectrum difference visualization"""
+
+        def get_2d_power_spectrum(img):
+            if img.shape[2] >= 3:
+                gray = skcolor.rgb2gray(img[:, :, :3])
+            else:
+                gray = img[:, :, 0]
+
+            f_transform = fftpack.fft2(gray)
+            f_transform_shifted = np.fft.fftshift(f_transform)
+            power_spectrum = np.abs(f_transform_shifted) ** 2
+
+            # Log scale for better visualization
+            return np.log10(power_spectrum + 1e-10)
+
+        orig_power = get_2d_power_spectrum(original_img)
+        rand_power = get_2d_power_spectrum(randomized_img)
+
+        # Calculate difference
+        power_diff = rand_power - orig_power
+
+        # Display the difference
+        im = plt.imshow(power_diff, cmap='RdBu_r', origin='lower')
+        plt.colorbar(im, label='Log Power Difference')
+        plt.xlabel('Frequency X')
+        plt.ylabel('Frequency Y')
+
     # Analyze both images
     orig_mean, orig_std, orig_min, orig_max, orig_values = analyze_image_stats(original_image, "Original")
     rand_mean, rand_std, rand_min, rand_max, rand_values = analyze_image_stats(randomized_image, "Randomized")
 
     # Create the analysis plot
-    fig = plt.figure(figsize=(15, 10))
+    fig = plt.figure(figsize=(20, 12))
 
     # Image comparison
-    plt.subplot(2, 2, 1)
+    plt.subplot(2, 3, 1)
     plt.title(f'Original Image\nMean: {orig_mean:.2f}, StdDev: {orig_std:.2f}')
     plt.imshow(original_image)
     plt.axis('off')
 
-    plt.subplot(2, 2, 2)
+    plt.subplot(2, 3, 2)
     plt.title(f'Magnitude Randomized (Phase Preserved)\nMean: {rand_mean:.2f}, StdDev: {rand_std:.2f}')
     plt.imshow(randomized_image)
     plt.axis('off')
 
     # Histogram comparison
-    plt.subplot(2, 2, 3)
+    plt.subplot(2, 3, 3)
     plt.title('Luminance Histograms')
     plt.hist(orig_values, bins=50, alpha=0.5, label='Original', color='blue')
     plt.hist(rand_values, bins=50, alpha=0.5, label='Randomized', color='red')
     plt.legend()
     plt.grid(alpha=0.3)
 
-    # Power spectrum comparison
-    plt.subplot(2, 2, 4)
-    plt.title('Power Spectrum Comparison')
+    # Radial power spectrum comparison
+    plt.subplot(2, 3, 4)
+    plt.title('Radial Power Spectrum')
     plot_power_spectrum(original_image, 'blue', 'Original')
     plot_power_spectrum(randomized_image, 'red', 'Randomized')
     plt.legend()
     plt.grid(alpha=0.3)
     plt.xlabel('Spatial Frequency')
     plt.ylabel('Power')
+
+    # Orientation power spectrum comparison
+    plt.subplot(2, 3, 5)
+    plt.title('Orientation Power Spectrum')
+    plot_orientation_spectrum(original_image, 'blue', 'Original')
+    plot_orientation_spectrum(randomized_image, 'red', 'Randomized')
+    plt.legend()
+    plt.grid(alpha=0.3)
+    plt.xlabel('Orientation (degrees)')
+    plt.ylabel('Power')
+
+    # 2D Power spectrum visualization
+    plt.subplot(2, 3, 6)
+    plt.title('2D Power Spectrum Difference')
+    plot_2d_power_spectrum_diff(original_image, randomized_image)
 
     plt.tight_layout()
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
