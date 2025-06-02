@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
-Magnitude shuffle processing script for Java integration via direct process execution.
-Shuffles the magnitude while preserving phase information, color distribution,
-and average luminance through histogram matching.
+Orientation-preserving processing script for Java integration.
+Preserves spatial frequency and orientation distributions while destroying spatial location.
 
-Usage: python magnitude_processing.py <input_path> <output_path> [--keep-intermediates]
+Usage: python orientation_preserving_processing.py <input_path> <output_path> [--keep-intermediates]
 """
 
 import sys
@@ -20,17 +19,22 @@ import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend for server environments
 
 
-def magnitude_randomize_preserve_contrast(image, mask=None):
+def orientation_preserving_scramble(image, mask=None, num_orientation_bands=1000):
     """
-    Shuffles the magnitude while preserving phase information, color distribution,
-    and average luminance through histogram matching.
+    Scramble spatial location while preserving orientation and spatial frequency distributions.
+
+    This works by:
+    1. Grouping frequency components by their orientation angle
+    2. Shuffling phases within each orientation band
+    3. Preserving magnitudes completely
 
     Args:
         image: Input image (can be color with alpha channel)
         mask: Binary mask (1 inside region to randomize, 0 outside)
+        num_orientation_bands: Number of orientation bands to preserve (default: 18 = 10° bands)
 
     Returns:
-        Magnitude-randomized image with preserved statistical properties
+        Image with preserved orientation/frequency distributions but scrambled spatial locations
     """
     # Create a copy of the original image
     result = image.copy().astype(np.float32)
@@ -84,38 +88,66 @@ def magnitude_randomize_preserve_contrast(image, mask=None):
     # Apply mask to luminance channel
     L_roi = L * mask
 
-    # Apply Fourier transform to the ROI
+    # Apply Fourier transform to the MASKED ROI
     fft_L_roi = fftpack.fft2(L_roi)
 
-    # Extract phase (which we'll keep)
-    phase = np.angle(fft_L_roi)
+    # Extract amplitude and phase
+    amplitude = np.abs(fft_L_roi)
+    original_phase = np.angle(fft_L_roi)
 
-    # Extract original magnitude (which we'll randomize)
-    original_magnitude = np.abs(fft_L_roi)
+    # Get image dimensions
+    h, w = fft_L_roi.shape
+    center_y, center_x = h // 2, w // 2
 
-    # Create a randomized version of the magnitude spectrum
-    # We'll randomize by shuffling the magnitude values while preserving their distribution
-    magnitude_values = original_magnitude.flatten()
-    np.random.shuffle(magnitude_values)
-    shuffled_magnitude = magnitude_values.reshape(original_magnitude.shape)
+    # Create coordinate arrays for frequency domain
+    y, x = np.ogrid[-center_y:h - center_y, -center_x:w - center_x]
 
-    # Preserve DC component (0,0) magnitude to maintain average intensity
-    shuffled_magnitude[0, 0] = original_magnitude[0, 0]
+    # Calculate orientation for each frequency component
+    # This gives the orientation of the spatial pattern represented by each frequency
+    orientations = np.arctan2(y, x) * 180 / np.pi
+    orientations = orientations % 180  # Normalize to 0-180° (since power spectrum is symmetric)
 
-    # Combine shuffled magnitude with original phase
-    real_part = shuffled_magnitude * np.cos(phase)
-    imag_part = shuffled_magnitude * np.sin(phase)
-    randomized_fft = real_part + 1j * imag_part
+    # Create orientation bands
+    orientation_band_size = 180.0 / num_orientation_bands
+
+    # Initialize new phase array with original phases
+    new_phase = original_phase.copy()
+
+    # Shuffle phases within each orientation band
+    for band in range(num_orientation_bands):
+        angle_min = band * orientation_band_size
+        angle_max = (band + 1) * orientation_band_size
+
+        # Create mask for this orientation band
+        band_mask = (orientations >= angle_min) & (orientations < angle_max)
+
+        # Skip DC component (always preserve it)
+        band_mask[center_y, center_x] = False
+
+        if np.any(band_mask):
+            # Get phases in this orientation band
+            phases_in_band = original_phase[band_mask].copy()
+
+            # Shuffle the phases within this orientation band
+            np.random.shuffle(phases_in_band)
+
+            # Put shuffled phases back into the same orientation band
+            new_phase[band_mask] = phases_in_band
+
+    # Ensure DC component phase is preserved (usually 0)
+    new_phase[center_y, center_x] = original_phase[center_y, center_x]
+
+    # Combine original amplitude with orientation-band-shuffled phase
+    randomized_fft = amplitude * np.exp(1j * new_phase)
 
     # Apply inverse Fourier transform
     randomized_L_roi = np.real(fftpack.ifft2(randomized_fft))
 
-    # Create a new luminance channel that replaces the masked region
-    randomized_L = L.copy()
-    randomized_L[mask] = randomized_L_roi[mask]
+    # Create a new luminance channel that ONLY replaces the masked region
+    randomized_L = L.copy()  # Start with original luminance
+    randomized_L[mask] = randomized_L_roi[mask]  # Only update masked pixels
 
-    # Now perform histogram matching to ensure the luminance distribution is preserved
-    # Extract the randomized values in the masked region
+    # Perform histogram matching to ensure the luminance distribution is preserved
     randomized_values = randomized_L[mask]
 
     # Match the histogram of the randomized values to the original values
@@ -158,7 +190,7 @@ def create_analysis_plot(original_image, randomized_image, output_path):
 
     Args:
         original_image: Original image array
-        randomized_image: Magnitude-shuffled image array
+        randomized_image: Orientation-preserving scrambled image array
         output_path: Path to save the analysis plot
     """
 
@@ -239,84 +271,6 @@ def create_analysis_plot(original_image, randomized_image, output_path):
         # Plot log-log scale
         plt.loglog(radial_bins[1:], color=plot_color, alpha=alpha, label=label)
 
-    def plot_orientation_spectrum(img, plot_color, label, alpha=0.7):
-        """Plot orientation-specific power spectrum"""
-        if img.shape[2] >= 3:
-            # Convert to grayscale for spectrum analysis
-            gray = skcolor.rgb2gray(img[:, :, :3])
-        else:
-            gray = img[:, :, 0]
-
-        # Apply the same masking as used in processing for fair comparison
-        if img.shape[2] == 4:  # Image has alpha channel
-            rgb_for_background = img[:, :, :3]
-        else:  # RGB image
-            rgb_for_background = img
-
-        # Find background pixel
-        pixels = rgb_for_background.reshape(-1, rgb_for_background.shape[-1])
-        unique_pixels, counts = np.unique(pixels, axis=0, return_counts=True)
-        background_pixel = unique_pixels[np.argmax(counts)]
-
-        # Create mask
-        if img.shape[2] == 4:  # Image has alpha channel
-            mask = np.logical_not(np.all(img[:, :, :3] == background_pixel, axis=-1))
-        else:  # RGB image
-            mask = np.logical_not(np.all(img == background_pixel, axis=-1))
-
-        # Apply mask to gray image (same as processing)
-        gray_masked = gray * mask
-
-        # Calculate 2D FFT
-        f_transform = fftpack.fft2(gray_masked)  # ← Change this line!
-        # f_transform = fftpack.fft2(gray)
-        f_transform_shifted = np.fft.fftshift(f_transform)
-
-        # Calculate power spectrum
-        power_spectrum = np.abs(f_transform_shifted) ** 2
-
-        # Get image dimensions and center
-        h, w = gray.shape
-        center_y, center_x = h // 2, w // 2
-
-        # Create coordinate arrays
-        y, x = np.ogrid[-center_y:h - center_y, -center_x:w - center_x]
-
-        # Calculate angles (orientation) for each point
-        angles = np.arctan2(y, x)
-
-        # Convert to degrees and normalize to 0-180 range (since power spectrum is symmetric)
-        angles_deg = np.degrees(angles) % 180
-
-        # EXCLUDE THE CENTER REGION to avoid DC dominance
-        center_radius = 5  # Exclude central region
-        distance_from_center = np.sqrt(y ** 2 + x ** 2)
-        non_center_mask = distance_from_center > center_radius
-
-        # Apply mask to both power spectrum and angles
-        power_spectrum_masked = power_spectrum[non_center_mask]
-        angles_deg_masked = angles_deg[non_center_mask]
-
-        # Create orientation bins
-        orientation_bins = np.arange(0, 181, 5)  # 5-degree bins from 0 to 180
-        orientation_power = np.zeros(len(orientation_bins) - 1)
-
-        # Calculate power for each orientation bin
-        for i in range(len(orientation_bins) - 1):
-            angle_min = orientation_bins[i]
-            angle_max = orientation_bins[i + 1]
-
-            # Create mask for this orientation range
-            mask = (angles_deg_masked >= angle_min) & (angles_deg_masked < angle_max)
-
-            # Sum power in this orientation
-            if np.any(mask):
-                orientation_power[i] = np.mean(power_spectrum_masked[mask])
-
-        # Plot orientation spectrum
-        bin_centers = (orientation_bins[:-1] + orientation_bins[1:]) / 2
-        plt.plot(bin_centers, orientation_power, color=plot_color, alpha=alpha, label=label, linewidth=2)
-
     def plot_2d_power_spectrum_diff(original_img, randomized_img):
         """Plot 2D power spectrum difference visualization"""
 
@@ -359,7 +313,7 @@ def create_analysis_plot(original_image, randomized_image, output_path):
     plt.axis('off')
 
     plt.subplot(2, 3, 2)
-    plt.title(f'Magnitude Randomized (Phase Preserved)\nMean: {rand_mean:.2f}, StdDev: {rand_std:.2f}')
+    plt.title(f'Orientation-Preserving Scrambled\nMean: {rand_mean:.2f}, StdDev: {rand_std:.2f}')
     plt.imshow(randomized_image)
     plt.axis('off')
 
@@ -401,9 +355,89 @@ def create_analysis_plot(original_image, randomized_image, output_path):
     plt.close()  # Close to free memory
 
 
+def plot_orientation_spectrum(img, plot_color, label, alpha=0.7):
+    """Plot orientation-specific power spectrum"""
+    if img.shape[2] >= 3:
+        # Convert to grayscale for spectrum analysis
+        gray = skcolor.rgb2gray(img[:, :, :3])
+    else:
+        gray = img[:, :, 0]
+
+    # Apply the same masking as used in processing for fair comparison
+    if img.shape[2] == 4:  # Image has alpha channel
+        rgb_for_background = img[:, :, :3]
+    else:  # RGB image
+        rgb_for_background = img
+
+    # Find background pixel
+    pixels = rgb_for_background.reshape(-1, rgb_for_background.shape[-1])
+    unique_pixels, counts = np.unique(pixels, axis=0, return_counts=True)
+    background_pixel = unique_pixels[np.argmax(counts)]
+
+    # Create mask
+    if img.shape[2] == 4:  # Image has alpha channel
+        mask = np.logical_not(np.all(img[:, :, :3] == background_pixel, axis=-1))
+    else:  # RGB image
+        mask = np.logical_not(np.all(img == background_pixel, axis=-1))
+
+    # Apply mask to gray image (same as processing)
+    gray_masked = gray * mask
+
+    # Calculate 2D FFT
+    f_transform = fftpack.fft2(gray_masked)
+    f_transform_shifted = np.fft.fftshift(f_transform)
+
+    # Calculate power spectrum
+    power_spectrum = np.abs(f_transform_shifted) ** 2
+
+    # Get image dimensions and center
+    h, w = gray.shape
+    center_y, center_x = h // 2, w // 2
+
+    # Simply exclude ONLY the DC component (cleanest approach)
+    power_spectrum_no_dc = power_spectrum.copy()
+    power_spectrum_no_dc[center_y, center_x] = 0
+
+    # Create coordinate arrays
+    y, x = np.ogrid[-center_y:h - center_y, -center_x:w - center_x]
+
+    # Calculate angles (orientation) for each point
+    angles = np.arctan2(y, x)
+
+    # Convert to degrees and normalize to 0-180 range (since power spectrum is symmetric)
+    angles_deg = np.degrees(angles) % 180
+
+    # Create orientation bins
+    orientation_bins = np.arange(0, 181, 5)  # 5-degree bins from 0 to 180
+    orientation_power = np.zeros(len(orientation_bins) - 1)
+
+    # Calculate power for each orientation bin
+    for i in range(len(orientation_bins) - 1):
+        angle_min = orientation_bins[i]
+        angle_max = orientation_bins[i + 1]
+
+        # Create mask for this orientation range
+        angle_mask = (angles_deg >= angle_min) & (angles_deg < angle_max)
+
+        # Sum power in this orientation
+        if np.any(angle_mask):
+            orientation_power[i] = np.mean(power_spectrum_no_dc[angle_mask])
+
+    # NORMALIZE BY TOTAL POWER (this was missing!)
+    total_power = np.sum(orientation_power)
+    if total_power > 0:
+        orientation_power_normalized = orientation_power / total_power
+    else:
+        orientation_power_normalized = orientation_power
+
+    # Plot orientation spectrum
+    bin_centers = (orientation_bins[:-1] + orientation_bins[1:]) / 2
+    plt.plot(bin_centers, orientation_power_normalized, color=plot_color, alpha=alpha, label=label, linewidth=2)
+
+
 def process_image(input_path, output_path, keep_intermediates=False):
     """
-    Process image with magnitude randomization while preserving contrast.
+    Process image with orientation-preserving scrambling.
 
     Args:
         input_path: Path to input image
@@ -432,14 +466,14 @@ def process_image(input_path, output_path, keep_intermediates=False):
         img = Image.open(input_path).convert('RGBA')
         img_array = np.array(img)
 
-        # Apply magnitude randomization
-        processed_array = magnitude_randomize_preserve_contrast(img_array)
+        # Apply orientation-preserving scrambling
+        processed_array = orientation_preserving_scramble(img_array)
 
         # Create analysis plot if requested
         if keep_intermediates:
             create_analysis_plot(img_array, processed_array, analysis_plot_path)
 
-        # Save final shuffled image
+        # Save final scrambled image
         final_img = Image.fromarray(processed_array.astype(np.uint8))
         final_img.save(output_path)
 
@@ -457,14 +491,14 @@ def process_image(input_path, output_path, keep_intermediates=False):
 def main():
     """Main function for command-line execution."""
     parser = argparse.ArgumentParser(
-        description='Process images with magnitude randomization while preserving phase and contrast',
+        description='Process images with orientation-preserving scrambling (preserves frequency and orientation distributions)',
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
     parser.add_argument('input_path', help='Path to input image')
     parser.add_argument('output_path', help='Path for output image')
     parser.add_argument('--keep-intermediates', '-k', action='store_true',
-                        help='Save intermediate processing files')
+                        help='Save analysis plot showing histograms and power spectrum')
     parser.add_argument('--quiet', '-q', action='store_true',
                         help='Suppress output messages')
 
