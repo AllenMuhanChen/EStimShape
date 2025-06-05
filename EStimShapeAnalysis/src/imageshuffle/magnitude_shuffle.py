@@ -17,9 +17,44 @@ from skimage import color as skcolor, exposure
 import matplotlib.pyplot as plt
 import matplotlib
 
-from src.imageshuffle.shuffle_util import plot_orientation_spectrum, plot_2d_power_spectrum_diff, create_analysis_plot
+from src.imageshuffle.shuffle_util import create_analysis_plot, apply_clean_interior_processing
 
 matplotlib.use('Agg')  # Use non-interactive backend for server environments
+
+
+def magnitude_shuffle_function(fft_clean_interior):
+    """
+    Magnitude shuffling function applied to CLEAN INTERIOR FFT only.
+
+    This operates on the result of: FFT(original) - FFT(boundary_with_average)
+    So it shuffles only the interior content variations, not boundary artifacts.
+
+    Args:
+        fft_clean_interior: Clean interior FFT (boundary artifacts removed)
+
+    Returns:
+        fft_processed_interior: FFT with shuffled magnitude, preserved phase
+    """
+    # Extract phase from clean interior FFT (which we'll keep)
+    interior_phase = np.angle(fft_clean_interior)
+
+    # Extract magnitude from clean interior FFT (which we'll randomize)
+    interior_magnitude = np.abs(fft_clean_interior)
+
+    # Shuffle the magnitude values of the INTERIOR CONTENT
+    # This preserves the magnitude distribution but destroys spatial relationships
+    magnitude_values = interior_magnitude.flatten()
+    np.random.shuffle(magnitude_values)
+    shuffled_interior_magnitude = magnitude_values.reshape(interior_magnitude.shape)
+
+    # Preserve DC component (0,0) of interior content
+    # Note: This is the DC of interior variations, not the original image DC
+    shuffled_interior_magnitude[0, 0] = interior_magnitude[0, 0]
+
+    # Combine shuffled interior magnitude with original interior phase
+    fft_processed_interior = shuffled_interior_magnitude * np.exp(1j * interior_phase)
+
+    return fft_processed_interior
 
 
 def magnitude_randomize_preserve_contrast(image, mask=None):
@@ -83,38 +118,13 @@ def magnitude_randomize_preserve_contrast(image, mask=None):
     # Save the original luminance values in the masked region for histogram matching later
     L_masked_orig = L[mask]
 
-    # Apply mask to luminance channel
-    # L_roi = L * mask
-    # Use soft masking:
-    from scipy import ndimage
-    soft_mask = ndimage.gaussian_filter(mask.astype(float), sigma=5)
-    L_roi = L * soft_mask  # No sharp boundary artifacts
+    # Apply clean interior processing with boundary subtraction
+    # This ensures magnitude shuffling operates on interior content only
+    randomized_L_roi = apply_clean_interior_processing(
+        L, mask, magnitude_shuffle_function, erosion_iterations=5
+    )
 
-    # Apply Fourier transform to the ROI
-    fft_L_roi = fftpack.fft2(L_roi)
-
-    # Extract phase (which we'll keep)
-    phase = np.angle(fft_L_roi)
-
-    # Extract original magnitude (which we'll randomize)
-    original_magnitude = np.abs(fft_L_roi)
-
-    # Create a randomized version of the magnitude spectrum
-    # We'll randomize by shuffling the magnitude values while preserving their distribution
-    magnitude_values = original_magnitude.flatten()
-    np.random.shuffle(magnitude_values)
-    shuffled_magnitude = magnitude_values.reshape(original_magnitude.shape)
-
-    # Preserve DC component (0,0) magnitude to maintain average intensity
-    shuffled_magnitude[0, 0] = original_magnitude[0, 0]
-
-    # Combine shuffled magnitude with original phase
-    real_part = shuffled_magnitude * np.cos(phase)
-    imag_part = shuffled_magnitude * np.sin(phase)
-    randomized_fft = real_part + 1j * imag_part
-
-    # Apply inverse Fourier transform
-    randomized_L_roi = np.real(fftpack.ifft2(randomized_fft))
+    # The result already includes boundary reconstruction, so we can use it directly
 
     # Create a new luminance channel that replaces the masked region
     randomized_L = L.copy()

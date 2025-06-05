@@ -1,12 +1,106 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from scipy import fftpack
+from scipy import fftpack, ndimage
 from skimage import color as skcolor
 
 
-def plot_orientation_spectrum(img, plot_color, label, alpha=0.7):
-    """Plot orientation-specific power spectrum"""
+def create_boundary_subtraction_image(image, mask, erosion_iterations=5):
+    """
+    Create an image for boundary subtraction that isolates interior content.
 
+    This creates an image with:
+    - Original boundary pixels (from erosion-removed region)
+    - Interior filled with interior average value
+    - Same sharp edges as original for perfect cancellation
+
+    Args:
+        image: Input image (luminance channel)
+        mask: Binary mask of region to process
+        erosion_iterations: Number of erosion iterations to define interior
+
+    Returns:
+        subtraction_image: Image to subtract from original in frequency domain
+    """
+    # Create interior mask (well away from boundaries)
+    interior_mask = ndimage.binary_erosion(mask, iterations=erosion_iterations)
+
+    # Create boundary mask (what erosion removed)
+    boundary_mask = mask & ~interior_mask
+
+    # Create subtraction image
+    subtraction_image = np.zeros_like(image)
+
+    # Keep boundary pixels from original
+    subtraction_image[boundary_mask] = image[boundary_mask]
+
+    # Fill interior with interior average
+    if np.any(interior_mask):
+        interior_average = np.mean(image[interior_mask])
+        subtraction_image[interior_mask] = interior_average
+
+    return subtraction_image
+
+
+def get_clean_interior_fft(image, mask, erosion_iterations=5):
+    """
+    Get FFT of interior content with boundary artifacts removed.
+
+    Args:
+        image: Input image (luminance channel)
+        mask: Binary mask of region to process
+        erosion_iterations: Number of erosion iterations
+
+    Returns:
+        fft_clean: FFT with boundary artifacts cancelled out
+    """
+    # Create boundary subtraction image
+    boundary_image = create_boundary_subtraction_image(image, mask, erosion_iterations)
+
+    # Original masked image
+    original_masked = image * mask
+
+    # Subtract in frequency domain to cancel boundary artifacts
+    fft_original = fftpack.fft2(original_masked)
+    fft_boundary = fftpack.fft2(boundary_image)
+    fft_clean = fft_original - fft_boundary
+
+    return fft_clean
+
+
+def apply_clean_interior_processing(image, mask, processing_func, erosion_iterations=5):
+    """
+    Apply frequency domain processing with clean boundary handling.
+
+    Uses the approach: original - boundary_with_average = interior_variations
+    Then: processed_interior_variations + boundary_with_average = final_result
+
+    Args:
+        image: Input image (luminance channel)
+        mask: Binary mask of region to process
+        processing_func: Function that takes FFT and returns modified FFT
+        erosion_iterations: Number of erosion iterations
+
+    Returns:
+        processed_image: Processed image with clean boundaries
+    """
+    # Step 1: Get clean interior FFT (original - boundary_with_average)
+    fft_clean_interior = get_clean_interior_fft(image, mask, erosion_iterations)
+
+    # Step 2: Apply processing function to clean interior content
+    fft_processed_interior = processing_func(fft_clean_interior)
+
+    # Step 3: Convert processed interior back to spatial domain
+    processed_interior_variations = np.real(fftpack.ifft2(fft_processed_interior))
+
+    # Step 4: Reconstruct full image by adding back boundary image
+    boundary_image = create_boundary_subtraction_image(image, mask, erosion_iterations)
+    result = processed_interior_variations + boundary_image
+
+    return result
+
+
+def plot_orientation_spectrum(img, plot_color, label, alpha=0.7):
+    """Plot orientation-specific power spectrum using clean interior method"""
     if img.shape[2] >= 3:
         # Convert to grayscale for spectrum analysis
         gray = skcolor.rgb2gray(img[:, :, :3])
@@ -30,14 +124,9 @@ def plot_orientation_spectrum(img, plot_color, label, alpha=0.7):
     else:  # RGB image
         mask = np.logical_not(np.all(img == background_pixel, axis=-1))
 
-    # Apply same soft masking to analysis:
-    from scipy import ndimage
-    soft_mask = ndimage.gaussian_filter(mask.astype(float), sigma=5)
-    gray_masked = gray * soft_mask  # Consistent with processing
-
-    # Calculate 2D FFT
-    f_transform = fftpack.fft2(gray_masked)
-    f_transform_shifted = np.fft.fftshift(f_transform)
+    # Use same clean interior approach as processing
+    fft_clean_interior = get_clean_interior_fft(gray, mask, erosion_iterations=5)
+    f_transform_shifted = np.fft.fftshift(fft_clean_interior)
 
     # Calculate power spectrum
     power_spectrum = np.abs(f_transform_shifted) ** 2
@@ -113,11 +202,9 @@ def plot_2d_power_spectrum_diff(original_img, randomized_img):
         else:  # RGB image
             mask = np.logical_not(np.all(img == background_pixel, axis=-1))
 
-        # Apply mask to gray image (same as processing)
-        gray_masked = gray * mask
-
-        f_transform = fftpack.fft2(gray_masked)
-        f_transform_shifted = np.fft.fftshift(f_transform)
+        # Use same clean interior approach as processing
+        fft_clean_interior = get_clean_interior_fft(gray, mask, erosion_iterations=5)
+        f_transform_shifted = np.fft.fftshift(fft_clean_interior)
         power_spectrum = np.abs(f_transform_shifted) ** 2
 
         # Exclude DC component for consistency with orientation analysis
@@ -214,9 +301,24 @@ def create_analysis_plot(original_image, randomized_image, output_path, title):
         else:
             gray = img[:, :, 0]
 
-        # Calculate 2D FFT
-        f_transform = fftpack.fft2(gray)
-        f_transform_shifted = np.fft.fftshift(f_transform)
+        # Find background pixel and create mask (same as other functions)
+        if img.shape[2] == 4:  # Image has alpha channel
+            rgb_for_background = img[:, :, :3]
+        else:  # RGB image
+            rgb_for_background = img
+
+        pixels = rgb_for_background.reshape(-1, rgb_for_background.shape[-1])
+        unique_pixels, counts = np.unique(pixels, axis=0, return_counts=True)
+        background_pixel = unique_pixels[np.argmax(counts)]
+
+        if img.shape[2] == 4:  # Image has alpha channel
+            mask = np.logical_not(np.all(img[:, :, :3] == background_pixel, axis=-1))
+        else:  # RGB image
+            mask = np.logical_not(np.all(img == background_pixel, axis=-1))
+
+        # Use clean interior approach for consistency
+        fft_clean_interior = get_clean_interior_fft(gray, mask, erosion_iterations=5)
+        f_transform_shifted = np.fft.fftshift(fft_clean_interior)
 
         # Calculate power spectrum
         power_spectrum = np.abs(f_transform_shifted) ** 2
