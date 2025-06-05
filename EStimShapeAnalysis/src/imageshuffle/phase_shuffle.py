@@ -15,9 +15,51 @@ from scipy import fftpack
 from skimage import color as skcolor, exposure
 import matplotlib
 
-from src.imageshuffle.shuffle_util import create_analysis_plot
+from src.imageshuffle.shuffle_util import create_analysis_plot, apply_clean_interior_processing
 
 matplotlib.use('Agg')  # Use non-interactive backend for server environments
+
+
+def phase_shuffle_function(fft_clean_interior):
+    """
+    Phase shuffling function applied to CLEAN INTERIOR FFT only.
+
+    This operates on the result of: FFT(original) - FFT(boundary_with_average)
+    So it shuffles only the interior content phases, not boundary artifacts.
+
+    Args:
+        fft_clean_interior: Clean interior FFT (boundary artifacts removed)
+
+    Returns:
+        fft_processed_interior: FFT with shuffled phase, preserved magnitude
+    """
+    # Extract magnitude from clean interior FFT (which we'll keep)
+    interior_magnitude = np.abs(fft_clean_interior)
+
+    # Extract phase from clean interior FFT (which we'll randomize)
+    original_interior_phase = np.angle(fft_clean_interior)
+
+    # Phase shuffling: generate completely random phases for interior content
+    # This breaks spatial relationships while preserving magnitude spectrum
+
+    # Create a mask for non-DC components
+    phase_mask = np.ones_like(original_interior_phase, dtype=bool)
+    phase_mask[0, 0] = False  # Exclude DC component
+
+    # Generate random phases for all non-DC components of interior content
+    random_phases = original_interior_phase[phase_mask].flatten()
+    np.random.shuffle(random_phases)
+    # random_phases = np.random.uniform(0, 2 * np.pi, np.sum(phase_mask))
+
+    # Create new phase array with random values
+    shuffled_interior_phase = np.zeros_like(original_interior_phase)
+    shuffled_interior_phase[0, 0] = 0  # Keep DC phase as 0
+    shuffled_interior_phase[phase_mask] = random_phases
+
+    # Combine original interior magnitude with shuffled interior phase
+    fft_processed_interior = interior_magnitude * np.exp(1j * shuffled_interior_phase)
+
+    return fft_processed_interior
 
 
 def phase_randomize_preserve_contrast(image, mask=None):
@@ -81,50 +123,17 @@ def phase_randomize_preserve_contrast(image, mask=None):
     # Save the original luminance values in the masked region for histogram matching later
     L_masked_orig = L[mask]
 
-    # Apply mask to luminance channel - this is the key fix!
-    from scipy import ndimage
-    soft_mask = ndimage.gaussian_filter(mask.astype(float), sigma=5)
-    L_roi = L * soft_mask  # No sharp boundary artifacts
+    # Apply clean interior processing with boundary subtraction
+    # This ensures phase shuffling operates on interior content only
+    randomized_L_roi = apply_clean_interior_processing(
+        L, mask, phase_shuffle_function, erosion_iterations=5
+    )
 
-    # Apply Fourier transform to the MASKED ROI
-    fft_L_roi = fftpack.fft2(L_roi)
+    # The result already includes boundary reconstruction, so we can use it directly
 
-    # Extract amplitude (magnitude) and original phase
-    amplitude = np.abs(fft_L_roi)
-    original_phase = np.angle(fft_L_roi)
-
-    # Phase shuffling: redistribute existing phase values to different frequency locations
-    # This preserves the original phase distribution while breaking spatial relationships
-
-    # Get all phase values except DC component (which stays at 0)
-    phase_values = original_phase.copy()
-
-    # Create a mask for non-DC components
-    phase_mask = np.ones_like(phase_values, dtype=bool)
-    phase_mask[0, 0] = False  # Exclude DC component
-
-    # Extract all non-DC phase values
-    phase_to_shuffle = phase_values[phase_mask]
-
-    # Shuffle multiple times to break any accidental structure
-    # for _ in range(5):  # Multiple rounds
-    #     np.random.shuffle(phase_to_shuffle)
-    phase_to_shuffle = np.random.uniform(0, 2 * np.pi, len(phase_to_shuffle))
-
-    # Create new phase array with shuffled values
-    shuffled_phase = np.zeros_like(original_phase)
-    shuffled_phase[0, 0] = 0  # Keep DC phase as 0
-    shuffled_phase[phase_mask] = phase_to_shuffle
-
-    # Combine original amplitude with shuffled phase
-    randomized_fft = amplitude * np.exp(1j * shuffled_phase)
-
-    # Apply inverse Fourier transform
-    randomized_L_roi = np.real(fftpack.ifft2(randomized_fft))
-
-    # Create a new luminance channel that ONLY replaces the masked region
-    randomized_L = L.copy()  # Start with original luminance
-    randomized_L[mask] = randomized_L_roi[mask]  # Only update masked pixels
+    # Create a new luminance channel that replaces the masked region
+    randomized_L = L.copy()
+    randomized_L[mask] = randomized_L_roi[mask]
 
     # Now perform histogram matching to ensure the luminance distribution is preserved
     # Extract the randomized values in the masked region

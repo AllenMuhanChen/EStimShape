@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Pixel shuffle processing script for Java integration via direct process execution.
-Shuffles pixels randomly within the foreground region while preserving the background.
+Shuffles pixels randomly within the interior region while preserving boundaries and background.
 
 Usage: python pixel_shuffle.py <input_path> <output_path> [--keep-intermediates]
 """
@@ -11,6 +11,7 @@ import os
 import argparse
 import numpy as np
 from PIL import Image
+from scipy import ndimage
 import matplotlib
 
 from src.imageshuffle.shuffle_util import create_analysis_plot
@@ -18,16 +19,20 @@ from src.imageshuffle.shuffle_util import create_analysis_plot
 matplotlib.use('Agg')  # Use non-interactive backend for server environments
 
 
-def pixel_randomize_preserve_contrast(image, mask=None):
+def pixel_randomize_preserve_contrast(image, mask=None, erosion_iterations=5):
     """
-    Shuffles pixels randomly within the foreground region while preserving the background.
+    Shuffles pixels randomly within the interior region while preserving boundaries and background.
+
+    Uses erosion to define interior region, ensuring boundary pixels remain untouched
+    for consistent analysis with frequency domain methods.
 
     Args:
         image: Input image (can be color with alpha channel)
         mask: Binary mask (1 inside region to randomize, 0 outside)
+        erosion_iterations: Number of erosion iterations to define interior
 
     Returns:
-        Pixel-shuffled image with background preserved
+        Pixel-shuffled image with boundaries and background preserved
     """
     # Create a copy of the original image
     result = image.copy().astype(np.float32)
@@ -63,26 +68,31 @@ def pixel_randomize_preserve_contrast(image, mask=None):
         else:  # RGB image
             mask = np.logical_not(np.all(image == background_pixel, axis=-1))
 
-    # Get the coordinates of all foreground pixels
-    foreground_coords = np.where(mask)
-    num_foreground_pixels = len(foreground_coords[0])
+    # Create interior mask (well away from boundaries) - same as frequency methods
+    interior_mask = ndimage.binary_erosion(mask, iterations=erosion_iterations)
 
-    if num_foreground_pixels == 0:
-        # No foreground pixels to shuffle
+    # Get the coordinates of all interior pixels only
+    interior_coords = np.where(interior_mask)
+    num_interior_pixels = len(interior_coords[0])
+
+    if num_interior_pixels == 0:
+        # No interior pixels to shuffle
+        print("Warning: No interior pixels found for shuffling", file=sys.stderr)
         return result.astype(image.dtype)
 
-    # Extract all foreground pixel values (RGB)
-    foreground_pixels = rgb[foreground_coords]  # Shape: (num_pixels, 3)
+    # Extract all interior pixel values (RGB)
+    interior_pixels = rgb[interior_coords]  # Shape: (num_pixels, 3)
 
-    # Shuffle the pixel values
-    shuffled_indices = np.random.permutation(num_foreground_pixels)
-    shuffled_pixels = foreground_pixels[shuffled_indices]
+    # Shuffle the pixel values within interior region only
+    shuffled_indices = np.random.permutation(num_interior_pixels)
+    shuffled_pixels = interior_pixels[shuffled_indices]
 
     # Create the result image by copying the original
     rgb_shuffled = rgb.copy()
 
-    # Replace the foreground pixels with shuffled values
-    rgb_shuffled[foreground_coords] = shuffled_pixels
+    # Replace ONLY the interior pixels with shuffled values
+    # Boundary pixels remain exactly as original
+    rgb_shuffled[interior_coords] = shuffled_pixels
 
     # Reattach alpha channel if needed
     if alpha is not None:
@@ -99,7 +109,7 @@ def pixel_randomize_preserve_contrast(image, mask=None):
 
 def process_image(input_path, output_path, keep_intermediates=False):
     """
-    Process image with pixel shuffling.
+    Process image with interior pixel shuffling.
 
     Args:
         input_path: Path to input image
@@ -128,12 +138,12 @@ def process_image(input_path, output_path, keep_intermediates=False):
         img = Image.open(input_path).convert('RGBA')
         img_array = np.array(img)
 
-        # Apply pixel shuffling
-        processed_array = pixel_randomize_preserve_contrast(img_array)
+        # Apply interior pixel shuffling
+        processed_array = pixel_randomize_preserve_contrast(img_array, erosion_iterations=2)
 
         # Create analysis plot if requested
         if keep_intermediates:
-            create_analysis_plot(img_array, processed_array, analysis_plot_path, "Pixel Shuffled")
+            create_analysis_plot(img_array, processed_array, analysis_plot_path, "Interior Pixel Shuffled")
 
         # Save final shuffled image
         final_img = Image.fromarray(processed_array.astype(np.uint8))
@@ -153,7 +163,7 @@ def process_image(input_path, output_path, keep_intermediates=False):
 def main():
     """Main function for command-line execution."""
     parser = argparse.ArgumentParser(
-        description='Process images with pixel shuffling while preserving background',
+        description='Process images with interior pixel shuffling while preserving boundaries and background',
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
