@@ -4,7 +4,7 @@ from scipy import fftpack, ndimage
 from skimage import color as skcolor
 
 
-def create_boundary_subtraction_image(image, mask, erosion_iterations=5):
+def create_boundary_subtraction_image(image, mask, erosion_iterations=2):
     """
     Create an image for boundary subtraction that isolates interior content.
 
@@ -41,7 +41,7 @@ def create_boundary_subtraction_image(image, mask, erosion_iterations=5):
     return subtraction_image
 
 
-def get_clean_interior_fft(image, mask, erosion_iterations=5):
+def get_clean_interior_fft(image, mask, erosion_iterations=2):
     """
     Get FFT of interior content with boundary artifacts removed.
 
@@ -67,7 +67,7 @@ def get_clean_interior_fft(image, mask, erosion_iterations=5):
     return fft_clean
 
 
-def apply_clean_interior_processing(image, mask, processing_func, erosion_iterations=5):
+def apply_clean_interior_processing(image, mask, processing_func, erosion_iterations=2):
     """
     Apply frequency domain processing with clean boundary handling.
 
@@ -125,7 +125,7 @@ def plot_orientation_spectrum(img, plot_color, label, alpha=0.7):
         mask = np.logical_not(np.all(img == background_pixel, axis=-1))
 
     # Use same clean interior approach as processing
-    fft_clean_interior = get_clean_interior_fft(gray, mask, erosion_iterations=5)
+    fft_clean_interior = get_clean_interior_fft(gray, mask, erosion_iterations=2)
     f_transform_shifted = np.fft.fftshift(fft_clean_interior)
 
     # Calculate power spectrum
@@ -203,7 +203,7 @@ def plot_2d_power_spectrum_diff(original_img, randomized_img):
             mask = np.logical_not(np.all(img == background_pixel, axis=-1))
 
         # Use same clean interior approach as processing
-        fft_clean_interior = get_clean_interior_fft(gray, mask, erosion_iterations=5)
+        fft_clean_interior = get_clean_interior_fft(gray, mask, erosion_iterations=2)
         f_transform_shifted = np.fft.fftshift(fft_clean_interior)
         power_spectrum = np.abs(f_transform_shifted) ** 2
 
@@ -317,7 +317,7 @@ def create_analysis_plot(original_image, randomized_image, output_path, title):
             mask = np.logical_not(np.all(img == background_pixel, axis=-1))
 
         # Use clean interior approach for consistency
-        fft_clean_interior = get_clean_interior_fft(gray, mask, erosion_iterations=5)
+        fft_clean_interior = get_clean_interior_fft(gray, mask, erosion_iterations=2)
         f_transform_shifted = np.fft.fftshift(fft_clean_interior)
 
         # Calculate power spectrum
