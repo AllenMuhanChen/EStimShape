@@ -17,7 +17,7 @@ from skimage import color as skcolor, exposure
 import matplotlib.pyplot as plt
 import matplotlib
 
-from src.imageshuffle.orientation_band_shuffle import plot_orientation_spectrum
+from src.imageshuffle.shuffle_util import plot_orientation_spectrum, plot_2d_power_spectrum_diff
 
 matplotlib.use('Agg')  # Use non-interactive backend for server environments
 
@@ -245,34 +245,6 @@ def create_analysis_plot(original_image, randomized_image, output_path):
         # Plot log-log scale
         plt.loglog(radial_bins[1:], color=plot_color, alpha=alpha, label=label)
 
-
-    def plot_2d_power_spectrum_diff(original_img, randomized_img):
-        """Plot 2D power spectrum difference visualization"""
-
-        def get_2d_power_spectrum(img):
-            if img.shape[2] >= 3:
-                gray = skcolor.rgb2gray(img[:, :, :3])
-            else:
-                gray = img[:, :, 0]
-
-            f_transform = fftpack.fft2(gray)
-            f_transform_shifted = np.fft.fftshift(f_transform)
-            power_spectrum = np.abs(f_transform_shifted) ** 2
-
-            # Log scale for better visualization
-            return np.log10(power_spectrum + 1e-10)
-
-        orig_power = get_2d_power_spectrum(original_img)
-        rand_power = get_2d_power_spectrum(randomized_img)
-
-        # Calculate difference
-        power_diff = rand_power - orig_power
-
-        # Display the difference
-        im = plt.imshow(power_diff, cmap='RdBu_r', origin='lower')
-        plt.colorbar(im, label='Log Power Difference')
-        plt.xlabel('Frequency X')
-        plt.ylabel('Frequency Y')
 
     # Analyze both images
     orig_mean, orig_std, orig_min, orig_max, orig_values = analyze_image_stats(original_image, "Original")
