@@ -146,3 +146,146 @@ def plot_2d_power_spectrum_diff(original_img, randomized_img):
     plt.colorbar(im, label='Normalized Power Difference')
     plt.xlabel('Frequency X')
     plt.ylabel('Frequency Y')
+
+
+def create_analysis_plot(original_image, randomized_image, output_path, title):
+    """
+    Create analysis plot showing histograms and power spectrum comparison.
+
+    Args:
+        original_image: Original image array
+        randomized_image: Phase-randomized image array
+        output_path: Path to save the analysis plot
+    """
+
+    def analyze_image_stats(img, name="Image"):
+        if img.shape[2] == 4:  # Handle alpha channel
+            rgb = img[:, :, :3]
+        else:
+            rgb = img
+
+        # Normalize if needed
+        if rgb.max() > 1.0:
+            rgb_norm = rgb / 255.0
+        else:
+            rgb_norm = rgb
+
+        # Convert to LAB
+        lab = skcolor.rgb2lab(rgb_norm)
+        L = lab[:, :, 0]  # Luminance
+
+        # Create mask for non-background pixels (find most common pixel as background)
+        if img.shape[2] == 4:  # Image has alpha channel
+            rgb_for_background = img[:, :, :3]
+        else:  # RGB image
+            rgb_for_background = img
+
+        # Reshape to (num_pixels, num_channels) for easier processing
+        pixels = rgb_for_background.reshape(-1, rgb_for_background.shape[-1])
+
+        # Find unique pixels and their counts
+        unique_pixels, counts = np.unique(pixels, axis=0, return_counts=True)
+
+        # Get the most common pixel value (background)
+        background_pixel = unique_pixels[np.argmax(counts)]
+
+        # Create mask for non-background pixels
+        if img.shape[2] == 4:  # Image has alpha channel
+            mask = np.logical_not(np.all(img[:, :, :3] == background_pixel, axis=-1))
+        else:  # RGB image
+            mask = np.logical_not(np.all(img == background_pixel, axis=-1))
+
+        # Get masked luminance values
+        L_masked = L[mask]
+
+        # Calculate statistics
+        mean = np.mean(L_masked)
+        std = np.std(L_masked)
+        min_val = np.min(L_masked)
+        max_val = np.max(L_masked)
+
+        return mean, std, min_val, max_val, L_masked
+
+    def plot_power_spectrum(img, plot_color, label, alpha=0.7):
+        if img.shape[2] >= 3:
+            # Convert to grayscale for spectrum analysis
+            gray = skcolor.rgb2gray(img[:, :, :3])
+        else:
+            gray = img[:, :, 0]
+
+        # Calculate 2D FFT
+        f_transform = fftpack.fft2(gray)
+        f_transform_shifted = np.fft.fftshift(f_transform)
+
+        # Calculate power spectrum
+        power_spectrum = np.abs(f_transform_shifted) ** 2
+
+        # Calculate radial average (1D power spectrum)
+        h, w = gray.shape
+        center_y, center_x = h // 2, w // 2
+        y, x = np.ogrid[-center_y:h - center_y, -center_x:w - center_x]
+        r = np.sqrt(x * x + y * y)
+        r = r.astype(np.int32)
+
+        # Bin the radial values
+        radial_bins = np.bincount(r.ravel(), weights=power_spectrum.ravel())
+        radial_bins_count = np.bincount(r.ravel())
+        radial_bins = radial_bins / radial_bins_count
+
+        # Plot log-log scale
+        plt.loglog(radial_bins[1:], color=plot_color, alpha=alpha, label=label)
+
+    # Analyze both images
+    orig_mean, orig_std, orig_min, orig_max, orig_values = analyze_image_stats(original_image, "Original")
+    rand_mean, rand_std, rand_min, rand_max, rand_values = analyze_image_stats(randomized_image, "Randomized")
+
+    # Create the analysis plot
+    fig = plt.figure(figsize=(20, 12))
+
+    # Image comparison
+    plt.subplot(2, 3, 1)
+    plt.title(f'Original Image\nMean: {orig_mean:.2f}, StdDev: {orig_std:.2f}')
+    plt.imshow(original_image)
+    plt.axis('off')
+
+    plt.subplot(2, 3, 2)
+    plt.title(f'{title}\nMean: {rand_mean:.2f}, StdDev: {rand_std:.2f}')
+    plt.imshow(randomized_image)
+    plt.axis('off')
+
+    # Histogram comparison
+    plt.subplot(2, 3, 3)
+    plt.title('Luminance Histograms')
+    plt.hist(orig_values, bins=50, alpha=0.5, label='Original', color='blue')
+    plt.hist(rand_values, bins=50, alpha=0.5, label='Randomized', color='red')
+    plt.legend()
+    plt.grid(alpha=0.3)
+
+    # Radial power spectrum comparison
+    plt.subplot(2, 3, 4)
+    plt.title('Radial Power Spectrum')
+    plot_power_spectrum(original_image, 'blue', 'Original')
+    plot_power_spectrum(randomized_image, 'red', 'Randomized')
+    plt.legend()
+    plt.grid(alpha=0.3)
+    plt.xlabel('Spatial Frequency')
+    plt.ylabel('Power')
+
+    # Orientation power spectrum comparison
+    plt.subplot(2, 3, 5)
+    plt.title('Orientation Power Spectrum')
+    plot_orientation_spectrum(original_image, 'blue', 'Original')
+    plot_orientation_spectrum(randomized_image, 'red', 'Randomized')
+    plt.legend()
+    plt.grid(alpha=0.3)
+    plt.xlabel('Orientation (degrees)')
+    plt.ylabel('Power')
+
+    # 2D Power spectrum visualization
+    plt.subplot(2, 3, 6)
+    plt.title('2D Power Spectrum Difference')
+    plot_2d_power_spectrum_diff(original_image, randomized_image)
+
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.close()  # Close to free memory
