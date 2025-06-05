@@ -6,6 +6,7 @@ from skimage import color as skcolor
 
 def plot_orientation_spectrum(img, plot_color, label, alpha=0.7):
     """Plot orientation-specific power spectrum"""
+
     if img.shape[2] >= 3:
         # Convert to grayscale for spectrum analysis
         gray = skcolor.rgb2gray(img[:, :, :3])
