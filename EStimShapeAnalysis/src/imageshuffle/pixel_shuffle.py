@@ -14,7 +14,7 @@ from PIL import Image
 from scipy import ndimage
 import matplotlib
 
-from src.imageshuffle.shuffle_util import create_analysis_plot
+from shuffle_util import create_analysis_plot
 
 matplotlib.use('Agg')  # Use non-interactive backend for server environments
 

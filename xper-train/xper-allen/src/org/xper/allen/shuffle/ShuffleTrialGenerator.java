@@ -3,6 +3,7 @@ package org.xper.allen.shuffle;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.Dependency;
 import org.xper.allen.Stim;
+import org.xper.allen.app.shuffle.ShuffleConfig;
 import org.xper.allen.app.twodvsthreed.TwoDVsThreeDConfig;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.pga.ReceptiveFieldSource;
@@ -60,7 +61,7 @@ public class ShuffleTrialGenerator extends TwoDVsThreeDTrialGenerator {
         // Create and configure the generator
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.config_class"),
-                TwoDVsThreeDConfig.class
+                ShuffleConfig.class
         );
 
         ShuffleTrialGenerator gen = context.getBean(ShuffleTrialGenerator.class, "generator");

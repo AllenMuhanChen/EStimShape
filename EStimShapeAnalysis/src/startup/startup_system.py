@@ -318,6 +318,7 @@ class ShuffleExperiment(ExperimentType):
         make_path(f"/home/r2_allen/Documents/EStimShape/{db_name}/plots")
         make_path(f"/home/r2_allen/Documents/EStimShape/{db_name}/parsed_spikes")
 
+
 class ExperimentManager:
     """Main manager class for handling experiment setup"""
 

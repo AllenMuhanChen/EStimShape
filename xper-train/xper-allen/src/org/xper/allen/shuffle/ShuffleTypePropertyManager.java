@@ -25,7 +25,7 @@ public class ShuffleTypePropertyManager extends StimPropertyManager<ShuffleType>
                 "INSERT INTO " + TABLE_NAME + " (stim_id, shuffle_type) " +
                         "VALUES (?, ?) " +
                         "ON DUPLICATE KEY UPDATE shuffle_type = ?",
-                new Object[]{stimId, property, property}
+                new Object[]{stimId, property.toString(), property.toString()}
         );
     }
 

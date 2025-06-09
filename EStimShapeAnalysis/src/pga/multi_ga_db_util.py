@@ -216,7 +216,7 @@ class MultiGaDbUtil:
                           (current_experiment_id,))
         most_recent_gen_id = self.conn.fetch_one()
         if most_recent_gen_id is None:
-            raise Exception(f"Could not find gen_id for experiment_id {current_experiment_id}")
+            raise Exception(f"Could not find gen_id for experiment_id {current_experiment_id} in ClusterInfo. Do you have a defind Cluster?")
 
         # select the current cluster by grouping largest gen_id
         cluster_as_strings = self.read_cluster_channels(current_experiment_id, most_recent_gen_id)

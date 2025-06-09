@@ -8,6 +8,7 @@ import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.twodvsthreed.TwoDVsThreeDStim;
 import org.xper.allen.twodvsthreed.TwoDVsThreeDTrialGenerator;
 import org.xper.drawing.RGBColor;
+import org.xper.util.ThreadUtil;
 
 import javax.vecmath.Point3d;
 import java.io.IOException;
@@ -51,6 +52,7 @@ public class ShuffleStim extends TwoDVsThreeDStim {
         mStick.genMatchStickFromFile(targetSpecPath, new double[]{0,0,0});
 
         String originalPngPath = drawPng(mStick);
+        ThreadUtil.sleep(100);
 
         // using python image process
         String shuffledPngPath;
@@ -61,14 +63,16 @@ public class ShuffleStim extends TwoDVsThreeDStim {
             if (scriptPath == null) {
                 throw new IllegalArgumentException("No script path found for shuffle type: " + shuffleType);
             }
-            PythonImageProcessor imageProcessor = new PythonImageProcessor(scriptPath);
+            PythonImageProcessor processor = PythonImageProcessor.withVirtualEnv(scriptPath, "/home/r2_allen/anaconda3/envs/3.11");
             try {
-                shuffledPngPath = imageProcessor.processImage(originalPngPath).getAbsolutePath();
+                shuffledPngPath = processor.processImage(originalPngPath).getAbsolutePath();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             } catch (PythonImageProcessor.ImageProcessingException e) {
+                System.out.println("Error processing image with script: " + scriptPath);
+
                 throw new RuntimeException(e);
             }
         }
