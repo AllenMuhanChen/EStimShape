@@ -16,6 +16,7 @@ import java.util.List;
 public class ShuffleTrialGenerator extends TwoDVsThreeDTrialGenerator {
 
     private List<ShuffleType> shuffleTypes = Arrays.asList(
+            ShuffleType.NONE,
             ShuffleType.PIXEL,
             ShuffleType.PHASE,
             ShuffleType.MAGNITUDE
