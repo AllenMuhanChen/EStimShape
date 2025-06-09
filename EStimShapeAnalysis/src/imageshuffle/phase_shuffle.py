@@ -15,7 +15,7 @@ from scipy import fftpack
 from skimage import color as skcolor, exposure
 import matplotlib
 
-from src.imageshuffle.shuffle_util import create_analysis_plot, apply_clean_interior_processing
+from shuffle_util import create_analysis_plot, apply_clean_interior_processing
 
 matplotlib.use('Agg')  # Use non-interactive backend for server environments
 

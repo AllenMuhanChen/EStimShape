@@ -65,7 +65,7 @@ public class ShuffleStim extends TwoDVsThreeDStim {
             }
             PythonImageProcessor processor = PythonImageProcessor.withVirtualEnv(scriptPath, "/home/r2_allen/anaconda3/envs/3.11");
             try {
-                shuffledPngPath = processor.processImage(originalPngPath).getAbsolutePath();
+                shuffledPngPath = processor.processImage(originalPngPath, shuffleType.toString()).getAbsolutePath();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             } catch (InterruptedException e) {

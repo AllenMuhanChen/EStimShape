@@ -61,7 +61,7 @@ public class PythonImageProcessor {
     }
 
     /**
-     * Process an image with default output path.
+     * Process an image with default output path and default label.
      *
      * @param inputImagePath Path to input image
      * @return File object pointing to the processed image
@@ -70,9 +70,41 @@ public class PythonImageProcessor {
      * @throws ImageProcessingException If Python script fails
      */
     public File processImage(String inputImagePath) throws IOException, InterruptedException, ImageProcessingException {
-        // Generate unique output filename
-        String outputPath = generateOutputPath(inputImagePath);
+        return processImage(inputImagePath, "processed");
+    }
+
+    /**
+     * Process an image with default output path and custom label.
+     *
+     * @param inputImagePath Path to input image
+     * @param label Label to include in output filename
+     * @return File object pointing to the processed image
+     * @throws IOException If file operations fail
+     * @throws InterruptedException If process is interrupted
+     * @throws ImageProcessingException If Python script fails
+     */
+    public File processImage(String inputImagePath, String label) throws IOException, InterruptedException, ImageProcessingException {
+        // Generate unique output filename with label
+        String outputPath = generateOutputPath(inputImagePath, label);
         return processImage(inputImagePath, outputPath, false);
+    }
+
+    /**
+     * Process an image with custom label and keepIntermediates option.
+     *
+     * @param inputImagePath Path to input image
+     * @param keepIntermediates Whether to save intermediate processing files
+     * @param label Label to include in output filename
+     * @return File object pointing to the processed image
+     * @throws IOException If file operations fail
+     * @throws InterruptedException If process is interrupted
+     * @throws ImageProcessingException If Python script fails
+     */
+    public File processImage(String inputImagePath, boolean keepIntermediates, String label)
+            throws IOException, InterruptedException, ImageProcessingException {
+        // Generate unique output filename with label
+        String outputPath = generateOutputPath(inputImagePath, label);
+        return processImage(inputImagePath, outputPath, keepIntermediates);
     }
 
     /**
@@ -153,16 +185,42 @@ public class PythonImageProcessor {
     }
 
     /**
-     * Generate a unique output path based on input path.
+     * Generate a unique output path based on input path and label.
+     * Format: {original_filename}_{label}.png
+     *
+     * @param inputPath Path to input image
+     * @param label Label to include in filename
+     * @return Generated output path
      */
-    private String generateOutputPath(String inputPath) {
+    private String generateOutputPath(String inputPath, String label) {
         Path input = Paths.get(inputPath);
         String fileName = input.getFileName().toString();
-        String baseName = fileName.substring(0, fileName.lastIndexOf('.'));
-        String extension = fileName.substring(fileName.lastIndexOf('.'));
-        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
 
-        return input.getParent().resolve(baseName + "_processed_" + uniqueId + extension).toString();
+        // Extract base name without extension
+        String baseName;
+        int lastDotIndex = fileName.lastIndexOf('.');
+        if (lastDotIndex > 0) {
+            baseName = fileName.substring(0, lastDotIndex);
+        } else {
+            baseName = fileName;
+        }
+
+        // Clean the label to make it filesystem-safe
+        String cleanLabel = label.replaceAll("[^a-zA-Z0-9_-]", "_");
+
+        // Create new filename: {original_filename}_{label}.png
+        String newFileName = baseName + "_" + cleanLabel + ".png";
+
+        return input.getParent().resolve(newFileName).toString();
+    }
+
+    /**
+     * Legacy method - Generate a unique output path based on input path.
+     * @deprecated Use {@link #generateOutputPath(String, String)} instead
+     */
+    @Deprecated
+    private String generateOutputPath(String inputPath) {
+        return generateOutputPath(inputPath, "processed_" + UUID.randomUUID().toString().substring(0, 8));
     }
 
     /**
@@ -183,20 +241,22 @@ public class PythonImageProcessor {
      */
     public static void main(String[] args) {
         if (args.length < 2) {
-            System.err.println("Usage: java PythonImageProcessor <python_script_path> <input_image_path>");
+            System.err.println("Usage: java PythonImageProcessor <python_script_path> <input_image_path> [label]");
             System.exit(1);
         }
 
         String scriptPath = args[0];
         String inputImagePath = args[1];
+        String label = args.length > 2 ? args[2] : "example";
 
         try {
             // Example using virtual environment
-             PythonImageProcessor processor = PythonImageProcessor.withVirtualEnv(scriptPath, "/home/r2_allen/anaconda3/envs/3.11");
+            PythonImageProcessor processor = PythonImageProcessor.withVirtualEnv(scriptPath, "/home/r2_allen/anaconda3/envs/3.11");
 
             // Example using default python3
-//            PythonImageProcessor processor = new PythonImageProcessor(scriptPath);
-            File outputFile = processor.processImage(inputImagePath);
+            // PythonImageProcessor processor = new PythonImageProcessor(scriptPath);
+
+            File outputFile = processor.processImage(inputImagePath, label);
             System.out.println("Image processed successfully: " + outputFile.getAbsolutePath());
 
         } catch (Exception e) {

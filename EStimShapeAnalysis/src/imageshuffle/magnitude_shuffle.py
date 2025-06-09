@@ -17,7 +17,7 @@ from skimage import color as skcolor, exposure
 import matplotlib.pyplot as plt
 import matplotlib
 
-from src.imageshuffle.shuffle_util import create_analysis_plot, apply_clean_interior_processing
+from shuffle_util import create_analysis_plot, apply_clean_interior_processing
 
 matplotlib.use('Agg')  # Use non-interactive backend for server environments
 
@@ -109,6 +109,7 @@ def magnitude_randomize_preserve_contrast(image, mask=None, capture_ffts=False):
         If capture_ffts=True: (result, original_fft, processed_fft)
     """
     # Create a copy of the original image
+    print(f"Processing image with shape: {image.shape}, dtype: {image.dtype}")
     result = image.copy().astype(np.float32)
 
     # Dictionary to capture FFTs if requested
@@ -220,7 +221,7 @@ def magnitude_randomize_preserve_contrast(image, mask=None, capture_ffts=False):
     if capture_ffts:
         return result, fft_capture.get('original_fft'), fft_capture.get('processed_fft')
     else:
-        return result, None, None
+        return result
 
 
 def process_image(input_path, output_path, keep_intermediates=False):
