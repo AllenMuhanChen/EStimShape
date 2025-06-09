@@ -15,7 +15,7 @@ from src.startup.db_factory import migrate_database, reset_internal_state
 # Template constants
 TEMPLATE_TYPE = 'test'
 TEMPLATE_DATE = '250609'
-TEMPLATE_LOCATION_ID = '0'
+TEMPLATE_LOCATION_ID = '4'
 
 # Database connection constants
 HOST = '172.30.6.80'
