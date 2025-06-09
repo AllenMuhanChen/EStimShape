@@ -233,25 +233,25 @@ class IsoGaborExperiment(ExperimentType):
         make_path(f"{base_dir}/parsed_spikes")
 
 
-class TwoDVsThreeDExperiment(ExperimentType):
+class LightnessExperiment(ExperimentType):
     """2D vs 3D experiment type"""
 
     def get_experiment_prefix(self) -> str:
-        return "twodvsthreed"
+        return "lightness"
 
     def get_version_variable_name(self) -> str:
-        return "VERSION_TWODVSTHREED"
+        return "VERSION_LIGHTNESS"
 
     def get_copy_data_tables(self) -> List[str]:
         return ["SystemVar", "InternalState"]
 
     def get_properties_file_path(self) -> str:
-        return '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.twodvsthreed'
+        return '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.lightness'
 
     def get_properties_dict(self, r2_sftp: str) -> Dict[str, str]:
         db_name = self.get_database_name()
         stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{db_name}/stimuli"
-        r_twodvsthreed_path = f"{stimuli_base_r}/twodvsthreed"
+        r_lightness_path = f"{stimuli_base_r}"
 
         # GA paths for cross-reference
         ga_db_name = f"allen_ga_{self.type_name}_{self.date}_{self.location_id}"
@@ -260,9 +260,9 @@ class TwoDVsThreeDExperiment(ExperimentType):
         return {
             "jdbc.url": f"jdbc:mysql://172.30.6.80/{db_name}?rewriteBatchedStatements=true",
             "ga.jdbc.url": f"jdbc:mysql://172.30.6.80/{ga_db_name}?rewriteBatchedStatements=true",
-            "generator.png_path": f"{r_twodvsthreed_path}/pngs",
-            "experiment.png_path": f"{r2_sftp}{r_twodvsthreed_path}/pngs",
-            "generator.spec_path": f"{r_twodvsthreed_path}/specs",
+            "generator.png_path": f"{r_lightness_path}/pngs",
+            "experiment.png_path": f"{r2_sftp}{r_lightness_path}/pngs",
+            "generator.spec_path": f"{r_lightness_path}/specs",
             "ga.spec_path": ga_spec_path,
             "intan.default_save_path": f"/home/i2_allen/Documents/EStimShape/{db_name}",
         }
@@ -271,8 +271,8 @@ class TwoDVsThreeDExperiment(ExperimentType):
         db_name = self.get_database_name()
         stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{db_name}/stimuli"
 
-        make_path(f"{stimuli_base_r}/twodvsthreed/pngs")
-        make_path(f"{stimuli_base_r}/twodvsthreed/specs")
+        make_path(f"{stimuli_base_r}/pngs")
+        make_path(f"{stimuli_base_r}/specs")
         make_path(f"/home/r2_allen/Documents/EStimShape/{db_name}/plots")
         make_path(f"/home/r2_allen/Documents/EStimShape/{db_name}/parsed_spikes")
 
@@ -293,7 +293,7 @@ class ShuffleExperiment(ExperimentType):
     def get_properties_dict(self, r2_sftp: str) -> Dict[str, str]:
         db_name = self.get_database_name()
         stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{db_name}/stimuli"
-        r_shuffle_path = f"{stimuli_base_r}/shuffle"
+        r_shuffle_path = f"{stimuli_base_r}"
 
         # GA paths for cross-reference
         ga_db_name = f"allen_ga_{self.type_name}_{self.date}_{self.location_id}"
@@ -313,8 +313,8 @@ class ShuffleExperiment(ExperimentType):
         db_name = self.get_database_name()
         stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{db_name}/stimuli"
 
-        make_path(f"{stimuli_base_r}/twodvsthreed/pngs")
-        make_path(f"{stimuli_base_r}/twodvsthreed/specs")
+        make_path(f"{stimuli_base_r}/pngs")
+        make_path(f"{stimuli_base_r}/specs")
         make_path(f"/home/r2_allen/Documents/EStimShape/{db_name}/plots")
         make_path(f"/home/r2_allen/Documents/EStimShape/{db_name}/parsed_spikes")
 
@@ -331,7 +331,7 @@ class ExperimentManager:
             GAExperiment(type_name, date, location_id),
             NAFCExperiment(type_name, date, location_id),
             IsoGaborExperiment(type_name, date, location_id),
-            TwoDVsThreeDExperiment(type_name, date, location_id),
+            LightnessExperiment(type_name, date, location_id),
             ShuffleExperiment(type_name, date, location_id),
         ]
 
