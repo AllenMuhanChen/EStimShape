@@ -47,9 +47,9 @@ def magnitude_shuffle_function(fft_clean_interior):
     np.random.shuffle(magnitude_values)
     shuffled_interior_magnitude = magnitude_values.reshape(interior_magnitude.shape)
 
-    # Preserve DC component (0,0) of interior content
-    # Note: This is the DC of interior variations, not the original image DC
-    shuffled_interior_magnitude[0, 0] = interior_magnitude[0, 0]
+    # # Preserve DC component (0,0) of interior content
+    # # Note: This is the DC of interior variations, not the original image DC
+    # shuffled_interior_magnitude[0, 0] = interior_magnitude[0, 0]
 
     # Combine shuffled interior magnitude with original interior phase
     fft_processed_interior = shuffled_interior_magnitude * np.exp(1j * interior_phase)
@@ -57,7 +57,44 @@ def magnitude_shuffle_function(fft_clean_interior):
     return fft_processed_interior
 
 
-def magnitude_randomize_preserve_contrast(image, mask=None):
+def magnitude_shuffle_function_with_capture(fft_clean_interior, capture_dict=None):
+    """
+    Magnitude shuffling function that can capture FFTs for analysis.
+
+    Args:
+        fft_clean_interior: Clean interior FFT (boundary artifacts removed)
+        capture_dict: Dictionary to store original and processed FFTs (if provided)
+
+    Returns:
+        fft_processed_interior: FFT with shuffled magnitude, preserved phase
+    """
+    # Capture original FFT if requested
+    if capture_dict is not None:
+        capture_dict['original_fft'] = fft_clean_interior.copy()
+
+    # Extract phase from clean interior FFT (which we'll keep)
+    interior_phase = np.angle(fft_clean_interior)
+
+    # Extract magnitude from clean interior FFT (which we'll randomize)
+    interior_magnitude = np.abs(fft_clean_interior)
+
+    # Shuffle the magnitude values of the INTERIOR CONTENT
+    # This preserves the magnitude distribution but destroys spatial relationships
+    magnitude_values = interior_magnitude.flatten()
+    np.random.shuffle(magnitude_values)
+    shuffled_interior_magnitude = magnitude_values.reshape(interior_magnitude.shape)
+
+    # Combine shuffled interior magnitude with original interior phase
+    fft_processed_interior = shuffled_interior_magnitude * np.exp(1j * interior_phase)
+
+    # Capture processed FFT if requested
+    if capture_dict is not None:
+        capture_dict['processed_fft'] = fft_processed_interior.copy()
+
+    return fft_processed_interior
+
+
+def magnitude_randomize_preserve_contrast(image, mask=None, capture_ffts=False):
     """
     Shuffles the magnitude while preserving phase information, color distribution,
     and average luminance through histogram matching.
@@ -65,12 +102,17 @@ def magnitude_randomize_preserve_contrast(image, mask=None):
     Args:
         image: Input image (can be color with alpha channel)
         mask: Binary mask (1 inside region to randomize, 0 outside)
+        capture_ffts: If True, returns (result, original_fft, processed_fft)
 
     Returns:
-        Magnitude-randomized image with preserved statistical properties
+        If capture_ffts=False: Magnitude-randomized image with preserved statistical properties
+        If capture_ffts=True: (result, original_fft, processed_fft)
     """
     # Create a copy of the original image
     result = image.copy().astype(np.float32)
+
+    # Dictionary to capture FFTs if requested
+    fft_capture = {} if capture_ffts else None
 
     # Extract alpha channel if exists
     if image.shape[2] == 4:
@@ -118,11 +160,20 @@ def magnitude_randomize_preserve_contrast(image, mask=None):
     # Save the original luminance values in the masked region for histogram matching later
     L_masked_orig = L[mask]
 
+    # Create processing function that captures FFTs
+    def processing_func_with_capture(fft_clean_interior):
+        return magnitude_shuffle_function_with_capture(fft_clean_interior, fft_capture)
+
     # Apply clean interior processing with boundary subtraction
     # This ensures magnitude shuffling operates on interior content only
-    randomized_L_roi = apply_clean_interior_processing(
-        L, mask, magnitude_shuffle_function, erosion_iterations=2
-    )
+    if capture_ffts:
+        randomized_L_roi = apply_clean_interior_processing(
+            L, mask, processing_func_with_capture, erosion_iterations=2
+        )
+    else:
+        randomized_L_roi = apply_clean_interior_processing(
+            L, mask, magnitude_shuffle_function, erosion_iterations=2
+        )
 
     # The result already includes boundary reconstruction, so we can use it directly
 
@@ -165,7 +216,11 @@ def magnitude_randomize_preserve_contrast(image, mask=None):
     if image.dtype == np.uint8:
         result = np.clip(result, 0, 255).astype(np.uint8)
 
-    return result
+    # Return with or without FFTs
+    if capture_ffts:
+        return result, fft_capture.get('original_fft'), fft_capture.get('processed_fft')
+    else:
+        return result, None, None
 
 
 def process_image(input_path, output_path, keep_intermediates=False):
@@ -199,12 +254,19 @@ def process_image(input_path, output_path, keep_intermediates=False):
         img = Image.open(input_path).convert('RGBA')
         img_array = np.array(img)
 
-        # Apply magnitude randomization
-        processed_array = magnitude_randomize_preserve_contrast(img_array)
-
-        # Create analysis plot if requested
+        # Apply magnitude randomization with FFT capture if needed for analysis
         if keep_intermediates:
-            create_analysis_plot(img_array, processed_array, analysis_plot_path, "Magnitude Randomized")
+            processed_array, original_fft, processed_fft = magnitude_randomize_preserve_contrast(
+                img_array, capture_ffts=False
+            )
+
+            # Create analysis plot with corrected FFT analysis
+            create_analysis_plot(
+                img_array, processed_array, analysis_plot_path, "Magnitude Randomized",
+                original_fft=original_fft, processed_fft=processed_fft, algorithm_type="magnitude_shuffle"
+            )
+        else:
+            processed_array = magnitude_randomize_preserve_contrast(img_array)
 
         # Save final shuffled image
         final_img = Image.fromarray(processed_array.astype(np.uint8))
