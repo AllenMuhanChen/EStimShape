@@ -30,7 +30,7 @@ def main():
     channel = 'A-011'
     compiled_data = compile()
     analysis = LightnessAnalysis()
-    session_id, _ = read_session_id_from_db_name(context.twodvsthreed_database)
+    session_id, _ = read_session_id_from_db_name(context.lightness_database)
     session_id = "250425_0"
     channel = "A-013"
     return analysis.run(session_id, "raw", channel, compiled_data=None)
@@ -79,7 +79,7 @@ class LightnessAnalysis(Analysis):
 
 def compile_and_export():
     data = compile()
-    export_to_repository(data, context.twodvsthreed_database, "lightness",
+    export_to_repository(data, context.lightness_database, "lightness",
                          stim_info_table="LightnessTestStimInfo",
                          stim_info_columns=[
                              'Type',
@@ -95,15 +95,15 @@ def compile_and_export():
 
 
 def compile():
-    conn = Connection(context.twodvsthreed_database)
+    conn = Connection(context.lightness_database)
     # Collect trials
     task_id_collector = TaskIdCollector(conn)
     task_ids = task_id_collector.collect_task_ids()
     if not task_ids:
         raise ValueError("No task IDs found in the database.")
     # Set up parser for spike data
-    parser = MultiFileParser(to_cache=True, cache_dir=context.twodvsthreed_parsed_spikes_path)
-    intan_files_dir = context.twodvsthreed_intan_path
+    parser = MultiFileParser(to_cache=True, cache_dir=context.lightness_parsed_spikes_path)
+    intan_files_dir = context.lightness_intan_path
     # Set up fields for data compilation
     fields = CachedTaskFieldList()
     fields.append(StimSpecIdField(conn))

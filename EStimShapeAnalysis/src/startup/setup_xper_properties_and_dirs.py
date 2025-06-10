@@ -238,7 +238,7 @@ def setup_isogabor_dirs():
 
 def setup_twodvsthreed_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
     # Define the necessary versions directly
-    version_twodvsthreed = context.twodvsthreed_database
+    version_twodvsthreed = context.lightness_database
     version_ga = context.ga_database
     recording_computer_sftp = r2_sftp
 
@@ -294,19 +294,19 @@ def setup_twodvsthreed_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=17
 
 
 def setup_twodvsthreed_dirs():
-    version_twodvsthreed = context.twodvsthreed_database
+    version_twodvsthreed = context.lightness_database
     twodvsthreed_path = f"/home/r2_allen/Documents/EStimShape/{version_twodvsthreed}"
     twodvsthreed_parsed_spike_path = f"{twodvsthreed_path}/parsed_spikes"
     make_path(twodvsthreed_parsed_spike_path)
-    make_path(context.twodvsthreed_plot_path)
-    make_path(context.twodvsthreed_parsed_spikes_path)
+    make_path(context.lightness_plot_path)
+    make_path(context.lightness_parsed_spikes_path)
 
 def update_version_shellscript():
     # Retrieve versions from the config
     version_ga = context.ga_database
     version_isogabor = context.isogabor_database
     version_procedural = context.nafc_database
-    version_twodvsthreed = context.twodvsthreed_database
+    version_twodvsthreed = context.lightness_database
 
 
     # Path to the version file

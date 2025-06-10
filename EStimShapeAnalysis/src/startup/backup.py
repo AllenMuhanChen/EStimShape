@@ -70,7 +70,7 @@ def main():
         context.ga_database,
         context.nafc_database,
         context.isogabor_database,
-        context.twodvsthreed_database
+        context.lightness_database
     ]
 
     # Backup today's impedance measurement files
@@ -90,7 +90,7 @@ def main():
     remote_paths = {
         context.ga_database: context.ga_intan_path,
         context.isogabor_database: context.isogabor_intan_path,
-        context.twodvsthreed_database: context.twodvsthreed_intan_path,
+        context.lightness_database: context.lightness_intan_path,
         context.nafc_database: f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{context.nafc_database}"
     }
 
