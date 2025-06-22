@@ -49,7 +49,7 @@ class GeneticAlgorithmConfig:
         self.db_util = self.get_db_util()
         self.response_processor = self.make_response_processor()
         self.regimes = self.make_phases()
-        self.num_catch_trials = 2
+        self.num_catch_trials = 5
         self.java_output_dir = java_output_dir
         self.allen_dist_dir = allen_dist_dir
 

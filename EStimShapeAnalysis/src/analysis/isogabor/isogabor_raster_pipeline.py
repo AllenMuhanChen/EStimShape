@@ -25,12 +25,12 @@ from src.repository.export_to_repository import export_to_repository
 def main():
     # channel = "A-011"
     # session_id, _ = read_session_id_from_db_name(context.isogabor_database)
-    # compiled_data = compile()
+    compiled_data = compile()
 
-    session_id = "250425_0"
-    channel = "A-017"
+    session_id = "250620_0"
+    channel = "A-028"
     analysis = IsogaborAnalysis()
-    return analysis.run(session_id, "raw", channel, compiled_data=None)
+    return analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
 class IsogaborAnalysis(Analysis):

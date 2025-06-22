@@ -25,13 +25,13 @@ from src.startup import context
 def main():
     channel = "A-011"
 
-    # compiled_data = compile()
+    compiled_data = compile()
     analysis = PlotTopNAnalysis()
 
-    compiled_data = None
+    # compiled_data = None
     session_id, _ = read_session_id_from_db_name(context.ga_database)
-    session_id = "250425_0"
-    channel = "A-017"
+    # session_id = "250425_0"
+    channel = "A-013"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
@@ -156,10 +156,6 @@ def get_top_n_lineages(data, n):
     return list(top_n_lineages)
 
 
-if __name__ == "__main__":
-    main()
-
-
 def clean_ga_data(data_for_all_tasks):
     # Remove trials with no response
     data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['GA Response'].notna()]
@@ -168,3 +164,7 @@ def clean_ga_data(data_for_all_tasks):
     # Remove Catch
     data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['ThumbnailPath'].apply(lambda x: x is not None)]
     return data_for_all_tasks
+
+
+if __name__ == "__main__":
+    main()

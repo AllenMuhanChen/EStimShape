@@ -5,7 +5,7 @@ from typing import List
 
 def main():
     ga_db = Connection(context.ga_database)
-    dest_db_names = [context.nafc_database, context.isogabor_database, context.lightness_database]
+    dest_db_names = [context.nafc_database, context.isogabor_database, context.lightness_database, context.shuffle_database]
     dest_dbs = [Connection(dest_db_name) for dest_db_name in dest_db_names]
 
     # Write calibration parameters

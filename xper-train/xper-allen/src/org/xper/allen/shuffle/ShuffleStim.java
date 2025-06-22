@@ -91,7 +91,7 @@ public class ShuffleStim extends TwoDVsThreeDStim {
             pngPath = generator.getPngMaker().createAndSavePNG(mStick, stimId, labels, generator.getGeneratorPngPath());
         } else {
             labels.add("base");
-            pngPath = generator.getPngMaker().createAndSavePNG(mStick, targetStimId, labels, generator.getGeneratorPngPath());
+            pngPath = generator.getPngMaker().createAndSavePNG(mStick, stimId, labels, generator.getGeneratorPngPath());
         }
         return pngPath;
     }

@@ -15,10 +15,12 @@ from typing import List, Tuple, Optional
 
 def main():
     channel = None
-    session_id, _ = read_session_id_from_db_name(context.isogabor_database)
-    if channel is None:
-        channel = read_cluster_channels(session_id)[0]
+    # session_id, _ = read_session_id_from_db_name(context.isogabor_database)
+    # if channel is None:
+    #     channel = read_cluster_channels(session_id)[0]
 
+    session_id = "250620_0"
+    channel = "A-013"
     analysis = IsogaborPSTHAnalysis()
     return analysis.run(session_id, "raw", channel)
 
@@ -45,7 +47,7 @@ class IsogaborPSTHAnalysis(Analysis):
             channel=channel,
             spike_tstamps_col=self.spike_tstamps_col,
             save_path=f"{self.save_path}/{channel}: color_experiment_psth.png",
-            bin_size=0.05,
+            bin_size=0.025,
             time_window=(-0.2, 0.5),  # 0 to 500ms
             frequency_to_include=frequencies
         )
