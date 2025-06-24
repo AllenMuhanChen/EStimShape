@@ -172,32 +172,17 @@ def main():
     """
     execute_query(connection, create_window_sorted_responses_table, "WindowSortedResponses table creation")
 
-    # Create specialized stimulus info tables with foreign keys to StimExperimentMapping (only using stim_id)
-    create_lightness_test_info = """
-    CREATE TABLE IF NOT EXISTS LightnessTestStimInfo (
-        stim_id BIGINT PRIMARY KEY,
-        FOREIGN KEY (stim_id) REFERENCES StimExperimentMapping(stim_id) ON DELETE CASCADE
+    # Create BackedUpExperiments table to track backups
+    create_backed_up_experiments_table = """
+    CREATE TABLE IF NOT EXISTS BackedUpExperiments (
+        experiment_id VARCHAR(255),
+        directory VARCHAR(500),
+        PRIMARY KEY (experiment_id, directory),
+        FOREIGN KEY (experiment_id) REFERENCES Experiments(experiment_id) ON DELETE CASCADE
     );
     """
-    execute_query(connection, create_lightness_test_info, "Lightness Test table creation")
+    execute_query(connection, create_backed_up_experiments_table, "BackedUpExperiments table creation")
 
-    # Create GAStimInfo table with foreign key
-    create_ga_stim_info_table = """
-    CREATE TABLE IF NOT EXISTS GAStimInfo (
-        stim_id BIGINT PRIMARY KEY,
-        FOREIGN KEY (stim_id) REFERENCES StimExperimentMapping(stim_id) ON DELETE CASCADE
-    );
-    """
-    execute_query(connection, create_ga_stim_info_table, "GAStimInfo table creation")
-
-    # Create IsoGaborStimInfo table with foreign key
-    create_isogabor_stim_info_table = """
-    CREATE TABLE IF NOT EXISTS IsoGaborStimInfo (
-        stim_id BIGINT PRIMARY KEY,
-        FOREIGN KEY (stim_id) REFERENCES StimExperimentMapping(stim_id) ON DELETE CASCADE
-    );
-    """
-    execute_query(connection, create_isogabor_stim_info_table, "IsoGaborStimInfo table creation")
 
     print("All tables created successfully")
     connection.close()

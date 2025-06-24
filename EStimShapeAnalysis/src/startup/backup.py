@@ -16,6 +16,7 @@ import shutil
 import subprocess
 from datetime import datetime
 from typing import Tuple
+from clat.util.connection import Connection
 
 from src.startup import context
 from src.startup.startup_system import MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD, GAExperiment, \
@@ -41,25 +42,68 @@ def extract_info_from_database_name(db_name):
 
 
 def main():
-    """Main function to perform backups using the refactored system"""
+    """Main function to perform backups for experiments not yet backed up"""
 
-    # Extract info from ga_database in context
-    type_name, date, location_id = extract_info_from_database_name(context.ga_database)
+    try:
+        # Connect to central repository
+        repo_conn = Connection("allen_data_repository")
 
-    print(f"Starting backup for experiments:")
-    print(f"  Type: {type_name}")
-    print(f"  Date: {date}")
-    print(f"  Location: {location_id}")
-    print()
+        # Query to find experiments that are NOT in BackedUpExperiments
+        query = """
+        SELECT e.experiment_id, e.database_source 
+        FROM Experiments e
+        LEFT JOIN BackedUpExperiments b ON e.experiment_id = b.experiment_id
+        WHERE b.experiment_id IS NULL
+        """
 
-    # Create BackupManager with the extracted information
-    backup_manager = BackupManager(type_name, date, location_id)
+        repo_conn.execute(query)
+        unbacked_experiments = repo_conn.fetch_all()
 
-    # Perform the backup
-    backup_manager.perform_backup()
+        if not unbacked_experiments:
+            print("All experiments are already backed up!")
+            return
 
-    print("\nBackup script completed.")
+        print(f"Found {len(unbacked_experiments)} experiments that need backing up:")
+        for exp_id, db_source in unbacked_experiments:
+            print(f"  - {exp_id} (from {db_source})")
 
+        # Group experiments by their session (type, date, location)
+        experiments_by_session = {}
+
+        for experiment_id, database_source in unbacked_experiments:
+            try:
+                # Extract info from database_source
+                type_name, date, location_id = extract_info_from_database_name(database_source)
+
+                # Create session key
+                session_key = (type_name, date, location_id)
+
+                if session_key not in experiments_by_session:
+                    experiments_by_session[session_key] = []
+
+                experiments_by_session[session_key].append((experiment_id, database_source))
+
+            except Exception as e:
+                print(f"Warning: Could not parse database source '{database_source}': {e}")
+                continue
+
+        # Perform backups for each session group
+        for (type_name, date, location_id), experiments in experiments_by_session.items():
+            print(f"\nStarting backup for session: type={type_name}, date={date}, location={location_id}")
+            print(f"  Experiments to backup: {[exp[0] for exp in experiments]}")
+
+            # Create BackupManager for this session
+            backup_manager = BackupManager(type_name, date, location_id)
+
+            # Perform the backup
+            backup_manager.perform_backup()
+
+        print("\nBackup script completed.")
+
+    except Exception as e:
+        print(f"Error in main backup process: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 class BackupManager:
@@ -287,7 +331,42 @@ class BackupManager:
 
         print(f"\nBackup completed to: {backup_dir}")
 
+        # Record all backups in the central repository
+        print("\nRecording backups in central repository...")
+        for experiment in self.experiments:
+            if experiment.should_backup():
+                experiment_id = experiment.get_database_name()
+                record_backup_in_repository(experiment_id, backup_dir)
 
+
+def record_backup_in_repository(experiment_id: str, backup_directory: str):
+    """
+    Record a backup in the central data repository.
+
+    Args:
+        experiment_id: The experiment database name (e.g., 'allen_ga_test_250527_0')
+        backup_directory: The full path where the backup was stored
+    """
+    try:
+        repo_conn = Connection("allen_data_repository")
+
+        # Insert the backup record
+        query = """
+        INSERT INTO BackedUpExperiments (experiment_id, directory)
+        VALUES (%s, %s)
+        """
+
+        repo_conn.execute(query, (experiment_id, backup_directory))
+        print(f"Recorded backup for {experiment_id} in central repository")
+        return True
+
+    except Exception as e:
+        # Check if it's a duplicate entry error
+        if "Duplicate entry" in str(e):
+            print(f"Backup record already exists for {experiment_id} at {backup_directory}")
+        else:
+            print(f"Warning: Could not record backup in central repository: {e}")
+        return False
 
 
 if __name__ == "__main__":
