@@ -23,30 +23,14 @@ def write_stim_info_to_db_sqlalchemy_with_conn(repo_conn, table_name: str,
     """
     from sqlalchemy import create_engine, MetaData, Table, text
 
+    raw_conn = repo_conn.my_cursor  # or however you access the raw connection
 
-    try:
-        # Try to get raw connection - adjust this line based on your Connection class
-        raw_conn = repo_conn.connection  # or however you access the raw connection
-
-        # Create SQLAlchemy engine from existing connection
-        engine = create_engine(
-            "mysql://",
-            strategy='mock',
-            executor=lambda sql, *_: raw_conn.execute(sql)
-        )
-
-    except AttributeError:
-        # Fallback: use original method but with mysqlclient instead
-        try:
-            connection_string = "mysql://xper_rw:up2nite@172.30.6.80/allen_data_repository"
-            engine = create_engine(connection_string)
-        except ImportError:
-            # Final fallback: use original write_stim_info_to_db
-            print("SQLAlchemy dependencies not available, falling back to original method")
-            from src.repository.export_to_repository import write_stim_info_to_db
-            write_stim_info_to_db(repo_conn, table_name, stim_info_data, stim_task_mapping)
-            return
-
+    # Create SQLAlchemy engine from existing connection
+    engine = create_engine(
+        "mysql://",
+        strategy='mock',
+        executor=lambda sql, *_: raw_conn.execute(sql)
+    )
     metadata = MetaData()
 
     with engine.connect() as conn:
