@@ -47,9 +47,9 @@ def phase_shuffle_function(fft_clean_interior):
     phase_mask[0, 0] = False  # Exclude DC component
 
     # Generate random phases for all non-DC components of interior content
-    random_phases = original_interior_phase[phase_mask].flatten()
-    np.random.shuffle(random_phases)
-    # random_phases = np.random.uniform(0, 2 * np.pi, np.sum(phase_mask))
+    # random_phases = original_interior_phase[phase_mask].flatten()
+    # np.random.shuffle(random_phases)
+    random_phases = np.random.uniform(0, 2 * np.pi, np.sum(phase_mask))
 
     # Create new phase array with random values
     shuffled_interior_phase = np.zeros_like(original_interior_phase)
