@@ -1,8 +1,11 @@
 import importlib
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import os
 import re
+import subprocess
+import datetime
+import shutil
 from datetime import datetime
 import mysql.connector
 from clat.util.connection import Connection
@@ -21,6 +24,11 @@ TEMPLATE_LOCATION_ID = '4'
 HOST = '172.30.6.80'
 USER = 'xper_rw'
 PASS = 'up2nite'
+
+# MySQL backup parameters
+MYSQL_HOST = '172.30.6.80'
+MYSQL_USER = 'xper_rw'
+MYSQL_PASSWORD = 'up2nite'
 
 
 class ExperimentType(ABC):
@@ -64,6 +72,26 @@ class ExperimentType(ABC):
     def create_directories(self) -> None:
         """Create necessary directories for this experiment"""
         pass
+
+    # New backup-related abstract methods
+    @abstractmethod
+    def get_local_backup_paths(self) -> List[str]:
+        """Return list of local paths that need to be backed up"""
+        pass
+
+    @abstractmethod
+    def get_remote_backup_paths(self) -> Dict[str, str]:
+        """Return dict of remote paths to backup with descriptive keys"""
+        pass
+
+    @abstractmethod
+    def get_intan_path(self) -> str:
+        """Return the intan recording path for this experiment"""
+        pass
+
+    def should_backup(self) -> bool:
+        """Determine if this experiment type should be included in backups"""
+        return True  # Default to backing up all experiment types
 
     def get_database_name(self) -> str:
         """Generate database name following naming convention"""
@@ -152,6 +180,22 @@ class GAExperiment(ExperimentType):
         make_path(f"{base_dir}/plots")
         make_path(f"{base_dir}/parsed_spikes")
 
+    def get_local_backup_paths(self) -> List[str]:
+        """Return local paths to backup for GA experiment"""
+        db_name = self.get_database_name()
+        return [f"/home/r2_allen/Documents/EStimShape/{db_name}"]
+
+    def get_remote_backup_paths(self) -> Dict[str, str]:
+        """Return remote paths to backup for GA experiment"""
+        db_name = self.get_database_name()
+        return {
+            "intan_recordings": f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{db_name}"
+        }
+
+    def get_intan_path(self) -> str:
+        """Return intan path for GA experiment"""
+        return f"/home/i2_allen/Documents/EStimShape/{self.get_database_name()}"
+
 
 class NAFCExperiment(ExperimentType):
     """NAFC/Procedural experiment type"""
@@ -202,6 +246,22 @@ class NAFCExperiment(ExperimentType):
         make_path(f"{stimuli_base_r}/{current_date}/procedural/specs")
         make_path(f"{stimuli_base_r}/{current_date}/sets")
 
+    def get_local_backup_paths(self) -> List[str]:
+        """Return local paths to backup for NAFC experiment"""
+        db_name = self.get_database_name()
+        return [f"/home/r2_allen/Documents/EStimShape/{db_name}"]
+
+    def get_remote_backup_paths(self) -> Dict[str, str]:
+        """Return remote paths to backup for NAFC experiment"""
+        db_name = self.get_database_name()
+        return {
+            "intan_recordings": f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{db_name}"
+        }
+
+    def get_intan_path(self) -> str:
+        """Return intan path for NAFC experiment"""
+        return f"/home/i2_allen/Documents/EStimShape/{self.get_database_name()}"
+
 
 class IsoGaborExperiment(ExperimentType):
     """IsoGabor experiment type"""
@@ -232,9 +292,25 @@ class IsoGaborExperiment(ExperimentType):
         make_path(f"{base_dir}/plots")
         make_path(f"{base_dir}/parsed_spikes")
 
+    def get_local_backup_paths(self) -> List[str]:
+        """Return local paths to backup for IsoGabor experiment"""
+        db_name = self.get_database_name()
+        return [f"/home/r2_allen/Documents/EStimShape/{db_name}"]
+
+    def get_remote_backup_paths(self) -> Dict[str, str]:
+        """Return remote paths to backup for IsoGabor experiment"""
+        db_name = self.get_database_name()
+        return {
+            "intan_recordings": f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{db_name}"
+        }
+
+    def get_intan_path(self) -> str:
+        """Return intan path for IsoGabor experiment"""
+        return f"/home/i2_allen/Documents/EStimShape/{self.get_database_name()}"
+
 
 class LightnessExperiment(ExperimentType):
-    """2D vs 3D experiment type"""
+    """Lightness experiment type"""
 
     def get_experiment_prefix(self) -> str:
         return "lightness"
@@ -275,6 +351,22 @@ class LightnessExperiment(ExperimentType):
         make_path(f"{stimuli_base_r}/specs")
         make_path(f"/home/r2_allen/Documents/EStimShape/{db_name}/plots")
         make_path(f"/home/r2_allen/Documents/EStimShape/{db_name}/parsed_spikes")
+
+    def get_local_backup_paths(self) -> List[str]:
+        """Return local paths to backup for Lightness experiment"""
+        db_name = self.get_database_name()
+        return [f"/home/r2_allen/Documents/EStimShape/{db_name}"]
+
+    def get_remote_backup_paths(self) -> Dict[str, str]:
+        """Return remote paths to backup for Lightness experiment"""
+        db_name = self.get_database_name()
+        return {
+            "intan_recordings": f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{db_name}"
+        }
+
+    def get_intan_path(self) -> str:
+        """Return intan path for Lightness experiment"""
+        return f"/home/i2_allen/Documents/EStimShape/{self.get_database_name()}"
 
 
 class ShuffleExperiment(ExperimentType):
@@ -318,6 +410,21 @@ class ShuffleExperiment(ExperimentType):
         make_path(f"/home/r2_allen/Documents/EStimShape/{db_name}/plots")
         make_path(f"/home/r2_allen/Documents/EStimShape/{db_name}/parsed_spikes")
 
+    def get_local_backup_paths(self) -> List[str]:
+        """Return local paths to backup for Shuffle experiment"""
+        db_name = self.get_database_name()
+        return [f"/home/r2_allen/Documents/EStimShape/{db_name}"]
+
+    def get_remote_backup_paths(self) -> Dict[str, str]:
+        """Return remote paths to backup for Shuffle experiment"""
+        db_name = self.get_database_name()
+        return {
+            "intan_recordings": f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{db_name}"
+        }
+
+    def get_intan_path(self) -> str:
+        """Return intan path for Shuffle experiment"""
+        return f"/home/i2_allen/Documents/EStimShape/{self.get_database_name()}"
 
 class ExperimentManager:
     """Main manager class for handling experiment setup"""
