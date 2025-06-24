@@ -16,15 +16,17 @@ from src.analysis.modules.utils.sorting_utils import SpikeRateSortingUtils
 from src.intan.MultiFileParser import MultiFileParser
 from src.repository.export_to_repository import read_session_id_from_db_name
 from src.startup import context
+from src.repository.export_to_repository_alchemy import export_to_repository_alchemy
 
 
 def main():
     channel = 'A-028'
     session_id, _ = read_session_id_from_db_name(context.shuffle_database)
     analysis = ShuffleAnalysis()
-    compiled_data = analysis.compile()
+    compiled_data = analysis.compile_and_export()
     print(compiled_data.to_string())
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+
 
 class ShuffleAnalysis(Analysis):
     def analyze(self, channel, compiled_data=None):
@@ -40,13 +42,13 @@ class ShuffleAnalysis(Analysis):
                 'ShuffleType': ['NONE', 'PIXEL', 'PHASE', 'MAGNITUDE']
             },
             sort_rules={
-              "col": "StimGaId",
-              "custom_func": SpikeRateSortingUtils.by_avg_value(
-                  column=self.spike_rates_col,
-                  comparison_col="StimSpecId"
-              )
+                "col": "StimGaId",
+                "custom_func": SpikeRateSortingUtils.by_avg_value(
+                    column=self.spike_rates_col,
+                    comparison_col="StimSpecId"
+                )
             },
-            save_path= f"{self.save_path}/{channel}: shuffle_test.png",
+            save_path=f"{self.save_path}/{channel}: shuffle_test.png",
             publish_mode=True,
             # include_labels_for={"col"}
         )
@@ -56,9 +58,20 @@ class ShuffleAnalysis(Analysis):
         plt.show()
         return result
 
-
     def compile_and_export(self):
-        pass
+        data = self.compile()
+        export_to_repository_alchemy(data,
+                                     context.shuffle_database,
+                                     "shuffle",
+                                     stim_info_table="ShuffleStimInfo",
+                                     stim_info_columns=["StimSpecId",
+                                                        "StimGaId",
+                                                        "StimPath",
+                                                        "Texture",
+                                                        "ShuffleType",
+                                                        ]
+                                     )
+        return data
 
     def compile(self):
         conn = Connection(context.shuffle_database)
@@ -86,6 +99,7 @@ class ShuffleAnalysis(Analysis):
         data = data[data['StimSpecId'].notna()]
         return data
 
+
 class ShuffleTypeField(StimSpecIdField):
     def get(self, task_id) -> str:
         stim_id = self.get_cached_super(task_id, StimSpecIdField)
@@ -98,6 +112,7 @@ class ShuffleTypeField(StimSpecIdField):
 
     def get_name(self):
         return "ShuffleType"
+
 
 if __name__ == "__main__":
     main()

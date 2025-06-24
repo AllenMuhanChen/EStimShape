@@ -39,7 +39,7 @@ def export_to_repository(df: pd.DataFrame, db_name: str, exp_name: str,
     raw_spike_responses = read_raw_spike_responses(df)
     write_raw_spike_responses(repo_conn, raw_spike_responses)
 
-    # IsoGaborStimInfo
+    # Stim Info
     stim_info = read_stim_info(df, stim_info_columns)
     write_stim_info_to_db(repo_conn, stim_info_table, stim_info, stim_task_mapping)
     print(f"Export complete for {db_name} to repository database.")
