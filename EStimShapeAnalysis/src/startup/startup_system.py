@@ -97,6 +97,9 @@ class ExperimentType(ABC):
         """Generate database name following naming convention"""
         return f"allen_{self.get_experiment_prefix()}_{self.type_name}_{self.date}_{self.location_id}"
 
+    def get_experiment_id(self):
+        return f"{self.date}_{self.location_id}_{self.get_experiment_prefix()}"
+
     def get_template_database_name(self) -> str:
         """Generate template database name"""
         return f"allen_{self.get_experiment_prefix()}_{TEMPLATE_TYPE}_{TEMPLATE_DATE}_{TEMPLATE_LOCATION_ID}"

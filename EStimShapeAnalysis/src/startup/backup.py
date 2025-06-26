@@ -71,6 +71,7 @@ def main():
         experiments_by_session = {}
 
         for experiment_id, database_source in unbacked_experiments:
+
             try:
                 # Extract info from database_source
                 type_name, date, location_id = extract_info_from_database_name(database_source)
@@ -335,7 +336,7 @@ class BackupManager:
         print("\nRecording backups in central repository...")
         for experiment in self.experiments:
             if experiment.should_backup():
-                experiment_id = experiment.get_database_name()
+                experiment_id = experiment.get_experiment_id()
                 record_backup_in_repository(experiment_id, backup_dir)
 
 
