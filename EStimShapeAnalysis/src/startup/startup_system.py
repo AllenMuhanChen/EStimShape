@@ -16,9 +16,9 @@ from src.startup.setup_xper_properties_and_dirs import XperPropertiesModifier, m
 from src.startup.db_factory import migrate_database, reset_internal_state
 
 # Template constants
-TEMPLATE_TYPE = 'test'
-TEMPLATE_DATE = '250609'
-TEMPLATE_LOCATION_ID = '4'
+TEMPLATE_TYPE = 'exp'
+TEMPLATE_DATE = '250620'
+TEMPLATE_LOCATION_ID = '0'
 
 # Database connection constants
 HOST = '172.30.6.80'
@@ -38,6 +38,7 @@ class ExperimentType(ABC):
         self.type_name = type_name
         self.date = date
         self.location_id = location_id
+        self.intan_base_path = "/mnt/data/EStimShape"
 
     @abstractmethod
     def get_experiment_prefix(self) -> str:
@@ -166,8 +167,8 @@ class GAExperiment(ExperimentType):
             "generator.spec_path": f"{r_ga_path}/specs",
             "rfplot.png_library_path_generator": "/home/r2_allen/git/EStimShape/xper-train/stimuli/rfplot/pngs",
             "rfplot.png_library_path_experiment": f"{r2_sftp}/home/r2_allen/git/EStimShape/xper-train/stimuli/rfplot/pngs",
-            "rfplot.intan_path": f"/home/i2_allen/Documents/EStimShape/{db_name}/rfPlot",
-            "intan.default_save_path": f"/home/i2_allen/Documents/EStimShape/{db_name}",
+            "rfplot.intan_path": f"{self.intan_base_path}/{db_name}/rfPlot",
+            "intan.default_save_path": f"{self.intan_base_path}/{db_name}",
         }
 
     def create_directories(self) -> None:
@@ -192,12 +193,12 @@ class GAExperiment(ExperimentType):
         """Return remote paths to backup for GA experiment"""
         db_name = self.get_database_name()
         return {
-            "intan_recordings": f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{db_name}"
+            "intan_recordings": f"/run/user/1003/gvfs/sftp:host=172.30.9.78{self.intan_base_path}/{db_name}"
         }
 
     def get_intan_path(self) -> str:
         """Return intan path for GA experiment"""
-        return f"/home/i2_allen/Documents/EStimShape/{self.get_database_name()}"
+        return f"{self.intan_base_path}/{self.get_database_name()}"
 
 
 class NAFCExperiment(ExperimentType):
@@ -237,7 +238,7 @@ class NAFCExperiment(ExperimentType):
             "generator.set_path": f"{stimuli_base_r}/{current_date}/sets",
             "experiment.noisemap_path": f"{r2_sftp}{r_nafc_path}/pngs",
             "ga.spec_path": ga_spec_path,
-            "intan.default_save_path": f"/home/i2_allen/Documents/EStimShape/{db_name}",
+            "intan.default_save_path": f"{self.intan_base_path}/{db_name}",
         }
 
     def create_directories(self) -> None:
@@ -258,12 +259,12 @@ class NAFCExperiment(ExperimentType):
         """Return remote paths to backup for NAFC experiment"""
         db_name = self.get_database_name()
         return {
-            "intan_recordings": f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{db_name}"
+            "intan_recordings": f"/run/user/1003/gvfs/sftp:host=172.30.9.78{self.intan_base_path}/{db_name}"
         }
 
     def get_intan_path(self) -> str:
         """Return intan path for NAFC experiment"""
-        return f"/home/i2_allen/Documents/EStimShape/{self.get_database_name()}"
+        return f"{self.intan_base_path}/{self.get_database_name()}"
 
 
 class IsoGaborExperiment(ExperimentType):
@@ -285,7 +286,7 @@ class IsoGaborExperiment(ExperimentType):
         db_name = self.get_database_name()
         return {
             "jdbc.url": f"jdbc:mysql://172.30.6.80/{db_name}?rewriteBatchedStatements=true",
-            "intan.default_save_path": f"/home/i2_allen/Documents/EStimShape/{db_name}",
+            "intan.default_save_path": f"{self.intan_base_path}/{db_name}",
         }
 
     def create_directories(self) -> None:
@@ -304,12 +305,12 @@ class IsoGaborExperiment(ExperimentType):
         """Return remote paths to backup for IsoGabor experiment"""
         db_name = self.get_database_name()
         return {
-            "intan_recordings": f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{db_name}"
+            "intan_recordings": f"/run/user/1003/gvfs/sftp:host=172.30.9.78{self.intan_base_path}/{db_name}"
         }
 
     def get_intan_path(self) -> str:
         """Return intan path for IsoGabor experiment"""
-        return f"/home/i2_allen/Documents/EStimShape/{self.get_database_name()}"
+        return f"{self.intan_base_path}/{self.get_database_name()}"
 
 
 class LightnessExperiment(ExperimentType):
@@ -343,7 +344,7 @@ class LightnessExperiment(ExperimentType):
             "experiment.png_path": f"{r2_sftp}{r_lightness_path}/pngs",
             "generator.spec_path": f"{r_lightness_path}/specs",
             "ga.spec_path": ga_spec_path,
-            "intan.default_save_path": f"/home/i2_allen/Documents/EStimShape/{db_name}",
+            "intan.default_save_path": f"{self.intan_base_path}/{db_name}",
         }
 
     def create_directories(self) -> None:
@@ -364,12 +365,12 @@ class LightnessExperiment(ExperimentType):
         """Return remote paths to backup for Lightness experiment"""
         db_name = self.get_database_name()
         return {
-            "intan_recordings": f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{db_name}"
+            "intan_recordings": f"/run/user/1003/gvfs/sftp:host=172.30.9.78{self.intan_base_path}/{db_name}"
         }
 
     def get_intan_path(self) -> str:
         """Return intan path for Lightness experiment"""
-        return f"/home/i2_allen/Documents/EStimShape/{self.get_database_name()}"
+        return f"{self.intan_base_path}/{self.get_database_name()}"
 
 
 class ShuffleExperiment(ExperimentType):
@@ -401,7 +402,7 @@ class ShuffleExperiment(ExperimentType):
             "experiment.png_path": f"{r2_sftp}{r_shuffle_path}/pngs",
             "generator.spec_path": f"{r_shuffle_path}/specs",
             "ga.spec_path": ga_spec_path,
-            "intan.default_save_path": f"/home/i2_allen/Documents/EStimShape/{db_name}",
+            "intan.default_save_path": f"{self.intan_base_path}/{db_name}",
         }
 
     def create_directories(self) -> None:
@@ -422,12 +423,12 @@ class ShuffleExperiment(ExperimentType):
         """Return remote paths to backup for Shuffle experiment"""
         db_name = self.get_database_name()
         return {
-            "intan_recordings": f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{db_name}"
+            "intan_recordings": f"/run/user/1003/gvfs/sftp:host=172.30.9.78{self.intan_base_path}/{db_name}"
         }
 
     def get_intan_path(self) -> str:
         """Return intan path for Shuffle experiment"""
-        return f"/home/i2_allen/Documents/EStimShape/{self.get_database_name()}"
+        return f"{self.intan_base_path}/{self.get_database_name()}"
 
 class ExperimentManager:
     """Main manager class for handling experiment setup"""
