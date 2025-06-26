@@ -12,9 +12,6 @@ def main(r, g, b):
     ga = context.ga_config.make_genetic_algorithm()
     ga.trial_generator.set_color(r, g, b)
     ga.run()
-    # experiment_id = ga.experiment_id
-    # gen_id = ga.gen_id
-    # run_trial_generator(experiment_id, gen_id, r, g, b)
 
 
 def prompt_rgb_values():
