@@ -41,7 +41,7 @@ def create_boundary_subtraction_image(image, mask, erosion_iterations=5):
     return subtraction_image
 
 
-def get_clean_interior_fft(image, mask, erosion_iterations=5):
+def get_clean_interior_fft(image, mask, erosion_iterations=2):
     """
     Get FFT of interior content with boundary artifacts removed.
 

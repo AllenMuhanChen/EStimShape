@@ -19,12 +19,239 @@
 import numpy as np
 from scipy.fftpack import fftshift, ifftshift
 
-from .tools import rayleighmode as _rayleighmode
-from .tools import lowpassfilter as _lowpassfilter
+from tools import rayleighmode as _rayleighmode
+from tools import lowpassfilter as _lowpassfilter
 
 # Try and use the faster Fourier transform functions from the pyfftw module if
 # available
-from .tools import fft2, ifft2
+from tools import fft2, ifft2
+
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.image import imread
+
+
+def main():
+    """
+    Main function to demonstrate phase symmetry detection
+    """
+    # Load the image - update this path to your image
+    img_path = "/home/r2_allen/Documents/EStimShape/allen_shuffle_exp_250620_0/stimuli/pngs/1750444527676502_base.png"
+
+    try:
+        img = imread(img_path)
+        print(f"Loaded image with shape: {img.shape}")
+
+        # Convert to grayscale if needed
+        if img.ndim == 3:
+            img_gray = img.mean(2)
+        else:
+            img_gray = img
+
+        print("Computing phase symmetry...")
+
+        # Compute phase symmetry with default parameters (detects both bright and dark features)
+        phaseSym, orientation, totalEnergy, T = phasesym(img_gray)
+
+        print(f"Noise threshold T: {T}")
+        print(f"Phase symmetry range: {np.min(phaseSym):.4f} to {np.max(phaseSym):.4f}")
+        print(f"Total energy range: {np.min(totalEnergy):.4f} to {np.max(totalEnergy):.4f}")
+
+        # Create main visualization
+        fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+        fig.suptitle('Phase Symmetry Analysis - Line and Blob Detection', fontsize=16)
+
+        # Original image
+        axes[0, 0].imshow(img_gray, cmap='gray')
+        axes[0, 0].set_title('Original Image')
+        axes[0, 0].axis('off')
+
+        # Phase symmetry result
+        im1 = axes[0, 1].imshow(phaseSym, cmap='hot')
+        axes[0, 1].set_title('Phase Symmetry\n(Lines & Blobs)')
+        axes[0, 1].axis('off')
+        plt.colorbar(im1, ax=axes[0, 1], shrink=0.8)
+
+        # Orientation of detected features
+        im2 = axes[0, 2].imshow(orientation, cmap='hsv')
+        axes[0, 2].set_title('Feature Orientation\n(degrees)')
+        axes[0, 2].axis('off')
+        plt.colorbar(im2, ax=axes[0, 2], shrink=0.8)
+
+        # Total energy (unnormalized)
+        im3 = axes[1, 0].imshow(totalEnergy, cmap='hot')
+        axes[1, 0].set_title('Total Energy\n(Unnormalized)')
+        axes[1, 0].axis('off')
+        plt.colorbar(im3, ax=axes[1, 0], shrink=0.8)
+
+        # Thresholded phase symmetry (enhanced visualization)
+        threshold = np.mean(phaseSym) + 2 * np.std(phaseSym)
+        phaseSym_thresh = np.where(phaseSym > threshold, phaseSym, 0)
+        im4 = axes[1, 1].imshow(phaseSym_thresh, cmap='hot')
+        axes[1, 1].set_title(f'Thresholded Features\n(> {threshold:.3f})')
+        axes[1, 1].axis('off')
+        plt.colorbar(im4, ax=axes[1, 1], shrink=0.8)
+
+        # Overlay on original
+        overlay = np.stack([img_gray, img_gray + 0.5 * phaseSym, img_gray], axis=2)
+        overlay = np.clip(overlay, 0, 1)
+        axes[1, 2].imshow(overlay)
+        axes[1, 2].set_title('Overlay on Original\n(Red = Symmetry)')
+        axes[1, 2].axis('off')
+
+        plt.tight_layout()
+        plt.show()
+
+        # Show polarity comparison
+        compare_polarities(img_gray)
+
+    except FileNotFoundError:
+        print(f"Error: Could not find image file at {img_path}")
+        print("Please update the img_path variable with a valid image file path")
+    except Exception as e:
+        print(f"Error processing image: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+def compare_polarities(img):
+    """
+    Compare phase symmetry results for different polarity settings
+    """
+    print("Computing phase symmetry for different polarities...")
+
+    # Compute for all polarity settings
+    phaseSym_both, _, _, _ = phasesym(img, polarity=0)  # Both bright and dark
+    phaseSym_bright, _, _, _ = phasesym(img, polarity=1)  # Only bright features
+    phaseSym_dark, _, _, _ = phasesym(img, polarity=-1)  # Only dark features
+
+    # Create comparison visualization
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    fig.suptitle('Phase Symmetry: Polarity Comparison', fontsize=16)
+
+    # Original
+    axes[0, 0].imshow(img, cmap='gray')
+    axes[0, 0].set_title('Original Image')
+    axes[0, 0].axis('off')
+
+    # Both polarities
+    im1 = axes[0, 1].imshow(phaseSym_both, cmap='hot')
+    axes[0, 1].set_title('Both Bright & Dark Features\n(polarity=0)')
+    axes[0, 1].axis('off')
+    plt.colorbar(im1, ax=axes[0, 1], shrink=0.8)
+
+    # Only bright features
+    im2 = axes[1, 0].imshow(phaseSym_bright, cmap='hot')
+    axes[1, 0].set_title('Only Bright Features\n(polarity=1)')
+    axes[1, 0].axis('off')
+    plt.colorbar(im2, ax=axes[1, 0], shrink=0.8)
+
+    # Only dark features
+    im3 = axes[1, 1].imshow(phaseSym_dark, cmap='hot')
+    axes[1, 1].set_title('Only Dark Features\n(polarity=-1)')
+    axes[1, 1].axis('off')
+    plt.colorbar(im3, ax=axes[1, 1], shrink=0.8)
+
+    plt.tight_layout()
+    plt.show()
+
+    # Print statistics
+    print(f"Bright features max: {np.max(phaseSym_bright):.4f}")
+    print(f"Dark features max: {np.max(phaseSym_dark):.4f}")
+    print(f"Combined max: {np.max(phaseSym_both):.4f}")
+
+
+def simple_symmetry_demo():
+    """
+    Simplified demo function with synthetic test image
+    """
+    print("Creating synthetic test image...")
+
+    # Create a test image with lines and blobs
+    img = np.zeros((200, 200))
+
+    # Add some lines
+    img[50:55, 50:150] = 1.0  # Horizontal bright line
+    img[100:105, 50:150] = -1.0  # Horizontal dark line
+    img[50:150, 100:105] = 1.0  # Vertical bright line
+
+    # Add some blobs (circles)
+    y, x = np.ogrid[:200, :200]
+    # Bright blob
+    mask1 = (x - 60) ** 2 + (y - 160) ** 2 <= 15 ** 2
+    img[mask1] = 1.0
+    # Dark blob
+    mask2 = (x - 140) ** 2 + (y - 160) ** 2 <= 15 ** 2
+    img[mask2] = -1.0
+
+    # Add noise
+    img += 0.1 * np.random.randn(200, 200)
+
+    # Normalize
+    img = (img - np.min(img)) / (np.max(img) - np.min(img))
+
+    print("Computing phase symmetry on synthetic image...")
+    phaseSym, orientation, totalEnergy, T = phasesym(img)
+
+    # Visualize
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    fig.suptitle('Phase Symmetry on Synthetic Test Image', fontsize=16)
+
+    axes[0].imshow(img, cmap='gray')
+    axes[0].set_title('Synthetic Test Image\n(Lines and Blobs)')
+    axes[0].axis('off')
+
+    im1 = axes[1].imshow(phaseSym, cmap='hot')
+    axes[1].set_title('Phase Symmetry Result')
+    axes[1].axis('off')
+    plt.colorbar(im1, ax=axes[1])
+
+    im2 = axes[2].imshow(orientation, cmap='hsv')
+    axes[2].set_title('Orientation Map')
+    axes[2].axis('off')
+    plt.colorbar(im2, ax=axes[2])
+
+    plt.tight_layout()
+    plt.show()
+
+    print(f"Detected symmetry range: {np.min(phaseSym):.4f} to {np.max(phaseSym):.4f}")
+
+
+def advanced_analysis(img_path=None):
+    """
+    Advanced analysis showing parameter effects
+    """
+    if img_path is None:
+        # Use synthetic image
+        img = np.zeros((150, 150))
+        img[70:80, 30:120] = 1.0  # Horizontal line
+        img[30:120, 70:80] = 1.0  # Vertical line (cross pattern)
+        img += 0.05 * np.random.randn(150, 150)
+        img = (img - np.min(img)) / (np.max(img) - np.min(img))
+    else:
+        img = imread(img_path)
+        if img.ndim == 3:
+            img = img.mean(2)
+
+    # Test different numbers of scales
+    scales = [3, 5, 7]
+    fig, axes = plt.subplots(1, len(scales) + 1, figsize=(16, 4))
+    fig.suptitle('Effect of Number of Scales on Phase Symmetry', fontsize=14)
+
+    axes[0].imshow(img, cmap='gray')
+    axes[0].set_title('Original')
+    axes[0].axis('off')
+
+    for i, nscale in enumerate(scales):
+        phaseSym, _, _, _ = phasesym(img, nscale=nscale)
+        im = axes[i + 1].imshow(phaseSym, cmap='hot')
+        axes[i + 1].set_title(f'nscale={nscale}')
+        axes[i + 1].axis('off')
+        plt.colorbar(im, ax=axes[i + 1])
+
+    plt.tight_layout()
+    plt.show()
+
 
 
 def phasesym(img, nscale=5, norient=6, minWaveLength=3, mult=2.1,
@@ -352,3 +579,11 @@ def phasesym(img, nscale=5, norient=6, minWaveLength=3, mult=2.1,
     orientation = np.fix(orientation * (180. / norient))
 
     return phaseSym, orientation, totalEnergy, T
+
+if __name__ == "__main__":
+    # Run main demonstration
+    main()
+
+    # Uncomment to run additional demos:
+    # simple_symmetry_demo()
+    # advanced_analysis()

@@ -34,7 +34,7 @@ from matplotlib.image import imread
 
 def main():
     # Load the image
-    img_path = "/home/r2_allen/Documents/EStimShape/allen_ga_exp_250620_0/stimuli/ga/pngs/1750446291628803.png"
+    img_path = "/home/r2_allen/Documents/EStimShape/allen_shuffle_exp_250620_0/stimuli/pngs/1750444527676502_base_MAGNITUDE.png"
 
     try:
         img = imread(img_path)
