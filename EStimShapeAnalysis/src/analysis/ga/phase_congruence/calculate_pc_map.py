@@ -24,8 +24,8 @@ from phasepack.phasecong import phasecong
 matplotlib.use('Agg')  # Use non-interactive backend for server environments
 
 
-def phasecong_orientation_stack(img, nscale=5, norient=10, minWaveLength=3, mult=2.1,
-                                sigmaOnf=0.55, k=2., cutOff=0.5, g=10., noiseMethod=-1):
+def calculate_pc_map(img, nscale=5, norient=10, minWaveLength=3, mult=2.1,
+                     sigmaOnf=0.55, k=2., cutOff=0.5, g=10., noiseMethod=-1):
     """
     Phase congruency analysis returning XxYxN orientation stack.
 
@@ -203,7 +203,7 @@ def create_orientation_visualization(orientation_stack, angles, total_strength, 
 def main():
     # Test with hardcoded path
     img_path = "/home/r2_allen/Documents/EStimShape/allen_shuffle_exp_250620_0/stimuli/pngs/1750444527676502_base.png"
-    output_path = "phase_congruency_orientation_analysis.png"
+    output_path = "../phase_congruency_orientation_analysis.png"
 
     # Open image as np.array
     from matplotlib.image import imread
@@ -213,7 +213,7 @@ def main():
     print(f"Image shape: {img.shape}")
 
     # Apply phase congruency analysis to get orientation stack
-    orientation_stack, angles, total_strength, results = phasecong_orientation_stack(
+    orientation_stack, angles, total_strength, results = calculate_pc_map(
         img, norient=8, nscale=4
     )
 
