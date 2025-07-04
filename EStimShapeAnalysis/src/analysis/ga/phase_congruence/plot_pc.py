@@ -185,6 +185,19 @@ class PlotTopNPCAnalysis(PlotTopNAnalysis):
                 print(f"  Smoothed map shape: {smoothed_map.shape}")
                 print(f"  Smoothed map max strength: {np.max(np.sum(smoothed_map, axis=2)):.4f}")
 
+                # Accumulate response-weighted average
+                if weighted_sum is None:
+                    # Initialize on first stimulus
+                    weighted_sum = smoothed_map * ga_response
+                else:
+                    # Add weighted contribution
+                    weighted_sum += smoothed_map * ga_response
+
+                total_weight += ga_response
+                processed_count += 1
+
+                print(f"  Added to weighted average with weight {ga_response:.4f}")
+
                 # Store results
                 pc_results[stim_id] = {
                     'stim_info': stim_row.to_dict(),

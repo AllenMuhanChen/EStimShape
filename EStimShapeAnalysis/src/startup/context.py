@@ -31,7 +31,7 @@ ga_plot_path = f"/home/r2_allen/Documents/EStimShape/{ga_database}/plots"
 isogabor_plot_path = f"/home/r2_allen/Documents/EStimShape/{isogabor_database}/plots"
 lightness_plot_path = f"/home/r2_allen/Documents/EStimShape/{lightness_database}/plots"
 shuffle_plot_path = f"/home/r2_allen/Documents/EStimShape/{shuffle_database}/plots"
-
+pc_maps_path = f"/home/r2_allen/Documents/EStimShape/{ga_database}/pc_maps"
 try:
 
     ga_config = Simultaneous3Dvs2DConfig(
