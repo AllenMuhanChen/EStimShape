@@ -615,7 +615,7 @@ def main():
     analyzer = LineageRWAAnalysis(
         nscale=4,  # 4 scales for phase congruency
         norient=8,  # 8 orientations
-        sigma=2.0, # Standard deviation for gaussian smoothing
+        sigma=4.0, # Standard deviation for gaussian smoothing
         pc_maps_dir=pc_maps_path,
     )
 
