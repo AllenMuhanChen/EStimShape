@@ -8,7 +8,7 @@ Converts phase congruency maps from Cartesian (X,Y,N) to polar coordinates (R,O,
 - O: angular position around object center
 - N: phase congruency orientation bins
 
-Reuses code from both plot_pc.py and pc_rwa_circular.py.
+Direct comparison between Cartesian and Polar coordinate representations.
 """
 
 import pandas as pd
@@ -134,7 +134,7 @@ def convert_to_polar_coordinates(orientation_stack, object_center, n_radial_bins
 
     # Determine maximum radius for binning
     max_radius = np.sqrt((rows / 2) ** 2 + (cols / 2) ** 2)  # Diagonal half-distance
-    max_radius = max_radius / 3
+    max_radius = max_radius / 4
     # Create bins
     radial_bins = np.linspace(0, max_radius, n_radial_bins + 1)
     angular_bins = np.linspace(0, 2 * np.pi, n_angular_bins + 1)
@@ -331,6 +331,11 @@ class PlotTopNCircularPCAnalysis(PlotTopNAnalysis):
                 object_center = find_object_center(img)
                 print(f"  Object center: ({object_center[0]:.1f}, {object_center[1]:.1f})")
 
+                # Create object-centered Cartesian version for comparison
+                object_centered_orientation_stack = self._make_orientations_object_relative(
+                    orientation_stack, object_center
+                )
+
                 # Convert to polar coordinates
                 polar_stack, radial_bins, angular_bins = convert_to_polar_coordinates(
                     orientation_stack, object_center, self.n_radial_bins, self.n_angular_bins
@@ -364,6 +369,8 @@ class PlotTopNCircularPCAnalysis(PlotTopNAnalysis):
                     'image': img,
                     'object_center': object_center,
                     'orientation_stack': orientation_stack,  # Original XxYxN array
+                    'object_centered_orientation_stack': object_centered_orientation_stack,
+                    # Object-centered XxYxN array
                     'polar_stack': polar_stack,  # RxOxN polar array
                     'smoothed_polar_map': smoothed_polar_map,  # Smoothed RxOxN polar array
                     'radial_bins': radial_bins,
@@ -418,122 +425,114 @@ class PlotTopNCircularPCAnalysis(PlotTopNAnalysis):
             }
         }
 
-    def _create_polar_summary_visualization(self, pc_results, channel):
-        """Create summary visualization of all top stimuli polar PC maps"""
+    def _find_object_center(self, img):
+        """
+        Find the center of mass of the object by averaging positions of foreground pixels.
+        """
+        # Convert to grayscale if needed
+        if img.ndim == 3:
+            if img.shape[2] == 4:  # RGBA
+                rgb_for_background = img[:, :, :3]
+            else:  # RGB
+                rgb_for_background = img
 
-        n_results = len(pc_results)
-        if n_results == 0:
-            print("No results to visualize")
-            return
+            # Find background pixel (most common pixel value)
+            pixels = rgb_for_background.reshape(-1, rgb_for_background.shape[-1])
+            unique_pixels, counts = np.unique(pixels, axis=0, return_counts=True)
+            background_pixel = unique_pixels[np.argmax(counts)]
 
-        # Create figure with subplots (4 rows: original image, original PC strength, polar PC strength, smoothed polar PC)
-        fig, axes = plt.subplots(4, n_results, figsize=(4 * n_results, 16))
-        if n_results == 1:
-            axes = axes.reshape(-1, 1)
+            # Create mask for foreground pixels (not background)
+            if img.shape[2] == 4:
+                mask = np.logical_not(np.all(img[:, :, :3] == background_pixel, axis=-1))
+            else:
+                mask = np.logical_not(np.all(img == background_pixel, axis=-1))
+        else:
+            # Grayscale image - assume background is most common value
+            unique_values, counts = np.unique(img, return_counts=True)
+            background_value = unique_values[np.argmax(counts)]
+            mask = img != background_value
 
-        for i, (stim_id, result) in enumerate(pc_results.items()):
-            # Original image
-            axes[0, i].imshow(result['image'])
-            axes[0, i].set_title(
-                f"Rank {result['rank']}: Stim {stim_id}\nGA Response: {result['stim_info']['GA Response']:.4f}")
-            axes[0, i].axis('off')
+        # Find foreground pixel coordinates
+        foreground_coords = np.where(mask)
 
-            # Original total phase congruency strength (Cartesian)
-            im1 = axes[1, i].imshow(result['total_strength'], cmap='hot')
-            axes[1, i].set_title(f"Original PC Strength\n(Max: {np.max(result['total_strength']):.3f})")
-            axes[1, i].axis('off')
-            plt.colorbar(im1, ax=axes[1, i], fraction=0.046, pad=0.04)
+        if len(foreground_coords[0]) == 0:
+            # No foreground pixels found, use image center
+            center_y, center_x = img.shape[0] // 2, img.shape[1] // 2
+            print(f"    Warning: No foreground pixels found, using image center")
+        else:
+            # Calculate center of mass
+            center_y = np.mean(foreground_coords[0])
+            center_x = np.mean(foreground_coords[1])
 
-            # Polar coordinate PC with orientation bins shown in color
-            polar_orientation_vis = self._create_polar_orientation_visualization(result['polar_stack'])
-            axes[2, i].imshow(polar_orientation_vis, aspect='auto', origin='lower')
-            axes[2, i].set_title(f"Polar PC by Orientation\n(Hue=Orientation, Brightness=Strength)")
-            axes[2, i].set_xlabel('Angular bins')
-            axes[2, i].set_ylabel('Radial bins')
+        return (center_x, center_y)
 
-            # Smoothed polar coordinate PC with orientation bins shown in color
-            smoothed_polar_orientation_vis = self._create_polar_orientation_visualization(result['smoothed_polar_map'])
-            axes[3, i].imshow(smoothed_polar_orientation_vis, aspect='auto', origin='lower')
-            axes[3, i].set_title(f"Smoothed Polar PC by Orientation\n(σr={self.sigma_r}, σθ={self.sigma_theta})")
-            axes[3, i].set_xlabel('Angular bins')
-            axes[3, i].set_ylabel('Radial bins')
+    def _make_orientations_object_relative(self, orientation_stack, object_center):
+        """
+        Make orientation maps relative to object-centered position by shifting coordinates.
+        """
+        rows, cols, norient = orientation_stack.shape
 
-        plt.tight_layout()
+        # Calculate image center
+        img_center_x = cols // 2
+        img_center_y = rows // 2
 
-        # Save the main visualization
-        output_path = f"top_{self.n_top}_polar_pc_analysis_{channel}.png"
-        plt.savefig(output_path, dpi=150, bbox_inches='tight')
-        plt.close()
+        # Calculate shift needed to put object center at image center
+        shift_x = int(img_center_x - object_center[0])
+        shift_y = int(img_center_y - object_center[1])
 
-        print(f"Polar summary visualization saved: {output_path}")
+        print(f"    Shifting by: ({shift_x}, {shift_y}) pixels")
 
-        # Create additional detailed visualization showing individual orientation bins
-        self._create_individual_orientation_visualization(pc_results, channel)
+        # Shift each orientation layer
+        object_centered_orientation_stack = np.zeros_like(orientation_stack)
 
-    def _create_individual_orientation_visualization(self, pc_results, channel):
-        """Create detailed visualization showing individual orientation bins for each stimulus"""
+        for i in range(norient):
+            # Use numpy roll to shift the orientation map
+            shifted = np.roll(orientation_stack[:, :, i], shift_y, axis=0)  # Shift Y
+            shifted = np.roll(shifted, shift_x, axis=1)  # Shift X
+            object_centered_orientation_stack[:, :, i] = shifted
 
-        n_results = len(pc_results)
-        if n_results == 0:
-            return
+        return object_centered_orientation_stack
 
-        # Create a figure showing individual orientation bins for each stimulus
-        # Rows: stimuli, Columns: orientation bins
-        fig, axes = plt.subplots(n_results, self.norient, figsize=(2 * self.norient, 3 * n_results))
+    def _plot_polar_heatmap(self, data_2d, ax, title="", cmap='hot'):
+        """Plot 2D data (radial x angular) as a polar heatmap"""
 
-        if n_results == 1:
-            axes = axes.reshape(1, -1)
-        if self.norient == 1:
-            axes = axes.reshape(-1, 1)
+        n_radial, n_angular = data_2d.shape
 
-        for i, (stim_id, result) in enumerate(pc_results.items()):
-            for orient_idx in range(self.norient):
-                # Get the smoothed polar map for this specific orientation
-                orient_map = result['smoothed_polar_map'][:, :, orient_idx]
+        # Create coordinate arrays
+        theta = np.linspace(0, 2 * np.pi, n_angular, endpoint=False)
+        radius = np.linspace(0, 1, n_radial)
 
-                # Plot this orientation bin
-                im = axes[i, orient_idx].imshow(orient_map, cmap='hot', aspect='auto', origin='lower')
+        # Create meshgrid
+        R, T = np.meshgrid(radius, theta, indexing='ij')
 
-                # Calculate orientation angle in degrees
-                orient_angle = orient_idx * (180.0 / self.norient)
+        # Plot
+        im = ax.pcolormesh(T, R, data_2d, cmap=cmap, shading='auto')
 
-                if i == 0:  # Only add column titles on top row
-                    axes[i, orient_idx].set_title(f'{orient_angle:.0f}°', fontsize=10)
+        # Formatting
+        ax.set_ylim(0, 1)
+        ax.set_theta_zero_location('E')  # 0° points East (right)
+        ax.set_theta_direction(1)  # Counter-clockwise
+        ax.grid(True, alpha=0.3)
+        ax.set_title(title, pad=20)
 
-                if orient_idx == 0:  # Only add row labels on left column
-                    axes[i, orient_idx].set_ylabel(f'Stim {stim_id}\nRank {result["rank"]}', fontsize=8)
+        return im
 
-                axes[i, orient_idx].set_xticks([])
-                axes[i, orient_idx].set_yticks([])
+    def _create_orientation_visualization_cartesian(self, orientation_stack, angles):
+        """
+        Create orientation visualization using same method as original plot_pc.py
+        This ensures identical color mapping between original and polar views
+        """
+        rows, cols, norient = orientation_stack.shape
 
-                # Add small colorbar
-                plt.colorbar(im, ax=axes[i, orient_idx], fraction=0.046, pad=0.04)
+        # Find dominant orientation at each pixel
+        dominant_orientation_idx = np.argmax(orientation_stack, axis=2)
+        dominant_strength = np.max(orientation_stack, axis=2)
 
-        plt.suptitle(f'Individual PC Orientation Bins (Polar Coordinates) - Channel {channel}',
-                     fontsize=14, fontweight='bold')
-        plt.tight_layout()
-
-        # Save the detailed visualization
-        output_path = f"top_{self.n_top}_polar_pc_orientations_{channel}.png"
-        plt.savefig(output_path, dpi=150, bbox_inches='tight')
-        plt.close()
-
-        print(f"Individual orientation visualization saved: {output_path}")
-
-    def _create_polar_orientation_visualization(self, polar_stack):
-        """Create RGB visualization of polar stack showing orientation bins in different colors"""
-
-        n_radial, n_angular, norient = polar_stack.shape
-
-        # Find dominant orientation at each polar coordinate
-        dominant_orientation_idx = np.argmax(polar_stack, axis=2)
-        dominant_strength = np.max(polar_stack, axis=2)
-
-        # Map orientation indices to hue values (0 to 1)
+        # Map orientation indices to hue values (0 to 1) - SAME as original
         hue = dominant_orientation_idx.astype(float) / norient
 
         # Create HSV image
-        hsv_image = np.zeros((n_radial, n_angular, 3))
+        hsv_image = np.zeros((rows, cols, 3))
         hsv_image[:, :, 0] = hue  # Hue from orientation
         hsv_image[:, :, 1] = 1.0  # Full saturation
 
@@ -549,69 +548,250 @@ class PlotTopNCircularPCAnalysis(PlotTopNAnalysis):
 
         return rgb_image
 
+    def _create_true_polar_plot_with_same_colors(self, polar_stack, ax):
+        """
+        Create polar plot using EXACTLY the same color scheme as the Cartesian version
+        """
+        n_radial, n_angular, norient = polar_stack.shape
+
+        # Create polar coordinate meshgrid
+        theta = np.linspace(0, 2 * np.pi, n_angular, endpoint=False)
+        radius = np.linspace(0, 1, n_radial)
+        R, T = np.meshgrid(radius, theta, indexing='ij')
+
+        # Find dominant orientation and strength - SAME logic as Cartesian
+        dominant_orientation_idx = np.argmax(polar_stack, axis=2)
+        dominant_strength = np.max(polar_stack, axis=2)
+
+        # Create RGB colors using IDENTICAL mapping to Cartesian version
+        hue = dominant_orientation_idx.astype(float) / norient
+
+        # Create HSV values
+        hsv_polar = np.zeros((n_radial, n_angular, 3))
+        hsv_polar[:, :, 0] = hue  # Hue from orientation
+        hsv_polar[:, :, 1] = 1.0  # Full saturation
+
+        # Use strength as brightness
+        max_strength = np.max(dominant_strength)
+        if max_strength > 0:
+            hsv_polar[:, :, 2] = dominant_strength / max_strength
+        else:
+            hsv_polar[:, :, 2] = 0
+
+        # Convert to RGB
+        rgb_polar = hsv_to_rgb(hsv_polar)
+
+        # Plot using RGB colors directly (this preserves the exact color mapping)
+        # We need to plot each color pixel individually for true color representation
+        for r_idx in range(n_radial - 1):
+            for t_idx in range(n_angular - 1):
+                r_start, r_end = radius[r_idx], radius[r_idx + 1]
+                t_start, t_end = theta[t_idx], theta[t_idx + 1]
+
+                # Create patch for this polar cell
+                theta_patch = np.linspace(t_start, t_end, 10)
+                r_inner = np.full_like(theta_patch, r_start)
+                r_outer = np.full_like(theta_patch, r_end)
+
+                # Get the color for this cell
+                cell_color = rgb_polar[r_idx, t_idx, :]
+
+                # Plot filled area with the exact color
+                ax.fill_between(theta_patch, r_inner, r_outer,
+                                color=cell_color, alpha=0.8)
+
+        # Formatting
+        ax.set_ylim(0, 1)
+        ax.set_theta_zero_location('E')  # 0° points East (right)
+        ax.set_theta_direction(1)  # Counter-clockwise
+        ax.grid(True, alpha=0.3)
+
+        return ax
+
+    def _create_polar_summary_visualization(self, pc_results, channel):
+        """Create summary visualization comparing original and polar PC maps with same colors"""
+
+        n_results = len(pc_results)
+        if n_results == 0:
+            print("No results to visualize")
+            return
+
+        # Create figure with subplots (3 rows: original image, original PC orientation colors, polar PC orientation colors)
+        fig, axes = plt.subplots(3, n_results, figsize=(4 * n_results, 12))
+        if n_results == 1:
+            axes = axes.reshape(-1, 1)
+
+        for i, (stim_id, result) in enumerate(pc_results.items()):
+            # Original image
+            axes[0, i].imshow(result['image'])
+            axes[0, i].set_title(
+                f"Rank {result['rank']}: Stim {stim_id}\nGA Response: {result['stim_info']['GA Response']:.4f}")
+            axes[0, i].axis('off')
+
+            # Original PC with orientation colors (Cartesian coordinates)
+            # Use the same color mapping as the original plot_pc.py
+            original_orientation_vis = self._create_orientation_visualization_cartesian(
+                result['object_centered_orientation_stack'], result['angles']
+            )
+            axes[1, i].imshow(original_orientation_vis)
+            axes[1, i].set_title("Original PC (Cartesian)\nHue=PC Orientation, Brightness=Strength")
+            axes[1, i].axis('off')
+
+            # Remove the rectangular axis and create polar subplot
+            axes[2, i].remove()
+            ax_polar = fig.add_subplot(3, n_results, 2 * n_results + i + 1, projection='polar')
+
+            # Create polar plot using SAME color scheme
+            self._create_true_polar_plot_with_same_colors(result['smoothed_polar_map'], ax_polar)
+            ax_polar.set_title("PC (Polar Coordinates)\nSame colors as above", pad=20)
+
+        plt.tight_layout()
+
+        # Save the main visualization
+        output_path = f"top_{self.n_top}_polar_comparison_{channel}.png"
+        plt.savefig(output_path, dpi=150, bbox_inches='tight')
+        plt.close()
+
+        print(f"Polar comparison visualization saved: {output_path}")
+
+        # Create pure polar plots for each stimulus
+        self._create_pure_polar_visualization(pc_results, channel)
+
+    def _create_pure_polar_visualization(self, pc_results, channel):
+        """Create visualization using only proper polar coordinate plots with same colors as Cartesian"""
+
+        n_results = len(pc_results)
+        if n_results == 0:
+            return
+
+        # Create figure with polar subplots
+        fig = plt.figure(figsize=(6 * n_results, 12))
+
+        for i, (stim_id, result) in enumerate(pc_results.items()):
+            # Top row: Total strength in polar coordinates
+            ax1 = plt.subplot(2, n_results, i + 1, projection='polar')
+            total_strength = np.sum(result['smoothed_polar_map'], axis=2)
+            self._plot_polar_heatmap(total_strength, ax1, title=f'Stim {stim_id}: Total PC Strength')
+
+            # Bottom row: Orientation-colored polar plot using SAME colors as Cartesian
+            ax2 = plt.subplot(2, n_results, n_results + i + 1, projection='polar')
+            self._create_true_polar_plot_with_same_colors(result['smoothed_polar_map'], ax2)
+            ax2.set_title(f'Stim {stim_id}: PC Orientations\n(Same colors as Cartesian view)', pad=20)
+
+        # Add overall title
+        fig.suptitle(f'Polar PC Analysis - Channel {channel}\n\n' +
+                     'Direct comparison: Cartesian vs Polar coordinate representations\n' +
+                     'Same color mapping: Hue = PC orientation, Brightness = strength',
+                     fontsize=12, fontweight='bold')
+
+        plt.tight_layout()
+
+        # Save pure polar visualization
+        output_path = f"top_{self.n_top}_pure_polar_pc_{channel}.png"
+        plt.savefig(output_path, dpi=150, bbox_inches='tight')
+        plt.close()
+
+        print(f"Pure polar visualization saved: {output_path}")
+
     def _create_polar_weighted_average_visualization(self, response_weighted_average, channel, total_weight,
                                                      processed_count):
         """Create visualization of the response-weighted average polar orientation map"""
 
         # Calculate total strength for the weighted average
-        weighted_total_strength = np.sum(response_weighted_average, axis=2)  # Shape: (n_radial, n_angular)
+        weighted_total_strength = np.sum(response_weighted_average, axis=2)
 
-        # Create figure with multiple views of the weighted average
-        fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+        # Create figure with both rectangular and polar views
+        fig = plt.figure(figsize=(20, 12))
 
-        # 1. Total strength polar heatmap
-        im1 = axes[0, 0].imshow(weighted_total_strength, cmap='hot', aspect='auto', origin='lower')
-        axes[0, 0].set_title(f'Polar RWA Total Strength\nMax: {np.max(weighted_total_strength):.3f}')
-        axes[0, 0].set_xlabel('Angular bins')
-        axes[0, 0].set_ylabel('Radial bins')
-        plt.colorbar(im1, ax=axes[0, 0], fraction=0.046, pad=0.04)
+        # Top row: Rectangular views (traditional heatmaps)
+        # 1. Total strength rectangular heatmap
+        ax1 = plt.subplot(2, 4, 1)
+        im1 = ax1.imshow(weighted_total_strength, cmap='hot', aspect='auto', origin='lower')
+        ax1.set_title(f'RWA Total Strength\nMax: {np.max(weighted_total_strength):.3f}')
+        plt.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
 
-        # 2. Orientation visualization with colors for different orientations
+        # 2. Orientation visualization with colors
+        ax2 = plt.subplot(2, 4, 2)
         weighted_orientation_vis = self._create_polar_orientation_visualization(response_weighted_average)
-        axes[0, 1].imshow(weighted_orientation_vis, aspect='auto', origin='lower')
-        axes[0, 1].set_title('PC Orientations by Color\n(Hue=Orientation, Brightness=Strength)')
-        axes[0, 1].set_xlabel('Angular bins')
-        axes[0, 1].set_ylabel('Radial bins')
+        ax2.imshow(weighted_orientation_vis, aspect='auto', origin='lower')
+        ax2.set_title('PC Orientations by Color\n(Hue=Orientation, Brightness=Strength)')
 
-        # 3. Radial strength profile (average across all angles)
-        radial_strength = np.mean(weighted_total_strength, axis=1)  # Average across angular bins
+        # 3. Radial strength profile
+        ax3 = plt.subplot(2, 4, 3)
+        radial_strength = np.mean(weighted_total_strength, axis=1)
         radial_bin_centers = np.arange(self.n_radial_bins)
-        axes[0, 2].plot(radial_bin_centers, radial_strength, 'b-', linewidth=2)
-        axes[0, 2].set_xlabel('Radial bin (center to edge)')
-        axes[0, 2].set_ylabel('Average Strength')
-        axes[0, 2].set_title('Radial Strength Profile')
-        axes[0, 2].grid(True, alpha=0.3)
+        ax3.plot(radial_bin_centers, radial_strength, 'b-', linewidth=2)
+        ax3.set_xlabel('Radial bin (center to edge)')
+        ax3.set_ylabel('Average Strength')
+        ax3.set_title('Radial Strength Profile')
+        ax3.grid(True, alpha=0.3)
 
-        # 4. Angular strength profile (average across all radii)
-        angular_strength = np.mean(weighted_total_strength, axis=0)  # Average across radial bins
+        # 4. Angular strength profile
+        ax4 = plt.subplot(2, 4, 4)
+        angular_strength = np.mean(weighted_total_strength, axis=0)
         angular_bin_centers = np.arange(self.n_angular_bins) * (360.0 / self.n_angular_bins)
-        axes[1, 0].plot(angular_bin_centers, angular_strength, 'r-', linewidth=2)
-        axes[1, 0].set_xlabel('Angle (degrees)')
-        axes[1, 0].set_ylabel('Average Strength')
-        axes[1, 0].set_title('Angular Strength Profile')
-        axes[1, 0].set_xlim(0, 360)
-        axes[1, 0].grid(True, alpha=0.3)
+        ax4.plot(angular_bin_centers, angular_strength, 'r-', linewidth=2)
+        ax4.set_xlabel('Angle (degrees)')
+        ax4.set_ylabel('Average Strength')
+        ax4.set_title('Angular Strength Profile')
+        ax4.set_xlim(0, 360)
+        ax4.grid(True, alpha=0.3)
 
-        # 5. PC Orientation strength distribution (summed over spatial dimensions)
-        orientation_strengths = np.sum(response_weighted_average, axis=(0, 1))  # Sum over radial and angular dimensions
+        # Bottom row: True polar coordinate plots
+        # 5. Polar plot of total strength
+        ax5 = plt.subplot(2, 4, 5, projection='polar')
+        self._plot_polar_heatmap(weighted_total_strength, ax5,
+                                 title='RWA Total Strength\n(Polar View)', cmap='hot')
+
+        # 6. Polar plot of orientations
+        ax6 = plt.subplot(2, 4, 6, projection='polar')
+        self._create_true_polar_plot_with_same_colors(response_weighted_average, ax6)
+        ax6.set_title('RWA PC Orientations\n(Polar View)', pad=20)
+
+        # 7. PC Orientation strength distribution
+        ax7 = plt.subplot(2, 4, 7)
+        orientation_strengths = np.sum(response_weighted_average, axis=(0, 1))
         orientation_angles_deg = np.arange(self.norient) * (180.0 / self.norient)
-
-        axes[1, 1].bar(orientation_angles_deg, orientation_strengths,
+        bars = ax7.bar(orientation_angles_deg, orientation_strengths,
                        width=180.0 / self.norient * 0.8, alpha=0.7,
                        color=plt.cm.hsv(np.linspace(0, 1, self.norient)))
-        axes[1, 1].set_xlabel('PC Orientation (degrees)')
-        axes[1, 1].set_ylabel('Total Strength')
-        axes[1, 1].set_title('PC Orientation Distribution')
-        axes[1, 1].set_xlim(-10, 180)
-        axes[1, 1].grid(True, alpha=0.3)
+        ax7.set_xlabel('PC Orientation (degrees)')
+        ax7.set_ylabel('Total Strength')
+        ax7.set_title('PC Orientation Distribution')
+        ax7.set_xlim(-10, 180)
+        ax7.grid(True, alpha=0.3)
 
-        # 6. 2D Radial vs Angular strength
-        im3 = axes[1, 2].imshow(weighted_total_strength, cmap='hot', aspect='auto', origin='lower',
-                                extent=[0, 360, 0, self.n_radial_bins])
-        axes[1, 2].set_title('Polar Strength Map\n(Radius vs Angle)')
-        axes[1, 2].set_xlabel('Angle (degrees)')
-        axes[1, 2].set_ylabel('Radial bin')
-        plt.colorbar(im3, ax=axes[1, 2], fraction=0.046, pad=0.04)
+        # 8. Color legend explanation
+        ax8 = plt.subplot(2, 4, 8)
+        ax8.axis('off')
+
+        # Create color legend showing PC orientation to color mapping
+        legend_text = "COLOR MAPPING:\n\n"
+        for i in range(self.norient):
+            angle = i * (180.0 / self.norient)
+            legend_text += f"PC {angle:5.1f}° → "
+
+            if angle == 0:
+                legend_text += "Red\n"
+            elif angle <= 22.5:
+                legend_text += "Orange\n"
+            elif angle <= 45:
+                legend_text += "Yellow\n"
+            elif angle <= 67.5:
+                legend_text += "Green\n"
+            elif angle <= 90:
+                legend_text += "Cyan\n"
+            elif angle <= 112.5:
+                legend_text += "Blue\n"
+            elif angle <= 135:
+                legend_text += "Purple\n"
+            else:
+                legend_text += "Pink\n"
+
+        legend_text += "\nBRIGHTNESS = Strength\nof that orientation"
+
+        ax8.text(0.1, 0.9, legend_text, transform=ax8.transAxes, fontsize=10,
+                 verticalalignment='top', fontfamily='monospace')
 
         # Add overall title with statistics
         fig.suptitle(f'Polar Response-Weighted Average Analysis - Channel {channel}\n'
@@ -627,65 +807,37 @@ class PlotTopNCircularPCAnalysis(PlotTopNAnalysis):
 
         print(f"Polar response-weighted average visualization saved: {output_path}")
 
-        # Create additional detailed visualization showing individual orientation bins for RWA
-        self._create_rwa_individual_orientation_visualization(response_weighted_average, channel, total_weight,
-                                                              processed_count)
+    def _create_polar_orientation_visualization(self, polar_stack):
+        """Create RGB visualization of polar stack showing orientation bins in different colors"""
 
-    def _create_rwa_individual_orientation_visualization(self, response_weighted_average, channel, total_weight,
-                                                         processed_count):
-        """Create detailed visualization showing individual orientation bins for response-weighted average"""
+        n_radial, n_angular, norient = polar_stack.shape
 
-        # Create a figure showing individual orientation bins for RWA
-        # Single row with orientation bins as columns
-        fig, axes = plt.subplots(1, self.norient, figsize=(2 * self.norient, 4))
+        # Find dominant orientation at each polar coordinate
+        dominant_orientation_idx = np.argmax(polar_stack, axis=2)
+        dominant_strength = np.max(polar_stack, axis=2)
 
-        if self.norient == 1:
-            axes = [axes]
+        # Map orientation indices to hue values (0 to 1)
+        hue = dominant_orientation_idx.astype(float) / norient
 
-        for orient_idx in range(self.norient):
-            # Get the RWA for this specific orientation
-            orient_map = response_weighted_average[:, :, orient_idx]
+        # Create HSV image
+        hsv_image = np.zeros((n_radial, n_angular, 3))
+        hsv_image[:, :, 0] = hue  # Hue from PC orientation
+        hsv_image[:, :, 1] = 1.0  # Full saturation
 
-            # Plot this orientation bin
-            im = axes[orient_idx].imshow(orient_map, cmap='hot', aspect='auto', origin='lower')
+        # Use strength as brightness (value)
+        max_strength = np.max(dominant_strength)
+        if max_strength > 0:
+            hsv_image[:, :, 2] = dominant_strength / max_strength
+        else:
+            hsv_image[:, :, 2] = 0
 
-            # Calculate orientation angle in degrees
-            orient_angle = orient_idx * (180.0 / self.norient)
+        # Convert to RGB
+        rgb_image = hsv_to_rgb(hsv_image)
 
-            axes[orient_idx].set_title(f'PC Orient {orient_angle:.0f}°\nMax: {np.max(orient_map):.3f}', fontsize=10)
-            axes[orient_idx].set_xlabel('Angular bins')
-            if orient_idx == 0:
-                axes[orient_idx].set_ylabel('Radial bins')
-            else:
-                axes[orient_idx].set_yticks([])
-
-            # Add colorbar
-            plt.colorbar(im, ax=axes[orient_idx], fraction=0.046, pad=0.04)
-
-        plt.suptitle(f'Response-Weighted Average by PC Orientation - Channel {channel}\n'
-                     f'Stimuli: {processed_count}, Total Weight: {total_weight:.2f}',
-                     fontsize=12, fontweight='bold')
-        plt.tight_layout()
-
-        # Save the detailed RWA visualization
-        output_path = f"polar_rwa_by_orientation_{channel}_sigmar{self.sigma_r}_sigmatheta{self.sigma_theta}.png"
-        plt.savefig(output_path, dpi=150, bbox_inches='tight')
-        plt.close()
-
-        print(f"RWA individual orientation visualization saved: {output_path}")
+        return rgb_image
 
     def get_polar_pc_map_for_stimulus(self, stim_id, results, map_type='polar'):
-        """
-        Get the RxOxN polar phase congruency map for a specific stimulus
-
-        Args:
-            stim_id: Stimulus ID
-            results: Results dictionary from analyze()
-            map_type: Type of map to return - 'polar', 'smoothed_polar', 'original', or 'weighted_average'
-
-        Returns:
-            orientation_stack: RxOxN array (for polar) or XxYxN array (for original)
-        """
+        """Get the RxOxN polar phase congruency map for a specific stimulus"""
         if map_type == 'weighted_average':
             if 'response_weighted_average' not in results or results['response_weighted_average'] is None:
                 raise ValueError("Response-weighted average not available in results")
@@ -704,43 +856,6 @@ class PlotTopNCircularPCAnalysis(PlotTopNAnalysis):
             raise ValueError(
                 f"Invalid map_type: {map_type}. Use 'polar', 'smoothed_polar', 'original', or 'weighted_average'")
 
-    def compare_polar_pc_maps(self, results, stim_ids=None):
-        """
-        Compare polar phase congruency maps between multiple stimuli
-
-        Args:
-            results: Results dictionary from analyze()
-            stim_ids: List of stimulus IDs to compare (if None, uses all)
-        """
-        if stim_ids is None:
-            stim_ids = list(results['pc_results'].keys())
-
-        print(f"Comparing polar PC maps for stimuli: {stim_ids}")
-
-        # Calculate cross-correlations or other comparison metrics
-        comparisons = {}
-
-        for i, stim_id1 in enumerate(stim_ids):
-            for j, stim_id2 in enumerate(stim_ids[i + 1:], i + 1):
-                polar_map1 = results['pc_results'][stim_id1]['polar_stack']
-                polar_map2 = results['pc_results'][stim_id2]['polar_stack']
-
-                # Calculate correlation between total polar strengths
-                total1 = np.sum(polar_map1, axis=2)
-                total2 = np.sum(polar_map2, axis=2)
-
-                correlation = np.corrcoef(total1.flatten(), total2.flatten())[0, 1]
-
-                comparisons[(stim_id1, stim_id2)] = {
-                    'polar_strength_correlation': correlation,
-                    'stim1_max_polar_strength': np.max(total1),
-                    'stim2_max_polar_strength': np.max(total2)
-                }
-
-                print(f"  Stim {stim_id1} vs {stim_id2}: polar correlation = {correlation:.3f}")
-
-        return comparisons
-
     def compile_and_export(self):
         """Required abstract method from Analysis base class"""
         pass
@@ -752,11 +867,11 @@ class PlotTopNCircularPCAnalysis(PlotTopNAnalysis):
 
 def main():
     """Example usage"""
-    # session_id = "250507_0"
-    # channel = "A-002"
-
     session_id = "250425_0"
     channel = "A-017"
+
+    session_id = "250507_0"
+    channel = "A-002"
 
     # Initialize analysis with polar coordinate parameters
     analyzer = PlotTopNCircularPCAnalysis(
