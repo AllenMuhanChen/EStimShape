@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """
-Circular Lineage Response-Weighted Average Analysis
+Circular Response-Weighted Average Analysis
 
-Computes RWA for all stimuli in each lineage separately using polar coordinates (R,O,N)
-instead of Cartesian coordinates (X,Y,N), where:
+Computes overall RWA for top 50% responding stimuli using polar coordinates (R,O,N)
+with element-wise normalization to prevent sampling bias.
+
+Only analyzes stimuli in the top 50% of GA responses to focus on what actually
+drives the cell. Each (r,o,n) bin is normalized by the count of stimuli that
+contributed significant values (>10% of per-stimulus max) to that bin.
+
+Coordinate system:
 - R: radial distance from object center of mass
 - O: orientation angle from object center of mass
 - N: phase congruency orientation bins
-
-This enables analysis of radial and rotational patterns in phase congruency data.
 """
 
 import pandas as pd
@@ -134,6 +138,7 @@ def convert_to_polar_coordinates(orientation_stack, object_center, n_radial_bins
 
     # Determine maximum radius for binning
     max_radius = np.sqrt((rows / 2) ** 2 + (cols / 2) ** 2)  # Diagonal half-distance
+    max_radius = max_radius / 4  # Focus on central region around object
 
     # Create bins
     radial_bins = np.linspace(0, max_radius, n_radial_bins + 1)
@@ -200,11 +205,11 @@ def create_smoothed_polar_map(polar_stack, sigma_r=1.0, sigma_theta=1.0):
     return smoothed_map
 
 
-def process_single_stimulus_circular(stim_row, nscale=4, norient=8, sigma_r=1.0, sigma_theta=1.0,
-                                     n_radial_bins=20, n_angular_bins=36, target_shape=None,
-                                     pc_maps_dir=None, **phasecong_kwargs):
+def process_single_stimulus_circular(stim_row, nscale=4, norient=8, n_radial_bins=20, n_angular_bins=36,
+                                     target_shape=None, pc_maps_dir=None, **phasecong_kwargs):
     """
-    Process a single stimulus and return its contribution to the weighted average in polar coordinates.
+    Process a single stimulus and return its weighted contribution and count mask in polar coordinates.
+    Returns both weighted contribution and binary mask of significant values.
     """
     stim_id = stim_row['StimSpecId']
     stim_path = stim_row['StimPath']
@@ -213,13 +218,13 @@ def process_single_stimulus_circular(stim_row, nscale=4, norient=8, sigma_r=1.0,
     # Check for valid response
     if not np.isfinite(ga_response) or ga_response <= 0:
         print(f"    Warning: Invalid GA Response for {stim_id}: {ga_response}")
-        return None, 0.0
+        return None, None, 0.0
 
     try:
         # Load image
         if not os.path.exists(stim_path):
             print(f"    Warning: Image file not found: {stim_path}")
-            return None, 0.0
+            return None, None, 0.0
 
         img = imread(stim_path)
 
@@ -243,6 +248,9 @@ def process_single_stimulus_circular(stim_row, nscale=4, norient=8, sigma_r=1.0,
             orientation_stack, object_center, n_radial_bins, n_angular_bins
         )
 
+        # Convert to float32 for speed and memory efficiency
+        polar_stack = polar_stack.astype(np.float32)
+
         # Set target shape from first image if not provided
         if target_shape is None:
             target_shape = polar_stack.shape
@@ -250,41 +258,38 @@ def process_single_stimulus_circular(stim_row, nscale=4, norient=8, sigma_r=1.0,
         # Check if polar stack size matches target
         if polar_stack.shape != target_shape:
             print(f"    Warning: Polar stack shape mismatch for {stim_id}: {polar_stack.shape} vs {target_shape}")
-            return None, 0.0
+            return None, None, 0.0
 
         # Clear original orientation stack
         del orientation_stack
         gc.collect()
 
-        # Create gaussian-smoothed polar map
-        smoothed_polar_map = create_smoothed_polar_map(polar_stack, sigma_r, sigma_theta)
+        # Create significance mask: values > 10% of maximum
+        max_value = np.max(polar_stack)
+        significance_threshold = 0.1 * max_value
+        significance_mask = polar_stack > significance_threshold
 
-        # Clear unsmoothed polar stack
+        # Weight by GA response (NO smoothing here - will smooth final RWA)
+        weighted_contribution = polar_stack * ga_response
+
+        # Clear unweighted polar stack
         del polar_stack
         gc.collect()
 
-        # Save the processed PC map if directory is specified
-        if pc_maps_dir:
-            pc_map_file = os.path.join(pc_maps_dir, f"pc_polar_map_{stim_id}.npy")
-            np.save(pc_map_file, smoothed_polar_map)
-
-        # Weight by GA response
-        weighted_contribution = smoothed_polar_map * ga_response
-
-        # Clear smoothed map
-        del smoothed_polar_map
-        gc.collect()
-
-        return weighted_contribution, ga_response
+        return weighted_contribution, significance_mask, ga_response
 
     except Exception as e:
         print(f"    Error processing stimulus {stim_id}: {str(e)}")
-        return None, 0.0
+        return None, None, 0.0
 
 
-class CircularLineageRWAAnalysis(PlotTopNAnalysis):
+class CircularRWAAnalysis(PlotTopNAnalysis):
     """
-    Memory-efficient analysis that computes RWA for each lineage using polar coordinates.
+    Memory-efficient analysis that computes overall RWA for top 50% responding stimuli using polar coordinates.
+    Uses element-wise normalization: each (r,o,n) bin divided by count of significant contributors.
+    This prevents low-responding stimuli from suppressing peaks from high-responding stimuli.
+    Only analyzes stimuli in the top 50% of GA responses for cleaner results.
+    Optimized to smooth only at the end rather than per-stimulus for efficiency.
     """
 
     def __init__(self, nscale=4, norient=8, sigma_r=1.0, sigma_theta=1.0,
@@ -299,6 +304,9 @@ class CircularLineageRWAAnalysis(PlotTopNAnalysis):
         self.pc_maps_dir = pc_maps_dir
         self.phasecong_kwargs = phasecong_kwargs
 
+        # Use float32 for memory efficiency
+        self.dtype = np.float32
+
         # Create PC maps directory if specified
         if self.pc_maps_dir and not os.path.exists(self.pc_maps_dir):
             os.makedirs(self.pc_maps_dir)
@@ -306,7 +314,7 @@ class CircularLineageRWAAnalysis(PlotTopNAnalysis):
 
     def analyze(self, channel, compiled_data=None):
         """
-        Analyze all stimuli grouped by lineage and compute combined RWA in polar coordinates.
+        Analyze all stimuli and compute overall RWA in polar coordinates.
         """
         if compiled_data is None:
             compiled_data = import_from_repository(
@@ -352,107 +360,127 @@ class CircularLineageRWAAnalysis(PlotTopNAnalysis):
             print(f"Filtered out {original_count - filtered_count} stimuli with NaN GA Response values")
             print(f"Remaining: {filtered_count} stimuli with valid responses")
 
-        # Find top 3 lineages by stimulus count (after NaN filtering)
+        # Filter to top 50% of responding stimuli
+        print("Filtering to top 50% of responding stimuli...")
+        compiled_data_sorted = compiled_data.sort_values('GA Response', ascending=False)
+        top_50_count = len(compiled_data_sorted) // 2
+        compiled_data = compiled_data_sorted.head(top_50_count).reset_index(drop=True)
+
+        print(f"Filtered from {len(compiled_data_sorted)} to {len(compiled_data)} stimuli (top 50%)")
+        print(f"GA Response range: {compiled_data['GA Response'].min():.4f} - {compiled_data['GA Response'].max():.4f}")
+
+        # Show lineage distribution for information
         lineage_counts = compiled_data.groupby('Lineage').size().sort_values(ascending=False)
-        top_3_lineages = lineage_counts.head(3).index.tolist()
-
-        print(f"Lineage stimulus counts:")
+        print(f"Lineage stimulus counts in top 50%:")
         for lineage, count in lineage_counts.items():
-            marker = " ✓" if lineage in top_3_lineages else ""
-            print(f"  Lineage {lineage}: {count} stimuli{marker}")
+            print(f"  Lineage {lineage}: {count} stimuli")
 
-        print(f"\nProcessing top 3 lineages: {top_3_lineages}")
+        print(f"\nProcessing top 50% stimuli ({len(compiled_data)} stimuli)")
+        print("  Note: Using element-wise normalization by significant contribution counts")
+        print("  Significance threshold: >10% of per-stimulus maximum")
 
-        # Filter to only top 3 lineages
-        compiled_data = compiled_data[compiled_data['Lineage'].isin(top_3_lineages)]
-        print(f"Filtered dataset: {len(compiled_data)} stimuli from top 3 lineages")
-
-        # Group by lineage
-        lineage_groups = compiled_data.groupby('Lineage')
-        print(f"Processing {len(lineage_groups)} lineages (top 3 by stimulus count)")
-
-        lineage_rwas = {}
+        weighted_sum = None
+        count_matrix = None  # Tracks how many stimuli contribute significantly to each (r,o,n)
+        total_weight = 0.0
+        processed_count = 0
         target_shape = None
 
-        # Process each lineage
-        for lineage_name, lineage_data in lineage_groups:
-            print(f"\nProcessing Lineage {lineage_name}: {len(lineage_data)} stimuli")
+        # Process each stimulus
+        for idx, stim_row in compiled_data.iterrows():
+            stim_id = stim_row['StimSpecId']
+            ga_response = stim_row['GA Response']
 
-            weighted_sum = None
-            total_weight = 0.0
-            processed_count = 0
+            print(
+                f"  Processing stimulus {processed_count + 1}/{len(compiled_data)}: {stim_id} (response: {ga_response:.4f})")
 
-            # Process each stimulus in this lineage
-            for idx, stim_row in lineage_data.iterrows():
-                stim_id = stim_row['StimSpecId']
-                ga_response = stim_row['GA Response']
+            # Process single stimulus in polar coordinates (unsmoothed)
+            weighted_contribution, significance_mask, weight = process_single_stimulus_circular(
+                stim_row,
+                nscale=self.nscale,
+                norient=self.norient,
+                n_radial_bins=self.n_radial_bins,
+                n_angular_bins=self.n_angular_bins,
+                target_shape=target_shape,
+                pc_maps_dir=self.pc_maps_dir,
+                **self.phasecong_kwargs
+            )
 
-                print(
-                    f"  Processing stimulus {processed_count + 1}/{len(lineage_data)}: {stim_id} (response: {ga_response:.4f})")
+            if weighted_contribution is not None and significance_mask is not None:
+                # Set target shape from first successful image
+                if target_shape is None:
+                    target_shape = weighted_contribution.shape
+                    print(
+                        f"  Set target polar shape: {target_shape} (R={self.n_radial_bins}, O={self.n_angular_bins}, N={self.norient})")
 
-                # Process single stimulus in polar coordinates
-                weighted_contribution, weight = process_single_stimulus_circular(
-                    stim_row,
-                    nscale=self.nscale,
-                    norient=self.norient,
-                    sigma_r=self.sigma_r,
-                    sigma_theta=self.sigma_theta,
-                    n_radial_bins=self.n_radial_bins,
-                    n_angular_bins=self.n_angular_bins,
-                    target_shape=target_shape,
-                    pc_maps_dir=self.pc_maps_dir,
-                    **self.phasecong_kwargs
-                )
+                # Initialize matrices on first valid stimulus
+                if weighted_sum is None:
+                    weighted_sum = weighted_contribution.astype(self.dtype)
+                    count_matrix = significance_mask.astype(np.int32)
+                else:
+                    # Accumulate weighted sum and count significant contributions
+                    weighted_sum += weighted_contribution.astype(self.dtype)
+                    count_matrix += significance_mask.astype(np.int32)
 
-                if weighted_contribution is not None:
-                    # Set target shape from first successful image
-                    if target_shape is None:
-                        target_shape = weighted_contribution.shape
-                        print(
-                            f"  Set target polar shape: {target_shape} (R={self.n_radial_bins}, O={self.n_angular_bins}, N={self.norient})")
+                total_weight += weight
+                processed_count += 1
 
-                    # Accumulate weighted sum
-                    if weighted_sum is None:
-                        weighted_sum = weighted_contribution.copy()
-                    else:
-                        weighted_sum += weighted_contribution
+            # Clear contribution and mask from memory
+            del weighted_contribution, significance_mask
+            gc.collect()
 
-                    total_weight += weight
-                    processed_count += 1
+        # Compute overall RWA with element-wise normalization
+        if weighted_sum is not None and count_matrix is not None and total_weight > 0:
+            # Element-wise division: each (r,o,n) bin normalized by its contribution count
+            # Add small epsilon to avoid division by zero
+            epsilon = 1e-8
+            count_matrix_safe = np.maximum(count_matrix, 1).astype(np.float32)  # Avoid division by zero
 
-                # Clear contribution from memory
-                del weighted_contribution
-                gc.collect()
+            # Element-wise normalization - this is the key change!
+            unsmoothed_rwa = weighted_sum / count_matrix_safe
 
-            # Compute lineage RWA
-            if weighted_sum is not None and total_weight > 0:
-                lineage_rwa = weighted_sum / total_weight
+            print(f"  Element-wise normalization completed:")
+            print(f"    Average contributions per bin: {np.mean(count_matrix):.2f}")
+            print(f"    Max contributions per bin: {np.max(count_matrix)}")
+            print(f"    Bins with 1 contributor: {np.sum(count_matrix == 1)}")
+            print(f"    Bins with >10 contributors: {np.sum(count_matrix > 10)}")
 
-                # Check for any NaN or infinite values in the result
-                if np.any(~np.isfinite(lineage_rwa)):
-                    print(f"  Warning: Invalid values detected in lineage {lineage_name} RWA")
-                    continue
+            # Check for any NaN or infinite values in the result
+            if np.any(~np.isfinite(unsmoothed_rwa)):
+                print(f"  Warning: Invalid values detected in overall RWA")
+                return {
+                    'overall_rwa': None,
+                    'channel': channel,
+                    'target_shape': target_shape,
+                    'analysis_params': {
+                        'nscale': self.nscale,
+                        'norient': self.norient,
+                        'sigma_r': self.sigma_r,
+                        'sigma_theta': self.sigma_theta,
+                        'n_radial_bins': self.n_radial_bins,
+                        'n_angular_bins': self.n_angular_bins
+                    },
+                    'error': 'Invalid values in overall RWA'
+                }
 
-                lineage_rwas[lineage_name] = lineage_rwa
+            # Now apply smoothing once to the final RWA (efficient!)
+            overall_rwa = create_smoothed_polar_map(unsmoothed_rwa, self.sigma_r, self.sigma_theta)
 
-                print(f"  Lineage {lineage_name} RWA computed:")
-                print(f"    Processed: {processed_count}/{len(lineage_data)} stimuli")
-                print(f"    Total weight: {total_weight:.4f}")
-                print(f"    Max strength: {np.max(np.sum(lineage_rwa, axis=2)):.4f}")
+            print(f"  Overall RWA computed with element-wise normalization:")
+            print(f"    Processed: {processed_count}/{len(compiled_data)} stimuli")
+            print(f"    Total weight: {total_weight:.4f}")
+            print(f"    Max strength (after smoothing): {np.max(np.sum(overall_rwa, axis=2)):.4f}")
 
-                # Clear weighted sum
-                del weighted_sum
-                gc.collect()
-            else:
-                print(f"  Warning: No valid stimuli processed for lineage {lineage_name}")
-                print(f"    Processed: {processed_count}/{len(lineage_data)} stimuli")
-                print(f"    Total weight: {total_weight:.4f}")
-
-        if len(lineage_rwas) == 0:
-            print("Error: No valid lineage RWAs computed!")
+            # Clear intermediate arrays
+            del weighted_sum, unsmoothed_rwa, count_matrix
+            gc.collect()
+        else:
+            print(f"  Warning: No valid stimuli processed")
+            print(f"    Processed: {processed_count}/{len(compiled_data)} stimuli")
+            print(f"    Total weight: {total_weight:.4f}")
+            print(f"    Weighted sum exists: {weighted_sum is not None}")
+            print(f"    Count matrix exists: {count_matrix is not None}")
             return {
-                'combined_rwa': None,
-                'lineage_rwas': {},
+                'overall_rwa': None,
                 'channel': channel,
                 'target_shape': target_shape,
                 'analysis_params': {
@@ -463,67 +491,33 @@ class CircularLineageRWAAnalysis(PlotTopNAnalysis):
                     'n_radial_bins': self.n_radial_bins,
                     'n_angular_bins': self.n_angular_bins
                 },
-                'error': 'No valid lineage RWAs computed'
+                'error': 'No valid stimuli processed'
             }
 
-        # Combine lineage RWAs with pixel-wise multiplication
-        print(f"\nCombining {len(lineage_rwas)} lineage RWAs...")
+        # Create visualization
+        if overall_rwa is not None:
+            self._create_polar_rwa_visualization(overall_rwa, channel, total_weight, processed_count)
 
-        combined_rwa = None
-
-        for lineage_name, lineage_rwa in lineage_rwas.items():
-            print(f"  Multiplying lineage {lineage_name} (max strength: {np.max(np.sum(lineage_rwa, axis=2)):.4f})")
-
-            if combined_rwa is None:
-                combined_rwa = lineage_rwa.copy()
-            else:
-                combined_rwa *= lineage_rwa
-
-            # Normalize after each multiplication to prevent underflow
-            max_val = np.max(combined_rwa)
-            if max_val > 0:
-                combined_rwa = combined_rwa / max_val
-
-        if combined_rwa is None:
-            print("Error: Failed to compute combined RWA!")
-            return {
-                'combined_rwa': None,
-                'lineage_rwas': lineage_rwas,
-                'channel': channel,
-                'target_shape': target_shape,
-                'analysis_params': {
-                    'nscale': self.nscale,
-                    'norient': self.norient,
-                    'sigma_r': self.sigma_r,
-                    'sigma_theta': self.sigma_theta,
-                    'n_radial_bins': self.n_radial_bins,
-                    'n_angular_bins': self.n_angular_bins
-                },
-                'error': 'Failed to compute combined RWA'
-            }
-
-        print(f"Combined polar RWA computed (max strength: {np.max(np.sum(combined_rwa, axis=2)):.4f})")
-
-        # Create visualization (only if we have valid data)
-        if combined_rwa is not None and len(lineage_rwas) > 0:
-            self._create_polar_visualization(lineage_rwas, combined_rwa, channel)
-
-            # Save the combined RWA as numpy array
-            output_file = f"combined_polar_rwa_{self.session_id}_{channel}.npy"
-            np.save(output_file, combined_rwa)
-            print(f"Combined polar RWA saved as: {output_file}")
+            # Save the overall RWA as numpy array
+            output_file = f"top50_polar_rwa_{self.session_id}_{channel}.npy"
+            np.save(output_file, overall_rwa)
+            print(f"Top 50% polar RWA saved as: {output_file}")
 
             if self.pc_maps_dir:
                 print(f"Individual polar PC maps saved in: {self.pc_maps_dir}")
+                # Save overall RWA and count matrix for analysis
+                overall_file = os.path.join(self.pc_maps_dir, f"overall_rwa_smoothed.npy")
+                np.save(overall_file, overall_rwa)
         else:
             print("Skipping visualization and file save due to invalid data")
 
         # Return results
         results = {
-            'combined_rwa': combined_rwa,
-            'lineage_rwas': lineage_rwas,
+            'overall_rwa': overall_rwa,
             'channel': channel,
             'target_shape': target_shape,
+            'total_weight': total_weight,
+            'processed_count': processed_count,
             'analysis_params': {
                 'nscale': self.nscale,
                 'norient': self.norient,
@@ -536,74 +530,171 @@ class CircularLineageRWAAnalysis(PlotTopNAnalysis):
 
         return results
 
-    def _create_polar_visualization(self, lineage_rwas, combined_rwa, channel):
-        """Create visualization of lineage RWAs and combined result in polar coordinates."""
+    def _plot_polar_heatmap(self, data_2d, ax, title="", cmap='hot'):
+        """Plot 2D data (radial x angular) as a polar heatmap"""
+        n_radial, n_angular = data_2d.shape
 
-        n_lineages = len(lineage_rwas)
+        # Create coordinate arrays
+        theta = np.linspace(0, 2 * np.pi, n_angular, endpoint=False)
+        radius = np.linspace(0, 1, n_radial)
 
-        if n_lineages == 0:
-            print("Warning: No lineage RWAs to visualize")
-            return
+        # Create meshgrid
+        R, T = np.meshgrid(radius, theta, indexing='ij')
 
-        if combined_rwa is None:
-            print("Warning: No combined RWA to visualize, showing only lineage RWAs")
-            fig, axes = plt.subplots(2, n_lineages, figsize=(4 * n_lineages, 8))
+        # Plot
+        im = ax.pcolormesh(T, R, data_2d, cmap=cmap, shading='auto')
+
+        # Formatting
+        ax.set_ylim(0, 1)
+        ax.set_theta_zero_location('E')  # 0° points East (right)
+        ax.set_theta_direction(1)  # Counter-clockwise
+        ax.grid(True, alpha=0.3)
+        ax.set_title(title, pad=20)
+
+        return im
+
+    def _create_true_polar_plot_with_same_colors(self, polar_stack, ax):
+        """
+        Create polar plot using EXACTLY the same color scheme as the Cartesian version
+        """
+        n_radial, n_angular, norient = polar_stack.shape
+
+        # Create polar coordinate meshgrid
+        theta = np.linspace(0, 2 * np.pi, n_angular, endpoint=False)
+        radius = np.linspace(0, 1, n_radial)
+        R, T = np.meshgrid(radius, theta, indexing='ij')
+
+        # Find dominant orientation and strength - SAME logic as Cartesian
+        dominant_orientation_idx = np.argmax(polar_stack, axis=2)
+        dominant_strength = np.max(polar_stack, axis=2)
+
+        # Create RGB colors using IDENTICAL mapping to Cartesian version
+        hue = dominant_orientation_idx.astype(float) / norient
+
+        # Create HSV values
+        hsv_polar = np.zeros((n_radial, n_angular, 3))
+        hsv_polar[:, :, 0] = hue  # Hue from orientation
+        hsv_polar[:, :, 1] = 1.0  # Full saturation
+
+        # Use strength as brightness
+        max_strength = np.max(dominant_strength)
+        if max_strength > 0:
+            hsv_polar[:, :, 2] = dominant_strength / max_strength
         else:
-            # Create figure with lineage RWAs and combined result
-            n_cols = min(n_lineages + 1, 4)
-            fig, axes = plt.subplots(2, n_cols, figsize=(4 * n_cols, 8))
+            hsv_polar[:, :, 2] = 0
 
-        # Ensure axes is 2D
-        if len(axes.shape) == 1:
-            axes = axes.reshape(1, -1)
-        if axes.shape[0] == 1:
-            axes = np.vstack([axes, axes])  # Duplicate row if only one row
+        # Convert to RGB
+        rgb_polar = hsv_to_rgb(hsv_polar)
 
-        # Plot each lineage RWA
-        for i, (lineage_name, lineage_rwa) in enumerate(lineage_rwas.items()):
-            # Total strength across orientations
-            total_strength = np.sum(lineage_rwa, axis=2)  # Shape: (n_radial, n_angular)
+        # Plot using RGB colors directly (this preserves the exact color mapping)
+        # We need to plot each color pixel individually for true color representation
+        for r_idx in range(n_radial - 1):
+            for t_idx in range(n_angular - 1):
+                r_start, r_end = radius[r_idx], radius[r_idx + 1]
+                t_start, t_end = theta[t_idx], theta[t_idx + 1]
 
-            # Plot as polar heatmap
-            im1 = axes[0, i].imshow(total_strength, cmap='hot', aspect='auto', origin='lower')
-            axes[0, i].set_title(f'Lineage {lineage_name}\nMax: {np.max(total_strength):.3f}')
-            axes[0, i].set_xlabel('Angular bins')
-            axes[0, i].set_ylabel('Radial bins')
-            plt.colorbar(im1, ax=axes[0, i], fraction=0.046, pad=0.04)
+                # Create patch for this polar cell
+                theta_patch = np.linspace(t_start, t_end, 10)
+                r_inner = np.full_like(theta_patch, r_start)
+                r_outer = np.full_like(theta_patch, r_end)
 
-            # Orientation visualization - show dominant orientation
-            dominant_orientation = np.argmax(lineage_rwa, axis=2)
-            im2 = axes[1, i].imshow(dominant_orientation, cmap='hsv', aspect='auto', origin='lower')
-            axes[1, i].set_title(f'Lineage {lineage_name} Dom. Orientations')
-            axes[1, i].set_xlabel('Angular bins')
-            axes[1, i].set_ylabel('Radial bins')
-            plt.colorbar(im2, ax=axes[1, i], fraction=0.046, pad=0.04)
+                # Get the color for this cell
+                cell_color = rgb_polar[r_idx, t_idx, :]
 
-        # Plot combined result if available
-        if combined_rwa is not None:
-            combined_total_strength = np.sum(combined_rwa, axis=2)
-            im3 = axes[0, -1].imshow(combined_total_strength, cmap='hot', aspect='auto', origin='lower')
-            axes[0, -1].set_title(f'Combined RWA\nMax: {np.max(combined_total_strength):.3f}')
-            axes[0, -1].set_xlabel('Angular bins')
-            axes[0, -1].set_ylabel('Radial bins')
-            plt.colorbar(im3, ax=axes[0, -1], fraction=0.046, pad=0.04)
+                # Plot filled area with the exact color
+                ax.fill_between(theta_patch, r_inner, r_outer,
+                                color=cell_color, alpha=0.8)
 
-            # Combined orientation visualization
-            combined_dominant_orientation = np.argmax(combined_rwa, axis=2)
-            im4 = axes[1, -1].imshow(combined_dominant_orientation, cmap='hsv', aspect='auto', origin='lower')
-            axes[1, -1].set_title('Combined Dom. Orientations')
-            axes[1, -1].set_xlabel('Angular bins')
-            axes[1, -1].set_ylabel('Radial bins')
-            plt.colorbar(im4, ax=axes[1, -1], fraction=0.046, pad=0.04)
+        # Formatting
+        ax.set_ylim(0, 1)
+        ax.set_theta_zero_location('E')  # 0° points East (right)
+        ax.set_theta_direction(1)  # Counter-clockwise
+        ax.grid(True, alpha=0.3)
+
+        return ax
+
+    def _create_polar_rwa_visualization(self, overall_rwa, channel, total_weight, processed_count):
+        """Create polar visualization of the overall RWA with orientation profiles."""
+
+        # Create figure with proper layout: polar plot + profile plots
+        # Layout: Top = polar plot with orientation colors
+        #         Bottom left = radial profiles, Bottom right = angular profiles
+        fig = plt.figure(figsize=(16, 12))
+
+        # Define colors for PC orientations
+        colors = plt.cm.hsv(np.linspace(0, 1, self.norient))
+
+        # Top: Polar plot with orientation colors
+        ax_polar = plt.subplot(2, 2, (1, 2), projection='polar')
+        self._create_true_polar_plot_with_same_colors(overall_rwa, ax_polar)
+
+        # Calculate max strength for title
+        total_strength = np.sum(overall_rwa, axis=2)
+        max_strength = np.max(total_strength)
+
+        ax_polar.set_title(f'Top 50% RWA - Channel {channel}\n'
+                           f'Max: {max_strength:.3f} | Stimuli: {processed_count} | Weight: {total_weight:.1f}',
+                           pad=30, fontsize=14, fontweight='bold')
+
+        # Bottom left: Radial strength profiles by PC orientation
+        ax_radial = plt.subplot(2, 2, 3)
+        radial_bin_centers = np.arange(self.n_radial_bins)
+
+        # Plot separate line for each PC orientation
+        for orient_idx in range(self.norient):
+            # Average across angular bins for this orientation
+            radial_strength = np.mean(overall_rwa[:, :, orient_idx], axis=1)
+            angle_deg = orient_idx * (180.0 / self.norient)
+
+            ax_radial.plot(radial_bin_centers, radial_strength,
+                           color=colors[orient_idx], linewidth=2,
+                           label=f'{angle_deg:.0f}°')
+
+        ax_radial.set_xlabel('Radial bin (center to edge)')
+        ax_radial.set_ylabel('Average Strength')
+        ax_radial.set_title('Radial Strength by PC Orientation')
+        ax_radial.grid(True, alpha=0.3)
+        ax_radial.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+
+        # Bottom right: Angular strength profiles by PC orientation
+        ax_angular = plt.subplot(2, 2, 4)
+        angular_bin_centers = np.arange(self.n_angular_bins) * (360.0 / self.n_angular_bins)
+
+        # Plot separate line for each PC orientation
+        for orient_idx in range(self.norient):
+            # Average across radial bins for this orientation
+            angular_strength = np.mean(overall_rwa[:, :, orient_idx], axis=0)
+            angle_deg = orient_idx * (180.0 / self.norient)
+
+            ax_angular.plot(angular_bin_centers, angular_strength,
+                            color=colors[orient_idx], linewidth=2,
+                            label=f'{angle_deg:.0f}°')
+
+        ax_angular.set_xlabel('Polar Angle (degrees)')
+        ax_angular.set_ylabel('Average Strength')
+        ax_angular.set_title('Angular Strength by PC Orientation')
+        ax_angular.set_xlim(0, 360)
+        ax_angular.grid(True, alpha=0.3)
+        ax_angular.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+
+        # Add overall subtitle
+        fig.suptitle(f'Polar Response-Weighted Average Analysis\n'
+                     f'σr={self.sigma_r}, σθ={self.sigma_theta} | '
+                     f'Hue = PC Orientation, Brightness = Strength',
+                     fontsize=12, y=0.95)
 
         plt.tight_layout()
 
         # Save visualization
-        output_path = f"circular_lineage_rwa_analysis_{channel}_sigmar{self.sigma_r}_sigmatheta{self.sigma_theta}.png"
+        output_path = f"polar_top50_rwa_analysis_{channel}_sigmar{self.sigma_r}_sigmatheta{self.sigma_theta}.png"
         plt.savefig(output_path, dpi=150, bbox_inches='tight')
         plt.close()
 
-        print(f"Polar visualization saved: {output_path}")
+        print(f"Top 50% polar RWA visualization saved: {output_path}")
+
+        # Clear figure from memory
+        del fig
+        gc.collect()
 
     def compile_and_export(self):
         """Required abstract method from Analysis base class"""
@@ -622,7 +713,7 @@ def main():
     channel = "A-002"
 
     # Initialize analysis with polar coordinate parameters
-    analyzer = CircularLineageRWAAnalysis(
+    analyzer = CircularRWAAnalysis(
         nscale=4,  # 4 scales for phase congruency
         norient=8,  # 8 orientations for phase congruency
         sigma_r=1.0,  # Radial smoothing
@@ -633,11 +724,12 @@ def main():
     )
 
     # Run analysis using the inherited run method
-    print(f"Starting circular lineage RWA analysis for session {session_id}, channel {channel}")
+    print(f"Starting top 50% polar RWA analysis for session {session_id}, channel {channel}")
     analyzer.run(session_id, "raw", channel, compiled_data=None)
 
-    print("\nCircular analysis complete!")
+    print("\nTop 50% polar analysis complete!")
     print("Check the generated polar visualization and saved .npy file in the current directory.")
+    print("Analysis focused on stimuli that actually drive the cell well.")
 
 
 if __name__ == "__main__":

@@ -716,26 +716,45 @@ class PlotTopNCircularPCAnalysis(PlotTopNAnalysis):
         ax2.imshow(weighted_orientation_vis, aspect='auto', origin='lower')
         ax2.set_title('PC Orientations by Color\n(Hue=Orientation, Brightness=Strength)')
 
-        # 3. Radial strength profile
+        # 3. Radial strength profile by PC orientation
         ax3 = plt.subplot(2, 4, 3)
-        radial_strength = np.mean(weighted_total_strength, axis=1)
         radial_bin_centers = np.arange(self.n_radial_bins)
-        ax3.plot(radial_bin_centers, radial_strength, 'b-', linewidth=2)
+
+        # Plot separate line for each PC orientation
+        colors = plt.cm.hsv(np.linspace(0, 1, self.norient))
+        for orient_idx in range(self.norient):
+            # Average across angular bins for this orientation
+            radial_strength_by_orient = np.mean(response_weighted_average[:, :, orient_idx], axis=1)
+            angle_deg = orient_idx * (180.0 / self.norient)
+            ax3.plot(radial_bin_centers, radial_strength_by_orient,
+                     color=colors[orient_idx], linewidth=2,
+                     label=f'{angle_deg:.0f}°')
+
         ax3.set_xlabel('Radial bin (center to edge)')
         ax3.set_ylabel('Average Strength')
-        ax3.set_title('Radial Strength Profile')
+        ax3.set_title('Radial Strength by PC Orientation')
         ax3.grid(True, alpha=0.3)
+        ax3.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
 
-        # 4. Angular strength profile
+        # 4. Angular strength profile by PC orientation
         ax4 = plt.subplot(2, 4, 4)
-        angular_strength = np.mean(weighted_total_strength, axis=0)
         angular_bin_centers = np.arange(self.n_angular_bins) * (360.0 / self.n_angular_bins)
-        ax4.plot(angular_bin_centers, angular_strength, 'r-', linewidth=2)
-        ax4.set_xlabel('Angle (degrees)')
+
+        # Plot separate line for each PC orientation
+        for orient_idx in range(self.norient):
+            # Average across radial bins for this orientation
+            angular_strength_by_orient = np.mean(response_weighted_average[:, :, orient_idx], axis=0)
+            angle_deg = orient_idx * (180.0 / self.norient)
+            ax4.plot(angular_bin_centers, angular_strength_by_orient,
+                     color=colors[orient_idx], linewidth=2,
+                     label=f'{angle_deg:.0f}°')
+
+        ax4.set_xlabel('Polar Angle (degrees)')
         ax4.set_ylabel('Average Strength')
-        ax4.set_title('Angular Strength Profile')
+        ax4.set_title('Angular Strength by PC Orientation')
         ax4.set_xlim(0, 360)
         ax4.grid(True, alpha=0.3)
+        ax4.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
 
         # Bottom row: True polar coordinate plots
         # 5. Polar plot of total strength
@@ -748,18 +767,24 @@ class PlotTopNCircularPCAnalysis(PlotTopNAnalysis):
         self._create_true_polar_plot_with_same_colors(response_weighted_average, ax6)
         ax6.set_title('RWA PC Orientations\n(Polar View)', pad=20)
 
-        # 7. PC Orientation strength distribution
-        ax7 = plt.subplot(2, 4, 7)
-        orientation_strengths = np.sum(response_weighted_average, axis=(0, 1))
-        orientation_angles_deg = np.arange(self.norient) * (180.0 / self.norient)
-        bars = ax7.bar(orientation_angles_deg, orientation_strengths,
-                       width=180.0 / self.norient * 0.8, alpha=0.7,
-                       color=plt.cm.hsv(np.linspace(0, 1, self.norient)))
-        ax7.set_xlabel('PC Orientation (degrees)')
-        ax7.set_ylabel('Total Strength')
-        ax7.set_title('PC Orientation Distribution')
-        ax7.set_xlim(-10, 180)
-        ax7.grid(True, alpha=0.3)
+        # 7. Individual PC orientation polar plots (replace the pointless bar chart)
+        ax7 = plt.subplot(2, 4, 7, projection='polar')
+
+        # Show each PC orientation as a separate polar heatmap overlay
+        # We'll show the strongest orientations with transparency
+        orientation_total_strengths = np.sum(response_weighted_average, axis=(0, 1))
+        strongest_orientations = np.argsort(orientation_total_strengths)[-3:]  # Top 3 orientations
+
+        for i, orient_idx in enumerate(strongest_orientations):
+            alpha = 0.4 + (i * 0.2)  # Varying transparency
+            angle_deg = orient_idx * (180.0 / self.norient)
+            orientation_data = response_weighted_average[:, :, orient_idx]
+
+            # Normalize for better visualization
+            if np.max(orientation_data) > 0:
+                orientation_data_norm = orientation_data / np.max(orientation_data)
+                im = self._plot_polar_heatmap(orientation_data_norm, ax7,
+                                              cmap='hot', title='Top 3 PC Orientations\n(Overlaid)')
 
         # 8. Color legend explanation
         ax8 = plt.subplot(2, 4, 8)
@@ -769,6 +794,7 @@ class PlotTopNCircularPCAnalysis(PlotTopNAnalysis):
         legend_text = "COLOR MAPPING:\n\n"
         for i in range(self.norient):
             angle = i * (180.0 / self.norient)
+            color = colors[i]
             legend_text += f"PC {angle:5.1f}° → "
 
             if angle == 0:
@@ -788,9 +814,14 @@ class PlotTopNCircularPCAnalysis(PlotTopNAnalysis):
             else:
                 legend_text += "Pink\n"
 
-        legend_text += "\nBRIGHTNESS = Strength\nof that orientation"
+        legend_text += "\nRADIAL/ANGULAR PLOTS:\n"
+        legend_text += "Each colored line shows\n"
+        legend_text += "that PC orientation's\n"
+        legend_text += "strength profile\n\n"
+        legend_text += "BRIGHTNESS = Strength\n"
+        legend_text += "of that orientation"
 
-        ax8.text(0.1, 0.9, legend_text, transform=ax8.transAxes, fontsize=10,
+        ax8.text(0.1, 0.9, legend_text, transform=ax8.transAxes, fontsize=9,
                  verticalalignment='top', fontfamily='monospace')
 
         # Add overall title with statistics
