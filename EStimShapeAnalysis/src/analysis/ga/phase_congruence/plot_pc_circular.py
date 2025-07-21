@@ -904,6 +904,9 @@ def main():
     session_id = "250507_0"
     channel = "A-002"
 
+    session_id = "250620_0"
+    channel= "A-028"
+
     # Initialize analysis with polar coordinate parameters
     analyzer = PlotTopNCircularPCAnalysis(
         n_top=5,  # Analyze top 5 stimuli

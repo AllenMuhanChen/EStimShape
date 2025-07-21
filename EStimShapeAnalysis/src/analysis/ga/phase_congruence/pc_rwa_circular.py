@@ -709,9 +709,11 @@ def main():
     """Example usage"""
 
     # Configuration
-    session_id = "250507_0"
-    channel = "A-002"
+    # session_id = "250507_0"
+    # channel = "A-002"
 
+    session_id = "250620_0"
+    channel= "A-028"
     # Initialize analysis with polar coordinate parameters
     analyzer = CircularRWAAnalysis(
         nscale=4,  # 4 scales for phase congruency
