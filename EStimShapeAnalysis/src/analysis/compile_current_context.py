@@ -9,11 +9,11 @@ from src.analysis.lightness.lightness_analysis import LightnessAnalysis
 
 def main():
     analyses = [
-        IsogaborAnalysis(),
+        # IsogaborAnalysis(),
         PlotTopNAnalysis(),
-        SideTestAnalysis(),
-        LightnessAnalysis(),
-        MixedGaborsAnalysis(),
+        # SideTestAnalysis(),
+        # LightnessAnalysis(),
+        # MixedGaborsAnalysis(),
     ]
 
     for analysis in analyses:

@@ -524,7 +524,8 @@ class ExperimentManager:
         print("Version file updated successfully.")
 
     def databases_exist(self) -> bool:
-        """Check if all databases for this experiment set already exist"""
+        """Check if any databases for this experiment set already exist"""
+
         try:
             # Connect to MySQL server
             conn = mysql.connector.connect(host=HOST, user=USER, password=PASS)
@@ -533,12 +534,13 @@ class ExperimentManager:
             for experiment in self.experiments:
                 db_name = experiment.get_database_name()
                 cursor.execute(f"SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = '{db_name}'")
-                if not cursor.fetchone():
+                if cursor.fetchone():
                     conn.close()
-                    return False
+                    return True
+
 
             conn.close()
-            return True
+            return False
 
         except mysql.connector.Error as e:
             print(f"Database connection error: {e}")

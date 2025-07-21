@@ -30,8 +30,8 @@ def main():
 
     # compiled_data = None
     session_id, _ = read_session_id_from_db_name(context.ga_database)
-    # session_id = "250425_0"
-    channel = "A-013"
+    session_id = "250425_0"
+    channel = "A-017"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
@@ -99,6 +99,7 @@ def compile_and_export():
                          stim_info_columns=[
                              "Lineage",
                              "RegimeScore",
+                             "GenId",
                              "StimType",
                              "StimPath",
                              "ThumbnailPath",
