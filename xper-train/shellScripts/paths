@@ -1,6 +1,6 @@
 #!/bin/bash
 #Defining paths for xper.properties versions
-ESTIMSHAPE="/home/r2_allen/git/EStimShape"
+ESTIMSHAPE="/home/connorlab/git/EStimShape"
 SHELLSCRIPTS="$ESTIMSHAPE/xper-train/shellScripts"
 DIST="$ESTIMSHAPE/xper-train/dist"
 

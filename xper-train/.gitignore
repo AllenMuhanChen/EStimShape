@@ -32,3 +32,8 @@ dist
 stimuli
 **/xper.properties
 xper/class/
+
+# IntelliJ
+.idea
+*.iml
+xper-train/.idea/
