@@ -18,7 +18,7 @@ def main():
 
     session_id, _ = read_session_id_from_db_name(context.ga_database)
     session_id = "250507_0"
-    channel = "A-002"
+    channel = "A-000"
     analysis.run(session_id, "raw", channel, compiled_data=None)
 
 

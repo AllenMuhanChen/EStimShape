@@ -27,13 +27,13 @@ def main():
     # channel = None
     compiled_data = compile()
     analysis = SideTestAnalysis()
-    session_id, _ = read_session_id_from_db_name(context.ga_database)
+    # session_id, _ = read_session_id_from_db_name(context.ga_database)
     # if channel is None:
         # channel = read_cluster_channels(session_id)[0]
 
-    # session_id = "250607_0"
-    channel = "A-028"
-    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    session_id = "250427_0"
+    channel = "A-018"
+    analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
 class SideTestAnalysis(Analysis):
@@ -49,7 +49,7 @@ class SideTestAnalysis(Analysis):
 
         # STIMS with RESPONSE for SIDE TEST
 
-        limit = 10
+        limit = 20
         visualize_module = create_grouped_stimuli_module(
             response_rate_col=self.spike_rates_col,
             response_rate_key=channel,
@@ -65,7 +65,7 @@ class SideTestAnalysis(Analysis):
                 )
             },
             title=f'2D vs 3D Test: {channel}',
-            save_path=f"{self.save_path}/{channel}: 2dvs3d.png",
+            save_path=f"{self.save_path}/{channel}: 2dvs3d_more.png",
             include_labels_for={"row"},
             publish_mode=True,
             subplot_spacing=(20, 0)

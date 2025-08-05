@@ -74,11 +74,22 @@ class ClusterApplicationWindow(QWidget):
         points_to_reduce_for_channels_with_data = self._filter_disabled_channels(points_to_reduce_for_channels)
 
         high_dim_points = list(points_to_reduce_for_channels_with_data.values())
-        # Concatenate all the data into a single 2D array
-        stacked_points = np.vstack(high_dim_points)
+
+        # Per-channel z-score normalization
+        normalized_points = []
+        for points in high_dim_points:
+            if len(points) > 1 and np.std(points) > 1e-10:  # Avoid division by zero
+                normalized = (points - np.mean(points)) / np.std(points)
+            else:
+                normalized = points
+            normalized_points.append(normalized)
+
+        # Concatenate all the normalized data into a single 2D array
+        stacked_points = np.vstack(normalized_points)
+
         reduced_points_for_reducer = {}
         for reducer in reducers:
-            # Perform dimensionality reduction on all data
+            # Perform dimensionality reduction on normalized data
             all_reduced_data = reducer.fit_transform(stacked_points)
 
             # Split the reduced data back up into channels

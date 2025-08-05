@@ -37,19 +37,22 @@ class DbDataLoader(DataLoader):
 
     def get_spikes_per_channel(self, channel_name: str) -> np.ndarray:
         """
-        Fetches spikes per second for a specific channel, ordered by task_id, and returns as a numpy array.
+        Fetches average spikes per second for a specific channel, grouped by stim_id and averaged across task_ids,
+        ordered by stim_id, and returns as a numpy array.
 
         Parameters:
-        - channel_name: The name of the channel for which spikes per second are required.
+        - channel_name: The name of the channel for which average spikes per second are required.
 
         Returns:
-        - A numpy array containing the spikes_per_second for the specified channel, ordered by task_id.
+        - A numpy array containing the averaged spikes_per_second for the specified channel,
+          grouped by stim_id and ordered by stim_id.
         """
         query = """
-            SELECT task_id, spikes_per_second
+            SELECT stim_id, AVG(spikes_per_second) as avg_spikes_per_second
             FROM ChannelResponses
             WHERE channel = %s
-            ORDER BY task_id
+            GROUP BY stim_id
+            ORDER BY stim_id
         """
         self.conn.execute(query, (str(channel_name),))  # Execute the query with the parameter
         data = self.conn.fetch_all()  # Fetch all results
@@ -58,7 +61,7 @@ class DbDataLoader(DataLoader):
         if not data:
             return np.array([])
 
-        # Convert list of tuples into a numpy array, extracting only the spikes_per_second
+        # Convert list of tuples into a numpy array, extracting only the averaged spikes_per_second
         spikes_array = np.array([float(entry[1]) for entry in data])
         return spikes_array
 
