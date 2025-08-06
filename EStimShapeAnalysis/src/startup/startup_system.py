@@ -10,6 +10,11 @@ from src.startup.db_factory import migrate_database, reset_internal_state
 # Import existing utilities instead of recreating them
 from src.startup.setup_xper_properties_and_dirs import XperPropertiesModifier, make_path
 
+INTAN_REMOTE_PATH = "/run/user/1003/gvfs/sftp:host=172.30.9.78"
+BASE_PATH = "/home/connorlab/Documents/EStimShape"
+SHELL_SCRIPTS_PATH = "/home/connorlab/git/EStimShape/xper-train/shellScripts"
+INTAN_BASE_PATH = "/mnt/data/EStimShape"
+
 # Template constants
 TEMPLATE_TYPE = 'exp'
 TEMPLATE_DATE = '250620'
@@ -33,10 +38,10 @@ class ExperimentType(ABC):
         self.type_name = type_name
         self.date = date
         self.location_id = location_id
-        self.intan_base_path = "/mnt/data/EStimShape"
-        self.shellscripts_dir = "/home/connorlab/git/EStimShape/xper-train/shellScripts"
-        self.base_dir = "/home/r2_allen/Documents/EStimShape"
-        self.intan_remote_dir = "/run/user/1003/gvfs/sftp:host=172.30.9.78"
+        self.intan_base_path = INTAN_BASE_PATH
+        self.shellscripts_dir = SHELL_SCRIPTS_PATH
+        self.base_dir = BASE_PATH
+        self.intan_remote_dir = INTAN_REMOTE_PATH
 
     @abstractmethod
     def get_experiment_prefix(self) -> str:
@@ -143,7 +148,6 @@ class GAExperiment(ExperimentType):
 
     def __init__(self, type_name: str, date: str, location_id: str):
         super().__init__(type_name, date, location_id)
-        self.shellscripts_dir = None
 
     def get_experiment_prefix(self) -> str:
         return "ga"
@@ -168,8 +172,8 @@ class GAExperiment(ExperimentType):
             "generator.png_path": f"{r_ga_path}/pngs",
             "experiment.png_path": f"{r2_sftp}{r_ga_path}/pngs",
             "generator.spec_path": f"{r_ga_path}/specs",
-            "rfplot.png_library_path_generator": "/home/r2_allen/git/EStimShape/xper-train/stimuli/rfplot/pngs",
-            "rfplot.png_library_path_experiment": f"{r2_sftp}/home/r2_allen/git/EStimShape/xper-train/stimuli/rfplot/pngs",
+            "rfplot.png_library_path_generator": "/home/connorlab/git/EStimShape/xper-train/stimuli/rfplot/pngs",
+            "rfplot.png_library_path_experiment": f"{r2_sftp}/home/connorlab/git/EStimShape/xper-train/stimuli/rfplot/pngs",
             "rfplot.intan_path": f"{self.intan_base_path}/{db_name}/rfPlot",
             "intan.default_save_path": f"{self.intan_base_path}/{db_name}",
         }
@@ -507,7 +511,7 @@ class ExperimentManager:
 
     def update_version_shellscript(self) -> None:
         """Update the version shellscript file"""
-        version_file_path = "/home/r2_allen/git/EStimShape/xper-train/shellScripts/version"
+        version_file_path = f"{SHELL_SCRIPTS_PATH}/version"
 
         # Get version mappings dynamically
         version_mapping = {exp.get_version_variable_name(): exp.get_database_name()
