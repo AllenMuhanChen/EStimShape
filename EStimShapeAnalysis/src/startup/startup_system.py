@@ -1,19 +1,14 @@
-import importlib
-from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional, Tuple
-import os
-import re
-import subprocess
 import datetime
-import shutil
-from datetime import datetime
+import importlib
 import mysql.connector
-from clat.util.connection import Connection
-from src.pga.multi_ga_db_util import MultiGaDbUtil
+import re
+from abc import ABC, abstractmethod
+from datetime import datetime
+from typing import List, Dict
 
+from src.startup.db_factory import migrate_database, reset_internal_state
 # Import existing utilities instead of recreating them
 from src.startup.setup_xper_properties_and_dirs import XperPropertiesModifier, make_path
-from src.startup.db_factory import migrate_database, reset_internal_state
 
 # Template constants
 TEMPLATE_TYPE = 'exp'
@@ -39,6 +34,9 @@ class ExperimentType(ABC):
         self.date = date
         self.location_id = location_id
         self.intan_base_path = "/mnt/data/EStimShape"
+        self.shellscripts_dir = "/home/connorlab/git/EStimShape/xper-train/shellScripts"
+        self.base_dir = "/home/r2_allen/Documents/EStimShape"
+        self.intan_remote_dir = "/run/user/1003/gvfs/sftp:host=172.30.9.78"
 
     @abstractmethod
     def get_experiment_prefix(self) -> str:
@@ -143,6 +141,10 @@ class ExperimentType(ABC):
 class GAExperiment(ExperimentType):
     """Genetic Algorithm experiment type"""
 
+    def __init__(self, type_name: str, date: str, location_id: str):
+        super().__init__(type_name, date, location_id)
+        self.shellscripts_dir = None
+
     def get_experiment_prefix(self) -> str:
         return "ga"
 
@@ -153,11 +155,12 @@ class GAExperiment(ExperimentType):
         return ["SystemVar", "InternalState", "GAVar"]
 
     def get_properties_file_path(self) -> str:
-        return '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.ga'
+
+        return '%s/xper.properties.ga' % self.shellscripts_dir
 
     def get_properties_dict(self, r2_sftp: str) -> Dict[str, str]:
         db_name = self.get_database_name()
-        stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{db_name}/stimuli"
+        stimuli_base_r = f"{self.base_dir}/{db_name}/stimuli"
         r_ga_path = f"{stimuli_base_r}/ga"
 
         return {
@@ -173,7 +176,7 @@ class GAExperiment(ExperimentType):
 
     def create_directories(self) -> None:
         db_name = self.get_database_name()
-        base_dir = f"/home/r2_allen/Documents/EStimShape/{db_name}"
+        base_dir = f"{self.base_dir}/{db_name}"
 
         # GA-specific directories
         make_path(f"{base_dir}/stimuli/ga/pngs")
@@ -187,13 +190,13 @@ class GAExperiment(ExperimentType):
     def get_local_backup_paths(self) -> List[str]:
         """Return local paths to backup for GA experiment"""
         db_name = self.get_database_name()
-        return [f"/home/r2_allen/Documents/EStimShape/{db_name}"]
+        return [f"{self.base_dir}/{db_name}"]
 
     def get_remote_backup_paths(self) -> Dict[str, str]:
         """Return remote paths to backup for GA experiment"""
         db_name = self.get_database_name()
         return {
-            "intan_recordings": f"/run/user/1003/gvfs/sftp:host=172.30.9.78{self.intan_base_path}/{db_name}"
+            "intan_recordings": f"{self.intan_remote_dir}{self.intan_base_path}/{db_name}"
         }
 
     def get_intan_path(self) -> str:
@@ -217,17 +220,17 @@ class NAFCExperiment(ExperimentType):
         return ["SystemVar", "InternalState"]
 
     def get_properties_file_path(self) -> str:
-        return '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.procedural'
+        return f'{self.shellscripts_dir}/xper.properties.procedural'
 
     def get_properties_dict(self, r2_sftp: str) -> Dict[str, str]:
         db_name = self.get_database_name()
         current_date = datetime.now().strftime("%y%m%d")
-        stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{db_name}/stimuli"
+        stimuli_base_r = f"{self.base_dir}/{db_name}/stimuli"
         r_nafc_path = f"{stimuli_base_r}/{current_date}/procedural"
 
         # GA paths for cross-reference
         ga_db_name = f"allen_ga_{self.type_name}_{self.date}_{self.location_id}"
-        ga_spec_path = f"/home/r2_allen/Documents/EStimShape/{ga_db_name}/stimuli/ga/specs"
+        ga_spec_path = f"{self.base_dir}/{ga_db_name}/stimuli/ga/specs"
 
         return {
             "jdbc.url": f"jdbc:mysql://172.30.6.80/{db_name}?rewriteBatchedStatements=true",
@@ -244,7 +247,7 @@ class NAFCExperiment(ExperimentType):
     def create_directories(self) -> None:
         db_name = self.get_database_name()
         current_date = datetime.now().strftime("%y%m%d")
-        stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{db_name}/stimuli"
+        stimuli_base_r = f"{self.base_dir}/{db_name}/stimuli"
 
         make_path(f"{stimuli_base_r}/{current_date}/procedural/pngs")
         make_path(f"{stimuli_base_r}/{current_date}/procedural/specs")
@@ -253,13 +256,13 @@ class NAFCExperiment(ExperimentType):
     def get_local_backup_paths(self) -> List[str]:
         """Return local paths to backup for NAFC experiment"""
         db_name = self.get_database_name()
-        return [f"/home/r2_allen/Documents/EStimShape/{db_name}"]
+        return [f"{self.base_dir}/{db_name}"]
 
     def get_remote_backup_paths(self) -> Dict[str, str]:
         """Return remote paths to backup for NAFC experiment"""
         db_name = self.get_database_name()
         return {
-            "intan_recordings": f"/run/user/1003/gvfs/sftp:host=172.30.9.78{self.intan_base_path}/{db_name}"
+            "intan_recordings": f"{self.intan_remote_dir}{self.intan_base_path}/{db_name}"
         }
 
     def get_intan_path(self) -> str:
@@ -280,7 +283,7 @@ class IsoGaborExperiment(ExperimentType):
         return ["SystemVar", "InternalState", "SinGain", "MonitorLin"]
 
     def get_properties_file_path(self) -> str:
-        return '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.isogabor'
+        return f'{self.shellscripts_dir}/xper.properties.isogabor'
 
     def get_properties_dict(self, r2_sftp: str) -> Dict[str, str]:
         db_name = self.get_database_name()
@@ -291,7 +294,7 @@ class IsoGaborExperiment(ExperimentType):
 
     def create_directories(self) -> None:
         db_name = self.get_database_name()
-        base_dir = f"/home/r2_allen/Documents/EStimShape/{db_name}"
+        base_dir = f"{self.base_dir}/{db_name}"
 
         make_path(f"{base_dir}/plots")
         make_path(f"{base_dir}/parsed_spikes")
@@ -299,13 +302,13 @@ class IsoGaborExperiment(ExperimentType):
     def get_local_backup_paths(self) -> List[str]:
         """Return local paths to backup for IsoGabor experiment"""
         db_name = self.get_database_name()
-        return [f"/home/r2_allen/Documents/EStimShape/{db_name}"]
+        return [f"{self.base_dir}/{db_name}"]
 
     def get_remote_backup_paths(self) -> Dict[str, str]:
         """Return remote paths to backup for IsoGabor experiment"""
         db_name = self.get_database_name()
         return {
-            "intan_recordings": f"/run/user/1003/gvfs/sftp:host=172.30.9.78{self.intan_base_path}/{db_name}"
+            "intan_recordings": f"{self.intan_remote_dir}{self.intan_base_path}/{db_name}"
         }
 
     def get_intan_path(self) -> str:
@@ -326,16 +329,16 @@ class LightnessExperiment(ExperimentType):
         return ["SystemVar", "InternalState"]
 
     def get_properties_file_path(self) -> str:
-        return '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.lightness'
+        return f'{self.shellscripts_dir}/xper.properties.lightness'
 
     def get_properties_dict(self, r2_sftp: str) -> Dict[str, str]:
         db_name = self.get_database_name()
-        stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{db_name}/stimuli"
+        stimuli_base_r = f"{self.base_dir}/{db_name}/stimuli"
         r_lightness_path = f"{stimuli_base_r}"
 
         # GA paths for cross-reference
         ga_db_name = f"allen_ga_{self.type_name}_{self.date}_{self.location_id}"
-        ga_spec_path = f"/home/r2_allen/Documents/EStimShape/{ga_db_name}/stimuli/ga/specs"
+        ga_spec_path = f"{self.base_dir}/{ga_db_name}/stimuli/ga/specs"
 
         return {
             "jdbc.url": f"jdbc:mysql://172.30.6.80/{db_name}?rewriteBatchedStatements=true",
@@ -349,23 +352,23 @@ class LightnessExperiment(ExperimentType):
 
     def create_directories(self) -> None:
         db_name = self.get_database_name()
-        stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{db_name}/stimuli"
+        stimuli_base_r = f"{self.base_dir}/{db_name}/stimuli"
 
         make_path(f"{stimuli_base_r}/pngs")
         make_path(f"{stimuli_base_r}/specs")
-        make_path(f"/home/r2_allen/Documents/EStimShape/{db_name}/plots")
-        make_path(f"/home/r2_allen/Documents/EStimShape/{db_name}/parsed_spikes")
+        make_path(f"{self.base_dir}/{db_name}/plots")
+        make_path(f"{self.base_dir}/{db_name}/parsed_spikes")
 
     def get_local_backup_paths(self) -> List[str]:
         """Return local paths to backup for Lightness experiment"""
         db_name = self.get_database_name()
-        return [f"/home/r2_allen/Documents/EStimShape/{db_name}"]
+        return [f"{self.base_dir}/{db_name}"]
 
     def get_remote_backup_paths(self) -> Dict[str, str]:
         """Return remote paths to backup for Lightness experiment"""
         db_name = self.get_database_name()
         return {
-            "intan_recordings": f"/run/user/1003/gvfs/sftp:host=172.30.9.78{self.intan_base_path}/{db_name}"
+            "intan_recordings": f"{self.intan_remote_dir}{self.intan_base_path}/{db_name}"
         }
 
     def get_intan_path(self) -> str:
@@ -384,16 +387,16 @@ class ShuffleExperiment(ExperimentType):
         return ["SystemVar", "InternalState"]
 
     def get_properties_file_path(self) -> str:
-        return '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.shuffle'
+        return f'{self.shellscripts_dir}/xper.properties.shuffle'
 
     def get_properties_dict(self, r2_sftp: str) -> Dict[str, str]:
         db_name = self.get_database_name()
-        stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{db_name}/stimuli"
+        stimuli_base_r = f"{self.base_dir}/{db_name}/stimuli"
         r_shuffle_path = f"{stimuli_base_r}"
 
         # GA paths for cross-reference
         ga_db_name = f"allen_ga_{self.type_name}_{self.date}_{self.location_id}"
-        ga_spec_path = f"/home/r2_allen/Documents/EStimShape/{ga_db_name}/stimuli/ga/specs"
+        ga_spec_path = f"{self.base_dir}/{ga_db_name}/stimuli/ga/specs"
 
         return {
             "jdbc.url": f"jdbc:mysql://172.30.6.80/{db_name}?rewriteBatchedStatements=true",
@@ -407,23 +410,23 @@ class ShuffleExperiment(ExperimentType):
 
     def create_directories(self) -> None:
         db_name = self.get_database_name()
-        stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{db_name}/stimuli"
+        stimuli_base_r = f"{self.base_dir}/{db_name}/stimuli"
 
         make_path(f"{stimuli_base_r}/pngs")
         make_path(f"{stimuli_base_r}/specs")
-        make_path(f"/home/r2_allen/Documents/EStimShape/{db_name}/plots")
-        make_path(f"/home/r2_allen/Documents/EStimShape/{db_name}/parsed_spikes")
+        make_path(f"{self.base_dir}/{db_name}/plots")
+        make_path(f"{self.base_dir}/{db_name}/parsed_spikes")
 
     def get_local_backup_paths(self) -> List[str]:
         """Return local paths to backup for Shuffle experiment"""
         db_name = self.get_database_name()
-        return [f"/home/r2_allen/Documents/EStimShape/{db_name}"]
+        return [f"{self.base_dir}/{db_name}"]
 
     def get_remote_backup_paths(self) -> Dict[str, str]:
         """Return remote paths to backup for Shuffle experiment"""
         db_name = self.get_database_name()
         return {
-            "intan_recordings": f"/run/user/1003/gvfs/sftp:host=172.30.9.78{self.intan_base_path}/{db_name}"
+            "intan_recordings": f"{self.intan_remote_dir}{self.intan_base_path}/{db_name}"
         }
 
     def get_intan_path(self) -> str:
@@ -464,7 +467,7 @@ class ExperimentManager:
 
     def update_context_file(self) -> None:
         """Update the context.py file with new database names dynamically"""
-        target_file = '/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/startup/context.py'
+        target_file = '/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/startup/context.py'
 
         # Build dynamic mapping of variable names to database names
         context_mapping = {exp.get_context_variable_name(): exp.get_database_name()

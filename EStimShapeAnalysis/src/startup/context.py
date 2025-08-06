@@ -1,18 +1,19 @@
 from src.pga.config.simultaneous_2dvs3d_config import Simultaneous3Dvs2DConfig
 ga_name = "New3D"
-ga_database = "allen_ga_exp_250507_0"
-nafc_database = "allen_estimshape_exp_250507_0"
-isogabor_database = "allen_isogabor_exp_250507_0"
-lightness_database = "allen_lightness_exp_250507_0"
-shuffle_database = "allen_shuffle_exp_250507_0"
+ga_database = "allen_ga_test_250806_0"
+nafc_database = "allen_estimshape_test_250806_0"
+isogabor_database = "allen_isogabor_test_250806_0"
+lightness_database = "allen_lightness_test_250806_0"
+shuffle_database = "allen_shuffle_test_250806_0"
 
-allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
+base_dir = "/home/connorlab/Documents/EStimShape"
+allen_dist = "/home/connorlab/git/EStimShape/xper-train/dist/allen"
 
 # Dirs for GA
-image_path = f"/home/r2_allen/Documents/EStimShape/{ga_database}/stimuli/ga/pngs"
-java_output_dir = f"/home/r2_allen/Documents/EStimShape/{ga_database}/java_output"
-rwa_output_dir = f"/home/r2_allen/Documents/EStimShape/{ga_database}/rwa"
-eyecal_dir = f"/home/r2_allen/Documents/EStimShape/{ga_database}/eyecal"
+image_path = f"{base_dir}/{ga_database}/stimuli/ga/pngs"
+java_output_dir = f"{base_dir}/{ga_database}/java_output"
+rwa_output_dir = f"{base_dir}/{ga_database}/rwa"
+eyecal_dir = f"{base_dir}/{ga_database}/eyecal"
 
 # Local path for Intan Files (.dat)
 ga_intan_path = f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{ga_database}"
@@ -21,17 +22,17 @@ lightness_intan_path = f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen
 shuffle_intan_path = f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{shuffle_database}"
 
 # Storage of Parsed Spikes from MultiFile Parser
-ga_parsed_spikes_path = f"/home/r2_allen/Documents/EStimShape/{ga_database}/parsed_spikes"
-isogabor_parsed_spikes_path = f"/home/r2_allen/Documents/EStimShape/{isogabor_database}/parsed_spikes"
-lightness_parsed_spikes_path = f"/home/r2_allen/Documents/EStimShape/{lightness_database}/parsed_spikes"
-shuffle_parsed_spikes_path = f"/home/r2_allen/Documents/EStimShape/{shuffle_database}/parsed_spikes"
+ga_parsed_spikes_path = f"{base_dir}/{ga_database}/parsed_spikes"
+isogabor_parsed_spikes_path = f"{base_dir}/{isogabor_database}/parsed_spikes"
+lightness_parsed_spikes_path = f"{base_dir}/{lightness_database}/parsed_spikes"
+shuffle_parsed_spikes_path = f"{base_dir}/{shuffle_database}/parsed_spikes"
 
 # Storage of plots
-ga_plot_path = f"/home/r2_allen/Documents/EStimShape/{ga_database}/plots"
-isogabor_plot_path = f"/home/r2_allen/Documents/EStimShape/{isogabor_database}/plots"
-lightness_plot_path = f"/home/r2_allen/Documents/EStimShape/{lightness_database}/plots"
-shuffle_plot_path = f"/home/r2_allen/Documents/EStimShape/{shuffle_database}/plots"
-pc_maps_path = f"/home/r2_allen/Documents/EStimShape/{ga_database}/pc_maps"
+ga_plot_path = f"{base_dir}/{ga_database}/plots"
+isogabor_plot_path = f"{base_dir}/{isogabor_database}/plots"
+lightness_plot_path = f"{base_dir}/{lightness_database}/plots"
+shuffle_plot_path = f"{base_dir}/{shuffle_database}/plots"
+pc_maps_path = f"{base_dir}/{ga_database}/pc_maps"
 try:
 
     ga_config = Simultaneous3Dvs2DConfig(
