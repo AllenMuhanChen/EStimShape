@@ -3,7 +3,8 @@ import re
 from datetime import datetime
 from reloading import reloading
 
-from src.startup import context
+from src.startup import context, db_ip
+
 
 @reloading #reloads to get updates to context.py if those happened in same execution
 def main():
@@ -89,14 +90,14 @@ class XperPropertiesModifier:
             properties_file.writelines(self.properties_content)
 
 
-def setup_ga_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
+def setup_ga_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.61"):
     # Define the necessary versions directly
     version_ga = context.ga_database
     recording_computer_sftp = r2_sftp
     # Define paths to the properties file and directories
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.ga'
     # DB URL
-    db_url = f"jdbc:mysql://172.30.6.80/{version_ga}?rewriteBatchedStatements=true"
+    db_url = f"jdbc:mysql://172.30.6.61/{version_ga}?rewriteBatchedStatements=true"
     # STIM PATHS
     stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_ga}/stimuli"
     r_ga_path = f"{stimuli_base_r}/ga"
@@ -143,7 +144,7 @@ def setup_ga_dirs():
     make_path(context.ga_parsed_spikes_path)
 
 
-def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
+def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.61"):
     # Define the necessary versions directly
     version_nafc = context.nafc_database
     recording_computer_sftp = r2_sftp
@@ -154,7 +155,7 @@ def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.8
     # Define paths to the properties file and directories
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.procedural'
     # DB URL
-    db_url = f"jdbc:mysql://172.30.6.80/{version_nafc}?rewriteBatchedStatements=true"
+    db_url = f"jdbc:mysql://172.30.6.61/{version_nafc}?rewriteBatchedStatements=true"
 
     # PATHS
     stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_nafc}/stimuli"
@@ -204,14 +205,14 @@ def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.8
     make_path(generator_set_path)
 
 
-def setup_isogabor_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
+def setup_isogabor_xper_properties(r2_sftp=f"/run/user/1004/gvfs/sftp:host={db_ip}"):
     # Define the necessary versions directly
     version_isogabor = context.isogabor_database
     recording_computer_sftp = r2_sftp
     # Define paths to the properties file and directories
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.isogabor'
     # DB URL
-    db_url = f"jdbc:mysql://172.30.6.80/{version_isogabor}?rewriteBatchedStatements=true"
+    db_url = f"jdbc:mysql://{db_ip}/{version_isogabor}?rewriteBatchedStatements=true"
 
     intan_path = f"/home/i2_allen/Documents/EStimShape/{version_isogabor}"
     modifier = XperPropertiesModifier(xper_properties_file_path)
@@ -236,7 +237,7 @@ def setup_isogabor_dirs():
     make_path(isogabor_parsed_spike_path)
 
 
-def setup_twodvsthreed_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
+def setup_twodvsthreed_xper_properties(r2_sftp=f"/run/user/1004/gvfs/sftp:host={db_ip}"):
     # Define the necessary versions directly
     version_twodvsthreed = context.lightness_database
     version_ga = context.ga_database
@@ -246,8 +247,8 @@ def setup_twodvsthreed_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=17
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.twodvsthreed'
 
     # DB URLs
-    db_url = f"jdbc:mysql://172.30.6.80/{version_twodvsthreed}?rewriteBatchedStatements=true"
-    ga_db_url = f"jdbc:mysql://172.30.6.80/{version_ga}?rewriteBatchedStatements=true"
+    db_url = f"jdbc:mysql://{db_ip}/{version_twodvsthreed}?rewriteBatchedStatements=true"
+    ga_db_url = f"jdbc:mysql://{db_ip}/{version_ga}?rewriteBatchedStatements=true"
 
     # PATHS
     stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_twodvsthreed}/stimuli"

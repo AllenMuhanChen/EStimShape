@@ -11,10 +11,12 @@ from src.pga.alexnet import alexnet_context
 from src.pga.alexnet.lighting_posthoc.backtrace_analysis import calculate_raw_contribution_map, ContributionType
 from typing import Dict, List, Tuple, Optional
 
+from src.startup import db_ip
+
 
 def main():
     conn = Connection(
-        host='172.30.6.80',
+        host=db_ip,
         user='xper_rw',
         password='up2nite',
         database=alexnet_context.lighting_database

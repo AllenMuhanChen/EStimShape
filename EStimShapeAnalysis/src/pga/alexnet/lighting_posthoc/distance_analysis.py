@@ -9,7 +9,7 @@ from src.pga.alexnet import alexnet_context
 from src.pga.alexnet.lighting_posthoc.backtrace_analysis import ContributionType, calculate_raw_contribution_map
 from src.pga.alexnet.lighting_posthoc.distance.distance_metrics import DistanceType, \
     DistanceMetric, EMDMetric, OverlapMetric, WeightedOverlapMetric
-
+from src.startup import db_ip
 
 metrics = [
     (DistanceType.EMD, DistanceType.WEIGHTED_OVERLAP),
@@ -19,7 +19,7 @@ metrics = [
 def main():
 
     conn = Connection(
-        host='172.30.6.80',
+        host=db_ip,
         user='xper_rw',
         password='up2nite',
         database=alexnet_context.lighting_database

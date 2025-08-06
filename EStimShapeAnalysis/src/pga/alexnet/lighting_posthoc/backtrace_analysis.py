@@ -9,6 +9,7 @@ from clat.util.connection import Connection
 from PIL import Image
 
 from src.pga.alexnet import alexnet_context
+from src.startup import db_ip
 
 
 class ContributionType(Enum):
@@ -19,7 +20,7 @@ class ContributionType(Enum):
 
 def main():
     conn = Connection(
-        host='172.30.6.80',
+        host=db_ip,
         user='xper_rw',
         password='up2nite',
         database=alexnet_context.lighting_database

@@ -5,6 +5,7 @@ from clat.util.connection import Connection
 from src.pga.alexnet import alexnet_context
 from src.pga.alexnet.lighting_posthoc.backtrace_analysis import get_stim_lighting_variations, ContributionType
 from src.pga.alexnet.lighting_posthoc.distance_analysis import calculate_contribution_map
+from src.startup import db_ip
 
 
 def get_background_mask(img_array):
@@ -164,7 +165,7 @@ def plot_variations(conn: Connection, variations: list, parent_image_path: str):
 
 def main():
     conn = Connection(
-        host='172.30.6.80',
+        host=db_ip,
         user='xper_rw',
         password='up2nite',
         database=alexnet_context.lighting_database

@@ -9,15 +9,16 @@ from clat.util.connection import Connection
 
 from src.pga.alexnet import alexnet_context
 from src.pga.alexnet.onnx_parser import AlexNetONNXResponseParser, UnitIdentifier
+from src.startup import db_ip
 
 
 def main():
     # Create database connections
     contrast = input("Enter the contrast value: ")
 
-    ga_conn = Connection(host='172.30.6.80', user='xper_rw', password='up2nite',
+    ga_conn = Connection(host=db_ip, user='xper_rw', password='up2nite',
                          database=alexnet_context.ga_database)
-    lighting_conn = Connection(host='172.30.6.80', user='xper_rw', password='up2nite',
+    lighting_conn = Connection(host=db_ip, user='xper_rw', password='up2nite',
                                database=alexnet_context.lighting_database)
 
     # Get top stimuli

@@ -5,10 +5,11 @@ from clat.util.connection import Connection
 
 from src.pga.alexnet import alexnet_context
 from src.pga.alexnet.onnx_parser import UnitIdentifier, LayerType
+from src.startup import db_ip
 from src.startup.db_factory import create_db_from_template, check_if_exists
 from src.startup.setup_xper_properties_and_dirs import XperPropertiesModifier, make_path
 
-HOST = '172.30.6.80'
+HOST = db_ip
 USER = 'xper_rw'
 PASS = 'up2nite'
 TEMPLATE_TYPE = 'exp'
@@ -118,7 +119,7 @@ def setup_alexnet_xper_properties_and_dirs(database, analysis_type):
     """Setup properties for analysis databases (lighting or contrast)"""
     version = database
     xper_properties_file_path = f'/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.alexnet.{analysis_type}'
-    db_url = f"jdbc:mysql://172.30.6.80/{version}?rewriteBatchedStatements=true"
+    db_url = f"jdbc:mysql://{db_ip}/{version}?rewriteBatchedStatements=true"
     estimshape_base = f"/home/r2_allen/Documents/EStimShape/{version}"
     stimuli_base_r = f"{estimshape_base}/stimuli"
     plots_path = f"{estimshape_base}/plots"

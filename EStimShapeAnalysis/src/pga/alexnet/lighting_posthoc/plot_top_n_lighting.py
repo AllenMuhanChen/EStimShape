@@ -7,6 +7,8 @@ from PIL import Image
 from typing import List, Dict
 from collections import defaultdict
 
+from src.startup import db_ip
+
 
 @dataclass
 class StimData:
@@ -23,7 +25,7 @@ class StimData:
 
 def main():
     conn = Connection(
-        host='172.30.6.80',
+        host=db_ip,
         user='xper_rw',
         password='up2nite',
         database=alexnet_context.lighting_database

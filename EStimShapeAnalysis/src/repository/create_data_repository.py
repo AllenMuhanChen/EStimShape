@@ -49,7 +49,7 @@ def execute_query(connection, query, description="Query"):
 
 def main():
     # Configuration - Replace with your actual MySQL credentials
-    host = "172.30.6.80"
+    host = "172.30.6.61"
     user = "xper_rw"
     password = "up2nite"
     db_name = "allen_data_repository"

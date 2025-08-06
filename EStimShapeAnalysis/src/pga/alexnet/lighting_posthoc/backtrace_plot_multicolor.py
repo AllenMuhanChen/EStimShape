@@ -8,11 +8,12 @@ from src.pga.alexnet.analysis.plot_top_n_alexnet import normalize_responses
 from src.pga.alexnet.lighting_posthoc.backtrace_analysis import calculate_raw_contribution_map, \
     get_stim_lighting_variations, \
     ContributionType
+from src.startup import db_ip
 
 
 def main():
     conn = Connection(
-        host='172.30.6.80',
+        host=db_ip,
         user='xper_rw',
         password='up2nite',
         database=alexnet_context.lighting_database

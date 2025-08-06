@@ -10,13 +10,14 @@ from clat.util import time_util
 from clat.util.connection import Connection
 from src.pga.alexnet import alexnet_context
 from src.pga.alexnet.onnx_parser import AlexNetONNXResponseParser
+from src.startup import db_ip
 
 
 def main():
     # Create database connections
-    ga_conn = Connection(host='172.30.6.80', user='xper_rw', password='up2nite',
+    ga_conn = Connection(host=db_ip, user='xper_rw', password='up2nite',
                          database=alexnet_context.ga_database)
-    contrast_conn = Connection(host='172.30.6.80', user='xper_rw', password='up2nite',
+    contrast_conn = Connection(host=db_ip, user='xper_rw', password='up2nite',
                                database=alexnet_context.contrast_database)
 
     # Get top stimuli

@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import List, Dict
 
+from src.startup import db_ip
 from src.startup.db_factory import migrate_database, reset_internal_state
 # Import existing utilities instead of recreating them
 from src.startup.setup_xper_properties_and_dirs import XperPropertiesModifier, make_path
@@ -21,12 +22,12 @@ TEMPLATE_DATE = '250620'
 TEMPLATE_LOCATION_ID = '0'
 
 # Database connection constants
-HOST = '172.30.6.80'
+HOST = '172.30.6.61'
 USER = 'xper_rw'
 PASS = 'up2nite'
 
 # MySQL backup parameters
-MYSQL_HOST = '172.30.6.80'
+MYSQL_HOST = '172.30.6.61'
 MYSQL_USER = 'xper_rw'
 MYSQL_PASSWORD = 'up2nite'
 
@@ -131,7 +132,7 @@ class ExperimentType(ABC):
         except Exception as e:
             print(f"Error resetting internal state for {self.get_database_name()}: {e}")
 
-    def setup_properties(self, r2_sftp: str = "/run/user/1004/gvfs/sftp:host=172.30.6.80") -> None:
+    def setup_properties(self, r2_sftp: str = f"/run/user/1004/gvfs/sftp:host={db_ip}") -> None:
         """Setup properties file - Template method"""
         modifier = XperPropertiesModifier(self.get_properties_file_path())
         properties_dict = self.get_properties_dict(r2_sftp)
@@ -168,7 +169,7 @@ class GAExperiment(ExperimentType):
         r_ga_path = f"{stimuli_base_r}/ga"
 
         return {
-            "jdbc.url": f"jdbc:mysql://172.30.6.80/{db_name}?rewriteBatchedStatements=true",
+            "jdbc.url": f"jdbc:mysql://{db_ip}/{db_name}?rewriteBatchedStatements=true",
             "generator.png_path": f"{r_ga_path}/pngs",
             "experiment.png_path": f"{r2_sftp}{r_ga_path}/pngs",
             "generator.spec_path": f"{r_ga_path}/specs",
@@ -237,7 +238,7 @@ class NAFCExperiment(ExperimentType):
         ga_spec_path = f"{self.base_dir}/{ga_db_name}/stimuli/ga/specs"
 
         return {
-            "jdbc.url": f"jdbc:mysql://172.30.6.80/{db_name}?rewriteBatchedStatements=true",
+            "jdbc.url": f"jdbc:mysql://{db_ip}/{db_name}?rewriteBatchedStatements=true",
             "generator.png_path": f"{r_nafc_path}/pngs",
             "experiment.png_path": f"{r2_sftp}{r_nafc_path}/pngs",
             "generator.spec_path": f"{r_nafc_path}/specs",
@@ -292,7 +293,7 @@ class IsoGaborExperiment(ExperimentType):
     def get_properties_dict(self, r2_sftp: str) -> Dict[str, str]:
         db_name = self.get_database_name()
         return {
-            "jdbc.url": f"jdbc:mysql://172.30.6.80/{db_name}?rewriteBatchedStatements=true",
+            "jdbc.url": f"jdbc:mysql://{db_ip}/{db_name}?rewriteBatchedStatements=true",
             "intan.default_save_path": f"{self.intan_base_path}/{db_name}",
         }
 
@@ -345,8 +346,8 @@ class LightnessExperiment(ExperimentType):
         ga_spec_path = f"{self.base_dir}/{ga_db_name}/stimuli/ga/specs"
 
         return {
-            "jdbc.url": f"jdbc:mysql://172.30.6.80/{db_name}?rewriteBatchedStatements=true",
-            "ga.jdbc.url": f"jdbc:mysql://172.30.6.80/{ga_db_name}?rewriteBatchedStatements=true",
+            "jdbc.url": f"jdbc:mysql://{db_ip}/{db_name}?rewriteBatchedStatements=true",
+            "ga.jdbc.url": f"jdbc:mysql://{db_ip}/{ga_db_name}?rewriteBatchedStatements=true",
             "generator.png_path": f"{r_lightness_path}/pngs",
             "experiment.png_path": f"{r2_sftp}{r_lightness_path}/pngs",
             "generator.spec_path": f"{r_lightness_path}/specs",
@@ -403,8 +404,8 @@ class ShuffleExperiment(ExperimentType):
         ga_spec_path = f"{self.base_dir}/{ga_db_name}/stimuli/ga/specs"
 
         return {
-            "jdbc.url": f"jdbc:mysql://172.30.6.80/{db_name}?rewriteBatchedStatements=true",
-            "ga.jdbc.url": f"jdbc:mysql://172.30.6.80/{ga_db_name}?rewriteBatchedStatements=true",
+            "jdbc.url": f"jdbc:mysql://{db_ip}/{db_name}?rewriteBatchedStatements=true",
+            "ga.jdbc.url": f"jdbc:mysql://{db_ip}/{ga_db_name}?rewriteBatchedStatements=true",
             "generator.png_path": f"{r_shuffle_path}/pngs",
             "experiment.png_path": f"{r2_sftp}{r_shuffle_path}/pngs",
             "generator.spec_path": f"{r_shuffle_path}/specs",
@@ -461,7 +462,7 @@ class ExperimentManager:
             print(f"Creating database for {experiment.__class__.__name__}")
             experiment.setup_database()
 
-    def setup_properties_and_directories(self, r2_sftp: str = "/run/user/1004/gvfs/sftp:host=172.30.6.80") -> None:
+    def setup_properties_and_directories(self, r2_sftp: str = f"/run/user/1004/gvfs/sftp:host={db_ip}") -> None:
         """Setup all properties files and create directories"""
         print("Setting up properties files and directories...")
         for experiment in self.experiments:

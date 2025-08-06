@@ -9,12 +9,13 @@ from src.pga.alexnet.lighting_posthoc.distance.distance_metrics import (
     DistanceType, EMDMetric, OverlapMetric, SpatialEMDMetric
 )
 from src.pga.alexnet.lighting_posthoc.distance_analysis import calculate_contribution_map
+from src.startup import db_ip
 
 
 def test_distance_metrics():
     # Connect to database
     conn = Connection(
-        host='172.30.6.80',
+        host=db_ip,
         user='xper_rw',
         password='up2nite',
         database=alexnet_context.lighting_database

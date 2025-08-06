@@ -8,6 +8,8 @@ from src.pga.alexnet import alexnet_context
 from src.pga.alexnet.analysis.plot_top_n_alexnet import normalize_responses, add_colored_border, plot_stimuli_row
 from PIL import Image
 
+from src.startup import db_ip
+
 
 def load_contrast_data(conn: Connection) -> Dict[str, List[dict]]:
     """Load all stimuli data, organized by type (SPECULAR, SHADE, 2D)"""
@@ -113,7 +115,7 @@ def plot_contrast_variations(conn: Connection):
 
 def main():
     conn = Connection(
-        host='172.30.6.80',
+        host=db_ip,
         user='xper_rw',
         password='up2nite',
         database=alexnet_context.contrast_database

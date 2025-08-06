@@ -12,6 +12,7 @@ from src.alexnet.frommat.backtrace import calculate_pool_2_contributions, associ
 from src.pga.alexnet import alexnet_context
 from src.pga.alexnet.onnx_parser import LayerType, AlexNetONNXResponseParser, UnitIdentifier
 from src.pga.alexnet.lighting_posthoc.plot_top_n_lighting import load_all_stim_data
+from src.startup import db_ip
 
 
 class AlexNetContributionCalculator:
@@ -129,7 +130,7 @@ class AlexNetContributionCalculator:
 
 def main():
     conn = Connection(
-        host='172.30.6.80',
+        host=db_ip,
         user='xper_rw',
         password='up2nite',
         database=alexnet_context.lighting_database

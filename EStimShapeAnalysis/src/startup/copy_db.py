@@ -3,7 +3,7 @@ import mysql.connector
 from src.startup.db_factory import migrate_database
 
 # Database connection settings
-HOST = '172.30.6.80'
+HOST = '172.30.6.61'
 USER = 'xper_rw'
 PASS = 'up2nite'
 
