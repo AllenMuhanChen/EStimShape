@@ -15,7 +15,7 @@ class Analysis(ABC):
 
     def parse_data_type(self, data_type, session_id, save_dir=None):
         if save_dir is None:
-            save_dir = f"/home/r2_allen/Documents/plots"
+            save_dir = f"/home/connorlab/Documents/plots"
         self.save_path = f"{save_dir}/{session_id}"
         if not os.path.exists(self.save_path):
             os.makedirs(self.save_path)

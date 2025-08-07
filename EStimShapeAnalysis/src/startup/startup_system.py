@@ -11,9 +11,9 @@ from src.startup.db_factory import migrate_database, reset_internal_state
 # Import existing utilities instead of recreating them
 from src.startup.setup_xper_properties_and_dirs import XperPropertiesModifier, make_path
 
-INTAN_REMOTE_PATH = "/run/user/1003/gvfs/sftp:host=172.30.9.78"
 BASE_PATH = "/home/connorlab/Documents/EStimShape"
 SHELL_SCRIPTS_PATH = "/home/connorlab/git/EStimShape/xper-train/shellScripts"
+INTAN_REMOTE_PATH = "/run/user/1003/gvfs/sftp:host=172.30.9.78"
 INTAN_BASE_PATH = "/mnt/data/EStimShape"
 
 # Template constants

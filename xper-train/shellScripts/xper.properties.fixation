@@ -46,12 +46,12 @@ experiment.png_path = /home/m2_allen/Documents/stimuli/train_231211/fixation/png
 generator.spec_path = /home/r2_allen/git/EStimShape/xper-train/stimuli/fixation/specs
 
 
-acq.server_host=172.30.6.80
+acq.server_host=172.30.6.61
 
 # none, comedi, ni
 acq.driver_name=comedi
 
-console.host=172.30.6.80
+console.host=172.30.6.61
 
 console.eye_simulation=false
 

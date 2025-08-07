@@ -405,7 +405,7 @@ class GroupedStimuliPlotter(ComputationModule):
                 zmax=max_val,
                 colorbar=dict(
                     title="Response",
-                    titleside="right",
+                    # titleside="right",
                     thickness=20,
                     len=colorbar_height * 0.8,  # 80% of subgroup height
                     y=sg_center,  # Center aligned with subgroup
