@@ -318,6 +318,13 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
                 textureType = "SPECULAR";
                 is2d = false;
                 break;
+            case "PARENT":
+                textureType = textureManager.readProperty(parentId);;
+                if (textureType.equals("2D")){
+                    is2d = true;
+                } else{
+                    is2d = false;
+                }
             default:
                 throw new IllegalArgumentException("Invalid texture type: " + textureType);
 

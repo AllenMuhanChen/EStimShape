@@ -57,7 +57,7 @@ def run_training():
     print("Processing " + str(len(paths)) + " Paths")
     # Extract activations
     activations = extract_activations(paths,
-                                      "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3")
+                                      "/home/connorlab/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3")
 
     # Process regular data
     channel_index = 0

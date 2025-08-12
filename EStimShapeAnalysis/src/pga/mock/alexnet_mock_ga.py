@@ -15,6 +15,7 @@ from src.pga.mock import alexnet_ga_responses
 from src.pga.multi_ga_db_util import MultiGaDbUtil
 from src.pga.regime_zero import SeedingPhaseParentSelector, SeedingPhaseMutationAssigner, \
     SeedingPhaseMutationMagnitudeAssigner
+from src.startup import context
 
 
 class TestCombinedMockWithFakeNeuronResponse(unittest.TestCase):
@@ -108,8 +109,8 @@ class AlexNetMultiGaDbUtil(MultiGaDbUtil):
 
 
 def run_trial_generator(generation):
-    output_dir = "/home/r2_allen/Documents/EStimShape/ga_dev_240207/java_output"
-    allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
+    output_dir = context.java_output_dir
+    allen_dist = context.allen_dist
 
     output_file = os.path.join(output_dir, f"generation_{generation}.txt")
     trial_generator_path = os.path.join(allen_dist, "MockNewGATrialGenerator.jar")

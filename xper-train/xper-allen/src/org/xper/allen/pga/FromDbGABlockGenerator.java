@@ -178,7 +178,7 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
             int zoomingValue = Integer.parseInt(matcher.group(1));
             System.out.println("Detected Zooming_x with x = " + zoomingValue);
 
-            stims.add(new ZoomingStim(stimId, this, parentId, zoomingValue, "3D"));
+            stims.add(new ZoomingStim(stimId, this, parentId, zoomingValue, "PARENT"));
             return true;
         }
         return false;

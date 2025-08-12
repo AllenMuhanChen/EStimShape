@@ -13,7 +13,7 @@ VERSIONS=(
 )
 
 # MySQL connection parameters
-MYSQL_HOST="172.30.6.80"
+MYSQL_HOST="172.30.6.61"
 MYSQL_USER="xper_rw"
 MYSQL_PASS="up2nite"
 
