@@ -325,6 +325,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
                 } else{
                     is2d = false;
                 }
+                break;
             default:
                 throw new IllegalArgumentException("Invalid texture type: " + textureType);
 
