@@ -155,6 +155,17 @@ class GeneticAlgorithm:
                 print("Error while reconstructing lineage from db: ", e)
 
     def _update_db(self) -> None:
+        # Write Catch Trials
+        for i in range(self.num_catch_trials):
+            catch_lineage = LineageFactory.create_catch_lineage(self.gen_id)
+            self.lineages.append(catch_lineage)
+        # for i in range(self.num_catch_trials):
+            # self.db_util.write_stim_ga_info(stim_id=time_util.now(), parent_id=0, lineage_id=catch_lineage_id,
+            #                                 stim_type="CATCH",
+            #                                 mutation_magnitude=0, gen_id=self.gen_id)
+            # # wait 1 ms because are we using time_util.now() and we don't want identical ids
+            # time.sleep(1 / 1_000)
+
         # Write lineages - instructions for Java side of GA
         for lineage in self.lineages:
             id_tree = lineage.tree.new_tree_from_function(lambda stimulus: stimulus.id)
@@ -173,13 +184,6 @@ class GeneticAlgorithm:
                                                     mutation_magnitude=float(stim.mutation_magnitude) if stim.mutation_magnitude is not None else 0,
                                                     gen_id=self.gen_id)
 
-        # Write Catch Trials
-        catch_lineage_id = time_util.now()
-        for i in range(self.num_catch_trials):
-            self.db_util.write_stim_ga_info(stim_id=time_util.now(), parent_id=0, lineage_id=catch_lineage_id, stim_type="CATCH",
-                                            mutation_magnitude=0, gen_id=self.gen_id)
-            #wait 1 ms because are we using time_util.now() and we don't want identical ids
-            time.sleep(1 / 1_000)
 
 
         # Update generations

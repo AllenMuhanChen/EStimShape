@@ -35,7 +35,7 @@ class Stimulus:
 
 
 class Lineage:
-    def __init__(self, founder: Stimulus, regimes: [Phase], current_regime_index=0, tree=None, gen_id=1):
+    def __init__(self, founder: Stimulus, regimes: [Phase], current_regime_index=0, tree=None):
         self.id = founder.id
         if tree is None:
             self.stimuli = [founder]
@@ -46,7 +46,7 @@ class Lineage:
         self.lineage_data = None
         self.regimes = regimes
         self.current_regime_index = current_regime_index
-        self.gen_id = gen_id
+        self.gen_id = founder.gen_id
 
     def generate_new_batch(self, batch_size: int) -> None:
         """
@@ -231,7 +231,7 @@ class LineageFactory:
     @staticmethod
     def create_lineage_from_tree(tree: Node, current_regime_index=0, regimes: [Phase] = None,
                                  gen_id: int = None) -> Lineage:
-        return Lineage(tree.data, regimes, tree=tree, current_regime_index=current_regime_index, gen_id=gen_id)
+        return Lineage(tree.data, regimes, tree=tree, current_regime_index=current_regime_index)
 
     @staticmethod
     def create_new_lineage_from_founder(founder: Stimulus, regimes=None) -> Lineage:
@@ -244,6 +244,12 @@ class LineageFactory:
         founder = founders[0]
         return LineageFactory.create_new_lineage_from_founder(founder, regimes)
 
+    @staticmethod
+    def create_catch_lineage(gen_id) -> Lineage:
+        time.sleep(1 / 1_000) #because we are using time_util.now() and don't want identical ids
+        catch_lineage_id = time_util.now()
+        founder = Stimulus(catch_lineage_id, "CATCH", gen_id = gen_id, parent_id=0)
+        return LineageFactory.create_new_lineage_from_founder(founder)
 
 class SideTest(Protocol):
     @abstractmethod

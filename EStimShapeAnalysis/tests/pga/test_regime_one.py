@@ -148,7 +148,7 @@ class TestRegimeOneTransitioner(unittest.TestCase):
             Stimulus(3, 3, response_rate=6, gen_id=3, parent_id=1),
             Stimulus(4, "Test", response_rate=5, gen_id=4, parent_id=2)
         ]
-        self.lineage_with_gaps = Lineage(stimuli_with_gaps[0], None, gen_id=5)
+        self.lineage_with_gaps = Lineage(stimuli_with_gaps[0], None)
         self.lineage_with_gaps.stimuli = stimuli_with_gaps
 
 
