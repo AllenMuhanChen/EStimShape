@@ -441,10 +441,14 @@ class ShuffleExperiment(ExperimentType):
 class ExperimentManager:
     """Main manager class for handling experiment setup"""
 
-    def __init__(self, type_name: str, date: str, location_id: str):
-        self.type_name = type_name
-        self.date = date
-        self.location_id = location_id
+    def __init__(self, type_name: str = None, date: str = None, location_id: str = None, session_id:str=None):
+        if session_id is None:
+            self.type_name = type_name
+            self.date = date
+            self.location_id = location_id
+        else:
+            type_name = "exp"
+            date, location_id = session_id.split("_")
 
         # Define the experiments in order
         self.experiments = [
@@ -454,6 +458,9 @@ class ExperimentManager:
             LightnessExperiment(type_name, date, location_id),
             ShuffleExperiment(type_name, date, location_id),
         ]
+
+
+
 
     def setup_databases(self) -> None:
         """Setup all databases"""

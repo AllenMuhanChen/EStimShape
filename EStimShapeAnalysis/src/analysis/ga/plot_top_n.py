@@ -73,7 +73,7 @@ class PlotTopNAnalysis(Analysis):
         compile_and_export()
 
     def compile(self):
-        compile()
+        return compile()
 
 
 def add_lineage_rank_to_df(compiled_data, spike_rates_col, channel):

@@ -50,6 +50,17 @@ class GAResponseField(StimSpecIdField):
     def get_name(self):
         return "GA Response"
 
+class MutationMagnitudeField(StimSpecIdField):
+    def get(self, task_id) -> float:
+        stim_spec_id = self.get_cached_super(task_id, StimSpecIdField)
+        self.conn.execute("SELECT mutation_magnitude FROM StimGaInfo WHERE"
+                          " stim_id = %s",
+                          params=(stim_spec_id,))
+        mutation_magnitude = self.conn.fetch_one()
+        return float(mutation_magnitude)
+
+    def get_name(self):
+        return "Mutation Magnitude"
 
 class ParentIdField(StimSpecIdField):
     def get(self, task_id) -> int:
