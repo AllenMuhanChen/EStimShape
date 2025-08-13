@@ -307,7 +307,15 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
                 is2d = true;
                 break;
             case "3D":
-                textureType = Math.random() < 0.5 ? "SHADE" : "SPECULAR";
+                // if founder or is 2D, then random SHADE/SPECULAR
+                if (parentId == 0L || is2D(textureManager.readProperty(parentId))){
+                    textureType = Math.random() < 0.5 ? "SHADE" : "SPECULAR";
+                }
+                // if already 3D, then just read from parent
+                else{
+                    // Already 3D, then
+                    textureType = textureManager.readProperty(parentId);
+                }
                 is2d = false;
                 break;
             case "SHADE":
@@ -328,7 +336,6 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
                 break;
             default:
                 throw new IllegalArgumentException("Invalid texture type: " + textureType);
-
         }
     }
 
