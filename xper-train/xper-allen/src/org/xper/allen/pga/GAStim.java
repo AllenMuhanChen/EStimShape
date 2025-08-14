@@ -117,6 +117,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
                     mStick = createMStick(); //Make 3D version
                     AllenMStickSpec mStickSpec = new AllenMStickSpec();
                     mStickSpec.setMStickInfo(mStick, false);
+                    MorphData morphData = mStick.getMorphData();
 
                     averageRGB = generator.getPngMaker().getWindow().calculateAverageRGB(mStick);
                     contrast = 1.0; //if we are using average RGB, we don't want to change the contrast. Since we are
@@ -135,6 +136,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
                     }
 
                     mStick.genMatchStickFromShapeSpec(mStickSpec, new double[]{0.0,0.0,0.0});
+                    mStick.setMorphData(morphData);
                 }
 
                 System.out.println("SUCCESSFUL CREATION OF MORPHED MATCHSTICK OF TYPE: " + this.getClass().getSimpleName());
