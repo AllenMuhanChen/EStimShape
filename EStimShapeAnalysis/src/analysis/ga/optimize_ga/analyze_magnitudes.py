@@ -1,4 +1,6 @@
 import pandas as pd
+import xmltodict
+from matplotlib.pyplot import legend
 
 from clat.compile.task.cached_task_fields import CachedTaskFieldList
 from clat.compile.task.classic_database_task_fields import StimSpecIdField
@@ -6,6 +8,7 @@ from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.util.connection import Connection
 from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField
+from src.analysis.fields.matchstick_fields import AllenMStickDataField
 from src.analysis.ga.cached_ga_fields import LineageField, GenIdField, RegimeScoreField, GAResponseField, \
     MutationMagnitudeField, ParentIdField
 from src.startup import context
@@ -25,20 +28,43 @@ class AnalyzeMagnitudesAnalysis(Analysis):
         # filter out all mutation_magnitude = 0
         compiled_data = compiled_data[compiled_data['GA Response'].notna()]
         compiled_data = compiled_data[compiled_data['Mutation Magnitude'] != 0]
-
+        compiled_data = compiled_data[compiled_data['Mutation Magnitude'].notna()]
+        compiled_data = compiled_data[compiled_data['Delta Response'].notna()]
 
         # for each stim_id, get the difference between new response and old response
         # the response of the parent and the mutation magnitude
-        grouped_data = compiled_data.groupby('StimSpecId').max()
+        grouped_data = compiled_data.groupby('StimSpecId').first()
         print(grouped_data.to_string())
         # plot scatterplot with x-axis being the magnitude and y-axis being the delta
-        fig = px.scatter(grouped_data, x="Mutation Magnitude", y="Delta Response", color="Parent GA Response")
+        fig = px.scatter(grouped_data, x="Mutation Magnitude", y="Delta Response",
+                         color="Parent GA Response",
+                         symbol="Is In RF",
+                         category_orders={"Is In RF": ["COMPLETELY_INSIDE", "PARTIALLY_INSIDE"]}
+                         )
+        fig.update_layout(
+            coloraxis_colorbar={'x': 1.0, 'y': 0.85, 'yanchor': 'top', 'xanchor': 'left', 'title': {'side': 'top'}},
+            legend={"x": 1, "y": 1, 'yanchor': 'top'},
+        )
+        fig.layout.legend.maxheight = 0.15
+        fig.layout.coloraxis.colorbar.len = 0.85
         fig.show()
-        fig.write_image(f"{self.save_dir}/{self.session_id}_by_mutation_magnitude.png")
+        import plotly.io as pio
+        pio.write_image(fig, f"{self.save_dir}/{self.session_id}_by_mutation_magnitude.png", width=1500, height=900)
 
-        fig2 = px.scatter(grouped_data, x="Parent GA Response", y="Delta Response", color="Mutation Magnitude")
+        fig2 = px.scatter(grouped_data, x="Parent GA Response", y="Delta Response",
+                          color="Parent GA Response",
+                          symbol="Is In RF",
+                          category_orders={"Is In RF": ["COMPLETELY_INSIDE", "PARTIALLY_INSIDE"]}
+                          )
+        fig2.update_layout(
+            coloraxis_colorbar={'x': 1.0, 'y': 0.85, 'yanchor': 'top', 'xanchor': 'left', 'title': {'side': 'top'}},
+            legend={"x": 1, "y": 1, 'yanchor': 'top'},
+        )
+        fig2.layout.legend.maxheight = 0.15
+        fig2.layout.coloraxis.colorbar.len = 0.85
+
         fig2.show()
-        fig2.write_image(f"{self.save_dir}/{self.session_id}_by_parent_ga_response.png")
+        fig2.write_image(f"{self.save_dir}/{self.session_id}_by_parent_ga_response.png", width=1500, height=900)
 
 
         # color the points based on the value of parent response
@@ -64,6 +90,7 @@ class AnalyzeMagnitudesAnalysis(Analysis):
         fields.append(ParentIdField(conn))
         fields.append(ParentGAResponseField(conn))
         fields.append(DeltaResponseField(conn))
+        fields.append(InRFField(conn))
         data = fields.to_data(task_ids)
         return data
 
@@ -88,6 +115,15 @@ class DeltaResponseField(ParentGAResponseField):
 
     def get_name(self):
         return "Delta Response"
+
+class InRFField(AllenMStickDataField):
+    def get(self, task_id) -> bool:
+        stim_spec_data = self.get_cached_super(task_id, AllenMStickDataField)
+        rf_strategy = stim_spec_data['AllenMStickData']['analysisMStickSpec']['rfStrategy']
+        return rf_strategy
+
+    def get_name(self):
+        return "Is In RF"
 
 if __name__ == '__main__':
     main()

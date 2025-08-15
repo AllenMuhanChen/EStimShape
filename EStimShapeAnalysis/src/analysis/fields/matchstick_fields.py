@@ -70,11 +70,14 @@ class StimSpecDataField(StimSpecIdField):
         stim_spec_data_dict = xmltodict.parse(stim_spec_data_xml)
         return stim_spec_data_dict
 
+    def get_name(self):
+        return "StimSpecData"
+
 
 class AllenMStickDataField(StimSpecDataField):
     def get(self, task_id: int) -> dict:
         stim_spec_data = self.get_cached_super(task_id, StimSpecDataField)
-        return xmltodict.parse(stim_spec_data)
+        return stim_spec_data
 
     def get_name(self):
         return "AllenMStickData"

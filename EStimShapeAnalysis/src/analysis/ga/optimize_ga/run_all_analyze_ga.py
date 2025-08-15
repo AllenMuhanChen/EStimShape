@@ -7,6 +7,7 @@ from src.analysis.isogabor.isogabor_raster_pipeline import IsogaborAnalysis
 from src.analysis.isogabor.mixed_gabors_analysis import MixedGaborsAnalysis
 from src.analysis.lightness.lightness_analysis import LightnessAnalysis
 from src.repository.good_channels import read_good_channels, read_cluster_channels
+from src.startup import context
 from src.startup.startup_system import ExperimentManager
 
 
