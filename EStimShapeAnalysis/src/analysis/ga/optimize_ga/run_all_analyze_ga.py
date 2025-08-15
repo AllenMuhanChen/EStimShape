@@ -1,13 +1,6 @@
 from typing import List, Tuple
 from clat.util.connection import Connection
 from src.analysis.ga.optimize_ga.analyze_magnitudes import AnalyzeMagnitudesAnalysis
-from src.analysis.ga.plot_top_n import PlotTopNAnalysis
-from src.analysis.ga.side_test import SideTestAnalysis
-from src.analysis.isogabor.isogabor_raster_pipeline import IsogaborAnalysis
-from src.analysis.isogabor.mixed_gabors_analysis import MixedGaborsAnalysis
-from src.analysis.lightness.lightness_analysis import LightnessAnalysis
-from src.repository.good_channels import read_good_channels, read_cluster_channels
-from src.startup import context
 from src.startup.startup_system import ExperimentManager
 
 
@@ -28,6 +21,7 @@ def main():
         manager = ExperimentManager(session_id=session_id)
         manager.switch_context_only()
         for analysis in analyses:
+            analysis.session_id = session_id
             compiled_data = analysis.compile()
             analysis.analyze(None, compiled_data)
 

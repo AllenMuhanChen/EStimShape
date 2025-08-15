@@ -19,6 +19,16 @@ def main():
     compiled_data = analysis.compile()
     analysis.analyze(None, compiled_data)
 
+
+def format_magnitude_plot(fig):
+    fig.update_layout(
+        coloraxis_colorbar={'x': 1.0, 'y': 0.85, 'yanchor': 'top', 'xanchor': 'left', 'title': {'side': 'top'}},
+        legend={"x": 1, "y": 1, 'yanchor': 'top'},
+    )
+    fig.layout.legend.maxheight = 0.15
+    fig.layout.coloraxis.colorbar.len = 0.85
+
+
 class AnalyzeMagnitudesAnalysis(Analysis):
     save_dir = '/home/connorlab/Documents/plots/ga_optimize'
 
@@ -41,33 +51,34 @@ class AnalyzeMagnitudesAnalysis(Analysis):
                          symbol="Is In RF",
                          category_orders={"Is In RF": ["COMPLETELY_INSIDE", "PARTIALLY_INSIDE"]}
                          )
-        fig.update_layout(
-            coloraxis_colorbar={'x': 1.0, 'y': 0.85, 'yanchor': 'top', 'xanchor': 'left', 'title': {'side': 'top'}},
-            legend={"x": 1, "y": 1, 'yanchor': 'top'},
-        )
-        fig.layout.legend.maxheight = 0.15
-        fig.layout.coloraxis.colorbar.len = 0.85
+        format_magnitude_plot(fig)
         fig.show()
-        import plotly.io as pio
-        pio.write_image(fig, f"{self.save_dir}/{self.session_id}_by_mutation_magnitude.png", width=1500, height=900)
+        fig.write_image(f"{self.save_dir}/{self.session_id}_by_mutation_magnitude.png", width=1500, height=900)
 
         fig2 = px.scatter(grouped_data, x="Parent GA Response", y="Delta Response",
-                          color="Parent GA Response",
+                          color="Mutation Magnitude",
                           symbol="Is In RF",
                           category_orders={"Is In RF": ["COMPLETELY_INSIDE", "PARTIALLY_INSIDE"]}
                           )
-        fig2.update_layout(
-            coloraxis_colorbar={'x': 1.0, 'y': 0.85, 'yanchor': 'top', 'xanchor': 'left', 'title': {'side': 'top'}},
-            legend={"x": 1, "y": 1, 'yanchor': 'top'},
-        )
-        fig2.layout.legend.maxheight = 0.15
-        fig2.layout.coloraxis.colorbar.len = 0.85
+        format_magnitude_plot(fig2)
 
         fig2.show()
         fig2.write_image(f"{self.save_dir}/{self.session_id}_by_parent_ga_response.png", width=1500, height=900)
 
-
-        # color the points based on the value of parent response
+        fig3 = px.scatter(grouped_data, x="Parent GA Response", y="GA Response", color = "Mutation Magnitude", symbol="Is In RF",
+                          category_orders={"Is In RF": ["COMPLETELY_INSIDE", "PARTIALLY_INSIDE"]})
+        max_x = grouped_data["Parent GA Response"].max()
+        max_y = grouped_data["GA Response"].max()
+        max_val = max(max_x, max_y)
+        fig3.add_shape(
+            type="line",
+            x0=0, y0=0,
+            x1=max_val, y1=max_val,
+            line=dict(color="black", dash="dash")
+        )
+        format_magnitude_plot(fig3)
+        fig3.show()
+        fig3.write_image(f"{self.save_dir}/{self.session_id}_child_response.png", width=1500, height=900)
         pass
 
     def compile_and_export(self):
