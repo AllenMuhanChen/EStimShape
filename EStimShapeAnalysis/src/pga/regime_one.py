@@ -270,7 +270,8 @@ class GrowingPhaseTransitioner(RegimeTransitioner):
             # Not enough valid generations to analyze
             return False
 
-        self.change = abs((self.peak_responses[-1] - self.peak_responses[0]) / self.x)
+        # if largest change in past x generations is less than 10% of the max response, then we can transition.
+        self.change = abs(self.peak_responses[-1] - self.peak_responses[0]) / max(self.peak_responses)
         return self.convergence_threshold > self.change
 
     def get_transition_data(self, lineage):
