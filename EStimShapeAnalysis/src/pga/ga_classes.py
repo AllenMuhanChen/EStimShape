@@ -35,7 +35,7 @@ class Stimulus:
 
 
 class Lineage:
-    def __init__(self, founder: Stimulus, regimes: [Phase], current_regime_index=0, tree=None):
+    def __init__(self, founder: Stimulus, regimes: [Phase], current_regime_index=0, tree=None, gen_id=None):
         self.id = founder.id
         if tree is None:
             self.stimuli = [founder]
@@ -46,7 +46,10 @@ class Lineage:
         self.lineage_data = None
         self.regimes = regimes
         self.current_regime_index = current_regime_index
-        self.gen_id = founder.gen_id
+        if gen_id is not None:
+            self.gen_id = gen_id
+        else:
+            self.gen_id = founder.gen_id
 
     def generate_new_batch(self, batch_size: int) -> None:
         """
@@ -67,6 +70,8 @@ class Lineage:
         """
         Check if this lineage should transition to a new regime based on its performance.
         """
+        if self.current_regime_index >= len(self.regimes):
+            return
         current_regime = self.regimes[self.current_regime_index]
         should_transition = current_regime.should_transition(self)
         self.lineage_data = current_regime.get_lineage_data(self)
@@ -231,7 +236,7 @@ class LineageFactory:
     @staticmethod
     def create_lineage_from_tree(tree: Node, current_regime_index=0, regimes: [Phase] = None,
                                  gen_id: int = None) -> Lineage:
-        return Lineage(tree.data, regimes, tree=tree, current_regime_index=current_regime_index)
+        return Lineage(tree.data, regimes, tree=tree, current_regime_index=current_regime_index, gen_id=gen_id)
 
     @staticmethod
     def create_new_lineage_from_founder(founder: Stimulus, regimes=None) -> Lineage:

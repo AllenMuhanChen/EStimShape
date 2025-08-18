@@ -53,9 +53,11 @@ class ClassicLineageDistributor:
 
     def get_num_trials_for_lineages(self, lineages: list[Lineage]) -> dict[Lineage: int]:
         lineages_with_regimes_past_zero = filter_to_lineages_past_regime(0, lineages=lineages)
-        qualifying_lineages = filter_by_high_peak_response(lineages_with_regimes_past_zero)
-        qualifying_lineages, num_finished_lineages = self.filter_to_unfinished_lineages(qualifying_lineages)
-
+        # qualifying_lineages = filter_by_high_peak_response(lineages_with_regimes_past_zero)
+        qualifying_lineages, num_finished_lineages = self.filter_to_unfinished_lineages(lineages_with_regimes_past_zero)
+        if len(qualifying_lineages) > self.max_lineages_to_build:
+            qualifying_lineages.sort(key=lambda x: calculate_peak_response([s.response_rate for s in x.stimuli]), reverse=True)
+            qualifying_lineages = qualifying_lineages[:self.max_lineages_to_build]
 
         # If NO lineages past regime 0, all new lineages.
         num_qualifying_lineages = len(qualifying_lineages)
