@@ -225,6 +225,7 @@ class GrowingPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
 
         # Sample from truncated normal distribution between min_magnitude and max_magnitude
         return self.get_truncated_normal(mean)
+
 def calculate_peak_response(responses, across_n=3):
     # Ensure the list of responses is at least of length across_n, filling missing values with 0
     # remove nones

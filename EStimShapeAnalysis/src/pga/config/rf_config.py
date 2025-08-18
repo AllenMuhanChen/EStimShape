@@ -13,7 +13,8 @@ class RFGeneticAlgorithmConfig(GeneticAlgorithmConfig):
         return [self.seeding_phase(),
                 self.zooming_phase(),
                 self.growing_phase(),
-                self.leafing_phase()]
+                # self.leafing_phase()
+                ]
 
     def zooming_phase(self):
         return Phase(self.zooming_phase_parent_selector(),

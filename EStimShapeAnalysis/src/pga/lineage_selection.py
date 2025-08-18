@@ -1,7 +1,7 @@
 import time
 from dataclasses import dataclass
 from random import random
-from typing import Any
+from typing import Any, Tuple
 
 from src.pga.ga_classes import LineageDistributor, Lineage, Phase, LineageFactory
 from src.pga.multi_ga_db_util import MultiGaDbUtil
@@ -16,6 +16,7 @@ def filter_by_regime_past(regime_index, regime_for_lineages: dict[int, RegimeTyp
 
 def filter_to_lineages_past_regime(regime_index: int, *, lineages: list[Lineage]) -> list[Lineage]:
     return [lineage for lineage in lineages if lineage.current_regime_index > regime_index]
+
 
 
 def filter_by_high_peak_response(lineages_with_regimes_past_regime_one, threshold=0.5):
@@ -52,36 +53,49 @@ class ClassicLineageDistributor:
 
     def get_num_trials_for_lineages(self, lineages: list[Lineage]) -> dict[Lineage: int]:
         lineages_with_regimes_past_zero = filter_to_lineages_past_regime(0, lineages=lineages)
-        lineages_with_regimes_past_regime_one = filter_to_lineages_past_regime(1, lineages=lineages)
-        qualifying_lineages = filter_by_high_peak_response(lineages_with_regimes_past_regime_one)
+        qualifying_lineages = filter_by_high_peak_response(lineages_with_regimes_past_zero)
+        qualifying_lineages, num_finished_lineages = self.filter_to_unfinished_lineages(qualifying_lineages)
 
-        # If below threshold: distribute to all lineages regime>0 equally and generate some new lineages
+
+        # If NO lineages past regime 0, all new lineages.
         num_qualifying_lineages = len(qualifying_lineages)
         num_trials_for_lineages = {}
         print("number of qualifying lineages: " + str(num_qualifying_lineages))
-        if len(lineages_with_regimes_past_zero) == 0:
-            print("No lineages past regime zero")
+        # IF we've finished all the lineages, then let's start new lineages
+        if len(qualifying_lineages) == 0 and num_finished_lineages == self.max_lineages_to_build:
+            self.max_lineages_to_build += 2
+        if len(qualifying_lineages) == 0 and num_finished_lineages == 0:
+            print("No qualifying lineages found")
             num_trials_for_lineages = self.add_new_lineages(num_trials_for_lineages,
                                                             self.number_of_trials_per_generation)
+
         # IF below threshold: distribute to all lineages regime>0 equally and generate some new lineages
-        elif num_qualifying_lineages < self.max_lineages_to_build:
+            # don't distribute to any finished lineages, and if we have finished lineages, don't start any
+            # more lineages, just allocate trials to currently finished lineages
+        elif num_qualifying_lineages < self.max_lineages_to_build - num_finished_lineages:
             print("Number of qualifying lineages is below num lineages to build. Adding new Lineages")
             num_trials_to_distribute_to_existing_lineages = self.number_of_trials_per_generation - self.number_of_new_lineages_per_generation
-            num_trials_for_lineages = self.distribute_to_non_regime_zero_lineages(lineages,
+            num_trials_for_lineages = self.distribute_to_non_regime_zero_lineages(qualifying_lineages,
                                                                                   num_trials_to_distribute_to_existing_lineages,
                                                                                   max_lineages=self.max_lineages_to_explore)
             num_trials_for_lineages = self.add_new_lineages(num_trials_for_lineages,
                                                             self.number_of_new_lineages_per_generation)
 
         # IF above threshold: distribute to qualifying lineages equally and don't generate new lineages
-        elif num_qualifying_lineages >= self.max_lineages_to_build:
+        elif num_qualifying_lineages >= self.max_lineages_to_build - num_finished_lineages:
             print("Number of qualifying lineages above num lineages to build")
             num_trials_to_distribute_to_existing_lineages = self.number_of_trials_per_generation
             # Divide equally among qualifying lineages
-            num_trials_for_lineages = distribute_amount_equally_among(qualifying_lineages,
-                                                                      amount=num_trials_to_distribute_to_existing_lineages)
+            num_trials_for_lineages = self.distribute_among(num_trials_to_distribute_to_existing_lineages,
+                                                            qualifying_lineages)
+
+
 
         return num_trials_for_lineages
+
+    def distribute_among(self, num_trials_to_distribute_to_existing_lineages, qualifying_lineages):
+        return distribute_amount_equally_among(qualifying_lineages,
+                                               amount=num_trials_to_distribute_to_existing_lineages)
 
     def add_new_lineages(self, num_trials_for_lineages: dict[Lineage: int], number_of_new_lineages):
         for new_lineage_index in range(number_of_new_lineages):
@@ -98,12 +112,21 @@ class ClassicLineageDistributor:
             non_regime_zero_lineages = sorted(non_regime_zero_lineages,
                                               key=lambda lineage: peak_response_for_lineages[lineage], reverse=True)
             non_regime_zero_lineages = non_regime_zero_lineages[:max_lineages]
-        num_trials_for_lineages = distribute_amount_equally_among(non_regime_zero_lineages,
-                                                                  amount=number_of_trials_to_distribute)
+        num_trials_for_lineages = self.distribute_among(number_of_trials_to_distribute,
+                                                        non_regime_zero_lineages)
         return num_trials_for_lineages
 
+    def filter_to_unfinished_lineages(self, lineages: list[Lineage]) -> Tuple[list[Lineage], int]:
+        max_regime_index = len(self.regimes) - 1
+        unfinished_lineages = [lineage for lineage in lineages if lineage.current_regime_index <= max_regime_index]
+        num_finished_lineages = len(lineages) - len(unfinished_lineages)
+        return unfinished_lineages, num_finished_lineages
 
-def distribute_amount_equally_among(distributees: list[Any], *, amount: int) -> dict[Any: int]:
+    def get_num_finished_lineages(self, lineages: list[Lineage]) -> int:
+        max_regime_index = len(self.regimes) - 1
+        return len([lineage for lineage in lineages if lineage.current_regime_index == max_regime_index])
+
+def distribute_amount_equally_among(distributees: list[Any], *, amount: int) -> dict[Any, int]:
     lowest_whole_amount = amount // len(distributees)
     remainder = amount % len(distributees)
     amount_for_distributees = {distributee: lowest_whole_amount for distributee in distributees}
