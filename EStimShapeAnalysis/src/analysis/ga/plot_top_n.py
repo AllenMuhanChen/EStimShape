@@ -45,7 +45,7 @@ class PlotTopNAnalysis(Analysis):
                 "GAStimInfo",
                 self.response_table
             )
-        # Break apart the response rate by channel
+
         compiled_data = add_lineage_rank_to_df(compiled_data, self.spike_rates_col, channel)
 
         visualize_module = create_grouped_stimuli_module(
