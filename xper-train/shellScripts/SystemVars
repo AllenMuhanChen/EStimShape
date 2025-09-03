@@ -9,7 +9,8 @@ VERSIONS=(
     "$VERSION_PROCEDURAL"
     "$VERSION_ISOGABOR"
     "$VERSION_GA"
-    "$VERSION_TWODVSTHREED"
+    "$VERSION_LIGHTNESS"
+    "$VERSION_SHUFFLE"
 )
 
 # MySQL connection parameters

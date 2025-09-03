@@ -40,7 +40,7 @@ mock.config_class=
 acq.server_host=172.30.6.61
 
 # none, comedi, ni
-acq.driver_name=none
+acq.driver_name=comedi
 
 console.host=172.30.6.61
 

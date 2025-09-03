@@ -4,7 +4,7 @@ source paths
 ./SystemVars
 
 #Often VARYING SystemVars - HeadFixed now. 
-mysql --host=172.30.6.80 --user=xper_rw --password=up2nite $VERSION_PROCEDURAL <<EOF
+mysql --host=172.30.6.61 --user=xper_rw --password=up2nite $VERSION_PROCEDURAL <<EOF
 UPDATE SystemVar SET val=3000 WHERE name='xper_punishment_delay_length';
 UPDATE SystemVar SET val=3000 WHERE name='xper_inter_trial_interval';
 UPDATE SystemVar SET val='false' WHERE name='xper_nafc_show_answer';
