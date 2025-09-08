@@ -27,8 +27,8 @@ def main():
     # session_id, _ = read_session_id_from_db_name(context.isogabor_database)
     compiled_data = compile()
 
-    session_id = "250620_0"
-    channel = "A-028"
+    session_id = "250904_0"
+    channel = "A-010"
     analysis = IsogaborAnalysis()
     return analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 

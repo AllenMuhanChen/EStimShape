@@ -69,6 +69,8 @@ class ZoomSetHandler(Protocol):
         query = "SELECT data FROM StimSpec WHERE id=%s"
         self.conn.execute(query, (stimulus.id,))
         data = self.conn.fetch_one()
+        if data is None:
+            return 0
         data_dict = xmltodict.parse(data)
         n_comp = data_dict["AllenMStickData"]["analysisMStickSpec"]["mAxis"]["nComponent"]
         return int(n_comp)

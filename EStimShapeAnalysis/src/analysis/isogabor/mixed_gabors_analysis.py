@@ -21,7 +21,7 @@ from src.repository.export_to_repository import export_to_repository, read_sessi
 
 
 def main():
-    channel = "A-011"
+    channel = "A-013"
     compiled_data = compile_and_export()
     analysis = MixedGaborsAnalysis()
     session_id, _ = read_session_id_from_db_name(context.isogabor_database)

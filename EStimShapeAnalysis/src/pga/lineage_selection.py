@@ -64,7 +64,7 @@ class ClassicLineageDistributor:
         num_trials_for_lineages = {}
         print("number of qualifying lineages: " + str(num_qualifying_lineages))
         # IF we've finished all the lineages, then let's start new lineages
-        if len(qualifying_lineages) == 0 and num_finished_lineages == self.max_lineages_to_build:
+        if len(qualifying_lineages) == 0 and num_finished_lineages >= self.max_lineages_to_build:
             self.max_lineages_to_build += 2
         if len(qualifying_lineages) == 0 and num_finished_lineages == 0:
             print("No qualifying lineages found")

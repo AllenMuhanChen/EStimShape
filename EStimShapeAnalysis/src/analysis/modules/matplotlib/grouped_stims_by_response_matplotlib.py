@@ -443,7 +443,7 @@ class GroupedStimuliPlotter_matplotlib(ComputationModule):
     def _plot_cell(self, ax, cell_data, response_rate_col, path_col, min_val, max_val):
         """Plot images in a single cell with colored borders."""
         if cell_data.empty:
-            ax.text(0.5, 0.5, "No data", ha='center', va='center')
+            # ax.text(0.5, 0.5, "No data", ha='center', va='center')
             ax.axis('off')
             return
 

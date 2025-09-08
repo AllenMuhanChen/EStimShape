@@ -251,7 +251,7 @@ public class PythonImageProcessor {
 
         try {
             // Example using virtual environment
-            PythonImageProcessor processor = PythonImageProcessor.withVirtualEnv(scriptPath, "/home/r2_allen/anaconda3/envs/3.11");
+            PythonImageProcessor processor = PythonImageProcessor.withVirtualEnv(scriptPath, "/home/connorlab/miniconda3/envs/EStimShapeAnalysis");
 
             // Example using default python3
             // PythonImageProcessor processor = new PythonImageProcessor(scriptPath);

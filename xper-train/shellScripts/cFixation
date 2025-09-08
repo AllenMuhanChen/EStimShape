@@ -12,8 +12,8 @@ UPDATE SystemVar SET val=3 WHERE name='xper_streak_to_start_punishment';
 UPDATE SystemVar SET val=3000 WHERE name='xper_punishment_delay_length';
 EOF
 
-sudo -S <<< r2_allen cp $XPER_PROPERTIES_FIXATION $DIST/xper.properties
-sudo -S <<< r2_allen cp $XPER_PROPERTIES_FIXATION $DIST/allen/xper.properties
+sudo -S <<< Whedon101 cp $XPER_PROPERTIES_FIXATION $DIST/xper.properties
+sudo -S <<< Whedon101 cp $XPER_PROPERTIES_FIXATION $DIST/allen/xper.properties
 
 cd $DIST
 java -jar console.jar

@@ -14,15 +14,16 @@ def main():
     session_id = "250425_0"
     channel = "A-002"
     analysis = PlotGenerationsAnalysis()
-    # compiled_data = plot_top_n.compile()
+    compiled_data = plot_top_n.compile()
 
     session_id, _ = read_session_id_from_db_name(context.ga_database)
-    session_id = "250507_0"
-    channel = "A-000"
-    analysis.run(session_id, "raw", channel, compiled_data=None)
+    session_id = "250904_0"
+    channel = "A-010"
+    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
 class PlotGenerationsAnalysis(PlotTopNAnalysis):
+    save_path = context.ga_plot_path
     def analyze(self, channel, compiled_data=None):
         if compiled_data is None:
             compiled_data = import_from_repository(
@@ -74,6 +75,7 @@ class PlotGenerationsAnalysis(PlotTopNAnalysis):
         )
 
         visualize_module = create_grouped_stimuli_module(
+            cell_size=(100,100),
             response_rate_col=self.spike_rates_col,
             response_rate_key=channel,
             path_col='ThumbnailPath',
@@ -112,7 +114,7 @@ class PlotGenerationsAnalysis(PlotTopNAnalysis):
         # Create and run pipeline with aggregated data
         lineage_branch = create_branch().then(visualize_module)
         first_gen_branch = create_branch().then(first_gen_module)
-        pipeline = create_pipeline().make_branch(first_gen_branch, lineage_branch).build()
+        pipeline = create_pipeline().make_branch(lineage_branch, first_gen_branch).build()
         result = pipeline.run(compiled_data)
         plt.show()
 

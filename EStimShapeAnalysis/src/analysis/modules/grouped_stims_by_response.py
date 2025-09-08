@@ -41,6 +41,7 @@ def create_grouped_stimuli_module(
         cols_in_info_box=None,
         publish_mode: bool = False,
         include_labels_for=None,
+        include_colorbar: bool = False,
         subplot_spacing=None,
         module_name="grouped_stimuli_visualization") -> AnalysisModule:
     """
@@ -78,8 +79,8 @@ def create_grouped_stimuli_module(
     if publish_mode:
         save_pdf = True
         cols_in_info_box = []
-        border_width = 40
-        include_colorbar = True
+        border_width = 100
+        include_colorbar = False
     else:
         save_pdf = False
         include_colorbar = False
@@ -205,8 +206,8 @@ class GroupedStimuliPlotter(ComputationModule):
         top_margin_px = 100  # For title and column labels
 
         # Calculate EXACT figure dimensions in pixels
-        content_width_px = (n_cols * cell_width) + ((n_cols - 1) * horiz_spacing_px)
-        content_height_px = n_rows * cell_height + ((n_rows - 1) * vert_spacing_px)
+        content_width_px = n_cols * (cell_width + horiz_spacing_px)
+        content_height_px = n_rows * (cell_height + vert_spacing_px)
 
         # Total figure dimensions including all subgroups and margins
         fig_width_px = left_margin_px + content_width_px + right_margin_px
@@ -215,6 +216,30 @@ class GroupedStimuliPlotter(ComputationModule):
 
         # Create a new figure with fixed dimensions
         fig = go.Figure()
+
+        fig.update_layout(
+            autosize=False,
+            width=fig_width_px,
+            height=fig_height_px,
+            showlegend=False,
+            plot_bgcolor='rgba(0,0,0,0)',  # Transparent background
+            paper_bgcolor='rgba(255,255,255,1)',  # White paper
+            margin=dict(l=0, r=0, t=0, b=0),  # No auto margins - we control everything
+            xaxis=dict(
+                showgrid=False,
+                zeroline=False,
+                showticklabels=False,
+                showline=False,
+                range=[0, 1]
+            ),
+            yaxis=dict(
+                showgrid=False,
+                zeroline=False,
+                showticklabels=False,
+                showline=False,
+                range=[0, 1]
+            )
+        )
 
         # Add a title if provided
         if self.title:
@@ -225,7 +250,7 @@ class GroupedStimuliPlotter(ComputationModule):
                     'x': 0.5,
                     'xanchor': 'center',
                     'yanchor': 'top',
-                    'font': {'size': 36}
+                    'font': {'size': 18}
                 }
             )
 
@@ -257,7 +282,7 @@ class GroupedStimuliPlotter(ComputationModule):
                     xref="paper",
                     yref="paper",
                     showarrow=False,
-                    font=dict(size=16),
+                    font=dict(size=8),
                     align="center"
                 )
 
@@ -300,7 +325,7 @@ class GroupedStimuliPlotter(ComputationModule):
                             xref="paper",
                             yref="paper",
                             showarrow=False,
-                            font=dict(size=36),
+                            font=dict(size=18),
                             align="right",
                             xanchor="right",
                             yanchor="middle"
@@ -315,7 +340,7 @@ class GroupedStimuliPlotter(ComputationModule):
                             xref="paper",
                             yref="paper",
                             showarrow=False,
-                            font=dict(size=36),
+                            font=dict(size=18),
                             align="center"
                         )
 
@@ -331,15 +356,16 @@ class GroupedStimuliPlotter(ComputationModule):
                     # Plot this cell
                     if cell_data.empty:
                         # Add "No data" annotation
-                        fig.add_annotation(
-                            text="No data",
-                            x=cell_center_x,
-                            y=cell_center_y,
-                            xref="paper",
-                            yref="paper",
-                            showarrow=False,
-                            font=dict(size=12)
-                        )
+                        # fig.add_annotation(
+                        #     text="No data",
+                        #     x=cell_center_x,
+                        #     y=cell_center_y,
+                        #     xref="paper",
+                        #     yref="paper",
+                        #     showarrow=False,
+                        #     font=dict(size=12)
+                        # )
+                        pass
                     else:
                         # Process and add the image using the EXACT dimensions
                         image_width = (cell_right - cell_left)
@@ -355,28 +381,7 @@ class GroupedStimuliPlotter(ComputationModule):
                 self._add_subgroup_colorbar(fig, min_val, max_val, sg_center, sg_top, sg_bottom)
 
         # Set layout properties with EXACT dimensions
-        fig.update_layout(
-            width=fig_width_px,
-            height=fig_height_px,
-            showlegend=False,
-            plot_bgcolor='rgba(0,0,0,0)',  # Transparent background
-            paper_bgcolor='rgba(255,255,255,1)',  # White paper
-            margin=dict(l=0, r=0, t=0, b=0),  # No auto margins - we control everything
-            xaxis=dict(
-                showgrid=False,
-                zeroline=False,
-                showticklabels=False,
-                showline=False,
-                range=[0, 1]
-            ),
-            yaxis=dict(
-                showgrid=False,
-                zeroline=False,
-                showticklabels=False,
-                showline=False,
-                range=[0, 1]
-            )
-        )
+
 
         return fig
 
@@ -718,20 +723,21 @@ class PlotlyFigureSaverOutput(OutputHandler):
                 original_ext = ''
 
             # Save as SVG for vector editing
+            import plotly.io as pio
             if self.save_svg:
                 svg_path = f"{base_path}.svg"
-                figure.write_image(svg_path, format='svg')
+                pio.write_image(figure, svg_path, format='svg', width=figure.layout.width, height=figure.layout.height)
                 logger.info(f"Saved SVG for vector editing to {svg_path}")
 
             # Save as PDF if requested
             if self.save_pdf:
                 pdf_path = f"{base_path}.pdf"
-                figure.write_image(pdf_path, format='pdf')
+                pio.write_image(figure, pdf_path, format='pdf', width=figure.layout.width, height=figure.layout.height)
                 logger.info(f"Saved PDF to {pdf_path}")
 
             # Save as original format (PNG, JPEG, etc.)
             if original_ext and original_ext.lower() not in ['html', 'svg', 'pdf']:
-                figure.write_image(self.save_path, scale=2)  # Higher quality rendering
+                pio.write_image(figure, self.save_path, scale=2, engine='kaleido', width=figure.layout.width, height=figure.layout.height)  # Higher quality rendering
                 logger.info(f"Saved figure to {self.save_path}")
 
             # Save as interactive HTML

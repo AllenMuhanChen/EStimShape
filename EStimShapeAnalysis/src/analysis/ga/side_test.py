@@ -12,6 +12,7 @@ from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, Pare
 from src.analysis.ga.plot_top_n import clean_ga_data
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
+from src.analysis.lightness.lightness_analysis import TextureField
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.analysis.modules.matplotlib.grouped_rasters_matplotlib import create_grouped_raster_module
 from src.analysis.modules.grouped_rsth import create_psth_module
@@ -31,9 +32,9 @@ def main():
     # if channel is None:
         # channel = read_cluster_channels(session_id)[0]
 
-    session_id = "250427_0"
-    channel = "A-018"
-    analysis.run(session_id, "raw", channel, compiled_data=None)
+    session_id = "250904_0"
+    channel = "A-010"
+    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
 class SideTestAnalysis(Analysis):
@@ -49,7 +50,7 @@ class SideTestAnalysis(Analysis):
 
         # STIMS with RESPONSE for SIDE TEST
 
-        limit = 20
+        limit = 10
         visualize_module = create_grouped_stimuli_module(
             response_rate_col=self.spike_rates_col,
             response_rate_key=channel,
@@ -68,7 +69,10 @@ class SideTestAnalysis(Analysis):
             save_path=f"{self.save_path}/{channel}: 2dvs3d_more.png",
             include_labels_for={"row"},
             publish_mode=True,
-            subplot_spacing=(20, 0)
+            subplot_spacing=(20, 20),
+            cell_size= (400, 400),
+            border_width= 100,
+            include_colorbar = True
         )
 
         plot_branch = create_branch().then(visualize_module)
@@ -85,8 +89,7 @@ class SideTestAnalysis(Analysis):
         )
         raster_branch = create_branch().then(raster_module)
 
-        # Create a PSTH module sorted by average firing rate
-
+        # Create a PSTH module sorted by average firing rat
         psth_module = create_psth_module(
             primary_group_col='TestType',
             secondary_group_col='TestId',
@@ -126,9 +129,9 @@ class SideTestAnalysis(Analysis):
             save_path=f"{self.save_path}/{channel}: 2dvs3d_psth_examples.png",
             cols_in_info_box=[],
             cell_size=(300, 300),
-            include_labels_for={},
+            include_labels_for={"TestType"},
             publish_mode=True,
-            subplot_spacing=(20, 20),
+            subplot_spacing=(0, 0),
         )
 
         psth_examples_branch = create_branch().then(psth_examples)
@@ -184,6 +187,7 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields.append(LineageField(conn))
     fields.append(StimTypeField(conn))
     fields.append(StimPathField(conn))
+    fields.append(TextureField(conn))
     # fields.append(AverageRGBField(conn))
     fields.append(UnderlingAvgRGBField(conn))
     fields.append(ThumbnailField(conn))
@@ -211,7 +215,7 @@ def organize_data(data_for_stim_ids):
             # PARENT
             for _, parent_row in parent_rows.iterrows():
                 parent_row['TestId'] = parent_row['StimSpecId']
-                if "2D" in parent_row['StimType']:
+                if "2D" in parent_row['Texture']:
                     parent_row['TestType'] = "2D"
                 else:
                     parent_row['TestType'] = "3D"

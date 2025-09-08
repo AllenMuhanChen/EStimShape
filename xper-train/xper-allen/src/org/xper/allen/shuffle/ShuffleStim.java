@@ -21,9 +21,9 @@ public class ShuffleStim extends TwoDVsThreeDStim {
     protected ShuffleType shuffleType;
     public static Map<ShuffleType, String> scriptPathsForShuffleTypes = new HashMap<ShuffleType, String>(){
         {
-            put(ShuffleType.PIXEL, "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/imageshuffle/pixel_shuffle.py");
-            put(ShuffleType.PHASE, "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/imageshuffle/phase_shuffle.py");
-            put(ShuffleType.MAGNITUDE, "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/imageshuffle/magnitude_shuffle.py");
+            put(ShuffleType.PIXEL, "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/imageshuffle/pixel_shuffle.py");
+            put(ShuffleType.PHASE, "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/imageshuffle/phase_shuffle.py");
+            put(ShuffleType.MAGNITUDE, "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/imageshuffle/magnitude_shuffle.py");
         }
     };
     ShuffleTypePropertyManager shuffleTypeManager;
@@ -63,7 +63,7 @@ public class ShuffleStim extends TwoDVsThreeDStim {
             if (scriptPath == null) {
                 throw new IllegalArgumentException("No script path found for shuffle type: " + shuffleType);
             }
-            PythonImageProcessor processor = PythonImageProcessor.withVirtualEnv(scriptPath, "/home/r2_allen/anaconda3/envs/3.11");
+            PythonImageProcessor processor = PythonImageProcessor.withVirtualEnv(scriptPath, "/home/connorlab/miniconda3/envs/EStimShapeAnalysis");
             try {
                 shuffledPngPath = processor.processImage(originalPngPath, shuffleType.toString()).getAbsolutePath();
             } catch (IOException e) {

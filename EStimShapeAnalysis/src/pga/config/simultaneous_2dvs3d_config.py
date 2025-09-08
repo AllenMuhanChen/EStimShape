@@ -78,8 +78,9 @@ class DnessSideTest(SideTest):
                 if stim_to_test.gen_id == gen_id - 1:
                     if not is_side_test_stimulus(stim_to_test):
                         if stim_to_test.response_rate is not None:
-                            self._assign_2d_or_3d(stim_to_test, lineage)
-                            self.lineages_for_stim[stim_to_test.id] = lineage
+                            if stim_to_test.mutation_type != "CATCH":
+                                self._assign_2d_or_3d(stim_to_test, lineage)
+                                self.lineages_for_stim[stim_to_test.id] = lineage
 
 
         # Now we have all stimuli from this generation, we can extract top N

@@ -5,8 +5,8 @@ source paths
 START_RANK=1
 END_RANK=10
 
-sudo -S <<< r2_allen cp $XPER_PROPERTIES_SHUFFLE $DIST/xper.properties
-sudo -S <<< r2_allen cp $XPER_PROPERTIES_SHUFFLE $DIST/allen/xper.properties
+sudo -S <<< Whedon101 cp $XPER_PROPERTIES_SHUFFLE $DIST/xper.properties
+sudo -S <<< Whedon101 cp $XPER_PROPERTIES_SHUFFLE $DIST/allen/xper.properties
 cd $DIST/allen
 
 java -jar ShuffleTrialGenerator.jar $START_RANK $END_RANK

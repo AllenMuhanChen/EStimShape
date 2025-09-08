@@ -20,10 +20,10 @@ from src.repository.export_to_repository_alchemy import export_to_repository_alc
 
 
 def main():
-    channel = 'A-028'
+    channel = 'A-010'
     session_id, _ = read_session_id_from_db_name(context.shuffle_database)
     analysis = ShuffleAnalysis()
-    compiled_data = analysis.compile_and_export()
+    compiled_data = analysis.compile()
     print(compiled_data.to_string())
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
