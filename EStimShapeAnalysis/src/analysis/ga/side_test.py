@@ -32,8 +32,8 @@ def main():
     # if channel is None:
         # channel = read_cluster_channels(session_id)[0]
 
-    session_id = "250904_0"
-    channel = "A-010"
+    session_id = "250911_0"
+    channel = "A-014"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
@@ -49,7 +49,7 @@ class SideTestAnalysis(Analysis):
             )
 
         # STIMS with RESPONSE for SIDE TEST
-
+        compiled_data = compiled_data[compiled_data[self.spike_rates_col].notna()]
         limit = 10
         visualize_module = create_grouped_stimuli_module(
             response_rate_col=self.spike_rates_col,
@@ -68,7 +68,7 @@ class SideTestAnalysis(Analysis):
             title=f'2D vs 3D Test: {channel}',
             save_path=f"{self.save_path}/{channel}: 2dvs3d_more.png",
             include_labels_for={"row"},
-            publish_mode=True,
+            publish_mode=False,
             subplot_spacing=(20, 20),
             cell_size= (400, 400),
             border_width= 100,

@@ -9,14 +9,14 @@ from src.startup import context
 
 
 def main():
-    analysis = FilterChannelsAnalysis()
+    analysis = FilterChannelsByGAAnalysis()
     session_id, _ = read_session_id_from_db_name(context.ga_database)
-    session_id = "250425_0"
+    # session_id = "250425_0"
     channel = None
     analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
-class FilterChannelsAnalysis(Analysis):
+class FilterChannelsByGAAnalysis(Analysis):
     slide_length = 0.5  # in seconds
     pre_stim_duration = 0.2
     post_stim_duration = 0.2
@@ -89,14 +89,18 @@ class FilterChannelsAnalysis(Analysis):
                 not_during_stim_spike_rates_per_channel[channel].extend(
                     spike_rates if type(spike_rates) is list else [spike_rates])
 
-        # Calculate averages
+        # Calculate means and stds
         average_during_stim_spike_rates_per_channel = {}
+        std_during_stim_spike_rates_per_channel = {}
         for channel, spike_rates in during_stim_spike_rates_per_channel.items():
             average_during_stim_spike_rates_per_channel[channel] = np.mean(spike_rates)
+            std_during_stim_spike_rates_per_channel[channel] = np.std(spike_rates)
 
         average_not_during_stim_spike_rates_per_channel = {}
+        std_not_during_stim_spike_rates_per_channel = {}
         for channel, spike_rates in not_during_stim_spike_rates_per_channel.items():
             average_not_during_stim_spike_rates_per_channel[channel] = np.mean(spike_rates)
+            std_not_during_stim_spike_rates_per_channel[channel] = np.std(spike_rates)
 
         # Calculate t-test
         significant_channels = []
@@ -121,14 +125,17 @@ class FilterChannelsAnalysis(Analysis):
             if channel in not_during_stim_spike_rates_per_channel:
                 during_mean = average_during_stim_spike_rates_per_channel[channel]
                 not_during_mean = average_not_during_stim_spike_rates_per_channel[channel]
-
+                during_std = std_during_stim_spike_rates_per_channel[channel]
+                not_during_std = std_not_during_stim_spike_rates_per_channel[channel]
                 # Calculate percentage increase (avoid division by zero)
                 if not_during_mean > 0:
                     percentage_increase = ((during_mean - not_during_mean) / not_during_mean) * 100
+                    percentage_std_diff = (not_during_std - during_std) / not_during_std * 100
 
                     # Filter channels with 20% or more increase
-                    if percentage_increase >= 20:
+                    if percentage_increase >= 20 or percentage_std_diff >= 10:
                         magnitude_channels.append(channel)
+
                 elif during_mean > 0 and not_during_mean == 0:
                     magnitude_channels.append(channel)
 

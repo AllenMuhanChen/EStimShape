@@ -30,8 +30,8 @@ def main():
 
     # compiled_data = None
     session_id, _ = read_session_id_from_db_name(context.ga_database)
-    session_id = "250904_0"
-    channel = "A-010"
+    session_id = "250909_0"
+    channel = "A-027"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 

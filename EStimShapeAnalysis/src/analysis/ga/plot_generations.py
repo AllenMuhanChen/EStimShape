@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 
 from clat.pipeline.pipeline_base_classes import create_pipeline, create_branch
 from src.analysis.ga import plot_top_n
-from src.analysis.ga.plot_top_n import PlotTopNAnalysis
+from src.analysis.ga.plot_top_n import PlotTopNAnalysis, clean_ga_data
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.repository.export_to_repository import read_session_id_from_db_name
 from src.repository.import_from_repository import import_from_repository
@@ -17,8 +17,8 @@ def main():
     compiled_data = plot_top_n.compile()
 
     session_id, _ = read_session_id_from_db_name(context.ga_database)
-    session_id = "250904_0"
-    channel = "A-010"
+    session_id = "250911_0"
+    channel = "A-023"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
@@ -33,6 +33,7 @@ class PlotGenerationsAnalysis(PlotTopNAnalysis):
                 self.response_table
             )
 
+        compiled_data = compiled_data[compiled_data[self.spike_rates_col].notna()]
         compiled_data['Spike Rate'] = compiled_data[self.spike_rates_col].apply(
             lambda x: x[channel] if channel in x else 0)
 

@@ -278,7 +278,8 @@ class GroupedStimuliPlotter(ComputationModule):
                 fig.add_annotation(
                     text=f"{subgroup_col}: {subgroup_value}",
                     x=0.5,
-                    y=sg_top + 0.02,  # Just above the subgroup
+                    y=sg_top,  # Just above the subgroup
+                    yanchor="bottom",
                     xref="paper",
                     yref="paper",
                     showarrow=False,
@@ -320,15 +321,15 @@ class GroupedStimuliPlotter(ComputationModule):
                     if col_idx == 0 and self.include_row_labels and row_col and row_value is not None:
                         fig.add_annotation(
                             text=str(row_value),
-                            x=cell_left - (cell_width / 4 * x_scale),
+                            x=cell_left,
+                            xanchor="right",
                             y=cell_center_y,
+                            yanchor="middle",
                             xref="paper",
                             yref="paper",
                             showarrow=False,
                             font=dict(size=18),
                             align="right",
-                            xanchor="right",
-                            yanchor="middle"
                         )
 
                     # Add column label if needed
@@ -336,7 +337,9 @@ class GroupedStimuliPlotter(ComputationModule):
                         fig.add_annotation(
                             text=str(col_value),
                             x=cell_center_x,
-                            y=cell_top + 0.01,
+                            y=cell_top,
+                            yanchor="bottom",
+                            xanchor="center",
                             xref="paper",
                             yref="paper",
                             showarrow=False,
@@ -554,7 +557,7 @@ class GroupedStimuliPlotter(ComputationModule):
                     fig.add_annotation(
                         text=info_text,
                         x=x,
-                        y=y - height / 2 - 0.01,  # Just below the image
+                        y=y + height / 2 - 0.01,  # Just below the image
                         xref="paper",
                         yref="paper",
                         showarrow=False,
