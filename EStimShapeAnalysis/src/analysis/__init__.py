@@ -5,7 +5,8 @@ import pandas as pd
 
 
 class Analysis(ABC):
-
+    """Meant to streamline the process of fetching data from either manually compilation"""
+    " the data repository for analyzing it."
     def __init__(self):
         self.session_id = None
         self.spike_rates_col = None

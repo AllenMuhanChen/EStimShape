@@ -6,6 +6,7 @@ from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.util.connection import Connection
 from clat.compile.task.compile_task_id import TaskIdCollector
 from src.analysis import Analysis
+from src.analysis.isogabor.isogabor_index import create_isochromatic_index_module
 from src.analysis.modules.matplotlib.grouped_rasters_matplotlib import create_grouped_raster_module
 from src.analysis.modules.grouped_rsth import create_psth_module
 
@@ -17,7 +18,7 @@ from src.analysis.isogabor.old_isogabor_analysis import TypeField, FrequencyFiel
 
 # Import our pipeline framework
 from clat.pipeline.pipeline_base_classes import (
-    create_pipeline, create_branch
+    create_pipeline, create_branch, AnalysisModuleFactory
 )
 from src.repository.export_to_repository import export_to_repository
 
@@ -25,12 +26,12 @@ from src.repository.export_to_repository import export_to_repository
 def main():
     # channel = "A-011"
     # session_id, _ = read_session_id_from_db_name(context.isogabor_database)
-    compiled_data = compile()
+    # compiled_data = compile()
 
-    session_id = "250911_0"
-    channel = "A-027"
+    session_id = "250507_0"
+    channel = "A-001"
     analysis = IsogaborAnalysis()
-    return analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    return analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
 class IsogaborAnalysis(Analysis):
@@ -44,6 +45,9 @@ class IsogaborAnalysis(Analysis):
                 self.response_table,
             )
             print(compiled_data.columns)
+
+        # CALCULATE INDEX
+        index_module = create_isochromatic_index_module(channel=channel, session_id=self.session_id)
 
         # ----------------
         # STEP 1: Create raster plot modules
@@ -124,14 +128,16 @@ class IsogaborAnalysis(Analysis):
         # ----------------
         # STEP 3: Create and run the pipeline
         # ----------------
+        index_branch = create_branch().then(index_module)
         raster_branch = create_branch().then(grouped_raster_module)
         raster_by_isotype_branch = create_branch().then(grouped_raster_by_isotype_module)
         psth_branch = create_branch().then(psth_module)
 
         pipeline = create_pipeline().make_branch(
-            raster_branch,
-            raster_by_isotype_branch,
-            psth_branch
+            index_branch,
+            # raster_branch,
+            # raster_by_isotype_branch,
+            # psth_branch
         ).build()
 
         # Run the pipeline

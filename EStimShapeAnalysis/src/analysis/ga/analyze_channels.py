@@ -120,29 +120,32 @@ class FilterChannelsByGAAnalysis(Analysis):
                         significant_channels.append(channel)
 
         # Criteria for Magnitude Difference
-        magnitude_channels = []
+        passing_channels = []
+        mean_rates_for_channels = {}
         for channel in during_stim_spike_rates_per_channel.keys():
             if channel in not_during_stim_spike_rates_per_channel:
                 during_mean = average_during_stim_spike_rates_per_channel[channel]
+                mean_rates_for_channels[channel] = during_mean
+
                 not_during_mean = average_not_during_stim_spike_rates_per_channel[channel]
                 during_std = std_during_stim_spike_rates_per_channel[channel]
                 not_during_std = std_not_during_stim_spike_rates_per_channel[channel]
                 # Calculate percentage increase (avoid division by zero)
                 if not_during_mean > 0:
                     percentage_increase = ((during_mean - not_during_mean) / not_during_mean) * 100
-                    percentage_std_diff = (not_during_std - during_std) / not_during_std * 100
+                    percentage_std_diff = (during_std - not_during_std) / not_during_std * 100
 
                     # Filter channels with 20% or more increase
                     if percentage_increase >= 20 or percentage_std_diff >= 10:
-                        magnitude_channels.append(channel)
+                        passing_channels.append(channel)
 
                 elif during_mean > 0 and not_during_mean == 0:
-                    magnitude_channels.append(channel)
+                    passing_channels.append(channel)
 
         print("All Significant Channels: " + str(significant_channels))
-        print("Channels with 20%+ Magnitude Increase: " + str(magnitude_channels))
+        print("Channels with 20%+ Magnitude Increase: " + str(passing_channels))
 
-        return magnitude_channels
+        return passing_channels, mean_rates_for_channels
 
     def compile(self):
         pass

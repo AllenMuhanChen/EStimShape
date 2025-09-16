@@ -14,12 +14,12 @@ from src.startup import context
 def main():
     analyses = [
         IsogaborAnalysis(),
-        PlotTopNAnalysis(),
-        PlotGenerationsAnalysis(),
+        # PlotTopNAnalysis(),
+        # PlotGenerationsAnalysis(),
         SideTestAnalysis(),
-        LightnessAnalysis(),
-        MixedGaborsAnalysis(),
-        ShuffleAnalysis()
+        # LightnessAnalysis(),
+        # MixedGaborsAnalysis(),
+        # ShuffleAnalysis()
     ]
 
     # Ask for session ID (empty for all sessions)
@@ -73,8 +73,8 @@ def main():
 
 def extract_good_channels(session_id):
     channel_analysis = FilterChannelsByGAAnalysis()
-    good_channels = channel_analysis.run(session_id, "raw", None, compiled_data=None)
-    return good_channels
+    good_channels, mean_rates = channel_analysis.run(session_id, "raw", None, compiled_data=None)
+    return good_channels, mean_rates
 
 
 if __name__ == "__main__":

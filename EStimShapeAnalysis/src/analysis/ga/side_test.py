@@ -10,6 +10,7 @@ from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, ParentIdField
 from src.analysis.ga.plot_top_n import clean_ga_data
+from src.analysis.ga.solid_preference_index import create_sp_index_module
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
 from src.analysis.lightness.lightness_analysis import TextureField
@@ -18,23 +19,22 @@ from src.analysis.modules.matplotlib.grouped_rasters_matplotlib import create_gr
 from src.analysis.modules.grouped_rsth import create_psth_module
 from src.analysis.modules.utils.sorting_utils import SpikeRateSortingUtils
 from src.intan.MultiFileParser import MultiFileParser
-from src.repository.export_to_repository import export_to_repository, read_session_id_from_db_name
-from src.repository.good_channels import read_cluster_channels
+from src.repository.export_to_repository import export_to_repository
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 
 
 def main():
     # channel = None
-    compiled_data = compile()
+    # compiled_data = compile()
     analysis = SideTestAnalysis()
     # session_id, _ = read_session_id_from_db_name(context.ga_database)
     # if channel is None:
         # channel = read_cluster_channels(session_id)[0]
 
-    session_id = "250911_0"
-    channel = "A-014"
-    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    session_id = "250507_0"
+    channel = "A-001"
+    analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
 class SideTestAnalysis(Analysis):
@@ -47,9 +47,14 @@ class SideTestAnalysis(Analysis):
                 "2Dvs3DStimInfo",
                 self.response_table
             )
-
-        # STIMS with RESPONSE for SIDE TEST
+        # CLEAN UP DATA SOME
         compiled_data = compiled_data[compiled_data[self.spike_rates_col].notna()]
+
+        # Index Computation Module
+        index_module = create_sp_index_module(channel=channel, session_id=self.session_id)
+        index_branch = create_branch().then(index_module)
+
+        # VISUALIZE MODULE
         limit = 10
         visualize_module = create_grouped_stimuli_module(
             response_rate_col=self.spike_rates_col,
@@ -137,8 +142,11 @@ class SideTestAnalysis(Analysis):
         psth_examples_branch = create_branch().then(psth_examples)
 
         pipeline = create_pipeline().make_branch(
-            plot_branch, raster_branch, psth_branch, psth_examples_branch
-        ).build()
+            index_branch).build()
+        #
+        # pipeline = create_pipeline().make_branch(
+        #     index_branch, plot_branch, raster_branch, psth_branch, psth_examples_branch
+        # ).build()
         result = pipeline.run(compiled_data)
         # Show the figure
         plt.show()

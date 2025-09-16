@@ -1,10 +1,10 @@
 from src.pga.config.simultaneous_2dvs3d_config import Simultaneous3Dvs2DConfig
 ga_name = "New3D"
-ga_database = "allen_ga_exp_250911_0"
-nafc_database = "allen_estimshape_exp_250911_0"
-isogabor_database = "allen_isogabor_exp_250911_0"
-lightness_database = "allen_lightness_exp_250911_0"
-shuffle_database = "allen_shuffle_exp_250911_0"
+ga_database = "allen_ga_exp_250909_0"
+nafc_database = "allen_estimshape_exp_250909_0"
+isogabor_database = "allen_isogabor_exp_250909_0"
+lightness_database = "allen_lightness_exp_250909_0"
+shuffle_database = "allen_shuffle_exp_250909_0"
 
 base_dir = "/home/connorlab/Documents/EStimShape"
 allen_dist = "/home/connorlab/git/EStimShape/xper-train/dist/allen"
