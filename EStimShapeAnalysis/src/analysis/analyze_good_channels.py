@@ -1,5 +1,5 @@
 from src.analysis.analyze_raw_data import fetch_session_ids
-from src.analysis.ga.analyze_channels import FilterChannelsByGAAnalysis
+from src.analysis.ga.analyze_channels import extract_good_channels
 from src.analysis.ga.plot_generations import PlotGenerationsAnalysis
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.analysis.ga.side_test import SideTestAnalysis
@@ -50,6 +50,7 @@ def main():
 
 
     for (session_id,) in sessions_to_process:
+
         if session_id not in channels_map or not channels_map[session_id]:
             print(f"No channels configured for session {session_id}. Skipping.")
             continue
@@ -71,10 +72,7 @@ def main():
                     # import traceback
                     # traceback.print_exc()
 
-def extract_good_channels(session_id):
-    channel_analysis = FilterChannelsByGAAnalysis()
-    good_channels, mean_rates = channel_analysis.run(session_id, "raw", None, compiled_data=None)
-    return good_channels, mean_rates
+
 
 
 if __name__ == "__main__":

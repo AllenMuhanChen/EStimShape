@@ -44,7 +44,6 @@ class IsogaborAnalysis(Analysis):
                 'IsoGaborStimInfo',
                 self.response_table,
             )
-            print(compiled_data.columns)
 
         # CALCULATE INDEX
         index_module = create_isochromatic_index_module(channel=channel, session_id=self.session_id)

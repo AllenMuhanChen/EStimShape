@@ -12,10 +12,10 @@ def main():
     # Initialize analysis modules
     analyses = [
         IsogaborAnalysis(),
-        PlotTopNAnalysis(),
+        # PlotTopNAnalysis(),
         SideTestAnalysis(),
-        LightnessAnalysis(),
-        MixedGaborsAnalysis(),
+        # LightnessAnalysis(),
+        # MixedGaborsAnalysis(),
     ]
 
     # Ask for session ID (empty for all sessions)
