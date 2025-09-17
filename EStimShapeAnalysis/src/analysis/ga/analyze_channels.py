@@ -207,23 +207,23 @@ class ChannelAnalysisDBSaver(OutputHandler):
 
 def extract_good_channels(session_id: str) -> List[str]:
     """
-    Extract good channels by running the channel filtering pipeline.
-    Returns list of channel names that pass the filtering criteria.
+    Extract good channels by reading from the GoodChannels table.
+    Returns list of channel names that are marked as good channels.
     """
-    from src.repository.import_from_repository import import_from_repository
+    conn = Connection("allen_data_repository")
 
-    # Import data
-    compiled_data = import_from_repository(
-        session_id,
-        "ga",
-        "GAStimInfo",
-        "RawSpikeResponses"
-    )
+    query = """
+            SELECT channel
+            FROM GoodChannels
+            WHERE session_id = %s
+            ORDER BY channel \
+            """
 
-    # Create and run the module (this will process data and save to database)
-    module = create_channel_filter_module(session_id)
-    result = module.run(compiled_data)
+    conn.execute(query, (session_id,))
+    results = conn.fetch_all()
 
-    # Return just the list of good channels
-    good_channels = result['good_channels']
+    # Extract channel names from tuples
+    good_channels = [row[0] for row in results]
+
+    print(f"Found {len(good_channels)} good channels for session {session_id}")
     return good_channels
