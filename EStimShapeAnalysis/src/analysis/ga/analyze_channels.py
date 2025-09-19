@@ -122,7 +122,7 @@ class ChannelFilterCalculator(ComputationModule):
                 percentage_increase = ((during_mean - not_during_mean) / not_during_mean) * 100
                 percentage_std_diff = (during_std - not_during_std) / not_during_std * 100
 
-                if (percentage_increase >= 50 or percentage_std_diff >= 50) and channel in significant_channels:
+                if (percentage_increase > 0) and channel in significant_channels:
                     good_channels.append(channel)
 
         print(f"All Significant Channels: {significant_channels}")
@@ -207,23 +207,75 @@ class ChannelAnalysisDBSaver(OutputHandler):
 
 def extract_good_channels(session_id: str) -> List[str]:
     """
-    Extract good channels by reading from the GoodChannels table.
-    Returns list of channel names that are marked as good channels.
+    Extract good channels by running the channel filtering pipeline to update ChannelFiltering,
+    then returning the overlap between GoodChannels and algorithmically determined good channels.
+    Returns list of channel names that are both manually selected AND algorithmically good.
     """
+    from src.repository.import_from_repository import import_from_repository
+
+    print(f"Recalculating channel filtering for session {session_id}...")
+
+    # Import data and run the pipeline to update ChannelFiltering table
+    compiled_data = import_from_repository(
+        session_id,
+        "ga",
+        "GAStimInfo",
+        "RawSpikeResponses"
+    )
+
+    # Create and run the module (this will process data and save to ChannelFiltering table)
+    module = create_channel_filter_module(session_id)
+    result = module.run(compiled_data)
+
+    algorithmically_good_channels = set(result['good_channels'])
+    print(f"Algorithmic analysis found {len(algorithmically_good_channels)} good channels")
+
+    # Now query both tables to find the overlap
     conn = Connection("allen_data_repository")
 
-    query = """
-            SELECT channel
-            FROM GoodChannels
-            WHERE session_id = %s
-            ORDER BY channel \
-            """
+    # Get manually selected good channels
+    manual_query = """
+                   SELECT channel
+                   FROM GoodChannels
+                   WHERE session_id = %s
+                   ORDER BY channel
+                   """
 
-    conn.execute(query, (session_id,))
-    results = conn.fetch_all()
+    conn.execute(manual_query, (session_id,))
+    manual_results = conn.fetch_all()
+    manually_selected_channels = set(row[0] for row in manual_results)
 
-    # Extract channel names from tuples
-    good_channels = [row[0] for row in results]
+    # Get algorithmically determined good channels from database
+    algorithmic_query = """
+                        SELECT channel
+                        FROM ChannelFiltering
+                        WHERE session_id = %s \
+                          AND is_good = TRUE
+                        ORDER BY channel
+                        """
 
-    print(f"Found {len(good_channels)} good channels for session {session_id}")
-    return good_channels
+    conn.execute(algorithmic_query, (session_id,))
+    algorithmic_results = conn.fetch_all()
+    algorithmic_db_channels = set(row[0] for row in algorithmic_results)
+
+    # Find the overlap between manually selected and algorithmically good channels
+    overlap_channels = manually_selected_channels.intersection(algorithmic_db_channels)
+
+    # Convert to sorted list
+    final_good_channels = sorted(list(overlap_channels))
+
+    # Print summary
+    print(f"Channel analysis summary for session {session_id}:")
+    print(f"  Manually selected channels: {len(manually_selected_channels)}")
+    print(f"  Algorithmically good channels: {len(algorithmic_db_channels)}")
+    print(f"  Overlap (final good channels): {len(final_good_channels)}")
+
+    if manually_selected_channels - algorithmic_db_channels:
+        print(
+            f"  Manual channels NOT algorithmically good: {sorted(manually_selected_channels - algorithmic_db_channels)}")
+
+    if algorithmic_db_channels - manually_selected_channels:
+        print(
+            f"  Algorithmic channels NOT manually selected: {sorted(algorithmic_db_channels - manually_selected_channels)}")
+
+    return final_good_channels

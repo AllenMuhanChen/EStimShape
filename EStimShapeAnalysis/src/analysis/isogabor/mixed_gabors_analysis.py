@@ -6,6 +6,7 @@ from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.util.connection import Connection
 from clat.compile.task.compile_task_id import TaskIdCollector
 from src.analysis import Analysis
+from src.analysis.modules.grouped_rsth import create_psth_module
 from src.analysis.modules.matplotlib.grouped_rasters_matplotlib import create_grouped_raster_module
 from src.intan.MultiFileParser import MultiFileParser
 from src.repository.import_from_repository import import_from_repository
@@ -21,10 +22,11 @@ from src.repository.export_to_repository import export_to_repository, read_sessi
 
 
 def main():
-    channel = "A-013"
+    channel = "A-029"
     compiled_data = compile_and_export()
     analysis = MixedGaborsAnalysis()
-    session_id, _ = read_session_id_from_db_name(context.isogabor_database)
+    # session_id, _ = read_session_id_from_db_name(context.isogabor_database)
+    session_id = "250903_0"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
@@ -49,10 +51,24 @@ class MixedGaborsAnalysis(Analysis):
             title=f"Color Experiment: {channel}",
             save_path=f"{self.save_path}/{channel}: mixed_gabors.png",
         )
+
+        psth_module = create_psth_module(
+            primary_group_col='Mixed Frequency',
+            secondary_group_col='Aligned Frequency',
+            spike_data_col=self.spike_tstamps_col,
+            spike_data_col_key=channel,
+            time_window=(-0.2, 0.5),
+            bin_size=0.025,
+            save_path=f"{self.save_path}/{channel}: mixed_gabors_psth.png",
+            cell_size=(600, 300),
+            include_row_labels=True
+        )
         # Create a simple pipeline
         frequency_branch = create_branch().then(grouped_raster_module_frequency)
+        psth_branch = create_branch().then(psth_module)
+
         # phase_branch = create_branch().then(grouped_raster_module_phase)
-        pipeline = create_pipeline().make_branch(frequency_branch).build()
+        pipeline = create_pipeline().make_branch(frequency_branch, psth_branch).build()
         # Run the pipeline
         result = pipeline.run(compiled_data)
         # Show the figure

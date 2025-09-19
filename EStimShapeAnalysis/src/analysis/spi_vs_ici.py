@@ -11,18 +11,22 @@ def create_preference_indices_frequency_plots():
     # Connect to the data repository database
     conn = Connection("allen_data_repository")
 
-    # Query both preference tables and join with GoodChannels
+    # Query both preference tables and join with BOTH GoodChannels AND ChannelFiltering (is_good=TRUE)
     solid_query = """
                   SELECT s.session_id, s.unit_name, s.solid_preference_index
                   FROM SolidPreferenceIndices s
                            JOIN GoodChannels g ON s.session_id = g.session_id AND s.unit_name = g.channel
+                           JOIN ChannelFiltering c ON s.session_id = c.session_id AND s.unit_name = c.channel
+                  WHERE c.is_good = TRUE
                   """
 
-    # Isochromatic preference now includes frequency, filter for good channels
+    # Isochromatic preference with same double filtering
     isochromatic_query = """
                          SELECT i.session_id, i.unit_name, i.frequency, i.isochromatic_preference_index
                          FROM IsochromaticPreferenceIndices i
                                   JOIN GoodChannels g ON i.session_id = g.session_id AND i.unit_name = g.channel
+                                  JOIN ChannelFiltering c ON i.session_id = c.session_id AND i.unit_name = c.channel
+                         WHERE c.is_good = TRUE
                          """
 
     # Execute queries and fetch data
@@ -42,7 +46,8 @@ def create_preference_indices_frequency_plots():
     merged_df = pd.merge(solid_df, isochromatic_df, on=['session_id', 'unit_name'], how='inner')
 
     if merged_df.empty:
-        print("No matching data found between the two tables for good channels.")
+        print(
+            "No matching data found between the two tables for channels that are both manually selected AND algorithmically good.")
         return
 
     # Get unique sessions and frequencies
@@ -51,7 +56,13 @@ def create_preference_indices_frequency_plots():
 
     print(f"Creating plots for {len(sessions)} sessions: {sessions}")
     print(f"Each session will have {len(frequencies)} frequency subplots: {frequencies}")
-    print(f"Using only good channels - {len(merged_df['unit_name'].unique())} total units")
+    print(f"Using channels that are BOTH manually selected (GoodChannels) AND algorithmically good (is_good=TRUE)")
+    print(f"Total validated channels: {len(merged_df['unit_name'].unique())}")
+
+    # Show breakdown by session for validation
+    for session in sessions:
+        session_channels = merged_df[merged_df['session_id'] == session]['unit_name'].nunique()
+        print(f"  Session {session}: {session_channels} validated channels")
 
     # Create a separate plot for each session
     for session_id in sessions:
@@ -84,7 +95,8 @@ def plot_session_frequencies(merged_df, session_id, frequencies):
         nrows, ncols = 2, (n_freq + 1) // 2
 
     fig, axes = plt.subplots(nrows, ncols, figsize=(6 * ncols, 5 * nrows))
-    fig.suptitle(f'Session {session_id}: Solid vs Isochromatic Preference by Frequency (Good Channels)', fontsize=16)
+    fig.suptitle(f'Session {session_id}: Solid vs Isochromatic Preference by Frequency (Validated Channels)',
+                 fontsize=16)
 
     # Make axes iterable even for single subplot
     if n_freq == 1:
@@ -166,7 +178,7 @@ def plot_session_frequencies(merged_df, session_id, frequencies):
     plt.show()
 
     # Print session statistics
-    print(f"\nSession {session_id} Statistics (Good Channels Only):")
+    print(f"\nSession {session_id} Statistics (Validated Channels Only):")
     for frequency in frequencies:
         freq_data = session_data[session_data['frequency'] == frequency]
         if not freq_data.empty:
@@ -231,7 +243,7 @@ def plot_combined_frequency_data(merged_df, frequency, sessions):
     plt.xlabel('Solid Preference Index')
     plt.ylabel('Isochromatic Preference Index')
     plt.title(
-        f'Combined - Frequency {frequency} Hz: Solid vs Isochromatic Preference (Good Channels)\n(n={len(freq_data)} total units)')
+        f'Combined - Frequency {frequency} Hz: Solid vs Isochromatic Preference (Validated Channels)\n(n={len(freq_data)} total units)')
 
     # Add reference lines at zero
     plt.axhline(y=0, color='gray', linestyle='--', alpha=0.5)
@@ -266,7 +278,7 @@ def plot_combined_frequency_data(merged_df, frequency, sessions):
     plt.show()
 
     # Print frequency statistics
-    print(f"\nCombined {frequency} Hz Statistics (Good Channels Only):")
+    print(f"\nCombined {frequency} Hz Statistics (Validated Channels Only):")
     print(f"  Total units: {len(freq_data)}")
     print(f"  Solid Preference range: {x.min():.3f} to {x.max():.3f}")
     print(f"  Isochromatic Preference range: {y.min():.3f} to {y.max():.3f}")

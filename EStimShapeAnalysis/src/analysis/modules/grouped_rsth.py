@@ -31,7 +31,7 @@ def create_psth_module(
         sort_rules: Optional[Dict[str, Any]] = None,
         height: int = None,
         width: int = None,
-        cell_size: Optional[tuple] = None,
+        cell_size: Optional[tuple] = (600,300),
         template: str = "plotly_white",
         include_row_labels=None,
         publish_mode: bool = False,
@@ -297,7 +297,7 @@ class PSTHComputation(ComputationModule):
         subplot_titles = []
         for i in range(n_columns):
             title = self.col_titles[i] if self.col_titles and i < len(
-                self.col_titles) else f"Groups: {', '.join(self._get_display_names(column_primary_groups.get(i, [])))}"
+                self.col_titles) else f"Groups: {', '.join(str(self._get_display_names(column_primary_groups.get(i, []))))}"
             subplot_titles.append(title)
 
         # Add empty strings for the remaining cells
@@ -545,7 +545,7 @@ class PSTHComputation(ComputationModule):
                     mode='lines',
                     name=f"{display_name} (n={len(all_rates)})",
                     line=dict(color=color, width=2),
-                    legendgroup=display_name,
+                    legendgroup=str(display_name),
                     # Show in legend for first appearance in any column
                     showlegend=(row == 1 and not any(data[data[group_col] == group].empty for i in range(col - 1))),
                     hovertemplate="Time: %{x:.3f}s<br>Rate: %{y:.2f} spikes/s<extra></extra>"
