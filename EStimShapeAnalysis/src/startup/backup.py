@@ -130,7 +130,7 @@ class BackupManager:
         Returns tuple of (path, success)
         """
         backup_name = f"{self.type_name}_{self.date}_{self.location_id}"
-        backup_dir = f"/run/user/1003/gvfs/smb-share:server=connorhome.local,share=connorhome/Allen/ExperimentData/45X/{backup_name}"
+        backup_dir = f"/run/user/1000/gvfs/smb-share:server=connorhome.local,share=connorhome/Allen/ExperimentData/45X/{backup_name}"
 
         # Try to create the backup directory
         try:

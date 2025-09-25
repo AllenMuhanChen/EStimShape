@@ -44,9 +44,9 @@ def main():
     # Specify a list of parent directories to search
     parent_directories = [
         # Example paths - replace with your actual paths
-        "/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/allen_ga_exp_250507_0",
-        "/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/allen_isogabor_exp_250507_0",
-        "/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/allen_twodvsthreed_exp_250507_0",
+        "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_250911_0",
+        "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_isogabor_exp_250911_0",
+        "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_lightness_exp_250911_0",
         # Add more parent directories as needed
     ]
 

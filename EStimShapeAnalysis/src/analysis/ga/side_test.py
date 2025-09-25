@@ -51,7 +51,7 @@ class SideTestAnalysis(Analysis):
         compiled_data = compiled_data[compiled_data[self.spike_rates_col].notna()]
 
         # Index Computation Module
-        index_module = create_sp_index_module(channel=channel, session_id=self.session_id)
+        index_module = create_sp_index_module(channel=channel, session_id=self.session_id, spike_data_col=self.spike_rates_col)
         index_branch = create_branch().then(index_module)
 
         # VISUALIZE MODULE

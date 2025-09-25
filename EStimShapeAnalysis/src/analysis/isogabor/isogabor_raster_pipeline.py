@@ -46,7 +46,7 @@ class IsogaborAnalysis(Analysis):
             )
 
         # CALCULATE INDEX
-        index_module = create_isochromatic_index_module(channel=channel, session_id=self.session_id)
+        index_module = create_isochromatic_index_module(channel=channel, session_id=self.session_id, spike_data_col=self.spike_rates_col)
 
         # ----------------
         # STEP 1: Create raster plot modules

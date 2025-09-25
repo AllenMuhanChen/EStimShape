@@ -13,8 +13,8 @@ from src.repository.import_from_repository import fetch_experiment_id_and_stims_
 
 
 def main():
-    session_id = "250425_0"
-    label = "positive"
+    session_id = "250506_0"
+    label = None
     export_sorted_spikes(session_id, label=label)
 
 
@@ -26,7 +26,7 @@ def export_sorted_spikes(session_id, label: Optional[str] = None):
     reading from a labelled spike sorting, then this label will be added to unit names
     """
     repo_conn = Connection("allen_data_repository")
-    sort_dir = "/home/r2_allen/Documents/EStimShape/allen_sort_%s" % session_id
+    sort_dir = "/home/connorlab/Documents/EStimShape/allen_sort_%s" % session_id
     if label:
         sorted_spikes_path = f"{sort_dir}/sorted_spikes_{label}.pkl"
     else:

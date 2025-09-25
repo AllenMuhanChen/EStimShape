@@ -7,17 +7,18 @@ from src.repository.export_to_repository import read_session_id_from_db_name
 from src.startup import context
 
 
-def create_sp_index_module(channel=None, session_id=None):
+def create_sp_index_module(channel=None, session_id=None, spike_data_col=None):
     index_module = AnalysisModuleFactory.create(
-        computation=SolidPreferenceIndexCalculator(channel),
+        computation=SolidPreferenceIndexCalculator(response_key=channel, spike_data_col=spike_data_col),
         output_handler=SolidPreferenceIndexDBSaver(session_id, channel)
     )
     return index_module
 
 
 class SolidPreferenceIndexCalculator(ComputationModule):
-    def __init__(self, response_key: str):
+    def __init__(self,*, response_key = None , spike_data_col = "Spike Rate by channel"):
         self.response_key = response_key
+        self.spike_data_col = spike_data_col
 
     def compute(self, prepared_data: InputT) -> OutputT:
         # Filter for 3D and 2D test types
@@ -28,7 +29,7 @@ class SolidPreferenceIndexCalculator(ComputationModule):
         def get_spike_rates_for_channel(data, channel_key):
             spike_rates = []
             for _, row in data.iterrows():
-                spike_rate_dict = row['Spike Rate by channel']
+                spike_rate_dict = row[self.spike_data_col]
                 if isinstance(spike_rate_dict, dict) and channel_key in spike_rate_dict:
                     spike_rates.append(spike_rate_dict[channel_key])
             return spike_rates
@@ -40,7 +41,7 @@ class SolidPreferenceIndexCalculator(ComputationModule):
             # Filter to top half (above median)
             data_3d_filtered = []
             for _, row in data_3d.iterrows():
-                spike_rate_dict = row['Spike Rate by channel']
+                spike_rate_dict = row[self.spike_data_col]
                 if isinstance(spike_rate_dict, dict) and self.response_key in spike_rate_dict:
                     if spike_rate_dict[self.response_key] >= median_3d:
                         data_3d_filtered.append(row)
@@ -53,7 +54,7 @@ class SolidPreferenceIndexCalculator(ComputationModule):
             # Filter to top half (above median)
             data_2d_filtered = []
             for _, row in data_2d.iterrows():
-                spike_rate_dict = row['Spike Rate by channel']
+                spike_rate_dict = row[self.spike_data_col]
                 if isinstance(spike_rate_dict, dict) and self.response_key in spike_rate_dict:
                     if spike_rate_dict[self.response_key] >= median_2d:
                         data_2d_filtered.append(row)
@@ -62,13 +63,13 @@ class SolidPreferenceIndexCalculator(ComputationModule):
         # Analyze only the specific channel on filtered data
         total_3d_rate = 0
         for _, row in data_3d.iterrows():
-            spike_rates = row['Spike Rate by channel']
+            spike_rates = row[self.spike_data_col]
             if isinstance(spike_rates, dict) and self.response_key in spike_rates:
                 total_3d_rate += spike_rates[self.response_key]
 
         total_2d_rate = 0
         for _, row in data_2d.iterrows():
-            spike_rates = row['Spike Rate by channel']
+            spike_rates = row[self.spike_data_col]
             if isinstance(spike_rates, dict) and self.response_key in spike_rates:
                 total_2d_rate += spike_rates[self.response_key]
 

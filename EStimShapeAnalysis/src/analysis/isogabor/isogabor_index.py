@@ -8,9 +8,9 @@ from src.startup import context
 from clat.pipeline.pipeline_base_classes import AnalysisModuleFactory
 
 
-def create_isochromatic_index_module(channel=None, session_id=None):
+def create_isochromatic_index_module(channel=None, session_id=None, spike_data_col=None):
     index_module = AnalysisModuleFactory.create(
-        computation=IsochromaticPreferenceIndexCalculator(channel),
+        computation=IsochromaticPreferenceIndexCalculator(response_key=channel, spike_data_col=spike_data_col),
         output_handler=IsochromaticPreferenceIndexDBSaver(session_id, channel)
     )
     return index_module
@@ -67,8 +67,9 @@ class IsochromaticPreferenceIndexDBSaver(OutputHandler):
 
 
 class IsochromaticPreferenceIndexCalculator(ComputationModule):
-    def __init__(self, response_key: str):
+    def __init__(self, *, response_key: str = None, spike_data_col: str = None):
         self.response_key = response_key
+        self.spike_data_col = spike_data_col
 
     def compute(self, prepared_data: InputT) -> OutputT:
         def get_sum_for_type_and_frequency(data, type_name, frequency):
@@ -76,7 +77,7 @@ class IsochromaticPreferenceIndexCalculator(ComputationModule):
             type_frequency_data = data[(data['Type'] == type_name) & (data['Frequency'] == frequency)]
             total_rate = 0
             for _, row in type_frequency_data.iterrows():
-                spike_rates = row['Spike Rate by channel']
+                spike_rates = row[self.spike_data_col]
                 if isinstance(spike_rates, dict) and self.response_key in spike_rates:
                     total_rate += spike_rates[self.response_key]
             return total_rate
