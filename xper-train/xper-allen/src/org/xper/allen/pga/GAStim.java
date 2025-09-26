@@ -202,7 +202,6 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
 
     protected void chooseColor() {
         color = colorManager.readProperty(parentId);
-
     }
 
     protected void chooseUnderlyingTexture() {

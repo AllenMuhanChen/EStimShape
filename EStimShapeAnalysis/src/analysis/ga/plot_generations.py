@@ -17,8 +17,8 @@ def main():
     compiled_data = plot_top_n.compile()
 
     session_id, _ = read_session_id_from_db_name(context.ga_database)
-    session_id = "250911_0"
-    channel = "A-023"
+    session_id = "250925_0"
+    channel = "A-020"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
@@ -39,7 +39,7 @@ class PlotGenerationsAnalysis(PlotTopNAnalysis):
 
         # Find the 3 longest lineages (by count of stimuli)
         lineage_counts = compiled_data['Lineage'].value_counts()
-        top_3_lineages = lineage_counts.head(3).index.tolist()
+        top_3_lineages = lineage_counts.head(5).index.tolist()
         print(f"Top 3 lineages: {top_3_lineages} with counts: {lineage_counts.head(3).tolist()}")
 
         # Calculate average response rate for each StimSpecId within each subplot_Lineage
@@ -92,7 +92,7 @@ class PlotGenerationsAnalysis(PlotTopNAnalysis):
             # sort_rules={"GenId": "descending"},
             save_path=f"{self.save_path}/{channel}: top_per_gen_by_lineage.png",
             module_name="Top Stimuli Per Gen by Lineage",
-            publish_mode=True
+            publish_mode=False
         )
 
         # Second module (first generation only, all 80 stimuli in 20x4 grid)

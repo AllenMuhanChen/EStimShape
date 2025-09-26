@@ -26,15 +26,15 @@ from src.startup import context
 
 def main():
     # channel = None
-    # compiled_data = compile()
+    compiled_data = compile()
     analysis = SideTestAnalysis()
     # session_id, _ = read_session_id_from_db_name(context.ga_database)
     # if channel is None:
         # channel = read_cluster_channels(session_id)[0]
 
-    session_id = "250507_0"
-    channel = "A-001"
-    analysis.run(session_id, "raw", channel, compiled_data=None)
+    session_id = "250925_0"
+    channel = "A-020"
+    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
 class SideTestAnalysis(Analysis):
@@ -141,12 +141,12 @@ class SideTestAnalysis(Analysis):
 
         psth_examples_branch = create_branch().then(psth_examples)
 
-        pipeline = create_pipeline().make_branch(
-            index_branch).build()
-        #
         # pipeline = create_pipeline().make_branch(
-        #     index_branch, plot_branch, raster_branch, psth_branch, psth_examples_branch
-        # ).build()
+        #     index_branch).build()
+
+        pipeline = create_pipeline().make_branch(
+            plot_branch, raster_branch, psth_branch, psth_examples_branch
+        ).build()
         result = pipeline.run(compiled_data)
         # Show the figure
         plt.show()

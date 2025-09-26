@@ -14,29 +14,37 @@ from src.analysis.lightness.lightness_analysis import StimGaIdField, TextureFiel
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.analysis.modules.utils.sorting_utils import SpikeRateSortingUtils
 from src.intan.MultiFileParser import MultiFileParser
-from src.repository.export_to_repository import read_session_id_from_db_name
+from src.repository.export_to_repository import read_session_id_from_db_name, export_to_repository
+from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 from src.repository.export_to_repository_alchemy import export_to_repository_alchemy
 
 
 def main():
-    channel = 'A-010'
+    channel = 'A-020'
     session_id, _ = read_session_id_from_db_name(context.shuffle_database)
     analysis = ShuffleAnalysis()
-    compiled_data = analysis.compile()
-    print(compiled_data.to_string())
-    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    # compiled_data = analysis.compile()
+    # print(compiled_data.to_string())
+    analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
 class ShuffleAnalysis(Analysis):
     def analyze(self, channel, compiled_data=None):
+        if compiled_data is None:
+            compiled_data = import_from_repository(
+                self.session_id,
+                'shuffle',
+                'ShuffleStimInfo',
+                self.response_table,
+            )
         visualize_module = create_grouped_stimuli_module(
             response_rate_col=self.spike_rates_col,
             response_rate_key=channel,
             path_col='StimPath',
             col_col='ShuffleType',
-            row_col='StimGaId',
-            # subgroup_col='StimGaId',
+            row_col='Texture',
+            subgroup_col='StimGaId',
             title='Shuffle Analysis',
             filter_values={
                 'ShuffleType': ['NONE', 'PIXEL', 'PHASE', 'MAGNITUDE']
@@ -49,7 +57,7 @@ class ShuffleAnalysis(Analysis):
                 )
             },
             save_path=f"{self.save_path}/{channel}: shuffle_test.png",
-            publish_mode=True,
+            publish_mode=False,
             # include_labels_for={"col"}
         )
         pipeline = create_pipeline().then(visualize_module).build()
@@ -60,17 +68,17 @@ class ShuffleAnalysis(Analysis):
 
     def compile_and_export(self):
         data = self.compile()
-        export_to_repository_alchemy(data,
-                                     context.shuffle_database,
-                                     "shuffle",
-                                     stim_info_table="ShuffleStimInfo",
-                                     stim_info_columns=["StimSpecId",
-                                                        "StimGaId",
-                                                        "StimPath",
-                                                        "Texture",
-                                                        "ShuffleType",
-                                                        ]
-                                     )
+        export_to_repository(data,
+                             context.shuffle_database,
+                             "shuffle",
+                             stim_info_table="ShuffleStimInfo",
+                             stim_info_columns=["StimSpecId",
+                                                "StimGaId",
+                                                "StimPath",
+                                                "Texture",
+                                                "ShuffleType",
+                                                ]
+                             )
         return data
 
     def compile(self):

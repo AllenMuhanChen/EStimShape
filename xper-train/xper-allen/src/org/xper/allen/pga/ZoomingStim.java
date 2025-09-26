@@ -56,6 +56,9 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
                 setProperties();
                 if (useAverageRGB){
                     averageRGB = underyingAverageRGBManager.readProperty(parentId);
+                    if (is2D()){
+                        this.color = averageRGB;
+                    }
                 }
                 mStick = createMStick();
                 System.out.println("SUCCESSFUL CREATION OF MORPHED MATCHSTICK OF TYPE: " + this.getClass().getSimpleName());

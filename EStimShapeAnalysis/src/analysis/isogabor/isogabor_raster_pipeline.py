@@ -26,12 +26,12 @@ from src.repository.export_to_repository import export_to_repository
 def main():
     # channel = "A-011"
     # session_id, _ = read_session_id_from_db_name(context.isogabor_database)
-    # compiled_data = compile()
+    compiled_data = compile()
 
-    session_id = "250507_0"
-    channel = "A-001"
+    session_id = "250925_0"
+    channel = "A-020"
     analysis = IsogaborAnalysis()
-    return analysis.run(session_id, "raw", channel, compiled_data=None)
+    return analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
 class IsogaborAnalysis(Analysis):
@@ -133,10 +133,10 @@ class IsogaborAnalysis(Analysis):
         psth_branch = create_branch().then(psth_module)
 
         pipeline = create_pipeline().make_branch(
-            index_branch,
-            # raster_branch,
-            # raster_by_isotype_branch,
-            # psth_branch
+            # index_branch,
+            raster_branch,
+            raster_by_isotype_branch,
+            psth_branch
         ).build()
 
         # Run the pipeline
