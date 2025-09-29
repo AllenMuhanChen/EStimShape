@@ -1,9 +1,10 @@
+import numpy as np
+
 from clat.pipeline.pipeline_base_classes import ComputationModule, InputT, OutputT
 
 from clat.util.connection import Connection
 from clat.pipeline.pipeline_base_classes import OutputHandler
 from src.repository.export_to_repository import read_session_id_from_db_name
-from src.startup import context
 
 from clat.pipeline.pipeline_base_classes import AnalysisModuleFactory
 
@@ -54,14 +55,15 @@ class IsochromaticPreferenceIndexDBSaver(OutputHandler):
         """Save the Isochromatic Preference Index for each frequency to the database."""
         # result is now a dictionary mapping frequencies to indices
         for frequency, index_value in result.items():
-            insert_sql = """
-                         INSERT INTO IsochromaticPreferenceIndices (session_id, unit_name, frequency, isochromatic_preference_index)
-                         VALUES (%s, %s, %s, %s)
-                         """
+            if not np.isnan(frequency):
+                insert_sql = """
+                             INSERT INTO IsochromaticPreferenceIndices (session_id, unit_name, frequency, isochromatic_preference_index)
+                             VALUES (%s, %s, %s, %s)
+                             """
 
-            self.conn.execute(insert_sql, (self.session_id, self.unit_name, float(frequency), float(index_value)))
-            print(
-                f"Saved Isochromatic Preference Index for session {self.session_id}, unit {self.unit_name}, frequency {frequency}: {index_value}")
+                self.conn.execute(insert_sql, (self.session_id, self.unit_name, float(frequency), float(index_value)))
+                print(
+                    f"Saved Isochromatic Preference Index for session {self.session_id}, unit {self.unit_name}, frequency {frequency}: {index_value}")
 
         return result
 

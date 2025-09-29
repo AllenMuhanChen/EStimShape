@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 from typing import Dict
 
-from src.analysis import compile_current_context, analyze_raw_data
+from src.analysis import compile_current_context, analyze_raw_data, analyze_current_context
 from src.eyecal import plot_eyecal, apply_eyecal
 from src.pga.app import run_ga, start_new_ga, process_first_gen, run_cluster_app, calculate_spontaneous_firing_rate, \
     run_rwa, plot_rwa, transfer_eye_cal_params, abandon_generation, process_last_gen, recalculate_ga, run_tree_graph_app
@@ -87,6 +87,10 @@ class ScriptRunnerApp:
                 }
             },
             "Live Analysis": {
+                "Run Analysis": {
+                    "func": analyze_current_context.main,
+                    "params": []
+                },
                 "Run RWA": {
                     "func": run_rwa.main,
                     "params": []

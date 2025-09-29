@@ -145,7 +145,7 @@ class SideTestAnalysis(Analysis):
         #     index_branch).build()
 
         pipeline = create_pipeline().make_branch(
-            plot_branch, raster_branch, psth_branch, psth_examples_branch
+            index_branch, plot_branch, raster_branch, psth_branch, psth_examples_branch
         ).build()
         result = pipeline.run(compiled_data)
         # Show the figure

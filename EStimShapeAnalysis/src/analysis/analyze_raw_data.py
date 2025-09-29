@@ -1,10 +1,12 @@
 from typing import List, Tuple
 from clat.util.connection import Connection
+from src.analysis.ga.plot_generations import PlotGenerationsAnalysis
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.analysis.ga.side_test import SideTestAnalysis
 from src.analysis.isogabor.isogabor_raster_pipeline import IsogaborAnalysis
 from src.analysis.isogabor.mixed_gabors_analysis import MixedGaborsAnalysis
 from src.analysis.lightness.lightness_analysis import LightnessAnalysis
+from src.analysis.shuffle.shuffle_analysis import ShuffleAnalysis
 from src.repository.good_channels import read_good_channels, read_cluster_channels
 
 
@@ -12,10 +14,12 @@ def main():
     # Initialize analysis modules
     analyses = [
         IsogaborAnalysis(),
-        # PlotTopNAnalysis(),
+        PlotTopNAnalysis(),
         SideTestAnalysis(),
-        # LightnessAnalysis(),
-        # MixedGaborsAnalysis(),
+        LightnessAnalysis(),
+        MixedGaborsAnalysis(),
+        ShuffleAnalysis(),
+        PlotGenerationsAnalysis(),
     ]
 
     # Ask for session ID (empty for all sessions)

@@ -29,9 +29,9 @@ def main():
     compiled_data = compile()
 
     session_id = "250925_0"
-    channel = "A-020"
+    channel = "A-027"
     analysis = IsogaborAnalysis()
-    return analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    return analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
 class IsogaborAnalysis(Analysis):
@@ -133,10 +133,10 @@ class IsogaborAnalysis(Analysis):
         psth_branch = create_branch().then(psth_module)
 
         pipeline = create_pipeline().make_branch(
-            # index_branch,
             raster_branch,
             raster_by_isotype_branch,
-            psth_branch
+            psth_branch,
+            index_branch,
         ).build()
 
         # Run the pipeline

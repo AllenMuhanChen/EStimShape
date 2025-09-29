@@ -115,10 +115,11 @@ class SolidPreferenceIndexDBSaver(OutputHandler):
 
     def process(self, result: float) -> float:
         """Save the Solid Preference Index to the database."""
-        # Insert the new record (no need for ON DUPLICATE KEY UPDATE since we cleared the data)
+        # Insert or update if the key already exists
         insert_sql = """
                      INSERT INTO SolidPreferenceIndices (session_id, unit_name, solid_preference_index)
                      VALUES (%s, %s, %s)
+                     ON DUPLICATE KEY UPDATE solid_preference_index = VALUES(solid_preference_index)
                      """
 
         self.conn.execute(insert_sql, (self.session_id, self.unit_name, result))

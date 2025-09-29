@@ -7,6 +7,7 @@ from src.analysis.ga.side_test import SideTestAnalysis
 from src.analysis.isogabor.isogabor_raster_pipeline import IsogaborAnalysis
 from src.analysis.isogabor.mixed_gabors_analysis import MixedGaborsAnalysis
 from src.analysis.lightness.lightness_analysis import LightnessAnalysis
+from src.analysis.shuffle.shuffle_analysis import ShuffleAnalysis
 from src.sort.window_sort.export_sort_to_repository import export_sorted_spikes
 
 
@@ -51,14 +52,15 @@ def main():
         IsogaborAnalysis(),
         PlotTopNAnalysis(),
         SideTestAnalysis(),
-        # LightnessAnalysis(),
-        # MixedGaborsAnalysis(),
+        LightnessAnalysis(),
+        MixedGaborsAnalysis(),
+        ShuffleAnalysis()
     ]
 
     # INPUTS #
-    session_name = '250618_0'
+    session_name = '250925_0'
     label = None
-    new_spikes = True
+    new_spikes = False
     ##########
 
     save_path = f"/home/connorlab/Documents/EStimShape/allen_sort_{session_name}/plots"
