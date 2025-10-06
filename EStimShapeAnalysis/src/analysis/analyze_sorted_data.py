@@ -50,8 +50,8 @@ def get_units_for_session(session_name: str) -> list[str]:
 def main():
     analyses = [
         # IsogaborAnalysis(),
-        # PlotTopNAnalysis(),
-        SideTestAnalysis(),
+        PlotTopNAnalysis(),
+        # SideTestAnalysis(),
         # LightnessAnalysis(),
         # MixedGaborsAnalysis(),
         # ShuffleAnalysis()

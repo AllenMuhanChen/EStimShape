@@ -6,12 +6,13 @@ from matplotlib import pyplot as plt
 from clat.compile.task.cached_task_fields import CachedTaskFieldList
 from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.compile.task.compile_task_id import TaskIdCollector
-from clat.pipeline.pipeline_base_classes import create_pipeline
+from clat.pipeline.pipeline_base_classes import create_pipeline, create_branch
 from clat.util.connection import Connection
 from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField, GenIdField
+from src.analysis.ga.stimulus_sensitivity_test import create_stimulus_selectivity_module
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
@@ -63,11 +64,24 @@ class PlotTopNAnalysis(Analysis):
             module_name="plot_top_n"
         )
 
+        # Create stimulus selectivity test module
+        selectivity_module = create_stimulus_selectivity_module(
+            channel=channel,
+            session_id=self.session_id,
+            spike_data_col=self.spike_rates_col
+        )
+        selectivity_branch = create_branch().then(selectivity_module)
+
         # Create and run pipeline with aggregated data
-        pipeline = create_pipeline().then(visualize_module).build()
+        # pipeline = create_pipeline().then(visualize_module).build()
+        # result = pipeline.run(compiled_data)
+
+        # Create pipeline with both branches
+        pipeline = create_pipeline().make_branch(selectivity_branch).build()
         result = pipeline.run(compiled_data)
 
         plt.show()
+        return result
 
     def compile_and_export(self):
         compile_and_export()
