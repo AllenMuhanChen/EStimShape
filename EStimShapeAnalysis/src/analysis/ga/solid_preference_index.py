@@ -115,14 +115,21 @@ class SolidPreferenceIndexDBSaver(OutputHandler):
 
     def process(self, result: float) -> float:
         """Save the Solid Preference Index to the database."""
-        # Insert or update if the key already exists
-        insert_sql = """
-                     INSERT INTO SolidPreferenceIndices (session_id, unit_name, solid_preference_index)
-                     VALUES (%s, %s, %s)
-                     ON DUPLICATE KEY UPDATE solid_preference_index = VALUES(solid_preference_index)
-                     """
+        try:
+            # Insert or update if the key already exists
+            insert_sql = """
+                         INSERT INTO SolidPreferenceIndices (session_id, unit_name, solid_preference_index)
+                         VALUES (%s, %s, %s)
+                         ON DUPLICATE KEY UPDATE solid_preference_index = VALUES(solid_preference_index)
+                         """
 
-        self.conn.execute(insert_sql, (self.session_id, self.unit_name, result))
-        print(f"Saved Solid Preference Index for session {self.session_id}, unit {self.unit_name}: {result}")
+            self.conn.execute(insert_sql, (self.session_id, self.unit_name, result))
+            print(f"Saved Solid Preference Index for session {self.session_id}, unit {self.unit_name}: {result}")
+
+        except Exception as e:
+            print(f"Could not save to database (session may not be initialized): {e}")
+            print(f"\nSolid Preference Index:")
+            print(f"Session: {self.session_id}, Unit: {self.unit_name}")
+            print(f"  SI: {result}")
 
         return result

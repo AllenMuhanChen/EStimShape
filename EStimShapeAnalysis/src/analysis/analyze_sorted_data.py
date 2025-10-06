@@ -49,16 +49,16 @@ def get_units_for_session(session_name: str) -> list[str]:
 
 def main():
     analyses = [
-        IsogaborAnalysis(),
-        PlotTopNAnalysis(),
+        # IsogaborAnalysis(),
+        # PlotTopNAnalysis(),
         SideTestAnalysis(),
-        LightnessAnalysis(),
-        MixedGaborsAnalysis(),
-        ShuffleAnalysis()
+        # LightnessAnalysis(),
+        # MixedGaborsAnalysis(),
+        # ShuffleAnalysis()
     ]
 
     # INPUTS #
-    session_name = '250925_0'
+    session_name = '251001_1'
     label = None
     new_spikes = False
     ##########

@@ -17,6 +17,7 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
     private final int numRepeats = 5;
     private GaborSpec gaborSpec;
     public static final List<Double> frequencies = Arrays.asList(0.5, 1.0, 2.0, 4.0);
+//    public static final List<Double> frequencies = Arrays.asList(0.2, 0.4, 0.5, 0.8, 1.0, 1.6, 2.0);
         public static final List<Double> orientationOffsets = Arrays.asList(0.0, 45.0, 90.0, 135.0);
 //    public static final List<Double> mixedPhases = Arrays.asList(0.0, 0.5);
 

@@ -21,12 +21,12 @@ from src.repository.export_to_repository_alchemy import export_to_repository_alc
 
 
 def main():
-    channel = 'A-020'
+    channel = 'A-013'
     session_id, _ = read_session_id_from_db_name(context.shuffle_database)
     analysis = ShuffleAnalysis()
-    # compiled_data = analysis.compile()
+    compiled_data = analysis.compile()
     # print(compiled_data.to_string())
-    analysis.run(session_id, "raw", channel, compiled_data=None)
+    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
 class ShuffleAnalysis(Analysis):

@@ -218,7 +218,7 @@ def plot_combined_frequency_data(merged_df, frequency, sessions):
     plt.figure(figsize=(12, 8))
 
     # Create a color map for sessions
-    session_colors = plt.cm.Set1(np.linspace(0, 1, len(sessions)))
+    session_colors = plt.cm.Set1(np.linspace(0, 1, len(sessions)+1))
 
     # Plot each session with different colors
     for i, session_id in enumerate(sessions):

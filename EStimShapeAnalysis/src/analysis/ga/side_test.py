@@ -11,6 +11,7 @@ from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField,
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, ParentIdField
 from src.analysis.ga.plot_top_n import clean_ga_data
 from src.analysis.ga.solid_preference_index import create_sp_index_module
+from src.analysis.ga.solid_preference_permutation_test import create_sp_permutation_test_module
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
 from src.analysis.lightness.lightness_analysis import TextureField
@@ -32,8 +33,8 @@ def main():
     # if channel is None:
         # channel = read_cluster_channels(session_id)[0]
 
-    session_id = "250925_0"
-    channel = "A-020"
+    session_id = "251001_1"
+    channel = "A-013"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
@@ -141,12 +142,26 @@ class SideTestAnalysis(Analysis):
 
         psth_examples_branch = create_branch().then(psth_examples)
 
+        # In SideTestAnalysis.analyze():
+        permutation_module = create_sp_permutation_test_module(
+            channel=channel,
+            session_id=self.session_id,
+            spike_data_col=self.spike_rates_col,
+            n_permutations=10000
+        )
+        permutation_branch = create_branch().then(permutation_module)
+
+        # Add to pipeline
+        pipeline = create_pipeline().make_branch(
+            index_branch, permutation_branch
+        ).build()
+
         # pipeline = create_pipeline().make_branch(
         #     index_branch).build()
 
-        pipeline = create_pipeline().make_branch(
-            index_branch, plot_branch, raster_branch, psth_branch, psth_examples_branch
-        ).build()
+        # pipeline = create_pipeline().make_branch(
+        #     plot_branch, raster_branch, psth_branch, psth_examples_branch, index_branch
+        # ).build()
         result = pipeline.run(compiled_data)
         # Show the figure
         plt.show()
