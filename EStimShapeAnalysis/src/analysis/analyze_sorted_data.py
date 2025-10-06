@@ -58,7 +58,7 @@ def main():
     ]
 
     # INPUTS #
-    session_name = '250925_0'
+    session_name = '251001_1'
     label = None
     new_spikes = False
     ##########

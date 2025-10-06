@@ -1,17 +1,55 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import os
 from scipy import stats
 from clat.util.connection import Connection
 
 
-def create_preference_indices_frequency_plots():
-    """Create separate plots for each session, with subplots for each frequency, plus combined plots."""
+def create_preference_indices_frequency_plots(save_path=None):
+    """Create separate plots for each session, with subplots for each frequency, plus combined plots.
+    Only includes units with significant stimulus selectivity (>5% significant pairs).
+
+    Args:
+        save_path: Optional directory path to save plots. If None, plots are only displayed.
+    """
+
+    # Create save directory if specified and doesn't exist
+    if save_path is not None:
+        os.makedirs(save_path, exist_ok=True)
 
     # Connect to the data repository database
     conn = Connection("allen_data_repository")
 
-    # Query preference tables and filter for "Unit" in unit_name - NOW INCLUDING P-VALUE
+    # First, get units that pass the stimulus selectivity threshold
+    selectivity_query = """
+                        SELECT session_id, \
+                               unit_name, \
+                               n_significant, \
+                               n_comparisons,
+                               (n_significant / n_comparisons) as selectivity_ratio
+                        FROM StimulusSelectivity
+                        WHERE unit_name LIKE '%Unit%'
+                          AND n_comparisons > 0
+                          AND (n_significant / n_comparisons) >= 0.05
+                        """
+
+    conn.execute(selectivity_query)
+    selectivity_data = conn.fetch_all()
+
+    if not selectivity_data:
+        print("No units meet the stimulus selectivity threshold (>5% significant pairs)")
+        return None
+
+    selectivity_df = pd.DataFrame(selectivity_data,
+                                  columns=['session_id', 'unit_name', 'n_significant',
+                                           'n_comparisons', 'selectivity_ratio'])
+
+    print(f"Found {len(selectivity_df)} units meeting selectivity threshold (>5% significant pairs)")
+    print(
+        f"Selectivity ratio range: {selectivity_df['selectivity_ratio'].min():.3f} to {selectivity_df['selectivity_ratio'].max():.3f}")
+
+    # Query preference tables - NOW INCLUDING P-VALUE
     solid_query = """
                   SELECT session_id, unit_name, solid_preference_index, p_value
                   FROM SolidPreferenceIndices
@@ -38,42 +76,48 @@ def create_preference_indices_frequency_plots():
     isochromatic_df = pd.DataFrame(isochromatic_data,
                                    columns=['session_id', 'unit_name', 'frequency', 'isochromatic_preference_index'])
 
-    # Merge the data on session_id and unit_name
+    # Merge with selectivity filter first
+    solid_df = solid_df.merge(selectivity_df[['session_id', 'unit_name', 'selectivity_ratio']],
+                              on=['session_id', 'unit_name'], how='inner')
+
+    # Then merge solid and isochromatic
     merged_df = pd.merge(solid_df, isochromatic_df, on=['session_id', 'unit_name'], how='inner')
 
     if merged_df.empty:
-        print("No matching data found between the two tables for units containing 'Unit'.")
-        return
+        print("No matching data found after applying selectivity filter.")
+        return None
 
     # Get unique sessions and frequencies
     sessions = sorted(merged_df['session_id'].unique())
     frequencies = sorted(merged_df['frequency'].unique())
 
-    print(f"Creating plots for {len(sessions)} sessions: {sessions}")
+    print(f"\nCreating plots for {len(sessions)} sessions: {sessions}")
     print(f"Each session will have {len(frequencies)} frequency subplots: {frequencies}")
-    print(f"Using units with 'Unit' in the name")
-    print(f"Total units: {len(merged_df['unit_name'].unique())}")
+    print(f"Using stimulus-selective units (>5% significant pairs)")
+    print(f"Total units after filtering: {len(merged_df['unit_name'].unique())}")
 
     # Show breakdown by session and significance
     for session in sessions:
         session_data = merged_df[merged_df['session_id'] == session]
         session_units = session_data['unit_name'].nunique()
-        # Count significant units (where p_value is available and < 0.05)
+        # Count significant units for solid preference (where p_value is available and < 0.05)
         significant_units = session_data[session_data['p_value'] < 0.05]['unit_name'].nunique()
-        print(f"  Session {session}: {session_units} units ({significant_units} significant, p < 0.05)")
+        avg_selectivity = session_data.groupby('unit_name')['selectivity_ratio'].first().mean()
+        print(
+            f"  Session {session}: {session_units} units ({significant_units} solid-pref significant, avg selectivity: {avg_selectivity:.2%})")
 
     # Create a separate plot for each session
     for session_id in sessions:
-        plot_session_frequencies(merged_df, session_id, frequencies)
+        plot_session_frequencies(merged_df, session_id, frequencies, save_path)
 
     # Add combined plots at the end
     print("\nCreating combined plots...")
-    create_combined_frequency_plots(merged_df, sessions, frequencies)
+    create_combined_frequency_plots(merged_df, sessions, frequencies, save_path)
 
     return merged_df
 
 
-def plot_session_frequencies(merged_df, session_id, frequencies):
+def plot_session_frequencies(merged_df, session_id, frequencies, save_path=None):
     """Create a plot for one session with subplots for each frequency."""
 
     # Filter data for this session
@@ -93,8 +137,9 @@ def plot_session_frequencies(merged_df, session_id, frequencies):
         nrows, ncols = 2, (n_freq + 1) // 2
 
     fig, axes = plt.subplots(nrows, ncols, figsize=(6 * ncols, 5 * nrows))
-    fig.suptitle(f'Session {session_id}: Solid vs Isochromatic Preference by Frequency (Units Only)',
-                 fontsize=16)
+    fig.suptitle(
+        f'Session {session_id}: Solid vs Isochromatic Preference by Frequency\n(Stimulus-selective units only)',
+        fontsize=16)
 
     # Make axes iterable even for single subplot
     if n_freq == 1:
@@ -188,10 +233,17 @@ def plot_session_frequencies(merged_df, session_id, frequencies):
         axes[idx].set_visible(False)
 
     plt.tight_layout()
+
+    # Save if path provided
+    if save_path is not None:
+        filename = os.path.join(save_path, f'session_{session_id}_by_frequency.png')
+        plt.savefig(filename, dpi=300, bbox_inches='tight')
+        print(f"Saved: {filename}")
+
     plt.show()
 
     # Print session statistics
-    print(f"\nSession {session_id} Statistics (Units Only):")
+    print(f"\nSession {session_id} Statistics (Stimulus-selective units only):")
     for frequency in frequencies:
         freq_data = session_data[session_data['frequency'] == frequency]
         if not freq_data.empty:
@@ -208,15 +260,15 @@ def plot_session_frequencies(merged_df, session_id, frequencies):
             print(f"  {frequency} Hz: No data")
 
 
-def create_combined_frequency_plots(merged_df, sessions, frequencies):
+def create_combined_frequency_plots(merged_df, sessions, frequencies, save_path=None):
     """Create combined plots showing all sessions together for each frequency."""
 
     # Create a separate combined plot for each frequency
     for frequency in frequencies:
-        plot_combined_frequency_data(merged_df, frequency, sessions)
+        plot_combined_frequency_data(merged_df, frequency, sessions, save_path)
 
 
-def plot_combined_frequency_data(merged_df, frequency, sessions):
+def plot_combined_frequency_data(merged_df, frequency, sessions, save_path=None):
     """Create a combined plot for one frequency with all sessions."""
 
     # Filter data for this frequency
@@ -261,6 +313,11 @@ def plot_combined_frequency_data(merged_df, frequency, sessions):
                             session_data[~sig_mask]['isochromatic_preference_index'],
                             c=[session_colors[i]], alpha=0.15, s=60)
 
+                # If no significant points, still add legend entry
+                if not sig_mask.any():
+                    plt.scatter([], [], c=[session_colors[i]], alpha=0.7, s=60,
+                                label=f'Session {session_id} (n={len(session_data)}, 0 sig.)')
+
     # Add trend line for combined data
     line_x = np.linspace(x.min(), x.max(), 100)
     line_y = slope * line_x + intercept
@@ -271,7 +328,8 @@ def plot_combined_frequency_data(merged_df, frequency, sessions):
     plt.xlabel('Solid Preference Index')
     plt.ylabel('Isochromatic Preference Index')
     plt.title(
-        f'Combined - Frequency {frequency} Hz: Solid vs Isochromatic Preference (Units Only)\n(n={len(freq_data)} total units, {n_significant} significant)')
+        f'Combined - Frequency {frequency} Hz: Solid vs Isochromatic Preference\n'
+        f'(Stimulus-selective units: n={len(freq_data)} total, {n_significant} solid-pref significant)')
 
     # Add reference lines at zero
     plt.axhline(y=0, color='gray', linestyle='--', alpha=0.5)
@@ -303,16 +361,26 @@ def plot_combined_frequency_data(merged_df, frequency, sessions):
              bbox=dict(boxstyle="round,pad=0.3", facecolor='lightyellow', alpha=0.5))
 
     plt.tight_layout()
+
+    # Save if path provided
+    if save_path is not None:
+        filename = os.path.join(save_path, f'combined_frequency_{frequency}Hz.png')
+        plt.savefig(filename, dpi=300, bbox_inches='tight')
+        print(f"Saved: {filename}")
+
     plt.show()
 
     # Print frequency statistics
-    print(f"\nCombined {frequency} Hz Statistics (Units Only):")
+    print(f"\nCombined {frequency} Hz Statistics (Stimulus-selective units only):")
     print(f"  Total units: {len(freq_data)}")
-    print(f"  Significant units (p < 0.05): {n_significant}")
+    print(f"  Significant units (solid-pref p < 0.05): {n_significant}")
     print(f"  Solid Preference range: {x.min():.3f} to {x.max():.3f}")
     print(f"  Isochromatic Preference range: {y.min():.3f} to {y.max():.3f}")
     print(f"  Correlation: r = {r_value:.3f}, R² = {r_squared:.3f}, p = {p_value:.3f}")
 
 
 if __name__ == "__main__":
-    data = create_preference_indices_frequency_plots()
+    # Example usage with save path
+    data = create_preference_indices_frequency_plots(save_path="/home/connorlab/Documents/plots/spi_vs_ici")
+    # Or without saving
+    # data = create_preference_indices_frequency_plots()
