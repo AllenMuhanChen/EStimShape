@@ -32,7 +32,7 @@ class Simultaneous3Dvs2DConfig(TwoDThreeDGAConfig):
         Returns a list of side tests to run.
         """
         return [
-            DnessSideTest(n_top_3d=2, n_top_2d=2)
+            DnessSideTest(n_top_3d=4, n_top_2d=4)
         ]
 
     def make_response_parser(self):
