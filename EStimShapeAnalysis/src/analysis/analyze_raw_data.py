@@ -13,13 +13,13 @@ from src.repository.good_channels import read_good_channels, read_cluster_channe
 def main():
     # Initialize analysis modules
     analyses = [
-        IsogaborAnalysis(),
-        PlotTopNAnalysis(),
+        # IsogaborAnalysis(),
+        # PlotTopNAnalysis(),
         SideTestAnalysis(),
-        LightnessAnalysis(),
-        MixedGaborsAnalysis(),
-        ShuffleAnalysis(),
-        PlotGenerationsAnalysis(),
+        # LightnessAnalysis(),
+        # MixedGaborsAnalysis(),
+        # ShuffleAnalysis(),
+        # PlotGenerationsAnalysis(),
     ]
 
     # Ask for session ID (empty for all sessions)
