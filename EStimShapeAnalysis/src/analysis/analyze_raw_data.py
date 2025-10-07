@@ -13,9 +13,9 @@ from src.repository.good_channels import read_good_channels, read_cluster_channe
 def main():
     # Initialize analysis modules
     analyses = [
-        # IsogaborAnalysis(),
+        IsogaborAnalysis(),
         # PlotTopNAnalysis(),
-        SideTestAnalysis(),
+        # SideTestAnalysis(),
         # LightnessAnalysis(),
         # MixedGaborsAnalysis(),
         # ShuffleAnalysis(),

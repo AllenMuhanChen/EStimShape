@@ -6,7 +6,9 @@ from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.util.connection import Connection
 from clat.compile.task.compile_task_id import TaskIdCollector
 from src.analysis import Analysis
+from src.analysis.isogabor.frequency_response import create_frequency_response_module
 from src.analysis.isogabor.isogabor_index import create_isochromatic_index_module
+from src.analysis.isogabor.preferred_frequency import create_preferred_frequency_module
 from src.analysis.modules.matplotlib.grouped_rasters_matplotlib import create_grouped_raster_module
 from src.analysis.modules.grouped_rsth import create_psth_module
 
@@ -123,7 +125,25 @@ class IsogaborAnalysis(Analysis):
             cell_size=(600, 300),
         )
 
+        freq_response_module = create_frequency_response_module(
+            channel=channel,
+            spike_data_col=self.spike_rates_col,
+            filter_values={
+                'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
+            },
+            title="Frequency Tuning Curves",
+            save_path=f"{self.save_path}/{channel}: frequency_response.png",
+            colors=color_map
+        )
 
+        pref_freq_module = create_preferred_frequency_module(
+            channel=channel,
+            session_id=self.session_id,
+            spike_data_col=self.spike_rates_col,
+            filter_values={
+                'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
+            }
+        )
         # ----------------
         # STEP 3: Create and run the pipeline
         # ----------------
@@ -131,12 +151,16 @@ class IsogaborAnalysis(Analysis):
         raster_branch = create_branch().then(grouped_raster_module)
         raster_by_isotype_branch = create_branch().then(grouped_raster_by_isotype_module)
         psth_branch = create_branch().then(psth_module)
+        freq_response_branch = create_branch().then(freq_response_module)
+        pref_freq_branch = create_branch().then(pref_freq_module)
 
         pipeline = create_pipeline().make_branch(
-            raster_branch,
-            raster_by_isotype_branch,
-            psth_branch,
+            # raster_branch,
+            # raster_by_isotype_branch,
+            # psth_branch,
             index_branch,
+            # freq_response_branch,
+            pref_freq_branch
         ).build()
 
         # Run the pipeline

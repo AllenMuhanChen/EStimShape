@@ -1,4 +1,5 @@
 import os
+from typing import List, Tuple
 from matplotlib import pyplot as plt
 from clat.util.connection import Connection
 
@@ -31,7 +32,7 @@ def get_units_for_session(session_name: str) -> list[str]:
                      JOIN TaskStimMapping tsm ON sem.stim_id = tsm.stim_id
                      JOIN WindowSortedResponses wsr ON tsm.task_id = wsr.task_id
             WHERE s.session_id = %s
-            ORDER BY wsr.unit_id \
+            ORDER BY wsr.unit_id
             """
 
     conn.execute(query, (session_name,))
@@ -47,52 +48,98 @@ def get_units_for_session(session_name: str) -> list[str]:
     return units
 
 
+def fetch_all_sessions() -> List[Tuple[str]]:
+    """Fetch all session IDs from the database."""
+    conn = Connection("allen_data_repository")
+    query = "SELECT session_id FROM Sessions"
+    conn.execute(query)
+    return conn.fetch_all()
+
+
 def main():
+    # ============ CONFIGURATION ============
+    # Set to specific session ID or None for all sessions
+    session_name = None
+
+    # Set to specific unit or None for all units in session
+    specific_unit = None  # e.g., 'Unit_01' or None for all units
+
+    # Label to prepend to unit names (None for no label)
+    label = None
+
+    # Whether to export new sorted spikes before analysis
+    new_spikes = False
+
+    # Which analyses to run
     analyses = [
-        # IsogaborAnalysis(),
-        PlotTopNAnalysis(),
+        IsogaborAnalysis(),
+        # PlotTopNAnalysis(),
         # SideTestAnalysis(),
         # LightnessAnalysis(),
         # MixedGaborsAnalysis(),
         # ShuffleAnalysis()
     ]
+    # =======================================
 
-    # INPUTS #
-    session_name = '251001_1'
-    label = None
-    new_spikes = False
-    ##########
+    # Determine which sessions to process
+    if session_name:
+        sessions_to_process = [(session_name,)]
+        print(f"Processing single session: {session_name}")
+    else:
+        sessions_to_process = fetch_all_sessions()
+        print(f"Processing all sessions: found {len(sessions_to_process)} sessions")
 
-    save_path = f"/home/connorlab/Documents/EStimShape/allen_sort_{session_name}/plots"
-    # if save_path is None: make it
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
+    # Process each session
+    for (session_id,) in sessions_to_process:
+        print(f"\n{'=' * 60}")
+        print(f"Processing session: {session_id}")
+        print(f"{'=' * 60}")
 
-    if new_spikes:
-        export_sorted_spikes(session_name, label)
+        # Create save path
+        save_path = f"/home/connorlab/Documents/EStimShape/allen_sort_{session_id}/plots"
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
 
-    # Get all units for this session
-    units = get_units_for_session(session_name)
+        # Export new sorted spikes if requested
+        if new_spikes:
+            print(f"Exporting sorted spikes for session {session_id}")
+            export_sorted_spikes(session_id, label)
 
-    if not units:
-        print(f"No units found for session {session_name}")
-        return
-
-    # Run analysis for each unit
-    for unit in units:
-        if label:
-            labeled_unit = f"{label}_{unit}"
+        # Determine which units to process
+        if specific_unit:
+            units = [specific_unit]
+            print(f"Processing specific unit: {specific_unit}")
         else:
-            labeled_unit = unit
-
-        print(f"\n=== Running analyses for unit: {labeled_unit} ===")
-
-        for analysis in analyses:
-            try:
-                analysis.run(session_name, "sorted", labeled_unit)
-            except Exception as e:
-                print(f"Error running {analysis.__class__.__name__} for unit {labeled_unit}: {e}")
+            units = get_units_for_session(session_id)
+            if not units:
+                print(f"No units found for session {session_id}, skipping")
                 continue
+
+        # Process each unit
+        for unit in units:
+            if label:
+                labeled_unit = f"{label}_{unit}"
+            else:
+                labeled_unit = unit
+
+            print(f"\n=== Running analyses for unit: {labeled_unit} ===")
+
+            # Run each analysis
+            for analysis in analyses:
+                analysis_name = analysis.__class__.__name__
+                try:
+                    print(f"  Running {analysis_name}...")
+                    analysis.run(session_id, "sorted", labeled_unit)
+                    print(f"  ✓ {analysis_name} completed")
+                except Exception as e:
+                    print(f"  ✗ Error in {analysis_name}: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    continue
+
+    print(f"\n{'=' * 60}")
+    print("All processing complete")
+    print(f"{'=' * 60}")
 
     plt.show()
 
