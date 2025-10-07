@@ -7,26 +7,69 @@ from scipy import stats
 from clat.util.connection import Connection
 
 
-def create_preference_indices_at_preferred_frequency_plot(save_path=None, threshold=0.7):
-    """Create a single plot showing solid vs isochromatic preference at each unit's preferred frequency.
-    Only includes units with significant stimulus selectivity (>5% significant pairs) and where
-    the frequency's max response is at least threshold (default 70%) of the absolute maximum.
+def create_all_preference_plots(save_dir=None, threshold=0.7):
+    """
+    Create all three types of preference plots.
 
     Args:
-        save_path: Optional path to save the plot. If None, plot is only displayed.
+        save_dir: Directory to save plots. If None, plots are only displayed.
         threshold: Minimum fraction of absolute max response required (default 0.7 = 70%)
     """
+    if save_dir is not None:
+        os.makedirs(save_dir, exist_ok=True)
 
-    # Create save directory if specified and doesn't exist
-    if save_path is not None:
-        save_dir = os.path.dirname(save_path)
-        if save_dir:
-            os.makedirs(save_dir, exist_ok=True)
+    # Get the data
+    merged_data = load_and_filter_data(threshold)
 
-    # Connect to the data repository database
+    if merged_data is None:
+        print("No data available for plotting")
+        return
+
+    # 1. Preferred frequency only plot
+    print("\n" + "=" * 60)
+    print("Creating Plot 1: Preferred Frequencies Only")
+    print("=" * 60)
+    preferred_only_data = merged_data['preferred_only']
+    if not preferred_only_data.empty:
+        save_path_1 = os.path.join(save_dir, "01_preferred_frequency_only.png") if save_dir else None
+        plot_preferred_frequency_only(preferred_only_data, save_path_1)
+    else:
+        print("No data for preferred frequency plot")
+
+    # 2. Combined plot with all strong frequencies
+    print("\n" + "=" * 60)
+    print("Creating Plot 2: Combined Strong Frequencies")
+    print("=" * 60)
+    combined_data = merged_data['all_strong']
+    if not combined_data.empty:
+        save_path_2 = os.path.join(save_dir, "02_combined_strong_frequencies.png") if save_dir else None
+        plot_combined_strong_frequencies(combined_data, save_path_2, threshold)
+    else:
+        print("No data for combined plot")
+
+    # 3. Individual plots for each frequency
+    print("\n" + "=" * 60)
+    print("Creating Plot 3: Individual Frequency Plots")
+    print("=" * 60)
+    individual_data = merged_data['all_strong']
+    if not individual_data.empty:
+        plot_individual_frequencies(individual_data, save_dir, threshold)
+    else:
+        print("No data for individual frequency plots")
+
+    plt.show()
+
+
+def load_and_filter_data(threshold=0.7):
+    """
+    Load and filter all necessary data from database.
+
+    Returns:
+        Dictionary with 'preferred_only' and 'all_strong' DataFrames
+    """
     conn = Connection("allen_data_repository")
 
-    # First, get units that pass the stimulus selectivity threshold
+    # Get units that pass stimulus selectivity threshold
     selectivity_query = """
                         SELECT session_id,
                                unit_name,
@@ -50,10 +93,9 @@ def create_preference_indices_at_preferred_frequency_plot(save_path=None, thresh
                                   columns=['session_id', 'unit_name', 'n_significant',
                                            'n_comparisons', 'selectivity_ratio'])
 
-    print(f"Found {len(selectivity_df)} units meeting selectivity threshold (>5% significant pairs)")
-    print(f"  Example units: {list(selectivity_df['unit_name'].head(3))}")
+    print(f"Found {len(selectivity_df)} units meeting selectivity threshold")
 
-    # Query preferred frequencies with all frequency responses
+    # Get preferred frequencies
     preferred_freq_query = """
                            SELECT session_id, unit_name, preferred_frequency, all_freq_responses
                            FROM PreferredFrequencies
@@ -71,26 +113,24 @@ def create_preference_indices_at_preferred_frequency_plot(save_path=None, thresh
                                      columns=['session_id', 'unit_name', 'preferred_frequency',
                                               'all_freq_responses'])
 
-    print(f"  Preferred freq units: {list(preferred_freq_df['unit_name'].head(3))}")
-
-    # Parse JSON and filter by threshold
-    def parse_and_filter_freqs(row):
+    # Parse JSON and identify strong frequencies
+    def parse_frequencies(row):
         try:
             all_freqs = json.loads(row['all_freq_responses'])
-            # Find absolute max across all frequencies
             absolute_max = max(all_freqs.values())
-            # Get frequencies that are at least threshold% of absolute max
-            # IMPORTANT: Convert string keys to float for comparison
-            valid_freqs = [float(freq) for freq, response in all_freqs.items()
-                           if response >= threshold * absolute_max]
-            return valid_freqs
+
+            # Get all frequencies >= threshold
+            strong_freqs = [float(freq) for freq, response in all_freqs.items()
+                            if response >= threshold * absolute_max]
+
+            return strong_freqs
         except Exception as e:
-            print(f"Error parsing frequencies for {row['session_id']}, {row['unit_name']}: {e}")
+            print(f"Error parsing frequencies: {e}")
             return []
 
-    preferred_freq_df['valid_frequencies'] = preferred_freq_df.apply(parse_and_filter_freqs, axis=1)
+    preferred_freq_df['strong_frequencies'] = preferred_freq_df.apply(parse_frequencies, axis=1)
 
-    # Query solid preference indices with p-values
+    # Get solid preference indices
     solid_query = """
                   SELECT session_id, unit_name, solid_preference_index, p_value
                   FROM SolidPreferenceIndices
@@ -102,9 +142,7 @@ def create_preference_indices_at_preferred_frequency_plot(save_path=None, thresh
     solid_df = pd.DataFrame(solid_data,
                             columns=['session_id', 'unit_name', 'solid_preference_index', 'p_value'])
 
-    print(f"  Solid pref units: {list(solid_df['unit_name'].head(3))}")
-
-    # Query isochromatic preference indices (all frequencies)
+    # Get isochromatic preference indices
     isochromatic_query = """
                          SELECT session_id, unit_name, frequency, isochromatic_preference_index
                          FROM IsochromaticPreferenceIndices
@@ -117,111 +155,70 @@ def create_preference_indices_at_preferred_frequency_plot(save_path=None, thresh
                                    columns=['session_id', 'unit_name', 'frequency',
                                             'isochromatic_preference_index'])
 
-    print(f"  Isochromatic units: {list(isochromatic_df['unit_name'].unique()[:3])}")
-    print(f"  Total isochromatic rows: {len(isochromatic_df)}")
+    # Merge base data
+    base_df = solid_df.merge(
+        selectivity_df[['session_id', 'unit_name', 'selectivity_ratio']],
+        on=['session_id', 'unit_name'], how='inner'
+    )
 
-    # Merge all data - step by step with debug
-    print("\n=== Merge step 1: solid + selectivity ===")
-    solid_df = solid_df.merge(selectivity_df[['session_id', 'unit_name', 'selectivity_ratio']],
-                              on=['session_id', 'unit_name'], how='inner')
-    print(f"  After merge: {len(solid_df)} rows")
-    print(f"  Units: {list(solid_df['unit_name'].head(3))}")
+    base_df = base_df.merge(
+        preferred_freq_df[['session_id', 'unit_name', 'preferred_frequency', 'strong_frequencies']],
+        on=['session_id', 'unit_name'], how='inner'
+    )
 
-    print("\n=== Merge step 2: + preferred frequency ===")
-    solid_df = solid_df.merge(preferred_freq_df[['session_id', 'unit_name', 'valid_frequencies']],
-                              on=['session_id', 'unit_name'], how='inner')
-    print(f"  After merge: {len(solid_df)} rows")
-    print(f"  Units: {list(solid_df['unit_name'].head(3))}")
+    base_df = base_df.merge(
+        isochromatic_df,
+        on=['session_id', 'unit_name'], how='inner'
+    )
 
-    print("\n=== Merge step 3: + isochromatic ===")
-    print(f"  Before merge - solid_df has {len(solid_df)} rows")
-    print(f"  Before merge - isochromatic_df has {len(isochromatic_df)} rows")
-
-    # Check for overlap
-    solid_units = set(zip(solid_df['session_id'], solid_df['unit_name']))
-    iso_units = set(zip(isochromatic_df['session_id'], isochromatic_df['unit_name']))
-    overlap = solid_units & iso_units
-
-    print(f"  Units in solid_df: {len(solid_units)}")
-    print(f"  Units in isochromatic_df: {len(iso_units)}")
-    print(f"  Overlapping units: {len(overlap)}")
-
-    if len(overlap) == 0:
-        print("\n  ERROR: No overlapping units! Sample units from each:")
-        print(f"    Solid units: {list(solid_units)[:3]}")
-        print(f"    Iso units: {list(iso_units)[:3]}")
+    if base_df.empty:
+        print("No data after merging")
         return None
 
-    merged_df = solid_df.merge(isochromatic_df, on=['session_id', 'unit_name'], how='inner')
-    print(f"  After merge: {len(merged_df)} rows")
+    # Filter to allowed frequencies
+    allowed_frequencies = [0.5, 1.0, 2.0, 4.0]
+    base_df = base_df[base_df['frequency'].isin(allowed_frequencies)]
 
-    if merged_df.empty:
-        print("No data after merging with isochromatic preferences")
-        return None
+    # Create dataset 1: Preferred frequency only
+    preferred_only = base_df[base_df['frequency'] == base_df['preferred_frequency']].copy()
 
-    # Filter to only keep rows where frequency is in valid_frequencies list
-    def is_valid_freq(row):
-        freq = float(row['frequency'])
-        valid = freq in row['valid_frequencies']
-        return valid
+    # Create dataset 2: All strong frequencies
+    def is_strong_freq(row):
+        return float(row['frequency']) in row['strong_frequencies']
 
-    merged_df = merged_df[merged_df.apply(is_valid_freq, axis=1)]
+    all_strong = base_df[base_df.apply(is_strong_freq, axis=1)].copy()
 
-    print(f"After frequency filter: {len(merged_df)} rows")
+    return {
+        'preferred_only': preferred_only,
+        'all_strong': all_strong
+    }
 
-    if merged_df.empty:
-        print(f"No matching data found after applying {threshold * 100}% threshold filter.")
-        return None
 
-    # Rest of the function...
-    sessions = sorted(merged_df['session_id'].unique())
-    all_freqs = sorted(merged_df['frequency'].unique())
+def plot_preferred_frequency_only(data, save_path=None):
+    """Plot 1: Only the preferred frequency for each unit."""
 
-    print(f"\nCreating plot for {len(sessions)} sessions: {sessions}")
-    print(f"Frequencies found (at ≥{threshold * 100}% of max): {all_freqs}")
-    print(f"Total data points: {len(merged_df)}")
+    x = data['solid_preference_index'].values
+    y = data['isochromatic_preference_index'].values
+    p_values = data['p_value'].values
+    frequencies = data['preferred_frequency'].values
 
-    # Show breakdown by session
-    for session in sessions:
-        session_data = merged_df[merged_df['session_id'] == session]
-        session_units = len(session_data)
-        significant_units = session_data[session_data['p_value'] < 0.05].shape[0]
-        print(f"  Session {session}: {session_units} data points ({significant_units} solid-pref significant)")
-
-    # Create the plot
-    plot_filtered_frequency_data(merged_df, sessions, all_freqs, save_path, threshold)
-
-    return merged_df
-
-def plot_filtered_frequency_data(merged_df, sessions, all_freqs, save_path=None, threshold=0.7):
-    """Create a single plot with units at frequencies ≥threshold of their max."""
-
-    # Extract values
-    x = merged_df['solid_preference_index'].values
-    y = merged_df['isochromatic_preference_index'].values
-    p_values = merged_df['p_value'].values
-    frequencies = merged_df['frequency'].values
-
-    # Calculate linear regression for all data
-    slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
+    # Calculate regression
+    slope, intercept, r_value, p_value, _ = stats.linregress(x, y)
     r_squared = r_value ** 2
 
-    # Create the scatter plot
+    # Create plot
     plt.figure(figsize=(12, 10))
 
-    # Create color map for frequencies
+    # Color map for frequencies
+    all_freqs = sorted(data['preferred_frequency'].unique())
     freq_cmap = plt.cm.viridis
-    freq_colors = {freq: freq_cmap(i / len(all_freqs))
-                   for i, freq in enumerate(all_freqs)}
+    freq_colors = {freq: freq_cmap(i / (len(all_freqs) - 1)) for i, freq in enumerate(all_freqs)}
 
-    # Plot each point with same marker shape
+    # Plot points
     for i in range(len(x)):
         freq = frequencies[i]
-
-        # Determine color based on frequency
         color = freq_colors[freq]
 
-        # Determine alpha based on significance
         if pd.notna(p_values[i]) and p_values[i] < 0.05:
             alpha_val = 0.7
             edge_color = 'black'
@@ -236,93 +233,256 @@ def plot_filtered_frequency_data(merged_df, sessions, all_freqs, save_path=None,
                     edgecolors=edge_color, linewidths=linewidth)
 
     # Add trend line
-    line_x = np.linspace(x.min(), x.max(), 100)
+    line_x = np.linspace(-1.1, 1.1, 100)
     line_y = slope * line_x + intercept
-    plt.plot(line_x, line_y, 'k-', linewidth=2, label=f'Trend (R² = {r_squared:.3f})')
+    plt.plot(line_x, line_y, 'k-', linewidth=2, label=f'Trend (R²={r_squared:.3f})')
 
-    # Add labels and title
+    # Formatting
+    n_significant = np.sum((pd.notna(p_values)) & (p_values < 0.05))
+    plt.xlabel('Solid Preference Index', fontsize=14)
+    plt.ylabel('Isochromatic Preference Index', fontsize=14)
+    plt.title(
+        f'Solid vs Isochromatic Preference at Preferred Frequency\n'
+        f'(n={len(data)} units, {n_significant} solid-pref significant)',
+        fontsize=16)
+
+    add_plot_formatting(plt.gca(), r_squared, r_value, p_value, len(data), n_significant)
+
+    # Legend for frequencies
+    freq_legend = [plt.Line2D([0], [0], marker='o', color='w',
+                              markerfacecolor=freq_colors[freq],
+                              markersize=10, label=f'{freq} Hz',
+                              markeredgecolor='black', markeredgewidth=0.5)
+                   for freq in all_freqs]
+    freq_legend.append(plt.Line2D([0], [0], color='black', linewidth=2,
+                                  label=f'Trend (R²={r_squared:.3f})'))
+
+    plt.legend(handles=freq_legend, bbox_to_anchor=(1.05, 1),
+               loc='upper left', title='Preferred Frequency')
+
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"Saved: {save_path}")
+
+    print(f"\nPreferred Frequency Only Statistics:")
+    print(f"  Total units: {len(data)}")
+    print(f"  Significant: {n_significant}")
+    print(f"  R² = {r_squared:.3f}, r = {r_value:.3f}, p = {p_value:.3f}")
+
+
+def plot_combined_strong_frequencies(data, save_path=None, threshold=0.7):
+    """Plot 2: Combined plot with all strong frequencies and separate trend lines."""
+
+    x = data['solid_preference_index'].values
+    y = data['isochromatic_preference_index'].values
+    p_values = data['p_value'].values
+    frequencies = data['frequency'].values
+
+    # Overall regression
+    slope_all, intercept_all, r_value_all, p_value_all, _ = stats.linregress(x, y)
+    r_squared_all = r_value_all ** 2
+
+    # Create plot
+    plt.figure(figsize=(12, 10))
+
+    # Color map
+    all_freqs = [0.5, 1.0, 2.0, 4.0]
+    freq_cmap = plt.cm.viridis
+    freq_colors = {freq: freq_cmap(i / 3) for i, freq in enumerate(all_freqs)}
+
+    # Plot points
+    for i in range(len(x)):
+        freq = frequencies[i]
+        color = freq_colors[freq]
+
+        if pd.notna(p_values[i]) and p_values[i] < 0.05:
+            alpha_val = 0.7
+            edge_color = 'black'
+            linewidth = 0.5
+        else:
+            alpha_val = 0.15
+            edge_color = 'gray'
+            linewidth = 0.3
+
+        plt.scatter(x[i], y[i], alpha=alpha_val, s=100,
+                    color=color, marker='o',
+                    edgecolors=edge_color, linewidths=linewidth)
+
+    # Plot trend lines for each frequency
+    line_x = np.linspace(-1.1, 1.1, 100)
+
+    for freq in all_freqs:
+        freq_data = data[data['frequency'] == freq]
+        if len(freq_data) > 1:
+            x_freq = freq_data['solid_preference_index'].values
+            y_freq = freq_data['isochromatic_preference_index'].values
+
+            slope, intercept, r_value, p_val, _ = stats.linregress(x_freq, y_freq)
+            r_squared = r_value ** 2
+
+            line_y = slope * line_x + intercept
+            plt.plot(line_x, line_y, linewidth=2, color=freq_colors[freq],
+                     linestyle='--', alpha=0.8,
+                     label=f'{freq} Hz (R²={r_squared:.2f}, n={len(x_freq)})')
+
+    # Overall trend line
+    line_y_all = slope_all * line_x + intercept_all
+    plt.plot(line_x, line_y_all, 'k-', linewidth=3, alpha=0.5,
+             label=f'All (R²={r_squared_all:.2f}, n={len(x)})')
+
+    # Formatting
     n_significant = np.sum((pd.notna(p_values)) & (p_values < 0.05))
     plt.xlabel('Solid Preference Index', fontsize=14)
     plt.ylabel('Isochromatic Preference Index', fontsize=14)
     plt.title(
         f'Solid vs Isochromatic Preference at Strong Frequencies (≥{threshold * 100:.0f}% of max)\n'
-        f'(Stimulus-selective units: n={len(merged_df)} total, {n_significant} solid-pref significant)',
+        f'(n={len(data)} data points, {n_significant} solid-pref significant)',
         fontsize=16)
 
-    # Add reference lines at zero
-    plt.axhline(y=0, color='gray', linestyle='--', alpha=0.5)
-    plt.axvline(x=0, color='gray', linestyle='--', alpha=0.5)
+    add_plot_formatting(plt.gca(), r_squared_all, r_value_all, p_value_all, len(data), n_significant)
 
-    # Add grid
-    plt.grid(True, alpha=0.3)
-
-    # Set axis limits
-    plt.xlim(-1.1, 1.1)
-    plt.ylim(-1.1, 1.1)
-
-    # Create frequency color legend
-    freq_legend_elements = [plt.Line2D([0], [0], marker='o', color='w',
-                                       markerfacecolor=freq_colors[freq],
-                                       markersize=10, label=f'{freq} Hz',
-                                       markeredgecolor='black', markeredgewidth=0.5)
-                            for freq in all_freqs]
-
-    # Add trend line to legend
-    trend_legend = [plt.Line2D([0], [0], color='black', linewidth=2,
-                               label=f'Trend (R²={r_squared:.3f})')]
-
-    # Combine legend elements
-    all_legend_elements = freq_legend_elements + trend_legend
-
-    # Add legend
-    plt.legend(handles=all_legend_elements, bbox_to_anchor=(1.05, 1),
-               loc='upper left', title='Frequency')
-
-    # Add statistics text box
-    stats_text = f'R² = {r_squared:.3f}\nr = {r_value:.3f}\np = {p_value:.3f}\nn = {len(merged_df)}\nsig. = {n_significant}'
-    plt.text(0.02, 0.98, stats_text, transform=plt.gca().transAxes,
-             verticalalignment='top', fontsize=10,
-             bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
-
-    # Add quadrant labels
-    plt.text(0.4, 0.9, 'Prefers 3D &\nIsochromatic', ha='center', va='center',
-             bbox=dict(boxstyle="round,pad=0.3", facecolor='lightblue', alpha=0.5), fontsize=10)
-    plt.text(-0.6, 0.9, 'Prefers 2D &\nIsochromatic', ha='center', va='center',
-             bbox=dict(boxstyle="round,pad=0.3", facecolor='lightgreen', alpha=0.5), fontsize=10)
-    plt.text(0.4, -0.9, 'Prefers 3D &\nIsoluminant', ha='center', va='center',
-             bbox=dict(boxstyle="round,pad=0.3", facecolor='lightcoral', alpha=0.5), fontsize=10)
-    plt.text(-0.6, -0.9, 'Prefers 2D &\nIsoluminant', ha='center', va='center',
-             bbox=dict(boxstyle="round,pad=0.3", facecolor='lightyellow', alpha=0.5), fontsize=10)
-
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', title='Frequency')
     plt.tight_layout()
 
-    # Save if path provided
-    if save_path is not None:
+    if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"\nSaved: {save_path}")
-
-    plt.show()
+        print(f"Saved: {save_path}")
 
     # Print statistics
-    print(f"\nStatistics at Strong Frequencies (≥{threshold * 100:.0f}% of max):")
-    print(f"  Total data points: {len(merged_df)}")
-    print(f"  Significant units (solid-pref p < 0.05): {n_significant}")
-    print(f"  Solid Preference range: {x.min():.3f} to {x.max():.3f}")
-    print(f"  Isochromatic Preference range: {y.min():.3f} to {y.max():.3f}")
-    print(f"  Correlation: r = {r_value:.3f}, R² = {r_squared:.3f}, p = {p_value:.3f}")
+    print(f"\nCombined Strong Frequencies Statistics:")
+    print(f"  Total data points: {len(data)}")
+    print(f"  Significant: {n_significant}")
+    print(f"  Overall: R² = {r_squared_all:.3f}, r = {r_value_all:.3f}, p = {p_value_all:.3f}")
 
-    # Breakdown by frequency
-    print(f"\n  Breakdown by frequency:")
     for freq in all_freqs:
-        freq_data = merged_df[merged_df['frequency'] == freq]
-        n_points = len(freq_data)
-        n_sig = np.sum((pd.notna(freq_data['p_value'])) & (freq_data['p_value'] < 0.05))
-        print(f"    {freq} Hz: {n_points} data points ({n_sig} significant)")
+        freq_data = data[data['frequency'] == freq]
+        if not freq_data.empty:
+            n_sig = np.sum((pd.notna(freq_data['p_value'])) & (freq_data['p_value'] < 0.05))
+            if len(freq_data) > 1:
+                x_f = freq_data['solid_preference_index'].values
+                y_f = freq_data['isochromatic_preference_index'].values
+                _, _, r_val, p_val, _ = stats.linregress(x_f, y_f)
+                print(f"    {freq} Hz: n={len(freq_data)} ({n_sig} sig.), r={r_val:.3f}, p={p_val:.3f}")
+
+
+def plot_individual_frequencies(data, save_dir=None, threshold=0.7):
+    """Plot 3: Individual plots for each frequency."""
+
+    allowed_frequencies = [0.5, 1.0, 2.0, 4.0]
+
+    # Color map
+    freq_cmap = plt.cm.viridis
+    freq_colors = {freq: freq_cmap(i / 3) for i, freq in enumerate(allowed_frequencies)}
+
+    for freq in allowed_frequencies:
+        freq_data = data[data['frequency'] == freq]
+
+        if freq_data.empty:
+            print(f"No data for {freq} Hz")
+            continue
+
+        x = freq_data['solid_preference_index'].values
+        y = freq_data['isochromatic_preference_index'].values
+        p_values = freq_data['p_value'].values
+
+        # Calculate regression
+        if len(x) > 1:
+            slope, intercept, r_value, p_value, _ = stats.linregress(x, y)
+            r_squared = r_value ** 2
+        else:
+            slope = intercept = r_value = p_value = r_squared = 0
+
+        # Create plot
+        plt.figure(figsize=(10, 8))
+
+        color = freq_colors[freq]
+
+        # Plot points
+        for i in range(len(x)):
+            if pd.notna(p_values[i]) and p_values[i] < 0.05:
+                alpha_val = 0.7
+                edge_color = 'black'
+                linewidth = 0.5
+            else:
+                alpha_val = 0.15
+                edge_color = 'gray'
+                linewidth = 0.3
+
+            plt.scatter(x[i], y[i], alpha=alpha_val, s=100,
+                        color=color, marker='o',
+                        edgecolors=edge_color, linewidths=linewidth)
+
+        # Add trend line
+        if len(x) > 1:
+            line_x = np.linspace(-1.1, 1.1, 100)
+            line_y = slope * line_x + intercept
+            plt.plot(line_x, line_y, linewidth=2, color=color,
+                     label=f'Trend (R²={r_squared:.3f})')
+
+        # Formatting
+        n_significant = np.sum((pd.notna(p_values)) & (p_values < 0.05))
+        plt.xlabel('Solid Preference Index', fontsize=14)
+        plt.ylabel('Isochromatic Preference Index', fontsize=14)
+        plt.title(
+            f'Solid vs Isochromatic Preference at {freq} Hz (≥{threshold * 100:.0f}% of max)\n'
+            f'(n={len(freq_data)} data points, {n_significant} solid-pref significant)',
+            fontsize=16)
+
+        add_plot_formatting(plt.gca(), r_squared, r_value, p_value, len(freq_data), n_significant)
+
+        if len(x) > 1:
+            plt.legend(loc='upper left')
+
+        plt.tight_layout()
+
+        if save_dir:
+            save_path = os.path.join(save_dir, f"03_individual_{freq}Hz.png")
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"Saved: {save_path}")
+
+        print(f"\n{freq} Hz Statistics:")
+        print(f"  Data points: {len(freq_data)}")
+        print(f"  Significant: {n_significant}")
+        if len(x) > 1:
+            print(f"  R² = {r_squared:.3f}, r = {r_value:.3f}, p = {p_value:.3f}")
+
+
+def add_plot_formatting(ax, r_squared, r_value, p_value, n, n_sig):
+    """Add common formatting to plots."""
+
+    # Reference lines
+    ax.axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+    ax.axvline(x=0, color='gray', linestyle='--', alpha=0.5)
+
+    # Grid
+    ax.grid(True, alpha=0.3)
+
+    # Axis limits
+    ax.set_xlim(-1.1, 1.1)
+    ax.set_ylim(-1.1, 1.1)
+
+    # Statistics text box
+    stats_text = f'R² = {r_squared:.3f}\nr = {r_value:.3f}\np = {p_value:.3f}\nn = {n}\nsig. = {n_sig}'
+    ax.text(0.02, 0.98, stats_text, transform=ax.transAxes,
+            verticalalignment='top', fontsize=10,
+            bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
+
+    # Quadrant labels
+    ax.text(0.4, 0.9, 'Prefers 3D &\nIsochromatic', ha='center', va='center',
+            bbox=dict(boxstyle="round,pad=0.3", facecolor='lightblue', alpha=0.5), fontsize=10)
+    ax.text(-0.6, 0.9, 'Prefers 2D &\nIsochromatic', ha='center', va='center',
+            bbox=dict(boxstyle="round,pad=0.3", facecolor='lightgreen', alpha=0.5), fontsize=10)
+    ax.text(0.4, -0.9, 'Prefers 3D &\nIsoluminant', ha='center', va='center',
+            bbox=dict(boxstyle="round,pad=0.3", facecolor='lightcoral', alpha=0.5), fontsize=10)
+    ax.text(-0.6, -0.9, 'Prefers 2D &\nIsoluminant', ha='center', va='center',
+            bbox=dict(boxstyle="round,pad=0.3", facecolor='lightyellow', alpha=0.5), fontsize=10)
 
 
 if __name__ == "__main__":
-    # Example usage with 70% threshold
-    data = create_preference_indices_at_preferred_frequency_plot(
-        save_path="/home/connorlab/Documents/plots/spi_vs_ici/filtered_frequency_plot.png",
+    # Create all three types of plots
+    create_all_preference_plots(
+        save_dir="/home/connorlab/Documents/plots/spi_vs_ici",
         threshold=0.7
     )
