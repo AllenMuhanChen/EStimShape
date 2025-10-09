@@ -33,8 +33,8 @@ def main():
     # if channel is None:
         # channel = read_cluster_channels(session_id)[0]
 
-    session_id = "251001_1"
-    channel = "A-013"
+    session_id = "251008_0"
+    channel = "A-004"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
@@ -153,15 +153,14 @@ class SideTestAnalysis(Analysis):
 
         # Add to pipeline
         pipeline = create_pipeline().make_branch(
-            index_branch, permutation_branch
+            plot_branch,
+            raster_branch,
+            psth_branch,
+            psth_examples_branch,
+            index_branch,
+            permutation_branch
         ).build()
 
-        # pipeline = create_pipeline().make_branch(
-        #     index_branch).build()
-
-        # pipeline = create_pipeline().make_branch(
-        #     plot_branch, raster_branch, psth_branch, psth_examples_branch, index_branch
-        # ).build()
         result = pipeline.run(compiled_data)
         # Show the figure
         plt.show()

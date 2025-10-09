@@ -17,8 +17,8 @@ def main():
     compiled_data = plot_top_n.compile()
 
     session_id, _ = read_session_id_from_db_name(context.ga_database)
-    session_id = "251001_1"
-    channel = "A-013"
+    session_id = "251008_0"
+    channel = "A-004"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
@@ -92,7 +92,7 @@ class PlotGenerationsAnalysis(PlotTopNAnalysis):
             # sort_rules={"GenId": "descending"},
             save_path=f"{self.save_path}/{channel}: top_per_gen_by_lineage.png",
             module_name="Top Stimuli Per Gen by Lineage",
-            publish_mode=True
+            publish_mode=False
         )
 
         # Second module (first generation only, all 80 stimuli in 20x4 grid)

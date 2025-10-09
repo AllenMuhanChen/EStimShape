@@ -30,8 +30,8 @@ def main():
     # session_id, _ = read_session_id_from_db_name(context.isogabor_database)
     compiled_data = compile()
 
-    session_id = "251001_1"
-    channel = "A-013"
+    session_id = "251008_0"
+    channel = "A-004"
     analysis = IsogaborAnalysis()
     return analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
@@ -155,11 +155,11 @@ class IsogaborAnalysis(Analysis):
         pref_freq_branch = create_branch().then(pref_freq_module)
 
         pipeline = create_pipeline().make_branch(
-            # raster_branch,
-            # raster_by_isotype_branch,
-            # psth_branch,
+            raster_branch,
+            raster_by_isotype_branch,
+            psth_branch,
             index_branch,
-            # freq_response_branch,
+            freq_response_branch,
             pref_freq_branch
         ).build()
 

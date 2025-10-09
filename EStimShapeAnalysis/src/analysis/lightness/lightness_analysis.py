@@ -31,8 +31,8 @@ def main():
     compiled_data = compile()
     analysis = LightnessAnalysis()
     session_id, _ = read_session_id_from_db_name(context.lightness_database)
-    session_id = "251001_1"
-    channel = "A-013"
+    session_id = "251004_0"
+    channel = "A-004"
     return analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
