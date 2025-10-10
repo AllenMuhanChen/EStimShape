@@ -27,7 +27,7 @@ UPDATE SystemVar SET val=15 WHERE name = 'xper_max_image_dimension_degrees';
 UPDATE SystemVar SET val=60 WHERE name = 'xper_noise_rate';
 EOF
 
-sudo -S <<< r2_allen cp $XPER_PROPERTIES_PROCEDURAL $DIST/xper.properties
-sudo -S <<< r2_allen cp $XPER_PROPERTIES_PROCEDURAL $DIST/allen/xper.properties
+sudo -S <<< Whedon101 cp $XPER_PROPERTIES_PROCEDURAL $DIST/xper.properties
+sudo -S <<< Whedon101 cp $XPER_PROPERTIES_PROCEDURAL $DIST/allen/xper.properties
 cd $DIST/allen
 java -jar NAFCConsole.jar

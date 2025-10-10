@@ -222,20 +222,20 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 		// Original lightness value
 		float originalLightness = hsl[2];
 		float newLightness;
-		if (originalLightness < 1) {
-			// Calculate the maximum fluctuation range based on the current lightness
-			float fluctuationRange = Math.min(originalLightness, 1.0f - originalLightness);
-
-			// Generate a random fluctuation within the allowed range
-			float fluctuation = (float) ((r.nextDouble() * fluctuationRange * 2) - fluctuationRange);
-
-			// Apply the fluctuation to the original lightness, ensuring the result is within [0,1]
-			newLightness = originalLightness + fluctuation;
-			newLightness = Math.max(0.0f, Math.min(1.0f, newLightness)); // Clamp to [0,1]
-		} else {
-			// If the original lightness is already at the maximum, don't change it
+        //This led to weird behavbior with less than 1 brightness stim: AC 10/10/2025, removing for now
+//		if (originalLightness < 1) {
+//			 Calculate the maximum fluctuation range based on the current lightness
+//			float fluctuationRange = Math.min(originalLightness, 1.0f - originalLightness);
+//
+//			 Generate a random fluctuation within the allowed range
+//			float fluctuation = (float) ((r.nextDouble() * fluctuationRange * 2) - fluctuationRange);
+//
+//			 Apply the fluctuation to the original lightness, ensuring the result is within [0,1]
+//			newLightness = originalLightness + fluctuation;
+//			newLightness = Math.max(0.0f, Math.min(1.0f, newLightness)); // Clamp to [0,1]
+//		} else {
 			newLightness = (float) r.nextDouble();
-		}
+//		}
 
 		// Create a Color object from the HSL values with the new lightness
 		Color color = Color.getHSBColor(hsl[0], hsl[1], newLightness);
