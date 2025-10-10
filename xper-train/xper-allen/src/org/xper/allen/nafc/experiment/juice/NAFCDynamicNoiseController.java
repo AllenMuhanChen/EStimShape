@@ -58,6 +58,7 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
         System.err.println("Noise Rate: " + noiseChance);
         try {
             rewardMultiplier = noiseRewardFunction.value(noiseChance);
+            System.out.println("Baseline reward of: " +  rewardMultiplier + " because of noise value");
         } catch (FunctionEvaluationException e){
             System.err.println(e.getMessage());
             System.out.println("Function evaluation failed, rewardMultiplier defaulting to 1");
@@ -65,9 +66,15 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
         }
 
         //4AFC Reward Multiplier
-        System.out.println("Choices: " + task.getChoiceSpec().length);
-        if (task.getChoiceSpec().length == 3){
-            rewardMultiplier = rewardMultiplier * 0.5;
+        int numChoices = task.getChoiceSpec().length;
+        System.out.println("Choices: " + numChoices);
+        if (numChoices == 3){
+//            System.out.println("Discounting reward by 0.75 because of 3AFC");
+            rewardMultiplier = rewardMultiplier;
+        }
+        else if (numChoices == 4){
+            rewardMultiplier = rewardMultiplier + 1;
+            System.out.println("Bonus +1 because of 4 choices");
         }
 
 
@@ -80,18 +87,19 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
 //        }
 
 //        // Rand Multiplier Penalty
-//        int randCount = 0;
-//        for (int i = 0; i < task.getChoiceSpec().length; i++) {
-//            NoisyPngSpec choiceSpec = NoisyPngSpec.fromXml(task.getChoiceSpec()[i]);
-//            String choicePngPath = choiceSpec.getPngPath();
-//            if (choicePngPath.contains("rand")) {
-//                randCount++;
-//            }
-//        }
+        int randCount = 0;
+        for (int i = 0; i < numChoices; i++) {
+            NoisyPngSpec choiceSpec = NoisyPngSpec.fromXml(task.getChoiceSpec()[i]);
+            String choicePngPath = choiceSpec.getPngPath();
+            if (choicePngPath.contains("rand")) {
+                randCount++;
+            }
+        }
 //
-//        int proceduralCount = 4 - randCount;
-//        rewardMultiplier = (proceduralCount / 4.0) * rewardMultiplier;
-//        rewardMultiplier = Math.max(1, rewardMultiplier);
+        int proceduralCount = numChoices - randCount - 1;
+        System.out.println("Bonus +" + proceduralCount + " because of procedural count");
+        rewardMultiplier = proceduralCount + (rewardMultiplier);
+        rewardMultiplier = Math.max(1, rewardMultiplier);
     }
 
     private void drawStreak(Context context) {
@@ -131,7 +139,7 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
         System.out.println("Correct Streak: " + correctStreak);
         if (isStreak){
             System.out.println("STREAK MULTIPLIER ACTIVATED");
-            rewardMultiplier = rewardMultiplier * 2;
+            rewardMultiplier = rewardMultiplier + 2;
         }
 
         if (isStreak){

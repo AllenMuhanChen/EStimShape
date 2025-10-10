@@ -26,8 +26,8 @@ update_systemvars() {
     mysql --host=$MYSQL_HOST --user=$MYSQL_USER --password=$MYSQL_PASS $DB <<EOF
 UPDATE SystemVar SET val=1.0 WHERE name='xper_eye_window_algorithm_base_window_size';
 UPDATE SystemVar SET val=1.0 WHERE name='xper_eye_window_algorithm_initial_window_size';
-UPDATE SystemVar SET val=0 WHERE name='xper_fixation_point_color' AND arr_ind=0;
-UPDATE SystemVar SET val=1 WHERE name='xper_fixation_point_color' AND arr_ind=1;
+UPDATE SystemVar SET val=1 WHERE name='xper_fixation_point_color' AND arr_ind=0;
+UPDATE SystemVar SET val=0 WHERE name='xper_fixation_point_color' AND arr_ind=1;
 UPDATE SystemVar SET val=0 WHERE name='xper_fixation_point_color' AND arr_ind=2;
 UPDATE SystemVar SET val=1428 WHERE name='xper_monkey_screen_width';
 UPDATE SystemVar SET val=802 WHERE name='xper_monkey_screen_height';
