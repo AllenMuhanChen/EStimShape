@@ -5,6 +5,7 @@ import os
 import json
 from scipy import stats
 from clat.util.connection import Connection
+from src.analysis.spi_vs_ici.spi_vs_ici_windowsorted import get_selectivity_query
 
 
 def create_all_preference_plots(save_dir=None, threshold=0.7):
@@ -70,19 +71,9 @@ def load_and_filter_data(threshold=0.7):
     conn = Connection("allen_data_repository")
 
     # Get units that pass stimulus selectivity threshold
-    selectivity_query = """
-                        SELECT session_id,
-                               unit_name,
-                               n_significant,
-                               n_comparisons,
-                               (n_significant / n_comparisons) as selectivity_ratio
-                        FROM StimulusSelectivity
-                        WHERE unit_name LIKE '%Unit%'
-                          AND n_comparisons > 0
-                          AND (n_significant / n_comparisons) >= 0.05
-                        """
 
-    conn.execute(selectivity_query)
+
+    conn.execute(get_selectivity_query())
     selectivity_data = conn.fetch_all()
 
     if not selectivity_data:

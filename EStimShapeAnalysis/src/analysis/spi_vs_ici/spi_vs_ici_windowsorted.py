@@ -21,18 +21,7 @@ def create_preference_indices_frequency_plots(save_path=None):
     # Connect to the data repository database
     conn = Connection("allen_data_repository")
 
-    # First, get units that pass the stimulus selectivity threshold
-    selectivity_query = """
-                        SELECT session_id, \
-                               unit_name, \
-                               n_significant, \
-                               n_comparisons,
-                               (n_significant / n_comparisons) as selectivity_ratio
-                        FROM StimulusSelectivity
-                        WHERE unit_name LIKE '%Unit%'
-                          AND n_comparisons > 0
-                          AND (n_significant / n_comparisons) >= 0.05
-                        """
+    selectivity_query = get_selectivity_query()
 
     conn.execute(selectivity_query)
     selectivity_data = conn.fetch_all()
@@ -115,6 +104,22 @@ def create_preference_indices_frequency_plots(save_path=None):
     create_combined_frequency_plots(merged_df, sessions, frequencies, save_path)
 
     return merged_df
+
+
+def get_selectivity_query():
+    # First, get units that pass the stimulus selectivity threshold
+    selectivity_query = """
+                        SELECT session_id, \
+                               unit_name, \
+                               n_significant, \
+                               n_comparisons, \
+                               (n_significant / n_comparisons) as selectivity_ratio
+                        FROM StimulusSelectivity
+                        WHERE unit_name LIKE '%Unit%'
+                          AND n_comparisons > 0
+                          AND n_significant >= 4 * (n_stimuli - 4)
+                        """
+    return selectivity_query
 
 
 def plot_session_frequencies(merged_df, session_id, frequencies, save_path=None):

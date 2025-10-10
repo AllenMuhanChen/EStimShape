@@ -2,6 +2,7 @@ import os
 from typing import List, Tuple
 from matplotlib import pyplot as plt
 from clat.util.connection import Connection
+from src.analysis.ga.plot_generations import PlotGenerationsAnalysis
 
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.analysis.ga.side_test import SideTestAnalysis
@@ -59,7 +60,7 @@ def fetch_all_sessions() -> List[Tuple[str]]:
 def main():
     # ============ CONFIGURATION ============
     # Set to specific session ID or None for all sessions
-    session_name = None
+    session_name = "251008_0"
 
     # Set to specific unit or None for all units in session
     specific_unit = None  # e.g., 'Unit_01' or None for all units
@@ -72,8 +73,9 @@ def main():
 
     # Which analyses to run
     analyses = [
-        IsogaborAnalysis(),
+        # IsogaborAnalysis(),
         # PlotTopNAnalysis(),
+        PlotGenerationsAnalysis(),
         # SideTestAnalysis(),
         # LightnessAnalysis(),
         # MixedGaborsAnalysis(),

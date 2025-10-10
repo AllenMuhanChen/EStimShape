@@ -37,13 +37,13 @@ mock.config_class=
 # parameters
 #############################################################################
 #path of computer running stimulus generator
-generator.png_path=/home/connorlab/Documents/EStimShape/allen_estimshape_exp_251008_0/stimuli/251008/procedural/pngs
+generator.png_path=/home/connorlab/Documents/EStimShape/allen_estimshape_exp_251008_0/stimuli/251010/procedural/pngs
 #path of computer running experiment
-experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.61/home/connorlab/Documents/EStimShape/allen_estimshape_exp_251008_0/stimuli/251008/procedural/pngs
-generator.spec_path=/home/connorlab/Documents/EStimShape/allen_estimshape_exp_251008_0/stimuli/251008/procedural/specs
-generator.noisemap_path=/home/connorlab/Documents/EStimShape/allen_estimshape_exp_251008_0/stimuli/251008/procedural/pngs
-generator.set_path=/home/connorlab/Documents/EStimShape/allen_estimshape_exp_251008_0/stimuli/251008/sets
-experiment.noisemap_path=/run/user/1004/gvfs/sftp:host=172.30.6.61/home/connorlab/Documents/EStimShape/allen_estimshape_exp_251008_0/stimuli/251008/procedural/pngs
+experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.61/home/connorlab/Documents/EStimShape/allen_estimshape_exp_251008_0/stimuli/251010/procedural/pngs
+generator.spec_path=/home/connorlab/Documents/EStimShape/allen_estimshape_exp_251008_0/stimuli/251010/procedural/specs
+generator.noisemap_path=/home/connorlab/Documents/EStimShape/allen_estimshape_exp_251008_0/stimuli/251010/procedural/pngs
+generator.set_path=/home/connorlab/Documents/EStimShape/allen_estimshape_exp_251008_0/stimuli/251010/sets
+experiment.noisemap_path=/run/user/1004/gvfs/sftp:host=172.30.6.61/home/connorlab/Documents/EStimShape/allen_estimshape_exp_251008_0/stimuli/251010/procedural/pngs
 #############
 ga.spec_path=/home/connorlab/Documents/EStimShape/allen_ga_exp_251008_0/stimuli/ga/specs
 
