@@ -17,6 +17,7 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
     protected JTextField numDeltaTrialSetsField;
     protected JTextField stimIdField;
     protected JTextField compIdField;
+    protected JTextField isEStimEnabledField;
 
     public EStimExperimentGenType() {
         super();
@@ -30,14 +31,14 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
         int numDeltaTrialSets = Integer.parseInt(numDeltaTrialSetsField.getText());
         long stimId = Long.parseLong(stimIdField.getText());
         int compId = Integer.parseInt(compIdField.getText());
-        EStimExperimentGenParameters params = new EStimExperimentGenParameters(super.readFromFields(), numDeltaTrialSets, stimId, compId);
+        boolean isEStimEnabled = Boolean.parseBoolean(isEStimEnabledField.getText());
+        EStimExperimentGenParameters params = new EStimExperimentGenParameters(super.readFromFields(), numDeltaTrialSets, stimId, compId, isEStimEnabled);
         return params;
     }
 
     @Override
     protected List<NAFCStim> genTrials(EStimExperimentGenParameters parameters) {
         List<NAFCStim> newBlock = new LinkedList<>();
-
 
         int morphIndex = parameters.compId;
         int noiseIndex = morphIndex;
@@ -50,8 +51,13 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
             baseMStick.setStimColor(parameters.getProceduralStimParameters().color);
             baseMStick.genMatchStickFromFile(gaSpecPath + "/" + parameters.stimId + "_spec.xml");
 
-            //using estim values set on the IntanGUI
-            EStimShapeProceduralStim stim = new EStimShapeProceduralStim((EStimShapeExperimentTrialGenerator) generator, parameters.getProceduralStimParameters(), baseMStick, morphIndex, true);
+            //using estim value from the GUI field
+            EStimShapeProceduralStim stim = new EStimShapeProceduralStim(
+                    (EStimShapeExperimentTrialGenerator) generator,
+                    parameters.getProceduralStimParameters(),
+                    baseMStick,
+                    morphIndex,
+                    parameters.isEStimEnabled);
             newBlock.add(stim);
         }
 
@@ -77,21 +83,25 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
         numDeltaTrialSetsField = new JTextField("3", 10);
         stimIdField = new JTextField("0", 10);
         compIdField = new JTextField("0", 10);
+        isEStimEnabledField = new JTextField("true", 10);
+
         labelsForFields.put(numDeltaTrialSetsField, "numDeltaTrialSets:");
         defaultsForFields.put(numDeltaTrialSetsField, "3");
         labelsForFields.put(stimIdField, "stimId:");
         defaultsForFields.put(stimIdField, "0");
         labelsForFields.put(compIdField, "compId:");
         defaultsForFields.put(compIdField, "0");
+        labelsForFields.put(isEStimEnabledField, "isEStimEnabled (true/false):");
+        defaultsForFields.put(isEStimEnabledField, "true");
     }
 
     @Override
     public void loadParametersIntoFields(GenParameters blockParams) {
-
         super.loadParametersIntoFields(blockParams);
         numDeltaTrialSetsField.setText(String.valueOf(((EStimExperimentGenParameters) blockParams).numDeltaTrialSets));
         stimIdField.setText(String.valueOf(((EStimExperimentGenParameters) blockParams).stimId));
         compIdField.setText(String.valueOf(((EStimExperimentGenParameters) blockParams).compId));
+        isEStimEnabledField.setText(String.valueOf(((EStimExperimentGenParameters) blockParams).isEStimEnabled));
     }
 
     public void setGaSpecPath(String gaSpecPath) {
@@ -101,11 +111,13 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
     public static class EStimExperimentGenParameters extends MockExperimentGenType.MockExperimentGenParameters {
         public long stimId;
         public int compId;
+        public boolean isEStimEnabled;
 
-        public EStimExperimentGenParameters(GenParameters genParameters, int numDeltaTrialSets, long stimId, int compId) {
+        public EStimExperimentGenParameters(GenParameters genParameters, int numDeltaTrialSets, long stimId, int compId, boolean isEStimEnabled) {
             super(genParameters, numDeltaTrialSets);
             this.stimId = stimId;
             this.compId = compId;
+            this.isEStimEnabled = isEStimEnabled;
         }
 
         public EStimExperimentGenParameters() {

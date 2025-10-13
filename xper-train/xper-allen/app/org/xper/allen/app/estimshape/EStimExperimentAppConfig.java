@@ -12,6 +12,7 @@ import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.nafc.blockgen.EStimShapeProceduralBehavioralGenType;
+import org.xper.allen.nafc.blockgen.procedural.EStimExperimentGenType;
 import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.allen.util.DPIUtil;
 import org.xper.config.BaseConfig;
@@ -74,12 +75,19 @@ public class EStimExperimentAppConfig {
         gui.setStimTypes(Arrays.asList(
                 proceduralAppConfig.proceduralRandGenType(),
                 estimBehavioralGenType(),
-                proceduralAppConfig.getEStimExperimentGenType()
+                getEStimExperimentGenType()
         ));
         gui.setDefaultStimType(proceduralAppConfig.proceduralRandGenType());
         return gui;
     }
 
+    @Bean
+    public EStimExperimentGenType getEStimExperimentGenType() {
+        EStimExperimentGenType eStimExperimentGenType = new EStimExperimentGenType();
+        eStimExperimentGenType.setGaSpecPath(proceduralAppConfig.gaSpecPath);
+        eStimExperimentGenType.setGenerator(generator());
+        return eStimExperimentGenType;
+    }
 
     @Bean
     public EStimShapeExperimentSetGenerator setGenerator(){

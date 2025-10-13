@@ -12,7 +12,6 @@ import static org.xper.allen.pga.RFUtils.checkCompCanFitInRF;
 
 public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim{
 
-    private final AllenPNGMaker samplePngMaker;
     private ReceptiveField rf;
     private AllenPNGMaker choicePNGMaker;
 
@@ -24,18 +23,8 @@ public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim
                 -1,
                 false);
         this.rf = rf;
-        samplePngMaker = generator.getSamplePngMaker();
-        choicePNGMaker = generator.getPngMaker();
     }
 
-    @Override
-    public void preWrite() {
-        assignStimObjIds();
-        assignLabels();
-        generateMatchSticksAndSaveSpecs();
-        drawPNGs();
-        assignCoords();
-    }
 
     @Override
     protected void generateMatchSticksAndSaveSpecs() {
@@ -118,51 +107,5 @@ public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim
 
         return baseMStick;
     }
-
-    /**
-     * Modified to open separate drawing windows for sample and choices. This is because sample and choice
-     * need to be drawn at different sizes to accommodate fitting sample in RF.
-     */
-    protected void drawPNGs() {
-        String generatorPngPath = generator.getGeneratorPngPath();
-
-        samplePngMaker.createDrawerWindow();
-        drawSample(samplePngMaker, generatorPngPath);
-        generateNoiseMap();
-        generateSampleCompMap();
-        samplePngMaker.close();
-
-        //Match
-        choicePNGMaker.createDrawerWindow();
-        String matchPath = choicePNGMaker.createAndSavePNG(mSticks.getMatch(),stimObjIds.getMatch(), labels.getMatch(), generatorPngPath);
-        experimentPngPaths.setMatch(generator.convertPngPathToExperiment(matchPath));
-        System.out.println("Match Path: " + matchPath);
-
-        drawProceduralDistractors(choicePNGMaker, generatorPngPath);
-
-        //Rand Distractor
-        for (int i = 0; i < numRandDistractors; i++) {
-            String randDistractorPath = choicePNGMaker.createAndSavePNG(mSticks.getRandDistractors().get(i), stimObjIds.getRandDistractors().get(i), labels.getRandDistractors().get(i), generatorPngPath);
-            experimentPngPaths.addRandDistractor(generator.convertPngPathToExperiment(randDistractorPath));
-            System.out.println("Rand Distractor Path: " + randDistractorPath);
-        }
-        choicePNGMaker.close();
-    }
-
-    protected void generateNoiseMap() {
-        String generatorNoiseMapPath = samplePngMaker.createAndSaveNoiseMap(
-                mSticks.getSample(),
-                stimObjIds.getSample(),
-                labels.getSample(),
-                generator.getGeneratorNoiseMapPath(),
-                parameters.noiseChance, noiseComponentIndex);
-        experimentNoiseMapPath = generator.convertGeneratorNoiseMapToExperiment(generatorNoiseMapPath);
-    }
-
-    protected void generateSampleCompMap() {
-        samplePngMaker.createAndSaveCompMap(mSticks.getSample(), stimObjIds.getSample(), labels.getSample(), generator.getGeneratorPngPath());
-    }
-
-
 
 }

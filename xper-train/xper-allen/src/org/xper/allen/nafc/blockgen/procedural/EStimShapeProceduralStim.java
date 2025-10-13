@@ -1,6 +1,7 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
 import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
+import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
@@ -18,12 +19,16 @@ import java.awt.*;
 public class EStimShapeProceduralStim extends ProceduralStim{
     protected final ReceptiveFieldSource rfSource;
     protected final boolean isEStimEnabled;
+    protected final AllenPNGMaker samplePngMaker;
+    protected final AllenPNGMaker choicePNGMaker;
     protected long[] eStimObjData;
 
     public EStimShapeProceduralStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled) {
         super(generator, parameters, baseMatchStick, morphComponentIndex);
         this.rfSource = generator.getRfSource();
         this.isEStimEnabled = isEStimEnabled;
+        samplePngMaker = generator.getSamplePngMaker();
+        choicePNGMaker = generator.getPngMaker();
     }
 
     @Override
@@ -35,9 +40,12 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     }
 
     @Override
-    public void preWrite(){
-        super.preWrite();
-        generateSampleCompMap();
+    public void preWrite() {
+        assignStimObjIds();
+        assignLabels();
+        generateMatchSticksAndSaveSpecs();
+        drawPNGs();
+        assignCoords();
     }
 
     @Override
@@ -83,8 +91,44 @@ public class EStimShapeProceduralStim extends ProceduralStim{
 
     }
 
-    protected void generateSampleCompMap() {
-        generator.getPngMaker().createAndSaveCompMap(mSticks.getSample(), stimObjIds.getSample(), labels.getSample(), generator.getGeneratorPngPath());
+    /**
+     * Modified to open separate drawing windows for sample and choices. This is because sample and choice
+     * need to be drawn at different sizes to accommodate fitting sample in RF.
+     */
+    protected void drawPNGs() {
+        String generatorPngPath = generator.getGeneratorPngPath();
+
+        samplePngMaker.createDrawerWindow();
+        drawSample(samplePngMaker, generatorPngPath);
+        generateNoiseMap();
+        generateSampleCompMap();
+        samplePngMaker.close();
+
+        //Match
+        choicePNGMaker.createDrawerWindow();
+        String matchPath = choicePNGMaker.createAndSavePNG(mSticks.getMatch(),stimObjIds.getMatch(), labels.getMatch(), generatorPngPath);
+        experimentPngPaths.setMatch(generator.convertPngPathToExperiment(matchPath));
+        System.out.println("Match Path: " + matchPath);
+
+        drawProceduralDistractors(choicePNGMaker, generatorPngPath);
+
+        //Rand Distractor
+        for (int i = 0; i < numRandDistractors; i++) {
+            String randDistractorPath = choicePNGMaker.createAndSavePNG(mSticks.getRandDistractors().get(i), stimObjIds.getRandDistractors().get(i), labels.getRandDistractors().get(i), generatorPngPath);
+            experimentPngPaths.addRandDistractor(generator.convertPngPathToExperiment(randDistractorPath));
+            System.out.println("Rand Distractor Path: " + randDistractorPath);
+        }
+        choicePNGMaker.close();
+    }
+
+    protected void generateNoiseMap() {
+        String generatorNoiseMapPath = samplePngMaker.createAndSaveNoiseMap(
+                mSticks.getSample(),
+                stimObjIds.getSample(),
+                labels.getSample(),
+                generator.getGeneratorNoiseMapPath(),
+                parameters.noiseChance, noiseComponentIndex);
+        experimentNoiseMapPath = generator.convertGeneratorNoiseMapToExperiment(generatorNoiseMapPath);
     }
 
     /**
@@ -246,5 +290,9 @@ public class EStimShapeProceduralStim extends ProceduralStim{
             MStickStimObjData randDistractorMStickObjData = new MStickStimObjData("rand", mStickSpecs.getRandDistractors().get(i));
             dbUtil.writeStimObjData(stimObjIds.getRandDistractors().get(i), randDistractorSpec.toXml(), randDistractorMStickObjData.toXml());
         }
+    }
+
+    protected void generateSampleCompMap() {
+        samplePngMaker.createAndSaveCompMap(mSticks.getSample(), stimObjIds.getSample(), labels.getSample(), generator.getGeneratorPngPath());
     }
 }
