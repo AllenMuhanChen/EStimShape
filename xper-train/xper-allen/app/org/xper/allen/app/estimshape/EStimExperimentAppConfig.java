@@ -6,10 +6,19 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.app.nafc.config.NAFCMStickPngAppConfig;
 import org.xper.allen.app.procedural.EStimShapeExperimentSetGenerator;
+import org.xper.allen.app.procedural.NAFCTrialGeneratorGUI;
 import org.xper.allen.app.procedural.ProceduralAppConfig;
+import org.xper.allen.drawing.composition.AllenPNGMaker;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
+import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
+import org.xper.allen.nafc.blockgen.EStimShapeProceduralBehavioralGenType;
 import org.xper.allen.pga.ReceptiveFieldSource;
+import org.xper.allen.util.DPIUtil;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
+import org.xper.utils.RGBColor;
+
+import java.util.Arrays;
 
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -49,8 +58,28 @@ public class EStimExperimentAppConfig {
         generator.setGaSpecPath(proceduralAppConfig.gaSpecPath);
         generator.setRfSource(rfSource());
         generator.setGeneratorSetPath(generatorSetPath);
+        generator.setSamplePngMaker(samplePngMaker());
         return generator;
     }
+    @Bean
+    public EStimShapeProceduralBehavioralGenType estimBehavioralGenType() {
+        EStimShapeProceduralBehavioralGenType genType = new EStimShapeProceduralBehavioralGenType();
+        genType.setGenerator(generator()); // Uses EStimShapeExperimentTrialGenerator
+        return genType;
+    }
+    @Bean
+    public NAFCTrialGeneratorGUI nafcTrialGeneratorGUI() {
+        NAFCTrialGeneratorGUI gui = new NAFCTrialGeneratorGUI();
+        gui.setBlockgen(generator());
+        gui.setStimTypes(Arrays.asList(
+                proceduralAppConfig.proceduralRandGenType(),
+                estimBehavioralGenType(),
+                proceduralAppConfig.getEStimExperimentGenType()
+        ));
+        gui.setDefaultStimType(proceduralAppConfig.proceduralRandGenType());
+        return gui;
+    }
+
 
     @Bean
     public EStimShapeExperimentSetGenerator setGenerator(){
@@ -68,4 +97,40 @@ public class EStimExperimentAppConfig {
         rfSource.setRenderer(classicConfig.experimentGLRenderer());
         return rfSource;
     }
+
+    @Bean
+    public AllenPNGMaker samplePngMaker(){
+        AllenPNGMaker pngMaker = new AllenPNGMaker();
+        pngMaker.setWidth(sampleDPIUtil().calculateMinResolution());
+        pngMaker.setHeight(sampleDPIUtil().calculateMinResolution());
+        pngMaker.setDpiUtil(sampleDPIUtil());
+        RGBColor backColor = new RGBColor(pngConfig.mStickPngConfig.xperPngBackgroundColor());
+        pngMaker.setBackColor(backColor);
+        pngMaker.setDepth(6000);
+        pngMaker.setDistance(500);
+        pngMaker.setPupilDistance(50);
+        pngMaker.setNoiseMapper(pngConfig.mStickPngConfig.noiseMapper());
+        return pngMaker;
+    }
+
+    @Bean
+    public DPIUtil sampleDPIUtil(){
+        DPIUtil dpiUtil = new DPIUtil();
+        dpiUtil.setRenderer(classicConfig.experimentGLRenderer());
+        dpiUtil.setDpi(pngConfig.mStickPngConfig.xperMonkeyScreenDPI());
+        dpiUtil.setMaxStimulusDimensionDegrees(45);
+        dpiUtil.setGeneratorDPI(163.2);
+        return dpiUtil;
+    }
+
+    @Bean
+    public NAFCNoiseMapper noiseMapper() {
+        GaussianNoiseMapper noiseMapper = new GaussianNoiseMapper();
+        noiseMapper.setBackground(0);
+        noiseMapper.setWidth(sampleDPIUtil().calculateMinResolution());
+        noiseMapper.setHeight(sampleDPIUtil().calculateMinResolution());
+        noiseMapper.setDoEnforceHiddenJunction(false);
+        return noiseMapper;
+    }
+
 }

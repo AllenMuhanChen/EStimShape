@@ -5,6 +5,7 @@ import org.xper.Dependency;
 import org.xper.allen.Stim;
 import org.xper.allen.app.procedural.RadialSquares;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
+import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.drawing.ga.CircleReceptiveField;
@@ -47,6 +48,9 @@ public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
     @Dependency
     NAFCNoiseMapper noiseMapper;
 
+    @Dependency
+    AllenPNGMaker samplePngMaker;
+
     public static void main(String[] args) {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -60,12 +64,21 @@ public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
         generator.generate();
     }
 
+//    @Override
+//    protected void addTrials() {
+
     @Override
-    protected void addTrials() {
-//        addTrials_Deltas();
-//        addTrials_ProceduralTwoByTwo();
-        addTrials_TwoByTwo_training();
+    protected void init() {
+//        super.init();
+//        samplePngMaker.createDrawerWindow();
     }
+
+    ////        addTrials_Deltas();
+////        addTrials_ProceduralTwoByTwo();
+//        addTrials_TwoByTwo_training();
+//    }
+
+
 
     private void addTrials_TwoByTwo_training(){
         //input Parameters
@@ -627,5 +640,13 @@ public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
 
     public void setNoiseMapper(NAFCNoiseMapper noiseMapper) {
         this.noiseMapper = noiseMapper;
+    }
+
+    public AllenPNGMaker getSamplePngMaker() {
+        return samplePngMaker;
+    }
+
+    public void setSamplePngMaker(AllenPNGMaker samplePngMaker) {
+        this.samplePngMaker = samplePngMaker;
     }
 }

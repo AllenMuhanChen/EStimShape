@@ -83,7 +83,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
 
     }
 
-    private void generateSampleCompMap() {
+    protected void generateSampleCompMap() {
         generator.getPngMaker().createAndSaveCompMap(mSticks.getSample(), stimObjIds.getSample(), labels.getSample(), generator.getGeneratorPngPath());
     }
 
@@ -180,7 +180,8 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         double imageSizeSample = generator.getImageDimensionsDegrees();
         ImageDimensions dimensionsSample = new ImageDimensions(imageSizeSample, imageSizeSample);
 
-        double imageSizeChoices = RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource.getRFRadiusDegrees());
+//        double imageSizeChoices = RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource.getRFRadiusDegrees());
+        double imageSizeChoices = 15;
         ImageDimensions dimensionsChoices = new ImageDimensions(imageSizeChoices, imageSizeChoices);
 
         //Sample
