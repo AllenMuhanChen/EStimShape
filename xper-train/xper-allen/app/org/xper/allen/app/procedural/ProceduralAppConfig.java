@@ -7,6 +7,7 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.app.nafc.config.NAFCMStickPngAppConfig;
 import org.xper.allen.config.NAFCConfig;
+import org.xper.allen.nafc.blockgen.EStimShapeProceduralBehavioralGenType;
 import org.xper.allen.nafc.blockgen.procedural.EStimExperimentGenType;
 import org.xper.allen.nafc.blockgen.procedural.NAFCTrialParamDbUtil;
 import org.xper.allen.nafc.blockgen.procedural.NAFCBlockGen;
@@ -65,6 +66,7 @@ public class ProceduralAppConfig {
         return f;
     }
 
+
     @Bean
     public NAFCTrialGeneratorGUI nafcTrialGeneratorGUI() {
         NAFCTrialGeneratorGUI gui = new NAFCTrialGeneratorGUI();
@@ -81,6 +83,8 @@ public class ProceduralAppConfig {
     public ProceduralRandGenType proceduralRandGenType() {
         return new ProceduralRandGenType(blockGen());
     }
+
+
 
     @Bean
     public EStimExperimentGenType getEStimExperimentGenType() {
