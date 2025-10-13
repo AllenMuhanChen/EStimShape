@@ -63,20 +63,20 @@ def main():
     session_name = "251008_0"
 
     # Set to specific unit or None for all units in session
-    specific_unit = None  # e.g., 'Unit_01' or None for all units
+    specific_unit = None  # e.g., 'A-013_Unit 1' or None for all units
 
     # Label to prepend to unit names (None for no label)
     label = None
 
     # Whether to export new sorted spikes before analysis
-    new_spikes = False
+    new_spikes = True
 
     # Which analyses to run
     analyses = [
-        # IsogaborAnalysis(),
-        # PlotTopNAnalysis(),
-        PlotGenerationsAnalysis(),
-        # SideTestAnalysis(),
+        IsogaborAnalysis(),
+        PlotTopNAnalysis(),
+        # PlotGenerationsAnalysis(),
+        SideTestAnalysis(),
         # LightnessAnalysis(),
         # MixedGaborsAnalysis(),
         # ShuffleAnalysis()

@@ -12,7 +12,6 @@ from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField, GenIdField
-from src.analysis.ga.stimulus_sensitivity_test import create_stimulus_selectivity_module
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
@@ -64,20 +63,12 @@ class PlotTopNAnalysis(Analysis):
             module_name="plot_top_n"
         )
 
-        # Create stimulus selectivity test module
-        selectivity_module = create_stimulus_selectivity_module(
-            channel=channel,
-            session_id=self.session_id,
-            spike_data_col=self.spike_rates_col
-        )
-        selectivity_branch = create_branch().then(selectivity_module)
-
         # Create and run pipeline with aggregated data
         # pipeline = create_pipeline().then(visualize_module).build()
         # result = pipeline.run(compiled_data)
 
         # Create pipeline with both branches
-        pipeline = create_pipeline().make_branch(selectivity_branch).build()
+        pipeline = create_pipeline().make_branch(visualize_module).build()
         result = pipeline.run(compiled_data)
 
         plt.show()

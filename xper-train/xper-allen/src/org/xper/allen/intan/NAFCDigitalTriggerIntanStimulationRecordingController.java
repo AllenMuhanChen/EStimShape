@@ -14,30 +14,40 @@ import static org.xper.intan.stimulation.ManualTriggerIntanRHS.tcpNameForIntanCh
  * This is used if you want to trigger stimulation on Intan with a DIGITAL-IN signal.
  * This controller is intended for the user to specify the EStim Parameters on the Intan GUI internally.
  *
- * The best way to do so inside of IntanRHX is to specify single pulse stim with desired refractory period
+ * There are two ways to do this inside of IntanRHX.
+ * 1) specify single pulse stim with desired refractory period
  * to define pulse train period, and set trigger source to LEVEL. This way
  * as long as the digital in signal is HIGH, the stimulation will continuously be triggered
  * with the desired pulse train period.
  *
+ * 2) set EDGE triggered, and define a pulse-train. This way when
+ *
  * This is intended to be used alongside NAFCMarkStimAndEStimTrialDrawingController, which
- * specifies sample on right-marker and choice on left-marker, so this can be pre-set on the RHXGUI
+ * specifies sample on right-marker (DIGITAL-IN-1) and choice on left-marker, so this can be pre-set on the RHXGUI
  * to trigger EStim on the sample right-marker. This way, no matter if the monkey aborts trials, the triggers
  * will always stay aligned properly to trigger EStim.
  */
 public class NAFCDigitalTriggerIntanStimulationRecordingController extends NAFCIntanStimulationRecordingController {
 
     private Set<RHSChannel> stimulationChannels;
+    private long experimentId;
 
     @Override
     public void experimentStart(long timestamp) {
-        tryConnection();
-        identifyStimulationEnabledChannels();
+//        tryConnection();
+//        identifyStimulationEnabledChannels();
+        experimentId = timestamp;
     }
 
     @Override
     public void trialInit(long timestamp, TrialContext context) {
         if (recordingEnabled && !connected) {
-            experimentStart(timestamp);
+            tryConnection();
+            identifyStimulationEnabledChannels();
+            if (toRecord()) {
+                fileNamingStrategy.rename(experimentId);
+                getIntan().record();
+            }
         }
     }
 

@@ -3,6 +3,7 @@ from clat.util.connection import Connection
 from src.analysis.ga.plot_generations import PlotGenerationsAnalysis
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.analysis.ga.side_test import SideTestAnalysis
+from src.analysis.ga.stimulus_sensitivity_test import StimulusSelectivityTest, StimulusSelectivityAnalysis
 from src.analysis.isogabor.isogabor_raster_pipeline import IsogaborAnalysis
 from src.analysis.isogabor.mixed_gabors_analysis import MixedGaborsAnalysis
 from src.analysis.lightness.lightness_analysis import LightnessAnalysis
@@ -13,13 +14,14 @@ from src.repository.good_channels import read_good_channels, read_cluster_channe
 def main():
     # Initialize analysis modules
     analyses = [
-        IsogaborAnalysis(),
-        PlotTopNAnalysis(),
-        SideTestAnalysis(),
-        LightnessAnalysis(),
-        MixedGaborsAnalysis(),
-        ShuffleAnalysis(),
-        PlotGenerationsAnalysis(),
+        StimulusSelectivityAnalysis(),
+        # IsogaborAnalysis(),
+        # PlotTopNAnalysis(),
+        # SideTestAnalysis(),
+        # LightnessAnalysis(),
+        # MixedGaborsAnalysis(),
+        # ShuffleAnalysis(),
+        # PlotGenerationsAnalysis(),
     ]
 
     # Ask for session ID (empty for all sessions)

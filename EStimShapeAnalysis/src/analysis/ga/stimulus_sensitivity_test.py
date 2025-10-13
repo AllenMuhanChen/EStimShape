@@ -2,9 +2,37 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 import scikit_posthocs as sp
-from clat.pipeline.pipeline_base_classes import ComputationModule, AnalysisModuleFactory, OutputHandler
+from clat.pipeline.pipeline_base_classes import ComputationModule, AnalysisModuleFactory, OutputHandler, create_branch, \
+    create_pipeline
 from clat.util.connection import Connection
+from src.analysis.ga.plot_top_n import PlotTopNAnalysis, add_lineage_rank_to_df
+from src.repository.import_from_repository import import_from_repository
 
+
+class StimulusSelectivityAnalysis(PlotTopNAnalysis):
+
+    def analyze(self, channel, compiled_data: pd.DataFrame = None):
+        if compiled_data is None:
+            compiled_data = import_from_repository(
+                self.session_id,
+                "ga",
+                "GAStimInfo",
+                self.response_table
+            )
+
+        compiled_data = add_lineage_rank_to_df(compiled_data, self.spike_rates_col, channel)
+
+        # Create stimulus selectivity test module
+        selectivity_module = create_stimulus_selectivity_module(
+            channel=channel,
+            session_id=self.session_id,
+            spike_data_col=self.spike_rates_col
+        )
+        selectivity_branch = create_branch().then(selectivity_module)
+
+        pipeline = create_pipeline().make_branch(selectivity_branch).build()
+        result = pipeline.run(compiled_data)
+        return result
 
 class StimulusSelectivityTest(ComputationModule):
     """
