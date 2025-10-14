@@ -136,31 +136,23 @@ class IsogaborAnalysis(Analysis):
             colors=color_map
         )
 
-        pref_freq_module = create_preferred_frequency_module(
-            channel=channel,
-            session_id=self.session_id,
-            spike_data_col=self.spike_rates_col,
-            filter_values={
-                'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
-            }
-        )
+
         # ----------------
         # STEP 3: Create and run the pipeline
         # ----------------
-        index_branch = create_branch().then(index_module)
+
         raster_branch = create_branch().then(grouped_raster_module)
         raster_by_isotype_branch = create_branch().then(grouped_raster_by_isotype_module)
         psth_branch = create_branch().then(psth_module)
         freq_response_branch = create_branch().then(freq_response_module)
-        pref_freq_branch = create_branch().then(pref_freq_module)
+        index_branch = create_branch().then(index_module)
 
         pipeline = create_pipeline().make_branch(
             raster_branch,
             raster_by_isotype_branch,
             psth_branch,
-            index_branch,
             freq_response_branch,
-            pref_freq_branch
+            index_branch
         ).build()
 
         # Run the pipeline
@@ -174,6 +166,39 @@ class IsogaborAnalysis(Analysis):
 
     def compile(self):
         compile()
+
+
+class IsochromaticIndexAnalysis(IsogaborAnalysis):
+
+    def analyze(self, channel, compiled_data: pd.DataFrame = None):
+        if compiled_data is None:
+            compiled_data = import_from_repository(
+                self.session_id,
+                'isogabor',
+                'IsoGaborStimInfo',
+                self.response_table,
+            )
+
+        # CALCULATE INDEX
+        index_module = create_isochromatic_index_module(channel=channel, session_id=self.session_id,
+                                                        spike_data_col=self.spike_rates_col)
+
+        pref_freq_module = create_preferred_frequency_module(
+            channel=channel,
+            session_id=self.session_id,
+            spike_data_col=self.spike_rates_col,
+            filter_values={
+                'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
+            }
+        )
+        index_branch = create_branch().then(index_module)
+        pref_freq_branch = create_branch().then(pref_freq_module)
+
+        pipeline = create_pipeline().make_branch(index_branch, pref_freq_branch).build()
+
+        result = pipeline.run(compiled_data)
+        return result
+
 
 
 def compile_and_export():

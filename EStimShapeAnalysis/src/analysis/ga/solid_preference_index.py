@@ -1,10 +1,8 @@
 import numpy as np
 import pandas as pd
-from typing import Optional
 from clat.util.connection import Connection
-from clat.pipeline.pipeline_base_classes import ComputationModule, InputT, OutputT, AnalysisModuleFactory, OutputHandler
-from src.repository.export_to_repository import read_session_id_from_db_name
-from src.startup import context
+from clat.pipeline.pipeline_base_classes import ComputationModule, InputT, OutputT, AnalysisModuleFactory, \
+    OutputHandler, create_branch, create_pipeline
 
 
 def create_sp_index_module(channel=None, session_id=None, spike_data_col=None):

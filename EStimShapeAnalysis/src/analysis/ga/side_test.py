@@ -173,6 +173,48 @@ class SideTestAnalysis(Analysis):
         compile()
 
 
+
+
+class SolidPreferenceIndexAnalysis(SideTestAnalysis):
+
+    def analyze(self, channel, compiled_data: pd.DataFrame = None):
+        if compiled_data is None:
+            compiled_data = import_from_repository(
+                self.session_id,
+                "ga",
+                "2Dvs3DStimInfo",
+                self.response_table
+            )
+
+        # CLEAN UP DATA SOME
+        compiled_data = compiled_data[compiled_data[self.spike_rates_col].notna()]
+
+        # Index Computation Module
+        index_module = create_sp_index_module(channel=channel, session_id=self.session_id,
+                                              spike_data_col=self.spike_rates_col)
+        index_branch = create_branch().then(index_module)
+
+        # In SideTestAnalysis.analyze():
+        permutation_module = create_sp_permutation_test_module(
+            channel=channel,
+            session_id=self.session_id,
+            spike_data_col=self.spike_rates_col,
+            n_permutations=10000
+        )
+        permutation_branch = create_branch().then(permutation_module)
+
+        pipeline = create_pipeline().make_branch(
+            index_branch,
+            permutation_branch
+        ).build()
+
+        result = pipeline.run(compiled_data)
+        # Show the figure
+
+        return result
+
+
+
 def compile_and_export():
     data_for_plotting = compile()
     # print(data_for_plotting[["TestId", "UnderlingAvgRGB", "AvgRGBFromImage", "TestType"]].groupby(["TestId", "TestType"]).agg(

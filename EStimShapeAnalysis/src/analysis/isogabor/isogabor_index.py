@@ -1,12 +1,9 @@
 import numpy as np
 
-from clat.pipeline.pipeline_base_classes import ComputationModule, InputT, OutputT
-
-from clat.util.connection import Connection
-from clat.pipeline.pipeline_base_classes import OutputHandler
-from src.repository.export_to_repository import read_session_id_from_db_name
-
 from clat.pipeline.pipeline_base_classes import AnalysisModuleFactory
+from clat.pipeline.pipeline_base_classes import ComputationModule, InputT, OutputT
+from clat.pipeline.pipeline_base_classes import OutputHandler
+from clat.util.connection import Connection
 
 
 def create_isochromatic_index_module(channel=None, session_id=None, spike_data_col=None):
