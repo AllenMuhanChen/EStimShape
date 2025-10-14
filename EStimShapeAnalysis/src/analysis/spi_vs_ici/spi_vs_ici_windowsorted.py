@@ -96,8 +96,8 @@ def create_preference_indices_frequency_plots(save_path=None):
             f"  Session {session}: {session_units} units ({significant_units} solid-pref significant, avg selectivity: {avg_selectivity:.2%})")
 
     # Create a separate plot for each session
-    for session_id in sessions:
-        plot_session_frequencies(merged_df, session_id, frequencies, save_path)
+    # for session_id in sessions:
+    #     plot_session_frequencies(merged_df, session_id, frequencies, save_path)
 
     # Add combined plots at the end
     print("\nCreating combined plots...")
@@ -117,7 +117,7 @@ def get_selectivity_query():
                         FROM StimulusSelectivity
                         WHERE unit_name LIKE '%Unit%'
                           AND n_comparisons > 0
-                          AND n_significant >= 4 * (n_stimuli - 4)
+                          AND n_significant >= 5 * (n_stimuli - 5)
                         """
     return selectivity_query
 

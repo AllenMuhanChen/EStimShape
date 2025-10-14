@@ -5,8 +5,9 @@ from clat.util.connection import Connection
 from src.analysis.ga.plot_generations import PlotGenerationsAnalysis
 
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
-from src.analysis.ga.side_test import SideTestAnalysis
-from src.analysis.isogabor.isogabor_raster_pipeline import IsogaborAnalysis
+from src.analysis.ga.side_test import SideTestAnalysis, SolidPreferenceIndexAnalysis
+from src.analysis.ga.stimulus_sensitivity_test import StimulusSelectivityAnalysis
+from src.analysis.isogabor.isogabor_raster_pipeline import IsogaborAnalysis, IsochromaticIndexAnalysis
 from src.analysis.isogabor.mixed_gabors_analysis import MixedGaborsAnalysis
 from src.analysis.lightness.lightness_analysis import LightnessAnalysis
 from src.analysis.shuffle.shuffle_analysis import ShuffleAnalysis
@@ -60,7 +61,7 @@ def fetch_all_sessions() -> List[Tuple[str]]:
 def main():
     # ============ CONFIGURATION ============
     # Set to specific session ID or None for all sessions
-    session_name = "251008_0"
+    session_name = "251001_1"
 
     # Set to specific unit or None for all units in session
     specific_unit = None  # e.g., 'A-013_Unit 1' or None for all units
@@ -73,10 +74,13 @@ def main():
 
     # Which analyses to run
     analyses = [
-        IsogaborAnalysis(),
-        PlotTopNAnalysis(),
+        StimulusSelectivityAnalysis(),
+        IsochromaticIndexAnalysis(),
+        SolidPreferenceIndexAnalysis(),
+        # IsogaborAnalysis(),
+        # PlotTopNAnalysis(),
         # PlotGenerationsAnalysis(),
-        SideTestAnalysis(),
+        # SideTestAnalysis(),
         # LightnessAnalysis(),
         # MixedGaborsAnalysis(),
         # ShuffleAnalysis()

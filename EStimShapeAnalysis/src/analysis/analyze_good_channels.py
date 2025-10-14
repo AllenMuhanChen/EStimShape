@@ -2,8 +2,9 @@ from src.analysis.analyze_raw_data import fetch_session_ids
 from src.analysis.ga.analyze_channels import extract_good_channels
 from src.analysis.ga.plot_generations import PlotGenerationsAnalysis
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
-from src.analysis.ga.side_test import SideTestAnalysis
-from src.analysis.isogabor.isogabor_raster_pipeline import IsogaborAnalysis
+from src.analysis.ga.side_test import SideTestAnalysis, SolidPreferenceIndexAnalysis
+from src.analysis.ga.stimulus_sensitivity_test import StimulusSelectivityAnalysis
+from src.analysis.isogabor.isogabor_raster_pipeline import IsogaborAnalysis, IsochromaticIndexAnalysis
 from src.analysis.isogabor.mixed_gabors_analysis import MixedGaborsAnalysis
 from src.analysis.lightness.lightness_analysis import LightnessAnalysis
 from src.analysis.shuffle.shuffle_analysis import ShuffleAnalysis
@@ -13,10 +14,13 @@ from src.startup import context
 
 def main():
     analyses = [
-        IsogaborAnalysis(),
+        StimulusSelectivityAnalysis(),
+        IsochromaticIndexAnalysis(),
+        SolidPreferenceIndexAnalysis(),
+        # IsogaborAnalysis(),
         # PlotTopNAnalysis(),
         # PlotGenerationsAnalysis(),
-        SideTestAnalysis(),
+        # SideTestAnalysis(),
         # LightnessAnalysis(),
         # MixedGaborsAnalysis(),
         # ShuffleAnalysis()
