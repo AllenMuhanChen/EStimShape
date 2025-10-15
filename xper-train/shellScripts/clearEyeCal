@@ -2,7 +2,7 @@
 source version
 source paths
 
-mysql --host=172.30.6.80 --user=xper_rw --password=up2nite $VERSION_GA << EOF
+mysql --host=172.30.6.61 --user=xper_rw --password=up2nite $VERSION_GA << EOF
 DELETE from SystemVar where name = 'xper_left_iscan_eye_zero';
 DELETE from SystemVar where name = 'xper_right_iscan_eye_zero';
 DELETE from SystemVar where name = 'xper_left_iscan_mapping_algorithm_parameter';

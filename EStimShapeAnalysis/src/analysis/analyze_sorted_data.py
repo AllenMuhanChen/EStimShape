@@ -7,6 +7,7 @@ from src.analysis.ga.plot_generations import PlotGenerationsAnalysis
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.analysis.ga.side_test import SideTestAnalysis, SolidPreferenceIndexAnalysis
 from src.analysis.ga.stimulus_sensitivity_test import StimulusSelectivityAnalysis
+from src.analysis.isogabor.isochromatic_luminant_score import IsoChromaticLuminantScoreAnalysis
 from src.analysis.isogabor.isogabor_raster_pipeline import IsogaborAnalysis, IsochromaticIndexAnalysis
 from src.analysis.isogabor.mixed_gabors_analysis import MixedGaborsAnalysis
 from src.analysis.lightness.lightness_analysis import LightnessAnalysis
@@ -61,7 +62,7 @@ def fetch_all_sessions() -> List[Tuple[str]]:
 def main():
     # ============ CONFIGURATION ============
     # Set to specific session ID or None for all sessions
-    session_name = "251001_1"
+    session_name = None
 
     # Set to specific unit or None for all units in session
     specific_unit = None  # e.g., 'A-013_Unit 1' or None for all units
@@ -70,13 +71,14 @@ def main():
     label = None
 
     # Whether to export new sorted spikes before analysis
-    new_spikes = True
+    new_spikes = False
 
     # Which analyses to run
     analyses = [
-        StimulusSelectivityAnalysis(),
-        IsochromaticIndexAnalysis(),
-        SolidPreferenceIndexAnalysis(),
+        IsoChromaticLuminantScoreAnalysis(),
+        # StimulusSelectivityAnalysis(),
+        # IsochromaticIndexAnalysis(),
+        # SolidPreferenceIndexAnalysis(),
         # IsogaborAnalysis(),
         # PlotTopNAnalysis(),
         # PlotGenerationsAnalysis(),
