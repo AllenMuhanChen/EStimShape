@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import os
 from scipy import stats
+from statsmodels.formula.api import ols
+from statsmodels.stats.anova import anova_lm
 from clat.util.connection import Connection
 
 
@@ -117,6 +119,42 @@ def get_selectivity_query():
     return selectivity_query
 
 
+def perform_ancova(x, y, groups):
+    """
+    Perform ANCOVA to test if slopes are different between groups.
+
+    Args:
+        x: isochromatic scores
+        y: isoluminant scores
+        groups: group labels (0 or 1)
+
+    Returns:
+        dict with p-values for main effects and interaction
+    """
+    # Create dataframe for statsmodels
+    df = pd.DataFrame({
+        'isochromatic': x,
+        'isoluminant': y,
+        'group': groups
+    })
+
+    # Fit model with interaction term
+    # isoluminant ~ isochromatic + group + isochromatic:group
+    model = ols('isoluminant ~ isochromatic * C(group)', data=df).fit()
+
+    # Perform ANOVA on the model
+    anova_results = anova_lm(model, typ=2)
+
+    # Extract p-values
+    results = {
+        'interaction_p': anova_results.loc['isochromatic:C(group)', 'PR(>F)'],
+        'group_p': anova_results.loc['C(group)', 'PR(>F)'],
+        'isochromatic_p': anova_results.loc['isochromatic', 'PR(>F)']
+    }
+
+    return results
+
+
 def create_combined_frequency_plots(merged_df, frequencies, metric_name, save_path=None):
     """Create combined plots showing all data for each frequency."""
 
@@ -150,8 +188,9 @@ def create_combined_frequency_plots(merged_df, frequencies, metric_name, save_pa
         sig_3d_mask = (pd.notna(p_values)) & (p_values < 0.05) & (spi_values > 0)
 
         # Initialize stats variables
-        r_sig = r_squared_sig = p_sig = 0
-        r_nonsig = r_squared_nonsig = p_nonsig = 0
+        r_sig = r_squared_sig = p_sig = slope_sig = 0
+        r_nonsig = r_squared_nonsig = p_nonsig = slope_nonsig = 0
+        ancova_p = np.nan
 
         # Plot significant 3D points
         if sig_3d_mask.any():
@@ -183,9 +222,19 @@ def create_combined_frequency_plots(merged_df, frequencies, metric_name, save_pa
                 line_y_nonsig = slope_nonsig * line_x_nonsig + intercept_nonsig
                 ax.plot(line_x_nonsig, line_y_nonsig, color='orange', linestyle='-', linewidth=2, alpha=0.8)
 
-        # Count groups
+        # Perform ANCOVA if both groups have enough data
         n_sig_3d = np.sum(sig_3d_mask)
         n_other = np.sum(~sig_3d_mask)
+
+        if n_sig_3d > 2 and n_other > 2:  # Need at least 3 points per group
+            try:
+                # Create group labels (0 for non-sig, 1 for sig 3D)
+                groups = sig_3d_mask.astype(int)
+                ancova_results = perform_ancova(x, y, groups)
+                ancova_p = ancova_results['interaction_p']
+            except Exception as e:
+                print(f"ANCOVA failed for {frequency} Hz: {e}")
+                ancova_p = np.nan
 
         # Set title and labels
         ax.set_title(f'{frequency} Hz (n={len(freq_data)}, {n_sig_3d} sig. 3D, {n_other} other)')
@@ -202,11 +251,12 @@ def create_combined_frequency_plots(merged_df, frequencies, metric_name, save_pa
         # Add grid
         ax.grid(True, alpha=0.3)
 
-        # Add statistics text - separate for each group
-        stats_text = f'Sig 3D: R²={r_squared_sig:.3f}, r={r_sig:.3f}, p={p_sig:.3f}, n={n_sig_3d}\n' \
-                     f'Other: R²={r_squared_nonsig:.3f}, r={r_nonsig:.3f}, p={p_nonsig:.3f}, n={n_other}'
+        # Add statistics text - separate for each group plus ANCOVA
+        stats_text = f'Sig 3D: slope={slope_sig:.3f}, R²={r_squared_sig:.3f}, r={r_sig:.3f}, p={p_sig:.3f}, n={n_sig_3d}\n' \
+                     f'Other: slope={slope_nonsig:.3f}, R²={r_squared_nonsig:.3f}, r={r_nonsig:.3f}, p={p_nonsig:.3f}, n={n_other}\n' \
+                     f'ANCOVA (slopes diff): p={ancova_p:.3f}'
         ax.text(0.02, 0.98, stats_text, transform=ax.transAxes,
-                verticalalignment='top', fontsize=9,
+                verticalalignment='top', fontsize=8,
                 bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
 
         # Add legend
@@ -241,18 +291,29 @@ def create_combined_frequency_plots(merged_df, frequencies, metric_name, save_pa
             if n_sig_3d > 1:
                 x_sig = x[sig_3d_mask]
                 y_sig = y[sig_3d_mask]
-                _, _, r_sig, p_sig, _ = stats.linregress(x_sig, y_sig)
-                print(f"    Sig 3D: r={r_sig:.3f}, p={p_sig:.3f}")
+                slope, _, r_sig, p_sig, _ = stats.linregress(x_sig, y_sig)
+                print(f"    Sig 3D: slope={slope:.3f}, r={r_sig:.3f}, p={p_sig:.3f}")
             else:
                 print(f"    Sig 3D: insufficient data for correlation")
 
             if n_other > 1:
                 x_other = x[~sig_3d_mask]
                 y_other = y[~sig_3d_mask]
-                _, _, r_other, p_other, _ = stats.linregress(x_other, y_other)
-                print(f"    Other: r={r_other:.3f}, p={p_other:.3f}")
+                slope, _, r_other, p_other, _ = stats.linregress(x_other, y_other)
+                print(f"    Other: slope={slope:.3f}, r={r_other:.3f}, p={p_other:.3f}")
             else:
                 print(f"    Other: insufficient data for correlation")
+
+            # Print ANCOVA result
+            if n_sig_3d > 2 and n_other > 2:
+                try:
+                    groups = sig_3d_mask.astype(int)
+                    ancova_results = perform_ancova(x, y, groups)
+                    print(f"    ANCOVA interaction p-value: {ancova_results['interaction_p']:.3f}")
+                except Exception as e:
+                    print(f"    ANCOVA failed: {e}")
+
+
 if __name__ == "__main__":
     # Example usage with save path
     data = create_isochrom_isolum_score_plots(
@@ -260,3 +321,4 @@ if __name__ == "__main__":
     )
     # Or without saving
     # data = create_isochrom_isolum_score_plots()
+
