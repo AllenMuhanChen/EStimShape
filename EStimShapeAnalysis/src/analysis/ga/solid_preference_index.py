@@ -71,6 +71,8 @@ class SolidPreferenceIndexCalculator(ComputationModule):
             if isinstance(spike_rates, dict) and self.response_key in spike_rates:
                 total_2d_rate += spike_rates[self.response_key]
 
+        if max(total_3d_rate, total_2d_rate) == 0.0:
+            return None
         solid_preference_index = (total_3d_rate - total_2d_rate) / max(total_3d_rate, total_2d_rate)
 
         print(f"3D data: {len(data_3d)} trials (top half), total rate: {total_3d_rate}")

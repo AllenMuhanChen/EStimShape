@@ -153,6 +153,8 @@ class SolidPreferencePermutationTest(ComputationModule):
             spike_rate_dict = row[self.spike_data_col]
             if isinstance(spike_rate_dict, dict) and self.response_key in spike_rate_dict:
                 spike_rates.append(spike_rate_dict[self.response_key])
+            else:
+                spike_rates.append(0.0)
 
         return spike_rates
 
