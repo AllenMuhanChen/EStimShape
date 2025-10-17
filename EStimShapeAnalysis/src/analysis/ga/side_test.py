@@ -33,8 +33,8 @@ def main():
     # if channel is None:
         # channel = read_cluster_channels(session_id)[0]
 
-    session_id = "251009_0"
-    channel = "A-010"
+    session_id = "251016_0"
+    channel = "A-004"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 

@@ -170,6 +170,7 @@ public class ProceduralStim implements NAFCStim {
 
     protected void drawPNGs() {
         AllenPNGMaker pngMaker = generator.getPngMaker();
+
         String generatorPngPath = generator.getGeneratorPngPath();
 
         drawSample(pngMaker, generatorPngPath);

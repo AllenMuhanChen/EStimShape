@@ -62,23 +62,23 @@ def fetch_all_sessions() -> List[Tuple[str]]:
 def main():
     # ============ CONFIGURATION ============
     # Set to specific session ID or None for all sessions
-    session_name = None
+    session_name = "251016_0"
 
     # Set to specific unit or None for all units in session
-    specific_unit = None  # e.g., 'A-013_Unit 1' or None for all units
+    specific_unit = "A-011_Unit 1"  # e.g., 'A-013_Unit 1' or None for all units
 
     # Label to prepend to unit names (None for no label)
     label = None
 
     # Whether to export new sorted spikes before analysis
-    new_spikes = False
+    new_spikes = True
 
     # Which analyses to run
     analyses = [
         IsoChromaticLuminantScoreAnalysis(),
-        # StimulusSelectivityAnalysis(),
-        # IsochromaticIndexAnalysis(),
-        # SolidPreferenceIndexAnalysis(),
+        StimulusSelectivityAnalysis(),
+        IsochromaticIndexAnalysis(),
+        SolidPreferenceIndexAnalysis(),
         # IsogaborAnalysis(),
         # PlotTopNAnalysis(),
         # PlotGenerationsAnalysis(),

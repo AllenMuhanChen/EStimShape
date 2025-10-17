@@ -41,7 +41,7 @@ def create_isochrom_isolum_score_plots(save_path=None, metric_name='raw_spikes_p
                                            'n_comparisons', 'selectivity_ratio'])
 
     print(f"Found {len(selectivity_df)} units meeting selectivity threshold (>5% significant pairs)")
-
+    print(selectivity_df['unit_name'])
     # Query scores - only for specific frequencies
     scores_query = """
                    SELECT session_id, \
