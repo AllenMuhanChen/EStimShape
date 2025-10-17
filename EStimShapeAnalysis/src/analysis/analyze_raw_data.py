@@ -5,6 +5,7 @@ from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.analysis.ga.side_test import SideTestAnalysis, SolidPreferenceIndexAnalysis
 
 from src.analysis.ga.stimulus_sensitivity_test import StimulusSelectivityTest, StimulusSelectivityAnalysis
+from src.analysis.isogabor.isochromatic_luminant_score import IsoChromaticLuminantScoreAnalysis
 
 from src.analysis.isogabor.isogabor_raster_pipeline import IsogaborAnalysis, IsochromaticIndexAnalysis
 from src.analysis.isogabor.mixed_gabors_analysis import MixedGaborsAnalysis
@@ -116,8 +117,9 @@ def main():
     # Initialize analysis modules
     analyses = [
         # StimulusSelectivityAnalysis(),
+        IsoChromaticLuminantScoreAnalysis(),
         # IsochromaticIndexAnalysis(),
-        SolidPreferenceIndexAnalysis(),
+        # SolidPreferenceIndexAnalysis(),
         # IsogaborAnalysis(),
         # PlotTopNAnalysis(),
         # SideTestAnalysis(),
