@@ -20,16 +20,16 @@ def collect_choice_trials(conn: Connection, when: When = time_util.all()) -> lis
 
 
 def main():
-    conn = Connection("allen_estimshape_train_240604")
-    date_and_time = time_util.on_date_and_time(2024,
-                                               6, 19,
+    conn = Connection("allen_estimshape_exp_251020_0")
+    date_and_time = time_util.on_date_and_time(2025,
+                                               10, 21,
                                                start_time=None,  # "16:49:00"
                                                end_time=None)
     since_date = time_util.from_date_to_now(2024, 7, 10)
     last_experiment = since_nth_most_recent_experiment(conn, n=1)
-    start_gen_id = 436
+    start_gen_id = 0
 
-    trial_tstamps = collect_choice_trials(conn, last_experiment)
+    trial_tstamps = collect_choice_trials(conn, since_date)
 
     fields = CachedFieldList()
     fields.append(IsCorrectField(conn))
@@ -46,7 +46,7 @@ def main():
     data = data[data['GenId'] >= start_gen_id]
 
     data_psychometric = data[data['StimType'] == 'EStimShapePsychometricTwoByTwoStim']
-    data_procedural = data[data['StimType'] == 'EStimShapeTwoByTwoBehavioralStim']
+    data_procedural = data[data['StimType'] == 'EStimShapeProceduralBehavioralStim']
     data_psychometric_untouched = data_psychometric[data_psychometric['NumRandDistractors'] == 0]
     print(data_psychometric.to_string())
     # print number of each choice

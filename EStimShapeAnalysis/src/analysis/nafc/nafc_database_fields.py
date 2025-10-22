@@ -258,6 +258,40 @@ class TrialTypeField(StimSpecDataField):
             return "Unknown"
 
 
+class EStimEnabledField(CachedDatabaseField):
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "EStimEnabled"
+
+    def get(self, when: When):
+        stim_spec_id = get_stim_spec_id(self.conn, when)
+        if stim_spec_id is None:
+            return False
+
+        # SQL to get the spec from EStimObjData based on the stim_id
+        query = """
+        SELECT spec
+        FROM EStimObjData
+        WHERE id = %s
+        LIMIT 1;
+        """
+        self.conn.execute(query, params=(stim_spec_id,))
+        result = self.conn.fetch_one()
+
+        # If no result found, return False
+        if not result:
+            return False
+
+        # Check if "EStimEnabled" is in the spec
+        spec = result
+        if spec and "EStimEnabled" in spec:
+            return True
+        else:
+            return False
+
+
 def get_stim_spec_id(conn: Connection, when: When) -> int:
     conn.execute(
         "SELECT msg from BehMsg WHERE "

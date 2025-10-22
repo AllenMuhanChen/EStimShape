@@ -10,6 +10,9 @@ import org.xper.allen.pga.RFUtils;
 
 import static org.xper.allen.pga.RFUtils.checkCompCanFitInRF;
 
+/**
+ * Instead of relying on a passed baseMatchStick, this automatically generates a random one.
+ */
 public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim{
 
 

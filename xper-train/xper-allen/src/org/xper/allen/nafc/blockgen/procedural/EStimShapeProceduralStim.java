@@ -16,6 +16,9 @@ import org.xper.rfplot.drawing.png.ImageDimensions;
 import javax.vecmath.Point3d;
 import java.awt.*;
 
+/**
+ * Brings RF and EStim functionality to Procedural Stim
+ */
 public class EStimShapeProceduralStim extends ProceduralStim{
     protected final ReceptiveFieldSource rfSource;
     protected final boolean isEStimEnabled;

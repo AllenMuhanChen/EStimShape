@@ -3,8 +3,8 @@ matlab.home=/usr/local/matlab70_sp1
 xper.native_library_path=${matlab.home}/bin/glnx86;${matlab.home}/sys/os/glnx86
 
 jdbc.driver=com.mysql.jdbc.Driver
-jdbc.url=jdbc:mysql://172.30.6.61/allen_shuffle_exp_251016_0?rewriteBatchedStatements=true
-ga.jdbc.url=jdbc:mysql://172.30.6.61/allen_ga_exp_251016_0?rewriteBatchedStatements=true
+jdbc.url=jdbc:mysql://172.30.6.61/allen_shuffle_exp_251021_1?rewriteBatchedStatements=true
+ga.jdbc.url=jdbc:mysql://172.30.6.61/allen_ga_exp_251021_1?rewriteBatchedStatements=true
 
 jdbc.username=xper_rw
 jdbc.password=up2nite
@@ -23,13 +23,13 @@ experiment.ga.config_class=
 #############################################################################
 # parameters - paths
 #############################################################################
-generator.png_path=/home/connorlab/Documents/EStimShape/allen_shuffle_exp_251016_0/stimuli/pngs
+generator.png_path=/home/connorlab/Documents/EStimShape/allen_shuffle_exp_251021_1/stimuli/pngs
 
-experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.61/home/connorlab/Documents/EStimShape/allen_shuffle_exp_251016_0/stimuli/pngs
+experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.61/home/connorlab/Documents/EStimShape/allen_shuffle_exp_251021_1/stimuli/pngs
 
-generator.spec_path=/home/connorlab/Documents/EStimShape/allen_shuffle_exp_251016_0/stimuli/specs
+generator.spec_path=/home/connorlab/Documents/EStimShape/allen_shuffle_exp_251021_1/stimuli/specs
 
-ga.spec_path=/home/connorlab/Documents/EStimShape/allen_ga_exp_251016_0/stimuli/ga/specs
+ga.spec_path=/home/connorlab/Documents/EStimShape/allen_ga_exp_251021_1/stimuli/ga/specs
 
 # if not specified, the default isTrue org.xper.config.FixCalConfig
 fixcal.config_class=org.xper.allen.config.AllenFixCalConfig
@@ -55,7 +55,7 @@ acq.driver_name=comedi
 
 console.host=172.30.6.61
 
-console.eye_simulation=true
+console.eye_simulation=false
 
 experiment.host=172.30.6.90
 
@@ -81,7 +81,7 @@ fixcal.screen_setup=mono
 intan.recording.enabled=true
 intan.host=172.30.9.78
 intan.port.command=5000
-intan.default_save_path=/mnt/data/EStimShape/allen_shuffle_exp_251016_0
+intan.default_save_path=/mnt/data/EStimShape/allen_shuffle_exp_251021_1
 intan.default_base_filename=TwoDVsThreeD
 intan.remote_directory=/run/user/1004/gvfs/sftp:host=172.30.9.78
 generator.spike_dat_path=/home/r2_allen/Documents/dev_221110/spikefiles_dev_221110
