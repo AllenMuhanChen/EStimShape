@@ -20,6 +20,7 @@ import org.xper.config.ClassicConfig;
 import org.xper.utils.RGBColor;
 
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -40,6 +41,17 @@ public class EStimExperimentAppConfig {
 
     @ExternalValue("generator.set_path")
     String generatorSetPath;
+
+    @Bean
+    public List<Double> xperNoiseRewardFunctionNoises() {
+        return Arrays.asList(0.0, 0.3, 0.5);
+    }
+
+
+    @Bean
+    public List<Double> xperNoiseRewardFunctionRewards() {
+        return Arrays.asList(1.0, 2.0, 3.0);
+    }
 
     @Bean
     public EStimShapeExperimentTrialGenerator generator(){

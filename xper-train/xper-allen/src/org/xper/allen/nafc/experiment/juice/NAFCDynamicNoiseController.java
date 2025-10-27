@@ -73,8 +73,8 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
             rewardMultiplier = rewardMultiplier;
         }
         else if (numChoices == 4){
-            rewardMultiplier = rewardMultiplier + 1;
-            System.out.println("Bonus +1 because of 4 choices");
+            rewardMultiplier = rewardMultiplier + 0;
+            System.out.println("Bonus +0 because of 4 choices");
         }
 
 

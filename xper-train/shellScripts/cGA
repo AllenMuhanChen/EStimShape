@@ -9,7 +9,7 @@ UPDATE SystemVar SET val=4 WHERE name='xper_slides_per_trial';
 UPDATE SystemVar SET val=200 WHERE name = 'xper_inter_slide_interval';
 UPDATE SystemVar SET val=1000 WHERE name='xper_inter_trial_interval';
 UPDATE SystemVar SET val=100 WHERE name='xper_streak_to_start_punishment';
-UPDATE SystemVar SET val=0 WHERE name='xper_juice_bonus_probability';
+UPDATE SystemVar SET val=0.2 WHERE name='xper_juice_bonus_probability';
 UPDATE SystemVar SET val=3000 WHERE name='xper_punishment_delay_length';
 UPDATE SystemVar SET val=0.5 WHERE name='xper_png_background_color';
 EOF

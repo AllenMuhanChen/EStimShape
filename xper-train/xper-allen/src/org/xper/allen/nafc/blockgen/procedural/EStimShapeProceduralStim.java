@@ -34,7 +34,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         samplePngMaker = generator.getSamplePngMaker();
         choicePNGMaker = generator.getPngMaker();
 
-        sampleSizeDegrees = RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimShapeExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees());
+        sampleSizeDegrees = RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.COMPLETELY_INSIDE, ((EStimShapeExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees());
     }
 
     @Override
@@ -124,7 +124,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
 
         //Generate Sample
         EStimShapeProceduralMatchStick sample = new EStimShapeProceduralMatchStick(
-                RFStrategy.PARTIALLY_INSIDE,
+                RFStrategy.COMPLETELY_INSIDE,
                 ((EStimShapeExperimentTrialGenerator) generator).getRF(), generator.getPngMaker().getNoiseMapper()
         );
 
@@ -190,7 +190,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
      * @param proceduralDistractor
      */
     protected void correctNoiseRadius(ProceduralMatchStick proceduralDistractor) {
-        double scaleFactor = generator.getImageDimensionsDegrees() / RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource.getRFRadiusDegrees());
+        double scaleFactor = generator.getImageDimensionsDegrees() / RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.COMPLETELY_INSIDE, rfSource.getRFRadiusDegrees());
         proceduralDistractor.noiseRadiusMm = rfSource.getRFRadiusMm() * scaleFactor;
     }
 
@@ -231,7 +231,6 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         double imageSizeSample = 45;
         ImageDimensions dimensionsSample = new ImageDimensions(imageSizeSample, imageSizeSample);
 
-//        double imageSizeChoices = RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource.getRFRadiusDegrees());
         double imageSizeChoices = generator.getImageDimensionsDegrees();
         ImageDimensions dimensionsChoices = new ImageDimensions(imageSizeChoices, imageSizeChoices);
 

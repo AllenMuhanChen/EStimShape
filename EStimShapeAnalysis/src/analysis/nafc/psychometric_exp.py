@@ -24,11 +24,12 @@ def filter_by_num_distractors(data, num_distractors):
 
 def main():
     # Database connection
-    conn = Connection("allen_estimshape_exp_251021_1")
+    conn = Connection("allen_estimshape_exp_251027_1")
 
     # Time range
     since_date = time_util.from_date_to_now(2024, 7, 10)
-    start_gen_id = 0
+    start_gen_id = 0  # Filter for all data (EStim OFF and general filtering)
+    start_gen_id_estim_on = 8  # Additional filter for EStim ON trials only (set higher to get only recent EStim ON data)
 
     # Collect trial timestamps
     trial_tstamps = collect_choice_trials(conn, since_date)
@@ -111,7 +112,8 @@ def main():
         filtered_data = filter_by_num_distractors(data_exp, num_dist)
 
         # Plot with EStim enabled (solid line, smaller)
-        filtered_data_estim_on = filtered_data[filtered_data['EStimEnabled'] == True]
+        filtered_data_estim_on = filtered_data[
+            (filtered_data['EStimEnabled'] == True) & (filtered_data['GenId'] >= start_gen_id_estim_on)]
         if len(filtered_data_estim_on) > 0:
             plot_psychometric_curve_on_ax(
                 filtered_data_estim_on,
@@ -143,7 +145,7 @@ def main():
             )
 
     # BOTTOM RIGHT: Simple EStim ON vs OFF comparison (two solid lines only)
-    data_exp_estim_on = data_exp[data_exp['EStimEnabled'] == True]
+    data_exp_estim_on = data_exp[(data_exp['EStimEnabled'] == True) & (data_exp['GenId'] >= start_gen_id_estim_on)]
     data_exp_estim_off = data_exp[data_exp['EStimEnabled'] == False]
 
     if len(data_exp_estim_on) > 0:
@@ -191,27 +193,6 @@ def main():
 
     plt.tight_layout()
     plt.show()
-
-    # Print summary statistics
-    print("\n=== Summary Statistics ===")
-    print(f"\nProcedural Behavioral Trials:")
-    print(f"  Total trials: {len(data_procedural)}")
-    print(f"  Overall accuracy: {data_procedural['IsCorrect'].mean() * 100:.2f}%")
-    print(f"  NumRandDistractors values: {distractor_values_proc}")
-
-    print(f"\nExperimental Procedural Trials:")
-    print(f"  Total trials: {len(data_exp)}")
-    print(f"  Overall accuracy: {data_exp['IsCorrect'].mean() * 100:.2f}%")
-    print(f"  NumRandDistractors values: {distractor_values_exp}")
-
-    # EStim breakdown for experimental trials (data_exp_estim_on/off defined above)
-    print(f"\n  EStim Breakdown:")
-    if len(data_exp_estim_on) > 0:
-        print(
-            f"    EStim ON: {len(data_exp_estim_on)} trials ({data_exp_estim_on['IsCorrect'].mean() * 100:.2f}% accuracy)")
-    if len(data_exp_estim_off) > 0:
-        print(
-            f"    EStim OFF: {len(data_exp_estim_off)} trials ({data_exp_estim_off['IsCorrect'].mean() * 100:.2f}% accuracy)")
 
 
 if __name__ == '__main__':
