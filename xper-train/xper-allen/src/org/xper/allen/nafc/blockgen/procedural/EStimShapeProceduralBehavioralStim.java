@@ -6,7 +6,6 @@ import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchSt
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
-import org.xper.allen.pga.RFUtils;
 
 import static org.xper.allen.pga.RFUtils.checkCompCanFitInRF;
 
@@ -25,7 +24,7 @@ public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim
                 parameters,
                 null,
                 -1,
-                false);
+                false, 0L);
         this.rf = rf;
     }
 

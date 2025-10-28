@@ -18,8 +18,8 @@ INTAN_BASE_PATH = "/mnt/data/EStimShape"
 
 # Template constants
 TEMPLATE_TYPE = 'exp'
-TEMPLATE_DATE = '251009'
-TEMPLATE_LOCATION_ID = '0'
+TEMPLATE_DATE = '251027'
+TEMPLATE_LOCATION_ID = '1'
 
 # Database connection constants
 HOST = '172.30.6.61'
@@ -222,7 +222,7 @@ class NAFCExperiment(ExperimentType):
         return "VERSION_PROCEDURAL"
 
     def get_copy_data_tables(self) -> List[str]:
-        return ["SystemVar", "InternalState"]
+        return ["SystemVar", "InternalState", "NAFCTrialParams"]
 
     def get_properties_file_path(self) -> str:
         return f'{self.shellscripts_dir}/xper.properties.procedural'

@@ -355,4 +355,17 @@ public class AllenDbUtil extends DbUtil {
 					}});
 		return taskToDo;
 	}
+
+    /**
+     * Write base matchstick stimulus spec ID for a given stimulus.
+     * This links a stimulus to its base matchstick specification.
+     *
+     * @param stimId The stimulus ID
+     * @param baseMStickStimSpecId The base matchstick stimulus spec ID
+     */
+    public void writeBaseMStickId(long stimId, long baseMStickStimSpecId) {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        jt.update("insert into BaseMStickId (stim_id, base_mstick_stim_spec_id) values (?, ?)",
+                new Object[] { stimId, baseMStickStimSpecId });
+    }
 }

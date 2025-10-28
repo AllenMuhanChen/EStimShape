@@ -39,7 +39,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
     public EStimShapePsychometricTwoByTwoStim(
             EStimShapeExperimentTrialGenerator generator, EStimShapePsychometricTwoByTwoParameters parameters) {
 
-        super(generator, parameters, null, -1, parameters.isEStimEnabled());
+        super(generator, parameters, null, -1, parameters.isEStimEnabled(), 0L);
 
         //local variables extracted from parameters
         this.generator = generator;
