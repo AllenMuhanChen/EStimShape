@@ -139,6 +139,10 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 System.out.println(e.getMessage());
                 continue;
             }
+            SphericalCoordinates originalObjCenteredPos = calcObjCenteredPosForComp(baseMatchStick, fromCompId);
+            SphericalCoordinates newDrivingObjectCenteredPos = calcObjCenteredPosForComp(this, drivingComponent);
+            if (doCompareObjCenteredPos)
+                compareObjectCenteredPositions(originalObjCenteredPos, newDrivingObjectCenteredPos);
             return;
         }
         throw new MorphRepetitionException("Could not generate matchStick FROM COMPONENT IN NOISE after " + this.maxAttempts + " attempts");

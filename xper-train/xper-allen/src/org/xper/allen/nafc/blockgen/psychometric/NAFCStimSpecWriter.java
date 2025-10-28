@@ -12,15 +12,15 @@ import org.xper.drawing.Coordinates2D;
 
 public class NAFCStimSpecWriter {
 
-	String stimType = "None";
-	Long taskId;
-	AllenDbUtil dbUtil;
-	NAFCTrialParameters trialParameters; //input
-	NAFC<Coordinates2D> coords;
-	int numChoices;
-	NAFC<Long> stimObjIds;
-	private RewardPolicy rewardPolicy;
-	private int[] rewardList;
+    protected String stimType = "None";
+    protected Long taskId;
+    protected AllenDbUtil dbUtil;
+    protected NAFCTrialParameters trialParameters; //input
+    protected NAFC<Coordinates2D> coords;
+    protected int numChoices;
+    protected NAFC<Long> stimObjIds;
+    protected RewardPolicy rewardPolicy;
+	protected int[] rewardList;
 
 	private NAFCStimSpecWriter(String stimType, Long taskId, AllenDbUtil dbUtil,
 							   NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
@@ -60,7 +60,10 @@ public class NAFCStimSpecWriter {
 	private double[] targetEyeWinSizes;
 	private long[] choiceIds;
 
-	public static NAFCStimSpecWriter createForNoEStim(String stimType, Long taskId, AllenDbUtil dbUtil,
+    public NAFCStimSpecWriter() {
+    }
+
+    public static NAFCStimSpecWriter createForNoEStim(String stimType, Long taskId, AllenDbUtil dbUtil,
 													  NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
 													  NAFC<Long> stimObjIds, RewardPolicy rewardPolicy, int[] rewardList) {
 		return new NAFCStimSpecWriter(stimType, taskId, dbUtil, trialParameters, coords, numChoices, stimObjIds, rewardPolicy, rewardList);
@@ -79,12 +82,12 @@ public class NAFCStimSpecWriter {
 		writeSpec();
 	}
 
-	private void assignEyeWindowCoordinates() {
+    protected void assignEyeWindowCoordinates() {
 		targetEyeWinCoords.add(coords.getMatch());
 		targetEyeWinCoords.addAll(coords.getAllDistractors());
 	}
 
-	private void assignTargetEyeWindowSizes() {
+    protected void assignTargetEyeWindowSizes() {
 		targetEyeWinSizes = new double[numChoices];
 		for(int j=0; j < numChoices; j++) {
 			targetEyeWinSizes[j] = trialParameters.getEyeWinRadius();
@@ -95,7 +98,7 @@ public class NAFCStimSpecWriter {
 	 * choiceId along with rewardPolicy is matched with rewardList ids to determine if a trial is correct
 	 * or incorrect.
 	 */
-	private void assignChoiceIds() {
+    protected void assignChoiceIds() {
 		choiceIds = new long[numChoices];
 		choiceIds[0] = stimObjIds.getMatch();
 		for (int distractorIdIndx=0; distractorIdIndx<stimObjIds.getAllDistractors().size(); distractorIdIndx++) {
@@ -103,7 +106,7 @@ public class NAFCStimSpecWriter {
 		}
 	}
 
-	private void writeSpec() {
+	protected void writeSpec() {
 		NAFCStimSpecSpec stimSpec = new NAFCStimSpecSpec(
 				stimType,
 				targetEyeWinCoords.toArray(new Coordinates2D[0]),
