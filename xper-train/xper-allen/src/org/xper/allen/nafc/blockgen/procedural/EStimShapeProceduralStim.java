@@ -24,11 +24,12 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     protected final boolean isEStimEnabled;
     protected final AllenPNGMaker samplePngMaker;
     protected final AllenPNGMaker choicePNGMaker;
+    protected final int compId;
     protected long[] eStimObjData;
     protected double sampleSizeDegrees;
     protected long baseMStickStimSpecId;
 
-    public EStimShapeProceduralStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled, long baseMStickStimSpecId) {
+    public EStimShapeProceduralStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled, long baseMStickStimSpecId, int compId) {
         super(generator, parameters, baseMatchStick, morphComponentIndex);
         this.rfSource = generator.getRfSource();
         this.isEStimEnabled = isEStimEnabled;
@@ -37,6 +38,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         this.baseMStickStimSpecId = baseMStickStimSpecId;
 
         sampleSizeDegrees = RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.COMPLETELY_INSIDE, ((EStimShapeExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees());
+        this.compId = compId;
     }
 
     @Override
@@ -50,7 +52,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
 
     protected void writeExtraData() {
         AllenDbUtil dbUtil = (AllenDbUtil) generator.getDbUtil();
-        dbUtil.writeBaseMStickId(getStimId(), baseMStickStimSpecId);
+        dbUtil.writeBaseMStickId(getStimId(), baseMStickStimSpecId, compId);
     }
 
     @Override

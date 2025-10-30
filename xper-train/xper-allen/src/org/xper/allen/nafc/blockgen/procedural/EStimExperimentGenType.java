@@ -57,7 +57,7 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
                     parameters.getProceduralStimParameters(),
                     baseMStick,
                     morphIndex,
-                    parameters.isEStimEnabled, parameters.stimId);
+                    parameters.isEStimEnabled, parameters.stimId, parameters.compId);
             newBlock.add(stim);
         }
 

@@ -22,7 +22,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
                                   boolean isEStimEnabled,
                                   int nComp) {
         super(generator, parameters, baseMatchStick, morphComponentIndex, isEStimEnabled,
-                0L); //fix this
+                0L, 0); //fix this
         this.baseDrivingComponent = morphComponentIndex;
         if (nComp == 0){
             this.nComp = (int) Math.round(Math.random()+2);

@@ -363,9 +363,9 @@ public class AllenDbUtil extends DbUtil {
      * @param stimId The stimulus ID
      * @param baseMStickStimSpecId The base matchstick stimulus spec ID
      */
-    public void writeBaseMStickId(long stimId, long baseMStickStimSpecId) {
+    public void writeBaseMStickId(long stimId, long baseMStickStimSpecId, int compId) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
-        jt.update("insert into BaseMStickId (stim_id, base_mstick_stim_spec_id) values (?, ?)",
-                new Object[] { stimId, baseMStickStimSpecId });
+        jt.update("insert into BaseMStickId (stim_id, base_mstick_stim_spec_id, comp_id) values (?, ?, ?)",
+                new Object[] { stimId, baseMStickStimSpecId, compId });
     }
 }

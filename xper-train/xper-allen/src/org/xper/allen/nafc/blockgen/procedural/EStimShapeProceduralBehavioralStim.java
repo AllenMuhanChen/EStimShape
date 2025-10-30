@@ -24,7 +24,8 @@ public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim
                 parameters,
                 null,
                 -1,
-                false, 0L);
+                false,
+                0L, 0);
         this.rf = rf;
     }
 

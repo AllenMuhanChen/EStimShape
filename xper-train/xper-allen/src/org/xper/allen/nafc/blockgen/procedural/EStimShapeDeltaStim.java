@@ -19,7 +19,10 @@ public class EStimShapeDeltaStim extends EStimShapeProceduralStim{
                 (EStimShapeExperimentTrialGenerator) baseStim.generator,
                 baseStim.getParameters(),
                 baseStim.baseMatchStick,
-                -1, true, baseStim.getStimId());
+                -1,
+                true,
+                baseStim.getStimId(),
+                baseStim.compId);
         this.baseStim = baseStim;
         this.isDeltaMorph = isDeltaMorph;
         this.isDeltaNoise = isDeltaNoise;

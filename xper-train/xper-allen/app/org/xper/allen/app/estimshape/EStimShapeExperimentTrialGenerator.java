@@ -485,10 +485,10 @@ public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
             //using estim values set on the IntanGUI
             EStimShapeProceduralStim eStimTrial = new EStimShapeProceduralStim(
                     this,
-                    parameters, baseMStick, compId, true, stimId);
+                    parameters, baseMStick, compId, true, stimId, compId);
             EStimShapeProceduralStim negativeControlTrial = new EStimShapeProceduralStim(
                     this,
-                    parameters, baseMStick, compId, false, stimId);
+                    parameters, baseMStick, compId, false, stimId, compId);
             eStimTrials.add(eStimTrial);
             eStimTrials.add(negativeControlTrial);
         }

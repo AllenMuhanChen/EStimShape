@@ -218,43 +218,17 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 		return pixels;
 	}
 
-	private void calculateNoisePixels(byte[] pixels, float[] hsl, int i) {
-		// Original lightness value
-		float originalLightness = hsl[2];
-		float newLightness;
-        //This led to weird behavbior with less than 1 brightness stim: AC 10/10/2025, removing for now
-//		if (originalLightness < 1) {
-//			 Calculate the maximum fluctuation range based on the current lightness
-//			float fluctuationRange = Math.min(originalLightness, 1.0f - originalLightness);
-//
-//			 Generate a random fluctuation within the allowed range
-//			float fluctuation = (float) ((r.nextDouble() * fluctuationRange * 2) - fluctuationRange);
-//
-//			 Apply the fluctuation to the original lightness, ensuring the result is within [0,1]
-//			newLightness = originalLightness + fluctuation;
-//			newLightness = Math.max(0.0f, Math.min(1.0f, newLightness)); // Clamp to [0,1]
-//		} else {
-			newLightness = (float) r.nextDouble();
-//		}
+    private void calculateNoisePixels(byte[] pixels, float[] hsl, int i) {
+        float newLightness = (float) r.nextDouble();
+        float newSaturation = (float) r.nextDouble();  // ← Add this
 
-		// Create a Color object from the HSL values with the new lightness
-		Color color = Color.getHSBColor(hsl[0], hsl[1], newLightness);
-		// Get the RGB components from the Color object
-		int intRed = color.getRed();
-		int intGreen = color.getGreen();
-		int intBlue = color.getBlue();
+        Color color = Color.getHSBColor(hsl[0], newSaturation, newLightness);  // ← Use random saturation
 
-		// Cast the integer values to byte values
-		byte red = (byte) intRed;
-		byte green = (byte) intGreen;
-		byte blue = (byte) intBlue;
-
-		// Set the pixel to the new RGB color with max alpha
-		pixels[i] = red;    // R
-		pixels[i + 1] = green;  // G
-		pixels[i + 2] = blue;   // B
-		pixels[i + 3] = -1;  // Alpha (set to max value for opacity)
-	}
+        pixels[i] = (byte) color.getRed();
+        pixels[i + 1] = (byte) color.getGreen();
+        pixels[i + 2] = (byte) color.getBlue();
+        pixels[i + 3] = -1;
+    }
 
 	/**
 	 * Draw from pre-loaded noise textures.
