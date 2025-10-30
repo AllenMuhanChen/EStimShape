@@ -103,8 +103,8 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A"):
     print(f"Plotting {len(channel_strings)} channels")
 
     # Create subplots - 1 row, 2 columns (isochromatic with 4 freq columns, and solid)
-    fig, (ax_iso, ax_solid) = plt.subplots(1, 2, figsize=(20, 12),
-                                           sharey=True, gridspec_kw={'width_ratios': [4, 1]})
+    fig, (ax_iso, ax_solid) = plt.subplots(1, 2, figsize=(14, 12),
+                                           sharey=True, gridspec_kw={'width_ratios': [4, 1], 'wspace': 0.15})
 
     # Set up colormap (diverging around 0)
     cmap = plt.cm.RdBu_r  # Red for positive (prefers isochromatic/3D), Blue for negative
@@ -127,7 +127,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A"):
                 size = 200 if is_cluster else 100
                 marker = '*' if is_cluster else 'o'
                 edge_color = 'black'
-                line_width = 2.0 if is_cluster else 0.5
+                line_width = 0.5 if is_cluster else 0.5
 
                 scatter = ax_iso.scatter(x_position, y_pos, c=color_val, s=size,
                                          marker=marker, cmap=cmap, norm=norm,
@@ -139,7 +139,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A"):
                 size = 120 if is_cluster else 50
                 marker = '*' if is_cluster else 'o'
                 edge_color = 'black' if is_cluster else 'gray'
-                line_width = 1.5 if is_cluster else 0.5
+                line_width = 0.5 if is_cluster else 0.5
 
                 ax_iso.scatter(x_position, y_pos, c='lightgray', s=size,
                                marker=marker, edgecolors=edge_color, linewidths=line_width,
@@ -147,7 +147,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A"):
                                zorder=10 if is_cluster else 1)
 
     # Format isochromatic plot
-    ax_iso.set_xlim(-0.5, n_frequencies - 0.5)
+    ax_iso.set_xlim(-0.2, n_frequencies - 0.8)  # Tighter limits to reduce gaps
     ax_iso.set_xticks(range(n_frequencies))
     ax_iso.set_xticklabels([f'{freq} Hz' for freq in frequencies], fontsize=10)
     ax_iso.set_yticks(range(1, len(channel_strings) + 1))
@@ -155,6 +155,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A"):
     ax_iso.set_ylabel('Channel (Top → Bottom)', fontsize=10)
     ax_iso.set_title('Isochromatic Preference by Frequency', fontsize=12, fontweight='bold')
     ax_iso.grid(True, axis='y', alpha=0.3, linestyle='--')
+    ax_iso.grid(True, axis='x', alpha=0.2, linestyle='--')  # Add vertical grid lines
     ax_iso.set_ylim(0.5, len(channel_strings) + 0.5)
 
     # Plot solid preference - single column
@@ -168,7 +169,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A"):
             size = 200 if is_cluster else 100
             marker = '*' if is_cluster else 'o'
             edge_color = 'black'
-            line_width = 2.0 if is_cluster else 0.5
+            line_width = 0.5 if is_cluster else 0.5
 
             scatter = ax_solid.scatter(0, y_pos, c=color_val, s=size,
                                        marker=marker, cmap=cmap, norm=norm,
@@ -180,7 +181,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A"):
             size = 120 if is_cluster else 50
             marker = '*' if is_cluster else 'o'
             edge_color = 'black' if is_cluster else 'gray'
-            line_width = 1.5 if is_cluster else 0.5
+            line_width = 0.5 if is_cluster else 0.5
 
             ax_solid.scatter(0, y_pos, c='lightgray', s=size,
                              marker=marker, edgecolors=edge_color, linewidths=line_width,
@@ -257,7 +258,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A"):
 
 def main():
     # Example usage - change session_id as needed
-    session_id = "251021_1"
+    session_id = "251029_0"
     headstage_label = "A"
 
     plot_channel_preferences(session_id, headstage_label)

@@ -2,7 +2,7 @@
 xper.native_library_path=${matlab.home}/bin/glnx86;${matlab.home}/sys/os/glnx86
 
 jdbc.driver=com.mysql.jdbc.Driver
-jdbc.url=jdbc:mysql://172.30.6.61/allen_ga_exp_251021_1?rewriteBatchedStatements=true
+jdbc.url=jdbc:mysql://172.30.6.61/allen_ga_exp_251029_0?rewriteBatchedStatements=true
 
 
 jdbc.username=xper_rw
@@ -27,16 +27,16 @@ fixcal.config_class=org.xper.allen.config.AllenFixCalConfig
 rfplot.config_class=org.xper.allen.rfplot.AllenRFPlotConfig
 rfplot.png_library_path_generator=/home/connorlab/git/EStimShape/xper-train/stimuli/rfplot/pngs
 rfplot.png_library_path_experiment=/run/user/1004/gvfs/sftp:host=172.30.6.61/home/connorlab/git/EStimShape/xper-train/stimuli/rfplot/pngs
-rfplot.intan_path=/mnt/data/EStimShape/allen_ga_exp_251021_1/rfPlot
+rfplot.intan_path=/mnt/data/EStimShape/allen_ga_exp_251029_0/rfPlot
 
 #############################################################################
 # parameters - paths
 #############################################################################
 #path of computer running stimulus generator
-generator.png_path=/home/connorlab/Documents/EStimShape/allen_ga_exp_251021_1/stimuli/ga/pngs
+generator.png_path=/home/connorlab/Documents/EStimShape/allen_ga_exp_251029_0/stimuli/ga/pngs
 #path of computer running experiment
-experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.61/home/connorlab/Documents/EStimShape/allen_ga_exp_251021_1/stimuli/ga/pngs
-generator.spec_path=/home/connorlab/Documents/EStimShape/allen_ga_exp_251021_1/stimuli/ga/specs
+experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.61/home/connorlab/Documents/EStimShape/allen_ga_exp_251029_0/stimuli/ga/pngs
+generator.spec_path=/home/connorlab/Documents/EStimShape/allen_ga_exp_251029_0/stimuli/ga/specs
 
 #############################################################################
 # parameters - GA
@@ -47,7 +47,7 @@ number_of_repetitions_per_stimulus = 5
 #############################################################################
 # parameters - xper
 #############################################################################
-console.eye_simulation=true
+console.eye_simulation=false
 acq.server_host=172.30.6.61
 
 # none, comedi, ni
@@ -78,7 +78,7 @@ fixcal.screen_setup=mono
 intan.recording.enabled = true
 intan.host=172.30.9.78
 intan.port.command=5000
-intan.default_save_path=/mnt/data/EStimShape/allen_ga_exp_251021_1
+intan.default_save_path=/mnt/data/EStimShape/allen_ga_exp_251029_0
 intan.default_base_filename=GA
 intan.remote_directory=/run/user/1004/gvfs/sftp:host=172.30.9.78
 generator.spike_dat_path=/home/r2_allen/DocuEStimShape/dev_221110/spikefiles_dev_221110

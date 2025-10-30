@@ -21,9 +21,11 @@ UPDATE SystemVar SET val=3 WHERE name='xper_choice_correct_juice_multiplier';
 UPDATE SystemVar SET val=1.0 WHERE name='xper_choice_correct_juice_multiplier_chance';
 UPDATE SystemVar SET val=500 WHERE name='xper_blank_target_screen_display_time';
 UPDATE SystemVar SET val=500 WHERE name='xper_required_eye_in_and_hold_time';
-UPDATE SystemVar SET val=2 WHERE name='xper_eye_window_algorithm_base_window_size';
-UPDATE SystemVar SET val=2 WHERE name='xper_eye_window_algorithm_initial_window_size';
+UPDATE SystemVar SET val=2.0 WHERE name='xper_eye_window_algorithm_base_window_size';
+UPDATE SystemVar SET val=2.0 WHERE name='xper_eye_window_algorithm_initial_window_size';
+UPDATE SystemVar SET val=0.5 WHERE name='xper_png_background_color';
 UPDATE SystemVar SET val=35 WHERE name = 'xper_max_image_dimension_degrees';
+UPDATE SystemVar SET val=200 WHERE name='xper_target_selection_eye_out_time_threshold';
 UPDATE SystemVar SET val=60 WHERE name = 'xper_noise_rate';
 EOF
 

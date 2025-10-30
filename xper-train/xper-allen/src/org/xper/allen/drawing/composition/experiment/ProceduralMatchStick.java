@@ -22,7 +22,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     protected double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0};
     //protected double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0};
     protected SphericalCoordinates objCenteredPositionTolerance =
-            new SphericalCoordinates(1.0, Math.PI / 5, Math.PI / 2 );
+            new SphericalCoordinates(1.0, Math.PI / 8, Math.PI / 3 );
     public double noiseRadiusMm = 10;
     public int maxAttempts = 5;
     private Point3d noiseOrigin;
