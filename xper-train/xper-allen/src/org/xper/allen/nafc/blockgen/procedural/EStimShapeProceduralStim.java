@@ -25,6 +25,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     protected final AllenPNGMaker samplePngMaker;
     protected final AllenPNGMaker choicePNGMaker;
     protected final int compId;
+    protected final RFStrategy rfStrategy = RFStrategy.COMPLETELY_INSIDE;
     protected long[] eStimObjData;
     protected double sampleSizeDegrees;
     protected long baseMStickStimSpecId;
@@ -37,7 +38,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         choicePNGMaker = generator.getPngMaker();
         this.baseMStickStimSpecId = baseMStickStimSpecId;
 
-        sampleSizeDegrees = RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.COMPLETELY_INSIDE, ((EStimShapeExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees());
+        sampleSizeDegrees = RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, ((EStimShapeExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees());
         this.compId = compId;
     }
 
@@ -134,7 +135,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
 
         //Generate Sample
         EStimShapeProceduralMatchStick sample = new EStimShapeProceduralMatchStick(
-                RFStrategy.COMPLETELY_INSIDE,
+                rfStrategy,
                 ((EStimShapeExperimentTrialGenerator) generator).getRF(), generator.getPngMaker().getNoiseMapper()
         );
 
@@ -200,7 +201,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
      * @param proceduralDistractor
      */
     protected void correctNoiseRadius(ProceduralMatchStick proceduralDistractor) {
-        double scaleFactor = generator.getImageDimensionsDegrees() / RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.COMPLETELY_INSIDE, rfSource.getRFRadiusDegrees());
+        double scaleFactor = generator.getImageDimensionsDegrees() / RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, rfSource.getRFRadiusDegrees());
         proceduralDistractor.noiseRadiusMm = rfSource.getRFRadiusMm() * scaleFactor;
     }
 

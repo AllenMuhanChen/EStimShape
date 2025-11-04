@@ -41,7 +41,7 @@ class SolidPreferenceIndexCalculator(ComputationModule):
             for _, row in data_3d.iterrows():
                 spike_rate_dict = row[self.spike_data_col]
                 if isinstance(spike_rate_dict, dict) and self.response_key in spike_rate_dict:
-                    if spike_rate_dict[self.response_key] >= median_3d:
+                    if spike_rate_dict[self.response_key] >= 0:
                         data_3d_filtered.append(row)
             data_3d = pd.DataFrame(data_3d_filtered) if data_3d_filtered else pd.DataFrame()
 
@@ -54,7 +54,7 @@ class SolidPreferenceIndexCalculator(ComputationModule):
             for _, row in data_2d.iterrows():
                 spike_rate_dict = row[self.spike_data_col]
                 if isinstance(spike_rate_dict, dict) and self.response_key in spike_rate_dict:
-                    if spike_rate_dict[self.response_key] >= median_2d:
+                    if spike_rate_dict[self.response_key] >= 0:
                         data_2d_filtered.append(row)
             data_2d = pd.DataFrame(data_2d_filtered) if data_2d_filtered else pd.DataFrame()
 

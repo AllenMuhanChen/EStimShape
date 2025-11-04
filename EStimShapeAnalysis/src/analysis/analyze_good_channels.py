@@ -4,6 +4,7 @@ from src.analysis.ga.plot_generations import PlotGenerationsAnalysis
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.analysis.ga.side_test import SideTestAnalysis, SolidPreferenceIndexAnalysis
 from src.analysis.ga.stimulus_sensitivity_test import StimulusSelectivityAnalysis
+from src.analysis.isogabor.isochromatic_luminant_score import IsoChromaticLuminantScoreAnalysis
 from src.analysis.isogabor.isogabor_raster_pipeline import IsogaborAnalysis, IsochromaticIndexAnalysis
 from src.analysis.isogabor.mixed_gabors_analysis import MixedGaborsAnalysis
 from src.analysis.lightness.lightness_analysis import LightnessAnalysis
@@ -17,6 +18,7 @@ def main():
         StimulusSelectivityAnalysis(),
         IsochromaticIndexAnalysis(),
         SolidPreferenceIndexAnalysis(),
+        IsoChromaticLuminantScoreAnalysis(),
         # IsogaborAnalysis(),
         # PlotTopNAnalysis(),
         # PlotGenerationsAnalysis(),
@@ -44,7 +46,7 @@ def main():
 
         # Use cluster channels for all sessions
         channels_map = {}
-        for (session_id,) in sessions_to_process:
+        for session_id in sessions_to_process:
             channels = extract_good_channels(session_id)
             channels_map[session_id] = channels
     else:

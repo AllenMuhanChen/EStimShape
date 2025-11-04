@@ -24,12 +24,12 @@ def filter_by_num_distractors(data, num_distractors):
 
 def main():
     # Database connection
-    conn = Connection("allen_estimshape_exp_251029_0")
+    conn = Connection("allen_estimshape_exp_251030_0")
 
     # Time range
     since_date = time_util.from_date_to_now(2024, 7, 10)
-    start_gen_id = 28  # Filter for all data (EStim OFF and general filtering)
-    max_gen_id = float('inf')  # Maximum GenId to include (set to a number to limit, or leave as inf for no limit)
+    start_gen_id = 21  # Filter for all data (EStim OFF and general filtering)
+    max_gen_id = 25  # Maximum GenId to include (set to a number to limit, or leave as inf for no limit)
     start_gen_id_estim_on = 0  # Additional filter for EStim ON trials only (set higher to get only recent EStim ON data)
     max_gen_id_estim_on = float('inf')  # Maximum GenId for EStim ON trials (set to a number to limit)
 
@@ -184,11 +184,18 @@ def main():
         )
 
     # BOTTOM LEFT: Statistical analysis results
-    # Run independent binomial tests (chi-square or Fisher's exact) for each noise level
+    # Run BOTH per-level tests AND logistic regression
+    import pandas as pd
+    import numpy as np
+
     noise_levels = sorted(data_exp['NoiseChance'].unique())
 
-    results_text = "Per-Level Tests: EStim ON vs OFF\n"
+    results_text = "STATISTICAL ANALYSIS\n"
     results_text += "=" * 50 + "\n\n"
+
+    # PART 1: Per-Level Independent Tests
+    results_text += "Per-Level Tests (EStim ON vs OFF):\n"
+    results_text += "-" * 50 + "\n"
 
     for noise in noise_levels:
         noise_data = data_exp[data_exp['NoiseChance'] == noise]
@@ -241,21 +248,104 @@ def main():
             else:
                 sig = "ns"
 
-            results_text += f"Noise {noise * 100:.0f}%:\n"
-            results_text += f"  ON:  {on_correct}/{on_total} ({on_pct:.1f}%)\n"
-            results_text += f"  OFF: {off_correct}/{off_total} ({off_pct:.1f}%)\n"
-            results_text += f"  {test_name}: p={p_value:.4f} {sig}\n"
-            if odds_ratio != float('inf'):
-                results_text += f"  OR: {odds_ratio:.2f}\n"
-            results_text += "\n"
+            results_text += f"Noise {noise * 100:.0f}%: "
+            results_text += f"{on_correct}/{on_total}({on_pct:.0f}%) vs "
+            results_text += f"{off_correct}/{off_total}({off_pct:.0f}%), "
+            results_text += f"p={p_value:.3f}{sig}, OR={odds_ratio:.2f}\n"
+
+    # PART 2: Logistic Regression
+    results_text += "\n"
+    results_text += "Logistic Regression (Overall Model):\n"
+    results_text += "-" * 50 + "\n"
+
+    # Prepare data for logistic regression
+    data_exp_for_analysis = data_exp.copy()
+
+    # Apply EStim ON GenId filters
+    data_exp_for_analysis_estim_on = data_exp_for_analysis[
+        (data_exp_for_analysis['EStimEnabled'] == True) &
+        (data_exp_for_analysis['GenId'] >= start_gen_id_estim_on) &
+        (data_exp_for_analysis['GenId'] <= max_gen_id_estim_on)
+        ].copy()
+
+    data_exp_for_analysis_estim_off = data_exp_for_analysis[
+        data_exp_for_analysis['EStimEnabled'] == False
+        ].copy()
+
+    # Combine back together
+    data_for_model = pd.concat([data_exp_for_analysis_estim_on, data_exp_for_analysis_estim_off])
+
+    # Convert "No Data" to False
+    data_for_model.loc[data_for_model['IsCorrect'] == "No Data", 'IsCorrect'] = False
+
+    # Convert IsCorrect to numeric (1 for True, 0 for False)
+    data_for_model['IsCorrect_numeric'] = (data_for_model['IsCorrect'] == True).astype(int)
+
+    if len(data_for_model) > 0 and len(data_for_model[data_for_model['EStimEnabled'] == True]) > 0:
+        try:
+            import statsmodels.api as sm
+            from statsmodels.formula.api import glm
+
+            # Fit logistic regression model
+            # Model: IsCorrect ~ EStimEnabled * NoiseChance
+            model = glm("IsCorrect_numeric ~ C(EStimEnabled) * NoiseChance",
+                        data=data_for_model,
+                        family=sm.families.Binomial())
+            result = model.fit()
+
+            # Extract key statistics
+            params = result.params
+            pvalues = result.pvalues
+            conf_int = result.conf_int()
+
+            # Display main effects and interaction
+            for param_name in params.index:
+                if param_name == 'Intercept':
+                    continue
+
+                coef = params[param_name]
+                p = pvalues[param_name]
+
+                # Significance markers
+                if p < 0.001:
+                    sig = "***"
+                elif p < 0.01:
+                    sig = "**"
+                elif p < 0.05:
+                    sig = "*"
+                else:
+                    sig = "ns"
+
+                # Odds Ratio
+                or_value = np.exp(coef)
+                or_ci_low = np.exp(conf_int.loc[param_name, 0])
+                or_ci_high = np.exp(conf_int.loc[param_name, 1])
+
+                # Shorten parameter names for display
+                display_name = param_name.replace('C(EStimEnabled)[T.True]', 'EStim')
+                display_name = display_name.replace('NoiseChance', 'Noise')
+                display_name = display_name.replace(':', '×')
+
+                results_text += f"{display_name}: OR={or_value:.2f} "
+                results_text += f"[{or_ci_low:.2f},{or_ci_high:.2f}], "
+                results_text += f"p={p:.3f}{sig}\n"
+
+            results_text += f"\nModel: n={len(data_for_model)}, "
+            results_text += f"AIC={result.aic:.1f}, "
+            results_text += f"R²={1 - (result.deviance / result.null_deviance):.3f}\n"
+
+        except Exception as e:
+            results_text += f"Model fitting error: {str(e)}\n"
+    else:
+        results_text += "Insufficient data for regression.\n"
 
     results_text += "\n* p<0.05, ** p<0.01, *** p<0.001"
-    results_text += "\nNote: Independent tests (no correction)"
+    results_text += "\nPer-level: Independent tests (no correction)"
 
     # Display results in bottom left axes
     axes[1, 0].text(0.05, 0.95, results_text,
                     transform=axes[1, 0].transAxes,
-                    fontsize=9,
+                    fontsize=8,
                     verticalalignment='top',
                     fontfamily='monospace',
                     bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))

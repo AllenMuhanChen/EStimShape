@@ -17,8 +17,8 @@ def main():
     compiled_data = plot_top_n.compile()
 
     session_id, _ = read_session_id_from_db_name(context.ga_database)
-    session_id = "251029_0"
-    channel = "A-001"
+    session_id = "251030_0"
+    channel = "A-020"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
@@ -37,10 +37,14 @@ class PlotGenerationsAnalysis(PlotTopNAnalysis):
         compiled_data['Spike Rate'] = compiled_data[self.spike_rates_col].apply(
             lambda x: x[channel] if channel in x else 0)
 
-        # Find the 3 longest lineages (by count of stimuli)
+        # Find any lineages with more than 20 stimuli:
         lineage_counts = compiled_data['Lineage'].value_counts()
-        top_3_lineages = lineage_counts.head(5).index.tolist()
-        print(f"Top 3 lineages: {top_3_lineages} with counts: {lineage_counts.head(3).tolist()}")
+        top_lineages = lineage_counts[lineage_counts > 10].index
+
+        print(f"Top {top_lineages.size} lineages: {top_lineages} with counts")
+
+
+
 
         # Calculate average response rate for each StimSpecId within each subplot_Lineage
         avg_response = compiled_data.groupby(['GenId', 'StimSpecId', 'Lineage'])['Spike Rate'].mean().reset_index()
@@ -86,7 +90,7 @@ class PlotGenerationsAnalysis(PlotTopNAnalysis):
             # title='Top Stimuli Per Gen',
             filter_values={
                 "RankWithinGeneration": range(0, 10),
-                "Lineage": top_3_lineages  # Add this line
+                "Lineage": top_lineages  # Add this line
                 # "GenId": range(0,10)
             },  # only show top 20 per lineage
             # sort_rules={"GenId": "descending"},

@@ -4,6 +4,8 @@ from matplotlib.colors import TwoSlopeNorm
 from clat.intan.channels import Channel
 from clat.util.connection import Connection
 from src.cluster.cluster_app_classes import ChannelMapper
+from src.repository.export_to_repository import read_session_id_from_db_name
+from src.startup import context
 
 
 class DBCChannelMapper(ChannelMapper):
@@ -23,13 +25,14 @@ class DBCChannelMapper(ChannelMapper):
         return self.channel_map[channel]
 
 
-def plot_channel_preferences(session_id: str, headstage_label: str = "A"):
+def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_path: str = None):
     """
     Plot raw channels ordered top-to-bottom, colored by isochromatic preference index.
 
     Args:
         session_id: The session identifier to query
         headstage_label: The headstage label (default "A")
+        save_path: Optional path to save the figure as PNG (e.g., "output.png")
     """
     # Initialize channel mapper
     mapper = DBCChannelMapper(headstage_label)
@@ -219,7 +222,12 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A"):
         ]
         ax_iso.legend(handles=legend_elements, loc='upper left', fontsize=9)
 
+    # Save figure if path provided
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"\nFigure saved to: {save_path}")
     plt.show()
+
 
     # Print summary statistics
     print(f"\n=== Summary for session {session_id} ===")
@@ -258,10 +266,14 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A"):
 
 def main():
     # Example usage - change session_id as needed
-    session_id = "251029_0"
+    (session_id, _) = read_session_id_from_db_name(context.ga_database)
     headstage_label = "A"
 
-    plot_channel_preferences(session_id, headstage_label)
+    # Optional: save figure as PNG
+    # save_path = f"channel_preferences_{session_id}.png"
+    save_path = f"/home/connorlab/Documents/plots/{session_id}/preference_clusters.png"  # Set to None to skip saving
+
+    plot_channel_preferences(session_id, headstage_label, save_path=save_path)
 
 
 if __name__ == '__main__':

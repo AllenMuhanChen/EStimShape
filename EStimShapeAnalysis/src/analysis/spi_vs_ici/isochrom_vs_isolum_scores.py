@@ -18,10 +18,10 @@ def main():
     )
 
     # Option 2: Use validated raw channels
-    # create_isochrom_isolum_score_plots(
-    #     save_path="/home/connorlab/Documents/plots/isochrom_vs_isolum",
-    #     data_source='raw_validated'
-    # )
+    create_isochrom_isolum_score_plots(
+        save_path="/home/connorlab/Documents/plots/isochrom_vs_isolum",
+        data_source='raw_validated'
+    )
 
     # Option 3: Use clustered raw channels
     create_isochrom_isolum_score_plots(

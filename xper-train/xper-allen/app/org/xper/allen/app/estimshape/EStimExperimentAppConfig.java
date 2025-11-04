@@ -44,13 +44,15 @@ public class EStimExperimentAppConfig {
 
     @Bean
     public List<Double> xperNoiseRewardFunctionNoises() {
+
         return Arrays.asList(0.0, 0.3, 0.5);
     }
 
 
     @Bean
     public List<Double> xperNoiseRewardFunctionRewards() {
-        return Arrays.asList(1.0, 2.0, 3.0);
+
+        return Arrays.asList(3.0, 3.0, 3.0);
     }
 
     @Bean
@@ -124,7 +126,7 @@ public class EStimExperimentAppConfig {
         pngMaker.setWidth(sampleDPIUtil().calculateMinResolution());
         pngMaker.setHeight(sampleDPIUtil().calculateMinResolution());
         pngMaker.setDpiUtil(sampleDPIUtil());
-        RGBColor backColor = new RGBColor(0.75, 0.75, 0.75);
+        RGBColor backColor = new RGBColor(0.0, 0.0, 0.0);
         pngMaker.setBackColor(backColor);
         pngMaker.setDepth(6000);
         pngMaker.setDistance(500);

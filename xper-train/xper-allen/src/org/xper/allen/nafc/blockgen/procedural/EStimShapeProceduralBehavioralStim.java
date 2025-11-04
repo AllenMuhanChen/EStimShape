@@ -89,7 +89,7 @@ public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim
 
         //Generate Sample
         EStimShapeProceduralMatchStick sample = new EStimShapeProceduralMatchStick(
-                RFStrategy.COMPLETELY_INSIDE,
+                rfStrategy,
                 rf, generator.getPngMaker().getNoiseMapper()
         );
         sample.setProperties(sampleSizeDegrees, parameters.textureType, 1.0);
