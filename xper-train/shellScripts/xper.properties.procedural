@@ -3,7 +3,7 @@ matlab.home=/usr/local/matlab70_sp1
 xper.native_library_path=${matlab.home}/bin/glnx86;${matlab.home}/sys/os/glnx86
 
 jdbc.driver=com.mysql.jdbc.Driver
-jdbc.url=jdbc:mysql://172.30.6.61/allen_estimshape_exp_251030_0?rewriteBatchedStatements=true
+jdbc.url=jdbc:mysql://172.30.6.61/allen_estimshape_exp_250925_0?rewriteBatchedStatements=true
 
 
 jdbc.username=xper_rw
@@ -37,15 +37,15 @@ mock.config_class=
 # parameters
 #############################################################################
 #path of computer running stimulus generator
-generator.png_path=/home/connorlab/Documents/EStimShape/allen_estimshape_exp_251030_0/stimuli/251104/procedural/pngs
+generator.png_path=/home/connorlab/Documents/EStimShape/allen_estimshape_exp_250925_0/stimuli/251105/procedural/pngs
 #path of computer running experiment
-experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.61/home/connorlab/Documents/EStimShape/allen_estimshape_exp_251030_0/stimuli/251104/procedural/pngs
-generator.spec_path=/home/connorlab/Documents/EStimShape/allen_estimshape_exp_251030_0/stimuli/251104/procedural/specs
-generator.noisemap_path=/home/connorlab/Documents/EStimShape/allen_estimshape_exp_251030_0/stimuli/251104/procedural/pngs
-generator.set_path=/home/connorlab/Documents/EStimShape/allen_estimshape_exp_251030_0/stimuli/251104/sets
-experiment.noisemap_path=/run/user/1004/gvfs/sftp:host=172.30.6.61/home/connorlab/Documents/EStimShape/allen_estimshape_exp_251030_0/stimuli/251104/procedural/pngs
+experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.61/home/connorlab/Documents/EStimShape/allen_estimshape_exp_250925_0/stimuli/251105/procedural/pngs
+generator.spec_path=/home/connorlab/Documents/EStimShape/allen_estimshape_exp_250925_0/stimuli/251105/procedural/specs
+generator.noisemap_path=/home/connorlab/Documents/EStimShape/allen_estimshape_exp_250925_0/stimuli/251105/procedural/pngs
+generator.set_path=/home/connorlab/Documents/EStimShape/allen_estimshape_exp_250925_0/stimuli/251105/sets
+experiment.noisemap_path=/run/user/1004/gvfs/sftp:host=172.30.6.61/home/connorlab/Documents/EStimShape/allen_estimshape_exp_250925_0/stimuli/251105/procedural/pngs
 #############
-ga.spec_path=/home/connorlab/Documents/EStimShape/allen_ga_exp_251030_0/stimuli/ga/specs
+ga.spec_path=/home/connorlab/Documents/EStimShape/allen_ga_exp_250925_0/stimuli/ga/specs
 
 
 acq.server_host=172.30.6.61
@@ -87,7 +87,7 @@ intan.estim.enabled=true
 intan.recording.enabled=true
 intan.host=172.30.9.78
 intan.port.command=5000
-intan.default_save_path=/mnt/data/EStimShape/allen_estimshape_exp_251030_0
+intan.default_save_path=/mnt/data/EStimShape/allen_estimshape_exp_250925_0
 intan.default_base_filename=NAFC
 intan.remote_directory=/run/user/1004/gvfs/sftp:host=172.30.9.78
 generator.spike_dat_path=/home/r2_allen/DocuEStimShape/dev_221110/spikefiles_dev_221110

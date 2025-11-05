@@ -158,7 +158,7 @@ def plot_session_frequencies(merged_df, session_id, frequencies):
 
         # Add statistics text
         if len(x) > 1:
-            stats_text = f'R²={r_squared:.3f}\nr={r_value:.3f}\np={p_value:.3f}'
+            stats_text = f'RÂ²={r_squared:.3f}\nr={r_value:.3f}\np={p_value:.3f}'
             ax.text(0.02, 0.98, stats_text, transform=ax.transAxes,
                     verticalalignment='top', fontsize=10,
                     bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
@@ -223,7 +223,7 @@ def plot_combined_frequency_data(merged_df, frequency, sessions):
     plt.figure(figsize=(12, 8))
 
     # Create a color map for sessions
-    session_colors = plt.cm.Set1(np.linspace(0, 1, len(sessions)+1))
+    session_colors = plt.cm.Set1(np.linspace(0, 1, len(sessions)))
 
     # Plot each session with different colors
     for i, session_id in enumerate(sessions):
@@ -237,7 +237,7 @@ def plot_combined_frequency_data(merged_df, frequency, sessions):
     # Add trend line for combined data
     line_x = np.linspace(x.min(), x.max(), 100)
     line_y = slope * line_x + intercept
-    plt.plot(line_x, line_y, 'k-', linewidth=2, label=f'Combined trend (R² = {r_squared:.3f})')
+    plt.plot(line_x, line_y, 'k-', linewidth=2, label=f'Combined trend (RÂ² = {r_squared:.3f})')
 
     # Add labels and title
     plt.xlabel('Solid Preference Index')
@@ -260,7 +260,7 @@ def plot_combined_frequency_data(merged_df, frequency, sessions):
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
 
     # Add statistics text box
-    stats_text = f'R² = {r_squared:.3f}\nr = {r_value:.3f}\np = {p_value:.3f}\nn = {len(freq_data)}'
+    stats_text = f'RÂ² = {r_squared:.3f}\nr = {r_value:.3f}\np = {p_value:.3f}\nn = {len(freq_data)}'
     plt.text(0.02, 0.98, stats_text, transform=plt.gca().transAxes,
              verticalalignment='top', bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
 
@@ -282,7 +282,7 @@ def plot_combined_frequency_data(merged_df, frequency, sessions):
     print(f"  Total units: {len(freq_data)}")
     print(f"  Solid Preference range: {x.min():.3f} to {x.max():.3f}")
     print(f"  Isochromatic Preference range: {y.min():.3f} to {y.max():.3f}")
-    print(f"  Correlation: r = {r_value:.3f}, R² = {r_squared:.3f}, p = {p_value:.3f}")
+    print(f"  Correlation: r = {r_value:.3f}, RÂ² = {r_squared:.3f}, p = {p_value:.3f}")
 
 
 if __name__ == "__main__":

@@ -24,16 +24,25 @@ class IsoChromaticLuminantScoreAnalysis(IsochromaticIndexAnalysis):
             )
 
         # Create the score module
-        score_module = create_isochromatic_luminant_score_module(
+        spike_score_module = create_isochromatic_luminant_score_module(
             channel=channel,
             session_id=self.session_id,
             spike_data_col=self.spike_rates_col,
             metric_name='raw_spikes_per_second'
         )
 
+        # Can now use 'raw_spikes_per_second' or 'z_score'
+        z_score_module = create_isochromatic_luminant_score_module(
+            channel=channel,
+            session_id=self.session_id,
+            spike_data_col=self.spike_rates_col,
+            metric_name='z_score'  # Change this to use z-scores
+        )
+
         # Create pipeline
-        score_branch = create_branch().then(score_module)
-        pipeline = create_pipeline().make_branch(score_branch).build()
+        spike_score_branch = create_branch().then(spike_score_module)
+        z_score_branch = create_branch().then(z_score_module)
+        pipeline = create_pipeline().make_branch(spike_score_branch, z_score_branch).build()
 
         # Run the pipeline
         result = pipeline.run(compiled_data)
@@ -173,19 +182,57 @@ class IsoChromaticLuminantScoreCalculator(ComputationModule):
             red_green_avg = get_average_for_type_and_frequency(prepared_data, 'RedGreen', frequency)
             cyan_orange_avg = get_average_for_type_and_frequency(prepared_data, 'CyanOrange', frequency)
 
+            # Apply metric-specific transformations
+            if self.metric_name == 'raw_spikes_per_second':
+                # Use raw averages
+                red_score = red_avg
+                green_score = green_avg
+                cyan_score = cyan_avg
+                orange_score = orange_avg
+                red_green_score = red_green_avg
+                cyan_orange_score = cyan_orange_avg
+
+            elif self.metric_name == 'z_score':
+                # Calculate z-scores normalized within this frequency
+                all_avgs = [red_avg, green_avg, cyan_avg, orange_avg, red_green_avg, cyan_orange_avg]
+                mean_response = np.mean(all_avgs)
+                std_response = np.std(all_avgs, ddof=1) if len(all_avgs) > 1 else 1.0
+
+                # Avoid division by zero
+                if std_response == 0:
+                    std_response = 1.0
+
+                # Z-score each average
+                red_score = (red_avg - mean_response) / std_response
+                green_score = (green_avg - mean_response) / std_response
+                cyan_score = (cyan_avg - mean_response) / std_response
+                orange_score = (orange_avg - mean_response) / std_response
+                red_green_score = (red_green_avg - mean_response) / std_response
+                cyan_orange_score = (cyan_orange_avg - mean_response) / std_response
+
+                print(f"  Z-score normalization: mean={mean_response:.2f}, std={std_response:.2f}")
+            else:
+                raise ValueError(f"Unknown metric_name: {self.metric_name}")
+
             # Find max isochromatic score
-            isochromatic_score = max(red_avg, green_avg, cyan_avg, orange_avg)
+            isochromatic_score = max(red_score, green_score, cyan_score, orange_score)
 
             # Find max isoluminant score
-            isoluminant_score = max(red_green_avg, cyan_orange_avg)
+            isoluminant_score = max(red_green_score, cyan_orange_score)
 
             frequency_scores[frequency] = (isochromatic_score, isoluminant_score)
 
-            print(
-                f"  Individual color averages - Red: {red_avg}, Green: {green_avg}, Cyan: {cyan_avg}, Orange: {orange_avg}")
-            print(f"  Mixed color averages - RedGreen: {red_green_avg}, CyanOrange: {cyan_orange_avg}")
-            print(f"  Isochromatic score: {isochromatic_score}")
-            print(f"  Isoluminant score: {isoluminant_score}")
+            print(f"  Individual color averages - Red: {red_avg:.2f}, Green: {green_avg:.2f}, "
+                  f"Cyan: {cyan_avg:.2f}, Orange: {orange_avg:.2f}")
+            print(f"  Mixed color averages - RedGreen: {red_green_avg:.2f}, CyanOrange: {cyan_orange_avg:.2f}")
+
+            if self.metric_name == 'z_score':
+                print(f"  Individual color z-scores - Red: {red_score:.2f}, Green: {green_score:.2f}, "
+                      f"Cyan: {cyan_score:.2f}, Orange: {orange_score:.2f}")
+                print(f"  Mixed color z-scores - RedGreen: {red_green_score:.2f}, CyanOrange: {cyan_orange_score:.2f}")
+
+            print(f"  Isochromatic score: {isochromatic_score:.2f}")
+            print(f"  Isoluminant score: {isoluminant_score:.2f}")
 
         print(
             f"\nFinal frequency-specific scores for {self.response_key}, metric {self.metric_name}: {frequency_scores}")

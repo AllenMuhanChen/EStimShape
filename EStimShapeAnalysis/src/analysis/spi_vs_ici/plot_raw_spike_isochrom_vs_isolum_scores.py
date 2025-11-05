@@ -12,10 +12,10 @@ def main():
     # Example usage with different data sources
 
     # Option 1: Use sorted selective units
-    create_isochrom_isolum_score_plots(
-        save_path="/home/connorlab/Documents/plots/isochrom_vs_isolum",
-        data_source='sorted_selective'
-    )
+    # create_isochrom_isolum_score_plots(
+    #     save_path="/home/connorlab/Documents/plots/isochrom_vs_isolum",
+    #     data_source='sorted_selective'
+    # )
 
     # Option 2: Use validated raw channels
     create_isochrom_isolum_score_plots(
@@ -24,10 +24,10 @@ def main():
     )
 
     # Option 3: Use clustered raw channels
-    create_isochrom_isolum_score_plots(
-        save_path="/home/connorlab/Documents/plots/isochrom_vs_isolum",
-        data_source='raw_clustered'
-    )
+    # create_isochrom_isolum_score_plots(
+    #     save_path="/home/connorlab/Documents/plots/isochrom_vs_isolum",
+    #     data_source='raw_clustered'
+    # )
 
 
 def create_isochrom_isolum_score_plots(save_path=None, metric_name='raw_spikes_per_second',

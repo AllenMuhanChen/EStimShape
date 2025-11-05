@@ -8,19 +8,22 @@ from clat.util.connection import Connection
 from src.analysis.spi_vs_ici.spi_vs_ici_windowsorted import get_selectivity_query
 
 
-def create_all_preference_plots(save_dir=None, threshold=0.7):
+def create_all_preference_plots(save_dir=None, threshold=0.7, filter_type='selectivity'):
     """
     Create all three types of preference plots.
 
     Args:
         save_dir: Directory to save plots. If None, plots are only displayed.
         threshold: Minimum fraction of absolute max response required (default 0.7 = 70%)
+        filter_type: Type of filtering to use. Options:
+                    - 'selectivity': Uses stimulus selectivity threshold (original)
+                    - 'double_filter': Uses GoodChannels AND ChannelFiltering (from spi_vs_ici.py)
     """
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
 
-    # Get the data
-    merged_data = load_and_filter_data(threshold)
+    # Get the data using specified filter type
+    merged_data = load_and_filter_data(threshold, filter_type=filter_type)
 
     if merged_data is None:
         print("No data available for plotting")
@@ -61,9 +64,28 @@ def create_all_preference_plots(save_dir=None, threshold=0.7):
     plt.show()
 
 
-def load_and_filter_data(threshold=0.7):
+def load_and_filter_data(threshold=0.7, filter_type='selectivity'):
     """
     Load and filter all necessary data from database.
+
+    Args:
+        threshold: Minimum fraction of absolute max response required
+        filter_type: Type of filtering to use ('selectivity' or 'double_filter')
+
+    Returns:
+        Dictionary with 'preferred_only' and 'all_strong' DataFrames
+    """
+    if filter_type == 'selectivity':
+        return load_data_with_selectivity_filter(threshold)
+    elif filter_type == 'double_filter':
+        return load_data_with_double_filter(threshold)
+    else:
+        raise ValueError(f"Unknown filter_type: {filter_type}. Use 'selectivity' or 'double_filter'")
+
+
+def load_data_with_selectivity_filter(threshold=0.7):
+    """
+    Original data loading approach: Uses stimulus selectivity threshold.
 
     Returns:
         Dictionary with 'preferred_only' and 'all_strong' DataFrames
@@ -71,8 +93,6 @@ def load_and_filter_data(threshold=0.7):
     conn = Connection("allen_data_repository")
 
     # Get units that pass stimulus selectivity threshold
-
-
     conn.execute(get_selectivity_query())
     selectivity_data = conn.fetch_all()
 
@@ -105,21 +125,9 @@ def load_and_filter_data(threshold=0.7):
                                               'all_freq_responses'])
 
     # Parse JSON and identify strong frequencies
-    def parse_frequencies(row):
-        try:
-            all_freqs = json.loads(row['all_freq_responses'])
-            absolute_max = max(all_freqs.values())
-
-            # Get all frequencies >= threshold
-            strong_freqs = [float(freq) for freq, response in all_freqs.items()
-                            if response >= threshold * absolute_max]
-
-            return strong_freqs
-        except Exception as e:
-            print(f"Error parsing frequencies: {e}")
-            return []
-
-    preferred_freq_df['strong_frequencies'] = preferred_freq_df.apply(parse_frequencies, axis=1)
+    preferred_freq_df['strong_frequencies'] = preferred_freq_df.apply(
+        lambda row: parse_strong_frequencies(row, threshold), axis=1
+    )
 
     # Get solid preference indices
     solid_query = """
@@ -162,6 +170,129 @@ def load_and_filter_data(threshold=0.7):
         on=['session_id', 'unit_name'], how='inner'
     )
 
+    return process_frequency_data(base_df)
+
+
+def load_data_with_double_filter(threshold=0.7):
+    """
+    Alternative data loading approach: Uses double filtering with GoodChannels AND ChannelFiltering.
+    This matches the filtering logic from spi_vs_ici.py.
+
+    Returns:
+        Dictionary with 'preferred_only' and 'all_strong' DataFrames
+    """
+    conn = Connection("allen_data_repository")
+
+    print("Using double filter: GoodChannels AND ChannelFiltering (is_good=TRUE)")
+
+    # Get preferred frequencies
+    preferred_freq_query = """
+                           SELECT session_id, unit_name, preferred_frequency, all_freq_responses
+                           FROM PreferredFrequencies
+                           WHERE unit_name NOT LIKE '%Unit%'
+                           """
+
+    conn.execute(preferred_freq_query)
+    preferred_freq_data = conn.fetch_all()
+
+    if not preferred_freq_data:
+        print("No preferred frequency data found")
+        return None
+
+    preferred_freq_df = pd.DataFrame(preferred_freq_data,
+                                     columns=['session_id', 'unit_name', 'preferred_frequency',
+                                              'all_freq_responses'])
+
+    # Parse JSON and identify strong frequencies
+    preferred_freq_df['strong_frequencies'] = preferred_freq_df.apply(
+        lambda row: parse_strong_frequencies(row, threshold), axis=1
+    )
+
+    # Get solid preference indices with double filtering
+    solid_query = """
+                  SELECT s.session_id, s.unit_name, s.solid_preference_index, s.p_value
+                  FROM SolidPreferenceIndices s
+                           JOIN GoodChannels g ON s.session_id = g.session_id AND s.unit_name = g.channel
+                           JOIN ChannelFiltering c ON s.session_id = c.session_id AND s.unit_name = c.channel
+                  WHERE c.is_good = TRUE
+                  """
+
+    conn.execute(solid_query)
+    solid_data = conn.fetch_all()
+
+    if not solid_data:
+        print("No solid preference data found with double filtering")
+        return None
+
+    solid_df = pd.DataFrame(solid_data,
+                            columns=['session_id', 'unit_name', 'solid_preference_index', 'p_value'])
+
+    print(f"Found {len(solid_df)} units passing double filter (GoodChannels + ChannelFiltering)")
+
+    # Get isochromatic preference indices with double filtering
+    isochromatic_query = """
+                         SELECT i.session_id, i.unit_name, i.frequency, i.isochromatic_preference_index
+                         FROM IsochromaticPreferenceIndices i
+                                  JOIN GoodChannels g ON i.session_id = g.session_id AND i.unit_name = g.channel
+                                  JOIN ChannelFiltering c ON i.session_id = c.session_id AND i.unit_name = c.channel
+                         WHERE c.is_good = TRUE
+                         """
+
+    conn.execute(isochromatic_query)
+    isochromatic_data = conn.fetch_all()
+    isochromatic_df = pd.DataFrame(isochromatic_data,
+                                   columns=['session_id', 'unit_name', 'frequency',
+                                            'isochromatic_preference_index'])
+
+    # Merge base data
+    base_df = solid_df.merge(
+        preferred_freq_df[['session_id', 'unit_name', 'preferred_frequency', 'strong_frequencies']],
+        on=['session_id', 'unit_name'], how='inner'
+    )
+
+    base_df = base_df.merge(
+        isochromatic_df,
+        on=['session_id', 'unit_name'], how='inner'
+    )
+
+    return process_frequency_data(base_df)
+
+
+def parse_strong_frequencies(row, threshold):
+    """
+    Parse JSON frequency responses and identify frequencies >= threshold of max.
+
+    Args:
+        row: DataFrame row with 'all_freq_responses' column
+        threshold: Minimum fraction of absolute max response required
+
+    Returns:
+        List of frequencies meeting threshold
+    """
+    try:
+        all_freqs = json.loads(row['all_freq_responses'])
+        absolute_max = max(all_freqs.values())
+
+        # Get all frequencies >= threshold
+        strong_freqs = [float(freq) for freq, response in all_freqs.items()
+                        if response >= threshold * absolute_max]
+
+        return strong_freqs
+    except Exception as e:
+        print(f"Error parsing frequencies: {e}")
+        return []
+
+
+def process_frequency_data(base_df):
+    """
+    Process merged dataframe to create preferred_only and all_strong datasets.
+
+    Args:
+        base_df: Merged dataframe with all required columns
+
+    Returns:
+        Dictionary with 'preferred_only' and 'all_strong' DataFrames
+    """
     if base_df.empty:
         print("No data after merging")
         return None
@@ -178,6 +309,10 @@ def load_and_filter_data(threshold=0.7):
         return float(row['frequency']) in row['strong_frequencies']
 
     all_strong = base_df[base_df.apply(is_strong_freq, axis=1)].copy()
+
+    print(f"\nData processing complete:")
+    print(f"  Preferred frequency only: {len(preferred_only)} data points")
+    print(f"  All strong frequencies: {len(all_strong)} data points")
 
     return {
         'preferred_only': preferred_only,
@@ -228,6 +363,12 @@ def plot_preferred_frequency_only(data, save_path=None):
     line_y = slope * line_x + intercept
     plt.plot(line_x, line_y, 'k-', linewidth=2, label=f'Trend (R²={r_squared:.3f})')
 
+    # Create legend for frequencies
+    from matplotlib.patches import Patch
+    legend_elements = [Patch(facecolor=freq_colors[freq], label=f'{freq} Hz')
+                       for freq in all_freqs]
+    plt.legend(handles=legend_elements, bbox_to_anchor=(1.05, 1), loc='upper left', title='Preferred Frequency')
+
     # Formatting
     n_significant = np.sum((pd.notna(p_values)) & (p_values < 0.05))
     plt.xlabel('Solid Preference Index', fontsize=14)
@@ -239,25 +380,13 @@ def plot_preferred_frequency_only(data, save_path=None):
 
     add_plot_formatting(plt.gca(), r_squared, r_value, p_value, len(data), n_significant)
 
-    # Legend for frequencies
-    freq_legend = [plt.Line2D([0], [0], marker='o', color='w',
-                              markerfacecolor=freq_colors[freq],
-                              markersize=10, label=f'{freq} Hz',
-                              markeredgecolor='black', markeredgewidth=0.5)
-                   for freq in all_freqs]
-    freq_legend.append(plt.Line2D([0], [0], color='black', linewidth=2,
-                                  label=f'Trend (R²={r_squared:.3f})'))
-
-    plt.legend(handles=freq_legend, bbox_to_anchor=(1.05, 1),
-               loc='upper left', title='Preferred Frequency')
-
     plt.tight_layout()
 
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         print(f"Saved: {save_path}")
 
-    print(f"\nPreferred Frequency Only Statistics:")
+    print(f"\nPreferred Frequency Statistics:")
     print(f"  Total units: {len(data)}")
     print(f"  Significant: {n_significant}")
     print(f"  R² = {r_squared:.3f}, r = {r_value:.3f}, p = {p_value:.3f}")
@@ -472,8 +601,16 @@ def add_plot_formatting(ax, r_squared, r_value, p_value, n, n_sig):
 
 
 if __name__ == "__main__":
-    # Create all three types of plots
+    # Example 1: Use original selectivity filtering (default)
+    # create_all_preference_plots(
+    #     save_dir="/home/connorlab/Documents/plots/spi_vs_ici_selectivity",
+    #     threshold=0.7,
+    #     filter_type='selectivity'
+    # )
+
+    # Example 2: Use double filtering (GoodChannels + ChannelFiltering)
     create_all_preference_plots(
-        save_dir="/home/connorlab/Documents/plots/spi_vs_ici",
-        threshold=0.7
+        save_dir="/home/connorlab/Documents/plots/spi_vs_ici_double_filter",
+        threshold=0.7,
+        filter_type='double_filter'
     )

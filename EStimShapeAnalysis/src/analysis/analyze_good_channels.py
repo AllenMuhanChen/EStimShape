@@ -55,7 +55,7 @@ def main():
         channels_map = {session_id: good_channels}
 
 
-    for (session_id,) in sessions_to_process:
+    for session_id in sessions_to_process:
 
         if session_id not in channels_map or not channels_map[session_id]:
             print(f"No channels configured for session {session_id}. Skipping.")

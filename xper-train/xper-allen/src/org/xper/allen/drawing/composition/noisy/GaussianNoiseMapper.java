@@ -120,7 +120,7 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
             }
         }
         //TODO: potential improvement: we could replace the mechanism for this by somehow identifying points in the junction itself
-        double percentRequiredInside = doEnforceHiddenJunction ? 1.0 : 0.75;
+        double percentRequiredInside = doEnforceHiddenJunction ? 1.0 : 0.95;
         double actualPercentageInside = (double) numPointsInside / pointsToCheck.size();
         if (actualPercentageInside < percentRequiredInside){
             throw new NoiseException("Found points outside of noise circle: " + actualPercentageInside + "% inside + with noise Radius: " + proceduralMatchStick.noiseRadiusMm);
