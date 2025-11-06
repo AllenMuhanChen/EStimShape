@@ -119,7 +119,7 @@ def load_validated_raw_channels(metric_name):
                             JOIN ChannelFiltering c ON s.session_id = c.session_id AND s.unit_name = c.channel
                    WHERE s.metric_name = %s
                      AND s.frequency IN (0.5, 1.0, 2.0, 4.0)
-                     AND c.is_good = TRUE
+                     # AND c.is_good = 1
                    """
 
     # Query solid preference with both filters
@@ -128,10 +128,10 @@ def load_validated_raw_channels(metric_name):
                   FROM SolidPreferenceIndices s
                            JOIN GoodChannels g ON s.session_id = g.session_id AND s.unit_name = g.channel
                            JOIN ChannelFiltering c ON s.session_id = c.session_id AND s.unit_name = c.channel
-                  WHERE c.is_good = TRUE
+                  # WHERE c.is_good = 1
                   """
 
-    conn.execute(scores_query, (metric_name,))
+    conn.execute(scores_query, params=(metric_name,))
     scores_data = conn.fetch_all()
 
     conn.execute(solid_query)

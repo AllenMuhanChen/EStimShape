@@ -116,10 +116,10 @@ def run_analyses(channels_map: Dict[str, List[str]], analyses: List):
 def main():
     # Initialize analysis modules
     analyses = [
-        StimulusSelectivityAnalysis(),
+        # StimulusSelectivityAnalysis(),
         IsoChromaticLuminantScoreAnalysis(),
-        IsochromaticIndexAnalysis(),
-        SolidPreferenceIndexAnalysis(),
+        # IsochromaticIndexAnalysis(),
+        # SolidPreferenceIndexAnalysis(),
         # IsogaborAnalysis(),
         # PlotTopNAnalysis(),
         # SideTestAnalysis(),

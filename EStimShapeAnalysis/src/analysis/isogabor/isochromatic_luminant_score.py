@@ -23,7 +23,7 @@ class IsoChromaticLuminantScoreAnalysis(IsochromaticIndexAnalysis):
                 self.response_table,
             )
 
-        # Create the score module
+        # Create the score modules
         spike_score_module = create_isochromatic_luminant_score_module(
             channel=channel,
             session_id=self.session_id,
@@ -31,18 +31,48 @@ class IsoChromaticLuminantScoreAnalysis(IsochromaticIndexAnalysis):
             metric_name='raw_spikes_per_second'
         )
 
-        # Can now use 'raw_spikes_per_second' or 'z_score'
         z_score_module = create_isochromatic_luminant_score_module(
             channel=channel,
             session_id=self.session_id,
             spike_data_col=self.spike_rates_col,
-            metric_name='z_score'  # Change this to use z-scores
+            metric_name='z_score'
+        )
+
+        variance_cv_module = create_isochromatic_luminant_score_module(
+            channel=channel,
+            session_id=self.session_id,
+            spike_data_col=self.spike_rates_col,
+            metric_name='variance_cv'
+        )
+
+        entropy_module = create_isochromatic_luminant_score_module(
+            channel=channel,
+            session_id=self.session_id,
+            spike_data_col=self.spike_rates_col,
+            metric_name='entropy'
+        )
+
+        mean_all_normalized_module = create_isochromatic_luminant_score_module(
+            channel=channel,
+            session_id=self.session_id,
+            spike_data_col=self.spike_rates_col,
+            metric_name='mean_all_normalized'
         )
 
         # Create pipeline
         spike_score_branch = create_branch().then(spike_score_module)
         z_score_branch = create_branch().then(z_score_module)
-        pipeline = create_pipeline().make_branch(spike_score_branch, z_score_branch).build()
+        variance_cv_branch = create_branch().then(variance_cv_module)
+        entropy_branch = create_branch().then(entropy_module)
+        mean_all_normalized_module = create_branch().then(mean_all_normalized_module)
+
+        pipeline = create_pipeline().make_branch(
+            spike_score_branch,
+            z_score_branch,
+            variance_cv_branch,
+            entropy_branch,
+            mean_all_normalized_module
+        ).build()
 
         # Run the pipeline
         result = pipeline.run(compiled_data)
@@ -105,7 +135,8 @@ class IsoChromaticLuminantScoreDBSaver(OutputHandler):
     def process(self, result: dict) -> dict:
         """Save the scores for each frequency to the database, or print if database unavailable."""
         for frequency, (isochromatic_score, isoluminant_score) in result.items():
-            if not np.isnan(frequency):
+            # For variance_cv metric, frequency will be None
+            if frequency is None or not np.isnan(frequency):
                 try:
                     insert_sql = """
                                  INSERT INTO IsoChromaticLuminantScores
@@ -116,7 +147,7 @@ class IsoChromaticLuminantScoreDBSaver(OutputHandler):
                     self.conn.execute(insert_sql, (
                         self.session_id,
                         self.unit_name,
-                        float(frequency),
+                        float(frequency) if frequency is not None else 0,
                         self.metric_name,
                         float(isochromatic_score),
                         float(isoluminant_score)
@@ -146,6 +177,10 @@ class IsoChromaticLuminantScoreCalculator(ComputationModule):
         """
         Calculate isochromatic and isoluminant scores for each frequency.
         Returns a dict mapping frequency -> (isochromatic_score, isoluminant_score)
+
+        For variance_cv metric, returns {None: (isochromatic_cv, isoluminant_cv)}
+        For entropy metric, returns {None: (isochromatic_entropy, isoluminant_entropy)}
+        For mean_all_normalized metric, returns {None: (isochromatic_norm, isoluminant_norm)}
         """
 
         def get_average_for_type_and_frequency(data, type_name, frequency):
@@ -167,6 +202,28 @@ class IsoChromaticLuminantScoreCalculator(ComputationModule):
         frequencies = sorted(prepared_data['Frequency'].unique())
         print(f"Calculating IsoChromaticLuminantScores for frequencies: {frequencies}")
 
+        # For variance_cv, collect all means across frequencies
+        if self.metric_name == 'variance_cv':
+            isochromatic_cv, isoluminant_cv = self._calculate_variance_cv(
+                frequencies, get_average_for_type_and_frequency, prepared_data
+            )
+            return {None: (isochromatic_cv, isoluminant_cv)}
+
+        # For entropy, calculate Shannon's entropy
+        if self.metric_name == 'entropy':
+            isochromatic_entropy, isoluminant_entropy = self._calculate_entropy(
+                frequencies, get_average_for_type_and_frequency, prepared_data
+            )
+            return {None: (isochromatic_entropy, isoluminant_entropy)}
+
+        # For mean_all_normalized, normalize mean responses by max
+        if self.metric_name == 'mean_all_normalized':
+            isochromatic_norm, isoluminant_norm = self._calculate_mean_all_normalized(
+                frequencies, get_average_for_type_and_frequency, prepared_data
+            )
+            return {None: (isochromatic_norm, isoluminant_norm)}
+
+        # Original logic for raw_spikes_per_second and z_score metrics
         frequency_scores = {}
 
         for frequency in frequencies:
@@ -237,3 +294,169 @@ class IsoChromaticLuminantScoreCalculator(ComputationModule):
         print(
             f"\nFinal frequency-specific scores for {self.response_key}, metric {self.metric_name}: {frequency_scores}")
         return frequency_scores
+
+
+    def _calculate_variance_cv(self, frequencies, get_average_for_type_and_frequency, prepared_data):
+        """Calculate coefficient of variation for isochromatic and isoluminant responses."""
+        isochromatic_means = []
+        isoluminant_means = []
+
+        for frequency in frequencies:
+            print(f"\nProcessing frequency: {frequency}")
+
+            # Get averages for individual colors (isochromatic) at this frequency
+            red_avg = get_average_for_type_and_frequency(prepared_data, 'Red', frequency)
+            green_avg = get_average_for_type_and_frequency(prepared_data, 'Green', frequency)
+            cyan_avg = get_average_for_type_and_frequency(prepared_data, 'Cyan', frequency)
+            orange_avg = get_average_for_type_and_frequency(prepared_data, 'Orange', frequency)
+
+            # Get averages for mixed colors (isoluminant) at this frequency
+            red_green_avg = get_average_for_type_and_frequency(prepared_data, 'RedGreen', frequency)
+            cyan_orange_avg = get_average_for_type_and_frequency(prepared_data, 'CyanOrange', frequency)
+
+            # Collect means
+            isochromatic_means.extend([red_avg, green_avg, cyan_avg, orange_avg])
+            isoluminant_means.extend([red_green_avg, cyan_orange_avg])
+
+            print(f"  Individual color averages - Red: {red_avg:.2f}, Green: {green_avg:.2f}, "
+                  f"Cyan: {cyan_avg:.2f}, Orange: {orange_avg:.2f}")
+            print(f"  Mixed color averages - RedGreen: {red_green_avg:.2f}, CyanOrange: {cyan_orange_avg:.2f}")
+
+        # Calculate CV for isochromatic and isoluminant
+        isochromatic_mean = np.mean(isochromatic_means)
+        isochromatic_std = np.std(isochromatic_means, ddof=1)
+        isochromatic_cv = isochromatic_std / isochromatic_mean if isochromatic_mean != 0 else 0.0
+
+        isoluminant_mean = np.mean(isoluminant_means)
+        isoluminant_std = np.std(isoluminant_means, ddof=1)
+        isoluminant_cv = isoluminant_std / isoluminant_mean if isoluminant_mean != 0 else 0.0
+
+        print(f"\nVariance CV calculation:")
+        print(f"  Isochromatic - mean: {isochromatic_mean:.2f}, std: {isochromatic_std:.2f}, CV: {isochromatic_cv:.2f}")
+        print(f"  Isoluminant - mean: {isoluminant_mean:.2f}, std: {isoluminant_std:.2f}, CV: {isoluminant_cv:.2f}")
+
+        return isochromatic_cv, isoluminant_cv
+
+    def _calculate_entropy(self, frequencies, get_average_for_type_and_frequency, prepared_data):
+        """Calculate Shannon's entropy for isochromatic and isoluminant responses."""
+        isochromatic_means = []
+        isoluminant_means = []
+
+        for frequency in frequencies:
+            print(f"\nProcessing frequency: {frequency}")
+
+            # Get averages for individual colors (isochromatic) at this frequency
+            red_avg = get_average_for_type_and_frequency(prepared_data, 'Red', frequency)
+            green_avg = get_average_for_type_and_frequency(prepared_data, 'Green', frequency)
+            cyan_avg = get_average_for_type_and_frequency(prepared_data, 'Cyan', frequency)
+            orange_avg = get_average_for_type_and_frequency(prepared_data, 'Orange', frequency)
+
+            # Get averages for mixed colors (isoluminant) at this frequency
+            red_green_avg = get_average_for_type_and_frequency(prepared_data, 'RedGreen', frequency)
+            cyan_orange_avg = get_average_for_type_and_frequency(prepared_data, 'CyanOrange', frequency)
+
+            # Collect means
+            isochromatic_means.extend([red_avg, green_avg, cyan_avg, orange_avg])
+            isoluminant_means.extend([red_green_avg, cyan_orange_avg])
+
+            print(f"  Individual color averages - Red: {red_avg:.2f}, Green: {green_avg:.2f}, "
+                  f"Cyan: {cyan_avg:.2f}, Orange: {orange_avg:.2f}")
+            print(f"  Mixed color averages - RedGreen: {red_green_avg:.2f}, CyanOrange: {cyan_orange_avg:.2f}")
+
+        # Calculate Shannon's entropy
+        def shannon_entropy(values):
+            """
+            Calculate Shannon's entropy: H = -Σ(p_i * log2(p_i))
+            Higher entropy = more uniform distribution (less selective)
+            Lower entropy = more concentrated distribution (more selective)
+            """
+            # Convert to numpy array and handle negative values by taking absolute
+            values = np.array(values)
+            values = np.abs(values)  # In case of any negative spike rates
+
+            # If all values are zero, entropy is undefined (return 0)
+            if np.sum(values) == 0:
+                return 0.0
+
+            # Normalize to probability distribution
+            probabilities = values / np.sum(values)
+
+            # Calculate entropy, handling p*log(p) for p=0 (which equals 0 by convention)
+            entropy = 0.0
+            for p in probabilities:
+                if p > 0:  # Only include non-zero probabilities
+                    entropy -= p * np.log2(p)
+
+            return entropy
+
+        isochromatic_entropy = shannon_entropy(isochromatic_means)
+        isoluminant_entropy = shannon_entropy(isoluminant_means)
+
+        # Calculate max possible entropy for reference
+        max_isochromatic_entropy = np.log2(len(isochromatic_means))  # log2(16) = 4 bits
+        max_isoluminant_entropy = np.log2(len(isoluminant_means))  # log2(8) = 3 bits
+
+        print(f"\nShannon's Entropy calculation:")
+        print(
+            f"  Isochromatic - entropy: {isochromatic_entropy:.3f} bits (max possible: {max_isochromatic_entropy:.3f})")
+        print(f"  Isoluminant - entropy: {isoluminant_entropy:.3f} bits (max possible: {max_isoluminant_entropy:.3f})")
+        print(f"  Lower entropy = more selective (concentrated responses)")
+        print(f"  Higher entropy = less selective (uniform responses)")
+
+        return isochromatic_entropy, isoluminant_entropy
+
+    def _calculate_mean_all_normalized(self, frequencies, get_average_for_type_and_frequency, prepared_data):
+        """
+        Calculate mean responses to all isochromatic and isoluminant gratings,
+        normalized by the maximum response across all conditions.
+
+        This makes the metric scale-invariant (independent of absolute firing rate).
+        """
+        isochromatic_all_responses = []
+        isoluminant_all_responses = []
+
+        for frequency in frequencies:
+            print(f"\nProcessing frequency: {frequency}")
+
+            # Get averages for individual colors (isochromatic)
+            red_avg = get_average_for_type_and_frequency(prepared_data, 'Red', frequency)
+            green_avg = get_average_for_type_and_frequency(prepared_data, 'Green', frequency)
+            cyan_avg = get_average_for_type_and_frequency(prepared_data, 'Cyan', frequency)
+            orange_avg = get_average_for_type_and_frequency(prepared_data, 'Orange', frequency)
+
+            # Get averages for mixed colors (isoluminant)
+            red_green_avg = get_average_for_type_and_frequency(prepared_data, 'RedGreen', frequency)
+            cyan_orange_avg = get_average_for_type_and_frequency(prepared_data, 'CyanOrange', frequency)
+
+            # Collect all responses
+            isochromatic_all_responses.extend([red_avg, green_avg, cyan_avg, orange_avg])
+            isoluminant_all_responses.extend([red_green_avg, cyan_orange_avg])
+
+            print(f"  Individual color averages - Red: {red_avg:.2f}, Green: {green_avg:.2f}, "
+                  f"Cyan: {cyan_avg:.2f}, Orange: {orange_avg:.2f}")
+            print(f"  Mixed color averages - RedGreen: {red_green_avg:.2f}, CyanOrange: {cyan_orange_avg:.2f}")
+
+        # Calculate mean response across ALL conditions
+        isochromatic_mean = np.mean(isochromatic_all_responses)
+        isoluminant_mean = np.mean(isoluminant_all_responses)
+
+        # Find max response across ALL conditions (both isochromatic and isoluminant)
+        all_responses = isochromatic_all_responses + isoluminant_all_responses
+        max_response = np.max(all_responses)
+
+        # Normalize by max response (avoid division by zero)
+        if max_response == 0:
+            isochromatic_normalized = 0.0
+            isoluminant_normalized = 0.0
+        else:
+            isochromatic_normalized = isochromatic_mean / max_response
+            isoluminant_normalized = isoluminant_mean / max_response
+
+        print(f"\nNormalized mean response calculation:")
+        print(f"  Isochromatic mean: {isochromatic_mean:.2f} spikes/sec")
+        print(f"  Isoluminant mean: {isoluminant_mean:.2f} spikes/sec")
+        print(f"  Max response (normalizer): {max_response:.2f} spikes/sec")
+        print(f"  Isochromatic normalized: {isochromatic_normalized:.3f}")
+        print(f"  Isoluminant normalized: {isoluminant_normalized:.3f}")
+
+        return isochromatic_normalized, isoluminant_normalized
