@@ -7,9 +7,6 @@ from scipy import stats
 from src.analysis.spi_vs_ici.plot_raw_spike_isochrom_vs_isolum_scores import load_data_by_source
 
 
-# Import the data loading functions from the existing script
-
-
 def main():
     # Example usage with different data sources
     create_isochrom_isolum_zscore_plots(
@@ -90,25 +87,34 @@ def create_combined_frequency_plots(merged_df, frequencies, save_path=None, data
         p_values = freq_data['p_value'].values
         spi_values = freq_data['solid_preference_index'].values
 
-        # Classify: Significant 3D vs others
+        # Classify: Significant 3D vs Significant 2D vs Non-significant
         sig_3d_mask = (pd.notna(p_values)) & (p_values < 0.05) & (spi_values > 0)
+        sig_2d_mask = (pd.notna(p_values)) & (p_values < 0.05) & (spi_values <= 0)
+        nonsig_mask = ~(sig_3d_mask | sig_2d_mask)
 
         # Plot significant 3D
         if sig_3d_mask.any():
             ax.scatter(x[sig_3d_mask], y[sig_3d_mask],
-                       c='blue', alpha=0.7, s=60, label='Significant 3D (p<0.05)',
+                       c='blue', alpha=0.7, s=60, label='Significant 3D (p<0.05, SPI>0)',
+                       edgecolors='black', linewidths=0.5)
+
+        # Plot significant 2D
+        if sig_2d_mask.any():
+            ax.scatter(x[sig_2d_mask], y[sig_2d_mask],
+                       c='red', alpha=0.7, s=60, label='Significant 2D (p<0.05, SPI≤0)',
                        edgecolors='black', linewidths=0.5)
 
         # Plot non-significant
-        if (~sig_3d_mask).any():
-            ax.scatter(x[~sig_3d_mask], y[~sig_3d_mask],
-                       c='orange', alpha=0.7, s=60, label='Non-significant 3D',
+        if nonsig_mask.any():
+            ax.scatter(x[nonsig_mask], y[nonsig_mask],
+                       c='gray', alpha=0.5, s=60, label='Non-significant',
                        edgecolors='black', linewidths=0.5)
 
         n_sig_3d = np.sum(sig_3d_mask)
-        n_other = np.sum(~sig_3d_mask)
+        n_sig_2d = np.sum(sig_2d_mask)
+        n_nonsig = np.sum(nonsig_mask)
 
-        ax.set_title(f'{frequency} Hz (n={len(freq_data)}, {n_sig_3d} sig. 3D, {n_other} non-sig)')
+        ax.set_title(f'{frequency} Hz (n={len(freq_data)}, {n_sig_3d} 3D, {n_sig_2d} 2D, {n_nonsig} non-sig)')
         ax.set_xlabel('Isochromatic Z-Score')
         ax.set_ylabel('Isoluminant Z-Score')
 
@@ -123,7 +129,7 @@ def create_combined_frequency_plots(merged_df, frequencies, save_path=None, data
         ax.grid(True, alpha=0.3)
 
         # Add legend
-        ax.legend(loc='lower right', fontsize=9)
+        ax.legend(loc='lower left', fontsize=9)
 
     plt.tight_layout()
 
