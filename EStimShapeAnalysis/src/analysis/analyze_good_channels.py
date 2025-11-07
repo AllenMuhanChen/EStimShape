@@ -9,6 +9,7 @@ from src.analysis.isogabor.isogabor_raster_pipeline import IsogaborAnalysis, Iso
 from src.analysis.isogabor.mixed_gabors_analysis import MixedGaborsAnalysis
 from src.analysis.lightness.lightness_analysis import LightnessAnalysis
 from src.analysis.shuffle.shuffle_analysis import ShuffleAnalysis
+from src.analysis.spi_vs_ici.isoluminant_comparison import IsoluminantComparisonAnalysis
 from src.repository.export_to_repository import read_session_id_from_db_name
 from src.startup import context
 
@@ -19,6 +20,7 @@ def main():
         # IsochromaticIndexAnalysis(),
         # SolidPreferenceIndexAnalysis(),
         IsoChromaticLuminantScoreAnalysis(),
+        # IsoluminantComparisonAnalysis(),
         # IsogaborAnalysis(),
         # PlotTopNAnalysis(),
         # PlotGenerationsAnalysis(),

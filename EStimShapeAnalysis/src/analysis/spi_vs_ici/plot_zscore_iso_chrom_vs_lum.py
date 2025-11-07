@@ -9,13 +9,16 @@ from src.analysis.spi_vs_ici.plot_raw_spike_isochrom_vs_isolum_scores import loa
 
 def main():
     # Example usage with different data sources
+    metric_name = 'max_normalized'
+    # metric_name = 'max_normalized'
     create_isochrom_isolum_zscore_plots(
         save_path="/home/connorlab/Documents/plots/isochrom_vs_isolum_zscore",
-        data_source='raw_validated'
+        data_source='raw_validated',
+        metric_name=metric_name,
     )
 
 
-def create_isochrom_isolum_zscore_plots(save_path=None, data_source='raw_validated'):
+def create_isochrom_isolum_zscore_plots(save_path=None, data_source='raw_validated', metric_name='z_score'):
     """
     Create plots showing isochromatic vs isoluminant z-scores for each frequency.
     Points are colored by 3D significance status.
@@ -29,7 +32,7 @@ def create_isochrom_isolum_zscore_plots(save_path=None, data_source='raw_validat
             - 'raw_clustered': Raw cluster channels from ClusterInfo table
     """
 
-    metric_name = 'z_score'
+    metric_name = metric_name
 
     # Create save directory if specified
     if save_path is not None:
