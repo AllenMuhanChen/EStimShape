@@ -38,6 +38,13 @@ class IsoChromaticLuminantScoreAnalysis(IsochromaticIndexAnalysis):
             metric_name='z_score'
         )
 
+        z_score_all_module = create_isochromatic_luminant_score_module(
+            channel=channel,
+            session_id=self.session_id,
+            spike_data_col=self.spike_rates_col,
+            metric_name='z_score_all'
+        )
+
         max_normalized_module = create_isochromatic_luminant_score_module(
             channel=channel,
             session_id=self.session_id,
@@ -69,6 +76,7 @@ class IsoChromaticLuminantScoreAnalysis(IsochromaticIndexAnalysis):
         # Create pipeline
         spike_score_branch = create_branch().then(spike_score_module)
         z_score_branch = create_branch().then(z_score_module)
+        z_score_all_branch = create_branch().then(z_score_all_module)
         max_normalized_branch = create_branch().then(max_normalized_module)
         variance_cv_branch = create_branch().then(variance_cv_module)
         entropy_branch = create_branch().then(entropy_module)
@@ -77,6 +85,7 @@ class IsoChromaticLuminantScoreAnalysis(IsochromaticIndexAnalysis):
         pipeline = create_pipeline().make_branch(
             spike_score_branch,
             z_score_branch,
+            z_score_all_branch,
             max_normalized_branch,
             variance_cv_branch,
             entropy_branch,
@@ -86,7 +95,6 @@ class IsoChromaticLuminantScoreAnalysis(IsochromaticIndexAnalysis):
         # Run the pipeline
         result = pipeline.run(compiled_data)
         return result
-
 def create_isochromatic_luminant_score_module(channel=None, session_id=None, spike_data_col=None, metric_name='raw_spikes_per_second'):
     """Factory function to create the IsoChromaticLuminantScore analysis module."""
     score_module = AnalysisModuleFactory.create(
@@ -191,6 +199,7 @@ class IsoChromaticLuminantScoreCalculator(ComputationModule):
         For entropy metric, returns {None: (isochromatic_entropy, isoluminant_entropy)}
         For mean_all_normalized metric, returns {None: (isochromatic_norm, isoluminant_norm)}
         For max_normalized metric, uses global max across all frequencies
+        For z_score_all metric, uses global mean and std across all frequencies
         """
 
         def get_average_for_type_and_frequency(data, type_name, frequency):
@@ -251,7 +260,28 @@ class IsoChromaticLuminantScoreCalculator(ComputationModule):
 
             print(f"\nMax normalization: global max across all frequencies = {global_max:.2f}")
 
-        # Original logic for raw_spikes_per_second, z_score, and max_normalized metrics
+        # For z_score_all, first calculate global mean and std across all frequencies and conditions
+        if self.metric_name == 'z_score_all':
+            all_responses = []
+            for frequency in frequencies:
+                red_avg = get_average_for_type_and_frequency(prepared_data, 'Red', frequency)
+                green_avg = get_average_for_type_and_frequency(prepared_data, 'Green', frequency)
+                cyan_avg = get_average_for_type_and_frequency(prepared_data, 'Cyan', frequency)
+                orange_avg = get_average_for_type_and_frequency(prepared_data, 'Orange', frequency)
+                red_green_avg = get_average_for_type_and_frequency(prepared_data, 'RedGreen', frequency)
+                cyan_orange_avg = get_average_for_type_and_frequency(prepared_data, 'CyanOrange', frequency)
+                all_responses.extend([red_avg, green_avg, cyan_avg, orange_avg, red_green_avg, cyan_orange_avg])
+
+            global_mean = np.mean(all_responses)
+            global_std = np.std(all_responses, ddof=1) if len(all_responses) > 1 else 1.0
+
+            if global_std == 0:
+                global_std = 1.0
+
+            print(
+                f"\nZ-score (global) normalization: mean={global_mean:.2f}, std={global_std:.2f} across all frequencies")
+
+        # Original logic for raw_spikes_per_second, z_score, z_score_all, and max_normalized metrics
         frequency_scores = {}
 
         for frequency in frequencies:
@@ -297,6 +327,15 @@ class IsoChromaticLuminantScoreCalculator(ComputationModule):
 
                 print(f"  Z-score normalization: mean={mean_response:.2f}, std={std_response:.2f}")
 
+            elif self.metric_name == 'z_score_all':
+                # Calculate z-scores using GLOBAL mean and std across all frequencies
+                red_score = (red_avg - global_mean) / global_std
+                green_score = (green_avg - global_mean) / global_std
+                cyan_score = (cyan_avg - global_mean) / global_std
+                orange_score = (orange_avg - global_mean) / global_std
+                red_green_score = (red_green_avg - global_mean) / global_std
+                cyan_orange_score = (cyan_orange_avg - global_mean) / global_std
+
             elif self.metric_name == 'max_normalized':
                 # Normalize by GLOBAL max response across all frequencies
                 red_score = red_avg / global_max
@@ -325,6 +364,11 @@ class IsoChromaticLuminantScoreCalculator(ComputationModule):
                 print(f"  Individual color z-scores - Red: {red_score:.2f}, Green: {green_score:.2f}, "
                       f"Cyan: {cyan_score:.2f}, Orange: {orange_score:.2f}")
                 print(f"  Mixed color z-scores - RedGreen: {red_green_score:.2f}, CyanOrange: {cyan_orange_score:.2f}")
+            elif self.metric_name == 'z_score_all':
+                print(f"  Individual color z-scores (global) - Red: {red_score:.2f}, Green: {green_score:.2f}, "
+                      f"Cyan: {cyan_score:.2f}, Orange: {orange_score:.2f}")
+                print(
+                    f"  Mixed color z-scores (global) - RedGreen: {red_green_score:.2f}, CyanOrange: {cyan_orange_score:.2f}")
             elif self.metric_name == 'max_normalized':
                 print(f"  Individual color normalized - Red: {red_score:.3f}, Green: {green_score:.3f}, "
                       f"Cyan: {cyan_score:.3f}, Orange: {orange_score:.3f}")
@@ -337,7 +381,6 @@ class IsoChromaticLuminantScoreCalculator(ComputationModule):
         print(
             f"\nFinal frequency-specific scores for {self.response_key}, metric {self.metric_name}: {frequency_scores}")
         return frequency_scores
-
 
     def _calculate_variance_cv(self, frequencies, get_average_for_type_and_frequency, prepared_data):
         """Calculate coefficient of variation for isochromatic and isoluminant responses."""

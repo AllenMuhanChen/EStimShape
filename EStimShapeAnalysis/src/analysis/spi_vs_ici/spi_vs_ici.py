@@ -12,8 +12,9 @@ def create_preference_indices_frequency_plots():
     conn = Connection("allen_data_repository")
 
     # Query both preference tables and join with BOTH GoodChannels AND ChannelFiltering (is_good=TRUE)
+    # NOW INCLUDING P-VALUE for significance visualization
     solid_query = """
-                  SELECT s.session_id, s.unit_name, s.solid_preference_index
+                  SELECT s.session_id, s.unit_name, s.solid_preference_index, s.p_value
                   FROM SolidPreferenceIndices s
                            JOIN GoodChannels g ON s.session_id = g.session_id AND s.unit_name = g.channel
                            JOIN ChannelFiltering c ON s.session_id = c.session_id AND s.unit_name = c.channel
@@ -36,9 +37,9 @@ def create_preference_indices_frequency_plots():
     conn.execute(isochromatic_query)
     isochromatic_data = conn.fetch_all()
 
-    # Convert to DataFrames
+    # Convert to DataFrames - NOW INCLUDING P-VALUE
     solid_df = pd.DataFrame(solid_data,
-                            columns=['session_id', 'unit_name', 'solid_preference_index'])
+                            columns=['session_id', 'unit_name', 'solid_preference_index', 'p_value'])
     isochromatic_df = pd.DataFrame(isochromatic_data,
                                    columns=['session_id', 'unit_name', 'frequency', 'isochromatic_preference_index'])
 
@@ -59,10 +60,13 @@ def create_preference_indices_frequency_plots():
     print(f"Using channels that are BOTH manually selected (GoodChannels) AND algorithmically good (is_good=TRUE)")
     print(f"Total validated channels: {len(merged_df['unit_name'].unique())}")
 
-    # Show breakdown by session for validation
+    # Show breakdown by session for validation - NOW INCLUDING SIGNIFICANCE COUNT
     for session in sessions:
-        session_channels = merged_df[merged_df['session_id'] == session]['unit_name'].nunique()
-        print(f"  Session {session}: {session_channels} validated channels")
+        session_data = merged_df[merged_df['session_id'] == session]
+        session_channels = session_data['unit_name'].nunique()
+        # Count significant units for solid preference
+        significant_units = session_data[session_data['p_value'] < 0.05]['unit_name'].nunique()
+        print(f"  Session {session}: {session_channels} validated channels ({significant_units} solid-pref significant)")
 
     # Create a separate plot for each session
     for session_id in sessions:
@@ -123,6 +127,7 @@ def plot_session_frequencies(merged_df, session_id, frequencies):
         # Extract values
         x = freq_data['solid_preference_index'].values
         y = freq_data['isochromatic_preference_index'].values
+        p_values = freq_data['p_value'].values
 
         # Calculate linear regression if we have enough points
         if len(x) > 1:
@@ -131,8 +136,18 @@ def plot_session_frequencies(merged_df, session_id, frequencies):
         else:
             slope = intercept = r_value = p_value = r_squared = 0
 
-        # Create scatter plot (simple blue dots since no firing rate data)
-        ax.scatter(x, y, alpha=0.7, s=60, color='blue')
+        # Plot points with different alpha based on significance
+        for i in range(len(x)):
+            # Check if p-value is significant (< 0.05)
+            # If p_value is None/NaN, use low alpha
+            if pd.notna(p_values[i]) and p_values[i] < 0.05:
+                alpha_val = 0.7  # Solid/visible for significant
+                color = 'blue'
+            else:
+                alpha_val = 0.15  # Barely visible for non-significant
+                color = 'lightgray'
+
+            ax.scatter(x[i], y[i], alpha=alpha_val, s=60, color=color)
 
         # Add trend line if we have enough points
         if len(x) > 1:
@@ -140,8 +155,11 @@ def plot_session_frequencies(merged_df, session_id, frequencies):
             line_y = slope * line_x + intercept
             ax.plot(line_x, line_y, 'r-', linewidth=2, alpha=0.8)
 
-        # Set title and labels
-        ax.set_title(f'{frequency} Hz (n={len(freq_data)})')
+        # Count significant units
+        n_significant = np.sum((pd.notna(p_values)) & (p_values < 0.05))
+
+        # Set title and labels - NOW INCLUDING SIGNIFICANCE COUNT
+        ax.set_title(f'{frequency} Hz (n={len(freq_data)}, {n_significant} sig.)')
         ax.set_xlabel('Solid Preference Index')
         ax.set_ylabel('Isochromatic Preference Index')
 
@@ -158,17 +176,18 @@ def plot_session_frequencies(merged_df, session_id, frequencies):
 
         # Add statistics text
         if len(x) > 1:
-            stats_text = f'RÂ²={r_squared:.3f}\nr={r_value:.3f}\np={p_value:.3f}'
+            stats_text = f'R²={r_squared:.3f}\nr={r_value:.3f}\np={p_value:.3f}'
             ax.text(0.02, 0.98, stats_text, transform=ax.transAxes,
                     verticalalignment='top', fontsize=10,
                     bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
 
-        # Add unit labels if there are few points
+        # Add unit labels if there are few points (only for significant ones)
         if len(freq_data) <= 10:
             for idx, row in freq_data.iterrows():
-                ax.annotate(f"{row['unit_name']}",
-                            (row['solid_preference_index'], row['isochromatic_preference_index']),
-                            xytext=(3, 3), textcoords='offset points', fontsize=8, alpha=0.7)
+                if pd.notna(row['p_value']) and row['p_value'] < 0.05:
+                    ax.annotate(f"{row['unit_name']}",
+                                (row['solid_preference_index'], row['isochromatic_preference_index']),
+                                xytext=(3, 3), textcoords='offset points', fontsize=8, alpha=0.7)
 
     # Hide any unused subplots
     for idx in range(len(frequencies), len(axes)):
@@ -177,18 +196,20 @@ def plot_session_frequencies(merged_df, session_id, frequencies):
     plt.tight_layout()
     plt.show()
 
-    # Print session statistics
+    # Print session statistics - NOW INCLUDING SIGNIFICANCE COUNT
     print(f"\nSession {session_id} Statistics (Validated Channels Only):")
     for frequency in frequencies:
         freq_data = session_data[session_data['frequency'] == frequency]
         if not freq_data.empty:
             x = freq_data['solid_preference_index'].values
             y = freq_data['isochromatic_preference_index'].values
+            p_vals = freq_data['p_value'].values
+            n_sig = np.sum((pd.notna(p_vals)) & (p_vals < 0.05))
             if len(x) > 1:
                 _, _, r_value, p_value, _ = stats.linregress(x, y)
-                print(f"  {frequency} Hz: n={len(freq_data)}, r={r_value:.3f}, p={p_value:.3f}")
+                print(f"  {frequency} Hz: n={len(freq_data)} ({n_sig} sig.), r={r_value:.3f}, p={p_value:.3f}")
             else:
-                print(f"  {frequency} Hz: n={len(freq_data)} (insufficient data for correlation)")
+                print(f"  {frequency} Hz: n={len(freq_data)} ({n_sig} sig.) (insufficient data for correlation)")
         else:
             print(f"  {frequency} Hz: No data")
 
@@ -214,6 +235,7 @@ def plot_combined_frequency_data(merged_df, frequency, sessions):
     # Extract values
     x = freq_data['solid_preference_index'].values
     y = freq_data['isochromatic_preference_index'].values
+    p_values = freq_data['p_value'].values
 
     # Calculate linear regression for combined data
     slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
@@ -225,25 +247,43 @@ def plot_combined_frequency_data(merged_df, frequency, sessions):
     # Create a color map for sessions
     session_colors = plt.cm.Set1(np.linspace(0, 1, len(sessions)))
 
-    # Plot each session with different colors
+    # Plot each session with different colors, adjusting alpha for significance
     for i, session_id in enumerate(sessions):
         session_data = freq_data[freq_data['session_id'] == session_id]
         if not session_data.empty:
-            plt.scatter(session_data['solid_preference_index'],
-                        session_data['isochromatic_preference_index'],
-                        c=[session_colors[i]], alpha=0.7, s=60,
-                        label=f'Session {session_id} (n={len(session_data)})')
+            # Separate significant and non-significant points
+            sig_mask = (pd.notna(session_data['p_value'])) & (session_data['p_value'] < 0.05)
+
+            # Plot significant points
+            if sig_mask.any():
+                plt.scatter(session_data[sig_mask]['solid_preference_index'],
+                            session_data[sig_mask]['isochromatic_preference_index'],
+                            c=[session_colors[i]], alpha=0.7, s=60,
+                            label=f'Session {session_id} (n={len(session_data)}, {sig_mask.sum()} sig.)')
+
+            # Plot non-significant points
+            if (~sig_mask).any():
+                plt.scatter(session_data[~sig_mask]['solid_preference_index'],
+                            session_data[~sig_mask]['isochromatic_preference_index'],
+                            c=[session_colors[i]], alpha=0.15, s=60)
+
+                # If no significant points, still add legend entry
+                if not sig_mask.any():
+                    plt.scatter([], [], c=[session_colors[i]], alpha=0.7, s=60,
+                                label=f'Session {session_id} (n={len(session_data)}, 0 sig.)')
 
     # Add trend line for combined data
     line_x = np.linspace(x.min(), x.max(), 100)
     line_y = slope * line_x + intercept
-    plt.plot(line_x, line_y, 'k-', linewidth=2, label=f'Combined trend (RÂ² = {r_squared:.3f})')
+    plt.plot(line_x, line_y, 'k-', linewidth=2, label=f'Combined trend (R² = {r_squared:.3f})')
 
-    # Add labels and title
+    # Add labels and title - NOW INCLUDING SIGNIFICANCE COUNT
+    n_significant = np.sum((pd.notna(p_values)) & (p_values < 0.05))
     plt.xlabel('Solid Preference Index')
     plt.ylabel('Isochromatic Preference Index')
     plt.title(
-        f'Combined - Frequency {frequency} Hz: Solid vs Isochromatic Preference (Validated Channels)\n(n={len(freq_data)} total units)')
+        f'Combined - Frequency {frequency} Hz: Solid vs Isochromatic Preference (Validated Channels)\n'
+        f'(n={len(freq_data)} total units, {n_significant} solid-pref significant)')
 
     # Add reference lines at zero
     plt.axhline(y=0, color='gray', linestyle='--', alpha=0.5)
@@ -259,8 +299,8 @@ def plot_combined_frequency_data(merged_df, frequency, sessions):
     # Add legend
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
 
-    # Add statistics text box
-    stats_text = f'RÂ² = {r_squared:.3f}\nr = {r_value:.3f}\np = {p_value:.3f}\nn = {len(freq_data)}'
+    # Add statistics text box - NOW INCLUDING SIGNIFICANCE COUNT
+    stats_text = f'R² = {r_squared:.3f}\nr = {r_value:.3f}\np = {p_value:.3f}\nn = {len(freq_data)}\nsig. = {n_significant}'
     plt.text(0.02, 0.98, stats_text, transform=plt.gca().transAxes,
              verticalalignment='top', bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
 
@@ -277,12 +317,13 @@ def plot_combined_frequency_data(merged_df, frequency, sessions):
     plt.tight_layout()
     plt.show()
 
-    # Print frequency statistics
+    # Print frequency statistics - NOW INCLUDING SIGNIFICANCE COUNT
     print(f"\nCombined {frequency} Hz Statistics (Validated Channels Only):")
     print(f"  Total units: {len(freq_data)}")
+    print(f"  Significant units (solid-pref p < 0.05): {n_significant}")
     print(f"  Solid Preference range: {x.min():.3f} to {x.max():.3f}")
     print(f"  Isochromatic Preference range: {y.min():.3f} to {y.max():.3f}")
-    print(f"  Correlation: r = {r_value:.3f}, RÂ² = {r_squared:.3f}, p = {p_value:.3f}")
+    print(f"  Correlation: r = {r_value:.3f}, R² = {r_squared:.3f}, p = {p_value:.3f}")
 
 
 if __name__ == "__main__":
