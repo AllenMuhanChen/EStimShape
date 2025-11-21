@@ -49,7 +49,7 @@ class MixedGaborsAnalysis(Analysis):
                 'Type': ['RedGreenMixed', 'CyanOrangeMixed']
             },
             title=f"Color Experiment: {channel}",
-            save_path=f"{self.save_path}/{channel}: mixed_gabors.png",
+            save_path=f"{self.save_path}/{channel}_mixed_gabors.png",
         )
 
         psth_module = create_psth_module(
@@ -59,7 +59,7 @@ class MixedGaborsAnalysis(Analysis):
             spike_data_col_key=channel,
             time_window=(-0.2, 0.5),
             bin_size=0.025,
-            save_path=f"{self.save_path}/{channel}: mixed_gabors_psth.png",
+            save_path=f"{self.save_path}/{channel}_mixed_gabors_psth.png",
             cell_size=(600, 300),
             include_row_labels=True
         )

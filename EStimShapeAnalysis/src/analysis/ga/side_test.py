@@ -27,15 +27,15 @@ from src.startup import context
 
 def main():
     # channel = None
-    compiled_data = compile()
     analysis = SideTestAnalysis()
+    # compiled_data = compile()
     # session_id, _ = read_session_id_from_db_name(context.ga_database)
     # if channel is None:
         # channel = read_cluster_channels(session_id)[0]
 
-    session_id = "251030_0"
-    channel = "A-020"
-    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    session_id = "250421_0"
+    channel = "A-016"
+    analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
 class SideTestAnalysis(Analysis):
@@ -72,12 +72,12 @@ class SideTestAnalysis(Analysis):
                 )
             },
             title=f'2D vs 3D Test: {channel}',
-            save_path=f"{self.save_path}/{channel}: 2dvs3d_more.png",
+            save_path=f"{self.save_path}/{channel}_2dvs3d_more.png",
             include_labels_for={"row"},
             publish_mode=False,
             subplot_spacing=(20, 20),
             cell_size= (400, 400),
-            border_width= 100,
+            border_width= 50,
             include_colorbar = True
         )
 
@@ -91,7 +91,7 @@ class SideTestAnalysis(Analysis):
             spike_data_col=self.spike_tstamps_col,
             spike_data_col_key=channel,
             title=f'2D vs 3D Rasters: {channel}',
-            save_path=f"{self.save_path}/{channel}: 2dvs3d_rasters.png",
+            save_path=f"{self.save_path}/{channel}_2dvs3d_rasters.png",
         )
         raster_branch = create_branch().then(raster_module)
 
@@ -111,9 +111,10 @@ class SideTestAnalysis(Analysis):
                 )
             },
             title=f'2D vs 3D PSTH: {channel}',
-            save_path=f"{self.save_path}/{channel}: 2dvs3d_psth.png",
+            save_path=f"{self.save_path}/{channel}_2dvs3d_psth.png",
             cell_size=(600, 300),
             include_row_labels=False,
+            publish_mode=True
         )
 
         psth_branch = create_branch().then(psth_module)
@@ -132,12 +133,13 @@ class SideTestAnalysis(Analysis):
                     limit=limit)
             },
             title=f'2D vs 3D PSTH Examples: {channel}',
-            save_path=f"{self.save_path}/{channel}: 2dvs3d_psth_examples.png",
+            save_path=f"{self.save_path}/{channel}_2dvs3d_psth_examples.png",
             cols_in_info_box=[],
             cell_size=(300, 300),
             include_labels_for={"TestType"},
             publish_mode=True,
             subplot_spacing=(0, 0),
+            border_width=50,
         )
 
         psth_examples_branch = create_branch().then(psth_examples)

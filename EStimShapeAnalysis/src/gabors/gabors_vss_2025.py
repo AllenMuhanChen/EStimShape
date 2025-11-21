@@ -183,34 +183,38 @@ def create_isoluminant_gabor(size, lambda_px, theta, sigma, phase, color1, color
 
     return result
 
-    # Convert background to RGB
-    if isinstance(background_color, tuple) or isinstance(background_color, list):
-        background_rgb = np.array(background_color)
-    elif isinstance(background_color, float) or isinstance(background_color, int):
-        background_rgb = np.ones(3) * background_color
-    else:
-        background_rgb = plt.cm.colors.to_rgb(background_color)
 
-    # Create the JAB gabor pattern
-    jab_gabor = np.zeros((*grating.shape, 3))
-    jab_gabor[..., 0] = J_avg  # Constant luminance
+def create_achromatic_gabor(size, lambda_px, theta, sigma, phase, background_color=0.5):
+    """
+    Create an achromatic (white/black) Gabor patch on a gray background.
 
-    # Interpolate between the two colors based on grating values
-    for i in range(1, 3):  # Just the chromatic components a and b
-        jab_gabor[..., i] = jab1[i] * (1 - grating) + jab2[i] * grating
+    Parameters:
+    - size: Size of the image in pixels
+    - lambda_px: Wavelength of the grating in pixels
+    - theta: Orientation of the grating in radians
+    - sigma: Sigma for the Gaussian fade at the disk edge
+    - phase: Phase offset of the grating
+    - background_color: Background gray level (0=black, 1=white)
+    """
+    # Generate the grating pattern
+    y, x = np.meshgrid(np.linspace(-size / 2, size / 2, size),
+                       np.linspace(-size / 2, size / 2, size))
+    x_theta = x * np.cos(theta) + y * np.sin(theta)
+    grating = np.sin(2 * np.pi * x_theta / lambda_px + phase)
 
-    # Convert JAB gabor to RGB
-    rgb_gabor = cspace_convert(jab_gabor, "CAM02-UCS", "sRGB1")
-    rgb_gabor = np.clip(rgb_gabor, 0, 1)
+    # Normalize to [0, 1] range (0=black, 1=white)
+    grating = (grating + 1) / 2
+
+    # Create a disk mask with Gaussian fade at edges
+    disk_radius = size / 4  # Disk radius as 1/4 of the image size
+    fade_sigma = sigma / 2  # Sigma for the fade
+    mask = create_disk_mask(size, disk_radius, fade_sigma)
 
     # Create the result array filled with background color
-    result = np.zeros((*grating.shape, 3))
-    for i in range(3):
-        result[..., i] = background_rgb[i]
+    result = np.ones_like(grating) * background_color
 
     # Apply the Gabor pattern only within the masked area
-    for i in range(3):
-        result[..., i] = result[..., i] * (1 - mask) + rgb_gabor[..., i] * mask
+    result = result * (1 - mask) + grating * mask
 
     return result
 
@@ -223,8 +227,8 @@ sigma = 40
 phase = 0
 gray_level = 0.5  # 50% gray background
 
-# Generate Gabor patches with black background
-background_color = (0, 0, 0)  # Black background
+# Generate Gabor patches with white background
+background_color = (1, 1, 1)  # White background
 
 # Create isochromatic Gabors
 red_gabor = create_isochromatic_gabor(size, lambda_px, theta, sigma, phase, "red", background_color)
@@ -247,9 +251,9 @@ red_green_gabor = create_isoluminant_gabor(size, lambda_px, theta, sigma, phase,
 cyan_orange_gabor = create_isoluminant_gabor(size, lambda_px, theta, sigma, phase, "cyan", "orange",
                                              target_luminance=cyan_orange_lum, background_color=background_color)
 
-# Display results
-fig, axs = plt.subplots(2, 3, figsize=(20, 16), facecolor='white')  # Black figure background
-plt.rcParams.update({'text.color': 'black'})  # White text
+# Display color Gabor results
+fig, axs = plt.subplots(2, 3, figsize=(20, 16), facecolor='white')  # White figure background
+plt.rcParams.update({'text.color': 'black'})  # Black text
 
 gabors = [red_gabor, green_gabor, red_green_gabor,
           cyan_gabor, orange_gabor, cyan_orange_gabor]
@@ -263,17 +267,33 @@ titles = ["Red Isochromatic",
 
 for ax, gabor, title in zip(axs.flatten(), gabors, titles):
     im = ax.imshow(gabor, cmap='gray' if gabor.ndim == 2 else None)
-    ax.set_title(title, fontsize=36, pad=20)  # Increased font size and padding
-    ax.axis('off')  # This removes all axis ticks, numbers, and labels
-    ax.set_facecolor('black')  # Black subplot background
+    ax.set_title(title, fontsize=36, pad=20)
+    ax.axis('off')
+    ax.set_facecolor('white')  # White subplot background
 
 plt.tight_layout()
 plt.show()
 
-for ax, gabor, title in zip(axs.flatten(), gabors, titles):
-    im = ax.imshow(gabor, cmap='gray' if gabor.ndim == 2 else None)
-    ax.set_title(title, fontsize=16, pad=20)  # Increased font size and padding
-    ax.axis('off')  # This removes all axis ticks, numbers, and labels
+# Create achromatic Gabors at different spatial frequencies
+cycles = [1, 2, 4, 8]
+lambda_values = [size / c for c in cycles]
+achromatic_gabors = []
+
+for lambda_px_freq in lambda_values:
+    gabor = create_achromatic_gabor(size, lambda_px_freq, 0, sigma, phase, 1.0)  # White background
+    achromatic_gabors.append(gabor)
+
+# Display achromatic Gabor results in a single column
+fig2, axs2 = plt.subplots(4, 1, figsize=(6, 20), facecolor='white')  # White figure background
+plt.rcParams.update({'text.color': 'black'})  # Black text
+
+titles_achromatic = ["0.5 cycles/degree", "1.0 cycles/degree", "2.0 cycles/degree", "4.0 cycles/degree"]
+
+for ax, gabor, title in zip(axs2, achromatic_gabors, titles_achromatic):
+    ax.imshow(gabor, cmap='gray', vmin=0, vmax=1)
+    ax.set_title(title, fontsize=24, pad=20)
+    ax.axis('off')
+    ax.set_facecolor('white')  # White subplot background
 
 plt.tight_layout()
 plt.show()

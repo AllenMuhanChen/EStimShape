@@ -58,7 +58,7 @@ class LightnessAnalysis(Analysis):
                 'Texture': ['SHADE', 'SPECULAR', '2D']
             },
             title='2D vs 3D Texture Response Analysis',
-            save_path=f"{self.save_path}/{channel}: lightness_test.png",
+            save_path=f"{self.save_path}/{channel}_lightness_test.png",
             publish_mode=True,
             subplot_spacing=(20, 0),
         )

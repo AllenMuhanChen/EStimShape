@@ -10,12 +10,12 @@ from src.analysis.shuffle.shuffle_analysis import ShuffleAnalysis
 
 def main():
     analyses = [
-        IsogaborAnalysis(),
-        PlotTopNAnalysis(),
+        # IsogaborAnalysis(),
+        # PlotTopNAnalysis(),
         SideTestAnalysis(),
-        LightnessAnalysis(),
-        MixedGaborsAnalysis(),
-        ShuffleAnalysis()
+        # LightnessAnalysis(),
+        # MixedGaborsAnalysis(),
+        # ShuffleAnalysis()
     ]
 
     for analysis in analyses:

@@ -17,9 +17,9 @@ def main():
     compiled_data = plot_top_n.compile()
 
     session_id, _ = read_session_id_from_db_name(context.ga_database)
-    session_id = "251030_0"
-    channel = "A-020"
-    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    session_id = "250425_0"
+    channel = "A-017"
+    analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
 class PlotGenerationsAnalysis(PlotTopNAnalysis):
@@ -94,7 +94,7 @@ class PlotGenerationsAnalysis(PlotTopNAnalysis):
                 # "GenId": range(0,10)
             },  # only show top 20 per lineage
             # sort_rules={"GenId": "descending"},
-            save_path=f"{self.save_path}/{channel}: top_per_gen_by_lineage.png",
+            save_path=f"{self.save_path}/{channel}_top_per_gen_by_lineage.png",
             module_name="Top Stimuli Per Gen by Lineage",
             publish_mode=True
         )
@@ -111,7 +111,7 @@ class PlotGenerationsAnalysis(PlotTopNAnalysis):
                 "FirstGenRank": range(1, 81)  # All 80 stimuli (ranks 1-80)
             },
             cell_size=(150, 150),  # Smaller cells since we have 20 per row
-            save_path=f"{self.save_path}/{channel}: first_gen_all80.png",
+            save_path=f"{self.save_path}/{channel}_first_gen_all80.png",
             module_name="First Generation All 80",
             publish_mode=True
         )

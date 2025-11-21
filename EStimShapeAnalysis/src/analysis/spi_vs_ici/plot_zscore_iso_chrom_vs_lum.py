@@ -9,7 +9,7 @@ from src.analysis.spi_vs_ici.plot_raw_spike_isochrom_vs_isolum_scores import loa
 
 def main():
     # Example usage with different data sources
-    metric_name = 'z_score_all'
+    metric_name = 'z_score'
     # metric_name = 'max_normalized'
     create_isochrom_isolum_zscore_plots(
         save_path="/home/connorlab/Documents/plots/isochrom_vs_isolum_zscore",

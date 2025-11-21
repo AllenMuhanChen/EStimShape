@@ -57,7 +57,7 @@ class PlotTopNAnalysis(Analysis):
             title='Top Stimuli Per Lineage',
             filter_values={"Lineage": get_top_n_lineages(compiled_data, 3),
                            "RankWithinLineage": range(1, 21)},  # only show top 20 per lineage
-            save_path=f"{self.save_path}/{channel}: plot_top_n.png",
+            save_path=f"{self.save_path}/{channel}_plot_top_n.png",
             publish_mode=True,
             subplot_spacing=(20, 0),
             module_name="plot_top_n"

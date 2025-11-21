@@ -79,7 +79,6 @@ def create_grouped_stimuli_module(
     if publish_mode:
         save_pdf = True
         cols_in_info_box = []
-        border_width = 100
         include_colorbar = False
     else:
         save_pdf = False

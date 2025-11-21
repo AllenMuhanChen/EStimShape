@@ -56,7 +56,7 @@ class ShuffleAnalysis(Analysis):
                     comparison_col="StimSpecId"
                 )
             },
-            save_path=f"{self.save_path}/{channel}: shuffle_test.png",
+            save_path=f"{self.save_path}/{channel}_shuffle_test.png",
             publish_mode=False,
             # include_labels_for={"col"}
         )

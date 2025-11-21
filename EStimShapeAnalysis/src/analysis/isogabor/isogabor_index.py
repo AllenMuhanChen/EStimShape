@@ -8,7 +8,7 @@ from clat.util.connection import Connection
 
 def create_isochromatic_index_module(channel=None, session_id=None, spike_data_col=None):
     index_module = AnalysisModuleFactory.create(
-        computation=IsochromaticPreferenceIndexCalculator(response_key=channel, spike_data_col=spike_data_col),
+        computation=IsochromaticPreferenceIndexCalculatorV2(response_key=channel, spike_data_col=spike_data_col),
         output_handler=IsochromaticPreferenceIndexDBSaver(session_id, channel)
     )
     return index_module
@@ -125,4 +125,81 @@ class IsochromaticPreferenceIndexCalculator(ComputationModule):
                 f"  Isochromatic Preference Index for {self.response_key} at {frequency} Hz: {isochromatic_preference_index}")
 
         print(f"\nFinal frequency-specific indices for {self.response_key}: {frequency_indices}")
+        return frequency_indices
+
+class IsochromaticPreferenceIndexCalculatorV2(ComputationModule):
+    def __init__(self, *, response_key: str = None, spike_data_col: str = None):
+        self.response_key = response_key
+        self.spike_data_col = spike_data_col
+
+    def compute(self, prepared_data: InputT) -> OutputT:
+        def get_sum_for_type_and_frequency(data, type_name, frequency):
+            """Helper function to sum spike rates for a specific type and frequency."""
+            type_frequency_data = data[(data['Type'] == type_name) & (data['Frequency'] == frequency)]
+            total_rate = 0
+            for _, row in type_frequency_data.iterrows():
+                spike_rates = row[self.spike_data_col]
+                if isinstance(spike_rates, dict) and self.response_key in spike_rates:
+                    total_rate += spike_rates[self.response_key]
+            return total_rate
+
+        # Get unique frequencies
+        frequencies = sorted(prepared_data['Frequency'].unique())
+        print(f"Calculating isochromatic preference indices V2 for frequencies: {frequencies}")
+
+        frequency_indices = {}
+
+        for frequency in frequencies:
+            print(f"\nProcessing frequency: {frequency}")
+
+            # Get sums for individual colors (isochromatic) at this frequency
+            red_sum = get_sum_for_type_and_frequency(prepared_data, 'Red', frequency)
+            green_sum = get_sum_for_type_and_frequency(prepared_data, 'Green', frequency)
+            cyan_sum = get_sum_for_type_and_frequency(prepared_data, 'Cyan', frequency)
+            orange_sum = get_sum_for_type_and_frequency(prepared_data, 'Orange', frequency)
+
+            # Get sums for mixed colors (isoluminant) at this frequency
+            red_green_sum = get_sum_for_type_and_frequency(prepared_data, 'RedGreen', frequency)
+            cyan_orange_sum = get_sum_for_type_and_frequency(prepared_data, 'CyanOrange', frequency)
+
+            # Calculate red-green index
+            max_red_green_isochromatic = max(red_sum, green_sum)
+            if max_red_green_isochromatic == 0 and red_green_sum == 0:
+                red_green_diff = 0.0
+                print(f"  Warning: No red-green data for frequency {frequency}, setting index to 0")
+            else:
+                red_green_diff = (max_red_green_isochromatic - red_green_sum)
+
+            # Calculate cyan-orange index
+            max_cyan_orange_isochromatic = max(cyan_sum, orange_sum)
+            if max_cyan_orange_isochromatic == 0 and cyan_orange_sum == 0:
+                cyan_orange_diff = 0.0
+                print(f"  Warning: No cyan-orange data for frequency {frequency}, setting index to 0")
+            else:
+                cyan_orange_diff = (max_cyan_orange_isochromatic - cyan_orange_sum)
+
+            total_diff = red_green_diff + cyan_orange_diff
+            total_max = max(red_sum,green_sum) + red_green_sum + max(cyan_sum,orange_sum) + cyan_orange_sum
+            # Select the index furthest from 0 (largest absolute value)
+
+            # if abs(red_green_index) >= abs(cyan_orange_index):
+            #     isochromatic_preference_index = red_green_index
+            #     dominant_pair = "Red-Green"
+            # else:
+            #     isochromatic_preference_index = cyan_orange_index
+            #     dominant_pair = "Cyan-Orange"
+            if total_max == 0:
+                isochromatic_preference_index = 0.0
+                print(f"  Warning: No data for frequency {frequency}, setting index to 0")
+            else:
+                isochromatic_preference_index = total_diff / total_max
+            frequency_indices[frequency] = isochromatic_preference_index
+
+            print(f"  Individual color sums - Red: {red_sum}, Green: {green_sum}, Cyan: {cyan_sum}, Orange: {orange_sum}")
+            print(f"  Mixed color sums - RedGreen: {red_green_sum}, CyanOrange: {cyan_orange_sum}")
+            print(f"  Red-Green pair - Max isochromatic: {max_red_green_isochromatic}, Isoluminant: {red_green_sum}, Index: {red_green_diff:.4f}")
+            print(f"  Cyan-Orange pair - Max isochromatic: {max_cyan_orange_isochromatic}, Isoluminant: {cyan_orange_sum}, Index: {cyan_orange_diff:.4f}")
+
+
+        print(f"\nFinal frequency-specific indices V2 for {self.response_key}: {frequency_indices}")
         return frequency_indices

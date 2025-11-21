@@ -108,7 +108,110 @@ def create_isochromatic_preference_histograms(quantile=10):
     # Create histograms for each frequency
     create_frequency_histograms(merged_df, frequencies, quantile)
 
+    # Create solid preference histograms split by isochromatic sign
+    create_solid_preference_by_isochromatic_sign(merged_df, frequencies, quantile)
+
     return merged_df
+
+
+def create_solid_preference_by_isochromatic_sign(merged_df, frequencies, quantile=10):
+    """
+    Create histograms of solid preference index split by isochromatic preference sign.
+
+    Args:
+        merged_df: DataFrame with solid and isochromatic preference data
+        frequencies: List of frequencies to plot
+        quantile: Which percentile to test
+    """
+    # Create subplot grid
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    fig.suptitle(
+        f'Solid Preference Index: Isochromatic+ vs Isochromatic-\n(Testing {quantile}th Percentile Constraint)',
+        fontsize=16)
+    axes = axes.flatten()
+
+    for freq_idx, frequency in enumerate(frequencies):
+        ax = axes[freq_idx]
+        freq_data = merged_df[merged_df['frequency'] == frequency]
+
+        if freq_data.empty:
+            ax.text(0.5, 0.5, 'No Data', ha='center', va='center', transform=ax.transAxes)
+            continue
+
+        # Split by isochromatic preference sign
+        iso_positive_mask = freq_data['isochromatic_preference_index'] > 0
+        iso_negative_mask = freq_data['isochromatic_preference_index'] < 0
+
+        iso_pos_values = freq_data[iso_positive_mask]['solid_preference_index'].values
+        iso_neg_values = freq_data[iso_negative_mask]['solid_preference_index'].values
+
+        # Plot overlapping histograms
+        bins = np.linspace(-1, 1, 21)  # 20 bins from -1 to 1
+
+        ax.hist(iso_pos_values, bins=bins, alpha=0.6, color='red',
+                label=f'Isochromatic Preferring (n={len(iso_pos_values)})', edgecolor='black')
+        ax.hist(iso_neg_values, bins=bins, alpha=0.6, color='blue',
+                label=f'Isoluminant Preferring (n={len(iso_neg_values)})', edgecolor='black')
+
+        # Styling
+        ax.set_xlabel('Solid Preference Index')
+        ax.set_ylabel('Number of Cells')
+        ax.set_title(f'{frequency} Hz')
+        ax.axvline(x=0, color='gray', linestyle='--', alpha=0.5)
+        ax.legend()
+        ax.grid(True, alpha=0.3, axis='y')
+
+        # Add statistics (Permutation test on lower quantile)
+        if len(iso_pos_values) > 0 and len(iso_neg_values) > 0:
+            perm_results = permutation_test_lower_quantile(iso_pos_values, iso_neg_values,
+                                                           quantile=quantile, n_permutations=10000)
+
+            # Add vertical lines showing the quantile values
+            ax.axvline(x=perm_results['q_sig_3d'], color='red', linestyle=':',
+                       linewidth=2, alpha=0.8)
+            ax.axvline(x=perm_results['q_non_sig'], color='blue', linestyle=':',
+                       linewidth=2, alpha=0.8)
+
+            median_pos = np.median(iso_pos_values)
+            median_neg = np.median(iso_neg_values)
+
+            stats_text = f'P{quantile} (Iso+): {perm_results["q_sig_3d"]:.2f}\n' \
+                         f'P{quantile} (Iso-): {perm_results["q_non_sig"]:.2f}\n' \
+                         f'Difference: {perm_results["difference"]:.2f}\n' \
+                         f'Perm test p: {perm_results["p_value"]:.4f}\n' \
+                         f'---\n' \
+                         f'Median (Iso+): {median_pos:.2f}\n' \
+                         f'Median (Iso-): {median_neg:.2f}'
+
+            ax.text(0.98, 0.98, stats_text, transform=ax.transAxes,
+                    verticalalignment='top', horizontalalignment='right',
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8),
+                    fontsize=8)
+
+    plt.tight_layout()
+    plt.show()
+
+    # Print summary statistics
+    print("\n" + "=" * 70)
+    print(f"SOLID PREFERENCE BY ISOCHROMATIC SIGN: {quantile}th Percentile")
+    print("=" * 70)
+    for frequency in frequencies:
+        freq_data = merged_df[merged_df['frequency'] == frequency]
+        if not freq_data.empty:
+            iso_positive_mask = freq_data['isochromatic_preference_index'] > 0
+            iso_negative_mask = freq_data['isochromatic_preference_index'] < 0
+
+            iso_pos_values = freq_data[iso_positive_mask]['solid_preference_index'].values
+            iso_neg_values = freq_data[iso_negative_mask]['solid_preference_index'].values
+
+            if len(iso_pos_values) > 0 and len(iso_neg_values) > 0:
+                results = permutation_test_lower_quantile(iso_pos_values, iso_neg_values, quantile=quantile)
+                print(f"\n{frequency} Hz:")
+                print(f"  Iso+ {quantile}th percentile: {results['q_sig_3d']:.3f}")
+                print(f"  Iso- {quantile}th percentile: {results['q_non_sig']:.3f}")
+                print(f"  Difference: {results['difference']:.3f}")
+                print(
+                    f"  P-value: {results['p_value']:.4f} {'***' if results['p_value'] < 0.001 else '**' if results['p_value'] < 0.01 else '*' if results['p_value'] < 0.05 else '(n.s.)'}")
 
 
 def create_frequency_histograms(merged_df, frequencies, quantile=10):
@@ -138,7 +241,7 @@ def create_frequency_histograms(merged_df, frequencies, quantile=10):
         non_sig_values = freq_data[~sig_3d_mask]['isochromatic_preference_index'].values
 
         # Plot overlapping histograms
-        bins = np.linspace(-1, 1, 21)  # 20 bins from -1 to 1
+        bins = np.linspace(-1, 1, 11)  # 20 bins from -1 to 1
 
         ax.hist(sig_3d_values, bins=bins, alpha=0.6, color='blue',
                 label=f'Sig 3D (n={len(sig_3d_values)})', edgecolor='black')

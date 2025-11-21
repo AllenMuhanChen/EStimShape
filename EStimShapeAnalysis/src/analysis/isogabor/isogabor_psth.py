@@ -46,7 +46,7 @@ class IsogaborPSTHAnalysis(Analysis):
             compiled_data=compiled_data,
             channel=channel,
             spike_tstamps_col=self.spike_tstamps_col,
-            save_path=f"{self.save_path}/{channel}: color_experiment_psth.png",
+            save_path=f"{self.save_path}/{channel}_color_experiment_psth.png",
             bin_size=0.025,
             time_window=(-0.2, 0.5),  # 0 to 500ms
             frequency_to_include=frequencies

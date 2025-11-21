@@ -17,9 +17,9 @@ from src.startup import context
 def main():
     analyses = [
         # StimulusSelectivityAnalysis(),
-        # IsochromaticIndexAnalysis(),
+        IsochromaticIndexAnalysis(),
         # SolidPreferenceIndexAnalysis(),
-        IsoChromaticLuminantScoreAnalysis(),
+        # IsoChromaticLuminantScoreAnalysis(),
         # IsoluminantComparisonAnalysis(),
         # IsogaborAnalysis(),
         # PlotTopNAnalysis(),

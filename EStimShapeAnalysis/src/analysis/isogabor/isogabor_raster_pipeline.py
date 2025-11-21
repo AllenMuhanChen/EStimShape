@@ -28,12 +28,12 @@ from src.repository.export_to_repository import export_to_repository
 def main():
     # channel = "A-011"
     # session_id, _ = read_session_id_from_db_name(context.isogabor_database)
-    compiled_data = compile()
+    # compiled_data = compile()
 
-    session_id = "251030_0"
-    channel = "A-020"
+    session_id = "250421_0"
+    channel = "A-016"
     analysis = IsogaborAnalysis()
-    return analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    return analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
 class IsogaborAnalysis(Analysis):
@@ -62,7 +62,7 @@ class IsogaborAnalysis(Analysis):
                 'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
             },
             title=f"Color Experiment: {channel}",
-            save_path=f"{self.save_path}/{channel}: color_experiment.png",
+            save_path=f"{self.save_path}/{channel}_color_experiment.png",
         )
 
         grouped_raster_by_isotype_module = create_grouped_raster_module(
@@ -74,7 +74,7 @@ class IsogaborAnalysis(Analysis):
                 'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
             },
             title=f"Color Experiment by Type: {channel}",
-            save_path=f"{self.save_path}/{channel}: color_experiment_by_isotype.png",
+            save_path=f"{self.save_path}/{channel}_color_experiment_by_isotype.png",
         )
 
         # ----------------
@@ -120,9 +120,10 @@ class IsogaborAnalysis(Analysis):
             title=f"Luminance vs Chromatic Contrast",
             col_titles=column_titles,
             row_suffix="(cycles/°)",
-            save_path=f"{self.save_path}/{channel}: color_experiment_psth.png",
+            save_path=f"{self.save_path}/{channel}_color_experiment_psth.png",
             include_row_labels=True,
             cell_size=(600, 300),
+            publish_mode=True,
         )
 
         freq_response_module = create_frequency_response_module(
@@ -132,7 +133,7 @@ class IsogaborAnalysis(Analysis):
                 'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
             },
             title="Frequency Tuning Curves",
-            save_path=f"{self.save_path}/{channel}: frequency_response.png",
+            save_path=f"{self.save_path}/{channel}_frequency_response.png",
             colors=color_map
         )
 

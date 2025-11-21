@@ -2,17 +2,61 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from scipy import stats
+from scipy.stats import theilslopes
 from clat.util.connection import Connection
 
 
-def create_preference_indices_frequency_plots():
-    """Create separate plots for each session, with subplots for each frequency, plus combined plots."""
+def calculate_regression(x, y, method='ols'):
+    """Calculate regression statistics using specified method.
 
+    Args:
+        x, y: Data arrays
+        method: 'ols' for ordinary least squares or 'theil-sen' for robust regression
+
+    Returns:
+        slope, intercept, r_value, p_value, r_squared
+    """
+    if len(x) <= 1:
+        return 0, 0, 0, 0, 0
+
+    if method == 'ols':
+        slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
+        r_squared = r_value ** 2
+        return slope, intercept, r_value, p_value, r_squared
+
+    elif method == 'theil-sen':
+        # Theil-Sen estimator
+        result = theilslopes(y, x)
+        slope = result.slope
+        intercept = result.intercept
+
+        # Calculate R-squared and correlation for Theil-Sen
+        y_pred = slope * x + intercept
+        ss_res = np.sum((y - y_pred) ** 2)
+        ss_tot = np.sum((y - np.mean(y)) ** 2)
+        r_squared = 1 - (ss_res / ss_tot) if ss_tot != 0 else 0
+        r_value = np.sign(slope) * np.sqrt(abs(r_squared))
+
+        # P-value from Spearman correlation (non-parametric)
+        r_spearman, p_value = stats.spearmanr(x, y)
+
+        return slope, intercept, r_value, p_value, r_squared
+
+    else:
+        raise ValueError(f"Unknown regression method: {method}. Use 'ols' or 'theil-sen'")
+
+
+def load_validated_channels_data():
+    """Load data for channels that pass BOTH manual (GoodChannels) AND algorithmic (ChannelFiltering) validation.
+
+    Returns:
+        merged_df: DataFrame with solid and isochromatic preference indices for validated channels
+        data_description: String describing the data source
+    """
     # Connect to the data repository database
     conn = Connection("allen_data_repository")
 
     # Query both preference tables and join with BOTH GoodChannels AND ChannelFiltering (is_good=TRUE)
-    # NOW INCLUDING P-VALUE for significance visualization
     solid_query = """
                   SELECT s.session_id, s.unit_name, s.solid_preference_index, s.p_value
                   FROM SolidPreferenceIndices s
@@ -21,7 +65,6 @@ def create_preference_indices_frequency_plots():
                   WHERE c.is_good = TRUE
                   """
 
-    # Isochromatic preference with same double filtering
     isochromatic_query = """
                          SELECT i.session_id, i.unit_name, i.frequency, i.isochromatic_preference_index
                          FROM IsochromaticPreferenceIndices i
@@ -37,7 +80,7 @@ def create_preference_indices_frequency_plots():
     conn.execute(isochromatic_query)
     isochromatic_data = conn.fetch_all()
 
-    # Convert to DataFrames - NOW INCLUDING P-VALUE
+    # Convert to DataFrames
     solid_df = pd.DataFrame(solid_data,
                             columns=['session_id', 'unit_name', 'solid_preference_index', 'p_value'])
     isochromatic_df = pd.DataFrame(isochromatic_data,
@@ -46,19 +89,101 @@ def create_preference_indices_frequency_plots():
     # Merge the data on session_id and unit_name
     merged_df = pd.merge(solid_df, isochromatic_df, on=['session_id', 'unit_name'], how='inner')
 
+    data_description = "Validated Channels (GoodChannels AND is_good=TRUE)"
+
+    return merged_df, data_description
+
+
+def load_raw_significant_channels_data():
+    """Load data for statistically significant raw channels from IsochromaticPreferenceIndices.
+
+    Raw channels have names like "A-009" rather than sorted unit names like "A-009_Unit 1".
+
+    Returns:
+        merged_df: DataFrame with solid and isochromatic preference indices for raw significant channels
+        data_description: String describing the data source
+    """
+    # Connect to the data repository database
+    conn = Connection("allen_data_repository")
+
+    # Query for raw channels (no underscore in unit_name) that are statistically significant
+    # We need both solid and isochromatic preference data
+    solid_query = """
+                  SELECT s.session_id, s.unit_name, s.solid_preference_index, s.p_value
+                  FROM SolidPreferenceIndices s
+                  WHERE s.unit_name NOT LIKE '%Unit%'
+                    AND s.p_value < 0.05
+                  """
+
+    isochromatic_query = """
+                         SELECT i.session_id, i.unit_name, i.frequency, i.isochromatic_preference_index
+                         FROM IsochromaticPreferenceIndices i
+                         WHERE i.unit_name NOT LIKE '%Unit%'
+                         """
+
+    # Execute queries and fetch data
+    conn.execute(solid_query)
+    solid_data = conn.fetch_all()
+
+    conn.execute(isochromatic_query)
+    isochromatic_data = conn.fetch_all()
+
+    # Convert to DataFrames
+    solid_df = pd.DataFrame(solid_data,
+                            columns=['session_id', 'unit_name', 'solid_preference_index', 'p_value'])
+    isochromatic_df = pd.DataFrame(isochromatic_data,
+                                   columns=['session_id', 'unit_name', 'frequency', 'isochromatic_preference_index',
+                                            ])
+
+    # Merge the data on session_id and unit_name
+    # Use the p_value from SolidPreferenceIndices (already in solid_df)
+    merged_df = pd.merge(solid_df, isochromatic_df, on=['session_id', 'unit_name'], how='inner')
+
+    # Drop the isochromatic p_value column since we're using solid preference p_value
+
+
+    data_description = "Raw Significant Channels (p < 0.05, no spike sorting)"
+
+    return merged_df, data_description
+
+
+def create_preference_indices_frequency_plots(plot_individual_sessions=False, regression_method='ols'):
+    """Create separate plots for each session, with subplots for each frequency, plus combined plots.
+
+    Args:
+        plot_individual_sessions: If True, create individual plots for each session. Default False.
+        regression_method: Type of regression to use. Options:
+            - 'ols': Ordinary Least Squares (standard linear regression)
+            - 'theil-sen': Theil-Sen robust estimator (resistant to outliers)
+    """
+
+    # ==================== DATA LOADING SECTION ====================
+    # CHOOSE ONE: Comment out the method you don't want to use
+
+    # Method 1: Load validated channels (GoodChannels AND ChannelFiltering)
+    merged_df, data_description = load_validated_channels_data()
+
+    # Method 2: Load raw significant channels (p < 0.05, no spike sorting)
+    # merged_df, data_description = load_raw_significant_channels_data()
+
+    # ==============================================================
+
     if merged_df.empty:
-        print(
-            "No matching data found between the two tables for channels that are both manually selected AND algorithmically good.")
+        print(f"No matching data found for {data_description}")
         return
 
-    # Get unique sessions and frequencies
+    # Get unique sessions and filter to specific frequencies
     sessions = sorted(merged_df['session_id'].unique())
+
+    # Filter to only specific spatial frequencies
+    target_frequencies = [0.5, 1.0, 2.0, 4.0]
+    merged_df = merged_df[merged_df['frequency'].isin(target_frequencies)]
     frequencies = sorted(merged_df['frequency'].unique())
 
     print(f"Creating plots for {len(sessions)} sessions: {sessions}")
-    print(f"Each session will have {len(frequencies)} frequency subplots: {frequencies}")
-    print(f"Using channels that are BOTH manually selected (GoodChannels) AND algorithmically good (is_good=TRUE)")
-    print(f"Total validated channels: {len(merged_df['unit_name'].unique())}")
+    print(f"Using spatial frequencies: {frequencies}")
+    print(f"Data source: {data_description}")
+    print(f"Total channels: {len(merged_df['unit_name'].unique())}")
 
     # Show breakdown by session for validation - NOW INCLUDING SIGNIFICANCE COUNT
     for session in sessions:
@@ -66,20 +191,27 @@ def create_preference_indices_frequency_plots():
         session_channels = session_data['unit_name'].nunique()
         # Count significant units for solid preference
         significant_units = session_data[session_data['p_value'] < 0.05]['unit_name'].nunique()
-        print(f"  Session {session}: {session_channels} validated channels ({significant_units} solid-pref significant)")
+        print(
+            f"  Session {session}: {session_channels} channels ({significant_units} solid-pref significant)")
 
-    # Create a separate plot for each session
-    for session_id in sessions:
-        plot_session_frequencies(merged_df, session_id, frequencies)
+    # Create a separate plot for each session (if enabled)
+    if plot_individual_sessions:
+        for session_id in sessions:
+            plot_session_frequencies(merged_df, session_id, frequencies, regression_method, data_description)
 
-    # Add combined plots at the end
-    print("\nCreating combined plots...")
-    create_combined_frequency_plots(merged_df, sessions, frequencies)
+    # Add combined plots
+    print(f"\nCreating combined plots using {regression_method.upper()} regression...")
+    create_combined_frequency_plots(merged_df, sessions, frequencies, regression_method, data_description)
+
+    # Add significance-based regression plots
+    print(f"\nCreating significance-based regression plots using {regression_method.upper()}...")
+    plot_significant_cells_by_frequency(merged_df, frequencies, regression_method, data_description)
+    plot_nonsignificant_cells_by_frequency(merged_df, frequencies, regression_method, data_description)
 
     return merged_df
 
 
-def plot_session_frequencies(merged_df, session_id, frequencies):
+def plot_session_frequencies(merged_df, session_id, frequencies, regression_method='ols', data_description=""):
     """Create a plot for one session with subplots for each frequency."""
 
     # Filter data for this session
@@ -99,7 +231,7 @@ def plot_session_frequencies(merged_df, session_id, frequencies):
         nrows, ncols = 2, (n_freq + 1) // 2
 
     fig, axes = plt.subplots(nrows, ncols, figsize=(6 * ncols, 5 * nrows))
-    fig.suptitle(f'Session {session_id}: Solid vs Isochromatic Preference by Frequency (Validated Channels)',
+    fig.suptitle(f'Session {session_id}: Solid vs Isochromatic Preference by Frequency\n({data_description})',
                  fontsize=16)
 
     # Make axes iterable even for single subplot
@@ -129,12 +261,8 @@ def plot_session_frequencies(merged_df, session_id, frequencies):
         y = freq_data['isochromatic_preference_index'].values
         p_values = freq_data['p_value'].values
 
-        # Calculate linear regression if we have enough points
-        if len(x) > 1:
-            slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
-            r_squared = r_value ** 2
-        else:
-            slope = intercept = r_value = p_value = r_squared = 0
+        # Calculate regression using specified method
+        slope, intercept, r_value, p_value, r_squared = calculate_regression(x, y, regression_method)
 
         # Plot points with different alpha based on significance
         for i in range(len(x)):
@@ -150,7 +278,7 @@ def plot_session_frequencies(merged_df, session_id, frequencies):
             ax.scatter(x[i], y[i], alpha=alpha_val, s=60, color=color)
 
         # Add trend line if we have enough points
-        if len(x) > 1:
+        if len(x) > 1 and not np.isnan(slope):
             line_x = np.linspace(x.min(), x.max(), 100)
             line_y = slope * line_x + intercept
             ax.plot(line_x, line_y, 'r-', linewidth=2, alpha=0.8)
@@ -197,7 +325,7 @@ def plot_session_frequencies(merged_df, session_id, frequencies):
     plt.show()
 
     # Print session statistics - NOW INCLUDING SIGNIFICANCE COUNT
-    print(f"\nSession {session_id} Statistics (Validated Channels Only):")
+    print(f"\nSession {session_id} Statistics ({data_description}):")
     for frequency in frequencies:
         freq_data = session_data[session_data['frequency'] == frequency]
         if not freq_data.empty:
@@ -206,7 +334,7 @@ def plot_session_frequencies(merged_df, session_id, frequencies):
             p_vals = freq_data['p_value'].values
             n_sig = np.sum((pd.notna(p_vals)) & (p_vals < 0.05))
             if len(x) > 1:
-                _, _, r_value, p_value, _ = stats.linregress(x, y)
+                _, _, r_value, p_value, _ = calculate_regression(x, y, regression_method)
                 print(f"  {frequency} Hz: n={len(freq_data)} ({n_sig} sig.), r={r_value:.3f}, p={p_value:.3f}")
             else:
                 print(f"  {frequency} Hz: n={len(freq_data)} ({n_sig} sig.) (insufficient data for correlation)")
@@ -214,15 +342,15 @@ def plot_session_frequencies(merged_df, session_id, frequencies):
             print(f"  {frequency} Hz: No data")
 
 
-def create_combined_frequency_plots(merged_df, sessions, frequencies):
+def create_combined_frequency_plots(merged_df, sessions, frequencies, regression_method='ols', data_description=""):
     """Create combined plots showing all sessions together for each frequency."""
 
     # Create a separate combined plot for each frequency
     for frequency in frequencies:
-        plot_combined_frequency_data(merged_df, frequency, sessions)
+        plot_combined_frequency_data(merged_df, frequency, sessions, regression_method, data_description)
 
 
-def plot_combined_frequency_data(merged_df, frequency, sessions):
+def plot_combined_frequency_data(merged_df, frequency, sessions, regression_method='ols', data_description=""):
     """Create a combined plot for one frequency with all sessions."""
 
     # Filter data for this frequency
@@ -237,9 +365,8 @@ def plot_combined_frequency_data(merged_df, frequency, sessions):
     y = freq_data['isochromatic_preference_index'].values
     p_values = freq_data['p_value'].values
 
-    # Calculate linear regression for combined data
-    slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
-    r_squared = r_value ** 2
+    # Calculate regression for combined data using specified method
+    slope, intercept, r_value, p_value, r_squared = calculate_regression(x, y, regression_method)
 
     # Create the scatter plot
     plt.figure(figsize=(12, 8))
@@ -282,8 +409,8 @@ def plot_combined_frequency_data(merged_df, frequency, sessions):
     plt.xlabel('Solid Preference Index')
     plt.ylabel('Isochromatic Preference Index')
     plt.title(
-        f'Combined - Frequency {frequency} Hz: Solid vs Isochromatic Preference (Validated Channels)\n'
-        f'(n={len(freq_data)} total units, {n_significant} solid-pref significant)')
+        f'Combined - Frequency {frequency} Hz: Solid vs Isochromatic Preference\n'
+        f'{data_description} (n={len(freq_data)} total units, {n_significant} solid-pref significant)')
 
     # Add reference lines at zero
     plt.axhline(y=0, color='gray', linestyle='--', alpha=0.5)
@@ -318,7 +445,7 @@ def plot_combined_frequency_data(merged_df, frequency, sessions):
     plt.show()
 
     # Print frequency statistics - NOW INCLUDING SIGNIFICANCE COUNT
-    print(f"\nCombined {frequency} Hz Statistics (Validated Channels Only):")
+    print(f"\nCombined {frequency} Hz Statistics ({data_description}):")
     print(f"  Total units: {len(freq_data)}")
     print(f"  Significant units (solid-pref p < 0.05): {n_significant}")
     print(f"  Solid Preference range: {x.min():.3f} to {x.max():.3f}")
@@ -326,5 +453,235 @@ def plot_combined_frequency_data(merged_df, frequency, sessions):
     print(f"  Correlation: r = {r_value:.3f}, R² = {r_squared:.3f}, p = {p_value:.3f}")
 
 
+def plot_significant_cells_by_frequency(merged_df, frequencies, regression_method='ols', data_description=""):
+    """Create a plot with subplots for each frequency showing only significant (p < 0.05) cells with SPI > 0."""
+
+    # Filter for significant cells with positive solid preference index
+    sig_df = merged_df[(merged_df['p_value'] < 0.05) & (merged_df['solid_preference_index'] > 0)].copy()
+
+    if sig_df.empty:
+        print("No significant cells found (p < 0.05 and SPI > 0)")
+        return
+
+    # Create subplots - arrange frequencies in a 2x2 grid or single row
+    n_freq = len(frequencies)
+    if n_freq <= 2:
+        nrows, ncols = 1, n_freq
+    elif n_freq <= 4:
+        nrows, ncols = 2, 2
+    else:
+        nrows, ncols = 2, (n_freq + 1) // 2
+
+    fig, axes = plt.subplots(nrows, ncols, figsize=(6 * ncols, 5 * nrows))
+    fig.suptitle(
+        f'Significant 3D-Preferring Cells: Solid vs Isochromatic Preference by Frequency\n'
+        f'{data_description} (p < 0.05, SPI > 0, {regression_method.upper()} regression)',
+        fontsize=16)
+
+    # Make axes iterable even for single subplot
+    if n_freq == 1:
+        axes = [axes]
+    elif nrows == 1:
+        axes = axes
+    else:
+        axes = axes.flatten()
+
+    # Plot each frequency
+    for freq_idx, frequency in enumerate(frequencies):
+        # Filter data for this frequency
+        freq_data = sig_df[sig_df['frequency'] == frequency]
+
+        ax = axes[freq_idx]
+
+        if freq_data.empty:
+            ax.text(0.5, 0.5, 'No Significant Data', ha='center', va='center', transform=ax.transAxes)
+            ax.set_title(f'{frequency} Hz (n=0)')
+            ax.set_xlim(-1.1, 1.1)
+            ax.set_ylim(-1.1, 1.1)
+            continue
+
+        # Extract values
+        x = freq_data['solid_preference_index'].values
+        y = freq_data['isochromatic_preference_index'].values
+
+        # Calculate regression using specified method
+        slope, intercept, r_value, p_value, r_squared = calculate_regression(x, y, regression_method)
+
+        # Plot points
+        ax.scatter(x, y, alpha=0.7, s=60, color='blue')
+
+        # Add trend line if we have enough points
+        if len(x) > 1 and not np.isnan(slope):
+            line_x = np.linspace(x.min(), x.max(), 100)
+            line_y = slope * line_x + intercept
+            ax.plot(line_x, line_y, 'r-', linewidth=2, alpha=0.8)
+
+        # Set title and labels
+        ax.set_title(f'{frequency} Hz (n={len(freq_data)} sig.)')
+        ax.set_xlabel('Solid Preference Index')
+        ax.set_ylabel('Isochromatic Preference Index')
+
+        # Add reference lines at zero
+        ax.axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+        ax.axvline(x=0, color='gray', linestyle='--', alpha=0.5)
+
+        # Add grid
+        ax.grid(True, alpha=0.3)
+
+        # Set axis limits
+        ax.set_xlim(-1.1, 1.1)
+        ax.set_ylim(-1.1, 1.1)
+
+        # Add statistics text
+        if len(x) > 1:
+            stats_text = f'R²={r_squared:.3f}\nr={r_value:.3f}\np={p_value:.3f}'
+            ax.text(0.02, 0.98, stats_text, transform=ax.transAxes,
+                    verticalalignment='top', fontsize=10,
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
+
+    # Hide any unused subplots
+    for idx in range(len(frequencies), len(axes)):
+        axes[idx].set_visible(False)
+
+    plt.tight_layout()
+    plt.show()
+
+    # Print statistics
+    print(f"\nSignificant 3D-Preferring Cells Statistics (p < 0.05, SPI > 0) - {data_description}:")
+    print(f"  Total significant 3D-preferring units: {len(sig_df['unit_name'].unique())}")
+    for frequency in frequencies:
+        freq_data = sig_df[sig_df['frequency'] == frequency]
+        if not freq_data.empty:
+            x = freq_data['solid_preference_index'].values
+            y = freq_data['isochromatic_preference_index'].values
+            if len(x) > 1:
+                _, _, r_value, p_value, _ = calculate_regression(x, y, regression_method)
+                print(f"  {frequency} Hz: n={len(freq_data)}, r={r_value:.3f}, p={p_value:.3f}")
+            else:
+                print(f"  {frequency} Hz: n={len(freq_data)} (insufficient data for correlation)")
+        else:
+            print(f"  {frequency} Hz: No data")
+
+
+def plot_nonsignificant_cells_by_frequency(merged_df, frequencies, regression_method='ols', data_description=""):
+    """Create a plot with subplots for each frequency showing non-significant or 2D-preferring cells."""
+
+    # Filter for cells that are NOT significant 3D-preferring (p >= 0.05 or SPI <= 0 or p is NaN)
+    nonsig_df = merged_df[~((merged_df['p_value'] < 0.05) & (merged_df['solid_preference_index'] > 0))].copy()
+
+    if nonsig_df.empty:
+        print("No non-significant or 2D-preferring cells found")
+        return
+
+    # Create subplots - arrange frequencies in a 2x2 grid or single row
+    n_freq = len(frequencies)
+    if n_freq <= 2:
+        nrows, ncols = 1, n_freq
+    elif n_freq <= 4:
+        nrows, ncols = 2, 2
+    else:
+        nrows, ncols = 2, (n_freq + 1) // 2
+
+    fig, axes = plt.subplots(nrows, ncols, figsize=(6 * ncols, 5 * nrows))
+    fig.suptitle(
+        f'Non-Significant or 2D-Preferring Cells: Solid vs Isochromatic Preference by Frequency\n'
+        f'{data_description} (p >= 0.05 or SPI <= 0, {regression_method.upper()} regression)',
+        fontsize=16)
+
+    # Make axes iterable even for single subplot
+    if n_freq == 1:
+        axes = [axes]
+    elif nrows == 1:
+        axes = axes
+    else:
+        axes = axes.flatten()
+
+    # Plot each frequency
+    for freq_idx, frequency in enumerate(frequencies):
+        # Filter data for this frequency
+        freq_data = nonsig_df[nonsig_df['frequency'] == frequency]
+
+        ax = axes[freq_idx]
+
+        if freq_data.empty:
+            ax.text(0.5, 0.5, 'No Non-Significant Data', ha='center', va='center', transform=ax.transAxes)
+            ax.set_title(f'{frequency} Hz (n=0)')
+            ax.set_xlim(-1.1, 1.1)
+            ax.set_ylim(-1.1, 1.1)
+            continue
+
+        # Extract values
+        x = freq_data['solid_preference_index'].values
+        y = freq_data['isochromatic_preference_index'].values
+
+        # Calculate regression using specified method
+        slope, intercept, r_value, p_value, r_squared = calculate_regression(x, y, regression_method)
+
+        # Plot points in gray
+        ax.scatter(x, y, alpha=0.4, s=60, color='gray')
+
+        # Add trend line if we have enough points
+        if len(x) > 1 and not np.isnan(slope):
+            line_x = np.linspace(x.min(), x.max(), 100)
+            line_y = slope * line_x + intercept
+            ax.plot(line_x, line_y, 'r-', linewidth=2, alpha=0.8)
+
+        # Set title and labels
+        ax.set_title(f'{frequency} Hz (n={len(freq_data)} non-sig.)')
+        ax.set_xlabel('Solid Preference Index')
+        ax.set_ylabel('Isochromatic Preference Index')
+
+        # Add reference lines at zero
+        ax.axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+        ax.axvline(x=0, color='gray', linestyle='--', alpha=0.5)
+
+        # Add grid
+        ax.grid(True, alpha=0.3)
+
+        # Set axis limits
+        ax.set_xlim(-1.1, 1.1)
+        ax.set_ylim(-1.1, 1.1)
+
+        # Add statistics text
+        if len(x) > 1:
+            stats_text = f'R²={r_squared:.3f}\nr={r_value:.3f}\np={p_value:.3f}'
+            ax.text(0.02, 0.98, stats_text, transform=ax.transAxes,
+                    verticalalignment='top', fontsize=10,
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
+
+    # Hide any unused subplots
+    for idx in range(len(frequencies), len(axes)):
+        axes[idx].set_visible(False)
+
+    plt.tight_layout()
+    plt.show()
+
+    # Print statistics
+    print(f"\nNon-Significant or 2D-Preferring Cells Statistics - {data_description}:")
+    print(f"  Total non-significant or 2D-preferring units: {len(nonsig_df['unit_name'].unique())}")
+    for frequency in frequencies:
+        freq_data = nonsig_df[nonsig_df['frequency'] == frequency]
+        if not freq_data.empty:
+            x = freq_data['solid_preference_index'].values
+            y = freq_data['isochromatic_preference_index'].values
+            if len(x) > 1:
+                _, _, r_value, p_value, _ = calculate_regression(x, y, regression_method)
+                print(f"  {frequency} Hz: n={len(freq_data)}, r={r_value:.3f}, p={p_value:.3f}")
+            else:
+                print(f"  {frequency} Hz: n={len(freq_data)} (insufficient data for correlation)")
+        else:
+            print(f"  {frequency} Hz: No data")
+
+
 if __name__ == "__main__":
-    data = create_preference_indices_frequency_plots()
+    # Generate plots with OLS regression (default)
+    print("=" * 80)
+    print("GENERATING PLOTS WITH OLS REGRESSION")
+    print("=" * 80)
+    data_ols = create_preference_indices_frequency_plots(regression_method='ols')
+
+    # Generate plots with Theil-Sen regression
+    print("\n" + "=" * 80)
+    print("GENERATING PLOTS WITH THEIL-SEN REGRESSION")
+    print("=" * 80)
+    data_theilsen = create_preference_indices_frequency_plots(regression_method='theil-sen')
