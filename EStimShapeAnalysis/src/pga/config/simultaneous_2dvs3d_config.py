@@ -61,13 +61,11 @@ class DnessSideTest(SideTest):
 
         for stim_to_test in top_2d:
             self._generate_side_test_stim(stim_to_test, SIDETEST_2Dvs3D_Type.SIDETEST_2Dvs3D_Type, gen_id)
-            # self._generate_side_test_stim(stim_to_test, SIDETEST_2Dvs3D_Type.THREED_SHADE, gen_id)
-            # self._generate_side_test_stim(stim_to_test, SIDETEST_2Dvs3D_Type.THREED_SPECULAR, gen_id)
+
 
         for stim_to_test in top_3d:
             self._generate_side_test_stim(stim_to_test, SIDETEST_2Dvs3D_Type.SIDETEST_2Dvs3D_Type, gen_id)
-            # self._generate_side_test_stim(stim_to_test, SIDETEST_2Dvs3D_Type.TWOD_HIGH, gen_id)
-            # self._generate_side_test_stim(stim_to_test, SIDETEST_2Dvs3D_Type.TWOD_LOW, gen_id)
+
 
     def _collect_stims_to_test(self, gen_id, lineages):
         # Collect all stimuli from this generation
