@@ -5,7 +5,9 @@ import org.xper.allen.drawing.composition.*;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
+import org.xper.allen.pga.RFUtils;
 
+import javax.vecmath.Point3d;
 import java.util.*;
 
 public class PruningMatchStick extends GAMatchStick {
@@ -18,9 +20,44 @@ public class PruningMatchStick extends GAMatchStick {
         super(rf, rfStrategy);
     }
 
+
+
     public PruningMatchStick() {
-        super();
+
     }
+
+    @Override
+    protected void positionShape() throws MorphException {
+        if (rfStrategy != null) {
+            RFUtils.positionAroundRF(rfStrategy, this, rf, 1000);
+        } else{
+            int compToMove = toPreserve.get(0);
+            Point3d pointToMove = getComp()[compToMove].getMassCenter();
+            Point3d destination = matchStickToMorph.getComp()[compToMove].getMassCenter();
+
+            //TESTING
+            System.out.println("To component to move: " + compToMove);
+            for (int i = 1; i<=getnComponent(); i++){
+                System.out.println("This component before move " + getComp()[i].getMassCenter());
+            }
+
+            movePointToDestination(pointToMove, destination);
+            for (int i = 1; i<=getnComponent(); i++){
+
+                System.out.println("This component after move " + getComp()[i].getMassCenter());
+                System.out.println("This component destination " + matchStickToMorph.getComp()[i].getMassCenter());
+
+            }
+
+        }
+
+//        if (toMoveCenterOfMassLocation != null){
+//            moveCenterOfMassTo(toMoveCenterOfMassLocation);
+//            return;
+//        }
+//        throw new IllegalArgumentException("rfStrategy and toMoveCenterOfMassLocation both null");
+    }
+
 
     // Chooses own random components to preserve
     public void genPruningMatchStick(MorphedMatchStick matchStickToMorph, double magnitude, int numPreserve){

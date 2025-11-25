@@ -310,7 +310,7 @@ public class TestMatchStickDrawer {
 
 
 
-    private void drawPoint(Point3d position, RGBColor rgbColor, final float size) {
+    public void drawPoint(Point3d position, RGBColor rgbColor, final float size) {
         window.draw(new Drawable() {
             @Override
             public void draw() {

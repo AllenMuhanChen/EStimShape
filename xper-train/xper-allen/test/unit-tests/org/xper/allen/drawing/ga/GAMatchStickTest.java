@@ -8,16 +8,21 @@ import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
+import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 import org.xper.allen.pga.RFStrategy;
+import org.xper.allen.pga.RFUtils;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 import org.xper.util.ThreadUtil;
 
+import javax.vecmath.Point3d;
+
 import static org.junit.Assert.assertEquals;
+import static org.xper.allen.pga.RFStrategy.COMPLETELY_INSIDE;
 
 public class GAMatchStickTest {
 
-    String figPath = "/home/r2_allen/Pictures";
+    String figPath = "/home/connorlab/Documents/xper-test";
 
     public static final ReceptiveField PARTIAL_RF = new ReceptiveField() {
         double h = 30;
@@ -66,8 +71,6 @@ public class GAMatchStickTest {
 
     }
 
-
-
     @Test
     public void test_mstick_writes_rf_strategy_to_spec(){
         GAMatchStick GAMatchStick = genCompleteleyInside();
@@ -76,12 +79,88 @@ public class GAMatchStickTest {
         spec.setMStickInfo(GAMatchStick, false);
 
 
-        assertEquals(RFStrategy.COMPLETELY_INSIDE, spec.getRfStrategy());
+        assertEquals(COMPLETELY_INSIDE, spec.getRfStrategy());
+    }
+
+    @Test
+    public void test_loading_spec_works(){
+        RGBColor color = new RGBColor(1.0, 0.0, 0.0);
+        GAMatchStick parent = new GAMatchStick(COMPLETE_RF, COMPLETELY_INSIDE);
+        int maxSizeDiameterDegrees = 3;
+        parent.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
+        parent.setStimColor(color);
+        parent.genMatchStickRand();
+        testMatchStickDrawer.draw(parent);
+        ThreadUtil.sleep(500);
+        testMatchStickDrawer.saveImage(figPath + "/base_native");
+
+        AllenMStickSpec parentSpec = new AllenMStickSpec();
+        parentSpec.setMStickInfo(parent, false);
+        GAMatchStick parentFromSpec = new GAMatchStick();
+        parentFromSpec.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
+        parentFromSpec.setStimColor(color);
+        parentFromSpec.genMatchStickFromShapeSpec(parentSpec, new double[]{0,0,0});
+        testMatchStickDrawer.draw(parentFromSpec);
+        ThreadUtil.sleep(500);
+        testMatchStickDrawer.saveImage(figPath + "/base_from_spec");
+
+
+    }
+
+    @Test
+    public void draw_pruning_mstick(){
+        RGBColor color = new RGBColor(1.0, 0.0, 0.0);
+
+        GAMatchStick parent = new GAMatchStick(COMPLETE_RF, COMPLETELY_INSIDE);
+        int maxSizeDiameterDegrees = 3;
+        parent.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
+        parent.setStimColor(color);
+        parent.genMatchStickRand();
+
+        AllenMStickSpec parentSpec = new AllenMStickSpec();
+        parentSpec.setMStickInfo(parent, false);
+        for (int i = 1; i<=parent.getnComponent(); i++){
+            System.out.println("Parent component before draw " + parent.getComp()[i].getMassCenter());
+        }
+
+        GAMatchStick parentFromSpec = new GAMatchStick();
+        parentFromSpec.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
+        parentFromSpec.setStimColor(color);
+        parentFromSpec.genMatchStickFromShapeSpec(parentSpec, new double[]{0,0,0});
+
+        testMatchStickDrawer.draw(parentFromSpec);
+        for (int i = 1; i<=parent.getnComponent(); i++){
+            Point3d position = parent.getComp()[i].getMassCenter();
+            position.setZ(10);
+            System.out.println("Parent component after draw " + position);
+            testMatchStickDrawer.drawPoint(position, new RGBColor(0.0,1.0,0.0), 5);
+        }
+//        testMatchStickDrawer.drawCompMap(parent);
+        testMatchStickDrawer.saveImage(figPath + "/base_mstick.png");
+
+        ThreadUtil.sleep(1000);
+        testMatchStickDrawer.clear();
+
+//        testMatchStickDrawer.draw(parent);
+        testMatchStickDrawer.drawCompMap(parent);
+        testMatchStickDrawer.saveImage(figPath + "/base_mstick_comp_map.png");
+        ThreadUtil.sleep(1000);
+        testMatchStickDrawer.clear();
+
+        PruningMatchStick pruning = new PruningMatchStick();
+        pruning.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
+        pruning.setStimColor(color);
+        pruning.genPruningMatchStick(parentFromSpec, 0.75, 1);
+
+        testMatchStickDrawer.draw(pruning);
+//        testMatchStickDrawer.drawCompMap(pruning);
+        testMatchStickDrawer.saveImage(figPath + "/prune_1.png");
+        ThreadUtil.sleep(1000);
     }
 
     @Test
     public void draws_mstick_from_file_with_assigned_compId(){
-        GAMatchStick complete = new GAMatchStick(PARTIAL_RF, RFStrategy.COMPLETELY_INSIDE);
+        GAMatchStick complete = new GAMatchStick(PARTIAL_RF, COMPLETELY_INSIDE);
         complete.setProperties(2.5, "SHADE", 1.0);
         complete.genMatchStickRand();
 
@@ -181,7 +260,7 @@ public class GAMatchStickTest {
         while (true) {
             growingMatchStick = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 
-            growingMatchStick.setProperties(5, "SHADE", 1.0);
+            growingMatchStick.setProperties(4, "SHADE", 1.0);
             try {
                 growingMatchStick.genInsideRFMorphedMStick(GAMatchStick, 0.2);
                 break;
@@ -207,7 +286,7 @@ public class GAMatchStickTest {
         while (true) {
             growingMatchStick = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 
-            growingMatchStick.setProperties(5, "SHADE", 1.0);
+            growingMatchStick.setProperties(4, "SHADE", 1.0);
             try {
                 growingMatchStick.genOutsideRFMorphedMStick(GAMatchStick, 0.2);
                 break;
@@ -321,7 +400,7 @@ public class GAMatchStickTest {
         while (true) {
             low = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 
-            low.setProperties(5, "SHADE", 1.0);
+            low.setProperties(2.5, "SHADE", 1.0);
             try {
                 low.genOutsideRFMorphedMStick(baseMatchStick, 0.1);
                 break;
@@ -339,7 +418,7 @@ public class GAMatchStickTest {
         while (true) {
             mid = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 
-            mid.setProperties(5, "SHADE", 1.0);
+            mid.setProperties(2.5, "SHADE", 1.0);
             try {
                 mid.genOutsideRFMorphedMStick(baseMatchStick, 0.4);
                 break;
@@ -357,7 +436,7 @@ public class GAMatchStickTest {
         while (true) {
             high = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
 
-            high.setProperties(5, "SHADE", 1.0);
+            high.setProperties(2.5, "SHADE", 1.0);
             try {
                 high.genOutsideRFMorphedMStick(baseMatchStick, 0.7);
                 break;
@@ -374,13 +453,13 @@ public class GAMatchStickTest {
 
     private static GAMatchStick genPartiallyInside() {
         GAMatchStick GAMatchStick = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
-        GAMatchStick.setProperties(5, "SHADE", 1.0);
+        GAMatchStick.setProperties(4, "SHADE", 1.0);
         GAMatchStick.genMatchStickRand();
         return GAMatchStick;
     }
 
     private static GAMatchStick genCompleteleyInside() {
-        GAMatchStick GAMatchStick = new GAMatchStick(COMPLETE_RF, RFStrategy.COMPLETELY_INSIDE);
+        GAMatchStick GAMatchStick = new GAMatchStick(COMPLETE_RF, COMPLETELY_INSIDE);
         GAMatchStick.setProperties(2.5, "SHADE", 1.0);
         GAMatchStick.genMatchStickRand();
         return GAMatchStick;
