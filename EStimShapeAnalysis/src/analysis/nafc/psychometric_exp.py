@@ -24,12 +24,12 @@ def filter_by_num_distractors(data, num_distractors):
 
 def main():
     # Database connection
-    conn = Connection("allen_estimshape_exp_251030_0")
+    conn = Connection("allen_estimshape_exp_251027_1")
 
     # Time range
     since_date = time_util.from_date_to_now(2024, 7, 10)
-    start_gen_id = 21  # Filter for all data (EStim OFF and general filtering)
-    max_gen_id = 25  # Maximum GenId to include (set to a number to limit, or leave as inf for no limit)
+    start_gen_id = 8  # Filter for all data (EStim OFF and general filtering)
+    max_gen_id = 11  # Maximum GenId to include (set to a number to limit, or leave as inf for no limit)
     start_gen_id_estim_on = 0  # Additional filter for EStim ON trials only (set higher to get only recent EStim ON data)
     max_gen_id_estim_on = float('inf')  # Maximum GenId for EStim ON trials (set to a number to limit)
 
@@ -184,81 +184,16 @@ def main():
         )
 
     # BOTTOM LEFT: Statistical analysis results
-    # Run BOTH per-level tests AND logistic regression
+    # Permutation test across all noise levels
     import pandas as pd
     import numpy as np
 
     noise_levels = sorted(data_exp['NoiseChance'].unique())
 
-    results_text = "STATISTICAL ANALYSIS\n"
+    results_text = "PERMUTATION TEST ANALYSIS\n"
     results_text += "=" * 50 + "\n\n"
 
-    # PART 1: Per-Level Independent Tests
-    results_text += "Per-Level Tests (EStim ON vs OFF):\n"
-    results_text += "-" * 50 + "\n"
-
-    for noise in noise_levels:
-        noise_data = data_exp[data_exp['NoiseChance'] == noise]
-
-        # Get EStim ON and OFF data for this noise level
-        estim_on = noise_data[(noise_data['EStimEnabled'] == True) &
-                              (noise_data['GenId'] >= start_gen_id_estim_on) &
-                              (noise_data['GenId'] <= max_gen_id_estim_on)].copy()
-        estim_off = noise_data[noise_data['EStimEnabled'] == False].copy()
-
-        # Convert "No Data" to False (treat as incorrect)
-        estim_on.loc[estim_on['IsCorrect'] == "No Data", 'IsCorrect'] = False
-        estim_off.loc[estim_off['IsCorrect'] == "No Data", 'IsCorrect'] = False
-
-        # Only test if both conditions have data
-        if len(estim_on) > 0 and len(estim_off) > 0:
-            on_correct = (estim_on['IsCorrect'] == True).sum()
-            on_total = len(estim_on)
-            off_correct = (estim_off['IsCorrect'] == True).sum()
-            off_total = len(estim_off)
-
-            on_pct = 100 * on_correct / on_total
-            off_pct = 100 * off_correct / off_total
-
-            # Create contingency table
-            from scipy.stats import chi2_contingency, fisher_exact
-            table = [[on_correct, on_total - on_correct],
-                     [off_correct, off_total - off_correct]]
-
-            # Use Fisher's exact for small samples, chi-square otherwise
-            if min(on_total, off_total) < 30 or min(on_correct, off_correct, on_total - on_correct,
-                                                    off_total - off_correct) < 5:
-                odds_ratio, p_value = fisher_exact(table)
-                test_name = "Fisher"
-            else:
-                chi2, p_value, dof, expected = chi2_contingency(table)
-                if (on_total - on_correct) > 0 and (off_total - off_correct) > 0:
-                    odds_ratio = (on_correct / (on_total - on_correct)) / (off_correct / (off_total - off_correct))
-                else:
-                    odds_ratio = float('inf')
-                test_name = "Chi-sq"
-
-            # Determine significance
-            if p_value < 0.001:
-                sig = "***"
-            elif p_value < 0.01:
-                sig = "**"
-            elif p_value < 0.05:
-                sig = "*"
-            else:
-                sig = "ns"
-
-            results_text += f"Noise {noise * 100:.0f}%: "
-            results_text += f"{on_correct}/{on_total}({on_pct:.0f}%) vs "
-            results_text += f"{off_correct}/{off_total}({off_pct:.0f}%), "
-            results_text += f"p={p_value:.3f}{sig}, OR={odds_ratio:.2f}\n"
-
-    # PART 2: Logistic Regression
-    results_text += "\n"
-    results_text += "Logistic Regression (Overall Model):\n"
-    results_text += "-" * 50 + "\n"
-
-    # Prepare data for logistic regression
+    # Prepare data for permutation test
     data_exp_for_analysis = data_exp.copy()
 
     # Apply EStim ON GenId filters
@@ -273,74 +208,133 @@ def main():
         ].copy()
 
     # Combine back together
-    data_for_model = pd.concat([data_exp_for_analysis_estim_on, data_exp_for_analysis_estim_off])
+    data_for_perm = pd.concat([data_exp_for_analysis_estim_on, data_exp_for_analysis_estim_off])
 
     # Convert "No Data" to False
-    data_for_model.loc[data_for_model['IsCorrect'] == "No Data", 'IsCorrect'] = False
+    data_for_perm.loc[data_for_perm['IsCorrect'] == "No Data", 'IsCorrect'] = False
+    data_for_perm['IsCorrect_bool'] = (data_for_perm['IsCorrect'] == True)
 
-    # Convert IsCorrect to numeric (1 for True, 0 for False)
-    data_for_model['IsCorrect_numeric'] = (data_for_model['IsCorrect'] == True).astype(int)
+    # Function to calculate sum of differences across noise levels
+    def calculate_sum_diff(data):
+        """Calculate sum of (estim_pct - no_estim_pct) across all noise levels"""
+        sum_diff = 0
+        valid_levels = 0
+        level_diffs = {}
 
-    if len(data_for_model) > 0 and len(data_for_model[data_for_model['EStimEnabled'] == True]) > 0:
-        try:
-            import statsmodels.api as sm
-            from statsmodels.formula.api import glm
+        for noise in noise_levels:
+            noise_data = data[data['NoiseChance'] == noise]
+            estim_on_data = noise_data[noise_data['EStimEnabled'] == True]
+            estim_off_data = noise_data[noise_data['EStimEnabled'] == False]
 
-            # Fit logistic regression model
-            # Model: IsCorrect ~ EStimEnabled * NoiseChance
-            model = glm("IsCorrect_numeric ~ C(EStimEnabled) * NoiseChance",
-                        data=data_for_model,
-                        family=sm.families.Binomial())
-            result = model.fit()
+            if len(estim_on_data) > 0 and len(estim_off_data) > 0:
+                estim_pct = 100 * estim_on_data['IsCorrect_bool'].mean()
+                no_estim_pct = 100 * estim_off_data['IsCorrect_bool'].mean()
+                diff = estim_pct - no_estim_pct
+                sum_diff += diff
+                valid_levels += 1
+                level_diffs[noise] = (estim_pct, no_estim_pct, diff,
+                                      len(estim_on_data), len(estim_off_data))
 
-            # Extract key statistics
-            params = result.params
-            pvalues = result.pvalues
-            conf_int = result.conf_int()
+        return sum_diff, valid_levels, level_diffs
 
-            # Display main effects and interaction
-            for param_name in params.index:
-                if param_name == 'Intercept':
-                    continue
+    # Calculate observed sum of differences
+    observed_sum, n_levels, observed_level_diffs = calculate_sum_diff(data_for_perm)
 
-                coef = params[param_name]
-                p = pvalues[param_name]
+    # Run permutation test
+    n_permutations = 10000
+    np.random.seed(42)  # For reproducibility
 
-                # Significance markers
-                if p < 0.001:
-                    sig = "***"
-                elif p < 0.01:
-                    sig = "**"
-                elif p < 0.05:
-                    sig = "*"
-                else:
-                    sig = "ns"
+    # Store permutations for both overall and per-level tests
+    permuted_sums = []
+    permuted_level_diffs = {noise: [] for noise in noise_levels}
 
-                # Odds Ratio
-                or_value = np.exp(coef)
-                or_ci_low = np.exp(conf_int.loc[param_name, 0])
-                or_ci_high = np.exp(conf_int.loc[param_name, 1])
+    for i in range(n_permutations):
+        # Create a copy for permutation
+        perm_data = data_for_perm.copy()
 
-                # Shorten parameter names for display
-                display_name = param_name.replace('C(EStimEnabled)[T.True]', 'EStim')
-                display_name = display_name.replace('NoiseChance', 'Noise')
-                display_name = display_name.replace(':', '×')
+        # For each noise level, permute the EStim labels independently
+        for noise in noise_levels:
+            noise_mask = perm_data['NoiseChance'] == noise
+            noise_indices = perm_data[noise_mask].index
 
-                results_text += f"{display_name}: OR={or_value:.2f} "
-                results_text += f"[{or_ci_low:.2f},{or_ci_high:.2f}], "
-                results_text += f"p={p:.3f}{sig}\n"
+            if len(noise_indices) > 0:
+                # Permute EStim labels within this noise level
+                shuffled_estim = perm_data.loc[noise_indices, 'EStimEnabled'].sample(frac=1).values
+                perm_data.loc[noise_indices, 'EStimEnabled'] = shuffled_estim
 
-            results_text += f"\nModel: n={len(data_for_model)}, "
-            results_text += f"AIC={result.aic:.1f}, "
-            results_text += f"R²={1 - (result.deviance / result.null_deviance):.3f}\n"
+        # Calculate sum of differences for this permutation
+        perm_sum, _, perm_level_dict = calculate_sum_diff(perm_data)
+        permuted_sums.append(perm_sum)
 
-        except Exception as e:
-            results_text += f"Model fitting error: {str(e)}\n"
+        # Store per-level differences for this permutation
+        for noise, (_, _, diff, _, _) in perm_level_dict.items():
+            permuted_level_diffs[noise].append(diff)
+
+    permuted_sums = np.array(permuted_sums)
+
+    # Calculate overall p-value (one-tailed: testing if estim reduces performance)
+    overall_p_value = np.mean(permuted_sums >= observed_sum)
+
+    # Determine overall significance
+    if overall_p_value < 0.001:
+        overall_sig = "***"
+    elif overall_p_value < 0.01:
+        overall_sig = "**"
+    elif overall_p_value < 0.05:
+        overall_sig = "*"
     else:
-        results_text += "Insufficient data for regression.\n"
+        overall_sig = "ns"
+
+    # Calculate per-level p-values
+    level_p_values = {}
+    for noise in observed_level_diffs.keys():
+        observed_diff = observed_level_diffs[noise][2]  # The difference value
+        perm_diffs = np.array(permuted_level_diffs[noise])
+        # One-tailed: proportion of permutations with diff <= observed_diff
+        level_p_values[noise] = np.mean(perm_diffs >= observed_diff)
+
+        # Determine significance
+        p = level_p_values[noise]
+        if p < 0.001:
+            level_sig = "***"
+        elif p < 0.01:
+            level_sig = "**"
+        elif p < 0.05:
+            level_sig = "*"
+        else:
+            level_sig = "ns"
+
+        # Update the tuple to include p-value and significance
+        estim_pct, no_estim_pct, diff, n_on, n_off = observed_level_diffs[noise]
+        observed_level_diffs[noise] = (estim_pct, no_estim_pct, diff, n_on, n_off, p, level_sig)
+
+    # Display results
+    results_text += "Per-Level Permutation Tests:\n"
+    results_text += "-" * 50 + "\n"
+
+    for noise in sorted(observed_level_diffs.keys()):
+        estim_pct, no_estim_pct, diff, n_on, n_off, p, sig = observed_level_diffs[noise]
+        results_text += f"Noise {noise * 100:.0f}%:\n"
+        results_text += f"  EStim {estim_pct:.1f}% (n={n_on}) vs "
+        results_text += f"NoStim {no_estim_pct:.1f}% (n={n_off})\n"
+        results_text += f"  Difference: {diff:+.1f}%, p={p:.4f} {sig}\n"
+
+    results_text += "\n"
+    results_text += "Overall Permutation Test:\n"
+    results_text += "-" * 50 + "\n"
+    results_text += f"Observed sum of differences: {observed_sum:+.1f}%\n"
+    results_text += f"Permutations: {n_permutations:,}\n"
+    results_text += f"P-value (one-tailed): {overall_p_value:.4f} {overall_sig}\n"
+    results_text += f"Noise levels tested: {n_levels}\n"
+
+    # Add distribution info
+    results_text += f"\nNull distribution (95% CI):\n"
+    results_text += f"  Mean: {np.mean(permuted_sums):.2f}%\n"
+    results_text += f"  2.5th percentile: {np.percentile(permuted_sums, 2.5):.2f}%\n"
+    results_text += f"  97.5th percentile: {np.percentile(permuted_sums, 97.5):.2f}%\n"
 
     results_text += "\n* p<0.05, ** p<0.01, *** p<0.001"
-    results_text += "\nPer-level: Independent tests (no correction)"
+    results_text += "\nTest: One-tailed (EStim reduces performance)"
 
     # Display results in bottom left axes
     axes[1, 0].text(0.05, 0.95, results_text,

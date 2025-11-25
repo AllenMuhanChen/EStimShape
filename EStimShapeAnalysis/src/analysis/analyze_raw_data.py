@@ -1,5 +1,7 @@
 from typing import List, Tuple, Dict
 from clat.util.connection import Connection
+from src.analysis import Analysis
+from src.analysis.ga.ga_vector_analysis import GAResponseVectorAnalysis
 from src.analysis.ga.plot_generations import PlotGenerationsAnalysis
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.analysis.ga.side_test import SideTestAnalysis, SolidPreferenceIndexAnalysis
@@ -93,7 +95,7 @@ def build_sessions_and_channels() -> Dict[str, List[str]]:
     return channels_map
 
 
-def run_analyses(channels_map: Dict[str, List[str]], analyses: List):
+def run_analyses(channels_map: Dict[str, List[str]], analyses: List[type(Analysis)]):
     """Run all analyses for all sessions and channels."""
     for session_id, channels in channels_map.items():
         print(f"\n{'=' * 60}")
@@ -102,7 +104,10 @@ def run_analyses(channels_map: Dict[str, List[str]], analyses: List):
             print(f"  - {channel}")
         print('=' * 60)
 
-        for analysis in analyses:
+        for index, analysis in enumerate(analyses):
+            # TEMP: compile and export
+            if index==0:
+                analysis.compile_and_export()
             for channel in channels:
                 print(f"\nRunning {analysis.__class__.__name__} for session {session_id}, channel {channel}")
                 try:
@@ -116,8 +121,9 @@ def run_analyses(channels_map: Dict[str, List[str]], analyses: List):
 def main():
     # Initialize analysis modules
     analyses = [
+        GAResponseVectorAnalysis()
         # StimulusSelectivityAnalysis(),
-        IsoChromaticLuminantScoreAnalysis(),
+        # IsoChromaticLuminantScoreAnalysis(),
         # IsochromaticIndexAnalysis(),
         # SolidPreferenceIndexAnalysis(),
         # IsogaborAnalysis(),

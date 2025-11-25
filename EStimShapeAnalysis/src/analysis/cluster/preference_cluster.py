@@ -1,6 +1,8 @@
+import json
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import TwoSlopeNorm
+from scipy.stats import spearmanr
 from clat.intan.channels import Channel
 from clat.util.connection import Connection
 from src.cluster.cluster_app_classes import ChannelMapper
@@ -23,6 +25,77 @@ class DBCChannelMapper(ChannelMapper):
 
     def get_coordinates(self, channel: Channel) -> dict[any, np.ndarray]:
         return self.channel_map[channel]
+
+
+def load_response_vectors(conn: Connection, session_id: str, vector_type: str = 'ga_mean_response'):
+    """
+    Load response vectors from the database.
+
+    Returns:
+        dict: {channel_name: {'id_vector': [...], 'response_vector': [...]}}
+    """
+    query = """
+            SELECT unit_name, id_vector, response_vector
+            FROM ChannelResponseVectors
+            WHERE session_id = %s \
+              AND vector_type = %s
+            """
+
+    conn.execute(query, (session_id, vector_type))
+    results = conn.fetch_all()
+
+    vectors = {}
+    for unit_name, id_vector_json, response_vector_json in results:
+        vectors[unit_name] = {
+            'id_vector': json.loads(id_vector_json),
+            'response_vector': json.loads(response_vector_json)
+        }
+
+    return vectors
+
+
+def calculate_correlations(vectors: dict, cluster_channels: set):
+    """
+    Calculate Spearman correlations between each channel and each cluster channel.
+
+    Returns:
+        dict: {cluster_channel: {channel: correlation_value}}
+    """
+    correlations = {}
+
+    for cluster_channel in cluster_channels:
+        if cluster_channel not in vectors:
+            print(f"Warning: Cluster channel {cluster_channel} has no response vector")
+            continue
+
+        cluster_data = vectors[cluster_channel]
+        cluster_id_vector = cluster_data['id_vector']
+        cluster_response = cluster_data['response_vector']
+
+        correlations[cluster_channel] = {}
+
+        for channel, data in vectors.items():
+            # Find common stimuli
+            channel_id_vector = data['id_vector']
+            channel_response = data['response_vector']
+
+            # Get intersection of stimulus IDs
+            common_ids = sorted(set(cluster_id_vector) & set(channel_id_vector))
+
+            if len(common_ids) < 3:
+                # Need at least 3 points for correlation
+                correlations[cluster_channel][channel] = np.nan
+                continue
+
+            # Align responses to common stimuli
+            cluster_aligned = [cluster_response[cluster_id_vector.index(sid)] for sid in common_ids]
+            channel_aligned = [channel_response[channel_id_vector.index(sid)] for sid in common_ids]
+
+            # Calculate Spearman correlation
+            rho, _ = spearmanr(cluster_aligned, channel_aligned)
+            correlations[cluster_channel][channel] = rho
+
+    return correlations
 
 
 def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_path: str = None):
@@ -49,7 +122,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
                     SELECT DISTINCT c.channel
                     FROM ClusterInfo c
                              JOIN Experiments e ON c.experiment_id = e.experiment_id
-                    WHERE e.session_id = %s \
+                    WHERE e.session_id = %s
                     """
     conn.execute(cluster_query, (session_id,))
     cluster_results = conn.fetch_all()
@@ -57,13 +130,24 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
 
     print(f"Cluster channels for session {session_id}: {cluster_channels}")
 
+    # Load response vectors and calculate correlations
+    vectors = load_response_vectors(conn, session_id, vector_type='ga_mean_response')
+
+    if vectors:
+        print(f"Loaded response vectors for {len(vectors)} channels")
+        correlations = calculate_correlations(vectors, cluster_channels)
+        print(f"Calculated correlations for {len(correlations)} cluster channels")
+    else:
+        print("Warning: No response vectors found - correlation columns will be skipped")
+        correlations = {}
+
     # Query isochromatic preference indices for raw channels (not sorted units)
     iso_query = """
                 SELECT unit_name, frequency, isochromatic_preference_index
                 FROM IsochromaticPreferenceIndices
                 WHERE session_id = %s
                   AND unit_name NOT LIKE '%Unit%'
-                ORDER BY frequency, unit_name \
+                ORDER BY frequency, unit_name
                 """
 
     conn.execute(iso_query, (session_id,))
@@ -75,7 +159,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
                   FROM SolidPreferenceIndices
                   WHERE session_id = %s
                     AND unit_name NOT LIKE '%Unit%'
-                  ORDER BY unit_name \
+                  ORDER BY unit_name
                   """
 
     conn.execute(solid_query, (session_id,))
@@ -105,9 +189,24 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
     print(f"Found solid preference data for {len(solid_data)} channels")
     print(f"Plotting {len(channel_strings)} channels")
 
-    # Create subplots - 1 row, 2 columns (isochromatic with 4 freq columns, and solid)
-    fig, (ax_iso, ax_solid) = plt.subplots(1, 2, figsize=(14, 12),
-                                           sharey=True, gridspec_kw={'width_ratios': [4, 1], 'wspace': 0.15})
+    # Determine number of correlation columns
+    n_corr_cols = len(correlations)
+    cluster_channel_list = sorted(correlations.keys()) if correlations else []
+
+    # Create subplots - adjust based on number of correlation columns
+    # Layout: [isochromatic (4 cols), solid (1 col), correlation cols (n_corr_cols)]
+    if n_corr_cols > 0:
+        width_ratios = [4, 1] + [1] * n_corr_cols
+        n_cols = 2 + n_corr_cols
+        fig, axes = plt.subplots(1, n_cols, figsize=(14 + 2 * n_corr_cols, 12),
+                                 sharey=True, gridspec_kw={'width_ratios': width_ratios, 'wspace': 0.15})
+        ax_iso = axes[0]
+        ax_solid = axes[1]
+        ax_corr_list = axes[2:] if n_corr_cols > 0 else []
+    else:
+        fig, (ax_iso, ax_solid) = plt.subplots(1, 2, figsize=(14, 12),
+                                               sharey=True, gridspec_kw={'width_ratios': [4, 1], 'wspace': 0.15})
+        ax_corr_list = []
 
     # Set up colormap (diverging around 0)
     cmap = plt.cm.RdBu_r  # Red for positive (prefers isochromatic/3D), Blue for negative
@@ -150,7 +249,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
                                zorder=10 if is_cluster else 1)
 
     # Format isochromatic plot
-    ax_iso.set_xlim(-0.2, n_frequencies - 0.8)  # Tighter limits to reduce gaps
+    ax_iso.set_xlim(-0.2, n_frequencies - 0.8)
     ax_iso.set_xticks(range(n_frequencies))
     ax_iso.set_xticklabels([f'{freq} Hz' for freq in frequencies], fontsize=10)
     ax_iso.set_yticks(range(1, len(channel_strings) + 1))
@@ -158,7 +257,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
     ax_iso.set_ylabel('Channel (Top → Bottom)', fontsize=10)
     ax_iso.set_title('Isochromatic Preference by Frequency', fontsize=12, fontweight='bold')
     ax_iso.grid(True, axis='y', alpha=0.3, linestyle='--')
-    ax_iso.grid(True, axis='x', alpha=0.2, linestyle='--')  # Add vertical grid lines
+    ax_iso.grid(True, axis='x', alpha=0.2, linestyle='--')
     ax_iso.set_ylim(0.5, len(channel_strings) + 0.5)
 
     # Plot solid preference - single column
@@ -199,9 +298,53 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
     ax_solid.grid(True, axis='y', alpha=0.3, linestyle='--')
     ax_solid.set_ylim(0.5, len(channel_strings) + 0.5)
 
+    # Plot correlation columns - one per cluster channel
+    for col_idx, (ax_corr, cluster_channel) in enumerate(zip(ax_corr_list, cluster_channel_list)):
+        corr_data = correlations[cluster_channel]
+
+        for idx, channel_str in enumerate(channel_strings):
+            y_pos = len(channel_strings) - idx  # Top to bottom
+            is_cluster = channel_str in cluster_channels
+            is_self = channel_str == cluster_channel
+
+            if channel_str in corr_data and not np.isnan(corr_data[channel_str]):
+                # Has correlation data
+                color_val = corr_data[channel_str]
+                size = 200 if is_cluster else 100
+                marker = '*' if is_cluster else 'o'
+                edge_color = 'black'
+                line_width = 2.0 if is_self else (0.5 if is_cluster else 0.5)
+
+                scatter = ax_corr.scatter(0, y_pos, c=color_val, s=size,
+                                          marker=marker, cmap=cmap, norm=norm,
+                                          edgecolors=edge_color, linewidths=line_width,
+                                          alpha=0.9 if is_cluster else 0.8,
+                                          zorder=10 if is_cluster else 1)
+            else:
+                # No data - use gray
+                size = 120 if is_cluster else 50
+                marker = '*' if is_cluster else 'o'
+                edge_color = 'black' if is_cluster else 'gray'
+                line_width = 0.5 if is_cluster else 0.5
+
+                ax_corr.scatter(0, y_pos, c='lightgray', s=size,
+                                marker=marker, edgecolors=edge_color, linewidths=line_width,
+                                alpha=0.7 if is_cluster else 0.5,
+                                zorder=10 if is_cluster else 1)
+
+        # Format correlation plot
+        ax_corr.set_xlim(-0.5, 0.5)
+        ax_corr.set_xticks([])
+        ax_corr.set_title(f'ρ vs {cluster_channel}', fontsize=12, fontweight='bold')
+        ax_corr.axvline(0, color='black', linewidth=0.5, alpha=0.3)
+        ax_corr.grid(True, axis='y', alpha=0.3, linestyle='--')
+        ax_corr.set_ylim(0.5, len(channel_strings) + 0.5)
+
     # Overall title
-    fig.suptitle(f'Channel Preference Indices\nSession: {session_id}',
-                 fontsize=14, fontweight='bold', y=0.95)
+    title_text = f'Channel Preference Indices\nSession: {session_id}'
+    if n_corr_cols > 0:
+        title_text += f' | Correlations based on {len(vectors)} channels with response vectors'
+    fig.suptitle(title_text, fontsize=14, fontweight='bold', y=0.95)
 
     # Adjust layout to make room for colorbar at bottom
     plt.tight_layout(rect=[0, 0.06, 1, 0.93])
@@ -209,7 +352,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
     # Add colorbar at the bottom
     cbar_ax = fig.add_axes([0.15, 0.02, 0.7, 0.02])  # [left, bottom, width, height]
     cbar = plt.colorbar(scatter, cax=cbar_ax, orientation='horizontal')
-    cbar.set_label('Preference Index (Red = Prefers Isochromatic/3D, Blue = Prefers Isoluminant/2D)',
+    cbar.set_label('Preference Index / Correlation (Red = Positive, Blue = Negative)',
                    fontsize=10)
 
     # Add legend for cluster channels
@@ -228,7 +371,6 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
         print(f"\nFigure saved to: {save_path}")
     plt.show()
 
-
     # Print summary statistics
     print(f"\n=== Summary for session {session_id} ===")
     print(f"Cluster channels: {sorted(cluster_channels) if cluster_channels else 'None'}")
@@ -239,8 +381,6 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
         n_channels_with_data = len(freq_data)
         if n_channels_with_data > 0:
             values = list(freq_data.values())
-
-            # Check cluster channel values
             cluster_values = [v for ch, v in freq_data.items() if ch in cluster_channels]
 
             print(f"\nFrequency {frequency} Hz:")
@@ -263,6 +403,28 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
     else:
         print("  No solid preference data available")
 
+    # Print correlation statistics
+    if correlations:
+        print(f"\n--- Channel Correlations (Spearman's ρ) ---")
+        for cluster_channel in cluster_channel_list:
+            corr_data = correlations[cluster_channel]
+            valid_corrs = [v for v in corr_data.values() if not np.isnan(v)]
+
+            if valid_corrs:
+                print(f"\nCorrelations with {cluster_channel}:")
+                print(f"  Channels with data: {len(valid_corrs)}/{len(channel_strings)}")
+                print(f"  Correlation range: [{min(valid_corrs):.3f}, {max(valid_corrs):.3f}]")
+                print(f"  Mean correlation: {np.mean(valid_corrs):.3f}")
+
+                # Top 5 most correlated channels (excluding self)
+                sorted_corrs = sorted([(ch, v) for ch, v in corr_data.items()
+                                       if not np.isnan(v) and ch != cluster_channel],
+                                      key=lambda x: abs(x[1]), reverse=True)[:5]
+                if sorted_corrs:
+                    print(f"  Top 5 most correlated:")
+                    for ch, corr in sorted_corrs:
+                        print(f"    {ch}: ρ = {corr:.3f}")
+
 
 def main():
     # Example usage - change session_id as needed
@@ -270,8 +432,7 @@ def main():
     headstage_label = "A"
 
     # Optional: save figure as PNG
-    # save_path = f"channel_preferences_{session_id}.png"
-    save_path = f"/home/connorlab/Documents/plots/{session_id}/preference_clusters.png"  # Set to None to skip saving
+    save_path = f"/home/connorlab/Documents/plots/{session_id}/preference_clusters.png"
 
     plot_channel_preferences(session_id, headstage_label, save_path=save_path)
 

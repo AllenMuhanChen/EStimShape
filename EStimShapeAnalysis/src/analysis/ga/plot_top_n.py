@@ -14,6 +14,7 @@ from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, 
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField, GenIdField
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
+from src.analysis.lightness.lightness_analysis import TextureField, ColorField
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.intan.MultiFileParser import MultiFileParser
 from src.pga.mock.mock_rwa_analysis import condition_spherical_angles, hemisphericalize_orientation
@@ -25,12 +26,12 @@ from src.startup import context
 def main():
     channel = "A-011"
 
-    compiled_data = compile()
+    compiled_data = compile_and_export()
     analysis = PlotTopNAnalysis()
 
     # compiled_data = None
     session_id, _ = read_session_id_from_db_name(context.ga_database)
-    session_id = "250909_0"
+    # session_id = "250909_0"
     channel = "A-027"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
@@ -112,7 +113,8 @@ def compile_and_export():
                              "Cluster Response",
                              "Shaft",
                              "Termination",
-                             "Junction"
+                             "Junction",
+                             "Texture"
                          ])
     return data
 
@@ -151,7 +153,7 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields.append(ShaftField(conn, mstick_spec_data_source))
     fields.append(TerminationField(conn, mstick_spec_data_source))
     fields.append(JunctionField(conn, mstick_spec_data_source))
-
+    fields.append(TextureField(conn))
     data = fields.to_data(task_ids)
     return data
 
