@@ -179,7 +179,7 @@ public class EStimShapeProceduralMatchStickTest {
 
         mStick.setProperties(3, "SHADE", 1.0);
 
-        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true, mStick.maxAttempts, noiseMapper);
+        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true, 1000, noiseMapper);
         testMatchStickDrawer.draw(new Drawable() {
             @Override
             public void draw() {

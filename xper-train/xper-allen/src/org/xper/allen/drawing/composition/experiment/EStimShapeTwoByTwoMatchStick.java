@@ -175,7 +175,7 @@ public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
     }
 
 
-    private void drawRF() {
+    public void drawRF() {
         double radius = rf.getRadius();
         Coordinates2D center = rf.getCenter();
 

@@ -13,6 +13,8 @@ import javax.vecmath.Point3d;
 import java.util.*;
 
 /**
+ * DEPRECATED.... this used to uniquely implement rf behavior for procedural stim... but now procedural match sticks
+ * subclass GAMatchSTick which contains rf behavior.
  * MatchSticks that are used to generate stimuli for the EStimShape NAFC Experiment.
  *
  * Includes:
@@ -21,7 +23,6 @@ import java.util.*;
  *
  */
 public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
-    public ReceptiveField rf;
 
     public EStimShapeProceduralMatchStick(RFStrategy rfStrategy, ReceptiveField rf, NAFCNoiseMapper noiseMapper) {
         super(noiseMapper);
@@ -164,7 +165,8 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
         RFUtils.positionAroundRF(rfStrategy, this, rf, 100);
     }
 
-    private void drawRF() {
+    @Override
+    public void drawRF() {
         List<Coordinates2D> outline = rf.getOutline();
 
         // Assuming the Coordinates2D class has methods getX() and getY() to access coordinates.

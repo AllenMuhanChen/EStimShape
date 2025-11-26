@@ -4,6 +4,7 @@ import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.morph.*;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
+import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.util.CoordinateConverter;
 import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 import org.xper.drawing.stick.JuncPt_struct;
@@ -15,9 +16,11 @@ import java.util.*;
 
 /**
  * Matchsticks procedurally generated from base components, and delta versions of those matchsticks
+ *
+ * contains ability to generate noisemaps
  * Noiseable
  */
-public class ProceduralMatchStick extends MorphedMatchStick {
+public class ProceduralMatchStick extends GAMatchStick {
 
     protected double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0};
     //protected double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0};
@@ -142,7 +145,11 @@ public class ProceduralMatchStick extends MorphedMatchStick {
             SphericalCoordinates originalObjCenteredPos = calcObjCenteredPosForComp(baseMatchStick, fromCompId);
             SphericalCoordinates newDrivingObjectCenteredPos = calcObjCenteredPosForComp(this, drivingComponent);
             if (doCompareObjCenteredPos)
-                compareObjectCenteredPositions(originalObjCenteredPos, newDrivingObjectCenteredPos);
+                try {
+                    compareObjectCenteredPositions(originalObjCenteredPos, newDrivingObjectCenteredPos);
+                } catch (MorphException e) {
+                    System.out.println(e.getMessage());
+                }
             return;
         }
         throw new MorphRepetitionException("Could not generate matchStick FROM COMPONENT IN NOISE after " + this.maxAttempts + " attempts");
