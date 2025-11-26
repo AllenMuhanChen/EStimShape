@@ -53,7 +53,7 @@ public class PruningMatchStick extends ProceduralMatchStick {
 
         // Call MorphedMatchStick
         int nAttempts = 0;
-        while (nAttempts < 15) {
+        while (true) {
             try {
                 nAttempts++;
                 genMorphedComponentsMatchStick(paramsForComps, this.matchStickToMorph, true, true, true);

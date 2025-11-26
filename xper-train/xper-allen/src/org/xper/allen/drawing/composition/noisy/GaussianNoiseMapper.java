@@ -125,6 +125,7 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
         if (actualPercentageInside < percentRequiredInside){
             throw new NoiseException("Found points outside of noise circle: " + actualPercentageInside + "% inside + with noise Radius: " + proceduralMatchStick.noiseRadiusMm);
         }
+        System.out.println("PERCENT INSIDE: " + percentRequiredInside);
 
         //Check if enough points not in compId are outside of the noise circle
         ArrayList<Point2d> pointsToCheckIfOutside = new ArrayList<>();

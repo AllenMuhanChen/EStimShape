@@ -156,32 +156,6 @@ public class GAMatchStickTest {
         pruning.genPruningMatchStick(parentFromSpec, 0.75, compsToPreserve, null);
         testMatchStickDrawer.draw(pruning);
 
-        testMatchStickDrawer.draw(new Drawable() {
-            @Override
-            public void draw() {
-                // Now, draw the circle
-                GL11.glColor3f(1.0f, 0.0f, 0.0f);
-                System.out.println("Compt to preserve: " + pruning.getComponentsToPreserve().get(0));
-                System.out.println("Comp to noise: " + pruning.getSpecialEndComp().get(0));
-                Point3d circle = pruning.calculateGaussNoiseOrigin(pruning.getSpecialEndComp().get(0)); // Replace with the circle's center X-coordinate
-
-                System.out.println(circle.getX() + " " + circle.getY());
-
-                double radius = pruning.noiseRadiusMm;
-                int numSegments = 100; // Increase for a smoother circle
-
-                GL11.glBegin(GL11.GL_LINE_LOOP);
-                for (int i = 0; i < numSegments; i++) {
-                    double theta = 2.0 * Math.PI * i / numSegments; // Current angle
-                    double x = radius * Math.cos(theta); // Calculate the x component
-                    double y = radius * Math.sin(theta); // Calculate the y component
-                    GL11.glVertex2d(x + circle.getX(), y + circle.getY()); // Output vertex
-                }
-                GL11.glEnd();
-            }
-        });
-
-
         testMatchStickDrawer.saveImage(figPath + "/prune_1.png");
         ThreadUtil.sleep(1000);
         testMatchStickDrawer.drawCompMap(pruning);
