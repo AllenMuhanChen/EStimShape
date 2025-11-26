@@ -185,6 +185,23 @@ public class TestMatchStickDrawer {
         return ouptutFile.getAbsolutePath();
     }
 
+    public String saveNoiseMap(String filepath, ProceduralMatchStick obj, double amplitude, List<Integer> specialCompIndcs) {
+        GaussianNoiseMapper noiseMapper = new GaussianNoiseMapper();
+        noiseMapper.setDoEnforceHiddenJunction(true);
+        BufferedImage img = noiseMapper.generateGaussianNoiseMapFor(obj,
+                width, height,
+                amplitude,  0, window.renderer, specialCompIndcs);
+
+        filepath=filepath+".png";
+        File ouptutFile = new File(filepath);
+        try {
+            ImageIO.write(img, "png", ouptutFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return ouptutFile.getAbsolutePath();
+    }
+
     public AllenMStickSpec saveSpec(AllenMatchStick mStick, String filepath) {
         AllenMStickSpec spec = new AllenMStickSpec();
         spec.setMStickInfo(mStick, true);

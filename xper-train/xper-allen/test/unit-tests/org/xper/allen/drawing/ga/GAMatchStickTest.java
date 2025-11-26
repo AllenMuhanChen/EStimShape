@@ -161,6 +161,10 @@ public class GAMatchStickTest {
         testMatchStickDrawer.drawCompMap(pruning);
         testMatchStickDrawer.saveImage(figPath + "/prune_1_comp_map.png");
         ThreadUtil.sleep(1000);
+        testMatchStickDrawer.saveNoiseMap(figPath + "/prune_1_noisemap.png",
+                pruning,
+                0.5, compsToPreserve
+                );
         System.out.println(pruning.getMorphData().toXml());
     }
 

@@ -434,9 +434,9 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
     public BufferedImage generateGaussianNoiseMapFor(ProceduralMatchStick mStick,
                                                             int width, int height,
                                                             double amplitude, double background,
-                                                            AbstractRenderer renderer, List<Integer> specialCompIndcs){
+                                                            AbstractRenderer renderer, List<Integer> compsToNoise){
 
-        Point3d noiseOrigin = calculateNoiseOrigin(mStick, specialCompIndcs);
+        Point3d noiseOrigin = calculateNoiseOrigin(mStick, compsToNoise);
 
 
 //        double sigmaPixels = mmToPixels(renderer, mStick.noiseRadiusMm/6);
