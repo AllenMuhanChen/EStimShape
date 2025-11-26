@@ -3,6 +3,7 @@ package org.xper.allen.drawing.composition.morph;
 import org.xper.allen.drawing.composition.AllenMAxisArc;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenTubeComp;
+import org.xper.allen.util.CoordinateConverter;
 import org.xper.drawing.stick.EndPt_struct;
 import org.xper.drawing.stick.JuncPt_struct;
 import org.xper.drawing.stick.stickMath_lib;
@@ -13,7 +14,13 @@ import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import static org.xper.allen.drawing.composition.experiment.ProceduralMatchStick.compareObjectCenteredPositions;
+import static org.xper.allen.drawing.ga.GAMatchStick.calcObjCenteredPosForComp;
+import static org.xper.allen.drawing.ga.GAMatchStick.objCenteredPositionTolerance;
+
 public class MorphedMatchStick extends AllenMatchStick {
+    public static CoordinateConverter.SphericalCoordinates objCenteredPositionTolerance =
+            new CoordinateConverter.SphericalCoordinates(10, Math.PI/4, Math.PI / 2 );
 
     protected int MAX_TOTAL_ATTEMPTS = 15;
     private final double PROB_addToEndorJunc = 1.0; // x% add to end or JuncPt, 1-x% add to branch
@@ -38,12 +45,16 @@ public class MorphedMatchStick extends AllenMatchStick {
     private List<Integer> compsToPreserve = new ArrayList<>();
     public boolean preserveJunction = false; //whether to preserve radii of junctions that contain compsToPreserve
     public MorphData morphData = new MorphData();
-
-    public void genMorphedComponentsMatchStick(Map<Integer, ComponentMorphParameters> morphParametersForComponents, MorphedMatchStick matchStickToMorph, boolean doPositionShape, Boolean preserveJunction){
+    public boolean compareObjectCenteredPosition = false;
+    public void genMorphedComponentsMatchStick(Map<Integer, ComponentMorphParameters> morphParametersForComponents, MorphedMatchStick matchStickToMorph, boolean doPositionShape, Boolean preserveJunction, Boolean compareObjectCenteredPosition){
         //default behavior if preserveJunction Param not given: don't preserve juncs
         if(preserveJunction != null){
             this.preserveJunction = preserveJunction;
         }
+        if(compareObjectCenteredPosition != null){
+            this.compareObjectCenteredPosition = compareObjectCenteredPosition;
+        }
+
         this.showComponents = false;
 
         localBackup = new MorphedMatchStick();
@@ -59,15 +70,27 @@ public class MorphedMatchStick extends AllenMatchStick {
                 numAttempts++;
 
                 findCompsToPreserve(morphParametersForComponents.keySet());
+
+                //TODO: expand to also store and check more than one compsToMorph
+                int compIndxToPreserve = compsToPreserve.get(0);
+                CoordinateConverter.SphericalCoordinates originalObjCenteredPos = calcObjCenteredPosForComp(matchStickToMorph, compIndxToPreserve);
+
                 morphAllComponents(morphParametersForComponents);
 //                MutateSUB_reAssignJunctionRadius();
                 centerShape();
                 applyRadiusProfile();
                 attemptSmoothizeMStick();
-                if (doPositionShape)
+
+                if (doPositionShape) {
                     positionShape();
+                }
+
+                if (this.compareObjectCenteredPosition){
+                    CoordinateConverter.SphericalCoordinates newDrivingObjectCenteredPos = calcObjCenteredPosForComp(this, compIndxToPreserve);
+                    compareObjectCenteredPositions(originalObjCenteredPos, newDrivingObjectCenteredPos, objCenteredPositionTolerance);
+                }
                 return;
-            } catch (MorphException e) {
+            } catch (Exception e) {
                 cleanData();
                 this.setObj1(null);
                 copyFrom(localBackup);

@@ -4985,6 +4985,18 @@ public class AllenMatchStick extends MatchStick {
 		}
 	}
 
+    public Point3d getMassCenterForComponent(int componentIndex) {
+        Point3d cMass = new Point3d(0, 0, 0);
+        AllenTubeComp targetComp = getComp()[componentIndex];
+        int totalVect = targetComp.getnVect();
+        for (int i = 1; i <= totalVect; i++) {
+            cMass.add(targetComp.getVect_info()[i]);
+        }
+        cMass.x /= totalVect;
+        cMass.y /= totalVect;
+        cMass.z /= totalVect;
+        return cMass;
+    }
 
 	public RFStrategy getRfStrategy() {
 		return rfStrategy;

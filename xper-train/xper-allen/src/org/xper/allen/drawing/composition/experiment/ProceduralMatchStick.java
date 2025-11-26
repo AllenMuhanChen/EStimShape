@@ -92,7 +92,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         int numAttempts = 0;
         while ((numAttempts < maxAttempts || maxAttempts == -1)) {
             try {
-                genMorphedComponentsMatchStick(morphParametersForComponents, baseMatchStick, doPositionShape, null);
+                genMorphedComponentsMatchStick(morphParametersForComponents, baseMatchStick, doPositionShape, null, null);
             } catch(MorphException e) {
                 System.out.println(e.getMessage());
                 continue;
@@ -262,7 +262,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                     baseComponentIndex = baseCompIndcs.get(i);
                     morphParametersForComponents.put(baseComponentIndex, morphParams);
                 }
-                genMorphedComponentsMatchStick(morphParametersForComponents, targetMatchStick, doPositionShape, null);
+                genMorphedComponentsMatchStick(morphParametersForComponents, targetMatchStick, doPositionShape, null, null);
                 SphericalCoordinates newDrivingObjectCenteredPos = calcObjCenteredPosForComp(this, drivingComponentIndex);
                 if (doCompareObjCenteredPos)
                     compareObjectCenteredPositions(originalObjCenteredPos, newDrivingObjectCenteredPos);
@@ -304,6 +304,9 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
     public static void compareObjectCenteredPositions(SphericalCoordinates expected, SphericalCoordinates actual, SphericalCoordinates tolerances) {
         double rPercentDifference = Math.abs(actual.r - expected.r) / expected.r;
+        System.out.println("rPercentDifference: " + rPercentDifference);
+        System.out.println("angleDiff theta: " + angleDiff(actual.theta, expected.theta));
+        System.out.println("angleDiff phi: " + angleDiff(actual.phi, expected.phi));
         if (rPercentDifference > tolerances.r ||
                 angleDiff(actual.theta, expected.theta) > tolerances.theta ||
                 angleDiff(actual.phi, expected.phi) > tolerances.phi) {

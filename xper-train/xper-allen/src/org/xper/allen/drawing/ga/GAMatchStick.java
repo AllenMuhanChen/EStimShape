@@ -2,9 +2,11 @@ package org.xper.allen.drawing.ga;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
+import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
+import org.xper.allen.util.CoordinateConverter;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.stick.MStickObj4Smooth;
 import org.xper.drawing.stick.stickMath_lib;
@@ -22,6 +24,7 @@ import java.util.*;
  *
  */
 public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
+
 
     Point3d toMoveCenterOfMassLocation;
     protected ReceptiveField rf;
@@ -283,6 +286,13 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
 
     }
 
+    public static CoordinateConverter.SphericalCoordinates calcObjCenteredPosForComp(AllenMatchStick matchStick, int compId) {
+        Point3d shapeMassCenter = matchStick.getMassCenter();
+        Point3d drivingComponentMassCenter = matchStick.getMassCenterForComponent(compId);
+        Point3d drivingComponentObjectCenteredPositionPoint = new Point3d(drivingComponentMassCenter);
+        drivingComponentObjectCenteredPositionPoint.sub(shapeMassCenter);
+        return CoordinateConverter.cartesianToSpherical(drivingComponentObjectCenteredPositionPoint);
+    }
 
     @Override
     protected void positionShape() throws MorphException {

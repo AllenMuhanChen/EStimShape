@@ -151,7 +151,7 @@ public class GAMatchStickTest {
         pruning.setMaxTotalAttempts(100);
         pruning.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
         pruning.setStimColor(color);
-        pruning.genPruningMatchStick(parentFromSpec, 0.85, 1);
+        pruning.genPruningMatchStick(parentFromSpec, 0.75, 1);
 
         testMatchStickDrawer.draw(pruning);
 //        testMatchStickDrawer.drawCompMap(pruning);

@@ -6,9 +6,12 @@ import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
+import org.xper.allen.util.CoordinateConverter;
 
 import javax.vecmath.Point3d;
 import java.util.*;
+
+import static org.xper.allen.drawing.composition.experiment.ProceduralMatchStick.compareObjectCenteredPositions;
 
 public class PruningMatchStick extends GAMatchStick {
 
@@ -20,9 +23,27 @@ public class PruningMatchStick extends GAMatchStick {
         super(rf, rfStrategy);
     }
 
-
-
     public PruningMatchStick() {
+    }
+
+    public void genPruningMatchStick(MorphedMatchStick matchStickToMorph, double magnitude, int numPreserve){
+        this.matchStickToMorph = matchStickToMorph;
+
+
+        componentsToMorph = chooseComponentsToMorph(numPreserve);
+
+        // MORPH ALL COMPONENTS STRATEGY
+        NormalMorphDistributer normalMorphDistributer = new NormalMorphDistributer(1/3.0);
+        // Construct MorphParameters for componentsToMorph
+        Map<Integer, ComponentMorphParameters> paramsForComps = new HashMap<>();
+        for (Integer comp : componentsToMorph) {
+            ComponentMorphParameters params = new NormalDistributedComponentMorphParameters(magnitude, normalMorphDistributer);
+            paramsForComps.put(comp, params);
+        }
+
+        // Call MorphedMatchStick
+        genMorphedComponentsMatchStick(paramsForComps, this.matchStickToMorph, true, false, true);
+
 
     }
 
@@ -35,48 +56,11 @@ public class PruningMatchStick extends GAMatchStick {
             Point3d pointToMove = getComp()[compToMove].getMassCenter();
             Point3d destination = matchStickToMorph.getComp()[compToMove].getMassCenter();
 
-            //TESTING
-            System.out.println("To component to move: " + compToMove);
-            for (int i = 1; i<=getnComponent(); i++){
-                System.out.println("This component before move " + getComp()[i].getMassCenter());
-            }
-
             movePointToDestination(pointToMove, destination);
-            for (int i = 1; i<=getnComponent(); i++){
-
-                System.out.println("This component after move " + getComp()[i].getMassCenter());
-                System.out.println("This component destination " + matchStickToMorph.getComp()[i].getMassCenter());
-
-            }
-
         }
-
-//        if (toMoveCenterOfMassLocation != null){
-//            moveCenterOfMassTo(toMoveCenterOfMassLocation);
-//            return;
-//        }
-//        throw new IllegalArgumentException("rfStrategy and toMoveCenterOfMassLocation both null");
     }
-
 
     // Chooses own random components to preserve
-    public void genPruningMatchStick(MorphedMatchStick matchStickToMorph, double magnitude, int numPreserve){
-        this.matchStickToMorph = matchStickToMorph;
-
-        componentsToMorph = chooseComponentsToMorph(numPreserve);
-
-        NormalMorphDistributer normalMorphDistributer = new NormalMorphDistributer(1/3.0);
-        // Construct MorphParameters for componentsToMorph
-        Map<Integer, ComponentMorphParameters> paramsForComps = new HashMap<>();
-        for (Integer comp : componentsToMorph) {
-            ComponentMorphParameters params = new NormalDistributedComponentMorphParameters(magnitude, normalMorphDistributer);
-            paramsForComps.put(comp, params);
-        }
-
-        // Call MorphedMatchStick
-        genMorphedComponentsMatchStick(paramsForComps, this.matchStickToMorph, true, true);
-
-    }
 
     private List<Integer> chooseComponentsToMorph(int numPreserve) {
         List<Integer> componentsToMorph = matchStickToMorph.getCompIds();

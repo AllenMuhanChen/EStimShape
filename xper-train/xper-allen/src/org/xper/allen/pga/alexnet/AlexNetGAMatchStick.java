@@ -48,7 +48,7 @@ public class AlexNetGAMatchStick extends MorphedMatchStick {
         //Morphing Existing Comps - Either NON RF or RF Operation
         Map<Integer, ComponentMorphParameters> paramsForComps = specifyCompMorphParams(componentRemovedMStick, magnitude, 1/3.0);
         AlexNetGAMatchStick morphedMStick = new AlexNetGAMatchStick(light_position, stimColor, location, getScaleForMAxisShape(), textureType, parent.getContrast());
-        morphedMStick.genMorphedComponentsMatchStick(paramsForComps, componentRemovedMStick, true, null);
+        morphedMStick.genMorphedComponentsMatchStick(paramsForComps, componentRemovedMStick, true, null, null);
 
         //Adding New Comps - NON RF Operation
 
