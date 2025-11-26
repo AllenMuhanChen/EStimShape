@@ -331,7 +331,7 @@ public class DepthLightingPostHocMatchStickTest {
                 throw new NotImplementedException();
             }
         });
-        newMStick.genMorphedComponentsMatchStick(morphParameters, baseMStick, true);
+        newMStick.genMorphedComponentsMatchStick(morphParameters, baseMStick, true, null);
 
         drawer.clear();
         drawer.drawMStick(newMStick);

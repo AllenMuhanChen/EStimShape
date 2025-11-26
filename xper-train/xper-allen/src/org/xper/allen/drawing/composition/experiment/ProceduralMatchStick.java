@@ -92,7 +92,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         int numAttempts = 0;
         while ((numAttempts < maxAttempts || maxAttempts == -1)) {
             try {
-                genMorphedComponentsMatchStick(morphParametersForComponents, baseMatchStick, doPositionShape);
+                genMorphedComponentsMatchStick(morphParametersForComponents, baseMatchStick, doPositionShape, null);
             } catch(MorphException e) {
                 System.out.println(e.getMessage());
                 continue;
@@ -262,7 +262,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                     baseComponentIndex = baseCompIndcs.get(i);
                     morphParametersForComponents.put(baseComponentIndex, morphParams);
                 }
-                genMorphedComponentsMatchStick(morphParametersForComponents, targetMatchStick, doPositionShape);
+                genMorphedComponentsMatchStick(morphParametersForComponents, targetMatchStick, doPositionShape, null);
                 SphericalCoordinates newDrivingObjectCenteredPos = calcObjCenteredPosForComp(this, drivingComponentIndex);
                 if (doCompareObjCenteredPos)
                     compareObjectCenteredPositions(originalObjCenteredPos, newDrivingObjectCenteredPos);

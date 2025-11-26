@@ -35,7 +35,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
                 morphParametersForComponents.put(compId, new SetMorphParameters(magnitude));
             }
             try {
-                genMorphedComponentsMatchStick(morphParametersForComponents, mStickToMorph, doPositionShape);
+                genMorphedComponentsMatchStick(morphParametersForComponents, mStickToMorph, doPositionShape, null);
                 if (doCheckNoise){
                     noiseMapper.checkInNoise(this, compsToNoise, 0.75);
                 }
@@ -68,7 +68,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
                         90 * Math.PI / 180));
             }
             try {
-                genMorphedComponentsMatchStick(morphParametersForComponents, mStickToMorph, doPositionShape);
+                genMorphedComponentsMatchStick(morphParametersForComponents, mStickToMorph, doPositionShape, null);
                 System.out.println("Post set mute driving comp: " + this.getDrivingComponent());
                 System.out.println("Post set mute center of mass: " + this.getMassCenterForComponent(getDrivingComponent()));
                 System.out.println("Post set mute real center: " + this.getComp()[this.getDrivingComponent()].getMassCenter());

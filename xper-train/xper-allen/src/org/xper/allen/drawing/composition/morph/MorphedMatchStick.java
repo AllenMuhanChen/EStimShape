@@ -14,6 +14,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class MorphedMatchStick extends AllenMatchStick {
+
     protected int MAX_TOTAL_ATTEMPTS = 15;
     private final double PROB_addToEndorJunc = 1.0; // x% add to end or JuncPt, 1-x% add to branch
     private final double PROB_addToEnd_notJunc = 0.5; // when "addtoEndorJunc",
@@ -35,11 +36,14 @@ public class MorphedMatchStick extends AllenMatchStick {
     private int[] compLabel;
     private MorphedMatchStick localBackup;
     private List<Integer> compsToPreserve = new ArrayList<>();
-
+    public boolean preserveJunction = false; //whether to preserve radii of junctions that contain compsToPreserve
     public MorphData morphData = new MorphData();
 
-
-    public void genMorphedComponentsMatchStick(Map<Integer, ComponentMorphParameters> morphParametersForComponents, MorphedMatchStick matchStickToMorph, boolean doPositionShape){
+    public void genMorphedComponentsMatchStick(Map<Integer, ComponentMorphParameters> morphParametersForComponents, MorphedMatchStick matchStickToMorph, boolean doPositionShape, Boolean preserveJunction){
+        //default behavior if preserveJunction Param not given: don't preserve juncs
+        if(preserveJunction != null){
+            this.preserveJunction = preserveJunction;
+        }
         this.showComponents = false;
 
         localBackup = new MorphedMatchStick();
@@ -690,12 +694,14 @@ public class MorphedMatchStick extends AllenMatchStick {
                         break;
                     }
                 }
-                oldRadiusProfile.addRadiusInfo(uNdx, junctionRadiusInfo);
-//AC DEBUG: 07/17/24
-//                if (!junctionContainsPreservedComponents) {
-//                    oldRadiusProfile.addRadiusInfo(uNdx, junctionRadiusInfo);
-//                }
-
+                if (!preserveJunction){
+                    oldRadiusProfile.addRadiusInfo(uNdx, junctionRadiusInfo);
+                }
+                else {
+                    if (!junctionContainsPreservedComponents) {
+                        oldRadiusProfile.addRadiusInfo(uNdx, junctionRadiusInfo);
+                    }
+                }
             }
         });
 
