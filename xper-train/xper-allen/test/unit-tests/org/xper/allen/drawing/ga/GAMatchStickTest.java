@@ -9,13 +9,15 @@ import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.pga.RFStrategy;
-import org.xper.allen.pga.RFUtils;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 import org.xper.util.ThreadUtil;
 
 import javax.vecmath.Point3d;
+
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.xper.allen.pga.RFStrategy.COMPLETELY_INSIDE;
@@ -63,12 +65,17 @@ public class GAMatchStickTest {
         }
     };
     private TestMatchStickDrawer testMatchStickDrawer;
+    private GaussianNoiseMapper noiseMapper;
 
     @Before
     public void setUp() throws Exception {
         testMatchStickDrawer = new TestMatchStickDrawer();
         testMatchStickDrawer.setup(500, 500);
 
+        noiseMapper = new GaussianNoiseMapper();
+        noiseMapper.setWidth(500);
+        noiseMapper.setHeight(500);
+        noiseMapper.setBackground(0);
     }
 
     @Test
@@ -140,13 +147,40 @@ public class GAMatchStickTest {
         ThreadUtil.sleep(1000);
         testMatchStickDrawer.clear();
 
-        PruningMatchStick pruning = new PruningMatchStick();
+        PruningMatchStick pruning = new PruningMatchStick(noiseMapper);
         pruning.setMaxTotalAttempts(1000);
         pruning.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
         pruning.setStimColor(color);
-        pruning.genPruningMatchStick(parentFromSpec, 0.75, 1);
 
+        List<Integer> compsToPreserve = PruningMatchStick.chooseRandomComponentsToPreserve(1, parentFromSpec);
+        pruning.genPruningMatchStick(parentFromSpec, 0.75, compsToPreserve);
         testMatchStickDrawer.draw(pruning);
+
+        testMatchStickDrawer.draw(new Drawable() {
+            @Override
+            public void draw() {
+                // Now, draw the circle
+                GL11.glColor3f(1.0f, 0.0f, 0.0f);
+
+                Point3d circle = pruning.calculateGaussNoiseOrigin(pruning.getSpecialEndComp().get(0)); // Replace with the circle's center X-coordinate
+
+                System.out.println(circle.getX() + " " + circle.getY());
+
+                double radius = pruning.noiseRadiusMm;
+                int numSegments = 100; // Increase for a smoother circle
+
+                GL11.glBegin(GL11.GL_LINE_LOOP);
+                for (int i = 0; i < numSegments; i++) {
+                    double theta = 2.0 * Math.PI * i / numSegments; // Current angle
+                    double x = radius * Math.cos(theta); // Calculate the x component
+                    double y = radius * Math.sin(theta); // Calculate the y component
+                    GL11.glVertex2d(x + circle.getX(), y + circle.getY()); // Output vertex
+                }
+                GL11.glEnd();
+            }
+        });
+
+
         testMatchStickDrawer.saveImage(figPath + "/prune_1.png");
         ThreadUtil.sleep(1000);
     }

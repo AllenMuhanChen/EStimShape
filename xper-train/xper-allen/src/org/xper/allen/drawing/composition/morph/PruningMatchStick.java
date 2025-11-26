@@ -2,36 +2,38 @@ package org.xper.allen.drawing.composition.morph;
 
 import com.thoughtworks.xstream.XStream;
 import org.xper.allen.drawing.composition.*;
-import org.xper.allen.drawing.ga.GAMatchStick;
+import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
+import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
-import org.xper.allen.util.CoordinateConverter;
 
 import javax.vecmath.Point3d;
 import java.util.*;
 
-import static org.xper.allen.drawing.composition.experiment.ProceduralMatchStick.compareObjectCenteredPositions;
-
-public class PruningMatchStick extends GAMatchStick {
+public class PruningMatchStick extends ProceduralMatchStick {
 
     private MorphedMatchStick matchStickToMorph;
     private List<Integer> toPreserve;
     private List<Integer> componentsToMorph;
 
-    public PruningMatchStick(ReceptiveField rf, RFStrategy rfStrategy) {
-        super(rf, rfStrategy);
+    public PruningMatchStick(ReceptiveField rf, RFStrategy rfStrategy, NAFCNoiseMapper noiseMapper) {
+        super(rf, rfStrategy, noiseMapper);
     }
 
-    public PruningMatchStick() {
+    /**
+     * Behavior of this one is to automatically position shape based on parent shape
+     * @param noiseMapper
+     */
+    public PruningMatchStick(NAFCNoiseMapper noiseMapper) {
+        super(noiseMapper);
     }
 
-    public void genPruningMatchStick(MorphedMatchStick matchStickToMorph, double magnitude, int numPreserve){
+    public void genPruningMatchStick(MorphedMatchStick matchStickToMorph, double magnitude, List<Integer> compsToPreserve){
         this.matchStickToMorph = matchStickToMorph;
+        this.toPreserve = compsToPreserve;
 
-
-        componentsToMorph = chooseComponentsToMorph(numPreserve);
-
+        componentsToMorph = chooseComponentsToMorph(compsToPreserve);
         // MORPH ALL COMPONENTS STRATEGY
         NormalMorphDistributer normalMorphDistributer = new NormalMorphDistributer(1/3.0);
         // Construct MorphParameters for componentsToMorph
@@ -60,15 +62,24 @@ public class PruningMatchStick extends GAMatchStick {
 
     // Chooses own random components to preserve
 
-    private List<Integer> chooseComponentsToMorph(int numPreserve) {
-        List<Integer> componentsToMorph = matchStickToMorph.getCompIds();
-        Collections.shuffle(componentsToMorph);
-        toPreserve = new ArrayList<Integer>();
-        for (int i = 0; i< numPreserve; i++){
-            toPreserve.add(componentsToMorph.get(i));
+    public static List<Integer> chooseRandomComponentsToPreserve(int numPreserve, MorphedMatchStick stickToMorph) {
+        List<Integer> componentsToPreserve = new ArrayList<>();
+        List<Integer> components = stickToMorph.getCompIds();
+        Collections.shuffle(components);
+        for  (int i = 0; i < numPreserve; i++) {
+            componentsToPreserve.add(components.get(i));
         }
-        componentsToMorph.removeAll(toPreserve);
-        return componentsToMorph;
+        return components;
+    }
+
+    private List<Integer> chooseComponentsToMorph(List<Integer> compsToPreserve){
+        List<Integer> componentsToMorph = new ArrayList<>();
+        for (Integer comp : matchStickToMorph.getCompIds()) {
+            if (!compsToPreserve.contains(comp)) {
+                componentsToMorph.add(comp);
+            }
+        }
+        return  componentsToMorph;
     }
 
     @Override

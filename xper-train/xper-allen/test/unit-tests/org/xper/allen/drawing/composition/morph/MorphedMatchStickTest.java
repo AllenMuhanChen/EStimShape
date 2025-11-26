@@ -51,9 +51,9 @@ public class MorphedMatchStickTest {
     @Test
     @Ignore
     public void pruningMatchStick(){
-        PruningMatchStick pruningMatchStick = new PruningMatchStick();
+        PruningMatchStick pruningMatchStick = new PruningMatchStick(null);
         pruningMatchStick.setProperties(30.0, "SHADE", 1.0);
-        pruningMatchStick.genPruningMatchStick(parentMStick, 0.6, 1);
+        pruningMatchStick.genPruningMatchStick(parentMStick, 0.6, PruningMatchStick.chooseRandomComponentsToPreserve(1, parentMStick));
         ThreadUtil.sleep(500);
         drawPng(pruningMatchStick, 2L);
     }

@@ -151,7 +151,7 @@ public class CoordinatesTest {
         //draw rf
         GL11.glColor3f(1, 0, 0);
         GL11.glBegin(GL11.GL_LINE_LOOP);
-        for (Coordinates2D point : mStick.rf.getOutline()) {
+        for (Coordinates2D point : mStick.getRf().getOutline()) {
             GL11.glVertex2d(point.getX(), point.getY());
         }
         GL11.glEnd();

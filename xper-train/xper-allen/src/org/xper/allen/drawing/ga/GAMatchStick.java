@@ -26,7 +26,7 @@ import java.util.*;
 public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
 
 
-    Point3d toMoveCenterOfMassLocation;
+    protected Point3d toMoveCenterOfMassLocation;
     protected ReceptiveField rf;
 
     /**

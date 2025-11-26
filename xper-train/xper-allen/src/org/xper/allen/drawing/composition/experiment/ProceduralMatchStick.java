@@ -5,6 +5,8 @@ import org.xper.allen.drawing.composition.morph.*;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.drawing.ga.GAMatchStick;
+import org.xper.allen.drawing.ga.ReceptiveField;
+import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.util.CoordinateConverter;
 import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 import org.xper.drawing.stick.JuncPt_struct;
@@ -33,6 +35,22 @@ public class ProceduralMatchStick extends GAMatchStick {
     public NAFCNoiseMapper noiseMapper;
 
     public boolean noiseDebugMode = false;
+
+    public ProceduralMatchStick(ReceptiveField rf, RFStrategy rfStrategy, NAFCNoiseMapper noiseMapper) {
+        this.rf = rf;
+        this.rfStrategy = rfStrategy;
+        this.noiseMapper = noiseMapper;
+    }
+    /**
+     * Use this constructor to have the stimulus positioned at a specific location
+     *
+     * @param centerOfMassLocation
+     * @param noiseMapper
+     */
+    public ProceduralMatchStick(Point3d centerOfMassLocation, NAFCNoiseMapper noiseMapper){
+        this.toMoveCenterOfMassLocation = centerOfMassLocation;
+        this.noiseMapper = noiseMapper;
+    }
 
     public ProceduralMatchStick(NAFCNoiseMapper noiseMapper) {
         this.noiseMapper = noiseMapper;
