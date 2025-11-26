@@ -36,7 +36,7 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
      * can obscure more of the shape than wanted.
      *
      */
-    private boolean doEnforceHiddenJunction = false;
+    private boolean doEnforceHiddenJunction = true;
 
     /*
     08/19/24 AC: These debugging variables were used to visualize the noise circle and the points that were used to check

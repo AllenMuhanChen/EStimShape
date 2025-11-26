@@ -153,7 +153,7 @@ public class GAMatchStickTest {
         pruning.setStimColor(color);
 
         List<Integer> compsToPreserve = PruningMatchStick.chooseRandomComponentsToPreserve(1, parentFromSpec);
-        pruning.genPruningMatchStick(parentFromSpec, 0.75, compsToPreserve);
+        pruning.genPruningMatchStick(parentFromSpec, 0.75, compsToPreserve, null);
         testMatchStickDrawer.draw(pruning);
 
         testMatchStickDrawer.draw(new Drawable() {
@@ -161,7 +161,8 @@ public class GAMatchStickTest {
             public void draw() {
                 // Now, draw the circle
                 GL11.glColor3f(1.0f, 0.0f, 0.0f);
-
+                System.out.println("Compt to preserve: " + pruning.getComponentsToPreserve().get(0));
+                System.out.println("Comp to noise: " + pruning.getSpecialEndComp().get(0));
                 Point3d circle = pruning.calculateGaussNoiseOrigin(pruning.getSpecialEndComp().get(0)); // Replace with the circle's center X-coordinate
 
                 System.out.println(circle.getX() + " " + circle.getY());
@@ -183,6 +184,10 @@ public class GAMatchStickTest {
 
         testMatchStickDrawer.saveImage(figPath + "/prune_1.png");
         ThreadUtil.sleep(1000);
+        testMatchStickDrawer.drawCompMap(pruning);
+        testMatchStickDrawer.saveImage(figPath + "/prune_1_comp_map.png");
+        ThreadUtil.sleep(1000);
+        System.out.println(pruning.getMorphData().toXml());
     }
 
     @Test

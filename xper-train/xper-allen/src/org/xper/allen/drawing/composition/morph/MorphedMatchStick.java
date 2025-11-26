@@ -74,7 +74,8 @@ public class MorphedMatchStick extends AllenMatchStick {
                 //TODO: expand to also store and check more than one compsToMorph
                 int compIndxToPreserve = compsToPreserve.get(0);
                 CoordinateConverter.SphericalCoordinates originalObjCenteredPos = calcObjCenteredPosForComp(matchStickToMorph, compIndxToPreserve);
-
+                System.out.println("Preserve: " + compsToPreserve.get(0));
+                System.out.println("Morph: " + morphParametersForComponents.keySet());
                 morphAllComponents(morphParametersForComponents);
 //                MutateSUB_reAssignJunctionRadius();
                 centerShape();
@@ -322,6 +323,9 @@ public class MorphedMatchStick extends AllenMatchStick {
     }
 
     private void findCompsToPreserve(Set<Integer> morphParametersForComponents) {
+        if (!compsToPreserve.isEmpty()){
+            return;
+        }
         compsToPreserve.clear();
         List<Integer> components = getCompIds();
 

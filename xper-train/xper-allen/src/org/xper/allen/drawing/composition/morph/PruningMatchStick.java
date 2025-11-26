@@ -14,7 +14,7 @@ import java.util.*;
 public class PruningMatchStick extends ProceduralMatchStick {
 
     private MorphedMatchStick matchStickToMorph;
-    private List<Integer> toPreserve;
+    private List<Integer> toPreserve = new ArrayList<>();
     private List<Integer> componentsToMorph;
 
     public PruningMatchStick(ReceptiveField rf, RFStrategy rfStrategy, NAFCNoiseMapper noiseMapper) {
@@ -29,11 +29,19 @@ public class PruningMatchStick extends ProceduralMatchStick {
         super(noiseMapper);
     }
 
-    public void genPruningMatchStick(MorphedMatchStick matchStickToMorph, double magnitude, List<Integer> compsToPreserve){
+    public void genPruningMatchStick(MorphedMatchStick matchStickToMorph, double magnitude, List<Integer> compsToPreserve, List<Integer> compsToNoise){
         this.matchStickToMorph = matchStickToMorph;
         this.toPreserve = compsToPreserve;
-
         componentsToMorph = chooseComponentsToMorph(compsToPreserve);
+        if (compsToNoise == null){
+            setSpecialEndComp(componentsToMorph);
+            this.matchStickToMorph.setSpecialEndComp(componentsToMorph); //setting this as well otherwise this will be overriden during generation
+        } else{
+            setSpecialEndComp(compsToNoise);
+            this.matchStickToMorph.setSpecialEndComp(compsToNoise);
+        }
+
+
         // MORPH ALL COMPONENTS STRATEGY
         NormalMorphDistributer normalMorphDistributer = new NormalMorphDistributer(1/3.0);
         // Construct MorphParameters for componentsToMorph
@@ -44,7 +52,20 @@ public class PruningMatchStick extends ProceduralMatchStick {
         }
 
         // Call MorphedMatchStick
-        genMorphedComponentsMatchStick(paramsForComps, this.matchStickToMorph, true, true, true);
+        int nAttempts = 0;
+        while (nAttempts < 15) {
+            try {
+                nAttempts++;
+                genMorphedComponentsMatchStick(paramsForComps, this.matchStickToMorph, true, true, true);
+                noiseMapper.checkInNoise(this, compsToPreserve, 0.5);
+                return;
+            } catch(Exception e) {
+                System.out.println(e.getMessage());
+
+            }
+        }
+
+        // BASE MATCH STICK STRATEGY?
     }
 
     @Override
@@ -69,7 +90,7 @@ public class PruningMatchStick extends ProceduralMatchStick {
         for  (int i = 0; i < numPreserve; i++) {
             componentsToPreserve.add(components.get(i));
         }
-        return components;
+        return componentsToPreserve;
     }
 
     private List<Integer> chooseComponentsToMorph(List<Integer> compsToPreserve){

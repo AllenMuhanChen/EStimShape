@@ -27,7 +27,7 @@ public class PruningStim extends GAStim<PruningMatchStick, PruningMatchStick.Pru
         childMStick.setProperties(sizeDiameterDegrees, textureType, contrast);
         childMStick.setStimColor(color);
 
-        childMStick.genPruningMatchStick(parentMStick, 0.75, PruningMatchStick.chooseRandomComponentsToPreserve(1, parentMStick));
+        childMStick.genPruningMatchStick(parentMStick, 0.75, PruningMatchStick.chooseRandomComponentsToPreserve(1, parentMStick), null);
         return childMStick;
     }
 }
