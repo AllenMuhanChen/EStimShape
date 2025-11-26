@@ -20,7 +20,7 @@ import static org.xper.allen.drawing.ga.GAMatchStick.objCenteredPositionToleranc
 
 public class MorphedMatchStick extends AllenMatchStick {
     public static CoordinateConverter.SphericalCoordinates objCenteredPositionTolerance =
-            new CoordinateConverter.SphericalCoordinates(10, Math.PI/4, Math.PI / 2 );
+            new CoordinateConverter.SphericalCoordinates(0.5, Math.PI/4, Math.PI / 2);
 
     protected int MAX_TOTAL_ATTEMPTS = 15;
     private final double PROB_addToEndorJunc = 1.0; // x% add to end or JuncPt, 1-x% add to branch

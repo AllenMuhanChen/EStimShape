@@ -129,12 +129,12 @@ public class GAMatchStickTest {
         parentFromSpec.genMatchStickFromShapeSpec(parentSpec, new double[]{0,0,0});
 
         testMatchStickDrawer.draw(parentFromSpec);
-        for (int i = 1; i<=parent.getnComponent(); i++){
-            Point3d position = parentFromSpec.getComp()[i].getMassCenter();
-            position.setZ(10);
-            System.out.println("Parent component after draw " + position);
-            testMatchStickDrawer.drawPoint(position, new RGBColor(0.0,1.0,0.0), 5);
-        }
+//        for (int i = 1; i<=parent.getnComponent(); i++){
+//            Point3d position = parentFromSpec.getComp()[i].getMassCenter();
+//            position.setZ(10);
+//            System.out.println("Parent component after draw " + position);
+//            testMatchStickDrawer.drawPoint(position, new RGBColor(0.0,1.0,0.0), 5);
+//        }
 //        testMatchStickDrawer.drawCompMap(parent);
         testMatchStickDrawer.saveImage(figPath + "/base_mstick.png");
 
@@ -148,7 +148,7 @@ public class GAMatchStickTest {
         testMatchStickDrawer.clear();
 
         PruningMatchStick pruning = new PruningMatchStick();
-        pruning.setMaxTotalAttempts(100);
+        pruning.setMaxTotalAttempts(1000);
         pruning.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
         pruning.setStimColor(color);
         pruning.genPruningMatchStick(parentFromSpec, 0.75, 1);
