@@ -1,6 +1,7 @@
 package org.xper.allen.drawing.composition.experiment;
 
 import org.lwjgl.opengl.GL11;
+import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.morph.*;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
@@ -116,7 +117,7 @@ public class ProceduralMatchStick extends GAMatchStick {
      * @param nComp if 0, then choose randomly
      * @param maxAttempts
      */
-    public void genMatchStickFromComponent(ProceduralMatchStick baseMatchStick, int morphComponentIndx, int nComp, int maxAttempts) {
+    public void genMatchStickFromComponent(AllenMatchStick baseMatchStick, int morphComponentIndx, int nComp, int maxAttempts) {
         // calculate the object centered position of the base matchStick's drivingComponent
 //        Map<Integer, SphericalCoordinates> objCenteredPosForDrivingComp =
 //                calcObjCenteredPosForDrivingComp(baseMatchStick, drivingComponentIndex);
@@ -184,7 +185,7 @@ public class ProceduralMatchStick extends GAMatchStick {
     protected void positionShape() {
     }
 
-    public void genMatchStickFromComponentInNoise(ProceduralMatchStick baseMatchStick, int fromCompId, int nComp, boolean doCompareObjCenteredPos, int maxAttempts1, NAFCNoiseMapper noiseMapper) {
+    public void genMatchStickFromComponentInNoise(AllenMatchStick baseMatchStick, int fromCompId, int nComp, boolean doCompareObjCenteredPos, int maxAttempts1) {
         this.maxAttempts = maxAttempts1;
         if (nComp == 0){
             nComp = chooseNumComps();
@@ -200,26 +201,28 @@ public class ProceduralMatchStick extends GAMatchStick {
                 continue;
             }
             int drivingComponent = getDrivingComponent();
+            setSpecialEndComp(Collections.singletonList(drivingComponent));
             List<Integer> compsToNoise = Collections.singletonList(drivingComponent);
             try {
-                this.noiseMapper = noiseMapper;
                 this.noiseMapper.checkInNoise(this, compsToNoise, 0.5);
             } catch (Exception e) {
                 if (noiseDebugMode){
                     return;
                 }
-                System.out.println("Error with noise, retrying");
+                System.err.println("Error with noise, retrying");
                 System.out.println(e.getMessage());
                 continue;
             }
             SphericalCoordinates originalObjCenteredPos = calcObjCenteredPosForComp(baseMatchStick, fromCompId);
             SphericalCoordinates newDrivingObjectCenteredPos = calcObjCenteredPosForComp(this, drivingComponent);
-            if (doCompareObjCenteredPos)
+            if (doCompareObjCenteredPos) {
                 try {
                     compareObjectCenteredPositions(originalObjCenteredPos, newDrivingObjectCenteredPos);
                 } catch (MorphException e) {
-                    System.out.println(e.getMessage());
+                    System.err.println(e.getMessage());
+                    continue;
                 }
+            }
             return;
         }
         throw new MorphRepetitionException("Could not generate matchStick FROM COMPONENT IN NOISE after " + this.maxAttempts + " attempts");

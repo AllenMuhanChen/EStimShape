@@ -54,7 +54,7 @@ public class CoordinatesTest {
         mStick = new EStimShapeProceduralMatchStick(RFStrategy.COMPLETELY_INSIDE, receptiveField, noiseMapper);
         mStick.setProperties(2, "SHADE", 1.0);
 
-        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true, mStick.maxAttempts, noiseMapper);
+        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true, mStick.maxAttempts);
     }
 
     private static ProceduralMatchStick genBaseMStick() {
@@ -87,7 +87,7 @@ public class CoordinatesTest {
         mStick = new EStimShapeProceduralMatchStick(RFStrategy.PARTIALLY_INSIDE, receptiveField, noiseMapper);
         mStick.setProperties(2, "SHADE", 1.0);
 
-        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true, mStick.maxAttempts, noiseMapper);
+        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true, mStick.maxAttempts);
     }
 
     @Test

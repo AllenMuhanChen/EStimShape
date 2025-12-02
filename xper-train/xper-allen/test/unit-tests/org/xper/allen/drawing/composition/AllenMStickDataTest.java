@@ -10,7 +10,6 @@ import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
-import org.xper.allen.drawing.ga.Thumbnailable;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 import org.xper.allen.util.CoordinateConverter;
@@ -20,7 +19,6 @@ import org.xper.drawing.stick.JuncPt_struct;
 import org.xper.drawing.TestDrawingWindow;
 
 import org.xper.util.ResourceUtil;
-import org.xper.util.ThreadUtil;
 
 import javax.vecmath.Vector3d;
 import javax.vecmath.Point3d;
@@ -91,7 +89,7 @@ public class AllenMStickDataTest {
                 matchStick = new EStimShapeProceduralMatchStick(rfStrategy, receptiveField, noiseMapper);
                 matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE", 1.0);
                 ((EStimShapeProceduralMatchStick) matchStick).genMatchStickFromComponentInNoise(baseMStick, baseMStick.chooseRandLeaf(),
-                        4, true, -1, noiseMapper);
+                        4, true, -1);
                 break;
             case "Seeding":
                 matchStick = new GAMatchStick(receptiveField, rfStrategy);

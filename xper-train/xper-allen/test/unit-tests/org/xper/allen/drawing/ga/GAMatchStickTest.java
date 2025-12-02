@@ -15,8 +15,6 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 import org.xper.util.ThreadUtil;
 
-import javax.vecmath.Point3d;
-
 import java.util.Collections;
 import java.util.List;
 
@@ -113,6 +111,74 @@ public class GAMatchStickTest {
         testMatchStickDrawer.saveImage(figPath + "/base_from_spec");
 
 
+    }
+
+    @Test
+    public void draw_from_comp_mstick(){
+        RGBColor color = new RGBColor(1.0, 0.0, 0.0);
+
+        GAMatchStick parent = new GAMatchStick(COMPLETE_RF, COMPLETELY_INSIDE);
+        int maxSizeDiameterDegrees = 3;
+        parent.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
+        parent.setStimColor(color);
+        parent.genMatchStickRand();
+
+        AllenMStickSpec parentSpec = new AllenMStickSpec();
+        parentSpec.setMStickInfo(parent, false);
+        for (int i = 1; i<=parent.getnComponent(); i++){
+            System.out.println("Parent component before draw " + parent.getComp()[i].getMassCenter());
+        }
+
+        GAMatchStick parentFromSpec = new GAMatchStick();
+        parentFromSpec.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
+        parentFromSpec.setStimColor(color);
+        parentFromSpec.genMatchStickFromShapeSpec(parentSpec, new double[]{0,0,0});
+
+        testMatchStickDrawer.draw(parentFromSpec);
+        testMatchStickDrawer.saveImage(figPath + "/base_mstick.png");
+
+        ThreadUtil.sleep(1000);
+        testMatchStickDrawer.clear();
+
+//        testMatchStickDrawer.draw(parent);
+        testMatchStickDrawer.drawCompMap(parent);
+        testMatchStickDrawer.saveImage(figPath + "/base_mstick_comp_map.png");
+        ThreadUtil.sleep(1000);
+        testMatchStickDrawer.clear();
+
+        PruningMatchStick from_comp = null;
+        List<Integer> compsToPreserve = Collections.emptyList();
+        while (true) {
+            try {
+                from_comp = new PruningMatchStick(noiseMapper);
+                from_comp.setMaxTotalAttempts(15);
+                from_comp.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
+                from_comp.setStimColor(color);
+
+                compsToPreserve = PruningMatchStick.chooseRandomComponentsToPreserve(1, parentFromSpec);
+                from_comp.genMatchStickFromComponentInNoise(parentFromSpec,
+                        compsToPreserve.get(0),
+                        0,
+                        true,
+                        15);
+
+            } catch(Exception e) {
+                continue;
+            }
+            break;
+        }
+        testMatchStickDrawer.draw(from_comp);
+
+        testMatchStickDrawer.saveImage(figPath + "/from_comp_1.png");
+        ThreadUtil.sleep(1000);
+        testMatchStickDrawer.drawCompMap(from_comp);
+        testMatchStickDrawer.saveImage(figPath + "/from_comp_1_map.png");
+        ThreadUtil.sleep(1000);
+        testMatchStickDrawer.saveNoiseMap(figPath + "/from_comp_1_noisemap.png",
+                from_comp,
+                0.5, 1
+        );
+        System.out.println(from_comp.getMorphData().toXml());
     }
 
     @Test

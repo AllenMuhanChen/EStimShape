@@ -5,7 +5,6 @@ import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
-import org.xper.allen.pga.RFStrategy;
 
 import static org.xper.allen.pga.RFUtils.checkCompCanFitInRF;
 
@@ -95,7 +94,7 @@ public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim
         sample.setProperties(sampleSizeDegrees, parameters.textureType, 1.0);
         sample.setStimColor(parameters.color);
         baseMatchStick.setMaxAttempts(3);
-        sample.genMatchStickFromComponentInNoise(baseMatchStick, randLeaf, 0, true, sample.maxAttempts, generator.getPngMaker().getNoiseMapper());
+        sample.genMatchStickFromComponentInNoise(baseMatchStick, randLeaf, 0, true, sample.maxAttempts);
 
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));

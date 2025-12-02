@@ -41,7 +41,7 @@ public class ProceduralRandStim extends ProceduralStim{
         ProceduralMatchStick sample = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
         sample.setProperties(parameters.getSize(), "SHADE", 1.0);
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromComponentInNoise(baseMatchStick, baseMatchStick.chooseRandLeaf(), 0, true, sample.maxAttempts, generator.getPngMaker().getNoiseMapper());
+        sample.genMatchStickFromComponentInNoise(baseMatchStick, baseMatchStick.chooseRandLeaf(), 0, true, sample.maxAttempts);
 
         noiseComponentIndex = sample.getDrivingComponent();
         morphComponentIndex = sample.getDrivingComponent();

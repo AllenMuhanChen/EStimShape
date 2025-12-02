@@ -88,7 +88,7 @@ public class EStimShapeProceduralMatchStickTest {
 
         mStick.setProperties(2, "SHADE", 1.0);
 
-        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true, mStick.maxAttempts, noiseMapper);
+        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true, mStick.maxAttempts);
         testMatchStickDrawer.draw(new Drawable() {
             @Override
             public void draw() {
@@ -179,7 +179,7 @@ public class EStimShapeProceduralMatchStickTest {
 
         mStick.setProperties(3, "SHADE", 1.0);
 
-        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true, 1000, noiseMapper);
+        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true, 1000);
         testMatchStickDrawer.draw(new Drawable() {
             @Override
             public void draw() {
@@ -239,7 +239,7 @@ public class EStimShapeProceduralMatchStickTest {
 
         mStick.setProperties(3, "SHADE", 1.0);
 
-        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true, mStick.maxAttempts, noiseMapper);
+        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true, mStick.maxAttempts);
 
         drawPng(mStick, "partially_in_rf");
     }

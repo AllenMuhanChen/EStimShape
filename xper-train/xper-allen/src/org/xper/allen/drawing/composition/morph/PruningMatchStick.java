@@ -15,6 +15,7 @@ public class PruningMatchStick extends ProceduralMatchStick {
 
     private MorphedMatchStick matchStickToMorph;
     private List<Integer> toPreserve = new ArrayList<>();
+    private Integer preservedComp;
     private List<Integer> componentsToMorph;
 
     public PruningMatchStick(ReceptiveField rf, RFStrategy rfStrategy, NAFCNoiseMapper noiseMapper) {
@@ -29,9 +30,20 @@ public class PruningMatchStick extends ProceduralMatchStick {
         super(noiseMapper);
     }
 
+    public void genMatchStickFromComponentInNoise(AllenMatchStick baseMatchStick, int fromCompId, int nComp, boolean doCompareObjCenteredPos, int maxAttempts1){
+        this.toPreserve = new ArrayList<>();
+        this.toPreserve.add(fromCompId);
+        preservedComp = 1;
+        this.matchStickToMorph = (MorphedMatchStick) baseMatchStick;
+//        componentsToMorph = chooseComponentsToMorph(toPreserve);
+        super.genMatchStickFromComponentInNoise(baseMatchStick, fromCompId, nComp, doCompareObjCenteredPos, maxAttempts1);
+
+    }
+
     public void genPruningMatchStick(MorphedMatchStick matchStickToMorph, double magnitude, List<Integer> compsToPreserve, List<Integer> compsToNoise){
         this.matchStickToMorph = matchStickToMorph;
         this.toPreserve = compsToPreserve;
+        preservedComp = toPreserve.get(0);
         componentsToMorph = chooseComponentsToMorph(compsToPreserve);
         if (compsToNoise == null){
             setSpecialEndComp(componentsToMorph);
@@ -58,6 +70,7 @@ public class PruningMatchStick extends ProceduralMatchStick {
                 nAttempts++;
                 genMorphedComponentsMatchStick(paramsForComps, this.matchStickToMorph, true, true, true);
                 noiseMapper.checkInNoise(this, compsToPreserve, 0.5);
+
                 return;
             } catch(Exception e) {
                 System.out.println(e.getMessage());
@@ -68,14 +81,14 @@ public class PruningMatchStick extends ProceduralMatchStick {
         // BASE MATCH STICK STRATEGY?
     }
 
+
     @Override
     protected void positionShape() throws MorphException {
         if (rfStrategy != null) {
             RFUtils.positionAroundRF(rfStrategy, this, rf, 1000);
         } else{
-            int compToMove = toPreserve.get(0);
-            Point3d pointToMove = getComp()[compToMove].getMassCenter();
-            Point3d destination = matchStickToMorph.getComp()[compToMove].getMassCenter();
+            Point3d pointToMove = getComp()[preservedComp].getMassCenter();
+            Point3d destination = matchStickToMorph.getComp()[toPreserve.get(0)].getMassCenter();
 
             movePointToDestination(pointToMove, destination);
         }
