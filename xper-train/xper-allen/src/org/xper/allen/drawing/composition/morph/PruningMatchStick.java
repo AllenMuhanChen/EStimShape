@@ -53,7 +53,7 @@ public class PruningMatchStick extends ProceduralMatchStick {
 
         // Call MorphedMatchStick
         int nAttempts = 0;
-        while (true) {
+        while (nAttempts < getMaxTotalAttempts()) {
             try {
                 nAttempts++;
                 genMorphedComponentsMatchStick(paramsForComps, this.matchStickToMorph, true, true, true);
@@ -85,7 +85,7 @@ public class PruningMatchStick extends ProceduralMatchStick {
 
     public static List<Integer> chooseRandomComponentsToPreserve(int numPreserve, MorphedMatchStick stickToMorph) {
         List<Integer> componentsToPreserve = new ArrayList<>();
-        List<Integer> components = stickToMorph.getCompIds();
+        List<Integer> components = new ArrayList<>(stickToMorph.getCompIds());
         Collections.shuffle(components);
         for  (int i = 0; i < numPreserve; i++) {
             componentsToPreserve.add(components.get(i));

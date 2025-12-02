@@ -17,6 +17,7 @@ import org.xper.util.ThreadUtil;
 
 import javax.vecmath.Point3d;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -147,13 +148,23 @@ public class GAMatchStickTest {
         ThreadUtil.sleep(1000);
         testMatchStickDrawer.clear();
 
-        PruningMatchStick pruning = new PruningMatchStick(noiseMapper);
-        pruning.setMaxTotalAttempts(1000);
-        pruning.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
-        pruning.setStimColor(color);
+        PruningMatchStick pruning = null;
+        List<Integer> compsToPreserve = Collections.emptyList();
+        while (true) {
+            try {
+                pruning = new PruningMatchStick(noiseMapper);
+                pruning.setMaxTotalAttempts(15);
+                pruning.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
+                pruning.setStimColor(color);
 
-        List<Integer> compsToPreserve = PruningMatchStick.chooseRandomComponentsToPreserve(1, parentFromSpec);
-        pruning.genPruningMatchStick(parentFromSpec, 0.75, compsToPreserve, null);
+                compsToPreserve = PruningMatchStick.chooseRandomComponentsToPreserve(1, parentFromSpec);
+                pruning.genPruningMatchStick(parentFromSpec, 0.75, compsToPreserve, null);
+
+            } catch(Exception e) {
+
+            }
+            break;
+        }
         testMatchStickDrawer.draw(pruning);
 
         testMatchStickDrawer.saveImage(figPath + "/prune_1.png");
