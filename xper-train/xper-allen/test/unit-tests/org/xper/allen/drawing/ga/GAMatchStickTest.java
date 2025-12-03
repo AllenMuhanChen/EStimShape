@@ -155,17 +155,17 @@ public class GAMatchStickTest {
                 from_comp.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
                 from_comp.setStimColor(color);
 
-                compsToPreserve = PruningMatchStick.chooseRandomComponentsToPreserve(1, parentFromSpec);
+                compsToPreserve = PruningMatchStick.chooseRandomComponentsToPreserve(2, parentFromSpec);
                 from_comp.genMatchStickFromComponentInNoise(parentFromSpec,
                         compsToPreserve.get(0),
                         0,
                         true,
                         15);
-
+                break;
             } catch(Exception e) {
-                continue;
+
             }
-            break;
+
         }
         testMatchStickDrawer.draw(from_comp);
 
@@ -223,13 +223,12 @@ public class GAMatchStickTest {
                 pruning.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
                 pruning.setStimColor(color);
 
-                compsToPreserve = PruningMatchStick.chooseRandomComponentsToPreserve(1, parentFromSpec);
+                compsToPreserve = PruningMatchStick.chooseRandomComponentsToPreserve(2, parentFromSpec);
                 pruning.genPruningMatchStick(parentFromSpec, 0.75, compsToPreserve, null);
-
+                break;
             } catch(Exception e) {
-
+                e.printStackTrace();
             }
-            break;
         }
         testMatchStickDrawer.draw(pruning);
 
