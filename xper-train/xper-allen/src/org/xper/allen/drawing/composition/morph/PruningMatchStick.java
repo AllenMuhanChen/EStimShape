@@ -69,8 +69,14 @@ public class PruningMatchStick extends ProceduralMatchStick {
         while (nAttempts < getMaxTotalAttempts()) {
             try {
                 nAttempts++;
-                genMorphedComponentsMatchStick(paramsForComps, this.matchStickToMorph, true, true, false);
-//                noiseMapper.checkInNoise(this, compsToPreserve, 0.5);
+                boolean doPositionShape = true;
+                boolean doPreserveJunction = true;
+                boolean doCheckObjCentPosition = true;
+                genMorphedComponentsMatchStick(paramsForComps, this.matchStickToMorph,
+                        doPositionShape,
+                        doPreserveJunction,
+                        doCheckObjCentPosition);
+                noiseMapper.checkInNoise(this, compsToPreserve, 0.5);
                 System.out.println("success!");
                 return;
             } catch(Exception e) {

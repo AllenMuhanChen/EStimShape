@@ -85,27 +85,32 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
 
             //Must Correct the points here:
             Point3d[] compVect_info = testingComp.getVect_info();
-            Point3d[] correctedVect_info = new Point3d[compVect_info.length];
-
+//            Point3d[] correctedVect_info = new Point3d[compVect_info.length];
+            int compIndex = 0;
             for (Point3d in : compVect_info) {
                 if (in != null) {
                     Point3d correctedPoint = new Point3d(in);
-                    correctedPoint.sub(massCenter);
-                    correctedPoint.scale(proceduralMatchStick.getScaleForMAxisShape());
-                    correctedPoint.add(massCenter);
-                    correctedVect_info[index] = correctedPoint;
+                    //AC: Removing this correction because we added this correction to compVect_info already!
+//                    correctedPoint.sub(massCenter);
+//                    correctedPoint.scale(proceduralMatchStick.getScaleForMAxisShape());
+//                    correctedPoint.add(massCenter);
+//                    correctedVect_info[compIndex] = correctedPoint;
+                    debug_points_vect.add(new Point2d(correctedPoint.getX(), correctedPoint.getY()));
+                    pointsToCheck.add(new ConcaveHull.Point(correctedPoint.getX(), correctedPoint.getY()));
+                    compIndex++;
                     index++;
                 }
             }
+            System.out.println("DONE!~");
 
-            index=0;
-            for (Point3d point3d : correctedVect_info) {
-                if (point3d != null) {
-                    debug_points_vect.add(new Point2d(point3d.getX(), point3d.getY()));
-                    pointsToCheck.add(new ConcaveHull.Point(point3d.getX(), point3d.getY()));
-                    index++;
-                }
-            }
+//            index=0;
+//            for (Point3d point3d : correctedVect_info) {
+//                if (point3d != null) {
+//                    debug_points_vect.add(new Point2d(point3d.getX(), point3d.getY()));
+//                    pointsToCheck.add(new ConcaveHull.Point(point3d.getX(), point3d.getY()));
+//                    index++;
+//                }
+//            }
         }
 
         int numPointsInside = 0;
