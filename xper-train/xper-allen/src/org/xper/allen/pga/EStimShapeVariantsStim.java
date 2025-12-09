@@ -16,6 +16,7 @@ public class EStimShapeVariantsStim extends GAStim<PruningMatchStick, AllenMStic
     protected final CompsToPreserveManager compsToPreserveManager;
     public EStimShapeVariantsStim(Long stimId, FromDbGABlockGenerator generator, Long parentId) {
         super(stimId, generator, parentId);
+        this.textureType = "PARENT";
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
         compsToPreserveManager = new CompsToPreserveManager(jdbcTemplate);

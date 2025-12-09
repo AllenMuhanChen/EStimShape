@@ -1,8 +1,9 @@
 # regime_one.py
 from dataclasses import dataclass
-from typing import Callable, List
+from typing import Callable, List, Any
 
 import numpy as np
+from numpy import floating
 
 from src.pga.ga_classes import Stimulus, ParentSelector, MutationAssigner, MutationMagnitudeAssigner, \
     RegimeTransitioner, Lineage
@@ -226,7 +227,7 @@ class GrowingPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
         # Sample from truncated normal distribution between min_magnitude and max_magnitude
         return self.get_truncated_normal(mean)
 
-def calculate_peak_response(responses, across_n=3):
+def calculate_peak_response(responses, across_n=3) -> floating[Any]:
     # Ensure the list of responses is at least of length across_n, filling missing values with 0
     # remove nones
     responses = [response for response in responses if response is not None]
