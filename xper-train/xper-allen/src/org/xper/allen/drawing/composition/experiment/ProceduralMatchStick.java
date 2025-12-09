@@ -27,12 +27,12 @@ import java.util.*;
  */
 public class ProceduralMatchStick extends GAMatchStick {
 
-    protected double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0};
+    public static double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0};
     //protected double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0};
-    protected SphericalCoordinates objCenteredPositionTolerance =
+    protected static SphericalCoordinates objCenteredPositionTolerance =
             new SphericalCoordinates(1, Math.PI / 8, Math.PI / 3 );
-    public double noiseRadiusMm = 20;
-    public int maxAttempts = 5;
+    public static double noiseRadiusMm = 20;
+    public static int maxAttempts = 5;
     private Point3d noiseOrigin;
     public Vector3d projectedTangent;
     public NAFCNoiseMapper noiseMapper;

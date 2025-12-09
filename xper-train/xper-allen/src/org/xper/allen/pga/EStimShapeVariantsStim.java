@@ -5,6 +5,7 @@ import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.stimproperty.CompsToPreserveManager;
+import org.xper.drawing.stick.stickMath_lib;
 
 import java.util.List;
 import java.util.Random;
@@ -50,26 +51,37 @@ public class EStimShapeVariantsStim extends GAStim<PruningMatchStick, AllenMStic
 
 
         //if no comps to preserve exist... --> choose random set
-        List<Integer> compsToPreserveInPArent;
-        if (!hasCompsToPreserve(parentMStick)){
-            compsToPreserveInPArent = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
+        List<Integer> compsToPreserveInParent;
+        if (!parentHasCompsToPreserve()){
+            compsToPreserveInParent = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
         } else{
             //else read the comps to preserve
-            compsToPreserveInPArent = compsToPreserveManager.readProperty(parentId);
+            compsToPreserveInParent = compsToPreserveManager.readProperty(parentId);
         }
 
         //call the pruning on the comps to preserve
-        //TODO: master specifying when to do what kind of change here.......
-        childMStick.genPruningMatchStick(parentMStick, 0.75, compsToPreserveInPArent, null);
+        Random random = new Random();
+        if (random.nextBoolean()) {
+            double magnitude = random.nextDouble() * 0.4 + 0.5;
+            childMStick.genPruningMatchStick(parentMStick, magnitude, compsToPreserveInParent, null);
+        } else{
+            // choose a random number of components that's more than
+            // the current number of comps to preserve
+            int nComp = 0;
+            while (nComp <= compsToPreserveInParent.size()) {
+                nComp = stickMath_lib.pickFromProbDist(PruningMatchStick.PARAM_nCompDist);
+            }
+            childMStick.genMatchStickFromComponentsInNoise(parentMStick, compsToPreserveInParent, nComp, true, 15);
+        }
 
         //save the comps to preserve in the next iteration of this. (id's may change)
         List<Integer> compsToPreserveInNextChild = childMStick.getPreservedComps();
         compsToPreserveManager.writeProperty(stimId, compsToPreserveInNextChild);
 
-    return childMStick;
+        return childMStick;
     }
 
-    private boolean hasCompsToPreserve(GAMatchStick parentMStick) {
+    private boolean parentHasCompsToPreserve() {
         return compsToPreserveManager.hasProperty(parentId);
     }
 }
