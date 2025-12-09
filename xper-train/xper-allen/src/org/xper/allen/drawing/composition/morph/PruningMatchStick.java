@@ -15,7 +15,7 @@ import java.util.*;
 public class PruningMatchStick extends ProceduralMatchStick {
 
     private MorphedMatchStick matchStickToMorph;
-    private List<Integer> toPreserve = new ArrayList<>();
+    private List<Integer> toPreserveInParent = new ArrayList<>();
     private List<Integer> preservedComps = new ArrayList<>();
 
     public PruningMatchStick(ReceptiveField rf, RFStrategy rfStrategy, NAFCNoiseMapper noiseMapper) {
@@ -31,17 +31,24 @@ public class PruningMatchStick extends ProceduralMatchStick {
     }
 
     public void genMatchStickFromComponentsInNoise(AllenMatchStick baseMatchStick, List<Integer> fromComponents, int nComp, boolean doCompareObjCenteredPos, int maxAttempts1){
-        this.toPreserve = new ArrayList<>();
-        this.toPreserve.addAll(fromComponents);
+        this.toPreserveInParent = new ArrayList<>();
+        this.toPreserveInParent.addAll(fromComponents);
         preservedComps.add(1);
         preservedComps.add(2);
         this.matchStickToMorph = (MorphedMatchStick) baseMatchStick;
         super.genMatchStickFromComponentInNoise(baseMatchStick, fromComponents, nComp, doCompareObjCenteredPos, maxAttempts1);
     }
 
+    /**
+     *
+     * @param matchStickToMorph
+     * @param magnitude
+     * @param compsToPreserve
+     * @param compsToNoise: null - then will default to compsToPreserve
+     */
     public void genPruningMatchStick(MorphedMatchStick matchStickToMorph, double magnitude, List<Integer> compsToPreserve, List<Integer> compsToNoise){
         this.matchStickToMorph = matchStickToMorph;
-        this.toPreserve = compsToPreserve;
+        this.toPreserveInParent = compsToPreserve;
         preservedComps.addAll(compsToPreserve);
         List<Integer> componentsToMorph = chooseComponentsToMorph(compsToPreserve);
         if (compsToNoise == null){
@@ -85,6 +92,9 @@ public class PruningMatchStick extends ProceduralMatchStick {
         throw new MorphRepetitionException("Exceeded max number of attempts when generating pruning mstick");
     }
 
+    public List<Integer> getPreservedComps() {
+        return preservedComps;
+    }
 
     @Override
     protected void positionShape() throws MorphException {
@@ -92,14 +102,48 @@ public class PruningMatchStick extends ProceduralMatchStick {
             RFUtils.positionAroundRF(rfStrategy, this, rf, 1000);
         } else{
             Point3d pointToMove = getComp()[preservedComps.get(0)].getMassCenter();
-            Point3d destination = matchStickToMorph.getComp()[toPreserve.get(0)].getMassCenter();
+            Point3d destination = matchStickToMorph.getComp()[toPreserveInParent.get(0)].getMassCenter();
 
             movePointToDestination(pointToMove, destination);
         }
     }
 
-    // Chooses own random components to preserve
+    public static List<Integer> chooseRandomComponentsToPreserve(MorphedMatchStick stickToMorph) {
+        List<List<Integer>> allValidCombinations = new ArrayList<>();
 
+        // Add all single component combinations (excluding invalid index 0)
+        for (int compId : stickToMorph.getCompIds()) {
+            if (compId != 0) {  // exclude invalid index
+                allValidCombinations.add(Collections.singletonList(compId));
+            }
+        }
+
+        // Add all valid pairs (components that share a junction, excluding invalid index 0)
+        for (JuncPt_struct junc : stickToMorph.getJuncPt()) {
+            if (junc == null) continue;
+
+            // Collect non-zero components in this junction
+            List<Integer> compsInJunc = new ArrayList<>();
+            for (int compId : junc.getCompIds()) {
+                if (compId != 0) {  // exclude invalid index
+                    compsInJunc.add(compId);
+                }
+            }
+
+            // Generate all pairs from this junction
+            for (int i = 0; i < compsInJunc.size(); i++) {
+                for (int j = i + 1; j < compsInJunc.size(); j++) {
+                    allValidCombinations.add(Arrays.asList(compsInJunc.get(i), compsInJunc.get(j)));
+                }
+            }
+        }
+
+        // Randomly select one combination with equal probability
+        Collections.shuffle(allValidCombinations);
+        return allValidCombinations.get(0);
+    }
+
+    // Chooses own random components to preserve
     public static List<Integer> chooseRandomComponentsToPreserve(int numPreserve, MorphedMatchStick stickToMorph) {
 //        if (stickToMorph.getNComponent() <= numPreserve){
 //            throw new RuntimeException("Preserving more components than mstick contains");
@@ -157,7 +201,7 @@ public class PruningMatchStick extends ProceduralMatchStick {
     public PruningMStickData getMStickData(){
         AllenMStickData superData = (AllenMStickData) super.getMStickData();
 
-        return new PruningMStickData(superData, toPreserve);
+        return new PruningMStickData(superData, toPreserveInParent);
 
     }
 
@@ -205,6 +249,6 @@ public class PruningMatchStick extends ProceduralMatchStick {
     }
 
     public List<Integer> getComponentsToPreserve() {
-        return toPreserve;
+        return toPreserveInParent;
     }
 }

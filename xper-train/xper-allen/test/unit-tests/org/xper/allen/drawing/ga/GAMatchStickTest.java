@@ -177,7 +177,7 @@ public class GAMatchStickTest {
         ThreadUtil.sleep(1000);
         testMatchStickDrawer.saveNoiseMap(figPath + "/from_comp_1_noisemap.png",
                 from_comp,
-                0.5, from_comp.getSpecialEndComp()
+                0.5, from_comp.getPreservedComps()
         );
         System.out.println(from_comp.getMorphData().toXml());
     }

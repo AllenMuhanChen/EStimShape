@@ -1,0 +1,75 @@
+package org.xper.allen.pga;
+
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.xper.allen.drawing.composition.AllenMStickData;
+import org.xper.allen.drawing.composition.morph.PruningMatchStick;
+import org.xper.allen.drawing.ga.GAMatchStick;
+import org.xper.allen.stimproperty.CompsToPreserveManager;
+
+import java.util.List;
+import java.util.Random;
+
+public class EStimShapeVariantsStim extends GAStim<PruningMatchStick, AllenMStickData>{
+    private static final Random random = new Random();
+
+    protected final CompsToPreserveManager compsToPreserveManager;
+    public EStimShapeVariantsStim(Long stimId, FromDbGABlockGenerator generator, Long parentId) {
+        super(stimId, generator, parentId);
+
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
+        compsToPreserveManager = new CompsToPreserveManager(jdbcTemplate);
+    }
+
+    @Override
+    protected void chooseRFStrategy() {
+        rfStrategy = rfStrategyManager.readProperty(parentId);
+    }
+
+    @Override
+    protected void chooseSize() {
+        double sizeMagnitude = 0.25;
+
+        double maxSizeDiameterDegrees = RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees());
+        double minSizeDiameterDegrees = maxSizeDiameterDegrees / 2;
+        double parentSizeDiameterDegrees = sizeManager.readProperty(parentId);
+        double maxSizeMutation = (maxSizeDiameterDegrees - minSizeDiameterDegrees);
+        double randomChange = (random.nextDouble() * sizeMagnitude * 2 - 1) * maxSizeMutation;
+        sizeDiameterDegrees = Math.min(maxSizeDiameterDegrees, Math.max(minSizeDiameterDegrees, parentSizeDiameterDegrees + randomChange));
+    }
+
+    @Override
+    protected PruningMatchStick createMStick() {
+        GAMatchStick parentMStick = new GAMatchStick(generator.getReceptiveField(), null);
+        parentMStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
+        parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
+        rfStrategy = parentMStick.getRfStrategy();
+
+        PruningMatchStick childMStick = new PruningMatchStick(generator.getNoiseMapper());
+        childMStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
+        childMStick.setStimColor(color);
+
+
+        //if no comps to preserve exist... --> choose random set
+        List<Integer> compsToPreserveInPArent;
+        if (!hasCompsToPreserve(parentMStick)){
+            compsToPreserveInPArent = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
+        } else{
+            //else read the comps to preserve
+            compsToPreserveInPArent = compsToPreserveManager.readProperty(parentId);
+        }
+
+        //call the pruning on the comps to preserve
+        //TODO: master specifying when to do what kind of change here.......
+        childMStick.genPruningMatchStick(parentMStick, 0.75, compsToPreserveInPArent, null);
+
+        //save the comps to preserve in the next iteration of this. (id's may change)
+        List<Integer> compsToPreserveInNextChild = childMStick.getPreservedComps();
+        compsToPreserveManager.writeProperty(stimId, compsToPreserveInNextChild);
+
+    return childMStick;
+    }
+
+    private boolean hasCompsToPreserve(GAMatchStick parentMStick) {
+        return compsToPreserveManager.hasProperty(parentId);
+    }
+}

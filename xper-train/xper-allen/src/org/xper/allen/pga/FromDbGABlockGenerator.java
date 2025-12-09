@@ -3,6 +3,7 @@ package org.xper.allen.pga;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.Dependency;
 import org.xper.allen.Stim;
+import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 
@@ -39,6 +40,8 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
     @Dependency
     RFStrategy rfStrategy = RFStrategy.PARTIALLY_INSIDE;
 
+    @Dependency
+    NAFCNoiseMapper noiseMapper;
     //Parameters
     private RGBColor color;
 
@@ -297,5 +300,13 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
 
     public void setNumCatchTrials(int numCatchTrials) {
         this.numCatchTrials = numCatchTrials;
+    }
+
+    public NAFCNoiseMapper getNoiseMapper() {
+        return noiseMapper;
+    }
+
+    public void setNoiseMapper(NAFCNoiseMapper noiseMapper) {
+        this.noiseMapper = noiseMapper;
     }
 }
