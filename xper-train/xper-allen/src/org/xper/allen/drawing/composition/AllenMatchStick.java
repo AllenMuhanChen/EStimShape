@@ -2218,7 +2218,7 @@ public class AllenMatchStick extends MatchStick {
 		return true;
 	}
 
-	public boolean genMatchStickFromLeaf(int leafIndx, AllenMatchStick amsOfLeaf) {
+	public boolean genMatchStickFromLeaf(List<Integer> leafIndcs, AllenMatchStick amsOfLeaf) {
 		double[] nCompDist = getPARAM_nCompDist();
 		int nComp = stickMath_lib.pickFromProbDist(nCompDist);
 
@@ -2227,23 +2227,23 @@ public class AllenMatchStick extends MatchStick {
 
 		// The way we write like this can guarantee that we try to
 		// generate a shape with "specific" # of components
-		return genMatchStickFromLeaf(leafIndx, amsOfLeaf, nComp);
+		return genMatchStickFromLeaf(leafIndcs, amsOfLeaf, nComp);
 	}
 
-	public boolean genMatchStickFromLeaf(int leafIndx, AllenMatchStick amsOfLeaf, int nComp) {
+	public boolean genMatchStickFromLeaf(List<Integer> leafIndcs, AllenMatchStick amsOfLeaf, int nComp) {
 		int i=0; //Number of times tried to generate a comp and smoothize it
 		boolean compSuccess = false;
 		while (i<2) {
 			int j=0; //Number of times tried to generate a comp.
 			this.cleanData();
 			while (j<2) {
-				if (genMatchStickFromLeaf_comp(leafIndx, nComp, amsOfLeaf)){
+				if (genMatchStickFromLeaf_comp(leafIndcs, nComp, amsOfLeaf)){
 					compSuccess = true;
 					break;
 				}
 				else {
 					j++;
-//					System.out.println("Attempt "+j + " to generate comp");
+					System.out.println("Attempt "+ j + " to generate comp");
 				}
 				// else
 				// System.out.println(" Attempt to gen shape fail. try again");
@@ -2264,41 +2264,43 @@ public class AllenMatchStick extends MatchStick {
 
 			//TRY SMOOTHING THE SHAPE
 
-			centerShape();
+
 			boolean smoothSuccess = false;
 			if(compSuccess){
-
 				try {
-					smoothSuccess = this.smoothizeMStick();
+                    centerShape();
+                    smoothSuccess = this.smoothizeMStick();
 				} catch(Exception e){
 					System.err.println(e.getMessage());
 				}
 			}
 			//VET THE RELATIVE SIZE BETWEEN LEAF AND BASE (IN TERMS OF BOUNDING BOX)
-			boolean sizeVetSuccess = false;
-			if (smoothSuccess){ // success to smooth
-				sizeVetSuccess = vetLeafBaseSize(1);
-				if (!sizeVetSuccess){
-					System.out.println("Failed to vet leaf base size");
-				}
-			}
+//			boolean sizeVetSuccess = false;
+//			if (smoothSuccess){ // success to smooth
+//				sizeVetSuccess = vetLeafBaseSize(1);
+//				if (!sizeVetSuccess){
+//					System.out.println("Failed to vet leaf base size");
+//				}
+//			}
 
 			//TODO: add size check here?
-			boolean mStickSizeSuccess = false;
-			if (sizeVetSuccess) {
-				mStickSizeSuccess = validMStickSize();
-				if (!mStickSizeSuccess){
-					System.out.println("Failed to vet mStick size");
-				}
-			}
+//			boolean mStickSizeSuccess = false;
+//            if (smoothSuccess) {
+//                mStickSizeSuccess = validMStickSize();
+//                if (!mStickSizeSuccess) {
+//                    System.out.println("Failed to vet mStick size");
+//                }
+//            }
 
 
-			if (mStickSizeSuccess) {
+
+            if (smoothSuccess) {
 				try {
 					positionShape();
 					return true;
 				} catch (MorphedMatchStick.MorphException e){
 					System.out.println(e.getMessage());
+                    e.printStackTrace();
 				}
 			}
 
@@ -2512,7 +2514,7 @@ public class AllenMatchStick extends MatchStick {
 	 * specialEndComp: comp of the leaf that this end belongs to.
 	 */
 
-	public boolean genMatchStickFromLeaf_comp(int leafIndx, int nComp, AllenMatchStick amsOfLeaf){
+	public boolean genMatchStickFromLeaf_comp(List<Integer> leafIndcs, int nComp, AllenMatchStick amsOfLeaf){
 		boolean showDebug = false;
 		//nComp = 2;
 		setnComponent(nComp);
@@ -2520,129 +2522,302 @@ public class AllenMatchStick extends MatchStick {
 		for (i=1; i<=getnComponent(); i++){
 			getComp()[i] = new AllenTubeComp();
 		}
+        int add_trial = 0;
+        int nowComp = 0;
+        if (leafIndcs.size() == 1) {
+            //STARTING LEAF
+            getComp()[1].copyFrom(amsOfLeaf.getTubeComp(leafIndcs.get(0)));
+            double PROB_addToBaseEndNotBranch = 1;
 
-		//STARTING LEAF
-		getComp()[1].copyFrom(amsOfLeaf.getTubeComp(leafIndx));
-		double PROB_addToBaseEndNotBranch = 1;
-		int add_trial = 0;
-		int nowComp = 2;
-		//double randNdx;
-		boolean addSuccess;
-		while (true)
-		{
-			//FINDING JUNCS AND ENDS THAT ARE ASSOCIATED WITH THE LEAF SPECIFIED BY LEAFINDX
-			ArrayList<Integer> juncList= (ArrayList<Integer>) findJuncsThatContainLeaf(leafIndx, amsOfLeaf);
-			Integer specialJuncINdx = juncList.get(0);
-			ArrayList<Integer> endList= (ArrayList<Integer>) findEndPtsThatContainLeaf(leafIndx, amsOfLeaf);
+            nowComp = 2;
+            //double randNdx;
+            boolean addSuccess;
+            while (true) {
+                //FINDING JUNCS AND ENDS THAT ARE ASSOCIATED WITH THE LEAF SPECIFIED BY LEAFINDX
+                ArrayList<Integer> juncList = (ArrayList<Integer>) findJuncsThatContainLeaf(leafIndcs.get(0), amsOfLeaf);
+                Integer specialJuncINdx = juncList.get(0);
+                ArrayList<Integer> endList = (ArrayList<Integer>) findEndPtsThatContainLeaf(leafIndcs.get(0), amsOfLeaf);
 
-			EndPt_struct specialEnd = new EndPt_struct();
-			JuncPt_struct notSpecialJunc = new JuncPt_struct();
-			EndPt_struct notSpecialEnd = new EndPt_struct();
-			//CHOOSE JUNC FROM LEAF
-			int compIndxInJunctStruct;
-			int nseUNdx = 0;
-			Point3d nsePos = new Point3d();
-			Vector3d nseTangent = new Vector3d();
-			double nseRad = 0;
-			for(int juncIndx : juncList) {
-				compIndxInJunctStruct = amsOfLeaf.getJuncPt()[juncIndx].getJIndexOfComp(leafIndx);
-				if (compIndxInJunctStruct != 0) { //checking if this junc contains the leafIndx
-					int junc_uNdx = amsOfLeaf.getJuncPt()[juncIndx].getuNdx()[compIndxInJunctStruct];
+                EndPt_struct specialEnd = new EndPt_struct();
+                JuncPt_struct notSpecialJunc = new JuncPt_struct();
+                EndPt_struct notSpecialEnd = new EndPt_struct();
+                //CHOOSE JUNC FROM LEAF
+                int compIndxInJunctStruct;
+                int nseUNdx = 0;
+                Point3d nsePos = new Point3d();
+                Vector3d nseTangent = new Vector3d();
+                double nseRad = 0;
+                for (int juncIndx : juncList) {
+                    compIndxInJunctStruct = amsOfLeaf.getJuncPt()[juncIndx].getJIndexOfComp(leafIndcs.get(0));
+                    if (compIndxInJunctStruct != 0) { //checking if this junc contains the leafIndx
+                        int junc_uNdx = amsOfLeaf.getJuncPt()[juncIndx].getuNdx()[compIndxInJunctStruct];
 
-					//JUNC IS NOT BRANCH PT
-					if (junc_uNdx == 51 || junc_uNdx == 1) {
-						notSpecialJunc.copyFrom(amsOfLeaf.getJuncPt()[juncIndx]);
+                        //JUNC IS NOT BRANCH PT
+                        if (junc_uNdx == 51 || junc_uNdx == 1) {
+                            notSpecialJunc.copyFrom(amsOfLeaf.getJuncPt()[juncIndx]);
 
-						//SET NOT-SPECIAL END PARAMS BASED OFF THIS JUNC
-						compIndxInJunctStruct = notSpecialJunc.getJIndexOfComp(leafIndx);
-						nseUNdx = notSpecialJunc.getuNdx()[compIndxInJunctStruct];
-						nsePos = new Point3d(notSpecialJunc.getPos());
-						nseRad = notSpecialJunc.getRad();
+                            //SET NOT-SPECIAL END PARAMS BASED OFF THIS JUNC
+                            compIndxInJunctStruct = notSpecialJunc.getJIndexOfComp(leafIndcs.get(0));
+                            nseUNdx = notSpecialJunc.getuNdx()[compIndxInJunctStruct];
+                            nsePos = new Point3d(notSpecialJunc.getPos());
+                            nseRad = notSpecialJunc.getRad();
 
-						//DEFINE SPECIAL END TO BE THE OTHER END PT
-						specialEnd = new EndPt_struct();
-						for (int endIndx : endList) {
-							int end_uNdx = amsOfLeaf.getEndPtStruct(endIndx).getuNdx();
-							boolean notJuncFlag = end_uNdx != nseUNdx;
-							boolean notBranchFlag = end_uNdx == 1 || end_uNdx == 51;
-							if (notJuncFlag && notBranchFlag) {
-								EndPt_struct endPtStruct = amsOfLeaf.getEndPtStruct(endIndx);
-								specialEnd.setComp(leafIndx);
-								specialEnd.setPos(new Point3d(endPtStruct.getPos()));
-								specialEnd.setTangent(new Vector3d(endPtStruct.getTangent()));
-								specialEnd.setRad(endPtStruct.getRad());
-								specialEnd.setuNdx(end_uNdx);
-							}
-						}
-					}
-					//JUNC IS A MID POINT
-					else { //THERE SHOULD BE TWO END POINTS, ONE AT 1 and ANOTHER AT 51
-						System.out.println("MIDPOINT");
-						for (int endIndx : endList) {
-							int end_uNdx = amsOfLeaf.getEndPtStruct(endIndx).getuNdx();
+                            //DEFINE SPECIAL END TO BE THE OTHER END PT
+                            specialEnd = new EndPt_struct();
+                            for (int endIndx : endList) {
+                                int end_uNdx = amsOfLeaf.getEndPtStruct(endIndx).getuNdx();
+                                boolean notJuncFlag = end_uNdx != nseUNdx;
+                                boolean notBranchFlag = end_uNdx == 1 || end_uNdx == 51;
+                                if (notJuncFlag && notBranchFlag) {
+                                    EndPt_struct endPtStruct = amsOfLeaf.getEndPtStruct(endIndx);
+                                    specialEnd.setComp(leafIndcs.get(0));
+                                    specialEnd.setPos(new Point3d(endPtStruct.getPos()));
+                                    specialEnd.setTangent(new Vector3d(endPtStruct.getTangent()));
+                                    specialEnd.setRad(endPtStruct.getRad());
+                                    specialEnd.setuNdx(end_uNdx);
+                                }
+                            }
+                        }
+                        //JUNC IS A MID POINT
+                        else { //THERE SHOULD BE TWO END POINTS, ONE AT 1 and ANOTHER AT 51
+                            System.out.println("MIDPOINT");
+                            for (int endIndx : endList) {
+                                int end_uNdx = amsOfLeaf.getEndPtStruct(endIndx).getuNdx();
 
-							if (end_uNdx == 1) {
-								notSpecialEnd.copyFrom(amsOfLeaf.getEndPtStruct(endIndx));
-							} else if (end_uNdx == 51) {
-								specialEnd.copyFrom(amsOfLeaf.getEndPtStruct(endIndx));
-							}
-						}
-						nseUNdx = notSpecialEnd.getuNdx();
-						nsePos = notSpecialEnd.getPos();
-						nseRad = notSpecialEnd.getRad();
-					}
-				}
-			}
+                                if (end_uNdx == 1) {
+                                    notSpecialEnd.copyFrom(amsOfLeaf.getEndPtStruct(endIndx));
+                                } else if (end_uNdx == 51) {
+                                    specialEnd.copyFrom(amsOfLeaf.getEndPtStruct(endIndx));
+                                }
+                            }
+                            nseUNdx = notSpecialEnd.getuNdx();
+                            nsePos = notSpecialEnd.getPos();
+                            nseRad = notSpecialEnd.getRad();
+                        }
+                    }
+                }
 
-			//DEFINE SPECIAL END TO BE THE END THAT IS NOT PREVIOUSLY A JUNC
-			if(getSpecialEndComp().isEmpty())
-				getSpecialEndComp().add(1);
-			if(getSpecialEnd().isEmpty())
-				getSpecialEnd().add(1);
+                //DEFINE SPECIAL END TO BE THE END THAT IS NOT PREVIOUSLY A JUNC
+                if (getSpecialEndComp().isEmpty())
+                    getSpecialEndComp().add(1);
+                if (getSpecialEnd().isEmpty())
+                    getSpecialEnd().add(1);
 
-			int seComp = getSpecialEndComp().get(0);
-			int seUNdx = specialEnd.getuNdx();
-			Point3d sePos = specialEnd.getPos();
-			Vector3d seTangent = getComp()[seComp].getmAxisInfo().getmTangent()[seUNdx];
-			nseTangent = getComp()[seComp].getmAxisInfo().getmTangent()[nseUNdx];
-			double seRad = specialEnd.getRad();
+                int seComp = getSpecialEndComp().get(0);
+                int seUNdx = specialEnd.getuNdx();
+                Point3d sePos = specialEnd.getPos();
+                Vector3d seTangent = getComp()[seComp].getmAxisInfo().getmTangent()[seUNdx];
+                nseTangent = getComp()[seComp].getmAxisInfo().getmTangent()[nseUNdx];
+                double seRad = specialEnd.getRad();
 
-			getEndPt()[1] = new EndPt_struct(seComp, seUNdx, sePos, seTangent, seRad);
-			getEndPt()[2] = new EndPt_struct(seComp, nseUNdx, nsePos, nseTangent, nseRad);
+                getEndPt()[1] = new EndPt_struct(seComp, seUNdx, sePos, seTangent, seRad);
+                getEndPt()[2] = new EndPt_struct(seComp, nseUNdx, nsePos, nseTangent, nseRad);
+
+                setnJuncPt(0);
+                setnEndPt(2);
+
+                //ROTATION INFORMATION
+                //			AllenMAxisArc specialMAxis = getComp()[getSpecialEndComp().get(0)].getmAxisInfo();
+                //			specialMAxis.setTransRotHis_alignedPt(getComp());
+                //			getComp()[1].getmAxisInfo().setTransRotHis_alignedPt(nseUNdx);
+                //			getComp()[1].getmAxisInfo().setTransRotHis_finalPos(getComp()[1].getmAxisInfo().getmPts()[nseUNdx]);
+                //			getComp()[1].getmAxisInfo().setTransRotHis_rotCenter(nseUNdx);
+                //			getComp()[1].getmAxisInfo().setTransRotHis_finalTangent(getComp()[1].getmAxisInfo().getmTangent()[nseUNdx]);
+                //			getComp()[1].getmAxisInfo().setTransRotHis_devAngle(transRotHis_devAngle);
+
+                ////////////////////////////////////////////
+                //ADD THE SECOND LIMB- FOLLOWS SPECIAL RULES
+                ////////////////////////////////////////////
+                //Add E2J
+                if (stickMath_lib.rand01() < PROB_addToBaseEndNotBranch) {
+                    addSuccess = Add_BaseMStick(nowComp, 1);
+
+                }
+                //Add B2J
+                else {
+                    addSuccess = Add_BaseMStick(nowComp, 2);
+                }
+                if (addSuccess) { // otherwise, we'll run this while loop again, and re-generate this component
+                    nowComp = 3;
+                    break;
+                }
+                add_trial++;
+                if (add_trial > 100)
+                    return false;
+            }
+        } else if (leafIndcs.size() == 2){
+            //Copying Over The Limbs
+            nowComp=1;
+            Map<Integer, Integer> newIndxForOldLeafIndx = new HashMap<>(leafIndcs.size());
+            for (int leafIndx : leafIndcs){
+                getComp()[nowComp].copyFrom(amsOfLeaf.getTubeComp(leafIndx));
+                newIndxForOldLeafIndx.put(leafIndx, nowComp);
+                nowComp++;
+            }
+            //Copy over special EndPt - associated with first comp???
+            ArrayList<Integer> endList = new ArrayList<>();
+            for (int leafIndx : leafIndcs){
+                endList.addAll(findEndPtsThatContainLeaf(leafIndx, amsOfLeaf));
+            }
 
 
-			setnJuncPt(0);
-			setnEndPt(2);
+            //Copy over the Junc they share
+                //look for all juncs that contains all of our leaves
+            Set<Integer> juncSet = new HashSet<>();
+            for (int leafIndx: leafIndcs){
+                juncSet.addAll(findJuncsThatContainLeaf(leafIndx, amsOfLeaf));
+            }
+                //narrow down to the one that contains both
+            JuncPt_struct juncThatContainsAllLeafs =  new JuncPt_struct();
+            int nseUNdx = 0;
+            int nseComp = 0;
+            for (int juncIndx:juncSet){
+                JuncPt_struct junc = amsOfLeaf.getJuncPt()[juncIndx];
+                //check if junc contains both
+                boolean juncContainsAllLeafs = true;
 
-			//ROTATION INFORMATION
-			AllenMAxisArc specialMAxis = getComp()[getSpecialEndComp().get(0)].getmAxisInfo();
-			//			specialMAxis.setTransRotHis_alignedPt(getComp());
-			//			getComp()[1].getmAxisInfo().setTransRotHis_alignedPt(nseUNdx);
-			//			getComp()[1].getmAxisInfo().setTransRotHis_finalPos(getComp()[1].getmAxisInfo().getmPts()[nseUNdx]);
-			//			getComp()[1].getmAxisInfo().setTransRotHis_rotCenter(nseUNdx);
-			//			getComp()[1].getmAxisInfo().setTransRotHis_finalTangent(getComp()[1].getmAxisInfo().getmTangent()[nseUNdx]);
-			//			getComp()[1].getmAxisInfo().setTransRotHis_devAngle(transRotHis_devAngle);
+                //convert junc.getCompIds to arraylist
+                List<Integer> compIdsInJunc = new ArrayList<>();
+                for (int compId: junc.getCompIds()){
+                    compIdsInJunc.add(compId);
+                }
+                for (int leafIndx: leafIndcs){
+                    juncContainsAllLeafs = juncContainsAllLeafs && compIdsInJunc.contains(leafIndx);
+                }
 
-			////////////////////////////////////////////
-			//ADD THE SECOND LIMB- FOLLOWS SPECIAL RULES
-			////////////////////////////////////////////
-			//Add E2J
-			if(stickMath_lib.rand01()<PROB_addToBaseEndNotBranch) {
-				addSuccess = Add_BaseMStick(nowComp, 1);
+                if(juncContainsAllLeafs){
+                    for (int leafIndx: leafIndcs){
+                        juncThatContainsAllLeafs.addComp(
+                                newIndxForOldLeafIndx.get(leafIndx),
+                                junc.getuNdx()[junc.getJIndexOfComp(leafIndx)],
+                                new Vector3d(junc.getTangent()[junc.getJIndexOfComp(leafIndx)]));
+                        junc.setPos(new Point3d(junc.getPos()));
+                        junc.setRad(junc.getRad());
+                    }
+                }
+            }
 
-			}
-			//Add B2J
-			else {
-				addSuccess = Add_BaseMStick(nowComp, 2);
-			}
-			if (addSuccess) { // otherwise, we'll run this while loop again, and re-generate this component
-				nowComp=3;
-				break;
-			}
-			add_trial++;
-			if ( add_trial > 100)
-				return false;
-		}
+            // Looking for the junction that contains just one leaf in a long E2E situation
+            if (juncSet.size() > 1) {
+                // SETTING THE NON-SPECIAL ENDPT - piece that can be added to
+                //we define here that the first limb is the one we have at the very end.
+                EndPt_struct endToCopy = amsOfLeaf.getEndPtStruct(endList.get(0));
+                EndPt_struct specialEnd = new EndPt_struct();
+                specialEnd.setValue(1, endToCopy.getuNdx(), endToCopy.getPos(), endToCopy.getTangent(), endToCopy.getRad());
+
+                JuncPt_struct juncThatContainsOneLeaf = new JuncPt_struct();
+                for (int juncIndx : juncSet) {
+                    JuncPt_struct junc = amsOfLeaf.getJuncPt()[juncIndx];
+                    //check if junc contains both
+                    boolean juncContainsOneLeaf = false;
+                    for (int compId : junc.getCompIds()) {
+                        if (compId != 0) {
+                            juncContainsOneLeaf = juncContainsOneLeaf ^ leafIndcs.contains(compId); //XOR
+                        }
+                    }
+                    if (juncContainsOneLeaf) {
+                        //identify nseComp
+                        for (int compId : junc.getCompIds()) {
+                            if (compId != 0) {
+                                if (leafIndcs.contains(compId)) {
+                                    nseComp = compId;
+                                }
+                            }
+                        }
+                        juncThatContainsOneLeaf = junc;
+                        int compIndxInJuncStruct = junc.getJIndexOfComp(nseComp);
+                        nseUNdx = junc.getuNdx()[compIndxInJuncStruct];
+                    }
+                }
+                JuncPt_struct specialJunc = new JuncPt_struct();
+                specialJunc.copyFrom(juncThatContainsAllLeafs);
+
+                //Convert prev last junc as EndPt
+                EndPt_struct nonSpecialEndPt = new EndPt_struct(); //the one we convert from a junc that can be added to
+                Point3d nsePos = new Point3d(juncThatContainsOneLeaf.getPos());
+                double nseRad =  juncThatContainsOneLeaf.getRad();
+                Vector3d nseTangent = new Vector3d(amsOfLeaf.getComp()[nseComp].getmAxisInfo().getmTangent()[nseUNdx]);
+
+                nonSpecialEndPt.setValue(2, nseUNdx, nsePos, nseTangent, nseRad);
+
+                //Set final
+                getEndPt()[1] = specialEnd;
+                getEndPt()[2] = nonSpecialEndPt;
+                getJuncPt()[1] =  specialJunc;
+                setnJuncPt(1);
+                setnEndPt(2);
+                nowComp = 3;
+                List<Integer> specialEndComps = new ArrayList<>();
+                specialEndComps.add(1);
+                specialEndComps.add(2);
+                setSpecialEndComp(specialEndComps);
+                getSpecialEnd().add(1);
+
+                boolean addSuccess;
+                add_trial = 0;
+                while (true){
+                    //Add E2J
+                    addSuccess = Add_BaseMStick(nowComp, 1);
+
+                    if (addSuccess) { // otherwise, we'll run this while loop again, and re-generate this component
+                        nowComp++;
+                        break;
+                    }
+                    add_trial++;
+                    if (add_trial > 100)
+                        return false;
+                }
+            }
+            //IN 3-WAY BRANCH KIND OF STRUCTURE - there's only one junc.
+            else if (juncSet.size() == 1){
+                // Identify the special ends
+                int endPtIndex=0;
+                for (EndPt_struct endPt : amsOfLeaf.getEndPt()){
+                    if (endPt != null){
+                        if (leafIndcs.contains(endPt.getComp())){
+                            endPtIndex++;
+                            Integer nowCompIndx = newIndxForOldLeafIndx.get(endPt.getComp());
+                            getSpecialEndComp().add(nowCompIndx);
+                            getSpecialEnd().add(endPt.getuNdx());
+                            EndPt_struct copiedEndPt = new EndPt_struct();
+                            copiedEndPt.setValue(
+                                    nowCompIndx,
+                                    endPt.getuNdx(),
+                                    endPt.getPos(),
+                                    endPt.getTangent(),
+                                    endPt.getRad());
+                            getEndPt()[endPtIndex] = copiedEndPt;
+                            setnEndPt(endPtIndex);
+                        }
+                    }
+                }
+
+                getJuncPt()[1] = juncThatContainsAllLeafs;
+                setnJuncPt(1);
+                nowComp=3;
+                for (int compIndx: newIndxForOldLeafIndx.values()){
+                    getSpecialEndComp().add(compIndx);
+                }
+
+                boolean addSuccess;
+                while (true){
+                    //Add E2J
+                    addSuccess = Add_AccessoryMStick(nowComp, 2);
+
+                    if (addSuccess) { // otherwise, we'll run this while loop again, and re-generate this component
+                        nowComp++;
+                        break;
+                    }
+                    add_trial++;
+                    if (add_trial > 100)
+                        return false;
+                }
+            }
+                //copy
+
+        } else{
+            throw new IllegalArgumentException("Only leafIndcs size 1 or 2 currently supported");
+        }
 		///////////////////////////////////////////////////////////////////////////
 		//ADD ACCESSORY LIMBS - FOLLOWS SPECIAL RULES
 		///////////////////////////////////////////////////////////////////////////
@@ -2653,7 +2828,8 @@ public class AllenMatchStick extends MatchStick {
 			if ( showDebug)
 				System.out.println("adding new MAxis on, now # " +  nowComp);
 			randNdx = stickMath_lib.rand01();
-			if (randNdx < getPROB_addToEndorJunc())
+            boolean addSuccess;
+            if (randNdx < getPROB_addToEndorJunc())
 			{
 				if (getnJuncPt() == 0 || stickMath_lib.rand01() < getPROB_addToEnd_notJunc())
 					addSuccess = Add_AccessoryMStick(nowComp, 1);
@@ -2678,7 +2854,7 @@ public class AllenMatchStick extends MatchStick {
 
 		//up to here, the eligible skeleton should be ready
 		// 3. Assign the radius value
-		RadiusAssign(1); // KEEP FIRST ELEMENT SAME RADIUS
+		RadiusAssign(leafIndcs.size()); // KEEP FIRST ELEMENT SAME RADIUS
 //		MutateSUB_reAssignJunctionRadius();
 		// 4. Apply the radius value onto each component
 		for (i=1; i<=getnComponent(); i++){
@@ -2702,12 +2878,12 @@ public class AllenMatchStick extends MatchStick {
 //		this.centerShapeAtOrigin(getSpecialEndComp().get(0));
 
 		centerShape();
-		if (!validMStickSize())
-		{
-//			System.err.println("FAIL AT VALIDSIZE");
-			System.out.println("\n FAIL the MStick size check ....\n");
-			return false;
-		}
+//		if (!validMStickSize())
+//		{
+////			System.err.println("FAIL AT VALIDSIZE");
+//			System.out.println("\n FAIL the MStick size check ....\n");
+//			return false;
+//		}
 
 
 
@@ -2758,8 +2934,8 @@ public class AllenMatchStick extends MatchStick {
 			while (true)
 			{
 				finalTangent = stickMath_lib.randomUnitVec();
-//				if ( oriTangent.angle(finalTangent) > getTangentSaveZone() ) // angle btw the two tangent vector
-				break;
+				if ( oriTangent.angle(finalTangent) > getTangentSaveZone() ) // angle btw the two tangent vector
+				    break;
 //				if ( trialCount++ == 300)
 //					return false;
 			}
@@ -2974,26 +3150,25 @@ public class AllenMatchStick extends MatchStick {
 			Point3d finalPos = new Point3d(getJuncPt()[nowPtNdx].getPos());
 			Vector3d finalTangent = new Vector3d();
 			trialCount = 1;
-			while (true)
-			{
-
+//			while (true)
+//			{
 				finalTangent = stickMath_lib.randomUnitVec();
-				boolean flag = true;
-				for (i=1; i<= getJuncPt()[nowPtNdx].getnTangent(); i++)
-				{
-					if ( finalTangent.angle(getJuncPt()[nowPtNdx].getTangent()[i]) <= getTangentSaveZone()){
-						flag = false;
-					}
-
-				}
-				if (flag == true) // i.e. all the tangent at this junction is ok for this new tangent
-					break;
-				if ( trialCount++ == 150) {
-					return false;
-				}
-
-
-			}
+//				boolean flag = true;
+//				for (i=1; i<= getJuncPt()[nowPtNdx].getnTangent(); i++)
+//				{
+//					if ( finalTangent.angle(getJuncPt()[nowPtNdx].getTangent()[i]) <= getTangentSaveZone()){
+//						flag = false;
+//					}
+//
+//				}
+//				if (flag == true) // i.e. all the tangent at this junction is ok for this new tangent
+//					break;
+//				if ( trialCount++ == 150) {
+//					return false;
+//				}
+//
+//
+//			}
 			double devAngle = stickMath_lib.randDouble(0.0, 2 * Math.PI);
 			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
 
@@ -3006,6 +3181,7 @@ public class AllenMatchStick extends MatchStick {
 			// 2.5 call the function to check if this new arc is valid
 			if (this.checkSkeletonNearby(nowComp) == true)
 			{
+                getJuncPt()[nowPtNdx] = new JuncPt_struct();
 				getJuncPt()[nowPtNdx].copyFrom(old_JuncInfo);
 				return false;
 			}
@@ -3070,7 +3246,7 @@ public class AllenMatchStick extends MatchStick {
 				setnJuncPt(getnJuncPt() - 1);
 				return false;
 			}
-			setnEndPt(getnEndPt() + 1);
+			setnEndPt(nowComp);
 			this.getEndPt()[getnEndPt()] = new EndPt_struct(nowComp, 51, nowArc.getmPts()[51], nowArc.getmTangent()[51], 100.0);
 			getComp()[pickedComp].setBranchUsed(true);
 

@@ -27,7 +27,7 @@ public class MorphedMatchStick extends AllenMatchStick {
     private final double PROB_addToEnd_notJunc = 0.5; // when "addtoEndorJunc",
     // 50% add to end, 50%
     // add to junc
-    protected final double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0 };
+    public double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0 };
     //    protected final double[] PARAM_nCompDist = {0, 0.33, 0.66, 1.0, 0.0, 0.0, 0.0, 0.0 };
 //    protected final double[] PARAM_nCompDist = {0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 //    protected final double[] PARAM_nCompDist = {0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0 };

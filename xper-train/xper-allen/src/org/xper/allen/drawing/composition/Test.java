@@ -1,6 +1,7 @@
 package org.xper.allen.drawing.composition;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.xper.alden.drawing.drawables.PNGmaker;
@@ -86,7 +87,7 @@ public class Test {
 
 			//GENERATE FROM RANDOM LEAF
 			int randomLeaf = obj_orig.get(i).chooseRandLeaf();
-			objs_match.get(i).genMatchStickFromLeaf(randomLeaf, obj_orig.get(i));
+			objs_match.get(i).genMatchStickFromLeaf(Collections.singletonList(randomLeaf), obj_orig.get(i));
 
 			//MORPH JUST THE LEAF
 			int leafToMorphIndx = 1; //The randomly chosen leaf before should be the first component

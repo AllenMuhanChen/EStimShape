@@ -88,7 +88,7 @@ public class AllenMStickDataTest {
 
                 matchStick = new EStimShapeProceduralMatchStick(rfStrategy, receptiveField, noiseMapper);
                 matchStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, 1.5), "SHADE", 1.0);
-                ((EStimShapeProceduralMatchStick) matchStick).genMatchStickFromComponentInNoise(baseMStick, baseMStick.chooseRandLeaf(),
+                ((EStimShapeProceduralMatchStick) matchStick).genMatchStickFromComponentInNoise(baseMStick, Collections.singletonList(baseMStick.chooseRandLeaf()),
                         4, true, -1);
                 break;
             case "Seeding":

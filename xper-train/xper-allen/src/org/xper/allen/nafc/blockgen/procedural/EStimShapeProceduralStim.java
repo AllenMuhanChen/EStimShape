@@ -15,6 +15,7 @@ import org.xper.rfplot.drawing.png.ImageDimensions;
 
 import javax.vecmath.Point3d;
 import java.awt.*;
+import java.util.Collections;
 
 /**
  * Brings RF and EStim functionality to Procedural Stim
@@ -141,7 +142,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
 
         sample.setProperties(sampleSizeDegrees, parameters.textureType, 1.0);
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0, true, sample.maxAttempts);
+        sample.genMatchStickFromComponentInNoise(baseMatchStick, Collections.singletonList(morphComponentIndex), 0, true, sample.maxAttempts);
 
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));

@@ -118,6 +118,7 @@ public class GAMatchStickTest {
         RGBColor color = new RGBColor(1.0, 0.0, 0.0);
 
         GAMatchStick parent = new GAMatchStick(COMPLETE_RF, COMPLETELY_INSIDE);
+        parent.PARAM_nCompDist = new double[]{0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         int maxSizeDiameterDegrees = 3;
         parent.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
         parent.setStimColor(color);
@@ -156,14 +157,14 @@ public class GAMatchStickTest {
                 from_comp.setStimColor(color);
 
                 compsToPreserve = PruningMatchStick.chooseRandomComponentsToPreserve(2, parentFromSpec);
-                from_comp.genMatchStickFromComponentInNoise(parentFromSpec,
-                        compsToPreserve.get(0),
-                        0,
+                from_comp.genMatchStickFromComponentsInNoise(parentFromSpec,
+                        compsToPreserve,
+                        4,
                         true,
                         15);
                 break;
             } catch(Exception e) {
-
+                e.printStackTrace();
             }
 
         }

@@ -230,7 +230,7 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 						System.out.println("In Sample: attempt " + nTries_sample + " out of " + maxAttempts_sample);
 						//System.out.println("Trying to Generate Sample. Try: " + tries);
 						setProperties(objs_sample.get(i));
-						sampleSuccess = objs_sample.get(i).genMatchStickFromLeaf(randomLeaf, objs_base.get(i));
+						sampleSuccess = objs_sample.get(i).genMatchStickFromLeaf(Collections.singletonList(randomLeaf), objs_base.get(i));
 						if(!sampleSuccess){
 							objs_sample.set(i, new AllenMatchStick());
 						}

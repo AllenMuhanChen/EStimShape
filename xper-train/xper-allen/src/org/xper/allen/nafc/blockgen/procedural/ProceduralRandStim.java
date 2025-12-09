@@ -5,6 +5,8 @@ import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.util.AllenDbUtil;
 
+import java.util.Collections;
+
 public class ProceduralRandStim extends ProceduralStim{
     public static final int MAX_TRIES = 10;
 
@@ -41,7 +43,7 @@ public class ProceduralRandStim extends ProceduralStim{
         ProceduralMatchStick sample = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
         sample.setProperties(parameters.getSize(), "SHADE", 1.0);
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromComponentInNoise(baseMatchStick, baseMatchStick.chooseRandLeaf(), 0, true, sample.maxAttempts);
+        sample.genMatchStickFromComponentInNoise(baseMatchStick, Collections.singletonList(baseMatchStick.chooseRandLeaf()), 0, true, sample.maxAttempts);
 
         noiseComponentIndex = sample.getDrivingComponent();
         morphComponentIndex = sample.getDrivingComponent();

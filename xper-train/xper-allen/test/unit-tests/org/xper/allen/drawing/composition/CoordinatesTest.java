@@ -16,6 +16,7 @@ import org.xper.util.ThreadUtil;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 import java.awt.*;
+import java.util.Collections;
 
 public class CoordinatesTest {
     private final GaussianNoiseMapper noiseMapper = new GaussianNoiseMapper();
@@ -54,7 +55,7 @@ public class CoordinatesTest {
         mStick = new EStimShapeProceduralMatchStick(RFStrategy.COMPLETELY_INSIDE, receptiveField, noiseMapper);
         mStick.setProperties(2, "SHADE", 1.0);
 
-        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true, mStick.maxAttempts);
+        mStick.genMatchStickFromComponentInNoise(baseMStick, Collections.singletonList(1), 3, true, mStick.maxAttempts);
     }
 
     private static ProceduralMatchStick genBaseMStick() {
@@ -87,7 +88,7 @@ public class CoordinatesTest {
         mStick = new EStimShapeProceduralMatchStick(RFStrategy.PARTIALLY_INSIDE, receptiveField, noiseMapper);
         mStick.setProperties(2, "SHADE", 1.0);
 
-        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true, mStick.maxAttempts);
+        mStick.genMatchStickFromComponentInNoise(baseMStick, Collections.singletonList(1), 3, true, mStick.maxAttempts);
     }
 
     @Test

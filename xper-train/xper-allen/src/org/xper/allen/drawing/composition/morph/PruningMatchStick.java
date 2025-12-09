@@ -31,13 +31,14 @@ public class PruningMatchStick extends ProceduralMatchStick {
         super(noiseMapper);
     }
 
-    public void genMatchStickFromComponentInNoise(AllenMatchStick baseMatchStick, int fromCompId, int nComp, boolean doCompareObjCenteredPos, int maxAttempts1){
+    public void genMatchStickFromComponentsInNoise(AllenMatchStick baseMatchStick, List<Integer> fromComponents, int nComp, boolean doCompareObjCenteredPos, int maxAttempts1){
         this.toPreserve = new ArrayList<>();
-        this.toPreserve.add(fromCompId);
+        this.toPreserve.addAll(fromComponents);
         preservedComp = 1; //r
-
+        preservedComps.add(1);
+        preservedComps.add(2);
         this.matchStickToMorph = (MorphedMatchStick) baseMatchStick;
-        super.genMatchStickFromComponentInNoise(baseMatchStick, fromCompId, nComp, doCompareObjCenteredPos, maxAttempts1);
+        super.genMatchStickFromComponentInNoise(baseMatchStick, fromComponents, nComp, doCompareObjCenteredPos, maxAttempts1);
     }
 
     public void genPruningMatchStick(MorphedMatchStick matchStickToMorph, double magnitude, List<Integer> compsToPreserve, List<Integer> compsToNoise){
@@ -85,8 +86,6 @@ public class PruningMatchStick extends ProceduralMatchStick {
             }
         }
         throw new MorphRepetitionException("Exceeded max number of attempts when generating pruning mstick");
-
-        // BASE MATCH STICK STRATEGY?
     }
 
 
@@ -105,9 +104,9 @@ public class PruningMatchStick extends ProceduralMatchStick {
     // Chooses own random components to preserve
 
     public static List<Integer> chooseRandomComponentsToPreserve(int numPreserve, MorphedMatchStick stickToMorph) {
-        if (stickToMorph.getNComponent() <= numPreserve){
-            throw new RuntimeException("Preserving more components than mstick contains");
-        }
+//        if (stickToMorph.getNComponent() <= numPreserve){
+//            throw new RuntimeException("Preserving more components than mstick contains");
+//        }
         List<Integer> componentsToPreserve = new ArrayList<>();
 
         if (numPreserve == 1){

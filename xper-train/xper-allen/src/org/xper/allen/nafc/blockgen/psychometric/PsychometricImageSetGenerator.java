@@ -5,10 +5,7 @@ import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.qualitativemorphs.PsychometricQualitativeMorphParameterGenerator;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 public class PsychometricImageSetGenerator {
     private final PsychometricBlockGen psychometricBlockGen;
@@ -84,7 +81,7 @@ public class PsychometricImageSetGenerator {
             while (nTries_obj < maxAttemptsPerObj) {
                 //				System.out.println("In Obj " + 0 + ": attempt " + nTries_obj + " out of " + maxAttemptsPerObj);
                 objs.get(0).setProperties(psychometricBlockGen.getImageDimensionsDegrees(), "SHADE", 1.0);
-                firstObjSuccess = objs.get(0).genMatchStickFromLeaf(randomLeaf, objs_base);
+                firstObjSuccess = objs.get(0).genMatchStickFromLeaf(Collections.singletonList(randomLeaf), objs_base);
                 if (!firstObjSuccess) {
                     objs.set(0, new AllenMatchStick());
                 } else {

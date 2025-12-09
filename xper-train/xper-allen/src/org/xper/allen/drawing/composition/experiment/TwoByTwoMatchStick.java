@@ -103,7 +103,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
         while (nAttempts < maxAttempts || maxAttempts == -1) {
             nAttempts++;
             try {
-                genMatchStickFromComponent(baseMatchStick, fromCompId, nComp, 5);
+                genMatchStickFromComponent(baseMatchStick, Collections.singletonList(fromCompId), nComp, 5);
             } catch (MorphException e){
                 System.out.println("Error with morph, retrying");
                 System.out.println(e.getMessage());

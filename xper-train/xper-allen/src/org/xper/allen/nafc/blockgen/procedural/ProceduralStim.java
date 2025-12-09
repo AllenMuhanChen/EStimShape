@@ -17,6 +17,7 @@ import org.xper.time.TimeUtil;
 
 import java.awt.*;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -119,7 +120,7 @@ public class ProceduralStim implements NAFCStim {
             sample.setProperties(parameters.getSize(), parameters.textureType, 1.0);
             sample.setStimColor(parameters.color);
             try {
-                sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0, true, sample.maxAttempts);
+                sample.genMatchStickFromComponentInNoise(baseMatchStick, Collections.singletonList(morphComponentIndex), 0, true, sample.maxAttempts);
             } catch (ProceduralMatchStick.MorphRepetitionException e) {
                 System.out.println("MorphRepetition FAILED: " + e.getMessage());
                 continue;

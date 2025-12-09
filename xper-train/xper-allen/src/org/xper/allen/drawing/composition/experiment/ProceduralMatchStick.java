@@ -113,11 +113,11 @@ public class ProceduralMatchStick extends GAMatchStick {
      * Generates a new matchStick from the base matchStick's driving component
      *
      * @param baseMatchStick
-     * @param morphComponentIndx
-     * @param nComp if 0, then choose randomly
+     * @param morphComponentIndcs
+     * @param nComp               if 0, then choose randomly
      * @param maxAttempts
      */
-    public void genMatchStickFromComponent(AllenMatchStick baseMatchStick, int morphComponentIndx, int nComp, int maxAttempts) {
+    public void genMatchStickFromComponent(AllenMatchStick baseMatchStick, List<Integer> morphComponentIndcs, int nComp, int maxAttempts) {
         // calculate the object centered position of the base matchStick's drivingComponent
 //        Map<Integer, SphericalCoordinates> objCenteredPosForDrivingComp =
 //                calcObjCenteredPosForDrivingComp(baseMatchStick, drivingComponentIndex);
@@ -127,7 +127,7 @@ public class ProceduralMatchStick extends GAMatchStick {
         int numAttempts = 0;
         while (numAttempts < maxAttempts || maxAttempts == -1) {
             System.out.println("ATtempting genMatchFromLeaf: " + numAttempts);
-            if (genMatchStickFromLeaf(morphComponentIndx, baseMatchStick, nComp)) {
+            if (genMatchStickFromLeaf(morphComponentIndcs, baseMatchStick, nComp)) {
                 return;
             } else{
                 numAttempts++;
@@ -185,7 +185,7 @@ public class ProceduralMatchStick extends GAMatchStick {
     protected void positionShape() {
     }
 
-    public void genMatchStickFromComponentInNoise(AllenMatchStick baseMatchStick, int fromCompId, int nComp, boolean doCompareObjCenteredPos, int maxAttempts1) {
+    public void genMatchStickFromComponentInNoise(AllenMatchStick baseMatchStick, List<Integer> fromCompIds, int nComp, boolean doCompareObjCenteredPos, int maxAttempts1) {
         this.maxAttempts = maxAttempts1;
         if (nComp == 0){
             nComp = chooseNumComps();
@@ -194,7 +194,7 @@ public class ProceduralMatchStick extends GAMatchStick {
         while (nAttempts < this.maxAttempts || this.maxAttempts == -1) {
             nAttempts++;
             try {
-                genMatchStickFromComponent(baseMatchStick, fromCompId, nComp, this.maxAttempts);
+                genMatchStickFromComponent(baseMatchStick, fromCompIds, nComp, this.maxAttempts);
             } catch (MorphException e){
                 System.out.println("Error with morph, retrying");
                 System.out.println(e.getMessage());
@@ -204,7 +204,7 @@ public class ProceduralMatchStick extends GAMatchStick {
             setSpecialEndComp(Collections.singletonList(drivingComponent));
             List<Integer> compsToNoise = Collections.singletonList(drivingComponent);
             try {
-                this.noiseMapper.checkInNoise(this, compsToNoise, 0.5);
+//                this.noiseMapper.checkInNoise(this, compsToNoise, 0.5);
             } catch (Exception e) {
                 if (noiseDebugMode){
                     return;
@@ -213,13 +213,14 @@ public class ProceduralMatchStick extends GAMatchStick {
                 System.out.println(e.getMessage());
                 continue;
             }
-            SphericalCoordinates originalObjCenteredPos = calcObjCenteredPosForComp(baseMatchStick, fromCompId);
+            SphericalCoordinates originalObjCenteredPos = calcObjCenteredPosForComp(baseMatchStick, fromCompIds.get(0));
             SphericalCoordinates newDrivingObjectCenteredPos = calcObjCenteredPosForComp(this, drivingComponent);
             if (doCompareObjCenteredPos) {
                 try {
                     compareObjectCenteredPositions(originalObjCenteredPos, newDrivingObjectCenteredPos);
                 } catch (MorphException e) {
                     System.err.println(e.getMessage());
+                    e.printStackTrace();
                     continue;
                 }
             }

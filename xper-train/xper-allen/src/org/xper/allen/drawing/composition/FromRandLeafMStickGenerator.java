@@ -1,5 +1,7 @@
 package org.xper.allen.drawing.composition;
 
+import java.util.Collections;
+
 public class FromRandLeafMStickGenerator extends AbstractMStickGenerator{
 	private static final int maxAttemptsToGenerateMStickFromLeaf = 5;
 
@@ -73,7 +75,7 @@ public class FromRandLeafMStickGenerator extends AbstractMStickGenerator{
 	private void generateMStickFromLeaf() {
 		mStick = new AllenMatchStick();
 		mStick.setProperties(maxImageDimensionDegrees, "SHADE", 1.0);
-		boolean success = mStick.genMatchStickFromLeaf(seedLeaf, seedMStick);
+		boolean success = mStick.genMatchStickFromLeaf(Collections.singletonList(seedLeaf), seedMStick);
 
 		if(!success) {
 			throw new MStickGenerationException();

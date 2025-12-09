@@ -6,6 +6,8 @@ import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.drawing.ga.TestMatchStickDrawer;
 import org.xper.allen.pga.RFStrategy;
 
+import java.util.Collections;
+
 import static org.xper.allen.drawing.composition.experiment.TwoByTwoMatchStickTest.PARTIAL_RF;
 
 public class EStimShapeTwoByTwoMatchStickTest {
@@ -41,7 +43,7 @@ public class EStimShapeTwoByTwoMatchStickTest {
         EStimShapeTwoByTwoMatchStick firstMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF, noiseMapper);
         double maxSizeDiameterDegrees = 1.5;
         firstMStick.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
-        firstMStick.genMatchStickFromComponent(baseMStick, 1, 2, firstMStick.maxAttempts);
+        firstMStick.genMatchStickFromComponent(baseMStick, Collections.singletonList(1), 2, firstMStick.maxAttempts);
         testMatchStickDrawer.drawMStick(firstMStick);
         testMatchStickDrawer.drawCompMap(firstMStick);
         testMatchStickDrawer.saveImage(figPath + "/firstMStick");

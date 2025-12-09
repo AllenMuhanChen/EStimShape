@@ -81,7 +81,7 @@ public class ProceduralMatchStickTest {
     public void drawHullAndNoiseCircle(){
         testMStick = new ProceduralMatchStick(noiseMapper);
         testMStick.PARAM_nCompDist = new double[]{0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-        testMStick.genMatchStickFromLeaf(1, baseMStick);
+        testMStick.genMatchStickFromLeaf(Collections.singletonList(1), baseMStick);
 
         List<List<ConcaveHull.Point>> hulls = new ArrayList<>();
         List<Boolean> isSpecial = new ArrayList<>();
@@ -197,7 +197,7 @@ public class ProceduralMatchStickTest {
             sampleMStick.PARAM_nCompDist = new double[]{0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
             sampleMStick.setProperties(size, "SHADE", 1.0);
             sampleMStick.setStimColor(color);
-            sampleMStick.genMatchStickFromComponent(baseMStick, 1, 0, sampleMStick.maxAttempts);
+            sampleMStick.genMatchStickFromComponent(baseMStick, Collections.singletonList(1), 0, sampleMStick.maxAttempts);
             System.out.println("special end comp:" + sampleMStick.getSpecialEndComp());
 
             drawingManager.setBackgroundColor(0.f, 0.f, 0.f);
@@ -289,7 +289,7 @@ public class ProceduralMatchStickTest {
         ProceduralMatchStick sampleMStick = new ProceduralMatchStick(noiseMapper);
         int size = 2;
         sampleMStick.setProperties(size, "SHADE", 1.0);
-        sampleMStick.genMatchStickFromComponent(baseMStick, 1, 0, sampleMStick.maxAttempts);
+        sampleMStick.genMatchStickFromComponent(baseMStick, Collections.singletonList(1), 0, sampleMStick.maxAttempts);
         drawPng(sampleMStick, setId, 1L);
 
         ProceduralMatchStick distractor1 = new ProceduralMatchStick(noiseMapper);
