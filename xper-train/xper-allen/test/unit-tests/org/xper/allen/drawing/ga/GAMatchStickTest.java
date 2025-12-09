@@ -119,7 +119,7 @@ public class GAMatchStickTest {
 
         GAMatchStick parent = new GAMatchStick(COMPLETE_RF, COMPLETELY_INSIDE);
         parent.PARAM_nCompDist = new double[]{0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-        int maxSizeDiameterDegrees = 3;
+        double maxSizeDiameterDegrees = 3.5;
         parent.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
         parent.setStimColor(color);
         parent.genMatchStickRand();
@@ -177,7 +177,7 @@ public class GAMatchStickTest {
         ThreadUtil.sleep(1000);
         testMatchStickDrawer.saveNoiseMap(figPath + "/from_comp_1_noisemap.png",
                 from_comp,
-                0.5, 1
+                0.5, from_comp.getSpecialEndComp()
         );
         System.out.println(from_comp.getMorphData().toXml());
     }
@@ -187,6 +187,7 @@ public class GAMatchStickTest {
         RGBColor color = new RGBColor(1.0, 0.0, 0.0);
 
         GAMatchStick parent = new GAMatchStick(COMPLETE_RF, COMPLETELY_INSIDE);
+        parent.PARAM_nCompDist = new double[]{0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         int maxSizeDiameterDegrees = 3;
         parent.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
         parent.setStimColor(color);

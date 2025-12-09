@@ -200,11 +200,11 @@ public class ProceduralMatchStick extends GAMatchStick {
                 System.out.println(e.getMessage());
                 continue;
             }
-            int drivingComponent = getDrivingComponent();
-            setSpecialEndComp(Collections.singletonList(drivingComponent));
-            List<Integer> compsToNoise = Collections.singletonList(drivingComponent);
+//            int drivingComponent = getDrivingComponent();
+//            setSpecialEndComp(Collections.singletonList(drivingComponent));
+            List<Integer> compsToNoise = fromCompIds;
             try {
-//                this.noiseMapper.checkInNoise(this, compsToNoise, 0.5);
+                this.noiseMapper.checkInNoise(this, compsToNoise, 0.5);
             } catch (Exception e) {
                 if (noiseDebugMode){
                     return;
@@ -214,7 +214,7 @@ public class ProceduralMatchStick extends GAMatchStick {
                 continue;
             }
             SphericalCoordinates originalObjCenteredPos = calcObjCenteredPosForComp(baseMatchStick, fromCompIds.get(0));
-            SphericalCoordinates newDrivingObjectCenteredPos = calcObjCenteredPosForComp(this, drivingComponent);
+            SphericalCoordinates newDrivingObjectCenteredPos = calcObjCenteredPosForComp(this, fromCompIds.get(0));
             if (doCompareObjCenteredPos) {
                 try {
                     compareObjectCenteredPositions(originalObjCenteredPos, newDrivingObjectCenteredPos);

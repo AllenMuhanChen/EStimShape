@@ -16,7 +16,6 @@ public class PruningMatchStick extends ProceduralMatchStick {
 
     private MorphedMatchStick matchStickToMorph;
     private List<Integer> toPreserve = new ArrayList<>();
-    private Integer preservedComp;
     private List<Integer> preservedComps = new ArrayList<>();
 
     public PruningMatchStick(ReceptiveField rf, RFStrategy rfStrategy, NAFCNoiseMapper noiseMapper) {
@@ -34,7 +33,6 @@ public class PruningMatchStick extends ProceduralMatchStick {
     public void genMatchStickFromComponentsInNoise(AllenMatchStick baseMatchStick, List<Integer> fromComponents, int nComp, boolean doCompareObjCenteredPos, int maxAttempts1){
         this.toPreserve = new ArrayList<>();
         this.toPreserve.addAll(fromComponents);
-        preservedComp = 1; //r
         preservedComps.add(1);
         preservedComps.add(2);
         this.matchStickToMorph = (MorphedMatchStick) baseMatchStick;
@@ -44,7 +42,6 @@ public class PruningMatchStick extends ProceduralMatchStick {
     public void genPruningMatchStick(MorphedMatchStick matchStickToMorph, double magnitude, List<Integer> compsToPreserve, List<Integer> compsToNoise){
         this.matchStickToMorph = matchStickToMorph;
         this.toPreserve = compsToPreserve;
-        preservedComp = toPreserve.get(0); //r
         preservedComps.addAll(compsToPreserve);
         List<Integer> componentsToMorph = chooseComponentsToMorph(compsToPreserve);
         if (compsToNoise == null){
