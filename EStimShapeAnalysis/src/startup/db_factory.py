@@ -230,7 +230,10 @@ def recreate_database(cursor, db_name):
     cursor.execute(f"CREATE DATABASE {db_name}")
 
 
-def migrate_database(source_config, dest_config, copy_data_tables=None, copy_structure_tables=None):
+def migrate_database(source_config, dest_config, copy_data_tables: list | bool =None, copy_structure_tables=None):
+    """
+    copy_data_tables: can be list of strings (table names) or boolean True
+    """
     # Connect to the source database
     source_conn = mysql.connector.connect(**source_config)
     source_cursor = source_conn.cursor()
@@ -271,6 +274,12 @@ def migrate_database(source_config, dest_config, copy_data_tables=None, copy_str
     if copy_structure_tables is None:
         copy_structure_tables = all_tables
 
+    # If copy_data_tables is True, then copy all tables data
+    if type(copy_data_tables) is bool:
+        if copy_data_tables:
+            copy_data_tables = all_tables
+        else:
+            copy_data_tables = []
     # Copy tables
     for table in all_tables:
         if table in copy_structure_tables or table in copy_data_tables:

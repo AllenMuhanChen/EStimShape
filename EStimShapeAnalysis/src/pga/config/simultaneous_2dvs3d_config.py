@@ -23,9 +23,9 @@ class Simultaneous3Dvs2DConfig(TwoDThreeDGAConfig):
 
     def __init__(self, *, is_alexnet_mock, database: str, base_intan_path: str, java_output_dir: str,
                  allen_dist_dir: str):
+        self.is_alexnet_mock = is_alexnet_mock
         super().__init__(database=database, base_intan_path=base_intan_path, java_output_dir=java_output_dir,
                          allen_dist_dir=allen_dist_dir)
-        self.is_alexnet_mock = is_alexnet_mock
 
     def side_tests(self):
         """

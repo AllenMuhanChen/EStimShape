@@ -110,9 +110,12 @@ class GeneticAlgorithmConfig:
             GrowingPhaseParentSelector(self.growing_phase_bin_proportions(), self.growing_phase_bin_sample_sizes()),
             self.growing_phase_mutation_assigner(),
             GrowingPhaseMutationMagnitudeAssigner(),
-            GrowingPhaseTransitioner(
-                self.convergence_threshold()
-            )
+            self.growing_phase_transitioner()
+        )
+
+    def growing_phase_transitioner(self):
+        return GrowingPhaseTransitioner(
+            self.convergence_threshold()
         )
 
     def growing_phase_mutation_assigner(self):

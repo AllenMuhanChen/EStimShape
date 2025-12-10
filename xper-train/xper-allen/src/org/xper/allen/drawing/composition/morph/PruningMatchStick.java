@@ -119,21 +119,23 @@ public class PruningMatchStick extends ProceduralMatchStick {
         }
 
         // Add all valid pairs (components that share a junction, excluding invalid index 0)
-        for (JuncPt_struct junc : stickToMorph.getJuncPt()) {
-            if (junc == null) continue;
+        if (stickToMorph.getNComponent() > 2) {
+            for (JuncPt_struct junc : stickToMorph.getJuncPt()) {
+                if (junc == null) continue;
 
-            // Collect non-zero components in this junction
-            List<Integer> compsInJunc = new ArrayList<>();
-            for (int compId : junc.getCompIds()) {
-                if (compId != 0) {  // exclude invalid index
-                    compsInJunc.add(compId);
+                // Collect non-zero components in this junction
+                List<Integer> compsInJunc = new ArrayList<>();
+                for (int compId : junc.getCompIds()) {
+                    if (compId != 0) {  // exclude invalid index
+                        compsInJunc.add(compId);
+                    }
                 }
-            }
 
-            // Generate all pairs from this junction
-            for (int i = 0; i < compsInJunc.size(); i++) {
-                for (int j = i + 1; j < compsInJunc.size(); j++) {
-                    allValidCombinations.add(Arrays.asList(compsInJunc.get(i), compsInJunc.get(j)));
+                // Generate all pairs from this junction
+                for (int i = 0; i < compsInJunc.size(); i++) {
+                    for (int j = i + 1; j < compsInJunc.size(); j++) {
+                        allValidCombinations.add(Arrays.asList(compsInJunc.get(i), compsInJunc.get(j)));
+                    }
                 }
             }
         }

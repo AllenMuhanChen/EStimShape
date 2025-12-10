@@ -44,7 +44,7 @@ public class EStimShapeVariantsStim extends GAStim<PruningMatchStick, AllenMStic
         GAMatchStick parentMStick = new GAMatchStick(generator.getReceptiveField(), null);
         parentMStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
         parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
-        rfStrategy = parentMStick.getRfStrategy();
+
 
         PruningMatchStick childMStick = new PruningMatchStick(generator.getNoiseMapper());
         childMStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
@@ -64,15 +64,17 @@ public class EStimShapeVariantsStim extends GAStim<PruningMatchStick, AllenMStic
         Random random = new Random();
         if (random.nextBoolean()) {
             double magnitude = random.nextDouble() * 0.4 + 0.5;
-            childMStick.genPruningMatchStick(parentMStick, magnitude, compsToPreserveInParent, null);
+            childMStick.genPruningMatchStick(parentMStick, magnitude, compsToPreserveInParent,
+                    null);
         } else{
             // choose a random number of components that's more than
             // the current number of comps to preserve
             int nComp = 0;
-            while (nComp <= compsToPreserveInParent.size()) {
+            while (nComp < compsToPreserveInParent.size()) {
                 nComp = stickMath_lib.pickFromProbDist(PruningMatchStick.PARAM_nCompDist);
             }
-            childMStick.genMatchStickFromComponentsInNoise(parentMStick, compsToPreserveInParent, nComp, true, 15);
+            childMStick.genMatchStickFromComponentsInNoise(parentMStick, compsToPreserveInParent, nComp,
+                    true, 15);
         }
 
         //save the comps to preserve in the next iteration of this. (id's may change)

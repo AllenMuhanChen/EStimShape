@@ -51,6 +51,7 @@ public class PGAConfig {
         generator.setGaName(gaName());
         generator.setRfSource(rfSource());
         generator.setNumCatchTrials(5);
+        generator.setNoiseMapper(mStickPngConfig.noiseMapper());
         return generator;
     }
 

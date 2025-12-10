@@ -224,6 +224,7 @@ public class ProceduralMatchStick extends GAMatchStick {
                     continue;
                 }
             }
+
             return;
         }
         throw new MorphRepetitionException("Could not generate matchStick FROM COMPONENT IN NOISE after " + this.maxAttempts + " attempts");

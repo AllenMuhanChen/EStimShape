@@ -2769,7 +2769,7 @@ public class AllenMatchStick extends MatchStick {
                 }
             }
             //IN 3-WAY BRANCH KIND OF STRUCTURE - there's only one junc.
-            else if (juncSet.size() == 1){
+            else if (juncSet.size() == 1 && nComp > 2){
                 // Identify the special ends
                 int endPtIndex=0;
                 for (EndPt_struct endPt : amsOfLeaf.getEndPt()){
@@ -2813,7 +2813,6 @@ public class AllenMatchStick extends MatchStick {
                         return false;
                 }
             }
-                //copy
 
         } else{
             throw new IllegalArgumentException("Only leafIndcs size 1 or 2 currently supported");
@@ -3098,11 +3097,11 @@ public class AllenMatchStick extends MatchStick {
 			while (true)
 			{
 				finalTangent = stickMath_lib.randomUnitVec();
-				break;
-//				if ( oriTangent.angle(finalTangent) > getTangentSaveZone() ) // angle btw the two tangent vector
-//					break;
-//				if ( trialCount++ == 300)
-//					return false;
+
+				if ( oriTangent.angle(finalTangent) > getTangentSaveZone() ) // angle btw the two tangent vector
+					break;
+				if ( trialCount++ == 300)
+					return false;
 			}
 			double devAngle = stickMath_lib.randDouble(0.0, 2 * Math.PI);
 			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
