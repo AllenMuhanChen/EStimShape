@@ -1,5 +1,7 @@
 from typing import Callable, List, Type
 
+import numpy as np
+
 from src.pga.config.simultaneous_2dvs3d_config import Simultaneous3Dvs2DConfig
 from src.pga.ga_classes import Phase, MutationAssigner, Lineage, Stimulus, ParentSelector, MutationMagnitudeAssigner, \
     RegimeTransitioner
@@ -53,6 +55,7 @@ class EStimPhaseParentSelector(ParentSelector):
         self.threshold = threshold
 
 
+
     def select_parents(self, lineage: Lineage, batch_size: int) -> list[Stimulus]:
         # eligible parents = within x% of the peak response?
         all_stim_across_lineages = self.get_all_stimuli_func()
@@ -61,7 +64,24 @@ class EStimPhaseParentSelector(ParentSelector):
         threshold_response = float(peak_response) * self.threshold
 
         passing_threshold = [s for s in lineage.stimuli if s.response_rate > threshold_response]
-        return passing_threshold
+
+        # If no stimuli pass threshold, return empty list or handle edge case
+        if not passing_threshold:
+            return []
+
+        # Normalize response rates to create sampling probabilities
+        response_rates = np.array([s.response_rate for s in passing_threshold])
+        probabilities = response_rates / response_rates.sum()
+
+        # Sample stimuli based on their normalized response rates
+        selected_indices = np.random.choice(
+            len(passing_threshold),
+            size=batch_size,
+            replace=True,
+            p=probabilities
+        )
+
+        return [passing_threshold[i] for i in selected_indices]
 
 
 
