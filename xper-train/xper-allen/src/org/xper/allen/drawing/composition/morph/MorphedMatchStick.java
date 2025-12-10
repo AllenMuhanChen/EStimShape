@@ -368,6 +368,8 @@ public class MorphedMatchStick extends AllenMatchStick {
 
      */
     private void attemptToMorphComponent(Integer componentIndex, ComponentMorphParameters morphParams) {
+        localBackup = new MorphedMatchStick();
+        localBackup.copyFrom(this);
 
         int numAttempts=0;
         while (numAttempts < NUM_ATTEMPTS_PER_COMPONENT) {

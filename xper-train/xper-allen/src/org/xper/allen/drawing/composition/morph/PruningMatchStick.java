@@ -51,9 +51,10 @@ public class PruningMatchStick extends ProceduralMatchStick {
         this.toPreserveInParent = compsToPreserve;
         preservedComps.addAll(compsToPreserve);
         List<Integer> componentsToMorph = chooseComponentsToMorph(compsToPreserve);
+        System.out.println("componentsToMorph: " + componentsToMorph);
         if (compsToNoise == null){
-            setSpecialEndComp(componentsToMorph);
-            this.matchStickToMorph.setSpecialEndComp(componentsToMorph); //setting this as well otherwise this will be overriden during generation
+            setSpecialEndComp(preservedComps);
+            this.matchStickToMorph.setSpecialEndComp(preservedComps); //setting this as well otherwise this will be overriden during generation
         } else{
             setSpecialEndComp(compsToNoise);
             this.matchStickToMorph.setSpecialEndComp(compsToNoise);
@@ -196,7 +197,7 @@ public class PruningMatchStick extends ProceduralMatchStick {
                 componentsToMorph.add(comp);
             }
         }
-        return  componentsToMorph;
+        return componentsToMorph;
     }
 
     @Override
