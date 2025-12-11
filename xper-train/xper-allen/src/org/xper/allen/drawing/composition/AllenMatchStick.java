@@ -37,8 +37,9 @@ public class AllenMatchStick extends MatchStick {
 	protected RFStrategy rfStrategy;
 	public boolean is2D; //else is 3d.
 	public String underlyingTexture; //if 2d, this is what texture is used to calculate averageContrast
+    protected Map<Integer, Integer> newIndxForOldLeafIndx = new HashMap<>();
 
-	@Override
+    @Override
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
@@ -2527,6 +2528,7 @@ public class AllenMatchStick extends MatchStick {
         if (leafIndcs.size() == 1) {
             //STARTING LEAF
             getComp()[1].copyFrom(amsOfLeaf.getTubeComp(leafIndcs.get(0)));
+            newIndxForOldLeafIndx.put(leafIndcs.get(0), 1);
             double PROB_addToBaseEndNotBranch = 1;
 
             nowComp = 2;
@@ -2648,7 +2650,6 @@ public class AllenMatchStick extends MatchStick {
         } else if (leafIndcs.size() == 2){
             //Copying Over The Limbs
             nowComp=1;
-            Map<Integer, Integer> newIndxForOldLeafIndx = new HashMap<>(leafIndcs.size());
             for (int leafIndx : leafIndcs){
                 getComp()[nowComp].copyFrom(amsOfLeaf.getTubeComp(leafIndx));
                 newIndxForOldLeafIndx.put(leafIndx, nowComp);

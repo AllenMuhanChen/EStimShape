@@ -45,30 +45,25 @@ public class EStimShapeVariantsStim extends GAStim<PruningMatchStick, AllenMStic
         parentMStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
         parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 
-
         PruningMatchStick childMStick = new PruningMatchStick(generator.getNoiseMapper());
         childMStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
         childMStick.setStimColor(color);
 
-
-        //if no comps to preserve exist... --> choose random set
+        // Read or choose components to preserve from parent
         List<Integer> compsToPreserveInParent;
         if (!parentHasCompsToPreserve()){
             compsToPreserveInParent = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
-        } else{
-            //else read the comps to preserve
-            compsToPreserveInParent = compsToPreserveManager.readProperty(parentId);
+        } else {
+            PreservedComponentData parentData = compsToPreserveManager.readProperty(parentId);
+            compsToPreserveInParent = parentData.getCompsToPreserve();
         }
 
-        //call the pruning on the comps to preserve
+        // Generate child
         Random random = new Random();
         if (random.nextBoolean()) {
             double magnitude = random.nextDouble() * 0.4 + 0.5;
-            childMStick.genPruningMatchStick(parentMStick, magnitude, compsToPreserveInParent,
-                    null);
-        } else{
-            // choose a random number of components that's more than
-            // the current number of comps to preserve
+            childMStick.genPruningMatchStick(parentMStick, magnitude, compsToPreserveInParent, null);
+        } else {
             int nComp = 0;
             while (nComp < compsToPreserveInParent.size()) {
                 nComp = stickMath_lib.pickFromProbDist(PruningMatchStick.PARAM_nCompDist);
@@ -77,9 +72,14 @@ public class EStimShapeVariantsStim extends GAStim<PruningMatchStick, AllenMStic
                     true, 15);
         }
 
-        //save the comps to preserve in the next iteration of this. (id's may change)
+        // Save data for this stimulus
         List<Integer> compsToPreserveInNextChild = childMStick.getPreservedComps();
-        compsToPreserveManager.writeProperty(stimId, compsToPreserveInNextChild);
+        PreservedComponentData childData = new PreservedComponentData(
+                compsToPreserveInNextChild,
+                parentId,
+                compsToPreserveInParent
+        );
+        compsToPreserveManager.writeProperty(stimId, childData);
 
         return childMStick;
     }

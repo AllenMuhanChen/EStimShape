@@ -191,13 +191,14 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
                     }
                 }
             }
-        } else{
-            int baseCompId = -1;
-            for (int i = 1; i<= proceduralMatchStick.getnComponent(); i++){
-                if (!compsToBeInNoise.contains(i)){
-                    baseCompId = i;
-                }
-            }
+        } else if (compsToBeInNoise.size() == 2){
+//            int baseCompId = -1;
+//            for (int i = 1; i<= proceduralMatchStick.getnComponent(); i++){
+//                if (!compsToBeInNoise.contains(i)){
+//                    baseCompId = i;
+//                }
+//            }
+            int baseCompId = compsToBeInNoise.get(1);
 
             for (JuncPt_struct junc : proceduralMatchStick.getJuncPt()) {
                 if (junc != null) {
@@ -215,6 +216,8 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
                 }
             }
 
+        } else{
+            throw new IllegalArgumentException("num Comps to be in noise must be 1 or 2. More than 2 not implemented yet");
         }
 
 

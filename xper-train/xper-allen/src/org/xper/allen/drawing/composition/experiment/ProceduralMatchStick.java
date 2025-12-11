@@ -202,7 +202,12 @@ public class ProceduralMatchStick extends GAMatchStick {
             }
 //            int drivingComponent = getDrivingComponent();
 //            setSpecialEndComp(Collections.singletonList(drivingComponent));
-            List<Integer> compsToNoise = fromCompIds;
+            List<Integer> compsToNoiseInBase = fromCompIds;
+            List<Integer> compsToNoise = new  ArrayList<>();
+            for (Integer compId : compsToNoiseInBase) {
+                compsToNoise.add(newIndxForOldLeafIndx.get(compId));
+            }
+
             try {
                 this.noiseMapper.checkInNoise(this, compsToNoise, 0.5);
             } catch (Exception e) {
