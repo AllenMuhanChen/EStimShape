@@ -69,9 +69,29 @@ class EStimPhaseParentSelector(ParentSelector):
         if not passing_threshold:
             return []
 
+
+        # assign score
+        num_variants = len([s for s in passing_threshold if s.mutation_type == StimType.REGIME_ESTIM_VARIANTS.value])
+
+        variant_response_sum = sum([s.response_rate for s in passing_threshold if s.mutation_type == StimType.REGIME_ESTIM_VARIANTS.value])
+        total_response_sum = sum([s.response_rate for s in passing_threshold])
+        variant_response_proportion = variant_response_sum / total_response_sum
+        target_variant_chance = 0.9
+        if variant_response_proportion != 0:
+            # avoid divide by 0
+            bonus = target_variant_chance / variant_response_proportion
+        else:
+            bonus = 1
+        scores = []
+        for s in passing_threshold:
+            if s.mutation_type == StimType.REGIME_ESTIM_VARIANTS.value:
+                scores.append(s.response_rate * bonus)
+            else:
+                scores.append(s.response_rate)
+
+        scores = np.array(scores)
         # Normalize response rates to create sampling probabilities
-        response_rates = np.array([s.response_rate for s in passing_threshold])
-        probabilities = response_rates / response_rates.sum()
+        probabilities = scores / scores.sum()
 
         # Sample stimuli based on their normalized response rates
         selected_indices = np.random.choice(
