@@ -71,8 +71,7 @@ class EStimPhaseParentSelector(ParentSelector):
 
 
         # assign score
-        num_variants = len([s for s in passing_threshold if s.mutation_type == StimType.REGIME_ESTIM_VARIANTS.value])
-
+        # calculate bonus
         variant_response_sum = sum([s.response_rate for s in passing_threshold if s.mutation_type == StimType.REGIME_ESTIM_VARIANTS.value])
         total_response_sum = sum([s.response_rate for s in passing_threshold])
         variant_response_proportion = variant_response_sum / total_response_sum
@@ -82,6 +81,8 @@ class EStimPhaseParentSelector(ParentSelector):
             bonus = target_variant_chance / variant_response_proportion
         else:
             bonus = 1
+
+        #assign scores, adding bonus only if parent is a variant
         scores = []
         for s in passing_threshold:
             if s.mutation_type == StimType.REGIME_ESTIM_VARIANTS.value:
