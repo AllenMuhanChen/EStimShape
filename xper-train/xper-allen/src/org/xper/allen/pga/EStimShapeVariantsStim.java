@@ -65,7 +65,7 @@ public class EStimShapeVariantsStim extends GAStim<PruningMatchStick, AllenMStic
             childMStick.genPruningMatchStick(parentMStick, magnitude, compsToPreserveInParent, null);
         } else {
             int nComp = 0;
-            while (nComp < compsToPreserveInParent.size()) {
+            while (nComp <= compsToPreserveInParent.size()) {
                 nComp = stickMath_lib.pickFromProbDist(PruningMatchStick.PARAM_nCompDist);
             }
             childMStick.genMatchStickFromComponentsInNoise(parentMStick, compsToPreserveInParent, nComp,

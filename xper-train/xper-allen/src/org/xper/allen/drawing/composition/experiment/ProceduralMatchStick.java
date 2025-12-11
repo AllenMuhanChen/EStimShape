@@ -219,7 +219,7 @@ public class ProceduralMatchStick extends GAMatchStick {
                 continue;
             }
             SphericalCoordinates originalObjCenteredPos = calcObjCenteredPosForComp(baseMatchStick, fromCompIds.get(0));
-            SphericalCoordinates newDrivingObjectCenteredPos = calcObjCenteredPosForComp(this, fromCompIds.get(0));
+            SphericalCoordinates newDrivingObjectCenteredPos = calcObjCenteredPosForComp(this, newIndxForOldLeafIndx.get(fromCompIds.get(0)));
             if (doCompareObjCenteredPos) {
                 try {
                     compareObjectCenteredPositions(originalObjCenteredPos, newDrivingObjectCenteredPos);

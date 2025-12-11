@@ -33,8 +33,9 @@ public class PruningMatchStick extends ProceduralMatchStick {
     public void genMatchStickFromComponentsInNoise(AllenMatchStick baseMatchStick, List<Integer> fromComponents, int nComp, boolean doCompareObjCenteredPos, int maxAttempts1){
         this.toPreserveInParent = new ArrayList<>();
         this.toPreserveInParent.addAll(fromComponents);
-        preservedComps.add(1);
-        preservedComps.add(2);
+        for (int i=1; i<= fromComponents.size(); i++){
+            preservedComps.add(i);
+        }
         this.matchStickToMorph = (MorphedMatchStick) baseMatchStick;
         super.genMatchStickFromComponentInNoise(baseMatchStick, fromComponents, nComp, doCompareObjCenteredPos, maxAttempts1);
     }
