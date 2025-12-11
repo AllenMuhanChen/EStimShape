@@ -4,6 +4,8 @@ import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.util.AllenDbUtil;
 
+import java.util.Collections;
+
 public class ProceduralRandStimDeltaNoise extends ProceduralRandStim {
     public ProceduralRandStimDeltaNoise(NAFCBlockGen generator, ProceduralStimParameters parameters) {
         super(generator, parameters);
@@ -11,13 +13,13 @@ public class ProceduralRandStimDeltaNoise extends ProceduralRandStim {
 
 
     protected void chooseMorphComponent() {
-        morphComponentIndex = baseMatchStick.chooseRandLeaf();
+        morphComponentIndcs = Collections.singletonList(baseMatchStick.chooseRandLeaf());
         //any random component except the morph component
         do {
             noiseComponentIndex = baseMatchStick.chooseRandLeaf();
-            System.out.println("Morph Component Index: " + morphComponentIndex);
+            System.out.println("Morph Component Index: " + morphComponentIndcs);
             System.out.println("Noise Component Index: " + noiseComponentIndex);
-        } while (noiseComponentIndex == morphComponentIndex);
+        } while (noiseComponentIndex == morphComponentIndcs.get(0));
     }
 
     @Override

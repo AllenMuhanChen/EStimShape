@@ -211,7 +211,6 @@ class GAExperiment(ExperimentType):
 
 class NAFCExperiment(ExperimentType):
     """NAFC/Procedural experiment type"""
-
     def get_experiment_prefix(self) -> str:
         return "estimshape"
 
@@ -239,6 +238,7 @@ class NAFCExperiment(ExperimentType):
 
         return {
             "jdbc.url": f"jdbc:mysql://{db_ip}/{db_name}?rewriteBatchedStatements=true",
+            "ga.jdbc.url": f"jdbc:mysql://{db_ip}/{ga_db_name}?rewriteBatchedStatements=true",
             "generator.png_path": f"{r_nafc_path}/pngs",
             "experiment.png_path": f"{r2_sftp}{r_nafc_path}/pngs",
             "generator.spec_path": f"{r_nafc_path}/specs",

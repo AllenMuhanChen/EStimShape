@@ -182,6 +182,32 @@ public class ProceduralMatchStick extends GAMatchStick {
         }
     }
 
+    public void genNewComponentsMatchStick(ProceduralMatchStick baseMatchStick, List<Integer> morphComponentIndcs, double magnitude, double discreteness, boolean doPositionShape, int maxAttempts){
+        Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
+
+        for (Integer morphComponentIndx : morphComponentIndcs) {
+            morphParametersForComponents.put(morphComponentIndx, new NormalDistributedComponentMorphParameters(magnitude, new NormalMorphDistributer(discreteness)));
+        }
+
+        int numAttempts = 0;
+        while ((numAttempts < maxAttempts || maxAttempts == -1)) {
+            try {
+                genMorphedComponentsMatchStick(morphParametersForComponents, baseMatchStick, doPositionShape, null, null);
+            } catch(MorphException e) {
+                System.out.println(e.getMessage());
+                continue;
+            } finally{
+                numAttempts++;
+            }
+
+//            checkMStickSize();
+            break;
+        }
+        if (numAttempts >= maxAttempts && maxAttempts != -1) {
+            throw new MorphRepetitionException("Could not generate matchStick WITH NEW DRIVING COMP after " + maxAttempts + " attempts");
+        }
+    }
+
     protected void positionShape() {
     }
 

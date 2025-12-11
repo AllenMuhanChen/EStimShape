@@ -22,6 +22,7 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.exception.XGLException;
 import org.xper.util.FileUtil;
 
+import javax.sql.DataSource;
 import javax.swing.*;
 import java.awt.*;
 import java.io.BufferedReader;
@@ -40,6 +41,9 @@ public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
     String gaSpecPath;
 
     @Dependency
+    DataSource gaDataSource;
+
+    @Dependency
     ReceptiveFieldSource rfSource;
 
     @Dependency
@@ -50,6 +54,7 @@ public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
 
     @Dependency
     AllenPNGMaker samplePngMaker;
+
 
     public static void main(String[] args) {
         try {
@@ -648,5 +653,13 @@ public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
 
     public void setSamplePngMaker(AllenPNGMaker samplePngMaker) {
         this.samplePngMaker = samplePngMaker;
+    }
+
+    public DataSource getGaDataSource() {
+        return gaDataSource;
+    }
+
+    public void setGaDataSource(DataSource gaDataSource) {
+        this.gaDataSource = gaDataSource;
     }
 }

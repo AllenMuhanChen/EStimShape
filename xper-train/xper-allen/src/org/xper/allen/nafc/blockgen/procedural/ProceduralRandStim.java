@@ -22,7 +22,7 @@ public class ProceduralRandStim extends ProceduralStim{
             try {
                 baseMatchStick = genRandBaseMStick();
                 baseMatchStick.setMaxAttempts(MAX_TRIES);
-                System.out.println("Driving Component: " + morphComponentIndex);
+                System.out.println("Driving Component: " + morphComponentIndcs);
                 generateNonBaseMatchSticksAndSaveSpecs();
                 break;
             } catch (ProceduralMatchStick.MorphRepetitionException me) {
@@ -46,7 +46,7 @@ public class ProceduralRandStim extends ProceduralStim{
         sample.genMatchStickFromComponentInNoise(baseMatchStick, Collections.singletonList(baseMatchStick.chooseRandLeaf()), 0, true, sample.maxAttempts);
 
         noiseComponentIndex = sample.getDrivingComponent();
-        morphComponentIndex = sample.getDrivingComponent();
+        morphComponentIndcs = Collections.singletonList(sample.getDrivingComponent());
 
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));
@@ -55,7 +55,7 @@ public class ProceduralRandStim extends ProceduralStim{
         ProceduralMatchStick match = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
         match.setProperties(parameters.getSize(), "SHADE", 1.0);
         match.setStimColor(parameters.color);
-        match.genNewComponentMatchStick(sample, morphComponentIndex, 0.0, 0.5, true, match.maxAttempts);
+        match.genNewComponentMatchStick(sample, morphComponentIndcs.get(0), 0.0, 0.5, true, match.maxAttempts);
         mSticks.setMatch(match);
         mStickSpecs.setMatch(mStickToSpec(match));
 
@@ -63,7 +63,7 @@ public class ProceduralRandStim extends ProceduralStim{
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
             proceduralDistractor.setProperties(parameters.getSize(), "SHADE", 1.0);
             proceduralDistractor.setStimColor(parameters.color);
-            proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts);
+            proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndcs.get(0), parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts);
             mSticks.addProceduralDistractor(proceduralDistractor);
             mStickSpecs.addProceduralDistractor(mStickToSpec(proceduralDistractor));
         }

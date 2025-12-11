@@ -5,6 +5,7 @@ import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -66,11 +67,11 @@ public class EStimShapeDeltaStim extends EStimShapeProceduralStim{
         int drivingIndex = sample.getDrivingComponent();
         int deltaIndex = sample.assignDeltaCompId();
 
-        morphComponentIndex = drivingIndex;
+        morphComponentIndcs = Collections.singletonList(drivingIndex);
         noiseComponentIndex = drivingIndex;
         if (isDeltaMorph){
             System.out.println("Is Delta Morph");
-            morphComponentIndex = deltaIndex;
+            morphComponentIndcs = Collections.singletonList(deltaIndex);
         }
         if (isDeltaNoise) {
             System.out.println("Is Delta Noise");

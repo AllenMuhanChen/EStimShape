@@ -16,6 +16,7 @@ import org.xper.rfplot.drawing.png.ImageDimensions;
 import javax.vecmath.Point3d;
 import java.awt.*;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Brings RF and EStim functionality to Procedural Stim
@@ -25,14 +26,26 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     protected final boolean isEStimEnabled;
     protected final AllenPNGMaker samplePngMaker;
     protected final AllenPNGMaker choicePNGMaker;
-    protected final int compId;
+    protected int compId;
     protected final RFStrategy rfStrategy = RFStrategy.COMPLETELY_INSIDE;
     protected long[] eStimObjData;
     protected double sampleSizeDegrees;
     protected long baseMStickStimSpecId;
 
     public EStimShapeProceduralStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled, long baseMStickStimSpecId, int compId) {
-        super(generator, parameters, baseMatchStick, morphComponentIndex);
+        super(generator, parameters, baseMatchStick, Collections.singletonList(morphComponentIndex));
+        this.rfSource = generator.getRfSource();
+        this.isEStimEnabled = isEStimEnabled;
+        samplePngMaker = generator.getSamplePngMaker();
+        choicePNGMaker = generator.getPngMaker();
+        this.baseMStickStimSpecId = baseMStickStimSpecId;
+
+        sampleSizeDegrees = RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, ((EStimShapeExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees());
+        this.compId = compId;
+    }
+
+    public EStimShapeProceduralStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, List<Integer> morphComponentIndcs, boolean isEStimEnabled, long baseMStickStimSpecId, int compId) {
+        super(generator, parameters, baseMatchStick, morphComponentIndcs);
         this.rfSource = generator.getRfSource();
         this.isEStimEnabled = isEStimEnabled;
         samplePngMaker = generator.getSamplePngMaker();
@@ -75,7 +88,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
             try {
                 EStimShapeProceduralMatchStick sample = (EStimShapeProceduralMatchStick) generateSample();
 
-                morphComponentIndex = sample.getDrivingComponent();
+                morphComponentIndcs = Collections.singletonList(sample.getDrivingComponent());
                 noiseComponentIndex = sample.getDrivingComponent();
 
                 generateMatch(sample);
@@ -142,7 +155,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
 
         sample.setProperties(sampleSizeDegrees, parameters.textureType, 1.0);
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromComponentInNoise(baseMatchStick, Collections.singletonList(morphComponentIndex), 0, true, sample.maxAttempts);
+        sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndcs, 0, true, sample.maxAttempts);
 
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));
@@ -188,7 +201,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
             correctNoiseRadius(proceduralDistractor);
             proceduralDistractor.setProperties(sampleSizeDegrees, parameters.textureType, 1.0);
             proceduralDistractor.setStimColor(parameters.color);
-            proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts);
+            proceduralDistractor.genNewComponentsMatchStick(sample, morphComponentIndcs, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts);
             mSticks.addProceduralDistractor(proceduralDistractor);
             mStickSpecs.addProceduralDistractor(mStickToSpec(proceduralDistractor));
         }

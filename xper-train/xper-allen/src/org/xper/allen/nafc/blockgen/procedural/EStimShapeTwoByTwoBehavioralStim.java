@@ -31,7 +31,7 @@ public class EStimShapeTwoByTwoBehavioralStim extends EStimShapeTwoByTwoStim {
                 EStimShapeTwoByTwoMatchStick sample = (EStimShapeTwoByTwoMatchStick)
                         generateSample();
 
-                morphComponentIndex = sample.getDrivingComponent();
+                morphComponentIndcs = Collections.singletonList(sample.getDrivingComponent());
                 noiseComponentIndex = sample.getDrivingComponent();
 
                 generateMatch(sample);

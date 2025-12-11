@@ -1,5 +1,6 @@
 package org.xper.allen.app.estimshape;
 
+import com.mchange.v2.c3p0.ComboPooledDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
@@ -17,8 +18,11 @@ import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.allen.util.DPIUtil;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
+import org.xper.exception.DbException;
 import org.xper.utils.RGBColor;
 
+import javax.sql.DataSource;
+import java.beans.PropertyVetoException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -41,6 +45,10 @@ public class EStimExperimentAppConfig {
 
     @ExternalValue("generator.set_path")
     String generatorSetPath;
+
+    @ExternalValue("ga.jdbc.url")
+    public String ga_jdbcUrl;
+
 
     @Bean
     public List<Double> xperNoiseRewardFunctionNoises() {
@@ -74,8 +82,24 @@ public class EStimExperimentAppConfig {
         generator.setRfSource(rfSource());
         generator.setGeneratorSetPath(generatorSetPath);
         generator.setSamplePngMaker(samplePngMaker());
+        generator.setGaDataSource(gaDataSource());
         return generator;
     }
+
+    @Bean
+    public DataSource gaDataSource() {
+        ComboPooledDataSource source = new ComboPooledDataSource();
+        try {
+            source.setDriverClass(baseConfig.jdbcDriver);
+        } catch (PropertyVetoException e) {
+            throw new DbException(e);
+        }
+        source.setJdbcUrl(ga_jdbcUrl);
+        source.setUser(baseConfig.jdbcUserName);
+        source.setPassword(baseConfig.jdbcPassword);
+        return source;
+    }
+
     @Bean
     public EStimShapeProceduralBehavioralGenType estimBehavioralGenType() {
         EStimShapeProceduralBehavioralGenType genType = new EStimShapeProceduralBehavioralGenType();

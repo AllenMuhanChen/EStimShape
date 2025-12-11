@@ -8,6 +8,7 @@ import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 import org.xper.time.TimeUtil;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -43,7 +44,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
             try {
                 EStimShapeTwoByTwoMatchStick sample = (EStimShapeTwoByTwoMatchStick) generateSample();
 
-                morphComponentIndex = sample.getDrivingComponent();
+                morphComponentIndcs = Collections.singletonList(sample.getDrivingComponent());
                 noiseComponentIndex = sample.getDrivingComponent();
 
                 generateMatch(sample);
@@ -83,7 +84,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
             swappedBaseMStick.setProperties(parameters.getSize(), parameters.textureType, 1.0);
             swappedBaseMStick.setStimColor(parameters.color);
             swappedBaseMStick.genMorphedBaseMatchStick(match,
-                    morphComponentIndex,
+                    morphComponentIndcs.get(0),
                     30,
                     false,
                     true);
@@ -109,7 +110,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
             swappedBothMStick.setProperties(parameters.getSize(), parameters.textureType, 1.0);
             swappedBothMStick.setStimColor(parameters.color);
             swappedBothMStick.genSwappedBaseAndDrivingComponentMatchStick(swappedBaseMStick,
-                    morphComponentIndex,
+                    morphComponentIndcs.get(0),
                     swappedInNoiseMStick, false, 15);
             mSticks.addProceduralDistractor(swappedBothMStick);
             mStickSpecs.addProceduralDistractor(mStickToSpec(swappedBothMStick));

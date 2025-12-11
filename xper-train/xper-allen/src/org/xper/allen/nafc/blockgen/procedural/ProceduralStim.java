@@ -17,7 +17,6 @@ import org.xper.time.TimeUtil;
 
 import java.awt.*;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -26,18 +25,18 @@ public class ProceduralStim implements NAFCStim {
     protected final NAFCBlockGen generator;
     protected ProceduralStimParameters parameters;
     protected ProceduralMatchStick baseMatchStick;
-    protected int morphComponentIndex;
+    protected List<Integer> morphComponentIndcs;
     protected int noiseComponentIndex;
 
 
     public ProceduralStim(NAFCBlockGen generator,
                           ProceduralStimParameters parameters,
                           ProceduralMatchStick baseMatchStick,
-                          int morphComponentIndex) {
+                          List<Integer> morphComponentIndcs) {
         this.generator = generator;
         this.parameters = parameters;
         this.baseMatchStick = baseMatchStick;
-        this.morphComponentIndex = morphComponentIndex;
+        this.morphComponentIndcs = morphComponentIndcs;
     }
 
     //Local Vars
@@ -120,7 +119,7 @@ public class ProceduralStim implements NAFCStim {
             sample.setProperties(parameters.getSize(), parameters.textureType, 1.0);
             sample.setStimColor(parameters.color);
             try {
-                sample.genMatchStickFromComponentInNoise(baseMatchStick, Collections.singletonList(morphComponentIndex), 0, true, sample.maxAttempts);
+                sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndcs, 0, true, sample.maxAttempts);
             } catch (ProceduralMatchStick.MorphRepetitionException e) {
                 System.out.println("MorphRepetition FAILED: " + e.getMessage());
                 continue;
@@ -143,7 +142,7 @@ public class ProceduralStim implements NAFCStim {
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
             proceduralDistractor.setProperties(parameters.getSize(), parameters.textureType, 1.0);
             proceduralDistractor.setStimColor(parameters.color);
-            proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts);
+            proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndcs.get(0), parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts);
             mSticks.addProceduralDistractor(proceduralDistractor);
             mStickSpecs.addProceduralDistractor(mStickToSpec(proceduralDistractor));
         }
