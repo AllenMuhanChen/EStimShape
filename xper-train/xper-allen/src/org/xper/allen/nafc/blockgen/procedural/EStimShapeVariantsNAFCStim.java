@@ -6,6 +6,8 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
+import org.xper.allen.nafc.blockgen.DistancedDistractorsUtil;
+import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.stimproperty.*;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.RGBColor;
@@ -16,6 +18,7 @@ import java.util.List;
 
 public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
 
+    private double maxChoiceSize;
     protected List<Integer> noiseComponentIndcs;
     protected String gaSpecPath;
     private String texture;
@@ -43,12 +46,38 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         texture = texturePropertyManager.readProperty(variantId);
         color = underlingAverageRGBPropertyManager.readProperty(variantId);
 
-        //TODO: figure out right combinations of parameters for optimal placement of choices here...
-        choiceSize = 10;
+        maxChoiceSize = generator.getMaxChoiceDimensionDegrees() * 0.9;
+        choiceSize = sampleSize;
+
+        double choiceLim = calculateMinDistanceChoicesCanBeWithoutOverlap(parameters);
+
+        parameters.setChoiceDistanceLims(new Lims(choiceLim, choiceLim));
+        parameters.setEyeWinRadius(choiceSize*4/2); // 4 back to back limbs, and divide by two for radius corr
 
         noiseMapper = generator.getNoiseMapper();
         morphComponentIndcs = compsToPreserveManager.readProperty(variantId).getCompsToPreserve();
         noiseComponentIndcs = compsToPreserveManager.readProperty(variantId).getCompsToPreserve();
+    }
+
+    private double calculateMinDistanceChoicesCanBeWithoutOverlap(ProceduralStimParameters parameters) {
+        /**
+         * To derive, draw a circle with n circles centered on the perimeter of this circle, located
+         * equidistantly. Draw a polygon with straight lines between the center of each outside circle.
+         *
+         * If n=4, then it will make a 4-sided polygon, made up of 4 identical triangles. The angle, theta, of each corner is 360/(2n)
+         *
+         * sin(theta) = min_limit / diameter_of_outer_circle
+         *
+         * so min_limit = sin(360/(2n)) * image_diam
+         *
+         * However, image is actually a square, not a circle, so in the most extreme case,
+         * a square can be sqrt(2) times larger in the diagonal compared.
+         *
+         * So min_limit = sqrt(2) * sin(360/2n) * image_length
+         *
+         *
+         */
+        return Math.sqrt(2) * maxChoiceSize * Math.sin(Math.toRadians(360) / (2 * parameters.numChoices));
     }
 
     protected boolean is2D() {
@@ -124,7 +153,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
             correctNoiseRadius(proceduralDistractor);
             proceduralDistractor.setProperties(choiceSize, texture, is2D(), 1.0);
             proceduralDistractor.setStimColor(color);
-            proceduralDistractor.genNewComponentsMatchStick(sample, morphComponentIndcs, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts);
+            proceduralDistractor.genNewComponentsMatchStick(sample, morphComponentIndcs, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts, maxChoiceSize);
             mSticks.addProceduralDistractor(proceduralDistractor);
             mStickSpecs.addProceduralDistractor(mStickToSpec(proceduralDistractor));
         }

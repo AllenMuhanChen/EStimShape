@@ -3919,6 +3919,32 @@ public class AllenMatchStick extends MatchStick {
 //		return true;
 //	}
 
+    public boolean mStickFitsInBox(double boxSizeDegrees) {
+        double screenDist = 500;
+        double maxDiameterDegrees = boxSizeDegrees;
+//        double radiusMm = degToMm(maxDiameterDegrees, screenDist) / 2;
+        double radiusMm = maxDiameterDegrees * Math.tan(Math.toRadians(boxSizeDegrees) / 2);
+        int i, j;
+
+        Point3d ori = new Point3d(0,0,0);
+        List<Point3d> correctedPoints = new ArrayList<>();
+        for (i=1; i<=getnComponent(); i++)
+            for (j=1; j<= getComp()[i].getnVect(); j++) {
+                Point3d point = new Point3d(getComp()[i].getVect_info()[j]);
+                point.scale(1/getScaleForMAxisShape());
+                correctedPoints.add(point);
+            }
+        double dis;
+        for (Point3d correctedPoint : correctedPoints){
+            dis=correctedPoint.distance(ori);
+                if ( dis > radiusMm ) {
+                    System.out.println("Component " + i + " has a vector that is too long: " + dis + " mm" + " when the " + radiusMm + " mm is the max");
+                    return false;
+                }
+            }
+        return true;
+    }
+
 	@Override
 	protected boolean validMStickSize()
 	{

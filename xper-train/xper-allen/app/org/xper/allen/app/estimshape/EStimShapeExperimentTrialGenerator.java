@@ -55,6 +55,11 @@ public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
     @Dependency
     AllenPNGMaker samplePngMaker;
 
+    @Dependency
+    double maxSampleDimensionDegrees;
+
+    @Dependency
+    double maxChoiceDimensionDegrees;
 
     public static void main(String[] args) {
         try {
@@ -661,5 +666,21 @@ public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
 
     public void setGaDataSource(DataSource gaDataSource) {
         this.gaDataSource = gaDataSource;
+    }
+
+    public double getMaxSampleDimensionDegrees() {
+        return maxSampleDimensionDegrees;
+    }
+
+    public void setMaxSampleDimensionDegrees(double sampleMaxStimulusDimensionDegrees) {
+        this.maxSampleDimensionDegrees = sampleMaxStimulusDimensionDegrees;
+    }
+
+    public double getMaxChoiceDimensionDegrees() {
+        return maxChoiceDimensionDegrees;
+    }
+
+    public void setMaxChoiceDimensionDegrees(double maxChoiceDimensionDegrees) {
+        this.maxChoiceDimensionDegrees = maxChoiceDimensionDegrees;
     }
 }

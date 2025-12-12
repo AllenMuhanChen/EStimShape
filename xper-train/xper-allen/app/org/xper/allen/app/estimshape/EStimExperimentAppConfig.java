@@ -84,6 +84,8 @@ public class EStimExperimentAppConfig {
         generator.setGeneratorSetPath(generatorSetPath);
         generator.setSamplePngMaker(samplePngMaker());
         generator.setGaDataSource(gaDataSource());
+        generator.setMaxSampleDimensionDegrees(45);
+        generator.setMaxChoiceDimensionDegrees(pngConfig.mStickPngConfig.xperMaxImageDimensionDegrees());
         return generator;
     }
 
@@ -173,9 +175,14 @@ public class EStimExperimentAppConfig {
         DPIUtil dpiUtil = new DPIUtil();
         dpiUtil.setRenderer(classicConfig.experimentGLRenderer());
         dpiUtil.setDpi(pngConfig.mStickPngConfig.xperMonkeyScreenDPI());
-        dpiUtil.setMaxStimulusDimensionDegrees(45);
+        dpiUtil.setMaxStimulusDimensionDegrees(maxSampleSizeDegrees());
         dpiUtil.setGeneratorDPI(163.2);
         return dpiUtil;
+    }
+
+    @Bean
+    public int maxSampleSizeDegrees() {
+        return 45;
     }
 
     @Bean

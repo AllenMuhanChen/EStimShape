@@ -155,7 +155,7 @@ public class ProceduralMatchStick extends GAMatchStick {
                 numAttempts++;
             }
 
-            checkMStickSize();
+//            checkMStickSize();
             break;
         }
 
@@ -185,7 +185,7 @@ public class ProceduralMatchStick extends GAMatchStick {
         }
     }
 
-    public void genNewComponentsMatchStick(ProceduralMatchStick baseMatchStick, List<Integer> morphComponentIndcs, double magnitude, double discreteness, boolean doPositionShape, int maxAttempts){
+    public void genNewComponentsMatchStick(ProceduralMatchStick baseMatchStick, List<Integer> morphComponentIndcs, double magnitude, double discreteness, boolean doPositionShape, int maxAttempts, Double maxDiameterDegrees){
         Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
 
         for (Integer morphComponentIndx : morphComponentIndcs) {
@@ -208,8 +208,9 @@ public class ProceduralMatchStick extends GAMatchStick {
                 numAttempts++;
             }
 
-
-//            checkMStickSize();
+            if(maxDiameterDegrees != null) {
+                checkMStickFitsInPNG(maxDiameterDegrees);
+            }
             break;
         }
         if (numAttempts >= maxAttempts && maxAttempts != -1) {
@@ -217,7 +218,15 @@ public class ProceduralMatchStick extends GAMatchStick {
         }
     }
 
+    public void checkMStickFitsInPNG(double maxDiameterDegrees) throws MStickSizeException{
+        boolean success = this.mStickFitsInBox(maxDiameterDegrees);
+        if (!success) {
+            throw new MStickSizeException("MatchStick size is invalid");
+        }
+    }
+
     protected void positionShape() {
+        centerShape();
     }
 
     public void genMatchStickFromComponentInNoise(AllenMatchStick baseMatchStick, List<Integer> fromCompIds, int nComp, boolean doCompareObjCenteredPos, int maxAttempts1) {

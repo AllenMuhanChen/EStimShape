@@ -200,7 +200,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
             correctNoiseRadius(proceduralDistractor);
             proceduralDistractor.setProperties(sampleSizeDegrees, parameters.textureType, 1.0);
             proceduralDistractor.setStimColor(parameters.color);
-            proceduralDistractor.genNewComponentsMatchStick(sample, morphComponentIndcs, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts);
+            proceduralDistractor.genNewComponentsMatchStick(sample, morphComponentIndcs, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts, null);
             mSticks.addProceduralDistractor(proceduralDistractor);
             mStickSpecs.addProceduralDistractor(mStickToSpec(proceduralDistractor));
         }
