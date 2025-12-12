@@ -11,7 +11,7 @@ public class ProceduralRandStim extends ProceduralStim{
     public static final int MAX_TRIES = 10;
 
     public ProceduralRandStim(NAFCBlockGen generator, ProceduralStim.ProceduralStimParameters parameters) {
-        super(generator, parameters, new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper()), 0);
+        super(generator, parameters, new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper()), Collections.singletonList(0));
     }
 
     @Override

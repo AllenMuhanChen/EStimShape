@@ -3,6 +3,7 @@ package org.xper.allen.nafc.blockgen.procedural;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
+import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
@@ -11,10 +12,13 @@ import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.RGBColor;
 
 import javax.vecmath.Point3d;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
 
+    protected String gaSpecPath;
     private String texture;
     private Float sampleSize;
     private NAFCNoiseMapper noiseMapper;
@@ -26,9 +30,10 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
     }
 
     public EStimShapeVariantsNAFCStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, Long variantId, boolean isEStimEnabled){
-        super(generator, parameters, null, null, isEStimEnabled, variantId, -1);
+        super(generator, parameters, null, new ArrayList<>(), isEStimEnabled, variantId, -1);
+        gaSpecPath = generator.getGaSpecPath();
+
         JdbcTemplate gaJDBCTemplate = new JdbcTemplate(generator.getGaDataSource());
-        RFStrategyPropertyManager rfStrategyPropertyManager = new RFStrategyPropertyManager(gaJDBCTemplate);
         SizePropertyManager sizePropertyManager = new SizePropertyManager(gaJDBCTemplate);
         TexturePropertyManager texturePropertyManager = new TexturePropertyManager(gaJDBCTemplate);
         UnderlingAverageRGBPropertyManager underlingAverageRGBPropertyManager = new UnderlingAverageRGBPropertyManager(gaJDBCTemplate);
@@ -42,11 +47,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         choiceSize = 10;
 
         noiseMapper = generator.getNoiseMapper();
-        baseMatchStick = new PruningMatchStick(noiseMapper);
-        baseMatchStick.setProperties(sampleSize, texture, is2D(), 1.0);
-        baseMatchStick.setStimColor(color);
-
-        morphComponentIndcs = (List<Integer>) compsToPreserveManager.readProperty(variantId);
+        morphComponentIndcs = compsToPreserveManager.readProperty(variantId).getCompsToPreserve();
     }
 
     protected boolean is2D() {
@@ -54,8 +55,37 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
     }
 
     @Override
+    protected void generateMatchSticksAndSaveSpecs() {
+        while(true) {
+            this.mSticks = new Procedural<>();
+            this.mStickSpecs = new Procedural<>();
+            try {
+                PruningMatchStick sample = (PruningMatchStick) generateSample();
+
+
+                generateMatch(sample);
+
+                generateProceduralDistractors(sample);
+
+                generateRandDistractors();
+
+                break;
+            } catch (Exception e) {
+                System.out.println("MorphRepetition FAILED: " + e.getMessage());
+            }
+        }
+    }
+
+    @Override
     protected ProceduralMatchStick generateSample() {
         AllenMStickSpec baseStickSpec = new AllenMStickSpec();
+        baseMatchStick = new PruningMatchStick(noiseMapper);
+
+        baseMatchStick.setProperties(sampleSize, texture, is2D(), 1.0);
+        baseMatchStick.setStimColor(color);
+        baseMatchStick.genMatchStickFromFile(gaSpecPath + "/" + baseMStickStimSpecId + "_spec.xml");
+
+
         baseStickSpec.setMStickInfo(baseMatchStick, false);
 
         //maybe we could do some minor morphs here??

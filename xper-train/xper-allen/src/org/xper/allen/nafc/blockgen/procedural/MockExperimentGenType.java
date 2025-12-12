@@ -41,7 +41,7 @@ public class MockExperimentGenType extends ProceduralRandGenType<MockExperimentG
 
         //use that trial's base matchstick to generate the rest of the trials
         for (int i = 0; i < parameters.getNumTrials(); i++) {
-            ProceduralStim stim = new ProceduralStim(generator, parameters.getProceduralStimParameters(), baseMStick, morphIndex);
+            ProceduralStim stim = new ProceduralStim(generator, parameters.getProceduralStimParameters(), baseMStick, Collections.singletonList(morphIndex));
             newBlock.add(stim);
         }
 

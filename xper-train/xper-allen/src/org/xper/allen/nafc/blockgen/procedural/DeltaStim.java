@@ -17,7 +17,7 @@ public class DeltaStim extends ProceduralStim {
                 baseStim.generator,
                 baseStim.getParameters(),
                 baseStim.baseMatchStick,
-                -1);
+                Collections.singletonList(-1));
         this.baseStim = baseStim;
         this.isDeltaMorph = isDeltaMorph;
         this.isDeltaNoise = isDeltaNoise;

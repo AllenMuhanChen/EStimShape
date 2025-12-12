@@ -84,7 +84,6 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         while(true) {
             this.mSticks = new Procedural<>();
             this.mStickSpecs = new Procedural<>();
-            System.out.println("Trying to generate EStimShapeProceduralStim");
             try {
                 EStimShapeProceduralMatchStick sample = (EStimShapeProceduralMatchStick) generateSample();
 

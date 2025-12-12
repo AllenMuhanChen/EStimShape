@@ -14,6 +14,7 @@ import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.nafc.blockgen.EStimShapeProceduralBehavioralGenType;
 import org.xper.allen.nafc.blockgen.procedural.EStimExperimentGenType;
+import org.xper.allen.nafc.blockgen.procedural.EStimExperimentVariantsGenType;
 import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.allen.util.DPIUtil;
 import org.xper.config.BaseConfig;
@@ -101,7 +102,7 @@ public class EStimExperimentAppConfig {
     }
 
     @Bean
-    public EStimShapeProceduralBehavioralGenType estimBehavioralGenType() {
+    public EStimShapeProceduralBehavioralGenType eStimBehavioralGenType() {
         EStimShapeProceduralBehavioralGenType genType = new EStimShapeProceduralBehavioralGenType();
         genType.setGenerator(generator()); // Uses EStimShapeExperimentTrialGenerator
         return genType;
@@ -112,15 +113,23 @@ public class EStimExperimentAppConfig {
         gui.setBlockgen(generator());
         gui.setStimTypes(Arrays.asList(
                 proceduralAppConfig.proceduralRandGenType(),
-                estimBehavioralGenType(),
-                getEStimExperimentGenType()
+                eStimBehavioralGenType(),
+                eStimExperimentGenType(),
+                estimExperimentVariantsGenType()
         ));
         gui.setDefaultStimType(proceduralAppConfig.proceduralRandGenType());
         return gui;
     }
 
     @Bean
-    public EStimExperimentGenType getEStimExperimentGenType() {
+    public EStimExperimentVariantsGenType estimExperimentVariantsGenType() {
+        EStimExperimentVariantsGenType genType = new EStimExperimentVariantsGenType();
+        genType.setGenerator(generator());
+        return genType;
+    }
+
+    @Bean
+    public EStimExperimentGenType eStimExperimentGenType() {
         EStimExperimentGenType eStimExperimentGenType = new EStimExperimentGenType();
         eStimExperimentGenType.setGaSpecPath(proceduralAppConfig.gaSpecPath);
         eStimExperimentGenType.setGenerator(generator());
