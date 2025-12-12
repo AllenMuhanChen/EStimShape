@@ -225,7 +225,7 @@ public class ProceduralMatchStick extends GAMatchStick {
         }
     }
 
-    protected void positionShape() {
+    public void positionShape() {
         centerShape();
     }
 

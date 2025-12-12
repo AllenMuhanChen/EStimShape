@@ -161,7 +161,7 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
 
 
     @Override
-    protected void positionShape() throws MorphException {
+    public void positionShape() throws MorphException {
         RFUtils.positionAroundRF(rfStrategy, this, rf, 100);
     }
 

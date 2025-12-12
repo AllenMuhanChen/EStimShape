@@ -2314,7 +2314,7 @@ public class AllenMatchStick extends MatchStick {
 		return false;
 	}
 
-	protected void positionShape() {
+	public void positionShape() {
 	}
 
 	protected boolean vetLeafBaseSize(int leafIdToComparetoBase) {

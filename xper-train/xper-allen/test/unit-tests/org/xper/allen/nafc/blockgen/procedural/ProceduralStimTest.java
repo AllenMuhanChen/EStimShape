@@ -23,6 +23,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class ProceduralStimTest extends ProceduralMatchStickTest {
@@ -60,7 +61,7 @@ public class ProceduralStimTest extends ProceduralMatchStickTest {
                 color,
                 "SHADE", 1);
 
-        ProceduralStim stim = new ProceduralStim(generator, parameters, baseMStick, 1);
+        ProceduralStim stim = new ProceduralStim(generator, parameters, baseMStick, Collections.singletonList(1));
         stim.writeStim();
 
         AllenPNGMaker pngMaker = generator.getPngMaker();

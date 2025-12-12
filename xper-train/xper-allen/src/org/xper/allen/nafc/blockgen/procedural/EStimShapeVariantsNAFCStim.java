@@ -108,13 +108,11 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
     @Override
     protected ProceduralMatchStick generateSample() {
         AllenMStickSpec baseStickSpec = new AllenMStickSpec();
-        baseMatchStick = new PruningMatchStick(noiseMapper);
+        PruningMatchStick baseMatchStick = new PruningMatchStick(noiseMapper);
 
         baseMatchStick.setProperties(sampleSize, texture, is2D(), 1.0);
         baseMatchStick.setStimColor(color);
         baseMatchStick.genMatchStickFromFile(gaSpecPath + "/" + baseMStickStimSpecId + "_spec.xml");
-
-
         baseStickSpec.setMStickInfo(baseMatchStick, false);
 
         //maybe we could do some minor morphs here??

@@ -295,7 +295,7 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
     }
 
     @Override
-    protected void positionShape() throws MorphException {
+    public void positionShape() throws MorphException {
         if (rfStrategy != null) {
             RFUtils.positionAroundRF(rfStrategy, this, rf, 1000);
             return;

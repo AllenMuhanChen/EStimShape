@@ -48,6 +48,7 @@ public class TestMatchStickDrawer {
         JUNC_COLORS.put(0, new RGBColor(1,1,0));
         JUNC_COLORS.put(1, new RGBColor(1,0,1));
         JUNC_COLORS.put(2, new RGBColor(0,1,1));
+        JUNC_COLORS.put(3, new RGBColor(1,1,1));
     }
 
     public void setup(int height, int width){

@@ -15,8 +15,8 @@ import java.util.*;
 public class PruningMatchStick extends ProceduralMatchStick {
 
     private MorphedMatchStick matchStickToMorph;
-    private List<Integer> toPreserveInParent = new ArrayList<>();
-    private List<Integer> preservedComps = new ArrayList<>();
+    public List<Integer> toPreserveInParent = new ArrayList<>();
+    public List<Integer> preservedComps = new ArrayList<>();
 
     public PruningMatchStick(ReceptiveField rf, RFStrategy rfStrategy, NAFCNoiseMapper noiseMapper) {
         super(rf, rfStrategy, noiseMapper);
@@ -28,6 +28,15 @@ public class PruningMatchStick extends ProceduralMatchStick {
      */
     public PruningMatchStick(NAFCNoiseMapper noiseMapper) {
         super(noiseMapper);
+    }
+
+    public void genCopyFromOther(PruningMatchStick other){
+        this.preservedComps.addAll(other.preservedComps);
+        this.toPreserveInParent.addAll(other.toPreserveInParent);
+
+        AllenMStickSpec spec = new AllenMStickSpec();
+        spec.setMStickInfo(other, false);
+        this.genMatchStickFromShapeSpec(spec,  new double[]{0,0,0});
     }
 
     public void genMatchStickFromComponentsInNoise(AllenMatchStick baseMatchStick, List<Integer> fromComponents, int nComp, boolean doCompareObjCenteredPos, int maxAttempts1){
@@ -99,15 +108,16 @@ public class PruningMatchStick extends ProceduralMatchStick {
     }
 
     @Override
-    protected void positionShape() throws MorphException {
+    public void positionShape() throws MorphException {
         if (rfStrategy != null) {
             RFUtils.positionAroundRF(rfStrategy, this, rf, 1000);
-        } else{
+        } else if (matchStickToMorph != null){
             Point3d pointToMove = getComp()[preservedComps.get(0)].getMassCenter();
             Point3d destination = matchStickToMorph.getComp()[toPreserveInParent.get(0)].getMassCenter();
 
             movePointToDestination(pointToMove, destination);
         }
+
     }
 
     public static List<Integer> chooseRandomComponentsToPreserve(MorphedMatchStick stickToMorph) {
@@ -254,5 +264,17 @@ public class PruningMatchStick extends ProceduralMatchStick {
 
     public List<Integer> getComponentsToPreserve() {
         return toPreserveInParent;
+    }
+
+    public List<Integer> getToPreserveInParent() {
+        return toPreserveInParent;
+    }
+
+    public void setToPreserveInParent(List<Integer> toPreserveInParent) {
+        this.toPreserveInParent = toPreserveInParent;
+    }
+
+    public void setPreservedComps(List<Integer> preservedComps) {
+        this.preservedComps = preservedComps;
     }
 }

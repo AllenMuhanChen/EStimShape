@@ -152,6 +152,7 @@ public class GAMatchStickTest {
         while (true) {
             try {
                 from_comp = new PruningMatchStick(noiseMapper);
+                from_comp.setRf(COMPLETE_RF);
                 from_comp.setMaxTotalAttempts(15);
                 from_comp.setProperties(maxSizeDiameterDegrees, "SHADE", 1.0);
                 from_comp.setStimColor(color);
@@ -179,6 +180,11 @@ public class GAMatchStickTest {
                 from_comp,
                 0.5, from_comp.getSpecialEndComp()
         );
+        PruningMatchStick.PruningMStickData data = from_comp.getMStickData();
+
+        //TEST A variant from this
+
+
         System.out.println(from_comp.getMorphData().toXml());
     }
 
