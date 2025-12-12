@@ -31,7 +31,7 @@ public class ProceduralMatchStick extends GAMatchStick {
     //protected double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0};
     protected static SphericalCoordinates objCenteredPositionTolerance =
             new SphericalCoordinates(1, Math.PI / 8, Math.PI / 3 );
-    public static double noiseRadiusMm = 20;
+    public double noiseRadiusMm = 20;
     public static int maxAttempts = 5;
     private Point3d noiseOrigin;
     public Vector3d projectedTangent;
@@ -41,9 +41,15 @@ public class ProceduralMatchStick extends GAMatchStick {
 
     public ProceduralMatchStick(ReceptiveField rf, RFStrategy rfStrategy, NAFCNoiseMapper noiseMapper) {
         this.rf = rf;
+        setNoiseRadiusRelativeToRF(rf);
         this.rfStrategy = rfStrategy;
         this.noiseMapper = noiseMapper;
     }
+
+    protected void setNoiseRadiusRelativeToRF(ReceptiveField rf) {
+        this.noiseRadiusMm = rf.getRadius();
+    }
+
     /**
      * Use this constructor to have the stimulus positioned at a specific location
      *
@@ -568,5 +574,11 @@ public class ProceduralMatchStick extends GAMatchStick {
 
     public Point3d getNoiseOrigin() {
         return noiseOrigin;
+    }
+
+    @Override
+    public void setRf(ReceptiveField rf) {
+        super.setRf(rf);
+        setNoiseRadiusRelativeToRF(rf);
     }
 }
