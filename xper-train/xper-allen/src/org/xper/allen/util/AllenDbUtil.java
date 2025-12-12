@@ -15,7 +15,6 @@ import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.saccade.SaccadeExperimentTask;
-import org.xper.allen.saccade.db.vo.EStimObjDataEntry;
 import org.xper.allen.saccade.db.vo.StimSpecEntryUtil;
 import org.xper.allen.specs.BlockSpec;
 import org.xper.allen.specs.SaccadeStimSpecSpec;
@@ -360,12 +359,12 @@ public class AllenDbUtil extends DbUtil {
      * Write base matchstick stimulus spec ID for a given stimulus.
      * This links a stimulus to its base matchstick specification.
      *
-     * @param stimId The stimulus ID
+     * @param stimId               The stimulus ID
      * @param baseMStickStimSpecId The base matchstick stimulus spec ID
      */
-    public void writeBaseMStickId(long stimId, long baseMStickStimSpecId, int compId) {
+    public void writeBaseMStickId(long stimId, long baseMStickStimSpecId) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
-        jt.update("insert into BaseMStickId (stim_id, base_mstick_stim_spec_id, comp_id) values (?, ?, ?)",
-                new Object[] { stimId, baseMStickStimSpecId, compId });
+        jt.update("insert into BaseMStickId (stim_id, base_mstick_stim_spec_id) values (?, ?)",
+                new Object[] { stimId, baseMStickStimSpecId});
     }
 }

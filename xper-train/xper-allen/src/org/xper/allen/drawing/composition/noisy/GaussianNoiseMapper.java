@@ -64,7 +64,7 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
     }
 
     @Override
-    public void checkInNoise(ProceduralMatchStick proceduralMatchStick, List<Integer> mustBeInNoiseCompIds, double percentRequiredOutsideNoise){
+    public void checkInNoise(ProceduralMatchStick proceduralMatchStick, List<Integer> mustBeInNoiseCompIds, double percentRequiredOutsideNoise) throws NoiseException{
         proceduralMatchStick.setNoiseOrigin(calculateNoiseOrigin(proceduralMatchStick, mustBeInNoiseCompIds));
         debug_noise_origin = new Point2d(proceduralMatchStick.getNoiseOrigin().getX(), proceduralMatchStick.getNoiseOrigin().getY());
         debug_points_vect.clear();
@@ -130,7 +130,8 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
         if (actualPercentageInside < percentRequiredInside){
             throw new NoiseException("Found points outside of noise circle: " + actualPercentageInside + "% inside + with noise Radius: " + proceduralMatchStick.noiseRadiusMm);
         }
-        System.out.println("PERCENT INSIDE: " + percentRequiredInside);
+        System.out.println("PERCENT REQUIRED INSIDE: " + percentRequiredInside);
+        System.out.println("ACTUAL PERCENT INSIDE: " + actualPercentageInside);
 
         //Check if enough points not in compId are outside of the noise circle
         ArrayList<Point2d> pointsToCheckIfOutside = new ArrayList<>();

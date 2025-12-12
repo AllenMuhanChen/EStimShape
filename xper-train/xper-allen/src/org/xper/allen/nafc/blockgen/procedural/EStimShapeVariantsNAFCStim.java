@@ -3,7 +3,6 @@ package org.xper.allen.nafc.blockgen.procedural;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
-import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
@@ -13,11 +12,11 @@ import org.xper.drawing.RGBColor;
 
 import javax.vecmath.Point3d;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
 
+    protected List<Integer> noiseComponentIndcs;
     protected String gaSpecPath;
     private String texture;
     private Float sampleSize;
@@ -32,6 +31,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
     public EStimShapeVariantsNAFCStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, Long variantId, boolean isEStimEnabled){
         super(generator, parameters, null, new ArrayList<>(), isEStimEnabled, variantId, -1);
         gaSpecPath = generator.getGaSpecPath();
+
 
         JdbcTemplate gaJDBCTemplate = new JdbcTemplate(generator.getGaDataSource());
         SizePropertyManager sizePropertyManager = new SizePropertyManager(gaJDBCTemplate);
@@ -48,6 +48,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
 
         noiseMapper = generator.getNoiseMapper();
         morphComponentIndcs = compsToPreserveManager.readProperty(variantId).getCompsToPreserve();
+        noiseComponentIndcs = compsToPreserveManager.readProperty(variantId).getCompsToPreserve();
     }
 
     protected boolean is2D() {
@@ -61,7 +62,6 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
             this.mStickSpecs = new Procedural<>();
             try {
                 PruningMatchStick sample = (PruningMatchStick) generateSample();
-
 
                 generateMatch(sample);
 
@@ -93,9 +93,12 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         PruningMatchStick sample = new PruningMatchStick(noiseMapper);
         sample.setProperties(sampleSize, texture, is2D(), 1.0);
         sample.setStimColor(color);
+        sample.setRf(rfSource.getReceptiveField());
 
 
         sample.genMatchStickFromShapeSpec(baseStickSpec, new double[]{0,0,0});
+
+        noiseMapper.checkInNoise(sample, noiseComponentIndcs, 0.5);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));
 
@@ -117,7 +120,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
     @Override
     protected void generateProceduralDistractors(ProceduralMatchStick sample) {
         for (int i = 0; i < numProceduralDistractors; i++) {
-            ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
+            ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick(noiseMapper);
             correctNoiseRadius(proceduralDistractor);
             proceduralDistractor.setProperties(choiceSize, texture, is2D(), 1.0);
             proceduralDistractor.setStimColor(color);
@@ -127,10 +130,32 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         }
     }
 
+    protected void generateRandDistractors() {
+        //Generate Rand Distractors
+        for (int i = 0; i<numRandDistractors; i++) {
+            ProceduralMatchStick randDistractor = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
+            randDistractor.setProperties(choiceSize, texture, is2D(),1.0);
+            randDistractor.setStimColor(color);
+            randDistractor.genMatchStickRand();
+            mSticks.addRandDistractor(randDistractor);
+            mStickSpecs.addRandDistractor(mStickToSpec(randDistractor));
+        }
+    }
+
+    protected void generateNoiseMap() {
+        String generatorNoiseMapPath = samplePngMaker.createAndSaveNoiseMap(
+                mSticks.getSample(),
+                stimObjIds.getSample(),
+                labels.getSample(),
+                generator.getGeneratorNoiseMapPath(),
+                parameters.noiseChance, noiseComponentIndcs);
+        experimentNoiseMapPath = generator.convertGeneratorNoiseMapToExperiment(generatorNoiseMapPath);
+    }
+
 
     protected void writeExtraData() {
         AllenDbUtil dbUtil = (AllenDbUtil) generator.getDbUtil();
-        dbUtil.writeBaseMStickId(getStimId(), baseMStickStimSpecId, -1); //don't really need to save this info since it's present in another table
+        dbUtil.writeBaseMStickId(getStimId(), baseMStickStimSpecId); //don't really need to save this info since it's present in another table
     }
 
 

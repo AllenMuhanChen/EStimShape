@@ -43,7 +43,7 @@ public class MorphedMatchStick extends AllenMatchStick {
     private int[] compLabel;
     private MorphedMatchStick localBackup;
     private List<Integer> compsToPreserve = new ArrayList<>();
-    public boolean preserveJunction = false; //whether to preserve radii of junctions that contain compsToPreserve
+    public boolean preserveJunction = true; //whether to preserve radii of junctions that contain compsToPreserve
     public MorphData morphData = new MorphData();
     public boolean compareObjectCenteredPosition = false;
     public void genMorphedComponentsMatchStick(Map<Integer, ComponentMorphParameters> morphParametersForComponents, MorphedMatchStick matchStickToMorph, boolean doPositionShape, Boolean preserveJunction, Boolean compareObjectCenteredPosition){

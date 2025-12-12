@@ -67,7 +67,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
 
     protected void writeExtraData() {
         AllenDbUtil dbUtil = (AllenDbUtil) generator.getDbUtil();
-        dbUtil.writeBaseMStickId(getStimId(), baseMStickStimSpecId, compId);
+        dbUtil.writeBaseMStickId(getStimId(), baseMStickStimSpecId);
     }
 
     @Override

@@ -164,7 +164,7 @@ public class EStimExperimentAppConfig {
         pngMaker.setDepth(6000);
         pngMaker.setDistance(500);
         pngMaker.setPupilDistance(50);
-        pngMaker.setNoiseMapper(pngConfig.mStickPngConfig.noiseMapper());
+        pngMaker.setNoiseMapper(noiseMapper());
         return pngMaker;
     }
 
@@ -184,7 +184,7 @@ public class EStimExperimentAppConfig {
         noiseMapper.setBackground(0);
         noiseMapper.setWidth(sampleDPIUtil().calculateMinResolution());
         noiseMapper.setHeight(sampleDPIUtil().calculateMinResolution());
-        noiseMapper.setDoEnforceHiddenJunction(false);
+        noiseMapper.setDoEnforceHiddenJunction(true);
         return noiseMapper;
     }
 

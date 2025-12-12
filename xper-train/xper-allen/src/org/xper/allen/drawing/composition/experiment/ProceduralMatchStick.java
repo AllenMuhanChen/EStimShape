@@ -69,6 +69,9 @@ public class ProceduralMatchStick extends GAMatchStick {
 
         super.drawCompMap();
         drawNoise();
+        if (getRf() != null){
+            drawRF();
+        }
     }
 
 
@@ -193,12 +196,18 @@ public class ProceduralMatchStick extends GAMatchStick {
         while ((numAttempts < maxAttempts || maxAttempts == -1)) {
             try {
                 genMorphedComponentsMatchStick(morphParametersForComponents, baseMatchStick, doPositionShape, null, null);
+
+                boolean checkNoise = true;
+                if (checkNoise){
+                    noiseMapper.checkInNoise(this, morphComponentIndcs, 0.5);
+                }
             } catch(MorphException e) {
                 System.out.println(e.getMessage());
                 continue;
             } finally{
                 numAttempts++;
             }
+
 
 //            checkMStickSize();
             break;
