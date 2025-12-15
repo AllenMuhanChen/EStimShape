@@ -1,16 +1,20 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
+import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
 import org.xper.allen.nafc.vo.MStickStimObjData;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.allen.specs.NoisyPngSpec;
+import org.xper.allen.stimproperty.*;
 import org.xper.allen.util.AllenDbUtil;
+import org.xper.drawing.RGBColor;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 
 import javax.vecmath.Point3d;
@@ -26,22 +30,18 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     protected final boolean isEStimEnabled;
     protected final AllenPNGMaker samplePngMaker;
     protected final AllenPNGMaker choicePNGMaker;
+    protected double maxChoiceSize;
+    protected double choiceSize;
+    private  RGBColor color;
+    private String texture;
     protected int compId;
-    protected final RFStrategy rfStrategy = RFStrategy.COMPLETELY_INSIDE;
+    protected RFStrategy rfStrategy = RFStrategy.COMPLETELY_INSIDE;
     protected long[] eStimObjData;
     protected double sampleSizeDegrees;
     protected long baseMStickStimSpecId;
 
     public EStimShapeProceduralStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled, long baseMStickStimSpecId, int compId) {
-        super(generator, parameters, baseMatchStick, Collections.singletonList(morphComponentIndex));
-        this.rfSource = generator.getRfSource();
-        this.isEStimEnabled = isEStimEnabled;
-        samplePngMaker = generator.getSamplePngMaker();
-        choicePNGMaker = generator.getPngMaker();
-        this.baseMStickStimSpecId = baseMStickStimSpecId;
-
-        sampleSizeDegrees = RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, ((EStimShapeExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees());
-        this.compId = compId;
+        this(generator, parameters, baseMatchStick, Collections.singletonList(morphComponentIndex), isEStimEnabled, baseMStickStimSpecId, compId);
     }
 
     public EStimShapeProceduralStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, List<Integer> morphComponentIndcs, boolean isEStimEnabled, long baseMStickStimSpecId, int compId) {
@@ -52,8 +52,40 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         choicePNGMaker = generator.getPngMaker();
         this.baseMStickStimSpecId = baseMStickStimSpecId;
 
-        sampleSizeDegrees = RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, ((EStimShapeExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees());
-        this.compId = compId;
+        JdbcTemplate gaJDBCTemplate = new JdbcTemplate(generator.getGaDataSource());
+        SizePropertyManager sizePropertyManager = new SizePropertyManager(gaJDBCTemplate);
+        TexturePropertyManager texturePropertyManager = new TexturePropertyManager(gaJDBCTemplate);
+        UnderlingAverageRGBPropertyManager underlingAverageRGBPropertyManager = new UnderlingAverageRGBPropertyManager(gaJDBCTemplate);
+        CompsToPreserveManager compsToPreserveManager = new CompsToPreserveManager(gaJDBCTemplate);
+        RFStrategyPropertyManager rfStrategyPropertyManager = new RFStrategyPropertyManager(gaJDBCTemplate);
+
+        if (this.baseMStickStimSpecId != 0L) {
+            rfStrategy = rfStrategyPropertyManager.readProperty(baseMStickStimSpecId);
+            sampleSizeDegrees = sizePropertyManager.readProperty(baseMStickStimSpecId);
+            texture = texturePropertyManager.readProperty(baseMStickStimSpecId);
+            color = underlingAverageRGBPropertyManager.readProperty(baseMStickStimSpecId);
+            this.compId = compId;
+        } else{
+            sampleSizeDegrees = parameters.getSize();
+            double rfRadius = generator.getRfSource().getRFRadiusDegrees();
+            double threshold = rfRadius * 3;
+
+            if (sampleSizeDegrees > threshold){
+                rfStrategy = RFStrategy.PARTIALLY_INSIDE;
+            }else{
+                rfStrategy = RFStrategy.COMPLETELY_INSIDE;
+            }
+            texture = parameters.textureType;
+            color = new RGBColor(parameters.color);
+        }
+
+        maxChoiceSize = generator.getMaxChoiceDimensionDegrees() * 0.9;
+        choiceSize = sampleSizeDegrees;
+
+        double choiceLim = calculateMinDistanceChoicesCanBeWithoutOverlap(parameters);
+
+        parameters.setChoiceDistanceLims(new Lims(choiceLim, choiceLim));
+        parameters.setEyeWinRadius(choiceSize*4/2); // 4 back to back limbs, and divide by two for radius corr
     }
 
     @Override
@@ -77,6 +109,27 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         generateMatchSticksAndSaveSpecs();
         drawPNGs();
         assignCoords();
+    }
+
+    protected double calculateMinDistanceChoicesCanBeWithoutOverlap(ProceduralStimParameters parameters) {
+        /**
+         * To derive, draw a circle with n circles centered on the perimeter of this circle, located
+         * equidistantly. Draw a polygon with straight lines between the center of each outside circle.
+         *
+         * If n=4, then it will make a 4-sided polygon, made up of 4 identical triangles. The angle, theta, of each corner is 360/(2n)
+         *
+         * sin(theta) = min_limit / diameter_of_outer_circle
+         *
+         * so min_limit = sin(360/(2n)) * image_diam
+         *
+         * However, image is actually a square, not a circle, so in the most extreme case,
+         * a square can be sqrt(2) times larger in the diagonal compared.
+         *
+         * So min_limit = sqrt(2) * sin(360/2n) * image_length
+         *
+         *
+         */
+        return Math.sqrt(2) * maxChoiceSize * Math.sin(Math.toRadians(360) / (2 * parameters.numChoices));
     }
 
     @Override
@@ -152,8 +205,8 @@ public class EStimShapeProceduralStim extends ProceduralStim{
                 ((EStimShapeExperimentTrialGenerator) generator).getRF(), generator.getPngMaker().getNoiseMapper()
         );
 
-        sample.setProperties(sampleSizeDegrees, parameters.textureType, 1.0);
-        sample.setStimColor(parameters.color);
+        sample.setProperties(sampleSizeDegrees, texture, 1.0);
+        sample.setStimColor(color);
         sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndcs, 0, true, sample.maxAttempts);
 
         mSticks.setSample(sample);

@@ -75,6 +75,7 @@ public class GAMatchStickTest {
         noiseMapper.setWidth(500);
         noiseMapper.setHeight(500);
         noiseMapper.setBackground(0);
+        noiseMapper.setDoEnforceHiddenJunction(true);
     }
 
     @Test

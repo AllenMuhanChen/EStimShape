@@ -1,5 +1,6 @@
 package org.xper.drawing;
 
+import java.awt.*;
 import java.util.Objects;
 
 public class RGBColor {
@@ -36,6 +37,12 @@ public class RGBColor {
 		this.green = (float) rgb[1];
 		this.blue = (float) rgb[2];
 	}
+
+    public RGBColor(Color color){
+        this.red = (float) (color.getRed()/255.0);
+        this.green = (float) (color.getGreen()/255.0);
+        this.blue = (float) (color.getBlue()/255.0);
+    }
 
 	public float getBlue() {
 		return blue;

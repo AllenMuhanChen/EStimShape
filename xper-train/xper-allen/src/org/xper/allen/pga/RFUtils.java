@@ -118,6 +118,9 @@ public class RFUtils {
      *
      * We need to undo the translation by mass center to center it around the origin by its mass center, then do
      * the scaling, then translate it back to its original position.
+     *
+     * 12/15/2025: AC, undoing this correction because earlier we re-added the proper scaling to vect_info, so we don't need to
+     * rescale here
      * @param compIndx
      * @param mStick
      * @return
@@ -132,9 +135,10 @@ public class RFUtils {
 
         for (Point3d pointToCorrect: pointsToCheck){
             if (pointToCorrect != null) {
-                pointToCorrect.sub(massCenter);
-                pointToCorrect.scale(mStick.getScaleForMAxisShape());
-                pointToCorrect.add(massCenter);
+                //
+//                pointToCorrect.sub(massCenter);
+//                pointToCorrect.scale(mStick.getScaleForMAxisShape());
+//                pointToCorrect.add(massCenter);
 
             }
         }

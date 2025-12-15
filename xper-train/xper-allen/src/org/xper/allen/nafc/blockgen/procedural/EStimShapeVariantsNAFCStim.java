@@ -6,7 +6,6 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
-import org.xper.allen.nafc.blockgen.DistancedDistractorsUtil;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.stimproperty.*;
 import org.xper.allen.util.AllenDbUtil;
@@ -18,14 +17,13 @@ import java.util.List;
 
 public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
 
-    private double maxChoiceSize;
     protected List<Integer> noiseComponentIndcs;
     protected String gaSpecPath;
     private String texture;
     private Float sampleSize;
     private NAFCNoiseMapper noiseMapper;
     private RGBColor color;
-    private double choiceSize;
+
 
     public EStimShapeVariantsNAFCStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, List<Integer> morphComponentIndcs, boolean isEStimEnabled, long baseMStickStimSpecId, int compId) {
         super(generator, parameters, baseMatchStick, morphComponentIndcs, isEStimEnabled, baseMStickStimSpecId, compId);
@@ -57,27 +55,6 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         noiseMapper = generator.getNoiseMapper();
         morphComponentIndcs = compsToPreserveManager.readProperty(variantId).getCompsToPreserve();
         noiseComponentIndcs = compsToPreserveManager.readProperty(variantId).getCompsToPreserve();
-    }
-
-    private double calculateMinDistanceChoicesCanBeWithoutOverlap(ProceduralStimParameters parameters) {
-        /**
-         * To derive, draw a circle with n circles centered on the perimeter of this circle, located
-         * equidistantly. Draw a polygon with straight lines between the center of each outside circle.
-         *
-         * If n=4, then it will make a 4-sided polygon, made up of 4 identical triangles. The angle, theta, of each corner is 360/(2n)
-         *
-         * sin(theta) = min_limit / diameter_of_outer_circle
-         *
-         * so min_limit = sin(360/(2n)) * image_diam
-         *
-         * However, image is actually a square, not a circle, so in the most extreme case,
-         * a square can be sqrt(2) times larger in the diagonal compared.
-         *
-         * So min_limit = sqrt(2) * sin(360/2n) * image_length
-         *
-         *
-         */
-        return Math.sqrt(2) * maxChoiceSize * Math.sin(Math.toRadians(360) / (2 * parameters.numChoices));
     }
 
     protected boolean is2D() {
@@ -114,8 +91,6 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         baseMatchStick.setStimColor(color);
         baseMatchStick.genMatchStickFromFile(gaSpecPath + "/" + baseMStickStimSpecId + "_spec.xml");
         baseStickSpec.setMStickInfo(baseMatchStick, false);
-
-        //maybe we could do some minor morphs here??
 
         PruningMatchStick sample = new PruningMatchStick(noiseMapper);
         sample.setProperties(sampleSize, texture, is2D(), 1.0);
