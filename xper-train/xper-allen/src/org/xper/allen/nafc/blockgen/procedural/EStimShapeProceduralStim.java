@@ -82,7 +82,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         maxChoiceSize = generator.getMaxChoiceDimensionDegrees() * 0.9;
         choiceSize = sampleSizeDegrees;
 
-        double choiceLim = calculateMinDistanceChoicesCanBeWithoutOverlap(parameters);
+        double choiceLim = calculateMinDistanceChoicesCanBeWithoutOverlap(maxChoiceSize, parameters.numChoices);
 
         parameters.setChoiceDistanceLims(new Lims(choiceLim, choiceLim));
         parameters.setEyeWinRadius(choiceSize*4/2); // 4 back to back limbs, and divide by two for radius corr
@@ -111,7 +111,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         assignCoords();
     }
 
-    protected double calculateMinDistanceChoicesCanBeWithoutOverlap(ProceduralStimParameters parameters) {
+    protected double calculateMinDistanceChoicesCanBeWithoutOverlap(double choiceSize, int numChoicesa) {
         /**
          * To derive, draw a circle with n circles centered on the perimeter of this circle, located
          * equidistantly. Draw a polygon with straight lines between the center of each outside circle.
@@ -129,7 +129,8 @@ public class EStimShapeProceduralStim extends ProceduralStim{
          *
          *
          */
-        return Math.sqrt(2) * maxChoiceSize * Math.sin(Math.toRadians(360) / (2 * parameters.numChoices));
+//        return Math.sqrt(2) * choiceSize * Math.sin(Math.toRadians(360) / (2 * numChoicesa));
+        return choiceSize * Math.sin(Math.toRadians(360) / (2 * numChoicesa));
     }
 
     @Override
