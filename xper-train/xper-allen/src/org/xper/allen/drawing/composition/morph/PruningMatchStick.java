@@ -2,6 +2,7 @@ package org.xper.allen.drawing.composition.morph;
 
 import com.thoughtworks.xstream.XStream;
 import org.xper.allen.drawing.composition.*;
+import org.xper.allen.drawing.composition.experiment.PositioningStrategy;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.drawing.ga.ReceptiveField;
@@ -18,6 +19,12 @@ public class PruningMatchStick extends ProceduralMatchStick {
     public List<Integer> toPreserveInParent = new ArrayList<>();
     public List<Integer> preservedComps = new ArrayList<>();
 
+    /**
+     * Not really used right now
+     * @param rf
+     * @param rfStrategy
+     * @param noiseMapper
+     */
     public PruningMatchStick(ReceptiveField rf, RFStrategy rfStrategy, NAFCNoiseMapper noiseMapper) {
         super(rf, rfStrategy, noiseMapper);
     }
@@ -28,6 +35,7 @@ public class PruningMatchStick extends ProceduralMatchStick {
      */
     public PruningMatchStick(NAFCNoiseMapper noiseMapper) {
         super(noiseMapper);
+        this.positioningStrategy = PositioningStrategy.PRESERVED_COMP_BASED;
     }
 
     public void genCopyFromOther(PruningMatchStick other){
@@ -109,15 +117,14 @@ public class PruningMatchStick extends ProceduralMatchStick {
 
     @Override
     public void positionShape() throws MorphException {
-        if (rfStrategy != null) {
+        if (positioningStrategy == PositioningStrategy.RF_STRATEGY) {
             RFUtils.positionAroundRF(rfStrategy, this, rf, 1000);
-        } else if (matchStickToMorph != null){
+        } else if (positioningStrategy == PositioningStrategy.PRESERVED_COMP_BASED) {
             Point3d pointToMove = getComp()[preservedComps.get(0)].getMassCenter();
             Point3d destination = matchStickToMorph.getComp()[toPreserveInParent.get(0)].getMassCenter();
 
             movePointToDestination(pointToMove, destination);
         }
-
     }
 
     public static List<Integer> chooseRandomComponentsToPreserve(MorphedMatchStick stickToMorph) {

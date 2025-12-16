@@ -3,6 +3,7 @@ package org.xper.allen.drawing.ga;
 import org.lwjgl.opengl.GL11;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
+import org.xper.allen.drawing.composition.experiment.PositioningStrategy;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
@@ -28,6 +29,8 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
 
     protected Point3d toMoveCenterOfMassLocation;
     protected ReceptiveField rf;
+    private int compToMove;
+    private Point3d compCOMLocation;
 
     /**
      *  Use this contrusctor to have the stimulus positioned around the RF
@@ -37,6 +40,7 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
     public GAMatchStick(ReceptiveField rf, RFStrategy rfStrategy) {
         this.rf = rf;
         this.rfStrategy = rfStrategy;
+        this.positioningStrategy =  PositioningStrategy.RF_STRATEGY;
     }
 
     /**
@@ -45,6 +49,12 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
      */
     public GAMatchStick(Point3d centerOfMassLocation){
         this.toMoveCenterOfMassLocation = centerOfMassLocation;
+        this.positioningStrategy = PositioningStrategy.MOVE_CENTER_TO_SPECIFIC_LOCATION;
+    }
+
+    public GAMatchStick(int compIdToMove, Point3d compCOMLocation){
+        compToMove = compIdToMove;
+        this.compCOMLocation = compCOMLocation;
     }
 
 
@@ -296,15 +306,21 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
 
     @Override
     public void positionShape() throws MorphException {
-        if (rfStrategy != null) {
+        if (positioningStrategy == PositioningStrategy.RF_STRATEGY) {
             RFUtils.positionAroundRF(rfStrategy, this, rf, 1000);
             return;
         }
-        if (toMoveCenterOfMassLocation != null){
+        if (positioningStrategy ==  PositioningStrategy.MOVE_CENTER_TO_SPECIFIC_LOCATION) {
             moveCenterOfMassTo(toMoveCenterOfMassLocation);
             return;
         }
-        throw new IllegalArgumentException("rfStrategy and toMoveCenterOfMassLocation both null");
+        if (positioningStrategy == PositioningStrategy.MOVE_COMP_TO_SPECIFIC_LOCATION) {
+            Point3d pointToMove = getComp()[compToMove].getMassCenter();
+            Point3d destination = compCOMLocation;
+            movePointToDestination(pointToMove, destination);
+        }
+
+        throw new IllegalArgumentException("Invalid Positioning Strategy");
     }
 
 

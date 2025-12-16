@@ -44,10 +44,11 @@ public class ProceduralMatchStick extends GAMatchStick {
         setNoiseRadiusRelativeToRF(rf);
         this.rfStrategy = rfStrategy;
         this.noiseMapper = noiseMapper;
+        this.positioningStrategy = PositioningStrategy.RF_STRATEGY;
     }
 
     protected void setNoiseRadiusRelativeToRF(ReceptiveField rf) {
-        this.noiseRadiusMm = rf.getRadius();
+        this.noiseRadiusMm = rf.getRadius()*2;
     }
 
     /**
@@ -59,10 +60,12 @@ public class ProceduralMatchStick extends GAMatchStick {
     public ProceduralMatchStick(Point3d centerOfMassLocation, NAFCNoiseMapper noiseMapper){
         this.toMoveCenterOfMassLocation = centerOfMassLocation;
         this.noiseMapper = noiseMapper;
+        this.positioningStrategy = PositioningStrategy.MOVE_CENTER_TO_SPECIFIC_LOCATION;
     }
 
     public ProceduralMatchStick(NAFCNoiseMapper noiseMapper) {
         this.noiseMapper = noiseMapper;
+        this.positioningStrategy = PositioningStrategy.CENTER;
     }
 
     @Override
@@ -232,7 +235,11 @@ public class ProceduralMatchStick extends GAMatchStick {
     }
 
     public void positionShape() {
-        centerShape();
+        if (positioningStrategy == PositioningStrategy.CENTER) {
+            centerShape();
+            return;
+        }
+        throw new IllegalArgumentException("Invalid Positioning Strategy");
     }
 
     public void genMatchStickFromComponentInNoise(AllenMatchStick baseMatchStick, List<Integer> fromCompIds, int nComp, boolean doCompareObjCenteredPos, int maxAttempts1) {

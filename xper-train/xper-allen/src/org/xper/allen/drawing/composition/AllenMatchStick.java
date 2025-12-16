@@ -9,6 +9,7 @@ import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
 import org.lwjgl.opengl.GL11;
+import org.xper.allen.drawing.composition.experiment.PositioningStrategy;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.composition.noisy.ConcaveHull.Point;
@@ -38,7 +39,7 @@ public class AllenMatchStick extends MatchStick {
 	public boolean is2D; //else is 3d.
 	public String underlyingTexture; //if 2d, this is what texture is used to calculate averageContrast
     protected Map<Integer, Integer> newIndxForOldLeafIndx = new HashMap<>();
-
+    public PositioningStrategy positioningStrategy = PositioningStrategy.CENTER;
     @Override
 	public boolean equals(Object obj) {
 		if (this == obj)
