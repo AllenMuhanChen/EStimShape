@@ -38,13 +38,9 @@ public class PruningMatchStick extends ProceduralMatchStick {
         this.positioningStrategy = PositioningStrategy.PRESERVED_COMP_BASED;
     }
 
-    public void genCopyFromOther(PruningMatchStick other){
-        this.preservedComps.addAll(other.preservedComps);
-        this.toPreserveInParent.addAll(other.toPreserveInParent);
-
-        AllenMStickSpec spec = new AllenMStickSpec();
-        spec.setMStickInfo(other, false);
-        this.genMatchStickFromShapeSpec(spec,  new double[]{0,0,0});
+    public PruningMatchStick(Point3d centerOfMassLocation, NAFCNoiseMapper noiseMapper) {
+        super(centerOfMassLocation, noiseMapper);
+        this.positioningStrategy = PositioningStrategy.PRESERVED_COMP_BASED;
     }
 
     public void genMatchStickFromComponentsInNoise(AllenMatchStick baseMatchStick, List<Integer> fromComponents, int nComp, boolean doCompareObjCenteredPos, int maxAttempts1){
@@ -121,8 +117,12 @@ public class PruningMatchStick extends ProceduralMatchStick {
             RFUtils.positionAroundRF(rfStrategy, this, rf, 1000);
         } else if (positioningStrategy == PositioningStrategy.PRESERVED_COMP_BASED) {
             Point3d pointToMove = getComp()[preservedComps.get(0)].getMassCenter();
-            Point3d destination = matchStickToMorph.getComp()[toPreserveInParent.get(0)].getMassCenter();
-
+            Point3d destination;
+            if (toMoveCenterOfMassLocation == null) {
+                destination = matchStickToMorph.getComp()[toPreserveInParent.get(0)].getMassCenter();
+            } else{
+                destination = toMoveCenterOfMassLocation;
+            }
             movePointToDestination(pointToMove, destination);
         }
     }

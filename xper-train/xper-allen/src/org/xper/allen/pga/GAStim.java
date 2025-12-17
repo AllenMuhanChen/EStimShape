@@ -13,6 +13,7 @@ import org.xper.drawing.RGBColor;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.rfplot.drawing.png.PngSpec;
 
+import javax.vecmath.Point3d;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -29,18 +30,22 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected final RFStrategyPropertyManager rfStrategyManager;
     protected final UnderlyingTexturePropertyManager underlyingTextureManager;
     protected final UnderlingAverageRGBPropertyManager underyingAverageRGBManager;
+    protected final PositionPropertyManager positionManager;
 
     protected Long stimId;
     protected String textureType;
     protected RGBColor color;
     protected double sizeDiameterDegrees;
     protected double contrast;
-    private T mStick;
-    // For swapping between 2D/3D textures with preserved average contrast
     protected boolean useAverageRGB;
     protected boolean is2d;
     protected String underlyingTexture;
     protected RGBColor averageRGB;
+    protected MStickPosition position;
+
+
+    private T mStick;
+    // For swapping between 2D/3D textures with preserved average contrast
 
     /**
      * Original constructor, deprecated
@@ -67,6 +72,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         contrastManager = new ContrastPropertyManager(jdbcTemplate);
         underlyingTextureManager = new UnderlyingTexturePropertyManager(jdbcTemplate);
         underyingAverageRGBManager = new UnderlingAverageRGBPropertyManager(jdbcTemplate);
+        positionManager = new PositionPropertyManager(jdbcTemplate);
     }
 
     /**
@@ -90,6 +96,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         contrastManager = new ContrastPropertyManager(jdbcTemplate);
         underlyingTextureManager = new UnderlyingTexturePropertyManager(jdbcTemplate);
         underyingAverageRGBManager = new UnderlingAverageRGBPropertyManager(jdbcTemplate);
+        positionManager = new PositionPropertyManager(jdbcTemplate);
     }
 
     @Override
@@ -177,6 +184,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
 
     protected void setProperties(){
         chooseRFStrategy(); //must be first otherwise chooseSize may fail
+        choosePosition();
         chooseSize();
         chooseTextureType();
         chooseColor();
@@ -195,6 +203,10 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         if (sizeDiameterDegrees == 0) {
             throw new IllegalArgumentException("Size cannot be 0");
         }
+    }
+
+    protected void choosePosition() {
+        position = positionManager.readProperty(parentId);
     }
 
     protected abstract void chooseRFStrategy();
@@ -246,7 +258,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         contrastManager.writeProperty(stimId, contrast);
         underlyingTextureManager.writeProperty(stimId, underlyingTexture);
         underyingAverageRGBManager.writeProperty(stimId, averageRGB);
-
+        positionManager.writeProperty(stimId, position);
     }
 
     protected T createRandMStick() {
@@ -338,6 +350,33 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
             default:
                 throw new IllegalArgumentException("Invalid texture type: " + textureType);
         }
+    }
+
+    protected Point3d getTargetsCenterOfMass(long targetStimId) {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
+
+        // Read the data XML from StimSpec table
+        String dataXml = (String) jdbcTemplate.queryForObject(
+                "SELECT data FROM StimSpec WHERE id = ?",
+                new Object[]{targetStimId},
+                String.class
+        );
+
+        if (dataXml == null || dataXml.isEmpty()) {
+            throw new RuntimeException("No data found for stimId " + targetStimId + " in StimSpec table");
+        }
+
+        // Parse the XML into AllenMStickData
+        AllenMStickData mStickData = (AllenMStickData) AllenMStickData.fromXml(dataXml);
+
+
+        // Get center of mass
+        Point3d centerOfMass = mStickData.getMassCenter();
+        if (centerOfMass == null) {
+            throw new RuntimeException("No center of mass found for stimId " + targetStimId + " in StimSpec table");
+        }
+
+        return centerOfMass;
     }
 
     //    public RGBColor getRFColor(){

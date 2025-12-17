@@ -2,11 +2,13 @@ package org.xper.allen.pga;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.allen.drawing.composition.AllenMStickData;
+import org.xper.allen.drawing.composition.experiment.PositioningStrategy;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.stimproperty.CompsToPreserveManager;
 import org.xper.drawing.stick.stickMath_lib;
 
+import javax.vecmath.Point3d;
 import java.util.List;
 import java.util.Random;
 
@@ -20,6 +22,25 @@ public class EStimShapeVariantsStim extends GAStim<PruningMatchStick, AllenMStic
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
         compsToPreserveManager = new CompsToPreserveManager(jdbcTemplate);
+    }
+
+    @Override
+    protected void choosePosition() {
+        MStickPosition parentLocation = positionManager.readProperty(parentId);
+        // could be another variant or a growing stick or zooming or whatever...
+        if (parentLocation.positioningStrategy != PositioningStrategy.PRESERVED_COMP_BASED){
+            position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, null);
+        } else{
+            boolean mutate = false;
+            Point3d oldPosition = parentLocation.getPosition();
+            if (mutate){
+                Point3d newPosition = oldPosition; //TODO: update
+                position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, newPosition);
+            }
+            else {
+               position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, oldPosition);
+            }
+        }
     }
 
     @Override
@@ -45,7 +66,14 @@ public class EStimShapeVariantsStim extends GAStim<PruningMatchStick, AllenMStic
         parentMStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
         parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 
-        PruningMatchStick childMStick = new PruningMatchStick(generator.getNoiseMapper());
+        PruningMatchStick childMStick;
+        if (position.getPosition() == null){
+            childMStick = new PruningMatchStick(generator.getNoiseMapper());
+        } else {
+            childMStick = new PruningMatchStick(position.getPosition(), generator.getNoiseMapper());
+        }
+
+
         childMStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
         childMStick.setStimColor(color);
 
@@ -74,6 +102,8 @@ public class EStimShapeVariantsStim extends GAStim<PruningMatchStick, AllenMStic
 
         // Save data for this stimulus
         List<Integer> compsToPreserveInNextChild = childMStick.getPreservedComps();
+        position.setPosition(childMStick.getMassCenterForComponent(compsToPreserveInNextChild.get(0)));
+        position.setTargetComp(compsToPreserveInNextChild.get(0));
         PreservedComponentData childData = new PreservedComponentData(
                 compsToPreserveInNextChild,
                 parentId,

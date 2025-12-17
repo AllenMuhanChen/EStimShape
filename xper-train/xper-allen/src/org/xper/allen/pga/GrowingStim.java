@@ -1,12 +1,15 @@
 package org.xper.allen.pga;
 
 import org.xper.allen.drawing.composition.AllenMStickData;
+import org.xper.allen.drawing.composition.experiment.PositioningStrategy;
 import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
 
+import javax.vecmath.Point3d;
 import java.util.Random;
 
 public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
+    public static final int USE_SPECIAL_END_COMP = 0;
     private final double magnitude;
     private static final Random random = new Random();
 
@@ -19,6 +22,59 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     @Override
     protected void chooseRFStrategy() {
         rfStrategy = rfStrategyManager.readProperty(parentId);
+    }
+
+    @Override
+    protected void choosePosition() {
+        // decide if mutate
+        boolean mutate = true;
+
+        PositioningStrategy parentPositioningStrategy = positionManager.readProperty(parentId).positioningStrategy;;
+        if (mutate) {
+            //if mutate -- read parent strategy and apply strategy
+            MStickPosition parentLocation = positionManager.readProperty(parentId);
+
+            if (parentPositioningStrategy == PositioningStrategy.RF_STRATEGY) {
+                RFStrategy parentRFStrategy = rfStrategyManager.readProperty(parentId);
+                if (parentRFStrategy == RFStrategy.COMPLETELY_INSIDE) {
+                    Point3d parentCenterOfMass = parentLocation.getPosition();
+                    Point3d newCenterOfMass = parentCenterOfMass; //TODO: update
+                    position = new MStickPosition(PositioningStrategy.MOVE_CENTER_TO_SPECIFIC_LOCATION, newCenterOfMass);
+                } else if (parentRFStrategy == RFStrategy.PARTIALLY_INSIDE) {
+                    Point3d parentCenterOfMass = parentLocation.getPosition();
+                    Point3d newCenterOfMass = parentCenterOfMass; //TODO: update
+                    position = new MStickPosition(PositioningStrategy.MOVE_COMP_TO_SPECIFIC_LOCATION, USE_SPECIAL_END_COMP, newCenterOfMass);
+                }
+            } else if (parentPositioningStrategy == PositioningStrategy.MOVE_CENTER_TO_SPECIFIC_LOCATION) {
+                Point3d parentCenterOfMass = parentLocation.getPosition();
+                Point3d newCenterOfMass = parentCenterOfMass; //TODO: update
+                position = new MStickPosition(PositioningStrategy.MOVE_CENTER_TO_SPECIFIC_LOCATION, newCenterOfMass);
+            } else if (parentPositioningStrategy == PositioningStrategy.MOVE_COMP_TO_SPECIFIC_LOCATION) {
+                Point3d parentCenterOfMass = parentLocation.getPosition();
+                Point3d newCenterOfMass = parentCenterOfMass; //TODO: update
+                position = new MStickPosition(PositioningStrategy.MOVE_COMP_TO_SPECIFIC_LOCATION, USE_SPECIAL_END_COMP, newCenterOfMass);
+            } else {
+                throw new IllegalArgumentException("Unknown PositioningStrategy: " + parentPositioningStrategy);
+            }
+
+        } else {
+            // if we have undefined behavior (i.e use RF to initiate random position - then we want to change strategy to positioning)
+            MStickPosition parentLocation = positionManager.readProperty(parentId);
+            if (parentPositioningStrategy == PositioningStrategy.RF_STRATEGY) {
+                RFStrategy parentRFStrategy = rfStrategyManager.readProperty(parentId);
+                if (parentRFStrategy == RFStrategy.COMPLETELY_INSIDE) {
+                    Point3d parentCenterOfMass = parentLocation.getPosition();
+                    position = new MStickPosition(PositioningStrategy.MOVE_CENTER_TO_SPECIFIC_LOCATION, parentCenterOfMass);
+                } else if (parentRFStrategy == RFStrategy.PARTIALLY_INSIDE) {
+                    Point3d parentCenterOfMass = parentLocation.getPosition();
+                    position = new MStickPosition(PositioningStrategy.MOVE_COMP_TO_SPECIFIC_LOCATION, USE_SPECIAL_END_COMP, parentCenterOfMass);
+                }
+            }
+            // Any other case, we should be able to reuse the same positioning strategy......
+            else{
+                position = positionManager.readProperty(parentId);
+            }
+        }
     }
 
     @Override
@@ -53,13 +109,24 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
         parentMStick.genMatchStickFromFile(
                 generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 
-        rfStrategy = parentMStick.getRfStrategy();
-
-        GrowingMatchStick childMStick = new GrowingMatchStick(
-                generator.getReceptiveField(),
-                1/3.0,
-                rfStrategy,
-                textureType);
+        GrowingMatchStick childMStick;
+        if (position.positioningStrategy == PositioningStrategy.RF_STRATEGY) {
+            childMStick = new GrowingMatchStick(
+                    generator.getReceptiveField(),
+                    1/3.0,
+                    rfStrategy,
+                    textureType);
+            if (rfStrategy == RFStrategy.PARTIALLY_INSIDE) {
+                position.setTargetComp(childMStick.getSpecialEndComp().get(0));
+            }
+        } else if (position.positioningStrategy == PositioningStrategy.MOVE_CENTER_TO_SPECIFIC_LOCATION){
+            childMStick = new GrowingMatchStick(position.position, 1/3.0);
+        } else if (position.positioningStrategy == PositioningStrategy.MOVE_COMP_TO_SPECIFIC_LOCATION){
+            childMStick = new GrowingMatchStick(position.targetComp, position.position,1/3.0);
+            position.setTargetComp(childMStick.getSpecialEndComp().get(0));
+        } else{
+            throw new IllegalArgumentException("Invalid position strategy in a GrowingStim: " + position.positioningStrategy);
+        }
 
         childMStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
         childMStick.setStimColor(color);

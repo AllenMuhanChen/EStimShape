@@ -5201,6 +5201,11 @@ public class AllenMatchStick extends MatchStick {
         return cMass;
     }
 
+    public Point3d getMassCenterForSpecialComp(){
+        int specialComp = getSpecialEndComp().get(0);
+        return getMassCenterForComponent(specialComp);
+    }
+
 	public RFStrategy getRfStrategy() {
 		return rfStrategy;
 	}

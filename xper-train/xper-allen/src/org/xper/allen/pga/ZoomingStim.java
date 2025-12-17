@@ -1,6 +1,7 @@
 package org.xper.allen.pga;
 
 import org.xper.allen.drawing.composition.AllenMStickData;
+import org.xper.allen.drawing.composition.experiment.PositioningStrategy;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.ga.GAMatchStick;
 
@@ -19,6 +20,12 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
     protected void chooseRFStrategy() {
         rfStrategy = RFStrategy.PARTIALLY_INSIDE;
     }
+
+    @Override
+    protected void choosePosition() {
+        position = new MStickPosition(PositioningStrategy.RF_STRATEGY, compIdInRF, null); //shouldn't need to tell location for this
+    }
+
 
 
     @Override
@@ -40,7 +47,7 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
         mStick.genPartialFromFile(
                 generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml",
                 compIdInRF);
-
+        position.setPosition(mStick.getMassCenterForComponent(compIdInRF));
 
         return mStick;
     }

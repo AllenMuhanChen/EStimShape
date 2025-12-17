@@ -4,6 +4,7 @@ import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
 
+import javax.vecmath.Point3d;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -20,6 +21,21 @@ public class GrowingMatchStick extends GAMatchStick {
 
     public GrowingMatchStick(ReceptiveField rf, double sigma, RFStrategy rfStrategy, String textureType1) {
         super(rf, rfStrategy);
+        this.sigma = sigma;
+    }
+
+    /**
+     * toMoveCenterOfMass Location
+     * @param centerOfMassLocation
+     * @param sigma
+     */
+    public GrowingMatchStick(Point3d centerOfMassLocation, double sigma) {
+        super(centerOfMassLocation);
+        this.sigma = sigma;
+    }
+
+    public GrowingMatchStick(int compIdToMove, Point3d compCOMLocation, double sigma) {
+        super(compIdToMove, compCOMLocation);
         this.sigma = sigma;
     }
 

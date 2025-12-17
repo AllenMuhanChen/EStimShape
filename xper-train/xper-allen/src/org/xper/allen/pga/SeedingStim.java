@@ -1,6 +1,7 @@
 package org.xper.allen.pga;
 
 import org.xper.allen.drawing.composition.AllenMStickData;
+import org.xper.allen.drawing.composition.experiment.PositioningStrategy;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.drawing.RGBColor;
 import java.util.Random;
@@ -32,6 +33,10 @@ public class SeedingStim extends GAStim<GAMatchStick, AllenMStickData> {
 
     }
 
+    @Override
+    protected void choosePosition() {
+        position = new MStickPosition(PositioningStrategy.RF_STRATEGY, null);
+    }
 
     @Override
     protected void chooseContrast(){
@@ -64,6 +69,8 @@ public class SeedingStim extends GAStim<GAMatchStick, AllenMStickData> {
         mStick.setStimColor(color);
 
         mStick.genMatchStickRand();
+
+        position.setPosition(mStick.getMassCenter());
 
         return mStick;
     }
