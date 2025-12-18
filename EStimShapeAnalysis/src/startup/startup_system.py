@@ -13,7 +13,7 @@ from src.startup.setup_xper_properties_and_dirs import XperPropertiesModifier, m
 
 BASE_PATH = "/home/connorlab/Documents/EStimShape"
 SHELL_SCRIPTS_PATH = "/home/connorlab/git/EStimShape/xper-train/shellScripts"
-INTAN_REMOTE_PATH = "/run/user/1003/gvfs/sftp:host=172.30.9.78"
+INTAN_REMOTE_PATH = "/run/user/1000/gvfs/sftp:host=172.30.9.78"
 INTAN_BASE_PATH = "/mnt/data/EStimShape"
 
 # Template constants

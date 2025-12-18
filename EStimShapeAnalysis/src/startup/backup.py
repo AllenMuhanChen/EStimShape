@@ -216,7 +216,7 @@ class BackupManager:
     def backup_impedance_measurements(self, backup_path: str):
         """Backup impedance measurement files created today to the specified backup path"""
         # Source directory for impedance measurements
-        impedance_src_dir = "/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/ImpedanceMeasurements/"
+        impedance_src_dir = "/run/user/1000/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/ImpedanceMeasurements/"
 
         # Make sure the backup path exists
         try:

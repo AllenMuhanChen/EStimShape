@@ -35,7 +35,7 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
         return Phase(
             EStimPhaseParentSelector(
                 get_all_stimuli_func=self.get_all_stimuli_func(),
-                threshold=0.50),
+                threshold=0.75),
             EStimPhaseMutationAssigner(),
             EStimPhaseMagnitudeAssigner(),
             EStimPhaseTransitioner(),
@@ -43,8 +43,13 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
 
 
 class MockGrowingPhaseTransitioner(RegimeTransitioner):
+    num_times = 0
     def should_transition(self, lineage: Lineage) -> bool:
-        return True
+        self.num_times+=1
+        if self.num_times > 3:
+            return True
+        else:
+            return False
 
 
 class EStimPhaseParentSelector(ParentSelector):

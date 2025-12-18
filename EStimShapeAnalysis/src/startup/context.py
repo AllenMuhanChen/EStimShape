@@ -37,7 +37,7 @@ pc_maps_path = f"{base_dir}/{ga_database}/pc_maps"
 try:
 
     ga_config = EStimShapeConfig(
-                                   is_alexnet_mock=True,
+                                   is_alexnet_mock=False,
                                    database=ga_database,
                                    base_intan_path=ga_intan_path,
                                    java_output_dir=java_output_dir,
