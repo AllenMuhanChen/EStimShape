@@ -32,7 +32,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     protected final AllenPNGMaker choicePNGMaker;
     protected double maxChoiceSize;
     protected double choiceSize;
-    private  RGBColor color;
+    protected  RGBColor color;
     private String texture;
     protected int compId;
     protected RFStrategy rfStrategy = RFStrategy.COMPLETELY_INSIDE;
@@ -56,14 +56,14 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         SizePropertyManager sizePropertyManager = new SizePropertyManager(gaJDBCTemplate);
         TexturePropertyManager texturePropertyManager = new TexturePropertyManager(gaJDBCTemplate);
         UnderlingAverageRGBPropertyManager underlingAverageRGBPropertyManager = new UnderlingAverageRGBPropertyManager(gaJDBCTemplate);
-        CompsToPreserveManager compsToPreserveManager = new CompsToPreserveManager(gaJDBCTemplate);
+        ColorPropertyManager colorPropertyManager = new ColorPropertyManager(gaJDBCTemplate);
         RFStrategyPropertyManager rfStrategyPropertyManager = new RFStrategyPropertyManager(gaJDBCTemplate);
 
         if (this.baseMStickStimSpecId != 0L) {
             rfStrategy = rfStrategyPropertyManager.readProperty(baseMStickStimSpecId);
             sampleSizeDegrees = sizePropertyManager.readProperty(baseMStickStimSpecId);
             texture = texturePropertyManager.readProperty(baseMStickStimSpecId);
-            color = underlingAverageRGBPropertyManager.readProperty(baseMStickStimSpecId);
+            color = colorPropertyManager.readProperty(baseMStickStimSpecId);
             this.compId = compId;
         } else{
             sampleSizeDegrees = parameters.getSize();
@@ -321,8 +321,10 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         double yCenter = coords.getSample().getY();
         String path = experimentPngPaths.getSample();
         String noiseMapPath = experimentNoiseMapPath;
-        Color color = parameters.color;
+//        Color color = parameters.color;
+
         double numNoiseFrames = parameters.noiseRate;
+        Color color = new Color((int) this.color.getRed() * 255, (int) this.color.getGreen() * 255, (int) this.color.getBlue() * 255);
         NoisyPngSpec sampleSpec = new NoisyPngSpec(
                 xCenter, yCenter,
                 dimensionsSample,

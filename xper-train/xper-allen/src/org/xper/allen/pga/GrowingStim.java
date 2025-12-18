@@ -27,8 +27,9 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     @Override
     protected void choosePosition() {
         // decide if mutate
-        boolean mutate = true;
-
+        boolean mutate;
+        Random r = new Random();
+        mutate = r.nextBoolean();
         PositioningStrategy parentPositioningStrategy = positionManager.readProperty(parentId).positioningStrategy;;
         if (mutate) {
             //if mutate -- read parent strategy and apply strategy
@@ -38,20 +39,20 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
                 RFStrategy parentRFStrategy = rfStrategyManager.readProperty(parentId);
                 if (parentRFStrategy == RFStrategy.COMPLETELY_INSIDE) {
                     Point3d parentCenterOfMass = parentLocation.getPosition();
-                    Point3d newCenterOfMass = parentCenterOfMass; //TODO: update
+                    Point3d newCenterOfMass = mutatePosition(parentCenterOfMass);
                     position = new MStickPosition(PositioningStrategy.MOVE_CENTER_TO_SPECIFIC_LOCATION, newCenterOfMass);
                 } else if (parentRFStrategy == RFStrategy.PARTIALLY_INSIDE) {
                     Point3d parentCenterOfMass = parentLocation.getPosition();
-                    Point3d newCenterOfMass = parentCenterOfMass; //TODO: update
+                    Point3d newCenterOfMass = mutatePosition(parentCenterOfMass);
                     position = new MStickPosition(PositioningStrategy.MOVE_COMP_TO_SPECIFIC_LOCATION, USE_SPECIAL_END_COMP, newCenterOfMass);
                 }
             } else if (parentPositioningStrategy == PositioningStrategy.MOVE_CENTER_TO_SPECIFIC_LOCATION) {
                 Point3d parentCenterOfMass = parentLocation.getPosition();
-                Point3d newCenterOfMass = parentCenterOfMass; //TODO: update
+                Point3d newCenterOfMass = mutatePosition(parentCenterOfMass);
                 position = new MStickPosition(PositioningStrategy.MOVE_CENTER_TO_SPECIFIC_LOCATION, newCenterOfMass);
             } else if (parentPositioningStrategy == PositioningStrategy.MOVE_COMP_TO_SPECIFIC_LOCATION) {
                 Point3d parentCenterOfMass = parentLocation.getPosition();
-                Point3d newCenterOfMass = parentCenterOfMass; //TODO: update
+                Point3d newCenterOfMass = mutatePosition(parentCenterOfMass);
                 position = new MStickPosition(PositioningStrategy.MOVE_COMP_TO_SPECIFIC_LOCATION, USE_SPECIAL_END_COMP, newCenterOfMass);
             } else {
                 throw new IllegalArgumentException("Unknown PositioningStrategy: " + parentPositioningStrategy);
@@ -77,16 +78,48 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
         }
     }
 
+    protected Point3d mutatePosition(Point3d parentCenterOfMass) {
+        double minPositionChange = magnitude * generator.getReceptiveField().getRadius()*2 / 4;
+        double maxPositionChange = magnitude * generator.getReceptiveField().getRadius()*2;
+        Random random = new Random();
+
+        // Random angle in 2D space (0 to 2π)
+        double angle = random.nextDouble() * 2 * Math.PI;
+
+        // Random distance between min and max
+        double distance = minPositionChange + random.nextDouble() * (maxPositionChange - minPositionChange);
+
+        // Convert to Cartesian coordinates
+        double dx = distance * Math.cos(angle);
+        double dy = distance * Math.sin(angle);
+
+        // Add to parent position (keep z unchanged)
+        return new Point3d(
+                parentCenterOfMass.x + dx,
+                parentCenterOfMass.y + dy,
+                parentCenterOfMass.z
+        );
+    }
     @Override
     protected void chooseSize() {
-        double maxSizeDiameterDegrees = RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees());
-        double minSizeDiameterDegrees = maxSizeDiameterDegrees / 2;
         double parentSizeDiameterDegrees = sizeManager.readProperty(parentId);
-        double maxSizeMutation = (maxSizeDiameterDegrees - minSizeDiameterDegrees);
-        double randomChange = (random.nextDouble() * magnitude * 2 - 1) * maxSizeMutation;
-        sizeDiameterDegrees = Math.min(maxSizeDiameterDegrees, Math.max(minSizeDiameterDegrees, parentSizeDiameterDegrees + randomChange));
+        double newSize = mutateSize(parentSizeDiameterDegrees);
+        sizeDiameterDegrees = newSize;
     }
 
+    private double mutateSize(double parentSizeDiameterDegrees) {
+        double minSize = generator.getRfSource().getRFRadiusDegrees();
+        double maxSizeChange = magnitude * generator.getRfSource().getRFRadiusDegrees();
+        double minSizeChange = magnitude * maxSizeChange / 4;
+        double randomChange = (random.nextDouble() * (maxSizeChange - minSizeChange));
+        Random random = new Random();
+
+        double newSize = random.nextBoolean() ? parentSizeDiameterDegrees * randomChange : parentSizeDiameterDegrees - randomChange;
+        if (newSize < minSize) {
+            newSize = minSize;
+        }
+        return newSize;
+    }
 
     private void mutateContrast() {
         boolean isMutate = Math.random() < magnitude;
@@ -121,9 +154,12 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
             }
         } else if (position.positioningStrategy == PositioningStrategy.MOVE_CENTER_TO_SPECIFIC_LOCATION){
             childMStick = new GrowingMatchStick(position.position, 1/3.0);
+            childMStick.setRf(generator.getReceptiveField());
+            childMStick.setRfStrategy(rfStrategy);
         } else if (position.positioningStrategy == PositioningStrategy.MOVE_COMP_TO_SPECIFIC_LOCATION){
             childMStick = new GrowingMatchStick(position.targetComp, position.position,1/3.0);
-            position.setTargetComp(childMStick.getSpecialEndComp().get(0));
+            childMStick.setRf(generator.getReceptiveField());
+            childMStick.setRfStrategy(rfStrategy);
         } else{
             throw new IllegalArgumentException("Invalid position strategy in a GrowingStim: " + position.positioningStrategy);
         }
@@ -131,6 +167,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
         childMStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
         childMStick.setStimColor(color);
         childMStick.genGrowingMatchStick(parentMStick, magnitude);
+        position.setTargetComp(childMStick.getSpecialEndComp().get(0));
         return childMStick;
     }
 

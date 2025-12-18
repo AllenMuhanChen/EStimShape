@@ -119,6 +119,7 @@ public class GrowingMatchStick extends GAMatchStick {
                 return;
             } catch (MorphedMatchStick.MorphException me) {
                 System.err.println(me.getMessage());
+                me.printStackTrace();
                 System.out.println("Morphing failed, trying again with new parameters");
             }
         }
@@ -147,6 +148,7 @@ public class GrowingMatchStick extends GAMatchStick {
                 positionShape();
             } catch (MorphedMatchStick.MorphException me) {
                 System.err.println(me.getMessage());
+                me.printStackTrace();
                 continue;
             }
             break;

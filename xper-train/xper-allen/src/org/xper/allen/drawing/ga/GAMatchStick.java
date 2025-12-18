@@ -60,6 +60,7 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
     public GAMatchStick(int compIdToMove, Point3d compCOMLocation){
         compToMove = compIdToMove;
         this.compCOMLocation = compCOMLocation;
+        this.positioningStrategy = PositioningStrategy.MOVE_COMP_TO_SPECIFIC_LOCATION;
     }
 
 
@@ -321,7 +322,11 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
         }
         if (positioningStrategy == PositioningStrategy.MOVE_COMP_TO_SPECIFIC_LOCATION) {
             if (compToMove == 0){
+                if (getSpecialEndComp().size() == 0){
+                    throw new MorphException("No Special Comp to use to Position");
+                }
                 compToMove = getSpecialEndComp().get(0);
+
             }
             Point3d pointToMove = getComp()[compToMove].getMassCenter();
             Point3d destination = compCOMLocation;
@@ -329,7 +334,7 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
             return;
         }
 
-        throw new IllegalArgumentException("Invalid Positioning Strategy");
+        throw new IllegalArgumentException("Invalid Positioning Strategy: " +  positioningStrategy.toString());
     }
 
 

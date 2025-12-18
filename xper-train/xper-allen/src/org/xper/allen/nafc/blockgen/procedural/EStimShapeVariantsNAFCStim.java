@@ -22,7 +22,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
     private String texture;
     private Float sampleSize;
     private NAFCNoiseMapper noiseMapper;
-    private RGBColor color;
+
 
 
     public EStimShapeVariantsNAFCStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, List<Integer> morphComponentIndcs, boolean isEStimEnabled, long baseMStickStimSpecId, int compId) {
@@ -37,12 +37,12 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         JdbcTemplate gaJDBCTemplate = new JdbcTemplate(generator.getGaDataSource());
         SizePropertyManager sizePropertyManager = new SizePropertyManager(gaJDBCTemplate);
         TexturePropertyManager texturePropertyManager = new TexturePropertyManager(gaJDBCTemplate);
-        UnderlingAverageRGBPropertyManager underlingAverageRGBPropertyManager = new UnderlingAverageRGBPropertyManager(gaJDBCTemplate);
+        ColorPropertyManager colorPropertyManager = new ColorPropertyManager(gaJDBCTemplate);
         CompsToPreserveManager compsToPreserveManager = new CompsToPreserveManager(gaJDBCTemplate);
 
         sampleSize = sizePropertyManager.readProperty(variantId);
         texture = texturePropertyManager.readProperty(variantId);
-        color = underlingAverageRGBPropertyManager.readProperty(variantId);
+        color = colorPropertyManager.readProperty(variantId);
 
         maxChoiceSize = generator.getMaxChoiceDimensionDegrees() * 0.9;
         choiceSize = sampleSize;

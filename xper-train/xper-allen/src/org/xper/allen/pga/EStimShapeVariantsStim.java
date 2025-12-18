@@ -31,17 +31,12 @@ public class EStimShapeVariantsStim extends GAStim<PruningMatchStick, AllenMStic
         if (parentLocation.positioningStrategy != PositioningStrategy.PRESERVED_COMP_BASED){
             position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, null);
         } else{
-            boolean mutate = false;
             Point3d oldPosition = parentLocation.getPosition();
-            if (mutate){
-                Point3d newPosition = oldPosition; //TODO: update
-                position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, newPosition);
-            }
-            else {
-               position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, oldPosition);
-            }
+            position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, oldPosition);
         }
     }
+
+
 
     @Override
     protected void chooseRFStrategy() {
@@ -50,15 +45,10 @@ public class EStimShapeVariantsStim extends GAStim<PruningMatchStick, AllenMStic
 
     @Override
     protected void chooseSize() {
-        double sizeMagnitude = 0.25;
-
-        double maxSizeDiameterDegrees = RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees());
-        double minSizeDiameterDegrees = maxSizeDiameterDegrees / 2;
-        double parentSizeDiameterDegrees = sizeManager.readProperty(parentId);
-        double maxSizeMutation = (maxSizeDiameterDegrees - minSizeDiameterDegrees);
-        double randomChange = (random.nextDouble() * sizeMagnitude * 2 - 1) * maxSizeMutation;
-        sizeDiameterDegrees = Math.min(maxSizeDiameterDegrees, Math.max(minSizeDiameterDegrees, parentSizeDiameterDegrees + randomChange));
+        sizeDiameterDegrees = sizeManager.readProperty(parentId);
     }
+
+
 
     @Override
     protected PruningMatchStick createMStick() {

@@ -108,7 +108,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     public void writeStim() {
         int nTries = 0;
         mStick = null;
-        int maxTries = 100;
+        int maxTries = 1000;
         while(nTries < maxTries) {
             nTries++;
             try {

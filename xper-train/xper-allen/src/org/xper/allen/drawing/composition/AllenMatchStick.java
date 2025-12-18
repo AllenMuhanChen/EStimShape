@@ -2661,6 +2661,10 @@ public class AllenMatchStick extends MatchStick {
             for (int leafIndx : leafIndcs){
                 endList.addAll(findEndPtsThatContainLeaf(leafIndx, amsOfLeaf));
             }
+            if (endList.size()==0){
+                System.err.println("NO ENDPOINTS CONTAIN SPECIAL LEAFS!");
+                return false;
+            }
 
 
             //Copy over the Junc they share
