@@ -9,11 +9,12 @@ import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.stimproperty.*;
 import org.xper.allen.util.AllenDbUtil;
-import org.xper.drawing.RGBColor;
 
+import javax.sql.DataSource;
 import javax.vecmath.Point3d;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
 
@@ -24,9 +25,40 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
     private NAFCNoiseMapper noiseMapper;
 
 
+    public static EStimShapeVariantsNAFCStim createSampledIdEStimShapeVariantsNAFCStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, boolean isEStimEnabled){
+        DataSource gaDataSource = generator.getGaDataSource();
+        JdbcTemplate gaJDBCTemplate = new JdbcTemplate(gaDataSource);
 
-    public EStimShapeVariantsNAFCStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, List<Integer> morphComponentIndcs, boolean isEStimEnabled, long baseMStickStimSpecId, int compId) {
-        super(generator, parameters, baseMatchStick, morphComponentIndcs, isEStimEnabled, baseMStickStimSpecId, compId);
+        // Find the maximum response for REGIME_ESTIM_VARIANTS
+        Double maxResponse = (Double) gaJDBCTemplate.queryForObject(
+                "SELECT MAX(response) FROM StimGaInfo WHERE stim_type = ?",
+                new Object[]{"REGIME_ESTIM_VARIANTS"},
+                Double.class
+        );
+
+        if (maxResponse == null || maxResponse == 0) {
+            throw new RuntimeException("No valid responses found for REGIME_ESTIM_VARIANTS stimuli");
+        }
+
+        // Calculate threshold (70% of max)
+        double threshold = 0.7 * maxResponse;
+
+        // Get all stim_ids that meet the threshold
+        List variantIds = gaJDBCTemplate.queryForList(
+                "SELECT stim_id FROM StimGaInfo WHERE stim_type = ? AND response >= ?",
+                new Object[]{"REGIME_ESTIM_VARIANTS", threshold},
+                Long.class
+        );
+
+        if (variantIds.isEmpty()) {
+            throw new RuntimeException("No REGIME_ESTIM_VARIANTS stimuli found with response >= 70% of max");
+        }
+
+        // Randomly select one from the candidates
+        Random random = new Random();
+        long variantId = (Long) variantIds.get(random.nextInt(variantIds.size()));
+
+        return new EStimShapeVariantsNAFCStim(generator, parameters, variantId, isEStimEnabled);
     }
 
     public EStimShapeVariantsNAFCStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, Long variantId, boolean isEStimEnabled){

@@ -111,7 +111,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         assignCoords();
     }
 
-    protected double calculateMinDistanceChoicesCanBeWithoutOverlap(double choiceSize, int numChoicesa) {
+    protected double calculateMinDistanceChoicesCanBeWithoutOverlap(double choiceSize, int numChoices) {
         /**
          * To derive, draw a circle with n circles centered on the perimeter of this circle, located
          * equidistantly. Draw a polygon with straight lines between the center of each outside circle.
@@ -130,7 +130,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
          *
          */
 //        return Math.sqrt(2) * choiceSize * Math.sin(Math.toRadians(360) / (2 * numChoicesa));
-        return choiceSize * Math.sin(Math.toRadians(360) / (2 * numChoicesa));
+        return choiceSize * Math.sin(Math.toRadians(360) / (2 * numChoices));
     }
 
     @Override
@@ -324,7 +324,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
 //        Color color = parameters.color;
 
         double numNoiseFrames = parameters.noiseRate;
-        Color color = new Color((int) this.color.getRed() * 255, (int) this.color.getGreen() * 255, (int) this.color.getBlue() * 255);
+        Color color = new Color((int) (this.color.getRed() * 255), (int) (this.color.getGreen() * 255), (int) (this.color.getBlue() * 255));
         NoisyPngSpec sampleSpec = new NoisyPngSpec(
                 xCenter, yCenter,
                 dimensionsSample,

@@ -37,13 +37,20 @@ public class EStimExperimentVariantsGenType extends ProceduralRandGenType<EStimE
 
         //use that trial's base matchstick to generate the rest of the trials
         for (int i = 0; i < parameters.getNumTrials(); i++) {
-            //using estim value from the GUI field
-            EStimShapeVariantsNAFCStim stim = new EStimShapeVariantsNAFCStim(
-                    (EStimShapeExperimentTrialGenerator) generator,
-                    parameters.getProceduralStimParameters(),
-                    parameters.stimId,
-                    parameters.isEStimEnabled);
-            newBlock.add(stim);
+            if (parameters.stimId == 0){
+                newBlock.add(EStimShapeVariantsNAFCStim.createSampledIdEStimShapeVariantsNAFCStim(
+                        (EStimShapeExperimentTrialGenerator) generator,
+                        parameters.getProceduralStimParameters(),
+                        parameters.isEStimEnabled));
+            } else {
+                //using estim value from the GUI field
+                EStimShapeVariantsNAFCStim stim = new EStimShapeVariantsNAFCStim(
+                        (EStimShapeExperimentTrialGenerator) generator,
+                        parameters.getProceduralStimParameters(),
+                        parameters.stimId,
+                        parameters.isEStimEnabled);
+                newBlock.add(stim);
+            }
         }
         return newBlock;
     }

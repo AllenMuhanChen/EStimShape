@@ -121,14 +121,14 @@ def run_analyses(channels_map: Dict[str, List[str]], analyses: List[type(Analysi
 def main():
     # Initialize analysis modules
     analyses = [
-        GAResponseVectorAnalysis()
-        # StimulusSelectivityAnalysis(),
-        # IsoChromaticLuminantScoreAnalysis(),
-        # IsochromaticIndexAnalysis(),
-        # SolidPreferenceIndexAnalysis(),
-        # IsogaborAnalysis(),
-        # PlotTopNAnalysis(),
-        # SideTestAnalysis(),
+        GAResponseVectorAnalysis(),
+        StimulusSelectivityAnalysis(),
+        IsoChromaticLuminantScoreAnalysis(),
+        IsochromaticIndexAnalysis(),
+        SolidPreferenceIndexAnalysis(),
+        IsogaborAnalysis(),
+        PlotTopNAnalysis(),
+        SideTestAnalysis(),
         # LightnessAnalysis(),
         # MixedGaborsAnalysis(),
         # ShuffleAnalysis(),

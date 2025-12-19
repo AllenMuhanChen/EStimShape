@@ -17,9 +17,9 @@ INTAN_REMOTE_PATH = "/run/user/1000/gvfs/sftp:host=172.30.9.78"
 INTAN_BASE_PATH = "/mnt/data/EStimShape"
 
 # Template constants
-TEMPLATE_TYPE = 'exp'
-TEMPLATE_DATE = '251027'
-TEMPLATE_LOCATION_ID = '1'
+TEMPLATE_TYPE = 'test'
+TEMPLATE_DATE = '251210'
+TEMPLATE_LOCATION_ID = '0'
 
 # Database connection constants
 HOST = '172.30.6.61'

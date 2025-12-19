@@ -17,9 +17,9 @@ def main():
     compiled_data = plot_top_n.compile()
 
     session_id, _ = read_session_id_from_db_name(context.ga_database)
-    session_id = "250425_0"
-    channel = "A-017"
-    analysis.run(session_id, "raw", channel, compiled_data=None)
+    session_id = "251218_0"
+    channel = "A-009"
+    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
 class PlotGenerationsAnalysis(PlotTopNAnalysis):

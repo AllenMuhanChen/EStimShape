@@ -69,8 +69,9 @@ class EStimPhaseParentSelector(ParentSelector):
         floored_responses = [s.response_rate - min_response for s in all_stim_across_lineages]
         max_response = max(floored_responses)
         normalized_responses = [r / max_response for r in floored_responses]
-        peak_response = calculate_peak_response(normalized_responses, across_n=1)
-        threshold_response = float(peak_response) * self.threshold
+        peak_normalized_response = calculate_peak_response(normalized_responses, across_n=1)
+
+        threshold_response = (float(peak_normalized_response) * self.threshold) * max_response + min_response
 
         passing_threshold = [s for s in lineage.stimuli if s.response_rate > threshold_response]
 

@@ -3155,25 +3155,25 @@ public class AllenMatchStick extends MatchStick {
 			Point3d finalPos = new Point3d(getJuncPt()[nowPtNdx].getPos());
 			Vector3d finalTangent = new Vector3d();
 			trialCount = 1;
-//			while (true)
-//			{
+			while (true)
+			{
 				finalTangent = stickMath_lib.randomUnitVec();
-//				boolean flag = true;
-//				for (i=1; i<= getJuncPt()[nowPtNdx].getnTangent(); i++)
-//				{
-//					if ( finalTangent.angle(getJuncPt()[nowPtNdx].getTangent()[i]) <= getTangentSaveZone()){
-//						flag = false;
-//					}
-//
-//				}
-//				if (flag == true) // i.e. all the tangent at this junction is ok for this new tangent
-//					break;
-//				if ( trialCount++ == 150) {
-//					return false;
-//				}
-//
-//
-//			}
+				boolean flag = true;
+				for (i=1; i<= getJuncPt()[nowPtNdx].getnTangent(); i++)
+				{
+					if ( finalTangent.angle(getJuncPt()[nowPtNdx].getTangent()[i]) <= getTangentSaveZone()){
+						flag = false;
+					}
+
+				}
+				if (flag == true) // i.e. all the tangent at this junction is ok for this new tangent
+					break;
+				if ( trialCount++ == 150) {
+					return false;
+				}
+
+
+			}
 			double devAngle = stickMath_lib.randDouble(0.0, 2 * Math.PI);
 			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
 
