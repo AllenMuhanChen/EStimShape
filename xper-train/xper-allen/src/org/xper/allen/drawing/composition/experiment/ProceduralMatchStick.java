@@ -48,7 +48,7 @@ public class ProceduralMatchStick extends GAMatchStick {
     }
 
     protected void setNoiseRadiusRelativeToRF(ReceptiveField rf) {
-        this.noiseRadiusMm = rf.getRadius()*2;
+        this.noiseRadiusMm = rf.getRadius()*4;
     }
 
     /**

@@ -711,7 +711,7 @@ public class MStickObj4Smooth {
     public boolean objectMerge( MStickObj4Smooth inObj, boolean specialTreat)
     {
         // two main roles here are this (1) & inObj (2)
-        boolean showDebug = false;
+        boolean showDebug = true;
         if (showDebug)
         {
             System.out.println("start merging object procedure....\n\n");
@@ -747,8 +747,8 @@ public class MStickObj4Smooth {
                 }
             }
 //            System.out.println(minDist);
-            if (minDist >= 1.2)
-//            if (minDist >= 3.5)
+//            if (minDist >= 1.2)
+            if (minDist >= 3.5)
             {
 
                 System.out.println("The two tube are not contacting.....fail");

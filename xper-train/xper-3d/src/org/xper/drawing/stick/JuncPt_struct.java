@@ -16,7 +16,7 @@ public class JuncPt_struct {
     private Point3d pos = new Point3d();
     private Vector3d[] tangent = new Vector3d[100];
     private int[] tangentOwner = new int[100];
-    private double rad;
+    private double rad = 100;
 
     public JuncPt_struct()
     {

@@ -69,8 +69,8 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
         int numChoices = task.getChoiceSpec().length;
         System.out.println("Choices: " + numChoices);
         if (numChoices == 3){
-//            System.out.println("Discounting reward by 0.75 because of 3AFC");
-            rewardMultiplier = rewardMultiplier;
+            System.out.println("Discounting reward by .0.75 because of 3AFC");
+            rewardMultiplier = 0.75 * rewardMultiplier;
         }
         else if (numChoices == 4){
             rewardMultiplier = rewardMultiplier + 0;
@@ -96,10 +96,11 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
             }
         }
 //
-//        int proceduralCount = numChoices - randCount - 1;
-//        System.out.println("Bonus +" + proceduralCount + " because of procedural count");
+        int proceduralCount = numChoices - randCount - 1;
+        System.out.println("Bonus +" + proceduralCount + " because of procedural count");
+        rewardMultiplier = rewardMultiplier + proceduralCount;
 //        rewardMultiplier = proceduralCount + (rewardMultiplier) - 1;
-//        rewardMultiplier = Math.max(1, rewardMultiplier);
+        rewardMultiplier = Math.max(1, rewardMultiplier);
     }
 
     private void drawStreak(Context context) {

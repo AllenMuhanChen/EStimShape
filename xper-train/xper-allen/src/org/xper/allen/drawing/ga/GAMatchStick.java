@@ -328,6 +328,9 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
                 compToMove = getSpecialEndComp().get(0);
 
             }
+            if (getComp()[compToMove] == null){
+                throw new MorphException("Special Comp doesn't exist");
+            }
             Point3d pointToMove = getComp()[compToMove].getMassCenter();
             Point3d destination = compCOMLocation;
             movePointToDestination(pointToMove, destination);

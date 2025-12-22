@@ -2241,6 +2241,7 @@ public class AllenMatchStick extends MatchStick {
 			while (j<2) {
 				if (genMatchStickFromLeaf_comp(leafIndcs, nComp, amsOfLeaf)){
 					compSuccess = true;
+                    System.out.println("COMP SUCCESS");
 					break;
 				}
 				else {
@@ -2250,7 +2251,6 @@ public class AllenMatchStick extends MatchStick {
 				// else
 				// System.out.println(" Attempt to gen shape fail. try again");
 			}
-
 			// this.finalRotation = new double[3];
 			// for (int i=0; i<3; i++)
 			// finalRotation[i] = stickMath_lib.randDouble(0, 360.0);
@@ -2697,8 +2697,8 @@ public class AllenMatchStick extends MatchStick {
                                 newIndxForOldLeafIndx.get(leafIndx),
                                 junc.getuNdx()[junc.getJIndexOfComp(leafIndx)],
                                 new Vector3d(junc.getTangent()[junc.getJIndexOfComp(leafIndx)]));
-                        junc.setPos(new Point3d(junc.getPos()));
-                        junc.setRad(junc.getRad());
+                        juncThatContainsAllLeafs.setPos(new Point3d(junc.getPos()));
+                        juncThatContainsAllLeafs.setRad(junc.getRad());
                     }
                 }
             }
@@ -2859,7 +2859,11 @@ public class AllenMatchStick extends MatchStick {
 
 		//up to here, the eligible skeleton should be ready
 		// 3. Assign the radius value
-		RadiusAssign(leafIndcs.size()); // KEEP FIRST ELEMENT SAME RADIUS
+        List<Integer> newIndxForLeafIndcs = new ArrayList<>();
+        for (int leafIndx : leafIndcs){
+            newIndxForLeafIndcs.add(newIndxForOldLeafIndx.get(leafIndx));
+        }
+		RadiusAssign(newIndxForLeafIndcs); // KEEP FIRST ELEMENT SAME RADIUS
 //		MutateSUB_reAssignJunctionRadius();
 		// 4. Apply the radius value onto each component
 		for (i=1; i<=getnComponent(); i++){
@@ -3496,6 +3500,140 @@ public class AllenMatchStick extends MatchStick {
 			//getComp()[i].normalizeRadInfo();
 		}
 	}
+
+
+    protected void RadiusAssign(List<Integer> toPreserve)
+    {
+        double rMin, rMax;
+        double nowRad, u_value, tempX;
+        int i, j;
+        // 0. initialize to negative value
+        for (i= 1; i<=getnComponent(); i++)
+        {
+            if (!toPreserve.contains(i)) {
+                getComp()[i].getRadInfo()[0][1] = -10.0;
+                getComp()[i].getRadInfo()[1][1] = -10.0;
+                getComp()[i].getRadInfo()[2][1] = -10.0;
+            }
+        }
+        // 1. assign at JuncPt
+        for (i=1; i<=getnJuncPt(); i++)
+        {
+            if ( getJuncPt()[i].getRad() == 100.0) // a whole new JuncPt
+            {
+                rMin = -10.0; rMax = 100000.0;
+                int nRelated_comp = getJuncPt()[i].getnComp();
+                for (j = 1 ; j <= nRelated_comp; j++)
+                {
+                    rMin = Math.max( rMin, getComp()[getJuncPt()[i].getCompIds()[j]].getmAxisInfo().getArcLen() / 10.0);
+                    tempX = Math.min( 0.5 *getComp()[getJuncPt()[i].getCompIds()[j]].getmAxisInfo().getRad(),
+                            getComp()[getJuncPt()[i].getCompIds()[j]].getmAxisInfo().getArcLen() / 3.0);
+                    rMax = Math.min( rMax, tempX);
+                }
+
+                if (rMax < rMin)
+                    System.out.println(" In radius assign, ERROR: rMax < rMin");
+
+                // select a value btw rMin and rMax
+                nowRad = stickMath_lib.randDouble( rMin, rMax);
+                // assign the value to each component
+                getJuncPt()[i].setRad(nowRad);
+
+                for (j = 1 ; j <= nRelated_comp ; j++)
+                {
+                    u_value = ((double)getJuncPt()[i].getuNdx()[j]-1.0) / (51.0-1.0);
+                    if ( Math.abs( u_value - 0.0) < 0.0001)
+                    {
+                        getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][0] = 0.0;
+                        getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][1] = nowRad;
+                    }
+                    else if ( Math.abs(u_value - 1.0) < 0.0001)
+                    {
+                        getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][0] = 1.0;
+                        getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][1] = nowRad;
+                    }
+                    else // middle u value
+                    {
+                        getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][0] = u_value;
+                        getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][1] = nowRad;
+                    }
+
+                }
+            }
+            else // JuncPt.rad != 100.0, means this JuncPt is an existing one
+            {
+                for (j=1; j<= getJuncPt()[i].getnComp(); j++)
+                    if (!toPreserve.contains(getJuncPt()[i].getCompIds()[j])) // the component which need to assign radius
+                    {
+                        nowRad = getJuncPt()[i].getRad();
+                        u_value = ((double)getJuncPt()[i].getuNdx()[j]-1.0) / (51.0-1.0);
+                        if ( Math.abs( u_value - 0.0) < 0.0001)
+                        {
+                            getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][0] = 0.0;
+                            getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][1] = nowRad;
+                        }
+                        else if ( Math.abs(u_value - 1.0) < 0.0001)
+                        {
+                            getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][0] = 1.0;
+                            getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][1] = nowRad;
+                        }
+                        else // middle u value
+                        {
+                            getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][0] = u_value;
+                            getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][1] = nowRad;
+                        }
+                    }
+
+            }
+        } // loop nJuncPt
+
+        // 2. assign at endPt
+        for (i = 1; i <= getnEndPt(); i++) {
+            if (!toPreserve.contains(getEndPt()[i].getComp())) // only do the radius assign for endPt with component we need
+            {
+
+                int nowComp = getEndPt()[i].getComp();
+                u_value = ((double) getEndPt()[i].getuNdx() - 1.0) / (51.0 - 1.0);
+
+                //rMin = mStick.comp(nowComp).arcLen / 10.0;
+                rMin = 0.00001; // as small as you like
+                rMax = Math.min(getComp()[nowComp].getmAxisInfo().getArcLen() / 3.0, 0.5 * getComp()[nowComp].getmAxisInfo().getRad());
+
+                // select a value btw rMin and rMax
+                nowRad = stickMath_lib.randDouble(rMin, rMax);
+
+                getEndPt()[i].setRad(nowRad);
+
+                if (Math.abs(u_value - 0.0) < 0.0001) {
+                    getComp()[nowComp].getRadInfo()[0][0] = 0.0;
+                    getComp()[nowComp].getRadInfo()[0][1] = nowRad;
+                } else if (Math.abs(u_value - 1.0) < 0.0001) {
+                    getComp()[nowComp].getRadInfo()[2][0] = 1.0;
+                    getComp()[nowComp].getRadInfo()[2][1] = nowRad;
+                } else // middle u value
+                    System.out.println("error in endPt radius assignment");
+
+            }
+
+}
+
+        // 3. other middle Pt
+        for ( i = 1 ; i <= getnComponent() ; i++)
+            if (!toPreserve.contains(i)) {
+                if (getComp()[i].getRadInfo()[1][1] == -10.0) // this component need a intermediate value
+                {
+                    int branchPt = getComp()[i].getmAxisInfo().getBranchPt();
+                    u_value = ((double) branchPt - 1.0) / (51.0 - 1.0);
+
+                    rMin = getComp()[i].getmAxisInfo().getArcLen() / 10.0;
+                    rMax = Math.min(getComp()[i].getmAxisInfo().getArcLen() / 3.0, 0.5 * getComp()[i].getmAxisInfo().getRad());
+                    nowRad = stickMath_lib.randDouble(rMin, rMax);
+                    getComp()[i].getRadInfo()[1][0] = u_value;
+                    getComp()[i].getRadInfo()[1][1] = nowRad;
+                }
+
+            }
+    }
 
 	/**
 	 Deal with the creation of first MAxisArc component

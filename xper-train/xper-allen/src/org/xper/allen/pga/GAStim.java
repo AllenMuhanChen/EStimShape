@@ -4,6 +4,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
+import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphData;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.ga.GAMatchStick;
@@ -108,7 +109,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     public void writeStim() {
         int nTries = 0;
         mStick = null;
-        int maxTries = 1000;
+        int maxTries = 30;
         while(nTries < maxTries) {
             nTries++;
             try {
@@ -150,13 +151,14 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
                 break;
             } catch (MorphedMatchStick.MorphException me) {
                 mStick = null;
-                System.out.println("Morphing failed, trying again with new parameters");
+                System.out.println("WriteStim() failed on attempt " + nTries + ". Trying again");
             }
         }
 
         if (nTries == maxTries && mStick == null) {
-            System.err.println("CRITICAL ERROR: COULD NOT GENERATE MORPHED MATCHSTICK  OF TYPE" + this.getClass().getSimpleName()+"AFTER 10 TRIES. GENERATING RAND...");
-            throw new RuntimeException("CRITICAL ERROR: COULD NOT GENERATE MORPHED MATCHSTICK  OF TYPE" + this.getClass().getSimpleName());
+            System.err.println("CRITICAL ERROR: COULD NOT GENERATE MORPHED MATCHSTICK  OF TYPE" + this.getClass().getSimpleName());
+            writeFailedStimSpec();
+            throw new ProceduralMatchStick.MorphRepetitionException("CRITICAL ERROR: COULD NOT GENERATE MORPHED MATCHSTICK  OF TYPE" + this.getClass().getSimpleName());
         }
 
 
@@ -311,6 +313,11 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         stimSpec.setyCenter(imageCenterCoords.getY());
 
         generator.getDbUtil().writeStimSpec(stimId, stimSpec.toXml(), mStickData.toXml());
+    }
+
+    protected void writeFailedStimSpec(){
+        generator.getDbUtil().writeStimSpec(stimId, "FAILED TO GENERATE", "");
+
     }
 
     protected void chooseTextureType() {

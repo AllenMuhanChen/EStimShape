@@ -3,6 +3,7 @@ package org.xper.allen.pga;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.Dependency;
 import org.xper.allen.Stim;
+import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
@@ -234,7 +235,13 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
         //Write All Stims into StimSpec and build list of stimIds (which includes reps)
         for (Stim stim : getStims()) {
             Long stimId = stim.getStimId();
-            stim.writeStim();
+            try {
+                stim.writeStim();
+            } catch(ProceduralMatchStick.MorphRepetitionException mpe){
+                mpe.printStackTrace();
+                System.err.println("SKIPPING STIM with stimId: " + stimId);
+                continue;
+            }
             for (int i = 0; i < numTrialsPerStimulus; i++) {
                 allStimIds.add(stimId);
             }

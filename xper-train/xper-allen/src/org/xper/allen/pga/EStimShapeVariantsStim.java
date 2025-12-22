@@ -48,8 +48,6 @@ public class EStimShapeVariantsStim extends GAStim<PruningMatchStick, AllenMStic
         sizeDiameterDegrees = sizeManager.readProperty(parentId);
     }
 
-
-
     @Override
     protected PruningMatchStick createMStick() {
         GAMatchStick parentMStick = new GAMatchStick(generator.getReceptiveField(), null);
@@ -78,10 +76,13 @@ public class EStimShapeVariantsStim extends GAStim<PruningMatchStick, AllenMStic
 
         // Generate child
         Random random = new Random();
-        if (random.nextBoolean()) {
+        boolean r = random.nextBoolean();
+
+        if (r) {
             double magnitude = random.nextDouble() * 0.4 + 0.5;
             childMStick.genPruningMatchStick(parentMStick, magnitude, compsToPreserveInParent, null);
-        } else {
+        }
+       else {
             int nComp = 0;
             while (nComp <= compsToPreserveInParent.size()) {
                 nComp = stickMath_lib.pickFromProbDist(PruningMatchStick.PARAM_nCompDist);
