@@ -157,7 +157,7 @@ class SideTestAnalysis(Analysis):
         pipeline = create_pipeline().make_branch(
             plot_branch,
             raster_branch,
-            psth_branch,
+            # psth_branch,
             psth_examples_branch,
             index_branch,
             permutation_branch

@@ -26,47 +26,30 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
     protected NAFCNoiseMapper noiseMapper;
 
 
-    public static EStimShapeVariantsNAFCStim createSampledIdEStimShapeVariantsNAFCStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, boolean isEStimEnabled){
+    public static EStimShapeVariantsNAFCStim createSampledIdEStimShapeVariantsNAFCStim(
+            EStimShapeExperimentTrialGenerator generator,
+            ProceduralStimParameters parameters,
+            boolean isEStimEnabled) {
+
         DataSource gaDataSource = generator.getGaDataSource();
         JdbcTemplate gaJDBCTemplate = new JdbcTemplate(gaDataSource);
 
-        // Find the maximum response for REGIME_ESTIM_VARIANTS
-        Double maxResponse = (Double) gaJDBCTemplate.queryForObject(
-                "SELECT MAX(response) FROM StimGaInfo WHERE stim_type = ?",
-                new Object[]{"REGIME_ESTIM_VARIANTS"},
-                Double.class
-        );
-
-        if (maxResponse == null || maxResponse == 0) {
-            throw new RuntimeException("No valid responses found for REGIME_ESTIM_VARIANTS stimuli");
-        }
-
-        // Calculate threshold (70% of max)
-        double threshold = 0.7 * maxResponse;
-
-        // Get all stim_ids that meet the threshold
-        List variantIds = gaJDBCTemplate.queryForList(
-                "SELECT stim_id FROM StimGaInfo WHERE stim_type = ? AND response >= ?",
-                new Object[]{"REGIME_ESTIM_VARIANTS", threshold},
+        // Get all non-excluded variants from IncludedVariants table
+        List<Long> variantIds = gaJDBCTemplate.queryForList(
+                "SELECT stim_id FROM IncludedVariants WHERE manually_excluded = FALSE",
                 Long.class
         );
 
         if (variantIds.isEmpty()) {
-            throw new RuntimeException("No REGIME_ESTIM_VARIANTS stimuli found with response >= 70% of max");
+            throw new RuntimeException("No included variants found in IncludedVariants table. " +
+                    "Run the PlotVariants analysis pipeline first to populate this table.");
         }
 
-        // Randomly select one from the candidates
+        // Randomly select one
         Random random = new Random();
-        long variantId;
-
-        while (true) {
-            variantId = (Long) variantIds.get(random.nextInt(variantIds.size()));
-            if (variantId != 1766429547318200L && variantId != 1766428774740944L)
-                break;
-        }
+        long variantId = variantIds.get(random.nextInt(variantIds.size()));
 
         return new EStimShapeVariantsNAFCStim(generator, parameters, variantId, isEStimEnabled);
-
     }
 
     public EStimShapeVariantsNAFCStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, Long variantId, boolean isEStimEnabled){
