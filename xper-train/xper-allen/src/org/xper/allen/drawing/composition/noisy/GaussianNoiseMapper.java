@@ -65,17 +65,18 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
 
     @Override
     public void checkInNoise(ProceduralMatchStick proceduralMatchStick, List<Integer> mustBeInNoiseCompIds, double percentRequiredOutsideNoise) throws NoiseException{
-        proceduralMatchStick.setNoiseOrigin(calculateNoiseOrigin(proceduralMatchStick, mustBeInNoiseCompIds));
+        Point3d noiseOrigin = calculateNoiseOrigin(proceduralMatchStick, mustBeInNoiseCompIds);
+        proceduralMatchStick.setNoiseOrigin(noiseOrigin);
         debug_noise_origin = new Point2d(proceduralMatchStick.getNoiseOrigin().getX(), proceduralMatchStick.getNoiseOrigin().getY());
         debug_points_vect.clear();
         debug_points_obj1.clear();
         debug_points_outside.clear();
 
-        for (Point3d point : proceduralMatchStick.getObj1().vect_info){
-            if (point != null) {
-                debug_points_obj1.add(new Point2d(point.getX(), point.getY()));
-            }
-        }
+//        for (Point3d point : proceduralMatchStick.getObj1().vect_info){
+//            if (point != null) {
+//                debug_points_obj1.add(new Point2d(point.getX(), point.getY()));
+//            }
+//        }
 
         ArrayList<ConcaveHull.Point> pointsToCheck = new ArrayList<>();
         Point3d massCenter = proceduralMatchStick.getMassCenter();
@@ -101,7 +102,6 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
                     index++;
                 }
             }
-            System.out.println("DONE!~");
 
 //            index=0;
 //            for (Point3d point3d : correctedVect_info) {

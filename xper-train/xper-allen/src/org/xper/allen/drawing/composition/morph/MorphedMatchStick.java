@@ -59,6 +59,7 @@ public class MorphedMatchStick extends AllenMatchStick {
 
         localBackup = new MorphedMatchStick();
         localBackup.copyFrom(matchStickToMorph);
+
         copyFrom(localBackup);
 
 

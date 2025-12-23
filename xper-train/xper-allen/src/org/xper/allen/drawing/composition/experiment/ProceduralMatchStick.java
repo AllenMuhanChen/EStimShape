@@ -194,7 +194,7 @@ public class ProceduralMatchStick extends GAMatchStick {
         }
     }
 
-    public void genNewComponentsMatchStick(ProceduralMatchStick baseMatchStick, List<Integer> morphComponentIndcs, double magnitude, double discreteness, boolean doPositionShape, int maxAttempts){
+    public void genNewComponentsMatchStick(ProceduralMatchStick baseMatchStick, List<Integer> morphComponentIndcs, double magnitude, double discreteness, boolean doPositionShape, int maxAttempts, List<Integer> inNoiseComponentIndcs){
         Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
 
         for (Integer morphComponentIndx : morphComponentIndcs) {
@@ -208,9 +208,13 @@ public class ProceduralMatchStick extends GAMatchStick {
 
                 boolean checkNoise = true;
                 if (checkNoise){
-                    noiseMapper.checkInNoise(this, morphComponentIndcs, 0.5);
+                    if (inNoiseComponentIndcs.size() == 0) {
+                        inNoiseComponentIndcs = morphComponentIndcs;
+                    }
+                    noiseMapper.checkInNoise(this, inNoiseComponentIndcs, 0.5);
                 }
                 if (this.maxDiameterDegrees != null) {
+                    centerShape();
                     checkMStickFitsInPNG(maxDiameterDegrees);
                 }
             } catch(MorphException e) {

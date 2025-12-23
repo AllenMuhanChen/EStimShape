@@ -86,6 +86,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
 
         maxChoiceSize = generator.getMaxChoiceDimensionDegrees() * 1.0;
         maxSampleSize = generator.getMaxSampleDimensionDegrees();
+
         choiceSize = sampleSize;
 
         double choiceLim = calculateMinDistanceChoicesCanBeWithoutOverlap(maxChoiceSize, parameters.numChoices);
@@ -166,8 +167,8 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
             correctNoiseRadius(proceduralDistractor);
             proceduralDistractor.setProperties(choiceSize, texture, is2D(), 1.0);
             proceduralDistractor.setStimColor(color);
-            proceduralDistractor.setMaxDiameterDegrees(maxChoiceSize);
-            proceduralDistractor.genNewComponentsMatchStick(sample, morphComponentIndcs, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts);
+            proceduralDistractor.setMaxDiameterDegrees(maxSampleSize); //TODO: using max sample size here due to weird glitch with using max choice size...
+            proceduralDistractor.genNewComponentsMatchStick(sample, morphComponentIndcs, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts, noiseComponentIndcs);
             mSticks.addProceduralDistractor(proceduralDistractor);
             mStickSpecs.addProceduralDistractor(mStickToSpec(proceduralDistractor));
         }

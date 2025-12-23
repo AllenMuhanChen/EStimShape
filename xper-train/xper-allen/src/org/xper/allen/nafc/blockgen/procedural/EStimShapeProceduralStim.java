@@ -19,6 +19,7 @@ import org.xper.rfplot.drawing.png.ImageDimensions;
 
 import javax.vecmath.Point3d;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -257,7 +258,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
             correctNoiseRadius(proceduralDistractor);
             proceduralDistractor.setProperties(choiceSizeDegrees, texture, 1.0);
             proceduralDistractor.setStimColor(color);
-            proceduralDistractor.genNewComponentsMatchStick(sample, morphComponentIndcs, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts);
+            proceduralDistractor.genNewComponentsMatchStick(sample, morphComponentIndcs, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts, new ArrayList<Integer>());
             mSticks.addProceduralDistractor(proceduralDistractor);
             mStickSpecs.addProceduralDistractor(mStickToSpec(proceduralDistractor));
         }

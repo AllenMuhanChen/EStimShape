@@ -84,7 +84,7 @@ public class EStimExperimentAppConfig {
         generator.setGeneratorSetPath(generatorSetPath);
         generator.setSamplePngMaker(samplePngMaker());
         generator.setGaDataSource(gaDataSource());
-        generator.setMaxSampleDimensionDegrees(45);
+        generator.setMaxSampleDimensionDegrees(maxSampleSizeDegrees());
         generator.setMaxChoiceDimensionDegrees(pngConfig.mStickPngConfig.xperMaxImageDimensionDegrees());
         return generator;
     }
