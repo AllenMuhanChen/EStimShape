@@ -43,12 +43,12 @@ class StimTypeField(StimSpecField):
         return stimType
 
 
-class IsCorrectField(CachedDatabaseField):
+class IsRewardedField(CachedDatabaseField):
     def __init__(self, conn: Connection):
         super().__init__(conn)
 
     def get_name(self):
-        return "IsCorrect"
+        return "IsRewarded"
 
     def get(self, when: When):
         # SQL to check for the presence of "ChoiceSelectionCorrect" or "ChoiceSelectionIncorrect" in the specified time frame.
@@ -129,10 +129,11 @@ def extract_roman_numeral(file_path: str) -> str:
         return None
 
 
-class ChoiceField(StimSpecField):
+
+class ChoiceSetField(StimSpecField):
 
     def get_name(self):
-        return "Choice"
+        return "ChoiceSet"
 
     def get(self, when: When):
         choice = self._get_choice_index(when)
@@ -174,6 +175,38 @@ class ChoiceField(StimSpecField):
         if choices:
             choice = choices[0][0]
         return choice
+
+class ChoiceField(ChoiceSetField):
+    def get_name(self):
+        return "Choice"
+
+    def get(self, when: When):
+        choice = self._get_choice_index(when)
+
+        choice_stim_obj_id = self._get_choice_stim_obj_id(choice, when)
+
+        choice_path = self._get_choice_png_path(choice_stim_obj_id)
+
+
+        if "match" in choice_path:
+            return "match"
+        elif "procedural" in choice_path:
+            return "procedural"
+        elif "rand" in choice_path:
+            return "rand"
+        else:
+            return "None"
+
+class IsCorrectField(ChoiceField):
+    def get_name(self):
+        return "IsCorrect"
+
+    def get(self, when: When) -> bool:
+        choice = self.get_cached_super(when, ChoiceField)
+        if choice == "match":
+            return True
+        else:
+            return False
 
 
 class NoiseChanceField(StimSpecDataField):

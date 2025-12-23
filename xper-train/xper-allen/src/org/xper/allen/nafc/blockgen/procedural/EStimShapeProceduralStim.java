@@ -30,6 +30,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     protected final boolean isEStimEnabled;
     protected final AllenPNGMaker samplePngMaker;
     protected final AllenPNGMaker choicePNGMaker;
+    protected double maxSampleSize;
     protected double maxChoiceSize;
     protected double choiceSize;
     protected  RGBColor color;
@@ -80,7 +81,8 @@ public class EStimShapeProceduralStim extends ProceduralStim{
             color = new RGBColor(parameters.color);
         }
         choiceSizeDegrees = sampleSizeDegrees;
-        maxChoiceSize = generator.getMaxChoiceDimensionDegrees() * 0.9;
+        maxChoiceSize = generator.getMaxChoiceDimensionDegrees();
+        maxSampleSize = generator.getMaxSampleDimensionDegrees();
         choiceSize = sampleSizeDegrees;
 
         double choiceLim = calculateMinDistanceChoicesCanBeWithoutOverlap(maxChoiceSize, parameters.numChoices);
@@ -325,7 +327,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
      */
     @Override
     protected void writeStimObjDataSpecs() {
-        double imageSizeSample = 45;
+        double imageSizeSample = maxSampleSize;
         ImageDimensions dimensionsSample = new ImageDimensions(imageSizeSample, imageSizeSample);
 
         double imageSizeChoices = generator.getImageDimensionsDegrees();
