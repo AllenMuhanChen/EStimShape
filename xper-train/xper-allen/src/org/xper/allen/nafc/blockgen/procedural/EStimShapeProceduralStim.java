@@ -306,8 +306,8 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     @Override
     public RewardBehavior specifyRewardBehavior() {
         if (isEStimEnabled || isAmbiguousTrial()) {
-//            return RewardBehaviors.rewardReasonableChoicesOnly(this.parameters);
-            return RewardBehaviors.rewardAnyChoice();
+            return RewardBehaviors.rewardReasonableChoicesOnly(this.parameters);
+//            return RewardBehaviors.rewardAnyChoice();
         } else{
             return RewardBehaviors.rewardMatchOnly();
         }

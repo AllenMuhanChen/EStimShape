@@ -24,11 +24,11 @@ def filter_by_num_distractors(data, num_distractors):
 
 def main():
     # Database connection
-    conn = Connection("allen_estimshape_exp_251218_0")
+    conn = Connection("allen_estimshape_exp_251222_0")
 
     # Time range
     since_date = time_util.from_date_to_now(2024, 7, 10)
-    start_gen_id = 14  # Filter for all data (EStim OFF and general filtering)
+    start_gen_id = 0  # Filter for all data (EStim OFF and general filtering)
     max_gen_id = float('inf')  # Maximum GenId to include (set to a number to limit, or leave as inf for no limit)
     start_gen_id_estim_on = 0  # Additional filter for EStim ON trials only (set higher to get only recent EStim ON data)
     max_gen_id_estim_on = float('inf')  # Maximum GenId for EStim ON trials (set to a number to limit)
@@ -43,7 +43,6 @@ def main():
     fields.append(NumRandDistractorsField(conn))
     fields.append(StimTypeField(conn))
     fields.append(ChoiceField(conn))
-    fields.append(AnswerField(conn))
     fields.append(GenIdField(conn))
     fields.append(EStimEnabledField(conn))
 
