@@ -53,7 +53,6 @@ public class EStimShapeVariantsStim extends GAStim<PruningMatchStick, AllenMStic
         GAMatchStick parentMStick = new GAMatchStick(generator.getReceptiveField(), null);
         parentMStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
         parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
-
         PruningMatchStick childMStick;
         if (position.getPosition() == null){
             childMStick = new PruningMatchStick(generator.getNoiseMapper());
@@ -64,6 +63,7 @@ public class EStimShapeVariantsStim extends GAStim<PruningMatchStick, AllenMStic
 
         childMStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
         childMStick.setStimColor(color);
+        childMStick.setMaxDiameterDegrees(generator.getImageDimensionsDegrees());
 
         // Read or choose components to preserve from parent
         List<Integer> compsToPreserveInParent;

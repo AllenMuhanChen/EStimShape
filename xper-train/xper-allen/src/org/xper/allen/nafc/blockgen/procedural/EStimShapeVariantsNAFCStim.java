@@ -18,11 +18,12 @@ import java.util.Random;
 
 public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
 
+    protected double maxSampleSize;
     protected List<Integer> noiseComponentIndcs;
     protected String gaSpecPath;
     private String texture;
     private Float sampleSize;
-    private NAFCNoiseMapper noiseMapper;
+    protected NAFCNoiseMapper noiseMapper;
 
 
     public static EStimShapeVariantsNAFCStim createSampledIdEStimShapeVariantsNAFCStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, boolean isEStimEnabled){
@@ -56,9 +57,16 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
 
         // Randomly select one from the candidates
         Random random = new Random();
-        long variantId = (Long) variantIds.get(random.nextInt(variantIds.size()));
+        long variantId;
+
+        while (true) {
+            variantId = (Long) variantIds.get(random.nextInt(variantIds.size()));
+            if (variantId != 1766429547318200L && variantId != 1766428774740944L)
+                break;
+        }
 
         return new EStimShapeVariantsNAFCStim(generator, parameters, variantId, isEStimEnabled);
+
     }
 
     public EStimShapeVariantsNAFCStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, Long variantId, boolean isEStimEnabled){
@@ -76,13 +84,14 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         texture = texturePropertyManager.readProperty(variantId);
         color = colorPropertyManager.readProperty(variantId);
 
-        maxChoiceSize = generator.getMaxChoiceDimensionDegrees() * 0.9;
+        maxChoiceSize = generator.getMaxChoiceDimensionDegrees() * 1.0;
+        maxSampleSize = generator.getMaxSampleDimensionDegrees();
         choiceSize = sampleSize;
 
         double choiceLim = calculateMinDistanceChoicesCanBeWithoutOverlap(maxChoiceSize, parameters.numChoices);
 
         parameters.setChoiceDistanceLims(new Lims(choiceLim, choiceLim));
-        parameters.setEyeWinRadius(choiceSize*4/2); // 4 back to back limbs, and divide by two for radius corr
+        parameters.setEyeWinRadius(choiceSize*8/2); // 4 back to back limbs, and divide by two for radius corr
 
         noiseMapper = generator.getNoiseMapper();
         morphComponentIndcs = compsToPreserveManager.readProperty(variantId).getCompsToPreserve();
@@ -131,7 +140,6 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
 
 
         sample.genMatchStickFromShapeSpec(baseStickSpec, new double[]{0,0,0});
-
         noiseMapper.checkInNoise(sample, noiseComponentIndcs, 0.5);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));
@@ -158,7 +166,8 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
             correctNoiseRadius(proceduralDistractor);
             proceduralDistractor.setProperties(choiceSize, texture, is2D(), 1.0);
             proceduralDistractor.setStimColor(color);
-            proceduralDistractor.genNewComponentsMatchStick(sample, morphComponentIndcs, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts, maxChoiceSize);
+            proceduralDistractor.setMaxDiameterDegrees(maxChoiceSize);
+            proceduralDistractor.genNewComponentsMatchStick(sample, morphComponentIndcs, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts);
             mSticks.addProceduralDistractor(proceduralDistractor);
             mStickSpecs.addProceduralDistractor(mStickToSpec(proceduralDistractor));
         }

@@ -166,6 +166,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
 
         childMStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
         childMStick.setStimColor(color);
+        childMStick.setMaxDiameterDegrees(generator.getImageDimensionsDegrees());
         childMStick.genGrowingMatchStick(parentMStick, magnitude);
         position.setTargetComp(childMStick.getSpecialEndComp().get(0));
         return childMStick;

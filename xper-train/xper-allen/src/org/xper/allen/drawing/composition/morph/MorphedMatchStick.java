@@ -400,7 +400,9 @@ public class MorphedMatchStick extends AllenMatchStick {
         updateEndPtsAndJunctionPositions();
         attemptMutateRadius(id, morphParams);
         checkForTubeCollisions();
-//        checkForValidMStickSize();
+        if (this.maxDiameterDegrees != null){
+            mStickFitsInBox(maxDiameterDegrees);
+        }
     }
 
     private void attemptToGenerateValidComponentSkeleton(int id, ComponentMorphParameters morphParams) {
@@ -553,7 +555,8 @@ public class MorphedMatchStick extends AllenMatchStick {
                         getComp()[id].getRadInfo()[2][1] = newRadius;
                     }
                     else // middle u value
-                        throw new MorphException("EndPt uNdx is not 1 or 51. uNdx = " + uNdx);
+                        System.out.println("werid");
+//                        throw new MorphException("EndPt uNdx is not 1 or 51. uNdx = " + uNdx);
                 }
             }
         });

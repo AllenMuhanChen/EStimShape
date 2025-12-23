@@ -194,7 +194,7 @@ public class ProceduralMatchStick extends GAMatchStick {
         }
     }
 
-    public void genNewComponentsMatchStick(ProceduralMatchStick baseMatchStick, List<Integer> morphComponentIndcs, double magnitude, double discreteness, boolean doPositionShape, int maxAttempts, Double maxDiameterDegrees){
+    public void genNewComponentsMatchStick(ProceduralMatchStick baseMatchStick, List<Integer> morphComponentIndcs, double magnitude, double discreteness, boolean doPositionShape, int maxAttempts){
         Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
 
         for (Integer morphComponentIndx : morphComponentIndcs) {
@@ -210,15 +210,14 @@ public class ProceduralMatchStick extends GAMatchStick {
                 if (checkNoise){
                     noiseMapper.checkInNoise(this, morphComponentIndcs, 0.5);
                 }
+                if (this.maxDiameterDegrees != null) {
+                    checkMStickFitsInPNG(maxDiameterDegrees);
+                }
             } catch(MorphException e) {
                 System.out.println(e.getMessage());
                 continue;
             } finally{
                 numAttempts++;
-            }
-
-            if(maxDiameterDegrees != null) {
-                checkMStickFitsInPNG(maxDiameterDegrees);
             }
             break;
         }
@@ -243,6 +242,7 @@ public class ProceduralMatchStick extends GAMatchStick {
     }
 
     public void genMatchStickFromComponentInNoise(AllenMatchStick baseMatchStick, List<Integer> fromCompIds, int nComp, boolean doCompareObjCenteredPos, int maxAttempts1) {
+        double maxDiameterDegrees = 15; //TODO: parameterize
         this.maxAttempts = maxAttempts1;
         if (nComp == 0){
             nComp = chooseNumComps();
@@ -257,8 +257,7 @@ public class ProceduralMatchStick extends GAMatchStick {
                 System.out.println(e.getMessage());
                 continue;
             }
-//            int drivingComponent = getDrivingComponent();
-//            setSpecialEndComp(Collections.singletonList(drivingComponent));
+
             List<Integer> compsToNoiseInBase = fromCompIds;
             List<Integer> compsToNoise = new  ArrayList<>();
             for (Integer compId : compsToNoiseInBase) {
@@ -275,6 +274,8 @@ public class ProceduralMatchStick extends GAMatchStick {
                 System.out.println(e.getMessage());
                 continue;
             }
+
+
             SphericalCoordinates originalObjCenteredPos = calcObjCenteredPosForComp(baseMatchStick, fromCompIds.get(0));
             SphericalCoordinates newDrivingObjectCenteredPos = calcObjCenteredPosForComp(this, newIndxForOldLeafIndx.get(fromCompIds.get(0)));
             if (doCompareObjCenteredPos) {

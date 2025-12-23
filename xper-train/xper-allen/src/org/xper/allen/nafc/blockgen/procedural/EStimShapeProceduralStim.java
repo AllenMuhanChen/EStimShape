@@ -38,6 +38,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     protected RFStrategy rfStrategy = RFStrategy.COMPLETELY_INSIDE;
     protected long[] eStimObjData;
     protected double sampleSizeDegrees;
+    protected double choiceSizeDegrees;
     protected long baseMStickStimSpecId;
 
     public EStimShapeProceduralStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled, long baseMStickStimSpecId, int compId) {
@@ -78,14 +79,14 @@ public class EStimShapeProceduralStim extends ProceduralStim{
             texture = parameters.textureType;
             color = new RGBColor(parameters.color);
         }
-
+        choiceSizeDegrees = sampleSizeDegrees;
         maxChoiceSize = generator.getMaxChoiceDimensionDegrees() * 0.9;
         choiceSize = sampleSizeDegrees;
 
         double choiceLim = calculateMinDistanceChoicesCanBeWithoutOverlap(maxChoiceSize, parameters.numChoices);
 
         parameters.setChoiceDistanceLims(new Lims(choiceLim, choiceLim));
-        parameters.setEyeWinRadius(choiceSize*4/2); // 4 back to back limbs, and divide by two for radius corr
+        parameters.setEyeWinRadius(choiceSize*4/2 * Math.sqrt(2)); // 4 back to back limbs, and divide by two for radius corr
     }
 
     @Override
@@ -225,7 +226,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     @Override
     protected void generateMatch(ProceduralMatchStick sample) {
         ProceduralMatchStick match = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
-        match.setProperties(sampleSizeDegrees, parameters.textureType, 1.0);
+        match.setProperties(choiceSizeDegrees, parameters.textureType, 1.0);
         match.setStimColor(parameters.color);
         match.genMatchStickFromShapeSpec(mStickSpecs.getSample(), new double[]{0,0,0});
         match.moveCenterOfMassTo(new Point3d(0,0,0));
@@ -252,11 +253,24 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         for (int i = 0; i < numProceduralDistractors; i++) {
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
             correctNoiseRadius(proceduralDistractor);
-            proceduralDistractor.setProperties(sampleSizeDegrees, parameters.textureType, 1.0);
-            proceduralDistractor.setStimColor(parameters.color);
-            proceduralDistractor.genNewComponentsMatchStick(sample, morphComponentIndcs, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts, null);
+            proceduralDistractor.setProperties(choiceSizeDegrees, texture, 1.0);
+            proceduralDistractor.setStimColor(color);
+            proceduralDistractor.genNewComponentsMatchStick(sample, morphComponentIndcs, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts);
             mSticks.addProceduralDistractor(proceduralDistractor);
             mStickSpecs.addProceduralDistractor(mStickToSpec(proceduralDistractor));
+        }
+    }
+
+    @Override
+    protected void generateRandDistractors() {
+        //Generate Rand Distractors
+        for (int i = 0; i<numRandDistractors; i++) {
+            ProceduralMatchStick randDistractor = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
+            randDistractor.setProperties(choiceSizeDegrees, texture, 1.0);
+            randDistractor.setStimColor(color);
+            randDistractor.genMatchStickRand();
+            mSticks.addRandDistractor(randDistractor);
+            mStickSpecs.addRandDistractor(mStickToSpec(randDistractor));
         }
     }
 
@@ -292,7 +306,8 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     @Override
     public RewardBehavior specifyRewardBehavior() {
         if (isEStimEnabled || isAmbiguousTrial()) {
-            return RewardBehaviors.rewardReasonableChoicesOnly(this.parameters);
+//            return RewardBehaviors.rewardReasonableChoicesOnly(this.parameters);
+            return RewardBehaviors.rewardAnyChoice();
         } else{
             return RewardBehaviors.rewardMatchOnly();
         }

@@ -75,7 +75,7 @@ public class MStickPngConfig {
         noiseMapper.setBackground(0);
         noiseMapper.setWidth(dpiUtil().calculateMinResolution());
         noiseMapper.setHeight(dpiUtil().calculateMinResolution());
-        noiseMapper.setDoEnforceHiddenJunction(false);
+        noiseMapper.setDoEnforceHiddenJunction(true);
         return noiseMapper;
     }
 

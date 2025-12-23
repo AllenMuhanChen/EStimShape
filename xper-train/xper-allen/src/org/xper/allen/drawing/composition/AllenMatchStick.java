@@ -40,6 +40,8 @@ public class AllenMatchStick extends MatchStick {
 	public String underlyingTexture; //if 2d, this is what texture is used to calculate averageContrast
     protected Map<Integer, Integer> newIndxForOldLeafIndx = new HashMap<>();
     public PositioningStrategy positioningStrategy = PositioningStrategy.CENTER;
+    public Double maxDiameterDegrees;
+
     @Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -2286,15 +2288,18 @@ public class AllenMatchStick extends MatchStick {
 //			}
 
 			//TODO: add size check here?
-//			boolean mStickSizeSuccess = false;
-//            if (smoothSuccess) {
-//                mStickSizeSuccess = validMStickSize();
-//                if (!mStickSizeSuccess) {
-//                    System.out.println("Failed to vet mStick size");
-//                }
-//            }
-
-
+			boolean mStickSizeSuccess = false;
+            if (smoothSuccess) {
+                if (this.maxDiameterDegrees != null) {
+                    mStickSizeSuccess = mStickFitsInBox(this.maxDiameterDegrees);
+                }
+                else{
+                    mStickSizeSuccess = true;
+                }
+                if (!mStickSizeSuccess) {
+                    System.out.println("Failed to vet mStick size");
+                }
+            }
 
             if (smoothSuccess) {
 				try {
@@ -2305,9 +2310,6 @@ public class AllenMatchStick extends MatchStick {
                     e.printStackTrace();
 				}
 			}
-
-
-
 
 //			// else we need to gen another shape
 			i++;
@@ -5355,4 +5357,12 @@ public class AllenMatchStick extends MatchStick {
 	public void setRfStrategy(RFStrategy rfStrategy) {
 		this.rfStrategy = rfStrategy;
 	}
+
+    public Double getMaxDiameterDegrees() {
+        return maxDiameterDegrees;
+    }
+
+    public void setMaxDiameterDegrees(Double maxDiameterDegrees) {
+        this.maxDiameterDegrees = maxDiameterDegrees;
+    }
 }

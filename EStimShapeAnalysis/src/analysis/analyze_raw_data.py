@@ -132,7 +132,7 @@ def main():
         # LightnessAnalysis(),
         # MixedGaborsAnalysis(),
         # ShuffleAnalysis(),
-        # PlotGenerationsAnalysis(),
+        PlotGenerationsAnalysis(),
     ]
 
     # Build session-to-channels mapping based on user input
