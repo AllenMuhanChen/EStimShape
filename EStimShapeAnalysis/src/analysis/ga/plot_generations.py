@@ -17,7 +17,7 @@ def main():
     compiled_data = plot_top_n.compile()
 
     session_id, _ = read_session_id_from_db_name(context.ga_database)
-    session_id = "251222_0"
+    session_id = "251226_0"
     channel = "A-025"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 

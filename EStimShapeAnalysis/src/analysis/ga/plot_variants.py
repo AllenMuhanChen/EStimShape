@@ -12,7 +12,7 @@ import pandas as pd
 def main():
     analysis = PlotVariants()
     compiled_data = analysis.compile()
-    session_id = "251222_0"
+    session_id = "251226_0"
     channel = "A-025"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
@@ -161,7 +161,7 @@ class PlotVariants(PlotTopNAnalysis):
 
             # Calculate threshold (70% of max)
             max_response = variants_grouped['Spike Rate'].max()
-            threshold = 0.7 * max_response
+            threshold = 0.6 * max_response
 
             print(f"Max response: {max_response:.2f}, Threshold (70%): {threshold:.2f}")
 

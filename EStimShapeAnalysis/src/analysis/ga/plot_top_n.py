@@ -11,7 +11,7 @@ from clat.util.connection import Connection
 from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
-from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField, GenIdField
+from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField, GenIdField, ParentIdField
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
 from src.analysis.lightness.lightness_analysis import TextureField, ColorField
@@ -114,7 +114,8 @@ def compile_and_export():
                              "Shaft",
                              "Termination",
                              "Junction",
-                             "Texture"
+                             "Texture",
+                             "ParentId"
                          ])
     return data
 
@@ -141,6 +142,7 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields.append(StimSpecIdField(conn))
     fields.append(LineageField(conn))
     fields.append(GenIdField(conn))
+    fields.append(ParentIdField(conn))
     fields.append(RegimeScoreField(conn))
     fields.append(StimTypeField(conn))
     fields.append(StimPathField(conn))
