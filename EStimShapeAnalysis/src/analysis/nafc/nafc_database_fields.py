@@ -358,3 +358,31 @@ def get_stim_spec(conn: Connection, when: When) -> dict:
     stim_spec_xml = conn.fetch_one()
     stim_spec_dict = xmltodict.parse(stim_spec_xml)
     return stim_spec_dict
+
+
+class BaseMStickIdField(CachedDatabaseField):
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "BaseMStickId"
+
+    def get(self, when: When):
+        stim_spec_id = get_stim_spec_id(self.conn, when)
+        if stim_spec_id is None:
+            return None
+
+        # SQL to get the base_mstick_stim_spec_id from BaseMStickId based on the stim_id
+        query = """
+        SELECT base_mstick_stim_spec_id
+        FROM BaseMStickId
+        WHERE stim_id = %s
+        LIMIT 1;
+        """
+        self.conn.execute(query, params=(stim_spec_id,))
+        result = self.conn.fetch_one()
+
+        if result:
+            return result
+        else:
+            return None

@@ -22,6 +22,52 @@ def filter_by_num_distractors(data, num_distractors):
     return data[data['NumRandDistractors'] == num_distractors]
 
 
+def calculate_p_value(observed_diff, permuted_diffs, test_side):
+    """
+    Calculate p-value based on test side.
+
+    Parameters:
+    -----------
+    observed_diff : float
+        Observed difference (estim - no_estim)
+    permuted_diffs : np.array
+        Array of permuted differences
+    test_side : str
+        'positive' (estim > no_estim), 'negative' (estim < no_estim), or 'two-tailed'
+
+    Returns:
+    --------
+    float : p-value
+    """
+    import numpy as np
+
+    if test_side == 'positive':
+        # One-tailed: testing if estim > no_estim (reduces performance in this context)
+        p_value = np.mean(permuted_diffs >= observed_diff)
+    elif test_side == 'negative':
+        # One-tailed: testing if estim < no_estim (improves performance)
+        p_value = np.mean(permuted_diffs <= observed_diff)
+    elif test_side == 'two-tailed':
+        # Two-tailed: testing if |estim - no_estim| is significant
+        p_value = np.mean(np.abs(permuted_diffs) >= np.abs(observed_diff))
+    else:
+        raise ValueError(f"Invalid test_side: {test_side}. Must be 'positive', 'negative', or 'two-tailed'")
+
+    return p_value
+
+
+def get_test_description(test_side):
+    """Get human-readable description of test."""
+    if test_side == 'positive':
+        return "One-tailed (EStim reduces performance)"
+    elif test_side == 'negative':
+        return "One-tailed (EStim improves performance)"
+    elif test_side == 'two-tailed':
+        return "Two-tailed (EStim effect in either direction)"
+    else:
+        return f"Unknown test: {test_side}"
+
+
 def main():
     # Database connection
     conn = Connection("allen_estimshape_exp_251226_0")
@@ -29,9 +75,27 @@ def main():
     # Time range
     since_date = time_util.from_date_to_now(2024, 7, 10)
     start_gen_id = 8  # Filter for all data (EStim OFF and general filtering)
-    max_gen_id = float('inf')  # Maximum GenId to include (set to a number to limit, or leave as inf for no limit)
+    max_gen_id = 19  # Maximum GenId to include (set to a number to limit, or leave as inf for no limit)
     start_gen_id_estim_on = 0  # Additional filter for EStim ON trials only (set higher to get only recent EStim ON data)
     max_gen_id_estim_on = float('inf')  # Maximum GenId for EStim ON trials (set to a number to limit)
+
+    # ============ PERMUTATION TEST PARAMETERS ============
+    # Global test side: 'positive' (estim > no_estim), 'negative' (estim < no_estim), 'two-tailed'
+    global_test_side = 'two-tailed'
+
+    # Optional: Override test side for specific noise levels
+    # Keys are noise chance values (e.g., 0.0, 0.1), values are 'positive', 'negative', or 'two-tailed'
+    # If None or empty dict, uses global_test_side for all levels
+    per_level_test_sides = {1.0: "positive",
+                            0.9: "positive",
+                            0.8: "negative",
+                            0.75: "negative"
+                            }
+    # Example: per_level_test_sides = {0.0: 'negative', 0.1: 'two-tailed', 0.2: 'positive'}
+
+    if per_level_test_sides is None:
+        per_level_test_sides = {}
+    # ====================================================
 
     # Collect trial timestamps
     trial_tstamps = collect_choice_trials(conn, since_date)
@@ -45,6 +109,7 @@ def main():
     fields.append(ChoiceField(conn))
     fields.append(GenIdField(conn))
     fields.append(EStimEnabledField(conn))
+    fields.append()
 
     # Convert to dataframe
     data = fields.to_data(trial_tstamps)
@@ -271,8 +336,8 @@ def main():
 
     permuted_sums = np.array(permuted_sums)
 
-    # Calculate overall p-value (one-tailed: testing if estim reduces performance)
-    overall_p_value = np.mean(permuted_sums >= observed_sum)
+    # Calculate overall p-value using specified test side
+    overall_p_value = calculate_p_value(observed_sum, permuted_sums, global_test_side)
 
     # Determine overall significance
     if overall_p_value < 0.001:
@@ -284,13 +349,17 @@ def main():
     else:
         overall_sig = "ns"
 
-    # Calculate per-level p-values
+    # Calculate per-level p-values with flexible test sides
     level_p_values = {}
     for noise in observed_level_diffs.keys():
         observed_diff = observed_level_diffs[noise][2]  # The difference value
         perm_diffs = np.array(permuted_level_diffs[noise])
-        # One-tailed: proportion of permutations with diff <= observed_diff
-        level_p_values[noise] = np.mean(perm_diffs >= observed_diff)
+
+        # Get test side for this level (use per-level override if specified, else use global)
+        level_test_side = per_level_test_sides.get(noise, global_test_side)
+
+        # Calculate p-value with specified test side
+        level_p_values[noise] = calculate_p_value(observed_diff, perm_diffs, level_test_side)
 
         # Determine significance
         p = level_p_values[noise]
@@ -303,27 +372,30 @@ def main():
         else:
             level_sig = "ns"
 
-        # Update the tuple to include p-value and significance
+        # Update the tuple to include p-value, significance, and test side
         estim_pct, no_estim_pct, diff, n_on, n_off = observed_level_diffs[noise]
-        observed_level_diffs[noise] = (estim_pct, no_estim_pct, diff, n_on, n_off, p, level_sig)
+        observed_level_diffs[noise] = (estim_pct, no_estim_pct, diff, n_on, n_off, p, level_sig, level_test_side)
 
     # Display results
     results_text += "Per-Level Permutation Tests:\n"
     results_text += "-" * 50 + "\n"
 
     for noise in sorted(observed_level_diffs.keys()):
-        estim_pct, no_estim_pct, diff, n_on, n_off, p, sig = observed_level_diffs[noise]
+        estim_pct, no_estim_pct, diff, n_on, n_off, p, sig, test_side = observed_level_diffs[noise]
         results_text += f"Noise {noise * 100:.0f}%:\n"
         results_text += f"  EStim {estim_pct:.1f}% (n={n_on}) vs "
         results_text += f"NoStim {no_estim_pct:.1f}% (n={n_off})\n"
         results_text += f"  Difference: {diff:+.1f}%, p={p:.4f} {sig}\n"
+        # Show test side if it differs from global
+        if test_side != global_test_side:
+            results_text += f"  Test: {get_test_description(test_side)}\n"
 
     results_text += "\n"
     results_text += "Overall Permutation Test:\n"
     results_text += "-" * 50 + "\n"
     results_text += f"Observed sum of differences: {observed_sum:+.1f}%\n"
     results_text += f"Permutations: {n_permutations:,}\n"
-    results_text += f"P-value (one-tailed): {overall_p_value:.4f} {overall_sig}\n"
+    results_text += f"P-value: {overall_p_value:.4f} {overall_sig}\n"
     results_text += f"Noise levels tested: {n_levels}\n"
 
     # Add distribution info
@@ -333,7 +405,7 @@ def main():
     results_text += f"  97.5th percentile: {np.percentile(permuted_sums, 97.5):.2f}%\n"
 
     results_text += "\n* p<0.05, ** p<0.01, *** p<0.001"
-    results_text += "\nTest: One-tailed (EStim reduces performance)"
+    results_text += f"\nGlobal test: {get_test_description(global_test_side)}"
 
     # Display results in bottom left axes
     axes[1, 0].text(0.05, 0.95, results_text,
