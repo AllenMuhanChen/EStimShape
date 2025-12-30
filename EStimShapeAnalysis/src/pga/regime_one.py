@@ -242,7 +242,7 @@ def calculate_peak_response(responses, across_n=3) -> floating[Any]:
 class GrowingPhaseTransitioner(RegimeTransitioner):
     def __init__(self, convergence_threshold):
         self.convergence_threshold = convergence_threshold
-        self.x = 3
+        self.x = 4
         self.change = None
         self.peak_responses = None
 
