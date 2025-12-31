@@ -106,8 +106,7 @@ def run_analyses(channels_map: Dict[str, List[str]], analyses: List[type(Analysi
 
         for index, analysis in enumerate(analyses):
             # TEMP: compile and export
-            if index==0:
-                analysis.compile_and_export()
+            analysis.compile_and_export()
             for channel in channels:
                 print(f"\nRunning {analysis.__class__.__name__} for session {session_id}, channel {channel}")
                 try:
