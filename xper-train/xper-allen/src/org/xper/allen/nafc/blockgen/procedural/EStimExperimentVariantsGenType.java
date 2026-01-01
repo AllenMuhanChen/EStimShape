@@ -1,9 +1,7 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
 import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
-import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.NAFCStim;
-import org.xper.allen.pga.EStimShapeVariantsStim;
 
 import javax.swing.*;
 import java.util.LinkedList;

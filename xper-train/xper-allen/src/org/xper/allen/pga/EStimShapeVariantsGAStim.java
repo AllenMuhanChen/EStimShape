@@ -12,11 +12,11 @@ import javax.vecmath.Point3d;
 import java.util.List;
 import java.util.Random;
 
-public class EStimShapeVariantsStim extends GAStim<PruningMatchStick, AllenMStickData>{
+public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMStickData>{
     private static final Random random = new Random();
 
     protected final CompsToPreserveManager compsToPreserveManager;
-    public EStimShapeVariantsStim(Long stimId, FromDbGABlockGenerator generator, Long parentId) {
+    public EStimShapeVariantsGAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId) {
         super(stimId, generator, parentId);
         this.textureType = "PARENT";
 
@@ -32,11 +32,8 @@ public class EStimShapeVariantsStim extends GAStim<PruningMatchStick, AllenMStic
             position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, null);
         } else{
             Point3d oldPosition = parentLocation.getPosition();
-            position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, oldPosition);
-        }
+            position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, oldPosition);        }
     }
-
-
 
     @Override
     protected void chooseRFStrategy() {

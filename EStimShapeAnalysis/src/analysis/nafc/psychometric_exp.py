@@ -59,9 +59,9 @@ def calculate_p_value(observed_diff, permuted_diffs, test_side):
 def get_test_description(test_side):
     """Get human-readable description of test."""
     if test_side == 'positive':
-        return "One-tailed (EStim reduces performance)"
-    elif test_side == 'negative':
         return "One-tailed (EStim improves performance)"
+    elif test_side == 'negative':
+        return "One-tailed (EStim reduces performance)"
     elif test_side == 'two-tailed':
         return "Two-tailed (EStim effect in either direction)"
     else:
@@ -70,12 +70,12 @@ def get_test_description(test_side):
 
 def main():
     # Database connection
-    conn = Connection("allen_estimshape_exp_251226_0")
+    conn = Connection("allen_estimshape_exp_251231_0")
 
     # Time range
     since_date = time_util.from_date_to_now(2024, 7, 10)
-    start_gen_id = 8  # Filter for all data (EStim OFF and general filtering)
-    max_gen_id = 19  # Maximum GenId to include (set to a number to limit, or leave as inf for no limit)
+    start_gen_id = 4  # Filter for all data (EStim OFF and general filtering)
+    max_gen_id = 5  # Maximum GenId to include (set to a number to limit, or leave as inf for no limit)
     start_gen_id_estim_on = 0  # Additional filter for EStim ON trials only (set higher to get only recent EStim ON data)
     max_gen_id_estim_on = float('inf')  # Maximum GenId for EStim ON trials (set to a number to limit)
 
@@ -88,7 +88,7 @@ def main():
     # If None or empty dict, uses global_test_side for all levels
     per_level_test_sides = {1.0: "positive",
                             0.9: "positive",
-                            0.8: "negative",
+                            0.8: "positive",
                             0.75: "negative"
                             }
     # Example: per_level_test_sides = {0.0: 'negative', 0.1: 'two-tailed', 0.2: 'positive'}
@@ -109,7 +109,7 @@ def main():
     fields.append(ChoiceField(conn))
     fields.append(GenIdField(conn))
     fields.append(EStimEnabledField(conn))
-    fields.append()
+
 
     # Convert to dataframe
     data = fields.to_data(trial_tstamps)
