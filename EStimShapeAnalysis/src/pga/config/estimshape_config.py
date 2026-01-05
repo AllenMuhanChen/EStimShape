@@ -1,13 +1,17 @@
+import time
 from typing import Callable, List, Type
 
 import numpy as np
 
-from src.pga.config.simultaneous_2dvs3d_config import Simultaneous3Dvs2DConfig
+from clat.util import time_util
+from src.pga.config.simultaneous_2dvs3d_config import Simultaneous3Dvs2DConfig, DnessSideTest
 from src.pga.ga_classes import Phase, MutationAssigner, Lineage, Stimulus, ParentSelector, MutationMagnitudeAssigner, \
-    RegimeTransitioner
+    RegimeTransitioner, SideTest
 from src.pga.regime_one import calculate_peak_response, GrowingPhaseMutationMagnitudeAssigner, \
     GrowingPhaseParentSelector, GrowingPhaseTransitioner
 from src.pga.stim_types import StimType
+
+
 
 
 class EStimShapeConfig(Simultaneous3Dvs2DConfig):
@@ -24,6 +28,10 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
                 self.growing_phase(),
                 self.estim_variant_phase()
                 ]
+
+    def side_tests(self):
+        return [DnessSideTest(n_top_3d=4, n_top_2d=4),
+                EStimVariantDeltaSideTest()]
 
     def growing_phase_transitioner(self) -> type[RegimeTransitioner]:
         if self.is_alexnet_mock:
@@ -130,5 +138,69 @@ class EStimPhaseTransitioner(RegimeTransitioner):
     def should_transition(self, lineage: Lineage) -> bool:
         return False
 
+class EStimVariantDeltaSideTest(SideTest):
+    num_deltas_per_variant = 1
+
+
+    def run(self, lineages: List[Lineage], gen_id: int):
+        #identify eligible stimuli (variants)
+        variant_stimuli : List[Stimulus] = []
+
+        for lineage in lineages:
+            for stim in lineage.stimuli:
+                if stim.mutation_type == StimType.REGIME_ESTIM_VARIANTS.value:
+                    if stim.response_rate is not None:
+                        variant_stimuli.append(stim)
+                        stim.lineage = lineage
+
+        #filter out via response rate
+        max_response_stim = max(variant_stimuli, key=lambda s: s.response_rate)
+        threshold = max_response_stim.response_rate * 0.6
+
+        past_threshold_stim: List[Stimulus] = []
+        for s in variant_stimuli:
+            if s.response_rate >= threshold:
+                past_threshold_stim.append(s)
+
+        #filter out ones that have been tested enough already
+            #first make dict of deltas for variants
+        deltas_for_variants = {} #store all deltas we have for eligible stimuli
+        for candidate_parent in past_threshold_stim:
+            # look for other children with the same parent_id
+            for lineage in lineages:
+                for stim in lineage.stimuli:
+                    if stim.parent_id == candidate_parent.id and stim.mutation_type == StimType.REGIME_ESTIM_DELTA.value:
+                        if deltas_for_variants[candidate_parent.id] is None:
+                            deltas_for_variants[candidate_parent.id] = []
+                        deltas_for_variants[candidate_parent.id].extend(stim)
+
+        #TODO: check existing deltas for compatibility (can't accidentally have too high resp rate)
+
+
+            #go through eligible stimuli and check
+        eligible_stimuli : List[Stimulus] = []
+        for candidate_parent in past_threshold_stim:
+            no_deltas_for_variant = not candidate_parent.id in deltas_for_variants
+            too_few_deltas_for_variant = False
+            if not no_deltas_for_variant:
+                too_few_deltas_for_variant = len(deltas_for_variants[candidate_parent.id]) < self.num_deltas_per_variant
+            if no_deltas_for_variant or too_few_deltas_for_variant:
+                eligible_stimuli.append(candidate_parent)
+
+
+        #add to lineage
+        for candidate_parent in eligible_stimuli:
+            new_stimulus = Stimulus(time_util.now(),
+                                    StimType.REGIME_ESTIM_DELTA.value,
+                                    mutation_magnitude=0,
+                                    gen_id=gen_id,
+                                    parent_id=candidate_parent.id
+                                    )
+            time.sleep(0.001)
+            candidate_parent.lineage.tree.add_child_to(candidate_parent, new_stimulus) #we added .lineage manually
+            candidate_parent.lineage.stimuli.append(new_stimulus)
+
+
+        #TODO: add /update a table designed to hold this info for easier analysis
 
 

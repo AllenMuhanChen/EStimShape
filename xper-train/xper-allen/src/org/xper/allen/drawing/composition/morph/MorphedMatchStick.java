@@ -1,5 +1,6 @@
 package org.xper.allen.drawing.composition.morph;
 
+import org.jzy3d.plot3d.pipelines.NotImplementedException;
 import org.xper.allen.drawing.composition.AllenMAxisArc;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenTubeComp;
@@ -358,7 +359,12 @@ public class MorphedMatchStick extends AllenMatchStick {
                 attemptToMorphComponent(componentIndex, morphParams);
                 numSuccessfulMorphs[0]++;
                 System.out.println("Successfully morphed " + numSuccessfulMorphs[0] + " components out of " + morphParametersForComponents.size() + " components.");
-                getMorphData().addDataForComp(componentIndex, morphParams.getMorphData());
+                try {
+                    getMorphData().addDataForComp(componentIndex, morphParams.getMorphData());
+                } catch (Exception nme) {
+                    System.err.println(nme.getMessage());
+                    System.err.println("Warning, morph data is not implemented for this match stick. Not written");
+                }
             }
         });
     }

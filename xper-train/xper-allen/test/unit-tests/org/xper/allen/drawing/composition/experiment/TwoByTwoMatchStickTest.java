@@ -53,7 +53,7 @@ public class TwoByTwoMatchStickTest {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.config_class"));
 
-        pngMaker = context.getBean(AllenPNGMaker.class);
+        pngMaker = context.getBean(AllenPNGMaker.class, "samplePngMaker");
         pngMaker.createDrawerWindow();
 
 
@@ -69,22 +69,23 @@ public class TwoByTwoMatchStickTest {
     @Test
     public void test_msticks() {
         TwoByTwoMatchStick firstMStick = new TwoByTwoMatchStick(new GaussianNoiseMapper());
-        firstMStick.setProperties(40, "SHADE", 1.0);
+        firstMStick.setProperties(20, "SHADE", 1.0);
+        firstMStick.setMaxAttempts(100);
         firstMStick.genMatchStickFromComponent(baseMStick, Collections.singletonList(1), 2, firstMStick.maxAttempts);
         drawPng(firstMStick, 2L);
 
         TwoByTwoMatchStick secondMStick = new TwoByTwoMatchStick(new GaussianNoiseMapper());
-        secondMStick.setProperties(40, "SHADE", 1.0);
+        secondMStick.setProperties(20, "SHADE", 1.0);
         secondMStick.genMorphedBaseMatchStick(firstMStick, 1, secondMStick.maxAttempts, true, true);
         drawPng(secondMStick, 3L);
 
         TwoByTwoMatchStick thirdMStick = new TwoByTwoMatchStick(new GaussianNoiseMapper());
-        thirdMStick.setProperties(40, "SHADE", 1.0);
-        thirdMStick.genMorphedDrivingComponentMatchStick(firstMStick, 0.5, 0.5, true, true, firstMStick.maxAttempts);
+        thirdMStick.setProperties(20, "SHADE", 1.0);
+        thirdMStick.genMorphedDrivingComponentMatchStick(firstMStick, 0.5, 0.5, true, false, firstMStick.maxAttempts);
         drawPng(thirdMStick, 4L);
 
         TwoByTwoMatchStick fourthMStick = new TwoByTwoMatchStick(new GaussianNoiseMapper());
-        fourthMStick.setProperties(40, "SHADE", 1.0);
+        fourthMStick.setProperties(20, "SHADE", 1.0);
         fourthMStick.genSwappedBaseAndDrivingComponentMatchStick(secondMStick, 1, thirdMStick, true, 15);
         drawPng(fourthMStick, 5L);
     }

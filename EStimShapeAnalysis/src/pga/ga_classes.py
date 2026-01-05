@@ -35,6 +35,7 @@ class Stimulus:
 
 
 class Lineage:
+    stimuli: List[Stimulus]
     def __init__(self, founder: Stimulus, regimes: [Phase], current_regime_index=0, tree=None, gen_id=None):
         self.id = founder.id
         if tree is None:

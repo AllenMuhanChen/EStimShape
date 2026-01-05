@@ -102,7 +102,7 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
         return childMStick;
     }
 
-    private boolean parentHasCompsToPreserve() {
+    protected boolean parentHasCompsToPreserve() {
         return compsToPreserveManager.hasProperty(parentId);
     }
 }
