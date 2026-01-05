@@ -1,5 +1,5 @@
 import time
-from typing import Callable, List, Type
+from typing import Callable, List, Type, Dict
 
 import numpy as np
 
@@ -140,18 +140,18 @@ class EStimPhaseTransitioner(RegimeTransitioner):
 
 class EStimVariantDeltaSideTest(SideTest):
     num_deltas_per_variant = 1
-
+    delta_resp_ratio_threshold = 0.5
 
     def run(self, lineages: List[Lineage], gen_id: int):
         #identify eligible stimuli (variants)
         variant_stimuli : List[Stimulus] = []
-
+        lineages_for_stim_id = {}
         for lineage in lineages:
             for stim in lineage.stimuli:
                 if stim.mutation_type == StimType.REGIME_ESTIM_VARIANTS.value:
                     if stim.response_rate is not None:
                         variant_stimuli.append(stim)
-                        stim.lineage = lineage
+                        lineages_for_stim_id[stim.id] = lineage
 
         #filter out via response rate
         max_response_stim = max(variant_stimuli, key=lambda s: s.response_rate)
@@ -164,26 +164,42 @@ class EStimVariantDeltaSideTest(SideTest):
 
         #filter out ones that have been tested enough already
             #first make dict of deltas for variants
-        deltas_for_variants = {} #store all deltas we have for eligible stimuli
+        deltas_for_variants : Dict[int, List[Stimulus]]= {} #store all deltas we have for eligible stimuli
+        stim_for_stim_id: Dict[int, Stimulus] = {}
         for candidate_parent in past_threshold_stim:
             # look for other children with the same parent_id
+            stim_for_stim_id[candidate_parent.id] = candidate_parent
             for lineage in lineages:
                 for stim in lineage.stimuli:
                     if stim.parent_id == candidate_parent.id and stim.mutation_type == StimType.REGIME_ESTIM_DELTA.value:
-                        if deltas_for_variants[candidate_parent.id] is None:
+                        if candidate_parent.id not in deltas_for_variants:
                             deltas_for_variants[candidate_parent.id] = []
-                        deltas_for_variants[candidate_parent.id].extend(stim)
+                        deltas_for_variants[candidate_parent.id].append(stim)
 
-        #TODO: check existing deltas for compatibility (can't accidentally have too high resp rate)
+
+            #check existing deltas for compatibility (can't accidentally have too high resp rate)
+        eligible_deltas_for_variants : Dict[int, List[Stimulus]] = {}
+        for variant_id, deltas in deltas_for_variants.items():
+            # get resp for variant_id
+            variant_resp = stim_for_stim_id[variant_id].response_rate
+            for delta in deltas:
+                delta_resp = delta.response_rate
+                if delta_resp / variant_resp < self.delta_resp_ratio_threshold:
+                    if variant_id not in eligible_deltas_for_variants:
+                        eligible_deltas_for_variants[variant_id] = []
+                    eligible_deltas_for_variants[variant_id].append(delta)
+            # get resp for delta
+            # check if meets threshold
+
 
 
             #go through eligible stimuli and check
         eligible_stimuli : List[Stimulus] = []
         for candidate_parent in past_threshold_stim:
-            no_deltas_for_variant = not candidate_parent.id in deltas_for_variants
+            no_deltas_for_variant = not candidate_parent.id in eligible_deltas_for_variants
             too_few_deltas_for_variant = False
             if not no_deltas_for_variant:
-                too_few_deltas_for_variant = len(deltas_for_variants[candidate_parent.id]) < self.num_deltas_per_variant
+                too_few_deltas_for_variant = len(eligible_deltas_for_variants[candidate_parent.id]) < self.num_deltas_per_variant
             if no_deltas_for_variant or too_few_deltas_for_variant:
                 eligible_stimuli.append(candidate_parent)
 
@@ -197,10 +213,5 @@ class EStimVariantDeltaSideTest(SideTest):
                                     parent_id=candidate_parent.id
                                     )
             time.sleep(0.001)
-            candidate_parent.lineage.tree.add_child_to(candidate_parent, new_stimulus) #we added .lineage manually
-            candidate_parent.lineage.stimuli.append(new_stimulus)
-
-
-        #TODO: add /update a table designed to hold this info for easier analysis
-
-
+            lineages_for_stim_id[candidate_parent.id].tree.add_child_to(candidate_parent, new_stimulus) #we added .lineage manually
+            lineages_for_stim_id[candidate_parent.id].stimuli.append(new_stimulus)
