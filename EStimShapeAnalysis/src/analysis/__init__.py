@@ -28,6 +28,9 @@ class Analysis(ABC):
             self.response_table = 'WindowSortedResponses'
             self.spike_tstamps_col = 'Spikes by unit'
             self.spike_rates_col = 'Spike Rate by unit'
+        elif data_type == 'GA':
+            self.response_table = 'GAStimInfo'
+            self.spike_rates_col = 'GA Response'
 
         else:
             raise ValueError(f"Unknown data type: {data_type}")

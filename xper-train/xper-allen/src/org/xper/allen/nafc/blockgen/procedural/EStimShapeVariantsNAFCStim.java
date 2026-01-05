@@ -18,11 +18,12 @@ import java.util.Random;
 
 public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
 
+    protected DataSource gaDataSource;
     protected double maxSampleSize;
     protected List<Integer> noiseComponentIndcs;
     protected String gaSpecPath;
-    private String texture;
-    private Float sampleSize;
+    protected String texture;
+    protected Float sampleSize;
     protected NAFCNoiseMapper noiseMapper;
 
 
@@ -56,8 +57,8 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         super(generator, parameters, null, new ArrayList<>(), isEStimEnabled, variantId, -1);
         gaSpecPath = generator.getGaSpecPath();
 
-
-        JdbcTemplate gaJDBCTemplate = new JdbcTemplate(generator.getGaDataSource());
+        gaDataSource = generator.getGaDataSource();
+        JdbcTemplate gaJDBCTemplate = new JdbcTemplate(gaDataSource);
         SizePropertyManager sizePropertyManager = new SizePropertyManager(gaJDBCTemplate);
         TexturePropertyManager texturePropertyManager = new TexturePropertyManager(gaJDBCTemplate);
         ColorPropertyManager colorPropertyManager = new ColorPropertyManager(gaJDBCTemplate);

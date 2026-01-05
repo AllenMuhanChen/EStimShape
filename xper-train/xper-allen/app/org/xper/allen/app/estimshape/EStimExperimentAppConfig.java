@@ -14,6 +14,7 @@ import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.nafc.blockgen.EStimShapeProceduralBehavioralGenType;
 import org.xper.allen.nafc.blockgen.procedural.EStimExperimentGenType;
+import org.xper.allen.nafc.blockgen.procedural.EStimExperimentVariantsDeltaGenType;
 import org.xper.allen.nafc.blockgen.procedural.EStimExperimentVariantsGenType;
 import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.allen.util.DPIUtil;
@@ -117,14 +118,22 @@ public class EStimExperimentAppConfig {
                 proceduralAppConfig.proceduralRandGenType(),
                 eStimBehavioralGenType(),
                 eStimExperimentGenType(),
-                estimExperimentVariantsGenType()
+                eStimExperimentVariantsGenType(),
+                eStimExperimentVariantsDeltaGenType()
         ));
         gui.setDefaultStimType(proceduralAppConfig.proceduralRandGenType());
         return gui;
     }
 
     @Bean
-    public EStimExperimentVariantsGenType estimExperimentVariantsGenType() {
+    public EStimExperimentVariantsDeltaGenType eStimExperimentVariantsDeltaGenType() {
+        EStimExperimentVariantsDeltaGenType genType = new EStimExperimentVariantsDeltaGenType();
+        genType.setGenerator(generator());
+        return genType;
+    }
+
+    @Bean
+    public EStimExperimentVariantsGenType eStimExperimentVariantsGenType() {
         EStimExperimentVariantsGenType genType = new EStimExperimentVariantsGenType();
         genType.setGenerator(generator());
         return genType;
