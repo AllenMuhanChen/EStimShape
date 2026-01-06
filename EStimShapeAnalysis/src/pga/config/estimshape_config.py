@@ -144,6 +144,9 @@ class EStimVariantDeltaSideTest(SideTest):
 
     def run(self, lineages: List[Lineage], gen_id: int):
         #identify eligible stimuli (variants)
+        regimes = [l.current_regime_index for l in lineages]
+        if max(regimes) < 3:
+            return
         variant_stimuli : List[Stimulus] = []
         lineages_for_stim_id = {}
         for lineage in lineages:
@@ -152,7 +155,8 @@ class EStimVariantDeltaSideTest(SideTest):
                     if stim.response_rate is not None:
                         variant_stimuli.append(stim)
                         lineages_for_stim_id[stim.id] = lineage
-
+        if len(variant_stimuli) == 0:
+            return
         #filter out via response rate
         max_response_stim = max(variant_stimuli, key=lambda s: s.response_rate)
         threshold = max_response_stim.response_rate * 0.6

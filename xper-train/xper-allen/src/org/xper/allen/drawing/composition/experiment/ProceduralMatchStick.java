@@ -211,11 +211,7 @@ public class ProceduralMatchStick extends GAMatchStick {
                     if (inNoiseComponentIndcs.size() == 0) {
                         inNoiseComponentIndcs = morphComponentIndcs;
                     }
-                    try {
-                        noiseMapper.checkInNoise(this, inNoiseComponentIndcs, 0.5);
-                    } catch (NoiseException ne){
-                        System.out.println(ne.getMessage());
-                    }
+                    noiseMapper.checkInNoise(this, inNoiseComponentIndcs, 0.5);
                 }
                 if (this.maxDiameterDegrees != null) {
                     centerShape();
@@ -415,7 +411,7 @@ public class ProceduralMatchStick extends GAMatchStick {
                     baseComponentIndex = baseCompIndcs.get(i);
                     morphParametersForComponents.put(baseComponentIndex, morphParams);
                 }
-                genMorphedComponentsMatchStick(morphParametersForComponents, targetMatchStick, doPositionShape, false, null);
+                genMorphedComponentsMatchStick(morphParametersForComponents, targetMatchStick, doPositionShape, null, null);
                 SphericalCoordinates newDrivingObjectCenteredPos = calcObjCenteredPosForComp(this, drivingComponentIndex);
                 if (doCompareObjCenteredPos)
                     compareObjectCenteredPositions(originalObjCenteredPos, newDrivingObjectCenteredPos);

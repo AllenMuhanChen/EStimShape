@@ -28,14 +28,14 @@ from src.startup import context
 def main():
     # channel = None
     analysis = SideTestAnalysis()
-    # compiled_data = compile()
+    compiled_data = compile()
     # session_id, _ = read_session_id_from_db_name(context.ga_database)
     # if channel is None:
         # channel = read_cluster_channels(session_id)[0]
 
-    session_id = "250421_0"
-    channel = "A-016"
-    analysis.run(session_id, "raw", channel, compiled_data=None)
+    session_id = "260106_0"
+    channel = "A-012"
+    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
 class SideTestAnalysis(Analysis):

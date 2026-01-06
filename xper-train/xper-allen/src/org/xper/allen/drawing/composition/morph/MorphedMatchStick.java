@@ -359,12 +359,6 @@ public class MorphedMatchStick extends AllenMatchStick {
                 attemptToMorphComponent(componentIndex, morphParams);
                 numSuccessfulMorphs[0]++;
                 System.out.println("Successfully morphed " + numSuccessfulMorphs[0] + " components out of " + morphParametersForComponents.size() + " components.");
-                try {
-                    getMorphData().addDataForComp(componentIndex, morphParams.getMorphData());
-                } catch (Exception nme) {
-                    System.err.println(nme.getMessage());
-                    System.err.println("Warning, morph data is not implemented for this match stick. Not written");
-                }
             }
         });
     }

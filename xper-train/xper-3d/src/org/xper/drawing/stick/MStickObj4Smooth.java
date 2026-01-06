@@ -789,7 +789,7 @@ public class MStickObj4Smooth {
             if (showDebug){
                 System.out.println("fail intersectPatch.nvect ==-1");
             }
-            return false; //AC TEST DISABLE
+//            return false; //AC TEST DISABLE
         }
 
 
