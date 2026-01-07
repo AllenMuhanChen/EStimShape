@@ -61,7 +61,7 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
         childMStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
         childMStick.setStimColor(color);
         childMStick.setMaxDiameterDegrees(generator.getImageDimensionsDegrees());
-
+        childMStick.setRf(generator.getReceptiveField());
         // Read or choose components to preserve from parent
         List<Integer> compsToPreserveInParent;
         if (!parentHasCompsToPreserve()){

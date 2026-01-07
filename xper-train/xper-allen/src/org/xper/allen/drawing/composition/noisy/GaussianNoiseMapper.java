@@ -413,7 +413,7 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
     public Point3d chooseStartingPoint(JuncPt_struct junc, Vector3d tangent, double scaleForMAxisShape) {
         Vector3d reverseTangent = new Vector3d(tangent);
         reverseTangent.negate(); //reverse so we end up with a point inside of the shape
-        double shiftAmount = doEnforceHiddenJunction ? junc.getRad()*scaleForMAxisShape/4 : 0.0;
+        double shiftAmount = doEnforceHiddenJunction ? junc.getRad()*scaleForMAxisShape : 0.0;
         Point3d startingPosition = choosePositionAlongTangent(
                 reverseTangent,
                 junc.getPos(), //this is shifted by applyTranslation

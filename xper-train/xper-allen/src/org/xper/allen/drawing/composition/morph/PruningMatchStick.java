@@ -91,7 +91,7 @@ public class PruningMatchStick extends ProceduralMatchStick {
                 nAttempts++;
                 boolean doPositionShape = true;
                 boolean doPreserveJunction = true;
-                boolean doCheckObjCentPosition = true;
+                boolean doCheckObjCentPosition = false;
                 genMorphedComponentsMatchStick(paramsForComps, this.matchStickToMorph,
                         doPositionShape,
                         doPreserveJunction,
