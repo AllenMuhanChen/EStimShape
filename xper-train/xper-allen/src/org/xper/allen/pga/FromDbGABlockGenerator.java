@@ -81,12 +81,7 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
         addCatchLineage(lineageIdsInThisExperiment);
 
         List<Long> stimIdsToGenerate = dbUtil.findStimIdsWithoutStimSpec(lineageIdsInThisExperiment);
-        stimIdsToGenerate.add(1767903998017347L);
-        stimIdsToGenerate.add(1767903998018500L);
-        stimIdsToGenerate.add(1767903998019634L);
-        stimIdsToGenerate.add(1767903998020854L);
-        stimIdsToGenerate.add(1767903998021921L);
-        stimIdsToGenerate.add(1767903998022990L);
+
         // For each stim_id, read the stim_type and magnitude
         System.out.println("StimIds to Generate: " + stimIdsToGenerate.size());
         for (Long stimId : stimIdsToGenerate) {
