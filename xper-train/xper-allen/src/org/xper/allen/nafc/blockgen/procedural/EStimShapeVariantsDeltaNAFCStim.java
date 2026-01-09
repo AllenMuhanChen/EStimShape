@@ -109,6 +109,7 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
             distractorMStick.setMaxDiameterDegrees(maxSampleSize);
 
             distractorMStick.genMatchStickFromFile(gaSpecPath + "/" + distractorMStickStimSpecId + "_spec.xml");
+            distractorMStick.centerShape();
             distractorSpec.setMStickInfo(distractorMStick, false);
             mSticks.addProceduralDistractor(distractorMStick);
             mStickSpecs.addProceduralDistractor(mStickToSpec(distractorMStick));

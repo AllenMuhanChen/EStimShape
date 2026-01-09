@@ -21,11 +21,11 @@ from src.analysis.nafc.psychometric_curves import collect_choice_trials, plot_ps
 
 def main():
     # Database connection
-    conn = Connection("allen_estimshape_exp_251231_0")
+    conn = Connection("allen_estimshape_exp_260107_0")
 
     # Time range
     since_date = time_util.from_date_to_now(2024, 7, 10)
-    start_gen_id = 4  # Filter for all data (EStim OFF and general filtering)
+    start_gen_id = 8  # Filter for all data (EStim OFF and general filtering)
     max_gen_id = float('inf')  # Maximum GenId to include
     start_gen_id_estim_on = 0  # Additional filter for EStim ON trials only
     max_gen_id_estim_on = float('inf')  # Maximum GenId for EStim ON trials
@@ -51,7 +51,7 @@ def main():
     data = data[(data['GenId'] >= start_gen_id) & (data['GenId'] <= max_gen_id)]
 
     # Filter for experimental trials only
-    data_exp = data[data['StimType'] == 'EStimShapeVariantsNAFCStim']
+    data_exp = data[data['StimType'] == 'EStimShapeVariantsDeltaNAFCStim']
 
     # Get unique BaseMStickId values (excluding None/NaN)
     base_mstick_ids = data_exp['BaseMStickId'].dropna().unique()

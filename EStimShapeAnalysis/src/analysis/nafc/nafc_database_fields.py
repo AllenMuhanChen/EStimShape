@@ -251,7 +251,6 @@ class GenIdField(CachedDatabaseField):
 
 
 
-
 class NumRandDistractorsField(StimSpecDataField):
     def __init__(self, conn: Connection):
         super().__init__(conn)
@@ -386,3 +385,69 @@ class BaseMStickIdField(CachedDatabaseField):
             return result
         else:
             return None
+
+
+
+class IsDeltaField(CachedDatabaseField):
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "IsDelta"
+
+    def get(self, when: When):
+        # First get the BaseMStickId
+        base_mstick_id = self.get_cached_super(when, BaseMStickIdField)
+
+        if base_mstick_id is None:
+            raise ValueError(f"BaseMStickId is None for timestamp {when.start}-{when.stop}")
+
+        # Check if this ID appears as delta_id (returns True)
+        query_delta = """
+                      SELECT delta_id
+                      FROM IncludedDeltas
+                      WHERE delta_id = %s
+                      LIMIT 1; \
+                      """
+        self.conn.execute(query_delta, params=(base_mstick_id,))
+        delta_result = self.conn.fetch_one()
+
+        if delta_result is not None:
+            return True
+
+        # Check if this ID appears as variant_id (returns False)
+        query_variant = """
+                        SELECT variant_id
+                        FROM IncludedDeltas
+                        WHERE variant_id = %s
+                        LIMIT 1; \
+                        """
+        self.conn.execute(query_variant, params=(base_mstick_id,))
+        variant_result = self.conn.fetch_one()
+
+        if variant_result is not None:
+            return False
+
+        # If not found in either column, raise an error
+        raise ValueError(f"BaseMStickId {base_mstick_id} not found in IncludedDeltas table")
+
+class IsHypothesizedField(IsDeltaField):
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "IsHypothesized"
+
+    def get(self, when: When):
+        is_delta = self.get_cached_super(when, IsDeltaField)
+        choice = self.get_cached_super(when, ChoiceField)
+        if not is_delta:
+            if choice == "match":
+                return True
+            else:
+                return False
+        else:
+            if choice == "procedural":
+                return True
+            else:
+                return False

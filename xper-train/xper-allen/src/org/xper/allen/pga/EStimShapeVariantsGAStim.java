@@ -32,7 +32,7 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
             position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, null);
         } else{
             Point3d oldPosition = parentLocation.getPosition();
-            position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, oldPosition);        }
+            position = new MStickPosition(parentLocation.getPositioningStrategy(), oldPosition);        }
     }
 
     @Override

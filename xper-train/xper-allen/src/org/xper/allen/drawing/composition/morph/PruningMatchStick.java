@@ -112,6 +112,12 @@ public class PruningMatchStick extends ProceduralMatchStick {
     }
 
     @Override
+    public void genNewComponentsMatchStick(ProceduralMatchStick baseMatchStick, List<Integer> morphComponentIndcs, double magnitude, double discreteness, boolean doPositionShape, int maxAttempts, List<Integer> inNoiseComponentIndcs) {
+        this.matchStickToMorph = baseMatchStick;
+        super.genNewComponentsMatchStick(baseMatchStick, morphComponentIndcs, magnitude, discreteness, doPositionShape, maxAttempts, inNoiseComponentIndcs);
+    }
+
+    @Override
     public void positionShape() throws MorphException {
         if (positioningStrategy == PositioningStrategy.RF_STRATEGY) {
             RFUtils.positionAroundRF(rfStrategy, this, rf, 1000);

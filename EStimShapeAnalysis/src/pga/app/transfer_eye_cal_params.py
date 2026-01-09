@@ -14,7 +14,7 @@ def main():
         params.write_params(dest_db)
 
     # Define tables to copy
-    tables_to_copy = ["RFInfo", "RFObjectData", "ClusterInfo"]  # Add more table names to this list as needed
+    tables_to_copy = ["RFInfo", "RFObjectData", "ClusterInfo", "IncludedDeltas"]  # Add more table names to this list as needed
 
     # Copy tables to each destination database
     for dest_db_name in dest_db_names:

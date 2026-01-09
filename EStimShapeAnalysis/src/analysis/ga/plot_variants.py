@@ -12,8 +12,8 @@ import pandas as pd
 def main():
     analysis = PlotVariants()
     compiled_data = analysis.compile()
-    session_id = "251231_0"
-    channel = "A-029"
+    session_id = "260108_0"
+    channel = "A-011"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
@@ -38,7 +38,7 @@ class PlotVariants(PlotTopNAnalysis):
         print(f"Top {len(top_lineages)} lineages: {top_lineages.tolist()}")
 
         # Filter for variants only
-        variants_data = compiled_data[compiled_data['StimType'] == "REGIME_ESTIM_VARIANTS"].copy()
+        variants_data = compiled_data[compiled_data['StimType'].isin(["REGIME_ESTIM_VARIANTS", "REGIME_ESTIM_DELTA"])].copy()
 
         # Calculate average response rate and rank for variants
         avg_response = variants_data.groupby(['GenId', 'StimSpecId', 'Lineage'])['Spike Rate'].mean().reset_index()

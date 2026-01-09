@@ -211,16 +211,21 @@ public class ProceduralMatchStick extends GAMatchStick {
                     if (inNoiseComponentIndcs.size() == 0) {
                         inNoiseComponentIndcs = morphComponentIndcs;
                     }
+
                     noiseMapper.checkInNoise(this, inNoiseComponentIndcs, 0.5);
                 }
                 if (this.maxDiameterDegrees != null) {
                     centerShape();
                     checkMStickFitsInPNG(maxDiameterDegrees);
+                    positionShape();
                 }
             } catch(MorphException e) {
                 System.out.println(e.getMessage());
                 continue;
-            } finally{
+            } catch (NoiseException ne) {
+                System.out.println(ne.getMessage());
+                continue;
+            }finally{
                 numAttempts++;
             }
             break;

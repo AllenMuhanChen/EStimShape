@@ -76,7 +76,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         double choiceLim = calculateMinDistanceChoicesCanBeWithoutOverlap(maxChoiceSize, parameters.numChoices);
 
         parameters.setChoiceDistanceLims(new Lims(choiceLim, choiceLim));
-        parameters.setEyeWinRadius(choiceSize*8/2); // 4 back to back limbs, and divide by two for radius corr
+        parameters.setEyeWinRadius(maxChoiceSize/2); // 4 back to back limbs, and divide by two for radius corr
 
         noiseMapper = generator.getNoiseMapper();
         morphComponentIndcs = compsToPreserveManager.readProperty(variantId).getCompsToPreserve();

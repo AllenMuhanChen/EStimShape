@@ -449,7 +449,8 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
 
 
 //        double sigmaPixels = mmToPixels(renderer, mStick.noiseRadiusMm/6);
-        double sigmaPixels = mmToPixels(renderer, mStick.getRf().getRadius()/12);
+        double sigmaPixels = mmToPixels(renderer, mStick.getRf().getRadius()/48);
+//        double sigmaPixels = 0;
 
         Coordinates2D noiseOriginPixels = convertMmToPixelCoordinates(noiseOrigin, renderer);
 
