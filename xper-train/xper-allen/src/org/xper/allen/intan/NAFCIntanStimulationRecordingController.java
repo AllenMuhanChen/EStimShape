@@ -39,7 +39,7 @@ public class NAFCIntanStimulationRecordingController extends IntanRecordingContr
 			String eStimSpec = task.geteStimSpec();
 			try {
 				EStimParameters eStimParameters = EStimParameters.fromXml(eStimSpec);
-				getIntan().setupManualStimulationFor(eStimParameters);
+				getIntan().setupDigitalStimulationFor(eStimParameters);
 				validEStimParameters = true;
 			} catch (Exception e) {
 				validEStimParameters = false;
@@ -49,6 +49,11 @@ public class NAFCIntanStimulationRecordingController extends IntanRecordingContr
 		}
 	}
 
+    /**
+     * Deprecated. We currently aren't triggering intan manually like this except in tests.
+     * @param timestamp
+     * @param context
+     */
 	@Override
 	public void eStimOn(long timestamp, TrialContext context) {
 		if (connected & eStimEnabled) {

@@ -19,7 +19,7 @@ import java.nio.CharBuffer;
  * Provides basic tcp communication with Intan, like connecting, get, set, liveNotes, and executing commands
  */
 public class IntanClient {
-    static final int QUERY_INTERVAL_MS = 100;
+    static final int QUERY_INTERVAL_MS = 1;
     static final int TIME_OUT_MS = 1000;
 
     @Dependency
@@ -80,7 +80,32 @@ public class IntanClient {
      */
     public void fastSet(String parameter, String value) {
         String msg = "set " + parameter + " " + value;
-        out.println(msg);
+        System.out.println(msg);
+        while (true) {
+            out.println(msg);
+            boolean error = false;
+            double startTime = timeUtil.currentTimeMicros();
+            while (timeUtil.currentTimeMicros() < startTime + 1000) {
+                try {
+                    in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+                    if (in.ready()) {
+                        CharBuffer cb = CharBuffer.allocate(1000);
+                        in.read(cb);
+                        cb.flip();
+                        String resp = cb.toString();
+                        if (!resp.isEmpty()) {
+                            error = true;
+                            System.out.println(error);
+                        }
+                    }
+                } catch (IOException e) {
+                    System.out.println("Error");
+                }
+            }
+            if (!error) {
+                break;
+            }
+        }
     }
 
     /**

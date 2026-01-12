@@ -29,8 +29,8 @@ import static org.xper.intan.stimulation.ManualTriggerIntanRHS.tcpNameForIntanCh
  */
 public class NAFCDigitalTriggerIntanStimulationRecordingController extends NAFCIntanStimulationRecordingController {
 
-    private Set<RHSChannel> stimulationChannels;
-    private long experimentId;
+    protected Set<RHSChannel> stimulationChannels;
+    protected long experimentId;
 
     @Override
     public void experimentStart(long timestamp) {

@@ -127,7 +127,7 @@ public class ManualTriggerIntanRHSControllerTest {
         parametersForChannels.put(RHSChannel.A025, channelEStimParameters);
         EStimParameters eStimParameters = new EStimParameters(parametersForChannels);
 
-        System.out.println(eStimParameters.toXml());
+//        System.out.println(eStimParameters.toXml());
 
         controller.setupManualStimulationFor(eStimParameters);
         controller.stopRecording();
