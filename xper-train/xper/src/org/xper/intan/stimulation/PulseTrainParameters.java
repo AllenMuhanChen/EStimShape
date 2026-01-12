@@ -8,12 +8,22 @@ public class PulseTrainParameters {
     int numRepetitions;
     double pulseTrainPeriod;
     double postStimRefractoryPeriod;
+    TriggerEdgeOrLevel triggerEdgeOrLevel;
+    double postTriggerDelay = 0;
 
-    public PulseTrainParameters(PulseRepetition pulseRepetition, int numRepetitions, double pulseTrainPeriod, double postStimRefractoryPeriod) {
+    public PulseTrainParameters(PulseRepetition pulseRepetition, int numRepetitions, double pulseTrainPeriod, double postStimRefractoryPeriod, TriggerEdgeOrLevel triggerEdgeOrLevel, double postTriggerDelay) {
         this.pulseRepetition = pulseRepetition;
         this.numRepetitions = numRepetitions;
         this.pulseTrainPeriod = pulseTrainPeriod;
         this.postStimRefractoryPeriod = postStimRefractoryPeriod;
+        this.triggerEdgeOrLevel = triggerEdgeOrLevel;
+        this.postTriggerDelay = postTriggerDelay;
+
+        if (pulseRepetition == PulseRepetition.SinglePulse){
+            //default values if single pulse is selected
+            this.numRepetitions = 2;
+            this.pulseTrainPeriod = 10000;
+        }
     }
 
     public PulseTrainParameters() {

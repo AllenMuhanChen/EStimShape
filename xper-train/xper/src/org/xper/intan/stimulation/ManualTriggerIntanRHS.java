@@ -12,22 +12,43 @@ import java.util.Map;
  * This class should be used for when the user wants to manually trigger stimulation with java code (and the f1 key)
  */
 public class ManualTriggerIntanRHS extends IntanRHD {
+    public static final String DIGITAL_TRIGGER = "DigitalIn01";
+
     /**
      * Default Parameters that are true for every trial and channel throughout the entire experiment
      */
     @Dependency
     Collection<Parameter<Object>> defaultParameters;
 
-    public void setupStimulationFor(EStimParameters eStimParameters){
+    public void setupManualStimulationFor(EStimParameters eStimParameters){
         Map<RHSChannel, ChannelEStimParameters> parametersForChannels = eStimParameters.geteStimParametersForChannels();
         for (RHSChannel channel : parametersForChannels.keySet()){
             enableStimulationOn(channel);
             setDefaultParametersOn(channel);
-            setTriggerSourceOn(channel);
+            setManualTriggerSourceOn(channel);
 
             ChannelEStimParameters channelEStimParameters = parametersForChannels.get(channel);
             setStimPulseTrainParametersOn(channel, channelEStimParameters.getPulseTrainParameters());
             setStimWaveformParametersOn(channel, channelEStimParameters.getWaveformParameters());
+            setAmpSettleParametersOn(channel, channelEStimParameters.getAmpSettleParameters());
+            setChargeRecoveryParametersOn(channel, channelEStimParameters.getChargeRecoveryParameters());
+        }
+
+        uploadParameters(parametersForChannels.keySet());
+    }
+
+    public void setupDigitalStimulationFor(EStimParameters eStimParameters){
+        Map<RHSChannel, ChannelEStimParameters> parametersForChannels = eStimParameters.geteStimParametersForChannels();
+        for (RHSChannel channel : parametersForChannels.keySet()){
+            enableStimulationOn(channel);
+            setDefaultParametersOn(channel);
+            setDigitalTriggerSourceOn(channel);
+
+            ChannelEStimParameters channelEStimParameters = parametersForChannels.get(channel);
+            setStimPulseTrainParametersOn(channel, channelEStimParameters.getPulseTrainParameters());
+            setStimWaveformParametersOn(channel, channelEStimParameters.getWaveformParameters());
+            setAmpSettleParametersOn(channel, channelEStimParameters.getAmpSettleParameters());
+            setChargeRecoveryParametersOn(channel, channelEStimParameters.getChargeRecoveryParameters());
         }
 
         uploadParameters(parametersForChannels.keySet());
@@ -39,10 +60,12 @@ public class ManualTriggerIntanRHS extends IntanRHD {
 
 
     private void setStimPulseTrainParametersOn(RHSChannel channel, PulseTrainParameters pulseTrainParameters) {
+        intanClient.set(tcpNameForIntanChannel(channel) + ".triggeredgeorlevel", pulseTrainParameters.triggerEdgeOrLevel.toString());
         intanClient.set(tcpNameForIntanChannel(channel) + ".pulseortrain", pulseTrainParameters.pulseRepetition.toString());
         intanClient.set(tcpNameForIntanChannel(channel) + ".numberofstimpulses", Integer.toString(pulseTrainParameters.numRepetitions));
         intanClient.set(tcpNameForIntanChannel(channel) + ".pulsetrainperiodmicroseconds", Double.toString(pulseTrainParameters.pulseTrainPeriod));
         intanClient.set(tcpNameForIntanChannel(channel) + ".refractoryperiodmicroseconds", Double.toString(pulseTrainParameters.postStimRefractoryPeriod));
+        intanClient.set(tcpNameForIntanChannel(channel) + ".posttriggerdelaymicroseconds", Double.toString(pulseTrainParameters.postTriggerDelay));
     }
 
     private void setStimWaveformParametersOn(RHSChannel channel, WaveformParameters waveformParameters){
@@ -55,6 +78,26 @@ public class ManualTriggerIntanRHS extends IntanRHD {
         intanClient.set(tcpNameForIntanChannel(channel) + ".secondphaseamplitudemicroamps", Double.toString(waveformParameters.a2));
     }
 
+    private void setAmpSettleParametersOn(RHSChannel channel, AmpSettleParameters ampSettleParameters){
+        if (ampSettleParameters == null){
+            return;
+        }
+        intanClient.set(tcpNameForIntanChannel(channel) + ".enableampsettle", ampSettleParameters.enableAmpSettle.toString());
+        intanClient.set(tcpNameForIntanChannel(channel) + ".prestimampsettlemicroseconds", ampSettleParameters.preStimAmpSettle.toString());
+        intanClient.set(tcpNameForIntanChannel(channel) + ".poststimampsettlemicroseconds", ampSettleParameters.postStimAmpSettle.toString());
+        intanClient.set(tcpNameForIntanChannel(channel) + ".maintainampsettle", ampSettleParameters.maintainAmpSettleDuringPulseTrain.toString());
+
+    }
+
+    private void setChargeRecoveryParametersOn(RHSChannel channel, ChargeRecoveryParameters chargeRecoveryParameters) {
+        if (chargeRecoveryParameters == null) {
+            return;
+        }
+        intanClient.set(tcpNameForIntanChannel(channel) + ".enablechargerecovery", chargeRecoveryParameters.enableChargeRecovery.toString());
+        intanClient.set(tcpNameForIntanChannel(channel) + ".poststimchargerecovonmicroseconds", chargeRecoveryParameters.postStimChargeRecoveryOn.toString());
+        intanClient.set(tcpNameForIntanChannel(channel) + ".poststimchargerecovoffmicroseconds", chargeRecoveryParameters.postStimChargeRecoveryOff.toString());
+    }
+
     public void uploadParameters(Collection<RHSChannel> channels){
 
         for (RHSChannel channel : channels){
@@ -63,7 +106,6 @@ public class ManualTriggerIntanRHS extends IntanRHD {
         }
 
     }
-
 
     public void enableStimulationOn(RHSChannel channel) {
         intanClient.set(tcpNameForIntanChannel(channel) + ".stimenabled", "true");
@@ -75,14 +117,17 @@ public class ManualTriggerIntanRHS extends IntanRHD {
 
     private void setDefaultParametersOn(RHSChannel channel) {
         for (Parameter parameter : defaultParameters){
-            intanClient.set(tcpNameForIntanChannel(channel) + "." + parameter.getKey().toLowerCase(), parameter.getValue().toString().toLowerCase());
+            intanClient.fastSet(tcpNameForIntanChannel(channel) + "." + parameter.getKey().toLowerCase(), parameter.getValue().toString().toLowerCase());
         }
     }
 
-    private void setTriggerSourceOn(RHSChannel channel) {
+    private void setManualTriggerSourceOn(RHSChannel channel) {
         intanClient.set(tcpNameForIntanChannel(channel) + ".source", "keypressf1");
     }
 
+    private void setDigitalTriggerSourceOn(RHSChannel channel) {
+        intanClient.fastSet(tcpNameForIntanChannel(channel) + ".source", DIGITAL_TRIGGER);
+    }
 
 
     public static String tcpNameForIntanChannel(RHSChannel channel){

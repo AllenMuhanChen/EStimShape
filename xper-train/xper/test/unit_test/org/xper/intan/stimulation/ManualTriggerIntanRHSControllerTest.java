@@ -37,6 +37,7 @@ public class ManualTriggerIntanRHSControllerTest {
 //        assertTrue(controller.getIntanClient().get("b-000.maintainampsettle").equals("True"));
     }
 
+
     @Ignore
     @Test
     public void enumToStringTest(){
@@ -57,30 +58,31 @@ public class ManualTriggerIntanRHSControllerTest {
         WaveformParameters waveformParameters = new WaveformParameters(
                 StimulationShape.Biphasic,
                 StimulationPolarity.NegativeFirst,
-                5000.0,
-                5000.0,
-                1000.0,
-                50.0,
-                50.0
+                200.0,
+                200.0,
+                0.0,
+                2.5,
+                2.5
         );
 
         PulseTrainParameters pulseTrainParameters = new PulseTrainParameters(
                 PulseRepetition.SinglePulse,
                 1,
                 0.0,
-                0.0
-        );
+                0.0,
+                TriggerEdgeOrLevel.Edge,
+                0.0);
 
         ChannelEStimParameters channelEStimParameters = new ChannelEStimParameters(waveformParameters, pulseTrainParameters);
-        parametersForChannels.put(RHSChannel.B000, channelEStimParameters);
+        parametersForChannels.put(RHSChannel.A025, channelEStimParameters);
         EStimParameters eStimParameters = new EStimParameters(parametersForChannels);
 
-        controller.setupStimulationFor(eStimParameters);
+        controller.setupManualStimulationFor(eStimParameters);
 
-        String stim_enabled = controller.getIntanClient().get("b-000.stimenabled");
+        String stim_enabled = controller.getIntanClient().get("a-025.stimenabled");
         assertTrue(stim_enabled.equals("True"));
 
-        assertTrue(controller.getIntanClient().get("b-000.polarity").equals("NegativeFirst"));
+        assertTrue(controller.getIntanClient().get("a-025.polarity").equals("NegativeFirst"));
     }
 
     @Test
@@ -100,14 +102,34 @@ public class ManualTriggerIntanRHSControllerTest {
                 PulseRepetition.SinglePulse,
                 1,
                 10.0,
-                1.0
+                4000,
+                TriggerEdgeOrLevel.Level,
+                0.0);
+
+        AmpSettleParameters ampSettleParameters = new AmpSettleParameters(
+          true,
+          0.0,
+          2000,
+          true
         );
 
-        ChannelEStimParameters channelEStimParameters = new ChannelEStimParameters(waveformParameters, pulseTrainParameters);
-        parametersForChannels.put(RHSChannel.B025, channelEStimParameters);
+        ChargeRecoveryParameters chargeRecoveryParameters = new ChargeRecoveryParameters(
+                true,
+                100.0,
+                1000.0
+        );
+
+        ChannelEStimParameters channelEStimParameters = new ChannelEStimParameters(
+                waveformParameters,
+                pulseTrainParameters,
+                ampSettleParameters,
+                chargeRecoveryParameters);
+        parametersForChannels.put(RHSChannel.A025, channelEStimParameters);
         EStimParameters eStimParameters = new EStimParameters(parametersForChannels);
 
-        controller.setupStimulationFor(eStimParameters);
+        System.out.println(eStimParameters.toXml());
+
+        controller.setupManualStimulationFor(eStimParameters);
         controller.stopRecording();
 
 
@@ -119,7 +141,7 @@ public class ManualTriggerIntanRHSControllerTest {
 
     private List<Parameter<Object>> defaultParameters(){
         List<Parameter<Object>> parameters = new LinkedList<>();
-        parameters.add(new Parameter<>("MaintainAmpSettle", "True"));
+//        parameters.add(new Parameter<>("MaintainAmpSettle", "True"));
 
 
         return parameters;

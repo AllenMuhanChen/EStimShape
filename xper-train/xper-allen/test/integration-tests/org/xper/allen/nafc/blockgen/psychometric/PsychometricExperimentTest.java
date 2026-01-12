@@ -86,8 +86,8 @@ public class PsychometricExperimentTest {
                 PulseRepetition.SinglePulse,
                 1,
                 10.0,
-                1.0
-        );
+                1.0,
+                TriggerEdgeOrLevel.Edge, 0.0);
 
         eStimParametersForChannels.put(RHSChannel.B025, new ChannelEStimParameters(waveformParameters, pulseTrainParameters));
         Map<Long, EStimParameters> eStimParametersForSetIds = new HashMap<>();

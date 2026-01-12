@@ -73,6 +73,17 @@ public class IntanClient {
     }
 
     /**
+     * When we're writing parameters that don't need to be checked for resolution
+     * before moving on to the next
+     * @param parameter
+     * @param value
+     */
+    public void fastSet(String parameter, String value) {
+        String msg = "set " + parameter + " " + value;
+        out.println(msg);
+    }
+
+    /**
      * @param condition - given as a Condition - an object with a single method, check(), that returns a bool
      *
      * This is used to verify a set operation changes the value successfuly before

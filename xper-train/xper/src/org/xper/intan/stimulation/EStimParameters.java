@@ -36,6 +36,8 @@ public class EStimParameters {
         return xstream.toXML(this);
     }
 
+
+
     public Map<RHSChannel, ChannelEStimParameters> geteStimParametersForChannels() {
         return eStimParametersForChannels;
     }

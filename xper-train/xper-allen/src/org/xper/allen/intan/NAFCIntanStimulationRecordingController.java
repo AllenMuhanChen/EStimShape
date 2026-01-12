@@ -39,7 +39,7 @@ public class NAFCIntanStimulationRecordingController extends IntanRecordingContr
 			String eStimSpec = task.geteStimSpec();
 			try {
 				EStimParameters eStimParameters = EStimParameters.fromXml(eStimSpec);
-				getIntan().setupStimulationFor(eStimParameters);
+				getIntan().setupManualStimulationFor(eStimParameters);
 				validEStimParameters = true;
 			} catch (Exception e) {
 				validEStimParameters = false;
