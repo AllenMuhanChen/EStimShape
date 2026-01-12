@@ -13,19 +13,18 @@ public class NAFCProgrammaticDigitalTriggerIntanStimulationRecordingController e
     public void trialInit(long timestamp, TrialContext context) {
         if (recordingEnabled && !connected) {
             tryConnection();
-            if (toRecord()) {
-                fileNamingStrategy.rename(experimentId);
-                getIntan().record();
-            }
+        }
+        if (toRecord()) {
+            fileNamingStrategy.rename(experimentId);
+            uploadStimParameters(context);
+            getIntan().record();
         }
     }
 
-    @Override
-    public void prepareEStim(long timestamp, TrialContext context) {
+    private void uploadStimParameters(TrialContext context) {
         validEStimParameters = false;
         if (connected & eStimEnabled) {
-            NAFCExperimentTask task = (NAFCExperimentTask) context.getCurrentTask();
-            String eStimSpec = task.geteStimSpec();
+            String eStimSpec = getEStimSpec(context);
             try {
                 EStimParameters eStimParameters = EStimParameters.fromXml(eStimSpec);
                 getIntan().setupDigitalStimulationFor(eStimParameters);
@@ -36,5 +35,18 @@ public class NAFCProgrammaticDigitalTriggerIntanStimulationRecordingController e
                 e.printStackTrace();
             }
         }
+    }
+
+    @Override
+    public void prepareEStim(long timestamp, TrialContext context) {
+        //do nothing, since we are just going to prepare EStim during trial Init. If we don't do this,
+        // we run into issues trying to upload stim parameters during fixation / while we are already recording
+
+    }
+
+    protected String getEStimSpec(TrialContext context) {
+        NAFCExperimentTask task = (NAFCExperimentTask) context.getCurrentTask();
+        String eStimSpec = task.geteStimSpec();
+        return eStimSpec;
     }
 }

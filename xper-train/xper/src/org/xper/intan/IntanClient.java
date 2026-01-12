@@ -20,7 +20,7 @@ import java.nio.CharBuffer;
  */
 public class IntanClient {
     static final int QUERY_INTERVAL_MS = 1;
-    static final int TIME_OUT_MS = 1000;
+    static final int TIME_OUT_MS = 10000;
 
     @Dependency
     String host;
@@ -117,8 +117,12 @@ public class IntanClient {
     public void waitFor(Condition condition) {
         long startingTime = timeUtil.currentTimeMicros();
         ThreadUtil.sleep(QUERY_INTERVAL_MS);
-        while (!condition.check() && timeUtil.currentTimeMicros() < startingTime + TIME_OUT_MS*1000) {
+        long timeOutTime = startingTime + TIME_OUT_MS * 1000;
+        while (!condition.check() && timeUtil.currentTimeMicros() < timeOutTime) {
             ThreadUtil.sleep(QUERY_INTERVAL_MS);
+        }
+        if (timeUtil.currentTimeMicros() >= timeOutTime ) {
+            System.out.println("Timed out while waiting for condition " + condition.getClass());
         }
     }
 

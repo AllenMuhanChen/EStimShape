@@ -87,6 +87,7 @@ public class ManualTriggerIntanRHS extends IntanRHD {
     }
 
     public void setupDigitalStimulationFor(EStimParameters eStimParameters){
+        stopRecording(); //necessary to upload stim parameters
         disableAllStim();
 
         Map<RHSChannel, ChannelEStimParameters> parametersForChannels = eStimParameters.geteStimParametersForChannels();
@@ -102,7 +103,7 @@ public class ManualTriggerIntanRHS extends IntanRHD {
             setChargeRecoveryParametersOn(channel, channelEStimParameters.getChargeRecoveryParameters());
         }
 
-        uploadParameters(parametersForChannels.keySet());
+        uploadParameters();
     }
 
     public void trigger(){
@@ -150,12 +151,17 @@ public class ManualTriggerIntanRHS extends IntanRHD {
     }
 
     public void uploadParameters(Collection<RHSChannel> channels){
-
         for (RHSChannel channel : channels){
             waitForUpload();
             intanClient.execute("uploadstimparameters", tcpNameForIntanChannel(channel));
         }
+        waitForUpload();
+    }
 
+    public void uploadParameters(){
+        waitForUpload();
+        intanClient.execute("uploadstimparameters");
+        waitForUpload();
     }
 
     public void enableStimulationOn(RHSChannel channel) {
@@ -174,6 +180,7 @@ public class ManualTriggerIntanRHS extends IntanRHD {
             String out;
             int numChannels;
             while (true){
+                ThreadUtil.sleep(100);
                 out = intanClient.get(port + ".numberamplifierchannels");
                 try {
                     numChannels = Integer.parseInt(out);

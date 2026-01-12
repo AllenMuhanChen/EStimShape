@@ -75,6 +75,7 @@ public class ManualTriggerIntanRHSControllerTest {
 
         ChannelEStimParameters channelEStimParameters = new ChannelEStimParameters(waveformParameters, pulseTrainParameters);
         parametersForChannels.put(RHSChannel.A025, channelEStimParameters);
+        parametersForChannels.put(RHSChannel.A022, channelEStimParameters);
         EStimParameters eStimParameters = new EStimParameters(parametersForChannels);
 
         controller.setupManualStimulationFor(eStimParameters);
@@ -125,6 +126,7 @@ public class ManualTriggerIntanRHSControllerTest {
                 ampSettleParameters,
                 chargeRecoveryParameters);
         parametersForChannels.put(RHSChannel.A025, channelEStimParameters);
+        parametersForChannels.put(RHSChannel.A022, channelEStimParameters);
         EStimParameters eStimParameters = new EStimParameters(parametersForChannels);
 
 //        System.out.println(eStimParameters.toXml());
