@@ -1,5 +1,6 @@
 package org.xper.allen.nafc.blockgen;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -421,7 +422,7 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 				targetEyeWinSizeArray[j] = eyeWinSize;
 			}
 			//eStimObjData
-			long[] eStimObjData = {1};
+			List<Long> eStimObjData = new ArrayList();
 			//rewardPolicy
 			RewardPolicy rewardPolicy = RewardPolicy.LIST;
 			//rewardList - Correct answer should always be 0 (the first choice)

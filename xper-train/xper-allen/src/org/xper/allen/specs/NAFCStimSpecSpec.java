@@ -5,6 +5,8 @@ import org.xper.drawing.Coordinates2D;
 
 import com.thoughtworks.xstream.XStream;
 
+import java.util.List;
+
 /**
  * Fields correspond with xml entries in the "spec" column in "stimspec" database table.
  * Contains toXML and fromXML methods.
@@ -22,7 +24,7 @@ public class NAFCStimSpecSpec {
 	//@XStreamAlias("choiceObjData")
 	protected long[] choiceObjData;
 	//@XStreamAlias("eStimObjData")
-	protected long[] eStimObjData;
+	protected List<Long> eStimObjData;
 	//@XStreamAlias("rewardPolicy")
 	protected RewardPolicy rewardPolicy;
 	protected int[] rewardList;
@@ -38,8 +40,8 @@ public class NAFCStimSpecSpec {
 		s.useAttributeFor("animation", boolean.class);
 	}
 
-	public NAFCStimSpecSpec(Coordinates2D[] targetEyeWinCoords, double targetEyeWinSize[], long sampleObjData,
-			long[] choiceObjData, long[] eStimObjData, RewardPolicy rewardPolicy, int[] rewardList) {
+	public NAFCStimSpecSpec(Coordinates2D[] targetEyeWinCoords, double[] targetEyeWinSize, long sampleObjData,
+                            long[] choiceObjData, List<Long> eStimObjData, RewardPolicy rewardPolicy, int[] rewardList) {
 		this.targetEyeWinCoords = targetEyeWinCoords;
 		this.targetEyeWinSize = targetEyeWinSize;
 		this.sampleObjData = sampleObjData;
@@ -50,7 +52,7 @@ public class NAFCStimSpecSpec {
 	}
 
 	public NAFCStimSpecSpec(String stimType, Coordinates2D[] targetEyeWinCoords, double targetEyeWinSize[], long sampleObjData,
-							long[] choiceObjData, long[] eStimObjData, RewardPolicy rewardPolicy, int[] rewardList) {
+							long[] choiceObjData, List<Long> eStimObjData, RewardPolicy rewardPolicy, int[] rewardList) {
 		this.stimType = stimType;
 		this.targetEyeWinCoords = targetEyeWinCoords;
 		this.targetEyeWinSize = targetEyeWinSize;
@@ -136,11 +138,11 @@ public class NAFCStimSpecSpec {
 	}
 
 
-	public long[] geteStimObjData() {
+	public List<Long> geteStimObjData() {
 		return eStimObjData;
 	}
 
-	public void seteStimObjData(long[] eStimObjData) {
+	public void seteStimObjData(List<Long> eStimObjData) {
 		this.eStimObjData = eStimObjData;
 	}
 

@@ -452,7 +452,7 @@ public class NAFCConfig {
 
 	@Bean
 	public NAFCProgrammaticDigitalTriggerIntanStimulationRecordingController intanStimController() {
-		MockNafcProgrammaticIntanStimulationRecordingController intanController = new MockNafcProgrammaticIntanStimulationRecordingController();
+		NAFCProgrammaticDigitalTriggerIntanStimulationRecordingController intanController = new NAFCProgrammaticDigitalTriggerIntanStimulationRecordingController();
 		intanController.seteStimEnabled(intanConfig.intanEStimEnabled);
 		intanController.setIntan(intanConfig.intan());
 		intanController.setRecordingEnabled(intanConfig.intanRecordingEnabled());

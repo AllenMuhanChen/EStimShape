@@ -18,6 +18,7 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
     protected JTextField stimIdField;
     protected JTextField compIdField;
     protected JTextField isEStimEnabledField;
+    protected JTextField eStimSpecIdField;
 
     public EStimExperimentGenType() {
         super();
@@ -32,7 +33,14 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
         long stimId = Long.parseLong(stimIdField.getText());
         int compId = Integer.parseInt(compIdField.getText());
         boolean isEStimEnabled = Boolean.parseBoolean(isEStimEnabledField.getText());
-        EStimExperimentGenParameters params = new EStimExperimentGenParameters(super.readFromFields(), numDeltaTrialSets, stimId, compId, isEStimEnabled);
+        long eStimSpecId = Long.parseLong(eStimSpecIdField.getText());
+        EStimExperimentGenParameters params = new EStimExperimentGenParameters(
+                super.readFromFields(),
+                numDeltaTrialSets,
+                stimId,
+                compId,
+                isEStimEnabled,
+                eStimSpecId);
         return params;
     }
 
@@ -112,12 +120,14 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
         public long stimId;
         public int compId;
         public boolean isEStimEnabled;
+        public long eStimSpecId;
 
-        public EStimExperimentGenParameters(GenParameters genParameters, int numDeltaTrialSets, long stimId, int compId, boolean isEStimEnabled) {
+        public EStimExperimentGenParameters(GenParameters genParameters, int numDeltaTrialSets, long stimId, int compId, boolean isEStimEnabled, long eStimSpecId) {
             super(genParameters, numDeltaTrialSets);
             this.stimId = stimId;
             this.compId = compId;
             this.isEStimEnabled = isEStimEnabled;
+            this.eStimSpecId = eStimSpecId;
         }
 
         public EStimExperimentGenParameters() {

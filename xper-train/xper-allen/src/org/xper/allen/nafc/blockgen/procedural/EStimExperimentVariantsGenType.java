@@ -10,6 +10,7 @@ import java.util.List;
 public class EStimExperimentVariantsGenType extends ProceduralRandGenType<EStimExperimentGenType.EStimExperimentGenParameters>{
     protected JTextField stimIdField;
     protected JTextField isEStimEnabledField;
+    protected JTextField eStimSpecIdField;
 
     public EStimExperimentVariantsGenType() {
         super();
@@ -22,7 +23,9 @@ public class EStimExperimentVariantsGenType extends ProceduralRandGenType<EStimE
     public EStimExperimentGenType.EStimExperimentGenParameters readFromFields() {
         long stimId = Long.parseLong(stimIdField.getText());
         boolean isEStimEnabled = Boolean.parseBoolean(isEStimEnabledField.getText());
-        EStimExperimentGenType.EStimExperimentGenParameters params = new EStimExperimentGenType.EStimExperimentGenParameters(super.readFromFields(), 0, stimId, -1, isEStimEnabled);
+        long eStimSpecId = Long.parseLong(eStimSpecIdField.getText());
+        EStimExperimentGenType.EStimExperimentGenParameters params = new EStimExperimentGenType.EStimExperimentGenParameters(
+                super.readFromFields(), 0, stimId, -1, isEStimEnabled, eStimSpecId);
         return params;
     }
 
@@ -39,14 +42,14 @@ public class EStimExperimentVariantsGenType extends ProceduralRandGenType<EStimE
                 newBlock.add(EStimShapeVariantsNAFCStim.createSampledIdEStimShapeVariantsNAFCStim(
                         (EStimShapeExperimentTrialGenerator) generator,
                         parameters.getProceduralStimParameters(),
-                        parameters.isEStimEnabled));
+                        parameters.isEStimEnabled, parameters.eStimSpecId));
             } else {
                 //using estim value from the GUI field
                 EStimShapeVariantsNAFCStim stim = new EStimShapeVariantsNAFCStim(
                         (EStimShapeExperimentTrialGenerator) generator,
                         parameters.getProceduralStimParameters(),
                         parameters.stimId,
-                        parameters.isEStimEnabled);
+                        parameters.isEStimEnabled, parameters.eStimSpecId);
                 newBlock.add(stim);
             }
         }
@@ -57,12 +60,16 @@ public class EStimExperimentVariantsGenType extends ProceduralRandGenType<EStimE
         super.initFields();
         stimIdField = new JTextField("0", 10);
         isEStimEnabledField = new JTextField("true", 10);
+        eStimSpecIdField = new JTextField("0", 10);
 
         labelsForFields.put(stimIdField, "stimId:");
         defaultsForFields.put(stimIdField, "0");
 
         labelsForFields.put(isEStimEnabledField, "isEStimEnabled (true/false):");
         defaultsForFields.put(isEStimEnabledField, "false");
+
+        labelsForFields.put(eStimSpecIdField, "eStimSpecId:");
+        defaultsForFields.put(eStimSpecIdField, "0");
     }
 
     @Override
@@ -70,6 +77,7 @@ public class EStimExperimentVariantsGenType extends ProceduralRandGenType<EStimE
         super.loadParametersIntoFields(blockParams);
         stimIdField.setText(String.valueOf(((EStimExperimentGenType.EStimExperimentGenParameters) blockParams).stimId));
         isEStimEnabledField.setText(String.valueOf(((EStimExperimentGenType.EStimExperimentGenParameters) blockParams).isEStimEnabled));
+        eStimSpecIdField.setText(String.valueOf(((EStimExperimentGenType.EStimExperimentGenParameters) blockParams).eStimSpecId));
     }
 
 }

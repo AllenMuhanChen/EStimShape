@@ -120,7 +120,6 @@ public class IntanRHD {
     private boolean isUploadInProgress() {
         String uploadInProgress = intanClient.get("uploadinprogress");
         if (uploadInProgress.equalsIgnoreCase("True")){
-            System.out.println("upload in progress");
             return true;
         }
         else

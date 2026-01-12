@@ -23,8 +23,8 @@ public class NAFCStimSpecWriter {
 	protected int[] rewardList;
 
 	private NAFCStimSpecWriter(String stimType, Long taskId, AllenDbUtil dbUtil,
-							   NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
-							   NAFC<Long> stimObjIds, RewardPolicy rewardPolicy, int[] rewardList) {
+                               NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
+                               NAFC<Long> stimObjIds, RewardPolicy rewardPolicy, int[] rewardList) {
 		super();
 		this.stimType = stimType;
 		this.taskId = taskId;
@@ -33,14 +33,14 @@ public class NAFCStimSpecWriter {
 		this.coords = coords;
 		this.numChoices = numChoices;
 		this.stimObjIds = stimObjIds;
-		this.eStimObjData = new long[]{1};
+		this.eStimObjData = new ArrayList<>();
 		this.rewardPolicy = rewardPolicy;
 		this.rewardList = rewardList;
 	}
 
 	private NAFCStimSpecWriter(String stimType, Long taskId, AllenDbUtil dbUtil,
 							   NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
-							   NAFC<Long> stimObjIds, long[] eStimObjData, RewardPolicy rewardPolicy, int[] rewardList) {
+							   NAFC<Long> stimObjIds, List<Long> eStimObjData, RewardPolicy rewardPolicy, int[] rewardList) {
 		super();
 		this.stimType = stimType;
 		this.taskId = taskId;
@@ -54,7 +54,7 @@ public class NAFCStimSpecWriter {
 		this.rewardList = rewardList;
 	}
 
-	private long[] eStimObjData;
+	private List<Long> eStimObjData;
 
 	private List<Coordinates2D> targetEyeWinCoords = new ArrayList<Coordinates2D>();
 	private double[] targetEyeWinSizes;
@@ -66,12 +66,12 @@ public class NAFCStimSpecWriter {
     public static NAFCStimSpecWriter createForNoEStim(String stimType, Long taskId, AllenDbUtil dbUtil,
 													  NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
 													  NAFC<Long> stimObjIds, RewardPolicy rewardPolicy, int[] rewardList) {
-		return new NAFCStimSpecWriter(stimType, taskId, dbUtil, trialParameters, coords, numChoices, stimObjIds, rewardPolicy, rewardList);
+		return new NAFCStimSpecWriter(stimType, taskId, dbUtil, trialParameters, coords, numChoices, stimObjIds, new ArrayList<>(), rewardPolicy, rewardList);
 	}
 
 	public static NAFCStimSpecWriter createForEStim(String stimType, Long taskId, AllenDbUtil dbUtil,
-													NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
-													NAFC<Long> stimObjIds, long[] eStimObjData, RewardPolicy rewardPolicy, int[] rewardList) {
+                                                    NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
+                                                    NAFC<Long> stimObjIds, List<Long> eStimObjData, RewardPolicy rewardPolicy, int[] rewardList) {
 		return new NAFCStimSpecWriter(stimType, taskId, dbUtil, trialParameters, coords, numChoices, stimObjIds, eStimObjData, rewardPolicy, rewardList);
 	}
 

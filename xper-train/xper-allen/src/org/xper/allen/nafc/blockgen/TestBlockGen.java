@@ -1,5 +1,7 @@
 package org.xper.allen.nafc.blockgen;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 import org.xper.Dependency;
@@ -37,7 +39,7 @@ public class TestBlockGen {
 		
 	Coordinates2D[] targetEyeWinCoords = {new Coordinates2D(-10, 0), new Coordinates2D(10,0), new Coordinates2D(0,10)};	
 	double[] targetEyeWinSize = {5, 5, 5};
-	long[] eStimObjData = {1};
+	List<Long> eStimObjData = new ArrayList();
 	RewardPolicy rewardPolicy = RewardPolicy.LIST;
 	
 		try {

@@ -25,8 +25,14 @@ public class NAFCProgrammaticDigitalTriggerIntanStimulationRecordingController e
         validEStimParameters = false;
         if (connected & eStimEnabled) {
             String eStimSpec = getEStimSpec(context);
+            System.out.println("eStimSpec: " + eStimSpec);
             try {
-                EStimParameters eStimParameters = EStimParameters.fromXml(eStimSpec);
+                EStimParameters eStimParameters;
+                if (eStimSpec.equals("No EStim")) {
+                    eStimParameters = new EStimParameters();
+                } else {
+                    eStimParameters = EStimParameters.fromXml(eStimSpec);
+                }
                 getIntan().setupDigitalStimulationFor(eStimParameters);
                 validEStimParameters = true;
             } catch (Exception e) {

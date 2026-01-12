@@ -81,7 +81,7 @@ public class PngBlockGen extends AbstractTrialGenerator{
 		double[] sampleRadiusLims = {sampleRadiusLowerLim, sampleRadiusUpperLim};
 		//CHOICES
 		RewardPolicy rewardPolicy = RewardPolicy.LIST;
-		long[] eStimObjData = {1};
+		List<Long> eStimObjData = new ArrayList();
 
 		//GENERATION
 		try {

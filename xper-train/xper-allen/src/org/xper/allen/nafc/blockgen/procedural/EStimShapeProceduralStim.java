@@ -38,22 +38,29 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     private String texture;
     protected int compId;
     protected RFStrategy rfStrategy = RFStrategy.COMPLETELY_INSIDE;
-    protected long[] eStimObjData;
+    protected List<Long> eStimObjData = new ArrayList<>();
     protected double sampleSizeDegrees;
     protected double choiceSizeDegrees;
     protected long baseMStickStimSpecId;
 
+
     public EStimShapeProceduralStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled, long baseMStickStimSpecId, int compId) {
-        this(generator, parameters, baseMatchStick, Collections.singletonList(morphComponentIndex), isEStimEnabled, baseMStickStimSpecId, compId);
+        this(generator, parameters, baseMatchStick, Collections.singletonList(morphComponentIndex), isEStimEnabled, baseMStickStimSpecId, compId, null);
     }
 
-    public EStimShapeProceduralStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, List<Integer> morphComponentIndcs, boolean isEStimEnabled, long baseMStickStimSpecId, int compId) {
+
+    public EStimShapeProceduralStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, List<Integer> morphComponentIndcs, boolean isEStimEnabled, long baseMStickStimSpecId, int compId, Long eStimSpecId) {
         super(generator, parameters, baseMatchStick, morphComponentIndcs);
         this.rfSource = generator.getRfSource();
         this.isEStimEnabled = isEStimEnabled;
         samplePngMaker = generator.getSamplePngMaker();
         choicePNGMaker = generator.getPngMaker();
         this.baseMStickStimSpecId = baseMStickStimSpecId;
+        if (isEStimEnabled){
+            eStimObjData.add(eStimSpecId);
+        } else{
+            eStimObjData = new ArrayList<>();
+        }
 
         JdbcTemplate gaJDBCTemplate = new JdbcTemplate(generator.getGaDataSource());
         SizePropertyManager sizePropertyManager = new SizePropertyManager(gaJDBCTemplate);
@@ -240,13 +247,13 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     }
 
     protected void writeEStimSpec() {
-        if (isEStimEnabled) {
-            AllenDbUtil dbUtil = (AllenDbUtil) generator.getDbUtil();
-            eStimObjData = new long[]{getStimId()};
-            dbUtil.writeEStimObjData(eStimObjData[0], "EStimEnabled", "");
-        } else {
-            eStimObjData = new long[]{1L};
-        }
+//        if (isEStimEnabled) {
+//            AllenDbUtil dbUtil = (AllenDbUtil) generator.getDbUtil();
+//            eStimObjData = new long[]{getStimId()};
+//            dbUtil.writeEStimObjData(eStimObjData[0], "EStimEnabled", "");
+//        } else {
+//            eStimObjData = new long[]{1L};
+//        }
 
     }
 

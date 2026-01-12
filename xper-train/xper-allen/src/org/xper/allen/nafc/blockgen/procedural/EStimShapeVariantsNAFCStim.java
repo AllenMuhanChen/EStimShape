@@ -30,7 +30,8 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
     public static EStimShapeVariantsNAFCStim createSampledIdEStimShapeVariantsNAFCStim(
             EStimShapeExperimentTrialGenerator generator,
             ProceduralStimParameters parameters,
-            boolean isEStimEnabled) {
+            boolean isEStimEnabled,
+            Long eStimSpecId) {
 
         DataSource gaDataSource = generator.getGaDataSource();
         JdbcTemplate gaJDBCTemplate = new JdbcTemplate(gaDataSource);
@@ -50,11 +51,11 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         Random random = new Random();
         long variantId = variantIds.get(random.nextInt(variantIds.size()));
 
-        return new EStimShapeVariantsNAFCStim(generator, parameters, variantId, isEStimEnabled);
+        return new EStimShapeVariantsNAFCStim(generator, parameters, variantId, isEStimEnabled, eStimSpecId);
     }
 
-    public EStimShapeVariantsNAFCStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, Long variantId, boolean isEStimEnabled){
-        super(generator, parameters, null, new ArrayList<>(), isEStimEnabled, variantId, -1);
+    public EStimShapeVariantsNAFCStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, Long variantId, boolean isEStimEnabled, Long eStimSpecId){
+        super(generator, parameters, null, new ArrayList<>(), isEStimEnabled, variantId, -1, eStimSpecId);
         gaSpecPath = generator.getGaSpecPath();
 
         gaDataSource = generator.getGaDataSource();

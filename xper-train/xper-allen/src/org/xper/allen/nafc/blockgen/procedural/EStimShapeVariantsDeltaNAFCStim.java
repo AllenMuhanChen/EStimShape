@@ -42,7 +42,7 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
     }
 
     public EStimShapeVariantsDeltaNAFCStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, Long variantId, boolean isDelta, boolean isEStimEnabled) {
-        super(generator, parameters, variantId, isEStimEnabled);
+        super(generator, parameters, variantId, isEStimEnabled, null);
         this.isDelta = isDelta;
 
         if (isDelta){

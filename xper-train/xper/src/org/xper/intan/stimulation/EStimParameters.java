@@ -8,7 +8,7 @@ import java.util.Map;
 
 public class EStimParameters {
 
-    Map<RHSChannel, ChannelEStimParameters> eStimParametersForChannels;
+    Map<RHSChannel, ChannelEStimParameters> eStimParametersForChannels = new HashMap<>();
 
     public EStimParameters(Map<RHSChannel, ChannelEStimParameters> eStimParametersForChannels) {
         this.eStimParametersForChannels = eStimParametersForChannels;
