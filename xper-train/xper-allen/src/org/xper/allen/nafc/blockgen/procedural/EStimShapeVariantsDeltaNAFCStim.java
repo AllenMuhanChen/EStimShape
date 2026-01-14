@@ -3,10 +3,13 @@ package org.xper.allen.nafc.blockgen.procedural;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
+import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 
 import javax.sql.DataSource;
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
@@ -99,6 +102,8 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
         return deltaIds.get(random.nextInt(deltaIds.size()));
     }
 
+
+
     @Override
     protected void generateProceduralDistractors(ProceduralMatchStick sample) {
         if (numProceduralDistractors >= 1){
@@ -126,6 +131,23 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
             proceduralDistractor.genNewComponentsMatchStick(sample, morphComponentIndcs, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts, noiseComponentIndcs);
             mSticks.addProceduralDistractor(proceduralDistractor);
             mStickSpecs.addProceduralDistractor(mStickToSpec(proceduralDistractor));
+        }
+    }
+
+    @Override
+    protected void assignLabels() {
+        labels.setSample(new LinkedList<>(Arrays.asList("sample")));
+        labels.setMatch(new LinkedList<>(Arrays.asList("match")));
+        for (int i = 0; i < numProceduralDistractors; i++) {
+            if (i==0){
+                labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("delta")));
+            } else{
+                labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("procedural")));
+            }
+
+        }
+        for (int i = 0; i < numRandDistractors; i++) {
+            labels.addRandDistractor(new LinkedList<>(Arrays.asList("rand")));
         }
     }
 

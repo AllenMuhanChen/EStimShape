@@ -535,7 +535,7 @@ class IsHypothesizedField(IsDeltaField):
             else:
                 return False
         else:
-            if choice == "procedural":
+            if choice == "delta":
                 return True
             else:
                 return False
