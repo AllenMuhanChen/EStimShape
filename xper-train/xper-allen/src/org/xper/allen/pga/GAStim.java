@@ -46,6 +46,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
 
 
     private T mStick;
+    private String parentTextureType;
     // For swapping between 2D/3D textures with preserved average contrast
 
     /**
@@ -68,6 +69,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
         colorManager = new ColorPropertyManager(jdbcTemplate);
         textureManager = new TexturePropertyManager(jdbcTemplate);
+        parentTextureType = textureManager.readProperty(parentId);
         sizeManager = new SizePropertyManager(jdbcTemplate);
         rfStrategyManager = new RFStrategyPropertyManager(jdbcTemplate);
         contrastManager = new ContrastPropertyManager(jdbcTemplate);
@@ -92,6 +94,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
         colorManager = new ColorPropertyManager(jdbcTemplate);
         textureManager = new TexturePropertyManager(jdbcTemplate);
+        parentTextureType = textureManager.readProperty(parentId);
         sizeManager = new SizePropertyManager(jdbcTemplate);
         rfStrategyManager = new RFStrategyPropertyManager(jdbcTemplate);
         contrastManager = new ContrastPropertyManager(jdbcTemplate);
@@ -110,16 +113,16 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         int nTries = 0;
         mStick = null;
         int maxTries = 30;
+        setProperties();
+        String originalTextureType = textureType;
+        boolean originalDness = is2d;
         while(nTries < maxTries) {
             nTries++;
             try {
-                setProperties();
                 if (!useAverageRGB) {
                     mStick = createMStick();
                 } else {
                     //weird hack to get around that we have to draw something 3D first to get the average contrast
-                    String originalTextureType = textureType;
-                    boolean originalDness = is2d;
                     textureType = underlyingTexture;
                     is2d = false;
                     mStick = createMStick(); //Make 3D version
@@ -130,6 +133,9 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
                     averageRGB = generator.getPngMaker().getWindow().calculateAverageRGB(mStick);
                     contrast = 1.0; //if we are using average RGB, we don't want to change the contrast. Since we are
                     //relying on the Average RGB to modulate contrast of 2D stimuli.
+                    if (!parentTextureType.equals(originalTextureType)) {
+                        System.out.println("WTF IS GOING ON HERE");
+                    }
                     textureType = originalTextureType;
                     is2d = originalDness;
                     mStick = (T) new GAMatchStick(mStick.getMassCenter());

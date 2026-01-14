@@ -17,8 +17,8 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
 
     protected final CompsToPreserveManager compsToPreserveManager;
     public EStimShapeVariantsGAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId) {
-        super(stimId, generator, parentId);
-        this.textureType = "PARENT";
+        super(stimId, generator, parentId, "PARENT", true);
+
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
         compsToPreserveManager = new CompsToPreserveManager(jdbcTemplate);
@@ -33,6 +33,11 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
         } else{
             Point3d oldPosition = parentLocation.getPosition();
             position = new MStickPosition(parentLocation.getPositioningStrategy(), oldPosition);        }
+    }
+
+    @Override
+    protected void chooseTextureType() {
+        super.chooseTextureType();
     }
 
     @Override
