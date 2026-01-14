@@ -18,7 +18,8 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
             EStimShapeExperimentTrialGenerator generator,
             ProceduralStimParameters parameters,
             boolean isDelta,
-            boolean isEStimEnabled) {
+            boolean isEStimEnabled,
+            Long eStimSpecId) {
 
         DataSource gaDataSource = generator.getGaDataSource();
         JdbcTemplate gaJDBCTemplate = new JdbcTemplate(gaDataSource);
@@ -38,11 +39,11 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
         Random random = new Random();
         long variantId = variantIds.get(random.nextInt(variantIds.size()));
 
-        return new EStimShapeVariantsDeltaNAFCStim(generator, parameters, variantId, isDelta, isEStimEnabled);
+        return new EStimShapeVariantsDeltaNAFCStim(generator, parameters, variantId, isDelta, isEStimEnabled, eStimSpecId);
     }
 
-    public EStimShapeVariantsDeltaNAFCStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, Long variantId, boolean isDelta, boolean isEStimEnabled) {
-        super(generator, parameters, variantId, isEStimEnabled, null);
+    public EStimShapeVariantsDeltaNAFCStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, Long variantId, boolean isDelta, boolean isEStimEnabled, Long eStimSpecId) {
+        super(generator, parameters, variantId, isEStimEnabled, eStimSpecId);
         this.isDelta = isDelta;
 
         if (isDelta){
@@ -71,7 +72,8 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
 
 
         sample.genMatchStickFromShapeSpec(baseStickSpec, new double[]{0,0,0});
-        noiseMapper.checkInNoise(sample, noiseComponentIndcs, 0.5);
+
+        noiseMapper.checkInNoise(sample, noiseComponentIndcs, 0.45);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));
 

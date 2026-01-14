@@ -12,7 +12,7 @@ from clat.util.connection import Connection
 
 from src.analysis.nafc.nafc_database_fields import (
     IsCorrectField, NoiseChanceField, NumRandDistractorsField,
-    StimTypeField, ChoiceField, AnswerField, GenIdField, EStimEnabledField
+    StimTypeField, ChoiceField, AnswerField, GenIdField, EStimEnabledFieldLegacy
 )
 from src.analysis.nafc.psychometric_curves import collect_choice_trials, plot_psychometric_curve_on_ax
 
@@ -109,7 +109,7 @@ def main():
     fields.append(StimTypeField(conn))
     fields.append(ChoiceField(conn))
     fields.append(GenIdField(conn))
-    fields.append(EStimEnabledField(conn))
+    fields.append(EStimEnabledFieldLegacy(conn))
 
 
     # Convert to dataframe

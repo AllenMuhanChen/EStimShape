@@ -2,6 +2,8 @@ import ast
 import re
 
 import xmltodict
+
+from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.compile.tstamp.cached_tstamp_fields import CachedDatabaseField
 
 from clat.util.connection import Connection
@@ -289,8 +291,94 @@ class TrialTypeField(StimSpecDataField):
             print(stim_spec_data)
             return "Unknown"
 
+class EStimObjDataField(CachedDatabaseField):
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+    def get_name(self):
+        return "EStimObjData"
+    def get(self, when: When)->dict:
+        stim_spec = self.get_cached_super(when, StimSpecField)
+        estim_obj_data = stim_spec['StimSpec']['eStimObjData']
+        return estim_obj_data
+
+
 
 class EStimEnabledField(CachedDatabaseField):
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "EStimEnabled"
+
+    def get(self, when: When):
+
+        estim_obj_data = self.get_cached_super(when, EStimObjDataField)
+        print(estim_obj_data)
+        if estim_obj_data is None:
+            return False
+        else:
+            return True
+
+class EStimSpecIdField(EStimObjDataField):
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "EStimSpecId"
+
+    def get(self, when: When):
+        estim_obj_data = self.get_cached_super(when, EStimObjDataField)
+        print(estim_obj_data)
+        if estim_obj_data is None:
+            return None
+        else:
+            estim_spec_id = estim_obj_data['long']
+            return estim_spec_id
+
+class EStimSpecField(EStimSpecIdField):
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "EStimSpec"
+
+    def get(self, when: When) -> dict:
+        estim_spec_id = self.get_cached_super(when, EStimSpecIdField)
+        if estim_spec_id is None:
+            return None
+        query = """
+        SELECT spec FROM EStimObjData
+            WHERE id = %s
+        """
+        self.conn.execute(query, params=(estim_spec_id,))
+        result = self.conn.fetch_one()
+        spec = xmltodict.parse(result)['EStimParameters']['eStimParametersForChannels']['entry']
+
+        return spec
+
+class WaveformField(EStimSpecField):
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "EStimWaveform"
+
+    def get(self, when: When) -> dict:
+        estim_spec = self.get_cached_super(when, EStimSpecField)
+        return estim_spec['org.xper.intan.stimulation.ChannelEStimParameters']['waveformParameters']
+
+class EStimPolarityField(WaveformField):
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "EStimPolarity"
+
+    def get(self, when: When) -> dict:
+        waveform_params = self.get_cached_super(when, WaveformField)
+        return waveform_params['polarity']
+
+class EStimEnabledFieldLegacy(CachedDatabaseField):
     def __init__(self, conn: Connection):
         super().__init__(conn)
 

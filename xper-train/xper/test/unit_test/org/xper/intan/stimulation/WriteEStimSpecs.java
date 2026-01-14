@@ -34,17 +34,17 @@ public class WriteEStimSpecs {
 
     @Test
     public void test() throws Exception {
-        RHSChannel channel = RHSChannel.A025;
+        RHSChannel channel = RHSChannel.A027;
 
         Map<RHSChannel, ChannelEStimParameters> parametersForChannels = new LinkedHashMap<>();
         WaveformParameters waveformOne = new WaveformParameters(
-                StimulationShape.Biphasic,
-                StimulationPolarity.PositiveFirst,
+                StimulationShape.BiphasicWithInterphaseDelay,
+                StimulationPolarity.NegativeFirst,
                 200.0,
                 200.0,
-                0.0,
-                2.5,
-                2.5
+                100.0,
+                3.5,
+                3.5
         );
 
 
@@ -56,14 +56,21 @@ public class WriteEStimSpecs {
                 TriggerEdgeOrLevel.Level,
                 0.0);
 
+        ChargeRecoveryParameters chargeRecoveryParameters = new ChargeRecoveryParameters(
+                true,
+                0.0,
+                3000.0
+        );
         ChannelEStimParameters channelEStimParameters = new ChannelEStimParameters(
                 waveformOne,
-                pulseTrainParameters);
+                pulseTrainParameters,
+                new AmpSettleParameters(),
+                chargeRecoveryParameters);
 
 
         parametersForChannels.put(channel, channelEStimParameters);
         EStimParameters eStimParameters = new EStimParameters(parametersForChannels);
 
-        dbUtil.writeEStimObjData(2L, eStimParameters.toXml(), "");
+        dbUtil.writeEStimObjData(6L, eStimParameters.toXml(), "");
     }
 }

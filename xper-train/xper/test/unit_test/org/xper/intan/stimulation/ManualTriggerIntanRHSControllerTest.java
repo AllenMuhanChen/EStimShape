@@ -91,13 +91,14 @@ public class ManualTriggerIntanRHSControllerTest {
         Map<RHSChannel, ChannelEStimParameters> parametersForChannels = new LinkedHashMap<>();
         WaveformParameters waveformParameters = new WaveformParameters(
                 StimulationShape.Biphasic,
-                StimulationPolarity.NegativeFirst,
-                5000.0,
-                5000.0,
-                1000.0,
-                50.0,
-                50.0
+                StimulationPolarity.PositiveFirst,
+                200.0,
+                200.0,
+                0.0,
+                2.5,
+                2.5
         );
+
 
         PulseTrainParameters pulseTrainParameters = new PulseTrainParameters(
                 PulseRepetition.SinglePulse,
@@ -131,7 +132,7 @@ public class ManualTriggerIntanRHSControllerTest {
 
 //        System.out.println(eStimParameters.toXml());
 
-        controller.setupManualStimulationFor(eStimParameters);
+        controller.setupDigitalStimulationFor(eStimParameters);
         controller.stopRecording();
 
 

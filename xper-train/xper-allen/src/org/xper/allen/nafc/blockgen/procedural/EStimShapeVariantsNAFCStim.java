@@ -69,7 +69,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         texture = texturePropertyManager.readProperty(variantId);
         color = colorPropertyManager.readProperty(variantId);
 
-        maxChoiceSize = generator.getMaxChoiceDimensionDegrees() * 1.0;
+        maxChoiceSize = generator.getMaxChoiceDimensionDegrees() * 0.9;
         maxSampleSize = generator.getMaxSampleDimensionDegrees();
 
         choiceSize = sampleSize;
@@ -126,7 +126,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
 
 
         sample.genMatchStickFromShapeSpec(baseStickSpec, new double[]{0,0,0});
-        noiseMapper.checkInNoise(sample, noiseComponentIndcs, 0.5);
+        noiseMapper.checkInNoise(sample, noiseComponentIndcs, 0.45);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));
 

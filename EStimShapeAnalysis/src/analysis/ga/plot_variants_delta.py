@@ -11,8 +11,8 @@ import pandas as pd
 def main():
     analysis = PlotVariantDeltas()
     compiled_data = analysis.compile()
-    session_id = "260108_0"
-    channel = "A-011"
+    session_id = "260113_0"
+    channel = "A-020"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 

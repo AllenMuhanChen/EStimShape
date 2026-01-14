@@ -26,13 +26,13 @@ public class EStimExperimentVariantsDeltaGenType extends EStimExperimentVariants
                         (EStimShapeExperimentTrialGenerator) generator,
                         parameters.getProceduralStimParameters(),
                         false,
-                        parameters.isEStimEnabled));
+                        parameters.isEStimEnabled, parameters.eStimSpecId));
 
                 newBlock.add(EStimShapeVariantsDeltaNAFCStim.createSampledDeltaNAFCStim(
                         (EStimShapeExperimentTrialGenerator) generator,
                         parameters.getProceduralStimParameters(),
                         true,
-                        parameters.isEStimEnabled));
+                        parameters.isEStimEnabled, parameters.eStimSpecId));
             } else {
                 //using estim value from the GUI field
                 EStimShapeVariantsNAFCStim stim = new EStimShapeVariantsDeltaNAFCStim(
@@ -40,7 +40,7 @@ public class EStimExperimentVariantsDeltaGenType extends EStimExperimentVariants
                         parameters.getProceduralStimParameters(),
                         parameters.stimId,
                         false,
-                        parameters.isEStimEnabled);
+                        parameters.isEStimEnabled, parameters.eStimSpecId);
                 newBlock.add(stim);
 
                 EStimShapeVariantsNAFCStim deltaStim = new EStimShapeVariantsDeltaNAFCStim(
@@ -48,7 +48,7 @@ public class EStimExperimentVariantsDeltaGenType extends EStimExperimentVariants
                         parameters.getProceduralStimParameters(),
                         parameters.stimId,
                         true,
-                        parameters.isEStimEnabled);
+                        parameters.isEStimEnabled, parameters.eStimSpecId);
                 newBlock.add(deltaStim);
             }
         }

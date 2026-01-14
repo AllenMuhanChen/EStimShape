@@ -66,7 +66,7 @@ class MultiFileParser:
             # Otherwise, update the list of task IDs we still need to process
             remaining_task_ids = missing_task_ids
             print(
-                f"Found {len(task_id_set) - len(missing_task_ids)} task IDs in cache. Still need to process: {missing_task_ids}")
+                f"Found {len(task_id_set) - len(missing_task_ids)} task IDs in cache. Still need to process: {len(missing_task_ids)}")
 
         # Find relevant files for remaining task IDs
         remaining_task_id_set = set(remaining_task_ids)
@@ -74,7 +74,7 @@ class MultiFileParser:
 
         if not matching_dirs:
             if spikes_by_channel_by_task_id:  # If we have some data from cache
-                print(f"No files found for remaining task IDs {remaining_task_ids}. Returning partial data from cache.")
+                print(f"No files found for remaining task IDs {len(remaining_task_ids)}. Returning partial data from cache.")
                 return spikes_by_channel_by_task_id, epochs_by_task_id
             else:
                 raise ValueError(f"No files found containing task IDs {task_ids}")

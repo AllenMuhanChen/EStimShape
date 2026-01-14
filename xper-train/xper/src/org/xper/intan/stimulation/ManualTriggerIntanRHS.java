@@ -87,7 +87,7 @@ public class ManualTriggerIntanRHS extends IntanRHD {
     }
 
     public void setupDigitalStimulationFor(EStimParameters eStimParameters){
-        stopRecording(); //necessary to upload stim parameters
+        stop(); //necessary to upload stim parameters
         disableAllStim();
 
         Map<RHSChannel, ChannelEStimParameters> parametersForChannels = eStimParameters.geteStimParametersForChannels();
