@@ -46,7 +46,6 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
 
 
     private T mStick;
-    private String parentTextureType;
     // For swapping between 2D/3D textures with preserved average contrast
 
     /**
@@ -69,7 +68,6 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
         colorManager = new ColorPropertyManager(jdbcTemplate);
         textureManager = new TexturePropertyManager(jdbcTemplate);
-        parentTextureType = textureManager.readProperty(parentId);
         sizeManager = new SizePropertyManager(jdbcTemplate);
         rfStrategyManager = new RFStrategyPropertyManager(jdbcTemplate);
         contrastManager = new ContrastPropertyManager(jdbcTemplate);
@@ -94,7 +92,6 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
         colorManager = new ColorPropertyManager(jdbcTemplate);
         textureManager = new TexturePropertyManager(jdbcTemplate);
-        parentTextureType = textureManager.readProperty(parentId);
         sizeManager = new SizePropertyManager(jdbcTemplate);
         rfStrategyManager = new RFStrategyPropertyManager(jdbcTemplate);
         contrastManager = new ContrastPropertyManager(jdbcTemplate);
@@ -133,9 +130,6 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
                     averageRGB = generator.getPngMaker().getWindow().calculateAverageRGB(mStick);
                     contrast = 1.0; //if we are using average RGB, we don't want to change the contrast. Since we are
                     //relying on the Average RGB to modulate contrast of 2D stimuli.
-                    if (!parentTextureType.equals(originalTextureType)) {
-                        System.out.println("WTF IS GOING ON HERE");
-                    }
                     textureType = originalTextureType;
                     is2d = originalDness;
                     mStick = (T) new GAMatchStick(mStick.getMassCenter());
