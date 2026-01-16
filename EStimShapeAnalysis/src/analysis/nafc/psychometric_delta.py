@@ -59,7 +59,7 @@ def run_permutation_test(data_for_perm, noise_levels, metric_field, global_test_
     stimulus_type : str, optional
         'delta' or 'variant'
     polarity : str, optional
-        'anodic' or 'cathodic'
+        'anodic', 'cathodic', or 'combined'
     """
     import numpy as np
 
@@ -190,45 +190,34 @@ def main():
     import numpy as np
 
     # Database connection
-    conn = Connection("allen_estimshape_exp_260113_0")
+    conn = Connection("allen_estimshape_exp_260115_0")
 
     # Time range
     since_date = time_util.from_date_to_now(2024, 7, 10)
-    start_gen_id = 4
-    max_gen_id = 7
+    start_gen_id = 5
+    max_gen_id = 6
     start_gen_id_estim_on = 0
     max_gen_id_estim_on = float('inf')
 
     # ============ PERMUTATION TEST PARAMETERS ============
     # Global test side (fallback for all conditions)
-    global_test_side = 'two-tailed'
+    global_test_side = 'positive'
 
     # Per-level test sides with hierarchical lookup
-    # Keys can be:
-    #   (stimulus, polarity, noise) - most specific
-    #   (stimulus, polarity) - all noise levels for this combo
-    #   (stimulus, noise) - all polarities for this stimulus at this noise
-    #   (polarity, noise) - all stimuli for this polarity at this noise
-    #   (stimulus,) - all polarities and noise for this stimulus
-    #   (polarity,) - all stimuli and noise for this polarity
-    #   noise - backward compatible, applies to all stimulus/polarity (just a number)
-
     per_level_test_sides = {
         # Most specific: test each combination independently
         ('delta', 'anodic', 1.0): "positive",
-        ('delta', 'anodic', 0.9): "negative",
+        ('delta', 'anodic', 0.9): "positive",
         ('delta', 'cathodic', 1.0): "positive",
-        ('delta', 'cathodic', 0.9): "negative",
+        ('delta', 'cathodic', 0.9): "positive",
+        ('delta', 'combined', 1.0): "positive",
+        ('delta', 'combined', 0.9): "positive",
         ('variant', 'anodic', 1.0): "positive",
         ('variant', 'anodic', 0.9): "positive",
         ('variant', 'cathodic', 1.0): "positive",
-        ('variant', 'cathodic', 0.9): "negative",
-
-        # Or use broader specifications:
-        # ('delta', 'anodic'): "positive",  # All noise levels for delta anodic
-        # ('delta',): "negative",  # All conditions for delta
-        # (0.75,): "two-tailed",  # All conditions at N75%
-        # 1.0: "positive",  # Backward compatible: all at N100%
+        ('variant', 'cathodic', 0.9): "positive",
+        ('variant', 'combined', 1.0): "positive",
+        ('variant', 'combined', 0.9): "positive",
     }
 
     if per_level_test_sides is None:
@@ -279,9 +268,11 @@ def main():
     # Split EStim ON by polarity
     data_exp_delta_pos = data_exp_delta_estim_on[data_exp_delta_estim_on['EStimPolarity'] == 'PositiveFirst']
     data_exp_delta_neg = data_exp_delta_estim_on[data_exp_delta_estim_on['EStimPolarity'] == 'NegativeFirst']
+    data_exp_delta_combined = data_exp_delta_estim_on  # Combined: all EStim ON
 
     data_exp_variant_pos = data_exp_variant_estim_on[data_exp_variant_estim_on['EStimPolarity'] == 'PositiveFirst']
     data_exp_variant_neg = data_exp_variant_estim_on[data_exp_variant_estim_on['EStimPolarity'] == 'NegativeFirst']
+    data_exp_variant_combined = data_exp_variant_estim_on  # Combined: all EStim ON
 
     noise_levels = sorted(data_exp['NoiseChance'].unique())
 
@@ -305,6 +296,15 @@ def main():
             show_n=True, num_rep_min=0,
             color='red', linewidth=2.5, marker='s', markersize=6, linestyle=':',
             label=f'Delta Cathodic (n={len(data_exp_delta_neg)})')
+
+    # ACCURACY: Delta Combined
+    if len(data_exp_delta_combined) > 0:
+        plot_psychometric_curve_on_ax(
+            data_exp_delta_combined, axes1[0],
+            title='ACCURACY: Delta vs Variant by Polarity',
+            show_n=True, num_rep_min=0,
+            color='darkred', linewidth=2.5, marker='D', markersize=6, linestyle='--',
+            label=f'Delta Combined (n={len(data_exp_delta_combined)})')
 
     # ACCURACY: Delta EStim OFF
     if len(data_exp_delta_estim_off) > 0:
@@ -333,6 +333,15 @@ def main():
             color='blue', linewidth=2.5, marker='s', markersize=6, linestyle=':',
             label=f'Variant Cathodic (n={len(data_exp_variant_neg)})')
 
+    # ACCURACY: Variant Combined
+    if len(data_exp_variant_combined) > 0:
+        plot_psychometric_curve_on_ax(
+            data_exp_variant_combined, axes1[0],
+            title='ACCURACY: Delta vs Variant by Polarity',
+            show_n=True, num_rep_min=0,
+            color='darkblue', linewidth=2.5, marker='D', markersize=6, linestyle='--',
+            label=f'Variant Combined (n={len(data_exp_variant_combined)})')
+
     # ACCURACY: Variant EStim OFF
     if len(data_exp_variant_estim_off) > 0:
         plot_psychometric_curve_on_ax(
@@ -345,7 +354,7 @@ def main():
     axes1[0].invert_xaxis()
     axes1[0].set_ylim([0, 110])
     axes1[0].grid(True, alpha=0.3)
-    axes1[0].legend(fontsize=8)
+    axes1[0].legend(fontsize=7)
 
     # ACCURACY: Statistics
     results_text = "PERMUTATION TEST - ACCURACY\n"
@@ -381,6 +390,26 @@ def main():
             run_permutation_test(data_delta_cathodic_for_perm, noise_levels, 'IsCorrect',
                                  global_test_side, per_level_test_sides,
                                  stimulus_type='delta', polarity='cathodic')
+
+        for noise in sorted(level_diffs.keys()):
+            estim_pct, no_estim_pct, diff, n_on, n_off, p, sig, test_side = level_diffs[noise]
+            results_text += f"N{noise * 100:.0f}%: {diff:+.1f}% p={p:.3f}{sig}\n"
+        results_text += f"Overall: {observed_sum:+.1f}% p={overall_p:.4f} {overall_sig}\n"
+    else:
+        results_text += "Insufficient data\n"
+
+    results_text += "\n"
+
+    # Delta Combined vs OFF test
+    results_text += "DELTA COMBINED vs OFF\n" + "=" * 50 + "\n"
+    data_delta_combined_for_perm = pd.concat([data_exp_delta_combined, data_exp_delta_estim_off])
+
+    if len(data_exp_delta_combined) > 0 and len(data_exp_delta_estim_off) > 0:
+        np.random.seed(46)
+        observed_sum, overall_p, overall_sig, level_diffs, _ = \
+            run_permutation_test(data_delta_combined_for_perm, noise_levels, 'IsCorrect',
+                                 global_test_side, per_level_test_sides,
+                                 stimulus_type='delta', polarity='combined')
 
         for noise in sorted(level_diffs.keys()):
             estim_pct, no_estim_pct, diff, n_on, n_off, p, sig, test_side = level_diffs[noise]
@@ -429,6 +458,26 @@ def main():
     else:
         results_text += "Insufficient data\n"
 
+    results_text += "\n"
+
+    # Variant Combined vs OFF test
+    results_text += "VARIANT COMBINED vs OFF\n" + "=" * 50 + "\n"
+    data_variant_combined_for_perm = pd.concat([data_exp_variant_combined, data_exp_variant_estim_off])
+
+    if len(data_exp_variant_combined) > 0 and len(data_exp_variant_estim_off) > 0:
+        np.random.seed(47)
+        observed_sum, overall_p, overall_sig, level_diffs, _ = \
+            run_permutation_test(data_variant_combined_for_perm, noise_levels, 'IsCorrect',
+                                 global_test_side, per_level_test_sides,
+                                 stimulus_type='variant', polarity='combined')
+
+        for noise in sorted(level_diffs.keys()):
+            estim_pct, no_estim_pct, diff, n_on, n_off, p, sig, test_side = level_diffs[noise]
+            results_text += f"N{noise * 100:.0f}%: {diff:+.1f}% p={p:.3f}{sig}\n"
+        results_text += f"Overall: {observed_sum:+.1f}% p={overall_p:.4f} {overall_sig}\n"
+    else:
+        results_text += "Insufficient data\n"
+
     results_text += "\n* p<0.05, ** p<0.01, *** p<0.001"
 
     axes1[1].text(0.05, 0.95, results_text,
@@ -450,6 +499,9 @@ def main():
     data_exp_delta_neg_hyp = data_exp_delta_neg.copy()
     data_exp_delta_neg_hyp['IsCorrect'] = data_exp_delta_neg_hyp['IsHypothesized']
 
+    data_exp_delta_combined_hyp = data_exp_delta_combined.copy()
+    data_exp_delta_combined_hyp['IsCorrect'] = data_exp_delta_combined_hyp['IsHypothesized']
+
     data_exp_delta_estim_off_hyp = data_exp_delta_estim_off.copy()
     data_exp_delta_estim_off_hyp['IsCorrect'] = data_exp_delta_estim_off_hyp['IsHypothesized']
 
@@ -458,6 +510,9 @@ def main():
 
     data_exp_variant_neg_hyp = data_exp_variant_neg.copy()
     data_exp_variant_neg_hyp['IsCorrect'] = data_exp_variant_neg_hyp['IsHypothesized']
+
+    data_exp_variant_combined_hyp = data_exp_variant_combined.copy()
+    data_exp_variant_combined_hyp['IsCorrect'] = data_exp_variant_combined_hyp['IsHypothesized']
 
     data_exp_variant_estim_off_hyp = data_exp_variant_estim_off.copy()
     data_exp_variant_estim_off_hyp['IsCorrect'] = data_exp_variant_estim_off_hyp['IsHypothesized']
@@ -479,6 +534,15 @@ def main():
             show_n=True, num_rep_min=0,
             color='red', linewidth=2.5, marker='s', markersize=6, linestyle=':',
             label=f'Delta Cathodic (n={len(data_exp_delta_neg_hyp)})')
+
+    # HYPOTHESIZED: Delta Combined
+    if len(data_exp_delta_combined_hyp) > 0:
+        plot_psychometric_curve_on_ax(
+            data_exp_delta_combined_hyp, axes2[0],
+            title='% HYPOTHESIZED: Delta vs Variant by Polarity',
+            show_n=True, num_rep_min=0,
+            color='darkred', linewidth=2.5, marker='D', markersize=6, linestyle='--',
+            label=f'Delta Combined (n={len(data_exp_delta_combined_hyp)})')
 
     # HYPOTHESIZED: Delta EStim OFF
     if len(data_exp_delta_estim_off_hyp) > 0:
@@ -507,19 +571,28 @@ def main():
             color='blue', linewidth=2.5, marker='s', markersize=6, linestyle=':',
             label=f'Variant Cathodic (n={len(data_exp_variant_neg_hyp)})')
 
+    # HYPOTHESIZED: Variant Combined
+    if len(data_exp_variant_combined_hyp) > 0:
+        plot_psychometric_curve_on_ax(
+            data_exp_variant_combined_hyp, axes2[0],
+            title='% HYPOTHESIZED: Delta vs Variant by Polarity',
+            show_n=True, num_rep_min=0,
+            color='darkblue', linewidth=2.5, marker='D', markersize=6, linestyle='--',
+            label=f'Variant Combined (n={len(data_exp_variant_combined_hyp)})')
+
     # HYPOTHESIZED: Variant EStim OFF
     if len(data_exp_variant_estim_off_hyp) > 0:
         plot_psychometric_curve_on_ax(
             data_exp_variant_estim_off_hyp, axes2[0],
             title='% HYPOTHESIZED: Delta vs Variant by Polarity',
             show_n=True, num_rep_min=0,
-            color='lightblue', linewidth=2.5, marker='o', markersize=6, linestyle='-',
+            color='lightblue', linewidth=2.5, marker='o', markersize=6, linestyle='--',
             label=f'Variant OFF (n={len(data_exp_variant_estim_off_hyp)})')
 
     axes2[0].invert_xaxis()
     axes2[0].set_ylim([0, 110])
     axes2[0].grid(True, alpha=0.3)
-    axes2[0].legend(fontsize=8)
+    axes2[0].legend(fontsize=7)
 
     # HYPOTHESIZED: Statistics
     results_text = "PERMUTATION TEST - % HYPOTHESIZED\n"
@@ -565,6 +638,26 @@ def main():
 
     results_text += "\n"
 
+    # Delta Combined vs OFF test
+    results_text += "DELTA COMBINED vs OFF\n" + "=" * 50 + "\n"
+    data_delta_combined_for_perm_hyp = pd.concat([data_exp_delta_combined, data_exp_delta_estim_off])
+
+    if len(data_exp_delta_combined) > 0 and len(data_exp_delta_estim_off) > 0:
+        np.random.seed(46)
+        observed_sum, overall_p, overall_sig, level_diffs, _ = \
+            run_permutation_test(data_delta_combined_for_perm_hyp, noise_levels, 'IsHypothesized',
+                                 global_test_side, per_level_test_sides,
+                                 stimulus_type='delta', polarity='combined')
+
+        for noise in sorted(level_diffs.keys()):
+            estim_pct, no_estim_pct, diff, n_on, n_off, p, sig, test_side = level_diffs[noise]
+            results_text += f"N{noise * 100:.0f}%: {diff:+.1f}% p={p:.3f}{sig}\n"
+        results_text += f"Overall: {observed_sum:+.1f}% p={overall_p:.4f} {overall_sig}\n"
+    else:
+        results_text += "Insufficient data\n"
+
+    results_text += "\n"
+
     # Variant Anodic vs OFF test
     results_text += "VARIANT ANODIC vs OFF\n" + "=" * 50 + "\n"
     data_variant_anodic_for_perm_hyp = pd.concat([data_exp_variant_pos, data_exp_variant_estim_off])
@@ -595,6 +688,26 @@ def main():
             run_permutation_test(data_variant_cathodic_for_perm_hyp, noise_levels, 'IsHypothesized',
                                  global_test_side, per_level_test_sides,
                                  stimulus_type='variant', polarity='cathodic')
+
+        for noise in sorted(level_diffs.keys()):
+            estim_pct, no_estim_pct, diff, n_on, n_off, p, sig, test_side = level_diffs[noise]
+            results_text += f"N{noise * 100:.0f}%: {diff:+.1f}% p={p:.3f}{sig}\n"
+        results_text += f"Overall: {observed_sum:+.1f}% p={overall_p:.4f} {overall_sig}\n"
+    else:
+        results_text += "Insufficient data\n"
+
+    results_text += "\n"
+
+    # Variant Combined vs OFF test
+    results_text += "VARIANT COMBINED vs OFF\n" + "=" * 50 + "\n"
+    data_variant_combined_for_perm_hyp = pd.concat([data_exp_variant_combined, data_exp_variant_estim_off])
+
+    if len(data_exp_variant_combined) > 0 and len(data_exp_variant_estim_off) > 0:
+        np.random.seed(47)
+        observed_sum, overall_p, overall_sig, level_diffs, _ = \
+            run_permutation_test(data_variant_combined_for_perm_hyp, noise_levels, 'IsHypothesized',
+                                 global_test_side, per_level_test_sides,
+                                 stimulus_type='variant', polarity='combined')
 
         for noise in sorted(level_diffs.keys()):
             estim_pct, no_estim_pct, diff, n_on, n_off, p, sig, test_side = level_diffs[noise]

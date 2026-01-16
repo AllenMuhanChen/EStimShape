@@ -250,7 +250,7 @@ public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
 
     @Override
     public void shuffleTrials() {
-        Collections.shuffle(stims);
+        Collections.shuffle(getStims());
 //        Map<String, List<Stim>> groupedStims = new HashMap<String, List<Stim>>();
 //        List<String> mainConditions = new ArrayList<String>();
 //        List<Stim> otherStims = new ArrayList<Stim>();

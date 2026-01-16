@@ -825,7 +825,9 @@ class GroupedStimuliInputHandler(InputHandler):
                 raise ValueError(f"Required column '{col}' not found in data")
 
         # If response_col data is a dict and response_key is provided, extract the data
-        if isinstance(filtered_data[self.response_col].iloc[0], dict) and self.response_key:
+        if isinstance(filtered_data[self.response_col].iloc[0], np.float64):
+            filtered_data[self.response_col] = filtered_data[self.response_col]
+        elif isinstance(filtered_data[self.response_col].iloc[0], dict) and self.response_key:
             filtered_data[self.response_col] = filtered_data[self.response_col].apply(
                 lambda x: x[self.response_key] if isinstance(x, dict) and self.response_key in x else 0
             )

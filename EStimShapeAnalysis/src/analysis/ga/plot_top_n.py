@@ -26,14 +26,14 @@ from src.startup import context
 def main():
     channel = "A-011"
 
-    compiled_data = compile_and_export()
+    # compiled_data = compile_and_export()
     analysis = PlotTopNAnalysis()
 
     # compiled_data = None
     session_id, _ = read_session_id_from_db_name(context.ga_database)
-    # session_id = "250909_0"
-    channel = "A-027"
-    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    session_id = "260115_0"
+    channel = "A-025"
+    analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
 class PlotTopNAnalysis(Analysis):
@@ -69,7 +69,7 @@ class PlotTopNAnalysis(Analysis):
         # result = pipeline.run(compiled_data)
 
         # Create pipeline with both branches
-        pipeline = create_pipeline().make_branch(visualize_module).build()
+        pipeline = create_pipeline().then(visualize_module).build()
         result = pipeline.run(compiled_data)
 
         plt.show()

@@ -190,11 +190,13 @@ class ChoiceField(ChoiceSetField):
         choice_path = self._get_choice_png_path(choice_stim_obj_id)
 
 
-        if "match" in choice_path:
+        if "_match" in choice_path:
             return "match"
-        elif "procedural" in choice_path:
+        elif "_procedural" in choice_path:
             return "procedural"
-        elif "rand" in choice_path:
+        elif "_delta" in choice_path:
+            return "delta"
+        elif "_rand" in choice_path:
             return "rand"
         else:
             return "None"
@@ -352,6 +354,8 @@ class EStimSpecField(EStimSpecIdField):
         """
         self.conn.execute(query, params=(estim_spec_id,))
         result = self.conn.fetch_one()
+        if result is None:
+            return None
         spec = xmltodict.parse(result)['EStimParameters']['eStimParametersForChannels']['entry']
 
         return spec
@@ -365,7 +369,12 @@ class WaveformField(EStimSpecField):
 
     def get(self, when: When) -> dict:
         estim_spec = self.get_cached_super(when, EStimSpecField)
-        return estim_spec['org.xper.intan.stimulation.ChannelEStimParameters']['waveformParameters']
+        if estim_spec is None:
+            return None
+        if type(estim_spec) == list:
+            return estim_spec[0]['org.xper.intan.stimulation.ChannelEStimParameters']['waveformParameters']
+        else:
+            return estim_spec['org.xper.intan.stimulation.ChannelEStimParameters']['waveformParameters']
 
 class EStimPolarityField(WaveformField):
     def __init__(self, conn: Connection):
@@ -376,7 +385,12 @@ class EStimPolarityField(WaveformField):
 
     def get(self, when: When) -> dict:
         waveform_params = self.get_cached_super(when, WaveformField)
-        return waveform_params['polarity']
+        if waveform_params is None:
+            return None
+        print(waveform_params)
+        polarity = waveform_params['polarity']
+        print(polarity)
+        return polarity
 
 class EStimEnabledFieldLegacy(CachedDatabaseField):
     def __init__(self, conn: Connection):

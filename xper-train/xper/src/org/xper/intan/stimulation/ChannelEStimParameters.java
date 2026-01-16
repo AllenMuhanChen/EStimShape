@@ -9,6 +9,7 @@ public class ChannelEStimParameters {
     AmpSettleParameters ampSettleParameters;
     ChargeRecoveryParameters chargeRecoveryParameters;
 
+
     public ChannelEStimParameters(WaveformParameters waveformParameters, PulseTrainParameters pulseTrainParameters) {
         this.waveformParameters = waveformParameters;
         this.pulseTrainParameters = pulseTrainParameters;

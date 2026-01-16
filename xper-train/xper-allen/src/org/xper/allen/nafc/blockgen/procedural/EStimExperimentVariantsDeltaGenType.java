@@ -3,6 +3,7 @@ package org.xper.allen.nafc.blockgen.procedural;
 import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
 import org.xper.allen.nafc.NAFCStim;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -52,6 +53,7 @@ public class EStimExperimentVariantsDeltaGenType extends EStimExperimentVariants
                 newBlock.add(deltaStim);
             }
         }
+//        Collections.shuffle(newBlock);
         return newBlock;
     }
 }

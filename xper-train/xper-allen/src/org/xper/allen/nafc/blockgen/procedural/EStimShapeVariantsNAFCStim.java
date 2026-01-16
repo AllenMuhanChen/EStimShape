@@ -63,11 +63,16 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         SizePropertyManager sizePropertyManager = new SizePropertyManager(gaJDBCTemplate);
         TexturePropertyManager texturePropertyManager = new TexturePropertyManager(gaJDBCTemplate);
         ColorPropertyManager colorPropertyManager = new ColorPropertyManager(gaJDBCTemplate);
+        UnderlingAverageRGBPropertyManager underlingAverageRGBPropertyManager = new UnderlingAverageRGBPropertyManager(gaJDBCTemplate);
         CompsToPreserveManager compsToPreserveManager = new CompsToPreserveManager(gaJDBCTemplate);
 
         sampleSize = sizePropertyManager.readProperty(variantId);
         texture = texturePropertyManager.readProperty(variantId);
-        color = colorPropertyManager.readProperty(variantId);
+        if (texture.equals("2D")){
+            color = underlingAverageRGBPropertyManager.readProperty(variantId);
+        } else {
+            color = colorPropertyManager.readProperty(variantId);
+        }
 
         maxChoiceSize = generator.getMaxChoiceDimensionDegrees() * 0.9;
         maxSampleSize = generator.getMaxSampleDimensionDegrees();

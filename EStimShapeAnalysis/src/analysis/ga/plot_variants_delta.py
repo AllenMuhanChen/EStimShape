@@ -9,14 +9,24 @@ import pandas as pd
 
 
 def main():
-    analysis = PlotVariantDeltas()
+    analysis = PlotVariantDeltas(use_ga_response=True)  # Set to False to use channel-specific spike rates
     compiled_data = analysis.compile()
-    session_id = "260113_0"
-    channel = "A-020"
+    session_id = "260115_0"
+    channel = "A-009"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
 class PlotVariantDeltas(PlotTopNAnalysis):
+    def __init__(self, use_ga_response=True):
+        """
+        Initialize PlotVariantDeltas analysis.
+
+        Args:
+            use_ga_response: If True, use 'GA Response' column. If False, use channel-specific spike rates.
+        """
+        super().__init__()
+        self.use_ga_response = use_ga_response
+
     def analyze(self, channel, compiled_data=None):
         if compiled_data is None:
             compiled_data = import_from_repository(
@@ -26,9 +36,24 @@ class PlotVariantDeltas(PlotTopNAnalysis):
                 self.response_table
             )
 
-        compiled_data = compiled_data[compiled_data[self.spike_rates_col].notna()]
-        compiled_data['Spike Rate'] = compiled_data[self.spike_rates_col].apply(
-            lambda x: x[channel] if channel in x else 0)
+        # Setup response column based on mode
+        if self.use_ga_response:
+            if 'GA Response' not in compiled_data.columns:
+                print("Error: 'GA Response' column not found in data!")
+                print(f"Available columns: {compiled_data.columns.tolist()}")
+                return
+
+            compiled_data = compiled_data[compiled_data['GA Response'].notna()]
+            response_col = 'GA Response'
+            response_key = None
+            print(f"Using GA Response (not channel-specific)")
+        else:
+            compiled_data = compiled_data[compiled_data[self.spike_rates_col].notna()]
+            compiled_data['Spike Rate'] = compiled_data[self.spike_rates_col].apply(
+                lambda x: x[channel] if channel in x else 0)
+            response_col = self.spike_rates_col
+            response_key = channel
+            print(f"Using channel-specific spike rates for {channel}")
 
         # Get included variants from database
         included_variant_ids = self._get_included_variants_from_db()
@@ -55,12 +80,13 @@ class PlotVariantDeltas(PlotTopNAnalysis):
 
         print(f"Found {len(deltas_data)} delta presentations with included variant parents")
 
-        # Calculate average response for each delta
-        delta_avg_response = deltas_data.groupby(['StimSpecId', 'ParentId'])['Spike Rate'].mean().reset_index()
-        delta_avg_response.rename(columns={'Spike Rate': 'Delta Response'}, inplace=True)
+        # Calculate average response for each delta using appropriate column
+        response_col_name = 'GA Response' if self.use_ga_response else 'Spike Rate'
+        delta_avg_response = deltas_data.groupby(['StimSpecId', 'ParentId'])[response_col_name].mean().reset_index()
+        delta_avg_response.rename(columns={response_col_name: 'Delta Response'}, inplace=True)
 
         # Get variant responses
-        variant_responses = self._get_variant_responses(compiled_data, included_variant_ids)
+        variant_responses = self._get_variant_responses(compiled_data, included_variant_ids, channel)
 
         # Merge variant responses
         delta_avg_response = delta_avg_response.merge(
@@ -128,17 +154,22 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             plot_data = deltas_data
 
         # Create visualization
-        visualize_module = create_grouped_stimuli_module(
-            cell_size=(200, 200),
-            response_rate_col=self.spike_rates_col,
-            response_rate_key=channel,
-            path_col='ThumbnailPath',
-            row_col='RowType',
-            col_col='Rank',
-            save_path=f"{self.save_path}/{channel}_deltas_with_parents.png",
-            module_name="Deltas_With_Parents",
-            publish_mode=False,
-        )
+        visualize_params = {
+            'cell_size': (200, 200),
+            'response_rate_col': response_col,
+            'path_col': 'ThumbnailPath',
+            'row_col': 'RowType',
+            'col_col': 'Rank',
+            'save_path': f"{self.save_path}/{channel}_deltas_with_parents.png",
+            'module_name': "Deltas_With_Parents",
+            'publish_mode': False,
+        }
+
+        # Add response_rate_key only if using channel-specific mode
+        if not self.use_ga_response:
+            visualize_params['response_rate_key'] = response_key
+
+        visualize_module = create_grouped_stimuli_module(**visualize_params)
 
         visualize_branch = create_branch().then(visualize_module)
         pipeline = create_pipeline().make_branch(visualize_branch).build()
@@ -166,7 +197,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             print(f"Error reading from IncludedVariants table: {e}")
             return []
 
-    def _get_variant_responses(self, compiled_data, variant_ids):
+    def _get_variant_responses(self, compiled_data, variant_ids, channel):
         """Get variant responses from IncludedVariants table."""
         try:
             conn = Connection(context.ga_database)
@@ -183,10 +214,11 @@ class PlotVariantDeltas(PlotTopNAnalysis):
         except Exception as e:
             print(f"Could not read from IncludedVariants, calculating from data: {e}")
 
-        # Fallback: calculate from compiled_data
+        # Fallback: calculate from compiled_data using appropriate column
         variants_data = compiled_data[compiled_data['StimSpecId'].isin(variant_ids)].copy()
-        variant_responses = variants_data.groupby('StimSpecId')['Spike Rate'].mean().reset_index()
-        variant_responses.rename(columns={'Spike Rate': 'Response'}, inplace=True)
+        response_col_name = 'GA Response' if self.use_ga_response else 'Spike Rate'
+        variant_responses = variants_data.groupby('StimSpecId')[response_col_name].mean().reset_index()
+        variant_responses.rename(columns={response_col_name: 'Response'}, inplace=True)
         return variant_responses
 
     def _save_deltas_to_db(self, delta_data):

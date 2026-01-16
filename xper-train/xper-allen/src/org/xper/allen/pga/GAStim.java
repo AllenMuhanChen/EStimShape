@@ -152,7 +152,10 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
             } catch (MorphedMatchStick.MorphException me) {
                 mStick = null;
                 System.out.println("WriteStim() failed on attempt " + nTries + ". Trying again");
+            } catch(IllegalArgumentException e){
+                throw new ProceduralMatchStick.MorphRepetitionException("Illegal State.... We are skipping this trial");
             }
+
         }
 
         if (nTries == maxTries && mStick == null) {
