@@ -12,7 +12,8 @@ from clat.util.connection import Connection
 
 from src.analysis.nafc.nafc_database_fields import (
     IsCorrectField, NoiseChanceField, NumRandDistractorsField,
-    StimTypeField, ChoiceField, AnswerField, GenIdField, EStimEnabledFieldLegacy
+    StimTypeField, ChoiceField, AnswerField, GenIdField, EStimEnabledFieldLegacy, EStimEnabledField,
+    IsHypothesizedField, IsHypothesizedFieldLegacy
 )
 from src.analysis.nafc.psychometric_curves import collect_choice_trials, plot_psychometric_curve_on_ax
 
@@ -70,29 +71,31 @@ def get_test_description(test_side):
 
 def main():
     # Database connection
-    conn = Connection("allen_estimshape_exp_260108_0")
+    conn = Connection("allen_estimshape_exp_260115_0")
 
     # Time range
     since_date = time_util.from_date_to_now(2024, 7, 10)
-    start_gen_id = 3  # Filter for all data (EStim OFF and general filtering)
-    max_gen_id = 4  # Maximum GenId to include (set to a number to limit, or leave as inf for no limit)
+    start_gen_id = 5  # Filter for all data (EStim OFF and general filtering)
+    max_gen_id = 6  # Maximum GenId to include (set to a number to limit, or leave as inf for no limit)
     start_gen_id_estim_on = 0  # Additional filter for EStim ON trials only (set higher to get only recent EStim ON data)
     max_gen_id_estim_on = float('inf')  # Maximum GenId for EStim ON trials (set to a number to limit)
 
     # ============ PERMUTATION TEST PARAMETERS ============
     # Global test side: 'positive' (estim > no_estim), 'negative' (estim < no_estim), 'two-tailed'
-    global_test_side = 'two-tailed'
+    global_test_side = 'positive'
 
     # Optional: Override test side for specific noise levels
     # Keys are noise chance values (e.g., 0.0, 0.1), values are 'positive', 'negative', or 'two-tailed'
     # If None or empty dict, uses global_test_side for all levels
-    per_level_test_sides = {1.0: "negative",
-                            0.95: "negative",
+    per_level_test_sides = {1.0: "positive",
+                            0.95: "positive",
                             0.9: "positive",
                             0.8: "positive",
                             0.75: "negative"
                             }
     # Example: per_level_test_sides = {0.0: 'negative', 0.1: 'two-tailed', 0.2: 'positive'}
+    isCorrectFieldName = "IsHypothesized"
+    # isCorrectField = "isCorrect"
 
     if per_level_test_sides is None:
         per_level_test_sides = {}
@@ -104,12 +107,13 @@ def main():
     # Set up fields to collect
     fields = CachedFieldList()
     fields.append(IsCorrectField(conn))
+    fields.append(IsHypothesizedFieldLegacy(conn))
     fields.append(NoiseChanceField(conn))
     fields.append(NumRandDistractorsField(conn))
     fields.append(StimTypeField(conn))
     fields.append(ChoiceField(conn))
     fields.append(GenIdField(conn))
-    fields.append(EStimEnabledFieldLegacy(conn))
+    fields.append(EStimEnabledField(conn))
 
 
     # Convert to dataframe
@@ -120,7 +124,7 @@ def main():
 
     # Split into the two datasets we care about
     data_procedural = data[data['StimType'] == 'EStimShapeProceduralBehavioralStim']
-    data_exp = data[data['StimType'] == 'EStimShapeVariantsNAFCStim']
+    data_exp = data[data['StimType'] == 'EStimShapeVariantsDeltaNAFCStim']
 
     # Create figure with 2x2 subplots
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
@@ -193,7 +197,8 @@ def main():
                 marker='s',
                 markersize=4,
                 linestyle='-',
-                label=f'NumDist={num_dist} (EStim ON)'
+                label=f'NumDist={num_dist} (EStim ON)',
+                isCorrectColumnName=isCorrectFieldName
             )
 
         # Plot with EStim disabled (dashed line, smaller)
@@ -209,7 +214,8 @@ def main():
                 marker='o',
                 markersize=4,
                 linestyle='--',
-                label=f'NumDist={num_dist} (EStim OFF)'
+                label=f'NumDist={num_dist} (EStim OFF)',
+                isCorrectColumnName=isCorrectFieldName
             )
 
     # BOTTOM RIGHT: Simple EStim ON vs OFF comparison (two solid lines only)
@@ -230,7 +236,8 @@ def main():
             marker='s',
             markersize=6,
             linestyle='-',
-            label='EStim ON'
+            label='EStim ON',
+            isCorrectColumnName=isCorrectFieldName
         )
 
     if len(data_exp_estim_off) > 0:
@@ -245,7 +252,8 @@ def main():
             marker='o',
             markersize=6,
             linestyle='-',
-            label='EStim OFF'
+            label='EStim OFF',
+            isCorrectColumnName=isCorrectFieldName
         )
 
     # BOTTOM LEFT: Statistical analysis results
@@ -276,8 +284,9 @@ def main():
     data_for_perm = pd.concat([data_exp_for_analysis_estim_on, data_exp_for_analysis_estim_off])
 
     # Convert "No Data" to False
-    data_for_perm.loc[data_for_perm['IsCorrect'] == "No Data", 'IsCorrect'] = False
-    data_for_perm['IsCorrect_bool'] = (data_for_perm['IsCorrect'] == True)
+
+    data_for_perm.loc[data_for_perm[('%s' % isCorrectFieldName)] == "No Data", isCorrectFieldName] = False
+    data_for_perm[('%s_bool' % isCorrectFieldName)] = (data_for_perm[isCorrectFieldName] == True)
 
     # Function to calculate sum of differences across noise levels
     def calculate_sum_diff(data):
@@ -292,8 +301,8 @@ def main():
             estim_off_data = noise_data[noise_data['EStimEnabled'] == False]
 
             if len(estim_on_data) > 0 and len(estim_off_data) > 0:
-                estim_pct = 100 * estim_on_data['IsCorrect_bool'].mean()
-                no_estim_pct = 100 * estim_off_data['IsCorrect_bool'].mean()
+                estim_pct = 100 * estim_on_data[('%s_bool' % isCorrectFieldName)].mean()
+                no_estim_pct = 100 * estim_off_data[('%s_bool' % isCorrectFieldName)].mean()
                 diff = estim_pct - no_estim_pct
                 sum_diff += diff
                 valid_levels += 1
@@ -431,40 +440,23 @@ def main():
     plt.show()
 
     # Print summary statistics
-    print("\n=== Summary Statistics ===")
-    print(f"\nProcedural Behavioral Trials:")
     # Convert "No Data" to False instead of filtering out
     data_procedural_clean = data_procedural.copy()
-    data_procedural_clean.loc[data_procedural_clean['IsCorrect'] == "No Data", 'IsCorrect'] = False
-    print(f"  Total trials: {len(data_procedural_clean)}")
-    if len(data_procedural_clean) > 0:
-        print(f"  Overall accuracy: {(data_procedural_clean['IsCorrect'] == True).mean() * 100:.2f}%")
-    print(f"  NumRandDistractors values: {distractor_values_proc}")
+    data_procedural_clean.loc[data_procedural_clean[isCorrectFieldName] == "No Data", isCorrectFieldName] = False
 
-    print(f"\nExperimental Procedural Trials:")
+
     data_exp_clean = data_exp.copy()
-    data_exp_clean.loc[data_exp_clean['IsCorrect'] == "No Data", 'IsCorrect'] = False
-    print(f"  Total trials: {len(data_exp_clean)}")
-    if len(data_exp_clean) > 0:
-        print(f"  Overall accuracy: {(data_exp_clean['IsCorrect'] == True).mean() * 100:.2f}%")
-    print(f"  NumRandDistractors values: {distractor_values_exp}")
+    data_exp_clean.loc[data_exp_clean[isCorrectFieldName] == "No Data", isCorrectFieldName] = False
+
+
 
     # EStim breakdown for experimental trials
     # Convert "No Data" to False
     data_exp_estim_on_clean = data_exp_estim_on.copy()
-    data_exp_estim_on_clean.loc[data_exp_estim_on_clean['IsCorrect'] == "No Data", 'IsCorrect'] = False
+    data_exp_estim_on_clean.loc[data_exp_estim_on_clean[isCorrectFieldName] == "No Data", isCorrectFieldName] = False
     data_exp_estim_off_clean = data_exp_estim_off.copy()
-    data_exp_estim_off_clean.loc[data_exp_estim_off_clean['IsCorrect'] == "No Data", 'IsCorrect'] = False
+    data_exp_estim_off_clean.loc[data_exp_estim_off_clean[isCorrectFieldName] == "No Data", isCorrectFieldName] = False
 
-    print(f"\n  EStim Breakdown:")
-    if len(data_exp_estim_on_clean) > 0:
-        genid_range_on = f"GenId {start_gen_id_estim_on}-{max_gen_id_estim_on if max_gen_id_estim_on != float('inf') else '∞'}"
-        print(
-            f"    EStim ON ({genid_range_on}): {len(data_exp_estim_on_clean)} trials ({(data_exp_estim_on_clean['IsCorrect'] == True).mean() * 100:.2f}% accuracy)")
-    if len(data_exp_estim_off_clean) > 0:
-        genid_range_off = f"GenId {start_gen_id}-{max_gen_id if max_gen_id != float('inf') else '∞'}"
-        print(
-            f"    EStim OFF ({genid_range_off}): {len(data_exp_estim_off_clean)} trials ({(data_exp_estim_off_clean['IsCorrect'] == True).mean() * 100:.2f}% accuracy)")
 
 
 if __name__ == '__main__':

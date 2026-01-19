@@ -553,3 +553,24 @@ class IsHypothesizedField(IsDeltaField):
                 return True
             else:
                 return False
+
+class IsHypothesizedFieldLegacy(IsDeltaField):
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "IsHypothesized"
+
+    def get(self, when: When):
+        is_delta = self.get_cached_super(when, IsDeltaField)
+        choice = self.get_cached_super(when, ChoiceField)
+        if not is_delta:
+            if choice == "match":
+                return True
+            else:
+                return False
+        else:
+            if choice == "procedural":
+                return True
+            else:
+                return False
