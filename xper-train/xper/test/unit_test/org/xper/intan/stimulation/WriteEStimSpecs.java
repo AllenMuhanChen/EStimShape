@@ -6,9 +6,7 @@ import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.XperConfig;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.time.TimeUtil;
-import org.xper.util.DbUtil;
 import org.xper.util.FileUtil;
-import org.xper.util.ThreadUtil;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -33,22 +31,41 @@ public class WriteEStimSpecs {
     }
 
     @Test
-    public void test() throws Exception {
-        RHSChannel channel = RHSChannel.A024;
+    public void write_anodic_and_cathodic_first_mix() throws Exception {
+        long id_1 = 1L;
+        long id_2 = 2L;
+
         List<RHSChannel> channels = new ArrayList<>();
-        channels.add(channel);
+        channels.add(RHSChannel.A024);
         channels.add(RHSChannel.A000);
         channels.add(RHSChannel.A006);
-        Map<RHSChannel, ChannelEStimParameters> parametersForChannels = new LinkedHashMap<>();
+
+
+        StimulationShape shape = StimulationShape.Biphasic;
+        double d1 = 200.0;
+        double d2 = 200.0;
+        double dp = 100.0;
+        double a1 = 2.5;
+        double a2 = 2.5;
         WaveformParameters waveformOne = new WaveformParameters(
-                StimulationShape.Biphasic,
+                shape,
                 StimulationPolarity.NegativeFirst,
-                200.0,
-                200.0,
-                100.0,
-                2.5,
-                2.5
+                d1,
+                d2,
+                dp,
+                a1,
+                a2
         );
+        WaveformParameters waveformTwo = new WaveformParameters(
+                shape,
+                StimulationPolarity.PositiveFirst,
+                d1,
+                d2,
+                dp,
+                a1,
+                a2
+        );
+
 
 
         PulseTrainParameters pulseTrainParameters = new PulseTrainParameters(
@@ -64,18 +81,30 @@ public class WriteEStimSpecs {
                 0.0,
                 3000.0
         );
-        ChannelEStimParameters channelEStimParameters = new ChannelEStimParameters(
+        ChannelEStimParameters channelEStimParameters_1 = new ChannelEStimParameters(
                 waveformOne,
                 pulseTrainParameters,
                 new AmpSettleParameters(),
                 chargeRecoveryParameters);
 
+        ChannelEStimParameters channelEStimParameters_2 = new ChannelEStimParameters(
+                waveformTwo,
+                pulseTrainParameters,
+                new AmpSettleParameters(),
+                chargeRecoveryParameters);
 
-        parametersForChannels.put(channels.get(0), channelEStimParameters);
-        parametersForChannels.put(channels.get(1), channelEStimParameters);
-        parametersForChannels.put(channels.get(2), channelEStimParameters);
-        EStimParameters eStimParameters = new EStimParameters(parametersForChannels);
+        Map<RHSChannel, ChannelEStimParameters> parametersForChannels_1 = new LinkedHashMap<>();
+        for (RHSChannel channel : channels) {
+            parametersForChannels_1.put(channel, channelEStimParameters_1);
+        }
+        EStimParameters eStimParameters_1 = new EStimParameters(parametersForChannels_1);
 
-        dbUtil.writeEStimObjData(4L, eStimParameters.toXml(), "");
+        Map<RHSChannel, ChannelEStimParameters> parametersForChannels_2 = new LinkedHashMap<>();
+        for (RHSChannel channel : channels) {
+            parametersForChannels_2.put(channel, channelEStimParameters_2);
+        }
+
+        dbUtil.writeEStimObjData(id_1, eStimParameters_1.toXml(), "");
+        dbUtil.writeEStimObjData(id_2, channelEStimParameters_2.toXml(),"");
     }
 }
