@@ -9,11 +9,11 @@ import pandas as pd
 
 
 def main():
-    analysis = PlotVariantDeltas(use_ga_response=False)  # Set to False to use channel-specific spike rates
-    compiled_data = analysis.compile_and_export()
-    session_id = "260113_0"
-    channel = "A-020"
-    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    analysis = PlotVariantDeltas(use_ga_response=True)  # Set to False to use channel-specific spike rates
+    # compiled_data = analysis.compile_and_export()
+    session_id = "260120_0"
+    channel = "GA"
+    analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
 class PlotVariantDeltas(PlotTopNAnalysis):

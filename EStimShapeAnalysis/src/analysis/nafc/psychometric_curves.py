@@ -192,6 +192,8 @@ def plot_psychometric_curve_on_ax(df, ax, title=None, show_n=False, num_rep_min=
     Plots a single line based on NoiseChance and IsCorrect values in the given DataFrame.
     Plots on the provided matplotlib Axes (ax).
     """
+
+
     # Group by 'NoiseChance' and calculate the percentage of 'Correct' in 'IsCorrect'
     percent_correct = df.groupby('NoiseChance')[isCorrectColumnName].apply(lambda x: (x == True).sum() / len(x) * 100)
 
@@ -204,7 +206,11 @@ def plot_psychometric_curve_on_ax(df, ax, title=None, show_n=False, num_rep_min=
 
     ax.set_title(title, fontsize=14)
     ax.set_xlabel('Noise Chance (%)', fontsize=14)
-    ax.set_ylabel('Percent Correct', fontsize=14)
+    if isCorrectColumnName == 'IsHypothesized':
+        ylabel = 'Percent Hypothesis Chosen'
+    else:
+        ylabel = 'Percent Correct'
+    ax.set_ylabel(ylabel, fontsize=14)
     ax.grid(True)
 
     # Setting the x-axis labels to where there are data points

@@ -41,7 +41,7 @@ public class EStimExperimentVariantsDeltaGenType extends EStimExperimentVariants
                         "Run the PlotVariantDeltas analysis pipeline first to populate this table.");
             }
 
-            numTrials = allVariantIds.size();
+            numTrials = allVariantIds.size() * numSets;
             for  (int i = 0; i < numSets; i++) {
                 assignedVariantIds.addAll(allVariantIds);
             }

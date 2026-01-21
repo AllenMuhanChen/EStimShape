@@ -71,12 +71,12 @@ def get_test_description(test_side):
 
 def main():
     # Database connection
-    conn = Connection("allen_estimshape_exp_260115_0")
+    conn = Connection("allen_estimshape_exp_260120_0")
 
     # Time range
     since_date = time_util.from_date_to_now(2024, 7, 10)
-    start_gen_id = 5  # Filter for all data (EStim OFF and general filtering)
-    max_gen_id = 6  # Maximum GenId to include (set to a number to limit, or leave as inf for no limit)
+    start_gen_id = 3  # Filter for all data (EStim OFF and general filtering)
+    max_gen_id = 60  # Maximum GenId to include (set to a number to limit, or leave as inf for no limit)
     start_gen_id_estim_on = 0  # Additional filter for EStim ON trials only (set higher to get only recent EStim ON data)
     max_gen_id_estim_on = float('inf')  # Maximum GenId for EStim ON trials (set to a number to limit)
 
@@ -87,7 +87,7 @@ def main():
     # Optional: Override test side for specific noise levels
     # Keys are noise chance values (e.g., 0.0, 0.1), values are 'positive', 'negative', or 'two-tailed'
     # If None or empty dict, uses global_test_side for all levels
-    per_level_test_sides = {1.0: "positive",
+    per_level_test_sides = {1.0: "negative",
                             0.95: "positive",
                             0.9: "positive",
                             0.8: "positive",

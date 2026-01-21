@@ -12,6 +12,8 @@ class LineageField(StimSpecIdField):
                           params=(stim_spec_id,))
 
         lineage = self.conn.fetch_one()
+        if lineage is None:
+            return None
         return int(lineage)
 
     def get_name(self):
@@ -24,6 +26,8 @@ class GenIdField(StimSpecIdField):
                           " stim_id = %s",
                           params=(stim_spec_id,))
         gen_id = self.conn.fetch_one()
+        if gen_id is None:
+            return None
         return int(gen_id)
 
     def get_name(self):
@@ -31,6 +35,8 @@ class GenIdField(StimSpecIdField):
 class RegimeScoreField(LineageField):
     def get(self, task_id: int) -> float:
         lineage_id = self.get_cached_super(task_id, LineageField)
+        if lineage_id is None:
+            return None
         return float(get_regime_score_from_lineage_id(self.conn, lineage_id))
 
     def get_name(self):
@@ -43,8 +49,12 @@ class GAResponseField(StimSpecIdField):
         self.conn.execute("SELECT response FROM StimGaInfo WHERE stim_id = %s",
                           params=(stim_spec_id,))
         ga_response = self.conn.fetch_all()
-        if not ga_response:
-            raise ValueError(f"No GA response found for stim_spec_id {stim_spec_id}")
+        if ga_response is None:
+            return None
+        if ga_response[0] is None:
+            return None
+        if ga_response[0][0] is None:
+            return None
         return float(ga_response[0][0])
 
     def get_name(self):
@@ -68,6 +78,8 @@ class ParentIdField(StimSpecIdField):
         self.conn.execute("SELECT parent_id FROM StimGaInfo WHERE stim_id = %s",
                           params=(stim_spec_id,))
         ga_response = self.conn.fetch_all()
+        if not ga_response:
+            return None
         return int(ga_response[0][0])
 
     def get_name(self):

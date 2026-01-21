@@ -190,12 +190,12 @@ def main():
     import numpy as np
 
     # Database connection
-    conn = Connection("allen_estimshape_exp_260115_0")
+    conn = Connection("allen_estimshape_exp_260120_0")
 
     # Time range
     since_date = time_util.from_date_to_now(2024, 7, 10)
-    start_gen_id = 5
-    max_gen_id = 6
+    start_gen_id = 3
+    max_gen_id = 8
     start_gen_id_estim_on = 0
     max_gen_id_estim_on = float('inf')
 
@@ -207,16 +207,16 @@ def main():
     per_level_test_sides = {
         # Most specific: test each combination independently
         ('delta', 'anodic', 1.0): "positive",
-        ('delta', 'anodic', 0.9): "positive",
+        ('delta', 'anodic', 0.9): "negative",
         ('delta', 'cathodic', 1.0): "positive",
         ('delta', 'cathodic', 0.9): "positive",
         ('delta', 'combined', 1.0): "positive",
         ('delta', 'combined', 0.9): "positive",
         ('variant', 'anodic', 1.0): "positive",
         ('variant', 'anodic', 0.9): "positive",
-        ('variant', 'cathodic', 1.0): "positive",
+        ('variant', 'cathodic', 1.0): "negative",
         ('variant', 'cathodic', 0.9): "positive",
-        ('variant', 'combined', 1.0): "positive",
+        ('variant', 'combined', 1.0): "negative",
         ('variant', 'combined', 0.9): "positive",
     }
 

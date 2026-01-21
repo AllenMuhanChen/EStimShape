@@ -30,15 +30,22 @@ public class WriteEStimSpecs {
 
     }
 
+
     @Test
     public void write_anodic_and_cathodic_first_mix() throws Exception {
         long id_1 = 1L;
         long id_2 = 2L;
 
         List<RHSChannel> channels = new ArrayList<>();
-        channels.add(RHSChannel.A024);
-        channels.add(RHSChannel.A000);
-        channels.add(RHSChannel.A006);
+        channels.add(RHSChannel.A031);
+        channels.add(RHSChannel.A027);
+        channels.add(RHSChannel.A004);
+        channels.add(RHSChannel.A028);
+        channels.add(RHSChannel.A001);
+        channels.add(RHSChannel.A003);
+        channels.add(RHSChannel.A029);
+        channels.add(RHSChannel.A002);
+        channels.add(RHSChannel.A030);
 
 
         StimulationShape shape = StimulationShape.Biphasic;
@@ -104,7 +111,9 @@ public class WriteEStimSpecs {
             parametersForChannels_2.put(channel, channelEStimParameters_2);
         }
 
+        EStimParameters eStimParameters_2 = new EStimParameters(parametersForChannels_2);
+
         dbUtil.writeEStimObjData(id_1, eStimParameters_1.toXml(), "");
-        dbUtil.writeEStimObjData(id_2, channelEStimParameters_2.toXml(),"");
+        dbUtil.writeEStimObjData(id_2, eStimParameters_2.toXml(),"");
     }
 }

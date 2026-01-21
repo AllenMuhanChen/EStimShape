@@ -22,6 +22,8 @@ class MatchStickField(CachedTaskDatabaseField):
 class ShaftField(MatchStickField):
     def get(self, task_id: int) -> list[dict]:
         mstick_data = self.get_cached_super(task_id, MatchStickField, self.mstick_spec_source)
+        if mstick_data is None:
+            return None
         shaft_data = mstick_data["AllenMStickData"]['shaftData']['ShaftData']
         return shaft_data
 
@@ -32,6 +34,8 @@ class ShaftField(MatchStickField):
 class TerminationField(MatchStickField):
     def get(self, task_id: int) -> list[dict]:
         mstick_data = self.get_cached_super(task_id, MatchStickField, self.mstick_spec_source)
+        if mstick_data is None:
+            return None
         termination_data = mstick_data["AllenMStickData"]['terminationData']['TerminationData']
         return termination_data
 
@@ -42,6 +46,8 @@ class TerminationField(MatchStickField):
 class JunctionField(MatchStickField):
     def get(self, task_id: int) -> list[dict]:
         mstick_data = self.get_cached_super(task_id, MatchStickField, self.mstick_spec_source)
+        if mstick_data is None:
+            return None
         junction_data = mstick_data["AllenMStickData"]['junctionData']['JunctionData']
 
         # We don't need these for RWA so let's remove them
@@ -67,6 +73,8 @@ class StimSpecDataField(StimSpecIdField):
                           params=(stim_spec_id,))
 
         stim_spec_data_xml = self.conn.fetch_one()
+        if not stim_spec_data_xml:
+            return None
         stim_spec_data_dict = xmltodict.parse(stim_spec_data_xml)
         return stim_spec_data_dict
 

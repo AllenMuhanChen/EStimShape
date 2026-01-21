@@ -62,7 +62,7 @@ public class EStimExperimentAppConfig {
     @Bean
     public List<Double> xperNoiseRewardFunctionRewards() {
 
-        return Arrays.asList(2.0, 2.0, 2.0);
+        return Arrays.asList(4.0, 4.0, 4.0);
     }
 
     @Bean
