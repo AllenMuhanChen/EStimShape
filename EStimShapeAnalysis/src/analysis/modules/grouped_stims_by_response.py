@@ -547,7 +547,8 @@ class GroupedStimuliPlotter(ComputationModule):
                         info_text += f"Response: {response_mean:.2f}"
                         if count > 1:
                             info_text += f" ± {response_std:.2f}"
-                        info_text += f" (n={count})<br>"
+                            info_text += f" (n={count})"
+                        info_text += f"<br>"
                     elif col in cell_data.columns:
                         info_text += f"{col}: {row[col]}<br>"
 

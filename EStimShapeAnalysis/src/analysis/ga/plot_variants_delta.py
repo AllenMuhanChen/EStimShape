@@ -9,23 +9,27 @@ import pandas as pd
 
 
 def main():
-    analysis = PlotVariantDeltas(use_ga_response=True)  # Set to False to use channel-specific spike rates
+    analysis = PlotVariantDeltas(
+        use_ga_response=True,
+        to_save_to_db=False)  # Set to False to use channel-specific spike rates
     # compiled_data = analysis.compile_and_export()
-    session_id = "260120_0"
+    session_id = "260113_0"
     channel = "GA"
     analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
 class PlotVariantDeltas(PlotTopNAnalysis):
-    def __init__(self, use_ga_response=True):
+    def __init__(self, use_ga_response=True, to_save_to_db=False):
         """
         Initialize PlotVariantDeltas analysis.
 
         Args:
             use_ga_response: If True, use 'GA Response' column. If False, use channel-specific spike rates.
+            to_save_to_db: If True, calculate and save to database. If False, read from existing database.
         """
         super().__init__()
         self.use_ga_response = use_ga_response
+        self.to_save_to_db = to_save_to_db
 
     def analyze(self, channel, compiled_data=None):
         if compiled_data is None:
@@ -55,59 +59,81 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             response_key = channel
             print(f"Using channel-specific spike rates for {channel}")
 
-        # Get included variants from database
-        included_variant_ids = self._get_included_variants_from_db()
+        # Two modes: calculate and save, or read from existing table
+        if self.to_save_to_db:
+            # CALCULATION MODE: Compute delta responses and save to database
+            print("\n=== CALCULATION MODE ===")
+            print("Computing delta responses and saving to database...")
 
-        if not included_variant_ids:
-            print("No included variants found in IncludedVariants table!")
-            return
+            # Get included variants from database
+            included_variant_ids = self._get_included_variants_from_db()
 
-        print(f"Found {len(included_variant_ids)} included variants")
+            if not included_variant_ids:
+                print("No included variants found in IncludedVariants table!")
+                return
 
-        # Filter for delta stimuli
-        deltas_data = compiled_data[compiled_data['StimType'] == "REGIME_ESTIM_DELTA"].copy()
+            print(f"Found {len(included_variant_ids)} included variants")
 
-        if deltas_data.empty:
-            print("No REGIME_ESTIM_DELTA stimuli found!")
-            return
+            # Filter for delta stimuli
+            deltas_data = compiled_data[compiled_data['StimType'] == "REGIME_ESTIM_DELTA"].copy()
 
-        # Filter deltas to only those whose parent is an included variant
-        deltas_data = deltas_data[deltas_data['ParentId'].isin(included_variant_ids)].copy()
+            if deltas_data.empty:
+                print("No REGIME_ESTIM_DELTA stimuli found!")
+                return
 
-        if deltas_data.empty:
-            print("No deltas found with parents in IncludedVariants!")
-            return
+            # Filter deltas to only those whose parent is an included variant
+            deltas_data = deltas_data[deltas_data['ParentId'].isin(included_variant_ids)].copy()
 
-        print(f"Found {len(deltas_data)} delta presentations with included variant parents")
+            if deltas_data.empty:
+                print("No deltas found with parents in IncludedVariants!")
+                return
 
-        # Calculate average response for each delta using appropriate column
-        response_col_name = 'GA Response' if self.use_ga_response else 'Spike Rate'
-        delta_avg_response = deltas_data.groupby(['StimSpecId', 'ParentId'])[response_col_name].mean().reset_index()
-        delta_avg_response.rename(columns={response_col_name: 'Delta Response'}, inplace=True)
+            print(f"Found {len(deltas_data)} delta presentations with included variant parents")
 
-        # Get variant responses
-        variant_responses = self._get_variant_responses(compiled_data, included_variant_ids, channel)
+            # Calculate average response for each delta using appropriate column
+            response_col_name = 'GA Response' if self.use_ga_response else 'Spike Rate'
+            delta_avg_response = deltas_data.groupby(['StimSpecId', 'ParentId'])[response_col_name].mean().reset_index()
+            delta_avg_response.rename(columns={response_col_name: 'Delta Response'}, inplace=True)
 
-        # Merge variant responses
-        delta_avg_response = delta_avg_response.merge(
-            variant_responses[['StimSpecId', 'Response']],
-            left_on='ParentId',
-            right_on='StimSpecId',
-            how='left',
-            suffixes=('', '_variant')
-        )
-        delta_avg_response.rename(columns={'Response': 'Variant Response'}, inplace=True)
-        delta_avg_response.drop('StimSpecId_variant', axis=1, inplace=True)
+            # Get variant responses
+            variant_responses = self._get_variant_responses(compiled_data, included_variant_ids, channel)
 
-        # Calculate ratio and determine inclusion
-        delta_avg_response['Ratio'] = delta_avg_response['Delta Response'] / delta_avg_response['Variant Response']
-        delta_avg_response['Included'] = delta_avg_response['Ratio'] < 0.5
+            # Merge variant responses
+            delta_avg_response = delta_avg_response.merge(
+                variant_responses[['StimSpecId', 'Response']],
+                left_on='ParentId',
+                right_on='StimSpecId',
+                how='left',
+                suffixes=('', '_variant')
+            )
+            delta_avg_response.rename(columns={'Response': 'Variant Response'}, inplace=True)
+            delta_avg_response.drop('StimSpecId_variant', axis=1, inplace=True)
 
-        print(
-            f"Delta inclusion: {delta_avg_response['Included'].sum()} included, {(~delta_avg_response['Included']).sum()} excluded")
+            # Calculate ratio and determine inclusion
+            delta_avg_response['Ratio'] = delta_avg_response['Delta Response'] / delta_avg_response['Variant Response']
+            delta_avg_response['Included'] = delta_avg_response['Ratio'] < 0.5
 
-        # Save to database
-        self._save_deltas_to_db(delta_avg_response)
+            print(
+                f"Delta inclusion: {delta_avg_response['Included'].sum()} included, {(~delta_avg_response['Included']).sum()} excluded")
+
+            # Save to database
+            self._save_deltas_to_db(delta_avg_response)
+
+        else:
+            # READ MODE: Load existing delta-variant pairs from database
+            print("\n=== READ MODE ===")
+            print("Reading delta-variant pairs from existing IncludedDeltas table...")
+
+            delta_avg_response = self._read_deltas_from_db()
+
+            if delta_avg_response is None or delta_avg_response.empty:
+                print("ERROR: No data found in IncludedDeltas table!")
+                print("Please run with to_save_to_db=True first to populate the table.")
+                return
+
+            print(f"Loaded {len(delta_avg_response)} delta entries from database")
+            print(
+                f"Delta inclusion: {delta_avg_response['Included'].sum()} included, {(~delta_avg_response['Included']).sum()} excluded")
 
         # Prepare data for visualization - filter for included deltas only
         included_deltas = delta_avg_response[delta_avg_response['Included']].copy()
@@ -119,19 +145,26 @@ class PlotVariantDeltas(PlotTopNAnalysis):
         # Rank by delta response
         included_deltas['Rank'] = included_deltas['Delta Response'].rank(ascending=False, method='first')
 
-        # Merge rank back to full deltas_data
+        # Merge rank back to full deltas_data - need to get deltas_data from compiled_data
+        deltas_data = compiled_data[compiled_data['StimType'] == "REGIME_ESTIM_DELTA"].copy()
         deltas_data = deltas_data.merge(
             included_deltas[['StimSpecId', 'Rank']],
             on='StimSpecId',
             how='inner'
         )
+
+        # If using GA Response, only keep one row per StimSpecId (since GA Response is already a summary)
+        # If using spike rates, keep all presentations for proper averaging
+        if self.use_ga_response:
+            deltas_data = deltas_data.drop_duplicates(subset=['StimSpecId', 'Rank'], keep='first')
+
         deltas_data['RowType'] = 'Delta'
 
         # Get parent data
         parent_ids = included_deltas['ParentId'].unique()
         parents_data = compiled_data[compiled_data['StimSpecId'].isin(parent_ids)].copy()
 
-        # For each delta, add corresponding parent at same rank
+        # For each delta, add corresponding parent presentations at same rank
         parent_rows = []
         for _, delta_row in included_deltas.iterrows():
             parent_id = delta_row['ParentId']
@@ -140,10 +173,19 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             matching_parents = parents_data[parents_data['StimSpecId'] == parent_id]
 
             if not matching_parents.empty:
-                parent_row = matching_parents.iloc[0].copy()
-                parent_row['Rank'] = rank
-                parent_row['RowType'] = 'Parent'
-                parent_rows.append(parent_row)
+                if self.use_ga_response:
+                    # GA Response: only need one row (it's already a summary value)
+                    parent_row = matching_parents.iloc[0].copy()
+                    parent_row['Rank'] = rank
+                    parent_row['RowType'] = 'Parent'
+                    parent_rows.append(parent_row)
+                else:
+                    # Spike rates: need ALL presentations for proper averaging
+                    for _, parent_row in matching_parents.iterrows():
+                        parent_row_copy = parent_row.copy()
+                        parent_row_copy['Rank'] = rank
+                        parent_row_copy['RowType'] = 'Parent'
+                        parent_rows.append(parent_row_copy)
 
         if parent_rows:
             parents_df = pd.DataFrame(parent_rows)
@@ -152,7 +194,10 @@ class PlotVariantDeltas(PlotTopNAnalysis):
         else:
             print("No parent data found")
             plot_data = deltas_data
-
+        if self.to_save_to_db:
+            save_path = f"{self.save_path}/{channel}_calculated_deltas_with_parents.png"
+        else:
+            save_path = f"{self.save_path}/{channel}_included_deltas_with_parents.png"
         # Create visualization
         visualize_params = {
             'cell_size': (200, 200),
@@ -160,9 +205,10 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             'path_col': 'ThumbnailPath',
             'row_col': 'RowType',
             'col_col': 'Rank',
-            'save_path': f"{self.save_path}/{channel}_deltas_with_parents.png",
+            'save_path': save_path,
             'module_name': "Deltas_With_Parents",
             'publish_mode': False,
+            'title': 'Calculated Variants and Deltas' if self.to_save_to_db else 'Tested Variants and Deltas'
         }
 
         # Add response_rate_key only if using channel-specific mode
@@ -221,6 +267,41 @@ class PlotVariantDeltas(PlotTopNAnalysis):
         variant_responses.rename(columns={response_col_name: 'Response'}, inplace=True)
         return variant_responses
 
+    def _read_deltas_from_db(self):
+        """Read delta information from IncludedDeltas table."""
+        try:
+            conn = Connection(context.ga_database)
+
+            query_sql = """
+                        SELECT delta_id, variant_id, response_delta, response_variant, ratio, included
+                        FROM IncludedDeltas \
+                        """
+            conn.execute(query_sql)
+            results = conn.fetch_all()
+
+            if not results:
+                return None
+
+            # Convert to DataFrame
+            delta_data = pd.DataFrame(results, columns=[
+                'StimSpecId', 'ParentId', 'Delta Response',
+                'Variant Response', 'Ratio', 'Included'
+            ])
+
+            # Convert data types (DB returns everything as objects/integers)
+            delta_data['StimSpecId'] = delta_data['StimSpecId'].astype(int)
+            delta_data['ParentId'] = delta_data['ParentId'].astype(int)
+            delta_data['Delta Response'] = delta_data['Delta Response'].astype(float)
+            delta_data['Variant Response'] = delta_data['Variant Response'].astype(float)
+            delta_data['Ratio'] = delta_data['Ratio'].astype(float)
+            delta_data['Included'] = delta_data['Included'].astype(bool)
+
+            return delta_data
+
+        except Exception as e:
+            print(f"Error reading from IncludedDeltas table: {e}")
+            return None
+
     def _save_deltas_to_db(self, delta_data):
         """Save delta information to IncludedDeltas table."""
         try:
@@ -243,9 +324,24 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             print("\n=== DATABASE SAVING ===")
             print("Ensured IncludedDeltas table exists")
 
+            # Check if data already exists
+            conn.execute("SELECT COUNT(*) FROM IncludedDeltas")
+            existing_count = conn.fetch_one()[0]
+
+            if existing_count > 0:
+                print(f"\nWARNING: IncludedDeltas table already contains {existing_count} entries!")
+                response = input("Do you want to DELETE all existing data and replace it? (yes/no): ").strip().lower()
+
+                if response not in ['yes', 'y']:
+                    print("Operation cancelled. No changes made to database.")
+                    return
+
+                print("User confirmed: proceeding with deletion and replacement...")
+
             # Clear existing
             conn.execute("DELETE FROM IncludedDeltas")
-            print("Cleared existing IncludedDeltas entries")
+            if existing_count > 0:
+                print(f"Deleted {existing_count} existing IncludedDeltas entries")
 
             # Insert
             insert_sql = """
