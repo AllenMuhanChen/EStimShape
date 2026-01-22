@@ -1,11 +1,11 @@
 from src.pga.config.estimshape_config import EStimShapeConfig
 from src.pga.config.simultaneous_2dvs3d_config import Simultaneous3Dvs2DConfig
 ga_name = "New3D"
-ga_database = "allen_ga_exp_260120_0"
-nafc_database = "allen_estimshape_exp_260120_0"
-isogabor_database = "allen_isogabor_exp_260120_0"
-lightness_database = "allen_lightness_exp_260120_0"
-shuffle_database = "allen_shuffle_exp_260120_0"
+ga_database = "allen_ga_exp_260108_0"
+nafc_database = "allen_estimshape_exp_260108_0"
+isogabor_database = "allen_isogabor_exp_260108_0"
+lightness_database = "allen_lightness_exp_260108_0"
+shuffle_database = "allen_shuffle_exp_260108_0"
 
 base_dir = "/home/connorlab/Documents/EStimShape"
 allen_dist = "/home/connorlab/git/EStimShape/xper-train/dist/allen"
@@ -33,6 +33,7 @@ ga_plot_path = f"{base_dir}/{ga_database}/plots"
 isogabor_plot_path = f"{base_dir}/{isogabor_database}/plots"
 lightness_plot_path = f"{base_dir}/{lightness_database}/plots"
 shuffle_plot_path = f"{base_dir}/{shuffle_database}/plots"
+nafc_plot_path = f"{base_dir}/{nafc_database}/plots"
 pc_maps_path = f"{base_dir}/{ga_database}/pc_maps"
 try:
 
