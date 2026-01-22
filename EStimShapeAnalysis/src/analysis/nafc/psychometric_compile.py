@@ -5,9 +5,6 @@ from src.startup import context
 import xml.etree.ElementTree as ET
 
 
-
-
-
 def main():
     # Database connections
     exp_conn = Connection(context.nafc_database)
