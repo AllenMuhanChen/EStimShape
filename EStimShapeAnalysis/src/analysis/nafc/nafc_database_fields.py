@@ -3,11 +3,18 @@ import re
 
 import xmltodict
 
-from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.compile.tstamp.cached_tstamp_fields import CachedDatabaseField
 
 from clat.util.connection import Connection
 from clat.util.time_util import When
+
+
+class StimSpecIdField(CachedDatabaseField):
+    def get_name(self):
+        return "StimSpecId"
+
+    def get(self, when: When):
+        return get_stim_spec_id(self.conn, when)
 
 
 class StimSpecDataField(CachedDatabaseField):
@@ -532,6 +539,22 @@ class IsDeltaField(CachedDatabaseField):
 
         # If not found in either column, raise an error
         raise ValueError(f"BaseMStickId {base_mstick_id} not found in IncludedDeltas table")
+
+class TrialTypeField(IsDeltaField):
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "TrialType"
+
+    def get(self, when: When):
+        is_delta = self.get_cached_super(when, IsDeltaField)
+        if is_delta is None:
+            return "Hypothesized Shape"
+        if is_delta:
+            return "Delta Shape"
+        else:
+            return "Hypothesized Shape"
 
 class IsHypothesizedField(IsDeltaField):
     def __init__(self, conn: Connection):

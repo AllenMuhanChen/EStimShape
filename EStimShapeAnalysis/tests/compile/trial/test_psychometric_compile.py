@@ -20,7 +20,7 @@ class TestFields(TestCase):
         self.assertEqual(True, isCorrect)
 
     def test_trial_type_field_retrieve_value(self):
-        trial = pc.TrialTypeField(self.beh_msg, self.stim_spec)
+        trial = pc.EStimShapeTrialTypeField(self.beh_msg, self.stim_spec)
         trial.get(RANDOM_CORRECT)
         self.assertEqual("Rand", trial.value)
 
