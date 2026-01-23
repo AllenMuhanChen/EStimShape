@@ -71,12 +71,12 @@ def get_test_description(test_side):
 
 def main():
     # Database connection
-    conn = Connection("allen_estimshape_exp_260120_0")
+    conn = Connection("allen_estimshape_exp_251027_1")
 
     # Time range
     since_date = time_util.from_date_to_now(2024, 7, 10)
-    start_gen_id = 3  # Filter for all data (EStim OFF and general filtering)
-    max_gen_id = 60  # Maximum GenId to include (set to a number to limit, or leave as inf for no limit)
+    start_gen_id = 8  # Filter for all data (EStim OFF and general filtering)
+    max_gen_id = 11  # Maximum GenId to include (set to a number to limit, or leave as inf for no limit)
     start_gen_id_estim_on = 0  # Additional filter for EStim ON trials only (set higher to get only recent EStim ON data)
     max_gen_id_estim_on = float('inf')  # Maximum GenId for EStim ON trials (set to a number to limit)
 
@@ -94,8 +94,8 @@ def main():
                             0.75: "negative"
                             }
     # Example: per_level_test_sides = {0.0: 'negative', 0.1: 'two-tailed', 0.2: 'positive'}
-    isCorrectFieldName = "IsHypothesized"
-    # isCorrectField = "isCorrect"
+    # isCorrectFieldName = "IsHypothesized"
+    isCorrectFieldName = "IsCorrect"
 
     if per_level_test_sides is None:
         per_level_test_sides = {}
@@ -107,13 +107,13 @@ def main():
     # Set up fields to collect
     fields = CachedFieldList()
     fields.append(IsCorrectField(conn))
-    fields.append(IsHypothesizedFieldLegacy(conn))
+    # fields.append(IsHypothesizedFieldLegacy(conn))
     fields.append(NoiseChanceField(conn))
     fields.append(NumRandDistractorsField(conn))
     fields.append(StimTypeField(conn))
     fields.append(ChoiceField(conn))
     fields.append(GenIdField(conn))
-    fields.append(EStimEnabledField(conn))
+    fields.append(EStimEnabledFieldLegacy(conn))
 
 
     # Convert to dataframe
@@ -124,7 +124,7 @@ def main():
 
     # Split into the two datasets we care about
     data_procedural = data[data['StimType'] == 'EStimShapeProceduralBehavioralStim']
-    data_exp = data[data['StimType'] == 'EStimShapeVariantsDeltaNAFCStim']
+    data_exp = data[data['StimType'] == 'EStimShapeProceduralStim']
 
     # Create figure with 2x2 subplots
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))

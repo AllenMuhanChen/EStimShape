@@ -1,6 +1,6 @@
 from clat.util.connection import Connection
 from src.analysis.nafc.psychometric_compile_for_sessions import compile_260120_0, compile_260115_0, compile_260113_0, \
-    compile_260108_0
+    compile_260107_0, compile_251231_0, compile_251226_0, compile_260108_0
 from src.repository.export_to_repository import read_session_id_from_db_name
 from src.startup import context
 import xml.etree.ElementTree as ET
@@ -80,6 +80,13 @@ def compile_and_export_to_repo(exp_conn, session_id: str):
         data = compile_260113_0(exp_conn)
     elif session_id == "260108_0":
         data = compile_260108_0(exp_conn)
+    elif session_id == "260107_0":
+        data = compile_260107_0(exp_conn)
+    elif session_id == "251231_0":
+        data = compile_251231_0(exp_conn)
+    elif session_id == "251226_0":
+        data = compile_251226_0(exp_conn)
+    # EARLIER than this and we don't have our new GA based shape production
     export_to_repo(session_id, data)
 
 
@@ -133,6 +140,8 @@ def export_estim_parameters(exp_conn):
 
     for row in result:
         estim_spec_id = row[0]
+        if estim_spec_id > 1000:
+            continue
         spec_xml = row[1]
 
         # Parse the XML

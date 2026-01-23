@@ -8,14 +8,14 @@ from src.startup import context
 
 
 def main():
-    session_id = "260113_0"
+    session_id = "260108_0"
 
     # Read data from repository
     data = read_trial_data_from_repository(session_id)
     print(f"Loaded {len(data)} trials for session {session_id}")
 
     # Data Combinations:
-    data = combine_trial_types_at_max_noise(data)
+    # data = combine_trial_types_at_max_noise(data)
 
     ## Searchlight analysis
     behavioral_conditions = ['trial_type', 'noise_chance']
@@ -37,6 +37,9 @@ def main():
         output_path=f'searchlight_{session_id}.png',
         session_id=session_id
     )
+
+
+
 
     # Define conditions for main analysis
     condition_groups = split_data_by_conditions(data, behavioral_conditions, estim_conditions)

@@ -8,10 +8,7 @@ import org.xper.allen.util.AllenDbUtil;
 import org.xper.time.TimeUtil;
 import org.xper.util.FileUtil;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class WriteEStimSpecs {
 
@@ -28,6 +25,46 @@ public class WriteEStimSpecs {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("experiment.config_class"));
         dbUtil = context.getBean(AllenDbUtil.class);
 
+    }
+
+
+    @Test
+    public void write_260107_0_estim(){
+        long id = 1L;
+        RHSChannel channel = RHSChannel.A026;
+        StimulationShape shape = StimulationShape.BiphasicWithInterphaseDelay;
+        double d1 = 200.0;
+        double d2 = 200.0;
+        double dp = 100.0;
+        double a1 = 2.5;
+        double a2 = 2.5;
+        WaveformParameters waveform = new WaveformParameters(
+                shape,
+                StimulationPolarity.NegativeFirst,
+                d1,
+                d2,
+                dp,
+                a1,
+                a2
+        );
+
+        PulseTrainParameters pulseTrainParameters = new PulseTrainParameters(
+                PulseRepetition.SinglePulse,
+                1,
+                10.0,
+                4000,
+                TriggerEdgeOrLevel.Level,
+                0.0);
+
+        ChannelEStimParameters channelEStimParameters = new ChannelEStimParameters(
+                waveform,
+                pulseTrainParameters);
+
+        Map<RHSChannel, ChannelEStimParameters> parametersForChannels = new LinkedHashMap<>();
+        parametersForChannels.put(channel, channelEStimParameters);
+
+        EStimParameters eStimParameters = new EStimParameters(parametersForChannels);
+        dbUtil.writeEStimObjData(id, eStimParameters.toXml(), "");
     }
 
 
@@ -116,4 +153,140 @@ public class WriteEStimSpecs {
         dbUtil.writeEStimObjData(id_1, eStimParameters_1.toXml(), "");
         dbUtil.writeEStimObjData(id_2, eStimParameters_2.toXml(),"");
     }
+
+
+    @Test
+    public void write_251231_0_estim(){
+        long id = 1L;
+        RHSChannel channel = RHSChannel.A018;
+        StimulationShape shape = StimulationShape.BiphasicWithInterphaseDelay;
+        double d1 = 200.0;
+        double d2 = 200.0;
+        double dp = 100.0;
+        double a1 = 2.5;
+        double a2 = 2.5;
+        WaveformParameters waveform = new WaveformParameters(
+                shape,
+                StimulationPolarity.NegativeFirst,
+                d1,
+                d2,
+                dp,
+                a1,
+                a2
+        );
+
+        PulseTrainParameters pulseTrainParameters = new PulseTrainParameters(
+                PulseRepetition.SinglePulse,
+                1,
+                10.0,
+                4000,
+                TriggerEdgeOrLevel.Level,
+                0.0);
+
+        ChannelEStimParameters channelEStimParameters = new ChannelEStimParameters(
+                waveform,
+                pulseTrainParameters);
+
+        Map<RHSChannel, ChannelEStimParameters> parametersForChannels = new LinkedHashMap<>();
+        parametersForChannels.put(channel, channelEStimParameters);
+
+        EStimParameters eStimParameters = new EStimParameters(parametersForChannels);
+        dbUtil.writeEStimObjData(id, eStimParameters.toXml(), "");
+    }
+
+
+    @Test
+    public void write_251226_0_estim(){
+        long id = 1L;
+        RHSChannel channel = RHSChannel.A025;
+        StimulationShape shape = StimulationShape.BiphasicWithInterphaseDelay;
+        double d1 = 200.0;
+        double d2 = 200.0;
+        double dp = 100.0;
+        double a1 = 2.5;
+        double a2 = 2.5;
+        WaveformParameters waveform = new WaveformParameters(
+                shape,
+                StimulationPolarity.NegativeFirst,
+                d1,
+                d2,
+                dp,
+                a1,
+                a2
+        );
+
+        PulseTrainParameters pulseTrainParameters = new PulseTrainParameters(
+                PulseRepetition.SinglePulse,
+                1,
+                10.0,
+                4000,
+                TriggerEdgeOrLevel.Level,
+                0.0);
+
+        ChannelEStimParameters channelEStimParameters = new ChannelEStimParameters(
+                waveform,
+                pulseTrainParameters);
+
+        Map<RHSChannel, ChannelEStimParameters> parametersForChannels = new LinkedHashMap<>();
+        parametersForChannels.put(channel, channelEStimParameters);
+
+        EStimParameters eStimParameters = new EStimParameters(parametersForChannels);
+        dbUtil.writeEStimObjData(id, eStimParameters.toXml(), "");
+    }
+
+
+    @Test
+    public void write_260108_0_estim(){
+        // for gen_id 9-16
+        long id = 1L;
+        List<RHSChannel> channels = new  ArrayList<>();
+        channels.add(RHSChannel.A011);
+        channels.add(RHSChannel.A021);
+        StimulationShape shape = StimulationShape.BiphasicWithInterphaseDelay;
+        double d1 = 200.0;
+        double d2 = 200.0;
+        double dp = 100.0;
+        double a1 = 2.5;
+        double a2 = 2.5;
+        WaveformParameters waveform = new WaveformParameters(
+                shape,
+                StimulationPolarity.NegativeFirst,
+                d1,
+                d2,
+                dp,
+                a1,
+                a2
+        );
+
+        PulseTrainParameters pulseTrainParameters = new PulseTrainParameters(
+                PulseRepetition.SinglePulse,
+                1,
+                10.0,
+                4000,
+                TriggerEdgeOrLevel.Level,
+                0.0);
+
+        ChargeRecoveryParameters chargeRecoveryParameters = new ChargeRecoveryParameters(
+          true,
+          0.0,
+          3000.0
+        );
+
+        ChannelEStimParameters channelEStimParameters = new ChannelEStimParameters(
+                waveform,
+                pulseTrainParameters,
+                new AmpSettleParameters(),
+                chargeRecoveryParameters
+                );
+
+        Map<RHSChannel, ChannelEStimParameters> parametersForChannels = new LinkedHashMap<>();
+        for  (RHSChannel channel : channels) {
+            parametersForChannels.put(channel, channelEStimParameters);
+        }
+
+
+        EStimParameters eStimParameters = new EStimParameters(parametersForChannels);
+        dbUtil.writeEStimObjData(id, eStimParameters.toXml(), "");
+    }
+
 }
