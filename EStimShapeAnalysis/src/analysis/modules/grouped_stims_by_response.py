@@ -2,7 +2,7 @@ import base64
 import io
 import logging
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -22,9 +22,9 @@ logger = logging.getLogger('grouped_stimuli')
 
 
 def create_grouped_stimuli_module(
-        response_rate_col: str,
+        response_rate_col: Union[str, List[str]],
         path_col: str,
-        response_rate_key: str = None,
+        response_rate_key: Union[str, List[str]] = None,
         row_col: Optional[str] = None,
         col_col: Optional[str] = None,
         subgroup_col: Optional[str] = None,
@@ -48,9 +48,13 @@ def create_grouped_stimuli_module(
     Create a pipeline module for visualizing grouped stimuli with colored borders using Plotly.
 
     Args:
-        response_rate_col: Column containing response values
+        response_rate_col: Column(s) containing response values. Can be a single column name (str)
+                          or a list of column names (List[str]). If a list is provided, responses
+                          from all columns will be summed together.
         path_col: Column containing paths to stimulus images
-        response_rate_key: Optional key to extract if response_rate_col contains dictionaries
+        response_rate_key: Optional key(s) to extract if response_rate_col contains dictionaries.
+                          Can be a single key (str) or list of keys (List[str]). If a list is
+                          provided, values for all keys will be summed together.
         row_col: Column for grouping stimuli into rows
         col_col: Column for grouping stimuli into columns
         subgroup_col: Column for subgrouping stimuli
@@ -79,7 +83,7 @@ def create_grouped_stimuli_module(
     if publish_mode:
         save_pdf = True
         cols_in_info_box = []
-        include_colorbar = False
+        include_colorbar = True
     else:
         save_pdf = False
         include_colorbar = False
@@ -384,7 +388,6 @@ class GroupedStimuliPlotter(ComputationModule):
 
         # Set layout properties with EXACT dimensions
 
-
         return fig
 
     def _add_subgroup_colorbar(self, fig, min_val, max_val, sg_center, sg_top, sg_bottom):
@@ -435,8 +438,15 @@ class GroupedStimuliPlotter(ComputationModule):
                 for _, row in data.iterrows():
                     response_dict = row[response_col]
                     if isinstance(response_dict, dict):
-                        if self.response_key and self.response_key in response_dict:
-                            response_values.append(response_dict[self.response_key])
+                        if self.response_key:
+                            if isinstance(self.response_key, list):
+                                # Multiple keys - sum them
+                                value = sum(response_dict.get(key, 0) for key in self.response_key)
+                                response_values.append(value)
+                            else:
+                                # Single key
+                                if self.response_key in response_dict:
+                                    response_values.append(response_dict[self.response_key])
                         else:
                             # Use first value if no key specified
                             if response_dict:
@@ -462,8 +472,14 @@ class GroupedStimuliPlotter(ComputationModule):
 
             # Handle dictionary responses
             if isinstance(value, dict):
-                if self.response_key and self.response_key in value:
-                    return value[self.response_key]
+                if self.response_key:
+                    if isinstance(self.response_key, list):
+                        # Multiple keys - sum them
+                        return sum(value.get(key, 0) for key in self.response_key)
+                    else:
+                        # Single key
+                        if self.response_key in value:
+                            return value[self.response_key]
                 elif value:  # If dict not empty, take first value
                     return next(iter(value.values()))
                 return 0.0
@@ -546,9 +562,8 @@ class GroupedStimuliPlotter(ComputationModule):
                     if col in ["Response", self.response_col]:
                         info_text += f"Response: {response_mean:.2f}"
                         if count > 1:
-                            info_text += f" ± {response_std:.2f}"
-                            info_text += f" (n={count})"
-                        info_text += f"<br>"
+                            info_text += f" Â± {response_std:.2f}"
+                        info_text += f" (n={count})<br>"
                     elif col in cell_data.columns:
                         info_text += f"{col}: {row[col]}<br>"
 
@@ -740,7 +755,8 @@ class PlotlyFigureSaverOutput(OutputHandler):
 
             # Save as original format (PNG, JPEG, etc.)
             if original_ext and original_ext.lower() not in ['html', 'svg', 'pdf']:
-                pio.write_image(figure, self.save_path, scale=2, engine='kaleido', width=figure.layout.width, height=figure.layout.height)  # Higher quality rendering
+                pio.write_image(figure, self.save_path, scale=2, engine='kaleido', width=figure.layout.width,
+                                height=figure.layout.height)  # Higher quality rendering
                 logger.info(f"Saved figure to {self.save_path}")
 
             # Save as interactive HTML
@@ -767,10 +783,10 @@ class GroupedStimuliInputHandler(InputHandler):
     """
 
     def __init__(self,
-                 response_col: str,
+                 response_col: Union[str, List[str]],
                  path_col: str,
                  row_col: Optional[str] = None,
-                 response_key: Optional[str] = None,
+                 response_key: Optional[Union[str, List[str]]] = None,
                  col_col: Optional[str] = None,
                  subgroup_col: Optional[str] = None,
                  filter_values: Optional[Dict[str, List[Any]]] = None,
@@ -780,10 +796,14 @@ class GroupedStimuliInputHandler(InputHandler):
         Initialize the grouped stimuli input handler.
 
         Args:
-            response_col: Column containing response values
+            response_col: Column(s) containing response values. Can be a single column name (str)
+                         or a list of column names (List[str]). If a list is provided, responses
+                         from all columns will be summed together.
             path_col: Column containing paths to stimulus images
             row_col: Optional column for grouping stimuli into rows
-            response_key: Optional key to extract from response_col if it contains a dictionary
+            response_key: Optional key(s) to extract from response_col if it contains a dictionary.
+                         Can be a single key (str) or list of keys (List[str]). If a list is provided,
+                         values for all keys will be summed together.
             col_col: Optional column for grouping stimuli into columns
             subgroup_col: Optional column for subgrouping stimuli
             filter_values: Optional dict mapping column names to lists of values to include
@@ -805,6 +825,7 @@ class GroupedStimuliInputHandler(InputHandler):
     def prepare(self, compiled_data: pd.DataFrame) -> Dict[str, Any]:
         """
         Filter, sort, and organize compiled data for visualization.
+        If multiple response columns are provided, sums them together.
         """
         # Apply any filters
         filtered_data = compiled_data.copy()
@@ -815,8 +836,83 @@ class GroupedStimuliInputHandler(InputHandler):
         # Store filtered data for use in sorting functions
         self.filtered_data = filtered_data.copy()
 
-        # Verify required columns exist
-        required_cols = [self.response_col, self.path_col]
+        # Handle single vs multiple response columns
+        if isinstance(self.response_col, list):
+            # Verify all response columns exist
+            for col in self.response_col:
+                if col not in filtered_data.columns:
+                    raise ValueError(f"Response column '{col}' not found in data")
+
+            # Create a summed response column
+            summed_col_name = "_summed_response"
+
+            # Check if any of the columns contain dictionaries
+            if not filtered_data.empty:
+                first_row_values = [filtered_data[col].iloc[0] for col in self.response_col]
+                has_dicts = any(isinstance(val, dict) for val in first_row_values)
+
+                if has_dicts and self.response_key:
+                    # Extract values from dictionaries first, then sum
+                    # response_key can be either a single key or a list of keys
+                    if isinstance(self.response_key, list):
+                        # Multiple keys to sum from each column's dictionary
+                        def extract_and_sum(row):
+                            total = 0
+                            for col in self.response_col:
+                                val = row[col]
+                                if isinstance(val, dict):
+                                    for key in self.response_key:
+                                        total += val.get(key, 0)
+                                else:
+                                    total += val if val is not None else 0
+                            return total
+                    else:
+                        # Single key to extract from each column's dictionary
+                        def extract_and_sum(row):
+                            total = 0
+                            for col in self.response_col:
+                                val = row[col]
+                                if isinstance(val, dict):
+                                    total += val.get(self.response_key, 0)
+                                else:
+                                    total += val if val is not None else 0
+                            return total
+
+                    filtered_data[summed_col_name] = filtered_data.apply(extract_and_sum, axis=1)
+                else:
+                    # Simple sum of numeric columns
+                    filtered_data[summed_col_name] = filtered_data[self.response_col].sum(axis=1)
+            else:
+                # Empty dataframe, create empty summed column
+                filtered_data[summed_col_name] = []
+
+            # Use the summed column as the response column
+            actual_response_col = summed_col_name
+            logger.info(f"Summing response columns: {self.response_col} -> {summed_col_name}")
+        else:
+            # Single response column
+            actual_response_col = self.response_col
+
+            # Verify required column exists
+            if actual_response_col not in filtered_data.columns:
+                raise ValueError(f"Response column '{actual_response_col}' not found in data")
+
+            # If response_col data is a dict and response_key is provided, extract the data
+            if not filtered_data.empty and isinstance(filtered_data[actual_response_col].iloc[0],
+                                                      dict) and self.response_key:
+                if isinstance(self.response_key, list):
+                    # Multiple keys - sum them
+                    filtered_data[actual_response_col] = filtered_data[actual_response_col].apply(
+                        lambda x: sum(x.get(key, 0) for key in self.response_key) if isinstance(x, dict) else 0
+                    )
+                else:
+                    # Single key - extract it
+                    filtered_data[actual_response_col] = filtered_data[actual_response_col].apply(
+                        lambda x: x.get(self.response_key, 0) if isinstance(x, dict) else 0
+                    )
+
+        # Verify other required columns exist
+        required_cols = [self.path_col]
         for col in [self.row_col, self.col_col, self.subgroup_col]:
             if col is not None:
                 required_cols.append(col)
@@ -824,14 +920,6 @@ class GroupedStimuliInputHandler(InputHandler):
         for col in required_cols:
             if col not in filtered_data.columns:
                 raise ValueError(f"Required column '{col}' not found in data")
-
-        # If response_col data is a dict and response_key is provided, extract the data
-        if isinstance(filtered_data[self.response_col].iloc[0], np.float64):
-            filtered_data[self.response_col] = filtered_data[self.response_col]
-        elif isinstance(filtered_data[self.response_col].iloc[0], dict) and self.response_key:
-            filtered_data[self.response_col] = filtered_data[self.response_col].apply(
-                lambda x: x[self.response_key] if isinstance(x, dict) and self.response_key in x else 0
-            )
 
         # Get unique values for each grouping dimension with optional sorting
         row_values = self._get_sorted_values(filtered_data, self.row_col)
@@ -843,7 +931,7 @@ class GroupedStimuliInputHandler(InputHandler):
 
         return {
             'data': filtered_data,
-            'response_col': self.response_col,
+            'response_col': actual_response_col,
             'path_col': self.path_col,
             'row_col': self.row_col,
             'col_col': self.col_col,
@@ -881,17 +969,63 @@ class GroupedStimuliInputHandler(InputHandler):
                 # if needed to prevent dict comparison errors in the sorting functions
                 filtered_data_for_sorting = self.filtered_data.copy()
 
-                # Check for dictionary values in the column used for sorting metrics
-                # (typically the response column)
-                if self.response_col in filtered_data_for_sorting.columns:
-                    first_value = filtered_data_for_sorting[self.response_col].iloc[
-                        0] if not filtered_data_for_sorting.empty else None
-                    if isinstance(first_value, dict) and self.response_key is not None:
-                        # Create a copy with extracted values for sorting
-                        filtered_data_for_sorting[self.response_col] = filtered_data_for_sorting[
-                            self.response_col].apply(
-                            lambda x: x.get(self.response_key, 0) if isinstance(x, dict) and self.response_key else 0
-                        )
+                # Handle the case where response_col might be a list or a single column
+                if isinstance(self.response_col, list):
+                    # For multiple columns, create the summed column if not already present
+                    summed_col_name = "_summed_response"
+                    if summed_col_name not in filtered_data_for_sorting.columns and not filtered_data_for_sorting.empty:
+                        first_row_values = [filtered_data_for_sorting[col].iloc[0] for col in self.response_col]
+                        has_dicts = any(isinstance(val, dict) for val in first_row_values)
+
+                        if has_dicts and self.response_key:
+                            # Handle response_key being either single or list
+                            if isinstance(self.response_key, list):
+                                def extract_and_sum(row):
+                                    total = 0
+                                    for col in self.response_col:
+                                        val = row[col]
+                                        if isinstance(val, dict):
+                                            for key in self.response_key:
+                                                total += val.get(key, 0)
+                                        else:
+                                            total += val if val is not None else 0
+                                    return total
+                            else:
+                                def extract_and_sum(row):
+                                    total = 0
+                                    for col in self.response_col:
+                                        val = row[col]
+                                        if isinstance(val, dict):
+                                            total += val.get(self.response_key, 0)
+                                        else:
+                                            total += val if val is not None else 0
+                                    return total
+                            filtered_data_for_sorting[summed_col_name] = filtered_data_for_sorting.apply(
+                                extract_and_sum, axis=1)
+                        else:
+                            filtered_data_for_sorting[summed_col_name] = filtered_data_for_sorting[
+                                self.response_col].sum(axis=1)
+                else:
+                    # Single response column - check for dictionary values
+                    if self.response_col in filtered_data_for_sorting.columns:
+                        first_value = filtered_data_for_sorting[self.response_col].iloc[
+                            0] if not filtered_data_for_sorting.empty else None
+                        if isinstance(first_value, dict) and self.response_key is not None:
+                            # Create a copy with extracted values for sorting
+                            if isinstance(self.response_key, list):
+                                # Multiple keys - sum them
+                                filtered_data_for_sorting[self.response_col] = filtered_data_for_sorting[
+                                    self.response_col].apply(
+                                    lambda x: sum(x.get(key, 0) for key in self.response_key) if isinstance(x,
+                                                                                                            dict) else 0
+                                )
+                            else:
+                                # Single key - extract it
+                                filtered_data_for_sorting[self.response_col] = filtered_data_for_sorting[
+                                    self.response_col].apply(
+                                    lambda x: x.get(self.response_key, 0) if isinstance(x,
+                                                                                        dict) and self.response_key else 0
+                                )
 
                 return custom_func(unique_values, filtered_data_for_sorting, col_name)
             else:

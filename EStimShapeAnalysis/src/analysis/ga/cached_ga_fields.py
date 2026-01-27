@@ -49,6 +49,8 @@ class GAResponseField(StimSpecIdField):
         self.conn.execute("SELECT response FROM StimGaInfo WHERE stim_id = %s",
                           params=(stim_spec_id,))
         ga_response = self.conn.fetch_all()
+        if not ga_response:
+            return None
         if ga_response is None:
             return None
         if ga_response[0] is None:

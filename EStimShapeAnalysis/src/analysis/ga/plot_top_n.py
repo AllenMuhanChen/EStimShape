@@ -24,16 +24,16 @@ from src.startup import context
 
 
 def main():
-    channel = "A-011"
+    channel = "A-009"
 
     # compiled_data = compile_and_export()
     analysis = PlotTopNAnalysis()
 
-    # compiled_data = None
+    compiled_data = analysis.compile_and_export()
     session_id, _ = read_session_id_from_db_name(context.ga_database)
     session_id = "260115_0"
-    channel = "A-025"
-    analysis.run(session_id, "raw", channel, compiled_data=None)
+    channel = ["A-009", "A-000", "A-006", "A-009", "A-015", "A-022", "A-024"]
+    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
 class PlotTopNAnalysis(Analysis):
@@ -49,19 +49,30 @@ class PlotTopNAnalysis(Analysis):
 
         compiled_data = add_lineage_rank_to_df(compiled_data, self.spike_rates_col, channel)
 
+        # Generate appropriate filename based on channel type
+        if isinstance(channel, list):
+            # Create a descriptive name for multiple channels
+            channel_str = f"{len(channel)}_channels"
+            # Use the response_rate_key as a list to sum dictionary values
+            response_key = channel
+        else:
+            channel_str = channel
+            response_key = channel
+
         visualize_module = create_grouped_stimuli_module(
             response_rate_col=self.spike_rates_col,
-            response_rate_key=channel,
+            response_rate_key=response_key,
             path_col='ThumbnailPath',
             col_col='RankWithinLineage',
             row_col='Lineage',
             title='Top Stimuli Per Lineage',
             filter_values={"Lineage": get_top_n_lineages(compiled_data, 3),
                            "RankWithinLineage": range(1, 21)},  # only show top 20 per lineage
-            save_path=f"{self.save_path}/{channel}_plot_top_n.png",
+            save_path=f"{self.save_path}/{channel_str}_plot_top_n.png",
             publish_mode=True,
             subplot_spacing=(20, 0),
-            module_name="plot_top_n"
+            module_name="plot_top_n",
+            border_width=50
         )
 
         # Create and run pipeline with aggregated data
@@ -83,7 +94,33 @@ class PlotTopNAnalysis(Analysis):
 
 
 def add_lineage_rank_to_df(compiled_data, spike_rates_col, channel):
-    compiled_data['Spike Rate'] = compiled_data[spike_rates_col].apply(lambda x: x[channel] if channel in x else 0)
+    """
+    Add ranking information based on spike rates within each lineage.
+
+    Args:
+        compiled_data: DataFrame with spike rate data
+        spike_rates_col: Column name containing spike rate dictionaries
+        channel: Either a single channel name (str) or list of channel names (List[str]).
+                If list is provided, responses are summed across all specified channels.
+    """
+    # Handle single channel vs multiple channels
+    if isinstance(channel, list):
+        # Sum responses from multiple channels
+        def sum_channels(x):
+            if not isinstance(x, dict):
+                return 0
+            total = 0
+            for ch in channel:
+                total += x.get(ch, 0)
+            return total
+
+        compiled_data['Spike Rate'] = compiled_data[spike_rates_col].apply(sum_channels)
+    else:
+        # Single channel extraction (original behavior)
+        compiled_data['Spike Rate'] = compiled_data[spike_rates_col].apply(
+            lambda x: x[channel] if isinstance(x, dict) and channel in x else 0
+        )
+
     # Calculate average response rate for each StimSpecId within each Lineage
     avg_response = compiled_data.groupby(['Lineage', 'StimSpecId'])['Spike Rate'].mean().reset_index()
     avg_response.rename(columns={'Spike Rate': 'Avg Response Rate'}, inplace=True)
@@ -113,9 +150,7 @@ def compile_and_export():
                              "Cluster Response",
                              "Shaft",
                              "Termination",
-                             "Junction",
-                             "Texture",
-                             "ParentId"
+                             "Junction"
                          ])
     return data
 
@@ -142,7 +177,6 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields.append(StimSpecIdField(conn))
     fields.append(LineageField(conn))
     fields.append(GenIdField(conn))
-    fields.append(ParentIdField(conn))
     fields.append(RegimeScoreField(conn))
     fields.append(StimTypeField(conn))
     fields.append(StimPathField(conn))
@@ -155,7 +189,7 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields.append(ShaftField(conn, mstick_spec_data_source))
     fields.append(TerminationField(conn, mstick_spec_data_source))
     fields.append(JunctionField(conn, mstick_spec_data_source))
-    fields.append(TextureField(conn))
+
     data = fields.to_data(task_ids)
     return data
 
