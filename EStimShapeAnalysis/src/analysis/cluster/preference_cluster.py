@@ -556,8 +556,8 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
     )
 
     # Save to database
-    cluster_size = len(cluster_channels)
-    save_session_metric(conn, session_id, cluster_size, avg_dist_scaled_corr)
+    # cluster_size = len(cluster_channels)
+    save_session_metric(conn, session_id, None, avg_dist_scaled_corr)
 
 
 def main():
