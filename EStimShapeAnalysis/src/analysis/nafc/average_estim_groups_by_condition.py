@@ -34,7 +34,7 @@ def analyze_condition_combinations(filter_conditions, output_path=None, session_
 
     # Get session-level data
     repo_conn.execute("""
-                      SELECT session_id, cluster_size, avg_distance_scaled_correlation
+                      SELECT session_id, cluster_size, avg_distance_scaled_correlation, lineage_score
                       FROM EStimShapeSessionData
                       """)
 
@@ -43,10 +43,11 @@ def analyze_condition_combinations(filter_conditions, output_path=None, session_
     # Build dict of session metrics
     session_metrics = {}
     for row in session_data_results:
-        sess_id, cluster_size, avg_dist_corr = row
+        sess_id, cluster_size, avg_dist_corr, lineage_score = row
         session_metrics[sess_id] = {
             'cluster_size': cluster_size,
-            'avg_distance_scaled_correlation': avg_dist_corr
+            'avg_distance_scaled_correlation': avg_dist_corr,
+            'lineage_score': lineage_score
         }
 
     # Apply session-level filters if provided (excludes sessions)
@@ -683,19 +684,26 @@ def main():
 
     # Example 2: Session-level filters (excludes sessions that don't pass)
     session_filters = None
-    session_filters = {
-        'avg_distance_scaled_correlation': lambda x: x >= 1.5,  # Exclude sessions with no clusters
-    }
+    # session_filters = {
+    #     'cluster_size': lambda x: x > 6,  # Exclude sessions with no clusters
+    # }
 
     # Example 3: Session grouping (compares groups side-by-side)
     session_grouping = None
     # session_grouping = {
-    #     'field': 'avg_distance_scaled_correlation',
+    #     'field': 'cluster_size',
     #     'groups': {
-    #         'Large Cluster': lambda x: x >= 1.5,
-    #         'Small Cluster': lambda x: x < 1.5
+    #         'Large Cluster': lambda x: x >= 7,
+    #         'Small Cluster': lambda x: x < 7
     #     }
     # }
+    session_grouping = {
+        'field': 'lineage_score',
+        'groups': {
+            'Large Confidence': lambda x: x >= 25.0,
+            'Small Confidence': lambda x: x < 25.0
+        }
+    }
     # Set to None to disable grouping
 
 

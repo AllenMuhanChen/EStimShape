@@ -205,9 +205,9 @@ def save_session_metric(conn: Connection, session_id: str, cluster_size: int,
     # Insert or update
     upsert_sql = """
                  INSERT INTO EStimShapeSessionData
-                     (session_id, cluster_size, avg_distance_scaled_correlation)
-                 VALUES (%s, %s, %s)
-                 ON DUPLICATE KEY UPDATE cluster_size                    = VALUES(cluster_size), \
+                     (session_id, avg_distance_scaled_correlation)
+                 VALUES (%s, %s)
+                 ON DUPLICATE KEY UPDATE 
                                          avg_distance_scaled_correlation = VALUES(avg_distance_scaled_correlation) \
                  """
 
@@ -215,7 +215,7 @@ def save_session_metric(conn: Connection, session_id: str, cluster_size: int,
     avg_dist_corr_value = float(
         avg_distance_scaled_correlation) if avg_distance_scaled_correlation is not None else None
 
-    conn.execute(upsert_sql, (session_id, cluster_size, avg_dist_corr_value))
+    conn.execute(upsert_sql, (session_id, avg_dist_corr_value))
     print(f"\nSaved to EStimShapeSessionData: session_id={session_id}, "
           f"cluster_size={cluster_size}, avg_distance_scaled_correlation={avg_dist_corr_value}")
 
