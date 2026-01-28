@@ -98,6 +98,128 @@ def calculate_correlations(vectors: dict, cluster_channels: set):
     return correlations
 
 
+def calculate_avg_distance_scaled_correlation(cluster_channels: set, channel_strings: list,
+                                              correlations: dict):
+    """
+    Calculate average distance-scaled correlation metric for cluster channels.
+
+    For each cluster channel:
+    - Sum of (correlation / distance) for all other channels with valid correlations
+    - Distance is the index difference between channels in the channel_strings list
+    - Average by the number of channels with valid correlations
+
+    If multiple cluster channels exist, return the mean of their individual metrics.
+
+    Args:
+        cluster_channels: Set of cluster channel names
+        channel_strings: Ordered list of channel names (top to bottom)
+        correlations: Dictionary of {cluster_channel: {channel: correlation_value}}
+
+    Returns:
+        float: Average distance-scaled correlation, or None if no valid data
+    """
+    if not correlations or not cluster_channels:
+        return None
+
+    # Build channel index map
+    channel_index = {ch: idx for idx, ch in enumerate(channel_strings)}
+
+    cluster_metrics = []
+
+    for cluster_channel in cluster_channels:
+        if cluster_channel not in correlations:
+            continue
+
+        if cluster_channel not in channel_index:
+            print(f"Warning: Cluster channel {cluster_channel} not in channel list")
+            continue
+
+        cluster_idx = channel_index[cluster_channel]
+        corr_data = correlations[cluster_channel]
+
+        distance_scaled_sum = 0.0
+        valid_count = 0
+
+        for channel, correlation in corr_data.items():
+            # Skip the cluster channel itself
+            if channel == cluster_channel:
+                continue
+
+            # Skip NaN correlations
+            if np.isnan(correlation):
+                continue
+
+            # Get channel index
+            if channel not in channel_index:
+                continue
+
+            channel_idx = channel_index[channel]
+
+            # Calculate distance (minimum of 1)
+            distance = max(1, abs(cluster_idx - channel_idx))
+
+            # Add to sum
+            distance_scaled_sum += correlation / distance
+            valid_count += 1
+
+        # Calculate average for this cluster channel
+        if valid_count > 0:
+            cluster_metric = distance_scaled_sum
+            cluster_metrics.append(cluster_metric)
+            print(f"  {cluster_channel}: {cluster_metric:.4f} (based on {valid_count} channels)")
+
+    # Return average across all cluster channels
+    if cluster_metrics:
+        avg_metric = np.mean(cluster_metrics)
+        print(f"\nOverall average distance-scaled correlation: {avg_metric:.4f}")
+        return avg_metric
+    else:
+        return None
+
+
+def save_session_metric(conn: Connection, session_id: str, cluster_size: int,
+                        avg_distance_scaled_correlation: float = None):
+    """
+    Save session-level metrics to EStimShapeSessionData table.
+
+    Args:
+        conn: Database connection
+        session_id: Session identifier
+        cluster_size: Number of cluster channels
+        avg_distance_scaled_correlation: The calculated metric (or None)
+    """
+    # Ensure table exists
+    create_table_sql = """
+                       CREATE TABLE IF NOT EXISTS EStimShapeSessionData
+                       (
+                           session_id                      VARCHAR(10) NOT NULL PRIMARY KEY,
+                           cluster_size                    INT         NOT NULL,
+                           avg_distance_scaled_correlation FLOAT       NULL,
+                           CONSTRAINT EStimShapeSessionData_ibfk_1
+                               FOREIGN KEY (session_id) REFERENCES Sessions (session_id)
+                                   ON DELETE CASCADE
+                       ) CHARSET = latin1; \
+                       """
+    conn.execute(create_table_sql)
+
+    # Insert or update
+    upsert_sql = """
+                 INSERT INTO EStimShapeSessionData
+                     (session_id, cluster_size, avg_distance_scaled_correlation)
+                 VALUES (%s, %s, %s)
+                 ON DUPLICATE KEY UPDATE cluster_size                    = VALUES(cluster_size), \
+                                         avg_distance_scaled_correlation = VALUES(avg_distance_scaled_correlation) \
+                 """
+
+    # Convert numpy types to native Python types for MySQL
+    avg_dist_corr_value = float(
+        avg_distance_scaled_correlation) if avg_distance_scaled_correlation is not None else None
+
+    conn.execute(upsert_sql, (session_id, cluster_size, avg_dist_corr_value))
+    print(f"\nSaved to EStimShapeSessionData: session_id={session_id}, "
+          f"cluster_size={cluster_size}, avg_distance_scaled_correlation={avg_dist_corr_value}")
+
+
 def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_path: str = None):
     """
     Plot raw channels ordered top-to-bottom, colored by isochromatic preference index.
@@ -122,7 +244,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
                     SELECT DISTINCT c.channel
                     FROM ClusterInfo c
                              JOIN Experiments e ON c.experiment_id = e.experiment_id
-                    WHERE e.session_id = %s
+                    WHERE e.session_id = %s \
                     """
     conn.execute(cluster_query, (session_id,))
     cluster_results = conn.fetch_all()
@@ -138,7 +260,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
         correlations = calculate_correlations(vectors, cluster_channels)
         print(f"Calculated correlations for {len(correlations)} cluster channels")
     else:
-        print("Warning: No response vectors found - correlation columns will be skipped")
+        print("Warning: No response vectors found - correlation analysis will be skipped")
         correlations = {}
 
     # Query isochromatic preference indices for raw channels (not sorted units)
@@ -147,7 +269,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
                 FROM IsochromaticPreferenceIndices
                 WHERE session_id = %s
                   AND unit_name NOT LIKE '%Unit%'
-                ORDER BY frequency, unit_name
+                ORDER BY frequency, unit_name \
                 """
 
     conn.execute(iso_query, (session_id,))
@@ -159,7 +281,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
                   FROM SolidPreferenceIndices
                   WHERE session_id = %s
                     AND unit_name NOT LIKE '%Unit%'
-                  ORDER BY unit_name
+                  ORDER BY unit_name \
                   """
 
     conn.execute(solid_query, (session_id,))
@@ -249,15 +371,15 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
                                zorder=10 if is_cluster else 1)
 
     # Format isochromatic plot
-    ax_iso.set_xlim(-0.2, n_frequencies - 0.8)
+    ax_iso.set_xlim(-0.2, n_frequencies - 0.8)  # Tighter limits to reduce gaps
     ax_iso.set_xticks(range(n_frequencies))
     ax_iso.set_xticklabels([f'{freq} Hz' for freq in frequencies], fontsize=10)
     ax_iso.set_yticks(range(1, len(channel_strings) + 1))
     ax_iso.set_yticklabels(channel_strings[::-1], fontsize=8)
-    ax_iso.set_ylabel('Channel (Top → Bottom)', fontsize=10)
+    ax_iso.set_ylabel('Channel (Top â†’ Bottom)', fontsize=10)
     ax_iso.set_title('Isochromatic Preference by Frequency', fontsize=12, fontweight='bold')
     ax_iso.grid(True, axis='y', alpha=0.3, linestyle='--')
-    ax_iso.grid(True, axis='x', alpha=0.2, linestyle='--')
+    ax_iso.grid(True, axis='x', alpha=0.2, linestyle='--')  # Add vertical grid lines
     ax_iso.set_ylim(0.5, len(channel_strings) + 0.5)
 
     # Plot solid preference - single column
@@ -352,7 +474,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
     # Add colorbar at the bottom
     cbar_ax = fig.add_axes([0.15, 0.02, 0.7, 0.02])  # [left, bottom, width, height]
     cbar = plt.colorbar(scatter, cax=cbar_ax, orientation='horizontal')
-    cbar.set_label('Preference Index / Correlation (Red = Positive, Blue = Negative)',
+    cbar.set_label('Preference Index (Red = Prefers Isochromatic/3D, Blue = Prefers Isoluminant/2D)',
                    fontsize=10)
 
     # Add legend for cluster channels
@@ -381,6 +503,8 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
         n_channels_with_data = len(freq_data)
         if n_channels_with_data > 0:
             values = list(freq_data.values())
+
+            # Check cluster channel values
             cluster_values = [v for ch, v in freq_data.items() if ch in cluster_channels]
 
             print(f"\nFrequency {frequency} Hz:")
@@ -425,16 +549,29 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
                     for ch, corr in sorted_corrs:
                         print(f"    {ch}: ρ = {corr:.3f}")
 
+    # Calculate and save session-level metric
+    print(f"\n--- Average Distance-Scaled Correlation ---")
+    avg_dist_scaled_corr = calculate_avg_distance_scaled_correlation(
+        cluster_channels, channel_strings, correlations
+    )
+
+    # Save to database
+    cluster_size = len(cluster_channels)
+    save_session_metric(conn, session_id, cluster_size, avg_dist_scaled_corr)
+
 
 def main():
     # Example usage - change session_id as needed
-    (session_id, _) = read_session_id_from_db_name(context.ga_database)
+    # (session_id, _) = read_session_id_from_db_name(context.ga_database)
+    session_id = "260113_0"
+    session_ids = ["260120_0", "260115_0", "260113_0", "260108_0", "260107_0", "251231_0", "251226_0"]
     headstage_label = "A"
 
     # Optional: save figure as PNG
-    save_path = f"/home/connorlab/Documents/plots/{session_id}/preference_clusters.png"
-
-    plot_channel_preferences(session_id, headstage_label, save_path=save_path)
+    # save_path = f"channel_preferences_{session_id}.png"
+    for session_id in session_ids:
+        save_path = f"/home/connorlab/Documents/plots/{session_id}/preference_clusters.png"  # Set to None to skip saving
+        plot_channel_preferences(session_id, headstage_label, save_path=save_path)
 
 
 if __name__ == '__main__':
