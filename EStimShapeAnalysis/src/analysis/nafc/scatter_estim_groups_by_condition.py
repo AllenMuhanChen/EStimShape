@@ -327,6 +327,55 @@ def plot_effect_size_scatter(x_axis_config, output_path=None, session_ids=None,
         ax.scatter(x_values, y_values, c='steelblue', s=100, alpha=0.6,
                    edgecolors='black', linewidth=0.5)
 
+    # Calculate and plot averages for each unique x-value
+    unique_x_values = sorted(set(x_values))
+
+    print(f"\n=== Calculating Averages ===")
+    print(f"Found {len(unique_x_values)} unique x-values")
+
+    # Calculate grand averages (across all groups)
+    grand_avg_x = []
+    grand_avg_y = []
+
+    for x_val in unique_x_values:
+        # Get all y-values for this x-value
+        y_at_x = [y for x, y in zip(x_values, y_values) if x == x_val]
+        if len(y_at_x) > 0:
+            grand_avg_x.append(x_val)
+            grand_avg_y.append(np.mean(y_at_x))
+            print(f"  x={x_val}: n={len(y_at_x)}, grand_avg={np.mean(y_at_x):.3f}")
+
+    # Plot grand averages with black markers
+    if len(grand_avg_x) > 0:
+        ax.scatter(grand_avg_x, grand_avg_y, c='black', s=300, alpha=0.8,
+                   edgecolors='white', linewidth=2, marker='D',
+                   label='Grand Average', zorder=10)
+
+    # Calculate and plot per-group averages if grouping exists
+    if condition_grouping is not None and len(group_names) > 1:
+        for group_idx, group_name in enumerate(group_names):
+            group_mask = [g == group_name for g in groups]
+            group_x_vals = [x for x, mask in zip(x_values, group_mask) if mask]
+            group_y_vals = [y for y, mask in zip(y_values, group_mask) if mask]
+
+            group_avg_x = []
+            group_avg_y = []
+
+            for x_val in unique_x_values:
+                # Get y-values for this group at this x-value
+                y_at_x = [y for x, y in zip(group_x_vals, group_y_vals) if x == x_val]
+                if len(y_at_x) > 0:
+                    group_avg_x.append(x_val)
+                    group_avg_y.append(np.mean(y_at_x))
+                    print(f"  {group_name} at x={x_val}: n={len(y_at_x)}, avg={np.mean(y_at_x):.3f}")
+
+            # Plot group averages with same color as scatter points but larger
+            if len(group_avg_x) > 0:
+                color = color_palette[group_idx % len(color_palette)]
+                ax.scatter(group_avg_x, group_avg_y, c=color, s=250, alpha=0.9,
+                           edgecolors='white', linewidth=2, marker='D',
+                           label=f'{group_name} Average', zorder=9)
+
     # Add horizontal line at y=0
     ax.axhline(y=0, color='black', linestyle='--', linewidth=1, alpha=0.5)
 
@@ -345,6 +394,9 @@ def plot_effect_size_scatter(x_axis_config, output_path=None, session_ids=None,
 
     # Add legend if groups exist
     if condition_grouping is not None and len(group_names) > 1:
+        ax.legend(loc='best', fontsize=10, framealpha=0.9)
+    elif len(grand_avg_x) > 0:
+        # Show legend for grand average even without grouping
         ax.legend(loc='best', fontsize=10, framealpha=0.9)
 
     # Add session count to plot
@@ -416,9 +468,14 @@ def main():
     # }
     x_axis_config = {
         'source': 'session',
-        'field': 'lineage_score',
-        'label': 'quality of GA'
+        'field': 'avg_distance_scaled_correlation',
+        'label': 'Cluster Correlation'
     }
+    # x_axis_config = {
+    #     'source': 'session',
+    #     'field': 'lineage_score',
+    #     'label': 'quality of GA'
+    # }
 
     # Example 2: Plot effect size vs condition parameter (noise_chance)
     # x_axis_config = {
@@ -449,35 +506,34 @@ def main():
     # Condition grouping (optional) - colors dots by groups
 
     condition_grouping = None
-    # condition_grouping = {
-    #     'field': 'polarity',
-    #     'groups': {
-    #         'Positive First': 'PositiveFirst',
-    #         'Negative First': 'NegativeFirst'
-    #     }
-    # }
+    condition_grouping = {
+        'field': 'polarity',
+        'groups': {
+            'Positive First': 'PositiveFirst',
+            'Negative First': 'NegativeFirst'
+        }
+    }
 
     # Example with lambda functions:
     # condition_grouping = {
     #     'field': 'noise_chance',
     #     'groups': {
-    #         'Low Noise': lambda x: x < 0.95,
-    #         'High Noise': lambda x: x >= 0.95
+    #         '100% Noise': lambda x: x == 1.0,
+    #         '90% Noise': lambda x: x == 0.90,
+    #         'Lower Noise': lambda x: x < 0.90,
     #     }
     # }
 
     # Example with num_channels:
-    condition_grouping = {
-        'field': 'num_channels',
-        'groups': {
-            '1 Channel': 1.0,
-            '2 Channels': 2.0,
-            '3 Channels': 3.0,
-            '9 Channels' : 9.0,
-        }
-    }
-
-
+    # condition_grouping = {
+    #     'field': 'num_channels',
+    #     'groups': {
+    #         '1 Channel': 1.0,
+    #         '2 Channels': 2.0,
+    #         '3 Channels': 3.0,
+    #         '9 Channels': 9.0,
+    #     }
+    # }
 
     # Specific sessions (optional)
     # session_ids = ["260115_0", "260120_0"]

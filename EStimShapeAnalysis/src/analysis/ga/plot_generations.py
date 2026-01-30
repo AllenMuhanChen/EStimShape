@@ -6,6 +6,7 @@ from src.analysis.ga import plot_top_n
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis, clean_ga_data
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.repository.export_to_repository import read_session_id_from_db_name
+from src.repository.good_channels import read_cluster_channels
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 
@@ -18,8 +19,9 @@ def main():
     # compiled_data = plot_top_n.compile_and_export()
 
     session_id, _ = read_session_id_from_db_name(context.ga_database)
-    session_id = "260115_0"
-    channel = ["A-009", "A-000", "A-006", "A-009", "A-015", "A-022", "A-024"]
+    session_id = "260113_0"
+    channel = read_cluster_channels(session_id)
+    # channel = ["A-009", "A-000", "A-006", "A-009", "A-015", "A-022", "A-024"]
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
@@ -113,7 +115,7 @@ class PlotGenerationsAnalysis(PlotTopNAnalysis):
             module_name="Top Stimuli Per Gen by Lineage",
             publish_mode=True,
             border_width=75,
-            subplot_spacing=(10,10)
+            subplot_spacing=(50,25)
         )
 
         # Second module (first generation only, all 80 stimuli in 20x4 grid)

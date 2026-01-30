@@ -205,6 +205,8 @@ def analyze_condition_combinations(filter_conditions, output_path=None, session_
     for combo in all_combinations:
         print(f"  {combo}")
 
+    # MANUAL PLOT OVERRIDE: Only Last Combo
+    all_combinations = [all_combinations[-1]]
     # Run analysis separately for each session group
     results_by_group = {}
 
@@ -452,7 +454,7 @@ def plot_combination_comparison(results_by_group, filter_conditions, output_path
 
     n_groups = len(group_names)
 
-    fig, axes = plt.subplots(n_combinations, 1, figsize=(12, 6.5 * n_combinations))
+    fig, axes = plt.subplots(n_combinations, 1, figsize=(3, 6.5 * n_combinations))
 
     if n_combinations == 1:
         axes = [axes]
@@ -559,6 +561,9 @@ def plot_combination_comparison(results_by_group, filter_conditions, output_path
                 x_pos = x_base
                 alpha = 0.7
 
+            # MANUAL PLOT: COLOR OVERRIDE
+            colors = ['#2E7D32', '#2E7D32']
+
             # Plot bars
             show_legend = n_groups > 1 and group_names != ['All Sessions']
             bars = ax.bar(x_pos, means, width=bar_width, yerr=errors, capsize=5,
@@ -576,7 +581,7 @@ def plot_combination_comparison(results_by_group, filter_conditions, output_path
         if all_max_heights and all_min_heights:
             overall_max = max(all_max_heights)
             overall_min = min(all_min_heights)
-            overall_min = min(overall_min, 0)
+            overall_min = min(overall_max, 0)
             y_range = overall_max - overall_min
             ax.set_ylim(overall_min - 0.1 * y_range, overall_max + 0.35 * y_range)
 
@@ -632,33 +637,38 @@ def plot_combination_comparison(results_by_group, filter_conditions, output_path
                 bar_idx += 1
 
         # Format x-axis labels
-        x_labels = []
-        for key in sorted_keys:
-            if key == 'match_all':
-                prefix = 'BOTH' if len(combo_filter) == 2 else 'ALL'
-                label = f'{prefix}: ' + ', '.join([f"{k}={v}" for k, v in combo_filter.items()])
-            elif key == 'match_none':
-                unmatched_parts = [f"NOT {k}={combo_filter[k]}" for k in combo_keys]
-                label = ', '.join(unmatched_parts)
-            else:
-                matched_keys = key.replace('match_', '').split('||')
-                matched_parts = [f"{k}={combo_filter[k]}" for k in matched_keys]
-                unmatched_keys = [k for k in combo_keys if k not in matched_keys]
-                unmatched_parts = [f"NOT {k}={combo_filter[k]}" for k in unmatched_keys]
-                label = ', '.join(matched_parts + unmatched_parts)
-            x_labels.append(label)
+        # MANUAL PLOT OVERRIDE: x_labels
+        x_labels = ["Anodic First", "Cathodic First"]
+        # x_labels = []
+        # for key in sorted_keys:
+        #     if key == 'match_all':
+        #         prefix = 'BOTH' if len(combo_filter) == 2 else 'ALL'
+        #         label = f'{prefix}: ' + ', '.join([f"{k}={v}" for k, v in combo_filter.items()])
+        #     elif key == 'match_none':
+        #         unmatched_parts = [f"NOT {k}={combo_filter[k]}" for k in combo_keys]
+        #         label = ', '.join(unmatched_parts)
+        #     else:
+        #         matched_keys = key.replace('match_', '').split('||')
+        #         matched_parts = [f"{k}={combo_filter[k]}" for k in matched_keys]
+        #         unmatched_keys = [k for k in combo_keys if k not in matched_keys]
+        #         unmatched_parts = [f"NOT {k}={combo_filter[k]}" for k in unmatched_keys]
+        #         label = ', '.join(matched_parts + unmatched_parts)
+        #     x_labels.append(label)
 
         ax.set_xticks(x_base)
-        ax.set_xticklabels(x_labels, rotation=45, ha='right', fontsize=9)
-        ax.set_ylabel('Effect Size (EStim ON - OFF %)', fontsize=12)
+        ax.set_xticklabels(x_labels, rotation=45, ha='right', fontsize=16)
+        ax.tick_params(axis='y', labelsize=12)
+        ax.set_ylabel('Effect Size (EStim ON - OFF %)', fontsize=16)
         ax.axhline(y=0, color='black', linestyle='--', linewidth=1)
         ax.grid(True, alpha=0.3, axis='y')
 
         combo_str = ', '.join([f"{k}={v}" for k, v in combo_filter.items()])
-        title = f'Effect Size Comparison: {combo_str}'
-        if n_groups > 1 and group_names != ['All Sessions']:
-            title += f' | Grouped by Session'
-        ax.set_title(title, fontsize=14, fontweight='bold')
+        # title = f'Effect Size Comparison: {combo_str}'
+        # MANUAL PLOT OVVERRIDE:
+        # title = 'Anodic vs Cathodic EStim Effect'
+        # if n_groups > 1 and group_names != ['All Sessions']:
+        #     title += f' | Grouped by Session'
+        # ax.set_title(title, fontsize=14, fontweight='bold')
 
         # Add legend if multiple groups (and not just 'All Sessions')
         if n_groups > 1 and group_names != ['All Sessions']:
@@ -680,7 +690,7 @@ def main():
     filter_conditions = {
         'noise_chance': 0.9,
         # 'trial_type': "Hypothesized Shape",
-        # 'num_channels': 3.0,
+        'num_channels': 3.0,
         'polarity': "PositiveFirst",
         # 'shape': 'BiphasicWithInterphaseDelay'
     }
@@ -718,12 +728,10 @@ def main():
 
 
     session_ids = None
-    session_ids = "260113_0"
+    session_ids = "260115_0"
     exclude_groups = []
-    # group 90% cathodic vs anodic
-    exclude_groups = ['match_none', 'match_polarity']
     # 260115_0 single plot
-    # exclude_groups = ['match_none', 'match_noise_chance', 'match_noise_chance||polarity', 'match_num_channels', 'match_num_channels||polarity', 'match_polarity']
+    exclude_groups = ['match_none', 'match_noise_chance', 'match_noise_chance||polarity', 'match_num_channels', 'match_num_channels||polarity', 'match_polarity']
 
     import os
     save_dir = "/home/connorlab/Documents/plots/260120_0/estimshape/"

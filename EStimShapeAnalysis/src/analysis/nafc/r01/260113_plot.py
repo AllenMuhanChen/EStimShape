@@ -4,6 +4,9 @@ from clat.util.connection import Connection
 import json
 from itertools import combinations
 
+from src.analysis.nafc.average_estim_groups_by_condition import compute_grand_null_distribution, \
+    get_significance_marker, calculate_p_value_two_tailed
+
 
 def analyze_condition_combinations(filter_conditions, output_path=None, session_ids=None, exclude_groups=None,
                                    session_filters=None, session_grouping=None):
@@ -342,90 +345,6 @@ def analyze_condition_combinations(filter_conditions, output_path=None, session_
     plot_combination_comparison(results_by_group, filter_conditions, output_path, exclude_groups, group_names)
 
 
-def compute_grand_null_distribution(session_condition_groups, sessions):
-    """
-    Compute grand null distribution by aggregating across sessions.
-
-    Args:
-        session_condition_groups: List of lists, one per session, each containing
-                                 dicts with 'session_id' and 'conditions'
-        sessions: List of all session IDs
-
-    Returns:
-        Array of permuted grand averages (1000 values)
-    """
-    if len(session_condition_groups) == 0:
-        return None
-
-    repo_conn = Connection("allen_data_repository")
-
-    session_null_dists = []
-
-    for session_conditions in session_condition_groups:
-        if len(session_conditions) == 0:
-            continue
-
-        condition_null_dists = []
-
-        for cond_info in session_conditions:
-            session_id = cond_info['session_id']
-            conditions_json = cond_info['conditions']
-
-            repo_conn.execute("""
-                              SELECT null_distribution, n_permutations
-                              FROM EStimPermutationTests
-                              WHERE session_id = %s
-                                AND conditions = %s
-                              """, (session_id, conditions_json))
-
-            result = repo_conn.fetch_all()
-
-            if result and result[0][0]:
-                null_dist = json.loads(result[0][0])
-                condition_null_dists.append(np.array(null_dist))
-
-        if len(condition_null_dists) == 0:
-            continue
-
-        condition_null_array = np.array(condition_null_dists)
-        session_null_dist = np.mean(condition_null_array, axis=0)
-        session_null_dists.append(session_null_dist)
-
-    if len(session_null_dists) == 0:
-        return None
-
-    session_null_array = np.array(session_null_dists)
-    grand_null_dist = np.mean(session_null_array, axis=0)
-
-    return grand_null_dist
-
-
-def calculate_p_value_two_tailed(observed, null_distribution):
-    """Calculate two-tailed p-value"""
-    null_array = np.array(null_distribution)
-    p_value = np.mean(np.abs(null_array) >= np.abs(observed))
-    return float(p_value)
-
-
-def calculate_p_value_greater(observed, null_distribution):
-    """Calculate one-tailed p-value (greater than)"""
-    null_array = np.array(null_distribution)
-    p_value = np.mean(null_array >= observed)
-    return float(p_value)
-
-
-def get_significance_marker(p_value):
-    """Convert p-value to significance marker"""
-    if p_value is None:
-        return ''
-    elif p_value < 0.001:
-        return '***'
-    elif p_value < 0.01:
-        return '**'
-    elif p_value < 0.05:
-        return '*'
-    else:
-        return 'ns'
 
 
 def plot_combination_comparison(results_by_group, filter_conditions, output_path=None, exclude_groups=None,
@@ -452,7 +371,7 @@ def plot_combination_comparison(results_by_group, filter_conditions, output_path
 
     n_groups = len(group_names)
 
-    fig, axes = plt.subplots(n_combinations, 1, figsize=(12, 6.5 * n_combinations))
+    fig, axes = plt.subplots(n_combinations, 1, figsize=(3, 6.5 * n_combinations))
 
     if n_combinations == 1:
         axes = [axes]
@@ -498,6 +417,7 @@ def plot_combination_comparison(results_by_group, filter_conditions, output_path
         # Create grouped bar positions
         n_match_groups = len(sorted_keys)
         bar_width = 0.8 / n_groups if n_groups > 1 else 0.8
+        # x_base = np.array([0.4, 0.5])
         x_base = np.arange(n_match_groups)
 
         # Define color schemes for session groups
@@ -558,6 +478,9 @@ def plot_combination_comparison(results_by_group, filter_conditions, output_path
             else:
                 x_pos = x_base
                 alpha = 0.7
+
+            # MANUAL PLOT: COLOR OVERRIDE
+            colors = ['#2E7D32', '#2E7D32']
 
             # Plot bars
             show_legend = n_groups > 1 and group_names != ['All Sessions']
@@ -632,33 +555,40 @@ def plot_combination_comparison(results_by_group, filter_conditions, output_path
                 bar_idx += 1
 
         # Format x-axis labels
-        x_labels = []
-        for key in sorted_keys:
-            if key == 'match_all':
-                prefix = 'BOTH' if len(combo_filter) == 2 else 'ALL'
-                label = f'{prefix}: ' + ', '.join([f"{k}={v}" for k, v in combo_filter.items()])
-            elif key == 'match_none':
-                unmatched_parts = [f"NOT {k}={combo_filter[k]}" for k in combo_keys]
-                label = ', '.join(unmatched_parts)
-            else:
-                matched_keys = key.replace('match_', '').split('||')
-                matched_parts = [f"{k}={combo_filter[k]}" for k in matched_keys]
-                unmatched_keys = [k for k in combo_keys if k not in matched_keys]
-                unmatched_parts = [f"NOT {k}={combo_filter[k]}" for k in unmatched_keys]
-                label = ', '.join(matched_parts + unmatched_parts)
-            x_labels.append(label)
+        # MANUAL PLOT OVERRIDE: x_labels
+        x_labels = ["Anodic First", "Cathodic First"]
+        # x_labels = []
+        # for key in sorted_keys:
+        #     if key == 'match_all':
+        #         prefix = 'BOTH' if len(combo_filter) == 2 else 'ALL'
+        #         label = f'{prefix}: ' + ', '.join([f"{k}={v}" for k, v in combo_filter.items()])
+        #     elif key == 'match_none':
+        #         unmatched_parts = [f"NOT {k}={combo_filter[k]}" for k in combo_keys]
+        #         label = ', '.join(unmatched_parts)
+        #     else:
+        #         matched_keys = key.replace('match_', '').split('||')
+        #         matched_parts = [f"{k}={combo_filter[k]}" for k in matched_keys]
+        #         unmatched_keys = [k for k in combo_keys if k not in matched_keys]
+        #         unmatched_parts = [f"NOT {k}={combo_filter[k]}" for k in unmatched_keys]
+        #         label = ', '.join(matched_parts + unmatched_parts)
+        #     x_labels.append(label)
+
+
 
         ax.set_xticks(x_base)
-        ax.set_xticklabels(x_labels, rotation=45, ha='right', fontsize=9)
-        ax.set_ylabel('Effect Size (EStim ON - OFF %)', fontsize=12)
+        ax.set_xticklabels(x_labels, rotation=45, ha='right', fontsize=16)
+        ax.tick_params(axis='y', labelsize=12)
+        ax.set_ylabel('Effect Size (EStim ON - OFF %)', fontsize=16)
         ax.axhline(y=0, color='black', linestyle='--', linewidth=1)
         ax.grid(True, alpha=0.3, axis='y')
 
         combo_str = ', '.join([f"{k}={v}" for k, v in combo_filter.items()])
-        title = f'Effect Size Comparison: {combo_str}'
-        if n_groups > 1 and group_names != ['All Sessions']:
-            title += f' | Grouped by Session'
-        ax.set_title(title, fontsize=14, fontweight='bold')
+        # title = f'Effect Size Comparison: {combo_str}'
+        # MANUAL PLOT OVVERRIDE:
+        # title = 'Anodic vs Cathodic EStim Effect'
+        # if n_groups > 1 and group_names != ['All Sessions']:
+        #     title += f' | Grouped by Session'
+        # ax.set_title(title, fontsize=14, fontweight='bold')
 
         # Add legend if multiple groups (and not just 'All Sessions')
         if n_groups > 1 and group_names != ['All Sessions']:
@@ -668,7 +598,11 @@ def plot_combination_comparison(results_by_group, filter_conditions, output_path
 
     if output_path:
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
+        # Also save as PDF
+        pdf_path = output_path.rsplit('.', 1)[0] + '.pdf'
+        plt.savefig(pdf_path, bbox_inches='tight')
         print(f"\nSaved plot to {output_path}")
+        print(f"Saved plot to {pdf_path}")
 
     plt.show()
 
@@ -678,7 +612,7 @@ def main():
 
     #260115_0 single plot
     filter_conditions = {
-        'noise_chance': 0.9,
+        # 'noise_chance': 0.9,
         # 'trial_type': "Hypothesized Shape",
         # 'num_channels': 3.0,
         'polarity': "PositiveFirst",

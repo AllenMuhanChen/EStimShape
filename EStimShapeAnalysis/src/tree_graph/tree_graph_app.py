@@ -22,7 +22,7 @@ class TreeGraphApp:
             [
                 dcc.Graph(id="tree",
                           figure=fig, clear_on_unhover=True,
-                          autosize=False, ),
+                          autosize=True, ),
                 html.Div(id="clipboard-data"),
                 html.Div(id="node-info"),
             ]
