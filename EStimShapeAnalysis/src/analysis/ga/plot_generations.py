@@ -19,7 +19,7 @@ def main():
     # compiled_data = plot_top_n.compile_and_export()
 
     session_id, _ = read_session_id_from_db_name(context.ga_database)
-    session_id = "260113_0"
+    session_id = "260115_0"
     channel = read_cluster_channels(session_id)
     # channel = ["A-009", "A-000", "A-006", "A-009", "A-015", "A-022", "A-024"]
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
@@ -107,15 +107,16 @@ class PlotGenerationsAnalysis(PlotTopNAnalysis):
             # title='Top Stimuli Per Gen',
             filter_values={
                 "RankWithinGeneration": range(0, 15),
-                "Lineage": top_lineages  # Add this line
+                "Lineage": top_lineages,  # Add this line
                 # "GenId": range(0,10)
             },  # only show top 20 per lineage
             # sort_rules={"GenId": "descending"},
             save_path=f"{self.save_path}/{channel}_top_per_gen_by_lineage.png",
             module_name="Top Stimuli Per Gen by Lineage",
-            publish_mode=True,
+            publish_mode=False,
+            save_pdf=True,
             border_width=75,
-            subplot_spacing=(50,25)
+            subplot_spacing=(75,25)
         )
 
         # Second module (first generation only, all 80 stimuli in 20x4 grid)

@@ -27,7 +27,7 @@ def main():
     compiled_data = None
     # compiled_data = analysis.compile_and_export()
     session_id, _ = read_session_id_from_db_name(context.ga_database)
-    session_id = "260120_0"
+    session_id = "260115_0"
     # channels = "A-020"
     channels = read_cluster_channels(session_id)
 
@@ -84,7 +84,8 @@ class PlotFamilyAnalysis(PlotTopNAnalysis):
             col_col='PositionInFamily',
             title=f'Top {top_n} Stimuli Families',
             save_path=f"{self.save_path}/{channel_str}_plot_family.png",
-            publish_mode=True,
+            publish_mode=False,
+            save_pdf=True,
             subplot_spacing=(20, 0),
             module_name="plot_family",
             border_width=50

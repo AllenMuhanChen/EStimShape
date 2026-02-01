@@ -40,6 +40,7 @@ def create_grouped_stimuli_module(
         save_path: Optional[str] = None,
         cols_in_info_box=None,
         publish_mode: bool = False,
+        save_pdf:bool = False,
         include_labels_for=None,
         include_colorbar: bool = False,
         subplot_spacing=None,
@@ -85,7 +86,7 @@ def create_grouped_stimuli_module(
         cols_in_info_box = []
         include_colorbar = True
     else:
-        save_pdf = False
+        # save_pdf = False
         include_colorbar = False
         include_labels_for = {"row", "col", "subgroup"}
 

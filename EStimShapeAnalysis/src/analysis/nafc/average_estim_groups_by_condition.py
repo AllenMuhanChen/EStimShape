@@ -156,14 +156,15 @@ def analyze_condition_combinations(filter_conditions, output_path=None, session_
                         metrics_str = ', '.join([f"{k}={v}" for k, v in session_metrics[sess_id].items()])
                         print(f"  {sess_id}: {metrics_str}")
 
-    # Handle session_ids parameter
+    # Handle session_ids parameter - retrieve ON/OFF performance data
     if session_ids is not None:
         if isinstance(session_ids, str):
             session_ids = [session_ids]
 
         placeholders = ','.join(['%s'] * len(session_ids))
         query = f"""
-            SELECT session_id, conditions, effect_size
+            SELECT session_id, conditions, effect_size, 
+                   estim_on_pct_hypothesized, estim_off_pct_hypothesized
             FROM EStimEffects
             WHERE effect_size IS NOT NULL
             AND session_id IN ({placeholders})
@@ -171,7 +172,11 @@ def analyze_condition_combinations(filter_conditions, output_path=None, session_
         repo_conn.execute(query, tuple(session_ids))
     else:
         repo_conn.execute("""
-                          SELECT session_id, conditions, effect_size
+                          SELECT session_id,
+                                 conditions,
+                                 effect_size,
+                                 estim_on_pct_hypothesized,
+                                 estim_off_pct_hypothesized
                           FROM EStimEffects
                           WHERE effect_size IS NOT NULL
                           """)
@@ -245,17 +250,32 @@ def analyze_condition_combinations(filter_conditions, output_path=None, session_
                 'match_none': [],
             }
 
+            # Also track ON and OFF performance separately
+            session_on_performance = {
+                'match_all': [],
+                'match_none': [],
+            }
+
+            session_off_performance = {
+                'match_all': [],
+                'match_none': [],
+            }
+
             for partial_size in range(1, len(combo_keys)):
                 for partial_combo in combinations(combo_keys, partial_size):
                     key = f"match_{'||'.join(partial_combo)}"
                     session_averages[key] = []
                     session_condition_groups[key] = []
+                    session_on_performance[key] = []
+                    session_off_performance[key] = []
 
             for session_id in group_sessions:  # Only use sessions in this group
                 session_data = [d for d in all_data if d['session_id'] == session_id]
 
                 groups = {key: [] for key in session_averages.keys()}
                 condition_tracking = {key: [] for key in session_averages.keys()}
+                on_groups = {key: [] for key in session_averages.keys()}
+                off_groups = {key: [] for key in session_averages.keys()}
 
                 for data_point in session_data:
                     cond_dict = data_point['conditions_dict']
@@ -266,12 +286,16 @@ def analyze_condition_combinations(filter_conditions, output_path=None, session_
 
                     if num_matches == len(combo_filter):
                         groups['match_all'].append(data_point['effect_size'])
+                        on_groups['match_all'].append(data_point['estim_on_pct_hypothesized'])
+                        off_groups['match_all'].append(data_point['estim_off_pct_hypothesized'])
                         condition_tracking['match_all'].append({
                             'session_id': session_id,
                             'conditions': data_point['conditions']
                         })
                     elif num_matches == 0:
                         groups['match_none'].append(data_point['effect_size'])
+                        on_groups['match_none'].append(data_point['estim_on_pct_hypothesized'])
+                        off_groups['match_none'].append(data_point['estim_off_pct_hypothesized'])
                         condition_tracking['match_none'].append({
                             'session_id': session_id,
                             'conditions': data_point['conditions']
@@ -283,6 +307,8 @@ def analyze_condition_combinations(filter_conditions, output_path=None, session_
                                     if sum(matches[k] for k in partial_combo) == num_matches:
                                         key = f"match_{'||'.join(partial_combo)}"
                                         groups[key].append(data_point['effect_size'])
+                                        on_groups[key].append(data_point['estim_on_pct_hypothesized'])
+                                        off_groups[key].append(data_point['estim_off_pct_hypothesized'])
                                         condition_tracking[key].append({
                                             'session_id': session_id,
                                             'conditions': data_point['conditions']
@@ -293,17 +319,30 @@ def analyze_condition_combinations(filter_conditions, output_path=None, session_
                     if len(values) > 0:
                         session_averages[group_key].append(np.mean(values))
                         session_condition_groups[group_key].append(condition_tracking[group_key])
+                        session_on_performance[group_key].append(np.mean(on_groups[group_key]))
+                        session_off_performance[group_key].append(np.mean(off_groups[group_key]))
 
             grand_averages = {}
             std_errors = {}
             p_values = {}
+            on_averages = {}
+            off_averages = {}
+            on_std_errors = {}
+            off_std_errors = {}
 
             for group_key in session_averages.keys():
                 session_vals = session_averages[group_key]
+                session_on_vals = session_on_performance[group_key]
+                session_off_vals = session_off_performance[group_key]
 
                 if len(session_vals) > 0:
                     grand_averages[group_key] = np.mean(session_vals)
                     std_errors[group_key] = np.std(session_vals) / np.sqrt(len(session_vals))
+
+                    on_averages[group_key] = np.mean(session_on_vals)
+                    off_averages[group_key] = np.mean(session_off_vals)
+                    on_std_errors[group_key] = np.std(session_on_vals) / np.sqrt(len(session_on_vals))
+                    off_std_errors[group_key] = np.std(session_off_vals) / np.sqrt(len(session_off_vals))
 
                     grand_null_dist = compute_grand_null_distribution(
                         session_condition_groups[group_key],
@@ -326,6 +365,10 @@ def analyze_condition_combinations(filter_conditions, output_path=None, session_
                     grand_averages[group_key] = None
                     std_errors[group_key] = None
                     p_values[group_key] = None
+                    on_averages[group_key] = None
+                    off_averages[group_key] = None
+                    on_std_errors[group_key] = None
+                    off_std_errors[group_key] = None
                     print(f"  {group_key}: No data")
 
             results_by_combination.append({
@@ -334,12 +377,22 @@ def analyze_condition_combinations(filter_conditions, output_path=None, session_
                 'grand_averages': grand_averages,
                 'std_errors': std_errors,
                 'p_values': p_values,
+                'on_averages': on_averages,
+                'off_averages': off_averages,
+                'on_std_errors': on_std_errors,
+                'off_std_errors': off_std_errors,
                 'n_sessions': len(group_sessions)
             })
 
         results_by_group[group_name] = results_by_combination
 
     plot_combination_comparison(results_by_group, filter_conditions, output_path, exclude_groups, group_names)
+
+    # Generate dot plot as well
+    if output_path:
+        dot_output_path = output_path.replace('.png', '_dots.png')
+        plot_combination_comparison_dots(results_by_group, filter_conditions, dot_output_path, exclude_groups,
+                                         group_names)
 
 
 def compute_grand_null_distribution(session_condition_groups, sessions):
@@ -427,6 +480,189 @@ def get_significance_marker(p_value):
     else:
         return 'ns'
 
+
+def plot_combination_comparison_dots(results_by_group, filter_conditions, output_path=None, exclude_groups=None,
+                                     group_names=None):
+    """
+    Create dot plots showing EStim ON vs OFF performance with effect size annotations
+
+    Args:
+        results_by_group: Dict of {group_name: [result dicts from analyze_condition_combinations]}
+        filter_conditions: Original filter dict
+        output_path: Path to save the plot
+        exclude_groups: List of group keys to exclude from plots
+        group_names: List of group names (for ordering)
+    """
+    if exclude_groups is None:
+        exclude_groups = []
+
+    if group_names is None:
+        group_names = list(results_by_group.keys())
+
+    # Get number of combinations from first group
+    first_group = group_names[0]
+    n_combinations = len(results_by_group[first_group])
+
+    n_groups = len(group_names)
+
+    fig, axes = plt.subplots(n_combinations, 1, figsize=(6, 6.5 * n_combinations))
+
+    if n_combinations == 1:
+        axes = [axes]
+
+    for combo_idx in range(n_combinations):
+        ax = axes[combo_idx]
+
+        # Get combo info from first group (should be same across all groups)
+        result = results_by_group[first_group][combo_idx]
+        combo_filter = result['combo_filter']
+        combo_keys = result['combo_keys']
+
+        # Collect all match keys across all groups
+        all_match_keys = set()
+        for group_name in group_names:
+            result = results_by_group[group_name][combo_idx]
+            all_match_keys.update(result['on_averages'].keys())
+
+        # Sort match keys
+        sorted_keys = []
+        if 'match_all' in all_match_keys:
+            sorted_keys.append('match_all')
+
+        partial_keys = [k for k in all_match_keys if
+                        k.startswith('match_') and k not in ['match_all', 'match_none']]
+        sorted_keys.extend(sorted(partial_keys))
+
+        if 'match_none' in all_match_keys:
+            sorted_keys.append('match_none')
+
+        # Count total available groups (before exclusions)
+        total_groups = len(sorted_keys)
+        apply_exclusions = total_groups > 2
+
+        # Filter sorted_keys based on exclusions
+        if apply_exclusions:
+            sorted_keys = [k for k in sorted_keys if k not in exclude_groups]
+
+        if len(sorted_keys) == 0:
+            print(f"Warning: No match groups to plot for combination {combo_filter}")
+            continue
+
+        # Create grouped positions
+        n_match_groups = len(sorted_keys)
+        x_spacing = 1.0  # Space between condition groups
+        x_base = np.arange(n_match_groups) * x_spacing
+
+        # Define color/marker schemes for session groups
+        color_schemes = [
+            {'color': '#1976D2', 'marker': 'o'},  # Blue circle
+            {'color': '#388E3C', 'marker': 's'},  # Green square
+            {'color': '#D32F2F', 'marker': '^'},  # Red triangle
+            {'color': '#F57C00', 'marker': 'D'},  # Orange diamond
+        ]
+
+        # Plot for each session group
+        for group_idx, group_name in enumerate(group_names):
+            result = results_by_group[group_name][combo_idx]
+            on_averages = result['on_averages']
+            off_averages = result['off_averages']
+            on_std_errors = result['on_std_errors']
+            off_std_errors = result['off_std_errors']
+            grand_averages = result['grand_averages']
+
+            # Select color/marker scheme for this group
+            scheme = color_schemes[group_idx % len(color_schemes)]
+            color = scheme['color']
+            marker = scheme['marker']
+
+            # Offset for multiple session groups
+            if n_groups > 1:
+                x_offset = (group_idx - (n_groups - 1) / 2) * 0.15
+            else:
+                x_offset = 0
+
+            for i, match_key in enumerate(sorted_keys):
+                if on_averages.get(match_key) is None:
+                    continue
+
+                x_pos = x_base[i] + x_offset
+                on_val = on_averages[match_key]
+                off_val = off_averages[match_key]
+                on_err = on_std_errors[match_key]
+                off_err = off_std_errors[match_key]
+                effect = grand_averages[match_key]
+
+                # Plot OFF and ON points at same x position
+                ax.errorbar([x_pos], [off_val], yerr=[off_err],
+                            fmt=marker, color=color, markersize=8, capsize=5,
+                            alpha=0.7, label=f'{group_name} OFF' if i == 0 and n_groups > 1 and group_names != [
+                        'All Sessions'] else None)
+
+                ax.errorbar([x_pos], [on_val], yerr=[on_err],
+                            fmt=marker, color=color, markersize=8, capsize=5,
+                            alpha=0.7, markerfacecolor='none', markeredgewidth=2,
+                            label=f'{group_name} ON' if i == 0 and n_groups > 1 and group_names != [
+                                'All Sessions'] else None)
+
+                # Annotate with effect size (to the right of the points)
+                text_x = x_pos + 0.15
+                text_y = (on_val + off_val) / 2
+                ax.text(text_x, text_y, f'Δ={effect:.1f}%',
+                        fontsize=9, va='center', ha='left',
+                        bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.7, edgecolor='gray'))
+
+        # Set x-axis limits with proper margins
+        ax.set_xlim(-0.5, n_match_groups - 0.5)
+
+        # Format x-axis labels
+        x_labels = []
+        for key in sorted_keys:
+            if key == 'match_all':
+                prefix = 'BOTH' if len(combo_filter) == 2 else 'ALL'
+                label = f'{prefix}: ' + ', '.join([f"{k}={v}" for k, v in combo_filter.items()])
+            elif key == 'match_none':
+                unmatched_parts = [f"NOT {k}={combo_filter[k]}" for k in combo_keys]
+                label = ', '.join(unmatched_parts)
+            else:
+                matched_keys = key.replace('match_', '').split('||')
+                matched_parts = [f"{k}={combo_filter[k]}" for k in matched_keys]
+                unmatched_keys = [k for k in combo_keys if k not in matched_keys]
+                unmatched_parts = [f"NOT {k}={combo_filter[k]}" for k in unmatched_keys]
+                label = ', '.join(matched_parts + unmatched_parts)
+            x_labels.append(label)
+
+        ax.set_xticks(x_base)
+        ax.set_xticklabels(x_labels, rotation=45, ha='right', fontsize=9)
+        ax.set_ylabel('% Chose Hypothesized Shape', fontsize=12)
+        ax.axhline(y=50, color='gray', linestyle='--', linewidth=1, alpha=0.5, label='Chance (50%)')
+        ax.grid(True, alpha=0.3, axis='y')
+
+        combo_str = ', '.join([f"{k}={v}" for k, v in combo_filter.items()])
+        title = f'EStim ON vs OFF Performance: {combo_str}'
+        if n_groups > 1 and group_names != ['All Sessions']:
+            title += f' | Grouped by Session'
+        ax.set_title(title, fontsize=14, fontweight='bold')
+
+        # Add legend
+        if n_groups > 1 and group_names != ['All Sessions']:
+            ax.legend(loc='upper left', fontsize=9)
+        else:
+            # Simple legend for ON/OFF
+            handles = [
+                plt.Line2D([0], [0], marker='o', color='gray', linestyle='',
+                           markersize=8, label='EStim OFF'),
+                plt.Line2D([0], [0], marker='o', color='gray', linestyle='',
+                           markersize=8, markerfacecolor='none', markeredgewidth=2, label='EStim ON')
+            ]
+            ax.legend(handles=handles, loc='upper left', fontsize=9)
+
+    plt.tight_layout()
+
+    if output_path:
+        plt.savefig(output_path, dpi=300, bbox_inches='tight')
+        print(f"\nSaved dot plot to {output_path}")
+
+    plt.show()
 
 def plot_combination_comparison(results_by_group, filter_conditions, output_path=None, exclude_groups=None,
                                 group_names=None):
@@ -572,7 +808,7 @@ def plot_combination_comparison(results_by_group, filter_conditions, output_path
                 all_max_heights.append(max_height)
                 all_min_heights.append(min_height)
 
-        # Set y-axis limits with extra space for labels (ONLY CHANGE FROM ORIGINAL)
+        # Set y-axis limits with extra space for labels
         if all_max_heights and all_min_heights:
             overall_max = max(all_max_heights)
             overall_min = min(all_min_heights)
@@ -676,11 +912,11 @@ def plot_combination_comparison(results_by_group, filter_conditions, output_path
 def main():
     # Example 1: Basic filter conditions
 
-    #260115_0 single plot
+    # 260115_0 single plot
     filter_conditions = {
         'noise_chance': 0.9,
         # 'trial_type': "Hypothesized Shape",
-        # 'num_channels': 3.0,
+        'num_channels': 3.0,
         'polarity': "PositiveFirst",
         # 'shape': 'BiphasicWithInterphaseDelay'
     }
@@ -688,7 +924,7 @@ def main():
     # Example 2: Session-level filters (excludes sessions that don't pass)
     session_filters = None
     # session_filters = {
-        # 'lineage_score': lambda x: x > 0.85,  # Exclude sessions with no clusters
+    # 'lineage_score': lambda x: x > 0.85,  # Exclude sessions with no clusters
     # }
 
     # Example 3: Session grouping (compares groups side-by-side)
@@ -716,14 +952,13 @@ def main():
     # }
     # Set to None to disable grouping
 
-
     session_ids = None
-    session_ids = "260113_0"
+    session_ids = "260115_0"
     exclude_groups = []
     # group 90% cathodic vs anodic
-    exclude_groups = ['match_none', 'match_polarity']
+    # exclude_groups = ['match_none', 'match_polarity']
     # 260115_0 single plot
-    # exclude_groups = ['match_none', 'match_noise_chance', 'match_noise_chance||polarity', 'match_num_channels', 'match_num_channels||polarity', 'match_polarity']
+    exclude_groups = ['match_none', 'match_noise_chance', 'match_noise_chance||polarity', 'match_num_channels', 'match_num_channels||polarity', 'match_polarity']
 
     import os
     save_dir = "/home/connorlab/Documents/plots/260120_0/estimshape/"

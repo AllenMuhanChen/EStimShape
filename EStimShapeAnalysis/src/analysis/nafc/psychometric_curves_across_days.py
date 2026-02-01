@@ -11,9 +11,9 @@ from src.analysis.nafc.psychometric_curves import collect_choice_trials, unix_to
 
 
 def main():
-    conn = Connection("allen_estimshape_train_240604")
+    conn = Connection("allen_estimshape_train_240604", host='172.30.9.88')
     trial_tstamps = collect_choice_trials(conn, time_util.from_date_to_now(2024,
-                                                                           6, 17,
+                                                                           6, 19,
                                                                            ))
 
     print(unix_to_datetime(time_util.now()))
