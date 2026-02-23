@@ -747,19 +747,19 @@ class GroupedPSTHInputHandler(GroupedSpikeTStampInputHandler):
                 for check_col in filtered_data_for_sorting.columns:
                     if filtered_data_for_sorting.empty:
                         continue
+                    if check_col == self.spike_data_col:  # already handled by super().prepare()
+                        continue
                     first_val = filtered_data_for_sorting[check_col].iloc[0]
                     if not isinstance(first_val, dict):
                         continue
 
                     if isinstance(self.spike_data_col_key, list):
-                        # Sum across all original keys — mirrors what base class does for spike_data_col
                         if any(k in first_val for k in self.spike_data_col_key):
                             filtered_data_for_sorting[check_col] = filtered_data_for_sorting[check_col].apply(
                                 lambda x: sum(x.get(k, 0) for k in self.spike_data_col_key)
                                 if isinstance(x, dict) else x
                             )
                     else:
-                        # Single key
                         if self.spike_data_col_key and self.spike_data_col_key in first_val:
                             filtered_data_for_sorting[check_col] = filtered_data_for_sorting[check_col].apply(
                                 lambda x: x.get(self.spike_data_col_key, 0) if isinstance(x, dict) else x

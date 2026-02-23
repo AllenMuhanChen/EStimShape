@@ -38,13 +38,8 @@ class SpikeRateCombinerInputHandler(InputHandler):
     def effective_key(self):
         return self.COMBINED_KEY if isinstance(self.response_key, list) else self.response_key
 
-
 class GroupedSpikeTStampInputHandler(InputHandler):
-    """
-    Base input handler that handles spike timestamp extraction from a spike_data_col
-    that contains dictionaries. Handles single key or list of keys (combined into one
-    sorted list).
-    """
+    COMBINED_KEY = "_combined"
 
     def __init__(self,
                  spike_data_col: str,
@@ -57,28 +52,23 @@ class GroupedSpikeTStampInputHandler(InputHandler):
 
         if self.spike_data_col_key is None:
             return data
-
         if not isinstance(data[self.spike_data_col].iloc[0], dict):
             return data
 
         if isinstance(self.spike_data_col_key, list):
-            # Combine timestamps from multiple keys into one sorted list
+            # Add '_combined' key into the dict, leaving original keys intact
             data[self.spike_data_col] = data[self.spike_data_col].apply(
-                lambda x: sorted([
+                lambda x: {**x, self.COMBINED_KEY: sorted([
                     t for k in self.spike_data_col_key
                     if k in x
                     for t in x[k]
-                ]) if isinstance(x, dict) else []
+                ])} if isinstance(x, dict) else x
             )
-        else:
-            # Single key extraction
-            data[self.spike_data_col] = data[self.spike_data_col].apply(
-                lambda x: x.get(self.spike_data_col_key, []) if isinstance(x, dict) else []
-            )
+        # Single key: no transformation needed, dict already has the key
 
         return data
 
     @property
-    def effective_key(self) -> str:
-        """Returns the resolved key name after combination."""
-        return "_combined" if isinstance(self.spike_data_col_key, list) else self.spike_data_col_key
+    def effective_key(self) -> Optional[str]:
+        return self.COMBINED_KEY if isinstance(self.spike_data_col_key, list) else self.spike_data_col_key
+

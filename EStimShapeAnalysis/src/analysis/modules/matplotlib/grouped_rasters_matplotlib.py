@@ -13,6 +13,7 @@ from clat.pipeline.pipeline_base_classes import (
     AnalysisModuleFactory
 )
 from src.analysis.modules.figure_output import FigureSaverOutput
+from src.analysis.modules.input_modules import GroupedSpikeTStampInputHandler
 
 
 def create_grouped_raster_module(
@@ -68,12 +69,10 @@ def create_grouped_raster_module(
 
     return raster_plot_module
 
-
-class GroupedRasterInputHandler(InputHandler):
+class GroupedRasterInputHandler(GroupedSpikeTStampInputHandler):
     """
     Input handler that filters and prepares data for raster plot visualization.
-
-    Responsibility: Data filtering and basic organization only.
+    Subclasses GroupedSpikeTStampInputHandler to handle spike timestamp extraction.
     """
 
     def __init__(self,
@@ -81,38 +80,26 @@ class GroupedRasterInputHandler(InputHandler):
                  secondary_group_col: Optional[str] = None,
                  filter_values: Optional[Dict[str, List[Any]]] = None,
                  spike_data_col: str = 'Spikes by Channel',
-                 spike_data_col_key: str = None):
-        """
-        Initialize the raster input handler.
-
-        Args:
-            primary_group_col: The main column to group data by
-            secondary_group_col: Optional column for subgrouping
-            filter_values: Optional dict mapping column names to values to include
-            spike_data_col: Column containing spike timestamps
-        """
+                 spike_data_col_key: Union[str, List[str]] = None):
+        super().__init__(spike_data_col=spike_data_col, spike_data_col_key=spike_data_col_key)
         self.primary_group_col = primary_group_col
         self.secondary_group_col = secondary_group_col
         self.filter_values = filter_values or {}
-        self.spike_data_col = spike_data_col
-        self.spike_data_col_key = spike_data_col_key
 
     def prepare(self, compiled_data: pd.DataFrame) -> Dict[str, Any]:
-        """
-        Filter and organize compiled data for visualization.
-        """
-        # Apply any filters
-        filtered_data = compiled_data.copy()
+        # First let base class handle spike timestamp extraction
+        data = super().prepare(compiled_data)
+
+        # Apply filters
+        filtered_data = data.copy()
         for col, values in self.filter_values.items():
             if col in filtered_data.columns:
                 filtered_data = filtered_data[filtered_data[col].isin(values)]
 
         if filtered_data.empty:
             raise ValueError("Filtered data is empty after applying filters")
-        # Verify required columns exist
         if self.primary_group_col not in filtered_data.columns:
             raise ValueError(f"Primary grouping column '{self.primary_group_col}' not found in data")
-
         if self.spike_data_col not in filtered_data.columns:
             raise ValueError(f"Spike data column '{self.spike_data_col}' not found in data")
 
@@ -124,32 +111,14 @@ class GroupedRasterInputHandler(InputHandler):
         else:
             primary_groups = sorted(all_primary_groups)
 
-        if isinstance(filtered_data[self.spike_data_col].iloc[0], dict):
-            if self.spike_data_col_key is None:
-                pass  # leave as-is
-            elif isinstance(self.spike_data_col_key, list):
-                # Combine spike timestamps from multiple keys into one list
-                filtered_data[self.spike_data_col] = filtered_data[self.spike_data_col].apply(
-                    lambda x: sorted([
-                        t for k in self.spike_data_col_key
-                        if k in x
-                        for t in x[k]
-                    ]) if isinstance(x, dict) else []
-                )
-            else:
-                # Single key extraction (existing behavior)
-                filtered_data[self.spike_data_col] = filtered_data[self.spike_data_col].apply(
-                    lambda x: x[self.spike_data_col_key] if self.spike_data_col_key in x else None
-                )
-
-        # Simple result structure - just the filtered data and configuration
         return {
             'data': filtered_data,
             'primary_group_col': self.primary_group_col,
             'secondary_group_col': self.secondary_group_col,
             'spike_data_col': self.spike_data_col,
             'primary_groups': primary_groups,
-            'filter_values': self.filter_values
+            'filter_values': self.filter_values,
+            'spike_data_col_key': self.spike_data_col_key
         }
 
 
@@ -198,6 +167,7 @@ class GroupedRasterPlotter(ComputationModule):
         spike_data_col = prepared_data['spike_data_col']
         primary_groups = prepared_data['primary_groups']
         filter_values = prepared_data['filter_values']
+        spike_data_col_key = prepared_data['spike_data_col_key']
 
         # Calculate layout information for each group
         group_layouts = {}
@@ -228,6 +198,7 @@ class GroupedRasterPlotter(ComputationModule):
                 layout=group_layouts[group],
                 title=f"{primary_group_col}: {group}",
                 spike_data_col=spike_data_col,
+                spike_data_col_key = spike_data_col_key,
                 secondary_group_col=secondary_group_col
             )
         if self.title:
@@ -294,7 +265,9 @@ class GroupedRasterPlotter(ComputationModule):
                     layout: Dict[str, Any],
                     title: str,
                     spike_data_col: str,
-                    secondary_group_col: Optional[str] = None):
+                    spike_data_col_key: Union[str, List[str]],
+                    secondary_group_col: Optional[str] = None,
+                    ):
         """
         Plot a group's raster plot on the given axes.
         """
@@ -322,13 +295,25 @@ class GroupedRasterPlotter(ComputationModule):
                     y_pos = trial_positions[secondary_value][i]
                     spikes_by_channel = trial[spike_data_col]
 
+                    # Handle cases where spike_data_col_key is a list of channels or a single channel
+                    if isinstance(spike_data_col_key, list):
+                        new_spikes_by_channel = {}
+                        for channel in spike_data_col_key:
+                            new_spikes_by_channel[channel] = spikes_by_channel[channel]
+                        spikes_by_channel = new_spikes_by_channel
+                    else:
+                        spikes_by_channel = spikes_by_channel[spike_data_col_key]
+
+                    # Multiple channels worth of data (dict)
+                        #plot each channel in a different color
                     if isinstance(spikes_by_channel, dict):
-                        color_iterator = spike_color_iterator()
+                        color_iterator = spike_color_iterator(len(spikes_by_channel.items()))
                         for channel, spike_times in spikes_by_channel.items():
                             color = next(color_iterator)
                             ax.vlines(spike_times, y_pos, y_pos + 0.9,
                                       color=color, lw=0.5)
 
+                    # just one channel worth of data
                     elif isinstance(spikes_by_channel, list):
                         for spike_time in spikes_by_channel:
                             ax.vlines(spike_time, y_pos, y_pos + 0.9,
@@ -363,10 +348,10 @@ class GroupedRasterPlotter(ComputationModule):
         ax.set_xlim(*self.time_range)
 
 
-def spike_color_iterator():
+def spike_color_iterator(num=32):
     # Need 32 colors
     # Generate a list of colors
-    colors = plt.cm.viridis(np.linspace(0, 1, 32))
+    colors = plt.cm.viridis(np.linspace(0, 1, num))
     # conver tot list
     colors = [tuple(color) for color in colors]
     return itertools.cycle(colors)
