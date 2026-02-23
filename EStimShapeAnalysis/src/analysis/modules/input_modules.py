@@ -12,6 +12,8 @@ class SpikeRateCombinerInputHandler(InputHandler):
     response_key is a single key.
 
     use .effective_key property to get the key to use for downstream analysis
+
+    Puts combined into a new key rather than replacing existing keys to preserve original data structure for analyses that may want individual keys.
     """
     COMBINED_KEY = "_combined"
 
@@ -39,6 +41,14 @@ class SpikeRateCombinerInputHandler(InputHandler):
         return self.COMBINED_KEY if isinstance(self.response_key, list) else self.response_key
 
 class GroupedSpikeTStampInputHandler(InputHandler):
+    """
+    If spike_data_col_key is a list, creates a new '_combined' entry in the dict that contains a sorted list of all timestamps from the specified keys. Passes through unchanged if spike_data_col_key is a single key.
+
+        use .effective_key property to get the key to use for downstream analysis
+
+    Puts combined into a new key rather than replacing existing keys to preserve original data structure for analyses that may want individual keys.
+
+    """
     COMBINED_KEY = "_combined"
 
     def __init__(self,
@@ -65,7 +75,6 @@ class GroupedSpikeTStampInputHandler(InputHandler):
                 ])} if isinstance(x, dict) else x
             )
         # Single key: no transformation needed, dict already has the key
-
         return data
 
     @property
