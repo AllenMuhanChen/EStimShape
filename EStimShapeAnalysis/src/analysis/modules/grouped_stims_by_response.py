@@ -14,6 +14,7 @@ from clat.pipeline.pipeline_base_classes import (
     InputHandler, ComputationModule, AnalysisModule,
     AnalysisModuleFactory
 )
+from src.analysis.modules.input_modules import SpikeRateCombinerInputHandler
 
 # Set up logging
 logging.basicConfig(level=logging.INFO,
@@ -771,168 +772,53 @@ class PlotlyFigureSaverOutput(OutputHandler):
 
         return figure
 
-
-class GroupedStimuliInputHandler(InputHandler):
-    """
-    Input handler that filters and prepares data for grouped stimuli visualization.
-
-    Will automatically compute aggregated dataframe by averaging all rows' response_col that have the same
-    path_col value.
-
-    if filter_values are provided, only the rows that match the filter values will be included in the output.
-    if sort_rules are provided, the data will be sorted according to the specified rules.
-    """
+class GroupedStimuliInputHandler(SpikeRateCombinerInputHandler):
 
     def __init__(self,
-                 response_col: Union[str, List[str]],
+                 response_col: str,  # single column only now
                  path_col: str,
                  row_col: Optional[str] = None,
                  response_key: Optional[Union[str, List[str]]] = None,
                  col_col: Optional[str] = None,
                  subgroup_col: Optional[str] = None,
                  filter_values: Optional[Dict[str, List[Any]]] = None,
-                 sort_rules: Optional[Dict[str, Any]] = None
-                 ):
-        """
-        Initialize the grouped stimuli input handler.
-
-        Args:
-            response_col: Column(s) containing response values. Can be a single column name (str)
-                         or a list of column names (List[str]). If a list is provided, responses
-                         from all columns will be summed together.
-            path_col: Column containing paths to stimulus images
-            row_col: Optional column for grouping stimuli into rows
-            response_key: Optional key(s) to extract from response_col if it contains a dictionary.
-                         Can be a single key (str) or list of keys (List[str]). If a list is provided,
-                         values for all keys will be summed together.
-            col_col: Optional column for grouping stimuli into columns
-            subgroup_col: Optional column for subgrouping stimuli
-            filter_values: Optional dict mapping column names to lists of values to include
-            sort_rules: Optional dict for sorting values with multiple options:
-                - Basic form: {"col": "column_name", "ascending": True/False}
-                - With custom function: {"col": "column_name", "custom_func": callable}
-                  The custom_func will receive: (values_to_sort, dataframe, column_name)
-        """
+                 sort_rules: Optional[Dict[str, Any]] = None):
+        super().__init__(spike_data_col=response_col, response_key=response_key)
         self.response_col = response_col
-        self.response_key = response_key
         self.path_col = path_col
         self.row_col = row_col
         self.col_col = col_col
         self.subgroup_col = subgroup_col
         self.filter_values = filter_values or {}
         self.sort_rules = sort_rules or {}
-        self.filtered_data = None  # Will store filtered DataFrame for use in sorting functions
+        self.filtered_data = None
 
     def prepare(self, compiled_data: pd.DataFrame) -> Dict[str, Any]:
-        """
-        Filter, sort, and organize compiled data for visualization.
-        If multiple response columns are provided, sums them together.
-        """
-        # Apply any filters
-        filtered_data = compiled_data.copy()
+        # Base class adds '_combined' key into the dict if response_key is a list
+        data = super().prepare(compiled_data)
+
+        filtered_data = data.copy()
         for col, filter_value in self.filter_values.items():
             if col in filtered_data.columns:
                 filtered_data = filtered_data[filtered_data[col].isin(filter_value)]
 
-        # Store filtered data for use in sorting functions
         self.filtered_data = filtered_data.copy()
 
-        # Handle single vs multiple response columns
-        if isinstance(self.response_col, list):
-            # Verify all response columns exist
-            for col in self.response_col:
-                if col not in filtered_data.columns:
-                    raise ValueError(f"Response column '{col}' not found in data")
-
-            # Create a summed response column
-            summed_col_name = "_summed_response"
-
-            # Check if any of the columns contain dictionaries
-            if not filtered_data.empty:
-                first_row_values = [filtered_data[col].iloc[0] for col in self.response_col]
-                has_dicts = any(isinstance(val, dict) for val in first_row_values)
-
-                if has_dicts and self.response_key:
-                    # Extract values from dictionaries first, then sum
-                    # response_key can be either a single key or a list of keys
-                    if isinstance(self.response_key, list):
-                        # Multiple keys to sum from each column's dictionary
-                        def extract_and_sum(row):
-                            total = 0
-                            for col in self.response_col:
-                                val = row[col]
-                                if isinstance(val, dict):
-                                    for key in self.response_key:
-                                        total += val.get(key, 0)
-                                else:
-                                    total += val if val is not None else 0
-                            return total
-                    else:
-                        # Single key to extract from each column's dictionary
-                        def extract_and_sum(row):
-                            total = 0
-                            for col in self.response_col:
-                                val = row[col]
-                                if isinstance(val, dict):
-                                    total += val.get(self.response_key, 0)
-                                else:
-                                    total += val if val is not None else 0
-                            return total
-
-                    filtered_data[summed_col_name] = filtered_data.apply(extract_and_sum, axis=1)
-                else:
-                    # Simple sum of numeric columns
-                    filtered_data[summed_col_name] = filtered_data[self.response_col].sum(axis=1)
-            else:
-                # Empty dataframe, create empty summed column
-                filtered_data[summed_col_name] = []
-
-            # Use the summed column as the response column
-            actual_response_col = summed_col_name
-            logger.info(f"Summing response columns: {self.response_col} -> {summed_col_name}")
-        else:
-            # Single response column
-            actual_response_col = self.response_col
-
-            # Verify required column exists
-            if actual_response_col not in filtered_data.columns:
-                raise ValueError(f"Response column '{actual_response_col}' not found in data")
-
-            # If response_col data is a dict and response_key is provided, extract the data
-            if not filtered_data.empty and isinstance(filtered_data[actual_response_col].iloc[0],
-                                                      dict) and self.response_key:
-                if isinstance(self.response_key, list):
-                    # Multiple keys - sum them
-                    filtered_data[actual_response_col] = filtered_data[actual_response_col].apply(
-                        lambda x: sum(x.get(key, 0) for key in self.response_key) if isinstance(x, dict) else 0
-                    )
-                else:
-                    # Single key - extract it
-                    filtered_data[actual_response_col] = filtered_data[actual_response_col].apply(
-                        lambda x: x.get(self.response_key, 0) if isinstance(x, dict) else 0
-                    )
-
-        # Verify other required columns exist
-        required_cols = [self.path_col]
-        for col in [self.row_col, self.col_col, self.subgroup_col]:
-            if col is not None:
-                required_cols.append(col)
-
+        required_cols = [self.response_col, self.path_col] + [
+            c for c in [self.row_col, self.col_col, self.subgroup_col] if c is not None
+        ]
         for col in required_cols:
             if col not in filtered_data.columns:
                 raise ValueError(f"Required column '{col}' not found in data")
 
-        # Get unique values for each grouping dimension with optional sorting
         row_values = self._get_sorted_values(filtered_data, self.row_col)
         col_values = self._get_sorted_values(filtered_data, self.col_col)
         subgroup_values = self._get_sorted_values(filtered_data, self.subgroup_col)
 
-        if self.subgroup_col and subgroup_values:
-            print(f"Found {len(subgroup_values)} subgroup values: {subgroup_values}")
-
         return {
             'data': filtered_data,
-            'response_col': actual_response_col,
+            'response_col': self.response_col,
+            'response_key': self.effective_key,
             'path_col': self.path_col,
             'row_col': self.row_col,
             'col_col': self.col_col,
@@ -944,99 +830,32 @@ class GroupedStimuliInputHandler(InputHandler):
         }
 
     def _get_sorted_values(self, data: pd.DataFrame, col_name: Optional[str]) -> List[Any]:
-        """
-        Get unique values for a column with optional sorting.
-
-        Args:
-            data: DataFrame containing the data
-            col_name: Name of the column to get unique values from
-
-        Returns:
-            List of unique values, potentially sorted
-        """
         if not col_name or col_name not in data.columns:
             return []
 
         unique_values = list(data[col_name].unique())
 
-        # Check if we need to sort this column
         if self.sort_rules and self.sort_rules.get("col") == col_name:
-            # Handle custom sort function that can access any column in the dataframe
             custom_func = self.sort_rules.get("custom_func")
             ascending = self.sort_rules.get("ascending", True)
 
             if custom_func and callable(custom_func):
-                # Before calling the custom function, make sure we've extracted response values
-                # if needed to prevent dict comparison errors in the sorting functions
                 filtered_data_for_sorting = self.filtered_data.copy()
 
-                # Handle the case where response_col might be a list or a single column
-                if isinstance(self.response_col, list):
-                    # For multiple columns, create the summed column if not already present
-                    summed_col_name = "_summed_response"
-                    if summed_col_name not in filtered_data_for_sorting.columns and not filtered_data_for_sorting.empty:
-                        first_row_values = [filtered_data_for_sorting[col].iloc[0] for col in self.response_col]
-                        has_dicts = any(isinstance(val, dict) for val in first_row_values)
-
-                        if has_dicts and self.response_key:
-                            # Handle response_key being either single or list
-                            if isinstance(self.response_key, list):
-                                def extract_and_sum(row):
-                                    total = 0
-                                    for col in self.response_col:
-                                        val = row[col]
-                                        if isinstance(val, dict):
-                                            for key in self.response_key:
-                                                total += val.get(key, 0)
-                                        else:
-                                            total += val if val is not None else 0
-                                    return total
-                            else:
-                                def extract_and_sum(row):
-                                    total = 0
-                                    for col in self.response_col:
-                                        val = row[col]
-                                        if isinstance(val, dict):
-                                            total += val.get(self.response_key, 0)
-                                        else:
-                                            total += val if val is not None else 0
-                                    return total
-                            filtered_data_for_sorting[summed_col_name] = filtered_data_for_sorting.apply(
-                                extract_and_sum, axis=1)
-                        else:
-                            filtered_data_for_sorting[summed_col_name] = filtered_data_for_sorting[
-                                self.response_col].sum(axis=1)
-                else:
-                    # Single response column - check for dictionary values
-                    if self.response_col in filtered_data_for_sorting.columns:
-                        first_value = filtered_data_for_sorting[self.response_col].iloc[
-                            0] if not filtered_data_for_sorting.empty else None
-                        if isinstance(first_value, dict) and self.response_key is not None:
-                            # Create a copy with extracted values for sorting
-                            if isinstance(self.response_key, list):
-                                # Multiple keys - sum them
-                                filtered_data_for_sorting[self.response_col] = filtered_data_for_sorting[
-                                    self.response_col].apply(
-                                    lambda x: sum(x.get(key, 0) for key in self.response_key) if isinstance(x,
-                                                                                                            dict) else 0
-                                )
-                            else:
-                                # Single key - extract it
-                                filtered_data_for_sorting[self.response_col] = filtered_data_for_sorting[
-                                    self.response_col].apply(
-                                    lambda x: x.get(self.response_key, 0) if isinstance(x,
-                                                                                        dict) and self.response_key else 0
-                                )
+                # response_col already has _combined added by super().prepare()
+                # just extract effective_key from it
+                if self.effective_key and self.response_col in filtered_data_for_sorting.columns:
+                    first_val = filtered_data_for_sorting[self.response_col].iloc[0]
+                    if isinstance(first_val, dict) and self.effective_key in first_val:
+                        filtered_data_for_sorting[self.response_col] = filtered_data_for_sorting[
+                            self.response_col].apply(
+                            lambda x: x.get(self.effective_key, 0) if isinstance(x, dict) else x
+                        )
 
                 return custom_func(unique_values, filtered_data_for_sorting, col_name)
             else:
-                # Standard sorting
                 return sorted(unique_values, reverse=not ascending)
 
-        # If no sort rules matched or no sort_rules provided
         if col_name in self.filter_values:
-            # If we have filter values for this column, use their order
             return [v for v in self.filter_values[col_name] if v in unique_values]
-        else:
-            # Default to standard sorting
-            return sorted(unique_values)
+        return sorted(unique_values)

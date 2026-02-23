@@ -36,6 +36,7 @@ def main():
 
     session_id = "260115_0"
     channel = ["A-009", "A-000", "A-006", "A-009", "A-015", "A-022", "A-024"]
+    # channel = "A-009"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
