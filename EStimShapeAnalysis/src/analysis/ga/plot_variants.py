@@ -12,13 +12,13 @@ import pandas as pd
 def main():
     analysis = PlotVariants(use_ga_response=True)  # Set to False to use channel-specific spike rates
     # compiled_data = analysis.compile_and_export()
-    session_id = "260120_0"
+    session_id = "260115_0"
     channel = "GA"
     analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
 class PlotVariants(PlotTopNAnalysis):
-    def __init__(self, use_ga_response=True):
+    def __init__(self, use_ga_response=True, save_included_variants=False):
         """
         Initialize PlotVariants analysis.
 
@@ -27,6 +27,7 @@ class PlotVariants(PlotTopNAnalysis):
         """
         super().__init__()
         self.use_ga_response = use_ga_response
+        self.save_included_variants = save_included_variants
 
     def analyze(self, channel, compiled_data=None):
         if compiled_data is None:
@@ -64,7 +65,7 @@ class PlotVariants(PlotTopNAnalysis):
 
         # Filter for variants only
         variants_data = compiled_data[
-            compiled_data['StimType'].isin(["REGIME_ESTIM_VARIANTS", "REGIME_ESTIM_DELTA"])].copy()
+            compiled_data['StimType'].isin(["REGIME_ESTIM_VARIANTS"])].copy()
 
         # Get response values for grouping
         if self.use_ga_response:
@@ -146,7 +147,8 @@ class PlotVariants(PlotTopNAnalysis):
             },
             'save_path': f"{self.save_path}/{channel}_variants_with_parents.png",
             'module_name': "Variants_With_Parents",
-            'publish_mode': False,
+            'publish_mode': True,
+            'border_width': 50,
         }
 
         # Add response_rate_key only if using channel-specific mode
@@ -160,7 +162,8 @@ class PlotVariants(PlotTopNAnalysis):
         result = pipeline.run(plot_data)
 
         # Save to database after visualization
-        self._save_included_variants_to_db(compiled_data)
+        if self.save_included_variants:
+            self._save_included_variants_to_db(compiled_data)
 
         plt.show()
 

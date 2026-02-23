@@ -52,6 +52,16 @@ class SideTestAnalysis(Analysis):
         # CLEAN UP DATA SOME
         compiled_data = compiled_data[compiled_data[self.spike_rates_col].notna()]
 
+        # Generate appropriate filename based on channel type
+        if isinstance(channel, list):
+            # Create a descriptive name for multiple channels
+            channel_str = f"{len(channel)}_channels"
+            # Use the response_rate_key as a list to sum dictionary values
+            response_key = channel
+        else:
+            channel_str = channel
+            response_key = channel
+
         # Index Computation Module
         index_module = create_sp_index_module(channel=channel, session_id=self.session_id, spike_data_col=self.spike_rates_col)
         index_branch = create_branch().then(index_module)
@@ -60,7 +70,7 @@ class SideTestAnalysis(Analysis):
         limit = 10
         visualize_module = create_grouped_stimuli_module(
             response_rate_col=self.spike_rates_col,
-            response_rate_key=channel,
+            response_rate_key=response_key,
             path_col='ThumbnailPath',
             col_col='TestId',
             row_col='TestType',
@@ -73,7 +83,7 @@ class SideTestAnalysis(Analysis):
                 )
             },
             title=f'2D vs 3D Test: {channel}',
-            save_path=f"{self.save_path}/{channel}_2dvs3d_more.png",
+            save_path=f"{self.save_path}/{channel_str}_2dvs3d_more.png",
             include_labels_for={"row"},
             publish_mode=False,
             subplot_spacing=(20, 20),
@@ -147,7 +157,7 @@ class SideTestAnalysis(Analysis):
 
         # In SideTestAnalysis.analyze():
         permutation_module = create_sp_permutation_test_module(
-            channel=channel,
+            channels=channel,
             session_id=self.session_id,
             spike_data_col=self.spike_rates_col,
             n_permutations=10000
@@ -199,7 +209,7 @@ class SolidPreferenceIndexAnalysis(SideTestAnalysis):
 
         # In SideTestAnalysis.analyze():
         permutation_module = create_sp_permutation_test_module(
-            channel=channel,
+            channels=channel,
             session_id=self.session_id,
             spike_data_col=self.spike_rates_col,
             n_permutations=10000

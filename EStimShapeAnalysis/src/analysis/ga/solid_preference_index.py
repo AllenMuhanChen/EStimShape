@@ -2,24 +2,32 @@ import numpy as np
 import pandas as pd
 from clat.util.connection import Connection
 from clat.pipeline.pipeline_base_classes import ComputationModule, InputT, OutputT, AnalysisModuleFactory, \
-    OutputHandler, create_branch, create_pipeline
+    OutputHandler
+from src.analysis.modules.input_modules import SpikeRateCombinerInputHandler
 
 
 def create_sp_index_module(channel=None, session_id=None, spike_data_col=None):
+    input_handler = SpikeRateCombinerInputHandler(
+        response_key=channel,
+        spike_data_col=spike_data_col
+    )
     index_module = AnalysisModuleFactory.create(
-        computation=SolidPreferenceIndexCalculator(response_key=channel, spike_data_col=spike_data_col),
+        input_handler=input_handler,
+        computation=SolidPreferenceIndexCalculator(
+            response_key=input_handler.effective_key,
+            spike_data_col=spike_data_col
+        ),
         output_handler=SolidPreferenceIndexDBSaver(session_id, channel)
     )
     return index_module
 
-
 class SolidPreferenceIndexCalculator(ComputationModule):
-    def __init__(self,*, response_key = None , spike_data_col = "Spike Rate by channel"):
+    def __init__(self, *, response_key=None, spike_data_col="Spike Rate by channel"):
         self.response_key = response_key
         self.spike_data_col = spike_data_col
 
+
     def compute(self, prepared_data: InputT) -> OutputT:
-        # Filter for 3D and 2D test types
         data_3d = prepared_data[prepared_data['TestType'] == '3D']
         data_2d = prepared_data[prepared_data['TestType'] == '2D']
 
@@ -48,9 +56,7 @@ class SolidPreferenceIndexCalculator(ComputationModule):
         # Get spike rates for 2D data
         spike_rates_2d = get_spike_rates_for_channel(data_2d, self.response_key)
         if spike_rates_2d:
-            median_2d = np.median(spike_rates_2d)
-            # Filter to top half (above median)
-            data_2d_filtered = []
+            data_2d_filtered = [] #deprecrated filter, we're not actually filtering
             for _, row in data_2d.iterrows():
                 spike_rate_dict = row[self.spike_data_col]
                 if isinstance(spike_rate_dict, dict) and self.response_key in spike_rate_dict:
@@ -73,6 +79,7 @@ class SolidPreferenceIndexCalculator(ComputationModule):
 
         if max(total_3d_rate, total_2d_rate) == 0.0:
             return None
+
         solid_preference_index = (total_3d_rate - total_2d_rate) / max(total_3d_rate, total_2d_rate)
 
         print(f"3D data: {len(data_3d)} trials (top half), total rate: {total_3d_rate}")

@@ -8,7 +8,7 @@ from src.repository.import_from_repository import import_from_repository
 
 def main():
     analysis = PlotResponseDistributionAnalysis()
-    session_id = "260120_0"
+    session_id = "260115_0"
     channel = read_cluster_channels(session_id)
     analysis.run(session_id, "raw", channel, compiled_data=None)
 
@@ -76,9 +76,10 @@ class PlotResponseDistributionAnalysis(PlotTopNAnalysis):
                 line_color="red",
                 annotation_text=f"Mean: {mean_response:.2f}",
                 annotation_position="top",
-                row=i + 1,
+                row=len(gen_ids) - i,
                 col=1
             )
+
 
         fig.write_image(f"{self.save_path}/{channel_str}_response_distribution_per_generation.png")
         fig.show()

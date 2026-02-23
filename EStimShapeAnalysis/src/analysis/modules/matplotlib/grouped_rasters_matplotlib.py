@@ -124,11 +124,23 @@ class GroupedRasterInputHandler(InputHandler):
         else:
             primary_groups = sorted(all_primary_groups)
 
-        # If spike_data_col data is a dict and spike_data_col_key is provided, extract the relevant data
-        if isinstance(filtered_data[self.spike_data_col].iloc[0], dict) and self.spike_data_col_key:
-            filtered_data[self.spike_data_col] = filtered_data[self.spike_data_col].apply(
-                lambda x: x[self.spike_data_col_key] if self.spike_data_col_key in x else None
-            )
+        if isinstance(filtered_data[self.spike_data_col].iloc[0], dict):
+            if self.spike_data_col_key is None:
+                pass  # leave as-is
+            elif isinstance(self.spike_data_col_key, list):
+                # Combine spike timestamps from multiple keys into one list
+                filtered_data[self.spike_data_col] = filtered_data[self.spike_data_col].apply(
+                    lambda x: sorted([
+                        t for k in self.spike_data_col_key
+                        if k in x
+                        for t in x[k]
+                    ]) if isinstance(x, dict) else []
+                )
+            else:
+                # Single key extraction (existing behavior)
+                filtered_data[self.spike_data_col] = filtered_data[self.spike_data_col].apply(
+                    lambda x: x[self.spike_data_col_key] if self.spike_data_col_key in x else None
+                )
 
         # Simple result structure - just the filtered data and configuration
         return {

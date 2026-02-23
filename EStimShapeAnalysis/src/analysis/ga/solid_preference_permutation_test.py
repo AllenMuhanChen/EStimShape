@@ -1,25 +1,31 @@
 import numpy as np
 from clat.pipeline.pipeline_base_classes import ComputationModule, InputT, OutputT, AnalysisModuleFactory, OutputHandler
 from clat.util.connection import Connection
+from src.analysis.modules.input_modules import SpikeRateCombinerInputHandler
 
 
-def create_sp_permutation_test_module(channel=None, session_id=None, spike_data_col=None, n_permutations=10000):
+def create_sp_permutation_test_module(channels: str | list[str]=None, session_id=None, spike_data_col: str=None, n_permutations=10000):
     """
     Create a module for solid preference permutation test.
 
     Args:
-        channel: The channel/unit to analyze
+        channels: The channel/unit to analyze. Can be a single channel name or a list of channel names to combine.
         session_id: The session identifier
-        spike_data_col: Column name containing spike rate data
+        spike_data_col: Column name containing spike rate data (Str)
         n_permutations: Number of permutations to run (default 10000)
     """
+    input_handler = SpikeRateCombinerInputHandler(
+        response_key=channels,
+        spike_data_col=spike_data_col
+    )
     permutation_module = AnalysisModuleFactory.create(
+        input_handler=input_handler,
         computation=SolidPreferencePermutationTest(
-            response_key=channel,
+            response_key=input_handler.effective_key,
             spike_data_col=spike_data_col,
             n_permutations=n_permutations
         ),
-        output_handler=SolidPreferencePermutationDBSaver(session_id, channel)
+        output_handler=SolidPreferencePermutationDBSaver(session_id, channels)
     )
     return permutation_module
 
@@ -96,6 +102,15 @@ class SolidPreferencePermutationDBSaver(OutputHandler):
 
 
 class SolidPreferencePermutationTest(ComputationModule):
+    """
+    Computation module that performs a permutation test for the solid preference index.
+
+    prepared_data should be a dataframe.
+    self.response_key specifies the channel/unit to analyze (or list of channels/units to combine).
+    self.spike_data_col specifies the column containing spike rate data (which should be a dictionary of channel/unit to spike rate).
+
+
+    """
     def __init__(self, *, response_key=None, spike_data_col="Spike Rate by channel", n_permutations=10000):
         self.response_key = response_key
         self.spike_data_col = spike_data_col

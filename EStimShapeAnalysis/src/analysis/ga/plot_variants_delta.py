@@ -207,8 +207,9 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             'col_col': 'Rank',
             'save_path': save_path,
             'module_name': "Deltas_With_Parents",
-            'publish_mode': False,
-            'title': 'Calculated Variants and Deltas' if self.to_save_to_db else 'Tested Variants and Deltas'
+            'publish_mode': True,
+            'title': 'Calculated Variants and Deltas' if self.to_save_to_db else 'Tested Variants and Deltas',
+            'border_width': 50,
         }
 
         # Add response_rate_key only if using channel-specific mode
