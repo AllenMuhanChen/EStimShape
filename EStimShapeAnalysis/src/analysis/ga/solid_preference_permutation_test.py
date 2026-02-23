@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+
 from clat.pipeline.pipeline_base_classes import ComputationModule, InputT, OutputT, AnalysisModuleFactory, OutputHandler
 from clat.util.connection import Connection
 from src.analysis.modules.input_modules import SpikeRateCombinerInputHandler
@@ -38,6 +40,14 @@ class SolidPreferencePermutationDBSaver(OutputHandler):
         self.session_id = session_id
         self.conn = Connection("allen_data_repository")
         self._ensure_columns_exist()
+
+    def requires(self, prepared_data: pd.DataFrame) -> bool:
+        return (
+                self.spike_data_col in prepared_data.columns
+                and 'TestType' in prepared_data.columns
+                and set(['3D', '2D']).issubset(prepared_data['TestType'].unique())
+                and self.response_key in prepared_data[self.spike_data_col].iloc[0]
+        )
 
     def _ensure_columns_exist(self):
         """Add permutation test columns to SolidPreferenceIndices if they don't exist."""
@@ -116,7 +126,25 @@ class SolidPreferencePermutationTest(ComputationModule):
         self.spike_data_col = spike_data_col
         self.n_permutations = n_permutations
 
-    def compute(self, prepared_data: InputT) -> OutputT:
+    def requires(self, prepared_data: pd.DataFrame) -> bool:
+        if self.spike_data_col not in prepared_data.columns:
+            return False
+        if 'TestType' not in prepared_data.columns:
+            return False
+        if not set(['3D', '2D']).issubset(prepared_data['TestType'].unique()):
+            return False
+
+        first_val = prepared_data[self.spike_data_col].iloc[0]
+        if not isinstance(first_val, dict):
+            return False
+        if self.response_key not in first_val:
+            return False
+        if not isinstance(first_val[self.response_key], (int, float)):
+            return False
+
+        return True
+
+    def compute(self, prepared_data: pd.DataFrame) -> dict:
         """
         Perform permutation test for solid preference index.
 

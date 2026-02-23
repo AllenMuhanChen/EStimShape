@@ -26,6 +26,23 @@ class SolidPreferenceIndexCalculator(ComputationModule):
         self.response_key = response_key
         self.spike_data_col = spike_data_col
 
+    def requires(self, prepared_data: pd.DataFrame) -> bool:
+        if self.spike_data_col not in prepared_data.columns:
+            return False
+        if 'TestType' not in prepared_data.columns:
+            return False
+        if not set(['3D', '2D']).issubset(prepared_data['TestType'].unique()):
+            return False
+
+        first_val = prepared_data[self.spike_data_col].iloc[0]
+        if not isinstance(first_val, dict):
+            return False
+        if self.response_key not in first_val:
+            return False
+        if not isinstance(first_val[self.response_key], (int, float)):
+            return False
+
+        return True
 
     def compute(self, prepared_data: InputT) -> OutputT:
         data_3d = prepared_data[prepared_data['TestType'] == '3D']
