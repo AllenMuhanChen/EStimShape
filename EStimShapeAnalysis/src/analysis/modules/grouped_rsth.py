@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 
 from clat.pipeline.pipeline_base_classes import ComputationModule, AnalysisModule, AnalysisModuleFactory, InputHandler
 from src.analysis.modules.grouped_stims_by_response import PlotlyFigureSaverOutput
+from src.analysis.modules.input_modules import GroupedSpikeTStampInputHandler
 
 
 def create_psth_module(
@@ -581,20 +582,16 @@ class PSTHComputation(ComputationModule):
 
 
 
-class GroupedPSTHInputHandler(InputHandler):
+class GroupedPSTHInputHandler(GroupedSpikeTStampInputHandler):
     """
     Input handler that filters and prepares data for PSTH visualization.
 
     Responsibility: Data filtering and organization for further computation.
     """
 
-    def __init__(self,
-                 primary_group_col: str,
-                 secondary_group_col: Optional[str] = None,
-                 filter_values: Optional[Dict[str, List[Any]]] = None,
-                 spike_data_col: str = None,
-                 spike_data_col_key: Optional[str] = None,
-                 column_groups: Optional[Dict[int, List[Any]]] = None,
+    def __init__(self, primary_group_col: str, secondary_group_col: Optional[str] = None,
+                 filter_values: Optional[Dict[str, List[Any]]] = None, spike_data_col: str = None,
+                 spike_data_col_key: Optional[str] = None, column_groups: Optional[Dict[int, List[Any]]] = None,
                  sort_rules: Optional[Dict[str, Any]] = None):
         """
         Initialize the PSTH input handler.
@@ -605,6 +602,7 @@ class GroupedPSTHInputHandler(InputHandler):
             filter_values: Optional dict mapping column names to values to include
             spike_data_col: Column containing spike timestamps
             spike_data_col_key: Optional key for extracting data if spike_data_col contains dictionaries
+                Can be single str or list of strings
             column_groups: Optional dict mapping column indices (0, 1, 2...) to lists of primary_group_col values
                            to explicitly group certain values together in each column.
                            If not provided, all groups will be shown in a single column.
@@ -613,11 +611,11 @@ class GroupedPSTHInputHandler(InputHandler):
                 - With custom function: {"col": "column_name", "custom_func": callable}
                   The custom_func will receive: (values_to_sort, dataframe, column_name)
         """
+        super().__init__(spike_data_col, spike_data_col_key)
         self.primary_group_col = primary_group_col
         self.secondary_group_col = secondary_group_col
         self.filter_values = filter_values or {}
         self.spike_data_col = spike_data_col
-        self.spike_data_col_key = spike_data_col_key
         self.column_groups = column_groups or {}
         self.sort_rules = sort_rules or {}
         self.filtered_data = None  # Will store filtered DataFrame for use in sorting functions
@@ -626,8 +624,11 @@ class GroupedPSTHInputHandler(InputHandler):
         """
         Filter and organize compiled data for PSTH visualization.
         """
+        # First let the base class handle spike timestamp extraction
+        data = super().prepare(compiled_data)
+
         # Apply any filters
-        filtered_data = compiled_data.copy()
+        filtered_data = data.copy()
         for col, values in self.filter_values.items():
             if col in filtered_data.columns:
                 filtered_data = filtered_data[filtered_data[col].isin(values)]
@@ -709,7 +710,7 @@ class GroupedPSTHInputHandler(InputHandler):
             'primary_group_col': self.primary_group_col,
             'secondary_group_col': self.secondary_group_col,
             'spike_data_col': self.spike_data_col,
-            'spike_data_col_key': self.spike_data_col_key,
+            'spike_data_col_key': self.effective_key,
             'primary_groups': primary_groups,
             'secondary_groups': secondary_groups,
             'column_primary_groups': column_primary_groups,
@@ -741,23 +742,27 @@ class GroupedPSTHInputHandler(InputHandler):
             ascending = self.sort_rules.get("ascending", True)
 
             if custom_func and callable(custom_func):
-                # Before calling the custom function, create a copy of the data for sorting
                 filtered_data_for_sorting = self.filtered_data.copy()
 
-                # The custom sorting function might reference a different column for its calculations
-                # (e.g., SortingUtils.by_avg_value uses a 'column' parameter)
-                # We need to process that column if it contains dictionaries
-
-                # We'll need to check all columns that might contain dictionaries
                 for check_col in filtered_data_for_sorting.columns:
-                    if len(filtered_data_for_sorting) > 0:
-                        first_val = filtered_data_for_sorting[check_col].iloc[0]
-                        # If this column contains dictionaries, extract the value using spike_data_col_key
-                        if isinstance(first_val, dict) and self.spike_data_col_key:
-                            # Create a temporary column with extracted values
+                    if filtered_data_for_sorting.empty:
+                        continue
+                    first_val = filtered_data_for_sorting[check_col].iloc[0]
+                    if not isinstance(first_val, dict):
+                        continue
+
+                    if isinstance(self.spike_data_col_key, list):
+                        # Sum across all original keys — mirrors what base class does for spike_data_col
+                        if any(k in first_val for k in self.spike_data_col_key):
                             filtered_data_for_sorting[check_col] = filtered_data_for_sorting[check_col].apply(
-                                lambda x: x.get(self.spike_data_col_key, 0)
-                                if isinstance(x, dict) and self.spike_data_col_key in x else x
+                                lambda x: sum(x.get(k, 0) for k in self.spike_data_col_key)
+                                if isinstance(x, dict) else x
+                            )
+                    else:
+                        # Single key
+                        if self.spike_data_col_key and self.spike_data_col_key in first_val:
+                            filtered_data_for_sorting[check_col] = filtered_data_for_sorting[check_col].apply(
+                                lambda x: x.get(self.spike_data_col_key, 0) if isinstance(x, dict) else x
                             )
 
                 return custom_func(unique_values, filtered_data_for_sorting, col_name)

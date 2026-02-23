@@ -1,3 +1,5 @@
+from typing import Optional, Union, List
+
 import pandas as pd
 
 from clat.pipeline.pipeline_base_classes import InputHandler
@@ -35,3 +37,48 @@ class SpikeRateCombinerInputHandler(InputHandler):
     @property
     def effective_key(self):
         return self.COMBINED_KEY if isinstance(self.response_key, list) else self.response_key
+
+
+class GroupedSpikeTStampInputHandler(InputHandler):
+    """
+    Base input handler that handles spike timestamp extraction from a spike_data_col
+    that contains dictionaries. Handles single key or list of keys (combined into one
+    sorted list).
+    """
+
+    def __init__(self,
+                 spike_data_col: str,
+                 spike_data_col_key: Optional[Union[str, List[str]]] = None):
+        self.spike_data_col = spike_data_col
+        self.spike_data_col_key = spike_data_col_key
+
+    def prepare(self, compiled_data: pd.DataFrame) -> pd.DataFrame:
+        data = compiled_data.copy()
+
+        if self.spike_data_col_key is None:
+            return data
+
+        if not isinstance(data[self.spike_data_col].iloc[0], dict):
+            return data
+
+        if isinstance(self.spike_data_col_key, list):
+            # Combine timestamps from multiple keys into one sorted list
+            data[self.spike_data_col] = data[self.spike_data_col].apply(
+                lambda x: sorted([
+                    t for k in self.spike_data_col_key
+                    if k in x
+                    for t in x[k]
+                ]) if isinstance(x, dict) else []
+            )
+        else:
+            # Single key extraction
+            data[self.spike_data_col] = data[self.spike_data_col].apply(
+                lambda x: x.get(self.spike_data_col_key, []) if isinstance(x, dict) else []
+            )
+
+        return data
+
+    @property
+    def effective_key(self) -> str:
+        """Returns the resolved key name after combination."""
+        return "_combined" if isinstance(self.spike_data_col_key, list) else self.spike_data_col_key
