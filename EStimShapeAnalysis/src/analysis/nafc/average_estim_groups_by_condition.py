@@ -5,6 +5,80 @@ import json
 from itertools import combinations, product as iter_product
 
 # =============================================================================
+# Main analysis
+# =============================================================================
+
+def main():
+    # Example 1: Basic filter conditions
+
+    # 260115_0 single plot
+    filter_conditions = {
+        'noise_chance': [0.9, 1.0],
+        # 'trial_type': ["Hypothesized Shape", "Delta Shape"],
+        'polarity': ["PositiveFirst", "NegativeFirst"],
+        # 'shape': 'BiphasicWithInterphaseDelay'
+    }
+
+    # Optional: control how bars are arranged and colored in enumerated mode
+    # 'x-axis' groups bars along x, 'color' colors bars within each group
+    condition_formatting_type = None
+    condition_formatting_type = {'noise_chance': 'x-axis',
+                                 'polarity': 'color',
+                                 # 'trial_type': 'color'
+                                 }
+
+    # Optional: custom colors for condition values
+    condition_formatting = None
+    condition_formatting = {'polarity': {'PositiveFirst': '#D32F2F', 'NegativeFirst': '#1976D2'}}
+
+
+    # Required conditions: global data filter — all plotted data must match these.
+    # These do NOT generate their own bars.
+    required_conditions = {
+        'num_channels': 3.0,
+        # 'noise_chance': 0.9
+    }
+    # required_conditions = None  # Set to None to disable
+
+    # Example 2: Session-level filters (excludes sessions that don't pass)
+    session_filters = None
+    # session_filters = {
+    # 'lineage_score': lambda x: x > 0.85,  # Exclude sessions with no clusters
+    # }
+
+    # Example 3: Session grouping (compares groups side-by-side)
+    session_grouping = None
+
+    session_ids = None
+    session_ids = "260115_0"
+    exclude_groups = []
+
+
+    import os
+    save_dir = "/home/connorlab/Documents/plots/260120_0/estimshape/"
+    os.makedirs(save_dir, exist_ok=True)
+
+    cond_str = '_'.join([f"{k}_{v}" for k, v in filter_conditions.items()])
+    if session_ids:
+        sess_str = '_'.join(session_ids) if isinstance(session_ids, list) else session_ids
+        output_path = os.path.join(save_dir, f'condition_comparison_{cond_str}_{sess_str}.png')
+    else:
+        output_path = os.path.join(save_dir, f'condition_comparison_{cond_str}.png')
+
+    # Call with session_filters and/or session_grouping parameters
+    analyze_condition_combinations(
+        filter_conditions,
+        output_path=output_path,
+        session_ids=session_ids,
+        exclude_groups=exclude_groups,
+        session_filters=session_filters,
+        session_grouping=session_grouping,
+        required_conditions=required_conditions,
+        condition_formatting_type=condition_formatting_type,
+        condition_formatting=condition_formatting
+    )
+
+# =============================================================================
 # Enumerated mode helpers (for list-valued filter_conditions)
 # =============================================================================
 
@@ -98,66 +172,29 @@ def _classify_data_point_enumerated(cond_dict, bar_specs, filter_conditions):
     return 'non_match'
 
 
-# =============================================================================
-# Main analysis
-# =============================================================================
+def _parse_bar_key(bar_key):
+    """
+    Parse a bar key like 'noise_chance=0.9||polarity=PositiveFirst' into a dict.
+    Returns {} for 'non_match'.
+    """
+    if bar_key == 'non_match':
+        return {}
+    parts = bar_key.split('||')
+    result = {}
+    for part in parts:
+        if '!=' in part:
+            key, val = part.split('!=', 1)
+            result[key] = ('!=', val)
+        elif '=' in part:
+            key, val = part.split('=', 1)
+            result[key] = ('==', val)
+    return result
 
-def main():
-    # Example 1: Basic filter conditions
-
-    # 260115_0 single plot
-    filter_conditions = {
-        'noise_chance': [0.9, 1.0],
-        # 'trial_type': "Hypothesized Shape",
-        # 'polarity': ["PositiveFirst", "NegativeFirst"],
-        # 'shape': 'BiphasicWithInterphaseDelay'
-    }
-
-    # Required conditions: global data filter — all plotted data must match these.
-    # These do NOT generate their own bars.
-    required_conditions = {
-        # 'num_channels': 3.0,
-    }
-    # required_conditions = None  # Set to None to disable
-
-    # Example 2: Session-level filters (excludes sessions that don't pass)
-    session_filters = None
-    # session_filters = {
-    # 'lineage_score': lambda x: x > 0.85,  # Exclude sessions with no clusters
-    # }
-
-    # Example 3: Session grouping (compares groups side-by-side)
-    session_grouping = None
-
-    session_ids = None
-    # session_ids = "260115_0"
-    exclude_groups = []
-
-    import os
-    save_dir = "/home/connorlab/Documents/plots/260120_0/estimshape/"
-    os.makedirs(save_dir, exist_ok=True)
-
-    cond_str = '_'.join([f"{k}_{v}" for k, v in filter_conditions.items()])
-    if session_ids:
-        sess_str = '_'.join(session_ids) if isinstance(session_ids, list) else session_ids
-        output_path = os.path.join(save_dir, f'condition_comparison_{cond_str}_{sess_str}.png')
-    else:
-        output_path = os.path.join(save_dir, f'condition_comparison_{cond_str}.png')
-
-    # Call with session_filters and/or session_grouping parameters
-    analyze_condition_combinations(
-        filter_conditions,
-        output_path=output_path,
-        session_ids=session_ids,
-        exclude_groups=exclude_groups,
-        session_filters=session_filters,
-        session_grouping=session_grouping,
-        required_conditions=required_conditions
-    )
 
 
 def analyze_condition_combinations(filter_conditions, output_path=None, session_ids=None, exclude_groups=None,
-                                   session_filters=None, session_grouping=None, required_conditions=None):
+                                   session_filters=None, session_grouping=None, required_conditions=None,
+                                   condition_formatting_type=None, condition_formatting=None):
     """
     Analyze effect sizes by comparing different combinations of filter conditions.
 
@@ -364,13 +401,15 @@ def analyze_condition_combinations(filter_conditions, output_path=None, session_
         _run_enumerated_analysis(
             filter_conditions, all_data, sessions, group_names,
             session_grouping, session_group_assignments,
-            output_path, exclude_groups, required_conditions
+            output_path, exclude_groups, required_conditions,
+            condition_formatting_type, condition_formatting
         )
     else:
         _run_combination_analysis(
             filter_conditions, all_data, sessions, group_names,
             session_grouping, session_group_assignments,
-            output_path, exclude_groups, required_conditions
+            output_path, exclude_groups, required_conditions,
+            condition_formatting_type, condition_formatting
         )
 
 
@@ -380,7 +419,8 @@ def analyze_condition_combinations(filter_conditions, output_path=None, session_
 
 def _run_enumerated_analysis(filter_conditions, all_data, sessions, group_names,
                              session_grouping, session_group_assignments,
-                             output_path, exclude_groups, required_conditions):
+                             output_path, exclude_groups, required_conditions,
+                             condition_formatting_type=None, condition_formatting=None):
     """Run analysis in enumerated mode (list-valued filter_conditions)."""
 
     bar_specs = _build_bar_specs(filter_conditions)
@@ -523,12 +563,16 @@ def _run_enumerated_analysis(filter_conditions, all_data, sessions, group_names,
 
     # Plot
     plot_combination_comparison(results_by_group, filter_conditions, output_path, exclude_groups, group_names,
-                                required_conditions=required_conditions)
+                                required_conditions=required_conditions,
+                                condition_formatting_type=condition_formatting_type,
+                                condition_formatting=condition_formatting)
 
     if output_path:
         dot_output_path = output_path.replace('.png', '_dots.png')
         plot_combination_comparison_dots(results_by_group, filter_conditions, dot_output_path, exclude_groups,
-                                         group_names, required_conditions=required_conditions)
+                                         group_names, required_conditions=required_conditions,
+                                         condition_formatting_type=condition_formatting_type,
+                                         condition_formatting=condition_formatting)
 
 
 # =============================================================================
@@ -537,7 +581,8 @@ def _run_enumerated_analysis(filter_conditions, all_data, sessions, group_names,
 
 def _run_combination_analysis(filter_conditions, all_data, sessions, group_names,
                               session_grouping, session_group_assignments,
-                              output_path, exclude_groups, required_conditions):
+                              output_path, exclude_groups, required_conditions,
+                              condition_formatting_type=None, condition_formatting=None):
     """Run analysis in combination mode (all scalar filter_conditions)."""
 
     filter_keys = list(filter_conditions.keys())
@@ -728,12 +773,16 @@ def _run_combination_analysis(filter_conditions, all_data, sessions, group_names
         results_by_group[group_name] = results_by_combination
 
     plot_combination_comparison(results_by_group, filter_conditions, output_path, exclude_groups, group_names,
-                                required_conditions=required_conditions)
+                                required_conditions=required_conditions,
+                                condition_formatting_type=condition_formatting_type,
+                                condition_formatting=condition_formatting)
 
     if output_path:
         dot_output_path = output_path.replace('.png', '_dots.png')
         plot_combination_comparison_dots(results_by_group, filter_conditions, dot_output_path, exclude_groups,
-                                         group_names, required_conditions=required_conditions)
+                                         group_names, required_conditions=required_conditions,
+                                         condition_formatting_type=condition_formatting_type,
+                                         condition_formatting=condition_formatting)
 
 
 # =============================================================================
@@ -942,8 +991,131 @@ def _get_bar_color(key, result, color_scheme=None):
 # Plotting functions
 # =============================================================================
 
+def _build_formatted_layout(sorted_keys, result, condition_formatting_type, condition_formatting):
+    """
+    Build a structured layout for formatted bar plots.
+
+    Returns:
+        x_groups: list of (group_label, [(bar_key, color, inner_label), ...])
+        color_legend: list of (label, color) for legend, or None
+        x_axis_key: the condition key used for x-axis grouping, or None
+        color_key: the condition key used for coloring, or None
+    """
+    if condition_formatting_type is None:
+        return None, None, None, None
+
+    x_axis_key = None
+    color_key = None
+    for k, role in condition_formatting_type.items():
+        if role == 'x-axis':
+            x_axis_key = k
+        elif role == 'color':
+            color_key = k
+
+    if x_axis_key is None and color_key is None:
+        return None, None, None, None
+
+    # Default color palette if no custom colors provided
+    default_palette = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728',
+                       '#9467bd', '#8c564b', '#e377c2', '#7f7f7f',
+                       '#bcbd22', '#17becf']
+
+    # Build color map for the color key
+    color_map = {}
+    if color_key:
+        custom_colors = {}
+        if condition_formatting and color_key in condition_formatting:
+            custom_colors = condition_formatting[color_key]
+
+        # Collect all unique color values from bar keys
+        color_values = []
+        for bar_key in sorted_keys:
+            parsed = _parse_bar_key(bar_key)
+            if color_key in parsed:
+                op, val = parsed[color_key]
+                if op == '==' and val not in color_values:
+                    color_values.append(val)
+
+        for i, val in enumerate(color_values):
+            if val in custom_colors:
+                color_map[val] = custom_colors[val]
+            else:
+                color_map[val] = default_palette[i % len(default_palette)]
+
+        color_map['_non_match'] = '#9E9E9E'
+
+    # Group bars by x-axis key
+    if x_axis_key:
+        x_values = []
+        for bar_key in sorted_keys:
+            parsed = _parse_bar_key(bar_key)
+            if x_axis_key in parsed:
+                op, val = parsed[x_axis_key]
+                if op == '==' and val not in x_values:
+                    x_values.append(val)
+
+        x_groups = []
+        for x_val in x_values:
+            group_label = f"{x_axis_key}={x_val}"
+            group_bars = []
+            for bar_key in sorted_keys:
+                if bar_key == 'non_match':
+                    continue
+                parsed = _parse_bar_key(bar_key)
+                if x_axis_key in parsed:
+                    op, val = parsed[x_axis_key]
+                    if op == '==' and val == x_val:
+                        if color_key and color_key in parsed:
+                            c_op, c_val = parsed[color_key]
+                            if c_op == '==':
+                                bar_color = color_map.get(c_val, '#9E9E9E')
+                                inner_label = c_val
+                            else:
+                                bar_color = '#9E9E9E'
+                                inner_label = f'NOT {c_val}'
+                        else:
+                            bar_color = default_palette[0]
+                            inner_label = bar_key
+                        group_bars.append((bar_key, bar_color, inner_label))
+            if group_bars:
+                x_groups.append((group_label, group_bars))
+
+        # Add non_match as its own group if present
+        if 'non_match' in sorted_keys:
+            bar_labels = result.get('bar_labels', {})
+            nm_label = bar_labels.get('non_match', 'Non-match')
+            x_groups.append((nm_label, [('non_match', '#9E9E9E', 'Non-match')]))
+
+    else:
+        # No x-axis grouping — each bar is its own group, just apply colors
+        x_groups = []
+        bar_labels = result.get('bar_labels', {})
+        for bar_key in sorted_keys:
+            label = bar_labels.get(bar_key, bar_key)
+            if bar_key == 'non_match':
+                bar_color = '#9E9E9E'
+            elif color_key:
+                parsed = _parse_bar_key(bar_key)
+                if color_key in parsed:
+                    c_op, c_val = parsed[color_key]
+                    bar_color = color_map.get(c_val, '#9E9E9E') if c_op == '==' else '#9E9E9E'
+                else:
+                    bar_color = default_palette[0]
+            else:
+                bar_color = default_palette[0]
+            x_groups.append((label, [(bar_key, bar_color, label)]))
+
+    # Build legend entries for color key
+    color_legend = None
+    if color_key and color_map:
+        color_legend = [(val, color) for val, color in color_map.items() if val != '_non_match']
+
+    return x_groups, color_legend, x_axis_key, color_key
+
+
 def plot_combination_comparison_dots(results_by_group, filter_conditions, output_path=None, exclude_groups=None,
-                                     group_names=None, required_conditions=None):
+                                     group_names=None, required_conditions=None,
+                                     condition_formatting_type=None, condition_formatting=None):
     """
     Create dot plots showing EStim ON vs OFF performance with effect size annotations.
     """
@@ -979,6 +1151,7 @@ def plot_combination_comparison_dots(results_by_group, filter_conditions, output
 
         result = results_by_group[first_group][combo_idx]
         combo_filter = result['combo_filter']
+        is_enumerated = result.get('is_enumerated', False)
 
         sorted_keys = combo_sorted_keys[combo_idx]
 
@@ -986,73 +1159,167 @@ def plot_combination_comparison_dots(results_by_group, filter_conditions, output
             print(f"Warning: No match groups to plot for combination {combo_filter}")
             continue
 
-        n_match_groups = len(sorted_keys)
-        x_spacing = 0.6
-        x_base = np.arange(n_match_groups) * x_spacing
+        # Check if we should use formatted layout
+        layout = None
+        if is_enumerated and condition_formatting_type:
+            layout, color_legend, x_axis_key, color_key = _build_formatted_layout(
+                sorted_keys, result, condition_formatting_type, condition_formatting
+            )
 
-        color_schemes = [
-            {'color': '#1976D2', 'marker': 'o'},
-            {'color': '#388E3C', 'marker': 's'},
-            {'color': '#D32F2F', 'marker': '^'},
-            {'color': '#F57C00', 'marker': 'D'},
-        ]
+        estim_on_marker = '*'
+        estim_off_marker = 'o'
+        if layout is not None:
+            # ===== FORMATTED DOT LAYOUT =====
+            n_x_groups = len(layout)
+            max_bars_per_group = max(len(bars) for _, bars in layout)
+            dot_spacing = 0.4
+            group_spacing = dot_spacing * max_bars_per_group + 0.3
+            x_base = np.arange(n_x_groups) * group_spacing
 
-        for group_idx, group_name in enumerate(group_names):
-            if group_name not in results_by_group:
-                continue
-            result = results_by_group[group_name][combo_idx]
-            on_averages = result['on_averages']
-            off_averages = result['off_averages']
-            on_std_errors = result['on_std_errors']
-            off_std_errors = result['off_std_errors']
-            grand_averages = result['grand_averages']
+            r = results_by_group[first_group][combo_idx]
 
-            scheme = color_schemes[group_idx % len(color_schemes)]
-            color = scheme['color']
-            marker = scheme['marker']
+            for g_idx, (group_label, group_bars) in enumerate(layout):
+                n_bars = len(group_bars)
+                for b_idx, (bar_key, bar_color, inner_label) in enumerate(group_bars):
+                    if r['on_averages'].get(bar_key) is None:
+                        continue
 
-            if n_groups > 1:
-                x_offset = (group_idx - (n_groups - 1) / 2) * 0.15
-            else:
-                x_offset = 0
+                    x_offset = (b_idx - (n_bars - 1) / 2) * dot_spacing
+                    x_pos = x_base[g_idx] + x_offset
 
-            for i, match_key in enumerate(sorted_keys):
-                if on_averages.get(match_key) is None:
+                    on_val = r['on_averages'][bar_key]
+                    off_val = r['off_averages'][bar_key]
+                    on_err = r['on_std_errors'][bar_key]
+                    off_err = r['off_std_errors'][bar_key]
+                    effect = r['grand_averages'][bar_key]
+
+
+
+                    ax.errorbar([x_pos], [off_val], yerr=[off_err],
+                                fmt=estim_off_marker, color=bar_color, markersize=12, capsize=0, alpha=0.3)
+
+                    ax.errorbar([x_pos], [on_val], yerr=[on_err],
+                                fmt=estim_on_marker, color=bar_color, markersize=12, capsize=0, alpha=0.7)
+
+                    # Annotate with inner_label and effect size
+                    text_x = x_pos
+                    text_y = min(on_val, off_val) - off_err - 0.03 * (ax.get_ylim()[1] - ax.get_ylim()[0] if ax.get_ylim()[1] != ax.get_ylim()[0] else 10)
+                    ax.text(x_pos, (on_val + off_val) / 2 + max(on_err, off_err),
+                            f'Δ={effect:.1f}%',
+                            fontsize=8, va='bottom', ha='center',
+                            bbox=dict(boxstyle='round,pad=0.3', facecolor=bar_color, alpha=0.3, edgecolor='gray'))
+
+            x_labels = [gl for gl, _ in layout]
+            # pull out the number after =
+            x_labels = [lab.split('=')[1] if '=' in lab else lab for lab in x_labels]
+            # if contains "Non-match" replace with "Others"
+            x_labels = [lab if 'Non-match' not in lab else 'other' for lab in x_labels]
+            # pull out name of condition before =
+
+
+            x_axis_label = x_axis_key
+            # replace _ with space
+            x_axis_label = x_axis_label.replace('_', ' ')
+            ax.set_xlabel(x_axis_label, fontsize=18)
+
+            ax.set_xlim(x_base[0] - group_spacing * 0.6, x_base[-1] + group_spacing * 0.6)
+            ax.set_xticks(x_base)
+            ax.set_xticklabels(x_labels, rotation=0, ha='center', fontsize=14)
+
+            # Legend: OFF/ON + color condition
+
+            handles = [
+                plt.Line2D([0], [0], marker=estim_off_marker, color='gray', linestyle='', alpha=0.3,
+                           markersize=8, label='EStim OFF'),
+                plt.Line2D([0], [0], marker=estim_on_marker, color='gray', linestyle='', alpha=0.7,
+                           markersize=8, label='EStim ON')
+            ]
+            if color_legend:
+                for label, c in color_legend:
+                    handles.append(plt.Rectangle((0, 0), 1, 1, facecolor=c, edgecolor='gray', alpha=0.3, label=label))
+            ax.legend(handles=handles, loc='upper left', fontsize=9)
+
+        else:
+            # ===== DEFAULT DOT LAYOUT =====
+            n_match_groups = len(sorted_keys)
+            x_spacing = 0.6
+            x_base = np.arange(n_match_groups) * x_spacing
+
+            color_schemes = [
+                {'color': '#1976D2', 'marker': estim_off_marker},
+                {'color': '#388E3C', 'marker': 's'},
+                {'color': '#D32F2F', 'marker': '^'},
+                {'color': '#F57C00', 'marker': estim_on_marker},
+            ]
+
+            for group_idx, group_name in enumerate(group_names):
+                if group_name not in results_by_group:
                     continue
+                result = results_by_group[group_name][combo_idx]
+                on_averages = result['on_averages']
+                off_averages = result['off_averages']
+                on_std_errors = result['on_std_errors']
+                off_std_errors = result['off_std_errors']
+                grand_averages = result['grand_averages']
 
-                x_pos = x_base[i] + x_offset
-                on_val = on_averages[match_key]
-                off_val = off_averages[match_key]
-                on_err = on_std_errors[match_key]
-                off_err = off_std_errors[match_key]
-                effect = grand_averages[match_key]
+                scheme = color_schemes[group_idx % len(color_schemes)]
+                color = scheme['color']
+                marker = scheme['marker']
 
-                ax.errorbar([x_pos], [off_val], yerr=[off_err],
-                            fmt=marker, color=color, markersize=8, capsize=5,
-                            alpha=0.7, label=f'{group_name} OFF' if i == 0 and n_groups > 1 and group_names != [
-                        'All Sessions'] else None)
+                if n_groups > 1:
+                    x_offset = (group_idx - (n_groups - 1) / 2) * 0.15
+                else:
+                    x_offset = 0
 
-                ax.errorbar([x_pos], [on_val], yerr=[on_err],
-                            fmt=marker, color=color, markersize=8, capsize=5,
-                            alpha=0.7, markerfacecolor='none', markeredgewidth=2,
-                            label=f'{group_name} ON' if i == 0 and n_groups > 1 and group_names != [
-                                'All Sessions'] else None)
+                for i, match_key in enumerate(sorted_keys):
+                    if on_averages.get(match_key) is None:
+                        continue
 
-                text_x = x_pos + 0.15
-                text_y = (on_val + off_val) / 2
-                ax.text(text_x, text_y, f'Δ={effect:.1f}%',
-                        fontsize=9, va='center', ha='left',
-                        bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.7, edgecolor='gray'))
+                    x_pos = x_base[i] + x_offset
+                    on_val = on_averages[match_key]
+                    off_val = off_averages[match_key]
+                    on_err = on_std_errors[match_key]
+                    off_err = off_std_errors[match_key]
+                    effect = grand_averages[match_key]
 
-        ax.set_xlim(x_base[0] - x_spacing * 0.6, x_base[-1] + x_spacing * 0.6)
+                    ax.errorbar([x_pos], [off_val], yerr=[off_err],
+                                fmt=marker, color='#1976D2', markersize=8, capsize=5,
+                                alpha=0.7, label=f'{group_name} OFF' if i == 0 and n_groups > 1 and group_names != [
+                            'All Sessions'] else None)
 
-        # Generate x-axis labels using helper
-        x_labels = [_get_bar_label(key, results_by_group[first_group][combo_idx]) for key in sorted_keys]
+                    ax.errorbar([x_pos], [on_val], yerr=[on_err],
+                                fmt=marker, color='#D32F2F', markersize=8, capsize=5,
+                                alpha=0.7,
+                                label=f'{group_name} ON' if i == 0 and n_groups > 1 and group_names != [
+                                    'All Sessions'] else None)
 
-        ax.set_xticks(x_base)
-        ax.set_xticklabels(x_labels, rotation=45, ha='right', fontsize=9)
-        ax.set_ylabel('% Chose Hypothesized Shape', fontsize=12)
-        ax.axhline(y=50, color='gray', linestyle='--', linewidth=1, alpha=0.5, label='Chance (50%)')
+                    text_x = x_pos + 0.15
+                    text_y = (on_val + off_val) / 2
+                    ax.text(text_x, text_y, f'Δ={effect:.1f}%',
+                            fontsize=9, va='center', ha='left',
+                            bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.7, edgecolor='gray'))
+
+            ax.set_xlim(x_base[0] - x_spacing * 0.6, x_base[-1] + x_spacing * 0.6)
+
+            x_labels = [_get_bar_label(key, results_by_group[first_group][combo_idx]) for key in sorted_keys]
+
+            ax.set_xticks(x_base)
+            ax.set_xticklabels(x_labels, rotation=45, ha='right', fontsize=14)
+
+            if n_groups > 1 and group_names != ['All Sessions']:
+                ax.legend(loc='upper left', fontsize=9)
+            else:
+                handles = [
+                    plt.Line2D([0], [0], marker=estim_off_marker, color='#1976D2', linestyle='',
+                               markersize=8, label='EStim OFF'),
+                    plt.Line2D([0], [0], marker=estim_off_marker, color='#D32F2F', linestyle='',
+                               markersize=8, label='EStim ON')
+                ]
+                ax.legend(handles=handles, loc='upper left', fontsize=9)
+
+        # Common formatting
+        ax.set_ylabel('% Chose Hypothesized Shape', fontsize=18)
+        ax.tick_params(axis='y', labelsize=14)
         ax.grid(True, alpha=0.3, axis='y')
 
         combo_str = ', '.join([f"{k}={v}" for k, v in combo_filter.items()])
@@ -1062,18 +1329,7 @@ def plot_combination_comparison_dots(results_by_group, filter_conditions, output
             title += f' | Fixed: {req_str}'
         if n_groups > 1 and group_names != ['All Sessions']:
             title += f' | Grouped by Session'
-        ax.set_title(title, fontsize=14, fontweight='bold')
-
-        if n_groups > 1 and group_names != ['All Sessions']:
-            ax.legend(loc='upper left', fontsize=9)
-        else:
-            handles = [
-                plt.Line2D([0], [0], marker='o', color='gray', linestyle='',
-                           markersize=8, label='EStim OFF'),
-                plt.Line2D([0], [0], marker='o', color='gray', linestyle='',
-                           markersize=8, markerfacecolor='none', markeredgewidth=2, label='EStim ON')
-            ]
-            ax.legend(handles=handles, loc='upper left', fontsize=9)
+        # ax.set_title(title, fontsize=14, fontweight='bold')
 
     plt.tight_layout()
 
@@ -1085,7 +1341,8 @@ def plot_combination_comparison_dots(results_by_group, filter_conditions, output
 
 
 def plot_combination_comparison(results_by_group, filter_conditions, output_path=None, exclude_groups=None,
-                                group_names=None, required_conditions=None):
+                                group_names=None, required_conditions=None,
+                                condition_formatting_type=None, condition_formatting=None):
     """
     Create bar plots comparing different filter combinations, with optional session group comparison.
     """
@@ -1137,116 +1394,93 @@ def plot_combination_comparison(results_by_group, filter_conditions, output_path
             print(f"Warning: No match groups to plot for combination {combo_filter}")
             continue
 
-        n_match_groups = len(sorted_keys)
-        bar_width = 0.15 / n_groups if n_groups > 1 else 0.15
-        total_group_width = bar_width * n_groups
-        x_spacing = total_group_width + 0.1
-        x_base = np.arange(n_match_groups) * x_spacing
+        # Check if we should use formatted layout
+        layout = None
+        if is_enumerated and condition_formatting_type:
+            layout, color_legend, x_axis_key, color_key = _build_formatted_layout(
+                sorted_keys, result, condition_formatting_type, condition_formatting
+            )
 
-        all_max_heights = []
-        all_min_heights = []
+        if layout is not None:
+            # ===== FORMATTED LAYOUT =====
+            n_x_groups = len(layout)
+            # Max bars in any group (for bar width calc)
+            max_bars_per_group = max(len(bars) for _, bars in layout)
+            bar_width = 0.15
+            group_spacing = bar_width * max_bars_per_group + 0.15
+            x_base = np.arange(n_x_groups) * group_spacing
 
-        for group_idx, group_name in enumerate(group_names):
-            if group_name not in results_by_group:
-                continue
-            result = results_by_group[group_name][combo_idx]
-            grand_averages = result['grand_averages']
-            std_errors = result['std_errors']
+            all_max_heights = []
+            all_min_heights = []
 
-            means = []
-            errors = []
-            colors = []
+            # Draw bars — iterate over x_groups
+            # Build a flat ordered list of bar_keys as drawn, for annotation later
+            drawn_bar_keys = []
 
-            for match_key in sorted_keys:
-                if grand_averages.get(match_key) is not None:
-                    means.append(grand_averages[match_key])
-                    errors.append(std_errors[match_key])
+            for g_idx, (group_label, group_bars) in enumerate(layout):
+                n_bars = len(group_bars)
+                for b_idx, (bar_key, bar_color, inner_label) in enumerate(group_bars):
+                    # Get data from first session group (handle multi-session-group later)
+                    group_name = first_group
+                    r = results_by_group[group_name][combo_idx]
+                    ga = r['grand_averages']
+                    se = r['std_errors']
 
-                    if is_enumerated:
-                        colors.append(_get_bar_color(match_key, result))
-                    else:
-                        color_scheme = session_color_schemes[group_idx % len(session_color_schemes)]
-                        colors.append(_get_bar_color(match_key, result, color_scheme))
-                else:
-                    means.append(0)
-                    errors.append(0)
-                    colors.append('lightgray')
+                    if ga.get(bar_key) is None:
+                        drawn_bar_keys.append(bar_key)
+                        continue
 
-            if n_groups > 1:
-                x_offset = (group_idx - (n_groups - 1) / 2) * bar_width
-                x_pos = x_base + x_offset
-                alpha = 0.7
-            else:
-                x_pos = x_base
-                alpha = 0.7
+                    mean_val = ga[bar_key]
+                    err_val = se[bar_key]
 
-            show_legend = n_groups > 1 and group_names != ['All Sessions']
-            bars = ax.bar(x_pos, means, width=bar_width, yerr=errors, capsize=5,
-                          color=colors, alpha=alpha, edgecolor='black',
-                          label=group_name if show_legend else None)
+                    x_offset = (b_idx - (n_bars - 1) / 2) * bar_width
+                    x_pos = x_base[g_idx] + x_offset
 
-            if means:
-                max_height = max([m + e for m, e in zip(means, errors)])
-                min_height = min([m - e for m, e in zip(means, errors)])
-                all_max_heights.append(max_height)
-                all_min_heights.append(min_height)
+                    ax.bar(x_pos, mean_val, width=bar_width, yerr=err_val, capsize=5,
+                           color=bar_color, alpha=0.7, edgecolor='black')
 
-        # Set y-axis limits
-        if all_max_heights and all_min_heights:
-            overall_max = max(all_max_heights)
-            overall_min = min(all_min_heights)
-            overall_min = min(overall_min, 0)
-            y_range = overall_max - overall_min
-            ax.set_ylim(overall_min - 0.1 * y_range, overall_max + 0.45 * y_range)
+                    all_max_heights.append(mean_val + err_val)
+                    all_min_heights.append(mean_val - err_val)
+                    drawn_bar_keys.append(bar_key)
 
-        final_y_range = ax.get_ylim()[1] - ax.get_ylim()[0]
+            # Set y-axis limits
+            if all_max_heights and all_min_heights:
+                overall_max = max(all_max_heights)
+                overall_min = min(all_min_heights)
+                overall_min = min(overall_min, 0)
+                y_range = overall_max - overall_min
+                ax.set_ylim(overall_min - 0.1 * y_range, overall_max + 0.45 * y_range)
 
-        # Add labels to bars
-        bar_idx = 0
-        for group_idx, group_name in enumerate(group_names):
-            if group_name not in results_by_group:
-                continue
-            result = results_by_group[group_name][combo_idx]
-            grand_averages = result['grand_averages']
-            std_errors = result['std_errors']
-            p_values = result['p_values']
-            n_per_key = result.get('n_per_key', {})
-            s_per_key = result.get('s_per_key', {})
+            final_y_range = ax.get_ylim()[1] - ax.get_ylim()[0]
 
-            means = []
-            errors = []
-            p_vals = []
-            n_vals = []
-            s_vals = []
+            # Add annotations to bars
+            r = results_by_group[first_group][combo_idx]
+            ga = r['grand_averages']
+            se = r['std_errors']
+            pv = r['p_values']
+            npk = r.get('n_per_key', {})
+            spk = r.get('s_per_key', {})
 
-            for match_key in sorted_keys:
-                if grand_averages.get(match_key) is not None:
-                    means.append(grand_averages[match_key])
-                    errors.append(std_errors[match_key])
-                    p_vals.append(p_values.get(match_key, None))
-                    n_vals.append(n_per_key.get(match_key, 0))
-                    s_vals.append(s_per_key.get(match_key, 0))
-                else:
-                    means.append(0)
-                    errors.append(0)
-                    p_vals.append(None)
-                    n_vals.append(0)
-                    s_vals.append(0)
-
-            for i, (mean, err, p_val, n_val, s_val) in enumerate(zip(means, errors, p_vals, n_vals, s_vals)):
-                if mean == 0:
-                    bar_idx += 1
+            bar_patch_idx = 0
+            for bar_key in drawn_bar_keys:
+                if ga.get(bar_key) is None:
                     continue
 
-                bar = ax.patches[bar_idx]
+                mean_val = ga[bar_key]
+                err_val = se[bar_key]
+                p_val = pv.get(bar_key, None)
+                n_val = npk.get(bar_key, 0)
+                s_val = spk.get(bar_key, 0)
+
+                bar = ax.patches[bar_patch_idx]
                 height = bar.get_height()
 
-                ax.text(bar.get_x() + bar.get_width() / 2., height + err + 0.015 * final_y_range,
-                        f'{mean:.1f}%',
+                ax.text(bar.get_x() + bar.get_width() / 2., height + err_val + 0.015 * final_y_range,
+                        f'{mean_val:.1f}%',
                         ha='center', va='bottom', fontweight='bold', fontsize=9)
 
-                ax.text(bar.get_x() + bar.get_width() / 2., height + err + 0.05 * final_y_range,
-                        f'n={n_val}, sessions={s_val}',
+                ax.text(bar.get_x() + bar.get_width() / 2., height + err_val + 0.05 * final_y_range,
+                        f'n={n_val}\nsessions={s_val}',
                         ha='center', va='bottom', fontsize=7)
 
                 if p_val is not None:
@@ -1255,20 +1489,174 @@ def plot_combination_comparison(results_by_group, filter_conditions, output_path
                     if sig_marker != 'ns':
                         p_text = f'{sig_marker} {p_text}'
 
-                    ax.text(bar.get_x() + bar.get_width() / 2., height + err + 0.085 * final_y_range,
+                    ax.text(bar.get_x() + bar.get_width() / 2., height + err_val + 0.085 * final_y_range,
                             p_text,
                             ha='center', va='bottom', fontsize=7, style='italic')
 
-                bar_idx += 1
+                bar_patch_idx += 1
 
-        ax.set_xlim(x_base[0] - x_spacing * 0.6, x_base[-1] + x_spacing * 0.6)
+            # X-axis labels and limits
+            x_labels = [gl for gl, _ in layout]
+            # pull out the number after =
+            x_labels = [lab.split('=')[1] if '=' in lab else lab for lab in x_labels]
+            x_labels = [lab if 'Non-match' not in lab else 'other' for lab in x_labels]
+            # pull out name of condition before =
+            x_axis_label = x_axis_key
+            # replace _ with space
+            x_axis_label = x_axis_label.replace('_', ' ')
+            ax.set_xlabel(x_axis_label, fontsize=18)
 
-        # Generate x-axis labels using helper
-        x_labels = [_get_bar_label(key, results_by_group[first_group][combo_idx]) for key in sorted_keys]
+            ax.set_xlim(x_base[0] - group_spacing * 0.6, x_base[-1] + group_spacing * 0.6)
+            ax.set_xticks(x_base)
+            ax.set_xticklabels(x_labels, rotation=45, ha='right', fontsize=14)
 
-        ax.set_xticks(x_base)
-        ax.set_xticklabels(x_labels, rotation=45, ha='right', fontsize=9)
-        ax.set_ylabel('Effect Size (EStim ON - OFF %)', fontsize=12)
+            # Color legend
+            if color_legend:
+                handles = [plt.Rectangle((0, 0), 1, 1, facecolor=c, edgecolor='black', alpha=0.7)
+                           for label, c in color_legend]
+                labels = [label for label, c in color_legend]
+                ax.legend(handles, labels, loc='upper left', fontsize=9, title=color_key)
+
+        else:
+            # ===== DEFAULT LAYOUT (unchanged) =====
+            n_match_groups = len(sorted_keys)
+            bar_width = 0.15 / n_groups if n_groups > 1 else 0.15
+            total_group_width = bar_width * n_groups
+            x_spacing = total_group_width + 0.1
+            x_base = np.arange(n_match_groups) * x_spacing
+
+            all_max_heights = []
+            all_min_heights = []
+
+            for group_idx, group_name in enumerate(group_names):
+                if group_name not in results_by_group:
+                    continue
+                result = results_by_group[group_name][combo_idx]
+                grand_averages = result['grand_averages']
+                std_errors = result['std_errors']
+
+                means = []
+                errors = []
+                colors = []
+
+                for match_key in sorted_keys:
+                    if grand_averages.get(match_key) is not None:
+                        means.append(grand_averages[match_key])
+                        errors.append(std_errors[match_key])
+
+                        if is_enumerated:
+                            colors.append(_get_bar_color(match_key, result))
+                        else:
+                            color_scheme = session_color_schemes[group_idx % len(session_color_schemes)]
+                            colors.append(_get_bar_color(match_key, result, color_scheme))
+                    else:
+                        means.append(0)
+                        errors.append(0)
+                        colors.append('lightgray')
+
+                if n_groups > 1:
+                    x_offset = (group_idx - (n_groups - 1) / 2) * bar_width
+                    x_pos = x_base + x_offset
+                    alpha = 0.7
+                else:
+                    x_pos = x_base
+                    alpha = 0.7
+
+                show_legend = n_groups > 1 and group_names != ['All Sessions']
+                bars = ax.bar(x_pos, means, width=bar_width, yerr=errors, capsize=5,
+                              color=colors, alpha=alpha, edgecolor='black',
+                              label=group_name if show_legend else None)
+
+                if means:
+                    max_height = max([m + e for m, e in zip(means, errors)])
+                    min_height = min([m - e for m, e in zip(means, errors)])
+                    all_max_heights.append(max_height)
+                    all_min_heights.append(min_height)
+
+            # Set y-axis limits
+            if all_max_heights and all_min_heights:
+                overall_max = max(all_max_heights)
+                overall_min = min(all_min_heights)
+                overall_min = min(overall_min, 0)
+                y_range = overall_max - overall_min
+                ax.set_ylim(overall_min - 0.1 * y_range, overall_max + 0.45 * y_range)
+
+            final_y_range = ax.get_ylim()[1] - ax.get_ylim()[0]
+
+            # Add labels to bars
+            bar_idx = 0
+            for group_idx, group_name in enumerate(group_names):
+                if group_name not in results_by_group:
+                    continue
+                result = results_by_group[group_name][combo_idx]
+                grand_averages = result['grand_averages']
+                std_errors = result['std_errors']
+                p_values = result['p_values']
+                n_per_key = result.get('n_per_key', {})
+                s_per_key = result.get('s_per_key', {})
+
+                means = []
+                errors = []
+                p_vals = []
+                n_vals = []
+                s_vals = []
+
+                for match_key in sorted_keys:
+                    if grand_averages.get(match_key) is not None:
+                        means.append(grand_averages[match_key])
+                        errors.append(std_errors[match_key])
+                        p_vals.append(p_values.get(match_key, None))
+                        n_vals.append(n_per_key.get(match_key, 0))
+                        s_vals.append(s_per_key.get(match_key, 0))
+                    else:
+                        means.append(0)
+                        errors.append(0)
+                        p_vals.append(None)
+                        n_vals.append(0)
+                        s_vals.append(0)
+
+                for i, (mean, err, p_val, n_val, s_val) in enumerate(zip(means, errors, p_vals, n_vals, s_vals)):
+                    if mean == 0:
+                        bar_idx += 1
+                        continue
+
+                    bar = ax.patches[bar_idx]
+                    height = bar.get_height()
+
+                    ax.text(bar.get_x() + bar.get_width() / 2., height + err + 0.015 * final_y_range,
+                            f'{mean:.1f}%',
+                            ha='center', va='bottom', fontweight='bold', fontsize=9)
+
+                    ax.text(bar.get_x() + bar.get_width() / 2., height + err + 0.05 * final_y_range,
+                            f'n={n_val} sessions={s_val}',
+                            ha='center', va='bottom', fontsize=7)
+
+                    if p_val is not None:
+                        p_text = f'p={p_val:.3f}' if p_val >= 0.001 else 'p<0.001'
+                        sig_marker = get_significance_marker(p_val)
+                        if sig_marker != 'ns':
+                            p_text = f'{sig_marker} {p_text}'
+
+                        ax.text(bar.get_x() + bar.get_width() / 2., height + err + 0.085 * final_y_range,
+                                p_text,
+                                ha='center', va='bottom', fontsize=7, style='italic')
+
+                    bar_idx += 1
+
+            ax.set_xlim(x_base[0] - x_spacing * 0.6, x_base[-1] + x_spacing * 0.6)
+
+            # Generate x-axis labels using helper
+            x_labels = [_get_bar_label(key, results_by_group[first_group][combo_idx]) for key in sorted_keys]
+
+            ax.set_xticks(x_base)
+            ax.set_xticklabels(x_labels, rotation=45, ha='right', fontsize=9)
+
+            if n_groups > 1 and group_names != ['All Sessions']:
+                ax.legend(loc='upper left', fontsize=10)
+
+        # Common axis formatting
+        ax.set_ylabel('Effect Size (EStim ON - OFF %)', fontsize=18)
+        ax.tick_params(axis='y', labelsize=14)
         ax.axhline(y=0, color='black', linestyle='--', linewidth=1)
         ax.grid(True, alpha=0.3, axis='y')
 
@@ -1279,10 +1667,7 @@ def plot_combination_comparison(results_by_group, filter_conditions, output_path
             title += f' | Fixed: {req_str}'
         if n_groups > 1 and group_names != ['All Sessions']:
             title += f' | Grouped by Session'
-        ax.set_title(title, fontsize=14, fontweight='bold')
-
-        if n_groups > 1 and group_names != ['All Sessions']:
-            ax.legend(loc='upper left', fontsize=10)
+        # ax.set_title(title, fontsize=14, fontweight='bold')
 
     plt.tight_layout()
 
