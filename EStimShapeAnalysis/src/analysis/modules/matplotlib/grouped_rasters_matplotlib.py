@@ -302,6 +302,9 @@ class GroupedRasterPlotter(ComputationModule):
                             new_spikes_by_channel[channel] = spikes_by_channel[channel]
                         spikes_by_channel = new_spikes_by_channel
                     else:
+                        if spike_data_col_key not in spikes_by_channel:
+                            # If the specified key is not in the spike data, plot no spikes
+                            spikes_by_channel[spike_data_col_key] = []
                         spikes_by_channel = spikes_by_channel[spike_data_col_key]
 
                     # Multiple channels worth of data (dict)
