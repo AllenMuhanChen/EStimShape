@@ -110,7 +110,11 @@ def plot_frequency_data(merged_df, frequency, sessions):
     p_values = freq_data['p_value'].values
 
     # Calculate linear regression for combined data
-    slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
+    # Only calculate regression on x and y if x < 0.5
+    x_filtered = x[x < 0.5]
+    y_filtered = y[x < 0.5]
+
+    slope, intercept, r_value, p_value, std_err = stats.linregress(x_filtered, y_filtered)
     r_squared = r_value ** 2
 
     # Create the scatter plot

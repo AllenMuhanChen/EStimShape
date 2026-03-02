@@ -13,7 +13,7 @@ def main():
     # metric_name = 'max_normalized'
     create_isochrom_isolum_zscore_plots(
         save_path="/home/connorlab/Documents/plots/isochrom_vs_isolum_zscore",
-        data_source='raw_validated',
+        data_source='raw_clustered',
         metric_name=metric_name,
     )
 

@@ -13,6 +13,7 @@ from src.analysis.isogabor.isogabor_raster_pipeline import IsogaborAnalysis, Iso
 from src.analysis.isogabor.mixed_gabors_analysis import MixedGaborsAnalysis
 from src.analysis.lightness.lightness_analysis import LightnessAnalysis
 from src.analysis.shuffle.shuffle_analysis import ShuffleAnalysis
+from src.analysis.spi_vs_ici.isoluminant_comparison import IsoluminantComparisonAnalysis
 from src.repository.good_channels import read_cluster_channels
 
 
@@ -120,10 +121,11 @@ def run_analyses(channels_map: Dict[str, List[str]], analyses: List[type(Analysi
 def main():
     # Initialize analysis modules
     analyses = [
-        GAResponseVectorAnalysis(),
-        SolidPreferenceIndexAnalysis(),
-        IsochromaticIndexAnalysis(),
+        # GAResponseVectorAnalysis(),
+        # SolidPreferenceIndexAnalysis(),
+        # IsochromaticIndexAnalysis(),
         # IsoChromaticLuminantScoreAnalysis(),
+        IsoluminantComparisonAnalysis(),
         # SideTestAnalysis(),
         # IsogaborAnalysis(),
         # PlotTopNAnalysis(),

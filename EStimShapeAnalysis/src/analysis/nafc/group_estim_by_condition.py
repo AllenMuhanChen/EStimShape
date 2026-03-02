@@ -92,11 +92,11 @@ def plot_estim_effects_summary(session_id, effect_threshold=15, output_path=None
     effect_sizes = [d['effect_size'] for d in effects_data if
                     d['effect_size'] is not None and d['estim_on_n_trials'] >= n_threshold]
 
-    ax_hist.hist(effect_sizes, bins=15, color='steelblue', alpha=0.7, edgecolor='black')
+    ax_hist.hist(effect_sizes, bins=20, color='steelblue', alpha=0.7, edgecolor='black')
     ax_hist.axvline(x=0, color='red', linestyle='--', linewidth=2, label='No Effect')
-    ax_hist.axvline(x=effect_threshold, color='green', linestyle='--', linewidth=1.5,
-                    label=f'Threshold ±{effect_threshold}%')
-    ax_hist.axvline(x=-effect_threshold, color='green', linestyle='--', linewidth=1.5)
+    # ax_hist.axvline(x=effect_threshold, color='green', linestyle='--', linewidth=1.5,
+    #                 label=f'Threshold ±{effect_threshold}%')
+    # ax_hist.axvline(x=-effect_threshold, color='green', linestyle='--', linewidth=1.5)
 
     ax_hist.set_xlabel('Effect Size (EStim ON - EStim OFF %)', fontsize=12)
     ax_hist.set_ylabel('Count', fontsize=12)
@@ -215,7 +215,7 @@ def main():
     condition_filter = {
         # 'shape': 'BiphasicWithInterphaseDelay',
         # 'trial_type': 'Hypothesized Shape',  # Only show Delta Shape trials
-        'noise_chance': 1.0,  # Only show 50% noise
+        # 'noise_chance': 0.9,  # Only show 50% noise
         # 'polarity': 'PositiveFirst',  # Only show positive polarity
         # 'num_channels': 3,  # Only show 9 channel stimulation
     }
