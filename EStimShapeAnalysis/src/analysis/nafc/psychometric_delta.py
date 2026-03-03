@@ -190,7 +190,7 @@ def main():
     import numpy as np
 
     # Database connection
-    conn = Connection("allen_estimshape_exp_260120_0")
+    conn = Connection("allen_estimshape_exp_260115_0")
 
     # Time range
     since_date = time_util.from_date_to_now(2024, 7, 10)
@@ -251,7 +251,7 @@ def main():
     data = fields.to_data(trial_tstamps)
 
     # Filter data by GenId
-    data = data[(data['GenId'] >= start_gen_id) & (data['GenId'] <= max_gen_id)]
+    # data = data[(data['GenId'] >= start_gen_id) & (data['GenId'] <= max_gen_id)]
 
     # Split datasets
     data_exp = data[data['StimType'] == 'EStimShapeVariantsDeltaNAFCStim']

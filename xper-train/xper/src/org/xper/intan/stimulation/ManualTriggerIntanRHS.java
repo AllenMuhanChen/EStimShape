@@ -28,44 +28,19 @@ public class ManualTriggerIntanRHS extends IntanRHD {
         ports.add("d");
 
         channelNums = new ArrayList<>();
-        channelNums.add("000");
-        channelNums.add("001");
-        channelNums.add("002");
-        channelNums.add("003");
-        channelNums.add("004");
-        channelNums.add("005");
-        channelNums.add("006");
-        channelNums.add("007");
-        channelNums.add("008");
-        channelNums.add("009");
-        channelNums.add("010");
-        channelNums.add("011");
-        channelNums.add("012");
-        channelNums.add("013");
-        channelNums.add("014");
-        channelNums.add("015");
-        channelNums.add("016");
-        channelNums.add("017");
-        channelNums.add("018");
-        channelNums.add("019");
-        channelNums.add("020");
-        channelNums.add("021");
-        channelNums.add("022");
-        channelNums.add("023");
-        channelNums.add("024");
-        channelNums.add("025");
-        channelNums.add("026");
-        channelNums.add("027");
-        channelNums.add("028");
-        channelNums.add("029");
-        channelNums.add("030");
-        channelNums.add("031");
+        for (int i = 0; i <= 31; i++) {
+            channelNums.add(String.format("%03d", i));
+        }
     }
     /**
      * Default Parameters that are true for every trial and channel throughout the entire experiment
      */
     @Dependency
     Collection<Parameter<Object>> defaultParameters;
+
+    // ───────────────────────────────────────────────
+    // Original methods (unchanged)
+    // ───────────────────────────────────────────────
 
     public void setupManualStimulationFor(EStimParameters eStimParameters){
         disableAllStim();
@@ -106,10 +81,151 @@ public class ManualTriggerIntanRHS extends IntanRHD {
         uploadParameters();
     }
 
+    // ───────────────────────────────────────────────
+    // Batched methods
+    // ───────────────────────────────────────────────
+
+    public void setupManualStimulationForBatched(EStimParameters eStimParameters){
+        disableAllStimBatched();
+
+        Map<RHSChannel, ChannelEStimParameters> parametersForChannels = eStimParameters.geteStimParametersForChannels();
+
+        List<String> cmds = new ArrayList<>();
+        for (RHSChannel channel : parametersForChannels.keySet()){
+            String tcpName = tcpNameForIntanChannel(channel);
+            cmds.add("set " + tcpName + ".stimenabled true");
+            addDefaultParameterCommands(tcpName, cmds);
+            cmds.add("set " + tcpName + ".source keypressf1");
+
+            ChannelEStimParameters channelEStimParameters = parametersForChannels.get(channel);
+            addPulseTrainCommands(tcpName, channelEStimParameters.getPulseTrainParameters(), cmds);
+            addWaveformCommands(tcpName, channelEStimParameters.getWaveformParameters(), cmds);
+            addAmpSettleCommands(tcpName, channelEStimParameters.getAmpSettleParameters(), cmds);
+            addChargeRecoveryCommands(tcpName, channelEStimParameters.getChargeRecoveryParameters(), cmds);
+        }
+
+        intanClient.sendBatch(cmds);
+        uploadParameters(parametersForChannels.keySet());
+    }
+    public void setupDigitalStimulationForBatched(EStimParameters eStimParameters){
+        System.out.println("SETTING UP STIMULATION WITH BATCHED");
+        long totalStart = System.currentTimeMillis();
+
+        stop();
+
+        long disableStart = System.currentTimeMillis();
+        disableAllStimBatched();
+        System.out.println("  disableAllStim: " + (System.currentTimeMillis() - disableStart) + " ms");
+
+        Map<RHSChannel, ChannelEStimParameters> parametersForChannels = eStimParameters.geteStimParametersForChannels();
+
+        List<String> cmds = new ArrayList<>();
+        for (RHSChannel channel : parametersForChannels.keySet()){
+            String tcpName = tcpNameForIntanChannel(channel);
+            cmds.add("set " + tcpName + ".stimenabled true");
+            addDefaultParameterCommands(tcpName, cmds);
+            cmds.add("set " + tcpName + ".source " + DIGITAL_TRIGGER);
+
+            ChannelEStimParameters channelEStimParameters = parametersForChannels.get(channel);
+            addPulseTrainCommands(tcpName, channelEStimParameters.getPulseTrainParameters(), cmds);
+            addWaveformCommands(tcpName, channelEStimParameters.getWaveformParameters(), cmds);
+            addAmpSettleCommands(tcpName, channelEStimParameters.getAmpSettleParameters(), cmds);
+            addChargeRecoveryCommands(tcpName, channelEStimParameters.getChargeRecoveryParameters(), cmds);
+        }
+
+        long sendStart = System.currentTimeMillis();
+        intanClient.sendBatch(cmds);
+        System.out.println("  sendBatch: " + (System.currentTimeMillis() - sendStart) + " ms");
+
+        long uploadStart = System.currentTimeMillis();
+        uploadParameters();
+        System.out.println("  upload: " + (System.currentTimeMillis() - uploadStart) + " ms");
+
+        System.out.println("  TOTAL: " + (System.currentTimeMillis() - totalStart) + " ms");
+    }
+
+    public void disableAllStimBatched(){
+        List<String> cmds = new ArrayList<>();
+        for (String port : ports){
+            int numChannels = getPortChannelCount(port);
+            if (numChannels > 0){
+                for (String channel : channelNums){
+                    cmds.add("set " + port + "-" + channel + ".stimenabled false");
+                }
+            }
+        }
+        if (!cmds.isEmpty()) {
+            intanClient.sendBatch(cmds);
+        }
+    }
+
+    // ───────────────────────────────────────────────
+    // Batch command builders
+    // ───────────────────────────────────────────────
+
+    private void addPulseTrainCommands(String tcpName, PulseTrainParameters p, List<String> cmds) {
+        cmds.add("set " + tcpName + ".triggeredgeorlevel " + p.triggerEdgeOrLevel);
+        cmds.add("set " + tcpName + ".pulseortrain " + p.pulseRepetition);
+        cmds.add("set " + tcpName + ".numberofstimpulses " + p.numRepetitions);
+        cmds.add("set " + tcpName + ".pulsetrainperiodmicroseconds " + p.pulseTrainPeriod);
+        cmds.add("set " + tcpName + ".refractoryperiodmicroseconds " + p.postStimRefractoryPeriod);
+        cmds.add("set " + tcpName + ".posttriggerdelaymicroseconds " + p.postTriggerDelay);
+    }
+
+    private void addWaveformCommands(String tcpName, WaveformParameters w, List<String> cmds) {
+        cmds.add("set " + tcpName + ".shape " + w.shape);
+        cmds.add("set " + tcpName + ".polarity " + w.polarity);
+        cmds.add("set " + tcpName + ".firstphasedurationmicroseconds " + w.d1);
+        cmds.add("set " + tcpName + ".secondphasedurationmicroseconds " + w.d2);
+        cmds.add("set " + tcpName + ".interphasedelaymicroseconds " + w.dp);
+        cmds.add("set " + tcpName + ".firstphaseamplitudemicroamps " + w.a1);
+        cmds.add("set " + tcpName + ".secondphaseamplitudemicroamps " + w.a2);
+    }
+
+    private void addAmpSettleCommands(String tcpName, AmpSettleParameters a, List<String> cmds) {
+        if (a == null) return;
+        cmds.add("set " + tcpName + ".enableampsettle " + a.enableAmpSettle);
+        cmds.add("set " + tcpName + ".prestimampsettlemicroseconds " + a.preStimAmpSettle);
+        cmds.add("set " + tcpName + ".poststimampsettlemicroseconds " + a.postStimAmpSettle);
+        cmds.add("set " + tcpName + ".maintainampsettle " + a.maintainAmpSettleDuringPulseTrain);
+    }
+
+    private void addChargeRecoveryCommands(String tcpName, ChargeRecoveryParameters cr, List<String> cmds) {
+        if (cr == null) return;
+        cmds.add("set " + tcpName + ".enablechargerecovery " + cr.enableChargeRecovery);
+        cmds.add("set " + tcpName + ".poststimchargerecovonmicroseconds " + cr.postStimChargeRecoveryOn);
+        cmds.add("set " + tcpName + ".poststimchargerecovoffmicroseconds " + cr.postStimChargeRecoveryOff);
+    }
+
+    private void addDefaultParameterCommands(String tcpName, List<String> cmds) {
+        for (Parameter parameter : defaultParameters){
+            cmds.add("set " + tcpName + "." + parameter.getKey().toLowerCase() + " " + parameter.getValue().toString().toLowerCase());
+        }
+    }
+
+    // ───────────────────────────────────────────────
+    // Shared helpers
+    // ───────────────────────────────────────────────
+
+    private int getPortChannelCount(String port) {
+        while (true) {
+            ThreadUtil.sleep(100);
+            String out = intanClient.get(port + ".numberamplifierchannels");
+            try {
+                return Integer.parseInt(out);
+            } catch (NumberFormatException e) {
+                // retry
+            }
+        }
+    }
+
     public void trigger(){
         intanClient.execute("manualstimtriggerpulse", "f1");
     }
 
+    // ───────────────────────────────────────────────
+    // Original individual-set methods (kept for compatibility)
+    // ───────────────────────────────────────────────
 
     private void setStimPulseTrainParametersOn(RHSChannel channel, PulseTrainParameters pulseTrainParameters) {
         intanClient.set(tcpNameForIntanChannel(channel) + ".triggeredgeorlevel", pulseTrainParameters.triggerEdgeOrLevel.toString());

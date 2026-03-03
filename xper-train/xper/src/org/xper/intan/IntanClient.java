@@ -12,6 +12,7 @@ import java.io.PrintWriter;
 import java.net.ConnectException;
 import java.net.Socket;
 import java.nio.CharBuffer;
+import java.util.List;
 
 /**
  * @author Allen Chen
@@ -72,6 +73,34 @@ public class IntanClient {
         });
     }
 
+
+    public void sendBatch(List<String> commands) {
+        // Send in chunks of 32 to avoid hitting TCP/server buffer limits
+        int BATCH_SIZE = 32;
+        for (int i = 0; i < commands.size(); i += BATCH_SIZE) {
+            int end = Math.min(i + BATCH_SIZE, commands.size());
+            String batch = String.join("; ", commands.subList(i, end));
+            out.println(batch);
+            out.flush();
+            drainResponses();
+        }
+    }
+
+    private void drainResponses() {
+        try {
+            long lastReadTime = System.currentTimeMillis();
+            while (System.currentTimeMillis() - lastReadTime < 50) {
+                if (in.ready()) {
+                    System.out.println(in.read());
+                    lastReadTime = System.currentTimeMillis();
+                } else {
+                    Thread.sleep(10);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Warning: error draining response buffer: " + e.getMessage());
+        }
+    }
     /**
      * When we're writing parameters that don't need to be checked for resolution
      * before moving on to the next

@@ -33,7 +33,7 @@ public class NAFCProgrammaticDigitalTriggerIntanStimulationRecordingController e
                 } else {
                     eStimParameters = EStimParameters.fromXml(eStimSpec);
                 }
-                getIntan().setupDigitalStimulationFor(eStimParameters);
+                getIntan().setupDigitalStimulationForBatched(eStimParameters);
                 validEStimParameters = true;
             } catch (Exception e) {
                 validEStimParameters = false;
