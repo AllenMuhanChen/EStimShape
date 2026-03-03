@@ -89,7 +89,7 @@ public class IntanClient {
     private void drainResponses() {
         try {
             long lastReadTime = System.currentTimeMillis();
-            while (System.currentTimeMillis() - lastReadTime < 50) {
+            while (System.currentTimeMillis() - lastReadTime < 25) {
                 if (in.ready()) {
                     System.out.println(in.read());
                     lastReadTime = System.currentTimeMillis();

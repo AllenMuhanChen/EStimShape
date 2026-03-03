@@ -95,5 +95,5 @@ generator.spike_dat_path=/home/r2_allen/DocuEStimShape/dev_221110/spikefiles_dev
 #############################################################################
 # screenshots
 #############################################################################
-screenshot.enabled = true
+screenshot.enabled = false
 screenshot.directory=/home/m2_allen/Documents/screenshots/260115
