@@ -2,10 +2,7 @@ package org.xper.intan.stimulation;
 
 import com.thoughtworks.xstream.XStream;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.BiConsumer;
 
 /**
@@ -56,6 +53,12 @@ public class EStimParameters {
      */
     public void put(RHSChannel channel, ChannelEStimParameters parameters){
         eStimParametersForChannels.put(channel, new ChannelEStimParameters(parameters));
+    }
+
+    public void put(List<RHSChannel> channels, ChannelEStimParameters parameters){
+        for (RHSChannel channel : channels) {
+            put(channel, parameters);
+        }
     }
 
     static XStream xstream = new XStream();

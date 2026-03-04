@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import javax.sql.DataSource;
@@ -211,6 +212,14 @@ public class AllenDbUtil extends DbUtil {
 		jt.update("insert into EStimObjData (id, spec, data) values (?, ?, ?)",
 				new Object[] { id, spec, data });
 	}
+
+
+    public List<Long> readEStimObjIds(){
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        return jt.queryForList(
+                " select id from EStimObjData ",
+                Long.class);
+    }
 
 //=================New ReadStimSpec to pass correct Ids to readExperimentTasks
 
