@@ -5,6 +5,7 @@ sudo -S <<< Whedon101 cp $XPER_PROPERTIES_PROCEDURAL $DIST/xper.properties
 sudo -S <<< Whedon101 cp $XPER_PROPERTIES_PROCEDURAL $DIST/allen/xper.properties
 cd $DIST/allen
 
-PARAMS='channels=["A025","A030"]. a={(3.5,3.5);(5.0,5.0)}'
+#shape, polarity, d, d1, d2, dp, a, a1, a2, refractoryPeriod
+PARAMS='channels=[A025,A030]. polarity={NegativeFirst;PositiveFirst}'
 
 java -jar EStimSpecWriter.jar "$PARAMS"
