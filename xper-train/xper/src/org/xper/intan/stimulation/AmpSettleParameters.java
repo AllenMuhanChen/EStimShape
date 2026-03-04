@@ -15,6 +15,13 @@ public class AmpSettleParameters {
         this.maintainAmpSettleDuringPulseTrain = maintainAmpSettleDuringPulseTrain;
     }
 
+    public AmpSettleParameters(AmpSettleParameters ampSettleParameters) {
+        this.enableAmpSettle = ampSettleParameters.enableAmpSettle;
+        this.preStimAmpSettle = ampSettleParameters.preStimAmpSettle;
+        this.postStimAmpSettle = ampSettleParameters.postStimAmpSettle;
+        this.maintainAmpSettleDuringPulseTrain = ampSettleParameters.maintainAmpSettleDuringPulseTrain;
+    }
+
     public AmpSettleParameters() {
     }
 
@@ -34,5 +41,37 @@ public class AmpSettleParameters {
 
     public String toXml() {
         return xstream.toXML(this);
+    }
+
+    public Boolean getEnableAmpSettle() {
+        return enableAmpSettle;
+    }
+
+    public void setEnableAmpSettle(Boolean enableAmpSettle) {
+        this.enableAmpSettle = enableAmpSettle;
+    }
+
+    public Double getPreStimAmpSettle() {
+        return preStimAmpSettle;
+    }
+
+    public void setPreStimAmpSettle(Double preStimAmpSettle) {
+        this.preStimAmpSettle = preStimAmpSettle;
+    }
+
+    public Double getPostStimAmpSettle() {
+        return postStimAmpSettle;
+    }
+
+    public void setPostStimAmpSettle(Double postStimAmpSettle) {
+        this.postStimAmpSettle = postStimAmpSettle;
+    }
+
+    public Boolean getMaintainAmpSettleDuringPulseTrain() {
+        return maintainAmpSettleDuringPulseTrain;
+    }
+
+    public void setMaintainAmpSettleDuringPulseTrain(Boolean maintainAmpSettleDuringPulseTrain) {
+        this.maintainAmpSettleDuringPulseTrain = maintainAmpSettleDuringPulseTrain;
     }
 }

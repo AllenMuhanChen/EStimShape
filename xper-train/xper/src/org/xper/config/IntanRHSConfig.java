@@ -11,6 +11,7 @@ import org.xper.intan.stimulation.Parameter;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -31,6 +32,7 @@ public class IntanRHSConfig{
         intanRHS.setDefaultSavePath(rhdConfig.intanDefaultSavePath);
         intanRHS.setDefaultBaseFileName(rhdConfig.intanDefaultBaseFilename);
         intanRHS.setDefaultParameters(defaultRHSParameters());
+        intanRHS.setPorts(Collections.singletonList("a"));
         return intanRHS;
     }
 

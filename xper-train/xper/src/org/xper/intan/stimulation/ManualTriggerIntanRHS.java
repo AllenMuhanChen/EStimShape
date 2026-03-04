@@ -17,16 +17,10 @@ import java.util.Map;
 public class ManualTriggerIntanRHS extends IntanRHD {
     public static final String DIGITAL_TRIGGER = "DigitalIn01";
 
-    static List<String> ports;
+    @Dependency
+    public List<String> ports;
     static List<String> channelNums;
     static{
-
-        ports = new ArrayList<>();
-        ports.add("a");
-        ports.add("b");
-        ports.add("c");
-        ports.add("d");
-
         channelNums = new ArrayList<>();
         for (int i = 0; i <= 31; i++) {
             channelNums.add(String.format("%03d", i));
@@ -38,9 +32,6 @@ public class ManualTriggerIntanRHS extends IntanRHD {
     @Dependency
     Collection<Parameter<Object>> defaultParameters;
 
-    // ───────────────────────────────────────────────
-    // Original methods (unchanged)
-    // ───────────────────────────────────────────────
 
     public void setupManualStimulationFor(EStimParameters eStimParameters){
         disableAllStim();
@@ -344,5 +335,13 @@ public class ManualTriggerIntanRHS extends IntanRHD {
 
     public void setDefaultParameters(Collection<Parameter<Object>> defaultParameters) {
         this.defaultParameters = defaultParameters;
+    }
+
+    public List<String> getPorts() {
+        return ports;
+    }
+
+    public void setPorts(List<String> ports) {
+        this.ports = ports;
     }
 }

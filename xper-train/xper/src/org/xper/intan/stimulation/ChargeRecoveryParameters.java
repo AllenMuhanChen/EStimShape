@@ -13,6 +13,12 @@ public class ChargeRecoveryParameters {
         this.postStimChargeRecoveryOff = postStimChargeRecoveryOff;
     }
 
+    public ChargeRecoveryParameters(ChargeRecoveryParameters chargeRecoveryParameters) {
+        this.enableChargeRecovery = chargeRecoveryParameters.enableChargeRecovery;
+        this.postStimChargeRecoveryOn = chargeRecoveryParameters.postStimChargeRecoveryOn;
+        this.postStimChargeRecoveryOff = chargeRecoveryParameters.postStimChargeRecoveryOff;
+    }
+
     public ChargeRecoveryParameters() {
     }
 

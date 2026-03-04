@@ -24,6 +24,17 @@ public class ChannelEStimParameters {
         this.setChargeRecoveryParameters(chargeRecoveryParameters);
     }
 
+    /**
+     * Deep Copy Constructor
+     * @param other
+     */
+    public ChannelEStimParameters(ChannelEStimParameters other) {
+        this.waveformParameters = new WaveformParameters(other.waveformParameters);
+        this.pulseTrainParameters = new PulseTrainParameters(other.pulseTrainParameters);
+        this.ampSettleParameters = new AmpSettleParameters(other.ampSettleParameters);
+        this.chargeRecoveryParameters = new ChargeRecoveryParameters(other.chargeRecoveryParameters);
+    }
+
     public ChannelEStimParameters() {
     }
 
