@@ -127,7 +127,7 @@ class TestOneFileLFPParser(TestCase):
 
         channel_order = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
                          27, 20, 4, 11, 28, 19, 1, 14, 3, 12, 29, 18, 2, 13, 30, 17]
-        channel_order.reverse()
+        # channel_order.reverse()
         plotter = LFPSpectrumPlotter(channel_order=channel_order)
         fig = plotter.plot(avg_spectrum_by_channel)
         fig.suptitle("Average LFP Power Spectrum Across All Trials")
