@@ -157,16 +157,6 @@ def compile_and_export():
     return data
 
 
-def compile():
-    conn = Connection(context.ga_database)
-    # Collect data and condition it
-    data_for_all_tasks = compile_data(conn)
-    data = clean_ga_data(data_for_all_tasks)
-    data = condition_spherical_angles(data)
-    data = hemisphericalize_orientation(data)
-    return data
-
-
 def compile_data(conn: Connection) -> pd.DataFrame:
     collector = TaskIdCollector(conn)
     task_ids = collector.collect_task_ids()

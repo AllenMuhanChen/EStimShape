@@ -3,6 +3,78 @@ from typing import Dict, List, Set, Tuple, Any
 from clat.intan.one_file_spike_parsing import OneFileParser
 
 
+def find_files_containing_task_ids(task_ids: Set[int], intan_files_dir: str) -> List[str]:
+    """
+    Find all Intan file directories that contain any of the specified task IDs.
+    If no matches are found in the top-level directory, search recursively in subdirectories.
+    """
+    matching_dirs = []
+
+    # Helper function to search a directory for matching task IDs
+    def search_directory(directory: str) -> List[str]:
+        results = []
+        dirs_to_check = [directory]
+        dirs_to_check.extend(os.listdir(directory))
+        for dir_name in dirs_to_check:
+            dir_path = os.path.join(directory, dir_name)
+            if not os.path.isdir(dir_path):
+                continue
+
+            notes_path = os.path.join(dir_path, "notes.txt")
+            if not os.path.exists(notes_path):
+                continue
+
+            try:
+                with open(notes_path, 'r') as f:
+                    notes_content = f.read()
+
+                # Parse notes file to find task IDs
+                for line in notes_content.strip().split('\n\n'):
+                    try:
+                        parts = line.split(',')
+                        if len(parts) >= 3:
+                            event = parts[2].strip()
+                            try:
+                                file_task_id = int(event)
+                                if file_task_id in task_ids:
+                                    results.append(dir_path)
+                                    break  # Found a match, no need to check rest of file
+                            except ValueError:
+                                continue  # Not a task ID
+                    except IndexError:
+                        continue
+            except Exception as e:
+                print(f"Error reading notes file {notes_path}: {e}")
+
+        return results
+
+    # Function to recursively search directories
+    def search_recursive(directory: str, depth: int = 0, max_depth: int = 3) -> List[str]:
+        # Limit recursion depth to avoid excessive searching
+        if depth > max_depth:
+            return []
+
+        # First try to find matches in this directory
+        current_matches = search_directory(directory)
+        if current_matches:
+            return current_matches
+
+        # If no matches found, look in subdirectories
+        all_matches = []
+        for item in os.listdir(directory):
+            item_path = os.path.join(directory, item)
+            if os.path.isdir(item_path):
+                subdirectory_matches = search_recursive(item_path, depth + 1, max_depth)
+                all_matches.extend(subdirectory_matches)
+
+        return all_matches
+
+    # Start the recursive search
+    matching_dirs = search_recursive(intan_files_dir)
+
+    return matching_dirs
+
+
 class MultiFileParser:
     """
     Given a list of task Ids, this class will parse all intan files that contain those task_ids.
@@ -70,7 +142,7 @@ class MultiFileParser:
 
         # Find relevant files for remaining task IDs
         remaining_task_id_set = set(remaining_task_ids)
-        matching_dirs = self.find_files_containing_task_ids(remaining_task_id_set, intan_files_dir)
+        matching_dirs = find_files_containing_task_ids(remaining_task_id_set, intan_files_dir)
 
         if not matching_dirs:
             if spikes_by_channel_by_task_id:  # If we have some data from cache
@@ -109,77 +181,6 @@ class MultiFileParser:
             self._cache(new_spikes_by_channel_by_task_id, new_epochs_by_task_id)
 
         return spikes_by_channel_by_task_id, epochs_by_task_id
-
-    def find_files_containing_task_ids(self, task_ids: Set[int], intan_files_dir: str) -> List[str]:
-        """
-        Find all Intan file directories that contain any of the specified task IDs.
-        If no matches are found in the top-level directory, search recursively in subdirectories.
-        """
-        matching_dirs = []
-
-        # Helper function to search a directory for matching task IDs
-        def search_directory(directory: str) -> List[str]:
-            results = []
-            dirs_to_check = [directory]
-            dirs_to_check.extend(os.listdir(directory))
-            for dir_name in dirs_to_check:
-                dir_path = os.path.join(directory, dir_name)
-                if not os.path.isdir(dir_path):
-                    continue
-
-                notes_path = os.path.join(dir_path, "notes.txt")
-                if not os.path.exists(notes_path):
-                    continue
-
-                try:
-                    with open(notes_path, 'r') as f:
-                        notes_content = f.read()
-
-                    # Parse notes file to find task IDs
-                    for line in notes_content.strip().split('\n\n'):
-                        try:
-                            parts = line.split(',')
-                            if len(parts) >= 3:
-                                event = parts[2].strip()
-                                try:
-                                    file_task_id = int(event)
-                                    if file_task_id in task_ids:
-                                        results.append(dir_path)
-                                        break  # Found a match, no need to check rest of file
-                                except ValueError:
-                                    continue  # Not a task ID
-                        except IndexError:
-                            continue
-                except Exception as e:
-                    print(f"Error reading notes file {notes_path}: {e}")
-
-            return results
-
-        # Function to recursively search directories
-        def search_recursive(directory: str, depth: int = 0, max_depth: int = 3) -> List[str]:
-            # Limit recursion depth to avoid excessive searching
-            if depth > max_depth:
-                return []
-
-            # First try to find matches in this directory
-            current_matches = search_directory(directory)
-            if current_matches:
-                return current_matches
-
-            # If no matches found, look in subdirectories
-            all_matches = []
-            for item in os.listdir(directory):
-                item_path = os.path.join(directory, item)
-                if os.path.isdir(item_path):
-                    subdirectory_matches = search_recursive(item_path, depth + 1, max_depth)
-                    all_matches.extend(subdirectory_matches)
-
-            return all_matches
-
-        # Start the recursive search
-        matching_dirs = search_recursive(intan_files_dir)
-
-        return matching_dirs
 
     def _cache(self, spikes_by_channel_by_task_id: Dict[int, Any], epochs_by_task_id: Dict[int, Any]) -> str:
         """

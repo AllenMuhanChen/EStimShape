@@ -9,7 +9,7 @@ TEST_TASK_IDS = [1737741565294637, 1737742682009219]  # Replace with your test t
 
 def test_find_files_containing_task_ids():
     parser = MultiFileParser()
-    matching_dirs = parser.find_files_containing_task_ids(set(TEST_TASK_IDS), TEST_DIR)
+    matching_dirs = find_files_containing_task_ids(set(TEST_TASK_IDS), TEST_DIR)
     print(matching_dirs)
     # Verify directories exist
     assert len(matching_dirs) > 0, "No matching directories found"
