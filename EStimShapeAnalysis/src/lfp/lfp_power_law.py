@@ -80,6 +80,22 @@ class LFPPowerLaw:
                 result[channel] = (freqs, power)
         return result
 
+    def normalize_spectra_peak(self, spectrum_by_channel: Dict) -> Dict:
+        """
+        Normalize each channel's power spectrum so that the max power
+        within self.freq_range equals 1. This uses the same frequency range
+        as the fit, so the normalization matches what's actually being plotted/fit.
+        """
+        result = {}
+        for channel, (freqs, power) in spectrum_by_channel.items():
+            mask = (freqs >= self.freq_range[0]) & (freqs <= self.freq_range[1])
+            max_power = np.max(power[mask]) if np.any(mask) else 1.0
+            if max_power > 0:
+                result[channel] = (freqs, power / max_power)
+            else:
+                result[channel] = (freqs, power)
+        return result
+
 
 @dataclass
 class LFPPowerLawPlotter:
@@ -93,8 +109,14 @@ class LFPPowerLawPlotter:
     channel_order: List[int]
     channel_prefix: str = "A"
 
-    def plot(self, fits_by_channel: Dict) -> Tuple[plt.Figure, plt.Figure, plt.Figure]:
+    def plot(self, fits_by_channel: Dict, spike_rates_by_channel: Dict = None,
+             avg_spectrum_by_channel: Dict = None) -> Tuple[plt.Figure, plt.Figure, plt.Figure]:
         """
+        Args:
+            fits_by_channel: Dict[Channel, PowerLawFit]
+            spike_rates_by_channel: Optional Dict[Channel, float] of mean spike rates.
+            avg_spectrum_by_channel: Optional Dict[Channel, (freqs, power)] for band ratio computation.
+
         Returns:
             (fig_stacked, fig_overlay, fig_params)
         """
@@ -102,9 +124,70 @@ class LFPPowerLawPlotter:
 
         fig_stacked = self._plot_stacked(ordered_fits, channel_labels)
         fig_overlay = self._plot_overlay(ordered_fits, channel_labels)
-        fig_params = self._plot_params(ordered_fits, channel_labels)
+
+        ordered_rates = None
+        if spike_rates_by_channel is not None:
+            ordered_rates = []
+            for key in ordered_keys:
+                rate = spike_rates_by_channel.get(key, np.nan)
+                ordered_rates.append(rate)
+
+        ordered_ratios = None
+        ordered_residual_gamma = None
+        if avg_spectrum_by_channel is not None:
+            ordered_ratios = []
+            ordered_residual_gamma = []
+            for key, fit in zip(ordered_keys, ordered_fits):
+                if key in avg_spectrum_by_channel:
+                    freqs, power = avg_spectrum_by_channel[key]
+                    ratio = self._compute_gamma_alpha_beta_ratio(freqs, power)
+                    ordered_ratios.append(ratio)
+                    residual = self._compute_residual_gamma(freqs, power, fit)
+                    ordered_residual_gamma.append(residual)
+                else:
+                    ordered_ratios.append(np.nan)
+                    ordered_residual_gamma.append(np.nan)
+
+        fig_params = self._plot_params(ordered_fits, channel_labels, ordered_ratios,
+                                       ordered_residual_gamma, ordered_rates)
 
         return fig_stacked, fig_overlay, fig_params
+
+    @staticmethod
+    def _compute_gamma_alpha_beta_ratio(freqs: np.ndarray, power: np.ndarray) -> float:
+        """Compute absolute gamma (50-150 Hz) / alpha-beta (10-30 Hz) power ratio."""
+        alpha_beta_mask = (freqs >= 10) & (freqs <= 30)
+        gamma_mask = (freqs >= 50) & (freqs <= 150)
+
+        alpha_beta_power = np.mean(power[alpha_beta_mask]) if np.any(alpha_beta_mask) else np.nan
+        gamma_power = np.mean(power[gamma_mask]) if np.any(gamma_mask) else np.nan
+
+        if alpha_beta_power > 0:
+            return gamma_power / alpha_beta_power
+        return np.nan
+
+    @staticmethod
+    def _compute_residual_gamma(freqs: np.ndarray, power: np.ndarray, fit: 'PowerLawFit') -> float:
+        """
+        Compute residual gamma power after subtracting the 1/f fit.
+        This isolates oscillatory gamma activity above the aperiodic background.
+        Returns mean residual power in the gamma band (50-150 Hz).
+        """
+        # Interpolate the fit onto the full frequency axis
+        # The fit was computed on a subset, so extrapolate: A * f^chi
+        gamma_mask = (freqs >= 50) & (freqs <= 150)
+        f_gamma = freqs[gamma_mask]
+        p_gamma = power[gamma_mask]
+
+        if len(f_gamma) == 0 or np.isnan(fit.exponent):
+            return np.nan
+
+        # Predicted 1/f power in gamma band
+        predicted = fit.amplitude * np.power(f_gamma, fit.exponent)
+        residual = p_gamma - predicted
+
+        # Mean residual (positive = excess gamma above 1/f)
+        return np.mean(residual)
 
     # ---- Stacked: one subplot per channel ----
     def _plot_stacked(self, ordered_fits: List[PowerLawFit], channel_labels: List[str]) -> plt.Figure:
@@ -155,25 +238,55 @@ class LFPPowerLawPlotter:
         fig.tight_layout()
         return fig
 
-    # ---- Parameters: χ and A vs channel ----
-    def _plot_params(self, ordered_fits: List[PowerLawFit], channel_labels: List[str]) -> plt.Figure:
+    # ---- Parameters: χ, A, γ/αβ ratio, residual γ, and optionally spike rate vs channel ----
+    def _plot_params(self, ordered_fits: List[PowerLawFit], channel_labels: List[str],
+                     gamma_ratios: List[float] = None, residual_gamma: List[float] = None,
+                     spike_rates: List[float] = None) -> plt.Figure:
         y_positions = np.arange(len(channel_labels))
         exponents = [f.exponent for f in ordered_fits]
         amplitudes = [f.amplitude for f in ordered_fits]
 
-        fig, (ax_chi, ax_a) = plt.subplots(1, 2, figsize=(10, 8), sharey=True)
+        n_cols = 2
+        if gamma_ratios is not None:
+            n_cols += 1
+        if residual_gamma is not None:
+            n_cols += 1
+        if spike_rates is not None:
+            n_cols += 1
 
-        ax_chi.plot(exponents, y_positions, 'o-', markersize=5, color='tab:blue')
-        ax_chi.set_xlabel("χ (exponent)")
-        ax_chi.set_ylabel("Channel")
-        ax_chi.set_title("χ")
-        ax_chi.set_yticks(y_positions)
-        ax_chi.set_yticklabels(channel_labels)
-        ax_chi.invert_yaxis()
+        fig, axes = plt.subplots(1, n_cols, figsize=(4 * n_cols, 8), sharey=True)
 
-        ax_a.plot(amplitudes, y_positions, 'o-', markersize=5, color='tab:orange')
-        ax_a.set_xlabel("A (amplitude)")
-        ax_a.set_title("A")
+        col = 0
+        axes[col].plot(exponents, y_positions, 'o-', markersize=5, color='tab:blue')
+        axes[col].set_xlabel("χ (exponent)")
+        axes[col].set_ylabel("Channel")
+        axes[col].set_title("χ")
+        axes[col].set_yticks(y_positions)
+        axes[col].set_yticklabels(channel_labels)
+        axes[col].invert_yaxis()
+
+        col += 1
+        axes[col].plot(amplitudes, y_positions, 'o-', markersize=5, color='tab:orange')
+        axes[col].set_xlabel("A (amplitude)")
+        axes[col].set_title("A")
+
+        if gamma_ratios is not None:
+            col += 1
+            axes[col].plot(gamma_ratios, y_positions, 'o-', markersize=5, color='tab:purple')
+            axes[col].set_xlabel("γ / αβ")
+            axes[col].set_title("Gamma / Alpha-Beta")
+
+        if residual_gamma is not None:
+            col += 1
+            axes[col].plot(residual_gamma, y_positions, 'o-', markersize=5, color='tab:green')
+            axes[col].set_xlabel("Residual γ Power")
+            axes[col].set_title("Residual Gamma\n(above 1/f)")
+
+        if spike_rates is not None:
+            col += 1
+            axes[col].plot(spike_rates, y_positions, 'o-', markersize=5, color='tab:red')
+            axes[col].set_xlabel("Spike Rate (Hz)")
+            axes[col].set_title("Avg Spike Rate")
 
         fig.suptitle("Power Law Parameters: P(f) = A·f^χ")
         fig.tight_layout()
