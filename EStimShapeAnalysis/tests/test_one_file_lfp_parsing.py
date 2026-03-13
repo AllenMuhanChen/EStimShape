@@ -7,6 +7,7 @@ from clat.intan.rhs.load_intan_rhs_format import read_data
 from clat.intan.channels import Channel
 from src.intan.one_file_lfp_parsing import OneFileLFPParser
 from src.lfp.lfp_band_power_plotter import LFPBandPowerPlotter
+from src.lfp.lfp_power_law import LFPPowerLaw, LFPPowerLawPlotter
 from src.lfp.lfp_spectrum import LFPSpectrum
 from src.lfp.lfp_spectrum_plotter import LFPSpectrumPlotter
 from src.lfp.relative_power_spectrum import RelativePowerSpectrum
@@ -51,7 +52,7 @@ class TestOneFileLFPParser(TestCase):
         plt.show()
 
     def test_spectrum(self):
-        path_to_file = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260115_0/2026-01-15/1768500912926825_1_1768501037142197_260115_131719"
+        path_to_file = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260115_0/2026-01-15/1768934618287078_10_1768940420402867_260120_152021"
         path_to_rhd = f"{path_to_file}/info.rhs"
         data = read_data(path_to_rhd)
         amplifier_channels = data['amplifier_channels']
@@ -92,7 +93,7 @@ class TestOneFileLFPParser(TestCase):
 
     def _compute_avg_spectra(self):
         """Helper to parse, compute spectra, and average across task_ids."""
-        path_to_file = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260115_0/2026-01-15/1768500912926825_1_1768501037142197_260115_131719"
+        path_to_file = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260120_0/2026-01-20/1768934618287078_10_1768940420402867_260120_152021"
         path_to_rhd = f"{path_to_file}/info.rhs"
         data = read_data(path_to_rhd)
         amplifier_channels = data['amplifier_channels']
@@ -161,4 +162,18 @@ class TestOneFileLFPParser(TestCase):
 
         fig.suptitle("Relative LFP Power Spectrum (Normalized per Frequency)")
         plt.tight_layout()
+        plt.show()
+
+    def test_power_law(self):
+        avg_spectrum_by_channel = self._compute_avg_spectra()
+
+        channel_order = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
+                         27, 20, 4, 11, 28, 19, 1, 14, 3, 12, 29, 18, 2, 13, 30, 17]
+
+        fitter = LFPPowerLaw()
+        normalized = fitter.normalize_spectra(avg_spectrum_by_channel)
+        fits = fitter.fit_dict(normalized)
+
+        plotter = LFPPowerLawPlotter(channel_order=channel_order)
+        fig_spectra, fig_overlay, fig_params = plotter.plot(fits)
         plt.show()
