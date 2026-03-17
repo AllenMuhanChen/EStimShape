@@ -1,364 +1,505 @@
+"""
+Tri-planar PAR/REC MRI Viewer with reslicing correction pipeline.
+
+Transform chain:
+    voxel  --[native_affine]--> raw_world  --[correction]--> corrected_world
+
+Each displayed slice is resliced from the raw volume by sampling along a plane
+in corrected world space, then mapping back to voxel space via:
+    vox = inv(correction @ native_affine) @ world_point
+
+This means rotations in the correction matrix *visually rotate the image*,
+not just relabel coordinates.
+
+The correction matrix is persisted in <basename>_corrections.json with full
+version history (timestamped, with notes), undo/redo, and jump-to-version.
+
+Coordinate convention (RAS+):
+    +X = Right,  +Y = Anterior,  +Z = Superior
+Lab labels:
+    ML = world X,  AP = world Y,  DV = world Z
+"""
+
 import numpy as np
 import matplotlib
-
 matplotlib.use('TkAgg')
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.ticker import FuncFormatter
 from nibabel.parrec import load as load_parrec
 import nibabel as nib
-import os
+from scipy.ndimage import map_coordinates
+import os, sys, json, pprint, datetime
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-import pprint
-import json
-import sys
 
+
+# ====================================================================
+# Correction-matrix persistence
+# ====================================================================
+
+def _default_entry(matrix=None, note="identity"):
+    return {
+        "timestamp": datetime.datetime.now().isoformat(),
+        "note": note,
+        "matrix": (matrix if matrix is not None else np.eye(4)).tolist(),
+    }
+
+def load_corrections(path):
+    if not os.path.exists(path):
+        e = _default_entry()
+        cfg = {"correction_history": [e], "current_index": 0}
+        return np.eye(4), cfg
+    with open(path) as f:
+        cfg = json.load(f)
+    hist = cfg.get("correction_history", [])
+    if not hist:
+        e = _default_entry()
+        cfg["correction_history"] = [e]
+        cfg["current_index"] = 0
+        return np.eye(4), cfg
+    idx = cfg.get("current_index", len(hist) - 1)
+    return np.array(hist[idx]["matrix"]), cfg
+
+def save_corrections(path, cfg):
+    with open(path, "w") as f:
+        json.dump(cfg, f, indent=2)
+
+def push_correction(cfg, mat, note=""):
+    cfg["correction_history"].append(_default_entry(mat, note))
+    cfg["current_index"] = len(cfg["correction_history"]) - 1
+
+
+# ====================================================================
+# Rotation / translation builders
+# ====================================================================
+
+def rot_x(deg):
+    r = np.radians(deg); c, s = np.cos(r), np.sin(r)
+    M = np.eye(4); M[1,1]=c; M[1,2]=-s; M[2,1]=s; M[2,2]=c; return M
+
+def rot_y(deg):
+    r = np.radians(deg); c, s = np.cos(r), np.sin(r)
+    M = np.eye(4); M[0,0]=c; M[0,2]=s; M[2,0]=-s; M[2,2]=c; return M
+
+def rot_z(deg):
+    r = np.radians(deg); c, s = np.cos(r), np.sin(r)
+    M = np.eye(4); M[0,0]=c; M[0,1]=-s; M[1,0]=s; M[1,1]=c; return M
+
+def xlate(dx, dy, dz):
+    M = np.eye(4); M[:3, 3] = [dx, dy, dz]; return M
+
+
+# ====================================================================
+# Viewer
+# ====================================================================
 
 class TriplanarMRIViewer:
     """
-    Tri-planar PAR/REC MRI viewer.
-
-    Displays sagittal, coronal, and axial views simultaneously with
-    linked crosshairs. Clicking in any view updates the other two.
-
-    Axis mapping (determined from affine):
-        Voxel axis 0 (shape[0]) -> R/L  (sagittal index)
-        Voxel axis 1 (shape[1]) -> A/P  (coronal index)
-        Voxel axis 2 (shape[2]) -> S/I  (axial index)
+    Display conventions:
+        Sagittal : horiz = A/P,  vert = S/I  (S at top)
+        Coronal  : horiz = R/L,  vert = S/I  (S at top)
+        Axial    : horiz = R/L,  vert = A/P  (A at top)
     """
+
+    VIEW_NAMES = ["Sagittal", "Coronal", "Axial"]
+    # (fixed_world_axis, horiz_world_axis, vert_world_axis)
+    SLICE_CFG = [(0, 1, 2), (1, 0, 2), (2, 0, 1)]
+    WORLD_LABELS = ["ML (R/L)", "AP (A/P)", "DV (S/I)"]
 
     def __init__(self, root, default_path=None):
         self.root = root
         self.root.title("PAR/REC Tri-Planar MRI Viewer")
-        self.root.geometry("1400x900")
+        self.root.geometry("1450x960")
         self.root.resizable(True, True)
 
-        # Data state
+        # Data
         self.img = None
-        self.data = None
-        self.affine = None
+        self.data = None          # raw 3D (or 4D) volume
+        self.native_affine = None
+        self.correction = np.eye(4)
+        self.corrected_affine = None
+        self.inv_corrected = None
         self.voxel_sizes = None
         self.default_path = default_path
+        self.output_voxel_size = 0.75  # mm, for resliced output grid
 
-        # Current crosshair position in voxel coordinates [axis0, axis1, axis2]
-        self.cursor_vox = [0, 0, 0]
-        self.dim_labels = ['R/L', 'A/P', 'S/I']  # updated after affine analysis
+        # Correction persistence
+        self.corr_config = None
+        self.corr_json_path = None
+
+        # Volume dims
         self.dim_sizes = [0, 0, 0]
-
-        # View names and which voxel axis each view slices through
-        # Sagittal: fix axis 0 (R/L), show axes 1,2 (A/P x S/I)
-        # Coronal:  fix axis 1 (A/P), show axes 0,2 (R/L x S/I)
-        # Axial:    fix axis 2 (S/I), show axes 0,1 (R/L x A/P)
-        self.view_names = ['Sagittal', 'Coronal', 'Axial']
-        self.slice_axes = [0, 1, 2]  # which axis is "into the screen"
-        self.horiz_axes = [1, 0, 0]  # which axis maps to image columns
-        self.vert_axes = [2, 2, 1]  # which axis maps to image rows
-
-        # EBZ state
-        self.ebz_set = False
-        self.ebz_vox = [0, 0, 0]  # EBZ in voxel coordinates
-        self.ebz_world = [0.0, 0.0, 0.0]  # EBZ in world (mm) coordinates
-
-        # Slice positions in world coords per axis
-        self.world_coords_per_axis = [None, None, None]
-
-        # Dynamics
-        self.current_dynamic = 0
-        self.dynamics = 1
         self.has_dynamics = False
+        self.dynamics = 1
+        self.current_dynamic = 0
 
-        self.setup_ui()
+        # World-space bounding box (recomputed when correction changes)
+        self.world_min = np.zeros(3)
+        self.world_max = np.zeros(3)
+        self.world_center = np.zeros(3)
+        # Output grid sizes per view (pixels)
+        self.grid_sizes = [(0, 0)] * 3  # (n_h, n_v) for each view
 
-    # ------------------------------------------------------------------ UI
-    def setup_ui(self):
-        main_frame = ttk.Frame(self.root)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        # Crosshair position in corrected world space (mm)
+        self.cursor_world = np.zeros(3)
 
-        # --- Top: file controls ---
-        ctrl = ttk.Frame(main_frame)
-        ctrl.pack(fill=tk.X, padx=5, pady=3)
+        # EBZ in corrected world space
+        self.ebz_set = False
+        self.ebz_world = np.zeros(3)
 
-        ttk.Label(ctrl, text="PAR File:").grid(row=0, column=0, sticky=tk.W, padx=3)
-        self.file_path_var = tk.StringVar()
-        if self.default_path:
-            self.file_path_var.set(self.default_path)
-        ttk.Entry(ctrl, textvariable=self.file_path_var, width=60).grid(row=0, column=1, sticky='we', padx=3)
-        ttk.Button(ctrl, text="Browse…", command=self.browse_file).grid(row=0, column=2, padx=3)
-        ttk.Button(ctrl, text="Load", command=self.load_and_visualize).grid(row=0, column=3, padx=3)
-        ttk.Button(ctrl, text="Save Default", command=self.save_default_path).grid(row=0, column=4, padx=3)
-        ctrl.columnconfigure(1, weight=1)
+        # EBZ pick mode: right-click only sets EBZ when armed
+        self.ebz_pick_armed = False
 
-        # --- Status ---
+        # Crop bounds per view: {view_idx: (h_lo, h_hi, v_lo, v_hi)} in world mm
+        # None means full (uncropped)
+        self.crop_bounds = {}  # persisted in corrections JSON
+        self.crop_mode = False  # True when user is drawing a crop rectangle
+        self._crop_rect = None  # matplotlib Rectangle patch during drag
+        self._crop_start = None  # (x, y) in world mm at mouse-down
+        self._crop_view = None   # which view the crop drag is happening in
+
+        self._setup_ui()
+
+    # ---------------------------------------------------------------- UI
+    def _setup_ui(self):
+        main = ttk.Frame(self.root)
+        main.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # File row
+        row = ttk.Frame(main); row.pack(fill=tk.X, pady=2)
+        ttk.Label(row, text="PAR File:").pack(side=tk.LEFT, padx=3)
+        self.file_path_var = tk.StringVar(value=self.default_path or "")
+        ttk.Entry(row, textvariable=self.file_path_var, width=55).pack(
+            side=tk.LEFT, fill=tk.X, expand=True, padx=3)
+        ttk.Button(row, text="Browse...", command=self._browse).pack(side=tk.LEFT, padx=2)
+        ttk.Button(row, text="Load", command=self.load_and_visualize).pack(side=tk.LEFT, padx=2)
+        ttk.Button(row, text="Save Defaults", command=self._save_defaults).pack(side=tk.LEFT, padx=2)
+
+        # Status
         self.status_var = tk.StringVar(value="Ready")
-        ttk.Label(main_frame, textvariable=self.status_var).pack(fill=tk.X, padx=5)
+        ttk.Label(main, textvariable=self.status_var).pack(fill=tk.X, padx=5)
 
-        # --- EBZ controls ---
-        ebz = ttk.LabelFrame(main_frame, text="EBZ (External Brain Zero)")
-        ebz.pack(fill=tk.X, padx=5, pady=3)
+        # EBZ
+        ebz = ttk.LabelFrame(main, text="EBZ (External Brain Zero) - corrected world coords")
+        ebz.pack(fill=tk.X, padx=5, pady=2)
+        for i, (lbl, vn) in enumerate([("AP mm:", "ebz_ap"), ("DV mm:", "ebz_dv"), ("ML mm:", "ebz_ml")]):
+            ttk.Label(ebz, text=lbl).grid(row=0, column=2*i, padx=3, pady=2)
+            v = tk.DoubleVar(value=0.0); setattr(self, vn + "_var", v)
+            ttk.Entry(ebz, textvariable=v, width=10).grid(row=0, column=2*i+1, padx=3)
+        self.btn_set_ebz = ttk.Button(ebz, text="Set EBZ (manual)",
+                                       command=self._set_ebz_manual, state="disabled")
+        self.btn_set_ebz.grid(row=0, column=6, padx=3)
+        self.btn_ebz_xhair = ttk.Button(ebz, text="Set EBZ to crosshair",
+                                          command=self._set_ebz_to_crosshair, state="disabled")
+        self.btn_ebz_xhair.grid(row=0, column=7, padx=3)
+        self.btn_reset_ebz = ttk.Button(ebz, text="Reset EBZ",
+                                         command=self._reset_ebz, state="disabled")
+        self.btn_reset_ebz.grid(row=0, column=8, padx=3)
 
-        ttk.Label(ebz, text="AP (mm):").grid(row=0, column=0, padx=3, pady=2)
-        self.ebz_ap_var = tk.DoubleVar(value=0)
-        ttk.Entry(ebz, textvariable=self.ebz_ap_var, width=10).grid(row=0, column=1, padx=3)
+        # EBZ pick mode toggle — right-click only works when this is armed
+        self.btn_ebz_pick = ttk.Button(ebz, text="Pick EBZ (right-click)",
+                                        command=self._toggle_ebz_pick, state="disabled")
+        self.btn_ebz_pick.grid(row=0, column=9, padx=3)
 
-        ttk.Label(ebz, text="DV (mm):").grid(row=0, column=2, padx=3, pady=2)
-        self.ebz_dv_var = tk.DoubleVar(value=0)
-        ttk.Entry(ebz, textvariable=self.ebz_dv_var, width=10).grid(row=0, column=3, padx=3)
+        self.cursor_info_var = tk.StringVar(value="Crosshair: ---")
+        ttk.Label(ebz, textvariable=self.cursor_info_var).grid(
+            row=1, column=0, columnspan=10, sticky="w", padx=5)
+        self.ebz_pick_label_var = tk.StringVar(value="")
+        ttk.Label(ebz, textvariable=self.ebz_pick_label_var, foreground="red").grid(
+            row=2, column=0, columnspan=10, sticky="w", padx=5)
 
-        ttk.Label(ebz, text="ML (mm):").grid(row=0, column=4, padx=3, pady=2)
-        self.ebz_ml_var = tk.DoubleVar(value=0)
-        ttk.Entry(ebz, textvariable=self.ebz_ml_var, width=10).grid(row=0, column=5, padx=3)
+        # Correction controls
+        corr = ttk.LabelFrame(main, text="Correction Matrix  (rotations applied in corrected world space)")
+        corr.pack(fill=tk.X, padx=5, pady=2)
 
-        self.set_ebz_btn = ttk.Button(ebz, text="Set EBZ", command=self.set_ebz, state=tk.DISABLED)
-        self.set_ebz_btn.grid(row=0, column=6, padx=3)
-        self.reset_ebz_btn = ttk.Button(ebz, text="Reset EBZ", command=self.reset_ebz, state=tk.DISABLED)
-        self.reset_ebz_btn.grid(row=0, column=7, padx=3)
-        self.set_ebz_cursor_btn = ttk.Button(ebz, text="Set EBZ to Crosshair", command=self.set_ebz_to_crosshair,
-                                             state=tk.DISABLED)
-        self.set_ebz_cursor_btn.grid(row=0, column=8, padx=3)
+        r_row = ttk.Frame(corr); r_row.pack(fill=tk.X, padx=3, pady=2)
+        ttk.Label(r_row, text="Rotate (deg):").pack(side=tk.LEFT, padx=3)
+        for al, an in [("X (ML/roll)", "x"), ("Y (AP/pitch)", "y"), ("Z (DV/yaw)", "z")]:
+            ttk.Label(r_row, text=f"{al}:").pack(side=tk.LEFT, padx=(8, 2))
+            v = tk.DoubleVar(value=0.0); setattr(self, f"rot_{an}_var", v)
+            ttk.Entry(r_row, textvariable=v, width=7).pack(side=tk.LEFT, padx=2)
 
-        self.cursor_info_var = tk.StringVar(value="Crosshair: —")
-        ttk.Label(ebz, textvariable=self.cursor_info_var).grid(row=1, column=0, columnspan=9, sticky=tk.W, padx=5,
-                                                               pady=2)
+        t_row = ttk.Frame(corr); t_row.pack(fill=tk.X, padx=3, pady=2)
+        ttk.Label(t_row, text="Translate (mm):").pack(side=tk.LEFT, padx=3)
+        for al, an in [("X (ML)", "tx"), ("Y (AP)", "ty"), ("Z (DV)", "tz")]:
+            ttk.Label(t_row, text=f"{al}:").pack(side=tk.LEFT, padx=(8, 2))
+            v = tk.DoubleVar(value=0.0); setattr(self, f"trans_{an}_var", v)
+            ttk.Entry(t_row, textvariable=v, width=7).pack(side=tk.LEFT, padx=2)
 
-        ttk.Label(ebz, text="Left-click any view to move crosshair. Right-click to set EBZ at crosshair.",
-                  font=("", 9, "italic")).grid(row=2, column=0, columnspan=9, sticky=tk.W, padx=5)
+        b_row = ttk.Frame(corr); b_row.pack(fill=tk.X, padx=3, pady=2)
+        self.btn_apply = ttk.Button(b_row, text="Apply", command=self._apply_correction, state="disabled")
+        self.btn_apply.pack(side=tk.LEFT, padx=3)
+        self.btn_reset_corr = ttk.Button(b_row, text="Reset to Identity",
+                                          command=self._reset_correction, state="disabled")
+        self.btn_reset_corr.pack(side=tk.LEFT, padx=3)
+        self.btn_undo = ttk.Button(b_row, text="Undo", command=self._undo, state="disabled")
+        self.btn_undo.pack(side=tk.LEFT, padx=3)
+        self.btn_redo = ttk.Button(b_row, text="Redo", command=self._redo, state="disabled")
+        self.btn_redo.pack(side=tk.LEFT, padx=3)
+        ttk.Button(b_row, text="History", command=self._show_history).pack(side=tk.LEFT, padx=3)
+        ttk.Button(b_row, text="Header", command=self._show_header).pack(side=tk.LEFT, padx=3)
 
-        # --- Figure: 3 subplots ---
-        self.fig_frame = ttk.Frame(main_frame)
-        self.fig_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=3)
+        self.corr_info_var = tk.StringVar(value="Correction: identity")
+        ttk.Label(corr, textvariable=self.corr_info_var).pack(anchor="w", padx=5, pady=1)
+        self.corr_ver_var = tk.StringVar(value="")
+        ttk.Label(corr, textvariable=self.corr_ver_var).pack(anchor="w", padx=5, pady=1)
 
+        note_row = ttk.Frame(corr); note_row.pack(fill=tk.X, padx=3, pady=2)
+        ttk.Label(note_row, text="Note:").pack(side=tk.LEFT, padx=3)
+        self.corr_note_var = tk.StringVar(value="")
+        ttk.Entry(note_row, textvariable=self.corr_note_var, width=50).pack(
+            side=tk.LEFT, fill=tk.X, expand=True, padx=3)
+
+        # Crop controls
+        crop_frame = ttk.LabelFrame(main, text="View Cropping")
+        crop_frame.pack(fill=tk.X, padx=5, pady=2)
+        self.btn_crop = ttk.Button(crop_frame, text="Crop Views (drag rectangle)",
+                                    command=self._toggle_crop_mode, state="disabled")
+        self.btn_crop.pack(side=tk.LEFT, padx=3, pady=2)
+        self.btn_reset_crop = ttk.Button(crop_frame, text="Reset Crop (full view)",
+                                          command=self._reset_crop, state="disabled")
+        self.btn_reset_crop.pack(side=tk.LEFT, padx=3, pady=2)
+        self.crop_status_var = tk.StringVar(value="")
+        ttk.Label(crop_frame, textvariable=self.crop_status_var, foreground="blue").pack(
+            side=tk.LEFT, padx=10, pady=2)
+
+        # Figure
+        fig_frame = ttk.Frame(main)
+        fig_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=3)
         self.fig = Figure(figsize=(14, 5), dpi=100)
         self.fig.subplots_adjust(left=0.04, right=0.98, top=0.93, bottom=0.07, wspace=0.25)
         self.axes = [self.fig.add_subplot(1, 3, i + 1) for i in range(3)]
-
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.fig_frame)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=fig_frame)
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-        self.toolbar = NavigationToolbar2Tk(self.canvas, self.fig_frame)
+        self.toolbar = NavigationToolbar2Tk(self.canvas, fig_frame)
         self.toolbar.update()
+        self.canvas.mpl_connect("button_press_event", self._on_click)
+        self.canvas.mpl_connect("button_release_event", self._on_release)
+        self.canvas.mpl_connect("motion_notify_event", self._on_motion)
 
-        # Mouse events
-        self.canvas.mpl_connect('button_press_event', self.on_click)
-        self.canvas.mpl_connect('motion_notify_event', self.on_motion)
+        # Slice sliders (one per view, controls the fixed-axis world coordinate)
+        sf = ttk.Frame(main); sf.pack(fill=tk.X, padx=5, pady=2)
+        self.slice_vars, self.slice_scales, self.slice_lbls = [], [], []
+        for i, name in enumerate(self.VIEW_NAMES):
+            ttk.Label(sf, text=f"{name}:").grid(row=i, column=0, sticky="w", padx=3, pady=1)
+            v = tk.DoubleVar(value=0.0)
+            sc = ttk.Scale(sf, from_=0, to=1, orient=tk.HORIZONTAL, variable=v,
+                           command=lambda val, idx=i: self._on_slider(idx))
+            sc.grid(row=i, column=1, sticky="we", padx=3)
+            lb = ttk.Label(sf, text="0.00 mm", width=20)
+            lb.grid(row=i, column=2, padx=3)
+            self.slice_vars.append(v)
+            self.slice_scales.append(sc)
+            self.slice_lbls.append(lb)
+        sf.columnconfigure(1, weight=1)
 
-        # --- Slice sliders (one per axis) ---
-        slider_frame = ttk.Frame(main_frame)
-        slider_frame.pack(fill=tk.X, padx=5, pady=3)
-
-        self.slice_vars = []
-        self.slice_scales = []
-        self.slice_labels = []
-        for i, name in enumerate(self.view_names):
-            ttk.Label(slider_frame, text=f"{name} slice:").grid(row=i, column=0, sticky=tk.W, padx=3, pady=1)
-            var = tk.IntVar(value=0)
-            scale = ttk.Scale(slider_frame, from_=0, to=0, orient=tk.HORIZONTAL, variable=var,
-                              command=lambda val, idx=i: self.on_slider(idx))
-            scale.grid(row=i, column=1, sticky='we', padx=3)
-            lbl = ttk.Label(slider_frame, text="0/0", width=12)
-            lbl.grid(row=i, column=2, padx=3)
-            self.slice_vars.append(var)
-            self.slice_scales.append(scale)
-            self.slice_labels.append(lbl)
-        slider_frame.columnconfigure(1, weight=1)
-
-        # Dynamic slider (hidden by default)
-        self.dyn_frame = ttk.Frame(slider_frame)
-        self.dyn_frame.grid(row=3, column=0, columnspan=3, sticky='we')
-        ttk.Label(self.dyn_frame, text="Dynamic:").grid(row=0, column=0, sticky=tk.W, padx=3)
+        # Dynamic slider
+        self.dyn_frame = ttk.Frame(sf)
+        self.dyn_frame.grid(row=3, column=0, columnspan=3, sticky="we")
+        ttk.Label(self.dyn_frame, text="Dynamic:").grid(row=0, column=0, sticky="w", padx=3)
         self.dyn_var = tk.IntVar(value=0)
         self.dyn_scale = ttk.Scale(self.dyn_frame, from_=0, to=0, orient=tk.HORIZONTAL,
-                                   variable=self.dyn_var, command=self.on_dynamic_slider)
-        self.dyn_scale.grid(row=0, column=1, sticky='we', padx=3)
-        self.dyn_label = ttk.Label(self.dyn_frame, text="0/0", width=12)
-        self.dyn_label.grid(row=0, column=2, padx=3)
+                                   variable=self.dyn_var,
+                                   command=lambda *a: self._on_dyn_slider())
+        self.dyn_scale.grid(row=0, column=1, sticky="we", padx=3)
+        self.dyn_lbl = ttk.Label(self.dyn_frame, text="0/0", width=14)
+        self.dyn_lbl.grid(row=0, column=2, padx=3)
         self.dyn_frame.columnconfigure(1, weight=1)
         self.dyn_frame.grid_remove()
 
-        # Header info button
-        self.header_btn = ttk.Button(slider_frame, text="Show Header Info", command=self.show_header_info,
-                                     state=tk.DISABLED)
-        self.header_btn.grid(row=4, column=0, padx=3, pady=3, sticky=tk.W)
-
-    # ------------------------------------------------------------------ File I/O
-    def browse_file(self):
-        initial_dir = None
+    # ---------------------------------------------------------------- File helpers
+    def _browse(self):
+        d = None
         if self.default_path:
-            initial_dir = os.path.dirname(self.default_path) if not os.path.isdir(
+            d = os.path.dirname(self.default_path) if not os.path.isdir(
                 self.default_path) else self.default_path
-        fn = filedialog.askopenfilename(title="Select PAR File",
-                                        filetypes=[('PAR Files', '*.PAR *.par'), ('All', '*.*')],
-                                        initialdir=initial_dir)
+        fn = filedialog.askopenfilename(
+            title="Select PAR File",
+            filetypes=[("PAR", "*.PAR *.par"), ("All", "*.*")], initialdir=d)
         if fn:
             self.file_path_var.set(fn)
 
-    def check_rec_file(self, par_file):
-        base = os.path.splitext(par_file)[0]
-        return os.path.exists(base + '.REC') or os.path.exists(base + '.rec')
+    def _check_rec(self, par):
+        b = os.path.splitext(par)[0]
+        return os.path.exists(b + ".REC") or os.path.exists(b + ".rec")
 
-    def save_default_path(self):
-        current_path = self.file_path_var.get().strip()
-        if not current_path:
-            messagebox.showerror("Error", "No file path to save.")
-            return
-        config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mri_viewer_config.json')
+    def _save_defaults(self):
+        p = self.file_path_var.get().strip()
+        if not p: messagebox.showerror("Error", "No path"); return
+        cp = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          "mri_viewer_config.json")
         try:
-            config = {'default_path': current_path}
+            c = {"default_path": p}
             if self.ebz_set:
-                config['ebz_world'] = self.ebz_world
-            with open(config_file, 'w') as f:
-                json.dump(config, f)
-            msg = f"Default path saved: {current_path}"
-            if self.ebz_set:
-                msg += f"\nEBZ saved: AP={self.ebz_world[1]:.2f}, DV={self.ebz_world[2]:.2f}, ML={self.ebz_world[0]:.2f} mm"
-            messagebox.showinfo("Saved", msg)
-            self.default_path = current_path
+                c["ebz_world"] = self.ebz_world.tolist()
+            with open(cp, "w") as f: json.dump(c, f, indent=2)
+            self.default_path = p
+            messagebox.showinfo("Saved", f"Defaults saved to {cp}")
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
-    # ------------------------------------------------------------------ Loading
+    def _corr_json_for(self, par):
+        return os.path.splitext(par)[0] + "_corrections.json"
+
+    # ---------------------------------------------------------------- Loading
     def load_and_visualize(self):
-        par_file = self.file_path_var.get().strip()
-        if not par_file:
-            messagebox.showerror("Error", "Select a PAR file.");
-            return
-        if not os.path.exists(par_file):
-            messagebox.showerror("Error", f"{par_file} not found.");
-            return
-        if not par_file.upper().endswith('.PAR'):
-            if not messagebox.askyesno("Warning", "Not a .PAR extension. Continue?"):
-                return
-        if not self.check_rec_file(par_file):
-            messagebox.showerror("Error", "Corresponding .REC file not found.");
-            return
+        par = self.file_path_var.get().strip()
+        if not par: messagebox.showerror("Error", "Select a PAR file."); return
+        if not os.path.exists(par): messagebox.showerror("Error", f"{par} not found."); return
+        if not par.upper().endswith(".PAR"):
+            if not messagebox.askyesno("Warning", "Not a .PAR extension. Continue?"): return
+        if not self._check_rec(par):
+            messagebox.showerror("Error", ".REC not found."); return
 
         try:
-            self.status_var.set(f"Loading {par_file}…")
-            self.root.update()
-
-            self.img = load_parrec(par_file, strict_sort=True)
+            self.status_var.set(f"Loading {par}..."); self.root.update()
+            self.img = load_parrec(par, strict_sort=True)
             raw = self.img.get_fdata()
-            self.affine = self.img.affine
-            self.voxel_sizes = nib.affines.voxel_sizes(self.affine)
+            self.native_affine = self.img.affine.copy()
+            self.voxel_sizes = nib.affines.voxel_sizes(self.native_affine)
 
-            # Handle 3D vs 4D
             if raw.ndim == 4:
-                self.data = raw
-                self.has_dynamics = True
-                self.dynamics = raw.shape[3]
+                self.data = raw; self.has_dynamics = True; self.dynamics = raw.shape[3]
             elif raw.ndim == 3:
-                self.data = raw
-                self.has_dynamics = False
-                self.dynamics = 1
+                self.data = raw; self.has_dynamics = False; self.dynamics = 1
             else:
                 raise ValueError(f"Unexpected ndim={raw.ndim}")
-
             self.dim_sizes = list(self.data.shape[:3])
 
-            # Determine axis labels from affine
-            self._determine_axis_labels()
+            # Load correction
+            self.corr_json_path = self._corr_json_for(par)
+            self.correction, self.corr_config = load_corrections(self.corr_json_path)
+            self._load_crop_from_config()
+            self._recompute()
 
-            # Precompute world coordinates along each axis
-            self._compute_world_coords()
+            # Centre crosshair
+            self.cursor_world = self.world_center.copy()
 
-            # Initialise crosshair to volume centre
-            self.cursor_vox = [s // 2 for s in self.dim_sizes]
-
-            # Update sliders
-            for i in range(3):
-                self.slice_scales[i].configure(from_=0, to=self.dim_sizes[self.slice_axes[i]] - 1)
-                self.slice_vars[i].set(self.cursor_vox[self.slice_axes[i]])
+            # Configure sliders
+            self._setup_sliders()
 
             if self.has_dynamics:
                 self.dyn_scale.configure(from_=0, to=self.dynamics - 1)
-                self.dyn_var.set(0)
-                self.dyn_frame.grid()
+                self.dyn_var.set(0); self.dyn_frame.grid()
             else:
                 self.dyn_frame.grid_remove()
 
-            # Enable EBZ controls
-            self.set_ebz_btn.config(state=tk.NORMAL)
-            self.set_ebz_cursor_btn.config(state=tk.NORMAL)
-            self.header_btn.config(state=tk.NORMAL)
+            for b in (self.btn_set_ebz, self.btn_ebz_xhair, self.btn_apply,
+                      self.btn_reset_corr, self.btn_undo, self.btn_redo,
+                      self.btn_ebz_pick, self.btn_crop, self.btn_reset_crop):
+                b.config(state="normal")
 
+            self._update_corr_info()
             self.display_all()
-            self.status_var.set(f"Loaded {os.path.basename(par_file)}  —  shape {self.data.shape[:3]}, "
-                                f"voxel {self.voxel_sizes[0]:.3f}×{self.voxel_sizes[1]:.3f}×{self.voxel_sizes[2]:.3f} mm")
-
+            self.status_var.set(
+                f"Loaded {os.path.basename(par)}  shape={self.dim_sizes}  "
+                f"voxel={self.voxel_sizes[0]:.3f}x{self.voxel_sizes[1]:.3f}x"
+                f"{self.voxel_sizes[2]:.3f} mm")
         except Exception as e:
-            self.status_var.set("Error loading file")
-            messagebox.showerror("Error", str(e))
-            import traceback;
-            traceback.print_exc()
+            self.status_var.set("Error"); messagebox.showerror("Error", str(e))
+            import traceback; traceback.print_exc()
 
-    def _determine_axis_labels(self):
-        """Determine which world axis each voxel axis maps to."""
-        world_names = ['R/L', 'A/P', 'S/I']
-        labels = []
-        for vax in range(3):
-            col = self.affine[:3, vax]
-            dominant = int(np.argmax(np.abs(col)))
-            labels.append(world_names[dominant])
-        self.dim_labels = labels
-        print(f"Axis mapping: {list(zip(range(3), labels, self.dim_sizes))}")
+    def _recompute(self):
+        """Recompute corrected affine and world bounding box."""
+        self.corrected_affine = self.correction @ self.native_affine
+        self.inv_corrected = np.linalg.inv(self.corrected_affine)
 
-    def _compute_world_coords(self):
-        """For each voxel axis, compute the world coordinate at each index."""
-        self.world_coords_per_axis = []
-        for ax in range(3):
-            coords = []
-            for i in range(self.dim_sizes[ax]):
-                vox = [0, 0, 0, 1]
-                vox[ax] = i
-                world = self.affine @ np.array(vox)
-                coords.append(world[:3].copy())
-            self.world_coords_per_axis.append(np.array(coords))
+        # World bounding box from voxel corners (full, uncropped)
+        ds = self.dim_sizes
+        corners = np.array([
+            [0, 0, 0, 1], [ds[0]-1, 0, 0, 1], [0, ds[1]-1, 0, 1],
+            [0, 0, ds[2]-1, 1], [ds[0]-1, ds[1]-1, 0, 1],
+            [ds[0]-1, 0, ds[2]-1, 1], [0, ds[1]-1, ds[2]-1, 1],
+            [ds[0]-1, ds[1]-1, ds[2]-1, 1],
+        ], dtype=float)
+        cw = (self.corrected_affine @ corners.T).T[:, :3]
+        self.full_world_min = cw.min(axis=0)
+        self.full_world_max = cw.max(axis=0)
+        self.world_center = (self.full_world_min + self.full_world_max) / 2.0
 
+        # Apply crop bounds: compute effective display min/max per axis
+        self.world_min = self.full_world_min.copy()
+        self.world_max = self.full_world_max.copy()
+        for vi in range(3):
+            if vi in self.crop_bounds:
+                _, h_wax, v_wax = self.SLICE_CFG[vi]
+                h_lo, h_hi, v_lo, v_hi = self.crop_bounds[vi]
+                # The crop constrains the h and v axes of this view
+                # Take the tightest constraint across all views that share an axis
+                self.world_min[h_wax] = max(self.world_min[h_wax], h_lo)
+                self.world_max[h_wax] = min(self.world_max[h_wax], h_hi)
+                self.world_min[v_wax] = max(self.world_min[v_wax], v_lo)
+                self.world_max[v_wax] = min(self.world_max[v_wax], v_hi)
+
+        # Compute output grid sizes for each view
+        vs = self.output_voxel_size
+        self.grid_sizes = []
+        for vi in range(3):
+            _, h_wax, v_wax = self.SLICE_CFG[vi]
+            n_h = max(2, int(np.ceil((self.world_max[h_wax] - self.world_min[h_wax]) / vs)))
+            n_v = max(2, int(np.ceil((self.world_max[v_wax] - self.world_min[v_wax]) / vs)))
+            self.grid_sizes.append((n_h, n_v))
+    def _setup_sliders(self):
+        for i in range(3):
+            fix_wax = self.SLICE_CFG[i][0]
+            lo, hi = self.world_min[fix_wax], self.world_max[fix_wax]
+            self.slice_scales[i].configure(from_=lo, to=hi)
+            self.slice_vars[i].set(self.world_center[fix_wax])
+
+    # ---------------------------------------------------------------- Coordinate transforms
     def vox_to_world(self, vox):
-        """Convert voxel [i,j,k] to world [x,y,z] mm."""
-        v = np.array([*vox, 1.0])
-        return (self.affine @ v)[:3]
+        return (self.corrected_affine @ np.array([*vox[:3], 1.0]))[:3]
 
-    def world_to_vox(self, world):
-        """Convert world [x,y,z] mm to voxel [i,j,k]."""
-        inv = np.linalg.inv(self.affine)
-        v = np.array([*world, 1.0])
-        return (inv @ v)[:3]
+    def world_to_vox(self, w):
+        return (self.inv_corrected @ np.array([*w[:3], 1.0]))[:3]
 
-    # ------------------------------------------------------------------ Display
-    def get_slice(self, view_idx):
+    # ---------------------------------------------------------------- Resliced slice extraction
+    def _reslice_view(self, view_idx):
         """
-        Extract a 2D slice for the given view.
-        Returns (image_2d, h_label, v_label, h_ax, v_ax).
-        """
-        fix_ax = self.slice_axes[view_idx]
-        h_ax = self.horiz_axes[view_idx]
-        v_ax = self.vert_axes[view_idx]
-        idx = self.cursor_vox[fix_ax]
-        idx = np.clip(idx, 0, self.dim_sizes[fix_ax] - 1)
+        Sample a 2D slice from the volume at the current crosshair position
+        for the given view. Returns (img2d, h_coords_mm, v_coords_mm).
 
-        # Build indexing tuple
-        slicer = [slice(None)] * 3
-        slicer[fix_ax] = idx
+        The slice is sampled in corrected world space, then mapped back to
+        voxel space and interpolated with scipy map_coordinates.
+        """
+        fix_wax, h_wax, v_wax = self.SLICE_CFG[view_idx]
+        n_h, n_v = self.grid_sizes[view_idx]
+        vs = self.output_voxel_size
+
+        fix_val = self.cursor_world[fix_wax]
+
+        # Build sampling grid in corrected world space
+        h_coords = np.linspace(self.world_min[h_wax], self.world_max[h_wax], n_h)
+        # Vert: top = max (S for sag/cor, A for axial)
+        v_coords = np.linspace(self.world_max[v_wax], self.world_min[v_wax], n_v)
+
+        hh, vv = np.meshgrid(h_coords, v_coords)
+
+        # Build world coordinate array (n_v x n_h x 4)
+        world_pts = np.ones((n_v, n_h, 4))
+        world_pts[:, :, fix_wax] = fix_val
+        world_pts[:, :, h_wax] = hh
+        world_pts[:, :, v_wax] = vv
+
+        # Map to voxel space
+        flat = world_pts.reshape(-1, 4)
+        vox_flat = (self.inv_corrected @ flat.T).T[:, :3]
+
+        # Get volume data (handle 4D)
+        vol = self.data
         if self.has_dynamics:
-            slicer.append(self.current_dynamic)
+            vol = self.data[:, :, :, self.current_dynamic]
 
-        img2d = self.data[tuple(slicer)]
+        # Sample with trilinear interpolation
+        coords = [vox_flat[:, ax] for ax in range(3)]
+        sampled = map_coordinates(vol, coords, order=1, mode='constant', cval=0)
+        img2d = sampled.reshape(n_v, n_h)
 
-        # img2d axes are the remaining two in order. We need to know which
-        # numpy axis of img2d corresponds to h_ax and v_ax.
-        # After fixing fix_ax, the remaining axes in order are the non-fixed ones.
-        remaining = [a for a in range(3) if a != fix_ax]
-        # img2d.shape[0] = remaining[0], img2d.shape[1] = remaining[1]
+        return img2d, h_coords, v_coords
 
-        # We want: rows = v_ax, cols = h_ax
-        if remaining[0] == h_ax and remaining[1] == v_ax:
-            img2d = img2d.T  # transpose so rows=v_ax, cols=h_ax
-        # else remaining[0]==v_ax, remaining[1]==h_ax -> already correct
-
-        return img2d, self.dim_labels[h_ax], self.dim_labels[v_ax], h_ax, v_ax
-
+    # ---------------------------------------------------------------- Display
     def display_all(self):
-        """Redraw all three views."""
         if self.data is None:
             return
 
@@ -366,251 +507,497 @@ class TriplanarMRIViewer:
             ax = self.axes[vi]
             ax.clear()
 
-            img2d, h_label, v_label, h_ax, v_ax = self.get_slice(vi)
+            fix_wax, h_wax, v_wax = self.SLICE_CFG[vi]
+            img2d, h_coords, v_coords = self._reslice_view(vi)
+            n_h, n_v = len(h_coords), len(v_coords)
 
-            # Display with origin at top-left; we'll flip if needed for
-            # conventional orientation
+            # Extent for imshow: [left, right, bottom, top] in mm
+            h_lo, h_hi = h_coords[0], h_coords[-1]
+            v_lo, v_hi = v_coords[-1], v_coords[0]  # v_coords goes high->low
+            extent = [h_lo, h_hi, v_lo, v_hi]
+
             im = ax.imshow(img2d, cmap='gray', aspect='equal', origin='upper',
-                           interpolation='nearest')
-
-            # Contrast
+                           interpolation='nearest', extent=extent)
             try:
                 nz = img2d[img2d > 0]
-                if len(nz) > 0:
+                if len(nz) > 100:
                     vmin, vmax = np.percentile(nz, [1, 99])
                     im.set_clim(vmin, vmax)
             except:
                 pass
 
-            # Crosshair lines
-            ch = self.cursor_vox[h_ax]
-            cv = self.cursor_vox[v_ax]
-            ax.axvline(ch, color='lime', linewidth=0.7, alpha=0.6)
-            ax.axhline(cv, color='lime', linewidth=0.7, alpha=0.6)
+            # Crosshair
+            ch = self.cursor_world[h_wax]
+            cv = self.cursor_world[v_wax]
+            ax.axvline(ch, color='lime', lw=0.7, alpha=0.6)
+            ax.axhline(cv, color='lime', lw=0.7, alpha=0.6)
 
             # EBZ marker
             if self.ebz_set:
-                eh = self.ebz_vox[h_ax]
-                ev = self.ebz_vox[v_ax]
-                ax.plot(eh, ev, 'r*', markersize=8)
-                # Dashed EBZ axes
-                ax.axvline(eh, color='red', linewidth=0.5, alpha=0.4, linestyle='--')
-                ax.axhline(ev, color='red', linewidth=0.5, alpha=0.4, linestyle='--')
+                ax.axvline(self.ebz_world[h_wax], color='red', lw=0.5, alpha=0.4, ls='--')
+                ax.axhline(self.ebz_world[v_wax], color='red', lw=0.5, alpha=0.4, ls='--')
+                ax.plot(self.ebz_world[h_wax], self.ebz_world[v_wax], 'r*', markersize=8)
 
-            # Title with world coordinate of the fixed axis
-            fix_ax = self.slice_axes[vi]
-            fix_idx = self.cursor_vox[fix_ax]
-            if self.world_coords_per_axis[fix_ax] is not None:
-                # Dominant world component for this axis
-                col = self.affine[:3, fix_ax]
-                dom = int(np.argmax(np.abs(col)))
-                world_val = self.world_coords_per_axis[fix_ax][fix_idx][dom]
-                if self.ebz_set:
-                    ebz_world_val = self.world_coords_per_axis[fix_ax][self.ebz_vox[fix_ax]][dom]
-                    rel = world_val - ebz_world_val
-                    title = f"{self.view_names[vi]}  {self.dim_labels[fix_ax]}={fix_idx}  ({rel:+.2f} mm from EBZ)"
-                else:
-                    title = f"{self.view_names[vi]}  {self.dim_labels[fix_ax]}={fix_idx}  ({world_val:.2f} mm)"
+            # Title
+            wval = self.cursor_world[fix_wax]
+            if self.ebz_set:
+                rel = wval - self.ebz_world[fix_wax]
+                title = (f"{self.VIEW_NAMES[vi]}  "
+                         f"{self.WORLD_LABELS[fix_wax]}={wval:.2f} mm  "
+                         f"({rel:+.2f} from EBZ)")
             else:
-                title = f"{self.view_names[vi]}  {self.dim_labels[fix_ax]}={fix_idx}"
-
+                title = f"{self.VIEW_NAMES[vi]}  {self.WORLD_LABELS[fix_wax]}={wval:.2f} mm"
             ax.set_title(title, fontsize=10)
-            ax.set_xlabel(h_label, fontsize=9)
-            ax.set_ylabel(v_label, fontsize=9)
+            ax.set_xlabel(self.WORLD_LABELS[h_wax], fontsize=9)
+            ax.set_ylabel(self.WORLD_LABELS[v_wax], fontsize=9)
             ax.tick_params(labelsize=7)
 
+            # Store view info for click mapping
+            ax._vi = vi
+
         self.fig.canvas.draw_idle()
-        self._update_cursor_info()
+        self._update_info()
         self._sync_sliders()
 
-    def _update_cursor_info(self):
-        """Update the text label showing current crosshair position."""
-        if self.data is None:
-            return
-        world = self.vox_to_world(self.cursor_vox)
-        txt = (f"Crosshair voxel: [{self.cursor_vox[0]}, {self.cursor_vox[1]}, {self.cursor_vox[2]}]"
-               f"   world: [{world[0]:.2f}, {world[1]:.2f}, {world[2]:.2f}] mm")
+    def _update_info(self):
+        if self.data is None: return
+        w = self.cursor_world
+        vox = self.world_to_vox(w)
+        txt = (f"Crosshair: ML={w[0]:.2f}, AP={w[1]:.2f}, DV={w[2]:.2f} mm"
+               f"   voxel=[{vox[0]:.1f}, {vox[1]:.1f}, {vox[2]:.1f}]")
         if self.ebz_set:
-            ebz_w = self.vox_to_world(self.ebz_vox)
-            rel = world - ebz_w
-            txt += f"   rel EBZ: [{rel[0]:.2f}, {rel[1]:.2f}, {rel[2]:.2f}] mm"
+            rel = w - self.ebz_world
+            txt += f"   rel EBZ: ML={rel[0]:.2f}, AP={rel[1]:.2f}, DV={rel[2]:.2f}"
         self.cursor_info_var.set(txt)
 
     def _sync_sliders(self):
         for i in range(3):
-            ax_idx = self.slice_axes[i]
-            self.slice_vars[i].set(self.cursor_vox[ax_idx])
-            self.slice_labels[i].config(text=f"{self.cursor_vox[ax_idx]}/{self.dim_sizes[ax_idx] - 1}")
+            fix_wax = self.SLICE_CFG[i][0]
+            val = self.cursor_world[fix_wax]
+            self.slice_vars[i].set(val)
+            if self.ebz_set:
+                rel = val - self.ebz_world[fix_wax]
+                self.slice_lbls[i].config(
+                    text=f"{val:.2f} mm ({rel:+.2f} EBZ)")
+            else:
+                self.slice_lbls[i].config(text=f"{val:.2f} mm")
 
-    # ------------------------------------------------------------------ Events
-    def on_slider(self, view_idx):
-        if self.data is None:
-            return
-        ax_idx = self.slice_axes[view_idx]
+    # ---------------------------------------------------------------- Events
+    def _on_slider(self, view_idx):
+        if self.data is None: return
+        fix_wax = self.SLICE_CFG[view_idx][0]
         new_val = self.slice_vars[view_idx].get()
-        if new_val != self.cursor_vox[ax_idx]:
-            self.cursor_vox[ax_idx] = int(new_val)
+        if abs(new_val - self.cursor_world[fix_wax]) > 0.01:
+            self.cursor_world[fix_wax] = new_val
             self.display_all()
 
-    def on_dynamic_slider(self, *args):
+    def _on_dyn_slider(self):
         self.current_dynamic = self.dyn_var.get()
-        self.dyn_label.config(text=f"{self.current_dynamic}/{self.dynamics - 1}")
+        self.dyn_lbl.config(text=f"{self.current_dynamic}/{self.dynamics-1}")
         self.display_all()
 
-    def _identify_view(self, event):
-        """Return which view index (0,1,2) the event is in, or None."""
-        for i, ax in enumerate(self.axes):
-            if event.inaxes == ax:
-                return i
-        return None
-
-    def on_click(self, event):
-        if self.data is None or event.inaxes is None:
-            return
-        vi = self._identify_view(event)
-        if vi is None:
-            return
-
-        h_ax = self.horiz_axes[vi]
-        v_ax = self.vert_axes[vi]
+    def _on_click(self, event):
+        if self.data is None or event.inaxes is None: return
+        ax = event.inaxes
+        if not hasattr(ax, '_vi'): return
+        vi = ax._vi
+        _, h_wax, v_wax = self.SLICE_CFG[vi]
         x, y = event.xdata, event.ydata
-        if x is None or y is None:
+        if x is None or y is None: return
+
+        # --- Crop mode: start rectangle drag ---
+        if self.crop_mode and event.button == 1:
+            self._crop_start = (x, y)
+            self._crop_view = vi
+            # Add a rectangle patch
+            from matplotlib.patches import Rectangle
+            self._crop_rect = Rectangle((x, y), 0, 0,
+                                         linewidth=2, edgecolor='cyan',
+                                         facecolor='cyan', alpha=0.15)
+            ax.add_patch(self._crop_rect)
+            self.fig.canvas.draw_idle()
             return
 
-        # Clamp to valid range
-        new_h = int(np.clip(round(x), 0, self.dim_sizes[h_ax] - 1))
-        new_v = int(np.clip(round(y), 0, self.dim_sizes[v_ax] - 1))
+        # --- EBZ pick mode: right-click sets EBZ ---
+        if self.ebz_pick_armed and event.button == 3:
+            self.cursor_world[h_wax] = np.clip(x, self.world_min[h_wax], self.world_max[h_wax])
+            self.cursor_world[v_wax] = np.clip(y, self.world_min[v_wax], self.world_max[v_wax])
+            self._set_ebz_to_crosshair()
+            self._disarm_ebz_pick()
+            return
 
-        if event.button == 1:  # Left click -> move crosshair
-            self.cursor_vox[h_ax] = new_h
-            self.cursor_vox[v_ax] = new_v
+        # --- Normal left-click: move crosshair ---
+        if event.button == 1:
+            self.cursor_world[h_wax] = np.clip(x, self.world_min[h_wax], self.world_max[h_wax])
+            self.cursor_world[v_wax] = np.clip(y, self.world_min[v_wax], self.world_max[v_wax])
             self.display_all()
-        elif event.button == 3:  # Right click -> set EBZ to current crosshair
-            self.cursor_vox[h_ax] = new_h
-            self.cursor_vox[v_ax] = new_v
-            self.set_ebz_to_crosshair()
 
-    def on_motion(self, event):
-        """Show hover position in status bar."""
-        if self.data is None or event.inaxes is None:
-            return
-        vi = self._identify_view(event)
-        if vi is None:
-            return
-        h_ax = self.horiz_axes[vi]
-        v_ax = self.vert_axes[vi]
+    def _on_release(self, event):
+        """Handle mouse button release — finalize crop rectangle."""
+        if not self.crop_mode or self._crop_start is None: return
+        if event.inaxes is None: return
+        ax = event.inaxes
+        if not hasattr(ax, '_vi') or ax._vi != self._crop_view: return
+
         x, y = event.xdata, event.ydata
-        if x is None or y is None:
-            return
-        hv = int(np.clip(round(x), 0, self.dim_sizes[h_ax] - 1))
-        vv = int(np.clip(round(y), 0, self.dim_sizes[v_ax] - 1))
-        self.status_var.set(f"{self.view_names[vi]}  —  {self.dim_labels[h_ax]}={hv}, {self.dim_labels[v_ax]}={vv}")
+        if x is None or y is None: return
 
-    # ------------------------------------------------------------------ EBZ
-    def set_ebz_to_crosshair(self):
-        """Set EBZ to current crosshair position."""
-        if self.data is None:
+        x0, y0 = self._crop_start
+        # Ensure min < max
+        h_lo, h_hi = min(x0, x), max(x0, x)
+        v_lo, v_hi = min(y0, y), max(y0, y)
+
+        # Minimum size check (at least 5mm in each direction)
+        if (h_hi - h_lo) < 5 or (v_hi - v_lo) < 5:
+            self.crop_status_var.set("Crop rectangle too small, ignored.")
+            self._crop_start = None
+            self._crop_rect = None
+            self._crop_view = None
+            self.display_all()
             return
-        world = self.vox_to_world(self.cursor_vox)
-        self.ebz_vox = list(self.cursor_vox)
-        self.ebz_world = list(world)
-        self.ebz_ap_var.set(round(world[1], 3))
-        self.ebz_dv_var.set(round(world[2], 3))
-        self.ebz_ml_var.set(round(world[0], 3))
+
+        vi = self._crop_view
+        _, h_wax, v_wax = self.SLICE_CFG[vi]
+
+        # Store crop bounds for this view's axes
+        self.crop_bounds[vi] = (h_lo, h_hi, v_lo, v_hi)
+
+        # Exit crop mode
+        self._exit_crop_mode()
+
+        # Recompute with new crop, reclamp crosshair
+        self._recompute()
+        self.cursor_world = np.clip(self.cursor_world, self.world_min, self.world_max)
+        self._setup_sliders()
+        self._save_crop_to_config()
+        self.display_all()
+        self.crop_status_var.set(
+            f"Cropped {self.VIEW_NAMES[vi]}: "
+            f"{self.WORLD_LABELS[h_wax]}=[{h_lo:.1f},{h_hi:.1f}], "
+            f"{self.WORLD_LABELS[v_wax]}=[{v_lo:.1f},{v_hi:.1f}] mm")
+
+    def _on_motion(self, event):
+        if self.data is None or event.inaxes is None: return
+        ax = event.inaxes
+
+        # Update crop rectangle if dragging
+        if self.crop_mode and self._crop_start is not None and self._crop_rect is not None:
+            x, y = event.xdata, event.ydata
+            if x is not None and y is not None:
+                x0, y0 = self._crop_start
+                self._crop_rect.set_xy((min(x0, x), min(y0, y)))
+                self._crop_rect.set_width(abs(x - x0))
+                self._crop_rect.set_height(abs(y - y0))
+                self.fig.canvas.draw_idle()
+            return
+
+        if hasattr(ax, '_vi'):
+            vi = ax._vi
+            x, y = event.xdata, event.ydata
+            if x is not None and y is not None:
+                _, h_wax, v_wax = self.SLICE_CFG[vi]
+                self.status_var.set(
+                    f"{self.VIEW_NAMES[vi]}  "
+                    f"{self.WORLD_LABELS[h_wax]}={x:.2f}  "
+                    f"{self.WORLD_LABELS[v_wax]}={y:.2f} mm")
+
+    # ---------------------------------------------------------------- EBZ
+    def _set_ebz_to_crosshair(self):
+        if self.data is None: return
+        self.ebz_world = self.cursor_world.copy()
+        self.ebz_ap_var.set(round(self.ebz_world[1], 3))
+        self.ebz_dv_var.set(round(self.ebz_world[2], 3))
+        self.ebz_ml_var.set(round(self.ebz_world[0], 3))
         self.ebz_set = True
-        self.reset_ebz_btn.config(state=tk.NORMAL)
+        self.btn_reset_ebz.config(state="normal")
         self.display_all()
 
-    def set_ebz(self):
-        """Set EBZ from the manual entry fields (world coordinates)."""
-        if self.data is None:
-            return
+    def _set_ebz_manual(self):
+        if self.data is None: return
         try:
-            # Fields: AP -> world[1], DV -> world[2], ML -> world[0]
-            world = np.array([self.ebz_ml_var.get(), self.ebz_ap_var.get(), self.ebz_dv_var.get()])
-            vox = self.world_to_vox(world)
-            self.ebz_vox = [int(np.clip(round(v), 0, self.dim_sizes[i] - 1)) for i, v in enumerate(vox)]
-            self.ebz_world = list(world)
+            self.ebz_world = np.array([
+                self.ebz_ml_var.get(), self.ebz_ap_var.get(), self.ebz_dv_var.get()])
             self.ebz_set = True
-            self.reset_ebz_btn.config(state=tk.NORMAL)
+            self.btn_reset_ebz.config(state="normal")
             self.display_all()
         except Exception as e:
-            messagebox.showerror("EBZ Error", str(e))
+            messagebox.showerror("Error", str(e))
 
-    def reset_ebz(self):
-        self.ebz_set = False
-        self.ebz_vox = [0, 0, 0]
-        self.ebz_world = [0, 0, 0]
-        self.ebz_ap_var.set(0)
-        self.ebz_dv_var.set(0)
-        self.ebz_ml_var.set(0)
-        self.reset_ebz_btn.config(state=tk.DISABLED)
+    def _reset_ebz(self):
+        self.ebz_set = False; self.ebz_world = np.zeros(3)
+        self.ebz_ap_var.set(0); self.ebz_dv_var.set(0); self.ebz_ml_var.set(0)
+        self.btn_reset_ebz.config(state="disabled")
         self.display_all()
 
-    # ------------------------------------------------------------------ Header
-    def show_header_info(self):
-        if self.img is None:
+    def _toggle_ebz_pick(self):
+        """Toggle EBZ pick mode — when armed, next right-click sets EBZ."""
+        if self.ebz_pick_armed:
+            self._disarm_ebz_pick()
+        else:
+            self.ebz_pick_armed = True
+            self.ebz_pick_label_var.set("EBZ PICK ACTIVE — right-click on any view to set EBZ, or click button again to cancel")
+            self.btn_ebz_pick.config(text="Cancel EBZ Pick")
+            # Exit crop mode if active
+            if self.crop_mode:
+                self._exit_crop_mode()
+
+    def _disarm_ebz_pick(self):
+        self.ebz_pick_armed = False
+        self.ebz_pick_label_var.set("")
+        self.btn_ebz_pick.config(text="Pick EBZ (right-click)")
+
+    # ---------------------------------------------------------------- Cropping
+    def _toggle_crop_mode(self):
+        """Enter crop mode: views go to full extent, user drags rectangle."""
+        if self.crop_mode:
+            self._exit_crop_mode()
             return
+
+        # Disarm EBZ pick if active
+        if self.ebz_pick_armed:
+            self._disarm_ebz_pick()
+
+        self.crop_mode = True
+        self.btn_crop.config(text="Cancel Crop")
+        self.crop_status_var.set("CROP MODE: drag a rectangle on any view to set crop bounds")
+
+        # Temporarily show full (uncropped) view
+        saved_crop = self.crop_bounds.copy()
+        self.crop_bounds = {}
+        self._recompute()
+        self._setup_sliders()
+        self.display_all()
+        # Restore crop bounds (so cancel restores them)
+        self._saved_crop_for_cancel = saved_crop
+
+    def _exit_crop_mode(self):
+        self.crop_mode = False
+        self._crop_start = None
+        self._crop_rect = None
+        self._crop_view = None
+        self.btn_crop.config(text="Crop Views (drag rectangle)")
+        if not hasattr(self, '_saved_crop_for_cancel'):
+            return
+        # If we're exiting without applying a new crop, restore old crop
+        if not self.crop_bounds and self._saved_crop_for_cancel:
+            self.crop_bounds = self._saved_crop_for_cancel
+            self._recompute()
+            self.cursor_world = np.clip(self.cursor_world, self.world_min, self.world_max)
+            self._setup_sliders()
+            self.display_all()
+        delattr(self, '_saved_crop_for_cancel')
+        self.crop_status_var.set("")
+
+    def _reset_crop(self):
+        """Reset all crop bounds to full view."""
+        self.crop_bounds = {}
+        if self.crop_mode:
+            self._exit_crop_mode()
+        self._recompute()
+        self.cursor_world = np.clip(self.cursor_world, self.world_min, self.world_max)
+        self._setup_sliders()
+        self._save_crop_to_config()
+        self.display_all()
+        self.crop_status_var.set("Crop reset to full view.")
+
+    def _save_crop_to_config(self):
+        """Persist crop bounds in the corrections JSON."""
+        if self.corr_config is None or self.corr_json_path is None:
+            return
+        if self.crop_bounds:
+            self.corr_config["crop_bounds"] = {
+                str(k): list(v) for k, v in self.crop_bounds.items()
+            }
+        else:
+            self.corr_config.pop("crop_bounds", None)
+        save_corrections(self.corr_json_path, self.corr_config)
+
+    def _load_crop_from_config(self):
+        """Load crop bounds from corrections JSON."""
+        if self.corr_config is None:
+            return
+        cb = self.corr_config.get("crop_bounds", {})
+        self.crop_bounds = {int(k): tuple(v) for k, v in cb.items()}
+
+    # ---------------------------------------------------------------- Correction matrix
+    def _apply_correction(self):
+        if self.data is None: return
+        rx = self.rot_x_var.get(); ry = self.rot_y_var.get(); rz = self.rot_z_var.get()
+        tx = self.trans_tx_var.get(); ty = self.trans_ty_var.get(); tz = self.trans_tz_var.get()
+
+        delta = xlate(tx, ty, tz) @ rot_z(rz) @ rot_y(ry) @ rot_x(rx)
+        new_corr = delta @ self.correction
+
+        note = self.corr_note_var.get().strip()
+        if not note:
+            parts = []
+            if rx: parts.append(f"Rx={rx}")
+            if ry: parts.append(f"Ry={ry}")
+            if rz: parts.append(f"Rz={rz}")
+            if tx: parts.append(f"Tx={tx}")
+            if ty: parts.append(f"Ty={ty}")
+            if tz: parts.append(f"Tz={tz}")
+            note = ", ".join(parts) if parts else "no-op"
+
+        self.correction = new_corr
+        push_correction(self.corr_config, new_corr, note)
+        save_corrections(self.corr_json_path, self.corr_config)
+
+        self._recompute()
+        # Reclamp crosshair into new bbox
+        self.cursor_world = np.clip(self.cursor_world, self.world_min, self.world_max)
+        self._setup_sliders()
+        self._update_corr_info()
+
+        for v in (self.rot_x_var, self.rot_y_var, self.rot_z_var,
+                  self.trans_tx_var, self.trans_ty_var, self.trans_tz_var):
+            v.set(0)
+        self.corr_note_var.set("")
+        self.display_all()
+
+    def _reset_correction(self):
+        if self.data is None: return
+        self.correction = np.eye(4)
+        push_correction(self.corr_config, self.correction, "reset to identity")
+        save_corrections(self.corr_json_path, self.corr_config)
+        self._recompute()
+        self.cursor_world = np.clip(self.cursor_world, self.world_min, self.world_max)
+        self._setup_sliders()
+        self._update_corr_info()
+        self.display_all()
+
+    def _load_version(self, idx):
+        hist = self.corr_config["correction_history"]
+        if 0 <= idx < len(hist):
+            self.corr_config["current_index"] = idx
+            self.correction = np.array(hist[idx]["matrix"])
+            save_corrections(self.corr_json_path, self.corr_config)
+            self._recompute()
+            self.cursor_world = np.clip(self.cursor_world, self.world_min, self.world_max)
+            self._setup_sliders()
+            self._update_corr_info()
+            self.display_all()
+
+    def _undo(self):
+        if self.data is None: return
+        idx = self.corr_config.get("current_index", 0)
+        if idx > 0: self._load_version(idx - 1)
+        else: self.status_var.set("Already at oldest version.")
+
+    def _redo(self):
+        if self.data is None: return
+        idx = self.corr_config.get("current_index", 0)
+        n = len(self.corr_config.get("correction_history", []))
+        if idx < n - 1: self._load_version(idx + 1)
+        else: self.status_var.set("Already at newest version.")
+
+    def _update_corr_info(self):
+        if self.corr_config is None: return
+        idx = self.corr_config.get("current_index", 0)
+        n = len(self.corr_config["correction_history"])
+        entry = self.corr_config["correction_history"][idx]
+        is_id = np.allclose(self.correction, np.eye(4))
+        if is_id:
+            self.corr_info_var.set("Correction: identity")
+        else:
+            det = np.linalg.det(self.correction[:3, :3])
+            t = self.correction[:3, 3]
+            self.corr_info_var.set(
+                f"Correction: det={det:.6f}  T=[{t[0]:.2f}, {t[1]:.2f}, {t[2]:.2f}] mm")
+        self.corr_ver_var.set(
+            f"Version {idx+1}/{n}  |  {entry.get('timestamp','')}  |  {entry.get('note','')}")
+
+    def _show_history(self):
+        if not self.corr_config: messagebox.showinfo("Info", "No history."); return
         win = tk.Toplevel(self.root)
-        win.title("PAR/REC Header")
-        win.geometry("900x700")
+        win.title("Correction History"); win.geometry("850x550")
+        frame = ttk.Frame(win); frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        sb = ttk.Scrollbar(frame); sb.pack(side=tk.RIGHT, fill=tk.Y)
+        txt = tk.Text(frame, wrap=tk.WORD, yscrollcommand=sb.set, font=("Courier", 10))
+        txt.pack(fill=tk.BOTH, expand=True); sb.config(command=txt.yview)
 
-        frame = ttk.Frame(win)
-        frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        sb = ttk.Scrollbar(frame)
-        sb.pack(side=tk.RIGHT, fill=tk.Y)
-        txt = tk.Text(frame, wrap=tk.WORD, yscrollcommand=sb.set)
-        txt.pack(fill=tk.BOTH, expand=True)
-        sb.config(command=txt.yview)
-
-        header = self.img.header
-        txt.insert(tk.END, "=== AFFINE MATRIX ===\n")
-        txt.insert(tk.END, f"{self.affine}\n\n")
-        txt.insert(tk.END, f"Voxel sizes: {self.voxel_sizes}\n")
-        txt.insert(tk.END, f"Axis labels: {self.dim_labels}\n")
-        txt.insert(tk.END, f"Dimensions: {self.dim_sizes}\n\n")
-
-        if hasattr(header, 'general_info'):
-            txt.insert(tk.END, "=== GENERAL INFO ===\n")
-            for k, v in sorted(header.general_info.items()):
-                txt.insert(tk.END, f"  {k}: {v}\n")
+        cur = self.corr_config.get("current_index", 0)
+        for i, e in enumerate(self.corr_config["correction_history"]):
+            mark = "  << CURRENT" if i == cur else ""
+            txt.insert(tk.END, f"--- Version {i+1}{mark} ---\n")
+            txt.insert(tk.END, f"  Time: {e.get('timestamp','')}\n")
+            txt.insert(tk.END, f"  Note: {e.get('note','')}\n")
+            for row in np.array(e["matrix"]):
+                txt.insert(tk.END,
+                    f"    [{row[0]:10.6f} {row[1]:10.6f} {row[2]:10.6f} {row[3]:10.6f}]\n")
             txt.insert(tk.END, "\n")
 
-        txt.insert(tk.END, "=== FULL HEADER ===\n")
-        txt.insert(tk.END, pprint.pformat(header.__dict__))
+        jf = ttk.Frame(win); jf.pack(fill=tk.X, padx=10, pady=5)
+        ttk.Label(jf, text="Jump to version:").pack(side=tk.LEFT, padx=3)
+        jv = tk.IntVar(value=cur + 1)
+        ttk.Entry(jf, textvariable=jv, width=5).pack(side=tk.LEFT, padx=3)
+        def jump():
+            t = jv.get() - 1
+            nh = len(self.corr_config["correction_history"])
+            if 0 <= t < nh:
+                self._load_version(t); win.destroy()
+            else: messagebox.showerror("Error", f"1-{nh}")
+        ttk.Button(jf, text="Jump", command=jump).pack(side=tk.LEFT, padx=3)
+        txt.config(state=tk.DISABLED)
+
+    # ---------------------------------------------------------------- Header
+    def _show_header(self):
+        if self.img is None: return
+        win = tk.Toplevel(self.root); win.title("Header"); win.geometry("900x700")
+        frame = ttk.Frame(win); frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        sb = ttk.Scrollbar(frame); sb.pack(side=tk.RIGHT, fill=tk.Y)
+        txt = tk.Text(frame, wrap=tk.WORD, yscrollcommand=sb.set)
+        txt.pack(fill=tk.BOTH, expand=True); sb.config(command=txt.yview)
+        txt.insert(tk.END, "=== NATIVE AFFINE ===\n")
+        txt.insert(tk.END, f"{self.native_affine}\n\n")
+        txt.insert(tk.END, "=== CORRECTION ===\n")
+        txt.insert(tk.END, f"{self.correction}\n\n")
+        txt.insert(tk.END, "=== CORRECTED AFFINE ===\n")
+        txt.insert(tk.END, f"{self.corrected_affine}\n\n")
+        txt.insert(tk.END, f"Voxel sizes: {self.voxel_sizes}\n")
+        txt.insert(tk.END, f"Dims: {self.dim_sizes}\n")
+        txt.insert(tk.END, f"Full world bbox: {self.full_world_min} to {self.full_world_max}\n")
+        txt.insert(tk.END, f"Display bbox: {self.world_min} to {self.world_max}\n")
+        if self.crop_bounds:
+            txt.insert(tk.END, f"Crop bounds: {self.crop_bounds}\n")
+        txt.insert(tk.END, "\n")
+        h = self.img.header
+        if hasattr(h, "general_info"):
+            txt.insert(tk.END, "=== GENERAL INFO ===\n")
+            for k, v in sorted(h.general_info.items()):
+                txt.insert(tk.END, f"  {k}: {v}\n")
+        txt.insert(tk.END, "\n=== FULL HEADER ===\n")
+        txt.insert(tk.END, pprint.pformat(h.__dict__))
         txt.config(state=tk.DISABLED)
 
 
-# ------------------------------------------------------------------ Main
+# ====================================================================
+# Main
+# ====================================================================
 if __name__ == "__main__":
-    default_path = sys.argv[1] if len(sys.argv) > 1 else None
-
+    dp = sys.argv[1] if len(sys.argv) > 1 else None
     root = tk.Tk()
-    app = TriplanarMRIViewer(root, default_path)
+    app = TriplanarMRIViewer(root, dp)
 
-    # Load config
-    config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mri_viewer_config.json')
-    config = {}
-    if os.path.exists(config_file):
+    cf = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                      "mri_viewer_config.json")
+    cfg = {}
+    if os.path.exists(cf):
         try:
-            with open(config_file, 'r') as f:
-                config = json.load(f)
-            saved = config.get('default_path')
-            if default_path is None and saved:
-                app.default_path = saved
-                app.file_path_var.set(saved)
-                default_path = saved
-            if 'ebz_world' in config:
-                ew = config['ebz_world']
+            with open(cf) as f: cfg = json.load(f)
+            s = cfg.get("default_path")
+            if dp is None and s:
+                app.default_path = s; app.file_path_var.set(s); dp = s
+            if "ebz_world" in cfg:
+                ew = cfg["ebz_world"]
                 app.ebz_ml_var.set(ew[0])
                 app.ebz_ap_var.set(ew[1])
                 app.ebz_dv_var.set(ew[2])
-        except Exception as e:
-            print(f"Config load error: {e}")
+        except Exception as e: print(f"Config error: {e}")
 
-    if default_path and os.path.exists(default_path):
+    if dp and os.path.exists(dp):
         app.load_and_visualize()
-        if 'ebz_world' in config:
-            app.set_ebz()
+        if "ebz_world" in cfg:
+            app._set_ebz_manual()
 
     root.mainloop()
