@@ -180,8 +180,18 @@ class TriplanarMRIViewer:
         self.status_var = tk.StringVar(value="Ready")
         ttk.Label(main, textvariable=self.status_var).pack(fill=tk.X, padx=5)
 
-        # EBZ
-        ebz = ttk.LabelFrame(main, text="EBZ (External Brain Zero) - corrected world coords")
+        # ---- Collapsible panels container ----
+        self._panels_frame = ttk.Frame(main)
+        self._panels_frame.pack(fill=tk.X, padx=0, pady=0)
+        self._panels_visible = True
+
+        # Toggle button for collapsing/expanding panels
+        self._toggle_panels_btn = ttk.Button(
+            main, text="▲ Hide Controls", command=self._toggle_panels)
+        self._toggle_panels_btn.pack(fill=tk.X, padx=5, pady=1)
+
+        # --- EBZ panel (inside collapsible) ---
+        ebz = ttk.LabelFrame(self._panels_frame, text="EBZ (External Brain Zero) - corrected world coords")
         ebz.pack(fill=tk.X, padx=5, pady=2)
         for i, (lbl, vn) in enumerate([("AP mm:", "ebz_ap"), ("DV mm:", "ebz_dv"), ("ML mm:", "ebz_ml")]):
             ttk.Label(ebz, text=lbl).grid(row=0, column=2*i, padx=3, pady=2)
@@ -196,8 +206,6 @@ class TriplanarMRIViewer:
         self.btn_reset_ebz = ttk.Button(ebz, text="Reset EBZ",
                                          command=self._reset_ebz, state="disabled")
         self.btn_reset_ebz.grid(row=0, column=8, padx=3)
-
-        # EBZ pick mode toggle — right-click only works when this is armed
         self.btn_ebz_pick = ttk.Button(ebz, text="Pick EBZ (right-click)",
                                         command=self._toggle_ebz_pick, state="disabled")
         self.btn_ebz_pick.grid(row=0, column=9, padx=3)
@@ -209,8 +217,8 @@ class TriplanarMRIViewer:
         ttk.Label(ebz, textvariable=self.ebz_pick_label_var, foreground="red").grid(
             row=2, column=0, columnspan=10, sticky="w", padx=5)
 
-        # Correction controls
-        corr = ttk.LabelFrame(main, text="Correction Matrix  (rotations applied in corrected world space)")
+        # --- Correction panel (inside collapsible) ---
+        corr = ttk.LabelFrame(self._panels_frame, text="Correction Matrix  (rotations applied in corrected world space)")
         corr.pack(fill=tk.X, padx=5, pady=2)
 
         r_row = ttk.Frame(corr); r_row.pack(fill=tk.X, padx=3, pady=2)
@@ -251,13 +259,13 @@ class TriplanarMRIViewer:
         ttk.Entry(note_row, textvariable=self.corr_note_var, width=50).pack(
             side=tk.LEFT, fill=tk.X, expand=True, padx=3)
 
-        # Crop controls
-        crop_frame = ttk.LabelFrame(main, text="View Cropping")
+        # --- Crop panel (inside collapsible) ---
+        crop_frame = ttk.LabelFrame(self._panels_frame, text="View Cropping")
         crop_frame.pack(fill=tk.X, padx=5, pady=2)
         self.btn_crop = ttk.Button(crop_frame, text="Crop Views (drag rectangle)",
                                     command=self._toggle_crop_mode, state="disabled")
         self.btn_crop.pack(side=tk.LEFT, padx=3, pady=2)
-        self.btn_reset_crop = ttk.Button(crop_frame, text="Reset Crop (full view)",
+        self.btn_reset_crop = ttk.Button(crop_frame, text="Reset All Crops",
                                           command=self._reset_crop, state="disabled")
         self.btn_reset_crop.pack(side=tk.LEFT, padx=3, pady=2)
         self.crop_status_var = tk.StringVar(value="")
@@ -278,9 +286,10 @@ class TriplanarMRIViewer:
         self.canvas.mpl_connect("button_release_event", self._on_release)
         self.canvas.mpl_connect("motion_notify_event", self._on_motion)
 
-        # Slice sliders (one per view, controls the fixed-axis world coordinate)
+        # Slice sliders with "→ EBZ" buttons
         sf = ttk.Frame(main); sf.pack(fill=tk.X, padx=5, pady=2)
         self.slice_vars, self.slice_scales, self.slice_lbls = [], [], []
+        self.ebz_goto_btns = []
         for i, name in enumerate(self.VIEW_NAMES):
             ttk.Label(sf, text=f"{name}:").grid(row=i, column=0, sticky="w", padx=3, pady=1)
             v = tk.DoubleVar(value=0.0)
@@ -289,14 +298,18 @@ class TriplanarMRIViewer:
             sc.grid(row=i, column=1, sticky="we", padx=3)
             lb = ttk.Label(sf, text="0.00 mm", width=20)
             lb.grid(row=i, column=2, padx=3)
+            btn = ttk.Button(sf, text="→0", width=3,
+                             command=lambda idx=i: self._goto_ebz_zero(idx), state="disabled")
+            btn.grid(row=i, column=3, padx=2)
             self.slice_vars.append(v)
             self.slice_scales.append(sc)
             self.slice_lbls.append(lb)
+            self.ebz_goto_btns.append(btn)
         sf.columnconfigure(1, weight=1)
 
         # Dynamic slider
         self.dyn_frame = ttk.Frame(sf)
-        self.dyn_frame.grid(row=3, column=0, columnspan=3, sticky="we")
+        self.dyn_frame.grid(row=3, column=0, columnspan=4, sticky="we")
         ttk.Label(self.dyn_frame, text="Dynamic:").grid(row=0, column=0, sticky="w", padx=3)
         self.dyn_var = tk.IntVar(value=0)
         self.dyn_scale = ttk.Scale(self.dyn_frame, from_=0, to=0, orient=tk.HORIZONTAL,
@@ -307,6 +320,19 @@ class TriplanarMRIViewer:
         self.dyn_lbl.grid(row=0, column=2, padx=3)
         self.dyn_frame.columnconfigure(1, weight=1)
         self.dyn_frame.grid_remove()
+
+    def _toggle_panels(self):
+        """Show/hide the control panels to maximize figure space."""
+        if self._panels_visible:
+            self._panels_frame.pack_forget()
+            self._toggle_panels_btn.config(text="▼ Show Controls")
+            self._panels_visible = False
+        else:
+            # Re-insert panels before the toggle button
+            self._panels_frame.pack(fill=tk.X, padx=0, pady=0,
+                                     before=self._toggle_panels_btn)
+            self._toggle_panels_btn.config(text="▲ Hide Controls")
+            self._panels_visible = True
 
     # ---------------------------------------------------------------- File helpers
     def _browse(self):
@@ -389,6 +415,8 @@ class TriplanarMRIViewer:
                       self.btn_reset_corr, self.btn_undo, self.btn_redo,
                       self.btn_ebz_pick, self.btn_crop, self.btn_reset_crop):
                 b.config(state="normal")
+            for b in self.ebz_goto_btns:
+                b.config(state="normal")
 
             self._update_corr_info()
             self.display_all()
@@ -418,28 +446,33 @@ class TriplanarMRIViewer:
         self.full_world_max = cw.max(axis=0)
         self.world_center = (self.full_world_min + self.full_world_max) / 2.0
 
-        # Apply crop bounds: compute effective display min/max per axis
+        # Keep shared world_min/max as the full uncropped bbox
+        # (used for slider ranges on the fixed axis, and for clamping crosshair)
         self.world_min = self.full_world_min.copy()
         self.world_max = self.full_world_max.copy()
-        for vi in range(3):
-            if vi in self.crop_bounds:
-                _, h_wax, v_wax = self.SLICE_CFG[vi]
-                h_lo, h_hi, v_lo, v_hi = self.crop_bounds[vi]
-                # The crop constrains the h and v axes of this view
-                # Take the tightest constraint across all views that share an axis
-                self.world_min[h_wax] = max(self.world_min[h_wax], h_lo)
-                self.world_max[h_wax] = min(self.world_max[h_wax], h_hi)
-                self.world_min[v_wax] = max(self.world_min[v_wax], v_lo)
-                self.world_max[v_wax] = min(self.world_max[v_wax], v_hi)
 
-        # Compute output grid sizes for each view
+        # Per-view display bounds: each view can have independent h/v crop
+        # view_display_bounds[vi] = (h_lo, h_hi, v_lo, v_hi)
         vs = self.output_voxel_size
+        self.view_display_bounds = []
         self.grid_sizes = []
         for vi in range(3):
             _, h_wax, v_wax = self.SLICE_CFG[vi]
-            n_h = max(2, int(np.ceil((self.world_max[h_wax] - self.world_min[h_wax]) / vs)))
-            n_v = max(2, int(np.ceil((self.world_max[v_wax] - self.world_min[v_wax]) / vs)))
+            h_lo = self.full_world_min[h_wax]
+            h_hi = self.full_world_max[h_wax]
+            v_lo = self.full_world_min[v_wax]
+            v_hi = self.full_world_max[v_wax]
+            if vi in self.crop_bounds:
+                ch_lo, ch_hi, cv_lo, cv_hi = self.crop_bounds[vi]
+                h_lo = max(h_lo, ch_lo)
+                h_hi = min(h_hi, ch_hi)
+                v_lo = max(v_lo, cv_lo)
+                v_hi = min(v_hi, cv_hi)
+            self.view_display_bounds.append((h_lo, h_hi, v_lo, v_hi))
+            n_h = max(2, int(np.ceil((h_hi - h_lo) / vs)))
+            n_v = max(2, int(np.ceil((v_hi - v_lo) / vs)))
             self.grid_sizes.append((n_h, n_v))
+
     def _setup_sliders(self):
         for i in range(3):
             fix_wax = self.SLICE_CFG[i][0]
@@ -469,10 +502,13 @@ class TriplanarMRIViewer:
 
         fix_val = self.cursor_world[fix_wax]
 
+        # Use per-view display bounds
+        h_lo, h_hi, v_lo, v_hi = self.view_display_bounds[view_idx]
+
         # Build sampling grid in corrected world space
-        h_coords = np.linspace(self.world_min[h_wax], self.world_max[h_wax], n_h)
+        h_coords = np.linspace(h_lo, h_hi, n_h)
         # Vert: top = max (S for sag/cor, A for axial)
-        v_coords = np.linspace(self.world_max[v_wax], self.world_min[v_wax], n_v)
+        v_coords = np.linspace(v_hi, v_lo, n_v)
 
         hh, vv = np.meshgrid(h_coords, v_coords)
 
@@ -591,6 +627,17 @@ class TriplanarMRIViewer:
             self.cursor_world[fix_wax] = new_val
             self.display_all()
 
+    def _goto_ebz_zero(self, view_idx):
+        """Jump the slider for this view to 0 relative to EBZ."""
+        if self.data is None:
+            return
+        if not self.ebz_set:
+            self.status_var.set("Set EBZ first to use Go-to-zero.")
+            return
+        fix_wax = self.SLICE_CFG[view_idx][0]
+        self.cursor_world[fix_wax] = self.ebz_world[fix_wax]
+        self.display_all()
+
     def _on_dyn_slider(self):
         self.current_dynamic = self.dyn_var.get()
         self.dyn_lbl.config(text=f"{self.current_dynamic}/{self.dynamics-1}")
@@ -659,11 +706,20 @@ class TriplanarMRIViewer:
         vi = self._crop_view
         _, h_wax, v_wax = self.SLICE_CFG[vi]
 
-        # Store crop bounds for this view's axes
+        # Merge: keep old crops from other views, add/replace this view's crop
+        old_crops = getattr(self, '_saved_crop_for_cancel', {})
+        self.crop_bounds = {k: v for k, v in old_crops.items() if k != vi}
         self.crop_bounds[vi] = (h_lo, h_hi, v_lo, v_hi)
 
         # Exit crop mode
-        self._exit_crop_mode()
+        # Clear the saved-for-cancel since we're applying a real crop
+        if hasattr(self, '_saved_crop_for_cancel'):
+            delattr(self, '_saved_crop_for_cancel')
+        self.crop_mode = False
+        self._crop_start = None
+        self._crop_rect = None
+        self._crop_view = None
+        self.btn_crop.config(text="Crop Views (drag rectangle)")
 
         # Recompute with new crop, reclamp crosshair
         self._recompute()
@@ -748,7 +804,7 @@ class TriplanarMRIViewer:
 
     # ---------------------------------------------------------------- Cropping
     def _toggle_crop_mode(self):
-        """Enter crop mode: views go to full extent, user drags rectangle."""
+        """Enter crop mode: temporarily show full extent so user can draw a new rectangle."""
         if self.crop_mode:
             self._exit_crop_mode()
             return
@@ -759,16 +815,14 @@ class TriplanarMRIViewer:
 
         self.crop_mode = True
         self.btn_crop.config(text="Cancel Crop")
-        self.crop_status_var.set("CROP MODE: drag a rectangle on any view to set crop bounds")
+        self.crop_status_var.set("CROP MODE: drag a rectangle on any view to crop it (other crops preserved)")
 
-        # Temporarily show full (uncropped) view
-        saved_crop = self.crop_bounds.copy()
+        # Temporarily remove all crops so user can see full extent to draw
+        self._saved_crop_for_cancel = self.crop_bounds.copy()
         self.crop_bounds = {}
         self._recompute()
         self._setup_sliders()
         self.display_all()
-        # Restore crop bounds (so cancel restores them)
-        self._saved_crop_for_cancel = saved_crop
 
     def _exit_crop_mode(self):
         self.crop_mode = False
@@ -778,14 +832,15 @@ class TriplanarMRIViewer:
         self.btn_crop.config(text="Crop Views (drag rectangle)")
         if not hasattr(self, '_saved_crop_for_cancel'):
             return
-        # If we're exiting without applying a new crop, restore old crop
+        # If no new crop was applied, restore the old crops
         if not self.crop_bounds and self._saved_crop_for_cancel:
             self.crop_bounds = self._saved_crop_for_cancel
             self._recompute()
             self.cursor_world = np.clip(self.cursor_world, self.world_min, self.world_max)
             self._setup_sliders()
             self.display_all()
-        delattr(self, '_saved_crop_for_cancel')
+        if hasattr(self, '_saved_crop_for_cancel'):
+            delattr(self, '_saved_crop_for_cancel')
         self.crop_status_var.set("")
 
     def _reset_crop(self):
