@@ -1,1004 +1,616 @@
 import numpy as np
-
-
-def save_default_path(self):
-    """Save the current file path and EBZ coordinates as defaults"""
-    current_path = self.file_path_var.get().strip()
-    if not current_path:
-        messagebox.showerror("Error", "No file path to save as default.")
-        return
-
-    config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mri_viewer_config.json')
-    try:
-        config = {'default_path': current_path}
-
-        # Also save EBZ coordinates if set
-        if self.ebz_set:
-            config['ebz_coordinates'] = {
-                'x': self.ebz_coordinates['x'],
-                'y': self.ebz_coordinates['y'],
-                'z': self.ebz_coordinates['z']
-            }
-
-        with open(config_file, 'w') as f:
-            json.dump(config, f)
-
-        # Confirmation message with neuroanatomical terms
-        if self.ebz_set:
-            messagebox.showinfo("Success",
-                                f"Default path saved: {current_path}\n\n"
-                                f"Default EBZ coordinates saved:\n"
-                                f"AP: {self.ebz_coordinates['x']:.2f}, "
-                                f"DV: {self.ebz_coordinates['y']:.2f}, "
-                                f"ML: {self.ebz_coordinates['z']:.2f} mm")
-        else:
-            messagebox.showinfo("Success", f"Default path saved: {current_path}")
-
-        self.default_path = current_path
-    except Exception as e:
-        messagebox.showerror("Error", f"Could not save default path: {str(e)}")
-
-
-    par_file = self.file_path_var.get().strip()
-
-    if not par_file:
-        messagebox.showerror("Error", "Please select a PAR file.")
-        return
-
-    if not os.path.exists(par_file):
-        messagebox.showerror("Error", f"File {par_file} does not exist.")
-        return
-
-    if not par_file.upper().endswith('.PAR'):
-        if not messagebox.askyesno("Warning",
-                                   f"File {par_file} does not have a .PAR extension.\nDo you want to continue?"):
-            return
-
-    if not self.check_rec_file(par_file):
-        messagebox.showerror("Error", f"Corresponding REC file for {par_file} not found.")
-        return
-
-    try:
-        self.status_var.set(f"Loading {par_file}...")
-        self.root.update()
-
-        # Load the PAR/REC file
-        self.img = load_parrec(par_file)
-        self.data = self.img.get_fdata()
-
-        # Store the affine matrix for coordinate transformations
-        self.affine = self.img.affine
-        print("Affine matrix loaded:", self.affine)
-
-        # Get dimensions
-        if len(self.data.shape) == 4:
-            self.slices, rows, cols, self.dynamics = self.data.shape
-            self.has_dynamics = True
-        elif len(self.data.shape) == 3:
-            self.slices, rows, cols = self.data.shape
-            self.dynamics = 1
-            self.has_dynamics = False
-        else:
-            raise ValueError("Unexpected data dimensions. Expected 3D or 4D data.")
-
-        # Extract slice position information from header
-        self.slice_positions = []
-        try:
-            # Generate slice positions based on affine matrix
-            # This should work regardless of header structure
-            self.slice_positions = []
-            for i in range(self.slices):
-                voxel_coords = np.array([0, 0, i, 1])
-                world_coords = np.dot(self.affine, voxel_coords)
-                self.slice_positions.append(float(world_coords[2]))
-            print(f"Generated {len(self.slice_positions)} slice positions from affine matrix")
-
-            # Try to get slice thickness from header
-            try:
-                header = self.img.header
-                if hasattr(header, 'general_info') and isinstance(header.general_info, dict):
-                    self.slice_thickness = header.general_info.get('slice_thickness', None)
-                    if self.slice_thickness:
-                        print(f"Slice thickness: {self.slice_thickness} mm")
-            except Exception as e:
-                print(f"Could not get slice thickness: {str(e)}")
-                self.slice_thickness = None
-
-        except Exception as e:
-            print(f"Could not generate slice positions: {str(e)}")
-            self.slice_positions = None
-
-        # Initialize slice to middle
-        self.current_slice = self.slices // 2
-        self.current_dynamic = 0
-
-        # Update UI controls
-        self.slice_var.set(self.current_slice)
-        self.slice_scale.configure(from_=0, to=self.slices - 1)
-        self.slice_label.config(text=f"{self.current_slice}/{self.slices - 1}")
-
-        if self.has_dynamics:
-            self.dynamic_var.set(self.current_dynamic)
-            self.dynamic_scale.configure(from_=0, to=self.dynamics - 1)
-            self.dynamic_label.config(text=f"{self.current_dynamic}/{self.dynamics - 1}")
-            self.show_dynamic_controls()
-        else:
-            self.hide_dynamic_controls()
-
-        # Enable EBZ buttons
-        self.set_ebz_button.config(state=tk.NORMAL)
-        self.extract_ebz_button.config(state=tk.NORMAL)
-        self.set_z_button.config(state=tk.NORMAL)
-        self.set_z_mid_button.config(state=tk.NORMAL)
-        if self.ebz_set:
-            self.reset_ebz_button.config(state=tk.NORMAL)
-
-        # Display the initial image
-        self.display_current_slice()
-
-        # Add a debug button to show all header information
-        debug_button = ttk.Button(self.slice_control_frame, text="Show Header Info",
-                                  command=self.show_header_info)
-        debug_button.grid(row=0, column=3, padx=5, pady=5)
-
-        self.status_var.set(f"Loaded {par_file}. Dimensions: {self.data.shape}")
-    except Exception as e:
-        self.status_var.set("Error loading file")
-        messagebox.showerror("Error", f"Error visualizing file: {str(e)}")
-        import numpy as np
-
-
 import matplotlib
 
-matplotlib.use('TkAgg')  # Use TkAgg backend for better integration with Tkinter
+matplotlib.use('TkAgg')
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider
+from matplotlib.ticker import FuncFormatter
 from nibabel.parrec import load as load_parrec
+import nibabel as nib
 import os
 import tkinter as tk
-from tkinter import filedialog, messagebox
-from tkinter import ttk
+from tkinter import filedialog, messagebox, ttk
 import pprint
 import json
 import sys
 
 
-class MRIViewer:
+class TriplanarMRIViewer:
+    """
+    Tri-planar PAR/REC MRI viewer.
+
+    Displays sagittal, coronal, and axial views simultaneously with
+    linked crosshairs. Clicking in any view updates the other two.
+
+    Axis mapping (determined from affine):
+        Voxel axis 0 (shape[0]) -> R/L  (sagittal index)
+        Voxel axis 1 (shape[1]) -> A/P  (coronal index)
+        Voxel axis 2 (shape[2]) -> S/I  (axial index)
+    """
+
     def __init__(self, root, default_path=None):
         self.root = root
-        self.root.title("PAR/REC MRI Viewer")
-        self.root.geometry("1000x700")
+        self.root.title("PAR/REC Tri-Planar MRI Viewer")
+        self.root.geometry("1400x900")
         self.root.resizable(True, True)
 
-        # Variables to store data
+        # Data state
         self.img = None
         self.data = None
-        self.current_slice = 0
-        self.current_dynamic = 0
-        self.slices = 0
-        self.dynamics = 0
-        self.has_dynamics = False
+        self.affine = None
+        self.voxel_sizes = None
         self.default_path = default_path
 
-        # EBZ (External Brain Zero) coordinates
+        # Current crosshair position in voxel coordinates [axis0, axis1, axis2]
+        self.cursor_vox = [0, 0, 0]
+        self.dim_labels = ['R/L', 'A/P', 'S/I']  # updated after affine analysis
+        self.dim_sizes = [0, 0, 0]
+
+        # View names and which voxel axis each view slices through
+        # Sagittal: fix axis 0 (R/L), show axes 1,2 (A/P x S/I)
+        # Coronal:  fix axis 1 (A/P), show axes 0,2 (R/L x S/I)
+        # Axial:    fix axis 2 (S/I), show axes 0,1 (R/L x A/P)
+        self.view_names = ['Sagittal', 'Coronal', 'Axial']
+        self.slice_axes = [0, 1, 2]  # which axis is "into the screen"
+        self.horiz_axes = [1, 0, 0]  # which axis maps to image columns
+        self.vert_axes = [2, 2, 1]  # which axis maps to image rows
+
+        # EBZ state
         self.ebz_set = False
-        self.ebz_coordinates = {"x": 0, "y": 0, "z": 0}  # In mm
-        self.affine = None  # To store the affine matrix
+        self.ebz_vox = [0, 0, 0]  # EBZ in voxel coordinates
+        self.ebz_world = [0.0, 0.0, 0.0]  # EBZ in world (mm) coordinates
+
+        # Slice positions in world coords per axis
+        self.world_coords_per_axis = [None, None, None]
+
+        # Dynamics
+        self.current_dynamic = 0
+        self.dynamics = 1
+        self.has_dynamics = False
 
         self.setup_ui()
 
+    # ------------------------------------------------------------------ UI
     def setup_ui(self):
-        # Main frame
         main_frame = ttk.Frame(self.root)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        # Top control section
-        control_frame = ttk.Frame(main_frame)
-        control_frame.pack(fill=tk.X, padx=5, pady=5)
+        # --- Top: file controls ---
+        ctrl = ttk.Frame(main_frame)
+        ctrl.pack(fill=tk.X, padx=5, pady=3)
 
-        # File path entry and browse button
-        ttk.Label(control_frame, text="PAR File:").grid(column=0, row=0, sticky=tk.W, padx=5, pady=5)
-
+        ttk.Label(ctrl, text="PAR File:").grid(row=0, column=0, sticky=tk.W, padx=3)
         self.file_path_var = tk.StringVar()
-        # Set default path if provided
         if self.default_path:
             self.file_path_var.set(self.default_path)
+        ttk.Entry(ctrl, textvariable=self.file_path_var, width=60).grid(row=0, column=1, sticky='we', padx=3)
+        ttk.Button(ctrl, text="Browse…", command=self.browse_file).grid(row=0, column=2, padx=3)
+        ttk.Button(ctrl, text="Load", command=self.load_and_visualize).grid(row=0, column=3, padx=3)
+        ttk.Button(ctrl, text="Save Default", command=self.save_default_path).grid(row=0, column=4, padx=3)
+        ctrl.columnconfigure(1, weight=1)
 
-        file_entry = ttk.Entry(control_frame, textvariable=self.file_path_var, width=60)
-        file_entry.grid(column=1, row=0, sticky=(tk.W, tk.E), padx=5, pady=5)
+        # --- Status ---
+        self.status_var = tk.StringVar(value="Ready")
+        ttk.Label(main_frame, textvariable=self.status_var).pack(fill=tk.X, padx=5)
 
-        browse_button = ttk.Button(control_frame, text="Browse...", command=self.browse_file)
-        browse_button.grid(column=2, row=0, sticky=tk.W, padx=5, pady=5)
+        # --- EBZ controls ---
+        ebz = ttk.LabelFrame(main_frame, text="EBZ (External Brain Zero)")
+        ebz.pack(fill=tk.X, padx=5, pady=3)
 
-        # Load button
-        load_button = ttk.Button(control_frame, text="Load and Visualize", command=self.load_and_visualize)
-        load_button.grid(column=3, row=0, sticky=tk.W, padx=5, pady=5)
+        ttk.Label(ebz, text="AP (mm):").grid(row=0, column=0, padx=3, pady=2)
+        self.ebz_ap_var = tk.DoubleVar(value=0)
+        ttk.Entry(ebz, textvariable=self.ebz_ap_var, width=10).grid(row=0, column=1, padx=3)
 
-        # Save default path button
-        save_default_button = ttk.Button(control_frame, text="Save as Default", command=self.save_default_path)
-        save_default_button.grid(column=4, row=0, sticky=tk.W, padx=5, pady=5)
+        ttk.Label(ebz, text="DV (mm):").grid(row=0, column=2, padx=3, pady=2)
+        self.ebz_dv_var = tk.DoubleVar(value=0)
+        ttk.Entry(ebz, textvariable=self.ebz_dv_var, width=10).grid(row=0, column=3, padx=3)
 
-        # Configure control frame grid
-        control_frame.columnconfigure(1, weight=1)
+        ttk.Label(ebz, text="ML (mm):").grid(row=0, column=4, padx=3, pady=2)
+        self.ebz_ml_var = tk.DoubleVar(value=0)
+        ttk.Entry(ebz, textvariable=self.ebz_ml_var, width=10).grid(row=0, column=5, padx=3)
 
-        # Status label
-        self.status_var = tk.StringVar()
-        self.status_var.set("Ready")
-        status_label = ttk.Label(main_frame, textvariable=self.status_var)
-        status_label.pack(fill=tk.X, padx=5, pady=5)
+        self.set_ebz_btn = ttk.Button(ebz, text="Set EBZ", command=self.set_ebz, state=tk.DISABLED)
+        self.set_ebz_btn.grid(row=0, column=6, padx=3)
+        self.reset_ebz_btn = ttk.Button(ebz, text="Reset EBZ", command=self.reset_ebz, state=tk.DISABLED)
+        self.reset_ebz_btn.grid(row=0, column=7, padx=3)
+        self.set_ebz_cursor_btn = ttk.Button(ebz, text="Set EBZ to Crosshair", command=self.set_ebz_to_crosshair,
+                                             state=tk.DISABLED)
+        self.set_ebz_cursor_btn.grid(row=0, column=8, padx=3)
 
-        # EBZ control frame
-        self.ebz_frame = ttk.LabelFrame(main_frame, text="EBZ (External Brain Zero) Coordinates")
-        self.ebz_frame.pack(fill=tk.X, padx=5, pady=5)
+        self.cursor_info_var = tk.StringVar(value="Crosshair: —")
+        ttk.Label(ebz, textvariable=self.cursor_info_var).grid(row=1, column=0, columnspan=9, sticky=tk.W, padx=5,
+                                                               pady=2)
 
-        # EBZ coordinate inputs with neuroanatomical labels
-        ttk.Label(self.ebz_frame, text="AP (mm):").grid(row=0, column=0, padx=5, pady=5)
-        self.ebz_x_var = tk.DoubleVar(value=0)
-        ttk.Entry(self.ebz_frame, textvariable=self.ebz_x_var, width=10).grid(row=0, column=1, padx=5, pady=5)
+        ttk.Label(ebz, text="Left-click any view to move crosshair. Right-click to set EBZ at crosshair.",
+                  font=("", 9, "italic")).grid(row=2, column=0, columnspan=9, sticky=tk.W, padx=5)
 
-        ttk.Label(self.ebz_frame, text="DV (mm):").grid(row=0, column=2, padx=5, pady=5)
-        self.ebz_y_var = tk.DoubleVar(value=0)
-        ttk.Entry(self.ebz_frame, textvariable=self.ebz_y_var, width=10).grid(row=0, column=3, padx=5, pady=5)
+        # --- Figure: 3 subplots ---
+        self.fig_frame = ttk.Frame(main_frame)
+        self.fig_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=3)
 
-        ttk.Label(self.ebz_frame, text="ML (mm):").grid(row=0, column=4, padx=5, pady=5)
-        self.ebz_z_var = tk.DoubleVar(value=0)
-        ttk.Entry(self.ebz_frame, textvariable=self.ebz_z_var, width=10).grid(row=0, column=5, padx=5, pady=5)
+        self.fig = Figure(figsize=(14, 5), dpi=100)
+        self.fig.subplots_adjust(left=0.04, right=0.98, top=0.93, bottom=0.07, wspace=0.25)
+        self.axes = [self.fig.add_subplot(1, 3, i + 1) for i in range(3)]
 
-        # Button to set EBZ
-        self.set_ebz_button = ttk.Button(self.ebz_frame, text="Set EBZ", command=self.set_ebz, state=tk.DISABLED)
-        self.set_ebz_button.grid(row=0, column=6, padx=5, pady=5)
-
-        # Button to reset EBZ
-        self.reset_ebz_button = ttk.Button(self.ebz_frame, text="Reset EBZ", command=self.reset_ebz, state=tk.DISABLED)
-        self.reset_ebz_button.grid(row=0, column=7, padx=5, pady=5)
-
-        # Add button to extract EBZ AP,DV from current cursor position (keeping ML)
-        self.extract_ebz_button = ttk.Button(self.ebz_frame, text="Extract AP,DV from View",
-                                             command=self.extract_ebz_from_view, state=tk.DISABLED)
-        self.extract_ebz_button.grid(row=0, column=8, padx=5, pady=5)
-
-        # Add button to set ML to current slice
-        self.set_z_button = ttk.Button(self.ebz_frame, text="Set ML to Current Slice",
-                                       command=self.set_z_to_current_slice, state=tk.DISABLED)
-        self.set_z_button.grid(row=1, column=0, columnspan=3, padx=5, pady=5, sticky=tk.W)
-
-        # Add button to set ML to middle slice
-        self.set_z_mid_button = ttk.Button(self.ebz_frame, text="Set ML to Middle Slice",
-                                           command=self.set_z_to_middle_slice, state=tk.DISABLED)
-        self.set_z_mid_button.grid(row=1, column=3, columnspan=3, padx=5, pady=5, sticky=tk.W)
-
-        # Current cursor position label
-        self.cursor_position_var = tk.StringVar(value="Cursor: AP=N/A, DV=N/A, ML=N/A mm")
-        ttk.Label(self.ebz_frame, textvariable=self.cursor_position_var).grid(row=2, column=0, columnspan=9, padx=5,
-                                                                              pady=5, sticky=tk.W)
-
-        # Instructions for setting EBZ
-        instructions = "Right-click on image to set AP,DV coordinates. Use buttons to set ML coordinate to current or middle slice."
-        ttk.Label(self.ebz_frame, text=instructions, font=("", 9, "italic")).grid(row=3, column=0, columnspan=9, padx=5,
-                                                                                  pady=0, sticky=tk.W)
-
-        # Frame for matplotlib figure
-        self.figure_frame = ttk.Frame(main_frame)
-        self.figure_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-
-        # Create matplotlib figure and canvas (initially empty)
-        self.fig = Figure(figsize=(8, 6), dpi=100)
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.figure_frame)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.fig_frame)
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-
-        # Add toolbar
-        self.toolbar = NavigationToolbar2Tk(self.canvas, self.figure_frame)
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.fig_frame)
         self.toolbar.update()
 
-        # Slice control frame
-        self.slice_control_frame = ttk.Frame(main_frame)
-        self.slice_control_frame.pack(fill=tk.X, padx=5, pady=5)
+        # Mouse events
+        self.canvas.mpl_connect('button_press_event', self.on_click)
+        self.canvas.mpl_connect('motion_notify_event', self.on_motion)
 
-        # Slice navigation controls (initially hidden)
-        self.slice_var = tk.IntVar(value=0)
-        self.dynamic_var = tk.IntVar(value=0)
+        # --- Slice sliders (one per axis) ---
+        slider_frame = ttk.Frame(main_frame)
+        slider_frame.pack(fill=tk.X, padx=5, pady=3)
 
-        # Slice label and scale
-        ttk.Label(self.slice_control_frame, text="Slice:").grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
-        self.slice_scale = ttk.Scale(self.slice_control_frame, from_=0, to=0, orient=tk.HORIZONTAL,
-                                     variable=self.slice_var, command=self.update_slice)
-        self.slice_scale.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=5, pady=5)
+        self.slice_vars = []
+        self.slice_scales = []
+        self.slice_labels = []
+        for i, name in enumerate(self.view_names):
+            ttk.Label(slider_frame, text=f"{name} slice:").grid(row=i, column=0, sticky=tk.W, padx=3, pady=1)
+            var = tk.IntVar(value=0)
+            scale = ttk.Scale(slider_frame, from_=0, to=0, orient=tk.HORIZONTAL, variable=var,
+                              command=lambda val, idx=i: self.on_slider(idx))
+            scale.grid(row=i, column=1, sticky='we', padx=3)
+            lbl = ttk.Label(slider_frame, text="0/0", width=12)
+            lbl.grid(row=i, column=2, padx=3)
+            self.slice_vars.append(var)
+            self.slice_scales.append(scale)
+            self.slice_labels.append(lbl)
+        slider_frame.columnconfigure(1, weight=1)
 
-        self.slice_label = ttk.Label(self.slice_control_frame, text="0/0")
-        self.slice_label.grid(row=0, column=2, sticky=tk.W, padx=5, pady=5)
+        # Dynamic slider (hidden by default)
+        self.dyn_frame = ttk.Frame(slider_frame)
+        self.dyn_frame.grid(row=3, column=0, columnspan=3, sticky='we')
+        ttk.Label(self.dyn_frame, text="Dynamic:").grid(row=0, column=0, sticky=tk.W, padx=3)
+        self.dyn_var = tk.IntVar(value=0)
+        self.dyn_scale = ttk.Scale(self.dyn_frame, from_=0, to=0, orient=tk.HORIZONTAL,
+                                   variable=self.dyn_var, command=self.on_dynamic_slider)
+        self.dyn_scale.grid(row=0, column=1, sticky='we', padx=3)
+        self.dyn_label = ttk.Label(self.dyn_frame, text="0/0", width=12)
+        self.dyn_label.grid(row=0, column=2, padx=3)
+        self.dyn_frame.columnconfigure(1, weight=1)
+        self.dyn_frame.grid_remove()
 
-        # Dynamic controls (initially hidden)
-        ttk.Label(self.slice_control_frame, text="Dynamic:").grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
-        self.dynamic_scale = ttk.Scale(self.slice_control_frame, from_=0, to=0, orient=tk.HORIZONTAL,
-                                       variable=self.dynamic_var, command=self.update_dynamic)
-        self.dynamic_scale.grid(row=1, column=1, sticky=(tk.W, tk.E), padx=5, pady=5)
+        # Header info button
+        self.header_btn = ttk.Button(slider_frame, text="Show Header Info", command=self.show_header_info,
+                                     state=tk.DISABLED)
+        self.header_btn.grid(row=4, column=0, padx=3, pady=3, sticky=tk.W)
 
-        self.dynamic_label = ttk.Label(self.slice_control_frame, text="0/0")
-        self.dynamic_label.grid(row=1, column=2, sticky=tk.W, padx=5, pady=5)
+    # ------------------------------------------------------------------ File I/O
+    def browse_file(self):
+        initial_dir = None
+        if self.default_path:
+            initial_dir = os.path.dirname(self.default_path) if not os.path.isdir(
+                self.default_path) else self.default_path
+        fn = filedialog.askopenfilename(title="Select PAR File",
+                                        filetypes=[('PAR Files', '*.PAR *.par'), ('All', '*.*')],
+                                        initialdir=initial_dir)
+        if fn:
+            self.file_path_var.set(fn)
 
-        # Configure slice control frame grid
-        self.slice_control_frame.columnconfigure(1, weight=1)
+    def check_rec_file(self, par_file):
+        base = os.path.splitext(par_file)[0]
+        return os.path.exists(base + '.REC') or os.path.exists(base + '.rec')
 
-        # Hide dynamic controls initially
-        self.hide_dynamic_controls()
-
-        # Set up mouse move event to track cursor position
-        self.canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
-
-        # Set up mouse click event to select EBZ
-        self.canvas.mpl_connect('button_press_event', self.on_mouse_click)
-
-    def set_z_to_current_slice(self):
-        """Set ML coordinate to current slice position"""
-        if self.slice_positions and len(self.slice_positions) > self.current_slice:
-            ml_pos = self.slice_positions[self.current_slice]
-            self.ebz_z_var.set(ml_pos)
-            self.status_var.set(f"Set ML coordinate to current slice: {ml_pos:.2f} mm")
-
-    def set_z_to_middle_slice(self):
-        """Set ML coordinate to middle slice position"""
-        if self.slice_positions and len(self.slice_positions) > 0:
-            middle_slice_idx = len(self.slice_positions) // 2
-            middle_slice_ml = self.slice_positions[middle_slice_idx]
-            self.ebz_z_var.set(middle_slice_ml)
-            self.status_var.set(
-                f"Set ML coordinate to middle slice: {middle_slice_ml:.2f} mm (Slice {middle_slice_idx})")
-
-    def on_mouse_move(self, event):
-        """Update cursor position when mouse moves over the image"""
-        if not hasattr(self, 'img') or self.img is None or not event.inaxes:
-            return
-
-        # Get x, y coordinates in the plot
-        x, y = event.xdata, event.ydata
-
-        if x is None or y is None:
-            return
-
-        # If EBZ is set, calculate relative coordinates
-        if self.ebz_set:
-            # EBZ marker world coordinates have already been calculated during initial setting
-            ebz_x, ebz_y = self.ebz_pixel_coords  # Store these when setting EBZ
-
-            # Calculate relative coordinates
-            relative_x = x - ebz_x
-            relative_y = y - ebz_y
-
-            # Update cursor position
-            self.cursor_position_var.set(f"Cursor: AP={relative_x:.1f} px, DV={relative_y:.1f} px")
-        else:
-            # No EBZ, just show pixel coordinates
-            self.cursor_position_var.set(f"Cursor: X={x:.1f} px, Y={y:.1f} px")
-
-    def on_mouse_click(self, event):
-        if not hasattr(self, 'img') or self.img is None or not event.inaxes:
-            return
-
-        # Only process if right mouse button (button 3) is clicked
-        if event.button == 3:  # Right-click
-            x, y = event.xdata, event.ydata
-
-            if x is None or y is None:
-                return
-
-            # Ask user to confirm EBZ coordinates
-            if messagebox.askyesno("Set EBZ Coordinates",
-                                   f"Set EBZ at pixel coordinates:\n"
-                                   f"X = {x:.2f}\n"
-                                   f"Y = {y:.2f}"):
-                # Set the coordinates
-                self.ebz_x_var.set(x)
-                self.ebz_y_var.set(y)
-
-                # Store the pixel coordinates for relative tracking
-                self.ebz_pixel_coords = (x, y)
-
-                # If not previously set, set ML to middle slice
-                if not self.ebz_set and self.slice_positions and len(self.slice_positions) > 0:
-                    middle_slice_idx = len(self.slice_positions) // 2
-                    middle_slice_ml = self.slice_positions[middle_slice_idx]
-                    offset = 1.855  # Offset from middle slice to EBZ (where true EBZ is)
-                    self.ebz_z_var.set(middle_slice_ml + offset)
-                    # self.ebz_z_var.set(middle_slice_ml-)
-
-                # Apply the EBZ settings
-                self.set_ebz()
-
-        # Optional: keep the existing slice display logic
-        self.display_current_slice()
-    def extract_ebz_from_view(self):
-        """Extract EBZ AP,DV coordinates from the current view center, ML coordinate remains unchanged"""
-        if not hasattr(self, 'img') or self.img is None:
-            return
-
-        if self.affine is not None:
-            # Get the dimensions of the current slice
-            if self.has_dynamics:
-                height, width = self.data[self.current_slice, :, :, self.current_dynamic].shape
-            else:
-                height, width = self.data[self.current_slice, :, :].shape
-
-            # Center point of the current view
-            center_x, center_y = width / 2, height / 2
-
-            # Create a voxel coordinate array with the current slice
-            voxel_coords = np.array([center_x, center_y, self.current_slice, 1])
-
-            # Apply the affine transformation to get RAS+ coordinates
-            world_coords = np.dot(self.affine, voxel_coords)
-
-            # Get the first 3 elements (x, y, z) in mm and convert to AP, DV, ML
-            ap_mm, dv_mm, ml_mm = world_coords[0], -world_coords[1], world_coords[2]
-
-            # Set only the AP and DV EBZ coordinate variables
-            self.ebz_x_var.set(ap_mm)
-            self.ebz_y_var.set(dv_mm)
-
-            # Keep existing ML coordinate or set to middle slice if not set
-            if not self.ebz_set:
-                # ML coordinate relative to middle slice
-                if self.slice_positions and len(self.slice_positions) > 0:
-                    middle_slice_idx = len(self.slice_positions) // 2
-                    middle_slice_ml = self.slice_positions[middle_slice_idx]
-                    self.ebz_z_var.set(middle_slice_ml)
-
-            # Inform the user
-            messagebox.showinfo("EBZ Coordinates",
-                                f"Extracted EBZ AP,DV coordinates from view center:\nAP={ap_mm:.2f}, DV={dv_mm:.2f} mm\n"
-                                f"ML coordinate is set to: {self.ebz_z_var.get():.2f} mm")
-
-    def set_ebz(self):
-        """Set the EBZ coordinates with comprehensive validation"""
-        try:
-            # Retrieve coordinates with error checking
-            x = self.ebz_x_var.get()
-            y = self.ebz_y_var.get()
-            z = self.ebz_z_var.get()
-
-            # Validate coordinates (optional: add more specific validation if needed)
-            if not all(isinstance(coord, (int, float)) for coord in [x, y, z]):
-                raise ValueError("Coordinates must be numeric")
-
-            # Store coordinates in a consistent format
-            self.ebz_coordinates = {
-                "x": float(x),  # AP
-                "y": float(y),  # DV
-                "z": float(z)  # ML
-            }
-
-            # Validate against current image (if loaded)
-            if self.img is not None and self.affine is not None:
-                # Optional: Add additional sanity checks
-                # For example, check if coordinates are within reasonable range of the image
-                self._validate_ebz_coordinates()
-
-            # Mark EBZ as set
-            self.ebz_set = True
-
-            # Update status and UI
-            status_msg = (f"EBZ set to AP={self.ebz_coordinates['x']:.2f}, "
-                          f"DV={self.ebz_coordinates['y']:.2f}, "
-                          f"ML={self.ebz_coordinates['z']:.2f} mm")
-            self.status_var.set(status_msg)
-
-            # Update buttons
-            self.reset_ebz_button.config(state=tk.NORMAL)
-
-            # Redisplay current slice to reflect new EBZ
-            self.display_current_slice()
-
-        except ValueError as e:
-            messagebox.showerror("EBZ Setting Error", str(e))
-            self.ebz_set = False
-
-    def _validate_ebz_coordinates(self):
-        """
-        Perform sanity checks on EBZ coordinates
-
-        This method can be expanded to include more sophisticated validation
-        based on the specific characteristics of the loaded image.
-        """
-        if self.img is None or self.affine is None:
-            return
-
-        # Get image dimensions in world coordinates
-        # This provides a rough bounds check
-        image_dims = self.data.shape
-
-        # Convert image corner coordinates to world space
-        corners = [
-            [0, 0, 0, 1],
-            [image_dims[0], 0, 0, 1],
-            [0, image_dims[1], 0, 1],
-            [0, 0, image_dims[2], 1]
-        ]
-
-        world_corners = [np.dot(self.affine, corner)[:3] for corner in corners]
-
-        # Calculate rough bounds
-        x_bounds = [min(c[0] for c in world_corners), max(c[0] for c in world_corners)]
-        y_bounds = [min(c[1] for c in world_corners), max(c[1] for c in world_corners)]
-        z_bounds = [min(c[2] for c in world_corners), max(c[2] for c in world_corners)]
-
-        # Check if EBZ coordinates are within a reasonable range
-        x, y, z = self.ebz_coordinates['x'], self.ebz_coordinates['y'], self.ebz_coordinates['z']
-
-        warnings = []
-        if not (x_bounds[0] - 50 <= x <= x_bounds[1] + 50):
-            warnings.append(f"AP coordinate {x} is far from expected range {x_bounds}")
-        if not (y_bounds[0] - 50 <= y <= y_bounds[1] + 50):
-            warnings.append(f"DV coordinate {y} is far from expected range {y_bounds}")
-        if not (z_bounds[0] - 50 <= z <= z_bounds[1] + 50):
-            warnings.append(f"ML coordinate {z} is far from expected range {z_bounds}")
-
-        # Optionally warn user about potentially incorrect coordinates
-        if warnings:
-            warning_msg = "Potential EBZ coordinate issues:\n" + "\n".join(warnings)
-            messagebox.showwarning("EBZ Coordinate Warning", warning_msg)
-
-    def reset_ebz(self):
-        """Reset EBZ coordinates with clear state management"""
-        # Reset coordinate variables
-        self.ebz_x_var.set(0)
-        self.ebz_y_var.set(0)
-        self.ebz_z_var.set(0)
-
-        # Reset coordinate dictionary
-        self.ebz_coordinates = {"x": 0, "y": 0, "z": 0}
-
-        # Clear EBZ set flag
-        self.ebz_set = False
-
-        # Update UI
-        self.status_var.set("EBZ reset to origin")
-        self.reset_ebz_button.config(state=tk.DISABLED)
-
-        # Redisplay current slice without EBZ offset
-        self.display_current_slice()
     def save_default_path(self):
-        """Save the current file path and EBZ coordinates as defaults"""
         current_path = self.file_path_var.get().strip()
         if not current_path:
-            messagebox.showerror("Error", "No file path to save as default.")
+            messagebox.showerror("Error", "No file path to save.")
             return
-
         config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mri_viewer_config.json')
         try:
             config = {'default_path': current_path}
-
-            # Also save EBZ coordinates if set
             if self.ebz_set:
-                config['ebz_coordinates'] = {
-                    'x': self.ebz_coordinates['x'],
-                    'y': self.ebz_coordinates['y'],
-                    'z': self.ebz_coordinates['z']
-                }
-
+                config['ebz_world'] = self.ebz_world
             with open(config_file, 'w') as f:
                 json.dump(config, f)
-
-            # Confirmation message
+            msg = f"Default path saved: {current_path}"
             if self.ebz_set:
-                messagebox.showinfo("Success",
-                                    f"Default path saved: {current_path}\n\n"
-                                    f"Default EBZ coordinates saved:\n"
-                                    f"X: {self.ebz_coordinates['x']:.2f}, "
-                                    f"Y: {self.ebz_coordinates['y']:.2f}, "
-                                    f"Z: {self.ebz_coordinates['z']:.2f} mm")
-            else:
-                messagebox.showinfo("Success", f"Default path saved: {current_path}")
-
+                msg += f"\nEBZ saved: AP={self.ebz_world[1]:.2f}, DV={self.ebz_world[2]:.2f}, ML={self.ebz_world[0]:.2f} mm"
+            messagebox.showinfo("Saved", msg)
             self.default_path = current_path
         except Exception as e:
-            messagebox.showerror("Error", f"Could not save default path: {str(e)}")
+            messagebox.showerror("Error", str(e))
 
-    def hide_dynamic_controls(self):
-        # Hide dynamic controls
-        for widget in self.slice_control_frame.grid_slaves():
-            if int(widget.grid_info()["row"]) == 1:
-                widget.grid_remove()
-
-    def show_dynamic_controls(self):
-        # Show dynamic controls
-        for widget in self.slice_control_frame.grid_slaves():
-            if int(widget.grid_info()["row"]) == 1:
-                widget.grid()
-
-    def browse_file(self):
-        filetypes = [('PAR Files', '*.PAR *.par'), ('All Files', '*.*')]
-
-        # Start in the default directory if one was set
-        initial_dir = None
-        if self.default_path:
-            if os.path.isdir(self.default_path):
-                initial_dir = self.default_path
-            else:
-                initial_dir = os.path.dirname(self.default_path)
-
-        filename = filedialog.askopenfilename(
-            title="Select PAR File",
-            filetypes=filetypes,
-            initialdir=initial_dir
-        )
-        if filename:
-            self.file_path_var.set(filename)
-
-    def check_rec_file(self, par_file):
-        """Check if the corresponding REC file exists for the given PAR file."""
-        rec_base = os.path.splitext(par_file)[0]  # Get filename without extension
-        possible_rec_files = [
-            rec_base + '.REC',
-            rec_base + '.rec',
-        ]
-
-        for rec_file in possible_rec_files:
-            if os.path.exists(rec_file):
-                return True
-
-        return False
-
+    # ------------------------------------------------------------------ Loading
     def load_and_visualize(self):
         par_file = self.file_path_var.get().strip()
-
         if not par_file:
-            messagebox.showerror("Error", "Please select a PAR file.")
+            messagebox.showerror("Error", "Select a PAR file.");
             return
-
         if not os.path.exists(par_file):
-            messagebox.showerror("Error", f"File {par_file} does not exist.")
+            messagebox.showerror("Error", f"{par_file} not found.");
             return
-
         if not par_file.upper().endswith('.PAR'):
-            if not messagebox.askyesno("Warning",
-                                       f"File {par_file} does not have a .PAR extension.\nDo you want to continue?"):
+            if not messagebox.askyesno("Warning", "Not a .PAR extension. Continue?"):
                 return
-
         if not self.check_rec_file(par_file):
-            messagebox.showerror("Error", f"Corresponding REC file for {par_file} not found.")
+            messagebox.showerror("Error", "Corresponding .REC file not found.");
             return
 
         try:
-            self.status_var.set(f"Loading {par_file}...")
+            self.status_var.set(f"Loading {par_file}…")
             self.root.update()
 
-            # Load the PAR/REC file
             self.img = load_parrec(par_file, strict_sort=True)
-            self.data = self.img.get_fdata()
-
-            # Store the affine matrix for coordinate transformations
+            raw = self.img.get_fdata()
             self.affine = self.img.affine
-            print("Affine matrix loaded:", self.affine)
+            self.voxel_sizes = nib.affines.voxel_sizes(self.affine)
 
-            # Get dimensions
-            if len(self.data.shape) == 4:
-                self.slices, rows, cols, self.dynamics = self.data.shape
+            # Handle 3D vs 4D
+            if raw.ndim == 4:
+                self.data = raw
                 self.has_dynamics = True
-            elif len(self.data.shape) == 3:
-                self.slices, rows, cols = self.data.shape
-                self.dynamics = 1
+                self.dynamics = raw.shape[3]
+            elif raw.ndim == 3:
+                self.data = raw
                 self.has_dynamics = False
+                self.dynamics = 1
             else:
-                raise ValueError("Unexpected data dimensions. Expected 3D or 4D data.")
+                raise ValueError(f"Unexpected ndim={raw.ndim}")
 
-            # Extract slice position information from header
-            self.slice_positions = []
-            try:
-                # Generate slice positions based on affine matrix
-                # This should work regardless of header structure
-                self.slice_positions = []
-                for i in range(self.slices):
-                    voxel_coords = np.array([0, 0, i, 1])
-                    world_coords = np.dot(self.affine, voxel_coords)
-                    self.slice_positions.append(float(world_coords[2]))
-                print(f"Generated {len(self.slice_positions)} slice positions from affine matrix")
+            self.dim_sizes = list(self.data.shape[:3])
 
-                # Try to get slice thickness from header
-                try:
-                    header = self.img.header
-                    if hasattr(header, 'general_info') and isinstance(header.general_info, dict):
-                        self.slice_thickness = header.general_info.get('slice_thickness', None)
-                        if self.slice_thickness:
-                            print(f"Slice thickness: {self.slice_thickness} mm")
-                except Exception as e:
-                    print(f"Could not get slice thickness: {str(e)}")
-                    self.slice_thickness = None
+            # Determine axis labels from affine
+            self._determine_axis_labels()
 
-            except Exception as e:
-                print(f"Could not generate slice positions: {str(e)}")
-                self.slice_positions = None
+            # Precompute world coordinates along each axis
+            self._compute_world_coords()
 
-            # Initialize slice to middle
-            self.current_slice = self.slices // 2
-            self.current_dynamic = 0
+            # Initialise crosshair to volume centre
+            self.cursor_vox = [s // 2 for s in self.dim_sizes]
 
-            # Update UI controls
-            self.slice_var.set(self.current_slice)
-            self.slice_scale.configure(from_=0, to=self.slices - 1)
-            self.slice_label.config(text=f"{self.current_slice}/{self.slices - 1}")
+            # Update sliders
+            for i in range(3):
+                self.slice_scales[i].configure(from_=0, to=self.dim_sizes[self.slice_axes[i]] - 1)
+                self.slice_vars[i].set(self.cursor_vox[self.slice_axes[i]])
 
             if self.has_dynamics:
-                self.dynamic_var.set(self.current_dynamic)
-                self.dynamic_scale.configure(from_=0, to=self.dynamics - 1)
-                self.dynamic_label.config(text=f"{self.current_dynamic}/{self.dynamics - 1}")
-                self.show_dynamic_controls()
+                self.dyn_scale.configure(from_=0, to=self.dynamics - 1)
+                self.dyn_var.set(0)
+                self.dyn_frame.grid()
             else:
-                self.hide_dynamic_controls()
+                self.dyn_frame.grid_remove()
 
-            # Enable EBZ buttons
-            self.set_ebz_button.config(state=tk.NORMAL)
-            self.extract_ebz_button.config(state=tk.NORMAL)
-            if self.ebz_set:
-                self.reset_ebz_button.config(state=tk.NORMAL)
+            # Enable EBZ controls
+            self.set_ebz_btn.config(state=tk.NORMAL)
+            self.set_ebz_cursor_btn.config(state=tk.NORMAL)
+            self.header_btn.config(state=tk.NORMAL)
 
-            # Display the initial image
-            self.display_current_slice()
+            self.display_all()
+            self.status_var.set(f"Loaded {os.path.basename(par_file)}  —  shape {self.data.shape[:3]}, "
+                                f"voxel {self.voxel_sizes[0]:.3f}×{self.voxel_sizes[1]:.3f}×{self.voxel_sizes[2]:.3f} mm")
 
-            # Add a debug button to show all header information
-            debug_button = ttk.Button(self.slice_control_frame, text="Show Header Info",
-                                      command=self.show_header_info)
-            debug_button.grid(row=0, column=3, padx=5, pady=5)
-
-            self.status_var.set(f"Loaded {par_file}. Dimensions: {self.data.shape}")
         except Exception as e:
             self.status_var.set("Error loading file")
-            messagebox.showerror("Error", f"Error visualizing file: {str(e)}")
+            messagebox.showerror("Error", str(e))
+            import traceback;
+            traceback.print_exc()
 
-    def show_header_info(self):
-        """Display all available header information in a new window."""
-        if self.img is None or self.img.header is None:
-            messagebox.showinfo("Info", "No header information available.")
-            return
+    def _determine_axis_labels(self):
+        """Determine which world axis each voxel axis maps to."""
+        world_names = ['R/L', 'A/P', 'S/I']
+        labels = []
+        for vax in range(3):
+            col = self.affine[:3, vax]
+            dominant = int(np.argmax(np.abs(col)))
+            labels.append(world_names[dominant])
+        self.dim_labels = labels
+        print(f"Axis mapping: {list(zip(range(3), labels, self.dim_sizes))}")
 
-        # Create a new window
-        header_window = tk.Toplevel(self.root)
-        header_window.title("PAR/REC Header Information")
-        header_window.geometry("900x700")
+    def _compute_world_coords(self):
+        """For each voxel axis, compute the world coordinate at each index."""
+        self.world_coords_per_axis = []
+        for ax in range(3):
+            coords = []
+            for i in range(self.dim_sizes[ax]):
+                vox = [0, 0, 0, 1]
+                vox[ax] = i
+                world = self.affine @ np.array(vox)
+                coords.append(world[:3].copy())
+            self.world_coords_per_axis.append(np.array(coords))
 
-        # Create a frame with scrollbars
-        frame = ttk.Frame(header_window)
-        frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+    def vox_to_world(self, vox):
+        """Convert voxel [i,j,k] to world [x,y,z] mm."""
+        v = np.array([*vox, 1.0])
+        return (self.affine @ v)[:3]
 
-        # Add scrollbar
-        scrollbar = ttk.Scrollbar(frame)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+    def world_to_vox(self, world):
+        """Convert world [x,y,z] mm to voxel [i,j,k]."""
+        inv = np.linalg.inv(self.affine)
+        v = np.array([*world, 1.0])
+        return (inv @ v)[:3]
 
-        # Create a text widget
-        text = tk.Text(frame, wrap=tk.WORD, yscrollcommand=scrollbar.set)
-        text.pack(fill=tk.BOTH, expand=True)
+    # ------------------------------------------------------------------ Display
+    def get_slice(self, view_idx):
+        """
+        Extract a 2D slice for the given view.
+        Returns (image_2d, h_label, v_label, h_ax, v_ax).
+        """
+        fix_ax = self.slice_axes[view_idx]
+        h_ax = self.horiz_axes[view_idx]
+        v_ax = self.vert_axes[view_idx]
+        idx = self.cursor_vox[fix_ax]
+        idx = np.clip(idx, 0, self.dim_sizes[fix_ax] - 1)
 
-        scrollbar.config(command=text.yview)
+        # Build indexing tuple
+        slicer = [slice(None)] * 3
+        slicer[fix_ax] = idx
+        if self.has_dynamics:
+            slicer.append(self.current_dynamic)
 
-        # Get header information
-        header = self.img.header
+        img2d = self.data[tuple(slicer)]
 
-        # Insert header information
-        text.insert(tk.END, "PAR/REC Header Information:\n\n")
+        # img2d axes are the remaining two in order. We need to know which
+        # numpy axis of img2d corresponds to h_ax and v_ax.
+        # After fixing fix_ax, the remaining axes in order are the non-fixed ones.
+        remaining = [a for a in range(3) if a != fix_ax]
+        # img2d.shape[0] = remaining[0], img2d.shape[1] = remaining[1]
 
-        # First, show the most useful information for slice positions
-        text.insert(tk.END, "=== SLICE POSITION INFORMATION ===\n\n")
+        # We want: rows = v_ax, cols = h_ax
+        if remaining[0] == h_ax and remaining[1] == v_ax:
+            img2d = img2d.T  # transpose so rows=v_ax, cols=h_ax
+        # else remaining[0]==v_ax, remaining[1]==h_ax -> already correct
 
-        # Show general info about slices
-        if hasattr(header, 'general_info'):
-            text.insert(tk.END, "General Info:\n")
-            for key, value in header.general_info.items():
-                if 'slice' in key.lower() or 'thick' in key.lower() or 'gap' in key.lower() or 'pos' in key.lower() or 'off' in key.lower():
-                    text.insert(tk.END, f"  {key}: {value}\n")
-            text.insert(tk.END, "\n")
+        return img2d, self.dim_labels[h_ax], self.dim_labels[v_ax], h_ax, v_ax
 
-        # Show image definitions with slice positions
-        if hasattr(header, 'image_defs') and header.image_defs:
-            # Show full details for first 5 slices
-            text.insert(tk.END, "Slice Position Info (first 5 slices):\n")
-            for i, img_def in enumerate(header.image_defs[:5]):
-                text.insert(tk.END, f"  Slice {i}:\n")
-                for key, value in img_def.items():
-                    if 'slice' in key.lower() or 'offcentre' in key.lower() or 'pos' in key.lower() or 'ang' in key.lower():
-                        text.insert(tk.END, f"    {key}: {value}\n")
-            text.insert(tk.END, "\n")
-
-            # Show relevant position data for all slices
-            text.insert(tk.END, "All Slice Positions (offcentre values in mm):\n")
-            for i, img_def in enumerate(header.image_defs):
-                if 'slice_offcentre' in img_def:
-                    offcentre = img_def['slice_offcentre']
-                    text.insert(tk.END, f"  Slice {i}: {offcentre}\n")
-            text.insert(tk.END, "\n")
-
-        # Then show a summary of the header structure
-        text.insert(tk.END, "=== HEADER STRUCTURE OVERVIEW ===\n\n")
-
-        # Basic header attributes
-        for attr in ['general_info', 'image_defs', 'dimension_info']:
-            if hasattr(header, attr):
-                value = getattr(header, attr)
-                if attr == 'general_info':
-                    # Show general_info in full
-                    text.insert(tk.END, f"{attr}:\n")
-                    for k, v in value.items():
-                        text.insert(tk.END, f"  {k}: {v}\n")
-                    text.insert(tk.END, "\n")
-                elif attr == 'image_defs':
-                    # Just show the count for image_defs
-                    text.insert(tk.END, f"{attr}: {len(value)} items\n\n")
-                else:
-                    text.insert(tk.END, f"{attr}: {value}\n\n")
-
-        # Show affine matrix
-        if hasattr(self.img, 'affine'):
-            text.insert(tk.END, "Affine Matrix (relates voxel indices to mm coordinates):\n")
-            text.insert(tk.END, f"{self.img.affine}\n\n")
-
-        # Show full header dump
-        text.insert(tk.END, "=== COMPLETE HEADER DUMP ===\n\n")
-        text.insert(tk.END, f"{pprint.pformat(header.__dict__)}\n\n")
-
-        # Show EBZ information if set
-        if self.ebz_set:
-            text.insert(tk.END, "=== EBZ INFORMATION ===\n\n")
-            text.insert(tk.END, f"EBZ coordinates: X={self.ebz_coordinates['x']:.2f}, "
-                                f"Y={self.ebz_coordinates['y']:.2f}, "
-                                f"Z={self.ebz_coordinates['z']:.2f} mm\n\n")
-
-        # Make the text widget read-only
-        text.config(state=tk.DISABLED)
-
-    def update_slice(self, *args):
-        self.current_slice = self.slice_var.get()
-        self.slice_label.config(text=f"{self.current_slice}/{self.slices - 1}")
-        self.display_current_slice()
-
-    def update_dynamic(self, *args):
-        self.current_dynamic = self.dynamic_var.get()
-        self.dynamic_label.config(text=f"{self.current_dynamic}/{self.dynamics - 1}")
-        self.display_current_slice()
-
-    def display_current_slice(self):
+    def display_all(self):
+        """Redraw all three views."""
         if self.data is None:
             return
 
-        # Clear the figure
-        self.fig.clear()
+        for vi in range(3):
+            ax = self.axes[vi]
+            ax.clear()
 
-        # Create new axes
-        ax = self.fig.add_subplot(111)
+            img2d, h_label, v_label, h_ax, v_ax = self.get_slice(vi)
 
-        try:
-            # Get current slice data
-            if self.has_dynamics:
-                img_data = self.data[self.current_slice, :, :, self.current_dynamic]
-            else:
-                img_data = self.data[self.current_slice, :, :]
+            # Display with origin at top-left; we'll flip if needed for
+            # conventional orientation
+            im = ax.imshow(img2d, cmap='gray', aspect='equal', origin='upper',
+                           interpolation='nearest')
 
-            # Display the image
-            img_display = ax.imshow(np.flipud(img_data), cmap='gray', aspect='equal')
-
-            # Adjust contrast
+            # Contrast
             try:
-                vmin = np.percentile(img_data, 2)
-                vmax = np.percentile(img_data, 98)
-                if np.isfinite(vmin) and np.isfinite(vmax):
-                    img_display.set_clim(vmin, vmax)
-            except Exception as e:
-                print(f"Could not adjust contrast: {str(e)}")
+                nz = img2d[img2d > 0]
+                if len(nz) > 0:
+                    vmin, vmax = np.percentile(nz, [1, 99])
+                    im.set_clim(vmin, vmax)
+            except:
+                pass
 
-            # Add colorbar
-            self.fig.colorbar(img_display, ax=ax)
+            # Crosshair lines
+            ch = self.cursor_vox[h_ax]
+            cv = self.cursor_vox[v_ax]
+            ax.axvline(ch, color='lime', linewidth=0.7, alpha=0.6)
+            ax.axhline(cv, color='lime', linewidth=0.7, alpha=0.6)
 
-            # If EBZ is set, add marker and axes
+            # EBZ marker
             if self.ebz_set:
-                # Get image dimensions
-                rows, cols = img_data.shape
+                eh = self.ebz_vox[h_ax]
+                ev = self.ebz_vox[v_ax]
+                ax.plot(eh, ev, 'r*', markersize=8)
+                # Dashed EBZ axes
+                ax.axvline(eh, color='red', linewidth=0.5, alpha=0.4, linestyle='--')
+                ax.axhline(ev, color='red', linewidth=0.5, alpha=0.4, linestyle='--')
 
-                # Plot EBZ as a red star
-                star_y = self.ebz_pixel_coords[1]
-                star_x = self.ebz_pixel_coords[0]
-
-                ax.plot(star_x, star_y, 'r*', markersize=10)
-                # ax.text(star_x, star_y - 10, "EBZ", color='red',
-                #         fontsize=10, ha='center', va='bottom', weight='bold')
-
-                # Draw X-axis (horizontal green line)
-                x_line = np.linspace(0, cols - 1, cols)
-                ax.plot(x_line, [star_y] * cols, 'g-', linewidth=1, alpha=0.5)
-
-                # Draw Y-axis (vertical green line)
-                y_line = np.linspace(0, rows - 1, rows)
-                ax.plot([star_x] * rows, y_line, 'g-', linewidth=1, alpha=0.5)
-
-                # Set up custom tick locator
-                from matplotlib.ticker import FuncFormatter
-
-                def ap_tick_formatter(x, pos):
-                    # Convert pixel coordinate to mm offset from EBZ
-                    offset = (x - star_x)
-                    return f'{offset:.0f}'
-
-                def dv_tick_formatter(y, pos):
-                    # Convert pixel coordinate to mm offset from EBZ
-                    # Flip sign because image y-coordinate is inverted
-                    offset = -(y - star_y)
-                    return f'{offset:.0f}'
-
-                # Set x-axis ticks and labels
-                ax.xaxis.set_major_formatter(FuncFormatter(ap_tick_formatter))
-                ax.yaxis.set_major_formatter(FuncFormatter(dv_tick_formatter))
-
-                # Set axis labels
-                ax.set_xlabel('AP (mm)')
-                ax.set_ylabel('DV (mm)')
-
-            # Construct title
-            title = f'Slice {self.current_slice}/{self.slices - 1}'
-            if self.has_dynamics:
-                title += f', Dynamic {self.current_dynamic}/{self.dynamics - 1}'
-
-            if self.slice_positions and len(self.slice_positions) > self.current_slice:
-                ml_pos_mm = self.slice_positions[self.current_slice]
+            # Title with world coordinate of the fixed axis
+            fix_ax = self.slice_axes[vi]
+            fix_idx = self.cursor_vox[fix_ax]
+            if self.world_coords_per_axis[fix_ax] is not None:
+                # Dominant world component for this axis
+                col = self.affine[:3, fix_ax]
+                dom = int(np.argmax(np.abs(col)))
+                world_val = self.world_coords_per_axis[fix_ax][fix_idx][dom]
                 if self.ebz_set:
-                    rel_ml_pos = ml_pos_mm - self.ebz_coordinates['z']
-                    title += f', ML: {rel_ml_pos:.2f} mm from EBZ'
+                    ebz_world_val = self.world_coords_per_axis[fix_ax][self.ebz_vox[fix_ax]][dom]
+                    rel = world_val - ebz_world_val
+                    title = f"{self.view_names[vi]}  {self.dim_labels[fix_ax]}={fix_idx}  ({rel:+.2f} mm from EBZ)"
                 else:
-                    title += f', ML: {ml_pos_mm:.2f} mm'
+                    title = f"{self.view_names[vi]}  {self.dim_labels[fix_ax]}={fix_idx}  ({world_val:.2f} mm)"
+            else:
+                title = f"{self.view_names[vi]}  {self.dim_labels[fix_ax]}={fix_idx}"
 
-            if self.ebz_set:
-                title += f' (EBZ: AP={self.ebz_coordinates["x"]:.1f}, DV={self.ebz_coordinates["y"]:.1f}, ML={self.ebz_coordinates["z"]:.1f} mm)'
+            ax.set_title(title, fontsize=10)
+            ax.set_xlabel(h_label, fontsize=9)
+            ax.set_ylabel(v_label, fontsize=9)
+            ax.tick_params(labelsize=7)
 
-            ax.set_title(title)
+        self.fig.canvas.draw_idle()
+        self._update_cursor_info()
+        self._sync_sliders()
 
+    def _update_cursor_info(self):
+        """Update the text label showing current crosshair position."""
+        if self.data is None:
+            return
+        world = self.vox_to_world(self.cursor_vox)
+        txt = (f"Crosshair voxel: [{self.cursor_vox[0]}, {self.cursor_vox[1]}, {self.cursor_vox[2]}]"
+               f"   world: [{world[0]:.2f}, {world[1]:.2f}, {world[2]:.2f}] mm")
+        if self.ebz_set:
+            ebz_w = self.vox_to_world(self.ebz_vox)
+            rel = world - ebz_w
+            txt += f"   rel EBZ: [{rel[0]:.2f}, {rel[1]:.2f}, {rel[2]:.2f}] mm"
+        self.cursor_info_var.set(txt)
+
+    def _sync_sliders(self):
+        for i in range(3):
+            ax_idx = self.slice_axes[i]
+            self.slice_vars[i].set(self.cursor_vox[ax_idx])
+            self.slice_labels[i].config(text=f"{self.cursor_vox[ax_idx]}/{self.dim_sizes[ax_idx] - 1}")
+
+    # ------------------------------------------------------------------ Events
+    def on_slider(self, view_idx):
+        if self.data is None:
+            return
+        ax_idx = self.slice_axes[view_idx]
+        new_val = self.slice_vars[view_idx].get()
+        if new_val != self.cursor_vox[ax_idx]:
+            self.cursor_vox[ax_idx] = int(new_val)
+            self.display_all()
+
+    def on_dynamic_slider(self, *args):
+        self.current_dynamic = self.dyn_var.get()
+        self.dyn_label.config(text=f"{self.current_dynamic}/{self.dynamics - 1}")
+        self.display_all()
+
+    def _identify_view(self, event):
+        """Return which view index (0,1,2) the event is in, or None."""
+        for i, ax in enumerate(self.axes):
+            if event.inaxes == ax:
+                return i
+        return None
+
+    def on_click(self, event):
+        if self.data is None or event.inaxes is None:
+            return
+        vi = self._identify_view(event)
+        if vi is None:
+            return
+
+        h_ax = self.horiz_axes[vi]
+        v_ax = self.vert_axes[vi]
+        x, y = event.xdata, event.ydata
+        if x is None or y is None:
+            return
+
+        # Clamp to valid range
+        new_h = int(np.clip(round(x), 0, self.dim_sizes[h_ax] - 1))
+        new_v = int(np.clip(round(y), 0, self.dim_sizes[v_ax] - 1))
+
+        if event.button == 1:  # Left click -> move crosshair
+            self.cursor_vox[h_ax] = new_h
+            self.cursor_vox[v_ax] = new_v
+            self.display_all()
+        elif event.button == 3:  # Right click -> set EBZ to current crosshair
+            self.cursor_vox[h_ax] = new_h
+            self.cursor_vox[v_ax] = new_v
+            self.set_ebz_to_crosshair()
+
+    def on_motion(self, event):
+        """Show hover position in status bar."""
+        if self.data is None or event.inaxes is None:
+            return
+        vi = self._identify_view(event)
+        if vi is None:
+            return
+        h_ax = self.horiz_axes[vi]
+        v_ax = self.vert_axes[vi]
+        x, y = event.xdata, event.ydata
+        if x is None or y is None:
+            return
+        hv = int(np.clip(round(x), 0, self.dim_sizes[h_ax] - 1))
+        vv = int(np.clip(round(y), 0, self.dim_sizes[v_ax] - 1))
+        self.status_var.set(f"{self.view_names[vi]}  —  {self.dim_labels[h_ax]}={hv}, {self.dim_labels[v_ax]}={vv}")
+
+    # ------------------------------------------------------------------ EBZ
+    def set_ebz_to_crosshair(self):
+        """Set EBZ to current crosshair position."""
+        if self.data is None:
+            return
+        world = self.vox_to_world(self.cursor_vox)
+        self.ebz_vox = list(self.cursor_vox)
+        self.ebz_world = list(world)
+        self.ebz_ap_var.set(round(world[1], 3))
+        self.ebz_dv_var.set(round(world[2], 3))
+        self.ebz_ml_var.set(round(world[0], 3))
+        self.ebz_set = True
+        self.reset_ebz_btn.config(state=tk.NORMAL)
+        self.display_all()
+
+    def set_ebz(self):
+        """Set EBZ from the manual entry fields (world coordinates)."""
+        if self.data is None:
+            return
+        try:
+            # Fields: AP -> world[1], DV -> world[2], ML -> world[0]
+            world = np.array([self.ebz_ml_var.get(), self.ebz_ap_var.get(), self.ebz_dv_var.get()])
+            vox = self.world_to_vox(world)
+            self.ebz_vox = [int(np.clip(round(v), 0, self.dim_sizes[i] - 1)) for i, v in enumerate(vox)]
+            self.ebz_world = list(world)
+            self.ebz_set = True
+            self.reset_ebz_btn.config(state=tk.NORMAL)
+            self.display_all()
         except Exception as e:
-            print(f"Error displaying slice: {str(e)}")
-            ax.text(0.5, 0.5, f"Error displaying slice:\n{str(e)}",
-                    ha='center', va='center', transform=ax.transAxes, color='red', fontsize=12)
+            messagebox.showerror("EBZ Error", str(e))
 
-        # Update the canvas
-        self.canvas.draw()
+    def reset_ebz(self):
+        self.ebz_set = False
+        self.ebz_vox = [0, 0, 0]
+        self.ebz_world = [0, 0, 0]
+        self.ebz_ap_var.set(0)
+        self.ebz_dv_var.set(0)
+        self.ebz_ml_var.set(0)
+        self.reset_ebz_btn.config(state=tk.DISABLED)
+        self.display_all()
+
+    # ------------------------------------------------------------------ Header
+    def show_header_info(self):
+        if self.img is None:
+            return
+        win = tk.Toplevel(self.root)
+        win.title("PAR/REC Header")
+        win.geometry("900x700")
+
+        frame = ttk.Frame(win)
+        frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        sb = ttk.Scrollbar(frame)
+        sb.pack(side=tk.RIGHT, fill=tk.Y)
+        txt = tk.Text(frame, wrap=tk.WORD, yscrollcommand=sb.set)
+        txt.pack(fill=tk.BOTH, expand=True)
+        sb.config(command=txt.yview)
+
+        header = self.img.header
+        txt.insert(tk.END, "=== AFFINE MATRIX ===\n")
+        txt.insert(tk.END, f"{self.affine}\n\n")
+        txt.insert(tk.END, f"Voxel sizes: {self.voxel_sizes}\n")
+        txt.insert(tk.END, f"Axis labels: {self.dim_labels}\n")
+        txt.insert(tk.END, f"Dimensions: {self.dim_sizes}\n\n")
+
+        if hasattr(header, 'general_info'):
+            txt.insert(tk.END, "=== GENERAL INFO ===\n")
+            for k, v in sorted(header.general_info.items()):
+                txt.insert(tk.END, f"  {k}: {v}\n")
+            txt.insert(tk.END, "\n")
+
+        txt.insert(tk.END, "=== FULL HEADER ===\n")
+        txt.insert(tk.END, pprint.pformat(header.__dict__))
+        txt.config(state=tk.DISABLED)
+
+
+# ------------------------------------------------------------------ Main
 if __name__ == "__main__":
+    default_path = sys.argv[1] if len(sys.argv) > 1 else None
 
-    
-    # Set up the default path
-    default_path = None
-    
-    # Check if a path was provided as a command-line argument
-    if len(sys.argv) > 1:
-        default_path = sys.argv[1]
-    
-    # Initialize the application
     root = tk.Tk()
-    app = MRIViewer(root, default_path)
-    
-    # Try to load saved default path from config file if no command line argument
+    app = TriplanarMRIViewer(root, default_path)
+
+    # Load config
     config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mri_viewer_config.json')
     config = {}
     if os.path.exists(config_file):
         try:
             with open(config_file, 'r') as f:
                 config = json.load(f)
-                saved_default_path = config.get('default_path')
-    
-                # Load saved EBZ coordinates if available
-                if 'ebz_coordinates' in config:
-                    ebz = config.get('ebz_coordinates')
-                    app.ebz_x_var.set(ebz.get('x', 0))
-                    app.ebz_y_var.set(ebz.get('y', 0))
-                    app.ebz_z_var.set(ebz.get('z', 0))
-                    # Don't set EBZ yet, wait until file is loaded
-    
-                # If no command line path was provided, use the saved default path
-                if default_path is None and saved_default_path:
-                    app.default_path = saved_default_path
-                    app.file_path_var.set(saved_default_path)
-                    default_path = saved_default_path
+            saved = config.get('default_path')
+            if default_path is None and saved:
+                app.default_path = saved
+                app.file_path_var.set(saved)
+                default_path = saved
+            if 'ebz_world' in config:
+                ew = config['ebz_world']
+                app.ebz_ml_var.set(ew[0])
+                app.ebz_ap_var.set(ew[1])
+                app.ebz_dv_var.set(ew[2])
         except Exception as e:
-            print(f"Error loading config: {str(e)}")
-    
-    # If a default path was provided and it exists, automatically load it
+            print(f"Config load error: {e}")
+
     if default_path and os.path.exists(default_path):
         app.load_and_visualize()
-    
-        # After loading, set EBZ if coordinates were loaded from config
-        if 'ebz_coordinates' in config:
+        if 'ebz_world' in config:
             app.set_ebz()
-    
+
     root.mainloop()
