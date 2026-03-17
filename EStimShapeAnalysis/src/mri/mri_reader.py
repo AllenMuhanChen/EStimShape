@@ -91,6 +91,90 @@ def xlate(dx, dy, dz):
 
 
 # ====================================================================
+# Chamber geometry (adapted from stereotax.py)
+# ====================================================================
+
+def fit_chamber(screws, ref_screw_idx, center_of_rotation_offset, is_fit_circle=True):
+    """
+    Fit a plane and circle to screwhole positions.
+    Returns (center, origin, x, y, normal) all in the same coord system as screws.
+
+    center: center of the screwhole circle (on the plane)
+    origin: center of rotation (offset along normal from center)
+    x, y:   orthonormal basis in the chamber plane
+    normal: unit normal pointing into the brain
+    """
+    from numpy.linalg import svd, lstsq, norm
+
+    mean_pt = screws.mean(axis=0)
+    centered = screws - mean_pt
+    _, _, vh = svd(centered, full_matrices=False)
+    normal = vh[-1]
+
+    # Ensure normal points inward (toward lower DV = more negative Z typically,
+    # but we use the convention that normal · mean > 0 means outward)
+    if np.dot(normal, mean_pt) > 0:
+        normal *= -1
+
+    if not is_fit_circle:
+        center = mean_pt
+    else:
+        # Project screws onto the fitted plane
+        projected = []
+        for p in screws:
+            vec = p - mean_pt
+            proj = vec - np.dot(vec, normal) * normal
+            projected.append(mean_pt + proj)
+        projected = np.array(projected)
+
+        # 2D basis in the plane
+        temp = projected[0] - mean_pt
+        temp = temp - np.dot(temp, normal) * normal
+        v1 = temp / norm(temp)
+        v2 = np.cross(normal, v1)
+        v2 /= norm(v2)
+
+        # Project to 2D
+        pts2d = np.array([[np.dot(p - mean_pt, v1), np.dot(p - mean_pt, v2)] for p in projected])
+
+        # Fit circle: x^2 + y^2 = 2hx + 2ky + c
+        A = np.column_stack([pts2d[:, 0], pts2d[:, 1], np.ones(len(pts2d))])
+        b = pts2d[:, 0]**2 + pts2d[:, 1]**2
+        params, _, _, _ = lstsq(A, b, rcond=None)
+        h, k = params[0] / 2, params[1] / 2
+
+        center = mean_pt + h * v1 + k * v2
+
+    # X axis: from center toward reference screw, projected to plane
+    ref_vec = screws[ref_screw_idx] - center
+    ref_vec -= np.dot(ref_vec, normal) * normal
+    x = ref_vec / norm(ref_vec)
+    y = np.cross(normal, x)
+    y /= norm(y)
+
+    origin = center + center_of_rotation_offset * normal
+    return center, origin, x, y, normal
+
+
+def calc_penetration_target(origin, az_deg, el_deg, dist, x, y, normal, cor_offset):
+    """
+    Given chamber origin and angles, compute target point and trajectory vector.
+    Returns (target, direction_vector, top_of_chamber_point).
+    az, el in degrees.
+    """
+    az = np.radians(az_deg)
+    el = np.radians(el_deg)
+    direction = (np.cos(el) * normal
+                 + np.sin(el) * np.cos(az) * x
+                 + np.sin(el) * np.sin(az) * y)
+    origin_offset = cor_offset / np.cos(el)
+    dist_from_origin = dist - origin_offset
+    target = origin + direction * dist_from_origin
+    top_pt = origin - origin_offset * direction
+    return target, direction, top_pt
+
+
+# ====================================================================
 # Viewer
 # ====================================================================
 
@@ -158,6 +242,26 @@ class TriplanarMRIViewer:
         self._crop_rect = None  # matplotlib Rectangle patch during drag
         self._crop_start = None  # (x, y) in world mm at mouse-down
         self._crop_view = None   # which view the crop drag is happening in
+
+        # Chamber and penetration state
+        # Screwhole coords are in EBZ-relative [ML, AP, DV] = [X, Y, Z]
+        self.chamber_loaded = False
+        self.chamber_show = True      # toggle visibility
+        self.screws_ebz = None        # (N, 3) array, EBZ-relative
+        self.chamber_center = None    # fitted circle center in corrected world
+        self.chamber_origin = None    # center of rotation in corrected world
+        self.chamber_x = None         # chamber X basis vector
+        self.chamber_y = None         # chamber Y basis vector
+        self.chamber_normal = None    # chamber normal (into brain)
+        self.chamber_depth = 12.0     # mm from top to skull
+        self.chamber_radius = 7.0     # mm
+        self.center_of_rotation_offset = 2.54  # mm
+        self.ref_screw_idx = 4
+        self.is_fit_circle = True
+
+        # Penetrations: list of dicts {az, el, dist, color, label}
+        self.penetrations = []
+        self.penetration_show = True
 
         self._setup_ui()
 
@@ -271,6 +375,46 @@ class TriplanarMRIViewer:
         self.crop_status_var = tk.StringVar(value="")
         ttk.Label(crop_frame, textvariable=self.crop_status_var, foreground="blue").pack(
             side=tk.LEFT, padx=10, pady=2)
+
+        # --- Chamber & Penetration panel (inside collapsible) ---
+        ch_frame = ttk.LabelFrame(self._panels_frame, text="Chamber & Penetrations")
+        ch_frame.pack(fill=tk.X, padx=5, pady=2)
+
+        ch_row1 = ttk.Frame(ch_frame); ch_row1.pack(fill=tk.X, padx=3, pady=2)
+        self.btn_load_chamber = ttk.Button(ch_row1, text="Load monkey_specific.py...",
+                                            command=self._load_chamber_file)
+        self.btn_load_chamber.pack(side=tk.LEFT, padx=3)
+        self.btn_toggle_chamber = ttk.Button(ch_row1, text="Hide Chamber",
+                                              command=self._toggle_chamber, state="disabled")
+        self.btn_toggle_chamber.pack(side=tk.LEFT, padx=3)
+        self.chamber_info_var = tk.StringVar(value="No chamber loaded")
+        ttk.Label(ch_frame, textvariable=self.chamber_info_var).pack(anchor="w", padx=5, pady=1)
+
+        # Penetration entry
+        pen_row = ttk.Frame(ch_frame); pen_row.pack(fill=tk.X, padx=3, pady=2)
+        ttk.Label(pen_row, text="Az(deg):").pack(side=tk.LEFT, padx=2)
+        self.pen_az_var = tk.DoubleVar(value=0.0)
+        ttk.Entry(pen_row, textvariable=self.pen_az_var, width=7).pack(side=tk.LEFT, padx=2)
+        ttk.Label(pen_row, text="El(deg):").pack(side=tk.LEFT, padx=2)
+        self.pen_el_var = tk.DoubleVar(value=0.0)
+        ttk.Entry(pen_row, textvariable=self.pen_el_var, width=7).pack(side=tk.LEFT, padx=2)
+        ttk.Label(pen_row, text="Dist(mm):").pack(side=tk.LEFT, padx=2)
+        self.pen_dist_var = tk.DoubleVar(value=35.0)
+        ttk.Entry(pen_row, textvariable=self.pen_dist_var, width=7).pack(side=tk.LEFT, padx=2)
+        ttk.Label(pen_row, text="Label:").pack(side=tk.LEFT, padx=2)
+        self.pen_label_var = tk.StringVar(value="")
+        ttk.Entry(pen_row, textvariable=self.pen_label_var, width=10).pack(side=tk.LEFT, padx=2)
+
+        pen_btn_row = ttk.Frame(ch_frame); pen_btn_row.pack(fill=tk.X, padx=3, pady=2)
+        self.btn_add_pen = ttk.Button(pen_btn_row, text="Add Penetration",
+                                       command=self._add_penetration, state="disabled")
+        self.btn_add_pen.pack(side=tk.LEFT, padx=3)
+        self.btn_clear_pens = ttk.Button(pen_btn_row, text="Clear All Penetrations",
+                                          command=self._clear_penetrations, state="disabled")
+        self.btn_clear_pens.pack(side=tk.LEFT, padx=3)
+        self.btn_toggle_pens = ttk.Button(pen_btn_row, text="Hide Penetrations",
+                                           command=self._toggle_penetrations, state="disabled")
+        self.btn_toggle_pens.pack(side=tk.LEFT, padx=3)
 
         # Figure
         fig_frame = ttk.Frame(main)
@@ -574,6 +718,9 @@ class TriplanarMRIViewer:
                 ax.axhline(self.ebz_world[v_wax], color='red', lw=0.5, alpha=0.4, ls='--')
                 ax.plot(self.ebz_world[h_wax], self.ebz_world[v_wax], 'r*', markersize=8)
 
+            # Chamber and penetration overlays
+            self._draw_chamber_overlay(ax, vi)
+
             # Title
             wval = self.cursor_world[fix_wax]
             if self.ebz_set:
@@ -874,7 +1021,178 @@ class TriplanarMRIViewer:
         cb = self.corr_config.get("crop_bounds", {})
         self.crop_bounds = {int(k): tuple(v) for k, v in cb.items()}
 
-    # ---------------------------------------------------------------- Correction matrix
+    # ---------------------------------------------------------------- Chamber & Penetrations
+    def _load_chamber_file(self):
+        """Load a monkey_specific.py file to get screwhole coords and chamber params."""
+        fn = filedialog.askopenfilename(
+            title="Select monkey_specific.py",
+            filetypes=[("Python", "*.py"), ("All", "*.*")])
+        if not fn:
+            return
+        try:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("monkey_specific", fn)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+
+            self.screws_ebz = mod.get_screw_hole_coords()  # (N,3) in EBZ-relative [ML,AP,DV]
+            self.ref_screw_idx = mod.get_reference_screw_idx()
+            self.center_of_rotation_offset = mod.get_center_of_rotation_offset()
+            self.is_fit_circle = mod.get_is_fit_circle()
+            if hasattr(mod, 'get_chamber_depth'):
+                self.chamber_depth = mod.get_chamber_depth()
+
+            self._refit_chamber()
+
+            self.btn_toggle_chamber.config(state="normal")
+            self.btn_add_pen.config(state="normal")
+            self.btn_clear_pens.config(state="normal")
+            self.btn_toggle_pens.config(state="normal")
+
+            # Load default penetration if specified
+            if hasattr(mod, 'get_electrode_target'):
+                mode, coords = mod.get_electrode_target()
+                if mode == 'angles':
+                    self.pen_az_var.set(coords[0])
+                    self.pen_el_var.set(coords[1])
+                    self.pen_dist_var.set(coords[2])
+
+            self.display_all()
+        except Exception as e:
+            messagebox.showerror("Error loading chamber", str(e))
+            import traceback; traceback.print_exc()
+
+    def _refit_chamber(self):
+        """(Re)compute chamber geometry from screwhole coords.
+        Screwholes are in EBZ-relative coords; add EBZ to get corrected world."""
+        if self.screws_ebz is None:
+            return
+        if not self.ebz_set:
+            messagebox.showwarning("EBZ Required",
+                "Set EBZ before loading chamber — screwhole coords are EBZ-relative.")
+            # Still fit, just with EBZ at origin
+        ebz = self.ebz_world if self.ebz_set else np.zeros(3)
+        screws_world = self.screws_ebz + ebz  # broadcast (N,3) + (3,)
+
+        self.chamber_center, self.chamber_origin, self.chamber_x, self.chamber_y, self.chamber_normal = \
+            fit_chamber(screws_world, self.ref_screw_idx, self.center_of_rotation_offset, self.is_fit_circle)
+        self.chamber_loaded = True
+
+        n = len(self.screws_ebz)
+        self.chamber_info_var.set(
+            f"Chamber: {n} screwholes, origin=["
+            f"{self.chamber_origin[0]:.1f}, {self.chamber_origin[1]:.1f}, {self.chamber_origin[2]:.1f}] mm")
+
+    def _toggle_chamber(self):
+        self.chamber_show = not self.chamber_show
+        self.btn_toggle_chamber.config(text="Show Chamber" if not self.chamber_show else "Hide Chamber")
+        self.display_all()
+
+    def _add_penetration(self):
+        """Add a penetration defined by azimuth, elevation, distance."""
+        if not self.chamber_loaded:
+            messagebox.showerror("Error", "Load chamber first."); return
+
+        az = self.pen_az_var.get()
+        el = self.pen_el_var.get()
+        dist = self.pen_dist_var.get()
+        label = self.pen_label_var.get().strip() or f"P{len(self.penetrations)+1}"
+
+        # Cycle through colors
+        colors = ['cyan', 'yellow', 'magenta', 'orange', 'lime', 'deepskyblue']
+        color = colors[len(self.penetrations) % len(colors)]
+
+        self.penetrations.append({
+            'az': az, 'el': el, 'dist': dist,
+            'label': label, 'color': color,
+        })
+        self.display_all()
+
+    def _clear_penetrations(self):
+        self.penetrations = []
+        self.display_all()
+
+    def _toggle_penetrations(self):
+        self.penetration_show = not self.penetration_show
+        self.btn_toggle_pens.config(text="Show Penetrations" if not self.penetration_show else "Hide Penetrations")
+        self.display_all()
+
+    def _draw_chamber_overlay(self, ax, vi):
+        """Draw chamber screwholes, ring, and penetrations on a given axes for view vi."""
+        if not self.chamber_loaded or not self.chamber_show:
+            # Still draw penetrations if chamber hidden but penetrations shown
+            if self.penetration_show and self.penetrations and self.chamber_loaded:
+                self._draw_penetrations(ax, vi)
+            return
+
+        fix_wax, h_wax, v_wax = self.SLICE_CFG[vi]
+        ebz = self.ebz_world if self.ebz_set else np.zeros(3)
+        screws_world = self.screws_ebz + ebz
+
+        # Plot screwholes
+        sh = screws_world[:, h_wax]
+        sv = screws_world[:, v_wax]
+        ax.plot(sh, sv, 'o', color='gray', markersize=4, alpha=0.8)
+
+        # Label screwholes with index
+        for i, (hh, vv) in enumerate(zip(sh, sv)):
+            ax.annotate(str(i), (hh, vv), fontsize=6, color='gray',
+                        ha='center', va='bottom', alpha=0.7)
+
+        # Draw chamber circle (projected onto this plane)
+        # The circle lives in the plane defined by chamber_x, chamber_y centered at chamber_center
+        theta = np.linspace(0, 2*np.pi, 72)
+        ring = (self.chamber_center[np.newaxis, :] +
+                self.chamber_radius * (np.cos(theta)[:, np.newaxis] * self.chamber_x +
+                                        np.sin(theta)[:, np.newaxis] * self.chamber_y))
+        ax.plot(ring[:, h_wax], ring[:, v_wax], '-', color='gray', lw=1, alpha=0.5)
+
+        # Chamber origin marker
+        ax.plot(self.chamber_origin[h_wax], self.chamber_origin[v_wax],
+                '+', color='white', markersize=8, markeredgewidth=1.5)
+
+        # Draw chamber axes (x=red, y=green)
+        scale = 5  # mm
+        for vec, c in [(self.chamber_x, 'red'), (self.chamber_y, 'green')]:
+            tip = self.chamber_origin + scale * vec
+            ax.annotate('', xy=(tip[h_wax], tip[v_wax]),
+                        xytext=(self.chamber_origin[h_wax], self.chamber_origin[v_wax]),
+                        arrowprops=dict(arrowstyle='->', color=c, lw=1.5))
+
+        # Draw penetrations
+        if self.penetration_show:
+            self._draw_penetrations(ax, vi)
+
+    def _draw_penetrations(self, ax, vi):
+        """Draw penetration trajectories on a given view."""
+        if not self.chamber_loaded:
+            return
+        fix_wax, h_wax, v_wax = self.SLICE_CFG[vi]
+
+        for pen in self.penetrations:
+            target, direction, top_pt = calc_penetration_target(
+                self.chamber_origin, pen['az'], pen['el'], pen['dist'],
+                self.chamber_x, self.chamber_y, self.chamber_normal,
+                self.center_of_rotation_offset)
+
+            # Draw track line from top to beyond target
+            track_end = top_pt + (pen['dist'] + 5) * direction
+            ax.plot([top_pt[h_wax], track_end[h_wax]],
+                    [top_pt[v_wax], track_end[v_wax]],
+                    '-', color=pen['color'], lw=1.2, alpha=0.8)
+
+            # Target dot
+            ax.plot(target[h_wax], target[v_wax], 'o',
+                    color=pen['color'], markersize=5)
+
+            # Depth ticks every 5mm
+            for d in range(0, int(pen['dist']) + 1, 5):
+                pt = top_pt + d * direction
+                ax.plot(pt[h_wax], pt[v_wax], '.', color=pen['color'], markersize=2, alpha=0.5)
+
+            # Label at target
+            ax.annotate(pen['label'], (target[h_wax], target[v_wax]),
+                        fontsize=7, color=pen['color'], ha='left', va='bottom')
     def _apply_correction(self):
         if self.data is None: return
         rx = self.rot_x_var.get(); ry = self.rot_y_var.get(); rz = self.rot_z_var.get()
