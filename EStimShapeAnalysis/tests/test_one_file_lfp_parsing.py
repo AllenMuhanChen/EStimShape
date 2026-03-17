@@ -15,8 +15,8 @@ from src.lfp.relative_power_spectrum import RelativePowerSpectrum
 
 
 class TestOneFileLFPParser(TestCase):
-    # file_path = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260120_0/2026-01-20/1768934618287078_1_1768934754529063_260120_134558"
-    file_path = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260115_0/2026-01-15/1768500912926825_1_1768501037142197_260115_131719"
+    file_path = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260120_0/2026-01-20/1768934618287078_1_1768934754529063_260120_134558"
+    # file_path = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260115_0/2026-01-15/1768500912926825_1_1768501037142197_260115_131719"
     # file_path = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260115_0/2026-01-15/1768500912926825_8_1768506582349129_260115_144943"
 
     def test_parse(self):
@@ -216,3 +216,75 @@ class TestOneFileLFPParser(TestCase):
         )
         plt.show()
 
+    def _compute_baseline_spectra(self, baseline_duration=0.25):
+        """
+        Compute spectra using only the pre-stimulus baseline window.
+        This isolates spontaneous aperiodic activity, removing stimulus-driven contamination.
+        """
+        path_to_file = self.file_path
+        path_to_rhd = f"{path_to_file}/info.rhs"
+        data = read_data(path_to_rhd)
+        amplifier_channels = data['amplifier_channels']
+        sample_rate = data['frequency_parameters']['amplifier_sample_rate']
+
+        # Parse with large pre-stimulus window, no post-stimulus
+        parser = OneFileLFPParser(sample_rate, amplifier_channels,
+                                  seconds_before_epoch=baseline_duration,
+                                  seconds_after_epoch=0.0)
+        lfp_by_channel_by_task_id, _, lfp_sample_rate = parser.parse(path_to_file)
+
+        # Slice out only the pre-stimulus portion (before time 0)
+        n_baseline_samples = int(baseline_duration * lfp_sample_rate)
+
+        baseline_by_channel_by_task_id = {}
+        for task_id, channels_dict in lfp_by_channel_by_task_id.items():
+            if channels_dict is None:
+                baseline_by_channel_by_task_id[task_id] = None
+                continue
+            baseline_channels = {}
+            for channel, waveform in channels_dict.items():
+                baseline_channels[channel] = waveform[:n_baseline_samples]
+            baseline_by_channel_by_task_id[task_id] = baseline_channels
+
+        # Compute spectra on baseline only
+        spectrum_calculator = LFPSpectrum(lfp_sample_rate)
+        spectra = spectrum_calculator.compute(baseline_by_channel_by_task_id)
+
+        valid_task_ids = [tid for tid, v in spectra.items() if v is not None]
+        channels = list(spectra[valid_task_ids[0]].keys())
+
+        expected_freqs, _ = spectra[valid_task_ids[0]][channels[0]]
+        expected_len = len(expected_freqs)
+
+        avg_spectrum_by_channel = {}
+        for channel in channels:
+            powers = []
+            for tid in valid_task_ids:
+                freqs, power = spectra[tid][channel]
+                if len(power) == expected_len:
+                    powers.append(power)
+            avg_spectrum_by_channel[channel] = (expected_freqs, np.mean(powers, axis=0))
+
+        return avg_spectrum_by_channel
+
+    def test_power_law_baseline(self):
+        """Power law fit using only pre-stimulus baseline activity."""
+        baseline_spectra = self._compute_baseline_spectra(baseline_duration=0.25)
+
+        channel_order = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
+                         27, 20, 4, 11, 28, 19, 1, 14, 3, 12, 29, 18, 2, 13, 30, 17]
+
+        fitter = LFPPowerLaw()
+        normalized = fitter.normalize_spectra_peak(baseline_spectra)
+        fits = fitter.fit_dict(normalized)
+
+        spike_rates = self._compute_avg_spike_rates()
+
+        plotter = LFPPowerLawPlotter(channel_order=channel_order)
+        fig_spectra, fig_overlay, fig_params = plotter.plot(
+            fits,
+            spike_rates_by_channel=spike_rates,
+            avg_spectrum_by_channel=baseline_spectra
+        )
+        fig_params.suptitle("Baseline Power Law Parameters (pre-stimulus only)")
+        plt.show()

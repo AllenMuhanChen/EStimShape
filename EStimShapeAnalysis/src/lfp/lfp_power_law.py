@@ -22,7 +22,7 @@ class LFPPowerLaw:
     Fits P(f) = A * f^χ to LFP power spectra via linear regression in log-log space.
     The exponent χ is invariant to multiplicative scaling (e.g. impedance differences).
     """
-    freq_range: Tuple[float, float] = (10, 100)
+    freq_range: Tuple[float, float] = (20, 100)
 
     def fit_one(self, freqs: np.ndarray, power: np.ndarray) -> PowerLawFit:
         mask = (freqs >= self.freq_range[0]) & (freqs <= self.freq_range[1])
@@ -312,3 +312,4 @@ class LFPPowerLawPlotter:
             if str(key).endswith(target_str):
                 return key
         return None
+
