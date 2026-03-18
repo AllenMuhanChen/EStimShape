@@ -132,6 +132,7 @@ class TriplanarMRIViewer:
 
         # Trajectory planner (temp trajectory before saving)
         self.temp_trajectory = None  # dict: az_deg, el_deg, dist_mm, target, direction, top_pt
+        self._traj_updating = False  # guard against infinite loops in bidirectional entry sync
 
         # ---- Atlas state ----
         self.atlas_data = None          # ndarray (I,J,K) int labels
@@ -178,20 +179,31 @@ class TriplanarMRIViewer:
         self.status_var = tk.StringVar(value="Ready")
         ttk.Label(main, textvariable=self.status_var).pack(fill=tk.X, padx=5)
 
-        # Collapsible panels
-        self._panels_frame = ttk.Frame(main)
-        self._panels_frame.pack(fill=tk.X)
-        self._panels_visible = True
-        self._toggle_panels_btn = ttk.Button(main, text="▲ Hide Controls",
-                                              command=self._toggle_panels)
-        self._toggle_panels_btn.pack(fill=tk.X, padx=5, pady=1)
+        # ---- Panel toolbar (one button per section) ----
+        self._panel_bar = ttk.Frame(main)
+        self._panel_bar.pack(fill=tk.X, padx=5, pady=2)
+        self._panel_container = ttk.Frame(main)
+        self._panel_container.pack(fill=tk.X)
+        self._active_panel = None   # key of currently open panel, or None
+        self._panel_frames = {}     # key → LabelFrame
+        self._panel_buttons = {}    # key → Button
 
-        self._build_ebz_panel(self._panels_frame)
-        self._build_correction_panel(self._panels_frame)
-        self._build_crop_panel(self._panels_frame)
-        self._build_chamber_panel(self._panels_frame)
-        self._build_trajectory_panel(self._panels_frame)
-        self._build_atlas_panel(self._panels_frame)
+        panel_defs = [
+            ("EBZ",         "ebz",         self._build_ebz_panel),
+            ("Correction",  "correction",  self._build_correction_panel),
+            ("Crop/Display","crop",        self._build_crop_panel),
+            ("Chamber",     "chamber",     self._build_chamber_panel),
+            ("Trajectory",  "trajectory",  self._build_trajectory_panel),
+            ("Atlas",       "atlas",       self._build_atlas_panel),
+        ]
+        for label, key, builder in panel_defs:
+            btn = ttk.Button(self._panel_bar, text=label,
+                             command=lambda k=key: self._toggle_panel(k))
+            btn.pack(side=tk.LEFT, padx=2)
+            self._panel_buttons[key] = btn
+            builder(self._panel_container)
+            # Builder stores frame in self._panel_frames[key]; hide it initially
+            self._panel_frames[key].pack_forget()
 
         # Figure
         fig_frame = ttk.Frame(main)
@@ -221,6 +233,7 @@ class TriplanarMRIViewer:
     def _build_ebz_panel(self, parent):
         ebz = ttk.LabelFrame(parent, text="EBZ (External Brain Zero)")
         ebz.pack(fill=tk.X, padx=5, pady=2)
+        self._panel_frames['ebz'] = ebz
         for i, (lbl, vn) in enumerate([("AP mm:", "ebz_ap"), ("DV mm:", "ebz_dv"), ("ML mm:", "ebz_ml")]):
             ttk.Label(ebz, text=lbl).grid(row=0, column=2*i, padx=3, pady=2)
             v = tk.DoubleVar(value=0.0); setattr(self, vn + "_var", v)
@@ -241,6 +254,7 @@ class TriplanarMRIViewer:
     def _build_correction_panel(self, parent):
         corr = ttk.LabelFrame(parent, text="Correction Matrix")
         corr.pack(fill=tk.X, padx=5, pady=2)
+        self._panel_frames['correction'] = corr
         r_row = ttk.Frame(corr); r_row.pack(fill=tk.X, padx=3, pady=2)
         ttk.Label(r_row, text="Rotate (deg):").pack(side=tk.LEFT, padx=3)
         for al, an in [("X(ML/roll)", "x"), ("Y(AP/pitch)", "y"), ("Z(DV/yaw)", "z")]:
@@ -276,6 +290,7 @@ class TriplanarMRIViewer:
     def _build_crop_panel(self, parent):
         crop = ttk.LabelFrame(parent, text="View Cropping & Display")
         crop.pack(fill=tk.X, padx=5, pady=2)
+        self._panel_frames['crop'] = crop
 
         row1 = ttk.Frame(crop); row1.pack(fill=tk.X, padx=3, pady=2)
         self.btn_crop = ttk.Button(row1, text="Crop (drag rect)", command=self._toggle_crop_mode, state="disabled")
@@ -306,6 +321,7 @@ class TriplanarMRIViewer:
     def _build_chamber_panel(self, parent):
         ch = ttk.LabelFrame(parent, text="Chamber & Penetrations")
         ch.pack(fill=tk.X, padx=5, pady=2)
+        self._panel_frames['chamber'] = ch
         r1 = ttk.Frame(ch); r1.pack(fill=tk.X, padx=3, pady=2)
         self.btn_load_chamber = ttk.Button(r1, text="Load monkey_specific.py...", command=self._load_chamber_file)
         self.btn_load_chamber.pack(side=tk.LEFT, padx=3)
@@ -345,8 +361,9 @@ class TriplanarMRIViewer:
     def _build_trajectory_panel(self, parent):
         tp = ttk.LabelFrame(parent, text="Trajectory Planner")
         tp.pack(fill=tk.X, padx=5, pady=2)
+        self._panel_frames['trajectory'] = tp
 
-        # Top row: buttons
+        # Row 1: buttons + label/notes
         r1 = ttk.Frame(tp); r1.pack(fill=tk.X, padx=3, pady=2)
         self.btn_plan_traj = ttk.Button(r1, text="Plan to Cursor",
                                          command=self._plan_trajectory, state="disabled")
@@ -365,15 +382,42 @@ class TriplanarMRIViewer:
         self.traj_notes_var = tk.StringVar(value="")
         ttk.Entry(r1, textvariable=self.traj_notes_var, width=20).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=2)
 
-        # Info text showing computed trajectory parameters
+        # Row 2: Stereotaxic coordinates (ML, AP, DV) — EBZ-relative when EBZ is set
+        r2 = ttk.Frame(tp); r2.pack(fill=tk.X, padx=3, pady=2)
+        ttk.Label(r2, text="Stereotaxic:").pack(side=tk.LEFT, padx=3)
+        self.traj_ml_var = tk.DoubleVar(value=0.0)
+        self.traj_ap_var = tk.DoubleVar(value=0.0)
+        self.traj_dv_var = tk.DoubleVar(value=0.0)
+        for lbl, var in [("ML:", self.traj_ml_var), ("AP:", self.traj_ap_var), ("DV:", self.traj_dv_var)]:
+            ttk.Label(r2, text=lbl).pack(side=tk.LEFT, padx=(6, 1))
+            e = ttk.Entry(r2, textvariable=var, width=8)
+            e.pack(side=tk.LEFT, padx=1)
+            e.bind("<Return>", lambda ev: self._on_traj_stereo_enter())
+        self.traj_stereo_label = ttk.Label(r2, text="(rel EBZ)" if False else "", foreground="#555555")
+        self.traj_stereo_label.pack(side=tk.LEFT, padx=4)
+
+        # Row 3: Chamber coordinates (Az, El, Dist)
+        r3 = ttk.Frame(tp); r3.pack(fill=tk.X, padx=3, pady=2)
+        ttk.Label(r3, text="Chamber:").pack(side=tk.LEFT, padx=3)
+        self.traj_az_var = tk.DoubleVar(value=0.0)
+        self.traj_el_var = tk.DoubleVar(value=0.0)
+        self.traj_dist_var = tk.DoubleVar(value=35.0)
+        for lbl, var in [("Az(°):", self.traj_az_var), ("El(°):", self.traj_el_var), ("Dist(mm):", self.traj_dist_var)]:
+            ttk.Label(r3, text=lbl).pack(side=tk.LEFT, padx=(6, 1))
+            e = ttk.Entry(r3, textvariable=var, width=8)
+            e.pack(side=tk.LEFT, padx=1)
+            e.bind("<Return>", lambda ev: self._on_traj_chamber_enter())
+
+        # Status info
         self.traj_info_var = tk.StringVar(value="No trajectory planned")
         ttk.Label(tp, textvariable=self.traj_info_var, font=("TkDefaultFont", 9),
-                  wraplength=900, justify=tk.LEFT).pack(anchor="w", padx=5, pady=(1, 3))
+                  foreground="#006699").pack(anchor="w", padx=5, pady=(1, 3))
 
     # ---- Atlas panel ----
     def _build_atlas_panel(self, parent):
         at = ttk.LabelFrame(parent, text="Atlas Alignment  (hotkey 'A' to toggle)")
         at.pack(fill=tk.X, padx=5, pady=2)
+        self._panel_frames['atlas'] = at
 
         # Row 1: file loading + toggle
         r1 = ttk.Frame(at); r1.pack(fill=tk.X, padx=3, pady=2)
@@ -511,15 +555,23 @@ class TriplanarMRIViewer:
         self.dyn_frame.columnconfigure(1, weight=1)
         self.dyn_frame.grid_remove()
 
-    def _toggle_panels(self):
-        if self._panels_visible:
-            self._panels_frame.pack_forget()
-            self._toggle_panels_btn.config(text="▼ Show Controls")
-            self._panels_visible = False
+    def _toggle_panel(self, key):
+        """Show/hide a single control panel. Only one panel visible at a time."""
+        if self._active_panel == key:
+            # Clicking the active panel's button collapses it
+            self._panel_frames[key].pack_forget()
+            self._panel_buttons[key].state(['!pressed'])
+            self._active_panel = None
         else:
-            self._panels_frame.pack(fill=tk.X, before=self._toggle_panels_btn)
-            self._toggle_panels_btn.config(text="▲ Hide Controls")
-            self._panels_visible = True
+            # Hide the currently active panel (if any)
+            if self._active_panel is not None:
+                self._panel_frames[self._active_panel].pack_forget()
+                self._panel_buttons[self._active_panel].state(['!pressed'])
+            # Show the new one
+            self._panel_frames[key].pack(fill=tk.X, padx=5, pady=2,
+                                          in_=self._panel_container)
+            self._panel_buttons[key].state(['pressed'])
+            self._active_panel = key
 
     # ================================================================ File I/O
     def _browse(self):
@@ -807,7 +859,7 @@ class TriplanarMRIViewer:
             wval = self.cursor_world[fix_wax]
             if self.ebz_set:
                 rel = wval - self.ebz_world[fix_wax]
-                title = f"{self.VIEW_NAMES[vi]}  {self.WORLD_LABELS[fix_wax]}={wval:.2f} mm  ({rel:+.2f} from EBZ)"
+                title = f"{self.VIEW_NAMES[vi]}  {self.WORLD_LABELS[fix_wax]}={rel:+.2f} mm (EBZ)"
             else:
                 title = f"{self.VIEW_NAMES[vi]}  {self.WORLD_LABELS[fix_wax]}={wval:.2f} mm"
             ax.set_title(title, fontsize=10)
@@ -832,10 +884,11 @@ class TriplanarMRIViewer:
             return
         w = self.cursor_world
         vox = self.world_to_vox(w)
-        txt = f"Crosshair: ML={w[0]:.2f}, AP={w[1]:.2f}, DV={w[2]:.2f} mm   voxel=[{vox[0]:.1f}, {vox[1]:.1f}, {vox[2]:.1f}]"
         if self.ebz_set:
             rel = w - self.ebz_world
-            txt += f"   rel EBZ: ML={rel[0]:.2f}, AP={rel[1]:.2f}, DV={rel[2]:.2f}"
+            txt = f"Crosshair: ML={rel[0]:+.2f}, AP={rel[1]:+.2f}, DV={rel[2]:+.2f} mm (rel EBZ)"
+        else:
+            txt = f"Crosshair: ML={w[0]:.2f}, AP={w[1]:.2f}, DV={w[2]:.2f} mm   voxel=[{vox[0]:.1f}, {vox[1]:.1f}, {vox[2]:.1f}]"
         # Atlas region at crosshair
         if self.atlas_loaded and self.atlas_show and self.atlas_label_names:
             try:
@@ -855,7 +908,7 @@ class TriplanarMRIViewer:
             self.slice_vars[i].set(val)
             if self.ebz_set:
                 rel = val - self.ebz_world[fix_wax]
-                self.slice_lbls[i].config(text=f"{val:.2f} mm ({rel:+.2f} EBZ)")
+                self.slice_lbls[i].config(text=f"{rel:+.2f} mm (EBZ)")
             else:
                 self.slice_lbls[i].config(text=f"{val:.2f} mm")
 
@@ -1300,40 +1353,147 @@ class TriplanarMRIViewer:
 
     # ================================================================ Trajectory Planner
     def _plan_trajectory(self):
-        """Compute trajectory from chamber origin to current cursor position and show temp line."""
+        """Compute trajectory from chamber origin to current cursor position and populate entries."""
         if not self.chamber_state['loaded']:
             messagebox.showerror("Error", "Load chamber first."); return
         if self.data is None:
             messagebox.showerror("Error", "Load a volume first."); return
 
         target = self.cursor_world.copy()
-        origin = self.chamber_state['origin']
-        x_vec = self.chamber_state['x']
-        y_vec = self.chamber_state['y']
-        normal = self.chamber_state['normal']
-        cor_offset = self.chamber_state['cor_offset']
+        self._update_traj_from_target(target)
 
-        direction, az_deg, el_deg, distance, top_pt = calc_target_angles(
-            target, origin, x_vec, y_vec, normal, cor_offset)
+    def _on_traj_stereo_enter(self):
+        """User pressed Enter in a stereotaxic entry — convert to chamber coords."""
+        if not self.chamber_state['loaded']:
+            self.traj_info_var.set("Load chamber first."); return
+        try:
+            ml = self.traj_ml_var.get()
+            ap = self.traj_ap_var.get()
+            dv = self.traj_dv_var.get()
+        except (ValueError, tk.TclError):
+            self.traj_info_var.set("Invalid stereotaxic coordinates."); return
 
+        # Convert from EBZ-relative to absolute world coords if EBZ is set
+        target = np.array([ml, ap, dv])
+        if self.ebz_set:
+            target = target + self.ebz_world
+
+        self._update_traj_from_target(target)
+
+    def _on_traj_chamber_enter(self):
+        """User pressed Enter in a chamber entry — convert to stereotaxic coords."""
+        if not self.chamber_state['loaded']:
+            self.traj_info_var.set("Load chamber first."); return
+        try:
+            az_deg = self.traj_az_var.get()
+            el_deg = self.traj_el_var.get()
+            dist = self.traj_dist_var.get()
+        except (ValueError, tk.TclError):
+            self.traj_info_var.set("Invalid chamber coordinates."); return
+
+        self._update_traj_from_chamber(az_deg, el_deg, dist)
+
+    def _update_traj_from_target(self, target):
+        """Given a target point (absolute world), compute chamber coords, update entries and trajectory."""
+        if self._traj_updating:
+            return
+        self._traj_updating = True
+        try:
+            origin = self.chamber_state['origin']
+            x_vec = self.chamber_state['x']
+            y_vec = self.chamber_state['y']
+            normal = self.chamber_state['normal']
+            cor_offset = self.chamber_state['cor_offset']
+
+            direction, az_deg, el_deg, distance, top_pt = calc_target_angles(
+                target, origin, x_vec, y_vec, normal, cor_offset)
+
+            # Update chamber entries
+            self.traj_az_var.set(round(az_deg, 2))
+            self.traj_el_var.set(round(el_deg, 2))
+            self.traj_dist_var.set(round(distance, 2))
+
+            # Update stereotaxic entries (EBZ-relative when set)
+            if self.ebz_set:
+                rel = target - self.ebz_world
+                self.traj_ml_var.set(round(rel[0], 2))
+                self.traj_ap_var.set(round(rel[1], 2))
+                self.traj_dv_var.set(round(rel[2], 2))
+                self.traj_stereo_label.config(text="(rel EBZ)")
+            else:
+                self.traj_ml_var.set(round(target[0], 2))
+                self.traj_ap_var.set(round(target[1], 2))
+                self.traj_dv_var.set(round(target[2], 2))
+                self.traj_stereo_label.config(text="")
+
+            self._set_temp_trajectory(az_deg, el_deg, distance, target, direction, top_pt)
+        finally:
+            self._traj_updating = False
+
+    def _update_traj_from_chamber(self, az_deg, el_deg, dist):
+        """Given chamber angles, compute target point, update entries and trajectory."""
+        if self._traj_updating:
+            return
+        self._traj_updating = True
+        try:
+            origin = self.chamber_state['origin']
+            x_vec = self.chamber_state['x']
+            y_vec = self.chamber_state['y']
+            normal = self.chamber_state['normal']
+            cor_offset = self.chamber_state['cor_offset']
+
+            target, direction, top_pt = calc_penetration_target(
+                origin, az_deg, el_deg, dist, x_vec, y_vec, normal, cor_offset)
+
+            # Update stereotaxic entries (EBZ-relative when set)
+            if self.ebz_set:
+                rel = target - self.ebz_world
+                self.traj_ml_var.set(round(rel[0], 2))
+                self.traj_ap_var.set(round(rel[1], 2))
+                self.traj_dv_var.set(round(rel[2], 2))
+                self.traj_stereo_label.config(text="(rel EBZ)")
+            else:
+                self.traj_ml_var.set(round(target[0], 2))
+                self.traj_ap_var.set(round(target[1], 2))
+                self.traj_dv_var.set(round(target[2], 2))
+                self.traj_stereo_label.config(text="")
+
+            # Update chamber entries (in case of rounding)
+            self.traj_az_var.set(round(az_deg, 2))
+            self.traj_el_var.set(round(el_deg, 2))
+            self.traj_dist_var.set(round(dist, 2))
+
+            self._set_temp_trajectory(az_deg, el_deg, dist, target, direction, top_pt)
+        finally:
+            self._traj_updating = False
+
+    def _set_temp_trajectory(self, az_deg, el_deg, dist, target, direction, top_pt):
+        """Store temp trajectory, update info label, enable buttons, redraw."""
         self.temp_trajectory = {
             'az_deg': az_deg,
             'el_deg': el_deg,
-            'dist_mm': distance,
+            'dist_mm': dist,
             'target': target,
             'direction': direction,
             'top_pt': top_pt,
         }
 
-        # Update the info label
-        self.traj_info_var.set(
-            f"Target: ML={target[0]:.2f}, AP={target[1]:.2f}, DV={target[2]:.2f} mm    |    "
-            f"Az={az_deg:.1f}°  El={el_deg:.1f}°  Dist={distance:.1f} mm")
+        # Info label
+        if self.ebz_set:
+            rel = target - self.ebz_world
+            self.traj_info_var.set(
+                f"Target: ML={rel[0]:+.2f}, AP={rel[1]:+.2f}, DV={rel[2]:+.2f} mm (rel EBZ)    |    "
+                f"Az={az_deg:.1f}°  El={el_deg:.1f}°  Dist={dist:.1f} mm")
+        else:
+            self.traj_info_var.set(
+                f"Target: ML={target[0]:.2f}, AP={target[1]:.2f}, DV={target[2]:.2f} mm    |    "
+                f"Az={az_deg:.1f}°  El={el_deg:.1f}°  Dist={dist:.1f} mm")
 
         self.btn_save_traj.config(state="normal" if self.pen_store.connected else "disabled")
         self.btn_clear_traj.config(state="normal")
 
-        self.display_all()
+        if self.data is not None:
+            self.display_all()
 
     def _save_trajectory(self):
         """Save the currently planned temp trajectory to the DB as a penetration."""
@@ -1347,7 +1507,11 @@ class TriplanarMRIViewer:
         notes = self.traj_notes_var.get().strip()
         # Append target coordinates to notes for reference
         target = t['target']
-        coord_note = f"target=[{target[0]:.2f}, {target[1]:.2f}, {target[2]:.2f}]"
+        if self.ebz_set:
+            rel = target - self.ebz_world
+            coord_note = f"target=[{rel[0]:+.2f}, {rel[1]:+.2f}, {rel[2]:+.2f}] rel EBZ"
+        else:
+            coord_note = f"target=[{target[0]:.2f}, {target[1]:.2f}, {target[2]:.2f}]"
         if notes:
             notes = f"{notes}  ({coord_note})"
         else:
@@ -1373,6 +1537,12 @@ class TriplanarMRIViewer:
         """Remove the temporary planned trajectory."""
         self.temp_trajectory = None
         self.traj_info_var.set("No trajectory planned")
+        self.traj_ml_var.set(0.0)
+        self.traj_ap_var.set(0.0)
+        self.traj_dv_var.set(0.0)
+        self.traj_az_var.set(0.0)
+        self.traj_el_var.set(0.0)
+        self.traj_dist_var.set(35.0)
         self.btn_save_traj.config(state="disabled")
         self.btn_clear_traj.config(state="disabled")
         if self.data is not None:
