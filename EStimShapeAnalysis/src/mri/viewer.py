@@ -109,6 +109,8 @@ class TriplanarMRIViewer:
         self.pen_store = PenetrationStore()
         self.pen_show = True
 
+        self._chamber_path = None  # set by _load_chamber_from_path; persisted in config
+
         self._setup_ui()
 
     # ================================================================ UI
@@ -326,12 +328,15 @@ class TriplanarMRIViewer:
             c = {"default_path": p}
             if self.ebz_set:
                 c["ebz_world"] = self.ebz_world.tolist()
-            if hasattr(self, '_chamber_path') and self._chamber_path:
+            if self._chamber_path and os.path.exists(self._chamber_path):
                 c["monkey_specific_path"] = self._chamber_path
             with open(cp, "w") as f:
                 json.dump(c, f, indent=2)
             self.default_path = p
-            messagebox.showinfo("Saved", "Defaults saved")
+            # Show exactly what got saved so it's easy to verify
+            saved_keys = [k for k in c if k != "default_path"]
+            extra = f"  +  {', '.join(saved_keys)}" if saved_keys else ""
+            messagebox.showinfo("Saved", f"Defaults saved{extra}")
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
@@ -716,7 +721,7 @@ class TriplanarMRIViewer:
         self._load_chamber_from_path(fn)
 
     def _load_chamber_from_path(self, fn):
-        """Load a monkey_specific.py by path. Called from the file dialog and from config."""
+        """Load a monkey_specific.py by absolute path. Safe to call before a volume is loaded."""
         try:
             import importlib.util
             spec = importlib.util.spec_from_file_location("monkey_specific", fn)
@@ -732,7 +737,7 @@ class TriplanarMRIViewer:
 
             self.chamber_state['screws_ebz'] = screws_ebz
             self.chamber_state['cor_offset'] = self._chamber_params['center_of_rotation_offset']
-            self._chamber_path = fn  # remember for Save Defaults
+            self._chamber_path = fn  # remembered so _save_defaults can persist it
             self._refit_chamber()
 
             self.btn_toggle_chamber.config(state="normal")

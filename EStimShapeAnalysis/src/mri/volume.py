@@ -31,10 +31,14 @@ def compute_world_bbox(corrected_affine, dim_sizes):
 
 
 def reslice_view(data, inv_corrected, view_display_bounds, grid_size,
-                 slice_cfg, cursor_world, current_dynamic=0, has_dynamics=False):
+                 slice_cfg, cursor_world, current_dynamic=0, has_dynamics=False,
+                 interp_order=3):
     """
     Sample a 2D slice from the volume for a given view.
-    
+
+    interp_order: passed to scipy.ndimage.map_coordinates.
+        0 = nearest-neighbour, 1 = linear, 3 = cubic (smoothest).
+
     Returns (img2d, h_coords, v_coords) where h_coords and v_coords are in mm.
     """
     fix_wax, h_wax, v_wax = slice_cfg
@@ -61,5 +65,5 @@ def reslice_view(data, inv_corrected, view_display_bounds, grid_size,
         vol = data[:, :, :, current_dynamic]
 
     coords = [vox_flat[:, ax] for ax in range(3)]
-    sampled = map_coordinates(vol, coords, order=1, mode='constant', cval=0)
+    sampled = map_coordinates(vol, coords, order=interp_order, mode='constant', cval=0)
     return sampled.reshape(n_v, n_h), h_coords, v_coords
