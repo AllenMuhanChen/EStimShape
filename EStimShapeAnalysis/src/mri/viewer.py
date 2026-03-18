@@ -93,6 +93,13 @@ class TriplanarMRIViewer:
         self._crop_start = None
         self._crop_view = None
 
+        # Zoom: per-view viewport in display (EBZ-relative) coords {vi: (h_lo,h_hi,v_lo,v_hi)}
+        # Reslicing always uses full crop extent; zoom only restricts the visible window via ax limits.
+        self.zoom_bounds = {}
+
+        # Interpolation order for reslicing (0=nearest, 1=linear, 3=cubic)
+        self.interp_order = 3
+
         # Chamber state (dict passed to chamber.draw_chamber_overlay)
         self.chamber_state = {
             'loaded': False, 'screws_ebz': None,
@@ -158,6 +165,7 @@ class TriplanarMRIViewer:
         self.canvas.mpl_connect("button_press_event", self._on_click)
         self.canvas.mpl_connect("button_release_event", self._on_release)
         self.canvas.mpl_connect("motion_notify_event", self._on_motion)
+        self.canvas.mpl_connect("scroll_event", self._on_scroll)
 
         # Sliders
         self._build_sliders(main)
@@ -219,14 +227,27 @@ class TriplanarMRIViewer:
         ttk.Entry(note_row, textvariable=self.corr_note_var, width=50).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=3)
 
     def _build_crop_panel(self, parent):
-        crop = ttk.LabelFrame(parent, text="View Cropping")
+        crop = ttk.LabelFrame(parent, text="View Cropping & Display")
         crop.pack(fill=tk.X, padx=5, pady=2)
-        self.btn_crop = ttk.Button(crop, text="Crop Views (drag rectangle)", command=self._toggle_crop_mode, state="disabled")
-        self.btn_crop.pack(side=tk.LEFT, padx=3, pady=2)
-        self.btn_reset_crop = ttk.Button(crop, text="Reset All Crops", command=self._reset_crop, state="disabled")
-        self.btn_reset_crop.pack(side=tk.LEFT, padx=3, pady=2)
+
+        row1 = ttk.Frame(crop); row1.pack(fill=tk.X, padx=3, pady=2)
+        self.btn_crop = ttk.Button(row1, text="Crop (drag rect)", command=self._toggle_crop_mode, state="disabled")
+        self.btn_crop.pack(side=tk.LEFT, padx=3)
+        self.btn_reset_crop = ttk.Button(row1, text="Reset Crops", command=self._reset_crop, state="disabled")
+        self.btn_reset_crop.pack(side=tk.LEFT, padx=3)
+        self.btn_reset_zoom = ttk.Button(row1, text="Reset Zoom", command=self._reset_zoom, state="disabled")
+        self.btn_reset_zoom.pack(side=tk.LEFT, padx=3)
+        ttk.Label(row1, text="  Scroll to zoom, double-click to reset view", foreground="#555555").pack(side=tk.LEFT, padx=6)
         self.crop_status_var = tk.StringVar(value="")
-        ttk.Label(crop, textvariable=self.crop_status_var, foreground="blue").pack(side=tk.LEFT, padx=10)
+        ttk.Label(row1, textvariable=self.crop_status_var, foreground="blue").pack(side=tk.LEFT, padx=6)
+
+        row2 = ttk.Frame(crop); row2.pack(fill=tk.X, padx=3, pady=(0, 4))
+        ttk.Label(row2, text="Interpolation:").pack(side=tk.LEFT, padx=3)
+        self.interp_var = tk.StringVar(value="Cubic (order 3)")
+        interp_cb = ttk.Combobox(row2, textvariable=self.interp_var, state="readonly", width=18,
+                                  values=["Nearest (order 0)", "Linear (order 1)", "Cubic (order 3)"])
+        interp_cb.pack(side=tk.LEFT, padx=3)
+        interp_cb.bind("<<ComboboxSelected>>", self._on_interp_change)
 
     def _build_chamber_panel(self, parent):
         ch = ttk.LabelFrame(parent, text="Chamber & Penetrations")
@@ -381,7 +402,8 @@ class TriplanarMRIViewer:
 
             for b in (self.btn_set_ebz, self.btn_ebz_xhair, self.btn_apply,
                       self.btn_reset_corr, self.btn_undo, self.btn_redo,
-                      self.btn_ebz_pick, self.btn_crop, self.btn_reset_crop):
+                      self.btn_ebz_pick, self.btn_crop, self.btn_reset_crop,
+                      self.btn_reset_zoom):
                 b.config(state="normal")
             for b in self.ebz_goto_btns:
                 b.config(state="normal")
@@ -447,9 +469,16 @@ class TriplanarMRIViewer:
             img2d, h_coords, v_coords = reslice_view(
                 self.data, self.inv_corrected, self.view_display_bounds[vi],
                 self.grid_sizes[vi], self.SLICE_CFG[vi], self.cursor_world,
-                self.current_dynamic, self.has_dynamics)
+                self.current_dynamic, self.has_dynamics,
+                interp_order=self.interp_order)
 
-            extent = [h_coords[0], h_coords[-1], v_coords[-1], v_coords[0]]
+            # When EBZ is set, show coords relative to EBZ so the star is at (0,0)
+            disp_off = self.ebz_world if self.ebz_set else np.zeros(3)
+            h_off = disp_off[h_wax]
+            v_off = disp_off[v_wax]
+
+            extent = [h_coords[0] - h_off, h_coords[-1] - h_off,
+                      v_coords[-1] - v_off, v_coords[0] - v_off]
             im = ax.imshow(img2d, cmap='gray', aspect='equal', origin='upper',
                            interpolation='nearest', extent=extent)
             try:
@@ -460,14 +489,14 @@ class TriplanarMRIViewer:
                 pass
 
             # Crosshair
-            ax.axvline(self.cursor_world[h_wax], color='lime', lw=0.7, alpha=0.6)
-            ax.axhline(self.cursor_world[v_wax], color='lime', lw=0.7, alpha=0.6)
+            ax.axvline(self.cursor_world[h_wax] - h_off, color='lime', lw=0.7, alpha=0.6)
+            ax.axhline(self.cursor_world[v_wax] - v_off, color='lime', lw=0.7, alpha=0.6)
 
-            # EBZ
+            # EBZ — always at (0,0) in EBZ-relative display space
             if self.ebz_set:
-                ax.axvline(self.ebz_world[h_wax], color='red', lw=0.5, alpha=0.4, ls='--')
-                ax.axhline(self.ebz_world[v_wax], color='red', lw=0.5, alpha=0.4, ls='--')
-                ax.plot(self.ebz_world[h_wax], self.ebz_world[v_wax], 'r*', markersize=8)
+                ax.axvline(0, color='red', lw=0.5, alpha=0.4, ls='--')
+                ax.axhline(0, color='red', lw=0.5, alpha=0.4, ls='--')
+                ax.plot(0, 0, 'r*', markersize=8)
 
             # Chamber + penetrations
             draw_chamber_overlay(
@@ -475,7 +504,8 @@ class TriplanarMRIViewer:
                 self.ebz_world if self.ebz_set else np.zeros(3),
                 self.pen_store.penetrations if self.pen_store.connected else [],
                 show_chamber=self.chamber_show,
-                show_penetrations=self.pen_show)
+                show_penetrations=self.pen_show,
+                display_offset=disp_off)
 
             # Title
             wval = self.cursor_world[fix_wax]
@@ -489,6 +519,13 @@ class TriplanarMRIViewer:
             ax.set_ylabel(self.WORLD_LABELS[v_wax], fontsize=9)
             ax.tick_params(labelsize=7)
             ax._vi = vi
+
+            # Apply zoom — restricts the visible window WITHOUT changing what was resliced
+            if vi in self.zoom_bounds:
+                zh_lo, zh_hi, zv_lo, zv_hi = self.zoom_bounds[vi]
+                ax.set_xlim(zh_lo, zh_hi)
+                # origin='upper' means y-axis is inverted; pass (hi, lo) to keep that orientation
+                ax.set_ylim(zv_hi, zv_lo)
 
         self.fig.canvas.draw_idle()
         self._update_info()
@@ -549,6 +586,16 @@ class TriplanarMRIViewer:
         if x is None or y is None:
             return
 
+        # Double-click resets zoom on this view
+        if event.dblclick and event.button == 1 and not self.crop_mode:
+            self._reset_zoom(vi)
+            return
+
+        # Display coords are EBZ-relative; convert back to absolute world coords
+        disp_off = self.ebz_world if self.ebz_set else np.zeros(3)
+        x_world = x + disp_off[h_wax]
+        y_world = y + disp_off[v_wax]
+
         if self.crop_mode and event.button == 1:
             from matplotlib.patches import Rectangle
             self._crop_start = (x, y)
@@ -560,15 +607,15 @@ class TriplanarMRIViewer:
             return
 
         if self.ebz_pick_armed and event.button == 3:
-            self.cursor_world[h_wax] = np.clip(x, self.world_min[h_wax], self.world_max[h_wax])
-            self.cursor_world[v_wax] = np.clip(y, self.world_min[v_wax], self.world_max[v_wax])
+            self.cursor_world[h_wax] = np.clip(x_world, self.world_min[h_wax], self.world_max[h_wax])
+            self.cursor_world[v_wax] = np.clip(y_world, self.world_min[v_wax], self.world_max[v_wax])
             self._set_ebz_to_crosshair()
             self._disarm_ebz_pick()
             return
 
         if event.button == 1:
-            self.cursor_world[h_wax] = np.clip(x, self.world_min[h_wax], self.world_max[h_wax])
-            self.cursor_world[v_wax] = np.clip(y, self.world_min[v_wax], self.world_max[v_wax])
+            self.cursor_world[h_wax] = np.clip(x_world, self.world_min[h_wax], self.world_max[h_wax])
+            self.cursor_world[v_wax] = np.clip(y_world, self.world_min[v_wax], self.world_max[v_wax])
             self.display_all()
 
     def _on_release(self, event):
@@ -592,6 +639,11 @@ class TriplanarMRIViewer:
             return
 
         vi = self._crop_view
+        # Convert display (EBZ-relative) coords back to absolute world for storage
+        _, h_wax_c, v_wax_c = self.SLICE_CFG[vi]
+        disp_off = self.ebz_world if self.ebz_set else np.zeros(3)
+        h_lo += disp_off[h_wax_c]; h_hi += disp_off[h_wax_c]
+        v_lo += disp_off[v_wax_c]; v_hi += disp_off[v_wax_c]
         old_crops = getattr(self, '_saved_crop_for_cancel', {})
         self.crop_bounds = {k: v for k, v in old_crops.items() if k != vi}
         self.crop_bounds[vi] = (h_lo, h_hi, v_lo, v_hi)
@@ -627,9 +679,14 @@ class TriplanarMRIViewer:
             x, y = event.xdata, event.ydata
             if x is not None and y is not None:
                 _, h_wax, v_wax = self.SLICE_CFG[vi]
-                self.status_var.set(
-                    f"{self.VIEW_NAMES[vi]}  {self.WORLD_LABELS[h_wax]}={x:.2f}  "
-                    f"{self.WORLD_LABELS[v_wax]}={y:.2f} mm")
+                if self.ebz_set:
+                    self.status_var.set(
+                        f"{self.VIEW_NAMES[vi]}  {self.WORLD_LABELS[h_wax]}={x:+.2f}  "
+                        f"{self.WORLD_LABELS[v_wax]}={y:+.2f} mm  (EBZ-relative)")
+                else:
+                    self.status_var.set(
+                        f"{self.VIEW_NAMES[vi]}  {self.WORLD_LABELS[h_wax]}={x:.2f}  "
+                        f"{self.WORLD_LABELS[v_wax]}={y:.2f} mm")
 
     # ================================================================ EBZ
     def _set_ebz_to_crosshair(self):
@@ -699,6 +756,70 @@ class TriplanarMRIViewer:
                 self._setup_sliders(); self.display_all()
             delattr(self, '_saved_crop_for_cancel')
         self.crop_status_var.set("")
+
+    # ================================================================ Zoom
+    def _on_scroll(self, event):
+        """Scroll-wheel zooms the view under the cursor, centered on the mouse.
+        zoom_bounds are stored in EBZ-relative display coords."""
+        if self.data is None or event.inaxes is None:
+            return
+        ax = event.inaxes
+        if not hasattr(ax, '_vi'):
+            return
+        vi = ax._vi
+        _, h_wax, v_wax = self.SLICE_CFG[vi]
+
+        # Current visible window in display coords
+        if vi in self.zoom_bounds:
+            h_lo, h_hi, v_lo, v_hi = self.zoom_bounds[vi]
+        else:
+            # Default: full resliced extent in display (EBZ-relative) coords
+            disp_off = self.ebz_world if self.ebz_set else np.zeros(3)
+            db = self.view_display_bounds[vi]
+            h_lo = db[0] - disp_off[h_wax]
+            h_hi = db[1] - disp_off[h_wax]
+            v_lo = db[3] - disp_off[v_wax]   # v_hi becomes v_lo in display (inverted)
+            v_hi = db[2] - disp_off[v_wax]
+
+        mx, my = event.xdata, event.ydata  # already in EBZ-relative display coords
+        if mx is None or my is None:
+            return
+
+        factor = 0.75 if event.button == 'up' else (1.0 / 0.75)
+
+        new_h_lo = mx + (h_lo - mx) * factor
+        new_h_hi = mx + (h_hi - mx) * factor
+        new_v_lo = my + (v_lo - my) * factor
+        new_v_hi = my + (v_hi - my) * factor
+
+        # Full extent in display coords (used as zoom-out limit)
+        disp_off = self.ebz_world if self.ebz_set else np.zeros(3)
+        db = self.view_display_bounds[vi]
+        full_h_span = db[1] - db[0]
+        full_v_span = db[3] - db[2]
+
+        if (new_h_hi - new_h_lo) >= full_h_span * 1.01 and            abs(new_v_hi - new_v_lo) >= full_v_span * 1.01:
+            self.zoom_bounds.pop(vi, None)
+        else:
+            self.zoom_bounds[vi] = (new_h_lo, new_h_hi, new_v_lo, new_v_hi)
+
+        self.display_all()
+
+    def _reset_zoom(self, vi=None):
+        """Reset zoom for one view index, or all if vi is None."""
+        if vi is None:
+            self.zoom_bounds.clear()
+        else:
+            self.zoom_bounds.pop(vi, None)
+        if self.data is not None:
+            self.display_all()
+
+    # ================================================================ Interpolation
+    def _on_interp_change(self, event=None):
+        order_map = {"Nearest (order 0)": 0, "Linear (order 1)": 1, "Cubic (order 3)": 3}
+        self.interp_order = order_map.get(self.interp_var.get(), 3)
+        if self.data is not None:
+            self.display_all()
 
     def _reset_crop(self):
         self.crop_bounds = {}
