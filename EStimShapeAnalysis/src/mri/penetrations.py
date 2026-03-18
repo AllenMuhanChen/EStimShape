@@ -1,18 +1,22 @@
 """
 Database-backed penetration management.
 
-Table schema:
+Table schema (v2):
     CREATE TABLE IF NOT EXISTS Penetrations (
         id         INT AUTO_INCREMENT PRIMARY KEY,
         tstamp     BIGINT,
+        session_id VARCHAR(64),
         label      VARCHAR(64),
         az_deg     DOUBLE,
         el_deg     DOUBLE,
         dist_mm    DOUBLE,
+        pen_type   VARCHAR(16) DEFAULT 'planned',
         color      VARCHAR(32) DEFAULT 'cyan',
         visible    TINYINT DEFAULT 1,
         notes      TEXT
     );
+
+pen_type: 'planned' (pre-experiment) or 'actual' (recorded during experiment)
 
 Uses the Connection class from clat for DB access.
 """
@@ -28,15 +32,25 @@ CREATE_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS Penetrations (
     id         INT AUTO_INCREMENT PRIMARY KEY,
     tstamp     BIGINT,
+    session_id VARCHAR(64),
     label      VARCHAR(64),
     az_deg     DOUBLE,
     el_deg     DOUBLE,
     dist_mm    DOUBLE,
+    pen_type   VARCHAR(16) DEFAULT 'planned',
     color      VARCHAR(32) DEFAULT 'cyan',
     visible    TINYINT DEFAULT 1,
     notes      TEXT
 )
 """
+
+# Migration queries: add new columns to existing tables that lack them
+_MIGRATE_SQLS = [
+    "ALTER TABLE Penetrations ADD COLUMN session_id VARCHAR(64) AFTER tstamp",
+    "ALTER TABLE Penetrations ADD COLUMN pen_type VARCHAR(16) DEFAULT 'planned' AFTER dist_mm",
+    # Backfill: copy label -> session_id for existing rows that have no session_id yet
+    "UPDATE Penetrations SET session_id = label WHERE session_id IS NULL",
+]
 
 
 class PenetrationStore:
@@ -52,7 +66,7 @@ class PenetrationStore:
         self._cache = []  # local cache of rows
 
     def connect(self):
-        """Establish DB connection and ensure table exists."""
+        """Establish DB connection, ensure table exists, and migrate if needed."""
         from clat.util.connection import Connection
         self.conn = Connection(
             database=self._database,
@@ -61,7 +75,20 @@ class PenetrationStore:
             host=self._host,
         )
         self.conn.execute(CREATE_TABLE_SQL)
+        self._migrate()
         self.refresh()
+
+    def _migrate(self):
+        """Apply schema migrations (safe to re-run: ignores 'duplicate column' errors)."""
+        for sql in _MIGRATE_SQLS:
+            try:
+                self.conn.execute(sql)
+            except Exception as e:
+                err = str(e).lower()
+                if 'duplicate column' in err or 'duplicate' in err:
+                    pass  # column already exists - skip
+                else:
+                    print(f"Migration warning: {e}")
 
     @property
     def connected(self):
@@ -71,28 +98,32 @@ class PenetrationStore:
         """Reload all penetrations from DB."""
         if not self.connected:
             return
-        self.conn.execute("SELECT id, tstamp, label, az_deg, el_deg, dist_mm, color, visible, notes "
-                          "FROM Penetrations ORDER BY id")
+        self.conn.execute(
+            "SELECT id, tstamp, session_id, label, az_deg, el_deg, dist_mm, "
+            "pen_type, color, visible, notes FROM Penetrations ORDER BY id")
         rows = self.conn.fetch_all()
         self._cache = []
         for row in rows:
             self._cache.append({
                 'id': row[0],
                 'tstamp': row[1],
-                'label': row[2],
-                'az_deg': row[3],
-                'el_deg': row[4],
-                'dist_mm': row[5],
-                'color': row[6] or 'cyan',
-                'visible': bool(row[7]),
-                'notes': row[8] or '',
+                'session_id': row[2] or '',
+                'label': row[3] or '',
+                'az_deg': row[4],
+                'el_deg': row[5],
+                'dist_mm': row[6],
+                'pen_type': row[7] or 'planned',
+                'color': row[8] or 'cyan',
+                'visible': bool(row[9]),
+                'notes': row[10] or '',
             })
 
     @property
     def penetrations(self):
         return self._cache
 
-    def add(self, az_deg, el_deg, dist_mm, label="", color="cyan", notes=""):
+    def add(self, az_deg, el_deg, dist_mm, label="", session_id="",
+            pen_type="planned", color="cyan", notes=""):
         """Insert a new penetration and return its id."""
         if not self.connected:
             raise RuntimeError("Not connected to DB")
@@ -100,9 +131,10 @@ class PenetrationStore:
         if not label:
             label = f"P{len(self._cache) + 1}"
         self.conn.execute(
-            "INSERT INTO Penetrations (tstamp, label, az_deg, el_deg, dist_mm, color, visible, notes) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
-            (tstamp, label, az_deg, el_deg, dist_mm, color, 1, notes))
+            "INSERT INTO Penetrations "
+            "(tstamp, session_id, label, az_deg, el_deg, dist_mm, pen_type, color, visible, notes) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            (tstamp, session_id, label, az_deg, el_deg, dist_mm, pen_type, color, 1, notes))
         self.refresh()
         return self._cache[-1]['id']
 
@@ -110,7 +142,8 @@ class PenetrationStore:
         """Update fields of an existing penetration."""
         if not self.connected:
             return
-        allowed = {'label', 'az_deg', 'el_deg', 'dist_mm', 'color', 'visible', 'notes'}
+        allowed = {'session_id', 'label', 'az_deg', 'el_deg', 'dist_mm',
+                    'pen_type', 'color', 'visible', 'notes'}
         sets = []
         vals = []
         for k, v in kwargs.items():
@@ -146,16 +179,15 @@ class PenetrationListWindow:
 
         self.win = tk.Toplevel(parent)
         self.win.title("Penetrations")
-        self.win.geometry("800x480")
+        self.win.geometry("1050x520")
 
-        # Treeview — extended allows Shift+click / Ctrl+click multi-select
         tree_frame = ttk.Frame(self.win)
         tree_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        cols = ("id", "label", "az", "el", "dist", "color", "visible", "notes")
+        cols = ("id", "session_id", "label", "type", "az", "el", "dist", "color", "visible", "notes")
         self.tree = ttk.Treeview(tree_frame, columns=cols, show="headings",
                                  height=15, selectmode="extended")
-        for c, w in zip(cols, (40, 90, 60, 60, 65, 80, 55, 250)):
+        for c, w in zip(cols, (40, 90, 90, 60, 60, 55, 65, 70, 50, 250)):
             self.tree.heading(c, text=c)
             self.tree.column(c, width=w, stretch=(c == "notes"))
 
@@ -166,11 +198,9 @@ class PenetrationListWindow:
         tree_frame.columnconfigure(0, weight=1)
         tree_frame.rowconfigure(0, weight=1)
 
-        # Row tags: hidden rows appear greyed out
         self.tree.tag_configure("hidden", foreground="#888888")
         self.tree.tag_configure("visible", foreground="")
 
-        # Buttons
         btn_frame = ttk.Frame(self.win)
         btn_frame.pack(fill=tk.X, padx=5, pady=5)
         ttk.Button(btn_frame, text="Toggle Visible", command=self._toggle_vis).pack(side=tk.LEFT, padx=3)
@@ -186,23 +216,22 @@ class PenetrationListWindow:
 
         self._refresh_tree()
 
-    # ------------------------------------------------------------------ data
     def _refresh_tree(self):
-        """Reload from DB and redraw, preserving selection by id."""
         selected_ids = {iid for iid in self.tree.selection()}
         self.store.refresh()
         for item in self.tree.get_children():
             self.tree.delete(item)
         for p in self.store.penetrations:
-            vis = "✓" if p['visible'] else "✗"
+            vis = "\u2713" if p['visible'] else "\u2717"
             tag = "visible" if p['visible'] else "hidden"
             iid = str(p['id'])
             self.tree.insert("", tk.END, iid=iid,
-                             values=(p['id'], p['label'], f"{p['az_deg']:.1f}",
-                                     f"{p['el_deg']:.1f}", f"{p['dist_mm']:.1f}",
+                             values=(p['id'], p['session_id'], p['label'],
+                                     p['pen_type'],
+                                     f"{p['az_deg']:.1f}", f"{p['el_deg']:.1f}",
+                                     f"{p['dist_mm']:.1f}",
                                      p['color'], vis, p['notes']),
                              tags=(tag,))
-        # Restore selection
         still_present = [iid for iid in selected_ids if self.tree.exists(iid)]
         if still_present:
             self.tree.selection_set(still_present)
@@ -211,20 +240,16 @@ class PenetrationListWindow:
                             f"Shift+click or Ctrl+click to select multiple")
 
     def _selected_ids(self):
-        """Return list of int ids for all selected rows, or show warning."""
         sel = self.tree.selection()
         if not sel:
             messagebox.showinfo("Info", "Select one or more penetrations first.")
             return []
         return [int(iid) for iid in sel]
 
-    # ------------------------------------------------------------------ actions
     def _toggle_vis(self):
         ids = self._selected_ids()
         if not ids:
             return
-        # Determine target state: if ANY selected row is currently hidden, show all;
-        # otherwise hide all. This gives consistent one-click behaviour for mixed selections.
         pens = {p['id']: p for p in self.store.penetrations}
         any_hidden = any(not pens[pid]['visible'] for pid in ids if pid in pens)
         new_vis = 1 if any_hidden else 0
@@ -278,11 +303,12 @@ class PenetrationListWindow:
 
         edit_win = tk.Toplevel(self.win)
         edit_win.title(f"Edit Penetration {pid}")
-        edit_win.geometry("400x300")
+        edit_win.geometry("400x360")
 
         fields = {}
         for i, (key, label) in enumerate([
-            ('label', 'Label'), ('az_deg', 'Az (deg)'), ('el_deg', 'El (deg)'),
+            ('session_id', 'Session ID'), ('label', 'Label'),
+            ('pen_type', 'Type'), ('az_deg', 'Az (deg)'), ('el_deg', 'El (deg)'),
             ('dist_mm', 'Dist (mm)'), ('color', 'Color'), ('notes', 'Notes'),
         ]):
             ttk.Label(edit_win, text=f"{label}:").grid(row=i, column=0, padx=5, pady=3, sticky="w")

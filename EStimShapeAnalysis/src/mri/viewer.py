@@ -37,6 +37,17 @@ from src.mri.atlas import (
 _TIP_TO_BOTTOM_CH_UM = 600   # μm from probe tip to bottommost channel
 _CH_SPACING_UM = 65           # μm between adjacent channels
 _N_CHANNELS = 32
+_CHANNEL_ORDER = [
+    7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
+    27, 20, 4, 11, 28, 19, 1, 14, 3, 12, 29, 18, 2, 13, 30, 17
+]
+
+
+def _channel_corrected_dist(tip_dist_mm, channel_num):
+    """Apply channel offset correction: returns distance to given channel instead of tip."""
+    idx = _CHANNEL_ORDER.index(channel_num)
+    offset_um = _TIP_TO_BOTTOM_CH_UM + (31 - idx) * _CH_SPACING_UM
+    return tip_dist_mm - offset_um / 1000.0
 
 
 class TriplanarMRIViewer:
@@ -109,6 +120,11 @@ class TriplanarMRIViewer:
         # Reslicing always uses full crop extent; zoom only restricts the visible window via ax limits.
         self.zoom_bounds = {}
 
+        # Pan: middle-mouse-drag state
+        self._pan_start = None   # (x, y) in display coords at drag start
+        self._pan_view = None    # view index being panned
+        self._pan_bounds = None  # zoom_bounds snapshot at drag start
+
         # Interpolation order for reslicing (0=nearest, 1=linear, 3=cubic)
         self.interp_order = 3
 
@@ -132,6 +148,7 @@ class TriplanarMRIViewer:
 
         # Trajectory planner (temp trajectory before saving)
         self.temp_trajectory = None  # dict: az_deg, el_deg, dist_mm, target, direction, top_pt
+        self.temp_points = []        # list of dicts: az_deg, el_deg, dist_mm, label, color, target, direction, top_pt
         self._traj_updating = False  # guard against infinite loops in bidirectional entry sync
 
         # ---- Atlas state ----
@@ -178,6 +195,18 @@ class TriplanarMRIViewer:
         # Status
         self.status_var = tk.StringVar(value="Ready")
         ttk.Label(main, textvariable=self.status_var).pack(fill=tk.X, padx=5)
+
+        # Session ID row
+        sess_row = ttk.Frame(main); sess_row.pack(fill=tk.X, padx=5, pady=2)
+        ttk.Label(sess_row, text="Session ID:", font=("TkDefaultFont", 10, "bold")).pack(side=tk.LEFT, padx=3)
+        self.session_id_var = tk.StringVar(value="")
+        ttk.Entry(sess_row, textvariable=self.session_id_var, width=20,
+                  font=("TkDefaultFont", 10)).pack(side=tk.LEFT, padx=3)
+        ttk.Label(sess_row, text="(YYMMDD_location, e.g. 260318_0)",
+                  foreground="#555555").pack(side=tk.LEFT, padx=6)
+        self.btn_load_session = ttk.Button(sess_row, text="Load Session",
+                                            command=self._load_session, state="disabled")
+        self.btn_load_session.pack(side=tk.LEFT, padx=6)
 
         # ---- Panel toolbar (one button per section) ----
         self._panel_bar = ttk.Frame(main)
@@ -363,55 +392,122 @@ class TriplanarMRIViewer:
         tp.pack(fill=tk.X, padx=5, pady=2)
         self._panel_frames['trajectory'] = tp
 
-        # Row 1: buttons + label/notes
-        r1 = ttk.Frame(tp); r1.pack(fill=tk.X, padx=3, pady=2)
-        self.btn_plan_traj = ttk.Button(r1, text="Plan to Cursor",
-                                         command=self._plan_trajectory, state="disabled")
-        self.btn_plan_traj.pack(side=tk.LEFT, padx=3)
-        self.btn_save_traj = ttk.Button(r1, text="Save to DB",
-                                         command=self._save_trajectory, state="disabled")
-        self.btn_save_traj.pack(side=tk.LEFT, padx=3)
-        self.btn_clear_traj = ttk.Button(r1, text="Clear",
-                                          command=self._clear_trajectory, state="disabled")
-        self.btn_clear_traj.pack(side=tk.LEFT, padx=3)
+        # ── Section 1: Define the trajectory line ──
+        s1 = ttk.LabelFrame(tp, text="1. Define Trajectory (sets the line)")
+        s1.pack(fill=tk.X, padx=3, pady=2)
 
-        ttk.Label(r1, text="Label:").pack(side=tk.LEFT, padx=(10, 2))
-        self.traj_label_var = tk.StringVar(value="")
-        ttk.Entry(r1, textvariable=self.traj_label_var, width=10).pack(side=tk.LEFT, padx=2)
-        ttk.Label(r1, text="Notes:").pack(side=tk.LEFT, padx=(6, 2))
-        self.traj_notes_var = tk.StringVar(value="")
-        ttk.Entry(r1, textvariable=self.traj_notes_var, width=20).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=2)
-
-        # Row 2: Stereotaxic coordinates (ML, AP, DV) — EBZ-relative when EBZ is set
-        r2 = ttk.Frame(tp); r2.pack(fill=tk.X, padx=3, pady=2)
-        ttk.Label(r2, text="Stereotaxic:").pack(side=tk.LEFT, padx=3)
+        r1a = ttk.Frame(s1); r1a.pack(fill=tk.X, padx=3, pady=1)
+        ttk.Label(r1a, text="Stereotaxic:").pack(side=tk.LEFT, padx=3)
         self.traj_ml_var = tk.DoubleVar(value=0.0)
         self.traj_ap_var = tk.DoubleVar(value=0.0)
         self.traj_dv_var = tk.DoubleVar(value=0.0)
         for lbl, var in [("ML:", self.traj_ml_var), ("AP:", self.traj_ap_var), ("DV:", self.traj_dv_var)]:
-            ttk.Label(r2, text=lbl).pack(side=tk.LEFT, padx=(6, 1))
-            e = ttk.Entry(r2, textvariable=var, width=8)
+            ttk.Label(r1a, text=lbl).pack(side=tk.LEFT, padx=(6, 1))
+            e = ttk.Entry(r1a, textvariable=var, width=8)
             e.pack(side=tk.LEFT, padx=1)
             e.bind("<Return>", lambda ev: self._on_traj_stereo_enter())
-        self.traj_stereo_label = ttk.Label(r2, text="(rel EBZ)" if False else "", foreground="#555555")
+        self.traj_stereo_label = ttk.Label(r1a, text="", foreground="#555555")
         self.traj_stereo_label.pack(side=tk.LEFT, padx=4)
 
-        # Row 3: Chamber coordinates (Az, El, Dist)
-        r3 = ttk.Frame(tp); r3.pack(fill=tk.X, padx=3, pady=2)
-        ttk.Label(r3, text="Chamber:").pack(side=tk.LEFT, padx=3)
+        r1b = ttk.Frame(s1); r1b.pack(fill=tk.X, padx=3, pady=1)
+        ttk.Label(r1b, text="Chamber:").pack(side=tk.LEFT, padx=3)
         self.traj_az_var = tk.DoubleVar(value=0.0)
         self.traj_el_var = tk.DoubleVar(value=0.0)
         self.traj_dist_var = tk.DoubleVar(value=35.0)
         for lbl, var in [("Az(°):", self.traj_az_var), ("El(°):", self.traj_el_var), ("Dist(mm):", self.traj_dist_var)]:
-            ttk.Label(r3, text=lbl).pack(side=tk.LEFT, padx=(6, 1))
-            e = ttk.Entry(r3, textvariable=var, width=8)
+            ttk.Label(r1b, text=lbl).pack(side=tk.LEFT, padx=(6, 1))
+            e = ttk.Entry(r1b, textvariable=var, width=8)
             e.pack(side=tk.LEFT, padx=1)
             e.bind("<Return>", lambda ev: self._on_traj_chamber_enter())
 
-        # Status info
-        self.traj_info_var = tk.StringVar(value="No trajectory planned")
-        ttk.Label(tp, textvariable=self.traj_info_var, font=("TkDefaultFont", 9),
-                  foreground="#006699").pack(anchor="w", padx=5, pady=(1, 3))
+        r1c = ttk.Frame(s1); r1c.pack(fill=tk.X, padx=3, pady=2)
+        self.btn_plan_traj = ttk.Button(r1c, text="Plan to Cursor",
+                                         command=self._plan_trajectory, state="disabled")
+        self.btn_plan_traj.pack(side=tk.LEFT, padx=3)
+        self.btn_set_traj = ttk.Button(r1c, text="Set Trajectory (from entries)",
+                                        command=self._on_traj_chamber_enter, state="disabled")
+        self.btn_set_traj.pack(side=tk.LEFT, padx=3)
+        self.btn_clear_traj = ttk.Button(r1c, text="Clear All",
+                                          command=self._clear_trajectory, state="disabled")
+        self.btn_clear_traj.pack(side=tk.LEFT, padx=3)
+
+        self.traj_info_var = tk.StringVar(value="No trajectory set")
+        ttk.Label(s1, textvariable=self.traj_info_var, font=("TkDefaultFont", 9),
+                  foreground="#006699").pack(anchor="w", padx=5, pady=(0, 2))
+
+        # ── Section 2: Add points along the trajectory ──
+        s2 = ttk.LabelFrame(tp, text="2. Mark Points (along the trajectory)")
+        s2.pack(fill=tk.X, padx=3, pady=2)
+
+        r2a = ttk.Frame(s2); r2a.pack(fill=tk.X, padx=3, pady=2)
+        ttk.Label(r2a, text="Point Dist(mm):").pack(side=tk.LEFT, padx=3)
+        self.traj_pt_dist_var = tk.DoubleVar(value=35.0)
+        pt_dist_entry = ttk.Entry(r2a, textvariable=self.traj_pt_dist_var, width=8)
+        pt_dist_entry.pack(side=tk.LEFT, padx=2)
+        pt_dist_entry.bind("<Return>", lambda ev: self._on_pt_dist_enter())
+
+        ttk.Label(r2a, text="Label:").pack(side=tk.LEFT, padx=(8, 2))
+        self.traj_label_var = tk.StringVar(value="")
+        ttk.Entry(r2a, textvariable=self.traj_label_var, width=8).pack(side=tk.LEFT, padx=2)
+        ttk.Label(r2a, text="Color:").pack(side=tk.LEFT, padx=(6, 2))
+        self.traj_color_var = tk.StringVar(value="yellow")
+        ttk.Combobox(r2a, textvariable=self.traj_color_var, state="readonly", width=8,
+                      values=COLORS).pack(side=tk.LEFT, padx=2)
+        ttk.Label(r2a, text="Notes:").pack(side=tk.LEFT, padx=(6, 2))
+        self.traj_notes_var = tk.StringVar(value="")
+        ttk.Entry(r2a, textvariable=self.traj_notes_var, width=15).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=2)
+
+        r2b = ttk.Frame(s2); r2b.pack(fill=tk.X, padx=3, pady=2)
+        self.btn_add_point = ttk.Button(r2b, text="Add Point at Dist",
+                                         command=self._add_temp_point, state="disabled")
+        self.btn_add_point.pack(side=tk.LEFT, padx=3)
+        self.btn_remove_point = ttk.Button(r2b, text="Remove Last",
+                                            command=self._remove_last_temp_point, state="disabled")
+        self.btn_remove_point.pack(side=tk.LEFT, padx=3)
+        self.traj_pt_info_var = tk.StringVar(value="")
+        ttk.Label(r2b, textvariable=self.traj_pt_info_var, foreground="#555555",
+                  font=("TkDefaultFont", 8)).pack(side=tk.LEFT, padx=8)
+
+        # ── Section 3: Record Actual (during experiment) ──
+        s3 = ttk.LabelFrame(tp, text="3. Record Actual (during experiment)")
+        s3.pack(fill=tk.X, padx=3, pady=2)
+
+        r3a = ttk.Frame(s3); r3a.pack(fill=tk.X, padx=3, pady=2)
+        ttk.Label(r3a, text="Tip Dist(mm):").pack(side=tk.LEFT, padx=3)
+        self.traj_actual_dist_var = tk.DoubleVar(value=35.0)
+        ttk.Entry(r3a, textvariable=self.traj_actual_dist_var, width=8).pack(side=tk.LEFT, padx=2)
+        ttk.Label(r3a, text="Channel#:").pack(side=tk.LEFT, padx=(8, 2))
+        self.traj_channel_var = tk.StringVar(value="0")
+        ttk.Combobox(r3a, textvariable=self.traj_channel_var, width=6,
+                      values=sorted(_CHANNEL_ORDER)).pack(side=tk.LEFT, padx=2)
+        ttk.Label(r3a, text="Label:").pack(side=tk.LEFT, padx=(8, 2))
+        self.traj_actual_label_var = tk.StringVar(value="")
+        ttk.Entry(r3a, textvariable=self.traj_actual_label_var, width=8).pack(side=tk.LEFT, padx=2)
+        ttk.Label(r3a, text="Notes:").pack(side=tk.LEFT, padx=(6, 2))
+        self.traj_actual_notes_var = tk.StringVar(value="")
+        ttk.Entry(r3a, textvariable=self.traj_actual_notes_var, width=15).pack(
+            side=tk.LEFT, fill=tk.X, expand=True, padx=2)
+
+        r3b = ttk.Frame(s3); r3b.pack(fill=tk.X, padx=3, pady=2)
+        self.btn_record_actual = ttk.Button(r3b, text="Record Actual Point",
+                                             command=self._record_actual_point, state="disabled")
+        self.btn_record_actual.pack(side=tk.LEFT, padx=3)
+        self.traj_actual_info_var = tk.StringVar(value="")
+        ttk.Label(r3b, textvariable=self.traj_actual_info_var, foreground="#006699",
+                  font=("TkDefaultFont", 8)).pack(side=tk.LEFT, padx=8)
+
+        # ── Section 4: Save planned points ──
+        s4 = ttk.LabelFrame(tp, text="4. Save Planned Points")
+        s4.pack(fill=tk.X, padx=3, pady=2)
+
+        r4a = ttk.Frame(s4); r4a.pack(fill=tk.X, padx=3, pady=2)
+        self.btn_save_traj = ttk.Button(r4a, text="Save Planned to DB",
+                                         command=self._save_trajectory, state="disabled")
+        self.btn_save_traj.pack(side=tk.LEFT, padx=3)
+
+        self.traj_points_var = tk.StringVar(value="")
+        ttk.Label(s4, textvariable=self.traj_points_var, font=("TkDefaultFont", 8),
+                  foreground="#444444").pack(anchor="w", padx=5, pady=(0, 3))
 
     # ---- Atlas panel ----
     def _build_atlas_panel(self, parent):
@@ -662,6 +758,7 @@ class TriplanarMRIViewer:
 
             if self.chamber_state['loaded']:
                 self.btn_plan_traj.config(state="normal")
+                self.btn_set_traj.config(state="normal")
 
             self._update_corr_info()
             self.display_all()
@@ -855,6 +952,32 @@ class TriplanarMRIViewer:
                     ax.plot(pt[h_wax] - h_off, pt[v_wax] - v_off,
                             'o', color='red', markersize=3, alpha=0.8)
 
+            # Temp points from planner (labeled markers with trajectory lines)
+            if self.temp_points and self.chamber_show:
+                for tp in self.temp_points:
+                    target = tp['target']
+                    color = tp.get('color', 'yellow')
+                    top_pt = tp['top_pt']
+                    direction = tp['direction']
+                    dist = tp['dist_mm']
+                    track_end = top_pt + (dist + 5) * direction
+                    # Trajectory line
+                    ax.plot([top_pt[h_wax] - h_off, track_end[h_wax] - h_off],
+                            [top_pt[v_wax] - v_off, track_end[v_wax] - v_off],
+                            '-', color=color, lw=1.0, alpha=0.7)
+                    # Target marker
+                    ax.plot(target[h_wax] - h_off, target[v_wax] - v_off,
+                            'o', color=color, markersize=6, markeredgecolor='white', markeredgewidth=0.5)
+                    # Label
+                    ax.annotate(tp.get('label', ''),
+                                (target[h_wax] - h_off, target[v_wax] - v_off),
+                                fontsize=7, color=color, ha='left', va='bottom')
+                    # Depth ticks every 5mm
+                    for d in range(0, int(dist) + 1, 5):
+                        pt = top_pt + d * direction
+                        ax.plot(pt[h_wax] - h_off, pt[v_wax] - v_off,
+                                '.', color=color, markersize=2, alpha=0.5)
+
             # Title
             wval = self.cursor_world[fix_wax]
             if self.ebz_set:
@@ -980,12 +1103,33 @@ class TriplanarMRIViewer:
             self._show_atlas_popup(query_world, event)
             return
 
+        # Middle-click starts a pan drag
+        if event.button == 2:
+            self._pan_start = (event.x, event.y)  # pixel coords (stable during drag)
+            self._pan_view = vi
+            if vi in self.zoom_bounds:
+                self._pan_bounds = self.zoom_bounds[vi]
+            else:
+                # Compute default full-extent bounds in display coords
+                disp_off2 = self.ebz_world if self.ebz_set else np.zeros(3)
+                db = self.view_display_bounds[vi]
+                self._pan_bounds = (db[0] - disp_off2[h_wax], db[1] - disp_off2[h_wax],
+                                    db[3] - disp_off2[v_wax], db[2] - disp_off2[v_wax])
+            return
+
         if event.button == 1:
             self.cursor_world[h_wax] = np.clip(x_world, self.world_min[h_wax], self.world_max[h_wax])
             self.cursor_world[v_wax] = np.clip(y_world, self.world_min[v_wax], self.world_max[v_wax])
             self.display_all()
 
     def _on_release(self, event):
+        # End middle-mouse pan
+        if event.button == 2 and self._pan_start is not None:
+            self._pan_start = None
+            self._pan_view = None
+            self._pan_bounds = None
+            return
+
         if not self.crop_mode or self._crop_start is None:
             return
         if event.inaxes is None:
@@ -1031,6 +1175,31 @@ class TriplanarMRIViewer:
     def _on_motion(self, event):
         if self.data is None or event.inaxes is None:
             return
+
+        # Middle-mouse pan drag
+        if self._pan_start is not None and event.inaxes is not None:
+            ax = event.inaxes
+            if hasattr(ax, '_vi') and ax._vi == self._pan_view:
+                # Compute pixel delta from drag start
+                px, py = event.x, event.y
+                px0, py0 = self._pan_start
+                dpx, dpy = px - px0, py - py0
+
+                # Convert pixel delta to data delta using the initial bounds and axes pixel extent
+                pb = self._pan_bounds
+                bbox = ax.get_window_extent()
+                h_range = pb[1] - pb[0]
+                v_range = pb[3] - pb[2]
+                dx_data = -dpx * h_range / bbox.width
+                # y-axis is inverted in display (origin='upper')
+                dy_data = dpy * v_range / bbox.height
+
+                new_bounds = (pb[0] + dx_data, pb[1] + dx_data,
+                              pb[2] + dy_data, pb[3] + dy_data)
+                self.zoom_bounds[self._pan_view] = new_bounds
+                self.display_all()
+            return
+
         if self.crop_mode and self._crop_start is not None and self._crop_rect is not None:
             x, y = event.xdata, event.ydata
             if x is not None and y is not None:
@@ -1054,17 +1223,32 @@ class TriplanarMRIViewer:
                               f"{self.WORLD_LABELS[v_wax]}={y:.2f} mm")
 
                 # Atlas region lookup at hover position
+                hover_world = self.cursor_world.copy()
+                disp_off = self.ebz_world if self.ebz_set else np.zeros(3)
+                hover_world[h_wax] = x + disp_off[h_wax]
+                hover_world[v_wax] = y + disp_off[v_wax]
+
                 if self.atlas_loaded and self.atlas_show and self.atlas_label_names:
                     try:
-                        hover_world = self.cursor_world.copy()
-                        disp_off = self.ebz_world if self.ebz_set else np.zeros(3)
-                        hover_world[h_wax] = x + disp_off[h_wax]
-                        hover_world[v_wax] = y + disp_off[v_wax]
                         region = atlas_label_at_cursor(
                             self.atlas_data, self._atlas_inv_combined(),
                             hover_world, self.atlas_label_names)
                         if region:
                             status += f"   [{region}]"
+                    except Exception:
+                        pass
+
+                # Chamber coordinates at hover position
+                if self.chamber_state.get('loaded', False):
+                    try:
+                        _, az_h, el_h, dist_h, _ = calc_target_angles(
+                            hover_world,
+                            self.chamber_state['origin'],
+                            self.chamber_state['x'],
+                            self.chamber_state['y'],
+                            self.chamber_state['normal'],
+                            self.chamber_state['cor_offset'])
+                        status += f"   Az={az_h:.1f}° El={el_h:.1f}° Dist={dist_h:.1f}mm"
                     except Exception:
                         pass
 
@@ -1270,8 +1454,10 @@ class TriplanarMRIViewer:
             self.btn_toggle_chamber.config(state="normal")
             if self.pen_store.connected:
                 self.btn_add_pen.config(state="normal")
+                self.btn_load_session.config(state="normal")
             if self.data is not None:
                 self.btn_plan_traj.config(state="normal")
+                self.btn_set_traj.config(state="normal")
 
             if hasattr(mod, 'get_electrode_target'):
                 mode, coords = mod.get_electrode_target()
@@ -1318,10 +1504,14 @@ class TriplanarMRIViewer:
             self.btn_toggle_pens.config(state="normal")
             if self.chamber_state['loaded']:
                 self.btn_add_pen.config(state="normal")
-            if self.temp_trajectory is not None:
+            if self.temp_trajectory is not None or self.temp_points:
                 self.btn_save_traj.config(state="normal")
+            if self.temp_trajectory is not None:
+                self.btn_record_actual.config(state="normal")
             n = len(self.pen_store.penetrations)
             self.status_var.set(f"DB connected. {n} penetrations loaded.")
+            if self.chamber_state['loaded']:
+                self.btn_load_session.config(state="normal")
             self.display_all()
         except Exception as e:
             messagebox.showerror("DB Error", str(e))
@@ -1337,8 +1527,10 @@ class TriplanarMRIViewer:
         dist = self.pen_dist_var.get()
         label = self.pen_label_var.get().strip()
         notes = self.pen_notes_var.get().strip()
+        session_id = self.session_id_var.get().strip()
         color = COLORS[len(self.pen_store.penetrations) % len(COLORS)]
-        self.pen_store.add(az, el, dist, label=label, color=color, notes=notes)
+        self.pen_store.add(az, el, dist, label=label, session_id=session_id,
+                           color=color, notes=notes)
         self.display_all()
 
     def _toggle_pens(self):
@@ -1353,17 +1545,16 @@ class TriplanarMRIViewer:
 
     # ================================================================ Trajectory Planner
     def _plan_trajectory(self):
-        """Compute trajectory from chamber origin to current cursor position and populate entries."""
+        """Compute trajectory from chamber origin to current cursor position and lock it in."""
         if not self.chamber_state['loaded']:
             messagebox.showerror("Error", "Load chamber first."); return
         if self.data is None:
             messagebox.showerror("Error", "Load a volume first."); return
-
         target = self.cursor_world.copy()
         self._update_traj_from_target(target)
 
     def _on_traj_stereo_enter(self):
-        """User pressed Enter in a stereotaxic entry — convert to chamber coords."""
+        """User pressed Enter in a stereotaxic entry — set trajectory from target coords."""
         if not self.chamber_state['loaded']:
             self.traj_info_var.set("Load chamber first."); return
         try:
@@ -1372,16 +1563,13 @@ class TriplanarMRIViewer:
             dv = self.traj_dv_var.get()
         except (ValueError, tk.TclError):
             self.traj_info_var.set("Invalid stereotaxic coordinates."); return
-
-        # Convert from EBZ-relative to absolute world coords if EBZ is set
         target = np.array([ml, ap, dv])
         if self.ebz_set:
             target = target + self.ebz_world
-
         self._update_traj_from_target(target)
 
     def _on_traj_chamber_enter(self):
-        """User pressed Enter in a chamber entry — convert to stereotaxic coords."""
+        """User pressed Enter in a chamber entry — set trajectory from az/el/dist."""
         if not self.chamber_state['loaded']:
             self.traj_info_var.set("Load chamber first."); return
         try:
@@ -1390,11 +1578,10 @@ class TriplanarMRIViewer:
             dist = self.traj_dist_var.get()
         except (ValueError, tk.TclError):
             self.traj_info_var.set("Invalid chamber coordinates."); return
-
         self._update_traj_from_chamber(az_deg, el_deg, dist)
 
     def _update_traj_from_target(self, target):
-        """Given a target point (absolute world), compute chamber coords, update entries and trajectory."""
+        """Given a target point, compute chamber coords and lock in the trajectory."""
         if self._traj_updating:
             return
         self._traj_updating = True
@@ -1408,12 +1595,10 @@ class TriplanarMRIViewer:
             direction, az_deg, el_deg, distance, top_pt = calc_target_angles(
                 target, origin, x_vec, y_vec, normal, cor_offset)
 
-            # Update chamber entries
+            # Update both entry rows
             self.traj_az_var.set(round(az_deg, 2))
             self.traj_el_var.set(round(el_deg, 2))
             self.traj_dist_var.set(round(distance, 2))
-
-            # Update stereotaxic entries (EBZ-relative when set)
             if self.ebz_set:
                 rel = target - self.ebz_world
                 self.traj_ml_var.set(round(rel[0], 2))
@@ -1426,12 +1611,12 @@ class TriplanarMRIViewer:
                 self.traj_dv_var.set(round(target[2], 2))
                 self.traj_stereo_label.config(text="")
 
-            self._set_temp_trajectory(az_deg, el_deg, distance, target, direction, top_pt)
+            self._lock_trajectory(az_deg, el_deg, distance, target, direction, top_pt)
         finally:
             self._traj_updating = False
 
     def _update_traj_from_chamber(self, az_deg, el_deg, dist):
-        """Given chamber angles, compute target point, update entries and trajectory."""
+        """Given chamber angles, compute target and lock in the trajectory."""
         if self._traj_updating:
             return
         self._traj_updating = True
@@ -1445,7 +1630,7 @@ class TriplanarMRIViewer:
             target, direction, top_pt = calc_penetration_target(
                 origin, az_deg, el_deg, dist, x_vec, y_vec, normal, cor_offset)
 
-            # Update stereotaxic entries (EBZ-relative when set)
+            # Update stereo entries
             if self.ebz_set:
                 rel = target - self.ebz_world
                 self.traj_ml_var.set(round(rel[0], 2))
@@ -1458,93 +1643,366 @@ class TriplanarMRIViewer:
                 self.traj_dv_var.set(round(target[2], 2))
                 self.traj_stereo_label.config(text="")
 
-            # Update chamber entries (in case of rounding)
             self.traj_az_var.set(round(az_deg, 2))
             self.traj_el_var.set(round(el_deg, 2))
             self.traj_dist_var.set(round(dist, 2))
 
-            self._set_temp_trajectory(az_deg, el_deg, dist, target, direction, top_pt)
+            self._lock_trajectory(az_deg, el_deg, dist, target, direction, top_pt)
         finally:
             self._traj_updating = False
 
-    def _set_temp_trajectory(self, az_deg, el_deg, dist, target, direction, top_pt):
-        """Store temp trajectory, update info label, enable buttons, redraw."""
+    def _lock_trajectory(self, az_deg, el_deg, dist, target, direction, top_pt):
+        """Lock in the trajectory line. Enables point-adding controls."""
         self.temp_trajectory = {
-            'az_deg': az_deg,
-            'el_deg': el_deg,
-            'dist_mm': dist,
-            'target': target,
-            'direction': direction,
-            'top_pt': top_pt,
+            'az_deg': az_deg, 'el_deg': el_deg, 'dist_mm': dist,
+            'target': target, 'direction': direction, 'top_pt': top_pt,
         }
+
+        # Default the point dist to the trajectory dist
+        self.traj_pt_dist_var.set(round(dist, 2))
+        self._update_pt_info()
 
         # Info label
         if self.ebz_set:
             rel = target - self.ebz_world
             self.traj_info_var.set(
-                f"Target: ML={rel[0]:+.2f}, AP={rel[1]:+.2f}, DV={rel[2]:+.2f} mm (rel EBZ)    |    "
-                f"Az={az_deg:.1f}°  El={el_deg:.1f}°  Dist={dist:.1f} mm")
+                f"Trajectory locked: Az={az_deg:.1f}°  El={el_deg:.1f}°  Dist={dist:.1f} mm    |    "
+                f"Target: ML={rel[0]:+.2f}, AP={rel[1]:+.2f}, DV={rel[2]:+.2f} (rel EBZ)")
         else:
             self.traj_info_var.set(
-                f"Target: ML={target[0]:.2f}, AP={target[1]:.2f}, DV={target[2]:.2f} mm    |    "
-                f"Az={az_deg:.1f}°  El={el_deg:.1f}°  Dist={dist:.1f} mm")
+                f"Trajectory locked: Az={az_deg:.1f}°  El={el_deg:.1f}°  Dist={dist:.1f} mm    |    "
+                f"Target: ML={target[0]:.2f}, AP={target[1]:.2f}, DV={target[2]:.2f}")
 
-        self.btn_save_traj.config(state="normal" if self.pen_store.connected else "disabled")
+        # Enable controls
         self.btn_clear_traj.config(state="normal")
+        self.btn_add_point.config(state="normal")
+        self.btn_save_traj.config(state="normal" if self.pen_store.connected else "disabled")
+        self.btn_record_actual.config(state="normal" if self.pen_store.connected else "disabled")
+        self.traj_actual_dist_var.set(round(dist, 2))
 
         if self.data is not None:
             self.display_all()
 
-    def _save_trajectory(self):
-        """Save the currently planned temp trajectory to the DB as a penetration."""
+    def _on_pt_dist_enter(self):
+        """User changed point dist — update the stereo readout for this depth."""
+        self._update_pt_info()
+
+    def _update_pt_info(self):
+        """Show where the current point dist falls in stereotaxic coords."""
         if self.temp_trajectory is None:
-            messagebox.showerror("Error", "Plan a trajectory first."); return
-        if not self.pen_store.connected:
-            messagebox.showerror("Error", "Connect to DB first."); return
+            self.traj_pt_info_var.set("")
+            return
+        try:
+            pt_dist = self.traj_pt_dist_var.get()
+        except (ValueError, tk.TclError):
+            return
+        t = self.temp_trajectory
+        origin = self.chamber_state['origin']
+        cor_offset = self.chamber_state['cor_offset']
+        el_rad = np.radians(t['el_deg'])
+        origin_offset = cor_offset / np.cos(el_rad) if np.cos(el_rad) != 0 else 0.0
+        pt = t['top_pt'] + pt_dist * t['direction'] if pt_dist > origin_offset else t['top_pt']
+        # Actually compute properly: target at pt_dist along trajectory
+        target_at_dist, _, _ = calc_penetration_target(
+            origin, t['az_deg'], t['el_deg'], pt_dist,
+            self.chamber_state['x'], self.chamber_state['y'],
+            self.chamber_state['normal'], cor_offset)
+        if self.ebz_set:
+            rel = target_at_dist - self.ebz_world
+            self.traj_pt_info_var.set(
+                f"At {pt_dist:.1f}mm: ML={rel[0]:+.2f}, AP={rel[1]:+.2f}, DV={rel[2]:+.2f} (rel EBZ)")
+        else:
+            self.traj_pt_info_var.set(
+                f"At {pt_dist:.1f}mm: ML={target_at_dist[0]:.2f}, AP={target_at_dist[1]:.2f}, DV={target_at_dist[2]:.2f}")
+
+    def _add_temp_point(self):
+        """Snapshot a point at the current Point Dist along the locked trajectory."""
+        if self.temp_trajectory is None:
+            messagebox.showerror("Error", "Set a trajectory first."); return
+        try:
+            pt_dist = self.traj_pt_dist_var.get()
+        except (ValueError, tk.TclError):
+            messagebox.showerror("Error", "Invalid point distance."); return
 
         t = self.temp_trajectory
         label = self.traj_label_var.get().strip()
+        if not label:
+            label = f"T{len(self.temp_points) + 1}"
+        color = self.traj_color_var.get()
         notes = self.traj_notes_var.get().strip()
-        # Append target coordinates to notes for reference
-        target = t['target']
+
+        # Compute the target at this dist along the same az/el
+        origin = self.chamber_state['origin']
+        cor_offset = self.chamber_state['cor_offset']
+        target_at_dist, direction, top_pt = calc_penetration_target(
+            origin, t['az_deg'], t['el_deg'], pt_dist,
+            self.chamber_state['x'], self.chamber_state['y'],
+            self.chamber_state['normal'], cor_offset)
+
+        point = {
+            'az_deg': t['az_deg'], 'el_deg': t['el_deg'], 'dist_mm': pt_dist,
+            'label': label, 'color': color, 'notes': notes,
+            'target': target_at_dist, 'direction': direction, 'top_pt': top_pt,
+        }
+        self.temp_points.append(point)
+
+        self.traj_label_var.set(f"T{len(self.temp_points) + 1}")
+        self.btn_remove_point.config(state="normal")
+        self._update_temp_points_display()
+        if self.data is not None:
+            self.display_all()
+
+    def _remove_last_temp_point(self):
+        """Remove the most recently added temp point."""
+        if self.temp_points:
+            self.temp_points.pop()
+        if not self.temp_points:
+            self.btn_remove_point.config(state="disabled")
+        self._update_temp_points_display()
+        if self.data is not None:
+            self.display_all()
+
+    def _update_temp_points_display(self):
+        """Update the summary label showing all temp points."""
+        if not self.temp_points:
+            self.traj_points_var.set("No points added yet")
+            return
+        parts = []
+        for p in self.temp_points:
+            parts.append(f"{p['label']}({p['color']}, D={p['dist_mm']:.1f})")
+        self.traj_points_var.set(f"{len(self.temp_points)} point(s): " + "  |  ".join(parts))
+
+    def _record_actual_point(self):
+        """Record an actual experimental point: saves immediately to DB with channel correction."""
+        if self.temp_trajectory is None:
+            messagebox.showerror("Error", "Set a trajectory first."); return
+        if not self.pen_store.connected:
+            messagebox.showerror("Error", "Connect to DB first."); return
+
+        session_id = self.session_id_var.get().strip()
+        if not session_id:
+            messagebox.showerror("Error", "Enter a Session ID at the top of the window."); return
+
+        try:
+            tip_dist = self.traj_actual_dist_var.get()
+        except (ValueError, tk.TclError):
+            messagebox.showerror("Error", "Invalid tip distance."); return
+
+        try:
+            channel_num = int(self.traj_channel_var.get())
+            if channel_num not in _CHANNEL_ORDER:
+                messagebox.showerror("Error", f"Channel {channel_num} not in channel order."); return
+        except (ValueError, tk.TclError):
+            messagebox.showerror("Error", "Select a valid channel number."); return
+
+        t = self.temp_trajectory
+        label = self.traj_actual_label_var.get().strip() or session_id
+        notes = self.traj_actual_notes_var.get().strip()
+
+        # Apply channel correction
+        corrected_dist = _channel_corrected_dist(tip_dist, channel_num)
+
+        # Compute target at the corrected dist
+        origin = self.chamber_state['origin']
+        cor_offset = self.chamber_state['cor_offset']
+        target_at_dist, _, _ = calc_penetration_target(
+            origin, t['az_deg'], t['el_deg'], corrected_dist,
+            self.chamber_state['x'], self.chamber_state['y'],
+            self.chamber_state['normal'], cor_offset)
+
+        # Build notes
+        notes_extra = f"ch{channel_num} tip={tip_dist:.2f}mm corrected={corrected_dist:.2f}mm"
         if self.ebz_set:
-            rel = target - self.ebz_world
+            rel = target_at_dist - self.ebz_world
             coord_note = f"target=[{rel[0]:+.2f}, {rel[1]:+.2f}, {rel[2]:+.2f}] rel EBZ"
         else:
-            coord_note = f"target=[{target[0]:.2f}, {target[1]:.2f}, {target[2]:.2f}]"
-        if notes:
-            notes = f"{notes}  ({coord_note})"
-        else:
-            notes = coord_note
+            coord_note = f"target=[{target_at_dist[0]:.2f}, {target_at_dist[1]:.2f}, {target_at_dist[2]:.2f}]"
+        full_notes = "  ".join(part for part in [notes, notes_extra, coord_note] if part)
 
         color = COLORS[len(self.pen_store.penetrations) % len(COLORS)]
-        self.pen_store.add(t['az_deg'], t['el_deg'], t['dist_mm'],
-                           label=label, color=color, notes=notes)
+        pen_id = self.pen_store.add(
+            t['az_deg'], t['el_deg'], corrected_dist,
+            label=label, session_id=session_id, pen_type="actual",
+            color=color, notes=full_notes)
 
-        # Also populate the penetration entry fields with the saved values
-        self.pen_az_var.set(round(t['az_deg'], 1))
-        self.pen_el_var.set(round(t['el_deg'], 1))
-        self.pen_dist_var.set(round(t['dist_mm'], 1))
-
-        # Clear temp trajectory (now it's a real penetration)
-        self.temp_trajectory = None
-        self.traj_info_var.set("Trajectory saved to DB.")
-        self.btn_save_traj.config(state="disabled")
-        self.btn_clear_traj.config(state="disabled")
+        self.traj_actual_info_var.set(
+            f"Saved actual id={pen_id}: ch{channel_num}, tip={tip_dist:.1f}→{corrected_dist:.1f}mm")
         self.display_all()
 
+    def _save_trajectory(self):
+        """Save all planned temp points to the DB. If no points, save the trajectory tip."""
+        if not self.pen_store.connected:
+            messagebox.showerror("Error", "Connect to DB first."); return
+
+        session_id = self.session_id_var.get().strip()
+        if not session_id:
+            messagebox.showerror("Error", "Enter a Session ID at the top of the window."); return
+
+        to_save = list(self.temp_points)
+
+        # If no points were explicitly added, save the trajectory tip itself
+        if not to_save and self.temp_trajectory is not None:
+            t = self.temp_trajectory
+            label = self.traj_label_var.get().strip() or "P1"
+            color = self.traj_color_var.get()
+            notes = self.traj_notes_var.get().strip()
+            to_save.append({
+                'az_deg': t['az_deg'], 'el_deg': t['el_deg'], 'dist_mm': t['dist_mm'],
+                'label': label, 'color': color, 'notes': notes, 'target': t['target'].copy(),
+            })
+
+        if not to_save:
+            messagebox.showerror("Error", "Nothing to save."); return
+
+        n_saved = 0
+        for p in to_save:
+            dist = p['dist_mm']
+            notes = p.get('notes', '')
+
+            target = p['target']
+            if self.ebz_set:
+                rel = target - self.ebz_world
+                coord_note = f"target=[{rel[0]:+.2f}, {rel[1]:+.2f}, {rel[2]:+.2f}] rel EBZ"
+            else:
+                coord_note = f"target=[{target[0]:.2f}, {target[1]:.2f}, {target[2]:.2f}]"
+
+            full_notes = "  ".join(part for part in [notes, coord_note] if part)
+            self.pen_store.add(p['az_deg'], p['el_deg'], dist,
+                               label=p['label'], session_id=session_id,
+                               pen_type="planned", color=p['color'], notes=full_notes)
+            n_saved += 1
+
+        # Also save the trajectory tip position as planned_tip
+        if self.temp_trajectory is not None:
+            t = self.temp_trajectory
+            tip_target = t['target']
+            if self.ebz_set:
+                rel = tip_target - self.ebz_world
+                tip_coord = f"target=[{rel[0]:+.2f}, {rel[1]:+.2f}, {rel[2]:+.2f}] rel EBZ"
+            else:
+                tip_coord = f"target=[{tip_target[0]:.2f}, {tip_target[1]:.2f}, {tip_target[2]:.2f}]"
+            self.pen_store.add(
+                t['az_deg'], t['el_deg'], t['dist_mm'],
+                label="tip", session_id=session_id,
+                pen_type="planned_tip", color="white", notes=tip_coord)
+            n_saved += 1
+
+        self.traj_info_var.set(f"Saved {n_saved} planned point{'s' if n_saved != 1 else ''} to DB.")
+        self.display_all()
+
+    def _load_session(self):
+        """Load all penetrations for the current session_id and display them as temp trajectory + points."""
+        if not self.pen_store.connected:
+            messagebox.showerror("Error", "Connect to DB first."); return
+        if not self.chamber_state['loaded']:
+            messagebox.showerror("Error", "Load chamber first."); return
+
+        session_id = self.session_id_var.get().strip()
+        if not session_id:
+            messagebox.showerror("Error", "Enter a Session ID."); return
+
+        self.pen_store.refresh()
+        session_pens = [p for p in self.pen_store.penetrations if p['session_id'] == session_id]
+        if not session_pens:
+            messagebox.showinfo("Info", f"No penetrations found for session '{session_id}'.")
+            return
+
+        origin = self.chamber_state['origin']
+        x_vec = self.chamber_state['x']
+        y_vec = self.chamber_state['y']
+        normal = self.chamber_state['normal']
+        cor_offset = self.chamber_state['cor_offset']
+
+        # Find the planned_tip entry to set the trajectory line
+        tip_entry = None
+        for p in session_pens:
+            if p['pen_type'] == 'planned_tip':
+                tip_entry = p
+                break
+
+        # If no planned_tip, use the first entry's az/el to define the line
+        if tip_entry is None:
+            tip_entry = session_pens[0]
+
+        az, el, dist = tip_entry['az_deg'], tip_entry['el_deg'], tip_entry['dist_mm']
+        target, direction, top_pt = calc_penetration_target(
+            origin, az, el, dist, x_vec, y_vec, normal, cor_offset)
+
+        # Lock this as the trajectory
+        self._traj_updating = True
+        try:
+            self.traj_az_var.set(round(az, 2))
+            self.traj_el_var.set(round(el, 2))
+            self.traj_dist_var.set(round(dist, 2))
+            if self.ebz_set:
+                rel = target - self.ebz_world
+                self.traj_ml_var.set(round(rel[0], 2))
+                self.traj_ap_var.set(round(rel[1], 2))
+                self.traj_dv_var.set(round(rel[2], 2))
+                self.traj_stereo_label.config(text="(rel EBZ)")
+            else:
+                self.traj_ml_var.set(round(target[0], 2))
+                self.traj_ap_var.set(round(target[1], 2))
+                self.traj_dv_var.set(round(target[2], 2))
+                self.traj_stereo_label.config(text="")
+        finally:
+            self._traj_updating = False
+
+        self.temp_trajectory = {
+            'az_deg': az, 'el_deg': el, 'dist_mm': dist,
+            'target': target, 'direction': direction, 'top_pt': top_pt,
+        }
+        self.traj_pt_dist_var.set(round(dist, 2))
+
+        # Load all non-tip entries as temp points
+        self.temp_points.clear()
+        for p in session_pens:
+            if p['pen_type'] == 'planned_tip':
+                continue
+            pt_target, pt_dir, pt_top = calc_penetration_target(
+                origin, p['az_deg'], p['el_deg'], p['dist_mm'],
+                x_vec, y_vec, normal, cor_offset)
+            self.temp_points.append({
+                'az_deg': p['az_deg'], 'el_deg': p['el_deg'], 'dist_mm': p['dist_mm'],
+                'label': p['label'], 'color': p['color'], 'notes': p.get('notes', ''),
+                'target': pt_target, 'direction': pt_dir, 'top_pt': pt_top,
+            })
+
+        n_planned = sum(1 for p in session_pens if p['pen_type'] == 'planned')
+        n_actual = sum(1 for p in session_pens if p['pen_type'] == 'actual')
+        self.traj_info_var.set(
+            f"Loaded session '{session_id}': {n_planned} planned, {n_actual} actual, "
+            f"Az={az:.1f}° El={el:.1f}° Dist={dist:.1f}mm")
+        self._update_pt_info()
+        self._update_temp_points_display()
+
+        # Enable all controls
+        self.btn_clear_traj.config(state="normal")
+        self.btn_add_point.config(state="normal")
+        self.btn_save_traj.config(state="normal")
+        self.btn_record_actual.config(state="normal")
+        if self.temp_points:
+            self.btn_remove_point.config(state="normal")
+
+        if self.data is not None:
+            self.display_all()
+
     def _clear_trajectory(self):
-        """Remove the temporary planned trajectory."""
+        """Remove the trajectory and all temp points."""
         self.temp_trajectory = None
-        self.traj_info_var.set("No trajectory planned")
-        self.traj_ml_var.set(0.0)
-        self.traj_ap_var.set(0.0)
-        self.traj_dv_var.set(0.0)
-        self.traj_az_var.set(0.0)
-        self.traj_el_var.set(0.0)
-        self.traj_dist_var.set(35.0)
+        self.temp_points.clear()
+        self.traj_info_var.set("No trajectory set")
+        self.traj_pt_info_var.set("")
+        self.traj_actual_info_var.set("")
+        self._update_temp_points_display()
+        self.traj_ml_var.set(0.0); self.traj_ap_var.set(0.0); self.traj_dv_var.set(0.0)
+        self.traj_az_var.set(0.0); self.traj_el_var.set(0.0); self.traj_dist_var.set(35.0)
+        self.traj_pt_dist_var.set(35.0)
         self.btn_save_traj.config(state="disabled")
         self.btn_clear_traj.config(state="disabled")
+        self.btn_remove_point.config(state="disabled")
+        self.btn_add_point.config(state="disabled")
+        self.btn_record_actual.config(state="disabled")
         if self.data is not None:
             self.display_all()
 
