@@ -57,7 +57,7 @@ class TriplanarMRIViewer:
         self.inv_corrected = None
         self.voxel_sizes = None
         self.default_path = default_path
-        self.output_voxel_size = 0.75
+        self.output_voxel_size = 0.4
 
         # Correction persistence
         self.corr_config = None
@@ -248,6 +248,13 @@ class TriplanarMRIViewer:
                                   values=["Nearest (order 0)", "Linear (order 1)", "Cubic (order 3)"])
         interp_cb.pack(side=tk.LEFT, padx=3)
         interp_cb.bind("<<ComboboxSelected>>", self._on_interp_change)
+
+        ttk.Label(row2, text="  Sample res (mm/px):").pack(side=tk.LEFT, padx=(12, 3))
+        self.voxel_size_var = tk.DoubleVar(value=self.output_voxel_size)
+        voxel_entry = ttk.Entry(row2, textvariable=self.voxel_size_var, width=6)
+        voxel_entry.pack(side=tk.LEFT, padx=3)
+        voxel_entry.bind("<Return>", self._on_voxel_size_change)
+        ttk.Label(row2, text="(lower = finer, Enter to apply)").pack(side=tk.LEFT, padx=3)
 
     def _build_chamber_panel(self, parent):
         ch = ttk.LabelFrame(parent, text="Chamber & Penetrations")
@@ -814,11 +821,24 @@ class TriplanarMRIViewer:
         if self.data is not None:
             self.display_all()
 
-    # ================================================================ Interpolation
+    # ================================================================ Interpolation / resolution
     def _on_interp_change(self, event=None):
         order_map = {"Nearest (order 0)": 0, "Linear (order 1)": 1, "Cubic (order 3)": 3}
         self.interp_order = order_map.get(self.interp_var.get(), 3)
         if self.data is not None:
+            self.display_all()
+
+    def _on_voxel_size_change(self, event=None):
+        try:
+            vs = float(self.voxel_size_var.get())
+            if vs <= 0:
+                raise ValueError
+        except (ValueError, tk.TclError):
+            self.voxel_size_var.set(self.output_voxel_size)
+            return
+        self.output_voxel_size = vs
+        if self.data is not None:
+            self._recompute()
             self.display_all()
 
     def _reset_crop(self):
