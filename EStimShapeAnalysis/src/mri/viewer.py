@@ -24,7 +24,7 @@ from src.mri.correction import (
     load_corrections, save_corrections, push_correction,
     load_crop_bounds, save_crop_bounds,
 )
-from src.mri.chamber import fit_chamber, draw_chamber_overlay
+from src.mri.chamber import fit_chamber, draw_chamber_overlay, calc_penetration_target, calc_target_angles
 from src.mri.penetrations import PenetrationStore, PenetrationListWindow, COLORS
 from src.mri.atlas import (
     load_atlas, load_atlas_labels,
@@ -32,6 +32,11 @@ from src.mri.atlas import (
     atlas_label_at_cursor, atlas_label_detail,
     load_template_mri, reslice_template_mri,
 )
+
+# Probe geometry (matches import_penetration.py)
+_TIP_TO_BOTTOM_CH_UM = 600   # μm from probe tip to bottommost channel
+_CH_SPACING_UM = 65           # μm between adjacent channels
+_N_CHANNELS = 32
 
 
 class TriplanarMRIViewer:
@@ -125,6 +130,9 @@ class TriplanarMRIViewer:
 
         self._chamber_path = None  # set by _load_chamber_from_path; persisted in config
 
+        # Trajectory planner (temp trajectory before saving)
+        self.temp_trajectory = None  # dict: az_deg, el_deg, dist_mm, target, direction, top_pt
+
         # ---- Atlas state ----
         self.atlas_data = None          # ndarray (I,J,K) int labels
         self.atlas_sform = None         # 4×4 voxel→atlas-stereo
@@ -182,6 +190,7 @@ class TriplanarMRIViewer:
         self._build_correction_panel(self._panels_frame)
         self._build_crop_panel(self._panels_frame)
         self._build_chamber_panel(self._panels_frame)
+        self._build_trajectory_panel(self._panels_frame)
         self._build_atlas_panel(self._panels_frame)
 
         # Figure
@@ -331,6 +340,35 @@ class TriplanarMRIViewer:
         self.btn_add_pen.pack(side=tk.LEFT, padx=3)
         self.btn_toggle_pens = ttk.Button(br, text="Hide Penetrations", command=self._toggle_pens, state="disabled")
         self.btn_toggle_pens.pack(side=tk.LEFT, padx=3)
+
+    # ---- Trajectory Planner panel ----
+    def _build_trajectory_panel(self, parent):
+        tp = ttk.LabelFrame(parent, text="Trajectory Planner")
+        tp.pack(fill=tk.X, padx=5, pady=2)
+
+        # Top row: buttons
+        r1 = ttk.Frame(tp); r1.pack(fill=tk.X, padx=3, pady=2)
+        self.btn_plan_traj = ttk.Button(r1, text="Plan to Cursor",
+                                         command=self._plan_trajectory, state="disabled")
+        self.btn_plan_traj.pack(side=tk.LEFT, padx=3)
+        self.btn_save_traj = ttk.Button(r1, text="Save to DB",
+                                         command=self._save_trajectory, state="disabled")
+        self.btn_save_traj.pack(side=tk.LEFT, padx=3)
+        self.btn_clear_traj = ttk.Button(r1, text="Clear",
+                                          command=self._clear_trajectory, state="disabled")
+        self.btn_clear_traj.pack(side=tk.LEFT, padx=3)
+
+        ttk.Label(r1, text="Label:").pack(side=tk.LEFT, padx=(10, 2))
+        self.traj_label_var = tk.StringVar(value="")
+        ttk.Entry(r1, textvariable=self.traj_label_var, width=10).pack(side=tk.LEFT, padx=2)
+        ttk.Label(r1, text="Notes:").pack(side=tk.LEFT, padx=(6, 2))
+        self.traj_notes_var = tk.StringVar(value="")
+        ttk.Entry(r1, textvariable=self.traj_notes_var, width=20).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=2)
+
+        # Info text showing computed trajectory parameters
+        self.traj_info_var = tk.StringVar(value="No trajectory planned")
+        ttk.Label(tp, textvariable=self.traj_info_var, font=("TkDefaultFont", 9),
+                  wraplength=900, justify=tk.LEFT).pack(anchor="w", padx=5, pady=(1, 3))
 
     # ---- Atlas panel ----
     def _build_atlas_panel(self, parent):
@@ -570,6 +608,9 @@ class TriplanarMRIViewer:
             for b in self.ebz_goto_btns:
                 b.config(state="normal")
 
+            if self.chamber_state['loaded']:
+                self.btn_plan_traj.config(state="normal")
+
             self._update_corr_info()
             self.display_all()
             self.status_var.set(
@@ -738,6 +779,29 @@ class TriplanarMRIViewer:
                 show_chamber=self.chamber_show,
                 show_penetrations=self.pen_show,
                 display_offset=disp_off)
+
+            # Temp trajectory from planner (solid yellow line, red channel dots)
+            if self.temp_trajectory is not None and self.chamber_show:
+                t = self.temp_trajectory
+                top_pt = t['top_pt']
+                direction = t['direction']
+                dist = t['dist_mm']
+                track_end = top_pt + (dist + 5) * direction
+                target = t['target']
+                ax.plot([top_pt[h_wax] - h_off, track_end[h_wax] - h_off],
+                        [top_pt[v_wax] - v_off, track_end[v_wax] - v_off],
+                        '-', color='yellow', lw=1.5, alpha=0.9)
+                ax.plot(target[h_wax] - h_off, target[v_wax] - v_off,
+                        'x', color='yellow', markersize=8, markeredgewidth=2)
+                # Per-channel dots along the probe shank
+                for idx in range(32):
+                    offset_mm = (_TIP_TO_BOTTOM_CH_UM + (31 - idx) * _CH_SPACING_UM) / 1000.0
+                    ch_dist = dist - offset_mm
+                    if ch_dist < 0:
+                        continue
+                    pt = top_pt + ch_dist * direction
+                    ax.plot(pt[h_wax] - h_off, pt[v_wax] - v_off,
+                            'o', color='red', markersize=3, alpha=0.8)
 
             # Title
             wval = self.cursor_world[fix_wax]
@@ -1153,6 +1217,8 @@ class TriplanarMRIViewer:
             self.btn_toggle_chamber.config(state="normal")
             if self.pen_store.connected:
                 self.btn_add_pen.config(state="normal")
+            if self.data is not None:
+                self.btn_plan_traj.config(state="normal")
 
             if hasattr(mod, 'get_electrode_target'):
                 mode, coords = mod.get_electrode_target()
@@ -1199,6 +1265,8 @@ class TriplanarMRIViewer:
             self.btn_toggle_pens.config(state="normal")
             if self.chamber_state['loaded']:
                 self.btn_add_pen.config(state="normal")
+            if self.temp_trajectory is not None:
+                self.btn_save_traj.config(state="normal")
             n = len(self.pen_store.penetrations)
             self.status_var.set(f"DB connected. {n} penetrations loaded.")
             self.display_all()
@@ -1229,6 +1297,86 @@ class TriplanarMRIViewer:
         if not self.pen_store.connected:
             messagebox.showerror("Error", "Connect to DB first."); return
         PenetrationListWindow(self.root, self.pen_store, on_change_callback=self.display_all)
+
+    # ================================================================ Trajectory Planner
+    def _plan_trajectory(self):
+        """Compute trajectory from chamber origin to current cursor position and show temp line."""
+        if not self.chamber_state['loaded']:
+            messagebox.showerror("Error", "Load chamber first."); return
+        if self.data is None:
+            messagebox.showerror("Error", "Load a volume first."); return
+
+        target = self.cursor_world.copy()
+        origin = self.chamber_state['origin']
+        x_vec = self.chamber_state['x']
+        y_vec = self.chamber_state['y']
+        normal = self.chamber_state['normal']
+        cor_offset = self.chamber_state['cor_offset']
+
+        direction, az_deg, el_deg, distance, top_pt = calc_target_angles(
+            target, origin, x_vec, y_vec, normal, cor_offset)
+
+        self.temp_trajectory = {
+            'az_deg': az_deg,
+            'el_deg': el_deg,
+            'dist_mm': distance,
+            'target': target,
+            'direction': direction,
+            'top_pt': top_pt,
+        }
+
+        # Update the info label
+        self.traj_info_var.set(
+            f"Target: ML={target[0]:.2f}, AP={target[1]:.2f}, DV={target[2]:.2f} mm    |    "
+            f"Az={az_deg:.1f}°  El={el_deg:.1f}°  Dist={distance:.1f} mm")
+
+        self.btn_save_traj.config(state="normal" if self.pen_store.connected else "disabled")
+        self.btn_clear_traj.config(state="normal")
+
+        self.display_all()
+
+    def _save_trajectory(self):
+        """Save the currently planned temp trajectory to the DB as a penetration."""
+        if self.temp_trajectory is None:
+            messagebox.showerror("Error", "Plan a trajectory first."); return
+        if not self.pen_store.connected:
+            messagebox.showerror("Error", "Connect to DB first."); return
+
+        t = self.temp_trajectory
+        label = self.traj_label_var.get().strip()
+        notes = self.traj_notes_var.get().strip()
+        # Append target coordinates to notes for reference
+        target = t['target']
+        coord_note = f"target=[{target[0]:.2f}, {target[1]:.2f}, {target[2]:.2f}]"
+        if notes:
+            notes = f"{notes}  ({coord_note})"
+        else:
+            notes = coord_note
+
+        color = COLORS[len(self.pen_store.penetrations) % len(COLORS)]
+        self.pen_store.add(t['az_deg'], t['el_deg'], t['dist_mm'],
+                           label=label, color=color, notes=notes)
+
+        # Also populate the penetration entry fields with the saved values
+        self.pen_az_var.set(round(t['az_deg'], 1))
+        self.pen_el_var.set(round(t['el_deg'], 1))
+        self.pen_dist_var.set(round(t['dist_mm'], 1))
+
+        # Clear temp trajectory (now it's a real penetration)
+        self.temp_trajectory = None
+        self.traj_info_var.set("Trajectory saved to DB.")
+        self.btn_save_traj.config(state="disabled")
+        self.btn_clear_traj.config(state="disabled")
+        self.display_all()
+
+    def _clear_trajectory(self):
+        """Remove the temporary planned trajectory."""
+        self.temp_trajectory = None
+        self.traj_info_var.set("No trajectory planned")
+        self.btn_save_traj.config(state="disabled")
+        self.btn_clear_traj.config(state="disabled")
+        if self.data is not None:
+            self.display_all()
 
     # ================================================================ Correction matrix
     def _apply_correction(self):

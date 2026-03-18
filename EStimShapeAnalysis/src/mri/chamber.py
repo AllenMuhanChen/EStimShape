@@ -84,6 +84,33 @@ def calc_penetration_target(origin, az_deg, el_deg, dist, x, y, normal, cor_offs
     return target, direction, top_pt
 
 
+def calc_target_angles(target, origin, x, y, normal, cor_offset):
+    """
+    Given a target point in world coords, compute the chamber angles and distance
+    needed to reach it from the chamber origin.
+
+    Returns:
+        direction: unit vector from origin toward target
+        az_deg: azimuth angle in degrees
+        el_deg: elevation angle in degrees
+        distance: total travel distance in mm (from top of chamber)
+        top_pt: top-of-chamber entry point
+    """
+    direction = (target - origin)
+    direction = direction / norm(direction)
+
+    # Decompose into chamber coordinates
+    az = np.arctan2(np.dot(direction, y), np.dot(direction, x))
+    el = np.arccos(np.clip(np.dot(direction, normal), -1.0, 1.0))
+
+    # Distance including offset from top of chamber to center of rotation
+    origin_offset = cor_offset / np.cos(el) if np.cos(el) != 0 else 0.0
+    distance = norm(target - origin) + origin_offset
+    top_pt = origin - origin_offset * direction
+
+    return direction, np.degrees(az), np.degrees(el), distance, top_pt
+
+
 def draw_chamber_overlay(ax, vi, slice_cfg, chamber_state, ebz_world, penetrations,
                          show_chamber=True, show_penetrations=True, display_offset=None):
     """
