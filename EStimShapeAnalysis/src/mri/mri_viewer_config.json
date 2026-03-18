@@ -5,5 +5,7 @@
     -8.952217807674941,
     7.296271113306432
   ],
-  "monkey_specific_path": "/home/connorlab/git/stereotax/monkey_specific.py"
+  "monkey_specific_path": "/home/connorlab/git/stereotax/monkey_specific.py",
+  "atlas_nifti_path": "/home/connorlab/Documents/NMT_v2.0_sym/NMT_v2.0_sym/D99_atlas_in_NMT_v2.0_sym.nii.gz",
+  "atlas_label_path": "/home/connorlab/Documents/NMT_v2.0_sym/tables_D99/D99_labeltable.txt"
 }

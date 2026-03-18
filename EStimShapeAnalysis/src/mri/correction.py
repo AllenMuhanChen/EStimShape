@@ -29,6 +29,9 @@ def rot_z(deg):
 def xlate(dx, dy, dz):
     M = np.eye(4); M[:3, 3] = [dx, dy, dz]; return M
 
+def scale(sx, sy, sz):
+    M = np.eye(4); M[0,0]=sx; M[1,1]=sy; M[2,2]=sz; return M
+
 
 # ====================================================================
 # Persistence

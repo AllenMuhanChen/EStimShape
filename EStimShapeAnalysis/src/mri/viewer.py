@@ -6,6 +6,7 @@ Delegates to:
     correction.py  — correction matrix persistence, transforms
     chamber.py     — chamber geometry, overlay drawing
     penetrations.py — DB-backed penetration management
+    atlas.py       — NIfTI atlas loading, reslicing, contour overlay
 """
 
 import numpy as np
@@ -19,12 +20,17 @@ from tkinter import filedialog, messagebox, ttk
 
 from src.mri.volume import load_volume, compute_world_bbox, reslice_view
 from src.mri.correction import (
-    rot_x, rot_y, rot_z, xlate,
+    rot_x, rot_y, rot_z, xlate, scale,
     load_corrections, save_corrections, push_correction,
     load_crop_bounds, save_crop_bounds,
 )
 from src.mri.chamber import fit_chamber, draw_chamber_overlay
 from src.mri.penetrations import PenetrationStore, PenetrationListWindow, COLORS
+from src.mri.atlas import (
+    load_atlas, load_atlas_labels,
+    reslice_atlas, draw_atlas_contours,
+    atlas_label_at_cursor, atlas_label_detail,
+)
 
 
 class TriplanarMRIViewer:
@@ -118,6 +124,23 @@ class TriplanarMRIViewer:
 
         self._chamber_path = None  # set by _load_chamber_from_path; persisted in config
 
+        # ---- Atlas state ----
+        self.atlas_data = None          # ndarray (I,J,K) int labels
+        self.atlas_sform = None         # 4×4 voxel→atlas-stereo
+        self.atlas_correction = np.eye(4)  # 4×4 atlas-stereo→corrected-world
+        self.atlas_label_names = {}     # {int: str}
+        self.atlas_show = False         # overlay visible?
+        self.atlas_loaded = False
+        self._atlas_nifti_path = None
+        self._atlas_label_path = None
+        # Atlas correction persistence (reuses correction.py helpers)
+        self.atlas_corr_config = None
+        self.atlas_corr_json_path = None
+        # Contour appearance
+        self.atlas_contour_color = 'cyan'
+        self.atlas_contour_lw = 0.6
+        self.atlas_contour_alpha = 0.7
+
         self._setup_ui()
 
     # ================================================================ UI
@@ -151,6 +174,7 @@ class TriplanarMRIViewer:
         self._build_correction_panel(self._panels_frame)
         self._build_crop_panel(self._panels_frame)
         self._build_chamber_panel(self._panels_frame)
+        self._build_atlas_panel(self._panels_frame)
 
         # Figure
         fig_frame = ttk.Frame(main)
@@ -166,6 +190,10 @@ class TriplanarMRIViewer:
         self.canvas.mpl_connect("button_release_event", self._on_release)
         self.canvas.mpl_connect("motion_notify_event", self._on_motion)
         self.canvas.mpl_connect("scroll_event", self._on_scroll)
+
+        # Global key bindings
+        self.root.bind("<a>", self._on_key_atlas_toggle)
+        self.root.bind("<A>", self._on_key_atlas_toggle)
 
         # Sliders
         self._build_sliders(main)
@@ -294,6 +322,102 @@ class TriplanarMRIViewer:
         self.btn_toggle_pens = ttk.Button(br, text="Hide Penetrations", command=self._toggle_pens, state="disabled")
         self.btn_toggle_pens.pack(side=tk.LEFT, padx=3)
 
+    # ---- Atlas panel ----
+    def _build_atlas_panel(self, parent):
+        at = ttk.LabelFrame(parent, text="Atlas Alignment  (hotkey 'A' to toggle)")
+        at.pack(fill=tk.X, padx=5, pady=2)
+
+        # Row 1: file loading + toggle
+        r1 = ttk.Frame(at); r1.pack(fill=tk.X, padx=3, pady=2)
+        self.btn_load_atlas = ttk.Button(r1, text="Load Atlas NIfTI...", command=self._browse_atlas_nifti)
+        self.btn_load_atlas.pack(side=tk.LEFT, padx=3)
+        self.btn_load_atlas_labels = ttk.Button(r1, text="Load Labels...", command=self._browse_atlas_labels, state="disabled")
+        self.btn_load_atlas_labels.pack(side=tk.LEFT, padx=3)
+        self.btn_toggle_atlas = ttk.Button(r1, text="Show Atlas", command=self._toggle_atlas, state="disabled")
+        self.btn_toggle_atlas.pack(side=tk.LEFT, padx=3)
+        self.atlas_info_var = tk.StringVar(value="No atlas loaded")
+        ttk.Label(r1, textvariable=self.atlas_info_var).pack(side=tk.LEFT, padx=8)
+
+        # Row 2: rotation
+        r2 = ttk.Frame(at); r2.pack(fill=tk.X, padx=3, pady=2)
+        ttk.Label(r2, text="Rotate (deg):").pack(side=tk.LEFT, padx=3)
+        for al, an in [("X(ML/roll)", "x"), ("Y(AP/pitch)", "y"), ("Z(DV/yaw)", "z")]:
+            ttk.Label(r2, text=f"{al}:").pack(side=tk.LEFT, padx=(6, 2))
+            v = tk.DoubleVar(value=0.0); setattr(self, f"atlas_rot_{an}_var", v)
+            ttk.Entry(r2, textvariable=v, width=7).pack(side=tk.LEFT, padx=2)
+
+        # Row 3: translation
+        r3 = ttk.Frame(at); r3.pack(fill=tk.X, padx=3, pady=2)
+        ttk.Label(r3, text="Translate (mm):").pack(side=tk.LEFT, padx=3)
+        for al, an in [("X(ML)", "tx"), ("Y(AP)", "ty"), ("Z(DV)", "tz")]:
+            ttk.Label(r3, text=f"{al}:").pack(side=tk.LEFT, padx=(6, 2))
+            v = tk.DoubleVar(value=0.0); setattr(self, f"atlas_trans_{an}_var", v)
+            ttk.Entry(r3, textvariable=v, width=7).pack(side=tk.LEFT, padx=2)
+
+        # Row 3b: scale (uniform by default, per-axis optional)
+        r3b = ttk.Frame(at); r3b.pack(fill=tk.X, padx=3, pady=2)
+        ttk.Label(r3b, text="Scale (%):").pack(side=tk.LEFT, padx=3)
+        ttk.Label(r3b, text="Uniform:").pack(side=tk.LEFT, padx=(6, 2))
+        self.atlas_scale_uniform_var = tk.DoubleVar(value=0.0)
+        self.atlas_scale_uniform_entry = ttk.Entry(r3b, textvariable=self.atlas_scale_uniform_var, width=7)
+        self.atlas_scale_uniform_entry.pack(side=tk.LEFT, padx=2)
+        ttk.Label(r3b, text="  Per-axis:").pack(side=tk.LEFT, padx=(10, 2))
+        self.atlas_scale_peraxis_var = tk.BooleanVar(value=False)
+        self.atlas_scale_peraxis_cb = ttk.Checkbutton(
+            r3b, variable=self.atlas_scale_peraxis_var,
+            command=self._on_atlas_scale_mode_change)
+        self.atlas_scale_peraxis_cb.pack(side=tk.LEFT, padx=2)
+        self.atlas_scale_axis_vars = {}
+        self.atlas_scale_axis_entries = {}
+        for al, an in [("X:", "sx"), ("Y:", "sy"), ("Z:", "sz")]:
+            lbl = ttk.Label(r3b, text=al); lbl.pack(side=tk.LEFT, padx=(4, 1))
+            v = tk.DoubleVar(value=0.0); self.atlas_scale_axis_vars[an] = v
+            e = ttk.Entry(r3b, textvariable=v, width=6, state="disabled")
+            e.pack(side=tk.LEFT, padx=1)
+            self.atlas_scale_axis_entries[an] = e
+        ttk.Label(r3b, text="(0 = no change)", foreground="#555555").pack(side=tk.LEFT, padx=6)
+
+        # Row 4: buttons
+        r4 = ttk.Frame(at); r4.pack(fill=tk.X, padx=3, pady=2)
+        self.btn_atlas_apply = ttk.Button(r4, text="Apply", command=self._apply_atlas_correction, state="disabled")
+        self.btn_atlas_apply.pack(side=tk.LEFT, padx=3)
+        self.btn_atlas_reset = ttk.Button(r4, text="Reset to Identity", command=self._reset_atlas_correction, state="disabled")
+        self.btn_atlas_reset.pack(side=tk.LEFT, padx=3)
+        self.btn_atlas_undo = ttk.Button(r4, text="Undo", command=self._atlas_undo, state="disabled")
+        self.btn_atlas_undo.pack(side=tk.LEFT, padx=3)
+        self.btn_atlas_redo = ttk.Button(r4, text="Redo", command=self._atlas_redo, state="disabled")
+        self.btn_atlas_redo.pack(side=tk.LEFT, padx=3)
+        ttk.Button(r4, text="History", command=self._show_atlas_history).pack(side=tk.LEFT, padx=3)
+
+        # Row 5: appearance
+        r5 = ttk.Frame(at); r5.pack(fill=tk.X, padx=3, pady=2)
+        ttk.Label(r5, text="Contour color:").pack(side=tk.LEFT, padx=3)
+        self.atlas_color_var = tk.StringVar(value="cyan")
+        color_cb = ttk.Combobox(r5, textvariable=self.atlas_color_var, state="readonly", width=10,
+                                values=["cyan", "yellow", "lime", "magenta", "red", "orange", "white"])
+        color_cb.pack(side=tk.LEFT, padx=3)
+        color_cb.bind("<<ComboboxSelected>>", self._on_atlas_color_change)
+
+        ttk.Label(r5, text="Line width:").pack(side=tk.LEFT, padx=(8, 3))
+        self.atlas_lw_var = tk.DoubleVar(value=0.6)
+        ttk.Entry(r5, textvariable=self.atlas_lw_var, width=5).pack(side=tk.LEFT, padx=3)
+
+        ttk.Label(r5, text="Alpha:").pack(side=tk.LEFT, padx=(8, 3))
+        self.atlas_alpha_var = tk.DoubleVar(value=0.7)
+        ttk.Entry(r5, textvariable=self.atlas_alpha_var, width=5).pack(side=tk.LEFT, padx=3)
+
+        # Info / version
+        self.atlas_corr_info_var = tk.StringVar(value="")
+        ttk.Label(at, textvariable=self.atlas_corr_info_var).pack(anchor="w", padx=5, pady=1)
+        self.atlas_corr_ver_var = tk.StringVar(value="")
+        ttk.Label(at, textvariable=self.atlas_corr_ver_var).pack(anchor="w", padx=5, pady=1)
+
+        # Note
+        nr = ttk.Frame(at); nr.pack(fill=tk.X, padx=3, pady=2)
+        ttk.Label(nr, text="Note:").pack(side=tk.LEFT, padx=3)
+        self.atlas_corr_note_var = tk.StringVar(value="")
+        ttk.Entry(nr, textvariable=self.atlas_corr_note_var, width=50).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=3)
+
     def _build_sliders(self, parent):
         sf = ttk.Frame(parent); sf.pack(fill=tk.X, padx=5, pady=2)
         self.slice_vars, self.slice_scales, self.slice_lbls, self.ebz_goto_btns = [], [], [], []
@@ -358,6 +482,10 @@ class TriplanarMRIViewer:
                 c["ebz_world"] = self.ebz_world.tolist()
             if self._chamber_path and os.path.exists(self._chamber_path):
                 c["monkey_specific_path"] = self._chamber_path
+            if self._atlas_nifti_path and os.path.exists(self._atlas_nifti_path):
+                c["atlas_nifti_path"] = self._atlas_nifti_path
+            if self._atlas_label_path and os.path.exists(self._atlas_label_path):
+                c["atlas_label_path"] = self._atlas_label_path
             with open(cp, "w") as f:
                 json.dump(c, f, indent=2)
             self.default_path = p
@@ -464,10 +592,21 @@ class TriplanarMRIViewer:
     def world_to_vox(self, w):
         return (self.inv_corrected @ np.array([*w[:3], 1.0]))[:3]
 
+    # ================================================================ Atlas combined inverse
+    def _atlas_inv_combined(self):
+        """inv(atlas_correction @ atlas_sform): corrected_world → atlas_voxel."""
+        return np.linalg.inv(self.atlas_correction @ self.atlas_sform)
+
     # ================================================================ Display
     def display_all(self):
         if self.data is None:
             return
+
+        # Pre-compute atlas inverse if atlas is visible
+        atlas_inv = None
+        if self.atlas_loaded and self.atlas_show:
+            atlas_inv = self._atlas_inv_combined()
+
         for vi in range(3):
             ax = self.axes[vi]
             ax.clear()
@@ -494,6 +633,25 @@ class TriplanarMRIViewer:
                     im.set_clim(*np.percentile(nz, [1, 99]))
             except:
                 pass
+
+            # ---- Atlas contour overlay ----
+            if atlas_inv is not None:
+                try:
+                    label_2d, a_h, a_v = reslice_atlas(
+                        self.atlas_data, atlas_inv,
+                        self.view_display_bounds[vi],
+                        self.grid_sizes[vi],
+                        self.SLICE_CFG[vi],
+                        self.cursor_world)
+                    draw_atlas_contours(
+                        ax, label_2d, a_h, a_v,
+                        display_offset_h=h_off,
+                        display_offset_v=v_off,
+                        color=self.atlas_contour_color,
+                        linewidth=self.atlas_contour_lw,
+                        alpha=self.atlas_contour_alpha)
+                except Exception:
+                    pass  # don't let atlas errors break MRI display
 
             # Crosshair
             ax.axvline(self.cursor_world[h_wax] - h_off, color='lime', lw=0.7, alpha=0.6)
@@ -547,6 +705,16 @@ class TriplanarMRIViewer:
         if self.ebz_set:
             rel = w - self.ebz_world
             txt += f"   rel EBZ: ML={rel[0]:.2f}, AP={rel[1]:.2f}, DV={rel[2]:.2f}"
+        # Atlas region at crosshair
+        if self.atlas_loaded and self.atlas_show and self.atlas_label_names:
+            try:
+                region = atlas_label_at_cursor(
+                    self.atlas_data, self._atlas_inv_combined(),
+                    self.cursor_world, self.atlas_label_names)
+                if region:
+                    txt += f"   atlas: {region}"
+            except Exception:
+                pass
         self.cursor_info_var.set(txt)
 
     def _sync_sliders(self):
@@ -620,6 +788,14 @@ class TriplanarMRIViewer:
             self._disarm_ebz_pick()
             return
 
+        # Right-click atlas query (when not in EBZ pick mode)
+        if event.button == 3 and self.atlas_loaded and self.atlas_show and self.atlas_label_names:
+            query_world = self.cursor_world.copy()
+            query_world[h_wax] = np.clip(x_world, self.world_min[h_wax], self.world_max[h_wax])
+            query_world[v_wax] = np.clip(y_world, self.world_min[v_wax], self.world_max[v_wax])
+            self._show_atlas_popup(query_world, event)
+            return
+
         if event.button == 1:
             self.cursor_world[h_wax] = np.clip(x_world, self.world_min[h_wax], self.world_max[h_wax])
             self.cursor_world[v_wax] = np.clip(y_world, self.world_min[v_wax], self.world_max[v_wax])
@@ -687,13 +863,38 @@ class TriplanarMRIViewer:
             if x is not None and y is not None:
                 _, h_wax, v_wax = self.SLICE_CFG[vi]
                 if self.ebz_set:
-                    self.status_var.set(
-                        f"{self.VIEW_NAMES[vi]}  {self.WORLD_LABELS[h_wax]}={x:+.2f}  "
-                        f"{self.WORLD_LABELS[v_wax]}={y:+.2f} mm  (EBZ-relative)")
+                    status = (f"{self.VIEW_NAMES[vi]}  {self.WORLD_LABELS[h_wax]}={x:+.2f}  "
+                              f"{self.WORLD_LABELS[v_wax]}={y:+.2f} mm  (EBZ-relative)")
                 else:
-                    self.status_var.set(
-                        f"{self.VIEW_NAMES[vi]}  {self.WORLD_LABELS[h_wax]}={x:.2f}  "
-                        f"{self.WORLD_LABELS[v_wax]}={y:.2f} mm")
+                    status = (f"{self.VIEW_NAMES[vi]}  {self.WORLD_LABELS[h_wax]}={x:.2f}  "
+                              f"{self.WORLD_LABELS[v_wax]}={y:.2f} mm")
+
+                # Atlas region lookup at hover position
+                if self.atlas_loaded and self.atlas_show and self.atlas_label_names:
+                    try:
+                        hover_world = self.cursor_world.copy()
+                        disp_off = self.ebz_world if self.ebz_set else np.zeros(3)
+                        hover_world[h_wax] = x + disp_off[h_wax]
+                        hover_world[v_wax] = y + disp_off[v_wax]
+                        region = atlas_label_at_cursor(
+                            self.atlas_data, self._atlas_inv_combined(),
+                            hover_world, self.atlas_label_names)
+                        if region:
+                            status += f"   [{region}]"
+                    except Exception:
+                        pass
+
+                self.status_var.set(status)
+
+    # ================================================================ Keyboard
+    def _on_key_atlas_toggle(self, event=None):
+        """Hotkey 'A' toggles atlas overlay (only when no text entry has focus)."""
+        # Don't toggle if a text entry is focused
+        w = self.root.focus_get()
+        if isinstance(w, (tk.Entry, ttk.Entry)):
+            return
+        if self.atlas_loaded:
+            self._toggle_atlas()
 
     # ================================================================ EBZ
     def _set_ebz_to_crosshair(self):
@@ -805,7 +1006,8 @@ class TriplanarMRIViewer:
         full_h_span = db[1] - db[0]
         full_v_span = db[3] - db[2]
 
-        if (new_h_hi - new_h_lo) >= full_h_span * 1.01 and            abs(new_v_hi - new_v_lo) >= full_v_span * 1.01:
+        if (new_h_hi - new_h_lo) >= full_h_span * 1.01 and \
+           abs(new_v_hi - new_v_lo) >= full_v_span * 1.01:
             self.zoom_bounds.pop(vi, None)
         else:
             self.zoom_bounds[vi] = (new_h_lo, new_h_hi, new_v_lo, new_v_hi)
@@ -1085,10 +1287,320 @@ class TriplanarMRIViewer:
         txt.insert(tk.END, f"Full bbox: {self.full_world_min} to {self.full_world_max}\n")
         if self.crop_bounds:
             txt.insert(tk.END, f"Crops: {self.crop_bounds}\n")
+        if self.atlas_loaded:
+            txt.insert(tk.END, f"\n=== ATLAS ===\n")
+            txt.insert(tk.END, f"NIfTI: {self._atlas_nifti_path}\n")
+            txt.insert(tk.END, f"sform:\n{self.atlas_sform}\n")
+            txt.insert(tk.END, f"atlas_correction:\n{self.atlas_correction}\n")
+            txt.insert(tk.END, f"combined (atlas_corr @ sform):\n{self.atlas_correction @ self.atlas_sform}\n")
         h = self.img.header
         if hasattr(h, "general_info"):
             txt.insert(tk.END, "\n=== GENERAL INFO ===\n")
             for k, v in sorted(h.general_info.items()):
                 txt.insert(tk.END, f"  {k}: {v}\n")
         txt.insert(tk.END, f"\n=== FULL HEADER ===\n{pprint.pformat(h.__dict__)}")
+        txt.config(state=tk.DISABLED)
+
+    # ================================================================ Atlas
+    def _browse_atlas_nifti(self):
+        fn = filedialog.askopenfilename(
+            title="Select Atlas NIfTI",
+            filetypes=[("NIfTI", "*.nii *.nii.gz"), ("All", "*.*")])
+        if not fn:
+            return
+        self._load_atlas_from_path(fn)
+
+    def _browse_atlas_labels(self):
+        fn = filedialog.askopenfilename(
+            title="Select Atlas Label Table",
+            filetypes=[("Text", "*.txt *.tsv *.csv"), ("All", "*.*")])
+        if not fn:
+            return
+        self._load_atlas_labels_from_path(fn)
+
+    def _load_atlas_from_path(self, nifti_path):
+        """Load a NIfTI atlas volume.  Safe to call at any time."""
+        try:
+            self.status_var.set(f"Loading atlas {os.path.basename(nifti_path)}...")
+            self.root.update()
+            data, sform = load_atlas(nifti_path)
+            self.atlas_data = data
+            self.atlas_sform = sform
+            self._atlas_nifti_path = nifti_path
+            self.atlas_loaded = True
+
+            # Load or create atlas correction JSON alongside the NIfTI
+            self.atlas_corr_json_path = self._atlas_corr_json_for(nifti_path)
+            self.atlas_correction, self.atlas_corr_config = load_corrections(self.atlas_corr_json_path)
+
+            # Enable UI
+            self.btn_load_atlas_labels.config(state="normal")
+            self.btn_toggle_atlas.config(state="normal")
+            self.btn_atlas_apply.config(state="normal")
+            self.btn_atlas_reset.config(state="normal")
+            self.btn_atlas_undo.config(state="normal")
+            self.btn_atlas_redo.config(state="normal")
+
+            n_labels = len(np.unique(data)) - (1 if 0 in data else 0)
+            self.atlas_info_var.set(
+                f"Atlas: {os.path.basename(nifti_path)}  shape={list(data.shape)}  "
+                f"{n_labels} regions")
+            self._update_atlas_corr_info()
+
+            # Auto-show on first load
+            self.atlas_show = True
+            self.btn_toggle_atlas.config(text="Hide Atlas")
+
+            if self.data is not None:
+                self.display_all()
+            self.status_var.set(f"Atlas loaded: {os.path.basename(nifti_path)}")
+        except Exception as e:
+            messagebox.showerror("Error loading atlas", str(e))
+            import traceback; traceback.print_exc()
+
+    def _load_atlas_labels_from_path(self, label_path):
+        """Load atlas label names from a text file."""
+        try:
+            self.atlas_label_names = load_atlas_labels(label_path)
+            self._atlas_label_path = label_path
+            n = len(self.atlas_label_names)
+            self.status_var.set(f"Loaded {n} atlas labels from {os.path.basename(label_path)}")
+            if self.data is not None:
+                self.display_all()  # refresh to show label at cursor
+        except Exception as e:
+            messagebox.showerror("Error loading labels", str(e))
+
+    def _atlas_corr_json_for(self, nifti_path):
+        """Derive atlas correction JSON path from atlas NIfTI path."""
+        # Strip .nii.gz or .nii, then append _atlas_corrections.json
+        base = nifti_path
+        if base.endswith('.gz'):
+            base = base[:-3]
+        base = os.path.splitext(base)[0]
+        return base + "_atlas_corrections.json"
+
+    def _toggle_atlas(self):
+        self.atlas_show = not self.atlas_show
+        self.btn_toggle_atlas.config(text="Hide Atlas" if self.atlas_show else "Show Atlas")
+        if self.data is not None:
+            self.display_all()
+
+    def _show_atlas_popup(self, world_pt, mpl_event):
+        """Show a right-click popup with atlas region info at the given world coordinate."""
+        try:
+            inv_combined = self._atlas_inv_combined()
+            pt4 = np.array([*world_pt[:3], 1.0])
+            vox = (inv_combined @ pt4)[:3]
+            vox_idx = np.round(vox).astype(int)
+
+            shape = self.atlas_data.shape
+            if any(v < 0 or v >= s for v, s in zip(vox_idx, shape)):
+                label_val = 0
+                region = "(outside atlas)"
+            else:
+                label_val = int(self.atlas_data[vox_idx[0], vox_idx[1], vox_idx[2]])
+                if label_val == 0:
+                    region = "(no label / background)"
+                else:
+                    region = self.atlas_label_names.get(label_val, f"unknown label")
+
+            # Build info text
+            w = world_pt
+            lines = [
+                f"Atlas Region: {region}",
+                f"Label index: {label_val}",
+                f"World: ML={w[0]:.2f}, AP={w[1]:.2f}, DV={w[2]:.2f} mm",
+            ]
+            if self.ebz_set:
+                rel = w - self.ebz_world
+                lines.append(f"EBZ-rel: ML={rel[0]:.2f}, AP={rel[1]:.2f}, DV={rel[2]:.2f} mm")
+            lines.append(f"Atlas voxel: [{vox_idx[0]}, {vox_idx[1]}, {vox_idx[2]}]")
+
+            # Show as a transient popup menu (auto-dismisses on click elsewhere)
+            popup = tk.Menu(self.root, tearoff=0)
+            for line in lines:
+                popup.add_command(label=line, state="disabled")
+            popup.add_separator()
+            popup.add_command(label="Copy region name",
+                             command=lambda: self._copy_to_clipboard(region))
+            popup.add_command(label="Copy coordinates",
+                             command=lambda: self._copy_to_clipboard(
+                                 f"ML={w[0]:.2f}, AP={w[1]:.2f}, DV={w[2]:.2f}"))
+
+            # Position popup at the mouse pointer
+            popup.tk_popup(mpl_event.guiEvent.x_root, mpl_event.guiEvent.y_root)
+        except Exception as e:
+            self.status_var.set(f"Atlas query error: {e}")
+
+    def _copy_to_clipboard(self, text):
+        self.root.clipboard_clear()
+        self.root.clipboard_append(text)
+        self.status_var.set(f"Copied: {text}")
+
+    def _on_atlas_color_change(self, event=None):
+        self.atlas_contour_color = self.atlas_color_var.get()
+        if self.data is not None and self.atlas_show:
+            self.display_all()
+
+    def _on_atlas_scale_mode_change(self):
+        """Toggle between uniform and per-axis scale entry."""
+        per_axis = self.atlas_scale_peraxis_var.get()
+        if per_axis:
+            self.atlas_scale_uniform_entry.config(state="disabled")
+            for e in self.atlas_scale_axis_entries.values():
+                e.config(state="normal")
+        else:
+            self.atlas_scale_uniform_entry.config(state="normal")
+            for e in self.atlas_scale_axis_entries.values():
+                e.config(state="disabled")
+
+    # ---- Atlas correction ----
+    def _apply_atlas_correction(self):
+        if not self.atlas_loaded:
+            return
+        rx = self.atlas_rot_x_var.get()
+        ry = self.atlas_rot_y_var.get()
+        rz = self.atlas_rot_z_var.get()
+        tx = self.atlas_trans_tx_var.get()
+        ty = self.atlas_trans_ty_var.get()
+        tz = self.atlas_trans_tz_var.get()
+
+        # Build scale matrix from percent values (0 = no change)
+        if self.atlas_scale_peraxis_var.get():
+            sx_pct = self.atlas_scale_axis_vars['sx'].get()
+            sy_pct = self.atlas_scale_axis_vars['sy'].get()
+            sz_pct = self.atlas_scale_axis_vars['sz'].get()
+        else:
+            sx_pct = sy_pct = sz_pct = self.atlas_scale_uniform_var.get()
+        sx = 1.0 + sx_pct / 100.0
+        sy = 1.0 + sy_pct / 100.0
+        sz = 1.0 + sz_pct / 100.0
+
+        # Order: translate, then scale, then rotate (outermost first)
+        delta = xlate(tx, ty, tz) @ scale(sx, sy, sz) @ rot_z(rz) @ rot_y(ry) @ rot_x(rx)
+        new_corr = delta @ self.atlas_correction
+
+        note = self.atlas_corr_note_var.get().strip()
+        if not note:
+            parts = []
+            if rx: parts.append(f"Rx={rx}")
+            if ry: parts.append(f"Ry={ry}")
+            if rz: parts.append(f"Rz={rz}")
+            if tx: parts.append(f"Tx={tx}")
+            if ty: parts.append(f"Ty={ty}")
+            if tz: parts.append(f"Tz={tz}")
+            if sx_pct: parts.append(f"Sx={sx_pct}%")
+            if sy_pct and self.atlas_scale_peraxis_var.get(): parts.append(f"Sy={sy_pct}%")
+            if sz_pct and self.atlas_scale_peraxis_var.get(): parts.append(f"Sz={sz_pct}%")
+            note = ", ".join(parts) if parts else "no-op"
+
+        self.atlas_correction = new_corr
+        push_correction(self.atlas_corr_config, new_corr, note)
+        save_corrections(self.atlas_corr_json_path, self.atlas_corr_config)
+        self._update_atlas_corr_info()
+
+        # Reset entry fields
+        for v in (self.atlas_rot_x_var, self.atlas_rot_y_var, self.atlas_rot_z_var,
+                  self.atlas_trans_tx_var, self.atlas_trans_ty_var, self.atlas_trans_tz_var):
+            v.set(0)
+        self.atlas_scale_uniform_var.set(0)
+        for v in self.atlas_scale_axis_vars.values():
+            v.set(0)
+        self.atlas_corr_note_var.set("")
+
+        # Update contour appearance from UI
+        self.atlas_contour_color = self.atlas_color_var.get()
+        try:
+            self.atlas_contour_lw = float(self.atlas_lw_var.get())
+        except (ValueError, tk.TclError):
+            pass
+        try:
+            self.atlas_contour_alpha = float(self.atlas_alpha_var.get())
+        except (ValueError, tk.TclError):
+            pass
+
+        if self.data is not None:
+            self.display_all()
+
+    def _reset_atlas_correction(self):
+        if not self.atlas_loaded:
+            return
+        self.atlas_correction = np.eye(4)
+        push_correction(self.atlas_corr_config, self.atlas_correction, "reset to identity")
+        save_corrections(self.atlas_corr_json_path, self.atlas_corr_config)
+        self._update_atlas_corr_info()
+        if self.data is not None:
+            self.display_all()
+
+    def _load_atlas_version(self, idx):
+        hist = self.atlas_corr_config["correction_history"]
+        if 0 <= idx < len(hist):
+            self.atlas_corr_config["current_index"] = idx
+            self.atlas_correction = np.array(hist[idx]["matrix"])
+            save_corrections(self.atlas_corr_json_path, self.atlas_corr_config)
+            self._update_atlas_corr_info()
+            if self.data is not None:
+                self.display_all()
+
+    def _atlas_undo(self):
+        if not self.atlas_loaded:
+            return
+        idx = self.atlas_corr_config.get("current_index", 0)
+        if idx > 0:
+            self._load_atlas_version(idx - 1)
+        else:
+            self.status_var.set("Atlas: already at oldest version.")
+
+    def _atlas_redo(self):
+        if not self.atlas_loaded:
+            return
+        idx = self.atlas_corr_config.get("current_index", 0)
+        if idx < len(self.atlas_corr_config.get("correction_history", [])) - 1:
+            self._load_atlas_version(idx + 1)
+        else:
+            self.status_var.set("Atlas: already at newest version.")
+
+    def _update_atlas_corr_info(self):
+        if self.atlas_corr_config is None:
+            return
+        idx = self.atlas_corr_config.get("current_index", 0)
+        n = len(self.atlas_corr_config["correction_history"])
+        entry = self.atlas_corr_config["correction_history"][idx]
+        if np.allclose(self.atlas_correction, np.eye(4)):
+            self.atlas_corr_info_var.set("Atlas correction: identity")
+        else:
+            t = self.atlas_correction[:3, 3]
+            # Extract effective scale factors (singular values of the 3×3 sub-matrix)
+            sv = np.linalg.svd(self.atlas_correction[:3, :3], compute_uv=False)
+            self.atlas_corr_info_var.set(
+                f"Atlas correction: S=[{sv[0]:.3f}, {sv[1]:.3f}, {sv[2]:.3f}]  "
+                f"T=[{t[0]:.2f}, {t[1]:.2f}, {t[2]:.2f}] mm")
+        self.atlas_corr_ver_var.set(
+            f"Version {idx+1}/{n}  |  {entry.get('timestamp','')}  |  {entry.get('note','')}")
+
+    def _show_atlas_history(self):
+        if not self.atlas_corr_config:
+            return
+        win = tk.Toplevel(self.root); win.title("Atlas Correction History"); win.geometry("850x550")
+        frame = ttk.Frame(win); frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        sb = ttk.Scrollbar(frame); sb.pack(side=tk.RIGHT, fill=tk.Y)
+        txt = tk.Text(frame, wrap=tk.WORD, yscrollcommand=sb.set, font=("Courier", 10))
+        txt.pack(fill=tk.BOTH, expand=True); sb.config(command=txt.yview)
+        cur = self.atlas_corr_config.get("current_index", 0)
+        for i, e in enumerate(self.atlas_corr_config["correction_history"]):
+            mark = "  << CURRENT" if i == cur else ""
+            txt.insert(tk.END, f"--- Version {i+1}{mark} ---\n")
+            txt.insert(tk.END, f"  Time: {e.get('timestamp','')}\n  Note: {e.get('note','')}\n")
+            for row in np.array(e["matrix"]):
+                txt.insert(tk.END, f"    [{row[0]:10.6f} {row[1]:10.6f} {row[2]:10.6f} {row[3]:10.6f}]\n")
+            txt.insert(tk.END, "\n")
+        jf = ttk.Frame(win); jf.pack(fill=tk.X, padx=10, pady=5)
+        ttk.Label(jf, text="Jump to:").pack(side=tk.LEFT, padx=3)
+        jv = tk.IntVar(value=cur + 1)
+        ttk.Entry(jf, textvariable=jv, width=5).pack(side=tk.LEFT, padx=3)
+        def jump():
+            t = jv.get() - 1
+            if 0 <= t < len(self.atlas_corr_config["correction_history"]):
+                self._load_atlas_version(t); win.destroy()
+        ttk.Button(jf, text="Jump", command=jump).pack(side=tk.LEFT, padx=3)
         txt.config(state=tk.DISABLED)

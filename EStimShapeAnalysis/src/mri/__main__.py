@@ -43,6 +43,14 @@ def main():
         if monkey_path and os.path.exists(monkey_path):
             app._load_chamber_from_path(monkey_path)
 
+        # Auto-load atlas if saved in config
+        atlas_nifti = cfg.get("atlas_nifti_path")
+        if atlas_nifti and os.path.exists(atlas_nifti):
+            app._load_atlas_from_path(atlas_nifti)
+            atlas_labels = cfg.get("atlas_label_path")
+            if atlas_labels and os.path.exists(atlas_labels):
+                app._load_atlas_labels_from_path(atlas_labels)
+
     root.mainloop()
 
 
