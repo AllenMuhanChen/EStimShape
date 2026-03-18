@@ -85,25 +85,33 @@ def calc_penetration_target(origin, az_deg, el_deg, dist, x, y, normal, cor_offs
 
 
 def draw_chamber_overlay(ax, vi, slice_cfg, chamber_state, ebz_world, penetrations,
-                         show_chamber=True, show_penetrations=True):
+                         show_chamber=True, show_penetrations=True, display_offset=None):
     """
     Draw chamber screwholes, ring, axes, and penetration tracks on a matplotlib axes.
-    
+
     chamber_state: dict with keys: screws_ebz, center, origin, x, y, normal,
                    radius, cor_offset, loaded
+    display_offset: 3-vector subtracted from all plotted world coordinates (e.g. ebz_world
+                    when displaying in EBZ-relative space). None or zeros = absolute coords.
     """
     if not chamber_state.get('loaded', False):
         return
 
     fix_wax, h_wax, v_wax = slice_cfg
 
+    # Offset applied to every plotted position so the display matches the axes' coordinate frame.
+    if display_offset is None:
+        display_offset = np.zeros(3)
+    dh = display_offset[h_wax]
+    dv = display_offset[v_wax]
+
     if show_chamber:
         ebz = ebz_world
         screws_world = chamber_state['screws_ebz'] + ebz
 
         # Screwholes
-        sh = screws_world[:, h_wax]
-        sv = screws_world[:, v_wax]
+        sh = screws_world[:, h_wax] - dh
+        sv = screws_world[:, v_wax] - dv
         ax.plot(sh, sv, 'o', color='gray', markersize=4, alpha=0.8)
         for i, (hh, vv) in enumerate(zip(sh, sv)):
             ax.annotate(str(i), (hh, vv), fontsize=6, color='gray',
@@ -118,18 +126,18 @@ def draw_chamber_overlay(ax, vi, slice_cfg, chamber_state, ebz_world, penetratio
         ring = (center[np.newaxis, :] +
                 radius * (np.cos(theta)[:, np.newaxis] * x_vec +
                           np.sin(theta)[:, np.newaxis] * y_vec))
-        ax.plot(ring[:, h_wax], ring[:, v_wax], '-', color='gray', lw=1, alpha=0.5)
+        ax.plot(ring[:, h_wax] - dh, ring[:, v_wax] - dv, '-', color='gray', lw=1, alpha=0.5)
 
         # Chamber origin
         origin = chamber_state['origin']
-        ax.plot(origin[h_wax], origin[v_wax], '+', color='white',
+        ax.plot(origin[h_wax] - dh, origin[v_wax] - dv, '+', color='white',
                 markersize=8, markeredgewidth=1.5)
 
         # Chamber axes
         for vec, c in [(x_vec, 'red'), (y_vec, 'green')]:
             tip = origin + 5 * vec
-            ax.annotate('', xy=(tip[h_wax], tip[v_wax]),
-                        xytext=(origin[h_wax], origin[v_wax]),
+            ax.annotate('', xy=(tip[h_wax] - dh, tip[v_wax] - dv),
+                        xytext=(origin[h_wax] - dh, origin[v_wax] - dv),
                         arrowprops=dict(arrowstyle='->', color=c, lw=1.5))
 
     # Penetrations
@@ -149,15 +157,15 @@ def draw_chamber_overlay(ax, vi, slice_cfg, chamber_state, ebz_world, penetratio
 
             track_end = top_pt + (pen['dist_mm'] + 5) * direction
             color = pen.get('color', 'cyan')
-            ax.plot([top_pt[h_wax], track_end[h_wax]],
-                    [top_pt[v_wax], track_end[v_wax]],
+            ax.plot([top_pt[h_wax] - dh, track_end[h_wax] - dh],
+                    [top_pt[v_wax] - dv, track_end[v_wax] - dv],
                     '-', color=color, lw=1.2, alpha=0.8)
 
-            ax.plot(target[h_wax], target[v_wax], 'o', color=color, markersize=5)
+            ax.plot(target[h_wax] - dh, target[v_wax] - dv, 'o', color=color, markersize=5)
 
             for d in range(0, int(pen['dist_mm']) + 1, 5):
                 pt = top_pt + d * direction
-                ax.plot(pt[h_wax], pt[v_wax], '.', color=color, markersize=2, alpha=0.5)
+                ax.plot(pt[h_wax] - dh, pt[v_wax] - dv, '.', color=color, markersize=2, alpha=0.5)
 
-            ax.annotate(pen.get('label', ''), (target[h_wax], target[v_wax]),
+            ax.annotate(pen.get('label', ''), (target[h_wax] - dh, target[v_wax] - dv),
                         fontsize=7, color=color, ha='left', va='bottom')

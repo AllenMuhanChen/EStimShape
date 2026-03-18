@@ -442,7 +442,14 @@ class TriplanarMRIViewer:
                 self.grid_sizes[vi], self.SLICE_CFG[vi], self.cursor_world,
                 self.current_dynamic, self.has_dynamics)
 
-            extent = [h_coords[0], h_coords[-1], v_coords[-1], v_coords[0]]
+            # When EBZ is set, shift the display into EBZ-relative coordinates so the
+            # EBZ origin appears at (0, 0) on the axes.
+            disp_off = self.ebz_world if self.ebz_set else np.zeros(3)
+            h_off = disp_off[h_wax]
+            v_off = disp_off[v_wax]
+
+            extent = [h_coords[0] - h_off, h_coords[-1] - h_off,
+                      v_coords[-1] - v_off, v_coords[0] - v_off]
             im = ax.imshow(img2d, cmap='gray', aspect='equal', origin='upper',
                            interpolation='nearest', extent=extent)
             try:
@@ -453,14 +460,14 @@ class TriplanarMRIViewer:
                 pass
 
             # Crosshair
-            ax.axvline(self.cursor_world[h_wax], color='lime', lw=0.7, alpha=0.6)
-            ax.axhline(self.cursor_world[v_wax], color='lime', lw=0.7, alpha=0.6)
+            ax.axvline(self.cursor_world[h_wax] - h_off, color='lime', lw=0.7, alpha=0.6)
+            ax.axhline(self.cursor_world[v_wax] - v_off, color='lime', lw=0.7, alpha=0.6)
 
-            # EBZ
+            # EBZ — always at origin when displayed in EBZ-relative space
             if self.ebz_set:
-                ax.axvline(self.ebz_world[h_wax], color='red', lw=0.5, alpha=0.4, ls='--')
-                ax.axhline(self.ebz_world[v_wax], color='red', lw=0.5, alpha=0.4, ls='--')
-                ax.plot(self.ebz_world[h_wax], self.ebz_world[v_wax], 'r*', markersize=8)
+                ax.axvline(0, color='red', lw=0.5, alpha=0.4, ls='--')
+                ax.axhline(0, color='red', lw=0.5, alpha=0.4, ls='--')
+                ax.plot(0, 0, 'r*', markersize=8)
 
             # Chamber + penetrations
             draw_chamber_overlay(
@@ -468,7 +475,8 @@ class TriplanarMRIViewer:
                 self.ebz_world if self.ebz_set else np.zeros(3),
                 self.pen_store.penetrations if self.pen_store.connected else [],
                 show_chamber=self.chamber_show,
-                show_penetrations=self.pen_show)
+                show_penetrations=self.pen_show,
+                display_offset=disp_off)
 
             # Title
             wval = self.cursor_world[fix_wax]
@@ -542,6 +550,13 @@ class TriplanarMRIViewer:
         if x is None or y is None:
             return
 
+        # Display coords are EBZ-relative when ebz_set; convert back to world.
+        disp_off = self.ebz_world if self.ebz_set else np.zeros(3)
+        h_off = disp_off[h_wax]
+        v_off = disp_off[v_wax]
+        x_world = x + h_off
+        y_world = y + v_off
+
         if self.crop_mode and event.button == 1:
             from matplotlib.patches import Rectangle
             self._crop_start = (x, y)
@@ -553,15 +568,15 @@ class TriplanarMRIViewer:
             return
 
         if self.ebz_pick_armed and event.button == 3:
-            self.cursor_world[h_wax] = np.clip(x, self.world_min[h_wax], self.world_max[h_wax])
-            self.cursor_world[v_wax] = np.clip(y, self.world_min[v_wax], self.world_max[v_wax])
+            self.cursor_world[h_wax] = np.clip(x_world, self.world_min[h_wax], self.world_max[h_wax])
+            self.cursor_world[v_wax] = np.clip(y_world, self.world_min[v_wax], self.world_max[v_wax])
             self._set_ebz_to_crosshair()
             self._disarm_ebz_pick()
             return
 
         if event.button == 1:
-            self.cursor_world[h_wax] = np.clip(x, self.world_min[h_wax], self.world_max[h_wax])
-            self.cursor_world[v_wax] = np.clip(y, self.world_min[v_wax], self.world_max[v_wax])
+            self.cursor_world[h_wax] = np.clip(x_world, self.world_min[h_wax], self.world_max[h_wax])
+            self.cursor_world[v_wax] = np.clip(y_world, self.world_min[v_wax], self.world_max[v_wax])
             self.display_all()
 
     def _on_release(self, event):
