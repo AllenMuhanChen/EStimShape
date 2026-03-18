@@ -50,6 +50,9 @@ def main():
             atlas_labels = cfg.get("atlas_label_path")
             if atlas_labels and os.path.exists(atlas_labels):
                 app._load_atlas_labels_from_path(atlas_labels)
+            template_mri = cfg.get("template_mri_path")
+            if template_mri and os.path.exists(template_mri):
+                app._load_template_from_path(template_mri)
 
     root.mainloop()
 

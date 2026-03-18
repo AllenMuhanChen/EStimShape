@@ -30,6 +30,7 @@ from src.mri.atlas import (
     load_atlas, load_atlas_labels,
     reslice_atlas, draw_atlas_contours,
     atlas_label_at_cursor, atlas_label_detail,
+    load_template_mri, reslice_template_mri,
 )
 
 
@@ -141,6 +142,13 @@ class TriplanarMRIViewer:
         self.atlas_contour_lw = 0.6
         self.atlas_contour_alpha = 0.7
 
+        # ---- Template MRI state ----
+        self.template_data = None       # ndarray (I,J,K) float — template MRI volume
+        self.template_sform = None      # should match atlas_sform
+        self.template_loaded = False
+        self._template_mri_path = None
+        self.template_blend = 0.0       # 0=subject only, 0.5=blend, 1.0=template only
+
         self._setup_ui()
 
     # ================================================================ UI
@@ -194,6 +202,8 @@ class TriplanarMRIViewer:
         # Global key bindings
         self.root.bind("<a>", self._on_key_atlas_toggle)
         self.root.bind("<A>", self._on_key_atlas_toggle)
+        self.root.bind("<t>", self._on_key_blend_snap)
+        self.root.bind("<T>", self._on_key_blend_snap)
 
         # Sliders
         self._build_sliders(main)
@@ -333,10 +343,25 @@ class TriplanarMRIViewer:
         self.btn_load_atlas.pack(side=tk.LEFT, padx=3)
         self.btn_load_atlas_labels = ttk.Button(r1, text="Load Labels...", command=self._browse_atlas_labels, state="disabled")
         self.btn_load_atlas_labels.pack(side=tk.LEFT, padx=3)
+        self.btn_load_template = ttk.Button(r1, text="Load Template MRI...", command=self._browse_template_mri, state="disabled")
+        self.btn_load_template.pack(side=tk.LEFT, padx=3)
         self.btn_toggle_atlas = ttk.Button(r1, text="Show Atlas", command=self._toggle_atlas, state="disabled")
         self.btn_toggle_atlas.pack(side=tk.LEFT, padx=3)
         self.atlas_info_var = tk.StringVar(value="No atlas loaded")
         ttk.Label(r1, textvariable=self.atlas_info_var).pack(side=tk.LEFT, padx=8)
+
+        # Row 1b: template MRI blend slider
+        r1b = ttk.Frame(at); r1b.pack(fill=tk.X, padx=3, pady=2)
+        ttk.Label(r1b, text="MRI Blend ('T' to snap):").pack(side=tk.LEFT, padx=3)
+        ttk.Label(r1b, text="Subject").pack(side=tk.LEFT, padx=(3, 0))
+        self.blend_var = tk.DoubleVar(value=0.0)
+        self.blend_scale = ttk.Scale(r1b, from_=0.0, to=1.0, orient=tk.HORIZONTAL,
+                                      variable=self.blend_var,
+                                      command=self._on_blend_slider)
+        self.blend_scale.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=3)
+        ttk.Label(r1b, text="Template").pack(side=tk.LEFT, padx=(0, 3))
+        self.blend_lbl = ttk.Label(r1b, text="0%", width=5)
+        self.blend_lbl.pack(side=tk.LEFT, padx=3)
 
         # Row 2: rotation
         r2 = ttk.Frame(at); r2.pack(fill=tk.X, padx=3, pady=2)
@@ -486,6 +511,8 @@ class TriplanarMRIViewer:
                 c["atlas_nifti_path"] = self._atlas_nifti_path
             if self._atlas_label_path and os.path.exists(self._atlas_label_path):
                 c["atlas_label_path"] = self._atlas_label_path
+            if self._template_mri_path and os.path.exists(self._template_mri_path):
+                c["template_mri_path"] = self._template_mri_path
             with open(cp, "w") as f:
                 json.dump(c, f, indent=2)
             self.default_path = p
@@ -607,6 +634,9 @@ class TriplanarMRIViewer:
         if self.atlas_loaded and self.atlas_show:
             atlas_inv = self._atlas_inv_combined()
 
+        # Template blend factor
+        blend = self.template_blend if self.template_loaded and atlas_inv is not None else 0.0
+
         for vi in range(3):
             ax = self.axes[vi]
             ax.clear()
@@ -618,6 +648,39 @@ class TriplanarMRIViewer:
                 self.current_dynamic, self.has_dynamics,
                 interp_order=self.interp_order)
 
+            # ---- Template MRI blending ----
+            if blend > 0 and atlas_inv is not None:
+                try:
+                    tmpl_2d, _, _ = reslice_template_mri(
+                        self.template_data, atlas_inv,
+                        self.view_display_bounds[vi],
+                        self.grid_sizes[vi],
+                        self.SLICE_CFG[vi],
+                        self.cursor_world,
+                        interp_order=self.interp_order)
+                    # Normalize both to [0, 1] for blending
+                    sub_norm = img2d.astype(np.float64)
+                    tmpl_norm = tmpl_2d.astype(np.float64)
+                    # Use percentile-based normalization for each
+                    snz = sub_norm[sub_norm > 0]
+                    if len(snz) > 100:
+                        s_lo, s_hi = np.percentile(snz, [1, 99])
+                        sub_norm = np.clip((sub_norm - s_lo) / max(s_hi - s_lo, 1), 0, 1)
+                    elif sub_norm.max() > 0:
+                        sub_norm /= sub_norm.max()
+
+                    tnz = tmpl_norm[tmpl_norm > 0]
+                    if len(tnz) > 100:
+                        t_lo, t_hi = np.percentile(tnz, [1, 99])
+                        tmpl_norm = np.clip((tmpl_norm - t_lo) / max(t_hi - t_lo, 1), 0, 1)
+                    elif tmpl_norm.max() > 0:
+                        tmpl_norm /= tmpl_norm.max()
+
+                    # Linear blend
+                    img2d = (1.0 - blend) * sub_norm + blend * tmpl_norm
+                except Exception:
+                    pass  # fall through to unblended subject MRI
+
             # When EBZ is set, show coords relative to EBZ so the star is at (0,0)
             disp_off = self.ebz_world if self.ebz_set else np.zeros(3)
             h_off = disp_off[h_wax]
@@ -627,12 +690,16 @@ class TriplanarMRIViewer:
                       v_coords[-1] - v_off, v_coords[0] - v_off]
             im = ax.imshow(img2d, cmap='gray', aspect='equal', origin='upper',
                            interpolation='nearest', extent=extent)
-            try:
-                nz = img2d[img2d > 0]
-                if len(nz) > 100:
-                    im.set_clim(*np.percentile(nz, [1, 99]))
-            except:
-                pass
+            # Set contrast: blended images are already [0,1]; raw images need percentile scaling
+            if blend > 0:
+                im.set_clim(0, 1)
+            else:
+                try:
+                    nz = img2d[img2d > 0]
+                    if len(nz) > 100:
+                        im.set_clim(*np.percentile(nz, [1, 99]))
+                except:
+                    pass
 
             # ---- Atlas contour overlay ----
             if atlas_inv is not None:
@@ -1335,6 +1402,7 @@ class TriplanarMRIViewer:
 
             # Enable UI
             self.btn_load_atlas_labels.config(state="normal")
+            self.btn_load_template.config(state="normal")
             self.btn_toggle_atlas.config(state="normal")
             self.btn_atlas_apply.config(state="normal")
             self.btn_atlas_reset.config(state="normal")
@@ -1436,6 +1504,64 @@ class TriplanarMRIViewer:
         self.root.clipboard_clear()
         self.root.clipboard_append(text)
         self.status_var.set(f"Copied: {text}")
+
+    # ---- Template MRI ----
+    def _browse_template_mri(self):
+        fn = filedialog.askopenfilename(
+            title="Select Template MRI NIfTI",
+            filetypes=[("NIfTI", "*.nii *.nii.gz"), ("All", "*.*")])
+        if not fn:
+            return
+        self._load_template_from_path(fn)
+
+    def _load_template_from_path(self, nifti_path):
+        """Load a template MRI that shares the atlas voxel space."""
+        try:
+            self.status_var.set(f"Loading template MRI {os.path.basename(nifti_path)}...")
+            self.root.update()
+            data, sform = load_template_mri(nifti_path)
+            self.template_data = data
+            self.template_sform = sform
+            self._template_mri_path = nifti_path
+            self.template_loaded = True
+
+            self.status_var.set(
+                f"Template MRI loaded: {os.path.basename(nifti_path)}  "
+                f"shape={list(data.shape)}  Use blend slider to overlay.")
+            if self.data is not None and self.atlas_show:
+                self.display_all()
+        except Exception as e:
+            messagebox.showerror("Error loading template MRI", str(e))
+            import traceback; traceback.print_exc()
+
+    def _on_blend_slider(self, val=None):
+        """Called when the blend slider moves."""
+        self.template_blend = self.blend_var.get()
+        pct = int(self.template_blend * 100)
+        self.blend_lbl.config(text=f"{pct}%")
+        if self.data is not None:
+            self.display_all()
+
+    def _on_key_blend_snap(self, event=None):
+        """Hotkey 'T' snaps blend between 0 → 0.5 → 1.0 → 0."""
+        w = self.root.focus_get()
+        if isinstance(w, (tk.Entry, ttk.Entry)):
+            return
+        if not self.template_loaded:
+            return
+        cur = self.template_blend
+        if cur < 0.25:
+            nxt = 0.5
+        elif cur < 0.75:
+            nxt = 1.0
+        else:
+            nxt = 0.0
+        self.blend_var.set(nxt)
+        self.template_blend = nxt
+        pct = int(nxt * 100)
+        self.blend_lbl.config(text=f"{pct}%")
+        if self.data is not None:
+            self.display_all()
 
     def _on_atlas_color_change(self, event=None):
         self.atlas_contour_color = self.atlas_color_var.get()

@@ -243,3 +243,67 @@ def atlas_label_detail(atlas_data, inv_atlas_combined, cursor_world, label_names
         'name': name,
         'atlas_voxel': vox_idx,
     }
+
+
+# ====================================================================
+# Template MRI (e.g. NMT_v2.0_sym.nii.gz)
+# ====================================================================
+
+def load_template_mri(nifti_path):
+    """
+    Load a template MRI volume that shares the same voxel space as the atlas.
+
+    Handles the same nan slope/intercept issue as load_atlas.
+
+    Returns
+    -------
+    data : ndarray (I, J, K), float32
+    sform : ndarray (4, 4)
+    """
+    img = nib.load(nifti_path)
+    sform = img.affine.copy()
+
+    hdr = img.header
+    slope, inter = hdr.get_slope_inter()
+    if slope is None or (isinstance(slope, float) and np.isnan(slope)):
+        hdr.set_slope_inter(1, 0)
+
+    data = np.asarray(img.dataobj, dtype=np.float32)
+    if data.ndim == 4 and data.shape[3] == 1:
+        data = data[:, :, :, 0]
+    return data, sform
+
+
+def reslice_template_mri(template_data, inv_atlas_combined, view_display_bounds,
+                         grid_size, slice_cfg, cursor_world, interp_order=3):
+    """
+    Reslice the template MRI using the same transform as the atlas.
+
+    Uses cubic interpolation by default (continuous-valued volume).
+
+    Parameters match reslice_atlas; returns (img2d, h_coords, v_coords).
+    """
+    fix_wax, h_wax, v_wax = slice_cfg
+    n_h, n_v = grid_size
+    h_lo, h_hi, v_lo, v_hi = view_display_bounds
+
+    fix_val = cursor_world[fix_wax]
+
+    h_coords = np.linspace(h_lo, h_hi, n_h)
+    v_coords = np.linspace(v_hi, v_lo, n_v)
+
+    hh, vv = np.meshgrid(h_coords, v_coords)
+
+    world_pts = np.ones((n_v, n_h, 4))
+    world_pts[:, :, fix_wax] = fix_val
+    world_pts[:, :, h_wax] = hh
+    world_pts[:, :, v_wax] = vv
+
+    flat = world_pts.reshape(-1, 4)
+    vox_flat = (inv_atlas_combined @ flat.T).T[:, :3]
+
+    from scipy.ndimage import map_coordinates
+    coords = [vox_flat[:, ax] for ax in range(3)]
+    sampled = map_coordinates(template_data, coords, order=interp_order,
+                              mode='constant', cval=0)
+    return sampled.reshape(n_v, n_h), h_coords, v_coords
