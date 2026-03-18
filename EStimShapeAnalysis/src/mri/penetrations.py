@@ -146,71 +146,132 @@ class PenetrationListWindow:
 
         self.win = tk.Toplevel(parent)
         self.win.title("Penetrations")
-        self.win.geometry("750x450")
+        self.win.geometry("800x480")
 
-        # Treeview
+        # Treeview — extended allows Shift+click / Ctrl+click multi-select
+        tree_frame = ttk.Frame(self.win)
+        tree_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
         cols = ("id", "label", "az", "el", "dist", "color", "visible", "notes")
-        self.tree = ttk.Treeview(self.win, columns=cols, show="headings", height=15)
-        for c, w in zip(cols, (40, 80, 60, 60, 60, 70, 50, 250)):
+        self.tree = ttk.Treeview(tree_frame, columns=cols, show="headings",
+                                 height=15, selectmode="extended")
+        for c, w in zip(cols, (40, 90, 60, 60, 65, 80, 55, 250)):
             self.tree.heading(c, text=c)
             self.tree.column(c, width=w, stretch=(c == "notes"))
-        self.tree.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        sb = ttk.Scrollbar(self.win, orient=tk.VERTICAL, command=self.tree.yview)
+        sb = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL, command=self.tree.yview)
         self.tree.configure(yscrollcommand=sb.set)
-        sb.pack(side=tk.RIGHT, fill=tk.Y)
+        self.tree.grid(row=0, column=0, sticky="nsew")
+        sb.grid(row=0, column=1, sticky="ns")
+        tree_frame.columnconfigure(0, weight=1)
+        tree_frame.rowconfigure(0, weight=1)
+
+        # Row tags: hidden rows appear greyed out
+        self.tree.tag_configure("hidden", foreground="#888888")
+        self.tree.tag_configure("visible", foreground="")
 
         # Buttons
         btn_frame = ttk.Frame(self.win)
         btn_frame.pack(fill=tk.X, padx=5, pady=5)
         ttk.Button(btn_frame, text="Toggle Visible", command=self._toggle_vis).pack(side=tk.LEFT, padx=3)
-        ttk.Button(btn_frame, text="Edit Selected", command=self._edit).pack(side=tk.LEFT, padx=3)
-        ttk.Button(btn_frame, text="Delete Selected", command=self._delete).pack(side=tk.LEFT, padx=3)
-        ttk.Button(btn_frame, text="Refresh", command=self._refresh_tree).pack(side=tk.LEFT, padx=3)
+        ttk.Button(btn_frame, text="Show All",       command=self._show_all).pack(side=tk.LEFT, padx=3)
+        ttk.Button(btn_frame, text="Hide All",       command=self._hide_all).pack(side=tk.LEFT, padx=3)
+        ttk.Button(btn_frame, text="Edit Selected",  command=self._edit).pack(side=tk.LEFT, padx=3)
+        ttk.Button(btn_frame, text="Delete Selected",command=self._delete).pack(side=tk.LEFT, padx=3)
+        ttk.Button(btn_frame, text="Refresh",        command=self._refresh_tree).pack(side=tk.LEFT, padx=3)
+
+        self.status_var = tk.StringVar(value="")
+        ttk.Label(self.win, textvariable=self.status_var, foreground="blue").pack(
+            anchor="w", padx=8, pady=(0, 4))
 
         self._refresh_tree()
 
+    # ------------------------------------------------------------------ data
     def _refresh_tree(self):
+        """Reload from DB and redraw, preserving selection by id."""
+        selected_ids = {iid for iid in self.tree.selection()}
         self.store.refresh()
         for item in self.tree.get_children():
             self.tree.delete(item)
         for p in self.store.penetrations:
             vis = "✓" if p['visible'] else "✗"
-            self.tree.insert("", tk.END, iid=str(p['id']),
+            tag = "visible" if p['visible'] else "hidden"
+            iid = str(p['id'])
+            self.tree.insert("", tk.END, iid=iid,
                              values=(p['id'], p['label'], f"{p['az_deg']:.1f}",
                                      f"{p['el_deg']:.1f}", f"{p['dist_mm']:.1f}",
-                                     p['color'], vis, p['notes']))
+                                     p['color'], vis, p['notes']),
+                             tags=(tag,))
+        # Restore selection
+        still_present = [iid for iid in selected_ids if self.tree.exists(iid)]
+        if still_present:
+            self.tree.selection_set(still_present)
+        n = len(self.store.penetrations)
+        self.status_var.set(f"{n} penetration{'s' if n != 1 else ''}  |  "
+                            f"Shift+click or Ctrl+click to select multiple")
 
-    def _selected_id(self):
+    def _selected_ids(self):
+        """Return list of int ids for all selected rows, or show warning."""
         sel = self.tree.selection()
         if not sel:
-            messagebox.showinfo("Info", "Select a penetration first.")
-            return None
-        return int(sel[0])
+            messagebox.showinfo("Info", "Select one or more penetrations first.")
+            return []
+        return [int(iid) for iid in sel]
 
+    # ------------------------------------------------------------------ actions
     def _toggle_vis(self):
-        pid = self._selected_id()
-        if pid is None:
+        ids = self._selected_ids()
+        if not ids:
             return
-        self.store.toggle_visible(pid)
+        # Determine target state: if ANY selected row is currently hidden, show all;
+        # otherwise hide all. This gives consistent one-click behaviour for mixed selections.
+        pens = {p['id']: p for p in self.store.penetrations}
+        any_hidden = any(not pens[pid]['visible'] for pid in ids if pid in pens)
+        new_vis = 1 if any_hidden else 0
+        for pid in ids:
+            if pid in pens:
+                self.store.update(pid, visible=new_vis)
+        self._refresh_tree()
+        if self.on_change:
+            self.on_change()
+
+    def _show_all(self):
+        for p in self.store.penetrations:
+            if not p['visible']:
+                self.store.update(p['id'], visible=1)
+        self._refresh_tree()
+        if self.on_change:
+            self.on_change()
+
+    def _hide_all(self):
+        for p in self.store.penetrations:
+            if p['visible']:
+                self.store.update(p['id'], visible=0)
         self._refresh_tree()
         if self.on_change:
             self.on_change()
 
     def _delete(self):
-        pid = self._selected_id()
-        if pid is None:
+        ids = self._selected_ids()
+        if not ids:
             return
-        if messagebox.askyesno("Confirm", f"Delete penetration {pid}?"):
-            self.store.delete(pid)
+        msg = (f"Delete {len(ids)} penetration{'s' if len(ids) > 1 else ''}?\n"
+               + ", ".join(str(i) for i in ids))
+        if messagebox.askyesno("Confirm", msg):
+            for pid in ids:
+                self.store.delete(pid)
             self._refresh_tree()
             if self.on_change:
                 self.on_change()
 
     def _edit(self):
-        pid = self._selected_id()
-        if pid is None:
+        ids = self._selected_ids()
+        if not ids:
             return
+        if len(ids) > 1:
+            messagebox.showinfo("Info", "Edit works on one row at a time.")
+            return
+        pid = ids[0]
         pen = next((p for p in self.store.penetrations if p['id'] == pid), None)
         if not pen:
             return

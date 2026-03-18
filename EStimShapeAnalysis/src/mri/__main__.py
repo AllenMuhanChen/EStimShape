@@ -39,6 +39,9 @@ def main():
         app.load_and_visualize()
         if "ebz_world" in cfg:
             app._set_ebz_manual()
+        monkey_path = cfg.get("monkey_specific_path")
+        if monkey_path and os.path.exists(monkey_path):
+            app._load_chamber_from_path(monkey_path)
 
     root.mainloop()
 
