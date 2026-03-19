@@ -8,16 +8,17 @@ from clat.intan.rhs.load_intan_rhs_format import read_data
 from clat.intan.channels import Channel
 from src.intan.one_file_lfp_parsing import OneFileLFPParser
 from src.lfp.lfp_band_power_plotter import LFPBandPowerPlotter
-from src.lfp.lfp_power_law import LFPPowerLaw, LFPPowerLawPlotter
+from src.lfp.lfp_power_law import LFPPowerLaw, LFPPowerLawSpectrumPlotter, LFPSpikeRatePlotter
 from src.lfp.lfp_spectrum import LFPSpectrum
 from src.lfp.lfp_spectrum_plotter import LFPSpectrumPlotter
 from src.lfp.relative_power_spectrum import RelativePowerSpectrum
 
 
 class TestOneFileLFPParser(TestCase):
-    file_path = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260120_0/2026-01-20/1768934618287078_1_1768934754529063_260120_134558"
+    # file_path = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260120_0/2026-01-20/1768934618287078_1_1768934754529063_260120_134558"
     # file_path = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260115_0/2026-01-15/1768500912926825_1_1768501037142197_260115_131719"
     # file_path = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260115_0/2026-01-15/1768500912926825_8_1768506582349129_260115_144943"
+    file_path = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260113_0/2026-01-13/1768327745079370_1_1768327879721977_260113_131121"
 
     def test_parse(self):
         path_to_file = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260115_0/2026-01-15/1768500912926825_1_1768501037142197_260115_131719"
@@ -57,7 +58,7 @@ class TestOneFileLFPParser(TestCase):
         plt.show()
 
     def test_spectrum(self):
-        path_to_file = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260115_0/2026-01-15/1768934618287078_10_1768940420402867_260120_152021"
+        path_to_file = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260113_0/2026-01-13/1768327745079370_1_1768327879721977_260113_131121"
         path_to_rhd = f"{path_to_file}/info.rhs"
         data = read_data(path_to_rhd)
         amplifier_channels = data['amplifier_channels']
@@ -146,7 +147,6 @@ class TestOneFileLFPParser(TestCase):
 
         channel_order = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
                          27, 20, 4, 11, 28, 19, 1, 14, 3, 12, 29, 18, 2, 13, 30, 17]
-        #flip channel order
         # channel_order.reverse()
 
         rps = RelativePowerSpectrum(channel_order=channel_order)
@@ -176,13 +176,10 @@ class TestOneFileLFPParser(TestCase):
         parser = OneFileParser()
         spikes_by_channel_by_task_id, epoch_times, sample_rate = parser.parse(self.file_path)
 
-        # For each channel, compute mean spike rate across all valid task_ids
-        spike_rates = {}
         valid_task_ids = [tid for tid, v in spikes_by_channel_by_task_id.items() if v is not None]
-
-        # Collect all channels from first valid task
         channels = list(spikes_by_channel_by_task_id[valid_task_ids[0]].keys())
 
+        spike_rates = {}
         for channel in channels:
             rates = []
             for tid in valid_task_ids:
@@ -197,23 +194,36 @@ class TestOneFileLFPParser(TestCase):
 
     def test_power_law(self):
         avg_spectrum_by_channel = self._compute_avg_spectra()
+        spike_rates = self._compute_avg_spike_rates()
 
         channel_order = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
                          27, 20, 4, 11, 28, 19, 1, 14, 3, 12, 29, 18, 2, 13, 30, 17]
 
-        fitter = LFPPowerLaw(freq_range=(20,100))
+        fitter = LFPPowerLaw(freq_range=(20, 100))
         normalized = fitter.normalize_spectra_peak(avg_spectrum_by_channel)
         fits = fitter.fit_dict(normalized)
 
-        # Compute average spike rates per channel from spike data
-        spike_rates = self._compute_avg_spike_rates()
+        spectrum_plotter = LFPPowerLawSpectrumPlotter(channel_order=channel_order)
+        spike_plotter = LFPSpikeRatePlotter(channel_order=channel_order)
 
-        plotter = LFPPowerLawPlotter(channel_order=channel_order)
-        fig_spectra, fig_overlay, fig_params = plotter.plot(
-            fits,
-            spike_rates_by_channel=spike_rates,
-            avg_spectrum_by_channel=avg_spectrum_by_channel
+        n_cols = spectrum_plotter.n_axes + spike_plotter.n_axes
+        width_ratios = [1] * spectrum_plotter.n_axes + [1] * spike_plotter.n_axes
+        fig, axes = plt.subplots(1, n_cols, figsize=(4 * n_cols, 8), sharey=True,
+                                 gridspec_kw={'width_ratios': width_ratios})
+
+        spectrum_plotter.plot_onto_axes(
+            fits, axes[:spectrum_plotter.n_axes],
+            avg_spectrum_by_channel=avg_spectrum_by_channel,
+            label_y_axis=True,
         )
+        spike_plotter.plot_onto_axes(
+            spike_rates, axes[spectrum_plotter.n_axes:],
+            fits_by_channel=fits,
+            label_y_axis=False,
+        )
+
+        fig.suptitle("Power Law & Spike Rate Parameters")
+        plt.tight_layout()
         plt.show()
 
     def _compute_baseline_spectra(self, baseline_duration=0.25):
@@ -270,6 +280,7 @@ class TestOneFileLFPParser(TestCase):
     def test_power_law_baseline(self):
         """Power law fit using only pre-stimulus baseline activity."""
         baseline_spectra = self._compute_baseline_spectra(baseline_duration=0.25)
+        spike_rates = self._compute_avg_spike_rates()
 
         channel_order = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
                          27, 20, 4, 11, 28, 19, 1, 14, 3, 12, 29, 18, 2, 13, 30, 17]
@@ -278,13 +289,23 @@ class TestOneFileLFPParser(TestCase):
         normalized = fitter.normalize_spectra_peak(baseline_spectra)
         fits = fitter.fit_dict(normalized)
 
-        spike_rates = self._compute_avg_spike_rates()
+        spectrum_plotter = LFPPowerLawSpectrumPlotter(channel_order=channel_order)
+        spike_plotter = LFPSpikeRatePlotter(channel_order=channel_order)
 
-        plotter = LFPPowerLawPlotter(channel_order=channel_order)
-        fig_spectra, fig_overlay, fig_params = plotter.plot(
-            fits,
-            spike_rates_by_channel=spike_rates,
-            avg_spectrum_by_channel=baseline_spectra
+        n_cols = spectrum_plotter.n_axes + spike_plotter.n_axes
+        fig, axes = plt.subplots(1, n_cols, figsize=(4 * n_cols, 8), sharey=True)
+
+        spectrum_plotter.plot_onto_axes(
+            fits, axes[:spectrum_plotter.n_axes],
+            avg_spectrum_by_channel=baseline_spectra,
+            label_y_axis=True,
         )
-        fig_params.suptitle("Baseline Power Law Parameters (pre-stimulus only)")
+        spike_plotter.plot_onto_axes(
+            spike_rates, axes[spectrum_plotter.n_axes:],
+            fits_by_channel=fits,
+            label_y_axis=False,
+        )
+
+        fig.suptitle("Baseline Power Law & Spike Rate Parameters (pre-stimulus only)")
+        plt.tight_layout()
         plt.show()
