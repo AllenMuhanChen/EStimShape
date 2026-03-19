@@ -26,6 +26,7 @@ from relative_power_spectrum import RelativePowerSpectrum
 from lfp_spectrum_plotter import LFPSpectrumPlotter
 from lfp_band_power_plotter import LFPBandPowerPlotter
 from lfp_power_law import LFPPowerLaw, LFPPowerLawSpectrumPlotter, LFPSpikeRatePlotter
+from src.lfp.lfp_power_law import FOOOFPowerLaw
 
 # ============================================================================
 # CONFIGURATION
@@ -54,9 +55,9 @@ POWER_LAW_PANELS = dict(
     show_exponent=True,
     show_amplitude=False,
     show_r_squared=False,
-    show_gamma_ratio=True,
+    show_gamma_ratio=False,
     show_residual_gamma=False,
-    show_residual_alpha_beta=False,
+    show_residual_alpha_beta=False
 )
 
 # ---- MUA detection config -----------------------------------------------
@@ -324,7 +325,7 @@ def ReadWaveformDataDemo():
     normalized = rps.compute(spectra)
 
     print('Fitting 1/f power laws...')
-    power_law = LFPPowerLaw(freq_range=(20, 100))
+    power_law = FOOOFPowerLaw()
     fits = power_law.fit_dict(spectra)
 
     # ========================================================================
@@ -395,6 +396,11 @@ def ReadWaveformDataDemo():
 
     fig.suptitle(f"LFP Analysis — {ACQUISITION_SECONDS}s acquisition")
     plt.tight_layout()
+
+    # --- FOOOF per-channel fit grid (separate figure) ---
+    fig_fits = pl_plotter.plot_spectrum_fits(fits, avg_spectrum_by_channel=spectra)
+    fig_fits.suptitle(f"FOOOF Spectral Fits — {ACQUISITION_SECONDS}s acquisition")
+
     plt.show()
 
     print('\nDone!')
