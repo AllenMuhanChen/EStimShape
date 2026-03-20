@@ -58,8 +58,8 @@ class TestOneFileLFPParser(TestCase):
         plt.show()
 
     def test_spectrum(self):
-        path_to_file = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260113_0/2026-01-13/1768327745079370_1_1768327879721977_260113_131121"
-        path_to_rhd = f"{path_to_file}/info.rhs"
+
+        path_to_rhd = f"{self.file_path}/info.rhs"
         data = read_data(path_to_rhd)
         amplifier_channels = data['amplifier_channels']
         sample_rate = data['frequency_parameters']['amplifier_sample_rate']
@@ -107,7 +107,11 @@ class TestOneFileLFPParser(TestCase):
         sample_rate = data['frequency_parameters']['amplifier_sample_rate']
 
         parser = OneFileLFPParser(sample_rate, amplifier_channels, 0.5, 0.0)
-        lfp_by_channel_by_task_id, _, sample_rate = parser.parse(path_to_file)
+        lfp_by_channel_by_task_id, _, sample_rate = parser.parse_iti(path_to_file,
+                                                                     min_iti_duration=0.5,
+                                                                     start_padding=0.2,
+                                                                     end_padding=0.2,
+                                                                     )
 
         spectrum_calculator = LFPSpectrum(sample_rate)
         spectra = spectrum_calculator.compute(lfp_by_channel_by_task_id)
@@ -199,7 +203,7 @@ class TestOneFileLFPParser(TestCase):
         channel_order = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
                          27, 20, 4, 11, 28, 19, 1, 14, 3, 12, 29, 18, 2, 13, 30, 17]
 
-        fitter = LFPPowerLaw(freq_range=(20, 100))
+        fitter = LFPPowerLaw()
         normalized = fitter.normalize_spectra_peak(avg_spectrum_by_channel)
         fits = fitter.fit_dict(normalized)
 
@@ -307,5 +311,53 @@ class TestOneFileLFPParser(TestCase):
         )
 
         fig.suptitle("Baseline Power Law & Spike Rate Parameters (pre-stimulus only)")
+        plt.tight_layout()
+        plt.show()
+
+    def test_iti_parse(self):
+        path_to_file = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260115_0/2026-01-15/1768500912926825_1_1768501037142197_260115_131719"
+        path_to_rhd = f"{path_to_file}/info.rhs"
+        data = read_data(path_to_rhd)
+        amplifier_channels = data['amplifier_channels']
+        sample_rate = data['frequency_parameters']['amplifier_sample_rate']
+
+        parser = OneFileLFPParser(
+            sample_rate,
+            amplifier_channels,
+            seconds_before_epoch=0.2,
+            seconds_after_epoch=0.2,
+        )
+
+        iti_lfp, iti_windows, lfp_sr = parser.parse_iti(
+            path_to_file,
+            min_iti_duration=0.5,
+            start_padding=0.2,
+            end_padding=0.2,
+        )
+
+        print(f"Total ITI windows found: {len(iti_lfp)}")
+        for idx, (t0, t1) in iti_windows.items():
+            print(f"  ITI {idx}: {t0:.3f}s -> {t1:.3f}s  (duration={t1 - t0:.3f}s)")
+
+        # Plot the first 10 ITI windows for channel A-003
+        chan = "A-003"
+        channel = Channel(chan)
+        indices = sorted(iti_lfp.keys())[:10]
+
+        fig, axes = plt.subplots(len(indices), 1,
+                                 figsize=(12, 2 * len(indices)), sharex=False)
+        if len(indices) == 1:
+            axes = [axes]
+
+        for ax, idx in zip(axes, indices):
+            waveform = iti_lfp[idx][channel]
+            t0, t1 = iti_windows[idx]
+            time_axis = np.linspace(t0, t1, len(waveform))
+            ax.plot(time_axis, waveform, linewidth=0.5)
+            ax.set_ylabel(f"ITI {idx}\n(µV)")
+            ax.set_title(f"ITI {idx}: {t0:.2f}s – {t1:.2f}s  ({t1 - t0:.2f}s)", fontsize=9)
+
+        axes[-1].set_xlabel("Time (s)")
+        fig.suptitle(f"Channel {chan} — ITI LFP windows")
         plt.tight_layout()
         plt.show()
