@@ -1,6 +1,7 @@
 package org.xper.intan;
 
 import org.xper.Dependency;
+import org.xper.util.ThreadUtil;
 
 /**
  * @author Allen Chen
@@ -25,6 +26,34 @@ public class IntanRHD {
 
     public void connect() {
         intanClient.connect();
+    }
+
+    public void testImpedance(){
+        runMode("Stop");
+        //path has not been set yet in the Intan software
+        String currentFilename;
+        String currentPath;
+        if(intanClient.isBlank("Filename.Path")){
+            setSavePath(defaultSavePath);
+            currentPath = defaultSavePath;
+        } else{
+            currentPath = intanClient.get("Filename.Path");
+        }
+
+        if(intanClient.isBlank("Filename.BaseFilename")){
+            setBaseFilename(defaultBaseFileName);
+            currentFilename = defaultBaseFileName;
+        } else{
+            currentFilename = intanClient.get("Filename.BaseFilename");
+        }
+
+
+
+        intanClient.set("ImpedanceFilename.BaseFilename", currentFilename);
+        intanClient.set("ImpedanceFilename.Path", currentPath);
+        intanClient.execute("measureimpedance");
+        ThreadUtil.sleep(3000);
+        intanClient.execute("saveimpedance");
     }
 
     public void disconnect() {

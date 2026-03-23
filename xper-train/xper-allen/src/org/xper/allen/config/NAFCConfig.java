@@ -366,7 +366,7 @@ public class NAFCConfig {
 		listeners.add(messageDispatcher());
 		listeners.add(classicConfig.databaseTaskDataSourceController());
 		listeners.add(classicConfig.messageDispatcherController());
-		listeners.add(classicConfig.dataAcqController());
+//		listeners.add(classicConfig.dataAcqController());
 		listeners.add(classicConfig.eyeZeroLogger());
 		listeners.add(classicConfig.experimentCpuBinder());
 		listeners.add(intanStimController());
@@ -383,7 +383,7 @@ public class NAFCConfig {
 		trialEventListener.add(classicConfig.experimentProfiler());
 		trialEventListener.add(messageDispatcher());
 		trialEventListener.add(classicConfig.trialSyncController());
-		trialEventListener.add(classicConfig.dataAcqController());
+//		trialEventListener.add(classicConfig.dataAcqController());
 		trialEventListener.add(classicConfig.jvmManager());
 		if (!acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
 			trialEventListener.add(classicConfig.dynamicJuiceUpdater());

@@ -313,7 +313,7 @@ public class ClassicConfig {
 		listeners.add(messageDispatcher());
 		listeners.add(databaseTaskDataSourceController());
 		listeners.add(messageDispatcherController());
-		listeners.add(dataAcqController());
+//		listeners.add(dataAcqController());
 		listeners.add(eyeZeroLogger());
 		listeners.add(experimentCpuBinder());
 		listeners.add(intanRecordingController());
@@ -348,7 +348,7 @@ public class ClassicConfig {
 		trialEventListener.add(messageDispatcher());
 		trialEventListener.add(juiceController());
 		trialEventListener.add(trialSyncController());
-		trialEventListener.add(dataAcqController());
+//		trialEventListener.add(dataAcqController());
 		trialEventListener.add(jvmManager());
 		if (!acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
 			trialEventListener.add(dynamicJuiceUpdater());

@@ -40,10 +40,12 @@ public class IntanRecordingController implements TrialEventListener, ExperimentE
 
     @Override
     public void trialInit(long timestamp, TrialContext context) {
+        //Start recording the first time we start a trial (at this point intan is not connected)
         if (recordingEnabled && !connected) {
             tryConnection();
             if (toRecord()) {
                 fileNamingStrategy.rename(experimentId);
+                getIntan().testImpedance();
                 getIntan().record();
             }
         }

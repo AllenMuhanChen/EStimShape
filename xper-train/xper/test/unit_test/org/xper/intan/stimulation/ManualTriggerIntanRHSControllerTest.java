@@ -37,6 +37,13 @@ public class ManualTriggerIntanRHSControllerTest {
         controller.connect();
 //        assertTrue(controller.getIntanClient().get("b-000.maintainampsettle").equals("True"));
     }
+
+    @Test
+    public void testImpedanceTest(){
+        controller.setDefaultSavePath("/home/i2_allen/Documents/Test/Impedance");
+        controller.setDefaultBaseFileName("TestImpedanceMeasurement");
+        controller.testImpedance();
+    }
     /**
      * Times the current full setupManualStimulationFor as a baseline.
      */
