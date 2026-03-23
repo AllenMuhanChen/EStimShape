@@ -21,7 +21,7 @@ public class NAFCProgrammaticDigitalTriggerIntanStimulationRecordingController e
 
         }
         if (toRecord()) {
-            fileNamingStrategy.rename(experimentId);
+            fileNamingStrategy.rename(context.getCurrentTask().getTaskId());
             uploadStimParameters(context);
             getIntan().record();
         }
