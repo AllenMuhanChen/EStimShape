@@ -15,14 +15,14 @@ from src.lfp.relative_power_spectrum import RelativePowerSpectrum
 
 
 class TestOneFileLFPParser(TestCase):
-    # file_path = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260120_0/2026-01-20/1768934618287078_1_1768934754529063_260120_134558"
+    file_path = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260120_0/2026-01-20/1768934618287078_1_1768934754529063_260120_134558"
     # file_path = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260115_0/2026-01-15/1768500912926825_1_1768501037142197_260115_131719"
     # file_path = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260115_0/2026-01-15/1768500912926825_8_1768506582349129_260115_144943"
-    file_path = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260113_0/2026-01-13/1768327745079370_1_1768327879721977_260113_131121"
+    # file_path = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260113_0/2026-01-13/1768327745079370_1_1768327879721977_260113_131121"
 
     def test_parse(self):
-        path_to_file = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260115_0/2026-01-15/1768500912926825_1_1768501037142197_260115_131719"
-        path_to_rhd = f"{path_to_file}/info.rhs"
+        # path_to_file = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260115_0/2026-01-15/1768500912926825_1_1768501037142197_260115_131719"
+        path_to_rhd = f"{self.file_path}/info.rhs"
         data = read_data(path_to_rhd)
         amplifier_channels = data['amplifier_channels']
         sample_rate = data['frequency_parameters']['amplifier_sample_rate']
@@ -34,7 +34,7 @@ class TestOneFileLFPParser(TestCase):
             0.2
         )
 
-        lfp_by_channel_by_task_id, epoch_start_stop_times_by_task_id, sample_rate = parser.parse(path_to_file)
+        lfp_by_channel_by_task_id, epoch_start_stop_times_by_task_id, sample_rate = parser.parse(self.path_to_file)
 
         # Plot channel A-024 for the first 10 task_ids
         chan = "A-003"
@@ -204,8 +204,8 @@ class TestOneFileLFPParser(TestCase):
                          27, 20, 4, 11, 28, 19, 1, 14, 3, 12, 29, 18, 2, 13, 30, 17]
 
         fitter = LFPPowerLaw()
-        normalized = fitter.normalize_spectra_peak(avg_spectrum_by_channel)
-        fits = fitter.fit_dict(normalized)
+        # normalized = fitter.normalize_spectra_peak(avg_spectrum_by_channel)
+        fits = fitter.fit_dict(avg_spectrum_by_channel)
 
         spectrum_plotter = LFPPowerLawSpectrumPlotter(channel_order=channel_order)
         spike_plotter = LFPSpikeRatePlotter(channel_order=channel_order)
@@ -315,8 +315,8 @@ class TestOneFileLFPParser(TestCase):
         plt.show()
 
     def test_iti_parse(self):
-        path_to_file = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260115_0/2026-01-15/1768500912926825_1_1768501037142197_260115_131719"
-        path_to_rhd = f"{path_to_file}/info.rhs"
+
+        path_to_rhd = f"{self.file_path}/info.rhs"
         data = read_data(path_to_rhd)
         amplifier_channels = data['amplifier_channels']
         sample_rate = data['frequency_parameters']['amplifier_sample_rate']
@@ -329,7 +329,7 @@ class TestOneFileLFPParser(TestCase):
         )
 
         iti_lfp, iti_windows, lfp_sr = parser.parse_iti(
-            path_to_file,
+            self.file_path,
             min_iti_duration=0.5,
             start_padding=0.2,
             end_padding=0.2,

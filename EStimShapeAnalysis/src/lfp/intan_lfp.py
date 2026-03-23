@@ -11,6 +11,7 @@ Uses existing LFPSpectrum, RelativePowerSpectrum, LFPSpectrumPlotter,
 LFPBandPowerPlotter, LFPPowerLaw, and LFPPowerLawSpectrumPlotter.
 """
 
+import re
 import time
 import socket
 import struct
@@ -27,6 +28,13 @@ from lfp_spectrum_plotter import LFPSpectrumPlotter
 from lfp_band_power_plotter import LFPBandPowerPlotter
 from lfp_power_law import LFPPowerLaw, LFPPowerLawSpectrumPlotter, LFPSpikeRatePlotter
 from src.lfp.lfp_power_law import FOOOFPowerLaw
+from src.repository.export_to_repository import read_session_id_from_db_name
+
+# Import context for Intan path and database name
+from src.startup.context import ga_intan_path, ga_database
+
+# Import session ID parser (reuse existing function, do not recreate)
+
 
 # ============================================================================
 # CONFIGURATION
@@ -50,7 +58,6 @@ MICROVOLTS_PER_BIT = 0.195
 SAMPLE_OFFSET = 32768
 
 # ---- Power-law plotter config -------------------------------------------
-# Toggle individual parameter panels on/off here.
 POWER_LAW_PANELS = dict(
     show_exponent=True,
     show_amplitude=False,
@@ -73,6 +80,19 @@ class GetSampleRateFailure(Exception):
 
 class InvalidMagicNumber(Exception):
     pass
+
+
+def sftp_to_local_path(sftp_path: str) -> str:
+    """Strip the SFTP mount prefix, returning the bare path on the Intan machine.
+
+    Example:
+        /run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_ga_exp_260115_0
+        -> /mnt/data/EStimShape/allen_ga_exp_260115_0
+    """
+    match = re.search(r'sftp:host=[^/]+(/.*)', sftp_path)
+    if match:
+        return match.group(1)
+    raise ValueError(f"Could not parse local path from: {sftp_path!r}")
 
 
 def extract_lfp(wideband: np.ndarray, sample_rate: float,
@@ -191,6 +211,19 @@ class DataReader:
 def ReadWaveformDataDemo():
     n_channels = len(CHANNEL_ORDER)
 
+    # Channels arrive from TCP in ascending numeric order regardless of enable order
+    sorted_channels = sorted(CHANNEL_ORDER)
+
+    # ========================================================================
+    # PROMPT FOR DEPTH BEFORE CONNECTING — no timing pressure yet
+    # ========================================================================
+    depth = input("Enter electrode depth (integer): ").strip()
+    session_id, _ = read_session_id_from_db_name(ga_database)
+    base_filename = f"idle_{session_id}_{depth}"
+    local_intan_path = sftp_to_local_path(ga_intan_path)
+    print(f'Intan save path : {local_intan_path}')
+    print(f'Intan base name : {base_filename}')
+
     print('Connecting to TCP command server...')
     scommand = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     scommand.connect(('172.30.9.78', 5000))
@@ -224,6 +257,15 @@ def ReadWaveformDataDemo():
         scommand.sendall(cmd)
         time.sleep(0.1)
 
+    # ========================================================================
+    # SET FILENAME AND PATH ON INTAN MACHINE BEFORE RECORDING
+    # ========================================================================
+    print('Configuring Intan save filename...')
+    scommand.sendall(b'set filename.basefilename ' + base_filename.encode('utf-8'))
+    time.sleep(0.1)
+    scommand.sendall(b'set filename.path ' + local_intan_path.encode('utf-8'))
+    time.sleep(0.1)
+
     waveformBytesPerFrame = 4 + (2 * n_channels)
     waveformBytesPerBlock = FRAMES_PER_BLOCK * waveformBytesPerFrame + 4
 
@@ -238,7 +280,7 @@ def ReadWaveformDataDemo():
     reader.start()
 
     print(f'Acquiring {ACQUISITION_SECONDS} seconds of data...')
-    scommand.sendall(b'set runmode run')
+    scommand.sendall(b'set runmode record')
 
     start_time = time.time()
     while time.time() - start_time < ACQUISITION_SECONDS:
@@ -307,7 +349,9 @@ def ReadWaveformDataDemo():
     lfp_by_channel = {}
     lfp_rate = None
 
-    for i, ch_num in enumerate(CHANNEL_ORDER):
+    # TCP stream delivers channels in ascending numeric order (sorted_channels),
+    # regardless of the order they were enabled.
+    for i, ch_num in enumerate(sorted_channels):
         ch_name = f"A_{ch_num:03d}"
         wideband = amplifierData[i]
         lfp, lfp_rate = extract_lfp(wideband, sample_rate, LFP_LOWPASS, LFP_TARGET_RATE)
@@ -334,7 +378,7 @@ def ReadWaveformDataDemo():
 
     print('\nDetecting MUA spikes...')
     spike_rates_by_channel = {}
-    for i, ch_num in enumerate(CHANNEL_ORDER):
+    for i, ch_num in enumerate(sorted_channels):
         ch_name = f"A_{ch_num:03d}"
         spike_samples = detect_mua_spikes(
             amplifierData[i], sample_rate,
@@ -360,7 +404,6 @@ def ReadWaveformDataDemo():
     n_pl = pl_plotter.n_axes
     n_sp = sp_plotter.n_axes
 
-    # Width ratios: heatmap=2, band power=1, each param panel=1
     width_ratios = [2, 1] + [1] * n_pl + [1] * n_sp
     fig, axes = plt.subplots(
         1, 2 + n_pl + n_sp,
@@ -368,7 +411,6 @@ def ReadWaveformDataDemo():
         gridspec_kw={'width_ratios': width_ratios},
     )
 
-    # --- Heatmap + band power ---
     heatmap_plotter = LFPSpectrumPlotter(
         channel_order=CHANNEL_ORDER, freq_range=FREQ_RANGE)
     heatmap_plotter.plot(normalized, ax=axes[0])
@@ -378,28 +420,25 @@ def ReadWaveformDataDemo():
     band_plotter.plot(normalized, ax=axes[1])
     axes[1].set_title("Band Power Profile")
 
-    # --- Power-law panels ---
     pl_plotter.plot_onto_axes(
         fits,
-        axes[2 : 2 + n_pl],
+        axes[2: 2 + n_pl],
         avg_spectrum_by_channel=spectra,
         label_y_axis=False,
     )
 
-    # --- Spike rate panels ---
     sp_plotter.plot_onto_axes(
         spike_rates_by_channel,
-        axes[2 + n_pl :],
+        axes[2 + n_pl:],
         fits_by_channel=fits,
         label_y_axis=False,
     )
 
-    fig.suptitle(f"LFP Analysis — {ACQUISITION_SECONDS}s acquisition")
+    fig.suptitle(f"LFP Analysis — {ACQUISITION_SECONDS}s acquisition  |  {base_filename}")
     plt.tight_layout()
 
-    # --- FOOOF per-channel fit grid (separate figure) ---
     fig_fits = pl_plotter.plot_spectrum_fits(fits, avg_spectrum_by_channel=spectra)
-    fig_fits.suptitle(f"FOOOF Spectral Fits — {ACQUISITION_SECONDS}s acquisition")
+    fig_fits.suptitle(f"FOOOF Spectral Fits — {ACQUISITION_SECONDS}s acquisition  |  {base_filename}")
 
     plt.show()
 
