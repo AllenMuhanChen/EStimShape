@@ -13,10 +13,12 @@ public class NAFCProgrammaticDigitalTriggerIntanStimulationRecordingController e
     public void trialInit(long timestamp, TrialContext context) {
         if (recordingEnabled && !connected) {
             tryConnection();
-
+            experimentId = context.getCurrentTask().getGenId();
             System.out.println("Attempting to run impedance check in trialInit of NAFCProgrammaticDigitalTriggerIntanStimulationRecordingController");
             fileNamingStrategy.rename(experimentId);
             getIntan().testImpedance();
+
+
         }
         if (toRecord()) {
             fileNamingStrategy.rename(experimentId);
