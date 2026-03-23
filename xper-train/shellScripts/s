@@ -5,4 +5,4 @@ source paths
 sudo -S <<< Whedon101 cp $XPER_PROPERTIES_PROCEDURAL $DIST/xper.properties
 sudo -S <<< Whedon101 cp $XPER_PROPERTIES_PROCEDURAL $DIST/allen/xper.properties
 cd $DIST
-java -jar acq_server.jar
+java -jar time_server.jar
