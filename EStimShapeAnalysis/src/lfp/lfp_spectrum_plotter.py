@@ -70,9 +70,9 @@ class LFPSpectrumPlotter:
 
     def _find_channel_key(self, ch_num: int, channel_to_spectrum: Dict):
         """Find the matching channel key for a given channel number."""
-        target_str = f"{self.channel_prefix}_{ch_num:03d}"
         for key in channel_to_spectrum:
-            key_str = str(key)
-            if key_str.endswith(target_str):
+            s = str(key)
+            if (s.endswith(f"{self.channel_prefix}_{ch_num:03d}") or
+                    s.endswith(f"{self.channel_prefix}-{ch_num:03d}")):
                 return key
         return None
