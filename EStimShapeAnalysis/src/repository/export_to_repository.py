@@ -809,6 +809,7 @@ def write_lfp_waveforms_to_db(
     lfp_by_channel_by_task_id: dict,
     sample_rate: int,
     repo_conn,
+    batch_size: int = 200,
 ):
     """
     Write epoched LFP waveforms to the LFPWaveforms table.
@@ -821,18 +822,31 @@ def write_lfp_waveforms_to_db(
         LFP sample rate in Hz
     repo_conn : Connection
         Open connection to allen_data_repository
+    batch_size : int
+        Number of rows per INSERT statement (default 200)
     """
+    rows = []
     for task_id, ch_dict in lfp_by_channel_by_task_id.items():
         if ch_dict is None:
             continue
         for channel, waveform in ch_dict.items():
             waveform_str = ','.join(f'{v:.6g}' for v in waveform)
-            repo_conn.execute(
-                """INSERT INTO LFPWaveforms
-                   (task_id, channel_id, waveform, sample_rate)
-                   VALUES (%s, %s, %s, %s)
-                   ON DUPLICATE KEY UPDATE
-                       waveform=VALUES(waveform),
-                       sample_rate=VALUES(sample_rate)""",
-                (int(task_id), str(channel), waveform_str, int(sample_rate))
-            )
+            rows.append((int(task_id), str(channel), waveform_str, int(sample_rate)))
+
+    if not rows:
+        return
+
+    for i in range(0, len(rows), batch_size):
+        batch = rows[i:i + batch_size]
+        placeholders = ', '.join(['(%s, %s, %s, %s)'] * len(batch))
+        flat_params = [v for row in batch for v in row]
+        repo_conn.execute(
+            f"""INSERT INTO LFPWaveforms (task_id, channel_id, waveform, sample_rate)
+                VALUES {placeholders}
+                ON DUPLICATE KEY UPDATE
+                    waveform=VALUES(waveform),
+                    sample_rate=VALUES(sample_rate)""",
+            flat_params,
+        )
+    print(f"Wrote {len(rows)} LFP waveform rows to database.")
+
