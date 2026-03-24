@@ -84,6 +84,8 @@ class LFPAnalysis(Analysis):
         pl_plotter = LFPPowerLawSpectrumPlotter(
             channel_order=self.channel_order,
             channel_prefix=self.channel_prefix,
+            show_r_squared=False,
+
         )
         sp_plotter = LFPSpikeRatePlotter(
             channel_order=self.channel_order,
