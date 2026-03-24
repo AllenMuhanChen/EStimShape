@@ -39,7 +39,7 @@ class MultiFileLFPParser:
         seconds_after_epoch: float = 0.2,
         lowpass_cutoff: float = 250.0,
         filter_order: int = 3,
-        target_sample_rate: int = 20000,
+        target_sample_rate: int = 1000,
         to_cache: bool = False,
         cache_dir: Optional[str] = None,
     ):
@@ -130,6 +130,7 @@ class MultiFileLFPParser:
         data = read_data(rhs_path)
         sample_rate = data['frequency_parameters']['amplifier_sample_rate']
         amplifier_channels = data['amplifier_channels']
+        del data  # free RHS header dict before loading amplifier data
 
         parser = OneFileLFPParser(
             sample_rate=sample_rate,

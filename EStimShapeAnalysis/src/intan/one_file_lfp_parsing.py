@@ -18,7 +18,7 @@ class OneFileLFPParser:
     seconds_after_epoch: float = 0.2
     lowpass_cutoff: float = 250.0
     filter_order: int = 3
-    target_sample_rate: int = 20000
+    target_sample_rate: int = 1000
 
     # -------------------------------------------------------------------------
     # Public API

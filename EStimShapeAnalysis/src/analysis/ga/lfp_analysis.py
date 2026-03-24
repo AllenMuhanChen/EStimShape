@@ -37,11 +37,13 @@ class LFPAnalysis(Analysis):
         channel_order: List[int],
         channel_prefix: str = "A",
         exclude_channels: Optional[List[int]] = None,
+        target_sample_rate: int = 1000,
     ):
         super().__init__()
         self.channel_order = channel_order
         self.channel_prefix = channel_prefix
         self.exclude_channels = exclude_channels or []
+        self.target_sample_rate = target_sample_rate
 
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
         # 1. Fetch compiled data if not provided
@@ -54,7 +56,11 @@ class LFPAnalysis(Analysis):
         task_ids = compiled_data['TaskId'].tolist()
 
         # 3. Parse LFP with caching
-        parser = MultiFileLFPParser(to_cache=True, cache_dir=_lfp_cache_dir)
+        parser = MultiFileLFPParser(
+            to_cache=True,
+            cache_dir=_lfp_cache_dir,
+            target_sample_rate=self.target_sample_rate,
+        )
         lfp_data, _epochs, sr = parser.parse(task_ids, context.ga_intan_path)
 
         # 4. Compute power spectra and average across task IDs
