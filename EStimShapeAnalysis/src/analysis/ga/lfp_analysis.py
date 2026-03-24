@@ -27,7 +27,8 @@ def main():
     channel_order = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
                  27, 20, 4, 11, 28, 19, 1, 14, 3, 12, 29, 18, 2, 13, 30, 17]
     analysis = LFPAnalysis(channel_order=channel_order)
-    analysis.run(session_id="260115_0", data_type="raw", channel=None)
+    data = analysis.compile()
+    analysis.run(session_id="260115_0", data_type="raw", channel=None, compiled_data=data)
 
 
 class LFPAnalysis(Analysis):
@@ -47,24 +48,13 @@ class LFPAnalysis(Analysis):
 
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
         if compiled_data is None:
-            # Re-run path: load waveforms stored in repository
             compiled_data = import_from_repository(
                 self.session_id, "ga", "GAStimInfo", "LFPWaveforms"
             )
-            lfp_data = {row['TaskId']: row['LFP by channel_id']
-                        for _, row in compiled_data.iterrows()}
-            sr = int(compiled_data['LFP Sample Rate'].iloc[0])
-        else:
-            # First-run path: parse raw Intan files, then export to repository
-            task_ids = compiled_data['TaskId'].tolist()
-            parser = MultiFileLFPParser(
-                to_cache=True,
-                cache_dir=_lfp_cache_dir,
-                target_sample_rate=self.target_sample_rate,
-            )
-            lfp_data, _epochs, sr = parser.parse(task_ids, context.ga_intan_path)
-            repo_conn = Connection("allen_data_repository")
-            write_lfp_waveforms_to_db(lfp_data, sr, repo_conn)
+
+        lfp_data = {row['TaskId']: row['LFP by channel_id']
+                    for _, row in compiled_data.iterrows()}
+        sr = int(compiled_data['LFP Sample Rate'].iloc[0])
 
         # Compute power spectra and average across task IDs
         spectra = LFPSpectrum(sample_rate=sr).compute(lfp_data)
@@ -96,17 +86,33 @@ class LFPAnalysis(Analysis):
 
     def compile(self):
         conn = Connection(context.ga_database)
-        return compile_data(conn)
+        df = compile_data(conn)
+
+        task_ids = df['TaskId'].tolist()
+        parser = MultiFileLFPParser(
+            to_cache=True,
+            cache_dir=_lfp_cache_dir,
+            target_sample_rate=self.target_sample_rate,
+        )
+        lfp_data, _epochs, sr = parser.parse(task_ids, context.ga_intan_path)
+
+        df['LFP by channel_id'] = df['TaskId'].map(lambda tid: lfp_data.get(tid) or {})
+        df['LFP Sample Rate'] = sr
+        return df
 
     def compile_and_export(self):
-        data = compile()
+        df = self.compile()
         export_to_repository(
-            data,
+            df,
             context.ga_database,
             "ga",
             stim_info_table="GAStimInfo",
             stim_info_columns=['Lineage', 'GenId', 'StimType', 'StimPath', 'ThumbnailPath', 'GA Response'],
         )
+        lfp_dict = {row['TaskId']: row['LFP by channel_id'] for _, row in df.iterrows()}
+        sr = int(df['LFP Sample Rate'].iloc[0])
+        repo_conn = Connection("allen_data_repository")
+        write_lfp_waveforms_to_db(lfp_dict, sr, repo_conn)
 
 
 def compile_data(conn: Connection) -> pd.DataFrame:
