@@ -735,6 +735,37 @@ def write_stim_info_to_db(conn: Connection, table_name: str, stim_info_data: Dic
 
     print(f"Successfully exported {success_count} records to {table_name}")
 
+def write_iti_to_db(
+    iti_time_windows_by_idx: Dict[int, Tuple[float, float]],
+    session_id: str,
+    experiment_id: str,
+    repo_conn,
+) -> Dict[int, int]:
+    """
+    Insert ITI windows into InterTrialIntervals and return a mapping of
+    local iti_index → iti_id (auto-incremented DB primary key).
+    """
+    idx_to_id: Dict[int, int] = {}
+    for iti_idx, (start, end) in sorted(iti_time_windows_by_idx.items()):
+        repo_conn.execute(
+            """INSERT INTO InterTrialIntervals
+               (session_id, experiment_id, iti_index, iti_start, iti_end)
+               VALUES (%s, %s, %s, %s, %s)
+               ON DUPLICATE KEY UPDATE iti_start=VALUES(iti_start), iti_end=VALUES(iti_end)""",
+            (session_id, experiment_id, int(iti_idx), float(start), float(end)),
+        )
+        repo_conn.execute(
+            "SELECT iti_id FROM InterTrialIntervals "
+            "WHERE session_id=%s AND experiment_id=%s AND iti_index=%s",
+            (session_id, experiment_id, int(iti_idx)),
+        )
+        row = repo_conn.fetch_all()
+        if row:
+            idx_to_id[iti_idx] = row[0][0]
+    print(f"Wrote {len(idx_to_id)} ITI windows to InterTrialIntervals.")
+    return idx_to_id
+
+
 def detect_column_types(stim_info_data: Dict[int, Dict[str, Any]]) -> Dict[str, str]:
     """
     Detect appropriate SQL data types based on the actual data values.

@@ -6,8 +6,14 @@ from typing import Dict, List, Optional, Tuple, Any
 import numpy as np
 from clat.intan.rhs.load_intan_rhs_format import read_data
 
-from src.intan.MultiFileParser import find_files_containing_task_ids
+from clat.intan.amplifiers import read_amplifier_data
+from clat.intan.livenotes import map_task_id_to_epochs_with_livenotes
+from clat.intan.marker_channels import epoch_using_combined_marker_channels
+from scipy.signal import butter, sosfiltfilt, decimate
+
+from src.intan.MultiFileParser import find_files_containing_task_ids, find_all_recording_dirs
 from src.intan.one_file_lfp_parsing import OneFileLFPParser
+from src.lfp.mua_detection import detect_mua_spikes
 
 
 class MultiFileLFPParser:
@@ -209,3 +215,211 @@ class MultiFileLFPParser:
                 continue
 
         return combined_lfp, combined_epochs, missing_task_ids
+
+    # ------------------------------------------------------------------
+    # ITI public API
+    # ------------------------------------------------------------------
+
+    def parse_iti(
+        self,
+        intan_files_dir: str,
+        min_iti_duration: float = 0.5,
+        start_padding: float = 0.1,
+        end_padding: float = 0.1,
+        mua_highpass_hz: float = 300.0,
+        mua_threshold_rms: float = 4.0,
+        mua_refractory_sec: float = 0.001,
+    ) -> Tuple[
+        Dict[int, Dict],   # iti_lfp_by_idx[iti_idx][channel_key] = np.ndarray
+        Dict[int, Dict],   # iti_spike_rate_by_idx[iti_idx][channel_key] = float (Hz)
+        Dict[int, Tuple[float, float]],  # iti_time_windows_by_idx[iti_idx] = (start_s, end_s)
+        int,               # lfp_sample_rate
+    ]:
+        """
+        Parse LFP waveforms and MUA spike rates for all ITI windows across the session.
+
+        ITIs are identified as gaps between consecutive task epochs within each recording
+        file. Windows that span a file boundary are skipped.
+
+        Parameters
+        ----------
+        intan_files_dir  : Root directory containing all recording subdirectories.
+        min_iti_duration : Minimum gap duration (seconds) after padding to keep an ITI.
+        start_padding    : Seconds to skip after the preceding trial epoch ends.
+        end_padding      : Seconds to skip before the next trial epoch starts.
+        mua_highpass_hz  : High-pass cutoff (Hz) for MUA spike detection.
+        mua_threshold_rms: Negative threshold multiplier (N × RMS).
+        mua_refractory_sec: Refractory period (seconds) for MUA detection.
+
+        Returns
+        -------
+        iti_lfp_by_idx, iti_spike_rate_by_idx, iti_time_windows_by_idx, lfp_sample_rate
+        """
+        iti_cache_dir = None
+        if self.to_cache and self.cache_dir is not None:
+            iti_cache_dir = self.cache_dir.rstrip('/') + '_iti'
+            cached = self._load_iti_cache(iti_cache_dir)
+            if cached is not None:
+                return cached
+
+        recording_dirs = find_all_recording_dirs(intan_files_dir)
+        if not recording_dirs:
+            raise ValueError(f"No recording directories found under {intan_files_dir}")
+
+        all_lfp: Dict[int, Dict] = {}
+        all_rates: Dict[int, Dict] = {}
+        all_windows: Dict[int, Tuple[float, float]] = {}
+        global_idx = 0
+
+        for dir_path in recording_dirs:
+            dir_lfp, dir_rates, dir_windows, sr = self._parse_iti_one_dir(
+                dir_path,
+                min_iti_duration, start_padding, end_padding,
+                mua_highpass_hz, mua_threshold_rms, mua_refractory_sec,
+            )
+            if self.lfp_sample_rate is None:
+                self.lfp_sample_rate = sr
+            for local_idx in sorted(dir_windows.keys()):
+                all_lfp[global_idx] = dir_lfp[local_idx]
+                all_rates[global_idx] = dir_rates[local_idx]
+                all_windows[global_idx] = dir_windows[local_idx]
+                global_idx += 1
+
+        if iti_cache_dir is not None:
+            self._save_iti_cache(iti_cache_dir, all_lfp, all_rates, all_windows)
+
+        print(f"Found {global_idx} ITI windows across {len(recording_dirs)} recording file(s).")
+        return all_lfp, all_rates, all_windows, self.lfp_sample_rate
+
+    # ------------------------------------------------------------------
+    # ITI private helpers
+    # ------------------------------------------------------------------
+
+    def _parse_iti_one_dir(
+        self,
+        dir_path: str,
+        min_iti_duration: float,
+        start_padding: float,
+        end_padding: float,
+        mua_highpass_hz: float,
+        mua_threshold_rms: float,
+        mua_refractory_sec: float,
+    ) -> Tuple[Dict, Dict, Dict, int]:
+        """
+        Parse ITI LFP + MUA for a single recording directory.
+
+        Returns (lfp_by_local_idx, spike_rate_by_local_idx, windows_by_local_idx, sr)
+        """
+        rhs_path = os.path.join(dir_path, "info.rhs")
+        amplifier_path = os.path.join(dir_path, "amplifier.dat")
+        digital_in_path = os.path.join(dir_path, "digitalin.dat")
+        notes_path = os.path.join(dir_path, "notes.txt")
+
+        # Read RHS metadata
+        rhs_data = read_data(rhs_path)
+        raw_sample_rate = rhs_data['frequency_parameters']['amplifier_sample_rate']
+        amplifier_channels = rhs_data['amplifier_channels']
+        del rhs_data
+
+        # Load full wideband signal
+        channel_to_raw = read_amplifier_data(amplifier_path, amplifier_channels)
+
+        # Compute ITI epoch boundaries (in raw sample indices)
+        stim_epochs = epoch_using_combined_marker_channels(
+            digital_in_path, false_negative_correction_duration=2
+        )
+        epochs_for_task_ids = map_task_id_to_epochs_with_livenotes(
+            notes_path, stim_epochs,
+            require_trial_complete=False,
+            is_output_first_instance=False,
+        )
+
+        # Build sorted list of valid (start_s, end_s) epoch boundaries
+        valid_epochs = []
+        for epoch_indices in epochs_for_task_ids.values():
+            if epoch_indices is None:
+                continue
+            start_s = epoch_indices[0] / raw_sample_rate
+            end_s = epoch_indices[1] / raw_sample_rate
+            valid_epochs.append((start_s, end_s))
+        valid_epochs.sort(key=lambda e: e[0])
+
+        if len(valid_epochs) < 2:
+            return {}, {}, {}, int(raw_sample_rate // (raw_sample_rate // self.target_sample_rate))
+
+        # Compute LFP filter + downsample factor once
+        downsample_factor = max(1, int(raw_sample_rate / self.target_sample_rate))
+        lfp_sr = raw_sample_rate // downsample_factor
+        sos_lpf = butter(self.filter_order, self.lowpass_cutoff,
+                         btype='low', fs=raw_sample_rate, output='sos')
+
+        lfp_by_idx: Dict[int, Dict] = {}
+        rate_by_idx: Dict[int, Dict] = {}
+        windows_by_idx: Dict[int, Tuple[float, float]] = {}
+        local_idx = 0
+
+        for i in range(len(valid_epochs) - 1):
+            gap_start_s = valid_epochs[i][1] + start_padding
+            gap_end_s = valid_epochs[i + 1][0] - end_padding
+
+            if (gap_end_s - gap_start_s) < min_iti_duration:
+                continue
+
+            # Raw-sample window
+            raw_start = max(0, int(gap_start_s * raw_sample_rate))
+            raw_end = int(gap_end_s * raw_sample_rate)
+
+            lfp_channels: Dict = {}
+            mua_rates: Dict = {}
+
+            for channel, raw_signal in channel_to_raw.items():
+                segment = raw_signal[raw_start:raw_end]
+                if len(segment) == 0:
+                    continue
+
+                # LFP: low-pass + downsample
+                lfp_seg = sosfiltfilt(sos_lpf, segment)
+                if downsample_factor > 1:
+                    lfp_seg = decimate(lfp_seg, downsample_factor, ftype='fir', zero_phase=True)
+                lfp_channels[channel] = lfp_seg
+
+                # MUA spike rate
+                spikes = detect_mua_spikes(
+                    segment, raw_sample_rate,
+                    highpass_hz=mua_highpass_hz,
+                    threshold_rms=mua_threshold_rms,
+                    refractory_sec=mua_refractory_sec,
+                )
+                duration = len(segment) / raw_sample_rate
+                mua_rates[channel] = len(spikes) / duration if duration > 0 else 0.0
+
+            lfp_by_idx[local_idx] = lfp_channels
+            rate_by_idx[local_idx] = mua_rates
+            windows_by_idx[local_idx] = (gap_start_s, gap_end_s)
+            local_idx += 1
+
+        return lfp_by_idx, rate_by_idx, windows_by_idx, int(lfp_sr)
+
+    def _save_iti_cache(self, iti_cache_dir: str, lfp: Dict, rates: Dict, windows: Dict) -> None:
+        os.makedirs(iti_cache_dir, exist_ok=True)
+        cache_path = os.path.join(iti_cache_dir, "iti_parsed.pkl")
+        with open(cache_path, 'wb') as f:
+            pickle.dump({
+                'lfp': lfp, 'rates': rates, 'windows': windows,
+                'lfp_sample_rate': self.lfp_sample_rate,
+            }, f)
+
+    def _load_iti_cache(self, iti_cache_dir: str):
+        cache_path = os.path.join(iti_cache_dir, "iti_parsed.pkl")
+        if not os.path.exists(cache_path):
+            return None
+        try:
+            with open(cache_path, 'rb') as f:
+                data = pickle.load(f)
+            if self.lfp_sample_rate is None:
+                self.lfp_sample_rate = data.get('lfp_sample_rate')
+            print(f"Loaded ITI data from cache: {len(data['windows'])} windows.")
+            return data['lfp'], data['rates'], data['windows'], self.lfp_sample_rate
+        except Exception as e:
+            print(f"Failed to load ITI cache: {e}")
+            return None

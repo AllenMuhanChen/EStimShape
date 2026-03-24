@@ -3,6 +3,32 @@ from typing import Dict, List, Set, Tuple, Any
 from clat.intan.one_file_spike_parsing import OneFileParser
 
 
+def find_all_recording_dirs(intan_files_dir: str) -> List[str]:
+    """
+    Find every Intan recording directory (contains notes.txt) under intan_files_dir,
+    up to depth 3.  No task-ID filtering — returns all recording dirs for a session.
+    """
+    results = []
+
+    def _walk(directory: str, depth: int) -> None:
+        if depth > 3:
+            return
+        try:
+            entries = os.listdir(directory)
+        except OSError:
+            return
+        if 'notes.txt' in entries:
+            results.append(directory)
+            return  # don't recurse into a recording dir
+        for entry in entries:
+            path = os.path.join(directory, entry)
+            if os.path.isdir(path):
+                _walk(path, depth + 1)
+
+    _walk(intan_files_dir, 0)
+    return sorted(results)  # sorted for reproducible ordering
+
+
 def find_files_containing_task_ids(task_ids: Set[int], intan_files_dir: str) -> List[str]:
     """
     Find all Intan file directories that contain any of the specified task IDs.

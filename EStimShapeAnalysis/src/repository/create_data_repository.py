@@ -146,15 +146,14 @@ def main():
     """
     execute_query(connection, create_epochs_table, "Epochs table creation")
 
-    # Create RawSpikeResponses table with foreign key to TaskStimMapping
+    # Create RawSpikeResponses table (no FK on task_id — also used for ITI rows keyed by iti_id)
     create_raw_spike_responses_table = """
     CREATE TABLE IF NOT EXISTS RawSpikeResponses (
         task_id BIGINT,
         channel_id VARCHAR(255),
         tstamps TEXT,  -- Stored as comma-separated list of timestamps
         response_rate FLOAT,
-        PRIMARY KEY (task_id, channel_id),
-        FOREIGN KEY (task_id) REFERENCES TaskStimMapping(task_id) ON DELETE CASCADE
+        PRIMARY KEY (task_id, channel_id)
     );
     """
     execute_query(connection, create_raw_spike_responses_table, "RawSpikeResponses table creation")
@@ -172,18 +171,37 @@ def main():
     """
     execute_query(connection, create_window_sorted_responses_table, "WindowSortedResponses table creation")
 
-    # Create LFPWaveforms table with foreign key to TaskStimMapping
+    # Create LFPWaveforms table (no FK on task_id — also used for ITI rows keyed by iti_id)
     create_lfp_waveforms_table = """
     CREATE TABLE IF NOT EXISTS LFPWaveforms (
         task_id     BIGINT      NOT NULL,
         channel_id  VARCHAR(255) NOT NULL,
         waveform    LONGTEXT,
         sample_rate INT,
-        PRIMARY KEY (task_id, channel_id),
-        FOREIGN KEY (task_id) REFERENCES TaskStimMapping(task_id) ON DELETE CASCADE
+        PRIMARY KEY (task_id, channel_id)
     );
     """
     execute_query(connection, create_lfp_waveforms_table, "LFPWaveforms table creation")
+
+    # Create InterTrialIntervals table (iti_id is used as task_id in LFPWaveforms/RawSpikeResponses)
+    create_iti_table = """
+    CREATE TABLE IF NOT EXISTS InterTrialIntervals (
+        iti_id        BIGINT        NOT NULL AUTO_INCREMENT,
+        session_id    VARCHAR(10)   NOT NULL,
+        experiment_id VARCHAR(255)  NOT NULL,
+        iti_index     INT           NOT NULL,
+        iti_start     FLOAT         NOT NULL,
+        iti_end       FLOAT         NOT NULL,
+        PRIMARY KEY (iti_id),
+        UNIQUE KEY uq_session_exp_idx (session_id, experiment_id, iti_index),
+        FOREIGN KEY (session_id) REFERENCES Sessions(session_id) ON DELETE CASCADE
+    );
+    """
+    execute_query(connection, create_iti_table, "InterTrialIntervals table creation")
+
+    # Run once on existing deployments to remove FKs that block ITI inserts:
+    # execute_query(connection, "ALTER TABLE LFPWaveforms DROP FOREIGN KEY LFPWaveforms_ibfk_1", "Drop LFPWaveforms FK")
+    # execute_query(connection, "ALTER TABLE RawSpikeResponses DROP FOREIGN KEY RawSpikeResponses_ibfk_1", "Drop RawSpikeResponses FK")
 
     # Create BackedUpExperiments table to track backups
     create_backed_up_experiments_table = """

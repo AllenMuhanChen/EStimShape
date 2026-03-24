@@ -310,6 +310,51 @@ def add_lfp_waveforms_to_df(df: pd.DataFrame, repo_conn: Connection) -> pd.DataF
     return df
 
 
+def import_iti_from_repository(
+    session_id: str,
+    experiment_id: str,
+    repo_conn: Connection,
+) -> pd.DataFrame:
+    """
+    Load ITI LFP waveforms and MUA spike rates from the repository.
+
+    Returns a DataFrame with columns:
+        TaskId           – iti_id (DB primary key, used as task_id in LFPWaveforms/RawSpikeResponses)
+        LFP by channel_id – Dict[channel_id_str, np.ndarray]
+        LFP Sample Rate  – int
+        Spike Rate by channel – Dict[channel_id_str, float]
+    """
+    repo_conn.execute(
+        "SELECT iti_id FROM InterTrialIntervals "
+        "WHERE session_id=%s AND experiment_id=%s ORDER BY iti_index",
+        (session_id, experiment_id),
+    )
+    iti_ids = [row[0] for row in repo_conn.fetch_all()]
+
+    if not iti_ids:
+        raise ValueError(
+            f"No ITI windows found for session '{session_id}', experiment '{experiment_id}'"
+        )
+
+    df = pd.DataFrame({'TaskId': iti_ids})
+    add_lfp_waveforms_to_df(df, repo_conn)
+
+    # Load MUA spike rates stored in RawSpikeResponses under iti_id as task_id
+    placeholders = ', '.join(['%s'] * len(iti_ids))
+    repo_conn.execute(
+        f"SELECT task_id, channel_id, response_rate "
+        f"FROM RawSpikeResponses WHERE task_id IN ({placeholders})",
+        iti_ids,
+    )
+    rate_map: Dict[int, Dict[str, float]] = {}
+    for tid, ch, rate in repo_conn.fetch_all():
+        rate_map.setdefault(tid, {})[ch] = rate
+
+    df['Spike Rate by channel'] = df['TaskId'].map(lambda tid: rate_map.get(tid, {}))
+    print(f"Loaded ITI data for {len(df)} windows from repository.")
+    return df
+
+
 if __name__ == "__main__":
 
 

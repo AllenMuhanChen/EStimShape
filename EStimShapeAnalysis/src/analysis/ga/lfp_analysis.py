@@ -20,8 +20,13 @@ from src.lfp.lfp_power_law import FOOOFPowerLaw, LFPPowerLawSpectrumPlotter, LFP
 from src.lfp.lfp_spectrum import LFPSpectrum
 from src.lfp.lfp_spectrum_plotter import LFPSpectrumPlotter
 from src.lfp.relative_power_spectrum import RelativePowerSpectrum
-from src.repository.export_to_repository import export_to_repository, write_lfp_waveforms_to_db
-from src.repository.import_from_repository import import_from_repository, add_lfp_waveforms_to_df
+from src.repository.export_to_repository import (
+    export_to_repository, write_lfp_waveforms_to_db, write_iti_to_db,
+    write_raw_spike_responses, read_session_id_from_db_name,
+)
+from src.repository.import_from_repository import (
+    import_from_repository, add_lfp_waveforms_to_df, import_iti_from_repository,
+)
 from src.startup import context
 
 _lfp_cache_dir = context.ga_parsed_spikes_path.replace("parsed_spikes", "parsed_lfp")
@@ -44,12 +49,14 @@ class LFPAnalysis(Analysis):
         channel_prefix: str = "A",
         exclude_channels: Optional[List[int]] = None,
         target_sample_rate: int = 1000,
+        mode: str = 'task',
     ):
         super().__init__()
         self.channel_order = channel_order
         self.channel_prefix = channel_prefix
         self.exclude_channels = exclude_channels or []
         self.target_sample_rate = target_sample_rate
+        self.mode = mode  # 'task' | 'iti'
 
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
         if compiled_data is None:
@@ -129,6 +136,8 @@ class LFPAnalysis(Analysis):
         return rel_power
 
     def compile(self):
+        if self.mode == 'iti':
+            return self._compile_iti()
         conn = Connection(context.ga_database)
         task_ids = TaskIdCollector(conn).collect_task_ids()
 
@@ -158,6 +167,8 @@ class LFPAnalysis(Analysis):
         return df
 
     def compile_and_export(self):
+        if self.mode == 'iti':
+            return self._compile_and_export_iti()
         df = self.compile()
         # export_to_repository(
         #     df,
@@ -170,6 +181,74 @@ class LFPAnalysis(Analysis):
         sr = int(df['LFP Sample Rate'].iloc[0])
         repo_conn = Connection("allen_data_repository")
         write_lfp_waveforms_to_db(lfp_dict, sr, repo_conn)
+
+
+    def _compile_iti(self) -> pd.DataFrame:
+        """Parse ITI LFP + MUA across all recording files and return a DataFrame."""
+        lfp_parser = MultiFileLFPParser(
+            to_cache=True,
+            cache_dir=_lfp_cache_dir,
+            target_sample_rate=self.target_sample_rate,
+        )
+        iti_lfp, iti_spike_rates, _iti_windows, sr = lfp_parser.parse_iti(
+            context.ga_intan_path,
+        )
+        records = []
+        for iti_idx in sorted(iti_lfp.keys()):
+            records.append({
+                'TaskId': iti_idx,
+                'LFP by channel_id': iti_lfp.get(iti_idx, {}),
+                'LFP Sample Rate': sr,
+                'Spike Rate by channel': iti_spike_rates.get(iti_idx, {}),
+            })
+        return pd.DataFrame(records)
+
+    def _compile_and_export_iti(self) -> pd.DataFrame:
+        """Compile ITI data, write to DB, and return the compiled DataFrame."""
+        lfp_parser = MultiFileLFPParser(
+            to_cache=True,
+            cache_dir=_lfp_cache_dir,
+            target_sample_rate=self.target_sample_rate,
+        )
+        iti_lfp, iti_spike_rates, iti_windows, sr = lfp_parser.parse_iti(
+            context.ga_intan_path,
+        )
+
+        session_id, _ = read_session_id_from_db_name(context.ga_database)
+        experiment_id = f"{session_id}_ga"
+        repo_conn = Connection("allen_data_repository")
+
+        # Write ITI windows → get iti_idx → iti_id mapping
+        idx_to_id = write_iti_to_db(iti_windows, session_id, experiment_id, repo_conn)
+
+        # Write LFP waveforms (keyed by iti_id)
+        lfp_by_iti_id = {
+            idx_to_id[idx]: iti_lfp[idx]
+            for idx in iti_lfp
+            if idx in idx_to_id
+        }
+        write_lfp_waveforms_to_db(lfp_by_iti_id, sr, repo_conn)
+
+        # Write MUA spike rates into RawSpikeResponses (keyed by iti_id, empty tstamps)
+        spike_rows = []
+        for idx, rates in iti_spike_rates.items():
+            iti_id = idx_to_id.get(idx)
+            if iti_id is None:
+                continue
+            for ch, rate in rates.items():
+                spike_rows.append((int(iti_id), str(ch), repr([]), float(rate)))
+        write_raw_spike_responses(repo_conn, spike_rows)
+
+        # Build and return the DataFrame
+        records = []
+        for idx in sorted(iti_lfp.keys()):
+            records.append({
+                'TaskId': idx_to_id.get(idx, idx),
+                'LFP by channel_id': iti_lfp.get(idx, {}),
+                'LFP Sample Rate': sr,
+                'Spike Rate by channel': iti_spike_rates.get(idx, {}),
+            })
+        return pd.DataFrame(records)
 
 
 def compile_data(conn: Connection) -> pd.DataFrame:
