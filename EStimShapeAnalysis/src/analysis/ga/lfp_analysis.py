@@ -140,10 +140,12 @@ def _average_spectra(spectra_by_task_id):
         for ch, (freqs, power) in ch_dict.items():
             channel_accumulators.setdefault(ch, []).append(power)
             freqs_ref[ch] = freqs
-    return {
-        ch: (freqs_ref[ch], np.mean(powers, axis=0))
-        for ch, powers in channel_accumulators.items()
-    }
+    result = {}
+    for ch, powers in channel_accumulators.items():
+        min_len = min(len(p) for p in powers)
+        stacked = np.stack([p[:min_len] for p in powers], axis=0)
+        result[ch] = (freqs_ref[ch][:min_len], np.mean(stacked, axis=0))
+    return result
 
 
 if __name__ == "__main__":

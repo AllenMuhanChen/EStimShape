@@ -11,7 +11,7 @@ Spectrum = Tuple[np.ndarray, np.ndarray]  # (frequencies, power)
 @dataclass
 class LFPSpectrum:
     sample_rate: float
-    nperseg: int = 8192*2  # ~0.6 Hz resolution at 30kHz
+    nperseg: int = 512  # ~0.5 Hz resolution at 1 kHz LFP sample rate
     noverlap: Optional[int] = None  # defaults to nperseg // 2
     window: str = 'hann'
 
