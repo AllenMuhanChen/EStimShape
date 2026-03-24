@@ -113,8 +113,9 @@ class RelativePowerSpectrum:
         return result
 
     def _find_channel_key(self, ch_num: int, channel_dict: Dict):
-        target_str = f"{self.channel_prefix}_{ch_num:03d}"
         for key in channel_dict:
-            if str(key).endswith(target_str):
+            s = str(key)
+            if (s.endswith(f"{self.channel_prefix}_{ch_num:03d}") or
+                    s.endswith(f"{self.channel_prefix}-{ch_num:03d}")):
                 return key
         return None
