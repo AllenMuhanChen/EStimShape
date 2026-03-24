@@ -61,10 +61,15 @@ class LFPAnalysis(Analysis):
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
         if compiled_data is None:
             repo_conn = Connection("allen_data_repository")
-            compiled_data = import_from_repository(
-                self.session_id, "ga", "GAStimInfo", "RawSpikeResponses"
-            )
-            add_lfp_waveforms_to_df(compiled_data, repo_conn)
+            if self.mode == 'iti':
+                compiled_data = import_iti_from_repository(
+                    self.session_id, f"{self.session_id}_ga", repo_conn
+                )
+            else:
+                compiled_data = import_from_repository(
+                    self.session_id, "ga", "GAStimInfo", "RawSpikeResponses"
+                )
+                add_lfp_waveforms_to_df(compiled_data, repo_conn)
 
         # LFP
         lfp_data = {row['TaskId']: row['LFP by channel_id']
