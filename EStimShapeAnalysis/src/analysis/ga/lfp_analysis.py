@@ -11,7 +11,9 @@ from matplotlib import pyplot as plt
 from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField
 from src.analysis.ga.cached_ga_fields import LineageField, GenIdField, GAResponseField
+from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, IntanSpikeRateByChannelField
 from src.intan.MultiFileLFPParser import MultiFileLFPParser
+from src.intan.MultiFileParser import MultiFileParser
 from src.lfp.lfp_band_power_plotter import LFPBandPowerPlotter
 from src.lfp.lfp_power_law import FOOOFPowerLaw, LFPPowerLawSpectrumPlotter, LFPSpikeRatePlotter
 from src.lfp.lfp_spectrum import LFPSpectrum
@@ -48,29 +50,19 @@ class LFPAnalysis(Analysis):
         self.target_sample_rate = target_sample_rate
 
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
-        repo_conn = Connection("allen_data_repository")
-        spike_df = None
-
         if compiled_data is None:
-            # Import spike data first, then enrich with LFP waveforms
+            repo_conn = Connection("allen_data_repository")
             compiled_data = import_from_repository(
                 self.session_id, "ga", "GAStimInfo", "RawSpikeResponses"
             )
             add_lfp_waveforms_to_df(compiled_data, repo_conn)
-        else:
-            # compiled_data from compile() has LFP but no spike responses
-            spike_df = import_from_repository(
-                self.session_id, "ga", "GAStimInfo", "RawSpikeResponses"
-            )
 
         # LFP
         lfp_data = {row['TaskId']: row['LFP by channel_id']
                     for _, row in compiled_data.iterrows()}
         sr = int(compiled_data['LFP Sample Rate'].iloc[0])
 
-        # Spike rates per channel averaged across all tasks
-        spike_src = compiled_data if 'Spike Rate by channel' in compiled_data.columns else spike_df
-        spike_rates_by_channel = _compute_mean_spike_rates(spike_src)
+        spike_rates_by_channel = _compute_mean_spike_rates(compiled_data)
 
         # Spectra
         spectra = LFPSpectrum(sample_rate=sr).compute(lfp_data)
@@ -136,16 +128,29 @@ class LFPAnalysis(Analysis):
 
     def compile(self):
         conn = Connection(context.ga_database)
-        df = compile_data(conn)
+        task_ids = TaskIdCollector(conn).collect_task_ids()
 
-        task_ids = df['TaskId'].tolist()
-        parser = MultiFileLFPParser(
+        spike_parser = MultiFileParser(to_cache=True, cache_dir=context.ga_parsed_spikes_path)
+
+        fields = CachedTaskFieldList()
+        fields.append(StimSpecIdField(conn))
+        fields.append(LineageField(conn))
+        fields.append(GenIdField(conn))
+        fields.append(GAResponseField(conn))
+        fields.append(StimTypeField(conn))
+        fields.append(StimPathField(conn))
+        fields.append(ThumbnailField(conn))
+        fields.append(IntanSpikesByChannelField(conn, spike_parser, task_ids, context.ga_intan_path))
+        fields.append(IntanSpikeRateByChannelField(conn, spike_parser, task_ids, context.ga_intan_path))
+
+        df = fields.to_data(task_ids)
+
+        lfp_parser = MultiFileLFPParser(
             to_cache=True,
             cache_dir=_lfp_cache_dir,
             target_sample_rate=self.target_sample_rate,
         )
-        lfp_data, _epochs, sr = parser.parse(task_ids, context.ga_intan_path)
-
+        lfp_data, _epochs, sr = lfp_parser.parse(task_ids, context.ga_intan_path)
         df['LFP by channel_id'] = df['TaskId'].map(lambda tid: lfp_data.get(tid) or {})
         df['LFP Sample Rate'] = sr
         return df
