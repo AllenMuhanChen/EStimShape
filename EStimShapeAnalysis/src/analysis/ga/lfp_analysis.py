@@ -2,16 +2,21 @@ from typing import List, Optional
 
 import numpy as np
 import pandas as pd
+from clat.compile.task.cached_task_fields import CachedTaskFieldList
+from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.util.connection import Connection
 from matplotlib import pyplot as plt
 
 from src.analysis import Analysis
+from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField
+from src.analysis.ga.cached_ga_fields import LineageField, GenIdField, GAResponseField
 from src.intan.MultiFileLFPParser import MultiFileLFPParser
 from src.lfp.lfp_band_power_plotter import LFPBandPowerPlotter
 from src.lfp.lfp_spectrum import LFPSpectrum
 from src.lfp.lfp_spectrum_plotter import LFPSpectrumPlotter
 from src.lfp.relative_power_spectrum import RelativePowerSpectrum
+from src.repository.export_to_repository import export_to_repository
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 
@@ -82,10 +87,38 @@ class LFPAnalysis(Analysis):
 
     def compile(self):
         conn = Connection(context.ga_database)
-        return TaskIdCollector(conn).collect_task_ids()
+        return compile_data(conn)
 
     def compile_and_export(self):
-        pass  # LFP results are not exported to the repository
+        data = compile()
+        export_to_repository(
+            data,
+            context.ga_database,
+            "ga",
+            stim_info_table="GAStimInfo",
+            stim_info_columns=['Lineage', 'GenId', 'StimType', 'StimPath', 'ThumbnailPath', 'GA Response'],
+        )
+
+
+def compile_data(conn: Connection) -> pd.DataFrame:
+    collector = TaskIdCollector(conn)
+    task_ids = collector.collect_task_ids()
+
+    fields = CachedTaskFieldList()
+    fields.append(StimSpecIdField(conn))
+    fields.append(LineageField(conn))
+    fields.append(GenIdField(conn))
+    fields.append(GAResponseField(conn))
+    fields.append(StimTypeField(conn))
+    fields.append(StimPathField(conn))
+    fields.append(ThumbnailField(conn))
+
+    return fields.to_data(task_ids)
+
+
+def compile():
+    conn = Connection(context.ga_database)
+    return compile_data(conn)
 
 
 def _average_spectra(spectra_by_task_id):
