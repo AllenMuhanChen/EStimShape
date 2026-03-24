@@ -822,18 +822,8 @@ def write_lfp_waveforms_to_db(
     repo_conn : Connection
         Open connection to allen_data_repository
     """
-    task_ids = [int(tid) for tid, ch in lfp_by_channel_by_task_id.items() if ch is not None]
-    if not task_ids:
-        return
-    placeholders = ', '.join(['%s'] * len(task_ids))
-    repo_conn.execute(
-        f"SELECT task_id FROM TaskStimMapping WHERE task_id IN ({placeholders})",
-        params=task_ids,
-    )
-    valid_task_ids = {row[0] for row in repo_conn.fetch_all()}
-
     for task_id, ch_dict in lfp_by_channel_by_task_id.items():
-        if ch_dict is None or int(task_id) not in valid_task_ids:
+        if ch_dict is None:
             continue
         for channel, waveform in ch_dict.items():
             waveform_str = ','.join(f'{v:.6g}' for v in waveform)

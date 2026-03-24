@@ -11,6 +11,7 @@ from matplotlib import pyplot as plt
 from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField
 from src.analysis.ga.cached_ga_fields import LineageField, GenIdField, GAResponseField
+from src.analysis.ga.plot_top_n import clean_ga_data
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, IntanSpikeRateByChannelField
 from src.intan.MultiFileLFPParser import MultiFileLFPParser
 from src.intan.MultiFileParser import MultiFileParser
