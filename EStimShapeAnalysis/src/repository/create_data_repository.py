@@ -193,8 +193,7 @@ def main():
         iti_start     FLOAT         NOT NULL,
         iti_end       FLOAT         NOT NULL,
         PRIMARY KEY (iti_id),
-        UNIQUE KEY uq_session_exp_idx (session_id, experiment_id, iti_index),
-        FOREIGN KEY (session_id) REFERENCES Sessions(session_id) ON DELETE CASCADE
+        UNIQUE KEY uq_session_exp_idx (session_id, experiment_id, iti_index)
     );
     """
     execute_query(connection, create_iti_table, "InterTrialIntervals table creation")
