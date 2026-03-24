@@ -1,6 +1,6 @@
 import os
 
-from src.intan.MultiFileParser import MultiFileParser
+from src.intan.MultiFileParser import MultiFileParser, find_files_containing_task_ids
 
 # Set test variables
 TEST_DIR = "/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/allen_ga_train_250116_0/ga/2025-01-24"  # Replace with your test directory
