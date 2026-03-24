@@ -61,38 +61,7 @@ def import_from_repository(session_id: str, experiment_name: str,
 
     print(f"Retrieved stimulus information from {stim_info_table}")
 
-    # 4. Get response data
-    if response_table == "LFPWaveforms":
-        placeholders = ', '.join(['%s'] * len(task_ids))
-        repo_conn.execute(
-            f"SELECT task_id, channel_id, waveform, sample_rate FROM LFPWaveforms "
-            f"WHERE task_id IN ({placeholders})",
-            params=task_ids
-        )
-        responses_data = {}
-        for row in repo_conn.fetch_all():
-            t_id, channel_id, waveform_str, sr = row
-            if t_id not in responses_data:
-                responses_data[t_id] = {'waveforms': {}, 'sample_rate': sr}
-            responses_data[t_id]['waveforms'][channel_id] = np.fromstring(waveform_str, sep=',')
-
-        print(f"Retrieved LFP waveforms from LFPWaveforms")
-
-        compiled_data = []
-        for task_id, stim_id in task_stim_pairs:
-            if stim_id not in stim_info_data or task_id not in responses_data:
-                continue
-            row_data = {'TaskId': task_id, 'StimSpecId': stim_id}
-            row_data.update(stim_info_data[stim_id])
-            row_data['LFP by channel_id'] = responses_data[task_id]['waveforms']
-            row_data['LFP Sample Rate'] = responses_data[task_id]['sample_rate']
-            compiled_data.append(row_data)
-
-        df = pd.DataFrame(compiled_data)
-        print(f"Successfully compiled LFP data into DataFrame with {len(df)} rows")
-        return df
-
-    # Generic spike response path
+    # 4. Get response data — generic spike response path
     repo_conn.execute(f"DESCRIBE {response_table}")
     response_columns = [row[0] for row in repo_conn.fetch_all()]
 
@@ -309,6 +278,36 @@ def check_experiment_id_valid(experiment_id, repo_conn):
     result = repo_conn.fetch_all()
     if not result:
         raise ValueError(f"Experiment '{experiment_id}' not found in repository")
+
+
+def add_lfp_waveforms_to_df(df: pd.DataFrame, repo_conn: Connection) -> pd.DataFrame:
+    """
+    Query LFPWaveforms for the task_ids already in df and attach two new columns:
+        'LFP by channel_id' : Dict[channel_id_str, np.ndarray]
+        'LFP Sample Rate'   : int
+    Rows with no matching LFP data get empty dicts / 0.
+    """
+    task_ids = df['TaskId'].tolist()
+    placeholders = ', '.join(['%s'] * len(task_ids))
+    repo_conn.execute(
+        f"SELECT task_id, channel_id, waveform, sample_rate FROM LFPWaveforms "
+        f"WHERE task_id IN ({placeholders})",
+        params=task_ids,
+    )
+    lfp_map = {}
+    for t_id, channel_id, waveform_str, sr in repo_conn.fetch_all():
+        if t_id not in lfp_map:
+            lfp_map[t_id] = {'waveforms': {}, 'sample_rate': sr}
+        lfp_map[t_id]['waveforms'][channel_id] = np.fromstring(waveform_str, sep=',')
+
+    df['LFP by channel_id'] = df['TaskId'].map(
+        lambda tid: lfp_map.get(tid, {}).get('waveforms', {})
+    )
+    df['LFP Sample Rate'] = df['TaskId'].map(
+        lambda tid: lfp_map.get(tid, {}).get('sample_rate', 0)
+    )
+    print(f"Added LFP waveforms for {len(lfp_map)} task(s)")
+    return df
 
 
 if __name__ == "__main__":

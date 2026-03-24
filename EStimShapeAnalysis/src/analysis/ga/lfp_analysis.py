@@ -13,11 +13,12 @@ from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField,
 from src.analysis.ga.cached_ga_fields import LineageField, GenIdField, GAResponseField
 from src.intan.MultiFileLFPParser import MultiFileLFPParser
 from src.lfp.lfp_band_power_plotter import LFPBandPowerPlotter
+from src.lfp.lfp_power_law import FOOOFPowerLaw, LFPPowerLawSpectrumPlotter, LFPSpikeRatePlotter
 from src.lfp.lfp_spectrum import LFPSpectrum
 from src.lfp.lfp_spectrum_plotter import LFPSpectrumPlotter
 from src.lfp.relative_power_spectrum import RelativePowerSpectrum
 from src.repository.export_to_repository import export_to_repository, write_lfp_waveforms_to_db
-from src.repository.import_from_repository import import_from_repository
+from src.repository.import_from_repository import import_from_repository, add_lfp_waveforms_to_df
 from src.startup import context
 
 _lfp_cache_dir = context.ga_parsed_spikes_path.replace("parsed_spikes", "parsed_lfp")
@@ -47,40 +48,89 @@ class LFPAnalysis(Analysis):
         self.target_sample_rate = target_sample_rate
 
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
+        repo_conn = Connection("allen_data_repository")
+        spike_df = None
+
         if compiled_data is None:
+            # Import spike data first, then enrich with LFP waveforms
             compiled_data = import_from_repository(
-                self.session_id, "ga", "GAStimInfo", "LFPWaveforms"
+                self.session_id, "ga", "GAStimInfo", "RawSpikeResponses"
+            )
+            add_lfp_waveforms_to_df(compiled_data, repo_conn)
+        else:
+            # compiled_data from compile() has LFP but no spike responses
+            spike_df = import_from_repository(
+                self.session_id, "ga", "GAStimInfo", "RawSpikeResponses"
             )
 
+        # LFP
         lfp_data = {row['TaskId']: row['LFP by channel_id']
                     for _, row in compiled_data.iterrows()}
         sr = int(compiled_data['LFP Sample Rate'].iloc[0])
 
-        # Compute power spectra and average across task IDs
+        # Spike rates per channel averaged across all tasks
+        spike_src = compiled_data if 'Spike Rate by channel' in compiled_data.columns else spike_df
+        spike_rates_by_channel = _compute_mean_spike_rates(spike_src)
+
+        # Spectra
         spectra = LFPSpectrum(sample_rate=sr).compute(lfp_data)
         avg_spectrum = _average_spectra(spectra)
 
-        # 5. Relative power normalization
+        # Relative power (for heatmap + band power panels)
         rel_power = RelativePowerSpectrum(
             channel_order=self.channel_order,
             channel_prefix=self.channel_prefix,
             exclude_channels=self.exclude_channels,
         ).compute(avg_spectrum)
 
-        # 6. Heatmap
-        heatmap_fig = LFPSpectrumPlotter(
+        # Power-law fits
+        fits = FOOOFPowerLaw().fit_dict(avg_spectrum)
+
+        # Build combined figure — mirrors intan_lfp.py
+        pl_plotter = LFPPowerLawSpectrumPlotter(
             channel_order=self.channel_order,
             channel_prefix=self.channel_prefix,
-        ).plot(rel_power)
-        heatmap_fig.savefig(f"{self.save_path}/lfp_relative_power_heatmap.png", dpi=150)
-
-        # 7. Band power profile
-        band_fig = LFPBandPowerPlotter(
+        )
+        sp_plotter = LFPSpikeRatePlotter(
             channel_order=self.channel_order,
             channel_prefix=self.channel_prefix,
-        ).plot(rel_power)
-        band_fig.savefig(f"{self.save_path}/lfp_band_power_profile.png", dpi=150)
+        )
+        n_pl = pl_plotter.n_axes
+        n_sp = sp_plotter.n_axes
+        width_ratios = [2, 1] + [1] * n_pl + [1] * n_sp
+        fig, axes = plt.subplots(
+            1, 2 + n_pl + n_sp,
+            figsize=(4 * (2 + n_pl + n_sp), 8),
+            gridspec_kw={'width_ratios': width_ratios},
+        )
 
+        LFPSpectrumPlotter(
+            channel_order=self.channel_order,
+            channel_prefix=self.channel_prefix,
+        ).plot(rel_power, ax=axes[0])
+        axes[0].set_title("Relative Power Spectrum")
+
+        LFPBandPowerPlotter(
+            channel_order=self.channel_order,
+            channel_prefix=self.channel_prefix,
+        ).plot(rel_power, ax=axes[1])
+        axes[1].set_title("Band Power")
+
+        pl_plotter.plot_onto_axes(
+            fits, axes[2: 2 + n_pl],
+            avg_spectrum_by_channel=avg_spectrum,
+            label_y_axis=False,
+        )
+
+        sp_plotter.plot_onto_axes(
+            spike_rates_by_channel, axes[2 + n_pl:],
+            fits_by_channel=fits,
+            label_y_axis=False,
+        )
+
+        fig.suptitle(f"LFP Analysis — {self.session_id}")
+        plt.tight_layout()
+        fig.savefig(f"{self.save_path}/lfp_combined_analysis.png", dpi=150)
         plt.show()
         return rel_power
 
@@ -134,6 +184,16 @@ def compile_data(conn: Connection) -> pd.DataFrame:
 def compile():
     conn = Connection(context.ga_database)
     return compile_data(conn)
+
+
+def _compute_mean_spike_rates(df: pd.DataFrame) -> dict:
+    """Average spike rate per channel across all task rows."""
+    accum = {}
+    for _, row in df.iterrows():
+        rates = row.get('Spike Rate by channel') or {}
+        for ch, rate in rates.items():
+            accum.setdefault(ch, []).append(rate)
+    return {ch: float(np.mean(vals)) for ch, vals in accum.items()}
 
 
 def _average_spectra(spectra_by_task_id):
