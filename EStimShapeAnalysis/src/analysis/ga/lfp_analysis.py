@@ -11,6 +11,7 @@ from matplotlib import pyplot as plt
 from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField
 from src.analysis.ga.cached_ga_fields import LineageField, GenIdField, GAResponseField
+from src.analysis.ga.plot_top_n import clean_ga_data
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, IntanSpikeRateByChannelField
 from src.intan.MultiFileLFPParser import MultiFileLFPParser
 from src.intan.MultiFileParser import MultiFileParser
@@ -165,6 +166,7 @@ class LFPAnalysis(Analysis):
         #     stim_info_table="GAStimInfo",
         #     stim_info_columns=['Lineage', 'GenId', 'StimType', 'StimPath', 'ThumbnailPath', 'GA Response'],
         # )
+        df = clean_ga_data(df)
         lfp_dict = {row['TaskId']: row['LFP by channel_id'] for _, row in df.iterrows()}
         sr = int(df['LFP Sample Rate'].iloc[0])
         repo_conn = Connection("allen_data_repository")
