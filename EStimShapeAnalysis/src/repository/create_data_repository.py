@@ -176,7 +176,7 @@ def main():
     create_lfp_waveforms_table = """
     CREATE TABLE IF NOT EXISTS LFPWaveforms (
         task_id     BIGINT      NOT NULL,
-        channel_id  VARCHAR(10) NOT NULL,
+        channel_id  VARCHAR(255) NOT NULL,
         waveform    LONGTEXT,
         sample_rate INT,
         PRIMARY KEY (task_id, channel_id),
