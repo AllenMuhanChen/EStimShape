@@ -803,3 +803,36 @@ def detect_column_types(stim_info_data: Dict[int, Dict[str, Any]]) -> Dict[str, 
             column_types[col] = 'VARCHAR(255)'
 
     return column_types
+
+
+def write_lfp_waveforms_to_db(
+    lfp_by_channel_by_task_id: dict,
+    sample_rate: int,
+    repo_conn,
+):
+    """
+    Write epoched LFP waveforms to the LFPWaveforms table.
+
+    Parameters
+    ----------
+    lfp_by_channel_by_task_id : Dict[task_id, Dict[channel, np.ndarray] | None]
+        Parser output from MultiFileLFPParser.parse()
+    sample_rate : int
+        LFP sample rate in Hz
+    repo_conn : Connection
+        Open connection to allen_data_repository
+    """
+    for task_id, ch_dict in lfp_by_channel_by_task_id.items():
+        if ch_dict is None:
+            continue
+        for channel, waveform in ch_dict.items():
+            waveform_str = ','.join(f'{v:.6g}' for v in waveform)
+            repo_conn.execute(
+                """INSERT INTO LFPWaveforms
+                   (task_id, channel_id, waveform, sample_rate)
+                   VALUES (%s, %s, %s, %s)
+                   ON DUPLICATE KEY UPDATE
+                       waveform=VALUES(waveform),
+                       sample_rate=VALUES(sample_rate)""",
+                (int(task_id), str(channel), waveform_str, int(sample_rate))
+            )

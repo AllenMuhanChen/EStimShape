@@ -16,7 +16,7 @@ from src.lfp.lfp_band_power_plotter import LFPBandPowerPlotter
 from src.lfp.lfp_spectrum import LFPSpectrum
 from src.lfp.lfp_spectrum_plotter import LFPSpectrumPlotter
 from src.lfp.relative_power_spectrum import RelativePowerSpectrum
-from src.repository.export_to_repository import export_to_repository
+from src.repository.export_to_repository import export_to_repository, write_lfp_waveforms_to_db
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 
@@ -46,24 +46,27 @@ class LFPAnalysis(Analysis):
         self.target_sample_rate = target_sample_rate
 
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
-        # 1. Fetch compiled data if not provided
         if compiled_data is None:
+            # Re-run path: load waveforms stored in repository
             compiled_data = import_from_repository(
-                self.session_id, "ga", "GAStimInfo", self.response_table
+                self.session_id, "ga", "GAStimInfo", "LFPWaveforms"
             )
+            lfp_data = {row['TaskId']: row['LFP by channel_id']
+                        for _, row in compiled_data.iterrows()}
+            sr = int(compiled_data['LFP Sample Rate'].iloc[0])
+        else:
+            # First-run path: parse raw Intan files, then export to repository
+            task_ids = compiled_data['TaskId'].tolist()
+            parser = MultiFileLFPParser(
+                to_cache=True,
+                cache_dir=_lfp_cache_dir,
+                target_sample_rate=self.target_sample_rate,
+            )
+            lfp_data, _epochs, sr = parser.parse(task_ids, context.ga_intan_path)
+            repo_conn = Connection("allen_data_repository")
+            write_lfp_waveforms_to_db(lfp_data, sr, repo_conn)
 
-        # 2. Extract task IDs
-        task_ids = compiled_data['TaskId'].tolist()
-
-        # 3. Parse LFP with caching
-        parser = MultiFileLFPParser(
-            to_cache=True,
-            cache_dir=_lfp_cache_dir,
-            target_sample_rate=self.target_sample_rate,
-        )
-        lfp_data, _epochs, sr = parser.parse(task_ids, context.ga_intan_path)
-
-        # 4. Compute power spectra and average across task IDs
+        # Compute power spectra and average across task IDs
         spectra = LFPSpectrum(sample_rate=sr).compute(lfp_data)
         avg_spectrum = _average_spectra(spectra)
 

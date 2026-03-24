@@ -172,6 +172,19 @@ def main():
     """
     execute_query(connection, create_window_sorted_responses_table, "WindowSortedResponses table creation")
 
+    # Create LFPWaveforms table with foreign key to TaskStimMapping
+    create_lfp_waveforms_table = """
+    CREATE TABLE IF NOT EXISTS LFPWaveforms (
+        task_id     BIGINT      NOT NULL,
+        channel_id  VARCHAR(10) NOT NULL,
+        waveform    LONGTEXT,
+        sample_rate INT,
+        PRIMARY KEY (task_id, channel_id),
+        FOREIGN KEY (task_id) REFERENCES TaskStimMapping(task_id) ON DELETE CASCADE
+    );
+    """
+    execute_query(connection, create_lfp_waveforms_table, "LFPWaveforms table creation")
+
     # Create BackedUpExperiments table to track backups
     create_backed_up_experiments_table = """
     CREATE TABLE IF NOT EXISTS BackedUpExperiments (
