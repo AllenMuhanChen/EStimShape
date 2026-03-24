@@ -19,7 +19,8 @@ _lfp_cache_dir = context.ga_parsed_spikes_path.replace("parsed_spikes", "parsed_
 
 
 def main():
-    channel_order = list(range(32))  # adjust to match probe layout
+    channel_order = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
+                 27, 20, 4, 11, 28, 19, 1, 14, 3, 12, 29, 18, 2, 13, 30, 17]
     analysis = LFPAnalysis(channel_order=channel_order)
     analysis.run(session_id="260115_0", data_type="GA", channel=None)
 
