@@ -30,7 +30,8 @@ def main():
     channel_order = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
                  27, 20, 4, 11, 28, 19, 1, 14, 3, 12, 29, 18, 2, 13, 30, 17]
     analysis = LFPAnalysis(channel_order=channel_order)
-    data = analysis.compile()
+    data = None
+    data = analysis.compile_and_export()
     analysis.run(session_id="260115_0", data_type="raw", channel=None, compiled_data=data)
 
 
@@ -157,13 +158,13 @@ class LFPAnalysis(Analysis):
 
     def compile_and_export(self):
         df = self.compile()
-        export_to_repository(
-            df,
-            context.ga_database,
-            "ga",
-            stim_info_table="GAStimInfo",
-            stim_info_columns=['Lineage', 'GenId', 'StimType', 'StimPath', 'ThumbnailPath', 'GA Response'],
-        )
+        # export_to_repository(
+        #     df,
+        #     context.ga_database,
+        #     "ga",
+        #     stim_info_table="GAStimInfo",
+        #     stim_info_columns=['Lineage', 'GenId', 'StimType', 'StimPath', 'ThumbnailPath', 'GA Response'],
+        # )
         lfp_dict = {row['TaskId']: row['LFP by channel_id'] for _, row in df.iterrows()}
         sr = int(df['LFP Sample Rate'].iloc[0])
         repo_conn = Connection("allen_data_repository")

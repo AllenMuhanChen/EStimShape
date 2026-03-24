@@ -29,7 +29,7 @@ def main():
     # compiled_data = compile_and_export()
     analysis = PlotTopNAnalysis()
     compiled_data = None
-    # compiled_data = analysis.compile_and_export()
+    compiled_data = analysis.compile_and_export()
     session_id, _ = read_session_id_from_db_name(context.ga_database)
     session_id = "260115_0"
     channel = ["A-009", "A-000", "A-006", "A-009", "A-015", "A-022", "A-024"]
@@ -201,6 +201,12 @@ def clean_ga_data(data_for_all_tasks):
     data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['ThumbnailPath'].apply(lambda x: x is not None)]
     return data_for_all_tasks
 
+
+def compile():
+    conn = Connection(context.ga_database)
+    data_for_all_tasks = compile_data(conn)
+    data_for_all_tasks = clean_ga_data(data_for_all_tasks)
+    return data_for_all_tasks
 
 if __name__ == "__main__":
     main()
