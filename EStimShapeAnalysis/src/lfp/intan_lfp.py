@@ -61,7 +61,7 @@ SAMPLE_OFFSET = 32768
 # ---- Power-law plotter config -------------------------------------------
 POWER_LAW_PANELS = dict(
     show_exponent=True,
-    show_amplitude=False,
+    show_amplitude=True,
     show_r_squared=False,
     show_gamma_ratio=False,
     show_residual_gamma=False,
