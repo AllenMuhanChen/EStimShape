@@ -73,7 +73,7 @@ class EStimPhaseParentSelector(ParentSelector):
         # eligible parents = within x% of the peak response?
         all_stim_across_lineages = self.get_all_stimuli_func()
         # 260325_0 change ONLY
-        all_stim_across_lineages = [s for s in all_stim_across_lineages if s.gen_id>1]
+        # all_stim_across_lineages = [s for s in all_stim_across_lineages if s.gen_id>1]
 
 
         all_responses_across_lineages = [s.response_rate for s in all_stim_across_lineages]

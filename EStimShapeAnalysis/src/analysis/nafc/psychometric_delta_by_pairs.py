@@ -177,12 +177,12 @@ def load_and_display_image(ax, image_path, response_rate=None, min_val=0.0, max_
 
 def main():
     # Database connections
-    exp_conn = Connection("allen_estimshape_exp_260120_0")
+    exp_conn = Connection("allen_estimshape_exp_260325_0")
     ga_conn = Connection(context.ga_database)
 
     # Time range
     since_date = time_util.from_date_to_now(2024, 7, 10)
-    start_gen_id = 3
+    start_gen_id = 2
     max_gen_id = float('inf')
     start_gen_id_estim_on = 0
     max_gen_id_estim_on = float('inf')
