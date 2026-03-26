@@ -60,7 +60,7 @@ class PlotTopNAnalysis(Analysis):
         compiled_data = add_lineage_rank_to_df(compiled_data, self.spike_rates_col, channel)
         if self.channel_combination_method == "combined":
             return self.analyze_one_channel(channel, compiled_data)
-        elif self.channel_combination_method == "indvidual":
+        elif self.channel_combination_method == "individual":
             results = {}
             for ch in (channel if isinstance(channel, list) else [channel]):
                 results[ch] = self.analyze_one_channel(ch, compiled_data)
