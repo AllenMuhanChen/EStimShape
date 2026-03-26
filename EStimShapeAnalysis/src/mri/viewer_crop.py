@@ -2,6 +2,7 @@ import numpy as np
 import tkinter as tk
 from tkinter import ttk
 from src.mri.volume import compute_world_bbox, reslice_view
+from src.mri.correction import save_crop_bounds, save_corrections
 
 class CropMixin:
     def _toggle_crop_mode(self):
