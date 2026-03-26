@@ -18,7 +18,7 @@ public class EStimSpecWriter {
     static double defaultDp = 100.0;
     static double defaultA1 = 2.5;
     static double defaultA2 = 2.5;
-    static int defaultPostStimRefractoryPeriod = 2000;
+    static int defaultPostStimRefractoryPeriod = 4000;
     static PulseRepetition defaultPulseRepetition = PulseRepetition.SinglePulse;
     static int defaultNumRepetitions = 1;
     static double defaultPulseTrainPeriod = 10.0;
