@@ -110,7 +110,13 @@ class ChamberMixin:
         tx = self.ch_trans_tx_var.get()
         ty = self.ch_trans_ty_var.get()
         tz = self.ch_trans_tz_var.get()
-        delta = xlate(tx, ty, tz) @ rot_z(rz) @ rot_y(ry) @ rot_x(rx)
+        # Rotate about the chamber center so pure rotation doesn't shift it translationally
+        center = self.chamber_state.get('center')
+        if center is None:
+            center = np.zeros(3)
+        R_pure = rot_z(rz) @ rot_y(ry) @ rot_x(rx)
+        R_about_center = xlate(center[0], center[1], center[2]) @ R_pure @ xlate(-center[0], -center[1], -center[2])
+        delta = xlate(tx, ty, tz) @ R_about_center
         new_corr = delta @ self.chamber_correction
         note = self.ch_corr_note_var.get().strip()
         if not note:
