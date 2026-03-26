@@ -170,6 +170,9 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
         else if (stimType.equals(StimType.REGIME_ESTIM_DELTA)){
             stim = new EStimShapeVariantsDeltaStim(stimId, this, parentId);
         }
+        else if (stimType.equals(StimType.BASELINE)){
+            stim = new BaselineStim(stimId, this, parentId);;
+        }
         if (stim != null) {
             stims.add(stim);
             return true;
