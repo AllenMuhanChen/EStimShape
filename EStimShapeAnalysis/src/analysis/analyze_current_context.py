@@ -18,7 +18,7 @@ def main():
                      27, 20, 4, 11, 28, 19, 1, 14, 3, 12, 29, 18, 2, 13, 30, 17]
     # BARE MINIMUM FOR PREFERENCE CLUSTER
     bare_minimum_for_preference_cluster = [
-        # IsochromaticIndexAnalysis(),
+        IsochromaticIndexAnalysis(),
         GAResponseVectorAnalysis(),
         SolidPreferenceIndexAnalysis(),
     ]

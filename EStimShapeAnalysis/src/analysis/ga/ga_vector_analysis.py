@@ -215,10 +215,10 @@ class ResponseVectorDBSaver(OutputHandler):
         # First, try to get the exact session_id type from Sessions table
         try:
             result = self.conn.execute("SHOW CREATE TABLE Sessions")
-            sessions_def = list(result)[0][1]
-            print(f"Sessions table definition found")
+            sessions_def = self.conn.fetch_one()
+            # print(f"Sessions table definition found")
         except Exception as e:
-            print(f"Note: Could not query Sessions table: {e}")
+            # print(f"Note: Could not query Sessions table: {e}")
             sessions_def = None
 
         # Try creating with foreign key first
