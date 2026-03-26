@@ -11,11 +11,11 @@ import pandas as pd
 def main():
     analysis = PlotVariantDeltas(
         use_ga_response=True,
-        to_save_to_db=False)  # Set to False to use channel-specific spike rates
-    # compiled_data = analysis.compile_and_export()
-    session_id = "260115_0"
+        to_save_to_db=True)  # Set to False to use channel-specific spike rates
+    compiled_data = analysis.compile()
+    session_id = "260325_0"
     channel = "GA"
-    analysis.run(session_id, "raw", channel, compiled_data=None)
+    analysis.run(session_id, "GA", channel, compiled_data=compiled_data)
 
 
 class PlotVariantDeltas(PlotTopNAnalysis):
@@ -207,7 +207,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             'col_col': 'Rank',
             'save_path': save_path,
             'module_name': "Deltas_With_Parents",
-            'publish_mode': True,
+            'publish_mode': False,
             'title': 'Calculated Variants and Deltas' if self.to_save_to_db else 'Tested Variants and Deltas',
             'border_width': 50,
         }
@@ -327,7 +327,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
 
             # Check if data already exists
             conn.execute("SELECT COUNT(*) FROM IncludedDeltas")
-            existing_count = conn.fetch_one()[0]
+            existing_count = conn.fetch_one()
 
             if existing_count > 0:
                 print(f"\nWARNING: IncludedDeltas table already contains {existing_count} entries!")

@@ -29,12 +29,12 @@ def main():
     # compiled_data = compile_and_export()
     analysis = PlotTopNAnalysis()
     compiled_data = None
-    compiled_data = analysis.compile_and_export()
+    compiled_data = analysis.compile()
     session_id, _ = read_session_id_from_db_name(context.ga_database)
     session_id = "260325_0"
     # channel = ["A-009", "A-000", "A-006", "A-009", "A-015", "A-022", "A-024"]
     channel = "A-006"
-    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    analysis.run(session_id, "GA", channel, compiled_data=compiled_data)
 
     
 
@@ -168,6 +168,7 @@ def compile_data(conn: Connection) -> pd.DataFrame:
 
     fields = CachedTaskFieldList()
     fields.append(StimSpecIdField(conn))
+    fields.append(ParentIdField(conn))
     fields.append(LineageField(conn))
     fields.append(GenIdField(conn))
     fields.append(RegimeScoreField(conn))
@@ -175,10 +176,10 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields.append(StimPathField(conn))
     fields.append(ThumbnailField(conn))
     fields.append(GAResponseField(conn))
-    fields.append(ClusterResponseField(conn, cluster_combination_strategy))
-    fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
-    fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))
-    fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))
+    # fields.append(ClusterResponseField(conn, cluster_combination_strategy))
+    # fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
+    # fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))
+    # fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))
     fields.append(ShaftField(conn, mstick_spec_data_source))
     fields.append(TerminationField(conn, mstick_spec_data_source))
     fields.append(JunctionField(conn, mstick_spec_data_source))

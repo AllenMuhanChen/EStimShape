@@ -46,6 +46,8 @@ class RegimeScoreField(LineageField):
 class GAResponseField(StimSpecIdField):
     def get(self, task_id) -> float:
         stim_spec_id = self.get_cached_super(task_id, StimSpecIdField)
+        if stim_spec_id is None:
+            return None
         self.conn.execute("SELECT response FROM StimGaInfo WHERE stim_id = %s",
                           params=(stim_spec_id,))
         ga_response = self.conn.fetch_all()

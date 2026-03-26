@@ -563,8 +563,8 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
 def main():
     # Example usage - change session_id as needed
     # (session_id, _) = read_session_id_from_db_name(context.ga_database)
-    session_id = "260113_0"
-    session_ids = ["260120_0", "260115_0", "260113_0", "260108_0", "260107_0", "251231_0", "251226_0"]
+    session_ids = ["260325_0"]
+    # session_ids = ["260120_0", "260115_0", "260113_0", "260108_0", "260107_0", "251231_0", "251226_0"]
     headstage_label = "A"
 
     # Optional: save figure as PNG

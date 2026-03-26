@@ -1,3 +1,4 @@
+import glob
 import os
 from typing import Dict, List, Set, Tuple, Any
 from clat.intan.one_file_spike_parsing import OneFileParser
@@ -36,7 +37,6 @@ def find_files_containing_task_ids(task_ids: Set[int], intan_files_dir: str) -> 
     """
     matching_dirs = []
 
-    # Helper function to search a directory for matching task IDs
     def search_directory(directory: str) -> List[str]:
         results = []
         dirs_to_check = [directory]
@@ -48,7 +48,14 @@ def find_files_containing_task_ids(task_ids: Set[int], intan_files_dir: str) -> 
 
             notes_path = os.path.join(dir_path, "notes.txt")
             if not os.path.exists(notes_path):
-                continue
+                matches = sorted(
+                    glob.glob(os.path.join(dir_path, '*notes*.txt')),
+                    key=os.path.getmtime,
+                    reverse=True
+                )
+                if not matches:
+                    continue
+                notes_path = matches[0]
 
             try:
                 with open(notes_path, 'r') as f:

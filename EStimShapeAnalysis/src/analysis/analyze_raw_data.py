@@ -119,13 +119,12 @@ def run_analyses(channels_map: Dict[str, List[str]], analyses: List[type(Analysi
 
 
 def main():
-    # Initialize analysis modules
     analyses = [
-        # GAResponseVectorAnalysis(),
+        IsochromaticIndexAnalysis(),
+        GAResponseVectorAnalysis(),
         # SolidPreferenceIndexAnalysis(),
-        # IsochromaticIndexAnalysis(),
         # IsoChromaticLuminantScoreAnalysis(),
-        IsoluminantComparisonAnalysis(),
+        # IsoluminantComparisonAnalysis(),
         # SideTestAnalysis(),
         # IsogaborAnalysis(),
         # PlotTopNAnalysis(),
@@ -135,6 +134,7 @@ def main():
         # ShuffleAnalysis(),
         # PlotGenerationsAnalysis(),
     ]
+    # Initialize analysis modules
 
     # Build session-to-channels mapping based on user input
     channels_map = build_sessions_and_channels()

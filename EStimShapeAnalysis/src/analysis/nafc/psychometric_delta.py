@@ -190,11 +190,11 @@ def main():
     import numpy as np
 
     # Database connection
-    conn = Connection("allen_estimshape_exp_260115_0")
+    conn = Connection("allen_estimshape_exp_260325_0")
 
     # Time range
     since_date = time_util.from_date_to_now(2024, 7, 10)
-    start_gen_id = 3
+    start_gen_id = 2
     max_gen_id = float('inf')
     start_gen_id_estim_on = 0
     max_gen_id_estim_on = float('inf')
@@ -243,6 +243,7 @@ def main():
     fields.append(ChoiceField(conn))
     fields.append(GenIdField(conn))
     fields.append(EStimEnabledField(conn))
+    fields.append(EStimSpecIdField(conn))
     fields.append(BaseMStickIdField(conn))
     fields.append(IsDeltaField(conn))
     fields.append(EStimPolarityField(conn))
@@ -251,7 +252,7 @@ def main():
     data = fields.to_data(trial_tstamps)
 
     # Filter data by GenId
-    # data = data[(data['GenId'] >= start_gen_id) & (data['GenId'] <= max_gen_id)]
+    data = data[(data['GenId'] >= start_gen_id) & (data['GenId'] <= max_gen_id)]
 
     # Split datasets
     data_exp = data[data['StimType'] == 'EStimShapeVariantsDeltaNAFCStim']
@@ -294,7 +295,7 @@ def main():
             data_exp_delta_pos, axes[0],
             title=f'{metric_name}: Delta vs Variant by Polarity',
             show_n=True, num_rep_min=0,
-            color='red', linewidth=2.5, marker='s', markersize=6, linestyle='-',
+            color='red',
             label=f'Delta Anodic (n={len(data_exp_delta_pos)})',
             isCorrectColumnName=isCorrectFieldName)
 
@@ -304,19 +305,19 @@ def main():
             data_exp_delta_neg, axes[0],
             title=f'{metric_name}: Delta vs Variant by Polarity',
             show_n=True, num_rep_min=0,
-            color='red', linewidth=2.5, marker='s', markersize=6, linestyle=':',
+            color='red',
             label=f'Delta Cathodic (n={len(data_exp_delta_neg)})',
             isCorrectColumnName=isCorrectFieldName)
 
-    # Plot: Delta Combined
-    if len(data_exp_delta_combined) > 0:
-        plot_psychometric_curve_on_ax(
-            data_exp_delta_combined, axes[0],
-            title=f'{metric_name}: Delta vs Variant by Polarity',
-            show_n=True, num_rep_min=0,
-            color='darkred', linewidth=2.5, marker='D', markersize=6, linestyle='--',
-            label=f'Delta Combined (n={len(data_exp_delta_combined)})',
-            isCorrectColumnName=isCorrectFieldName)
+    # # Plot: Delta Combined
+    # if len(data_exp_delta_combined) > 0:
+    #     plot_psychometric_curve_on_ax(
+    #         data_exp_delta_combined, axes[0],
+    #         title=f'{metric_name}: Delta vs Variant by Polarity',
+    #         show_n=True, num_rep_min=0,
+    #         color='darkred',
+    #         label=f'Delta Combined (n={len(data_exp_delta_combined)})',
+    #         isCorrectColumnName=isCorrectFieldName)
 
     # Plot: Delta EStim OFF
     if len(data_exp_delta_estim_off) > 0:
@@ -324,7 +325,7 @@ def main():
             data_exp_delta_estim_off, axes[0],
             title=f'{metric_name}: Delta vs Variant by Polarity',
             show_n=True, num_rep_min=0,
-            color='pink', linewidth=2.5, marker='o', markersize=6, linestyle='-',
+            color='pink',
             label=f'Delta OFF (n={len(data_exp_delta_estim_off)})',
             isCorrectColumnName=isCorrectFieldName)
 
@@ -334,7 +335,7 @@ def main():
             data_exp_variant_pos, axes[0],
             title=f'{metric_name}: Delta vs Variant by Polarity',
             show_n=True, num_rep_min=0,
-            color='blue', linewidth=2.5, marker='s', markersize=6, linestyle='-',
+            color='blue',
             label=f'Variant Anodic (n={len(data_exp_variant_pos)})',
             isCorrectColumnName=isCorrectFieldName)
 
@@ -344,19 +345,19 @@ def main():
             data_exp_variant_neg, axes[0],
             title=f'{metric_name}: Delta vs Variant by Polarity',
             show_n=True, num_rep_min=0,
-            color='blue', linewidth=2.5, marker='s', markersize=6, linestyle=':',
+            color='blue',
             label=f'Variant Cathodic (n={len(data_exp_variant_neg)})',
             isCorrectColumnName=isCorrectFieldName)
 
-    # Plot: Variant Combined
-    if len(data_exp_variant_combined) > 0:
-        plot_psychometric_curve_on_ax(
-            data_exp_variant_combined, axes[0],
-            title=f'{metric_name}: Delta vs Variant by Polarity',
-            show_n=True, num_rep_min=0,
-            color='darkblue', linewidth=2.5, marker='D', markersize=6, linestyle='--',
-            label=f'Variant Combined (n={len(data_exp_variant_combined)})',
-            isCorrectColumnName=isCorrectFieldName)
+    # # Plot: Variant Combined
+    # if len(data_exp_variant_combined) > 0:
+    #     plot_psychometric_curve_on_ax(
+    #         data_exp_variant_combined, axes[0],
+    #         title=f'{metric_name}: Delta vs Variant by Polarity',
+    #         show_n=True, num_rep_min=0,
+    #         color='darkblue', linewidth=2.5, marker='D', markersize=6, linestyle='--',
+    #         label=f'Variant Combined (n={len(data_exp_variant_combined)})',
+    #         isCorrectColumnName=isCorrectFieldName)
 
     # Plot: Variant EStim OFF
     if len(data_exp_variant_estim_off) > 0:

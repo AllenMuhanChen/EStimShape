@@ -107,24 +107,30 @@ def plot_psychometric_curves_side_by_side(df1, df2, title1=None, title2=None, co
     plt.show()
 
 
-def plot_psychometric_curve_on_ax(df, ax, title=None, color=None, label=None, show_n=False, num_rep_min=10):
+def plot_psychometric_curve_on_ax(df, ax, title=None, show_n=False, num_rep_min=10, isCorrectColumnName='IsCorrect', **plot_kwargs):
     """
     Plots a single line based on NoiseChance and IsCorrect values in the given DataFrame.
     Plots on the provided matplotlib Axes (ax).
     """
+
+
     # Group by 'NoiseChance' and calculate the percentage of 'Correct' in 'IsCorrect'
-    percent_correct = df.groupby('NoiseChance')['IsCorrect'].apply(lambda x: (x == True).sum() / len(x) * 100)
+    percent_correct = df.groupby('NoiseChance')[isCorrectColumnName].apply(lambda x: (x == True).sum() / len(x) * 100)
 
     # Filter out NoiseChance values with too little data
-    num_reps = df.groupby('NoiseChance')['IsCorrect'].count()
+    num_reps = df.groupby('NoiseChance')[isCorrectColumnName].count()
     percent_correct = percent_correct[num_reps > num_rep_min]
 
     # Sort the percent_correct Series in ascending order of 'NoiseChance'
     percent_correct = percent_correct.sort_index(ascending=True)
 
-    ax.set_title(title, fontsize=28)
-    ax.set_xlabel('Noise Chance (%)', fontsize=20)
-    ax.set_ylabel('Percent Correct', fontsize=20)
+    ax.set_title(title, fontsize=14)
+    ax.set_xlabel('Noise Chance (%)', fontsize=14)
+    if isCorrectColumnName == 'IsHypothesized':
+        ylabel = 'Percent Hypothesis Chosen'
+    else:
+        ylabel = 'Percent Correct'
+    ax.set_ylabel(ylabel, fontsize=14)
     ax.grid(True)
 
     # Setting the x-axis labels to where there are data points
@@ -135,9 +141,9 @@ def plot_psychometric_curve_on_ax(df, ax, title=None, color=None, label=None, sh
     ax.set_xticklabels(ticks, rotation=45, fontsize=14, color='black', fontweight='regular')
     ax.tick_params(axis='y', labelsize=14)
 
-
     # Plotting as a line graph on the given ax
-    line = ax.plot(percent_correct.index, percent_correct.values, color=color, marker='o', label=label)
+
+    line = ax.plot(percent_correct.index, percent_correct.values, **plot_kwargs)
 
     # Adding text for num_reps above each data point
     if show_n:

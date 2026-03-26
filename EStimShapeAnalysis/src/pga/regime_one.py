@@ -146,7 +146,7 @@ class GetAllStimuliFunc:
             response = stim_ga_info_entry.response
             response_vector = self.response_processor.fetch_response_vector_for_repetitions_of(stim_id,
                                                                                                ga_name=self.ga_name)
-            return Stimulus(stim_id, mutation_type, response_vector=response_vector, response_rate=response)
+            return Stimulus(stim_id, mutation_type, response_vector=response_vector, response_rate=response, gen_id=stim_ga_info_entry.gen_id)
 
         stimuli = []
         for stim_id in stim_ids:

@@ -72,6 +72,10 @@ class EStimPhaseParentSelector(ParentSelector):
     def select_parents(self, lineage: Lineage, batch_size: int) -> list[Stimulus]:
         # eligible parents = within x% of the peak response?
         all_stim_across_lineages = self.get_all_stimuli_func()
+        # 260325_0 change ONLY
+        all_stim_across_lineages = [s for s in all_stim_across_lineages if s.gen_id>1]
+
+
         all_responses_across_lineages = [s.response_rate for s in all_stim_across_lineages]
         min_response = min(all_responses_across_lineages)
         floored_responses = [s.response_rate - min_response for s in all_stim_across_lineages]

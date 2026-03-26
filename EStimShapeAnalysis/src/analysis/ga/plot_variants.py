@@ -10,11 +10,13 @@ import pandas as pd
 
 
 def main():
-    analysis = PlotVariants(use_ga_response=True)  # Set to False to use channel-specific spike rates
-    # compiled_data = analysis.compile_and_export()
-    session_id = "260115_0"
-    channel = "GA"
-    analysis.run(session_id, "raw", channel, compiled_data=None)
+    analysis = PlotVariants(use_ga_response=True,
+                            save_included_variants=True)  # Set to False to use channel-specific spike rates
+    compiled_data = None
+    compiled_data = analysis.compile()
+    session_id = "260325_0"
+    channel = "A-006"
+    analysis.run(session_id, "GA", channel, compiled_data=compiled_data)
 
 
 class PlotVariants(PlotTopNAnalysis):

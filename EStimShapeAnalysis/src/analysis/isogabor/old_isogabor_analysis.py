@@ -229,8 +229,12 @@ class IntanSpikesByChannelField(CachedTaskDatabaseField):
         self.all_task_ids = all_task_ids
 
     def get(self, task_id) -> dict:
+        stim_spec_id = self.get_cached_super(task_id, StimSpecIdField)
+        if stim_spec_id is None:
+            return None
+
         spikes_by_channel_by_task_id, epochs_by_task_id = self.parser.parse(self.all_task_ids,
-                                                                            intan_files_dir=self.intan_files_dir)
+                                                                                    intan_files_dir=self.intan_files_dir)
         if task_id not in spikes_by_channel_by_task_id.keys():
             return None
         spikes_by_channel = spikes_by_channel_by_task_id[task_id]
@@ -256,6 +260,10 @@ class IntanSpikeRateByChannelField(CachedTaskDatabaseField):
         self.all_task_ids = all_task_ids
 
     def get(self, task_id) -> dict:
+        stim_spec_id = self.get_cached_super(task_id, StimSpecIdField)
+        if stim_spec_id is None:
+            return None
+
         spikes_by_channel_by_task_id, epochs_by_task_id = self.parser.parse(self.all_task_ids, self.intan_files_dir)
         if task_id not in spikes_by_channel_by_task_id.keys():
             return None

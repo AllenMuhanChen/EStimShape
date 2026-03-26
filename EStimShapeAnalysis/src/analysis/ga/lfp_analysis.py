@@ -38,8 +38,8 @@ def main():
     analysis = LFPAnalysis(channel_order=channel_order,
                            mode='iti')
     data = None
-    # data = analysis.compile_and_export()
-    analysis.run(session_id="260115_0", data_type="raw", channel=None, compiled_data=data)
+    data = analysis.compile_and_export()
+    analysis.run(session_id="260325_0", data_type="raw", channel=None, compiled_data=data)
 
 
 class LFPAnalysis(Analysis):
