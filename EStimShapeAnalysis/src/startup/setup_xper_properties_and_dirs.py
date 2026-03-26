@@ -142,6 +142,7 @@ def setup_ga_dirs():
     make_path(context.eyecal_dir)
     make_path(context.ga_plot_path)
     make_path(context.ga_parsed_spikes_path)
+    make_path(context.logging_path)
 
 
 def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.61"):

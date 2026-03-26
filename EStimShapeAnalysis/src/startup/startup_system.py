@@ -192,6 +192,7 @@ class GAExperiment(ExperimentType):
         make_path(f"{base_dir}/plots")
         make_path(f"{base_dir}/parsed_spikes")
 
+
     def get_local_backup_paths(self) -> List[str]:
         """Return local paths to backup for GA experiment"""
         db_name = self.get_database_name()
