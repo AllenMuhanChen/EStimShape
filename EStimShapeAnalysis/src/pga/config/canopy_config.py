@@ -115,7 +115,8 @@ class GeneticAlgorithmConfig:
 
     def growing_phase_transitioner(self):
         return GrowingPhaseTransitioner(
-            self.convergence_threshold()
+            self.convergence_threshold(),
+            self.min_num_generations_to_calculate_convergence()
         )
 
     def growing_phase_mutation_assigner(self):
@@ -229,6 +230,9 @@ class GeneticAlgorithmConfig:
 
     def side_tests(self) -> List[SideTest]:
         return []
+
+    def min_num_generations_to_calculate_convergence(self):
+        return self.var_fetcher.get("growing_phase_transition_min_num_generations_to_calculate_convergence", dtype=int)
 
 
 class GAVarParameterFetcher:

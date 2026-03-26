@@ -1105,7 +1105,7 @@ class TriplanarMRIViewer:
 
         # Middle-click starts a pan drag
         if event.button == 2:
-            self._pan_start = (event.x, event.y)  # pixel coords (stable during drag)
+            self._pan_start = (event.min_num_generations, event.y)  # pixel coords (stable during drag)
             self._pan_view = vi
             if vi in self.zoom_bounds:
                 self._pan_bounds = self.zoom_bounds[vi]
@@ -1181,7 +1181,7 @@ class TriplanarMRIViewer:
             ax = event.inaxes
             if hasattr(ax, '_vi') and ax._vi == self._pan_view:
                 # Compute pixel delta from drag start
-                px, py = event.x, event.y
+                px, py = event.min_num_generations, event.y
                 px0, py0 = self._pan_start
                 dpx, dpy = px - px0, py - py0
 

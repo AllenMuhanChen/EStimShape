@@ -154,7 +154,7 @@ class TestRegimeOneTransitioner(unittest.TestCase):
 
     def test_should_transition_skips_empty_generations(self):
         # Setup a scenario where x is 3, and we have an empty generation (gen_id=2)
-        self.transitioner.x = 3
+        self.transitioner.min_num_generations = 3
 
         result = self.transitioner.should_transition(self.lineage_with_gaps)
         print(self.transitioner.peak_responses)

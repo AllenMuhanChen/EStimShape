@@ -1,4 +1,5 @@
 import time
+from dataclasses import dataclass
 from typing import Callable, List, Type, Dict
 
 import numpy as np
@@ -31,7 +32,8 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
 
     def side_tests(self):
         return [DnessSideTest(n_top_3d=4, n_top_2d=4),
-                EStimVariantDeltaSideTest()]
+                EStimVariantDeltaSideTest(num_deltas_per_variant=self.num_deltas_per_variant(),
+                                          delta_resp_ratio_threshold=self.delta_resp_ratio_threshold())]
 
     def growing_phase_transitioner(self) -> type[RegimeTransitioner]:
         if self.is_alexnet_mock:
@@ -43,11 +45,20 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
         return Phase(
             EStimPhaseParentSelector(
                 get_all_stimuli_func=self.get_all_stimuli_func(),
-                threshold=0.75),
+                threshold=self.variant_parent_response_threshold()),
             EStimPhaseMutationAssigner(),
             EStimPhaseMagnitudeAssigner(),
             EStimPhaseTransitioner(),
         )
+
+    def variant_parent_response_threshold(self):
+        return self.var_fetcher.get("variant_parent_response_threshold", dtype=float)
+
+    def num_deltas_per_variant(self):
+        return self.var_fetcher.get("num_deltas_per_variant", dtype=int)
+
+    def delta_resp_ratio_threshold(self):
+        return self.var_fetcher.get("delta_resp_ratio_threshold", dtype=float)
 
 
 class MockGrowingPhaseTransitioner(RegimeTransitioner):
@@ -142,9 +153,11 @@ class EStimPhaseTransitioner(RegimeTransitioner):
     def should_transition(self, lineage: Lineage) -> bool:
         return False
 
+
 class EStimVariantDeltaSideTest(SideTest):
-    num_deltas_per_variant = 1
-    delta_resp_ratio_threshold = 0.5
+    def __init__(self, num_deltas_per_variant: int = 1, delta_resp_ratio_threshold: float = 0.5):
+        self.num_deltas_per_variant = num_deltas_per_variant
+        self.delta_resp_ratio_threshold = delta_resp_ratio_threshold
 
     def run(self, lineages: List[Lineage], gen_id: int):
         #identify eligible stimuli (variants)

@@ -240,9 +240,9 @@ def calculate_peak_response(responses, across_n=3) -> floating[Any]:
 
 
 class GrowingPhaseTransitioner(RegimeTransitioner):
-    def __init__(self, convergence_threshold):
+    def __init__(self, convergence_threshold, min_num_generations):
         self.convergence_threshold = convergence_threshold
-        self.x = 4
+        self.min_num_generations = min_num_generations
         self.change = None
         self.peak_responses = None
 
@@ -254,7 +254,7 @@ class GrowingPhaseTransitioner(RegimeTransitioner):
         generations_analyzed = 0
         gen_ids_to_analyze = []
 
-        while generations_analyzed < self.x and latest_gen_id > 0:
+        while generations_analyzed < self.min_num_generations and latest_gen_id > 0:
             responses_in_generation = [s.response_rate for s in lineage.stimuli if s.gen_id == latest_gen_id]
 
             if len(responses_in_generation) > 0:
@@ -267,7 +267,7 @@ class GrowingPhaseTransitioner(RegimeTransitioner):
             responses_up_to_and_including_generation = [s.response_rate for s in lineage.stimuli if s.gen_id <= gen_id]
             self.peak_responses.append(calculate_peak_response(responses_up_to_and_including_generation))
 
-        if generations_analyzed < self.x:
+        if generations_analyzed < self.min_num_generations:
             # Not enough valid generations to analyze
             return False
 
