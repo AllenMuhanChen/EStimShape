@@ -10,12 +10,12 @@ import pandas as pd
 
 def main():
     analysis = PlotVariantDeltas(
-        use_ga_response=True,
-        to_save_to_db=True)  # Set to False to use channel-specific spike rates
+        use_ga_response=False,
+        to_save_to_db=False)  # Set to False to use channel-specific spike rates
     compiled_data = analysis.compile()
     session_id = "260325_0"
-    channel = "GA"
-    analysis.run(session_id, "GA", channel, compiled_data=compiled_data)
+    channel = "A-006"
+    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
 class PlotVariantDeltas(PlotTopNAnalysis):
