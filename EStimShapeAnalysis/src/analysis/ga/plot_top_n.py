@@ -45,9 +45,14 @@ def main():
 
 
 class PlotTopNAnalysis(Analysis):
-    channel_combination_method = "individual"
-    def analyze(self, channel, compiled_data: pd.DataFrame = None):
+    logging_path = context.logging_path
 
+    def analyze(self, channel, compiled_data: pd.DataFrame = None):
+        compiled_data = add_lineage_rank_to_df(compiled_data, self.spike_rates_col, channel)
+        return self.analyze_one_channel(channel, compiled_data)
+
+
+    def import_data(self, compiled_data: pd.DataFrame) -> pd.DataFrame:
         # COMPILE DATA OR LOAD DATA
         if compiled_data is None:
             compiled_data = import_from_repository(
@@ -57,17 +62,7 @@ class PlotTopNAnalysis(Analysis):
                 self.response_table
             )
 
-        compiled_data = add_lineage_rank_to_df(compiled_data, self.spike_rates_col, channel)
-        if self.channel_combination_method == "combined":
-            return self.analyze_one_channel(channel, compiled_data)
-        elif self.channel_combination_method == "individual":
-            results = {}
-            for ch in (channel if isinstance(channel, list) else [channel]):
-                results[ch] = self.analyze_one_channel(ch, compiled_data)
-            return results
-        else:
-            raise ValueError(f"Unknown channel combination method: {self.channel_combination_method}")
-
+        return compiled_data
 
     def analyze_one_channel(self, channel, compiled_data):
         # MODULATE DATA BASED ON CHANNEL(S)

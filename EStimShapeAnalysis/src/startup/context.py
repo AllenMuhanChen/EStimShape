@@ -35,6 +35,10 @@ lightness_plot_path = f"{base_dir}/{lightness_database}/plots"
 shuffle_plot_path = f"{base_dir}/{shuffle_database}/plots"
 nafc_plot_path = f"{base_dir}/{nafc_database}/plots"
 pc_maps_path = f"{base_dir}/{ga_database}/pc_maps"
+
+# Other paths
+logging_path = f"{base_dir}/{ga_database}/logs/log.txt"
+
 try:
 
     ga_config = EStimShapeConfig(

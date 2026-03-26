@@ -1,10 +1,21 @@
+import logging
+
 import numpy as np
 import pandas as pd
 from clat.util.connection import Connection
 from clat.pipeline.pipeline_base_classes import ComputationModule, InputT, OutputT, AnalysisModuleFactory, \
     OutputHandler
 from src.analysis.modules.input_modules import SpikeRateCombinerInputHandler
+from src.startup import context
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    filename=context.logging_path,
+    filemode='w',
+)
+logger = logging.getLogger('neurophys.pipeline')
 
 def create_sp_index_module(channel=None, session_id=None, spike_data_col=None):
     input_handler = SpikeRateCombinerInputHandler(
@@ -38,6 +49,7 @@ class SolidPreferenceIndexCalculator(ComputationModule):
         if not isinstance(first_val, dict):
             return False
         if self.response_key not in first_val:
+            logger.info(f"Response key '{self.response_key}' not found in spike data column '{self.spike_data_col}'")
             return False
         if not isinstance(first_val[self.response_key], (int, float)):
             return False

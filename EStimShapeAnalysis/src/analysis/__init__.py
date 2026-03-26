@@ -44,11 +44,22 @@ class Analysis(ABC):
     def run(self, session_id, data_type: str, channel: str, compiled_data: pd.DataFrame = None):
         self.session_id = session_id
         self.parse_data_type(data_type, session_id=session_id)
+        compiled_data = self.import_data(compiled_data)
         return self.analyze(channel, compiled_data=compiled_data)
 
-    # @abstractmethod
-    # def import_data(self) -> pd.DataFrame:
-    #     pass
+    def run_on_channels(self, session_id, data_type: str, channels: list[str], compiled_data: pd.DataFrame = None):
+        self.session_id = session_id
+        self.parse_data_type(data_type, session_id=session_id)
+        compiled_data = self.import_data(compiled_data)
+        results = {}
+        for channel in channels:
+             result = self.analyze(channel, compiled_data=compiled_data)
+             results[channel] = result
+
+        return results
+
+    def import_data(self, compiled_data: pd.DataFrame) -> pd.DataFrame:
+        return compiled_data
 
     @abstractmethod
     def analyze(self, channel: list[str] | str, compiled_data: pd.DataFrame = None):

@@ -13,6 +13,7 @@ from src.startup import context
 class GAResponseVectorAnalysis(PlotTopNAnalysis):
     """Analysis to extract mean response vectors per stimulus for GA data."""
 
+
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
         if compiled_data is None:
             compiled_data = import_from_repository(
