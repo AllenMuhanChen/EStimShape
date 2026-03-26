@@ -213,6 +213,17 @@ def ReadWaveformDataDemo():
     scommand.sendall(b'set filename.path ' + local_intan_path.encode('utf-8'))
     time.sleep(0.1)
 
+    scommand.sendall(b'set impedancefilename.basefilename ' + base_filename.encode('utf-8'))
+    time.sleep(0.1)
+    scommand.sendall(b'set impedancefilename.path ' + local_intan_path.encode('utf-8'))
+    time.sleep(0.1)
+
+
+    # IMPEDANCE CHECK
+    scommand.sendall(b'execute measureimpedance')
+    time.sleep(3)  # wait 3 seconds for impedance measurement to complete
+    scommand.sendall(b'execute saveimpedance')
+
     waveformBytesPerFrame = 4 + (2 * n_channels)
     waveformBytesPerBlock = FRAMES_PER_BLOCK * waveformBytesPerFrame + 4
 
