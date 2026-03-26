@@ -10,7 +10,7 @@ from src.startup import context
 
 # Configure logging to file via named logger (avoids basicConfig race with imported modules)
 logger = logging.getLogger('neurophys.pipeline')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.ERROR)
 if not logger.handlers:
     _handler = logging.FileHandler(context.logging_path, mode='w')
     _handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
