@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+from typing import Optional
+
 import pandas as pd
 from matplotlib import pyplot as plt
 
@@ -8,7 +11,8 @@ from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.pipeline.pipeline_base_classes import create_pipeline, create_branch
 from clat.util.connection import Connection
-from src.analysis import Analysis
+from src.analysis import Analysis, get_all_channels
+
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField, GenIdField, ParentIdField
@@ -33,15 +37,18 @@ def main():
     session_id, _ = read_session_id_from_db_name(context.ga_database)
     session_id = "260325_0"
     # channel = ["A-009", "A-000", "A-006", "A-009", "A-015", "A-022", "A-024"]
-    channel = "A-006"
+    channel = get_all_channels()
+    # channel = "A-006"
     analysis.run(session_id, "GA", channel, compiled_data=compiled_data)
 
     
 
 
 class PlotTopNAnalysis(Analysis):
-
+    channel_combination_method = "individual"
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
+
+        # COMPILE DATA OR LOAD DATA
         if compiled_data is None:
             compiled_data = import_from_repository(
                 self.session_id,
@@ -51,7 +58,19 @@ class PlotTopNAnalysis(Analysis):
             )
 
         compiled_data = add_lineage_rank_to_df(compiled_data, self.spike_rates_col, channel)
+        if self.channel_combination_method == "combined":
+            return self.analyze_one_channel(channel, compiled_data)
+        elif self.channel_combination_method == "indvidual":
+            results = {}
+            for ch in (channel if isinstance(channel, list) else [channel]):
+                results[ch] = self.analyze_one_channel(ch, compiled_data)
+            return results
+        else:
+            raise ValueError(f"Unknown channel combination method: {self.channel_combination_method}")
 
+
+    def analyze_one_channel(self, channel, compiled_data):
+        # MODULATE DATA BASED ON CHANNEL(S)
         # Generate appropriate filename based on channel type
         if isinstance(channel, list):
             # Create a descriptive name for multiple channels
@@ -61,7 +80,7 @@ class PlotTopNAnalysis(Analysis):
         else:
             channel_str = channel
             response_key = channel
-
+        # THE ACTUAL ANALYSIS
         visualize_module = create_grouped_stimuli_module(
             response_rate_col=self.spike_rates_col,
             response_rate_key=response_key,
@@ -77,15 +96,12 @@ class PlotTopNAnalysis(Analysis):
             module_name="plot_top_n",
             border_width=50
         )
-
         # Create and run pipeline with aggregated data
         # pipeline = create_pipeline().then(visualize_module).build()
         # result = pipeline.run(compiled_data)
-
         # Create pipeline with both branches
         pipeline = create_pipeline().then(visualize_module).build()
         result = pipeline.run(compiled_data)
-
         plt.show()
         return result
 
@@ -176,10 +192,10 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields.append(StimPathField(conn))
     fields.append(ThumbnailField(conn))
     fields.append(GAResponseField(conn))
-    # fields.append(ClusterResponseField(conn, cluster_combination_strategy))
-    # fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
-    # fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))
-    # fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))
+    fields.append(ClusterResponseField(conn, cluster_combination_strategy))
+    fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
+    fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))
+    fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))
     fields.append(ShaftField(conn, mstick_spec_data_source))
     fields.append(TerminationField(conn, mstick_spec_data_source))
     fields.append(JunctionField(conn, mstick_spec_data_source))

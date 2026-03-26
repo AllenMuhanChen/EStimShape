@@ -1,6 +1,6 @@
 from typing import List, Tuple, Dict
 from clat.util.connection import Connection
-from src.analysis import Analysis
+from src.analysis import Analysis, get_all_channels
 from src.analysis.ga.ga_vector_analysis import GAResponseVectorAnalysis
 from src.analysis.ga.plot_generations import PlotGenerationsAnalysis
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
@@ -17,9 +17,6 @@ from src.analysis.spi_vs_ici.isoluminant_comparison import IsoluminantComparison
 from src.repository.good_channels import read_cluster_channels
 
 
-def get_all_channels() -> List[str]:
-    """Generate list of all possible channels A-000 through A-031."""
-    return [f"A-{i:03d}" for i in range(32)]
 
 
 def get_channel_selection() -> str:

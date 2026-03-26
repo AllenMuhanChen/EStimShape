@@ -1,7 +1,12 @@
 import os
 from abc import abstractmethod, ABC
+from typing import Optional, List
 
 import pandas as pd
+
+def get_all_channels() -> List[str]:
+    """Generate list of all possible channels A-000 through A-031."""
+    return [f"A-{i:03d}" for i in range(32)]
 
 
 class Analysis(ABC):
@@ -13,6 +18,7 @@ class Analysis(ABC):
         self.spike_tstamps_col = None
         self.save_path = None
         self.response_table = None
+
 
     def parse_data_type(self, data_type, session_id, save_dir=None):
         if save_dir is None:
@@ -40,8 +46,12 @@ class Analysis(ABC):
         self.parse_data_type(data_type, session_id=session_id)
         return self.analyze(channel, compiled_data=compiled_data)
 
+    # @abstractmethod
+    # def import_data(self) -> pd.DataFrame:
+    #     pass
+
     @abstractmethod
-    def analyze(self, channel, compiled_data: pd.DataFrame = None):
+    def analyze(self, channel: list[str] | str, compiled_data: pd.DataFrame = None):
         pass
 
     @abstractmethod
