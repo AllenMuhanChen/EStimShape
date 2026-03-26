@@ -1,6 +1,6 @@
 import numpy as np
 import tkinter as tk
-from tkinter import filedialog, ttk
+from tkinter import filedialog, messagebox, ttk
 from src.mri.chamber import fit_chamber
 from src.mri.correction import load_corrections, save_corrections, push_correction, rot_x, rot_y, rot_z, xlate
 
