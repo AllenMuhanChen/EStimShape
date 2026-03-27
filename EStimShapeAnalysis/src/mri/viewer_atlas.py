@@ -3,7 +3,8 @@ import numpy as np
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from src.mri.atlas import load_atlas, load_atlas_labels, reslice_atlas, draw_atlas_contours, atlas_label_at_cursor, atlas_label_detail, load_template_mri, reslice_template_mri
-from src.mri.correction import rot_x, rot_y, rot_z, xlate, load_corrections, save_corrections, push_correction
+from src.mri.correction import rot_x, rot_y, rot_z, xlate, load_corrections, save_corrections, push_correction, scale
+
 
 class AtlasMixin:
     def _browse_atlas_nifti(self):
