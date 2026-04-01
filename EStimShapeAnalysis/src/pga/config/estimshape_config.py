@@ -3,7 +3,7 @@ from statistics import mean
 from src.pga.baseline import BaseLineSideTest
 from src.pga.config.simultaneous_2dvs3d_config import Simultaneous3Dvs2DConfig, DnessSideTest
 from src.pga.estim_phase import EStimPhaseParentSelector, EStimPhaseMutationAssigner, EStimPhaseMagnitudeAssigner, \
-    EStimPhaseTransitioner, EStimVariantDeltaSideTest
+    EStimPhaseTransitioner, EStimVariantDeltaSideTest, EStimVariantSideTest
 from src.pga.ga_classes import Phase, Lineage, RegimeTransitioner
 from src.pga.response_processing import GAResponseProcessor, BaselineNormalizeResponseProcessor
 
@@ -27,8 +27,13 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
         return [DnessSideTest(n_top_3d=4, n_top_2d=4),
                 EStimVariantDeltaSideTest(num_deltas_per_variant=self.num_deltas_per_variant(),
                                           delta_resp_ratio_threshold=self.delta_resp_ratio_threshold(),
+                                          conn=self.connection()
                                           ),
-                BaseLineSideTest()
+                EStimVariantSideTest(self.get_all_stimuli_func(),
+                                     self.connection(),
+                                     threshold=self.variant_parent_response_threshold()
+                                     ),
+                BaseLineSideTest(),
                 ]
 
     def growing_phase_transitioner(self) -> type[RegimeTransitioner]:
@@ -40,8 +45,9 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
     def estim_variant_phase(self):
         return Phase(
             EStimPhaseParentSelector(
-                get_all_stimuli_func=self.get_all_stimuli_func(),
-                threshold=self.variant_parent_response_threshold()),
+                self.get_all_stimuli_func(),
+                self.variant_parent_response_threshold(),
+                self.connection()),
             EStimPhaseMutationAssigner(),
             EStimPhaseMagnitudeAssigner(),
             EStimPhaseTransitioner(),

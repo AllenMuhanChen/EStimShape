@@ -133,20 +133,21 @@ class EStimVariantSideTest(SideTest):
 
 
 class EStimVariantDeltaSideTest(SideTest):
-    def __init__(self, num_deltas_per_variant: int = 1, delta_resp_ratio_threshold: float = 0.5):
+    def __init__(self, num_deltas_per_variant: int = 1, delta_resp_ratio_threshold: float = 0.5, conn=Type[connection]):
         self.num_deltas_per_variant = num_deltas_per_variant
         self.delta_resp_ratio_threshold = delta_resp_ratio_threshold
+        self.conn = conn
 
     def run(self, lineages: List[Lineage], gen_id: int):
         #identify eligible stimuli (variants)
-        regimes = [l.current_regime_index for l in lineages]
-        if max(regimes) < 3:
-            return
+        # regimes = [l.current_regime_index for l in lineages]
+        # if max(regimes) < 3:
+        #     return
         variant_stimuli : List[Stimulus] = []
         lineages_for_stim_id = {}
         for lineage in lineages:
             for stim in lineage.stimuli:
-                if stim.mutation_type == StimType.REGIME_ESTIM_VARIANTS.value:
+                if has_preservation_history(self.conn, stim.id) and stim.mutation_type != StimType.REGIME_ESTIM_DELTA.value:
                     if stim.response_rate is not None:
                         variant_stimuli.append(stim)
                         lineages_for_stim_id[stim.id] = lineage
