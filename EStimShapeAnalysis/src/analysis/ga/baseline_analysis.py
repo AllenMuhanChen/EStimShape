@@ -176,7 +176,7 @@ class BaselineAnalysis(PlotTopNAnalysis):
 
         # Tick at each gen-1 response value + catch
         tick_xs = [catch_x] + list(parent_gen1['Gen1Response'])
-        tick_labels = ['Catch'] + [f'{v:.1f}' for v in parent_gen1['Gen1Response']]
+        tick_labels = [f'{catch_x:.1f}\n(catch)'] + [f'{v:.1f}' for v in parent_gen1['Gen1Response']]
         ax.set_xticks(tick_xs)
         ax.set_xticklabels(tick_labels, rotation=45, ha='right', fontsize=8)
         ax.set_xlabel('Gen-1 response (Hz)')
