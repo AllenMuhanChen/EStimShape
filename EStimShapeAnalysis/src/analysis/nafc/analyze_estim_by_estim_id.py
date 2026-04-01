@@ -154,9 +154,9 @@ def plot_spec_id_panel(ax, stim_subset, estim_off_data, spec_ids, noise_levels,
 
 def main():
     # ============ CONFIGURATION ============
-    conn = Connection("allen_estimshape_exp_260325_0")
+    conn = Connection("allen_estimshape_exp_260331_0")
     since_date = time_util.from_date_to_now(2024, 7, 10)
-    start_gen_id = 2
+    start_gen_id = 4
     max_gen_id = float('inf')
     start_gen_id_estim_on = 0
     max_gen_id_estim_on = float('inf')

@@ -18,12 +18,12 @@ public class EStimSpecWriter {
     static double defaultDp = 100.0;
     static double defaultA1 = 2.5;
     static double defaultA2 = 2.5;
-    static int defaultPostStimRefractoryPeriod = 4000;
+    static int defaultPostStimRefractoryPeriod = 3500;
     static PulseRepetition defaultPulseRepetition = PulseRepetition.SinglePulse;
     static int defaultNumRepetitions = 1;
     static double defaultPulseTrainPeriod = 10.0;
     static TriggerEdgeOrLevel defaultTriggerEdgeOrLevel = TriggerEdgeOrLevel.Level;
-    static double defaultPostTriggerDelay = 0.0;
+    static double defaultPostTriggerDelay = 50.0;
 
     /**
      * Generates EStim parameter sets and writes them to the database.

@@ -14,8 +14,8 @@ def main():
                             save_included_variants=True)  # Set to False to use channel-specific spike rates
     compiled_data = None
     compiled_data = analysis.compile()
-    session_id = "260325_0"
-    channel = "A-006"
+    session_id = "260331_0"
+    channel = "GA"
     analysis.run(session_id, "GA", channel, compiled_data=compiled_data)
 
 
@@ -149,7 +149,7 @@ class PlotVariants(PlotTopNAnalysis):
             },
             'save_path': f"{self.save_path}/{channel}_variants_with_parents.png",
             'module_name': "Variants_With_Parents",
-            'publish_mode': True,
+            'publish_mode': False,
             'border_width': 50,
         }
 

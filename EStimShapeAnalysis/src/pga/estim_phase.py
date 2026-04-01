@@ -22,20 +22,24 @@ class EStimPhaseParentSelector(ParentSelector):
     def select_parents(self, lineage: Lineage, batch_size: int) -> list[Stimulus]:
         # eligible parents = within x% of the peak response?
         all_stim_across_lineages = self.get_all_stimuli_func()
+        #remove response rate is none
+        all_stim_across_lineages = [s for s in all_stim_across_lineages if s.response_rate is not None]
+
+
         # 260325_0 change ONLY
         # all_stim_across_lineages = [s for s in all_stim_across_lineages if s.gen_id>1]
 
 
-        all_responses_across_lineages = [s.response_rate for s in all_stim_across_lineages]
+        all_responses_across_lineages = [s.response_rate for s in all_stim_across_lineages if s.response_rate is not None]
         min_response = min(all_responses_across_lineages)
-        floored_responses = [s.response_rate - min_response for s in all_stim_across_lineages]
+        floored_responses = [s.response_rate - min_response for s in all_stim_across_lineages if s.response_rate is not None]
         max_response = max(floored_responses)
         normalized_responses = [r / max_response for r in floored_responses]
         peak_normalized_response = calculate_peak_response(normalized_responses, across_n=1)
 
         threshold_response = (float(peak_normalized_response) * self.threshold) * max_response + min_response
 
-        passing_threshold = [s for s in lineage.stimuli if s.response_rate > threshold_response]
+        passing_threshold = [s for s in lineage.stimuli if s.response_rate is not None and s.response_rate > threshold_response ]
 
         # If no stimuli pass threshold, return empty list or handle edge case
         if not passing_threshold:
@@ -143,6 +147,8 @@ class EStimVariantDeltaSideTest(SideTest):
             variant_resp = stim_for_stim_id[variant_id].response_rate
             for delta in deltas:
                 delta_resp = delta.response_rate
+                if delta_resp is None or variant_resp is None:
+                    continue
                 if delta_resp / variant_resp < self.delta_resp_ratio_threshold:
                     if variant_id not in eligible_deltas_for_variants:
                         eligible_deltas_for_variants[variant_id] = []

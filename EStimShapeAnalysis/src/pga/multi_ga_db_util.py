@@ -101,7 +101,8 @@ class MultiGaDbUtil:
             parent_id, lineage_id, stim_type, response, mutation_magnitude, gen_id = rows[0]
             return StimGaInfoEntry(stim_id=int(stim_id), parent_id=int(parent_id),
                                    lineage_id=int(lineage_id), stim_type=str(stim_type),
-                                   response=float(response), mutation_magnitude=float_or_none(mutation_magnitude),
+                                   response=float_or_none(response),  # was float(response)
+                                   mutation_magnitude=float_or_none(mutation_magnitude),
                                    gen_id=int(gen_id))
 
     def read_task_done_ids_by_stim_id(self, ga_name: str, stim_id: int):
@@ -139,6 +140,24 @@ class MultiGaDbUtil:
 
         return stim_ids
 
+    def read_stim_type(self, stim_id: int):
+        self.conn.execute(
+            "SELECT stim_type FROM StimGaInfo WHERE stim_id = %s",
+            (stim_id,))
+
+        stim_type = self.conn.fetch_one()
+
+        return stim_type
+
+    def read_gen_id(self, stim_id: int):
+        self.conn.execute(
+            "SELECT gen_id FROM StimGaInfo WHERE stim_id = %s",
+            (stim_id,))
+
+        gen_id = self.conn.fetch_one()
+
+        return gen_id
+
     def add_catch_lineage(self, lineages_for_experiment_id):
         lineages_for_experiment_id.append(0)
 
@@ -167,7 +186,15 @@ class MultiGaDbUtil:
         stim_ids = [row[0] for row in rows]
 
         return stim_ids
+    def read_all_stims(self):
+        self.conn.execute(
+            "SELECT stim_id "
+            "FROM StimGaInfo")
 
+        rows = self.conn.fetch_all()
+        stim_ids = [row[0] for row in rows]
+
+        return stim_ids
     def update_driving_response(self, stim_id: int, response: float):
         # if response is not float
         if math.isnan(response):

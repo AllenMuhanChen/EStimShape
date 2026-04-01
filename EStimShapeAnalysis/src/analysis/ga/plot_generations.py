@@ -15,11 +15,11 @@ def main():
     session_id = "250425_0"
     channel = "A-002"
     analysis = PlotGenerationsAnalysis()
-    compiled_data = None
-    # compiled_data = plot_top_n.compile_and_export()
+    # compiled_data = None
+    compiled_data = plot_top_n.compile_and_export()
 
     session_id, _ = read_session_id_from_db_name(context.ga_database)
-    session_id = "260115_0"
+    # session_id = "260115_0"
     channel = read_cluster_channels(session_id)
     # channel = ["A-009", "A-000", "A-006", "A-009", "A-015", "A-022", "A-024"]
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
@@ -113,7 +113,7 @@ class PlotGenerationsAnalysis(PlotTopNAnalysis):
             # sort_rules={"GenId": "descending"},
             save_path=f"{self.save_path}/{channel}_top_per_gen_by_lineage.png",
             module_name="Top Stimuli Per Gen by Lineage",
-            publish_mode=False,
+            publish_mode=True,
             save_pdf=True,
             border_width=75,
             subplot_spacing=(75,25)

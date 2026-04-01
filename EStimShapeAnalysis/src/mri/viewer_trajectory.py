@@ -393,7 +393,7 @@ class TrajectoryMixin:
                 coord_note = f"target=[{target[0]:.2f}, {target[1]:.2f}, {target[2]:.2f}]"
 
             full_notes = "  ".join(part for part in [notes, coord_note] if part)
-            self.pen_store.add(p['az_deg'], p['el_deg'], dist,
+            self.pen_store.add(float(p['az_deg']), float(p['el_deg']), float(dist),
                                label=p['label'], session_id=session_id,
                                pen_type="planned", color=p['color'], notes=full_notes)
             n_saved += 1

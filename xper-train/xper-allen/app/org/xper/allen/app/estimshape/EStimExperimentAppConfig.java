@@ -191,7 +191,7 @@ public class EStimExperimentAppConfig {
 
     @Bean
     public int maxSampleSizeDegrees() {
-        return 45;
+        return 50;
     }
 
     @Bean
