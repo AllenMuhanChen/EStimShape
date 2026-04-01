@@ -81,17 +81,33 @@ class BaselineAnalysis(PlotTopNAnalysis):
                      .rename('AvgCatch')
                      .reset_index())
 
+        # Normalization factor per generation: reference_mean / gen_baseline_mean
+        # reference_mean = mean of the gen-1 regime-zero parents of baseline stims
+        parent_ids = set(avg_baseline['ParentId'].unique())
+        reference_mean = gen1_avg[gen1_avg.index.isin(parent_ids)].mean()
+        gen_baseline_mean = avg_baseline.groupby('GenId')['Response'].mean()
+        norm_factor = (reference_mean / gen_baseline_mean).reset_index()
+        norm_factor.columns = ['GenId', 'NormFactor']
+
+        # Average raw response per generation — experimental stims only (no BASELINE/CATCH)
+        experimental = compiled_data[~compiled_data['StimType'].isin(['BASELINE', 'CATCH'])]
+        avg_raw_per_gen = (experimental
+                           .groupby('GenId')['Response']
+                           .mean()
+                           .reset_index()
+                           .rename(columns={'Response': 'AvgRawResponse'}))
+
+        # Normalized avg response per generation = avg_raw × norm_factor
+        avg_norm_per_gen = avg_raw_per_gen.merge(norm_factor, on='GenId', how='left')
+        avg_norm_per_gen['AvgNormResponse'] = (avg_norm_per_gen['AvgRawResponse']
+                                               * avg_norm_per_gen['NormFactor'])
+
         channel_label = ', '.join(channel) if isinstance(channel, list) else channel
         channel_str = '_'.join(channel) if isinstance(channel, list) else channel
 
-        # Average raw response per generation across all stimuli (for the side subplot)
-        avg_per_gen = (compiled_data
-                       .groupby('GenId')['Response']
-                       .mean()
-                       .reset_index()
-                       .rename(columns={'Response': 'AvgResponse'}))
-
-        fig = self._plot_baseline_curves(avg_baseline, gen1_avg, avg_catch, avg_per_gen, channel_label)
+        fig = self._plot_baseline_curves(avg_baseline, gen1_avg, avg_catch,
+                                         avg_raw_per_gen, avg_norm_per_gen,
+                                         norm_factor, channel_label)
 
         save_file = f"{self.save_path}/{channel_str}_baseline_response_curves.png"
         fig.savefig(save_file, dpi=150, bbox_inches='tight')
@@ -104,18 +120,18 @@ class BaselineAnalysis(PlotTopNAnalysis):
             avg_baseline: pd.DataFrame,
             gen1_avg: pd.Series,
             avg_catch: pd.DataFrame,
-            avg_per_gen: pd.DataFrame,
+            avg_raw_per_gen: pd.DataFrame,
+            avg_norm_per_gen: pd.DataFrame,
+            norm_factor: pd.DataFrame,
             channel_label: str,
     ) -> plt.Figure:
         """
-        Single plot:
-          x = 0          : avg CATCH response for that generation
-          x = 1..N       : baseline stim rank, sorted by gen-1 response (lowest → highest)
-          y-axis         : avg response
-          lines          : one per generation; gen-1 (black dashed) is straight ascending
-                           across x=1..N by construction
+        Three subplots (wide | narrow | narrow):
+          1. Baseline/catch response profiles per generation (x=stim rank, y=response)
+          2. Avg raw response per generation (experimental stims only)
+          3. Normalized avg response per generation + normalization factor (dual y-axis)
         """
-        # Rank all ParentIds by their gen-1 response (baseline stims start at x=1)
+        # --- shared x-axis ordering for subplot 1 ---
         parent_gen1 = (avg_baseline[['ParentId', 'Gen1Response']]
                        .drop_duplicates('ParentId')
                        .sort_values('Gen1Response')
@@ -129,55 +145,68 @@ class BaselineAnalysis(PlotTopNAnalysis):
         colors = cm.viridis(np.linspace(0, 1, max(len(all_generations), 1)))
         gen_color = {gen_id: colors[i] for i, gen_id in enumerate(all_generations)}
 
-        fig, (ax, ax_raw) = plt.subplots(1, 2, figsize=(14, 5),
-                                          gridspec_kw={'width_ratios': [3, 1]})
-        fig.suptitle(f'Baseline & Catch Response Profiles Across Generations\n'
-                     f'Channel: {channel_label}', fontsize=14)
+        fig, (ax, ax_raw, ax_norm) = plt.subplots(
+            1, 3, figsize=(18, 5),
+            gridspec_kw={'width_ratios': [3, 1, 1]}
+        )
+        fig.suptitle(f'Baseline & Catch Response Profiles Across Generations  |  Channel: {channel_label}',
+                     fontsize=13)
 
-        # Gen-1 reference line (black dashed): catch at x=0, then baseline stims x=1..N
+        # --- Subplot 1: response profiles ---
         gen1_catch = avg_catch.loc[avg_catch['GenId'] == 1, 'AvgCatch']
-        catch_x = [0]
         catch_y_gen1 = [gen1_catch.values[0] if len(gen1_catch) else np.nan]
-        baseline_x = list(parent_gen1['StimRank'])
-        baseline_y_gen1 = list(parent_gen1['Gen1Response'])
-        ax.plot(catch_x + baseline_x,
-                catch_y_gen1 + baseline_y_gen1,
+        ax.plot([0] + list(parent_gen1['StimRank']),
+                catch_y_gen1 + list(parent_gen1['Gen1Response']),
                 marker='o', linewidth=2, markersize=5,
                 color='black', linestyle='--', label='Gen 1 (reference)', zorder=3)
 
-        # One line per generation (gen ≥ 2)
         for gen_id in all_generations:
-            # Catch point at x=0
             catch_row = avg_catch[avg_catch['GenId'] == gen_id]
             catch_val = catch_row['AvgCatch'].values[0] if len(catch_row) else np.nan
-
-            # Baseline points at x=1..N
             gen_data = avg_baseline[avg_baseline['GenId'] == gen_id].sort_values('StimRank')
-
-            xs = [0] + list(gen_data['StimRank'])
-            ys = [catch_val] + list(gen_data['Response'])
-
-            ax.plot(xs, ys,
+            ax.plot([0] + list(gen_data['StimRank']),
+                    [catch_val] + list(gen_data['Response']),
                     marker='o', linewidth=1.5, markersize=4,
                     color=gen_color[gen_id], label=f'Gen {gen_id}')
 
-        # X-axis tick labels: "Catch" at 0, stim ranks at 1..N
-        tick_positions = [0] + list(parent_gen1['StimRank'])
-        tick_labels = ['Catch'] + [str(r) for r in parent_gen1['StimRank']]
-        ax.set_xticks(tick_positions)
-        ax.set_xticklabels(tick_labels)
+        ax.set_xticks([0] + list(parent_gen1['StimRank']))
+        ax.set_xticklabels(['Catch'] + [str(r) for r in parent_gen1['StimRank']])
         ax.set_xlabel('Stimulus (sorted by gen-1 response)')
         ax.set_ylabel('Avg Response')
-        ax.legend(fontsize=8, bbox_to_anchor=(1.01, 1), loc='upper left')
+        ax.set_title('Baseline / Catch Profiles')
+        ax.legend(fontsize=7, bbox_to_anchor=(1.01, 1), loc='upper left')
         ax.grid(True, alpha=0.3)
 
-        # Right subplot: avg raw response per generation
-        ax_raw.plot(avg_per_gen['GenId'], avg_per_gen['AvgResponse'],
+        # --- Subplot 2: avg raw response per generation ---
+        ax_raw.plot(avg_raw_per_gen['GenId'], avg_raw_per_gen['AvgRawResponse'],
                     marker='o', linewidth=1.5, markersize=4, color='steelblue')
         ax_raw.set_xlabel('Generation')
         ax_raw.set_ylabel('Avg Raw Response')
-        ax_raw.set_title('Avg Response per Generation')
+        ax_raw.set_title('Avg Raw Response\nper Generation')
         ax_raw.grid(True, alpha=0.3)
+
+        # --- Subplot 3: normalized avg response + normalization factor (dual y-axis) ---
+        ax_norm.plot(avg_norm_per_gen['GenId'], avg_norm_per_gen['AvgNormResponse'],
+                     marker='o', linewidth=1.5, markersize=4,
+                     color='darkorange', label='Normalized response')
+        ax_norm.set_xlabel('Generation')
+        ax_norm.set_ylabel('Avg Normalized Response', color='darkorange')
+        ax_norm.tick_params(axis='y', labelcolor='darkorange')
+        ax_norm.set_title('Normalized Response &\nNormalization Factor')
+        ax_norm.grid(True, alpha=0.3)
+
+        ax_factor = ax_norm.twinx()
+        ax_factor.plot(norm_factor['GenId'], norm_factor['NormFactor'],
+                       marker='s', linewidth=1.5, markersize=4,
+                       color='purple', linestyle='--', label='Norm factor')
+        ax_factor.axhline(1.0, color='purple', linewidth=0.8, linestyle=':', alpha=0.6)
+        ax_factor.set_ylabel('Normalization Factor', color='purple')
+        ax_factor.tick_params(axis='y', labelcolor='purple')
+
+        # Combined legend for subplot 3
+        lines1, labels1 = ax_norm.get_legend_handles_labels()
+        lines2, labels2 = ax_factor.get_legend_handles_labels()
+        ax_norm.legend(lines1 + lines2, labels1 + labels2, fontsize=7, loc='upper right')
 
         fig.tight_layout()
         return fig
