@@ -20,6 +20,18 @@ class StimTypeField(StimSpecIdField):
     def get_name(self):
         return "StimType"
 
+class CompsToPreserveField(StimSpecIdField):
+
+    def get(self, task_id) -> tuple:
+        stim_spec_id = self.get_cached_super(task_id, StimSpecIdField)
+        self.conn.execute("SELECT * FROM StimCompsToPreserve WHERE stim_id = %s",
+                          params=(stim_spec_id,))
+        comps_to_preserve = self.conn.fetch_all()
+        return comps_to_preserve
+
+    def get_name(self):
+        return "CompsToPreserve"
+
 class StimPathField(StimSpecIdField):
     def get(self, task_id) -> str:
         stim_id = self.get_cached_super(task_id, StimSpecIdField)

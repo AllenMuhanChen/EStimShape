@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 from clat.pipeline.pipeline_base_classes import create_branch, create_pipeline
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
+from src.pga.estim_phase import has_preservation_history
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 from clat.util.connection import Connection
@@ -11,7 +12,7 @@ import pandas as pd
 
 def main():
     analysis = PlotVariants(use_ga_response=True,
-                            save_included_variants=True)  # Set to False to use channel-specific spike rates
+                            save_included_variants=False)  # Set to False to use channel-specific spike rates
     compiled_data = None
     compiled_data = analysis.compile()
     session_id = "260331_0"
@@ -67,8 +68,9 @@ class PlotVariants(PlotTopNAnalysis):
 
         # Filter for variants only
         variants_data = compiled_data[
-            compiled_data['StimType'].isin(["REGIME_ESTIM_VARIANTS"])].copy()
-
+            (compiled_data['CompsToPreserve'].apply(lambda x: x != [])) &
+            (compiled_data['StimType'] != "REGIME_ESTIM_DELTA")
+            ]
         # Get response values for grouping
         if self.use_ga_response:
             response_values = variants_data['GA Response']

@@ -13,7 +13,8 @@ from clat.pipeline.pipeline_base_classes import create_pipeline, create_branch
 from clat.util.connection import Connection
 from src.analysis import Analysis, get_all_channels
 
-from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
+from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField, \
+    CompsToPreserveField
 from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField, GenIdField, ParentIdField
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
@@ -153,6 +154,7 @@ class PlotTopNAnalysis(Analysis):
         fields.append(StimPathField(conn))
         fields.append(ThumbnailField(conn))
         fields.append(GAResponseField(conn))
+        fields.append(CompsToPreserveField(conn))
         fields.append(ClusterResponseField(conn, cluster_combination_strategy))
         fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
         fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))
