@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -32,47 +30,51 @@ class BaselineAnalysis(PlotTopNAnalysis):
                 self.response_table
             )
 
+        # Attach a scalar 'Response' column for the requested channel
+        compiled_data = compiled_data.copy()
+        if self.spike_rates_col == 'GA Response':
+            compiled_data['Response'] = compiled_data['GA Response']
+        elif isinstance(channel, list):
+            def sum_channels(x):
+                if not isinstance(x, dict):
+                    return 0
+                return sum(x.get(ch, 0) for ch in channel)
+            compiled_data['Response'] = compiled_data[self.spike_rates_col].apply(sum_channels)
+        else:
+            compiled_data['Response'] = compiled_data[self.spike_rates_col].apply(
+                lambda x: x.get(channel, 0) if isinstance(x, dict) else 0
+            )
+
         baseline_data = compiled_data[compiled_data['StimType'] == 'BASELINE'].copy()
 
         if baseline_data.empty:
             print("No BASELINE stimuli found in the data.")
             return None
 
-        # Extract scalar response for the given channel
-        if self.spike_rates_col == 'GA Response':
-            baseline_data['Response'] = baseline_data['GA Response']
-        elif isinstance(channel, list):
-            def sum_channels(x):
-                if not isinstance(x, dict):
-                    return 0
-                return sum(x.get(ch, 0) for ch in channel)
-            baseline_data['Response'] = baseline_data[self.spike_rates_col].apply(sum_channels)
-        else:
-            baseline_data['Response'] = baseline_data[self.spike_rates_col].apply(
-                lambda x: x.get(channel, 0) if isinstance(x, dict) else 0
-            )
+        if 'ParentId' not in baseline_data.columns:
+            print("Warning: ParentId not in data — cannot link baseline stims to their "
+                  "gen-1 parent responses. Aborting.")
+            return None
 
-        # Use ParentId to track the same baseline stim across generations.
-        # Each BASELINE stim's parent_id points to its original gen-1 regime-zero stim,
-        # so rows sharing a parent_id are the same baseline stim repeated over generations.
-        if 'ParentId' in baseline_data.columns:
-            stim_id_col = 'ParentId'
-        else:
-            print("Warning: ParentId not in data. Using StimSpecId; baseline stims will not be "
-                  "linked across generations.")
-            stim_id_col = 'StimSpecId'
+        # Average over trial repeats: one value per (ParentId, Lineage, GenId)
+        avg_baseline = (baseline_data
+                        .groupby(['ParentId', 'Lineage', 'GenId'])['Response']
+                        .mean()
+                        .reset_index())
 
-        # Average over repeats within the same (stim identity, lineage, generation) group
-        avg = (baseline_data
-               .groupby([stim_id_col, 'Lineage', 'GenId'])['Response']
-               .mean()
-               .reset_index()
-               .rename(columns={'Response': 'Avg Response'}))
+        # Gen-1 reference: look up each parent's actual response from gen-1 data.
+        # The baseline stims' ParentIds point to the original gen-1 regime-zero stims.
+        gen1_avg = (compiled_data[compiled_data['GenId'] == 1]
+                    .groupby('StimSpecId')['Response']
+                    .mean()
+                    .rename('Gen1Response'))
+
+        avg_baseline['Gen1Response'] = avg_baseline['ParentId'].map(gen1_avg)
 
         channel_label = ', '.join(channel) if isinstance(channel, list) else channel
         channel_str = '_'.join(channel) if isinstance(channel, list) else channel
 
-        fig = self._plot_baseline_curves(avg, stim_id_col, channel_label)
+        fig = self._plot_baseline_curves(avg_baseline, channel_label)
 
         save_file = f"{self.save_path}/{channel_str}_baseline_response_curves.png"
         fig.savefig(save_file, dpi=150, bbox_inches='tight')
@@ -80,13 +82,14 @@ class BaselineAnalysis(PlotTopNAnalysis):
         plt.show()
         return fig
 
-    def _plot_baseline_curves(
-            self,
-            avg: pd.DataFrame,
-            stim_id_col: str,
-            channel_label: str,
-    ) -> plt.Figure:
-        lineages = sorted(avg['Lineage'].unique())
+    def _plot_baseline_curves(self, avg_baseline: pd.DataFrame, channel_label: str) -> plt.Figure:
+        """
+        For each lineage subplot:
+          x-axis  = baseline stim rank, sorted by gen-1 response (lowest → highest)
+          y-axis  = avg response
+          lines   = one per generation (gen-1 = straight ascending line by construction)
+        """
+        lineages = sorted(avg_baseline['Lineage'].unique())
         n_lineages = len(lineages)
 
         if n_lineages == 0:
@@ -100,32 +103,50 @@ class BaselineAnalysis(PlotTopNAnalysis):
         fig, axes = plt.subplots(n_rows, n_cols,
                                  figsize=(6 * n_cols, 4 * n_rows),
                                  squeeze=False)
-        fig.suptitle(f'Baseline Stimulus Responses Across Generations\nChannel: {channel_label}',
+        fig.suptitle(f'Baseline Stimulus Response Profiles Across Generations\n'
+                     f'Channel: {channel_label}',
                      fontsize=14, y=1.01)
-
-        colors = cm.tab10(np.linspace(0, 1, 10))
 
         for idx, lineage in enumerate(lineages):
             row, col = divmod(idx, n_cols)
             ax = axes[row][col]
 
-            lin_data = avg[avg['Lineage'] == lineage]
-            unique_stims = sorted(lin_data[stim_id_col].unique())
+            lin_data = avg_baseline[avg_baseline['Lineage'] == lineage].copy()
 
-            for i, stim_id in enumerate(unique_stims):
-                stim_data = lin_data[lin_data[stim_id_col] == stim_id].sort_values('GenId')
-                color = colors[i % len(colors)]
-                ax.plot(stim_data['GenId'], stim_data['Avg Response'],
+            # Determine x-axis ordering: rank each ParentId by its gen-1 response
+            parent_gen1 = (lin_data[['ParentId', 'Gen1Response']]
+                           .drop_duplicates('ParentId')
+                           .sort_values('Gen1Response')
+                           .reset_index(drop=True))
+            parent_gen1['StimRank'] = range(1, len(parent_gen1) + 1)
+            rank_map = parent_gen1.set_index('ParentId')['StimRank']
+
+            lin_data['StimRank'] = lin_data['ParentId'].map(rank_map)
+
+            generations = sorted(lin_data['GenId'].unique())
+            n_gens = len(generations)
+            colors = cm.viridis(np.linspace(0, 1, max(n_gens, 1)))
+
+            # Plot gen-1 reference line first (from parent_gen1)
+            ax.plot(parent_gen1['StimRank'], parent_gen1['Gen1Response'],
+                    marker='o', linewidth=2, markersize=5,
+                    color='black', linestyle='--', label='Gen 1 (reference)', zorder=3)
+
+            # Plot each subsequent generation
+            for g_idx, gen_id in enumerate(generations):
+                gen_data = lin_data[lin_data['GenId'] == gen_id].sort_values('StimRank')
+                ax.plot(gen_data['StimRank'], gen_data['Response'],
                         marker='o', linewidth=1.5, markersize=4,
-                        color=color, label=f"stim {i + 1} (id={stim_id})")
+                        color=colors[g_idx], label=f'Gen {gen_id}')
 
             ax.set_title(f'Lineage {lineage}', fontsize=11)
-            ax.set_xlabel('Generation')
+            ax.set_xlabel('Baseline Stim (sorted by gen-1 response)')
             ax.set_ylabel('Avg Response')
+            ax.set_xticks(parent_gen1['StimRank'])
             ax.legend(fontsize=7, loc='upper left')
             ax.grid(True, alpha=0.3)
 
-        # Hide any unused subplot panels
+        # Hide unused panels
         for idx in range(n_lineages, n_rows * n_cols):
             row, col = divmod(idx, n_cols)
             axes[row][col].set_visible(False)
