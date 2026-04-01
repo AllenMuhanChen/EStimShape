@@ -23,6 +23,7 @@ from src.analysis.modules.grouped_stims_by_response import create_grouped_stimul
 from src.intan.MultiFileParser import MultiFileParser
 from src.pga.mock.mock_rwa_analysis import condition_spherical_angles, hemisphericalize_orientation
 from src.repository.export_to_repository import export_to_repository, read_session_id_from_db_name
+from src.repository.good_channels import read_cluster_channels
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 
@@ -37,9 +38,10 @@ def main():
     session_id, _ = read_session_id_from_db_name(context.ga_database)
     # session_id = "260327_0"
     # channel = ["A-009", "A-000", "A-006", "A-009", "A-015", "A-022", "A-024"]
-    channel = "GA"
+    # channel = "GA"
+    channel = read_cluster_channels(session_id)
     # channel = "A-006"
-    analysis.run(session_id, "GA", channel, compiled_data=compiled_data)
+    analysis.run(session_id, "GA", "GA", compiled_data=compiled_data)
 
     
 
@@ -48,7 +50,12 @@ class PlotTopNAnalysis(Analysis):
     logging_path = context.logging_path
 
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
+        if self.using_ga_response():
+            # If channel is "GA", we want to use the "GA Response" column instead of spike rates for ranking
+            compiled_data['Spike Rate'] = compiled_data['GA Response']
+            compiled_data = compiled_data.sort_values(by=['Lineage', 'Spike Rate'], ascending=[True, False])
         compiled_data = add_lineage_rank_to_df(compiled_data, self.spike_rates_col, channel)
+
         return self.analyze_one_channel(channel, compiled_data)
 
 
@@ -85,6 +92,7 @@ class PlotTopNAnalysis(Analysis):
             title='Top Stimuli Per Lineage',
             filter_values={"Lineage": get_top_n_lineages(compiled_data, 4),
                            "RankWithinLineage": range(1, 21)},  # only show top 20 per lineage
+            sort_rules={"RankWithinLineage": "ascending"},  # sort by rank within lineage
             save_path=f"{self.save_path}/{channel_str}_plot_top_n.png",
             publish_mode=True,
             subplot_spacing=(20, 0),
@@ -164,6 +172,8 @@ class PlotTopNAnalysis(Analysis):
         data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['ThumbnailPath'].apply(lambda x: x is not None)]
         return data_for_all_tasks
 
+    def using_ga_response(self):
+        return self.response_table == 'GAStimInfo'
 def add_lineage_rank_to_df(compiled_data, spike_rates_col, channel):
     """
     Add ranking information based on spike rates within each lineage.
@@ -175,7 +185,9 @@ def add_lineage_rank_to_df(compiled_data, spike_rates_col, channel):
                 If list is provided, responses are summed across all specified channels.
     """
     # Handle single channel vs multiple channels
-    if isinstance(channel, list):
+    if channel == "GA":
+        pass
+    elif isinstance(channel, list):
         # Sum responses from multiple channels
         def sum_channels(x):
             if not isinstance(x, dict):
