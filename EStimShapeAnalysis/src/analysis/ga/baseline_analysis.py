@@ -112,6 +112,12 @@ class BaselineAnalysis(PlotTopNAnalysis):
         save_file = f"{self.save_path}/{channel_str}_baseline_response_curves.png"
         fig.savefig(save_file, dpi=150, bbox_inches='tight')
         print(f"Saved baseline plot to {save_file}")
+
+        fig2 = self._plot_interpolation_normalization(avg_baseline, channel_label)
+        save_file2 = f"{self.save_path}/{channel_str}_interpolation_normalization.png"
+        fig2.savefig(save_file2, dpi=150, bbox_inches='tight')
+        print(f"Saved interpolation normalization plot to {save_file2}")
+
         plt.show()
         return fig
 
@@ -216,6 +222,122 @@ class BaselineAnalysis(PlotTopNAnalysis):
         lines2, labels2 = ax_factor.get_legend_handles_labels()
         ax_norm.legend(lines1 + lines2, labels1 + labels2, fontsize=7, loc='upper right')
 
+        fig.tight_layout()
+        return fig
+
+    def _plot_interpolation_normalization(
+            self,
+            avg_baseline: pd.DataFrame,
+            channel_label: str,
+    ) -> plt.Figure:
+        """
+        For each target gen N (≥ 2), simulate the interpolated multi-gen normalization
+        on the baseline stims themselves and plot the result.
+
+        x-axis : Gen1Response (canonical stim position)
+        y-axis : corrected response (should equal Gen1Response when normalization is perfect)
+        Color  : generation N (viridis)
+        Sub-lines (thin, alpha=0.4) : one per reference gen R used
+        Average line (thick)        : mean across all R for that gen
+        Black dashed diagonal       : y = x  (perfect normalization target)
+        """
+        gen1_dict: dict[int, float] = (
+            avg_baseline[['ParentId', 'Gen1Response']]
+            .drop_duplicates('ParentId')
+            .set_index('ParentId')['Gen1Response']
+            .to_dict()
+        )
+
+        all_gens = sorted(avg_baseline['GenId'].unique())
+        target_gens = [g for g in all_gens if g >= 2]
+        colors = cm.viridis(np.linspace(0, 1, max(len(all_gens), 1)))
+        gen_color = {g: colors[i] for i, g in enumerate(all_gens)}
+
+        fig, ax = plt.subplots(figsize=(10, 6))
+        fig.suptitle(f'Interpolated Multi-Gen Normalization — Baseline Stim Recovery\n'
+                     f'Channel: {channel_label}', fontsize=13)
+
+        # Reference diagonal: y = x
+        all_gen1_vals = list(gen1_dict.values())
+        diag_min, diag_max = min(all_gen1_vals), max(all_gen1_vals)
+        ax.plot([diag_min, diag_max], [diag_min, diag_max],
+                color='black', linestyle='--', linewidth=1.5,
+                label='y = x (target)', zorder=5)
+
+        legend_gens_added = set()
+
+        for gen_id in target_gens:
+            bN_dict: dict[int, float] = (
+                avg_baseline[avg_baseline['GenId'] == gen_id]
+                .set_index('ParentId')['Response']
+                .to_dict()
+            )
+
+            # Reference gen dicts: R=1 uses gen1_dict; R>1 uses that gen's baseline
+            ref_gen_dicts: dict[int, dict[int, float]] = {1: gen1_dict}
+            for g in all_gens:
+                if 1 < g < gen_id:
+                    ref_gen_dicts[g] = (
+                        avg_baseline[avg_baseline['GenId'] == g]
+                        .set_index('ParentId')['Response']
+                        .to_dict()
+                    )
+
+            color = gen_color[gen_id]
+            # Collect corrected values per stim per ref_gen
+            common_all = sorted(set(bN_dict) & set(gen1_dict))
+            if not common_all:
+                continue
+
+            # x-positions: gen-1 response for each stim (canonical)
+            x_vals = np.array([gen1_dict[p] for p in common_all])
+
+            # corrected[ref_gen] = array of corrected values for each stim in common_all
+            corrected_by_ref: dict[int, np.ndarray] = {}
+            for R, bR_dict in ref_gen_dicts.items():
+                common = sorted(set(bN_dict) & set(bR_dict) & set(gen1_dict))
+                if len(common) < 2:
+                    continue
+
+                bN_arr = np.array([bN_dict[p] for p in common])
+                bR_arr = np.array([bR_dict[p] for p in common])
+                gen1_arr = np.array([gen1_dict[p] for p in common])
+
+                sort_N = np.argsort(bN_arr)
+                sort_R = np.argsort(bR_arr)
+
+                corrected = np.array([
+                    np.interp(
+                        np.interp(bN_dict[p], bN_arr[sort_N], bR_arr[sort_N]),
+                        bR_arr[sort_R],
+                        gen1_arr[sort_R]
+                    )
+                    for p in common_all
+                ])
+                corrected_by_ref[R] = corrected
+
+                # Sub-line
+                sort_x = np.argsort(x_vals)
+                ax.plot(x_vals[sort_x], corrected[sort_x],
+                        linewidth=0.8, alpha=0.4, color=color, marker='o',
+                        markersize=3, zorder=2)
+
+            if not corrected_by_ref:
+                continue
+
+            # Average line
+            avg_corrected = np.mean(list(corrected_by_ref.values()), axis=0)
+            sort_x = np.argsort(x_vals)
+            label = f'Gen {gen_id} (avg of {len(corrected_by_ref)} ref gens)'
+            ax.plot(x_vals[sort_x], avg_corrected[sort_x],
+                    linewidth=2.5, alpha=1.0, color=color, marker='o',
+                    markersize=5, label=label, zorder=3)
+            legend_gens_added.add(gen_id)
+
+        ax.set_xlabel('Gen-1 response / stim position (Hz)')
+        ax.set_ylabel('Corrected response (Hz)')
+        ax.legend(fontsize=8, bbox_to_anchor=(1.01, 1), loc='upper left')
+        ax.grid(True, alpha=0.3)
         fig.tight_layout()
         return fig
 

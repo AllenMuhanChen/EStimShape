@@ -27,8 +27,9 @@ class BaselineNormalizeResponseProcessor(GAResponseProcessor):
         # Process repetitions for each stim into driving response
         driving_response_for_each_stim_id = self._process_repetitions(responses_for_each_stim_id)
 
-        # --- Pass 1: collect per-gen baseline responses and their parent (regime-zero) stim ids ---
-        baselines_by_gen = defaultdict(list)
+        # --- Pass 1: collect per-gen baseline responses keyed by parent_id ---
+        # baselines_by_gen: {gen_id: {parent_id: response}}
+        baselines_by_gen: dict[int, dict[int, float]] = defaultdict(dict)
         regime_zero_parent_ids = set()
 
         for stim_id, driving_response in driving_response_for_each_stim_id.items():
@@ -36,30 +37,22 @@ class BaselineNormalizeResponseProcessor(GAResponseProcessor):
             gen_id = self.db_util.read_gen_id(stim_id)
 
             if stim_type == StimType.BASELINE.value:
-                baselines_by_gen[gen_id].append(driving_response)
                 stim_info = self.db_util.read_stim_ga_info_entry(stim_id)
                 if stim_info is not None:
+                    baselines_by_gen[gen_id][stim_info.parent_id] = driving_response
                     regime_zero_parent_ids.add(stim_info.parent_id)
 
-        # --- Pass 2: build reference baseline from regime-zero parents of baseline stims ---
-        reference_baselines = [
-            driving_response_for_each_stim_id[pid]
+        # --- Pass 2: build gen-1 reference dict from regime-zero parents ---
+        gen1_dict: dict[int, float] = {
+            pid: driving_response_for_each_stim_id[pid]
             for pid in regime_zero_parent_ids
             if pid in driving_response_for_each_stim_id
-        ]
+        }
 
-        if not reference_baselines:
+        if not gen1_dict:
             raise ValueError("No regime-zero parents of baseline stims found; cannot normalize.")
 
-        reference_mean = np.mean(reference_baselines)
-
-        # --- Pass 3: compute normalization factor per gen ---
-        normalization_factor_by_gen = {}
-        for gen_id, baseline_responses in baselines_by_gen.items():
-            gen_mean = np.mean(baseline_responses)
-            normalization_factor_by_gen[gen_id] = reference_mean / gen_mean if gen_mean != 0 else 1.0
-
-        # --- Pass 4: apply normalization to experimental stims ---
+        # --- Pass 3: apply interpolated multi-gen normalization to experimental stims ---
         for stim_id in list(driving_response_for_each_stim_id.keys()):
             stim_type = self.db_util.read_stim_type(stim_id)
             is_regime_zero = stim_type in (StimType.REGIME_ZERO.value, StimType.REGIME_ZERO_2D.value)
@@ -68,7 +61,9 @@ class BaselineNormalizeResponseProcessor(GAResponseProcessor):
                 continue  # leave baseline and regime-zero stims unnormalized
 
             gen_id = self.db_util.read_gen_id(stim_id)
-            factor = normalization_factor_by_gen.get(gen_id, 1.0)
+            r = driving_response_for_each_stim_id[stim_id]
+            factor = self._interpolated_multigen_factor(
+                r, gen_id, baselines_by_gen, gen1_dict)
             driving_response_for_each_stim_id[stim_id] *= factor
 
         # Write processed responses to database
@@ -76,6 +71,60 @@ class BaselineNormalizeResponseProcessor(GAResponseProcessor):
         for stim_id in stim_ids_to_update:
             if stim_id in driving_response_for_each_stim_id:
                 self.db_util.update_driving_response(stim_id, float(driving_response_for_each_stim_id[stim_id]))
+
+    @staticmethod
+    def _interpolated_multigen_factor(
+            r: float,
+            gen_id: int,
+            baselines_by_gen: dict[int, dict[int, float]],
+            gen1_dict: dict[int, float],
+    ) -> float:
+        """
+        Compute interpolated correction factor for a stim with raw response r in gen_id.
+
+        For each ref_gen R in {1, ..., gen_id-1}:
+          1. Map r from gen_id response space → gen-R response space via linear interpolation
+             across the baseline stim control points.
+          2. Map that intermediate value from gen-R space → gen-1 space.
+             (For R==1, step 2 is a no-op since gen-R == gen-1.)
+          3. factor_R = corrected_value / r
+
+        Returns mean(factor_R) across all valid ref_gens, or 1.0 if none are available.
+        """
+        if r == 0:
+            return 1.0
+
+        bN_dict = baselines_by_gen.get(gen_id, {})
+        if not bN_dict:
+            return 1.0
+
+        # ref_gen=1 uses gen-1 parent responses; ref_gen>1 uses that gen's baseline dict
+        ref_gen_dicts: dict[int, dict[int, float]] = {1: gen1_dict}
+        for g in sorted(baselines_by_gen):
+            if 1 < g < gen_id:
+                ref_gen_dicts[g] = baselines_by_gen[g]
+
+        factors = []
+        for R, bR_dict in ref_gen_dicts.items():
+            common = sorted(set(bN_dict) & set(bR_dict) & set(gen1_dict))
+            if len(common) < 2:
+                continue
+
+            bN_arr = np.array([bN_dict[p] for p in common])
+            bR_arr = np.array([bR_dict[p] for p in common])
+            gen1_arr = np.array([gen1_dict[p] for p in common])
+
+            # Step 1: map r → gen-R space
+            sort_N = np.argsort(bN_arr)
+            step1 = np.interp(r, bN_arr[sort_N], bR_arr[sort_N])
+
+            # Step 2: map gen-R → gen-1 space
+            sort_R = np.argsort(bR_arr)
+            step2 = np.interp(step1, bR_arr[sort_R], gen1_arr[sort_R])
+
+            factors.append(step2 / r)
+
+        return float(np.mean(factors)) if factors else 1.0
 
     def _process_clusters(self, ga_name) -> dict[int, list[float]]:
         stims_to_process = self.db_util.read_all_stims()
