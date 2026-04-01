@@ -131,14 +131,19 @@ class BaselineAnalysis(PlotTopNAnalysis):
           2. Avg raw response per generation (experimental stims only)
           3. Normalized avg response per generation + normalization factor (dual y-axis)
         """
-        # --- shared x-axis ordering for subplot 1 ---
+        # --- shared x-axis for subplot 1: use gen-1 response value as x-position ---
         parent_gen1 = (avg_baseline[['ParentId', 'Gen1Response']]
                        .drop_duplicates('ParentId')
                        .sort_values('Gen1Response')
                        .reset_index(drop=True))
-        parent_gen1['StimRank'] = range(1, len(parent_gen1) + 1)
-        rank_map = parent_gen1.set_index('ParentId')['StimRank']
-        avg_baseline['StimRank'] = avg_baseline['ParentId'].map(rank_map)
+        # Map each ParentId to its gen-1 response value (used as x-coordinate)
+        x_map = parent_gen1.set_index('ParentId')['Gen1Response']
+        avg_baseline['StimX'] = avg_baseline['ParentId'].map(x_map)
+
+        # Catch x-position: avg catch response in gen-1 (or leftmost position if unavailable)
+        gen1_catch_val = avg_catch.loc[avg_catch['GenId'] == 1, 'AvgCatch']
+        catch_x = gen1_catch_val.values[0] if len(gen1_catch_val) else (
+            parent_gen1['Gen1Response'].min() - parent_gen1['Gen1Response'].std())
 
         all_generations = sorted(set(avg_baseline['GenId'].unique()) |
                                  set(avg_catch['GenId'].unique()))
@@ -153,25 +158,28 @@ class BaselineAnalysis(PlotTopNAnalysis):
                      fontsize=13)
 
         # --- Subplot 1: response profiles ---
-        gen1_catch = avg_catch.loc[avg_catch['GenId'] == 1, 'AvgCatch']
-        catch_y_gen1 = [gen1_catch.values[0] if len(gen1_catch) else np.nan]
-        ax.plot([0] + list(parent_gen1['StimRank']),
-                catch_y_gen1 + list(parent_gen1['Gen1Response']),
+        # Gen-1 reference: y = gen-1 response, x = gen-1 response → diagonal line
+        gen1_catch_y = gen1_catch_val.values[0] if len(gen1_catch_val) else np.nan
+        ax.plot([catch_x] + list(parent_gen1['Gen1Response']),
+                [gen1_catch_y] + list(parent_gen1['Gen1Response']),
                 marker='o', linewidth=2, markersize=5,
                 color='black', linestyle='--', label='Gen 1 (reference)', zorder=3)
 
         for gen_id in all_generations:
             catch_row = avg_catch[avg_catch['GenId'] == gen_id]
             catch_val = catch_row['AvgCatch'].values[0] if len(catch_row) else np.nan
-            gen_data = avg_baseline[avg_baseline['GenId'] == gen_id].sort_values('StimRank')
-            ax.plot([0] + list(gen_data['StimRank']),
+            gen_data = avg_baseline[avg_baseline['GenId'] == gen_id].sort_values('StimX')
+            ax.plot([catch_x] + list(gen_data['StimX']),
                     [catch_val] + list(gen_data['Response']),
                     marker='o', linewidth=1.5, markersize=4,
                     color=gen_color[gen_id], label=f'Gen {gen_id}')
 
-        ax.set_xticks([0] + list(parent_gen1['StimRank']))
-        ax.set_xticklabels(['Catch'] + [str(r) for r in parent_gen1['StimRank']])
-        ax.set_xlabel('Stimulus (sorted by gen-1 response)')
+        # Tick at each gen-1 response value + catch
+        tick_xs = [catch_x] + list(parent_gen1['Gen1Response'])
+        tick_labels = ['Catch'] + [f'{v:.1f}' for v in parent_gen1['Gen1Response']]
+        ax.set_xticks(tick_xs)
+        ax.set_xticklabels(tick_labels, rotation=45, ha='right', fontsize=8)
+        ax.set_xlabel('Gen-1 response (Hz)')
         ax.set_ylabel('Avg Response')
         ax.set_title('Baseline / Catch Profiles')
         ax.legend(fontsize=7, bbox_to_anchor=(1.01, 1), loc='upper left')
