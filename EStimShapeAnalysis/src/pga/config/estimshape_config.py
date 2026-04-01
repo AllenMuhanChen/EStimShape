@@ -26,7 +26,8 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
     def side_tests(self):
         return [DnessSideTest(n_top_3d=4, n_top_2d=4),
                 EStimVariantDeltaSideTest(num_deltas_per_variant=self.num_deltas_per_variant(),
-                                          delta_resp_ratio_threshold=self.delta_resp_ratio_threshold()),
+                                          delta_resp_ratio_threshold=self.delta_resp_ratio_threshold(),
+                                          ),
                 BaseLineSideTest()
                 ]
 

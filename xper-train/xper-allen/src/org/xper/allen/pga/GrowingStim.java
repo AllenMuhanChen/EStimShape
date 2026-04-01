@@ -61,10 +61,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
             } else if(parentPositioningStrategy == PositioningStrategy.PRESERVED_COMP_BASED) {
                 Point3d parentPreservedCompLocation = parentLocation.getPosition();
                 Point3d newPreservedCompLocation = mutatePosition(parentPreservedCompLocation);
-
-                PreservedComponentData presCompData = compsToPreserveManager.readProperty(parentId);
-
-                Integer compToPreserveInChild = presCompData.getCompsToPreserve().get(0);
+                Integer compToPreserveInChild = preservedComponentData.getCompsToPreserve().get(0);
                 position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, compToPreserveInChild, newPreservedCompLocation);
             }else {
                 throw new IllegalArgumentException("Unknown PositioningStrategy: " + parentPositioningStrategy);
@@ -193,8 +190,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
             //No logic here to actually enforce this component to be preserved, and we won't preserve it.
             position.setTargetComp(position.getTargetComp());
             position.setPosition(childMStick.getMassCenterForComponent(position.getTargetComp()));
-            PreservedComponentData toPreserveData = new PreservedComponentData(Collections.singletonList(position.getTargetComp()), parentId, Collections.singletonList(position.getTargetComp())); // we shouldn't change which component to be preserved with GrowingMatchStick
-            compsToPreserveManager.writeProperty(stimId, toPreserveData);
+
         }
 
         return childMStick;

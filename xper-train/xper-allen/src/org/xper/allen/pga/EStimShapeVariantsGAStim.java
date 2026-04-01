@@ -68,13 +68,14 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
         childMStick.setMaxDiameterDegrees(generator.getImageDimensionsDegrees());
         childMStick.setRf(generator.getReceptiveField());
         // Read or choose components to preserve from parent
-        List<Integer> compsToPreserveInParent;
-        if (!parentHasCompsToPreserve()){
-            compsToPreserveInParent = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
-        } else {
-            PreservedComponentData parentData = compsToPreserveManager.readProperty(parentId);
-            compsToPreserveInParent = parentData.getCompsToPreserve();
-        }
+
+        List<Integer> compsToPreserveInParent = preservedComponentData.getCompsToPreserve();
+//        if (!parentHasCompsToPreserve()){
+//            compsToPreserveInParent = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
+//        } else {
+//            PreservedComponentData parentData = compsToPreserveManager.readProperty(parentId);
+//            compsToPreserveInParent = parentData.getCompsToPreserve();
+//        }
 
         // Generate child
         Random random = new Random();
@@ -102,7 +103,7 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
                 parentId,
                 compsToPreserveInParent
         );
-        compsToPreserveManager.writeProperty(stimId, childData);
+//        compsToPreserveManager.writeProperty(stimId, childData); //shouldn't have to do this now, we put this in GAStim
 
         return childMStick;
     }

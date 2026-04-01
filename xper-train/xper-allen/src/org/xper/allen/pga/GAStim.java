@@ -44,6 +44,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected boolean is2d;
     protected String underlyingTexture;
     protected RGBColor averageRGB;
+    protected PreservedComponentData preservedComponentData;
     protected MStickPosition position;
 
 
@@ -199,6 +200,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         chooseColor();
         chooseUnderlyingTexture();
         chooseContrast();
+        choosePreservedComps();
 
         if (rfStrategy == null) {
             throw new IllegalArgumentException("RF Strategy cannot be null");
@@ -211,6 +213,12 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         }
         if (sizeDiameterDegrees == 0) {
             throw new IllegalArgumentException("Size cannot be 0");
+        }
+    }
+
+    protected void choosePreservedComps() {
+        if (compsToPreserveManager.hasProperty(parentId)){
+            preservedComponentData = compsToPreserveManager.readProperty(parentId);
         }
     }
 
@@ -268,6 +276,9 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         underlyingTextureManager.writeProperty(stimId, underlyingTexture);
         underyingAverageRGBManager.writeProperty(stimId, averageRGB);
         positionManager.writeProperty(stimId, position);
+        if (preservedComponentData != null){
+            compsToPreserveManager.writeProperty(stimId, preservedComponentData);
+        }
     }
 
     protected T createRandMStick() {

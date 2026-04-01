@@ -39,13 +39,8 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
 
 
         // Read or choose components to preserve from parent
-        List<Integer> compsToMutateInParent = new ArrayList<>();
-        if (!parentHasCompsToPreserve()){
-            throw new IllegalArgumentException("This stim should have comps to preserve when making a delta shape version");
-        } else {
-            PreservedComponentData parentData = compsToPreserveManager.readProperty(parentId);
-            compsToMutateInParent = parentData.getCompsToPreserve();
-        }
+
+        List<Integer> compsToMutateInParent = preservedComponentData.getCompsToPreserve();
 
         List<Integer> compsToPreserveInParent = new ArrayList<>();
         for (int i=1; i<=parentMStick.getNComponent(); i++){
@@ -90,7 +85,7 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
                 parentId,
                 compsToMutateInParent
         );
-        compsToPreserveManager.writeProperty(stimId, childData);
+//        compsToPreserveManager.writeProperty(stimId, childData);
 
         //TODO: perhaps add manager for writing relationship between this stim and parentId in here? i.e explicit table
 

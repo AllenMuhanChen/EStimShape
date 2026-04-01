@@ -1,23 +1,20 @@
 import time
 from dataclasses import dataclass
-from typing import Callable, List, Dict
+from typing import Callable, List, Dict, Type
 
 import numpy as np
 
-from clat.util import time_util
+from clat.util import time_util, connection
 from src.pga.ga_classes import ParentSelector, Stimulus, Lineage, MutationAssigner, MutationMagnitudeAssigner, \
     RegimeTransitioner, SideTest
 from src.pga.regime_one import calculate_peak_response
 from src.pga.stim_types import StimType
 
-
+@dataclass
 class EStimPhaseParentSelector(ParentSelector):
     get_all_stimuli_func: Callable[[], List[Stimulus]]
     threshold: float
-    def __init__(self, *, get_all_stimuli_func: Callable[[], List[Stimulus]], threshold: float) -> None:
-        self.get_all_stimuli_func = get_all_stimuli_func
-        self.threshold = threshold
-
+    conn: Type[connection]
 
 
     def select_parents(self, lineage: Lineage, batch_size: int) -> list[Stimulus]:
@@ -49,7 +46,7 @@ class EStimPhaseParentSelector(ParentSelector):
 
         # assign score
         # calculate bonus
-        variant_response_sum = sum([s.response_rate for s in passing_threshold if s.mutation_type == StimType.REGIME_ESTIM_VARIANTS.value or s.mutation_type == StimType.REGIME_ESTIM_DELTA])
+        variant_response_sum = sum([s.response_rate for s in passing_threshold if self.has_preservation_history(s.id)])
         total_response_sum = sum([s.response_rate for s in passing_threshold])
         variant_response_proportion = variant_response_sum / total_response_sum
         target_variant_chance = 0.9
@@ -59,10 +56,10 @@ class EStimPhaseParentSelector(ParentSelector):
         else:
             bonus = 1
 
-        #assign scores, adding bonus only if parent is a variant
+        #assign scores, adding bonus only if parent is a variant or is descended from a variant
         scores = []
         for s in passing_threshold:
-            if s.mutation_type == StimType.REGIME_ESTIM_VARIANTS.value:
+            if self.has_preservation_history(s.id):
                 scores.append(s.response_rate * bonus)
             else:
                 scores.append(s.response_rate)
@@ -81,6 +78,13 @@ class EStimPhaseParentSelector(ParentSelector):
 
         return [passing_threshold[i] for i in selected_indices]
 
+    def has_preservation_history(self, id: int) -> bool:
+        """
+        Check if the stimulus with the given ID has a preservation history in the database.
+        """
+        self.conn.execute("SELECT COUNT(*) FROM StimCompsToPreserve WHERE stim_id = %s", (id,))
+        num_entries = self.conn.fetch_one()
+        return num_entries > 0
 
 class EStimPhaseMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage: Lineage, parent: Stimulus):
