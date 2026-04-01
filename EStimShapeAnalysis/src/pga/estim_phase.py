@@ -10,6 +10,15 @@ from src.pga.ga_classes import ParentSelector, Stimulus, Lineage, MutationAssign
 from src.pga.regime_one import calculate_peak_response
 from src.pga.stim_types import StimType
 
+
+def has_preservation_history(connection: Type[connection], id: int) -> bool:
+    """
+    Check if the stimulus with the given ID has a preservation history in the database.
+    """
+    connection.execute("SELECT COUNT(*) FROM StimCompsToPreserve WHERE stim_id = %s", (id,))
+    num_entries = connection.fetch_one()
+    return num_entries > 0
+
 @dataclass
 class EStimPhaseParentSelector(ParentSelector):
     get_all_stimuli_func: Callable[[], List[Stimulus]]
@@ -82,9 +91,7 @@ class EStimPhaseParentSelector(ParentSelector):
         """
         Check if the stimulus with the given ID has a preservation history in the database.
         """
-        self.conn.execute("SELECT COUNT(*) FROM StimCompsToPreserve WHERE stim_id = %s", (id,))
-        num_entries = self.conn.fetch_one()
-        return num_entries > 0
+        has_preservation_history(self.conn, id)
 
 class EStimPhaseMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage: Lineage, parent: Stimulus):
@@ -104,11 +111,12 @@ class EStimPhaseTransitioner(RegimeTransitioner):
 @dataclass
 class EStimVariantSideTest(SideTest):
     get_all_stim_func: Callable[[], List[Stimulus]]
+    conn: Type[connection]
     threshold: float = 0.5
     max_stim_per_lineage: int = 2
 
     def run(self, lineages: List[Lineage], gen_id: int):
-        selector = EStimPhaseParentSelector(get_all_stimuli_func=self.get_all_stim_func, threshold=self.threshold)
+        selector = EStimPhaseParentSelector(self.get_all_stim_func, self.threshold, self.conn)
         for lineage in lineages:
             chosen_parents = selector.select_parents(lineage, batch_size=self.max_stim_per_lineage)
             for parent in chosen_parents:
