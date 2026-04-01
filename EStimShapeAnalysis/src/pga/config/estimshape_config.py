@@ -64,7 +64,7 @@ class BaselineNormalizeResponseProcessor(GAResponseProcessor):
             stim_type = self.db_util.read_stim_type(stim_id)
             is_regime_zero = stim_type in (StimType.REGIME_ZERO.value, StimType.REGIME_ZERO_2D.value)
 
-            if stim_type == StimType.BASELINE or is_regime_zero:
+            if stim_type == StimType.BASELINE.value or is_regime_zero:
                 continue  # leave baseline and regime-zero stims unnormalized
 
             gen_id = self.db_util.read_gen_id(stim_id)
