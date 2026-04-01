@@ -185,6 +185,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
         childMStick.setStimColor(color);
         childMStick.setMaxDiameterDegrees(generator.getImageDimensionsDegrees());
         childMStick.genGrowingMatchStick(parentMStick, magnitude);
+        // To handle Zooming Stim or descendents of Zooming Stim. The Comp to hold in RF is specified by specialEndComp().get(0)
         if (position.positioningStrategy == PositioningStrategy.MOVE_COMP_TO_SPECIFIC_LOCATION || (position.positioningStrategy == PositioningStrategy.RF_STRATEGY && rfStrategy == RFStrategy.PARTIALLY_INSIDE)){
             position.setTargetComp(childMStick.getSpecialEndComp().get(0));
             position.setPosition(childMStick.getMassCenterForComponent(childMStick.getSpecialEndComp().get(0)));
