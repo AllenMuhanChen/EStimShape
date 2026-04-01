@@ -5,18 +5,20 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib import cm
 
-from src.analysis.ga.plot_top_n import PlotTopNAnalysis, compile
+from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.repository.export_to_repository import read_session_id_from_db_name
+from src.repository.good_channels import read_cluster_channels
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 
 
 def main():
     analysis = BaselineAnalysis()
-    compiled_data = compile()
-    session_id, _ = read_session_id_from_db_name(context.ga_database)
-    channel = "GA"
-    analysis.run(session_id, "GA", channel, compiled_data=compiled_data)
+    compiled_data = analysis.compile()
+    # session_id, _ = read_session_id_from_db_name(context.ga_database)
+    session_id = "260327_0"
+    channel = read_cluster_channels(session_id)
+    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
 class BaselineAnalysis(PlotTopNAnalysis):
@@ -161,6 +163,15 @@ class BaselineAnalysis(PlotTopNAnalysis):
         ax.grid(True, alpha=0.3)
         fig.tight_layout()
         return fig
+
+    def clean_ga_data(self, data_for_all_tasks):
+        # Remove trials with no response
+        data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['GA Response'].notna()]
+        # Remove NaNs
+        data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['StimSpecId'].notna()]
+
+        # DON'T REMOVE CATCH
+        return data_for_all_tasks
 
 
 if __name__ == "__main__":

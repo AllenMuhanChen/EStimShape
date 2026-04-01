@@ -7,7 +7,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from clat.compile.task.cached_task_fields import CachedTaskFieldList
-from clat.compile.task.classic_database_task_fields import StimSpecIdField
+from clat.compile.task.classic_database_task_fields import StimSpecIdField, TaskIdField
 from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.pipeline.pipeline_base_classes import create_pipeline, create_branch
 from clat.util.connection import Connection
@@ -101,11 +101,68 @@ class PlotTopNAnalysis(Analysis):
         return result
 
     def compile_and_export(self):
-        compile_and_export()
+        data = self.compile()
+        export_to_repository(data, context.ga_database, "ga",
+                             stim_info_table="GAStimInfo",
+                             stim_info_columns=[
+                                 "Lineage",
+                                 "RegimeScore",
+                                 "GenId",
+                                 "StimType",
+                                 "StimPath",
+                                 "ThumbnailPath",
+                                 "GA Response",
+                                 "Cluster Response",
+                                 "Shaft",
+                                 "Termination",
+                                 "Junction"
+                             ])
+        return data
 
     def compile(self):
-        return compile()
+        conn = Connection(context.ga_database)
+        data_for_all_tasks = self.compile_data(conn)
+        data_for_all_tasks = self.clean_ga_data(data_for_all_tasks)
+        return data_for_all_tasks
 
+    def compile_data(self, conn: Connection) -> pd.DataFrame:
+        collector = TaskIdCollector(conn)
+        task_ids = collector.collect_task_ids()
+        response_processor = context.ga_config.make_response_processor()
+        cluster_combination_strategy = response_processor.cluster_combination_strategy
+        parser = MultiFileParser(to_cache=True, cache_dir=context.ga_parsed_spikes_path)
+        mstick_spec_data_source = StimSpecDataField(conn)
+
+        fields = CachedTaskFieldList()
+        fields.append(TaskIdField(conn))
+        fields.append(StimSpecIdField(conn))
+        fields.append(ParentIdField(conn))
+        fields.append(LineageField(conn))
+        fields.append(GenIdField(conn))
+        fields.append(RegimeScoreField(conn))
+        fields.append(StimTypeField(conn))
+        fields.append(StimPathField(conn))
+        fields.append(ThumbnailField(conn))
+        fields.append(GAResponseField(conn))
+        fields.append(ClusterResponseField(conn, cluster_combination_strategy))
+        fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
+        fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))
+        fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))
+        fields.append(ShaftField(conn, mstick_spec_data_source))
+        fields.append(TerminationField(conn, mstick_spec_data_source))
+        fields.append(JunctionField(conn, mstick_spec_data_source))
+
+        data = fields.to_data(task_ids)
+        return data
+
+    def clean_ga_data(self, data_for_all_tasks):
+        # Remove trials with no response
+        data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['GA Response'].notna()]
+        # Remove NaNs
+        data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['StimSpecId'].notna()]
+        # Remove Catch
+        data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['ThumbnailPath'].apply(lambda x: x is not None)]
+        return data_for_all_tasks
 
 def add_lineage_rank_to_df(compiled_data, spike_rates_col, channel):
     """
@@ -148,78 +205,12 @@ def add_lineage_rank_to_df(compiled_data, spike_rates_col, channel):
     return compiled_data
 
 
-def compile_and_export():
-    # Setting up connection and time frame to analyse in
-    data = compile()
-    export_to_repository(data, context.ga_database, "ga",
-                         stim_info_table="GAStimInfo",
-                         stim_info_columns=[
-                             "Lineage",
-                             "RegimeScore",
-                             "GenId",
-                             "StimType",
-                             "StimPath",
-                             "ThumbnailPath",
-                             "GA Response",
-                             "Cluster Response",
-                             "Shaft",
-                             "Termination",
-                             "Junction"
-                         ])
-    return data
-
-
-def compile_data(conn: Connection) -> pd.DataFrame:
-    collector = TaskIdCollector(conn)
-    task_ids = collector.collect_task_ids()
-    response_processor = context.ga_config.make_response_processor()
-    cluster_combination_strategy = response_processor.cluster_combination_strategy
-    parser = MultiFileParser(to_cache=True, cache_dir=context.ga_parsed_spikes_path)
-    mstick_spec_data_source = StimSpecDataField(conn)
-
-    fields = CachedTaskFieldList()
-    fields.append(StimSpecIdField(conn))
-    fields.append(ParentIdField(conn))
-    fields.append(LineageField(conn))
-    fields.append(GenIdField(conn))
-    fields.append(RegimeScoreField(conn))
-    fields.append(StimTypeField(conn))
-    fields.append(StimPathField(conn))
-    fields.append(ThumbnailField(conn))
-    fields.append(GAResponseField(conn))
-    fields.append(ClusterResponseField(conn, cluster_combination_strategy))
-    fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
-    fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))
-    fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))
-    fields.append(ShaftField(conn, mstick_spec_data_source))
-    fields.append(TerminationField(conn, mstick_spec_data_source))
-    fields.append(JunctionField(conn, mstick_spec_data_source))
-
-    data = fields.to_data(task_ids)
-    return data
-
-
 def get_top_n_lineages(data, n):
     length_for_lineages = data.groupby("Lineage")["RegimeScore"].size()
     top_n_lineages = length_for_lineages.nlargest(n).index
     return list(top_n_lineages)
 
 
-def clean_ga_data(data_for_all_tasks):
-    # Remove trials with no response
-    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['GA Response'].notna()]
-    # Remove NaNs
-    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['StimSpecId'].notna()]
-    # Remove Catch
-    data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['ThumbnailPath'].apply(lambda x: x is not None)]
-    return data_for_all_tasks
-
-
-def compile():
-    conn = Connection(context.ga_database)
-    data_for_all_tasks = compile_data(conn)
-    data_for_all_tasks = clean_ga_data(data_for_all_tasks)
-    return data_for_all_tasks
 
 if __name__ == "__main__":
     main()
