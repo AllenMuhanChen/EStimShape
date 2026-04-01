@@ -56,9 +56,9 @@ class BaselineAnalysis(PlotTopNAnalysis):
                   "gen-1 parent responses. Aborting.")
             return None
 
-        # Average over trial repeats: one value per (ParentId, Lineage, GenId)
+        # Average over trial repeats: one value per (ParentId, GenId)
         avg_baseline = (baseline_data
-                        .groupby(['ParentId', 'Lineage', 'GenId'])['Response']
+                        .groupby(['ParentId', 'GenId'])['Response']
                         .mean()
                         .reset_index())
 
@@ -74,7 +74,7 @@ class BaselineAnalysis(PlotTopNAnalysis):
         channel_label = ', '.join(channel) if isinstance(channel, list) else channel
         channel_str = '_'.join(channel) if isinstance(channel, list) else channel
 
-        fig = self._plot_baseline_curves(avg_baseline, channel_label)
+        fig = self._plot_baseline_curves(avg_baseline, gen1_avg, channel_label)
 
         save_file = f"{self.save_path}/{channel_str}_baseline_response_curves.png"
         fig.savefig(save_file, dpi=150, bbox_inches='tight')
@@ -82,75 +82,52 @@ class BaselineAnalysis(PlotTopNAnalysis):
         plt.show()
         return fig
 
-    def _plot_baseline_curves(self, avg_baseline: pd.DataFrame, channel_label: str) -> plt.Figure:
+    def _plot_baseline_curves(
+            self,
+            avg_baseline: pd.DataFrame,
+            gen1_avg: pd.Series,
+            channel_label: str,
+    ) -> plt.Figure:
         """
-        For each lineage subplot:
-          x-axis  = baseline stim rank, sorted by gen-1 response (lowest → highest)
-          y-axis  = avg response
-          lines   = one per generation (gen-1 = straight ascending line by construction)
+        Single plot:
+          x-axis = baseline stim rank, sorted by gen-1 response (lowest → highest)
+          y-axis = avg response
+          lines  = one per generation; gen-1 (black dashed) is a straight ascending
+                   line by construction of the x-axis ordering
         """
-        lineages = sorted(avg_baseline['Lineage'].unique())
-        n_lineages = len(lineages)
+        # Rank all ParentIds by their gen-1 response
+        parent_gen1 = (avg_baseline[['ParentId', 'Gen1Response']]
+                       .drop_duplicates('ParentId')
+                       .sort_values('Gen1Response')
+                       .reset_index(drop=True))
+        parent_gen1['StimRank'] = range(1, len(parent_gen1) + 1)
+        rank_map = parent_gen1.set_index('ParentId')['StimRank']
+        avg_baseline['StimRank'] = avg_baseline['ParentId'].map(rank_map)
 
-        if n_lineages == 0:
-            fig, ax = plt.subplots()
-            ax.text(0.5, 0.5, 'No data', ha='center', va='center')
-            return fig
+        generations = sorted(avg_baseline['GenId'].unique())
+        colors = cm.viridis(np.linspace(0, 1, max(len(generations), 1)))
 
-        n_cols = min(n_lineages, 3)
-        n_rows = int(np.ceil(n_lineages / n_cols))
-
-        fig, axes = plt.subplots(n_rows, n_cols,
-                                 figsize=(6 * n_cols, 4 * n_rows),
-                                 squeeze=False)
+        fig, ax = plt.subplots(figsize=(10, 5))
         fig.suptitle(f'Baseline Stimulus Response Profiles Across Generations\n'
-                     f'Channel: {channel_label}',
-                     fontsize=14, y=1.01)
+                     f'Channel: {channel_label}', fontsize=14)
 
-        for idx, lineage in enumerate(lineages):
-            row, col = divmod(idx, n_cols)
-            ax = axes[row][col]
+        # Gen-1 reference line (black dashed)
+        ax.plot(parent_gen1['StimRank'], parent_gen1['Gen1Response'],
+                marker='o', linewidth=2, markersize=5,
+                color='black', linestyle='--', label='Gen 1 (reference)', zorder=3)
 
-            lin_data = avg_baseline[avg_baseline['Lineage'] == lineage].copy()
+        # One line per generation
+        for g_idx, gen_id in enumerate(generations):
+            gen_data = avg_baseline[avg_baseline['GenId'] == gen_id].sort_values('StimRank')
+            ax.plot(gen_data['StimRank'], gen_data['Response'],
+                    marker='o', linewidth=1.5, markersize=4,
+                    color=colors[g_idx], label=f'Gen {gen_id}')
 
-            # Determine x-axis ordering: rank each ParentId by its gen-1 response
-            parent_gen1 = (lin_data[['ParentId', 'Gen1Response']]
-                           .drop_duplicates('ParentId')
-                           .sort_values('Gen1Response')
-                           .reset_index(drop=True))
-            parent_gen1['StimRank'] = range(1, len(parent_gen1) + 1)
-            rank_map = parent_gen1.set_index('ParentId')['StimRank']
-
-            lin_data['StimRank'] = lin_data['ParentId'].map(rank_map)
-
-            generations = sorted(lin_data['GenId'].unique())
-            n_gens = len(generations)
-            colors = cm.viridis(np.linspace(0, 1, max(n_gens, 1)))
-
-            # Plot gen-1 reference line first (from parent_gen1)
-            ax.plot(parent_gen1['StimRank'], parent_gen1['Gen1Response'],
-                    marker='o', linewidth=2, markersize=5,
-                    color='black', linestyle='--', label='Gen 1 (reference)', zorder=3)
-
-            # Plot each subsequent generation
-            for g_idx, gen_id in enumerate(generations):
-                gen_data = lin_data[lin_data['GenId'] == gen_id].sort_values('StimRank')
-                ax.plot(gen_data['StimRank'], gen_data['Response'],
-                        marker='o', linewidth=1.5, markersize=4,
-                        color=colors[g_idx], label=f'Gen {gen_id}')
-
-            ax.set_title(f'Lineage {lineage}', fontsize=11)
-            ax.set_xlabel('Baseline Stim (sorted by gen-1 response)')
-            ax.set_ylabel('Avg Response')
-            ax.set_xticks(parent_gen1['StimRank'])
-            ax.legend(fontsize=7, loc='upper left')
-            ax.grid(True, alpha=0.3)
-
-        # Hide unused panels
-        for idx in range(n_lineages, n_rows * n_cols):
-            row, col = divmod(idx, n_cols)
-            axes[row][col].set_visible(False)
-
+        ax.set_xlabel('Baseline Stim (sorted by gen-1 response)')
+        ax.set_ylabel('Avg Response')
+        ax.set_xticks(parent_gen1['StimRank'])
+        ax.legend(fontsize=8, bbox_to_anchor=(1.01, 1), loc='upper left')
+        ax.grid(True, alpha=0.3)
         fig.tight_layout()
         return fig
 
