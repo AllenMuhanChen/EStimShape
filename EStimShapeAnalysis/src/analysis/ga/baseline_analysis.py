@@ -81,26 +81,44 @@ class BaselineAnalysis(PlotTopNAnalysis):
                      .rename('AvgCatch')
                      .reset_index())
 
-        # Normalization factor per generation: reference_mean / gen_baseline_mean
-        # reference_mean = mean of the gen-1 regime-zero parents of baseline stims
+        # Build gen1_dict and bN_by_gen to mirror the response processor exactly
         parent_ids = set(avg_baseline['ParentId'].unique())
-        reference_mean = gen1_avg[gen1_avg.index.isin(parent_ids)].mean()
-        gen_baseline_mean = avg_baseline.groupby('GenId')['Response'].mean()
-        norm_factor = (reference_mean / gen_baseline_mean).reset_index()
-        norm_factor.columns = ['GenId', 'NormFactor']
+        gen1_dict = gen1_avg[gen1_avg.index.isin(parent_ids)].to_dict()
 
-        # Average raw response per generation — experimental stims only (no BASELINE/CATCH)
-        experimental = compiled_data[~compiled_data['StimType'].isin(['BASELINE', 'CATCH'])]
+        bN_by_gen = (avg_baseline
+                     .groupby('GenId')
+                     .apply(lambda df: df.set_index('ParentId')['Response'].to_dict())
+                     .to_dict())
+
+        # Apply interpolated factor per experimental stim — identical to processor logic
+        experimental = compiled_data[~compiled_data['StimType'].isin(['BASELINE', 'CATCH'])].copy()
+        experimental['NormFactor'] = experimental.apply(
+            lambda row: self._interpolated_factor(
+                row['Response'],
+                bN_by_gen.get(row['GenId'], {}),
+                gen1_dict
+            ), axis=1
+        )
+        experimental['NormResponse'] = experimental['Response'] * experimental['NormFactor']
+
         avg_raw_per_gen = (experimental
                            .groupby('GenId')['Response']
                            .mean()
                            .reset_index()
                            .rename(columns={'Response': 'AvgRawResponse'}))
 
-        # Normalized avg response per generation = avg_raw × norm_factor
-        avg_norm_per_gen = avg_raw_per_gen.merge(norm_factor, on='GenId', how='left')
-        avg_norm_per_gen['AvgNormResponse'] = (avg_norm_per_gen['AvgRawResponse']
-                                               * avg_norm_per_gen['NormFactor'])
+        avg_norm_per_gen = (experimental
+                            .groupby('GenId')['NormResponse']
+                            .mean()
+                            .reset_index()
+                            .rename(columns={'NormResponse': 'AvgNormResponse'}))
+        avg_norm_per_gen = avg_raw_per_gen.merge(avg_norm_per_gen, on='GenId', how='left')
+
+        norm_factor = (experimental
+                       .groupby('GenId')['NormFactor']
+                       .mean()
+                       .reset_index())
+        norm_factor.columns = ['GenId', 'NormFactor']
 
         channel_label = ', '.join(channel) if isinstance(channel, list) else channel
         channel_str = '_'.join(channel) if isinstance(channel, list) else channel
@@ -171,7 +189,7 @@ class BaselineAnalysis(PlotTopNAnalysis):
                 marker='o', linewidth=2, markersize=5,
                 color='black', linestyle='--', label='Gen 1 (reference)', zorder=3)
 
-        for gen_id in all_generations:
+        for gen_id in [g for g in all_generations if g > 1]:
             catch_row = avg_catch[avg_catch['GenId'] == gen_id]
             catch_val = catch_row['AvgCatch'].values[0] if len(catch_row) else np.nan
             gen_data = avg_baseline[avg_baseline['GenId'] == gen_id].sort_values('StimX')
@@ -285,6 +303,23 @@ class BaselineAnalysis(PlotTopNAnalysis):
         ax.grid(True, alpha=0.3)
         fig.tight_layout()
         return fig
+
+    @staticmethod
+    def _interpolated_factor(r: float,
+                             bN_dict: dict,
+                             gen1_dict: dict) -> float:
+        if r == 0:
+            return 1.0
+        common = sorted(set(bN_dict) & set(gen1_dict))
+        if len(common) < 2:
+            return 1.0
+        bN_arr = np.array([bN_dict[p] for p in common])
+        gen1_arr = np.array([gen1_dict[p] for p in common])
+        sort_idx = np.argsort(bN_arr)
+        bN_sorted = bN_arr[sort_idx]
+        gen1_sorted = gen1_arr[sort_idx]
+        factors = gen1_sorted / bN_sorted
+        return float(np.interp(r, bN_sorted, factors))
 
     def clean_ga_data(self, data_for_all_tasks):
         # Remove trials with no response
