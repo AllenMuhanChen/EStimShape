@@ -1,4 +1,5 @@
 import time
+from dataclasses import dataclass
 from typing import Callable, List, Dict
 
 import numpy as np
@@ -94,6 +95,29 @@ class EStimPhaseMagnitudeAssigner(MutationMagnitudeAssigner):
 class EStimPhaseTransitioner(RegimeTransitioner):
     def should_transition(self, lineage: Lineage) -> bool:
         return False
+
+
+@dataclass
+class EStimVariantSideTest(SideTest):
+    get_all_stim_func: Callable[[], List[Stimulus]]
+    threshold: float = 0.5
+    max_stim_per_lineage: int = 2
+
+    def run(self, lineages: List[Lineage], gen_id: int):
+        selector = EStimPhaseParentSelector(get_all_stimuli_func=self.get_all_stim_func, threshold=self.threshold)
+        for lineage in lineages:
+            chosen_parents = selector.select_parents(lineage, batch_size=self.max_stim_per_lineage)
+            for parent in chosen_parents:
+                new_stimulus = Stimulus(time_util.now(),
+                                        StimType.REGIME_ESTIM_VARIANTS.value,
+                                        mutation_magnitude=0,
+                                        gen_id=gen_id,
+                                        parent_id=parent.id
+                                        )
+                time.sleep(0.001)
+                lineage.tree.add_child_to(parent, new_stimulus)
+                lineage.stimuli.append(new_stimulus)
+
 
 
 class EStimVariantDeltaSideTest(SideTest):
