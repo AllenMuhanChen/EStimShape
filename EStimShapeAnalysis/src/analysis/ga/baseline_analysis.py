@@ -171,7 +171,7 @@ class BaselineAnalysis(PlotTopNAnalysis):
                 marker='o', linewidth=2, markersize=5,
                 color='black', linestyle='--', label='Gen 1 (reference)', zorder=3)
 
-        for gen_id in all_generations:
+        for gen_id in [g for g in all_generations if g > 1]:
             catch_row = avg_catch[avg_catch['GenId'] == gen_id]
             catch_val = catch_row['AvgCatch'].values[0] if len(catch_row) else np.nan
             gen_data = avg_baseline[avg_baseline['GenId'] == gen_id].sort_values('StimX')
