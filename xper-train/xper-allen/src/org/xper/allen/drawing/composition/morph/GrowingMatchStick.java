@@ -2,17 +2,17 @@ package org.xper.allen.drawing.composition.morph;
 
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
+import org.xper.allen.nafc.experiment.ClassicNAFCTaskRunner;
 import org.xper.allen.pga.RFStrategy;
 
 import javax.vecmath.Point3d;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 
 public class GrowingMatchStick extends GAMatchStick {
     protected static int MAX_TOTAL_ATTEMPTS = 10;
 
     private double sigma;
+    private List<Integer> componentsToNotRemove = new ArrayList<Integer>();
 
     public GrowingMatchStick(double sigma) {
         this.sigma = sigma;
@@ -36,6 +36,7 @@ public class GrowingMatchStick extends GAMatchStick {
 
     public GrowingMatchStick(int compIdToMove, Point3d compCOMLocation, double sigma) {
         super(compIdToMove, compCOMLocation);
+        this.componentsToNotRemove.add(compIdToMove);
         this.sigma = sigma;
     }
 
@@ -226,6 +227,9 @@ public class GrowingMatchStick extends GAMatchStick {
         while (componentsToRemove.size() < componentsToRemoveCount) {
             int componentId = (int) (Math.random() * currentNComp) + 1; // Assuming component IDs start at 1
             if (matchStickToMorph.getLeafBranch()[componentId]) continue; // Skip if it is a branch
+            if (componentsToRemove.contains(componentId)) continue; // Skip if already chosen for removal
+            if (componentsToNotRemove.contains(componentId)) continue; // Skip if it is in the list of components to not remove
+            if (componentId == getSpecialEndComp().get(0)) continue; // Skip if it is the special end component
             componentsToRemove.add(componentId);
         }
         return componentsToRemove;

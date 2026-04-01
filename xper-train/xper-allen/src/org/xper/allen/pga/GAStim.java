@@ -22,6 +22,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected final FromDbGABlockGenerator generator;
     protected final Long parentId;
     protected final Coordinates2D imageCenterCoords;
+
     protected RFStrategy rfStrategy;
 
     protected final ContrastPropertyManager contrastManager;
@@ -32,6 +33,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected final UnderlyingTexturePropertyManager underlyingTextureManager;
     protected final UnderlingAverageRGBPropertyManager underyingAverageRGBManager;
     protected final PositionPropertyManager positionManager;
+    protected final CompsToPreserveManager compsToPreserveManager;
 
     protected Long stimId;
     protected String textureType;
@@ -74,6 +76,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         underlyingTextureManager = new UnderlyingTexturePropertyManager(jdbcTemplate);
         underyingAverageRGBManager = new UnderlingAverageRGBPropertyManager(jdbcTemplate);
         positionManager = new PositionPropertyManager(jdbcTemplate);
+        compsToPreserveManager = new CompsToPreserveManager(jdbcTemplate);
     }
 
     /**
@@ -98,6 +101,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         underlyingTextureManager = new UnderlyingTexturePropertyManager(jdbcTemplate);
         underyingAverageRGBManager = new UnderlingAverageRGBPropertyManager(jdbcTemplate);
         positionManager = new PositionPropertyManager(jdbcTemplate);
+        compsToPreserveManager = new CompsToPreserveManager(jdbcTemplate);
     }
 
     @Override

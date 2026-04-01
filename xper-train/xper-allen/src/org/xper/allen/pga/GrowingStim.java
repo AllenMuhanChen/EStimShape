@@ -1,17 +1,21 @@
 package org.xper.allen.pga;
 
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.experiment.PositioningStrategy;
 import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
+import org.xper.allen.stimproperty.CompsToPreserveManager;
 
 import javax.vecmath.Point3d;
+import java.util.Collections;
 import java.util.Random;
 
 public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     public static final int USE_SPECIAL_END_COMP = 0;
     private final double magnitude;
     private static final Random random = new Random();
+
 
     public GrowingStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double magnitude, String textureType) {
         super(stimId, generator, parentId, textureType, true);
@@ -54,7 +58,15 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
                 Point3d parentCenterOfMass = parentLocation.getPosition();
                 Point3d newCenterOfMass = mutatePosition(parentCenterOfMass);
                 position = new MStickPosition(PositioningStrategy.MOVE_COMP_TO_SPECIFIC_LOCATION, USE_SPECIAL_END_COMP, newCenterOfMass);
-            } else {
+            } else if(parentPositioningStrategy == PositioningStrategy.PRESERVED_COMP_BASED) {
+                Point3d parentPreservedCompLocation = parentLocation.getPosition();
+                Point3d newPreservedCompLocation = mutatePosition(parentPreservedCompLocation);
+
+                PreservedComponentData presCompData = compsToPreserveManager.readProperty(parentId);
+
+                Integer compToPreserveInChild = presCompData.getCompsToPreserve().get(0);
+                position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, compToPreserveInChild, newPreservedCompLocation);
+            }else {
                 throw new IllegalArgumentException("Unknown PositioningStrategy: " + parentPositioningStrategy);
             }
 
@@ -160,7 +172,12 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
             childMStick = new GrowingMatchStick(position.targetComp, position.position,1/3.0);
             childMStick.setRf(generator.getReceptiveField());
             childMStick.setRfStrategy(rfStrategy);
-        } else{
+        } else if (position.positioningStrategy == PositioningStrategy.PRESERVED_COMP_BASED){
+            childMStick = new GrowingMatchStick(position.targetComp, position.position,1/3.0);
+            childMStick.setRf(generator.getReceptiveField());
+            childMStick.setRfStrategy(rfStrategy);
+        }
+        else{
             throw new IllegalArgumentException("Invalid position strategy in a GrowingStim: " + position.positioningStrategy);
         }
 
@@ -168,7 +185,17 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
         childMStick.setStimColor(color);
         childMStick.setMaxDiameterDegrees(generator.getImageDimensionsDegrees());
         childMStick.genGrowingMatchStick(parentMStick, magnitude);
-        position.setTargetComp(childMStick.getSpecialEndComp().get(0));
+        if (position.positioningStrategy == PositioningStrategy.MOVE_COMP_TO_SPECIFIC_LOCATION || (position.positioningStrategy == PositioningStrategy.RF_STRATEGY && rfStrategy == RFStrategy.PARTIALLY_INSIDE)){
+            position.setTargetComp(childMStick.getSpecialEndComp().get(0));
+            position.setPosition(childMStick.getMassCenterForComponent(childMStick.getSpecialEndComp().get(0)));
+        } else if (position.positioningStrategy == PositioningStrategy.PRESERVED_COMP_BASED){
+            //No logic here to actually enforce this component to be preserved, and we won't preserve it.
+            position.setTargetComp(position.getTargetComp());
+            position.setPosition(childMStick.getMassCenterForComponent(position.getTargetComp()));
+            PreservedComponentData toPreserveData = new PreservedComponentData(Collections.singletonList(position.getTargetComp()), parentId, Collections.singletonList(position.getTargetComp())); // we shouldn't change which component to be preserved with GrowingMatchStick
+            compsToPreserveManager.writeProperty(stimId, toPreserveData);
+        }
+
         return childMStick;
     }
 
