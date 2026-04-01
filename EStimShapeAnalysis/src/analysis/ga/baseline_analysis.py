@@ -84,7 +84,14 @@ class BaselineAnalysis(PlotTopNAnalysis):
         channel_label = ', '.join(channel) if isinstance(channel, list) else channel
         channel_str = '_'.join(channel) if isinstance(channel, list) else channel
 
-        fig = self._plot_baseline_curves(avg_baseline, gen1_avg, avg_catch, channel_label)
+        # Average raw response per generation across all stimuli (for the side subplot)
+        avg_per_gen = (compiled_data
+                       .groupby('GenId')['Response']
+                       .mean()
+                       .reset_index()
+                       .rename(columns={'Response': 'AvgResponse'}))
+
+        fig = self._plot_baseline_curves(avg_baseline, gen1_avg, avg_catch, avg_per_gen, channel_label)
 
         save_file = f"{self.save_path}/{channel_str}_baseline_response_curves.png"
         fig.savefig(save_file, dpi=150, bbox_inches='tight')
@@ -97,6 +104,7 @@ class BaselineAnalysis(PlotTopNAnalysis):
             avg_baseline: pd.DataFrame,
             gen1_avg: pd.Series,
             avg_catch: pd.DataFrame,
+            avg_per_gen: pd.DataFrame,
             channel_label: str,
     ) -> plt.Figure:
         """
@@ -121,7 +129,8 @@ class BaselineAnalysis(PlotTopNAnalysis):
         colors = cm.viridis(np.linspace(0, 1, max(len(all_generations), 1)))
         gen_color = {gen_id: colors[i] for i, gen_id in enumerate(all_generations)}
 
-        fig, ax = plt.subplots(figsize=(10, 5))
+        fig, (ax, ax_raw) = plt.subplots(1, 2, figsize=(14, 5),
+                                          gridspec_kw={'width_ratios': [3, 1]})
         fig.suptitle(f'Baseline & Catch Response Profiles Across Generations\n'
                      f'Channel: {channel_label}', fontsize=14)
 
@@ -161,6 +170,15 @@ class BaselineAnalysis(PlotTopNAnalysis):
         ax.set_ylabel('Avg Response')
         ax.legend(fontsize=8, bbox_to_anchor=(1.01, 1), loc='upper left')
         ax.grid(True, alpha=0.3)
+
+        # Right subplot: avg raw response per generation
+        ax_raw.plot(avg_per_gen['GenId'], avg_per_gen['AvgResponse'],
+                    marker='o', linewidth=1.5, markersize=4, color='steelblue')
+        ax_raw.set_xlabel('Generation')
+        ax_raw.set_ylabel('Avg Raw Response')
+        ax_raw.set_title('Avg Response per Generation')
+        ax_raw.grid(True, alpha=0.3)
+
         fig.tight_layout()
         return fig
 
