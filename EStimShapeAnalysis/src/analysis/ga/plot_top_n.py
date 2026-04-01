@@ -34,7 +34,7 @@ def main():
     # compiled_data = compile_and_export()
     analysis = PlotTopNAnalysis()
     compiled_data = None
-    compiled_data = analysis.compile()
+    # compiled_data = analysis.compile()
     session_id, _ = read_session_id_from_db_name(context.ga_database)
     # session_id = "260327_0"
     # channel = ["A-009", "A-000", "A-006", "A-009", "A-015", "A-022", "A-024"]
@@ -54,6 +54,7 @@ class PlotTopNAnalysis(Analysis):
             # If channel is "GA", we want to use the "GA Response" column instead of spike rates for ranking
             compiled_data['Spike Rate'] = compiled_data['GA Response']
             compiled_data = compiled_data.sort_values(by=['Lineage', 'Spike Rate'], ascending=[True, False])
+            self.spike_rates_col = 'Spike Rate'
         compiled_data = add_lineage_rank_to_df(compiled_data, self.spike_rates_col, channel)
 
         return self.analyze_one_channel(channel, compiled_data)
@@ -173,7 +174,7 @@ class PlotTopNAnalysis(Analysis):
         return data_for_all_tasks
 
     def using_ga_response(self):
-        return self.response_table == 'GAStimInfo'
+        return self.response_table == None
 def add_lineage_rank_to_df(compiled_data, spike_rates_col, channel):
     """
     Add ranking information based on spike rates within each lineage.

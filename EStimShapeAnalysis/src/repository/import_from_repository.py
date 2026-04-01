@@ -6,7 +6,7 @@ from clat.util.connection import Connection
 
 
 def import_from_repository(session_id: str, experiment_name: str,
-                           stim_info_table: str, response_table: str) -> pd.DataFrame:
+                           stim_info_table: str, response_table: str = None) -> pd.DataFrame:
     """
     Import data from the repository database based on session_id and experiment_name.
 
@@ -14,7 +14,8 @@ def import_from_repository(session_id: str, experiment_name: str,
         session_id: Session ID string (e.g., "250427_0")
         experiment_name: Name of the experiment (e.g., "Isogabor")
         stim_info_table: Name of the stimulus info table to query (e.g., "IsoGaborStimInfo")
-        response_table: Name of the response table to query (e.g., "RawSpikeResponses" or "WindowSortedResponses")
+        response_table: Name of the response table to query (e.g., "RawSpikeResponses" or "WindowSortedResponses").
+                       If None, response data is skipped.
 
     Returns:
         DataFrame containing combined data from repository
@@ -23,7 +24,8 @@ def import_from_repository(session_id: str, experiment_name: str,
     repo_conn = Connection("allen_data_repository")
 
     # Form the experiment_id from session_id and experiment_name
-    experiment_id, stim_ids = fetch_experiment_id_and_stims_for_session(session_id, experiment_name=experiment_name, repo_conn=repo_conn)
+    experiment_id, stim_ids = fetch_experiment_id_and_stims_for_session(session_id, experiment_name=experiment_name,
+                                                                        repo_conn=repo_conn)
 
     # 2. Get task_ids from TaskStimMapping for these stim_ids
     task_ids, task_stim_pairs = fetch_task_ids_and_task_stim_mappings(experiment_id, repo_conn, stim_ids)
@@ -61,62 +63,69 @@ def import_from_repository(session_id: str, experiment_name: str,
 
     print(f"Retrieved stimulus information from {stim_info_table}")
 
-    # 4. Get response data — generic spike response path
-    repo_conn.execute(f"DESCRIBE {response_table}")
-    response_columns = [row[0] for row in repo_conn.fetch_all()]
-
-    # Identify primary keys (excluding task_id)
-    primary_keys = [col for col in response_columns
-                    if col.endswith('_id') and col != 'task_id']
-
-    if not primary_keys:
-        raise ValueError(f"No suitable ID column found in {response_table}")
-
-    # Use the first ID column found
-    id_column = primary_keys[0]
-    print(f"Using {id_column} as the ID column for responses")
-
-    # Get response data
-    placeholders = ', '.join(['%s'] * len(task_ids))
-    statement = f"SELECT task_id, {id_column}, tstamps, response_rate FROM {response_table} " \
-                    f"WHERE task_id IN ({placeholders})"
-    repo_conn.execute(
-        statement,
-        params=task_ids
-    )
-
-    # Process response data
+    # 4. Get response data — generic spike response path (only if response_table is provided)
     responses_data = {}
-    for row in repo_conn.fetch_all():
-        task_id = row[0]
-        id_value = row[1]
-        tstamps_str = row[2]
-        response_rate = row[3]
+    id_column = None
 
-        # Initialize nested dictionaries if needed
-        if task_id not in responses_data:
-            responses_data[task_id] = {
-                'tstamps': {},
-                'response_rate': {}
-            }
+    if response_table is not None:
+        repo_conn.execute(f"DESCRIBE {response_table}")
+        response_columns = [row[0] for row in repo_conn.fetch_all()]
 
-        # Convert timestamp string back to list using ast.literal_eval
-        try:
-            tstamps_list = ast.literal_eval(tstamps_str)
-        except (SyntaxError, ValueError):
-            print(f"Warning: Could not parse timestamps for task {task_id}, {id_column} {id_value}")
-            tstamps_list = []
+        # Identify primary keys (excluding task_id)
+        primary_keys = [col for col in response_columns
+                        if col.endswith('_id') and col != 'task_id']
 
-        responses_data[task_id]['tstamps'][id_value] = tstamps_list
-        responses_data[task_id]['response_rate'][id_value] = response_rate
+        if not primary_keys:
+            raise ValueError(f"No suitable ID column found in {response_table}")
 
-    print(f"Retrieved response data from {response_table}")
+        # Use the first ID column found
+        id_column = primary_keys[0]
+        print(f"Using {id_column} as the ID column for responses")
+
+        # Get response data
+        placeholders = ', '.join(['%s'] * len(task_ids))
+        statement = f"SELECT task_id, {id_column}, tstamps, response_rate FROM {response_table} " \
+                    f"WHERE task_id IN ({placeholders})"
+        repo_conn.execute(
+            statement,
+            params=task_ids
+        )
+
+        # Process response data
+        for row in repo_conn.fetch_all():
+            task_id = row[0]
+            id_value = row[1]
+            tstamps_str = row[2]
+            response_rate = row[3]
+
+            # Initialize nested dictionaries if needed
+            if task_id not in responses_data:
+                responses_data[task_id] = {
+                    'tstamps': {},
+                    'response_rate': {}
+                }
+
+            # Convert timestamp string back to list using ast.literal_eval
+            try:
+                tstamps_list = ast.literal_eval(tstamps_str)
+            except (SyntaxError, ValueError):
+                print(f"Warning: Could not parse timestamps for task {task_id}, {id_column} {id_value}")
+                tstamps_list = []
+
+            responses_data[task_id]['tstamps'][id_value] = tstamps_list
+            responses_data[task_id]['response_rate'][id_value] = response_rate
+
+        print(f"Retrieved response data from {response_table}")
 
     # 6. Compile all data into a DataFrame
     compiled_data = []
     for task_id, stim_id in task_stim_pairs:
 
-        if stim_id not in stim_info_data or task_id not in responses_data:
+        if stim_id not in stim_info_data:
+            continue
+
+        # Skip if response_table is required but data is missing
+        if response_table is not None and task_id not in responses_data:
             continue
 
         # Create base row with task and stim IDs
@@ -131,11 +140,10 @@ def import_from_repository(session_id: str, experiment_name: str,
                 row_data[col_name] = value
 
         # Add response data if available
-        if task_id in responses_data:
+        if response_table is not None and task_id in responses_data:
             # Store as dictionaries to match your existing format
             row_data[f'Spikes by {id_column.replace("_id", "")}'] = responses_data[task_id]['tstamps']
             row_data[f'Spike Rate by {id_column.replace("_id", "")}'] = responses_data[task_id]['response_rate']
-
 
         compiled_data.append(row_data)
 
@@ -144,7 +152,6 @@ def import_from_repository(session_id: str, experiment_name: str,
     print(f"Successfully compiled data into DataFrame with {len(df)} rows and {len(df.columns)} columns")
 
     return df
-
 
 def fetch_task_ids_and_task_stim_mappings(experiment_id, repo_conn, stim_ids):
     """

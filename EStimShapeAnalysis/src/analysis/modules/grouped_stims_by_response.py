@@ -804,7 +804,7 @@ class GroupedStimuliInputHandler(SpikeRateCombinerInputHandler):
 
         self.filtered_data = filtered_data.copy()
 
-        required_cols = [self.response_col, self.path_col] + [
+        required_cols = [self.path_col] + [
             c for c in [self.row_col, self.col_col, self.subgroup_col] if c is not None
         ]
         for col in required_cols:
