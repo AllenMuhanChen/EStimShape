@@ -151,8 +151,8 @@ class ZoomingPhaseParentSelector(ParentSelector):
 
         for stimulus in potential_parents:
             if stimulus.mutation_type == StimType.BASELINE.value:
-                continue
-            potential_parents.append(stimulus)
+                potential_parents.remove(stimulus)
+
 
 
         potential_parents_by_priority = self._prioritize_potential_parents(potential_parents)

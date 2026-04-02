@@ -64,6 +64,7 @@ class GeneticAlgorithm:
             self._run_next_generation()
 
             for side_test in self.side_tests:
+                print("Running side test: ", type(side_test).__name__)
                 side_test.run(self.lineages, self.gen_id)
         else:
             raise ValueError("gen_id must be >= 1")
@@ -73,6 +74,7 @@ class GeneticAlgorithm:
 
     def _transition_lineages_if_needed(self):
         for lineage in self.lineages:
+            print("Transitioning lineage ", lineage.id, " in regime ", lineage.current_regime_index)
             lineage.transition_regimes_if_needed()
 
     def _update_db_with_new_experiment(self):
