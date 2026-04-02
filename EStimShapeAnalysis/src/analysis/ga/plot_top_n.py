@@ -165,8 +165,8 @@ class PlotTopNAnalysis(Analysis):
 
         data = fields.to_data(task_ids)
         return data
-
-    def clean_ga_data(self, data_for_all_tasks):
+    @staticmethod
+    def clean_ga_data(data_for_all_tasks):
         # Remove trials with no response
         data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['GA Response'].notna()]
         # Remove NaNs

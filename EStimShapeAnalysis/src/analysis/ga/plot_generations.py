@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 
 from clat.pipeline.pipeline_base_classes import create_pipeline, create_branch
 from src.analysis.ga import plot_top_n
-from src.analysis.ga.plot_top_n import PlotTopNAnalysis, clean_ga_data
+from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.repository.export_to_repository import read_session_id_from_db_name
 from src.repository.good_channels import read_cluster_channels

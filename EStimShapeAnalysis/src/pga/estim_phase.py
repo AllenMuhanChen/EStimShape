@@ -118,17 +118,18 @@ class EStimVariantSideTest(SideTest):
     def run(self, lineages: List[Lineage], gen_id: int):
         selector = EStimPhaseParentSelector(self.get_all_stim_func, self.threshold, self.conn)
         for lineage in lineages:
-            chosen_parents = selector.select_parents(lineage, batch_size=self.max_stim_per_lineage)
-            for parent in chosen_parents:
-                new_stimulus = Stimulus(time_util.now(),
-                                        StimType.REGIME_ESTIM_VARIANTS.value,
-                                        mutation_magnitude=0,
-                                        gen_id=gen_id,
-                                        parent_id=parent.id
-                                        )
-                time.sleep(0.001)
-                lineage.tree.add_child_to(parent, new_stimulus)
-                lineage.stimuli.append(new_stimulus)
+            if lineage.current_regime_index > 1:
+                chosen_parents = selector.select_parents(lineage, batch_size=self.max_stim_per_lineage)
+                for parent in chosen_parents:
+                    new_stimulus = Stimulus(time_util.now(),
+                                            StimType.REGIME_ESTIM_VARIANTS.value,
+                                            mutation_magnitude=0,
+                                            gen_id=gen_id,
+                                            parent_id=parent.id
+                                            )
+                    time.sleep(0.001)
+                    lineage.tree.add_child_to(parent, new_stimulus)
+                    lineage.stimuli.append(new_stimulus)
 
 
 

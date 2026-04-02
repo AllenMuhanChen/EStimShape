@@ -9,7 +9,8 @@ from clat.util.connection import Connection
 from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, ParentIdField
-from src.analysis.ga.plot_top_n import clean_ga_data
+from src.analysis.ga.plot_top_n import PlotTopNAnalysis
+
 from src.analysis.ga.solid_preference_index import create_sp_index_module
 from src.analysis.ga.solid_preference_permutation_test import create_sp_permutation_test_module
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
@@ -246,7 +247,7 @@ def compile_and_export():
 def compile():
     conn = Connection(context.ga_database)
     data_for_all_tasks = compile_data(conn)
-    data_for_all_tasks = clean_ga_data(data_for_all_tasks)
+    data_for_all_tasks = PlotTopNAnalysis.clean_ga_data(data_for_all_tasks)
     data_for_plotting = organize_data(data_for_all_tasks)
     return data_for_plotting
 
