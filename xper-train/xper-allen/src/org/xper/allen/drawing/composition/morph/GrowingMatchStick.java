@@ -229,7 +229,9 @@ public class GrowingMatchStick extends GAMatchStick {
             if (matchStickToMorph.getLeafBranch()[componentId]) continue; // Skip if it is a branch
             if (componentsToRemove.contains(componentId)) continue; // Skip if already chosen for removal
             if (componentsToNotRemove.contains(componentId)) continue; // Skip if it is in the list of components to not remove
-            if (componentId == getSpecialEndComp().get(0)) continue; // Skip if it is the special end component
+            if (!getSpecialEndComp().isEmpty())
+                if (componentId == getSpecialEndComp().get(0))
+                    continue; // Skip if it is the special end component
             componentsToRemove.add(componentId);
         }
         return componentsToRemove;

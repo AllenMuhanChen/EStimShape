@@ -194,13 +194,14 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
 
     protected void setProperties(){
         chooseRFStrategy(); //must be first otherwise chooseSize may fail
+        choosePreservedComps();
         choosePosition();
         chooseSize();
         chooseTextureType();
         chooseColor();
         chooseUnderlyingTexture();
         chooseContrast();
-        choosePreservedComps();
+
 
         if (rfStrategy == null) {
             throw new IllegalArgumentException("RF Strategy cannot be null");

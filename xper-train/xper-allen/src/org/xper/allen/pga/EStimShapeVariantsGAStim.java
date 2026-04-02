@@ -15,13 +15,9 @@ import java.util.Random;
 public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMStickData>{
     private static final Random random = new Random();
 
-    protected final CompsToPreserveManager compsToPreserveManager;
     public EStimShapeVariantsGAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId) {
         super(stimId, generator, parentId, "PARENT", true);
 
-
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(generator.getDbUtil().getDataSource());
-        compsToPreserveManager = new CompsToPreserveManager(jdbcTemplate);
     }
 
     @Override
@@ -50,6 +46,8 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
         sizeDiameterDegrees = sizeManager.readProperty(parentId);
     }
 
+
+
     @Override
     protected PruningMatchStick createMStick() {
         GAMatchStick parentMStick = new GAMatchStick(generator.getReceptiveField(), null);
@@ -69,13 +67,14 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
         childMStick.setRf(generator.getReceptiveField());
         // Read or choose components to preserve from parent
 
-        List<Integer> compsToPreserveInParent = preservedComponentData.getCompsToPreserve();
-//        if (!parentHasCompsToPreserve()){
-//            compsToPreserveInParent = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
-//        } else {
-//            PreservedComponentData parentData = compsToPreserveManager.readProperty(parentId);
-//            compsToPreserveInParent = parentData.getCompsToPreserve();
-//        }
+//        List<Integer> compsToPreserveInParent = preservedComponentData.getCompsToPreserve();
+        List<Integer> compsToPreserveInParent;
+        if (!parentHasCompsToPreserve()){
+            compsToPreserveInParent = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
+        } else {
+            PreservedComponentData parentData = compsToPreserveManager.readProperty(parentId);
+            compsToPreserveInParent = parentData.getCompsToPreserve();
+        }
 
         // Generate child
         Random random = new Random();
@@ -98,7 +97,7 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
         List<Integer> compsToPreserveInNextChild = childMStick.getPreservedComps();
         position.setPosition(childMStick.getMassCenterForComponent(compsToPreserveInNextChild.get(0)));
         position.setTargetComp(compsToPreserveInNextChild.get(0));
-        PreservedComponentData childData = new PreservedComponentData(
+        preservedComponentData = new PreservedComponentData(
                 compsToPreserveInNextChild,
                 parentId,
                 compsToPreserveInParent
