@@ -25,7 +25,13 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
 //            position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, null);
               position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, null);
         } else{
-            throw new IllegalArgumentException("Delta parent's positioning strategy should have to be preserved comp based");
+            System.out.println("Parent positioning strategy: " + parentLocation.positioningStrategy);
+            System.out.println("Parent Id: " + parentId);
+            if (!compsToPreserveManager.hasProperty(parentId)){
+                throw new IllegalArgumentException("Delta parent's positioning strategy should have to be preserved comp based OR have stim comps to preserve");
+            }
+            position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, null);
+
         }
     }
 

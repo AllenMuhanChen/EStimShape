@@ -14,8 +14,8 @@ def main():
     analysis = PlotVariants(use_ga_response=True,
                             save_included_variants=False)  # Set to False to use channel-specific spike rates
     compiled_data = None
-    compiled_data = analysis.compile()
-    session_id = "260331_0"
+    compiled_data = analysis.compile_and_export()
+    session_id = "260402_0"
     channel = "GA"
     analysis.run(session_id, "GA", channel, compiled_data=compiled_data)
 
