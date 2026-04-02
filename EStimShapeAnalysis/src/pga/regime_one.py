@@ -113,6 +113,14 @@ class GrowingPhaseParentSelector(ParentSelector):
         self.bin_sample_probabilities = bin_sample_proportions
 
     def select_parents(self, lineage, batch_size):
+        potential_parents = []
+
+        # Filter out baseline stimuli
+        for stimulus in lineage.stimuli:
+            if stimulus.mutation_type == StimType.BASELINE.value:
+                continue
+            potential_parents.append(stimulus)
+
         rank_ordered_distribution = RankOrderedDistribution(lineage.stimuli, self.bin_proportions)
         sampled_stimuli_from_lineage = rank_ordered_distribution.sample_total_amount_across_bins(
             bin_sample_probabilities=self.bin_sample_probabilities, total=batch_size)

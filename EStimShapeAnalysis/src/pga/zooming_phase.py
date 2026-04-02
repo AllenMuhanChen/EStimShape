@@ -9,6 +9,7 @@ from scipy.stats import stats
 
 from src.pga.ga_classes import Stimulus, RegimeTransitioner, Lineage, ParentSelector, MutationAssigner, \
     MutationMagnitudeAssigner
+from src.pga.stim_types import StimType
 
 
 class ZoomSetHandler(Protocol):
@@ -147,6 +148,12 @@ class ZoomingPhaseParentSelector(ParentSelector):
     def select_parents(self, lineage: Lineage, batch_size: int) -> list[Stimulus]:
         potential_parents = self.fetch_significantly_above_spontaneous_stimuli(lineage)
         self.filter_out_already_zoomed(potential_parents)
+
+        for stimulus in potential_parents:
+            if stimulus.mutation_type == StimType.BASELINE.value:
+                continue
+            potential_parents.append(stimulus)
+
 
         potential_parents_by_priority = self._prioritize_potential_parents(potential_parents)
 

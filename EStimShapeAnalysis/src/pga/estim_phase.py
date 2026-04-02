@@ -32,6 +32,11 @@ class EStimPhaseParentSelector(ParentSelector):
         #remove response rate is none
         all_stim_across_lineages = [s for s in all_stim_across_lineages if s.response_rate is not None]
 
+        #remove baselines
+        for stimulus in all_stim_across_lineages:
+            if stimulus.mutation_type == StimType.BASELINE.value:
+                all_stim_across_lineages.remove(stimulus)
+
 
         # 260325_0 change ONLY
         # all_stim_across_lineages = [s for s in all_stim_across_lineages if s.gen_id>1]
