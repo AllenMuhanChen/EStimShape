@@ -14,7 +14,7 @@ import java.util.Random;
 public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
 
     public EStimShapeVariantsDeltaStim(Long stimId, FromDbGABlockGenerator generator, Long parentId) {
-        super(stimId, generator, parentId);
+        super(stimId, generator, parentId, 0);
     }
 
     @Override
@@ -45,7 +45,6 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
 
 
         // Read or choose components to preserve from parent
-
         List<Integer> compsToMutateInParent = preservedComponentData.getCompsToPreserve();
 
         List<Integer> compsToPreserveInParent = new ArrayList<>();

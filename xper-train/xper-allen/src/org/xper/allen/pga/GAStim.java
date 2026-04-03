@@ -34,6 +34,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected final UnderlingAverageRGBPropertyManager underyingAverageRGBManager;
     protected final PositionPropertyManager positionManager;
     protected final CompsToPreserveManager compsToPreserveManager;
+    protected final StimTypePropertyManager stimTypeManager;
 
     protected Long stimId;
     protected String textureType;
@@ -78,6 +79,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         underyingAverageRGBManager = new UnderlingAverageRGBPropertyManager(jdbcTemplate);
         positionManager = new PositionPropertyManager(jdbcTemplate);
         compsToPreserveManager = new CompsToPreserveManager(jdbcTemplate);
+        stimTypeManager = new StimTypePropertyManager(jdbcTemplate);
     }
 
     /**
@@ -103,6 +105,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         underyingAverageRGBManager = new UnderlingAverageRGBPropertyManager(jdbcTemplate);
         positionManager = new PositionPropertyManager(jdbcTemplate);
         compsToPreserveManager = new CompsToPreserveManager(jdbcTemplate);
+        stimTypeManager = new StimTypePropertyManager(jdbcTemplate);
     }
 
     @Override

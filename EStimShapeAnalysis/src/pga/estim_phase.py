@@ -153,7 +153,7 @@ class EStimVariantDeltaSideTest(SideTest):
         lineages_for_stim_id = {}
         for lineage in lineages:
             for stim in lineage.stimuli:
-                if has_preservation_history(self.conn, stim.id) and stim.mutation_type != StimType.REGIME_ESTIM_DELTA.value:
+                if stim.mutation_type == StimType.REGIME_ESTIM_VARIANTS.value:
                     if stim.response_rate is not None:
                         variant_stimuli.append(stim)
                         lineages_for_stim_id[stim.id] = lineage

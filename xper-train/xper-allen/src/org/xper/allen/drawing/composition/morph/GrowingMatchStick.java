@@ -52,6 +52,12 @@ public class GrowingMatchStick extends GAMatchStick {
     }
 
     public void genGrowingMatchStick(MorphedMatchStick matchStickToMorph, double magnitude) {
+        //If we have data about prseservation history:
+        // then let's define inside outside rf based on special end comps instead
+        if (!componentsToNotRemove.isEmpty()){
+            matchStickToMorph.setSpecialEndComp(componentsToNotRemove);
+        }
+
         if (rfStrategy.equals(RFStrategy.COMPLETELY_INSIDE)) {
             //Removing Comps - Non RF operation
             HashSet<Integer> componentsToRemove = specifyCompsToRemove(matchStickToMorph, magnitude);
@@ -282,10 +288,10 @@ public class GrowingMatchStick extends GAMatchStick {
         // Construct MorphParameters for components
         Map<Integer, ComponentMorphParameters> paramsForComps = new HashMap<Integer, ComponentMorphParameters>();
 
-        ComponentMorphParameters params = new NormalDistributedComponentMorphParameters(magnitude, normalMorphDistributer);
-        paramsForComps.put(matchStickToMorph.getSpecialEndComp().get(0), params);
-
-
+        for (Integer compId : matchStickToMorph.getSpecialEndComp()) {
+            ComponentMorphParameters params = new NormalDistributedComponentMorphParameters(magnitude, normalMorphDistributer);
+            paramsForComps.put(compId, params);
+        }
         return paramsForComps;
     }
 
