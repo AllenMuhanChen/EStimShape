@@ -11,7 +11,7 @@ import java.util.*;
 public class EStimSpecWriter {
 
     // Template defaults
-    static StimulationShape defaultShape = StimulationShape.BiphasicWithInterphaseDelay;
+    static StimulationShape defaultShape = StimulationShape.Biphasic;
     static StimulationPolarity defaultPolarity = StimulationPolarity.PositiveFirst;
     static double defaultD1 = 200.0;
     static double defaultD2 = 200.0;
@@ -34,7 +34,7 @@ public class EStimSpecWriter {
      * Syntax:
      *   - Parameters separated by ". "
      *   - channels (required): list of channels, e.g. ["A025","A030"]
-     *   - Optional overrides: a, a1, a2, d, d1, d2, dp, pol, shape, refrac
+     *   - Optional overrides: a, a1, a2, d, d1, d2, dp, pol, shape, refractoryPeriod, triggerDelay
      *   - Use {} with ; to split into multiple conditions (cartesian product)
      *
      * Examples:
@@ -129,6 +129,9 @@ public class EStimSpecWriter {
         }
         if (parsed.containsKey("refractoryPeriod")) {
             postStimRefractoryPeriod = Integer.parseInt((String) parsed.remove("refractoryPeriod"));
+        }
+        if (parsed.containsKey("triggerDelay")){
+            defaultPostTriggerDelay = Double.parseDouble((String) parsed.remove("triggerDelay"));
         }
 
         WaveformParameters waveform = new WaveformParameters(shape, polarity, d1, d2, dp, a1, a2);

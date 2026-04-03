@@ -21,7 +21,7 @@ from src.analysis.nafc.psychometric_curves import collect_choice_trials, plot_ps
 
 def main():
     # Database connection
-    conn = Connection("allen_estimshape_exp_260331_0")
+    conn = Connection("allen_estimshape_exp_260402_0")
 
     # Time range
     since_date = time_util.from_date_to_now(2024, 7, 10)
