@@ -53,7 +53,7 @@ public class GrowingMatchStick extends GAMatchStick {
 
     public void genGrowingMatchStick(MorphedMatchStick matchStickToMorph, double magnitude) {
         //If we have data about prseservation history:
-        // then let's define inside outside rf based on special end comps instead
+        // then let's define change inside outside rf behavior to be based on special end comps instead
         if (!componentsToNotRemove.isEmpty()){
             matchStickToMorph.setSpecialEndComp(componentsToNotRemove);
         }

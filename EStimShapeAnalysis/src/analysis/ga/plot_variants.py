@@ -4,6 +4,7 @@ from clat.pipeline.pipeline_base_classes import create_branch, create_pipeline
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.pga.estim_phase import has_preservation_history
+from src.pga.stim_types import StimType
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 from clat.util.connection import Connection
@@ -12,15 +13,16 @@ import pandas as pd
 
 def main():
     analysis = PlotVariants(use_ga_response=True,
-                            save_included_variants=False)  # Set to False to use channel-specific spike rates
+                            save_included_variants=True)  # Set to False to use channel-specific spike rates
     compiled_data = None
     compiled_data = analysis.compile_and_export()
-    session_id = "260402_0"
+    session_id = "260331_0"
     channel = "GA"
     analysis.run(session_id, "GA", channel, compiled_data=compiled_data)
 
 
 class PlotVariants(PlotTopNAnalysis):
+    threshold = 0.6
     def __init__(self, use_ga_response=True, save_included_variants=False):
         """
         Initialize PlotVariants analysis.
@@ -67,10 +69,12 @@ class PlotVariants(PlotTopNAnalysis):
         print(f"Top {len(top_lineages)} lineages: {top_lineages.tolist()}")
 
         # Filter for variants only
-        variants_data = compiled_data[
-            (compiled_data['CompsToPreserve'].apply(lambda x: x != [])) &
-            (compiled_data['StimType'] != "REGIME_ESTIM_DELTA")
-            ]
+        variants_data = self.filter_for_variants(compiled_data)
+        # variants_data = compiled_data[
+        #     (compiled_data['CompsToPreserve'].apply(lambda x: x != []))
+
+            #& (compiled_data['StimType'] != "REGIME_ESTIM_DELTA")
+            # ]
         # Get response values for grouping
         if self.use_ga_response:
             response_values = variants_data['GA Response']
@@ -171,6 +175,11 @@ class PlotVariants(PlotTopNAnalysis):
 
         plt.show()
 
+    def filter_for_variants(self, compiled_data):
+        variants_data = compiled_data[
+            compiled_data['StimType'].isin([StimType.REGIME_ESTIM_VARIANTS.value, StimType.REGIME_ESTIM_DELTA.value])]
+        return variants_data
+
     def _save_included_variants_to_db(self, compiled_data):
         """Save included variants to the GA database."""
         try:
@@ -200,7 +209,7 @@ class PlotVariants(PlotTopNAnalysis):
             print("Cleared existing IncludedVariants entries")
 
             # Filter for variants
-            variants = compiled_data[compiled_data['StimType'] == 'REGIME_ESTIM_VARIANTS'].copy()
+            variants = self.filter_for_variants(compiled_data)
 
             if variants.empty:
                 print("No variants found to save")
@@ -214,7 +223,8 @@ class PlotVariants(PlotTopNAnalysis):
 
             # Calculate threshold (60% of max)
             max_response = variants_grouped[response_col_name].max()
-            threshold = 0.6 * max_response
+
+            threshold = self.threshold * max_response
 
             print(f"Max response: {max_response:.2f}, Threshold (60%): {threshold:.2f}")
 

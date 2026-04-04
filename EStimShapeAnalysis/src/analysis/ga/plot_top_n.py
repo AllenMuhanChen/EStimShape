@@ -125,7 +125,8 @@ class PlotTopNAnalysis(Analysis):
                                  "Cluster Response",
                                  "Shaft",
                                  "Termination",
-                                 "Junction"
+                                 "Junction",
+                                 "ParentId"
                              ])
         return data
 
