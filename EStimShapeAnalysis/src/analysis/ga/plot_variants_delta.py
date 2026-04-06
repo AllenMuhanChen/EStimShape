@@ -15,7 +15,7 @@ def main():
         to_save_to_db=True)
     compiled_data = None  # Set to None to import from repository
     # compiled_data = analysis.compile_and_export()
-    session_id = "260331_0"
+    session_id = "260327_0"
     channel = "GA"
     analysis.run(session_id, "GA", channel, compiled_data=compiled_data)
 

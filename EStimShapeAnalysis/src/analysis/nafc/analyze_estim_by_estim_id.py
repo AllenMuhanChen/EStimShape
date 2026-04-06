@@ -344,7 +344,7 @@ def plot_pairs_figure(data_exp, ga_conn, variant_to_delta,
 
 def main():
     # ============ CONFIGURATION ============
-    exp_conn = Connection("allen_estimshape_exp_260402_0")
+    exp_conn = Connection("allen_estimshape_exp_260331_0")
     ga_conn  = Connection(context.ga_database)
 
     since_date            = time_util.from_date_to_now(2024, 7, 10)
