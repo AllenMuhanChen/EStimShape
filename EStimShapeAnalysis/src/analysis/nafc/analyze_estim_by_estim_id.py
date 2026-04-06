@@ -479,7 +479,7 @@ def plot_rand_choice_panel(ax, stim_subset, estim_off_data, spec_ids, noise_leve
 
 def main():
     # ============ CONFIGURATION ============
-    exp_conn = Connection("allen_estimshape_exp_260327_0")
+    exp_conn = Connection("allen_estimshape_exp_260402_0")
     ga_conn  = Connection(context.ga_database)
 
     since_date            = time_util.from_date_to_now(2024, 7, 10)
@@ -554,38 +554,63 @@ def main():
     noise_levels = sorted(data_exp['NoiseChance'].unique())
     metric_name  = "ACCURACY" if isCorrectFieldName == "IsCorrect" else "% HYPOTHESIZED"
 
-    # ---- Figure 1: EStimSpecId overview ----
-    fig1, axes = plt.subplots(1, 3, figsize=(22, 7),
-                              gridspec_kw={'width_ratios': [2, 2, 3]})
+    # ---- Figure 1: combined metrics (rows = metric, cols = Delta | Variant | stats) ----
+    fig1 = plt.figure(figsize=(22, 21))
+    gs1 = GridSpec(3, 3, figure=fig1, width_ratios=[2, 2, 3], hspace=0.45, wspace=0.3)
 
-    delta_stats = plot_spec_id_panel(
-        axes[0], data_delta_on, data_delta_off,
-        delta_spec_ids, noise_levels, isCorrectFieldName,
-        title=f'{metric_name}: Delta by EStimSpecId',
-        global_test_side=global_test_side, n_permutations=n_permutations
-    )
-    variant_stats = plot_spec_id_panel(
-        axes[1], data_variant_on, data_variant_off,
-        variant_spec_ids, noise_levels, isCorrectFieldName,
-        title=f'{metric_name}: Variant by EStimSpecId',
-        global_test_side=global_test_side, n_permutations=n_permutations
-    )
+    row_labels = [
+        (metric_name,                  isCorrectFieldName, plot_spec_id_panel,       {}),
+        ('% Rand Choice',              None,               plot_rand_choice_panel,   {}),
+        (f'% Hypothesized (rand-excl)', isCorrectFieldName, plot_rand_excluded_panel, {}),
+    ]
 
-    full_stats = (
-        f"PERMUTATION TEST ({global_test_side})\n"
-        f"n_permutations={n_permutations}  metric={isCorrectFieldName}\n"
-        f"{'=' * 50}\n\n"
-        + delta_stats + "\n" + variant_stats
-        + "\n* p<0.05, ** p<0.01, *** p<0.001"
-    )
-    axes[2].text(0.02, 0.98, full_stats,
-                 transform=axes[2].transAxes, fontsize=6,
-                 verticalalignment='top', fontfamily='monospace',
-                 bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
-    axes[2].axis('off')
+    for row, (row_title, metric_field, panel_fn, extra) in enumerate(row_labels):
+        ax_delta   = fig1.add_subplot(gs1[row, 0])
+        ax_variant = fig1.add_subplot(gs1[row, 1])
+        ax_stats   = fig1.add_subplot(gs1[row, 2])
 
-    fig1.tight_layout()
-    fig1.suptitle(f'{metric_name} by EStimSpecId — {isCorrectFieldName}', fontsize=14, y=1.02)
+        if metric_field is not None:
+            delta_stats = panel_fn(
+                ax_delta, data_delta_on, data_delta_off,
+                delta_spec_ids, noise_levels, metric_field,
+                title=f'{row_title}: Delta',
+                global_test_side=global_test_side, n_permutations=n_permutations
+            )
+            variant_stats = panel_fn(
+                ax_variant, data_variant_on, data_variant_off,
+                variant_spec_ids, noise_levels, metric_field,
+                title=f'{row_title}: Variant',
+                global_test_side=global_test_side, n_permutations=n_permutations
+            )
+        else:
+            # plot_rand_choice_panel has no metric_field argument
+            delta_stats = panel_fn(
+                ax_delta, data_delta_on, data_delta_off,
+                delta_spec_ids, noise_levels,
+                title=f'{row_title}: Delta',
+                global_test_side=global_test_side, n_permutations=n_permutations
+            )
+            variant_stats = panel_fn(
+                ax_variant, data_variant_on, data_variant_off,
+                variant_spec_ids, noise_levels,
+                title=f'{row_title}: Variant',
+                global_test_side=global_test_side, n_permutations=n_permutations
+            )
+
+        stats_text = (
+            f"{row_title.upper()} — PERMUTATION TEST ({global_test_side})\n"
+            f"n_permutations={n_permutations}\n"
+            f"{'=' * 45}\n\n"
+            + delta_stats + "\n" + variant_stats
+            + "\n* p<0.05, ** p<0.01, *** p<0.001"
+        )
+        ax_stats.text(0.02, 0.98, stats_text,
+                      transform=ax_stats.transAxes, fontsize=6,
+                      verticalalignment='top', fontfamily='monospace',
+                      bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+        ax_stats.axis('off')
+
+    fig1.suptitle(f'EStimSpecId Analysis — {isCorrectFieldName}', fontsize=15, y=1.01)
 
     # ---- Figure 2: Variant-delta pairs ----
     plot_pairs_figure(
@@ -594,72 +619,6 @@ def main():
         start_gen_id_estim_on, max_gen_id_estim_on,
         isCorrectFieldName, add_borders, border_width, border_color_mode
     )
-
-    # ---- Figure 3: % Rand choice by EStimSpecId ----
-    fig3, axes3 = plt.subplots(1, 3, figsize=(22, 7),
-                               gridspec_kw={'width_ratios': [2, 2, 3]})
-
-    delta_rand_stats = plot_rand_choice_panel(
-        axes3[0], data_delta_on, data_delta_off,
-        delta_spec_ids, noise_levels,
-        title='% Rand Choice: Delta by EStimSpecId',
-        global_test_side=global_test_side, n_permutations=n_permutations
-    )
-    variant_rand_stats = plot_rand_choice_panel(
-        axes3[1], data_variant_on, data_variant_off,
-        variant_spec_ids, noise_levels,
-        title='% Rand Choice: Variant by EStimSpecId',
-        global_test_side=global_test_side, n_permutations=n_permutations
-    )
-
-    rand_full_stats = (
-        f"PERMUTATION TEST ({global_test_side}) — % RAND CHOICE\n"
-        f"n_permutations={n_permutations}\n"
-        f"{'=' * 50}\n\n"
-        + delta_rand_stats + "\n" + variant_rand_stats
-        + "\n* p<0.05, ** p<0.01, *** p<0.001"
-    )
-    axes3[2].text(0.02, 0.98, rand_full_stats,
-                  transform=axes3[2].transAxes, fontsize=6,
-                  verticalalignment='top', fontfamily='monospace',
-                  bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
-    axes3[2].axis('off')
-
-    fig3.tight_layout()
-    fig3.suptitle('% Rand Choice by EStimSpecId', fontsize=14, y=1.02)
-
-    # ---- Figure 4: % Hypothesized (rand-excluded) by EStimSpecId ----
-    fig4, axes4 = plt.subplots(1, 3, figsize=(22, 7),
-                               gridspec_kw={'width_ratios': [2, 2, 3]})
-
-    delta_re_stats = plot_rand_excluded_panel(
-        axes4[0], data_delta_on, data_delta_off,
-        delta_spec_ids, noise_levels, isCorrectFieldName,
-        title=f'% Hypothesized (rand-excl): Delta by EStimSpecId',
-        global_test_side=global_test_side, n_permutations=n_permutations
-    )
-    variant_re_stats = plot_rand_excluded_panel(
-        axes4[1], data_variant_on, data_variant_off,
-        variant_spec_ids, noise_levels, isCorrectFieldName,
-        title=f'% Hypothesized (rand-excl): Variant by EStimSpecId',
-        global_test_side=global_test_side, n_permutations=n_permutations
-    )
-
-    re_full_stats = (
-        f"PERMUTATION TEST ({global_test_side}) — % HYPOTHESIZED (RAND EXCLUDED)\n"
-        f"n_permutations={n_permutations}  metric={isCorrectFieldName}\n"
-        f"{'=' * 50}\n\n"
-        + delta_re_stats + "\n" + variant_re_stats
-        + "\n* p<0.05, ** p<0.01, *** p<0.001"
-    )
-    axes4[2].text(0.02, 0.98, re_full_stats,
-                  transform=axes4[2].transAxes, fontsize=6,
-                  verticalalignment='top', fontfamily='monospace',
-                  bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
-    axes4[2].axis('off')
-
-    fig4.tight_layout()
-    fig4.suptitle(f'% {isCorrectFieldName} (Rand Excluded) by EStimSpecId', fontsize=14, y=1.02)
 
     plt.show()
 
