@@ -13,7 +13,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
 
     protected NAFCBlockGen generator;
 
-    protected JTextField sampleDistMinField, sampleDistMaxField, choiceDistMinField, choiceDistMaxField;
+    protected JTextField sampleDistMinField, sampleDistMaxField, sampleDurationField, choiceDistMinField, choiceDistMaxField;
     protected JTextField sizeField, eyeWinSizeField, noiseChanceField, numChoicesField, numRandDistractorsField;
     protected JTextField morphMagnitudeField, morphDiscretenessField, colorRedField, colorGreenField, colorBlueField, numTrialsField;
     protected JTextField noiseRateField;
@@ -37,6 +37,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
     public void initFields(){
         sampleDistMinField = new JTextField(10);
         sampleDistMaxField = new JTextField(10);
+        sampleDurationField = new JTextField(10);
         choiceDistMinField = new JTextField(10);
         choiceDistMaxField = new JTextField(10);
         sizeField = new JTextField(10);
@@ -58,6 +59,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
 
         labelsForFields.put(sampleDistMinField, "Sample Distance Lims (Min):"); defaultsForFields.put(sampleDistMinField, "0.0");
         labelsForFields.put(sampleDistMaxField, "Sample Distance Lims (Max):"); defaultsForFields.put(sampleDistMaxField, "0.0");
+        labelsForFields.put(sampleDurationField, "Sample Duration (ms):"); defaultsForFields.put(sampleDurationField, "500");
         labelsForFields.put(choiceDistMinField, "Choice Distance Lims (Min):"); defaultsForFields.put(choiceDistMinField, "15.0");
         labelsForFields.put(choiceDistMaxField, "Choice Distance Lims (Max):"); defaultsForFields.put(choiceDistMaxField, "15.0");
         labelsForFields.put(sizeField, "Size:"); defaultsForFields.put(sizeField, "5.0");
@@ -80,6 +82,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
         if (stimParameters != null) {
             sampleDistMinField.setText(String.valueOf(stimParameters.getSampleDistanceLims().getLowerLim()));
             sampleDistMaxField.setText(String.valueOf(stimParameters.getSampleDistanceLims().getUpperLim()));
+            sampleDurationField.setText(String.valueOf(stimParameters.getSampleDuration()));
             choiceDistMinField.setText(String.valueOf(stimParameters.getChoiceDistanceLims().getLowerLim()));
             choiceDistMaxField.setText(String.valueOf(stimParameters.getChoiceDistanceLims().getUpperLim()));
             sizeField.setText(String.valueOf(stimParameters.getSize()));
@@ -120,6 +123,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
     public NAFCTrialParameters getTrialParameters() {
         double sampleDistMin = Double.parseDouble(sampleDistMinField.getText());
         double sampleDistMax = Double.parseDouble(sampleDistMaxField.getText());
+        Long sampleDuration = Long.parseLong(sampleDurationField.getText());
         double choiceDistMin = Double.parseDouble(choiceDistMinField.getText());
         double choiceDistMax = Double.parseDouble(choiceDistMaxField.getText());
         double size = Double.parseDouble(sizeField.getText());
@@ -141,7 +145,8 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
                 sampleDistanceLims,
                 choiceDistanceLims,
                 size,
-                eyeWinSize);
+                eyeWinSize,
+                sampleDuration);
         ProceduralStim.ProceduralStimParameters proceduralStimParameters = new ProceduralStim.ProceduralStimParameters(
                 nafcTrialParameters,
                 noiseChance,

@@ -31,7 +31,8 @@ public class ProceduralRandStimDeltaNoise extends ProceduralRandStim {
                 parameters,
                 coords,
                 parameters.numChoices,
-                stimObjIds, RewardPolicy.LIST, new int[]{0});
+                stimObjIds, RewardPolicy.LIST, new int[]{0},
+                parameters.getSampleDuration());
 
         stimSpecWriter.writeStimSpec();
 

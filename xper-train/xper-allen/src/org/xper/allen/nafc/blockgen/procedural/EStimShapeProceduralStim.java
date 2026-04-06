@@ -308,7 +308,8 @@ public class EStimShapeProceduralStim extends ProceduralStim{
                 parameters.numChoices,
                 stimObjIds,
                 eStimObjData,
-                result.rewardPolicy, result.rewardList);
+                result.rewardPolicy, result.rewardList,
+                parameters.getSampleDuration());
 
         stimSpecWriter.writeStimSpec();
     }

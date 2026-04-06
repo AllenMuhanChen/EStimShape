@@ -7,12 +7,14 @@ public class NAFCTrialParameters {
 	private Lims choiceDistanceLims;
 	private double size;
 	private double eyeWinRadius;
+    private Long sampleDuration = -1L;
 
 	public NAFCTrialParameters(NAFCTrialParameters other) {
 		this.sampleDistanceLims = other.sampleDistanceLims;
 		this.choiceDistanceLims = other.choiceDistanceLims;
 		this.size = other.size;
 		this.eyeWinRadius = other.eyeWinRadius;
+        this.sampleDuration = other.sampleDuration;
 	}
 
 	public NAFCTrialParameters(Lims sampleDistanceLims, Lims choiceDistanceLims, double size, double eyeWinRadius) {
@@ -23,7 +25,24 @@ public class NAFCTrialParameters {
 		this.eyeWinRadius = eyeWinRadius;
 	}
 
-	public NAFCTrialParameters() {
+    public NAFCTrialParameters(Lims sampleDistanceLims, Lims choiceDistanceLims, double size, double eyeWinRadius, Long sampleDuration) {
+        super();
+        this.sampleDistanceLims = sampleDistanceLims;
+        this.choiceDistanceLims = choiceDistanceLims;
+        this.size = size;
+        this.eyeWinRadius = eyeWinRadius;
+        this.sampleDuration = sampleDuration;
+    }
+
+    public Long getSampleDuration() {
+        return sampleDuration;
+    }
+
+    public void setSampleDuration(Long sampleDuration) {
+        this.sampleDuration = sampleDuration;
+    }
+
+    public NAFCTrialParameters() {
 	}
 
 	static XStream s = new XStream();

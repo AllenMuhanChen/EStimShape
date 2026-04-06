@@ -150,6 +150,18 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
         NAFCEventUtil.fireSampleOnEvent(sampleOnLocalTime, choiceEventListeners, currentContext);
 
         //HOLD FIXATION DURING SAMPLE
+        int sampleLength;
+        if (currentTask.getSampleDuration() == null) {
+            sampleLength = stateObject.getSampleLength();
+        } else {
+            if (currentTask.getSampleDuration() == -1L){
+                sampleLength = Math.toIntExact(currentContext.getSampleLength());
+                System.out.println("Sample duration from context: " + sampleLength);
+            } else {
+                sampleLength = currentTask.getSampleDuration().intValue();
+            }
+        }
+
         do {
             if(!eyeController.isEyeIn()) {
                 long eyeInHoldFailLocalTime = timeUtil.currentTimeMicros();
@@ -178,7 +190,7 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
                 drawingController.animateSample(currentTask, currentContext);
             }
         } while (timeUtil.currentTimeMicros() < sampleOnLocalTime
-                + stateObject.getSampleLength() * 1000L);
+                + sampleLength * 1000L);
 
         drawingController.slideFinish(currentTask, currentContext);
         long sampleOffLocalTime = timeUtil.currentTimeMicros();

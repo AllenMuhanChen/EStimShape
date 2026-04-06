@@ -110,7 +110,8 @@ public class RandStim implements Stim {
 				trialParameters,
 				coords,
 				trialParameters.getNumChoices(),
-				stimObjIds, RewardPolicy.LIST, new int[]{0});
+				stimObjIds, RewardPolicy.LIST, new int[]{0},
+                trialParameters.getSampleDuration());
 
 		stimSpecWriter.writeStimSpec();
 	}

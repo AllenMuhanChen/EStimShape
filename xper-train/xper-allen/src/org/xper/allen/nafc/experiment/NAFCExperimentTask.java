@@ -14,6 +14,7 @@ public class NAFCExperimentTask extends ExperimentTask {
 	Coordinates2D[] targetEyeWinCoords;
 	double[] targetEyeWinSize;
 	//double[] duration;
+    Long sampleDuration; //can override the default set in systemVars and context
 	String eStimSpec;
 	String sampleSpec;
 	String[] choiceSpec;
@@ -22,8 +23,15 @@ public class NAFCExperimentTask extends ExperimentTask {
 	RewardPolicy rewardPolicy;
 	int[] rewardList;
 
+    public Long getSampleDuration() {
+        return sampleDuration;
+    }
 
-	public String getSampleSpec() {
+    public void setSampleDuration(Long sampleDuration) {
+        this.sampleDuration = sampleDuration;
+    }
+
+    public String getSampleSpec() {
 		return sampleSpec;
 	}
 

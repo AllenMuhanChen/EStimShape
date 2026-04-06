@@ -329,9 +329,11 @@ public class AllenDbUtil extends DbUtil {
 						//Serializing StimSpec
 						//sse.setSpec(rs.getString("stim_spec"));
 						NAFCStimSpecSpec ss = sseU.NAFCStimSpecSpecFromXmlSpec();
+                        System.out.println("ALLEN TESTING READ SAMPLE_DUR: " + ss.getSampleDuration());
 						//StimObjData
 						//task.setStimId(readStimObjData(ss.getSampleObjData()).getStimId());
 						task.setSampleSpecId(ss.getSampleObjData());
+                        task.setSampleDuration(ss.getSampleDuration());
 						task.setChoiceSpecId(ss.getChoiceObjData());
 						task.setSampleSpec(readStimObjData(ss.getSampleObjData()).getSpec());
 						task.setStimSpec(sse.getSpec());

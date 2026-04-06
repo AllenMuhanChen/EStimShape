@@ -85,7 +85,8 @@ public class PsychometricStim implements Stim {
 				trialParameters,
 				coords,
 				numChoices,
-				stimObjIds, RewardPolicy.LIST, new int[]{0});
+				stimObjIds, RewardPolicy.LIST, new int[]{0},
+                trialParameters.getSampleDuration());
 
 		stimSpecWriter.writeStimSpec();
 

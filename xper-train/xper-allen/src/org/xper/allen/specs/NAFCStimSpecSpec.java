@@ -21,13 +21,17 @@ public class NAFCStimSpecSpec {
 	protected double[] targetEyeWinSize;
 	//@XStreamAlias("sampleObjData")
 	protected long sampleObjData;
+    //@XStreamAlias("sampleDuration")
+    protected Long sampleDuration;
 	//@XStreamAlias("choiceObjData")
 	protected long[] choiceObjData;
 	//@XStreamAlias("eStimObjData")
 	protected List<Long> eStimObjData;
 	//@XStreamAlias("rewardPolicy")
 	protected RewardPolicy rewardPolicy;
+    //@XStreamAlias("rewardList")
 	protected int[] rewardList;
+
 
 	//@XStreamAlias("eStimObjChans")
 	//protected int[] eStimObjChans;
@@ -49,6 +53,7 @@ public class NAFCStimSpecSpec {
 		this.eStimObjData = eStimObjData;
 		this.rewardPolicy = rewardPolicy;
 		this.rewardList = rewardList;
+        this.sampleDuration = -1L;
 	}
 
 	public NAFCStimSpecSpec(String stimType, Coordinates2D[] targetEyeWinCoords, double targetEyeWinSize[], long sampleObjData,
@@ -61,7 +66,23 @@ public class NAFCStimSpecSpec {
 		this.eStimObjData = eStimObjData;
 		this.rewardPolicy = rewardPolicy;
 		this.rewardList = rewardList;
+        this.sampleDuration = -1L;
 	}
+
+    public NAFCStimSpecSpec(String stimType, Coordinates2D[] targetEyeWinCoords, double targetEyeWinSize[], long sampleObjData,
+                            long sampleDuration,
+                            long[] choiceObjData, List<Long> eStimObjData, RewardPolicy rewardPolicy, int[] rewardList) {
+        this.stimType = stimType;
+        this.targetEyeWinCoords = targetEyeWinCoords;
+        this.targetEyeWinSize = targetEyeWinSize;
+        this.sampleObjData = sampleObjData;
+        this.choiceObjData = choiceObjData;
+        this.eStimObjData = eStimObjData;
+        this.rewardPolicy = rewardPolicy;
+        this.rewardList = rewardList;
+        this.sampleDuration = sampleDuration;
+    }
+
 
 /*
 	public TwoACStimSpecSpec(Coordinates2D targetEyeWinCoords, double targetEyeWinSize, double duration, long stimObjData,
@@ -82,9 +103,15 @@ public class NAFCStimSpecSpec {
 	public NAFCStimSpecSpec() {
 	}
 
+    public Long getSampleDuration() {
+        return sampleDuration;
+    }
 
+    public void setSampleDuration(Long sampleDuration) {
+        this.sampleDuration = sampleDuration;
+    }
 
-	public RewardPolicy getRewardPolicy() {
+    public RewardPolicy getRewardPolicy() {
 		return rewardPolicy;
 	}
 

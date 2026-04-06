@@ -339,7 +339,8 @@ public class ProceduralStim implements NAFCStim {
                 parameters.numChoices,
                 stimObjIds,
                 rewardBehavior.rewardPolicy,
-                rewardBehavior.rewardList
+                rewardBehavior.rewardList,
+                parameters.getSampleDuration()
         );
 
         stimSpecWriter.writeStimSpec();
