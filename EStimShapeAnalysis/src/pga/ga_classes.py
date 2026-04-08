@@ -165,10 +165,9 @@ class Phase:
         Generate a new batch of stimuli by selecting parents and assigning mutation types and magnitudes.
         returns a dict with keys of children and value of their parents.
         """
+        # filter out stimuli that don't have response rates or don't exist
         if lineage is not None:
-            for stimulus in lineage.stimuli:
-                if stimulus.response_rate is None or stimulus.response_vector is None or stimulus is None:
-                    lineage.stimuli.remove(stimulus)
+            lineage.stimuli = [stimulus for stimulus in lineage.stimuli if stimulus.response_rate is not None and stimulus.response_vector is not None and stimulus is not None]
 
         parents = self.parent_selector.select_parents(lineage, batch_size)
         new_children = []

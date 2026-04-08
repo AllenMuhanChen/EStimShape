@@ -36,7 +36,7 @@ class BaseLineSideTest(SideTest):
             int(n * 0.8),  # 80th percentile
         }
         selected_stim = [eligible_stim[i] for i in sorted(indices)]
-        #remove duplicates from selected_stim
+
 
 
         for stim in selected_stim:

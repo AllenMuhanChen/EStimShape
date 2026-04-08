@@ -149,9 +149,8 @@ class ZoomingPhaseParentSelector(ParentSelector):
         potential_parents = self.fetch_significantly_above_spontaneous_stimuli(lineage)
         self.filter_out_already_zoomed(potential_parents)
 
-        for stimulus in potential_parents:
-            if stimulus.mutation_type == StimType.BASELINE.value:
-                potential_parents.remove(stimulus)
+        potential_parents = [stim for stim in potential_parents if stim.mutation_type != StimType.BASELINE.value and stim.response_rate is not None]
+
 
 
 
