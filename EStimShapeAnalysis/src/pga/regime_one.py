@@ -117,11 +117,11 @@ class GrowingPhaseParentSelector(ParentSelector):
 
         # Filter out baseline stimuli
         for stimulus in lineage.stimuli:
-            if stimulus.mutation_type == StimType.BASELINE.value:
+            if stimulus.mutation_type == StimType.BASELINE.value or stimulus.response_rate is None or stimulus is None:
                 continue
             potential_parents.append(stimulus)
 
-        rank_ordered_distribution = RankOrderedDistribution(lineage.stimuli, self.bin_proportions)
+        rank_ordered_distribution = RankOrderedDistribution(potential_parents, self.bin_proportions)
         sampled_stimuli_from_lineage = rank_ordered_distribution.sample_total_amount_across_bins(
             bin_sample_probabilities=self.bin_sample_probabilities, total=batch_size)
 
@@ -221,7 +221,10 @@ class GrowingPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
         min_magnitude and max_magnitude.
         """
         # Normalize response rates, only considering positive responses
-        response_rates = np.array([s.response_rate for s in lineage.stimuli if s.response_rate > 0])
+
+
+        response_rates = np.array([s.response_rate for s in lineage.stimuli if (s.response_rate is not None and s.response_rate > 0)])
+
         if len(response_rates) == 0 or max(response_rates) == 0:
             normalized_rate = 0
         else:

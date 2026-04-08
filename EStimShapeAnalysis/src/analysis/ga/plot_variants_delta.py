@@ -15,7 +15,7 @@ def main():
         to_save_to_db=True)
     compiled_data = None  # Set to None to import from repository
     # compiled_data = analysis.compile_and_export()
-    session_id = "260327_0"
+    session_id = "260407_0"
     channel = "GA"
     analysis.run(session_id, "GA", channel, compiled_data=compiled_data)
 
@@ -187,8 +187,8 @@ class PlotVariantDeltas(PlotTopNAnalysis):
 
         # Save to database
         if self.to_save_to_db:
-            pass
-            # self._save_deltas_to_db(delta_avg_response)
+            # pass
+            self._save_deltas_to_db(delta_avg_response)
         else:
             # READ MODE: Load existing delta-variant pairs from database
             print("\n=== READ MODE ===")
@@ -364,13 +364,13 @@ class PlotVariantDeltas(PlotTopNAnalysis):
 
             # Convert to DataFrame
             delta_data = pd.DataFrame(results, columns=[
-                'StimSpecId', 'ParentId', 'Delta Response',
+                'StimSpecId', 'PairedVariantId', 'Delta Response',
                 'Variant Response', 'Ratio', 'Included'
             ])
 
             # Convert data types (DB returns everything as objects/integers)
             delta_data['StimSpecId'] = delta_data['StimSpecId'].astype(int)
-            delta_data['ParentId'] = delta_data['ParentId'].astype(int)
+            delta_data['PairedVariantId'] = delta_data['ParentId'].astype(int)
             delta_data['Delta Response'] = delta_data['Delta Response'].astype(float)
             delta_data['Variant Response'] = delta_data['Variant Response'].astype(float)
             delta_data['Ratio'] = delta_data['Ratio'].astype(float)
@@ -433,7 +433,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             for _, row in delta_data.iterrows():
                 conn.execute(insert_sql, (
                     int(row['StimSpecId']),
-                    int(row['ParentId']),
+                    int(row['PairedVariantId']),
                     float(row['Delta Response']),
                     float(row['Variant Response']),
                     float(row['Ratio']),

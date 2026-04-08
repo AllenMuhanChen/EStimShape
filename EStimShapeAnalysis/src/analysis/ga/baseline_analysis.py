@@ -14,7 +14,8 @@ from src.startup import context
 
 def main():
     analysis = BaselineAnalysis()
-    compiled_data = analysis.compile()
+    compiled_data = None
+    # compiled_data = analysis.compile()
     session_id, _ = read_session_id_from_db_name(context.ga_database)
     # session_id = "260327_0"
     channel = read_cluster_channels(session_id)

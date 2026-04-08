@@ -85,6 +85,26 @@ public class SideTestStim extends GAStim<GAMatchStick, AllenMStickData> {
         mStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
         mStick.setStimColor(color);
         mStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
+
+        // To handle Zooming Stim or descendents of Zooming Stim. The Comp to hold in RF is specified by specialEndComp().get(0)
+        if (position.getPositioningStrategy() == PositioningStrategy.MOVE_COMP_TO_SPECIFIC_LOCATION){
+            if (position.getTargetComp() == USE_SPECIAL_END_COMP){
+                position.setTargetComp(mStick.getSpecialEndComp().get(0));
+            }
+            position.setTargetComp(position.getTargetComp());
+            position.setPosition(mStick.getMassCenterForComponent(position.getTargetComp()));
+        } else if (position.getPositioningStrategy() == PositioningStrategy.PRESERVED_COMP_BASED){
+            //No logic here to actually enforce this component to be preserved, and we won't preserve it.
+            Integer compToPreserve = compsToPreserveManager.readProperty(parentId).getCompsToPreserve().get(0);
+            position.setTargetComp(compToPreserve);
+            position.setPosition(mStick.getMassCenterForComponent(compToPreserve));
+
+        } else if (position.getPositioningStrategy() == PositioningStrategy.RF_STRATEGY && rfStrategy == RFStrategy.PARTIALLY_INSIDE)
+        {
+            position.setTargetComp(mStick.getSpecialEndComp().get(0));
+            position.setPosition(mStick.getMassCenterForComponent(mStick.getSpecialEndComp().get(0)));
+        }
+
         return mStick;
     }
 

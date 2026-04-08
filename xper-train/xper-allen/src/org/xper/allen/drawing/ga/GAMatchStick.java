@@ -326,7 +326,10 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
                     throw new MorphException("No Special Comp to use to Position");
                 }
                 compToMove = getSpecialEndComp().get(0);
-
+                if (compToMove == 0){
+                    System.out.println("APPLYING 260407_0 specific fix for some bs.");
+                    compToMove = chooseRandLeaf();
+                }
             }
             if (getComp()[compToMove] == null){
                 throw new MorphException("Special Comp doesn't exist");

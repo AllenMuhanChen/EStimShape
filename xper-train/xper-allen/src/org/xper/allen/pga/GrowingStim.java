@@ -166,11 +166,20 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
             childMStick.setRf(generator.getReceptiveField());
             childMStick.setRfStrategy(rfStrategy);
         } else if (position.positioningStrategy == PositioningStrategy.MOVE_COMP_TO_SPECIFIC_LOCATION){
+            if (position.getTargetComp() == 0){
+                if (parentMStick.getSpecialEndComp().isEmpty() || parentMStick.getSpecialEndComp().get(0) == null || parentMStick.getSpecialEndComp().get(0) == 0){
+                    position.targetComp = parentMStick.chooseRandLeaf();
+                    System.out.println("ALLEN DEBUG 260407: No target comp specified for MOVE_COMP_TO_SPECIFIC_LOCATION strategy, randomly choosing " + position.targetComp);
+                } else{
+                    position.setTargetComp(parentMStick.getSpecialEndComp().get(0));
+                    position.position = parentMStick.getMassCenterForComponent(position.targetComp);
+                }
+            }
             childMStick = new GrowingMatchStick(position.targetComp, position.position,1/3.0);
             childMStick.setRf(generator.getReceptiveField());
             childMStick.setRfStrategy(rfStrategy);
         } else if (position.positioningStrategy == PositioningStrategy.PRESERVED_COMP_BASED){
-            childMStick = new GrowingMatchStick(position.targetComp, position.position,1/3.0);
+            childMStick = new GrowingMatchStick(compsToPreserveManager.readProperty(parentId).getCompsToPreserve().get(0), position.position,1/3.0);
             childMStick.setRf(generator.getReceptiveField());
             childMStick.setRfStrategy(rfStrategy);
         }
@@ -183,14 +192,18 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
         childMStick.setMaxDiameterDegrees(generator.getImageDimensionsDegrees());
         childMStick.genGrowingMatchStick(parentMStick, magnitude);
         // To handle Zooming Stim or descendents of Zooming Stim. The Comp to hold in RF is specified by specialEndComp().get(0)
-        if (position.positioningStrategy == PositioningStrategy.MOVE_COMP_TO_SPECIFIC_LOCATION || (position.positioningStrategy == PositioningStrategy.RF_STRATEGY && rfStrategy == RFStrategy.PARTIALLY_INSIDE)){
-            position.setTargetComp(childMStick.getSpecialEndComp().get(0));
-            position.setPosition(childMStick.getMassCenterForComponent(childMStick.getSpecialEndComp().get(0)));
+        if (position.positioningStrategy == PositioningStrategy.MOVE_COMP_TO_SPECIFIC_LOCATION){
+            position.setTargetComp(position.targetComp);
+            position.setPosition(childMStick.getMassCenterForComponent(position.getTargetComp()));
         } else if (position.positioningStrategy == PositioningStrategy.PRESERVED_COMP_BASED){
             //No logic here to actually enforce this component to be preserved, and we won't preserve it.
             position.setTargetComp(position.getTargetComp());
             position.setPosition(childMStick.getMassCenterForComponent(position.getTargetComp()));
 
+        } else if (position.positioningStrategy == PositioningStrategy.RF_STRATEGY && rfStrategy == RFStrategy.PARTIALLY_INSIDE)
+        {
+            position.setTargetComp(childMStick.getSpecialEndComp().get(0));
+            position.setPosition(childMStick.getMassCenterForComponent(childMStick.getSpecialEndComp().get(0)));
         }
 
         return childMStick;

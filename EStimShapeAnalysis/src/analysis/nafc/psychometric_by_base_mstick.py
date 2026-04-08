@@ -25,7 +25,7 @@ def main():
 
     # Time range
     since_date = time_util.from_date_to_now(2024, 7, 10)
-    start_gen_id = 2  # Filter for all data (EStim OFF and general filtering)
+    start_gen_id = 4  # Filter for all data (EStim OFF and general filtering)
     max_gen_id = float('inf')  # Maximum GenId to include
     start_gen_id_estim_on = 0  # Additional filter for EStim ON trials only
     max_gen_id_estim_on = float('inf')  # Maximum GenId for EStim ON trials

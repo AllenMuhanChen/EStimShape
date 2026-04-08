@@ -51,6 +51,17 @@ class StimTypeField(StimSpecField):
             stimType = "None"
         return stimType
 
+class SampleLengthField(StimSpecField):
+    def get_name(self):
+        return "SampleLength"
+
+    def get(self, when: When):
+        stim_spec = self.get_cached_super(when, StimSpecField)
+        try:
+            sampleLength = stim_spec['StimSpec']['sampleDuration']
+        except KeyError:
+            sampleLength = "None"
+        return sampleLength
 
 class IsRewardedField(CachedDatabaseField):
     def __init__(self, conn: Connection):

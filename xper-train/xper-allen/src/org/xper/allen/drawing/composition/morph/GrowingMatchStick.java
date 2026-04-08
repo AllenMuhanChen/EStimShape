@@ -37,6 +37,7 @@ public class GrowingMatchStick extends GAMatchStick {
     public GrowingMatchStick(int compIdToMove, Point3d compCOMLocation, double sigma) {
         super(compIdToMove, compCOMLocation);
         this.componentsToNotRemove.add(compIdToMove);
+        this.getSpecialEndComp().add(compIdToMove);
         this.sigma = sigma;
     }
 

@@ -15,14 +15,14 @@ def main():
     analysis = PlotVariants(use_ga_response=True,
                             save_included_variants=True)  # Set to False to use channel-specific spike rates
     compiled_data = None
-    compiled_data = analysis.compile_and_export()
-    session_id = "260331_0"
+    # compiled_data = analysis.compile_and_export()
+    session_id = "260407_0"
     channel = "GA"
     analysis.run(session_id, "GA", channel, compiled_data=compiled_data)
 
 
 class PlotVariants(PlotTopNAnalysis):
-    threshold = 0.6
+    threshold = 0.4
     def __init__(self, use_ga_response=True, save_included_variants=False):
         """
         Initialize PlotVariants analysis.

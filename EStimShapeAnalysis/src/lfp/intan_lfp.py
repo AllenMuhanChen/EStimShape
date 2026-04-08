@@ -255,6 +255,9 @@ def ReadWaveformDataDemo():
     time.sleep(1.0)
     reader.stop()
 
+    print('Starting acquisition for experimenter convenience...')
+    scommand.sendall(b'set runmode run')
+
     rawData = reader.get_data()
     print(f'Received {len(rawData)} bytes total')
 

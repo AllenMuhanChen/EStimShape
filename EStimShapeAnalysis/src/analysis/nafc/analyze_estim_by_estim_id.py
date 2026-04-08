@@ -20,10 +20,201 @@ from src.analysis.nafc.nafc_database_fields import (
     IsCorrectField, NoiseChanceField, NumRandDistractorsField,
     StimTypeField, ChoiceField, AnswerField, GenIdField,
     BaseMStickIdField, IsDeltaField, IsHypothesizedField,
-    EStimEnabledField, EStimSpecIdField, EStimSpecField, EStimPolarityField
+    EStimEnabledField, EStimSpecIdField, EStimSpecField, EStimPolarityField, SampleLengthField
 )
 from src.analysis.nafc.psychometric_curves import collect_choice_trials, plot_psychometric_curve_on_ax
 from src.startup import context
+
+
+
+# ===========================================================================
+# Main
+# ===========================================================================
+
+def main():
+    # ============ CONFIGURATION ============
+    exp_conn = Connection("allen_estimshape_exp_260407_0")
+    ga_conn  = Connection(context.ga_database)
+
+    since_date            = time_util.from_date_to_now(2024, 7, 10)
+    start_gen_id          = 5
+    max_gen_id            = float('inf')
+    start_gen_id_estim_on = 0
+    max_gen_id_estim_on   = float('inf')
+
+    isCorrectFieldName = "IsHypothesized"
+    global_test_side   = 'two-tailed'
+    n_permutations     = 1000
+
+    add_borders       = True
+    border_width      = 20
+    border_color_mode = 'intensity'
+    # =======================================
+
+    all_ga_responses = get_all_ga_responses(ga_conn)
+    if all_ga_responses:
+        global_min_response = min(all_ga_responses)
+        global_max_response = max(all_ga_responses)
+        print(f"GA Response range: {global_min_response:.2f} to {global_max_response:.2f}")
+    else:
+        global_min_response, global_max_response = 0.0, 1.0
+        print("Warning: No GA responses found, using default range [0, 1]")
+
+    variant_to_delta = get_variant_delta_pairs(ga_conn)
+    print(f"Found {len(variant_to_delta)} variant-delta pairs")
+
+    trial_tstamps = collect_choice_trials(exp_conn, since_date)
+
+    fields = CachedFieldList()
+    fields.append(IsCorrectField(exp_conn))
+    fields.append(IsHypothesizedField(exp_conn))
+    fields.append(NoiseChanceField(exp_conn))
+    fields.append(NumRandDistractorsField(exp_conn))
+    fields.append(StimTypeField(exp_conn))
+    fields.append(ChoiceField(exp_conn))
+    fields.append(GenIdField(exp_conn))
+    fields.append(EStimEnabledField(exp_conn))
+    fields.append(EStimSpecIdField(exp_conn))
+    fields.append(BaseMStickIdField(exp_conn))
+    fields.append(IsDeltaField(exp_conn))
+    fields.append(EStimPolarityField(exp_conn))
+    fields.append(ChoiceField(exp_conn))
+    fields.append(SampleLengthField(exp_conn))
+
+    data = fields.to_data(trial_tstamps)
+    data = data[(data['GenId'] >= start_gen_id) & (data['GenId'] <= max_gen_id)]
+    data_exp = data[data['StimType'] == 'EStimShapeVariantsDeltaNAFCStim']
+
+    data_delta   = data_exp[data_exp['IsDelta'] == True].copy()
+    data_variant = data_exp[data_exp['IsDelta'] == False].copy()
+
+    def estim_on(df):
+        return df[
+            (df['EStimEnabled'] == True) &
+            (df['GenId'] >= start_gen_id_estim_on) &
+            (df['GenId'] <= max_gen_id_estim_on)
+        ].copy()
+
+    data_delta_on    = estim_on(data_delta)
+    data_delta_off   = data_delta[data_delta['EStimEnabled'] == False].copy()
+    data_variant_on  = estim_on(data_variant)
+    data_variant_off = data_variant[data_variant['EStimEnabled'] == False].copy()
+
+    delta_spec_ids   = data_delta_on['EStimSpecId'].dropna().unique()
+    variant_spec_ids = data_variant_on['EStimSpecId'].dropna().unique()
+
+    noise_levels = sorted(data_exp['NoiseChance'].unique())
+    metric_name  = "ACCURACY" if isCorrectFieldName == "IsCorrect" else "% HYPOTHESIZED"
+
+    # ---- Figure 1: combined metrics ----
+    fig1 = plt.figure(figsize=(22, 21))
+    gs1 = GridSpec(3, 3, figure=fig1, width_ratios=[2, 2, 3], hspace=0.45, wspace=0.3)
+
+    row_labels = [
+        (metric_name,                   isCorrectFieldName, plot_spec_id_panel,       {}),
+        ('% Rand Choice',               None,               plot_rand_choice_panel,   {}),
+        (f'% Hypothesized (rand-excl)', isCorrectFieldName, plot_rand_excluded_panel, {}),
+    ]
+
+    for row, (row_title, metric_field, panel_fn, extra) in enumerate(row_labels):
+        ax_delta   = fig1.add_subplot(gs1[row, 0])
+        ax_variant = fig1.add_subplot(gs1[row, 1])
+        ax_stats   = fig1.add_subplot(gs1[row, 2])
+
+        if metric_field is not None:
+            delta_stats = panel_fn(
+                ax_delta, data_delta_on, data_delta_off,
+                delta_spec_ids, noise_levels, metric_field,
+                title=f'{row_title}: Delta',
+                global_test_side=global_test_side, n_permutations=n_permutations
+            )
+            variant_stats = panel_fn(
+                ax_variant, data_variant_on, data_variant_off,
+                variant_spec_ids, noise_levels, metric_field,
+                title=f'{row_title}: Variant',
+                global_test_side=global_test_side, n_permutations=n_permutations
+            )
+        else:
+            delta_stats = panel_fn(
+                ax_delta, data_delta_on, data_delta_off,
+                delta_spec_ids, noise_levels,
+                title=f'{row_title}: Delta',
+                global_test_side=global_test_side, n_permutations=n_permutations
+            )
+            variant_stats = panel_fn(
+                ax_variant, data_variant_on, data_variant_off,
+                variant_spec_ids, noise_levels,
+                title=f'{row_title}: Variant',
+                global_test_side=global_test_side, n_permutations=n_permutations
+            )
+
+        stats_text = (
+            f"{row_title.upper()} — PERMUTATION TEST ({global_test_side})\n"
+            f"n_permutations={n_permutations}\n"
+            f"{'=' * 45}\n\n"
+            + delta_stats + "\n" + variant_stats
+            + "\n* p<0.05, ** p<0.01, *** p<0.001"
+        )
+        ax_stats.text(0.02, 0.98, stats_text,
+                      transform=ax_stats.transAxes, fontsize=6,
+                      verticalalignment='top', fontfamily='monospace',
+                      bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+        ax_stats.axis('off')
+
+    fig1.suptitle(f'EStimSpecId Analysis — {isCorrectFieldName}', fontsize=15, y=1.01)
+
+    # ---- Figure 2: Variant-delta pairs ----
+    plot_pairs_figure(
+        data_exp, ga_conn, variant_to_delta,
+        global_min_response, global_max_response,
+        start_gen_id_estim_on, max_gen_id_estim_on,
+        isCorrectFieldName, add_borders, border_width, border_color_mode
+    )
+
+    plt.show()
+
+
+# ===========================================================================
+# SampleLength scatter overlay
+# ===========================================================================
+
+_SL_SHAPES = ['o', 's', '^', 'D', 'v', 'P', '*', 'X']
+
+
+def get_sl_marker_map(full_df):
+    """Build a consistent SampleLength -> marker mapping from the full dataset."""
+    sample_lengths = sorted(full_df['SampleLength'].dropna().unique(), key=str)
+    if len(sample_lengths) <= 1:
+        return None
+    return {sl: _SL_SHAPES[i % len(_SL_SHAPES)] for i, sl in enumerate(sample_lengths)}
+
+
+def scatter_by_sample_length(ax, df, metric_field, noise_levels, color='black',
+                             label_prefix='', sl_marker_map=None):
+    """Overlay per-noise-level dots with marker shape keyed to SampleLength for ONE curve."""
+    if sl_marker_map is None:
+        return
+
+    df = df.copy()
+    df.loc[df[metric_field] == "No Data", metric_field] = False
+    df[f'{metric_field}_bool'] = (df[metric_field] == True)
+
+    for sl, marker in sl_marker_map.items():
+        sl_data = df[df['SampleLength'] == sl]
+        xs, ys, ns = [], [], []
+        for noise in noise_levels:
+            nd = sl_data[sl_data['NoiseChance'] == noise]
+            if len(nd) > 0:
+                xs.append(noise)
+                ys.append(100 * nd[f'{metric_field}_bool'].mean())
+                ns.append(len(nd))
+        if xs:
+            ax.scatter(xs, ys, marker=marker, s=60, edgecolors=color,
+                       facecolors='none', linewidths=1.5, zorder=5,
+                       label=f'{label_prefix} SL={sl}')
+            for x, y, n in zip(xs, ys, ns):
+                ax.text(x, y + 2.5, str(n), ha='center', va='bottom',
+                        fontsize=5, color=color, zorder=6)
 
 
 # ===========================================================================
@@ -102,23 +293,55 @@ def run_permutation_test(data_for_perm, noise_levels, metric_field,
 
 
 # ===========================================================================
+# Per-SampleLength permutation test wrapper
+# ===========================================================================
+
+def run_per_sample_length_stats(spec_data, off_data, noise_levels, metric_field,
+                                global_test_side, n_permutations):
+    """Run permutation test separately for each unique SampleLength present in both groups."""
+    all_data = pd.concat([spec_data, off_data])
+    sample_lengths = sorted(all_data['SampleLength'].dropna().unique(), key=str)
+    if len(sample_lengths) <= 1:
+        return ""
+
+    text = ""
+    for sl in sample_lengths:
+        on_sl = spec_data[spec_data['SampleLength'] == sl]
+        off_sl = off_data[off_data['SampleLength'] == sl]
+        if len(on_sl) == 0 or len(off_sl) == 0:
+            text += f"    SL={sl}: insufficient data\n"
+            continue
+        combined_sl = pd.concat([on_sl, off_sl])
+        np.random.seed(42)
+        obs, p, sig, level_diffs, _ = run_permutation_test(
+            combined_sl, noise_levels, metric_field, global_test_side, n_permutations
+        )
+        text += f"    SL={sl} (n_on={len(on_sl)}, n_off={len(off_sl)}): {obs:+.1f}% p={p:.4f} {sig}\n"
+        for noise in sorted(level_diffs.keys()):
+            pct_on, pct_off, diff, n_on, n_off, lp, lsig = level_diffs[noise]
+            text += f"      N{noise*100:.0f}%: {diff:+.1f}% p={lp:.3f}{lsig}\n"
+    return text
+
+
+# ===========================================================================
 # Figure 1: EStimSpecId overview
 # ===========================================================================
 
 def plot_spec_id_panel(ax, stim_subset, estim_off_data, spec_ids, noise_levels,
                        metric_field, title, global_test_side, n_permutations=1000):
-    """
-    Plot psychometric curves for EStim OFF + each unique EStimSpecId,
-    and return a stats text block.
-    """
+    # Build consistent SL marker map across all data in this panel
+    sl_map = get_sl_marker_map(pd.concat([stim_subset, estim_off_data]))
+
     if len(estim_off_data) > 0:
         plot_psychometric_curve_on_ax(
             estim_off_data, ax,
             title=title, show_n=True, num_rep_min=0,
-            color='black', linestyle='--', linewidth=2,
+            color='black', linestyle='--', linewidth=2, marker='o',
             label=f'EStim OFF (n={len(estim_off_data)})',
             isCorrectColumnName=metric_field
         )
+        scatter_by_sample_length(ax, estim_off_data, metric_field, noise_levels,
+                                 color='black', label_prefix='OFF', sl_marker_map=sl_map)
 
     colors = cm.tab10(np.linspace(0, 1, max(len(spec_ids), 1)))
     results_text = f"{title}\n{'=' * 50}\n\n"
@@ -131,10 +354,13 @@ def plot_spec_id_panel(ax, stim_subset, estim_off_data, spec_ids, noise_levels,
         plot_psychometric_curve_on_ax(
             spec_data, ax,
             title=title, show_n=True, num_rep_min=0,
-            color=color,
+            color=color, marker='o',
             label=f'SpecId={spec_id} (n={len(spec_data)})',
             isCorrectColumnName=metric_field
         )
+        scatter_by_sample_length(ax, spec_data, metric_field, noise_levels,
+                                 color=color, label_prefix=f'Spec{spec_id}',
+                                 sl_marker_map=sl_map)
 
         combined = pd.concat([spec_data, estim_off_data])
         results_text += f"SpecId={spec_id} vs OFF\n{'-' * 30}\n"
@@ -147,7 +373,14 @@ def plot_spec_id_panel(ax, stim_subset, estim_off_data, spec_ids, noise_levels,
             for noise in sorted(level_diffs.keys()):
                 pct_on, pct_off, diff, n_on, n_off, p, sig = level_diffs[noise]
                 results_text += f"  N{noise * 100:.0f}%: {diff:+.1f}% p={p:.3f}{sig}\n"
-            results_text += f"  Overall: {observed_sum:+.1f}% p={overall_p:.4f} {overall_sig}\n\n"
+            results_text += f"  Overall: {observed_sum:+.1f}% p={overall_p:.4f} {overall_sig}\n"
+            sl_text = run_per_sample_length_stats(
+                spec_data, estim_off_data, noise_levels, metric_field,
+                global_test_side, n_permutations
+            )
+            if sl_text:
+                results_text += f"  By SampleLength:\n{sl_text}"
+            results_text += "\n"
         else:
             results_text += "  Insufficient data\n\n"
 
@@ -239,15 +472,14 @@ def plot_pairs_figure(data_exp, ga_conn, variant_to_delta,
                       global_min_response, global_max_response,
                       start_gen_id_estim_on, max_gen_id_estim_on,
                       isCorrectFieldName, add_borders, border_width, border_color_mode):
-    """
-    One row per variant-delta pair: [images] on top, [psychometric curves by EStimSpecId] below.
-    """
     base_mstick_ids = sorted(int(x) for x in data_exp['BaseMStickId'].dropna().unique())
     variants_in_data = [bid for bid in base_mstick_ids if bid in variant_to_delta]
 
     if not variants_in_data:
         print("No variant-delta pairs found in behavioral data — skipping pairs figure.")
         return
+
+    noise_levels = sorted(data_exp['NoiseChance'].unique())
 
     n_rows = len(variants_in_data)
     fig = plt.figure(figsize=(12, 6 * n_rows))
@@ -299,18 +531,20 @@ def plot_pairs_figure(data_exp, ga_conn, variant_to_delta,
             ]
             off = stim_data[stim_data['EStimEnabled'] == False]
 
-            # EStim OFF baseline
+            sl_map = get_sl_marker_map(pd.concat([on, off]))
+
             if len(off) > 0:
                 plot_psychometric_curve_on_ax(
                     off, ax,
                     title=f'{label_prefix} {stim_id}',
                     show_n=True, num_rep_min=0,
-                    color='black', linestyle='--', linewidth=2,
+                    color='black', linestyle='--', linewidth=2, marker='o',
                     label=f'EStim OFF (n={len(off)})',
                     isCorrectColumnName=isCorrectFieldName
                 )
+                scatter_by_sample_length(ax, off, isCorrectFieldName, noise_levels,
+                                         color='black', label_prefix='OFF', sl_marker_map=sl_map)
 
-            # One curve per EStimSpecId
             spec_ids = on['EStimSpecId'].dropna().unique()
             colors = cm.tab10(np.linspace(0, 1, max(len(spec_ids), 1)))
             for color, spec_id in zip(colors, sorted(spec_ids)):
@@ -320,10 +554,13 @@ def plot_pairs_figure(data_exp, ga_conn, variant_to_delta,
                         spec_data, ax,
                         title=f'{label_prefix} {stim_id}',
                         show_n=True, num_rep_min=0,
-                        color=color,
+                        color=color, marker='o',
                         label=f'SpecId={spec_id} (n={len(spec_data)})',
                         isCorrectColumnName=isCorrectFieldName
                     )
+                    scatter_by_sample_length(ax, spec_data, isCorrectFieldName, noise_levels,
+                                             color=color, label_prefix=f'Spec{spec_id}',
+                                             sl_marker_map=sl_map)
 
             ax.invert_xaxis()
             ax.set_ylim([0, 110])
@@ -342,78 +579,8 @@ def plot_pairs_figure(data_exp, ga_conn, variant_to_delta,
 # Figure 3: % Rand choice by EStimSpecId
 # ===========================================================================
 
-# ===========================================================================
-# Figure 4: % Hypothesized (rand-excluded) by EStimSpecId
-# ===========================================================================
-
-def plot_rand_excluded_panel(ax, stim_subset, estim_off_data, spec_ids, noise_levels,
-                             metric_field, title, global_test_side, n_permutations=1000):
-    """
-    Same as plot_spec_id_panel but drops trials where Choice == 'rand' before
-    computing the metric.  Denominator = only trials where animal made a
-    committed (non-rand) choice.
-    """
-    def drop_rand(df):
-        return df[df['Choice'] != 'rand'].copy()
-
-    off_data = drop_rand(estim_off_data)
-    on_data  = drop_rand(stim_subset)
-
-    if len(off_data) > 0:
-        plot_psychometric_curve_on_ax(
-            off_data, ax,
-            title=title, show_n=True, num_rep_min=0,
-            color='black', linestyle='--', linewidth=2,
-            label=f'EStim OFF (n={len(off_data)})',
-            isCorrectColumnName=metric_field
-        )
-
-    colors = cm.tab10(np.linspace(0, 1, max(len(spec_ids), 1)))
-    results_text = f"{title}\n{'=' * 50}\n\n"
-
-    for color, spec_id in zip(colors, sorted(spec_ids)):
-        spec_data = on_data[on_data['EStimSpecId'] == spec_id].copy()
-        if len(spec_data) == 0:
-            continue
-
-        plot_psychometric_curve_on_ax(
-            spec_data, ax,
-            title=title, show_n=True, num_rep_min=0,
-            color=color,
-            label=f'SpecId={spec_id} (n={len(spec_data)})',
-            isCorrectColumnName=metric_field
-        )
-
-        combined = pd.concat([spec_data, off_data])
-        results_text += f"SpecId={spec_id} vs OFF\n{'-' * 30}\n"
-
-        if len(spec_data) > 0 and len(off_data) > 0:
-            np.random.seed(42)
-            observed_sum, overall_p, overall_sig, level_diffs, _ = run_permutation_test(
-                combined, noise_levels, metric_field, global_test_side, n_permutations
-            )
-            for noise in sorted(level_diffs.keys()):
-                pct_on, pct_off, diff, n_on, n_off, p, sig = level_diffs[noise]
-                results_text += f"  N{noise * 100:.0f}%: {diff:+.1f}% p={p:.3f}{sig}\n"
-            results_text += f"  Overall: {observed_sum:+.1f}% p={overall_p:.4f} {overall_sig}\n\n"
-        else:
-            results_text += "  Insufficient data\n\n"
-
-    ax.invert_xaxis()
-    ax.set_ylim([0, 110])
-    ax.set_ylabel(f'% {metric_field} (rand excluded)')
-    ax.grid(True, alpha=0.3)
-    ax.legend(fontsize=7)
-
-    return results_text
-
 def plot_rand_choice_panel(ax, stim_subset, estim_off_data, spec_ids, noise_levels,
                            title, global_test_side, n_permutations=1000):
-    """
-    Plot % chose 'rand' for EStim OFF + each unique EStimSpecId.
-    Reuses run_permutation_test by injecting a synthetic 'IsRand' boolean column.
-    Returns a stats text block.
-    """
     METRIC = 'IsRand'
 
     def inject_is_rand(df):
@@ -424,14 +591,18 @@ def plot_rand_choice_panel(ax, stim_subset, estim_off_data, spec_ids, noise_leve
     off_data = inject_is_rand(estim_off_data)
     on_data  = inject_is_rand(stim_subset)
 
+    sl_map = get_sl_marker_map(pd.concat([on_data, off_data]))
+
     if len(off_data) > 0:
         plot_psychometric_curve_on_ax(
             off_data, ax,
             title=title, show_n=True, num_rep_min=0,
-            color='black', linestyle='--', linewidth=2,
+            color='black', linestyle='--', linewidth=2, marker='o',
             label=f'EStim OFF (n={len(off_data)})',
             isCorrectColumnName=METRIC
         )
+        scatter_by_sample_length(ax, off_data, METRIC, noise_levels,
+                                 color='black', label_prefix='OFF', sl_marker_map=sl_map)
 
     colors = cm.tab10(np.linspace(0, 1, max(len(spec_ids), 1)))
     results_text = f"{title}\n{'=' * 50}\n\n"
@@ -444,10 +615,13 @@ def plot_rand_choice_panel(ax, stim_subset, estim_off_data, spec_ids, noise_leve
         plot_psychometric_curve_on_ax(
             spec_data, ax,
             title=title, show_n=True, num_rep_min=0,
-            color=color,
+            color=color, marker='o',
             label=f'SpecId={spec_id} (n={len(spec_data)})',
             isCorrectColumnName=METRIC
         )
+        scatter_by_sample_length(ax, spec_data, METRIC, noise_levels,
+                                 color=color, label_prefix=f'Spec{spec_id}',
+                                 sl_marker_map=sl_map)
 
         combined = pd.concat([spec_data, off_data])
         results_text += f"SpecId={spec_id} vs OFF\n{'-' * 30}\n"
@@ -460,7 +634,14 @@ def plot_rand_choice_panel(ax, stim_subset, estim_off_data, spec_ids, noise_leve
             for noise in sorted(level_diffs.keys()):
                 pct_on, pct_off, diff, n_on, n_off, p, sig = level_diffs[noise]
                 results_text += f"  N{noise * 100:.0f}%: {diff:+.1f}% p={p:.3f}{sig}\n"
-            results_text += f"  Overall: {observed_sum:+.1f}% p={overall_p:.4f} {overall_sig}\n\n"
+            results_text += f"  Overall: {observed_sum:+.1f}% p={overall_p:.4f} {overall_sig}\n"
+            sl_text = run_per_sample_length_stats(
+                spec_data, off_data, noise_levels, METRIC,
+                global_test_side, n_permutations
+            )
+            if sl_text:
+                results_text += f"  By SampleLength:\n{sl_text}"
+            results_text += "\n"
         else:
             results_text += "  Insufficient data\n\n"
 
@@ -474,153 +655,78 @@ def plot_rand_choice_panel(ax, stim_subset, estim_off_data, spec_ids, noise_leve
 
 
 # ===========================================================================
-# Main
+# Figure 4: % Hypothesized (rand-excluded) by EStimSpecId
 # ===========================================================================
 
-def main():
-    # ============ CONFIGURATION ============
-    exp_conn = Connection("allen_estimshape_exp_260402_0")
-    ga_conn  = Connection(context.ga_database)
+def plot_rand_excluded_panel(ax, stim_subset, estim_off_data, spec_ids, noise_levels,
+                             metric_field, title, global_test_side, n_permutations=1000):
+    def drop_rand(df):
+        return df[df['Choice'] != 'rand'].copy()
 
-    since_date            = time_util.from_date_to_now(2024, 7, 10)
-    start_gen_id          = 2
-    max_gen_id            = float('inf')
-    start_gen_id_estim_on = 0
-    max_gen_id_estim_on   = float('inf')
+    off_data = drop_rand(estim_off_data)
+    on_data  = drop_rand(stim_subset)
 
-    isCorrectFieldName = "IsHypothesized"  # "IsCorrect" or "IsHypothesized"
-    global_test_side   = 'two-tailed'
-    n_permutations     = 1000
+    sl_map = get_sl_marker_map(pd.concat([on_data, off_data]))
 
-    # Border settings for the pairs figure
-    add_borders       = True
-    border_width      = 20
-    border_color_mode = 'intensity'   # 'intensity' or 'divergent'
-    # =======================================
-
-    # GA response range for borders
-    all_ga_responses = get_all_ga_responses(ga_conn)
-    if all_ga_responses:
-        global_min_response = min(all_ga_responses)
-        global_max_response = max(all_ga_responses)
-        print(f"GA Response range: {global_min_response:.2f} to {global_max_response:.2f}")
-    else:
-        global_min_response, global_max_response = 0.0, 1.0
-        print("Warning: No GA responses found, using default range [0, 1]")
-
-    variant_to_delta = get_variant_delta_pairs(ga_conn)
-    print(f"Found {len(variant_to_delta)} variant-delta pairs")
-
-    # Collect behavioral data
-    trial_tstamps = collect_choice_trials(exp_conn, since_date)
-
-    fields = CachedFieldList()
-    fields.append(IsCorrectField(exp_conn))
-    fields.append(IsHypothesizedField(exp_conn))
-    fields.append(NoiseChanceField(exp_conn))
-    fields.append(NumRandDistractorsField(exp_conn))
-    fields.append(StimTypeField(exp_conn))
-    fields.append(ChoiceField(exp_conn))
-    fields.append(GenIdField(exp_conn))
-    fields.append(EStimEnabledField(exp_conn))
-    fields.append(EStimSpecIdField(exp_conn))
-    fields.append(BaseMStickIdField(exp_conn))
-    fields.append(IsDeltaField(exp_conn))
-    fields.append(EStimPolarityField(exp_conn))
-    fields.append(ChoiceField(exp_conn))
-
-    data = fields.to_data(trial_tstamps)
-    data = data[(data['GenId'] >= start_gen_id) & (data['GenId'] <= max_gen_id)]
-    data_exp = data[data['StimType'] == 'EStimShapeVariantsDeltaNAFCStim']
-
-    data_delta   = data_exp[data_exp['IsDelta'] == True].copy()
-    data_variant = data_exp[data_exp['IsDelta'] == False].copy()
-
-    def estim_on(df):
-        return df[
-            (df['EStimEnabled'] == True) &
-            (df['GenId'] >= start_gen_id_estim_on) &
-            (df['GenId'] <= max_gen_id_estim_on)
-        ].copy()
-
-    data_delta_on    = estim_on(data_delta)
-    data_delta_off   = data_delta[data_delta['EStimEnabled'] == False].copy()
-    data_variant_on  = estim_on(data_variant)
-    data_variant_off = data_variant[data_variant['EStimEnabled'] == False].copy()
-
-    delta_spec_ids   = data_delta_on['EStimSpecId'].dropna().unique()
-    variant_spec_ids = data_variant_on['EStimSpecId'].dropna().unique()
-
-    noise_levels = sorted(data_exp['NoiseChance'].unique())
-    metric_name  = "ACCURACY" if isCorrectFieldName == "IsCorrect" else "% HYPOTHESIZED"
-
-    # ---- Figure 1: combined metrics (rows = metric, cols = Delta | Variant | stats) ----
-    fig1 = plt.figure(figsize=(22, 21))
-    gs1 = GridSpec(3, 3, figure=fig1, width_ratios=[2, 2, 3], hspace=0.45, wspace=0.3)
-
-    row_labels = [
-        (metric_name,                  isCorrectFieldName, plot_spec_id_panel,       {}),
-        ('% Rand Choice',              None,               plot_rand_choice_panel,   {}),
-        (f'% Hypothesized (rand-excl)', isCorrectFieldName, plot_rand_excluded_panel, {}),
-    ]
-
-    for row, (row_title, metric_field, panel_fn, extra) in enumerate(row_labels):
-        ax_delta   = fig1.add_subplot(gs1[row, 0])
-        ax_variant = fig1.add_subplot(gs1[row, 1])
-        ax_stats   = fig1.add_subplot(gs1[row, 2])
-
-        if metric_field is not None:
-            delta_stats = panel_fn(
-                ax_delta, data_delta_on, data_delta_off,
-                delta_spec_ids, noise_levels, metric_field,
-                title=f'{row_title}: Delta',
-                global_test_side=global_test_side, n_permutations=n_permutations
-            )
-            variant_stats = panel_fn(
-                ax_variant, data_variant_on, data_variant_off,
-                variant_spec_ids, noise_levels, metric_field,
-                title=f'{row_title}: Variant',
-                global_test_side=global_test_side, n_permutations=n_permutations
-            )
-        else:
-            # plot_rand_choice_panel has no metric_field argument
-            delta_stats = panel_fn(
-                ax_delta, data_delta_on, data_delta_off,
-                delta_spec_ids, noise_levels,
-                title=f'{row_title}: Delta',
-                global_test_side=global_test_side, n_permutations=n_permutations
-            )
-            variant_stats = panel_fn(
-                ax_variant, data_variant_on, data_variant_off,
-                variant_spec_ids, noise_levels,
-                title=f'{row_title}: Variant',
-                global_test_side=global_test_side, n_permutations=n_permutations
-            )
-
-        stats_text = (
-            f"{row_title.upper()} — PERMUTATION TEST ({global_test_side})\n"
-            f"n_permutations={n_permutations}\n"
-            f"{'=' * 45}\n\n"
-            + delta_stats + "\n" + variant_stats
-            + "\n* p<0.05, ** p<0.01, *** p<0.001"
+    if len(off_data) > 0:
+        plot_psychometric_curve_on_ax(
+            off_data, ax,
+            title=title, show_n=True, num_rep_min=0,
+            color='black', linestyle='--', linewidth=2, marker='o',
+            label=f'EStim OFF (n={len(off_data)})',
+            isCorrectColumnName=metric_field
         )
-        ax_stats.text(0.02, 0.98, stats_text,
-                      transform=ax_stats.transAxes, fontsize=6,
-                      verticalalignment='top', fontfamily='monospace',
-                      bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
-        ax_stats.axis('off')
+        scatter_by_sample_length(ax, off_data, metric_field, noise_levels,
+                                 color='black', label_prefix='OFF', sl_marker_map=sl_map)
 
-    fig1.suptitle(f'EStimSpecId Analysis — {isCorrectFieldName}', fontsize=15, y=1.01)
+    colors = cm.tab10(np.linspace(0, 1, max(len(spec_ids), 1)))
+    results_text = f"{title}\n{'=' * 50}\n\n"
 
-    # ---- Figure 2: Variant-delta pairs ----
-    plot_pairs_figure(
-        data_exp, ga_conn, variant_to_delta,
-        global_min_response, global_max_response,
-        start_gen_id_estim_on, max_gen_id_estim_on,
-        isCorrectFieldName, add_borders, border_width, border_color_mode
-    )
+    for color, spec_id in zip(colors, sorted(spec_ids)):
+        spec_data = on_data[on_data['EStimSpecId'] == spec_id].copy()
+        if len(spec_data) == 0:
+            continue
 
-    plt.show()
+        plot_psychometric_curve_on_ax(
+            spec_data, ax,
+            title=title, show_n=True, num_rep_min=0,
+            color=color, marker='o',
+            label=f'SpecId={spec_id} (n={len(spec_data)})',
+            isCorrectColumnName=metric_field
+        )
+        scatter_by_sample_length(ax, spec_data, metric_field, noise_levels,
+                                 color=color, label_prefix=f'Spec{spec_id}',
+                                 sl_marker_map=sl_map)
+
+        combined = pd.concat([spec_data, off_data])
+        results_text += f"SpecId={spec_id} vs OFF\n{'-' * 30}\n"
+
+        if len(spec_data) > 0 and len(off_data) > 0:
+            np.random.seed(42)
+            observed_sum, overall_p, overall_sig, level_diffs, _ = run_permutation_test(
+                combined, noise_levels, metric_field, global_test_side, n_permutations
+            )
+            for noise in sorted(level_diffs.keys()):
+                pct_on, pct_off, diff, n_on, n_off, p, sig = level_diffs[noise]
+                results_text += f"  N{noise * 100:.0f}%: {diff:+.1f}% p={p:.3f}{sig}\n"
+            results_text += f"  Overall: {observed_sum:+.1f}% p={overall_p:.4f} {overall_sig}\n"
+            sl_text = run_per_sample_length_stats(
+                spec_data, off_data, noise_levels, metric_field,
+                global_test_side, n_permutations
+            )
+            if sl_text:
+                results_text += f"  By SampleLength:\n{sl_text}"
+            results_text += "\n"
+        else:
+            results_text += "  Insufficient data\n\n"
+
+    ax.invert_xaxis()
+    ax.set_ylim([0, 110])
+    ax.set_ylabel(f'% {metric_field} (rand excluded)')
+    ax.grid(True, alpha=0.3)
+    ax.legend(fontsize=7)
+
+    return results_text
 
 
 if __name__ == '__main__':
