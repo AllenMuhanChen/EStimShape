@@ -271,6 +271,10 @@ class PanelsMixin:
         ttk.Label(r3a, text="Label:").pack(side=tk.LEFT, padx=(8, 2))
         self.traj_actual_label_var = tk.StringVar(value="")
         ttk.Entry(r3a, textvariable=self.traj_actual_label_var, width=8).pack(side=tk.LEFT, padx=2)
+        ttk.Label(r3a, text="Color:").pack(side=tk.LEFT, padx=(6, 2))
+        self.traj_actual_color_var = tk.StringVar(value="cyan")
+        ttk.Combobox(r3a, textvariable=self.traj_actual_color_var, state="readonly",
+                     width=8, values=COLORS).pack(side=tk.LEFT, padx=2)
         ttk.Label(r3a, text="Notes:").pack(side=tk.LEFT, padx=(6, 2))
         self.traj_actual_notes_var = tk.StringVar(value="")
         ttk.Entry(r3a, textvariable=self.traj_actual_notes_var, width=15).pack(

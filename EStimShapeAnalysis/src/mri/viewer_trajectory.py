@@ -346,7 +346,7 @@ class TrajectoryMixin:
             coord_note = f"target=[{target_at_dist[0]:.2f}, {target_at_dist[1]:.2f}, {target_at_dist[2]:.2f}]"
         full_notes = "  ".join(part for part in [notes, notes_extra, coord_note] if part)
 
-        color = COLORS[len(self.pen_store.penetrations) % len(COLORS)]
+        color = self.traj_actual_color_var.get()
         pen_id = self.pen_store.add(
             float(t['az_deg']), float(t['el_deg']), float(corrected_dist),
             label=label, session_id=session_id, pen_type="actual",
@@ -364,6 +364,13 @@ class TrajectoryMixin:
         session_id = self.session_id_var.get().strip()
         if not session_id:
             messagebox.showerror("Error", "Enter a Session ID at the top of the window."); return
+
+        # Overwrite: remove any existing planned/planned_tip entries for this session.
+        existing = [p for p in self.pen_store.penetrations
+                    if p['session_id'] == session_id
+                    and p['pen_type'] in ('planned', 'planned_tip')]
+        if existing:
+            self.pen_store.delete_session_planned(session_id)
 
         to_save = list(self.temp_points)
 

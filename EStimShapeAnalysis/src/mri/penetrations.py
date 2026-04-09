@@ -163,6 +163,19 @@ class PenetrationStore:
         self.conn.execute("DELETE FROM Penetrations WHERE id = %s", (pen_id,))
         self.refresh()
 
+    def delete_session_planned(self, session_id):
+        """Delete all planned / planned_tip entries for a session_id.
+
+        Leaves 'actual' records untouched so experimental data is preserved.
+        """
+        if not self.connected:
+            return
+        self.conn.execute(
+            "DELETE FROM Penetrations "
+            "WHERE session_id = %s AND pen_type IN ('planned', 'planned_tip')",
+            (session_id,))
+        self.refresh()
+
     def toggle_visible(self, pen_id):
         """Toggle the visible flag."""
         pen = next((p for p in self._cache if p['id'] == pen_id), None)
