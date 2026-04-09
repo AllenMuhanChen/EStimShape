@@ -124,6 +124,9 @@ class PanelsMixin:
         ttk.Label(pen_row, text="Dist(mm):").pack(side=tk.LEFT, padx=2)
         self.pen_dist_var = tk.DoubleVar(value=35.0)
         ttk.Entry(pen_row, textvariable=self.pen_dist_var, width=7).pack(side=tk.LEFT, padx=2)
+        ttk.Label(pen_row, text="Ch# (opt):").pack(side=tk.LEFT, padx=(6, 2))
+        self.pen_channel_var = tk.StringVar(value="")
+        ttk.Entry(pen_row, textvariable=self.pen_channel_var, width=5).pack(side=tk.LEFT, padx=2)
         ttk.Label(pen_row, text="Label:").pack(side=tk.LEFT, padx=2)
         self.pen_label_var = tk.StringVar(value="")
         ttk.Entry(pen_row, textvariable=self.pen_label_var, width=10).pack(side=tk.LEFT, padx=2)
@@ -137,19 +140,23 @@ class PanelsMixin:
         self.btn_toggle_pens = ttk.Button(br, text="Hide Penetrations", command=self._toggle_pens, state="disabled")
         self.btn_toggle_pens.pack(side=tk.LEFT, padx=3)
 
-        # Penetration view presets + session isolation
+        # Penetration view presets + session isolation (Word-style Save / Save As / Open)
         vr = ttk.Frame(ch); vr.pack(fill=tk.X, padx=3, pady=(0, 4))
-        self.btn_save_pen_view = ttk.Button(vr, text="Save View...",
+        self.btn_save_pen_view = ttk.Button(vr, text="Save",
                                              command=self._save_pen_view, state="disabled")
         self.btn_save_pen_view.pack(side=tk.LEFT, padx=3)
-        self.btn_load_pen_view = ttk.Button(vr, text="Load View...",
-                                             command=self._load_pen_view, state="disabled")
+        self.btn_save_pen_view_as = ttk.Button(vr, text="Save As...",
+                                                command=self._save_pen_view_as, state="disabled")
+        self.btn_save_pen_view_as.pack(side=tk.LEFT, padx=3)
+        self.btn_load_pen_view = ttk.Button(vr, text="Open...",
+                                             command=self._open_pen_view, state="disabled")
         self.btn_load_pen_view.pack(side=tk.LEFT, padx=3)
         self.btn_isolate_session = ttk.Button(vr, text="Isolate Session",
                                                command=self._isolate_session_pens, state="disabled")
         self.btn_isolate_session.pack(side=tk.LEFT, padx=3)
-        ttk.Label(vr, text="← shows only planned/actual for current session ID",
-                  foreground="#666666").pack(side=tk.LEFT, padx=6)
+        self._pen_view_name_var = tk.StringVar(value="No file open")
+        ttk.Label(vr, textvariable=self._pen_view_name_var,
+                  foreground="#555555").pack(side=tk.LEFT, padx=6)
 
         # Chamber Correction sub-panel
         cc = ttk.LabelFrame(ch, text="Chamber Correction")

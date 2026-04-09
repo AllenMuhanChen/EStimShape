@@ -44,7 +44,8 @@ class TrajectoryMixin:
         """Enable all DB-dependent controls after a successful connection."""
         self.btn_pen_list.config(state="normal")
         self.btn_toggle_pens.config(state="normal")
-        self.btn_save_pen_view.config(state="normal")
+        # btn_save_pen_view (quick Save) stays disabled until a file is open/saved-as
+        self.btn_save_pen_view_as.config(state="normal")
         self.btn_load_pen_view.config(state="normal")
         self.btn_isolate_session.config(state="normal")
         if self.chamber_state['loaded']:
@@ -72,8 +73,22 @@ class TrajectoryMixin:
         notes = self.pen_notes_var.get().strip()
         session_id = self.session_id_var.get().strip()
         color = COLORS[len(self.pen_store.penetrations) % len(COLORS)]
-        self.pen_store.add(az, el, dist, label=label, session_id=session_id,
-                           color=color, notes=notes)
+
+        # Optional channel correction
+        ch_str = self.pen_channel_var.get().strip()
+        if ch_str:
+            try:
+                channel_num = int(ch_str)
+                if channel_num not in _CHANNEL_ORDER:
+                    messagebox.showerror("Error", f"Channel {channel_num} is not a valid channel number.")
+                    return
+                dist = _channel_corrected_dist(dist, channel_num)
+            except ValueError:
+                messagebox.showerror("Error", f"Invalid channel number: {ch_str}")
+                return
+
+        self.pen_store.add(float(az), float(el), float(dist), label=label,
+                           session_id=session_id, color=color, notes=notes)
         self.display_all()
 
     def _toggle_pens(self):

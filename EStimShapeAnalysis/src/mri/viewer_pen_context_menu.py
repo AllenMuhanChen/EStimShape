@@ -127,8 +127,10 @@ class PenetrationContextMenuMixin:
         menu = tk.Menu(self.root, tearoff=0)
 
         # Non-interactive header
+        sid = pen.get('session_id', '') or ''
         header = (f"#{pen['id']}  \"{pen['label']}\"  "
-                  f"[{pen['pen_type']}]  {pen['color']}")
+                  f"[{pen['pen_type']}]  {pen['color']}"
+                  + (f"  sess={sid}" if sid else ""))
         menu.add_command(label=header, state="disabled",
                          font=("TkDefaultFont", 9, "bold"))
         menu.add_separator()

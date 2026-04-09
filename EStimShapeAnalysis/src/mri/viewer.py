@@ -156,6 +156,7 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
         # Penetrations (DB-backed)
         self.pen_store = PenetrationStore()
         self.pen_show = True
+        self._pen_view_path = None  # current open penetration-view preset file
 
         self._chamber_path = None  # set by _load_chamber_from_path; persisted in config
 
