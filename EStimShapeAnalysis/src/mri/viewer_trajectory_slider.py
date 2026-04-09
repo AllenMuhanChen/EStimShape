@@ -167,7 +167,7 @@ class TrajectorySliderMixin:
         self._move_cursor_to_depth(depth_mm)
 
     def _on_traj_depth_enter(self, event=None):
-        """Entry box committed — parse, clamp, and move crosshair + slider."""
+        """Entry box committed — parse, clamp, move crosshair, and sync slider."""
         if self.temp_trajectory is None:
             return
         try:
@@ -176,8 +176,16 @@ class TrajectorySliderMixin:
             return
         dist_mm = float(self.temp_trajectory['dist_mm'])
         val = max(0.0, min(val, dist_mm))
-        # Set slider (triggers _on_traj_slider_change which moves the cursor)
-        self._traj_slider_var.set(val)
+        # NOTE: ttk.Scale's command callback only fires on direct widget
+        # interaction, not on DoubleVar.set().  So we sync the slider visually
+        # and drive the cursor move ourselves.
+        self._traj_slider_setting = True
+        try:
+            self._traj_slider_var.set(val)
+            self._traj_depth_entry_var.set(f"{val:.2f}")
+        finally:
+            self._traj_slider_setting = False
+        self._move_cursor_to_depth(val)
 
     def _on_traj_step(self, direction):
         """Step button pressed — advance depth by ±step_size mm."""
@@ -190,7 +198,14 @@ class TrajectorySliderMixin:
         dist_mm = float(self.temp_trajectory['dist_mm'])
         current = self._traj_slider_var.get()
         new_val = max(0.0, min(current + direction * step, dist_mm))
-        self._traj_slider_var.set(new_val)
+        # Same issue as above — set var and drive move manually.
+        self._traj_slider_setting = True
+        try:
+            self._traj_slider_var.set(new_val)
+            self._traj_depth_entry_var.set(f"{new_val:.2f}")
+        finally:
+            self._traj_slider_setting = False
+        self._move_cursor_to_depth(new_val)
 
     def _move_cursor_to_depth(self, depth_mm):
         """Shared helper: update cursor_world and redraw."""

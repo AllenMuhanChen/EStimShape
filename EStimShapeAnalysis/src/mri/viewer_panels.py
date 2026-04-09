@@ -137,6 +137,20 @@ class PanelsMixin:
         self.btn_toggle_pens = ttk.Button(br, text="Hide Penetrations", command=self._toggle_pens, state="disabled")
         self.btn_toggle_pens.pack(side=tk.LEFT, padx=3)
 
+        # Penetration view presets + session isolation
+        vr = ttk.Frame(ch); vr.pack(fill=tk.X, padx=3, pady=(0, 4))
+        self.btn_save_pen_view = ttk.Button(vr, text="Save View...",
+                                             command=self._save_pen_view, state="disabled")
+        self.btn_save_pen_view.pack(side=tk.LEFT, padx=3)
+        self.btn_load_pen_view = ttk.Button(vr, text="Load View...",
+                                             command=self._load_pen_view, state="disabled")
+        self.btn_load_pen_view.pack(side=tk.LEFT, padx=3)
+        self.btn_isolate_session = ttk.Button(vr, text="Isolate Session",
+                                               command=self._isolate_session_pens, state="disabled")
+        self.btn_isolate_session.pack(side=tk.LEFT, padx=3)
+        ttk.Label(vr, text="← shows only planned/actual for current session ID",
+                  foreground="#666666").pack(side=tk.LEFT, padx=6)
+
         # Chamber Correction sub-panel
         cc = ttk.LabelFrame(ch, text="Chamber Correction")
         cc.pack(fill=tk.X, padx=5, pady=4)

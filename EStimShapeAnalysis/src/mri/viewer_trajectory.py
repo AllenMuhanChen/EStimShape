@@ -28,6 +28,9 @@ class TrajectoryMixin:
             self.pen_store.connect()
             self.btn_pen_list.config(state="normal")
             self.btn_toggle_pens.config(state="normal")
+            self.btn_save_pen_view.config(state="normal")
+            self.btn_load_pen_view.config(state="normal")
+            self.btn_isolate_session.config(state="normal")
             if self.chamber_state['loaded']:
                 self.btn_add_pen.config(state="normal")
             if self.temp_trajectory is not None or self.temp_points:

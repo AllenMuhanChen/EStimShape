@@ -21,9 +21,10 @@ pen_type: 'planned' (pre-experiment) or 'actual' (recorded during experiment)
 Uses the Connection class from clat for DB access.
 """
 
+import json
 import time
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import filedialog, ttk, messagebox
 
 COLORS = ['cyan', 'yellow', 'magenta', 'orange', 'lime', 'deepskyblue',
           'red', 'white', 'pink', 'gold']
@@ -176,6 +177,27 @@ class PenetrationStore:
             (session_id,))
         self.refresh()
 
+    def get_visible_ids(self):
+        """Return the IDs of all currently visible penetrations."""
+        return [p['id'] for p in self._cache if p['visible']]
+
+    def set_visible_by_ids(self, visible_ids):
+        """Make exactly the given IDs visible; hide all others."""
+        if not self.connected:
+            return
+        id_set = set(int(i) for i in visible_ids)
+        if id_set:
+            ph = ','.join(['%s'] * len(id_set))
+            self.conn.execute(
+                f"UPDATE Penetrations SET visible = 1 WHERE id IN ({ph})",
+                tuple(id_set))
+            self.conn.execute(
+                f"UPDATE Penetrations SET visible = 0 WHERE id NOT IN ({ph})",
+                tuple(id_set))
+        else:
+            self.conn.execute("UPDATE Penetrations SET visible = 0")
+        self.refresh()
+
     def toggle_visible(self, pen_id):
         """Toggle the visible flag."""
         pen = next((p for p in self._cache if p['id'] == pen_id), None)
@@ -222,6 +244,9 @@ class PenetrationListWindow:
         ttk.Button(btn_frame, text="Edit Selected",  command=self._edit).pack(side=tk.LEFT, padx=3)
         ttk.Button(btn_frame, text="Delete Selected",command=self._delete).pack(side=tk.LEFT, padx=3)
         ttk.Button(btn_frame, text="Refresh",        command=self._refresh_tree).pack(side=tk.LEFT, padx=3)
+        ttk.Separator(btn_frame, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=6, pady=2)
+        ttk.Button(btn_frame, text="Save View...",   command=self._save_view).pack(side=tk.LEFT, padx=3)
+        ttk.Button(btn_frame, text="Load View...",   command=self._load_view).pack(side=tk.LEFT, padx=3)
 
         self.status_var = tk.StringVar(value="")
         ttk.Label(self.win, textvariable=self.status_var, foreground="blue").pack(
@@ -348,3 +373,42 @@ class PenetrationListWindow:
 
         ttk.Button(edit_win, text="Save", command=save).grid(row=len(fields), column=0,
                                                               columnspan=2, pady=10)
+
+    def _save_view(self):
+        """Save currently visible IDs to a JSON file."""
+        from src.mri.viewer_penetration_views import _read_view_file  # noqa: only for symmetry doc
+        visible_ids = self.store.get_visible_ids()
+        path = filedialog.asksaveasfilename(
+            parent=self.win,
+            title="Save Penetration View",
+            defaultextension=".json",
+            filetypes=[("Penetration View", "*.json"), ("All files", "*.*")],
+        )
+        if not path:
+            return
+        with open(path, "w") as fh:
+            json.dump({"visible_ids": visible_ids}, fh, indent=2)
+        self.status_var.set(f"Saved {len(visible_ids)} visible IDs → {path}")
+
+    def _load_view(self):
+        """Load a view preset JSON and apply it."""
+        from src.mri.viewer_penetration_views import _read_view_file
+        path = filedialog.askopenfilename(
+            parent=self.win,
+            title="Load Penetration View",
+            filetypes=[("Penetration View", "*.json"), ("All files", "*.*")],
+        )
+        if not path:
+            return
+        try:
+            ids = _read_view_file(path)
+        except Exception as exc:
+            messagebox.showerror("Error", f"Could not read view file:\n{exc}",
+                                 parent=self.win)
+            return
+        self.store.set_visible_by_ids(ids)
+        self._refresh_tree()
+        if self.on_change:
+            self.on_change()
+        n = len(self.store.get_visible_ids())
+        self.status_var.set(f"Loaded view: {n} penetration(s) now visible")
