@@ -179,6 +179,7 @@ class PanelsMixin:
         # Section 1: Define the trajectory line
         s1 = ttk.LabelFrame(tp, text="1. Define Trajectory (sets the line)")
         s1.pack(fill=tk.X, padx=3, pady=2)
+        self._traj_define_frame = s1
 
         r1a = ttk.Frame(s1); r1a.pack(fill=tk.X, padx=3, pady=1)
         ttk.Label(r1a, text="Stereotaxic:").pack(side=tk.LEFT, padx=3)
@@ -218,6 +219,9 @@ class PanelsMixin:
         self.traj_info_var = tk.StringVar(value="No trajectory set")
         ttk.Label(s1, textvariable=self.traj_info_var, font=("TkDefaultFont", 9),
                   foreground="#006699").pack(anchor="w", padx=5, pady=(0, 2))
+
+        # Trajectory traversal slider (hidden until a trajectory is active)
+        self._build_traj_slider_section(tp, after_widget=s1)
 
         # Section 2: Add points along the trajectory
         s2 = ttk.LabelFrame(tp, text="2. Mark Points (along the trajectory)")

@@ -206,6 +206,7 @@ class TrajectoryMixin:
         self.btn_record_actual.config(state="normal" if self.pen_store.connected else "disabled")
         self.traj_actual_dist_var.set(round(dist, 2))
 
+        self._update_trajectory_slider()
         if self.data is not None:
             self.display_all()
 
@@ -510,6 +511,7 @@ class TrajectoryMixin:
         if self.temp_points:
             self.btn_remove_point.config(state="normal")
 
+        self._update_trajectory_slider()
         if self.data is not None:
             self.display_all()
 
@@ -529,6 +531,7 @@ class TrajectoryMixin:
         self.btn_remove_point.config(state="disabled")
         self.btn_add_point.config(state="disabled")
         self.btn_record_actual.config(state="disabled")
+        self._update_trajectory_slider()
         if self.data is not None:
             self.display_all()
 
