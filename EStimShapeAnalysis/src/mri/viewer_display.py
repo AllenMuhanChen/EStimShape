@@ -268,6 +268,11 @@ class DisplayMixin:
             self._reset_zoom(vi)
             return
 
+        # Ignore the click that dismissed a right-click context menu
+        import time
+        if time.time() - getattr(self, '_pen_menu_closed_at', 0.0) < 0.3:
+            return
+
         # Display coords are EBZ-relative; convert back to absolute world coords
         disp_off = self.ebz_world if self.ebz_set else np.zeros(3)
         x_world = x + disp_off[h_wax]

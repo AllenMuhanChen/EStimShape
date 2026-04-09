@@ -32,6 +32,11 @@ def main():
                 app.ebz_ml_var.set(ew[0])
                 app.ebz_ap_var.set(ew[1])
                 app.ebz_dv_var.set(ew[2])
+            if "session_id" in cfg:
+                app.session_id_var.set(cfg["session_id"])
+            pen_view = cfg.get("pen_view_path")
+            if pen_view and os.path.exists(pen_view):
+                app._pen_view_path_to_load = pen_view
         except Exception as e:
             print(f"Config error: {e}")
 

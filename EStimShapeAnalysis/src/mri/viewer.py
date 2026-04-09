@@ -156,7 +156,8 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
         # Penetrations (DB-backed)
         self.pen_store = PenetrationStore()
         self.pen_show = True
-        self._pen_view_path = None  # current open penetration-view preset file
+        self._pen_view_path = None          # current open penetration-view preset file
+        self._pen_view_path_to_load = None  # set by __main__ from config; applied on DB connect
 
         self._chamber_path = None  # set by _load_chamber_from_path; persisted in config
 
@@ -329,6 +330,11 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
                 c["atlas_label_path"] = self._atlas_label_path
             if self._template_mri_path and os.path.exists(self._template_mri_path):
                 c["template_mri_path"] = self._template_mri_path
+            if self._pen_view_path and os.path.exists(self._pen_view_path):
+                c["pen_view_path"] = self._pen_view_path
+            sid = self.session_id_var.get().strip()
+            if sid:
+                c["session_id"] = sid
             with open(cp, "w") as f:
                 json.dump(c, f, indent=2)
             self.default_path = p

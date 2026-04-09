@@ -58,6 +58,29 @@ class TrajectoryMixin:
         self.status_var.set(f"DB connected. {n} penetrations loaded.")
         if self.chamber_state['loaded']:
             self.btn_load_session.config(state="normal")
+
+        # Auto-load penetration view preset saved in config
+        path = getattr(self, '_pen_view_path_to_load', None)
+        if path:
+            self._pen_view_path_to_load = None  # consume it
+            try:
+                from src.mri.viewer_penetration_views import _read_view_file
+                ids = _read_view_file(path)
+                self.pen_store.set_visible_by_ids(ids)
+                self._pen_view_path = path
+                import os
+                self._pen_view_name_var.set(os.path.basename(path))
+                self.btn_save_pen_view.config(state="normal")
+                n_vis = len(self.pen_store.get_visible_ids())
+                self.status_var.set(
+                    f"DB connected. {n} penetrations loaded. "
+                    f"Auto-loaded view '{os.path.basename(path)}' "
+                    f"({n_vis} visible).")
+            except Exception as e:
+                self.status_var.set(
+                    f"DB connected. {n} penetrations loaded. "
+                    f"(Could not auto-load pen view: {e})")
+
         if self.data is not None:
             self.display_all()
 

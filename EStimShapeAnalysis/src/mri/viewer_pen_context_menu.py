@@ -38,6 +38,7 @@ Dependencies (provided by TriplanarMRIViewer at run-time):
 """
 
 import numpy as np
+import time
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 
@@ -164,6 +165,11 @@ class PenetrationContextMenuMixin:
         menu.add_separator()
         menu.add_command(label="Delete…",
                          command=lambda: self._pen_delete(pen))
+
+        # Record close time so _on_click can ignore the click that dismisses the menu
+        def _on_menu_close(e=None):
+            self._pen_menu_closed_at = time.time()
+        menu.bind("<Unmap>", _on_menu_close)
 
         # Convert matplotlib pixel coords → screen coords for the popup
         try:
