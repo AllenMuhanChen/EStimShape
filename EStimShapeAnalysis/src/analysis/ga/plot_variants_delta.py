@@ -12,10 +12,10 @@ import pandas as pd
 def main():
     analysis = PlotVariantDeltas(
         use_ga_response=True,# Set to False to use channel-specific spike rates
-        to_save_to_db=True)
+        to_save_to_db=False)
     compiled_data = None  # Set to None to import from repository
     # compiled_data = analysis.compile_and_export()
-    session_id = "260407_0"
+    session_id = "260408_0"
     channel = "GA"
     analysis.run(session_id, "GA", channel, compiled_data=compiled_data)
 
@@ -370,7 +370,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
 
             # Convert data types (DB returns everything as objects/integers)
             delta_data['StimSpecId'] = delta_data['StimSpecId'].astype(int)
-            delta_data['PairedVariantId'] = delta_data['ParentId'].astype(int)
+            delta_data['PairedVariantId'] = delta_data['PairedVariantId'].astype(int)
             delta_data['Delta Response'] = delta_data['Delta Response'].astype(float)
             delta_data['Variant Response'] = delta_data['Variant Response'].astype(float)
             delta_data['Ratio'] = delta_data['Ratio'].astype(float)

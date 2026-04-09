@@ -18,6 +18,7 @@ import java.util.Random;
 
 public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
 
+    public static final int MAX_CHOICE_SIZE = 5;
     protected DataSource gaDataSource;
     protected double maxSampleSize;
     protected List<Integer> noiseComponentIndcs;
@@ -67,6 +68,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         CompsToPreserveManager compsToPreserveManager = new CompsToPreserveManager(gaJDBCTemplate);
 
         sampleSize = sizePropertyManager.readProperty(variantId);
+
         texture = texturePropertyManager.readProperty(variantId);
         if (texture.equals("2D")){
             color = underlingAverageRGBPropertyManager.readProperty(variantId);
@@ -77,7 +79,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         maxChoiceSize = generator.getMaxChoiceDimensionDegrees() * 0.9;
         maxSampleSize = generator.getMaxSampleDimensionDegrees();
 
-        choiceSize = sampleSize;
+        choiceSize = Math.min(sampleSize, MAX_CHOICE_SIZE);
 
         double choiceLim = calculateMinDistanceChoicesCanBeWithoutOverlap(maxChoiceSize, parameters.numChoices);
 
