@@ -290,6 +290,11 @@ class DisplayMixin:
             self._disarm_ebz_pick()
             return
 
+        # Right-click on a penetration dot → context menu (takes priority over atlas query)
+        if event.button == 3 and hasattr(self, '_try_pen_context_menu'):
+            if self._try_pen_context_menu(event, vi, x_world, y_world):
+                return
+
         # Right-click atlas query (when not in EBZ pick mode)
         if event.button == 3 and self.atlas_loaded and self.atlas_show and self.atlas_label_names:
             query_world = self.cursor_world.copy()

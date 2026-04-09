@@ -41,6 +41,7 @@ from src.mri.viewer_atlas import AtlasMixin
 from src.mri.viewer_trajectory import TrajectoryMixin
 from src.mri.viewer_trajectory_slider import TrajectorySliderMixin
 from src.mri.viewer_penetration_views import PenetrationViewsMixin
+from src.mri.viewer_pen_context_menu import PenetrationContextMenuMixin
 
 # Probe geometry (matches import_penetration.py)
 _TIP_TO_BOTTOM_CH_UM = 600   # μm from probe tip to bottommost channel
@@ -61,7 +62,8 @@ def _channel_corrected_dist(tip_dist_mm, channel_num):
 
 class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
                          CorrectionMixin, AtlasMixin, TrajectoryMixin,
-                         TrajectorySliderMixin, PenetrationViewsMixin):
+                         TrajectorySliderMixin, PenetrationViewsMixin,
+                         PenetrationContextMenuMixin):
     """
     Coordinate convention (RAS+):  +X = Right, +Y = Anterior, +Z = Superior
     Lab labels:  ML = world X,  AP = world Y,  DV = world Z
