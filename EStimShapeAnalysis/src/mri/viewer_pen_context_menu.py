@@ -142,6 +142,10 @@ class PenetrationContextMenuMixin:
         menu.add_command(label=vis_label,
                          command=lambda: self._pen_toggle_vis(pen))
 
+        line_label = "Show Line" if not pen.get('line_visible', True) else "Hide Line"
+        menu.add_command(label=line_label,
+                         command=lambda: self._pen_toggle_line_vis(pen))
+
         # Color submenu
         color_menu = tk.Menu(menu, tearoff=0)
         for color in COLORS:
@@ -187,6 +191,11 @@ class PenetrationContextMenuMixin:
 
     def _pen_toggle_vis(self, pen):
         self.pen_store.toggle_visible(pen['id'])
+        self.display_all()
+
+    def _pen_toggle_line_vis(self, pen):
+        new_val = 0 if pen.get('line_visible', True) else 1
+        self.pen_store.update(pen['id'], line_visible=new_val)
         self.display_all()
 
     def _pen_set_color(self, pen, color):

@@ -24,27 +24,41 @@ def _channel_corrected_dist(tip_dist_mm, channel_num):
 
 class TrajectoryMixin:
     def _connect_db(self):
+        """Manual DB connect — shows an error dialog on failure."""
         try:
             self.pen_store.connect()
-            self.btn_pen_list.config(state="normal")
-            self.btn_toggle_pens.config(state="normal")
-            self.btn_save_pen_view.config(state="normal")
-            self.btn_load_pen_view.config(state="normal")
-            self.btn_isolate_session.config(state="normal")
-            if self.chamber_state['loaded']:
-                self.btn_add_pen.config(state="normal")
-            if self.temp_trajectory is not None or self.temp_points:
-                self.btn_save_traj.config(state="normal")
-            if self.temp_trajectory is not None:
-                self.btn_record_actual.config(state="normal")
-            n = len(self.pen_store.penetrations)
-            self.status_var.set(f"DB connected. {n} penetrations loaded.")
-            if self.chamber_state['loaded']:
-                self.btn_load_session.config(state="normal")
-            self.display_all()
+            self._on_db_connected()
         except Exception as e:
             messagebox.showerror("DB Error", str(e))
             import traceback; traceback.print_exc()
+
+    def _auto_connect_db(self):
+        """Called once on startup. Fails silently (status bar only)."""
+        try:
+            self.pen_store.connect()
+            self._on_db_connected()
+        except Exception as e:
+            self.status_var.set(f"DB auto-connect failed — use Connect DB button. ({e})")
+
+    def _on_db_connected(self):
+        """Enable all DB-dependent controls after a successful connection."""
+        self.btn_pen_list.config(state="normal")
+        self.btn_toggle_pens.config(state="normal")
+        self.btn_save_pen_view.config(state="normal")
+        self.btn_load_pen_view.config(state="normal")
+        self.btn_isolate_session.config(state="normal")
+        if self.chamber_state['loaded']:
+            self.btn_add_pen.config(state="normal")
+        if self.temp_trajectory is not None or self.temp_points:
+            self.btn_save_traj.config(state="normal")
+        if self.temp_trajectory is not None:
+            self.btn_record_actual.config(state="normal")
+        n = len(self.pen_store.penetrations)
+        self.status_var.set(f"DB connected. {n} penetrations loaded.")
+        if self.chamber_state['loaded']:
+            self.btn_load_session.config(state="normal")
+        if self.data is not None:
+            self.display_all()
 
     def _add_penetration(self):
         if not self.pen_store.connected:
@@ -353,7 +367,7 @@ class TrajectoryMixin:
         pen_id = self.pen_store.add(
             float(t['az_deg']), float(t['el_deg']), float(corrected_dist),
             label=label, session_id=session_id, pen_type="actual",
-            color=color, notes=full_notes)
+            color=color, notes=full_notes, line_visible=False)
 
         self.traj_actual_info_var.set(
             f"Saved actual id={pen_id}: ch{channel_num}, tip={tip_dist:.1f}→{corrected_dist:.1f}mm")
@@ -406,7 +420,8 @@ class TrajectoryMixin:
             full_notes = "  ".join(part for part in [notes, coord_note] if part)
             self.pen_store.add(float(p['az_deg']), float(p['el_deg']), float(dist),
                                label=p['label'], session_id=session_id,
-                               pen_type="planned", color=p['color'], notes=full_notes)
+                               pen_type="planned", color=p['color'], notes=full_notes,
+                               line_visible=False)
             n_saved += 1
 
         # Also save the trajectory tip position as planned_tip
@@ -421,7 +436,8 @@ class TrajectoryMixin:
             self.pen_store.add(
                 float(t['az_deg']), float(t['el_deg']), float(t['dist_mm']),
                 label="tip", session_id=session_id,
-                pen_type="planned_tip", color="white", notes=tip_coord)
+                pen_type="planned_tip", color="white", notes=tip_coord,
+                line_visible=True)
             n_saved += 1
 
         self.traj_info_var.set(f"Saved {n_saved} planned point{'s' if n_saved != 1 else ''} to DB.")

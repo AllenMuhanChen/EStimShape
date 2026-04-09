@@ -195,6 +195,8 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
         self.template_blend = 0.0       # 0=subject only, 0.5=blend, 1.0=template only
 
         self._setup_ui()
+        # Attempt DB connection after the event loop starts (non-blocking).
+        self.root.after(300, self._auto_connect_db)
 
     # ================================================================ UI
     def _setup_ui(self):

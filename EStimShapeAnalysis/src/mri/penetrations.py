@@ -1,22 +1,25 @@
 """
 Database-backed penetration management.
 
-Table schema (v2):
+Table schema (v3):
     CREATE TABLE IF NOT EXISTS Penetrations (
-        id         INT AUTO_INCREMENT PRIMARY KEY,
-        tstamp     BIGINT,
-        session_id VARCHAR(64),
-        label      VARCHAR(64),
-        az_deg     DOUBLE,
-        el_deg     DOUBLE,
-        dist_mm    DOUBLE,
-        pen_type   VARCHAR(16) DEFAULT 'planned',
-        color      VARCHAR(32) DEFAULT 'cyan',
-        visible    TINYINT DEFAULT 1,
-        notes      TEXT
+        id           INT AUTO_INCREMENT PRIMARY KEY,
+        tstamp       BIGINT,
+        session_id   VARCHAR(64),
+        label        VARCHAR(64),
+        az_deg       DOUBLE,
+        el_deg       DOUBLE,
+        dist_mm      DOUBLE,
+        pen_type     VARCHAR(16) DEFAULT 'planned',
+        color        VARCHAR(32) DEFAULT 'cyan',
+        visible      TINYINT DEFAULT 1,
+        line_visible TINYINT DEFAULT 1,
+        notes        TEXT
     );
 
-pen_type: 'planned' (pre-experiment) or 'actual' (recorded during experiment)
+pen_type: 'planned' | 'planned_tip' | 'actual'
+visible:      dot + label shown when True
+line_visible: trajectory line + depth ticks shown when True
 
 Uses the Connection class from clat for DB access.
 """
@@ -31,17 +34,18 @@ COLORS = ['cyan', 'yellow', 'magenta', 'orange', 'lime', 'deepskyblue',
 
 CREATE_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS Penetrations (
-    id         INT AUTO_INCREMENT PRIMARY KEY,
-    tstamp     BIGINT,
-    session_id VARCHAR(64),
-    label      VARCHAR(64),
-    az_deg     DOUBLE,
-    el_deg     DOUBLE,
-    dist_mm    DOUBLE,
-    pen_type   VARCHAR(16) DEFAULT 'planned',
-    color      VARCHAR(32) DEFAULT 'cyan',
-    visible    TINYINT DEFAULT 1,
-    notes      TEXT
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    tstamp       BIGINT,
+    session_id   VARCHAR(64),
+    label        VARCHAR(64),
+    az_deg       DOUBLE,
+    el_deg       DOUBLE,
+    dist_mm      DOUBLE,
+    pen_type     VARCHAR(16) DEFAULT 'planned',
+    color        VARCHAR(32) DEFAULT 'cyan',
+    visible      TINYINT DEFAULT 1,
+    line_visible TINYINT DEFAULT 1,
+    notes        TEXT
 )
 """
 
@@ -49,6 +53,7 @@ CREATE TABLE IF NOT EXISTS Penetrations (
 _MIGRATE_SQLS = [
     "ALTER TABLE Penetrations ADD COLUMN session_id VARCHAR(64) AFTER tstamp",
     "ALTER TABLE Penetrations ADD COLUMN pen_type VARCHAR(16) DEFAULT 'planned' AFTER dist_mm",
+    "ALTER TABLE Penetrations ADD COLUMN line_visible TINYINT DEFAULT 1 AFTER visible",
     # Backfill: copy label -> session_id for existing rows that have no session_id yet
     "UPDATE Penetrations SET session_id = label WHERE session_id IS NULL",
 ]
@@ -101,7 +106,7 @@ class PenetrationStore:
             return
         self.conn.execute(
             "SELECT id, tstamp, session_id, label, az_deg, el_deg, dist_mm, "
-            "pen_type, color, visible, notes FROM Penetrations ORDER BY id")
+            "pen_type, color, visible, line_visible, notes FROM Penetrations ORDER BY id")
         rows = self.conn.fetch_all()
         self._cache = []
         for row in rows:
@@ -116,7 +121,8 @@ class PenetrationStore:
                 'pen_type': row[7] or 'planned',
                 'color': row[8] or 'cyan',
                 'visible': bool(row[9]),
-                'notes': row[10] or '',
+                'line_visible': bool(row[10]) if row[10] is not None else True,
+                'notes': row[11] or '',
             })
 
     @property
@@ -124,7 +130,7 @@ class PenetrationStore:
         return self._cache
 
     def add(self, az_deg, el_deg, dist_mm, label="", session_id="",
-            pen_type="planned", color="cyan", notes=""):
+            pen_type="planned", color="cyan", notes="", line_visible=True):
         """Insert a new penetration and return its id."""
         if not self.connected:
             raise RuntimeError("Not connected to DB")
@@ -133,9 +139,10 @@ class PenetrationStore:
             label = f"P{len(self._cache) + 1}"
         self.conn.execute(
             "INSERT INTO Penetrations "
-            "(tstamp, session_id, label, az_deg, el_deg, dist_mm, pen_type, color, visible, notes) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-            (tstamp, session_id, label, az_deg, el_deg, dist_mm, pen_type, color, 1, notes))
+            "(tstamp, session_id, label, az_deg, el_deg, dist_mm, pen_type, color, visible, line_visible, notes) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            (tstamp, session_id, label, az_deg, el_deg, dist_mm, pen_type, color,
+             1, int(bool(line_visible)), notes))
         self.refresh()
         return self._cache[-1]['id']
 
@@ -144,7 +151,7 @@ class PenetrationStore:
         if not self.connected:
             return
         allowed = {'session_id', 'label', 'az_deg', 'el_deg', 'dist_mm',
-                    'pen_type', 'color', 'visible', 'notes'}
+                    'pen_type', 'color', 'visible', 'line_visible', 'notes'}
         sets = []
         vals = []
         for k, v in kwargs.items():
@@ -219,10 +226,10 @@ class PenetrationListWindow:
         tree_frame = ttk.Frame(self.win)
         tree_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        cols = ("id", "session_id", "label", "type", "az", "el", "dist", "color", "visible", "notes")
+        cols = ("id", "session_id", "label", "type", "az", "el", "dist", "color", "vis", "line", "notes")
         self.tree = ttk.Treeview(tree_frame, columns=cols, show="headings",
                                  height=15, selectmode="extended")
-        for c, w in zip(cols, (40, 90, 90, 60, 60, 55, 65, 70, 50, 250)):
+        for c, w in zip(cols, (40, 90, 90, 60, 60, 55, 65, 70, 38, 38, 250)):
             self.tree.heading(c, text=c)
             self.tree.column(c, width=w, stretch=(c == "notes"))
 
@@ -239,6 +246,7 @@ class PenetrationListWindow:
         btn_frame = ttk.Frame(self.win)
         btn_frame.pack(fill=tk.X, padx=5, pady=5)
         ttk.Button(btn_frame, text="Toggle Visible", command=self._toggle_vis).pack(side=tk.LEFT, padx=3)
+        ttk.Button(btn_frame, text="Toggle Line",    command=self._toggle_line_vis).pack(side=tk.LEFT, padx=3)
         ttk.Button(btn_frame, text="Show All",       command=self._show_all).pack(side=tk.LEFT, padx=3)
         ttk.Button(btn_frame, text="Hide All",       command=self._hide_all).pack(side=tk.LEFT, padx=3)
         ttk.Button(btn_frame, text="Edit Selected",  command=self._edit).pack(side=tk.LEFT, padx=3)
@@ -260,15 +268,16 @@ class PenetrationListWindow:
         for item in self.tree.get_children():
             self.tree.delete(item)
         for p in self.store.penetrations:
-            vis = "\u2713" if p['visible'] else "\u2717"
-            tag = "visible" if p['visible'] else "hidden"
-            iid = str(p['id'])
+            vis  = "\u2713" if p['visible'] else "\u2717"
+            line = "\u2713" if p.get('line_visible', True) else "\u2717"
+            tag  = "visible" if p['visible'] else "hidden"
+            iid  = str(p['id'])
             self.tree.insert("", tk.END, iid=iid,
                              values=(p['id'], p['session_id'], p['label'],
                                      p['pen_type'],
                                      f"{p['az_deg']:.1f}", f"{p['el_deg']:.1f}",
                                      f"{p['dist_mm']:.1f}",
-                                     p['color'], vis, p['notes']),
+                                     p['color'], vis, line, p['notes']),
                              tags=(tag,))
         still_present = [iid for iid in selected_ids if self.tree.exists(iid)]
         if still_present:
@@ -294,6 +303,20 @@ class PenetrationListWindow:
         for pid in ids:
             if pid in pens:
                 self.store.update(pid, visible=new_vis)
+        self._refresh_tree()
+        if self.on_change:
+            self.on_change()
+
+    def _toggle_line_vis(self):
+        ids = self._selected_ids()
+        if not ids:
+            return
+        pens = {p['id']: p for p in self.store.penetrations}
+        any_hidden = any(not pens[pid].get('line_visible', True) for pid in ids if pid in pens)
+        new_vis = 1 if any_hidden else 0
+        for pid in ids:
+            if pid in pens:
+                self.store.update(pid, line_visible=new_vis)
         self._refresh_tree()
         if self.on_change:
             self.on_change()
@@ -341,7 +364,7 @@ class PenetrationListWindow:
 
         edit_win = tk.Toplevel(self.win)
         edit_win.title(f"Edit Penetration {pid}")
-        edit_win.geometry("400x360")
+        edit_win.geometry("400x400")
 
         fields = {}
         for i, (key, label) in enumerate([
@@ -354,6 +377,15 @@ class PenetrationListWindow:
             ttk.Entry(edit_win, textvariable=var, width=30).grid(row=i, column=1, padx=5, pady=3)
             fields[key] = var
 
+        # Boolean checkboxes for visible / line_visible
+        n = len(fields)
+        vis_var  = tk.BooleanVar(value=bool(pen.get('visible', True)))
+        line_var = tk.BooleanVar(value=bool(pen.get('line_visible', True)))
+        ttk.Label(edit_win, text="Visible:").grid(row=n,   column=0, padx=5, pady=3, sticky="w")
+        ttk.Checkbutton(edit_win, variable=vis_var).grid(  row=n,   column=1, padx=5, pady=3, sticky="w")
+        ttk.Label(edit_win, text="Line visible:").grid(row=n+1, column=0, padx=5, pady=3, sticky="w")
+        ttk.Checkbutton(edit_win, variable=line_var).grid( row=n+1, column=1, padx=5, pady=3, sticky="w")
+
         def save():
             updates = {}
             for key, var in fields.items():
@@ -365,6 +397,8 @@ class PenetrationListWindow:
                         messagebox.showerror("Error", f"Invalid number for {key}")
                         return
                 updates[key] = val
+            updates['visible']      = int(vis_var.get())
+            updates['line_visible'] = int(line_var.get())
             self.store.update(pid, **updates)
             self._refresh_tree()
             if self.on_change:

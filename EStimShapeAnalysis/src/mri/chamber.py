@@ -184,15 +184,15 @@ def draw_chamber_overlay(ax, vi, slice_cfg, chamber_state, ebz_world, penetratio
 
             track_end = top_pt + (pen['dist_mm'] + 5) * direction
             color = pen.get('color', 'cyan')
-            ax.plot([top_pt[h_wax] - dh, track_end[h_wax] - dh],
-                    [top_pt[v_wax] - dv, track_end[v_wax] - dv],
-                    '-', color=color, lw=1.2, alpha=0.8)
+
+            if pen.get('line_visible', True):
+                ax.plot([top_pt[h_wax] - dh, track_end[h_wax] - dh],
+                        [top_pt[v_wax] - dv, track_end[v_wax] - dv],
+                        '-', color=color, lw=1.2, alpha=0.8)
+                for d in range(0, int(pen['dist_mm']) + 1, 5):
+                    pt = top_pt + d * direction
+                    ax.plot(pt[h_wax] - dh, pt[v_wax] - dv, '.', color=color, markersize=2, alpha=0.5)
 
             ax.plot(target[h_wax] - dh, target[v_wax] - dv, 'o', color=color, markersize=5)
-
-            for d in range(0, int(pen['dist_mm']) + 1, 5):
-                pt = top_pt + d * direction
-                ax.plot(pt[h_wax] - dh, pt[v_wax] - dv, '.', color=color, markersize=2, alpha=0.5)
-
             ax.annotate(pen.get('label', ''), (target[h_wax] - dh, target[v_wax] - dv),
                         fontsize=7, color=color, ha='left', va='bottom')
