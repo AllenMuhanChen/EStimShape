@@ -348,7 +348,7 @@ class TrajectoryMixin:
 
         color = COLORS[len(self.pen_store.penetrations) % len(COLORS)]
         pen_id = self.pen_store.add(
-            t['az_deg'], t['el_deg'], corrected_dist,
+            float(t['az_deg']), float(t['el_deg']), float(corrected_dist),
             label=label, session_id=session_id, pen_type="actual",
             color=color, notes=full_notes)
 
@@ -409,7 +409,7 @@ class TrajectoryMixin:
             else:
                 tip_coord = f"target=[{tip_target[0]:.2f}, {tip_target[1]:.2f}, {tip_target[2]:.2f}]"
             self.pen_store.add(
-                t['az_deg'], t['el_deg'], t['dist_mm'],
+                float(t['az_deg']), float(t['el_deg']), float(t['dist_mm']),
                 label="tip", session_id=session_id,
                 pen_type="planned_tip", color="white", notes=tip_coord)
             n_saved += 1
