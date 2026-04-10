@@ -286,8 +286,8 @@ class GARasterPlotter(ComputationModule):
         ax.set_ylim(-0.2, total_height + 0.2)
         ax.axvline(0, color='gray', lw=0.5, linestyle='--', alpha=0.6)
 
-        ax.set_ylabel(channel, rotation=0, ha='right', va='center', fontsize=7,
-                      labelpad=35)
+        ax.set_ylabel(channel, rotation=0, ha='right', va='center', fontsize=22,
+                      labelpad=60)
         ax.set_yticks([])
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
