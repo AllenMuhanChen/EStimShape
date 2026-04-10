@@ -74,16 +74,22 @@ def load_delta_variant_stim_ids(ga_conn: Connection,
     return stim_ids
 
 
-def load_all_ga_stim_ids(repo_conn: Connection, session_id: str) -> Set[int]:
-    """Return all stim_ids for the GA experiment of this session."""
+def load_ga_responses(repo_conn: Connection, session_id: str) -> Dict[int, float]:
+    """
+    Load GA Response values from GAStimInfo for the given session.
+    Returns {stim_id: ga_response}, skipping rows where ga_response is NULL.
+    """
     experiment_id = f"{session_id}_ga"
     repo_conn.execute(
-        "SELECT stim_id FROM StimExperimentMapping WHERE experiment_id = %s",
+        """SELECT g.stim_id, g.ga_response
+           FROM GAStimInfo g
+           JOIN StimExperimentMapping s ON g.stim_id = s.stim_id
+           WHERE s.experiment_id = %s AND g.ga_response IS NOT NULL""",
         (experiment_id,),
     )
-    stim_ids = {int(r[0]) for r in repo_conn.fetch_all()}
-    print(f"Found {len(stim_ids)} total GA stim IDs for session {session_id}")
-    return stim_ids
+    ga_responses = {int(r[0]): float(r[1]) for r in repo_conn.fetch_all()}
+    print(f"Loaded GA Response for {len(ga_responses)} stim_ids")
+    return ga_responses
 
 
 def build_response_matrix(repo_conn: Connection,
@@ -180,49 +186,6 @@ def compute_zscore_correlations(
     return correlations
 
 
-def compute_zscore_correlations_top_n(
-        response_matrix: Dict[str, Dict[int, float]],
-        cluster_channels: Set[str],
-        top_n: int,
-) -> Dict[str, Dict[str, float]]:
-    """
-    Like compute_zscore_correlations, but for each cluster channel restricts
-    stimuli to that channel's top_n by mean response rate.
-
-    Returns:
-        {cluster_channel: {channel: rho}}   (NaN when < 3 common stimuli)
-    """
-    correlations: Dict[str, Dict[str, float]] = {}
-
-    for cluster_ch in cluster_channels:
-        if cluster_ch not in response_matrix:
-            print(f"Warning: cluster channel {cluster_ch} has no spike data (top-N)")
-            continue
-
-        # Pick top-N stim IDs by this cluster channel's response
-        rates = response_matrix[cluster_ch]
-        sorted_ids = sorted(rates, key=lambda s: rates[s], reverse=True)
-        top_stim_ids = set(sorted_ids[:top_n])
-
-        if len(top_stim_ids) < 3:
-            continue
-
-        correlations[cluster_ch] = {}
-        c_stims = {s: rates[s] for s in top_stim_ids}
-
-        for channel, stim_rates in response_matrix.items():
-            common = sorted(top_stim_ids & set(stim_rates))
-            if len(common) < 3:
-                correlations[cluster_ch][channel] = np.nan
-                continue
-
-            c_vec = np.array([c_stims[s] for s in common], dtype=float)
-            h_vec = np.array([stim_rates[s] for s in common], dtype=float)
-
-            rho, _ = spearmanr(_zscore(c_vec), _zscore(h_vec))
-            correlations[cluster_ch][channel] = float(rho)
-
-    return correlations
 
 
 # ---------------------------------------------------------------------------
@@ -342,10 +305,17 @@ def plot_delta_variant_correlation(
 
     dv_correlations = compute_zscore_correlations(dv_matrix, cluster_channels)
 
-    # ---- RIGHT GROUP: full GA → top-N per cluster channel ----
-    all_stim_ids = load_all_ga_stim_ids(repo_conn, session_id)
-    full_matrix = build_response_matrix(repo_conn, all_stim_ids)
-    topn_correlations = compute_zscore_correlations_top_n(full_matrix, cluster_channels, top_n)
+    # ---- RIGHT GROUP: top-N by GA Response ----
+    ga_responses = load_ga_responses(repo_conn, session_id)
+    if not ga_responses:
+        print("Warning: no GA Response data found in GAStimInfo — skipping top-N group.")
+        topn_correlations = {}
+    else:
+        sorted_by_ga = sorted(ga_responses, key=lambda s: ga_responses[s], reverse=True)
+        top_stim_ids = set(sorted_by_ga[:top_n])
+        print(f"Top {top_n} stim_ids by GA Response selected.")
+        topn_matrix = build_response_matrix(repo_conn, top_stim_ids)
+        topn_correlations = compute_zscore_correlations(topn_matrix, cluster_channels)
 
     # Use the union of cluster channels that have data in either group
     cluster_channel_list = sorted(
@@ -415,7 +385,7 @@ def plot_delta_variant_correlation(
         ha='center', fontsize=11, fontweight='bold', color='#333333',
     )
     right_mid.annotate(
-        f"Top {top_n} GA stimuli per channel",
+        f"Top {top_n} GA stimuli by GA Response",
         xy=(0.5, 1.0), xycoords='axes fraction',
         xytext=(0, 30), textcoords='offset points',
         ha='center', fontsize=11, fontweight='bold', color='#333333',
