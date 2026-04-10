@@ -93,10 +93,16 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             stim_id = row['StimSpecId']
 
             if parent_id in included_variant_ids and stim_id in deltas_data['StimSpecId'].values:
-                # Normal direction: this delta's parent is an included variant
+                # Normal direction: parent is an included variant, child is a candidate delta.
+                # Skip if the child is also an included variant (variant→variant relationship).
+                if stim_id in included_variant_ids:
+                    continue
                 pair_records.append({'StimSpecId': stim_id, 'PairedVariantId': parent_id})
             elif stim_id in included_variant_ids:
-                # Reversed: this stim IS the included variant, so its parent is the candidate delta
+                # Reversed: this stim IS the included variant, so its parent is the candidate delta.
+                # Skip if the parent is also an included variant (variant→variant relationship).
+                if parent_id in included_variant_ids:
+                    continue
                 parent_row = compiled_data[compiled_data['StimSpecId'] == parent_id]
                 if not parent_row.empty:
                     if parent_id not in deltas_data['StimSpecId'].values:
