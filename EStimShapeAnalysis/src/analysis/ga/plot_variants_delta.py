@@ -12,7 +12,8 @@ import pandas as pd
 def main():
     analysis = PlotVariantDeltas(
         use_ga_response=True,# Set to False to use channel-specific spike rates
-        to_save_to_db=True)
+        to_save_to_db=True,
+        threshold=0.6)
     compiled_data = None  # Set to None to import from repository
     # compiled_data = analysis.compile_and_export()
     session_id = "260410_0"
@@ -21,7 +22,7 @@ def main():
 
 
 class PlotVariantDeltas(PlotTopNAnalysis):
-    def __init__(self, use_ga_response=True, to_save_to_db=False):
+    def __init__(self, use_ga_response=True, to_save_to_db=False, threshold=0.5):
         """
         Initialize PlotVariantDeltas analysis.
 
@@ -32,6 +33,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
         super().__init__()
         self.use_ga_response = use_ga_response
         self.to_save_to_db = to_save_to_db
+        self.threshold = threshold
 
     def analyze(self, channel, compiled_data=None):
         if compiled_data is None:
@@ -150,11 +152,12 @@ class PlotVariantDeltas(PlotTopNAnalysis):
 
         # Calculate ratio and determine inclusion
         delta_avg_response['Ratio'] = delta_avg_response['Delta Response'] / delta_avg_response['Variant Response']
-        delta_avg_response['Included'] = delta_avg_response['Ratio'] < 0.5
+
+        delta_avg_response['Included'] = delta_avg_response['Ratio'] < self.threshold
 
         # Calculate ratio and determine inclusion
         delta_avg_response['Ratio'] = delta_avg_response['Delta Response'] / delta_avg_response['Variant Response']
-        delta_avg_response['Included'] = delta_avg_response['Ratio'] < 0.5
+        delta_avg_response['Included'] = delta_avg_response['Ratio'] < self.threshold
 
         # --- NEW: Filter out reversed-lineage pairs where DELTA type is the true variant ---
         # For each included pair, check if the "true variant" (PairedVariantId) has StimType REGIME_ESTIM_DELTA.
