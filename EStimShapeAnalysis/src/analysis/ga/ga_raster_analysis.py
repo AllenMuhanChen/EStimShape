@@ -234,7 +234,7 @@ class GARasterPlotter(ComputationModule):
         # Scale figure height so each data-unit is roughly 0.15 inches
         fig_height = max(total_data_units * 0.15, 20)
 
-        fig = plt.figure(figsize=(14, fig_height))
+        fig = plt.figure(figsize=(28, fig_height))
         gs = GridSpec(
             n_channels, 1,
             figure=fig,
