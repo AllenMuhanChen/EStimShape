@@ -77,6 +77,9 @@ class IntanResponseParser(ResponseParser):
         for task_id, spikes_for_channels in spikes.items():
             stim_id = self._find_stim_id_for_task(task_ids_for_stim_ids, task_id)
             epoch = epochs[task_id]
+            if spikes_for_channels is None:
+                print("No spike data for task_id ", task_id)
+                continue
             for channel, spike_times in spikes_for_channels.items():
                 print(f"Processing task {task_id} on channel {channel.value}")
                 spike_count = len([time for time in spike_times if epoch[0] <= time <= epoch[1]])

@@ -39,19 +39,25 @@ class SolidPreferenceIndexCalculator(ComputationModule):
 
     def requires(self, prepared_data: pd.DataFrame) -> bool:
         if self.spike_data_col not in prepared_data.columns:
+            print(f"Spike data column '{self.spike_data_col}' not found in prepared data")
             return False
         if 'TestType' not in prepared_data.columns:
+            print("Required column 'TestType' not found in prepared data")
             return False
         if not set(['3D', '2D']).issubset(prepared_data['TestType'].unique()):
+            print("Required TestType values '3D' and '2D' not found in prepared data")
             return False
 
         first_val = prepared_data[self.spike_data_col].iloc[0]
         if not isinstance(first_val, dict):
+            print(f"Expected spike data column '{self.spike_data_col}' to contain dictionaries, but found {type(first_val)}")
             return False
         if self.response_key not in first_val:
+            print(f"Response key '{self.response_key}' not found in spike data column '{self.spike_data_col}'")
             logger.info(f"Response key '{self.response_key}' not found in spike data column '{self.spike_data_col}'")
             return False
         if not isinstance(first_val[self.response_key], (int, float)):
+            print(f"Expected response value for key '{self.response_key}' to be numeric, but found {type(first_val[self.response_key])}")
             return False
 
         return True
