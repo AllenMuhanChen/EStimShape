@@ -307,13 +307,29 @@ class TwoDvsThreeDScatterPlotter(ComputationModule):
 
         slope, intercept, r_value, p_value, _ = linregress(x, y)
 
+        # Shared axis limits so x and y are on the same scale
+        all_vals = np.concatenate([x, y])
+        ax_min = all_vals.min()
+        ax_max = all_vals.max()
+        padding = (ax_max - ax_min) * 0.08 or 1.0
+        ax_min -= padding
+        ax_max += padding
+
         fig, ax = plt.subplots(figsize=(6, 6))
+        ax.set_xlim(ax_min, ax_max)
+        ax.set_ylim(ax_min, ax_max)
+        ax.set_aspect('equal', adjustable='box')
+
+        # Identity line (y = x)
+        ax.plot([ax_min, ax_max], [ax_min, ax_max],
+                color='gray', lw=1.0, linestyle='--', alpha=0.7, zorder=1, label='y = x')
+
         ax.scatter(x, y, color='black', s=50, alpha=0.8, zorder=3)
 
-        x_line = np.linspace(x.min(), x.max(), 300)
+        x_line = np.linspace(ax_min, ax_max, 300)
         ax.plot(
             x_line, slope * x_line + intercept,
-            color='red', lw=1.5,
+            color='red', lw=1.5, zorder=2,
             label=f'y = {slope:.2f}x + {intercept:.2f}\n$r^2$ = {r_value ** 2:.3f},  p = {p_value:.3f}',
         )
 
