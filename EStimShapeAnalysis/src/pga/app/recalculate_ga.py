@@ -18,5 +18,8 @@ def clear_driving_responses(conn: connection):
     #set the driving responses to None
     conn.execute("UPDATE StimGaInfo SET response = NULL")
 
+    # delete GA Respones from TaskfieldCache
+    conn.execute("DELETE FROM TaskFieldCache WHERE name = 'GA Response'")
+
 if __name__ == "__main__":
     main()
