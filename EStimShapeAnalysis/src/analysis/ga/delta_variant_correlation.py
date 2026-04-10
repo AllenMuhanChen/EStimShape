@@ -1,8 +1,10 @@
 """
 delta_variant_correlation.py
 -----------------------------
-Plots z-scored Spearman correlations between all channels using only the
-stimuli (variants + deltas) found in the IncludedDeltas table.
+Plots z-scored Spearman correlations between all channels using two stimulus sets:
+
+  Left group  — stimuli (variants + deltas) found in the IncludedDeltas table.
+  Right group — top-N stimuli per cluster channel from the full GA session.
 
 Visual style mirrors preference_cluster.py:
   - y-axis = all 32 channels top → bottom
@@ -21,6 +23,7 @@ from typing import Dict, Optional, Set
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import TwoSlopeNorm
+from matplotlib.gridspec import GridSpec
 from matplotlib.lines import Line2D
 from scipy.stats import spearmanr
 
@@ -40,6 +43,7 @@ def main():
         session_id=session_id,
         ga_database=context.ga_database,
         included_only=True,   # ← set False to include all pairs from IncludedDeltas
+        top_n=10,
         save_path=save_path,
     )
 
@@ -67,6 +71,18 @@ def load_delta_variant_stim_ids(ga_conn: Connection,
 
     print(f"Found {len(stim_ids)} unique stim_ids in IncludedDeltas "
           f"({'included only' if included_only else 'all pairs'})")
+    return stim_ids
+
+
+def load_all_ga_stim_ids(repo_conn: Connection, session_id: str) -> Set[int]:
+    """Return all stim_ids for the GA experiment of this session."""
+    experiment_id = f"{session_id}_ga"
+    repo_conn.execute(
+        "SELECT stim_id FROM StimExperimentMapping WHERE experiment_id = %s",
+        (experiment_id,),
+    )
+    stim_ids = {int(r[0]) for r in repo_conn.fetch_all()}
+    print(f"Found {len(stim_ids)} total GA stim IDs for session {session_id}")
     return stim_ids
 
 
@@ -121,6 +137,11 @@ def build_response_matrix(repo_conn: Connection,
 # Z-score + correlation
 # ---------------------------------------------------------------------------
 
+def _zscore(v: np.ndarray) -> np.ndarray:
+    sd = np.std(v)
+    return (v - np.mean(v)) / sd if sd > 0 else v - np.mean(v)
+
+
 def compute_zscore_correlations(
         response_matrix: Dict[str, Dict[int, float]],
         cluster_channels: Set[str],
@@ -153,10 +174,50 @@ def compute_zscore_correlations(
             c_vec = np.array([c_stims[s] for s in common], dtype=float)
             h_vec = np.array([stim_rates[s] for s in common], dtype=float)
 
-            # Z-score each vector independently
-            def _zscore(v):
-                sd = np.std(v)
-                return (v - np.mean(v)) / sd if sd > 0 else v - np.mean(v)
+            rho, _ = spearmanr(_zscore(c_vec), _zscore(h_vec))
+            correlations[cluster_ch][channel] = float(rho)
+
+    return correlations
+
+
+def compute_zscore_correlations_top_n(
+        response_matrix: Dict[str, Dict[int, float]],
+        cluster_channels: Set[str],
+        top_n: int,
+) -> Dict[str, Dict[str, float]]:
+    """
+    Like compute_zscore_correlations, but for each cluster channel restricts
+    stimuli to that channel's top_n by mean response rate.
+
+    Returns:
+        {cluster_channel: {channel: rho}}   (NaN when < 3 common stimuli)
+    """
+    correlations: Dict[str, Dict[str, float]] = {}
+
+    for cluster_ch in cluster_channels:
+        if cluster_ch not in response_matrix:
+            print(f"Warning: cluster channel {cluster_ch} has no spike data (top-N)")
+            continue
+
+        # Pick top-N stim IDs by this cluster channel's response
+        rates = response_matrix[cluster_ch]
+        sorted_ids = sorted(rates, key=lambda s: rates[s], reverse=True)
+        top_stim_ids = set(sorted_ids[:top_n])
+
+        if len(top_stim_ids) < 3:
+            continue
+
+        correlations[cluster_ch] = {}
+        c_stims = {s: rates[s] for s in top_stim_ids}
+
+        for channel, stim_rates in response_matrix.items():
+            common = sorted(top_stim_ids & set(stim_rates))
+            if len(common) < 3:
+                correlations[cluster_ch][channel] = np.nan
+                continue
+
+            c_vec = np.array([c_stims[s] for s in common], dtype=float)
+            h_vec = np.array([stim_rates[s] for s in common], dtype=float)
 
             rho, _ = spearmanr(_zscore(c_vec), _zscore(h_vec))
             correlations[cluster_ch][channel] = float(rho)
@@ -165,25 +226,86 @@ def compute_zscore_correlations(
 
 
 # ---------------------------------------------------------------------------
-# Plot
+# Plot helpers
+# ---------------------------------------------------------------------------
+
+def _plot_corr_column(
+        ax,
+        cluster_ch: str,
+        corr_data: Dict[str, float],
+        channel_strings,
+        cluster_channels: Set[str],
+        cmap,
+        norm,
+        show_yticks: bool = False,
+):
+    """Draw one correlation column into *ax*. Returns a scatter artist for the colorbar."""
+    scatter_ref = None
+    for row_idx, channel_str in enumerate(channel_strings):
+        y_pos = len(channel_strings) - row_idx  # top → bottom
+        is_cluster = channel_str in cluster_channels
+        is_self = channel_str == cluster_ch
+        rho = corr_data.get(channel_str, np.nan)
+
+        if not np.isnan(rho):
+            scatter_ref = ax.scatter(
+                0, y_pos,
+                c=rho, s=200 if is_cluster else 100,
+                marker='*' if is_cluster else 'o',
+                cmap=cmap, norm=norm,
+                edgecolors='black',
+                linewidths=2.0 if is_self else 0.5,
+                alpha=0.9 if is_cluster else 0.8,
+                zorder=10 if is_cluster else 1,
+            )
+        else:
+            ax.scatter(
+                0, y_pos,
+                c='lightgray', s=120 if is_cluster else 50,
+                marker='*' if is_cluster else 'o',
+                edgecolors='black' if is_cluster else 'gray',
+                linewidths=0.5,
+                alpha=0.7 if is_cluster else 0.5,
+                zorder=10 if is_cluster else 1,
+            )
+
+    ax.set_xlim(-0.5, 0.5)
+    ax.set_xticks([])
+    ax.axvline(0, color='black', linewidth=0.5, alpha=0.3)
+    ax.grid(True, axis='y', alpha=0.3, linestyle='--')
+    ax.set_ylim(0.5, len(channel_strings) + 0.5)
+
+    if show_yticks:
+        ax.set_yticks(range(1, len(channel_strings) + 1))
+        ax.set_yticklabels(channel_strings[::-1], fontsize=8)
+        ax.set_ylabel('Channel (Top → Bottom)', fontsize=10)
+
+    return scatter_ref
+
+
+# ---------------------------------------------------------------------------
+# Main plotting function
 # ---------------------------------------------------------------------------
 
 def plot_delta_variant_correlation(
         session_id: str,
         ga_database: str = None,
         included_only: bool = True,
+        top_n: int = 10,
         headstage_label: str = "A",
         save_path: Optional[str] = None,
 ):
     """
     Main entry point.  Connects to the GA database and the repository,
-    builds the response matrix, correlates, and plots.
+    builds two response matrices (delta/variant stimuli and top-N stimuli),
+    correlates, and plots side-by-side.
 
     Args:
         session_id:     e.g. "260410_0"
         ga_database:    Name of the GA database (defaults to context.ga_database)
         included_only:  If True, only use stims from included pairs in IncludedDeltas.
                         If False, use all pairs regardless of the included flag.
+        top_n:          Number of top stimuli (per cluster channel) for the right group.
         headstage_label: Headstage prefix for channel names (default "A")
         save_path:      Optional path to save the PNG figure.
     """
@@ -207,93 +329,104 @@ def plot_delta_variant_correlation(
     cluster_channels: Set[str] = {row[0] for row in repo_conn.fetch_all()}
     print(f"Cluster channels: {sorted(cluster_channels)}")
 
-    # ---- delta / variant stim ids ----
-    stim_ids = load_delta_variant_stim_ids(ga_conn, included_only=included_only)
-    if not stim_ids:
+    # ---- LEFT GROUP: delta/variant stim ids ----
+    dv_stim_ids = load_delta_variant_stim_ids(ga_conn, included_only=included_only)
+    if not dv_stim_ids:
         print("No stim IDs found — check IncludedDeltas table.")
         return
 
-    # ---- response matrix ----
-    response_matrix = build_response_matrix(repo_conn, stim_ids)
-    if not response_matrix:
-        print("No spike data found for these stim IDs.")
+    dv_matrix = build_response_matrix(repo_conn, dv_stim_ids)
+    if not dv_matrix:
+        print("No spike data found for delta/variant stim IDs.")
         return
 
-    # ---- correlations ----
-    correlations = compute_zscore_correlations(response_matrix, cluster_channels)
-    cluster_channel_list = sorted(correlations.keys())
-    n_corr_cols = len(cluster_channel_list)
+    dv_correlations = compute_zscore_correlations(dv_matrix, cluster_channels)
 
-    if n_corr_cols == 0:
+    # ---- RIGHT GROUP: full GA → top-N per cluster channel ----
+    all_stim_ids = load_all_ga_stim_ids(repo_conn, session_id)
+    full_matrix = build_response_matrix(repo_conn, all_stim_ids)
+    topn_correlations = compute_zscore_correlations_top_n(full_matrix, cluster_channels, top_n)
+
+    # Use the union of cluster channels that have data in either group
+    cluster_channel_list = sorted(
+        set(dv_correlations.keys()) | set(topn_correlations.keys())
+    )
+    n_cols = len(cluster_channel_list)
+
+    if n_cols == 0:
         print("No correlations computed (no cluster channels with data).")
         return
 
-    # ---- figure ----
+    # ---- figure layout ----
+    # Two groups of n_cols, separated by a narrow spacer column
     cmap = plt.cm.RdBu_r
     norm = TwoSlopeNorm(vmin=-1.0, vcenter=0.0, vmax=1.0)
 
-    fig, axes = plt.subplots(
-        1, n_corr_cols,
-        figsize=(3 * n_corr_cols + 1, 12),
-        sharey=True,
-        gridspec_kw={'wspace': 0.15},
+    col_width = 3
+    spacer_width = 0.5
+    fig_width = col_width * n_cols * 2 + spacer_width + 2
+    fig = plt.figure(figsize=(fig_width, 12))
+
+    gs = GridSpec(
+        1, 2 * n_cols + 1,
+        width_ratios=[col_width] * n_cols + [spacer_width] + [col_width] * n_cols,
+        wspace=0.15,
+        figure=fig,
     )
-    if n_corr_cols == 1:
-        axes = [axes]
+
+    axes_left = [fig.add_subplot(gs[0, i]) for i in range(n_cols)]
+    axes_right = [
+        fig.add_subplot(gs[0, n_cols + 1 + i], sharey=axes_left[0])
+        for i in range(n_cols)
+    ]
 
     scatter_ref = None
-    for col_idx, (ax, cluster_ch) in enumerate(zip(axes, cluster_channel_list)):
-        corr_data = correlations[cluster_ch]
 
-        for row_idx, channel_str in enumerate(channel_strings):
-            y_pos = len(channel_strings) - row_idx  # top → bottom
-            is_cluster = channel_str in cluster_channels
-            is_self = channel_str == cluster_ch
-
-            rho = corr_data.get(channel_str, np.nan)
-
-            if not np.isnan(rho):
-                scatter_ref = ax.scatter(
-                    0, y_pos,
-                    c=rho, s=200 if is_cluster else 100,
-                    marker='*' if is_cluster else 'o',
-                    cmap=cmap, norm=norm,
-                    edgecolors='black',
-                    linewidths=2.0 if is_self else 0.5,
-                    alpha=0.9 if is_cluster else 0.8,
-                    zorder=10 if is_cluster else 1,
-                )
-            else:
-                ax.scatter(
-                    0, y_pos,
-                    c='lightgray', s=120 if is_cluster else 50,
-                    marker='*' if is_cluster else 'o',
-                    edgecolors='black' if is_cluster else 'gray',
-                    linewidths=0.5,
-                    alpha=0.7 if is_cluster else 0.5,
-                    zorder=10 if is_cluster else 1,
-                )
-
-        ax.set_xlim(-0.5, 0.5)
-        ax.set_xticks([])
-        ax.set_title(f"ρ vs {cluster_ch}", fontsize=11, fontweight='bold')
-        ax.axvline(0, color='black', linewidth=0.5, alpha=0.3)
-        ax.grid(True, axis='y', alpha=0.3, linestyle='--')
-        ax.set_ylim(0.5, len(channel_strings) + 0.5)
-
-        if col_idx == 0:
-            ax.set_yticks(range(1, len(channel_strings) + 1))
-            ax.set_yticklabels(channel_strings[::-1], fontsize=8)
-            ax.set_ylabel('Channel (Top → Bottom)', fontsize=10)
-
+    # -- left group --
     included_label = "included pairs only" if included_only else "all pairs"
-    fig.suptitle(
-        f"Z-scored Spearman Correlations — Variant/Delta Stimuli\n"
-        f"Session: {session_id}  |  {included_label}  |  {len(stim_ids)} stimuli",
-        fontsize=13, fontweight='bold', y=0.97,
+    for col_idx, (ax, cluster_ch) in enumerate(zip(axes_left, cluster_channel_list)):
+        ref = _plot_corr_column(
+            ax, cluster_ch,
+            dv_correlations.get(cluster_ch, {}),
+            channel_strings, cluster_channels, cmap, norm,
+            show_yticks=(col_idx == 0),
+        )
+        scatter_ref = scatter_ref or ref
+        ax.set_title(f"ρ vs {cluster_ch}\ndelta/variant", fontsize=10, fontweight='bold')
+
+    # -- right group --
+    for col_idx, (ax, cluster_ch) in enumerate(zip(axes_right, cluster_channel_list)):
+        ref = _plot_corr_column(
+            ax, cluster_ch,
+            topn_correlations.get(cluster_ch, {}),
+            channel_strings, cluster_channels, cmap, norm,
+            show_yticks=False,
+        )
+        scatter_ref = scatter_ref or ref
+        ax.set_title(f"ρ vs {cluster_ch}\ntop {top_n}", fontsize=10, fontweight='bold')
+
+    # Group bracket labels
+    left_mid = axes_left[len(axes_left) // 2]
+    right_mid = axes_right[len(axes_right) // 2]
+    left_mid.annotate(
+        f"Delta/Variant ({included_label}, {len(dv_stim_ids)} stims)",
+        xy=(0.5, 1.0), xycoords='axes fraction',
+        xytext=(0, 30), textcoords='offset points',
+        ha='center', fontsize=11, fontweight='bold', color='#333333',
+    )
+    right_mid.annotate(
+        f"Top {top_n} GA stimuli per channel",
+        xy=(0.5, 1.0), xycoords='axes fraction',
+        xytext=(0, 30), textcoords='offset points',
+        ha='center', fontsize=11, fontweight='bold', color='#333333',
     )
 
-    plt.tight_layout(rect=[0, 0.06, 1, 0.95])
+    fig.suptitle(
+        f"Z-scored Spearman Correlations  |  Session: {session_id}",
+        fontsize=13, fontweight='bold', y=0.99,
+    )
+
+    plt.tight_layout(rect=[0, 0.06, 1, 0.96])
 
     # Shared colorbar at the bottom
     if scatter_ref is not None:
@@ -316,7 +449,7 @@ def plot_delta_variant_correlation(
                markeredgecolor='gray', markersize=10, markeredgewidth=0.5,
                label='No data', linestyle='None'),
     ]
-    axes[0].legend(handles=legend_elements, loc='upper left', fontsize=8)
+    axes_left[0].legend(handles=legend_elements, loc='upper left', fontsize=8)
 
     if save_path:
         import os
