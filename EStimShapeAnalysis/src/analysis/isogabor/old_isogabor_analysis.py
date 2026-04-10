@@ -108,16 +108,34 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     return data
 
 
-class EpochStartStopTimesField(CachedTaskDatabaseField):
-    def __init__(self, conn: Connection, parser: type(MultiFileParser), all_task_ids: list[int], intan_files_dir: str):
+class _IntanParserField(CachedTaskDatabaseField):
+    """
+    Base for all fields that need Intan spike/epoch data.
+    Calls parser.parse() exactly once per field instance and keeps the result
+    in memory, so it is never re-read from disk for each task_id.
+    """
+
+    def __init__(self, conn: Connection, parser: MultiFileParser,
+                 all_task_ids: list[int], intan_files_dir: str):
         super().__init__(conn)
         self.parser = parser
         self.intan_files_dir = intan_files_dir
         self.all_task_ids = all_task_ids
+        self._all_spikes: dict | None = None
+        self._all_epochs: dict | None = None
 
+    def _get_parsed(self) -> tuple[dict, dict]:
+        """Return (spikes_by_task_id, epochs_by_task_id), parsing once on first call."""
+        if self._all_spikes is None:
+            self._all_spikes, self._all_epochs = self.parser.parse(
+                self.all_task_ids, intan_files_dir=self.intan_files_dir
+            )
+        return self._all_spikes, self._all_epochs
+
+
+class EpochStartStopTimesField(_IntanParserField):
     def get(self, task_id: int) -> tuple:
-        _, epochs_by_task_id = self.parser.parse(self.all_task_ids,
-                                                 intan_files_dir=self.intan_files_dir)
+        _, epochs_by_task_id = self._get_parsed()
         if task_id not in epochs_by_task_id:
             return None
         return epochs_by_task_id[task_id]
@@ -148,8 +166,7 @@ class WindowSortSpikesByUnitField(EpochStartStopTimesField):
 
     def get(self, task_id: int) -> dict:
         spike_tstamps_by_unit = {}
-        _, epochs_by_task_id = self.parser.parse(self.all_task_ids,
-                                                 intan_files_dir=self.intan_files_dir)
+        _, epochs_by_task_id = self._get_parsed()
         epochs = epochs_by_task_id[task_id]
 
         spike_indices_by_unit_by_channel = read_pickle(self.sort_dir)
@@ -215,62 +232,46 @@ class WindowSortSpikesForUnitField(WindowSortSpikesByUnitField):
 
 
 
-class IntanSpikesByChannelField(CachedTaskDatabaseField):
+class IntanSpikesByChannelField(_IntanParserField):
     """
     Retrieves spike timestamps by channel from Intan files for a given task ID
-    and makes them relative to the start of the epoch
-
-    Retrieves the spikes that Intan software detects, saved in spike.dat files
+    and makes them relative to the start of the epoch.
     """
-
-    def __init__(self, conn: Connection, parser: type(MultiFileParser), all_task_ids: list[int], intan_files_dir: str):
-        super().__init__(conn)
-        self.parser = parser
-        self.intan_files_dir = intan_files_dir
-        self.all_task_ids = all_task_ids
 
     def get(self, task_id) -> dict:
         stim_spec_id = self.get_cached_super(task_id, StimSpecIdField)
         if stim_spec_id is None:
             return None
 
-        spikes_by_channel_by_task_id, epochs_by_task_id = self.parser.parse(self.all_task_ids,
-                                                                                    intan_files_dir=self.intan_files_dir)
-        if task_id not in spikes_by_channel_by_task_id.keys():
+        spikes_by_channel_by_task_id, epochs_by_task_id = self._get_parsed()
+        if task_id not in spikes_by_channel_by_task_id:
             return None
-        spikes_by_channel = spikes_by_channel_by_task_id[task_id]
-        if task_id not in epochs_by_task_id.keys():
+        if task_id not in epochs_by_task_id:
             return None
-        epoch_start = epochs_by_task_id[task_id][0]
-        # convert timestamp to epoch_start relative
-        spikes_by_channel = {channel.value: [spike - epoch_start for spike in spikes] for channel, spikes in
-                             spikes_by_channel.items()}
 
-        # Convert Channel enum keys to strings to prevent serialization issues
-        return spikes_by_channel
+        spikes_by_channel = spikes_by_channel_by_task_id[task_id]
+        epoch_start = epochs_by_task_id[task_id][0]
+        # convert timestamps to be epoch_start-relative
+        return {channel.value: [spike - epoch_start for spike in spikes]
+                for channel, spikes in spikes_by_channel.items()}
 
     def get_name(self):
         return "Spikes by channel"
 
 
-class IntanSpikeRateByChannelField(CachedTaskDatabaseField):
-    def __init__(self, conn: Connection, parser: type(MultiFileParser), all_task_ids: list[int], intan_files_dir: str):
-        super().__init__(conn)
-        self.parser = parser
-        self.intan_files_dir = intan_files_dir
-        self.all_task_ids = all_task_ids
+class IntanSpikeRateByChannelField(_IntanParserField):
 
     def get(self, task_id) -> dict:
         stim_spec_id = self.get_cached_super(task_id, StimSpecIdField)
         if stim_spec_id is None:
             return None
 
-        spikes_by_channel_by_task_id, epochs_by_task_id = self.parser.parse(self.all_task_ids, self.intan_files_dir)
-        if task_id not in spikes_by_channel_by_task_id.keys():
+        spikes_by_channel_by_task_id, epochs_by_task_id = self._get_parsed()
+        if task_id not in spikes_by_channel_by_task_id:
             return None
+
         spikes_by_channels = spikes_by_channel_by_task_id[task_id]
         epoch = epochs_by_task_id[task_id]
-
         epoch_start, epoch_end = epoch[0], epoch[1]
         epoch_duration = epoch_end - epoch_start
 
