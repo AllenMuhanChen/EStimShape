@@ -262,7 +262,6 @@ def plot_delta_variant_correlation(
                     linewidths=2.0 if is_self else 0.5,
                     alpha=0.9 if is_cluster else 0.8,
                     zorder=10 if is_cluster else 1,
-                    vmin=-1, vmax=1,
                 )
             else:
                 ax.scatter(
