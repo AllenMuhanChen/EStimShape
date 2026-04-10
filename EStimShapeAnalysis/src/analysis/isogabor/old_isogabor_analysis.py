@@ -3,6 +3,7 @@ import pickle
 from typing import List
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import xmltodict
 from matplotlib.gridspec import GridSpec
@@ -270,12 +271,14 @@ class IntanSpikeRateByChannelField(CachedTaskDatabaseField):
         spikes_by_channels = spikes_by_channel_by_task_id[task_id]
         epoch = epochs_by_task_id[task_id]
 
+        epoch_start, epoch_end = epoch[0], epoch[1]
+        epoch_duration = epoch_end - epoch_start
+
         spike_rate_by_channel = {}
         for channel, spike_times in spikes_by_channels.items():
-            print(f"Processing task {task_id} on channel {channel.value}")
-            spike_count = len([time for time in spike_times if epoch[0] <= time <= epoch[1]])
-            spike_rate = spike_count / (epoch[1] - epoch[0])
-            spike_rate_by_channel[channel.value] = spike_rate
+            times = np.asarray(spike_times)
+            spike_count = int(np.sum((times >= epoch_start) & (times <= epoch_end)))
+            spike_rate_by_channel[channel.value] = spike_count / epoch_duration
 
         return spike_rate_by_channel
 
