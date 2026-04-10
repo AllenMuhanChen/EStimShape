@@ -1,10 +1,12 @@
 import pandas as pd
+import numpy as np
 from matplotlib import pyplot as plt
+from scipy.stats import linregress
 
 from clat.compile.task.cached_task_fields import CachedTaskFieldList
 from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.compile.task.compile_task_id import TaskIdCollector
-from clat.pipeline.pipeline_base_classes import create_pipeline, create_branch
+from clat.pipeline.pipeline_base_classes import create_pipeline, create_branch, ComputationModule, AnalysisModuleFactory
 from clat.util.connection import Connection
 from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField
@@ -16,9 +18,11 @@ from src.analysis.ga.solid_preference_permutation_test import create_sp_permutat
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
 from src.analysis.lightness.lightness_analysis import TextureField
+from src.analysis.modules.figure_output import FigureSaverOutput
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.analysis.modules.matplotlib.grouped_rasters_matplotlib import create_grouped_raster_module
 from src.analysis.modules.grouped_rsth import create_psth_module
+from src.analysis.modules.input_modules import SpikeRateCombinerInputHandler
 from src.analysis.modules.utils.sorting_utils import SpikeRateSortingUtils
 from src.intan.MultiFileParser import MultiFileParser
 from src.repository.export_to_repository import export_to_repository
@@ -166,6 +170,15 @@ class SideTestAnalysis(Analysis):
         )
         permutation_branch = create_branch().then(permutation_module)
 
+        # 2D vs 3D scatter plot with regression
+        scatter_module = create_2d_vs_3d_scatter_module(
+            channel=channel,
+            spike_data_col=self.spike_rates_col,
+            title=f'2D vs 3D Scatter: {channel_str}',
+            save_path=f"{self.save_path}/{channel_str}_2dvs3d_scatter.png",
+        )
+        scatter_branch = create_branch().then(scatter_module)
+
         # Add to pipeline
         pipeline = create_pipeline().make_branch(
             plot_branch,
@@ -173,7 +186,8 @@ class SideTestAnalysis(Analysis):
             psth_branch,
             psth_examples_branch,
             index_branch,
-            permutation_branch
+            permutation_branch,
+            scatter_branch,
         ).build()
 
         result = pipeline.run(compiled_data)
@@ -228,6 +242,90 @@ class SolidPreferenceIndexAnalysis(SideTestAnalysis):
 
         return result
 
+
+
+# ---------------------------------------------------------------------------
+# 2D vs 3D scatter module
+# ---------------------------------------------------------------------------
+
+def create_2d_vs_3d_scatter_module(channel, spike_data_col, title=None, save_path=None):
+    """
+    Creates a scatter plot of mean 2D response (x) vs mean 3D response (y) for
+    every TestId that has both a 2D and a 3D trial.  Includes a least-squares
+    regression line annotated with slope, r², and p-value.
+    """
+    input_handler = SpikeRateCombinerInputHandler(
+        response_key=channel,
+        spike_data_col=spike_data_col,
+    )
+    return AnalysisModuleFactory.create(
+        input_handler=input_handler,
+        computation=TwoDvsThreeDScatterPlotter(
+            response_key=input_handler.effective_key,
+            spike_data_col=spike_data_col,
+            title=title,
+        ),
+        output_handler=FigureSaverOutput(save_path=save_path),
+        name="2d_vs_3d_scatter",
+    )
+
+
+class TwoDvsThreeDScatterPlotter(ComputationModule):
+    def __init__(self, response_key, spike_data_col, title=None):
+        self.response_key = response_key
+        self.spike_data_col = spike_data_col
+        self.title = title
+
+    def compute(self, data: pd.DataFrame) -> plt.Figure:
+        data = data.copy()
+
+        # Extract per-trial spike rate for this channel/unit
+        data['_rate'] = data[self.spike_data_col].apply(
+            lambda d: d.get(self.response_key, np.nan) if isinstance(d, dict) else np.nan
+        )
+
+        # Average across trials for each (TestId, TestType) pair
+        avg = (
+            data.groupby(['TestId', 'TestType'])['_rate']
+            .mean()
+            .unstack('TestType')
+        )
+
+        # Keep only paired rows (TestIds that have both 2D and 3D)
+        avg = avg.dropna(subset=['2D', '3D'])
+
+        if avg.empty:
+            fig, ax = plt.subplots(figsize=(6, 6))
+            ax.text(0.5, 0.5, 'No paired 2D/3D data', ha='center', va='center',
+                    transform=ax.transAxes)
+            return fig
+
+        x = avg['2D'].values
+        y = avg['3D'].values
+
+        slope, intercept, r_value, p_value, _ = linregress(x, y)
+
+        fig, ax = plt.subplots(figsize=(6, 6))
+        ax.scatter(x, y, color='black', s=50, alpha=0.8, zorder=3)
+
+        x_line = np.linspace(x.min(), x.max(), 300)
+        ax.plot(
+            x_line, slope * x_line + intercept,
+            color='red', lw=1.5,
+            label=f'y = {slope:.2f}x + {intercept:.2f}\n$r^2$ = {r_value ** 2:.3f},  p = {p_value:.3f}',
+        )
+
+        ax.set_xlabel('2D mean response (sp/s)', fontsize=11)
+        ax.set_ylabel('3D mean response (sp/s)', fontsize=11)
+        ax.legend(fontsize=9, framealpha=0.8)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+
+        if self.title:
+            ax.set_title(self.title, fontsize=12)
+
+        plt.tight_layout()
+        return fig
 
 
 def compile_and_export():
