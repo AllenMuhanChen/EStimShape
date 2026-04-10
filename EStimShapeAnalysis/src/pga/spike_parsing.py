@@ -73,24 +73,36 @@ class IntanResponseParser(ResponseParser):
         self._write_to_db(df_spike_rates)
 
     def _process_data_to_df(self, spikes, epochs, task_ids_for_stim_ids, sample_rate):
+        # Build reverse lookup once: task_id → stim_id
+        # Avoids the O(n_stims) linear scan that _find_stim_id_for_task does per task.
+        task_to_stim = {
+            task_id: stim_id
+            for stim_id, task_ids in task_ids_for_stim_ids.items()
+            for task_id in task_ids
+        }
+
         data = []
         for task_id, spikes_for_channels in spikes.items():
-            stim_id = self._find_stim_id_for_task(task_ids_for_stim_ids, task_id)
+            stim_id = task_to_stim.get(task_id)
             epoch = epochs[task_id]
+            epoch_start, epoch_end = epoch[0], epoch[1]
+            epoch_duration = epoch_end - epoch_start
+
             if spikes_for_channels is None:
                 print("No spike data for task_id ", task_id)
                 continue
+
             for channel, spike_times in spikes_for_channels.items():
-                print(f"Processing task {task_id} on channel {channel.value}")
-                spike_count = len([time for time in spike_times if epoch[0] <= time <= epoch[1]])
-                spike_rate = spike_count / (epoch[1] - epoch[0])
+                times = np.asarray(spike_times)
+                spike_count = int(np.sum((times >= epoch_start) & (times <= epoch_end)))
+                spike_rate = spike_count / epoch_duration
                 data.append({
                     'stim_id': stim_id,
-                    # Assuming each task_id has one stim_id
                     'task_id': task_id,
-                    'channel': channel.value,  # Assuming channel has a 'value' attribute
-                    'spike_rate': spike_rate
+                    'channel': channel.value,
+                    'spike_rate': spike_rate,
                 })
+
         return pd.DataFrame(data)
 
     def _find_stim_id_for_task(self, task_ids_for_stim_ids, task_id):
