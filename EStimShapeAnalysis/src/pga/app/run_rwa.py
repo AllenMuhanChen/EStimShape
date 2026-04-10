@@ -1,6 +1,6 @@
 import os
+import pickle
 
-import jsonpickle
 import numpy as np
 import pandas as pd
 
@@ -95,11 +95,10 @@ def when_for_most_recent_experiment():
 
 
 def save(response_weighted_average, file_name):
-    file_name = f"{file_name}.json"
+    file_name = f"{file_name}.pkl"
     filepath = os.path.join(context.rwa_output_dir, file_name)
-    with open(filepath, "w") as file:
-        file.write(jsonpickle.encode(response_weighted_average))
-        file.close()
+    with open(filepath, "wb") as file:
+        pickle.dump(response_weighted_average, file)
 
 
 if __name__ == "__main__":
