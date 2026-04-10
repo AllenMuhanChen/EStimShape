@@ -22,7 +22,7 @@ def main():
 
 
 class PlotVariants(PlotTopNAnalysis):
-    threshold = 0.75
+    threshold = 0.5
     def __init__(self, use_ga_response=True, save_included_variants=False):
         """
         Initialize PlotVariants analysis.

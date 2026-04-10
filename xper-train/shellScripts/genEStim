@@ -6,6 +6,6 @@ sudo -S <<< Whedon101 cp $XPER_PROPERTIES_PROCEDURAL $DIST/allen/xper.properties
 cd $DIST/allen
 
 #shape, polarity, d, d1, d2, dp, a, a1, a2, refractoryPeriod
-PARAMS='channels=[A010,A021,A009]. polarity={PositiveFirst;NegativeFirst}. a=(3.5, 3.5). refractoryPeriod=4000. triggerDelay=100'
+PARAMS='channels=[A028]. polarity={PositiveFirst;NegativeFirst}. a=(2.5, 2.5). refractoryPeriod=4000. triggerDelay=100'
 
 java -jar EStimSpecWriter.jar "$PARAMS"

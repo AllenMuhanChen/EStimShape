@@ -24,7 +24,7 @@ from src.startup import context
 # ---------------------------------------------------------------------------
 # Configuration — edit these or change context.py
 # ---------------------------------------------------------------------------
-POLL_INTERVAL_SECONDS = 30   # how often to check for new task IDs
+POLL_INTERVAL_SECONDS = 5   # how often to check for new task IDs
 GA_DATABASE      = context.ga_database
 INTAN_PATH       = context.ga_intan_path
 CACHE_PATH       = context.ga_parsed_spikes_path
