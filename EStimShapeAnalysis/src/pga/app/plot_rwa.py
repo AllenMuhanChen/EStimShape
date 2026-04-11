@@ -4,6 +4,7 @@ import pickle
 from matplotlib import pyplot as plt
 
 from src.analysis.ga.rwa import get_next
+from src.analysis.ga.rwa_prediction import compute_predictions, plot_real_vs_predicted
 from clat.util.connection import Connection
 from src.startup import context
 from src.pga.mock.mock_rwa_plot import plot_shaft_rwa_1d, plot_termination_rwa_1d, plot_junction_rwa_1d
@@ -56,6 +57,30 @@ def main():
                                 distances_to_termination_peak, num_stimuli_to_plot_on_rwa)
 
     plot_top_n_stimuli_comp_maps(experiment_id, num_stimuli_to_show_comp_map, conn, image_path)
+
+    # ---- Real vs Predicted scatter ----
+    data_path = os.path.join(context.rwa_output_dir, f"{experiment_id}_data.pkl")
+    if os.path.exists(data_path):
+        with open(data_path, "rb") as f:
+            data = pickle.load(f)
+
+        fig_scatter, axes = plt.subplots(1, 3, figsize=(15, 5))
+        for ax, (rwa_mat, col, label) in zip(axes, [
+            (shaft_rwa,       "Shaft",       "Shaft"),
+            (termination_rwa, "Termination", "Termination"),
+            (junction_rwa,    "Junction",    "Junction"),
+        ]):
+            preds = compute_predictions(rwa_mat, data[col])
+            plot_real_vs_predicted(data["Response-1"], preds, title=label, ax=ax)
+
+        fig_scatter.suptitle(
+            f"RWA Prediction Correlation — Experiment {experiment_id}",
+            fontsize=13, fontweight='bold',
+        )
+        plt.tight_layout()
+    else:
+        print(f"No data file found at {data_path} — re-run run_rwa.py to generate it.")
+
     plt.show()
 
 
