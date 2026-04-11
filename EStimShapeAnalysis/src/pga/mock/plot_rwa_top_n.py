@@ -179,7 +179,7 @@ def _distance(peak, component, padding_for_axes, limits_for_axes):
     distance_for_dimension = []
     for i in range(len(component)):
         limit = limits_for_axes[i]
-        if padding_for_axes[str(i)] == 'wrap':
+        if padding_for_axes[i] == 'wrap':
             # Calculate the circular distance considering wrap around
             total_length = limit[1] - limit[0]
             distance_1 = abs(peak[i] - component[i])
@@ -231,7 +231,7 @@ def _plot_shaft_points(fig, top_n_response, top_n_shaft_points, binners_for_axes
 
         for dim_index, dimension in enumerate(dimensions):
             # Extract the dimension values for all points
-            dim_values = [binners_for_axes[str(dim_index)].bins[point[dim_index]].middle for point in shaft_points]
+            dim_values = [binners_for_axes[dim_index].bins[point[dim_index]].middle for point in shaft_points]
 
             # Plot each point for the current dimension
             for point_index, point in enumerate(dim_values):
@@ -264,7 +264,7 @@ def _plot_termination_points(fig, top_n_response, top_n_termination_points, binn
         for dim_index, dimension in enumerate([angular_position_theta, angular_position_phi, radial_position,
                                                direction_theta, direction_phi, radius]):
             for component_index, component_bin_index in enumerate(dimension):
-                x_value = binners_for_axes[str(dim_index)].bins[component_bin_index].middle
+                x_value = binners_for_axes[dim_index].bins[component_bin_index].middle
                 y_value = y_values[component_index]
                 axes[dim_index].scatter(x_value, y_value, color=colors[component_index % len(colors)])
 
@@ -300,7 +300,7 @@ def _plot_junction_points(fig, top_n_response, top_n_junction_points, binners_fo
             # Plot each point for the current dimension
             for component_index, component_bin_index in enumerate(dim_values):
                 color = color_cycle[component_index % len(color_cycle)]  # Cycle through colors
-                x_value = binners_for_axes[str(dim_index)].bins[component_bin_index].middle
+                x_value = binners_for_axes[dim_index].bins[component_bin_index].middle
                 y_value = y_values[component_index]
                 axes[dim_index].scatter(x_value, y_value, color=color)
 

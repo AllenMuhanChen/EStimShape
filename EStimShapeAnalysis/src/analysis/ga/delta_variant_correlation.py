@@ -43,7 +43,7 @@ def main():
         session_id=session_id,
         ga_database=context.ga_database,
         included_only=True,   # ← set False to include all pairs from IncludedDeltas
-        top_n=10,
+        top_n=20,
         save_path=save_path,
     )
 

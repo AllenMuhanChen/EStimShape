@@ -1,6 +1,7 @@
 import os
 import pickle
 
+import jsonpickle
 import numpy as np
 import pandas as pd
 
@@ -33,6 +34,7 @@ def main():
     data = remove_catch_trials(data)
     data = condition_spherical_angles(data)
     data = hemisphericalize_orientation(data)
+
     shaft_rwa = compute_shaft_rwa(data, n)
     termination_rwa = compute_termination_rwa(data, n)
     junction_rwa = compute_junction_rwa(data, n)

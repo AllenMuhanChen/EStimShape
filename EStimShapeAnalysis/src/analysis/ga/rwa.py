@@ -69,7 +69,7 @@ def get_point_coordinates(rwa: RWAMatrix, stim: list[dict]) -> list[list[float]]
     Coordinates are in terms of bin middle values.
     '''
 
-    binners_for_fields = {rwa.names_for_axes[str(i)]: rwa.binners_for_axes[str(i)] for i in
+    binners_for_fields = {rwa.names_for_axes[i]: rwa.binners_for_axes[i] for i in
                           range(len(rwa.binners_for_axes))}
     coordinates = []
 
@@ -93,7 +93,7 @@ def get_point_indices(rwa: RWAMatrix, stim: list[dict]) -> list[list[int]]:
     in terms of bin indices.
     '''
 
-    binners_for_fields = {rwa.names_for_axes[str(i)]: rwa.binners_for_axes[str(i)] for i in
+    binners_for_fields = {rwa.names_for_axes[i]: rwa.binners_for_axes[i] for i in
                           range(len(rwa.binners_for_axes))}
     bin_indices = []
 
