@@ -43,6 +43,16 @@ def predict_response_from_rwa(rwa_matrix: RWAMatrix, stim) -> float:
     Returns:
         Mean RWA value across all binnable components.  NaN if nothing bins.
     """
+    if stim is None:
+        return np.nan
+
+    # Normalise to list; filter out any None components
+    if not isinstance(stim, list):
+        stim = [stim]
+    stim = [c for c in stim if c is not None]
+    if not stim:
+        return np.nan
+
     indices_per_component = get_point_indices(rwa_matrix, stim)
     values = []
     for component_indices in indices_per_component:

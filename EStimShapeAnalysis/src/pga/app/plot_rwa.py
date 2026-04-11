@@ -64,7 +64,7 @@ def main():
         with open(data_path, "rb") as f:
             data = pickle.load(f)
 
-        fig_scatter, axes = plt.subplots(1, 3, figsize=(15, 5))
+        fig_scatter, axes = plt.subplots(1, 3, figsize=(15, 5), constrained_layout=True)
         for ax, (rwa_mat, col, label) in zip(axes, [
             (shaft_rwa,       "Shaft",       "Shaft"),
             (termination_rwa, "Termination", "Termination"),
@@ -77,7 +77,6 @@ def main():
             f"RWA Prediction Correlation — Experiment {experiment_id}",
             fontsize=13, fontweight='bold',
         )
-        plt.tight_layout()
     else:
         print(f"No data file found at {data_path} — re-run run_rwa.py to generate it.")
 
