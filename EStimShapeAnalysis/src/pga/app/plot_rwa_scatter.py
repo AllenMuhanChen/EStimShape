@@ -43,6 +43,7 @@ from src.analysis.ga.rwa_prediction import (
     compute_predictions, plot_real_vs_predicted_grouped,
     limit_groups_to_top_n, apply_filters,
 )
+from src.analysis.lightness.lightness_analysis import TextureField
 from src.pga.app.run_rwa import ClusterResponseField, remove_catch_trials
 from src.pga.mock.mock_rwa_analysis import (
     remove_empty_response_trials, condition_spherical_angles, hemisphericalize_orientation,
@@ -50,7 +51,7 @@ from src.pga.mock.mock_rwa_analysis import (
 from src.startup import context
 
 # ── Colour grouping ──────────────────────────────────────────────────────────
-COLOR_BY    = "Lineage"   # any column in the compiled DataFrame
+COLOR_BY    = "Texture"   # any column in the compiled DataFrame
 TOP_N       = 4           # top N colour groups by count; rest → "Other"
                           # set to None to show all groups individually
 
@@ -64,10 +65,12 @@ SYMBOL_BY   = None        # any column to vary marker shape (e.g. "GenId")
 # FILTER_MODE = "exclude" → drop rows where the column is in the value list.
 #
 # Examples:
-#   FILTERS = {"Lineage": [1, 2, 3]}          # only these lineages
+FILTERS     = {}
+# FILTERS = {"Texture": "2D"}
+FILTERS = {"Lineage": [1775840518446908]}          # only these lineages
 #   FILTERS = {"GenId": 0}                     # drop (with "exclude") gen 0
 #   FILTERS = {"Lineage": [1, 2], "GenId": 5}  # must match ALL conditions
-FILTERS     = {}
+
 FILTER_MODE = "include"
 # ────────────────────────────────────────────────────────────────────────────
 
@@ -81,8 +84,9 @@ def main():
     else:
         experiment_id = int(experiment_id)
 
-    shaft_rwa, termination_rwa, junction_rwa = load_rwas(experiment_id)
+    shaft_rwa, termination_rwa, junction_rwa = load_rwas(experiment_id, None)
     data = compile_data(conn)
+
 
     fig = plot_rwa_scatter(
         data, shaft_rwa, termination_rwa, junction_rwa,
@@ -101,10 +105,13 @@ def main():
 # Data
 # ---------------------------------------------------------------------------
 
-def load_rwas(experiment_id):
+def load_rwas(experiment_id, subdir=None):
     """Load the three saved RWA pickle files for the given experiment."""
     def _load(name):
-        path = os.path.join(context.rwa_output_dir, f"{experiment_id}_{name}.pkl")
+        if subdir:
+            path = os.path.join(context.rwa_output_dir, subdir, f"{experiment_id}_{name}.pkl")
+        else:
+            path = os.path.join(context.rwa_output_dir, f"{experiment_id}_{name}.pkl")
         with open(path, "rb") as f:
             return pickle.load(f)
     return _load("shaft_rwa"), _load("termination_rwa"), _load("junction_rwa")
@@ -128,6 +135,7 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields.append(GenIdField(conn))
     fields.append(RegimeScoreField(conn))
     fields.append(ClusterResponseField(conn))
+    fields.append(TextureField(conn))  # for SYMBOL_BY example
     fields.append(ShaftField(conn, mstick_spec_data_source))
     fields.append(TerminationField(conn, mstick_spec_data_source))
     fields.append(JunctionField(conn, mstick_spec_data_source))
