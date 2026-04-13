@@ -30,15 +30,17 @@ from clat.util.connection import Connection
 from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
 from src.analysis.ga.cached_ga_fields import LineageField, GenIdField, RegimeScoreField
 from src.analysis.ga.rwa import get_next
-from src.analysis.ga.rwa_prediction import compute_predictions, plot_real_vs_predicted_grouped
+from src.analysis.ga.rwa_prediction import compute_predictions, plot_real_vs_predicted_grouped, limit_groups_to_top_n
 from src.pga.app.run_rwa import ClusterResponseField, remove_catch_trials
 from src.pga.mock.mock_rwa_analysis import (
     remove_empty_response_trials, condition_spherical_angles, hemisphericalize_orientation,
 )
 from src.startup import context
 
-# ── Change this to colour by a different dimension ──────────────────────────
-COLOR_BY = "Lineage"
+# ── Change these to adjust colour grouping ──────────────────────────────────
+COLOR_BY  = "Lineage"   # any column in the compiled DataFrame
+TOP_N     = 4           # top N groups by count; the rest become "Other"
+                        # set to None to show all groups individually
 # ────────────────────────────────────────────────────────────────────────────
 
 
@@ -57,6 +59,7 @@ def main():
     fig = plot_rwa_scatter(
         data, shaft_rwa, termination_rwa, junction_rwa,
         color_by=COLOR_BY,
+        top_n=TOP_N,
         experiment_id=experiment_id,
         plot_dir=context.ga_plot_path,
     )
@@ -116,6 +119,7 @@ def plot_rwa_scatter(
         termination_rwa,
         junction_rwa,
         color_by: str = "Lineage",
+        top_n: int = None,
         experiment_id=None,
         plot_dir: str = None,
 ) -> plt.Figure:
@@ -129,6 +133,8 @@ def plot_rwa_scatter(
         termination_rwa:  Loaded termination RWAMatrix.
         junction_rwa:     Loaded junction RWAMatrix.
         color_by:         Column name to use for colouring (e.g. "Lineage").
+        top_n:            Keep only the top-N groups by count; rest → "Other".
+                          Set to None to show all groups individually.
         experiment_id:    Used only for the figure title and filename.
         plot_dir:         If provided, saves the figure here.
 
@@ -138,6 +144,8 @@ def plot_rwa_scatter(
     groups = data[color_by] if color_by in data.columns else None
     if groups is None:
         print(f"Warning: column '{color_by}' not found — plotting without colour grouping.")
+    elif top_n is not None:
+        groups = limit_groups_to_top_n(groups, top_n)
 
     fig, axes = plt.subplots(1, 3, figsize=(18, 6), constrained_layout=True)
 

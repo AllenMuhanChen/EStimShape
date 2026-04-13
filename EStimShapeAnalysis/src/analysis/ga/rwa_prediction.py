@@ -20,10 +20,36 @@ from __future__ import annotations
 from typing import Optional
 
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import linregress
 
 from src.analysis.ga.rwa import RWAMatrix, get_point_indices
+
+
+# ---------------------------------------------------------------------------
+# Group helpers
+# ---------------------------------------------------------------------------
+
+OTHER_LABEL = "Other"
+OTHER_COLOR = "#aaaaaa"
+
+
+def limit_groups_to_top_n(groups, n: int, other_label: str = OTHER_LABEL) -> pd.Series:
+    """
+    Replace every group that isn't in the top-n (by count) with *other_label*.
+
+    Args:
+        groups:       Iterable of group labels (e.g. lineage IDs).
+        n:            How many groups to keep individually.
+        other_label:  Label assigned to all remaining groups.
+
+    Returns:
+        pandas Series with the same index, top-n kept, rest → other_label.
+    """
+    s = pd.Series(groups).reset_index(drop=True)
+    top = set(s.value_counts().nlargest(n).index)
+    return s.where(s.isin(top), other=other_label)
 
 
 # ---------------------------------------------------------------------------
@@ -156,15 +182,21 @@ def plot_real_vs_predicted_grouped(
 
     # --- scatter ---
     if grps is not None:
-        unique = sorted(set(grps))
+        # "Other" always goes last and in gray; remaining groups get the colormap
+        named = sorted(g for g in set(grps) if g != OTHER_LABEL)
+        order = named + ([OTHER_LABEL] if OTHER_LABEL in set(grps) else [])
         cmap = plt.get_cmap(cmap_name)
-        n = max(len(unique) - 1, 1)
-        colors = {g: cmap(i / n) for i, g in enumerate(unique)}
-        for g in unique:
+        n = max(len(named) - 1, 1)
+        colors = {g: cmap(i / n) for i, g in enumerate(named)}
+        colors[OTHER_LABEL] = OTHER_COLOR
+
+        for g in order:
             m = grps == g
-            ax.scatter(real[m], pred[m], alpha=0.6, s=40,
-                       color=colors[g], edgecolors='none', label=str(g))
-        ncol = max(1, len(unique) // 12)
+            alpha = 0.25 if g == OTHER_LABEL else 0.7
+            ax.scatter(real[m], pred[m], alpha=alpha, s=40,
+                       color=colors[g], edgecolors='none', label=str(g),
+                       zorder=1 if g == OTHER_LABEL else 2)
+        ncol = max(1, len(order) // 12)
         ax.legend(title=group_label, fontsize=7, title_fontsize=8,
                   ncol=ncol, loc='upper left', markerscale=1.2)
     else:
