@@ -37,13 +37,26 @@ from matplotlib.gridspec import GridSpec
 from matplotlib.lines import Line2D
 from scipy.stats import linregress, spearmanr
 
+import pandas as pd
+
 from clat.util.connection import Connection
+from src.analysis.ga.rwa_prediction import (
+    plot_real_vs_predicted_grouped, limit_groups_to_top_n,
+)
 from src.repository.export_to_repository import read_session_id_from_db_name
 from src.startup import context
 
 # Channel order top → bottom (same as DBCChannelMapper)
 CHANNEL_ORDER = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
                  27, 20, 4, 11, 28, 19, 1, 14, 3, 12, 29, 18, 2, 13, 30, 17]
+
+# ── Scatter subfolder colour grouping ────────────────────────────────────────
+# Applied to both rwa_channel_scatters/ and ga_channel_scatters/ figures.
+# Must be a column present in the compiled data (loaded alongside the RWA).
+# Set to None for single-colour dots.
+SCATTER_COLOR_BY = "Texture"   # e.g. "Texture", "Lineage", "GenId"
+SCATTER_TOP_N    = 4           # top-N groups by count; rest → "Other"
+# ─────────────────────────────────────────────────────────────────────────────
 
 
 def main():
@@ -56,6 +69,8 @@ def main():
         included_only=True,
         top_n=20,
         experiment_id=experiment_id,
+        scatter_color_by=SCATTER_COLOR_BY,
+        scatter_top_n=SCATTER_TOP_N,
         save_path=save_path,
     )
 
@@ -234,33 +249,59 @@ def _compute_rwa_r_values(
 # Scatter subfolders
 # ---------------------------------------------------------------------------
 
+def _build_groups(
+        stim_ids: list,
+        group_map: Optional[Dict[int, any]],
+        top_n: Optional[int],
+) -> Optional[pd.Series]:
+    """
+    Build a pandas Series of group labels aligned to *stim_ids*, applying
+    top-N truncation if requested.  Returns None when no group_map is given.
+    """
+    if not group_map:
+        return None
+    labels = [group_map.get(sid) for sid in stim_ids]
+    groups = pd.Series(labels)
+    if top_n is not None:
+        groups = limit_groups_to_top_n(groups, top_n)
+    return groups
+
+
 def _save_rwa_channel_scatters(
         channel_matrix: Dict[str, Dict[int, float]],
         rwa_pred_map: Dict[int, Tuple],
         scatter_dir: str,
+        group_map: Optional[Dict[int, any]] = None,
+        color_by: str = "Group",
+        top_n: Optional[int] = None,
 ):
     """
     For each channel save a 3-panel figure: real spike rate vs shaft / termination
-    / junction RWA-predicted response.  One PNG per channel.
+    / junction RWA-predicted response, with dots optionally coloured by *color_by*.
+    One PNG per channel.
     """
-    from src.analysis.ga.rwa_prediction import plot_real_vs_predicted
-
     os.makedirs(scatter_dir, exist_ok=True)
     for channel, stim_rates in sorted(channel_matrix.items()):
         common = [sid for sid in stim_rates if sid in rwa_pred_map]
         if len(common) < 3:
             continue
 
-        real = np.array([stim_rates[sid] for sid in common], dtype=float)
-        shaft = np.array([rwa_pred_map[sid][0] for sid in common], dtype=float)
-        term  = np.array([rwa_pred_map[sid][1] for sid in common], dtype=float)
-        junc  = np.array([rwa_pred_map[sid][2] for sid in common], dtype=float)
+        real  = np.array([stim_rates[sid]      for sid in common], dtype=float)
+        shaft = np.array([rwa_pred_map[sid][0]  for sid in common], dtype=float)
+        term  = np.array([rwa_pred_map[sid][1]  for sid in common], dtype=float)
+        junc  = np.array([rwa_pred_map[sid][2]  for sid in common], dtype=float)
+
+        groups = _build_groups(common, group_map, top_n)
 
         fig, axes = plt.subplots(1, 3, figsize=(15, 5), constrained_layout=True)
         for ax, (pred, label) in zip(axes, [
             (shaft, "Shaft"), (term, "Termination"), (junc, "Junction"),
         ]):
-            plot_real_vs_predicted(real, pred, title=f"{label} RWA", ax=ax)
+            plot_real_vs_predicted_grouped(
+                real, pred,
+                groups=groups, group_label=color_by,
+                title=f"{label} RWA", ax=ax,
+            )
             ax.set_xlabel(f"Real Response ({channel})", fontsize=9)
             ax.set_ylabel(f"Predicted (RWA {label})", fontsize=9)
 
@@ -276,10 +317,13 @@ def _save_ga_channel_scatters(
         channel_matrix: Dict[str, Dict[int, float]],
         ga_responses: Dict[int, float],
         scatter_dir: str,
+        group_map: Optional[Dict[int, any]] = None,
+        color_by: str = "Group",
+        top_n: Optional[int] = None,
 ):
     """
     For each channel save a scatter of GA response (x-axis) vs channel spike
-    rate (y-axis), with a regression line and r/p annotation.
+    rate (y-axis), with dots optionally coloured by *color_by*.
     """
     os.makedirs(scatter_dir, exist_ok=True)
     for channel, stim_rates in sorted(channel_matrix.items()):
@@ -289,25 +333,17 @@ def _save_ga_channel_scatters(
 
         ga = np.array([ga_responses[sid] for sid in common], dtype=float)
         ch = np.array([stim_rates[sid]   for sid in common], dtype=float)
-        valid = np.isfinite(ga) & np.isfinite(ch)
-        if valid.sum() < 3:
-            continue
-        ga, ch = ga[valid], ch[valid]
+
+        groups = _build_groups(common, group_map, top_n)
 
         fig, ax = plt.subplots(figsize=(5, 5))
-        ax.scatter(ga, ch, alpha=0.6, s=30, edgecolors='none', color='steelblue')
-
-        slope, intercept, r, p, _ = linregress(ga, ch)
-        x_fit = np.linspace(ga.min(), ga.max(), 200)
-        p_label = f"p={p:.3f}" if p >= 0.001 else "p<0.001"
-        ax.plot(x_fit, slope * x_fit + intercept, 'r--', linewidth=1.5, zorder=5)
-        ax.annotate(f"r={r:.2f}, {p_label}",
-                    xy=(0.97, 0.05), xycoords='axes fraction',
-                    ha='right', fontsize=9, color='crimson')
-
+        plot_real_vs_predicted_grouped(
+            ga, ch,
+            groups=groups, group_label=color_by,
+            title=f"{channel} vs GA Response", ax=ax,
+        )
         ax.set_xlabel("GA Response", fontsize=10)
         ax.set_ylabel(f"{channel} Spike Rate", fontsize=10)
-        ax.set_title(f"{channel} vs GA Response", fontsize=11, fontweight='bold')
 
         path = os.path.join(scatter_dir, f"{channel}_vs_ga_response.png")
         fig.savefig(path, dpi=150, bbox_inches='tight')
@@ -430,6 +466,8 @@ def plot_delta_variant_correlation(
         top_n: int = 10,
         headstage_label: str = "A",
         experiment_id=None,
+        scatter_color_by: Optional[str] = "Texture",
+        scatter_top_n: Optional[int] = 4,
         save_path: Optional[str] = None,
 ):
     """
@@ -440,14 +478,18 @@ def plot_delta_variant_correlation(
     channel's real response and the shaft/termination/junction RWA predictions.
 
     Args:
-        session_id:      e.g. "260410_0"
-        ga_database:     Name of the GA database (defaults to context.ga_database)
-        included_only:   If True, only use stims from included pairs in IncludedDeltas.
-        top_n:           Number of top stimuli (per cluster channel) for the right group.
-        headstage_label: Headstage prefix for channel names (default "A")
-        experiment_id:   Integer experiment id used to locate RWA pickle files.
-                         If None the RWA columns are skipped.
-        save_path:       Optional path to save the main PNG figure.
+        session_id:        e.g. "260410_0"
+        ga_database:       Name of the GA database (defaults to context.ga_database)
+        included_only:     If True, only use stims from included pairs in IncludedDeltas.
+        top_n:             Number of top stimuli (per cluster channel) for the right group.
+        headstage_label:   Headstage prefix for channel names (default "A")
+        experiment_id:     Integer experiment id used to locate RWA pickle files.
+                           If None the RWA columns are skipped.
+        scatter_color_by:  Column in compiled_data used to colour dots in the per-channel
+                           scatter subfolders (e.g. "Texture", "Lineage").  None = no colour.
+        scatter_top_n:     Keep only the top-N groups by count in scatter subfolders;
+                           rest → "Other".  None = show all groups.
+        save_path:         Optional path to save the main PNG figure.
     """
     if ga_database is None:
         ga_database = context.ga_database
@@ -499,6 +541,8 @@ def plot_delta_variant_correlation(
     rwa_data = _try_load_rwa(experiment_id) if experiment_id is not None else None
     rwa_r_values = None   # {channel: (shaft_r, term_r, junc_r)}
     rwa_pred_map = None
+    group_map    = None   # {stim_id: group_label} for scatter colouring
+    all_matrix   = None
 
     if rwa_data is not None:
         shaft_rwa, term_rwa, junc_rwa, compiled_data = rwa_data
@@ -508,6 +552,15 @@ def plot_delta_variant_correlation(
         all_stim_ids = set(compiled_data["StimSpecId"].astype(int))
         all_matrix = build_response_matrix(repo_conn, all_stim_ids)
         rwa_r_values = _compute_rwa_r_values(all_matrix, rwa_pred_map)
+
+        # Build group_map for scatter colouring if the requested column exists
+        if scatter_color_by and scatter_color_by in compiled_data.columns:
+            group_map = dict(zip(
+                compiled_data["StimSpecId"].astype(int),
+                compiled_data[scatter_color_by],
+            ))
+        elif scatter_color_by:
+            print(f"Warning: scatter_color_by column '{scatter_color_by}' not in compiled data — scatter plots uncoloured.")
 
     # ---- cluster channel list ----
     cluster_channel_list = sorted(
@@ -657,16 +710,22 @@ def plot_delta_variant_correlation(
         _save_rwa_channel_scatters(
             all_matrix, rwa_pred_map,
             os.path.join(plot_dir, "rwa_channel_scatters"),
+            group_map=group_map,
+            color_by=scatter_color_by or "Group",
+            top_n=scatter_top_n,
         )
 
     if plot_dir and ga_responses:
         # Use all_matrix if available; otherwise build from ga_responses stim_ids
-        ga_matrix = all_matrix if rwa_data is not None else build_response_matrix(
+        ga_matrix = all_matrix if all_matrix is not None else build_response_matrix(
             repo_conn, set(ga_responses.keys())
         )
         _save_ga_channel_scatters(
             ga_matrix, ga_responses,
             os.path.join(plot_dir, "ga_channel_scatters"),
+            group_map=group_map,
+            color_by=scatter_color_by or "Group",
+            top_n=scatter_top_n,
         )
 
     plt.show()
