@@ -106,33 +106,90 @@ def plot_real_vs_predicted(
     Returns:
         The matplotlib Axes.
     """
+    return plot_real_vs_predicted_grouped(
+        real_responses, predicted_responses,
+        groups=None, title=title, ax=ax,
+        single_color=color,
+    )
+
+
+def plot_real_vs_predicted_grouped(
+        real_responses,
+        predicted_responses,
+        groups=None,
+        title: str = "Real vs Predicted",
+        ax: Optional[plt.Axes] = None,
+        group_label: str = "Group",
+        single_color: str = 'steelblue',
+        cmap_name: str = 'tab20',
+) -> plt.Axes:
+    """
+    Scatter plot of real vs RWA-predicted responses, with optional
+    per-group colouring.
+
+    Args:
+        real_responses:      Iterable of measured responses.
+        predicted_responses: Iterable of RWA-predicted responses.
+        groups:              Optional iterable of group labels (e.g., lineage
+                             IDs, stim types).  If None, all dots share
+                             single_color.
+        title:               Axes title.
+        ax:                  Existing Axes; creates one if None.
+        group_label:         Legend / label text for the grouping variable.
+        single_color:        Dot colour when groups is None.
+        cmap_name:           Matplotlib colormap for group colours.
+
+    Returns:
+        The matplotlib Axes.
+    """
     if ax is None:
-        _, ax = plt.subplots(figsize=(5, 5))
+        _, ax = plt.subplots(figsize=(6, 6))
 
     real = np.asarray(real_responses, dtype=float)
     pred = np.asarray(predicted_responses, dtype=float)
+    grps = np.asarray(groups) if groups is not None else None
 
     mask = np.isfinite(real) & np.isfinite(pred)
     real, pred = real[mask], pred[mask]
+    if grps is not None:
+        grps = grps[mask]
 
-    ax.scatter(real, pred, alpha=0.6, s=40, color=color, edgecolors='none')
+    # --- scatter ---
+    if grps is not None:
+        unique = sorted(set(grps))
+        cmap = plt.get_cmap(cmap_name)
+        n = max(len(unique) - 1, 1)
+        colors = {g: cmap(i / n) for i, g in enumerate(unique)}
+        for g in unique:
+            m = grps == g
+            ax.scatter(real[m], pred[m], alpha=0.6, s=40,
+                       color=colors[g], edgecolors='none', label=str(g))
+        ncol = max(1, len(unique) // 12)
+        ax.legend(title=group_label, fontsize=7, title_fontsize=8,
+                  ncol=ncol, loc='upper left', markerscale=1.2)
+    else:
+        ax.scatter(real, pred, alpha=0.6, s=40,
+                   color=single_color, edgecolors='none')
 
+    # --- regression + annotation ---
     if len(real) >= 2:
         slope, intercept, r, p, _ = linregress(real, pred)
         x_fit = np.linspace(real.min(), real.max(), 200)
         p_label = f"p={p:.3f}" if p >= 0.001 else "p<0.001"
         ax.plot(x_fit, slope * x_fit + intercept,
-                color='crimson', linewidth=1.5,
-                label=f"r={r:.2f}, {p_label}")
+                color='crimson', linewidth=1.5, linestyle='--', zorder=5)
+        ax.annotate(f"r={r:.2f}, {p_label}",
+                    xy=(0.97, 0.05), xycoords='axes fraction',
+                    ha='right', fontsize=9, color='crimson')
 
+    # --- y = x ---
     if len(real):
         lo = min(real.min(), pred.min())
         hi = max(real.max(), pred.max())
-        ax.plot([lo, hi], [lo, hi], 'k--', linewidth=1, alpha=0.4, label='y = x')
+        ax.plot([lo, hi], [lo, hi], 'k-', linewidth=0.8, alpha=0.3)
 
     ax.set_xlabel("Real Response", fontsize=10)
     ax.set_ylabel("Predicted (RWA)", fontsize=10)
     ax.set_title(title, fontsize=11, fontweight='bold')
-    ax.legend(fontsize=8)
 
     return ax
