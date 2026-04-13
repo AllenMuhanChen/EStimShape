@@ -169,10 +169,11 @@ def build_response_matrix(repo_conn: Connection,
 
 def _try_load_rwa(experiment_id) -> Optional[Tuple]:
     """
-    Attempt to load the three RWA pkl files and the compiled data pkl.
+    Attempt to load the three RWA matrix pkl files.
 
-    Returns (shaft_rwa, termination_rwa, junction_rwa, compiled_data) or None
-    if any file is missing.
+    Returns (shaft_rwa, termination_rwa, junction_rwa) or None if any file
+    is missing.  The compiled stimulus data is NOT loaded here — it is always
+    compiled fresh from the GA database instead.
     """
     try:
         def _load(name):
@@ -180,16 +181,13 @@ def _try_load_rwa(experiment_id) -> Optional[Tuple]:
             with open(path, "rb") as f:
                 return pickle.load(f)
 
-        shaft = _load("shaft_rwa")
+        shaft       = _load("shaft_rwa")
         termination = _load("termination_rwa")
-        junction = _load("junction_rwa")
-        data_path = os.path.join(context.rwa_output_dir, f"{experiment_id}_data.pkl")
-        with open(data_path, "rb") as f:
-            compiled = pickle.load(f)
-        print(f"Loaded RWA data for experiment {experiment_id}")
-        return shaft, termination, junction, compiled
+        junction    = _load("junction_rwa")
+        print(f"Loaded RWA matrices for experiment {experiment_id}")
+        return shaft, termination, junction
     except FileNotFoundError as exc:
-        print(f"RWA data not found — skipping RWA columns: {exc}")
+        print(f"RWA matrices not found — skipping RWA columns: {exc}")
         return None
 
 
@@ -537,30 +535,32 @@ def plot_delta_variant_correlation(
         topn_matrix = build_response_matrix(repo_conn, top_stim_ids)
         topn_correlations = compute_zscore_correlations(topn_matrix, cluster_channels)
 
+    # ---- compile fresh GA data ----
+    from src.pga.app.plot_rwa_scatter import compile_data as _compile_ga_data
+    compiled_data = _compile_ga_data(ga_conn)
+
+    # Build group_map for scatter colouring (always available from fresh compile)
+    group_map = None
+    if scatter_color_by and scatter_color_by in compiled_data.columns:
+        group_map = dict(zip(
+            compiled_data["StimSpecId"].astype(int),
+            compiled_data[scatter_color_by],
+        ))
+    elif scatter_color_by:
+        print(f"Warning: scatter_color_by column '{scatter_color_by}' not found — scatter plots uncoloured.")
+
     # ---- RWA GROUP (optional, columns 3-5) ----
-    rwa_data = _try_load_rwa(experiment_id) if experiment_id is not None else None
+    rwa_matrices = _try_load_rwa(experiment_id) if experiment_id is not None else None
     rwa_r_values = None   # {channel: (shaft_r, term_r, junc_r)}
     rwa_pred_map = None
-    group_map    = None   # {stim_id: group_label} for scatter colouring
     all_matrix   = None
 
-    if rwa_data is not None:
-        shaft_rwa, term_rwa, junc_rwa, compiled_data = rwa_data
+    if rwa_matrices is not None:
+        shaft_rwa, term_rwa, junc_rwa = rwa_matrices
         rwa_pred_map = _build_rwa_pred_map(shaft_rwa, term_rwa, junc_rwa, compiled_data)
-
-        # Build a response matrix for all stim_ids used in the RWA compilation
         all_stim_ids = set(compiled_data["StimSpecId"].astype(int))
-        all_matrix = build_response_matrix(repo_conn, all_stim_ids)
+        all_matrix   = build_response_matrix(repo_conn, all_stim_ids)
         rwa_r_values = _compute_rwa_r_values(all_matrix, rwa_pred_map)
-
-        # Build group_map for scatter colouring if the requested column exists
-        if scatter_color_by and scatter_color_by in compiled_data.columns:
-            group_map = dict(zip(
-                compiled_data["StimSpecId"].astype(int),
-                compiled_data[scatter_color_by],
-            ))
-        elif scatter_color_by:
-            print(f"Warning: scatter_color_by column '{scatter_color_by}' not in compiled data — scatter plots uncoloured.")
 
     # ---- cluster channel list ----
     cluster_channel_list = sorted(
@@ -706,7 +706,7 @@ def plot_delta_variant_correlation(
         print(f"Saved to {save_path}")
 
     # ---- scatter subfolders ----
-    if plot_dir and rwa_data is not None:
+    if plot_dir and rwa_matrices is not None:
         _save_rwa_channel_scatters(
             all_matrix, rwa_pred_map,
             os.path.join(plot_dir, "rwa_channel_scatters"),
@@ -716,10 +716,12 @@ def plot_delta_variant_correlation(
         )
 
     if plot_dir and ga_responses:
-        # Use all_matrix if available; otherwise build from ga_responses stim_ids
-        ga_matrix = all_matrix if all_matrix is not None else build_response_matrix(
-            repo_conn, set(ga_responses.keys())
-        )
+        # Use all_matrix if already built (RWA path), otherwise build from compiled stim_ids
+        if all_matrix is None:
+            all_matrix = build_response_matrix(
+                repo_conn, set(compiled_data["StimSpecId"].astype(int))
+            )
+        ga_matrix = all_matrix
         _save_ga_channel_scatters(
             ga_matrix, ga_responses,
             os.path.join(plot_dir, "ga_channel_scatters"),
