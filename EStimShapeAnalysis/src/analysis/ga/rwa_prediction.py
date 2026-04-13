@@ -21,19 +21,28 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 from scipy.stats import linregress
 
 from src.analysis.ga.rwa import RWAMatrix, get_point_indices
 
 
 # ---------------------------------------------------------------------------
-# Group helpers
+# Constants
 # ---------------------------------------------------------------------------
 
 OTHER_LABEL = "Other"
 OTHER_COLOR = "#aaaaaa"
 
+# Cycle through these markers when symbol_by is set.
+MARKERS = ['o', 's', '^', 'D', 'v', 'P', 'X', 'h', '*', 'p', '8', '<', '>']
+
+
+# ---------------------------------------------------------------------------
+# Group / filter helpers
+# ---------------------------------------------------------------------------
 
 def limit_groups_to_top_n(groups, n: int, other_label: str = OTHER_LABEL) -> pd.Series:
     """
@@ -50,6 +59,51 @@ def limit_groups_to_top_n(groups, n: int, other_label: str = OTHER_LABEL) -> pd.
     s = pd.Series(groups).reset_index(drop=True)
     top = set(s.value_counts().nlargest(n).index)
     return s.where(s.isin(top), other=other_label)
+
+
+def apply_filters(
+        data: pd.DataFrame,
+        filters: dict,
+        mode: str = "include",
+) -> pd.DataFrame:
+    """
+    Filter rows of *data* by column-value matching.
+
+    Args:
+        data:    DataFrame to filter.
+        filters: Mapping of column name → scalar or list[scalar].
+                 A row *matches* when, for every column in *filters*, the
+                 row's value is contained in the corresponding value list.
+        mode:    ``"include"`` — keep only rows that match all filters.
+                 ``"exclude"`` — drop rows that match all filters.
+
+    Returns:
+        Filtered DataFrame with the original index preserved.
+
+    Examples::
+
+        # keep only lineages 1 and 2
+        apply_filters(data, {"Lineage": [1, 2]}, mode="include")
+
+        # drop generation 0 catch trials
+        apply_filters(data, {"GenId": 0}, mode="exclude")
+
+        # keep specific lineages AND specific generations
+        apply_filters(data, {"Lineage": [1, 2], "GenId": [3, 4, 5]})
+    """
+    if not filters:
+        return data
+    mask = pd.Series(True, index=data.index)
+    for col, values in filters.items():
+        if col not in data.columns:
+            print(f"Warning: filter column '{col}' not found — skipping.")
+            continue
+        if not isinstance(values, list):
+            values = [values]
+        mask &= data[col].isin(values)
+    if mode == "exclude":
+        mask = ~mask
+    return data[mask]
 
 
 # ---------------------------------------------------------------------------
@@ -143,26 +197,34 @@ def plot_real_vs_predicted_grouped(
         real_responses,
         predicted_responses,
         groups=None,
+        symbols=None,
         title: str = "Real vs Predicted",
         ax: Optional[plt.Axes] = None,
         group_label: str = "Group",
+        symbol_label: str = "Symbol",
         single_color: str = 'steelblue',
         cmap_name: str = 'tab20',
 ) -> plt.Axes:
     """
     Scatter plot of real vs RWA-predicted responses, with optional
-    per-group colouring.
+    per-group colouring and/or per-group marker symbols.
+
+    Both *groups* and *symbols* can be active at the same time, letting you
+    compare two independent conditions simultaneously (e.g. colour = lineage,
+    symbol = stim type).
 
     Args:
         real_responses:      Iterable of measured responses.
         predicted_responses: Iterable of RWA-predicted responses.
-        groups:              Optional iterable of group labels (e.g., lineage
-                             IDs, stim types).  If None, all dots share
-                             single_color.
+        groups:              Optional iterable of colour-group labels.
+                             ``None`` → all dots share *single_color*.
+        symbols:             Optional iterable of symbol-group labels.
+                             ``None`` → all dots use circle markers.
         title:               Axes title.
         ax:                  Existing Axes; creates one if None.
-        group_label:         Legend / label text for the grouping variable.
-        single_color:        Dot colour when groups is None.
+        group_label:         Legend title for the colour grouping.
+        symbol_label:        Legend title for the symbol grouping.
+        single_color:        Dot colour when *groups* is None.
         cmap_name:           Matplotlib colormap for group colours.
 
     Returns:
@@ -174,36 +236,74 @@ def plot_real_vs_predicted_grouped(
     real = np.asarray(real_responses, dtype=float)
     pred = np.asarray(predicted_responses, dtype=float)
     grps = np.asarray(groups) if groups is not None else None
+    syms = np.asarray(symbols) if symbols is not None else None
 
     mask = np.isfinite(real) & np.isfinite(pred)
     real, pred = real[mask], pred[mask]
     if grps is not None:
         grps = grps[mask]
+    if syms is not None:
+        syms = syms[mask]
 
-    # --- scatter ---
+    # ── build colour map ─────────────────────────────────────────────────────
     if grps is not None:
-        # "Other" always goes last and in gray; remaining groups get the colormap
         named = sorted(g for g in set(grps) if g != OTHER_LABEL)
-        order = named + ([OTHER_LABEL] if OTHER_LABEL in set(grps) else [])
+        color_order = named + ([OTHER_LABEL] if OTHER_LABEL in set(grps) else [])
         cmap = plt.get_cmap(cmap_name)
         n = max(len(named) - 1, 1)
         colors = {g: cmap(i / n) for i, g in enumerate(named)}
         colors[OTHER_LABEL] = OTHER_COLOR
-
-        for g in order:
-            m = grps == g
-            alpha = 0.25 if g == OTHER_LABEL else 0.7
-            ax.scatter(real[m], pred[m], alpha=alpha, s=40,
-                       color=colors[g], edgecolors='none', label=str(g),
-                       zorder=1 if g == OTHER_LABEL else 2)
-        ncol = max(1, len(order) // 12)
-        ax.legend(title=group_label, fontsize=7, title_fontsize=8,
-                  ncol=ncol, loc='upper left', markerscale=1.2)
     else:
-        ax.scatter(real, pred, alpha=0.6, s=40,
-                   color=single_color, edgecolors='none')
+        color_order = [None]
+        colors = {None: single_color}
 
-    # --- regression + annotation ---
+    # ── build marker map ─────────────────────────────────────────────────────
+    if syms is not None:
+        sym_order = sorted(set(syms), key=str)
+        marker_map = {s: MARKERS[i % len(MARKERS)] for i, s in enumerate(sym_order)}
+    else:
+        sym_order = [None]
+        marker_map = {None: 'o'}
+
+    # ── scatter ──────────────────────────────────────────────────────────────
+    for g in color_order:
+        for s in sym_order:
+            gm = (grps == g) if g is not None else np.ones(len(real), dtype=bool)
+            sm = (syms == s) if s is not None else np.ones(len(real), dtype=bool)
+            m = gm & sm
+            if not m.any():
+                continue
+            is_other = (g == OTHER_LABEL)
+            ax.scatter(real[m], pred[m],
+                       alpha=0.25 if is_other else 0.7,
+                       s=40,
+                       color=colors[g],
+                       marker=marker_map[s],
+                       edgecolors='none',
+                       zorder=1 if is_other else 2)
+
+    # ── legends ──────────────────────────────────────────────────────────────
+    if grps is not None:
+        color_handles = [mpatches.Patch(color=colors[g], label=str(g))
+                         for g in color_order]
+        ncol = max(1, len(color_order) // 12)
+        leg1 = ax.legend(handles=color_handles, title=group_label, fontsize=7,
+                         title_fontsize=8, ncol=ncol, loc='upper left')
+        if syms is not None:
+            sym_handles = [Line2D([0], [0], marker=marker_map[s], color='#555555',
+                                   linestyle='none', markersize=7, label=str(s))
+                           for s in sym_order]
+            ax.add_artist(leg1)
+            ax.legend(handles=sym_handles, title=symbol_label, fontsize=7,
+                      title_fontsize=8, loc='lower right')
+    elif syms is not None:
+        sym_handles = [Line2D([0], [0], marker=marker_map[s], color=single_color,
+                               linestyle='none', markersize=7, label=str(s))
+                       for s in sym_order]
+        ax.legend(handles=sym_handles, title=symbol_label, fontsize=7,
+                  title_fontsize=8, loc='upper left')
+
+    # ── regression + annotation ──────────────────────────────────────────────
     if len(real) >= 2:
         slope, intercept, r, p, _ = linregress(real, pred)
         x_fit = np.linspace(real.min(), real.max(), 200)
@@ -214,7 +314,7 @@ def plot_real_vs_predicted_grouped(
                     xy=(0.97, 0.05), xycoords='axes fraction',
                     ha='right', fontsize=9, color='crimson')
 
-    # --- y = x ---
+    # ── y = x ────────────────────────────────────────────────────────────────
     if len(real):
         lo = min(real.min(), pred.min())
         hi = max(real.max(), pred.max())
