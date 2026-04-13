@@ -304,7 +304,32 @@ def plot_real_vs_predicted_grouped(
                   title_fontsize=8, loc='upper left')
 
     # ── regression + annotation ──────────────────────────────────────────────
-    if len(real) >= 2:
+    if grps is not None:
+        # One regression line per named group (skip "Other")
+        r_stats = []
+        for g in named:
+            m = grps == g
+            if m.sum() < 3:
+                continue
+            greal, gpred = real[m], pred[m]
+            valid = np.isfinite(greal) & np.isfinite(gpred)
+            if valid.sum() < 3:
+                continue
+            slope, intercept, r_val, p, _ = linregress(greal[valid], gpred[valid])
+            x_fit = np.linspace(greal[valid].min(), greal[valid].max(), 200)
+            ax.plot(x_fit, slope * x_fit + intercept,
+                    color=colors[g], linewidth=1.5, linestyle='--', alpha=0.9, zorder=5)
+            p_label = f"p={p:.3f}" if p >= 0.001 else "p<0.001"
+            r_stats.append((str(g), r_val, p_label))
+
+        if r_stats:
+            text = "\n".join(f"{g}: r={r:.2f}, {p}" for g, r, p in r_stats)
+            ax.text(0.97, 0.97, text,
+                    transform=ax.transAxes, ha='right', va='top', fontsize=7,
+                    bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
+                              alpha=0.75, edgecolor='#cccccc'))
+    elif len(real) >= 2:
+        # Single overall regression for ungrouped data
         slope, intercept, r, p, _ = linregress(real, pred)
         x_fit = np.linspace(real.min(), real.max(), 200)
         p_label = f"p={p:.3f}" if p >= 0.001 else "p<0.001"
