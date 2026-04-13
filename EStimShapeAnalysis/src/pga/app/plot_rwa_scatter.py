@@ -48,6 +48,7 @@ from src.pga.app.run_rwa import ClusterResponseField, remove_catch_trials
 from src.pga.mock.mock_rwa_analysis import (
     remove_empty_response_trials, condition_spherical_angles, hemisphericalize_orientation,
 )
+from src.repository.export_to_repository import read_session_id_from_db_name
 from src.startup import context
 
 # ── Colour grouping ──────────────────────────────────────────────────────────
@@ -77,6 +78,8 @@ FILTER_MODE = "include"
 
 def main():
     conn = Connection(context.ga_database)
+    session_id, _ = read_session_id_from_db_name(context.ga_database)
+    plot_dir = f"/home/connorlab/Documents/plots/{session_id}"
 
     experiment_id = input("Enter the experiment id (enter nothing for most recent): ").strip()
     if experiment_id == "":
@@ -96,7 +99,7 @@ def main():
         filters=FILTERS,
         filter_mode=FILTER_MODE,
         experiment_id=experiment_id,
-        plot_dir=context.ga_plot_path,
+        plot_dir=plot_dir,
     )
     plt.show()
 

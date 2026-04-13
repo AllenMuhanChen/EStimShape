@@ -3,13 +3,21 @@ delta_variant_correlation.py
 -----------------------------
 Plots z-scored Spearman correlations between all channels using two stimulus sets:
 
-  Left group  — stimuli (variants + deltas) found in the IncludedDeltas table.
-  Right group — top-N stimuli per cluster channel from the full GA session.
+  Left group   — stimuli (variants + deltas) found in the IncludedDeltas table.
+  Right group  — top-N stimuli per cluster channel from the full GA session.
+  RWA group    — (columns 3-5, optional) Pearson r between each channel's real
+                 response and the shaft / termination / junction RWA-predicted
+                 response.  Only drawn when RWA pickle files are found.
 
 Visual style mirrors preference_cluster.py:
   - y-axis = all 32 channels top → bottom
-  - one column per cluster channel, dots coloured by Spearman ρ on RdBu_r
+  - one column per cluster channel, dots coloured by correlation on RdBu_r
   - cluster channels marked with ★, others with ●
+
+Saved artefacts (when save_path is given):
+  <save_dir>/delta_variant_correlation.png     — main figure
+  <save_dir>/rwa_channel_scatters/             — per-channel real-vs-RWA scatters
+  <save_dir>/ga_channel_scatters/              — per-channel channel-vs-GA-response scatters
 
 Usage:
     python -m src.analysis.ga.delta_variant_correlation
@@ -17,15 +25,17 @@ Usage:
 
 from __future__ import annotations
 
+import os
+import pickle
 from collections import defaultdict
-from typing import Dict, Optional, Set
+from typing import Dict, Optional, Set, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import TwoSlopeNorm
 from matplotlib.gridspec import GridSpec
 from matplotlib.lines import Line2D
-from scipy.stats import spearmanr
+from scipy.stats import linregress, spearmanr
 
 from clat.util.connection import Connection
 from src.repository.export_to_repository import read_session_id_from_db_name
@@ -39,11 +49,13 @@ CHANNEL_ORDER = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
 def main():
     session_id, _ = read_session_id_from_db_name(context.ga_database)
     save_path = f"/home/connorlab/Documents/plots/{session_id}/delta_variant_correlation.png"
+    experiment_id = context.ga_config.db_util.read_current_experiment_id(context.ga_name)
     plot_delta_variant_correlation(
         session_id=session_id,
         ga_database=context.ga_database,
-        included_only=True,   # ← set False to include all pairs from IncludedDeltas
+        included_only=True,
         top_n=20,
+        experiment_id=experiment_id,
         save_path=save_path,
     )
 
@@ -102,7 +114,6 @@ def build_response_matrix(repo_conn: Connection,
     if not stim_ids:
         return {}
 
-    # Task ids for these stim_ids
     placeholders = ', '.join(['%s'] * len(stim_ids))
     repo_conn.execute(
         f"SELECT task_id, stim_id FROM TaskStimMapping WHERE stim_id IN ({placeholders})",
@@ -116,7 +127,6 @@ def build_response_matrix(repo_conn: Connection,
     task_ids = [r[0] for r in task_stim_pairs]
     task_to_stim = {r[0]: int(r[1]) for r in task_stim_pairs}
 
-    # Spike rates
     placeholders = ', '.join(['%s'] * len(task_ids))
     repo_conn.execute(
         f"SELECT task_id, channel_id, response_rate "
@@ -129,7 +139,6 @@ def build_response_matrix(repo_conn: Connection,
         stim_id = task_to_stim[task_id]
         raw[channel_id][stim_id].append(float(rate))
 
-    # Average across trials
     matrix = {
         ch: {sid: float(np.mean(rates)) for sid, rates in stim_dict.items()}
         for ch, stim_dict in raw.items()
@@ -137,6 +146,174 @@ def build_response_matrix(repo_conn: Connection,
     print(f"Built response matrix for {len(matrix)} channels "
           f"over up to {len(stim_ids)} stimuli")
     return matrix
+
+
+# ---------------------------------------------------------------------------
+# RWA helpers
+# ---------------------------------------------------------------------------
+
+def _try_load_rwa(experiment_id) -> Optional[Tuple]:
+    """
+    Attempt to load the three RWA pkl files and the compiled data pkl.
+
+    Returns (shaft_rwa, termination_rwa, junction_rwa, compiled_data) or None
+    if any file is missing.
+    """
+    try:
+        def _load(name):
+            path = os.path.join(context.rwa_output_dir, f"{experiment_id}_{name}.pkl")
+            with open(path, "rb") as f:
+                return pickle.load(f)
+
+        shaft = _load("shaft_rwa")
+        termination = _load("termination_rwa")
+        junction = _load("junction_rwa")
+        data_path = os.path.join(context.rwa_output_dir, f"{experiment_id}_data.pkl")
+        with open(data_path, "rb") as f:
+            compiled = pickle.load(f)
+        print(f"Loaded RWA data for experiment {experiment_id}")
+        return shaft, termination, junction, compiled
+    except FileNotFoundError as exc:
+        print(f"RWA data not found — skipping RWA columns: {exc}")
+        return None
+
+
+def _build_rwa_pred_map(shaft_rwa, term_rwa, junc_rwa, compiled_data) -> Dict[int, Tuple]:
+    """
+    For every stimulus in compiled_data, compute shaft/termination/junction
+    RWA-predicted responses.
+
+    Returns {stim_id: (shaft_pred, term_pred, junc_pred)}.
+    """
+    from src.analysis.ga.rwa_prediction import compute_predictions
+
+    stim_ids = list(compiled_data["StimSpecId"].astype(int))
+    shaft_p = compute_predictions(shaft_rwa, compiled_data["Shaft"])
+    term_p = compute_predictions(term_rwa, compiled_data["Termination"])
+    junc_p = compute_predictions(junc_rwa, compiled_data["Junction"])
+
+    return {
+        sid: (shaft_p[i], term_p[i], junc_p[i])
+        for i, sid in enumerate(stim_ids)
+    }
+
+
+def _compute_rwa_r_values(
+        channel_matrix: Dict[str, Dict[int, float]],
+        rwa_pred_map: Dict[int, Tuple],
+) -> Dict[str, Tuple[float, float, float]]:
+    """
+    For each channel compute Pearson r between real spike rate and each of the
+    three RWA-predicted response types.
+
+    Returns {channel: (shaft_r, term_r, junc_r)}.
+    """
+    def _r(real_v, pred_v):
+        valid = np.isfinite(real_v) & np.isfinite(pred_v)
+        if valid.sum() < 3:
+            return np.nan
+        return float(linregress(real_v[valid], pred_v[valid]).rvalue)
+
+    results = {}
+    for channel, stim_rates in channel_matrix.items():
+        common = [sid for sid in stim_rates if sid in rwa_pred_map]
+        if len(common) < 3:
+            results[channel] = (np.nan, np.nan, np.nan)
+            continue
+
+        real = np.array([stim_rates[sid] for sid in common], dtype=float)
+        shaft = np.array([rwa_pred_map[sid][0] for sid in common], dtype=float)
+        term  = np.array([rwa_pred_map[sid][1] for sid in common], dtype=float)
+        junc  = np.array([rwa_pred_map[sid][2] for sid in common], dtype=float)
+
+        results[channel] = (_r(real, shaft), _r(real, term), _r(real, junc))
+    return results
+
+
+# ---------------------------------------------------------------------------
+# Scatter subfolders
+# ---------------------------------------------------------------------------
+
+def _save_rwa_channel_scatters(
+        channel_matrix: Dict[str, Dict[int, float]],
+        rwa_pred_map: Dict[int, Tuple],
+        scatter_dir: str,
+):
+    """
+    For each channel save a 3-panel figure: real spike rate vs shaft / termination
+    / junction RWA-predicted response.  One PNG per channel.
+    """
+    from src.analysis.ga.rwa_prediction import plot_real_vs_predicted
+
+    os.makedirs(scatter_dir, exist_ok=True)
+    for channel, stim_rates in sorted(channel_matrix.items()):
+        common = [sid for sid in stim_rates if sid in rwa_pred_map]
+        if len(common) < 3:
+            continue
+
+        real = np.array([stim_rates[sid] for sid in common], dtype=float)
+        shaft = np.array([rwa_pred_map[sid][0] for sid in common], dtype=float)
+        term  = np.array([rwa_pred_map[sid][1] for sid in common], dtype=float)
+        junc  = np.array([rwa_pred_map[sid][2] for sid in common], dtype=float)
+
+        fig, axes = plt.subplots(1, 3, figsize=(15, 5), constrained_layout=True)
+        for ax, (pred, label) in zip(axes, [
+            (shaft, "Shaft"), (term, "Termination"), (junc, "Junction"),
+        ]):
+            plot_real_vs_predicted(real, pred, title=f"{label} RWA", ax=ax)
+            ax.set_xlabel(f"Real Response ({channel})", fontsize=9)
+            ax.set_ylabel(f"Predicted (RWA {label})", fontsize=9)
+
+        fig.suptitle(f"RWA Prediction Scatter — {channel}", fontsize=12, fontweight='bold')
+        path = os.path.join(scatter_dir, f"{channel}_vs_rwa.png")
+        fig.savefig(path, dpi=150, bbox_inches='tight')
+        plt.close(fig)
+
+    print(f"Saved RWA channel scatters to {scatter_dir}")
+
+
+def _save_ga_channel_scatters(
+        channel_matrix: Dict[str, Dict[int, float]],
+        ga_responses: Dict[int, float],
+        scatter_dir: str,
+):
+    """
+    For each channel save a scatter of GA response (x-axis) vs channel spike
+    rate (y-axis), with a regression line and r/p annotation.
+    """
+    os.makedirs(scatter_dir, exist_ok=True)
+    for channel, stim_rates in sorted(channel_matrix.items()):
+        common = [sid for sid in stim_rates if sid in ga_responses]
+        if len(common) < 3:
+            continue
+
+        ga = np.array([ga_responses[sid] for sid in common], dtype=float)
+        ch = np.array([stim_rates[sid]   for sid in common], dtype=float)
+        valid = np.isfinite(ga) & np.isfinite(ch)
+        if valid.sum() < 3:
+            continue
+        ga, ch = ga[valid], ch[valid]
+
+        fig, ax = plt.subplots(figsize=(5, 5))
+        ax.scatter(ga, ch, alpha=0.6, s=30, edgecolors='none', color='steelblue')
+
+        slope, intercept, r, p, _ = linregress(ga, ch)
+        x_fit = np.linspace(ga.min(), ga.max(), 200)
+        p_label = f"p={p:.3f}" if p >= 0.001 else "p<0.001"
+        ax.plot(x_fit, slope * x_fit + intercept, 'r--', linewidth=1.5, zorder=5)
+        ax.annotate(f"r={r:.2f}, {p_label}",
+                    xy=(0.97, 0.05), xycoords='axes fraction',
+                    ha='right', fontsize=9, color='crimson')
+
+        ax.set_xlabel("GA Response", fontsize=10)
+        ax.set_ylabel(f"{channel} Spike Rate", fontsize=10)
+        ax.set_title(f"{channel} vs GA Response", fontsize=11, fontweight='bold')
+
+        path = os.path.join(scatter_dir, f"{channel}_vs_ga_response.png")
+        fig.savefig(path, dpi=150, bbox_inches='tight')
+        plt.close(fig)
+
+    print(f"Saved GA channel scatters to {scatter_dir}")
 
 
 # ---------------------------------------------------------------------------
@@ -155,8 +332,6 @@ def compute_zscore_correlations(
     """
     For each cluster channel, compute the Spearman correlation of its
     z-scored response vector with every other channel's z-scored vector.
-    Common stimuli are computed pairwise so no channel is excluded just
-    because it is missing a few stimuli.
 
     Returns:
         {cluster_channel: {channel: rho}}   (NaN when < 3 common stimuli)
@@ -184,8 +359,6 @@ def compute_zscore_correlations(
             correlations[cluster_ch][channel] = float(rho)
 
     return correlations
-
-
 
 
 # ---------------------------------------------------------------------------
@@ -256,29 +429,34 @@ def plot_delta_variant_correlation(
         included_only: bool = True,
         top_n: int = 10,
         headstage_label: str = "A",
+        experiment_id=None,
         save_path: Optional[str] = None,
 ):
     """
     Main entry point.  Connects to the GA database and the repository,
     builds two response matrices (delta/variant stimuli and top-N stimuli),
-    correlates, and plots side-by-side.
+    correlates, and plots side-by-side.  If RWA pickle files are found for
+    *experiment_id*, three additional columns show Pearson r between each
+    channel's real response and the shaft/termination/junction RWA predictions.
 
     Args:
-        session_id:     e.g. "260410_0"
-        ga_database:    Name of the GA database (defaults to context.ga_database)
-        included_only:  If True, only use stims from included pairs in IncludedDeltas.
-                        If False, use all pairs regardless of the included flag.
-        top_n:          Number of top stimuli (per cluster channel) for the right group.
+        session_id:      e.g. "260410_0"
+        ga_database:     Name of the GA database (defaults to context.ga_database)
+        included_only:   If True, only use stims from included pairs in IncludedDeltas.
+        top_n:           Number of top stimuli (per cluster channel) for the right group.
         headstage_label: Headstage prefix for channel names (default "A")
-        save_path:      Optional path to save the PNG figure.
+        experiment_id:   Integer experiment id used to locate RWA pickle files.
+                         If None the RWA columns are skipped.
+        save_path:       Optional path to save the main PNG figure.
     """
     if ga_database is None:
         ga_database = context.ga_database
 
     channel_strings = [f"{headstage_label}-{num:03d}" for num in CHANNEL_ORDER]
+    plot_dir = os.path.dirname(save_path) if save_path else None
 
     # ---- connections ----
-    ga_conn = Connection(ga_database)
+    ga_conn   = Connection(ga_database)
     repo_conn = Connection("allen_data_repository")
 
     # ---- cluster channels ----
@@ -317,7 +495,21 @@ def plot_delta_variant_correlation(
         topn_matrix = build_response_matrix(repo_conn, top_stim_ids)
         topn_correlations = compute_zscore_correlations(topn_matrix, cluster_channels)
 
-    # Use the union of cluster channels that have data in either group
+    # ---- RWA GROUP (optional, columns 3-5) ----
+    rwa_data = _try_load_rwa(experiment_id) if experiment_id is not None else None
+    rwa_r_values = None   # {channel: (shaft_r, term_r, junc_r)}
+    rwa_pred_map = None
+
+    if rwa_data is not None:
+        shaft_rwa, term_rwa, junc_rwa, compiled_data = rwa_data
+        rwa_pred_map = _build_rwa_pred_map(shaft_rwa, term_rwa, junc_rwa, compiled_data)
+
+        # Build a response matrix for all stim_ids used in the RWA compilation
+        all_stim_ids = set(compiled_data["StimSpecId"].astype(int))
+        all_matrix = build_response_matrix(repo_conn, all_stim_ids)
+        rwa_r_values = _compute_rwa_r_values(all_matrix, rwa_pred_map)
+
+    # ---- cluster channel list ----
     cluster_channel_list = sorted(
         set(dv_correlations.keys()) | set(topn_correlations.keys())
     )
@@ -328,27 +520,34 @@ def plot_delta_variant_correlation(
         return
 
     # ---- figure layout ----
-    # Two groups of n_cols, separated by a narrow spacer column
     cmap = plt.cm.RdBu_r
     norm = TwoSlopeNorm(vmin=-1.0, vcenter=0.0, vmax=1.0)
 
-    col_width = 3
+    col_width   = 3
     spacer_width = 0.5
-    fig_width = col_width * n_cols * 2 + spacer_width + 2
+    has_rwa = rwa_r_values is not None
+
+    # widths: [n_cols left] [spacer] [n_cols right] ([spacer] [3 rwa cols])?
+    width_ratios = (
+        [col_width] * n_cols + [spacer_width] + [col_width] * n_cols
+        + ([spacer_width] + [col_width] * 3 if has_rwa else [])
+    )
+    n_gs_cols = len(width_ratios)
+    fig_width = sum(w for w in width_ratios if w == col_width) + 2
     fig = plt.figure(figsize=(fig_width, 12))
 
-    gs = GridSpec(
-        1, 2 * n_cols + 1,
-        width_ratios=[col_width] * n_cols + [spacer_width] + [col_width] * n_cols,
-        wspace=0.15,
-        figure=fig,
-    )
+    gs = GridSpec(1, n_gs_cols, width_ratios=width_ratios, wspace=0.15, figure=fig)
 
-    axes_left = [fig.add_subplot(gs[0, i]) for i in range(n_cols)]
+    axes_left  = [fig.add_subplot(gs[0, i]) for i in range(n_cols)]
     axes_right = [
         fig.add_subplot(gs[0, n_cols + 1 + i], sharey=axes_left[0])
         for i in range(n_cols)
     ]
+    if has_rwa:
+        rwa_start = 2 * n_cols + 2   # after left + spacer + right + spacer
+        ax_shaft = fig.add_subplot(gs[0, rwa_start],     sharey=axes_left[0])
+        ax_term  = fig.add_subplot(gs[0, rwa_start + 1], sharey=axes_left[0])
+        ax_junc  = fig.add_subplot(gs[0, rwa_start + 2], sharey=axes_left[0])
 
     scatter_ref = None
 
@@ -375,8 +574,35 @@ def plot_delta_variant_correlation(
         scatter_ref = scatter_ref or ref
         ax.set_title(f"ρ vs {cluster_ch}\ntop {top_n}", fontsize=10, fontweight='bold')
 
-    # Group bracket labels
-    left_mid = axes_left[len(axes_left) // 2]
+    # -- RWA group (columns 3-5) --
+    if has_rwa:
+        shaft_r_corr = {ch: rwa_r_values[ch][0] for ch in rwa_r_values}
+        term_r_corr  = {ch: rwa_r_values[ch][1] for ch in rwa_r_values}
+        junc_r_corr  = {ch: rwa_r_values[ch][2] for ch in rwa_r_values}
+
+        for ax, corr_data, label in [
+            (ax_shaft, shaft_r_corr, "Shaft RWA\nr (Pearson)"),
+            (ax_term,  term_r_corr,  "Termination RWA\nr (Pearson)"),
+            (ax_junc,  junc_r_corr,  "Junction RWA\nr (Pearson)"),
+        ]:
+            ref = _plot_corr_column(
+                ax, "__rwa__", corr_data,
+                channel_strings, cluster_channels, cmap, norm,
+                show_yticks=False,
+            )
+            scatter_ref = scatter_ref or ref
+            ax.set_title(label, fontsize=10, fontweight='bold')
+
+        # Bracket label for RWA group
+        ax_term.annotate(
+            "RWA Prediction r",
+            xy=(0.5, 1.0), xycoords='axes fraction',
+            xytext=(0, 30), textcoords='offset points',
+            ha='center', fontsize=11, fontweight='bold', color='#333333',
+        )
+
+    # -- group bracket labels --
+    left_mid  = axes_left[len(axes_left) // 2]
     right_mid = axes_right[len(axes_right) // 2]
     left_mid.annotate(
         f"Delta/Variant ({included_label}, {len(dv_stim_ids)} stims)",
@@ -405,7 +631,7 @@ def plot_delta_variant_correlation(
             plt.cm.ScalarMappable(norm=norm, cmap=cmap),
             cax=cbar_ax, orientation='horizontal',
         )
-        cbar.set_label("Spearman ρ  (Red = positive, Blue = negative)", fontsize=10)
+        cbar.set_label("Correlation  (Red = positive, Blue = negative)", fontsize=10)
 
     # Legend
     legend_elements = [
@@ -422,10 +648,26 @@ def plot_delta_variant_correlation(
     axes_left[0].legend(handles=legend_elements, loc='upper left', fontsize=8)
 
     if save_path:
-        import os
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         print(f"Saved to {save_path}")
+
+    # ---- scatter subfolders ----
+    if plot_dir and rwa_data is not None:
+        _save_rwa_channel_scatters(
+            all_matrix, rwa_pred_map,
+            os.path.join(plot_dir, "rwa_channel_scatters"),
+        )
+
+    if plot_dir and ga_responses:
+        # Use all_matrix if available; otherwise build from ga_responses stim_ids
+        ga_matrix = all_matrix if rwa_data is not None else build_response_matrix(
+            repo_conn, set(ga_responses.keys())
+        )
+        _save_ga_channel_scatters(
+            ga_matrix, ga_responses,
+            os.path.join(plot_dir, "ga_channel_scatters"),
+        )
 
     plt.show()
 
