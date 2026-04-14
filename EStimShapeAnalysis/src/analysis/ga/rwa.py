@@ -105,7 +105,10 @@ def get_point_indices(rwa: RWAMatrix, stim: list[dict]) -> list[list[int]]:
 
         assigned_bins_for_component = assign_bins_for_component(binners_for_fields, component)
         for index_and_assigned_bin in assigned_bins_for_component:
-            assigned_bin = index_and_assigned_bin[0]
+            if index_and_assigned_bin is None:
+                assigned_bin = None
+            else:
+                assigned_bin = index_and_assigned_bin[0]
             component_bin_indices.append(assigned_bin)
         bin_indices.append(component_bin_indices)
     return bin_indices

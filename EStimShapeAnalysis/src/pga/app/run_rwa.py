@@ -7,16 +7,21 @@ import pandas as pd
 from clat.compile.task.cached_task_fields import CachedTaskFieldList
 from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.compile.task.compile_task_id import TaskIdCollector
+from src.analysis.fields.cached_task_fields import StimTypeField
 from src.analysis.ga.cached_ga_fields import RegimeScoreField, LineageField
 from src.analysis.ga.rwa import get_next
 from clat.util import time_util
 from clat.util.connection import Connection
 from clat.util.time_util import When
+from src.analysis.lightness.lightness_analysis import TextureField
 from src.pga.multi_ga_db_util import MultiGaDbUtil
 from src.startup import context
 from src.pga.mock.mock_rwa_analysis import remove_empty_response_trials, condition_spherical_angles, \
     hemisphericalize_orientation, compute_shaft_rwa, compute_termination_rwa, compute_junction_rwa, save
 from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
+
+
+
 
 
 def main():
@@ -31,6 +36,8 @@ def main():
     data = compile_data(conn, task_ids)
     data = remove_empty_response_trials(data)
     data = remove_catch_trials(data)
+    data = remove_2d_trials(data)
+    data = remove_baseline_trials(data)
     data = condition_spherical_angles(data)
     data = hemisphericalize_orientation(data)
 
@@ -53,6 +60,11 @@ def main():
 def remove_catch_trials(data: pd.DataFrame):
     return data[data["Lineage"] != 0]
 
+def remove_2d_trials(data):
+    return data[data["Texture"] != "2D"]
+
+def remove_baseline_trials(data):
+    return data[data["StimType"] != "BASELINE"]
 
 def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
     mstick_spec_data_source = StimSpecDataField(conn)
@@ -62,6 +74,8 @@ def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
     fields.append(LineageField(conn))
     fields.append(RegimeScoreField(conn))
     fields.append(ClusterResponseField(conn))
+    fields.append(TextureField(conn))
+    fields.append(StimTypeField(conn))
     fields.append(ShaftField(conn, mstick_spec_data_source))
     fields.append(TerminationField(conn, mstick_spec_data_source))
     fields.append(JunctionField(conn, mstick_spec_data_source))

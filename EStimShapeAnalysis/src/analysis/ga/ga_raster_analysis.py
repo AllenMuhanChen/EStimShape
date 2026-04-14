@@ -7,11 +7,21 @@ import numpy as np
 import pandas as pd
 from matplotlib.gridspec import GridSpec
 
+from clat.compile.task.cached_task_fields import CachedTaskFieldList
+from clat.compile.task.classic_database_task_fields import StimSpecDataField, TaskIdField, StimSpecIdField
+from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.pipeline.pipeline_base_classes import (
     InputHandler, ComputationModule, AnalysisModuleFactory, create_pipeline
 )
+from clat.util.connection import Connection
 from src.analysis import Analysis
+from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, CompsToPreserveField
+from src.analysis.ga.cached_ga_fields import ParentIdField, LineageField, GenIdField, RegimeScoreField
+from src.analysis.ga.plot_top_n import PlotTopNAnalysis
+from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, IntanSpikeRateByChannelField, \
+    EpochStartStopTimesField
 from src.analysis.modules.figure_output import FigureSaverOutput
+from src.intan.MultiFileParser import MultiFileParser
 from src.repository.export_to_repository import read_session_id_from_db_name
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
@@ -23,7 +33,8 @@ CHANNEL_ORDER = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
 def main():
     analysis = GARasterAnalysis(top_n=10, gen_id=None)
     session_id, _ = read_session_id_from_db_name(context.ga_database)
-    analysis.run(session_id, "raw", "ALL")
+    compiled_data = analysis.compile()
+    analysis.run(session_id, "raw", "ALL", compiled_data)
 
 
 class GARasterAnalysis(Analysis):
@@ -44,7 +55,52 @@ class GARasterAnalysis(Analysis):
             self.gen_ids = gen_id          # None = all, list = filter to these
         else:
             self.gen_ids = [gen_id]        # wrap single int in a list
+    @staticmethod
+    def clean_ga_data(data_for_all_tasks):
+        # Remove trials with no response
+        data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['Spikes by channel'].notna()]
+        # Remove NaNs
+        data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['StimSpecId'].notna()]
+        # Remove Catch
+        data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['ThumbnailPath'].apply(lambda x: x is not None)]
+        return data_for_all_tasks
 
+    def compile(self) -> pd.DataFrame:
+        conn = Connection(context.ga_database)
+        collector = TaskIdCollector(conn)
+        task_ids = collector.collect_task_ids()
+        response_processor = context.ga_config.make_response_processor()
+        cluster_combination_strategy = response_processor.cluster_combination_strategy
+        parser = MultiFileParser(to_cache=True, cache_dir=context.ga_parsed_spikes_path)
+        mstick_spec_data_source = StimSpecDataField(conn)
+
+        fields = CachedTaskFieldList()
+        fields.append(TaskIdField(conn))
+        fields.append(StimSpecIdField(conn))
+        fields.append(ParentIdField(conn))
+        fields.append(LineageField(conn))
+        fields.append(GenIdField(conn))
+        fields.append(RegimeScoreField(conn))
+        fields.append(StimTypeField(conn))
+        fields.append(StimPathField(conn))
+        fields.append(ThumbnailField(conn))
+        # fields.append(GAResponseField(conn))
+        fields.append(CompsToPreserveField(conn))
+        # fields.append(ClusterResponseField(conn, cluster_combination_strategy))
+        fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
+        fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))
+        fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))
+        # fields.append(ShaftField(conn, mstick_spec_data_source))
+        # fields.append(TerminationField(conn, mstick_spec_data_source))
+        # fields.append(JunctionField(conn, mstick_spec_data_source))
+
+        data = fields.to_data(task_ids)
+
+        data = self.clean_ga_data(data)
+        return data
+
+    def compile_and_export(self) -> pd.DataFrame:
+        raise NotImplementedError("This analysis does not implement compile_and_export since it relies on raw data fields that are not pre-compiled. Use compile() instead to get the raw data.")
     def import_data(self, compiled_data: pd.DataFrame) -> pd.DataFrame:
         if compiled_data is None:
             compiled_data = import_from_repository(
@@ -82,12 +138,6 @@ class GARasterAnalysis(Analysis):
         result = pipeline.run(data)
         plt.show()
         return result
-
-    def compile_and_export(self):
-        raise NotImplementedError("Use PlotTopNAnalysis.compile_and_export() to compile GA data.")
-
-    def compile(self):
-        raise NotImplementedError("Use PlotTopNAnalysis.compile() to compile GA data.")
 
 
 # ---------------------------------------------------------------------------

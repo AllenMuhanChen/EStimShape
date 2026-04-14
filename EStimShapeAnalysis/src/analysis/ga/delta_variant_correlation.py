@@ -55,7 +55,7 @@ CHANNEL_ORDER = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
 # Must be a column present in the compiled data (loaded alongside the RWA).
 # Set to None for single-colour dots.
 SCATTER_COLOR_BY = "Texture"   # e.g. "Texture", "Lineage", "GenId"
-SCATTER_TOP_N    = 4           # top-N groups by count; rest → "Other"
+SCATTER_TOP_N    = 5           # top-N groups by count; rest → "Other"
 # ─────────────────────────────────────────────────────────────────────────────
 
 

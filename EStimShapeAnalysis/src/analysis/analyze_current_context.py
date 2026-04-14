@@ -19,8 +19,8 @@ def main():
     # BARE MINIMUM FOR PREFERENCE CLUSTER
     bare_minimum_for_preference_cluster = [
         # IsochromaticIndexAnalysis(),
-        # GAResponseVectorAnalysis(),
-        SolidPreferenceIndexAnalysis(),
+        GAResponseVectorAnalysis(),
+        # SolidPreferenceIndexAnalysis(),
     ]
     analyses = bare_minimum_for_preference_cluster
 

@@ -36,6 +36,7 @@ from clat.compile.task.cached_task_fields import CachedTaskFieldList
 from clat.compile.task.classic_database_task_fields import StimSpecIdField
 from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.util.connection import Connection
+from src.analysis.fields.cached_task_fields import StimTypeField
 from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
 from src.analysis.ga.cached_ga_fields import LineageField, GenIdField, RegimeScoreField
 from src.analysis.ga.rwa import get_next
@@ -57,7 +58,7 @@ TOP_N       = 4           # top N colour groups by count; rest → "Other"
                           # set to None to show all groups individually
 
 # ── Symbol grouping ──────────────────────────────────────────────────────────
-SYMBOL_BY   = None        # any column to vary marker shape (e.g. "GenId")
+SYMBOL_BY   = "StimType"        # any column to vary marker shape (e.g. "GenId")
                           # set to None for uniform circles
 
 # ── Row filters ─────────────────────────────────────────────────────────────
@@ -139,6 +140,7 @@ def compile_data(conn: Connection) -> pd.DataFrame:
     fields.append(RegimeScoreField(conn))
     fields.append(ClusterResponseField(conn))
     fields.append(TextureField(conn))  # for SYMBOL_BY example
+    fields.append(StimTypeField(conn))
     fields.append(ShaftField(conn, mstick_spec_data_source))
     fields.append(TerminationField(conn, mstick_spec_data_source))
     fields.append(JunctionField(conn, mstick_spec_data_source))
