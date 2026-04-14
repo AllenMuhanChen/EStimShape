@@ -16,7 +16,7 @@ def main():
         threshold=0.6)
     compiled_data = None  # Set to None to import from repository
     # compiled_data = analysis.compile_and_export()
-    session_id = "260410_0"
+    session_id = "260414_0"
     channel = "GA"
     analysis.run(session_id, "GA", channel, compiled_data=compiled_data)
 

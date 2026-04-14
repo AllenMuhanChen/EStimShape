@@ -16,7 +16,7 @@ def main():
                             save_included_variants=True)  # Set to False to use channel-specific spike rates
     compiled_data = None
     # compiled_data = analysis.compile_and_export()
-    session_id = "260410_0"
+    session_id = "260414_0"
     channel = "GA"
     analysis.run(session_id, "GA", channel, compiled_data=compiled_data)
 

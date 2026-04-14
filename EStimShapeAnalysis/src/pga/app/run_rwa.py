@@ -36,7 +36,7 @@ def main():
     data = compile_data(conn, task_ids)
     data = remove_empty_response_trials(data)
     data = remove_catch_trials(data)
-    data = remove_2d_trials(data)
+    # data = remove_2d_trials(data)
     data = remove_baseline_trials(data)
     data = condition_spherical_angles(data)
     data = hemisphericalize_orientation(data)

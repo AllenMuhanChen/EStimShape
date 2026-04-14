@@ -74,6 +74,8 @@ class GAResponseProcessor:
     def _process_repetitions(self, responses_to_process: dict[int, list[float]]) -> dict[int, float]:
         driving_responses_for_stim_ids = {}
         for stim_id, responses in responses_to_process.items():
+            if not responses:
+                continue
             driving_response = self.repetition_combination_strategy(responses)
             driving_responses_for_stim_ids[stim_id] = driving_response
         return driving_responses_for_stim_ids

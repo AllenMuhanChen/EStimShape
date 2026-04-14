@@ -33,12 +33,12 @@ from src.startup import context
 
 def main():
     # ============ CONFIGURATION ============
-    exp_conn = Connection("allen_estimshape_exp_260410_0")
+    exp_conn = Connection("allen_estimshape_exp_260414_0")
     ga_conn  = Connection(context.ga_database)
 
     since_date            = time_util.from_date_to_now(2024, 7, 10)
-    start_gen_id          = 3
-    max_gen_id            = 5
+    start_gen_id          = 4
+    max_gen_id            = float('inf')
     start_gen_id_estim_on = 0
     max_gen_id_estim_on   = float('inf')
 

@@ -39,7 +39,7 @@ def main():
                            mode='iti')
     data = None
     data = analysis.compile_and_export()
-    analysis.run(session_id="260410_0", data_type="raw", channel=None, compiled_data=data)
+    analysis.run(session_id="260414_0", data_type="raw", channel=None, compiled_data=data)
 
 
 class LFPAnalysis(Analysis):

@@ -76,7 +76,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
             color = colorPropertyManager.readProperty(variantId);
         }
 
-        maxChoiceSize = generator.getMaxChoiceDimensionDegrees() * 0.9;
+        maxChoiceSize = generator.getMaxChoiceDimensionDegrees() * 0.8;
         maxSampleSize = generator.getMaxSampleDimensionDegrees();
 
         choiceSize = Math.min(sampleSize, MAX_CHOICE_SIZE);
