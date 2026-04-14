@@ -97,6 +97,8 @@ class GATopNAllChannelsAnalysis(GARasterAnalysis):
                 'Channel': channels,
                 'RankWithinChannel': list(range(1, self.top_n + 1)),
             },
+            # publish_mode=True never sets include_labels_for, so pass it explicitly.
+            include_labels_for={"row"},
             save_path=save_path,
             publish_mode=True,
             subplot_spacing=(20, 0),
