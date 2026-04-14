@@ -220,9 +220,10 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 
     private void calculateNoisePixels(byte[] pixels, float[] hsl, int i) {
         float newLightness = (float) r.nextDouble();
-        float newSaturation = (float) r.nextDouble();  // ← Add this
+        // Keep saturation at 0 for grayscale base colors so noise stays grayscale
+        float newSaturation = hsl[1] == 0 ? 0 : (float) r.nextDouble();
 
-        Color color = Color.getHSBColor(hsl[0], newSaturation, newLightness);  // ← Use random saturation
+        Color color = Color.getHSBColor(hsl[0], newSaturation, newLightness);
 
         pixels[i] = (byte) color.getRed();
         pixels[i + 1] = (byte) color.getGreen();
