@@ -117,7 +117,8 @@ class RawChannelCandidacyAnalysis(Analysis):
             top_n=self.top_n,
             spike_data_col=self.spike_tstamps_col,
             spike_rate_col=self.spike_rates_col,
-            time_range=(0.0, 0.7),
+            baseline_window=(-0.2, 0.0),
+            response_window=(0.0, 0.7),
             title="Raw Channel Candidacy — Z-score / Kruskal-Wallis / Onset Latency",
             save_path=save_path,
         )
@@ -137,7 +138,8 @@ def create_raw_channel_candidacy_module(
         top_n: int = 10,
         spike_data_col: str = "Spikes by channel",
         spike_rate_col: str = "Spike Rate by channel",
-        time_range: tuple = (0.0, 0.7),
+        baseline_window: tuple = (-0.2, 0.0),
+        response_window: tuple = (0.0, 0.7),
         title: Optional[str] = None,
         save_path: Optional[str] = None,
 ) -> Any:
@@ -145,23 +147,23 @@ def create_raw_channel_candidacy_module(
     Create a pipeline module that computes and plots per-channel candidacy metrics.
 
     Args:
-        channels:       Ordered list of channel names (e.g. from CHANNEL_ORDER).
-        top_n:          Number of top stimuli whose z-scores are averaged.
-        spike_data_col: DataFrame column with spike-timestamp dicts.
-        spike_rate_col: DataFrame column with spike-rate dicts (used for z-score / KW).
-        time_range:     (window_start, window_end) in seconds for onset latency.
-        title:          Figure suptitle.
-        save_path:      If given, the figure is saved here.
+        channels:         Ordered list of channel names (e.g. from CHANNEL_ORDER).
+        top_n:            Number of top stimuli whose z-scores are averaged.
+        spike_data_col:   DataFrame column with spike-timestamp dicts.
+        spike_rate_col:   DataFrame column with spike-rate dicts (used for z-score / KW).
+        baseline_window:  Pre-stimulus window (seconds) for PSTH baseline stats.
+        response_window:  Post-stimulus window (seconds) searched for onset crossing.
+        title:            Figure suptitle.
+        save_path:        If given, the figure is saved here.
     """
-    window_start, window_end = time_range
     return AnalysisModuleFactory.create(
         input_handler=RawChannelMetricsInputHandler(
             channels=channels,
             top_n=top_n,
             spike_data_col=spike_data_col,
             spike_rate_col=spike_rate_col,
-            window_start=window_start,
-            window_end=window_end,
+            baseline_window=baseline_window,
+            response_window=response_window,
         ),
         computation=RawChannelCandidacyPlotter(title=title),
         output_handler=FigureSaverOutput(save_path=save_path),
@@ -187,15 +189,15 @@ class RawChannelMetricsInputHandler(InputHandler):
             top_n: int,
             spike_data_col: str,
             spike_rate_col: str,
-            window_start: float = 0.0,
-            window_end: float = 0.7,
+            baseline_window: tuple = (-0.2, 0.0),
+            response_window: tuple = (0.0, 0.7),
     ):
         self.channels = channels
         self.top_n = top_n
         self.spike_data_col = spike_data_col
         self.spike_rate_col = spike_rate_col
-        self.window_start = window_start
-        self.window_end = window_end
+        self.baseline_window = baseline_window
+        self.response_window = response_window
 
     def prepare(self, compiled_data: pd.DataFrame) -> Dict[str, Any]:
         data = compiled_data.copy()
@@ -209,8 +211,8 @@ class RawChannelMetricsInputHandler(InputHandler):
             data,
             spike_data_col=self.spike_data_col,
             channels=self.channels,
-            window_start=self.window_start,
-            window_end=self.window_end,
+            baseline_window=self.baseline_window,
+            response_window=self.response_window,
         )
 
         # --- Z-score and Kruskal-Wallis per channel ---
