@@ -23,27 +23,36 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
     double sizeDiameterDegrees = 10;
     private ArrayList<Point> meshPoints = new ArrayList<>();
     private ArrayList<Coordinates2D> currentHullCoords;
+    private boolean specDirty = false;
 
     public RFPlotMatchStick() {
         setDefaultSpec();
     }
 
+    /**
+     * Rebuilds matchStick from the current matchStickSpec only when the spec has changed.
+     * This avoids running the expensive genMatchStickFromShapeSpec on every draw frame.
+     */
+    private void ensureMatchStickCurrent() {
+        if (specDirty) {
+            matchStick = new AllenMatchStick();
+            matchStick.setProperties(matchStickSpec.sizeDiameterDegrees, matchStickSpec.texture, 1.0);
+            matchStick.setStimColor(matchStickSpec.color);
+            matchStick.genMatchStickFromShapeSpec(matchStickSpec.getMStickSpec(), matchStickSpec.getRotation());
+            specDirty = false;
+        }
+    }
+
     @Override
     public void draw(Context context) {
-        AllenMatchStick nextMStick = new AllenMatchStick();
-        nextMStick.setProperties(matchStickSpec.sizeDiameterDegrees, matchStickSpec.texture, 1.0);
-        nextMStick.setStimColor(matchStickSpec.color);
-        double[] rotation = matchStickSpec.getRotation();
-        nextMStick.genMatchStickFromShapeSpec(matchStickSpec.getMStickSpec(), rotation);
-        nextMStick.drawFast();
-
-        matchStick.copyFrom(nextMStick);
-
+        ensureMatchStickCurrent();
+        matchStick.drawFast();
     }
 
     @Override
     public void setSpec(String spec) {
         this.matchStickSpec = RFPlotMatchStickSpec.fromXml(spec);
+        this.specDirty = true;
     }
 
     @Override
@@ -72,18 +81,13 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
     }
 
     public List<Coordinates2D> getOutlinePoints(AbstractRenderer renderer) {
-        AllenMatchStick nextMStick = new AllenMatchStick();
-        nextMStick.setProperties(matchStickSpec.sizeDiameterDegrees, matchStickSpec.texture, 1.0);
-        nextMStick.setStimColor(matchStickSpec.color);
-        nextMStick.genMatchStickFromShapeSpec(matchStickSpec.getMStickSpec(), matchStickSpec.getRotation());
+        ensureMatchStickCurrent();
 
         ArrayList<Point> nextMeshPoints = new ArrayList<>();
-        Point3d[] vectInfo = nextMStick.getObj1().vect_info;
+        Point3d[] vectInfo = matchStick.getObj1().vect_info;
         for (Point3d point : vectInfo) {
             if (point != null) {
-                Point hullPoint = new Point(point.getX(), point.getY());
-                hullPoint = new Point(hullPoint.getX(), hullPoint.getY());
-                nextMeshPoints.add(hullPoint);
+                nextMeshPoints.add(new Point(point.getX(), point.getY()));
             }
         }
 

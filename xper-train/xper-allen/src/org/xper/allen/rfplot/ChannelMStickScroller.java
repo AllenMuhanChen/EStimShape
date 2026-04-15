@@ -49,7 +49,6 @@ public class ChannelMStickScroller extends RFPlotScroller<RFPlotMatchStickSpec> 
     @Override
     public ScrollerParams next(ScrollerParams scrollerParams) {
         initScrollSequence();
-        System.out.println("Scroll sequence size: " + scrollSequence.size());
         if (scrollSequence.isEmpty()) {
             return scrollerParams;
         }
@@ -89,7 +88,6 @@ public class ChannelMStickScroller extends RFPlotScroller<RFPlotMatchStickSpec> 
             for (int rank = 0; rank < topStims.size(); rank++) {
                 long stimId = topStims.get(rank);
                 String label = "Ch " + channel + " #" + (rank + 1) + "/" + topStims.size() + " [" + stimId + "]";
-                System.out.println("Adding to scroll sequence: " + label);
                 scrollSequence.add(new ChannelStimEntry(stimId, label));
             }
         }
