@@ -221,7 +221,7 @@ class RawChannelMetricsInputHandler(InputHandler):
             metrics = self._compute_channel_metrics(data, ch, onset_by_channel[ch])
             channel_metrics[ch] = metrics
 
-        return {"channel_metrics": channel_metrics}
+        return {"channel_metrics": channel_metrics, "channel_order": self.channels}
 
     def _compute_channel_metrics(
             self, data: pd.DataFrame, channel: str, onset_stats: OnsetStats
@@ -276,7 +276,7 @@ class RawChannelCandidacyPlotter(ComputationModule):
       Col 1 – Horizontal bar: –log10(KW p-value); vertical reference at p=0.05
       Col 2 – Horizontal bar: PSTH threshold-crossing onset latency (ms)
 
-    Channels are sorted by top-z descending so the best candidates appear at the top.
+    Channels are displayed in probe layout order (CHANNEL_ORDER), matching GARasterAnalysis.
     """
 
     _KW_ALPHA = 0.05
@@ -286,13 +286,7 @@ class RawChannelCandidacyPlotter(ComputationModule):
 
     def compute(self, prepared_data: Dict[str, Any]) -> plt.Figure:
         metrics = prepared_data["channel_metrics"]
-
-        # Sort channels by top_z descending
-        channels_sorted = sorted(
-            metrics.keys(),
-            key=lambda ch: metrics[ch]["top_z_mean"] if not np.isnan(metrics[ch]["top_z_mean"]) else -np.inf,
-            reverse=True,
-        )
+        channels_sorted = prepared_data["channel_order"]  # probe layout order (CHANNEL_ORDER)
 
         n = len(channels_sorted)
         fig_height = max(n * 0.45, 10)
