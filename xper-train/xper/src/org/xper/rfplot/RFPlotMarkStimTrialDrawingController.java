@@ -7,6 +7,7 @@ import org.xper.experiment.ExperimentTask;
 
 public class RFPlotMarkStimTrialDrawingController extends MarkStimTrialDrawingController {
 
+
     public void animateSlide(ExperimentTask task, TrialContext context) {
         animateTaskScene(task, context);
         getWindow().swapBuffers();
@@ -17,7 +18,7 @@ public class RFPlotMarkStimTrialDrawingController extends MarkStimTrialDrawingCo
             getTaskScene().setTask(task);
             getTaskScene().drawTask(context, true);
         } else {
-            getTaskScene().drawBlank(context, true, true);
+            getTaskScene().drawBlank(context, true, false);
         }
     }
 
@@ -30,5 +31,4 @@ public class RFPlotMarkStimTrialDrawingController extends MarkStimTrialDrawingCo
             getTaskScene().drawBlank(context, true, true);
         }
     }
-
 }

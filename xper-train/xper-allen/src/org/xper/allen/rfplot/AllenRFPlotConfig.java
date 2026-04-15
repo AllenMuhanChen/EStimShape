@@ -10,10 +10,17 @@ import org.springframework.config.java.annotation.Lazy;
 import org.xper.Dependency;
 import org.xper.allen.config.MStickPngConfig;
 import org.xper.allen.config.PGAConfig;
+import org.xper.allen.drawing.LeftRightScreenMarker;
 import org.xper.allen.util.MultiGaDbUtil;
+import org.xper.classic.TrialDrawingController;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
+import org.xper.drawing.ScreenMarker;
+import org.xper.drawing.TaskScene;
+import org.xper.drawing.object.BlankScreen;
 import org.xper.rfplot.RFPlotConfig;
+import org.xper.rfplot.RFPlotMarkStimTrialDrawingController;
+import org.xper.rfplot.RFPlotScene;
 import org.xper.rfplot.XMLizable;
 import org.xper.rfplot.drawing.RFPlotBlankObject;
 import org.xper.rfplot.drawing.RFPlotDrawable;
@@ -35,13 +42,35 @@ import java.util.Map;
 public class AllenRFPlotConfig {
     @Autowired RFPlotConfig rfPlotConfig;
     @Autowired BaseConfig baseConfig;
-
+    @Autowired ClassicConfig classicConfig;
 
     @ExternalValue("generator.spec_path")
     public String generatorSpecPath;
 
     @ExternalValue("fixcal.channel_mstick_scroller_top_n")
     public String channelMStickScrollerTopN;
+
+    @Bean
+    public TaskScene taskScene() {
+        RFPlotScene scene = new RFPlotScene();
+        scene.setRfObjectMap(namesForDrawables());
+        scene.setRenderer(rfPlotConfig.rfRenderer());
+        scene.setFixation(classicConfig.experimentFixationPoint());
+        scene.setBlankScreen(new BlankScreen());
+        scene.setMarker(classicConfig.screenMarker());
+        scene.setBackgroundColor(classicConfig.xperBackgroundColor());
+        return scene;
+    }
+
+    @Bean
+    public TrialDrawingController drawingController() {
+        RFPlotMarkStimTrialDrawingController controller;
+        controller = new RFPlotMarkStimTrialDrawingController();
+        controller.setWindow(classicConfig.monkeyWindow());
+        controller.setTaskScene(taskScene());
+        controller.setFixationOnWithStimuli(classicConfig.xperFixationOnWithStimuli());
+        return controller;
+    }
 
     @Bean
     public Map<String, RFPlotDrawable> namesForDrawables() {
@@ -128,6 +157,13 @@ public class AllenRFPlotConfig {
         MultiGaDbUtil dbUtil = new MultiGaDbUtil();
         dbUtil.setDataSource(baseConfig.dataSource());
         return dbUtil;
+    }
+
+    @Bean
+    public LeftRightScreenMarker screenMarker(){
+        LeftRightScreenMarker marker = new LeftRightScreenMarker();
+        marker.left();
+        return marker;
     }
 
 }
