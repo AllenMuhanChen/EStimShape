@@ -156,10 +156,11 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         if (!isStimToggleOn) {
             RFPlotDrawable currentDrawable = new RFPlotBlankObject();
             client.changeRFPlotStim(RFPlotStimSpec.getStimSpecFromRFPlotDrawable(currentDrawable));
-        } else{
+        } else {
             RFPlotDrawable firstStimObj = namesForDrawables.get(stimType);
             stimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(firstStimObj);
             client.changeRFPlotStim(stimSpec);
+            client.changeRFPlotXfm(xfmSpec);
         }
     }
 
@@ -575,8 +576,8 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         xfmSpec = newParams.getXfmSpec().toXml();
         if (isStimToggleOn) {
             client.changeRFPlotStim(stimSpec);
+            client.changeRFPlotXfm(xfmSpec);
         }
-        client.changeRFPlotXfm(xfmSpec);
         scrollerValueLabel.setText(newParams.getNewValue());
     }
 
