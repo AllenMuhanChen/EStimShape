@@ -168,6 +168,10 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         plotter.getRfsForChannels().forEach(new BiConsumer<String, CircleRF>() {
             @Override
             public void accept(String channel, CircleRF circleRF) {
+                if (circleRF.getCircleCenter() == null){
+                    plotter.getRfsForChannels().remove(channel);
+                    return;
+                }
 
                 Coordinates2D circleCenterDeg = mm2deg(circleRF.getCircleCenter());
                 double radiusDeg = renderer.mm2deg(circleRF.getCircleRadius());
