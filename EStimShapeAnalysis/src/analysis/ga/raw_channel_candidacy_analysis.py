@@ -180,7 +180,7 @@ class RawChannelMetricsInputHandler(InputHandler):
     For every channel compute:
       - mean z-score of the top-N stimuli
       - Kruskal-Wallis H-statistic and p-value across stimuli
-      - per-trial SDF onset latency (mean and std across trials) via response_onset module
+      - PSTH onset (10% of peak) and rise time (10%→90%) via response_onset module
     """
 
     def __init__(
@@ -274,7 +274,7 @@ class RawChannelCandidacyPlotter(ComputationModule):
     Three-column summary figure:
       Col 0 – Horizontal bar: mean z-score of top-N stimuli
       Col 1 – Horizontal bar: –log10(KW p-value); vertical reference at p=0.05
-      Col 2 – Errorbar: mean SDF onset (ms) ± std across trials
+      Col 2 – Span bar from PSTH 10% onset to 90% peak; short bar = consistent
 
     Channels are displayed in probe layout order (CHANNEL_ORDER), matching GARasterAnalysis.
     """
@@ -300,8 +300,8 @@ class RawChannelCandidacyPlotter(ComputationModule):
 
         z_vals    = [metrics[ch]["top_z_mean"] for ch in channels_sorted]
         kw_p_vals = [metrics[ch]["kw_p"]       for ch in channels_sorted]
-        onset_vals   = [metrics[ch]["onset"].mean_onset_ms  for ch in channels_sorted]
-        jitter_vals  = [metrics[ch]["onset"].std_onset_ms   for ch in channels_sorted]
+        onset_vals     = [metrics[ch]["onset"].onset_ms     for ch in channels_sorted]
+        rise_time_vals = [metrics[ch]["onset"].rise_time_ms for ch in channels_sorted]
 
         # --- Column 0: Z-score bars ---
         colors_z = [
@@ -336,27 +336,23 @@ class RawChannelCandidacyPlotter(ComputationModule):
         ax_kw.legend(fontsize=7, loc="lower right")
         ax_kw.invert_yaxis()
 
-        # --- Column 2: SDF onset latency ± consistency std ---
-        # Both values come from the same per-trial SDF threshold-crossing computation.
-        # mean_onset_ms = mean across trials that had a sustained SDF crossing (latency)
-        # std_onset_ms  = std across those same trials (consistency)
-        valid_mask = [not np.isnan(v) for v in onset_vals]
-        valid_y      = [y for y, v in zip(y_positions, valid_mask) if v]
-        valid_onset  = [o for o, v in zip(onset_vals,  valid_mask) if v]
-        valid_std    = [
-            s if not np.isnan(s) else 0.0
-            for s, v in zip(jitter_vals, valid_mask) if v
-        ]
-        ax_onset.errorbar(
-            valid_onset, valid_y,
-            xerr=valid_std,
-            fmt="o", color="#9467bd", ecolor="#9467bd",
-            elinewidth=1.2, capsize=3, markersize=4,
-        )
+        # --- Column 2: PSTH onset and rise time ---
+        # onset_ms    = time to 10% of PSTH peak above baseline (response start)
+        # rise_time_ms = time from 10% to 90% of peak (consistency proxy)
+        #   Short bar = sharp PSTH rise = consistent timing across trials
+        #   Long bar  = gradual PSTH rise = variable/scattered responses
+        # Bar drawn from onset to onset+rise_time; a dot marks the onset.
+        for y, onset, rise in zip(y_positions, onset_vals, rise_time_vals):
+            if np.isnan(onset):
+                continue
+            ax_onset.plot(onset, y, "o", color="#9467bd", markersize=4, zorder=3)
+            if not np.isnan(rise):
+                ax_onset.hlines(y, onset, onset + rise,
+                                colors="#9467bd", linewidth=3, alpha=0.7)
         ax_onset.set_yticks(y_positions)
         ax_onset.set_yticklabels([])
-        ax_onset.set_xlabel("SDF onset ± std (ms)", fontsize=9)
-        ax_onset.set_title("Onset / Consistency", fontsize=10)
+        ax_onset.set_xlabel("PSTH onset → 90% rise (ms)", fontsize=9)
+        ax_onset.set_title("Onset / Rise Time", fontsize=10)
         ax_onset.set_xlim(left=0)
         ax_onset.invert_yaxis()
 
