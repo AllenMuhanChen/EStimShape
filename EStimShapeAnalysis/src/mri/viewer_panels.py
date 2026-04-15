@@ -140,6 +140,13 @@ class PanelsMixin:
         self.btn_toggle_pens = ttk.Button(br, text="Hide Penetrations", command=self._toggle_pens, state="disabled")
         self.btn_toggle_pens.pack(side=tk.LEFT, padx=3)
 
+        lv_row = ttk.Frame(ch); lv_row.pack(fill=tk.X, padx=3, pady=2)
+        self.btn_limit_view = ttk.Button(lv_row, text="Limit View", command=self._toggle_limit_view)
+        self.btn_limit_view.pack(side=tk.LEFT, padx=3)
+        ttk.Label(lv_row, text="Range (mm):").pack(side=tk.LEFT, padx=2)
+        self.limit_view_range_var = tk.DoubleVar(value=1.0)
+        ttk.Entry(lv_row, textvariable=self.limit_view_range_var, width=7).pack(side=tk.LEFT, padx=2)
+
         # Penetration view presets + session isolation (Word-style Save / Save As / Open)
         vr = ttk.Frame(ch); vr.pack(fill=tk.X, padx=3, pady=(0, 4))
         self.btn_save_pen_view = ttk.Button(vr, text="Save",

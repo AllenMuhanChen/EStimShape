@@ -112,7 +112,8 @@ def calc_target_angles(target, origin, x, y, normal, cor_offset):
 
 
 def draw_chamber_overlay(ax, vi, slice_cfg, chamber_state, ebz_world, penetrations,
-                         show_chamber=True, show_penetrations=True, display_offset=None):
+                         show_chamber=True, show_penetrations=True, display_offset=None,
+                         limit_view=False, limit_range=1.0, cursor_world=None):
     """
     Draw chamber screwholes, ring, axes, and penetration tracks on a matplotlib axes.
 
@@ -181,6 +182,11 @@ def draw_chamber_overlay(ax, vi, slice_cfg, chamber_state, ebz_world, penetratio
             target, direction, top_pt = calc_penetration_target(
                 origin, pen['az_deg'], pen['el_deg'], pen['dist_mm'],
                 x_vec, y_vec, normal, cor_offset)
+
+            # Limit view: skip penetrations whose target is too far from the current slice
+            if limit_view and cursor_world is not None:
+                if abs(target[fix_wax] - cursor_world[fix_wax]) > limit_range:
+                    continue
 
             track_end = top_pt + (pen['dist_mm'] + 5) * direction
             color = pen.get('color', 'cyan')

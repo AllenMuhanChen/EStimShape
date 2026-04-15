@@ -156,6 +156,9 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
         # Penetrations (DB-backed)
         self.pen_store = PenetrationStore()
         self.pen_show = True
+
+        # Limit view: filter penetrations by proximity to current slice
+        self.limit_view_enabled = False
         self._pen_view_path = None          # current open penetration-view preset file
         self._pen_view_path_to_load = None  # set by __main__ from config; applied on DB connect
 

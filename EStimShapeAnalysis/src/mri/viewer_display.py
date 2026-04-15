@@ -122,7 +122,10 @@ class DisplayMixin:
                 self.pen_store.penetrations if self.pen_store.connected else [],
                 show_chamber=self.chamber_show,
                 show_penetrations=self.pen_show,
-                display_offset=disp_off)
+                display_offset=disp_off,
+                limit_view=self.limit_view_enabled,
+                limit_range=self.limit_view_range_var.get(),
+                cursor_world=self.cursor_world)
 
             # Temp trajectory from planner (solid yellow line, red channel dots)
             if self.temp_trajectory is not None and self.chamber_show:

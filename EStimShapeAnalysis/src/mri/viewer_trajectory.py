@@ -119,6 +119,12 @@ class TrajectoryMixin:
         self.btn_toggle_pens.config(text="Show Penetrations" if not self.pen_show else "Hide Penetrations")
         self.display_all()
 
+    def _toggle_limit_view(self):
+        self.limit_view_enabled = not self.limit_view_enabled
+        self.btn_limit_view.config(
+            text="Limit View [ON]" if self.limit_view_enabled else "Limit View")
+        self.display_all()
+
     def _show_pen_list(self):
         if not self.pen_store.connected:
             messagebox.showerror("Error", "Connect to DB first."); return
