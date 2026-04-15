@@ -10,6 +10,8 @@ import org.springframework.config.java.annotation.Lazy;
 import org.xper.Dependency;
 import org.xper.allen.config.MStickPngConfig;
 import org.xper.allen.config.PGAConfig;
+import org.xper.allen.util.MultiGaDbUtil;
+import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.rfplot.RFPlotConfig;
 import org.xper.rfplot.XMLizable;
@@ -32,6 +34,8 @@ import java.util.Map;
 @Import({RFPlotConfig.class})
 public class AllenRFPlotConfig {
     @Autowired RFPlotConfig rfPlotConfig;
+    @Autowired
+    BaseConfig baseConfig;
 
     @ExternalValue("generator.spec_path")
     public String generatorSpecPath;
@@ -101,9 +105,17 @@ public class AllenRFPlotConfig {
     @Bean
     public GAMStickScroller getGamStickScroller() {
         GAMStickScroller gamStickScroller = new GAMStickScroller();
-        gamStickScroller.setDbUtil(pgaConfig.dbUtil());
+        gamStickScroller.setDbUtil(dbUtil());
         gamStickScroller.setGaSpecPath(generatorSpecPath);
         return gamStickScroller;
+    }
+
+
+    @Bean
+    public MultiGaDbUtil dbUtil(){
+        MultiGaDbUtil dbUtil = new MultiGaDbUtil();
+        dbUtil.setDataSource(baseConfig.dataSource());
+        return dbUtil;
     }
 
 }
