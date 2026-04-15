@@ -57,9 +57,12 @@ public class RFUtils {
             throw new MorphedMatchStick.MorphException("Could not find a point in the RF with at least" + thresholdPercentageOutOfRF + "% points outisde of RF after testing " + numPointsToTry + " points per threshold reduction");
 
         } else if (rfStrategy.equals(RFStrategy.COMPLETELY_INSIDE)) {
-
+            double rfRadius = rf.getRadius();
             rfCenter = rf.getCenter();
-            System.out.println("RF Center: " + rfCenter);
+
+            // find a random point within the RF to move the mass center of the matchstick to
+
+
             mStick.moveCenterOfMassTo(new Point3d(rfCenter.getX(), rfCenter.getY(), 0.0));
 
             if (!checkAllInRF(1.0, rf, mStick)) {
