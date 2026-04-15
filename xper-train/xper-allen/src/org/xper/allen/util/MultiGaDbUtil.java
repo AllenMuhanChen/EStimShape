@@ -13,7 +13,6 @@ import org.xper.exception.VariableNotFoundException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.function.Function;
 
 /**
  * Contains database operations for multi-ga experiment.
@@ -437,7 +436,7 @@ public class MultiGaDbUtil extends AllenDbUtil {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
 
         // raw channel string -> stim_id -> avg spikes_per_second
-        final Map<String, Map<Long, Double>> channelStimAvg = new LinkedHashMap<>();
+        final Map<String, Map<Long, Double>> channelStimAvg = new LinkedHashMap<String, Map<Long, Double>>();
 
         jt.query(
                 "SELECT stim_id, channel, AVG(spikes_per_second) AS avg_response " +
@@ -447,27 +446,22 @@ public class MultiGaDbUtil extends AllenDbUtil {
                         long stimId = rs.getLong("stim_id");
                         double avgResponse = rs.getDouble("avg_response");
                         String channel = rs.getString("channel");
-                        channelStimAvg
-                                .computeIfAbsent(channel, new Function<Integer, Map<Long, Double>>() {
-                                    @Override
-                                    public Map<Long, Double> apply(Integer k) {
-                                        return new LinkedHashMap<>();
-                                    }
-                                })
-                                .put(stimId, avgResponse);
+                        if (!channelStimAvg.containsKey(channel)) {
+                            channelStimAvg.put(channel, new LinkedHashMap<Long, Double>());
+                        }
+                        channelStimAvg.get(channel).put(stimId, avgResponse);
                     }
                 });
 
-        Map<String, List<Long>> result = new LinkedHashMap<>();
+        Map<String, List<Long>> result = new LinkedHashMap<String, List<Long>>();
         for (Map.Entry<String, Map<Long, Double>> channelEntry : channelStimAvg.entrySet()) {
-            List<Map.Entry<Long, Double>> entries = new ArrayList<>(channelEntry.getValue().entrySet());
-            entries.sort(new Comparator<Map.Entry<Long, Double>>() {
-                @Override
+            List<Map.Entry<Long, Double>> entries = new ArrayList<Map.Entry<Long, Double>>(channelEntry.getValue().entrySet());
+            Collections.sort(entries, new Comparator<Map.Entry<Long, Double>>() {
                 public int compare(Map.Entry<Long, Double> a, Map.Entry<Long, Double> b) {
-                    return Double.compare(b.getValue(), a.getValue());
+                    return Double.compare(b.getValue(), a.getValue()); // descending
                 }
-            }); // descending
-            List<Long> topStimIds = new ArrayList<>();
+            });
+            List<Long> topStimIds = new ArrayList<Long>();
             for (int i = 0; i < Math.min(topN, entries.size()); i++) {
                 topStimIds.add(entries.get(i).getKey());
             }
