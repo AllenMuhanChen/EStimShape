@@ -180,7 +180,7 @@ class RawChannelMetricsInputHandler(InputHandler):
     For every channel compute:
       - mean z-score of the top-N stimuli
       - Kruskal-Wallis H-statistic and p-value across stimuli
-      - onset latency (PSTH threshold-crossing in ms) via response_onset module
+      - onset latency (PSTH threshold-crossing in ms) and per-trial jitter (std) via response_onset module
     """
 
     def __init__(
@@ -306,7 +306,8 @@ class RawChannelCandidacyPlotter(ComputationModule):
 
         z_vals    = [metrics[ch]["top_z_mean"] for ch in channels_sorted]
         kw_p_vals = [metrics[ch]["kw_p"]       for ch in channels_sorted]
-        onset_vals = [metrics[ch]["onset"].onset_ms for ch in channels_sorted]
+        onset_vals   = [metrics[ch]["onset"].onset_ms       for ch in channels_sorted]
+        jitter_vals  = [metrics[ch]["onset"].jitter_std_ms  for ch in channels_sorted]
 
         # --- Column 0: Z-score bars ---
         colors_z = [
@@ -341,17 +342,26 @@ class RawChannelCandidacyPlotter(ComputationModule):
         ax_kw.legend(fontsize=7, loc="lower right")
         ax_kw.invert_yaxis()
 
-        # --- Column 2: Onset latency (PSTH threshold crossing) ---
+        # --- Column 2: PSTH onset latency ± per-trial jitter ---
+        # onset_ms = PSTH threshold-crossing (population latency)
+        # jitter_std_ms = std of per-trial first-spike times within a window around onset
         valid_mask = [not np.isnan(v) for v in onset_vals]
-        ax_onset.barh(
-            [y for y, v in zip(y_positions, valid_mask) if v],
-            [o for o, v in zip(onset_vals, valid_mask) if v],
-            color="#9467bd", edgecolor="none",
+        valid_y       = [y for y, v in zip(y_positions, valid_mask) if v]
+        valid_onset   = [o for o, v in zip(onset_vals,  valid_mask) if v]
+        valid_jitter  = [
+            j if not np.isnan(j) else 0.0
+            for j, v in zip(jitter_vals, valid_mask) if v
+        ]
+        ax_onset.errorbar(
+            valid_onset, valid_y,
+            xerr=valid_jitter,
+            fmt="o", color="#9467bd", ecolor="#9467bd",
+            elinewidth=1.2, capsize=3, markersize=4,
         )
         ax_onset.set_yticks(y_positions)
         ax_onset.set_yticklabels([])
-        ax_onset.set_xlabel("First-spike latency ± std (ms)", fontsize=9)
-        ax_onset.set_title("Onset Latency", fontsize=10)
+        ax_onset.set_xlabel("PSTH onset ± jitter std (ms)", fontsize=9)
+        ax_onset.set_title("Onset / Jitter", fontsize=10)
         ax_onset.set_xlim(left=0)
         ax_onset.invert_yaxis()
 
