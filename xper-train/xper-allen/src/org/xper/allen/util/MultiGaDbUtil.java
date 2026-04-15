@@ -430,13 +430,13 @@ public class MultiGaDbUtil extends AllenDbUtil {
      * per (stim_id, channel) pair, then returns the top {@code topN} stim_ids per channel
      * sorted by average response descending.
      *
-     * @return map of channel (as integer) to ordered list of top stim_ids
+     * @return map of raw channel string (as stored in DB, e.g. "A-030") to ordered list of top stim_ids
      */
-    public Map<Integer, List<Long>> readTopNStimIdsPerChannel(int topN) {
+    public Map<String, List<Long>> readTopNStimIdsPerChannel(int topN) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
 
-        // channel (int) -> stim_id -> avg spikes_per_second
-        final Map<Integer, Map<Long, Double>> channelStimAvg = new LinkedHashMap<>();
+        // raw channel string -> stim_id -> avg spikes_per_second
+        final Map<String, Map<Long, Double>> channelStimAvg = new LinkedHashMap<>();
 
         jt.query(
                 "SELECT stim_id, channel, AVG(spikes_per_second) AS avg_response " +
@@ -445,20 +445,15 @@ public class MultiGaDbUtil extends AllenDbUtil {
                     public void processRow(ResultSet rs) throws SQLException {
                         long stimId = rs.getLong("stim_id");
                         double avgResponse = rs.getDouble("avg_response");
-                        int channel;
-                        try {
-                            channel = Integer.parseInt(rs.getString("channel").trim());
-                        } catch (NumberFormatException e) {
-                            return; // skip non-numeric channel entries
-                        }
+                        String channel = rs.getString("channel");
                         channelStimAvg
                                 .computeIfAbsent(channel, k -> new LinkedHashMap<>())
                                 .put(stimId, avgResponse);
                     }
                 });
 
-        Map<Integer, List<Long>> result = new LinkedHashMap<>();
-        for (Map.Entry<Integer, Map<Long, Double>> channelEntry : channelStimAvg.entrySet()) {
+        Map<String, List<Long>> result = new LinkedHashMap<>();
+        for (Map.Entry<String, Map<Long, Double>> channelEntry : channelStimAvg.entrySet()) {
             List<Map.Entry<Long, Double>> entries = new ArrayList<>(channelEntry.getValue().entrySet());
             entries.sort((a, b) -> Double.compare(b.getValue(), a.getValue())); // descending
             List<Long> topStimIds = new ArrayList<>();

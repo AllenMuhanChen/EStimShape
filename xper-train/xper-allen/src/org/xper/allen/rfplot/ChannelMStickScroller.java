@@ -67,15 +67,21 @@ public class ChannelMStickScroller extends RFPlotScroller<RFPlotMatchStickSpec> 
         return loadCurrentStim(scrollerParams);
     }
 
+    /** Maps an integer channel number to its DB key format, e.g. 30 → "A-030". */
+    static String toDbChannelKey(int channel) {
+        return String.format("A-%03d", channel);
+    }
+
     private void initScrollSequence() {
         if (scrollSequence != null) {
             return;
         }
-        Map<Integer, List<Long>> topStimIdsPerChannel = dbUtil.readTopNStimIdsPerChannel(topN);
+        Map<String, List<Long>> topStimIdsPerChannel = dbUtil.readTopNStimIdsPerChannel(topN);
 
         scrollSequence = new ArrayList<>();
         for (int channel : CHANNEL_ORDER) {
-            List<Long> topStims = topStimIdsPerChannel.getOrDefault(channel, Collections.emptyList());
+            String dbKey = toDbChannelKey(channel);
+            List<Long> topStims = topStimIdsPerChannel.getOrDefault(dbKey, Collections.emptyList());
             for (int rank = 0; rank < topStims.size(); rank++) {
                 long stimId = topStims.get(rank);
                 String label = "Ch " + channel + " #" + (rank + 1) + "/" + topStims.size() + " [" + stimId + "]";
