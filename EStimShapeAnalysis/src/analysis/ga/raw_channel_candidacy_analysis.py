@@ -180,7 +180,7 @@ class RawChannelMetricsInputHandler(InputHandler):
     For every channel compute:
       - mean z-score of the top-N stimuli
       - Kruskal-Wallis H-statistic and p-value across stimuli
-      - onset latency (PSTH threshold-crossing in ms) and per-trial jitter (std) via response_onset module
+      - per-trial SDF onset latency (mean and std across trials) via response_onset module
     """
 
     def __init__(
@@ -274,7 +274,7 @@ class RawChannelCandidacyPlotter(ComputationModule):
     Three-column summary figure:
       Col 0 – Horizontal bar: mean z-score of top-N stimuli
       Col 1 – Horizontal bar: –log10(KW p-value); vertical reference at p=0.05
-      Col 2 – Horizontal bar: PSTH threshold-crossing onset latency (ms)
+      Col 2 – Errorbar: mean SDF onset (ms) ± std across trials
 
     Channels are displayed in probe layout order (CHANNEL_ORDER), matching GARasterAnalysis.
     """
@@ -300,8 +300,8 @@ class RawChannelCandidacyPlotter(ComputationModule):
 
         z_vals    = [metrics[ch]["top_z_mean"] for ch in channels_sorted]
         kw_p_vals = [metrics[ch]["kw_p"]       for ch in channels_sorted]
-        onset_vals   = [metrics[ch]["onset"].onset_ms       for ch in channels_sorted]
-        jitter_vals  = [metrics[ch]["onset"].jitter_std_ms  for ch in channels_sorted]
+        onset_vals   = [metrics[ch]["onset"].mean_onset_ms  for ch in channels_sorted]
+        jitter_vals  = [metrics[ch]["onset"].std_onset_ms   for ch in channels_sorted]
 
         # --- Column 0: Z-score bars ---
         colors_z = [
@@ -336,26 +336,27 @@ class RawChannelCandidacyPlotter(ComputationModule):
         ax_kw.legend(fontsize=7, loc="lower right")
         ax_kw.invert_yaxis()
 
-        # --- Column 2: PSTH onset latency ± per-trial jitter ---
-        # onset_ms = PSTH threshold-crossing (population latency)
-        # jitter_std_ms = std of per-trial first-spike times within a window around onset
+        # --- Column 2: SDF onset latency ± consistency std ---
+        # Both values come from the same per-trial SDF threshold-crossing computation.
+        # mean_onset_ms = mean across trials that had a sustained SDF crossing (latency)
+        # std_onset_ms  = std across those same trials (consistency)
         valid_mask = [not np.isnan(v) for v in onset_vals]
-        valid_y       = [y for y, v in zip(y_positions, valid_mask) if v]
-        valid_onset   = [o for o, v in zip(onset_vals,  valid_mask) if v]
-        valid_jitter  = [
-            j if not np.isnan(j) else 0.0
-            for j, v in zip(jitter_vals, valid_mask) if v
+        valid_y      = [y for y, v in zip(y_positions, valid_mask) if v]
+        valid_onset  = [o for o, v in zip(onset_vals,  valid_mask) if v]
+        valid_std    = [
+            s if not np.isnan(s) else 0.0
+            for s, v in zip(jitter_vals, valid_mask) if v
         ]
         ax_onset.errorbar(
             valid_onset, valid_y,
-            xerr=valid_jitter,
+            xerr=valid_std,
             fmt="o", color="#9467bd", ecolor="#9467bd",
             elinewidth=1.2, capsize=3, markersize=4,
         )
         ax_onset.set_yticks(y_positions)
         ax_onset.set_yticklabels([])
-        ax_onset.set_xlabel("PSTH onset ± jitter std (ms)", fontsize=9)
-        ax_onset.set_title("Onset / Jitter", fontsize=10)
+        ax_onset.set_xlabel("SDF onset ± std (ms)", fontsize=9)
+        ax_onset.set_title("Onset / Consistency", fontsize=10)
         ax_onset.set_xlim(left=0)
         ax_onset.invert_yaxis()
 
