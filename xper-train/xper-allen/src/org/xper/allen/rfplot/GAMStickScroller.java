@@ -1,5 +1,6 @@
 package org.xper.allen.rfplot;
 
+import org.xper.Dependency;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.rfplot.RFPlotMatchStick.RFPlotMatchStickSpec;
 import org.xper.allen.util.MultiGaDbUtil;
@@ -16,8 +17,10 @@ import java.util.List;
  * shape spec is loaded from gaSpecPath/<stimId>_spec.xml.
  */
 public class GAMStickScroller extends RFPlotScroller<RFPlotMatchStickSpec> {
-
+    @Dependency
     private String gaSpecPath;
+
+    @Dependency
     private MultiGaDbUtil dbUtil;
 
     private List<Long> sortedStimIds;

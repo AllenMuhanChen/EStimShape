@@ -7,6 +7,10 @@ import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.annotation.Configuration;
 import org.springframework.config.java.annotation.Lazy;
 
+import org.xper.Dependency;
+import org.xper.allen.config.MStickPngConfig;
+import org.xper.allen.config.PGAConfig;
+import org.xper.config.ClassicConfig;
 import org.xper.rfplot.RFPlotConfig;
 import org.xper.rfplot.XMLizable;
 import org.xper.rfplot.drawing.RFPlotBlankObject;
@@ -25,9 +29,12 @@ import java.util.Map;
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
-@Import(RFPlotConfig.class)
+@Import({RFPlotConfig.class})
 public class AllenRFPlotConfig {
     @Autowired RFPlotConfig rfPlotConfig;
+
+    @ExternalValue("generator.spec_path")
+    public String generatorSpecPath;
 
     @Bean
     public Map<String, RFPlotDrawable> namesForDrawables() {
@@ -87,7 +94,16 @@ public class AllenRFPlotConfig {
         scrollers.put("Rotation Z", new MStickRotationScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class, 2));
         scrollers.put("Saturation", new MStickSaturationScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class));
         scrollers.put("Texture", new MStickTextureScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class));
+        scrollers.put("GAMStick", getGamStickScroller());
         return scrollers;
+    }
+
+    @Bean
+    public GAMStickScroller getGamStickScroller() {
+        GAMStickScroller gamStickScroller = new GAMStickScroller();
+        gamStickScroller.setDbUtil(pgaConfig.dbUtil());
+        gamStickScroller.setGaSpecPath(generatorSpecPath);
+        return gamStickScroller;
     }
 
 }
