@@ -53,12 +53,12 @@ from src.repository.export_to_repository import read_session_id_from_db_name
 from src.startup import context
 
 # ── Colour grouping ──────────────────────────────────────────────────────────
-COLOR_BY    = "Texture"   # any column in the compiled DataFrame
+COLOR_BY    = "Lineage"   # any column in the compiled DataFrame
 TOP_N       = 4           # top N colour groups by count; rest → "Other"
                           # set to None to show all groups individually
 
 # ── Symbol grouping ──────────────────────────────────────────────────────────
-SYMBOL_BY   = "StimType"        # any column to vary marker shape (e.g. "GenId")
+SYMBOL_BY   = "Texture"        # any column to vary marker shape (e.g. "GenId")
                           # set to None for uniform circles
 
 # ── Row filters ─────────────────────────────────────────────────────────────
@@ -69,7 +69,7 @@ SYMBOL_BY   = "StimType"        # any column to vary marker shape (e.g. "GenId")
 # Examples:
 FILTERS     = {}
 # FILTERS = {"Texture": "2D"}
-FILTERS = {"Lineage": [1775840518446908]}          # only these lineages
+# FILTERS = {"Lineage": [1775840518446908]}          # only these lineages
 #   FILTERS = {"GenId": 0}                     # drop (with "exclude") gen 0
 #   FILTERS = {"Lineage": [1, 2], "GenId": 5}  # must match ALL conditions
 
