@@ -34,11 +34,14 @@ import java.util.Map;
 @Import({RFPlotConfig.class})
 public class AllenRFPlotConfig {
     @Autowired RFPlotConfig rfPlotConfig;
-    @Autowired
-    BaseConfig baseConfig;
+    @Autowired BaseConfig baseConfig;
+
 
     @ExternalValue("generator.spec_path")
     public String generatorSpecPath;
+
+    @ExternalValue("fixcal.channel_mstick_scroller_top_n")
+    public String channelMStickScrollerTopN;
 
     @Bean
     public Map<String, RFPlotDrawable> namesForDrawables() {
@@ -98,8 +101,17 @@ public class AllenRFPlotConfig {
         scrollers.put("Rotation Z", new MStickRotationScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class, 2));
         scrollers.put("Saturation", new MStickSaturationScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class));
         scrollers.put("Texture", new MStickTextureScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class));
+        scrollers.put("ChannelMStick", channelMStickScroller());
         scrollers.put("GAMStick", getGamStickScroller());
         return scrollers;
+    }
+
+    private ChannelMStickScroller channelMStickScroller() {
+        ChannelMStickScroller scroller = new ChannelMStickScroller();
+        scroller.setDbUtil(dbUtil());
+        scroller.setGaSpecPath(generatorSpecPath);
+        scroller.setTopN(2);
+        return scroller;
     }
 
     @Bean

@@ -1,5 +1,6 @@
 package org.xper.allen.rfplot;
 
+import org.xper.Dependency;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.rfplot.RFPlotMatchStick.RFPlotMatchStickSpec;
 import org.xper.allen.util.MultiGaDbUtil;
@@ -31,9 +32,11 @@ public class ChannelMStickScroller extends RFPlotScroller<RFPlotMatchStickSpec> 
             27, 20,  4, 11, 28, 19,  1, 14,
              3, 12, 29, 18,  2, 13, 30, 17
     };
-
+    @Dependency
     private String gaSpecPath;
+    @Dependency
     private MultiGaDbUtil dbUtil;
+    @Dependency
     private int topN = 2;
 
     private List<ChannelStimEntry> scrollSequence;
@@ -46,6 +49,7 @@ public class ChannelMStickScroller extends RFPlotScroller<RFPlotMatchStickSpec> 
     @Override
     public ScrollerParams next(ScrollerParams scrollerParams) {
         initScrollSequence();
+        System.out.println("Scroll sequence size: " + scrollSequence.size());
         if (scrollSequence.isEmpty()) {
             return scrollerParams;
         }
@@ -85,6 +89,7 @@ public class ChannelMStickScroller extends RFPlotScroller<RFPlotMatchStickSpec> 
             for (int rank = 0; rank < topStims.size(); rank++) {
                 long stimId = topStims.get(rank);
                 String label = "Ch " + channel + " #" + (rank + 1) + "/" + topStims.size() + " [" + stimId + "]";
+                System.out.println("Adding to scroll sequence: " + label);
                 scrollSequence.add(new ChannelStimEntry(stimId, label));
             }
         }

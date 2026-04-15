@@ -13,6 +13,7 @@ import org.xper.exception.VariableNotFoundException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.function.Function;
 
 /**
  * Contains database operations for multi-ga experiment.
@@ -447,7 +448,12 @@ public class MultiGaDbUtil extends AllenDbUtil {
                         double avgResponse = rs.getDouble("avg_response");
                         String channel = rs.getString("channel");
                         channelStimAvg
-                                .computeIfAbsent(channel, k -> new LinkedHashMap<>())
+                                .computeIfAbsent(channel, new Function<Integer, Map<Long, Double>>() {
+                                    @Override
+                                    public Map<Long, Double> apply(Integer k) {
+                                        return new LinkedHashMap<>();
+                                    }
+                                })
                                 .put(stimId, avgResponse);
                     }
                 });
@@ -455,7 +461,12 @@ public class MultiGaDbUtil extends AllenDbUtil {
         Map<String, List<Long>> result = new LinkedHashMap<>();
         for (Map.Entry<String, Map<Long, Double>> channelEntry : channelStimAvg.entrySet()) {
             List<Map.Entry<Long, Double>> entries = new ArrayList<>(channelEntry.getValue().entrySet());
-            entries.sort((a, b) -> Double.compare(b.getValue(), a.getValue())); // descending
+            entries.sort(new Comparator<Map.Entry<Long, Double>>() {
+                @Override
+                public int compare(Map.Entry<Long, Double> a, Map.Entry<Long, Double> b) {
+                    return Double.compare(b.getValue(), a.getValue());
+                }
+            }); // descending
             List<Long> topStimIds = new ArrayList<>();
             for (int i = 0; i < Math.min(topN, entries.size()); i++) {
                 topStimIds.add(entries.get(i).getKey());

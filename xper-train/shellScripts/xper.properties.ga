@@ -19,7 +19,7 @@ experiment.ga.config_class=org.xper.allen.config.PGAConfig
 
 # if not specified, the default isTrue org.xper.config.FixCalConfig
 fixcal.config_class=org.xper.allen.config.AllenFixCalConfig
-
+fixcal.channel_mstick_scroller_top_n=2
 # To use digital port device to control juice
 fixcal.config_class=org.xper.allen.config.AllenFixCalConfig
 
