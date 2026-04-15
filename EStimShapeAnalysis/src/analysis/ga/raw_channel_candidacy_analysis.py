@@ -56,7 +56,7 @@ from src.startup import context
 
 
 def main():
-    analysis = RawChannelCandidacyAnalysis(top_n=10)
+    analysis = RawChannelCandidacyAnalysis(top_n=4)
     session_id, _ = read_session_id_from_db_name(context.ga_database)
     compiled_data = analysis.compile()
     analysis.run(session_id, "raw", "ALL", compiled_data)
@@ -76,7 +76,7 @@ class RawChannelCandidacyAnalysis(Analysis):
 
     logging_path = context.logging_path
 
-    def __init__(self, top_n: int = 10):
+    def __init__(self, top_n: int = 4):
         super().__init__()
         self.top_n = top_n
 
