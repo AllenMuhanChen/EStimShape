@@ -59,7 +59,7 @@ public class GrowingMatchStick extends GAMatchStick {
             matchStickToMorph.setSpecialEndComp(componentsToNotRemove);
         }
 
-        if (rfStrategy.equals(RFStrategy.COMPLETELY_INSIDE)) {
+        if (rfStrategy.equals(RFStrategy.COMPLETELY_INSIDE) || rfStrategy.equals(RFStrategy.RANDOMLY_INSIDE)) {
             //Removing Comps - Non RF operation
             HashSet<Integer> componentsToRemove = specifyCompsToRemove(matchStickToMorph, magnitude);
             MorphedMatchStick removedLimbMatchStick = genRemovedLimbsMatchStick(matchStickToMorph, componentsToRemove);
