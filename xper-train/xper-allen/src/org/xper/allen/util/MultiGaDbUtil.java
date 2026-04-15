@@ -425,6 +425,51 @@ public class MultiGaDbUtil extends AllenDbUtil {
         return stimIds;
     }
 
+    /**
+     * For each channel in ChannelResponses, averages spikes_per_second across all reps
+     * per (stim_id, channel) pair, then returns the top {@code topN} stim_ids per channel
+     * sorted by average response descending.
+     *
+     * @return map of channel (as integer) to ordered list of top stim_ids
+     */
+    public Map<Integer, List<Long>> readTopNStimIdsPerChannel(int topN) {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+
+        // channel (int) -> stim_id -> avg spikes_per_second
+        final Map<Integer, Map<Long, Double>> channelStimAvg = new LinkedHashMap<>();
+
+        jt.query(
+                "SELECT stim_id, channel, AVG(spikes_per_second) AS avg_response " +
+                "FROM ChannelResponses GROUP BY stim_id, channel",
+                new RowCallbackHandler() {
+                    public void processRow(ResultSet rs) throws SQLException {
+                        long stimId = rs.getLong("stim_id");
+                        double avgResponse = rs.getDouble("avg_response");
+                        int channel;
+                        try {
+                            channel = Integer.parseInt(rs.getString("channel").trim());
+                        } catch (NumberFormatException e) {
+                            return; // skip non-numeric channel entries
+                        }
+                        channelStimAvg
+                                .computeIfAbsent(channel, k -> new LinkedHashMap<>())
+                                .put(stimId, avgResponse);
+                    }
+                });
+
+        Map<Integer, List<Long>> result = new LinkedHashMap<>();
+        for (Map.Entry<Integer, Map<Long, Double>> channelEntry : channelStimAvg.entrySet()) {
+            List<Map.Entry<Long, Double>> entries = new ArrayList<>(channelEntry.getValue().entrySet());
+            entries.sort((a, b) -> Double.compare(b.getValue(), a.getValue())); // descending
+            List<Long> topStimIds = new ArrayList<>();
+            for (int i = 0; i < Math.min(topN, entries.size()); i++) {
+                topStimIds.add(entries.get(i).getKey());
+            }
+            result.put(channelEntry.getKey(), topStimIds);
+        }
+        return result;
+    }
+
     public Integer readGenIdForStimId(Long childId) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
         final Integer[] result = new Integer[1];
