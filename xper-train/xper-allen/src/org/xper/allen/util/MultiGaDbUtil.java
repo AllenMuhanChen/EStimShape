@@ -412,6 +412,19 @@ public class MultiGaDbUtil extends AllenDbUtil {
                 new Object[] { response, stimId });
     }
 
+    public List<Long> readAllStimIdsSortedByResponse() {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        final List<Long> stimIds = new ArrayList<>();
+        jt.query(
+                "SELECT stim_id FROM StimGaInfo ORDER BY response DESC",
+                new RowCallbackHandler() {
+                    public void processRow(ResultSet rs) throws SQLException {
+                        stimIds.add(rs.getLong("stim_id"));
+                    }
+                });
+        return stimIds;
+    }
+
     public Integer readGenIdForStimId(Long childId) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
         final Integer[] result = new Integer[1];
