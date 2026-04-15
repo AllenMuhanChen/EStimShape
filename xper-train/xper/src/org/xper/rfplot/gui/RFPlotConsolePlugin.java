@@ -573,7 +573,9 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         RFPlotDrawable currentDrawable = getNamesForDrawables().get(stimType);
         currentDrawable.setSpec(newParams.getRfPlotDrawable().getSpec());
         xfmSpec = newParams.getXfmSpec().toXml();
-        client.changeRFPlotStim(stimSpec);
+        if (isStimToggleOn) {
+            client.changeRFPlotStim(stimSpec);
+        }
         client.changeRFPlotXfm(xfmSpec);
         scrollerValueLabel.setText(newParams.getNewValue());
     }
