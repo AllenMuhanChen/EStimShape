@@ -24,7 +24,6 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Union
 
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 import numpy as np
 import pandas as pd
 from matplotlib.gridspec import GridSpec
@@ -179,7 +178,7 @@ class RawChannelMetricsInputHandler(InputHandler):
     For every channel compute:
       - mean z-score of the top-N stimuli
       - Kruskal-Wallis H-statistic and p-value across stimuli
-      - onset latency (mean ± std in ms) via response_onset module
+      - onset latency (PSTH threshold-crossing in ms) via response_onset module
     """
 
     def __init__(
@@ -273,7 +272,7 @@ class RawChannelCandidacyPlotter(ComputationModule):
     Three-column summary figure:
       Col 0 – Horizontal bar: mean z-score of top-N stimuli
       Col 1 – Horizontal bar: –log10(KW p-value); vertical reference at p=0.05
-      Col 2 – Error-bar plot: mean onset latency ± std (ms)
+      Col 2 – Horizontal bar: PSTH threshold-crossing onset latency (ms)
 
     Channels are sorted by top-z descending so the best candidates appear at the top.
     """
@@ -305,8 +304,7 @@ class RawChannelCandidacyPlotter(ComputationModule):
 
         z_vals    = [metrics[ch]["top_z_mean"] for ch in channels_sorted]
         kw_p_vals = [metrics[ch]["kw_p"]       for ch in channels_sorted]
-        onset_means = [metrics[ch]["onset"].mean_ms for ch in channels_sorted]
-        onset_stds  = [metrics[ch]["onset"].std_ms  for ch in channels_sorted]
+        onset_vals = [metrics[ch]["onset"].onset_ms for ch in channels_sorted]
 
         # --- Column 0: Z-score bars ---
         colors_z = [
@@ -341,16 +339,12 @@ class RawChannelCandidacyPlotter(ComputationModule):
         ax_kw.legend(fontsize=7, loc="lower right")
         ax_kw.invert_yaxis()
 
-        # --- Column 2: Onset latency error-bars ---
-        valid_mask = [not np.isnan(m) for m in onset_means]
-        onset_means_plot = [m if not np.isnan(m) else 0.0 for m in onset_means]
-        onset_stds_plot  = [s if not np.isnan(s) else 0.0 for s in onset_stds]
-
+        # --- Column 2: Onset latency (PSTH threshold crossing) ---
+        valid_mask = [not np.isnan(v) for v in onset_vals]
         ax_onset.barh(
             [y for y, v in zip(y_positions, valid_mask) if v],
-            [m for m, v in zip(onset_means_plot, valid_mask) if v],
-            xerr=[s for s, v in zip(onset_stds_plot, valid_mask) if v],
-            color="#9467bd", edgecolor="none", capsize=2, error_kw={"elinewidth": 0.8},
+            [o for o, v in zip(onset_vals, valid_mask) if v],
+            color="#9467bd", edgecolor="none",
         )
         ax_onset.set_yticks(y_positions)
         ax_onset.set_yticklabels([])
