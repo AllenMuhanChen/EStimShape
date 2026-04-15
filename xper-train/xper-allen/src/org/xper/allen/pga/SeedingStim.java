@@ -17,7 +17,7 @@ public class SeedingStim extends GAStim<GAMatchStick, AllenMStickData> {
 
     @Override
     protected void chooseRFStrategy() {
-        rfStrategy = RFStrategy.COMPLETELY_INSIDE;
+        rfStrategy = RFStrategy.RANDOMLY_INSIDE;
     }
 
     @Override

@@ -52,7 +52,7 @@ public class SideTestStim extends GAStim<GAMatchStick, AllenMStickData> {
         MStickPosition parentLocation = positionManager.readProperty(parentId);
         if (parentLocation.getPositioningStrategy() == PositioningStrategy.RF_STRATEGY){
             RFStrategy parentRFStrategy = rfStrategyManager.readProperty(parentId);
-            if (parentRFStrategy == RFStrategy.COMPLETELY_INSIDE) {
+            if (parentRFStrategy == RFStrategy.COMPLETELY_INSIDE || parentRFStrategy == RFStrategy.RANDOMLY_INSIDE) {
                 Point3d parentCenterOfMass = parentLocation.getPosition();
                 position = new MStickPosition(PositioningStrategy.MOVE_CENTER_TO_SPECIFIC_LOCATION, parentCenterOfMass);
             } else if (parentRFStrategy == RFStrategy.PARTIALLY_INSIDE) {
