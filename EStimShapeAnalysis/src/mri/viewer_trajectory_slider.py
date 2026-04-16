@@ -225,8 +225,7 @@ class TrajectorySliderMixin:
             val = float(self._traj_depth_entry_var.get())
         except ValueError:
             return
-        dist_mm = float(self.temp_trajectory['dist_mm'])
-        val = max(0.0, min(val, dist_mm))
+        val = max(0.0, val)
         # NOTE: ttk.Scale's command callback only fires on direct widget
         # interaction, not on DoubleVar.set().  So we sync the slider visually
         # and drive the cursor move ourselves.
@@ -246,9 +245,8 @@ class TrajectorySliderMixin:
             step = float(self._traj_step_var.get())
         except (ValueError, tk.TclError):
             step = 1.0
-        dist_mm = float(self.temp_trajectory['dist_mm'])
         current = self._traj_slider_var.get()
-        new_val = max(0.0, min(current + direction * step, dist_mm))
+        new_val = max(0.0, current + direction * step)
         # Same issue as above — set var and drive move manually.
         self._traj_slider_setting = True
         try:
@@ -276,8 +274,7 @@ class TrajectorySliderMixin:
             return
         start_mm = self._get_elec_start_mm()
         depth_mm = start_mm + microns / 1000.0
-        dist_mm = float(self.temp_trajectory['dist_mm'])
-        depth_mm = max(0.0, min(depth_mm, dist_mm))
+        depth_mm = max(0.0, depth_mm)
         # Recompute microns after clamping so display stays consistent
         clamped_microns = (depth_mm - start_mm) * 1000.0
         self._traj_slider_setting = True
