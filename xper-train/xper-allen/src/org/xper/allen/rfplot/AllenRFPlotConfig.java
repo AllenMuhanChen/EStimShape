@@ -162,6 +162,8 @@ public class AllenRFPlotConfig {
     @Bean
     public LeftRightScreenMarker screenMarker(){
         LeftRightScreenMarker marker = new LeftRightScreenMarker();
+        marker.setSize(classicConfig.xperScreenMarkerSize());
+        marker.setViewportIndex(classicConfig.xperScreenMarkerViewportIndex());
         marker.left();
         return marker;
     }

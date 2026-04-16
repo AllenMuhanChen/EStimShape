@@ -10,5 +10,5 @@
   "atlas_label_path": "/home/connorlab/Documents/NMT_v2.0_sym/tables_D99/D99_labeltable.txt",
   "template_mri_path": "/home/connorlab/Documents/NMT_v2.0_sym/NMT_v2.0_sym/NMT_v2.0_sym.nii.gz",
   "pen_view_path": "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/importants.json",
-  "session_id": "260410_0"
+  "session_id": "260416_0"
 }
