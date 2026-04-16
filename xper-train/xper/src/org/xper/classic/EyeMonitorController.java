@@ -71,6 +71,7 @@ public class EyeMonitorController implements TrialEventListener {
 	}
 
 	public void fixationSucceed(long timestamp, TrialContext context) {
+        stopEyeZeroSignalCollection();
 	}
 
 	public void initialEyeInFail(long timestamp, TrialContext context) {
@@ -83,7 +84,7 @@ public class EyeMonitorController implements TrialEventListener {
 		for (EyeWindowAdjustable adj : eyeWindowAdjustable) {
 			adj.updateEyeWindow();
 		}
-		stopEyeZeroSignalCollection();
+
 	}
 	
 	public void trialInit(long timestamp, TrialContext context) {
