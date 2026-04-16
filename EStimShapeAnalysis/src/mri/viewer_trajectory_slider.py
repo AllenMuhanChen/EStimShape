@@ -6,6 +6,10 @@ user can either scrub smoothly or jump to an exact depth along the current
 trajectory.  Arrow buttons step the depth by a configurable amount (default
 1 mm).
 
+An optional microns-driven section lets the user enter a reference start depth
+(mm) and then traverse using micron increments instead of mm.  All controls
+stay in sync: mm slider/entry ↔ microns entry.
+
 Usage
 -----
 1.  Include TrajectorySliderMixin in TriplanarMRIViewer's base classes.
@@ -28,15 +32,17 @@ from tkinter import ttk
 
 class TrajectorySliderMixin:
     """
-    Depth-along-trajectory controls: slider, numeric entry, and step buttons.
+    Depth-along-trajectory controls: slider, numeric entry, step buttons,
+    and an optional microns-driven section.
 
-    Hidden until a trajectory is locked.  Once visible, all three controls
+    Hidden until a trajectory is locked.  Once visible, all controls
     stay in sync:
       - Dragging the slider scrubs the depth continuously.
-      - Typing a number in the entry and pressing Enter jumps to that depth.
-      - The ← / → buttons step by the amount shown in the step-size box.
-
-    Depth is always shown in mm and the current value is unambiguous.
+      - Typing a number in the mm entry and pressing Enter jumps to that depth.
+      - The ← / → mm buttons step by the amount shown in the step-size box.
+      - Setting "Elec. start (mm)" defines the micron-zero reference point.
+      - Typing microns or using the µm step buttons drives position via
+        depth = start_mm + microns / 1000.
     """
 
     # ------------------------------------------------------------------
@@ -120,6 +126,50 @@ class TrajectorySliderMixin:
                                                font=("TkDefaultFont", 8))
         self._traj_slider_max_lbl.pack(side=tk.RIGHT)
 
+        # ── Separator ─────────────────────────────────────────────────
+        ttk.Separator(outer, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=6, pady=(2, 4))
+
+        # ── Row 4: electrode start reference (mm) ─────────────────────
+        row4 = ttk.Frame(outer)
+        row4.pack(fill=tk.X, padx=6, pady=(0, 2))
+
+        ttk.Label(row4, text="Elec. start (mm):").pack(side=tk.LEFT, padx=(0, 2))
+        self._traj_elec_start_var = tk.StringVar(value="0.0")
+        elec_start_entry = ttk.Entry(row4, textvariable=self._traj_elec_start_var,
+                                     width=7, justify="right")
+        elec_start_entry.pack(side=tk.LEFT, padx=2)
+        elec_start_entry.bind("<Return>", self._on_traj_elec_start_change)
+        elec_start_entry.bind("<FocusOut>", self._on_traj_elec_start_change)
+        ttk.Label(row4, text="(depth along traj. where electrode tip starts)",
+                  foreground="#888888", font=("TkDefaultFont", 8)).pack(side=tk.LEFT, padx=(6, 0))
+
+        # ── Row 5: microns driven ─────────────────────────────────────
+        row5 = ttk.Frame(outer)
+        row5.pack(fill=tk.X, padx=6, pady=(0, 6))
+
+        ttk.Button(row5, text="←", width=3,
+                   command=lambda: self._on_traj_micron_step(-1)).pack(side=tk.LEFT, padx=(0, 2))
+
+        ttk.Label(row5, text="Microns driven:").pack(side=tk.LEFT, padx=(4, 2))
+        self._traj_microns_var = tk.StringVar(value="0")
+        microns_entry = ttk.Entry(row5, textvariable=self._traj_microns_var,
+                                  width=8, font=("TkDefaultFont", 10, "bold"),
+                                  justify="right")
+        microns_entry.pack(side=tk.LEFT, padx=(2, 1))
+        microns_entry.bind("<Return>", self._on_traj_microns_enter)
+        microns_entry.bind("<FocusOut>", self._on_traj_microns_enter)
+        ttk.Label(row5, text="µm", font=("TkDefaultFont", 10, "bold"),
+                  foreground="#0066cc").pack(side=tk.LEFT, padx=(0, 8))
+
+        ttk.Label(row5, text="Step:").pack(side=tk.LEFT, padx=(4, 2))
+        self._traj_micron_step_var = tk.StringVar(value="100")
+        ttk.Entry(row5, textvariable=self._traj_micron_step_var, width=6,
+                  justify="center").pack(side=tk.LEFT, padx=2)
+        ttk.Label(row5, text="µm").pack(side=tk.LEFT, padx=(1, 4))
+
+        ttk.Button(row5, text="→", width=3,
+                   command=lambda: self._on_traj_micron_step(+1)).pack(side=tk.LEFT, padx=(2, 0))
+
     # ------------------------------------------------------------------
     # State update: show / hide and sync range to active trajectory
     # ------------------------------------------------------------------
@@ -146,6 +196,7 @@ class TrajectorySliderMixin:
             # Start at target depth so the crosshair sits at the trajectory target.
             self._traj_slider_var.set(dist_mm)
             self._traj_depth_entry_var.set(f"{dist_mm:.2f}")
+            self._sync_microns_from_depth(dist_mm)
         finally:
             self._traj_slider_setting = False
 
@@ -155,7 +206,7 @@ class TrajectorySliderMixin:
         self._traj_slider_frame.pack(**pack_kwargs)
 
     # ------------------------------------------------------------------
-    # Callbacks
+    # Callbacks — mm controls
     # ------------------------------------------------------------------
 
     def _on_traj_slider_change(self, value):
@@ -207,11 +258,75 @@ class TrajectorySliderMixin:
             self._traj_slider_setting = False
         self._move_cursor_to_depth(new_val)
 
+    # ------------------------------------------------------------------
+    # Callbacks — microns controls
+    # ------------------------------------------------------------------
+
+    def _on_traj_elec_start_change(self, event=None):
+        """Electrode start reference changed — recompute microns from current depth."""
+        self._sync_microns_from_depth(self._traj_slider_var.get())
+
+    def _on_traj_microns_enter(self, event=None):
+        """Microns entry committed — compute new mm depth and traverse."""
+        if self.temp_trajectory is None:
+            return
+        try:
+            microns = float(self._traj_microns_var.get())
+        except ValueError:
+            return
+        start_mm = self._get_elec_start_mm()
+        depth_mm = start_mm + microns / 1000.0
+        dist_mm = float(self.temp_trajectory['dist_mm'])
+        depth_mm = max(0.0, min(depth_mm, dist_mm))
+        # Recompute microns after clamping so display stays consistent
+        clamped_microns = (depth_mm - start_mm) * 1000.0
+        self._traj_slider_setting = True
+        try:
+            self._traj_slider_var.set(depth_mm)
+            self._traj_depth_entry_var.set(f"{depth_mm:.2f}")
+            self._traj_microns_var.set(f"{clamped_microns:.0f}")
+        finally:
+            self._traj_slider_setting = False
+        self._move_cursor_to_depth(depth_mm)
+
+    def _on_traj_micron_step(self, direction):
+        """Micron step button — advance by ±micron_step µm."""
+        if self.temp_trajectory is None:
+            return
+        try:
+            step_um = float(self._traj_micron_step_var.get())
+        except (ValueError, tk.TclError):
+            step_um = 100.0
+        try:
+            microns = float(self._traj_microns_var.get())
+        except ValueError:
+            microns = 0.0
+        self._traj_microns_var.set(f"{microns + direction * step_um:.0f}")
+        self._on_traj_microns_enter()
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    def _get_elec_start_mm(self):
+        try:
+            return float(self._traj_elec_start_var.get())
+        except (ValueError, AttributeError):
+            return 0.0
+
+    def _sync_microns_from_depth(self, depth_mm):
+        """Update the microns display to match current depth and electrode start."""
+        if not hasattr(self, '_traj_microns_var'):
+            return
+        microns = (depth_mm - self._get_elec_start_mm()) * 1000.0
+        self._traj_microns_var.set(f"{microns:.0f}")
+
     def _move_cursor_to_depth(self, depth_mm):
         """Shared helper: update cursor_world and redraw."""
         t = self.temp_trajectory
         self.cursor_world = t['top_pt'] + depth_mm * t['direction']
         if hasattr(self, 'traj_actual_dist_var'):
             self.traj_actual_dist_var.set(round(depth_mm, 2))
+        self._sync_microns_from_depth(depth_mm)
         if self.data is not None:
             self.display_all()
