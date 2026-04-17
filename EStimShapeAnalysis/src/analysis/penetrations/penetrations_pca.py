@@ -826,11 +826,7 @@ def compute_mri_comparison(
 
         pos = mri_vals[mri_vals > 0]
         mri_ref = float(np.percentile(pos, 99)) if len(pos) > 0 else 1.0
-        ts_max = float(df.loc[mask, 'tissue_score'].max())
-        if mri_ref > 0 and ts_max > 0:
-            scaled = np.clip(mri_vals, 0.0, mri_ref) / mri_ref * ts_max
-        else:
-            scaled = mri_vals.copy()
+        scaled = np.clip(mri_vals, 0.0, mri_ref) / mri_ref if mri_ref > 0 else mri_vals.copy()
         df.loc[mask, 'mri_normalized'] = scaled
 
         print(f"  {session_id} ({pen['pen_type']}): "
@@ -1108,12 +1104,11 @@ def plot_mri_comparison_by_session(
         depths = sdata['depth_under_chamber_mm'].values
         ts = sdata['tissue_score'].values
         mri_norm = sdata['mri_normalized'].values
-        ts_max = ts.max() if ts.max() > 0 else 1.0
 
         ax_mri, ax_ts, ax_line = ax_groups[idx]
 
-        _draw_tissue_strip(ax_mri, depths, mri_norm, title=f'{session}\nMRI', vmax=ts_max)
-        _draw_tissue_strip(ax_ts, depths, ts, title='Tissue', vmax=ts_max)
+        _draw_tissue_strip(ax_mri, depths, mri_norm, title=f'{session}\nMRI', vmax=1.0)
+        _draw_tissue_strip(ax_ts, depths, ts, title='Tissue', vmax=1.0)
         _draw_mri_tissue_line(ax_line, depths, ts, mri_norm, fit_scores, session)
 
         if idx > 0:
@@ -1135,15 +1130,13 @@ def plot_mri_comparison_by_session(
         depths = sdata['depth_under_chamber_mm'].values
         ts = sdata['tissue_score'].values
         mri_norm = sdata['mri_normalized'].values
-        ts_max = ts.max() if ts.max() > 0 else 1.0
-
         fig, (ax_mri, ax_ts, ax_line) = plt.subplots(
             1, 3,
             figsize=(6, 10),
             gridspec_kw={'width_ratios': [strip_width, strip_width, 1]},
         )
-        _draw_tissue_strip(ax_mri, depths, mri_norm, title='MRI (norm)', vmax=ts_max)
-        _draw_tissue_strip(ax_ts, depths, ts, title='Tissue score', vmax=ts_max)
+        _draw_tissue_strip(ax_mri, depths, mri_norm, title='MRI (norm)', vmax=1.0)
+        _draw_tissue_strip(ax_ts, depths, ts, title='Tissue score', vmax=1.0)
         _draw_mri_tissue_line(ax_line, depths, ts, mri_norm, fit_scores, session)
 
         fig.suptitle(f'MRI vs Tissue Confidence — {session}', fontsize=11)
@@ -1166,9 +1159,8 @@ def _draw_mri_tissue_line(
         ax.plot(mri_norm, depths, color='steelblue', linestyle='--',
                 linewidth=1.5, markersize=3, marker='o', label='MRI (norm)')
 
-    ts_max = tissue_score.max() if tissue_score.max() > 0 else 1.0
-    ax.set_xlim(-0.05, ts_max * 1.1)
-    ax.set_xlabel('Score')
+    ax.set_xlim(-0.05, 1.1)
+    ax.set_xlabel('Score [0–1]')
     ax.invert_yaxis()
     ax.yaxis.set_tick_params(labelleft=False)
     ax.grid(True, alpha=0.3)
