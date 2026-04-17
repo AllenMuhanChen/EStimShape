@@ -672,6 +672,8 @@ class PenetrationLFPAnalysis:
 
         print("Computing relative impedance ...")
         b_rel_imp = compute_relative_impedance(b_imp_raw)
+        if sigma > 0 and b_rel_imp:
+            b_rel_imp = smooth_scalars(b_rel_imp, n_bins, sigma)
 
         print("Plotting ...")
         self._plot(bin_depths, normalized, b_spec, b_fits, b_spike, b_rel_imp)
