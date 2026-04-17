@@ -27,6 +27,7 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from scipy.ndimage import gaussian_filter1d
 
 from clat.intan.amplifiers import read_amplifier_data
 from clat.intan.rhs.load_intan_rhs_format import read_data
@@ -324,6 +325,80 @@ def bin_recordings(
     return bin_depths, binned_spectra, binned_fits, binned_spike_rates, binned_imp_raw
 
 
+def smooth_spectra(
+    binned_spectra: Dict[int, Tuple],
+    n_bins: int,
+    sigma_bins: float,
+) -> Dict[int, Tuple[np.ndarray, np.ndarray]]:
+    """
+    Gaussian smoothing along the depth axis to reduce channel-to-channel
+    noise from minor probe drift between recordings.
+
+    sigma_bins: smoothing width in depth bins (1 bin ≈ 65 µm).
+    """
+    if sigma_bins <= 0:
+        return binned_spectra
+    freqs        = binned_spectra[0][0]
+    power_matrix = np.array([binned_spectra[i][1] for i in range(n_bins)])
+    smoothed     = gaussian_filter1d(power_matrix, sigma=sigma_bins, axis=0)
+    return {i: (freqs, smoothed[i]) for i in range(n_bins)}
+
+
+def smooth_scalars(
+    values: Dict[int, float],
+    n_bins: int,
+    sigma_bins: float,
+) -> Dict[int, float]:
+    """Gaussian smoothing of per-bin scalar values along the depth axis."""
+    if sigma_bins <= 0:
+        return values
+    arr = np.array([values.get(i, np.nan) for i in range(n_bins)])
+    # Replace NaNs with nearest valid value before filtering so they don't
+    # bleed into neighbouring bins, then restore NaN positions afterwards.
+    nan_mask = np.isnan(arr)
+    if nan_mask.all():
+        return values
+    # Simple forward-fill / back-fill for NaN positions
+    filled = arr.copy()
+    idx    = np.where(~nan_mask)[0]
+    filled = np.interp(np.arange(n_bins), idx, arr[idx])
+    smoothed = gaussian_filter1d(filled, sigma=sigma_bins)
+    smoothed[nan_mask] = np.nan
+    return {i: float(smoothed[i]) for i in range(n_bins)}
+
+
+def smooth_fits(
+    binned_fits: Dict[int, PowerLawFit],
+    n_bins: int,
+    sigma_bins: float,
+) -> Dict[int, PowerLawFit]:
+    """
+    Smooth the scalar parameters (exponent, amplitude, r_squared) of the
+    power-law fits along the depth axis.  Waveform arrays (freqs, power, etc.)
+    are left unchanged since they are only used for per-channel diagnostics.
+    """
+    if sigma_bins <= 0:
+        return binned_fits
+
+    exps  = smooth_scalars({i: f.exponent   for i, f in binned_fits.items()}, n_bins, sigma_bins)
+    amps  = smooth_scalars({i: f.amplitude  for i, f in binned_fits.items()}, n_bins, sigma_bins)
+    r2s   = smooth_scalars({i: f.r_squared  for i, f in binned_fits.items()}, n_bins, sigma_bins)
+
+    result: Dict[int, PowerLawFit] = {}
+    for i, fit in binned_fits.items():
+        result[i] = PowerLawFit(
+            exponent  = exps.get(i, fit.exponent),
+            amplitude = amps.get(i, fit.amplitude),
+            peaks     = fit.peaks,
+            freqs     = fit.freqs,
+            power     = fit.power,
+            fit_power = fit.fit_power,
+            aperiodic_power = fit.aperiodic_power,
+            r_squared = r2s.get(i, fit.r_squared),
+        )
+    return result
+
+
 def compute_relative_power(
     binned_spectra: Dict[int, Tuple],
     n_bins: int,
@@ -547,8 +622,9 @@ def plot_relative_impedance(
 # ============================================================================
 
 class PenetrationLFPAnalysis:
-    def __init__(self, tip_start_mm: float):
-        self.tip_start_mm = tip_start_mm
+    def __init__(self, tip_start_mm: float, spatial_smooth_sigma: float = 1.5):
+        self.tip_start_mm        = tip_start_mm
+        self.spatial_smooth_sigma = spatial_smooth_sigma  # depth bins (1 bin = 65 µm)
         self.session_id, _ = read_session_id_from_db_name(ga_database)
         self.intan_path    = ga_intan_path
 
@@ -583,6 +659,13 @@ class PenetrationLFPAnalysis:
         )
         n_bins = len(bin_depths)
         print(f"  {n_bins} depth bins  [{bin_depths[0]:.2f} – {bin_depths[-1]:.2f} mm]")
+
+        sigma = self.spatial_smooth_sigma
+        if sigma > 0:
+            print(f"Applying spatial smoothing  (sigma = {sigma} bins = {sigma * CHANNEL_SPACING_UM:.0f} µm) ...")
+            b_spec  = smooth_spectra(b_spec,  n_bins, sigma)
+            b_fits  = smooth_fits(b_fits,   n_bins, sigma)
+            b_spike = smooth_scalars(b_spike, n_bins, sigma)
 
         print("Computing penetration-wide relative power ...")
         normalized = compute_relative_power(b_spec, n_bins)
@@ -621,12 +704,15 @@ class PenetrationLFPAnalysis:
         plot_spike_rates(b_spike, bin_depths, axes[2 + n_pl])
         plot_relative_impedance(b_rel_imp, bin_depths, axes[2 + n_pl + 1])
 
-        has_imp = bool(b_rel_imp)
+        sigma     = self.spatial_smooth_sigma
+        smooth_str = f"  |  smooth σ={sigma}×65µm" if sigma > 0 else "  |  no smoothing"
+        has_imp   = bool(b_rel_imp)
         fig.suptitle(
             f"Penetration LFP  |  {self.session_id}  |  "
             f"tip_start = {self.tip_start_mm:.1f} mm  |  "
             f"{len(bin_depths)} depth bins  "
             f"({bin_depths[0]:.2f} – {bin_depths[-1]:.2f} mm)"
+            + smooth_str
             + ("" if has_imp else "  [no impedance data]"),
             fontsize=10,
         )
@@ -635,5 +721,7 @@ class PenetrationLFPAnalysis:
 
 
 if __name__ == '__main__':
-    tip = float(input("Enter tip start depth (mm): ").strip())
-    PenetrationLFPAnalysis(tip_start_mm=tip).run()
+    tip   = float(input("Enter tip start depth (mm): ").strip())
+    sigma_str = input("Spatial smoothing sigma in depth bins [default 1.5, 0 = off]: ").strip()
+    sigma = float(sigma_str) if sigma_str else 1.5
+    PenetrationLFPAnalysis(tip_start_mm=tip, spatial_smooth_sigma=sigma).run()
