@@ -823,16 +823,10 @@ def compute_mri_comparison(
             mri_pipeline, pen['az_deg'] + daz, pen['el_deg'] + del_, depths
         )
         df.loc[mask, 'mri_raw'] = mri_vals
-
-        pos = mri_vals[mri_vals > 0]
-        mri_ref = float(np.percentile(pos, 99)) if len(pos) > 0 else 1.0
-        scaled = np.clip(mri_vals, 0.0, mri_ref) / mri_ref if mri_ref > 0 else mri_vals.copy()
-        df.loc[mask, 'mri_normalized'] = scaled
+        df.loc[mask, 'mri_normalized'] = mri_vals  # native values, no scaling
 
         print(f"  {session_id} ({pen['pen_type']}): "
-              f"MRI raw [{mri_vals.min():.0f}–{mri_vals.max():.0f}], "
-              f"99th pct={mri_ref:.0f}, "
-              f"mri_norm [{scaled.min():.3f}–{scaled.max():.3f}]")
+              f"MRI [{mri_vals.min():.0f}–{mri_vals.max():.0f}]")
 
     return df
 
@@ -1107,7 +1101,8 @@ def plot_mri_comparison_by_session(
 
         ax_mri, ax_ts, ax_line = ax_groups[idx]
 
-        _draw_tissue_strip(ax_mri, depths, mri_norm, title=f'{session}\nMRI', vmax=1.0)
+        mri_vmax = float(np.nanmax(mri_norm)) if np.any(np.isfinite(mri_norm)) else 1.0
+        _draw_tissue_strip(ax_mri, depths, mri_norm, title=f'{session}\nMRI', vmax=mri_vmax)
         _draw_tissue_strip(ax_ts, depths, ts, title='Tissue', vmax=1.0)
         _draw_mri_tissue_line(ax_line, depths, ts, mri_norm, fit_scores, session)
 
@@ -1130,12 +1125,13 @@ def plot_mri_comparison_by_session(
         depths = sdata['depth_under_chamber_mm'].values
         ts = sdata['tissue_score'].values
         mri_norm = sdata['mri_normalized'].values
+        mri_vmax = float(np.nanmax(mri_norm)) if np.any(np.isfinite(mri_norm)) else 1.0
         fig, (ax_mri, ax_ts, ax_line) = plt.subplots(
             1, 3,
             figsize=(6, 10),
             gridspec_kw={'width_ratios': [strip_width, strip_width, 1]},
         )
-        _draw_tissue_strip(ax_mri, depths, mri_norm, title='MRI (norm)', vmax=1.0)
+        _draw_tissue_strip(ax_mri, depths, mri_norm, title='MRI', vmax=mri_vmax)
         _draw_tissue_strip(ax_ts, depths, ts, title='Tissue score', vmax=1.0)
         _draw_mri_tissue_line(ax_line, depths, ts, mri_norm, fit_scores, session)
 
@@ -1149,22 +1145,31 @@ def _draw_mri_tissue_line(
         ax: plt.Axes,
         depths: np.ndarray,
         tissue_score: np.ndarray,
-        mri_norm: np.ndarray,
+        mri_vals: np.ndarray,
         fit_scores: Optional[pd.DataFrame],
         session_id: str,
 ) -> None:
-    """Overlay line plot of tissue_score and MRI along depth."""
+    """
+    Tissue score (left axis, [0-1]) and MRI native values (right axis) vs depth.
+    Each signal uses its own scale so nothing is normalised for display.
+    """
     ax.plot(tissue_score, depths, 'k-o', markersize=3, linewidth=1.5, label='Tissue score')
-    if not np.all(np.isnan(mri_norm)):
-        ax.plot(mri_norm, depths, color='steelblue', linestyle='--',
-                linewidth=1.5, markersize=3, marker='o', label='MRI (norm)')
-
     ax.set_xlim(-0.05, 1.1)
-    ax.set_xlabel('Score [0–1]')
+    ax.set_xlabel('Tissue score', color='black')
+    ax.tick_params(axis='x', colors='black')
     ax.invert_yaxis()
     ax.yaxis.set_tick_params(labelleft=False)
-    ax.grid(True, alpha=0.3)
-    ax.legend(fontsize=7)
+    ax.grid(True, alpha=0.2)
+
+    if not np.all(np.isnan(mri_vals)):
+        ax2 = ax.twiny()
+        ax2.plot(mri_vals, depths, color='steelblue', linestyle='--',
+                 linewidth=1.5, markersize=3, marker='o', label='MRI')
+        ax2.set_xlabel('MRI (native)', color='steelblue')
+        ax2.tick_params(axis='x', colors='steelblue')
+        lines1, labels1 = ax.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        ax.legend(lines1 + lines2, labels1 + labels2, fontsize=7, loc='lower right')
 
     if fit_scores is not None and session_id in fit_scores.index:
         r = fit_scores.loc[session_id, 'fit_score']
