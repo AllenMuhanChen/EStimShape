@@ -513,6 +513,172 @@ def plot_depth_profiles_overlaid(
     plt.show()
 
 
+def compute_tissue_confidence(
+        df: pd.DataFrame,
+        pc1_col: str = 'PC1',
+        pc2_col: str = 'PC2',
+) -> pd.DataFrame:
+    """
+    Compute per-depth tissue confidence scores from PC1 and PC2.
+
+    PC1: negative = sulcus, positive = brain
+    PC2: negative = white matter, positive = gray matter
+
+    Adds three columns to a copy of df:
+      p_brain      : probability of being brain tissue  (0=sulcus, 1=brain)
+      p_gray       : probability of being gray matter   (0=white matter, 1=gray)
+      tissue_score : combined grayscale value
+                     ~0.0 = sulcus
+                     ~0.5 = gray matter
+                     ~1.0 = white matter
+    """
+    def sigmoid(x):
+        return 1.0 / (1.0 + np.exp(-x))
+
+    df = df.copy()
+    std1 = df[pc1_col].std()
+    std2 = df[pc2_col].std()
+
+    df['p_brain'] = sigmoid(df[pc1_col] / std1)
+    df['p_gray'] = sigmoid(df[pc2_col] / std2)
+    df['tissue_score'] = df['p_brain'] * (1.0 - 0.5 * df['p_gray'])
+    return df
+
+
+def plot_tissue_confidence_by_session(
+        df: pd.DataFrame,
+        sessions: list = None,
+        strip_width: float = 0.4,
+) -> None:
+    """
+    For each session plot a grayscale depth strip showing tissue confidence:
+      black  (~0.0) = sulcus
+      gray   (~0.5) = gray matter
+      white  (~1.0) = white matter
+
+    Produces one combined figure with all sessions side by side and saves it,
+    then shows individual per-session figures.
+    """
+    if sessions is None:
+        sessions = sorted(df['session_id'].unique())
+
+    n_sessions = len(sessions)
+
+    # ── Combined figure (all sessions as columns) ──────────────────────────
+    fig_all, axes_all = plt.subplots(
+        1, n_sessions * 2,
+        figsize=(3 * n_sessions, 10),
+        gridspec_kw={'width_ratios': [strip_width, 1] * n_sessions},
+    )
+    if n_sessions == 1:
+        axes_all = np.array(axes_all).reshape(1, 2)
+    else:
+        axes_all = np.array(axes_all).reshape(n_sessions, 2)
+
+    for col_idx, session in enumerate(sessions):
+        sdata = df[df['session_id'] == session].copy().sort_values('depth_under_chamber_mm')
+        if sdata.empty:
+            continue
+
+        depths = sdata['depth_under_chamber_mm'].values
+        scores = sdata['tissue_score'].values
+
+        ax_strip = axes_all[col_idx, 0]
+        ax_line = axes_all[col_idx, 1]
+
+        _draw_tissue_strip(ax_strip, depths, scores, title=session)
+        _draw_tissue_line(ax_line, depths, scores)
+
+        if col_idx > 0:
+            ax_strip.set_ylabel('')
+
+    fig_all.suptitle('Tissue Confidence by Session\n'
+                     '(black=sulcus, gray=gray matter, white=white matter)',
+                     fontsize=12)
+    plt.tight_layout()
+    plt.savefig('tissue_confidence_all_sessions.png', dpi=150, bbox_inches='tight')
+    plt.show()
+
+    # ── Per-session figures ────────────────────────────────────────────────
+    for session in sessions:
+        sdata = df[df['session_id'] == session].copy().sort_values('depth_under_chamber_mm')
+        if sdata.empty:
+            continue
+
+        depths = sdata['depth_under_chamber_mm'].values
+        scores = sdata['tissue_score'].values
+
+        fig, (ax_strip, ax_line) = plt.subplots(
+            1, 2,
+            figsize=(5, 10),
+            gridspec_kw={'width_ratios': [strip_width, 1]},
+        )
+        _draw_tissue_strip(ax_strip, depths, scores, title=session)
+        _draw_tissue_line(ax_line, depths, scores)
+
+        fig.suptitle(f'Tissue Confidence — {session}\n'
+                     '(black=sulcus, gray=gray matter, white=white matter)',
+                     fontsize=11)
+        plt.tight_layout()
+        plt.savefig(f'tissue_confidence_{session}.png', dpi=150, bbox_inches='tight')
+        plt.show()
+
+
+def _draw_tissue_strip(
+        ax: plt.Axes,
+        depths: np.ndarray,
+        scores: np.ndarray,
+        title: str = '',
+) -> None:
+    """Render scores as a grayscale imshow strip with depth on the y-axis."""
+    n = len(depths)
+    strip = scores.reshape(n, 1)
+
+    ax.imshow(
+        strip,
+        aspect='auto',
+        cmap='gray',
+        vmin=0,
+        vmax=1,
+        origin='upper',
+        extent=[0, 1, depths[-1], depths[0]],
+    )
+    ax.set_xticks([])
+    ax.set_ylabel('Depth under chamber (mm)')
+    ax.set_xlabel('')
+    ax.set_title(title, fontsize=8, rotation=45, ha='right')
+
+    # Reference ticks on the colorbar embedded as text annotations
+    for score_val, label in [(0.0, 'Sulcus'), (0.5, 'Gray'), (1.0, 'WM')]:
+        ax.annotate(
+            label,
+            xy=(1.02, score_val),
+            xycoords=('axes fraction', 'axes fraction'),
+            fontsize=6,
+            va='center',
+            color='black' if score_val > 0.3 else 'white',
+        )
+
+
+def _draw_tissue_line(
+        ax: plt.Axes,
+        depths: np.ndarray,
+        scores: np.ndarray,
+) -> None:
+    """Line plot of tissue_score vs depth, coloured by score value."""
+    ax.plot(scores, depths, 'o-', color='dimgray', linewidth=1.5, markersize=4)
+    ax.axvline(0.25, color='gray', linewidth=0.8, linestyle='--', alpha=0.5)
+    ax.axvline(0.75, color='gray', linewidth=0.8, linestyle='--', alpha=0.5)
+    ax.set_xlim(-0.05, 1.05)
+    ax.set_xlabel('Tissue Score\n(0=sulcus, 0.5=GM, 1.0=WM)')
+    ax.invert_yaxis()
+    ax.yaxis.set_tick_params(labelleft=False)
+    ax.grid(True, alpha=0.3)
+
+    for score_val, label in [(0.0, 'Sulcus'), (0.5, 'Gray'), (1.0, 'WM')]:
+        ax.axvline(score_val, color='lightgray', linewidth=0.5, linestyle=':')
+
+
 def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs: int = 4):
     """Run complete PCA analysis with correlations and plots."""
 
@@ -542,8 +708,12 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
     plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs)
     plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs, align_depths=True)
 
+    # Tissue confidence
+    df_conf = compute_tissue_confidence(df)
+    plot_tissue_confidence_by_session(df_conf)
+
     return {
-        'df': df,
+        'df': df_conf,
         'pca': pca,
         'X_pca': X_pca,
         'feature_columns': feature_columns,
