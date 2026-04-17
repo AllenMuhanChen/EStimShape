@@ -170,6 +170,9 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
         self.chamber_corr_json_path = None
         self._base_screws_ebz = None  # raw screws from monkey_specific.py, before chamber correction
 
+        # Penetration offsets from PCA optimisation (daz_deg, del_deg, ddepth_mm)
+        self.pen_offsets = {}
+
         # Trajectory planner (temp trajectory before saving)
         self.temp_trajectory = None  # dict: az_deg, el_deg, dist_mm, target, direction, top_pt
         self.temp_points = []        # list of dicts: az_deg, el_deg, dist_mm, label, color, target, direction, top_pt
@@ -353,6 +356,28 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
 
     def _chamber_corr_json_for(self, fn):
         return os.path.splitext(fn)[0] + "_chamber_corrections.json"
+
+    def _pen_offsets_json_for(self, fn):
+        return os.path.splitext(fn)[0] + "_pen_offsets.json"
+
+    def _load_pen_offsets(self, fn):
+        """Load pen offsets written by PCA optimisation. Returns dict (empty if not found)."""
+        path = self._pen_offsets_json_for(fn)
+        if not os.path.exists(path):
+            return {}
+        try:
+            with open(path) as f:
+                data = json.load(f)
+            offsets = {k: float(data[k]) for k in ('daz_deg', 'del_deg', 'ddepth_mm') if k in data}
+            note = data.get('note', '')
+            self.status_var.set(
+                f"Pen offsets loaded: daz={offsets.get('daz_deg', 0):+.3f}°  "
+                f"del={offsets.get('del_deg', 0):+.3f}°  "
+                f"ddepth={offsets.get('ddepth_mm', 0):+.3f} mm  [{note}]")
+            return offsets
+        except Exception as e:
+            self.status_var.set(f"Could not load pen offsets: {e}")
+            return {}
 
     # ================================================================ Loading
     def load_and_visualize(self):

@@ -116,10 +116,19 @@ class DisplayMixin:
                 ax.plot(0, 0, 'r*', markersize=8)
 
             # Chamber + penetrations
+            pens = self.pen_store.penetrations if self.pen_store.connected else []
+            if self.pen_offsets:
+                daz = self.pen_offsets.get('daz_deg', 0.)
+                del_ = self.pen_offsets.get('del_deg', 0.)
+                ddepth = self.pen_offsets.get('ddepth_mm', 0.)
+                pens = [dict(p, az_deg=p['az_deg'] + daz,
+                             el_deg=p['el_deg'] + del_,
+                             dist_mm=p['dist_mm'] + ddepth)
+                        for p in pens]
             draw_chamber_overlay(
                 ax, vi, self.SLICE_CFG[vi], self.chamber_state,
                 self.ebz_world if self.ebz_set else np.zeros(3),
-                self.pen_store.penetrations if self.pen_store.connected else [],
+                pens,
                 show_chamber=self.chamber_show,
                 show_penetrations=self.pen_show,
                 display_offset=disp_off,

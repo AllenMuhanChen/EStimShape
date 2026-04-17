@@ -36,6 +36,9 @@ class ChamberMixin:
             self.chamber_corr_json_path = self._chamber_corr_json_for(fn)
             self.chamber_correction, self.chamber_corr_config = load_corrections(self.chamber_corr_json_path)
 
+            # Load pen offsets from PCA optimisation (if present)
+            self.pen_offsets = self._load_pen_offsets(fn)
+
             self._refit_chamber()
             self.btn_ch_apply.config(state="normal")
             self.btn_ch_reset.config(state="normal")
