@@ -46,7 +46,7 @@ from intan_lfp import (
 
 from src.startup.context import ga_intan_path, ga_database
 from src.repository.export_to_repository import read_session_id_from_db_name
-
+from src.startup.startup_system import ExperimentManager
 
 # ============================================================================
 # CONFIGURATION
@@ -900,10 +900,27 @@ class PenetrationLFPAnalysis:
         plt.show()
         savepath = f"/home/connorlab/Documents/plots/{self.session_id}/penetration_analysis.png"
         fig.savefig(savepath, dpi=300)
+        savepath = f"/home/connorlab/Documents/penetration_plots/{self.session_id}.png"
+        fig.savefig(savepath, dpi=300)
 
 
 if __name__ == '__main__':
-    tip   = float(input("Enter tip start depth (mm): ").strip())
-    sigma_str = input("Spatial smoothing sigma in depth bins [default 1.5, 0 = off]: ").strip()
-    sigma = float(sigma_str) if sigma_str else 1.5
-    PenetrationLFPAnalysis(tip_start_mm=tip, spatial_smooth_sigma=sigma).run()
+    # tip   = float(input("Enter tip start depth (mm): ").strip())
+    # sigma_str = input("Spatial smoothing sigma in depth bins [default 1.5, 0 = off]: ").strip()
+    # sigma = float(sigma_str) if sigma_str else 1.5
+    tip_starts_for_session_ids = {
+        # "260416_0": 5.6,
+        # "260414_0": 6.05,
+        # "260410_0": 6.35,
+        # "260408_0": 6.25,
+        # "260407_0": 6.3,
+        "260402_0":6.4,
+        "260331_0":6.05,
+        "260327_0":6.35,
+        "260325_0":6.3,
+    }
+
+    for session_id, tip_start in tip_starts_for_session_ids.items():
+        manager = ExperimentManager("exp", session_id=session_id)
+        manager.switch_context_only()
+        PenetrationLFPAnalysis(tip_start_mm=tip_start).run()
