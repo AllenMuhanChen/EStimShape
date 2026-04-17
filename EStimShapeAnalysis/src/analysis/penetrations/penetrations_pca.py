@@ -757,7 +757,8 @@ def sample_mri_along_trajectory(
     ones = np.ones((len(pts), 1))
     vox_coords = (inv_corrected @ np.hstack([pts, ones]).T).T[:, :3]
 
-    values = map_coordinates(data, vox_coords.T, order=1, mode='constant', cval=0.0)
+    # order=0: nearest-neighbour — no cross-voxel blending, preserves sharp tissue boundaries
+    values = map_coordinates(data, vox_coords.T, order=0, mode='constant', cval=0.0)
     return values.astype(float)
 
 
@@ -787,8 +788,13 @@ def compute_mri_comparison(
 
     Adds columns:
       mri_raw        : raw voxel intensity at each depth
-      mri_normalized : scaled so max(mri_normalized) == max(tissue_score) per session,
-                       with 0=black preserved on both sides
+      mri_normalized : clipped to 99th-percentile then scaled so
+                       max(mri_normalized) == max(tissue_score) per session,
+                       with 0=black on both sides
+
+    Uses 99th-percentile rather than absolute max to prevent a single bright
+    voxel (skull edge, vessel, artifact) from compressing the whole range and
+    hiding soft-tissue / CSF contrast.
     """
     df = df.copy()
     df['mri_raw'] = np.nan
@@ -805,12 +811,21 @@ def compute_mri_comparison(
         mri_vals = sample_mri_along_trajectory(mri_pipeline, pen['az_deg'], pen['el_deg'], depths)
         df.loc[mask, 'mri_raw'] = mri_vals
 
-        ts_max = df.loc[mask, 'tissue_score'].max()
-        mri_max = mri_vals.max()
-        if mri_max > 0 and ts_max > 0:
-            df.loc[mask, 'mri_normalized'] = mri_vals / mri_max * ts_max
+        # Use 99th percentile of positive values so outlier bright voxels don't
+        # collapse the contrast; then clip and scale to match tissue_score range.
+        pos = mri_vals[mri_vals > 0]
+        mri_ref = float(np.percentile(pos, 99)) if len(pos) > 0 else 1.0
+        ts_max = float(df.loc[mask, 'tissue_score'].max())
+        if mri_ref > 0 and ts_max > 0:
+            scaled = np.clip(mri_vals, 0.0, mri_ref) / mri_ref * ts_max
         else:
-            df.loc[mask, 'mri_normalized'] = mri_vals
+            scaled = mri_vals.copy()
+        df.loc[mask, 'mri_normalized'] = scaled
+
+        print(f"  {session_id} ({pen['pen_type']}): "
+              f"MRI raw [{mri_vals.min():.0f}–{mri_vals.max():.0f}], "
+              f"99th pct={mri_ref:.0f}, "
+              f"mri_norm [{scaled.min():.3f}–{scaled.max():.3f}]")
 
     return df
 
