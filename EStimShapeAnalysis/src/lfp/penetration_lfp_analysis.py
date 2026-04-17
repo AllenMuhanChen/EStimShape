@@ -718,6 +718,8 @@ class PenetrationLFPAnalysis:
         )
         plt.tight_layout()
         plt.show()
+        savepath = f"/home/connorlab/Documents/plots/{self.session_id}/penetration_analysis.png"
+        fig.savefig(savepath, dpi=300)
 
 
 if __name__ == '__main__':
