@@ -31,6 +31,7 @@ from scipy.ndimage import gaussian_filter1d
 
 from clat.intan.amplifiers import read_amplifier_data
 from clat.intan.rhs.load_intan_rhs_format import read_data
+from clat.util.connection import Connection
 
 from lfp_spectrum import LFPSpectrum
 from lfp_power_law import (
@@ -670,6 +671,109 @@ def plot_relative_phase(
 
 
 # ============================================================================
+# DATABASE OUTPUT
+# ============================================================================
+
+_PENETRATION_METRICS_TABLE = "PenetrationMetrics"
+
+_CREATE_PENETRATION_METRICS_SQL = f"""
+CREATE TABLE IF NOT EXISTS {_PENETRATION_METRICS_TABLE} (
+    session_id                  VARCHAR(32)     NOT NULL,
+    depth_under_chamber_mm      DOUBLE          NOT NULL,
+    band_power_delta_theta      DOUBLE          DEFAULT NULL,
+    band_power_alpha_beta       DOUBLE          DEFAULT NULL,
+    band_power_gamma            DOUBLE          DEFAULT NULL,
+    exponent                    DOUBLE          DEFAULT NULL,
+    amplitude                   DOUBLE          DEFAULT NULL,
+    r_squared                   DOUBLE          DEFAULT NULL,
+    spike_rate_hz               DOUBLE          DEFAULT NULL,
+    relative_impedance          DOUBLE          DEFAULT NULL,
+    relative_phase              DOUBLE          DEFAULT NULL,
+    PRIMARY KEY (session_id, depth_under_chamber_mm)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+"""
+
+_UPSERT_PENETRATION_METRICS_SQL = f"""
+INSERT INTO {_PENETRATION_METRICS_TABLE}
+    (session_id, depth_under_chamber_mm,
+     band_power_delta_theta, band_power_alpha_beta, band_power_gamma,
+     exponent, amplitude, r_squared,
+     spike_rate_hz, relative_impedance, relative_phase)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+ON DUPLICATE KEY UPDATE
+    band_power_delta_theta  = VALUES(band_power_delta_theta),
+    band_power_alpha_beta   = VALUES(band_power_alpha_beta),
+    band_power_gamma        = VALUES(band_power_gamma),
+    exponent                = VALUES(exponent),
+    amplitude               = VALUES(amplitude),
+    r_squared               = VALUES(r_squared),
+    spike_rate_hz           = VALUES(spike_rate_hz),
+    relative_impedance      = VALUES(relative_impedance),
+    relative_phase          = VALUES(relative_phase)
+"""
+
+
+def _ensure_column(conn: Connection, column: str, col_type: str = "DOUBLE DEFAULT NULL") -> None:
+    """Add column to PenetrationMetrics if it does not already exist."""
+    conn.execute(f"DESCRIBE {_PENETRATION_METRICS_TABLE}")
+    existing = {row[0] for row in conn.fetch_all()}
+    if column not in existing:
+        conn.execute(
+            f"ALTER TABLE {_PENETRATION_METRICS_TABLE} ADD COLUMN {column} {col_type}"
+        )
+
+
+def _band_power_at_bin(normalized: Dict[int, Tuple], bin_idx: int, flo: float, fhi: float) -> Optional[float]:
+    if bin_idx not in normalized:
+        return None
+    freqs, power = normalized[bin_idx]
+    mask = (freqs >= flo) & (freqs <= fhi)
+    return float(np.mean(power[mask])) if np.any(mask) else None
+
+
+def save_to_repository(
+    session_id: str,
+    bin_depths: np.ndarray,
+    normalized: Dict[int, Tuple],
+    binned_fits: Dict[int, PowerLawFit],
+    binned_spike_rates: Dict[int, float],
+    binned_rel_imp: Dict[int, float],
+    binned_rel_phase: Dict[int, float],
+) -> None:
+    """
+    Upsert all per-depth-bin penetration metrics into allen_data_repository.
+    Creates the PenetrationMetrics table if it doesn't exist.
+    """
+    conn = Connection("allen_data_repository")
+
+    conn.execute(_CREATE_PENETRATION_METRICS_SQL)
+    print(f"Table '{_PENETRATION_METRICS_TABLE}' ready.")
+
+    n_inserted = 0
+    for idx, depth_mm in enumerate(bin_depths):
+        fit = binned_fits.get(idx)
+
+        row = (
+            session_id,
+            float(depth_mm),
+            _band_power_at_bin(normalized, idx, *BANDS["delta-theta"]),
+            _band_power_at_bin(normalized, idx, *BANDS["alpha-beta"]),
+            _band_power_at_bin(normalized, idx, *BANDS["gamma"]),
+            float(fit.exponent)  if fit and not np.isnan(fit.exponent)  else None,
+            float(fit.amplitude) if fit and not np.isnan(fit.amplitude) else None,
+            float(fit.r_squared) if fit else None,
+            binned_spike_rates.get(idx),
+            binned_rel_imp.get(idx),
+            binned_rel_phase.get(idx),
+        )
+        conn.execute(_UPSERT_PENETRATION_METRICS_SQL, row)
+        n_inserted += 1
+
+    print(f"Saved {n_inserted} depth-bin rows to {_PENETRATION_METRICS_TABLE} "
+          f"(session {session_id}).")
+
+
+# ============================================================================
 # MAIN ANALYSIS CLASS
 # ============================================================================
 
@@ -736,6 +840,15 @@ class PenetrationLFPAnalysis:
 
         print("Plotting ...")
         self._plot(bin_depths, normalized, b_spec, b_fits, b_spike, b_rel_imp, b_rel_phase)
+
+        print("Saving metrics to allen_data_repository ...")
+        try:
+            save_to_repository(
+                self.session_id, bin_depths, normalized,
+                b_fits, b_spike, b_rel_imp, b_rel_phase,
+            )
+        except Exception as exc:
+            print(f"  Warning: could not save to repository: {exc}")
 
     def _plot(self, bin_depths, normalized, b_spec, b_fits, b_spike, b_rel_imp, b_rel_phase):
         cfg  = POWER_LAW_PANELS
