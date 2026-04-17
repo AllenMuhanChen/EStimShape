@@ -197,12 +197,38 @@ def load_impedance(csv_path: str) -> Dict[str, float]:
     Parse an Intan impedance CSV (tab-separated).
 
     Returns Dict[ch_name, magnitude_ohms] with keys normalised to A_NNN format.
+    Handles UTF-8 BOM, whitespace in column names, and tab vs comma separators.
     """
-    df = pd.read_csv(csv_path, sep='\t')
-    imp_col = 'Impedance Magnitude at 1000 Hz (ohms)'
+    # utf-8-sig strips BOM if present; try tab then comma
+    for sep in ('\t', ','):
+        df = pd.read_csv(csv_path, sep=sep, encoding='utf-8-sig')
+        if len(df.columns) > 2:
+            break
+
+    # Strip leading/trailing whitespace from all column names
+    df.columns = [c.strip() for c in df.columns]
+
+    # Fuzzy-find the channel-number column (first column whose name
+    # contains both "channel" and "number", or fall back to column 0)
+    ch_col = next(
+        (c for c in df.columns if 'channel' in c.lower() and 'number' in c.lower()),
+        df.columns[0],
+    )
+
+    # Fuzzy-find the impedance magnitude column
+    imp_col = next(
+        (c for c in df.columns if 'impedance' in c.lower() and 'magnitude' in c.lower()),
+        None,
+    )
+    if imp_col is None:
+        raise ValueError(
+            f"Cannot find impedance magnitude column in {csv_path}.\n"
+            f"Columns found: {list(df.columns)}"
+        )
+
     result: Dict[str, float] = {}
     for _, row in df.iterrows():
-        raw = str(row['Channel Number'])
+        raw  = str(row[ch_col]).strip()
         name = re.sub(r'([A-Za-z])-(\d+)', r'\1_\2', raw)
         result[name] = float(row[imp_col])
     return result
