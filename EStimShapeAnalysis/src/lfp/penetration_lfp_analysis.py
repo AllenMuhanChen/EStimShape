@@ -193,30 +193,24 @@ def load_recording(
     return spectra, fits, spike_rates, duration
 
 
-def load_impedance(csv_path: str) -> Dict[str, float]:
+def load_impedance(csv_path: str) -> Tuple[Dict[str, float], Dict[str, float]]:
     """
     Parse an Intan impedance CSV (tab-separated).
 
-    Returns Dict[ch_name, magnitude_ohms] with keys normalised to A_NNN format.
+    Returns (magnitude_ohms, phase_degrees), both keyed by A_NNN channel name.
     Handles UTF-8 BOM, whitespace in column names, and tab vs comma separators.
     """
-    # utf-8-sig strips BOM if present; try tab then comma
     for sep in ('\t', ','):
         df = pd.read_csv(csv_path, sep=sep, encoding='utf-8-sig')
         if len(df.columns) > 2:
             break
 
-    # Strip leading/trailing whitespace from all column names
     df.columns = [c.strip() for c in df.columns]
 
-    # Fuzzy-find the channel-number column (first column whose name
-    # contains both "channel" and "number", or fall back to column 0)
     ch_col = next(
         (c for c in df.columns if 'channel' in c.lower() and 'number' in c.lower()),
         df.columns[0],
     )
-
-    # Fuzzy-find the impedance magnitude column
     imp_col = next(
         (c for c in df.columns if 'impedance' in c.lower() and 'magnitude' in c.lower()),
         None,
@@ -226,13 +220,20 @@ def load_impedance(csv_path: str) -> Dict[str, float]:
             f"Cannot find impedance magnitude column in {csv_path}.\n"
             f"Columns found: {list(df.columns)}"
         )
+    phase_col = next(
+        (c for c in df.columns if 'phase' in c.lower()),
+        None,
+    )
 
-    result: Dict[str, float] = {}
+    magnitude: Dict[str, float] = {}
+    phase:     Dict[str, float] = {}
     for _, row in df.iterrows():
         raw  = str(row[ch_col]).strip()
         name = re.sub(r'([A-Za-z])-(\d+)', r'\1_\2', raw)
-        result[name] = float(row[imp_col])
-    return result
+        magnitude[name] = float(row[imp_col])
+        if phase_col is not None:
+            phase[name] = float(row[phase_col])
+    return magnitude, phase
 
 
 # ============================================================================
@@ -250,20 +251,21 @@ def _depth_mm(driven_depth_um: int, probe_pos: int, tip_start_mm: float) -> floa
 
 
 def bin_recordings(
-    recordings_data: List[Tuple[int, Dict, Dict, Dict, Dict]],
+    recordings_data: List[Tuple[int, Dict, Dict, Dict, Dict, Dict]],
     tip_start_mm: float,
-) -> Tuple[np.ndarray, Dict, Dict, Dict, Dict]:
+) -> Tuple[np.ndarray, Dict, Dict, Dict, Dict, Dict]:
     """
     Combine per-recording data into depth bins.
 
-    recordings_data: [(driven_depth_um, spectra, fits, spike_rates, impedances), ...]
+    recordings_data: [(driven_depth_um, spectra, fits, spike_rates, magnitudes, phases), ...]
 
     Returns:
         bin_depths           : np.ndarray shape (n_bins,)  sorted depth values in mm
         binned_spectra       : Dict[bin_idx, (freqs, avg_power)]
         binned_fits          : Dict[bin_idx, PowerLawFit]  (averaged exponent/amplitude)
         binned_spike_rates   : Dict[bin_idx, float]
-        binned_imp_raw       : Dict[(bin_idx, ch_name), float]  raw impedance per bin/channel
+        binned_imp_raw       : Dict[(bin_idx, ch_name), float]  raw impedance magnitude
+        binned_phase_raw     : Dict[(bin_idx, ch_name), float]  raw impedance phase (degrees)
     """
     probe_pos = _probe_positions()
 
@@ -271,8 +273,9 @@ def bin_recordings(
     fits_acc:  Dict[float, List] = defaultdict(list)
     spike_acc: Dict[float, List] = defaultdict(list)
     imp_acc:   Dict[Tuple[float, str], List[float]] = defaultdict(list)
+    phase_acc: Dict[Tuple[float, str], List[float]] = defaultdict(list)
 
-    for driven_um, spectra, fits, spike_rates, impedances in recordings_data:
+    for driven_um, spectra, fits, spike_rates, magnitudes, phases in recordings_data:
         for ch_name, pos in probe_pos.items():
             if ch_name not in spectra:
                 continue
@@ -282,8 +285,10 @@ def bin_recordings(
                 fits_acc[depth].append(fits[ch_name])
             if ch_name in spike_rates:
                 spike_acc[depth].append(spike_rates[ch_name])
-            if ch_name in impedances:
-                imp_acc[(depth, ch_name)].append(impedances[ch_name])
+            if ch_name in magnitudes:
+                imp_acc[(depth, ch_name)].append(magnitudes[ch_name])
+            if ch_name in phases:
+                phase_acc[(depth, ch_name)].append(phases[ch_name])
 
     bin_depths = np.array(sorted(spec_acc.keys()))
     n_bins = len(bin_depths)
@@ -292,6 +297,7 @@ def bin_recordings(
     binned_fits:       Dict[int, PowerLawFit] = {}
     binned_spike_rates: Dict[int, float] = {}
     binned_imp_raw:    Dict[Tuple[int, str], float] = {}
+    binned_phase_raw:  Dict[Tuple[int, str], float] = {}
 
     for idx, depth in enumerate(bin_depths):
         contribs = spec_acc[depth]
@@ -322,7 +328,11 @@ def bin_recordings(
             if dep == depth:
                 binned_imp_raw[(idx, ch_name)] = float(np.mean(imps))
 
-    return bin_depths, binned_spectra, binned_fits, binned_spike_rates, binned_imp_raw
+        for (dep, ch_name), phs in phase_acc.items():
+            if dep == depth:
+                binned_phase_raw[(idx, ch_name)] = float(np.mean(phs))
+
+    return bin_depths, binned_spectra, binned_fits, binned_spike_rates, binned_imp_raw, binned_phase_raw
 
 
 def smooth_spectra(
@@ -453,6 +463,30 @@ def compute_relative_impedance(
         mean = ch_mean.get(ch_name, imp)
         if mean > 0:
             bin_rel[bin_idx].append(imp / mean)
+
+    return {idx: float(np.mean(vals)) for idx, vals in bin_rel.items() if vals}
+
+
+def compute_relative_phase(
+    binned_phase_raw: Dict[Tuple[int, str], float],
+) -> Dict[int, float]:
+    """
+    For each physical channel, compute its mean phase across all recordings.
+    relative_phase = recorded_phase / channel_mean_phase.
+    Both are negative (capacitive), so the ratio is positive: >1 means more
+    capacitive than that channel's baseline, <1 means less capacitive.
+    Returns the mean relative phase per depth bin.
+    """
+    ch_vals: Dict[str, List[float]] = defaultdict(list)
+    for (_, ch_name), ph in binned_phase_raw.items():
+        ch_vals[ch_name].append(ph)
+    ch_mean = {ch: float(np.mean(v)) for ch, v in ch_vals.items()}
+
+    bin_rel: Dict[int, List[float]] = defaultdict(list)
+    for (bin_idx, ch_name), ph in binned_phase_raw.items():
+        mean = ch_mean.get(ch_name, ph)
+        if mean != 0:
+            bin_rel[bin_idx].append(ph / mean)
 
     return {idx: float(np.mean(vals)) for idx, vals in bin_rel.items() if vals}
 
@@ -617,6 +651,21 @@ def plot_relative_impedance(
     _setup_depth_axis(ax, bin_depths, label=False)
 
 
+def plot_relative_phase(
+    binned_rel_phase: Dict[int, float],
+    bin_depths: np.ndarray,
+    ax: plt.Axes,
+) -> None:
+    n_bins    = len(bin_depths)
+    y         = np.arange(n_bins)
+    rel_phase = [binned_rel_phase.get(i, np.nan) for i in range(n_bins)]
+    ax.plot(rel_phase, y, 'o-', markersize=3, color='tab:cyan')
+    ax.axvline(1.0, color='gray', linewidth=0.8, linestyle='--', alpha=0.6)
+    ax.set_xlabel("Rel. Phase\n(recording / ch. mean)")
+    ax.set_title("Relative Phase")
+    _setup_depth_axis(ax, bin_depths, label=False)
+
+
 # ============================================================================
 # MAIN ANALYSIS CLASS
 # ============================================================================
@@ -642,11 +691,14 @@ class PenetrationLFPAnalysis:
             print(f"\n  depth {driven_um} µm  →  {os.path.basename(rec_dir)}")
             try:
                 spectra, fits, spike_rates, duration = load_recording(rec_dir)
-                impedances = load_impedance(csv_path) if csv_path else {}
-                if not csv_path:
+                if csv_path:
+                    magnitudes, phases = load_impedance(csv_path)
+                else:
+                    magnitudes, phases = {}, {}
                     print(f"    Warning: no impedance CSV for depth {driven_um}")
-                print(f"    {duration:.1f}s  |  {len(spectra)} ch  |  {len(impedances)} imp values")
-                recordings_data.append((driven_um, spectra, fits, spike_rates, impedances))
+                print(f"    {duration:.1f}s  |  {len(spectra)} ch  "
+                      f"|  {len(magnitudes)} imp  |  {len(phases)} phase values")
+                recordings_data.append((driven_um, spectra, fits, spike_rates, magnitudes, phases))
             except Exception as exc:
                 print(f"    Error: {exc}"); continue
 
@@ -654,7 +706,7 @@ class PenetrationLFPAnalysis:
             print("No recordings loaded successfully."); return
 
         print(f"\nBinning {len(recordings_data)} recordings ...")
-        bin_depths, b_spec, b_fits, b_spike, b_imp_raw = bin_recordings(
+        bin_depths, b_spec, b_fits, b_spike, b_imp_raw, b_phase_raw = bin_recordings(
             recordings_data, self.tip_start_mm
         )
         n_bins = len(bin_depths)
@@ -670,16 +722,20 @@ class PenetrationLFPAnalysis:
         print("Computing penetration-wide relative power ...")
         normalized = compute_relative_power(b_spec, n_bins)
 
-        print("Computing relative impedance ...")
-        b_rel_imp = compute_relative_impedance(b_imp_raw)
-        if sigma > 0 and b_rel_imp:
-            b_rel_imp = smooth_scalars(b_rel_imp, n_bins, sigma)
+        print("Computing relative impedance and phase ...")
+        b_rel_imp   = compute_relative_impedance(b_imp_raw)
+        b_rel_phase = compute_relative_phase(b_phase_raw)
+        if sigma > 0:
+            if b_rel_imp:
+                b_rel_imp   = smooth_scalars(b_rel_imp,   n_bins, sigma)
+            if b_rel_phase:
+                b_rel_phase = smooth_scalars(b_rel_phase, n_bins, sigma)
 
         print("Plotting ...")
-        self._plot(bin_depths, normalized, b_spec, b_fits, b_spike, b_rel_imp)
+        self._plot(bin_depths, normalized, b_spec, b_fits, b_spike, b_rel_imp, b_rel_phase)
 
-    def _plot(self, bin_depths, normalized, b_spec, b_fits, b_spike, b_rel_imp):
-        cfg = POWER_LAW_PANELS
+    def _plot(self, bin_depths, normalized, b_spec, b_fits, b_spike, b_rel_imp, b_rel_phase):
+        cfg  = POWER_LAW_PANELS
         n_pl = sum([
             cfg.get('show_exponent', True),
             cfg.get('show_amplitude', True),
@@ -688,16 +744,18 @@ class PenetrationLFPAnalysis:
             cfg.get('show_residual_gamma', False),
             cfg.get('show_residual_alpha_beta', False),
         ])
+        n_bins = len(bin_depths)
 
-        # Layout: heatmap | band power | [n_pl power-law panels] | spike rate | impedance
-        n_total = 1 + 1 + n_pl + 1 + 1
-        width_ratios = [3, 1] + [1] * n_pl + [1, 1]
+        # Layout: heatmap | band power | [power-law] | spike rate | impedance | phase
+        n_total      = 1 + 1 + n_pl + 1 + 1 + 1
+        width_ratios = [3, 1] + [1] * n_pl + [1, 1, 1]
 
-        fig_h = max(8, min(20, len(bin_depths) * 0.15))
+        fig_h = max(8, min(20, n_bins * 0.15))
         fig, axes = plt.subplots(
             1, n_total,
             figsize=(3.5 * n_total, fig_h),
             gridspec_kw={'width_ratios': width_ratios},
+            sharey=True,
         )
 
         plot_heatmap(normalized, bin_depths, axes[0])
@@ -705,6 +763,10 @@ class PenetrationLFPAnalysis:
         plot_power_law_panels(b_fits, b_spec, bin_depths, axes[2:2 + n_pl], cfg)
         plot_spike_rates(b_spike, bin_depths, axes[2 + n_pl])
         plot_relative_impedance(b_rel_imp, bin_depths, axes[2 + n_pl + 1])
+        plot_relative_phase(b_rel_phase, bin_depths, axes[2 + n_pl + 2])
+
+        # Lock y limits to the heatmap's extent so all panels align exactly
+        axes[0].set_ylim(n_bins - 0.5, -0.5)
 
         sigma     = self.spatial_smooth_sigma
         smooth_str = f"  |  smooth σ={sigma}×65µm" if sigma > 0 else "  |  no smoothing"
