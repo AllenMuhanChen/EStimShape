@@ -909,15 +909,14 @@ if __name__ == '__main__':
     # sigma_str = input("Spatial smoothing sigma in depth bins [default 1.5, 0 = off]: ").strip()
     # sigma = float(sigma_str) if sigma_str else 1.5
     tip_starts_for_session_ids = {
-        # "260416_0": 5.6,
-        # "260414_0": 6.05,
-        # "260410_0": 6.35,
-        # "260408_0": 6.25,
-        # "260407_0": 6.3,
+        "260416_0": 5.6,
+        "260414_0": 6.05,
+        "260410_0": 6.35,
+        "260408_0": 6.25,
+        "260407_0": 6.3,
         "260402_0":6.4,
         "260331_0":6.05,
         "260327_0":6.35,
-        "260325_0":6.3,
     }
 
     for session_id, tip_start in tip_starts_for_session_ids.items():
