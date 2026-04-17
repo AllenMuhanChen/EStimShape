@@ -698,7 +698,11 @@ def load_mri_pipeline(config_path: str = MRI_VIEWER_CONFIG_PATH) -> dict:
     if data.ndim == 4:
         data = data[..., 0]
 
-    mri_corr, _ = load_corrections(par_path + '_corrections.json')
+    # Strip file extension before appending suffix — matches viewer's _corr_json_for()
+    mri_corr_path = os.path.splitext(par_path)[0] + '_corrections.json'
+    mri_corr, _ = load_corrections(mri_corr_path)
+    print(f"  MRI correction: {mri_corr_path}")
+    print(f"  MRI correction matrix:\n{np.round(mri_corr, 4)}")
     corrected_affine = mri_corr @ native_affine
     inv_corrected = np.linalg.inv(corrected_affine)
 
@@ -711,7 +715,10 @@ def load_mri_pipeline(config_path: str = MRI_VIEWER_CONFIG_PATH) -> dict:
     cor_offset = mod.get_center_of_rotation_offset()
     is_fit_circle = mod.get_is_fit_circle()
 
-    ch_corr, _ = load_corrections(monkey_specific_path + '_chamber_corrections.json')
+    ch_corr_path = os.path.splitext(monkey_specific_path)[0] + '_chamber_corrections.json'
+    ch_corr, _ = load_corrections(ch_corr_path)
+    print(f"  Chamber correction: {ch_corr_path}")
+    print(f"  Chamber correction matrix:\n{np.round(ch_corr, 4)}")
     screws_world = screws_ebz + ebz_world
     if not np.allclose(ch_corr, np.eye(4)):
         R = ch_corr[:3, :3]
