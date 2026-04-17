@@ -1,12 +1,20 @@
+import importlib.util
+import json
+import os
+from typing import Optional
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.ndimage import map_coordinates
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from scipy.stats import pearsonr
 from itertools import combinations
 
 from clat.util.connection import Connection
+
+MRI_VIEWER_CONFIG_PATH = os.path.join(os.path.dirname(__file__), '../../mri/mri_viewer_config.json')
 
 
 def load_and_perform_pca(conn: Connection, table_name: str = "PenetrationMetrics"):
@@ -629,6 +637,7 @@ def _draw_tissue_strip(
         depths: np.ndarray,
         scores: np.ndarray,
         title: str = '',
+        vmax: float = 1.0,
 ) -> None:
     """Render scores as a grayscale imshow strip with depth on the y-axis."""
     n = len(depths)
@@ -639,7 +648,7 @@ def _draw_tissue_strip(
         aspect='auto',
         cmap='gray',
         vmin=0,
-        vmax=1,
+        vmax=vmax,
         origin='upper',
         extent=[0, 1, depths[-1], depths[0]],
     )
@@ -647,17 +656,6 @@ def _draw_tissue_strip(
     ax.set_ylabel('Depth under chamber (mm)')
     ax.set_xlabel('')
     ax.set_title(title, fontsize=8, rotation=45, ha='right')
-
-    # Reference ticks on the colorbar embedded as text annotations
-    for score_val, label in [(0.0, 'Sulcus'), (0.5, 'Gray'), (1.0, 'WM')]:
-        ax.annotate(
-            label,
-            xy=(1.02, score_val),
-            xycoords=('axes fraction', 'axes fraction'),
-            fontsize=6,
-            va='center',
-            color='black' if score_val > 0.3 else 'white',
-        )
 
 
 def _draw_tissue_line(
@@ -679,7 +677,295 @@ def _draw_tissue_line(
         ax.axvline(score_val, color='lightgray', linewidth=0.5, linestyle=':')
 
 
-def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs: int = 4):
+def load_mri_pipeline(config_path: str = MRI_VIEWER_CONFIG_PATH) -> dict:
+    """
+    Load MRI volume, correction matrix, and chamber geometry for trajectory sampling.
+
+    Returns a dict with keys: data, inv_corrected, origin, x, y, normal, cor_offset.
+    """
+    from src.mri.volume import load_volume
+    from src.mri.correction import load_corrections
+    from src.mri.chamber import fit_chamber
+
+    with open(config_path) as f:
+        cfg = json.load(f)
+
+    par_path = cfg['default_path']
+    ebz_world = np.array(cfg['ebz_world'])
+    monkey_specific_path = cfg['monkey_specific_path']
+
+    data, native_affine, voxel_sizes, img = load_volume(par_path)
+    if data.ndim == 4:
+        data = data[..., 0]
+
+    mri_corr, _ = load_corrections(par_path + '_corrections.json')
+    corrected_affine = mri_corr @ native_affine
+    inv_corrected = np.linalg.inv(corrected_affine)
+
+    spec = importlib.util.spec_from_file_location('monkey_specific', monkey_specific_path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    screws_ebz = np.array(mod.get_screw_hole_coords())
+    ref_idx = mod.get_reference_screw_idx()
+    cor_offset = mod.get_center_of_rotation_offset()
+    is_fit_circle = mod.get_is_fit_circle()
+
+    ch_corr, _ = load_corrections(monkey_specific_path + '_chamber_corrections.json')
+    screws_world = screws_ebz + ebz_world
+    if not np.allclose(ch_corr, np.eye(4)):
+        R = ch_corr[:3, :3]
+        t = ch_corr[:3, 3]
+        screws_world = (R @ screws_world.T).T + t
+
+    center, origin, x, y, normal = fit_chamber(screws_world, ref_idx, cor_offset, is_fit_circle)
+
+    return {
+        'data': data,
+        'inv_corrected': inv_corrected,
+        'origin': origin,
+        'x': x,
+        'y': y,
+        'normal': normal,
+        'cor_offset': cor_offset,
+    }
+
+
+def sample_mri_along_trajectory(
+        mri_pipeline: dict,
+        az_deg: float,
+        el_deg: float,
+        depths_mm: np.ndarray,
+) -> np.ndarray:
+    """Sample MRI voxel intensities at specified depths along a trajectory."""
+    from src.mri.chamber import calc_penetration_target
+
+    data = mri_pipeline['data']
+    inv_corrected = mri_pipeline['inv_corrected']
+    origin = mri_pipeline['origin']
+    x = mri_pipeline['x']
+    y = mri_pipeline['y']
+    normal = mri_pipeline['normal']
+    cor_offset = mri_pipeline['cor_offset']
+
+    max_dist = float(np.max(depths_mm)) + 1.0
+    _, direction, top_pt = calc_penetration_target(
+        origin, az_deg, el_deg, max_dist, x, y, normal, cor_offset
+    )
+
+    pts = np.array([top_pt + d * direction for d in depths_mm])
+    ones = np.ones((len(pts), 1))
+    vox_coords = (inv_corrected @ np.hstack([pts, ones]).T).T[:, :3]
+
+    values = map_coordinates(data, vox_coords.T, order=1, mode='constant', cval=0.0)
+    return values.astype(float)
+
+
+def get_penetration_for_session(conn: Connection, session_id: str) -> Optional[dict]:
+    """Query the Penetrations table for a session's trajectory angles."""
+    for pen_type in ('actual', 'planned_tip', 'planned'):
+        conn.execute(
+            "SELECT az_deg, el_deg, dist_mm FROM Penetrations "
+            "WHERE session_id = %s AND pen_type = %s LIMIT 1",
+            (session_id, pen_type),
+        )
+        rows = conn.fetch_all()
+        if rows:
+            az, el, dist = rows[0]
+            return {'az_deg': float(az), 'el_deg': float(el),
+                    'dist_mm': float(dist), 'pen_type': pen_type}
+    return None
+
+
+def compute_mri_comparison(
+        df: pd.DataFrame,
+        conn: Connection,
+        mri_pipeline: dict,
+) -> pd.DataFrame:
+    """
+    Add MRI intensity sampled along each session's trajectory.
+
+    Adds columns:
+      mri_raw        : raw voxel intensity at each depth
+      mri_normalized : scaled so max(mri_normalized) == max(tissue_score) per session,
+                       with 0=black preserved on both sides
+    """
+    df = df.copy()
+    df['mri_raw'] = np.nan
+    df['mri_normalized'] = np.nan
+
+    for session_id in df['session_id'].unique():
+        pen = get_penetration_for_session(conn, session_id)
+        if pen is None:
+            print(f"  Warning: no penetration found for session {session_id}, skipping MRI.")
+            continue
+
+        mask = df['session_id'] == session_id
+        depths = df.loc[mask, 'depth_under_chamber_mm'].values
+        mri_vals = sample_mri_along_trajectory(mri_pipeline, pen['az_deg'], pen['el_deg'], depths)
+        df.loc[mask, 'mri_raw'] = mri_vals
+
+        ts_max = df.loc[mask, 'tissue_score'].max()
+        mri_max = mri_vals.max()
+        if mri_max > 0 and ts_max > 0:
+            df.loc[mask, 'mri_normalized'] = mri_vals / mri_max * ts_max
+        else:
+            df.loc[mask, 'mri_normalized'] = mri_vals
+
+    return df
+
+
+def compute_trajectory_fit_scores(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Weighted Pearson correlation between tissue_score and mri_normalized per session.
+
+    Weights = abs(2 * tissue_score - 1): 0 at ambiguous mid-gray, 1 at confident
+    sulcus or white matter.
+
+    Returns a DataFrame indexed by session_id with columns: fit_score, n_points.
+    """
+    records = []
+    for session_id in df['session_id'].unique():
+        mask = df['session_id'] == session_id
+        sdata = df[mask].dropna(subset=['tissue_score', 'mri_normalized'])
+        n = len(sdata)
+
+        if n < 3:
+            records.append({'session_id': session_id, 'fit_score': np.nan, 'n_points': n})
+            continue
+
+        ts = sdata['tissue_score'].values
+        mri = sdata['mri_normalized'].values
+        w = np.abs(2.0 * ts - 1.0)
+
+        w_sum = w.sum()
+        if w_sum == 0:
+            records.append({'session_id': session_id, 'fit_score': np.nan, 'n_points': n})
+            continue
+
+        ts_wm = (w * ts).sum() / w_sum
+        mri_wm = (w * mri).sum() / w_sum
+        ts_c = ts - ts_wm
+        mri_c = mri - mri_wm
+        num = (w * ts_c * mri_c).sum()
+        denom = np.sqrt((w * ts_c ** 2).sum() * (w * mri_c ** 2).sum())
+        r = float(num / denom) if denom > 0 else np.nan
+        records.append({'session_id': session_id, 'fit_score': r, 'n_points': n})
+
+    result = pd.DataFrame(records).set_index('session_id')
+    print("\nTrajectory fit scores (weighted Pearson r, tissue_score vs MRI):")
+    print(result.to_string())
+    return result
+
+
+def plot_mri_comparison_by_session(
+        df: pd.DataFrame,
+        fit_scores: Optional[pd.DataFrame] = None,
+        sessions: list = None,
+        strip_width: float = 0.4,
+) -> None:
+    """
+    Per-session figure: MRI grayscale strip | tissue confidence strip | overlay line.
+
+    Both strips share the same grayscale scale (0=black, max tissue_score=white).
+    """
+    if sessions is None:
+        sessions = sorted(df['session_id'].unique())
+
+    n_sessions = len(sessions)
+
+    # Combined figure
+    fig_all, all_axes = plt.subplots(
+        1, n_sessions * 3,
+        figsize=(4.5 * n_sessions, 10),
+        gridspec_kw={'width_ratios': [strip_width, strip_width, 1] * n_sessions},
+    )
+    if n_sessions == 1:
+        all_axes = np.array(all_axes)
+    ax_groups = [all_axes[i * 3:(i + 1) * 3] for i in range(n_sessions)]
+
+    for idx, session in enumerate(sessions):
+        sdata = df[df['session_id'] == session].copy().sort_values('depth_under_chamber_mm')
+        if sdata.empty:
+            continue
+
+        depths = sdata['depth_under_chamber_mm'].values
+        ts = sdata['tissue_score'].values
+        mri_norm = sdata['mri_normalized'].values
+        ts_max = ts.max() if ts.max() > 0 else 1.0
+
+        ax_mri, ax_ts, ax_line = ax_groups[idx]
+
+        _draw_tissue_strip(ax_mri, depths, mri_norm, title=f'{session}\nMRI', vmax=ts_max)
+        _draw_tissue_strip(ax_ts, depths, ts, title='Tissue', vmax=ts_max)
+        _draw_mri_tissue_line(ax_line, depths, ts, mri_norm, fit_scores, session)
+
+        if idx > 0:
+            ax_mri.set_ylabel('')
+            ax_ts.set_ylabel('')
+
+    fig_all.suptitle('MRI vs Tissue Confidence\n(black=sulcus, gray=GM, white=WM)',
+                     fontsize=12)
+    plt.tight_layout()
+    plt.savefig('mri_vs_tissue_confidence_all_sessions.png', dpi=150, bbox_inches='tight')
+    plt.show()
+
+    # Per-session figures
+    for session in sessions:
+        sdata = df[df['session_id'] == session].copy().sort_values('depth_under_chamber_mm')
+        if sdata.empty:
+            continue
+
+        depths = sdata['depth_under_chamber_mm'].values
+        ts = sdata['tissue_score'].values
+        mri_norm = sdata['mri_normalized'].values
+        ts_max = ts.max() if ts.max() > 0 else 1.0
+
+        fig, (ax_mri, ax_ts, ax_line) = plt.subplots(
+            1, 3,
+            figsize=(6, 10),
+            gridspec_kw={'width_ratios': [strip_width, strip_width, 1]},
+        )
+        _draw_tissue_strip(ax_mri, depths, mri_norm, title='MRI (norm)', vmax=ts_max)
+        _draw_tissue_strip(ax_ts, depths, ts, title='Tissue score', vmax=ts_max)
+        _draw_mri_tissue_line(ax_line, depths, ts, mri_norm, fit_scores, session)
+
+        fig.suptitle(f'MRI vs Tissue Confidence — {session}', fontsize=11)
+        plt.tight_layout()
+        plt.savefig(f'mri_vs_tissue_confidence_{session}.png', dpi=150, bbox_inches='tight')
+        plt.show()
+
+
+def _draw_mri_tissue_line(
+        ax: plt.Axes,
+        depths: np.ndarray,
+        tissue_score: np.ndarray,
+        mri_norm: np.ndarray,
+        fit_scores: Optional[pd.DataFrame],
+        session_id: str,
+) -> None:
+    """Overlay line plot of tissue_score and MRI along depth."""
+    ax.plot(tissue_score, depths, 'k-o', markersize=3, linewidth=1.5, label='Tissue score')
+    if not np.all(np.isnan(mri_norm)):
+        ax.plot(mri_norm, depths, color='steelblue', linestyle='--',
+                linewidth=1.5, markersize=3, marker='o', label='MRI (norm)')
+
+    ts_max = tissue_score.max() if tissue_score.max() > 0 else 1.0
+    ax.set_xlim(-0.05, ts_max * 1.1)
+    ax.set_xlabel('Score')
+    ax.invert_yaxis()
+    ax.yaxis.set_tick_params(labelleft=False)
+    ax.grid(True, alpha=0.3)
+    ax.legend(fontsize=7)
+
+    if fit_scores is not None and session_id in fit_scores.index:
+        r = fit_scores.loc[session_id, 'fit_score']
+        n = fit_scores.loc[session_id, 'n_points']
+        ax.set_title(f'weighted r = {r:.3f}  (n={n})', fontsize=8)
+
+
+def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs: int = 4,
+                 mri_config_path: str = MRI_VIEWER_CONFIG_PATH):
     """Run complete PCA analysis with correlations and plots."""
 
     # Load and perform PCA
@@ -712,13 +998,25 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
     df_conf = compute_tissue_confidence(df)
     plot_tissue_confidence_by_session(df_conf)
 
+    # MRI comparison
+    fit_scores = None
+    try:
+        print("\nLoading MRI pipeline ...")
+        mri_pipeline = load_mri_pipeline(mri_config_path)
+        df_conf = compute_mri_comparison(df_conf, conn, mri_pipeline)
+        fit_scores = compute_trajectory_fit_scores(df_conf)
+        plot_mri_comparison_by_session(df_conf, fit_scores)
+    except Exception as exc:
+        print(f"  MRI comparison skipped: {exc}")
+
     return {
         'df': df_conf,
         'pca': pca,
         'X_pca': X_pca,
         'feature_columns': feature_columns,
         'loadings': loadings_df,
-        'correlations': corr_df
+        'correlations': corr_df,
+        'fit_scores': fit_scores,
     }
 
 
