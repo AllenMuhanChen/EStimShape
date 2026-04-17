@@ -502,7 +502,7 @@ def compute_relative_phase(
 def _setup_depth_axis(
     ax: plt.Axes,
     bin_depths: np.ndarray,
-    label: bool = True,
+    show_ylabel: bool = False,
     max_labels: int = 25,
 ) -> None:
     """Y-axis: depth in mm, shallow at top, deep at bottom."""
@@ -510,11 +510,11 @@ def _setup_depth_axis(
     step = max(1, n // max_labels)
     ticks = np.arange(0, n, step)
     ax.set_yticks(ticks)
-    if label:
-        ax.set_yticklabels([f"{bin_depths[i]:.2f}" for i in ticks], fontsize=6)
+    # Override sharey tick-label suppression so every panel shows depths
+    ax.tick_params(labelleft=True)
+    ax.set_yticklabels([f"{bin_depths[i]:.2f}" for i in ticks], fontsize=6)
+    if show_ylabel:
         ax.set_ylabel("Depth under chamber (mm)")
-    else:
-        ax.set_yticklabels([])
     if not ax.yaxis_inverted():
         ax.invert_yaxis()
 
@@ -538,7 +538,7 @@ def plot_heatmap(
     plt.colorbar(im, ax=ax, label="Relative Power")
     ax.set_xlabel("Frequency (Hz)")
     ax.set_title("Relative Power\n(full penetration)")
-    _setup_depth_axis(ax, bin_depths, label=True)
+    _setup_depth_axis(ax, bin_depths, show_ylabel=True)
 
 
 def plot_band_power(
@@ -559,7 +559,7 @@ def plot_band_power(
     ax.set_xlabel("Relative Power")
     ax.set_title("Band Power")
     ax.legend(loc="lower right", fontsize=6)
-    _setup_depth_axis(ax, bin_depths, label=False)
+    _setup_depth_axis(ax, bin_depths)
 
 
 def _spectral_metrics(
@@ -589,7 +589,7 @@ def _draw(ax, values, y, bin_depths, xlabel, title, color, xlim=None):
     ax.set_title(title, fontsize=8)
     if xlim:
         ax.set_xlim(*xlim)
-    _setup_depth_axis(ax, bin_depths, label=False)
+    _setup_depth_axis(ax, bin_depths)
 
 
 def plot_power_law_panels(
@@ -637,7 +637,7 @@ def plot_spike_rates(
     ax.plot(rates, y, 'o-', markersize=3, color='tab:red')
     ax.set_xlabel("Spike Rate (Hz)")
     ax.set_title("Avg Spike Rate")
-    _setup_depth_axis(ax, bin_depths, label=False)
+    _setup_depth_axis(ax, bin_depths)
 
 
 def plot_relative_impedance(
@@ -652,7 +652,7 @@ def plot_relative_impedance(
     ax.axvline(1.0, color='gray', linewidth=0.8, linestyle='--', alpha=0.6)
     ax.set_xlabel("Rel. Impedance\n(recording / ch. mean)")
     ax.set_title("Relative Impedance")
-    _setup_depth_axis(ax, bin_depths, label=False)
+    _setup_depth_axis(ax, bin_depths)
 
 
 def plot_relative_phase(
@@ -667,7 +667,7 @@ def plot_relative_phase(
     ax.axvline(1.0, color='gray', linewidth=0.8, linestyle='--', alpha=0.6)
     ax.set_xlabel("Rel. Phase\n(recording / ch. mean)")
     ax.set_title("Relative Phase")
-    _setup_depth_axis(ax, bin_depths, label=False)
+    _setup_depth_axis(ax, bin_depths)
 
 
 # ============================================================================
