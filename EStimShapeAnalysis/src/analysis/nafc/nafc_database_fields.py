@@ -526,7 +526,7 @@ class IsDeltaField(CachedDatabaseField):
         query_delta = """
                       SELECT delta_id
                       FROM IncludedDeltas
-                      WHERE delta_id = %s
+                      WHERE delta_id = %s AND included = 1
                       LIMIT 1; \
                       """
         self.conn.execute(query_delta, params=(base_mstick_id,))
@@ -539,7 +539,7 @@ class IsDeltaField(CachedDatabaseField):
         query_variant = """
                         SELECT variant_id
                         FROM IncludedDeltas
-                        WHERE variant_id = %s
+                        WHERE variant_id = %s AND included = 1
                         LIMIT 1; \
                         """
         self.conn.execute(query_variant, params=(base_mstick_id,))

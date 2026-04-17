@@ -15,7 +15,8 @@ from src.startup import context
 def main():
     analysis = GATopNAllChannelsAnalysis(top_n=10)
     session_id, _ = read_session_id_from_db_name(context.ga_database)
-    compiled_data = analysis.compile()
+    compiled_data = None
+    # compiled_data = analysis.compile()
     analysis.run(session_id, "raw", "ALL", compiled_data)
 
 

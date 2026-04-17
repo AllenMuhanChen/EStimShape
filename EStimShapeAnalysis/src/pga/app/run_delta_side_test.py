@@ -12,11 +12,8 @@ def main():
     ga.response_processor.process_to_db(name)
     ga._construct_lineages_from_db()
 
-    delta_side_test = next(
-        st for st in ga.side_tests
-        if type(st).__name__ == 'EStimVariantDeltaSideTest'
-    )
-    delta_side_test.run(ga.lineages, ga.gen_id)
+    for side_test in ga.side_tests:
+        side_test.run(ga.lineages, ga.gen_id)
 
     ga._update_db()
     ga.trial_generator.generate_trials(experiment_id=ga.experiment_id, generation=ga.gen_id)
