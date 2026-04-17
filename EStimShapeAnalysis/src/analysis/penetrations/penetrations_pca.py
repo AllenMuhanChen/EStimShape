@@ -3,10 +3,11 @@ import json
 import os
 from typing import Optional
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.ndimage import map_coordinates
+from scipy.optimize import minimize
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from scipy.stats import pearsonr
@@ -735,6 +736,10 @@ def load_mri_pipeline(config_path: str = MRI_VIEWER_CONFIG_PATH) -> dict:
         'y': y,
         'normal': normal,
         'cor_offset': cor_offset,
+        # extra fields used by the optimizer to re-fit chamber with new corrections
+        'screws_world_base': screws_world,
+        'ref_idx': ref_idx,
+        'is_fit_circle': is_fit_circle,
     }
 
 
@@ -764,8 +769,7 @@ def sample_mri_along_trajectory(
     ones = np.ones((len(pts), 1))
     vox_coords = (inv_corrected @ np.hstack([pts, ones]).T).T[:, :3]
 
-    # order=0: nearest-neighbour — no cross-voxel blending, preserves sharp tissue boundaries
-    values = map_coordinates(data, vox_coords.T, order=0, mode='constant', cval=0.0)
+    values = map_coordinates(data, vox_coords.T, order=1, mode='constant', cval=0.0)
     return values.astype(float)
 
 
@@ -789,19 +793,19 @@ def compute_mri_comparison(
         df: pd.DataFrame,
         conn: Connection,
         mri_pipeline: dict,
+        daz: float = 0.0,
+        del_: float = 0.0,
+        ddepth: float = 0.0,
 ) -> pd.DataFrame:
     """
     Add MRI intensity sampled along each session's trajectory.
 
+    Optional offsets applied to all sessions: daz/del_ (degrees) and ddepth (mm).
+
     Adds columns:
       mri_raw        : raw voxel intensity at each depth
       mri_normalized : clipped to 99th-percentile then scaled so
-                       max(mri_normalized) == max(tissue_score) per session,
-                       with 0=black on both sides
-
-    Uses 99th-percentile rather than absolute max to prevent a single bright
-    voxel (skull edge, vessel, artifact) from compressing the whole range and
-    hiding soft-tissue / CSF contrast.
+                       max(mri_normalized) == max(tissue_score) per session
     """
     df = df.copy()
     df['mri_raw'] = np.nan
@@ -814,12 +818,12 @@ def compute_mri_comparison(
             continue
 
         mask = df['session_id'] == session_id
-        depths = df.loc[mask, 'depth_under_chamber_mm'].values
-        mri_vals = sample_mri_along_trajectory(mri_pipeline, pen['az_deg'], pen['el_deg'], depths)
+        depths = df.loc[mask, 'depth_under_chamber_mm'].values + ddepth
+        mri_vals = sample_mri_along_trajectory(
+            mri_pipeline, pen['az_deg'] + daz, pen['el_deg'] + del_, depths
+        )
         df.loc[mask, 'mri_raw'] = mri_vals
 
-        # Use 99th percentile of positive values so outlier bright voxels don't
-        # collapse the contrast; then clip and scale to match tissue_score range.
         pos = mri_vals[mri_vals > 0]
         mri_ref = float(np.percentile(pos, 99)) if len(pos) > 0 else 1.0
         ts_max = float(df.loc[mask, 'tissue_score'].max())
@@ -837,13 +841,39 @@ def compute_mri_comparison(
     return df
 
 
+def _weighted_pearson_r(ts: np.ndarray, mri_vals: np.ndarray) -> float:
+    """
+    Weighted Pearson r between tissue_score and MRI raw values.
+
+    MRI is normalized internally (99th percentile of positives, scaled to ts max).
+    Weights = abs(2*ts - 1): 0 at ambiguous gray, 1 at confident sulcus/WM.
+    """
+    pos = mri_vals[mri_vals > 0]
+    if len(pos) < 3:
+        return np.nan
+    mri_ref = float(np.percentile(pos, 99))
+    ts_max = float(ts.max())
+    if mri_ref <= 0 or ts_max <= 0:
+        return np.nan
+
+    mri_norm = np.clip(mri_vals, 0.0, mri_ref) / mri_ref * ts_max
+    w = np.abs(2.0 * ts - 1.0)
+    w_sum = w.sum()
+    if w_sum == 0:
+        return np.nan
+
+    ts_wm = (w * ts).sum() / w_sum
+    mri_wm = (w * mri_norm).sum() / w_sum
+    ts_c = ts - ts_wm
+    mri_c = mri_norm - mri_wm
+    num = (w * ts_c * mri_c).sum()
+    denom = np.sqrt((w * ts_c ** 2).sum() * (w * mri_c ** 2).sum())
+    return float(num / denom) if denom > 0 else np.nan
+
+
 def compute_trajectory_fit_scores(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Weighted Pearson correlation between tissue_score and mri_normalized per session.
-
-    Weights = abs(2 * tissue_score - 1): 0 at ambiguous mid-gray, 1 at confident
-    sulcus or white matter.
-
+    Weighted Pearson r between tissue_score and mri_normalized per session.
     Returns a DataFrame indexed by session_id with columns: fit_score, n_points.
     """
     records = []
@@ -858,26 +888,190 @@ def compute_trajectory_fit_scores(df: pd.DataFrame) -> pd.DataFrame:
 
         ts = sdata['tissue_score'].values
         mri = sdata['mri_normalized'].values
-        w = np.abs(2.0 * ts - 1.0)
-
-        w_sum = w.sum()
-        if w_sum == 0:
-            records.append({'session_id': session_id, 'fit_score': np.nan, 'n_points': n})
-            continue
-
-        ts_wm = (w * ts).sum() / w_sum
-        mri_wm = (w * mri).sum() / w_sum
-        ts_c = ts - ts_wm
-        mri_c = mri - mri_wm
-        num = (w * ts_c * mri_c).sum()
-        denom = np.sqrt((w * ts_c ** 2).sum() * (w * mri_c ** 2).sum())
-        r = float(num / denom) if denom > 0 else np.nan
+        r = _weighted_pearson_r(ts, mri)
         records.append({'session_id': session_id, 'fit_score': r, 'n_points': n})
 
     result = pd.DataFrame(records).set_index('session_id')
     print("\nTrajectory fit scores (weighted Pearson r, tissue_score vs MRI):")
     print(result.to_string())
     return result
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Transformation optimisation
+# ─────────────────────────────────────────────────────────────────────────────
+
+_OPT_PARAM_NAMES = [
+    'tx_mm', 'ty_mm', 'tz_mm',           # chamber translation
+    'rx_deg', 'ry_deg', 'rz_deg',         # chamber rotation
+    'scale',                               # isotropic chamber scale (default 1)
+    'daz_deg', 'del_deg',                 # global az/el offset for all penetrations
+    'ddepth_mm',                          # global depth offset for all penetrations
+]
+_OPT_X0 = np.array([0., 0., 0.,   0., 0., 0.,   1.0,   0., 0.,   0.])
+
+
+def _apply_chamber_params(params: np.ndarray, mri_pipeline: dict):
+    """Return (origin, x, y, normal) after applying optimisation params to chamber."""
+    from src.mri.chamber import fit_chamber
+    from src.mri.correction import rot_x, rot_y, rot_z, xlate
+
+    tx, ty, tz, rx, ry, rz, scale, *_ = params
+    screws = mri_pipeline['screws_world_base']
+    centroid = screws.mean(axis=0)
+
+    corr = xlate(tx, ty, tz) @ rot_z(rz) @ rot_y(ry) @ rot_x(rx)
+    R, t = corr[:3, :3], corr[:3, 3]
+    screws_scaled = (screws - centroid) * scale + centroid
+    screws_new = (R @ screws_scaled.T).T + t
+
+    _, origin, x, y, normal = fit_chamber(
+        screws_new,
+        mri_pipeline['ref_idx'],
+        mri_pipeline['cor_offset'],
+        mri_pipeline['is_fit_circle'],
+    )
+    return origin, x, y, normal
+
+
+def optimize_trajectory_alignment(
+        df_conf: pd.DataFrame,
+        conn: Connection,
+        mri_pipeline: dict,
+        maxiter: int = 2000,
+) -> dict:
+    """
+    Find the rigid-body + scale + angle + depth correction that maximises the
+    mean weighted Pearson r between tissue_score and MRI across all sessions.
+
+    Parameters (10 total):
+        tx, ty, tz  (mm)   — additional translation of chamber screws
+        rx, ry, rz  (deg)  — additional rotation of chamber screws
+        scale              — isotropic scale of screw positions about centroid
+        daz, del    (deg)  — global az / el offset added to every penetration
+        ddepth      (mm)   — global depth offset added to all depth values
+
+    Returns dict with keys: params, param_names, result, score_before, score_after
+    """
+    from src.mri.chamber import calc_penetration_target
+
+    # Pre-fetch penetration angles and depth arrays once (avoid DB hits in loop)
+    session_info = {}
+    for session_id in df_conf['session_id'].unique():
+        pen = get_penetration_for_session(conn, session_id)
+        if pen is None:
+            continue
+        mask = df_conf['session_id'] == session_id
+        session_info[session_id] = {
+            'az': pen['az_deg'],
+            'el': pen['el_deg'],
+            'depths': df_conf.loc[mask, 'depth_under_chamber_mm'].values.copy(),
+            'ts': df_conf.loc[mask, 'tissue_score'].values.copy(),
+        }
+
+    if not session_info:
+        raise RuntimeError("No sessions with penetration data found.")
+
+    data = mri_pipeline['data']
+    inv_corrected = mri_pipeline['inv_corrected']
+    cor_offset = mri_pipeline['cor_offset']
+
+    best = {'score': -np.inf, 'params': _OPT_X0.copy(), 'iter': 0}
+    call_count = [0]
+
+    def score_for_params(params):
+        try:
+            origin, x_vec, y_vec, normal = _apply_chamber_params(params, mri_pipeline)
+        except Exception:
+            return np.inf
+
+        _, _, _, _, _, _, _, daz, del_, ddepth = params
+        total_r, n_sessions = 0.0, 0
+
+        for sdata in session_info.values():
+            depths = sdata['depths'] + ddepth
+            if depths.max() <= 0:
+                continue
+            try:
+                _, direction, top_pt = calc_penetration_target(
+                    origin, sdata['az'] + daz, sdata['el'] + del_,
+                    float(depths.max()) + 1.0, x_vec, y_vec, normal, cor_offset,
+                )
+                pts = top_pt + depths[:, None] * direction[None, :]
+                ones = np.ones((len(pts), 1))
+                vox = (inv_corrected @ np.hstack([pts, ones]).T).T[:, :3]
+                mri_vals = map_coordinates(data, vox.T, order=1,
+                                           mode='constant', cval=0.0).astype(float)
+            except Exception:
+                continue
+
+            r = _weighted_pearson_r(sdata['ts'], mri_vals)
+            if not np.isnan(r):
+                total_r += r
+                n_sessions += 1
+
+        return -(total_r / n_sessions) if n_sessions > 0 else np.inf
+
+    def callback_nelder(xk):
+        call_count[0] += 1
+        s = -score_for_params(xk)
+        if s > best['score']:
+            best['score'] = s
+            best['params'] = xk.copy()
+            best['iter'] = call_count[0]
+            tx, ty, tz, rx, ry, rz, sc, daz, del_, ddepth = xk
+            print(f"  [{call_count[0]:4d}] score={s:.4f}  "
+                  f"t=({tx:.2f},{ty:.2f},{tz:.2f})  "
+                  f"r=({rx:.2f},{ry:.2f},{rz:.2f})  "
+                  f"scale={sc:.3f}  daz={daz:.2f}  del={del_:.2f}  ddepth={ddepth:.2f}")
+
+    score_before = -score_for_params(_OPT_X0)
+    print(f"\nOptimising over {len(session_info)} sessions  "
+          f"(initial mean r = {score_before:.4f}) ...")
+
+    result = minimize(
+        score_for_params,
+        _OPT_X0,
+        method='Nelder-Mead',
+        callback=callback_nelder,
+        options={'maxiter': maxiter, 'xatol': 1e-3, 'fatol': 1e-4,
+                 'adaptive': True, 'disp': True},
+    )
+
+    score_after = -result.fun
+    print(f"\nOptimisation done: {result.message}")
+    print(f"  mean r: {score_before:.4f} → {score_after:.4f}  "
+          f"(Δ = {score_after - score_before:+.4f})")
+    print("\nOptimised parameters:")
+    for name, val in zip(_OPT_PARAM_NAMES, result.x):
+        print(f"  {name:<14s} = {val:+.4f}")
+
+    return {
+        'params': result.x,
+        'param_names': _OPT_PARAM_NAMES,
+        'result': result,
+        'score_before': score_before,
+        'score_after': score_after,
+    }
+
+
+def apply_optimized_pipeline(mri_pipeline: dict, opt_result: dict) -> tuple:
+    """
+    Build a corrected pipeline and extract angle/depth offsets from opt_result.
+
+    Returns (new_pipeline, daz, del_, ddepth) ready to pass to compute_mri_comparison.
+    """
+    params = opt_result['params']
+    *_, daz, del_, ddepth = params
+
+    origin, x, y, normal = _apply_chamber_params(params, mri_pipeline)
+    new_pipeline = dict(mri_pipeline)
+    new_pipeline['origin'] = origin
+    new_pipeline['x'] = x
+    new_pipeline['y'] = y
+    new_pipeline['normal'] = normal
+
+    return new_pipeline, float(daz), float(del_), float(ddepth)
 
 
 def plot_mri_comparison_by_session(
@@ -1020,16 +1214,33 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
     df_conf = compute_tissue_confidence(df)
     plot_tissue_confidence_by_session(df_conf)
 
-    # MRI comparison
+    # MRI comparison + optimisation
     fit_scores = None
+    opt_result = None
+    mri_pipeline = None
     try:
         print("\nLoading MRI pipeline ...")
         mri_pipeline = load_mri_pipeline(mri_config_path)
+
+        print("\n── Initial MRI comparison ──")
         df_conf = compute_mri_comparison(df_conf, conn, mri_pipeline)
         fit_scores = compute_trajectory_fit_scores(df_conf)
         plot_mri_comparison_by_session(df_conf, fit_scores)
+
+        print("\n── Optimising transformation ──")
+        opt_result = optimize_trajectory_alignment(df_conf, conn, mri_pipeline)
+
+        print("\n── MRI comparison with optimised transformation ──")
+        opt_pipeline, daz, del_, ddepth = apply_optimized_pipeline(mri_pipeline, opt_result)
+        df_conf = compute_mri_comparison(df_conf, conn, opt_pipeline,
+                                         daz=daz, del_=del_, ddepth=ddepth)
+        fit_scores = compute_trajectory_fit_scores(df_conf)
+        plot_mri_comparison_by_session(df_conf, fit_scores)
+
     except Exception as exc:
-        print(f"  MRI comparison skipped: {exc}")
+        import traceback
+        print(f"  MRI comparison / optimisation skipped: {exc}")
+        traceback.print_exc()
 
     return {
         'df': df_conf,
@@ -1039,6 +1250,8 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         'loadings': loadings_df,
         'correlations': corr_df,
         'fit_scores': fit_scores,
+        'opt_result': opt_result,
+        'mri_pipeline': mri_pipeline,
     }
 
 
