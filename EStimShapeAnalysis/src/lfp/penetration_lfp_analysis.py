@@ -53,6 +53,7 @@ from src.repository.export_to_repository import read_session_id_from_db_name
 
 CHANNEL_SPACING_UM = 65       # µm between adjacent channels on probe
 N_CHANNELS = len(CHANNEL_ORDER)  # 32
+TIP_TO_BOTTOM_CHANNEL_UM = 600  # µm from probe tip to deepest recording channel
 FREQ_RANGE = (0, 150)
 
 BANDS = {
@@ -246,7 +247,9 @@ def _probe_positions() -> Dict[str, int]:
 
 
 def _depth_mm(driven_depth_um: int, probe_pos: int, tip_start_mm: float) -> float:
-    depth_um = driven_depth_um + (probe_pos - (N_CHANNELS - 1)) * CHANNEL_SPACING_UM
+    # Deepest channel (probe_pos=31) is TIP_TO_BOTTOM_CHANNEL_UM above the tip
+    tip_corrected_um = driven_depth_um - TIP_TO_BOTTOM_CHANNEL_UM
+    depth_um = tip_corrected_um + (probe_pos - (N_CHANNELS - 1)) * CHANNEL_SPACING_UM
     return round(tip_start_mm + depth_um / 1000.0, 4)
 
 
