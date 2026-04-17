@@ -3,25 +3,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from scipy.stats import pearsonr
 from itertools import combinations
 
-from clat.util.connection import Connection  # Adjust import path as needed
+from clat.util.connection import Connection
 
 
-def load_and_plot_pca(
-        conn: Connection,
-        table_name: str = "PenetrationMetrics",
-        n_components: int = None,
-        plot_components: list = None
-):
-    """
-    Load all data from PenetrationMetrics table, perform PCA, and plot.
-    """
-    # Load all data
+def load_and_perform_pca(conn: Connection, table_name: str = "PenetrationMetrics"):
+    """Load data and perform PCA, returning all necessary objects."""
     conn.execute(f"SELECT * FROM {table_name}")
     results = conn.fetch_all()
 
-    # Get column names from cursor description
     conn.execute(f"DESCRIBE {table_name}")
     columns = [row[0] for row in conn.fetch_all()]
 
@@ -29,10 +21,7 @@ def load_and_plot_pca(
 
     print(f"Loaded {len(df)} rows with columns: {list(df.columns)}")
 
-    # Identify the primary key columns to exclude from PCA
     pk_columns = ['session_id', 'depth_under_chamber_mm']
-
-    # Get all numeric columns except those in primary key
     feature_columns = [
         col for col in df.columns
         if col not in pk_columns
@@ -41,10 +30,6 @@ def load_and_plot_pca(
 
     print(f"Feature columns for PCA: {feature_columns}")
 
-    if len(feature_columns) < 2:
-        raise ValueError("Need at least 2 feature columns for PCA")
-
-    # Extract features and handle missing values
     X = df[feature_columns].copy()
     X = X.fillna(X.mean())
 
@@ -54,15 +39,12 @@ def load_and_plot_pca(
 
     print(f"Using {len(X)} rows after handling missing values")
 
-    # Standardize features
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
-    # Perform PCA
-    pca = PCA(n_components=n_components)
+    pca = PCA()
     X_pca = pca.fit_transform(X_scaled)
 
-    # Add PC values to dataframe
     for i in range(X_pca.shape[1]):
         df_valid[f'PC{i + 1}'] = X_pca[:, i]
 
@@ -73,21 +55,86 @@ def load_and_plot_pca(
         cumulative += var
         print(f"  PC{i + 1}: {var:.3f} ({var * 100:.1f}%) | Cumulative: {cumulative * 100:.1f}%")
 
-    # Print feature loadings
-    print("\nFeature loadings:")
-    header = f"{'Feature':<25}" + "".join([f"{'PC' + str(i + 1):>10}" for i in range(min(5, len(pca.components_)))])
-    print(header)
-    print("-" * len(header))
-    for j, feat in enumerate(feature_columns):
-        row = f"{feat:<25}"
-        for i in range(min(5, len(pca.components_))):
-            row += f"{pca.components_[i][j]:>10.3f}"
-        print(row)
+    return df_valid, pca, X_pca, feature_columns, scaler
 
+
+def get_loadings_df(pca: PCA, feature_columns: list) -> pd.DataFrame:
+    """Get PCA loadings as a DataFrame."""
+    loadings = pd.DataFrame(
+        pca.components_.T,
+        columns=[f'PC{i + 1}' for i in range(len(pca.components_))],
+        index=feature_columns
+    )
+    return loadings
+
+
+def get_feature_correlations(
+        df: pd.DataFrame,
+        feature_columns: list,
+        n_pcs: int = None
+) -> pd.DataFrame:
+    """
+    Calculate correlations between original features and PC scores.
+
+    Args:
+        df: DataFrame with PC values and original features
+        feature_columns: List of original feature names
+        n_pcs: Number of PCs to analyze (default: all)
+
+    Returns:
+        DataFrame with correlation coefficients and p-values
+    """
+    pc_columns = [col for col in df.columns if col.startswith('PC')]
+    if n_pcs is not None:
+        pc_columns = pc_columns[:n_pcs]
+
+    results = []
+
+    for pc_col in pc_columns:
+        for feature in feature_columns:
+            if feature in df.columns:
+                valid = df[[pc_col, feature]].dropna()
+                if len(valid) > 2:
+                    r, p = pearsonr(valid[pc_col], valid[feature])
+                    results.append({
+                        'PC': pc_col,
+                        'Feature': feature,
+                        'Correlation': r,
+                        'p_value': p
+                    })
+
+    return pd.DataFrame(results)
+
+
+def print_feature_correlations(corr_df: pd.DataFrame):
+    """Print feature correlations in a nice format."""
+    print("\n" + "=" * 60)
+    print("FEATURE CORRELATIONS WITH PCs")
+    print("=" * 60)
+
+    for pc in corr_df['PC'].unique():
+        pc_data = corr_df[corr_df['PC'] == pc].copy()
+        pc_data = pc_data.sort_values('Correlation', key=abs, ascending=False)
+
+        print(f"\n{pc}:")
+        for _, row in pc_data.iterrows():
+            sig = '*' if row['p_value'] < 0.05 else ''
+            sig = '**' if row['p_value'] < 0.01 else sig
+            sig = '***' if row['p_value'] < 0.001 else sig
+            print(f"  {row['Feature']:<25} r = {row['Correlation']:>7.3f} (p = {row['p_value']:<8.4f}) {sig}")
+
+
+def plot_pca_scatter(
+        df: pd.DataFrame,
+        pca: PCA,
+        X_pca: np.ndarray,
+        plot_components: list = None
+):
+    """Plot PCA scatter plots colored by session."""
     if plot_components is None:
         plot_components = [0, 1]
 
-    sessions = df_valid['session_id'].unique()
+    sessions = df['session_id'].unique()
     n_sessions = len(sessions)
 
     if n_sessions <= 10:
@@ -117,7 +164,7 @@ def load_and_plot_pca(
         ax = axes[idx]
 
         for session in sessions:
-            mask = df_valid['session_id'] == session
+            mask = df['session_id'] == session
             ax.scatter(
                 X_pca[mask.values, pc_i],
                 X_pca[mask.values, pc_j],
@@ -148,7 +195,102 @@ def load_and_plot_pca(
     plt.savefig('penetration_metrics_pca.png', dpi=150, bbox_inches='tight')
     plt.show()
 
-    return df_valid, pca, X_pca, feature_columns
+
+def plot_scree(pca: PCA):
+    """Plot scree plot showing explained variance by component."""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+    n_components = len(pca.explained_variance_ratio_)
+    x = range(1, n_components + 1)
+
+    ax1.bar(x, pca.explained_variance_ratio_ * 100, alpha=0.7, color='steelblue')
+    ax1.set_xlabel('Principal Component')
+    ax1.set_ylabel('Explained Variance (%)')
+    ax1.set_title('Variance Explained by Each PC')
+    ax1.set_xticks(x)
+
+    cumulative = np.cumsum(pca.explained_variance_ratio_) * 100
+    ax2.plot(x, cumulative, 'o-', color='steelblue', linewidth=2, markersize=8)
+    ax2.axhline(y=80, color='r', linestyle='--', alpha=0.5, label='80% threshold')
+    ax2.axhline(y=95, color='g', linestyle='--', alpha=0.5, label='95% threshold')
+    ax2.set_xlabel('Number of Principal Components')
+    ax2.set_ylabel('Cumulative Explained Variance (%)')
+    ax2.set_title('Cumulative Variance Explained')
+    ax2.set_xticks(x)
+    ax2.legend()
+    ax2.set_ylim([0, 105])
+
+    plt.tight_layout()
+    plt.savefig('penetration_metrics_scree.png', dpi=150, bbox_inches='tight')
+    plt.show()
+
+
+def plot_loadings(
+        pca: PCA,
+        feature_columns: list,
+        n_pcs: int = 4
+):
+    """Visualize PC loadings as horizontal bar charts."""
+    n_pcs = min(n_pcs, len(pca.components_))
+    n_features = len(feature_columns)
+
+    fig, axes = plt.subplots(1, n_pcs, figsize=(4 * n_pcs, 6), sharey=True)
+    if n_pcs == 1:
+        axes = [axes]
+
+    for pc_idx, ax in enumerate(axes):
+        loadings = pca.components_[pc_idx]
+        var_explained = pca.explained_variance_ratio_[pc_idx] * 100
+
+        colors = ['steelblue' if l >= 0 else 'coral' for l in loadings]
+
+        y_pos = np.arange(n_features)
+        ax.barh(y_pos, loadings, color=colors, alpha=0.7)
+
+        ax.axvline(x=0, color='black', linewidth=0.8)
+        ax.set_yticks(y_pos)
+        if pc_idx == 0:
+            ax.set_yticklabels(feature_columns)
+
+        ax.set_title(f'PC{pc_idx + 1} ({var_explained:.1f}%)')
+        ax.set_xlabel('Loading')
+        ax.grid(True, alpha=0.3, axis='x')
+
+    plt.suptitle('PCA Loadings', fontsize=14)
+    plt.tight_layout()
+    plt.savefig('pca_loadings.png', dpi=150, bbox_inches='tight')
+    plt.show()
+
+
+def plot_correlation_heatmap(
+        corr_df: pd.DataFrame,
+        feature_columns: list
+):
+    """Plot heatmap of feature-PC correlations."""
+    pivot = corr_df.pivot(index='Feature', columns='PC', values='Correlation')
+    pivot = pivot.reindex(feature_columns)
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    im = ax.imshow(pivot.values, cmap='RdBu_r', aspect='auto', vmin=-1, vmax=1)
+
+    ax.set_xticks(range(len(pivot.columns)))
+    ax.set_xticklabels(pivot.columns)
+    ax.set_yticks(range(len(pivot.index)))
+    ax.set_yticklabels(pivot.index)
+
+    for i in range(len(pivot.index)):
+        for j in range(len(pivot.columns)):
+            val = pivot.iloc[i, j]
+            color = 'white' if abs(val) > 0.5 else 'black'
+            ax.text(j, i, f'{val:.2f}', ha='center', va='center', color=color, fontsize=9)
+
+    plt.colorbar(im, ax=ax, label='Correlation')
+    ax.set_title('Feature-PC Correlations')
+
+    plt.tight_layout()
+    plt.savefig('feature_pc_correlation_heatmap.png', dpi=150, bbox_inches='tight')
+    plt.show()
 
 
 def plot_depth_profiles_by_session(
@@ -158,10 +300,7 @@ def plot_depth_profiles_by_session(
         sessions: list = None,
         figsize_per_session: tuple = (12, 6)
 ):
-    """
-    Plot depth profiles for each session showing PC values vs depth.
-    Deeper values (higher numbers) appear lower on the plot.
-    """
+    """Plot depth profiles for each session showing PC values vs depth."""
     if sessions is None:
         sessions = df['session_id'].unique()
 
@@ -198,9 +337,7 @@ def plot_depth_profiles_by_session(
             if i == 0:
                 ax.set_ylabel('Depth under chamber (mm)')
 
-            # Set y-axis so larger depths are at bottom
             ax.set_ylim(depths.max() + 0.5, depths.min() - 0.5)
-
             ax.grid(True, alpha=0.3)
 
         fig.suptitle(f'Session: {session}', fontsize=14)
@@ -215,10 +352,7 @@ def plot_depth_profiles_all_sessions(
         n_pcs: int = None,
         sessions: list = None
 ):
-    """
-    Plot depth profiles for all sessions on a single figure, one row per session.
-    Deeper values (higher numbers) appear lower on the plot.
-    """
+    """Plot depth profiles for all sessions on a single figure."""
     if sessions is None:
         sessions = df['session_id'].unique()
 
@@ -274,9 +408,7 @@ def plot_depth_profiles_all_sessions(
             if row == n_sessions - 1:
                 ax.set_xlabel('PC Value')
 
-            # Set y-axis so larger depths are at bottom
             ax.set_ylim(depths.max() + 0.5, depths.min() - 0.5)
-
             ax.grid(True, alpha=0.3)
 
     plt.suptitle('Depth Profiles by Session', fontsize=14, y=1.01)
@@ -292,10 +424,7 @@ def plot_depth_profiles_overlaid(
         sessions: list = None,
         align_depths: bool = False
 ):
-    """
-    Plot depth profiles with all sessions overlaid on the same axes.
-    Deeper values (higher numbers) appear lower on the plot.
-    """
+    """Plot depth profiles with all sessions overlaid on the same axes."""
     if sessions is None:
         sessions = df['session_id'].unique()
 
@@ -325,7 +454,6 @@ def plot_depth_profiles_overlaid(
         axes = np.array([axes])
     axes = axes.flatten()
 
-    # Get global depth range for consistent y-axis
     all_depths = df['depth_under_chamber_mm'].values
     global_min = all_depths.min()
     global_max = all_depths.max()
@@ -361,7 +489,6 @@ def plot_depth_profiles_overlaid(
             else:
                 ax.set_ylabel('Depth under chamber (mm)')
 
-        # Set y-axis so larger depths are at bottom
         if align_depths:
             ax.set_ylim(1.05, -0.05)
         else:
@@ -386,33 +513,43 @@ def plot_depth_profiles_overlaid(
     plt.show()
 
 
-def plot_scree(pca: PCA):
-    """Plot scree plot showing explained variance by component."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs: int = 4):
+    """Run complete PCA analysis with correlations and plots."""
 
-    n_components = len(pca.explained_variance_ratio_)
-    x = range(1, n_components + 1)
+    # Load and perform PCA
+    df, pca, X_pca, feature_columns, scaler = load_and_perform_pca(conn, table_name)
 
-    ax1.bar(x, pca.explained_variance_ratio_ * 100, alpha=0.7, color='steelblue')
-    ax1.set_xlabel('Principal Component')
-    ax1.set_ylabel('Explained Variance (%)')
-    ax1.set_title('Variance Explained by Each PC')
-    ax1.set_xticks(x)
+    # Get and print loadings
+    print("\n" + "=" * 60)
+    print("PCA LOADINGS")
+    print("=" * 60)
+    loadings_df = get_loadings_df(pca, feature_columns)
+    print(loadings_df.round(3))
 
-    cumulative = np.cumsum(pca.explained_variance_ratio_) * 100
-    ax2.plot(x, cumulative, 'o-', color='steelblue', linewidth=2, markersize=8)
-    ax2.axhline(y=80, color='r', linestyle='--', alpha=0.5, label='80% threshold')
-    ax2.axhline(y=95, color='g', linestyle='--', alpha=0.5, label='95% threshold')
-    ax2.set_xlabel('Number of Principal Components')
-    ax2.set_ylabel('Cumulative Explained Variance (%)')
-    ax2.set_title('Cumulative Variance Explained')
-    ax2.set_xticks(x)
-    ax2.legend()
-    ax2.set_ylim([0, 105])
+    # Get and print feature correlations
+    corr_df = get_feature_correlations(df, feature_columns, n_pcs=n_pcs)
+    print_feature_correlations(corr_df)
 
-    plt.tight_layout()
-    plt.savefig('penetration_metrics_scree.png', dpi=150, bbox_inches='tight')
-    plt.show()
+    # Plots
+    plot_scree(pca)
+    plot_loadings(pca, feature_columns, n_pcs=n_pcs)
+    plot_correlation_heatmap(corr_df, feature_columns)
+    plot_pca_scatter(df, pca, X_pca, plot_components=list(range(min(n_pcs, 3))))
+
+    # Depth profiles
+    plot_depth_profiles_by_session(df, pca, n_pcs=n_pcs)
+    plot_depth_profiles_all_sessions(df, pca, n_pcs=n_pcs)
+    plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs)
+    plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs, align_depths=True)
+
+    return {
+        'df': df,
+        'pca': pca,
+        'X_pca': X_pca,
+        'feature_columns': feature_columns,
+        'loadings': loadings_df,
+        'correlations': corr_df
+    }
 
 
 if __name__ == "__main__":
@@ -423,14 +560,12 @@ if __name__ == "__main__":
         host="172.30.6.61"
     )
 
-    df, pca, X_pca, features = load_and_plot_pca(conn, plot_components=[0, 1, 2])
+    results = run_analysis(conn, n_pcs=4)
 
-    plot_scree(pca)
-
-    plot_depth_profiles_by_session(df, pca, n_pcs=4)
-
-    plot_depth_profiles_all_sessions(df, pca, n_pcs=4)
-
-    # plot_depth_profiles_overlaid(df, pca, n_pcs=4)
-    #
-    # plot_depth_profiles_overlaid(df, pca, n_pcs=4, align_depths=True)
+    # Access results
+    # results['df']              - DataFrame with PC columns added
+    # results['pca']             - Fitted PCA object
+    # results['X_pca']           - PCA-transformed data
+    # results['feature_columns'] - List of feature names
+    # results['loadings']        - DataFrame of loadings
+    # results['correlations']    - DataFrame of feature-PC correlations
