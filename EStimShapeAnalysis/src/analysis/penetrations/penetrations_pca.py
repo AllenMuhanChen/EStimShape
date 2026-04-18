@@ -31,9 +31,10 @@ def load_and_perform_pca(conn: Connection, table_name: str = "PenetrationMetrics
     print(f"Loaded {len(df)} rows with columns: {list(df.columns)}")
 
     pk_columns = ['session_id', 'depth_under_chamber_mm']
+    exclude_columns = pk_columns + ['r_squared']  # r_squared = fit quality, not tissue biology
     feature_columns = [
         col for col in df.columns
-        if col not in pk_columns
+        if col not in exclude_columns
            and pd.api.types.is_numeric_dtype(df[col])
     ]
 
@@ -528,18 +529,18 @@ def compute_tissue_confidence(
         pc2_col: str = 'PC2',
 ) -> pd.DataFrame:
     """
-    Compute per-depth tissue confidence scores from PC1 and PC2.
+    Compute per-depth tissue type value and confidence from PC1 and PC2.
 
     PC1: negative = sulcus, positive = brain
     PC2: negative = white matter, positive = gray matter
 
-    Adds three columns to a copy of df:
-      p_brain      : probability of being brain tissue  (0=sulcus, 1=brain)
-      p_gray       : probability of being gray matter   (0=white matter, 1=gray)
-      tissue_score : combined grayscale value
-                     ~0.0 = sulcus
-                     ~0.5 = gray matter
-                     ~1.0 = white matter
+    Adds four columns to a copy of df:
+      p_brain           : P(brain tissue)   via sigmoid(PC1 / std)
+      p_gray            : P(gray matter)    via sigmoid(PC2 / std)
+      tissue_score      : tissue type value — ~0.0=sulcus, ~0.5=GM, ~1.0=WM
+      tissue_confidence : how confident we are about that label
+                          high for clear sulcus, clear GM, or clear WM
+                          low when brain/sulcus is ambiguous or WM/GM is ambiguous
     """
     def sigmoid(x):
         return 1.0 / (1.0 + np.exp(-x))
@@ -551,6 +552,15 @@ def compute_tissue_confidence(
     df['p_brain'] = sigmoid(df[pc1_col] / std1)
     df['p_gray'] = sigmoid(df[pc2_col] / std2)
     df['tissue_score'] = df['p_brain'] * (1.0 - 0.5 * df['p_gray'])
+
+    # Confidence: high when clearly sulcus OR clearly WM OR clearly GM
+    # max(1-p_brain, p_brain * max(p_gray, 1-p_gray))
+    #   term1: confident sulcus   (p_brain≈0 → 1-p_brain≈1)
+    #   term2: confident WM or GM (p_brain≈1 AND p_gray near 0 or 1)
+    df['tissue_confidence'] = np.maximum(
+        1.0 - df['p_brain'],
+        df['p_brain'] * np.maximum(df['p_gray'], 1.0 - df['p_gray']),
+    )
     return df
 
 
@@ -835,12 +845,13 @@ def compute_mri_comparison(
     return df
 
 
-def _weighted_pearson_r(ts: np.ndarray, mri_vals: np.ndarray) -> float:
+def _weighted_pearson_r(ts: np.ndarray, mri_vals: np.ndarray,
+                        confidence: np.ndarray = None) -> float:
     """
     Weighted Pearson r between tissue_score and MRI raw values.
 
     MRI is normalized internally (99th percentile of positives, scaled to ts max).
-    Weights = abs(2*ts - 1): 0 at ambiguous gray, 1 at confident sulcus/WM.
+    Weights default to tissue_confidence if provided, else abs(2*ts - 1).
     """
     pos = mri_vals[mri_vals > 0]
     if len(pos) < 3:
@@ -851,7 +862,7 @@ def _weighted_pearson_r(ts: np.ndarray, mri_vals: np.ndarray) -> float:
         return np.nan
 
     mri_norm = np.clip(mri_vals, 0.0, mri_ref) / mri_ref * ts_max
-    w = np.abs(2.0 * ts - 1.0)
+    w = confidence if confidence is not None else np.abs(2.0 * ts - 1.0)
     w_sum = w.sum()
     if w_sum == 0:
         return np.nan
@@ -882,7 +893,8 @@ def compute_trajectory_fit_scores(df: pd.DataFrame) -> pd.DataFrame:
 
         ts = sdata['tissue_score'].values
         mri = sdata['mri_normalized'].values
-        r = _weighted_pearson_r(ts, mri)
+        conf = sdata['tissue_confidence'].values if 'tissue_confidence' in sdata.columns else None
+        r = _weighted_pearson_r(ts, mri, conf)
         records.append({'session_id': session_id, 'fit_score': r, 'n_points': n})
 
     result = pd.DataFrame(records).set_index('session_id')
@@ -961,6 +973,8 @@ def optimize_trajectory_alignment(
             'el': pen['el_deg'],
             'depths': df_conf.loc[mask, 'depth_under_chamber_mm'].values.copy(),
             'ts': df_conf.loc[mask, 'tissue_score'].values.copy(),
+            'confidence': df_conf.loc[mask, 'tissue_confidence'].values.copy()
+                if 'tissue_confidence' in df_conf.columns else None,
         }
 
     if not session_info:
@@ -999,7 +1013,7 @@ def optimize_trajectory_alignment(
             except Exception:
                 continue
 
-            r = _weighted_pearson_r(sdata['ts'], mri_vals)
+            r = _weighted_pearson_r(sdata['ts'], mri_vals, sdata['confidence'])
             if not np.isnan(r):
                 total_r += r
                 n_sessions += 1
@@ -1140,16 +1154,20 @@ def plot_mri_comparison_by_session(
         sessions = sorted(df['session_id'].unique())
 
     n_sessions = len(sessions)
+    has_conf = 'tissue_confidence' in df.columns
 
-    # Combined figure
+    # Combined figure: MRI | tissue_score | [confidence] | line
+    n_cols_per = 4 if has_conf else 3
+    col_ratios = ([strip_width, strip_width, strip_width, 1] if has_conf
+                  else [strip_width, strip_width, 1])
     fig_all, all_axes = plt.subplots(
-        1, n_sessions * 3,
-        figsize=(4.5 * n_sessions, 10),
-        gridspec_kw={'width_ratios': [strip_width, strip_width, 1] * n_sessions},
+        1, n_sessions * n_cols_per,
+        figsize=((3.0 + n_cols_per) * n_sessions, 10),
+        gridspec_kw={'width_ratios': col_ratios * n_sessions},
     )
     if n_sessions == 1:
         all_axes = np.array(all_axes)
-    ax_groups = [all_axes[i * 3:(i + 1) * 3] for i in range(n_sessions)]
+    ax_groups = [all_axes[i * n_cols_per:(i + 1) * n_cols_per] for i in range(n_sessions)]
 
     for idx, session in enumerate(sessions):
         sdata = df[df['session_id'] == session].copy().sort_values('depth_under_chamber_mm')
@@ -1158,14 +1176,19 @@ def plot_mri_comparison_by_session(
 
         depths = sdata['depth_under_chamber_mm'].values
         ts = sdata['tissue_score'].values
+        conf = sdata['tissue_confidence'].values if has_conf else None
         mri_norm = sdata['mri_normalized'].values
-
-        ax_mri, ax_ts, ax_line = ax_groups[idx]
-
         mri_vmax = float(np.nanmax(mri_norm)) if np.any(np.isfinite(mri_norm)) else 1.0
+
+        if has_conf:
+            ax_mri, ax_ts, ax_conf, ax_line = ax_groups[idx]
+            _draw_tissue_strip(ax_conf, depths, conf, title='Confidence', vmax=1.0)
+        else:
+            ax_mri, ax_ts, ax_line = ax_groups[idx]
+
         _draw_tissue_strip(ax_mri, depths, mri_norm, title=f'{session}\nMRI', vmax=mri_vmax)
         _draw_tissue_strip(ax_ts, depths, ts, title='Tissue', vmax=1.0)
-        _draw_mri_tissue_line(ax_line, depths, ts, mri_norm, fit_scores, session)
+        _draw_mri_tissue_line(ax_line, depths, ts, mri_norm, fit_scores, session, conf)
 
         if idx > 0:
             ax_mri.set_ylabel('')
@@ -1185,16 +1208,24 @@ def plot_mri_comparison_by_session(
 
         depths = sdata['depth_under_chamber_mm'].values
         ts = sdata['tissue_score'].values
+        conf = sdata['tissue_confidence'].values if has_conf else None
         mri_norm = sdata['mri_normalized'].values
         mri_vmax = float(np.nanmax(mri_norm)) if np.any(np.isfinite(mri_norm)) else 1.0
-        fig, (ax_mri, ax_ts, ax_line) = plt.subplots(
-            1, 3,
-            figsize=(6, 10),
-            gridspec_kw={'width_ratios': [strip_width, strip_width, 1]},
+
+        fig, axes = plt.subplots(
+            1, n_cols_per,
+            figsize=(2 + n_cols_per * 1.5, 10),
+            gridspec_kw={'width_ratios': col_ratios},
         )
+        if has_conf:
+            ax_mri, ax_ts, ax_conf, ax_line = axes
+            _draw_tissue_strip(ax_conf, depths, conf, title='Confidence', vmax=1.0)
+        else:
+            ax_mri, ax_ts, ax_line = axes
+
         _draw_tissue_strip(ax_mri, depths, mri_norm, title='MRI', vmax=mri_vmax)
         _draw_tissue_strip(ax_ts, depths, ts, title='Tissue score', vmax=1.0)
-        _draw_mri_tissue_line(ax_line, depths, ts, mri_norm, fit_scores, session)
+        _draw_mri_tissue_line(ax_line, depths, ts, mri_norm, fit_scores, session, conf)
 
         fig.suptitle(f'MRI vs Tissue Confidence — {session}', fontsize=11)
         plt.tight_layout()
@@ -1209,14 +1240,18 @@ def _draw_mri_tissue_line(
         mri_vals: np.ndarray,
         fit_scores: Optional[pd.DataFrame],
         session_id: str,
+        confidence: np.ndarray = None,
 ) -> None:
     """
-    Tissue score (left axis, [0-1]) and MRI native values (right axis) vs depth.
-    Each signal uses its own scale so nothing is normalised for display.
+    Tissue score and optional confidence (left axis, [0-1]) and MRI native values
+    (top axis) vs depth. Each signal uses its own scale.
     """
     ax.plot(tissue_score, depths, 'k-o', markersize=3, linewidth=1.5, label='Tissue score')
+    if confidence is not None:
+        ax.plot(confidence, depths, color='dimgray', linestyle=':', linewidth=1.2,
+                markersize=2, marker='s', label='Confidence')
     ax.set_xlim(-0.05, 1.1)
-    ax.set_xlabel('Tissue score', color='black')
+    ax.set_xlabel('Score [0–1]', color='black')
     ax.tick_params(axis='x', colors='black')
     ax.invert_yaxis()
     ax.yaxis.set_tick_params(labelleft=False)
@@ -1231,6 +1266,8 @@ def _draw_mri_tissue_line(
         lines1, labels1 = ax.get_legend_handles_labels()
         lines2, labels2 = ax2.get_legend_handles_labels()
         ax.legend(lines1 + lines2, labels1 + labels2, fontsize=7, loc='lower right')
+    else:
+        ax.legend(fontsize=7, loc='lower right')
 
     if fit_scores is not None and session_id in fit_scores.index:
         r = fit_scores.loc[session_id, 'fit_score']
