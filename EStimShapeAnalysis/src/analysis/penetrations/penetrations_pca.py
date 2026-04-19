@@ -41,12 +41,35 @@ def _within_session_zscore(X: pd.DataFrame, session_ids: pd.Series) -> pd.DataFr
     return X_norm
 
 
+def _varimax(Phi, gamma=1.0, q=1000, tol=1e-8):
+    """
+    Varimax rotation of loadings matrix Phi (n_features × n_components).
+    Returns (rotated_loadings, rotation_matrix R) where rotated = Phi @ R.
+    Orthogonal rotation — preserves total explained variance across the k components.
+    """
+    p, k = Phi.shape
+    R = np.eye(k)
+    d = 0.0
+    for _ in range(q):
+        d_old = d
+        Lambda = Phi @ R
+        u, s, vh = np.linalg.svd(
+            Phi.T @ (Lambda ** 3 - (gamma / p) * Lambda @ np.diag(np.diag(Lambda.T @ Lambda)))
+        )
+        R = u @ vh
+        d = np.sum(s)
+        if d_old != 0 and d / d_old < 1 + tol:
+            break
+    return Phi @ R, R
+
+
 def load_and_perform_pca(
         conn: Connection,
         table_name: str = "PenetrationMetrics",
         exclude_sessions: Optional[list] = None,
         within_session_normalize: bool = True,
         pc_smooth_sigma: float = 2.0,
+        varimax_n_components: int = 6,
 ):
     """Load data and perform PCA, returning all necessary objects."""
     conn.execute(f"SELECT * FROM {table_name}")
@@ -91,6 +114,18 @@ def load_and_perform_pca(
 
     pca = PCA()
     X_pca = pca.fit_transform(X_scaled)
+
+    if varimax_n_components and varimax_n_components > 1:
+        n_rot = min(varimax_n_components, X_pca.shape[1])
+        loadings_k = pca.components_[:n_rot].T          # (n_features, n_rot)
+        _, R = _varimax(loadings_k)
+        X_pca_rot = X_pca[:, :n_rot] @ R
+        # Re-order rotated components by descending variance so PC1 stays dominant
+        order = np.argsort(-np.var(X_pca_rot, axis=0))
+        X_pca_rot = X_pca_rot[:, order]
+        X_pca[:, :n_rot] = X_pca_rot
+        print(f"\nVarimax rotation applied to first {n_rot} components "
+              f"(re-ordered by variance).")
 
     for i in range(X_pca.shape[1]):
         df_valid[f'PC{i + 1}'] = X_pca[:, i]
@@ -1711,7 +1746,8 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                  mri_config_path: str = MRI_VIEWER_CONFIG_PATH, exclude_sessions=None,
                  within_session_normalize: bool = True,
                  swap_tissue_pcs: bool = False,
-                 pc_smooth_sigma: float = 2.0):
+                 pc_smooth_sigma: float = 2.0,
+                 varimax_n_components: int = 6):
     """Run complete PCA analysis with correlations and plots."""
 
     # Load and perform PCA
@@ -1720,6 +1756,7 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         exclude_sessions=exclude_sessions,
         within_session_normalize=within_session_normalize,
         pc_smooth_sigma=pc_smooth_sigma,
+        varimax_n_components=varimax_n_components,
     )
 
     # Get and print loadings
