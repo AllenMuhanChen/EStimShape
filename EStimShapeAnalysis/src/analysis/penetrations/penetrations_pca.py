@@ -18,7 +18,7 @@ from clat.util.connection import Connection
 MRI_VIEWER_CONFIG_PATH = os.path.join(os.path.dirname(__file__), '../../mri/mri_viewer_config.json')
 
 
-def load_and_perform_pca(conn: Connection, table_name: str = "PenetrationMetrics"):
+def load_and_perform_pca(conn: Connection, table_name: str = "PenetrationMetrics", exclude_sessions: Optional[list] = None):
     """Load data and perform PCA, returning all necessary objects."""
     conn.execute(f"SELECT * FROM {table_name}")
     results = conn.fetch_all()
@@ -27,6 +27,9 @@ def load_and_perform_pca(conn: Connection, table_name: str = "PenetrationMetrics
     columns = [row[0] for row in conn.fetch_all()]
 
     df = pd.DataFrame(results, columns=columns)
+    # exclude any sessions we want to ignore (e.g. outliers or sessions with known issues)
+    if exclude_sessions is not None:
+        df = df[~df['session_id'].isin(exclude_sessions)].copy()
 
     print(f"Loaded {len(df)} rows with columns: {list(df.columns)}")
 
@@ -1312,11 +1315,11 @@ def _draw_mri_tissue_line(
 
 
 def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs: int = 4,
-                 mri_config_path: str = MRI_VIEWER_CONFIG_PATH):
+                 mri_config_path: str = MRI_VIEWER_CONFIG_PATH, exclude_sessions=None):
     """Run complete PCA analysis with correlations and plots."""
 
     # Load and perform PCA
-    df, pca, X_pca, feature_columns, scaler = load_and_perform_pca(conn, table_name)
+    df, pca, X_pca, feature_columns, scaler = load_and_perform_pca(conn, table_name, exclude_sessions=exclude_sessions)
 
     # Get and print loadings
     print("\n" + "=" * 60)
@@ -1336,10 +1339,10 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
     plot_pca_scatter(df, pca, X_pca, plot_components=list(range(min(n_pcs, 3))))
 
     # Depth profiles
-    plot_depth_profiles_by_session(df, pca, n_pcs=n_pcs)
+    # plot_depth_profiles_by_session(df, pca, n_pcs=n_pcs)
     plot_depth_profiles_all_sessions(df, pca, n_pcs=n_pcs)
-    plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs)
-    plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs, align_depths=True)
+    # plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs)
+    # plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs, align_depths=True)
 
     # Tissue confidence
     df_conf = compute_tissue_confidence(df)
@@ -1403,7 +1406,8 @@ if __name__ == "__main__":
         host="172.30.6.61"
     )
 
-    results = run_analysis(conn, n_pcs=4)
+    exclude_sessions = ["260402_0"]
+    results = run_analysis(conn, n_pcs=4, exclude_sessions =exclude_sessions)
 
     # Access results
     # results['df']              - DataFrame with PC columns added
