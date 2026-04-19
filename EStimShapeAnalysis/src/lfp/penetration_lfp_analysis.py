@@ -57,7 +57,8 @@ _INTAN_SFTP_PREFIX = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimSh
 CHANNEL_SPACING_UM = 65       # µm between adjacent channels on probe
 
 # Spike waveform feature parameters
-PEAK_COUNT_PROMINENCE_FRACTION = 0.15  # prominence threshold as fraction of peak-to-peak
+PEAK_COUNT_PROMINENCE_FRACTION = 0.15  # prominence threshold as fraction of peak-to-peak (post-smoothing)
+PEAK_COUNT_SMOOTH_MS           = 0.3   # Gaussian smooth sigma in ms before peak detection (filters sub-ms noise)
 PEAK_COUNT_NEGATIVE_ONLY       = True  # if True, exclude positive-leading spikes from peak count mean
 N_CHANNELS = len(CHANNEL_ORDER)  # 32
 TIP_TO_BOTTOM_CHANNEL_UM = 600  # µm from probe tip to deepest recording channel
@@ -206,6 +207,8 @@ def load_recording(
         spike_peak_counts[name]     = compute_mean_peak_count(
             waveforms,
             prominence_fraction=PEAK_COUNT_PROMINENCE_FRACTION,
+            smooth_ms=PEAK_COUNT_SMOOTH_MS,
+            sample_rate=sample_rate,
             negative_only=PEAK_COUNT_NEGATIVE_ONLY,
         )
 

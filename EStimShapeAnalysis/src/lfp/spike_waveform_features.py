@@ -1,6 +1,7 @@
 from typing import Optional
 
 import numpy as np
+from scipy.ndimage import gaussian_filter1d
 from scipy.signal import butter, sosfilt, find_peaks
 
 
@@ -50,25 +51,42 @@ def compute_polarity_ratio(waveforms: np.ndarray) -> Optional[float]:
     return n_positive / len(waveforms)
 
 
-def count_waveform_peaks(waveform: np.ndarray, prominence_fraction: float = 0.15) -> int:
+def count_waveform_peaks(
+    waveform: np.ndarray,
+    prominence_fraction: float = 0.15,
+    smooth_ms: float = 0.3,
+    sample_rate: float = 20_000.0,
+) -> int:
     """
     Count the number of distinct peaks (positive and negative) in a waveform snippet.
 
-    A peak is counted only if its prominence exceeds prominence_fraction × peak-to-peak amplitude,
-    which filters out noise-floor wiggles while preserving genuine phases.
+    Applies a Gaussian smooth before peak detection to remove sub-ms noise oscillations
+    (which otherwise inflate the count to 5-10). Real spike phases are ≥0.5ms wide and
+    are preserved; noise at 1-3kHz is attenuated.
+
+    Parameters
+    ----------
+    prominence_fraction : peak must exceed this fraction of peak-to-peak to be counted.
+    smooth_ms : Gaussian sigma in ms for pre-smoothing (tune to filter noise vs real phases).
+    sample_rate : samples per second, needed to convert smooth_ms to samples.
     """
-    ptp = np.max(waveform) - np.min(waveform)
+    sigma = smooth_ms * sample_rate / 1000
+    smoothed = gaussian_filter1d(waveform.astype(float), sigma=sigma)
+
+    ptp = np.max(smoothed) - np.min(smoothed)
     if ptp == 0:
         return 0
     prominence = prominence_fraction * ptp
-    pos_peaks, _ = find_peaks( waveform, prominence=prominence)
-    neg_peaks, _ = find_peaks(-waveform, prominence=prominence)
+    pos_peaks, _ = find_peaks( smoothed, prominence=prominence)
+    neg_peaks, _ = find_peaks(-smoothed, prominence=prominence)
     return len(pos_peaks) + len(neg_peaks)
 
 
 def compute_mean_peak_count(
     waveforms: np.ndarray,
     prominence_fraction: float = 0.15,
+    smooth_ms: float = 0.3,
+    sample_rate: float = 20_000.0,
     negative_only: bool = True,
 ) -> Optional[float]:
     """
@@ -77,15 +95,16 @@ def compute_mean_peak_count(
     Parameters
     ----------
     negative_only : if True, exclude positive-leading spikes from the mean.
-    prominence_fraction : prominence threshold as a fraction of each waveform's
-                          peak-to-peak amplitude (tune to filter noise vs real phases).
+    prominence_fraction : prominence threshold as fraction of peak-to-peak (post-smoothing).
+    smooth_ms : Gaussian smooth sigma in ms applied before peak detection.
+    sample_rate : needed to convert smooth_ms to samples.
 
     Returns None if no qualifying waveforms.
     """
     if len(waveforms) == 0:
         return None
     counts = [
-        count_waveform_peaks(w, prominence_fraction)
+        count_waveform_peaks(w, prominence_fraction, smooth_ms, sample_rate)
         for w in waveforms
         if not negative_only or classify_spike_polarity(w) == 'negative'
     ]
