@@ -1357,6 +1357,94 @@ def _draw_mri_tissue_line(
         ax.set_title(f'weighted r = {r:.3f}  (n={n})', fontsize=8)
 
 
+def plot_cortex_pc_scatter(
+        df: pd.DataFrame,
+        pca: PCA,
+        pc1_col: str = 'PC1',
+        pc2_col: str = 'PC2',
+        pc3_col: str = 'PC3',
+        pc4_col: str = 'PC4',
+        sessions: list = None,
+) -> None:
+    """
+    Plot PC3 vs PC4 restricted to the brain+cortex quadrant (PC1>0, PC2>0).
+
+    The hypothesis is that PC1+ = brain tissue, PC2+ = gray matter (cortex),
+    so filtering to that quadrant isolates cortical depths. PC3 and PC4 within
+    that subspace may capture columnar or layer-level variation.
+
+    Two panels:
+      left  — coloured by session
+      right — coloured by depth under chamber (mm)
+    """
+    for col in (pc1_col, pc2_col, pc3_col, pc4_col):
+        if col not in df.columns:
+            print(f"plot_cortex_pc_scatter: column {col!r} not found, skipping.")
+            return
+
+    mask = (df[pc1_col] > 0) & (df[pc2_col] > 0)
+    sub = df[mask].copy()
+    print(f"Cortex subspace: {mask.sum()} / {len(df)} depth-bins pass PC1>0 & PC2>0")
+    if len(sub) < 3:
+        print("  Too few points, skipping plot.")
+        return
+
+    if sessions is None:
+        sessions = sorted(sub['session_id'].unique())
+
+    n_sessions = len(sessions)
+    if n_sessions <= 10:
+        sess_colors = plt.cm.tab10(np.linspace(0, 1, n_sessions))
+    elif n_sessions <= 20:
+        sess_colors = plt.cm.tab20(np.linspace(0, 1, n_sessions))
+    else:
+        sess_colors = plt.cm.viridis(np.linspace(0, 1, n_sessions))
+    sess_color_map = dict(zip(sessions, sess_colors))
+
+    var3 = pca.explained_variance_ratio_[int(pc3_col[2:]) - 1] * 100
+    var4 = pca.explained_variance_ratio_[int(pc4_col[2:]) - 1] * 100
+
+    fig, (ax_sess, ax_depth) = plt.subplots(1, 2, figsize=(14, 6))
+
+    # Panel 1: coloured by session
+    for sess in sessions:
+        sd = sub[sub['session_id'] == sess]
+        if sd.empty:
+            continue
+        ax_sess.scatter(sd[pc3_col], sd[pc4_col],
+                        c=[sess_color_map[sess]], label=sess,
+                        alpha=0.75, edgecolors='none', s=60)
+    ax_sess.axhline(0, color='gray', linewidth=0.8, linestyle='--', alpha=0.5)
+    ax_sess.axvline(0, color='gray', linewidth=0.8, linestyle='--', alpha=0.5)
+    ax_sess.set_xlabel(f'{pc3_col} ({var3:.1f}%)')
+    ax_sess.set_ylabel(f'{pc4_col} ({var4:.1f}%)')
+    ax_sess.set_title('By session')
+    ax_sess.legend(fontsize=7, bbox_to_anchor=(1.01, 1), loc='upper left')
+    ax_sess.grid(True, alpha=0.25)
+
+    # Panel 2: coloured by depth
+    depths = sub['depth_under_chamber_mm'].values
+    sc = ax_depth.scatter(sub[pc3_col], sub[pc4_col],
+                          c=depths, cmap='viridis_r', alpha=0.75,
+                          edgecolors='none', s=60)
+    plt.colorbar(sc, ax=ax_depth, label='Depth under chamber (mm)')
+    ax_depth.axhline(0, color='gray', linewidth=0.8, linestyle='--', alpha=0.5)
+    ax_depth.axvline(0, color='gray', linewidth=0.8, linestyle='--', alpha=0.5)
+    ax_depth.set_xlabel(f'{pc3_col} ({var3:.1f}%)')
+    ax_depth.set_ylabel(f'{pc4_col} ({var4:.1f}%)')
+    ax_depth.set_title('By depth')
+    ax_depth.grid(True, alpha=0.25)
+
+    fig.suptitle(
+        f'PC3 vs PC4 — cortex subspace (PC1>0 & PC2>0)\n'
+        f'n = {len(sub)} depth-bins from {n_sessions} sessions',
+        fontsize=12,
+    )
+    plt.tight_layout()
+    plt.savefig('cortex_pc3_pc4_scatter.png', dpi=150, bbox_inches='tight')
+    plt.show()
+
+
 def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs: int = 4,
                  mri_config_path: str = MRI_VIEWER_CONFIG_PATH, exclude_sessions=None):
     """Run complete PCA analysis with correlations and plots."""
@@ -1390,6 +1478,9 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
     # Tissue confidence
     df_conf = compute_tissue_confidence(df)
     plot_tissue_confidence_by_session(df_conf, pca=pca, n_pcs=n_pcs)
+
+    # PC3 vs PC4 in the cortex subspace (PC1>0 and PC2>0)
+    plot_cortex_pc_scatter(df_conf, pca)
 
     # MRI comparison + optimisation
     fit_scores = None
