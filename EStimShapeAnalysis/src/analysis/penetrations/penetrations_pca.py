@@ -15,6 +15,8 @@ from itertools import combinations
 
 from clat.util.connection import Connection
 
+OPTIMIZATIONS_path = "/home/connorlab/Documents/MRI/optimizations"
+
 MRI_VIEWER_CONFIG_PATH = os.path.join(os.path.dirname(__file__), '../../mri/mri_viewer_config.json')
 
 
@@ -1113,7 +1115,7 @@ def save_optimized_params(
     M[:3, :3] = scale * R_d
     M[:3, 3] = (1.0 - scale) * R_d @ centroid + t_d
 
-    results_dir = os.path.splitext(monkey_specific_path)[0] + '_pca_opt_results'
+    results_dir = OPTIMIZATIONS_path
     os.makedirs(results_dir, exist_ok=True)
     timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
     result_path = os.path.join(results_dir, f'opt_{timestamp}.json')
@@ -1376,7 +1378,6 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         answer = input("Save this result? [y/N]: ").strip().lower()
         if answer == 'y':
             opt_result['result_path'] = save_optimized_params(opt_result, mri_pipeline)
-            print("  Call apply_pca_opt_result(result_path, mri_pipeline) to push to viewer.")
         else:
             print("  Result not saved.")
 
