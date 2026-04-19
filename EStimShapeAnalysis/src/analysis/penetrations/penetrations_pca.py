@@ -3,6 +3,8 @@ import json
 import os
 from typing import Optional
 
+from sklearn.mixture import GaussianMixture
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -569,6 +571,28 @@ def plot_depth_profiles_overlaid(
     plt.show()
 
 
+def _gmm_brain_threshold(pc1_values: np.ndarray) -> float:
+    """
+    Fit a 2-component GMM to PC1 and return the crossover point where
+    P(brain component | PC1) = 0.5.  The brain component is the one with
+    the higher mean (more signal = brain).
+    """
+    gmm = GaussianMixture(n_components=2, random_state=42, n_init=5)
+    gmm.fit(pc1_values.reshape(-1, 1))
+
+    brain_comp  = int(np.argmax(gmm.means_.flatten()))
+    x = np.linspace(pc1_values.min(), pc1_values.max(), 10_000).reshape(-1, 1)
+    p_brain_x   = gmm.predict_proba(x)[:, brain_comp]
+
+    # crossover: first x where p_brain crosses 0.5 (searching from left)
+    crossings = np.where(np.diff(p_brain_x > 0.5))[0]
+    threshold = float(x[crossings[0]]) if len(crossings) > 0 else 0.0
+    print(f"  GMM brain threshold (PC1 = {threshold:.3f}): "
+          f"means={gmm.means_.flatten().round(2)}, "
+          f"weights={gmm.weights_.round(2)}")
+    return threshold
+
+
 def compute_tissue_confidence(
         df: pd.DataFrame,
         pc1_col: str = 'PC1',
@@ -577,16 +601,14 @@ def compute_tissue_confidence(
     """
     Compute per-depth tissue type value and confidence from PC1 and PC2.
 
-    PC1: negative = sulcus, positive = brain
+    PC1: negative = sulcus, positive = brain  (threshold auto-detected via GMM)
     PC2: negative = white matter, positive = gray matter
 
     Adds four columns to a copy of df:
-      p_brain           : P(brain tissue)   via sigmoid(PC1 / std)
+      p_brain           : P(brain tissue)   via sigmoid((PC1 - gmm_threshold) / std)
       p_gray            : P(gray matter)    via sigmoid(PC2 / std)
       tissue_score      : tissue type value — ~0.0=sulcus, ~0.5=GM, ~1.0=WM
       tissue_confidence : how confident we are about that label
-                          high for clear sulcus, clear GM, or clear WM
-                          low when brain/sulcus is ambiguous or WM/GM is ambiguous
     """
     def sigmoid(x):
         return 1.0 / (1.0 + np.exp(-x))
@@ -595,8 +617,10 @@ def compute_tissue_confidence(
     std1 = df[pc1_col].std()
     std2 = df[pc2_col].std()
 
-    df['p_brain'] = sigmoid(df[pc1_col] / std1)
-    df['p_gray'] = sigmoid(df[pc2_col] / std2)
+    threshold = _gmm_brain_threshold(df[pc1_col].values)
+
+    df['p_brain'] = sigmoid((df[pc1_col] - threshold) / std1)
+    df['p_gray']  = sigmoid(df[pc2_col] / std2)
     df['tissue_score'] = df['p_brain'] * (1.0 - 0.5 * df['p_gray'])
 
     # Confidence: high when clearly sulcus OR clearly WM OR clearly GM
