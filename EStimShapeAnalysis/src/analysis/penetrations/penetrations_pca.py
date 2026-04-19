@@ -654,14 +654,16 @@ def plot_tissue_confidence_by_session(
         plt.show()
 
 
-def _setup_depth_yaxis(ax: plt.Axes, depths: np.ndarray, tick_interval_mm: float = 0.1) -> None:
-    """Set dense y-axis ticks at tick_interval_mm spacing for a depth (mm) axis."""
+def _setup_depth_yaxis(ax: plt.Axes, depths: np.ndarray,
+                       label_interval_mm: float = 0.5,
+                       tick_interval_mm: float = 0.1) -> None:
+    """Dense minor ticks every tick_interval_mm; labelled major ticks every label_interval_mm."""
     from matplotlib.ticker import MultipleLocator
-    ax.yaxis.set_major_locator(MultipleLocator(tick_interval_mm))
-    ax.yaxis.set_minor_locator(MultipleLocator(tick_interval_mm / 2))
-    ax.tick_params(axis='y', which='major', length=4, labelsize=9)
-    ax.tick_params(axis='y', which='minor', length=2)
-    ax.grid(True, which='major', alpha=0.25)
+    ax.yaxis.set_major_locator(MultipleLocator(label_interval_mm))
+    ax.yaxis.set_minor_locator(MultipleLocator(tick_interval_mm))
+    ax.tick_params(axis='y', which='major', length=6, labelsize=9)
+    ax.tick_params(axis='y', which='minor', length=2, labelsize=0)
+    ax.grid(True, which='major', alpha=0.3)
     ax.grid(True, which='minor', alpha=0.1)
 
 
