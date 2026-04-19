@@ -20,7 +20,31 @@ OPTIMIZATIONS_path = "/home/connorlab/Documents/MRI/optimizations"
 MRI_VIEWER_CONFIG_PATH = os.path.join(os.path.dirname(__file__), '../../mri/mri_viewer_config.json')
 
 
-def load_and_perform_pca(conn: Connection, table_name: str = "PenetrationMetrics", exclude_sessions: Optional[list] = None):
+def _within_session_zscore(X: pd.DataFrame, session_ids: pd.Series) -> pd.DataFrame:
+    """
+    Z-score each feature within each session to remove session-level offsets.
+    Preserves within-session depth gradients while eliminating between-session
+    mean differences caused by gain, impedance, or tissue-composition bias.
+    NaN positions are preserved. Constant columns within a session → 0.
+    """
+    X_norm = X.copy().astype(float)
+    for session in session_ids.unique():
+        mask = session_ids == session
+        group = X.loc[mask]
+        mu = group.mean(skipna=True)
+        sigma = group.std(skipna=True, ddof=1).replace(0.0, np.nan)
+        normed = ((group - mu) / sigma).fillna(0.0)
+        normed[group.isna()] = np.nan
+        X_norm.loc[mask] = normed
+    return X_norm
+
+
+def load_and_perform_pca(
+        conn: Connection,
+        table_name: str = "PenetrationMetrics",
+        exclude_sessions: Optional[list] = None,
+        within_session_normalize: bool = True,
+):
     """Load data and perform PCA, returning all necessary objects."""
     conn.execute(f"SELECT * FROM {table_name}")
     results = conn.fetch_all()
@@ -53,6 +77,11 @@ def load_and_perform_pca(conn: Connection, table_name: str = "PenetrationMetrics
     df_valid = df[valid_mask].copy()
 
     print(f"Using {len(X)} rows after handling missing values")
+
+    if within_session_normalize:
+        print("\nApplying within-session z-score normalization ...")
+        X = _within_session_zscore(X, df_valid['session_id'])
+        print(f"  Grand mean after normalization: {X.mean().mean():+.4f}  (should be ≈ 0)")
 
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
@@ -1629,11 +1658,16 @@ def run_cortex_pca(
 
 
 def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs: int = 4,
-                 mri_config_path: str = MRI_VIEWER_CONFIG_PATH, exclude_sessions=None):
+                 mri_config_path: str = MRI_VIEWER_CONFIG_PATH, exclude_sessions=None,
+                 within_session_normalize: bool = True):
     """Run complete PCA analysis with correlations and plots."""
 
     # Load and perform PCA
-    df, pca, X_pca, feature_columns, scaler = load_and_perform_pca(conn, table_name, exclude_sessions=exclude_sessions)
+    df, pca, X_pca, feature_columns, scaler = load_and_perform_pca(
+        conn, table_name,
+        exclude_sessions=exclude_sessions,
+        within_session_normalize=within_session_normalize,
+    )
 
     # Get and print loadings
     print("\n" + "=" * 60)
