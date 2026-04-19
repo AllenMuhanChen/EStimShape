@@ -38,6 +38,7 @@ from lfp_power_law import (
     FOOOFPowerLaw, LFPPowerLawSpectrumPlotter, PowerLawFit, OscillatorPeak,
 )
 from mua_detection import detect_mua_spikes
+from spike_waveform_features import highpass_filter, extract_spike_waveforms, compute_polarity_ratio
 from intan_lfp import (
     extract_lfp, CHANNEL_ORDER, POWER_LAW_PANELS,
     LFP_LOWPASS, LFP_TARGET_RATE,
@@ -180,7 +181,8 @@ def load_recording(
     spectra = {ch: spectrum_calc.compute(lfp) for ch, lfp in lfp_by_name.items()}
     fits    = FOOOFPowerLaw().fit_dict(spectra)
 
-    spike_rates: Dict[str, float] = {}
+    spike_rates:           Dict[str, float]          = {}
+    spike_polarity_ratios: Dict[str, Optional[float]] = {}
     for name, wideband in raw_by_name.items():
         spikes = detect_mua_spikes(
             wideband, sample_rate,
@@ -190,7 +192,11 @@ def load_recording(
         )
         spike_rates[name] = len(spikes) / duration
 
-    return spectra, fits, spike_rates, duration
+        filtered  = highpass_filter(wideband, sample_rate, MUA_HIGHPASS_HZ)
+        waveforms = extract_spike_waveforms(filtered, spikes, sample_rate=sample_rate)
+        spike_polarity_ratios[name] = compute_polarity_ratio(waveforms)
+
+    return spectra, fits, spike_rates, spike_polarity_ratios, duration
 
 
 def load_impedance(csv_path: str) -> Tuple[Dict[str, float], Dict[str, float]]:
@@ -255,29 +261,31 @@ def _depth_mm(driven_depth_um: int, probe_pos: int, tip_start_mm: float) -> floa
 def bin_recordings(
     recordings_data: List[Tuple[int, Dict, Dict, Dict, Dict, Dict]],
     tip_start_mm: float,
-) -> Tuple[np.ndarray, Dict, Dict, Dict, Dict, Dict]:
+) -> Tuple[np.ndarray, Dict, Dict, Dict, Dict, Dict, Dict]:
     """
     Combine per-recording data into depth bins.
 
-    recordings_data: [(driven_depth_um, spectra, fits, spike_rates, magnitudes, phases), ...]
+    recordings_data: [(driven_depth_um, spectra, fits, spike_rates, spike_polarity_ratios, magnitudes, phases), ...]
 
     Returns:
-        bin_depths           : np.ndarray shape (n_bins,)  sorted depth values in mm
-        binned_spectra       : Dict[bin_idx, (freqs, avg_power)]
-        binned_fits          : Dict[bin_idx, PowerLawFit]  (averaged exponent/amplitude)
-        binned_spike_rates   : Dict[bin_idx, float]
-        binned_imp_raw       : Dict[(bin_idx, ch_name), float]  raw impedance magnitude
-        binned_phase_raw     : Dict[(bin_idx, ch_name), float]  raw impedance phase (degrees)
+        bin_depths             : np.ndarray shape (n_bins,)  sorted depth values in mm
+        binned_spectra         : Dict[bin_idx, (freqs, avg_power)]
+        binned_fits            : Dict[bin_idx, PowerLawFit]  (averaged exponent/amplitude)
+        binned_spike_rates     : Dict[bin_idx, float]
+        binned_polarity_ratios : Dict[bin_idx, float]
+        binned_imp_raw         : Dict[(bin_idx, ch_name), float]  raw impedance magnitude
+        binned_phase_raw       : Dict[(bin_idx, ch_name), float]  raw impedance phase (degrees)
     """
     probe_pos = _probe_positions()
 
-    spec_acc:  Dict[float, List] = defaultdict(list)
-    fits_acc:  Dict[float, List] = defaultdict(list)
-    spike_acc: Dict[float, List] = defaultdict(list)
-    imp_acc:   Dict[Tuple[float, str], List[float]] = defaultdict(list)
-    phase_acc: Dict[Tuple[float, str], List[float]] = defaultdict(list)
+    spec_acc:     Dict[float, List] = defaultdict(list)
+    fits_acc:     Dict[float, List] = defaultdict(list)
+    spike_acc:    Dict[float, List] = defaultdict(list)
+    polarity_acc: Dict[float, List] = defaultdict(list)
+    imp_acc:      Dict[Tuple[float, str], List[float]] = defaultdict(list)
+    phase_acc:    Dict[Tuple[float, str], List[float]] = defaultdict(list)
 
-    for driven_um, spectra, fits, spike_rates, magnitudes, phases in recordings_data:
+    for driven_um, spectra, fits, spike_rates, spike_polarity_ratios, magnitudes, phases in recordings_data:
         for ch_name, pos in probe_pos.items():
             if ch_name not in spectra:
                 continue
@@ -287,6 +295,9 @@ def bin_recordings(
                 fits_acc[depth].append(fits[ch_name])
             if ch_name in spike_rates:
                 spike_acc[depth].append(spike_rates[ch_name])
+            ratio = spike_polarity_ratios.get(ch_name)
+            if ratio is not None:
+                polarity_acc[depth].append(ratio)
             if ch_name in magnitudes:
                 imp_acc[(depth, ch_name)].append(magnitudes[ch_name])
             if ch_name in phases:
@@ -295,11 +306,12 @@ def bin_recordings(
     bin_depths = np.array(sorted(spec_acc.keys()))
     n_bins = len(bin_depths)
 
-    binned_spectra:    Dict[int, Tuple]  = {}
-    binned_fits:       Dict[int, PowerLawFit] = {}
-    binned_spike_rates: Dict[int, float] = {}
-    binned_imp_raw:    Dict[Tuple[int, str], float] = {}
-    binned_phase_raw:  Dict[Tuple[int, str], float] = {}
+    binned_spectra:         Dict[int, Tuple]           = {}
+    binned_fits:            Dict[int, PowerLawFit]     = {}
+    binned_spike_rates:     Dict[int, float]           = {}
+    binned_polarity_ratios: Dict[int, float]           = {}
+    binned_imp_raw:         Dict[Tuple[int, str], float] = {}
+    binned_phase_raw:       Dict[Tuple[int, str], float] = {}
 
     for idx, depth in enumerate(bin_depths):
         contribs = spec_acc[depth]
@@ -326,6 +338,10 @@ def bin_recordings(
         if sl:
             binned_spike_rates[idx] = float(np.mean(sl))
 
+        pl = polarity_acc[depth]
+        if pl:
+            binned_polarity_ratios[idx] = float(np.mean(pl))
+
         for (dep, ch_name), imps in imp_acc.items():
             if dep == depth:
                 binned_imp_raw[(idx, ch_name)] = float(np.mean(imps))
@@ -334,7 +350,7 @@ def bin_recordings(
             if dep == depth:
                 binned_phase_raw[(idx, ch_name)] = float(np.mean(phs))
 
-    return bin_depths, binned_spectra, binned_fits, binned_spike_rates, binned_imp_raw, binned_phase_raw
+    return bin_depths, binned_spectra, binned_fits, binned_spike_rates, binned_polarity_ratios, binned_imp_raw, binned_phase_raw
 
 
 def smooth_spectra(
@@ -685,6 +701,7 @@ CREATE TABLE IF NOT EXISTS {_PENETRATION_METRICS_TABLE} (
     amplitude                   DOUBLE          DEFAULT NULL,
     r_squared                   DOUBLE          DEFAULT NULL,
     spike_rate_hz               DOUBLE          DEFAULT NULL,
+    polarity_ratio              DOUBLE          DEFAULT NULL,
     relative_impedance          DOUBLE          DEFAULT NULL,
     relative_phase              DOUBLE          DEFAULT NULL,
     PRIMARY KEY (session_id, depth_under_chamber_mm)
@@ -696,8 +713,8 @@ INSERT INTO {_PENETRATION_METRICS_TABLE}
     (session_id, depth_under_chamber_mm,
      band_power_delta_theta, band_power_alpha_beta, band_power_gamma,
      exponent, amplitude, r_squared,
-     spike_rate_hz, relative_impedance, relative_phase)
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+     spike_rate_hz, polarity_ratio, relative_impedance, relative_phase)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 ON DUPLICATE KEY UPDATE
     band_power_delta_theta  = VALUES(band_power_delta_theta),
     band_power_alpha_beta   = VALUES(band_power_alpha_beta),
@@ -706,6 +723,7 @@ ON DUPLICATE KEY UPDATE
     amplitude               = VALUES(amplitude),
     r_squared               = VALUES(r_squared),
     spike_rate_hz           = VALUES(spike_rate_hz),
+    polarity_ratio          = VALUES(polarity_ratio),
     relative_impedance      = VALUES(relative_impedance),
     relative_phase          = VALUES(relative_phase)
 """
@@ -735,6 +753,7 @@ def save_to_repository(
     normalized: Dict[int, Tuple],
     binned_fits: Dict[int, PowerLawFit],
     binned_spike_rates: Dict[int, float],
+    binned_polarity_ratios: Dict[int, float],
     binned_rel_imp: Dict[int, float],
     binned_rel_phase: Dict[int, float],
 ) -> None:
@@ -761,6 +780,7 @@ def save_to_repository(
             float(fit.amplitude) if fit and not np.isnan(fit.amplitude) else None,
             float(fit.r_squared) if fit else None,
             binned_spike_rates.get(idx),
+            binned_polarity_ratios.get(idx),
             binned_rel_imp.get(idx),
             binned_rel_phase.get(idx),
         )
@@ -795,7 +815,7 @@ class PenetrationLFPAnalysis:
         for driven_um, rec_dir, csv_path in recordings:
             print(f"\n  depth {driven_um} µm  →  {os.path.basename(rec_dir)}")
             try:
-                spectra, fits, spike_rates, duration = load_recording(rec_dir)
+                spectra, fits, spike_rates, spike_polarity_ratios, duration = load_recording(rec_dir)
                 if csv_path:
                     magnitudes, phases = load_impedance(csv_path)
                 else:
@@ -803,7 +823,7 @@ class PenetrationLFPAnalysis:
                     print(f"    Warning: no impedance CSV for depth {driven_um}")
                 print(f"    {duration:.1f}s  |  {len(spectra)} ch  "
                       f"|  {len(magnitudes)} imp  |  {len(phases)} phase values")
-                recordings_data.append((driven_um, spectra, fits, spike_rates, magnitudes, phases))
+                recordings_data.append((driven_um, spectra, fits, spike_rates, spike_polarity_ratios, magnitudes, phases))
             except Exception as exc:
                 print(f"    Error: {exc}"); continue
 
@@ -811,7 +831,7 @@ class PenetrationLFPAnalysis:
             print("No recordings loaded successfully."); return
 
         print(f"\nBinning {len(recordings_data)} recordings ...")
-        bin_depths, b_spec, b_fits, b_spike, b_imp_raw, b_phase_raw = bin_recordings(
+        bin_depths, b_spec, b_fits, b_spike, b_polarity, b_imp_raw, b_phase_raw = bin_recordings(
             recordings_data, self.tip_start_mm
         )
         n_bins = len(bin_depths)
@@ -820,9 +840,10 @@ class PenetrationLFPAnalysis:
         sigma = self.spatial_smooth_sigma
         if sigma > 0:
             print(f"Applying spatial smoothing  (sigma = {sigma} bins = {sigma * CHANNEL_SPACING_UM:.0f} µm) ...")
-            b_spec  = smooth_spectra(b_spec,  n_bins, sigma)
-            b_fits  = smooth_fits(b_fits,   n_bins, sigma)
-            b_spike = smooth_scalars(b_spike, n_bins, sigma)
+            b_spec     = smooth_spectra(b_spec,    n_bins, sigma)
+            b_fits     = smooth_fits(b_fits,     n_bins, sigma)
+            b_spike    = smooth_scalars(b_spike,   n_bins, sigma)
+            b_polarity = smooth_scalars(b_polarity, n_bins, sigma)
 
         print("Computing penetration-wide relative power ...")
         normalized = compute_relative_power(b_spec, n_bins)
@@ -843,7 +864,7 @@ class PenetrationLFPAnalysis:
         try:
             save_to_repository(
                 self.session_id, bin_depths, normalized,
-                b_fits, b_spike, b_rel_imp, b_rel_phase,
+                b_fits, b_spike, b_polarity, b_rel_imp, b_rel_phase,
             )
         except Exception as exc:
             print(f"  Warning: could not save to repository: {exc}")
