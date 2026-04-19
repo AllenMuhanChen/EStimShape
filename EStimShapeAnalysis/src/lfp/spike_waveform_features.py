@@ -39,8 +39,11 @@ def extract_spike_waveforms(
 
 
 def classify_spike_polarity(waveform: np.ndarray) -> str:
-    """Return 'positive' if the positive peak exceeds the absolute negative trough, else 'negative'."""
-    return 'positive' if np.max(waveform) > np.abs(np.min(waveform)) else 'negative'
+    """
+    'positive' if the maximum (hyperpolarization peak) precedes the minimum
+    (depolarization trough); 'negative' if the trough comes first.
+    """
+    return 'positive' if int(np.argmax(waveform)) < int(np.argmin(waveform)) else 'negative'
 
 
 def compute_polarity_ratio(waveforms: np.ndarray) -> Optional[float]:
