@@ -659,7 +659,7 @@ def _setup_depth_yaxis(ax: plt.Axes, depths: np.ndarray, tick_interval_mm: float
     from matplotlib.ticker import MultipleLocator
     ax.yaxis.set_major_locator(MultipleLocator(tick_interval_mm))
     ax.yaxis.set_minor_locator(MultipleLocator(tick_interval_mm / 2))
-    ax.tick_params(axis='y', which='major', length=4, labelsize=7)
+    ax.tick_params(axis='y', which='major', length=4, labelsize=9)
     ax.tick_params(axis='y', which='minor', length=2)
     ax.grid(True, which='major', alpha=0.25)
     ax.grid(True, which='minor', alpha=0.1)
@@ -689,6 +689,7 @@ def _draw_tissue_strip(
     ax.set_ylabel('Depth under chamber (mm)')
     ax.set_xlabel('')
     ax.set_title(title, fontsize=8, rotation=45, ha='right')
+    _setup_depth_yaxis(ax, depths)
 
 
 def _draw_tissue_line(
@@ -704,7 +705,6 @@ def _draw_tissue_line(
     ax.set_xlabel('Tissue Score\n(0=sulcus, 0.5=GM, 1.0=WM)')
     ax.invert_yaxis()
     _setup_depth_yaxis(ax, depths)
-    ax.yaxis.set_tick_params(labelleft=False)
 
     for score_val, label in [(0.0, 'Sulcus'), (0.5, 'Gray'), (1.0, 'WM')]:
         ax.axvline(score_val, color='lightgray', linewidth=0.5, linestyle=':')
@@ -730,7 +730,6 @@ def _draw_pc_profiles(
     ax.set_title('PC Profiles')
     ax.invert_yaxis()
     _setup_depth_yaxis(ax, depths)
-    ax.yaxis.set_tick_params(labelleft=False)
     ax.legend(fontsize=7, loc='best')
 
 
@@ -1337,7 +1336,6 @@ def _draw_mri_tissue_line(
     ax.tick_params(axis='x', colors='black')
     ax.invert_yaxis()
     _setup_depth_yaxis(ax, depths)
-    ax.yaxis.set_tick_params(labelleft=False)
 
     if not np.all(np.isnan(mri_vals)):
         ax2 = ax.twiny()

@@ -113,32 +113,34 @@ def compute_mean_peak_count(
 
 def compute_trough_to_peak_ms(
     waveform: np.ndarray,
-    smooth_ms: float = 0.3,
+    smooth_ms: float = 0.1,
     sample_rate: float = 20_000.0,
 ) -> Optional[float]:
     """
     Trough-to-peak duration in ms for a single spike waveform.
 
-    Finds the trough (global minimum of the smoothed waveform), then finds the
-    next positive peak (global maximum in the post-trough portion). Returns the
-    elapsed time between them in milliseconds. Returns None if no samples exist
-    after the trough.
+    Finds the trough (global minimum), then finds the FIRST local maximum in
+    the post-trough portion (repolarisation peak). Using argmax would grab the
+    window end when there is no strong positive deflection. Returns None if no
+    local maximum is found after the trough.
     """
     sigma = smooth_ms * sample_rate / 1000
-    smoothed = gaussian_filter1d(waveform.astype(float), sigma=sigma)
+    smoothed = gaussian_filter1d(waveform.astype(float), sigma=sigma) if sigma > 0 else waveform.astype(float)
 
     trough_idx = int(np.argmin(smoothed))
     post_trough = smoothed[trough_idx:]
     if len(post_trough) < 2:
         return None
 
-    peak_offset = int(np.argmax(post_trough))
-    return peak_offset / sample_rate * 1000.0
+    peaks, _ = find_peaks(post_trough)
+    if len(peaks) == 0:
+        return None
+    return int(peaks[0]) / sample_rate * 1000.0
 
 
 def compute_mean_trough_to_peak_ms(
     waveforms: np.ndarray,
-    smooth_ms: float = 0.3,
+    smooth_ms: float = 0.1,
     sample_rate: float = 20_000.0,
     negative_only: bool = True,
 ) -> Optional[float]:
