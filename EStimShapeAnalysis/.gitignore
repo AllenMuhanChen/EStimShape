@@ -6,3 +6,6 @@
 claude
 claude.pub
 config.local.json
+__pycache__/
+*.pyc
+*.pyo
