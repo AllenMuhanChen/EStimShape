@@ -780,6 +780,7 @@ def save_to_repository(
     conn = Connection("allen_data_repository")
 
     conn.execute(_CREATE_PENETRATION_METRICS_SQL)
+    _ensure_column(conn, 'polarity_ratio')
     print(f"Table '{_PENETRATION_METRICS_TABLE}' ready.")
 
     n_inserted = 0
