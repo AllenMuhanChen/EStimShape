@@ -461,8 +461,8 @@ def plot_depth_profiles_overlaid(
 
     session_to_color = dict(zip(sessions, session_colors))
 
-    n_cols = min(3, n_pcs)
-    n_rows = (n_pcs + n_cols - 1) // n_cols
+    n_cols = n_pcs
+    n_rows = 1
 
     fig, axes = plt.subplots(n_rows, n_cols, figsize=(5 * n_cols, 5 * n_rows))
     if n_pcs == 1:
@@ -1343,7 +1343,7 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
     # Depth profiles
     # plot_depth_profiles_by_session(df, pca, n_pcs=n_pcs)
     plot_depth_profiles_all_sessions(df, pca, n_pcs=n_pcs)
-    # plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs)
+    plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs)
     # plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs, align_depths=True)
 
     # Tissue confidence
