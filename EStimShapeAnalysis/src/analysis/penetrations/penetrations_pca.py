@@ -730,13 +730,12 @@ def load_mri_pipeline(config_path: str = MRI_VIEWER_CONFIG_PATH) -> dict:
     ch_corr, _ = load_corrections(ch_corr_path)
     print(f"  Chamber correction: {ch_corr_path}")
     print(f"  Chamber correction matrix:\n{np.round(ch_corr, 4)}")
-    screws_world = screws_ebz + ebz_world
-    if not np.allclose(ch_corr, np.eye(4)):
-        R = ch_corr[:3, :3]
-        t = ch_corr[:3, 3]
-        screws_world = (R @ screws_world.T).T + t
 
-    center, origin, x, y, normal = fit_chamber(screws_world, ref_idx, cor_offset, is_fit_circle)
+    # Always use raw screws as the optimization baseline — ignore any previously saved
+    # optimization results so every run starts from the same original position.
+    # Manual viewer corrections (ch_corr) are stored for reference but not applied here.
+    screws_raw = screws_ebz + ebz_world
+    center, origin, x, y, normal = fit_chamber(screws_raw, ref_idx, cor_offset, is_fit_circle)
 
     return {
         'data': data,
@@ -746,11 +745,10 @@ def load_mri_pipeline(config_path: str = MRI_VIEWER_CONFIG_PATH) -> dict:
         'y': y,
         'normal': normal,
         'cor_offset': cor_offset,
-        # extra fields used by the optimizer to re-fit chamber with new corrections
-        'screws_world_base': screws_world,
+        # raw screws (no correction applied) — optimizer always starts from here
+        'screws_world_base': screws_raw,
         'ref_idx': ref_idx,
         'is_fit_circle': is_fit_circle,
-        # keep the existing correction and paths so save_optimized_params can compose
         'ch_corr': ch_corr,
         'ch_corr_path': ch_corr_path,
         'monkey_specific_path': monkey_specific_path,
@@ -1085,58 +1083,96 @@ def apply_optimized_pipeline(mri_pipeline: dict, opt_result: dict) -> tuple:
 def save_optimized_params(
         opt_result: dict,
         mri_pipeline: dict,
-) -> None:
+) -> str:
     """
-    Persist the optimised transformation so the MRI viewer can load it automatically.
+    Save optimisation result to a timestamped file for later comparison.
 
-    Two files are written next to monkey_specific.py:
-      _chamber_corrections.json  — updated 4x4 affine (picked up by viewer on next load)
-      _pen_offsets.json          — daz/del_/ddepth offsets (applied to every penetration)
+    Does NOT modify _chamber_corrections.json or _pen_offsets.json — call
+    apply_pca_opt_result(path, mri_pipeline) explicitly to push a chosen
+    result into the viewer files.
+
+    Returns the path of the saved result file.
     """
     import datetime
-    from src.mri.correction import push_correction, save_corrections, load_corrections
     from src.mri.correction import rot_x, rot_y, rot_z, xlate
 
     params = opt_result['params']
     tx, ty, tz, rx, ry, rz, scale, daz, del_, ddepth = params
     monkey_specific_path = mri_pipeline['monkey_specific_path']
-    ch_corr_path = mri_pipeline['ch_corr_path']
-    ch_corr_existing = mri_pipeline['ch_corr']
 
-    # Build 4x4 affine equivalent of the optimizer's delta
-    # delta: screw_new = R @ (scale*(screw-c) + c) + t  =  scale*R @ screw + (1-scale)*R@c + t
-    corr_delta = xlate(tx, ty, tz) @ rot_z(rz) @ rot_y(ry) @ rot_x(rx)
-    R_d = corr_delta[:3, :3]
-    t_d = corr_delta[:3, 3]
+    # Build 4x4 affine from raw screws (no existing correction composed in,
+    # since the optimizer always starts from raw screws)
+    corr = xlate(tx, ty, tz) @ rot_z(rz) @ rot_y(ry) @ rot_x(rx)
+    R_d = corr[:3, :3]
+    t_d = corr[:3, 3]
     centroid = mri_pipeline['screws_world_base'].mean(axis=0)
-    M_delta = np.eye(4)
-    M_delta[:3, :3] = scale * R_d
-    M_delta[:3, 3] = (1.0 - scale) * R_d @ centroid + t_d
+    M = np.eye(4)
+    M[:3, :3] = scale * R_d
+    M[:3, 3] = (1.0 - scale) * R_d @ centroid + t_d
 
-    # Compose delta on top of whatever correction already existed
-    new_ch_corr = M_delta @ ch_corr_existing
+    results_dir = os.path.splitext(monkey_specific_path)[0] + '_pca_opt_results'
+    os.makedirs(results_dir, exist_ok=True)
+    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    result_path = os.path.join(results_dir, f'opt_{timestamp}.json')
 
-    note = (f"PCA optimisation "
-            f"(r {opt_result['score_before']:.4f}→{opt_result['score_after']:.4f})")
-    _, ch_corr_cfg = load_corrections(ch_corr_path)
-    push_correction(ch_corr_cfg, new_ch_corr, note=note)
-    save_corrections(ch_corr_path, ch_corr_cfg)
-    print(f"  Chamber correction saved → {ch_corr_path}")
-
-    pen_offsets_path = os.path.splitext(monkey_specific_path)[0] + '_pen_offsets.json'
-    offsets = {
+    result_data = {
         'timestamp': datetime.datetime.now().isoformat(),
-        'note': note,
+        'score_before': float(opt_result['score_before']),
+        'score_after': float(opt_result['score_after']),
+        'params': {name: float(val)
+                   for name, val in zip(opt_result['param_names'], params)},
+        'chamber_correction_4x4': M.tolist(),
         'daz_deg': float(daz),
         'del_deg': float(del_),
         'ddepth_mm': float(ddepth),
-        'score_before': float(opt_result['score_before']),
-        'score_after': float(opt_result['score_after']),
+    }
+    with open(result_path, 'w') as f:
+        json.dump(result_data, f, indent=2)
+
+    print(f"  Result saved → {result_path}")
+    print(f"  score: {opt_result['score_before']:.4f} → {opt_result['score_after']:.4f}")
+    print(f"  daz={daz:+.4f}°  del={del_:+.4f}°  ddepth={ddepth:+.4f} mm")
+    print(f"  To apply: apply_pca_opt_result('{result_path}', mri_pipeline)")
+    return result_path
+
+
+def apply_pca_opt_result(result_path: str, mri_pipeline: dict) -> None:
+    """
+    Apply a saved PCA optimisation result to the MRI viewer files.
+
+    Writes:
+      _chamber_corrections.json  — new 4x4 affine (viewer picks this up on next load)
+      _pen_offsets.json          — daz/del_/ddepth offsets
+    """
+    from src.mri.correction import push_correction, save_corrections, load_corrections
+
+    with open(result_path) as f:
+        result = json.load(f)
+
+    monkey_specific_path = mri_pipeline['monkey_specific_path']
+    ch_corr_path = mri_pipeline['ch_corr_path']
+
+    M = np.array(result['chamber_correction_4x4'])
+    note = (f"PCA opt applied from {os.path.basename(result_path)} "
+            f"(r {result['score_before']:.4f}→{result['score_after']:.4f})")
+    _, ch_corr_cfg = load_corrections(ch_corr_path)
+    push_correction(ch_corr_cfg, M, note=note)
+    save_corrections(ch_corr_path, ch_corr_cfg)
+    print(f"  Chamber correction updated → {ch_corr_path}")
+
+    pen_offsets_path = os.path.splitext(monkey_specific_path)[0] + '_pen_offsets.json'
+    offsets = {
+        'timestamp': result['timestamp'],
+        'note': note,
+        'daz_deg': result['daz_deg'],
+        'del_deg': result['del_deg'],
+        'ddepth_mm': result['ddepth_mm'],
+        'score_before': result['score_before'],
+        'score_after': result['score_after'],
     }
     with open(pen_offsets_path, 'w') as f:
         json.dump(offsets, f, indent=2)
-    print(f"  Pen offsets saved → {pen_offsets_path}")
-    print(f"    daz={daz:+.4f}°  del={del_:+.4f}°  ddepth={ddepth:+.4f} mm")
+    print(f"  Pen offsets updated → {pen_offsets_path}")
 
 
 def plot_mri_comparison_by_session(
@@ -1333,7 +1369,8 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         plot_mri_comparison_by_session(df_conf, fit_scores)
 
         print("\n── Saving optimised parameters ──")
-        save_optimized_params(opt_result, mri_pipeline)
+        opt_result['result_path'] = save_optimized_params(opt_result, mri_pipeline)
+        print("  Call apply_pca_opt_result(result_path, mri_pipeline) to push to viewer.")
 
     except Exception as exc:
         import traceback
