@@ -654,6 +654,22 @@ def plot_spike_rates(
     _setup_depth_axis(ax, bin_depths)
 
 
+def plot_polarity_ratio(
+    binned_polarity_ratios: Dict[int, float],
+    bin_depths: np.ndarray,
+    ax: plt.Axes,
+) -> None:
+    n_bins  = len(bin_depths)
+    y       = np.arange(n_bins)
+    ratios  = [binned_polarity_ratios.get(i, np.nan) for i in range(n_bins)]
+    ax.plot(ratios, y, 'o-', markersize=3, color='tab:orange')
+    ax.axvline(0.5, color='gray', linewidth=0.8, linestyle='--', alpha=0.6)
+    ax.set_xlim(0, 1)
+    ax.set_xlabel("Fraction Positive\nSpikes")
+    ax.set_title("Spike Polarity Ratio")
+    _setup_depth_axis(ax, bin_depths)
+
+
 def plot_relative_impedance(
     binned_rel_imp: Dict[int, float],
     bin_depths: np.ndarray,
@@ -858,7 +874,7 @@ class PenetrationLFPAnalysis:
                 b_rel_phase = smooth_scalars(b_rel_phase, n_bins, sigma)
 
         print("Plotting ...")
-        self._plot(bin_depths, normalized, b_spec, b_fits, b_spike, b_rel_imp, b_rel_phase)
+        self._plot(bin_depths, normalized, b_spec, b_fits, b_spike, b_polarity, b_rel_imp, b_rel_phase)
 
         print("Saving metrics to allen_data_repository ...")
         try:
@@ -869,7 +885,7 @@ class PenetrationLFPAnalysis:
         except Exception as exc:
             print(f"  Warning: could not save to repository: {exc}")
 
-    def _plot(self, bin_depths, normalized, b_spec, b_fits, b_spike, b_rel_imp, b_rel_phase):
+    def _plot(self, bin_depths, normalized, b_spec, b_fits, b_spike, b_polarity, b_rel_imp, b_rel_phase):
         cfg  = POWER_LAW_PANELS
         n_pl = sum([
             cfg.get('show_exponent', True),
@@ -881,9 +897,9 @@ class PenetrationLFPAnalysis:
         ])
         n_bins = len(bin_depths)
 
-        # Layout: heatmap | band power | [power-law] | spike rate | impedance | phase
-        n_total      = 1 + 1 + n_pl + 1 + 1 + 1
-        width_ratios = [3, 1] + [1] * n_pl + [1, 1, 1]
+        # Layout: heatmap | band power | [power-law] | spike rate | polarity ratio | impedance | phase
+        n_total      = 1 + 1 + n_pl + 1 + 1 + 1 + 1
+        width_ratios = [3, 1] + [1] * n_pl + [1, 1, 1, 1]
 
         fig_h = max(8, min(20, n_bins * 0.15))
         fig, axes = plt.subplots(
@@ -897,8 +913,9 @@ class PenetrationLFPAnalysis:
         plot_band_power(normalized, bin_depths, axes[1])
         plot_power_law_panels(b_fits, b_spec, bin_depths, axes[2:2 + n_pl], cfg)
         plot_spike_rates(b_spike, bin_depths, axes[2 + n_pl])
-        plot_relative_impedance(b_rel_imp, bin_depths, axes[2 + n_pl + 1])
-        plot_relative_phase(b_rel_phase, bin_depths, axes[2 + n_pl + 2])
+        plot_polarity_ratio(b_polarity, bin_depths, axes[2 + n_pl + 1])
+        plot_relative_impedance(b_rel_imp, bin_depths, axes[2 + n_pl + 2])
+        plot_relative_phase(b_rel_phase, bin_depths, axes[2 + n_pl + 3])
 
         # Lock y limits to the heatmap's extent so all panels align exactly
         axes[0].set_ylim(n_bins - 0.5, -0.5)
