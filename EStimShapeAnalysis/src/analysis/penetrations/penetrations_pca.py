@@ -1628,7 +1628,7 @@ def run_cortex_pca(
     }
 
 
-
+def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs: int = 4,
                  mri_config_path: str = MRI_VIEWER_CONFIG_PATH, exclude_sessions=None):
     """Run complete PCA analysis with correlations and plots."""
 
