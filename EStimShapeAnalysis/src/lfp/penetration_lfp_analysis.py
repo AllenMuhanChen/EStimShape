@@ -44,9 +44,7 @@ from intan_lfp import (
     MUA_HIGHPASS_HZ, MUA_THRESHOLD_RMS, MUA_REFRACTORY_SEC,
 )
 
-from src.startup.context import ga_intan_path, ga_database
-from src.repository.export_to_repository import read_session_id_from_db_name
-from src.startup.startup_system import ExperimentManager
+_INTAN_SFTP_PREFIX = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape"
 
 # ============================================================================
 # CONFIGURATION
@@ -778,11 +776,11 @@ def save_to_repository(
 # ============================================================================
 
 class PenetrationLFPAnalysis:
-    def __init__(self, tip_start_mm: float, spatial_smooth_sigma: float = 1.5):
-        self.tip_start_mm        = tip_start_mm
-        self.spatial_smooth_sigma = spatial_smooth_sigma  # depth bins (1 bin = 65 µm)
-        self.session_id, _ = read_session_id_from_db_name(ga_database)
-        self.intan_path    = ga_intan_path
+    def __init__(self, session_id: str, intan_path: str, tip_start_mm: float, spatial_smooth_sigma: float = 1.5):
+        self.session_id           = session_id
+        self.intan_path           = intan_path
+        self.tip_start_mm         = tip_start_mm
+        self.spatial_smooth_sigma = spatial_smooth_sigma
 
     def run(self) -> None:
         print(f"Scanning {self.intan_path}  (session {self.session_id}) ...")
@@ -920,6 +918,6 @@ if __name__ == '__main__':
     }
 
     for session_id, tip_start in tip_starts_for_session_ids.items():
-        manager = ExperimentManager("exp", session_id=session_id)
-        manager.switch_context_only()
-        PenetrationLFPAnalysis(tip_start_mm=tip_start).run()
+        db_name    = f"allen_ga_exp_{session_id}"
+        intan_path = f"{_INTAN_SFTP_PREFIX}/{db_name}"
+        PenetrationLFPAnalysis(session_id=session_id, intan_path=intan_path, tip_start_mm=tip_start).run()
