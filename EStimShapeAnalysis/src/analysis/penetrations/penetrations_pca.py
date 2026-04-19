@@ -1726,7 +1726,7 @@ if __name__ == "__main__":
         host="172.30.6.61"
     )
 
-    exclude_sessions = ["260402_0"]
+    exclude_sessions = ["260402_0", "260327_0"]
     results = run_analysis(conn, n_pcs=4, exclude_sessions =exclude_sessions)
 
     # Access results

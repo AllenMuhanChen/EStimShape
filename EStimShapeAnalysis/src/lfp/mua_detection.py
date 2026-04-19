@@ -32,7 +32,14 @@ def detect_mua_spikes(
     threshold = -threshold_rms * rms
 
     below = filtered < threshold
-    crossings = np.where(np.diff(below.astype(np.int8)) == 1)[0] + 1
+    negative_crossings = np.where(np.diff(below.astype(np.int8)) == 1)[0] + 1
+
+    above = filtered > -threshold
+    positive_crossings = np.where(np.diff(above.astype(np.int8)) == 1)[0] + 1
+
+    crossings = np.concatenate((negative_crossings, positive_crossings))
+    #sort by time
+    crossings.sort()
 
     if len(crossings) == 0:
         return np.array([], dtype=int)
