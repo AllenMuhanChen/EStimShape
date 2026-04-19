@@ -1059,8 +1059,8 @@ def save_to_repository(
 
 class PenetrationLFPAnalysis:
     def __init__(self, session_id: str, intan_path: str, tip_start_mm: float,
-                 spatial_smooth_sigma: float = 1.5,
-                 waveform_smooth_sigma: float = 3.0):
+                 spatial_smooth_sigma: float = 4.0,
+                 waveform_smooth_sigma: float = 6.0):
         self.session_id            = session_id
         self.intan_path            = intan_path
         self.tip_start_mm          = tip_start_mm
