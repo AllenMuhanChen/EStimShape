@@ -353,7 +353,7 @@ def plot_depth_profiles_by_session(
                 ax.set_ylabel('Depth under chamber (mm)')
 
             ax.set_ylim(depths.max() + 0.5, depths.min() - 0.5)
-            ax.grid(True, alpha=0.3)
+            _setup_depth_yaxis(ax, depths)
 
         fig.suptitle(f'Session: {session}', fontsize=14)
         plt.tight_layout()
@@ -424,7 +424,7 @@ def plot_depth_profiles_all_sessions(
                 ax.set_xlabel('PC Value')
 
             ax.set_ylim(depths.max() + 0.5, depths.min() - 0.5)
-            ax.grid(True, alpha=0.3)
+            _setup_depth_yaxis(ax, depths)
 
     plt.suptitle('Depth Profiles by Session', fontsize=14, y=1.01)
     plt.tight_layout()
@@ -509,7 +509,7 @@ def plot_depth_profiles_overlaid(
         else:
             ax.set_ylim(global_max + 0.5, global_min - 0.5)
 
-        ax.grid(True, alpha=0.3)
+        _setup_depth_yaxis(ax, all_depths)
 
     for idx in range(n_pcs, len(axes)):
         axes[idx].set_visible(False)
@@ -654,6 +654,17 @@ def plot_tissue_confidence_by_session(
         plt.show()
 
 
+def _setup_depth_yaxis(ax: plt.Axes, depths: np.ndarray, tick_interval_mm: float = 0.1) -> None:
+    """Set dense y-axis ticks at tick_interval_mm spacing for a depth (mm) axis."""
+    from matplotlib.ticker import MultipleLocator
+    ax.yaxis.set_major_locator(MultipleLocator(tick_interval_mm))
+    ax.yaxis.set_minor_locator(MultipleLocator(tick_interval_mm / 2))
+    ax.tick_params(axis='y', which='major', length=4, labelsize=7)
+    ax.tick_params(axis='y', which='minor', length=2)
+    ax.grid(True, which='major', alpha=0.25)
+    ax.grid(True, which='minor', alpha=0.1)
+
+
 def _draw_tissue_strip(
         ax: plt.Axes,
         depths: np.ndarray,
@@ -692,8 +703,8 @@ def _draw_tissue_line(
     ax.set_xlim(-0.05, 1.05)
     ax.set_xlabel('Tissue Score\n(0=sulcus, 0.5=GM, 1.0=WM)')
     ax.invert_yaxis()
+    _setup_depth_yaxis(ax, depths)
     ax.yaxis.set_tick_params(labelleft=False)
-    ax.grid(True, alpha=0.3)
 
     for score_val, label in [(0.0, 'Sulcus'), (0.5, 'Gray'), (1.0, 'WM')]:
         ax.axvline(score_val, color='lightgray', linewidth=0.5, linestyle=':')
@@ -718,9 +729,9 @@ def _draw_pc_profiles(
     ax.set_xlabel('PC Value')
     ax.set_title('PC Profiles')
     ax.invert_yaxis()
+    _setup_depth_yaxis(ax, depths)
     ax.yaxis.set_tick_params(labelleft=False)
     ax.legend(fontsize=7, loc='best')
-    ax.grid(True, alpha=0.3)
 
 
 def load_mri_pipeline(config_path: str = MRI_VIEWER_CONFIG_PATH) -> dict:
@@ -1325,8 +1336,8 @@ def _draw_mri_tissue_line(
     ax.set_xlabel('Score [0–1]', color='black')
     ax.tick_params(axis='x', colors='black')
     ax.invert_yaxis()
+    _setup_depth_yaxis(ax, depths)
     ax.yaxis.set_tick_params(labelleft=False)
-    ax.grid(True, alpha=0.2)
 
     if not np.all(np.isnan(mri_vals)):
         ax2 = ax.twiny()

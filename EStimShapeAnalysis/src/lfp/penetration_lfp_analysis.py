@@ -583,16 +583,20 @@ def _setup_depth_axis(
     ax: plt.Axes,
     bin_depths: np.ndarray,
     show_ylabel: bool = False,
-    max_labels: int = 25,
+    max_labels: int = 40,
 ) -> None:
-    """Y-axis: depth in mm, shallow at top, deep at bottom."""
+    """Y-axis: depth in mm, shallow at top, deep at bottom.
+    Tick mark at every bin; labels shown every ~max_labels-th bin."""
     n = len(bin_depths)
     step = max(1, n // max_labels)
-    ticks = np.arange(0, n, step)
-    ax.set_yticks(ticks)
+    ax.set_yticks(np.arange(n))
+    ax.set_yticklabels(
+        [f"{bin_depths[i]:.2f}" if i % step == 0 else "" for i in range(n)],
+        fontsize=6,
+    )
+    ax.tick_params(axis='y', which='major', length=4)
     # Override sharey tick-label suppression so every panel shows depths
     ax.tick_params(labelleft=True)
-    ax.set_yticklabels([f"{bin_depths[i]:.2f}" for i in ticks], fontsize=6)
     if show_ylabel:
         ax.set_ylabel("Depth under chamber (mm)")
     if not ax.yaxis_inverted():
