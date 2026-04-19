@@ -6,7 +6,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.ndimage import map_coordinates
+from scipy.ndimage import map_coordinates, gaussian_filter1d
 from scipy.optimize import minimize
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -44,6 +44,7 @@ def load_and_perform_pca(
         table_name: str = "PenetrationMetrics",
         exclude_sessions: Optional[list] = None,
         within_session_normalize: bool = True,
+        pc_smooth_sigma: float = 2.0,
 ):
     """Load data and perform PCA, returning all necessary objects."""
     conn.execute(f"SELECT * FROM {table_name}")
@@ -91,6 +92,17 @@ def load_and_perform_pca(
 
     for i in range(X_pca.shape[1]):
         df_valid[f'PC{i + 1}'] = X_pca[:, i]
+
+    if pc_smooth_sigma > 0:
+        print(f"\nSmoothing PC scores per session (σ={pc_smooth_sigma} depth bins) ...")
+        pc_cols = [f'PC{i + 1}' for i in range(X_pca.shape[1])]
+        for session in df_valid['session_id'].unique():
+            mask = df_valid['session_id'] == session
+            sdata = df_valid.loc[mask].sort_values('depth_under_chamber_mm')
+            for pc_col in pc_cols:
+                smoothed = gaussian_filter1d(sdata[pc_col].values.astype(float),
+                                             sigma=pc_smooth_sigma)
+                df_valid.loc[sdata.index, pc_col] = smoothed
 
     # Print explained variance
     print("\nExplained variance ratio:")
@@ -1674,7 +1686,8 @@ def run_cortex_pca(
 def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs: int = 4,
                  mri_config_path: str = MRI_VIEWER_CONFIG_PATH, exclude_sessions=None,
                  within_session_normalize: bool = True,
-                 swap_tissue_pcs: bool = False):
+                 swap_tissue_pcs: bool = False,
+                 pc_smooth_sigma: float = 2.0):
     """Run complete PCA analysis with correlations and plots."""
 
     # Load and perform PCA
@@ -1682,6 +1695,7 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         conn, table_name,
         exclude_sessions=exclude_sessions,
         within_session_normalize=within_session_normalize,
+        pc_smooth_sigma=pc_smooth_sigma,
     )
 
     # Get and print loadings
