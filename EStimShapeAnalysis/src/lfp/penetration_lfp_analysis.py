@@ -940,11 +940,14 @@ def save_to_repository(
 # ============================================================================
 
 class PenetrationLFPAnalysis:
-    def __init__(self, session_id: str, intan_path: str, tip_start_mm: float, spatial_smooth_sigma: float = 1.5):
-        self.session_id           = session_id
-        self.intan_path           = intan_path
-        self.tip_start_mm         = tip_start_mm
-        self.spatial_smooth_sigma = spatial_smooth_sigma
+    def __init__(self, session_id: str, intan_path: str, tip_start_mm: float,
+                 spatial_smooth_sigma: float = 1.5,
+                 waveform_smooth_sigma: float = 3.0):
+        self.session_id            = session_id
+        self.intan_path            = intan_path
+        self.tip_start_mm          = tip_start_mm
+        self.spatial_smooth_sigma  = spatial_smooth_sigma
+        self.waveform_smooth_sigma = waveform_smooth_sigma  # larger sigma for noisy spike metrics
 
     def run(self) -> None:
         print(f"Scanning {self.intan_path}  (session {self.session_id}) ...")
@@ -981,16 +984,19 @@ class PenetrationLFPAnalysis:
         n_bins = len(bin_depths)
         print(f"  {n_bins} depth bins  [{bin_depths[0]:.2f} – {bin_depths[-1]:.2f} mm]")
 
-        sigma = self.spatial_smooth_sigma
+        sigma   = self.spatial_smooth_sigma
+        sigma_w = self.waveform_smooth_sigma
         if sigma > 0:
-            print(f"Applying spatial smoothing  (sigma = {sigma} bins = {sigma * CHANNEL_SPACING_UM:.0f} µm) ...")
-            b_spec        = smooth_spectra(b_spec,       n_bins, sigma)
-            b_fits        = smooth_fits(b_fits,        n_bins, sigma)
-            b_spike       = smooth_scalars(b_spike,      n_bins, sigma)
-            b_polarity    = smooth_scalars(b_polarity,   n_bins, sigma)
-            b_peak_count  = smooth_scalars(b_peak_count, n_bins, sigma)
-            b_ttp         = smooth_scalars(b_ttp,        n_bins, sigma)
-            b_amp         = smooth_scalars(b_amp,        n_bins, sigma)
+            print(f"Applying spatial smoothing: LFP σ={sigma} bins ({sigma * CHANNEL_SPACING_UM:.0f} µm), "
+                  f"waveform σ={sigma_w} bins ({sigma_w * CHANNEL_SPACING_UM:.0f} µm) ...")
+            b_spec  = smooth_spectra(b_spec,  n_bins, sigma)
+            b_fits  = smooth_fits(b_fits,     n_bins, sigma)
+            b_spike = smooth_scalars(b_spike, n_bins, sigma)
+            # Spike waveform metrics are estimated from individual spikes → noisier → larger sigma
+            b_polarity   = smooth_scalars(b_polarity,   n_bins, sigma_w)
+            b_peak_count = smooth_scalars(b_peak_count, n_bins, sigma_w)
+            b_ttp        = smooth_scalars(b_ttp,        n_bins, sigma_w)
+            b_amp        = smooth_scalars(b_amp,        n_bins, sigma_w)
 
         print("Computing penetration-wide relative power ...")
         normalized = compute_relative_power(b_spec, n_bins)
