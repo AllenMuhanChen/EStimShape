@@ -65,6 +65,12 @@ TROUGH_PEAK_SMOOTH_MS          = 0.1   # Gaussian smooth sigma in ms before trou
 TROUGH_PEAK_NEGATIVE_ONLY      = True  # if True, exclude positive-leading spikes from trough-to-peak mean
 SPIKE_AMPLITUDE_SMOOTH_MS      = 0.0   # smooth before amplitude measurement (0 = no smoothing, preserves true amplitude)
 SPIKE_AMPLITUDE_NEGATIVE_ONLY  = True  # if True, exclude positive-leading spikes from amplitude mean
+
+# Per-channel quality gating (applied in load_recording before binning)
+BAD_CHANNEL_R2_THRESHOLD = 0.7   # exclude channels with FOOOF r² below this (artifact/noise spectrum)
+BAD_CHANNEL_RMS_HI_FACTOR = 5.0  # exclude channels with LFP RMS > factor × median (saturated)
+BAD_CHANNEL_RMS_LO_FACTOR = 0.1  # exclude channels with LFP RMS < factor × median (dead/disconnected)
+
 N_CHANNELS = len(CHANNEL_ORDER)  # 32
 TIP_TO_BOTTOM_CHANNEL_UM = 600  # µm from probe tip to deepest recording channel
 FREQ_RANGE = (0, 150)
@@ -195,8 +201,33 @@ def load_recording(
         lfp_by_name[name] = lfp
 
     spectrum_calc = LFPSpectrum(sample_rate=lfp_rate, nperseg=1000)
-    spectra = {ch: spectrum_calc.compute(lfp) for ch, lfp in lfp_by_name.items()}
-    fits    = FOOOFPowerLaw().fit_dict(spectra)
+    spectra_all   = {ch: spectrum_calc.compute(lfp) for ch, lfp in lfp_by_name.items()}
+    fits_all      = FOOOFPowerLaw().fit_dict(spectra_all)
+
+    # ── Per-channel quality gate ─────────────────────────────────────────────
+    channel_rms = {ch: float(np.sqrt(np.mean(lfp ** 2))) for ch, lfp in lfp_by_name.items()}
+    median_rms  = float(np.median(list(channel_rms.values()))) if channel_rms else 1.0
+
+    good_channels: set = set()
+    n_rejected = 0
+    for ch in lfp_by_name:
+        fit = fits_all.get(ch)
+        rms = channel_rms.get(ch, 0.0)
+        r2_ok   = fit is not None and fit.r_squared >= BAD_CHANNEL_R2_THRESHOLD
+        rms_ok  = (median_rms <= 0
+                   or (rms <= BAD_CHANNEL_RMS_HI_FACTOR * median_rms
+                       and rms >= BAD_CHANNEL_RMS_LO_FACTOR * median_rms))
+        if r2_ok and rms_ok:
+            good_channels.add(ch)
+        else:
+            n_rejected += 1
+    if n_rejected:
+        print(f"    Rejected {n_rejected}/{len(lfp_by_name)} channels "
+              f"(r²<{BAD_CHANNEL_R2_THRESHOLD} or RMS outlier)")
+
+    spectra = {ch: v for ch, v in spectra_all.items() if ch in good_channels}
+    fits    = {ch: v for ch, v in fits_all.items()    if ch in good_channels}
+    # ────────────────────────────────────────────────────────────────────────
 
     spike_rates:              Dict[str, float]          = {}
     spike_polarity_ratios:    Dict[str, Optional[float]] = {}
@@ -204,6 +235,8 @@ def load_recording(
     spike_trough_to_peak_ms:  Dict[str, Optional[float]] = {}
     spike_amplitudes:         Dict[str, Optional[float]] = {}
     for name, wideband in raw_by_name.items():
+        if name not in good_channels:
+            continue
         spikes = detect_mua_spikes(
             wideband, sample_rate,
             highpass_hz=MUA_HIGHPASS_HZ,
