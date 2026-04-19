@@ -1673,7 +1673,8 @@ def run_cortex_pca(
 
 def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs: int = 4,
                  mri_config_path: str = MRI_VIEWER_CONFIG_PATH, exclude_sessions=None,
-                 within_session_normalize: bool = True):
+                 within_session_normalize: bool = True,
+                 swap_tissue_pcs: bool = False):
     """Run complete PCA analysis with correlations and plots."""
 
     # Load and perform PCA
@@ -1707,7 +1708,10 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
     # plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs, align_depths=True)
 
     # Tissue confidence
-    df_conf = compute_tissue_confidence(df)
+    if swap_tissue_pcs:
+        df_conf = compute_tissue_confidence(df, pc1_col='PC2', pc2_col='PC1')
+    else:
+        df_conf = compute_tissue_confidence(df)
     plot_tissue_confidence_by_session(df_conf, pca=pca, n_pcs=n_pcs)
 
     # PC3 vs PC4 in the cortex subspace (PC1>0 and PC2>0)
