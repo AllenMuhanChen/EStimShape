@@ -80,6 +80,10 @@ BAND_COLORS = {
     "gamma":       "tab:green",
 }
 
+# Band power/phase method: True=FOOOF-robust, False=legacy relative normalization
+USE_FOOOF_BAND_POWERS = True   # False: use legacy compute_relative_power normalization
+USE_ABSOLUTE_PHASE    = True   # False: use legacy compute_relative_phase normalization
+
 
 # ============================================================================
 # RECORDING DISCOVERY
@@ -575,6 +579,16 @@ def compute_relative_phase(
     return {idx: float(np.mean(vals)) for idx, vals in bin_rel.items() if vals}
 
 
+def compute_mean_phase(
+    binned_phase_raw: Dict[Tuple[int, str], float],
+) -> Dict[int, float]:
+    """Mean absolute phase angle per depth bin (degrees). No per-channel normalization."""
+    bin_vals: Dict[int, List[float]] = defaultdict(list)
+    for (bin_idx, _ch_name), ph in binned_phase_raw.items():
+        bin_vals[bin_idx].append(ph)
+    return {idx: float(np.mean(vals)) for idx, vals in bin_vals.items() if vals}
+
+
 # ============================================================================
 # PLOTTING HELPERS
 # ============================================================================
@@ -643,6 +657,25 @@ def plot_band_power(
     ax.set_xlabel("Relative Power")
     ax.set_title("Band Power")
     ax.legend(loc="lower right", fontsize=6)
+    _setup_depth_axis(ax, bin_depths)
+
+
+def plot_fooof_band_power(
+    b_spec: Dict[int, Tuple],
+    b_fits: Dict[int, PowerLawFit],
+    bin_depths: np.ndarray,
+    ax: plt.Axes,
+) -> None:
+    n_bins = len(bin_depths)
+    y = np.arange(n_bins)
+    for band, (flo, fhi) in BANDS.items():
+        powers = [_band_power_fooof(b_spec, b_fits, i, flo, fhi) for i in range(n_bins)]
+        powers = [p if p is not None else np.nan for p in powers]
+        ax.plot(powers, y, 'o-', markersize=3, color=BAND_COLORS[band], label=band)
+    ax.axvline(0.0, color='gray', linewidth=0.8, linestyle='--', alpha=0.6)
+    ax.set_xlabel("log\u2081\u2080(P / aperiodic)")
+    ax.set_title("FOOOF Band Power")
+    ax.legend(fontsize=6)
     _setup_depth_axis(ax, bin_depths)
 
 
@@ -812,6 +845,20 @@ def plot_relative_phase(
     _setup_depth_axis(ax, bin_depths)
 
 
+def plot_absolute_phase(
+    binned_phase: Dict[int, float],
+    bin_depths: np.ndarray,
+    ax: plt.Axes,
+) -> None:
+    n_bins = len(bin_depths)
+    y      = np.arange(n_bins)
+    phase  = [binned_phase.get(i, np.nan) for i in range(n_bins)]
+    ax.plot(phase, y, 'o-', markersize=3, color='tab:cyan')
+    ax.set_xlabel("Phase (\u00b0)")
+    ax.set_title("Abs. Phase")
+    _setup_depth_axis(ax, bin_depths)
+
+
 # ============================================================================
 # DATABASE OUTPUT
 # ============================================================================
@@ -881,6 +928,33 @@ def _band_power_at_bin(normalized: Dict[int, Tuple], bin_idx: int, flo: float, f
     return float(np.mean(power[mask])) if np.any(mask) else None
 
 
+def _band_power_fooof(
+    b_spec: Dict[int, Tuple],
+    b_fits: Dict[int, PowerLawFit],
+    bin_idx: int,
+    flo: float,
+    fhi: float,
+) -> Optional[float]:
+    """
+    Mean log10(P(f) / aperiodic(f)) for f in [flo, fhi].
+    Uses smoothed per-bin spectrum and fit parameters.
+    Returns None if data missing or power <= 0.
+    """
+    if bin_idx not in b_spec or bin_idx not in b_fits:
+        return None
+    freqs, power = b_spec[bin_idx]
+    fit = b_fits[bin_idx]
+    mask = (freqs >= flo) & (freqs <= fhi)
+    if not np.any(mask):
+        return None
+    power_band = power[mask]
+    freq_band  = freqs[mask]
+    if np.any(power_band <= 0) or fit.amplitude <= 0:
+        return None
+    aperiodic = fit.amplitude * (freq_band ** fit.exponent)
+    return float(np.mean(np.log10(power_band) - np.log10(aperiodic)))
+
+
 def save_to_repository(
     session_id: str,
     bin_depths: np.ndarray,
@@ -892,11 +966,13 @@ def save_to_repository(
     binned_trough_to_peak_ms: Dict[int, float],
     binned_spike_amplitudes: Dict[int, float],
     binned_rel_imp: Dict[int, float],
-    binned_rel_phase: Dict[int, float],
+    binned_phase: Dict[int, float],
+    binned_spectra: Optional[Dict[int, Tuple]] = None,
 ) -> None:
     """
     Upsert all per-depth-bin penetration metrics into allen_data_repository.
     Creates the PenetrationMetrics table if it doesn't exist.
+    Band powers use FOOOF-based method when USE_FOOOF_BAND_POWERS=True and binned_spectra provided.
     """
     conn = Connection("allen_data_repository")
 
@@ -911,12 +987,21 @@ def save_to_repository(
     for idx, depth_mm in enumerate(bin_depths):
         fit = binned_fits.get(idx)
 
+        if USE_FOOOF_BAND_POWERS and binned_spectra is not None:
+            bp_dt = _band_power_fooof(binned_spectra, binned_fits, idx, *BANDS["delta-theta"])
+            bp_ab = _band_power_fooof(binned_spectra, binned_fits, idx, *BANDS["alpha-beta"])
+            bp_g  = _band_power_fooof(binned_spectra, binned_fits, idx, *BANDS["gamma"])
+        else:
+            bp_dt = _band_power_at_bin(normalized, idx, *BANDS["delta-theta"])
+            bp_ab = _band_power_at_bin(normalized, idx, *BANDS["alpha-beta"])
+            bp_g  = _band_power_at_bin(normalized, idx, *BANDS["gamma"])
+
         row = (
             session_id,
             float(depth_mm),
-            _band_power_at_bin(normalized, idx, *BANDS["delta-theta"]),
-            _band_power_at_bin(normalized, idx, *BANDS["alpha-beta"]),
-            _band_power_at_bin(normalized, idx, *BANDS["gamma"]),
+            bp_dt,
+            bp_ab,
+            bp_g,
             float(fit.exponent)  if fit and not np.isnan(fit.exponent)  else None,
             float(fit.amplitude) if fit and not np.isnan(fit.amplitude) else None,
             float(fit.r_squared) if fit else None,
@@ -926,7 +1011,7 @@ def save_to_repository(
             binned_trough_to_peak_ms.get(idx),
             binned_spike_amplitudes.get(idx),
             binned_rel_imp.get(idx),
-            binned_rel_phase.get(idx),
+            binned_phase.get(idx),
         )
         conn.execute(_UPSERT_PENETRATION_METRICS_SQL, row)
         n_inserted += 1
@@ -1004,25 +1089,29 @@ class PenetrationLFPAnalysis:
         print("Computing relative impedance and phase ...")
         b_rel_imp   = compute_relative_impedance(b_imp_raw)
         b_rel_phase = compute_relative_phase(b_phase_raw)
+        b_phase_save = compute_mean_phase(b_phase_raw) if USE_ABSOLUTE_PHASE else b_rel_phase
         if sigma > 0:
             if b_rel_imp:
-                b_rel_imp   = smooth_scalars(b_rel_imp,   n_bins, sigma)
+                b_rel_imp    = smooth_scalars(b_rel_imp,    n_bins, sigma)
             if b_rel_phase:
-                b_rel_phase = smooth_scalars(b_rel_phase, n_bins, sigma)
+                b_rel_phase  = smooth_scalars(b_rel_phase,  n_bins, sigma)
+            if USE_ABSOLUTE_PHASE and b_phase_save:
+                b_phase_save = smooth_scalars(b_phase_save, n_bins, sigma)
 
         print("Plotting ...")
-        self._plot(bin_depths, normalized, b_spec, b_fits, b_spike, b_polarity, b_peak_count, b_ttp, b_amp, b_rel_imp, b_rel_phase)
+        self._plot(bin_depths, normalized, b_spec, b_fits, b_spike, b_polarity, b_peak_count, b_ttp, b_amp, b_rel_imp, b_phase_save)
 
         print("Saving metrics to allen_data_repository ...")
         try:
             save_to_repository(
                 self.session_id, bin_depths, normalized,
-                b_fits, b_spike, b_polarity, b_peak_count, b_ttp, b_amp, b_rel_imp, b_rel_phase,
+                b_fits, b_spike, b_polarity, b_peak_count, b_ttp, b_amp,
+                b_rel_imp, b_phase_save, binned_spectra=b_spec,
             )
         except Exception as exc:
             print(f"  Warning: could not save to repository: {exc}")
 
-    def _plot(self, bin_depths, normalized, b_spec, b_fits, b_spike, b_polarity, b_peak_count, b_ttp, b_amp, b_rel_imp, b_rel_phase):
+    def _plot(self, bin_depths, normalized, b_spec, b_fits, b_spike, b_polarity, b_peak_count, b_ttp, b_amp, b_rel_imp, b_phase):
         cfg  = POWER_LAW_PANELS
         n_pl = sum([
             cfg.get('show_exponent', True),
@@ -1047,7 +1136,10 @@ class PenetrationLFPAnalysis:
         )
 
         plot_heatmap(normalized, bin_depths, axes[0])
-        plot_band_power(normalized, bin_depths, axes[1])
+        if USE_FOOOF_BAND_POWERS:
+            plot_fooof_band_power(b_spec, b_fits, bin_depths, axes[1])
+        else:
+            plot_band_power(normalized, bin_depths, axes[1])
         plot_power_law_panels(b_fits, b_spec, bin_depths, axes[2:2 + n_pl], cfg)
         plot_spike_rates(b_spike, bin_depths, axes[2 + n_pl])
         plot_polarity_ratio(b_polarity, bin_depths, axes[2 + n_pl + 1])
@@ -1055,7 +1147,10 @@ class PenetrationLFPAnalysis:
         plot_trough_to_peak_ms(b_ttp, bin_depths, axes[2 + n_pl + 3])
         plot_spike_amplitude(b_amp, bin_depths, axes[2 + n_pl + 4])
         plot_relative_impedance(b_rel_imp, bin_depths, axes[2 + n_pl + 5])
-        plot_relative_phase(b_rel_phase, bin_depths, axes[2 + n_pl + 6])
+        if USE_ABSOLUTE_PHASE:
+            plot_absolute_phase(b_phase, bin_depths, axes[2 + n_pl + 6])
+        else:
+            plot_relative_phase(b_phase, bin_depths, axes[2 + n_pl + 6])
 
         # Lock y limits to the heatmap's extent so all panels align exactly
         axes[0].set_ylim(n_bins - 0.5, -0.5)
