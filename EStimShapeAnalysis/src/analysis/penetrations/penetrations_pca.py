@@ -703,9 +703,23 @@ def _draw_tissue_strip(
         title: str = '',
         vmax: float = 1.0,
 ) -> None:
-    """Render scores as a grayscale imshow strip with depth on the y-axis."""
-    n = len(depths)
-    strip = scores.reshape(n, 1)
+    """Render scores as a grayscale imshow strip with depth on the y-axis.
+
+    Interpolates to a fine uniform depth grid so that imshow pixel rows map
+    correctly to physical depth positions even when the input depth bins are
+    irregularly spaced or some bins are missing.
+    """
+    from scipy.interpolate import interp1d
+
+    if len(depths) >= 2:
+        n_fine = max(500, len(depths) * 20)
+        d_fine = np.linspace(depths[0], depths[-1], n_fine)
+        f = interp1d(depths, scores, kind='linear', bounds_error=False,
+                     fill_value=(scores[0], scores[-1]))
+        strip = f(d_fine).reshape(-1, 1)
+    else:
+        strip = scores.reshape(-1, 1)
+        d_fine = depths
 
     ax.imshow(
         strip,
@@ -714,7 +728,7 @@ def _draw_tissue_strip(
         vmin=0,
         vmax=vmax,
         origin='upper',
-        extent=[0, 1, depths[-1], depths[0]],
+        extent=[0, 1, d_fine[-1], d_fine[0]],
     )
     ax.set_xticks([])
     ax.set_ylabel('Depth under chamber (mm)')
