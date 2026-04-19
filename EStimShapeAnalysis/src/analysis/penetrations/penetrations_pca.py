@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.ndimage import map_coordinates, gaussian_filter1d
+from scipy.special import softmax as _softmax
 from scipy.optimize import minimize
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -630,42 +631,41 @@ def _gmm_brain_threshold(pc1_values: np.ndarray) -> float:
 
 def compute_tissue_confidence(
         df: pd.DataFrame,
-        pc1_col: str = 'PC1',
-        pc2_col: str = 'PC2',
+        wm_col: str = 'PC1',
+        gm_col: str = 'PC2',
+        sulcus_col: str = 'PC4',
 ) -> pd.DataFrame:
     """
-    Compute per-depth tissue type value and confidence from PC1 and PC2.
+    3-class softmax tissue model.
 
-    PC1: negative = sulcus, positive = brain  (threshold auto-detected via GMM)
-    PC2: negative = white matter, positive = gray matter
+    Each tissue type is represented by the PC that most cleanly encodes it:
+      wm_col     (default PC1): high = white matter
+      gm_col     (default PC2): high = gray matter (pyramidal / high gamma)
+      sulcus_col (default PC4): high = sulcus/CSF  (low relative impedance)
 
-    Adds four columns to a copy of df:
-      p_brain           : P(brain tissue)   via sigmoid((PC1 - gmm_threshold) / std)
-      p_gray            : P(gray matter)    via sigmoid(PC2 / std)
-      tissue_score      : tissue type value — ~0.0=sulcus, ~0.5=GM, ~1.0=WM
-      tissue_confidence : how confident we are about that label
+    Adds columns:
+      p_wm, p_gm, p_sulcus : class probabilities (sum to 1 per row)
+      tissue_score          : 0 = sulcus, 0.5 = GM, 1.0 = WM
+      tissue_confidence     : max class probability (1 = certain, ~0.33 = ambiguous)
     """
-    def sigmoid(x):
-        return 1.0 / (1.0 + np.exp(-x))
-
     df = df.copy()
-    std1 = df[pc1_col].std()
-    std2 = df[pc2_col].std()
+    std_wm     = df[wm_col].std()
+    std_gm     = df[gm_col].std()
+    std_sulcus = df[sulcus_col].std()
 
-    threshold = _gmm_brain_threshold(df[pc1_col].values)
+    logits = np.stack([
+        df[wm_col].values     / std_wm,
+        df[gm_col].values     / std_gm,
+        df[sulcus_col].values / std_sulcus,
+    ], axis=1)                              # shape (n_bins, 3)
 
-    df['p_brain'] = sigmoid((df[pc1_col] - threshold) / std1)
-    df['p_gray']  = sigmoid(df[pc2_col] / std2)
-    df['tissue_score'] = df['p_brain'] * (1.0 - 0.5 * df['p_gray'])
+    probs = _softmax(logits, axis=1)
+    df['p_wm']     = probs[:, 0]
+    df['p_gm']     = probs[:, 1]
+    df['p_sulcus'] = probs[:, 2]
 
-    # Confidence: high when clearly sulcus OR clearly WM OR clearly GM
-    # max(1-p_brain, p_brain * max(p_gray, 1-p_gray))
-    #   term1: confident sulcus   (p_brain≈0 → 1-p_brain≈1)
-    #   term2: confident WM or GM (p_brain≈1 AND p_gray near 0 or 1)
-    df['tissue_confidence'] = np.maximum(
-        1.0 - df['p_brain'],
-        df['p_brain'] * np.maximum(df['p_gray'], 1.0 - df['p_gray']),
-    )
+    df['tissue_score']      = 0.5 * df['p_gm'] + 1.0 * df['p_wm']
+    df['tissue_confidence'] = probs.max(axis=1)
     return df
 
 
@@ -1782,11 +1782,8 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
     plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs)
     # plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs, align_depths=True)
 
-    # Tissue confidence
-    if swap_tissue_pcs:
-        df_conf = compute_tissue_confidence(df, pc1_col='PC2', pc2_col='PC1')
-    else:
-        df_conf = compute_tissue_confidence(df)
+    # Tissue confidence (3-class softmax: PC1=WM, PC2=GM, PC4=sulcus)
+    df_conf = compute_tissue_confidence(df)
     plot_tissue_confidence_by_session(df_conf, pca=pca, n_pcs=n_pcs)
 
     # PC3 vs PC4 in the cortex subspace (PC1>0 and PC2>0)
