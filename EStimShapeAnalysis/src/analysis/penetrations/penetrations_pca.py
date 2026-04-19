@@ -1445,7 +1445,190 @@ def plot_cortex_pc_scatter(
     plt.show()
 
 
-def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs: int = 4,
+def run_cortex_pca(
+        df_conf: pd.DataFrame,
+        feature_columns: list,
+        n_pcs: int = 4,
+        tissue_score_min: float = 0.3,
+        tissue_score_max: float = 0.75,
+) -> Optional[dict]:
+    """
+    Second-stage PCA run on cortical gray-matter bins only.
+
+    Why a separate PCA rather than looking at PC3/PC4 from the global PCA:
+    global PCA enforces orthogonality across ALL tissue types (sulcus, WM,
+    GM), so PC3/PC4 are constrained to be orthogonal to sulcus↔brain and
+    GM↔WM axes.  Any within-cortex structure that partially aligns with
+    those axes gets projected out.  Running PCA fresh on the cortical
+    subset lets the components freely capture within-cortex variance
+    (layer-to-layer or column-to-column) without that constraint.
+
+    Parameters
+    ----------
+    tissue_score_min / max : gray-matter band.  tissue_score ≈ 0.5 = GM,
+        0.0 = sulcus, 1.0 = WM.  Default [0.3, 0.75] keeps GM and excludes
+        clear sulcus / WM.
+
+    Returns a dict with keys: pca, df_ctx, feature_columns, X_pca, or None
+    if too few bins.
+    """
+    if 'tissue_score' not in df_conf.columns:
+        print("run_cortex_pca: tissue_score column missing — run compute_tissue_confidence first.")
+        return None
+
+    mask = (df_conf['tissue_score'] >= tissue_score_min) & \
+           (df_conf['tissue_score'] <= tissue_score_max)
+    df_ctx = df_conf[mask].copy()
+    n_ctx = mask.sum()
+    print(f"\nCortex PCA: {n_ctx} / {len(df_conf)} bins in "
+          f"tissue_score [{tissue_score_min}, {tissue_score_max}]")
+
+    if n_ctx < max(10, len(feature_columns)):
+        print("  Too few cortical bins — skipping cortex PCA.")
+        return None
+
+    X = df_ctx[feature_columns].copy()
+    X = X.fillna(X.mean())
+    valid = ~X.isna().any(axis=1)
+    X = X[valid]
+    df_ctx = df_ctx[valid].copy()
+
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    pca_ctx = PCA()
+    X_pca = pca_ctx.fit_transform(X_scaled)
+
+    n_pcs_act = min(n_pcs, X_pca.shape[1])
+    for i in range(n_pcs_act):
+        df_ctx[f'CPC{i + 1}'] = X_pca[:, i]
+
+    print("\nCortex PCA explained variance:")
+    cum = 0.0
+    for i, v in enumerate(pca_ctx.explained_variance_ratio_[:n_pcs_act]):
+        cum += v
+        print(f"  CPC{i + 1}: {v:.3f} ({v * 100:.1f}%)  cumulative {cum * 100:.1f}%")
+
+    # ── Loadings ────────────────────────────────────────────────────────────
+    loadings = pd.DataFrame(
+        pca_ctx.components_[:n_pcs_act].T,
+        columns=[f'CPC{i + 1}' for i in range(n_pcs_act)],
+        index=feature_columns,
+    )
+    fig, axes = plt.subplots(1, n_pcs_act, figsize=(4 * n_pcs_act, 6), sharey=True)
+    if n_pcs_act == 1:
+        axes = [axes]
+    for i, ax in enumerate(axes):
+        vals = pca_ctx.components_[i]
+        colors = ['steelblue' if v >= 0 else 'coral' for v in vals]
+        ax.barh(np.arange(len(feature_columns)), vals, color=colors, alpha=0.7)
+        ax.axvline(0, color='black', linewidth=0.8)
+        ax.set_yticks(np.arange(len(feature_columns)))
+        if i == 0:
+            ax.set_yticklabels(feature_columns)
+        ax.set_title(f"CPC{i + 1} ({pca_ctx.explained_variance_ratio_[i] * 100:.1f}%)")
+        ax.set_xlabel('Loading')
+        ax.grid(True, alpha=0.3, axis='x')
+    fig.suptitle('Cortex PCA Loadings', fontsize=13)
+    plt.tight_layout()
+    plt.savefig('cortex_pca_loadings.png', dpi=150, bbox_inches='tight')
+    plt.show()
+
+    # ── Depth profiles per session ──────────────────────────────────────────
+    sessions = sorted(df_ctx['session_id'].unique())
+    n_sessions = len(sessions)
+    cpc_cols = [f'CPC{i + 1}' for i in range(n_pcs_act)]
+    pc_colors = plt.cm.Set1(np.linspace(0, 1, n_pcs_act))
+
+    fig, axes = plt.subplots(1, n_sessions,
+                             figsize=(3.5 * n_sessions, 7),
+                             sharey=False)
+    if n_sessions == 1:
+        axes = [axes]
+
+    for ax, session in zip(axes, sessions):
+        sd = df_ctx[df_ctx['session_id'] == session].sort_values('depth_under_chamber_mm')
+        if sd.empty:
+            ax.set_visible(False)
+            continue
+        depths = sd['depth_under_chamber_mm'].values
+        for i, col in enumerate(cpc_cols):
+            v = pca_ctx.explained_variance_ratio_[i] * 100
+            ax.plot(sd[col].values, depths,
+                    'o-', color=pc_colors[i], linewidth=1.5, markersize=4,
+                    alpha=0.85, label=f'CPC{i + 1} ({v:.0f}%)')
+        ax.axvline(0, color='gray', linewidth=0.8, linestyle='--', alpha=0.4)
+        ax.set_title(str(session), fontsize=9)
+        ax.set_xlabel('Cortex PC value')
+        if ax is axes[0]:
+            ax.set_ylabel('Depth under chamber (mm)')
+        ax.invert_yaxis()
+        _setup_depth_yaxis(ax, depths)
+        ax.legend(fontsize=7)
+
+    fig.suptitle(
+        f'Cortex PCA depth profiles  (tissue_score [{tissue_score_min}–{tissue_score_max}])',
+        fontsize=12,
+    )
+    plt.tight_layout()
+    plt.savefig('cortex_pca_depth_profiles.png', dpi=150, bbox_inches='tight')
+    plt.show()
+
+    # ── Scatter CPC1 vs CPC2 ───────────────────────────────────────────────
+    if n_pcs_act >= 2:
+        if n_sessions <= 10:
+            sess_colors = plt.cm.tab10(np.linspace(0, 1, n_sessions))
+        else:
+            sess_colors = plt.cm.tab20(np.linspace(0, 1, n_sessions))
+        sess_cmap = dict(zip(sessions, sess_colors))
+
+        fig, (ax_s, ax_d) = plt.subplots(1, 2, figsize=(13, 5))
+        for sess in sessions:
+            sd = df_ctx[df_ctx['session_id'] == sess]
+            ax_s.scatter(sd['CPC1'], sd['CPC2'],
+                         c=[sess_cmap[sess]], label=sess,
+                         alpha=0.75, edgecolors='none', s=55)
+        ax_s.axhline(0, color='gray', linewidth=0.8, linestyle='--', alpha=0.5)
+        ax_s.axvline(0, color='gray', linewidth=0.8, linestyle='--', alpha=0.5)
+        v1 = pca_ctx.explained_variance_ratio_[0] * 100
+        v2 = pca_ctx.explained_variance_ratio_[1] * 100
+        ax_s.set_xlabel(f'CPC1 ({v1:.1f}%)')
+        ax_s.set_ylabel(f'CPC2 ({v2:.1f}%)')
+        ax_s.set_title('By session')
+        ax_s.legend(fontsize=7, bbox_to_anchor=(1.01, 1), loc='upper left')
+        ax_s.grid(True, alpha=0.25)
+
+        depths_all = df_ctx['depth_under_chamber_mm'].values
+        sc = ax_d.scatter(df_ctx['CPC1'], df_ctx['CPC2'],
+                          c=depths_all, cmap='viridis_r',
+                          alpha=0.75, edgecolors='none', s=55)
+        plt.colorbar(sc, ax=ax_d, label='Depth (mm)')
+        ax_d.axhline(0, color='gray', linewidth=0.8, linestyle='--', alpha=0.5)
+        ax_d.axvline(0, color='gray', linewidth=0.8, linestyle='--', alpha=0.5)
+        ax_d.set_xlabel(f'CPC1 ({v1:.1f}%)')
+        ax_d.set_ylabel(f'CPC2 ({v2:.1f}%)')
+        ax_d.set_title('By depth')
+        ax_d.grid(True, alpha=0.25)
+
+        fig.suptitle(
+            f'Cortex PCA  —  CPC1 vs CPC2\n'
+            f'n = {len(df_ctx)} bins, tissue_score [{tissue_score_min}–{tissue_score_max}]',
+            fontsize=12,
+        )
+        plt.tight_layout()
+        plt.savefig('cortex_pca_scatter.png', dpi=150, bbox_inches='tight')
+        plt.show()
+
+    return {
+        'pca': pca_ctx,
+        'df_ctx': df_ctx,
+        'feature_columns': feature_columns,
+        'X_pca': X_pca,
+        'scaler': scaler,
+    }
+
+
+
                  mri_config_path: str = MRI_VIEWER_CONFIG_PATH, exclude_sessions=None):
     """Run complete PCA analysis with correlations and plots."""
 
@@ -1481,6 +1664,9 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
 
     # PC3 vs PC4 in the cortex subspace (PC1>0 and PC2>0)
     plot_cortex_pc_scatter(df_conf, pca)
+
+    # Second-stage PCA on cortical bins only
+    cortex_pca_result = run_cortex_pca(df_conf, feature_columns, n_pcs=n_pcs)
 
     # MRI comparison + optimisation
     fit_scores = None
@@ -1528,6 +1714,7 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         'fit_scores': fit_scores,
         'opt_result': opt_result,
         'mri_pipeline': mri_pipeline,
+        'cortex_pca': cortex_pca_result,
     }
 
 
