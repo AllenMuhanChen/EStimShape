@@ -632,16 +632,18 @@ def _gmm_brain_threshold(pc1_values: np.ndarray) -> float:
 def compute_tissue_confidence(
         df: pd.DataFrame,
         wm_col: str = 'PC1',
+        wm2_col: str = 'PC3',   # axonal/waveform WM indicator (triphasic, narrow, positive spikes)
         gm_col: str = 'PC2',
         sulcus_col: str = 'PC4',
 ) -> pd.DataFrame:
     """
     3-class softmax tissue model.
 
-    Each tissue type is represented by the PC that most cleanly encodes it:
-      wm_col     (default PC1): high = white matter
-      gm_col     (default PC2): high = gray matter (pyramidal / high gamma)
-      sulcus_col (default PC4): high = sulcus/CSF  (low relative impedance)
+    WM logit combines two independent WM indicators (LFP-based and waveform-based):
+      wm_col     (default PC1): LFP signature of WM (high power, flat spectrum)
+      wm2_col    (default PC3): axonal waveforms (short, triphasic, positive-leading)
+      gm_col     (default PC2): gray matter (pyramidal waveforms, high gamma)
+      sulcus_col (default PC4): sulcus/CSF (low relative impedance)
 
     Adds columns:
       p_wm, p_gm, p_sulcus : class probabilities (sum to 1 per row)
@@ -650,11 +652,14 @@ def compute_tissue_confidence(
     """
     df = df.copy()
     std_wm     = df[wm_col].std()
+    std_wm2    = df[wm2_col].std()
     std_gm     = df[gm_col].std()
     std_sulcus = df[sulcus_col].std()
 
+    wm_logit = (df[wm_col].values / std_wm + df[wm2_col].values / std_wm2) / 2
+
     logits = np.stack([
-        df[wm_col].values     / std_wm,
+        wm_logit,
         df[gm_col].values     / std_gm,
         df[sulcus_col].values / std_sulcus,
     ], axis=1)                              # shape (n_bins, 3)
