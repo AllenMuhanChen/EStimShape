@@ -44,6 +44,7 @@ class ChamberMixin:
             self.btn_ch_reset.config(state="normal")
             self.btn_ch_undo.config(state="normal")
             self.btn_ch_redo.config(state="normal")
+            self.btn_load_pca_result.config(state="normal")
             self._update_chamber_corr_info()
 
             self.btn_toggle_chamber.config(state="normal")
@@ -97,6 +98,62 @@ class ChamberMixin:
         self.chamber_info_var.set(
             f"Chamber: {len(base_screws)} screwholes, origin="
             f"[{origin[0]:.1f}, {origin[1]:.1f}, {origin[2]:.1f}] mm")
+
+    def _load_pca_opt_result(self):
+        """Load a PCA optimisation result JSON and apply it to chamber + pen offsets."""
+        import json, os
+        from tkinter import filedialog, messagebox
+        from src.mri.correction import push_correction, save_corrections, load_corrections
+
+        if not self.chamber_state.get('loaded'):
+            messagebox.showerror("Error", "Load a chamber file first.")
+            return
+
+        fn = filedialog.askopenfilename(
+            title="Select PCA optimisation result",
+            filetypes=[("JSON", "*.json"), ("All", "*.*")],
+        )
+        if not fn:
+            return
+
+        try:
+            with open(fn) as f:
+                result = json.load(f)
+
+            M = np.array(result['chamber_correction_4x4'])
+            note = (f"PCA opt {os.path.basename(fn)} "
+                    f"(r {result['score_before']:.4f}→{result['score_after']:.4f})")
+            push_correction(self.chamber_corr_config, M, note=note)
+            save_corrections(self.chamber_corr_json_path, self.chamber_corr_config)
+            self.chamber_correction = M
+
+            # Write pen offsets file beside monkey_specific.py
+            pen_offsets_path = os.path.splitext(self._chamber_path)[0] + '_pen_offsets.json'
+            offsets = {
+                'timestamp': result.get('timestamp', ''),
+                'note': note,
+                'daz_deg': result['daz_deg'],
+                'del_deg': result['del_deg'],
+                'ddepth_mm': result['ddepth_mm'],
+                'score_before': result['score_before'],
+                'score_after': result['score_after'],
+            }
+            with open(pen_offsets_path, 'w') as f:
+                json.dump(offsets, f, indent=2)
+            self.pen_offsets = {k: float(result[k])
+                                for k in ('daz_deg', 'del_deg', 'ddepth_mm')}
+
+            self._refit_chamber()
+            self._update_chamber_corr_info()
+            self.status_var.set(
+                f"PCA result applied: daz={result['daz_deg']:+.3f}°  "
+                f"del={result['del_deg']:+.3f}°  ddepth={result['ddepth_mm']:+.3f} mm  "
+                f"[{note}]")
+            if self.data is not None:
+                self.display_all()
+        except Exception as e:
+            messagebox.showerror("Error loading PCA result", str(e))
+            import traceback; traceback.print_exc()
 
     def _toggle_chamber(self):
         self.chamber_show = not self.chamber_show

@@ -190,6 +190,9 @@ class PanelsMixin:
         self.btn_ch_redo = ttk.Button(cb_row, text="Redo", command=self._chamber_corr_redo, state="disabled")
         self.btn_ch_redo.pack(side=tk.LEFT, padx=3)
         ttk.Button(cb_row, text="History", command=self._show_chamber_corr_history).pack(side=tk.LEFT, padx=3)
+        self.btn_load_pca_result = ttk.Button(cb_row, text="Load PCA Result",
+                                              command=self._load_pca_opt_result, state="disabled")
+        self.btn_load_pca_result.pack(side=tk.LEFT, padx=3)
         self.ch_corr_info_var = tk.StringVar(value="")
         ttk.Label(cc, textvariable=self.ch_corr_info_var).pack(anchor="w", padx=5, pady=1)
         self.ch_corr_ver_var = tk.StringVar(value="")

@@ -1368,9 +1368,14 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         fit_scores = compute_trajectory_fit_scores(df_conf)
         plot_mri_comparison_by_session(df_conf, fit_scores)
 
-        print("\n── Saving optimised parameters ──")
-        opt_result['result_path'] = save_optimized_params(opt_result, mri_pipeline)
-        print("  Call apply_pca_opt_result(result_path, mri_pipeline) to push to viewer.")
+        print("\n── Optimisation complete ──")
+        print(f"  score: {opt_result['score_before']:.4f} → {opt_result['score_after']:.4f}")
+        answer = input("Save this result? [y/N]: ").strip().lower()
+        if answer == 'y':
+            opt_result['result_path'] = save_optimized_params(opt_result, mri_pipeline)
+            print("  Call apply_pca_opt_result(result_path, mri_pipeline) to push to viewer.")
+        else:
+            print("  Result not saved.")
 
     except Exception as exc:
         import traceback
