@@ -571,8 +571,10 @@ def compute_tissue_confidence(
 
 def plot_tissue_confidence_by_session(
         df: pd.DataFrame,
+        pca: PCA = None,
         sessions: list = None,
         strip_width: float = 0.4,
+        n_pcs: int = 4,
 ) -> None:
     """
     For each session plot a grayscale depth strip showing tissue confidence:
@@ -580,6 +582,7 @@ def plot_tissue_confidence_by_session(
       gray   (~0.5) = gray matter
       white  (~1.0) = white matter
 
+    If pca is provided, appends a PC profiles panel (PC1–n_pcs, all colours).
     Produces one combined figure with all sessions side by side and saves it,
     then shows individual per-session figures.
     """
@@ -587,17 +590,18 @@ def plot_tissue_confidence_by_session(
         sessions = sorted(df['session_id'].unique())
 
     n_sessions = len(sessions)
+    show_pcs = pca is not None
+
+    panels_per_session = 3 if show_pcs else 2
+    width_ratios_unit  = [strip_width, 1, 1.2] if show_pcs else [strip_width, 1]
 
     # ── Combined figure (all sessions as columns) ──────────────────────────
     fig_all, axes_all = plt.subplots(
-        1, n_sessions * 2,
-        figsize=(3 * n_sessions, 10),
-        gridspec_kw={'width_ratios': [strip_width, 1] * n_sessions},
+        1, n_sessions * panels_per_session,
+        figsize=((2 + (1.2 if show_pcs else 0)) * n_sessions + 1, 10),
+        gridspec_kw={'width_ratios': width_ratios_unit * n_sessions},
     )
-    if n_sessions == 1:
-        axes_all = np.array(axes_all).reshape(1, 2)
-    else:
-        axes_all = np.array(axes_all).reshape(n_sessions, 2)
+    axes_all = np.array(axes_all).reshape(n_sessions, panels_per_session)
 
     for col_idx, session in enumerate(sessions):
         sdata = df[df['session_id'] == session].copy().sort_values('depth_under_chamber_mm')
@@ -607,14 +611,13 @@ def plot_tissue_confidence_by_session(
         depths = sdata['depth_under_chamber_mm'].values
         scores = sdata['tissue_score'].values
 
-        ax_strip = axes_all[col_idx, 0]
-        ax_line = axes_all[col_idx, 1]
-
-        _draw_tissue_strip(ax_strip, depths, scores, title=session)
-        _draw_tissue_line(ax_line, depths, scores)
+        _draw_tissue_strip(axes_all[col_idx, 0], depths, scores, title=session)
+        _draw_tissue_line(axes_all[col_idx, 1], depths, scores)
+        if show_pcs:
+            _draw_pc_profiles(axes_all[col_idx, 2], sdata, depths, pca, n_pcs)
 
         if col_idx > 0:
-            ax_strip.set_ylabel('')
+            axes_all[col_idx, 0].set_ylabel('')
 
     fig_all.suptitle('Tissue Confidence by Session\n'
                      '(black=sulcus, gray=gray matter, white=white matter)',
@@ -632,13 +635,16 @@ def plot_tissue_confidence_by_session(
         depths = sdata['depth_under_chamber_mm'].values
         scores = sdata['tissue_score'].values
 
-        fig, (ax_strip, ax_line) = plt.subplots(
-            1, 2,
-            figsize=(5, 10),
-            gridspec_kw={'width_ratios': [strip_width, 1]},
+        fig, axes = plt.subplots(
+            1, panels_per_session,
+            figsize=((4 + (2 if show_pcs else 0)), 10),
+            gridspec_kw={'width_ratios': width_ratios_unit},
+            sharey=True,
         )
-        _draw_tissue_strip(ax_strip, depths, scores, title=session)
-        _draw_tissue_line(ax_line, depths, scores)
+        _draw_tissue_strip(axes[0], depths, scores, title=session)
+        _draw_tissue_line(axes[1], depths, scores)
+        if show_pcs:
+            _draw_pc_profiles(axes[2], sdata, depths, pca, n_pcs)
 
         fig.suptitle(f'Tissue Confidence — {session}\n'
                      '(black=sulcus, gray=gray matter, white=white matter)',
@@ -691,6 +697,30 @@ def _draw_tissue_line(
 
     for score_val, label in [(0.0, 'Sulcus'), (0.5, 'Gray'), (1.0, 'WM')]:
         ax.axvline(score_val, color='lightgray', linewidth=0.5, linestyle=':')
+
+
+def _draw_pc_profiles(
+        ax: plt.Axes,
+        sdata: pd.DataFrame,
+        depths: np.ndarray,
+        pca: PCA,
+        n_pcs: int = 4,
+) -> None:
+    """Plot PC1–n_pcs vs depth on a single axis, one colour per PC."""
+    pc_colors = plt.cm.Set1(np.linspace(0, 1, n_pcs))
+    pc_columns = [f'PC{i + 1}' for i in range(n_pcs) if f'PC{i + 1}' in sdata.columns]
+    for i, pc_col in enumerate(pc_columns):
+        var_pct = pca.explained_variance_ratio_[i] * 100
+        ax.plot(sdata[pc_col].values, depths,
+                'o-', color=pc_colors[i], linewidth=1.5, markersize=4, alpha=0.8,
+                label=f'{pc_col} ({var_pct:.0f}%)')
+    ax.axvline(0, color='gray', linewidth=0.8, linestyle='--', alpha=0.5)
+    ax.set_xlabel('PC Value')
+    ax.set_title('PC Profiles')
+    ax.invert_yaxis()
+    ax.yaxis.set_tick_params(labelleft=False)
+    ax.legend(fontsize=7, loc='best')
+    ax.grid(True, alpha=0.3)
 
 
 def load_mri_pipeline(config_path: str = MRI_VIEWER_CONFIG_PATH) -> dict:
@@ -1348,7 +1378,7 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
 
     # Tissue confidence
     df_conf = compute_tissue_confidence(df)
-    plot_tissue_confidence_by_session(df_conf)
+    plot_tissue_confidence_by_session(df_conf, pca=pca, n_pcs=n_pcs)
 
     # MRI comparison + optimisation
     fit_scores = None
