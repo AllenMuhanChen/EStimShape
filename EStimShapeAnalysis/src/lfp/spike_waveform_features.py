@@ -160,3 +160,40 @@ def compute_mean_trough_to_peak_ms(
     ]
     durations = [d for d in durations if d is not None]
     return float(np.mean(durations)) if durations else None
+
+
+def compute_waveform_amplitude(
+    waveform: np.ndarray,
+    smooth_ms: float = 0.0,
+    sample_rate: float = 20_000.0,
+) -> float:
+    """Peak-to-peak amplitude of a single waveform snippet."""
+    if smooth_ms > 0:
+        sigma = smooth_ms * sample_rate / 1000
+        waveform = gaussian_filter1d(waveform.astype(float), sigma=sigma)
+    return float(np.max(waveform) - np.min(waveform))
+
+
+def compute_mean_spike_amplitude(
+    waveforms: np.ndarray,
+    smooth_ms: float = 0.0,
+    sample_rate: float = 20_000.0,
+    negative_only: bool = True,
+) -> Optional[float]:
+    """
+    Mean peak-to-peak spike amplitude across waveforms.
+
+    Parameters
+    ----------
+    negative_only : if True, exclude positive-leading spikes.
+    smooth_ms : Gaussian smooth sigma in ms before measurement (default 0 = no smoothing,
+                preserving true amplitude; smoothing reduces apparent amplitude).
+    """
+    if len(waveforms) == 0:
+        return None
+    amps = [
+        compute_waveform_amplitude(w, smooth_ms, sample_rate)
+        for w in waveforms
+        if not negative_only or classify_spike_polarity(w) == 'negative'
+    ]
+    return float(np.mean(amps)) if amps else None
