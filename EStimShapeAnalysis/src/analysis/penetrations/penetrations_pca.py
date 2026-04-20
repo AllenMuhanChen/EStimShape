@@ -143,7 +143,7 @@ def load_and_perform_pca(
         pca = PCA()
         X_pca = pca.fit_transform(X_scaled)
 
-    if decomp_method != 'fa' and varimax_n_components and varimax_n_components > 1:
+    if varimax_n_components and varimax_n_components > 1:
         n_rot = min(varimax_n_components, X_pca.shape[1])
         loadings_k = pca.components_[:n_rot].T          # (n_features, n_rot)
         _, R = _varimax(loadings_k)
