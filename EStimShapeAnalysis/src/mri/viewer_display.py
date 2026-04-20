@@ -117,19 +117,7 @@ class DisplayMixin:
 
             # Chamber + penetrations
             pens = self.pen_store.penetrations if self.pen_store.connected else []
-            if self.pen_offsets:
-                daz_g   = self.pen_offsets.get('daz_deg',   0.)
-                del_g   = self.pen_offsets.get('del_deg',   0.)
-                ddepth_g = self.pen_offsets.get('ddepth_mm', 0.)
-                per_sess = self.pen_offsets.get('per_session_corrections', {}) \
-                    if self.per_session_corrections_enabled else {}
-                def _apply_offsets(p):
-                    sc = per_sess.get(p.get('session_id', ''), {})
-                    return dict(p,
-                                az_deg=p['az_deg']  + daz_g   + sc.get('daz_deg',   0.),
-                                el_deg=p['el_deg']  + del_g   + sc.get('del_deg',   0.),
-                                dist_mm=p['dist_mm'] + ddepth_g + sc.get('ddepth_mm', 0.))
-                pens = [_apply_offsets(p) for p in pens]
+            pens = [self._offset_pen(p) for p in pens]
             draw_chamber_overlay(
                 ax, vi, self.SLICE_CFG[vi], self.chamber_state,
                 self.ebz_world if self.ebz_set else np.zeros(3),

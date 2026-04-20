@@ -103,8 +103,9 @@ class PenetrationContextMenuMixin:
         for pen in self.pen_store.penetrations:
             if not pen.get('visible', True):
                 continue  # hidden dot — skip
+            pen_off = self._offset_pen(pen)
             target, _, _ = calc_penetration_target(
-                origin, pen['az_deg'], pen['el_deg'], pen['dist_mm'],
+                origin, pen_off['az_deg'], pen_off['el_deg'], pen_off['dist_mm'],
                 x_vec, y_vec, normal, cor_off)
             th = target[h_wax] - disp_off[h_wax]
             tv = target[v_wax] - disp_off[v_wax]

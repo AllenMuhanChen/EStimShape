@@ -160,6 +160,21 @@ class ChamberMixin:
         self.btn_toggle_chamber.config(text="Show Chamber" if not self.chamber_show else "Hide Chamber")
         self.display_all()
 
+    def _offset_pen(self, p):
+        """Return a copy of pen dict with pen_offsets (global + per-session) applied."""
+        if not self.pen_offsets:
+            return p
+        daz_g    = self.pen_offsets.get('daz_deg',   0.)
+        del_g    = self.pen_offsets.get('del_deg',   0.)
+        ddepth_g = self.pen_offsets.get('ddepth_mm', 0.)
+        per_sess = self.pen_offsets.get('per_session_corrections', {}) \
+            if self.per_session_corrections_enabled else {}
+        sc = per_sess.get(p.get('session_id', ''), {})
+        return dict(p,
+                    az_deg  = p['az_deg']   + daz_g    + sc.get('daz_deg',   0.),
+                    el_deg  = p['el_deg']   + del_g    + sc.get('del_deg',   0.),
+                    dist_mm = p['dist_mm']  + ddepth_g + sc.get('ddepth_mm', 0.))
+
     def _toggle_per_session_corrections(self):
         self.per_session_corrections_enabled = not self.per_session_corrections_enabled
         self.btn_toggle_sess_corr.config(
