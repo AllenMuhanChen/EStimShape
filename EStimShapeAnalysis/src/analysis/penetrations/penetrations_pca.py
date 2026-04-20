@@ -691,25 +691,38 @@ def compute_tissue_confidence(
     std_gm     = df[gm_col].std()
     std_sulcus = df[sulcus_col].std()
 
+    # Raw z-scored signal per tissue type
     if wm2_col is not None:
         std_wm2  = df[wm2_col].std()
-        wm_logit = (df[wm_col].values / std_wm + wm2_sign * df[wm2_col].values / std_wm2) / 2
+        wm_score = (df[wm_col].values / std_wm + wm2_sign * df[wm2_col].values / std_wm2) / 2
     else:
-        wm_logit = df[wm_col].values / std_wm
+        wm_score = df[wm_col].values / std_wm
 
-    logits = np.stack([
-        wm_logit,
-        df[gm_col].values     / std_gm,
-        df[sulcus_col].values / std_sulcus,
-    ], axis=1)                              # shape (n_bins, 3)
+    gm_score     = df[gm_col].values     / std_gm
+    sulcus_score = df[sulcus_col].values / std_sulcus
 
-    probs = _softmax(logits, axis=1)
-    df['p_wm']     = probs[:, 0]
-    df['p_gm']     = probs[:, 1]
-    df['p_sulcus'] = probs[:, 2]
+    # Clip at 0: negative signal = no evidence for that class, not evidence against others.
+    # Absence of GM signal should not actively boost WM/sulcus probability.
+    c_wm     = np.clip(wm_score,     0, None)
+    c_gm     = np.clip(gm_score,     0, None)
+    c_sulcus = np.clip(sulcus_score, 0, None)
 
-    df['tissue_score']      = 0.5 * df['p_gm'] + 1.0 * df['p_wm']
-    df['tissue_confidence'] = probs.max(axis=1)
+    # Normalize to probabilities (if all near zero, falls back to equal ~1/3)
+    total = c_wm + c_gm + c_sulcus
+    total = np.where(total == 0, 1.0, total)
+    p_wm     = c_wm     / total
+    p_gm     = c_gm     / total
+    p_sulcus = c_sulcus / total
+
+    df['p_wm']     = p_wm
+    df['p_gm']     = p_gm
+    df['p_sulcus'] = p_sulcus
+
+    # 1D tissue score: sulcus=0, GM=0.5, WM=1.0
+    # WM/sulcus ambiguity (p_gm≈0) naturally lands near 0 or 1 depending on winner —
+    # it does NOT falsely read as 0.5 (GM) the way a simple weighted average would.
+    df['tissue_score']      = 1.0 * p_wm + 0.5 * p_gm
+    df['tissue_confidence'] = np.stack([p_wm, p_gm, p_sulcus], axis=1).max(axis=1)
     return df
 
 
