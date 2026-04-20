@@ -1034,11 +1034,14 @@ def compute_mri_comparison(
         daz: float = 0.0,
         del_: float = 0.0,
         ddepth: float = 0.0,
+        per_session_corrections: dict = None,
 ) -> pd.DataFrame:
     """
     Add MRI intensity sampled along each session's trajectory.
 
     Optional offsets applied to all sessions: daz/del_ (degrees) and ddepth (mm).
+    per_session_corrections: dict keyed by session_id with daz_deg/del_deg/ddepth_mm,
+    applied on top of the global offsets.
 
     Adds columns:
       mri_raw        : raw voxel intensity at each depth
@@ -1055,10 +1058,15 @@ def compute_mri_comparison(
             print(f"  Warning: no penetration found for session {session_id}, skipping MRI.")
             continue
 
+        sc = (per_session_corrections or {}).get(session_id, {})
+        sess_daz    = daz    + sc.get('daz_deg',    0.0)
+        sess_del    = del_   + sc.get('del_deg',    0.0)
+        sess_ddepth = ddepth + sc.get('ddepth_mm',  0.0)
+
         mask = df['session_id'] == session_id
-        depths = df.loc[mask, 'depth_under_chamber_mm'].values + ddepth
+        depths = df.loc[mask, 'depth_under_chamber_mm'].values + sess_ddepth
         mri_vals = sample_mri_along_trajectory(
-            mri_pipeline, pen['az_deg'] + daz, pen['el_deg'] + del_, depths
+            mri_pipeline, pen['az_deg'] + sess_daz, pen['el_deg'] + sess_del, depths
         )
         df.loc[mask, 'mri_raw'] = mri_vals
         df.loc[mask, 'mri_normalized'] = mri_vals  # native values, no scaling
@@ -1968,7 +1976,8 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         print("\n── MRI comparison with optimised transformation ──")
         opt_pipeline, daz, del_, ddepth = apply_optimized_pipeline(mri_pipeline, opt_result)
         df_conf = compute_mri_comparison(df_conf, conn, opt_pipeline,
-                                         daz=daz, del_=del_, ddepth=ddepth)
+                                         daz=daz, del_=del_, ddepth=ddepth,
+                                         per_session_corrections=opt_result.get('per_session_corrections'))
         fit_scores = compute_trajectory_fit_scores(df_conf)
         plot_mri_comparison_by_session(df_conf, fit_scores)
 
