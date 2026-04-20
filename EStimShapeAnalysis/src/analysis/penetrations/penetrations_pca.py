@@ -1147,6 +1147,7 @@ def _apply_chamber_params(params: np.ndarray, mri_pipeline: dict):
     from src.mri.correction import rot_x, rot_y, rot_z, xlate
 
     tx, ty, tz, rx, ry, rz, scale, *_ = params
+    scale = float(np.clip(scale, 0.5, 2.0))  # prevent degenerate collapse
     screws = mri_pipeline['screws_world_base']
     centroid = screws.mean(axis=0)
 
@@ -1393,6 +1394,7 @@ def save_optimized_params(
 
     params = opt_result['params']
     tx, ty, tz, rx, ry, rz, scale, daz, del_, ddepth = params[:10]
+    scale = float(np.clip(scale, 0.5, 2.0))
     monkey_specific_path = mri_pipeline['monkey_specific_path']
 
     # Build 4x4 affine from raw screws (no existing correction composed in,
