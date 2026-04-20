@@ -172,6 +172,7 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
 
         # Penetration offsets from PCA optimisation (daz_deg, del_deg, ddepth_mm)
         self.pen_offsets = {}
+        self.per_session_corrections_enabled = True
 
         # Trajectory planner (temp trajectory before saving)
         self.temp_trajectory = None  # dict: az_deg, el_deg, dist_mm, target, direction, top_pt

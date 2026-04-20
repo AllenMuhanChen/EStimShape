@@ -121,7 +121,8 @@ class DisplayMixin:
                 daz_g   = self.pen_offsets.get('daz_deg',   0.)
                 del_g   = self.pen_offsets.get('del_deg',   0.)
                 ddepth_g = self.pen_offsets.get('ddepth_mm', 0.)
-                per_sess = self.pen_offsets.get('per_session_corrections', {})
+                per_sess = self.pen_offsets.get('per_session_corrections', {}) \
+                    if self.per_session_corrections_enabled else {}
                 def _apply_offsets(p):
                     sc = per_sess.get(p.get('session_id', ''), {})
                     return dict(p,

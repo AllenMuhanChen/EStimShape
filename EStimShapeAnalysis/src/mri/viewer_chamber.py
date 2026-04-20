@@ -160,6 +160,12 @@ class ChamberMixin:
         self.btn_toggle_chamber.config(text="Show Chamber" if not self.chamber_show else "Hide Chamber")
         self.display_all()
 
+    def _toggle_per_session_corrections(self):
+        self.per_session_corrections_enabled = not self.per_session_corrections_enabled
+        self.btn_toggle_sess_corr.config(
+            text="Sess.Corr: ON" if self.per_session_corrections_enabled else "Sess.Corr: OFF")
+        self.display_all()
+
     # ================================================================ Chamber Correction
     def _apply_chamber_correction(self):
         if not self.chamber_state.get('loaded'):
