@@ -369,11 +369,15 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
             with open(path) as f:
                 data = json.load(f)
             offsets = {k: float(data[k]) for k in ('daz_deg', 'del_deg', 'ddepth_mm') if k in data}
+            offsets['per_session_corrections'] = data.get('per_session_corrections', {})
             note = data.get('note', '')
+            n_sess = len(offsets['per_session_corrections'])
             self.status_var.set(
                 f"Pen offsets loaded: daz={offsets.get('daz_deg', 0):+.3f}°  "
                 f"del={offsets.get('del_deg', 0):+.3f}°  "
-                f"ddepth={offsets.get('ddepth_mm', 0):+.3f} mm  [{note}]")
+                f"ddepth={offsets.get('ddepth_mm', 0):+.3f} mm"
+                + (f"  +{n_sess} session corrections" if n_sess else "")
+                + f"  [{note}]")
             return offsets
         except Exception as e:
             self.status_var.set(f"Could not load pen offsets: {e}")
