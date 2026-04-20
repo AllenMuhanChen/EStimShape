@@ -1,7 +1,8 @@
 import importlib.util
 import json
 import os
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import Optional, List
 
 from sklearn.mixture import GaussianMixture
 
@@ -66,11 +67,72 @@ def _varimax(Phi, gamma=1.0, q=1000, tol=1e-8):
 
 DECOMPOSITION_METHOD = 'pca'   # 'pca' | 'fa'  (factor analysis)
 USE_VARIMAX = True             # applies to both PCA and FA
-WM_THRESHOLD = 0.5            # z-score WM signal must exceed before counting as WM evidence
-                               # raise to reduce WM overestimation (0.0 = old behavior)
+WM_THRESHOLD = 0.5            # kept for backward compat; TissueModel uses per-class thresholds
 
-# Tissue model column mapping — pick the right dict for your decomp_method + varimax setting
-# wm2_col=None → use wm_col alone (no second WM indicator)
+
+# ---------------------------------------------------------------------------
+# Flexible tissue classification model
+# ---------------------------------------------------------------------------
+
+@dataclass
+class Evidence:
+    """One PC's contribution to a tissue class logit.
+
+    sign=+1  means high PC value → supports this class.
+    sign=-1  means low  PC value → supports this class.
+    weight   scales the contribution relative to other evidence in the same class.
+    """
+    pc: str           # column name, e.g. 'PC1'
+    sign: int = 1     # +1 or -1
+    weight: float = 1.0
+
+
+@dataclass
+class TissueClass:
+    """One tissue class with its 1-D score and list of PC evidence."""
+    name: str
+    score: float           # position on 0–1 scale: 0=sulcus, 0.5=GM, 1.0=WM
+    evidence: List[Evidence] = field(default_factory=list)
+    threshold: float = 0.0 # sigmoid threshold shift (raise to require stronger signal)
+
+
+@dataclass
+class TissueModel:
+    """Complete tissue model: an ordered list of TissueClass objects."""
+    classes: List[TissueClass]
+
+    def all_pcs(self) -> List[str]:
+        """Return unique PC column names used by this model."""
+        seen, pcs = set(), []
+        for tc in self.classes:
+            for ev in tc.evidence:
+                if ev.pc not in seen:
+                    seen.add(ev.pc)
+                    pcs.append(ev.pc)
+        return pcs
+
+
+# PC1: + = brain, − = sulcus
+# PC2: + = GM,    − = WM
+# PC4: + = sulcus, − = brain
+MODEL_PCA_V1 = TissueModel([
+    TissueClass('wm',     score=1.0, evidence=[
+        Evidence('PC1', sign=+1),   # brain evidence
+        Evidence('PC2', sign=-1),   # anti-GM
+        Evidence('PC4', sign=-1),   # anti-sulcus
+    ]),
+    TissueClass('gm',     score=0.5, evidence=[
+        Evidence('PC1', sign=+1),   # brain evidence
+        Evidence('PC2', sign=+1),   # GM
+        Evidence('PC4', sign=-1),   # anti-sulcus
+    ]),
+    TissueClass('sulcus', score=0.0, evidence=[
+        Evidence('PC1', sign=-1),   # anti-brain
+        Evidence('PC4', sign=+1),   # sulcus
+    ]),
+])
+
+# Legacy column-mapping dicts (kept for backward compat)
 _TISSUE_CONF_PCA              = dict(wm_col='PC1', wm2_col='PC3', wm2_sign=1,  gm_col='PC2', sulcus_col='PC4')
 _TISSUE_CONF_FA_VARIMAX       = dict(wm_col='PC2', wm2_col='PC3', wm2_sign=-1, gm_col='PC1', sulcus_col='PC5')
 _TISSUE_CONF_FA_NO_VARIMAX    = dict(wm_col='PC2', wm2_col=None,               gm_col='PC1', sulcus_col='PC5')
@@ -673,37 +735,67 @@ def _gmm_brain_threshold(pc1_values: np.ndarray) -> float:
 
 def compute_tissue_confidence(
         df: pd.DataFrame,
+        model: Optional[TissueModel] = None,
+        # --- legacy kwargs kept for backward compat ---
         wm_col: str = 'PC1',
-        wm2_col: Optional[str] = 'PC3',  # None = use wm_col alone; axonal/waveform WM indicator
-        wm2_sign: int = 1,               # +1 if high wm2_col = WM; -1 if low wm2_col = WM
+        wm2_col: Optional[str] = 'PC3',
+        wm2_sign: int = 1,
         gm_col: str = 'PC2',
         sulcus_col: str = 'PC4',
-        wm_threshold: float = WM_THRESHOLD,  # WM z-score must exceed this to register confidence
+        wm_threshold: float = WM_THRESHOLD,
 ) -> pd.DataFrame:
     """
-    3-class softmax tissue model.
+    Flexible tissue classification using a TissueModel, or legacy column kwargs.
 
-    WM logit is wm_col alone, or the average of wm_col and wm2_col (if provided):
-      wm_col     (default PC1): primary WM indicator
-      wm2_col    (default PC3): secondary WM indicator; None to omit
-      wm2_sign                : +1 = high wm2_col means WM; -1 = low wm2_col means WM
-      gm_col     (default PC2): gray matter indicator
-      sulcus_col (default PC4): sulcus/CSF indicator
+    If *model* is provided, each TissueClass logit is the weighted mean of its
+    Evidence terms: sign * (PC_value / PC_std) * weight.  The logit is shifted
+    by the class threshold before sigmoid, then all classes are normalized to
+    sum to 1.
 
-    Pass _TISSUE_CONF_PCA / _TISSUE_CONF_FA_VARIMAX / _TISSUE_CONF_FA_NO_VARIMAX
-    via **kwargs to select the right mapping for your decomp_method.
+    Legacy kwargs (wm_col, wm2_col, …) are used when model=None to preserve
+    backward compatibility with existing callers.
 
     Adds columns:
-      p_wm, p_gm, p_sulcus : class probabilities (sum to 1 per row)
-      tissue_score          : 0 = sulcus, 0.5 = GM, 1.0 = WM
-      tissue_confidence     : max class probability (1 = certain, ~0.33 = ambiguous)
+      p_<classname>    : probability for each class in model.classes
+      tissue_score     : weighted sum of class scores by probability (0–1)
+      tissue_confidence: max class probability (1=certain, ~1/N=ambiguous)
     """
     df = df.copy()
+
+    if model is not None:
+        # Precompute per-PC std
+        pc_stds = {pc: df[pc].std() for pc in model.all_pcs()}
+
+        probs = []
+        for tc in model.classes:
+            n_ev = len(tc.evidence)
+            if n_ev == 0:
+                logit = np.zeros(len(df))
+            else:
+                total_weight = sum(ev.weight for ev in tc.evidence)
+                logit = sum(
+                    ev.sign * ev.weight * df[ev.pc].values / max(pc_stds[ev.pc], 1e-9)
+                    for ev in tc.evidence
+                ) / total_weight
+            probs.append(_sigmoid(logit - tc.threshold))
+
+        probs_arr = np.stack(probs, axis=1)  # (N, n_classes)
+        row_sums  = probs_arr.sum(axis=1, keepdims=True)
+        probs_arr = probs_arr / np.where(row_sums > 0, row_sums, 1.0)
+
+        for i, tc in enumerate(model.classes):
+            df[f'p_{tc.name}'] = probs_arr[:, i]
+
+        df['tissue_score']      = sum(tc.score * probs_arr[:, i]
+                                      for i, tc in enumerate(model.classes))
+        df['tissue_confidence'] = probs_arr.max(axis=1)
+        return df
+
+    # --- legacy path ---
     std_wm     = df[wm_col].std()
     std_gm     = df[gm_col].std()
     std_sulcus = df[sulcus_col].std()
 
-    # Raw z-scored signal per tissue type
     if wm2_col is not None:
         std_wm2  = df[wm2_col].std()
         wm_score = (df[wm_col].values / std_wm + wm2_sign * df[wm2_col].values / std_wm2) / 2
@@ -713,14 +805,10 @@ def compute_tissue_confidence(
     gm_score     = df[gm_col].values     / std_gm
     sulcus_score = df[sulcus_col].values / std_sulcus
 
-    # Sigmoid maps z-scores to (0, 1): negatives give low confidence, positives give high.
-    # wm_threshold shifts the WM sigmoid — WM gets 50% raw confidence at that z-score,
-    # so raising it makes WM harder to win (reduces overestimation).
     c_wm     = _sigmoid(wm_score     - wm_threshold)
     c_gm     = _sigmoid(gm_score)
     c_sulcus = _sigmoid(sulcus_score)
 
-    # Normalize to probabilities
     total = c_wm + c_gm + c_sulcus
     p_wm     = c_wm     / total
     p_gm     = c_gm     / total
@@ -730,9 +818,6 @@ def compute_tissue_confidence(
     df['p_gm']     = p_gm
     df['p_sulcus'] = p_sulcus
 
-    # 1D tissue score: sulcus=0, GM=0.5, WM=1.0
-    # WM/sulcus ambiguity (p_gm≈0) naturally lands near 0 or 1 depending on winner —
-    # it does NOT falsely read as 0.5 (GM) the way a simple weighted average would.
     df['tissue_score']      = 1.0 * p_wm + 0.5 * p_gm
     df['tissue_confidence'] = np.stack([p_wm, p_gm, p_sulcus], axis=1).max(axis=1)
     return df
@@ -1920,7 +2005,8 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                  pc_smooth_sigma: float = 2.0,
                  varimax_n_components: int = 6,
                  decomp_method: str = DECOMPOSITION_METHOD,
-                 use_varimax: bool = USE_VARIMAX):
+                 use_varimax: bool = USE_VARIMAX,
+                 tissue_model: Optional[TissueModel] = None):
     """Run complete PCA analysis with correlations and plots."""
 
     # Load and perform PCA / Factor Analysis
@@ -1957,12 +2043,14 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
     plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs)
     # plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs, align_depths=True)
 
-    # Tissue confidence — column mapping depends on decomp_method + varimax
-    if decomp_method == 'fa':
+    # Tissue confidence
+    if tissue_model is not None:
+        df_conf = compute_tissue_confidence(df, model=tissue_model)
+    elif decomp_method == 'fa':
         tissue_conf = _TISSUE_CONF_FA_VARIMAX if use_varimax else _TISSUE_CONF_FA_NO_VARIMAX
+        df_conf = compute_tissue_confidence(df, **tissue_conf)
     else:
-        tissue_conf = _TISSUE_CONF_PCA
-    df_conf = compute_tissue_confidence(df, **tissue_conf)
+        df_conf = compute_tissue_confidence(df, model=MODEL_PCA_V1)
     plot_tissue_confidence_by_session(df_conf, pca=pca, n_pcs=n_pcs)
 
     # PC3 vs PC4 in the cortex subspace (PC1>0 and PC2>0)
