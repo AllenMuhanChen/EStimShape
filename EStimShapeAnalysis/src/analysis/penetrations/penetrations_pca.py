@@ -65,10 +65,13 @@ def _varimax(Phi, gamma=1.0, q=1000, tol=1e-8):
 
 
 DECOMPOSITION_METHOD = 'pca'   # 'pca' | 'fa'  (factor analysis)
+USE_VARIMAX = True             # applies to both PCA and FA
 
-# Tissue model column mapping — swap when switching decomposition methods
-_TISSUE_CONF_PCA = dict(wm_col='PC1', wm2_col='PC3', wm2_sign=1,  gm_col='PC2', sulcus_col='PC4')
-_TISSUE_CONF_FA  = dict(wm_col='PC2', wm2_col='PC3', wm2_sign=-1, gm_col='PC1', sulcus_col='PC5')
+# Tissue model column mapping — pick the right dict for your decomp_method + varimax setting
+# wm2_col=None → use wm_col alone (no second WM indicator)
+_TISSUE_CONF_PCA              = dict(wm_col='PC1', wm2_col='PC3', wm2_sign=1,  gm_col='PC2', sulcus_col='PC4')
+_TISSUE_CONF_FA_VARIMAX       = dict(wm_col='PC2', wm2_col='PC3', wm2_sign=-1, gm_col='PC1', sulcus_col='PC5')
+_TISSUE_CONF_FA_NO_VARIMAX    = dict(wm_col='PC2', wm2_col=None,               gm_col='PC1', sulcus_col='PC5')
 
 
 class _FactorAnalysisAdapter:
@@ -90,6 +93,7 @@ def load_and_perform_pca(
         pc_smooth_sigma: float = 2.0,
         varimax_n_components: int = 6,
         decomp_method: str = DECOMPOSITION_METHOD,   # 'pca' | 'fa'
+        use_varimax: bool = USE_VARIMAX,
 ):
     """Load data and perform PCA (or Factor Analysis), returning all necessary objects."""
     conn.execute(f"SELECT * FROM {table_name}")
@@ -143,7 +147,7 @@ def load_and_perform_pca(
         pca = PCA()
         X_pca = pca.fit_transform(X_scaled)
 
-    if varimax_n_components and varimax_n_components > 1:
+    if use_varimax and varimax_n_components and varimax_n_components > 1:
         n_rot = min(varimax_n_components, X_pca.shape[1])
         loadings_k = pca.components_[:n_rot].T          # (n_features, n_rot)
         _, R = _varimax(loadings_k)
@@ -659,21 +663,23 @@ def _gmm_brain_threshold(pc1_values: np.ndarray) -> float:
 def compute_tissue_confidence(
         df: pd.DataFrame,
         wm_col: str = 'PC1',
-        wm2_col: str = 'PC3',   # axonal/waveform WM indicator
-        wm2_sign: int = 1,      # +1 if high wm2_col = WM; -1 if low wm2_col = WM (FA: PC3 inverted)
+        wm2_col: Optional[str] = 'PC3',  # None = use wm_col alone; axonal/waveform WM indicator
+        wm2_sign: int = 1,               # +1 if high wm2_col = WM; -1 if low wm2_col = WM
         gm_col: str = 'PC2',
         sulcus_col: str = 'PC4',
 ) -> pd.DataFrame:
     """
     3-class softmax tissue model.
 
-    WM logit combines two independent WM indicators (LFP-based and waveform-based):
-      wm_col     (default PC1): LFP signature of WM (high power, flat spectrum)
-      wm2_col    (default PC3): axonal waveforms; wm2_sign controls direction
-      gm_col     (default PC2): gray matter (pyramidal waveforms, high gamma)
-      sulcus_col (default PC4): sulcus/CSF (low relative impedance)
+    WM logit is wm_col alone, or the average of wm_col and wm2_col (if provided):
+      wm_col     (default PC1): primary WM indicator
+      wm2_col    (default PC3): secondary WM indicator; None to omit
+      wm2_sign                : +1 = high wm2_col means WM; -1 = low wm2_col means WM
+      gm_col     (default PC2): gray matter indicator
+      sulcus_col (default PC4): sulcus/CSF indicator
 
-    Use _TISSUE_CONF_PCA / _TISSUE_CONF_FA dicts to pass the right mapping.
+    Pass _TISSUE_CONF_PCA / _TISSUE_CONF_FA_VARIMAX / _TISSUE_CONF_FA_NO_VARIMAX
+    via **kwargs to select the right mapping for your decomp_method.
 
     Adds columns:
       p_wm, p_gm, p_sulcus : class probabilities (sum to 1 per row)
@@ -682,11 +688,14 @@ def compute_tissue_confidence(
     """
     df = df.copy()
     std_wm     = df[wm_col].std()
-    std_wm2    = df[wm2_col].std()
     std_gm     = df[gm_col].std()
     std_sulcus = df[sulcus_col].std()
 
-    wm_logit = (df[wm_col].values / std_wm + wm2_sign * df[wm2_col].values / std_wm2) / 2
+    if wm2_col is not None:
+        std_wm2  = df[wm2_col].std()
+        wm_logit = (df[wm_col].values / std_wm + wm2_sign * df[wm2_col].values / std_wm2) / 2
+    else:
+        wm_logit = df[wm_col].values / std_wm
 
     logits = np.stack([
         wm_logit,
@@ -1783,7 +1792,8 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                  swap_tissue_pcs: bool = False,
                  pc_smooth_sigma: float = 2.0,
                  varimax_n_components: int = 6,
-                 decomp_method: str = DECOMPOSITION_METHOD):
+                 decomp_method: str = DECOMPOSITION_METHOD,
+                 use_varimax: bool = USE_VARIMAX):
     """Run complete PCA analysis with correlations and plots."""
 
     # Load and perform PCA / Factor Analysis
@@ -1794,6 +1804,7 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         pc_smooth_sigma=pc_smooth_sigma,
         varimax_n_components=varimax_n_components,
         decomp_method=decomp_method,
+        use_varimax=use_varimax,
     )
 
     # Get and print loadings
@@ -1819,8 +1830,11 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
     plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs)
     # plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs, align_depths=True)
 
-    # Tissue confidence — column mapping depends on decomposition method
-    tissue_conf = _TISSUE_CONF_FA if decomp_method == 'fa' else _TISSUE_CONF_PCA
+    # Tissue confidence — column mapping depends on decomp_method + varimax
+    if decomp_method == 'fa':
+        tissue_conf = _TISSUE_CONF_FA_VARIMAX if use_varimax else _TISSUE_CONF_FA_NO_VARIMAX
+    else:
+        tissue_conf = _TISSUE_CONF_PCA
     df_conf = compute_tissue_confidence(df, **tissue_conf)
     plot_tissue_confidence_by_session(df_conf, pca=pca, n_pcs=n_pcs)
 
