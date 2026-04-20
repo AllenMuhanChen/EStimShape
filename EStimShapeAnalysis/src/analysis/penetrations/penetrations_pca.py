@@ -2118,8 +2118,15 @@ if __name__ == "__main__":
         host="172.30.6.61"
     )
 
-    exclude_sessions = ["260402_0", "260327_0"]
-    results = run_analysis(conn, n_pcs=4, exclude_sessions =exclude_sessions)
+    exclude_sessions = None
+    # exclude_sessions = ["260402_0", "260327_0"]
+    results = run_analysis(
+        conn,
+        n_pcs=6,
+        exclude_sessions=exclude_sessions,
+        within_session_normalize=False,
+        tissue_model=MODEL_PCA_V1,
+    )
 
     # Access results
     # results['df']              - DataFrame with PC columns added
