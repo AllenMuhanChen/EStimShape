@@ -75,6 +75,11 @@ _TISSUE_CONF_PCA              = dict(wm_col='PC1', wm2_col='PC3', wm2_sign=1,  g
 _TISSUE_CONF_FA_VARIMAX       = dict(wm_col='PC2', wm2_col='PC3', wm2_sign=-1, gm_col='PC1', sulcus_col='PC5')
 _TISSUE_CONF_FA_NO_VARIMAX    = dict(wm_col='PC2', wm2_col=None,               gm_col='PC1', sulcus_col='PC5')
 
+# Per-session az/el/depth correction (added on top of global daz/del/ddepth)
+ENABLE_PER_SESSION_CORRECTIONS = True
+SESSION_CORR_BOUNDS = dict(daz=1.0, del_=1.0, ddepth=0.5)  # ± max effective correction
+SESSION_CORR_L2_WEIGHT = 0.05  # λ on Σ(delta_i / bound_i)²; raise to suppress, lower to allow
+
 
 class _FactorAnalysisAdapter:
     """Wraps FactorAnalysis to expose the same components_/explained_variance_ratio_ interface as PCA."""
@@ -1159,6 +1164,11 @@ def _apply_chamber_params(params: np.ndarray, mri_pipeline: dict):
     return origin, x, y, normal
 
 
+def _tanh_bound(raw: float, bound: float) -> float:
+    """Map unconstrained raw value to (-bound, +bound) via tanh reparameterization."""
+    return bound * float(np.tanh(raw))
+
+
 def optimize_trajectory_alignment(
         df_conf: pd.DataFrame,
         conn: Connection,
@@ -1203,25 +1213,58 @@ def optimize_trajectory_alignment(
     inv_corrected = mri_pipeline['inv_corrected']
     cor_offset = mri_pipeline['cor_offset']
 
-    best = {'score': -np.inf, 'params': _OPT_X0.copy(), 'iter': 0}
+    # Build full parameter vector — core 10 globals + optional 3*N per-session deltas
+    session_ids = list(session_info.keys())
+    n_sess = len(session_ids)
+
+    if ENABLE_PER_SESSION_CORRECTIONS:
+        per_sess_names = []
+        for sid in session_ids:
+            per_sess_names += [f'daz_{sid}', f'del_{sid}', f'ddepth_{sid}']
+        full_param_names = _OPT_PARAM_NAMES + per_sess_names
+        full_x0 = np.concatenate([_OPT_X0, np.zeros(3 * n_sess)])
+        print(f"  Per-session corrections enabled: {n_sess} sessions × 3 params "
+              f"(bounds: ±{SESSION_CORR_BOUNDS['daz']}° az, "
+              f"±{SESSION_CORR_BOUNDS['del_']}° el, "
+              f"±{SESSION_CORR_BOUNDS['ddepth']} mm depth)")
+    else:
+        full_param_names = _OPT_PARAM_NAMES
+        full_x0 = _OPT_X0.copy()
+
+    best = {'score': -np.inf, 'params': full_x0.copy(), 'iter': 0}
     call_count = [0]
 
-    def score_for_params(params):
+    def score_for_params(params, include_reg=True):
         try:
             origin, x_vec, y_vec, normal = _apply_chamber_params(params, mri_pipeline)
         except Exception:
             return np.inf
 
-        _, _, _, _, _, _, _, daz, del_, ddepth = params
-        total_r, n_sessions = 0.0, 0
+        _, _, _, _, _, _, _, daz, del_, ddepth = params[:10]
+        per_sess_raw = params[10:].reshape(-1, 3) if ENABLE_PER_SESSION_CORRECTIONS else None
 
-        for sdata in session_info.values():
-            depths = sdata['depths'] + ddepth
+        total_r, n_ok = 0.0, 0
+        reg_sum = 0.0
+
+        for i, sid in enumerate(session_ids):
+            sdata = session_info[sid]
+
+            if per_sess_raw is not None:
+                daz_i  = _tanh_bound(per_sess_raw[i, 0], SESSION_CORR_BOUNDS['daz'])
+                del_i  = _tanh_bound(per_sess_raw[i, 1], SESSION_CORR_BOUNDS['del_'])
+                ddep_i = _tanh_bound(per_sess_raw[i, 2], SESSION_CORR_BOUNDS['ddepth'])
+                reg_sum += (daz_i  / SESSION_CORR_BOUNDS['daz'])  ** 2
+                reg_sum += (del_i  / SESSION_CORR_BOUNDS['del_']) ** 2
+                reg_sum += (ddep_i / SESSION_CORR_BOUNDS['ddepth']) ** 2
+            else:
+                daz_i = del_i = ddep_i = 0.0
+
+            depths = sdata['depths'] + ddepth + ddep_i
             if depths.max() <= 0:
                 continue
             try:
                 _, direction, top_pt = calc_penetration_target(
-                    origin, sdata['az'] + daz, sdata['el'] + del_,
+                    origin, sdata['az'] + daz + daz_i, sdata['el'] + del_ + del_i,
                     float(depths.max()) + 1.0, x_vec, y_vec, normal, cor_offset,
                 )
                 pts = top_pt + depths[:, None] * direction[None, :]
@@ -1235,50 +1278,81 @@ def optimize_trajectory_alignment(
             r = _weighted_pearson_r(sdata['ts'], mri_vals, sdata['confidence'])
             if not np.isnan(r):
                 total_r += r
-                n_sessions += 1
+                n_ok += 1
 
-        return -(total_r / n_sessions) if n_sessions > 0 else np.inf
+        if n_ok == 0:
+            return np.inf
+        loss = -(total_r / n_ok)
+        if include_reg and ENABLE_PER_SESSION_CORRECTIONS:
+            loss += SESSION_CORR_L2_WEIGHT * reg_sum
+        return loss
 
     def callback_nelder(xk):
         call_count[0] += 1
-        s = -score_for_params(xk)
-        if s > best['score']:
-            best['score'] = s
+        s_pure = -score_for_params(xk, include_reg=False)
+        if s_pure > best['score']:
+            best['score'] = s_pure
             best['params'] = xk.copy()
             best['iter'] = call_count[0]
-            tx, ty, tz, rx, ry, rz, sc, daz, del_, ddepth = xk
-            print(f"  [{call_count[0]:4d}] score={s:.4f}  "
+            tx, ty, tz, rx, ry, rz, sc, daz, del_, ddepth = xk[:10]
+            print(f"  [{call_count[0]:4d}] score={s_pure:.4f}  "
                   f"t=({tx:.2f},{ty:.2f},{tz:.2f})  "
                   f"r=({rx:.2f},{ry:.2f},{rz:.2f})  "
                   f"scale={sc:.3f}  daz={daz:.2f}  del={del_:.2f}  ddepth={ddepth:.2f}")
+            if ENABLE_PER_SESSION_CORRECTIONS and len(xk) > 10:
+                per = xk[10:].reshape(-1, 3)
+                eff_daz  = np.array([_tanh_bound(v, SESSION_CORR_BOUNDS['daz'])  for v in per[:, 0]])
+                eff_del  = np.array([_tanh_bound(v, SESSION_CORR_BOUNDS['del_']) for v in per[:, 1]])
+                eff_ddep = np.array([_tanh_bound(v, SESSION_CORR_BOUNDS['ddepth']) for v in per[:, 2]])
+                print(f"         max|Δaz|={np.abs(eff_daz).max():.2f}°  "
+                      f"max|Δel|={np.abs(eff_del).max():.2f}°  "
+                      f"max|Δdep|={np.abs(eff_ddep).max():.2f}mm")
 
-    score_before = -score_for_params(_OPT_X0)
+    score_before = -score_for_params(full_x0, include_reg=False)
     print(f"\nOptimising over {len(session_info)} sessions  "
           f"(initial mean r = {score_before:.4f}) ...")
 
+    maxiter_adj = maxiter + 500 * n_sess if ENABLE_PER_SESSION_CORRECTIONS else maxiter
     result = minimize(
         score_for_params,
-        _OPT_X0,
+        full_x0,
         method='Nelder-Mead',
         callback=callback_nelder,
-        options={'maxiter': maxiter, 'xatol': 1e-3, 'fatol': 1e-4,
+        options={'maxiter': maxiter_adj, 'xatol': 1e-3, 'fatol': 1e-4,
                  'adaptive': True, 'disp': True},
     )
 
-    score_after = -result.fun
+    score_after = -score_for_params(result.x, include_reg=False)
     print(f"\nOptimisation done: {result.message}")
     print(f"  mean r: {score_before:.4f} → {score_after:.4f}  "
           f"(Δ = {score_after - score_before:+.4f})")
-    print("\nOptimised parameters:")
-    for name, val in zip(_OPT_PARAM_NAMES, result.x):
+    print("\nOptimised global parameters:")
+    for name, val in zip(_OPT_PARAM_NAMES, result.x[:10]):
         print(f"  {name:<14s} = {val:+.4f}")
+
+    # Decode per-session corrections to effective (bounded) values
+    per_session_corrections = {}
+    if ENABLE_PER_SESSION_CORRECTIONS and len(result.x) > 10:
+        per = result.x[10:].reshape(-1, 3)
+        for i, sid in enumerate(session_ids):
+            per_session_corrections[sid] = dict(
+                daz_deg   = _tanh_bound(per[i, 0], SESSION_CORR_BOUNDS['daz']),
+                del_deg   = _tanh_bound(per[i, 1], SESSION_CORR_BOUNDS['del_']),
+                ddepth_mm = _tanh_bound(per[i, 2], SESSION_CORR_BOUNDS['ddepth']),
+            )
+        print("\nPer-session corrections (effective, deg/mm):")
+        for sid, c in per_session_corrections.items():
+            print(f"  {str(sid):<20s}  daz={c['daz_deg']:+.3f}°  "
+                  f"del={c['del_deg']:+.3f}°  ddepth={c['ddepth_mm']:+.3f}mm")
 
     return {
         'params': result.x,
-        'param_names': _OPT_PARAM_NAMES,
+        'param_names': full_param_names,
         'result': result,
         'score_before': score_before,
         'score_after': score_after,
+        'per_session_corrections': per_session_corrections,
+        'session_ids': session_ids,
     }
 
 
@@ -1289,7 +1363,7 @@ def apply_optimized_pipeline(mri_pipeline: dict, opt_result: dict) -> tuple:
     Returns (new_pipeline, daz, del_, ddepth) ready to pass to compute_mri_comparison.
     """
     params = opt_result['params']
-    *_, daz, del_, ddepth = params
+    _, _, _, _, _, _, _, daz, del_, ddepth = params[:10]
 
     origin, x, y, normal = _apply_chamber_params(params, mri_pipeline)
     new_pipeline = dict(mri_pipeline)
@@ -1318,7 +1392,7 @@ def save_optimized_params(
     from src.mri.correction import rot_x, rot_y, rot_z, xlate
 
     params = opt_result['params']
-    tx, ty, tz, rx, ry, rz, scale, daz, del_, ddepth = params
+    tx, ty, tz, rx, ry, rz, scale, daz, del_, ddepth = params[:10]
     monkey_specific_path = mri_pipeline['monkey_specific_path']
 
     # Build 4x4 affine from raw screws (no existing correction composed in,
@@ -1346,6 +1420,9 @@ def save_optimized_params(
         'daz_deg': float(daz),
         'del_deg': float(del_),
         'ddepth_mm': float(ddepth),
+        'per_session_corrections': opt_result.get('per_session_corrections', {}),
+        'session_corr_bounds': SESSION_CORR_BOUNDS,
+        'session_corr_l2_weight': SESSION_CORR_L2_WEIGHT,
     }
     with open(result_path, 'w') as f:
         json.dump(result_data, f, indent=2)
@@ -1390,6 +1467,7 @@ def apply_pca_opt_result(result_path: str, mri_pipeline: dict) -> None:
         'ddepth_mm': result['ddepth_mm'],
         'score_before': result['score_before'],
         'score_after': result['score_after'],
+        'per_session_corrections': result.get('per_session_corrections', {}),
     }
     with open(pen_offsets_path, 'w') as f:
         json.dump(offsets, f, indent=2)
