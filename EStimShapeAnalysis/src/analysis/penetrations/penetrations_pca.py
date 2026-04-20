@@ -80,6 +80,10 @@ ENABLE_PER_SESSION_CORRECTIONS = True
 SESSION_CORR_BOUNDS = dict(daz=1.0, del_=1.0, ddepth=0.5)  # ± max effective correction
 SESSION_CORR_L2_WEIGHT = 0.05  # λ on Σ(delta_i / bound_i)²; raise to suppress, lower to allow
 
+# Regularization on global chamber rigid-body params (keeps optimizer near physical solution)
+CHAMBER_L2_WEIGHT  = 0.02   # λ on normalized chamber penalty; raise to constrain more
+CHAMBER_L2_SCALES  = dict(t_mm=5.0, r_deg=5.0, daz_deg=2.0, del_deg=2.0, ddepth_mm=1.0)
+
 
 class _FactorAnalysisAdapter:
     """Wraps FactorAnalysis to expose the same components_/explained_variance_ratio_ interface as PCA."""
@@ -1288,8 +1292,18 @@ def optimize_trajectory_alignment(
         if n_ok == 0:
             return np.inf
         loss = -(total_r / n_ok)
-        if include_reg and ENABLE_PER_SESSION_CORRECTIONS:
-            loss += SESSION_CORR_L2_WEIGHT * reg_sum
+        if include_reg:
+            tx, ty, tz, rx, ry, rz, daz_g, del_g, ddepth_g = params[:9]
+            s = CHAMBER_L2_SCALES
+            chamber_reg = (
+                (tx / s['t_mm'])**2 + (ty / s['t_mm'])**2 + (tz / s['t_mm'])**2
+                + (rx / s['r_deg'])**2 + (ry / s['r_deg'])**2 + (rz / s['r_deg'])**2
+                + (daz_g / s['daz_deg'])**2 + (del_g / s['del_deg'])**2
+                + (ddepth_g / s['ddepth_mm'])**2
+            )
+            loss += CHAMBER_L2_WEIGHT * chamber_reg
+            if ENABLE_PER_SESSION_CORRECTIONS:
+                loss += SESSION_CORR_L2_WEIGHT * reg_sum
         return loss
 
     def callback_nelder(xk):
