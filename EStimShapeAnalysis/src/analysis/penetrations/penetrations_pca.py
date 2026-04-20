@@ -1134,11 +1134,10 @@ def compute_trajectory_fit_scores(df: pd.DataFrame) -> pd.DataFrame:
 _OPT_PARAM_NAMES = [
     'tx_mm', 'ty_mm', 'tz_mm',           # chamber translation
     'rx_deg', 'ry_deg', 'rz_deg',         # chamber rotation
-    'scale',                               # isotropic chamber scale (default 1)
     'daz_deg', 'del_deg',                 # global az/el offset for all penetrations
     'ddepth_mm',                          # global depth offset for all penetrations
 ]
-_OPT_X0 = np.array([0., 0., 0.,   0., 0., 0.,   1.0,   0., 0.,   0.])
+_OPT_X0 = np.array([0., 0., 0.,   0., 0., 0.,   0., 0.,   0.])
 
 
 def _apply_chamber_params(params: np.ndarray, mri_pipeline: dict):
@@ -1146,15 +1145,12 @@ def _apply_chamber_params(params: np.ndarray, mri_pipeline: dict):
     from src.mri.chamber import fit_chamber
     from src.mri.correction import rot_x, rot_y, rot_z, xlate
 
-    tx, ty, tz, rx, ry, rz, scale, *_ = params
-    scale = float(np.clip(scale, 0.5, 2.0))  # prevent degenerate collapse
+    tx, ty, tz, rx, ry, rz, *_ = params
     screws = mri_pipeline['screws_world_base']
-    centroid = screws.mean(axis=0)
 
     corr = xlate(tx, ty, tz) @ rot_z(rz) @ rot_y(ry) @ rot_x(rx)
     R, t = corr[:3, :3], corr[:3, 3]
-    screws_scaled = (screws - centroid) * scale + centroid
-    screws_new = (R @ screws_scaled.T).T + t
+    screws_new = (R @ screws.T).T + t
 
     _, origin, x, y, normal = fit_chamber(
         screws_new,
@@ -1241,8 +1237,8 @@ def optimize_trajectory_alignment(
         except Exception:
             return np.inf
 
-        _, _, _, _, _, _, _, daz, del_, ddepth = params[:10]
-        per_sess_raw = params[10:].reshape(-1, 3) if ENABLE_PER_SESSION_CORRECTIONS else None
+        _, _, _, _, _, _, daz, del_, ddepth = params[:9]
+        per_sess_raw = params[9:].reshape(-1, 3) if ENABLE_PER_SESSION_CORRECTIONS else None
 
         total_r, n_ok = 0.0, 0
         reg_sum = 0.0
@@ -1295,13 +1291,13 @@ def optimize_trajectory_alignment(
             best['score'] = s_pure
             best['params'] = xk.copy()
             best['iter'] = call_count[0]
-            tx, ty, tz, rx, ry, rz, sc, daz, del_, ddepth = xk[:10]
+            tx, ty, tz, rx, ry, rz, daz, del_, ddepth = xk[:9]
             print(f"  [{call_count[0]:4d}] score={s_pure:.4f}  "
                   f"t=({tx:.2f},{ty:.2f},{tz:.2f})  "
                   f"r=({rx:.2f},{ry:.2f},{rz:.2f})  "
-                  f"scale={sc:.3f}  daz={daz:.2f}  del={del_:.2f}  ddepth={ddepth:.2f}")
-            if ENABLE_PER_SESSION_CORRECTIONS and len(xk) > 10:
-                per = xk[10:].reshape(-1, 3)
+                  f"daz={daz:.2f}  del={del_:.2f}  ddepth={ddepth:.2f}")
+            if ENABLE_PER_SESSION_CORRECTIONS and len(xk) > 9:
+                per = xk[9:].reshape(-1, 3)
                 eff_daz  = np.array([_tanh_bound(v, SESSION_CORR_BOUNDS['daz'])  for v in per[:, 0]])
                 eff_del  = np.array([_tanh_bound(v, SESSION_CORR_BOUNDS['del_']) for v in per[:, 1]])
                 eff_ddep = np.array([_tanh_bound(v, SESSION_CORR_BOUNDS['ddepth']) for v in per[:, 2]])
@@ -1333,8 +1329,8 @@ def optimize_trajectory_alignment(
 
     # Decode per-session corrections to effective (bounded) values
     per_session_corrections = {}
-    if ENABLE_PER_SESSION_CORRECTIONS and len(result.x) > 10:
-        per = result.x[10:].reshape(-1, 3)
+    if ENABLE_PER_SESSION_CORRECTIONS and len(result.x) > 9:
+        per = result.x[9:].reshape(-1, 3)
         for i, sid in enumerate(session_ids):
             per_session_corrections[sid] = dict(
                 daz_deg   = _tanh_bound(per[i, 0], SESSION_CORR_BOUNDS['daz']),
@@ -1364,7 +1360,7 @@ def apply_optimized_pipeline(mri_pipeline: dict, opt_result: dict) -> tuple:
     Returns (new_pipeline, daz, del_, ddepth) ready to pass to compute_mri_comparison.
     """
     params = opt_result['params']
-    _, _, _, _, _, _, _, daz, del_, ddepth = params[:10]
+    _, _, _, _, _, _, daz, del_, ddepth = params[:9]
 
     origin, x, y, normal = _apply_chamber_params(params, mri_pipeline)
     new_pipeline = dict(mri_pipeline)
@@ -1393,19 +1389,16 @@ def save_optimized_params(
     from src.mri.correction import rot_x, rot_y, rot_z, xlate
 
     params = opt_result['params']
-    tx, ty, tz, rx, ry, rz, scale, daz, del_, ddepth = params[:10]
-    scale = float(np.clip(scale, 0.5, 2.0))
+    tx, ty, tz, rx, ry, rz, daz, del_, ddepth = params[:9]
     monkey_specific_path = mri_pipeline['monkey_specific_path']
 
-    # Build 4x4 affine from raw screws (no existing correction composed in,
-    # since the optimizer always starts from raw screws)
+    # Build 4x4 affine (pure rotation + translation, scale fixed at 1)
     corr = xlate(tx, ty, tz) @ rot_z(rz) @ rot_y(ry) @ rot_x(rx)
     R_d = corr[:3, :3]
     t_d = corr[:3, 3]
-    centroid = mri_pipeline['screws_world_base'].mean(axis=0)
     M = np.eye(4)
-    M[:3, :3] = scale * R_d
-    M[:3, 3] = (1.0 - scale) * R_d @ centroid + t_d
+    M[:3, :3] = R_d
+    M[:3, 3] = t_d
 
     results_dir = OPTIMIZATIONS_path
     os.makedirs(results_dir, exist_ok=True)
