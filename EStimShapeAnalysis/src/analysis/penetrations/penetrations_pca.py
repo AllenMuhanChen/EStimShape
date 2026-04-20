@@ -66,6 +66,8 @@ def _varimax(Phi, gamma=1.0, q=1000, tol=1e-8):
 
 DECOMPOSITION_METHOD = 'pca'   # 'pca' | 'fa'  (factor analysis)
 USE_VARIMAX = True             # applies to both PCA and FA
+WM_THRESHOLD = 0.5            # z-score WM signal must exceed before counting as WM evidence
+                               # raise to reduce WM overestimation (0.0 = old behavior)
 
 # Tissue model column mapping — pick the right dict for your decomp_method + varimax setting
 # wm2_col=None → use wm_col alone (no second WM indicator)
@@ -667,6 +669,7 @@ def compute_tissue_confidence(
         wm2_sign: int = 1,               # +1 if high wm2_col = WM; -1 if low wm2_col = WM
         gm_col: str = 'PC2',
         sulcus_col: str = 'PC4',
+        wm_threshold: float = WM_THRESHOLD,  # WM z-score must exceed this to register confidence
 ) -> pd.DataFrame:
     """
     3-class softmax tissue model.
@@ -701,11 +704,11 @@ def compute_tissue_confidence(
     gm_score     = df[gm_col].values     / std_gm
     sulcus_score = df[sulcus_col].values / std_sulcus
 
-    # Clip at 0: negative signal = no evidence for that class, not evidence against others.
-    # Absence of GM signal should not actively boost WM/sulcus probability.
-    c_wm     = np.clip(wm_score,     0, None)
-    c_gm     = np.clip(gm_score,     0, None)
-    c_sulcus = np.clip(sulcus_score, 0, None)
+    # Clip at 0 (or wm_threshold for WM): negative/below-threshold signal = no evidence,
+    # not counter-evidence that would inflate competing classes.
+    c_wm     = np.clip(wm_score     - wm_threshold, 0, None)
+    c_gm     = np.clip(gm_score,                    0, None)
+    c_sulcus = np.clip(sulcus_score,                0, None)
 
     # Normalize to probabilities (if all near zero, falls back to equal ~1/3)
     total = c_wm + c_gm + c_sulcus
