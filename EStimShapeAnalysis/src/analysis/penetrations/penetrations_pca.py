@@ -12,7 +12,7 @@ from scipy.ndimage import map_coordinates, gaussian_filter1d
 from scipy.special import softmax as _softmax
 from scipy.optimize import minimize
 from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, FactorAnalysis
 from scipy.stats import pearsonr
 from itertools import combinations
 
@@ -64,6 +64,20 @@ def _varimax(Phi, gamma=1.0, q=1000, tol=1e-8):
     return Phi @ R, R
 
 
+DECOMPOSITION_METHOD = 'pca'   # 'pca' | 'fa'  (factor analysis)
+
+
+class _FactorAnalysisAdapter:
+    """Wraps FactorAnalysis to expose the same components_/explained_variance_ratio_ interface as PCA."""
+    def __init__(self, fa: FactorAnalysis, X_scores: np.ndarray):
+        self.components_ = fa.components_   # shape (n_components, n_features)
+        self.noise_variance_ = fa.noise_variance_
+        # Pseudo-explained variance: fraction of total score variance per factor
+        score_var = np.var(X_scores, axis=0)
+        total = score_var.sum() if score_var.sum() > 0 else 1.0
+        self.explained_variance_ratio_ = score_var / total
+
+
 def load_and_perform_pca(
         conn: Connection,
         table_name: str = "PenetrationMetrics",
@@ -71,8 +85,9 @@ def load_and_perform_pca(
         within_session_normalize: bool = True,
         pc_smooth_sigma: float = 2.0,
         varimax_n_components: int = 6,
+        decomp_method: str = DECOMPOSITION_METHOD,   # 'pca' | 'fa'
 ):
-    """Load data and perform PCA, returning all necessary objects."""
+    """Load data and perform PCA (or Factor Analysis), returning all necessary objects."""
     conn.execute(f"SELECT * FROM {table_name}")
     results = conn.fetch_all()
 
@@ -113,8 +128,16 @@ def load_and_perform_pca(
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
-    pca = PCA()
-    X_pca = pca.fit_transform(X_scaled)
+    if decomp_method == 'fa':
+        n_factors = varimax_n_components if varimax_n_components else X_scaled.shape[1]
+        print(f"\nUsing Factor Analysis (n_factors={n_factors}) ...")
+        fa = FactorAnalysis(n_components=n_factors, random_state=42)
+        X_pca = fa.fit_transform(X_scaled)
+        pca = _FactorAnalysisAdapter(fa, X_pca)
+    else:
+        print("\nUsing PCA ...")
+        pca = PCA()
+        X_pca = pca.fit_transform(X_scaled)
 
     if varimax_n_components and varimax_n_components > 1:
         n_rot = min(varimax_n_components, X_pca.shape[1])
@@ -1752,16 +1775,18 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                  within_session_normalize: bool = True,
                  swap_tissue_pcs: bool = False,
                  pc_smooth_sigma: float = 2.0,
-                 varimax_n_components: int = 6):
+                 varimax_n_components: int = 6,
+                 decomp_method: str = DECOMPOSITION_METHOD):
     """Run complete PCA analysis with correlations and plots."""
 
-    # Load and perform PCA
+    # Load and perform PCA / Factor Analysis
     df, pca, X_pca, feature_columns, scaler = load_and_perform_pca(
         conn, table_name,
         exclude_sessions=exclude_sessions,
         within_session_normalize=within_session_normalize,
         pc_smooth_sigma=pc_smooth_sigma,
         varimax_n_components=varimax_n_components,
+        decomp_method=decomp_method,
     )
 
     # Get and print loadings
