@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.ndimage import map_coordinates, gaussian_filter1d
-from scipy.special import softmax as _softmax
+from scipy.special import softmax as _softmax, expit as _sigmoid
 from scipy.optimize import minimize
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA, FactorAnalysis
@@ -704,15 +704,15 @@ def compute_tissue_confidence(
     gm_score     = df[gm_col].values     / std_gm
     sulcus_score = df[sulcus_col].values / std_sulcus
 
-    # Clip at 0 (or wm_threshold for WM): negative/below-threshold signal = no evidence,
-    # not counter-evidence that would inflate competing classes.
-    c_wm     = np.clip(wm_score     - wm_threshold, 0, None)
-    c_gm     = np.clip(gm_score,                    0, None)
-    c_sulcus = np.clip(sulcus_score,                0, None)
+    # Sigmoid maps z-scores to (0, 1): negatives give low confidence, positives give high.
+    # wm_threshold shifts the WM sigmoid — WM gets 50% raw confidence at that z-score,
+    # so raising it makes WM harder to win (reduces overestimation).
+    c_wm     = _sigmoid(wm_score     - wm_threshold)
+    c_gm     = _sigmoid(gm_score)
+    c_sulcus = _sigmoid(sulcus_score)
 
-    # Normalize to probabilities (if all near zero, falls back to equal ~1/3)
+    # Normalize to probabilities
     total = c_wm + c_gm + c_sulcus
-    total = np.where(total == 0, 1.0, total)
     p_wm     = c_wm     / total
     p_gm     = c_gm     / total
     p_sulcus = c_sulcus / total
