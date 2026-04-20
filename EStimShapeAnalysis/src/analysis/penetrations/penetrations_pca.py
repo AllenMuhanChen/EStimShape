@@ -19,7 +19,7 @@ from itertools import combinations
 
 from clat.util.connection import Connection
 
-OPTIMIZATIONS_path = "/home/connorlab/Documents/MRI/optimizations"
+OPTIMIZATIONS_path = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri"
 
 MRI_VIEWER_CONFIG_PATH = os.path.join(os.path.dirname(__file__), '../../mri/mri_viewer_config.json')
 
@@ -67,7 +67,9 @@ def _varimax(Phi, gamma=1.0, q=1000, tol=1e-8):
 
 DECOMPOSITION_METHOD = 'pca'   # 'pca' | 'fa'  (factor analysis)
 USE_VARIMAX = True             # applies to both PCA and FA
-WM_THRESHOLD = 0.5            # kept for backward compat; TissueModel uses per-class thresholds
+WM_THRESHOLD = 0.0            # z-score WM signal must exceed before counting as WM evidence
+                               # raise to reduce WM overestimation (0.0 = old behavior)
+
 
 
 # ---------------------------------------------------------------------------
@@ -120,15 +122,22 @@ MODEL_PCA_V1 = TissueModel([
         Evidence('PC1', sign=+1),   # brain evidence
         Evidence('PC2', sign=-1),   # anti-GM
         Evidence('PC4', sign=-1),   # anti-sulcus
+        Evidence('PC3', sign=1), # narrow triphasics
+        Evidence('PC5', sign=1), # positive spikes
+        Evidence('PC6', sign=1) # high spike amplitudes
     ]),
     TissueClass('gm',     score=0.5, evidence=[
         Evidence('PC1', sign=+1),   # brain evidence
         Evidence('PC2', sign=+1),   # GM
         Evidence('PC4', sign=-1),   # anti-sulcus
+        Evidence('PC3', sign=-1), # wide biphasics
+        Evidence('PC5', sign=-1),  #negative spikes
+        Evidence('PC6', sign=1) # high spike amplitudes
     ]),
     TissueClass('sulcus', score=0.0, evidence=[
         Evidence('PC1', sign=-1),   # anti-brain
         Evidence('PC4', sign=+1),   # sulcus
+        Evidence('PC6', sign=-1), #low spike amplitudes
     ]),
 ])
 
@@ -139,7 +148,8 @@ _TISSUE_CONF_FA_NO_VARIMAX    = dict(wm_col='PC2', wm2_col=None,               g
 
 # Per-session az/el/depth correction (added on top of global daz/del/ddepth)
 ENABLE_PER_SESSION_CORRECTIONS = True
-SESSION_CORR_BOUNDS = dict(daz=1.0, del_=1.0, ddepth=0.5)  # ± max effective correction
+
+SESSION_CORR_BOUNDS = dict(daz=5.0, del_=5.0, ddepth=2.0)  # ± max effective correction
 SESSION_CORR_L2_WEIGHT = 0.05  # λ on Σ(delta_i / bound_i)²; raise to suppress, lower to allow
 
 # Regularization on global chamber rigid-body params (keeps optimizer near physical solution)
@@ -2000,7 +2010,7 @@ def run_cortex_pca(
 
 def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs: int = 4,
                  mri_config_path: str = MRI_VIEWER_CONFIG_PATH, exclude_sessions=None,
-                 within_session_normalize: bool = True,
+                 within_session_normalize: bool = False,
                  swap_tissue_pcs: bool = False,
                  pc_smooth_sigma: float = 2.0,
                  varimax_n_components: int = 6,
@@ -2039,7 +2049,7 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
 
     # Depth profiles
     # plot_depth_profiles_by_session(df, pca, n_pcs=n_pcs)
-    plot_depth_profiles_all_sessions(df, pca, n_pcs=n_pcs)
+    # plot_depth_profiles_all_sessions(df, pca, n_pcs=n_pcs)
     plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs)
     # plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs, align_depths=True)
 
@@ -2054,10 +2064,10 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
     plot_tissue_confidence_by_session(df_conf, pca=pca, n_pcs=n_pcs)
 
     # PC3 vs PC4 in the cortex subspace (PC1>0 and PC2>0)
-    plot_cortex_pc_scatter(df_conf, pca)
+    # plot_cortex_pc_scatter(df_conf, pca)
 
     # Second-stage PCA on cortical bins only
-    cortex_pca_result = run_cortex_pca(df_conf, feature_columns, n_pcs=n_pcs)
+    # cortex_pca_result = run_cortex_pca(df_conf, feature_columns, n_pcs=n_pcs)
 
     # MRI comparison + optimisation
     fit_scores = None
@@ -2106,7 +2116,7 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         'fit_scores': fit_scores,
         'opt_result': opt_result,
         'mri_pipeline': mri_pipeline,
-        'cortex_pca': cortex_pca_result,
+        # 'cortex_pca': cortex_pca_result,
     }
 
 
@@ -2122,11 +2132,14 @@ if __name__ == "__main__":
     # exclude_sessions = ["260402_0", "260327_0"]
     results = run_analysis(
         conn,
-        n_pcs=6,
+        n_pcs=2,
         exclude_sessions=exclude_sessions,
         within_session_normalize=False,
         tissue_model=MODEL_PCA_V1,
+        varimax_n_components=2,
     )
+
+    # results = run_analysis(conn, n_pcs=6, exclude_sessions =exclude_sessions, within_session_normalize=False)
 
     # Access results
     # results['df']              - DataFrame with PC columns added

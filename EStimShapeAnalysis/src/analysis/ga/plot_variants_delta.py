@@ -13,10 +13,10 @@ def main():
     analysis = PlotVariantDeltas(
         use_ga_response=True,# Set to False to use channel-specific spike rates
         to_save_to_db=False,
-        threshold=0.6)
+        threshold=0.1)
     compiled_data = None  # Set to None to import from repository
     # compiled_data = analysis.compile_and_export()
-    session_id = "260416_0"
+    session_id = "260407_0"
     channel = "GA"
     analysis.run(session_id, "GA", channel, compiled_data=compiled_data)
 

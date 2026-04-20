@@ -87,8 +87,8 @@ BAND_COLORS = {
 }
 
 # Band power/phase method: True=FOOOF-robust, False=legacy relative normalization
-USE_FOOOF_BAND_POWERS = True   # False: use legacy compute_relative_power normalization
-USE_ABSOLUTE_PHASE    = True   # False: use legacy compute_relative_phase normalization
+USE_FOOOF_BAND_POWERS = False   # False: use legacy compute_relative_power normalization
+USE_ABSOLUTE_PHASE    = False   # False: use legacy compute_relative_phase normalization
 
 
 # ============================================================================
