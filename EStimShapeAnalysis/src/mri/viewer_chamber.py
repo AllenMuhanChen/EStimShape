@@ -137,11 +137,11 @@ class ChamberMixin:
                 'ddepth_mm': result['ddepth_mm'],
                 'score_before': result['score_before'],
                 'score_after': result['score_after'],
+                'per_session_corrections': result.get('per_session_corrections', {}),
             }
             with open(pen_offsets_path, 'w') as f:
                 json.dump(offsets, f, indent=2)
-            self.pen_offsets = {k: float(result[k])
-                                for k in ('daz_deg', 'del_deg', 'ddepth_mm')}
+            self.pen_offsets = self._load_pen_offsets(self._chamber_path)
 
             self._refit_chamber()
             self._update_chamber_corr_info()
