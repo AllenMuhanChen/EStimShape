@@ -1242,11 +1242,13 @@ def compute_trajectory_fit_scores(df: pd.DataFrame) -> pd.DataFrame:
         ts = sdata['tissue_score'].values
         mri = sdata['mri_normalized'].values
         conf = sdata['tissue_confidence'].values if 'tissue_confidence' in sdata.columns else None
-        r = _weighted_pearson_r(ts, mri, conf)
-        records.append({'session_id': session_id, 'fit_score': r, 'n_points': n})
+        r_w = _weighted_pearson_r(ts, mri, conf)
+        r_u = _weighted_pearson_r(ts, mri, None)
+        records.append({'session_id': session_id, 'fit_score': r_w,
+                        'fit_score_unweighted': r_u, 'n_points': n})
 
     result = pd.DataFrame(records).set_index('session_id')
-    print("\nTrajectory fit scores (weighted Pearson r, tissue_score vs MRI):")
+    print("\nTrajectory fit scores (tissue_score vs MRI):")
     print(result.to_string())
     return result
 
