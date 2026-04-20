@@ -141,6 +141,23 @@ MODEL_PCA_V1 = TissueModel([
     ]),
 ])
 
+
+# 2-component model for varimax_n_components=2 runs.
+# PC1: + = sulcus, − = GM
+# PC2: + = WM,     − = GM
+MODEL_PCA_V2 = TissueModel([
+    TissueClass('wm',     score=1.0, evidence=[
+        Evidence('PC2', sign=+1),   # WM
+    ]),
+    TissueClass('gm',     score=0.5, evidence=[
+        Evidence('PC1', sign=-1),   # anti-sulcus (GM side)
+        Evidence('PC2', sign=-1),   # anti-WM   (GM side)
+    ]),
+    TissueClass('sulcus', score=0.0, evidence=[
+        Evidence('PC1', sign=+1),   # sulcus
+    ]),
+])
+
 # Legacy column-mapping dicts (kept for backward compat)
 _TISSUE_CONF_PCA              = dict(wm_col='PC1', wm2_col='PC3', wm2_sign=1,  gm_col='PC2', sulcus_col='PC4')
 _TISSUE_CONF_FA_VARIMAX       = dict(wm_col='PC2', wm2_col='PC3', wm2_sign=-1, gm_col='PC1', sulcus_col='PC5')
@@ -2135,7 +2152,7 @@ if __name__ == "__main__":
         n_pcs=2,
         exclude_sessions=exclude_sessions,
         within_session_normalize=False,
-        tissue_model=MODEL_PCA_V1,
+        tissue_model=MODEL_PCA_V2,
         varimax_n_components=2,
     )
 
