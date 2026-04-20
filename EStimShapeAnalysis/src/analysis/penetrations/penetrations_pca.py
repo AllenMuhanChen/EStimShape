@@ -1309,6 +1309,21 @@ def optimize_trajectory_alignment(
     print(f"\nOptimising over {len(session_info)} sessions  "
           f"(initial mean r = {score_before:.4f}) ...")
 
+    # Build explicit initial simplex so Nelder-Mead explores meaningfully
+    # (with all-zero x0 scipy uses step=0.00025, smaller than xatol → instant false-convergence)
+    n_p = len(full_x0)
+    steps = np.zeros(n_p)
+    steps[:3] = 1.0   # tx, ty, tz (mm)
+    steps[3:6] = 1.0  # rx, ry, rz (deg)
+    steps[6]   = 0.5  # daz (deg)
+    steps[7]   = 0.5  # del (deg)
+    steps[8]   = 0.5  # ddepth (mm)
+    if ENABLE_PER_SESSION_CORRECTIONS and n_p > 9:
+        steps[9:] = 0.5  # per-session raw (tanh-space; tanh(0.5)≈0.46 → ~half-bound)
+    init_simplex = np.tile(full_x0, (n_p + 1, 1))
+    for i in range(n_p):
+        init_simplex[i + 1, i] += steps[i]
+
     maxiter_adj = maxiter + 500 * n_sess if ENABLE_PER_SESSION_CORRECTIONS else maxiter
     result = minimize(
         score_for_params,
@@ -1316,7 +1331,8 @@ def optimize_trajectory_alignment(
         method='Nelder-Mead',
         callback=callback_nelder,
         options={'maxiter': maxiter_adj, 'xatol': 1e-3, 'fatol': 1e-4,
-                 'adaptive': True, 'disp': True},
+                 'adaptive': True, 'disp': True,
+                 'initial_simplex': init_simplex},
     )
 
     score_after = -score_for_params(result.x, include_reg=False)
@@ -1324,7 +1340,7 @@ def optimize_trajectory_alignment(
     print(f"  mean r: {score_before:.4f} → {score_after:.4f}  "
           f"(Δ = {score_after - score_before:+.4f})")
     print("\nOptimised global parameters:")
-    for name, val in zip(_OPT_PARAM_NAMES, result.x[:10]):
+    for name, val in zip(_OPT_PARAM_NAMES, result.x[:9]):
         print(f"  {name:<14s} = {val:+.4f}")
 
     # Decode per-session corrections to effective (bounded) values
