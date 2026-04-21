@@ -397,6 +397,15 @@ class TrajectoryMixin:
         else:
             corrected_dist = tip_dist
             notes_extra = f"tip={tip_dist:.2f}mm (no channel correction)"
+
+        # Compute target at the (possibly corrected) dist
+        origin = self.chamber_state['origin']
+        cor_offset = self.chamber_state['cor_offset']
+        target_at_dist, _, _ = calc_penetration_target(
+            origin, t['az_deg'], t['el_deg'], corrected_dist,
+            self.chamber_state['x'], self.chamber_state['y'],
+            self.chamber_state['normal'], cor_offset)
+
         if self.ebz_set:
             rel = target_at_dist - self.ebz_world
             coord_note = f"target=[{rel[0]:+.2f}, {rel[1]:+.2f}, {rel[2]:+.2f}] rel EBZ"
