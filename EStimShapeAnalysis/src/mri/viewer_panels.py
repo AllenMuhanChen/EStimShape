@@ -299,9 +299,9 @@ class PanelsMixin:
         self.traj_actual_dist_var = tk.DoubleVar(value=35.0)
         ttk.Entry(r3a, textvariable=self.traj_actual_dist_var, width=8).pack(side=tk.LEFT, padx=2)
         ttk.Label(r3a, text="Channel#:").pack(side=tk.LEFT, padx=(8, 2))
-        self.traj_channel_var = tk.StringVar(value="0")
+        self.traj_channel_var = tk.StringVar(value="")
         ttk.Combobox(r3a, textvariable=self.traj_channel_var, width=6,
-                      values=sorted(_CHANNEL_ORDER)).pack(side=tk.LEFT, padx=2)
+                      values=[""] + sorted(_CHANNEL_ORDER)).pack(side=tk.LEFT, padx=2)
         ttk.Label(r3a, text="Label:").pack(side=tk.LEFT, padx=(8, 2))
         self.traj_actual_label_var = tk.StringVar(value="")
         ttk.Entry(r3a, textvariable=self.traj_actual_label_var, width=8).pack(side=tk.LEFT, padx=2)

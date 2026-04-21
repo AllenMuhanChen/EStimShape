@@ -376,30 +376,27 @@ class TrajectoryMixin:
         except (ValueError, tk.TclError):
             messagebox.showerror("Error", "Invalid tip distance."); return
 
-        try:
-            channel_num = int(self.traj_channel_var.get())
-            if channel_num not in _CHANNEL_ORDER:
-                messagebox.showerror("Error", f"Channel {channel_num} not in channel order."); return
-        except (ValueError, tk.TclError):
-            messagebox.showerror("Error", "Select a valid channel number."); return
+        ch_str = self.traj_channel_var.get().strip()
+        channel_num = None
+        if ch_str:
+            try:
+                channel_num = int(ch_str)
+                if channel_num not in _CHANNEL_ORDER:
+                    messagebox.showerror("Error", f"Channel {channel_num} not in channel order."); return
+            except (ValueError, tk.TclError):
+                messagebox.showerror("Error", "Select a valid channel number."); return
 
         t = self.temp_trajectory
         label = self.traj_actual_label_var.get().strip() or session_id
         notes = self.traj_actual_notes_var.get().strip()
 
-        # Apply channel correction
-        corrected_dist = _channel_corrected_dist(tip_dist, channel_num)
-
-        # Compute target at the corrected dist
-        origin = self.chamber_state['origin']
-        cor_offset = self.chamber_state['cor_offset']
-        target_at_dist, _, _ = calc_penetration_target(
-            origin, t['az_deg'], t['el_deg'], corrected_dist,
-            self.chamber_state['x'], self.chamber_state['y'],
-            self.chamber_state['normal'], cor_offset)
-
-        # Build notes
-        notes_extra = f"ch{channel_num} tip={tip_dist:.2f}mm corrected={corrected_dist:.2f}mm"
+        # Apply channel correction if a channel was given, otherwise use tip dist directly
+        if channel_num is not None:
+            corrected_dist = _channel_corrected_dist(tip_dist, channel_num)
+            notes_extra = f"ch{channel_num} tip={tip_dist:.2f}mm corrected={corrected_dist:.2f}mm"
+        else:
+            corrected_dist = tip_dist
+            notes_extra = f"tip={tip_dist:.2f}mm (no channel correction)"
         if self.ebz_set:
             rel = target_at_dist - self.ebz_world
             coord_note = f"target=[{rel[0]:+.2f}, {rel[1]:+.2f}, {rel[2]:+.2f}] rel EBZ"
@@ -413,8 +410,9 @@ class TrajectoryMixin:
             label=label, session_id=session_id, pen_type="actual",
             color=color, notes=full_notes, line_visible=False)
 
+        ch_info = f"ch{channel_num}, " if channel_num is not None else ""
         self.traj_actual_info_var.set(
-            f"Saved actual id={pen_id}: ch{channel_num}, tip={tip_dist:.1f}→{corrected_dist:.1f}mm")
+            f"Saved actual id={pen_id}: {ch_info}tip={tip_dist:.1f}→{corrected_dist:.1f}mm")
         self.display_all()
 
     def _save_trajectory(self):
