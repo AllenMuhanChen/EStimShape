@@ -147,14 +147,30 @@ MODEL_PCA_V1 = TissueModel([
 # PC2: + = WM,     − = GM
 MODEL_PCA_V2 = TissueModel([
     TissueClass('wm',     score=1.0, evidence=[
-        Evidence('PC2', sign=+1),   # WM
+        Evidence('PC1', sign=+1),   # anti-sulcus (GM side)
+        Evidence('PC2', sign=-1),   # WM
     ]),
     TissueClass('gm',     score=0.5, evidence=[
-        Evidence('PC1', sign=-1),   # anti-sulcus (GM side)
-        Evidence('PC2', sign=-1),   # anti-WM   (GM side)
+        Evidence('PC1', sign=+1),   # anti-sulcus (GM side)
+        Evidence('PC2', sign=+1),   # anti-WM   (GM side)
     ]),
     TissueClass('sulcus', score=0.0, evidence=[
-        Evidence('PC1', sign=+1),   # sulcus
+        Evidence('PC1', sign=-1),   # sulcus
+    ]),
+])
+
+# FOR USE WITH PCA WITH FOOF PREPROCESSING
+MODEL_PCA_V3 = TissueModel([
+    TissueClass('wm', score=1.0, evidence=[
+        Evidence('PC1', sign=-1),
+        Evidence('PC2', sign=+1),
+    ]),
+    TissueClass('gm', score=0.5, evidence=[
+        Evidence('PC1', sign=+1),
+        Evidence('PC2', sign=+1),
+    ]),
+    TissueClass('sulcus', score=0.0, evidence=[
+        Evidence('PC2', sign=-1),
     ]),
 ])
 
@@ -167,7 +183,7 @@ _TISSUE_CONF_FA_NO_VARIMAX    = dict(wm_col='PC2', wm2_col=None,               g
 ENABLE_PER_SESSION_CORRECTIONS = True
 
 SESSION_CORR_BOUNDS = dict(daz=5.0, del_=5.0, ddepth=2.0)  # ± max effective correction
-SESSION_CORR_L2_WEIGHT = 0.05  # λ on Σ(delta_i / bound_i)²; raise to suppress, lower to allow
+SESSION_CORR_L2_WEIGHT = 0.1  # λ on Σ(delta_i / bound_i)²; raise to suppress, lower to allow
 
 # Regularization on global chamber rigid-body params (keeps optimizer near physical solution)
 CHAMBER_L2_WEIGHT  = 0.02   # λ on normalized chamber penalty; raise to constrain more
@@ -2086,7 +2102,7 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
     # plot_cortex_pc_scatter(df_conf, pca)
 
     # Second-stage PCA on cortical bins only
-    # cortex_pca_result = run_cortex_pca(df_conf, feature_columns, n_pcs=n_pcs)
+    cortex_pca_result = run_cortex_pca(df_conf, feature_columns, n_pcs=4)
 
     # MRI comparison + optimisation
     fit_scores = None
@@ -2135,7 +2151,7 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         'fit_scores': fit_scores,
         'opt_result': opt_result,
         'mri_pipeline': mri_pipeline,
-        # 'cortex_pca': cortex_pca_result,
+        'cortex_pca': cortex_pca_result,
     }
 
 
@@ -2153,7 +2169,7 @@ if __name__ == "__main__":
         conn,
         n_pcs=2,
         exclude_sessions=exclude_sessions,
-        within_session_normalize=False,
+        within_session_normalize=True,
         tissue_model=MODEL_PCA_V2,
         varimax_n_components=2,
     )

@@ -64,7 +64,7 @@ PEAK_COUNT_NEGATIVE_ONLY       = True  # if True, exclude positive-leading spike
 TROUGH_PEAK_SMOOTH_MS          = 0.1   # Gaussian smooth sigma in ms before trough-to-peak measurement
 TROUGH_PEAK_NEGATIVE_ONLY      = True  # if True, exclude positive-leading spikes from trough-to-peak mean
 SPIKE_AMPLITUDE_SMOOTH_MS      = 0.0   # smooth before amplitude measurement (0 = no smoothing, preserves true amplitude)
-SPIKE_AMPLITUDE_NEGATIVE_ONLY  = True  # if True, exclude positive-leading spikes from amplitude mean
+SPIKE_AMPLITUDE_NEGATIVE_ONLY  = False  # if True, exclude positive-leading spikes from amplitude mean
 
 # Per-channel quality gating (applied in load_recording before binning)
 BAD_CHANNEL_R2_THRESHOLD = 0.7   # exclude channels with FOOOF r² below this (artifact/noise spectrum)
