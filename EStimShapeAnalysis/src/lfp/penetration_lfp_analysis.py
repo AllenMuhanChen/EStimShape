@@ -43,13 +43,9 @@ from spike_waveform_features import (
     compute_polarity_ratio, compute_mean_peak_count,
     compute_mean_trough_to_peak_ms, compute_mean_spike_amplitude,
 )
-from intan_lfp import (
-    extract_lfp, CHANNEL_ORDER, POWER_LAW_PANELS,
-    LFP_LOWPASS, LFP_TARGET_RATE,
-    MUA_HIGHPASS_HZ, MUA_THRESHOLD_RMS, MUA_REFRACTORY_SEC,
-)
 
-_INTAN_SFTP_PREFIX = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape"
+
+INTAN_SFTP_PREFIX = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape"
 
 # ============================================================================
 # CONFIGURATION
@@ -70,7 +66,8 @@ SPIKE_AMPLITUDE_NEGATIVE_ONLY  = False  # if True, exclude positive-leading spik
 BAD_CHANNEL_R2_THRESHOLD = 0.7   # exclude channels with FOOOF r² below this (artifact/noise spectrum)
 BAD_CHANNEL_RMS_HI_FACTOR = 5.0  # exclude channels with LFP RMS > factor × median (saturated)
 BAD_CHANNEL_RMS_LO_FACTOR = 0.1  # exclude channels with LFP RMS < factor × median (dead/disconnected)
-
+CHANNEL_ORDER = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
+                 27, 20, 4, 11, 28, 19, 1, 14, 3, 12, 29, 18, 2, 13, 30, 17]
 N_CHANNELS = len(CHANNEL_ORDER)  # 32
 TIP_TO_BOTTOM_CHANNEL_UM = 600  # µm from probe tip to deepest recording channel
 FREQ_RANGE = (0, 150)
@@ -163,6 +160,8 @@ def _nan_fit() -> PowerLawFit:
 def load_recording(
     rec_dir: str,
 ) -> Tuple[Dict, Dict, Dict, float]:
+
+
     """
     Load a saved Intan idle recording and compute LFP spectra, power-law
     fits, and MUA spike rates.
@@ -173,6 +172,12 @@ def load_recording(
         spike_rates  : Dict[ch_name, float]  (Hz)
         duration     : float  (seconds)
     """
+    from intan_lfp import (
+        extract_lfp, CHANNEL_ORDER, POWER_LAW_PANELS,
+        LFP_LOWPASS, LFP_TARGET_RATE,
+        MUA_HIGHPASS_HZ, MUA_THRESHOLD_RMS, MUA_REFRACTORY_SEC,
+    )
+
     info_path = os.path.join(rec_dir, "info.rhs")
     amp_path  = os.path.join(rec_dir, "amplifier.dat")
 
@@ -319,6 +324,11 @@ def load_impedance(csv_path: str) -> Tuple[Dict[str, float], Dict[str, float]]:
 # ============================================================================
 
 def _probe_positions() -> Dict[str, int]:
+    from intan_lfp import (
+        extract_lfp, CHANNEL_ORDER, POWER_LAW_PANELS,
+        LFP_LOWPASS, LFP_TARGET_RATE,
+        MUA_HIGHPASS_HZ, MUA_THRESHOLD_RMS, MUA_REFRACTORY_SEC,
+    )
     """Map channel name → probe position index (0=superficial, 31=deep)."""
     return {f"A_{ch_num:03d}": i for i, ch_num in enumerate(CHANNEL_ORDER)}
 
@@ -1068,6 +1078,8 @@ class PenetrationLFPAnalysis:
         self.waveform_smooth_sigma = waveform_smooth_sigma  # larger sigma for noisy spike metrics
 
     def run(self) -> None:
+
+
         print(f"Scanning {self.intan_path}  (session {self.session_id}) ...")
         recordings = discover_recordings(self.intan_path, self.session_id)
         if not recordings:
@@ -1145,6 +1157,12 @@ class PenetrationLFPAnalysis:
             print(f"  Warning: could not save to repository: {exc}")
 
     def _plot(self, bin_depths, normalized, b_spec, b_fits, b_spike, b_polarity, b_peak_count, b_ttp, b_amp, b_rel_imp, b_phase):
+        from intan_lfp import (
+            extract_lfp, CHANNEL_ORDER, POWER_LAW_PANELS,
+            LFP_LOWPASS, LFP_TARGET_RATE,
+            MUA_HIGHPASS_HZ, MUA_THRESHOLD_RMS, MUA_REFRACTORY_SEC,
+        )
+
         cfg  = POWER_LAW_PANELS
         n_pl = sum([
             cfg.get('show_exponent', True),
@@ -1213,17 +1231,18 @@ if __name__ == '__main__':
     # sigma_str = input("Spatial smoothing sigma in depth bins [default 1.5, 0 = off]: ").strip()
     # sigma = float(sigma_str) if sigma_str else 1.5
     tip_starts_for_session_ids = {
-        "260416_0": 5.6,
-        "260414_0": 6.05,
-        "260410_0": 6.35,
-        "260408_0": 6.25,
-        "260407_0": 6.3,
-        "260402_0":6.4,
-        "260331_0":6.05,
-        "260327_0":6.35,
+        # "260416_0": 5.6,
+        # "260414_0": 6.05,
+        # "260410_0": 6.35,
+        # "260408_0": 6.25,
+        # "260407_0": 6.3,
+        # "260402_0":6.4,
+        # "260331_0":6.05,
+        # "260327_0":6.35,
+        "260421_0": 6.02
     }
 
     for session_id, tip_start in tip_starts_for_session_ids.items():
         db_name    = f"allen_ga_exp_{session_id}"
-        intan_path = f"{_INTAN_SFTP_PREFIX}/{db_name}"
+        intan_path = f"{INTAN_SFTP_PREFIX}/{db_name}"
         PenetrationLFPAnalysis(session_id=session_id, intan_path=intan_path, tip_start_mm=tip_start).run()
