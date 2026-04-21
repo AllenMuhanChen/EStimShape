@@ -31,6 +31,15 @@ from src.startup import context
 
 _lfp_cache_dir = context.ga_parsed_spikes_path.replace("parsed_spikes", "parsed_lfp")
 
+# Spike waveform feature parameters (passed to MultiFileLFPParser.parse_iti)
+PEAK_COUNT_PROMINENCE_FRACTION = 0.15
+PEAK_COUNT_SMOOTH_MS           = 0.3
+PEAK_COUNT_NEGATIVE_ONLY       = True
+TROUGH_PEAK_SMOOTH_MS          = 0.1
+TROUGH_PEAK_NEGATIVE_ONLY      = True
+SPIKE_AMPLITUDE_SMOOTH_MS      = 0.0
+SPIKE_AMPLITUDE_NEGATIVE_ONLY  = False
+
 
 def main():
     channel_order = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
@@ -199,8 +208,15 @@ class LFPAnalysis(Analysis):
             cache_dir=_lfp_cache_dir,
             target_sample_rate=self.target_sample_rate,
         )
-        iti_lfp, iti_spike_rates, _iti_windows, sr = lfp_parser.parse_iti(
+        iti_lfp, iti_spike_rates, iti_features, _iti_windows, sr = lfp_parser.parse_iti(
             context.ga_intan_path,
+            peak_count_prominence_fraction=PEAK_COUNT_PROMINENCE_FRACTION,
+            peak_count_smooth_ms=PEAK_COUNT_SMOOTH_MS,
+            peak_count_negative_only=PEAK_COUNT_NEGATIVE_ONLY,
+            trough_peak_smooth_ms=TROUGH_PEAK_SMOOTH_MS,
+            trough_peak_negative_only=TROUGH_PEAK_NEGATIVE_ONLY,
+            spike_amplitude_smooth_ms=SPIKE_AMPLITUDE_SMOOTH_MS,
+            spike_amplitude_negative_only=SPIKE_AMPLITUDE_NEGATIVE_ONLY,
         )
         records = []
         for iti_idx in sorted(iti_lfp.keys()):
@@ -209,6 +225,7 @@ class LFPAnalysis(Analysis):
                 'LFP by channel_id': iti_lfp.get(iti_idx, {}),
                 'LFP Sample Rate': sr,
                 'Spike Rate by channel': iti_spike_rates.get(iti_idx, {}),
+                'Waveform Features by channel': iti_features.get(iti_idx, {}),
             })
         return pd.DataFrame(records)
 
@@ -219,8 +236,15 @@ class LFPAnalysis(Analysis):
             cache_dir=_lfp_cache_dir,
             target_sample_rate=self.target_sample_rate,
         )
-        iti_lfp, iti_spike_rates, iti_windows, sr = lfp_parser.parse_iti(
+        iti_lfp, iti_spike_rates, iti_features, iti_windows, sr = lfp_parser.parse_iti(
             context.ga_intan_path,
+            peak_count_prominence_fraction=PEAK_COUNT_PROMINENCE_FRACTION,
+            peak_count_smooth_ms=PEAK_COUNT_SMOOTH_MS,
+            peak_count_negative_only=PEAK_COUNT_NEGATIVE_ONLY,
+            trough_peak_smooth_ms=TROUGH_PEAK_SMOOTH_MS,
+            trough_peak_negative_only=TROUGH_PEAK_NEGATIVE_ONLY,
+            spike_amplitude_smooth_ms=SPIKE_AMPLITUDE_SMOOTH_MS,
+            spike_amplitude_negative_only=SPIKE_AMPLITUDE_NEGATIVE_ONLY,
         )
 
         session_id, _ = read_session_id_from_db_name(context.ga_database)
@@ -256,6 +280,7 @@ class LFPAnalysis(Analysis):
                 'LFP by channel_id': iti_lfp.get(idx, {}),
                 'LFP Sample Rate': sr,
                 'Spike Rate by channel': iti_spike_rates.get(idx, {}),
+                'Waveform Features by channel': iti_features.get(idx, {}),
             })
         return pd.DataFrame(records)
 

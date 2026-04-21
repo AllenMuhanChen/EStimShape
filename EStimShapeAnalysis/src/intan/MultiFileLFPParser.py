@@ -14,6 +14,11 @@ from scipy.signal import butter, sosfiltfilt, decimate
 from src.intan.MultiFileParser import find_files_containing_task_ids, find_all_recording_dirs
 from src.intan.one_file_lfp_parsing import OneFileLFPParser
 from src.lfp.mua_detection import detect_mua_spikes
+from src.lfp.spike_waveform_features import (
+    highpass_filter, extract_spike_waveforms,
+    compute_polarity_ratio, compute_mean_peak_count,
+    compute_mean_trough_to_peak_ms, compute_mean_spike_amplitude,
+)
 
 
 class MultiFileLFPParser:
@@ -229,9 +234,18 @@ class MultiFileLFPParser:
         mua_highpass_hz: float = 300.0,
         mua_threshold_rms: float = 4.0,
         mua_refractory_sec: float = 0.001,
+        # Spike waveform feature parameters
+        peak_count_prominence_fraction: float = 0.15,
+        peak_count_smooth_ms: float = 0.3,
+        peak_count_negative_only: bool = True,
+        trough_peak_smooth_ms: float = 0.1,
+        trough_peak_negative_only: bool = True,
+        spike_amplitude_smooth_ms: float = 0.0,
+        spike_amplitude_negative_only: bool = False,
     ) -> Tuple[
         Dict[int, Dict],   # iti_lfp_by_idx[iti_idx][channel_key] = np.ndarray
         Dict[int, Dict],   # iti_spike_rate_by_idx[iti_idx][channel_key] = float (Hz)
+        Dict[int, Dict],   # iti_waveform_features_by_idx[iti_idx][channel_key] = {feature: value}
         Dict[int, Tuple[float, float]],  # iti_time_windows_by_idx[iti_idx] = (start_s, end_s)
         int,               # lfp_sample_rate
     ]:
@@ -253,7 +267,8 @@ class MultiFileLFPParser:
 
         Returns
         -------
-        iti_lfp_by_idx, iti_spike_rate_by_idx, iti_time_windows_by_idx, lfp_sample_rate
+        iti_lfp_by_idx, iti_spike_rate_by_idx, iti_waveform_features_by_idx,
+        iti_time_windows_by_idx, lfp_sample_rate
         """
         iti_cache_dir = None
         if self.to_cache and self.cache_dir is not None:
@@ -268,28 +283,33 @@ class MultiFileLFPParser:
 
         all_lfp: Dict[int, Dict] = {}
         all_rates: Dict[int, Dict] = {}
+        all_features: Dict[int, Dict] = {}
         all_windows: Dict[int, Tuple[float, float]] = {}
         global_idx = 0
 
         for dir_path in recording_dirs:
-            dir_lfp, dir_rates, dir_windows, sr = self._parse_iti_one_dir(
+            dir_lfp, dir_rates, dir_feats, dir_windows, sr = self._parse_iti_one_dir(
                 dir_path,
                 min_iti_duration, start_padding, end_padding,
                 mua_highpass_hz, mua_threshold_rms, mua_refractory_sec,
+                peak_count_prominence_fraction, peak_count_smooth_ms, peak_count_negative_only,
+                trough_peak_smooth_ms, trough_peak_negative_only,
+                spike_amplitude_smooth_ms, spike_amplitude_negative_only,
             )
             if self.lfp_sample_rate is None:
                 self.lfp_sample_rate = sr
             for local_idx in sorted(dir_windows.keys()):
-                all_lfp[global_idx] = dir_lfp[local_idx]
-                all_rates[global_idx] = dir_rates[local_idx]
-                all_windows[global_idx] = dir_windows[local_idx]
+                all_lfp[global_idx]      = dir_lfp[local_idx]
+                all_rates[global_idx]    = dir_rates[local_idx]
+                all_features[global_idx] = dir_feats[local_idx]
+                all_windows[global_idx]  = dir_windows[local_idx]
                 global_idx += 1
 
         if iti_cache_dir is not None:
-            self._save_iti_cache(iti_cache_dir, all_lfp, all_rates, all_windows)
+            self._save_iti_cache(iti_cache_dir, all_lfp, all_rates, all_features, all_windows)
 
         print(f"Found {global_idx} ITI windows across {len(recording_dirs)} recording file(s).")
-        return all_lfp, all_rates, all_windows, self.lfp_sample_rate
+        return all_lfp, all_rates, all_features, all_windows, self.lfp_sample_rate
 
     # ------------------------------------------------------------------
     # ITI private helpers
@@ -304,7 +324,14 @@ class MultiFileLFPParser:
         mua_highpass_hz: float,
         mua_threshold_rms: float,
         mua_refractory_sec: float,
-    ) -> Tuple[Dict, Dict, Dict, int]:
+        peak_count_prominence_fraction: float = 0.15,
+        peak_count_smooth_ms: float = 0.3,
+        peak_count_negative_only: bool = True,
+        trough_peak_smooth_ms: float = 0.1,
+        trough_peak_negative_only: bool = True,
+        spike_amplitude_smooth_ms: float = 0.0,
+        spike_amplitude_negative_only: bool = False,
+    ) -> Tuple[Dict, Dict, Dict, Dict, int]:
         """
         Parse ITI LFP + MUA for a single recording directory.
 
@@ -345,7 +372,7 @@ class MultiFileLFPParser:
         valid_epochs.sort(key=lambda e: e[0])
 
         if len(valid_epochs) < 2:
-            return {}, {}, {}, int(raw_sample_rate // (raw_sample_rate // self.target_sample_rate))
+            return {}, {}, {}, {}, int(raw_sample_rate // (raw_sample_rate // self.target_sample_rate))
 
         # Compute LFP filter + downsample factor once
         downsample_factor = max(1, int(raw_sample_rate / self.target_sample_rate))
@@ -353,8 +380,9 @@ class MultiFileLFPParser:
         sos_lpf = butter(self.filter_order, self.lowpass_cutoff,
                          btype='low', fs=raw_sample_rate, output='sos')
 
-        lfp_by_idx: Dict[int, Dict] = {}
-        rate_by_idx: Dict[int, Dict] = {}
+        lfp_by_idx: Dict[int, Dict]      = {}
+        rate_by_idx: Dict[int, Dict]     = {}
+        features_by_idx: Dict[int, Dict] = {}
         windows_by_idx: Dict[int, Tuple[float, float]] = {}
         local_idx = 0
 
@@ -371,6 +399,7 @@ class MultiFileLFPParser:
 
             lfp_channels: Dict = {}
             mua_rates: Dict = {}
+            wf_features: Dict = {}
 
             for channel, raw_signal in channel_to_raw.items():
                 segment = raw_signal[raw_start:raw_end]
@@ -393,19 +422,57 @@ class MultiFileLFPParser:
                 duration = len(segment) / raw_sample_rate
                 mua_rates[channel] = len(spikes) / duration if duration > 0 else 0.0
 
+                # Spike waveform features (requires enough spikes to extract waveforms)
+                ch_feats: Dict = dict(
+                    polarity_ratio=None, peak_count=None,
+                    trough_to_peak_ms=None, amplitude=None, n_waveforms=0,
+                )
+                if len(spikes) > 0:
+                    filtered_seg = highpass_filter(segment, raw_sample_rate, mua_highpass_hz)
+                    waveforms = extract_spike_waveforms(
+                        filtered_seg, np.asarray(spikes), sample_rate=raw_sample_rate,
+                    )
+                    if len(waveforms) > 0:
+                        ch_feats = dict(
+                            polarity_ratio=compute_polarity_ratio(waveforms),
+                            peak_count=compute_mean_peak_count(
+                                waveforms,
+                                prominence_fraction=peak_count_prominence_fraction,
+                                smooth_ms=peak_count_smooth_ms,
+                                sample_rate=raw_sample_rate,
+                                negative_only=peak_count_negative_only,
+                            ),
+                            trough_to_peak_ms=compute_mean_trough_to_peak_ms(
+                                waveforms,
+                                smooth_ms=trough_peak_smooth_ms,
+                                sample_rate=raw_sample_rate,
+                                negative_only=trough_peak_negative_only,
+                            ),
+                            amplitude=compute_mean_spike_amplitude(
+                                waveforms,
+                                smooth_ms=spike_amplitude_smooth_ms,
+                                sample_rate=raw_sample_rate,
+                                negative_only=spike_amplitude_negative_only,
+                            ),
+                            n_waveforms=int(len(waveforms)),
+                        )
+                wf_features[channel] = ch_feats
+
             lfp_by_idx[local_idx] = lfp_channels
             rate_by_idx[local_idx] = mua_rates
+            features_by_idx[local_idx] = wf_features
             windows_by_idx[local_idx] = (gap_start_s, gap_end_s)
             local_idx += 1
 
-        return lfp_by_idx, rate_by_idx, windows_by_idx, int(lfp_sr)
+        return lfp_by_idx, rate_by_idx, features_by_idx, windows_by_idx, int(lfp_sr)
 
-    def _save_iti_cache(self, iti_cache_dir: str, lfp: Dict, rates: Dict, windows: Dict) -> None:
+    def _save_iti_cache(self, iti_cache_dir: str, lfp: Dict, rates: Dict,
+                        features: Dict, windows: Dict) -> None:
         os.makedirs(iti_cache_dir, exist_ok=True)
         cache_path = os.path.join(iti_cache_dir, "iti_parsed.pkl")
         with open(cache_path, 'wb') as f:
             pickle.dump({
-                'lfp': lfp, 'rates': rates, 'windows': windows,
+                'lfp': lfp, 'rates': rates, 'features': features, 'windows': windows,
                 'lfp_sample_rate': self.lfp_sample_rate,
             }, f)
 
@@ -418,8 +485,12 @@ class MultiFileLFPParser:
                 data = pickle.load(f)
             if self.lfp_sample_rate is None:
                 self.lfp_sample_rate = data.get('lfp_sample_rate')
+            # Backwards compat: older caches lack 'features' — return empty dicts per idx.
+            features = data.get('features')
+            if features is None:
+                features = {idx: {} for idx in data['windows'].keys()}
             print(f"Loaded ITI data from cache: {len(data['windows'])} windows.")
-            return data['lfp'], data['rates'], data['windows'], self.lfp_sample_rate
+            return data['lfp'], data['rates'], features, data['windows'], self.lfp_sample_rate
         except Exception as e:
             print(f"Failed to load ITI cache: {e}")
             return None
