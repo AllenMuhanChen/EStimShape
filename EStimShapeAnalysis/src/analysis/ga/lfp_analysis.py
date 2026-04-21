@@ -87,6 +87,7 @@ class LFPAnalysis(Analysis):
         sr = int(compiled_data['LFP Sample Rate'].iloc[0])
 
         spike_rates_by_channel = _compute_mean_spike_rates(compiled_data)
+        wf_features_by_channel = _compute_mean_waveform_features(compiled_data)
 
         # Spectra
         spectra = LFPSpectrum(sample_rate=sr).compute(lfp_data)
@@ -115,10 +116,12 @@ class LFPAnalysis(Analysis):
         )
         n_pl = pl_plotter.n_axes
         n_sp = sp_plotter.n_axes
-        width_ratios = [2, 1] + [1] * n_pl + [1] * n_sp
+        n_wf = len(_WAVEFORM_FEATURE_KEYS) if wf_features_by_channel else 0
+        width_ratios = [2, 1] + [1] * n_pl + [1] * n_sp + [1] * n_wf
+        n_axes_total = 2 + n_pl + n_sp + n_wf
         fig, axes = plt.subplots(
-            1, 2 + n_pl + n_sp,
-            figsize=(4 * (2 + n_pl + n_sp), 8),
+            1, n_axes_total,
+            figsize=(4 * n_axes_total, 8),
             gridspec_kw={'width_ratios': width_ratios},
         )
 
@@ -141,10 +144,27 @@ class LFPAnalysis(Analysis):
         )
 
         sp_plotter.plot_onto_axes(
-            spike_rates_by_channel, axes[2 + n_pl:],
+            spike_rates_by_channel, axes[2 + n_pl: 2 + n_pl + n_sp],
             fits_by_channel=fits,
             label_y_axis=False,
         )
+
+        _wf_panel_specs = [
+            ('polarity_ratio',    'Polarity Ratio',     'fraction positive', 'tab:olive'),
+            ('peak_count',        'Waveform Peaks',     'mean peak count',   'tab:cyan'),
+            ('trough_to_peak_ms', 'Trough→Peak',        'duration (ms)',     'tab:purple'),
+            ('amplitude',         'Spike Amplitude',    'amplitude (µV)',    'tab:brown'),
+        ]
+        for i, (feat, title, xlabel, color) in enumerate(_wf_panel_specs):
+            if n_wf == 0:
+                break
+            _plot_waveform_feature_panel(
+                axes[2 + n_pl + n_sp + i],
+                wf_features_by_channel,
+                feat, title, xlabel, color,
+                self.channel_order, self.channel_prefix,
+                label_y_axis=False,
+            )
 
         fig.suptitle(f"LFP Analysis — {self.session_id}")
         plt.tight_layout()
@@ -314,6 +334,72 @@ def _compute_mean_spike_rates(df: pd.DataFrame) -> dict:
         for ch, rate in rates.items():
             accum.setdefault(ch, []).append(rate)
     return {ch: float(np.mean(vals)) for ch, vals in accum.items()}
+
+
+_WAVEFORM_FEATURE_KEYS = ['polarity_ratio', 'peak_count', 'trough_to_peak_ms', 'amplitude']
+
+
+def _compute_mean_waveform_features(df: pd.DataFrame) -> dict:
+    """Average waveform features per channel across all rows.
+
+    Returns {channel: {feature: mean_value}} where values may be None if no
+    valid observations exist for that feature/channel pair.
+    """
+    accum: dict = {}
+    for _, row in df.iterrows():
+        feats = row.get('Waveform Features by channel') or {}
+        for ch, ch_feats in feats.items():
+            if not isinstance(ch_feats, dict):
+                continue
+            for feat in _WAVEFORM_FEATURE_KEYS:
+                v = ch_feats.get(feat)
+                if v is not None:
+                    accum.setdefault(ch, {}).setdefault(feat, []).append(float(v))
+    return {
+        ch: {feat: (float(np.mean(vals)) if vals else None)
+             for feat, vals in feat_accum.items()}
+        for ch, feat_accum in accum.items()
+    }
+
+
+def _plot_waveform_feature_panel(
+    ax,
+    mean_features_by_channel: dict,
+    feature_key: str,
+    title: str,
+    xlabel: str,
+    color: str,
+    channel_order: list,
+    channel_prefix: str,
+    label_y_axis: bool = False,
+) -> None:
+    """Plot one waveform feature as a depth profile (channels on y-axis)."""
+    # Build ordered (key, label) pairs matching channel_order
+    ordered_keys, labels = [], []
+    for ch_num in channel_order:
+        for key in mean_features_by_channel:
+            s = str(key)
+            if (s.endswith(f"{channel_prefix}_{ch_num:03d}") or
+                    s.endswith(f"{channel_prefix}-{ch_num:03d}")):
+                ordered_keys.append(key)
+                labels.append(f"{channel_prefix}-{ch_num:03d}")
+                break
+
+    y = np.arange(len(labels))
+    values = [mean_features_by_channel[k].get(feature_key) for k in ordered_keys]
+    # Replace None with nan for plotting
+    values_plot = [v if v is not None else np.nan for v in values]
+
+    ax.plot(values_plot, y, 'o-', markersize=5, color=color)
+    ax.set_xlabel(xlabel)
+    ax.set_title(title)
+    ax.invert_yaxis()
+    ax.set_yticks(y)
+    if label_y_axis:
+        ax.set_yticklabels(labels)
+        ax.set_ylabel("Channel")
+    else:
+        ax.set_yticklabels([])
 
 
 def _average_spectra(spectra_by_task_id):
