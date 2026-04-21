@@ -902,9 +902,49 @@ def plot_absolute_phase(
     _setup_depth_axis(ax, bin_depths)
 
 
-# ============================================================================
-# DATABASE OUTPUT
-# ============================================================================
+def _compute_driven_per_bin(
+    recordings_data: list,
+    bin_depths: np.ndarray,
+    tip_start_mm: float,
+) -> Dict[int, float]:
+    """
+    For each depth-bin index, return the mean driven depth (µm) that
+    produced data for that bin.  Useful for the right-side driven-depth axis.
+    """
+    probe_pos_map = _probe_positions()
+    depth_to_idx  = {round(d, 4): i for i, d in enumerate(bin_depths)}
+    driven_per_bin: Dict[int, List[float]] = defaultdict(list)
+
+    for driven_um, spectra, *_ in recordings_data:
+        for ch_name, pos in probe_pos_map.items():
+            if ch_name not in spectra:
+                continue
+            depth_r = round(_depth_mm(driven_um, pos, tip_start_mm), 4)
+            if depth_r in depth_to_idx:
+                idx = depth_to_idx[depth_r]
+                if driven_um not in driven_per_bin[idx]:
+                    driven_per_bin[idx].append(float(driven_um))
+
+    return {idx: float(np.mean(vals)) for idx, vals in driven_per_bin.items() if vals}
+
+
+def plot_driven_depth(
+    driven_per_bin: Dict[int, float],
+    bin_depths: np.ndarray,
+    ax: plt.Axes,
+) -> None:
+    """Step plot of driven depth (mm) vs depth-bin index."""
+    n_bins = len(bin_depths)
+    y      = np.arange(n_bins)
+    driven_mm = [driven_per_bin.get(i, np.nan) / 1000.0 for i in range(n_bins)]
+    ax.step(driven_mm, y, where='mid', color='tab:gray', linewidth=1.5)
+    ax.plot(driven_mm, y, 'o', markersize=3, color='tab:gray')
+    ax.set_xlabel("Driven depth (mm)")
+    ax.set_title("Amount\nDriven")
+    _setup_depth_axis(ax, bin_depths)
+
+
+
 
 _PENETRATION_METRICS_TABLE = "PenetrationMetrics"
 
@@ -1143,8 +1183,18 @@ class PenetrationLFPAnalysis:
             if USE_ABSOLUTE_PHASE and b_phase_save:
                 b_phase_save = smooth_scalars(b_phase_save, n_bins, sigma)
 
+        driven_ums      = [d for d, *_ in recordings_data]
+        driven_analyzed = [d for d, *_ in recordings]
+        b_driven        = _compute_driven_per_bin(recordings_data, bin_depths, self.tip_start_mm)
+
         print("Plotting ...")
-        self._plot(bin_depths, normalized, b_spec, b_fits, b_spike, b_polarity, b_peak_count, b_ttp, b_amp, b_rel_imp, b_phase_save)
+        self._plot(
+            bin_depths, normalized, b_spec, b_fits, b_spike, b_polarity,
+            b_peak_count, b_ttp, b_amp, b_rel_imp, b_phase_save,
+            b_driven=b_driven,
+            driven_ums_found=sorted(driven_analyzed),
+            driven_ums_used=sorted(driven_ums),
+        )
 
         print("Saving metrics to allen_data_repository ...")
         try:
@@ -1156,13 +1206,14 @@ class PenetrationLFPAnalysis:
         except Exception as exc:
             print(f"  Warning: could not save to repository: {exc}")
 
-    def _plot(self, bin_depths, normalized, b_spec, b_fits, b_spike, b_polarity, b_peak_count, b_ttp, b_amp, b_rel_imp, b_phase):
+    def _plot(self, bin_depths, normalized, b_spec, b_fits, b_spike, b_polarity,
+              b_peak_count, b_ttp, b_amp, b_rel_imp, b_phase,
+              b_driven=None, driven_ums_found=None, driven_ums_used=None):
         from intan_lfp import (
             extract_lfp, CHANNEL_ORDER, POWER_LAW_PANELS,
             LFP_LOWPASS, LFP_TARGET_RATE,
             MUA_HIGHPASS_HZ, MUA_THRESHOLD_RMS, MUA_REFRACTORY_SEC,
         )
-
         cfg  = POWER_LAW_PANELS
         n_pl = sum([
             cfg.get('show_exponent', True),
@@ -1174,9 +1225,9 @@ class PenetrationLFPAnalysis:
         ])
         n_bins = len(bin_depths)
 
-        # Layout: heatmap | band power | [power-law] | spike rate | polarity | peak count | T-P duration | amplitude | impedance | phase
-        n_total      = 1 + 1 + n_pl + 1 + 1 + 1 + 1 + 1 + 1 + 1
-        width_ratios = [3, 1] + [1] * n_pl + [1, 1, 1, 1, 1, 1, 1]
+        # Layout: heatmap | band power | [power-law] | spike rate | polarity | peak count | T-P duration | amplitude | impedance | phase | driven
+        n_total      = 1 + 1 + n_pl + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1
+        width_ratios = [3, 1] + [1] * n_pl + [1, 1, 1, 1, 1, 1, 1, 1]
 
         fig_h = max(8, min(20, n_bins * 0.15))
         fig, axes = plt.subplots(
@@ -1202,6 +1253,7 @@ class PenetrationLFPAnalysis:
             plot_absolute_phase(b_phase, bin_depths, axes[2 + n_pl + 6])
         else:
             plot_relative_phase(b_phase, bin_depths, axes[2 + n_pl + 6])
+        plot_driven_depth(b_driven or {}, bin_depths, axes[2 + n_pl + 7])
 
         # Lock y limits to the heatmap's extent so all panels align exactly
         axes[0].set_ylim(n_bins - 0.5, -0.5)
@@ -1209,11 +1261,21 @@ class PenetrationLFPAnalysis:
         sigma     = self.spatial_smooth_sigma
         smooth_str = f"  |  smooth σ={sigma}×65µm" if sigma > 0 else "  |  no smoothing"
         has_imp   = bool(b_rel_imp)
+
+        driven_found = driven_ums_found or []
+        driven_used  = driven_ums_used  or []
+        if driven_found:
+            driven_info = (f"  |  driven {min(driven_found)/1000:.1f}–{max(driven_found)/1000:.1f} mm"
+                           f" ({len(driven_found)} found, {len(driven_used)} analyzed)")
+        else:
+            driven_info = ""
+
         fig.suptitle(
             f"Penetration LFP  |  {self.session_id}  |  "
             f"tip_start = {self.tip_start_mm:.1f} mm  |  "
             f"{len(bin_depths)} depth bins  "
             f"({bin_depths[0]:.2f} – {bin_depths[-1]:.2f} mm)"
+            + driven_info
             + smooth_str
             + ("" if has_imp else "  [no impedance data]"),
             fontsize=10,
