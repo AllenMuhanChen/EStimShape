@@ -23,12 +23,14 @@ def main():
 
 
 class PlotVariantDeltas(PlotTopNAnalysis):
-    def __init__(self, use_ga_response=True, to_save_to_db=False, threshold=0.5, plot_included_only=True):
+    def __init__(self, use_ga_response=True, to_save_to_db=False, threshold=0.5,
+                 plot_included_only=True, variant_threshold=0.75):
         super().__init__()
         self.use_ga_response = use_ga_response
         self.to_save_to_db = to_save_to_db
         self.threshold = threshold
         self.plot_included_only = plot_included_only
+        self.variant_threshold = variant_threshold
 
     def analyze(self, channel, compiled_data=None):
         if compiled_data is None:
@@ -57,10 +59,10 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             response_key = channel
             print(f"Using channel-specific spike rates for {channel}")
 
-        # Get included variants from database
-        included_variant_ids = self._get_included_variants_from_db()
+        # Compute included variants from data (no DB dependency)
+        included_variant_ids, variant_responses = self._compute_included_variants(compiled_data, response_col_name)
         if not included_variant_ids:
-            print("No included variants found in IncludedVariants table!")
+            print("No included variants found!")
             return
         print(f"Found {len(included_variant_ids)} included variants")
 
@@ -116,7 +118,6 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             response_col_name].mean().reset_index()
         delta_avg_response.rename(columns={response_col_name: 'Delta Response'}, inplace=True)
 
-        variant_responses = self._get_variant_responses(compiled_data, included_variant_ids, channel)
         delta_avg_response = delta_avg_response.merge(
             variant_responses[['StimSpecId', 'Response']],
             left_on='PairedVariantId',
@@ -238,49 +239,26 @@ class PlotVariantDeltas(PlotTopNAnalysis):
         if self.to_save_to_db:
             self._save_deltas_to_db(delta_avg_response)
 
-    def _get_included_variants_from_db(self):
-        """Get non-excluded variant IDs from IncludedVariants table."""
-        try:
-            conn = Connection(context.ga_database)
+    def _compute_included_variants(self, compiled_data, response_col_name):
+        """Compute included variants from compiled_data using the variant threshold."""
+        variants = compiled_data[compiled_data['StimType'].isin(
+            [StimType.REGIME_ESTIM_VARIANTS.value, StimType.REGIME_ESTIM_DELTA.value]
+        )].copy()
 
-            query_sql = "SELECT stim_id FROM IncludedVariants WHERE manually_excluded = FALSE"
-            conn.execute(query_sql)
+        if variants.empty:
+            return [], pd.DataFrame(columns=['StimSpecId', 'Response'])
 
-            results = conn.fetch_all()
+        variants_grouped = variants.groupby('StimSpecId')[response_col_name].mean().reset_index()
+        max_response = variants_grouped[response_col_name].max()
+        cutoff = self.variant_threshold * max_response
+        print(f"Variant selection: max response={max_response:.2f}, threshold={cutoff:.2f} ({self.variant_threshold*100:.0f}%)")
 
-            if not results:
-                return []
-
-            stim_ids = [int(row[0]) for row in results]
-            return stim_ids
-
-        except Exception as e:
-            print(f"Error reading from IncludedVariants table: {e}")
-            return []
-
-    def _get_variant_responses(self, compiled_data, variant_ids, channel):
-        """Get variant responses from IncludedVariants table."""
-        try:
-            conn = Connection(context.ga_database)
-
-            query_sql = "SELECT stim_id, response FROM IncludedVariants WHERE manually_excluded = FALSE"
-            conn.execute(query_sql)
-
-            results = conn.fetch_all()
-
-            if results:
-                variant_responses = pd.DataFrame(results, columns=['StimSpecId', 'Response'])
-                return variant_responses
-
-        except Exception as e:
-            print(f"Could not read from IncludedVariants, calculating from data: {e}")
-
-        # Fallback: calculate from compiled_data using appropriate column
-        variants_data = compiled_data[compiled_data['StimSpecId'].isin(variant_ids)].copy()
-        response_col_name = 'GA Response' if self.use_ga_response else 'Spike Rate'
-        variant_responses = variants_data.groupby('StimSpecId')[response_col_name].mean().reset_index()
-        variant_responses.rename(columns={response_col_name: 'Response'}, inplace=True)
-        return variant_responses
+        included = variants_grouped[variants_grouped[response_col_name] >= cutoff].copy()
+        included_ids = included['StimSpecId'].tolist()
+        included_responses = included[['StimSpecId', response_col_name]].rename(
+            columns={response_col_name: 'Response'}
+        )
+        return included_ids, included_responses
 
     def _read_deltas_from_db(self):
         """Read delta information from IncludedDeltas table."""
