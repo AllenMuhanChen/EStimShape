@@ -132,14 +132,8 @@ class BaselineNormalizeResponseProcessor(GAResponseProcessor):
             gen_id = self.db_util.read_gen_id(stim_id)
             r = driving_response_for_each_stim_id[stim_id]
             bN_dict = baselines_by_gen.get(gen_id, {})
-            all_factors = []
-            for k in range(1, gen_id):
-                ref_dict = gen1_dict if k == 1 else baselines_by_gen.get(k, {})
-                common = set(bN_dict) & set(ref_dict)
-                if len(common) < 2:
-                    continue
-                all_factors.append(self._interpolated_factor(r, bN_dict, ref_dict))
-            factor = float(np.mean(all_factors)) if all_factors else 1.0
+            avg_ref_dict = self._build_avg_ref_dict(bN_dict, gen_id, gen1_dict, baselines_by_gen)
+            factor = self._interpolated_factor(r, bN_dict, avg_ref_dict)
             driving_response_for_each_stim_id[stim_id] *= factor
 
         # Write processed responses to database
@@ -147,6 +141,26 @@ class BaselineNormalizeResponseProcessor(GAResponseProcessor):
         for stim_id in stim_ids_to_update:
             if stim_id in driving_response_for_each_stim_id:
                 self.db_util.update_driving_response(stim_id, float(driving_response_for_each_stim_id[stim_id]))
+
+    @staticmethod
+    def _build_avg_ref_dict(bN_dict: dict[int, float],
+                            gen_id: int,
+                            gen1_dict: dict[int, float],
+                            baselines_by_gen: dict[int, dict[int, float]]) -> dict[int, float]:
+        """
+        For each baseline parent, average its response across all previous generations
+        (Gen 1 through Gen N-1) to use as a single reference in the correction.
+        """
+        avg_ref = {}
+        for parent_id in bN_dict:
+            vals = []
+            for k in range(1, gen_id):
+                source = gen1_dict if k == 1 else baselines_by_gen.get(k, {})
+                if parent_id in source:
+                    vals.append(source[parent_id])
+            if vals:
+                avg_ref[parent_id] = float(np.mean(vals))
+        return avg_ref
 
     @staticmethod
     def _interpolated_factor(r: float,

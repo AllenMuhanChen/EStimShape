@@ -92,13 +92,29 @@ class BaselineAnalysis(PlotTopNAnalysis):
                      .apply(lambda df: df.set_index('ParentId')['Response'].to_dict())
                      .to_dict())
 
+        # Build averaged reference dict per generation (avg of all previous gens)
+        all_gen_ids = sorted(bN_by_gen.keys())
+        avg_ref_by_gen = {}
+        for gen_id in all_gen_ids:
+            bN_dict_g = bN_by_gen[gen_id]
+            avg_ref = {}
+            for parent_id in bN_dict_g:
+                vals = []
+                for k in range(1, gen_id):
+                    source = gen1_dict if k == 1 else bN_by_gen.get(k, {})
+                    if parent_id in source:
+                        vals.append(source[parent_id])
+                if vals:
+                    avg_ref[parent_id] = float(np.mean(vals))
+            avg_ref_by_gen[gen_id] = avg_ref
+
         # Apply interpolated factor per experimental stim — identical to processor logic
         experimental = compiled_data[~compiled_data['StimType'].isin(['BASELINE', 'CATCH'])].copy()
         experimental['NormFactor'] = experimental.apply(
             lambda row: self._interpolated_factor(
                 row['Response'],
                 bN_by_gen.get(row['GenId'], {}),
-                gen1_dict
+                avg_ref_by_gen.get(row['GenId'], {})
             ), axis=1
         )
         experimental['NormResponse'] = experimental['Response'] * experimental['NormFactor']
@@ -370,10 +386,8 @@ class BaselineAnalysis(PlotTopNAnalysis):
         )
 
         method_styles = {
-            'Clamped (old)':           {'color': 'steelblue',   'ls': '-'},
-            'Best-ref clamp (new)':    {'color': 'crimson',     'ls': '-'},
-            'Log-space extrapolation': {'color': 'darkorange',  'ls': '--'},
-            'Linear extrapolation':    {'color': 'forestgreen', 'ls': '-.'},
+            'Gen-1 only':       {'color': 'steelblue', 'ls': '--'},
+            'Avg all prev gens': {'color': 'crimson',   'ls': '-'},
         }
 
         for col_idx, gen_id in enumerate(target_gens):
@@ -403,44 +417,43 @@ class BaselineAnalysis(PlotTopNAnalysis):
             x_max = bN_sorted[-1] + pad
             x_dense = np.linspace(x_min, x_max, 400)
 
-            # Old: clamp to the factor at the highest-Gen-N baseline
-            y_clamped = np.interp(x_dense, bN_sorted, factors)
+            # Gen-1 only reference (old single-gen behaviour)
+            best_ref_factor_gen1 = float(factors[int(np.argmax(ref_sorted))])
+            y_gen1 = np.where(x_dense > bN_sorted[-1], best_ref_factor_gen1,
+                              np.interp(x_dense, bN_sorted, factors))
 
-            # New: clamp to the factor at the highest-ref (Gen-1) baseline
-            best_ref_factor = float(factors[int(np.argmax(ref_sorted))])
-            y_best_ref = np.where(x_dense > bN_sorted[-1], best_ref_factor,
-                                  np.interp(x_dense, bN_sorted, factors))
+            # Averaged reference across all previous generations
+            avg_ref_dict_g = {}
+            for parent_id in bN_dict:
+                vals = []
+                for k in range(1, gen_id):
+                    source = gen1_dict if k == 1 else (
+                        avg_baseline[avg_baseline['GenId'] == k]
+                        .set_index('ParentId')['Response']
+                        .to_dict()
+                    )
+                    if parent_id in source:
+                        vals.append(source[parent_id])
+                if vals:
+                    avg_ref_dict_g[parent_id] = float(np.mean(vals))
 
-            # Log-space extrapolation
-            log_f = np.log(np.maximum(factors, 1e-9))
-            y_log = np.empty_like(x_dense)
-            for i, xv in enumerate(x_dense):
-                if xv <= bN_sorted[0]:
-                    slope = (log_f[1] - log_f[0]) / (bN_sorted[1] - bN_sorted[0])
-                    y_log[i] = np.exp(log_f[0] + slope * (xv - bN_sorted[0]))
-                elif xv >= bN_sorted[-1]:
-                    slope = (log_f[-1] - log_f[-2]) / (bN_sorted[-1] - bN_sorted[-2])
-                    y_log[i] = np.exp(log_f[-1] + slope * (xv - bN_sorted[-1]))
-                else:
-                    y_log[i] = np.exp(float(np.interp(xv, bN_sorted, log_f)))
-
-            # Linear extrapolation in factor space
-            y_lin = np.empty_like(x_dense)
-            for i, xv in enumerate(x_dense):
-                if xv <= bN_sorted[0]:
-                    slope = (factors[1] - factors[0]) / (bN_sorted[1] - bN_sorted[0])
-                    y_lin[i] = factors[0] + slope * (xv - bN_sorted[0])
-                elif xv >= bN_sorted[-1]:
-                    slope = (factors[-1] - factors[-2]) / (bN_sorted[-1] - bN_sorted[-2])
-                    y_lin[i] = factors[-1] + slope * (xv - bN_sorted[-1])
-                else:
-                    y_lin[i] = float(np.interp(xv, bN_sorted, factors))
+            if len(set(avg_ref_dict_g) & set(bN_dict)) >= 2:
+                common_avg = sorted(set(avg_ref_dict_g) & set(bN_dict))
+                bN_avg   = np.array([bN_dict[p]       for p in common_avg])
+                ref_avg  = np.array([avg_ref_dict_g[p] for p in common_avg])
+                sort_avg = np.argsort(bN_avg)
+                bN_avg_s  = bN_avg[sort_avg]
+                ref_avg_s = ref_avg[sort_avg]
+                factors_avg = ref_avg_s / bN_avg_s
+                best_ref_factor_avg = float(factors_avg[int(np.argmax(ref_avg_s))])
+                y_avg = np.where(x_dense > bN_avg_s[-1], best_ref_factor_avg,
+                                 np.interp(x_dense, bN_avg_s, factors_avg))
+            else:
+                y_avg = y_gen1
 
             for label, y_vals in [
-                ('Clamped (old)', y_clamped),
-                ('Best-ref clamp (new)', y_best_ref),
-                ('Log-space extrapolation', y_log),
-                ('Linear extrapolation', y_lin),
+                ('Gen-1 only', y_gen1),
+                ('Avg all prev gens', y_avg),
             ]:
                 style = method_styles[label]
                 ax.plot(x_dense, y_vals, linewidth=1.8,
