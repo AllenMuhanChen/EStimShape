@@ -195,7 +195,7 @@ _TISSUE_CONF_FA_VARIMAX       = dict(wm_col='PC2', wm2_col='PC3', wm2_sign=-1, g
 _TISSUE_CONF_FA_NO_VARIMAX    = dict(wm_col='PC2', wm2_col=None,               gm_col='PC1', sulcus_col='PC5')
 
 # Per-session az/el/depth correction (added on top of global daz/del/ddepth)
-ENABLE_PER_SESSION_CORRECTIONS = True
+ENABLE_PER_SESSION_CORRECTIONS = False
 
 SESSION_CORR_BOUNDS = dict(daz=5.0, del_=5.0, ddepth=2.0)  # ± max effective correction
 SESSION_CORR_L2_WEIGHT = 0.1  # λ on Σ(delta_i / bound_i)²; raise to suppress, lower to allow
@@ -2179,7 +2179,7 @@ if __name__ == "__main__":
     )
 
     exclude_sessions = None
-    # exclude_sessions = ["260402_0", "260327_0"]
+    exclude_sessions = ["260421_0"]
     results = run_analysis(
         conn,
         n_pcs=2,
