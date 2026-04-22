@@ -138,6 +138,11 @@ class BaselineAnalysis(PlotTopNAnalysis):
         fig2.savefig(save_file2, dpi=150, bbox_inches='tight')
         print(f"Saved interpolation normalization plot to {save_file2}")
 
+        fig3 = self._plot_normalization_comparison(avg_baseline, experimental, channel_label)
+        save_file3 = f"{self.save_path}/{channel_str}_normalization_comparison.png"
+        fig3.savefig(save_file3, dpi=150, bbox_inches='tight')
+        print(f"Saved normalization comparison plot to {save_file3}")
+
         plt.show()
         return fig
 
@@ -322,6 +327,137 @@ class BaselineAnalysis(PlotTopNAnalysis):
         gen1_sorted = gen1_arr[sort_idx]
         factors = gen1_sorted / bN_sorted
         return float(np.interp(r, bN_sorted, factors))
+
+    def _plot_normalization_comparison(
+            self,
+            avg_baseline: pd.DataFrame,
+            experimental: pd.DataFrame,
+            channel_label: str,
+    ) -> plt.Figure:
+        """
+        For each gen N (≥ 2) plot the correction-factor curve under three strategies:
+          - Clamped (current): np.interp, flat outside control-point range
+          - Log-space extrapolation: extends endpoint slope in log(factor) space
+          - Linear extrapolation: extends endpoint slope directly in factor space
+        The distribution of actual experimental responses is overlaid as a rug plot
+        so you can see which extrapolation zone actually matters.
+        """
+        gen1_dict: dict[int, float] = (
+            avg_baseline[['ParentId', 'Gen1Response']]
+            .drop_duplicates('ParentId')
+            .set_index('ParentId')['Gen1Response']
+            .to_dict()
+        )
+
+        all_gens = sorted(avg_baseline['GenId'].unique())
+        target_gens = [g for g in all_gens if g >= 2]
+        n_gens = len(target_gens)
+        if n_gens == 0:
+            fig, ax = plt.subplots()
+            ax.text(0.5, 0.5, 'No gen ≥ 2 data', ha='center', va='center')
+            return fig
+
+        fig, axes = plt.subplots(1, n_gens, figsize=(6 * n_gens, 5), squeeze=False)
+        fig.suptitle(
+            f'Normalization Method Comparison per Generation\nChannel: {channel_label}',
+            fontsize=13
+        )
+
+        method_styles = {
+            'Clamped (current)':       {'color': 'steelblue',  'ls': '-'},
+            'Log-space extrapolation': {'color': 'darkorange', 'ls': '--'},
+            'Linear extrapolation':    {'color': 'forestgreen', 'ls': '-.'},
+        }
+
+        for col_idx, gen_id in enumerate(target_gens):
+            ax = axes[0][col_idx]
+            bN_dict: dict[int, float] = (
+                avg_baseline[avg_baseline['GenId'] == gen_id]
+                .set_index('ParentId')['Response']
+                .to_dict()
+            )
+            common = sorted(set(bN_dict) & set(gen1_dict))
+            if len(common) < 2:
+                ax.text(0.5, 0.5, 'Too few control points', ha='center', va='center')
+                ax.set_title(f'Gen {gen_id}')
+                continue
+
+            bN_arr   = np.array([bN_dict[p]  for p in common])
+            ref_arr  = np.array([gen1_dict[p] for p in common])
+            sort_idx = np.argsort(bN_arr)
+            bN_sorted  = bN_arr[sort_idx]
+            ref_sorted = ref_arr[sort_idx]
+            factors    = ref_sorted / bN_sorted
+
+            # Extend x-axis 30% beyond control-point range on each side
+            span = bN_sorted[-1] - bN_sorted[0]
+            pad  = 0.30 * span if span > 0 else 1.0
+            x_min = max(0.0, bN_sorted[0]  - pad)
+            x_max = bN_sorted[-1] + pad
+            x_dense = np.linspace(x_min, x_max, 400)
+
+            # Clamped
+            y_clamped = np.interp(x_dense, bN_sorted, factors)
+
+            # Log-space extrapolation
+            log_f = np.log(np.maximum(factors, 1e-9))
+            y_log = np.empty_like(x_dense)
+            for i, xv in enumerate(x_dense):
+                if xv <= bN_sorted[0]:
+                    slope = (log_f[1] - log_f[0]) / (bN_sorted[1] - bN_sorted[0])
+                    y_log[i] = np.exp(log_f[0] + slope * (xv - bN_sorted[0]))
+                elif xv >= bN_sorted[-1]:
+                    slope = (log_f[-1] - log_f[-2]) / (bN_sorted[-1] - bN_sorted[-2])
+                    y_log[i] = np.exp(log_f[-1] + slope * (xv - bN_sorted[-1]))
+                else:
+                    y_log[i] = np.exp(float(np.interp(xv, bN_sorted, log_f)))
+
+            # Linear extrapolation in factor space
+            y_lin = np.empty_like(x_dense)
+            for i, xv in enumerate(x_dense):
+                if xv <= bN_sorted[0]:
+                    slope = (factors[1] - factors[0]) / (bN_sorted[1] - bN_sorted[0])
+                    y_lin[i] = factors[0] + slope * (xv - bN_sorted[0])
+                elif xv >= bN_sorted[-1]:
+                    slope = (factors[-1] - factors[-2]) / (bN_sorted[-1] - bN_sorted[-2])
+                    y_lin[i] = factors[-1] + slope * (xv - bN_sorted[-1])
+                else:
+                    y_lin[i] = float(np.interp(xv, bN_sorted, factors))
+
+            for label, y_vals in [
+                ('Clamped (current)', y_clamped),
+                ('Log-space extrapolation', y_log),
+                ('Linear extrapolation', y_lin),
+            ]:
+                style = method_styles[label]
+                ax.plot(x_dense, y_vals, linewidth=1.8,
+                        color=style['color'], linestyle=style['ls'], label=label)
+
+            # Control points
+            ax.scatter(bN_sorted, factors, color='black', s=40, zorder=5,
+                       label='Control points')
+
+            # Shade extrapolation zones
+            ax.axvspan(x_min, bN_sorted[0],  alpha=0.08, color='gray', label='Extrapolated zone')
+            ax.axvspan(bN_sorted[-1], x_max, alpha=0.08, color='gray')
+
+            # Rug plot of experimental responses for this gen
+            exp_gen = experimental[experimental['GenId'] == gen_id]['Response'].dropna()
+            if not exp_gen.empty:
+                rug_y = ax.get_ylim()[0]
+                ax.plot(exp_gen, np.full(len(exp_gen), rug_y),
+                        '|', color='black', alpha=0.3, markersize=8,
+                        label='Experimental responses')
+
+            ax.axhline(1.0, color='black', linestyle=':', linewidth=0.9, alpha=0.6)
+            ax.set_title(f'Gen {gen_id}')
+            ax.set_xlabel('Response in gen N (Hz)')
+            ax.set_ylabel('Correction factor')
+            ax.legend(fontsize=7)
+            ax.grid(True, alpha=0.3)
+
+        fig.tight_layout()
+        return fig
 
     def clean_ga_data(self, data_for_all_tasks):
         # Remove trials with no response
