@@ -29,7 +29,7 @@ from lfp_band_power_plotter import LFPBandPowerPlotter
 from lfp_power_law import LFPPowerLaw, LFPPowerLawSpectrumPlotter, LFPSpikeRatePlotter
 from src.lfp.lfp_power_law import FOOOFPowerLaw
 from src.lfp.mua_detection import detect_mua_spikes
-from src.repository.export_to_repository import read_session_id_from_db_name
+from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 
 # Import context for Intan path and database name
 from src.startup.context import ga_intan_path, ga_database
@@ -165,7 +165,7 @@ def ReadWaveformDataDemo():
     # PROMPT FOR DEPTH BEFORE CONNECTING — no timing pressure yet
     # ========================================================================
     depth = input("Enter electrode depth (integer): ").strip()
-    session_id, _ = read_session_id_from_db_name(ga_database)
+    session_id, _ = read_session_id_and_date_from_db_name(ga_database)
     base_filename = f"idle_{session_id}_{depth}"
     local_intan_path = sftp_to_local_path(ga_intan_path)
     print(f'Intan save path : {local_intan_path}')

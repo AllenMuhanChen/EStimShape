@@ -9,7 +9,7 @@ from typing import Dict, List, Any
 import time
 
 from clat.util.connection import Connection
-from src.repository.export_to_repository import read_stim_info, read_session_id_from_db_name, write_session_to_db, \
+from src.repository.export_to_repository import read_stim_info, read_session_id_and_date_from_db_name, write_session_to_db, \
     read_rf_info, write_rf_info_to_db, write_experiment_to_db, read_cluster_info, write_cluster_info_to_db, \
     read_stim_task_mapping, write_stim_experiment_mapping, write_task_stim_mapping, read_epochs, write_epochs_to_db, \
     read_raw_spike_responses, write_raw_spike_responses
@@ -55,7 +55,7 @@ def export_to_repository_alchemy(df: pd.DataFrame, db_name: str, exp_name: str,
     to_export_conn = Connection(db_name)
 
     # session ID
-    session_id, date = read_session_id_from_db_name(db_name)
+    session_id, date = read_session_id_and_date_from_db_name(db_name)
     write_session_to_db(repo_conn, session_id, date)
 
     # RF INFO

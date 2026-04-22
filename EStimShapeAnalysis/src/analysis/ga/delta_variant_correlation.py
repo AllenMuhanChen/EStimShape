@@ -43,7 +43,7 @@ from clat.util.connection import Connection
 from src.analysis.ga.rwa_prediction import (
     plot_real_vs_predicted_grouped, limit_groups_to_top_n,
 )
-from src.repository.export_to_repository import read_session_id_from_db_name
+from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.startup import context
 
 # Channel order top → bottom (same as DBCChannelMapper)
@@ -60,7 +60,7 @@ SCATTER_TOP_N    = 5           # top-N groups by count; rest → "Other"
 
 
 def main():
-    session_id, _ = read_session_id_from_db_name(context.ga_database)
+    session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     save_path = f"/home/connorlab/Documents/plots/{session_id}/delta_variant_correlation.png"
     experiment_id = context.ga_config.db_util.read_current_experiment_id(context.ga_name)
     plot_delta_variant_correlation(

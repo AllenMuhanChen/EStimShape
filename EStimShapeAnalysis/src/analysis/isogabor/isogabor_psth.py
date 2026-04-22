@@ -2,7 +2,7 @@ import pandas as pd
 
 from src.analysis import Analysis
 from src.analysis.isogabor import isogabor_raster_pipeline
-from src.repository.export_to_repository import read_session_id_from_db_name
+from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.repository.good_channels import read_cluster_channels
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context

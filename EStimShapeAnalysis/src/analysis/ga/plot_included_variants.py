@@ -12,7 +12,7 @@ import pandas as pd
 def main():
     analysis = PlotIncludedVariants()
     compiled_data = analysis.compile()
-    session_id = "260327_0"
+    session_id = "260421_0"
     channel = "GA"
     analysis.run(session_id, "GA", channel, compiled_data=compiled_data)
 

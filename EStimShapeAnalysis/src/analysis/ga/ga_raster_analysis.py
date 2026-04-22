@@ -22,7 +22,7 @@ from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelFiel
     EpochStartStopTimesField
 from src.analysis.modules.figure_output import FigureSaverOutput
 from src.intan.MultiFileParser import MultiFileParser
-from src.repository.export_to_repository import read_session_id_from_db_name
+from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 
@@ -32,7 +32,7 @@ CHANNEL_ORDER = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
 
 def main():
     analysis = GARasterAnalysis(top_n=10, gen_id=None)
-    session_id, _ = read_session_id_from_db_name(context.ga_database)
+    session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     compiled_data = analysis.compile()
     analysis.run(session_id, "raw", "ALL", compiled_data)
 

@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from matplotlib import cm
 
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
-from src.repository.export_to_repository import read_session_id_from_db_name
+from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.repository.good_channels import read_cluster_channels
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
@@ -16,7 +16,7 @@ def main():
     analysis = BaselineAnalysis()
     compiled_data = None
     compiled_data = analysis.compile_and_export()
-    session_id, _ = read_session_id_from_db_name(context.ga_database)
+    session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     # session_id = "260327_0"
     channel = read_cluster_channels(session_id)
     # channel = ["A-021"]

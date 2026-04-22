@@ -45,7 +45,7 @@ from intan_lfp import (
 )
 
 from src.startup.context import ga_intan_path, ga_database
-from src.repository.export_to_repository import read_session_id_from_db_name
+from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.startup.startup_system import ExperimentManager
 
 # ============================================================================
@@ -781,7 +781,7 @@ class PenetrationLFPAnalysis:
     def __init__(self, tip_start_mm: float, spatial_smooth_sigma: float = 1.5):
         self.tip_start_mm        = tip_start_mm
         self.spatial_smooth_sigma = spatial_smooth_sigma  # depth bins (1 bin = 65 µm)
-        self.session_id, _ = read_session_id_from_db_name(ga_database)
+        self.session_id, _ = read_session_id_and_date_from_db_name(ga_database)
         self.intan_path    = ga_intan_path
 
     def run(self) -> None:

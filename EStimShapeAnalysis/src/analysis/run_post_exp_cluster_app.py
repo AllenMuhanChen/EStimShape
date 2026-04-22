@@ -6,7 +6,7 @@ from src.cluster.mock_cluster_app import get_qapplication_instance
 from src.cluster.probe_mapping import DBCChannelMapper
 from src.pga.app.run_cluster_app import DbDataLoader
 from src.pga.multi_ga_db_util import MultiGaDbUtil
-from src.repository.export_to_repository import read_session_id_from_db_name
+from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.startup import context
 
 
@@ -19,7 +19,7 @@ class DbRepoDataExporter:
         channels_to_export = channels_for_clusters[cluster_to_export]
         print(f"Exporting channels for cluster {cluster_to_export}: {channels_to_export}")
 
-        session_id, _ = read_session_id_from_db_name(context.ga_database)
+        session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
 
         # Connect to the repository database
         conn = Connection("allen_data_repository")

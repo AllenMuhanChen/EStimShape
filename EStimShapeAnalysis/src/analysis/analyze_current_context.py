@@ -8,7 +8,7 @@ from src.analysis.isogabor.isogabor_raster_pipeline import IsogaborAnalysis, Iso
 from src.analysis.isogabor.mixed_gabors_analysis import MixedGaborsAnalysis
 from src.analysis.lightness.lightness_analysis import LightnessAnalysis
 from src.analysis.shuffle.shuffle_analysis import ShuffleAnalysis
-from src.repository.export_to_repository import read_session_id_from_db_name
+from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.repository.good_channels import read_cluster_channels
 from src.startup import context
 
@@ -30,7 +30,7 @@ def main():
 
 
 
-    session_id, _ = read_session_id_from_db_name(context.ga_database)
+    session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     # channel_ids = context.ga_config.db_util.read_current_cluster("New3D")
 
     channels = get_all_channels()

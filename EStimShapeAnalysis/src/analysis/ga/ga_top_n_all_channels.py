@@ -8,13 +8,13 @@ from matplotlib import pyplot as plt
 
 from src.analysis.ga.ga_raster_analysis import CHANNEL_ORDER, GARasterAnalysis
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
-from src.repository.export_to_repository import read_session_id_from_db_name
+from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.startup import context
 
 
 def main():
     analysis = GATopNAllChannelsAnalysis(top_n=10)
-    session_id, _ = read_session_id_from_db_name(context.ga_database)
+    session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     compiled_data = None
     # compiled_data = analysis.compile()
     analysis.run(session_id, "raw", "ALL", compiled_data)

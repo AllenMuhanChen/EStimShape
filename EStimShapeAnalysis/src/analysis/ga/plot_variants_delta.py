@@ -3,6 +3,7 @@ from clat.pipeline.pipeline_base_classes import create_branch, create_pipeline
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.pga.stim_types import StimType
+from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 from clat.util.connection import Connection
@@ -10,25 +11,31 @@ import pandas as pd
 
 
 def main():
+    (session_id, _) = read_session_id_and_date_from_db_name(context.ga_database)
+    use_ga = True
+    channel = "A-002"
+
     analysis = PlotVariantDeltas(
-        use_ga_response=False,
+        use_ga_response=use_ga,
         to_save_to_db=False,
-        threshold=0.5,
+        delta_threshold=0.5,
+        variant_threshold=0.6,
         plot_included_only=False)
     compiled_data = None  # Set to None to import from repository
     # compiled_data = analysis.compile_and_export()
-    session_id = "260421_0"
-    channel = "A-028"
-    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    if use_ga:
+        channel = "GA"
+        data_type= "GA"
+    analysis.run(session_id, data_type, channel, compiled_data=compiled_data)
 
 
 class PlotVariantDeltas(PlotTopNAnalysis):
-    def __init__(self, use_ga_response=True, to_save_to_db=False, threshold=0.5,
+    def __init__(self, use_ga_response=True, to_save_to_db=False, delta_threshold=0.5,
                  plot_included_only=True, variant_threshold=0.75):
         super().__init__()
         self.use_ga_response = use_ga_response
         self.to_save_to_db = to_save_to_db
-        self.threshold = threshold
+        self.threshold = delta_threshold
         self.plot_included_only = plot_included_only
         self.variant_threshold = variant_threshold
 

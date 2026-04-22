@@ -5,7 +5,7 @@ from clat.pipeline.pipeline_base_classes import ComputationModule, AnalysisModul
     create_pipeline
 from clat.util.connection import Connection
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis, add_lineage_rank_to_df
-from src.repository.export_to_repository import read_session_id_from_db_name
+from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 
@@ -343,7 +343,7 @@ def create_ga_response_vector_module(channel=None, session_id=None, spike_data_c
 def main():
     """Example usage of GAResponseVectorAnalysis."""
     # Example parameters - adjust as needed
-    (session_id, _) = read_session_id_from_db_name(context.ga_database)
+    (session_id, _) = read_session_id_and_date_from_db_name(context.ga_database)
     channel = "A-027"
 
     analysis = GAResponseVectorAnalysis()

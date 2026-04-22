@@ -6,7 +6,7 @@ from scipy.stats import spearmanr
 from clat.intan.channels import Channel
 from clat.util.connection import Connection
 from src.cluster.cluster_app_classes import ChannelMapper
-from src.repository.export_to_repository import read_session_id_from_db_name
+from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.startup import context
 
 

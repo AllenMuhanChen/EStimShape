@@ -18,7 +18,7 @@ from src.analysis.isogabor.old_isogabor_analysis import TypeField, IntanSpikesBy
 from clat.pipeline.pipeline_base_classes import (
     create_pipeline, create_branch
 )
-from src.repository.export_to_repository import export_to_repository, read_session_id_from_db_name
+from src.repository.export_to_repository import export_to_repository, read_session_id_and_date_from_db_name
 
 
 def main():

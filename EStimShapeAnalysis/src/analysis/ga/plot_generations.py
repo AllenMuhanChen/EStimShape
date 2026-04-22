@@ -5,7 +5,7 @@ from clat.pipeline.pipeline_base_classes import create_pipeline, create_branch
 from src.analysis.ga import plot_top_n
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
-from src.repository.export_to_repository import read_session_id_from_db_name
+from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.repository.good_channels import read_cluster_channels
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
@@ -18,7 +18,7 @@ def main():
     # compiled_data = None
     compiled_data = plot_top_n.compile_and_export()
 
-    session_id, _ = read_session_id_from_db_name(context.ga_database)
+    session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     # session_id = "260115_0"
     channel = read_cluster_channels(session_id)
     # channel = ["A-009", "A-000", "A-006", "A-009", "A-015", "A-022", "A-024"]

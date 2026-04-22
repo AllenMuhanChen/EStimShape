@@ -16,7 +16,7 @@ from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelFiel
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis, add_lineage_rank_to_df
 from src.intan.MultiFileParser import MultiFileParser
-from src.repository.export_to_repository import export_to_repository, read_session_id_from_db_name
+from src.repository.export_to_repository import export_to_repository, read_session_id_and_date_from_db_name
 from src.repository.good_channels import read_cluster_channels
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
@@ -26,7 +26,7 @@ def main():
     analysis = PlotFamilyAnalysis()
     compiled_data = None
     # compiled_data = analysis.compile_and_export()
-    session_id, _ = read_session_id_from_db_name(context.ga_database)
+    session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     session_id = "260115_0"
     # channels = "A-020"
     channels = read_cluster_channels(session_id)
