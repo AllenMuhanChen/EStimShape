@@ -31,7 +31,7 @@ CHANNEL_ORDER = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
 
 
 def main():
-    analysis = GARasterAnalysis(top_n=10, gen_id=None)
+    analysis = GARasterAnalysis(top_n=10, gen_id=2)
     session_id, _ = read_session_id_from_db_name(context.ga_database)
     compiled_data = analysis.compile()
     analysis.run(session_id, "raw", "ALL", compiled_data)

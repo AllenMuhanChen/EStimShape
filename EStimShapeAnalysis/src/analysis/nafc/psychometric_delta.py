@@ -190,12 +190,12 @@ def main():
     import numpy as np
 
     # Database connection
-    conn = Connection("allen_estimshape_exp_260414_0")
+    conn = Connection("allen_estimshape_exp_260421_0")
 
     # Time range
     since_date = time_util.from_date_to_now(2024, 7, 10)
-    start_gen_id = 3
-    max_gen_id = 5
+    start_gen_id = 1
+    max_gen_id = float('inf')
     start_gen_id_estim_on = 0
     max_gen_id_estim_on = float('inf')
 

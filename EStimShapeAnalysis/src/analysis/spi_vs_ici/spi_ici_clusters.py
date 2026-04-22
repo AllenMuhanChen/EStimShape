@@ -69,7 +69,7 @@ def create_frequency_preference_scatter_plots():
     print("\nDEBUG: Units per session:")
     for session in sessions:
         session_data = merged_df[merged_df['session_id'] == session]
-        unique_units = session_data['unit_name'].nunique()
+        unique_units = merged_df.groupby('session_id')['unit_name'].nunique()
         total_rows = len(session_data)
         sig_units = session_data[(pd.notna(session_data['p_value'])) & (session_data['p_value'] < 0.05)][
             'unit_name'].nunique()
@@ -121,7 +121,9 @@ def plot_frequency_data(merged_df, frequency, sessions):
     plt.figure(figsize=(12, 8))
 
     # Create a color map for sessions
-    session_colors = plt.cm.Set1(np.linspace(0, 1, len(sessions) + 1))
+    import matplotlib.colors as mcolors
+    colors = list(mcolors.TABLEAU_COLORS.values()) + list(mcolors.CSS4_COLORS.values())
+    session_colors = colors[:len(sessions)]
 
     # Plot each session with different colors, adjusting alpha for significance
     for i, session_id in enumerate(sessions):
@@ -131,8 +133,8 @@ def plot_frequency_data(merged_df, frequency, sessions):
             sig_mask = (pd.notna(session_data['p_value'])) & (session_data['p_value'] < 0.05)
 
             # Count unique units
-            unique_units = len(session_data['unit_name'].unique())
-            sig_units = len(session_data[sig_mask]['unit_name'].unique())
+            unique_units = merged_df[merged_df['session_id'] == session_id]['unit_name'].nunique()
+            sig_units = session_data[sig_mask]['unit_name'].nunique()
 
             # Plot significant points
             if sig_mask.any():
@@ -159,9 +161,9 @@ def plot_frequency_data(merged_df, frequency, sessions):
         plt.plot(line_x, line_y, 'k-', linewidth=2, label=f'Combined trend (R² = {r_squared:.3f})')
 
     # Add labels and title - use unique unit count
-    total_unique_units = len(freq_data['unit_name'].unique())
+    total_unique_units = len(freq_data.groupby('session_id')['unit_name'].unique())
     n_significant = len(
-        freq_data[(pd.notna(freq_data['p_value'])) & (freq_data['p_value'] < 0.05)]['unit_name'].unique())
+        freq_data[(pd.notna(freq_data['p_value'])) & (freq_data['p_value'] < 0.05)].groupby('session_id')['unit_name'].unique())
 
     plt.xlabel('Solid Preference Index')
     plt.ylabel('Isochromatic Preference Index')
@@ -213,7 +215,7 @@ def plot_frequency_data(merged_df, frequency, sessions):
     for session_id in sessions:
         session_data = freq_data[freq_data['session_id'] == session_id]
         if not session_data.empty:
-            unique_count = len(session_data['unit_name'].unique())
+            unique_count = len(session_data.groupby('session_id')['unit_name'].unique())
             sig_count = len(session_data[(pd.notna(session_data['p_value'])) & (session_data['p_value'] < 0.05)][
                                 'unit_name'].unique())
             print(f"    Session {session_id}: {unique_count} unique units ({sig_count} sig.)")

@@ -4,6 +4,7 @@ from tkinter import messagebox, ttk
 from typing import Dict
 
 from src.analysis import compile_current_context, analyze_raw_data, analyze_current_context
+from src.analysis.ga import raw_channel_candidacy_analysis, ga_raster_analysis
 from src.eyecal import plot_eyecal, apply_eyecal
 from src.pga.app import run_ga, start_new_ga, process_first_gen, run_cluster_app, calculate_spontaneous_firing_rate, \
     run_rwa, plot_rwa, transfer_eye_cal_params, abandon_generation, process_last_gen, recalculate_ga, run_tree_graph_app
@@ -87,28 +88,19 @@ class ScriptRunnerApp:
                 }
             },
             "Live Analysis": {
+                "GA Candidacy Analysis": {
+                    "func": raw_channel_candidacy_analysis.main,
+                    "params": []
+                },
+                "GA Raster": {
+                  "func": ga_raster_analysis.main,
+                    "params": []
+                },
                 "Run Analysis": {
                     "func": analyze_current_context.main,
                     "params": []
                 },
-                "Run RWA": {
-                    "func": run_rwa.main,
-                    "params": []
-                },
-                "Plot RWA": {
-                    "func": plot_rwa.main,
-                    "params": []
-                }
-            },
-            "Post Run": {
-                "Compile And Export to Data Repository:": {
-                    "func": compile_current_context.main,
-                    "params": []
-                },
-                "Analyze All Raw Data:": {
-                    "func": analyze_raw_data.main,
-                    "params":[]
-                }
+
             },
         }
 
