@@ -2,28 +2,10 @@
 """
 eval_corrections.py — Evaluate saved trajectory corrections on held-out sessions.
 
-Loads a corrections JSON produced by save_optimized_params(), applies the
-chamber + angle + depth corrections to the requested sessions, and reports
-weighted/unweighted Pearson r for each session vs MRI signal.
-
-Usage
------
-    python eval_corrections.py \\
-        --corrections /path/to/opt_YYYYMMDD_HHMMSS.json \\
-        --sessions 260402_0 260327_0 \\
-        [--db allen_data_repository] \\
-        [--host 172.30.6.61] \\
-        [--table PenetrationMetrics] \\
-        [--config /path/to/mri_viewer_config.json]
-
-By default the PCA / tissue model is fit on ALL sessions in the DB so that
-tissue scores are available for any held-out session.  If you want a strict
-train/test evaluation, pass --exclude-from-pca with the same session list to
-exclude them from PCA fitting; their tissue scores will be imputed from the
-training distribution (mean of training tissue scores) which is conservative.
+Edit the variables in the CONFIG section at the bottom of this file, then run:
+    python eval_corrections.py
 """
 
-import argparse
 import json
 import os
 import sys
@@ -32,7 +14,6 @@ import numpy as np
 import pandas as pd
 from scipy.ndimage import map_coordinates
 
-# Resolve project root
 _HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(_HERE, '../../..'))
 
@@ -269,47 +250,45 @@ def evaluate(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# CLI entry point
+# CONFIG — edit these variables, then run the script
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _parse_args():
-    p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument('--corrections', required=True,
-                   help='Path to opt_YYYYMMDD_HHMMSS.json corrections file')
-    p.add_argument('--sessions', nargs='+', required=True,
-                   help='Session ID(s) to evaluate, e.g. 260402_0 260327_0')
-    p.add_argument('--db',    default='allen_data_repository',
-                   help='Database name (default: allen_data_repository)')
-    p.add_argument('--host',  default='172.30.6.61',
-                   help='Database host (default: 172.30.6.61)')
-    p.add_argument('--user',  default='xper_rw', help='DB user')
-    p.add_argument('--password', default='up2nite', help='DB password')
-    p.add_argument('--table', default='PenetrationMetrics',
-                   help='PenetrationMetrics table name (default: PenetrationMetrics)')
-    p.add_argument('--config', default=MRI_VIEWER_CONFIG_PATH,
-                   help='Path to mri_viewer_config.json')
-    p.add_argument('--exclude-from-pca', nargs='*', default=None,
-                   help='Session IDs to exclude from PCA fitting '
-                        '(use for strict train/test split; default: include all)')
-    return p.parse_args()
-
-
 if __name__ == '__main__':
-    args = _parse_args()
 
-    conn = Connection(
-        database=args.db,
-        user=args.user,
-        password=args.password,
-        host=args.host,
-    )
+    # Path to the corrections JSON saved by save_optimized_params()
+    CORRECTIONS_PATH = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260415_143022.json"
 
+    # Sessions to evaluate (held-out sessions not used during optimization)
+    SESSIONS = [
+        "260402_0",
+        "260327_0",
+    ]
+
+    # Set to the same list as SESSIONS for a strict train/test PCA split
+    # (those sessions are excluded from PCA fitting so their tissue scores
+    #  come from the training distribution).  Set to [] to include all sessions
+    # in PCA fitting (simpler, slightly less rigorous).
+    EXCLUDE_FROM_PCA = []
+
+    # Database connection
+    DB_NAME  = "allen_data_repository"
+    DB_HOST  = "172.30.6.61"
+    DB_USER  = "xper_rw"
+    DB_PASS  = "up2nite"
+
+    # PenetrationMetrics table
+    TABLE = "PenetrationMetrics"
+
+    # MRI viewer config (leave as-is unless you have a non-default setup)
+    MRI_CONFIG = MRI_VIEWER_CONFIG_PATH
+
+    # ── run ──────────────────────────────────────────────────────────────────
+    conn = Connection(database=DB_NAME, user=DB_USER, password=DB_PASS, host=DB_HOST)
     evaluate(
-        corrections_path=args.corrections,
-        session_ids=args.sessions,
+        corrections_path=CORRECTIONS_PATH,
+        session_ids=SESSIONS,
         conn=conn,
-        table_name=args.table,
-        mri_config_path=args.config,
-        exclude_from_pca=args.exclude_from_pca,
+        table_name=TABLE,
+        mri_config_path=MRI_CONFIG,
+        exclude_from_pca=EXCLUDE_FROM_PCA or None,
     )
