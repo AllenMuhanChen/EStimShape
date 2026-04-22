@@ -333,5 +333,82 @@ class BaselineAnalysis(PlotTopNAnalysis):
         return data_for_all_tasks
 
 
+class RankBaselineAnalysis(BaselineAnalysis):
+    """
+    Mirrors RankBaselineNormalizeResponseProcessor: pairs Gen-1 and Gen-N
+    baseline responses by rank (sorted independently) instead of parent identity.
+    """
+
+    @staticmethod
+    def _interpolated_factor(r: float, bN_dict: dict, gen1_dict: dict) -> float:
+        if r == 0:
+            return 1.0
+        bN_sorted   = np.sort(list(bN_dict.values()))
+        gen1_sorted = np.sort(list(gen1_dict.values()))
+        n = min(len(bN_sorted), len(gen1_sorted))
+        if n < 2:
+            return 1.0
+        bN_sorted   = bN_sorted[:n]
+        gen1_sorted = gen1_sorted[:n]
+        factors     = gen1_sorted / bN_sorted
+        return float(np.interp(r, bN_sorted, factors))
+
+    def _plot_interpolation_normalization(
+            self,
+            avg_baseline: pd.DataFrame,
+            channel_label: str,
+    ) -> plt.Figure:
+        gen1_vals = np.sort(
+            avg_baseline[avg_baseline['GenId'].isin(
+                avg_baseline[avg_baseline['GenId'] == avg_baseline['GenId'].min()]['GenId']
+            )]['Gen1Response'].dropna().values
+        )
+
+        all_gens = sorted(avg_baseline['GenId'].unique())
+        target_gens = [g for g in all_gens if g >= 2]
+        colors = cm.viridis(np.linspace(0, 1, max(len(all_gens), 1)))
+        gen_color = {g: colors[i] for i, g in enumerate(all_gens)}
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        fig.suptitle(f'Rank-Based Correction Factor Curve per Generation\n'
+                     f'Channel: {channel_label}', fontsize=13)
+        ax.axhline(1.0, color='black', linestyle='--', linewidth=1.2,
+                   label='factor = 1 (no correction)', zorder=5)
+
+        for gen_id in target_gens:
+            bN_vals = np.sort(
+                avg_baseline[avg_baseline['GenId'] == gen_id]['Response'].values
+            )
+            gen1_sorted = np.sort(
+                avg_baseline[['ParentId', 'Gen1Response']]
+                .drop_duplicates('ParentId')['Gen1Response'].dropna().values
+            )
+            n = min(len(bN_vals), len(gen1_sorted))
+            if n < 2:
+                continue
+
+            bN_sorted   = bN_vals[:n]
+            gen1_sorted = gen1_sorted[:n]
+            factors     = gen1_sorted / bN_sorted
+
+            x_dense = np.linspace(bN_sorted[0], bN_sorted[-1], 200)
+            y_dense = np.interp(x_dense, bN_sorted, factors)
+
+            color = gen_color[gen_id]
+            ax.plot(x_dense, y_dense, linewidth=1.5, color=color, label=f'Gen {gen_id}')
+            ax.scatter(bN_sorted, factors, color=color, s=30, zorder=4)
+            for bN_val, factor_val, gen1_val in zip(bN_sorted, factors, gen1_sorted):
+                ax.annotate(f'{gen1_val:.1f}', (bN_val, factor_val),
+                            textcoords='offset points', xytext=(3, 3),
+                            fontsize=6, color=color, alpha=0.8)
+
+        ax.set_xlabel('Response value in gen N (Hz)')
+        ax.set_ylabel('Correction factor (gen-1 rank / gen-N rank)')
+        ax.legend(fontsize=8, bbox_to_anchor=(1.01, 1), loc='upper left')
+        ax.grid(True, alpha=0.3)
+        fig.tight_layout()
+        return fig
+
+
 if __name__ == "__main__":
     main()
