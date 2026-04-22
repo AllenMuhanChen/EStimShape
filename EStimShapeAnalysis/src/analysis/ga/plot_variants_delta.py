@@ -165,7 +165,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             print("No pairs to plot!")
             return
 
-        plot_subset['Rank'] = plot_subset['Delta Response'].rank(ascending=False, method='first')
+        plot_subset['Rank'] = plot_subset['Ratio'].rank(ascending=False, method='first')
 
         # Build delta rows for plot
         plot_delta_ids = plot_subset['StimSpecId'].unique()
