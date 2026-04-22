@@ -132,8 +132,7 @@ class BaselineNormalizeResponseProcessor(GAResponseProcessor):
             gen_id = self.db_util.read_gen_id(stim_id)
             r = driving_response_for_each_stim_id[stim_id]
             bN_dict = baselines_by_gen.get(gen_id, {})
-            avg_ref_dict = self._build_avg_ref_dict(bN_dict, gen_id, gen1_dict, baselines_by_gen)
-            factor = self._interpolated_factor(r, bN_dict, avg_ref_dict)
+            factor = self._interpolated_factor(r, bN_dict, gen1_dict)
             driving_response_for_each_stim_id[stim_id] *= factor
 
         # Write processed responses to database
@@ -143,54 +142,28 @@ class BaselineNormalizeResponseProcessor(GAResponseProcessor):
                 self.db_util.update_driving_response(stim_id, float(driving_response_for_each_stim_id[stim_id]))
 
     @staticmethod
-    def _build_avg_ref_dict(bN_dict: dict[int, float],
-                            gen_id: int,
-                            gen1_dict: dict[int, float],
-                            baselines_by_gen: dict[int, dict[int, float]]) -> dict[int, float]:
-        """
-        For each baseline parent, average its response across all previous generations
-        (Gen 1 through Gen N-1) to use as a single reference in the correction.
-        """
-        avg_ref = {}
-        for parent_id in bN_dict:
-            vals = []
-            for k in range(1, gen_id):
-                source = gen1_dict if k == 1 else baselines_by_gen.get(k, {})
-                if parent_id in source:
-                    vals.append(source[parent_id])
-            if vals:
-                avg_ref[parent_id] = float(np.mean(vals))
-        return avg_ref
-
-    @staticmethod
     def _interpolated_factor(r: float,
                              bN_dict: dict[int, float],
-                             ref_dict: dict[int, float]) -> float:
+                             gen1_dict: dict[int, float]) -> float:
         """
         Correction factor for a stim with raw response r in the current generation.
 
         Builds a correction-factor curve from the baseline stim control points
-        (bN → ref/bN), then linearly interpolates at r. np.interp clamps to the
-        boundary factor for responses outside [min(bN), max(bN)].
+        (bN → gen1/bN), then linearly interpolates at r. np.interp clamps to the
+        boundary factor for responses outside [min(bN), max(bN)], so there is no
+        extrapolation — the nearest boundary correction is used instead.
         """
         if r == 0:
             return 1.0
-        common = sorted(set(bN_dict) & set(ref_dict))
+        common = sorted(set(bN_dict) & set(gen1_dict))
         if len(common) < 2:
             return 1.0
-        bN_arr  = np.array([bN_dict[p]  for p in common])
-        ref_arr = np.array([ref_dict[p] for p in common])
-        sort_N     = np.argsort(bN_arr)
-        bN_sorted  = bN_arr[sort_N]
-        ref_sorted = ref_arr[sort_N]
-        factors    = ref_sorted / bN_sorted
-
-        if r > bN_sorted[-1]:
-            # Stim fires above all baselines: clamp to the factor of the highest-ref
-            # baseline (best quality reference), not the highest-Gen-N baseline
-            # (which may be a jumped-up mediocre stim with a misleadingly low factor).
-            return float(factors[int(np.argmax(ref_sorted))])
-
+        bN_arr   = np.array([bN_dict[p]   for p in common])
+        gen1_arr = np.array([gen1_dict[p]  for p in common])
+        sort_N       = np.argsort(bN_arr)
+        bN_sorted    = bN_arr[sort_N]
+        gen1_sorted  = gen1_arr[sort_N]
+        factors      = gen1_sorted / bN_sorted
         return float(np.interp(r, bN_sorted, factors))
 
     def _process_clusters(self, ga_name) -> dict[int, list[float]]:

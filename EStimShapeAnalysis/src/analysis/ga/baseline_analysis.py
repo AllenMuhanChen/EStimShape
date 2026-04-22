@@ -92,29 +92,13 @@ class BaselineAnalysis(PlotTopNAnalysis):
                      .apply(lambda df: df.set_index('ParentId')['Response'].to_dict())
                      .to_dict())
 
-        # Build averaged reference dict per generation (avg of all previous gens)
-        all_gen_ids = sorted(bN_by_gen.keys())
-        avg_ref_by_gen = {}
-        for gen_id in all_gen_ids:
-            bN_dict_g = bN_by_gen[gen_id]
-            avg_ref = {}
-            for parent_id in bN_dict_g:
-                vals = []
-                for k in range(1, gen_id):
-                    source = gen1_dict if k == 1 else bN_by_gen.get(k, {})
-                    if parent_id in source:
-                        vals.append(source[parent_id])
-                if vals:
-                    avg_ref[parent_id] = float(np.mean(vals))
-            avg_ref_by_gen[gen_id] = avg_ref
-
         # Apply interpolated factor per experimental stim — identical to processor logic
         experimental = compiled_data[~compiled_data['StimType'].isin(['BASELINE', 'CATCH'])].copy()
         experimental['NormFactor'] = experimental.apply(
             lambda row: self._interpolated_factor(
                 row['Response'],
                 bN_by_gen.get(row['GenId'], {}),
-                avg_ref_by_gen.get(row['GenId'], {})
+                gen1_dict
             ), axis=1
         )
         experimental['NormResponse'] = experimental['Response'] * experimental['NormFactor']
@@ -153,11 +137,6 @@ class BaselineAnalysis(PlotTopNAnalysis):
         save_file2 = f"{self.save_path}/{channel_str}_interpolation_normalization.png"
         fig2.savefig(save_file2, dpi=150, bbox_inches='tight')
         print(f"Saved interpolation normalization plot to {save_file2}")
-
-        fig3 = self._plot_normalization_comparison(avg_baseline, experimental, channel_label)
-        save_file3 = f"{self.save_path}/{channel_str}_normalization_comparison.png"
-        fig3.savefig(save_file3, dpi=150, bbox_inches='tight')
-        print(f"Saved normalization comparison plot to {save_file3}")
 
         plt.show()
         return fig
@@ -319,10 +298,6 @@ class BaselineAnalysis(PlotTopNAnalysis):
             color = gen_color[gen_id]
             ax.plot(x_dense, y_dense, linewidth=1.5, color=color, label=f'Gen {gen_id}')
             ax.scatter(bN_sorted, factors, color=color, s=30, zorder=4)
-            for bN_val, factor_val, gen1_val in zip(bN_sorted, factors, gen1_sorted):
-                ax.annotate(f'{gen1_val:.1f}', (bN_val, factor_val),
-                            textcoords='offset points', xytext=(3, 3),
-                            fontsize=6, color=color, alpha=0.8)
 
         ax.set_xlabel('Response value in gen N (Hz)')
         ax.set_ylabel('Correction factor (gen-1 / gen-N)')
@@ -346,144 +321,7 @@ class BaselineAnalysis(PlotTopNAnalysis):
         bN_sorted = bN_arr[sort_idx]
         gen1_sorted = gen1_arr[sort_idx]
         factors = gen1_sorted / bN_sorted
-        if r > bN_sorted[-1]:
-            return float(factors[int(np.argmax(gen1_sorted))])
         return float(np.interp(r, bN_sorted, factors))
-
-    def _plot_normalization_comparison(
-            self,
-            avg_baseline: pd.DataFrame,
-            experimental: pd.DataFrame,
-            channel_label: str,
-    ) -> plt.Figure:
-        """
-        For each gen N (≥ 2) plot the correction-factor curve under three strategies:
-          - Clamped (current): np.interp, flat outside control-point range
-          - Log-space extrapolation: extends endpoint slope in log(factor) space
-          - Linear extrapolation: extends endpoint slope directly in factor space
-        The distribution of actual experimental responses is overlaid as a rug plot
-        so you can see which extrapolation zone actually matters.
-        """
-        gen1_dict: dict[int, float] = (
-            avg_baseline[['ParentId', 'Gen1Response']]
-            .drop_duplicates('ParentId')
-            .set_index('ParentId')['Gen1Response']
-            .to_dict()
-        )
-
-        all_gens = sorted(avg_baseline['GenId'].unique())
-        target_gens = [g for g in all_gens if g >= 2]
-        n_gens = len(target_gens)
-        if n_gens == 0:
-            fig, ax = plt.subplots()
-            ax.text(0.5, 0.5, 'No gen ≥ 2 data', ha='center', va='center')
-            return fig
-
-        fig, axes = plt.subplots(1, n_gens, figsize=(6 * n_gens, 5), squeeze=False)
-        fig.suptitle(
-            f'Normalization Method Comparison per Generation\nChannel: {channel_label}',
-            fontsize=13
-        )
-
-        method_styles = {
-            'Gen-1 only':       {'color': 'steelblue', 'ls': '--'},
-            'Avg all prev gens': {'color': 'crimson',   'ls': '-'},
-        }
-
-        for col_idx, gen_id in enumerate(target_gens):
-            ax = axes[0][col_idx]
-            bN_dict: dict[int, float] = (
-                avg_baseline[avg_baseline['GenId'] == gen_id]
-                .set_index('ParentId')['Response']
-                .to_dict()
-            )
-            common = sorted(set(bN_dict) & set(gen1_dict))
-            if len(common) < 2:
-                ax.text(0.5, 0.5, 'Too few control points', ha='center', va='center')
-                ax.set_title(f'Gen {gen_id}')
-                continue
-
-            bN_arr   = np.array([bN_dict[p]  for p in common])
-            ref_arr  = np.array([gen1_dict[p] for p in common])
-            sort_idx = np.argsort(bN_arr)
-            bN_sorted  = bN_arr[sort_idx]
-            ref_sorted = ref_arr[sort_idx]
-            factors    = ref_sorted / bN_sorted
-
-            # Extend x-axis 30% beyond control-point range on each side
-            span = bN_sorted[-1] - bN_sorted[0]
-            pad  = 0.30 * span if span > 0 else 1.0
-            x_min = max(0.0, bN_sorted[0]  - pad)
-            x_max = bN_sorted[-1] + pad
-            x_dense = np.linspace(x_min, x_max, 400)
-
-            # Gen-1 only reference (old single-gen behaviour)
-            best_ref_factor_gen1 = float(factors[int(np.argmax(ref_sorted))])
-            y_gen1 = np.where(x_dense > bN_sorted[-1], best_ref_factor_gen1,
-                              np.interp(x_dense, bN_sorted, factors))
-
-            # Averaged reference across all previous generations
-            avg_ref_dict_g = {}
-            for parent_id in bN_dict:
-                vals = []
-                for k in range(1, gen_id):
-                    source = gen1_dict if k == 1 else (
-                        avg_baseline[avg_baseline['GenId'] == k]
-                        .set_index('ParentId')['Response']
-                        .to_dict()
-                    )
-                    if parent_id in source:
-                        vals.append(source[parent_id])
-                if vals:
-                    avg_ref_dict_g[parent_id] = float(np.mean(vals))
-
-            if len(set(avg_ref_dict_g) & set(bN_dict)) >= 2:
-                common_avg = sorted(set(avg_ref_dict_g) & set(bN_dict))
-                bN_avg   = np.array([bN_dict[p]       for p in common_avg])
-                ref_avg  = np.array([avg_ref_dict_g[p] for p in common_avg])
-                sort_avg = np.argsort(bN_avg)
-                bN_avg_s  = bN_avg[sort_avg]
-                ref_avg_s = ref_avg[sort_avg]
-                factors_avg = ref_avg_s / bN_avg_s
-                best_ref_factor_avg = float(factors_avg[int(np.argmax(ref_avg_s))])
-                y_avg = np.where(x_dense > bN_avg_s[-1], best_ref_factor_avg,
-                                 np.interp(x_dense, bN_avg_s, factors_avg))
-            else:
-                y_avg = y_gen1
-
-            for label, y_vals in [
-                ('Gen-1 only', y_gen1),
-                ('Avg all prev gens', y_avg),
-            ]:
-                style = method_styles[label]
-                ax.plot(x_dense, y_vals, linewidth=1.8,
-                        color=style['color'], linestyle=style['ls'], label=label)
-
-            # Control points
-            ax.scatter(bN_sorted, factors, color='black', s=40, zorder=5,
-                       label='Control points')
-
-            # Shade extrapolation zones
-            ax.axvspan(x_min, bN_sorted[0],  alpha=0.08, color='gray', label='Extrapolated zone')
-            ax.axvspan(bN_sorted[-1], x_max, alpha=0.08, color='gray')
-
-            # Rug plot of experimental responses for this gen
-            exp_gen = experimental[experimental['GenId'] == gen_id]['Response'].dropna()
-            if not exp_gen.empty:
-                rug_y = ax.get_ylim()[0]
-                ax.plot(exp_gen, np.full(len(exp_gen), rug_y),
-                        '|', color='black', alpha=0.3, markersize=8,
-                        label='Experimental responses')
-
-            ax.axhline(1.0, color='black', linestyle=':', linewidth=0.9, alpha=0.6)
-            ax.set_title(f'Gen {gen_id}')
-            ax.set_xlabel('Response in gen N (Hz)')
-            ax.set_ylabel('Correction factor')
-            ax.legend(fontsize=7)
-            ax.grid(True, alpha=0.3)
-
-        fig.tight_layout()
-        return fig
 
     def clean_ga_data(self, data_for_all_tasks):
         # Remove trials with no response
