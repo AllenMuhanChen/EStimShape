@@ -330,6 +330,8 @@ class BaselineAnalysis(PlotTopNAnalysis):
         bN_sorted = bN_arr[sort_idx]
         gen1_sorted = gen1_arr[sort_idx]
         factors = gen1_sorted / bN_sorted
+        if r > bN_sorted[-1]:
+            return float(factors[int(np.argmax(gen1_sorted))])
         return float(np.interp(r, bN_sorted, factors))
 
     def _plot_normalization_comparison(
@@ -368,8 +370,9 @@ class BaselineAnalysis(PlotTopNAnalysis):
         )
 
         method_styles = {
-            'Clamped (current)':       {'color': 'steelblue',  'ls': '-'},
-            'Log-space extrapolation': {'color': 'darkorange', 'ls': '--'},
+            'Clamped (old)':           {'color': 'steelblue',   'ls': '-'},
+            'Best-ref clamp (new)':    {'color': 'crimson',     'ls': '-'},
+            'Log-space extrapolation': {'color': 'darkorange',  'ls': '--'},
             'Linear extrapolation':    {'color': 'forestgreen', 'ls': '-.'},
         }
 
@@ -400,8 +403,13 @@ class BaselineAnalysis(PlotTopNAnalysis):
             x_max = bN_sorted[-1] + pad
             x_dense = np.linspace(x_min, x_max, 400)
 
-            # Clamped
+            # Old: clamp to the factor at the highest-Gen-N baseline
             y_clamped = np.interp(x_dense, bN_sorted, factors)
+
+            # New: clamp to the factor at the highest-ref (Gen-1) baseline
+            best_ref_factor = float(factors[int(np.argmax(ref_sorted))])
+            y_best_ref = np.where(x_dense > bN_sorted[-1], best_ref_factor,
+                                  np.interp(x_dense, bN_sorted, factors))
 
             # Log-space extrapolation
             log_f = np.log(np.maximum(factors, 1e-9))
@@ -429,7 +437,8 @@ class BaselineAnalysis(PlotTopNAnalysis):
                     y_lin[i] = float(np.interp(xv, bN_sorted, factors))
 
             for label, y_vals in [
-                ('Clamped (current)', y_clamped),
+                ('Clamped (old)', y_clamped),
+                ('Best-ref clamp (new)', y_best_ref),
                 ('Log-space extrapolation', y_log),
                 ('Linear extrapolation', y_lin),
             ]:

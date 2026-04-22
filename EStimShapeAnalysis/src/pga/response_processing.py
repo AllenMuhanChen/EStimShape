@@ -170,6 +170,13 @@ class BaselineNormalizeResponseProcessor(GAResponseProcessor):
         bN_sorted  = bN_arr[sort_N]
         ref_sorted = ref_arr[sort_N]
         factors    = ref_sorted / bN_sorted
+
+        if r > bN_sorted[-1]:
+            # Stim fires above all baselines: clamp to the factor of the highest-ref
+            # baseline (best quality reference), not the highest-Gen-N baseline
+            # (which may be a jumped-up mediocre stim with a misleadingly low factor).
+            return float(factors[int(np.argmax(ref_sorted))])
+
         return float(np.interp(r, bN_sorted, factors))
 
     def _process_clusters(self, ga_name) -> dict[int, list[float]]:
