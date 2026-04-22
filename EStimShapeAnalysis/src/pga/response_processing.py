@@ -176,3 +176,35 @@ class BaselineNormalizeResponseProcessor(GAResponseProcessor):
             response_vector_for_each_stim[stim_id] = responses_for_stim_id
 
         return response_vector_for_each_stim
+
+
+class RankBaselineNormalizeResponseProcessor(BaselineNormalizeResponseProcessor):
+    """
+    Normalizes GA responses using baseline stimuli paired by rank rather than identity.
+
+    Baseline responses in Gen N and Gen 1 are each sorted independently by response
+    magnitude and paired position-by-position (lowest↔lowest, highest↔highest).
+    The correction factor for a stim with response r is interpolated from that ranked
+    curve, clamped at the boundaries.
+
+    Example: Gen-1 baselines [5, 15, 20], Gen-7 baselines [1, 2, 3].
+      Control points: (1, 5/1=5.0), (2, 15/2=7.5), (3, 20/3=6.67)
+      Stim at r=5  → above range, clamp to 20/3 ≈ 6.67
+      Stim at r=2.5 → interpolate between 7.5 and 6.67
+    """
+
+    @staticmethod
+    def _interpolated_factor(r: float,
+                             bN_dict: dict[int, float],
+                             gen1_dict: dict[int, float]) -> float:
+        if r == 0:
+            return 1.0
+        bN_sorted   = np.sort(list(bN_dict.values()))
+        gen1_sorted = np.sort(list(gen1_dict.values()))
+        n = min(len(bN_sorted), len(gen1_sorted))
+        if n < 2:
+            return 1.0
+        bN_sorted   = bN_sorted[:n]
+        gen1_sorted = gen1_sorted[:n]
+        factors     = gen1_sorted / bN_sorted
+        return float(np.interp(r, bN_sorted, factors))
