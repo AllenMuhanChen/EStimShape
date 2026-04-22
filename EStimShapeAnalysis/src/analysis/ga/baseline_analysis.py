@@ -303,6 +303,10 @@ class BaselineAnalysis(PlotTopNAnalysis):
             color = gen_color[gen_id]
             ax.plot(x_dense, y_dense, linewidth=1.5, color=color, label=f'Gen {gen_id}')
             ax.scatter(bN_sorted, factors, color=color, s=30, zorder=4)
+            for bN_val, factor_val, gen1_val in zip(bN_sorted, factors, gen1_sorted):
+                ax.annotate(f'{gen1_val:.1f}', (bN_val, factor_val),
+                            textcoords='offset points', xytext=(3, 3),
+                            fontsize=6, color=color, alpha=0.8)
 
         ax.set_xlabel('Response value in gen N (Hz)')
         ax.set_ylabel('Correction factor (gen-1 / gen-N)')
