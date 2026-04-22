@@ -33,7 +33,8 @@ from src.startup import context
 
 def main():
     # ============ CONFIGURATION ============
-    exp_conn = Connection("allen_estimshape_exp_260416_0")
+    exp_db_name               = "allen_estimshape_exp_260416_0"
+    exp_conn = Connection(exp_db_name)
     ga_conn  = Connection(context.ga_database)
 
     since_date            = time_util.from_date_to_now(2024, 7, 10)
@@ -51,6 +52,8 @@ def main():
     border_color_mode = 'intensity'
     # =======================================
 
+    session_id = exp_db_name.split("allen_estimshape_exp_")[-1]
+
     all_ga_responses = get_all_ga_responses(ga_conn)
     if all_ga_responses:
         global_min_response = min(all_ga_responses)
@@ -64,6 +67,15 @@ def main():
     print(f"Found {len(variant_to_delta)} variant-delta pairs")
 
     trial_tstamps = collect_choice_trials(exp_conn, since_date)
+
+    if trial_tstamps:
+        first_task_id          = min(trial_tstamps)
+        most_recent_task_id    = max(trial_tstamps)
+        task_range             = f"{first_task_id}_{most_recent_task_id}"
+    else:
+        task_range = "no_trials"
+    save_path = f"/home/connorlab/Documents/plots/{session_id}/estim/{task_range}_estim_results.png"
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
     fields = CachedFieldList()
     fields.append(IsCorrectField(exp_conn))
@@ -164,12 +176,19 @@ def main():
     fig1.suptitle(f'EStimSpecId Analysis — {isCorrectFieldName}', fontsize=15, y=1.01)
 
     # ---- Figure 2: Variant-delta pairs ----
-    plot_pairs_figure(
+    pairs_fig = plot_pairs_figure(
         data_exp, ga_conn, variant_to_delta,
         global_min_response, global_max_response,
         start_gen_id_estim_on, max_gen_id_estim_on,
         isCorrectFieldName, add_borders, border_width, border_color_mode
     )
+
+    fig1.savefig(save_path.replace("_estim_results.png", "_overview_estim_results.png"),
+                 bbox_inches='tight', dpi=150)
+    if pairs_fig is not None:
+        pairs_fig.savefig(save_path.replace("_estim_results.png", "_pairs_estim_results.png"),
+                          bbox_inches='tight', dpi=150)
+    print(f"Saved plots to {os.path.dirname(save_path)}")
 
     plt.show()
 
@@ -477,7 +496,7 @@ def plot_pairs_figure(data_exp, ga_conn, variant_to_delta,
 
     if not variants_in_data:
         print("No variant-delta pairs found in behavioral data — skipping pairs figure.")
-        return
+        return None
 
     noise_levels = sorted(data_exp['NoiseChance'].unique())
 
@@ -573,6 +592,7 @@ def plot_pairs_figure(data_exp, ga_conn, variant_to_delta,
         f'Psychometric Curves: Variant-Delta Pairs (by EStimSpecId) — {isCorrectFieldName}',
         fontsize=16, y=0.995
     )
+    return fig
 
 
 # ===========================================================================
