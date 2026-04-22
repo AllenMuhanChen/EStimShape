@@ -230,7 +230,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
         deltas_data = deltas_data.groupby(['StimSpecId', 'ParentId']).agg({
             'GenId': 'first',
             'Lineage': 'first',
-            response_col: 'mean',
+            response_col_name: 'mean',
             'ThumbnailPath': 'first',
             'StimType': 'first'
         }).reset_index()
@@ -288,7 +288,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
         # Create visualization
         visualize_params = {
             'cell_size': (200, 200),
-            'response_rate_col': response_col,
+            'response_rate_col': response_col_name,
             'path_col': 'ThumbnailPath',
             'row_col': 'RowType',
             'col_col': 'Rank',
