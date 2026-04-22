@@ -33,7 +33,7 @@ from src.startup import context
 
 def main():
     # ============ CONFIGURATION ============
-    exp_db_name               = "allen_estimshape_exp_260416_0"
+    exp_db_name               = "allen_estimshape_exp_260421_0"
     exp_conn = Connection(exp_db_name)
     ga_conn  = Connection(context.ga_database)
 
@@ -69,8 +69,8 @@ def main():
     trial_tstamps = collect_choice_trials(exp_conn, since_date)
 
     if trial_tstamps:
-        first_task_id          = min(trial_tstamps)
-        most_recent_task_id    = max(trial_tstamps)
+        first_task_id          = min([trial_tstamp.start for trial_tstamp in trial_tstamps])
+        most_recent_task_id    = max([trial_tstamp.start for trial_tstamp in trial_tstamps])
         task_range             = f"{first_task_id}_{most_recent_task_id}"
     else:
         task_range = "no_trials"

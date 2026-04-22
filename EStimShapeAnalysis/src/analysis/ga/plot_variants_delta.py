@@ -11,8 +11,8 @@ import pandas as pd
 
 
 def main():
-    (session_id, _) = read_session_id_and_date_from_db_name(context.ga_database)
-    use_ga = True
+
+    use_ga = False
     channel = "A-002"
 
     analysis = PlotVariantDeltas(
@@ -26,6 +26,9 @@ def main():
     if use_ga:
         channel = "GA"
         data_type= "GA"
+    else:
+        data_type = "raw"
+    (session_id, _) = read_session_id_and_date_from_db_name(context.ga_database)
     analysis.run(session_id, data_type, channel, compiled_data=compiled_data)
 
 
