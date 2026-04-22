@@ -178,7 +178,8 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             'Lineage': 'first',
             response_col_name: 'mean',
             'ThumbnailPath': 'first',
-            'StimType': 'first'
+            'StimType': 'first',
+            'GA Response': 'first',
         }).reset_index()
         deltas_plot_data = plot_subset[['StimSpecId', 'Rank']].merge(
             deltas_plot_data, on='StimSpecId', how='outer'
@@ -231,7 +232,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             'col_col': 'Rank',
             'save_path': save_path,
             'module_name': "Deltas_With_Paired_Variants",
-            'cols_in_info_box': ['StimType', "StimSpecId", "Response", "ParentId"],
+            'cols_in_info_box': ['StimType', "StimSpecId", "Response", "ParentId", 'GA Response'],
             'publish_mode': False,
             'title': title,
             'border_width': 50,
