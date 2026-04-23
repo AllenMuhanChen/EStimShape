@@ -54,6 +54,8 @@ def main():
     # --- Optional filtering & combining ---
     # SpecIds: None = include all; list = include only those EStimSpecId values
     include_spec_ids       = None   # e.g. [1, 3]
+    # combine_spec_ids: True = pool all (filtered) SpecIds into one curve
+    combine_spec_ids       = False
     # SampleLengths: None = include all; list = include only those SampleLength values
     include_sample_lengths = None   # e.g. [0.5]
     # combine_sample_lengths: True = suppress per-SL stratification (treat all as one pool)
@@ -153,7 +155,8 @@ def main():
 
     def _call_panel(panel_fn, ax, data_on, data_off, spec_ids, noise_levels, metric_field, title):
         kwargs = dict(title=title, global_test_side=global_test_side,
-                      n_permutations=n_permutations, combine_sample_lengths=combine_sample_lengths)
+                      n_permutations=n_permutations, combine_sample_lengths=combine_sample_lengths,
+                      combine_spec_ids=combine_spec_ids)
         if metric_field is not None:
             return panel_fn(ax, data_on, data_off, spec_ids, noise_levels, metric_field, **kwargs)
         else:
@@ -403,7 +406,7 @@ def run_per_sample_length_stats(spec_data, off_data, noise_levels, metric_field,
 
 def plot_spec_id_panel(ax, stim_subset, estim_off_data, spec_ids, noise_levels,
                        metric_field, title, global_test_side, n_permutations=1000,
-                       combine_sample_lengths=False):
+                       combine_sample_lengths=False, combine_spec_ids=False):
     sl_map = None if combine_sample_lengths else get_sl_marker_map(pd.concat([stim_subset, estim_off_data]))
 
     if len(estim_off_data) > 0:
@@ -417,47 +420,81 @@ def plot_spec_id_panel(ax, stim_subset, estim_off_data, spec_ids, noise_levels,
         scatter_by_sample_length(ax, estim_off_data, metric_field, noise_levels,
                                  color='black', label_prefix='OFF', sl_marker_map=sl_map)
 
-    colors = cm.tab10(np.linspace(0, 1, max(len(spec_ids), 1)))
     results_text = f"{title}\n{'=' * 50}\n\n"
 
-    for color, spec_id in zip(colors, sorted(spec_ids)):
-        spec_data = stim_subset[stim_subset['EStimSpecId'] == spec_id].copy()
-        if len(spec_data) == 0:
-            continue
-
-        plot_psychometric_curve_on_ax(
-            spec_data, ax,
-            title=title, show_n=True, num_rep_min=0,
-            color=color, marker='o',
-            label=f'SpecId={spec_id} (n={len(spec_data)})',
-            isCorrectColumnName=metric_field
-        )
-        scatter_by_sample_length(ax, spec_data, metric_field, noise_levels,
-                                 color=color, label_prefix=f'Spec{spec_id}',
-                                 sl_marker_map=sl_map)
-
-        combined = pd.concat([spec_data, estim_off_data])
-        results_text += f"SpecId={spec_id} vs OFF\n{'-' * 30}\n"
-
-        if len(spec_data) > 0 and len(estim_off_data) > 0:
-            np.random.seed(42)
-            observed_sum, overall_p, overall_sig, level_diffs, _ = run_permutation_test(
-                combined, noise_levels, metric_field, global_test_side, n_permutations
+    if combine_spec_ids:
+        spec_data = stim_subset[stim_subset['EStimSpecId'].isin(spec_ids)].copy()
+        label = f'All SpecIds combined (n={len(spec_data)})'
+        if len(spec_data) > 0:
+            plot_psychometric_curve_on_ax(
+                spec_data, ax,
+                title=title, show_n=True, num_rep_min=0,
+                color='tab:blue', marker='o', label=label,
+                isCorrectColumnName=metric_field
             )
-            for noise in sorted(level_diffs.keys()):
-                pct_on, pct_off, diff, n_on, n_off, p, sig = level_diffs[noise]
-                results_text += f"  N{noise * 100:.0f}%: {diff:+.1f}% p={p:.3f}{sig}\n"
-            results_text += f"  Overall: {observed_sum:+.1f}% p={overall_p:.4f} {overall_sig}\n"
-            if not combine_sample_lengths:
-                sl_text = run_per_sample_length_stats(
-                    spec_data, estim_off_data, noise_levels, metric_field,
-                    global_test_side, n_permutations
+            scatter_by_sample_length(ax, spec_data, metric_field, noise_levels,
+                                     color='tab:blue', label_prefix='Combined', sl_marker_map=sl_map)
+            combined = pd.concat([spec_data, estim_off_data])
+            results_text += f"All SpecIds combined vs OFF\n{'-' * 30}\n"
+            if len(estim_off_data) > 0:
+                np.random.seed(42)
+                observed_sum, overall_p, overall_sig, level_diffs, _ = run_permutation_test(
+                    combined, noise_levels, metric_field, global_test_side, n_permutations
                 )
-                if sl_text:
-                    results_text += f"  By SampleLength:\n{sl_text}"
-            results_text += "\n"
-        else:
-            results_text += "  Insufficient data\n\n"
+                for noise in sorted(level_diffs.keys()):
+                    pct_on, pct_off, diff, n_on, n_off, p, sig = level_diffs[noise]
+                    results_text += f"  N{noise * 100:.0f}%: {diff:+.1f}% p={p:.3f}{sig}\n"
+                results_text += f"  Overall: {observed_sum:+.1f}% p={overall_p:.4f} {overall_sig}\n"
+                if not combine_sample_lengths:
+                    sl_text = run_per_sample_length_stats(
+                        spec_data, estim_off_data, noise_levels, metric_field,
+                        global_test_side, n_permutations
+                    )
+                    if sl_text:
+                        results_text += f"  By SampleLength:\n{sl_text}"
+                results_text += "\n"
+            else:
+                results_text += "  Insufficient data\n\n"
+    else:
+        colors = cm.tab10(np.linspace(0, 1, max(len(spec_ids), 1)))
+        for color, spec_id in zip(colors, sorted(spec_ids)):
+            spec_data = stim_subset[stim_subset['EStimSpecId'] == spec_id].copy()
+            if len(spec_data) == 0:
+                continue
+
+            plot_psychometric_curve_on_ax(
+                spec_data, ax,
+                title=title, show_n=True, num_rep_min=0,
+                color=color, marker='o',
+                label=f'SpecId={spec_id} (n={len(spec_data)})',
+                isCorrectColumnName=metric_field
+            )
+            scatter_by_sample_length(ax, spec_data, metric_field, noise_levels,
+                                     color=color, label_prefix=f'Spec{spec_id}',
+                                     sl_marker_map=sl_map)
+
+            combined = pd.concat([spec_data, estim_off_data])
+            results_text += f"SpecId={spec_id} vs OFF\n{'-' * 30}\n"
+
+            if len(spec_data) > 0 and len(estim_off_data) > 0:
+                np.random.seed(42)
+                observed_sum, overall_p, overall_sig, level_diffs, _ = run_permutation_test(
+                    combined, noise_levels, metric_field, global_test_side, n_permutations
+                )
+                for noise in sorted(level_diffs.keys()):
+                    pct_on, pct_off, diff, n_on, n_off, p, sig = level_diffs[noise]
+                    results_text += f"  N{noise * 100:.0f}%: {diff:+.1f}% p={p:.3f}{sig}\n"
+                results_text += f"  Overall: {observed_sum:+.1f}% p={overall_p:.4f} {overall_sig}\n"
+                if not combine_sample_lengths:
+                    sl_text = run_per_sample_length_stats(
+                        spec_data, estim_off_data, noise_levels, metric_field,
+                        global_test_side, n_permutations
+                    )
+                    if sl_text:
+                        results_text += f"  By SampleLength:\n{sl_text}"
+                results_text += "\n"
+            else:
+                results_text += "  Insufficient data\n\n"
 
     ax.invert_xaxis()
     ax.set_ylim([0, 110])
@@ -657,7 +694,7 @@ def plot_pairs_figure(data_exp, ga_conn, variant_to_delta,
 
 def plot_rand_choice_panel(ax, stim_subset, estim_off_data, spec_ids, noise_levels,
                            title, global_test_side, n_permutations=1000,
-                           combine_sample_lengths=False):
+                           combine_sample_lengths=False, combine_spec_ids=False):
     METRIC = 'IsRand'
 
     def inject_is_rand(df):
@@ -681,47 +718,81 @@ def plot_rand_choice_panel(ax, stim_subset, estim_off_data, spec_ids, noise_leve
         scatter_by_sample_length(ax, off_data, METRIC, noise_levels,
                                  color='black', label_prefix='OFF', sl_marker_map=sl_map)
 
-    colors = cm.tab10(np.linspace(0, 1, max(len(spec_ids), 1)))
     results_text = f"{title}\n{'=' * 50}\n\n"
 
-    for color, spec_id in zip(colors, sorted(spec_ids)):
-        spec_data = on_data[on_data['EStimSpecId'] == spec_id].copy()
-        if len(spec_data) == 0:
-            continue
-
-        plot_psychometric_curve_on_ax(
-            spec_data, ax,
-            title=title, show_n=True, num_rep_min=0,
-            color=color, marker='o',
-            label=f'SpecId={spec_id} (n={len(spec_data)})',
-            isCorrectColumnName=METRIC
-        )
-        scatter_by_sample_length(ax, spec_data, METRIC, noise_levels,
-                                 color=color, label_prefix=f'Spec{spec_id}',
-                                 sl_marker_map=sl_map)
-
-        combined = pd.concat([spec_data, off_data])
-        results_text += f"SpecId={spec_id} vs OFF\n{'-' * 30}\n"
-
-        if len(spec_data) > 0 and len(off_data) > 0:
-            np.random.seed(42)
-            observed_sum, overall_p, overall_sig, level_diffs, _ = run_permutation_test(
-                combined, noise_levels, METRIC, global_test_side, n_permutations
+    if combine_spec_ids:
+        spec_data = on_data[on_data['EStimSpecId'].isin(spec_ids)].copy()
+        if len(spec_data) > 0:
+            plot_psychometric_curve_on_ax(
+                spec_data, ax,
+                title=title, show_n=True, num_rep_min=0,
+                color='tab:blue', marker='o',
+                label=f'All SpecIds combined (n={len(spec_data)})',
+                isCorrectColumnName=METRIC
             )
-            for noise in sorted(level_diffs.keys()):
-                pct_on, pct_off, diff, n_on, n_off, p, sig = level_diffs[noise]
-                results_text += f"  N{noise * 100:.0f}%: {diff:+.1f}% p={p:.3f}{sig}\n"
-            results_text += f"  Overall: {observed_sum:+.1f}% p={overall_p:.4f} {overall_sig}\n"
-            if not combine_sample_lengths:
-                sl_text = run_per_sample_length_stats(
-                    spec_data, off_data, noise_levels, METRIC,
-                    global_test_side, n_permutations
+            scatter_by_sample_length(ax, spec_data, METRIC, noise_levels,
+                                     color='tab:blue', label_prefix='Combined', sl_marker_map=sl_map)
+            combined = pd.concat([spec_data, off_data])
+            results_text += f"All SpecIds combined vs OFF\n{'-' * 30}\n"
+            if len(off_data) > 0:
+                np.random.seed(42)
+                observed_sum, overall_p, overall_sig, level_diffs, _ = run_permutation_test(
+                    combined, noise_levels, METRIC, global_test_side, n_permutations
                 )
-                if sl_text:
-                    results_text += f"  By SampleLength:\n{sl_text}"
-            results_text += "\n"
-        else:
-            results_text += "  Insufficient data\n\n"
+                for noise in sorted(level_diffs.keys()):
+                    pct_on, pct_off, diff, n_on, n_off, p, sig = level_diffs[noise]
+                    results_text += f"  N{noise * 100:.0f}%: {diff:+.1f}% p={p:.3f}{sig}\n"
+                results_text += f"  Overall: {observed_sum:+.1f}% p={overall_p:.4f} {overall_sig}\n"
+                if not combine_sample_lengths:
+                    sl_text = run_per_sample_length_stats(
+                        spec_data, off_data, noise_levels, METRIC,
+                        global_test_side, n_permutations
+                    )
+                    if sl_text:
+                        results_text += f"  By SampleLength:\n{sl_text}"
+                results_text += "\n"
+            else:
+                results_text += "  Insufficient data\n\n"
+    else:
+        colors = cm.tab10(np.linspace(0, 1, max(len(spec_ids), 1)))
+        for color, spec_id in zip(colors, sorted(spec_ids)):
+            spec_data = on_data[on_data['EStimSpecId'] == spec_id].copy()
+            if len(spec_data) == 0:
+                continue
+
+            plot_psychometric_curve_on_ax(
+                spec_data, ax,
+                title=title, show_n=True, num_rep_min=0,
+                color=color, marker='o',
+                label=f'SpecId={spec_id} (n={len(spec_data)})',
+                isCorrectColumnName=METRIC
+            )
+            scatter_by_sample_length(ax, spec_data, METRIC, noise_levels,
+                                     color=color, label_prefix=f'Spec{spec_id}',
+                                     sl_marker_map=sl_map)
+
+            combined = pd.concat([spec_data, off_data])
+            results_text += f"SpecId={spec_id} vs OFF\n{'-' * 30}\n"
+
+            if len(spec_data) > 0 and len(off_data) > 0:
+                np.random.seed(42)
+                observed_sum, overall_p, overall_sig, level_diffs, _ = run_permutation_test(
+                    combined, noise_levels, METRIC, global_test_side, n_permutations
+                )
+                for noise in sorted(level_diffs.keys()):
+                    pct_on, pct_off, diff, n_on, n_off, p, sig = level_diffs[noise]
+                    results_text += f"  N{noise * 100:.0f}%: {diff:+.1f}% p={p:.3f}{sig}\n"
+                results_text += f"  Overall: {observed_sum:+.1f}% p={overall_p:.4f} {overall_sig}\n"
+                if not combine_sample_lengths:
+                    sl_text = run_per_sample_length_stats(
+                        spec_data, off_data, noise_levels, METRIC,
+                        global_test_side, n_permutations
+                    )
+                    if sl_text:
+                        results_text += f"  By SampleLength:\n{sl_text}"
+                results_text += "\n"
+            else:
+                results_text += "  Insufficient data\n\n"
 
     ax.invert_xaxis()
     ax.set_ylim([0, 110])
@@ -738,7 +809,7 @@ def plot_rand_choice_panel(ax, stim_subset, estim_off_data, spec_ids, noise_leve
 
 def plot_rand_excluded_panel(ax, stim_subset, estim_off_data, spec_ids, noise_levels,
                              metric_field, title, global_test_side, n_permutations=1000,
-                             combine_sample_lengths=False):
+                             combine_sample_lengths=False, combine_spec_ids=False):
     def drop_rand(df):
         return df[df['Choice'] != 'rand'].copy()
 
@@ -758,47 +829,81 @@ def plot_rand_excluded_panel(ax, stim_subset, estim_off_data, spec_ids, noise_le
         scatter_by_sample_length(ax, off_data, metric_field, noise_levels,
                                  color='black', label_prefix='OFF', sl_marker_map=sl_map)
 
-    colors = cm.tab10(np.linspace(0, 1, max(len(spec_ids), 1)))
     results_text = f"{title}\n{'=' * 50}\n\n"
 
-    for color, spec_id in zip(colors, sorted(spec_ids)):
-        spec_data = on_data[on_data['EStimSpecId'] == spec_id].copy()
-        if len(spec_data) == 0:
-            continue
-
-        plot_psychometric_curve_on_ax(
-            spec_data, ax,
-            title=title, show_n=True, num_rep_min=0,
-            color=color, marker='o',
-            label=f'SpecId={spec_id} (n={len(spec_data)})',
-            isCorrectColumnName=metric_field
-        )
-        scatter_by_sample_length(ax, spec_data, metric_field, noise_levels,
-                                 color=color, label_prefix=f'Spec{spec_id}',
-                                 sl_marker_map=sl_map)
-
-        combined = pd.concat([spec_data, off_data])
-        results_text += f"SpecId={spec_id} vs OFF\n{'-' * 30}\n"
-
-        if len(spec_data) > 0 and len(off_data) > 0:
-            np.random.seed(42)
-            observed_sum, overall_p, overall_sig, level_diffs, _ = run_permutation_test(
-                combined, noise_levels, metric_field, global_test_side, n_permutations
+    if combine_spec_ids:
+        spec_data = on_data[on_data['EStimSpecId'].isin(spec_ids)].copy()
+        if len(spec_data) > 0:
+            plot_psychometric_curve_on_ax(
+                spec_data, ax,
+                title=title, show_n=True, num_rep_min=0,
+                color='tab:blue', marker='o',
+                label=f'All SpecIds combined (n={len(spec_data)})',
+                isCorrectColumnName=metric_field
             )
-            for noise in sorted(level_diffs.keys()):
-                pct_on, pct_off, diff, n_on, n_off, p, sig = level_diffs[noise]
-                results_text += f"  N{noise * 100:.0f}%: {diff:+.1f}% p={p:.3f}{sig}\n"
-            results_text += f"  Overall: {observed_sum:+.1f}% p={overall_p:.4f} {overall_sig}\n"
-            if not combine_sample_lengths:
-                sl_text = run_per_sample_length_stats(
-                    spec_data, off_data, noise_levels, metric_field,
-                    global_test_side, n_permutations
+            scatter_by_sample_length(ax, spec_data, metric_field, noise_levels,
+                                     color='tab:blue', label_prefix='Combined', sl_marker_map=sl_map)
+            combined = pd.concat([spec_data, off_data])
+            results_text += f"All SpecIds combined vs OFF\n{'-' * 30}\n"
+            if len(off_data) > 0:
+                np.random.seed(42)
+                observed_sum, overall_p, overall_sig, level_diffs, _ = run_permutation_test(
+                    combined, noise_levels, metric_field, global_test_side, n_permutations
                 )
-                if sl_text:
-                    results_text += f"  By SampleLength:\n{sl_text}"
-            results_text += "\n"
-        else:
-            results_text += "  Insufficient data\n\n"
+                for noise in sorted(level_diffs.keys()):
+                    pct_on, pct_off, diff, n_on, n_off, p, sig = level_diffs[noise]
+                    results_text += f"  N{noise * 100:.0f}%: {diff:+.1f}% p={p:.3f}{sig}\n"
+                results_text += f"  Overall: {observed_sum:+.1f}% p={overall_p:.4f} {overall_sig}\n"
+                if not combine_sample_lengths:
+                    sl_text = run_per_sample_length_stats(
+                        spec_data, off_data, noise_levels, metric_field,
+                        global_test_side, n_permutations
+                    )
+                    if sl_text:
+                        results_text += f"  By SampleLength:\n{sl_text}"
+                results_text += "\n"
+            else:
+                results_text += "  Insufficient data\n\n"
+    else:
+        colors = cm.tab10(np.linspace(0, 1, max(len(spec_ids), 1)))
+        for color, spec_id in zip(colors, sorted(spec_ids)):
+            spec_data = on_data[on_data['EStimSpecId'] == spec_id].copy()
+            if len(spec_data) == 0:
+                continue
+
+            plot_psychometric_curve_on_ax(
+                spec_data, ax,
+                title=title, show_n=True, num_rep_min=0,
+                color=color, marker='o',
+                label=f'SpecId={spec_id} (n={len(spec_data)})',
+                isCorrectColumnName=metric_field
+            )
+            scatter_by_sample_length(ax, spec_data, metric_field, noise_levels,
+                                     color=color, label_prefix=f'Spec{spec_id}',
+                                     sl_marker_map=sl_map)
+
+            combined = pd.concat([spec_data, off_data])
+            results_text += f"SpecId={spec_id} vs OFF\n{'-' * 30}\n"
+
+            if len(spec_data) > 0 and len(off_data) > 0:
+                np.random.seed(42)
+                observed_sum, overall_p, overall_sig, level_diffs, _ = run_permutation_test(
+                    combined, noise_levels, metric_field, global_test_side, n_permutations
+                )
+                for noise in sorted(level_diffs.keys()):
+                    pct_on, pct_off, diff, n_on, n_off, p, sig = level_diffs[noise]
+                    results_text += f"  N{noise * 100:.0f}%: {diff:+.1f}% p={p:.3f}{sig}\n"
+                results_text += f"  Overall: {observed_sum:+.1f}% p={overall_p:.4f} {overall_sig}\n"
+                if not combine_sample_lengths:
+                    sl_text = run_per_sample_length_stats(
+                        spec_data, off_data, noise_levels, metric_field,
+                        global_test_side, n_permutations
+                    )
+                    if sl_text:
+                        results_text += f"  By SampleLength:\n{sl_text}"
+                results_text += "\n"
+            else:
+                results_text += "  Insufficient data\n\n"
 
     ax.invert_xaxis()
     ax.set_ylim([0, 110])
