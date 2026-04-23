@@ -56,6 +56,10 @@ def main():
     include_spec_ids       = None   # e.g. [1, 3]
     # combine_spec_ids: True = pool all (filtered) SpecIds into one curve
     combine_spec_ids       = False
+    # NoiseLevels: None = include all; list = include only those NoiseChance values
+    include_noise_chances  = None   # e.g. [0.2, 0.4]
+    # combine_noise_chances: True = pool all selected noise levels into one aggregate point
+    combine_noise_chances  = False
     # SampleLengths: None = include all; list = include only those SampleLength values
     include_sample_lengths = None   # e.g. [0.5]
     # combine_sample_lengths: True = suppress per-SL stratification (treat all as one pool)
@@ -144,6 +148,21 @@ def main():
         variant_spec_ids = [s for s in variant_spec_ids if s in spec_id_set]
 
     noise_levels = sorted(data_exp['NoiseChance'].unique())
+
+    if include_noise_chances is not None:
+        nc_set = set(include_noise_chances)
+        noise_levels = [n for n in noise_levels if n in nc_set]
+        data_delta_on    = data_delta_on[data_delta_on['NoiseChance'].isin(nc_set)].copy()
+        data_delta_off   = data_delta_off[data_delta_off['NoiseChance'].isin(nc_set)].copy()
+        data_variant_on  = data_variant_on[data_variant_on['NoiseChance'].isin(nc_set)].copy()
+        data_variant_off = data_variant_off[data_variant_off['NoiseChance'].isin(nc_set)].copy()
+
+    if combine_noise_chances and noise_levels:
+        combined_nc = float(np.mean(noise_levels))
+        for df in [data_delta_on, data_delta_off, data_variant_on, data_variant_off]:
+            df['NoiseChance'] = combined_nc
+        noise_levels = [combined_nc]
+
     metric_name  = "ACCURACY" if isCorrectFieldName == "IsCorrect" else "% HYPOTHESIZED"
 
     # ---- Figure 1: combined metrics ----
