@@ -33,7 +33,7 @@ from src.startup import context
 
 def main():
     # ============ CONFIGURATION ============
-    exp_db_name               = "allen_estimshape_exp_260421_0"
+    exp_db_name               = "allen_estimshape_exp_260402_0"
     exp_conn = Connection(exp_db_name)
     ga_conn  = Connection(context.ga_database)
 
@@ -53,23 +53,23 @@ def main():
 
     # --- Optional filtering & combining ---
     # SpecIds: None = include all; list = include only those EStimSpecId values
-    include_spec_ids       = None   # e.g. [1, 3]
+    include_spec_ids       = [4] # e.g. [1, 3]
     # combine_spec_ids: True = pool all (filtered) SpecIds into one curve
-    combine_spec_ids       = False
+    combine_spec_ids       = True
     # NoiseLevels: None = include all; list = include only those NoiseChance values
-    include_noise_chances  = None   # e.g. [0.2, 0.4]
+    include_noise_chances  = [0.9]   # e.g. [0.2, 0.4]
     # combine_noise_chances: True = pool all selected noise levels into one aggregate point
     combine_noise_chances  = False
     # SampleLengths: None = include all; list = include only those SampleLength values
-    include_sample_lengths = None   # e.g. [0.5]
+    include_sample_lengths = None  # e.g. [0.5]
     # combine_sample_lengths: True = suppress per-SL stratification (treat all as one pool)
-    combine_sample_lengths = False
+    combine_sample_lengths = True
     # stim_group_mode controls the Delta/Variant axis:
     #   'both'     — separate Delta and Variant columns (current default)
     #   'delta'    — show only Delta
     #   'variant'  — show only Variant
     #   'combined' — merge Delta + Variant into a single pool (one column, not two)
-    stim_group_mode        = 'both'
+    stim_group_mode        = 'combined'
     # =======================================
 
     session_id = exp_db_name.split("allen_estimshape_exp_")[-1]

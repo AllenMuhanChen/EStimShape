@@ -20,7 +20,7 @@ def main():
         to_save_to_db=False,
         delta_threshold=0.5,
         variant_threshold=0.6,
-        plot_included_only=False)
+        plot_included_only=True)
     compiled_data = None  # Set to None to import from repository
     # compiled_data = analysis.compile_and_export()
     if use_ga:
