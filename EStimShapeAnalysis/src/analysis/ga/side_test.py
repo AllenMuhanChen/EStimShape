@@ -25,7 +25,7 @@ from src.analysis.modules.grouped_rsth import create_psth_module
 from src.analysis.modules.input_modules import SpikeRateCombinerInputHandler
 from src.analysis.modules.utils.sorting_utils import SpikeRateSortingUtils
 from src.intan.MultiFileParser import MultiFileParser
-from src.repository.export_to_repository import export_to_repository, read_session_id_from_db_name
+from src.repository.export_to_repository import export_to_repository, read_session_id_and_date_from_db_name
 from src.repository.good_channels import read_cluster_channels
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
@@ -41,7 +41,7 @@ def main():
         # channel = read_cluster_channels(session_id)[0]
 
     # session_id = "260325_0"
-    session_id, _ = read_session_id_from_db_name(context.ga_database)
+    session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     # channel = ["A-009", "A-000", "A-006", "A-009", "A-015", "A-022", "A-024"]
     channel = read_cluster_channels(session_id)
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)

@@ -23,7 +23,7 @@ from src.analysis.lightness.lightness_analysis import TextureField, ColorField
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.intan.MultiFileParser import MultiFileParser
 from src.pga.mock.mock_rwa_analysis import condition_spherical_angles, hemisphericalize_orientation
-from src.repository.export_to_repository import export_to_repository, read_session_id_from_db_name
+from src.repository.export_to_repository import export_to_repository, read_session_id_and_date_from_db_name
 from src.repository.good_channels import read_cluster_channels
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
@@ -36,7 +36,7 @@ def main():
     analysis = PlotTopNAnalysis()
     compiled_data = None
     # compiled_data = analysis.compile()
-    session_id, _ = read_session_id_from_db_name(context.ga_database)
+    session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     # session_id = "260327_0"
     # channel = ["A-009", "A-000", "A-006", "A-009", "A-015", "A-022", "A-024"]
     channel = "GA"

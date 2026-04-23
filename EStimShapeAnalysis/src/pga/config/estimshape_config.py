@@ -5,7 +5,8 @@ from src.pga.config.simultaneous_2dvs3d_config import Simultaneous3Dvs2DConfig, 
 from src.pga.estim_phase import EStimPhaseParentSelector, EStimPhaseMutationAssigner, EStimPhaseMagnitudeAssigner, \
     EStimPhaseTransitioner, EStimVariantDeltaSideTest, EStimVariantSideTest
 from src.pga.ga_classes import Phase, Lineage, RegimeTransitioner
-from src.pga.response_processing import GAResponseProcessor, BaselineNormalizeResponseProcessor
+from src.pga.response_processing import GAResponseProcessor, BaselineNormalizeResponseProcessor, \
+    RankBaselineNormalizeResponseProcessor
 
 
 class EStimShapeConfig(Simultaneous3Dvs2DConfig):
@@ -63,7 +64,7 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
         return self.var_fetcher.get("delta_resp_ratio_threshold", dtype=float)
 
     def make_response_processor(self) -> GAResponseProcessor:
-        return BaselineNormalizeResponseProcessor(
+        return RankBaselineNormalizeResponseProcessor(
             db_util=self.db_util,
             repetition_combination_strategy=mean,
             cluster_combination_strategy=sum

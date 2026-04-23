@@ -16,7 +16,7 @@ from src.analysis.modules.grouped_stims_by_response import create_grouped_stimul
 
 # Import custom modules
 from src.intan.MultiFileParser import MultiFileParser
-from src.repository.export_to_repository import export_to_repository, read_session_id_from_db_name
+from src.repository.export_to_repository import export_to_repository, read_session_id_and_date_from_db_name
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, IntanSpikeRateByChannelField, \
@@ -30,7 +30,7 @@ def main():
     channel = 'A-011'
     compiled_data = compile()
     analysis = LightnessAnalysis()
-    session_id, _ = read_session_id_from_db_name(context.lightness_database)
+    session_id, _ = read_session_id_and_date_from_db_name(context.lightness_database)
     session_id = "251029_0"
     channel = "A-029"
     return analysis.run(session_id, "raw", channel, compiled_data=compiled_data)

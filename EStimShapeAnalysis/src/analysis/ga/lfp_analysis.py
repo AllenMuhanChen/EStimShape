@@ -22,7 +22,7 @@ from src.lfp.lfp_spectrum_plotter import LFPSpectrumPlotter
 from src.lfp.relative_power_spectrum import RelativePowerSpectrum
 from src.repository.export_to_repository import (
     export_to_repository, write_lfp_waveforms_to_db, write_iti_to_db,
-    write_raw_spike_responses, read_session_id_from_db_name,
+    write_raw_spike_responses, read_session_id_and_date_from_db_name,
 )
 from src.repository.import_from_repository import (
     import_from_repository, add_lfp_waveforms_to_df, import_iti_from_repository,
@@ -267,7 +267,7 @@ class LFPAnalysis(Analysis):
             spike_amplitude_negative_only=SPIKE_AMPLITUDE_NEGATIVE_ONLY,
         )
 
-        session_id, _ = read_session_id_from_db_name(context.ga_database)
+        session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
         experiment_id = f"{session_id}_ga"
         repo_conn = Connection("allen_data_repository")
 

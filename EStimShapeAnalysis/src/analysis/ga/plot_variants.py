@@ -12,7 +12,7 @@ import pandas as pd
 
 
 def main():
-    analysis = PlotVariants(use_ga_response=True,
+    analysis = PlotVariants(use_ga_response=False,
                             save_included_variants=True)  # Set to False to use channel-specific spike rates
     compiled_data = None
     # compiled_data = analysis.compile_and_export()

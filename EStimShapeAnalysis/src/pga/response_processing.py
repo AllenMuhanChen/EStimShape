@@ -132,7 +132,7 @@ class BaselineNormalizeResponseProcessor(GAResponseProcessor):
             gen_id = self.db_util.read_gen_id(stim_id)
             r = driving_response_for_each_stim_id[stim_id]
             bN_dict = baselines_by_gen.get(gen_id, {})
-            factor = self._interpolated_factor(r, bN_dict, gen1_dict)
+            factor = self._compute_factor(r, gen_id, bN_dict, baselines_by_gen, gen1_dict)
             driving_response_for_each_stim_id[stim_id] *= factor
 
         # Write processed responses to database
@@ -166,6 +166,11 @@ class BaselineNormalizeResponseProcessor(GAResponseProcessor):
         factors      = gen1_sorted / bN_sorted
         return float(np.interp(r, bN_sorted, factors))
 
+    def _compute_factor(self, r: float, gen_id: int, bN_dict: dict[int, float],
+                        baselines_by_gen: dict[int, dict[int, float]],
+                        gen1_dict: dict[int, float]) -> float:
+        return self._interpolated_factor(r, bN_dict, gen1_dict)
+
     def _process_clusters(self, ga_name) -> dict[int, list[float]]:
         stims_to_process = self.db_util.read_all_stims()
 
@@ -176,3 +181,47 @@ class BaselineNormalizeResponseProcessor(GAResponseProcessor):
             response_vector_for_each_stim[stim_id] = responses_for_stim_id
 
         return response_vector_for_each_stim
+
+
+class RankBaselineNormalizeResponseProcessor(BaselineNormalizeResponseProcessor):
+    """
+    Normalizes GA responses using baseline stimuli paired by rank rather than identity.
+
+    Baseline responses in Gen N and Gen 1 are each sorted independently by response
+    magnitude and paired position-by-position (lowest↔lowest, highest↔highest).
+    The correction factor for a stim with response r is interpolated from that ranked
+    curve, clamped at the boundaries.
+
+    Example: Gen-1 baselines [5, 15, 20], Gen-7 baselines [1, 2, 3].
+      Control points: (1, 5/1=5.0), (2, 15/2=7.5), (3, 20/3=6.67)
+      Stim at r=5  → above range, clamp to 20/3 ≈ 6.67
+      Stim at r=2.5 → interpolate between 7.5 and 6.67
+    """
+
+    def _compute_factor(self, r: float, gen_id: int, bN_dict: dict[int, float],
+                        baselines_by_gen: dict[int, dict[int, float]],
+                        gen1_dict: dict[int, float]) -> float:
+        all_factors = []
+        for k in range(1, gen_id):
+            bk_dict = gen1_dict if k == 1 else baselines_by_gen.get(k, {})
+            if not bk_dict:
+                continue
+            f = self._interpolated_factor(r, bN_dict, bk_dict)
+            all_factors.append(f)
+        return float(np.mean(all_factors)) if all_factors else 1.0
+
+    @staticmethod
+    def _interpolated_factor(r: float,
+                             bN_dict: dict[int, float],
+                             gen1_dict: dict[int, float]) -> float:
+        if r == 0:
+            return 1.0
+        bN_sorted   = np.sort(list(bN_dict.values()))
+        gen1_sorted = np.sort(list(gen1_dict.values()))
+        n = min(len(bN_sorted), len(gen1_sorted))
+        if n < 2:
+            return 1.0
+        bN_sorted   = bN_sorted[:n]
+        gen1_sorted = gen1_sorted[:n]
+        factors     = gen1_sorted / bN_sorted
+        return float(np.interp(r, bN_sorted, factors))

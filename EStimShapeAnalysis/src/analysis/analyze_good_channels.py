@@ -10,7 +10,7 @@ from src.analysis.isogabor.mixed_gabors_analysis import MixedGaborsAnalysis
 from src.analysis.lightness.lightness_analysis import LightnessAnalysis
 from src.analysis.shuffle.shuffle_analysis import ShuffleAnalysis
 from src.analysis.spi_vs_ici.isoluminant_comparison import IsoluminantComparisonAnalysis
-from src.repository.export_to_repository import read_session_id_from_db_name
+from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.startup import context
 
 
@@ -35,7 +35,7 @@ def main():
 
     if session_id == "":
         # User specified a session
-        session_id, _ = read_session_id_from_db_name(context.ga_database)
+        session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
         good_channels = extract_good_channels(session_id)
         sessions_to_process = [(session_id,)]
         channels_map = {session_id: good_channels}

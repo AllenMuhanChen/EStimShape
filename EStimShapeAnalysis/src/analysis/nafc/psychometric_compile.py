@@ -1,7 +1,7 @@
 from clat.util.connection import Connection
 from src.analysis.nafc.psychometric_compile_for_sessions import compile_260120_0, compile_260115_0, compile_260113_0, \
     compile_260107_0, compile_251231_0, compile_251226_0, compile_260108_0
-from src.repository.export_to_repository import read_session_id_from_db_name
+from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.startup import context
 import xml.etree.ElementTree as ET
 
@@ -15,7 +15,7 @@ def main():
     export_estim_parameters(exp_conn)
     create_estimshape_trials_table()
 
-    session_id, _ = read_session_id_from_db_name(context.nafc_database)
+    session_id, _ = read_session_id_and_date_from_db_name(context.nafc_database)
     compile_and_export_to_repo(exp_conn, session_id)
 
 
@@ -126,7 +126,7 @@ def create_estimshape_trials_table():
         pass
 
 def export_estim_parameters(exp_conn):
-    session_id, _ = read_session_id_from_db_name(context.nafc_database)
+    session_id, _ = read_session_id_and_date_from_db_name(context.nafc_database)
     repo_conn = Connection("allen_data_repository")
 
     # Read all unique EStim specs from exp database

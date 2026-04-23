@@ -28,8 +28,6 @@ class BaseLineSideTest(SideTest):
         indices = {
             0,  # lowest
             n - 1,  # highest
-            n-2, # second highest
-            n-3, # third highest
             int(n * 0.2),  # 20th percentile
             int(n * 0.4),  # 40th percentile
             int(n * 0.6),  # 60th percentile

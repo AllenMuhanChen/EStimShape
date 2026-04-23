@@ -14,7 +14,7 @@ from src.analysis.lightness.lightness_analysis import StimGaIdField, TextureFiel
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.analysis.modules.utils.sorting_utils import SpikeRateSortingUtils
 from src.intan.MultiFileParser import MultiFileParser
-from src.repository.export_to_repository import read_session_id_from_db_name, export_to_repository
+from src.repository.export_to_repository import read_session_id_and_date_from_db_name, export_to_repository
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 from src.repository.export_to_repository_alchemy import export_to_repository_alchemy
@@ -22,7 +22,7 @@ from src.repository.export_to_repository_alchemy import export_to_repository_alc
 
 def main():
     channel = 'A-008'
-    session_id, _ = read_session_id_from_db_name(context.shuffle_database)
+    session_id, _ = read_session_id_and_date_from_db_name(context.shuffle_database)
     analysis = ShuffleAnalysis()
     compiled_data = analysis.compile()
     # print(compiled_data.to_string())
