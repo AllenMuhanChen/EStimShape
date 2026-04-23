@@ -1327,7 +1327,8 @@ def optimize_trajectory_alignment(
         df_conf: pd.DataFrame,
         conn: Connection,
         mri_pipeline: dict,
-        maxiter: int = 2000,
+        maxiter: int = 10000,
+        start_from_file: Optional[str] = None,
 ) -> dict:
     """
     Find the rigid-body + scale + angle + depth correction that maximises the
@@ -1384,6 +1385,32 @@ def optimize_trajectory_alignment(
     else:
         full_param_names = _OPT_PARAM_NAMES
         full_x0 = _OPT_X0.copy()
+
+    # Warm-start: if a prior result file is given, use its params as x0
+    if start_from_file is not None:
+        with open(start_from_file) as _f:
+            _prior = json.load(_f)
+        _prior_params = _prior.get('params', {})
+        for _i, _name in enumerate(_OPT_PARAM_NAMES):
+            if _name in _prior_params:
+                full_x0[_i] = float(_prior_params[_name])
+        if ENABLE_PER_SESSION_CORRECTIONS and 'per_session_corrections' in _prior:
+            _prior_sess = _prior['per_session_corrections']
+            for _j, _sid in enumerate(session_ids):
+                _sc = _prior_sess.get(str(_sid), {})
+                if _sc:
+                    full_x0[9 + _j * 3]     = float(np.arctanh(np.clip(
+                        _sc.get('daz_deg',   0.) / SESSION_CORR_BOUNDS['daz'],   -0.9999, 0.9999)))
+                    full_x0[9 + _j * 3 + 1] = float(np.arctanh(np.clip(
+                        _sc.get('del_deg',   0.) / SESSION_CORR_BOUNDS['del_'],  -0.9999, 0.9999)))
+                    full_x0[9 + _j * 3 + 2] = float(np.arctanh(np.clip(
+                        _sc.get('ddepth_mm', 0.) / SESSION_CORR_BOUNDS['ddepth'], -0.9999, 0.9999)))
+        print(f"  Warm-starting from: {os.path.basename(start_from_file)}")
+        print(f"  Initial global params: tx={full_x0[0]:+.3f}  ty={full_x0[1]:+.3f}  tz={full_x0[2]:+.3f}  "
+              f"rx={full_x0[3]:+.3f}  ry={full_x0[4]:+.3f}  rz={full_x0[5]:+.3f}  "
+              f"daz={full_x0[6]:+.3f}  del={full_x0[7]:+.3f}  ddepth={full_x0[8]:+.3f}")
+    else:
+        print("  Starting from zero (no prior correction file provided)")
 
     best = {'score': -np.inf, 'params': full_x0.copy(), 'iter': 0}
     call_count = [0]
@@ -2066,7 +2093,9 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                  varimax_n_components: int = 6,
                  decomp_method: str = DECOMPOSITION_METHOD,
                  use_varimax: bool = USE_VARIMAX,
-                 tissue_model: Optional[TissueModel] = None):
+                 tissue_model: Optional[TissueModel] = None,
+                 maxiter: int = 10000,
+                 start_from_file: Optional[str] = None):
     """Run complete PCA analysis with correlations and plots."""
 
     # Load and perform PCA / Factor Analysis
@@ -2133,7 +2162,9 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         plot_mri_comparison_by_session(df_conf, fit_scores)
 
         print("\n── Optimising transformation ──")
-        opt_result = optimize_trajectory_alignment(df_conf, conn, mri_pipeline)
+        opt_result = optimize_trajectory_alignment(df_conf, conn, mri_pipeline,
+                                                   maxiter=maxiter,
+                                                   start_from_file=start_from_file)
 
         print("\n── MRI comparison with optimised transformation ──")
         opt_pipeline, daz, del_, ddepth = apply_optimized_pipeline(mri_pipeline, opt_result)
@@ -2180,6 +2211,8 @@ if __name__ == "__main__":
 
     exclude_sessions = None
     exclude_sessions = ["260421_0"]
+    # Set to path of a prior opt_*.json to warm-start from that correction, or None to start from zero
+    start_from_file = None
     results = run_analysis(
         conn,
         n_pcs=2,
@@ -2187,6 +2220,8 @@ if __name__ == "__main__":
         within_session_normalize=False,
         tissue_model=MODEL_PCA_V2,
         varimax_n_components=2,
+        maxiter=10000,
+        start_from_file=start_from_file,
     )
 
     # results = run_analysis(conn, n_pcs=6, exclude_sessions =exclude_sessions, within_session_normalize=False)
