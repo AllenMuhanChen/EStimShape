@@ -131,7 +131,7 @@ class DisplayMixin:
 
             # Temp trajectory from planner (solid yellow line, red channel dots)
             if self.temp_trajectory is not None and self.chamber_show:
-                t = self.temp_trajectory
+                t = self._corrected_traj_for_display(self.temp_trajectory)
                 top_pt = t['top_pt']
                 direction = t['direction']
                 dist = t['dist_mm']
@@ -154,7 +154,7 @@ class DisplayMixin:
 
             # Temp points from planner (labeled markers with trajectory lines)
             if self.temp_points and self.chamber_show:
-                for tp in self.temp_points:
+                for tp in [self._corrected_traj_for_display(p) for p in self.temp_points]:
                     target = tp['target']
                     color = tp.get('color', 'yellow')
                     top_pt = tp['top_pt']

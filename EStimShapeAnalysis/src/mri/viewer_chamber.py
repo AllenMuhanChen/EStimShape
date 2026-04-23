@@ -175,6 +175,24 @@ class ChamberMixin:
                     el_deg  = p['el_deg']   + del_g    + sc.get('del_deg',   0.),
                     dist_mm = p['dist_mm']  + ddepth_g + sc.get('ddepth_mm', 0.))
 
+    def _corrected_traj_for_display(self, t):
+        """Return trajectory dict with global pen_offsets applied and world coords recomputed."""
+        if not self.pen_offsets or not self.chamber_state.get('loaded'):
+            return t
+        from src.mri.chamber import calc_penetration_target
+        daz_g    = self.pen_offsets.get('daz_deg',   0.)
+        del_g    = self.pen_offsets.get('del_deg',   0.)
+        ddepth_g = self.pen_offsets.get('ddepth_mm', 0.)
+        az_c   = t['az_deg']  + daz_g
+        el_c   = t['el_deg']  + del_g
+        dist_c = t['dist_mm'] + ddepth_g
+        target_c, direction_c, top_pt_c = calc_penetration_target(
+            self.chamber_state['origin'], az_c, el_c, dist_c,
+            self.chamber_state['x'], self.chamber_state['y'],
+            self.chamber_state['normal'], self.chamber_state['cor_offset'])
+        return dict(t, az_deg=az_c, el_deg=el_c, dist_mm=dist_c,
+                    target=target_c, direction=direction_c, top_pt=top_pt_c)
+
     def _toggle_per_session_corrections(self):
         self.per_session_corrections_enabled = not self.per_session_corrections_enabled
         self.btn_toggle_sess_corr.config(
