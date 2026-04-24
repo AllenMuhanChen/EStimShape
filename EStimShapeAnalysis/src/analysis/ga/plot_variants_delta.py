@@ -12,14 +12,14 @@ import pandas as pd
 
 def main():
 
-    use_ga = False
-    channel = "A-002"
+    use_ga = True
+    channel = "A-019"
 
     analysis = PlotVariantDeltas(
         use_ga_response=use_ga,
         to_save_to_db=False,
         delta_threshold=0.5,
-        variant_threshold=0.6,
+        variant_threshold=0.4,
         plot_included_only=True)
     compiled_data = None  # Set to None to import from repository
     # compiled_data = analysis.compile_and_export()
@@ -168,7 +168,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             print("No pairs to plot!")
             return
 
-        plot_subset['Rank'] = plot_subset['Ratio'].rank(ascending=False, method='first')
+        plot_subset['Rank'] = plot_subset['Ratio'].rank(ascending=True, method='first')
 
         # Build delta rows for plot
         plot_delta_ids = plot_subset['StimSpecId'].unique()

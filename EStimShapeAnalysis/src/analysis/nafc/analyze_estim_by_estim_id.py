@@ -33,12 +33,13 @@ from src.startup import context
 
 def main():
     # ============ CONFIGURATION ============
-    exp_conn = Connection("allen_estimshape_exp_260416_0")
+    exp_db_name = "allen_estimshape_exp_260423_0"
+    exp_conn = Connection(exp_db_name)
     ga_conn  = Connection(context.ga_database)
 
     since_date            = time_util.from_date_to_now(2024, 7, 10)
-    start_gen_id          = 2
-    max_gen_id            = float('inf')
+    start_gen_id          = 3
+    max_gen_id            = 6
     start_gen_id_estim_on = 0
     max_gen_id_estim_on   = float('inf')
 
@@ -52,23 +53,23 @@ def main():
 
     # --- Optional filtering & combining ---
     # SpecIds: None = include all; list = include only those EStimSpecId values
-    include_spec_ids       = [4] # e.g. [1, 3]
+    include_spec_ids       = [1,2] # e.g. [1, 3]
     # combine_spec_ids: True = pool all (filtered) SpecIds into one curve
     combine_spec_ids       = True
     # NoiseLevels: None = include all; list = include only those NoiseChance values
-    include_noise_chances  = [0.9]   # e.g. [0.2, 0.4]
+    include_noise_chances  = None   # e.g. [0.2, 0.4]
     # combine_noise_chances: True = pool all selected noise levels into one aggregate point
     combine_noise_chances  = False
     # SampleLengths: None = include all; list = include only those SampleLength values
     include_sample_lengths = None  # e.g. [0.5]
     # combine_sample_lengths: True = suppress per-SL stratification (treat all as one pool)
-    combine_sample_lengths = True
+    combine_sample_lengths = False
     # stim_group_mode controls the Delta/Variant axis:
     #   'both'     — separate Delta and Variant columns (current default)
     #   'delta'    — show only Delta
     #   'variant'  — show only Variant
     #   'combined' — merge Delta + Variant into a single pool (one column, not two)
-    stim_group_mode        = 'combined'
+    stim_group_mode        = 'variant'
     # =======================================
 
     session_id = exp_db_name.split("allen_estimshape_exp_")[-1]

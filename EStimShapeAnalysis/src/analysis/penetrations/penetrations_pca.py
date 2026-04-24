@@ -119,20 +119,20 @@ class TissueModel:
 # PC4: + = sulcus, − = brain
 MODEL_PCA_V1 = TissueModel([
     TissueClass('wm',     score=1.0, evidence=[
-        Evidence('PC1', sign=+1),   # brain evidence
+        # Evidence('PC1', sign=+1),   # brain evidence
         Evidence('PC2', sign=-1),   # anti-GM
-        Evidence('PC4', sign=-1),   # anti-sulcus
+        # Evidence('PC4', sign=-1),   # anti-sulcus
         Evidence('PC3', sign=1), # narrow triphasics
         Evidence('PC5', sign=1), # positive spikes
-        Evidence('PC6', sign=1) # high spike amplitudes
+        # Evidence('PC6', sign=1) # high spike amplitudes
     ]),
     TissueClass('gm',     score=0.5, evidence=[
-        Evidence('PC1', sign=+1),   # brain evidence
+        # Evidence('PC1', sign=+1),   # brain evidence
         Evidence('PC2', sign=+1),   # GM
-        Evidence('PC4', sign=-1),   # anti-sulcus
+        # Evidence('PC4', sign=-1),   # anti-sulcus
         Evidence('PC3', sign=-1), # wide biphasics
         Evidence('PC5', sign=-1),  #negative spikes
-        Evidence('PC6', sign=1) # high spike amplitudes
+        # Evidence('PC6', sign=1) # high spike amplitudes
     ]),
     TissueClass('sulcus', score=0.0, evidence=[
         Evidence('PC1', sign=-1),   # anti-brain
@@ -201,8 +201,8 @@ SESSION_CORR_BOUNDS = dict(daz=5.0, del_=5.0, ddepth=2.0)  # ± max effective co
 SESSION_CORR_L2_WEIGHT = 0.1  # λ on Σ(delta_i / bound_i)²; raise to suppress, lower to allow
 
 # Regularization on global chamber rigid-body params (keeps optimizer near physical solution)
-CHAMBER_L2_WEIGHT  = 0.02   # λ on normalized chamber penalty; raise to constrain more
-CHAMBER_L2_SCALES  = dict(t_mm=5.0, r_deg=5.0, daz_deg=2.0, del_deg=2.0, ddepth_mm=1.0)
+CHAMBER_L2_WEIGHT  = 0.005   # λ on normalized chamber penalty; raise to constrain more
+CHAMBER_L2_SCALES  = dict(t_mm=5.0, r_deg=2.0, daz_deg=2.0, del_deg=2.0, ddepth_mm=1.0)
 
 
 class _FactorAnalysisAdapter:
@@ -2094,7 +2094,7 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                  decomp_method: str = DECOMPOSITION_METHOD,
                  use_varimax: bool = USE_VARIMAX,
                  tissue_model: Optional[TissueModel] = None,
-                 maxiter: int = 10000,
+                 maxiter: int = 100000,
                  start_from_file: Optional[str] = None):
     """Run complete PCA analysis with correlations and plots."""
 
@@ -2159,7 +2159,7 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         print("\n── Initial MRI comparison ──")
         df_conf = compute_mri_comparison(df_conf, conn, mri_pipeline)
         fit_scores = compute_trajectory_fit_scores(df_conf)
-        plot_mri_comparison_by_session(df_conf, fit_scores)
+        # plot_mri_comparison_by_session(df_conf, fit_scores)
 
         print("\n── Optimising transformation ──")
         opt_result = optimize_trajectory_alignment(df_conf, conn, mri_pipeline,
@@ -2210,17 +2210,18 @@ if __name__ == "__main__":
     )
 
     exclude_sessions = None
-    exclude_sessions = ["260421_0"]
+    # exclude_sessions = ["260421_0"]
     # Set to path of a prior opt_*.json to warm-start from that correction, or None to start from zero
     start_from_file = None
+    # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260423_160856.json"
     results = run_analysis(
         conn,
-        n_pcs=2,
+        n_pcs=6,
         exclude_sessions=exclude_sessions,
         within_session_normalize=False,
-        tissue_model=MODEL_PCA_V2,
-        varimax_n_components=2,
-        maxiter=10000,
+        tissue_model=MODEL_PCA_V1,
+        varimax_n_components=6,
+        maxiter=100000,
         start_from_file=start_from_file,
     )
 
