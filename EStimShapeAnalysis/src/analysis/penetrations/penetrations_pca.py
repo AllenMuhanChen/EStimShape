@@ -212,6 +212,11 @@ SESSION_CORR_L2_WEIGHT = 0.1  # λ on Σ(delta_i / bound_i)²; raise to suppress
 CHAMBER_L2_WEIGHT  = 0.005   # λ on normalized chamber penalty; raise to constrain more
 CHAMBER_L2_SCALES  = dict(t_mm=5.0, r_deg=2.0, daz_deg=2.0, del_deg=2.0, ddepth_mm=1.0)
 
+# Variance penalty: penalises unequal fit quality across sessions.
+# Loss = -mean(r) + VARIANCE_PENALTY_WEIGHT * var(r)
+# 0 = disabled (current behaviour); raise to force more equitable fits.
+VARIANCE_PENALTY_WEIGHT = 0.0
+
 
 class _FactorAnalysisAdapter:
     """Wraps FactorAnalysis to expose the same components_/explained_variance_ratio_ interface as PCA."""
@@ -1444,8 +1449,7 @@ def optimize_trajectory_alignment(
         _, _, _, _, _, _, daz, del_, ddepth = params[:9]
         per_sess_raw = params[9:].reshape(-1, 3) if ENABLE_PER_SESSION_CORRECTIONS else None
 
-        total_r, n_ok = 0.0, 0
-        reg_sum = 0.0
+        rs, reg_sum = [], 0.0
 
         for i, sid in enumerate(session_ids):
             sdata = session_info[sid]
@@ -1478,12 +1482,15 @@ def optimize_trajectory_alignment(
 
             r = _weighted_pearson_r(sdata['ts'], mri_vals, sdata['confidence'])
             if not np.isnan(r):
-                total_r += r
-                n_ok += 1
+                rs.append(r)
 
-        if n_ok == 0:
+        if not rs:
             return np.inf
-        loss = -(total_r / n_ok)
+        rs_arr = np.array(rs)
+        mean_r = rs_arr.mean()
+        loss = -mean_r
+        if include_reg and VARIANCE_PENALTY_WEIGHT > 0 and len(rs_arr) > 1:
+            loss += VARIANCE_PENALTY_WEIGHT * rs_arr.var()
         if include_reg:
             tx, ty, tz, rx, ry, rz, daz_g, del_g, ddepth_g = params[:9]
             s = CHAMBER_L2_SCALES
@@ -1520,8 +1527,10 @@ def optimize_trajectory_alignment(
                       f"max|Δdep|={np.abs(eff_ddep).max():.2f}mm")
 
     score_before = -score_for_params(full_x0, include_reg=False)
+    var_note = (f"  variance penalty λ={VARIANCE_PENALTY_WEIGHT}"
+                if VARIANCE_PENALTY_WEIGHT > 0 else "  no variance penalty")
     print(f"\nOptimising over {len(session_info)} sessions  "
-          f"(initial mean r = {score_before:.4f}) ...")
+          f"(initial mean r = {score_before:.4f}){var_note} ...")
 
     # Build explicit initial simplex so Nelder-Mead explores meaningfully
     # (with all-zero x0 scipy uses step=0.00025, smaller than xatol → instant false-convergence)
