@@ -940,53 +940,56 @@ def compute_tissue_confidence(
     """
     Flexible tissue classification using a TissueModel, or legacy column kwargs.
 
-    If *model* is provided, each TissueClass logit is the weighted mean of its
-    Evidence terms: sign * (PC_value / PC_std) * weight.  The logit is shifted
-    by the class threshold before sigmoid, then all classes are normalized to
-    sum to 1.
+    If *model* is provided, each TissueClass produces a single logit, then
+    softmax is applied across classes so they compete directly.
 
-    Legacy kwargs (wm_col, wm2_col, …) are used when model=None to preserve
-    backward compatibility with existing callers.
+      combine='avg': logit = weighted mean of evidence logits − threshold
+                     (all evidence must agree; cancelling is by design)
+      combine='or':  logit = max of evidence logits − threshold
+                     (any one strong signal is sufficient to win)
+
+    Softmax ensures that strong WM evidence → p_wm near 1, regardless of
+    how many neutral PCs inflate other class logits.
 
     Adds columns:
-      p_<classname>    : probability for each class in model.classes
+      p_<classname>    : softmax probability for each class
       tissue_score     : weighted sum of class scores by probability (0–1)
       tissue_confidence: max class probability (1=certain, ~1/N=ambiguous)
     """
     df = df.copy()
 
     if model is not None:
-        # Precompute per-PC std
         pc_stds = {pc: df[pc].std() for pc in model.all_pcs()}
 
-        probs = []
+        class_logits = []
         for tc in model.classes:
             n_ev = len(tc.evidence)
             if n_ev == 0:
-                probs.append(np.full(len(df), 0.5))
+                class_logits.append(np.zeros(len(df)))
                 continue
 
-            if tc.combine == 'or':
-                # Noisy-OR: each evidence term independently → sigmoid,
-                # combined as 1 − ∏(1 − p_i).  Any strong positive is
-                # sufficient; neutral/absent terms don't dilute the result.
-                p = np.ones(len(df))
-                for ev in tc.evidence:
-                    ev_logit = ev.sign * ev.weight * df[ev.pc].values / max(pc_stds[ev.pc], 1e-9)
-                    p *= (1.0 - _sigmoid(ev_logit - tc.threshold))
-                probs.append(1.0 - p)
-            else:
-                # Default 'avg': weighted average → single sigmoid (AND-like).
-                total_weight = sum(ev.weight for ev in tc.evidence)
-                logit = sum(
-                    ev.sign * ev.weight * df[ev.pc].values / max(pc_stds[ev.pc], 1e-9)
-                    for ev in tc.evidence
-                ) / total_weight
-                probs.append(_sigmoid(logit - tc.threshold))
+            # Build (N, n_evidence) matrix of per-term logits
+            ev_logits = np.stack([
+                ev.sign * ev.weight * df[ev.pc].values / max(pc_stds[ev.pc], 1e-9)
+                for ev in tc.evidence
+            ], axis=1)
 
-        probs_arr = np.stack(probs, axis=1)  # (N, n_classes)
-        row_sums  = probs_arr.sum(axis=1, keepdims=True)
-        probs_arr = probs_arr / np.where(row_sums > 0, row_sums, 1.0)
+            if tc.combine == 'or':
+                # Any strong evidence is sufficient → use the strongest term
+                class_logit = ev_logits.max(axis=1) - tc.threshold
+            else:
+                # 'avg': all evidence averaged (cancelling terms weigh in)
+                weights = np.array([ev.weight for ev in tc.evidence])
+                class_logit = (ev_logits * weights).sum(axis=1) / weights.sum() - tc.threshold
+
+            class_logits.append(class_logit)
+
+        logits_arr = np.stack(class_logits, axis=1)  # (N, n_classes)
+
+        # Stable softmax: classes compete directly, neutral logits don't dilute winners
+        shifted = logits_arr - logits_arr.max(axis=1, keepdims=True)
+        exp_l   = np.exp(shifted)
+        probs_arr = exp_l / exp_l.sum(axis=1, keepdims=True)
 
         for i, tc in enumerate(model.classes):
             df[f'p_{tc.name}'] = probs_arr[:, i]
