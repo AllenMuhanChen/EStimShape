@@ -1757,6 +1757,7 @@ def apply_optimized_pipeline(mri_pipeline: dict, opt_result: dict) -> tuple:
 def save_optimized_params(
         opt_result: dict,
         mri_pipeline: dict,
+        copy_dir: Optional[str] = None,
 ) -> str:
     """
     Save optimisation result to a timestamped file for later comparison.
@@ -1764,6 +1765,8 @@ def save_optimized_params(
     Does NOT modify _chamber_corrections.json or _pen_offsets.json — call
     apply_pca_opt_result(path, mri_pipeline) explicitly to push a chosen
     result into the viewer files.
+
+    If copy_dir is given, also writes a copy there (e.g. the opt_dir from run_analysis).
 
     Returns the path of the saved result file.
     """
@@ -1806,7 +1809,14 @@ def save_optimized_params(
     with open(result_path, 'w') as f:
         json.dump(result_data, f, indent=2)
 
-    print(f"  Result saved → {result_path}")
+    if copy_dir:
+        import shutil
+        copy_path = os.path.join(copy_dir, os.path.basename(result_path))
+        shutil.copy2(result_path, copy_path)
+        print(f"  Result saved → {result_path}")
+        print(f"           copy → {copy_path}")
+    else:
+        print(f"  Result saved → {result_path}")
     print(f"  score: {opt_result['score_before']:.4f} → {opt_result['score_after']:.4f}")
     print(f"  daz={daz:+.4f}°  del={del_:+.4f}°  ddepth={ddepth:+.4f} mm")
     print(f"  To apply: apply_pca_opt_result('{result_path}', mri_pipeline)")
@@ -2401,7 +2411,7 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         print(f"  score: {opt_result['score_before']:.4f} → {opt_result['score_after']:.4f}")
         answer = input("Save this result? [y/N]: ").strip().lower()
         if answer == 'y':
-            opt_result['result_path'] = save_optimized_params(opt_result, mri_pipeline)
+            opt_result['result_path'] = save_optimized_params(opt_result, mri_pipeline, copy_dir=opt_dir)
         else:
             print("  Result not saved.")
 
