@@ -217,6 +217,12 @@ CHAMBER_L2_SCALES  = dict(t_mm=5.0, r_deg=2.0, daz_deg=2.0, del_deg=2.0, ddepth_
 # 0 = disabled (current behaviour); raise to force more equitable fits.
 VARIANCE_PENALTY_WEIGHT = 0.0
 
+# Soft minimum (log-sum-exp) aggregation over sessions.
+# 0 → arithmetic mean; positive → increasingly focused on worst session.
+# -(1/β) · log( Σ exp(−β·rᵢ) )   interpolates mean (β≈0) → min (β→∞)
+# Reasonable starting values: 3–5 (some protection); 10+ (near-min).
+SOFTMIN_BETA = 0.0
+
 
 class _FactorAnalysisAdapter:
     """Wraps FactorAnalysis to expose the same components_/explained_variance_ratio_ interface as PCA."""
@@ -1360,6 +1366,7 @@ def optimize_trajectory_alignment(
         chamber_l2_weight: float = CHAMBER_L2_WEIGHT,
         chamber_l2_scales: dict = None,
         variance_penalty_weight: float = VARIANCE_PENALTY_WEIGHT,
+        softmin_beta: float = SOFTMIN_BETA,
 ) -> dict:
     """
     Find the rigid-body + scale + angle + depth correction that maximises the
@@ -1499,8 +1506,14 @@ def optimize_trajectory_alignment(
         if not rs:
             return np.inf
         rs_arr = np.array(rs)
-        mean_r = rs_arr.mean()
-        loss = -mean_r
+        if softmin_beta > 0 and len(rs_arr) > 1:
+            # Stable log-sum-exp: -(1/β)·log(Σ exp(-β·rᵢ))
+            # Equivalent to the smooth minimum of rs_arr
+            neg_br = -softmin_beta * rs_arr
+            lse = neg_br.max() + np.log(np.exp(neg_br - neg_br.max()).sum())
+            loss = lse / softmin_beta
+        else:
+            loss = -rs_arr.mean()
         if include_reg and variance_penalty_weight > 0 and len(rs_arr) > 1:
             loss += variance_penalty_weight * rs_arr.var()
         if include_reg:
@@ -1539,10 +1552,11 @@ def optimize_trajectory_alignment(
                       f"max|Δdep|={np.abs(eff_ddep).max():.2f}mm")
 
     score_before = -score_for_params(full_x0, include_reg=False)
-    var_note = (f"  variance penalty λ={variance_penalty_weight}"
-                if variance_penalty_weight > 0 else "  no variance penalty")
+    agg_note = (f"  softmin β={softmin_beta}" if softmin_beta > 0 else "  mean aggregation")
+    var_note  = (f"  variance penalty λ={variance_penalty_weight}"
+                 if variance_penalty_weight > 0 else "")
     print(f"\nOptimising over {len(session_info)} sessions  "
-          f"(initial mean r = {score_before:.4f}){var_note} ...")
+          f"(initial score = {score_before:.4f}){agg_note}{var_note} ...")
 
     # Build explicit initial simplex so Nelder-Mead explores meaningfully
     # (with all-zero x0 scipy uses step=0.00025, smaller than xatol → instant false-convergence)
@@ -1604,6 +1618,7 @@ def optimize_trajectory_alignment(
         'session_corr_bounds': session_corr_bounds,
         'session_corr_l2_weight': session_corr_l2_weight,
         'variance_penalty_weight': variance_penalty_weight,
+        'softmin_beta': softmin_beta,
     }
 
 
@@ -1673,6 +1688,7 @@ def save_optimized_params(
         'session_corr_bounds': opt_result.get('session_corr_bounds', SESSION_CORR_BOUNDS),
         'session_corr_l2_weight': opt_result.get('session_corr_l2_weight', SESSION_CORR_L2_WEIGHT),
         'variance_penalty_weight': opt_result.get('variance_penalty_weight', VARIANCE_PENALTY_WEIGHT),
+        'softmin_beta': opt_result.get('softmin_beta', SOFTMIN_BETA),
     }
     with open(result_path, 'w') as f:
         json.dump(result_data, f, indent=2)
@@ -2146,7 +2162,8 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                  session_corr_l2_weight: float = SESSION_CORR_L2_WEIGHT,
                  chamber_l2_weight: float = CHAMBER_L2_WEIGHT,
                  chamber_l2_scales: dict = None,
-                 variance_penalty_weight: float = VARIANCE_PENALTY_WEIGHT):
+                 variance_penalty_weight: float = VARIANCE_PENALTY_WEIGHT,
+                 softmin_beta: float = SOFTMIN_BETA):
     """Run complete PCA analysis with correlations and plots."""
 
     # Load and perform PCA / Factor Analysis
@@ -2221,7 +2238,8 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                                                    session_corr_l2_weight=session_corr_l2_weight,
                                                    chamber_l2_weight=chamber_l2_weight,
                                                    chamber_l2_scales=chamber_l2_scales,
-                                                   variance_penalty_weight=variance_penalty_weight)
+                                                   variance_penalty_weight=variance_penalty_weight,
+                                                   softmin_beta=softmin_beta)
 
         print("\n── MRI comparison with optimised transformation ──")
         opt_pipeline, daz, del_, ddepth = apply_optimized_pipeline(mri_pipeline, opt_result)
@@ -2286,6 +2304,7 @@ if __name__ == "__main__":
         chamber_l2_weight=0.005,
         chamber_l2_scales=None,         # None → use CHAMBER_L2_SCALES default
         variance_penalty_weight=0.0,
+        softmin_beta=0.0,               # 0 = mean; 3-5 = protect worst; 10+ ≈ min
     )
 
     # results = run_analysis(conn, n_pcs=6, exclude_sessions =exclude_sessions, within_session_normalize=False)
