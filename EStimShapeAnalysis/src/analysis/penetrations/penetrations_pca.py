@@ -1474,6 +1474,65 @@ def _tanh_bound(raw: float, bound: float) -> float:
     return bound * float(np.tanh(raw))
 
 
+# ---------------------------------------------------------------------------
+# Optimizer back-ends  (uniform interface: score_fn, x0, steps, callback, maxiter)
+# Each returns a scipy OptimizeResult-compatible object with .x, .fun, .message
+# ---------------------------------------------------------------------------
+
+def _run_nelder_mead(score_fn, x0, steps, callback, maxiter):
+    from scipy.optimize import minimize
+    n_p = len(x0)
+    init_simplex = np.tile(x0, (n_p + 1, 1))
+    for i in range(n_p):
+        init_simplex[i + 1, i] += steps[i]
+    return minimize(
+        score_fn, x0, method='Nelder-Mead', callback=callback,
+        options={'maxiter': maxiter, 'xatol': 1e-3, 'fatol': 1e-4,
+                 'adaptive': True, 'disp': True,
+                 'initial_simplex': init_simplex},
+    )
+
+
+def _run_cma_es(score_fn, x0, steps, callback, maxiter):
+    try:
+        import cma
+    except ImportError:
+        raise ImportError(
+            "CMA-ES requires the 'cma' package.  Install with:  pip install cma")
+    from scipy.optimize import OptimizeResult
+
+    # sigma0=1.0 in normalised space; scaling_of_variables recovers physical units
+    opts = {
+        'maxiter':               maxiter,
+        'tolx':                  1e-3,
+        'tolfun':                1e-4,
+        'scaling_of_variables':  steps.tolist(),
+        'verbose':               -9,    # silence cma's own output; we use our callback
+    }
+    es = cma.CMAEvolutionStrategy(x0.tolist(), 1.0, opts)
+    while not es.stop():
+        solutions = es.ask()
+        fitvals   = [score_fn(np.asarray(s)) for s in solutions]
+        es.tell(solutions, fitvals)
+        if es.result.xbest is not None:
+            callback(np.asarray(es.result.xbest))
+
+    r = es.result
+    return OptimizeResult(
+        x       = np.asarray(r.xbest),
+        fun     = float(r.fbest),
+        message = f"CMA-ES stopped: {es.stop()}",
+        nfev    = int(r.evaluations),
+        success = True,
+    )
+
+
+_OPTIMIZERS = {
+    'nelder-mead': _run_nelder_mead,
+    'cma-es':      _run_cma_es,
+}
+
+
 def optimize_trajectory_alignment(
         df_conf: pd.DataFrame,
         conn: Connection,
@@ -1487,6 +1546,7 @@ def optimize_trajectory_alignment(
         chamber_l2_scales: dict = None,
         variance_penalty_weight: float = VARIANCE_PENALTY_WEIGHT,
         softmin_beta: float = SOFTMIN_BETA,
+        optimizer: str = 'nelder-mead',
 ) -> dict:
     """
     Find the rigid-body + scale + angle + depth correction that maximises the
@@ -1677,9 +1737,13 @@ def optimize_trajectory_alignment(
                  if variance_penalty_weight > 0 else "")
     print(f"\nOptimising over {len(session_info)} sessions  "
           f"(initial score = {score_before:.4f}){agg_note}{var_note} ...")
+    print(f"  Optimizer: {optimizer}")
 
-    # Build explicit initial simplex so Nelder-Mead explores meaningfully
-    # (with all-zero x0 scipy uses step=0.00025, smaller than xatol → instant false-convergence)
+    if optimizer not in _OPTIMIZERS:
+        raise ValueError(f"Unknown optimizer {optimizer!r}.  Choose from: {list(_OPTIMIZERS)}")
+
+    # Parameter step sizes — used as initial simplex perturbations (Nelder-Mead)
+    # and as scaling_of_variables (CMA-ES) so both explore in natural units.
     n_p = len(full_x0)
     steps = np.zeros(n_p)
     steps[:3] = 1.0   # tx, ty, tz (mm)
@@ -1688,25 +1752,14 @@ def optimize_trajectory_alignment(
     steps[7]   = 0.5  # del (deg)
     steps[8]   = 0.5  # ddepth (mm)
     if enable_per_session_corrections and n_p > 9:
-        steps[9:] = 0.5  # per-session raw (tanh-space; tanh(0.5)≈0.46 → ~half-bound)
-    init_simplex = np.tile(full_x0, (n_p + 1, 1))
-    for i in range(n_p):
-        init_simplex[i + 1, i] += steps[i]
+        steps[9:] = 0.5  # per-session raw (tanh-space)
 
     maxiter_adj = maxiter + 500 * n_sess if enable_per_session_corrections else maxiter
-    result = minimize(
-        score_for_params,
-        full_x0,
-        method='Nelder-Mead',
-        callback=callback_nelder,
-        options={'maxiter': maxiter_adj, 'xatol': 1e-3, 'fatol': 1e-4,
-                 'adaptive': True, 'disp': True,
-                 'initial_simplex': init_simplex},
-    )
+    result = _OPTIMIZERS[optimizer](score_for_params, full_x0, steps, callback_nelder, maxiter_adj)
 
     score_after = -score_for_params(result.x, include_reg=False)
     print(f"\nOptimisation done: {result.message}")
-    print(f"  mean r: {score_before:.4f} → {score_after:.4f}  "
+    print(f"  score: {score_before:.4f} → {score_after:.4f}  "
           f"(Δ = {score_after - score_before:+.4f})")
     print("\nOptimised global parameters:")
     for name, val in zip(_OPT_PARAM_NAMES, result.x[:9]):
@@ -1739,6 +1792,7 @@ def optimize_trajectory_alignment(
         'session_corr_l2_weight': session_corr_l2_weight,
         'variance_penalty_weight': variance_penalty_weight,
         'softmin_beta': softmin_beta,
+        'optimizer': optimizer,
     }
 
 
@@ -2295,7 +2349,8 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                  chamber_l2_weight: float = CHAMBER_L2_WEIGHT,
                  chamber_l2_scales: dict = None,
                  variance_penalty_weight: float = VARIANCE_PENALTY_WEIGHT,
-                 softmin_beta: float = SOFTMIN_BETA):
+                 softmin_beta: float = SOFTMIN_BETA,
+                 optimizer: str = 'nelder-mead'):
     """Run complete PCA analysis with correlations and plots."""
 
     # Build output directories
@@ -2391,7 +2446,8 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                                                    chamber_l2_weight=chamber_l2_weight,
                                                    chamber_l2_scales=chamber_l2_scales,
                                                    variance_penalty_weight=variance_penalty_weight,
-                                                   softmin_beta=softmin_beta)
+                                                   softmin_beta=softmin_beta,
+                                                   optimizer=optimizer)
 
         print("\n── MRI comparison with optimised transformation ──")
         opt_pipeline, daz, del_, ddepth = apply_optimized_pipeline(mri_pipeline, opt_result)
@@ -2470,6 +2526,7 @@ if __name__ == "__main__":
         chamber_l2_scales=None,         # None → use CHAMBER_L2_SCALES default
         variance_penalty_weight=0.0,
         softmin_beta=0.0,               # 0 = mean; 3-5 = protect worst; 10+ ≈ min
+        optimizer='nelder-mead',        # 'nelder-mead' | 'cma-es'
     )
 
     # results = run_analysis(conn, n_pcs=6, exclude_sessions =exclude_sessions, within_session_normalize=False)
