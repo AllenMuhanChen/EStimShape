@@ -263,6 +263,14 @@ class TrajectoryMixin:
         self.traj_pt_dist_var.set(round(dist, 2))
         self._update_pt_info()
 
+        # Show the uncorrected model angles (dial-in + pen_offsets)
+        daz    = self.pen_offsets.get('daz_deg',   0.) if self.pen_offsets else 0.
+        del_   = self.pen_offsets.get('del_deg',   0.) if self.pen_offsets else 0.
+        ddepth = self.pen_offsets.get('ddepth_mm', 0.) if self.pen_offsets else 0.
+        self.traj_az_model_var.set(f"{az_deg + daz:.2f}")
+        self.traj_el_model_var.set(f"{el_deg + del_:.2f}")
+        self.traj_dist_model_var.set(f"{dist + ddepth:.2f}")
+
         # Info label
         if self.ebz_set:
             rel = target - self.ebz_world
@@ -616,6 +624,7 @@ class TrajectoryMixin:
         self._update_temp_points_display()
         self.traj_ml_var.set(0.0); self.traj_ap_var.set(0.0); self.traj_dv_var.set(0.0)
         self.traj_az_var.set(0.0); self.traj_el_var.set(0.0); self.traj_dist_var.set(35.0)
+        self.traj_az_model_var.set("—"); self.traj_el_model_var.set("—"); self.traj_dist_model_var.set("—")
         self.traj_pt_dist_var.set(35.0)
         self.btn_save_traj.config(state="disabled")
         self.btn_clear_traj.config(state="disabled")

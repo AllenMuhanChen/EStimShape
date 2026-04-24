@@ -239,6 +239,17 @@ class PanelsMixin:
             e.pack(side=tk.LEFT, padx=1)
             e.bind("<Return>", lambda ev: self._on_traj_chamber_enter())
 
+        r1b_model = ttk.Frame(s1); r1b_model.pack(fill=tk.X, padx=3, pady=1)
+        ttk.Label(r1b_model, text="Model:", foreground="#888888").pack(side=tk.LEFT, padx=3)
+        self.traj_az_model_var  = tk.StringVar(value="—")
+        self.traj_el_model_var  = tk.StringVar(value="—")
+        self.traj_dist_model_var = tk.StringVar(value="—")
+        for lbl, var in [("Az(°):", self.traj_az_model_var), ("El(°):", self.traj_el_model_var), ("Dist(mm):", self.traj_dist_model_var)]:
+            ttk.Label(r1b_model, text=lbl, foreground="#888888").pack(side=tk.LEFT, padx=(6, 1))
+            e = ttk.Entry(r1b_model, textvariable=var, width=8, state="readonly",
+                          foreground="#888888")
+            e.pack(side=tk.LEFT, padx=1)
+
         r1c = ttk.Frame(s1); r1c.pack(fill=tk.X, padx=3, pady=2)
         self.btn_plan_traj = ttk.Button(r1c, text="Plan to Cursor",
                                          command=self._plan_trajectory, state="disabled")
