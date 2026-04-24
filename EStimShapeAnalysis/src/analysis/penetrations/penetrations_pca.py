@@ -91,11 +91,19 @@ class Evidence:
 
 @dataclass
 class TissueClass:
-    """One tissue class with its 1-D score and list of PC evidence."""
+    """One tissue class with its 1-D score and list of PC evidence.
+
+    combine='avg'  (default) : weighted average of evidence terms → one sigmoid.
+                               Evidence terms cancel each other (AND-like).
+    combine='or'             : noisy-OR — each term independently → sigmoid,
+                               then 1 − ∏(1 − p_i).  Any strong positive term
+                               is sufficient; absent terms don't cancel.
+    """
     name: str
     score: float           # position on 0–1 scale: 0=sulcus, 0.5=GM, 1.0=WM
     evidence: List[Evidence] = field(default_factory=list)
     threshold: float = 0.0 # sigmoid threshold shift (raise to require stronger signal)
+    combine: str = 'avg'   # 'avg' or 'or'
 
 
 @dataclass
@@ -118,7 +126,7 @@ class TissueModel:
 # PC2: + = GM,    − = WM
 # PC4: + = sulcus, − = brain
 MODEL_PCA_V1 = TissueModel([
-    TissueClass('wm',     score=1.0, evidence=[
+    TissueClass('wm',     score=1.0, combine='or', evidence=[
         # Evidence('PC1', sign=+1),   # brain evidence
         Evidence('PC2', sign=-1),   # anti-GM
         # Evidence('PC4', sign=-1),   # anti-sulcus
@@ -126,7 +134,7 @@ MODEL_PCA_V1 = TissueModel([
         Evidence('PC5', sign=1), # positive spikes
         # Evidence('PC6', sign=1) # high spike amplitudes
     ]),
-    TissueClass('gm',     score=0.5, evidence=[
+    TissueClass('gm',     score=0.5, combine='or', evidence=[
         # Evidence('PC1', sign=+1),   # brain evidence
         Evidence('PC2', sign=+1),   # GM
         # Evidence('PC4', sign=-1),   # anti-sulcus
@@ -828,14 +836,26 @@ def compute_tissue_confidence(
         for tc in model.classes:
             n_ev = len(tc.evidence)
             if n_ev == 0:
-                logit = np.zeros(len(df))
+                probs.append(np.full(len(df), 0.5))
+                continue
+
+            if tc.combine == 'or':
+                # Noisy-OR: each evidence term independently → sigmoid,
+                # combined as 1 − ∏(1 − p_i).  Any strong positive is
+                # sufficient; neutral/absent terms don't dilute the result.
+                p = np.ones(len(df))
+                for ev in tc.evidence:
+                    ev_logit = ev.sign * ev.weight * df[ev.pc].values / max(pc_stds[ev.pc], 1e-9)
+                    p *= (1.0 - _sigmoid(ev_logit - tc.threshold))
+                probs.append(1.0 - p)
             else:
+                # Default 'avg': weighted average → single sigmoid (AND-like).
                 total_weight = sum(ev.weight for ev in tc.evidence)
                 logit = sum(
                     ev.sign * ev.weight * df[ev.pc].values / max(pc_stds[ev.pc], 1e-9)
                     for ev in tc.evidence
                 ) / total_weight
-            probs.append(_sigmoid(logit - tc.threshold))
+                probs.append(_sigmoid(logit - tc.threshold))
 
         probs_arr = np.stack(probs, axis=1)  # (N, n_classes)
         row_sums  = probs_arr.sum(axis=1, keepdims=True)
