@@ -179,13 +179,26 @@ class TrajectoryMixin:
             normal = self.chamber_state['normal']
             cor_offset = self.chamber_state['cor_offset']
 
-            direction, az_deg, el_deg, distance, top_pt = calc_target_angles(
+            _, az_deg, el_deg, distance, _ = calc_target_angles(
                 target, origin, x_vec, y_vec, normal, cor_offset)
 
-            # Update both entry rows
-            self.traj_az_var.set(round(az_deg, 2))
-            self.traj_el_var.set(round(el_deg, 2))
-            self.traj_dist_var.set(round(distance, 2))
+            # Subtract pen_offsets so the corrected display lands on the clicked target
+            # and the angle boxes show the true dial-in values.
+            daz    = self.pen_offsets.get('daz_deg',   0.) if self.pen_offsets else 0.
+            del_   = self.pen_offsets.get('del_deg',   0.) if self.pen_offsets else 0.
+            ddepth = self.pen_offsets.get('ddepth_mm', 0.) if self.pen_offsets else 0.
+            az_dial   = az_deg  - daz
+            el_dial   = el_deg  - del_
+            dist_dial = distance - ddepth
+
+            target_dial, direction_dial, top_pt_dial = calc_penetration_target(
+                origin, az_dial, el_dial, dist_dial, x_vec, y_vec, normal, cor_offset)
+
+            # Angle boxes show the dial-in values; stereo boxes show the corrected
+            # landing position (the original clicked target).
+            self.traj_az_var.set(round(az_dial, 2))
+            self.traj_el_var.set(round(el_dial, 2))
+            self.traj_dist_var.set(round(dist_dial, 2))
             if self.ebz_set:
                 rel = target - self.ebz_world
                 self.traj_ml_var.set(round(rel[0], 2))
@@ -198,7 +211,8 @@ class TrajectoryMixin:
                 self.traj_dv_var.set(round(target[2], 2))
                 self.traj_stereo_label.config(text="")
 
-            self._lock_trajectory(az_deg, el_deg, distance, target, direction, top_pt)
+            self._lock_trajectory(az_dial, el_dial, dist_dial,
+                                  target_dial, direction_dial, top_pt_dial)
         finally:
             self._traj_updating = False
 
