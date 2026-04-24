@@ -192,8 +192,9 @@ class PenetrationContextMenuMixin:
         y_vec   = self.chamber_state['y']
         normal  = self.chamber_state['normal']
         cor_off = self.chamber_state['cor_offset']
+        pen_off = self._offset_pen(pen)
         target, _, _ = calc_penetration_target(
-            origin, pen['az_deg'], pen['el_deg'], pen['dist_mm'],
+            origin, pen_off['az_deg'], pen_off['el_deg'], pen_off['dist_mm'],
             x_vec, y_vec, normal, cor_off)
         self.cursor_world = target.copy()
         self.display_all()
