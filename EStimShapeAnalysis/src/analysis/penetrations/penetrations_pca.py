@@ -23,6 +23,114 @@ OPTIMIZATIONS_path = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri"
 
 MRI_VIEWER_CONFIG_PATH = os.path.join(os.path.dirname(__file__), '../../mri/mri_viewer_config.json')
 
+PLOT_BASE_DIR = os.path.expanduser("~/Documents/penetration_optimization_plots")
+
+
+# ---------------------------------------------------------------------------
+# Plot-saving helpers
+# ---------------------------------------------------------------------------
+
+def _save_fig(save_dir: Optional[str], filename: str, dpi: int = 150) -> None:
+    """Save current matplotlib figure to save_dir/filename (or just filename if None)."""
+    path = os.path.join(save_dir, filename) if save_dir else filename
+    plt.savefig(path, dpi=dpi, bbox_inches='tight')
+
+
+def _pca_run_tag(
+        decomp_method: str,
+        varimax_n_components: int,
+        use_varimax: bool,
+        within_session_normalize: bool,
+        pc_smooth_sigma: float,
+        exclude_sessions=None,
+) -> str:
+    """Short human-readable tag identifying a PCA configuration."""
+    parts = [
+        decomp_method,
+        f"{varimax_n_components}pcs",
+        f"vm{'T' if use_varimax else 'F'}",
+        f"norm{'T' if within_session_normalize else 'F'}",
+        f"sig{pc_smooth_sigma:.1f}",
+    ]
+    n_excl = len(exclude_sessions) if exclude_sessions else 0
+    if n_excl:
+        parts.append(f"excl{n_excl}")
+    return "_".join(parts)
+
+
+def _opt_run_tag(
+        softmin_beta: float,
+        variance_penalty_weight: float,
+        enable_per_session_corrections: bool,
+        chamber_l2_weight: float,
+        session_corr_l2_weight: float,
+) -> str:
+    """Short tag identifying an optimization run (includes timestamp for uniqueness)."""
+    import datetime
+    ts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    parts = [
+        f"beta{softmin_beta:g}",
+        f"var{variance_penalty_weight:g}",
+        f"sess{'T' if enable_per_session_corrections else 'F'}",
+        f"c{chamber_l2_weight:g}",
+    ]
+    if enable_per_session_corrections:
+        parts.append(f"Ls{session_corr_l2_weight:g}")
+    parts.append(ts)
+    return "_".join(parts)
+
+
+def _make_run_dirs(pca_tag: str, opt_tag: str, base_dir: str = PLOT_BASE_DIR):
+    """Create and return (pca_dir, opt_dir)."""
+    pca_dir = os.path.join(base_dir, pca_tag)
+    opt_dir = os.path.join(pca_dir, opt_tag)
+    os.makedirs(pca_dir, exist_ok=True)
+    os.makedirs(opt_dir, exist_ok=True)
+    return pca_dir, opt_dir
+
+
+def _write_fit_log(
+        opt_dir: str,
+        pca_tag: str,
+        opt_params: dict,
+        opt_result: dict,
+) -> None:
+    """Write a human-readable fit summary to opt_dir/fit_log.txt."""
+    import datetime
+    lines = [
+        f"PCA run:  {pca_tag}",
+        f"Opt run:  {os.path.basename(opt_dir)}",
+        f"Written:  {datetime.datetime.now().isoformat()}",
+        "",
+        "=== Optimization Settings ===",
+    ]
+    for k, v in opt_params.items():
+        lines.append(f"  {k}: {v}")
+    lines += [
+        "",
+        "=== Results ===",
+        f"  Sessions:     {len(opt_result.get('session_ids', []))}",
+        f"  Score before: {opt_result.get('score_before', float('nan')):.4f}",
+        f"  Score after:  {opt_result.get('score_after',  float('nan')):.4f}",
+        f"  Delta:        {opt_result.get('score_after', 0.) - opt_result.get('score_before', 0.):+.4f}",
+        "",
+        "=== Global Parameters ===",
+    ]
+    params_arr  = opt_result.get('params', [])
+    param_names = opt_result.get('param_names', [])
+    for name, val in zip(param_names[:9], params_arr[:9]):
+        lines.append(f"  {name:<14s} = {float(val):+.4f}")
+    per_sess = opt_result.get('per_session_corrections', {})
+    if per_sess:
+        lines += ["", "=== Per-Session Corrections ===",
+                  f"  {'session':<22s} {'daz_deg':>8s} {'del_deg':>8s} {'ddepth_mm':>10s}"]
+        for sid, c in per_sess.items():
+            lines.append(f"  {str(sid):<22s} {c['daz_deg']:+8.3f} {c['del_deg']:+8.3f} {c['ddepth_mm']:+10.3f}")
+    log_path = os.path.join(opt_dir, "fit_log.txt")
+    with open(log_path, 'w') as f:
+        f.write("\n".join(lines) + "\n")
+    print(f"  Fit log → {log_path}")
+
 
 def _within_session_zscore(X: pd.DataFrame, session_ids: pd.Series) -> pd.DataFrame:
     """
@@ -403,7 +511,8 @@ def plot_pca_scatter(
         df: pd.DataFrame,
         pca: PCA,
         X_pca: np.ndarray,
-        plot_components: list = None
+        plot_components: list = None,
+        save_dir: Optional[str] = None,
 ):
     """Plot PCA scatter plots colored by session."""
     if plot_components is None:
@@ -467,11 +576,11 @@ def plot_pca_scatter(
 
     plt.suptitle('PenetrationMetrics PCA', fontsize=14, y=1.02)
     plt.tight_layout()
-    plt.savefig('penetration_metrics_pca.png', dpi=150, bbox_inches='tight')
+    _save_fig(save_dir, 'pca_scatter.png')
     plt.show()
 
 
-def plot_scree(pca: PCA):
+def plot_scree(pca: PCA, save_dir: Optional[str] = None):
     """Plot scree plot showing explained variance by component."""
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
@@ -496,14 +605,15 @@ def plot_scree(pca: PCA):
     ax2.set_ylim([0, 105])
 
     plt.tight_layout()
-    plt.savefig('penetration_metrics_scree.png', dpi=150, bbox_inches='tight')
+    _save_fig(save_dir, 'scree.png')
     plt.show()
 
 
 def plot_loadings(
         pca: PCA,
         feature_columns: list,
-        n_pcs: int = 4
+        n_pcs: int = 4,
+        save_dir: Optional[str] = None,
 ):
     """Visualize PC loadings as horizontal bar charts."""
     n_pcs = min(n_pcs, len(pca.components_))
@@ -533,13 +643,14 @@ def plot_loadings(
 
     plt.suptitle('PCA Loadings', fontsize=14)
     plt.tight_layout()
-    plt.savefig('pca_loadings.png', dpi=150, bbox_inches='tight')
+    _save_fig(save_dir, 'loadings.png')
     plt.show()
 
 
 def plot_correlation_heatmap(
         corr_df: pd.DataFrame,
-        feature_columns: list
+        feature_columns: list,
+        save_dir: Optional[str] = None,
 ):
     """Plot heatmap of feature-PC correlations."""
     pivot = corr_df.pivot(index='Feature', columns='PC', values='Correlation')
@@ -564,7 +675,7 @@ def plot_correlation_heatmap(
     ax.set_title('Feature-PC Correlations')
 
     plt.tight_layout()
-    plt.savefig('feature_pc_correlation_heatmap.png', dpi=150, bbox_inches='tight')
+    _save_fig(save_dir, 'correlation_heatmap.png')
     plt.show()
 
 
@@ -697,7 +808,8 @@ def plot_depth_profiles_overlaid(
         pca: PCA,
         n_pcs: int = None,
         sessions: list = None,
-        align_depths: bool = False
+        align_depths: bool = False,
+        save_dir: Optional[str] = None,
 ):
     """Plot depth profiles with all sessions overlaid on the same axes."""
     if sessions is None:
@@ -784,7 +896,7 @@ def plot_depth_profiles_overlaid(
     plt.tight_layout()
 
     suffix = '_aligned' if align_depths else ''
-    plt.savefig(f'depth_profiles_overlaid{suffix}.png', dpi=150, bbox_inches='tight')
+    _save_fig(save_dir, f'depth_profiles_overlaid{suffix}.png')
     plt.show()
 
 
@@ -918,6 +1030,7 @@ def plot_tissue_confidence_by_session(
         sessions: list = None,
         strip_width: float = 0.4,
         n_pcs: int = 4,
+        save_dir: Optional[str] = None,
 ) -> None:
     """
     For each session plot a grayscale depth strip showing tissue confidence:
@@ -966,7 +1079,7 @@ def plot_tissue_confidence_by_session(
                      '(black=sulcus, gray=gray matter, white=white matter)',
                      fontsize=12)
     plt.tight_layout()
-    plt.savefig('tissue_confidence_all_sessions.png', dpi=150, bbox_inches='tight')
+    _save_fig(save_dir, 'tissue_confidence_all.png')
     plt.show()
 
     # ── Per-session figures ────────────────────────────────────────────────
@@ -993,7 +1106,7 @@ def plot_tissue_confidence_by_session(
                      '(black=sulcus, gray=gray matter, white=white matter)',
                      fontsize=11)
         plt.tight_layout()
-        plt.savefig(f'tissue_confidence_{session}.png', dpi=150, bbox_inches='tight')
+        _save_fig(save_dir, f'tissue_confidence_{session}.png')
         plt.show()
 
 
@@ -1745,6 +1858,7 @@ def plot_mri_comparison_by_session(
         fit_scores: Optional[pd.DataFrame] = None,
         sessions: list = None,
         strip_width: float = 0.4,
+        save_dir: Optional[str] = None,
 ) -> None:
     """
     Per-session figure: MRI grayscale strip | tissue confidence strip | overlay line.
@@ -1798,7 +1912,7 @@ def plot_mri_comparison_by_session(
     fig_all.suptitle('MRI vs Tissue Confidence\n(black=sulcus, gray=GM, white=WM)',
                      fontsize=12)
     plt.tight_layout()
-    plt.savefig('mri_vs_tissue_confidence_all_sessions.png', dpi=150, bbox_inches='tight')
+    _save_fig(save_dir, 'mri_comparison_all.png')
     plt.show()
 
     # Per-session figures
@@ -1830,7 +1944,7 @@ def plot_mri_comparison_by_session(
 
         fig.suptitle(f'MRI vs Tissue Confidence — {session}', fontsize=11)
         plt.tight_layout()
-        plt.savefig(f'mri_vs_tissue_confidence_{session}.png', dpi=150, bbox_inches='tight')
+        _save_fig(save_dir, f'mri_comparison_{session}.png')
         plt.show()
 
 
@@ -1969,6 +2083,7 @@ def run_cortex_pca(
         n_pcs: int = 4,
         tissue_score_min: float = 0.3,
         tissue_score_max: float = 0.75,
+        save_dir: Optional[str] = None,
 ) -> Optional[dict]:
     """
     Second-stage PCA run on cortical gray-matter bins only.
@@ -2049,7 +2164,7 @@ def run_cortex_pca(
         ax.grid(True, alpha=0.3, axis='x')
     fig.suptitle('Cortex PCA Loadings', fontsize=13)
     plt.tight_layout()
-    plt.savefig('cortex_pca_loadings.png', dpi=150, bbox_inches='tight')
+    _save_fig(save_dir, 'cortex_pca_loadings.png')
     plt.show()
 
     # ── Depth profiles per session ──────────────────────────────────────────
@@ -2089,7 +2204,7 @@ def run_cortex_pca(
         fontsize=12,
     )
     plt.tight_layout()
-    plt.savefig('cortex_pca_depth_profiles.png', dpi=150, bbox_inches='tight')
+    _save_fig(save_dir, 'cortex_pca_depth_profiles.png')
     plt.show()
 
     # ── Scatter CPC1 vs CPC2 ───────────────────────────────────────────────
@@ -2134,7 +2249,7 @@ def run_cortex_pca(
             fontsize=12,
         )
         plt.tight_layout()
-        plt.savefig('cortex_pca_scatter.png', dpi=150, bbox_inches='tight')
+        _save_fig(save_dir, 'cortex_pca_scatter.png')
         plt.show()
 
     return {
@@ -2166,6 +2281,26 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                  softmin_beta: float = SOFTMIN_BETA):
     """Run complete PCA analysis with correlations and plots."""
 
+    # Build output directories
+    pca_tag = _pca_run_tag(
+        decomp_method=decomp_method,
+        varimax_n_components=varimax_n_components,
+        use_varimax=use_varimax,
+        within_session_normalize=within_session_normalize,
+        pc_smooth_sigma=pc_smooth_sigma,
+        exclude_sessions=exclude_sessions,
+    )
+    opt_tag = _opt_run_tag(
+        softmin_beta=softmin_beta,
+        variance_penalty_weight=variance_penalty_weight,
+        enable_per_session_corrections=enable_per_session_corrections,
+        chamber_l2_weight=chamber_l2_weight,
+        session_corr_l2_weight=session_corr_l2_weight,
+    )
+    pca_dir, opt_dir = _make_run_dirs(pca_tag, opt_tag)
+    print(f"\nPlots → {pca_dir}")
+    print(f"Opt  → {opt_dir}")
+
     # Load and perform PCA / Factor Analysis
     df, pca, X_pca, feature_columns, scaler = load_and_perform_pca(
         conn, table_name,
@@ -2188,17 +2323,17 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
     corr_df = get_feature_correlations(df, feature_columns, n_pcs=n_pcs)
     print_feature_correlations(corr_df)
 
-    # Plots
-    plot_scree(pca)
-    plot_loadings(pca, feature_columns, n_pcs=n_pcs)
-    plot_correlation_heatmap(corr_df, feature_columns)
-    plot_pca_scatter(df, pca, X_pca, plot_components=list(range(min(n_pcs, 3))))
+    # PCA-level plots (saved to pca_dir)
+    plot_scree(pca, save_dir=pca_dir)
+    plot_loadings(pca, feature_columns, n_pcs=n_pcs, save_dir=pca_dir)
+    plot_correlation_heatmap(corr_df, feature_columns, save_dir=pca_dir)
+    plot_pca_scatter(df, pca, X_pca, plot_components=list(range(min(n_pcs, 3))), save_dir=pca_dir)
 
     # Depth profiles
-    # plot_depth_profiles_by_session(df, pca, n_pcs=n_pcs)
+    # plot_depth_profiles_by_session(df, pca, n_pcs=n_pcs, save_dir=pca_dir)
     # plot_depth_profiles_all_sessions(df, pca, n_pcs=n_pcs)
-    plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs)
-    # plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs, align_depths=True)
+    plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs, save_dir=pca_dir)
+    # plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs, align_depths=True, save_dir=pca_dir)
 
     # Tissue confidence
     if tissue_model is not None:
@@ -2208,15 +2343,15 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         df_conf = compute_tissue_confidence(df, **tissue_conf)
     else:
         df_conf = compute_tissue_confidence(df, model=MODEL_PCA_V1)
-    plot_tissue_confidence_by_session(df_conf, pca=pca, n_pcs=n_pcs)
+    plot_tissue_confidence_by_session(df_conf, pca=pca, n_pcs=n_pcs, save_dir=pca_dir)
 
     # PC3 vs PC4 in the cortex subspace (PC1>0 and PC2>0)
     # plot_cortex_pc_scatter(df_conf, pca)
 
     # Second-stage PCA on cortical bins only
-    cortex_pca_result = run_cortex_pca(df_conf, feature_columns, n_pcs=4)
+    cortex_pca_result = run_cortex_pca(df_conf, feature_columns, n_pcs=4, save_dir=pca_dir)
 
-    # MRI comparison + optimisation
+    # MRI comparison + optimisation (saved to opt_dir)
     fit_scores = None
     opt_result = None
     mri_pipeline = None
@@ -2227,7 +2362,7 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         print("\n── Initial MRI comparison ──")
         df_conf = compute_mri_comparison(df_conf, conn, mri_pipeline)
         fit_scores = compute_trajectory_fit_scores(df_conf)
-        # plot_mri_comparison_by_session(df_conf, fit_scores)
+        # plot_mri_comparison_by_session(df_conf, fit_scores, save_dir=opt_dir)
 
         print("\n── Optimising transformation ──")
         opt_result = optimize_trajectory_alignment(df_conf, conn, mri_pipeline,
@@ -2247,7 +2382,20 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                                          daz=daz, del_=del_, ddepth=ddepth,
                                          per_session_corrections=opt_result.get('per_session_corrections'))
         fit_scores = compute_trajectory_fit_scores(df_conf)
-        plot_mri_comparison_by_session(df_conf, fit_scores)
+        plot_mri_comparison_by_session(df_conf, fit_scores, save_dir=opt_dir)
+
+        # Write fit log
+        _write_fit_log(opt_dir, pca_tag, opt_params=dict(
+            softmin_beta=softmin_beta,
+            variance_penalty_weight=variance_penalty_weight,
+            enable_per_session_corrections=enable_per_session_corrections,
+            chamber_l2_weight=chamber_l2_weight,
+            session_corr_l2_weight=session_corr_l2_weight,
+            chamber_l2_scales=chamber_l2_scales,
+            session_corr_bounds=session_corr_bounds,
+            maxiter=maxiter,
+            start_from_file=start_from_file,
+        ), opt_result=opt_result)
 
         print("\n── Optimisation complete ──")
         print(f"  score: {opt_result['score_before']:.4f} → {opt_result['score_after']:.4f}")
