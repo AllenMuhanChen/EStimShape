@@ -94,6 +94,7 @@ def _write_fit_log(
         pca_tag: str,
         opt_params: dict,
         opt_result: dict,
+        fit_scores=None,
 ) -> None:
     """Write a human-readable fit summary to opt_dir/fit_log.txt."""
     import datetime
@@ -126,6 +127,9 @@ def _write_fit_log(
                   f"  {'session':<22s} {'daz_deg':>8s} {'del_deg':>8s} {'ddepth_mm':>10s}"]
         for sid, c in per_sess.items():
             lines.append(f"  {str(sid):<22s} {c['daz_deg']:+8.3f} {c['del_deg']:+8.3f} {c['ddepth_mm']:+10.3f}")
+    if fit_scores is not None and not fit_scores.empty:
+        lines += ["", "=== Trajectory Fit Scores (tissue_score vs MRI) ===",
+                  fit_scores.to_string()]
     log_path = os.path.join(opt_dir, "fit_log.txt")
     with open(log_path, 'w') as f:
         f.write("\n".join(lines) + "\n")
@@ -2395,7 +2399,7 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         plot_mri_comparison_by_session(df_conf, fit_scores, save_dir=opt_dir)
 
         # Write fit log
-        _write_fit_log(opt_dir, pca_tag, opt_params=dict(
+        _write_fit_log(opt_dir, pca_tag, fit_scores=fit_scores, opt_params=dict(
             softmin_beta=softmin_beta,
             variance_penalty_weight=variance_penalty_weight,
             enable_per_session_corrections=enable_per_session_corrections,
