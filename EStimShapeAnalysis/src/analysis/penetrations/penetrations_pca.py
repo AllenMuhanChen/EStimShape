@@ -1392,7 +1392,7 @@ def _weighted_pearson_r(ts: np.ndarray, mri_vals: np.ndarray,
         return np.nan
 
     mri_norm = np.clip(mri_vals, 0.0, mri_ref) / mri_ref * ts_max
-    w = confidence if confidence is not None else np.abs(2.0 * ts - 1.0)
+    w = confidence if confidence is not None else np.ones(len(ts))
     w_sum = w.sum()
     if w_sum == 0:
         return np.nan
