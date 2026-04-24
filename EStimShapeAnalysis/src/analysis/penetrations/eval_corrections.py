@@ -260,7 +260,7 @@ if __name__ == '__main__':
 
     # Sessions to evaluate (held-out sessions not used during optimization)
     SESSIONS = [
-        "260423_0",
+        "260421_0",
     ]
 
     # Set to the same list as SESSIONS for a strict train/test PCA split
