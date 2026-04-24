@@ -1547,6 +1547,7 @@ def optimize_trajectory_alignment(
         variance_penalty_weight: float = VARIANCE_PENALTY_WEIGHT,
         softmin_beta: float = SOFTMIN_BETA,
         optimizer: str = 'nelder-mead',
+        use_confidence_weights: bool = True,
 ) -> dict:
     """
     Find the rigid-body + scale + angle + depth correction that maximises the
@@ -1679,7 +1680,8 @@ def optimize_trajectory_alignment(
             except Exception:
                 continue
 
-            r = _weighted_pearson_r(sdata['ts'], mri_vals, sdata['confidence'])
+            conf = sdata['confidence'] if use_confidence_weights else None
+            r = _weighted_pearson_r(sdata['ts'], mri_vals, conf)
             if not np.isnan(r):
                 rs.append(r)
 
@@ -1735,8 +1737,9 @@ def optimize_trajectory_alignment(
     agg_note = (f"  softmin β={softmin_beta}" if softmin_beta > 0 else "  mean aggregation")
     var_note  = (f"  variance penalty λ={variance_penalty_weight}"
                  if variance_penalty_weight > 0 else "")
+    conf_note = "" if use_confidence_weights else "  confidence weights OFF"
     print(f"\nOptimising over {len(session_info)} sessions  "
-          f"(initial score = {score_before:.4f}){agg_note}{var_note} ...")
+          f"(initial score = {score_before:.4f}){agg_note}{var_note}{conf_note} ...")
     print(f"  Optimizer: {optimizer}")
 
     if optimizer not in _OPTIMIZERS:
@@ -1793,6 +1796,7 @@ def optimize_trajectory_alignment(
         'variance_penalty_weight': variance_penalty_weight,
         'softmin_beta': softmin_beta,
         'optimizer': optimizer,
+        'use_confidence_weights': use_confidence_weights,
     }
 
 
@@ -2350,7 +2354,8 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                  chamber_l2_scales: dict = None,
                  variance_penalty_weight: float = VARIANCE_PENALTY_WEIGHT,
                  softmin_beta: float = SOFTMIN_BETA,
-                 optimizer: str = 'nelder-mead'):
+                 optimizer: str = 'nelder-mead',
+                 use_confidence_weights: bool = True):
     """Run complete PCA analysis with correlations and plots."""
 
     # Build output directories
@@ -2447,7 +2452,8 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                                                    chamber_l2_scales=chamber_l2_scales,
                                                    variance_penalty_weight=variance_penalty_weight,
                                                    softmin_beta=softmin_beta,
-                                                   optimizer=optimizer)
+                                                   optimizer=optimizer,
+                                                   use_confidence_weights=use_confidence_weights)
 
         print("\n── MRI comparison with optimised transformation ──")
         opt_pipeline, daz, del_, ddepth = apply_optimized_pipeline(mri_pipeline, opt_result)
@@ -2527,6 +2533,7 @@ if __name__ == "__main__":
         variance_penalty_weight=0.0,
         softmin_beta=0.0,               # 0 = mean; 3-5 = protect worst; 10+ ≈ min
         optimizer='nelder-mead',        # 'nelder-mead' | 'cma-es'
+        use_confidence_weights=False,   # False = unweighted r (often more stable)
     )
 
     # results = run_analysis(conn, n_pcs=6, exclude_sessions =exclude_sessions, within_session_normalize=False)
