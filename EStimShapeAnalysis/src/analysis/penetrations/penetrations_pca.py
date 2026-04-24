@@ -1354,6 +1354,12 @@ def optimize_trajectory_alignment(
         mri_pipeline: dict,
         maxiter: int = 10000,
         start_from_file: Optional[str] = None,
+        enable_per_session_corrections: bool = ENABLE_PER_SESSION_CORRECTIONS,
+        session_corr_bounds: dict = None,
+        session_corr_l2_weight: float = SESSION_CORR_L2_WEIGHT,
+        chamber_l2_weight: float = CHAMBER_L2_WEIGHT,
+        chamber_l2_scales: dict = None,
+        variance_penalty_weight: float = VARIANCE_PENALTY_WEIGHT,
 ) -> dict:
     """
     Find the rigid-body + scale + angle + depth correction that maximises the
@@ -1369,6 +1375,12 @@ def optimize_trajectory_alignment(
     Returns dict with keys: params, param_names, result, score_before, score_after
     """
     from src.mri.chamber import calc_penetration_target
+
+    # Resolve mutable defaults
+    if session_corr_bounds is None:
+        session_corr_bounds = SESSION_CORR_BOUNDS
+    if chamber_l2_scales is None:
+        chamber_l2_scales = CHAMBER_L2_SCALES
 
     # Pre-fetch penetration angles and depth arrays once (avoid DB hits in loop)
     session_info = {}
@@ -1397,16 +1409,16 @@ def optimize_trajectory_alignment(
     session_ids = list(session_info.keys())
     n_sess = len(session_ids)
 
-    if ENABLE_PER_SESSION_CORRECTIONS:
+    if enable_per_session_corrections:
         per_sess_names = []
         for sid in session_ids:
             per_sess_names += [f'daz_{sid}', f'del_{sid}', f'ddepth_{sid}']
         full_param_names = _OPT_PARAM_NAMES + per_sess_names
         full_x0 = np.concatenate([_OPT_X0, np.zeros(3 * n_sess)])
         print(f"  Per-session corrections enabled: {n_sess} sessions × 3 params "
-              f"(bounds: ±{SESSION_CORR_BOUNDS['daz']}° az, "
-              f"±{SESSION_CORR_BOUNDS['del_']}° el, "
-              f"±{SESSION_CORR_BOUNDS['ddepth']} mm depth)")
+              f"(bounds: ±{session_corr_bounds['daz']}° az, "
+              f"±{session_corr_bounds['del_']}° el, "
+              f"±{session_corr_bounds['ddepth']} mm depth)")
     else:
         full_param_names = _OPT_PARAM_NAMES
         full_x0 = _OPT_X0.copy()
@@ -1419,17 +1431,17 @@ def optimize_trajectory_alignment(
         for _i, _name in enumerate(_OPT_PARAM_NAMES):
             if _name in _prior_params:
                 full_x0[_i] = float(_prior_params[_name])
-        if ENABLE_PER_SESSION_CORRECTIONS and 'per_session_corrections' in _prior:
+        if enable_per_session_corrections and 'per_session_corrections' in _prior:
             _prior_sess = _prior['per_session_corrections']
             for _j, _sid in enumerate(session_ids):
                 _sc = _prior_sess.get(str(_sid), {})
                 if _sc:
                     full_x0[9 + _j * 3]     = float(np.arctanh(np.clip(
-                        _sc.get('daz_deg',   0.) / SESSION_CORR_BOUNDS['daz'],   -0.9999, 0.9999)))
+                        _sc.get('daz_deg',   0.) / session_corr_bounds['daz'],   -0.9999, 0.9999)))
                     full_x0[9 + _j * 3 + 1] = float(np.arctanh(np.clip(
-                        _sc.get('del_deg',   0.) / SESSION_CORR_BOUNDS['del_'],  -0.9999, 0.9999)))
+                        _sc.get('del_deg',   0.) / session_corr_bounds['del_'],  -0.9999, 0.9999)))
                     full_x0[9 + _j * 3 + 2] = float(np.arctanh(np.clip(
-                        _sc.get('ddepth_mm', 0.) / SESSION_CORR_BOUNDS['ddepth'], -0.9999, 0.9999)))
+                        _sc.get('ddepth_mm', 0.) / session_corr_bounds['ddepth'], -0.9999, 0.9999)))
         print(f"  Warm-starting from: {os.path.basename(start_from_file)}")
         print(f"  Initial global params: tx={full_x0[0]:+.3f}  ty={full_x0[1]:+.3f}  tz={full_x0[2]:+.3f}  "
               f"rx={full_x0[3]:+.3f}  ry={full_x0[4]:+.3f}  rz={full_x0[5]:+.3f}  "
@@ -1447,7 +1459,7 @@ def optimize_trajectory_alignment(
             return np.inf
 
         _, _, _, _, _, _, daz, del_, ddepth = params[:9]
-        per_sess_raw = params[9:].reshape(-1, 3) if ENABLE_PER_SESSION_CORRECTIONS else None
+        per_sess_raw = params[9:].reshape(-1, 3) if enable_per_session_corrections else None
 
         rs, reg_sum = [], 0.0
 
@@ -1455,12 +1467,12 @@ def optimize_trajectory_alignment(
             sdata = session_info[sid]
 
             if per_sess_raw is not None:
-                daz_i  = _tanh_bound(per_sess_raw[i, 0], SESSION_CORR_BOUNDS['daz'])
-                del_i  = _tanh_bound(per_sess_raw[i, 1], SESSION_CORR_BOUNDS['del_'])
-                ddep_i = _tanh_bound(per_sess_raw[i, 2], SESSION_CORR_BOUNDS['ddepth'])
-                reg_sum += (daz_i  / SESSION_CORR_BOUNDS['daz'])  ** 2
-                reg_sum += (del_i  / SESSION_CORR_BOUNDS['del_']) ** 2
-                reg_sum += (ddep_i / SESSION_CORR_BOUNDS['ddepth']) ** 2
+                daz_i  = _tanh_bound(per_sess_raw[i, 0], session_corr_bounds['daz'])
+                del_i  = _tanh_bound(per_sess_raw[i, 1], session_corr_bounds['del_'])
+                ddep_i = _tanh_bound(per_sess_raw[i, 2], session_corr_bounds['ddepth'])
+                reg_sum += (daz_i  / session_corr_bounds['daz'])  ** 2
+                reg_sum += (del_i  / session_corr_bounds['del_']) ** 2
+                reg_sum += (ddep_i / session_corr_bounds['ddepth']) ** 2
             else:
                 daz_i = del_i = ddep_i = 0.0
 
@@ -1489,20 +1501,20 @@ def optimize_trajectory_alignment(
         rs_arr = np.array(rs)
         mean_r = rs_arr.mean()
         loss = -mean_r
-        if include_reg and VARIANCE_PENALTY_WEIGHT > 0 and len(rs_arr) > 1:
-            loss += VARIANCE_PENALTY_WEIGHT * rs_arr.var()
+        if include_reg and variance_penalty_weight > 0 and len(rs_arr) > 1:
+            loss += variance_penalty_weight * rs_arr.var()
         if include_reg:
             tx, ty, tz, rx, ry, rz, daz_g, del_g, ddepth_g = params[:9]
-            s = CHAMBER_L2_SCALES
+            s = chamber_l2_scales
             chamber_reg = (
                 (tx / s['t_mm'])**2 + (ty / s['t_mm'])**2 + (tz / s['t_mm'])**2
                 + (rx / s['r_deg'])**2 + (ry / s['r_deg'])**2 + (rz / s['r_deg'])**2
                 + (daz_g / s['daz_deg'])**2 + (del_g / s['del_deg'])**2
                 + (ddepth_g / s['ddepth_mm'])**2
             )
-            loss += CHAMBER_L2_WEIGHT * chamber_reg
-            if ENABLE_PER_SESSION_CORRECTIONS:
-                loss += SESSION_CORR_L2_WEIGHT * reg_sum
+            loss += chamber_l2_weight * chamber_reg
+            if enable_per_session_corrections:
+                loss += session_corr_l2_weight * reg_sum
         return loss
 
     def callback_nelder(xk):
@@ -1517,18 +1529,18 @@ def optimize_trajectory_alignment(
                   f"t=({tx:.2f},{ty:.2f},{tz:.2f})  "
                   f"r=({rx:.2f},{ry:.2f},{rz:.2f})  "
                   f"daz={daz:.2f}  del={del_:.2f}  ddepth={ddepth:.2f}")
-            if ENABLE_PER_SESSION_CORRECTIONS and len(xk) > 9:
+            if enable_per_session_corrections and len(xk) > 9:
                 per = xk[9:].reshape(-1, 3)
-                eff_daz  = np.array([_tanh_bound(v, SESSION_CORR_BOUNDS['daz'])  for v in per[:, 0]])
-                eff_del  = np.array([_tanh_bound(v, SESSION_CORR_BOUNDS['del_']) for v in per[:, 1]])
-                eff_ddep = np.array([_tanh_bound(v, SESSION_CORR_BOUNDS['ddepth']) for v in per[:, 2]])
+                eff_daz  = np.array([_tanh_bound(v, session_corr_bounds['daz'])  for v in per[:, 0]])
+                eff_del  = np.array([_tanh_bound(v, session_corr_bounds['del_']) for v in per[:, 1]])
+                eff_ddep = np.array([_tanh_bound(v, session_corr_bounds['ddepth']) for v in per[:, 2]])
                 print(f"         max|Δaz|={np.abs(eff_daz).max():.2f}°  "
                       f"max|Δel|={np.abs(eff_del).max():.2f}°  "
                       f"max|Δdep|={np.abs(eff_ddep).max():.2f}mm")
 
     score_before = -score_for_params(full_x0, include_reg=False)
-    var_note = (f"  variance penalty λ={VARIANCE_PENALTY_WEIGHT}"
-                if VARIANCE_PENALTY_WEIGHT > 0 else "  no variance penalty")
+    var_note = (f"  variance penalty λ={variance_penalty_weight}"
+                if variance_penalty_weight > 0 else "  no variance penalty")
     print(f"\nOptimising over {len(session_info)} sessions  "
           f"(initial mean r = {score_before:.4f}){var_note} ...")
 
@@ -1541,13 +1553,13 @@ def optimize_trajectory_alignment(
     steps[6]   = 0.5  # daz (deg)
     steps[7]   = 0.5  # del (deg)
     steps[8]   = 0.5  # ddepth (mm)
-    if ENABLE_PER_SESSION_CORRECTIONS and n_p > 9:
+    if enable_per_session_corrections and n_p > 9:
         steps[9:] = 0.5  # per-session raw (tanh-space; tanh(0.5)≈0.46 → ~half-bound)
     init_simplex = np.tile(full_x0, (n_p + 1, 1))
     for i in range(n_p):
         init_simplex[i + 1, i] += steps[i]
 
-    maxiter_adj = maxiter + 500 * n_sess if ENABLE_PER_SESSION_CORRECTIONS else maxiter
+    maxiter_adj = maxiter + 500 * n_sess if enable_per_session_corrections else maxiter
     result = minimize(
         score_for_params,
         full_x0,
@@ -1568,13 +1580,13 @@ def optimize_trajectory_alignment(
 
     # Decode per-session corrections to effective (bounded) values
     per_session_corrections = {}
-    if ENABLE_PER_SESSION_CORRECTIONS and len(result.x) > 9:
+    if enable_per_session_corrections and len(result.x) > 9:
         per = result.x[9:].reshape(-1, 3)
         for i, sid in enumerate(session_ids):
             per_session_corrections[sid] = dict(
-                daz_deg   = _tanh_bound(per[i, 0], SESSION_CORR_BOUNDS['daz']),
-                del_deg   = _tanh_bound(per[i, 1], SESSION_CORR_BOUNDS['del_']),
-                ddepth_mm = _tanh_bound(per[i, 2], SESSION_CORR_BOUNDS['ddepth']),
+                daz_deg   = _tanh_bound(per[i, 0], session_corr_bounds['daz']),
+                del_deg   = _tanh_bound(per[i, 1], session_corr_bounds['del_']),
+                ddepth_mm = _tanh_bound(per[i, 2], session_corr_bounds['ddepth']),
             )
         print("\nPer-session corrections (effective, deg/mm):")
         for sid, c in per_session_corrections.items():
@@ -1589,6 +1601,9 @@ def optimize_trajectory_alignment(
         'score_after': score_after,
         'per_session_corrections': per_session_corrections,
         'session_ids': session_ids,
+        'session_corr_bounds': session_corr_bounds,
+        'session_corr_l2_weight': session_corr_l2_weight,
+        'variance_penalty_weight': variance_penalty_weight,
     }
 
 
@@ -1655,8 +1670,9 @@ def save_optimized_params(
         'del_deg': float(del_),
         'ddepth_mm': float(ddepth),
         'per_session_corrections': opt_result.get('per_session_corrections', {}),
-        'session_corr_bounds': SESSION_CORR_BOUNDS,
-        'session_corr_l2_weight': SESSION_CORR_L2_WEIGHT,
+        'session_corr_bounds': opt_result.get('session_corr_bounds', SESSION_CORR_BOUNDS),
+        'session_corr_l2_weight': opt_result.get('session_corr_l2_weight', SESSION_CORR_L2_WEIGHT),
+        'variance_penalty_weight': opt_result.get('variance_penalty_weight', VARIANCE_PENALTY_WEIGHT),
     }
     with open(result_path, 'w') as f:
         json.dump(result_data, f, indent=2)
@@ -2124,7 +2140,13 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                  use_varimax: bool = USE_VARIMAX,
                  tissue_model: Optional[TissueModel] = None,
                  maxiter: int = 100000,
-                 start_from_file: Optional[str] = None):
+                 start_from_file: Optional[str] = None,
+                 enable_per_session_corrections: bool = ENABLE_PER_SESSION_CORRECTIONS,
+                 session_corr_bounds: dict = None,
+                 session_corr_l2_weight: float = SESSION_CORR_L2_WEIGHT,
+                 chamber_l2_weight: float = CHAMBER_L2_WEIGHT,
+                 chamber_l2_scales: dict = None,
+                 variance_penalty_weight: float = VARIANCE_PENALTY_WEIGHT):
     """Run complete PCA analysis with correlations and plots."""
 
     # Load and perform PCA / Factor Analysis
@@ -2193,7 +2215,13 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         print("\n── Optimising transformation ──")
         opt_result = optimize_trajectory_alignment(df_conf, conn, mri_pipeline,
                                                    maxiter=maxiter,
-                                                   start_from_file=start_from_file)
+                                                   start_from_file=start_from_file,
+                                                   enable_per_session_corrections=enable_per_session_corrections,
+                                                   session_corr_bounds=session_corr_bounds,
+                                                   session_corr_l2_weight=session_corr_l2_weight,
+                                                   chamber_l2_weight=chamber_l2_weight,
+                                                   chamber_l2_scales=chamber_l2_scales,
+                                                   variance_penalty_weight=variance_penalty_weight)
 
         print("\n── MRI comparison with optimised transformation ──")
         opt_pipeline, daz, del_, ddepth = apply_optimized_pipeline(mri_pipeline, opt_result)
@@ -2252,6 +2280,12 @@ if __name__ == "__main__":
         varimax_n_components=6,
         maxiter=100000,
         start_from_file=start_from_file,
+        enable_per_session_corrections=False,
+        session_corr_bounds=None,       # None → use SESSION_CORR_BOUNDS default
+        session_corr_l2_weight=0.1,
+        chamber_l2_weight=0.005,
+        chamber_l2_scales=None,         # None → use CHAMBER_L2_SCALES default
+        variance_penalty_weight=0.0,
     )
 
     # results = run_analysis(conn, n_pcs=6, exclude_sessions =exclude_sessions, within_session_normalize=False)
