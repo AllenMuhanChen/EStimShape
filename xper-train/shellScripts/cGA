@@ -12,6 +12,9 @@ UPDATE SystemVar SET val=100 WHERE name='xper_streak_to_start_punishment';
 UPDATE SystemVar SET val=0.2 WHERE name='xper_juice_bonus_probability';
 UPDATE SystemVar SET val=3000 WHERE name='xper_punishment_delay_length';
 UPDATE SystemVar SET val=0.5 WHERE name='xper_png_background_color';
+UPDATE SystemVar SET val=0.5 WHERE name='xper_background_color' AND arr_ind=0;
+UPDATE SystemVar SET val=0.5 WHERE name='xper_background_color' AND arr_ind=1;
+UPDATE SystemVar SET val=0.5 WHERE name='xper_background_color' AND arr_ind=2;
 EOF
 
 sudo -S <<< Whedon101 cp $XPER_PROPERTIES_GA $DIST/xper.properties

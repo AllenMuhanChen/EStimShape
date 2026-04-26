@@ -17,9 +17,9 @@ def main():
     compiled_data = None
     # compiled_data = analysis.compile_and_export()
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
-    session_id = "260421_0"
-    # channel = read_cluster_channels(session_id)
-    channel = "A-002"
+    session_id = "260426_0"
+    channel = read_cluster_channels(session_id)
+    # channel = "A-002"
     # channel = ["A-021"]
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 

@@ -364,52 +364,52 @@ def ReadWaveformDataDemo():
 
     print('Plotting...')
     #
-    # pl_plotter = LFPPowerLawSpectrumPlotter(
-    #     channel_order=CHANNEL_ORDER,
-    #     **POWER_LAW_PANELS,
-    # )
-    # sp_plotter = LFPSpikeRatePlotter(channel_order=CHANNEL_ORDER)
-    #
-    # n_pl = pl_plotter.n_axes
-    # n_sp = sp_plotter.n_axes
-    #
-    # width_ratios = [2, 1] + [1] * n_pl + [1] * n_sp
-    # fig, axes = plt.subplots(
-    #     1, 2 + n_pl + n_sp,
-    #     figsize=(4 * (2 + n_pl + n_sp), 8),
-    #     gridspec_kw={'width_ratios': width_ratios},
-    # )
-    #
-    # heatmap_plotter = LFPSpectrumPlotter(
-    #     channel_order=CHANNEL_ORDER, freq_range=FREQ_RANGE)
-    # heatmap_plotter.plot(normalized, ax=axes[0])
-    # axes[0].set_title("Relative Power Spectrum")
-    #
-    # band_plotter = LFPBandPowerPlotter(channel_order=CHANNEL_ORDER)
-    # band_plotter.plot(normalized, ax=axes[1])
-    # axes[1].set_title("Band Power Profile")
-    #
-    # pl_plotter.plot_onto_axes(
-    #     fits,
-    #     axes[2: 2 + n_pl],
-    #     avg_spectrum_by_channel=spectra,
-    #     label_y_axis=False,
-    # )
-    #
-    # sp_plotter.plot_onto_axes(
-    #     spike_rates_by_channel,
-    #     axes[2 + n_pl:],
-    #     fits_by_channel=fits,
-    #     label_y_axis=False,
-    # )
-    #
-    # fig.suptitle(f"LFP Analysis — {ACQUISITION_SECONDS}s acquisition  |  {base_filename}")
-    # plt.tight_layout()
-    #
-    # fig_fits = pl_plotter.plot_spectrum_fits(fits, avg_spectrum_by_channel=spectra)
-    # fig_fits.suptitle(f"FOOOF Spectral Fits — {ACQUISITION_SECONDS}s acquisition  |  {base_filename}")
-    #
-    # plt.show()
+    pl_plotter = LFPPowerLawSpectrumPlotter(
+        channel_order=CHANNEL_ORDER,
+        **POWER_LAW_PANELS,
+    )
+    sp_plotter = LFPSpikeRatePlotter(channel_order=CHANNEL_ORDER)
+
+    n_pl = pl_plotter.n_axes
+    n_sp = sp_plotter.n_axes
+
+    width_ratios = [2, 1] + [1] * n_pl + [1] * n_sp
+    fig, axes = plt.subplots(
+        1, 2 + n_pl + n_sp,
+        figsize=(4 * (2 + n_pl + n_sp), 8),
+        gridspec_kw={'width_ratios': width_ratios},
+    )
+
+    heatmap_plotter = LFPSpectrumPlotter(
+        channel_order=CHANNEL_ORDER, freq_range=FREQ_RANGE)
+    heatmap_plotter.plot(normalized, ax=axes[0])
+    axes[0].set_title("Relative Power Spectrum")
+
+    band_plotter = LFPBandPowerPlotter(channel_order=CHANNEL_ORDER)
+    band_plotter.plot(normalized, ax=axes[1])
+    axes[1].set_title("Band Power Profile")
+
+    pl_plotter.plot_onto_axes(
+        fits,
+        axes[2: 2 + n_pl],
+        avg_spectrum_by_channel=spectra,
+        label_y_axis=False,
+    )
+
+    sp_plotter.plot_onto_axes(
+        spike_rates_by_channel,
+        axes[2 + n_pl:],
+        fits_by_channel=fits,
+        label_y_axis=False,
+    )
+
+    fig.suptitle(f"LFP Analysis — {ACQUISITION_SECONDS}s acquisition  |  {base_filename}")
+    plt.tight_layout()
+
+    fig_fits = pl_plotter.plot_spectrum_fits(fits, avg_spectrum_by_channel=spectra)
+    fig_fits.suptitle(f"FOOOF Spectral Fits — {ACQUISITION_SECONDS}s acquisition  |  {base_filename}")
+
+    plt.show()
 
     print('\nDone!')
 

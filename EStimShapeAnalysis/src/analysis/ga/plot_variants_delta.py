@@ -13,12 +13,12 @@ import pandas as pd
 def main():
 
     use_ga = False
-    channel = "A-002"
+    channel = "A-000"
 
     analysis = PlotVariantDeltas(
         use_ga_response=use_ga,
-        to_save_to_db=False,
-        delta_threshold=0.5,
+        to_save_to_db=True,
+        delta_threshold=0.6,
         variant_threshold=0.6,
         plot_included_only=True)
     compiled_data = None  # Set to None to import from repository

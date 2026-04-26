@@ -238,26 +238,27 @@ class TissueModel:
 # PC2: + = GM,    − = WM
 # PC4: + = sulcus, − = brain
 MODEL_PCA_V1 = TissueModel([
-    TissueClass('wm',     score=1.0, combine='or', evidence=[
+    TissueClass('wm',     score=1.0, combine='avg', threshold=0.5, evidence=[
         # Evidence('PC1', sign=+1),   # brain evidence
         Evidence('PC2', sign=-1),   # anti-GM
-        # Evidence('PC4', sign=-1),   # anti-sulcus
+        Evidence('PC4', sign=-1),   # anti-sulcus
         Evidence('PC3', sign=1), # narrow triphasics
         Evidence('PC5', sign=1), # positive spikes
+
         # Evidence('PC6', sign=1) # high spike amplitudes
     ]),
-    TissueClass('gm',     score=0.5, combine='or', evidence=[
+    TissueClass('gm',     score=0.5, combine='avg', threshold=0.5, evidence=[
         # Evidence('PC1', sign=+1),   # brain evidence
         Evidence('PC2', sign=+1),   # GM
-        # Evidence('PC4', sign=-1),   # anti-sulcus
+        Evidence('PC4', sign=-1),   # anti-sulcus
         Evidence('PC3', sign=-1), # wide biphasics
         Evidence('PC5', sign=-1),  #negative spikes
         # Evidence('PC6', sign=1) # high spike amplitudes
     ]),
-    TissueClass('sulcus', score=0.0, evidence=[
-        Evidence('PC1', sign=-1),   # anti-brain
+    TissueClass('sulcus', score=0.0,combine='or', threshold=0.5, evidence=[
+        # Evidence('PC1', sign=-1),   # anti-brain
         Evidence('PC4', sign=+1),   # sulcus
-        Evidence('PC6', sign=-1), #low spike amplitudes
+        # Evidence('PC6', sign=-1), #low spike amplitudes
     ]),
 ])
 
@@ -296,13 +297,13 @@ MODEL_PCA_V3 = TissueModel([
 
 # For PCA with Varimax, 4 pcs
 MODEL_PCA_V4 = TissueModel([
-    TissueClass('wm',     score=1.0, evidence=[
+    TissueClass('wm',     score=1.0, combine='or', evidence=[
         Evidence('PC2', sign=-1),   # WM
-        # Evidence('PC4', sign=+1),   # narrow triphasics
+        Evidence('PC4', sign=+1),   # narrow triphasics
     ]),
     TissueClass('gm',     score=0.5, evidence=[
         Evidence('PC2', sign=+1),   # anti-WM   (GM side)
-        # Evidence('PC4', sign=-1),   # narrow triphasics
+        Evidence('PC4', sign=-1),   # narrow triphasics
     ]),
     TissueClass('sulcus', score=0.0, evidence=[
         Evidence('PC3', sign=-1),   # sulcus
@@ -315,25 +316,25 @@ _TISSUE_CONF_FA_VARIMAX       = dict(wm_col='PC2', wm2_col='PC3', wm2_sign=-1, g
 _TISSUE_CONF_FA_NO_VARIMAX    = dict(wm_col='PC2', wm2_col=None,               gm_col='PC1', sulcus_col='PC5')
 
 # Per-session az/el/depth correction (added on top of global daz/del/ddepth)
-ENABLE_PER_SESSION_CORRECTIONS = False
+ENABLE_PER_SESSION_CORRECTIONS = True
 
 SESSION_CORR_BOUNDS = dict(daz=5.0, del_=5.0, ddepth=2.0)  # ± max effective correction
 SESSION_CORR_L2_WEIGHT = 0.1  # λ on Σ(delta_i / bound_i)²; raise to suppress, lower to allow
 
 # Regularization on global chamber rigid-body params (keeps optimizer near physical solution)
-CHAMBER_L2_WEIGHT  = 0.005   # λ on normalized chamber penalty; raise to constrain more
+CHAMBER_L2_WEIGHT  = 0.001   # λ on normalized chamber penalty; raise to constrain more
 CHAMBER_L2_SCALES  = dict(t_mm=5.0, r_deg=2.0, daz_deg=2.0, del_deg=2.0, ddepth_mm=1.0)
 
 # Variance penalty: penalises unequal fit quality across sessions.
 # Loss = -mean(r) + VARIANCE_PENALTY_WEIGHT * var(r)
-# 0 = disabled (current behaviour); raise to force more equitable fits.
-VARIANCE_PENALTY_WEIGHT = 0.0
+# 0 = disabled; raise to force more equitable fits.
+VARIANCE_PENALTY_WEIGHT = 0.0 #with N sessions, if you'd accept losing 0.02 in mean r to halve the variance, set λ ≈ 0.02 / 0.5 = 0.04
 
 # Soft minimum (log-sum-exp) aggregation over sessions.
 # 0 → arithmetic mean; positive → increasingly focused on worst session.
 # -(1/β) · log( Σ exp(−β·rᵢ) )   interpolates mean (β≈0) → min (β→∞)
 # Reasonable starting values: 3–5 (some protection); 10+ (near-min).
-SOFTMIN_BETA = 0.0
+SOFTMIN_BETA = 5
 
 
 class _FactorAnalysisAdapter:
@@ -2516,24 +2517,25 @@ if __name__ == "__main__":
     # Set to path of a prior opt_*.json to warm-start from that correction, or None to start from zero
     start_from_file = None
     # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260423_160856.json"
+    # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260424_175651.json"
     results = run_analysis(
         conn,
-        n_pcs=6,
+        n_pcs=2,
         exclude_sessions=exclude_sessions,
         within_session_normalize=False,
-        tissue_model=MODEL_PCA_V1,
-        varimax_n_components=6,
+        tissue_model=MODEL_PCA_V2,
+        varimax_n_components=2,
         maxiter=100000,
         start_from_file=start_from_file,
-        enable_per_session_corrections=False,
+        enable_per_session_corrections=True,
         session_corr_bounds=None,       # None → use SESSION_CORR_BOUNDS default
-        session_corr_l2_weight=0.1,
-        chamber_l2_weight=0.005,
+        session_corr_l2_weight=0.5,
+        chamber_l2_weight=0.005,        # λ on normalized chamber penalty; raise to constrain more
         chamber_l2_scales=None,         # None → use CHAMBER_L2_SCALES default
         variance_penalty_weight=0.0,
-        softmin_beta=0.0,               # 0 = mean; 3-5 = protect worst; 10+ ≈ min
-        optimizer='nelder-mead',        # 'nelder-mead' | 'cma-es'
-        use_confidence_weights=False,   # False = unweighted r (often more stable)
+        softmin_beta=20,               # 0 = mean; 3-5 = protect worst; 10+ ≈ min
+        optimizer='cma-es',        # 'nelder-mead' | 'cma-es'
+        use_confidence_weights=False,   # False = unweighted r
     )
 
     # results = run_analysis(conn, n_pcs=6, exclude_sessions =exclude_sessions, within_session_normalize=False)

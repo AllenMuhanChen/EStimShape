@@ -33,7 +33,8 @@ from src.startup import context
 
 def main():
     # ============ CONFIGURATION ============
-    exp_conn = Connection("allen_estimshape_exp_260416_0")
+    exp_db_name = "allen_estimshape_exp_260426_0"
+    exp_conn = Connection(exp_db_name)
     ga_conn  = Connection(context.ga_database)
 
     since_date            = time_util.from_date_to_now(2024, 7, 10)
