@@ -9,6 +9,11 @@ from src.startup import context
 from clat.util.connection import Connection
 import pandas as pd
 
+# Plot mode constants
+PLOT_MODE_ALL = 'all'            # Compute pairs and show all, even those not passing thresholds
+PLOT_MODE_PASSING = 'passing'    # Compute pairs and show only those passing thresholds
+PLOT_MODE_DB_INCLUDED = 'db_included'  # Show exactly the stims with included=1 in DB, no threshold logic
+
 
 def main():
 
@@ -20,7 +25,7 @@ def main():
         to_save_to_db=True,
         delta_threshold=0.6,
         variant_threshold=0.6,
-        plot_included_only=True)
+        plot_mode=PLOT_MODE_DB_INCLUDED)
     compiled_data = None  # Set to None to import from repository
     # compiled_data = analysis.compile_and_export()
     if use_ga:
@@ -34,12 +39,12 @@ def main():
 
 class PlotVariantDeltas(PlotTopNAnalysis):
     def __init__(self, use_ga_response=True, to_save_to_db=False, delta_threshold=0.5,
-                 plot_included_only=True, variant_threshold=0.75):
+                 plot_mode=PLOT_MODE_PASSING, variant_threshold=0.75):
         super().__init__()
         self.use_ga_response = use_ga_response
         self.to_save_to_db = to_save_to_db
         self.threshold = delta_threshold
-        self.plot_included_only = plot_included_only
+        self.plot_mode = plot_mode
         self.variant_threshold = variant_threshold
 
     def analyze(self, channel, compiled_data=None):
@@ -51,7 +56,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
                 self.response_table
             )
 
-        # Setup response column
+        # Setup response column (shared across all modes)
         if self.use_ga_response:
             if 'GA Response' not in compiled_data.columns:
                 print("Error: 'GA Response' column not found in data!")
@@ -69,11 +74,114 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             response_key = channel
             print(f"Using channel-specific spike rates for {channel}")
 
+        if self.plot_mode == PLOT_MODE_DB_INCLUDED:
+            plot_data, title = self._build_plot_data_from_db(compiled_data, response_col_name)
+            if plot_data is None:
+                return
+            delta_avg_response = None
+        else:
+            plot_data, title, delta_avg_response = self._build_plot_data_from_calculations(
+                compiled_data, response_col_name)
+            if plot_data is None:
+                return
+
+        save_path = f"{self.save_path}/{channel}_delta_variant_pairs.png"
+        visualize_params = {
+            'cell_size': (200, 200),
+            'response_rate_col': response_col_name,
+            'path_col': 'ThumbnailPath',
+            'row_col': 'RowType',
+            'col_col': 'Rank',
+            'save_path': save_path,
+            'module_name': "Deltas_With_Paired_Variants",
+            'cols_in_info_box': ['StimType', "StimSpecId", "Response", "ParentId", 'GA Response'],
+            'publish_mode': False,
+            'title': title,
+            'border_width': 50,
+        }
+
+        if not self.use_ga_response:
+            visualize_params['response_rate_key'] = response_key
+
+        visualize_module = create_grouped_stimuli_module(**visualize_params)
+        visualize_branch = create_branch().then(visualize_module)
+        pipeline = create_pipeline().make_branch(visualize_branch).build()
+        pipeline.run(plot_data)
+        plt.show()
+
+        if self.to_save_to_db and delta_avg_response is not None:
+            self._save_deltas_to_db(delta_avg_response)
+
+    def _build_plot_data_from_db(self, compiled_data, response_col_name):
+        """Build plot data using included=1 pairs from DB; responses come from compiled_data (current channel)."""
+        db_data = self._read_deltas_from_db()
+        if db_data is None or db_data.empty:
+            print("No data found in IncludedDeltas database table!")
+            return None, None
+
+        included_pairs = db_data[db_data['Included']].copy()
+        if included_pairs.empty:
+            print("No pairs with included=1 found in database!")
+            return None, None
+
+        print(f"Found {len(included_pairs)} DB-included pairs")
+        included_pairs['Rank'] = included_pairs['Ratio'].rank(ascending=True, method='first')
+
+        delta_ids = included_pairs['StimSpecId'].unique()
+        deltas_raw = compiled_data[compiled_data['StimSpecId'].isin(delta_ids)].copy()
+        deltas_agg = deltas_raw.groupby(['StimSpecId', 'ParentId']).agg({
+            'GenId': 'first',
+            'Lineage': 'first',
+            response_col_name: 'mean',
+            'ThumbnailPath': 'first',
+            'StimType': 'first',
+            'GA Response': 'first',
+        }).reset_index()
+        deltas_plot_data = included_pairs[['StimSpecId', 'Rank']].merge(
+            deltas_agg, on='StimSpecId', how='inner'
+        )
+        if self.use_ga_response:
+            deltas_plot_data = deltas_plot_data.drop_duplicates(subset=['StimSpecId', 'Rank'], keep='first')
+        deltas_plot_data['RowType'] = 'Delta'
+
+        variant_ids = included_pairs['PairedVariantId'].unique()
+        paired_variants_data = compiled_data[compiled_data['StimSpecId'].isin(variant_ids)].copy()
+
+        paired_variant_rows = []
+        for _, pair_row in included_pairs.iterrows():
+            variant_id = pair_row['PairedVariantId']
+            rank = pair_row['Rank']
+            matching = paired_variants_data[paired_variants_data['StimSpecId'] == variant_id]
+            if not matching.empty:
+                if self.use_ga_response:
+                    v_row = matching.iloc[0].copy()
+                    v_row['Rank'] = rank
+                    v_row['RowType'] = 'Variant'
+                    paired_variant_rows.append(v_row)
+                else:
+                    for _, v_row in matching.iterrows():
+                        v_row_copy = v_row.copy()
+                        v_row_copy['Rank'] = rank
+                        v_row_copy['RowType'] = 'Variant'
+                        paired_variant_rows.append(v_row_copy)
+
+        if paired_variant_rows:
+            paired_variant_df = pd.DataFrame(paired_variant_rows)
+            plot_data = pd.concat([deltas_plot_data, paired_variant_df], ignore_index=True)
+            print(f"Plotting {len(deltas_plot_data)} deltas and {len(paired_variant_df)} variants")
+        else:
+            print("No variant data found in compiled data")
+            plot_data = deltas_plot_data
+
+        return plot_data, 'DB Included Deltas with Paired Variants'
+
+    def _build_plot_data_from_calculations(self, compiled_data, response_col_name):
+        """Build plot data by computing variant/delta pairs and applying threshold logic."""
         # Compute included variants from data (no DB dependency)
         included_variant_ids, variant_responses = self._compute_included_variants(compiled_data, response_col_name)
         if not included_variant_ids:
             print("No included variants found!")
-            return
+            return None, None, None
         print(f"Found {len(included_variant_ids)} included variants")
 
         # Only DELTA-type stims are candidates to be the "delta" in a pair,
@@ -81,7 +189,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
         deltas_data = compiled_data[compiled_data['StimType'] == StimType.REGIME_ESTIM_DELTA.value].copy()
         if deltas_data.empty:
             print("No REGIME_ESTIM_DELTA stimuli found!")
-            return
+            return None, None, None
 
         # Build lookup used both during pair-building and the lineage filter
         stim_info = compiled_data.drop_duplicates('StimSpecId').set_index('StimSpecId')[['StimType', 'ParentId']]
@@ -114,7 +222,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
 
         if not pair_records:
             print("No valid delta-variant pairs found!")
-            return
+            return None, None, None
 
         paired_delta_ids = {r['StimSpecId'] for r in pair_records}
         deltas_data = deltas_data[deltas_data['StimSpecId'].isin(paired_delta_ids)].copy()
@@ -159,14 +267,16 @@ class PlotVariantDeltas(PlotTopNAnalysis):
         print(f"  Excluded: {(~delta_avg_response['Included']).sum()}")
 
         # Decide which pairs go into the plot
-        if self.plot_included_only:
+        if self.plot_mode == PLOT_MODE_PASSING:
             plot_subset = delta_avg_response[delta_avg_response['Included']].copy()
-        else:
+            title = 'Included Deltas with Paired Variants'
+        else:  # PLOT_MODE_ALL
             plot_subset = delta_avg_response.copy()
+            title = 'All Delta-Variant Pairs'
 
         if plot_subset.empty:
             print("No pairs to plot!")
-            return
+            return None, None, delta_avg_response
 
         plot_subset['Rank'] = plot_subset['Ratio'].rank(ascending=False, method='first')
 
@@ -218,37 +328,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             print("No parent data found")
             plot_data = deltas_plot_data
 
-        if self.plot_included_only:
-            title = 'Included Deltas with Paired Variants'
-        else:
-            title = 'All Delta-Variant Pairs'
-
-        save_path = f"{self.save_path}/{channel}_delta_variant_pairs.png"
-        visualize_params = {
-            'cell_size': (200, 200),
-            'response_rate_col': response_col_name,
-            'path_col': 'ThumbnailPath',
-            'row_col': 'RowType',
-            'col_col': 'Rank',
-            'save_path': save_path,
-            'module_name': "Deltas_With_Paired_Variants",
-            'cols_in_info_box': ['StimType', "StimSpecId", "Response", "ParentId", 'GA Response'],
-            'publish_mode': False,
-            'title': title,
-            'border_width': 50,
-        }
-
-        if not self.use_ga_response:
-            visualize_params['response_rate_key'] = response_key
-
-        visualize_module = create_grouped_stimuli_module(**visualize_params)
-        visualize_branch = create_branch().then(visualize_module)
-        pipeline = create_pipeline().make_branch(visualize_branch).build()
-        pipeline.run(plot_data)
-        plt.show()
-
-        if self.to_save_to_db:
-            self._save_deltas_to_db(delta_avg_response)
+        return plot_data, title, delta_avg_response
 
     def _compute_included_variants(self, compiled_data, response_col_name):
         """Compute included variants from compiled_data using the variant threshold."""
