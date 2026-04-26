@@ -320,7 +320,7 @@ class TrajectorySliderMixin:
 
     def _move_cursor_to_depth(self, depth_mm):
         """Shared helper: update cursor_world and redraw."""
-        t = self.temp_trajectory
+        t = self._corrected_traj_for_display(self.temp_trajectory)
         self.cursor_world = t['top_pt'] + depth_mm * t['direction']
         if hasattr(self, 'traj_actual_dist_var'):
             self.traj_actual_dist_var.set(round(depth_mm, 2))

@@ -231,17 +231,24 @@ class TrajectoryMixin:
             target, direction, top_pt = calc_penetration_target(
                 origin, az_deg, el_deg, dist, x_vec, y_vec, normal, cor_offset)
 
-            # Update stereo entries
+            # Stereo boxes show the corrected (real-world) landing position
+            daz    = self.pen_offsets.get('daz_deg',   0.) if self.pen_offsets else 0.
+            del_   = self.pen_offsets.get('del_deg',   0.) if self.pen_offsets else 0.
+            ddepth = self.pen_offsets.get('ddepth_mm', 0.) if self.pen_offsets else 0.
+            disp_target, _, _ = calc_penetration_target(
+                origin, az_deg + daz, el_deg + del_, dist + ddepth,
+                x_vec, y_vec, normal, cor_offset)
+
             if self.ebz_set:
-                rel = target - self.ebz_world
+                rel = disp_target - self.ebz_world
                 self.traj_ml_var.set(round(rel[0], 2))
                 self.traj_ap_var.set(round(rel[1], 2))
                 self.traj_dv_var.set(round(rel[2], 2))
                 self.traj_stereo_label.config(text="(rel EBZ)")
             else:
-                self.traj_ml_var.set(round(target[0], 2))
-                self.traj_ap_var.set(round(target[1], 2))
-                self.traj_dv_var.set(round(target[2], 2))
+                self.traj_ml_var.set(round(disp_target[0], 2))
+                self.traj_ap_var.set(round(disp_target[1], 2))
+                self.traj_dv_var.set(round(disp_target[2], 2))
                 self.traj_stereo_label.config(text="")
 
             self.traj_az_var.set(round(az_deg, 2))
@@ -309,12 +316,11 @@ class TrajectoryMixin:
         t = self.temp_trajectory
         origin = self.chamber_state['origin']
         cor_offset = self.chamber_state['cor_offset']
-        el_rad = np.radians(t['el_deg'])
-        origin_offset = cor_offset / np.cos(el_rad) if np.cos(el_rad) != 0 else 0.0
-        pt = t['top_pt'] + pt_dist * t['direction'] if pt_dist > origin_offset else t['top_pt']
-        # Actually compute properly: target at pt_dist along trajectory
+        daz    = self.pen_offsets.get('daz_deg',   0.) if self.pen_offsets else 0.
+        del_   = self.pen_offsets.get('del_deg',   0.) if self.pen_offsets else 0.
+        ddepth = self.pen_offsets.get('ddepth_mm', 0.) if self.pen_offsets else 0.
         target_at_dist, _, _ = calc_penetration_target(
-            origin, t['az_deg'], t['el_deg'], pt_dist,
+            origin, t['az_deg'] + daz, t['el_deg'] + del_, pt_dist + ddepth,
             self.chamber_state['x'], self.chamber_state['y'],
             self.chamber_state['normal'], cor_offset)
         if self.ebz_set:
