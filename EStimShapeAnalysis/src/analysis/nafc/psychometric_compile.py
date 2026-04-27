@@ -42,7 +42,7 @@ def export_to_repo(session_id, data):
         'session_id', 'task_id', 'estim_spec_id', 'is_estim_on',
         'is_hypothesized_choice', 'is_correct_choice', 'trial_type',
         'noise_chance', 'base_mstick_id', 'gen_id', 'trial_start', 'trial_end',
-        'sample_length'
+        'sample_length',
     ]
 
     # Find which columns we have in the dataframe
@@ -52,16 +52,15 @@ def export_to_repo(session_id, data):
         print(f"Error: task_id column missing from data")
         return
 
+    # Delete existing rows for this session so recompilation fully replaces stale data
+    repo_conn.execute("DELETE FROM EStimShapeTrials WHERE session_id = %s", (session_id,))
+    print(f"Cleared existing rows for session {session_id}")
+
     # Build INSERT query
     placeholders = ', '.join(['%s'] * len(columns_to_insert))
     column_names = ', '.join(columns_to_insert)
+    insert_query = f"INSERT INTO EStimShapeTrials ({column_names}) VALUES ({placeholders})"
 
-    insert_query = f"""
-        INSERT IGNORE INTO EStimShapeTrials ({column_names})
-        VALUES ({placeholders})
-    """
-
-    # Insert each row
     inserted_count = 0
     for _, row in data.iterrows():
         values = tuple(row[col] if col in row.index else None for col in columns_to_insert)
@@ -74,24 +73,19 @@ def export_to_repo(session_id, data):
 
 
 def compile_and_export_to_repo(exp_conn, session_id: str):
-    data = None
-    if session_id == "260120_0":
-        data = compile_260120_0(exp_conn)
-    elif session_id == "260115_0":
-        data = compile_260115_0(exp_conn)
-    elif session_id == "260113_0":
-        data = compile_260113_0(exp_conn)
-    elif session_id == "260108_0":
-        data = compile_260108_0(exp_conn)
-    elif session_id == "260107_0":
-        data = compile_260107_0(exp_conn)
-    elif session_id == "251231_0":
-        data = compile_251231_0(exp_conn)
-    elif session_id == "251226_0":
-        data = compile_251226_0(exp_conn)
-    else:
-        data = compile_latest(exp_conn)
-    # EARLIER than this and we don't have our new GA based shape production
+    # Sessions with legacy field sets keep their own compile functions.
+    # All newer sessions fall through to compile_latest.
+    legacy_compilers = {
+        "260120_0": compile_260120_0,
+        "260115_0": compile_260115_0,
+        "260113_0": compile_260113_0,
+        "260108_0": compile_260108_0,
+        "260107_0": compile_260107_0,
+        "251231_0": compile_251231_0,
+        "251226_0": compile_251226_0,
+    }
+    compiler = legacy_compilers.get(session_id, compile_latest)
+    data = compiler(exp_conn)
     export_to_repo(session_id, data)
 
 
