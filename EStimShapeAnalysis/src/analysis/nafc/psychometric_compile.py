@@ -1,6 +1,6 @@
 from clat.util.connection import Connection
 from src.analysis.nafc.psychometric_compile_for_sessions import compile_260120_0, compile_260115_0, compile_260113_0, \
-    compile_260107_0, compile_251231_0, compile_251226_0, compile_260108_0
+    compile_260107_0, compile_251231_0, compile_251226_0, compile_260108_0, compile_latest
 from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.startup import context
 import xml.etree.ElementTree as ET
@@ -41,7 +41,8 @@ def export_to_repo(session_id, data):
     table_columns = [
         'session_id', 'task_id', 'estim_spec_id', 'is_estim_on',
         'is_hypothesized_choice', 'is_correct_choice', 'trial_type',
-        'noise_chance', 'base_mstick_id', 'gen_id', 'trial_start', 'trial_end'
+        'noise_chance', 'base_mstick_id', 'gen_id', 'trial_start', 'trial_end',
+        'sample_length'
     ]
 
     # Find which columns we have in the dataframe
@@ -70,6 +71,8 @@ def export_to_repo(session_id, data):
     print(f"Exported {inserted_count} trials for session {session_id} to EStimShapeTrials")
 
 
+
+
 def compile_and_export_to_repo(exp_conn, session_id: str):
     data = None
     if session_id == "260120_0":
@@ -86,6 +89,8 @@ def compile_and_export_to_repo(exp_conn, session_id: str):
         data = compile_251231_0(exp_conn)
     elif session_id == "251226_0":
         data = compile_251226_0(exp_conn)
+    else:
+        data = compile_latest(exp_conn)
     # EARLIER than this and we don't have our new GA based shape production
     export_to_repo(session_id, data)
 
