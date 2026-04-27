@@ -216,7 +216,7 @@ def plot_across_experiments(experiments: list, save_path: str = None,
     max_ndots  = max(len(e["dots"]) for e in all_data)
     multi_dot  = max_ndots > 1
 
-    fig_w = max(5, width_per_exp * n_exp * x_spacing + (0.8 * max_ndots if multi_dot else 0))
+    fig_w = width_per_exp * n_exp * x_spacing + (0.8 * max_ndots if multi_dot else 0)
     fig, ax = plt.subplots(figsize=(fig_w, 6))
 
     _COLOR_OFF = "black"
