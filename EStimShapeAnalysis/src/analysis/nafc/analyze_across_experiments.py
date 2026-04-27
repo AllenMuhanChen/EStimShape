@@ -182,7 +182,6 @@ def compute_dots(df_on: pd.DataFrame, df_off: pd.DataFrame, config: dict) -> lis
 
 _MARKERS    = ['o', 's', '^', 'D', 'v', 'P', '*', 'X']
 _DOT_SPREAD = 0.28   # half-width of sub-dot spread for multi-dot experiments
-_PAIR_GAP   = 0.10   # x-separation between the OFF and ON dot of one pair
 
 
 def plot_across_experiments(experiments: list, save_path: str = None):
@@ -199,8 +198,11 @@ def plot_across_experiments(experiments: list, save_path: str = None):
     # Load + compute all data first so the figure is drawn in one pass
     all_data = []
     for config, color in zip(experiments, colors):
+        session_id = _session_id_from_exp_db(config["exp_db"])
         df = load_experiment_data(config)
+        print(f"[{config['label']}] session_id={session_id}  rows loaded={len(df)}")
         df_on, df_off = split_on_off(df, config)
+        print(f"  → ON={len(df_on)}  OFF={len(df_off)}")
         dots = compute_dots(df_on, df_off, config)
         all_data.append(dict(label=config["label"], dots=dots, color=color))
 
@@ -230,32 +232,30 @@ def plot_across_experiments(experiments: list, save_path: str = None):
         for dot_idx, dot in enumerate(dots):
             marker = _MARKERS[dot_idx % len(_MARKERS)]
             x      = sub_xs[dot_idx]
-            x_off  = x - _PAIR_GAP
-            x_on   = x + _PAIR_GAP
 
             pct_off, n_off = dot["pct_off"], dot["n_off"]
             pct_on,  n_on  = dot["pct_on"],  dot["n_on"]
 
-            # Line connecting OFF → ON for this dot pair
+            # Vertical line connecting OFF and ON at same x
             if pct_off is not None and pct_on is not None:
-                ax.plot([x_off, x_on], [pct_off, pct_on],
+                ax.plot([x, x], [pct_off, pct_on],
                         color=color, alpha=0.45, linewidth=1.5, zorder=1)
 
-            # EStim OFF dot (black)
+            # EStim OFF dot (black) — n label to the left
             if pct_off is not None:
-                ax.scatter(x_off, pct_off, color="black", marker=marker,
+                ax.scatter(x, pct_off, color="black", marker=marker,
                            s=90, zorder=3, edgecolors="none")
-                ax.text(x_off, pct_off - 3.0, f"n={n_off}",
-                        ha="center", va="top", fontsize=7, color="dimgray")
+                ax.text(x - 0.05, pct_off, f"n={n_off}",
+                        ha="right", va="center", fontsize=7, color="dimgray")
                 if not off_patch_added:
                     off_patch_added = True
 
-            # EStim ON dot (experiment color)
+            # EStim ON dot (experiment color) — n label to the right
             if pct_on is not None:
-                ax.scatter(x_on, pct_on, color=color, marker=marker,
+                ax.scatter(x, pct_on, color=color, marker=marker,
                            s=90, zorder=3, edgecolors="black", linewidths=0.6)
-                ax.text(x_on, pct_on + 1.5, f"n={n_on}",
-                        ha="center", va="bottom", fontsize=7, color=color)
+                ax.text(x + 0.05, pct_on, f"n={n_on}",
+                        ha="left", va="center", fontsize=7, color=color)
 
             # Collect noise-level marker for legend (multi-dot mode only)
             if multi_dot and dot["label"] and dot["label"] not in noise_markers:
