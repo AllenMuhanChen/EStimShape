@@ -14,6 +14,7 @@ import os
 import sys
 from pathlib import Path
 
+import matplotlib.patches as mpatches
 import matplotlib.gridspec as gridspec
 import matplotlib.ticker as ticker
 import numpy as np
@@ -197,48 +198,54 @@ def plot_timing_diagram(
         # Convert µs → ms; first pulse starts exactly at estim_start
         t_ms     = t_wave / 1000.0 + estim_start
         total_ms = t_ms[-1]
-        pad_ms   = max(0.05, (total_ms - estim_start) * 0.08)
 
-        t_plot = np.concatenate([[estim_start], t_ms, [total_ms + pad_ms]])
+        t_plot = np.concatenate([[estim_start], t_ms, [t_max]])
         y_plot = np.concatenate([[0],           y_wave, [0]])
 
         ax2.plot(t_plot, y_plot, color=_BLACK, linewidth=_LINE_W,
                  solid_joinstyle="miter", solid_capstyle="butt")
-        ax2.set_xlim(estim_start, total_ms + pad_ms)
+        ax2.set_xlim(estim_start, t_max)
 
         ax2.spines["top"].set_visible(False)
         ax2.spines["right"].set_visible(False)
-        ax2.spines["left"].set_color(_GRAY)
+        ax2.spines["left"].set_visible(False)
         ax2.spines["bottom"].set_color(_GRAY)
 
-        amp = max(abs(params["a1"]), abs(params["a2"]))
-        ax2.set_yticks([-amp, 0, amp])
-        ax2.yaxis.set_major_formatter(ticker.FuncFormatter(
-            lambda v, _: f"{v:+.0f}" if v != 0 else "0"))
-        ax2.tick_params(axis="y", color=_GRAY, labelcolor=_BLACK, labelsize=8, length=3)
+        ax2.set_yticks([])
         ax2.tick_params(axis="x", color=_GRAY, labelcolor=_BLACK, labelsize=9, length=3)
-        ax2.xaxis.set_major_locator(ticker.MaxNLocator(6))
+        ax2.xaxis.set_major_locator(ticker.MultipleLocator(100))
 
         ax2.set_xlabel("Time (ms)", fontsize=_LABEL_FS, labelpad=4)
-        ax2.set_ylabel("Current\n(µA)", fontsize=_LABEL_FS, rotation=0,
+        ax2.set_ylabel("Micro-\nstimulation\n(zoomed)", fontsize=_LABEL_FS, rotation=0,
                        ha="right", va="center", labelpad=8)
-
-        polarity_str = "−first" if params["polarity"] == "NegativeFirst" else "+first"
-        shape_str    = params["shape"].replace("WithInterphaseDelay", " + IPhD")
-        ax2.set_title(f"{shape_str}, {polarity_str}",
-                      fontsize=9, color=_GRAY, pad=4, loc="left")
 
     fig.suptitle("Stimulus Timing", fontsize=12, fontweight="bold", y=1.01)
     plt.tight_layout(rect=[0.12, 0, 1, 1])
 
-    # Shift ax2's left edge to physically align with estim_start on the envelope rows.
-    # tight_layout must be called first so positions are final.
+    # After layout: align ax2's left edge with estim_start on ax1, right edge with ax1.
+    # Then draw two dashed vertical zoom lines in figure coordinates at
+    # estim_start and total_ms, connecting the bottom of ax1 to the top of ax2.
     if show_waveform:
+        from matplotlib.lines import Line2D
+
         pos1     = ax1.get_position()
         frac     = (estim_start - t_min) / (t_max - t_min)
         new_left = pos1.x0 + frac * pos1.width
         pos2     = ax2.get_position()
         ax2.set_position([new_left, pos2.y0, pos1.x1 - new_left, pos2.height])
+
+        pos2 = ax2.get_position()  # re-fetch after adjustment
+
+        # Figure-fraction x coords of estim_start and total_ms
+        x_left  = pos2.x0
+        x_right = pos1.x0 + (total_ms - t_min) / (t_max - t_min) * pos1.width
+
+        for x in [x_left, x_right]:
+            fig.add_artist(Line2D(
+                [x, x], [pos1.y0, pos2.y0 + pos2.height],
+                transform=fig.transFigure,
+                color=_GRAY, linestyle="--", linewidth=0.8, clip_on=False,
+            ))
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
