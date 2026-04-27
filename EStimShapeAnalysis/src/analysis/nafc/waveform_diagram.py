@@ -189,21 +189,22 @@ def plot_timing_diagram(
     ax1.set_xlim(t_min, t_max)
 
     # ------------------------------------------------------------------
-    # Waveform row — ms axis, t=0 aligned to estim_start
+    # Waveform row — ms axis, physically aligned with estim_start
     # ------------------------------------------------------------------
     if show_waveform:
         t_wave, y_wave = _pulse_train_waveform(params, n_show=n_pulses_shown)
 
-        # Convert µs → ms, offset so first pulse starts at estim_start
-        t_ms = t_wave / 1000.0 + estim_start
-        total_ms  = t_ms[-1]
-        pad_ms    = max(0.05, (total_ms - estim_start) * 0.15)
+        # Convert µs → ms; first pulse starts exactly at estim_start
+        t_ms     = t_wave / 1000.0 + estim_start
+        total_ms = t_ms[-1]
+        pad_ms   = max(0.05, (total_ms - estim_start) * 0.08)
 
-        t_plot = np.concatenate([[estim_start - pad_ms], t_ms, [total_ms + pad_ms]])
-        y_plot = np.concatenate([[0],                    y_wave, [0]])
+        t_plot = np.concatenate([[estim_start], t_ms, [total_ms + pad_ms]])
+        y_plot = np.concatenate([[0],           y_wave, [0]])
 
         ax2.plot(t_plot, y_plot, color=_BLACK, linewidth=_LINE_W,
                  solid_joinstyle="miter", solid_capstyle="butt")
+        ax2.set_xlim(estim_start, total_ms + pad_ms)
 
         ax2.spines["top"].set_visible(False)
         ax2.spines["right"].set_visible(False)
@@ -229,6 +230,15 @@ def plot_timing_diagram(
 
     fig.suptitle("Stimulus Timing", fontsize=12, fontweight="bold", y=1.01)
     plt.tight_layout(rect=[0.12, 0, 1, 1])
+
+    # Shift ax2's left edge to physically align with estim_start on the envelope rows.
+    # tight_layout must be called first so positions are final.
+    if show_waveform:
+        pos1     = ax1.get_position()
+        frac     = (estim_start - t_min) / (t_max - t_min)
+        new_left = pos1.x0 + frac * pos1.width
+        pos2     = ax2.get_position()
+        ax2.set_position([new_left, pos2.y0, pos1.x1 - new_left, pos2.height])
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
