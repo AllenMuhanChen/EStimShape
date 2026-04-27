@@ -29,7 +29,6 @@ from src.analysis.nafc.nafc_database_fields import (
     BaseMStickIdField, IsDeltaField, EStimEnabledField,
 )
 from src.analysis.nafc.nafc_neural_database_fields import NafcNeuralDataField
-from src.analysis.nafc.nafc_neural_parser import NafcTrialEvents
 from src.analysis.nafc.psychometric_curves import collect_choice_trials
 from src.startup import context
 
@@ -56,13 +55,10 @@ _EVENT_DEFS = [
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
-def _spikes_for_channel(neural: NafcTrialEvents, channel_name: str) -> list:
-    if neural is None:
+def _spikes_for_channel(neural: dict, channel_name: str) -> list:
+    if not isinstance(neural, dict):
         return []
-    for ch, spikes in neural.spikes_by_channel.items():
-        if getattr(ch, "value", str(ch)) == channel_name or str(ch) == channel_name:
-            return list(spikes)
-    return []
+    return neural.get('spikes_by_channel', {}).get(channel_name, [])
 
 
 def _is_correct(trial) -> bool:
@@ -83,10 +79,10 @@ def plot_raster_panel(ax, group_df, channel_name: str,
 
     for row_idx, (_, trial) in enumerate(group_df.iterrows()):
         neural = trial.get("NeuralData")
-        if not isinstance(neural, NafcTrialEvents) or neural.sample_on is None:
+        if not isinstance(neural, dict) or neural.get('sample_on') is None:
             continue
 
-        s_on = neural.sample_on
+        s_on = neural['sample_on']
         correct = _is_correct(trial)
         tick_color = COLOR_CORRECT if correct else COLOR_INCORRECT
         if correct:
@@ -104,7 +100,7 @@ def plot_raster_panel(ax, group_df, channel_name: str,
 
         # Per-trial event markers
         for attr, color, linestyle, _ in _EVENT_DEFS:
-            t_abs = getattr(neural, attr, None)
+            t_abs = neural.get(attr)
             if t_abs is not None:
                 t_rel = t_abs - s_on
                 ax.vlines([t_rel], row_idx, row_idx + 1,
