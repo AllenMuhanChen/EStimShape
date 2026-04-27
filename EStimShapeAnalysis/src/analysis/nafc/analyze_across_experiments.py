@@ -113,7 +113,7 @@ def load_experiment_data(config: dict) -> pd.DataFrame:
         ("include_sample_lengths", "sample_length"),
     ]:
         vals = _cfg(config, cfg_key)
-        if vals is not None:
+        if isinstance(vals, (list, set, tuple)):
             df = df[df[col].isin(set(vals))]
 
     return df.reset_index(drop=True)
