@@ -155,7 +155,7 @@ def plot_nafc_raster(events: NafcTrialEvents) -> None:
 
 def main():
     # ── Set this to the path of a real NAFC recording directory ────────────
-    RECORDING_DIR = "/path/to/1777238072918508_260426_171633"
+    RECORDING_DIR = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_estimshape_exp_260426_0/2026-04-26/1777238072918508_260426_171633"
     # ───────────────────────────────────────────────────────────────────────
 
     parser = NafcNeuralParser()
