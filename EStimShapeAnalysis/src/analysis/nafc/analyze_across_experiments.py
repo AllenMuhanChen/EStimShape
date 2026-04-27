@@ -279,8 +279,9 @@ def plot_across_experiments(experiments: list, save_path: str = None,
     # 50 % chance reference line
     x_margin = 0.5 * x_spacing
     ax.axhline(50, color="gray", linestyle="--", linewidth=1, alpha=0.5)
-    ax.text((n_exp - 1) * x_spacing + x_margin, 51.5, "50% chance",
-            va="bottom", ha="right", fontsize=8, color="gray")
+    from matplotlib.transforms import blended_transform_factory
+    ax.text(0.98, 51.5, "50% chance", va="bottom", ha="right", fontsize=8, color="gray",
+            transform=blended_transform_factory(ax.transAxes, ax.transData))
 
     ax.set_xticks([i * x_spacing for i in range(n_exp)])
     ax.set_xticklabels([e["label"] for e in all_data], fontsize=11,
