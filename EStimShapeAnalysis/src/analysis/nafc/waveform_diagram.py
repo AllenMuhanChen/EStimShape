@@ -189,15 +189,18 @@ def plot_timing_diagram(
     ax1.set_xlim(t_min, t_max)
 
     # ------------------------------------------------------------------
-    # Waveform row (µs scale, independent x-axis)
+    # Waveform row — ms axis, t=0 aligned to estim_start
     # ------------------------------------------------------------------
     if show_waveform:
         t_wave, y_wave = _pulse_train_waveform(params, n_show=n_pulses_shown)
-        total_dur = t_wave[-1]
-        pad = max(10.0, total_dur * 0.25)
 
-        t_plot = np.concatenate([[-pad], t_wave, [total_dur + pad]])
-        y_plot = np.concatenate([[0],    y_wave, [0]])
+        # Convert µs → ms, offset so first pulse starts at estim_start
+        t_ms = t_wave / 1000.0 + estim_start
+        total_ms  = t_ms[-1]
+        pad_ms    = max(0.05, (total_ms - estim_start) * 0.15)
+
+        t_plot = np.concatenate([[estim_start - pad_ms], t_ms, [total_ms + pad_ms]])
+        y_plot = np.concatenate([[0],                    y_wave, [0]])
 
         ax2.plot(t_plot, y_plot, color=_BLACK, linewidth=_LINE_W,
                  solid_joinstyle="miter", solid_capstyle="butt")
@@ -213,9 +216,9 @@ def plot_timing_diagram(
             lambda v, _: f"{v:+.0f}" if v != 0 else "0"))
         ax2.tick_params(axis="y", color=_GRAY, labelcolor=_BLACK, labelsize=8, length=3)
         ax2.tick_params(axis="x", color=_GRAY, labelcolor=_BLACK, labelsize=9, length=3)
-        ax2.xaxis.set_major_locator(ticker.MaxNLocator(6, integer=True))
+        ax2.xaxis.set_major_locator(ticker.MaxNLocator(6))
 
-        ax2.set_xlabel("Time (µs)", fontsize=_LABEL_FS, labelpad=4)
+        ax2.set_xlabel("Time (ms)", fontsize=_LABEL_FS, labelpad=4)
         ax2.set_ylabel("Current\n(µA)", fontsize=_LABEL_FS, rotation=0,
                        ha="right", va="center", labelpad=8)
 
