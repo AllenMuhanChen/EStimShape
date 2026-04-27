@@ -290,6 +290,7 @@ def plot_across_experiments(experiments: list, save_path: str = None,
     ax.set_title("EStim Effect Across Experiments: % Chose Hypothesized", fontsize=14)
     ax.set_ylim([0, 110])
     ax.set_xlim([-x_margin, (n_exp - 1) * x_spacing + x_margin])
+    ax.invert_xaxis()
     ax.grid(True, alpha=0.3, axis="y")
 
     # Legend: OFF (black) | ON (red) | noise-level markers if multi-dot
