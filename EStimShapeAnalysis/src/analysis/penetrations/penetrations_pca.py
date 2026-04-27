@@ -2517,7 +2517,7 @@ if __name__ == "__main__":
     # Set to path of a prior opt_*.json to warm-start from that correction, or None to start from zero
     start_from_file = None
     # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260423_160856.json"
-    # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260424_175651.json"
+    start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260424_175651.json"
     results = run_analysis(
         conn,
         n_pcs=2,
