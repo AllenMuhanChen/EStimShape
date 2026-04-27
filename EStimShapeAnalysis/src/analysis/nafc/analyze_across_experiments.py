@@ -12,7 +12,6 @@ import os
 import sys
 from pathlib import Path
 
-import matplotlib.cm as cm
 import matplotlib.patches as mpatches
 import numpy as np
 import pandas as pd
@@ -198,18 +197,16 @@ def plot_across_experiments(experiments: list, save_path: str = None):
                   Optional keys: see _DEFAULTS.
     save_path   : path to save the PNG; directory is created automatically.
     """
-    colors = cm.tab10(np.linspace(0, 1, max(len(experiments), 1)))
-
     # Load + compute all data first so the figure is drawn in one pass
     all_data = []
-    for config, color in zip(experiments, colors):
+    for config in experiments:
         session_id = _session_id_from_exp_db(config["exp_db"])
         df = load_experiment_data(config)
         print(f"[{config['label']}] session_id={session_id}  rows loaded={len(df)}")
         df_on, df_off = split_on_off(df, config)
         print(f"  → ON={len(df_on)}  OFF={len(df_off)}")
         dots = compute_dots(df_on, df_off, config)
-        all_data.append(dict(label=config["label"], dots=dots, color=color))
+        all_data.append(dict(label=config["label"], dots=dots))
 
     n_exp      = len(all_data)
     max_ndots  = max(len(e["dots"]) for e in all_data)
@@ -218,15 +215,14 @@ def plot_across_experiments(experiments: list, save_path: str = None):
     fig_w = max(7, 2.4 * n_exp + (1.0 * max_ndots if multi_dot else 0))
     fig, ax = plt.subplots(figsize=(fig_w, 6))
 
-    # legend bookkeeping
-    off_patch_added = False
-    exp_patches     = []           # one colored patch per experiment (for ON)
-    noise_markers   = {}           # noise_label → dummy scatter handle
+    _COLOR_OFF = "black"
+    _COLOR_ON  = "red"
+
+    noise_markers = {}   # noise_label → dummy scatter handle (multi-dot legend)
 
     for exp_idx, exp in enumerate(all_data):
         x_base = float(exp_idx)
         dots   = exp["dots"]
-        color  = exp["color"]
         n_dots = len(dots)
 
         if n_dots == 1:
@@ -241,35 +237,35 @@ def plot_across_experiments(experiments: list, save_path: str = None):
             pct_off, n_off = dot["pct_off"], dot["n_off"]
             pct_on,  n_on  = dot["pct_on"],  dot["n_on"]
 
-            # Vertical line connecting OFF and ON at same x
+            # Vertical line + effect size annotation
             if pct_off is not None and pct_on is not None:
                 ax.plot([x, x], [pct_off, pct_on],
-                        color=color, alpha=0.45, linewidth=1.5, zorder=1)
+                        color="gray", alpha=0.6, linewidth=1.5, zorder=1)
+                effect = pct_on - pct_off
+                mid_y  = (pct_on + pct_off) / 2
+                sign   = "+" if effect >= 0 else ""
+                ax.text(x + 0.06, mid_y, f"{sign}{effect:.1f}%",
+                        ha="left", va="center", fontsize=8,
+                        color="red" if effect >= 0 else "black")
 
-            # EStim OFF dot (black) — n label to the left
+            # EStim OFF dot — n label to the left
             if pct_off is not None:
-                ax.scatter(x, pct_off, color="black", marker=marker,
+                ax.scatter(x, pct_off, color=_COLOR_OFF, marker=marker,
                            s=90, zorder=3, edgecolors="none")
-                ax.text(x - 0.05, pct_off, f"n={n_off}",
+                ax.text(x - 0.06, pct_off, f"n={n_off}",
                         ha="right", va="center", fontsize=7, color="dimgray")
-                if not off_patch_added:
-                    off_patch_added = True
 
-            # EStim ON dot (experiment color) — n label to the right
+            # EStim ON dot — n label to the right (above effect size text)
             if pct_on is not None:
-                ax.scatter(x, pct_on, color=color, marker=marker,
+                ax.scatter(x, pct_on, color=_COLOR_ON, marker=marker,
                            s=90, zorder=3, edgecolors="black", linewidths=0.6)
-                ax.text(x + 0.05, pct_on, f"n={n_on}",
-                        ha="left", va="center", fontsize=7, color=color)
+                ax.text(x + 0.06, pct_on, f"n={n_on}",
+                        ha="left", va="center", fontsize=7, color=_COLOR_ON)
 
-            # Collect noise-level marker for legend (multi-dot mode only)
+            # Noise-level marker legend entry (multi-dot mode only)
             if multi_dot and dot["label"] and dot["label"] not in noise_markers:
-                h = ax.scatter([], [], marker=marker, color="gray", s=60,
-                               label=dot["label"])
-                noise_markers[dot["label"]] = h
-
-        # Per-experiment color patch for ON legend
-        exp_patches.append(mpatches.Patch(color=color, label=exp["label"]))
+                noise_markers[dot["label"]] = ax.scatter(
+                    [], [], marker=marker, color="gray", s=60)
 
     # 50 % chance reference line
     ax.axhline(50, color="gray", linestyle="--", linewidth=1, alpha=0.5)
@@ -286,21 +282,17 @@ def plot_across_experiments(experiments: list, save_path: str = None):
     ax.set_xlim([-0.6, n_exp - 0.4])
     ax.grid(True, alpha=0.3, axis="y")
 
-    # Legend: OFF swatch | per-experiment ON swatches | noise-level markers (if multi-dot)
-    legend_handles = []
-    legend_labels  = []
-    if off_patch_added:
-        legend_handles.append(mpatches.Patch(color="black", label="EStim OFF"))
-        legend_labels.append("EStim OFF")
-    for p in exp_patches:
-        legend_handles.append(p)
-        legend_labels.append(p.get_label() + " (ON)")
+    # Legend: OFF (black) | ON (red) | noise-level markers if multi-dot
+    legend_handles = [
+        mpatches.Patch(color=_COLOR_OFF, label="EStim OFF"),
+        mpatches.Patch(color=_COLOR_ON,  label="EStim ON"),
+    ]
+    legend_labels = ["EStim OFF", "EStim ON"]
     for lbl, h in noise_markers.items():
         legend_handles.append(h)
         legend_labels.append(lbl)
-    if legend_handles:
-        ax.legend(legend_handles, legend_labels, fontsize=9,
-                  loc="upper right", framealpha=0.85, borderpad=0.7)
+    ax.legend(legend_handles, legend_labels, fontsize=9,
+              loc="upper right", framealpha=0.85, borderpad=0.7)
 
     plt.tight_layout()
 
