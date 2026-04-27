@@ -188,7 +188,9 @@ _MARKERS    = ['o', 's', '^', 'D', 'v', 'P', '*', 'X']
 _DOT_SPREAD = 0.28   # half-width of sub-dot spread for multi-dot experiments
 
 
-def plot_across_experiments(experiments: list, save_path: str = None):
+def plot_across_experiments(experiments: list, save_path: str = None,
+                            show_n: bool = True,
+                            show_effect_size: bool = True):
     """
     Parameters
     ----------
@@ -212,7 +214,7 @@ def plot_across_experiments(experiments: list, save_path: str = None):
     max_ndots  = max(len(e["dots"]) for e in all_data)
     multi_dot  = max_ndots > 1
 
-    fig_w = max(7, 2.4 * n_exp + (1.0 * max_ndots if multi_dot else 0))
+    fig_w = max(5, 1.5 * n_exp + (0.8 * max_ndots if multi_dot else 0))
     fig, ax = plt.subplots(figsize=(fig_w, 6))
 
     _COLOR_OFF = "black"
@@ -237,10 +239,13 @@ def plot_across_experiments(experiments: list, save_path: str = None):
             pct_off, n_off = dot["pct_off"], dot["n_off"]
             pct_on,  n_on  = dot["pct_on"],  dot["n_on"]
 
-            # Vertical line + effect size annotation
+            # Vertical line
             if pct_off is not None and pct_on is not None:
                 ax.plot([x, x], [pct_off, pct_on],
                         color="gray", alpha=0.6, linewidth=1.5, zorder=1)
+
+            # Effect size annotation at midpoint of the line
+            if show_effect_size and pct_off is not None and pct_on is not None:
                 effect = pct_on - pct_off
                 mid_y  = (pct_on + pct_off) / 2
                 sign   = "+" if effect >= 0 else ""
@@ -248,19 +253,21 @@ def plot_across_experiments(experiments: list, save_path: str = None):
                         ha="left", va="center", fontsize=8,
                         color="red" if effect >= 0 else "black")
 
-            # EStim OFF dot — n label to the left
+            # EStim OFF dot
             if pct_off is not None:
                 ax.scatter(x, pct_off, color=_COLOR_OFF, marker=marker,
                            s=90, zorder=3, edgecolors="none")
-                ax.text(x - 0.06, pct_off, f"n={n_off}",
-                        ha="right", va="center", fontsize=7, color="dimgray")
+                if show_n:
+                    ax.text(x - 0.06, pct_off, f"n={n_off}",
+                            ha="right", va="center", fontsize=7, color="dimgray")
 
-            # EStim ON dot — n label to the right (above effect size text)
+            # EStim ON dot
             if pct_on is not None:
                 ax.scatter(x, pct_on, color=_COLOR_ON, marker=marker,
                            s=90, zorder=3, edgecolors="black", linewidths=0.6)
-                ax.text(x + 0.06, pct_on, f"n={n_on}",
-                        ha="left", va="center", fontsize=7, color=_COLOR_ON)
+                if show_n:
+                    ax.text(x + 0.06, pct_on, f"n={n_on}",
+                            ha="left", va="center", fontsize=7, color=_COLOR_ON)
 
             # Noise-level marker legend entry (multi-dot mode only)
             if multi_dot and dot["label"] and dot["label"] not in noise_markers:
@@ -279,7 +286,7 @@ def plot_across_experiments(experiments: list, save_path: str = None):
     ax.set_xlabel("Experiment", fontsize=13)
     ax.set_title("EStim Effect Across Experiments: % Chose Hypothesized", fontsize=14)
     ax.set_ylim([0, 110])
-    ax.set_xlim([-0.6, n_exp - 0.4])
+    ax.set_xlim([-0.5, n_exp - 0.5])
     ax.grid(True, alpha=0.3, axis="y")
 
     # Legend: OFF (black) | ON (red) | noise-level markers if multi-dot
@@ -387,6 +394,8 @@ def main():
     plot_across_experiments(
         experiments,
         save_path="/home/connorlab/Documents/plots/across_experiments/pct_hypothesized.png",
+        show_n=True,
+        show_effect_size=True,
     )
 
 
