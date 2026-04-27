@@ -345,7 +345,7 @@ def main():
             "max_gen_id":             6,
             "start_gen_id_estim_on":  0,
             "max_gen_id_estim_on":    None,
-            "include_trial_types":    ['variant'],
+            "include_trial_types":    ['Hypothesized Shape'],
             "include_noise_chances":  [0.90],
             "combine_noise_chances":  True,
             "include_sample_lengths": True,

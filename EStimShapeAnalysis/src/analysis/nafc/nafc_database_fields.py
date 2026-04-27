@@ -60,7 +60,7 @@ class SampleLengthField(StimSpecField):
         try:
             sampleLength = stim_spec['StimSpec']['sampleDuration']
         except KeyError:
-            sampleLength = "None"
+            sampleLength = 1000
         return sampleLength
 
 class IsRewardedField(CachedDatabaseField):

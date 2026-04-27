@@ -10,7 +10,7 @@ def main():
     # Database connections
     exp_conn = Connection(context.nafc_database)
     ga_conn = Connection(context.ga_database)
-
+    exp_conn.execute("TRUNCATE TABLE TrialFieldCache")
     create_estim_obj_data_table()
     export_estim_parameters(exp_conn)
     create_estimshape_trials_table()
@@ -42,7 +42,7 @@ def export_to_repo(session_id, data):
         'session_id', 'task_id', 'estim_spec_id', 'is_estim_on',
         'is_hypothesized_choice', 'is_correct_choice', 'trial_type',
         'noise_chance', 'base_mstick_id', 'gen_id', 'trial_start', 'trial_end',
-        'sample_length',
+        'sample_length', 'trial_class'
     ]
 
     # Find which columns we have in the dataframe

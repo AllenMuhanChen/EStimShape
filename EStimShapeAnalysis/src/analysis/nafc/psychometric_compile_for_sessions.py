@@ -37,6 +37,9 @@ def compile_latest(exp_conn):
     if 'IsDelta' in data.columns:
         data['trial_type'] = data['IsDelta'].apply(lambda x: "Hypothesized Shape" if not x else "Delta Shape")
 
+    # if trial class is EStimShapeProceduralBehavioralStim then trial_type is behavioral
+    data['trial_type'] = data.apply(lambda row: "Behavioral" if row['StimType'] == 'EStimShapeProceduralBehavioralStim' else row.get('trial_type', None), axis=1)
+
     data = data.rename(columns={
         'StimSpecId' : 'task_id',
         'StimType': 'trial_class',
