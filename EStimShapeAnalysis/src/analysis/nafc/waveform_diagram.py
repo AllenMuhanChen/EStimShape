@@ -54,7 +54,8 @@ def _load_estim_params(session_id: str, estim_spec_id: int) -> dict | None:
     """Return parameters for the first channel with a1 > 0 (skips grounding channels)."""
     conn = Connection(_REPO_DB)
     conn.execute(
-        "SELECT shape, polarity, d1, d2, dp, a1, a2 "
+        "SELECT shape, polarity, d1, d2, dp, a1, a2, "
+        "       pulse_repetition, num_repetitions, pulse_train_period "
         "FROM EStimParameters "
         "WHERE session_id = %s AND estim_spec_id = %s "
         "ORDER BY channel",
@@ -71,8 +72,30 @@ def _load_estim_params(session_id: str, estim_spec_id: int) -> dict | None:
                 dp=float(row[4] or 0),
                 a1=float(row[5]),
                 a2=float(row[6] or 0),
+                pulse_repetition=row[7],
+                num_repetitions=int(row[8]) if row[8] else 1,
+                pulse_train_period=float(row[9] or 0),
             )
     return None
+
+
+def _pulse_train_waveform(p: dict, n_show: int = 3):
+    """
+    Concatenate n_show biphasic pulses spaced by pulse_train_period.
+    Each pulse ends at y=0 and the next starts at y=0, so matplotlib
+    draws the flat inter-pulse baseline automatically without extra points.
+    Falls back to a single pulse for SinglePulse specs or zero period.
+    """
+    t_single, y_single = _biphasic_waveform(p)
+    period = p.get("pulse_train_period") or 0.0
+
+    if period <= 0 or p.get("pulse_repetition") == "SinglePulse":
+        return t_single, y_single
+
+    n = min(n_show, p.get("num_repetitions") or n_show)
+    t_parts = [t_single + i * period for i in range(n)]
+    y_parts = [y_single] * n
+    return np.concatenate(t_parts), np.concatenate(y_parts)
 
 
 def _biphasic_waveform(p: dict):
@@ -102,9 +125,10 @@ def plot_timing_diagram(
     estim_end:     float = 500,
     pre_time:      float = -100,
     post_time:     float = 600,
-    session_id:    str   = None,
-    estim_spec_id: int   = None,
-    save_path:     str   = None,
+    session_id:      str = None,
+    estim_spec_id:   int = None,
+    n_pulses_shown:  int = 3,
+    save_path:       str = None,
 ):
     params = None
     if session_id is not None and estim_spec_id is not None:
@@ -165,7 +189,7 @@ def plot_timing_diagram(
     # Waveform row (µs scale, independent x-axis)
     # ------------------------------------------------------------------
     if show_waveform:
-        t_wave, y_wave = _biphasic_waveform(params)
+        t_wave, y_wave = _pulse_train_waveform(params, n_show=n_pulses_shown)
         total_dur = t_wave[-1]
         pad = max(10.0, total_dur * 0.25)
 
@@ -223,6 +247,7 @@ def main():
         post_time=650,
         session_id="260426_0",
         estim_spec_id=3,
+        n_pulses_shown=3,
         save_path="/home/connorlab/Documents/plots/waveform_diagram/timing.png",
     )
 
