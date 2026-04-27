@@ -333,20 +333,20 @@ def main():
             "include_sample_lengths": None,
             "include_spec_ids":       [3],
         },
-        # Add more experiments here, e.g.:
-        # {
-        #     "label":                  "250301",
-        #     "exp_db":                 "allen_estimshape_exp_250301_0",
-        #     "start_gen_id":           1,
-        #     "max_gen_id":             None,
-        #     "start_gen_id_estim_on":  0,
-        #     "max_gen_id_estim_on":    None,
-        #     "include_trial_types":    None,
-        #     "include_noise_chances":  [0.875],
-        #     "combine_noise_chances":  True,
-        #     "include_sample_lengths": None,
-        #     "include_spec_ids":       None,
-        # },
+
+        {
+            "label":                  "260423",
+            "exp_db":                 "allen_estimshape_exp_260423_0",
+            "start_gen_id":           3,
+            "max_gen_id":             6,
+            "start_gen_id_estim_on":  0,
+            "max_gen_id_estim_on":    None,
+            "include_trial_types":    ['variant'],
+            "include_noise_chances":  [0.90],
+            "combine_noise_chances":  True,
+            "include_sample_lengths": True,
+            "include_spec_ids":       [1],
+        },
     ]
 
     plot_across_experiments(
