@@ -190,7 +190,9 @@ _DOT_SPREAD = 0.28   # half-width of sub-dot spread for multi-dot experiments
 
 def plot_across_experiments(experiments: list, save_path: str = None,
                             show_n: bool = True,
-                            show_effect_size: bool = True):
+                            show_effect_size: bool = True,
+                            x_spacing: float = 1.0,
+                            width_per_exp: float = 1.5):
     """
     Parameters
     ----------
@@ -214,7 +216,7 @@ def plot_across_experiments(experiments: list, save_path: str = None,
     max_ndots  = max(len(e["dots"]) for e in all_data)
     multi_dot  = max_ndots > 1
 
-    fig_w = max(5, 1.5 * n_exp + (0.8 * max_ndots if multi_dot else 0))
+    fig_w = max(5, width_per_exp * n_exp * x_spacing + (0.8 * max_ndots if multi_dot else 0))
     fig, ax = plt.subplots(figsize=(fig_w, 6))
 
     _COLOR_OFF = "black"
@@ -223,7 +225,7 @@ def plot_across_experiments(experiments: list, save_path: str = None,
     noise_markers = {}   # noise_label → dummy scatter handle (multi-dot legend)
 
     for exp_idx, exp in enumerate(all_data):
-        x_base = float(exp_idx)
+        x_base = float(exp_idx) * x_spacing
         dots   = exp["dots"]
         n_dots = len(dots)
 
@@ -275,18 +277,19 @@ def plot_across_experiments(experiments: list, save_path: str = None,
                     [], [], marker=marker, color="gray", s=60)
 
     # 50 % chance reference line
+    x_margin = 0.5 * x_spacing
     ax.axhline(50, color="gray", linestyle="--", linewidth=1, alpha=0.5)
-    ax.text(n_exp - 0.5, 51.5, "50% chance",
+    ax.text((n_exp - 1) * x_spacing + x_margin, 51.5, "50% chance",
             va="bottom", ha="right", fontsize=8, color="gray")
 
-    ax.set_xticks(range(n_exp))
+    ax.set_xticks([i * x_spacing for i in range(n_exp)])
     ax.set_xticklabels([e["label"] for e in all_data], fontsize=11,
                        rotation=20, ha="right")
     ax.set_ylabel("% Chose Hypothesized Shape", fontsize=13)
     ax.set_xlabel("Experiment", fontsize=13)
     ax.set_title("EStim Effect Across Experiments: % Chose Hypothesized", fontsize=14)
     ax.set_ylim([0, 110])
-    ax.set_xlim([-0.5, n_exp - 0.5])
+    ax.set_xlim([-x_margin, (n_exp - 1) * x_spacing + x_margin])
     ax.grid(True, alpha=0.3, axis="y")
 
     # Legend: OFF (black) | ON (red) | noise-level markers if multi-dot
@@ -396,6 +399,8 @@ def main():
         save_path="/home/connorlab/Documents/plots/across_experiments/pct_hypothesized.png",
         show_n=True,
         show_effect_size=True,
+        x_spacing=0.7,       # reduce to compress experiments closer together (1.0 = default spacing)
+        width_per_exp=1.5,   # inches per experiment slot
     )
 
 
