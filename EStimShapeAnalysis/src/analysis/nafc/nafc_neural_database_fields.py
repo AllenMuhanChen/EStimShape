@@ -1,12 +1,14 @@
 import os
 from typing import Optional
 
+from clat.compile.tstamp.cached_tstamp_fields import CachedDatabaseField
+from clat.util.connection import Connection
 from clat.util.time_util import When
 
 from src.analysis.nafc.nafc_neural_parser import NafcNeuralParser, NafcTrialEvents
 
 
-class NafcNeuralDataField:
+class NafcNeuralDataField(CachedDatabaseField):
     """
     CachedFieldList-compatible field that parses the Intan neural recording
     for each NAFC trial.
@@ -18,7 +20,8 @@ class NafcNeuralDataField:
     or parsing fails.
     """
 
-    def __init__(self, intan_base_path: str):
+    def __init__(self, intan_base_path: str, conn: Connection):
+        super().__init__(conn)
         self._base = intan_base_path
         self._parser = NafcNeuralParser()
         self._cache: dict[int, Optional[NafcTrialEvents]] = {}

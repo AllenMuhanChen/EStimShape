@@ -156,7 +156,7 @@ def main():
     fields.append(BaseMStickIdField(exp_conn))    # required by IsDeltaField
     fields.append(IsDeltaField(exp_conn))
     fields.append(EStimEnabledField(exp_conn))
-    fields.append(NafcNeuralDataField(INTAN_BASE_PATH))
+    fields.append(NafcNeuralDataField(INTAN_BASE_PATH, exp_conn))
 
     print(f"Compiling {len(fields._fields if hasattr(fields, '_fields') else '?')} "
           f"fields for {len(trial_tstamps)} trials…")
