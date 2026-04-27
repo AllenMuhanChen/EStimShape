@@ -76,10 +76,7 @@ class NafcNeuralDataField(CachedDatabaseField):
         parts = name.split('_')
         if len(parts) < 3:
             return False
-        try:
-            return len(parts[0]) > 10 and parts[0].isdigit()
-        except Exception:
-            return False
+        return len(parts[0]) > 10 and parts[0].isdigit()
 
     # ── per-trial loader ─────────────────────────────────────────────────────
 
