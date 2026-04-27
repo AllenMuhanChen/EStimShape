@@ -1,108 +1,203 @@
 """
-Stimulus timing diagram — square-wave envelopes for visual and microstimulation.
+Stimulus timing diagram.
 
-Future: add a third row with a zoomed-in actual estim waveform (biphasic/triphasic
-pulse shape). The subplot grid is already structured to accommodate it.
+Row 1: Visual stimulus envelope  (ms, shared axis with row 2)
+Row 2: Microstimulation envelope (ms)
+Row 3: Single biphasic/triphasic current pulse (µs, independent axis)
+
+To add row 3, pass session_id + estim_spec_id; it reads EStimParameters from
+allen_data_repository and finds the first channel with a1 > 0 (skipping
+grounding channels that have zero current but active charge recovery).
 """
 
 import os
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
+import sys
+from pathlib import Path
 
+import matplotlib.gridspec as gridspec
+import matplotlib.ticker as ticker
+import numpy as np
+from matplotlib import pyplot as plt
+
+sys.path.insert(0, str(Path(__file__).parent))
+from clat.util.connection import Connection
+
+_REPO_DB = "allen_data_repository"
+_BLACK   = "#111111"
+_GRAY    = "#888888"
+_LINE_W  = 1.8
+_LABEL_FS = 10
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def _square_pulse(t_on: float, t_off: float, t_min: float, t_max: float):
-    """Return (t, y) arrays that draw a crisp square pulse with exact vertical edges."""
+    """(t, y) arrays for a crisp square pulse — exact vertical edges."""
     eps = 1e-6
     t = [t_min, t_on - eps, t_on, t_off, t_off + eps, t_max]
     y = [0.0,   0.0,        1.0,  1.0,   0.0,          0.0]
     return np.array(t), np.array(y)
 
 
-def _style_trace_ax(ax):
-    """Remove all spines and ticks — waveform rows need no axes chrome."""
+def _style_envelope_ax(ax):
+    """Strip all spines and ticks from an envelope row."""
     for spine in ax.spines.values():
         spine.set_visible(False)
     ax.set_yticks([])
-    ax.tick_params(bottom=False, labelbottom=False)
+    ax.tick_params(which="both", bottom=False, top=False,
+                   labelbottom=False, labeltop=False)
 
+
+def _load_estim_params(session_id: str, estim_spec_id: int) -> dict | None:
+    """Return parameters for the first channel with a1 > 0 (skips grounding channels)."""
+    conn = Connection(_REPO_DB)
+    conn.execute(
+        "SELECT shape, polarity, d1, d2, dp, a1, a2 "
+        "FROM EStimParameters "
+        "WHERE session_id = %s AND estim_spec_id = %s "
+        "ORDER BY channel",
+        (session_id, estim_spec_id),
+    )
+    for row in conn.fetch_all():
+        a1 = row[5]
+        if a1 is not None and float(a1) > 0:
+            return dict(
+                shape=row[0],
+                polarity=row[1],
+                d1=float(row[2] or 0),
+                d2=float(row[3] or 0),
+                dp=float(row[4] or 0),
+                a1=float(row[5]),
+                a2=float(row[6] or 0),
+            )
+    return None
+
+
+def _biphasic_waveform(p: dict):
+    """
+    Build (t, y) in (µs, µA) for one biphasic / BiphasicWithInterphaseDelay pulse.
+    Duplicate x-values produce exact vertical step edges.
+    """
+    sign1 = -1 if p["polarity"] == "NegativeFirst" else +1
+    sign2 = -sign1
+    d1, d2 = p["d1"], p["d2"]
+    dp = p["dp"] if p["shape"] == "BiphasicWithInterphaseDelay" else 0.0
+    a1, a2 = p["a1"], p["a2"]
+
+    t = [0,    0,        d1,       d1,  d1 + dp,  d1 + dp,  d1 + dp + d2, d1 + dp + d2]
+    y = [0, sign1*a1, sign1*a1,     0,       0,  sign2*a2,  sign2*a2,            0    ]
+    return np.array(t, float), np.array(y, float)
+
+
+# ---------------------------------------------------------------------------
+# Main plot function
+# ---------------------------------------------------------------------------
 
 def plot_timing_diagram(
-    visual_start: float = 0,
-    visual_end:   float = 500,
-    estim_start:  float = 100,
-    estim_end:    float = 500,
-    pre_time:     float = -100,
-    post_time:    float = 600,
-    save_path:    str   = None,
+    visual_start:  float = 0,
+    visual_end:    float = 500,
+    estim_start:   float = 100,
+    estim_end:     float = 500,
+    pre_time:      float = -100,
+    post_time:     float = 600,
+    session_id:    str   = None,
+    estim_spec_id: int   = None,
+    save_path:     str   = None,
 ):
-    """
-    Parameters
-    ----------
-    visual_start/end : onset / offset of visual stimulus (ms)
-    estim_start/end  : onset / offset of microstimulation (ms)
-    pre_time         : time shown before t=0 (negative ms value)
-    post_time        : time shown after t=0 (ms)
-    save_path        : optional PNG output path
-    """
-    t_min = pre_time
-    t_max = post_time
+    params = None
+    if session_id is not None and estim_spec_id is not None:
+        params = _load_estim_params(session_id, estim_spec_id)
+        if params is None:
+            print(f"WARNING: no non-zero channel found for "
+                  f"session={session_id} spec={estim_spec_id}. Skipping waveform row.")
 
-    rows = [
-        ("Visual\nStimulus",       *_square_pulse(visual_start, visual_end, t_min, t_max)),
-        ("Micro-\nstimulation",    *_square_pulse(estim_start,  estim_end,  t_min, t_max)),
-        # Future row: zoomed estim waveform — insert here
-    ]
-    n_rows = len(rows)
+    show_waveform = params is not None
 
-    fig, axes = plt.subplots(
-        n_rows, 1,
-        figsize=(6, 1.1 * n_rows + 0.6),
-        sharex=True,
-        gridspec_kw={"hspace": 0.05},
-        constrained_layout=False,
-    )
-    if n_rows == 1:
-        axes = [axes]
+    # ------------------------------------------------------------------
+    # Figure + gridspec
+    # Rows 0 & 1 live in a tight inner gridspec; row 2 (waveform) gets
+    # its own outer cell so the gap between the two sections is larger.
+    # ------------------------------------------------------------------
+    fig_h = 3.6 if show_waveform else 2.2
+    fig   = plt.figure(figsize=(6, fig_h))
 
-    _BLACK    = "#111111"
-    _GRAY     = "#888888"
-    _LINE_W   = 1.8
-    _LABEL_FS = 10
+    if show_waveform:
+        outer = gridspec.GridSpec(2, 1, figure=fig,
+                                  height_ratios=[2, 1.8], hspace=0.55)
+        inner = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=outer[0],
+                                                 hspace=0.05)
+        ax2 = fig.add_subplot(outer[1])
+    else:
+        inner = gridspec.GridSpec(2, 1, figure=fig, hspace=0.05)
 
-    for ax, (label, t, y) in zip(axes, rows):
+    ax0 = fig.add_subplot(inner[0])
+    ax1 = fig.add_subplot(inner[1], sharex=ax0)
+
+    # ------------------------------------------------------------------
+    # Envelope rows
+    # ------------------------------------------------------------------
+    t_min, t_max = pre_time, post_time
+
+    for ax, label, t_on, t_off in [
+        (ax0, "Visual\nStimulus",    visual_start, visual_end),
+        (ax1, "Micro-\nstimulation", estim_start,  estim_end),
+    ]:
+        t, y = _square_pulse(t_on, t_off, t_min, t_max)
         ax.plot(t, y, color=_BLACK, linewidth=_LINE_W,
                 solid_joinstyle="miter", solid_capstyle="butt", clip_on=False)
         ax.set_ylim(-0.25, 1.4)
-        _style_trace_ax(ax)
+        _style_envelope_ax(ax)
         ax.set_ylabel(label, fontsize=_LABEL_FS, rotation=0,
-                      ha="right", va="center", labelpad=8,
-                      fontfamily="sans-serif")
+                      ha="right", va="center", labelpad=8)
 
-    # Vertical guide lines at stimulus onset / offset
-    for t_event in {visual_start, visual_end, estim_start, estim_end}:
-        for ax in axes:
-            ax.axvline(t_event, color=_GRAY, linestyle=":", linewidth=0.8, alpha=0.5, zorder=0)
+    # Time axis on the bottom envelope row
+    ax1.spines["bottom"].set_visible(True)
+    ax1.spines["bottom"].set_color(_GRAY)
+    ax1.tick_params(bottom=True, labelbottom=True,
+                    color=_GRAY, labelcolor=_BLACK, labelsize=9, length=3)
+    ax1.xaxis.set_major_locator(ticker.MultipleLocator(100))
+    ax1.set_xlabel("Time (ms)", fontsize=_LABEL_FS, labelpad=4)
+    ax1.set_xlim(t_min, t_max)
 
-    # Time axis on the bottom row only
-    ax_bot = axes[-1]
-    ax_bot.spines["bottom"].set_visible(True)
-    ax_bot.spines["bottom"].set_color(_GRAY)
-    ax_bot.tick_params(bottom=True, labelbottom=True, color=_GRAY, labelcolor=_BLACK,
-                       labelsize=9, length=3)
-    ax_bot.xaxis.set_major_locator(ticker.MultipleLocator(100))
-    ax_bot.xaxis.set_minor_locator(ticker.MultipleLocator(50))
-    ax_bot.set_xlabel("Time (ms)", fontsize=_LABEL_FS, labelpad=6)
+    # ------------------------------------------------------------------
+    # Waveform row (µs scale, independent x-axis)
+    # ------------------------------------------------------------------
+    if show_waveform:
+        t_wave, y_wave = _biphasic_waveform(params)
+        total_dur = t_wave[-1]
+        pad = max(10.0, total_dur * 0.25)
 
-    # Mark t=0
-    ax_bot.axvline(0, color=_GRAY, linestyle=":", linewidth=0.8, alpha=0.5, zorder=0)
+        t_plot = np.concatenate([[-pad], t_wave, [total_dur + pad]])
+        y_plot = np.concatenate([[0],    y_wave, [0]])
 
-    ax_bot.set_xlim(t_min, t_max)
+        ax2.plot(t_plot, y_plot, color=_BLACK, linewidth=_LINE_W,
+                 solid_joinstyle="miter", solid_capstyle="butt")
 
-    # Overall title
-    fig.suptitle("Stimulus Timing", fontsize=12, fontweight="bold",
-                 fontfamily="sans-serif", y=1.01)
+        ax2.spines["top"].set_visible(False)
+        ax2.spines["right"].set_visible(False)
+        ax2.spines["left"].set_color(_GRAY)
+        ax2.spines["bottom"].set_color(_GRAY)
 
+        amp = max(abs(params["a1"]), abs(params["a2"]))
+        ax2.set_yticks([-amp, 0, amp])
+        ax2.yaxis.set_major_formatter(ticker.FuncFormatter(
+            lambda v, _: f"{v:+.0f}" if v != 0 else "0"))
+        ax2.tick_params(axis="y", color=_GRAY, labelcolor=_BLACK, labelsize=8, length=3)
+        ax2.tick_params(axis="x", color=_GRAY, labelcolor=_BLACK, labelsize=9, length=3)
+        ax2.xaxis.set_major_locator(ticker.MaxNLocator(6, integer=True))
+
+        ax2.set_xlabel("Time (µs)", fontsize=_LABEL_FS, labelpad=4)
+        ax2.set_ylabel("Current\n(µA)", fontsize=_LABEL_FS, rotation=0,
+                       ha="right", va="center", labelpad=8)
+
+        polarity_str = "−first" if params["polarity"] == "NegativeFirst" else "+first"
+        shape_str    = params["shape"].replace("WithInterphaseDelay", " + IPhD")
+        ax2.set_title(f"{shape_str}, {polarity_str}",
+                      fontsize=9, color=_GRAY, pad=4, loc="left")
+
+    fig.suptitle("Stimulus Timing", fontsize=12, fontweight="bold", y=1.01)
     plt.tight_layout(rect=[0.12, 0, 1, 1])
 
     if save_path:
@@ -114,6 +209,10 @@ def plot_timing_diagram(
     return fig
 
 
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
 def main():
     plot_timing_diagram(
         visual_start=0,
@@ -122,6 +221,8 @@ def main():
         estim_end=500,
         pre_time=-100,
         post_time=650,
+        session_id="260426_0",
+        estim_spec_id=3,
         save_path="/home/connorlab/Documents/plots/waveform_diagram/timing.png",
     )
 
