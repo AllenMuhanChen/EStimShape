@@ -47,8 +47,8 @@ class NafcNeuralDataField:
     # ── task_id lookup ───────────────────────────────────────────────────────
 
     def _task_id_from_db(self, when: When) -> Optional[int]:
-        """Read taskId from the TrialMessage in BehMsg — this is the number
-        Xper sends to Intan and that appears in the recording directory name."""
+        """Read stimSpecId from the TrialMessage in BehMsg — this is the number
+        that appears as the prefix of the Intan recording directory name."""
         self.conn.execute(
             "SELECT msg FROM BehMsg WHERE "
             "msg LIKE '%TrialMessage%' AND "
