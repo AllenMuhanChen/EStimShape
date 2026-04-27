@@ -55,7 +55,8 @@ def _load_estim_params(session_id: str, estim_spec_id: int) -> dict | None:
     conn = Connection(_REPO_DB)
     conn.execute(
         "SELECT shape, polarity, d1, d2, dp, a1, a2, "
-        "       pulse_repetition, num_repetitions, pulse_train_period "
+        "       pulse_repetition, num_repetitions, pulse_train_period, "
+        "       post_stim_refractory_period "
         "FROM EStimParameters "
         "WHERE session_id = %s AND estim_spec_id = %s "
         "ORDER BY channel",
@@ -75,26 +76,28 @@ def _load_estim_params(session_id: str, estim_spec_id: int) -> dict | None:
                 pulse_repetition=row[7],
                 num_repetitions=int(row[8]) if row[8] else 1,
                 pulse_train_period=float(row[9] or 0),
+                post_stim_refractory_period=float(row[10] or 0),
             )
     return None
 
 
 def _pulse_train_waveform(p: dict, n_show: int = 3):
     """
-    Concatenate n_show biphasic pulses spaced by pulse_train_period.
+    Concatenate n_show pulses separated by post_stim_refractory_period.
+    The inter-pulse onset interval is pulse_duration + post_stim_refractory_period.
     Each pulse ends at y=0 and the next starts at y=0, so matplotlib
     draws the flat inter-pulse baseline automatically without extra points.
-    Falls back to a single pulse for SinglePulse specs or zero period.
     """
     t_single, y_single = _biphasic_waveform(p)
-    period = p.get("pulse_train_period") or 0.0
+    pulse_dur  = t_single[-1]
+    refractory = p.get("post_stim_refractory_period") or 0.0
+    period     = pulse_dur + refractory
 
-    if period <= 0 or p.get("pulse_repetition") == "SinglePulse":
+    if period <= pulse_dur or n_show <= 1:
         return t_single, y_single
 
-    n = min(n_show, p.get("num_repetitions") or n_show)
-    t_parts = [t_single + i * period for i in range(n)]
-    y_parts = [y_single] * n
+    t_parts = [t_single + i * period for i in range(n_show)]
+    y_parts = [y_single] * n_show
     return np.concatenate(t_parts), np.concatenate(y_parts)
 
 
