@@ -82,8 +82,8 @@ def plot_raster_panel(ax, group_df, channel_name: str,
     n_correct = n_incorrect = 0
 
     for row_idx, (_, trial) in enumerate(group_df.iterrows()):
-        neural: NafcTrialEvents = trial.get("NeuralData")
-        if neural is None or neural.sample_on is None:
+        neural = trial.get("NeuralData")
+        if not isinstance(neural, NafcTrialEvents) or neural.sample_on is None:
             continue
 
         s_on = neural.sample_on

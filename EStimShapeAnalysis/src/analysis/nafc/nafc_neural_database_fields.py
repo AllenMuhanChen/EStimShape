@@ -2,17 +2,19 @@ import os
 from typing import Optional
 
 import xmltodict
-from clat.compile.tstamp.cached_tstamp_fields import CachedDatabaseField
 from clat.util.connection import Connection
 from clat.util.time_util import When
 
 from src.analysis.nafc.nafc_neural_parser import NafcNeuralParser, NafcTrialEvents
 
 
-class NafcNeuralDataField(CachedDatabaseField):
+class NafcNeuralDataField:
     """
-    CachedFieldList-compatible field that parses the Intan neural recording
-    for each NAFC trial.
+    CachedFieldList-compatible field (duck-typed: get_name + get) that parses
+    the Intan neural recording for each NAFC trial.
+
+    Does NOT inherit CachedDatabaseField — that base class serialises return
+    values in ways that corrupt complex Python objects like NafcTrialEvents.
 
     intan_base_path may contain trial directories directly:
         {base}/{task_id}_{YYMMDD}_{HHMMSS}/
@@ -24,10 +26,10 @@ class NafcNeuralDataField(CachedDatabaseField):
     """
 
     def __init__(self, intan_base_path: str, conn: Connection):
-        super().__init__(conn)
+        self.conn = conn
         self._base = intan_base_path
         self._parser = NafcNeuralParser()
-        self._index: dict[str, str] = {}   # task_id_str -> full dir path
+        self._index: dict[str, str] = {}
         self._results: dict[int, Optional[NafcTrialEvents]] = {}
         self._build_index()
 
@@ -41,6 +43,8 @@ class NafcNeuralDataField(CachedDatabaseField):
         if task_id not in self._results:
             self._results[task_id] = self._load(task_id)
         return self._results[task_id]
+
+    # ── task_id lookup ───────────────────────────────────────────────────────
 
     def _task_id_from_db(self, when: When) -> Optional[int]:
         """Read taskId from the TrialMessage in BehMsg — this is the number
@@ -63,11 +67,8 @@ class NafcNeuralDataField(CachedDatabaseField):
     # ── index builder ────────────────────────────────────────────────────────
 
     def _build_index(self) -> None:
-        """
-        Scan base_path and one level of subdirectories.  Any directory whose
-        name begins with a long integer is treated as a recording directory
-        and indexed by that integer (the task_id).
-        """
+        """Scan base_path and one level of subdirectories, indexing every
+        directory whose name starts with a long numeric task_id."""
         try:
             entries = list(os.scandir(self._base))
         except OSError as exc:
@@ -80,7 +81,6 @@ class NafcNeuralDataField(CachedDatabaseField):
             if self._is_recording_dir(entry.name):
                 self._index[entry.name.split('_')[0]] = entry.path
             else:
-                # Could be a date subdirectory (e.g. 2026-04-26)
                 try:
                     for sub in os.scandir(entry.path):
                         if sub.is_dir() and self._is_recording_dir(sub.name):
@@ -93,11 +93,8 @@ class NafcNeuralDataField(CachedDatabaseField):
 
     @staticmethod
     def _is_recording_dir(name: str) -> bool:
-        """True when the directory name starts with a long numeric task_id."""
         parts = name.split('_')
-        if len(parts) < 3:
-            return False
-        return len(parts[0]) > 10 and parts[0].isdigit()
+        return len(parts) >= 3 and len(parts[0]) > 10 and parts[0].isdigit()
 
     # ── per-trial loader ─────────────────────────────────────────────────────
 
