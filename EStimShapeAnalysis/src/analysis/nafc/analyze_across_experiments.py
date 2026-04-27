@@ -283,11 +283,11 @@ def plot_across_experiments(experiments: list, save_path: str = None,
 
     ax.set_xticks([i * x_spacing for i in range(n_exp)])
     ax.set_xticklabels([e["label"] for e in all_data], fontsize=11,
-                       rotation=20, ha="right")
+                       rotation=45, ha="center")
     ax.set_ylabel("% Chose Hypothesized Shape", fontsize=13)
     ax.set_xlabel("Experiment", fontsize=13)
     title_fontsize = max(7, fig_w * 14 / 7.5)
-    ax.set_title("EStim Effect Across Experiments: % Chose Hypothesized", fontsize=title_fontsize)
+    # ax.set_title("EStim Effect Across Experiments: % Chose Hypothesized", fontsize=title_fontsize)
     ax.set_ylim([0, 100])
     ax.set_xlim([-x_margin, (n_exp - 1) * x_spacing + x_margin])
     ax.invert_xaxis()
@@ -334,7 +334,7 @@ def main():
             "max_gen_id_estim_on":    None,
 
             # Filters
-            "include_trial_types":    None,           # e.g. ['delta']
+            "include_trial_types":    ["Delta Shape"],
             "include_noise_chances":  [0.875, 0.85],
             "combine_noise_chances":  True,
             "include_sample_lengths": None,
@@ -397,10 +397,10 @@ def main():
     plot_across_experiments(
         experiments,
         save_path="/home/connorlab/Documents/plots/across_experiments/pct_hypothesized.png",
-        show_n=True,
-        show_effect_size=True,
-        x_spacing=0.7,       # reduce to compress experiments closer together (1.0 = default spacing)
-        width_per_exp=1.5,   # inches per experiment slot
+        show_n=False,
+        show_effect_size=False,
+        x_spacing=0.5,       # reduce to compress experiments closer together (1.0 = default spacing)
+        width_per_exp=1.0,   # inches per experiment slot
     )
 
 
