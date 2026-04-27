@@ -3,7 +3,8 @@ Compare % chose hypothesized shape across experiments.
 x-axis: experiment label, y-axis: % chose hypothesized.
 Two dots per x-position (or sub-position): EStim OFF (black) and EStim ON (colored).
 
-Data is read directly from EStimShapeTrials in each experiment's SQL database.
+Data is read from EStimShapeTrials in the central repository (allen_data_repository),
+filtered by session_id derived from each experiment's DB name.
 Each experiment is described by a config dict; see _DEFAULTS for all available keys.
 """
 
@@ -61,19 +62,28 @@ def _cfg(d: dict, key: str):
 # Data loading from EStimShapeTrials
 # ===========================================================================
 
+def _session_id_from_exp_db(exp_db: str) -> str:
+    """Derive session_id from experiment DB name, e.g. 'allen_estimshape_exp_260426_0' → '260426_0'."""
+    return exp_db.split("allen_estimshape_exp_")[-1]
+
+
+_REPO_DB = "allen_data_repository"
+
+
 def load_experiment_data(config: dict) -> pd.DataFrame:
-    """Query EStimShapeTrials for one experiment and return a filtered DataFrame."""
-    conn = Connection(config["exp_db"])
+    """Query EStimShapeTrials in the central repository for one experiment."""
+    session_id = _session_id_from_exp_db(config["exp_db"])
+    conn = Connection(_REPO_DB)
 
     start_gen = _cfg(config, "start_gen_id")
     max_gen   = _cfg(config, "max_gen_id")
 
-    params = [start_gen]
+    params = [session_id, start_gen]
     query = (
         "SELECT gen_id, noise_chance, sample_length, estim_spec_id, "
         "       is_estim_on, is_hypothesized_choice, trial_type "
         "FROM EStimShapeTrials "
-        "WHERE gen_id >= %s"
+        "WHERE session_id = %s AND gen_id >= %s"
     )
     if max_gen is not None:
         query += " AND gen_id <= %s"
