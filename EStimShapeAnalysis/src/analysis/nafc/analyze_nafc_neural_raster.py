@@ -36,7 +36,7 @@ from src.startup import context
 
 # ─────────────────────────── CONFIG ─────────────────────────────────────────
 EXP_DB_NAME     = "allen_estimshape_exp_260426_0"
-INTAN_BASE_PATH = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_estimshape_exp_260426_0/2026-04-26"  # flat dir of {task_id}_* folders
+INTAN_BASE_PATH = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_estimshape_exp_260426_0/2026-04-26/"  # flat dir of {task_id}_* folders
 CHANNEL_NAME    = "A-000"                            # Channel.value string to display
 SINCE_DATE      = time_util.from_date_to_now(2026, 4, 26)
 TIME_BEFORE_S   = 0.2   # seconds before sample_on shown on x-axis

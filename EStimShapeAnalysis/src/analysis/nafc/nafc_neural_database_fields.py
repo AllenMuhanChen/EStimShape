@@ -55,7 +55,7 @@ class NafcNeuralDataField(CachedDatabaseField):
         if trial_msg_xml is None:
             return None
         trial_msg_dict = xmltodict.parse(trial_msg_xml)
-        task_id_str = trial_msg_dict.get('TrialMessage', {}).get('taskId')
+        task_id_str = trial_msg_dict.get('TrialMessage', {}).get('stimSpecId')
         if task_id_str is None:
             return None
         return int(task_id_str)
