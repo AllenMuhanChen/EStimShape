@@ -278,7 +278,7 @@ def plot_across_experiments(experiments: list, save_path: str = None,
 
     # 50 % chance reference line
     x_margin = 0.5 * x_spacing
-    ax.set_yticks(range(0, 111, 10))
+    ax.set_yticks(range(0, 101, 10))
 
     ax.set_xticks([i * x_spacing for i in range(n_exp)])
     ax.set_xticklabels([e["label"] for e in all_data], fontsize=11,
@@ -287,7 +287,7 @@ def plot_across_experiments(experiments: list, save_path: str = None,
     ax.set_xlabel("Experiment", fontsize=13)
     title_fontsize = max(7, fig_w * 14 / 7.5)
     ax.set_title("EStim Effect Across Experiments: % Chose Hypothesized", fontsize=title_fontsize)
-    ax.set_ylim([0, 110])
+    ax.set_ylim([0, 100])
     ax.set_xlim([-x_margin, (n_exp - 1) * x_spacing + x_margin])
     ax.invert_xaxis()
     ax.grid(True, alpha=0.3, axis="y")
