@@ -217,7 +217,7 @@ def plot_across_experiments(experiments: list, save_path: str = None,
     multi_dot  = max_ndots > 1
 
     fig_w = width_per_exp * n_exp * x_spacing + (0.8 * max_ndots if multi_dot else 0)
-    fig, ax = plt.subplots(figsize=(fig_w, 6))
+    fig, ax = plt.subplots(figsize=(fig_w, 6), constrained_layout=True)
 
     _COLOR_OFF = "black"
     _COLOR_ON  = "red"
@@ -302,10 +302,8 @@ def plot_across_experiments(experiments: list, save_path: str = None,
         legend_handles.append(h)
         legend_labels.append(lbl)
     ax.legend(legend_handles, legend_labels, fontsize=9,
-              loc="upper center", bbox_to_anchor=(0.5, -0.18),
-              ncol=len(legend_handles), framealpha=0.85, borderpad=0.7)
-
-    plt.tight_layout(rect=[0, 0.08, 1, 0.93])
+              loc="upper left", bbox_to_anchor=(1.01, 1),
+              framealpha=0.85, borderpad=0.7)
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
