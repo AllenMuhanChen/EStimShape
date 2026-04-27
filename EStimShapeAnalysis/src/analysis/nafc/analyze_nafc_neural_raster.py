@@ -104,7 +104,7 @@ def plot_raster_panel(ax, group_df, channel_name: str,
             if t_abs is not None:
                 t_rel = t_abs - s_on
                 ax.vlines([t_rel], row_idx, row_idx + 1,
-                          color=color, linewidth=0.6, linestyle=linestyle, alpha=0.4)
+                          color=color, linewidth=1.5, linestyle=linestyle, alpha=0.7)
 
     n_total = len(group_df)
     ax.axvline(0, color="black", linewidth=1.2, linestyle="-", alpha=0.6)
