@@ -114,7 +114,12 @@ def load_experiment_data(config: dict) -> pd.DataFrame:
     ]:
         vals = _cfg(config, cfg_key)
         if isinstance(vals, (list, set, tuple)):
+            unique_before = sorted(df[col].dropna().unique())
+            before = len(df)
             df = df[df[col].isin(set(vals))]
+            if len(df) == 0:
+                print(f"  WARNING: '{cfg_key}={vals}' filtered out all {before} rows. "
+                      f"Values present in data: {unique_before}")
 
     return df.reset_index(drop=True)
 
