@@ -1,6 +1,7 @@
 import os
 from typing import Optional
 
+import xmltodict
 from clat.compile.tstamp.cached_tstamp_fields import CachedDatabaseField
 from clat.util.connection import Connection
 from clat.util.time_util import When
@@ -34,10 +35,30 @@ class NafcNeuralDataField(CachedDatabaseField):
         return "NeuralData"
 
     def get(self, when: When) -> Optional[NafcTrialEvents]:
-        task_id = int(when.start)
+        task_id = self._task_id_from_db(when)
+        if task_id is None:
+            return None
         if task_id not in self._results:
             self._results[task_id] = self._load(task_id)
         return self._results[task_id]
+
+    def _task_id_from_db(self, when: When) -> Optional[int]:
+        """Read taskId from the TrialMessage in BehMsg — this is the number
+        Xper sends to Intan and that appears in the recording directory name."""
+        self.conn.execute(
+            "SELECT msg FROM BehMsg WHERE "
+            "msg LIKE '%TrialMessage%' AND "
+            "tstamp >= %s AND tstamp <= %s",
+            params=(int(when.start), int(when.stop))
+        )
+        trial_msg_xml = self.conn.fetch_one()
+        if trial_msg_xml is None:
+            return None
+        trial_msg_dict = xmltodict.parse(trial_msg_xml)
+        task_id_str = trial_msg_dict.get('TrialMessage', {}).get('taskId')
+        if task_id_str is None:
+            return None
+        return int(task_id_str)
 
     # ── index builder ────────────────────────────────────────────────────────
 
