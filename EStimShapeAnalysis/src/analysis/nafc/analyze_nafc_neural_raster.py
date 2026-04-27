@@ -148,26 +148,9 @@ def main():
         print("No trials found.")
         return
 
-    # ── Pass 1: StimType only, so we can filter before hitting IsDeltaField ──
-    # IsDeltaField raises if BaseMStickId is None (non-NAFC trials), so we must
-    # restrict to matching trials first.
-    stim_type_fields = CachedFieldList()
-    stim_type_fields.append(StimTypeField(exp_conn))
-    stim_type_data = stim_type_fields.to_data(trial_tstamps)
-
-    target_tstamps = [
-        when
-        for when, st in zip(trial_tstamps, stim_type_data["StimType"])
-        if st == "EStimShapeVariantsDeltaNAFCStim"
-    ]
-    print(f"StimType filter: {len(target_tstamps)} / {len(trial_tstamps)} trials match")
-    if not target_tstamps:
-        print("No matching trials — check EXP_DB_NAME / SINCE_DATE.")
-        return
-
-    # ── Pass 2: compile behavioural + neural fields for filtered trials only ──
     # Child fields must come after their parents so get_cached_super finds them.
     fields = CachedFieldList()
+    fields.append(StimTypeField(exp_conn))
     fields.append(ChoiceField(exp_conn))          # required by IsCorrectField
     fields.append(IsCorrectField(exp_conn))
     fields.append(BaseMStickIdField(exp_conn))    # required by IsDeltaField
@@ -175,8 +158,12 @@ def main():
     fields.append(EStimEnabledField(exp_conn))
     fields.append(NafcNeuralDataField(INTAN_BASE_PATH, exp_conn))
 
-    data = fields.to_data(target_tstamps)
-    print(f"Compiled {len(data)} trials")
+    data = fields.to_data(trial_tstamps)
+    data = data[data["StimType"] == "EStimShapeVariantsDeltaNAFCStim"].copy()
+    print(f"{len(data)} EStimShapeVariantsDeltaNAFCStim trials")
+    if data.empty:
+        print("No matching trials — check EXP_DB_NAME / SINCE_DATE.")
+        return
 
     # 2×2 groups: rows=IsDelta, cols=EStimEnabled
     groups = {

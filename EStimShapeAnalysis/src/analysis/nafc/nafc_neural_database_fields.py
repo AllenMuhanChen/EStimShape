@@ -13,45 +13,82 @@ class NafcNeuralDataField(CachedDatabaseField):
     CachedFieldList-compatible field that parses the Intan neural recording
     for each NAFC trial.
 
-    Expects a flat directory at intan_base_path containing one subdirectory
-    per trial, named {task_id}_{YYMMDD}_{HHMMSS}.
+    intan_base_path may contain trial directories directly:
+        {base}/{task_id}_{YYMMDD}_{HHMMSS}/
+    or organised into one level of date subdirectories:
+        {base}/{YYYY-MM-DD}/{task_id}_{YYMMDD}_{HHMMSS}/
 
-    Returns NafcTrialEvents on success, None if no matching directory is found
-    or parsing fails.
+    An index of all recording directories is built once on construction so
+    that per-trial lookups are O(1).
     """
 
     def __init__(self, intan_base_path: str, conn: Connection):
         super().__init__(conn)
         self._base = intan_base_path
         self._parser = NafcNeuralParser()
-        self._cache: dict[int, Optional[NafcTrialEvents]] = {}
+        self._index: dict[str, str] = {}   # task_id_str -> full dir path
+        self._results: dict[int, Optional[NafcTrialEvents]] = {}
+        self._build_index()
 
     def get_name(self) -> str:
         return "NeuralData"
 
     def get(self, when: When) -> Optional[NafcTrialEvents]:
         task_id = int(when.start)
-        if task_id not in self._cache:
-            self._cache[task_id] = self._load(task_id)
-        return self._cache[task_id]
+        if task_id not in self._results:
+            self._results[task_id] = self._load(task_id)
+        return self._results[task_id]
+
+    # ── index builder ────────────────────────────────────────────────────────
+
+    def _build_index(self) -> None:
+        """
+        Scan base_path and one level of subdirectories.  Any directory whose
+        name begins with a long integer is treated as a recording directory
+        and indexed by that integer (the task_id).
+        """
+        try:
+            entries = list(os.scandir(self._base))
+        except OSError as exc:
+            print(f"NafcNeuralDataField: cannot scan {self._base}: {exc}")
+            return
+
+        for entry in entries:
+            if not entry.is_dir():
+                continue
+            if self._is_recording_dir(entry.name):
+                self._index[entry.name.split('_')[0]] = entry.path
+            else:
+                # Could be a date subdirectory (e.g. 2026-04-26)
+                try:
+                    for sub in os.scandir(entry.path):
+                        if sub.is_dir() and self._is_recording_dir(sub.name):
+                            self._index[sub.name.split('_')[0]] = sub.path
+                except OSError:
+                    pass
+
+        if not self._index:
+            print(f"NafcNeuralDataField: no recording directories found under {self._base}")
+
+    @staticmethod
+    def _is_recording_dir(name: str) -> bool:
+        """True when the directory name starts with a long numeric task_id."""
+        parts = name.split('_')
+        if len(parts) < 3:
+            return False
+        try:
+            return len(parts[0]) > 10 and parts[0].isdigit()
+        except Exception:
+            return False
+
+    # ── per-trial loader ─────────────────────────────────────────────────────
 
     def _load(self, task_id: int) -> Optional[NafcTrialEvents]:
-        recording_dir = self._find_dir(task_id)
+        recording_dir = self._index.get(str(task_id))
         if recording_dir is None:
-            print(f"NafcNeuralDataField: no recording dir for task_id={task_id}")
             return None
         try:
             return self._parser.parse(recording_dir)
         except Exception as exc:
             print(f"NafcNeuralDataField: parse failed for task_id={task_id}: {exc}")
             return None
-
-    def _find_dir(self, task_id: int) -> Optional[str]:
-        prefix = str(task_id)
-        try:
-            for entry in os.scandir(self._base):
-                if entry.is_dir() and entry.name.startswith(prefix):
-                    return entry.path
-        except OSError as exc:
-            print(f"NafcNeuralDataField: error scanning {self._base}: {exc}")
-        return None
