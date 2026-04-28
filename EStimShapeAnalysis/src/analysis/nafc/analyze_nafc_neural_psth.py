@@ -26,10 +26,10 @@ from src.analysis.nafc.analyze_nafc_neural_raster import load_data
 # ─────────────────────────── CONFIG ─────────────────────────────────────────
 EXP_DB_NAME     = "allen_estimshape_exp_260426_0"
 INTAN_BASE_PATH = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_estimshape_exp_260426_0/2026-04-26/"
-CHANNEL_NAME    = "A-000"
+CHANNEL_NAME    = "A-022"
 SINCE_DATE      = time_util.from_date_to_now(2026, 4, 26)
-TIME_BEFORE_S   = 0.1    # seconds before sample_off
-TIME_AFTER_S    = 3.0    # seconds after sample_off
+TIME_BEFORE_S   = 0.0    # seconds before sample_off shown on x-axis
+TIME_AFTER_S    = 3.0    # seconds after sample_off shown on x-axis
 BIN_SIZE_S      = 0.05   # 50 ms bins
 SHOW_STD        = True   # shaded ± 1 SEM band
 # ────────────────────────────────────────────────────────────────────────────
