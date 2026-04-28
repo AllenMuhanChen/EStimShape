@@ -17,7 +17,7 @@ PLOT_MODE_DB_INCLUDED = 'db_included'  # Show exactly the stims with included=1 
 
 def main():
 
-    use_ga = False
+    use_ga = True
     channel = "A-030"
 
     analysis = PlotVariantDeltas(
@@ -25,7 +25,7 @@ def main():
         to_save_to_db=False,
         delta_threshold=0.6,
         variant_threshold=0.6,
-        plot_mode=PLOT_MODE_ALL,)
+        plot_mode=PLOT_MODE_DB_INCLUDED,)
     compiled_data = None  # Set to None to import from repository
     # compiled_data = analysis.compile_and_export()
     if use_ga:

@@ -18,7 +18,7 @@ from src.analysis.nafc.analyze_nafc_neural_psth   import run as run_psth
 # ── shared ──────────────────────────────────────────────────────────────────
 EXP_DB_NAME     = "allen_estimshape_exp_260426_0"
 INTAN_BASE_PATH = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_estimshape_exp_260426_0/2026-04-26/"
-CHANNEL_NAME    = "A-022"
+CHANNEL_NAME    = "A-007"
 SINCE_DATE      = time_util.from_date_to_now(2026, 4, 26)
 
 # ── raster ───────────────────────────────────────────────────────────────────
