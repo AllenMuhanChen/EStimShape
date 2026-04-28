@@ -91,7 +91,7 @@ def _pulse_train_waveform(p: dict, n_show: int = 3):
     t_single, y_single = _biphasic_waveform(p)
     period = p.get("post_stim_refractory_period") or 0.0
 
-    if period <= pulse_dur or n_show <= 1:
+    if period <= 0 or n_show <= 1:
         return t_single, y_single
 
     t_parts = [t_single + i * period for i in range(n_show)]
