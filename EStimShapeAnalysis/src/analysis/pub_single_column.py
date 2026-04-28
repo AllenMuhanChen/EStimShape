@@ -8,6 +8,7 @@ Usage: edit the USER SETTINGS block, then run.
 """
 
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from clat.util.connection import Connection
 from src.analysis.channel_data_loaders import (
     ChannelResponseVectorLoader,
@@ -85,7 +86,10 @@ def main():
     cmap, norm       = default_cmap_norm()
     n                = len(channel_strings)
 
-    fig, ax = plt.subplots(figsize=(4, 12), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(5, 12))
+    # Reserve right-side room for the EStim labels, the tall colorbar,
+    # and the marker legend stacked above it.
+    fig.subplots_adjust(left=0.18, right=0.62, top=0.92, bottom=0.05)
 
     scatter = plot_metric_column(
         ax, metric.compute(), channel_strings, cluster_channels,
@@ -124,17 +128,29 @@ def main():
                     clip_on=False,
                 )
 
+    # Colorbar: 75% of the axes height, bottom-anchored on the right side.
+    # The EStim labels sit at x=1.02 (axes fraction); start the colorbar at
+    # x=1.30 so the labels have clear horizontal space.
     if scatter:
+        cax = inset_axes(
+            ax, width="5%", height="75%",
+            loc='lower left',
+            bbox_to_anchor=(1.30, 0.0, 1, 1),
+            bbox_transform=ax.transAxes,
+            borderpad=0,
+        )
         cbar = fig.colorbar(
             plt.cm.ScalarMappable(norm=norm, cmap=cmap),
-            ax=ax, orientation='vertical', pad=0.12, fraction=0.05,
+            cax=cax, orientation='vertical',
         )
         cbar.set_label('Value', fontsize=9)
 
+    # Marker legend stacked above the colorbar, sharing the same left anchor.
     ax.legend(
         handles=cluster_marker_legend_handles(),
         fontsize=8,
-        bbox_to_anchor=(1.55, 1.0),
+        bbox_to_anchor=(1.28, 1.0),
+        bbox_transform=ax.transAxes,
         loc='upper left',
         borderaxespad=0,
         framealpha=0.8,
