@@ -1,10 +1,16 @@
 import json
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import TwoSlopeNorm
 from scipy.stats import spearmanr
 from clat.intan.channels import Channel
 from clat.util.connection import Connection
+from src.analysis.channel_metric_plot import (
+    build_channel_strings,
+    cluster_marker_legend_handles,
+    default_cmap_norm,
+    format_single_column_axis,
+    plot_metric_column,
+)
 from src.cluster.cluster_app_classes import ChannelMapper
 from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.startup import context
@@ -12,9 +18,7 @@ from src.startup import context
 
 class DBCChannelMapper(ChannelMapper):
     def __init__(self, headstage_label: str):
-        channel_numbers_top_to_bottom = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16, 27, 20, 4, 11, 28,
-                                         19, 1, 14, 3, 12, 29, 18, 2, 13, 30, 17]
-        channel_strings_top_to_bottom = [f"{headstage_label}-{num:03}" for num in channel_numbers_top_to_bottom]
+        channel_strings_top_to_bottom = build_channel_strings(headstage_label)
         self.channels_top_to_bottom = [Channel[channel.replace("-", "_")] for channel in channel_strings_top_to_bottom]
         self.channel_map = {}
 
@@ -229,12 +233,8 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
         headstage_label: The headstage label (default "A")
         save_path: Optional path to save the figure as PNG (e.g., "output.png")
     """
-    # Initialize channel mapper
-    mapper = DBCChannelMapper(headstage_label)
-
     # Get ordered channel names (as strings like "A-007")
-    channel_strings = [f"{headstage_label}-{str(ch).split('_')[1]}"
-                       for ch in mapper.channels_top_to_bottom]
+    channel_strings = build_channel_strings(headstage_label)
 
     # Connect to database
     conn = Connection("allen_data_repository")
@@ -331,136 +331,49 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
         ax_corr_list = []
 
     # Set up colormap (diverging around 0)
-    cmap = plt.cm.RdBu_r  # Red for positive (prefers isochromatic/3D), Blue for negative
-    norm = TwoSlopeNorm(vmin=-1.0, vcenter=0.0, vmax=1.0)
+    cmap, norm = default_cmap_norm()
 
-    # Plot isochromatic preferences - 4 columns of dots (one per frequency)
+    # Plot isochromatic preferences - one column per frequency, all on ax_iso
     scatter = None
     for freq_idx, frequency in enumerate(frequencies):
-        freq_data = frequency_data[frequency]
-        x_position = freq_idx  # Horizontal position for this frequency
+        ref = plot_metric_column(
+            ax_iso, frequency_data[frequency],
+            channel_strings, cluster_channels,
+            cmap=cmap, norm=norm,
+            x_position=freq_idx,
+            show_yticks=(freq_idx == 0),
+        )
+        scatter = ref or scatter
 
-        # Prepare data for plotting
-        for idx, channel_str in enumerate(channel_strings):
-            y_pos = len(channel_strings) - idx  # Top to bottom
-            is_cluster = channel_str in cluster_channels
-
-            if channel_str in freq_data:
-                # Has data - color by preference index
-                color_val = freq_data[channel_str]
-                size = 200 if is_cluster else 100
-                marker = '*' if is_cluster else 'o'
-                edge_color = 'black'
-                line_width = 0.5 if is_cluster else 0.5
-
-                scatter = ax_iso.scatter(x_position, y_pos, c=color_val, s=size,
-                                         marker=marker, cmap=cmap, norm=norm,
-                                         edgecolors=edge_color, linewidths=line_width,
-                                         alpha=0.9 if is_cluster else 0.8,
-                                         zorder=10 if is_cluster else 1)
-            else:
-                # No data - use gray
-                size = 120 if is_cluster else 50
-                marker = '*' if is_cluster else 'o'
-                edge_color = 'black' if is_cluster else 'gray'
-                line_width = 0.5 if is_cluster else 0.5
-
-                ax_iso.scatter(x_position, y_pos, c='lightgray', s=size,
-                               marker=marker, edgecolors=edge_color, linewidths=line_width,
-                               alpha=0.7 if is_cluster else 0.5,
-                               zorder=10 if is_cluster else 1)
-
-    # Format isochromatic plot
+    # Format isochromatic plot (multi-column on a shared axis)
     ax_iso.set_xlim(-0.2, n_frequencies - 0.8)  # Tighter limits to reduce gaps
     ax_iso.set_xticks(range(n_frequencies))
     ax_iso.set_xticklabels([f'{freq} Hz' for freq in frequencies], fontsize=10)
-    ax_iso.set_yticks(range(1, len(channel_strings) + 1))
-    ax_iso.set_yticklabels(channel_strings[::-1], fontsize=8)
-    ax_iso.set_ylabel('Channel (Top â†’ Bottom)', fontsize=10)
     ax_iso.set_title('Isochromatic Preference by Frequency', fontsize=12, fontweight='bold')
     ax_iso.grid(True, axis='y', alpha=0.3, linestyle='--')
     ax_iso.grid(True, axis='x', alpha=0.2, linestyle='--')  # Add vertical grid lines
-    ax_iso.set_ylim(0.5, len(channel_strings) + 0.5)
 
     # Plot solid preference - single column
-    for idx, channel_str in enumerate(channel_strings):
-        y_pos = len(channel_strings) - idx  # Top to bottom
-        is_cluster = channel_str in cluster_channels
-
-        if channel_str in solid_data:
-            # Has data - color by preference index
-            color_val = solid_data[channel_str]
-            size = 200 if is_cluster else 100
-            marker = '*' if is_cluster else 'o'
-            edge_color = 'black'
-            line_width = 0.5 if is_cluster else 0.5
-
-            scatter = ax_solid.scatter(0, y_pos, c=color_val, s=size,
-                                       marker=marker, cmap=cmap, norm=norm,
-                                       edgecolors=edge_color, linewidths=line_width,
-                                       alpha=0.9 if is_cluster else 0.8,
-                                       zorder=10 if is_cluster else 1)
-        else:
-            # No data - use gray
-            size = 120 if is_cluster else 50
-            marker = '*' if is_cluster else 'o'
-            edge_color = 'black' if is_cluster else 'gray'
-            line_width = 0.5 if is_cluster else 0.5
-
-            ax_solid.scatter(0, y_pos, c='lightgray', s=size,
-                             marker=marker, edgecolors=edge_color, linewidths=line_width,
-                             alpha=0.7 if is_cluster else 0.5,
-                             zorder=10 if is_cluster else 1)
-
-    # Format solid preference plot
-    ax_solid.set_xlim(-0.5, 0.5)
-    ax_solid.set_xticks([])
+    ref = plot_metric_column(
+        ax_solid, solid_data,
+        channel_strings, cluster_channels,
+        cmap=cmap, norm=norm,
+    )
+    scatter = ref or scatter
+    format_single_column_axis(ax_solid)
     ax_solid.set_title('Solid Preference', fontsize=12, fontweight='bold')
-    ax_solid.axvline(0, color='black', linewidth=0.5, alpha=0.3)
-    ax_solid.grid(True, axis='y', alpha=0.3, linestyle='--')
-    ax_solid.set_ylim(0.5, len(channel_strings) + 0.5)
 
     # Plot correlation columns - one per cluster channel
-    for col_idx, (ax_corr, cluster_channel) in enumerate(zip(ax_corr_list, cluster_channel_list)):
-        corr_data = correlations[cluster_channel]
-
-        for idx, channel_str in enumerate(channel_strings):
-            y_pos = len(channel_strings) - idx  # Top to bottom
-            is_cluster = channel_str in cluster_channels
-            is_self = channel_str == cluster_channel
-
-            if channel_str in corr_data and not np.isnan(corr_data[channel_str]):
-                # Has correlation data
-                color_val = corr_data[channel_str]
-                size = 200 if is_cluster else 100
-                marker = '*' if is_cluster else 'o'
-                edge_color = 'black'
-                line_width = 2.0 if is_self else (0.5 if is_cluster else 0.5)
-
-                scatter = ax_corr.scatter(0, y_pos, c=color_val, s=size,
-                                          marker=marker, cmap=cmap, norm=norm,
-                                          edgecolors=edge_color, linewidths=line_width,
-                                          alpha=0.9 if is_cluster else 0.8,
-                                          zorder=10 if is_cluster else 1)
-            else:
-                # No data - use gray
-                size = 120 if is_cluster else 50
-                marker = '*' if is_cluster else 'o'
-                edge_color = 'black' if is_cluster else 'gray'
-                line_width = 0.5 if is_cluster else 0.5
-
-                ax_corr.scatter(0, y_pos, c='lightgray', s=size,
-                                marker=marker, edgecolors=edge_color, linewidths=line_width,
-                                alpha=0.7 if is_cluster else 0.5,
-                                zorder=10 if is_cluster else 1)
-
-        # Format correlation plot
-        ax_corr.set_xlim(-0.5, 0.5)
-        ax_corr.set_xticks([])
+    for ax_corr, cluster_channel in zip(ax_corr_list, cluster_channel_list):
+        ref = plot_metric_column(
+            ax_corr, correlations[cluster_channel],
+            channel_strings, cluster_channels,
+            cmap=cmap, norm=norm,
+            self_channel=cluster_channel,
+        )
+        scatter = ref or scatter
+        format_single_column_axis(ax_corr)
         ax_corr.set_title(f'ρ vs {cluster_channel}', fontsize=12, fontweight='bold')
-        ax_corr.axvline(0, color='black', linewidth=0.5, alpha=0.3)
-        ax_corr.grid(True, axis='y', alpha=0.3, linestyle='--')
-        ax_corr.set_ylim(0.5, len(channel_strings) + 0.5)
 
     # Overall title
     title_text = f'Channel Preference Indices\nSession: {session_id}'
@@ -479,13 +392,10 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
 
     # Add legend for cluster channels
     if cluster_channels:
-        from matplotlib.lines import Line2D
-        legend_elements = [
-            Line2D([0], [0], marker='*', color='w', markerfacecolor='lightcoral',
-                   markeredgecolor='black', markersize=14, markeredgewidth=2,
-                   label='Cluster Channel', linestyle='None')
-        ]
-        ax_iso.legend(handles=legend_elements, loc='upper left', fontsize=9)
+        ax_iso.legend(
+            handles=cluster_marker_legend_handles(),
+            loc='upper left', fontsize=9,
+        )
 
     # Save figure if path provided
     if save_path:

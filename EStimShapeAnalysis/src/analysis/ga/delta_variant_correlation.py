@@ -32,23 +32,24 @@ from typing import Dict, Optional, Set, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.colors import TwoSlopeNorm
 from matplotlib.gridspec import GridSpec
-from matplotlib.lines import Line2D
 from scipy.stats import linregress, spearmanr
 
 import pandas as pd
 
 from clat.util.connection import Connection
+from src.analysis.channel_metric_plot import (
+    build_channel_strings,
+    cluster_marker_legend_handles,
+    default_cmap_norm,
+    format_single_column_axis,
+    plot_metric_column,
+)
 from src.analysis.ga.rwa_prediction import (
     plot_real_vs_predicted_grouped, limit_groups_to_top_n,
 )
 from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.startup import context
-
-# Channel order top → bottom (same as DBCChannelMapper)
-CHANNEL_ORDER = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
-                 27, 20, 4, 11, 28, 19, 1, 14, 3, 12, 29, 18, 2, 13, 30, 17]
 
 # ── Scatter subfolder colour grouping ────────────────────────────────────────
 # Applied to both rwa_channel_scatters/ and ga_channel_scatters/ figures.
@@ -396,64 +397,6 @@ def compute_zscore_correlations(
 
 
 # ---------------------------------------------------------------------------
-# Plot helpers
-# ---------------------------------------------------------------------------
-
-def _plot_corr_column(
-        ax,
-        cluster_ch: str,
-        corr_data: Dict[str, float],
-        channel_strings,
-        cluster_channels: Set[str],
-        cmap,
-        norm,
-        show_yticks: bool = False,
-):
-    """Draw one correlation column into *ax*. Returns a scatter artist for the colorbar."""
-    scatter_ref = None
-    for row_idx, channel_str in enumerate(channel_strings):
-        y_pos = len(channel_strings) - row_idx  # top → bottom
-        is_cluster = channel_str in cluster_channels
-        is_self = channel_str == cluster_ch
-        rho = corr_data.get(channel_str, np.nan)
-
-        if not np.isnan(rho):
-            scatter_ref = ax.scatter(
-                0, y_pos,
-                c=rho, s=200 if is_cluster else 100,
-                marker='*' if is_cluster else 'o',
-                cmap=cmap, norm=norm,
-                edgecolors='black',
-                linewidths=2.0 if is_self else 0.5,
-                alpha=0.9 if is_cluster else 0.8,
-                zorder=10 if is_cluster else 1,
-            )
-        else:
-            ax.scatter(
-                0, y_pos,
-                c='lightgray', s=120 if is_cluster else 50,
-                marker='*' if is_cluster else 'o',
-                edgecolors='black' if is_cluster else 'gray',
-                linewidths=0.5,
-                alpha=0.7 if is_cluster else 0.5,
-                zorder=10 if is_cluster else 1,
-            )
-
-    ax.set_xlim(-0.5, 0.5)
-    ax.set_xticks([])
-    ax.axvline(0, color='black', linewidth=0.5, alpha=0.3)
-    ax.grid(True, axis='y', alpha=0.3, linestyle='--')
-    ax.set_ylim(0.5, len(channel_strings) + 0.5)
-
-    if show_yticks:
-        ax.set_yticks(range(1, len(channel_strings) + 1))
-        ax.set_yticklabels(channel_strings[::-1], fontsize=8)
-        ax.set_ylabel('Channel (Top → Bottom)', fontsize=10)
-
-    return scatter_ref
-
-
-# ---------------------------------------------------------------------------
 # Main plotting function
 # ---------------------------------------------------------------------------
 
@@ -492,7 +435,7 @@ def plot_delta_variant_correlation(
     if ga_database is None:
         ga_database = context.ga_database
 
-    channel_strings = [f"{headstage_label}-{num:03d}" for num in CHANNEL_ORDER]
+    channel_strings = build_channel_strings(headstage_label)
     plot_dir = os.path.dirname(save_path) if save_path else None
 
     # ---- connections ----
@@ -573,8 +516,7 @@ def plot_delta_variant_correlation(
         return
 
     # ---- figure layout ----
-    cmap = plt.cm.RdBu_r
-    norm = TwoSlopeNorm(vmin=-1.0, vcenter=0.0, vmax=1.0)
+    cmap, norm = default_cmap_norm()
 
     col_width   = 3
     spacer_width = 0.5
@@ -607,23 +549,26 @@ def plot_delta_variant_correlation(
     # -- left group --
     included_label = "included pairs only" if included_only else "all pairs"
     for col_idx, (ax, cluster_ch) in enumerate(zip(axes_left, cluster_channel_list)):
-        ref = _plot_corr_column(
-            ax, cluster_ch,
-            dv_correlations.get(cluster_ch, {}),
-            channel_strings, cluster_channels, cmap, norm,
+        ref = plot_metric_column(
+            ax, dv_correlations.get(cluster_ch, {}),
+            channel_strings, cluster_channels,
+            cmap=cmap, norm=norm,
+            self_channel=cluster_ch,
             show_yticks=(col_idx == 0),
         )
+        format_single_column_axis(ax)
         scatter_ref = scatter_ref or ref
         ax.set_title(f"ρ vs {cluster_ch}\ndelta/variant", fontsize=10, fontweight='bold')
 
     # -- right group --
     for col_idx, (ax, cluster_ch) in enumerate(zip(axes_right, cluster_channel_list)):
-        ref = _plot_corr_column(
-            ax, cluster_ch,
-            topn_correlations.get(cluster_ch, {}),
-            channel_strings, cluster_channels, cmap, norm,
-            show_yticks=False,
+        ref = plot_metric_column(
+            ax, topn_correlations.get(cluster_ch, {}),
+            channel_strings, cluster_channels,
+            cmap=cmap, norm=norm,
+            self_channel=cluster_ch,
         )
+        format_single_column_axis(ax)
         scatter_ref = scatter_ref or ref
         ax.set_title(f"ρ vs {cluster_ch}\ntop {top_n}", fontsize=10, fontweight='bold')
 
@@ -638,11 +583,12 @@ def plot_delta_variant_correlation(
             (ax_term,  term_r_corr,  "Termination RWA\nr (Pearson)"),
             (ax_junc,  junc_r_corr,  "Junction RWA\nr (Pearson)"),
         ]:
-            ref = _plot_corr_column(
-                ax, "__rwa__", corr_data,
-                channel_strings, cluster_channels, cmap, norm,
-                show_yticks=False,
+            ref = plot_metric_column(
+                ax, corr_data,
+                channel_strings, cluster_channels,
+                cmap=cmap, norm=norm,
             )
+            format_single_column_axis(ax)
             scatter_ref = scatter_ref or ref
             ax.set_title(label, fontsize=10, fontweight='bold')
 
@@ -687,18 +633,10 @@ def plot_delta_variant_correlation(
         cbar.set_label("Correlation  (Red = positive, Blue = negative)", fontsize=10)
 
     # Legend
-    legend_elements = [
-        Line2D([0], [0], marker='*', color='w', markerfacecolor='lightcoral',
-               markeredgecolor='black', markersize=14, markeredgewidth=2,
-               label='Cluster channel', linestyle='None'),
-        Line2D([0], [0], marker='o', color='w', markerfacecolor='lightcoral',
-               markeredgecolor='black', markersize=10, markeredgewidth=0.5,
-               label='Other channel', linestyle='None'),
-        Line2D([0], [0], marker='o', color='w', markerfacecolor='lightgray',
-               markeredgecolor='gray', markersize=10, markeredgewidth=0.5,
-               label='No data', linestyle='None'),
-    ]
-    axes_left[0].legend(handles=legend_elements, loc='upper left', fontsize=8)
+    axes_left[0].legend(
+        handles=cluster_marker_legend_handles(),
+        loc='upper left', fontsize=8,
+    )
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
