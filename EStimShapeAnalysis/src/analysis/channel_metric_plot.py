@@ -162,7 +162,7 @@ def cluster_marker_legend_handles(include_no_data: bool = True) -> List[Line2D]:
     handles = [
         Line2D([0], [0], marker='*', color='w', markerfacecolor='lightcoral',
                markeredgecolor='black', markersize=14, markeredgewidth=2,
-               label='Cluster channel', linestyle='None'),
+               label='GA Channel', linestyle='None'),
         Line2D([0], [0], marker='o', color='w', markerfacecolor='lightcoral',
                markeredgecolor='black', markersize=10, markeredgewidth=0.5,
                label='Other channel', linestyle='None'),

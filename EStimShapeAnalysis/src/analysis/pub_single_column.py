@@ -53,7 +53,8 @@ ga_conn = Connection(context.ga_database)
 
 # Raw Spearman correlation vs a cluster channel (from pre-computed GA vectors)
 matrix = ChannelResponseVectorLoader(SESSION_ID, conn).load()
-metric = StimVectorCorrelation.vs_channel(matrix, "A-022", title='ρ vs A-022')
+target_channel = "A-022"
+metric = StimVectorCorrelation.vs_channel(matrix, target_channel, title=f'Correlation vs {target_channel}')
 
 # Z-scored Spearman on delta/variant stims
 # dv_ids = DeltaVariantStimLoader(ga_conn, included_only=True).load()
@@ -79,7 +80,7 @@ def main():
                         to mark with a hatched band so they are visually distinct
                         from cluster channels without obscuring the dot colour.
     """
-    estim_channels = {"A-008", "A-022"}
+    estim_channels = {"A-008", target_channel}
 
     channel_strings  = build_channel_strings(HEADSTAGE)
     cluster_channels = ClusterChannelLoader(SESSION_ID, conn).load()
@@ -102,7 +103,7 @@ def main():
     # y=n → top channel (index 0, depth 0 mm); y=1 → bottom (depth (n-1)*spacing)
     depth_labels = [f'{(n - 1 - i) * CHANNEL_SPACING_MM:.2f}' for i in range(n)]
     ax.set_yticklabels(depth_labels, fontsize=8)
-    ax.set_ylabel('Depth (mm)', fontsize=10)
+    ax.set_ylabel('Depth Along Probe (mm)', fontsize=10)
 
     format_single_column_axis(ax)
 
@@ -143,7 +144,7 @@ def main():
             plt.cm.ScalarMappable(norm=norm, cmap=cmap),
             cax=cax, orientation='vertical',
         )
-        cbar.set_label('Value', fontsize=9)
+        cbar.set_label(metric.title, fontsize=9)
 
     # Marker legend stacked above the colorbar, sharing the same left anchor.
     ax.legend(
