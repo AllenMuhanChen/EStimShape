@@ -213,7 +213,8 @@ def plot_timing_diagram(
         ax2.tick_params(axis="x", color=_GRAY, labelcolor=_BLACK, labelsize=9, length=3)
         pulse_period_ms = (params["d1"] + params["dp"] + params["d2"] +
                            params["post_stim_refractory_period"]) / 1000.0
-        ax2.xaxis.set_major_locator(ticker.MultipleLocator(pulse_period_ms))
+        tick_positions = [estim_start + i * pulse_period_ms for i in range(n_pulses_shown + 1)]
+        ax2.set_xticks(tick_positions)
 
         ax2.set_xlabel("Time (ms)", fontsize=_LABEL_FS, labelpad=4)
         ax2.set_ylabel("Micro-\nstimulation\n(zoomed)", fontsize=_LABEL_FS, rotation=0,
@@ -239,11 +240,10 @@ def plot_timing_diagram(
                 color=_GRAY, linestyle="--", linewidth=0.8, clip_on=False,
             ))
 
-        # Short vertical markers at the zoom boundaries on the microstim row
-        marker_h = pos1.height * 0.35
+        # Vertical markers from bottom to top of ax1 at the zoom boundaries
         for src_x in [src_left, src_right]:
             fig.add_artist(Line2D(
-                [src_x, src_x], [pos1.y0, pos1.y0 + marker_h],
+                [src_x, src_x], [pos1.y0, pos1.y0 + pos1.height],
                 transform=fig.transFigure,
                 color=_GRAY, linestyle="--", linewidth=0.8, clip_on=False,
             ))
