@@ -46,8 +46,12 @@ BIN_SIZE_S      = 0.05   # 50 ms bins
 SHOW_STD        = True   # shaded ± 1 SEM band
 # ────────────────────────────────────────────────────────────────────────────
 
-COLOR_CORRECT   = "tab:green"
-COLOR_INCORRECT = "tab:red"
+CHOICE_COLORS = {
+    "match":       "tab:green",
+    "delta":       "tab:blue",
+    "rand":        "tab:gray",
+    "procedural":  "tab:orange",
+}
 
 _PANEL_EVENT_DEFS = [
     # (neural_key, color, linestyle, legend_label)
@@ -60,10 +64,6 @@ _PANEL_EVENT_DEFS = [
 
 def _spikes_for_channel(neural: dict, channel_name: str) -> list:
     return neural.get("spikes_by_channel", {}).get(channel_name, [])
-
-
-def _is_correct(trial) -> bool:
-    return trial.get("IsCorrect") is True
 
 
 def _aligned_spikes(neural: dict, channel_name: str,
@@ -116,27 +116,21 @@ def plot_psth_panel(ax, group_df, channel_name: str,
     bins        = np.arange(-time_before, time_after + bin_size, bin_size)
     bin_centers = bins[:-1] + bin_size / 2
 
-    correct_spikes   = []
-    incorrect_spikes = []
-
+    spikes_by_choice: dict[str, list] = {}
     for _, trial in group_df.iterrows():
         neural = trial.get("NeuralData")
         if not isinstance(neural, dict) or neural.get("sample_off") is None:
             continue
+        choice = trial.get("Choice", "None")
         spikes = _aligned_spikes(neural, channel_name, time_before, time_after)
-        if _is_correct(trial):
-            correct_spikes.append(spikes)
-        else:
-            incorrect_spikes.append(spikes)
+        spikes_by_choice.setdefault(choice, []).append(spikes)
 
-    for spike_lists, color, label in [
-        (correct_spikes,   COLOR_CORRECT,   "Correct"),
-        (incorrect_spikes, COLOR_INCORRECT, "Incorrect"),
-    ]:
+    for choice, spike_lists in sorted(spikes_by_choice.items()):
+        color = CHOICE_COLORS.get(choice, "tab:purple")
         mean, sem = _compute_psth(spike_lists, bins)
         n = len(spike_lists)
         ax.plot(bin_centers, mean, color=color, linewidth=1.8,
-                label=f"{label} (n={n})")
+                label=f"{choice} (n={n})")
         if SHOW_STD and n > 1:
             ax.fill_between(bin_centers, mean - sem, mean + sem,
                             color=color, alpha=0.25, linewidth=0)
@@ -164,11 +158,13 @@ def plot_psth_panel(ax, group_df, channel_name: str,
 
 def _legend_handles():
     handles = [
-        mlines.Line2D([], [], color=COLOR_CORRECT,   linewidth=1.8, label="Correct"),
-        mlines.Line2D([], [], color=COLOR_INCORRECT, linewidth=1.8, label="Incorrect"),
-        mlines.Line2D([], [], color="black", linestyle="-",
-                      linewidth=1.2, label="Sample Off (t=0)"),
+        mlines.Line2D([], [], color=c, linewidth=1.8, label=name)
+        for name, c in CHOICE_COLORS.items()
     ]
+    handles.append(
+        mlines.Line2D([], [], color="black", linestyle="-",
+                      linewidth=1.2, label="Sample Off (t=0)")
+    )
     for _, color, linestyle, label in _PANEL_EVENT_DEFS:
         handles.append(
             mlines.Line2D([], [], color=color, linestyle=linestyle,
