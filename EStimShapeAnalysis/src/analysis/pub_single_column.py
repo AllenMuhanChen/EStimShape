@@ -68,6 +68,7 @@ metric = StimVectorCorrelation.vs_channel(matrix, "A-022", title='ρ vs A-022')
 # ─────────────────────────────────────────────────────────────────────────────
 
 CHANNEL_SPACING_MM = 0.065  # 65 µm center-to-center
+ESTIM_HATCH_COLOR  = '#8B8000'  # used for both hatch and "EStim" label
 
 
 def main():
@@ -112,21 +113,28 @@ def main():
                 ax.axhspan(
                     y_pos - 0.5, y_pos + 0.5,
                     facecolor='none', hatch='////',
-                    edgecolor='#8B8000', linewidth=0.4,
+                    edgecolor=ESTIM_HATCH_COLOR, linewidth=0.4,
                     zorder=0,
+                )
+                ax.text(
+                    1.02, y_pos, 'EStim',
+                    transform=ax.get_yaxis_transform(),
+                    ha='left', va='center',
+                    fontsize=7, color=ESTIM_HATCH_COLOR,
+                    clip_on=False,
                 )
 
     if scatter:
         cbar = fig.colorbar(
             plt.cm.ScalarMappable(norm=norm, cmap=cmap),
-            ax=ax, orientation='vertical', pad=0.02, fraction=0.05,
+            ax=ax, orientation='vertical', pad=0.12, fraction=0.05,
         )
         cbar.set_label('Value', fontsize=9)
 
     ax.legend(
         handles=cluster_marker_legend_handles(),
         fontsize=8,
-        bbox_to_anchor=(1.35, 1.0),
+        bbox_to_anchor=(1.55, 1.0),
         loc='upper left',
         borderaxespad=0,
         framealpha=0.8,
