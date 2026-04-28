@@ -34,7 +34,7 @@ from src.startup import context
 
 SESSION_ID  = "260426_0"
 HEADSTAGE   = "A"
-SAVE_PATH   = None   # e.g. "/home/connorlab/Documents/plots/pub_column.png"
+SAVE_PATH   = "/home/connorlab/Documents/plots/260426_0/probe_correlation"   # e.g. "/home/connorlab/Documents/plots/pub_column.png"
 
 # Open connections once so metric choices below can share them.
 conn    = Connection("allen_data_repository")
@@ -44,15 +44,15 @@ ga_conn = Connection(context.ga_database)
 # Assign the one you want to `metric` and leave the rest commented out.
 
 # Solid preference index
-metric = SolidPreferenceLoader(SESSION_ID, conn).as_metric(title='Solid Preference')
+# metric = SolidPreferenceLoader(SESSION_ID, conn).as_metric(title='Solid Preference')
 
 # Isochromatic preference at a specific frequency
 # iso_data = IsochromaticPreferenceLoader(SESSION_ID, conn).load()
 # metric = LookupMetric(iso_data[12.0], title='Iso Pref  12 Hz')
 
 # Raw Spearman correlation vs a cluster channel (from pre-computed GA vectors)
-# matrix = ChannelResponseVectorLoader(SESSION_ID, conn).load()
-# metric = StimVectorCorrelation.vs_channel(matrix, "A-001", title='ρ vs A-001')
+matrix = ChannelResponseVectorLoader(SESSION_ID, conn).load()
+metric = StimVectorCorrelation.vs_channel(matrix, "A-022", title='ρ vs A-022')
 
 # Z-scored Spearman on delta/variant stims
 # dv_ids = DeltaVariantStimLoader(ga_conn, included_only=True).load()
@@ -70,13 +70,15 @@ metric = SolidPreferenceLoader(SESSION_ID, conn).as_metric(title='Solid Preferen
 CHANNEL_SPACING_MM = 0.065  # 65 µm center-to-center
 
 
-def main(estim_channels: set = None):
+def main():
     """
     Args:
         estim_channels: Optional set of channel strings (e.g. {"A-007", "A-025"})
                         to mark with a hatched band so they are visually distinct
                         from cluster channels without obscuring the dot colour.
     """
+    estim_channels = {"A-008", "A-022"}
+
     channel_strings  = build_channel_strings(HEADSTAGE)
     cluster_channels = ClusterChannelLoader(SESSION_ID, conn).load()
     cmap, norm       = default_cmap_norm()
@@ -110,7 +112,7 @@ def main(estim_channels: set = None):
                 ax.axhspan(
                     y_pos - 0.5, y_pos + 0.5,
                     facecolor='none', hatch='////',
-                    edgecolor='#888888', linewidth=0.4,
+                    edgecolor='#8B8000', linewidth=0.4,
                     zorder=0,
                 )
 
