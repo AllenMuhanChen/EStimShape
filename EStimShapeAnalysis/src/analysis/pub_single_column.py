@@ -89,11 +89,12 @@ def main():
     if scatter:
         cbar = plt.colorbar(
             plt.cm.ScalarMappable(norm=norm, cmap=cmap),
-            ax=ax, orientation='horizontal', pad=0.04, fraction=0.05,
+            ax=ax, orientation='vertical', pad=0.02, fraction=0.05,
         )
         cbar.set_label('Value', fontsize=9)
 
-    ax.legend(handles=cluster_marker_legend_handles(), loc='upper right', fontsize=8,
+    ax.legend(handles=cluster_marker_legend_handles(), fontsize=8,
+              bbox_to_anchor=(1.15, 1), loc='upper left', borderaxespad=0,
               framealpha=0.8)
 
     plt.tight_layout()
