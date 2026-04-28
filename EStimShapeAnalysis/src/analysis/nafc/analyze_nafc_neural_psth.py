@@ -169,6 +169,7 @@ def run(data, channel_name: str, time_before: float, time_after: float,
     col_labels = ["EStim Off", "EStim On"]
     row_labels = ["Variant\n(IsDelta=False)", "Delta\n(IsDelta=True)"]
 
+    all_axes = []
     for r, is_delta in enumerate([False, True]):
         for c, estim_on in enumerate([False, True]):
             ax = fig.add_subplot(gs[r, c])
@@ -178,6 +179,11 @@ def run(data, channel_name: str, time_before: float, time_after: float,
                             time_before, time_after, bin_size, show_std, full_title)
             if c == 0:
                 ax.set_ylabel(f"{row_labels[r]}\n\nFiring rate (spikes/s)", fontsize=8)
+            all_axes.append(ax)
+
+    global_ymax = max(ax.get_ylim()[1] for ax in all_axes)
+    for ax in all_axes:
+        ax.set_ylim(bottom=0, top=global_ymax)
 
     fig.legend(handles=_legend_handles(), loc="upper right", fontsize=8,
                bbox_to_anchor=(0.99, 0.99), framealpha=0.9)
