@@ -14,7 +14,6 @@ import os
 import sys
 from pathlib import Path
 
-import matplotlib.patches as mpatches
 import matplotlib.gridspec as gridspec
 import matplotlib.ticker as ticker
 import numpy as np
@@ -199,12 +198,12 @@ def plot_timing_diagram(
         t_ms     = t_wave / 1000.0 + estim_start
         total_ms = t_ms[-1]
 
-        t_plot = np.concatenate([[estim_start], t_ms, [t_max]])
+        t_plot = np.concatenate([[estim_start], t_ms, [total_ms]])
         y_plot = np.concatenate([[0],           y_wave, [0]])
 
         ax2.plot(t_plot, y_plot, color=_BLACK, linewidth=_LINE_W,
                  solid_joinstyle="miter", solid_capstyle="butt")
-        ax2.set_xlim(estim_start, t_max)
+        ax2.set_xlim(estim_start, total_ms)
 
         ax2.spines["top"].set_visible(False)
         ax2.spines["right"].set_visible(False)
@@ -228,17 +227,15 @@ def plot_timing_diagram(
     if show_waveform:
         from matplotlib.lines import Line2D
 
-        pos1     = ax1.get_position()
-        frac     = (estim_start - t_min) / (t_max - t_min)
-        new_left = pos1.x0 + frac * pos1.width
-        pos2     = ax2.get_position()
-        ax2.set_position([new_left, pos2.y0, pos1.x1 - new_left, pos2.height])
+        pos1      = ax1.get_position()
+        new_left  = pos1.x0 + (estim_start - t_min) / (t_max - t_min) * pos1.width
+        new_right = pos1.x0 + (total_ms    - t_min) / (t_max - t_min) * pos1.width
+        pos2      = ax2.get_position()
+        ax2.set_position([new_left, pos2.y0, new_right - new_left, pos2.height])
 
-        pos2 = ax2.get_position()  # re-fetch after adjustment
-
-        # Figure-fraction x coords of estim_start and total_ms
-        x_left  = pos2.x0
-        x_right = pos1.x0 + (total_ms - t_min) / (t_max - t_min) * pos1.width
+        # Figure-fraction x coords of the two zoom boundaries
+        x_left  = new_left
+        x_right = new_right
 
         for x in [x_left, x_right]:
             fig.add_artist(Line2D(
