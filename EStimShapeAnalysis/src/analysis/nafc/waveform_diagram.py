@@ -204,7 +204,6 @@ def plot_timing_diagram(
         ax2.plot(t_plot, y_plot, color=_BLACK, linewidth=_LINE_W,
                  solid_joinstyle="miter", solid_capstyle="butt")
         ax2.set_xlim(estim_start, total_ms)
-
         ax2.spines["top"].set_visible(False)
         ax2.spines["right"].set_visible(False)
         ax2.spines["left"].set_visible(False)
@@ -227,19 +226,17 @@ def plot_timing_diagram(
     if show_waveform:
         from matplotlib.lines import Line2D
 
-        pos1      = ax1.get_position()
-        new_left  = pos1.x0 + (estim_start - t_min) / (t_max - t_min) * pos1.width
-        new_right = pos1.x0 + (total_ms    - t_min) / (t_max - t_min) * pos1.width
-        pos2      = ax2.get_position()
-        ax2.set_position([new_left, pos2.y0, new_right - new_left, pos2.height])
+        pos1  = ax1.get_position()
+        pos2  = ax2.get_position()   # full-width, set by tight_layout
 
-        # Figure-fraction x coords of the two zoom boundaries
-        x_left  = new_left
-        x_right = new_right
+        # Figure-fraction x of the narrow source region on ax1
+        src_left  = pos1.x0 + (estim_start - t_min) / (t_max - t_min) * pos1.width
+        src_right = pos1.x0 + (total_ms    - t_min) / (t_max - t_min) * pos1.width
 
-        for x in [x_left, x_right]:
+        # Diagonal zoom lines: narrow region (bottom of ax1) → full width (top of ax2)
+        for src_x, dst_x in [(src_left, pos2.x0), (src_right, pos2.x1)]:
             fig.add_artist(Line2D(
-                [x, x], [pos1.y0, pos2.y0 + pos2.height],
+                [src_x, dst_x], [pos1.y0, pos2.y0 + pos2.height],
                 transform=fig.transFigure,
                 color=_GRAY, linestyle="--", linewidth=0.8, clip_on=False,
             ))
