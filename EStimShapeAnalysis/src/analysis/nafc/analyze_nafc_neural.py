@@ -26,7 +26,7 @@ RASTER_TIME_BEFORE_S = 0.2   # seconds before sample_on
 RASTER_TIME_AFTER_S  = 1.5   # seconds after sample_on
 
 # ── PSTH ─────────────────────────────────────────────────────────────────────
-PSTH_TIME_BEFORE_S   = 0.1   # seconds before sample_off
+PSTH_TIME_BEFORE_S   = 0.5   # seconds before sample_off
 PSTH_TIME_AFTER_S    = 3.0   # seconds after sample_off
 BIN_SIZE_S           = 0.05  # 50 ms bins
 SHOW_STD             = True  # shaded ± 1 SEM band
