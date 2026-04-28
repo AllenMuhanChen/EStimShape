@@ -245,6 +245,7 @@ def plot_timing_diagram(
 
     fig.suptitle("Stimulus Timing", fontsize=12, fontweight="bold")
     plt.tight_layout()
+    plt.subplots_adjust(left=0.22)  # tight_layout misses rotated ylabel text outside axes
 
     # ------------------------------------------------------------------
     # Zoom lines — drawn in figure fraction AFTER tight_layout
