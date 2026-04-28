@@ -67,13 +67,22 @@ metric = SolidPreferenceLoader(SESSION_ID, conn).as_metric(title='Solid Preferen
 
 # ─────────────────────────────────────────────────────────────────────────────
 
+CHANNEL_SPACING_MM = 0.065  # 65 µm center-to-center
 
-def main():
+
+def main(estim_channels: set = None):
+    """
+    Args:
+        estim_channels: Optional set of channel strings (e.g. {"A-007", "A-025"})
+                        to mark with a hatched band so they are visually distinct
+                        from cluster channels without obscuring the dot colour.
+    """
     channel_strings  = build_channel_strings(HEADSTAGE)
     cluster_channels = ClusterChannelLoader(SESSION_ID, conn).load()
     cmap, norm       = default_cmap_norm()
+    n                = len(channel_strings)
 
-    fig, ax = plt.subplots(figsize=(2, 10))
+    fig, ax = plt.subplots(figsize=(4, 12), constrained_layout=True)
 
     scatter = plot_metric_column(
         ax, metric.compute(), channel_strings, cluster_channels,
@@ -81,26 +90,48 @@ def main():
         self_channel=metric.self_channel,
         show_yticks=True,
     )
+
+    # Replace channel-name tick labels with depth in mm.
+    # y=n → top channel (index 0, depth 0 mm); y=1 → bottom (depth (n-1)*spacing)
+    depth_labels = [f'{(n - 1 - i) * CHANNEL_SPACING_MM:.2f}' for i in range(n)]
+    ax.set_yticklabels(depth_labels, fontsize=8)
+    ax.set_ylabel('Depth (mm)', fontsize=10)
+
     format_single_column_axis(ax)
 
     if metric.title:
         ax.set_title(metric.title, fontsize=11, fontweight='bold', pad=8)
 
+    # Hatched bands for estim channels (drawn behind the dots).
+    if estim_channels:
+        for row_idx, ch in enumerate(channel_strings):
+            if ch in estim_channels:
+                y_pos = n - row_idx  # matches y positions in plot_metric_column
+                ax.axhspan(
+                    y_pos - 0.5, y_pos + 0.5,
+                    facecolor='none', hatch='////',
+                    edgecolor='#888888', linewidth=0.4,
+                    zorder=0,
+                )
+
     if scatter:
-        cbar = plt.colorbar(
+        cbar = fig.colorbar(
             plt.cm.ScalarMappable(norm=norm, cmap=cmap),
             ax=ax, orientation='vertical', pad=0.02, fraction=0.05,
         )
         cbar.set_label('Value', fontsize=9)
 
-    ax.legend(handles=cluster_marker_legend_handles(), fontsize=8,
-              bbox_to_anchor=(1.15, 1), loc='upper left', borderaxespad=0,
-              framealpha=0.8)
-
-    plt.tight_layout()
+    ax.legend(
+        handles=cluster_marker_legend_handles(),
+        fontsize=8,
+        bbox_to_anchor=(1.35, 1.0),
+        loc='upper left',
+        borderaxespad=0,
+        framealpha=0.8,
+    )
 
     if SAVE_PATH:
-        plt.savefig(SAVE_PATH, dpi=300, bbox_inches='tight')
+        fig.savefig(SAVE_PATH, dpi=300, bbox_inches='tight')
         print(f"Saved to {SAVE_PATH}")
 
     plt.show()
