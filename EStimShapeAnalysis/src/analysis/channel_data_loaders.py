@@ -1,0 +1,311 @@
+"""
+channel_data_loaders.py
+-----------------------
+Data-loading classes that feed ChannelMetric instances.
+
+Loader classes encapsulate SQL queries and file I/O so that the main analysis
+functions stay free of raw queries and data-wrangling.
+
+ABCs:
+    ChannelValueLoader      – load ``{channel: scalar}``  (→ LookupMetric)
+    ResponseMatrixLoader    – load ``{channel: {stim_id: response}}``
+                               (→ StimVectorCorrelation input)
+
+Shared loaders:
+    ClusterChannelLoader          – cluster channel set for a session
+    ChannelResponseVectorLoader   – pre-computed GA response vectors
+    IsochromaticPreferenceLoader  – per-frequency isochromatic preference index
+    SolidPreferenceLoader         – solid preference index per channel
+
+GA-specific loaders:
+    DeltaVariantStimLoader  – stim IDs from IncludedDeltas
+    GAResponseLoader        – GA response values from GAStimInfo
+    RawSpikeResponseLoader  – response matrix built from RawSpikeResponses
+    RWALoader               – RWA pickle → list of Pearson-r StimVectorCorrelation
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import pickle
+from abc import ABC, abstractmethod
+from collections import defaultdict
+from typing import Dict, List, Optional, Set
+
+import numpy as np
+
+from clat.util.connection import Connection
+from src.analysis.channel_metric_plot import LookupMetric, StimVectorCorrelation
+
+
+# ---------------------------------------------------------------------------
+# ABCs
+# ---------------------------------------------------------------------------
+
+class ChannelValueLoader(ABC):
+    """Load a ``{channel: scalar}`` dict for use in a LookupMetric."""
+
+    @abstractmethod
+    def load(self) -> Dict[str, float]: ...
+
+    def as_metric(self, **kwargs) -> LookupMetric:
+        """Wrap the loaded data as a LookupMetric.  Kwargs forwarded to
+        ``LookupMetric`` (e.g. ``title=``, ``self_channel=``)."""
+        return LookupMetric(self.load(), **kwargs)
+
+
+class ResponseMatrixLoader(ABC):
+    """Load a ``{channel: {stim_id: response}}`` matrix for use in
+    ``StimVectorCorrelation``."""
+
+    @abstractmethod
+    def load(self) -> Dict[str, Dict[int, float]]: ...
+
+
+# ---------------------------------------------------------------------------
+# Shared loaders
+# ---------------------------------------------------------------------------
+
+class ClusterChannelLoader:
+    """Load the set of cluster-channel names for a session."""
+
+    def __init__(self, session_id: str, conn: Connection):
+        self._session_id = session_id
+        self._conn = conn
+
+    def load(self) -> Set[str]:
+        self._conn.execute(
+            """SELECT DISTINCT c.channel
+               FROM ClusterInfo c
+               JOIN Experiments e ON c.experiment_id = e.experiment_id
+               WHERE e.session_id = %s""",
+            (self._session_id,),
+        )
+        return {row[0] for row in self._conn.fetch_all()}
+
+
+class ChannelResponseVectorLoader(ResponseMatrixLoader):
+    """Load pre-computed GA response vectors and return a response matrix.
+
+    Reads from ``ChannelResponseVectors`` (JSON-encoded id/response pairs) and
+    converts to the standard ``{channel: {stim_id: response}}`` shape.
+    """
+
+    def __init__(self, session_id: str, conn: Connection,
+                 vector_type: str = 'ga_mean_response'):
+        self._session_id = session_id
+        self._conn = conn
+        self._vector_type = vector_type
+
+    def load(self) -> Dict[str, Dict[int, float]]:
+        self._conn.execute(
+            """SELECT unit_name, id_vector, response_vector
+               FROM ChannelResponseVectors
+               WHERE session_id = %s AND vector_type = %s""",
+            (self._session_id, self._vector_type),
+        )
+        matrix: Dict[str, Dict[int, float]] = {}
+        for unit_name, id_json, resp_json in self._conn.fetch_all():
+            matrix[unit_name] = dict(zip(json.loads(id_json), json.loads(resp_json)))
+        return matrix
+
+
+class IsochromaticPreferenceLoader:
+    """Load isochromatic preference indices per frequency.
+
+    After ``load()`` or ``as_metrics()``, the ``frequencies`` attribute holds
+    the sorted list of frequencies (needed for x-axis labelling in the caller).
+    """
+
+    def __init__(self, session_id: str, conn: Connection):
+        self._session_id = session_id
+        self._conn = conn
+        self.frequencies: List[float] = []
+
+    def load(self) -> Dict[float, Dict[str, float]]:
+        """Return ``{frequency: {channel: preference_index}}``."""
+        self._conn.execute(
+            """SELECT unit_name, frequency, isochromatic_preference_index
+               FROM IsochromaticPreferenceIndices
+               WHERE session_id = %s AND unit_name NOT LIKE '%%Unit%%'
+               ORDER BY frequency, unit_name""",
+            (self._session_id,),
+        )
+        data: Dict[float, Dict[str, float]] = {}
+        for unit_name, frequency, index_value in self._conn.fetch_all():
+            data.setdefault(frequency, {})[unit_name] = index_value
+        self.frequencies = sorted(data)
+        return data
+
+    def as_metrics(self) -> List[LookupMetric]:
+        """One ``LookupMetric`` per frequency, sorted ascending.  Each metric's
+        ``title`` is set to the frequency string (e.g. ``'12.0 Hz'``)."""
+        data = self.load()
+        return [LookupMetric(data[freq], title=f'{freq} Hz') for freq in self.frequencies]
+
+
+class SolidPreferenceLoader(ChannelValueLoader):
+    """Load solid preference indices from ``SolidPreferenceIndices``."""
+
+    def __init__(self, session_id: str, conn: Connection):
+        self._session_id = session_id
+        self._conn = conn
+
+    def load(self) -> Dict[str, float]:
+        self._conn.execute(
+            """SELECT unit_name, solid_preference_index
+               FROM SolidPreferenceIndices
+               WHERE session_id = %s AND unit_name NOT LIKE '%%Unit%%'
+               ORDER BY unit_name""",
+            (self._session_id,),
+        )
+        return {row[0]: row[1] for row in self._conn.fetch_all()}
+
+
+# ---------------------------------------------------------------------------
+# GA-specific loaders
+# ---------------------------------------------------------------------------
+
+class DeltaVariantStimLoader:
+    """Load stim IDs (both delta and variant sides) from ``IncludedDeltas``."""
+
+    def __init__(self, ga_conn: Connection, included_only: bool = True):
+        self._conn = ga_conn
+        self._included_only = included_only
+
+    def load(self) -> Set[int]:
+        if self._included_only:
+            self._conn.execute(
+                "SELECT delta_id, variant_id FROM IncludedDeltas WHERE included = TRUE"
+            )
+        else:
+            self._conn.execute("SELECT delta_id, variant_id FROM IncludedDeltas")
+        stim_ids: Set[int] = set()
+        for delta_id, variant_id in self._conn.fetch_all():
+            stim_ids.add(int(delta_id))
+            stim_ids.add(int(variant_id))
+        print(f"Found {len(stim_ids)} unique stim_ids in IncludedDeltas "
+              f"({'included only' if self._included_only else 'all pairs'})")
+        return stim_ids
+
+
+class GAResponseLoader:
+    """Load GA response values from ``GAStimInfo`` for a session."""
+
+    def __init__(self, session_id: str, repo_conn: Connection):
+        self._session_id = session_id
+        self._conn = repo_conn
+
+    def load(self) -> Dict[int, float]:
+        experiment_id = f"{self._session_id}_ga"
+        self._conn.execute(
+            """SELECT g.stim_id, g.ga_response
+               FROM GAStimInfo g
+               JOIN StimExperimentMapping s ON g.stim_id = s.stim_id
+               WHERE s.experiment_id = %s AND g.ga_response IS NOT NULL""",
+            (experiment_id,),
+        )
+        responses = {int(r[0]): float(r[1]) for r in self._conn.fetch_all()}
+        print(f"Loaded GA Response for {len(responses)} stim_ids")
+        return responses
+
+
+class RawSpikeResponseLoader(ResponseMatrixLoader):
+    """Build a response matrix from ``RawSpikeResponses`` for a set of stim IDs.
+
+    Spike rates are averaged across repeated trials of the same stimulus.
+    """
+
+    def __init__(self, repo_conn: Connection, stim_ids: Set[int]):
+        self._conn = repo_conn
+        self._stim_ids = stim_ids
+
+    def load(self) -> Dict[str, Dict[int, float]]:
+        if not self._stim_ids:
+            return {}
+
+        ph = ', '.join(['%s'] * len(self._stim_ids))
+        self._conn.execute(
+            f"SELECT task_id, stim_id FROM TaskStimMapping WHERE stim_id IN ({ph})",
+            list(self._stim_ids),
+        )
+        task_stim_pairs = self._conn.fetch_all()
+        if not task_stim_pairs:
+            print("Warning: no TaskStimMapping entries found for these stim_ids")
+            return {}
+
+        task_ids = [r[0] for r in task_stim_pairs]
+        task_to_stim = {r[0]: int(r[1]) for r in task_stim_pairs}
+
+        ph = ', '.join(['%s'] * len(task_ids))
+        self._conn.execute(
+            f"SELECT task_id, channel_id, response_rate "
+            f"FROM RawSpikeResponses WHERE task_id IN ({ph})",
+            task_ids,
+        )
+
+        raw: Dict[str, Dict[int, list]] = defaultdict(lambda: defaultdict(list))
+        for task_id, channel_id, rate in self._conn.fetch_all():
+            raw[channel_id][task_to_stim[task_id]].append(float(rate))
+
+        matrix = {
+            ch: {sid: float(np.mean(rates)) for sid, rates in stim_dict.items()}
+            for ch, stim_dict in raw.items()
+        }
+        print(f"Built response matrix for {len(matrix)} channels "
+              f"over up to {len(self._stim_ids)} stimuli")
+        return matrix
+
+
+class RWALoader:
+    """Load RWA pickle files and produce Pearson-r ``StimVectorCorrelation`` metrics.
+
+    Call ``as_metrics(response_matrix)`` to get the three column metrics
+    (Shaft / Termination / Junction).  Returns ``None`` if any pickle file is
+    missing.
+    """
+
+    def __init__(self, experiment_id, compiled_data, rwa_output_dir: str):
+        self._experiment_id = experiment_id
+        self._compiled_data = compiled_data
+        self._rwa_dir = rwa_output_dir
+        self.pred_map: Optional[Dict[int, tuple]] = None  # set by as_metrics()
+
+    def _load_pkl(self, name: str):
+        path = os.path.join(self._rwa_dir, f"{self._experiment_id}_{name}.pkl")
+        with open(path, "rb") as fh:
+            return pickle.load(fh)
+
+    def _build_pred_map(self, shaft_rwa, term_rwa, junc_rwa) -> Dict[int, tuple]:
+        from src.analysis.ga.rwa_prediction import compute_predictions
+        data = self._compiled_data
+        stim_ids = list(data["StimSpecId"].astype(int))
+        shaft_p = compute_predictions(shaft_rwa, data["Shaft"])
+        term_p  = compute_predictions(term_rwa,  data["Termination"])
+        junc_p  = compute_predictions(junc_rwa,  data["Junction"])
+        return {sid: (shaft_p[i], term_p[i], junc_p[i]) for i, sid in enumerate(stim_ids)}
+
+    def as_metrics(
+            self, response_matrix: Dict[str, Dict[int, float]]
+    ) -> Optional[List[StimVectorCorrelation]]:
+        """Return three Pearson-r metrics, or ``None`` if RWA files not found."""
+        try:
+            shaft_rwa = self._load_pkl("shaft_rwa")
+            term_rwa  = self._load_pkl("termination_rwa")
+            junc_rwa  = self._load_pkl("junction_rwa")
+        except FileNotFoundError as exc:
+            print(f"RWA matrices not found — skipping RWA columns: {exc}")
+            return None
+
+        pred_map = self._build_pred_map(shaft_rwa, term_rwa, junc_rwa)
+        self.pred_map = pred_map
+        metrics = []
+        for slot, label in [(0, "Shaft"), (1, "Termination"), (2, "Junction")]:
+            target = {sid: triple[slot] for sid, triple in pred_map.items()}
+            metrics.append(StimVectorCorrelation(
+                response_matrix, target,
+                method='pearson',
+                title=f"{label} RWA\nr (Pearson)",
+            ))
+        return metrics

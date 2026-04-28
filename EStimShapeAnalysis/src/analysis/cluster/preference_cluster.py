@@ -1,10 +1,14 @@
-import json
 import numpy as np
 import matplotlib.pyplot as plt
 from clat.intan.channels import Channel
 from clat.util.connection import Connection
+from src.analysis.channel_data_loaders import (
+    ChannelResponseVectorLoader,
+    ClusterChannelLoader,
+    IsochromaticPreferenceLoader,
+    SolidPreferenceLoader,
+)
 from src.analysis.channel_metric_plot import (
-    LookupMetric,
     StimVectorCorrelation,
     build_channel_strings,
     cluster_marker_legend_handles,
@@ -12,7 +16,6 @@ from src.analysis.channel_metric_plot import (
     render_metric,
 )
 from src.cluster.cluster_app_classes import ChannelMapper
-from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.startup import context
 
 
@@ -30,42 +33,6 @@ class DBCChannelMapper(ChannelMapper):
     def get_coordinates(self, channel: Channel) -> dict[any, np.ndarray]:
         return self.channel_map[channel]
 
-
-def load_response_vectors(conn: Connection, session_id: str, vector_type: str = 'ga_mean_response'):
-    """
-    Load response vectors from the database.
-
-    Returns:
-        dict: {channel_name: {'id_vector': [...], 'response_vector': [...]}}
-    """
-    query = """
-            SELECT unit_name, id_vector, response_vector
-            FROM ChannelResponseVectors
-            WHERE session_id = %s \
-              AND vector_type = %s
-            """
-
-    conn.execute(query, (session_id, vector_type))
-    results = conn.fetch_all()
-
-    vectors = {}
-    for unit_name, id_vector_json, response_vector_json in results:
-        vectors[unit_name] = {
-            'id_vector': json.loads(id_vector_json),
-            'response_vector': json.loads(response_vector_json)
-        }
-
-    return vectors
-
-
-def vectors_to_response_matrix(vectors: dict) -> dict:
-    """Convert ``{channel: {'id_vector': [...], 'response_vector': [...]}}`` into
-    the standard ``{channel: {stim_id: response}}`` shape used by
-    `StimVectorCorrelation`."""
-    return {
-        channel: dict(zip(data['id_vector'], data['response_vector']))
-        for channel, data in vectors.items()
-    }
 
 
 def calculate_avg_distance_scaled_correlation(cluster_channels: set, channel_strings: list,
@@ -199,84 +166,33 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
         headstage_label: The headstage label (default "A")
         save_path: Optional path to save the figure as PNG (e.g., "output.png")
     """
-    # Get ordered channel names (as strings like "A-007")
     channel_strings = build_channel_strings(headstage_label)
-
-    # Connect to database
     conn = Connection("allen_data_repository")
 
-    # Query cluster channels for this session
-    cluster_query = """
-                    SELECT DISTINCT c.channel
-                    FROM ClusterInfo c
-                             JOIN Experiments e ON c.experiment_id = e.experiment_id
-                    WHERE e.session_id = %s \
-                    """
-    conn.execute(cluster_query, (session_id,))
-    cluster_results = conn.fetch_all()
-    cluster_channels = set(row[0] for row in cluster_results)
-
+    # ---- load data via loader classes ----
+    cluster_channels = ClusterChannelLoader(session_id, conn).load()
     print(f"Cluster channels for session {session_id}: {cluster_channels}")
 
-    # Load response vectors
-    vectors = load_response_vectors(conn, session_id, vector_type='ga_mean_response')
-    response_matrix = vectors_to_response_matrix(vectors) if vectors else {}
-    if vectors:
-        print(f"Loaded response vectors for {len(vectors)} channels")
+    response_matrix = ChannelResponseVectorLoader(session_id, conn).load()
+    if response_matrix:
+        print(f"Loaded response vectors for {len(response_matrix)} channels")
     else:
         print("Warning: No response vectors found - correlation analysis will be skipped")
 
-    # Query isochromatic preference indices for raw channels (not sorted units)
-    iso_query = """
-                SELECT unit_name, frequency, isochromatic_preference_index
-                FROM IsochromaticPreferenceIndices
-                WHERE session_id = %s
-                  AND unit_name NOT LIKE '%Unit%'
-                ORDER BY frequency, unit_name \
-                """
+    iso_loader = IsochromaticPreferenceLoader(session_id, conn)
+    iso_metrics = iso_loader.as_metrics()
+    frequencies = iso_loader.frequencies
+    n_frequencies = len(frequencies)
 
-    conn.execute(iso_query, (session_id,))
-    iso_results = conn.fetch_all()
+    solid_metric = SolidPreferenceLoader(session_id, conn).as_metric(title='Solid Preference')
 
-    # Query solid preference indices for raw channels
-    solid_query = """
-                  SELECT unit_name, solid_preference_index
-                  FROM SolidPreferenceIndices
-                  WHERE session_id = %s
-                    AND unit_name NOT LIKE '%Unit%'
-                  ORDER BY unit_name \
-                  """
-
-    conn.execute(solid_query, (session_id,))
-    solid_results = conn.fetch_all()
-
-    if not iso_results and not solid_results:
+    if not iso_metrics and solid_metric.compute() == {}:
         print(f"No data found for session {session_id}")
         return
 
-    # Organize isochromatic data by frequency
-    frequency_data = {}
-    for unit_name, frequency, index_value in iso_results:
-        if frequency not in frequency_data:
-            frequency_data[frequency] = {}
-        frequency_data[frequency][unit_name] = index_value
-
-    # Organize solid preference data
-    solid_data = {}
-    for unit_name, index_value in solid_results:
-        solid_data[unit_name] = index_value
-
-    # Get sorted frequencies
-    frequencies = sorted(frequency_data.keys())
-    n_frequencies = len(frequencies)
-
     print(f"Found isochromatic data for {n_frequencies} frequencies: {frequencies}")
-    print(f"Found solid preference data for {len(solid_data)} channels")
+    print(f"Found solid preference data for {len(solid_metric.compute())} channels")
     print(f"Plotting {len(channel_strings)} channels")
-
-    # ---- build metric objects ----
-    iso_metrics = [LookupMetric(frequency_data[freq]) for freq in frequencies]
-    solid_metric = LookupMetric(solid_data, title='Solid Preference')
 
     cluster_channel_list = sorted(c for c in cluster_channels if c in response_matrix)
     corr_metrics = [
@@ -341,7 +257,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
     # Overall title
     title_text = f'Channel Preference Indices\nSession: {session_id}'
     if n_corr_cols > 0:
-        title_text += f' | Correlations based on {len(vectors)} channels with response vectors'
+        title_text += f' | Correlations based on {len(response_matrix)} channels with response vectors'
     fig.suptitle(title_text, fontsize=14, fontweight='bold', y=0.95)
 
     # Adjust layout to make room for colorbar at bottom
@@ -371,27 +287,23 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
     print(f"Cluster channels: {sorted(cluster_channels) if cluster_channels else 'None'}")
 
     print(f"\n--- Isochromatic Preference (by frequency) ---")
-    for frequency in frequencies:
-        freq_data = frequency_data[frequency]
-        n_channels_with_data = len(freq_data)
-        if n_channels_with_data > 0:
+    for metric, frequency in zip(iso_metrics, frequencies):
+        freq_data = metric.compute()
+        if freq_data:
             values = list(freq_data.values())
-
-            # Check cluster channel values
             cluster_values = [v for ch, v in freq_data.items() if ch in cluster_channels]
-
             print(f"\nFrequency {frequency} Hz:")
-            print(f"  Channels with data: {n_channels_with_data}/{len(channel_strings)}")
+            print(f"  Channels with data: {len(freq_data)}/{len(channel_strings)}")
             print(f"  Index range: [{min(values):.3f}, {max(values):.3f}]")
             print(f"  Mean index: {np.mean(values):.3f}")
             if cluster_values:
                 print(f"  Cluster channel indices: {[f'{v:.3f}' for v in cluster_values]}")
 
     print(f"\n--- Solid Preference Index ---")
+    solid_data = solid_metric.compute()
     if solid_data:
         values = list(solid_data.values())
         cluster_values = [v for ch, v in solid_data.items() if ch in cluster_channels]
-
         print(f"  Channels with data: {len(solid_data)}/{len(channel_strings)}")
         print(f"  Index range: [{min(values):.3f}, {max(values):.3f}]")
         print(f"  Mean index: {np.mean(values):.3f}")

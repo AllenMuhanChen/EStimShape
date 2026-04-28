@@ -26,8 +26,6 @@ Usage:
 from __future__ import annotations
 
 import os
-import pickle
-from collections import defaultdict
 from typing import Dict, Optional, Set, Tuple
 
 import matplotlib.pyplot as plt
@@ -37,6 +35,13 @@ from matplotlib.gridspec import GridSpec
 import pandas as pd
 
 from clat.util.connection import Connection
+from src.analysis.channel_data_loaders import (
+    ClusterChannelLoader,
+    DeltaVariantStimLoader,
+    GAResponseLoader,
+    RawSpikeResponseLoader,
+    RWALoader,
+)
 from src.analysis.channel_metric_plot import (
     StimVectorCorrelation,
     build_channel_strings,
@@ -73,142 +78,6 @@ def main():
         scatter_top_n=SCATTER_TOP_N,
         save_path=save_path,
     )
-
-
-# ---------------------------------------------------------------------------
-# Data loading
-# ---------------------------------------------------------------------------
-
-def load_delta_variant_stim_ids(ga_conn: Connection,
-                                 included_only: bool = True) -> Set[int]:
-    """
-    Return the set of stim_ids (both delta_id and variant_id sides) from
-    IncludedDeltas, optionally filtering to only the included pairs.
-    """
-    if included_only:
-        ga_conn.execute("SELECT delta_id, variant_id FROM IncludedDeltas WHERE included = TRUE")
-    else:
-        ga_conn.execute("SELECT delta_id, variant_id FROM IncludedDeltas")
-
-    rows = ga_conn.fetch_all()
-    stim_ids: Set[int] = set()
-    for delta_id, variant_id in rows:
-        stim_ids.add(int(delta_id))
-        stim_ids.add(int(variant_id))
-
-    print(f"Found {len(stim_ids)} unique stim_ids in IncludedDeltas "
-          f"({'included only' if included_only else 'all pairs'})")
-    return stim_ids
-
-
-def load_ga_responses(repo_conn: Connection, session_id: str) -> Dict[int, float]:
-    """
-    Load GA Response values from GAStimInfo for the given session.
-    Returns {stim_id: ga_response}, skipping rows where ga_response is NULL.
-    """
-    experiment_id = f"{session_id}_ga"
-    repo_conn.execute(
-        """SELECT g.stim_id, g.ga_response
-           FROM GAStimInfo g
-           JOIN StimExperimentMapping s ON g.stim_id = s.stim_id
-           WHERE s.experiment_id = %s AND g.ga_response IS NOT NULL""",
-        (experiment_id,),
-    )
-    ga_responses = {int(r[0]): float(r[1]) for r in repo_conn.fetch_all()}
-    print(f"Loaded GA Response for {len(ga_responses)} stim_ids")
-    return ga_responses
-
-
-def build_response_matrix(repo_conn: Connection,
-                           stim_ids: Set[int]) -> Dict[str, Dict[int, float]]:
-    """
-    Query RawSpikeResponses for the given stim_ids and return:
-        {channel_id: {stim_id: mean_spike_rate}}
-    Mean is taken across repeated trials of the same stimulus.
-    """
-    if not stim_ids:
-        return {}
-
-    placeholders = ', '.join(['%s'] * len(stim_ids))
-    repo_conn.execute(
-        f"SELECT task_id, stim_id FROM TaskStimMapping WHERE stim_id IN ({placeholders})",
-        list(stim_ids),
-    )
-    task_stim_pairs = repo_conn.fetch_all()
-    if not task_stim_pairs:
-        print("Warning: no TaskStimMapping entries found for these stim_ids")
-        return {}
-
-    task_ids = [r[0] for r in task_stim_pairs]
-    task_to_stim = {r[0]: int(r[1]) for r in task_stim_pairs}
-
-    placeholders = ', '.join(['%s'] * len(task_ids))
-    repo_conn.execute(
-        f"SELECT task_id, channel_id, response_rate "
-        f"FROM RawSpikeResponses WHERE task_id IN ({placeholders})",
-        task_ids,
-    )
-
-    raw: Dict[str, Dict[int, list]] = defaultdict(lambda: defaultdict(list))
-    for task_id, channel_id, rate in repo_conn.fetch_all():
-        stim_id = task_to_stim[task_id]
-        raw[channel_id][stim_id].append(float(rate))
-
-    matrix = {
-        ch: {sid: float(np.mean(rates)) for sid, rates in stim_dict.items()}
-        for ch, stim_dict in raw.items()
-    }
-    print(f"Built response matrix for {len(matrix)} channels "
-          f"over up to {len(stim_ids)} stimuli")
-    return matrix
-
-
-# ---------------------------------------------------------------------------
-# RWA helpers
-# ---------------------------------------------------------------------------
-
-def _try_load_rwa(experiment_id) -> Optional[Tuple]:
-    """
-    Attempt to load the three RWA matrix pkl files.
-
-    Returns (shaft_rwa, termination_rwa, junction_rwa) or None if any file
-    is missing.  The compiled stimulus data is NOT loaded here — it is always
-    compiled fresh from the GA database instead.
-    """
-    try:
-        def _load(name):
-            path = os.path.join(context.rwa_output_dir, f"{experiment_id}_{name}.pkl")
-            with open(path, "rb") as f:
-                return pickle.load(f)
-
-        shaft       = _load("shaft_rwa")
-        termination = _load("termination_rwa")
-        junction    = _load("junction_rwa")
-        print(f"Loaded RWA matrices for experiment {experiment_id}")
-        return shaft, termination, junction
-    except FileNotFoundError as exc:
-        print(f"RWA matrices not found — skipping RWA columns: {exc}")
-        return None
-
-
-def _build_rwa_pred_map(shaft_rwa, term_rwa, junc_rwa, compiled_data) -> Dict[int, Tuple]:
-    """
-    For every stimulus in compiled_data, compute shaft/termination/junction
-    RWA-predicted responses.
-
-    Returns {stim_id: (shaft_pred, term_pred, junc_pred)}.
-    """
-    from src.analysis.ga.rwa_prediction import compute_predictions
-
-    stim_ids = list(compiled_data["StimSpecId"].astype(int))
-    shaft_p = compute_predictions(shaft_rwa, compiled_data["Shaft"])
-    term_p = compute_predictions(term_rwa, compiled_data["Termination"])
-    junc_p = compute_predictions(junc_rwa, compiled_data["Junction"])
-
-    return {
-        sid: (shaft_p[i], term_p[i], junc_p[i])
-        for i, sid in enumerate(stim_ids)
-    }
 
 
 # ---------------------------------------------------------------------------
@@ -360,34 +229,24 @@ def plot_delta_variant_correlation(
     channel_strings = build_channel_strings(headstage_label)
     plot_dir = os.path.dirname(save_path) if save_path else None
 
-    # ---- connections ----
     ga_conn   = Connection(ga_database)
     repo_conn = Connection("allen_data_repository")
 
-    # ---- cluster channels ----
-    repo_conn.execute(
-        """SELECT DISTINCT c.channel
-           FROM ClusterInfo c
-           JOIN Experiments e ON c.experiment_id = e.experiment_id
-           WHERE e.session_id = %s""",
-        (session_id,),
-    )
-    cluster_channels: Set[str] = {row[0] for row in repo_conn.fetch_all()}
+    # ---- load data via loader classes ----
+    cluster_channels = ClusterChannelLoader(session_id, repo_conn).load()
     print(f"Cluster channels: {sorted(cluster_channels)}")
 
-    # ---- LEFT GROUP: delta/variant stim ids ----
-    dv_stim_ids = load_delta_variant_stim_ids(ga_conn, included_only=included_only)
+    dv_stim_ids = DeltaVariantStimLoader(ga_conn, included_only).load()
     if not dv_stim_ids:
         print("No stim IDs found — check IncludedDeltas table.")
         return
 
-    dv_matrix = build_response_matrix(repo_conn, dv_stim_ids)
+    dv_matrix = RawSpikeResponseLoader(repo_conn, dv_stim_ids).load()
     if not dv_matrix:
         print("No spike data found for delta/variant stim IDs.")
         return
 
-    # ---- RIGHT GROUP: top-N by GA Response ----
-    ga_responses = load_ga_responses(repo_conn, session_id)
+    ga_responses = GAResponseLoader(session_id, repo_conn).load()
     topn_matrix: Dict[str, Dict[int, float]] = {}
     if not ga_responses:
         print("Warning: no GA Response data found in GAStimInfo — skipping top-N group.")
@@ -395,13 +254,12 @@ def plot_delta_variant_correlation(
         sorted_by_ga = sorted(ga_responses, key=lambda s: ga_responses[s], reverse=True)
         top_stim_ids = set(sorted_by_ga[:top_n])
         print(f"Top {top_n} stim_ids by GA Response selected.")
-        topn_matrix = build_response_matrix(repo_conn, top_stim_ids)
+        topn_matrix = RawSpikeResponseLoader(repo_conn, top_stim_ids).load()
 
-    # ---- compile fresh GA data ----
+    # ---- compile fresh GA data (for scatter colouring + RWA) ----
     from src.pga.app.plot_rwa_scatter import compile_data as _compile_ga_data
     compiled_data = _compile_ga_data(ga_conn)
 
-    # Build group_map for scatter colouring (always available from fresh compile)
     group_map = None
     if scatter_color_by and scatter_color_by in compiled_data.columns:
         group_map = dict(zip(
@@ -412,15 +270,13 @@ def plot_delta_variant_correlation(
         print(f"Warning: scatter_color_by column '{scatter_color_by}' not found — scatter plots uncoloured.")
 
     # ---- RWA GROUP (optional, columns 3-5) ----
-    rwa_matrices = _try_load_rwa(experiment_id) if experiment_id is not None else None
-    rwa_pred_map: Optional[Dict[int, Tuple]] = None
-    all_matrix: Optional[Dict[str, Dict[int, float]]] = None
+    all_stim_ids = set(compiled_data["StimSpecId"].astype(int))
+    all_matrix = RawSpikeResponseLoader(repo_conn, all_stim_ids).load()
 
-    if rwa_matrices is not None:
-        shaft_rwa, term_rwa, junc_rwa = rwa_matrices
-        rwa_pred_map = _build_rwa_pred_map(shaft_rwa, term_rwa, junc_rwa, compiled_data)
-        all_stim_ids = set(compiled_data["StimSpecId"].astype(int))
-        all_matrix   = build_response_matrix(repo_conn, all_stim_ids)
+    rwa_loader = RWALoader(experiment_id, compiled_data, context.rwa_output_dir) \
+        if experiment_id is not None else None
+    rwa_metrics = rwa_loader.as_metrics(all_matrix) if rwa_loader is not None else None
+    has_rwa = rwa_metrics is not None
 
     # ---- cluster channel list (channels with response data in either matrix) ----
     cluster_channel_list = sorted(
@@ -448,16 +304,6 @@ def plot_delta_variant_correlation(
         )
         for ch in cluster_channel_list
     ]
-
-    rwa_metrics = []
-    has_rwa = rwa_pred_map is not None and all_matrix is not None
-    if has_rwa:
-        for slot, label in [(0, "Shaft"), (1, "Termination"), (2, "Junction")]:
-            target = {sid: triple[slot] for sid, triple in rwa_pred_map.items()}
-            rwa_metrics.append(StimVectorCorrelation(
-                all_matrix, target, method='pearson',
-                title=f"{label} RWA\nr (Pearson)",
-            ))
 
     # ---- figure layout ----
     cmap, norm = default_cmap_norm()
@@ -494,7 +340,7 @@ def plot_delta_variant_correlation(
     # on the leftmost axis.
     rwa_axes = [ax_shaft, ax_term, ax_junc] if has_rwa else []
     column_axes = list(axes_left) + list(axes_right) + rwa_axes
-    column_metrics = list(dv_metrics) + list(topn_metrics) + rwa_metrics
+    column_metrics = list(dv_metrics) + list(topn_metrics) + (rwa_metrics or [])
     for col_idx, (ax, metric) in enumerate(zip(column_axes, column_metrics)):
         _, ref = render_metric(
             ax, metric, channel_strings, cluster_channels,
@@ -557,9 +403,9 @@ def plot_delta_variant_correlation(
         print(f"Saved to {save_path}")
 
     # ---- scatter subfolders ----
-    if plot_dir and rwa_matrices is not None:
+    if plot_dir and has_rwa:
         _save_rwa_channel_scatters(
-            all_matrix, rwa_pred_map,
+            all_matrix, rwa_loader.pred_map,
             os.path.join(plot_dir, "rwa_channel_scatters"),
             group_map=group_map,
             color_by=scatter_color_by or "Group",
@@ -567,14 +413,8 @@ def plot_delta_variant_correlation(
         )
 
     if plot_dir and ga_responses:
-        # Use all_matrix if already built (RWA path), otherwise build from compiled stim_ids
-        if all_matrix is None:
-            all_matrix = build_response_matrix(
-                repo_conn, set(compiled_data["StimSpecId"].astype(int))
-            )
-        ga_matrix = all_matrix
         _save_ga_channel_scatters(
-            ga_matrix, ga_responses,
+            all_matrix, ga_responses,
             os.path.join(plot_dir, "ga_channel_scatters"),
             group_map=group_map,
             color_by=scatter_color_by or "Group",
