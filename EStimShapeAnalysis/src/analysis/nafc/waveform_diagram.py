@@ -89,9 +89,7 @@ def _pulse_train_waveform(p: dict, n_show: int = 3):
     draws the flat inter-pulse baseline automatically without extra points.
     """
     t_single, y_single = _biphasic_waveform(p)
-    pulse_dur  = t_single[-1]
-    refractory = p.get("post_stim_refractory_period") or 0.0
-    period     = pulse_dur + refractory
+    period = p.get("post_stim_refractory_period") or 0.0
 
     if period <= pulse_dur or n_show <= 1:
         return t_single, y_single
@@ -211,8 +209,7 @@ def plot_timing_diagram(
 
         ax2.set_yticks([])
         ax2.tick_params(axis="x", color=_GRAY, labelcolor=_BLACK, labelsize=9, length=3)
-        pulse_period_ms = (params["d1"] + params["dp"] + params["d2"] +
-                           params["post_stim_refractory_period"]) / 1000.0
+        pulse_period_ms = params["post_stim_refractory_period"] / 1000.0
         tick_positions = [estim_start + i * pulse_period_ms for i in range(n_pulses_shown + 1)]
         ax2.set_xticks(tick_positions)
 
