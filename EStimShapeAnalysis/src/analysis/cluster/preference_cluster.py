@@ -1,15 +1,15 @@
 import json
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import spearmanr
 from clat.intan.channels import Channel
 from clat.util.connection import Connection
 from src.analysis.channel_metric_plot import (
+    LookupMetric,
+    StimVectorCorrelation,
     build_channel_strings,
     cluster_marker_legend_handles,
     default_cmap_norm,
-    format_single_column_axis,
-    plot_metric_column,
+    render_metric,
 )
 from src.cluster.cluster_app_classes import ChannelMapper
 from src.repository.export_to_repository import read_session_id_and_date_from_db_name
@@ -58,48 +58,14 @@ def load_response_vectors(conn: Connection, session_id: str, vector_type: str = 
     return vectors
 
 
-def calculate_correlations(vectors: dict, cluster_channels: set):
-    """
-    Calculate Spearman correlations between each channel and each cluster channel.
-
-    Returns:
-        dict: {cluster_channel: {channel: correlation_value}}
-    """
-    correlations = {}
-
-    for cluster_channel in cluster_channels:
-        if cluster_channel not in vectors:
-            print(f"Warning: Cluster channel {cluster_channel} has no response vector")
-            continue
-
-        cluster_data = vectors[cluster_channel]
-        cluster_id_vector = cluster_data['id_vector']
-        cluster_response = cluster_data['response_vector']
-
-        correlations[cluster_channel] = {}
-
-        for channel, data in vectors.items():
-            # Find common stimuli
-            channel_id_vector = data['id_vector']
-            channel_response = data['response_vector']
-
-            # Get intersection of stimulus IDs
-            common_ids = sorted(set(cluster_id_vector) & set(channel_id_vector))
-
-            if len(common_ids) < 3:
-                # Need at least 3 points for correlation
-                correlations[cluster_channel][channel] = np.nan
-                continue
-
-            # Align responses to common stimuli
-            cluster_aligned = [cluster_response[cluster_id_vector.index(sid)] for sid in common_ids]
-            channel_aligned = [channel_response[channel_id_vector.index(sid)] for sid in common_ids]
-
-            # Calculate Spearman correlation
-            rho, _ = spearmanr(cluster_aligned, channel_aligned)
-            correlations[cluster_channel][channel] = rho
-
-    return correlations
+def vectors_to_response_matrix(vectors: dict) -> dict:
+    """Convert ``{channel: {'id_vector': [...], 'response_vector': [...]}}`` into
+    the standard ``{channel: {stim_id: response}}`` shape used by
+    `StimVectorCorrelation`."""
+    return {
+        channel: dict(zip(data['id_vector'], data['response_vector']))
+        for channel, data in vectors.items()
+    }
 
 
 def calculate_avg_distance_scaled_correlation(cluster_channels: set, channel_strings: list,
@@ -252,16 +218,13 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
 
     print(f"Cluster channels for session {session_id}: {cluster_channels}")
 
-    # Load response vectors and calculate correlations
+    # Load response vectors
     vectors = load_response_vectors(conn, session_id, vector_type='ga_mean_response')
-
+    response_matrix = vectors_to_response_matrix(vectors) if vectors else {}
     if vectors:
         print(f"Loaded response vectors for {len(vectors)} channels")
-        correlations = calculate_correlations(vectors, cluster_channels)
-        print(f"Calculated correlations for {len(correlations)} cluster channels")
     else:
         print("Warning: No response vectors found - correlation analysis will be skipped")
-        correlations = {}
 
     # Query isochromatic preference indices for raw channels (not sorted units)
     iso_query = """
@@ -311,9 +274,20 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
     print(f"Found solid preference data for {len(solid_data)} channels")
     print(f"Plotting {len(channel_strings)} channels")
 
-    # Determine number of correlation columns
-    n_corr_cols = len(correlations)
-    cluster_channel_list = sorted(correlations.keys()) if correlations else []
+    # ---- build metric objects ----
+    iso_metrics = [LookupMetric(frequency_data[freq]) for freq in frequencies]
+    solid_metric = LookupMetric(solid_data, title='Solid Preference')
+
+    cluster_channel_list = sorted(c for c in cluster_channels if c in response_matrix)
+    corr_metrics = [
+        StimVectorCorrelation.vs_channel(
+            response_matrix, ch,
+            method='spearman', zscore=False,
+            title=f'ρ vs {ch}',
+        )
+        for ch in cluster_channel_list
+    ]
+    n_corr_cols = len(corr_metrics)
 
     # Create subplots - adjust based on number of correlation columns
     # Layout: [isochromatic (4 cols), solid (1 col), correlation cols (n_corr_cols)]
@@ -324,7 +298,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
                                  sharey=True, gridspec_kw={'width_ratios': width_ratios, 'wspace': 0.15})
         ax_iso = axes[0]
         ax_solid = axes[1]
-        ax_corr_list = axes[2:] if n_corr_cols > 0 else []
+        ax_corr_list = axes[2:]
     else:
         fig, (ax_iso, ax_solid) = plt.subplots(1, 2, figsize=(14, 12),
                                                sharey=True, gridspec_kw={'width_ratios': [4, 1], 'wspace': 0.15})
@@ -333,47 +307,36 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
     # Set up colormap (diverging around 0)
     cmap, norm = default_cmap_norm()
 
-    # Plot isochromatic preferences - one column per frequency, all on ax_iso
+    # Plot isochromatic preferences - one metric per frequency, all on ax_iso
     scatter = None
-    for freq_idx, frequency in enumerate(frequencies):
-        ref = plot_metric_column(
-            ax_iso, frequency_data[frequency],
-            channel_strings, cluster_channels,
+    for freq_idx, metric in enumerate(iso_metrics):
+        _, ref = render_metric(
+            ax_iso, metric, channel_strings, cluster_channels,
             cmap=cmap, norm=norm,
             x_position=freq_idx,
             show_yticks=(freq_idx == 0),
+            format_axis=False, set_title=False,
         )
         scatter = ref or scatter
 
-    # Format isochromatic plot (multi-column on a shared axis)
+    # Multi-column axis formatting (frequency labels along x-axis)
     ax_iso.set_xlim(-0.2, n_frequencies - 0.8)  # Tighter limits to reduce gaps
     ax_iso.set_xticks(range(n_frequencies))
     ax_iso.set_xticklabels([f'{freq} Hz' for freq in frequencies], fontsize=10)
     ax_iso.set_title('Isochromatic Preference by Frequency', fontsize=12, fontweight='bold')
     ax_iso.grid(True, axis='y', alpha=0.3, linestyle='--')
-    ax_iso.grid(True, axis='x', alpha=0.2, linestyle='--')  # Add vertical grid lines
+    ax_iso.grid(True, axis='x', alpha=0.2, linestyle='--')
 
-    # Plot solid preference - single column
-    ref = plot_metric_column(
-        ax_solid, solid_data,
-        channel_strings, cluster_channels,
-        cmap=cmap, norm=norm,
-    )
-    scatter = ref or scatter
-    format_single_column_axis(ax_solid)
-    ax_solid.set_title('Solid Preference', fontsize=12, fontweight='bold')
-
-    # Plot correlation columns - one per cluster channel
-    for ax_corr, cluster_channel in zip(ax_corr_list, cluster_channel_list):
-        ref = plot_metric_column(
-            ax_corr, correlations[cluster_channel],
-            channel_strings, cluster_channels,
+    # Plot solid preference and correlations through the same pipeline
+    correlations: dict = {}  # {cluster_channel: {channel: rho}} for downstream stats
+    for ax, metric in [(ax_solid, solid_metric), *zip(ax_corr_list, corr_metrics)]:
+        data, ref = render_metric(
+            ax, metric, channel_strings, cluster_channels,
             cmap=cmap, norm=norm,
-            self_channel=cluster_channel,
         )
         scatter = ref or scatter
-        format_single_column_axis(ax_corr)
-        ax_corr.set_title(f'ρ vs {cluster_channel}', fontsize=12, fontweight='bold')
+        if metric.self_channel is not None:
+            correlations[metric.self_channel] = data
 
     # Overall title
     title_text = f'Channel Preference Indices\nSession: {session_id}'

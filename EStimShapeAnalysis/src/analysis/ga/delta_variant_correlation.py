@@ -33,17 +33,16 @@ from typing import Dict, Optional, Set, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
-from scipy.stats import linregress, spearmanr
 
 import pandas as pd
 
 from clat.util.connection import Connection
 from src.analysis.channel_metric_plot import (
+    StimVectorCorrelation,
     build_channel_strings,
     cluster_marker_legend_handles,
     default_cmap_norm,
-    format_single_column_axis,
-    plot_metric_column,
+    render_metric,
 )
 from src.analysis.ga.rwa_prediction import (
     plot_real_vs_predicted_grouped, limit_groups_to_top_n,
@@ -212,38 +211,6 @@ def _build_rwa_pred_map(shaft_rwa, term_rwa, junc_rwa, compiled_data) -> Dict[in
     }
 
 
-def _compute_rwa_r_values(
-        channel_matrix: Dict[str, Dict[int, float]],
-        rwa_pred_map: Dict[int, Tuple],
-) -> Dict[str, Tuple[float, float, float]]:
-    """
-    For each channel compute Pearson r between real spike rate and each of the
-    three RWA-predicted response types.
-
-    Returns {channel: (shaft_r, term_r, junc_r)}.
-    """
-    def _r(real_v, pred_v):
-        valid = np.isfinite(real_v) & np.isfinite(pred_v)
-        if valid.sum() < 3:
-            return np.nan
-        return float(linregress(real_v[valid], pred_v[valid]).rvalue)
-
-    results = {}
-    for channel, stim_rates in channel_matrix.items():
-        common = [sid for sid in stim_rates if sid in rwa_pred_map]
-        if len(common) < 3:
-            results[channel] = (np.nan, np.nan, np.nan)
-            continue
-
-        real = np.array([stim_rates[sid] for sid in common], dtype=float)
-        shaft = np.array([rwa_pred_map[sid][0] for sid in common], dtype=float)
-        term  = np.array([rwa_pred_map[sid][1] for sid in common], dtype=float)
-        junc  = np.array([rwa_pred_map[sid][2] for sid in common], dtype=float)
-
-        results[channel] = (_r(real, shaft), _r(real, term), _r(real, junc))
-    return results
-
-
 # ---------------------------------------------------------------------------
 # Scatter subfolders
 # ---------------------------------------------------------------------------
@@ -352,51 +319,6 @@ def _save_ga_channel_scatters(
 
 
 # ---------------------------------------------------------------------------
-# Z-score + correlation
-# ---------------------------------------------------------------------------
-
-def _zscore(v: np.ndarray) -> np.ndarray:
-    sd = np.std(v)
-    return (v - np.mean(v)) / sd if sd > 0 else v - np.mean(v)
-
-
-def compute_zscore_correlations(
-        response_matrix: Dict[str, Dict[int, float]],
-        cluster_channels: Set[str],
-) -> Dict[str, Dict[str, float]]:
-    """
-    For each cluster channel, compute the Spearman correlation of its
-    z-scored response vector with every other channel's z-scored vector.
-
-    Returns:
-        {cluster_channel: {channel: rho}}   (NaN when < 3 common stimuli)
-    """
-    correlations: Dict[str, Dict[str, float]] = {}
-
-    for cluster_ch in cluster_channels:
-        if cluster_ch not in response_matrix:
-            print(f"Warning: cluster channel {cluster_ch} has no spike data")
-            continue
-
-        correlations[cluster_ch] = {}
-        c_stims = response_matrix[cluster_ch]
-
-        for channel, stim_rates in response_matrix.items():
-            common = sorted(set(c_stims) & set(stim_rates))
-            if len(common) < 3:
-                correlations[cluster_ch][channel] = np.nan
-                continue
-
-            c_vec = np.array([c_stims[s] for s in common], dtype=float)
-            h_vec = np.array([stim_rates[s] for s in common], dtype=float)
-
-            rho, _ = spearmanr(_zscore(c_vec), _zscore(h_vec))
-            correlations[cluster_ch][channel] = float(rho)
-
-    return correlations
-
-
-# ---------------------------------------------------------------------------
 # Main plotting function
 # ---------------------------------------------------------------------------
 
@@ -464,19 +386,16 @@ def plot_delta_variant_correlation(
         print("No spike data found for delta/variant stim IDs.")
         return
 
-    dv_correlations = compute_zscore_correlations(dv_matrix, cluster_channels)
-
     # ---- RIGHT GROUP: top-N by GA Response ----
     ga_responses = load_ga_responses(repo_conn, session_id)
+    topn_matrix: Dict[str, Dict[int, float]] = {}
     if not ga_responses:
         print("Warning: no GA Response data found in GAStimInfo — skipping top-N group.")
-        topn_correlations = {}
     else:
         sorted_by_ga = sorted(ga_responses, key=lambda s: ga_responses[s], reverse=True)
         top_stim_ids = set(sorted_by_ga[:top_n])
         print(f"Top {top_n} stim_ids by GA Response selected.")
         topn_matrix = build_response_matrix(repo_conn, top_stim_ids)
-        topn_correlations = compute_zscore_correlations(topn_matrix, cluster_channels)
 
     # ---- compile fresh GA data ----
     from src.pga.app.plot_rwa_scatter import compile_data as _compile_ga_data
@@ -494,20 +413,19 @@ def plot_delta_variant_correlation(
 
     # ---- RWA GROUP (optional, columns 3-5) ----
     rwa_matrices = _try_load_rwa(experiment_id) if experiment_id is not None else None
-    rwa_r_values = None   # {channel: (shaft_r, term_r, junc_r)}
-    rwa_pred_map = None
-    all_matrix   = None
+    rwa_pred_map: Optional[Dict[int, Tuple]] = None
+    all_matrix: Optional[Dict[str, Dict[int, float]]] = None
 
     if rwa_matrices is not None:
         shaft_rwa, term_rwa, junc_rwa = rwa_matrices
         rwa_pred_map = _build_rwa_pred_map(shaft_rwa, term_rwa, junc_rwa, compiled_data)
         all_stim_ids = set(compiled_data["StimSpecId"].astype(int))
         all_matrix   = build_response_matrix(repo_conn, all_stim_ids)
-        rwa_r_values = _compute_rwa_r_values(all_matrix, rwa_pred_map)
 
-    # ---- cluster channel list ----
+    # ---- cluster channel list (channels with response data in either matrix) ----
     cluster_channel_list = sorted(
-        set(dv_correlations.keys()) | set(topn_correlations.keys())
+        ch for ch in cluster_channels
+        if ch in dv_matrix or ch in topn_matrix
     )
     n_cols = len(cluster_channel_list)
 
@@ -515,12 +433,37 @@ def plot_delta_variant_correlation(
         print("No correlations computed (no cluster channels with data).")
         return
 
+    # ---- build metric objects ----
+    dv_metrics = [
+        StimVectorCorrelation.vs_channel(
+            dv_matrix, ch, method='spearman', zscore=True,
+            title=f"ρ vs {ch}\ndelta/variant",
+        )
+        for ch in cluster_channel_list
+    ]
+    topn_metrics = [
+        StimVectorCorrelation.vs_channel(
+            topn_matrix, ch, method='spearman', zscore=True,
+            title=f"ρ vs {ch}\ntop {top_n}",
+        )
+        for ch in cluster_channel_list
+    ]
+
+    rwa_metrics = []
+    has_rwa = rwa_pred_map is not None and all_matrix is not None
+    if has_rwa:
+        for slot, label in [(0, "Shaft"), (1, "Termination"), (2, "Junction")]:
+            target = {sid: triple[slot] for sid, triple in rwa_pred_map.items()}
+            rwa_metrics.append(StimVectorCorrelation(
+                all_matrix, target, method='pearson',
+                title=f"{label} RWA\nr (Pearson)",
+            ))
+
     # ---- figure layout ----
     cmap, norm = default_cmap_norm()
 
     col_width   = 3
     spacer_width = 0.5
-    has_rwa = rwa_r_values is not None
 
     # widths: [n_cols left] [spacer] [n_cols right] ([spacer] [3 rwa cols])?
     width_ratios = (
@@ -545,54 +488,24 @@ def plot_delta_variant_correlation(
         ax_junc  = fig.add_subplot(gs[0, rwa_start + 2], sharey=axes_left[0])
 
     scatter_ref = None
-
-    # -- left group --
     included_label = "included pairs only" if included_only else "all pairs"
-    for col_idx, (ax, cluster_ch) in enumerate(zip(axes_left, cluster_channel_list)):
-        ref = plot_metric_column(
-            ax, dv_correlations.get(cluster_ch, {}),
-            channel_strings, cluster_channels,
+
+    # All columns rendered through the same metric pipeline; show_yticks only
+    # on the leftmost axis.
+    rwa_axes = [ax_shaft, ax_term, ax_junc] if has_rwa else []
+    column_axes = list(axes_left) + list(axes_right) + rwa_axes
+    column_metrics = list(dv_metrics) + list(topn_metrics) + rwa_metrics
+    for col_idx, (ax, metric) in enumerate(zip(column_axes, column_metrics)):
+        _, ref = render_metric(
+            ax, metric, channel_strings, cluster_channels,
             cmap=cmap, norm=norm,
-            self_channel=cluster_ch,
             show_yticks=(col_idx == 0),
+            title_fontsize=10,
         )
-        format_single_column_axis(ax)
         scatter_ref = scatter_ref or ref
-        ax.set_title(f"ρ vs {cluster_ch}\ndelta/variant", fontsize=10, fontweight='bold')
 
-    # -- right group --
-    for col_idx, (ax, cluster_ch) in enumerate(zip(axes_right, cluster_channel_list)):
-        ref = plot_metric_column(
-            ax, topn_correlations.get(cluster_ch, {}),
-            channel_strings, cluster_channels,
-            cmap=cmap, norm=norm,
-            self_channel=cluster_ch,
-        )
-        format_single_column_axis(ax)
-        scatter_ref = scatter_ref or ref
-        ax.set_title(f"ρ vs {cluster_ch}\ntop {top_n}", fontsize=10, fontweight='bold')
-
-    # -- RWA group (columns 3-5) --
+    # Bracket label for RWA group
     if has_rwa:
-        shaft_r_corr = {ch: rwa_r_values[ch][0] for ch in rwa_r_values}
-        term_r_corr  = {ch: rwa_r_values[ch][1] for ch in rwa_r_values}
-        junc_r_corr  = {ch: rwa_r_values[ch][2] for ch in rwa_r_values}
-
-        for ax, corr_data, label in [
-            (ax_shaft, shaft_r_corr, "Shaft RWA\nr (Pearson)"),
-            (ax_term,  term_r_corr,  "Termination RWA\nr (Pearson)"),
-            (ax_junc,  junc_r_corr,  "Junction RWA\nr (Pearson)"),
-        ]:
-            ref = plot_metric_column(
-                ax, corr_data,
-                channel_strings, cluster_channels,
-                cmap=cmap, norm=norm,
-            )
-            format_single_column_axis(ax)
-            scatter_ref = scatter_ref or ref
-            ax.set_title(label, fontsize=10, fontweight='bold')
-
-        # Bracket label for RWA group
         ax_term.annotate(
             "RWA Prediction r",
             xy=(0.5, 1.0), xycoords='axes fraction',
