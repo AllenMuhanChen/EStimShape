@@ -237,10 +237,12 @@ def plot_timing_diagram(
                 color=_GRAY, linestyle="--", linewidth=0.8, clip_on=False,
             ))
 
-        # Vertical markers from bottom to top of ax1 at the zoom boundaries
+        # Vertical markers from ax1 bottom to the y=1 "ON" level of the microstim pulse
+        ymin, ymax = ax1.get_ylim()
+        y1_fig = pos1.y0 + (1.0 - ymin) / (ymax - ymin) * pos1.height
         for src_x in [src_left, src_right]:
             fig.add_artist(Line2D(
-                [src_x, src_x], [pos1.y0, pos1.y0 + pos1.height],
+                [src_x, src_x], [pos1.y0, y1_fig],
                 transform=fig.transFigure,
                 color=_GRAY, linestyle="--", linewidth=0.8, clip_on=False,
             ))
