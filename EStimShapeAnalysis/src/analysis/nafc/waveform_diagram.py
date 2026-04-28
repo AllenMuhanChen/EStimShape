@@ -217,19 +217,15 @@ def plot_timing_diagram(
         ax2.set_ylabel("Micro-\nstimulation\n(zoomed)", fontsize=_LABEL_FS, rotation=0,
                        ha="right", va="center", labelpad=8)
 
-    fig.suptitle("Stimulus Timing", fontsize=12, fontweight="bold", y=1.01)
-    plt.tight_layout(rect=[0.12, 0, 1, 1])
+    fig.suptitle("Stimulus Timing", fontsize=12, fontweight="bold")
+    plt.tight_layout()
 
-    # After layout: align ax2's left edge with estim_start on ax1, right edge with ax1.
-    # Then draw two dashed vertical zoom lines in figure coordinates at
-    # estim_start and total_ms, connecting the bottom of ax1 to the top of ax2.
     if show_waveform:
         from matplotlib.lines import Line2D
 
         pos1  = ax1.get_position()
-        pos2  = ax2.get_position()   # full-width, set by tight_layout
+        pos2  = ax2.get_position()
 
-        # Figure-fraction x of the narrow source region on ax1
         src_left  = pos1.x0 + (estim_start - t_min) / (t_max - t_min) * pos1.width
         src_right = pos1.x0 + (total_ms    - t_min) / (t_max - t_min) * pos1.width
 
@@ -237,6 +233,15 @@ def plot_timing_diagram(
         for src_x, dst_x in [(src_left, pos2.x0), (src_right, pos2.x1)]:
             fig.add_artist(Line2D(
                 [src_x, dst_x], [pos1.y0, pos2.y0 + pos2.height],
+                transform=fig.transFigure,
+                color=_GRAY, linestyle="--", linewidth=0.8, clip_on=False,
+            ))
+
+        # Short vertical markers at the zoom boundaries on the microstim row
+        marker_h = pos1.height * 0.35
+        for src_x in [src_left, src_right]:
+            fig.add_artist(Line2D(
+                [src_x, src_x], [pos1.y0, pos1.y0 + marker_h],
                 transform=fig.transFigure,
                 color=_GRAY, linestyle="--", linewidth=0.8, clip_on=False,
             ))
