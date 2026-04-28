@@ -220,15 +220,14 @@ def plot_timing_diagram(
         t_ms            = t_wave / 1000.0 + estim_start
         total_ms        = t_ms[-1]
         pulse_period_ms = params["post_stim_refractory_period"] / 1000.0
+        axis_end        = estim_start + n_pulses_shown * pulse_period_ms
 
-        # Extend one more refractory period as a flat tail so the train isn't cut off
-        tail_end = total_ms + pulse_period_ms
-        t_plot = np.concatenate([[estim_start], t_ms, [total_ms, tail_end]])
-        y_plot = np.concatenate([[0],           y_wave, [0,       0]])
+        t_plot = np.concatenate([[estim_start], t_ms, [axis_end]])
+        y_plot = np.concatenate([[0],           y_wave, [0]])
 
         ax_wave.plot(t_plot, y_plot, color=_BLACK, linewidth=_LINE_W,
                      solid_joinstyle="miter", solid_capstyle="butt")
-        ax_wave.set_xlim(estim_start, tail_end)
+        ax_wave.set_xlim(estim_start, axis_end)
         ax_wave.spines["top"].set_visible(False)
         ax_wave.spines["right"].set_visible(False)
         ax_wave.spines["left"].set_visible(False)
@@ -257,7 +256,7 @@ def plot_timing_diagram(
         pos_w  = ax_wave.get_position()
 
         src_left  = pos_e.x0 + (estim_start - t_min) / (t_max - t_min) * pos_e.width
-        src_right = pos_e.x0 + (total_ms    - t_min) / (t_max - t_min) * pos_e.width
+        src_right = pos_e.x0 + (axis_end    - t_min) / (t_max - t_min) * pos_e.width
 
         # Diagonal lines: narrow region on ax_estim → full width of ax_wave
         for src_x, dst_x in [(src_left, pos_w.x0), (src_right, pos_w.x1)]:
