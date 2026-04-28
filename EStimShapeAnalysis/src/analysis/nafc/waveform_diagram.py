@@ -211,7 +211,9 @@ def plot_timing_diagram(
 
         ax2.set_yticks([])
         ax2.tick_params(axis="x", color=_GRAY, labelcolor=_BLACK, labelsize=9, length=3)
-        ax2.xaxis.set_major_locator(ticker.MultipleLocator(100))
+        pulse_period_ms = (params["d1"] + params["dp"] + params["d2"] +
+                           params["post_stim_refractory_period"]) / 1000.0
+        ax2.xaxis.set_major_locator(ticker.MultipleLocator(pulse_period_ms))
 
         ax2.set_xlabel("Time (ms)", fontsize=_LABEL_FS, labelpad=4)
         ax2.set_ylabel("Micro-\nstimulation\n(zoomed)", fontsize=_LABEL_FS, rotation=0,
