@@ -284,7 +284,7 @@ def plot_across_experiments(experiments: list, save_path: str = None,
     ax.set_xticks([i * x_spacing for i in range(n_exp)])
     ax.set_xticklabels([e["label"] for e in all_data], fontsize=11,
                        rotation=45, ha="center")
-    ax.set_ylabel("% Chose Hypothesized Shape", fontsize=13)
+    ax.set_ylabel("% Chose Object with Response-Driving Part", fontsize=13)
     ax.set_xlabel("Experiment", fontsize=13)
     title_fontsize = max(7, fig_w * 14 / 7.5)
     # ax.set_title("EStim Effect Across Experiments: % Chose Hypothesized", fontsize=title_fontsize)
