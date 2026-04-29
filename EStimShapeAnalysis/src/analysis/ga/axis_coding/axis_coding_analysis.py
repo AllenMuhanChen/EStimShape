@@ -27,6 +27,7 @@ from src.analysis.ga.axis_coding.component_selectors import (
     ComponentSelector,
     FixedCovarianceSelector,
     LearnedDiagonalCovarianceSelector,
+    ClusterModeSelector,
 )
 from src.analysis.ga.axis_coding.ridge_regression_model import (
     RidgeRegressionAxisModel,
@@ -645,6 +646,18 @@ def main():
                 tol=0.01,
                 temperature=0.0,
                 variance_floor=1e-3,
+            ),
+            ridge_factory=ridge,
+        ),
+        AxisCodingStrategy(
+            label="cluster_mode",
+            selector_factory=lambda: ClusterModeSelector(
+                bandwidth=None,       # None = median pairwise distance (data-driven)
+                n_random_inits=10,
+                max_iter=50,
+                tol=0.01,
+                temperature=0.0,
+                response_weight_floor=0.0,
             ),
             ridge_factory=ridge,
         ),

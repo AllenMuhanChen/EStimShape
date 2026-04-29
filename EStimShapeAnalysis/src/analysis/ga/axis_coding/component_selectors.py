@@ -350,3 +350,266 @@ def _weighted_mean(X: np.ndarray, w: np.ndarray, floor: float = 0.0) -> np.ndarr
     if not np.isfinite(total) or total <= 0:
         return X.mean(axis=0)
     return (w[:, None] * X).sum(axis=0) / total
+
+
+def _quick_r2(X: np.ndarray, y: np.ndarray) -> float:
+    """Training R² with a fixed-alpha Ridge. Used only for restart comparison."""
+    from sklearn.linear_model import Ridge
+    from sklearn.metrics import r2_score
+    try:
+        m = Ridge(alpha=1.0).fit(X, y)
+        return float(r2_score(y, m.predict(X)))
+    except Exception:
+        return float("-inf")
+
+
+class ClusterModeSelector(FixedCovarianceSelector):
+    """
+    Avoids the mean-initialization bias of FixedCovarianceSelector by finding
+    the dominant density *mode* of the response-weighted component distribution
+    rather than its centroid.
+
+    Motivation: a high-response stimulus has M components, only one of which
+    actually drives the neuron.  All M share the same response weight, so a
+    response-weighted mean of all components is pulled toward the centroid of
+    drivers + hitchhikers.  The *mode* (densest cluster) naturally separates
+    the tight cluster of true drivers from the diffuse cloud of hitchhikers.
+
+    Two changes from FixedCovarianceSelector:
+
+    1. **Multi-restart mean-shift initialization.**  ``n_random_inits`` starting
+       points are drawn from the response-weighted component distribution.  Each
+       is run to its local density mode via mean-shift (response-weighted Gaussian
+       kernel).  This seed is then handed to the EM loop.  Best restart is kept
+       by training R².
+
+    2. **Kernel-weighted M-step.**  Instead of the plain response-weighted mean,
+       μ is updated as a Gaussian-kernel-weighted mean of the selected components:
+       ``μ ← Σᵢ K(xᵢ, μ, h)·rᵢ·xᵢ / Σᵢ K(xᵢ, μ, h)·rᵢ``
+       where ``K(x, μ, h) = exp(-‖x−μ‖²/(2h²))``.  Components far from the
+       current μ are down-weighted, so μ converges to the local density peak
+       rather than the centroid.
+
+    ``bandwidth=None`` computes h as the median pairwise Euclidean distance
+    among all components in the (z-scored) dataset — a data-driven scale that
+    adapts to the spread of the component distribution.
+    """
+
+    def __init__(
+        self,
+        bandwidth: Optional[float] = None,
+        n_random_inits: int = 10,
+        max_iter: int = 50,
+        tol: float = 0.01,
+        response_weight_floor: float = 0.0,
+        temperature: float = 0.0,
+    ):
+        super().__init__(
+            metric=None,
+            max_iter=max_iter,
+            tol=tol,
+            init="response_weighted_mean",  # unused; fit() is fully overridden
+            response_weight_floor=response_weight_floor,
+            temperature=temperature,
+        )
+        self.bandwidth = bandwidth
+        self.n_random_inits = n_random_inits
+        self.bandwidth_: Optional[float] = None
+        self.best_train_r2_: Optional[float] = None
+
+    # ------------------------------------------------------------------
+    # Override fit() to run multiple restarts
+    # ------------------------------------------------------------------
+
+    def fit(
+        self,
+        components_per_stim: list[np.ndarray],
+        responses: np.ndarray,
+    ) -> "ClusterModeSelector":
+        if len(components_per_stim) == 0:
+            raise ValueError("No stimuli passed to ClusterModeSelector.fit")
+
+        d = components_per_stim[0].shape[1]
+        metric = np.eye(d, dtype=np.float64)
+
+        self.bandwidth_ = (
+            self.bandwidth if self.bandwidth is not None
+            else _median_pairwise_bandwidth(components_per_stim)
+        )
+
+        # Stack all components; each inherits its stimulus's response as weight.
+        all_comps, all_weights = [], []
+        for comps, r in zip(components_per_stim, responses):
+            if comps.shape[0] == 0:
+                continue
+            w = max(float(r), 0.0)
+            if self.response_weight_floor > 0:
+                w = max(w, float(self.response_weight_floor))
+            for _ in range(comps.shape[0]):
+                all_weights.append(w)
+            all_comps.append(comps)
+        X_all = np.vstack(all_comps)
+        w_all = np.asarray(all_weights, dtype=np.float64)
+
+        # Draw starting points proportional to response weight.
+        w_norm = w_all / (w_all.sum() + 1e-12)
+        rng = np.random.default_rng(0)
+        start_idx = rng.choice(len(X_all), size=self.n_random_inits, replace=True, p=w_norm)
+
+        best_r2 = float("-inf")
+        best_state: Optional[dict] = None
+
+        for idx in start_idx:
+            mu_init = _mean_shift(
+                X_all, w_all, X_all[idx].copy(), self.bandwidth_
+            )
+            state = self._run_em(components_per_stim, responses, mu_init, metric)
+            selected = self._soft_selected_vectors(
+                components_per_stim, state["mu"], state["metric"]
+            )
+            r2 = _quick_r2(selected, np.asarray(responses))
+            if r2 > best_r2:
+                best_r2 = r2
+                best_state = state
+
+        self.mu_ = best_state["mu"]
+        self.metric_ = best_state["metric"]
+        self.n_iter_ = best_state["n_iter"]
+        self.converged_ = best_state["converged"]
+        self.history_ = best_state["history"]
+        self.selected_indices_ = self._hard_indices(
+            components_per_stim, self.mu_, self.metric_
+        )
+        self.best_train_r2_ = float(best_r2)
+        return self
+
+    # ------------------------------------------------------------------
+    # Override M-step: kernel-weighted mean-shift update
+    # ------------------------------------------------------------------
+
+    def _m_step(
+        self,
+        soft_selected: np.ndarray,
+        responses: np.ndarray,
+        mu: np.ndarray,
+        metric: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        h = self.bandwidth_
+        if h is None or h < 1e-12:
+            return super()._m_step(soft_selected, responses, mu, metric)
+
+        diff = soft_selected - mu[None, :]
+        sq_dists = np.sum(diff ** 2, axis=1)
+        kernel_w = np.exp(-0.5 * sq_dists / (h ** 2))
+
+        r = np.asarray(responses, dtype=np.float64)
+        if self.response_weight_floor > 0:
+            r = np.clip(r, self.response_weight_floor, None)
+        combined_w = kernel_w * np.maximum(r, 0.0)
+        total = combined_w.sum()
+
+        if total < 1e-12 or not np.isfinite(total):
+            return super()._m_step(soft_selected, responses, mu, metric)
+
+        mu_new = (combined_w[:, None] * soft_selected).sum(0) / total
+        return mu_new, metric
+
+    # ------------------------------------------------------------------
+    # EM runner (called once per restart)
+    # ------------------------------------------------------------------
+
+    def _run_em(
+        self,
+        components_per_stim: list[np.ndarray],
+        responses: np.ndarray,
+        mu_init: np.ndarray,
+        metric_init: np.ndarray,
+    ) -> dict:
+        mu = mu_init.copy()
+        metric = metric_init.copy()
+        history: list[dict] = []
+        converged = False
+
+        for it in range(self.max_iter):
+            soft_selected = self._soft_selected_vectors(components_per_stim, mu, metric)
+            mu_new, metric_new = self._m_step(soft_selected, responses, mu, metric)
+            dmu = float(
+                np.linalg.norm(mu_new - mu) / (np.linalg.norm(mu) + 1e-12)
+            )
+            history.append({"iter": it, "dmu": dmu})
+            mu = mu_new
+            metric = metric_new
+            if it > 0 and dmu < self.tol:
+                converged = True
+                break
+
+        return {
+            "mu": mu,
+            "metric": metric,
+            "n_iter": len(history),
+            "converged": converged,
+            "history": history,
+        }
+
+    def summary(self) -> dict:
+        d = super().summary()
+        d["selector"] = "ClusterModeSelector"
+        d["bandwidth"] = self.bandwidth
+        d["bandwidth_learned"] = self.bandwidth_
+        d["n_random_inits"] = self.n_random_inits
+        if self.best_train_r2_ is not None:
+            d["best_train_r2"] = self.best_train_r2_
+        return d
+
+
+# ---------------------------------------------------------------------------
+# Module-level helpers shared by ClusterModeSelector
+# ---------------------------------------------------------------------------
+
+def _mean_shift(
+    X: np.ndarray,
+    weights: np.ndarray,
+    mu_init: np.ndarray,
+    h: float,
+    max_iter: int = 200,
+    tol: float = 1e-6,
+) -> np.ndarray:
+    """
+    Run response-weighted mean-shift from mu_init until convergence.
+    Used during initialization to find the local density mode.
+    """
+    mu = mu_init.copy()
+    for _ in range(max_iter):
+        diff = X - mu[None, :]
+        sq_dists = np.sum(diff ** 2, axis=1)
+        kernel_w = np.exp(-0.5 * sq_dists / (h ** 2))
+        combined_w = kernel_w * weights
+        total = combined_w.sum()
+        if total < 1e-12:
+            break
+        mu_new = (combined_w[:, None] * X).sum(0) / total
+        if np.linalg.norm(mu_new - mu) < tol:
+            break
+        mu = mu_new
+    return mu
+
+
+def _median_pairwise_bandwidth(
+    components_per_stim: list[np.ndarray],
+    max_points: int = 1000,
+    random_state: int = 0,
+) -> float:
+    """
+    Median pairwise Euclidean distance among all components (subsampled to
+    max_points for efficiency). Gives a data-driven bandwidth scale.
+    """
+    from sklearn.metrics.pairwise import euclidean_distances
+    all_comps = np.vstack([c for c in components_per_stim if c.shape[0] > 0])
+    if len(all_comps) > max_points:
+        idx = np.random.default_rng(random_state).choice(
+            len(all_comps), max_points, replace=False
+        )
+        all_comps = all_comps[idx]
+    dists = euclidean_distances(all_comps)
+    iu = np.triu_indices_from(dists, k=1)
+    return float(np.median(dists[iu]))
