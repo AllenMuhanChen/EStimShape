@@ -531,6 +531,19 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                     f"cv_r2={_fmt(cv_r2)} ± {_fmt(cv_r2_std)}{frac_str}"
                 )
 
+                # Top-10 worst-predicted stimuli (largest |actual - predicted|).
+                actual_arr = np.asarray(result.actual_responses)
+                pred_arr = np.asarray(result.predicted_responses)
+                residuals = actual_arr - pred_arr
+                worst = np.argsort(-np.abs(residuals))[:10]
+                print("  worst predictions (stim_id  actual  predicted  residual):")
+                for i in worst:
+                    print(
+                        f"    {result.stim_ids[i]}  "
+                        f"{actual_arr[i]:8.2f}  {pred_arr[i]:8.2f}  "
+                        f"{residuals[i]:+8.2f}"
+                    )
+
                 fig = plot_axis_coding_result(
                     result,
                     title=(
