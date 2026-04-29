@@ -136,19 +136,23 @@ class AxisCodingDataset:
 def _coerce_to_list_of_dicts(value):
     """
     Components round-tripped through the repository come back as the string repr
-    of a list of dicts (export_to_repository falls back to ``str(value)`` for
-    complex types -- comment at export_to_repository.py:474). Parse those back
-    via ast.literal_eval. Pass through if already a list/None.
+    of a list/dict of dicts (export_to_repository falls back to ``str(value)``
+    for complex types -- comment at export_to_repository.py:474). Parse those
+    back via ast.literal_eval. A single-component stimulus comes back as a bare
+    dict (see matchstick_fields.py:53-60); wrap it into a one-element list so
+    downstream code can iterate uniformly.
     """
     if value is None:
         return None
-    if isinstance(value, list):
-        return value
     if isinstance(value, str):
         try:
-            return ast.literal_eval(value)
+            value = ast.literal_eval(value)
         except (SyntaxError, ValueError):
             return None
+    if isinstance(value, dict):
+        return [value]
+    if isinstance(value, list):
+        return value
     return value
 
 
