@@ -34,6 +34,7 @@ from src.analysis.ga.axis_coding.ridge_regression_model import (
     RidgeRegressionAxisModel,
 )
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
+from src.analysis.ga.receptive_field_filter import ReceptiveFieldFilter
 from src.analysis.modules.figure_output import FigureSaverOutput
 from src.pga.mock.mock_rwa_analysis import (
     condition_spherical_angles,
@@ -457,6 +458,7 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
         show_plots: bool = True,
         outlier_sigma: float = 0.0,
         outlier_min_trials: int = 3,
+        rf_filter: Optional[ReceptiveFieldFilter] = None,
     ):
         super().__init__()
         self.component_types = component_types or [
@@ -467,6 +469,7 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
         self.show_plots = show_plots
         self.outlier_sigma = outlier_sigma
         self.outlier_min_trials = outlier_min_trials
+        self.rf_filter = rf_filter
 
     # ------------------------------------------------------------------
     # Analysis API
@@ -474,6 +477,14 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
 
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
         compiled_data = self._prepare_dataframe(compiled_data)
+        if self.rf_filter is not None:
+            if self.rf_filter.save_dir is None:
+                self.rf_filter.save_dir = self.save_path
+            compiled_data = self.rf_filter.fit_and_filter(
+                compiled_data,
+                channel=channel,
+                spike_rates_col=self.spike_rates_col,
+            )
         if self.outlier_sigma > 0:
             compiled_data = remove_trial_outliers(
                 compiled_data,
@@ -700,6 +711,7 @@ def main():
         strategies=strategies,
         outlier_sigma=2.0,       # 0.0 to disable; trials > n*std from stim mean are dropped
         outlier_min_trials=5,    # only attempt removal for stims with >= this many trials
+        rf_filter=ReceptiveFieldFilter(plot=True),  # None to disable
     )
     # session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     session_id="260426_0"
