@@ -93,6 +93,9 @@ class AxisCodingResult:
     feature_names: list[str]
     actual_responses: list[float]
     predicted_responses: list[float]
+    axis_projections: Optional[list[float]] = None
+    orthogonal_projections: Optional[list[float]] = None
+    orthogonal_axis: Optional[list[float]] = None
     noise_ceiling: Optional[float] = None
 
     def to_json_dict(self) -> dict:
@@ -194,6 +197,12 @@ def fit_axis_coding(
     ridge.fit(X, dataset.responses, feature_names=dataset.feature_names)
     predicted = ridge.predict(X)
 
+    # Preferred-axis projections and principal orthogonal axis projections.
+    w = ridge.w_
+    axis_projections = _project_onto_unit(X, w)
+    orth_axis = compute_principal_orthogonal_axis(X, w)
+    orth_projections = X @ orth_axis if np.any(orth_axis) else np.zeros(X.shape[0])
+
     noise_ceiling = compute_noise_ceiling(
         df=df,
         channel=channel,
@@ -216,6 +225,9 @@ def fit_axis_coding(
         feature_names=dataset.feature_names,
         actual_responses=dataset.responses.tolist(),
         predicted_responses=predicted.tolist(),
+        axis_projections=axis_projections.tolist(),
+        orthogonal_projections=orth_projections.tolist(),
+        orthogonal_axis=orth_axis.tolist(),
         noise_ceiling=noise_ceiling,
     )
 
@@ -317,16 +329,45 @@ def make_axis_coding_module(
 # Plot helper
 # ---------------------------------------------------------------------------
 
+def _project_onto_unit(X: np.ndarray, w: np.ndarray) -> np.ndarray:
+    """Project rows of X onto the unit-normalized direction of w."""
+    w_norm = float(np.linalg.norm(w))
+    if w_norm < 1e-12:
+        return np.zeros(X.shape[0])
+    return X @ (w / w_norm)
+
+
+def compute_principal_orthogonal_axis(X: np.ndarray, w: np.ndarray) -> np.ndarray:
+    """
+    The highest-variance unit direction in the null-space of the preferred
+    axis ``w``. Found by PCA on residuals X - (X·ŵ)ŵ.
+
+    Returns a unit vector orthogonal to w. If w ≈ 0 or the orthogonal subspace
+    has no variance, returns a zero vector.
+    """
+    w_norm = float(np.linalg.norm(w))
+    if w_norm < 1e-12 or X.shape[0] < 2:
+        return np.zeros_like(w)
+    w_unit = w / w_norm
+    X_orth = X - np.outer(X @ w_unit, w_unit)
+    centered = X_orth - X_orth.mean(axis=0)
+    cov = centered.T @ centered / max(1, len(centered) - 1)
+    vals, vecs = np.linalg.eigh(cov)
+    pc = vecs[:, -1]
+    pc_norm = float(np.linalg.norm(pc))
+    if pc_norm < 1e-12 or float(vals[-1]) < 1e-12:
+        return np.zeros_like(w)
+    return pc / pc_norm
+
+
 def compute_axis_projections(result: AxisCodingResult) -> np.ndarray:
     """
-    Project each stimulus's selected component vector onto the preferred axis.
-
-    The ridge axis direction is w/||w||.  Since predicted = X @ w + b, the
-    projection x_i · (w/||w||) = (predicted_i - b) / ||w||, so we can recover
-    it from already-stored predictions without re-running the selector.
-
-    Returns a 1-D array of length n_stim (axis coordinates, in z-scored units).
+    Projections onto the preferred ridge axis.  Uses the stored
+    ``axis_projections`` if present; otherwise reconstructs them from
+    predictions: x_i · ŵ = (predicted_i - intercept) / ||w||.
     """
+    if result.axis_projections is not None:
+        return np.asarray(result.axis_projections, dtype=np.float64)
     weights = result.ridge_summary.get("weights")
     intercept = result.ridge_summary.get("intercept")
     if weights is None or intercept is None:
@@ -339,14 +380,55 @@ def compute_axis_projections(result: AxisCodingResult) -> np.ndarray:
     return (pred - float(intercept)) / w_norm
 
 
+def _binned_mean_sem(x: np.ndarray, y: np.ndarray, n_bins: int):
+    """Return (centers, means, sems) for y binned along x. NaN bins kept."""
+    bin_edges = np.linspace(x.min(), x.max(), n_bins + 1)
+    centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+    means, sems = [], []
+    for lo, hi in zip(bin_edges[:-1], bin_edges[1:]):
+        mask = (x >= lo) & (x < hi)
+        if mask.sum() > 0:
+            vals = y[mask]
+            means.append(vals.mean())
+            sems.append(vals.std(ddof=0) / np.sqrt(len(vals)))
+        else:
+            means.append(np.nan)
+            sems.append(np.nan)
+    return centers, np.asarray(means), np.asarray(sems)
+
+
+def _draw_tuning_curve(ax, projections, actual, n_bins, xlabel, title):
+    ax.scatter(projections, actual, s=12, alpha=0.5, label="stimuli")
+    if projections.size > 0 and not np.all(np.isnan(projections)) and projections.std() > 1e-12:
+        centers, means, sems = _binned_mean_sem(projections, actual, n_bins)
+        valid = ~np.isnan(means)
+        ax.plot(centers[valid], means[valid], "k-", lw=2, label="binned mean")
+        ax.fill_between(
+            centers[valid],
+            (means - sems)[valid],
+            (means + sems)[valid],
+            alpha=0.25,
+            color="k",
+        )
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel("Actual response")
+    ax.set_title(title)
+    ax.legend(fontsize=8)
+
+
 def plot_axis_coding_result(
     result: AxisCodingResult, title: Optional[str] = None, n_bins: int = 10
 ) -> plt.Figure:
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
 
     actual = np.asarray(result.actual_responses)
     pred = np.asarray(result.predicted_responses)
-    projections = compute_axis_projections(result)
+    axis_proj = compute_axis_projections(result)
+    orth_proj = (
+        np.asarray(result.orthogonal_projections, dtype=np.float64)
+        if result.orthogonal_projections is not None
+        else np.zeros_like(axis_proj)
+    )
 
     cv_r2 = result.ridge_summary.get("cv_r2_mean")
     cv_r2_std = result.ridge_summary.get("cv_r2_std")
@@ -363,8 +445,8 @@ def plot_axis_coding_result(
     else:
         nc_str = "NC = n/a (single-trial or pre-averaged data)"
 
-    # Panel 1: Predicted vs actual
-    ax = axes[0]
+    # Panel (0,0): Predicted vs actual
+    ax = axes[0, 0]
     ax.scatter(actual, pred, s=12, alpha=0.6)
     lims = [
         float(min(actual.min(), pred.min())),
@@ -377,45 +459,19 @@ def plot_axis_coding_result(
         f"{result.component_type} | {result.strategy_label}\n{r2_str}\n{nc_str}"
     )
 
-    # Panel 2: Tuning curve — response vs projection onto preferred axis
-    ax = axes[1]
-    ax.scatter(projections, actual, s=12, alpha=0.5, label="stimuli")
-    # Binned mean ± SEM overlay
-    if not np.all(np.isnan(projections)):
-        bin_edges = np.linspace(projections.min(), projections.max(), n_bins + 1)
-        bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
-        bin_means, bin_sems = [], []
-        for lo, hi in zip(bin_edges[:-1], bin_edges[1:]):
-            mask = (projections >= lo) & (projections < hi)
-            if mask.sum() > 0:
-                vals = actual[mask]
-                bin_means.append(vals.mean())
-                bin_sems.append(vals.std(ddof=0) / np.sqrt(len(vals)))
-            else:
-                bin_means.append(np.nan)
-                bin_sems.append(np.nan)
-        bin_means = np.asarray(bin_means)
-        bin_sems = np.asarray(bin_sems)
-        valid = ~np.isnan(bin_means)
-        ax.plot(bin_centers[valid], bin_means[valid], "k-", lw=2, label="binned mean")
-        ax.fill_between(
-            bin_centers[valid],
-            (bin_means - bin_sems)[valid],
-            (bin_means + bin_sems)[valid],
-            alpha=0.25,
-            color="k",
-        )
-    ax.set_xlabel("Projection onto preferred axis (z-scored units)")
-    ax.set_ylabel("Actual response")
-    ax.set_title("Axis tuning curve")
-    ax.legend(fontsize=8)
+    # Panel (0,1): Tuning curve along preferred axis
+    _draw_tuning_curve(
+        axes[0, 1], axis_proj, actual, n_bins,
+        xlabel="Projection onto preferred axis (z-scored units)",
+        title="Axis tuning curve (preferred)",
+    )
 
-    # Panel 3: Top |w| bars
-    ax = axes[2]
+    # Panel (0,2): Top |w| bars
+    ax = axes[0, 2]
     top = result.ridge_summary.get("top_features") or []
     if top:
         names = [n for n, _ in top]
-        weights = [w for _, w in top]
+        weights = [wi for _, wi in top]
         y = np.arange(len(names))
         ax.barh(y, weights)
         ax.set_yticks(y)
@@ -424,6 +480,30 @@ def plot_axis_coding_result(
         ax.axvline(0, color="black", lw=0.8)
         ax.set_xlabel("Ridge weight")
         ax.set_title("Top features by |w|")
+
+    # Panel (1,0): Tuning along principal orthogonal axis
+    _draw_tuning_curve(
+        axes[1, 0], orth_proj, actual, n_bins,
+        xlabel="Projection onto principal orthogonal axis (z-scored units)",
+        title="Tuning along principal orthogonal axis",
+    )
+
+    # Panel (1,1): 2D scatter (preferred axis, orth axis) colored by response
+    ax = axes[1, 1]
+    sc = ax.scatter(
+        axis_proj, orth_proj, c=actual,
+        cmap="viridis", s=22, alpha=0.85,
+        edgecolors="none",
+    )
+    ax.axhline(0, color="gray", lw=0.6, ls="--")
+    ax.axvline(0, color="gray", lw=0.6, ls="--")
+    ax.set_xlabel("Preferred axis projection")
+    ax.set_ylabel("Principal orthogonal axis projection")
+    ax.set_title("Axis vs orthogonal (color = response)")
+    plt.colorbar(sc, ax=ax, label="Response")
+
+    # Panel (1,2): unused — hide
+    axes[1, 2].axis("off")
 
     if title:
         fig.suptitle(title)
