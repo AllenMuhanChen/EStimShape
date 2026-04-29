@@ -23,6 +23,7 @@ from src.analysis.ga.axis_coding.component_encoding import (
 from src.analysis.ga.axis_coding.component_selectors import (
     ComponentSelector,
     FixedCovarianceSelector,
+    LearnedDiagonalCovarianceSelector,
 )
 from src.analysis.ga.axis_coding.ridge_regression_model import (
     RidgeRegressionAxisModel,
@@ -456,22 +457,52 @@ def _jsonable(x):
 # ---------------------------------------------------------------------------
 
 def main():
-    strategy = AxisCodingStrategy(
-        label="fixed_cov_identity",
-        selector_factory=lambda: FixedCovarianceSelector(
-            max_iter=50,
-            tol=0.01,
-            init="response_weighted_mean",
-            response_weight_floor=0.0,
-        ),
-        ridge_factory=lambda: RidgeRegressionAxisModel(
-            alphas=np.logspace(-3, 4, 20),
-            cv=5,
-            n_splits_cv_r2=20,
-            test_size=0.2,
-        ),
+    # --- Selector hyperparameters ---
+    # max_iter:              EM iterations before forced stop
+    # tol:                   relative change in mu to declare convergence
+    # temperature:           0 = hard argmin (strict proximity enforcement)
+    #                        >0 = soft assignment; higher = less enforcement
+    # response_weight_floor: clip low responses before weighting mu updates
+    # variance_floor:        (LearnedDiagonal only) prevents any feature from
+    #                        collapsing to infinite precision
+
+    # --- Ridge hyperparameters ---
+    # alphas:         log-spaced alpha search grid
+    # cv:             folds for alpha selection via RidgeCV
+    # n_splits_cv_r2: held-out R² estimate splits
+    # test_size:      fraction held out per split
+
+    ridge = lambda: RidgeRegressionAxisModel(
+        alphas=np.logspace(-3, 4, 20),
+        cv=5,
+        n_splits_cv_r2=20,
+        test_size=0.2,
     )
-    analysis = AxisCodingAnalysis(strategies=[strategy])
+
+    strategies = [
+        AxisCodingStrategy(
+            label="fixed_hard",
+            selector_factory=lambda: FixedCovarianceSelector(
+                max_iter=50,
+                tol=0.01,
+                temperature=0.0,
+                response_weight_floor=0.0,
+            ),
+            ridge_factory=ridge,
+        ),
+        AxisCodingStrategy(
+            label="learned_diag",
+            selector_factory=lambda: LearnedDiagonalCovarianceSelector(
+                max_iter=50,
+                tol=0.01,
+                temperature=0.0,
+                variance_floor=1e-3,
+            ),
+            ridge_factory=ridge,
+        ),
+    ]
+
+    analysis = AxisCodingAnalysis(strategies=strategies)
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     channel = "A-022"
     analysis.run(session_id, "raw", channel, compiled_data=None)
