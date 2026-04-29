@@ -452,7 +452,7 @@ def _jsonable(x):
 def main():
     analysis = AxisCodingAnalysis()
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
-    channel = "GA"
+    channel = "A-022"
     analysis.run(session_id, "raw", channel, compiled_data=None)
 
 

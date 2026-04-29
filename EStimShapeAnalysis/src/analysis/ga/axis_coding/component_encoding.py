@@ -109,10 +109,10 @@ SHAFT_CIRCULAR = ["angularPosition.theta", "angularPosition.phi",
                   "orientation.theta", "orientation.phi"]
 
 TERMINATION_LINEAR = ["radialPosition", "radius"]
-TERMINATION_CIRCULAR = ["angularPosition.theta", "angularPosition.phi"]
+TERMINATION_CIRCULAR = ["angularPosition.theta", "angularPosition.phi", "direction.theta", "direction.phi"]
 
-JUNCTION_LINEAR = ["radialPosition", "radius", "angularSubtense"]
-JUNCTION_CIRCULAR = ["angularPosition.theta", "angularPosition.phi", "planarRotation"]
+JUNCTION_LINEAR = ["radialPosition", "radius", "angularSubtense", "planarRotation"]
+JUNCTION_CIRCULAR = ["angularPosition.theta", "angularPosition.phi", "angleBisectorDirection.theta", "angleBisectorDirection.phi"]
 
 
 def make_default_encoders() -> dict[str, ComponentEncoder]:
