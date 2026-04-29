@@ -54,7 +54,7 @@ ga_conn = Connection(context.ga_database)
 # Raw Spearman correlation vs a cluster channel (from pre-computed GA vectors)
 matrix = ChannelResponseVectorLoader(SESSION_ID, conn).load()
 target_channel = "A-022"
-metric = StimVectorCorrelation.vs_channel(matrix, target_channel, title=f'Correlation vs {target_channel}')
+metric = StimVectorCorrelation.vs_channel(matrix, target_channel, title=f'Correlation vs GA Channel')
 
 # Z-scored Spearman on delta/variant stims
 # dv_ids = DeltaVariantStimLoader(ga_conn, included_only=True).load()
@@ -102,8 +102,8 @@ def main():
     # Replace channel-name tick labels with depth in mm.
     # y=n → top channel (index 0, depth 0 mm); y=1 → bottom (depth (n-1)*spacing)
     depth_labels = [f'{(n - 1 - i) * CHANNEL_SPACING_MM:.2f}' for i in range(n)]
-    ax.set_yticklabels(depth_labels, fontsize=8)
-    ax.set_ylabel('Depth Along Probe (mm)', fontsize=10)
+    ax.set_yticklabels(depth_labels, fontsize=10)
+    ax.set_ylabel('Depth Along Probe (mm)', fontsize=12)
 
     format_single_column_axis(ax)
 
@@ -125,7 +125,7 @@ def main():
                     1.02, y_pos, 'EStim',
                     transform=ax.get_yaxis_transform(),
                     ha='left', va='center',
-                    fontsize=7, color=ESTIM_HATCH_COLOR,
+                    fontsize=12, color=ESTIM_HATCH_COLOR,
                     clip_on=False,
                 )
 
@@ -144,12 +144,12 @@ def main():
             plt.cm.ScalarMappable(norm=norm, cmap=cmap),
             cax=cax, orientation='vertical',
         )
-        cbar.set_label(metric.title, fontsize=9)
+        cbar.set_label(metric.title, fontsize=12)
 
     # Marker legend stacked above the colorbar, sharing the same left anchor.
     ax.legend(
-        handles=cluster_marker_legend_handles(),
-        fontsize=8,
+        handles=cluster_marker_legend_handles(include_no_data=False),
+        fontsize=12,
         bbox_to_anchor=(1.28, 1.0),
         bbox_transform=ax.transAxes,
         loc='upper left',
@@ -159,6 +159,9 @@ def main():
 
     if SAVE_PATH:
         fig.savefig(SAVE_PATH, dpi=300, bbox_inches='tight')
+        # replace extension with .svg
+        svg_path = SAVE_PATH.rsplit('.', 1)[0] + '.svg'
+        fig.savefig(svg_path, dpi=300, bbox_inches='tight')
         print(f"Saved to {SAVE_PATH}")
 
     plt.show()

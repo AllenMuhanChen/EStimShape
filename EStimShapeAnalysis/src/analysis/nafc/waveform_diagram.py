@@ -268,18 +268,21 @@ def plot_timing_diagram(
             ))
 
         # Vertical markers on ax_estim from baseline to y=1 (ON level)
-        ymin, ymax = ax_estim.get_ylim()
-        y1_fig = pos_e.y0 + (1.0 - ymin) / (ymax - ymin) * pos_e.height
-        for src_x in [src_left, src_right]:
-            fig.add_artist(Line2D(
-                [src_x, src_x], [pos_e.y0, y1_fig],
-                transform=fig.transFigure,
-                color=_GRAY, linestyle="--", linewidth=0.8, clip_on=False,
-            ))
+        # ymin, ymax = ax_estim.get_ylim()
+        # y1_fig = pos_e.y0 + (1.0 - ymin) / (ymax - ymin) * pos_e.height
+        # for src_x in [src_left, src_right]:
+        #     fig.add_artist(Line2D(
+        #         [src_x, src_x], [pos_e.y0, y1_fig],
+        #         transform=fig.transFigure,
+        #         color=_GRAY, linestyle="--", linewidth=0.8, clip_on=False,
+        #     ))
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         fig.savefig(save_path, dpi=300, bbox_inches="tight")
+        # replace extension with .svg
+        svg_path = os.path.splitext(save_path)[0] + ".svg"
+        fig.savefig(svg_path, dpi=300, bbox_inches="tight")
         print(f"Saved to {save_path}")
 
     plt.show()

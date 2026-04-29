@@ -309,6 +309,9 @@ def plot_across_experiments(experiments: list, save_path: str = None,
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         fig.savefig(save_path, bbox_inches="tight", dpi=150)
+        # also save SVG for vector graphics (same path but .svg extension)
+        svg_path = save_path.rsplit(".", 1)[0] + ".svg"
+        fig.savefig(svg_path, bbox_inches="tight")
         print(f"Saved to {save_path}")
 
     plt.show()
@@ -327,7 +330,7 @@ def main():
 
             # Gen-id range (ON and OFF)
             "start_gen_id":           2,
-            "max_gen_id":             None,
+            "max_gen_id":             5,
 
             # Extra gen-id range for ON trials only
             "start_gen_id_estim_on":  0,
