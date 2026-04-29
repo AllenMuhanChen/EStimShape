@@ -239,15 +239,47 @@ def make_axis_coding_module(
 # Plot helper
 # ---------------------------------------------------------------------------
 
-def plot_axis_coding_result(
-    result: AxisCodingResult, title: Optional[str] = None
-) -> plt.Figure:
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+def compute_axis_projections(result: AxisCodingResult) -> np.ndarray:
+    """
+    Project each stimulus's selected component vector onto the preferred axis.
 
-    # Predicted vs actual
-    ax = axes[0]
+    The ridge axis direction is w/||w||.  Since predicted = X @ w + b, the
+    projection x_i · (w/||w||) = (predicted_i - b) / ||w||, so we can recover
+    it from already-stored predictions without re-running the selector.
+
+    Returns a 1-D array of length n_stim (axis coordinates, in z-scored units).
+    """
+    weights = result.ridge_summary.get("weights")
+    intercept = result.ridge_summary.get("intercept")
+    if weights is None or intercept is None:
+        return np.full(len(result.predicted_responses), np.nan)
+    w = np.asarray(weights, dtype=np.float64)
+    w_norm = float(np.linalg.norm(w))
+    if w_norm < 1e-12:
+        return np.zeros(len(result.predicted_responses))
+    pred = np.asarray(result.predicted_responses, dtype=np.float64)
+    return (pred - float(intercept)) / w_norm
+
+
+def plot_axis_coding_result(
+    result: AxisCodingResult, title: Optional[str] = None, n_bins: int = 10
+) -> plt.Figure:
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+
     actual = np.asarray(result.actual_responses)
     pred = np.asarray(result.predicted_responses)
+    projections = compute_axis_projections(result)
+
+    cv_r2 = result.ridge_summary.get("cv_r2_mean")
+    cv_r2_std = result.ridge_summary.get("cv_r2_std")
+    r2_str = (
+        f"CV R² = {cv_r2:.3f} ± {cv_r2_std:.3f}"
+        if cv_r2 is not None and not np.isnan(cv_r2)
+        else "CV R² = n/a"
+    )
+
+    # Panel 1: Predicted vs actual
+    ax = axes[0]
     ax.scatter(actual, pred, s=12, alpha=0.6)
     lims = [
         float(min(actual.min(), pred.min())),
@@ -256,17 +288,45 @@ def plot_axis_coding_result(
     ax.plot(lims, lims, "k--", lw=1)
     ax.set_xlabel("Actual response")
     ax.set_ylabel("Predicted response")
-    cv_r2 = result.ridge_summary.get("cv_r2_mean")
-    cv_r2_std = result.ridge_summary.get("cv_r2_std")
     ax.set_title(
-        f"{result.component_type} | {result.strategy_label} | "
-        f"CV R² = {cv_r2:.3f} ± {cv_r2_std:.3f}"
-        if cv_r2 is not None and not np.isnan(cv_r2)
-        else f"{result.component_type} | {result.strategy_label}"
+        f"{result.component_type} | {result.strategy_label}\n{r2_str}"
     )
 
-    # Top |w| bars
+    # Panel 2: Tuning curve — response vs projection onto preferred axis
     ax = axes[1]
+    ax.scatter(projections, actual, s=12, alpha=0.5, label="stimuli")
+    # Binned mean ± SEM overlay
+    if not np.all(np.isnan(projections)):
+        bin_edges = np.linspace(projections.min(), projections.max(), n_bins + 1)
+        bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+        bin_means, bin_sems = [], []
+        for lo, hi in zip(bin_edges[:-1], bin_edges[1:]):
+            mask = (projections >= lo) & (projections < hi)
+            if mask.sum() > 0:
+                vals = actual[mask]
+                bin_means.append(vals.mean())
+                bin_sems.append(vals.std(ddof=0) / np.sqrt(len(vals)))
+            else:
+                bin_means.append(np.nan)
+                bin_sems.append(np.nan)
+        bin_means = np.asarray(bin_means)
+        bin_sems = np.asarray(bin_sems)
+        valid = ~np.isnan(bin_means)
+        ax.plot(bin_centers[valid], bin_means[valid], "k-", lw=2, label="binned mean")
+        ax.fill_between(
+            bin_centers[valid],
+            (bin_means - bin_sems)[valid],
+            (bin_means + bin_sems)[valid],
+            alpha=0.25,
+            color="k",
+        )
+    ax.set_xlabel("Projection onto preferred axis (z-scored units)")
+    ax.set_ylabel("Actual response")
+    ax.set_title("Axis tuning curve")
+    ax.legend(fontsize=8)
+
+    # Panel 3: Top |w| bars
+    ax = axes[2]
     top = result.ridge_summary.get("top_features") or []
     if top:
         names = [n for n, _ in top]
