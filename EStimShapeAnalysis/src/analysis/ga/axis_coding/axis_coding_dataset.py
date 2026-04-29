@@ -156,6 +156,53 @@ def _coerce_to_list_of_dicts(value):
     return value
 
 
+def remove_trial_outliers(
+    df: pd.DataFrame,
+    channel: Union[str, list[str]],
+    spike_rates_col: Optional[str],
+    n_sigma: float = 3.0,
+    min_trials: int = 3,
+) -> pd.DataFrame:
+    """
+    Drop outlier trials within each stimulus before averaging.
+
+    For each stimulus with >= ``min_trials`` repetitions, any trial whose
+    response deviates more than ``n_sigma`` standard deviations from the
+    within-stimulus mean is removed.  Stimuli with fewer than ``min_trials``
+    repetitions are left untouched (not enough data to reliably call an
+    outlier).
+
+    Returns a new dataframe with outlier rows removed and a console note
+    reporting the number of trials dropped.
+    """
+    df = df.copy()
+    df["_or_resp"] = _extract_per_trial_response(df, channel, spike_rates_col)
+
+    n_before = len(df)
+    drop_mask = pd.Series(False, index=df.index)
+
+    for _, grp in df.groupby("StimSpecId"):
+        resp = grp["_or_resp"].dropna()
+        if len(resp) < min_trials:
+            continue
+        std = resp.std(ddof=1)
+        if std < 1e-12:
+            continue
+        mean = resp.mean()
+        outlier_idx = resp.index[np.abs(resp - mean) > n_sigma * std]
+        drop_mask.loc[outlier_idx] = True
+
+    df = df[~drop_mask].drop(columns=["_or_resp"])
+    n_dropped = n_before - len(df)
+    if n_dropped > 0:
+        print(
+            f"  [outlier_removal] removed {n_dropped} trials "
+            f"({n_dropped / n_before:.1%} of {n_before}) "
+            f"threshold={n_sigma}σ  min_trials={min_trials}"
+        )
+    return df
+
+
 def _extract_per_trial_response(
     df: pd.DataFrame,
     channel: Union[str, list[str]],

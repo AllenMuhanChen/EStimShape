@@ -18,6 +18,7 @@ from clat.pipeline.pipeline_base_classes import (
 from src.analysis.ga.axis_coding.axis_coding_dataset import (
     AxisCodingDataset,
     _extract_per_trial_response,
+    remove_trial_outliers,
 )
 from src.analysis.ga.axis_coding.component_encoding import (
     ComponentEncoder,
@@ -454,6 +455,8 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
         strategies: Optional[list[AxisCodingStrategy]] = None,
         encoders: Optional[dict[str, ComponentEncoder]] = None,
         show_plots: bool = True,
+        outlier_sigma: float = 0.0,
+        outlier_min_trials: int = 3,
     ):
         super().__init__()
         self.component_types = component_types or [
@@ -462,6 +465,8 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
         self.strategies = strategies or [default_strategy()]
         self.encoders = encoders if encoders is not None else make_default_encoders()
         self.show_plots = show_plots
+        self.outlier_sigma = outlier_sigma
+        self.outlier_min_trials = outlier_min_trials
 
     # ------------------------------------------------------------------
     # Analysis API
@@ -469,6 +474,14 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
 
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
         compiled_data = self._prepare_dataframe(compiled_data)
+        if self.outlier_sigma > 0:
+            compiled_data = remove_trial_outliers(
+                compiled_data,
+                channel=channel,
+                spike_rates_col=self.spike_rates_col,
+                n_sigma=self.outlier_sigma,
+                min_trials=self.outlier_min_trials,
+            )
         save_dir = self.save_path
 
         # Re-instantiate encoders per analyze call so the StandardScaler is fit
@@ -663,7 +676,11 @@ def main():
         ),
     ]
 
-    analysis = AxisCodingAnalysis(strategies=strategies)
+    analysis = AxisCodingAnalysis(
+        strategies=strategies,
+        outlier_sigma=3.0,       # 0.0 to disable; trials > n*std from stim mean are dropped
+        outlier_min_trials=3,    # only attempt removal for stims with >= this many trials
+    )
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     channel = "A-022"
     analysis.run(session_id, "raw", channel, compiled_data=None)
