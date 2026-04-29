@@ -74,7 +74,11 @@ class ComponentEncoder:
             raise RuntimeError("Scaler not fit. Call fit_scaler() first.")
         if encoded.shape[0] == 0:
             return encoded
-        return self.scaler.transform(encoded)
+        result = self.scaler.transform(encoded)
+        # Zero-variance features (std=0) produce NaN after scaling.
+        # Replace with 0 (= the z-scored mean) so they contribute nothing
+        # to distances or regression without crashing downstream code.
+        return np.where(np.isfinite(result), result, 0.0)
 
 
 def _resolve_dotted(d: dict, key: str):

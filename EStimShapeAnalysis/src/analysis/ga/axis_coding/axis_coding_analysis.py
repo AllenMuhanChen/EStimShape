@@ -15,7 +15,10 @@ from clat.pipeline.pipeline_base_classes import (
     AnalysisModuleFactory,
 )
 
-from src.analysis.ga.axis_coding.axis_coding_dataset import AxisCodingDataset
+from src.analysis.ga.axis_coding.axis_coding_dataset import (
+    AxisCodingDataset,
+    _extract_per_trial_response,
+)
 from src.analysis.ga.axis_coding.component_encoding import (
     ComponentEncoder,
     make_default_encoders,
@@ -87,11 +90,75 @@ class AxisCodingResult:
     feature_names: list[str]
     actual_responses: list[float]
     predicted_responses: list[float]
+    noise_ceiling: Optional[float] = None
 
     def to_json_dict(self) -> dict:
         d = self.__dict__.copy()
         # Channel may be a list -> already JSON-serializable.
         return d
+
+
+# ---------------------------------------------------------------------------
+# Noise ceiling
+# ---------------------------------------------------------------------------
+
+def compute_noise_ceiling(
+    df: pd.DataFrame,
+    channel: Union[str, list[str]],
+    spike_rates_col: Optional[str],
+    stim_ids=None,
+    n_splits: int = 200,
+    random_state: int = 0,
+) -> Optional[float]:
+    """
+    Estimate the upper-bound R² achievable given trial-to-trial noise.
+
+    For each stimulus with ≥2 trials, trials are randomly split in half and
+    the Pearson r between the two half-means is Spearman-Brown corrected to
+    full-N reliability, then squared to give a noise-ceiling R².  The result
+    is averaged over ``n_splits`` random splits for stability.
+
+    Returns None when no stimulus has ≥2 trials (e.g. single-trial sessions
+    or when only GA Response is available as a pre-averaged scalar).
+    """
+    df = df.copy()
+    df = df[df["StimSpecId"].notna()]
+    df["_nc_resp"] = _extract_per_trial_response(df, channel, spike_rates_col)
+    df = df[df["_nc_resp"].notna()]
+
+    if stim_ids is not None:
+        df = df[df["StimSpecId"].isin(stim_ids)]
+
+    groups = {
+        sid: grp["_nc_resp"].values
+        for sid, grp in df.groupby("StimSpecId")
+        if len(grp) >= 2
+    }
+
+    if len(groups) < 2:
+        return None
+
+    rng = np.random.default_rng(random_state)
+    nc_values = []
+
+    for _ in range(n_splits):
+        h1, h2 = [], []
+        for trials in groups.values():
+            idx = rng.permutation(len(trials))
+            mid = max(1, len(idx) // 2)
+            h1.append(trials[idx[:mid]].mean())
+            h2.append(trials[idx[mid:]].mean())
+
+        h1, h2 = np.asarray(h1), np.asarray(h2)
+        if h1.std() < 1e-12 or h2.std() < 1e-12:
+            continue
+
+        r = float(np.corrcoef(h1, h2)[0, 1])
+        r = float(np.clip(r, 0.0, 1.0))   # negative = no signal; floor at 0
+        r_sb = (2.0 * r) / (1.0 + r)      # Spearman-Brown to full-N reliability
+        nc_values.append(r_sb ** 2)        # convert correlation → R²
+
+    return float(np.mean(nc_values)) if nc_values else None
 
 
 # ---------------------------------------------------------------------------
@@ -124,6 +191,13 @@ def fit_axis_coding(
     ridge.fit(X, dataset.responses, feature_names=dataset.feature_names)
     predicted = ridge.predict(X)
 
+    noise_ceiling = compute_noise_ceiling(
+        df=df,
+        channel=channel,
+        spike_rates_col=spike_rates_col,
+        stim_ids=dataset.stim_ids,
+    )
+
     result = AxisCodingResult(
         channel=channel,
         component_type=component_type,
@@ -139,6 +213,7 @@ def fit_axis_coding(
         feature_names=dataset.feature_names,
         actual_responses=dataset.responses.tolist(),
         predicted_responses=predicted.tolist(),
+        noise_ceiling=noise_ceiling,
     )
 
     if save_dir is not None:
@@ -272,11 +347,18 @@ def plot_axis_coding_result(
 
     cv_r2 = result.ridge_summary.get("cv_r2_mean")
     cv_r2_std = result.ridge_summary.get("cv_r2_std")
+    nc = result.noise_ceiling
+
     r2_str = (
         f"CV R² = {cv_r2:.3f} ± {cv_r2_std:.3f}"
         if cv_r2 is not None and not np.isnan(cv_r2)
         else "CV R² = n/a"
     )
+    if nc is not None:
+        frac = cv_r2 / nc if (cv_r2 is not None and not np.isnan(cv_r2) and nc > 0) else float("nan")
+        nc_str = f"NC = {nc:.3f}  ({frac:.0%} of ceiling)" if np.isfinite(frac) else f"NC = {nc:.3f}"
+    else:
+        nc_str = "NC = n/a (single-trial or pre-averaged data)"
 
     # Panel 1: Predicted vs actual
     ax = axes[0]
@@ -289,7 +371,7 @@ def plot_axis_coding_result(
     ax.set_xlabel("Actual response")
     ax.set_ylabel("Predicted response")
     ax.set_title(
-        f"{result.component_type} | {result.strategy_label}\n{r2_str}"
+        f"{result.component_type} | {result.strategy_label}\n{r2_str}\n{nc_str}"
     )
 
     # Panel 2: Tuning curve — response vs projection onto preferred axis
@@ -423,10 +505,16 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                 cv_r2 = result.ridge_summary.get("cv_r2_mean")
                 cv_r2_std = result.ridge_summary.get("cv_r2_std")
                 alpha = result.ridge_summary.get("alpha")
+                nc = result.noise_ceiling
+                frac_str = ""
+                if nc is not None and cv_r2 is not None and not np.isnan(cv_r2) and nc > 0:
+                    frac_str = f"  ({cv_r2/nc:.0%} of NC={_fmt(nc)})"
+                elif nc is not None:
+                    frac_str = f"  NC={_fmt(nc)}"
                 print(
                     f"  n_stim={result.n_stim}  n_features={result.n_features}  "
                     f"alpha={alpha if alpha is None else f'{alpha:.4g}'}  "
-                    f"cv_r2={_fmt(cv_r2)} ± {_fmt(cv_r2_std)}"
+                    f"cv_r2={_fmt(cv_r2)} ± {_fmt(cv_r2_std)}{frac_str}"
                 )
 
                 fig = plot_axis_coding_result(
