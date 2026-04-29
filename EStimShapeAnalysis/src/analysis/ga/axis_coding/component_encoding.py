@@ -85,17 +85,34 @@ def _resolve_dotted(d: dict, key: str):
     return cur
 
 
-# Schemas matching the RWA dimensions defined in mock_rwa_analysis.py:49,86,114.
-# theta-like/phi-like parameters are circular; everything else is linear.
+# Actual component dict structures (from mock_ga_responses.py + mock_rwa_plot.py):
+#
+#   Shaft:       {"angularPosition": {"theta":…, "phi":…},
+#                 "orientation":     {"theta":…, "phi":…},
+#                 "radialPosition":…, "length":…, "curvature":…, "radius":…}
+#
+#   Termination: {"angularPosition": {"theta":…, "phi":…},
+#                 "direction":       {"theta":…, "phi":…},
+#                 "radialPosition":…, "radius":…}
+#
+#   Junction:    {"angularPosition": {"theta":…, "phi":…},
+#                 "radialPosition":…, "radius":…,
+#                 "angularSubtense":…, "planarRotation":…}
+#
+# The RWA code (mock_rwa_analysis.py) uses the short names "theta"/"phi" via a
+# fallback mechanism (assign_bins_for_component) that resolves
+# angularPosition.theta → binner["theta"].  Here we use the full dotted paths
+# so _resolve_dotted can look them up unambiguously.
 
 SHAFT_LINEAR = ["radialPosition", "length", "curvature", "radius"]
-SHAFT_CIRCULAR = ["theta", "angularPosition.phi", "orientation.phi"]
+SHAFT_CIRCULAR = ["angularPosition.theta", "angularPosition.phi",
+                  "orientation.theta", "orientation.phi"]
 
 TERMINATION_LINEAR = ["radialPosition", "radius"]
-TERMINATION_CIRCULAR = ["theta", "phi"]
+TERMINATION_CIRCULAR = ["angularPosition.theta", "angularPosition.phi"]
 
 JUNCTION_LINEAR = ["radialPosition", "radius", "angularSubtense"]
-JUNCTION_CIRCULAR = ["theta", "phi", "planarRotation"]
+JUNCTION_CIRCULAR = ["angularPosition.theta", "angularPosition.phi", "planarRotation"]
 
 
 def make_default_encoders() -> dict[str, ComponentEncoder]:
