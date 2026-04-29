@@ -19,6 +19,18 @@ class MatchStickField(CachedTaskDatabaseField):
         return "MatchStickData"
 
 
+class MassCenterField(MatchStickField):
+    def get(self, task_id: int) -> list[dict]:
+        mstick_data = self.get_cached_super(task_id, MatchStickField, self.mstick_spec_source)
+        if mstick_data is None:
+            return None
+        mass_center_data = mstick_data["AllenMStickData"]['massCenter']
+        mass_center = (mass_center_data['x'], mass_center_data['y'], mass_center_data['z'])
+        return mass_center
+
+    def get_name(self):
+        return "MassCenter"
+
 class ShaftField(MatchStickField):
     def get(self, task_id: int) -> list[dict]:
         mstick_data = self.get_cached_super(task_id, MatchStickField, self.mstick_spec_source)

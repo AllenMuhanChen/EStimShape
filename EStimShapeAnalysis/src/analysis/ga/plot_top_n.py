@@ -15,7 +15,8 @@ from src.analysis import Analysis, get_all_channels
 
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField, \
     CompsToPreserveField
-from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField
+from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField, \
+    MassCenterField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField, GenIdField, ParentIdField
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
@@ -35,7 +36,7 @@ def main():
     # compiled_data = compile_and_export()
     analysis = PlotTopNAnalysis()
     compiled_data = None
-    # compiled_data = analysis.compile()
+    compiled_data = analysis.compile_and_export()
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     # session_id = "260327_0"
     # channel = ["A-009", "A-000", "A-006", "A-009", "A-015", "A-022", "A-024"]
@@ -126,7 +127,8 @@ class PlotTopNAnalysis(Analysis):
                                  "Shaft",
                                  "Termination",
                                  "Junction",
-                                 "ParentId"
+                                 "ParentId",
+                                 "MassCenter",
                              ])
         return data
 
@@ -163,6 +165,7 @@ class PlotTopNAnalysis(Analysis):
         fields.append(ShaftField(conn, mstick_spec_data_source))
         fields.append(TerminationField(conn, mstick_spec_data_source))
         fields.append(JunctionField(conn, mstick_spec_data_source))
+        fields.append(MassCenterField(conn, mstick_spec_data_source))
 
         data = fields.to_data(task_ids)
         return data

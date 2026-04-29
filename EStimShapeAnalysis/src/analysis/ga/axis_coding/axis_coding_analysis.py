@@ -40,7 +40,7 @@ from src.pga.mock.mock_rwa_analysis import (
     hemisphericalize_orientation,
 )
 from src.repository.export_to_repository import read_session_id_and_date_from_db_name
-from src.startup import context
+
 
 
 # ---------------------------------------------------------------------------
@@ -447,7 +447,7 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
         adding a new selector = adding one branch, no orchestrator edits.
     """
 
-    logging_path = context.logging_path
+    # logging_path = context.logging_path
 
     def __init__(
         self,
@@ -589,6 +589,8 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
             df = df[df["Lineage"] != 0]
         if "StimType" in df.columns:
             df = df[df["StimType"] != "BASELINE"]
+        if "StimType" in df.columns:
+            df = df[df["StimType"] != "SIDETEST_2Dvs3D"]
 
         # Conditioning. condition_spherical_angles / hemisphericalize_orientation
         # mutate component dicts in-place; they are idempotent for already-
@@ -596,12 +598,17 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
         # was already conditioned upstream.
         df = condition_spherical_angles(df)
         df = hemisphericalize_orientation(df)
+        # df = remove_2d_trials(df)
         return df
+
 
 
 # ---------------------------------------------------------------------------
 # Utilities
 # ---------------------------------------------------------------------------
+
+def remove_2d_trials(data):
+    return data[data["Texture"] != "2D"]
 
 def _channel_to_str(channel: Union[str, list[str]]) -> str:
     if isinstance(channel, list):
@@ -655,22 +662,22 @@ def main():
     )
 
     strategies = [
-        AxisCodingStrategy(
-            label="fixed_hard",
-            selector_factory=lambda: FixedCovarianceSelector(
-                max_iter=50,
-                tol=0.01,
-                temperature=0.0,
-                response_weight_floor=0.0,
-            ),
-            ridge_factory=ridge,
-        ),
+        # AxisCodingStrategy(
+        #     label="fixed_hard",
+        #     selector_factory=lambda: FixedCovarianceSelector(
+        #         max_iter=5000,
+        #         tol=0.01,
+        #         temperature=10.0,
+        #         response_weight_floor=0.0,
+        #     ),
+        #     ridge_factory=ridge,
+        # ),
         AxisCodingStrategy(
             label="learned_diag",
             selector_factory=lambda: LearnedDiagonalCovarianceSelector(
                 max_iter=50,
                 tol=0.01,
-                temperature=0.0,
+                temperature=10,
                 variance_floor=1e-3,
             ),
             ridge_factory=ridge,
@@ -679,10 +686,10 @@ def main():
             label="cluster_mode",
             selector_factory=lambda: ClusterModeSelector(
                 bandwidth=None,       # None = median pairwise distance (data-driven)
-                n_random_inits=10,
-                max_iter=50,
+                n_random_inits=100,
+                max_iter=5000,
                 tol=0.01,
-                temperature=0.0,
+                temperature=10.0,
                 response_weight_floor=0.0,
             ),
             ridge_factory=ridge,
@@ -691,11 +698,12 @@ def main():
 
     analysis = AxisCodingAnalysis(
         strategies=strategies,
-        outlier_sigma=3.0,       # 0.0 to disable; trials > n*std from stim mean are dropped
-        outlier_min_trials=3,    # only attempt removal for stims with >= this many trials
+        outlier_sigma=2.0,       # 0.0 to disable; trials > n*std from stim mean are dropped
+        outlier_min_trials=5,    # only attempt removal for stims with >= this many trials
     )
-    session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
-    channel = "A-022"
+    # session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
+    session_id="260426_0"
+    channel = "GA"
     analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
