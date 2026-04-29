@@ -42,18 +42,21 @@ from src.startup import context
 # ---------------------------------------------------------------------------
 
 SelectorFactory = Callable[[], ComponentSelector]
+RidgeFactory = Callable[[], RidgeRegressionAxisModel]
 
 
 @dataclass
 class AxisCodingStrategy:
-    """A named selector strategy.
+    """A named selector + ridge strategy.
 
-    The selector is built fresh per (channel, component_type) so each call gets
-    its own learned mu without cross-contamination.
+    Both factories are called fresh per (channel, component_type) so each fit
+    gets its own learned mu and alpha without cross-contamination.
+    ``ridge_factory=None`` uses ``RidgeRegressionAxisModel()`` defaults.
     """
 
     label: str
     selector_factory: SelectorFactory
+    ridge_factory: Optional[RidgeFactory] = None
 
 
 def default_strategy() -> AxisCodingStrategy:
@@ -103,6 +106,7 @@ def fit_axis_coding(
     spike_rates_col: Optional[str],
     strategy_label: str,
     save_dir: Optional[str] = None,
+    ridge_factory: Optional[RidgeFactory] = None,
 ) -> AxisCodingResult:
     dataset = AxisCodingDataset.build(
         df=df,
@@ -115,7 +119,7 @@ def fit_axis_coding(
     selector.fit(dataset.components_per_stim, dataset.responses)
     X = selector.selected_vectors(dataset.components_per_stim)
 
-    ridge = RidgeRegressionAxisModel()
+    ridge = ridge_factory() if ridge_factory is not None else RidgeRegressionAxisModel()
     ridge.fit(X, dataset.responses, feature_names=dataset.feature_names)
     predicted = ridge.predict(X)
 
@@ -183,6 +187,7 @@ class AxisCodingInputHandler(InputHandler):
             spike_rates_col=self.spike_rates_col,
             strategy_label=self.strategy.label,
             save_dir=self.save_dir,
+            ridge_factory=self.strategy.ridge_factory,
         )
         return {"result": result}
 
@@ -350,6 +355,7 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                     spike_rates_col=self.spike_rates_col,
                     strategy_label=strategy.label,
                     save_dir=save_dir,
+                    ridge_factory=strategy.ridge_factory,
                 )
                 results[component_type][strategy.label] = result
 
@@ -450,7 +456,22 @@ def _jsonable(x):
 # ---------------------------------------------------------------------------
 
 def main():
-    analysis = AxisCodingAnalysis()
+    strategy = AxisCodingStrategy(
+        label="fixed_cov_identity",
+        selector_factory=lambda: FixedCovarianceSelector(
+            max_iter=50,
+            tol=0.01,
+            init="response_weighted_mean",
+            response_weight_floor=0.0,
+        ),
+        ridge_factory=lambda: RidgeRegressionAxisModel(
+            alphas=np.logspace(-3, 4, 20),
+            cv=5,
+            n_splits_cv_r2=20,
+            test_size=0.2,
+        ),
+    )
+    analysis = AxisCodingAnalysis(strategies=[strategy])
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     channel = "A-022"
     analysis.run(session_id, "raw", channel, compiled_data=None)
