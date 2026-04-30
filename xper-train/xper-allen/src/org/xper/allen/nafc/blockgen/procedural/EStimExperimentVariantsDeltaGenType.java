@@ -97,7 +97,7 @@ public class EStimExperimentVariantsDeltaGenType extends EStimExperimentVariants
         return newBlock;
     }
 
-    private List<Long> distributeVariantIds(int numTrials) {
+    protected List<Long> distributeVariantIds(int numTrials) {
         // HERE WE ARE GOING TO DISTRIBUTE THE VARIANT IDS
         List<Long> variantIds = new LinkedList<>();
         DataSource gaDataSource = ((EStimShapeExperimentTrialGenerator) generator).getGaDataSource();

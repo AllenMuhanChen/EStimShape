@@ -14,6 +14,7 @@ import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.nafc.blockgen.EStimShapeProceduralBehavioralGenType;
 import org.xper.allen.nafc.blockgen.procedural.EStimExperimentGenType;
+import org.xper.allen.nafc.blockgen.procedural.EStimExperimentVariantOrDeltaGenType;
 import org.xper.allen.nafc.blockgen.procedural.EStimExperimentVariantsDeltaGenType;
 import org.xper.allen.nafc.blockgen.procedural.EStimExperimentVariantsGenType;
 import org.xper.allen.pga.ReceptiveFieldSource;
@@ -119,7 +120,9 @@ public class EStimExperimentAppConfig {
                 eStimBehavioralGenType(),
                 eStimExperimentGenType(),
                 eStimExperimentVariantsGenType(),
-                eStimExperimentVariantsDeltaGenType()
+                eStimExperimentVariantsDeltaGenType(),
+                eStimExperimentVariantsOnlyGenType(),
+                eStimExperimentDeltasOnlyGenType()
         ));
         gui.setDefaultStimType(proceduralAppConfig.proceduralRandGenType());
         return gui;
@@ -129,6 +132,22 @@ public class EStimExperimentAppConfig {
     public EStimExperimentVariantsDeltaGenType eStimExperimentVariantsDeltaGenType() {
         EStimExperimentVariantsDeltaGenType genType = new EStimExperimentVariantsDeltaGenType();
         genType.setGenerator(generator());
+        return genType;
+    }
+
+    @Bean
+    public EStimExperimentVariantOrDeltaGenType eStimExperimentVariantsOnlyGenType() {
+        EStimExperimentVariantOrDeltaGenType genType = new EStimExperimentVariantOrDeltaGenType();
+        genType.setGenerator(generator());
+        genType.setDelta(false);
+        return genType;
+    }
+
+    @Bean
+    public EStimExperimentVariantOrDeltaGenType eStimExperimentDeltasOnlyGenType() {
+        EStimExperimentVariantOrDeltaGenType genType = new EStimExperimentVariantOrDeltaGenType();
+        genType.setGenerator(generator());
+        genType.setDelta(true);
         return genType;
     }
 
