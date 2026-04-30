@@ -137,6 +137,8 @@ class GroupedStimuliPlotter_matplotlib(ComputationModule):
         """
         Initialize the grouped stimuli visualization module.
         """
+        if include_labels_for is None:
+            include_labels_for = {"row", "col", "subgroup"}
         if info_box_columns is None:
             info_box_columns = ['Response', 'StimSpecId']
         self.figsize = figsize

@@ -129,6 +129,7 @@ class PlotTopNAnalysis(Analysis):
                                  "Junction",
                                  "ParentId",
                                  "MassCenter",
+                                 "Texture"
                              ])
         return data
 
@@ -158,6 +159,7 @@ class PlotTopNAnalysis(Analysis):
         fields.append(ThumbnailField(conn))
         fields.append(GAResponseField(conn))
         fields.append(CompsToPreserveField(conn))
+        fields.append(TextureField(conn))
         fields.append(ClusterResponseField(conn, cluster_combination_strategy))
         fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
         fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))

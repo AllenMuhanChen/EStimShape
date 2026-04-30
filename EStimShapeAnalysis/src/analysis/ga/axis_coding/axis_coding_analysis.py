@@ -16,6 +16,7 @@ from clat.pipeline.pipeline_base_classes import (
     ComputationModule,
     AnalysisModuleFactory,
 )
+from clat.util.dictionary_util import apply_function_to_subdictionaries_values_with_keys
 
 from src.analysis.ga.axis_coding.axis_coding_dataset import (
     AxisCodingDataset,
@@ -48,8 +49,7 @@ from src.pga.mock.mock_rwa_analysis import (
     hemisphericalize_orientation,
 )
 from src.repository.export_to_repository import read_session_id_and_date_from_db_name
-
-
+from src.startup import context
 
 # ---------------------------------------------------------------------------
 # Strategy spec (selector factory + label) used by both direct and pipeline runs
@@ -1057,7 +1057,7 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
         outlier_sigma: float = 0.0,
         outlier_min_trials: int = 3,
         rf_filter: Optional[ReceptiveFieldFilter] = None,
-        n_stimuli_per_axis: int = 7,
+        n_stimuli_per_axis: int = 12,
     ):
         super().__init__()
         self.component_types = component_types or [
@@ -1076,6 +1076,8 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
     # ------------------------------------------------------------------
 
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
+        self.save_path = f"{self.save_path}/axis_coding"
+        os.makedirs(f"{self.save_path}", exist_ok=True)
         compiled_data = self._prepare_dataframe(compiled_data)
         if self.rf_filter is not None:
             if self.rf_filter.save_dir is None:
@@ -1253,7 +1255,7 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                 "the repository import path enabled."
             )
         df = df.copy()
-
+        df = convert_str(df)
         # Trial filter (matches plan):
         #   - drop Lineage == 0 (catch trials), per run_rwa.py:60
         #   - drop StimType == 'BASELINE',     per run_rwa.py:67
@@ -1262,15 +1264,13 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
             df = df[df["Lineage"] != 0]
         if "StimType" in df.columns:
             df = df[df["StimType"] != "BASELINE"]
-        if "StimType" in df.columns:
-            df = df[df["StimType"] != "SIDETEST_2Dvs3D"]
+        # if "StimType" in df.columns:
+        #     df = df[df["StimType"] != "SIDETEST_2Dvs3D"]
 
         # Conditioning. condition_spherical_angles / hemisphericalize_orientation
-        # mutate component dicts in-place; they are idempotent for already-
-        # conditioned dicts so it's safe to apply even if the repository copy
-        # was already conditioned upstream.
         df = condition_spherical_angles(df)
         df = hemisphericalize_orientation(df)
+        df = flatten_2d_trials(df)
         # df = remove_2d_trials(df)
         return df
 
@@ -1282,6 +1282,43 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
 
 def remove_2d_trials(data):
     return data[data["Texture"] != "2D"]
+
+def convert_str(data):
+    for column in data:
+        column_data = data[column]
+        # print(column_data)
+        if column in ["Shaft", "Termination", "Junction"]:
+            if isinstance(column_data[0], str):
+                data[column] = column_data.apply(lambda x: eval(x) if isinstance(x, str) else x)
+
+
+    return data
+
+def flatten_2d_trials(data):
+    #twod only
+    twod_df = data[data["Texture"] == "2D"]
+    for column in twod_df:
+        column_data = twod_df[column]
+        # print(column_data)
+        if column in ["Shaft", "Termination", "Junction"]:
+            for stim_data in column_data.array:
+                apply_function_to_subdictionaries_values_with_keys(stim_data, ["theta", "phi"],
+
+                                                                       flatten)
+
+    # replace the original columns with the modified columns in the DataFrame.
+    data.update(twod_df.set_index("TaskId"))
+    data.reset_index(inplace=True)
+
+
+    return data
+
+def flatten(dictionary:dict):
+    output = dictionary
+    # orientation = output['orientation']
+    phi = np.pi / 2 #phi = 0 is facing away the viewer, phi=pi is facing the viewer
+    output['phi'] = phi
+    return output
 
 def _channel_to_str(channel: Union[str, list[str]]) -> str:
     if isinstance(channel, list):
@@ -1345,30 +1382,30 @@ def main():
         #     ),
         #     ridge_factory=ridge,
         # ),
-        AxisCodingStrategy(
-            label="learned_diag",
-            selector_factory=lambda: LearnedDiagonalCovarianceSelector(
-                max_iter=50,
-                tol=0.01,
-                temperature=10,
-                variance_floor=1e-3,
-            ),
-            ridge_factory=ridge,
-        ),
+        # AxisCodingStrategy(
+        #     label="learned_diag",
+        #     selector_factory=lambda: LearnedDiagonalCovarianceSelector(
+        #         max_iter=50,
+        #         tol=0.01,
+        #         temperature=10,
+        #         variance_floor=1e-3,
+        #     ),
+        #     ridge_factory=ridge,
+        # ),
         # PCA variant: decorrelate features before selector/ridge.
         # n_pcs controls dimensionality; None = no PCA.
         # Bar charts back-project to original feature space automatically.
-        AxisCodingStrategy(
-            label="learned_diag_pca",
-            selector_factory=lambda: LearnedDiagonalCovarianceSelector(
-                max_iter=50,
-                tol=0.01,
-                temperature=10,
-                variance_floor=1e-3,
-            ),
-            ridge_factory=ridge,
-            n_pcs=10,   # top-10 PCs; typically captures >90% variance
-        ),
+        # AxisCodingStrategy(
+        #     label="learned_diag_pca",
+        #     selector_factory=lambda: LearnedDiagonalCovarianceSelector(
+        #         max_iter=50,
+        #         tol=0.01,
+        #         temperature=10,
+        #         variance_floor=1e-3,
+        #     ),
+        #     ridge_factory=ridge,
+        #     n_pcs=10,   # top-10 PCs; typically captures >90% variance
+        # ),
         # AxisCodingStrategy(
         #     label="cluster_mode",
         #     selector_factory=lambda: ClusterModeSelector(
@@ -1385,31 +1422,31 @@ def main():
         # shape-at-location (folded into w).  All components — selected and
         # not — appear in the design matrix; non-selected ones contribute
         # negative-evidence constraints on w.
-        AxisCodingStrategy(
-            label="soft_attention",
-            selector_factory=lambda: SoftAttentionAxisSelector(
-                tau=1.0,                  # bandwidth of the softmax over distances; larger → softer pooling
-                alpha=1.0,                # ridge α used inside the joint fit (downstream RidgeCV picks final α)
-                max_iter=30,              # alternating (W-step / M-step) iterations
-                tol=1e-3,                 # relative ‖Δμ‖ to declare convergence
-                init="response_weighted_mean",
-                mu_optimizer_max_iter=50, # L-BFGS-B iters per M-step
-            ),
-            ridge_factory=ridge,
-        ),
+        # AxisCodingStrategy(
+        #     label="soft_attention",
+        #     selector_factory=lambda: SoftAttentionAxisSelector(
+        #         tau=1.0,                  # bandwidth of the softmax over distances; larger → softer pooling
+        #         alpha=1.0,                # ridge α used inside the joint fit (downstream RidgeCV picks final α)
+        #         max_iter=30,              # alternating (W-step / M-step) iterations
+        #         tol=1e-3,                 # relative ‖Δμ‖ to declare convergence
+        #         init="response_weighted_mean",
+        #         mu_optimizer_max_iter=50, # L-BFGS-B iters per M-step
+        #     ),
+        #     ridge_factory=ridge,
+        # ),
         # Soft attention + PCA variant
         AxisCodingStrategy(
             label="soft_attention_pca",
             selector_factory=lambda: SoftAttentionAxisSelector(
                 tau=1.0,
                 alpha=1.0,
-                max_iter=30,
-                tol=1e-3,
+                max_iter=1000,
+                tol=1e-4,
                 init="response_weighted_mean",
-                mu_optimizer_max_iter=50,
+                mu_optimizer_max_iter=200,
             ),
             ridge_factory=ridge,
-            n_pcs=10,
+            n_pcs=6,
         ),
     ]
 
@@ -1418,11 +1455,14 @@ def main():
         outlier_sigma=2.0,       # 0.0 to disable; trials > n*std from stim mean are dropped
         outlier_min_trials=5,    # only attempt removal for stims with >= this many trials
         rf_filter=ReceptiveFieldFilter(plot=True, mahal_cutoff=3.5),  # None to disable
+        n_stimuli_per_axis=15,  # for plot_axes_stimuli; set to 0 to disable that plot
     )
-    # session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
-    session_id="260426_0"
-    channel = "A-000"
-    analysis.run(session_id, "raw", channel, compiled_data=None)
+    session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
+    compiled_data = None
+    # compiled_data = analysis.compile_and_export()
+    # session_id="260426_0"
+    channel = "GA"
+    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
 if __name__ == "__main__":

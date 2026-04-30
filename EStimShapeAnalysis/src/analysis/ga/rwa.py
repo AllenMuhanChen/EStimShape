@@ -226,7 +226,43 @@ class AutomaticBinner(Binner):
         return min(float_values), max(float_values)
 
 
-def normalize_and_combine_rwas(rwas):
+def combine_rwas_softmax_avg(rwas, beta=1.0):
+    """
+    Softmax each lineage RWA, then average.
+    """
+    rwa_sum = None
+    template = None
+
+    for i, r in enumerate(rwas):
+        rwa_obj = get_next(r)
+        m = rwa_obj.matrix
+
+        # --- softmax ---
+        m_stable = m - np.max(m)
+        exp_m = np.exp(beta * m_stable)
+        softmax_m = exp_m / np.sum(exp_m)
+
+        if i == 0:
+            template = rwa_obj
+            rwa_sum = np.zeros_like(softmax_m)
+
+        rwa_sum += softmax_m
+
+    combined = rwa_sum / len(rwas)
+    return template.copy_labels(combined)
+def average_rwas(rwas):
+    rwa_sum: np.ndarray
+    template: RWAMatrix
+    for lineage_index, r in enumerate(rwas):
+        lineage_rwa = get_next(r)
+        if lineage_index == 0:
+            template = lineage_rwa
+            rwa_sum = np.zeros_like(lineage_rwa.matrix)
+        np.add(rwa_sum, lineage_rwa.matrix, out=rwa_sum)
+    rwa_average = template.copy_labels(rwa_sum / len(rwas))
+    return rwa_average
+
+def normalize_and_geometric_mean_rwas(rwas):
     normalized_rwas, overall_max = normalize_rwas(rwas)
     rwa_product = multiply_rwas(rwas)
     rwa_normalized_product = normalize_matrix(rwa_product)

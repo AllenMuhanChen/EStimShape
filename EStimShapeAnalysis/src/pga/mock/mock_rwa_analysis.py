@@ -6,7 +6,8 @@ import jsonpickle as jsonpickle
 import numpy as np
 import pandas as pd
 
-from src.analysis.ga.rwa import Binner, AutomaticBinner, rwa, normalize_and_combine_rwas, get_next
+from src.analysis.ga.rwa import Binner, AutomaticBinner, rwa, normalize_and_geometric_mean_rwas, get_next, average_rwas, \
+    combine_rwas_softmax_avg
 from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
 from clat.compile.tstamp.classic_database_tstamp_fields import StimSpecDataField, StimSpecIdField, NewGaLineageField, \
     NewGaNameField, RegimeScoreField
@@ -170,7 +171,7 @@ def compute_rwa_from_lineages(data, ga_type, binner_for_fields, sigma_for_fields
     rwas = [get_next(r) for r in rwas]
     for lineage_index, rwa_lineage in enumerate(rwas):
         save(rwa_lineage, "lineage_rwa_%d" % lineage_index)
-    rwa_multiplied = normalize_and_combine_rwas(rwas)
+    rwa_multiplied = normalize_and_geometric_mean_rwas(rwas)
 
     return rwa_multiplied
 
@@ -198,9 +199,9 @@ def compute_rwa_from_top_n_lineages(data, data_type, n, binner_for_fields, sigma
     rwas = [get_next(r) for r in rwas]
     for lineage_index, rwa_lineage in enumerate(rwas):
         save(rwa_lineage, "%s_lineage_rwa_%d" % (data_type, lineage_ids[lineage_index]))
-    rwa_multiplied = normalize_and_combine_rwas(rwas)
+    rwa_combined = average_rwas(rwas)
 
-    return rwa_multiplied
+    return rwa_combined
 
 
 def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
