@@ -830,6 +830,348 @@ class SoftAttentionAxisSelector(ComponentSelector):
         return result.x
 
 
+class MultiPrototypeAttentionSelector(ComponentSelector):
+    """
+    Multi-prototype soft-attention selector that *can* describe a stimulus with
+    K prototypes but collapses to fewer when one is enough.
+
+    For stimulus i with components x_ij (m_i × d):
+        π_ij^k    = softmax_j(-||x_ij - μ_k||² / (2τ²))           (per-prototype attention)
+        x_eff_i^k = Σ_j π_ij^k · x_ij                              (per-prototype pool)
+        d_ik      = min_j ||x_ij - μ_k||²                           (closest-component distance)
+        g_ik      = α_k exp(-d_ik / (2τ²))  /  Σ_k' α_k' exp(-d_ik' / (2τ²))
+        x_combined_i = Σ_k g_ik · x_eff_i^k                         (gated mixture)
+        r̂_i       = w · x_combined_i + b
+
+    Loss = ||r - r̂||² + λ_amp · Σ_k α_k     (sparsity prior on prototype amplitudes)
+    Constraint: α_k ≥ 0  (enforced by parameterizing α_k = exp(η_k)).
+
+    Why it can collapse:
+      - α_k enters g_ik multiplicatively. When α_k → 0, prototype k contributes
+        nothing to g_ik (and therefore to x_combined_i) regardless of μ_k.
+      - The L1 prior λ_amp · Σ α_k actively pushes amplitudes toward 0; only
+        prototypes that earn squared-error reduction larger than λ_amp keep
+        nonzero amplitude.
+      - In the K=2 case this means: if a single prototype already explains the
+        data, α_2 collapses to ~0 and the model is effectively single-prototype.
+        ``n_active_prototypes`` in the summary reports how many α_k survived
+        above ``amplitude_floor``.
+
+    Algorithm — alternating optimization, mirroring SoftAttentionAxisSelector:
+      W-step: with {μ_k, α_k} fixed, fit ridge on (x_combined, r) → (w, b).
+      M-step: with (w, b) fixed, jointly optimize {μ_k, η_k} via L-BFGS-B on
+              the regularized loss. Numerical gradient is used; the optimization
+              is over K·d + K parameters which is small in practice.
+
+    selected_vectors() returns x_combined so the downstream RidgeRegressionAxisModel
+    sees a coherent design matrix (same pattern as SoftAttentionAxisSelector).
+    ``mu_`` exposes the prototype with the largest amplitude so existing
+    visualizers (which expect a single μ) continue to work.
+    """
+
+    def __init__(
+        self,
+        n_prototypes: int = 2,
+        tau: float = 1.0,
+        alpha: float = 1.0,
+        lambda_amp: float = 0.1,
+        max_iter: int = 30,
+        tol: float = 1e-3,
+        init_jitter: float = 0.5,
+        amplitude_floor: float = 1e-3,
+        mu_optimizer_max_iter: int = 100,
+        random_state: int = 0,
+    ):
+        self.n_prototypes = int(n_prototypes)
+        self.tau = float(tau)
+        self.alpha = float(alpha)
+        self.lambda_amp = float(lambda_amp)
+        self.max_iter = int(max_iter)
+        self.tol = float(tol)
+        self.init_jitter = float(init_jitter)
+        self.amplitude_floor = float(amplitude_floor)
+        self.mu_optimizer_max_iter = int(mu_optimizer_max_iter)
+        self.random_state = int(random_state)
+
+        self.mus_: Optional[np.ndarray] = None        # (K, d)
+        self.amplitudes_: Optional[np.ndarray] = None # (K,)
+        self.w_: Optional[np.ndarray] = None
+        self.b_: Optional[float] = None
+        self.metric_: Optional[np.ndarray] = None
+        self.mu_: Optional[np.ndarray] = None         # primary prototype (largest α)
+        self.selected_indices_: Optional[np.ndarray] = None
+        self.n_iter_: int = 0
+        self.converged_: bool = False
+        self.history_: list[dict] = []
+
+    # ------------------------------------------------------------------
+    # ComponentSelector API
+    # ------------------------------------------------------------------
+
+    def fit(
+        self,
+        components_per_stim: list[np.ndarray],
+        responses: np.ndarray,
+    ) -> "MultiPrototypeAttentionSelector":
+        from sklearn.linear_model import Ridge
+
+        if len(components_per_stim) == 0:
+            raise ValueError("No stimuli passed to MultiPrototypeAttentionSelector.fit")
+
+        responses = np.asarray(responses, dtype=np.float64)
+        d = components_per_stim[0].shape[1]
+        K = self.n_prototypes
+        self.metric_ = np.eye(d, dtype=np.float64)
+
+        mus = self._init_mus(components_per_stim, responses)
+        etas = np.zeros(K, dtype=np.float64)             # α_k = exp(η_k); α=1 init
+        prev_mus = mus.copy()
+
+        self.history_.clear()
+        self.converged_ = False
+
+        # First W-step so the M-step has a target.
+        x_combined = self._combined_pool(components_per_stim, mus, np.exp(etas))
+        ridge = Ridge(alpha=self.alpha).fit(x_combined, responses)
+        w = ridge.coef_.copy()
+        b = float(ridge.intercept_)
+
+        for it in range(self.max_iter):
+            mus, etas = self._optimize_mus_etas(
+                components_per_stim, responses, mus, etas, w, b
+            )
+
+            x_combined = self._combined_pool(components_per_stim, mus, np.exp(etas))
+            ridge = Ridge(alpha=self.alpha).fit(x_combined, responses)
+            w = ridge.coef_.copy()
+            b = float(ridge.intercept_)
+
+            dmu = float(
+                np.linalg.norm(mus - prev_mus)
+                / (np.linalg.norm(prev_mus) + 1e-12)
+            )
+            self.history_.append({
+                "iter": it,
+                "dmu": dmu,
+                "amplitudes": np.exp(etas).tolist(),
+            })
+            self.n_iter_ = it + 1
+
+            if it > 0 and dmu < self.tol:
+                self.converged_ = True
+                break
+            prev_mus = mus.copy()
+
+        amps = np.exp(etas)
+        primary = int(np.argmax(amps))
+
+        self.mus_ = mus
+        self.amplitudes_ = amps
+        self.w_ = w
+        self.b_ = b
+        self.mu_ = mus[primary].copy()
+        self.selected_indices_ = self._hard_indices(components_per_stim, self.mu_)
+        return self
+
+    def select_indices(self, components_per_stim: list[np.ndarray]) -> np.ndarray:
+        if self.mus_ is None:
+            raise RuntimeError("Selector not fit. Call fit() first.")
+        return self._hard_indices(components_per_stim, self.mu_)
+
+    def selected_vectors(
+        self, components_per_stim: list[np.ndarray]
+    ) -> np.ndarray:
+        if self.mus_ is None:
+            raise RuntimeError("Selector not fit. Call fit() first.")
+        return self._combined_pool(components_per_stim, self.mus_, self.amplitudes_)
+
+    def summary(self) -> dict:
+        amps = (
+            self.amplitudes_.tolist()
+            if self.amplitudes_ is not None
+            else None
+        )
+        n_active = (
+            int(np.sum(self.amplitudes_ > self.amplitude_floor))
+            if self.amplitudes_ is not None
+            else None
+        )
+        prototype_separation = None
+        if self.mus_ is not None and self.mus_.shape[0] >= 2:
+            d01 = float(np.linalg.norm(self.mus_[0] - self.mus_[1]))
+            prototype_separation = d01
+        return {
+            "selector": "MultiPrototypeAttentionSelector",
+            "n_prototypes": self.n_prototypes,
+            "n_active_prototypes": n_active,
+            "tau": self.tau,
+            "alpha": self.alpha,
+            "lambda_amp": self.lambda_amp,
+            "amplitude_floor": self.amplitude_floor,
+            "amplitudes": amps,
+            "prototype_separation": prototype_separation,
+            "n_iter": self.n_iter_,
+            "converged": self.converged_,
+            "tol": self.tol,
+            "max_iter": self.max_iter,
+            "mus": None if self.mus_ is None else self.mus_.tolist(),
+            "mu": None if self.mu_ is None else self.mu_.tolist(),
+            "w_internal": None if self.w_ is None else self.w_.tolist(),
+            "b_internal": self.b_,
+        }
+
+    # ------------------------------------------------------------------
+    # Internals
+    # ------------------------------------------------------------------
+
+    def _init_mus(
+        self,
+        components_per_stim: list[np.ndarray],
+        responses: np.ndarray,
+    ) -> np.ndarray:
+        """
+        Init prototype 1 from the response-weighted mean (matches the K=1 baseline).
+        Init prototypes 2..K by perturbing prototype 1 along the dominant
+        response-weighted PC direction so they aren't degenerate at start.
+        """
+        stacked, weights = [], []
+        for comps, r in zip(components_per_stim, responses):
+            if comps.shape[0] == 0:
+                continue
+            stacked.append(comps)
+            weights.append(np.full(comps.shape[0], r, dtype=np.float64))
+        X = np.vstack(stacked)
+        w_resp = np.concatenate(weights)
+        mu1 = _weighted_mean(X, w_resp, floor=0.0)
+
+        d = mu1.shape[0]
+        K = self.n_prototypes
+        rng = np.random.default_rng(self.random_state)
+
+        if K == 1:
+            return mu1[None, :]
+
+        diff = X - mu1[None, :]
+        w_pos = np.maximum(w_resp, 0.0)
+        cov = (w_pos[:, None] * diff).T @ diff / max(float(w_pos.sum()), 1e-12)
+        try:
+            vals, vecs = np.linalg.eigh(cov)
+            order = np.argsort(-vals)
+            vecs = vecs[:, order]
+        except np.linalg.LinAlgError:
+            vecs = np.eye(d)
+
+        mus = np.empty((K, d), dtype=np.float64)
+        mus[0] = mu1
+        for k in range(1, K):
+            direction = vecs[:, (k - 1) % d]
+            sign = 1.0 if k % 2 == 1 else -1.0
+            jitter = 0.05 * rng.standard_normal(d)
+            mus[k] = mu1 + sign * self.init_jitter * direction + jitter
+        return mus
+
+    def _attention(self, components: np.ndarray, mu: np.ndarray) -> np.ndarray:
+        d2 = ((components - mu) ** 2).sum(axis=1)
+        z = -d2 / (2.0 * self.tau ** 2)
+        z = z - z.max()
+        e = np.exp(z)
+        return e / e.sum()
+
+    def _pool_one(
+        self, components: np.ndarray, mus: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Return (per-prototype pools (K, d), per-prototype min-distances (K,))."""
+        K = mus.shape[0]
+        d = mus.shape[1]
+        pools = np.zeros((K, d), dtype=np.float64)
+        min_d2 = np.full(K, np.inf, dtype=np.float64)
+        if components.shape[0] == 0:
+            return pools, np.zeros(K)
+        for k in range(K):
+            pi = self._attention(components, mus[k])
+            pools[k] = pi @ components
+            min_d2[k] = float(((components - mus[k]) ** 2).sum(axis=1).min())
+        return pools, min_d2
+
+    def _combined_pool(
+        self,
+        components_per_stim: list[np.ndarray],
+        mus: np.ndarray,
+        amplitudes: np.ndarray,
+    ) -> np.ndarray:
+        """Return (n_stim, d) — α-gated mixture across prototypes."""
+        K, d = mus.shape
+        n = len(components_per_stim)
+        out = np.zeros((n, d), dtype=np.float64)
+        tau2 = self.tau ** 2
+        for i, comps in enumerate(components_per_stim):
+            if comps.shape[0] == 0:
+                continue
+            pools, min_d2 = self._pool_one(comps, mus)
+            log_w = -min_d2 / (2.0 * tau2) + np.log(np.maximum(amplitudes, 1e-30))
+            log_w -= log_w.max()
+            g = np.exp(log_w)
+            g = g / g.sum()
+            out[i] = g @ pools
+        return out
+
+    def _hard_indices(
+        self,
+        components_per_stim: list[np.ndarray],
+        mu: np.ndarray,
+    ) -> np.ndarray:
+        idx = np.empty(len(components_per_stim), dtype=np.int64)
+        for i, X in enumerate(components_per_stim):
+            if X.shape[0] == 0:
+                idx[i] = 0
+                continue
+            d2 = ((X - mu) ** 2).sum(axis=1)
+            idx[i] = int(np.argmin(d2))
+        return idx
+
+    def _optimize_mus_etas(
+        self,
+        components_per_stim: list[np.ndarray],
+        responses: np.ndarray,
+        mus_init: np.ndarray,
+        etas_init: np.ndarray,
+        w: np.ndarray,
+        b: float,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        L-BFGS-B on packed [μ_1, ..., μ_K, η_1, ..., η_K], with α_k = exp(η_k)
+        and an L1 sparsity prior on α.  Numerical gradient.
+        """
+        from scipy.optimize import minimize
+
+        K, d = mus_init.shape
+
+        def _unpack(theta):
+            mus = theta[: K * d].reshape(K, d)
+            etas = theta[K * d :]
+            return mus, etas
+
+        def _loss(theta):
+            mus, etas = _unpack(theta)
+            amps = np.exp(etas)
+            x_combined = self._combined_pool(components_per_stim, mus, amps)
+            r_hat = x_combined @ w + b
+            resid = responses - r_hat
+            sse = float(resid @ resid)
+            l1 = self.lambda_amp * float(amps.sum())
+            return sse + l1
+
+        theta0 = np.concatenate([mus_init.ravel(), etas_init])
+        result = minimize(
+            _loss,
+            theta0,
+            method="L-BFGS-B",
+            options={"maxiter": self.mu_optimizer_max_iter, "gtol": 1e-6},
+        )
+        mus_new, etas_new = _unpack(result.x)
+        return mus_new, etas_new
+
+
 # ---------------------------------------------------------------------------
 # Module-level helpers shared by ClusterModeSelector
 # ---------------------------------------------------------------------------

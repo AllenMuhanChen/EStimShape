@@ -112,6 +112,47 @@ class ComponentEncoder:
         # to distances or regression without crashing downstream code.
         return np.where(np.isfinite(result), result, 0.0)
 
+    def inverse_scale(self, z_scored: np.ndarray) -> np.ndarray:
+        """Inverse of ``transform_with_scaler`` for a single feature row."""
+        if self.scaler is None:
+            raise RuntimeError("Scaler not fit. Call fit_scaler() first.")
+        v = np.asarray(z_scored, dtype=np.float64).reshape(1, -1)
+        return self.scaler.inverse_transform(v)[0]
+
+    def decode_to_parameters(self, encoded_unscaled: np.ndarray) -> dict:
+        """
+        Inverse of ``encode_components`` for one (d,) feature vector in the
+        original (un-z-scored) feature space.
+
+        Linear params return their raw value.
+        Circular (cos, sin) → angle in [-π, π] via atan2 (norm-invariant).
+        Spherical (x, y, z) → (theta, phi); the triple is renormalized to the
+        unit sphere first since arbitrary linear combinations (PCA back-projection,
+        attention pooling, scaler inversion) can leave it off the sphere.
+        """
+        v = np.asarray(encoded_unscaled, dtype=np.float64).ravel()
+        out: dict = {}
+        i = 0
+        for p in self.linear_params:
+            out[p] = float(v[i])
+            i += 1
+        for p in self.circular_params:
+            c = float(v[i])
+            s = float(v[i + 1])
+            out[p] = float(np.arctan2(s, c))
+            i += 2
+        for p in self.spherical_params:
+            xyz = v[i:i + 3]
+            norm = float(np.linalg.norm(xyz))
+            if norm > 1e-12:
+                xn, yn, zn = xyz / norm
+            else:
+                xn, yn, zn = 0.0, 0.0, 1.0
+            out[f"{p}.theta"] = float(np.arctan2(yn, xn))
+            out[f"{p}.phi"] = float(np.arccos(np.clip(zn, -1.0, 1.0)))
+            i += 3
+        return out
+
 
 @dataclass
 class PCAPreprocessor:

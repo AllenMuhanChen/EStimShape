@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from PIL import Image
-from scipy.stats import linregress, spearmanr
+from scipy.stats import spearmanr, theilslopes
 
 from clat.pipeline.pipeline_base_classes import (
     InputHandler,
@@ -34,6 +34,7 @@ from src.analysis.ga.axis_coding.component_selectors import (
     LearnedDiagonalCovarianceSelector,
     ClusterModeSelector,
     SoftAttentionAxisSelector,
+    MultiPrototypeAttentionSelector,
 )
 from src.analysis.ga.axis_coding.ridge_regression_model import (
     RidgeRegressionAxisModel,
@@ -115,6 +116,19 @@ class AxisCodingResult:
     orthogonal_axis_in_feature_space: Optional[list[float]] = None  # (d,) back-projected orth axis
     all_orthogonal_axes_in_feature_space: Optional[list[list[float]]] = None  # (d, n_orth)
     pca_explained_variance: Optional[list[float]] = None            # (k,) per-PC variance ratio
+    # μ ("chosen mean") in three spaces, when the selector exposes one:
+    #   mu_in_selector_space:    raw selector μ (PC space if PCA active, else feat)
+    #   mu_in_feature_space:     z-scored, original-feature space (post back-projection)
+    #   mu_in_unscaled_space:    raw feature units (post inverse_scale)
+    #   mu_decoded:              interpretable params (linear, atan2 angles, sphere)
+    # Same fields prefixed with ``mus_*`` carry every prototype for multi-prototype selectors.
+    mu_in_selector_space: Optional[list[float]] = None
+    mu_in_feature_space_zscored: Optional[list[float]] = None
+    mu_in_unscaled_space: Optional[list[float]] = None
+    mu_decoded: Optional[dict] = None
+    mus_in_unscaled_space: Optional[list[list[float]]] = None
+    mus_decoded: Optional[list[dict]] = None
+    prototype_amplitudes: Optional[list[float]] = None
     # Thumbnail paths aligned with stim_ids (for axis-stimulus visualization)
     thumbnail_paths: Optional[list[Optional[str]]] = None
 
@@ -264,6 +278,46 @@ def fit_axis_coding(
             all_orth_axes_feat = pca_pre._pca.components_.T @ all_orth_axes
         pca_var = pca_pre.explained_variance_ratio.tolist()
 
+    # Decode μ into interpretable parameter space.
+    # μ lives in selector-space: PC space if PCA was used, feature (z-scored) otherwise.
+    # We back-project to z-scored features, inverse-scale to raw feature units, then
+    # decode (cos,sin) → angle and (x,y,z) → (theta,phi).
+    mu_sel = getattr(selector, "mu_", None)
+    mus_sel = getattr(selector, "mus_", None)
+    amps = getattr(selector, "amplitudes_", None)
+
+    mu_in_selector_space: Optional[list[float]] = None
+    mu_in_feat_z: Optional[list[float]] = None
+    mu_in_unscaled: Optional[list[float]] = None
+    mu_decoded: Optional[dict] = None
+    mus_unscaled_list: Optional[list[list[float]]] = None
+    mus_decoded_list: Optional[list[dict]] = None
+
+    def _decode_one(mu_vec: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
+        if pca_pre is not None:
+            feat_z = pca_pre.back_project(mu_vec)
+        else:
+            feat_z = np.asarray(mu_vec, dtype=np.float64)
+        unscaled = encoder.inverse_scale(feat_z)
+        return feat_z, unscaled, encoder.decode_to_parameters(unscaled)
+
+    if mu_sel is not None:
+        mu_arr = np.asarray(mu_sel, dtype=np.float64)
+        mu_in_selector_space = mu_arr.tolist()
+        feat_z, unscaled, decoded = _decode_one(mu_arr)
+        mu_in_feat_z = feat_z.tolist()
+        mu_in_unscaled = unscaled.tolist()
+        mu_decoded = decoded
+
+    if mus_sel is not None:
+        mus_arr = np.asarray(mus_sel, dtype=np.float64)
+        mus_unscaled_list = []
+        mus_decoded_list = []
+        for k in range(mus_arr.shape[0]):
+            _, unscaled_k, decoded_k = _decode_one(mus_arr[k])
+            mus_unscaled_list.append(unscaled_k.tolist())
+            mus_decoded_list.append(decoded_k)
+
     noise_ceiling = compute_noise_ceiling(
         df=df,
         channel=channel,
@@ -313,6 +367,13 @@ def fit_axis_coding(
             all_orth_axes_feat.tolist() if all_orth_axes_feat is not None else None
         ),
         pca_explained_variance=pca_var,
+        mu_in_selector_space=mu_in_selector_space,
+        mu_in_feature_space_zscored=mu_in_feat_z,
+        mu_in_unscaled_space=mu_in_unscaled,
+        mu_decoded=mu_decoded,
+        mus_in_unscaled_space=mus_unscaled_list,
+        mus_decoded=mus_decoded_list,
+        prototype_amplitudes=(amps.tolist() if amps is not None else None),
         thumbnail_paths=thumbnail_paths,
     )
 
@@ -503,6 +564,52 @@ def compute_axis_projections(result: AxisCodingResult) -> np.ndarray:
     return (pred - float(intercept)) / w_norm
 
 
+# Default permutation count for axis significance tests.  1000 is enough for
+# p ≈ 0.001 resolution; bump if extreme tails matter.
+_PERMUTATION_N = 1000
+
+
+def _theilsen_fit(x: np.ndarray, y: np.ndarray) -> tuple[float, float, float, float]:
+    """
+    Theil–Sen median-of-slopes regression.
+
+    Returns (slope, intercept, lo_slope, hi_slope) where lo/hi are the 95% CI
+    on the slope (Lehmann's method via scipy.stats.theilslopes).  Robust to the
+    high-leverage tails that bias OLS when projection samples are sparse at the
+    ends of an axis.
+    """
+    res = theilslopes(y, x, alpha=0.95)
+    return float(res[0]), float(res[1]), float(res[2]), float(res[3])
+
+
+def _permutation_pvalue_spearman(
+    x: np.ndarray,
+    y: np.ndarray,
+    n_perm: int = _PERMUTATION_N,
+    random_state: int = 0,
+) -> tuple[float, float]:
+    """
+    Two-sided permutation p-value for the Spearman rank correlation between
+    x and y.  Returns ``(rho_observed, p_value)``.
+
+    Permutation builds the null from the actual sample, so the p-value does
+    NOT inflate with n the way an asymptotic Spearman p-value does.
+    Spearman ρ is rank-based, so it is robust to high-leverage tail points.
+    """
+    obs_rho, _ = spearmanr(x, y)
+    obs_rho = float(obs_rho) if obs_rho is not None and not np.isnan(obs_rho) else 0.0
+    if x.size < 3:
+        return obs_rho, 1.0
+    rng = np.random.default_rng(random_state)
+    null_rhos = np.empty(n_perm, dtype=np.float64)
+    for i in range(n_perm):
+        rho_i, _ = spearmanr(x, rng.permutation(y))
+        null_rhos[i] = float(rho_i) if rho_i is not None and not np.isnan(rho_i) else 0.0
+    # +1 numerator/denominator: Phipson & Smyth (2010) — never report p=0.
+    p = float((np.sum(np.abs(null_rhos) >= abs(obs_rho)) + 1) / (n_perm + 1))
+    return obs_rho, p
+
+
 def _binned_mean_sem(x: np.ndarray, y: np.ndarray, n_bins: int):
     """Return (centers, means, sems) for y binned along x. NaN bins kept."""
     bin_edges = np.linspace(x.min(), x.max(), n_bins + 1)
@@ -541,15 +648,18 @@ def _draw_tuning_curve(ax, projections, actual, n_bins, xlabel, title):
             color="k",
         )
 
-        # OLS line + stats
-        reg = linregress(projections, actual)
+        # Theil–Sen line (robust to high-leverage tails) + permutation p-value
+        # on Spearman ρ (does not inflate with n; rank-based, robust to outliers).
+        slope, intercept, lo_slope, hi_slope = _theilsen_fit(projections, actual)
         xs = np.array([projections.min(), projections.max()])
-        ys = reg.intercept + reg.slope * xs
-        ax.plot(xs, ys, color="crimson", lw=1.5, alpha=0.8, label="OLS fit")
+        ys = intercept + slope * xs
+        ax.plot(xs, ys, color="crimson", lw=1.5, alpha=0.8, label="Theil–Sen")
+        rho, p_perm = _permutation_pvalue_spearman(projections, actual)
         stats_str = (
-            f"slope = {reg.slope:+.3g}\n"
-            f"R²    = {reg.rvalue ** 2:.3f}\n"
-            f"p     = {reg.pvalue:.2g}"
+            f"slope (T-S) = {slope:+.3g}\n"
+            f"  95% CI    = [{lo_slope:+.3g}, {hi_slope:+.3g}]\n"
+            f"ρ (Spearman) = {rho:+.3f}\n"
+            f"p (permute) = {p_perm:.2g}"
         )
         ax.text(
             0.02, 0.98, stats_str,
@@ -748,17 +858,23 @@ def plot_orthogonal_axes_diagnostic(
         variances_all / var_total if var_total > 1e-12 else np.zeros_like(variances_all)
     )
 
+    # Theil–Sen slope per axis (robust to tail leverage); permutation p-value on
+    # Spearman ρ per axis (controls for n inflation; robust to outliers).
     slopes = np.zeros(n_axes)
+    slope_lo = np.zeros(n_axes)
+    slope_hi = np.zeros(n_axes)
     rhos = np.zeros(n_axes)
     pvals = np.ones(n_axes)
     for k in range(n_axes):
         col = proj_all[:, k]
         if col.std() > 1e-12:
-            reg = linregress(col, actual)
-            slopes[k] = float(reg.slope)
-            r, p = spearmanr(col, actual)
-            rhos[k] = float(r)
-            pvals[k] = float(p)
+            s, _, lo, hi = _theilsen_fit(col, actual)
+            slopes[k] = s
+            slope_lo[k] = lo
+            slope_hi[k] = hi
+            rho, p = _permutation_pvalue_spearman(col, actual)
+            rhos[k] = rho
+            pvals[k] = p
 
     # ------------------------------------------------------------------
     # Figure
@@ -779,16 +895,17 @@ def plot_orthogonal_axes_diagnostic(
             (means + sems)[valid],
             alpha=0.25, color="k",
         )
-        reg = linregress(proj, actual)
+        slope_p, intercept_p, _, _ = _theilsen_fit(proj, actual)
         xs = np.array([proj.min(), proj.max()])
-        ax.plot(xs, reg.intercept + reg.slope * xs,
-                color="crimson", lw=1.5, alpha=0.8, label="OLS")
+        ax.plot(xs, intercept_p + slope_p * xs,
+                color="crimson", lw=1.5, alpha=0.8, label="Theil–Sen")
         ax.text(
             0.02, 0.98,
             f"orth PC1  var={variances_orth[0] / max(var_total, 1e-12):.1%}\n"
-            f"slope = {slopes[1]:+.3g}\n"
-            f"ρ     = {rhos[1]:+.3f}\n"
-            f"p     = {pvals[1]:.2g}",
+            f"slope (T-S) = {slopes[1]:+.3g}\n"
+            f"  95% CI    = [{slope_lo[1]:+.3g}, {slope_hi[1]:+.3g}]\n"
+            f"ρ (Spearman) = {rhos[1]:+.3f}\n"
+            f"p (permute) = {pvals[1]:.2g}",
             transform=ax.transAxes, va="top", ha="left",
             fontsize=8, family="monospace",
             bbox=dict(boxstyle="round,pad=0.3", facecolor="white",
@@ -889,22 +1006,30 @@ def plot_orthogonal_axes_diagnostic(
     x = np.arange(n_axes)
     colors = ["forestgreen"] + ["steelblue"] * n_orth   # preferred stands out
 
-    # Slope per axis
+    # Theil–Sen slope per axis with 95% CI error bars.
     ax = axes[1, 0]
-    bars = ax.bar(x, slopes, color=colors)
+    yerr_lo = np.maximum(slopes - slope_lo, 0.0)
+    yerr_hi = np.maximum(slope_hi - slopes, 0.0)
+    bars = ax.bar(
+        x, slopes, color=colors,
+        yerr=[yerr_lo, yerr_hi], capsize=3, ecolor="black",
+        error_kw={"lw": 0.7},
+    )
     for k, b in enumerate(bars):
-        if pvals[k] < 0.05 and k > 0:   # mark orth bars whose OLS p < 0.05
+        # Red edge: orth bar whose permutation p < 0.05.
+        if pvals[k] < 0.05 and k > 0:
             b.set_edgecolor("crimson")
             b.set_linewidth(1.5)
     ax.axhline(0, color="black", lw=0.7)
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=8)
-    ax.set_ylabel("OLS slope (response per z-unit)")
+    ax.set_ylabel("Theil–Sen slope (response per z-unit)")
     ax.set_title(
-        "OLS slope per axis\n(preferred should dominate; orth bars ≈ 0)"
+        "Theil–Sen slope per axis  (95% CI bars)\n"
+        "preferred should dominate; orth bars ≈ 0"
     )
 
-    # |Spearman ρ| per axis
+    # |Spearman ρ| per axis with permutation p-value gating.
     ax = axes[1, 1]
     bars = ax.bar(x, np.abs(rhos), color=colors)
     for k, b in enumerate(bars):
@@ -915,7 +1040,7 @@ def plot_orthogonal_axes_diagnostic(
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=8)
     ax.set_ylabel("|Spearman ρ|")
-    ax.set_title("Rank correlation per axis\n(red edge: raw p<0.05)")
+    ax.set_title("Rank correlation per axis\n(red edge: permutation p<0.05)")
     ax.legend(fontsize=8)
 
     # Variance fraction per axis (small panel for context)
@@ -1029,6 +1154,153 @@ def plot_axes_stimuli(
     return fig
 
 
+def plot_mu_decoded(
+    result: AxisCodingResult,
+    encoder: ComponentEncoder,
+    title: Optional[str] = None,
+) -> Optional[plt.Figure]:
+    """
+    Visualize the selector's chosen μ ("the preferred component template") in
+    interpretable parameter space.
+
+    Layout:
+      - Top-left bar: linear params in raw units (radialPosition, length, etc.).
+      - One panel per spherical pair showing (θ, φ) in degrees on a 2D map,
+        with the population scatter shown as light dots for context.
+      - One polar panel per circular param.
+
+    For multi-prototype selectors (``mus_decoded`` populated), every prototype
+    is overlaid in a distinct color, with marker size scaled by amplitude α_k.
+    """
+    if result.mu_decoded is None:
+        return None
+
+    # Collect all prototypes to plot (single-prototype selectors → one entry).
+    all_decoded: list[dict] = []
+    all_unscaled: list[np.ndarray] = []
+    amplitudes: list[float] = []
+    if result.mus_decoded is not None and result.mus_in_unscaled_space is not None:
+        for k in range(len(result.mus_decoded)):
+            all_decoded.append(result.mus_decoded[k])
+            all_unscaled.append(np.asarray(result.mus_in_unscaled_space[k]))
+        if result.prototype_amplitudes is not None:
+            amplitudes = list(result.prototype_amplitudes)
+        else:
+            amplitudes = [1.0] * len(all_decoded)
+    else:
+        all_decoded.append(result.mu_decoded)
+        all_unscaled.append(
+            np.asarray(result.mu_in_unscaled_space)
+            if result.mu_in_unscaled_space is not None
+            else np.array([])
+        )
+        amplitudes = [1.0]
+
+    n_proto = len(all_decoded)
+    cmap = plt.get_cmap("tab10")
+    proto_colors = [cmap(k % 10) for k in range(n_proto)]
+
+    linear = list(encoder.linear_params)
+    circular = list(encoder.circular_params)
+    spherical = list(encoder.spherical_params)
+
+    n_lin_panels = 1 if linear else 0
+    n_panels = n_lin_panels + len(spherical) + len(circular)
+    if n_panels == 0:
+        return None
+
+    fig, axes = plt.subplots(
+        1, n_panels, figsize=(4.2 * n_panels, 4.0), squeeze=False,
+    )
+    axes = list(axes[0])
+    panel = 0
+
+    # Marker sizes by amplitude (relative); minimum size for visibility.
+    amps_arr = np.asarray(amplitudes, dtype=np.float64)
+    amp_max = float(amps_arr.max()) if amps_arr.size else 1.0
+    sizes = 60.0 + 200.0 * (amps_arr / max(amp_max, 1e-12))
+
+    # Linear params: grouped bar chart, one bar per prototype per param.
+    if linear:
+        ax = axes[panel]
+        n = len(linear)
+        bar_w = 0.8 / max(n_proto, 1)
+        for k in range(n_proto):
+            vals = [all_decoded[k].get(p, np.nan) for p in linear]
+            x = np.arange(n) + (k - (n_proto - 1) / 2) * bar_w
+            ax.bar(
+                x, vals, width=bar_w * 0.95,
+                color=proto_colors[k],
+                label=f"μ{k+1} (α={amplitudes[k]:.2g})",
+            )
+        ax.set_xticks(np.arange(n))
+        ax.set_xticklabels(linear, rotation=30, ha="right", fontsize=8)
+        ax.axhline(0, color="black", lw=0.7)
+        ax.set_ylabel("Value (raw units)")
+        ax.set_title("Linear params")
+        if n_proto > 1:
+            ax.legend(fontsize=7, loc="best")
+        panel += 1
+
+    # Spherical params: 2D scatter on (θ, φ) in degrees, with population context.
+    for sp in spherical:
+        ax = axes[panel]
+        ax.set_xlim(-180, 180)
+        ax.set_ylim(0, 180)
+        ax.set_xticks([-180, -90, 0, 90, 180])
+        ax.set_yticks([0, 45, 90, 135, 180])
+        ax.grid(True, color="lightgray", lw=0.4, alpha=0.6)
+        ax.axhline(90, color="gray", lw=0.4)
+        ax.axvline(0, color="gray", lw=0.4)
+        for k in range(n_proto):
+            d = all_decoded[k]
+            theta = d.get(f"{sp}.theta")
+            phi = d.get(f"{sp}.phi")
+            if theta is None or phi is None:
+                continue
+            ax.scatter(
+                np.degrees(theta), np.degrees(phi),
+                s=sizes[k], color=proto_colors[k],
+                edgecolors="black", linewidths=1.2,
+                label=f"μ{k+1} (α={amplitudes[k]:.2g})", zorder=3,
+            )
+        ax.set_xlabel("θ (deg)")
+        ax.set_ylabel("φ (deg)")
+        ax.set_title(sp)
+        if n_proto > 1 and panel == n_lin_panels:
+            ax.legend(fontsize=7, loc="upper right")
+        panel += 1
+
+    # Circular params: angle on a polar plot at unit radius.
+    for cp in circular:
+        ax = axes[panel]
+        # Replace with polar; rectangular fallback also fine since we only show angle.
+        ax.set_xlim(-180, 180)
+        ax.set_ylim(0, 1.5)
+        ax.axhline(1.0, color="lightgray", lw=0.6)
+        ax.axvline(0, color="gray", lw=0.4)
+        for k in range(n_proto):
+            d = all_decoded[k]
+            ang = d.get(cp)
+            if ang is None:
+                continue
+            ax.scatter(
+                np.degrees(ang), 1.0,
+                s=sizes[k], color=proto_colors[k],
+                edgecolors="black", linewidths=1.2,
+                label=f"μ{k+1}", zorder=3,
+            )
+        ax.set_xlabel(f"{cp} angle (deg)")
+        ax.set_yticks([])
+        ax.set_title(cp)
+        panel += 1
+
+    if title:
+        fig.suptitle(title)
+    fig.tight_layout()
+    return fig
+
+
 # ---------------------------------------------------------------------------
 # Orchestrator
 # ---------------------------------------------------------------------------
@@ -1131,6 +1403,19 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                 )
                 results[component_type][strategy.label] = result
 
+                # Prototype amplitudes for multi-prototype selectors.
+                if result.prototype_amplitudes is not None:
+                    amps_str = ", ".join(
+                        f"α{k+1}={a:.3g}"
+                        for k, a in enumerate(result.prototype_amplitudes)
+                    )
+                    n_active = result.selector_summary.get("n_active_prototypes")
+                    sep = result.selector_summary.get("prototype_separation")
+                    sep_str = f"  separation={sep:.3g}" if sep is not None else ""
+                    print(
+                        f"  prototypes: {amps_str}  n_active={n_active}{sep_str}"
+                    )
+
                 cv_r2 = result.ridge_summary.get("cv_r2_mean")
                 cv_r2_std = result.ridge_summary.get("cv_r2_std")
                 alpha = result.ridge_summary.get("alpha")
@@ -1216,6 +1501,29 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                         plt.show()
                     else:
                         plt.close(fig_orth)
+
+                # μ in interpretable parameter space (linear bars + sphere/circle plots).
+                fig_mu = plot_mu_decoded(
+                    result,
+                    encoder=encoders_for_run[component_type],
+                    title=(
+                        f"{_channel_to_str(channel)} | "
+                        f"{component_type} | {strategy.label}  —  μ in parameter space"
+                    ),
+                )
+                if fig_mu is not None:
+                    if save_dir is not None:
+                        mu_path = os.path.join(
+                            save_dir,
+                            f"axis_coding_{_channel_to_str(channel)}_"
+                            f"{component_type}_{strategy.label}_mu.png",
+                        )
+                        fig_mu.savefig(mu_path, dpi=150, bbox_inches="tight")
+                        print(f"  saved: {mu_path}")
+                    if self.show_plots:
+                        plt.show()
+                    else:
+                        plt.close(fig_mu)
 
                 # Stimuli sampled uniformly along each axis (one row per axis).
                 fig_stim = plot_axes_stimuli(
@@ -1444,6 +1752,27 @@ def main():
                 tol=1e-4,
                 init="response_weighted_mean",
                 mu_optimizer_max_iter=200,
+            ),
+            ridge_factory=ridge,
+            n_pcs=6,
+        ),
+        # Multi-prototype attention: K=2 prototypes with sparsity penalty on
+        # amplitudes.  Collapses to a single prototype when one is enough; reports
+        # n_active_prototypes in the selector summary.  lambda_amp controls how
+        # aggressive the collapse is — raise to penalize the second prototype
+        # more, lower if you want it to stay around longer.
+        AxisCodingStrategy(
+            label="multi_prototype_pca",
+            selector_factory=lambda: MultiPrototypeAttentionSelector(
+                n_prototypes=2,
+                tau=1.0,
+                alpha=1.0,
+                lambda_amp=0.1,
+                max_iter=30,
+                tol=1e-3,
+                init_jitter=0.5,
+                amplitude_floor=1e-3,
+                mu_optimizer_max_iter=100,
             ),
             ridge_factory=ridge,
             n_pcs=6,
