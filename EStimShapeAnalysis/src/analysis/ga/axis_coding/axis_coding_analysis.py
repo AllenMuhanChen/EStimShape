@@ -618,50 +618,68 @@ def plot_orthogonal_axes_diagnostic(
     title: Optional[str] = None,
 ) -> Optional[plt.Figure]:
     """
-    Per-orthogonal-PC diagnostic for axis coding.
+    Per-axis diagnostic for axis coding.
 
     Layout (2 × 3):
       Row 0:  tuning curves for the top-``n_top_curves`` orthogonal PCs
-              (sorted by data variance), each annotated with Spearman ρ, p,
-              OLS slope, and the variance fraction the PC captures.
-      Row 1:  three summary panels across ALL orthogonal PCs:
-                (1, 0) |Spearman ρ| per PC
-                (1, 1) variance fraction per PC
-                (1, 2) cumulative variance fraction
+              (sorted by data variance), each annotated with OLS slope,
+              Spearman ρ, p, and the variance fraction the PC captures.
+      Row 1:  three summary panels across the preferred axis + all orthogonal
+              PCs (preferred axis first, then orth PCs sorted by variance):
+                (1, 0) OLS slope per axis                    ← main test
+                (1, 1) |Spearman ρ| per axis
+                (1, 2) variance fraction per axis (for context)
 
-    For axis coding to hold, every orthogonal PC should have ρ ≈ 0 regardless
-    of how much variance it captures — i.e. row-1, column-0 should be flat
-    near zero across all bars.
+    For axis coding to hold, the preferred-axis bar should dominate row 1
+    columns 0 and 1, and every orthogonal bar should be near zero — *regardless
+    of how much variance that orthogonal direction captures*.
     """
     if result.all_orthogonal_projections is None or result.all_orthogonal_variances is None:
         return None
 
-    proj_all = np.asarray(result.all_orthogonal_projections, dtype=np.float64)
-    variances = np.asarray(result.all_orthogonal_variances, dtype=np.float64)
+    proj_orth = np.asarray(result.all_orthogonal_projections, dtype=np.float64)
+    variances_orth = np.asarray(result.all_orthogonal_variances, dtype=np.float64)
     actual = np.asarray(result.actual_responses, dtype=np.float64)
 
-    if proj_all.size == 0 or variances.size == 0:
+    if proj_orth.size == 0 or variances_orth.size == 0:
         return None
 
-    n_orth = proj_all.shape[1]
-    var_total = float(variances.sum())
-    var_frac = variances / var_total if var_total > 1e-12 else np.zeros_like(variances)
+    n_orth = proj_orth.shape[1]
 
-    rho = np.zeros(n_orth)
-    pvals = np.ones(n_orth)
-    for k in range(n_orth):
+    # Preferred-axis projection + its data variance, prepended to the orth set.
+    proj_pref = compute_axis_projections(result)
+    var_pref = float(np.var(proj_pref, ddof=1)) if proj_pref.size > 1 else 0.0
+    var_total = var_pref + float(variances_orth.sum())
+
+    # All axes: index 0 = preferred, 1..n_orth = orth PCs (sorted by variance).
+    n_axes = 1 + n_orth
+    proj_all = np.column_stack([proj_pref, proj_orth])
+    variances_all = np.concatenate([[var_pref], variances_orth])
+    var_frac_all = (
+        variances_all / var_total if var_total > 1e-12 else np.zeros_like(variances_all)
+    )
+
+    slopes = np.zeros(n_axes)
+    rhos = np.zeros(n_axes)
+    pvals = np.ones(n_axes)
+    for k in range(n_axes):
         col = proj_all[:, k]
         if col.std() > 1e-12:
+            reg = linregress(col, actual)
+            slopes[k] = float(reg.slope)
             r, p = spearmanr(col, actual)
-            rho[k] = float(r)
+            rhos[k] = float(r)
             pvals[k] = float(p)
 
+    # ------------------------------------------------------------------
+    # Figure
+    # ------------------------------------------------------------------
     fig, axes = plt.subplots(2, max(n_top_curves, 3), figsize=(6 * max(n_top_curves, 3), 9))
 
-    # Row 0: tuning curves for the top-n PCs (by variance)
+    # Row 0: tuning curves for the top-N orthogonal PCs.
     for k in range(min(n_top_curves, n_orth)):
         ax = axes[0, k]
-        proj = proj_all[:, k]
+        proj = proj_orth[:, k]
         ax.scatter(proj, actual, s=10, alpha=0.5, label="stimuli")
         if proj.std() > 1e-12:
             centers, means, sems = _binned_mean_sem(proj, actual, n_bins)
@@ -675,13 +693,15 @@ def plot_orthogonal_axes_diagnostic(
             )
             reg = linregress(proj, actual)
             xs = np.array([proj.min(), proj.max()])
-            ax.plot(xs, reg.intercept + reg.slope * xs, color="crimson", lw=1.5, alpha=0.8, label="OLS")
+            ax.plot(xs, reg.intercept + reg.slope * xs,
+                    color="crimson", lw=1.5, alpha=0.8, label="OLS")
+            # k+1 maps to slopes[k+1] / rhos[k+1] (preferred is at index 0).
             ax.text(
                 0.02, 0.98,
-                f"PC{k+1}  var={var_frac[k]:.1%}\n"
-                f"slope = {reg.slope:+.3g}\n"
-                f"ρ     = {rho[k]:+.3f}\n"
-                f"p     = {pvals[k]:.2g}",
+                f"orth PC{k+1}  var={variances_orth[k] / max(var_total, 1e-12):.1%}\n"
+                f"slope = {slopes[k+1]:+.3g}\n"
+                f"ρ     = {rhos[k+1]:+.3f}\n"
+                f"p     = {pvals[k+1]:.2g}",
                 transform=ax.transAxes, va="top", ha="left",
                 fontsize=8, family="monospace",
                 bbox=dict(boxstyle="round,pad=0.3", facecolor="white",
@@ -689,47 +709,55 @@ def plot_orthogonal_axes_diagnostic(
             )
         ax.set_xlabel(f"Projection onto orth PC{k+1}")
         ax.set_ylabel("Actual response")
-        ax.set_title(f"Orth PC{k+1} tuning  (var = {var_frac[k]:.1%})")
+        ax.set_title(f"Orth PC{k+1} tuning")
         ax.legend(fontsize=7, loc="lower right")
 
-    # Hide any unused row-0 cells (when n_orth < n_top_curves)
     for k in range(min(n_top_curves, n_orth), max(n_top_curves, 3)):
         axes[0, k].axis("off")
 
-    pc_idx = np.arange(1, n_orth + 1)
+    # ------------------------------------------------------------------
+    # Row 1: summaries across preferred axis + all orthogonal PCs.
+    # ------------------------------------------------------------------
+    labels = ["preferred"] + [f"orth {k+1}" for k in range(n_orth)]
+    x = np.arange(n_axes)
+    colors = ["forestgreen"] + ["steelblue"] * n_orth   # preferred stands out
 
-    # Row 1, col 0: |Spearman ρ| per PC, sorted by variance order
+    # Slope per axis
     ax = axes[1, 0]
-    bars = ax.bar(pc_idx, np.abs(rho), color="steelblue")
-    # Mark significant ones (raw p < 0.05) with edge color
+    bars = ax.bar(x, slopes, color=colors)
     for k, b in enumerate(bars):
-        if pvals[k] < 0.05:
+        if pvals[k] < 0.05 and k > 0:   # mark orth bars whose OLS p < 0.05
+            b.set_edgecolor("crimson")
+            b.set_linewidth(1.5)
+    ax.axhline(0, color="black", lw=0.7)
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=8)
+    ax.set_ylabel("OLS slope (response per z-unit)")
+    ax.set_title(
+        "OLS slope per axis\n(preferred should dominate; orth bars ≈ 0)"
+    )
+
+    # |Spearman ρ| per axis
+    ax = axes[1, 1]
+    bars = ax.bar(x, np.abs(rhos), color=colors)
+    for k, b in enumerate(bars):
+        if pvals[k] < 0.05 and k > 0:
             b.set_edgecolor("crimson")
             b.set_linewidth(1.5)
     ax.axhline(0.1, color="gray", lw=1, ls="--", label="|ρ|=0.1")
-    ax.set_xlabel("Orthogonal PC index (sorted by variance)")
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=8)
     ax.set_ylabel("|Spearman ρ|")
-    ax.set_title("Response correlation per orth PC\n(red edge: raw p<0.05)")
-    ax.set_xticks(pc_idx)
+    ax.set_title("Rank correlation per axis\n(red edge: raw p<0.05)")
     ax.legend(fontsize=8)
 
-    # Row 1, col 1: variance fraction per PC
-    ax = axes[1, 1]
-    ax.bar(pc_idx, var_frac * 100.0, color="darkorange")
-    ax.set_xlabel("Orthogonal PC index")
-    ax.set_ylabel("Variance fraction (%)")
-    ax.set_title("Variance per orth PC")
-    ax.set_xticks(pc_idx)
-
-    # Row 1, col 2: cumulative variance
+    # Variance fraction per axis (small panel for context)
     ax = axes[1, 2]
-    ax.plot(pc_idx, np.cumsum(var_frac) * 100.0, "o-", color="forestgreen")
-    ax.set_xlabel("Top-k orth PCs")
-    ax.set_ylabel("Cumulative variance (%)")
-    ax.set_title("Cumulative orth variance")
-    ax.set_xticks(pc_idx)
-    ax.set_ylim(0, 105)
-    ax.grid(alpha=0.3)
+    ax.bar(x, var_frac_all * 100.0, color=colors)
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=8)
+    ax.set_ylabel("Variance fraction (%)")
+    ax.set_title("Data variance per axis")
 
     if title:
         fig.suptitle(title)
