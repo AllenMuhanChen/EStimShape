@@ -1020,12 +1020,25 @@ def plot_orthogonal_axes_diagnostic(
         if pvals[k] < 0.05 and k > 0:
             b.set_edgecolor("crimson")
             b.set_linewidth(1.5)
+    # Per-bar permutation p-value label, placed just outside the CI bar tip.
+    for k, b in enumerate(bars):
+        if slopes[k] >= 0:
+            label_y = slopes[k] + yerr_hi[k]
+            va = "bottom"
+        else:
+            label_y = slopes[k] - yerr_lo[k]
+            va = "top"
+        ax.text(
+            b.get_x() + b.get_width() / 2, label_y,
+            f"p={pvals[k]:.2g}",
+            ha="center", va=va, fontsize=7, color="black",
+        )
     ax.axhline(0, color="black", lw=0.7)
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=8)
-    ax.set_ylabel("Theil–Sen slope (response per z-unit)")
+    ax.set_ylabel("Slope (response per z-unit)")
     ax.set_title(
-        "Theil–Sen slope per axis  (95% CI bars)\n"
+        "Slope per axis (95% CI; Theil–Sen)\n"
         "preferred should dominate; orth bars ≈ 0"
     )
 
@@ -1163,37 +1176,37 @@ def plot_mu_decoded(
     Visualize the selector's chosen μ ("the preferred component template") in
     interpretable parameter space.
 
-    Layout:
-      - Top-left bar: linear params in raw units (radialPosition, length, etc.).
-      - One panel per spherical pair showing (θ, φ) in degrees on a 2D map,
-        with the population scatter shown as light dots for context.
-      - One polar panel per circular param.
+    Layout (one panel each, in this order):
+      - Linear params: grouped bar chart in raw units.
+      - Spherical pairs (θ, φ): 3D arrow from origin to the unit-vector pose,
+        on a faint reference sphere.  Convention:
+            x = sin φ cos θ   (θ=0 along +X,  θ=π/2 along +Y)
+            y = sin φ sin θ
+            z = cos φ         (φ=0 → +Z, away from viewer; φ=π → -Z, towards)
+        +X / +Y / +Z reference axes are drawn so direction is unambiguous.
+      - Circular params: angle on a 2D dial at unit radius.
 
     For multi-prototype selectors (``mus_decoded`` populated), every prototype
-    is overlaid in a distinct color, with marker size scaled by amplitude α_k.
+    is overlaid in a distinct color with marker / arrow line-width scaled by
+    amplitude α_k.
     """
+    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  (registers 3d projection)
+
     if result.mu_decoded is None:
         return None
 
     # Collect all prototypes to plot (single-prototype selectors → one entry).
     all_decoded: list[dict] = []
-    all_unscaled: list[np.ndarray] = []
     amplitudes: list[float] = []
     if result.mus_decoded is not None and result.mus_in_unscaled_space is not None:
         for k in range(len(result.mus_decoded)):
             all_decoded.append(result.mus_decoded[k])
-            all_unscaled.append(np.asarray(result.mus_in_unscaled_space[k]))
         if result.prototype_amplitudes is not None:
             amplitudes = list(result.prototype_amplitudes)
         else:
             amplitudes = [1.0] * len(all_decoded)
     else:
         all_decoded.append(result.mu_decoded)
-        all_unscaled.append(
-            np.asarray(result.mu_in_unscaled_space)
-            if result.mu_in_unscaled_space is not None
-            else np.array([])
-        )
         amplitudes = [1.0]
 
     n_proto = len(all_decoded)
@@ -1209,20 +1222,20 @@ def plot_mu_decoded(
     if n_panels == 0:
         return None
 
-    fig, axes = plt.subplots(
-        1, n_panels, figsize=(4.2 * n_panels, 4.0), squeeze=False,
-    )
-    axes = list(axes[0])
-    panel = 0
+    # Mixed 2D/3D panels — must use add_subplot per panel rather than plt.subplots.
+    fig = plt.figure(figsize=(4.5 * n_panels, 4.2))
+    panel = 1  # 1-indexed for add_subplot
 
     # Marker sizes by amplitude (relative); minimum size for visibility.
     amps_arr = np.asarray(amplitudes, dtype=np.float64)
     amp_max = float(amps_arr.max()) if amps_arr.size else 1.0
-    sizes = 60.0 + 200.0 * (amps_arr / max(amp_max, 1e-12))
+    amp_norm = amps_arr / max(amp_max, 1e-12)
+    sizes = 60.0 + 200.0 * amp_norm
+    arrow_lws = 1.5 + 3.5 * amp_norm
 
     # Linear params: grouped bar chart, one bar per prototype per param.
     if linear:
-        ax = axes[panel]
+        ax = fig.add_subplot(1, n_panels, panel)
         n = len(linear)
         bar_w = 0.8 / max(n_proto, 1)
         for k in range(n_proto):
@@ -1242,57 +1255,104 @@ def plot_mu_decoded(
             ax.legend(fontsize=7, loc="best")
         panel += 1
 
-    # Spherical params: 2D scatter on (θ, φ) in degrees, with population context.
+    # Spherical params: 3D arrow from origin to unit-vector pose.
+    # Reference sphere wireframe + (X, Y, Z) axes for orientation context.
+    sphere_u = np.linspace(0, 2 * np.pi, 24)
+    sphere_v = np.linspace(0, np.pi, 12)
+    sphere_x = np.outer(np.cos(sphere_u), np.sin(sphere_v))
+    sphere_y = np.outer(np.sin(sphere_u), np.sin(sphere_v))
+    sphere_z = np.outer(np.ones_like(sphere_u), np.cos(sphere_v))
+
     for sp in spherical:
-        ax = axes[panel]
-        ax.set_xlim(-180, 180)
-        ax.set_ylim(0, 180)
-        ax.set_xticks([-180, -90, 0, 90, 180])
-        ax.set_yticks([0, 45, 90, 135, 180])
-        ax.grid(True, color="lightgray", lw=0.4, alpha=0.6)
-        ax.axhline(90, color="gray", lw=0.4)
-        ax.axvline(0, color="gray", lw=0.4)
+        ax = fig.add_subplot(1, n_panels, panel, projection="3d")
+        ax.plot_wireframe(
+            sphere_x, sphere_y, sphere_z,
+            color="lightgray", lw=0.3, alpha=0.45,
+        )
+        # Reference axes (gray) + tiny labels.
+        ax.plot([-1.1, 1.1], [0, 0], [0, 0], color="gray", lw=0.6, alpha=0.5)
+        ax.plot([0, 0], [-1.1, 1.1], [0, 0], color="gray", lw=0.6, alpha=0.5)
+        ax.plot([0, 0], [0, 0], [-1.1, 1.1], color="gray", lw=0.6, alpha=0.5)
+        ax.text(1.25, 0, 0, "+X (θ=0)", fontsize=7, color="gray")
+        ax.text(0, 1.25, 0, "+Y (θ=π/2)", fontsize=7, color="gray")
+        ax.text(0, 0, 1.25, "+Z (φ=0, away)", fontsize=7, color="gray")
+        ax.text(0, 0, -1.35, "−Z (φ=π, viewer)", fontsize=7, color="gray")
+
         for k in range(n_proto):
             d = all_decoded[k]
             theta = d.get(f"{sp}.theta")
             phi = d.get(f"{sp}.phi")
             if theta is None or phi is None:
                 continue
-            ax.scatter(
-                np.degrees(theta), np.degrees(phi),
-                s=sizes[k], color=proto_colors[k],
-                edgecolors="black", linewidths=1.2,
-                label=f"μ{k+1} (α={amplitudes[k]:.2g})", zorder=3,
+            sin_phi = np.sin(phi)
+            x = sin_phi * np.cos(theta)
+            y = sin_phi * np.sin(theta)
+            z = np.cos(phi)
+            ax.quiver(
+                0, 0, 0, x, y, z,
+                color=proto_colors[k],
+                lw=arrow_lws[k], arrow_length_ratio=0.18,
+                label=f"μ{k+1} (α={amplitudes[k]:.2g})  "
+                      f"θ={np.degrees(theta):+.0f}° φ={np.degrees(phi):.0f}°",
             )
-        ax.set_xlabel("θ (deg)")
-        ax.set_ylabel("φ (deg)")
+            ax.scatter([x], [y], [z], color=proto_colors[k], s=sizes[k] * 0.5,
+                       edgecolors="black", linewidths=0.8, zorder=5)
+
+        ax.set_xlim(-1.1, 1.1)
+        ax.set_ylim(-1.1, 1.1)
+        ax.set_zlim(-1.1, 1.1)
+        ax.set_xticks([-1, 0, 1])
+        ax.set_yticks([-1, 0, 1])
+        ax.set_zticks([-1, 0, 1])
+        ax.set_xlabel("X", fontsize=7)
+        ax.set_ylabel("Y", fontsize=7)
+        ax.set_zlabel("Z", fontsize=7)
         ax.set_title(sp)
-        if n_proto > 1 and panel == n_lin_panels:
-            ax.legend(fontsize=7, loc="upper right")
+        ax.view_init(elev=20, azim=-55)
+        try:
+            ax.set_box_aspect((1, 1, 1))
+        except AttributeError:
+            pass
+        if panel == n_lin_panels + 1:
+            ax.legend(fontsize=6, loc="upper left", bbox_to_anchor=(0.0, 0.0))
         panel += 1
 
-    # Circular params: angle on a polar plot at unit radius.
+    # Circular params: dial.
     for cp in circular:
-        ax = axes[panel]
-        # Replace with polar; rectangular fallback also fine since we only show angle.
-        ax.set_xlim(-180, 180)
-        ax.set_ylim(0, 1.5)
-        ax.axhline(1.0, color="lightgray", lw=0.6)
+        ax = fig.add_subplot(1, n_panels, panel)
+        ax.set_xlim(-1.3, 1.3)
+        ax.set_ylim(-1.3, 1.3)
+        ax.set_aspect("equal")
+        # Reference circle.
+        circ_t = np.linspace(0, 2 * np.pi, 100)
+        ax.plot(np.cos(circ_t), np.sin(circ_t), color="lightgray", lw=0.6)
+        ax.axhline(0, color="gray", lw=0.4)
         ax.axvline(0, color="gray", lw=0.4)
+        ax.text(1.15, 0, "0°", fontsize=7, color="gray", va="center")
+        ax.text(0, 1.15, "90°", fontsize=7, color="gray", ha="center")
         for k in range(n_proto):
             d = all_decoded[k]
             ang = d.get(cp)
             if ang is None:
                 continue
-            ax.scatter(
-                np.degrees(ang), 1.0,
-                s=sizes[k], color=proto_colors[k],
-                edgecolors="black", linewidths=1.2,
-                label=f"μ{k+1}", zorder=3,
+            x = np.cos(ang)
+            y = np.sin(ang)
+            ax.annotate(
+                "", xy=(x, y), xytext=(0, 0),
+                arrowprops=dict(
+                    arrowstyle="->",
+                    color=proto_colors[k],
+                    lw=arrow_lws[k],
+                ),
             )
-        ax.set_xlabel(f"{cp} angle (deg)")
+            ax.scatter([x], [y], s=sizes[k] * 0.5, color=proto_colors[k],
+                       edgecolors="black", linewidths=0.8, zorder=5,
+                       label=f"μ{k+1}: {np.degrees(ang):+.0f}°")
+        ax.set_xticks([])
         ax.set_yticks([])
         ax.set_title(cp)
+        if n_proto >= 1:
+            ax.legend(fontsize=7, loc="lower right")
         panel += 1
 
     if title:
