@@ -8,7 +8,7 @@ from typing import Any, Callable, Optional, Union
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from scipy.stats import linregress
+from scipy.stats import linregress, spearmanr
 
 from clat.pipeline.pipeline_base_classes import (
     InputHandler,
@@ -98,6 +98,9 @@ class AxisCodingResult:
     axis_projections: Optional[list[float]] = None
     orthogonal_projections: Optional[list[float]] = None
     orthogonal_axis: Optional[list[float]] = None
+    all_orthogonal_axes: Optional[list[list[float]]] = None         # (d, n_orth)
+    all_orthogonal_variances: Optional[list[float]] = None          # (n_orth,)
+    all_orthogonal_projections: Optional[list[list[float]]] = None  # (n_stim, n_orth)
     noise_ceiling: Optional[float] = None
 
     def to_json_dict(self) -> dict:
@@ -199,11 +202,18 @@ def fit_axis_coding(
     ridge.fit(X, dataset.responses, feature_names=dataset.feature_names)
     predicted = ridge.predict(X)
 
-    # Preferred-axis projections and principal orthogonal axis projections.
+    # Preferred-axis projections and ALL orthogonal axes (sorted by variance).
     w = ridge.w_
     axis_projections = _project_onto_unit(X, w)
-    orth_axis = compute_principal_orthogonal_axis(X, w)
-    orth_projections = X @ orth_axis if np.any(orth_axis) else np.zeros(X.shape[0])
+    all_orth_axes, all_orth_variances = compute_all_orthogonal_axes(X, w)
+    if all_orth_axes.shape[1] > 0:
+        orth_axis = all_orth_axes[:, 0]              # principal orthogonal (top variance)
+        all_orth_projections = X @ all_orth_axes     # (n_stim, n_orth)
+        orth_projections = all_orth_projections[:, 0]
+    else:
+        orth_axis = np.zeros_like(w)
+        all_orth_projections = np.zeros((X.shape[0], 0))
+        orth_projections = np.zeros(X.shape[0])
 
     noise_ceiling = compute_noise_ceiling(
         df=df,
@@ -230,6 +240,9 @@ def fit_axis_coding(
         axis_projections=axis_projections.tolist(),
         orthogonal_projections=orth_projections.tolist(),
         orthogonal_axis=orth_axis.tolist(),
+        all_orthogonal_axes=all_orth_axes.tolist(),
+        all_orthogonal_variances=all_orth_variances.tolist(),
+        all_orthogonal_projections=all_orth_projections.tolist(),
         noise_ceiling=noise_ceiling,
     )
 
@@ -337,6 +350,43 @@ def _project_onto_unit(X: np.ndarray, w: np.ndarray) -> np.ndarray:
     if w_norm < 1e-12:
         return np.zeros(X.shape[0])
     return X @ (w / w_norm)
+
+
+def compute_all_orthogonal_axes(
+    X: np.ndarray, w: np.ndarray, min_variance_ratio: float = 1e-8,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Full orthonormal basis of the null-space of the preferred axis ``w``,
+    sorted by descending data variance.  PCA on residuals X - (X·ŵ)ŵ; the
+    near-zero eigenvalue (the w-parallel direction, annihilated by the
+    projection) is dropped.
+
+    Returns
+    -------
+    axes : (d, n_orth) array
+        Each column is a unit-norm direction orthogonal to w and to all earlier
+        columns (by symmetry of the eigendecomposition).
+    variances : (n_orth,) array
+        Variance of the data projected onto each axis (eigenvalues in
+        descending order).
+    """
+    w_norm = float(np.linalg.norm(w))
+    if w_norm < 1e-12 or X.shape[0] < 2:
+        return np.zeros((X.shape[1], 0)), np.array([])
+    w_unit = w / w_norm
+    X_orth = X - np.outer(X @ w_unit, w_unit)
+    centered = X_orth - X_orth.mean(axis=0)
+    cov = centered.T @ centered / max(1, len(centered) - 1)
+    vals, vecs = np.linalg.eigh(cov)
+    order = np.argsort(-vals)
+    vals = vals[order]
+    vecs = vecs[:, order]
+    if vals.size > 0:
+        threshold = max(float(vals[0]) * min_variance_ratio, 1e-12)
+        keep = vals > threshold
+        vals = vals[keep]
+        vecs = vecs[:, keep]
+    return vecs, vals
 
 
 def compute_principal_orthogonal_axis(X: np.ndarray, w: np.ndarray) -> np.ndarray:
@@ -561,6 +611,132 @@ def plot_axis_coding_result(
     return fig
 
 
+def plot_orthogonal_axes_diagnostic(
+    result: AxisCodingResult,
+    n_top_curves: int = 3,
+    n_bins: int = 10,
+    title: Optional[str] = None,
+) -> Optional[plt.Figure]:
+    """
+    Per-orthogonal-PC diagnostic for axis coding.
+
+    Layout (2 × 3):
+      Row 0:  tuning curves for the top-``n_top_curves`` orthogonal PCs
+              (sorted by data variance), each annotated with Spearman ρ, p,
+              OLS slope, and the variance fraction the PC captures.
+      Row 1:  three summary panels across ALL orthogonal PCs:
+                (1, 0) |Spearman ρ| per PC
+                (1, 1) variance fraction per PC
+                (1, 2) cumulative variance fraction
+
+    For axis coding to hold, every orthogonal PC should have ρ ≈ 0 regardless
+    of how much variance it captures — i.e. row-1, column-0 should be flat
+    near zero across all bars.
+    """
+    if result.all_orthogonal_projections is None or result.all_orthogonal_variances is None:
+        return None
+
+    proj_all = np.asarray(result.all_orthogonal_projections, dtype=np.float64)
+    variances = np.asarray(result.all_orthogonal_variances, dtype=np.float64)
+    actual = np.asarray(result.actual_responses, dtype=np.float64)
+
+    if proj_all.size == 0 or variances.size == 0:
+        return None
+
+    n_orth = proj_all.shape[1]
+    var_total = float(variances.sum())
+    var_frac = variances / var_total if var_total > 1e-12 else np.zeros_like(variances)
+
+    rho = np.zeros(n_orth)
+    pvals = np.ones(n_orth)
+    for k in range(n_orth):
+        col = proj_all[:, k]
+        if col.std() > 1e-12:
+            r, p = spearmanr(col, actual)
+            rho[k] = float(r)
+            pvals[k] = float(p)
+
+    fig, axes = plt.subplots(2, max(n_top_curves, 3), figsize=(6 * max(n_top_curves, 3), 9))
+
+    # Row 0: tuning curves for the top-n PCs (by variance)
+    for k in range(min(n_top_curves, n_orth)):
+        ax = axes[0, k]
+        proj = proj_all[:, k]
+        ax.scatter(proj, actual, s=10, alpha=0.5, label="stimuli")
+        if proj.std() > 1e-12:
+            centers, means, sems = _binned_mean_sem(proj, actual, n_bins)
+            valid = ~np.isnan(means)
+            ax.plot(centers[valid], means[valid], "k-", lw=2, label="binned mean")
+            ax.fill_between(
+                centers[valid],
+                (means - sems)[valid],
+                (means + sems)[valid],
+                alpha=0.25, color="k",
+            )
+            reg = linregress(proj, actual)
+            xs = np.array([proj.min(), proj.max()])
+            ax.plot(xs, reg.intercept + reg.slope * xs, color="crimson", lw=1.5, alpha=0.8, label="OLS")
+            ax.text(
+                0.02, 0.98,
+                f"PC{k+1}  var={var_frac[k]:.1%}\n"
+                f"slope = {reg.slope:+.3g}\n"
+                f"ρ     = {rho[k]:+.3f}\n"
+                f"p     = {pvals[k]:.2g}",
+                transform=ax.transAxes, va="top", ha="left",
+                fontsize=8, family="monospace",
+                bbox=dict(boxstyle="round,pad=0.3", facecolor="white",
+                          alpha=0.85, edgecolor="lightgray"),
+            )
+        ax.set_xlabel(f"Projection onto orth PC{k+1}")
+        ax.set_ylabel("Actual response")
+        ax.set_title(f"Orth PC{k+1} tuning  (var = {var_frac[k]:.1%})")
+        ax.legend(fontsize=7, loc="lower right")
+
+    # Hide any unused row-0 cells (when n_orth < n_top_curves)
+    for k in range(min(n_top_curves, n_orth), max(n_top_curves, 3)):
+        axes[0, k].axis("off")
+
+    pc_idx = np.arange(1, n_orth + 1)
+
+    # Row 1, col 0: |Spearman ρ| per PC, sorted by variance order
+    ax = axes[1, 0]
+    bars = ax.bar(pc_idx, np.abs(rho), color="steelblue")
+    # Mark significant ones (raw p < 0.05) with edge color
+    for k, b in enumerate(bars):
+        if pvals[k] < 0.05:
+            b.set_edgecolor("crimson")
+            b.set_linewidth(1.5)
+    ax.axhline(0.1, color="gray", lw=1, ls="--", label="|ρ|=0.1")
+    ax.set_xlabel("Orthogonal PC index (sorted by variance)")
+    ax.set_ylabel("|Spearman ρ|")
+    ax.set_title("Response correlation per orth PC\n(red edge: raw p<0.05)")
+    ax.set_xticks(pc_idx)
+    ax.legend(fontsize=8)
+
+    # Row 1, col 1: variance fraction per PC
+    ax = axes[1, 1]
+    ax.bar(pc_idx, var_frac * 100.0, color="darkorange")
+    ax.set_xlabel("Orthogonal PC index")
+    ax.set_ylabel("Variance fraction (%)")
+    ax.set_title("Variance per orth PC")
+    ax.set_xticks(pc_idx)
+
+    # Row 1, col 2: cumulative variance
+    ax = axes[1, 2]
+    ax.plot(pc_idx, np.cumsum(var_frac) * 100.0, "o-", color="forestgreen")
+    ax.set_xlabel("Top-k orth PCs")
+    ax.set_ylabel("Cumulative variance (%)")
+    ax.set_title("Cumulative orth variance")
+    ax.set_xticks(pc_idx)
+    ax.set_ylim(0, 105)
+    ax.grid(alpha=0.3)
+
+    if title:
+        fig.suptitle(title)
+    fig.tight_layout()
+    return fig
+
+
 # ---------------------------------------------------------------------------
 # Orchestrator
 # ---------------------------------------------------------------------------
@@ -721,6 +897,28 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                     plt.show()
                 else:
                     plt.close(fig)
+
+                # Companion diagnostic: flat-tuning across all orthogonal PCs.
+                fig_orth = plot_orthogonal_axes_diagnostic(
+                    result,
+                    title=(
+                        f"{_channel_to_str(channel)} | "
+                        f"{component_type} | {strategy.label}  —  orthogonal axes"
+                    ),
+                )
+                if fig_orth is not None:
+                    if save_dir is not None:
+                        orth_path = os.path.join(
+                            save_dir,
+                            f"axis_coding_{_channel_to_str(channel)}_"
+                            f"{component_type}_{strategy.label}_orthogonal.png",
+                        )
+                        fig_orth.savefig(orth_path, dpi=150, bbox_inches="tight")
+                        print(f"  saved: {orth_path}")
+                    if self.show_plots:
+                        plt.show()
+                    else:
+                        plt.close(fig_orth)
 
         return results
 
