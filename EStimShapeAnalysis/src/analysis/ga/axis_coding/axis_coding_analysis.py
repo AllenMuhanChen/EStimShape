@@ -1255,48 +1255,104 @@ def plot_mu_decoded(
             ax.legend(fontsize=7, loc="best")
         panel += 1
 
-    # Spherical params: 3D arrow from origin to unit-vector pose.
-    # Reference sphere wireframe + (X, Y, Z) axes for orientation context.
-    sphere_u = np.linspace(0, 2 * np.pi, 24)
-    sphere_v = np.linspace(0, np.pi, 12)
-    sphere_x = np.outer(np.cos(sphere_u), np.sin(sphere_v))
-    sphere_y = np.outer(np.sin(sphere_u), np.sin(sphere_v))
-    sphere_z = np.outer(np.ones_like(sphere_u), np.cos(sphere_v))
+    # Spherical params: 3D arrow on a front-on view.
+    #
+    # Coordinate remapping so the plot matches intuition:
+    #   mpl_x  = real_x = sin φ cos θ   →  left/right on screen
+    #   mpl_z  = real_y = sin φ sin θ   →  up/down on screen  (mpl treats Z as "up")
+    #   mpl_y  = real_z = cos φ         →  depth (in/out of screen) at azim=-90
+    #
+    # With view_init(elev=0, azim=-90) we look from the -Y direction, so:
+    #   +mpl_y (= real_z, φ=0) goes INTO the screen  → "away from viewer"  → blue
+    #   -mpl_y (= real_z, φ=π) comes OUT of the screen → "toward viewer"   → red
+    #
+    # Arrow color encodes depth via coolwarm gradient (origin=neutral, tip=depth color).
+    # For multiple prototypes the linestyle varies (solid / dashed) and tips are labeled.
+
+    depth_cmap = plt.cm.coolwarm
+
+    def _gradient_arrow_3d(ax3d, tx, ty_depth, tz, lw, n_seg=30, lstyle="-"):
+        """
+        Draw a depth-gradient 3D arrow from origin to (tx, ty_depth, tz).
+
+        ty_depth is the "into-the-screen" mpl_y axis = real_z = cos φ ∈ [-1, 1].
+        Color transitions from neutral gray at origin to the tip's depth color.
+        """
+        ts = np.linspace(0, 1, n_seg + 1)
+        for i in range(n_seg):
+            t0, t1 = ts[i], ts[i + 1]
+            depth_mid = (t0 + t1) / 2 * ty_depth  # interpolated depth at segment midpoint
+            seg_color = depth_cmap((depth_mid + 1.0) / 2.0)
+            ax3d.plot(
+                [t0 * tx, t1 * tx],
+                [t0 * ty_depth, t1 * ty_depth],
+                [t0 * tz, t1 * tz],
+                lstyle, color=seg_color, lw=lw, solid_capstyle="round",
+            )
+        # Arrowhead: large dot at tip, colored by full tip depth.
+        tip_color = depth_cmap((ty_depth + 1.0) / 2.0)
+        ax3d.scatter(
+            [tx], [ty_depth], [tz],
+            color=tip_color, s=80,
+            edgecolors="black", linewidths=0.8, zorder=6,
+        )
+
+    # Build remapped sphere wireframe: mpl(x, y, z) = real(x, z, y)
+    sph_u = np.linspace(0, 2 * np.pi, 28)
+    sph_v = np.linspace(0, np.pi, 14)
+    sph_rx = np.outer(np.cos(sph_u), np.sin(sph_v))   # real_x
+    sph_ry = np.outer(np.sin(sph_u), np.sin(sph_v))   # real_y
+    sph_rz = np.outer(np.ones_like(sph_u), np.cos(sph_v))  # real_z (depth)
+    # mpl: x=real_x, y=real_z(depth), z=real_y(up)
+    sph_mx, sph_my, sph_mz = sph_rx, sph_rz, sph_ry
+
+    lstyles = ["-", "--", ":", "-."]
 
     for sp in spherical:
         ax = fig.add_subplot(1, n_panels, panel, projection="3d")
+
         ax.plot_wireframe(
-            sphere_x, sphere_y, sphere_z,
-            color="lightgray", lw=0.3, alpha=0.45,
+            sph_mx, sph_my, sph_mz,
+            color="lightgray", lw=0.3, alpha=0.40,
         )
-        # Reference axes (gray) + tiny labels.
-        ax.plot([-1.1, 1.1], [0, 0], [0, 0], color="gray", lw=0.6, alpha=0.5)
-        ax.plot([0, 0], [-1.1, 1.1], [0, 0], color="gray", lw=0.6, alpha=0.5)
-        ax.plot([0, 0], [0, 0], [-1.1, 1.1], color="gray", lw=0.6, alpha=0.5)
-        ax.text(1.25, 0, 0, "+X (θ=0)", fontsize=7, color="gray")
-        ax.text(0, 1.25, 0, "+Y (θ=π/2)", fontsize=7, color="gray")
-        ax.text(0, 0, 1.25, "+Z (φ=0, away)", fontsize=7, color="gray")
-        ax.text(0, 0, -1.35, "−Z (φ=π, viewer)", fontsize=7, color="gray")
+
+        # Reference axes in mpl coords (mpl_x=real_x, mpl_y=depth, mpl_z=real_y).
+        ax.plot([-1.1, 1.1], [0, 0], [0, 0], color="gray", lw=0.7, alpha=0.5)  # X
+        ax.plot([0, 0], [0, 0], [-1.1, 1.1], color="gray", lw=0.7, alpha=0.5)  # Y (up)
+        # Depth axis: short dashes into/out of screen.
+        ax.plot([0, 0], [-0.5, 0.5], [0, 0], color="gray", lw=0.7, alpha=0.4, ls=":")
+        ax.text( 1.2,  0.0, 0.0, "+X (θ=0)",    fontsize=7, color="dimgray")
+        ax.text(-1.5,  0.0, 0.0, "−X (θ=π)",   fontsize=7, color="dimgray")
+        ax.text( 0.0,  0.0, 1.2, "+Y (θ=π/2)", fontsize=7, color="dimgray")
+        ax.text( 0.0,  0.0,-1.35,"−Y",          fontsize=7, color="dimgray")
 
         for k in range(n_proto):
             d = all_decoded[k]
             theta = d.get(f"{sp}.theta")
-            phi = d.get(f"{sp}.phi")
-            if theta is None or phi is None:
+            phi_val = d.get(f"{sp}.phi")
+            if theta is None or phi_val is None:
                 continue
-            sin_phi = np.sin(phi)
-            x = sin_phi * np.cos(theta)
-            y = sin_phi * np.sin(theta)
-            z = np.cos(phi)
-            ax.quiver(
-                0, 0, 0, x, y, z,
-                color=proto_colors[k],
-                lw=arrow_lws[k], arrow_length_ratio=0.18,
-                label=f"μ{k+1} (α={amplitudes[k]:.2g})  "
-                      f"θ={np.degrees(theta):+.0f}° φ={np.degrees(phi):.0f}°",
+            sin_phi = float(np.sin(phi_val))
+            real_x = sin_phi * float(np.cos(theta))
+            real_y = sin_phi * float(np.sin(theta))
+            real_z = float(np.cos(phi_val))           # depth: +1=away(blue), -1=toward(red)
+
+            # Remap to mpl axes.
+            mx, my_depth, mz = real_x, real_z, real_y
+
+            _gradient_arrow_3d(
+                ax, mx, my_depth, mz,
+                lw=arrow_lws[k],
+                lstyle=lstyles[k % len(lstyles)],
             )
-            ax.scatter([x], [y], [z], color=proto_colors[k], s=sizes[k] * 0.5,
-                       edgecolors="black", linewidths=0.8, zorder=5)
+
+            # Tip label (μ index + angles).
+            ax.text(
+                mx * 1.12, my_depth * 1.12, mz * 1.12,
+                f"μ{k+1}\nθ={np.degrees(theta):+.0f}°\nφ={np.degrees(phi_val):.0f}°",
+                fontsize=7, color="black",
+                ha="center", va="center",
+            )
 
         ax.set_xlim(-1.1, 1.1)
         ax.set_ylim(-1.1, 1.1)
@@ -1304,18 +1360,32 @@ def plot_mu_decoded(
         ax.set_xticks([-1, 0, 1])
         ax.set_yticks([-1, 0, 1])
         ax.set_zticks([-1, 0, 1])
-        ax.set_xlabel("X", fontsize=7)
-        ax.set_ylabel("Y", fontsize=7)
-        ax.set_zlabel("Z", fontsize=7)
-        ax.set_title(sp)
-        ax.view_init(elev=20, azim=-55)
+        ax.set_xlabel("X →right", fontsize=7, labelpad=2)
+        ax.set_zlabel("Y →up", fontsize=7, labelpad=2)
+        ax.set_ylabel("Z depth\n(· away / ○ toward)", fontsize=6, labelpad=4)
+        ax.set_title(
+            f"{sp}\n"
+            r"$\bf{blue}$=away (φ=0)  $\bf{red}$=toward (φ=π)",
+            fontsize=8,
+        )
+        ax.view_init(elev=0, azim=-90)
         try:
             ax.set_box_aspect((1, 1, 1))
         except AttributeError:
             pass
-        if panel == n_lin_panels + 1:
-            ax.legend(fontsize=6, loc="upper left", bbox_to_anchor=(0.0, 0.0))
         panel += 1
+
+    # Depth colorbar: small separate axes to show the blue→red scale.
+    # Only added once, after the last spherical panel, if there were any.
+    if spherical:
+        sm = plt.cm.ScalarMappable(cmap=depth_cmap, norm=plt.Normalize(-1, 1))
+        sm.set_array([])
+        cbar_ax = fig.add_axes([0.92, 0.15, 0.015, 0.7])
+        cb = fig.colorbar(sm, cax=cbar_ax)
+        cb.set_label("Z depth  (cos φ)", fontsize=8)
+        cb.set_ticks([-1, 0, 1])
+        cb.set_ticklabels(["−1\n(φ=π\ntoward)", "0\n(φ=π/2)", "+1\n(φ=0\naway)"],
+                          fontsize=7)
 
     # Circular params: dial.
     for cp in circular:
