@@ -13,16 +13,31 @@ class ComponentEncoder:
     Turn a list of component dicts (one stimulus's components for one type) into a
     fixed-width numeric matrix.
 
-    - Linear params are kept as-is.
-    - Circular params (theta-like / phi-like) are encoded as (cos, sin) pairs so
-      Euclidean distance respects circular topology.
-    - After all stimuli have been encoded, call `fit_scaler` on the stacked array of
-      every component from every stimulus, then `transform_with_scaler` on each row,
-      so distances across components/stimuli live on the same scale.
+    Parameter kinds:
+      - ``linear_params``    raw scalar value
+      - ``circular_params``  planar angle ∈ [0, 2π); encoded as (cos, sin)
+      - ``spherical_params`` base name for a {theta, phi} pair on a sphere;
+                             encoded as the 3D unit vector
+                             (sin φ cos θ, sin φ sin θ, cos φ).
+
+    Why 3D unit vectors for spherical pairs (rather than independent (cos, sin)
+    encodings of θ and φ separately):
+      - φ ∈ [0, π] is *not* periodic; its (cos, sin) encoding wraps it as if it
+        were, which puts spurious distance between φ and π+φ.
+      - At the poles (φ → 0, π), θ is undefined; an independent encoding still
+        treats different θ values as distant, which is wrong.
+      - The 3D unit vector encoding has Euclidean distance equal to the chord
+        distance on the sphere, which is monotonic in geodesic distance and
+        correct for any (θ, φ).
+
+    After encoding, call ``fit_scaler`` on the stacked array of every component
+    from every stimulus, then ``transform_with_scaler`` on each row, so distances
+    across components/stimuli live on the same scale.
     """
 
     linear_params: list[str]
     circular_params: list[str]
+    spherical_params: list[str] = field(default_factory=list)
     scaler: Optional[StandardScaler] = None
     feature_names: list[str] = field(default_factory=list)
 
@@ -32,7 +47,11 @@ class ComponentEncoder:
 
     @property
     def n_features(self) -> int:
-        return len(self.linear_params) + 2 * len(self.circular_params)
+        return (
+            len(self.linear_params)
+            + 2 * len(self.circular_params)
+            + 3 * len(self.spherical_params)
+        )
 
     def _build_feature_names(self) -> list[str]:
         names: list[str] = []
@@ -41,6 +60,10 @@ class ComponentEncoder:
         for p in self.circular_params:
             names.append(f"{p}.cos")
             names.append(f"{p}.sin")
+        for p in self.spherical_params:
+            names.append(f"{p}.x")
+            names.append(f"{p}.y")
+            names.append(f"{p}.z")
         return names
 
     def encode_components(self, components: list[dict]) -> np.ndarray:
@@ -60,6 +83,14 @@ class ComponentEncoder:
                 row[i] = np.cos(v)
                 row[i + 1] = np.sin(v)
                 i += 2
+            for p in self.spherical_params:
+                theta = float(_resolve_dotted(comp, f"{p}.theta"))
+                phi = float(_resolve_dotted(comp, f"{p}.phi"))
+                sin_phi = np.sin(phi)
+                row[i] = sin_phi * np.cos(theta)
+                row[i + 1] = sin_phi * np.sin(theta)
+                row[i + 2] = np.cos(phi)
+                i += 3
             rows.append(row)
         return np.asarray(rows, dtype=np.float64)
 
@@ -100,29 +131,35 @@ def _resolve_dotted(d: dict, key: str):
 #                 "radialPosition":…, "radius":…}
 #
 #   Junction:    {"angularPosition": {"theta":…, "phi":…},
+#                 "angleBisectorDirection": {"theta":…, "phi":…},
 #                 "radialPosition":…, "radius":…,
 #                 "angularSubtense":…, "planarRotation":…}
 #
-# The RWA code (mock_rwa_analysis.py) uses the short names "theta"/"phi" via a
-# fallback mechanism (assign_bins_for_component) that resolves
-# angularPosition.theta → binner["theta"].  Here we use the full dotted paths
-# so _resolve_dotted can look them up unambiguously.
+# Spherical-pair fields (encoded as 3D unit vectors) are listed in
+# ``*_SPHERICAL`` by base name. ``planarRotation`` is a planar angle and stays
+# in ``*_CIRCULAR`` as a (cos, sin) pair.
 
 SHAFT_LINEAR = ["radialPosition", "length", "curvature", "radius"]
-SHAFT_CIRCULAR = ["angularPosition.theta", "angularPosition.phi",
-                  "orientation.theta", "orientation.phi"]
+SHAFT_CIRCULAR: list[str] = []
+SHAFT_SPHERICAL = ["angularPosition", "orientation"]
 
 TERMINATION_LINEAR = ["radialPosition", "radius"]
-TERMINATION_CIRCULAR = ["angularPosition.theta", "angularPosition.phi", "direction.theta", "direction.phi"]
+TERMINATION_CIRCULAR: list[str] = []
+TERMINATION_SPHERICAL = ["angularPosition", "direction"]
 
-JUNCTION_LINEAR = ["radialPosition", "radius", "angularSubtense", "planarRotation"]
-JUNCTION_CIRCULAR = ["angularPosition.theta", "angularPosition.phi", "angleBisectorDirection.theta", "angleBisectorDirection.phi"]
+JUNCTION_LINEAR = ["radialPosition", "radius", "angularSubtense"]
+JUNCTION_CIRCULAR = ["planarRotation"]
+JUNCTION_SPHERICAL = ["angularPosition", "angleBisectorDirection"]
 
 
 def make_default_encoders() -> dict[str, ComponentEncoder]:
     """Return the per-type encoders with the default schemas."""
     return {
-        "Shaft": ComponentEncoder(SHAFT_LINEAR, SHAFT_CIRCULAR),
-        "Termination": ComponentEncoder(TERMINATION_LINEAR, TERMINATION_CIRCULAR),
-        "Junction": ComponentEncoder(JUNCTION_LINEAR, JUNCTION_CIRCULAR),
+        "Shaft": ComponentEncoder(SHAFT_LINEAR, SHAFT_CIRCULAR, SHAFT_SPHERICAL),
+        "Termination": ComponentEncoder(
+            TERMINATION_LINEAR, TERMINATION_CIRCULAR, TERMINATION_SPHERICAL
+        ),
+        "Junction": ComponentEncoder(
+            JUNCTION_LINEAR, JUNCTION_CIRCULAR, JUNCTION_SPHERICAL
+        ),
     }

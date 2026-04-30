@@ -8,6 +8,7 @@ from typing import Any, Callable, Optional, Union
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from scipy.stats import linregress
 
 from clat.pipeline.pipeline_base_classes import (
     InputHandler,
@@ -399,7 +400,14 @@ def _binned_mean_sem(x: np.ndarray, y: np.ndarray, n_bins: int):
 
 def _draw_tuning_curve(ax, projections, actual, n_bins, xlabel, title):
     ax.scatter(projections, actual, s=12, alpha=0.5, label="stimuli")
-    if projections.size > 0 and not np.all(np.isnan(projections)) and projections.std() > 1e-12:
+
+    has_variance = (
+        projections.size > 1
+        and not np.all(np.isnan(projections))
+        and projections.std() > 1e-12
+    )
+
+    if has_variance:
         centers, means, sems = _binned_mean_sem(projections, actual, n_bins)
         valid = ~np.isnan(means)
         ax.plot(centers[valid], means[valid], "k-", lw=2, label="binned mean")
@@ -410,10 +418,28 @@ def _draw_tuning_curve(ax, projections, actual, n_bins, xlabel, title):
             alpha=0.25,
             color="k",
         )
+
+        # OLS line + stats
+        reg = linregress(projections, actual)
+        xs = np.array([projections.min(), projections.max()])
+        ys = reg.intercept + reg.slope * xs
+        ax.plot(xs, ys, color="crimson", lw=1.5, alpha=0.8, label="OLS fit")
+        stats_str = (
+            f"slope = {reg.slope:+.3g}\n"
+            f"R²    = {reg.rvalue ** 2:.3f}\n"
+            f"p     = {reg.pvalue:.2g}"
+        )
+        ax.text(
+            0.02, 0.98, stats_str,
+            transform=ax.transAxes, va="top", ha="left",
+            fontsize=8, family="monospace",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.85, edgecolor="lightgray"),
+        )
+
     ax.set_xlabel(xlabel)
     ax.set_ylabel("Actual response")
     ax.set_title(title)
-    ax.legend(fontsize=8)
+    ax.legend(fontsize=8, loc="lower right")
 
 
 def plot_axis_coding_result(
@@ -466,20 +492,24 @@ def plot_axis_coding_result(
         title="Axis tuning curve (preferred)",
     )
 
-    # Panel (0,2): Top |w| bars
+    # Panel (0,2): Top |w| bars (preferred axis loadings)
     ax = axes[0, 2]
-    top = result.ridge_summary.get("top_features") or []
-    if top:
-        names = [n for n, _ in top]
-        weights = [wi for _, wi in top]
+    weights_full = np.asarray(
+        result.ridge_summary.get("weights") or [], dtype=np.float64
+    )
+    feature_names = result.feature_names or []
+    if weights_full.size and feature_names:
+        order = np.argsort(-np.abs(weights_full))[:10]
+        names = [feature_names[i] for i in order]
+        vals = weights_full[order]
         y = np.arange(len(names))
-        ax.barh(y, weights)
+        ax.barh(y, vals, color="steelblue")
         ax.set_yticks(y)
         ax.set_yticklabels(names, fontsize=8)
         ax.invert_yaxis()
         ax.axvline(0, color="black", lw=0.8)
-        ax.set_xlabel("Ridge weight")
-        ax.set_title("Top features by |w|")
+        ax.set_xlabel("Ridge weight w")
+        ax.set_title("Top features by |w|  (preferred axis)")
 
     # Panel (1,0): Tuning along principal orthogonal axis
     _draw_tuning_curve(
@@ -502,8 +532,27 @@ def plot_axis_coding_result(
     ax.set_title("Axis vs orthogonal (color = response)")
     plt.colorbar(sc, ax=ax, label="Response")
 
-    # Panel (1,2): unused — hide
-    axes[1, 2].axis("off")
+    # Panel (1,2): Top |orth_axis| bars (principal orthogonal axis loadings)
+    ax = axes[1, 2]
+    orth = (
+        np.asarray(result.orthogonal_axis, dtype=np.float64)
+        if result.orthogonal_axis is not None
+        else np.array([])
+    )
+    if orth.size and feature_names:
+        order = np.argsort(-np.abs(orth))[:10]
+        names = [feature_names[i] for i in order]
+        vals = orth[order]
+        y = np.arange(len(names))
+        ax.barh(y, vals, color="darkorange")
+        ax.set_yticks(y)
+        ax.set_yticklabels(names, fontsize=8)
+        ax.invert_yaxis()
+        ax.axvline(0, color="black", lw=0.8)
+        ax.set_xlabel("Orthogonal-axis loading")
+        ax.set_title("Top features by |orth|  (principal orthogonal axis)")
+    else:
+        ax.axis("off")
 
     if title:
         fig.suptitle(title)
@@ -581,6 +630,7 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
             t: ComponentEncoder(
                 linear_params=list(self.encoders[t].linear_params),
                 circular_params=list(self.encoders[t].circular_params),
+                spherical_params=list(self.encoders[t].spherical_params),
             )
             for t in self.component_types
         }
@@ -621,6 +671,21 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                     f"alpha={alpha if alpha is None else f'{alpha:.4g}'}  "
                     f"cv_r2={_fmt(cv_r2)} ± {_fmt(cv_r2_std)}{frac_str}"
                 )
+
+                # Top-10 features by |orthogonal-axis loading|.
+                if (
+                    result.orthogonal_axis is not None
+                    and result.feature_names
+                ):
+                    orth_arr = np.asarray(result.orthogonal_axis)
+                    if np.any(orth_arr):
+                        top_orth = np.argsort(-np.abs(orth_arr))[:10]
+                        print("  principal orthogonal axis loadings:")
+                        for i in top_orth:
+                            print(
+                                f"    {result.feature_names[i]:35s}  "
+                                f"{orth_arr[i]:+.3f}"
+                            )
 
                 # Top-10 worst-predicted stimuli (largest |actual - predicted|).
                 actual_arr = np.asarray(result.actual_responses)
