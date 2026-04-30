@@ -346,7 +346,7 @@ def fit_axis_coding(
         n_dropped_no_components=dataset.n_dropped_no_components,
         n_dropped_no_response=dataset.n_dropped_no_response,
         selector_summary=(
-            selector.summary(dataset.components_per_stim)
+            selector.summary(components_for_selector)
             if isinstance(selector, MultiPrototypeAttentionSelector)
             else selector.summary()
         ),
