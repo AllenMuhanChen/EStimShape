@@ -838,29 +838,29 @@ def main():
             ),
             ridge_factory=ridge,
         ),
-        AxisCodingStrategy(
-            label="cluster_mode",
-            selector_factory=lambda: ClusterModeSelector(
-                bandwidth=None,       # None = median pairwise distance (data-driven)
-                n_random_inits=100,
-                max_iter=5000,
-                tol=0.01,
-                temperature=10.0,
-                response_weight_floor=0.0,
-            ),
-            ridge_factory=ridge,
-        ),
+        # AxisCodingStrategy(
+        #     label="cluster_mode",
+        #     selector_factory=lambda: ClusterModeSelector(
+        #         bandwidth=None,       # None = median pairwise distance (data-driven)
+        #         n_random_inits=100,
+        #         max_iter=5000,
+        #         tol=0.01,
+        #         temperature=10.0,
+        #         response_weight_floor=0.0,
+        #     ),
+        #     ridge_factory=ridge,
+        # ),
     ]
 
     analysis = AxisCodingAnalysis(
         strategies=strategies,
         outlier_sigma=2.0,       # 0.0 to disable; trials > n*std from stim mean are dropped
         outlier_min_trials=5,    # only attempt removal for stims with >= this many trials
-        rf_filter=ReceptiveFieldFilter(plot=True),  # None to disable
+        rf_filter=ReceptiveFieldFilter(plot=True, mahal_cutoff=3.5),  # None to disable
     )
     # session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     session_id="260426_0"
-    channel = "GA"
+    channel = "A-000"
     analysis.run(session_id, "raw", channel, compiled_data=None)
 
 
