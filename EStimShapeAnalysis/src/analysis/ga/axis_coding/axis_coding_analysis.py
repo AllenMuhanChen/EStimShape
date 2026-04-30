@@ -30,6 +30,7 @@ from src.analysis.ga.axis_coding.component_selectors import (
     FixedCovarianceSelector,
     LearnedDiagonalCovarianceSelector,
     ClusterModeSelector,
+    SoftAttentionAxisSelector,
 )
 from src.analysis.ga.axis_coding.ridge_regression_model import (
     RidgeRegressionAxisModel,
@@ -850,6 +851,22 @@ def main():
         #     ),
         #     ridge_factory=ridge,
         # ),
+        # Soft attention disentangles selector quality (folded into π) from
+        # shape-at-location (folded into w).  All components — selected and
+        # not — appear in the design matrix; non-selected ones contribute
+        # negative-evidence constraints on w.
+        AxisCodingStrategy(
+            label="soft_attention",
+            selector_factory=lambda: SoftAttentionAxisSelector(
+                tau=1.0,                  # bandwidth of the softmax over distances; larger → softer pooling
+                alpha=1.0,                # ridge α used inside the joint fit (downstream RidgeCV picks final α)
+                max_iter=30,              # alternating (W-step / M-step) iterations
+                tol=1e-3,                 # relative ‖Δμ‖ to declare convergence
+                init="response_weighted_mean",
+                mu_optimizer_max_iter=50, # L-BFGS-B iters per M-step
+            ),
+            ridge_factory=ridge,
+        ),
     ]
 
     analysis = AxisCodingAnalysis(

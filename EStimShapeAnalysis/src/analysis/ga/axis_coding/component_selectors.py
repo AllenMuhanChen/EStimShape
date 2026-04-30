@@ -562,6 +562,274 @@ class ClusterModeSelector(FixedCovarianceSelector):
         return d
 
 
+class SoftAttentionAxisSelector(ComponentSelector):
+    """
+    Joint (μ, w, b) soft-attention model for axis coding.
+
+    Predicts response as
+        r_i = Σ_j π_ij · (w · x_ij)  +  b
+        π_ij = softmax_j(-||x_ij - μ||² / (2τ²))
+
+    Why this differs from FixedCovarianceSelector with temperature > 0:
+      - FixedCovarianceSelector updates μ as the response-weighted mean of the
+        soft-pooled vectors — a heuristic that does NOT minimize prediction
+        loss with respect to μ.
+      - SoftAttentionAxisSelector jointly optimizes (μ, w, b) to minimize the
+        squared prediction error.  Because the same w is applied to *every*
+        component (weighted by π), the loss "sees" non-selected components
+        too: features that vary among non-selected components without
+        correlating with response are pushed to lower weight in w.
+
+    What this fixes: with hard selection, "selector quality" (how close the
+    nearest component got to μ) and "shape-at-location" (the within-location
+    axis) are confounded — both contribute to the variance in x_sel that ridge
+    regresses on, so position features can absorb selector-quality variance.
+    Joint soft-attention disentangles them: selector quality lives in π,
+    shape-at-location lives in w.
+
+    Algorithm — alternating optimization:
+      - W-step: with μ fixed, compute X_eff_i = Σ_j π_ij x_ij and fit ridge on
+        (X_eff, r) for w, b.
+      - M-step: with w, b fixed, optimize μ via L-BFGS-B on the squared loss
+        using the analytical gradient
+            ∂r̂_i/∂μ = (1/τ²) [<sx>_π_i - <x>_π_i · <s>_π_i]
+        where s_j = w · x_ij, <·>_π_i denotes π_i-weighted average over j.
+
+    Convergence: relative change in μ between iterations < tol.
+
+    selected_vectors() returns the attention-pooled X_eff so the downstream
+    RidgeRegressionAxisModel sees a coherent design matrix.  Because the model
+    is linear in w given μ, the downstream ridge recovers a near-identical w;
+    the existing CV-R² / noise-ceiling / orthogonal-axis pipeline runs
+    unchanged on top.
+    """
+
+    def __init__(
+        self,
+        tau: float = 1.0,
+        alpha: float = 1.0,
+        max_iter: int = 30,
+        tol: float = 1e-3,
+        init: str = "response_weighted_mean",
+        response_weight_floor: float = 0.0,
+        mu_optimizer_max_iter: int = 50,
+    ):
+        self.tau = float(tau)
+        self.alpha = float(alpha)
+        self.max_iter = int(max_iter)
+        self.tol = float(tol)
+        self.init = init
+        self.response_weight_floor = float(response_weight_floor)
+        self.mu_optimizer_max_iter = int(mu_optimizer_max_iter)
+
+        self.mu_: Optional[np.ndarray] = None
+        self.w_: Optional[np.ndarray] = None
+        self.b_: Optional[float] = None
+        self.metric_: Optional[np.ndarray] = None
+        self.selected_indices_: Optional[np.ndarray] = None
+        self.n_iter_: int = 0
+        self.converged_: bool = False
+        self.history_: list[dict] = []
+
+    # ------------------------------------------------------------------
+    # ComponentSelector API
+    # ------------------------------------------------------------------
+
+    def fit(
+        self,
+        components_per_stim: list[np.ndarray],
+        responses: np.ndarray,
+    ) -> "SoftAttentionAxisSelector":
+        from sklearn.linear_model import Ridge
+
+        if len(components_per_stim) == 0:
+            raise ValueError("No stimuli passed to SoftAttentionAxisSelector.fit")
+
+        responses = np.asarray(responses, dtype=np.float64)
+        d = components_per_stim[0].shape[1]
+        self.metric_ = np.eye(d, dtype=np.float64)
+
+        mu = self._init_mu(components_per_stim, responses)
+        prev_mu = mu.copy()
+
+        self.history_.clear()
+        self.converged_ = False
+
+        # Initial w from one W-step so the first M-step has something to optimize.
+        X_eff = self._pool_all(components_per_stim, mu)
+        ridge = Ridge(alpha=self.alpha).fit(X_eff, responses)
+        w = ridge.coef_.copy()
+        b = float(ridge.intercept_)
+
+        for it in range(self.max_iter):
+            # M-step: update μ given current w, b.
+            mu = self._optimize_mu(components_per_stim, responses, mu, w, b)
+
+            # W-step: refit w, b with the new μ.
+            X_eff = self._pool_all(components_per_stim, mu)
+            ridge = Ridge(alpha=self.alpha).fit(X_eff, responses)
+            w = ridge.coef_.copy()
+            b = float(ridge.intercept_)
+
+            dmu = float(
+                np.linalg.norm(mu - prev_mu)
+                / (np.linalg.norm(prev_mu) + 1e-12)
+            )
+            self.history_.append({"iter": it, "dmu": dmu})
+            self.n_iter_ = it + 1
+
+            if it > 0 and dmu < self.tol:
+                self.converged_ = True
+                break
+            prev_mu = mu.copy()
+
+        self.mu_ = mu
+        self.w_ = w
+        self.b_ = b
+        self.selected_indices_ = self._hard_indices(components_per_stim, mu)
+        return self
+
+    def select_indices(self, components_per_stim: list[np.ndarray]) -> np.ndarray:
+        if self.mu_ is None:
+            raise RuntimeError("Selector not fit. Call fit() first.")
+        return self._hard_indices(components_per_stim, self.mu_)
+
+    def selected_vectors(
+        self, components_per_stim: list[np.ndarray]
+    ) -> np.ndarray:
+        if self.mu_ is None:
+            raise RuntimeError("Selector not fit. Call fit() first.")
+        return self._pool_all(components_per_stim, self.mu_)
+
+    def summary(self) -> dict:
+        return {
+            "selector": "SoftAttentionAxisSelector",
+            "tau": self.tau,
+            "alpha": self.alpha,
+            "n_iter": self.n_iter_,
+            "converged": self.converged_,
+            "tol": self.tol,
+            "max_iter": self.max_iter,
+            "init": self.init,
+            "mu": None if self.mu_ is None else self.mu_.tolist(),
+            "w_internal": None if self.w_ is None else self.w_.tolist(),
+            "b_internal": self.b_,
+        }
+
+    # ------------------------------------------------------------------
+    # Internals
+    # ------------------------------------------------------------------
+
+    def _init_mu(
+        self,
+        components_per_stim: list[np.ndarray],
+        responses: np.ndarray,
+    ) -> np.ndarray:
+        if self.init == "response_weighted_mean":
+            stacked, weights = [], []
+            for comps, r in zip(components_per_stim, responses):
+                if comps.shape[0] == 0:
+                    continue
+                stacked.append(comps)
+                weights.append(np.full(comps.shape[0], r, dtype=np.float64))
+            X = np.vstack(stacked)
+            w = np.concatenate(weights)
+            return _weighted_mean(X, w, floor=self.response_weight_floor)
+        if self.init == "unweighted_mean":
+            X = np.vstack([c for c in components_per_stim if c.shape[0] > 0])
+            return X.mean(axis=0)
+        raise ValueError(f"Unknown init: {self.init!r}")
+
+    def _attention(self, components: np.ndarray, mu: np.ndarray) -> np.ndarray:
+        d2 = ((components - mu) ** 2).sum(axis=1)
+        z = -d2 / (2.0 * self.tau ** 2)
+        z = z - z.max()
+        e = np.exp(z)
+        return e / e.sum()
+
+    def _pool(self, components: np.ndarray, mu: np.ndarray) -> np.ndarray:
+        if components.shape[0] == 0:
+            return np.zeros(mu.shape[0])
+        pi = self._attention(components, mu)
+        return pi @ components
+
+    def _pool_all(
+        self,
+        components_per_stim: list[np.ndarray],
+        mu: np.ndarray,
+    ) -> np.ndarray:
+        d = mu.shape[0]
+        out = np.empty((len(components_per_stim), d), dtype=np.float64)
+        for i, c in enumerate(components_per_stim):
+            out[i] = self._pool(c, mu)
+        return out
+
+    def _hard_indices(
+        self,
+        components_per_stim: list[np.ndarray],
+        mu: np.ndarray,
+    ) -> np.ndarray:
+        idx = np.empty(len(components_per_stim), dtype=np.int64)
+        for i, X in enumerate(components_per_stim):
+            if X.shape[0] == 0:
+                idx[i] = 0
+                continue
+            d2 = ((X - mu) ** 2).sum(axis=1)
+            idx[i] = int(np.argmin(d2))
+        return idx
+
+    def _optimize_mu(
+        self,
+        components_per_stim: list[np.ndarray],
+        responses: np.ndarray,
+        mu_init: np.ndarray,
+        w: np.ndarray,
+        b: float,
+    ) -> np.ndarray:
+        """
+        L-BFGS-B on μ with analytical gradient.
+
+        For one stimulus with components x_j (m × d) and π = softmax(-d²_j/(2τ²)):
+            s_j     = w · x_j
+            r̂      = Σ_j π_j s_j + b
+            <x>_π  = Σ_j π_j x_j
+            <s>_π  = Σ_j π_j s_j  (= r̂ - b)
+            ∂r̂/∂μ = (1/τ²) [Σ_j π_j s_j x_j - <x>_π · <s>_π]
+        Loss is squared error; gradient sums over stimuli.
+        """
+        from scipy.optimize import minimize
+
+        tau2 = self.tau ** 2
+
+        def loss_and_grad(mu):
+            total_loss = 0.0
+            grad = np.zeros_like(mu)
+            for comps, r in zip(components_per_stim, responses):
+                if comps.shape[0] == 0:
+                    continue
+                pi = self._attention(comps, mu)
+                s = comps @ w                     # (m,)
+                spi = float(pi @ s)               # <s>_π
+                rhat = spi + b
+                resid = float(r) - rhat
+                total_loss += resid * resid
+
+                xpi = pi @ comps                  # <x>_π   (d,)
+                weighted = (pi * s)[:, None] * comps   # (m, d)
+                drhat_dmu = (weighted.sum(axis=0) - xpi * spi) / tau2
+                grad += -2.0 * resid * drhat_dmu
+            return total_loss, grad
+
+        result = minimize(
+            loss_and_grad,
+            mu_init,
+            jac=True,
+            method="L-BFGS-B",
+            options={"maxiter": self.mu_optimizer_max_iter, "gtol": 1e-6},
+        )
+        return result.x
+
+
 # ---------------------------------------------------------------------------
 # Module-level helpers shared by ClusterModeSelector
 # ---------------------------------------------------------------------------
