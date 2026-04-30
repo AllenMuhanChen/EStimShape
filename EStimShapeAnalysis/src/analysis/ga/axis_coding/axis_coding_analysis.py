@@ -110,6 +110,8 @@ class AxisCodingResult:
     w_in_feature_space: Optional[list[float]] = None                # (d,) back-projected preferred axis
     orthogonal_axis_in_feature_space: Optional[list[float]] = None  # (d,) back-projected orth axis
     pca_explained_variance: Optional[list[float]] = None            # (k,) per-PC variance ratio
+    # Thumbnail paths aligned with stim_ids (for axis-stimulus visualization)
+    thumbnail_paths: Optional[list[Optional[str]]] = None
 
     def to_json_dict(self) -> dict:
         d = self.__dict__.copy()
@@ -260,6 +262,18 @@ def fit_axis_coding(
         stim_ids=dataset.stim_ids,
     )
 
+    # Thumbnail paths aligned with dataset.stim_ids (one path per stimulus).
+    # Used by plot_axes_stimuli to render evenly-spaced exemplars per axis.
+    thumbnail_paths: Optional[list[Optional[str]]] = None
+    if "ThumbnailPath" in df.columns:
+        path_map = (
+            df.dropna(subset=["StimSpecId"])
+              .drop_duplicates(subset=["StimSpecId"])
+              .set_index("StimSpecId")["ThumbnailPath"]
+              .to_dict()
+        )
+        thumbnail_paths = [path_map.get(sid) for sid in dataset.stim_ids]
+
     result = AxisCodingResult(
         channel=channel,
         component_type=component_type,
@@ -287,6 +301,7 @@ def fit_axis_coding(
             orth_axis_feat.tolist() if orth_axis_feat is not None else None
         ),
         pca_explained_variance=pca_var,
+        thumbnail_paths=thumbnail_paths,
     )
 
     if save_dir is not None:
@@ -672,7 +687,6 @@ def plot_axis_coding_result(
 
 def plot_orthogonal_axes_diagnostic(
     result: AxisCodingResult,
-    n_top_curves: int = 3,
     n_bins: int = 10,
     title: Optional[str] = None,
 ) -> Optional[plt.Figure]:
@@ -680,9 +694,13 @@ def plot_orthogonal_axes_diagnostic(
     Per-axis diagnostic for axis coding.
 
     Layout (2 × 3):
-      Row 0:  tuning curves for the top-``n_top_curves`` orthogonal PCs
-              (sorted by data variance), each annotated with OLS slope,
-              Spearman ρ, p, and the variance fraction the PC captures.
+      Row 0:  (0, 0) principal orthogonal axis tuning curve (binned mean ± SEM,
+                     OLS line, slope/ρ/p annotation)
+              (0, 1) overlay of binned mean-response curves for every axis
+                     (preferred + all orthogonal), each in its own color so
+                     flat orthogonal curves vs a steep preferred curve are
+                     readable at a glance
+              (0, 2) blank
       Row 1:  three summary panels across the preferred axis + all orthogonal
               PCs (preferred axis first, then orth PCs sorted by variance):
                 (1, 0) OLS slope per axis                    ← main test
@@ -733,46 +751,75 @@ def plot_orthogonal_axes_diagnostic(
     # ------------------------------------------------------------------
     # Figure
     # ------------------------------------------------------------------
-    fig, axes = plt.subplots(2, max(n_top_curves, 3), figsize=(6 * max(n_top_curves, 3), 9))
+    fig, axes = plt.subplots(2, 3, figsize=(18, 9))
 
-    # Row 0: tuning curves for the top-N orthogonal PCs.
-    for k in range(min(n_top_curves, n_orth)):
-        ax = axes[0, k]
-        proj = proj_orth[:, k]
-        ax.scatter(proj, actual, s=10, alpha=0.5, label="stimuli")
-        if proj.std() > 1e-12:
-            centers, means, sems = _binned_mean_sem(proj, actual, n_bins)
-            valid = ~np.isnan(means)
-            ax.plot(centers[valid], means[valid], "k-", lw=2, label="binned mean")
-            ax.fill_between(
-                centers[valid],
-                (means - sems)[valid],
-                (means + sems)[valid],
-                alpha=0.25, color="k",
-            )
-            reg = linregress(proj, actual)
-            xs = np.array([proj.min(), proj.max()])
-            ax.plot(xs, reg.intercept + reg.slope * xs,
-                    color="crimson", lw=1.5, alpha=0.8, label="OLS")
-            # k+1 maps to slopes[k+1] / rhos[k+1] (preferred is at index 0).
-            ax.text(
-                0.02, 0.98,
-                f"orth PC{k+1}  var={variances_orth[k] / max(var_total, 1e-12):.1%}\n"
-                f"slope = {slopes[k+1]:+.3g}\n"
-                f"ρ     = {rhos[k+1]:+.3f}\n"
-                f"p     = {pvals[k+1]:.2g}",
-                transform=ax.transAxes, va="top", ha="left",
-                fontsize=8, family="monospace",
-                bbox=dict(boxstyle="round,pad=0.3", facecolor="white",
-                          alpha=0.85, edgecolor="lightgray"),
-            )
-        ax.set_xlabel(f"Projection onto orth PC{k+1}")
-        ax.set_ylabel("Actual response")
-        ax.set_title(f"Orth PC{k+1} tuning")
-        ax.legend(fontsize=7, loc="lower right")
+    # Row 0, col 0: principal orthogonal axis tuning curve.
+    ax = axes[0, 0]
+    proj = proj_orth[:, 0]
+    ax.scatter(proj, actual, s=10, alpha=0.5, label="stimuli")
+    if proj.std() > 1e-12:
+        centers, means, sems = _binned_mean_sem(proj, actual, n_bins)
+        valid = ~np.isnan(means)
+        ax.plot(centers[valid], means[valid], "k-", lw=2, label="binned mean")
+        ax.fill_between(
+            centers[valid],
+            (means - sems)[valid],
+            (means + sems)[valid],
+            alpha=0.25, color="k",
+        )
+        reg = linregress(proj, actual)
+        xs = np.array([proj.min(), proj.max()])
+        ax.plot(xs, reg.intercept + reg.slope * xs,
+                color="crimson", lw=1.5, alpha=0.8, label="OLS")
+        ax.text(
+            0.02, 0.98,
+            f"orth PC1  var={variances_orth[0] / max(var_total, 1e-12):.1%}\n"
+            f"slope = {slopes[1]:+.3g}\n"
+            f"ρ     = {rhos[1]:+.3f}\n"
+            f"p     = {pvals[1]:.2g}",
+            transform=ax.transAxes, va="top", ha="left",
+            fontsize=8, family="monospace",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white",
+                      alpha=0.85, edgecolor="lightgray"),
+        )
+    ax.set_xlabel("Projection onto principal orth axis")
+    ax.set_ylabel("Actual response")
+    ax.set_title("Principal orthogonal axis tuning")
+    ax.legend(fontsize=7, loc="lower right")
 
-    for k in range(min(n_top_curves, n_orth), max(n_top_curves, 3)):
-        axes[0, k].axis("off")
+    # Row 0, col 1: overlay binned mean-response curves for all axes.
+    # Preferred = forestgreen (bold); orth = sequential viridis colors.
+    ax = axes[0, 1]
+    cmap = plt.get_cmap("viridis")
+    colors_overlay = ["forestgreen"] + [
+        cmap(i / max(n_orth - 1, 1)) for i in range(n_orth)
+    ]
+    labels_overlay = ["preferred"] + [f"orth {k+1}" for k in range(n_orth)]
+    for k in range(n_axes):
+        col = proj_all[:, k]
+        if col.std() < 1e-12:
+            continue
+        centers, means, sems = _binned_mean_sem(col, actual, n_bins)
+        valid = ~np.isnan(means)
+        if not valid.any():
+            continue
+        lw = 2.5 if k == 0 else 1.2
+        alpha = 1.0 if k == 0 else 0.85
+        ax.plot(
+            centers[valid], means[valid],
+            color=colors_overlay[k], lw=lw, alpha=alpha,
+            label=labels_overlay[k],
+        )
+    ax.axhline(actual.mean(), color="gray", lw=0.7, ls="--", alpha=0.6)
+    ax.set_xlabel("Projection onto axis (z-scored units)")
+    ax.set_ylabel("Mean response")
+    ax.set_title(
+        "All axes overlay\n(preferred should be steep; orth should be flat)"
+    )
+    ax.legend(fontsize=7, loc="best", ncol=2)
+
+    # Row 0, col 2: blank.
+    axes[0, 2].axis("off")
 
     # ------------------------------------------------------------------
     # Row 1: summaries across preferred axis + all orthogonal PCs.
@@ -824,6 +871,85 @@ def plot_orthogonal_axes_diagnostic(
     return fig
 
 
+def plot_axes_stimuli(
+    result: AxisCodingResult,
+    n_per_axis: int = 7,
+    title: Optional[str] = None,
+) -> Optional[plt.Figure]:
+    """
+    Show stimuli sampled uniformly along each axis (preferred + all orthogonal).
+
+    For each axis, draw ``n_per_axis`` evenly-spaced bin centers from the most
+    negative to the most positive projection value; for each bin center, render
+    the thumbnail of the stimulus whose projection is closest to that center.
+
+    One row per axis (preferred first, then orthogonal axes by data variance).
+    Requires ``result.thumbnail_paths`` to be populated.
+    """
+    if not result.thumbnail_paths or all(p is None for p in result.thumbnail_paths):
+        return None
+
+    proj_pref = compute_axis_projections(result)
+    proj_orth = (
+        np.asarray(result.all_orthogonal_projections, dtype=np.float64)
+        if result.all_orthogonal_projections is not None
+        else np.zeros((len(proj_pref), 0))
+    )
+
+    n_orth = proj_orth.shape[1] if proj_orth.ndim == 2 else 0
+    n_axes = 1 + n_orth
+    paths = result.thumbnail_paths
+
+    proj_all = [proj_pref] + [proj_orth[:, k] for k in range(n_orth)]
+    labels = ["preferred"] + [f"orth {k+1}" for k in range(n_orth)]
+
+    fig, axes = plt.subplots(
+        n_axes, n_per_axis,
+        figsize=(1.8 * n_per_axis, 2.0 * n_axes),
+        squeeze=False,
+    )
+
+    for row, (proj, label) in enumerate(zip(proj_all, labels)):
+        proj = np.asarray(proj, dtype=np.float64)
+        if proj.size == 0 or proj.std() < 1e-12:
+            for col in range(n_per_axis):
+                axes[row, col].axis("off")
+            axes[row, 0].set_ylabel(label, fontsize=10, rotation=0,
+                                     ha="right", va="center", labelpad=20)
+            continue
+
+        bin_centers = np.linspace(proj.min(), proj.max(), n_per_axis)
+        for col, bc in enumerate(bin_centers):
+            ax = axes[row, col]
+            ax.set_xticks([])
+            ax.set_yticks([])
+            for spine in ax.spines.values():
+                spine.set_visible(False)
+
+            idx = int(np.argmin(np.abs(proj - bc)))
+            path = paths[idx] if idx < len(paths) else None
+            shown = False
+            if path and isinstance(path, str) and os.path.exists(path):
+                try:
+                    img = plt.imread(path)
+                    ax.imshow(img)
+                    shown = True
+                except Exception:
+                    pass
+            if not shown:
+                ax.text(0.5, 0.5, "?", ha="center", va="center",
+                        transform=ax.transAxes, fontsize=14, color="gray")
+            ax.set_xlabel(f"{proj[idx]:+.2g}", fontsize=7)
+
+        axes[row, 0].set_ylabel(label, fontsize=10, rotation=0,
+                                 ha="right", va="center", labelpad=20)
+
+    if title:
+        fig.suptitle(title, fontsize=11)
+    fig.tight_layout()
+    return fig
+
+
 # ---------------------------------------------------------------------------
 # Orchestrator
 # ---------------------------------------------------------------------------
@@ -852,6 +978,7 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
         outlier_sigma: float = 0.0,
         outlier_min_trials: int = 3,
         rf_filter: Optional[ReceptiveFieldFilter] = None,
+        n_stimuli_per_axis: int = 7,
     ):
         super().__init__()
         self.component_types = component_types or [
@@ -863,6 +990,7 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
         self.outlier_sigma = outlier_sigma
         self.outlier_min_trials = outlier_min_trials
         self.rf_filter = rf_filter
+        self.n_stimuli_per_axis = n_stimuli_per_axis
 
     # ------------------------------------------------------------------
     # Analysis API
@@ -1007,6 +1135,29 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                         plt.show()
                     else:
                         plt.close(fig_orth)
+
+                # Stimuli sampled uniformly along each axis (one row per axis).
+                fig_stim = plot_axes_stimuli(
+                    result,
+                    n_per_axis=self.n_stimuli_per_axis,
+                    title=(
+                        f"{_channel_to_str(channel)} | "
+                        f"{component_type} | {strategy.label}  —  axis stimuli"
+                    ),
+                )
+                if fig_stim is not None:
+                    if save_dir is not None:
+                        stim_path = os.path.join(
+                            save_dir,
+                            f"axis_coding_{_channel_to_str(channel)}_"
+                            f"{component_type}_{strategy.label}_stimuli.png",
+                        )
+                        fig_stim.savefig(stim_path, dpi=150, bbox_inches="tight")
+                        print(f"  saved: {stim_path}")
+                    if self.show_plots:
+                        plt.show()
+                    else:
+                        plt.close(fig_stim)
 
         return results
 
