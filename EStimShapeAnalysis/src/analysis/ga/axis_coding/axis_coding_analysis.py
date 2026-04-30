@@ -345,7 +345,11 @@ def fit_axis_coding(
         n_features=dataset.n_features,
         n_dropped_no_components=dataset.n_dropped_no_components,
         n_dropped_no_response=dataset.n_dropped_no_response,
-        selector_summary=selector.summary(),
+        selector_summary=(
+            selector.summary(dataset.components_per_stim)
+            if isinstance(selector, MultiPrototypeAttentionSelector)
+            else selector.summary()
+        ),
         ridge_summary=ridge.summary(),
         selected_indices=[int(i) for i in selector.selected_indices_],
         stim_ids=[_jsonable(s) for s in dataset.stim_ids.tolist()],
@@ -1226,12 +1230,14 @@ def plot_mu_decoded(
     fig = plt.figure(figsize=(4.5 * n_panels, 4.2))
     panel = 1  # 1-indexed for add_subplot
 
-    # Marker sizes by amplitude (relative); minimum size for visibility.
+    # Normalize amplitudes for display (sum-to-1 so legend shows % share)
     amps_arr = np.asarray(amplitudes, dtype=np.float64)
+    amp_total = float(amps_arr.sum()) if amps_arr.size else 1.0
+    amp_norm = amps_arr / max(amp_total, 1e-12)  # fraction of total (sums to 1)
     amp_max = float(amps_arr.max()) if amps_arr.size else 1.0
-    amp_norm = amps_arr / max(amp_max, 1e-12)
-    sizes = 60.0 + 200.0 * amp_norm
-    arrow_lws = 1.5 + 3.5 * amp_norm
+    amp_rel = amps_arr / max(amp_max, 1e-12)     # relative to largest (for sizing)
+    sizes = 60.0 + 200.0 * amp_rel
+    arrow_lws = 1.5 + 3.5 * amp_rel
 
     # Linear params: grouped bar chart, one bar per prototype per param.
     if linear:
@@ -1244,7 +1250,7 @@ def plot_mu_decoded(
             ax.bar(
                 x, vals, width=bar_w * 0.95,
                 color=proto_colors[k],
-                label=f"μ{k+1} (α={amplitudes[k]:.2g})",
+                label=f"μ{k+1} ({amp_norm[k]:.0%})",
             )
         ax.set_xticks(np.arange(n))
         ax.set_xticklabels(linear, rotation=30, ha="right", fontsize=8)
@@ -1535,15 +1541,28 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
 
                 # Prototype amplitudes for multi-prototype selectors.
                 if result.prototype_amplitudes is not None:
-                    amps_str = ", ".join(
-                        f"α{k+1}={a:.3g}"
-                        for k, a in enumerate(result.prototype_amplitudes)
-                    )
+                    norm_amps = result.selector_summary.get("amplitudes_normalized")
+                    gate_usage = result.selector_summary.get("mean_gate_usage")
+                    collapse = result.selector_summary.get("collapse_ratio")
+                    if norm_amps is not None:
+                        amps_str = ", ".join(
+                            f"μ{k+1}: {a:.1%}" for k, a in enumerate(norm_amps)
+                        )
+                    else:
+                        amps_str = ", ".join(
+                            f"α{k+1}={a:.3g}"
+                            for k, a in enumerate(result.prototype_amplitudes)
+                        )
                     n_active = result.selector_summary.get("n_active_prototypes")
                     sep = result.selector_summary.get("prototype_separation")
-                    sep_str = f"  separation={sep:.3g}" if sep is not None else ""
+                    sep_str = f"  sep={sep:.3g}" if sep is not None else ""
+                    collapse_str = f"  collapse={collapse:.2g}" if collapse is not None else ""
+                    gate_str = ""
+                    if gate_usage is not None:
+                        gate_str = "  gates=[" + ", ".join(f"{g:.2f}" for g in gate_usage) + "]"
                     print(
-                        f"  prototypes: {amps_str}  n_active={n_active}{sep_str}"
+                        f"  prototypes ({n_active} active): {amps_str}"
+                        f"{collapse_str}{sep_str}{gate_str}"
                     )
 
                 cv_r2 = result.ridge_summary.get("cv_r2_mean")

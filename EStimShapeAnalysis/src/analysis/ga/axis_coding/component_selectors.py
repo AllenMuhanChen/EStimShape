@@ -963,13 +963,17 @@ class MultiPrototypeAttentionSelector(ComponentSelector):
             prev_mus = mus.copy()
 
         amps = np.exp(etas)
-        primary = int(np.argmax(amps))
+
+        # Sort prototypes by descending amplitude so μ1 is always the "winner"
+        order = np.argsort(-amps)
+        mus = mus[order]
+        amps = amps[order]
 
         self.mus_ = mus
         self.amplitudes_ = amps
         self.w_ = w
         self.b_ = b
-        self.mu_ = mus[primary].copy()
+        self.mu_ = mus[0].copy()  # always μ1 after sorting
         self.selected_indices_ = self._hard_indices(components_per_stim, self.mu_)
         return self
 
@@ -985,7 +989,7 @@ class MultiPrototypeAttentionSelector(ComponentSelector):
             raise RuntimeError("Selector not fit. Call fit() first.")
         return self._combined_pool(components_per_stim, self.mus_, self.amplitudes_)
 
-    def summary(self) -> dict:
+    def summary(self, components_per_stim: Optional[list[np.ndarray]] = None) -> dict:
         amps = (
             self.amplitudes_.tolist()
             if self.amplitudes_ is not None
@@ -996,6 +1000,46 @@ class MultiPrototypeAttentionSelector(ComponentSelector):
             if self.amplitudes_ is not None
             else None
         )
+
+        # Normalized amplitudes (only ratios matter for gates; normalize for readability)
+        norm_amps = None
+        if self.amplitudes_ is not None:
+            total = float(self.amplitudes_.sum())
+            norm_amps = (self.amplitudes_ / max(total, 1e-30)).tolist()
+
+        # Collapse ratio: α_max / α_second (>1e10 means effective single-prototype)
+        collapse_ratio = None
+        if self.amplitudes_ is not None and len(self.amplitudes_) >= 2:
+            sorted_amps = np.sort(self.amplitudes_)[::-1]
+            if sorted_amps[1] > 1e-30:
+                collapse_ratio = float(sorted_amps[0] / sorted_amps[1])
+
+        # Mean gate usage per prototype averaged over stimuli
+        mean_gate_usage = None
+        if (
+            self.mus_ is not None
+            and self.amplitudes_ is not None
+            and components_per_stim is not None
+        ):
+            K = self.mus_.shape[0]
+            tau2 = self.tau ** 2
+            gate_sums = np.zeros(K, dtype=np.float64)
+            n_valid = 0
+            for comps in components_per_stim:
+                if comps.shape[0] == 0:
+                    continue
+                _, min_d2 = self._pool_one(comps, self.mus_)
+                log_w = -min_d2 / (2.0 * tau2) + np.log(
+                    np.maximum(self.amplitudes_, 1e-30)
+                )
+                log_w -= log_w.max()
+                g = np.exp(log_w)
+                g = g / g.sum()
+                gate_sums += g
+                n_valid += 1
+            if n_valid > 0:
+                mean_gate_usage = (gate_sums / n_valid).tolist()
+
         prototype_separation = None
         if self.mus_ is not None and self.mus_.shape[0] >= 2:
             d01 = float(np.linalg.norm(self.mus_[0] - self.mus_[1]))
@@ -1009,6 +1053,9 @@ class MultiPrototypeAttentionSelector(ComponentSelector):
             "lambda_amp": self.lambda_amp,
             "amplitude_floor": self.amplitude_floor,
             "amplitudes": amps,
+            "amplitudes_normalized": norm_amps,
+            "collapse_ratio": collapse_ratio,
+            "mean_gate_usage": mean_gate_usage,
             "prototype_separation": prototype_separation,
             "n_iter": self.n_iter_,
             "converged": self.converged_,
