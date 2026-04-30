@@ -8,6 +8,7 @@ from typing import Any, Callable, Optional, Union
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from PIL import Image
 from scipy.stats import linregress, spearmanr
 
 from clat.pipeline.pipeline_base_classes import (
@@ -39,6 +40,9 @@ from src.analysis.ga.axis_coding.ridge_regression_model import (
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.analysis.ga.receptive_field_filter import ReceptiveFieldFilter
 from src.analysis.modules.figure_output import FigureSaverOutput
+from src.analysis.modules.matplotlib.grouped_stims_by_response_matplotlib import (
+    GroupedStimuliPlotter_matplotlib,
+)
 from src.pga.mock.mock_rwa_analysis import (
     condition_spherical_angles,
     hemisphericalize_orientation,
@@ -874,6 +878,8 @@ def plot_orthogonal_axes_diagnostic(
 def plot_axes_stimuli(
     result: AxisCodingResult,
     n_per_axis: int = 7,
+    border_width: int = 50,
+    color_mode: str = "intensity",
     title: Optional[str] = None,
 ) -> Optional[plt.Figure]:
     """
@@ -882,6 +888,9 @@ def plot_axes_stimuli(
     For each axis, draw ``n_per_axis`` evenly-spaced bin centers from the most
     negative to the most positive projection value; for each bin center, render
     the thumbnail of the stimulus whose projection is closest to that center.
+    Each thumbnail gets a response-colored border via the same helper used by
+    plot_top_n (``GroupedStimuliPlotter_matplotlib._add_colored_border``):
+    border intensity = response, normalized over the dataset's [min, max].
 
     One row per axis (preferred first, then orthogonal axes by data variance).
     Requires ``result.thumbnail_paths`` to be populated.
@@ -902,6 +911,16 @@ def plot_axes_stimuli(
 
     proj_all = [proj_pref] + [proj_orth[:, k] for k in range(n_orth)]
     labels = ["preferred"] + [f"orth {k+1}" for k in range(n_orth)]
+
+    actual = np.asarray(result.actual_responses, dtype=np.float64)
+    min_val = float(np.nanmin(actual)) if actual.size else 0.0
+    max_val = float(np.nanmax(actual)) if actual.size else 1.0
+    # Reuse plot_top_n's border code by instantiating the helper with our
+    # border_width / color_mode and calling its _add_colored_border method.
+    border_helper = GroupedStimuliPlotter_matplotlib(
+        border_width=border_width,
+        color_mode=color_mode,
+    )
 
     fig, axes = plt.subplots(
         n_axes, n_per_axis,
@@ -931,8 +950,11 @@ def plot_axes_stimuli(
             shown = False
             if path and isinstance(path, str) and os.path.exists(path):
                 try:
-                    img = plt.imread(path)
-                    ax.imshow(img)
+                    img = Image.open(path)
+                    img_with_border = border_helper._add_colored_border(
+                        img, float(actual[idx]), min_val, max_val,
+                    )
+                    ax.imshow(np.asarray(img_with_border))
                     shown = True
                 except Exception:
                     pass
