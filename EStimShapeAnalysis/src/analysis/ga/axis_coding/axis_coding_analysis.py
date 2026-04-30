@@ -113,6 +113,7 @@ class AxisCodingResult:
     # PCA back-projections (set when n_pcs was used; None otherwise)
     w_in_feature_space: Optional[list[float]] = None                # (d,) back-projected preferred axis
     orthogonal_axis_in_feature_space: Optional[list[float]] = None  # (d,) back-projected orth axis
+    all_orthogonal_axes_in_feature_space: Optional[list[list[float]]] = None  # (d, n_orth)
     pca_explained_variance: Optional[list[float]] = None            # (k,) per-PC variance ratio
     # Thumbnail paths aligned with stim_ids (for axis-stimulus visualization)
     thumbnail_paths: Optional[list[Optional[str]]] = None
@@ -252,11 +253,15 @@ def fit_axis_coding(
     # Back-project from PC space to original feature space for interpretability.
     w_feat: Optional[np.ndarray] = None
     orth_axis_feat: Optional[np.ndarray] = None
+    all_orth_axes_feat: Optional[np.ndarray] = None
     pca_var: Optional[list[float]] = None
     if pca_pre is not None:
         w_feat = pca_pre.back_project(w)
         if np.linalg.norm(orth_axis) > 1e-12:
             orth_axis_feat = pca_pre.back_project(orth_axis)
+        if all_orth_axes.shape[1] > 0:
+            # back-project each column: (d_orig, k) @ (k, n_orth) = (d_orig, n_orth)
+            all_orth_axes_feat = pca_pre._pca.components_.T @ all_orth_axes
         pca_var = pca_pre.explained_variance_ratio.tolist()
 
     noise_ceiling = compute_noise_ceiling(
@@ -303,6 +308,9 @@ def fit_axis_coding(
         w_in_feature_space=w_feat.tolist() if w_feat is not None else None,
         orthogonal_axis_in_feature_space=(
             orth_axis_feat.tolist() if orth_axis_feat is not None else None
+        ),
+        all_orthogonal_axes_in_feature_space=(
+            all_orth_axes_feat.tolist() if all_orth_axes_feat is not None else None
         ),
         pca_explained_variance=pca_var,
         thumbnail_paths=thumbnail_paths,
@@ -822,8 +830,57 @@ def plot_orthogonal_axes_diagnostic(
     )
     ax.legend(fontsize=7, loc="best", ncol=2)
 
-    # Row 0, col 2: blank.
-    axes[0, 2].axis("off")
+    # Row 0, col 2: feature loadings for all axes (heatmap).
+    # Rows = original features; cols = preferred + each orth axis.
+    # Each column is unit-normalized so colors are comparable across axes.
+    ax = axes[0, 2]
+    feature_names = result.feature_names or []
+    # Preferred-axis loading: prefer back-projected w (matches PCA case);
+    # falls back to ridge weights for non-PCA case. Same column the |w| bar
+    # chart in the main figure uses.
+    if result.w_in_feature_space is not None:
+        w_feat = np.asarray(result.w_in_feature_space, dtype=np.float64)
+    else:
+        w_feat = np.asarray(
+            result.ridge_summary.get("weights") or [], dtype=np.float64
+        )
+    # Orthogonal loadings: use back-projected when PCA was used so the row
+    # labels are original feature names; otherwise use the PC-space axes
+    # which already live in original-feature space.
+    if result.all_orthogonal_axes_in_feature_space is not None:
+        orth_loadings = np.asarray(
+            result.all_orthogonal_axes_in_feature_space, dtype=np.float64
+        )
+    elif result.all_orthogonal_axes is not None:
+        orth_loadings = np.asarray(result.all_orthogonal_axes, dtype=np.float64)
+    else:
+        orth_loadings = np.zeros((len(feature_names), 0))
+
+    if w_feat.size and feature_names and len(feature_names) == w_feat.size:
+        # Build (d, n_axes) matrix; unit-normalize each column so colors are
+        # comparable across axes (the absolute scale of w doesn't matter).
+        cols = [w_feat / max(float(np.linalg.norm(w_feat)), 1e-12)]
+        for j in range(orth_loadings.shape[1]):
+            v = orth_loadings[:, j]
+            cols.append(v / max(float(np.linalg.norm(v)), 1e-12))
+        M = np.column_stack(cols)
+        col_labels = ["preferred"] + [
+            f"orth {k+1}" for k in range(orth_loadings.shape[1])
+        ]
+
+        vmax = max(float(np.max(np.abs(M))), 1e-12) if M.size else 1.0
+        im = ax.imshow(
+            M, aspect="auto", cmap="RdBu_r",
+            vmin=-vmax, vmax=vmax, interpolation="nearest",
+        )
+        ax.set_xticks(np.arange(len(col_labels)))
+        ax.set_xticklabels(col_labels, rotation=45, ha="right", fontsize=7)
+        ax.set_yticks(np.arange(len(feature_names)))
+        ax.set_yticklabels(feature_names, fontsize=7)
+        ax.set_title("Loadings per axis (unit-norm)\nrows = features, cols = axes")
+        plt.colorbar(im, ax=ax, fraction=0.04, pad=0.02, label="loading")
+    else:
+        ax.axis("off")
 
     # ------------------------------------------------------------------
     # Row 1: summaries across preferred axis + all orthogonal PCs.
