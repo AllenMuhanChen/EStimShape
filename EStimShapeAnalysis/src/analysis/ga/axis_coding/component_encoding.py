@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 import numpy as np
+from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 
@@ -110,6 +111,86 @@ class ComponentEncoder:
         # Replace with 0 (= the z-scored mean) so they contribute nothing
         # to distances or regression without crashing downstream code.
         return np.where(np.isfinite(result), result, 0.0)
+
+
+@dataclass
+class PCAPreprocessor:
+    """
+    Optional PCA step applied *after* z-scoring by ComponentEncoder.
+
+    Fit on the union of all encoded (z-scored) component vectors from all
+    stimuli, then transforms each stimulus's (m_i, d) component matrix to
+    (m_i, k).
+
+    Back-projection maps a k-dim vector from PC space back to the original
+    d-dim feature space (useful for reading ridge weights as original-feature
+    loadings):
+        w_feat = pca.components_.T @ w_pc    (pca.components_ is (k, d))
+
+    Why PCA before regression?
+      - Removes collinear directions (e.g. the three components of a spherical
+        unit-vector are constrained to the unit sphere, so they span at most
+        2D; PCA finds this automatically).
+      - Puts the ridge penalty on decorrelated, variance-ordered directions
+        rather than on correlated raw features.
+      - Matches axis-coding papers (Chang & Tsao 2017) that first project
+        stimuli onto PCs before fitting the linear model.
+    """
+
+    n_components: int
+    _pca: Optional[PCA] = field(default=None, init=False, repr=False)
+
+    @property
+    def is_fit(self) -> bool:
+        return self._pca is not None
+
+    @property
+    def explained_variance_ratio(self) -> Optional[np.ndarray]:
+        return self._pca.explained_variance_ratio_ if self._pca is not None else None
+
+    @property
+    def n_components_actual(self) -> int:
+        return int(self._pca.n_components_) if self._pca is not None else self.n_components
+
+    def fit_transform(
+        self, components_per_stim: list[np.ndarray]
+    ) -> list[np.ndarray]:
+        """
+        Fit PCA on the stacked union of all component vectors, then return
+        a new list where each (m_i, d) array is replaced by (m_i, k).
+        """
+        non_empty = [c for c in components_per_stim if len(c) > 0]
+        if not non_empty:
+            return components_per_stim
+        all_comps = np.vstack(non_empty)
+        k = min(self.n_components, all_comps.shape[1], max(all_comps.shape[0] - 1, 1))
+        k = max(k, 1)
+        self._pca = PCA(n_components=k)
+        self._pca.fit(all_comps)
+        return [
+            self._pca.transform(c) if len(c) > 0 else np.zeros((0, k))
+            for c in components_per_stim
+        ]
+
+    def back_project(self, v_pc: np.ndarray) -> np.ndarray:
+        """
+        Map a k-dim PC-space vector to the original d-dim feature space.
+
+        Works for weights, axis directions, or any linear feature vector.
+        Formula: w_feat = components_.T @ v_pc  (pca.components_ is (k, d)).
+        """
+        if self._pca is None:
+            raise RuntimeError("PCAPreprocessor not fit. Call fit_transform() first.")
+        return self._pca.components_.T @ v_pc
+
+    def pc_feature_names(self) -> list[str]:
+        """PC labels with explained-variance percentage, for display."""
+        if self._pca is None:
+            return []
+        return [
+            f"PC{i + 1} ({self._pca.explained_variance_ratio_[i]:.1%})"
+            for i in range(self._pca.n_components_)
+        ]
 
 
 def _resolve_dotted(d: dict, key: str):

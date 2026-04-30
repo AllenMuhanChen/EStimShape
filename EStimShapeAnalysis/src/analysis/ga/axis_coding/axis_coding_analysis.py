@@ -23,6 +23,7 @@ from src.analysis.ga.axis_coding.axis_coding_dataset import (
 )
 from src.analysis.ga.axis_coding.component_encoding import (
     ComponentEncoder,
+    PCAPreprocessor,
     make_default_encoders,
 )
 from src.analysis.ga.axis_coding.component_selectors import (
@@ -61,11 +62,14 @@ class AxisCodingStrategy:
     Both factories are called fresh per (channel, component_type) so each fit
     gets its own learned mu and alpha without cross-contamination.
     ``ridge_factory=None`` uses ``RidgeRegressionAxisModel()`` defaults.
+    ``n_pcs=None`` skips PCA; ``n_pcs=k`` projects to the top-k PCs of the
+    z-scored component matrix before running the selector and ridge.
     """
 
     label: str
     selector_factory: SelectorFactory
     ridge_factory: Optional[RidgeFactory] = None
+    n_pcs: Optional[int] = None
 
 
 def default_strategy() -> AxisCodingStrategy:
@@ -102,6 +106,10 @@ class AxisCodingResult:
     all_orthogonal_variances: Optional[list[float]] = None          # (n_orth,)
     all_orthogonal_projections: Optional[list[list[float]]] = None  # (n_stim, n_orth)
     noise_ceiling: Optional[float] = None
+    # PCA back-projections (set when n_pcs was used; None otherwise)
+    w_in_feature_space: Optional[list[float]] = None                # (d,) back-projected preferred axis
+    orthogonal_axis_in_feature_space: Optional[list[float]] = None  # (d,) back-projected orth axis
+    pca_explained_variance: Optional[list[float]] = None            # (k,) per-PC variance ratio
 
     def to_json_dict(self) -> dict:
         d = self.__dict__.copy()
@@ -186,6 +194,7 @@ def fit_axis_coding(
     strategy_label: str,
     save_dir: Optional[str] = None,
     ridge_factory: Optional[RidgeFactory] = None,
+    n_pcs: Optional[int] = None,
 ) -> AxisCodingResult:
     dataset = AxisCodingDataset.build(
         df=df,
@@ -195,11 +204,30 @@ def fit_axis_coding(
         spike_rates_col=spike_rates_col,
     )
 
-    selector.fit(dataset.components_per_stim, dataset.responses)
-    X = selector.selected_vectors(dataset.components_per_stim)
+    # Optional PCA: fit on all encoded (z-scored) component vectors, then
+    # transform each stimulus's component matrix from (m_i, d) to (m_i, k).
+    pca_pre: Optional[PCAPreprocessor] = None
+    if n_pcs is not None and n_pcs > 0:
+        pca_pre = PCAPreprocessor(n_components=n_pcs)
+        components_for_selector = pca_pre.fit_transform(dataset.components_per_stim)
+        print(
+            f"  [PCA] k={pca_pre.n_components_actual}  "
+            f"cumulative var explained="
+            f"{float(pca_pre.explained_variance_ratio.sum()):.1%}"
+        )
+    else:
+        components_for_selector = dataset.components_per_stim
+
+    # Feature names used by ridge (PC names when PCA is active).
+    feature_names_for_model = (
+        pca_pre.pc_feature_names() if pca_pre is not None else dataset.feature_names
+    )
+
+    selector.fit(components_for_selector, dataset.responses)
+    X = selector.selected_vectors(components_for_selector)
 
     ridge = ridge_factory() if ridge_factory is not None else RidgeRegressionAxisModel()
-    ridge.fit(X, dataset.responses, feature_names=dataset.feature_names)
+    ridge.fit(X, dataset.responses, feature_names=feature_names_for_model)
     predicted = ridge.predict(X)
 
     # Preferred-axis projections and ALL orthogonal axes (sorted by variance).
@@ -214,6 +242,16 @@ def fit_axis_coding(
         orth_axis = np.zeros_like(w)
         all_orth_projections = np.zeros((X.shape[0], 0))
         orth_projections = np.zeros(X.shape[0])
+
+    # Back-project from PC space to original feature space for interpretability.
+    w_feat: Optional[np.ndarray] = None
+    orth_axis_feat: Optional[np.ndarray] = None
+    pca_var: Optional[list[float]] = None
+    if pca_pre is not None:
+        w_feat = pca_pre.back_project(w)
+        if np.linalg.norm(orth_axis) > 1e-12:
+            orth_axis_feat = pca_pre.back_project(orth_axis)
+        pca_var = pca_pre.explained_variance_ratio.tolist()
 
     noise_ceiling = compute_noise_ceiling(
         df=df,
@@ -234,7 +272,7 @@ def fit_axis_coding(
         ridge_summary=ridge.summary(),
         selected_indices=[int(i) for i in selector.selected_indices_],
         stim_ids=[_jsonable(s) for s in dataset.stim_ids.tolist()],
-        feature_names=dataset.feature_names,
+        feature_names=dataset.feature_names,   # always original d-dim names
         actual_responses=dataset.responses.tolist(),
         predicted_responses=predicted.tolist(),
         axis_projections=axis_projections.tolist(),
@@ -244,6 +282,11 @@ def fit_axis_coding(
         all_orthogonal_variances=all_orth_variances.tolist(),
         all_orthogonal_projections=all_orth_projections.tolist(),
         noise_ceiling=noise_ceiling,
+        w_in_feature_space=w_feat.tolist() if w_feat is not None else None,
+        orthogonal_axis_in_feature_space=(
+            orth_axis_feat.tolist() if orth_axis_feat is not None else None
+        ),
+        pca_explained_variance=pca_var,
     )
 
     if save_dir is not None:
@@ -294,6 +337,7 @@ class AxisCodingInputHandler(InputHandler):
             strategy_label=self.strategy.label,
             save_dir=self.save_dir,
             ridge_factory=self.strategy.ridge_factory,
+            n_pcs=self.strategy.n_pcs,
         )
         return {"result": result}
 
@@ -543,13 +587,21 @@ def plot_axis_coding_result(
         title="Axis tuning curve (preferred)",
     )
 
-    # Panel (0,2): Top |w| bars (preferred axis loadings)
+    # Panel (0,2): Top |w| bars — back-projected to original feature space when
+    # PCA was used, so bar names are always the raw encoder features.
     ax = axes[0, 2]
-    weights_full = np.asarray(
-        result.ridge_summary.get("weights") or [], dtype=np.float64
-    )
+    if result.w_in_feature_space is not None:
+        weights_full = np.asarray(result.w_in_feature_space, dtype=np.float64)
+        w_label = "Ridge weight (back-projected from PC space)"
+        w_title = "Top features by |w|  (preferred axis, back-projected)"
+    else:
+        weights_full = np.asarray(
+            result.ridge_summary.get("weights") or [], dtype=np.float64
+        )
+        w_label = "Ridge weight w"
+        w_title = "Top features by |w|  (preferred axis)"
     feature_names = result.feature_names or []
-    if weights_full.size and feature_names:
+    if weights_full.size and feature_names and len(feature_names) == weights_full.size:
         order = np.argsort(-np.abs(weights_full))[:10]
         names = [feature_names[i] for i in order]
         vals = weights_full[order]
@@ -559,8 +611,8 @@ def plot_axis_coding_result(
         ax.set_yticklabels(names, fontsize=8)
         ax.invert_yaxis()
         ax.axvline(0, color="black", lw=0.8)
-        ax.set_xlabel("Ridge weight w")
-        ax.set_title("Top features by |w|  (preferred axis)")
+        ax.set_xlabel(w_label)
+        ax.set_title(w_title)
 
     # Panel (1,0): Tuning along principal orthogonal axis
     _draw_tuning_curve(
@@ -583,14 +635,21 @@ def plot_axis_coding_result(
     ax.set_title("Axis vs orthogonal (color = response)")
     plt.colorbar(sc, ax=ax, label="Response")
 
-    # Panel (1,2): Top |orth_axis| bars (principal orthogonal axis loadings)
+    # Panel (1,2): Top |orth_axis| bars — back-projected when PCA was used.
     ax = axes[1, 2]
-    orth = (
-        np.asarray(result.orthogonal_axis, dtype=np.float64)
-        if result.orthogonal_axis is not None
-        else np.array([])
-    )
-    if orth.size and feature_names:
+    if result.orthogonal_axis_in_feature_space is not None:
+        orth = np.asarray(result.orthogonal_axis_in_feature_space, dtype=np.float64)
+        orth_label = "Orthogonal-axis loading (back-projected)"
+        orth_title = "Top features by |orth|  (principal orth axis, back-projected)"
+    else:
+        orth = (
+            np.asarray(result.orthogonal_axis, dtype=np.float64)
+            if result.orthogonal_axis is not None
+            else np.array([])
+        )
+        orth_label = "Orthogonal-axis loading"
+        orth_title = "Top features by |orth|  (principal orthogonal axis)"
+    if orth.size and feature_names and len(feature_names) == orth.size:
         order = np.argsort(-np.abs(orth))[:10]
         names = [feature_names[i] for i in order]
         vals = orth[order]
@@ -600,8 +659,8 @@ def plot_axis_coding_result(
         ax.set_yticklabels(names, fontsize=8)
         ax.invert_yaxis()
         ax.axvline(0, color="black", lw=0.8)
-        ax.set_xlabel("Orthogonal-axis loading")
-        ax.set_title("Top features by |orth|  (principal orthogonal axis)")
+        ax.set_xlabel(orth_label)
+        ax.set_title(orth_title)
     else:
         ax.axis("off")
 
@@ -859,6 +918,7 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                     strategy_label=strategy.label,
                     save_dir=save_dir,
                     ridge_factory=strategy.ridge_factory,
+                    n_pcs=strategy.n_pcs,
                 )
                 results[component_type][strategy.label] = result
 
@@ -1065,6 +1125,20 @@ def main():
             ),
             ridge_factory=ridge,
         ),
+        # PCA variant: decorrelate features before selector/ridge.
+        # n_pcs controls dimensionality; None = no PCA.
+        # Bar charts back-project to original feature space automatically.
+        AxisCodingStrategy(
+            label="learned_diag_pca",
+            selector_factory=lambda: LearnedDiagonalCovarianceSelector(
+                max_iter=50,
+                tol=0.01,
+                temperature=10,
+                variance_floor=1e-3,
+            ),
+            ridge_factory=ridge,
+            n_pcs=10,   # top-10 PCs; typically captures >90% variance
+        ),
         # AxisCodingStrategy(
         #     label="cluster_mode",
         #     selector_factory=lambda: ClusterModeSelector(
@@ -1092,6 +1166,20 @@ def main():
                 mu_optimizer_max_iter=50, # L-BFGS-B iters per M-step
             ),
             ridge_factory=ridge,
+        ),
+        # Soft attention + PCA variant
+        AxisCodingStrategy(
+            label="soft_attention_pca",
+            selector_factory=lambda: SoftAttentionAxisSelector(
+                tau=1.0,
+                alpha=1.0,
+                max_iter=30,
+                tol=1e-3,
+                init="response_weighted_mean",
+                mu_optimizer_max_iter=50,
+            ),
+            ridge_factory=ridge,
+            n_pcs=10,
         ),
     ]
 
