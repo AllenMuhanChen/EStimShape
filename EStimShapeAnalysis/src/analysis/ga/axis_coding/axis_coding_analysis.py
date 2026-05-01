@@ -1745,8 +1745,12 @@ def convert_str(data):
         column_data = data[column]
         # print(column_data)
         if column in ["Shaft", "Termination", "Junction"]:
-            if isinstance(column_data[0], str):
+            #get first non-null value
+            first_non_null = column_data.dropna().iloc[0] if not column_data.dropna().empty else None
+            if isinstance(first_non_null, str):
                 data[column] = column_data.apply(lambda x: eval(x) if isinstance(x, str) else x)
+
+
 
 
     return data
@@ -1892,19 +1896,19 @@ def main():
         #     ridge_factory=ridge,
         # ),
         # Soft attention + PCA variant
-        AxisCodingStrategy(
-            label="soft_attention_pca",
-            selector_factory=lambda: SoftAttentionAxisSelector(
-                tau=1.0,
-                alpha=1.0,
-                max_iter=1000,
-                tol=1e-4,
-                init="response_weighted_mean",
-                mu_optimizer_max_iter=200,
-            ),
-            ridge_factory=ridge,
-            n_pcs=6,
-        ),
+        # AxisCodingStrategy(
+        #     label="soft_attention_pca",
+        #     selector_factory=lambda: SoftAttentionAxisSelector(
+        #         tau=1.0,
+        #         alpha=1.0,
+        #         max_iter=1000,
+        #         tol=1e-4,
+        #         init="response_weighted_mean",
+        #         mu_optimizer_max_iter=200,
+        #     ),
+        #     ridge_factory=ridge,
+        #     n_pcs=6,
+        # ),
         # Multi-prototype attention: K=2 prototypes with sparsity penalty on
         # amplitudes.  Collapses to a single prototype when one is enough; reports
         # n_active_prototypes in the selector summary.  lambda_amp controls how
@@ -1937,9 +1941,9 @@ def main():
     )
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     compiled_data = None
-    # compiled_data = analysis.compile_and_export()
+    compiled_data = analysis.compile_and_export()
     # session_id="260426_0"
-    channel = "GA"
+    channel = "A-028"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
