@@ -1787,8 +1787,22 @@ def _draw_mu_spherical(ax3d, result: AxisCodingResult, encoder: ComponentEncoder
     sph_rz = np.outer(np.ones_like(sph_u), np.cos(sph_v))
     ax3d.plot_wireframe(sph_rx, sph_rz, sph_ry,
                         color="lightgray", lw=0.3, alpha=0.4)
-    ax3d.plot([-1.1, 1.1], [0, 0], [0, 0], color="gray", lw=0.6, alpha=0.5)
-    ax3d.plot([0, 0], [0, 0], [-1.1, 1.1], color="gray", lw=0.6, alpha=0.5)
+    # Reference axes in mpl coords (mpl_x=real_x, mpl_y=depth, mpl_z=real_y).
+    ax3d.plot([-1.1, 1.1], [0, 0], [0, 0], color="gray", lw=0.6, alpha=0.5)   # X
+    ax3d.plot([0, 0], [0, 0], [-1.1, 1.1], color="gray", lw=0.6, alpha=0.5)   # Y (up)
+    # Depth axis: short dashes into/out of screen.
+    ax3d.plot([0, 0], [-0.5, 0.5], [0, 0], color="gray", lw=0.6, alpha=0.4, ls=":")
+    ax3d.text( 1.2,  0.0,  0.0, "+X (θ=0)",   fontsize=6, color="dimgray")
+    ax3d.text(-1.5,  0.0,  0.0, "−X (θ=π)",  fontsize=6, color="dimgray")
+    ax3d.text( 0.0,  0.0,  1.2, "+Y (θ=π/2)",fontsize=6, color="dimgray")
+    ax3d.text( 0.0,  0.0, -1.35,"−Y",         fontsize=6, color="dimgray")
+    # Depth tip markers (dot=away/+Z, ring=toward/-Z) on the depth axis.
+    ax3d.scatter([0], [ 0.55], [0], color="#3b4cc0", s=30, edgecolors="black",
+                 linewidths=0.5, zorder=4)
+    ax3d.scatter([0], [-0.55], [0], facecolors="none", edgecolors="#b40426",
+                 s=40, linewidths=1.0, zorder=4)
+    ax3d.text(0,  0.65, 0, "+Z away (φ=0)",  fontsize=6, color="#3b4cc0")
+    ax3d.text(0, -0.65, 0, "−Z toward (φ=π)", fontsize=6, color="#b40426")
     depth_cmap = plt.cm.coolwarm
     for k in range(n_proto):
         d = all_decoded[k]
@@ -1821,7 +1835,14 @@ def _draw_mu_spherical(ax3d, result: AxisCodingResult, encoder: ComponentEncoder
     ax3d.set_xticks([-1, 0, 1])
     ax3d.set_yticks([-1, 0, 1])
     ax3d.set_zticks([-1, 0, 1])
-    ax3d.set_title(f"μ — {sp}", fontsize=9)
+    ax3d.set_xlabel("X →right", fontsize=6, labelpad=1)
+    ax3d.set_zlabel("Y →up", fontsize=6, labelpad=1)
+    ax3d.set_ylabel("Z depth\n(· away / ○ toward)", fontsize=5, labelpad=2)
+    ax3d.set_title(
+        f"μ — {sp}\n"
+        r"$\bf{blue}$=away (φ=0)  $\bf{red}$=toward (φ=π)",
+        fontsize=8,
+    )
     ax3d.view_init(elev=0, azim=-90)
     try:
         ax3d.set_box_aspect((1, 1, 1))
