@@ -152,6 +152,23 @@ class TextureField(StimSpecIdField):
         return "Texture"
 
 
+class AverageRGBField(StimSpecIdField):
+    """Field for extracting underlying RGB values."""
+
+    def get(self, task_id) -> tuple:
+        id = self.get_cached_super(task_id, StimSpecIdField)
+        self.conn.execute("SELECT average_rgb FROM UnderlyingAverageRGB WHERE stim_id = %s",
+                          params=(id,))
+        rgb = self.conn.fetch_one()
+        #returns "r,g,b" string, so split and convert to tuple of floats
+        if rgb is not None:
+            r, g, b = map(float, rgb.split(','))
+            return r, g, b
+
+
+    def get_name(self):
+        return "AverageRGB"
+
 class ContrastField(StimSpecIdField):
     """Field for extracting contrast information."""
 

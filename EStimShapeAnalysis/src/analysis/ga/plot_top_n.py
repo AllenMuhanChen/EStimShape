@@ -20,7 +20,7 @@ from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, 
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField, GenIdField, ParentIdField
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
-from src.analysis.lightness.lightness_analysis import TextureField, ColorField
+from src.analysis.lightness.lightness_analysis import TextureField, ColorField, AverageRGBField
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.intan.MultiFileParser import MultiFileParser
 from src.pga.mock.mock_rwa_analysis import condition_spherical_angles, hemisphericalize_orientation
@@ -129,7 +129,8 @@ class PlotTopNAnalysis(Analysis):
                                  "Junction",
                                  "ParentId",
                                  "MassCenter",
-                                 "Texture"
+                                 "Texture",
+                                 "AverageRGB"
                              ])
         return data
 
@@ -160,6 +161,7 @@ class PlotTopNAnalysis(Analysis):
         fields.append(GAResponseField(conn))
         fields.append(CompsToPreserveField(conn))
         fields.append(TextureField(conn))
+        fields.append(AverageRGBField(conn))
         fields.append(ClusterResponseField(conn, cluster_combination_strategy))
         fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
         fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))
