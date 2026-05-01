@@ -23,6 +23,7 @@ from src.analysis.ga.axis_coding.axis_coding_dataset import (
     _extract_per_trial_response,
     remove_trial_outliers,
 )
+from src.analysis.ga.axis_coding.appearance_features import AppearanceFeatures
 from src.analysis.ga.axis_coding.component_encoding import (
     ComponentEncoder,
     PCAPreprocessor,
@@ -131,6 +132,26 @@ class AxisCodingResult:
     prototype_amplitudes: Optional[list[float]] = None
     # Thumbnail paths aligned with stim_ids (for axis-stimulus visualization)
     thumbnail_paths: Optional[list[Optional[str]]] = None
+
+    # ---- Appearance comparison (texture + average RGB) ---------------------
+    # All aligned with stim_ids. ``texture_per_stim`` holds the raw label per
+    # stim; one-hot expansion lives in ``appearance_features``.
+    appearance_features: Optional[list[list[float]]] = None
+    appearance_feature_names: Optional[list[str]] = None
+    texture_per_stim: Optional[list[Optional[str]]] = None
+    # Ridge-comparison metrics, all using the same factory / CV folds as the
+    # shape model. ``cv_r2`` here always refers to the held-out R² mean.
+    appearance_only_summary: Optional[dict] = None        # ridge.summary() on appearance alone
+    appearance_only_predictions: Optional[list[float]] = None
+    joint_summary: Optional[dict] = None                  # ridge.summary() on [shape | appearance]
+    joint_predictions: Optional[list[float]] = None
+    joint_appearance_weights: Optional[list[float]] = None  # appearance-block weights from joint
+    joint_shape_weights: Optional[list[float]] = None       # shape-block weights from joint
+    residual_appearance_summary: Optional[dict] = None    # ridge on (actual - shape_pred)
+    residual_appearance_predictions: Optional[list[float]] = None
+    # Per-texture shape CV R² (how shape model behaves within each texture group).
+    texture_stratified_cv_r2: Optional[dict[str, float]] = None
+    texture_stratified_n: Optional[dict[str, int]] = None
 
     def to_json_dict(self) -> dict:
         d = self.__dict__.copy()
@@ -325,6 +346,92 @@ def fit_axis_coding(
         stim_ids=dataset.stim_ids,
     )
 
+    # ------------------------------------------------------------------
+    # Appearance comparison: texture (one-hot) + average RGB.
+    # All ridges use the same factory as the shape model so CV R² values
+    # are directly comparable. Predictions are in-sample (same as the
+    # shape model's predicted_responses); CV R² is held-out (ShuffleSplit
+    # inside RidgeRegressionAxisModel).
+    # ------------------------------------------------------------------
+    appearance = AppearanceFeatures.build(df, dataset.stim_ids)
+    A = appearance.features
+    if A.shape[1] > 0:
+        if appearance.n_missing_texture or appearance.n_missing_rgb:
+            print(
+                f"  [appearance] missing texture: {appearance.n_missing_texture}, "
+                f"missing RGB: {appearance.n_missing_rgb} (of {appearance.n_stim})"
+            )
+
+        def _new_ridge():
+            return ridge_factory() if ridge_factory is not None else RidgeRegressionAxisModel()
+
+        # 1) Appearance only.
+        ridge_app = _new_ridge()
+        ridge_app.fit(A, dataset.responses, feature_names=appearance.feature_names)
+        pred_app = ridge_app.predict(A)
+
+        # 2) Joint shape + appearance: stack the same selector-output X with A.
+        XA = np.column_stack([X, A])
+        joint_names = list(feature_names_for_model) + list(appearance.feature_names)
+        ridge_joint = _new_ridge()
+        ridge_joint.fit(XA, dataset.responses, feature_names=joint_names)
+        pred_joint = ridge_joint.predict(XA)
+        n_shape_feats = X.shape[1]
+        joint_shape_w = ridge_joint.w_[:n_shape_feats].tolist()
+        joint_app_w = ridge_joint.w_[n_shape_feats:].tolist()
+
+        # 3) Appearance on shape residuals: in-sample residuals, CV-R² of
+        # appearance on those residuals (held-out).
+        residuals = dataset.responses - predicted
+        ridge_resid = _new_ridge()
+        ridge_resid.fit(A, residuals, feature_names=appearance.feature_names)
+        pred_resid = ridge_resid.predict(A)
+
+        appearance_only_summary = ridge_app.summary()
+        appearance_only_predictions = pred_app.tolist()
+        joint_summary = ridge_joint.summary()
+        joint_predictions = pred_joint.tolist()
+        residual_appearance_summary = ridge_resid.summary()
+        residual_appearance_predictions = pred_resid.tolist()
+    else:
+        print("  [appearance] no Texture / AverageRGB columns found in df; skipping.")
+        appearance_only_summary = None
+        appearance_only_predictions = None
+        joint_summary = None
+        joint_predictions = None
+        joint_shape_w = None
+        joint_app_w = None
+        residual_appearance_summary = None
+        residual_appearance_predictions = None
+
+    # 4) Texture-stratified shape CV R²: refit shape ridge within each
+    # texture group (need enough samples; skip groups with <5).
+    texture_strat_cv_r2: dict[str, float] = {}
+    texture_strat_n: dict[str, int] = {}
+    if appearance.texture_per_stim and any(t is not None for t in appearance.texture_per_stim):
+        tex_arr = np.array(appearance.texture_per_stim)
+        for tex in np.unique(tex_arr):
+            if tex is None or (isinstance(tex, float) and np.isnan(tex)):
+                continue
+            mask = tex_arr == tex
+            n_in = int(mask.sum())
+            texture_strat_n[str(tex)] = n_in
+            if n_in < 5:
+                texture_strat_cv_r2[str(tex)] = float("nan")
+                continue
+            try:
+                ridge_tex = (
+                    ridge_factory() if ridge_factory is not None
+                    else RidgeRegressionAxisModel()
+                )
+                ridge_tex.fit(X[mask], dataset.responses[mask])
+                texture_strat_cv_r2[str(tex)] = (
+                    ridge_tex.cv_r2_mean_ if ridge_tex.cv_r2_mean_ is not None else float("nan")
+                )
+            except Exception as e:
+                print(f"  [texture-strat] {tex}: fit failed ({e})")
+                texture_strat_cv_r2[str(tex)] = float("nan")
+
     # Thumbnail paths aligned with dataset.stim_ids (one path per stimulus).
     # Used by plot_axes_stimuli to render evenly-spaced exemplars per axis.
     thumbnail_paths: Optional[list[Optional[str]]] = None
@@ -379,7 +486,45 @@ def fit_axis_coding(
         mus_decoded=mus_decoded_list,
         prototype_amplitudes=(amps.tolist() if amps is not None else None),
         thumbnail_paths=thumbnail_paths,
+        appearance_features=A.tolist() if A.size else None,
+        appearance_feature_names=list(appearance.feature_names) or None,
+        texture_per_stim=list(appearance.texture_per_stim) or None,
+        appearance_only_summary=appearance_only_summary,
+        appearance_only_predictions=appearance_only_predictions,
+        joint_summary=joint_summary,
+        joint_predictions=joint_predictions,
+        joint_shape_weights=joint_shape_w,
+        joint_appearance_weights=joint_app_w,
+        residual_appearance_summary=residual_appearance_summary,
+        residual_appearance_predictions=residual_appearance_predictions,
+        texture_stratified_cv_r2=texture_strat_cv_r2 or None,
+        texture_stratified_n=texture_strat_n or None,
     )
+
+    # Console summary for the appearance comparison.
+    def _r2_str(s):
+        if s is None:
+            return "n/a"
+        m = s.get("cv_r2_mean")
+        sd = s.get("cv_r2_std")
+        if m is None or (isinstance(m, float) and np.isnan(m)):
+            return "n/a"
+        return f"{m:+.3f} ± {sd:.3f}" if sd is not None else f"{m:+.3f}"
+
+    if appearance_only_summary is not None:
+        print(
+            "  [shape-vs-appearance CV R²]"
+            f"  shape={_r2_str(result.ridge_summary)}"
+            f"  appearance={_r2_str(appearance_only_summary)}"
+            f"  joint={_r2_str(joint_summary)}"
+            f"  appearance|residuals={_r2_str(residual_appearance_summary)}"
+        )
+    if texture_strat_cv_r2:
+        parts = [
+            f"{tex}: cv_r2={texture_strat_cv_r2[tex]:+.3f} (n={texture_strat_n[tex]})"
+            for tex in texture_strat_cv_r2
+        ]
+        print("  [texture-stratified shape CV R²]  " + ",  ".join(parts))
 
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
@@ -676,6 +821,194 @@ def _draw_tuning_curve(ax, projections, actual, n_bins, xlabel, title):
     ax.set_ylabel("Actual response")
     ax.set_title(title)
     ax.legend(fontsize=8, loc="lower right")
+
+
+def plot_shape_vs_appearance(
+    result: AxisCodingResult,
+    title: Optional[str] = None,
+) -> Optional[plt.Figure]:
+    """
+    Compare how much variance shape vs appearance (texture + average RGB)
+    accounts for in the firing rate.
+
+    Layout (2 × 3):
+      Row 0:
+        (0,0) shape predicted vs actual              (in-sample, with CV R²)
+        (0,1) appearance-only predicted vs actual    (in-sample, with CV R²)
+        (0,2) shape residuals vs appearance prediction
+      Row 1:
+        (1,0) CV R² bars: shape / appearance / joint / appearance|residuals
+              (with noise-ceiling reference if available)
+        (1,1) appearance-only ridge weights
+        (1,2) texture-stratified shape CV R² (if texture column present)
+    """
+    if result.appearance_only_summary is None:
+        return None
+
+    actual = np.asarray(result.actual_responses, dtype=np.float64)
+    pred_shape = np.asarray(result.predicted_responses, dtype=np.float64)
+    pred_app = (
+        np.asarray(result.appearance_only_predictions, dtype=np.float64)
+        if result.appearance_only_predictions is not None
+        else None
+    )
+    pred_resid = (
+        np.asarray(result.residual_appearance_predictions, dtype=np.float64)
+        if result.residual_appearance_predictions is not None
+        else None
+    )
+    residuals = actual - pred_shape
+
+    texture_per_stim = result.texture_per_stim or [None] * len(actual)
+    # Color by texture for the residual scatter.
+    tex_palette = {
+        "SHADE": "#4c72b0",
+        "SPECULAR": "#dd8452",
+        "2D": "#55a868",
+        None: "lightgray",
+    }
+    point_colors = [tex_palette.get(t, "lightgray") for t in texture_per_stim]
+
+    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+
+    nc = result.noise_ceiling
+    nc_str = f"  NC={nc:.3f}" if nc is not None else ""
+
+    def _r2(s):
+        if s is None:
+            return float("nan")
+        v = s.get("cv_r2_mean")
+        return float(v) if v is not None else float("nan")
+
+    r2_shape = _r2(result.ridge_summary)
+    r2_app = _r2(result.appearance_only_summary)
+    r2_joint = _r2(result.joint_summary)
+    r2_resid_app = _r2(result.residual_appearance_summary)
+
+    # (0,0) shape predicted vs actual.
+    ax = axes[0, 0]
+    ax.scatter(actual, pred_shape, s=14, c=point_colors, alpha=0.7, edgecolors="none")
+    lims = [
+        float(min(actual.min(), pred_shape.min())),
+        float(max(actual.max(), pred_shape.max())),
+    ]
+    ax.plot(lims, lims, "k--", lw=1)
+    ax.set_xlabel("Actual response")
+    ax.set_ylabel("Predicted (shape)")
+    ax.set_title(f"Shape model\nCV R² = {r2_shape:+.3f}{nc_str}")
+
+    # (0,1) appearance predicted vs actual.
+    ax = axes[0, 1]
+    if pred_app is not None:
+        ax.scatter(actual, pred_app, s=14, c=point_colors, alpha=0.7, edgecolors="none")
+        lims2 = [
+            float(min(actual.min(), pred_app.min())),
+            float(max(actual.max(), pred_app.max())),
+        ]
+        ax.plot(lims2, lims2, "k--", lw=1)
+        ax.set_xlabel("Actual response")
+        ax.set_ylabel("Predicted (appearance only)")
+        ax.set_title(f"Appearance-only model\nCV R² = {r2_app:+.3f}")
+    else:
+        ax.axis("off")
+
+    # (0,2) residuals vs appearance prediction. Headline panel.
+    ax = axes[0, 2]
+    if pred_resid is not None:
+        ax.scatter(pred_resid, residuals, s=14, c=point_colors, alpha=0.7, edgecolors="none")
+        lo = min(float(pred_resid.min()), float(residuals.min()))
+        hi = max(float(pred_resid.max()), float(residuals.max()))
+        ax.plot([lo, hi], [lo, hi], "k--", lw=1, alpha=0.5)
+        ax.axhline(0, color="gray", lw=0.6)
+        ax.set_xlabel("Appearance prediction (fit on shape residuals)")
+        ax.set_ylabel("Shape residual (actual − shape pred)")
+        ax.set_title(
+            f"Residuals vs appearance\nCV R² (appearance | residuals) = {r2_resid_app:+.3f}"
+        )
+        # legend by texture.
+        seen = []
+        for t in texture_per_stim:
+            if t in seen:
+                continue
+            seen.append(t)
+            ax.scatter([], [], color=tex_palette.get(t, "lightgray"),
+                       label=str(t) if t is not None else "unknown",
+                       s=20, edgecolors="none")
+        if seen:
+            ax.legend(fontsize=7, loc="best", title="texture")
+    else:
+        ax.axis("off")
+
+    # (1,0) CV R² bars.
+    ax = axes[1, 0]
+    bar_labels = ["shape", "appearance", "joint", "appearance|resid"]
+    bar_vals = [r2_shape, r2_app, r2_joint, r2_resid_app]
+    bar_colors = ["#4c72b0", "#dd8452", "#8172b3", "#937860"]
+    x = np.arange(len(bar_labels))
+    bars = ax.bar(x, bar_vals, color=bar_colors)
+    for b, v in zip(bars, bar_vals):
+        ax.text(b.get_x() + b.get_width() / 2, v,
+                f"{v:+.3f}", ha="center",
+                va="bottom" if v >= 0 else "top", fontsize=8)
+    if nc is not None:
+        ax.axhline(nc, color="black", lw=1, ls=":", label=f"NC = {nc:.3f}")
+        ax.legend(fontsize=8, loc="best")
+    ax.axhline(0, color="black", lw=0.7)
+    ax.set_xticks(x)
+    ax.set_xticklabels(bar_labels, rotation=20, ha="right", fontsize=9)
+    ax.set_ylabel("Held-out CV R²")
+    ax.set_title("Variance explained")
+
+    # (1,1) appearance-only ridge weights.
+    ax = axes[1, 1]
+    app_summary = result.appearance_only_summary
+    app_w = np.asarray(app_summary.get("weights") or [], dtype=np.float64)
+    app_names = list(result.appearance_feature_names or [])
+    if app_w.size and len(app_names) == app_w.size:
+        order = np.argsort(-np.abs(app_w))
+        names = [app_names[i] for i in order]
+        vals = app_w[order]
+        y = np.arange(len(names))
+        ax.barh(y, vals, color="darkorange")
+        ax.set_yticks(y)
+        ax.set_yticklabels(names, fontsize=8)
+        ax.invert_yaxis()
+        ax.axvline(0, color="black", lw=0.8)
+        ax.set_xlabel("Ridge weight (appearance-only model)")
+        ax.set_title("Appearance feature weights")
+    else:
+        ax.axis("off")
+
+    # (1,2) texture-stratified shape CV R².
+    ax = axes[1, 2]
+    strat = result.texture_stratified_cv_r2 or {}
+    n_per = result.texture_stratified_n or {}
+    if strat:
+        keys = list(strat.keys())
+        vals = [strat[k] for k in keys]
+        x_t = np.arange(len(keys))
+        colors_t = [tex_palette.get(k, "lightgray") for k in keys]
+        bars = ax.bar(x_t, vals, color=colors_t)
+        ax.axhline(r2_shape, color="black", lw=1, ls="--",
+                   label=f"all stim: {r2_shape:+.3f}")
+        for b, v, k in zip(bars, vals, keys):
+            n = n_per.get(k, 0)
+            ax.text(b.get_x() + b.get_width() / 2, v,
+                    f"n={n}", ha="center",
+                    va="bottom" if v >= 0 else "top", fontsize=7)
+        ax.set_xticks(x_t)
+        ax.set_xticklabels(keys, fontsize=9)
+        ax.axhline(0, color="black", lw=0.7)
+        ax.set_ylabel("Held-out CV R² (shape)")
+        ax.set_title("Shape model: texture-stratified")
+        ax.legend(fontsize=8, loc="best")
+    else:
+        ax.axis("off")
+
+    if title:
+        fig.suptitle(title)
+    fig.tight_layout()
+    return fig
 
 
 def plot_axis_coding_result(
@@ -1074,6 +1407,573 @@ def plot_orthogonal_axes_diagnostic(
     return fig
 
 
+@dataclass
+class PlotPanelConfig:
+    """
+    Per-panel enable/disable flags for the consolidated axis-coding figure
+    and the shape-vs-appearance figure. Defaults match the layout you asked
+    for: 3 × 4 axis-coding figure with tuning, axes overlay, loadings, signed
+    Spearman r per axis, variance per axis, and μ panels enabled. Old panels
+    (top-features bars, |ρ| bar, slope-with-CI bar, in-axis pred-vs-actual,
+    PC-space pred-vs-actual) stay in code but default-off; flip the flag to
+    bring them back without touching the plot function.
+    """
+
+    # ----- Figure 2: consolidated axis coding -----
+    show_preferred_tuning: bool = True
+    show_orth_tuning: bool = True
+    show_2d_scatter: bool = True
+    show_all_axes_overlay: bool = True
+    show_loadings_heatmap: bool = True
+    show_signed_r_per_axis: bool = True
+    show_variance_per_axis: bool = True
+    show_mu_panels: bool = True
+    # Default-off (legacy panels from plot_axis_coding_result + orth diagnostic).
+    show_pred_vs_actual_in_axis_fig: bool = False
+    show_top_features_w_bar: bool = False
+    show_top_features_orth_bar: bool = False
+    show_slope_per_axis_bar: bool = False
+    show_abs_spearman_per_axis_bar: bool = False
+
+    # ----- Figure 1: shape vs appearance (currently always all-on) -----
+    show_appearance_residuals: bool = True
+    show_texture_stratified: bool = True
+
+
+def _signed_spearman(x: np.ndarray, y: np.ndarray) -> float:
+    """Signed Spearman ρ. Returns NaN if the input has no variance."""
+    if x.size < 2 or x.std() < 1e-12 or y.std() < 1e-12:
+        return float("nan")
+    rho, _ = spearmanr(x, y)
+    return float(rho) if rho is not None else float("nan")
+
+
+def plot_axis_coding_consolidated(
+    result: AxisCodingResult,
+    encoder: Optional[ComponentEncoder] = None,
+    config: Optional[PlotPanelConfig] = None,
+    title: Optional[str] = None,
+    n_bins: int = 10,
+) -> plt.Figure:
+    """
+    All axis-coding panels in one figure (3 × 4 by default), driven by
+    ``PlotPanelConfig``. Disabled panels become blank slots; the layout
+    isn't rebuilt so panel positions stay consistent across runs.
+
+    Slot layout (row, col):
+      (0,0) preferred-axis tuning
+      (0,1) principal-orth-axis tuning
+      (0,2) 2D scatter (preferred vs orth1, color = response)
+      (0,3) all-axes overlay (preferred + every orth, binned-mean curves)
+      (1,0) loadings-per-axis heatmap
+      (1,1) signed Spearman ρ per axis
+      (1,2) variance fraction per axis
+      (1,3) μ linear params (if any)
+      (2,0..3) μ spherical (3D) and circular (dial) panels in order
+
+    Legacy panels (top-|w| bars, slope-with-CI bar, |ρ| bar, in-axis
+    pred-vs-actual) are off by default; flip ``show_*`` flags on the
+    config to put them in place of one of the default panels.
+    """
+    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  (registers 3d projection)
+    from matplotlib.gridspec import GridSpec
+
+    cfg = config or PlotPanelConfig()
+
+    actual = np.asarray(result.actual_responses, dtype=np.float64)
+    axis_proj = compute_axis_projections(result)
+    orth_proj = (
+        np.asarray(result.orthogonal_projections, dtype=np.float64)
+        if result.orthogonal_projections is not None
+        else np.zeros_like(axis_proj)
+    )
+    proj_orth_all = (
+        np.asarray(result.all_orthogonal_projections, dtype=np.float64)
+        if result.all_orthogonal_projections is not None
+        else np.zeros((axis_proj.size, 0))
+    )
+    variances_orth = (
+        np.asarray(result.all_orthogonal_variances, dtype=np.float64)
+        if result.all_orthogonal_variances is not None
+        else np.zeros(0)
+    )
+
+    n_orth = proj_orth_all.shape[1] if proj_orth_all.ndim == 2 else 0
+    n_axes = 1 + n_orth
+    var_pref = float(np.var(axis_proj, ddof=1)) if axis_proj.size > 1 else 0.0
+    var_total = var_pref + float(variances_orth.sum())
+    proj_all = (
+        np.column_stack([axis_proj, proj_orth_all])
+        if n_orth > 0 else axis_proj.reshape(-1, 1)
+    )
+    variances_all = np.concatenate([[var_pref], variances_orth])
+    var_frac_all = (
+        variances_all / var_total if var_total > 1e-12
+        else np.zeros_like(variances_all)
+    )
+
+    # Signed Spearman ρ per axis.
+    rhos_signed = np.array([_signed_spearman(proj_all[:, k], actual)
+                             for k in range(n_axes)])
+
+    # μ panels: gather counts from encoder, if provided.
+    mu_panels: list[tuple[str, str]] = []  # (kind, name) where kind in {'linear', 'spherical', 'circular'}
+    if cfg.show_mu_panels and result.mu_decoded is not None and encoder is not None:
+        if list(encoder.linear_params):
+            mu_panels.append(("linear", "linear"))
+        for sp in encoder.spherical_params:
+            mu_panels.append(("spherical", sp))
+        for cp in encoder.circular_params:
+            mu_panels.append(("circular", cp))
+
+    # Layout: 4 columns, default 3 rows. Anchored slots: rows 0 and 1 hold
+    # the eight default tuning/loading/correlation/variance panels (column
+    # (1,3) is reserved for the first μ panel — linear if present, else the
+    # first spherical/circular). μ panels overflow into row 2+ as needed.
+    n_cols = 4
+    base_rows = 3
+    n_mu_slots = len(mu_panels)
+    n_legacy = sum(int(b) for b in [
+        cfg.show_pred_vs_actual_in_axis_fig,
+        cfg.show_top_features_w_bar,
+        cfg.show_top_features_orth_bar,
+        cfg.show_slope_per_axis_bar,
+        cfg.show_abs_spearman_per_axis_bar,
+    ])
+    # 7 anchored default panels in rows 0–1 (cols 0..3 row 0 + cols 0..2 row 1)
+    # leave (1,3) for first μ; remaining μ + legacy slots flow row 2 onwards.
+    overflow_slots = max(0, n_mu_slots - 1) + n_legacy
+    n_rows = max(base_rows, base_rows + (overflow_slots + n_cols - 1) // n_cols - 1)
+
+    fig = plt.figure(figsize=(5.0 * n_cols, 4.2 * n_rows))
+    gs = GridSpec(n_rows, n_cols, figure=fig)
+
+    def _add(row, col, projection=None):
+        return fig.add_subplot(gs[row, col], projection=projection)
+
+    # ---------- Row 0 ----------
+    if cfg.show_preferred_tuning:
+        ax = _add(0, 0)
+        _draw_tuning_curve(
+            ax, axis_proj, actual, n_bins,
+            xlabel="Projection onto preferred axis (z)",
+            title="Preferred axis tuning",
+        )
+    if cfg.show_orth_tuning and n_orth > 0:
+        ax = _add(0, 1)
+        _draw_tuning_curve(
+            ax, orth_proj, actual, n_bins,
+            xlabel="Projection onto principal orth axis (z)",
+            title="Principal orth axis tuning",
+        )
+    if cfg.show_2d_scatter and n_orth > 0:
+        ax = _add(0, 2)
+        sc = ax.scatter(
+            axis_proj, orth_proj, c=actual,
+            cmap="viridis", s=22, alpha=0.85, edgecolors="none",
+        )
+        ax.axhline(0, color="gray", lw=0.6, ls="--")
+        ax.axvline(0, color="gray", lw=0.6, ls="--")
+        ax.set_xlabel("Preferred axis projection")
+        ax.set_ylabel("Principal orth projection")
+        ax.set_title("Axis vs orth (color = response)")
+        plt.colorbar(sc, ax=ax, label="Response")
+    if cfg.show_all_axes_overlay:
+        ax = _add(0, 3)
+        cmap = plt.get_cmap("viridis")
+        colors_overlay = ["forestgreen"] + [
+            cmap(i / max(n_orth - 1, 1)) for i in range(n_orth)
+        ]
+        labels_overlay = ["preferred"] + [f"orth {k+1}" for k in range(n_orth)]
+        for k in range(n_axes):
+            col = proj_all[:, k]
+            if col.std() < 1e-12:
+                continue
+            centers, means, sems = _binned_mean_sem(col, actual, n_bins)
+            valid = ~np.isnan(means)
+            if not valid.any():
+                continue
+            lw = 2.5 if k == 0 else 1.2
+            alpha = 1.0 if k == 0 else 0.85
+            ax.plot(centers[valid], means[valid],
+                    color=colors_overlay[k], lw=lw, alpha=alpha,
+                    label=labels_overlay[k])
+        ax.axhline(actual.mean(), color="gray", lw=0.7, ls="--", alpha=0.6)
+        ax.set_xlabel("Projection (z)")
+        ax.set_ylabel("Mean response")
+        ax.set_title("All axes overlay")
+        ax.legend(fontsize=7, ncol=2, loc="best")
+
+    # ---------- Row 1 ----------
+    if cfg.show_loadings_heatmap:
+        ax = _add(1, 0)
+        feature_names = result.feature_names or []
+        if result.w_in_feature_space is not None:
+            w_feat = np.asarray(result.w_in_feature_space, dtype=np.float64)
+        else:
+            w_feat = np.asarray(
+                result.ridge_summary.get("weights") or [], dtype=np.float64
+            )
+        if result.all_orthogonal_axes_in_feature_space is not None:
+            orth_loadings = np.asarray(
+                result.all_orthogonal_axes_in_feature_space, dtype=np.float64
+            )
+        elif result.all_orthogonal_axes is not None:
+            orth_loadings = np.asarray(result.all_orthogonal_axes, dtype=np.float64)
+        else:
+            orth_loadings = np.zeros((len(feature_names), 0))
+        if w_feat.size and feature_names and len(feature_names) == w_feat.size:
+            cols = [w_feat / max(float(np.linalg.norm(w_feat)), 1e-12)]
+            for j in range(orth_loadings.shape[1]):
+                v = orth_loadings[:, j]
+                cols.append(v / max(float(np.linalg.norm(v)), 1e-12))
+            M = np.column_stack(cols)
+            col_labels = ["preferred"] + [
+                f"orth {k+1}" for k in range(orth_loadings.shape[1])
+            ]
+            vmax = max(float(np.max(np.abs(M))), 1e-12) if M.size else 1.0
+            im = ax.imshow(M, aspect="auto", cmap="RdBu_r",
+                           vmin=-vmax, vmax=vmax, interpolation="nearest")
+            ax.set_xticks(np.arange(len(col_labels)))
+            ax.set_xticklabels(col_labels, rotation=45, ha="right", fontsize=7)
+            ax.set_yticks(np.arange(len(feature_names)))
+            ax.set_yticklabels(feature_names, fontsize=7)
+            ax.set_title("Loadings per axis (unit-norm)")
+            plt.colorbar(im, ax=ax, fraction=0.04, pad=0.02)
+        else:
+            ax.axis("off")
+
+    if cfg.show_signed_r_per_axis:
+        ax = _add(1, 1)
+        x = np.arange(n_axes)
+        labels_axes = ["pref"] + [f"o{k+1}" for k in range(n_orth)]
+        bar_colors = ["forestgreen"] + ["steelblue"] * n_orth
+        bars = ax.bar(x, rhos_signed, color=bar_colors)
+        for b, v in zip(bars, rhos_signed):
+            if not np.isnan(v):
+                ax.text(b.get_x() + b.get_width() / 2, v,
+                        f"{v:+.2f}", ha="center",
+                        va="bottom" if v >= 0 else "top", fontsize=7)
+        ax.axhline(0, color="black", lw=0.7)
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels_axes, fontsize=8, rotation=45, ha="right")
+        ax.set_ylabel("signed Spearman ρ")
+        ax.set_title("Rank correlation per axis")
+
+    if cfg.show_variance_per_axis:
+        ax = _add(1, 2)
+        x = np.arange(n_axes)
+        labels_axes = ["pref"] + [f"o{k+1}" for k in range(n_orth)]
+        bar_colors = ["forestgreen"] + ["steelblue"] * n_orth
+        ax.bar(x, var_frac_all * 100.0, color=bar_colors)
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels_axes, fontsize=8, rotation=45, ha="right")
+        ax.set_ylabel("Variance fraction (%)")
+        ax.set_title("Data variance per axis")
+
+    # ---------- Row 1 col 3 + Row 2+: μ panels ----------
+    # Walk slots in (row, col) order from (1,3) onwards.
+    slot_order: list[tuple[int, int]] = [(1, 3)]
+    for r in range(2, n_rows):
+        for c in range(n_cols):
+            slot_order.append((r, c))
+
+    for i, (kind, name) in enumerate(mu_panels):
+        if i >= len(slot_order):
+            break
+        r, c = slot_order[i]
+        if kind == "linear":
+            _draw_mu_linear(fig.add_subplot(gs[r, c]), result, encoder)
+        elif kind == "spherical":
+            _draw_mu_spherical(
+                fig.add_subplot(gs[r, c], projection="3d"),
+                result, encoder, name,
+            )
+        elif kind == "circular":
+            _draw_mu_circular(fig.add_subplot(gs[r, c]), result, encoder, name)
+
+    # ---------- Legacy / opt-in panels: place them on whichever default
+    # slot they map to, only if the matching default panel is disabled.
+    # Top-|w| bar replaces preferred tuning slot, etc. Simple approach:
+    # add to any unused slot at the end (row 2+ tail).
+    legacy_added: list[tuple[str, callable]] = []
+    if cfg.show_pred_vs_actual_in_axis_fig:
+        legacy_added.append(("pred_vs_actual", lambda ax: _draw_pred_vs_actual(ax, result)))
+    if cfg.show_top_features_w_bar:
+        legacy_added.append(("top_w", lambda ax: _draw_top_w_bar(ax, result)))
+    if cfg.show_top_features_orth_bar:
+        legacy_added.append(("top_orth", lambda ax: _draw_top_orth_bar(ax, result)))
+    if cfg.show_slope_per_axis_bar:
+        legacy_added.append(("slope", lambda ax: _draw_slope_per_axis(ax, result, n_axes)))
+    if cfg.show_abs_spearman_per_axis_bar:
+        legacy_added.append(("abs_rho", lambda ax: _draw_abs_rho_per_axis(ax, result, n_axes)))
+
+    if legacy_added:
+        # Place legacy panels in any slots after the μ panels.
+        next_slot = 1 + len(mu_panels)
+        for j, (_, drawer) in enumerate(legacy_added):
+            slot_idx = next_slot + j
+            if slot_idx >= len(slot_order):
+                # Add a new row if we run out.
+                break
+            r, c = slot_order[slot_idx]
+            drawer(fig.add_subplot(gs[r, c]))
+
+    if title:
+        fig.suptitle(title)
+    fig.tight_layout()
+    return fig
+
+
+# ---------------------------------------------------------------------------
+# Helpers used by the consolidated plot
+# ---------------------------------------------------------------------------
+
+def _draw_mu_linear(ax, result: AxisCodingResult, encoder: ComponentEncoder):
+    """Linear-params bar chart (one bar per prototype per param)."""
+    linear = list(encoder.linear_params)
+    if not linear or result.mu_decoded is None:
+        ax.axis("off")
+        return
+    if result.mus_decoded is not None and result.mus_in_unscaled_space is not None:
+        all_decoded = list(result.mus_decoded)
+        amps = list(result.prototype_amplitudes or [1.0] * len(all_decoded))
+    else:
+        all_decoded = [result.mu_decoded]
+        amps = [1.0]
+    n_proto = len(all_decoded)
+    cmap = plt.get_cmap("tab10")
+    proto_colors = [cmap(k % 10) for k in range(n_proto)]
+    amp_total = float(sum(amps)) or 1.0
+    n = len(linear)
+    bar_w = 0.8 / max(n_proto, 1)
+    for k in range(n_proto):
+        vals = [all_decoded[k].get(p, np.nan) for p in linear]
+        x = np.arange(n) + (k - (n_proto - 1) / 2) * bar_w
+        ax.bar(x, vals, width=bar_w * 0.95, color=proto_colors[k],
+               label=f"μ{k+1} ({amps[k]/amp_total:.0%})")
+    ax.set_xticks(np.arange(n))
+    ax.set_xticklabels(linear, rotation=30, ha="right", fontsize=7)
+    ax.axhline(0, color="black", lw=0.7)
+    ax.set_ylabel("Value (raw units)", fontsize=8)
+    ax.set_title("μ — linear params", fontsize=9)
+    if n_proto > 1:
+        ax.legend(fontsize=6, loc="best")
+
+
+def _draw_mu_spherical(ax3d, result: AxisCodingResult, encoder: ComponentEncoder, sp: str):
+    """3D arrow on a small sphere for a single spherical (θ,φ) param."""
+    if result.mu_decoded is None:
+        ax3d.axis("off")
+        return
+    if result.mus_decoded is not None:
+        all_decoded = list(result.mus_decoded)
+        amps = list(result.prototype_amplitudes or [1.0] * len(all_decoded))
+    else:
+        all_decoded = [result.mu_decoded]
+        amps = [1.0]
+    cmap = plt.get_cmap("tab10")
+    n_proto = len(all_decoded)
+    amps_arr = np.asarray(amps, dtype=np.float64)
+    amp_max = float(amps_arr.max()) if amps_arr.size else 1.0
+    amp_rel = amps_arr / max(amp_max, 1e-12)
+    arrow_lws = 1.5 + 3.0 * amp_rel
+
+    # Sphere wireframe (remapped: mpl_y = depth = real_z = cos φ).
+    sph_u = np.linspace(0, 2 * np.pi, 24)
+    sph_v = np.linspace(0, np.pi, 12)
+    sph_rx = np.outer(np.cos(sph_u), np.sin(sph_v))
+    sph_ry = np.outer(np.sin(sph_u), np.sin(sph_v))
+    sph_rz = np.outer(np.ones_like(sph_u), np.cos(sph_v))
+    ax3d.plot_wireframe(sph_rx, sph_rz, sph_ry,
+                        color="lightgray", lw=0.3, alpha=0.4)
+    ax3d.plot([-1.1, 1.1], [0, 0], [0, 0], color="gray", lw=0.6, alpha=0.5)
+    ax3d.plot([0, 0], [0, 0], [-1.1, 1.1], color="gray", lw=0.6, alpha=0.5)
+    depth_cmap = plt.cm.coolwarm
+    for k in range(n_proto):
+        d = all_decoded[k]
+        theta = d.get(f"{sp}.theta")
+        phi_val = d.get(f"{sp}.phi")
+        if theta is None or phi_val is None:
+            continue
+        sin_phi = float(np.sin(phi_val))
+        rx = sin_phi * float(np.cos(theta))
+        ry = sin_phi * float(np.sin(theta))
+        rz = float(np.cos(phi_val))
+        # mpl(x,y,z) = (real_x, real_z, real_y)
+        mx, my_d, mz = rx, rz, ry
+        n_seg = 18
+        ts = np.linspace(0, 1, n_seg + 1)
+        for i in range(n_seg):
+            t0, t1 = ts[i], ts[i + 1]
+            depth_mid = (t0 + t1) / 2 * my_d
+            seg_color = depth_cmap((depth_mid + 1.0) / 2.0)
+            ax3d.plot([t0 * mx, t1 * mx], [t0 * my_d, t1 * my_d],
+                      [t0 * mz, t1 * mz], color=seg_color, lw=arrow_lws[k])
+        tip_color = depth_cmap((my_d + 1.0) / 2.0)
+        ax3d.scatter([mx], [my_d], [mz], color=tip_color,
+                     s=60, edgecolors="black", linewidths=0.7, zorder=5)
+        ax3d.text(mx * 1.15, my_d * 1.15, mz * 1.15,
+                  f"μ{k+1}", fontsize=6, ha="center", va="center")
+    ax3d.set_xlim(-1.1, 1.1)
+    ax3d.set_ylim(-1.1, 1.1)
+    ax3d.set_zlim(-1.1, 1.1)
+    ax3d.set_xticks([-1, 0, 1])
+    ax3d.set_yticks([-1, 0, 1])
+    ax3d.set_zticks([-1, 0, 1])
+    ax3d.set_title(f"μ — {sp}", fontsize=9)
+    ax3d.view_init(elev=0, azim=-90)
+    try:
+        ax3d.set_box_aspect((1, 1, 1))
+    except AttributeError:
+        pass
+
+
+def _draw_mu_circular(ax, result: AxisCodingResult, encoder: ComponentEncoder, cp: str):
+    """Dial showing the μ angle on the unit circle."""
+    if result.mu_decoded is None:
+        ax.axis("off")
+        return
+    if result.mus_decoded is not None:
+        all_decoded = list(result.mus_decoded)
+        amps = list(result.prototype_amplitudes or [1.0] * len(all_decoded))
+    else:
+        all_decoded = [result.mu_decoded]
+        amps = [1.0]
+    cmap = plt.get_cmap("tab10")
+    amps_arr = np.asarray(amps, dtype=np.float64)
+    amp_max = float(amps_arr.max()) if amps_arr.size else 1.0
+    amp_rel = amps_arr / max(amp_max, 1e-12)
+    lws = 1.5 + 3.0 * amp_rel
+
+    ax.set_xlim(-1.3, 1.3)
+    ax.set_ylim(-1.3, 1.3)
+    ax.set_aspect("equal")
+    circ_t = np.linspace(0, 2 * np.pi, 100)
+    ax.plot(np.cos(circ_t), np.sin(circ_t), color="lightgray", lw=0.6)
+    ax.axhline(0, color="gray", lw=0.4)
+    ax.axvline(0, color="gray", lw=0.4)
+    for k, d in enumerate(all_decoded):
+        ang = d.get(cp)
+        if ang is None:
+            continue
+        x = np.cos(ang)
+        y = np.sin(ang)
+        ax.annotate("", xy=(x, y), xytext=(0, 0),
+                    arrowprops=dict(arrowstyle="->",
+                                    color=cmap(k % 10), lw=lws[k]))
+        ax.scatter([x], [y], color=cmap(k % 10), s=40,
+                   edgecolors="black", linewidths=0.6, zorder=5,
+                   label=f"μ{k+1}: {np.degrees(ang):+.0f}°")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_title(f"μ — {cp}", fontsize=9)
+    ax.legend(fontsize=6, loc="lower right")
+
+
+def _draw_pred_vs_actual(ax, result: AxisCodingResult):
+    actual = np.asarray(result.actual_responses)
+    pred = np.asarray(result.predicted_responses)
+    ax.scatter(actual, pred, s=12, alpha=0.6)
+    lims = [float(min(actual.min(), pred.min())),
+            float(max(actual.max(), pred.max()))]
+    ax.plot(lims, lims, "k--", lw=1)
+    ax.set_xlabel("Actual")
+    ax.set_ylabel("Predicted")
+    cv = result.ridge_summary.get("cv_r2_mean")
+    ax.set_title(f"Pred vs actual\nCV R² = {cv if cv is None else f'{cv:+.3f}'}")
+
+
+def _draw_top_w_bar(ax, result: AxisCodingResult):
+    if result.w_in_feature_space is not None:
+        w = np.asarray(result.w_in_feature_space, dtype=np.float64)
+    else:
+        w = np.asarray(result.ridge_summary.get("weights") or [], dtype=np.float64)
+    names = result.feature_names or []
+    if not (w.size and names and len(names) == w.size):
+        ax.axis("off")
+        return
+    order = np.argsort(-np.abs(w))[:10]
+    y = np.arange(len(order))
+    ax.barh(y, w[order], color="steelblue")
+    ax.set_yticks(y)
+    ax.set_yticklabels([names[i] for i in order], fontsize=7)
+    ax.invert_yaxis()
+    ax.axvline(0, color="black", lw=0.8)
+    ax.set_title("Top |w|  (preferred axis)")
+
+
+def _draw_top_orth_bar(ax, result: AxisCodingResult):
+    if result.orthogonal_axis_in_feature_space is not None:
+        orth = np.asarray(result.orthogonal_axis_in_feature_space, dtype=np.float64)
+    elif result.orthogonal_axis is not None:
+        orth = np.asarray(result.orthogonal_axis, dtype=np.float64)
+    else:
+        orth = np.array([])
+    names = result.feature_names or []
+    if not (orth.size and names and len(names) == orth.size):
+        ax.axis("off")
+        return
+    order = np.argsort(-np.abs(orth))[:10]
+    y = np.arange(len(order))
+    ax.barh(y, orth[order], color="darkorange")
+    ax.set_yticks(y)
+    ax.set_yticklabels([names[i] for i in order], fontsize=7)
+    ax.invert_yaxis()
+    ax.axvline(0, color="black", lw=0.8)
+    ax.set_title("Top |orth|  (principal orth axis)")
+
+
+def _draw_slope_per_axis(ax, result: AxisCodingResult, n_axes: int):
+    actual = np.asarray(result.actual_responses, dtype=np.float64)
+    axis_proj = compute_axis_projections(result)
+    proj_orth = (
+        np.asarray(result.all_orthogonal_projections, dtype=np.float64)
+        if result.all_orthogonal_projections is not None
+        else np.zeros((axis_proj.size, 0))
+    )
+    proj_all = np.column_stack([axis_proj, proj_orth]) if proj_orth.size else axis_proj.reshape(-1, 1)
+    slopes = np.zeros(n_axes); lo = np.zeros(n_axes); hi = np.zeros(n_axes)
+    for k in range(n_axes):
+        col = proj_all[:, k]
+        if col.std() > 1e-12:
+            s, _, l, h = _theilsen_fit(col, actual)
+            slopes[k], lo[k], hi[k] = s, l, h
+    x = np.arange(n_axes)
+    labels = ["pref"] + [f"o{k+1}" for k in range(n_axes - 1)]
+    colors = ["forestgreen"] + ["steelblue"] * (n_axes - 1)
+    yerr = np.vstack([np.maximum(slopes - lo, 0), np.maximum(hi - slopes, 0)])
+    ax.bar(x, slopes, color=colors, yerr=yerr, capsize=3, ecolor="black",
+           error_kw={"lw": 0.7})
+    ax.axhline(0, color="black", lw=0.7)
+    ax.set_xticks(x); ax.set_xticklabels(labels, fontsize=7, rotation=45, ha="right")
+    ax.set_ylabel("Slope (Theil–Sen)"); ax.set_title("Slope per axis (95% CI)")
+
+
+def _draw_abs_rho_per_axis(ax, result: AxisCodingResult, n_axes: int):
+    actual = np.asarray(result.actual_responses, dtype=np.float64)
+    axis_proj = compute_axis_projections(result)
+    proj_orth = (
+        np.asarray(result.all_orthogonal_projections, dtype=np.float64)
+        if result.all_orthogonal_projections is not None
+        else np.zeros((axis_proj.size, 0))
+    )
+    proj_all = np.column_stack([axis_proj, proj_orth]) if proj_orth.size else axis_proj.reshape(-1, 1)
+    rhos = np.zeros(n_axes)
+    for k in range(n_axes):
+        col = proj_all[:, k]
+        if col.std() > 1e-12:
+            r, _ = spearmanr(col, actual)
+            rhos[k] = abs(r) if r is not None else 0.0
+    x = np.arange(n_axes)
+    labels = ["pref"] + [f"o{k+1}" for k in range(n_axes - 1)]
+    colors = ["forestgreen"] + ["steelblue"] * (n_axes - 1)
+    ax.bar(x, rhos, color=colors)
+    ax.axhline(0.1, color="gray", lw=1, ls="--")
+    ax.set_xticks(x); ax.set_xticklabels(labels, fontsize=7, rotation=45, ha="right")
+    ax.set_ylabel("|Spearman ρ|"); ax.set_title("|ρ| per axis")
+
+
 def plot_axes_stimuli(
     result: AxisCodingResult,
     n_per_axis: int = 7,
@@ -1466,6 +2366,7 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
         outlier_min_trials: int = 3,
         rf_filter: Optional[ReceptiveFieldFilter] = None,
         n_stimuli_per_axis: int = 12,
+        panel_config: Optional["PlotPanelConfig"] = None,
     ):
         super().__init__()
         self.component_types = component_types or [
@@ -1478,6 +2379,7 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
         self.outlier_min_trials = outlier_min_trials
         self.rf_filter = rf_filter
         self.n_stimuli_per_axis = n_stimuli_per_axis
+        self.panel_config = panel_config or PlotPanelConfig()
 
     # ------------------------------------------------------------------
     # Analysis API
@@ -1608,15 +2510,38 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                         f"{residuals[i]:+8.2f}"
                     )
 
-                fig = plot_axis_coding_result(
+                channel_str = _channel_to_str(channel)
+                base_title = (
+                    f"{channel_str} | {component_type} | {strategy.label}"
+                )
+
+                # Figure 1: shape vs appearance.
+                fig_app = plot_shape_vs_appearance(
                     result,
-                    title=(
-                        f"{_channel_to_str(channel)} | "
-                        f"{component_type} | {strategy.label}"
-                    ),
+                    title=f"{base_title}  —  shape vs appearance",
+                )
+                if fig_app is not None:
+                    if save_dir is not None:
+                        app_path = os.path.join(
+                            save_dir,
+                            f"axis_coding_{channel_str}_{component_type}_"
+                            f"{strategy.label}_appearance.png",
+                        )
+                        fig_app.savefig(app_path, dpi=150, bbox_inches="tight")
+                        print(f"  saved: {app_path}")
+                    if self.show_plots:
+                        plt.show()
+                    else:
+                        plt.close(fig_app)
+
+                # Figure 2: consolidated axis coding (replaces main + orth + μ).
+                fig = plot_axis_coding_consolidated(
+                    result,
+                    encoder=encoders_for_run[component_type],
+                    config=self.panel_config,
+                    title=base_title,
                 )
                 if save_dir is not None:
-                    channel_str = _channel_to_str(channel)
                     fig_path = os.path.join(
                         save_dir,
                         f"axis_coding_{channel_str}_{component_type}_"
@@ -1628,51 +2553,6 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                     plt.show()
                 else:
                     plt.close(fig)
-
-                # Companion diagnostic: flat-tuning across all orthogonal PCs.
-                fig_orth = plot_orthogonal_axes_diagnostic(
-                    result,
-                    title=(
-                        f"{_channel_to_str(channel)} | "
-                        f"{component_type} | {strategy.label}  —  orthogonal axes"
-                    ),
-                )
-                if fig_orth is not None:
-                    if save_dir is not None:
-                        orth_path = os.path.join(
-                            save_dir,
-                            f"axis_coding_{_channel_to_str(channel)}_"
-                            f"{component_type}_{strategy.label}_orthogonal.png",
-                        )
-                        fig_orth.savefig(orth_path, dpi=150, bbox_inches="tight")
-                        print(f"  saved: {orth_path}")
-                    if self.show_plots:
-                        plt.show()
-                    else:
-                        plt.close(fig_orth)
-
-                # μ in interpretable parameter space (linear bars + sphere/circle plots).
-                fig_mu = plot_mu_decoded(
-                    result,
-                    encoder=encoders_for_run[component_type],
-                    title=(
-                        f"{_channel_to_str(channel)} | "
-                        f"{component_type} | {strategy.label}  —  μ in parameter space"
-                    ),
-                )
-                if fig_mu is not None:
-                    if save_dir is not None:
-                        mu_path = os.path.join(
-                            save_dir,
-                            f"axis_coding_{_channel_to_str(channel)}_"
-                            f"{component_type}_{strategy.label}_mu.png",
-                        )
-                        fig_mu.savefig(mu_path, dpi=150, bbox_inches="tight")
-                        print(f"  saved: {mu_path}")
-                    if self.show_plots:
-                        plt.show()
-                    else:
-                        plt.close(fig_mu)
 
                 # Stimuli sampled uniformly along each axis (one row per axis).
                 fig_stim = plot_axes_stimuli(
