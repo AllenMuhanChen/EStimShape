@@ -152,6 +152,20 @@ class AxisCodingResult:
     # Per-texture shape CV R² (how shape model behaves within each texture group).
     texture_stratified_cv_r2: Optional[dict[str, float]] = None
     texture_stratified_n: Optional[dict[str, int]] = None
+    # Joint-model axis view (preferred + orth axes computed on [shape | appearance]).
+    # Same role as the shape-only fields above; used by plot_axis_coding_consolidated
+    # with view="joint". Back-projected fields concatenate original shape feature
+    # names with appearance feature names so the heatmap rows are interpretable.
+    joint_feature_names: Optional[list[str]] = None
+    joint_axis_projections: Optional[list[float]] = None
+    joint_orthogonal_projections: Optional[list[float]] = None
+    joint_orthogonal_axis: Optional[list[float]] = None
+    joint_all_orthogonal_axes: Optional[list[list[float]]] = None
+    joint_all_orthogonal_variances: Optional[list[float]] = None
+    joint_all_orthogonal_projections: Optional[list[list[float]]] = None
+    joint_w_in_feature_space: Optional[list[float]] = None
+    joint_orthogonal_axis_in_feature_space: Optional[list[float]] = None
+    joint_all_orthogonal_axes_in_feature_space: Optional[list[list[float]]] = None
 
     def to_json_dict(self) -> dict:
         d = self.__dict__.copy()
@@ -393,6 +407,49 @@ def fit_axis_coding(
         joint_predictions = pred_joint.tolist()
         residual_appearance_summary = ridge_resid.summary()
         residual_appearance_predictions = pred_resid.tolist()
+
+        # ---- Joint-model axis view ------------------------------------
+        # Same recipe as for the shape model, run on XA and the joint w.
+        # We back-project the shape block of each axis through PCA so the
+        # heatmap rows are original shape-feature names + appearance names.
+        w_joint = ridge_joint.w_
+        joint_axis_proj = _project_onto_unit(XA, w_joint)
+        joint_orth_axes, joint_orth_vars = compute_all_orthogonal_axes(XA, w_joint)
+        if joint_orth_axes.shape[1] > 0:
+            joint_orth_axis = joint_orth_axes[:, 0]
+            joint_orth_proj_all = XA @ joint_orth_axes
+            joint_orth_proj = joint_orth_proj_all[:, 0]
+        else:
+            joint_orth_axis = np.zeros_like(w_joint)
+            joint_orth_proj_all = np.zeros((XA.shape[0], 0))
+            joint_orth_proj = np.zeros(XA.shape[0])
+
+        n_app = A.shape[1]
+        # Combined feature names in the back-projected space.
+        joint_feature_names = list(dataset.feature_names) + list(appearance.feature_names)
+
+        def _bp_joint(v: np.ndarray) -> np.ndarray:
+            shape_part = v[:n_shape_feats]
+            app_part = v[n_shape_feats:]
+            if pca_pre is not None:
+                shape_bp = pca_pre.back_project(shape_part)
+            else:
+                shape_bp = shape_part
+            return np.concatenate([shape_bp, app_part])
+
+        joint_w_in_feat = _bp_joint(w_joint)
+        if np.linalg.norm(joint_orth_axis) > 1e-12:
+            joint_orth_axis_in_feat = _bp_joint(joint_orth_axis)
+        else:
+            joint_orth_axis_in_feat = np.zeros(len(joint_feature_names))
+
+        if joint_orth_axes.shape[1] > 0:
+            joint_all_orth_axes_in_feat = np.column_stack([
+                _bp_joint(joint_orth_axes[:, j])
+                for j in range(joint_orth_axes.shape[1])
+            ])
+        else:
+            joint_all_orth_axes_in_feat = np.zeros((len(joint_feature_names), 0))
     else:
         print("  [appearance] no Texture / AverageRGB columns found in df; skipping.")
         appearance_only_summary = None
@@ -403,6 +460,16 @@ def fit_axis_coding(
         joint_app_w = None
         residual_appearance_summary = None
         residual_appearance_predictions = None
+        joint_axis_proj = None
+        joint_orth_proj = None
+        joint_orth_axis = None
+        joint_orth_axes = None
+        joint_orth_vars = None
+        joint_orth_proj_all = None
+        joint_w_in_feat = None
+        joint_orth_axis_in_feat = None
+        joint_all_orth_axes_in_feat = None
+        joint_feature_names = None
 
     # 4) Texture-stratified shape CV R²: refit shape ridge within each
     # texture group (need enough samples; skip groups with <5).
@@ -499,6 +566,34 @@ def fit_axis_coding(
         residual_appearance_predictions=residual_appearance_predictions,
         texture_stratified_cv_r2=texture_strat_cv_r2 or None,
         texture_stratified_n=texture_strat_n or None,
+        joint_feature_names=joint_feature_names,
+        joint_axis_projections=(
+            joint_axis_proj.tolist() if joint_axis_proj is not None else None
+        ),
+        joint_orthogonal_projections=(
+            joint_orth_proj.tolist() if joint_orth_proj is not None else None
+        ),
+        joint_orthogonal_axis=(
+            joint_orth_axis.tolist() if joint_orth_axis is not None else None
+        ),
+        joint_all_orthogonal_axes=(
+            joint_orth_axes.tolist() if joint_orth_axes is not None else None
+        ),
+        joint_all_orthogonal_variances=(
+            joint_orth_vars.tolist() if joint_orth_vars is not None else None
+        ),
+        joint_all_orthogonal_projections=(
+            joint_orth_proj_all.tolist() if joint_orth_proj_all is not None else None
+        ),
+        joint_w_in_feature_space=(
+            joint_w_in_feat.tolist() if joint_w_in_feat is not None else None
+        ),
+        joint_orthogonal_axis_in_feature_space=(
+            joint_orth_axis_in_feat.tolist() if joint_orth_axis_in_feat is not None else None
+        ),
+        joint_all_orthogonal_axes_in_feature_space=(
+            joint_all_orth_axes_in_feat.tolist() if joint_all_orth_axes_in_feat is not None else None
+        ),
     )
 
     # Console summary for the appearance comparison.
@@ -1448,12 +1543,88 @@ def _signed_spearman(x: np.ndarray, y: np.ndarray) -> float:
     return float(rho) if rho is not None else float("nan")
 
 
+@dataclass
+class _AxisView:
+    """Lightweight view object — one set of axis-coding fields the plot reads."""
+    axis_projections: np.ndarray
+    orthogonal_projections: np.ndarray
+    all_orthogonal_projections: np.ndarray
+    all_orthogonal_variances: np.ndarray
+    feature_names: list[str]
+    w_in_feature_space: Optional[np.ndarray]
+    all_orthogonal_axes_in_feature_space: Optional[np.ndarray]
+    all_orthogonal_axes: Optional[np.ndarray]
+    orthogonal_axis: Optional[np.ndarray]
+    orthogonal_axis_in_feature_space: Optional[np.ndarray]
+    ridge_summary: dict
+    predicted_responses: np.ndarray
+
+
+def _make_axis_view(result: AxisCodingResult, view: str) -> _AxisView:
+    """Build a view of the result for one of {shape, joint}.
+
+    For the joint view, the back-projected loadings concatenate
+    (back-projected shape weights, raw appearance weights) and the heatmap
+    uses joint_feature_names. Predicted responses + ridge summary swap to the
+    joint ridge so the legacy pred-vs-actual panel reflects the right model.
+    """
+    def _np(x, default_shape=None):
+        if x is None:
+            return None if default_shape is None else np.zeros(default_shape)
+        return np.asarray(x, dtype=np.float64)
+
+    if view == "joint" and result.joint_axis_projections is not None:
+        axis_proj = _np(result.joint_axis_projections)
+        orth_proj = _np(result.joint_orthogonal_projections, (axis_proj.size,))
+        all_orth_proj = _np(result.joint_all_orthogonal_projections,
+                             (axis_proj.size, 0))
+        variances = _np(result.joint_all_orthogonal_variances, (0,))
+        feature_names = list(result.joint_feature_names or [])
+        w_feat = _np(result.joint_w_in_feature_space)
+        all_orth_axes_feat = _np(result.joint_all_orthogonal_axes_in_feature_space)
+        all_orth_axes = _np(result.joint_all_orthogonal_axes)
+        orth_axis = _np(result.joint_orthogonal_axis)
+        orth_axis_feat = _np(result.joint_orthogonal_axis_in_feature_space)
+        ridge_summary = result.joint_summary or {}
+        pred = _np(result.joint_predictions, (axis_proj.size,))
+    else:
+        axis_proj = _np(result.axis_projections)
+        orth_proj = _np(result.orthogonal_projections, (axis_proj.size,))
+        all_orth_proj = _np(result.all_orthogonal_projections,
+                             (axis_proj.size, 0))
+        variances = _np(result.all_orthogonal_variances, (0,))
+        feature_names = list(result.feature_names or [])
+        w_feat = _np(result.w_in_feature_space)
+        all_orth_axes_feat = _np(result.all_orthogonal_axes_in_feature_space)
+        all_orth_axes = _np(result.all_orthogonal_axes)
+        orth_axis = _np(result.orthogonal_axis)
+        orth_axis_feat = _np(result.orthogonal_axis_in_feature_space)
+        ridge_summary = result.ridge_summary
+        pred = _np(result.predicted_responses, (axis_proj.size,))
+
+    return _AxisView(
+        axis_projections=axis_proj,
+        orthogonal_projections=orth_proj,
+        all_orthogonal_projections=all_orth_proj,
+        all_orthogonal_variances=variances,
+        feature_names=feature_names,
+        w_in_feature_space=w_feat,
+        all_orthogonal_axes_in_feature_space=all_orth_axes_feat,
+        all_orthogonal_axes=all_orth_axes,
+        orthogonal_axis=orth_axis,
+        orthogonal_axis_in_feature_space=orth_axis_feat,
+        ridge_summary=ridge_summary,
+        predicted_responses=pred,
+    )
+
+
 def plot_axis_coding_consolidated(
     result: AxisCodingResult,
     encoder: Optional[ComponentEncoder] = None,
     config: Optional[PlotPanelConfig] = None,
     title: Optional[str] = None,
     n_bins: int = 10,
+    view: str = "shape",
 ) -> plt.Figure:
     """
     All axis-coding panels in one figure (3 × 4 by default), driven by
@@ -1479,24 +1650,13 @@ def plot_axis_coding_consolidated(
     from matplotlib.gridspec import GridSpec
 
     cfg = config or PlotPanelConfig()
+    av = _make_axis_view(result, view)
 
     actual = np.asarray(result.actual_responses, dtype=np.float64)
-    axis_proj = compute_axis_projections(result)
-    orth_proj = (
-        np.asarray(result.orthogonal_projections, dtype=np.float64)
-        if result.orthogonal_projections is not None
-        else np.zeros_like(axis_proj)
-    )
-    proj_orth_all = (
-        np.asarray(result.all_orthogonal_projections, dtype=np.float64)
-        if result.all_orthogonal_projections is not None
-        else np.zeros((axis_proj.size, 0))
-    )
-    variances_orth = (
-        np.asarray(result.all_orthogonal_variances, dtype=np.float64)
-        if result.all_orthogonal_variances is not None
-        else np.zeros(0)
-    )
+    axis_proj = av.axis_projections
+    orth_proj = av.orthogonal_projections
+    proj_orth_all = av.all_orthogonal_projections
+    variances_orth = av.all_orthogonal_variances
 
     n_orth = proj_orth_all.shape[1] if proj_orth_all.ndim == 2 else 0
     n_axes = 1 + n_orth
@@ -1607,19 +1767,18 @@ def plot_axis_coding_consolidated(
     # ---------- Row 1 ----------
     if cfg.show_loadings_heatmap:
         ax = _add(1, 0)
-        feature_names = result.feature_names or []
-        if result.w_in_feature_space is not None:
-            w_feat = np.asarray(result.w_in_feature_space, dtype=np.float64)
+        feature_names = av.feature_names
+        if av.w_in_feature_space is not None and av.w_in_feature_space.size:
+            w_feat = av.w_in_feature_space
         else:
             w_feat = np.asarray(
-                result.ridge_summary.get("weights") or [], dtype=np.float64
+                av.ridge_summary.get("weights") or [], dtype=np.float64
             )
-        if result.all_orthogonal_axes_in_feature_space is not None:
-            orth_loadings = np.asarray(
-                result.all_orthogonal_axes_in_feature_space, dtype=np.float64
-            )
-        elif result.all_orthogonal_axes is not None:
-            orth_loadings = np.asarray(result.all_orthogonal_axes, dtype=np.float64)
+        if (av.all_orthogonal_axes_in_feature_space is not None
+                and av.all_orthogonal_axes_in_feature_space.size):
+            orth_loadings = av.all_orthogonal_axes_in_feature_space
+        elif av.all_orthogonal_axes is not None and av.all_orthogonal_axes.size:
+            orth_loadings = av.all_orthogonal_axes
         else:
             orth_loadings = np.zeros((len(feature_names), 0))
         if w_feat.size and feature_names and len(feature_names) == w_feat.size:
@@ -2555,12 +2714,13 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                     else:
                         plt.close(fig_app)
 
-                # Figure 2: consolidated axis coding (replaces main + orth + μ).
+                # Figure 2: consolidated axis coding (shape model).
                 fig = plot_axis_coding_consolidated(
                     result,
                     encoder=encoders_for_run[component_type],
                     config=self.panel_config,
-                    title=base_title,
+                    title=f"{base_title}  —  shape axes",
+                    view="shape",
                 )
                 if save_dir is not None:
                     fig_path = os.path.join(
@@ -2574,6 +2734,31 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                     plt.show()
                 else:
                     plt.close(fig)
+
+                # Figure 2b: same plot but using the joint shape+appearance
+                # model. Preferred axis is now in (shape | appearance) space;
+                # orth axes and loadings include both feature blocks. Skipped
+                # if the joint fit was unavailable (no Texture/AverageRGB cols).
+                if result.joint_axis_projections is not None:
+                    fig_joint = plot_axis_coding_consolidated(
+                        result,
+                        encoder=encoders_for_run[component_type],
+                        config=self.panel_config,
+                        title=f"{base_title}  —  joint axes (shape + appearance)",
+                        view="joint",
+                    )
+                    if save_dir is not None:
+                        joint_fig_path = os.path.join(
+                            save_dir,
+                            f"axis_coding_{channel_str}_{component_type}_"
+                            f"{strategy.label}_joint.png",
+                        )
+                        fig_joint.savefig(joint_fig_path, dpi=150, bbox_inches="tight")
+                        print(f"  saved: {joint_fig_path}")
+                    if self.show_plots:
+                        plt.show()
+                    else:
+                        plt.close(fig_joint)
 
                 # Stimuli sampled uniformly along each axis (one row per axis).
                 fig_stim = plot_axes_stimuli(
