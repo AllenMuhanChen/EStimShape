@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import json
 import os
 from dataclasses import dataclass
@@ -24,6 +25,16 @@ from src.analysis.ga.axis_coding.axis_coding_dataset import (
     remove_trial_outliers,
 )
 from src.analysis.ga.axis_coding.appearance_features import AppearanceFeatures
+from src.analysis.ga.axis_coding.axis_models import (
+    BuildResult,
+    FitContext,
+    ModelAxisFit,
+    ModelSpec,
+    appearance_model,
+    default_axis_models,
+    shape_model,
+    shape_plus_appearance_model,
+)
 from src.analysis.ga.axis_coding.component_encoding import (
     ComponentEncoder,
     PCAPreprocessor,
@@ -152,20 +163,13 @@ class AxisCodingResult:
     # Per-texture shape CV R² (how shape model behaves within each texture group).
     texture_stratified_cv_r2: Optional[dict[str, float]] = None
     texture_stratified_n: Optional[dict[str, int]] = None
-    # Joint-model axis view (preferred + orth axes computed on [shape | appearance]).
-    # Same role as the shape-only fields above; used by plot_axis_coding_consolidated
-    # with view="joint". Back-projected fields concatenate original shape feature
-    # names with appearance feature names so the heatmap rows are interpretable.
-    joint_feature_names: Optional[list[str]] = None
-    joint_axis_projections: Optional[list[float]] = None
-    joint_orthogonal_projections: Optional[list[float]] = None
-    joint_orthogonal_axis: Optional[list[float]] = None
-    joint_all_orthogonal_axes: Optional[list[list[float]]] = None
-    joint_all_orthogonal_variances: Optional[list[float]] = None
-    joint_all_orthogonal_projections: Optional[list[list[float]]] = None
-    joint_w_in_feature_space: Optional[list[float]] = None
-    joint_orthogonal_axis_in_feature_space: Optional[list[float]] = None
-    joint_all_orthogonal_axes_in_feature_space: Optional[list[list[float]]] = None
+    # Pluggable per-model axis fits. Each entry is a ModelAxisFit (see
+    # axis_models.py). The shape model's fit also populates the flat
+    # axis_projections/orthogonal_*/feature_names fields above for back-compat
+    # with plot_axes_stimuli and any callers that read them directly.
+    # Default models: shape, appearance, shape+appearance; users add more by
+    # passing axis_models=[...] to AxisCodingAnalysis.
+    model_fits: Optional[dict[str, dict]] = None  # dict[name, ModelAxisFit-as-dict]
 
     def to_json_dict(self) -> dict:
         d = self.__dict__.copy()
@@ -237,6 +241,83 @@ def compute_noise_ceiling(
 
 
 # ---------------------------------------------------------------------------
+# Per-model axis fitting (ridge → preferred axis → orth basis → back-project)
+# ---------------------------------------------------------------------------
+
+def _fit_model_axes(
+    spec: ModelSpec,
+    ctx: FitContext,
+    ridge_factory: Optional[RidgeFactory],
+) -> ModelAxisFit:
+    """
+    Run the axis-coding pipeline on one model: build design → fit ridge → take
+    the ridge weight as the preferred axis → compute the orthonormal basis on
+    the orthogonal subspace → back-project the axis loadings to interpretable
+    feature space (when the spec provides a back-projection).
+
+    Same recipe regardless of model, so adding a new ``ModelSpec`` doesn't
+    require any new code outside its builder.
+    """
+    br: BuildResult = spec.builder(ctx)
+    design = np.asarray(br.design, dtype=np.float64)
+
+    ridge = ridge_factory() if ridge_factory is not None else RidgeRegressionAxisModel()
+    ridge.fit(design, ctx.responses, feature_names=br.feature_names_model)
+    predictions = ridge.predict(design)
+    w = ridge.w_
+
+    axis_proj = _project_onto_unit(design, w)
+    all_orth_axes, all_orth_vars = compute_all_orthogonal_axes(design, w)
+    if all_orth_axes.shape[1] > 0:
+        orth_axis = all_orth_axes[:, 0]
+        all_orth_proj = design @ all_orth_axes
+        orth_proj = all_orth_proj[:, 0]
+    else:
+        orth_axis = np.zeros_like(w)
+        all_orth_proj = np.zeros((design.shape[0], 0))
+        orth_proj = np.zeros(design.shape[0])
+
+    w_in_feat: Optional[np.ndarray] = None
+    orth_axis_in_feat: Optional[np.ndarray] = None
+    all_orth_axes_in_feat: Optional[np.ndarray] = None
+    if br.back_project is not None:
+        w_in_feat = br.back_project(w)
+        if np.linalg.norm(orth_axis) > 1e-12:
+            orth_axis_in_feat = br.back_project(orth_axis)
+        else:
+            orth_axis_in_feat = np.zeros(len(br.feature_names_interp))
+        if all_orth_axes.shape[1] > 0:
+            all_orth_axes_in_feat = np.column_stack([
+                br.back_project(all_orth_axes[:, j])
+                for j in range(all_orth_axes.shape[1])
+            ])
+        else:
+            all_orth_axes_in_feat = np.zeros((len(br.feature_names_interp), 0))
+
+    return ModelAxisFit(
+        name=spec.name,
+        feature_names_model=list(br.feature_names_model),
+        feature_names_interp=list(br.feature_names_interp),
+        has_shape_mu=spec.has_shape_mu,
+        ridge_summary=ridge.summary(),
+        predictions=predictions.tolist(),
+        axis_projections=axis_proj.tolist(),
+        orth_projections=orth_proj.tolist(),
+        all_orth_projections=all_orth_proj.tolist(),
+        orth_axis=orth_axis.tolist(),
+        all_orth_axes=all_orth_axes.tolist(),
+        all_orth_variances=all_orth_vars.tolist(),
+        w_in_feature_space=w_in_feat.tolist() if w_in_feat is not None else None,
+        orth_axis_in_feature_space=(
+            orth_axis_in_feat.tolist() if orth_axis_in_feat is not None else None
+        ),
+        all_orth_axes_in_feature_space=(
+            all_orth_axes_in_feat.tolist() if all_orth_axes_in_feat is not None else None
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
 # Core fit routine -- usable from pipeline or direct call
 # ---------------------------------------------------------------------------
 
@@ -251,6 +332,7 @@ def fit_axis_coding(
     save_dir: Optional[str] = None,
     ridge_factory: Optional[RidgeFactory] = None,
     n_pcs: Optional[int] = None,
+    axis_models: Optional[list[ModelSpec]] = None,
 ) -> AxisCodingResult:
     dataset = AxisCodingDataset.build(
         df=df,
@@ -282,36 +364,75 @@ def fit_axis_coding(
     selector.fit(components_for_selector, dataset.responses)
     X = selector.selected_vectors(components_for_selector)
 
-    ridge = ridge_factory() if ridge_factory is not None else RidgeRegressionAxisModel()
-    ridge.fit(X, dataset.responses, feature_names=feature_names_for_model)
-    predicted = ridge.predict(X)
+    pca_var: Optional[list[float]] = (
+        pca_pre.explained_variance_ratio.tolist() if pca_pre is not None else None
+    )
 
-    # Preferred-axis projections and ALL orthogonal axes (sorted by variance).
-    w = ridge.w_
-    axis_projections = _project_onto_unit(X, w)
-    all_orth_axes, all_orth_variances = compute_all_orthogonal_axes(X, w)
-    if all_orth_axes.shape[1] > 0:
-        orth_axis = all_orth_axes[:, 0]              # principal orthogonal (top variance)
-        all_orth_projections = X @ all_orth_axes     # (n_stim, n_orth)
-        orth_projections = all_orth_projections[:, 0]
-    else:
-        orth_axis = np.zeros_like(w)
-        all_orth_projections = np.zeros((X.shape[0], 0))
-        orth_projections = np.zeros(X.shape[0])
+    # ------------------------------------------------------------------
+    # Build appearance features early so model builders can use them.
+    # Pluggable models (axis_models) each get a ModelAxisFit; the shape model
+    # is the canonical "primary" and its fields are aliased to the flat
+    # AxisCodingResult fields below for backward compatibility with callers
+    # that don't know about model_fits yet.
+    # ------------------------------------------------------------------
+    appearance = AppearanceFeatures.build(df, dataset.stim_ids)
+    A = appearance.features
+    if appearance.n_missing_texture or appearance.n_missing_rgb:
+        print(
+            f"  [appearance] missing texture: {appearance.n_missing_texture}, "
+            f"missing RGB: {appearance.n_missing_rgb} (of {appearance.n_stim})"
+        )
 
-    # Back-project from PC space to original feature space for interpretability.
-    w_feat: Optional[np.ndarray] = None
-    orth_axis_feat: Optional[np.ndarray] = None
-    all_orth_axes_feat: Optional[np.ndarray] = None
-    pca_var: Optional[list[float]] = None
-    if pca_pre is not None:
-        w_feat = pca_pre.back_project(w)
-        if np.linalg.norm(orth_axis) > 1e-12:
-            orth_axis_feat = pca_pre.back_project(orth_axis)
-        if all_orth_axes.shape[1] > 0:
-            # back-project each column: (d_orig, k) @ (k, n_orth) = (d_orig, n_orth)
-            all_orth_axes_feat = pca_pre._pca.components_.T @ all_orth_axes
-        pca_var = pca_pre.explained_variance_ratio.tolist()
+    fit_ctx = FitContext(
+        X_shape=X,
+        A_appearance=A,
+        shape_feature_names_model=list(feature_names_for_model),
+        shape_feature_names_orig=list(dataset.feature_names),
+        appearance_feature_names=list(appearance.feature_names),
+        pca_pre=pca_pre,
+        responses=dataset.responses,
+    )
+
+    models = list(axis_models) if axis_models is not None else default_axis_models()
+    model_fits: dict[str, ModelAxisFit] = {}
+    for spec in models:
+        if spec.requires_appearance and A.shape[1] == 0:
+            print(f"  [{spec.name}] skipped: requires appearance features")
+            continue
+        model_fits[spec.name] = _fit_model_axes(spec, fit_ctx, ridge_factory)
+        ms = model_fits[spec.name].ridge_summary
+        cv = ms.get("cv_r2_mean")
+        cv_str = f"{cv:+.3f}" if cv is not None and not (isinstance(cv, float) and np.isnan(cv)) else "n/a"
+        print(f"  [model:{spec.name}] cv_r2={cv_str}  d={len(ms.get('feature_names') or [])}")
+
+    # Pull shape-model artifacts back out as locals for the rest of the
+    # function (residual fit, μ decoding, result construction) — these still
+    # operate on the shape model specifically.
+    if "shape" not in model_fits:
+        raise RuntimeError(
+            "axis_models must include a 'shape' model; got: "
+            f"{[s.name for s in models]}"
+        )
+    shape_fit = model_fits["shape"]
+    predicted = np.asarray(shape_fit.predictions, dtype=np.float64)
+    axis_projections = np.asarray(shape_fit.axis_projections, dtype=np.float64)
+    orth_projections = np.asarray(shape_fit.orth_projections, dtype=np.float64)
+    all_orth_projections = np.asarray(shape_fit.all_orth_projections, dtype=np.float64)
+    orth_axis = np.asarray(shape_fit.orth_axis, dtype=np.float64)
+    all_orth_axes = np.asarray(shape_fit.all_orth_axes, dtype=np.float64)
+    all_orth_variances = np.asarray(shape_fit.all_orth_variances, dtype=np.float64)
+    w_feat = (
+        np.asarray(shape_fit.w_in_feature_space, dtype=np.float64)
+        if shape_fit.w_in_feature_space is not None else None
+    )
+    orth_axis_feat = (
+        np.asarray(shape_fit.orth_axis_in_feature_space, dtype=np.float64)
+        if shape_fit.orth_axis_in_feature_space is not None else None
+    )
+    all_orth_axes_feat = (
+        np.asarray(shape_fit.all_orth_axes_in_feature_space, dtype=np.float64)
+        if shape_fit.all_orth_axes_in_feature_space is not None else None
+    )
 
     # Decode μ into interpretable parameter space.
     # μ lives in selector-space: PC space if PCA was used, feature (z-scored) otherwise.
@@ -361,115 +482,48 @@ def fit_axis_coding(
     )
 
     # ------------------------------------------------------------------
-    # Appearance comparison: texture (one-hot) + average RGB.
-    # All ridges use the same factory as the shape model so CV R² values
-    # are directly comparable. Predictions are in-sample (same as the
-    # shape model's predicted_responses); CV R² is held-out (ShuffleSplit
-    # inside RidgeRegressionAxisModel).
+    # Appearance summaries (for plot_shape_vs_appearance) pulled from the
+    # built-in models. Plus the residual-on-appearance fit (a metric, not a
+    # per-model axis fit, so it lives outside model_fits).
     # ------------------------------------------------------------------
-    appearance = AppearanceFeatures.build(df, dataset.stim_ids)
-    A = appearance.features
-    if A.shape[1] > 0:
-        if appearance.n_missing_texture or appearance.n_missing_rgb:
-            print(
-                f"  [appearance] missing texture: {appearance.n_missing_texture}, "
-                f"missing RGB: {appearance.n_missing_rgb} (of {appearance.n_stim})"
-            )
-
-        def _new_ridge():
-            return ridge_factory() if ridge_factory is not None else RidgeRegressionAxisModel()
-
-        # 1) Appearance only.
-        ridge_app = _new_ridge()
-        ridge_app.fit(A, dataset.responses, feature_names=appearance.feature_names)
-        pred_app = ridge_app.predict(A)
-
-        # 2) Joint shape + appearance: stack the same selector-output X with A.
-        XA = np.column_stack([X, A])
-        joint_names = list(feature_names_for_model) + list(appearance.feature_names)
-        ridge_joint = _new_ridge()
-        ridge_joint.fit(XA, dataset.responses, feature_names=joint_names)
-        pred_joint = ridge_joint.predict(XA)
+    appearance_only_summary = (
+        model_fits["appearance"].ridge_summary if "appearance" in model_fits else None
+    )
+    appearance_only_predictions = (
+        model_fits["appearance"].predictions if "appearance" in model_fits else None
+    )
+    joint_summary = (
+        model_fits["shape+appearance"].ridge_summary
+        if "shape+appearance" in model_fits else None
+    )
+    joint_predictions = (
+        model_fits["shape+appearance"].predictions
+        if "shape+appearance" in model_fits else None
+    )
+    if "shape+appearance" in model_fits:
         n_shape_feats = X.shape[1]
-        joint_shape_w = ridge_joint.w_[:n_shape_feats].tolist()
-        joint_app_w = ridge_joint.w_[n_shape_feats:].tolist()
-
-        # 3) Appearance on shape residuals: in-sample residuals, CV-R² of
-        # appearance on those residuals (held-out).
-        residuals = dataset.responses - predicted
-        ridge_resid = _new_ridge()
-        ridge_resid.fit(A, residuals, feature_names=appearance.feature_names)
-        pred_resid = ridge_resid.predict(A)
-
-        appearance_only_summary = ridge_app.summary()
-        appearance_only_predictions = pred_app.tolist()
-        joint_summary = ridge_joint.summary()
-        joint_predictions = pred_joint.tolist()
-        residual_appearance_summary = ridge_resid.summary()
-        residual_appearance_predictions = pred_resid.tolist()
-
-        # ---- Joint-model axis view ------------------------------------
-        # Same recipe as for the shape model, run on XA and the joint w.
-        # We back-project the shape block of each axis through PCA so the
-        # heatmap rows are original shape-feature names + appearance names.
-        w_joint = ridge_joint.w_
-        joint_axis_proj = _project_onto_unit(XA, w_joint)
-        joint_orth_axes, joint_orth_vars = compute_all_orthogonal_axes(XA, w_joint)
-        if joint_orth_axes.shape[1] > 0:
-            joint_orth_axis = joint_orth_axes[:, 0]
-            joint_orth_proj_all = XA @ joint_orth_axes
-            joint_orth_proj = joint_orth_proj_all[:, 0]
-        else:
-            joint_orth_axis = np.zeros_like(w_joint)
-            joint_orth_proj_all = np.zeros((XA.shape[0], 0))
-            joint_orth_proj = np.zeros(XA.shape[0])
-
-        n_app = A.shape[1]
-        # Combined feature names in the back-projected space.
-        joint_feature_names = list(dataset.feature_names) + list(appearance.feature_names)
-
-        def _bp_joint(v: np.ndarray) -> np.ndarray:
-            shape_part = v[:n_shape_feats]
-            app_part = v[n_shape_feats:]
-            if pca_pre is not None:
-                shape_bp = pca_pre.back_project(shape_part)
-            else:
-                shape_bp = shape_part
-            return np.concatenate([shape_bp, app_part])
-
-        joint_w_in_feat = _bp_joint(w_joint)
-        if np.linalg.norm(joint_orth_axis) > 1e-12:
-            joint_orth_axis_in_feat = _bp_joint(joint_orth_axis)
-        else:
-            joint_orth_axis_in_feat = np.zeros(len(joint_feature_names))
-
-        if joint_orth_axes.shape[1] > 0:
-            joint_all_orth_axes_in_feat = np.column_stack([
-                _bp_joint(joint_orth_axes[:, j])
-                for j in range(joint_orth_axes.shape[1])
-            ])
-        else:
-            joint_all_orth_axes_in_feat = np.zeros((len(joint_feature_names), 0))
+        sa_w = np.asarray(
+            model_fits["shape+appearance"].ridge_summary.get("weights") or [],
+            dtype=np.float64,
+        )
+        joint_shape_w = sa_w[:n_shape_feats].tolist() if sa_w.size else None
+        joint_app_w = sa_w[n_shape_feats:].tolist() if sa_w.size else None
     else:
-        print("  [appearance] no Texture / AverageRGB columns found in df; skipping.")
-        appearance_only_summary = None
-        appearance_only_predictions = None
-        joint_summary = None
-        joint_predictions = None
         joint_shape_w = None
         joint_app_w = None
-        residual_appearance_summary = None
-        residual_appearance_predictions = None
-        joint_axis_proj = None
-        joint_orth_proj = None
-        joint_orth_axis = None
-        joint_orth_axes = None
-        joint_orth_vars = None
-        joint_orth_proj_all = None
-        joint_w_in_feat = None
-        joint_orth_axis_in_feat = None
-        joint_all_orth_axes_in_feat = None
-        joint_feature_names = None
+
+    # Appearance ridge fit on shape-model residuals (separate from the model
+    # loop because it predicts residuals, not responses).
+    residual_appearance_summary = None
+    residual_appearance_predictions = None
+    if A.shape[1] > 0:
+        residuals = dataset.responses - predicted
+        ridge_resid = (
+            ridge_factory() if ridge_factory is not None else RidgeRegressionAxisModel()
+        )
+        ridge_resid.fit(A, residuals, feature_names=appearance.feature_names)
+        residual_appearance_summary = ridge_resid.summary()
+        residual_appearance_predictions = ridge_resid.predict(A).tolist()
 
     # 4) Texture-stratified shape CV R²: refit shape ridge within each
     # texture group (need enough samples; skip groups with <5).
@@ -566,33 +620,8 @@ def fit_axis_coding(
         residual_appearance_predictions=residual_appearance_predictions,
         texture_stratified_cv_r2=texture_strat_cv_r2 or None,
         texture_stratified_n=texture_strat_n or None,
-        joint_feature_names=joint_feature_names,
-        joint_axis_projections=(
-            joint_axis_proj.tolist() if joint_axis_proj is not None else None
-        ),
-        joint_orthogonal_projections=(
-            joint_orth_proj.tolist() if joint_orth_proj is not None else None
-        ),
-        joint_orthogonal_axis=(
-            joint_orth_axis.tolist() if joint_orth_axis is not None else None
-        ),
-        joint_all_orthogonal_axes=(
-            joint_orth_axes.tolist() if joint_orth_axes is not None else None
-        ),
-        joint_all_orthogonal_variances=(
-            joint_orth_vars.tolist() if joint_orth_vars is not None else None
-        ),
-        joint_all_orthogonal_projections=(
-            joint_orth_proj_all.tolist() if joint_orth_proj_all is not None else None
-        ),
-        joint_w_in_feature_space=(
-            joint_w_in_feat.tolist() if joint_w_in_feat is not None else None
-        ),
-        joint_orthogonal_axis_in_feature_space=(
-            joint_orth_axis_in_feat.tolist() if joint_orth_axis_in_feat is not None else None
-        ),
-        joint_all_orthogonal_axes_in_feature_space=(
-            joint_all_orth_axes_in_feat.tolist() if joint_all_orth_axes_in_feat is not None else None
+        model_fits=(
+            {name: dataclasses.asdict(fit) for name, fit in model_fits.items()}
         ),
     )
 
@@ -1560,34 +1589,34 @@ class _AxisView:
     predicted_responses: np.ndarray
 
 
-def _make_axis_view(result: AxisCodingResult, view: str) -> _AxisView:
-    """Build a view of the result for one of {shape, joint}.
-
-    For the joint view, the back-projected loadings concatenate
-    (back-projected shape weights, raw appearance weights) and the heatmap
-    uses joint_feature_names. Predicted responses + ridge summary swap to the
-    joint ridge so the legacy pred-vs-actual panel reflects the right model.
+def _make_axis_view(result: AxisCodingResult, model_name: str) -> _AxisView:
+    """
+    Build a view of one model's axis-coding fit. Looks up the model fit in
+    ``result.model_fits`` and assembles a uniform _AxisView regardless of
+    which model produced it. Falls back to the flat shape fields for
+    ``model_name="shape"`` if model_fits hasn't been populated (legacy json).
     """
     def _np(x, default_shape=None):
         if x is None:
             return None if default_shape is None else np.zeros(default_shape)
         return np.asarray(x, dtype=np.float64)
 
-    if view == "joint" and result.joint_axis_projections is not None:
-        axis_proj = _np(result.joint_axis_projections)
-        orth_proj = _np(result.joint_orthogonal_projections, (axis_proj.size,))
-        all_orth_proj = _np(result.joint_all_orthogonal_projections,
-                             (axis_proj.size, 0))
-        variances = _np(result.joint_all_orthogonal_variances, (0,))
-        feature_names = list(result.joint_feature_names or [])
-        w_feat = _np(result.joint_w_in_feature_space)
-        all_orth_axes_feat = _np(result.joint_all_orthogonal_axes_in_feature_space)
-        all_orth_axes = _np(result.joint_all_orthogonal_axes)
-        orth_axis = _np(result.joint_orthogonal_axis)
-        orth_axis_feat = _np(result.joint_orthogonal_axis_in_feature_space)
-        ridge_summary = result.joint_summary or {}
-        pred = _np(result.joint_predictions, (axis_proj.size,))
-    else:
+    fits = result.model_fits or {}
+    if model_name in fits:
+        f = fits[model_name]
+        axis_proj = _np(f.get("axis_projections"))
+        orth_proj = _np(f.get("orth_projections"), (axis_proj.size,))
+        all_orth_proj = _np(f.get("all_orth_projections"), (axis_proj.size, 0))
+        variances = _np(f.get("all_orth_variances"), (0,))
+        feature_names = list(f.get("feature_names_interp") or [])
+        w_feat = _np(f.get("w_in_feature_space"))
+        all_orth_axes_feat = _np(f.get("all_orth_axes_in_feature_space"))
+        all_orth_axes = _np(f.get("all_orth_axes"))
+        orth_axis = _np(f.get("orth_axis"))
+        orth_axis_feat = _np(f.get("orth_axis_in_feature_space"))
+        ridge_summary = f.get("ridge_summary") or {}
+        pred = _np(f.get("predictions"), (axis_proj.size,))
+    elif model_name == "shape":
         axis_proj = _np(result.axis_projections)
         orth_proj = _np(result.orthogonal_projections, (axis_proj.size,))
         all_orth_proj = _np(result.all_orthogonal_projections,
@@ -1601,6 +1630,11 @@ def _make_axis_view(result: AxisCodingResult, view: str) -> _AxisView:
         orth_axis_feat = _np(result.orthogonal_axis_in_feature_space)
         ridge_summary = result.ridge_summary
         pred = _np(result.predicted_responses, (axis_proj.size,))
+    else:
+        raise KeyError(
+            f"Model '{model_name}' not found in result.model_fits "
+            f"(have: {list(fits.keys())})"
+        )
 
     return _AxisView(
         axis_projections=axis_proj,
@@ -1624,7 +1658,8 @@ def plot_axis_coding_consolidated(
     config: Optional[PlotPanelConfig] = None,
     title: Optional[str] = None,
     n_bins: int = 10,
-    view: str = "shape",
+    model_name: str = "shape",
+    view: Optional[str] = None,   # deprecated alias for model_name
 ) -> plt.Figure:
     """
     All axis-coding panels in one figure (3 × 4 by default), driven by
@@ -1650,7 +1685,11 @@ def plot_axis_coding_consolidated(
     from matplotlib.gridspec import GridSpec
 
     cfg = config or PlotPanelConfig()
-    av = _make_axis_view(result, view)
+    name = view if view is not None else model_name
+    av = _make_axis_view(result, name)
+    has_shape_mu = bool(
+        (result.model_fits or {}).get(name, {}).get("has_shape_mu", True)
+    )
 
     actual = np.asarray(result.actual_responses, dtype=np.float64)
     axis_proj = av.axis_projections
@@ -1676,9 +1715,11 @@ def plot_axis_coding_consolidated(
     rhos_signed = np.array([_signed_spearman(proj_all[:, k], actual)
                              for k in range(n_axes)])
 
-    # μ panels: gather counts from encoder, if provided.
+    # μ panels: gather counts from encoder, if provided. Skipped when the
+    # current model isn't shape-based (e.g. appearance-only).
     mu_panels: list[tuple[str, str]] = []  # (kind, name) where kind in {'linear', 'spherical', 'circular'}
-    if cfg.show_mu_panels and result.mu_decoded is not None and encoder is not None:
+    if (cfg.show_mu_panels and has_shape_mu
+            and result.mu_decoded is not None and encoder is not None):
         if list(encoder.linear_params):
             mu_panels.append(("linear", "linear"))
         for sp in encoder.spherical_params:
@@ -2547,6 +2588,7 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
         rf_filter: Optional[ReceptiveFieldFilter] = None,
         n_stimuli_per_axis: int = 12,
         panel_config: Optional["PlotPanelConfig"] = None,
+        axis_models: Optional[list[ModelSpec]] = None,
     ):
         super().__init__()
         self.component_types = component_types or [
@@ -2560,6 +2602,11 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
         self.rf_filter = rf_filter
         self.n_stimuli_per_axis = n_stimuli_per_axis
         self.panel_config = panel_config or PlotPanelConfig()
+        # Models drive both fit_axis_coding and the per-model figures emitted
+        # in analyze(). Defaults to [shape, appearance, shape+appearance].
+        self.axis_models = (
+            list(axis_models) if axis_models is not None else default_axis_models()
+        )
 
     # ------------------------------------------------------------------
     # Analysis API
@@ -2618,6 +2665,7 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                     save_dir=save_dir,
                     ridge_factory=strategy.ridge_factory,
                     n_pcs=strategy.n_pcs,
+                    axis_models=self.axis_models,
                 )
                 results[component_type][strategy.label] = result
 
@@ -2714,51 +2762,32 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                     else:
                         plt.close(fig_app)
 
-                # Figure 2: consolidated axis coding (shape model).
-                fig = plot_axis_coding_consolidated(
-                    result,
-                    encoder=encoders_for_run[component_type],
-                    config=self.panel_config,
-                    title=f"{base_title}  —  shape axes",
-                    view="shape",
-                )
-                if save_dir is not None:
-                    fig_path = os.path.join(
-                        save_dir,
-                        f"axis_coding_{channel_str}_{component_type}_"
-                        f"{strategy.label}.png",
-                    )
-                    fig.savefig(fig_path, dpi=150, bbox_inches="tight")
-                    print(f"  saved: {fig_path}")
-                if self.show_plots:
-                    plt.show()
-                else:
-                    plt.close(fig)
-
-                # Figure 2b: same plot but using the joint shape+appearance
-                # model. Preferred axis is now in (shape | appearance) space;
-                # orth axes and loadings include both feature blocks. Skipped
-                # if the joint fit was unavailable (no Texture/AverageRGB cols).
-                if result.joint_axis_projections is not None:
-                    fig_joint = plot_axis_coding_consolidated(
+                # Figure 2: one consolidated axis-coding figure per fitted
+                # model. Filenames suffixed by model name (the shape model
+                # keeps the unsuffixed filename for back-compat).
+                for spec in self.axis_models:
+                    if spec.name not in (result.model_fits or {}):
+                        continue
+                    suffix = "" if spec.name == "shape" else f"_{spec.name.replace('+', 'plus')}"
+                    fig_m = plot_axis_coding_consolidated(
                         result,
                         encoder=encoders_for_run[component_type],
                         config=self.panel_config,
-                        title=f"{base_title}  —  joint axes (shape + appearance)",
-                        view="joint",
+                        title=f"{base_title}  —  {spec.name} axes",
+                        model_name=spec.name,
                     )
                     if save_dir is not None:
-                        joint_fig_path = os.path.join(
+                        fig_path = os.path.join(
                             save_dir,
                             f"axis_coding_{channel_str}_{component_type}_"
-                            f"{strategy.label}_joint.png",
+                            f"{strategy.label}{suffix}.png",
                         )
-                        fig_joint.savefig(joint_fig_path, dpi=150, bbox_inches="tight")
-                        print(f"  saved: {joint_fig_path}")
+                        fig_m.savefig(fig_path, dpi=150, bbox_inches="tight")
+                        print(f"  saved: {fig_path}")
                     if self.show_plots:
                         plt.show()
                     else:
-                        plt.close(fig_joint)
+                        plt.close(fig_m)
 
                 # Stimuli sampled uniformly along each axis (one row per axis).
                 fig_stim = plot_axes_stimuli(
