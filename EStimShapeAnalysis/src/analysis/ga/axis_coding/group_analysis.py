@@ -79,11 +79,6 @@ def plot_population_orth_tuning_curves(
         .merge(x_df.rename(columns={"array": "x"}), on=keycols)
         .merge(y_df.rename(columns={"array": "y"}), on=keycols)
     )
-    print(
-        f"  [group] merged rows: {len(merged)}  "
-        f"distinct sessions: {merged['session_id'].nunique()}  "
-        f"models present: {sorted(merged['model_name'].unique().tolist())}"
-    )
 
     models = sorted(merged["model_name"].unique())
     colors = _model_color_map(models)
@@ -96,7 +91,6 @@ def plot_population_orth_tuning_curves(
         ax = axes[0, col_idx]
         sub = merged[merged["model_name"] == model]
         n_cells = len(sub)
-        n_drawn = 0
         for _, row in sub.iterrows():
             x = np.asarray(row["x"], dtype=np.float64)
             y = np.asarray(row["y"], dtype=np.float64)
@@ -109,11 +103,6 @@ def plot_population_orth_tuning_curves(
             if abs(denom) < 1e-9:
                 continue
             ax.plot(x, y / denom, color=colors[model], lw=0.8, alpha=0.35)
-            n_drawn += 1
-        print(
-            f"  [group] model={model}: {n_cells} cells in subset, "
-            f"{n_drawn} drawn (others failed Gaussian fit / denom≈0)"
-        )
 
         # Bold population mean (across cells with valid fits).
         valid = sub[(sub["orth_gauss_fit_ok"] == 1) &

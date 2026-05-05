@@ -3512,30 +3512,29 @@ def _jsonable(x):
 # Entry point
 # ---------------------------------------------------------------------------
 
-def main():
-    # --- Selector hyperparameters ---
-    # max_iter:              EM iterations before forced stop
-    # tol:                   relative change in mu to declare convergence
-    # temperature:           0 = hard argmin (strict proximity enforcement)
-    #                        >0 = soft assignment; higher = less enforcement
-    # response_weight_floor: clip low responses before weighting mu updates
-    # variance_floor:        (LearnedDiagonal only) prevents any feature from
-    #                        collapsing to infinite precision
-
-    # --- Ridge hyperparameters ---
-    # alphas:         log-spaced alpha search grid
-    # cv:             folds for alpha selection via RidgeCV
-    # n_splits_cv_r2: held-out R² estimate splits
-    # test_size:      fraction held out per split
-
-    ridge = lambda: RidgeRegressionAxisModel(
+def default_ridge_factory():
+    """Default ridge factory shared by both main() and the batch driver."""
+    return RidgeRegressionAxisModel(
         alphas=np.logspace(-3, 4, 20),
         cv=5,
         n_splits_cv_r2=20,
         test_size=0.2,
     )
 
-    strategies = [
+
+def make_default_strategies():
+    """
+    Single source of truth for the project's axis-coding strategy list.
+
+    Both ``axis_coding_analysis.main()`` and the batch driver
+    (``run_axis_coding_batch``) call this so they exercise the same
+    strategies. Selector factories close over ``context`` by name (not
+    value), so the RWA-peak strategy will read whatever ``rwa_output_dir``
+    and ``ga_config`` look like *at the time the selector is constructed*
+    — i.e. after ``apply_session_context`` has run for the active session.
+    """
+    ridge = default_ridge_factory
+    return [
         # AxisCodingStrategy(
         #     label="fixed_hard",
         #     selector_factory=lambda: FixedCovarianceSelector(
@@ -3651,17 +3650,28 @@ def main():
         ),
     ]
 
-    analysis = AxisCodingAnalysis(
-        strategies=strategies,
-        outlier_sigma=2.0,       # 0.0 to disable; trials > n*std from stim mean are dropped
-        outlier_min_trials=5,    # only attempt removal for stims with >= this many trials
-        rf_filter=ReceptiveFieldFilter(plot=True, mahal_cutoff=3.5),  # None to disable
-        n_stimuli_per_axis=15,  # for plot_axes_stimuli; set to 0 to disable that plot
+
+def make_default_analyzer_kwargs():
+    """
+    Shared AxisCodingAnalysis kwargs (rf_filter, outlier params, panel
+    config, etc.). Use this from both main() and the batch driver so a
+    single change here propagates to all entry points.
+    """
+    return dict(
+        strategies=make_default_strategies(),
+        outlier_sigma=2.0,
+        outlier_min_trials=5,
+        rf_filter=ReceptiveFieldFilter(plot=True, mahal_cutoff=3.5),
+        n_stimuli_per_axis=15,
     )
+
+
+def main():
+    """Single-session entry point. For batch runs see run_axis_coding_batch."""
+    analysis = AxisCodingAnalysis(**make_default_analyzer_kwargs())
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     compiled_data = None
     # compiled_data = analysis.compile_and_export()
-    # session_id="260426_0"
     channel = "Cluster"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
