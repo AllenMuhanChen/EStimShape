@@ -256,12 +256,19 @@ def compute_orthogonal_tuning_curve(
     n_draws: int = 2000,
     n_keep: int = 300,
     n_bins: int = 11,
-    z_range: float = 2.5,
+    z_range: float = 1.0,
+    fit_z_range: Optional[float] = None,
     rng: Optional[np.random.Generator] = None,
 ) -> dict:
     """
     Tsao et al. 2017 Fig 4A measure: average tuning along random axes
     orthogonal to the preferred axis ``w``, on a shared z-scored x-grid.
+
+    Defaults match Tsao's display: ``z_range=1.0`` so bin centers span
+    [-1, +1] z-units, which covers ~68% of stimuli for a roughly Gaussian
+    projection distribution. Bins beyond that have too few stimuli per axis
+    to be reliable. ``fit_z_range`` (defaults to ``z_range``) restricts the
+    Gaussian fit to a possibly-narrower range.
 
     Procedure
     ---------
@@ -333,8 +340,9 @@ def compute_orthogonal_tuning_curve(
     bin_idx = np.digitize(z, edges) - 1              # values in [0, n_bins-1] or -1/n_bins
     valid = (bin_idx >= 0) & (bin_idx < n_bins)
 
-    # Per-axis mean response per bin.
+    # Per-axis mean response per bin + bin count (for sanity / fit weights).
     per_axis_mean = np.full((n_axes_used, n_bins), np.nan)
+    per_axis_count = np.zeros((n_axes_used, n_bins), dtype=np.int64)
     for k in range(n_axes_used):
         col_bin = bin_idx[:, k]
         col_valid = valid[:, k]
@@ -342,21 +350,25 @@ def compute_orthogonal_tuning_curve(
             continue
         for b in range(n_bins):
             sel = col_valid & (col_bin == b)
-            if sel.any():
+            n_sel = int(sel.sum())
+            per_axis_count[k, b] = n_sel
+            if n_sel > 0:
                 per_axis_mean[k, b] = responses[sel].mean()
 
-    # Average across axes (NaN-aware).
+    # Average across axes (NaN-aware) + average per-axis bin count.
     with np.errstate(invalid="ignore"):
         mean_curve = np.nanmean(per_axis_mean, axis=0)
         sd_curve = np.nanstd(per_axis_mean, axis=0, ddof=1)
+    mean_count_per_bin = per_axis_count.mean(axis=0)
 
-    # Gaussian fit on bins where mean_curve is finite.
+    # Gaussian fit on bins inside fit_z_range where mean_curve is finite.
+    fit_lim = float(fit_z_range) if fit_z_range is not None else float(z_range)
+    fit_mask = np.isfinite(mean_curve) & (np.abs(centers) <= fit_lim + 1e-9)
     fit_ok = False
     a = sigma = c = float("nan")
-    finite = np.isfinite(mean_curve)
-    if finite.sum() >= 4:
-        x_fit = centers[finite]
-        y_fit = mean_curve[finite]
+    if fit_mask.sum() >= 4:
+        x_fit = centers[fit_mask]
+        y_fit = mean_curve[fit_mask]
         y_min, y_max = float(y_fit.min()), float(y_fit.max())
         y_range = max(y_max - y_min, 1e-9)
         # Heuristic init: a = y[center_bin] - mean(edges), c = mean(edges), σ = 1.
@@ -388,6 +400,9 @@ def compute_orthogonal_tuning_curve(
         "orth_tuning_x": centers.tolist(),
         "orth_tuning_mean": mean_curve.tolist(),
         "orth_tuning_sd": sd_curve.tolist(),
+        "orth_tuning_count": mean_count_per_bin.tolist(),
+        "orth_tuning_z_range": float(z_range),
+        "orth_tuning_fit_z_range": fit_lim,
         "orth_tuning_n_axes_drawn": int(n_axes_drawn),
         "orth_tuning_n_axes_used": int(n_axes_used),
         "orth_gauss_a": a if fit_ok else float("nan"),
@@ -470,6 +485,9 @@ def _fit_model_axes(
         orth_tuning_x=orth_tune.get("orth_tuning_x"),
         orth_tuning_mean=orth_tune.get("orth_tuning_mean"),
         orth_tuning_sd=orth_tune.get("orth_tuning_sd"),
+        orth_tuning_count=orth_tune.get("orth_tuning_count"),
+        orth_tuning_z_range=orth_tune.get("orth_tuning_z_range"),
+        orth_tuning_fit_z_range=orth_tune.get("orth_tuning_fit_z_range"),
         orth_tuning_n_axes_drawn=orth_tune.get("orth_tuning_n_axes_drawn"),
         orth_tuning_n_axes_used=orth_tune.get("orth_tuning_n_axes_used"),
         orth_gauss_a=orth_tune.get("orth_gauss_a"),
@@ -1857,6 +1875,11 @@ def plot_orthogonal_tuning_curves(
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5),
                               gridspec_kw={"width_ratios": [3, 1]})
+    # Density panel inset on the curves panel.
+    ax_density = axes[0].twinx()
+    ax_density.set_ylabel("Mean stim per bin per axis", color="gray", fontsize=8)
+    ax_density.tick_params(axis="y", colors="gray", labelsize=7)
+    ax_density.spines["right"].set_color("gray")
     cmap = plt.get_cmap("tab10")
 
     ax = axes[0]
@@ -1907,11 +1930,27 @@ def plot_orthogonal_tuning_curves(
 
         amp_norms.append(amp)
 
+    # Density panel (gray bars): mean stim per bin per axis, averaged across
+    # the kept axes. Sparse tails get squashed bars → take the apparent
+    # "dip" out there with a grain of salt.
+    first = next(iter(fits.values()))
+    counts = np.asarray(first.get("orth_tuning_count") or [], dtype=np.float64)
+    if counts.size:
+        x_centers = np.asarray(first["orth_tuning_x"], dtype=np.float64)
+        ax_density.bar(x_centers, counts, width=0.7 * (x_centers[1] - x_centers[0])
+                       if x_centers.size > 1 else 0.5,
+                       color="lightgray", alpha=0.5, zorder=0)
+        ax_density.set_ylim(0, max(1.0, float(counts.max()) * 4))
+
     # Reference lines: peak = 1 and the implied "flat" baseline = 0 modulation.
     ax.axhline(1.0, color="gray", lw=0.7, ls=":", alpha=0.7)
     ax.axhline(0.0, color="black", lw=0.5)
     ax.set_xlabel("Projection onto random orthogonal axis (z-scored)")
     ax.set_ylabel("Normalized response  [ y / (a+c) ]")
+    fit_lim = first.get("orth_tuning_fit_z_range")
+    if fit_lim is not None:
+        ax.axvspan(-fit_lim, fit_lim, color="khaki", alpha=0.10, zorder=0,
+                    label=f"Gaussian fit range  ±{fit_lim:.1f}")
     ax.legend(fontsize=8, loc="best")
     ax.set_title("Average tuning along orthogonal axes\n(Tsao-normalized: peak at x=0 → 1)")
 

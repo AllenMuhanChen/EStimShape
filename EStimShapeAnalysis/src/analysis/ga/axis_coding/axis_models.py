@@ -120,6 +120,9 @@ class ModelAxisFit:
     orth_tuning_x: Optional[list[float]] = None        # length n_bins
     orth_tuning_mean: Optional[list[float]] = None     # length n_bins (averaged across axes)
     orth_tuning_sd: Optional[list[float]] = None       # SD across axes per bin
+    orth_tuning_count: Optional[list[float]] = None    # mean stim count per bin per axis
+    orth_tuning_z_range: Optional[float] = None        # +/- bin edge in z-units
+    orth_tuning_fit_z_range: Optional[float] = None    # range used for Gaussian fit
     orth_tuning_n_axes_drawn: Optional[int] = None
     orth_tuning_n_axes_used: Optional[int] = None
     orth_gauss_a: Optional[float] = None
