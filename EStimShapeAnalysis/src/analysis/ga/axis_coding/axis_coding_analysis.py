@@ -1861,6 +1861,7 @@ def plot_orthogonal_tuning_curves(
 
     ax = axes[0]
     amp_norms: list[float] = []
+    line_labels: list[str] = []
     for i, name in enumerate(models):
         f = fits[name]
         x = np.asarray(f["orth_tuning_x"], dtype=np.float64)
@@ -1868,38 +1869,57 @@ def plot_orthogonal_tuning_curves(
         sd = np.asarray(f.get("orth_tuning_sd") or [], dtype=np.float64)
         color = cmap(i % 10)
 
-        ax.plot(x, y, color=color, lw=2, label=name)
-        if sd.size == y.size:
-            ax.fill_between(x, y - sd, y + sd, color=color, alpha=0.15)
-
-        if f.get("orth_gauss_fit_ok"):
+        fit_ok = f.get("orth_gauss_fit_ok")
+        if fit_ok:
             a = float(f["orth_gauss_a"])
             sigma = float(f["orth_gauss_sigma"])
             c = float(f["orth_gauss_c"])
-            xx = np.linspace(x.min(), x.max(), 200)
-            yy = a * np.exp(-(xx ** 2) / (sigma ** 2)) + c
-            ax.plot(xx, yy, color=color, lw=1.0, ls="--", alpha=0.9)
-            amp = f.get("orth_amplitude_norm")
-            amp_str = f"{amp:+.2f}" if amp is not None and np.isfinite(amp) else "n/a"
-            label = (f"{name}: a/(a+c)={amp_str}, σ={sigma:.2g} "
-                     f"(n_axes={f.get('orth_tuning_n_axes_used')})")
+            denom = a + c
         else:
-            label = f"{name}: (Gaussian fit failed)"
-        # Replace last legend label with the annotated one.
-        handles, labels = ax.get_legend_handles_labels()
-        labels[-1] = label
+            a = sigma = c = float("nan")
+            denom = 1.0
 
-        amp = f.get("orth_amplitude_norm")
-        amp_norms.append(float(amp) if amp is not None else float("nan"))
+        # Normalize by Gaussian peak (a + c), Tsao's convention.
+        if fit_ok and abs(denom) > 1e-9:
+            y_n = y / denom
+            sd_n = sd / abs(denom) if sd.size == y.size else sd
+            xx = np.linspace(x.min(), x.max(), 200)
+            yy = (a * np.exp(-(xx ** 2) / (sigma ** 2)) + c) / denom
+            amp = a / denom
+            baseline = c / denom
+            label = (f"{name}: a/(a+c)={amp:+.2f}, σ={sigma:.2g}, "
+                     f"baseline={baseline:.2f} (n={f.get('orth_tuning_n_axes_used')})")
+        else:
+            # Fallback: show raw response so user sees something.
+            y_n = y
+            sd_n = sd
+            xx = None
+            yy = None
+            amp = float("nan")
+            label = f"{name}: (Gaussian fit failed, showing raw)"
 
-    ax.axhline(0, color="black", lw=0.5)
+        ax.plot(x, y_n, color=color, lw=2, label=label)
+        line_labels.append(label)
+        if sd_n.size == y_n.size:
+            ax.fill_between(x, y_n - sd_n, y_n + sd_n, color=color, alpha=0.15)
+        if xx is not None and yy is not None:
+            ax.plot(xx, yy, color=color, lw=1.0, ls="--", alpha=0.9)
+
+        amp_norms.append(amp)
+
+    # Reference lines: peak = 1 and the implied "flat" baseline = 0 modulation.
+    ax.axhline(1.0, color="gray", lw=0.7, ls=":", alpha=0.7)
+    ax.axhline(0.0, color="black", lw=0.5)
     ax.set_xlabel("Projection onto random orthogonal axis (z-scored)")
-    ax.set_ylabel("Mean response")
-    handles, _ = ax.get_legend_handles_labels()
-    ax.legend(handles, labels, fontsize=8, loc="best")
-    ax.set_title("Average tuning along axes orthogonal to preferred")
+    ax.set_ylabel("Normalized response  [ y / (a+c) ]")
+    ax.legend(fontsize=8, loc="best")
+    ax.set_title("Average tuning along orthogonal axes\n(Tsao-normalized: peak at x=0 → 1)")
 
-    # Right panel: a/(a+c) per model.
+    # Right panel: modulation depth a/(a+c) per model.
+    # Read it as: how much of the normalized peak is "bump" vs flat baseline.
+    #   0 → curve is flat; orth axes carry no information (axis coding).
+    #   1 → baseline is 0; orth axes are as informative as the preferred axis
+    #       (exemplar-like).
     ax2 = axes[1]
     x_b = np.arange(len(models))
     bar_colors = [cmap(i % 10) for i in range(len(models))]
@@ -1908,13 +1928,15 @@ def plot_orthogonal_tuning_curves(
         if np.isfinite(v):
             ax2.text(i, v, f"{v:+.2f}", ha="center",
                      va="bottom" if v >= 0 else "top", fontsize=8)
-    ax2.axhline(0, color="black", lw=0.7, ls="--",
-                label="axis coding\nprediction")
+    ax2.axhline(0, color="black", lw=0.7, ls="--", alpha=0.7,
+                label="flat (axis coding)")
+    ax2.axhline(1, color="gray", lw=0.7, ls=":", alpha=0.7,
+                label="full bump (exemplar)")
     ax2.set_xticks(x_b)
     ax2.set_xticklabels(models, rotation=20, ha="right", fontsize=8)
-    ax2.set_ylabel("a / (a + c)")
-    ax2.set_title("Orth-tuning amplitude\n(↘ axis coding,  ↗ exemplar)")
-    ax2.legend(fontsize=8, loc="best")
+    ax2.set_ylabel("Modulation depth  a / (a + c)")
+    ax2.set_title("Bump-vs-flat per model\n0 = flat (axis), 1 = full bump (exemplar)")
+    ax2.legend(fontsize=7, loc="best")
 
     if title:
         fig.suptitle(title)
