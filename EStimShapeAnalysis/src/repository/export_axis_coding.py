@@ -210,6 +210,7 @@ def read_axis_coding_metrics(
     component_type: Optional[str] = None,
     strategy: Optional[str] = None,
     model_name: Optional[str] = None,
+    verbose: bool = True,
 ) -> pd.DataFrame:
     """Return a DataFrame of AxisCodingFitMetrics filtered by any kwargs."""
     where, params = _build_where(
@@ -217,13 +218,22 @@ def read_axis_coding_metrics(
         strategy=strategy, model_name=model_name,
     )
     sql = f"SELECT * FROM AxisCodingFitMetrics{where}"
-    repo_conn.execute(sql, params)
+    repo_conn.execute(sql, tuple(params))
     rows = repo_conn.fetch_all()
+    if verbose:
+        print(f"  [read_metrics] sql='{sql}' params={params!r} → {len(rows)} rows")
     if not rows:
         return pd.DataFrame()
     cols = ["session_id", "unit_name", "component_type", "strategy", "model_name"] \
             + list(_METRICS_COLUMNS) + ["created_at"]
-    return pd.DataFrame(rows, columns=cols)
+    df = pd.DataFrame(rows, columns=cols)
+    if verbose:
+        print(
+            f"  [read_metrics] distinct sessions={df['session_id'].nunique()}  "
+            f"distinct units={df['unit_name'].nunique()}  "
+            f"distinct models={df['model_name'].nunique()}"
+        )
+    return df
 
 
 def read_axis_coding_arrays(
@@ -233,6 +243,7 @@ def read_axis_coding_arrays(
     component_type: Optional[str] = None,
     strategy: Optional[str] = None,
     model_name: Optional[str] = None,
+    verbose: bool = True,
 ) -> pd.DataFrame:
     """Return a DataFrame with parsed list/list-of-lists in an 'array' column."""
     where, params = _build_where(
@@ -241,8 +252,10 @@ def read_axis_coding_arrays(
         array_name=array_name,
     )
     sql = f"SELECT session_id, unit_name, component_type, strategy, model_name, array_json FROM AxisCodingFitArrays{where}"
-    repo_conn.execute(sql, params)
+    repo_conn.execute(sql, tuple(params))
     rows = repo_conn.fetch_all()
+    if verbose:
+        print(f"  [read_arrays:{array_name}] {len(rows)} rows")
     if not rows:
         return pd.DataFrame()
     df = pd.DataFrame(
