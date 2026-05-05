@@ -362,6 +362,23 @@ def compute_orthogonal_tuning_curve(
         sd_curve = np.nanstd(per_axis_mean, axis=0, ddof=1)
     mean_count_per_bin = per_axis_count.mean(axis=0)
 
+    # Per-axis modulation depth = (max - min) / |max| over the in-fit-range bins.
+    # Cheap proxy for a/(a+c) without fitting a Gaussian per axis. Used to
+    # surface any single bumpy axis the average might be hiding.
+    fit_lim_for_mod = float(fit_z_range) if fit_z_range is not None else float(z_range)
+    in_fit_mask = np.abs(centers) <= fit_lim_for_mod + 1e-9
+    per_axis_in_fit = per_axis_mean[:, in_fit_mask]
+    per_axis_mod = np.full(per_axis_mean.shape[0], np.nan)
+    for k in range(per_axis_mean.shape[0]):
+        row = per_axis_in_fit[k]
+        finite_row = row[np.isfinite(row)]
+        if finite_row.size < 2:
+            continue
+        mx = float(finite_row.max())
+        mn = float(finite_row.min())
+        if abs(mx) > 1e-12:
+            per_axis_mod[k] = (mx - mn) / abs(mx)
+
     # Gaussian fit on bins inside fit_z_range where mean_curve is finite.
     fit_lim = float(fit_z_range) if fit_z_range is not None else float(z_range)
     fit_mask = np.isfinite(mean_curve) & (np.abs(centers) <= fit_lim + 1e-9)
@@ -402,6 +419,8 @@ def compute_orthogonal_tuning_curve(
         "orth_tuning_mean": mean_curve.tolist(),
         "orth_tuning_sd": sd_curve.tolist(),
         "orth_tuning_count": mean_count_per_bin.tolist(),
+        "orth_tuning_per_axis": per_axis_mean.tolist(),
+        "orth_tuning_per_axis_modulation": per_axis_mod.tolist(),
         "orth_tuning_z_range": float(z_range),
         "orth_tuning_fit_z_range": fit_lim,
         "orth_tuning_n_axes_drawn": int(n_axes_drawn),
@@ -487,6 +506,8 @@ def _fit_model_axes(
         orth_tuning_mean=orth_tune.get("orth_tuning_mean"),
         orth_tuning_sd=orth_tune.get("orth_tuning_sd"),
         orth_tuning_count=orth_tune.get("orth_tuning_count"),
+        orth_tuning_per_axis=orth_tune.get("orth_tuning_per_axis"),
+        orth_tuning_per_axis_modulation=orth_tune.get("orth_tuning_per_axis_modulation"),
         orth_tuning_z_range=orth_tune.get("orth_tuning_z_range"),
         orth_tuning_fit_z_range=orth_tune.get("orth_tuning_fit_z_range"),
         orth_tuning_n_axes_drawn=orth_tune.get("orth_tuning_n_axes_drawn"),
@@ -1995,6 +2016,112 @@ def plot_orthogonal_tuning_curves(
     return fig
 
 
+def plot_orthogonal_tuning_per_axis_detail(
+    result: AxisCodingResult,
+    title: Optional[str] = None,
+    n_highlight: int = 1,
+) -> Optional[plt.Figure]:
+    """
+    Per-model detail of the orthogonal-tuning summary: every kept random
+    orthogonal axis plotted individually so a single bumpy axis can't be
+    hidden by the average.
+
+    Layout: one column per model. For each model:
+      - Top panel: every kept axis as a faint thin line (Tsao-normalized
+        when the Gaussian fit succeeded), the mean curve in bold, and the
+        ``n_highlight`` most-modulated individual axes overlaid in red.
+      - Bottom panel: histogram of per-axis modulation depth
+        ``(max − min) / |max|`` of each axis's binned mean curve. A long
+        right tail = some axes are highly modulated even though the
+        average looks flat.
+    """
+    fits = result.model_fits or {}
+    models = [
+        name for name, f in fits.items()
+        if f.get("orth_tuning_per_axis")
+    ]
+    if not models:
+        return None
+
+    fig, axes = plt.subplots(
+        2, len(models),
+        figsize=(5.0 * len(models), 8.0),
+        squeeze=False,
+        gridspec_kw={"height_ratios": [3, 1]},
+    )
+    cmap = plt.get_cmap("tab10")
+
+    for col, name in enumerate(models):
+        f = fits[name]
+        color = cmap(col % 10)
+        x = np.asarray(f["orth_tuning_x"], dtype=np.float64)
+        per_axis = np.asarray(f["orth_tuning_per_axis"], dtype=np.float64)  # (n_axes, n_bins)
+        mean_curve = np.asarray(f["orth_tuning_mean"], dtype=np.float64)
+        per_axis_mod = np.asarray(f.get("orth_tuning_per_axis_modulation") or [],
+                                   dtype=np.float64)
+
+        fit_ok = f.get("orth_gauss_fit_ok")
+        if fit_ok:
+            denom = float(f["orth_gauss_a"]) + float(f["orth_gauss_c"])
+        else:
+            denom = 1.0
+        if abs(denom) < 1e-9:
+            denom = 1.0
+        per_axis_n = per_axis / denom
+        mean_n = mean_curve / denom
+
+        # ---- Top: per-axis curves + mean + worst-modulated ------------
+        ax = axes[0, col]
+        # Faint per-axis lines.
+        for k in range(per_axis_n.shape[0]):
+            ax.plot(x, per_axis_n[k], color=color, alpha=0.06, lw=0.5)
+        # Mean curve, bold.
+        ax.plot(x, mean_n, color=color, lw=2.5, label=f"mean (n={per_axis.shape[0]})")
+        # Top-N most modulated axes in red.
+        if per_axis_mod.size:
+            finite = np.where(np.isfinite(per_axis_mod))[0]
+            if finite.size:
+                order = finite[np.argsort(-per_axis_mod[finite])[:n_highlight]]
+                for rank, k in enumerate(order):
+                    lbl = f"worst axis (mod={per_axis_mod[k]:+.2f})" if rank == 0 else None
+                    ax.plot(x, per_axis_n[k], color="crimson", lw=1.8,
+                            alpha=0.9, label=lbl)
+
+        ax.axhline(1.0, color="gray", lw=0.6, ls=":", alpha=0.6)
+        ax.axhline(0.0, color="black", lw=0.5)
+        fit_lim = f.get("orth_tuning_fit_z_range")
+        if fit_lim is not None:
+            ax.axvspan(-fit_lim, fit_lim, color="khaki", alpha=0.10, zorder=0)
+        ax.set_xlabel("Projection (z)")
+        ax.set_ylabel("Normalized response  [ y / (a+c) ]")
+        ax.set_title(f"{name}", fontsize=11)
+        ax.legend(fontsize=8, loc="best")
+
+        # ---- Bottom: histogram of per-axis modulation depth ----------
+        ax2 = axes[1, col]
+        if per_axis_mod.size:
+            finite_mod = per_axis_mod[np.isfinite(per_axis_mod)]
+            if finite_mod.size:
+                ax2.hist(finite_mod, bins=30, color=color, alpha=0.8,
+                         edgecolor="black", linewidth=0.4)
+                ax2.axvline(0.0, color="black", lw=0.7, ls="--",
+                            label="flat (axis coding)")
+                ax2.axvline(float(np.median(finite_mod)),
+                            color="crimson", lw=1.0, ls="-",
+                            label=f"median={np.median(finite_mod):.2f}")
+                worst = float(np.max(finite_mod))
+                ax2.axvline(worst, color="darkorange", lw=1.0, ls="-",
+                            label=f"max={worst:.2f}")
+        ax2.set_xlabel("Per-axis modulation depth  (max − min) / |max|")
+        ax2.set_ylabel("axis count")
+        ax2.legend(fontsize=7, loc="best")
+
+    if title:
+        fig.suptitle(title)
+    fig.tight_layout()
+    return fig
+
+
 def plot_axis_coding_consolidated(
     result: AxisCodingResult,
     encoder: Optional[ComponentEncoder] = None,
@@ -3150,6 +3277,28 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                         plt.show()
                     else:
                         plt.close(fig_orth)
+
+                # Per-axis detail: every kept random orth axis plotted
+                # individually so a single bumpy axis can't hide behind
+                # the mean.
+                fig_orth_detail = plot_orthogonal_tuning_per_axis_detail(
+                    result,
+                    title=f"{base_title}  —  orthogonal-tuning per-axis detail",
+                )
+                if fig_orth_detail is not None:
+                    if save_dir is not None:
+                        detail_path = os.path.join(
+                            save_dir,
+                            f"axis_coding_{channel_str}_{component_type}_"
+                            f"{strategy.label}_orth_tuning_per_axis.png",
+                        )
+                        fig_orth_detail.savefig(detail_path, dpi=150,
+                                                 bbox_inches="tight")
+                        print(f"  saved: {detail_path}")
+                    if self.show_plots:
+                        plt.show()
+                    else:
+                        plt.close(fig_orth_detail)
 
                 # Stimuli sampled uniformly along each axis (one row per axis).
                 fig_stim = plot_axes_stimuli(

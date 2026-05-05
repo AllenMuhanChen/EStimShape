@@ -121,6 +121,13 @@ class ModelAxisFit:
     orth_tuning_mean: Optional[list[float]] = None     # length n_bins (averaged across axes)
     orth_tuning_sd: Optional[list[float]] = None       # SD across axes per bin
     orth_tuning_count: Optional[list[float]] = None    # mean stim count per bin per axis
+    # Per-axis tuning matrix (n_axes_used, n_bins) so the plot can show
+    # individual axes underneath the mean — sanity-check whether the average
+    # is hiding any single highly-modulated axis.
+    orth_tuning_per_axis: Optional[list[list[float]]] = None
+    # Per-axis modulation depth (max - min over the curve, normalized by
+    # |max|). Proxy for a/(a+c) without fitting a Gaussian per axis.
+    orth_tuning_per_axis_modulation: Optional[list[float]] = None
     orth_tuning_z_range: Optional[float] = None        # +/- bin edge in z-units
     orth_tuning_fit_z_range: Optional[float] = None    # range used for Gaussian fit
     orth_tuning_n_axes_drawn: Optional[int] = None
