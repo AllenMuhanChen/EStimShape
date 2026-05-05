@@ -58,10 +58,10 @@ def run_batch(
 
 
 def list_all_session_ids() -> list[str]:
-    """All session_ids in allen_data_repository.Sessions, oldest first."""
+    """All session_ids in allen_data_repository.Sessions, newest first."""
     from clat.util.connection import Connection
     repo_conn = Connection("allen_data_repository")
-    repo_conn.execute("SELECT session_id FROM Sessions ORDER BY session_date ASC")
+    repo_conn.execute("SELECT session_id FROM Sessions ORDER BY session_date DESC")
     return [row[0] for row in repo_conn.fetch_all()]
 
 
