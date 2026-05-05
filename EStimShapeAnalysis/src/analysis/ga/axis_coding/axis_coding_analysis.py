@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from PIL import Image
+from scipy.optimize import curve_fit
 from scipy.stats import spearmanr, theilslopes
 
 from clat.pipeline.pipeline_base_classes import (
@@ -241,6 +242,163 @@ def compute_noise_ceiling(
 
 
 # ---------------------------------------------------------------------------
+# Tsao Fig. 4A-style orthogonal-tuning summary
+# ---------------------------------------------------------------------------
+
+def _gauss_a_sigma_c(x: np.ndarray, a: float, sigma: float, c: float) -> np.ndarray:
+    return a * np.exp(-(x ** 2) / (sigma ** 2)) + c
+
+
+def compute_orthogonal_tuning_curve(
+    design: np.ndarray,
+    w: np.ndarray,
+    responses: np.ndarray,
+    n_draws: int = 2000,
+    n_keep: int = 300,
+    n_bins: int = 11,
+    z_range: float = 2.5,
+    rng: Optional[np.random.Generator] = None,
+) -> dict:
+    """
+    Tsao et al. 2017 Fig 4A measure: average tuning along random axes
+    orthogonal to the preferred axis ``w``, on a shared z-scored x-grid.
+
+    Procedure
+    ---------
+    1. Draw ``n_draws`` random unit vectors in design space.
+    2. Orthogonalize each to ``w`` (Gram–Schmidt) and renormalize. Drop axes
+       whose post-projection norm is too small (collinear with w).
+    3. For each axis: project all stimuli onto it, z-score the projections,
+       bin by ``n_bins`` evenly-spaced bin centers in [-z_range, +z_range],
+       compute mean response per bin.
+    4. Compute the variance of stimulus projections along each axis; keep
+       the top ``n_keep`` highest-variance axes.
+    5. Average those tuning curves bin-by-bin → ``mean``; SD across kept
+       axes per bin → ``sd``.
+    6. Fit ``a·exp(-x²/σ²) + c`` to ``mean`` (with reasonable bounds).
+
+    Returns ``None`` if the design space has fewer than two dimensions.
+    Otherwise returns a dict matching ModelAxisFit's orth_* fields plus
+    the headline scalar ``orth_amplitude_norm = a / (a + c)``.
+    """
+    design = np.asarray(design, dtype=np.float64)
+    w = np.asarray(w, dtype=np.float64)
+    responses = np.asarray(responses, dtype=np.float64).ravel()
+
+    n_stim, d = design.shape
+    if d < 2 or n_stim < 5:
+        return None
+
+    rng = rng if rng is not None else np.random.default_rng(0)
+    w_norm = float(np.linalg.norm(w))
+    if w_norm < 1e-12:
+        return None
+    w_unit = w / w_norm
+
+    # Draw random axes, orthogonalize to w_unit, renormalize, drop tiny-norm.
+    raw = rng.standard_normal((n_draws, d))
+    proj = raw @ w_unit                   # (n_draws,)
+    raw = raw - np.outer(proj, w_unit)    # subtract w-component
+    norms = np.linalg.norm(raw, axis=1, keepdims=True)
+    keep_mask = norms.ravel() > 1e-9
+    raw = raw[keep_mask]
+    norms = norms[keep_mask]
+    if raw.shape[0] == 0:
+        return None
+    axes = raw / norms                    # unit-norm rows
+
+    # Project all stimuli onto every axis at once: (n_stim, d) @ (d, n_axes).
+    projections = design @ axes.T          # (n_stim, n_axes)
+
+    # Variance per axis; pick top-n_keep.
+    variances = projections.var(axis=0, ddof=1)
+    n_axes_drawn = projections.shape[1]
+    top_k = min(n_keep, n_axes_drawn)
+    if top_k < 1:
+        return None
+    top_idx = np.argpartition(-variances, top_k - 1)[:top_k]
+    projections = projections[:, top_idx]
+    n_axes_used = projections.shape[1]
+
+    # Z-score per axis, then bin onto a shared grid in [-z_range, +z_range].
+    proj_mean = projections.mean(axis=0, keepdims=True)
+    proj_std = projections.std(axis=0, ddof=1, keepdims=True)
+    proj_std = np.where(proj_std < 1e-12, 1.0, proj_std)
+    z = (projections - proj_mean) / proj_std        # (n_stim, n_axes_used)
+
+    edges = np.linspace(-z_range, z_range, n_bins + 1)
+    centers = 0.5 * (edges[:-1] + edges[1:])
+
+    # Bin index per stimulus per axis (-1 if outside range).
+    bin_idx = np.digitize(z, edges) - 1              # values in [0, n_bins-1] or -1/n_bins
+    valid = (bin_idx >= 0) & (bin_idx < n_bins)
+
+    # Per-axis mean response per bin.
+    per_axis_mean = np.full((n_axes_used, n_bins), np.nan)
+    for k in range(n_axes_used):
+        col_bin = bin_idx[:, k]
+        col_valid = valid[:, k]
+        if not col_valid.any():
+            continue
+        for b in range(n_bins):
+            sel = col_valid & (col_bin == b)
+            if sel.any():
+                per_axis_mean[k, b] = responses[sel].mean()
+
+    # Average across axes (NaN-aware).
+    with np.errstate(invalid="ignore"):
+        mean_curve = np.nanmean(per_axis_mean, axis=0)
+        sd_curve = np.nanstd(per_axis_mean, axis=0, ddof=1)
+
+    # Gaussian fit on bins where mean_curve is finite.
+    fit_ok = False
+    a = sigma = c = float("nan")
+    finite = np.isfinite(mean_curve)
+    if finite.sum() >= 4:
+        x_fit = centers[finite]
+        y_fit = mean_curve[finite]
+        y_min, y_max = float(y_fit.min()), float(y_fit.max())
+        y_range = max(y_max - y_min, 1e-9)
+        # Heuristic init: a = y[center_bin] - mean(edges), c = mean(edges), σ = 1.
+        center_bin = np.argmin(np.abs(x_fit))
+        edge_mask = (np.abs(x_fit) >= z_range * 0.7)
+        c_init = float(y_fit[edge_mask].mean()) if edge_mask.any() else float(y_fit.mean())
+        a_init = float(y_fit[center_bin] - c_init)
+        try:
+            popt, _ = curve_fit(
+                _gauss_a_sigma_c, x_fit, y_fit,
+                p0=[a_init, 1.0, c_init],
+                bounds=(
+                    [-5.0 * y_range, 1e-3, y_min - 5.0 * y_range],
+                    [ 5.0 * y_range, 10.0, y_max + 5.0 * y_range],
+                ),
+                maxfev=5000,
+            )
+            a, sigma, c = float(popt[0]), float(popt[1]), float(popt[2])
+            fit_ok = True
+        except Exception:
+            fit_ok = False
+
+    if fit_ok and abs(a + c) > 1e-9:
+        amp_norm = float(a / (a + c))
+    else:
+        amp_norm = float("nan")
+
+    return {
+        "orth_tuning_x": centers.tolist(),
+        "orth_tuning_mean": mean_curve.tolist(),
+        "orth_tuning_sd": sd_curve.tolist(),
+        "orth_tuning_n_axes_drawn": int(n_axes_drawn),
+        "orth_tuning_n_axes_used": int(n_axes_used),
+        "orth_gauss_a": a if fit_ok else float("nan"),
+        "orth_gauss_sigma": sigma if fit_ok else float("nan"),
+        "orth_gauss_c": c if fit_ok else float("nan"),
+        "orth_amplitude_norm": amp_norm,
+        "orth_gauss_fit_ok": bool(fit_ok),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Per-model axis fitting (ridge → preferred axis → orth basis → back-project)
 # ---------------------------------------------------------------------------
 
@@ -294,6 +452,14 @@ def _fit_model_axes(
         else:
             all_orth_axes_in_feat = np.zeros((len(br.feature_names_interp), 0))
 
+    # Tsao Fig 4A orthogonal-tuning summary (per model). Fixed seed so the
+    # number is reproducible across reruns; a per-fit randomness would
+    # complicate population pooling.
+    orth_tune = compute_orthogonal_tuning_curve(
+        design=design, w=w, responses=ctx.responses,
+        rng=np.random.default_rng(0),
+    ) or {}
+
     return ModelAxisFit(
         name=spec.name,
         feature_names_model=list(br.feature_names_model),
@@ -301,6 +467,16 @@ def _fit_model_axes(
         has_shape_mu=spec.has_shape_mu,
         ridge_summary=ridge.summary(),
         predictions=predictions.tolist(),
+        orth_tuning_x=orth_tune.get("orth_tuning_x"),
+        orth_tuning_mean=orth_tune.get("orth_tuning_mean"),
+        orth_tuning_sd=orth_tune.get("orth_tuning_sd"),
+        orth_tuning_n_axes_drawn=orth_tune.get("orth_tuning_n_axes_drawn"),
+        orth_tuning_n_axes_used=orth_tune.get("orth_tuning_n_axes_used"),
+        orth_gauss_a=orth_tune.get("orth_gauss_a"),
+        orth_gauss_sigma=orth_tune.get("orth_gauss_sigma"),
+        orth_gauss_c=orth_tune.get("orth_gauss_c"),
+        orth_amplitude_norm=orth_tune.get("orth_amplitude_norm"),
+        orth_gauss_fit_ok=bool(orth_tune.get("orth_gauss_fit_ok", False)),
         axis_projections=axis_proj.tolist(),
         orth_projections=orth_proj.tolist(),
         all_orth_projections=all_orth_proj.tolist(),
@@ -578,7 +754,7 @@ def fit_axis_coding(
             if isinstance(selector, MultiPrototypeAttentionSelector)
             else selector.summary()
         ),
-        ridge_summary=ridge.summary(),
+        ridge_summary=shape_fit.ridge_summary,
         selected_indices=[int(i) for i in selector.selected_indices_],
         stim_ids=[_jsonable(s) for s in dataset.stim_ids.tolist()],
         feature_names=dataset.feature_names,   # always original d-dim names
@@ -1650,6 +1826,100 @@ def _make_axis_view(result: AxisCodingResult, model_name: str) -> _AxisView:
         ridge_summary=ridge_summary,
         predicted_responses=pred,
     )
+
+
+def plot_orthogonal_tuning_curves(
+    result: AxisCodingResult,
+    title: Optional[str] = None,
+) -> Optional[plt.Figure]:
+    """
+    Tsao Fig. 4A-style summary, one panel showing every model overlaid plus
+    a side bar of the headline scalar.
+
+    Left panel
+    ----------
+    Average tuning along random axes orthogonal to each model's preferred
+    axis, on a shared z-scored x-grid. Each model is one line; shaded band
+    is ± SD across kept axes (so it's the per-cell within-axis spread, not
+    a population SD). Gaussian fit ``a·exp(-x²/σ²) + c`` is overlaid as a
+    thin curve in the same color. Legend annotates each model with
+    ``a/(a+c)`` and σ.
+
+    Right panel
+    -----------
+    Bar chart of the headline scalar ``a/(a+c)`` per model. Axis-coding
+    predicts ≈ 0; exemplar coding predicts ≫ 0.
+    """
+    fits = result.model_fits or {}
+    models = [name for name, f in fits.items() if f.get("orth_tuning_x")]
+    if not models:
+        return None
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5),
+                              gridspec_kw={"width_ratios": [3, 1]})
+    cmap = plt.get_cmap("tab10")
+
+    ax = axes[0]
+    amp_norms: list[float] = []
+    for i, name in enumerate(models):
+        f = fits[name]
+        x = np.asarray(f["orth_tuning_x"], dtype=np.float64)
+        y = np.asarray(f["orth_tuning_mean"], dtype=np.float64)
+        sd = np.asarray(f.get("orth_tuning_sd") or [], dtype=np.float64)
+        color = cmap(i % 10)
+
+        ax.plot(x, y, color=color, lw=2, label=name)
+        if sd.size == y.size:
+            ax.fill_between(x, y - sd, y + sd, color=color, alpha=0.15)
+
+        if f.get("orth_gauss_fit_ok"):
+            a = float(f["orth_gauss_a"])
+            sigma = float(f["orth_gauss_sigma"])
+            c = float(f["orth_gauss_c"])
+            xx = np.linspace(x.min(), x.max(), 200)
+            yy = a * np.exp(-(xx ** 2) / (sigma ** 2)) + c
+            ax.plot(xx, yy, color=color, lw=1.0, ls="--", alpha=0.9)
+            amp = f.get("orth_amplitude_norm")
+            amp_str = f"{amp:+.2f}" if amp is not None and np.isfinite(amp) else "n/a"
+            label = (f"{name}: a/(a+c)={amp_str}, σ={sigma:.2g} "
+                     f"(n_axes={f.get('orth_tuning_n_axes_used')})")
+        else:
+            label = f"{name}: (Gaussian fit failed)"
+        # Replace last legend label with the annotated one.
+        handles, labels = ax.get_legend_handles_labels()
+        labels[-1] = label
+
+        amp = f.get("orth_amplitude_norm")
+        amp_norms.append(float(amp) if amp is not None else float("nan"))
+
+    ax.axhline(0, color="black", lw=0.5)
+    ax.set_xlabel("Projection onto random orthogonal axis (z-scored)")
+    ax.set_ylabel("Mean response")
+    handles, _ = ax.get_legend_handles_labels()
+    ax.legend(handles, labels, fontsize=8, loc="best")
+    ax.set_title("Average tuning along axes orthogonal to preferred")
+
+    # Right panel: a/(a+c) per model.
+    ax2 = axes[1]
+    x_b = np.arange(len(models))
+    bar_colors = [cmap(i % 10) for i in range(len(models))]
+    ax2.bar(x_b, amp_norms, color=bar_colors)
+    for i, v in enumerate(amp_norms):
+        if np.isfinite(v):
+            ax2.text(i, v, f"{v:+.2f}", ha="center",
+                     va="bottom" if v >= 0 else "top", fontsize=8)
+    ax2.axhline(0, color="black", lw=0.7, ls="--",
+                label="axis coding\nprediction")
+    ax2.set_xticks(x_b)
+    ax2.set_xticklabels(models, rotation=20, ha="right", fontsize=8)
+    ax2.set_ylabel("a / (a + c)")
+    ax2.set_title("Orth-tuning amplitude\n(↘ axis coding,  ↗ exemplar)")
+    ax2.legend(fontsize=8, loc="best")
+
+    if title:
+        fig.suptitle(title)
+    fig.tight_layout()
+    return fig
 
 
 def plot_axis_coding_consolidated(
@@ -2788,6 +3058,25 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                         plt.show()
                     else:
                         plt.close(fig_m)
+
+                # Tsao Fig 4A-style orth-tuning summary, all models overlaid.
+                fig_orth = plot_orthogonal_tuning_curves(
+                    result,
+                    title=f"{base_title}  —  orthogonal-tuning summary",
+                )
+                if fig_orth is not None:
+                    if save_dir is not None:
+                        orth_path = os.path.join(
+                            save_dir,
+                            f"axis_coding_{channel_str}_{component_type}_"
+                            f"{strategy.label}_orth_tuning.png",
+                        )
+                        fig_orth.savefig(orth_path, dpi=150, bbox_inches="tight")
+                        print(f"  saved: {orth_path}")
+                    if self.show_plots:
+                        plt.show()
+                    else:
+                        plt.close(fig_orth)
 
                 # Stimuli sampled uniformly along each axis (one row per axis).
                 fig_stim = plot_axes_stimuli(

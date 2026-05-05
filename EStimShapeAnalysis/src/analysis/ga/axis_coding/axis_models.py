@@ -110,6 +110,23 @@ class ModelAxisFit:
     w_in_feature_space: Optional[list[float]] = None
     orth_axis_in_feature_space: Optional[list[float]] = None
     all_orth_axes_in_feature_space: Optional[list[list[float]]] = None
+    # ---- Tsao Fig. 4A-style orthogonal-tuning summary --------------------
+    # Average tuning curve along (n_axes_used) random axes orthogonal to the
+    # preferred axis, on a common z-scored x-grid; plus a Gaussian fit
+    # ``a·exp(-x²/σ²) + c`` to that average. The headline scalar
+    # ``orth_amplitude_norm = a / (a + c)`` is the fraction of the orthogonal
+    # tuning curve that's "bump" vs "baseline": ~0 under axis coding, large
+    # under exemplar coding.
+    orth_tuning_x: Optional[list[float]] = None        # length n_bins
+    orth_tuning_mean: Optional[list[float]] = None     # length n_bins (averaged across axes)
+    orth_tuning_sd: Optional[list[float]] = None       # SD across axes per bin
+    orth_tuning_n_axes_drawn: Optional[int] = None
+    orth_tuning_n_axes_used: Optional[int] = None
+    orth_gauss_a: Optional[float] = None
+    orth_gauss_sigma: Optional[float] = None
+    orth_gauss_c: Optional[float] = None
+    orth_amplitude_norm: Optional[float] = None        # a / (a + c)
+    orth_gauss_fit_ok: bool = False
 
 
 # ---------------------------------------------------------------------------
