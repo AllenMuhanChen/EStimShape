@@ -52,8 +52,7 @@ CREATE TABLE IF NOT EXISTS AxisCodingFitMetrics (
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    PRIMARY KEY (session_id, unit_name, component_type, strategy, model_name),
-    FOREIGN KEY (session_id) REFERENCES Sessions(session_id) ON DELETE CASCADE
+    PRIMARY KEY (session_id, unit_name, component_type, strategy, model_name)
 );
 """
 
@@ -68,8 +67,7 @@ CREATE TABLE IF NOT EXISTS AxisCodingFitArrays (
     array_name      VARCHAR(64) NOT NULL,
     array_json      LONGTEXT,
 
-    PRIMARY KEY (session_id, unit_name, component_type, strategy, model_name, array_name),
-    FOREIGN KEY (session_id) REFERENCES Sessions(session_id) ON DELETE CASCADE
+    PRIMARY KEY (session_id, unit_name, component_type, strategy, model_name, array_name)
 );
 """
 
