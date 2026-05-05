@@ -1373,14 +1373,19 @@ class RWAPeakSelector(ComponentSelector):
         # Find the argmax bin in the (smoothed) RWA matrix.
         flat_idx = int(np.argmax(rwa_obj.matrix))
         idx_tuple = np.unravel_index(flat_idx, rwa_obj.matrix.shape)
-        peak_params: dict = {}
+        rwa_peak_flat: dict = {}
         for axis_idx, name in rwa_obj.names_for_axes.items():
             bin_idx = int(idx_tuple[axis_idx])
-            peak_params[name] = float(rwa_obj.binners_for_axes[axis_idx].bins[bin_idx].middle)
+            rwa_peak_flat[name] = float(rwa_obj.binners_for_axes[axis_idx].bins[bin_idx].middle)
 
-        # Encode the peak as if it were a single-component stimulus, then
-        # apply the same z-score (and PCA) the rest of the pipeline uses.
-        peak_encoded = self._encoder.encode_components([peak_params])  # (1, d)
+        # The RWA stores axis names as a mix of bare keys ("radius", "theta")
+        # and dotted keys ("angularPosition.phi", "orientation.phi"), while the
+        # encoder needs a nested dict like {"angularPosition": {"theta": ...}}.
+        # Map RWA → encoder schema; missing keys default to 0 (z-scored mean).
+        peak_nested = self._build_peak_dict(rwa_peak_flat)
+
+        # Encode through the same encoder + scaler used by the rest of the pipeline.
+        peak_encoded = self._encoder.encode_components([peak_nested])  # (1, d)
         peak_z = self._encoder.transform_with_scaler(peak_encoded)     # (1, d)
         if self._pca_pre is not None and self._pca_pre.is_fit:
             mu = self._pca_pre._pca.transform(peak_z)[0]
@@ -1388,11 +1393,71 @@ class RWAPeakSelector(ComponentSelector):
             mu = peak_z[0]
 
         self.mu_ = np.asarray(mu, dtype=np.float64)
-        self.peak_params_ = peak_params
+        self.peak_params_ = peak_nested
         self.peak_value_ = float(rwa_obj.matrix[idx_tuple])
         self.resolved_path_ = path
         self.selected_indices_ = self._hard_indices(components_per_stim, self.mu_)
         return self
+
+    def _build_peak_dict(self, rwa_peak_flat: dict) -> dict:
+        """
+        Map RWA axis names → nested component dict matching encoder schema.
+
+        Resolution rules (ordered):
+          1. Linear/circular params: exact bare-name match.
+          2. Spherical params: exact dotted match (``<p>.theta`` / ``<p>.phi``).
+          3. Spherical params: bare ``"theta"`` / ``"phi"`` go to the spherical
+             param that's still missing it, but only if exactly one spherical
+             param needs it (run_rwa.py uses bare ``theta`` for shaft because
+             hemisphericalize collapses ``orientation.theta``).
+          4. Anything missing → 0 (z-scored mean; contributes nothing to ridge).
+        """
+        enc = self._encoder
+        out: dict = {}
+        consumed: set = set()
+
+        for p in enc.linear_params:
+            if p in rwa_peak_flat:
+                out[p] = float(rwa_peak_flat[p]); consumed.add(p)
+            else:
+                out[p] = 0.0
+
+        for p in enc.circular_params:
+            if p in rwa_peak_flat:
+                out[p] = float(rwa_peak_flat[p]); consumed.add(p)
+            else:
+                out[p] = 0.0
+
+        sph_needs_theta: list = []
+        sph_needs_phi: list = []
+        for p in enc.spherical_params:
+            sub: dict = {}
+            tk, pk = f"{p}.theta", f"{p}.phi"
+            if tk in rwa_peak_flat:
+                sub["theta"] = float(rwa_peak_flat[tk]); consumed.add(tk)
+            else:
+                sph_needs_theta.append(p)
+            if pk in rwa_peak_flat:
+                sub["phi"] = float(rwa_peak_flat[pk]); consumed.add(pk)
+            else:
+                sph_needs_phi.append(p)
+            out[p] = sub
+
+        bt = rwa_peak_flat.get("theta")
+        if bt is not None and len(sph_needs_theta) == 1:
+            out[sph_needs_theta[0]]["theta"] = float(bt); consumed.add("theta")
+        bp = rwa_peak_flat.get("phi")
+        if bp is not None and len(sph_needs_phi) == 1:
+            out[sph_needs_phi[0]]["phi"] = float(bp); consumed.add("phi")
+
+        for p in enc.spherical_params:
+            out[p].setdefault("theta", 0.0)
+            out[p].setdefault("phi", 0.0)
+
+        unused = sorted(set(rwa_peak_flat) - consumed)
+        if unused:
+            print(f"  [RWAPeakSelector] unused RWA axes (no encoder match): {unused}")
+        return out
 
     def select_indices(self, components_per_stim: list[np.ndarray]) -> np.ndarray:
         if self.mu_ is None:
