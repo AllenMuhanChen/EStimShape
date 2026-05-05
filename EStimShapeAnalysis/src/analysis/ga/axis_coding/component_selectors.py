@@ -1270,3 +1270,180 @@ def _median_pairwise_bandwidth(
     dists = euclidean_distances(all_comps)
     iu = np.triu_indices_from(dists, k=1)
     return float(np.median(dists[iu]))
+
+
+
+# ---------------------------------------------------------------------------
+# RWA-peak selector: μ comes from the argmax of an RWA matrix on disk
+# ---------------------------------------------------------------------------
+
+import os
+import pickle
+
+
+class RWAPeakSelector(ComponentSelector):
+    """
+    Pick the component closest to the peak of a precomputed RWA on disk.
+
+    The RWA pkl files written by ``run_rwa.py`` store an ``RWAMatrix`` with
+    ``names_for_axes``, ``binners_for_axes``, and a smoothed response density
+    over a grid in raw parameter space (e.g. radius, theta, phi, ...). The
+    peak (argmax of the matrix) is decoded to a parameter dict, encoded
+    through the same ComponentEncoder used by the rest of the pipeline,
+    z-scored, and (when PCA is active) projected to PC space — that becomes
+    the selector's ``mu_``. Per-stimulus selection is the nearest component
+    to ``mu_`` under Euclidean distance, same as FixedCovarianceSelector.
+
+    Path resolution
+    ---------------
+    Three modes (pick one):
+      - ``rwa_path``: explicit path to one pkl. Use this if you only run a
+        single component_type per analysis.
+      - ``rwa_dir`` + ``experiment_id``: looks up
+        ``{rwa_dir}/{experiment_id}_{component_type_lower}_rwa.pkl`` at fit
+        time, matching ``run_rwa.py``'s save naming convention.
+      - ``path_for_component_type``: explicit ``dict[str, str]`` from
+        component_type ("Shaft") to pkl path.
+
+    Wiring
+    ------
+    The selector needs the encoder + (optional) PCA preprocessor + the
+    current component_type to convert the raw-space peak into selector
+    space. ``fit_axis_coding`` calls ``set_encoding_context(...)`` before
+    ``fit(...)``; other selectors don't have this method and are unaffected.
+    """
+
+    def __init__(
+        self,
+        rwa_path: Optional[str] = None,
+        rwa_dir: Optional[str] = None,
+        experiment_id: Optional[str] = None,
+        path_for_component_type: Optional[dict] = None,
+    ):
+        if (rwa_path is None
+                and (rwa_dir is None or experiment_id is None)
+                and not path_for_component_type):
+            raise ValueError(
+                "RWAPeakSelector: provide rwa_path, "
+                "(rwa_dir + experiment_id), or path_for_component_type"
+            )
+        self.rwa_path = rwa_path
+        self.rwa_dir = rwa_dir
+        self.experiment_id = experiment_id
+        self.path_for_component_type = dict(path_for_component_type or {})
+
+        self.mu_: Optional[np.ndarray] = None
+        self.selected_indices_: Optional[np.ndarray] = None
+        self.peak_params_: Optional[dict] = None
+        self.peak_value_: Optional[float] = None
+        self.resolved_path_: Optional[str] = None
+
+        # Set externally by fit_axis_coding before fit().
+        self._encoder = None
+        self._pca_pre = None
+        self._component_type: Optional[str] = None
+
+    # ------------------------------------------------------------------
+    # Pipeline integration hook
+    # ------------------------------------------------------------------
+
+    def set_encoding_context(self, *, encoder, pca_pre=None, component_type=None):
+        self._encoder = encoder
+        self._pca_pre = pca_pre
+        self._component_type = component_type
+
+    # ------------------------------------------------------------------
+    # ComponentSelector API
+    # ------------------------------------------------------------------
+
+    def fit(
+        self,
+        components_per_stim: list[np.ndarray],
+        responses: np.ndarray,
+    ) -> "RWAPeakSelector":
+        if self._encoder is None:
+            raise RuntimeError(
+                "RWAPeakSelector requires set_encoding_context() before fit() — "
+                "did you call this selector outside fit_axis_coding?"
+            )
+        path = self._resolve_path()
+        with open(path, "rb") as f:
+            rwa_obj = pickle.load(f)
+
+        # Find the argmax bin in the (smoothed) RWA matrix.
+        flat_idx = int(np.argmax(rwa_obj.matrix))
+        idx_tuple = np.unravel_index(flat_idx, rwa_obj.matrix.shape)
+        peak_params: dict = {}
+        for axis_idx, name in rwa_obj.names_for_axes.items():
+            bin_idx = int(idx_tuple[axis_idx])
+            peak_params[name] = float(rwa_obj.binners_for_axes[axis_idx].bins[bin_idx].middle)
+
+        # Encode the peak as if it were a single-component stimulus, then
+        # apply the same z-score (and PCA) the rest of the pipeline uses.
+        peak_encoded = self._encoder.encode_components([peak_params])  # (1, d)
+        peak_z = self._encoder.transform_with_scaler(peak_encoded)     # (1, d)
+        if self._pca_pre is not None and self._pca_pre.is_fit:
+            mu = self._pca_pre._pca.transform(peak_z)[0]
+        else:
+            mu = peak_z[0]
+
+        self.mu_ = np.asarray(mu, dtype=np.float64)
+        self.peak_params_ = peak_params
+        self.peak_value_ = float(rwa_obj.matrix[idx_tuple])
+        self.resolved_path_ = path
+        self.selected_indices_ = self._hard_indices(components_per_stim, self.mu_)
+        return self
+
+    def select_indices(self, components_per_stim: list[np.ndarray]) -> np.ndarray:
+        if self.mu_ is None:
+            raise RuntimeError("RWAPeakSelector not fit.")
+        return self._hard_indices(components_per_stim, self.mu_)
+
+    def summary(self) -> dict:
+        return {
+            "type": "RWAPeakSelector",
+            "rwa_path": self.resolved_path_ or self.rwa_path,
+            "component_type": self._component_type,
+            "peak_params": self.peak_params_,
+            "peak_value": self.peak_value_,
+            "mu": None if self.mu_ is None else self.mu_.tolist(),
+        }
+
+    # ------------------------------------------------------------------
+    # Internals
+    # ------------------------------------------------------------------
+
+    def _resolve_path(self) -> str:
+        if self.rwa_path is not None:
+            return self.rwa_path
+        ct = self._component_type
+        if ct in self.path_for_component_type:
+            return self.path_for_component_type[ct]
+        if self.rwa_dir is not None and self.experiment_id is not None:
+            if ct is None:
+                raise RuntimeError(
+                    "RWAPeakSelector: component_type unknown — "
+                    "set_encoding_context wasn't called with component_type"
+                )
+            return os.path.join(
+                self.rwa_dir,
+                f"{self.experiment_id}_{ct.lower()}_rwa.pkl",
+            )
+        raise RuntimeError(
+            f"RWAPeakSelector: cannot resolve RWA path for component_type={ct!r}"
+        )
+
+    def _hard_indices(
+        self,
+        components_per_stim: list[np.ndarray],
+        mu: np.ndarray,
+    ) -> np.ndarray:
+        idx = np.empty(len(components_per_stim), dtype=np.int64)
+        for i, X in enumerate(components_per_stim):
+            if X.shape[0] == 0:
+                idx[i] = 0
+                continue
+            diff = X - mu[None, :]
+            dists = (diff * diff).sum(axis=1)
+            idx[i] = int(np.argmin(dists))
+        return idx

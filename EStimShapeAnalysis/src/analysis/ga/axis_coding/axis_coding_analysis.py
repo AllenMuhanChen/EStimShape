@@ -48,6 +48,7 @@ from src.analysis.ga.axis_coding.component_selectors import (
     ClusterModeSelector,
     SoftAttentionAxisSelector,
     MultiPrototypeAttentionSelector,
+    RWAPeakSelector,
 )
 from src.analysis.ga.axis_coding.ridge_regression_model import (
     RidgeRegressionAxisModel,
@@ -554,6 +555,17 @@ def fit_axis_coding(
     feature_names_for_model = (
         pca_pre.pc_feature_names() if pca_pre is not None else dataset.feature_names
     )
+
+    # Selectors that need the encoder / PCA context (e.g. RWAPeakSelector
+    # decoding a raw-space peak into selector space) declare a
+    # ``set_encoding_context`` method. Other selectors don't have it and
+    # are unaffected.
+    if hasattr(selector, "set_encoding_context"):
+        selector.set_encoding_context(
+            encoder=encoder,
+            pca_pre=pca_pre,
+            component_type=component_type,
+        )
 
     selector.fit(components_for_selector, dataset.responses)
     X = selector.selected_vectors(components_for_selector)
@@ -3395,6 +3407,22 @@ def main():
             ridge_factory=ridge,
             n_pcs=6,
         ),
+        # RWA-peak strategy: μ comes from the argmax of an RWA pkl on disk
+        # (one per component_type, written by run_rwa.py). Drop-in: same
+        # plotting, axis-coding, and orth-tuning analysis as every other
+        # strategy. Uncomment to enable; pass experiment_id matching the
+        # one used when run_rwa.py wrote the pkl files.
+        # AxisCodingStrategy(
+        #     label="rwa_peak",
+        #     selector_factory=lambda: RWAPeakSelector(
+        #         rwa_dir=context.rwa_output_dir,
+        #         experiment_id=context.ga_config.db_util.read_current_experiment_id(
+        #             context.ga_name,
+        #         ),
+        #     ),
+        #     ridge_factory=ridge,
+        #     n_pcs=6,
+        # ),
     ]
 
     analysis = AxisCodingAnalysis(
