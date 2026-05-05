@@ -107,6 +107,12 @@ class ModelAxisFit:
     orth_axis: list[float]
     all_orth_axes: list[list[float]]
     all_orth_variances: list[float]
+    # Goodness-of-fit on the in-sample predictions: signed Spearman ρ
+    # between predicted and actual responses, plus its analytical p-value
+    # from scipy.stats.spearmanr. Cheap to compute, useful for the population
+    # histogram of "how well does this model fit each cell".
+    spearman_rho: Optional[float] = None
+    spearman_p: Optional[float] = None
     w_in_feature_space: Optional[list[float]] = None
     orth_axis_in_feature_space: Optional[list[float]] = None
     all_orth_axes_in_feature_space: Optional[list[list[float]]] = None

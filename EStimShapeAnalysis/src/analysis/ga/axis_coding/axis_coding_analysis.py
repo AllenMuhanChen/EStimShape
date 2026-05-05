@@ -487,6 +487,18 @@ def _fit_model_axes(
         else:
             all_orth_axes_in_feat = np.zeros((len(br.feature_names_interp), 0))
 
+    # Goodness-of-fit on in-sample predictions: signed Spearman ρ between
+    # predicted and actual response, with analytical p-value (fast — no
+    # permutation). Population-level "how well does this model fit each
+    # cell" lives in this scalar.
+    if predictions.std() > 1e-12 and ctx.responses.std() > 1e-12:
+        rho_gof, p_gof = spearmanr(predictions, ctx.responses)
+        spearman_rho = float(rho_gof) if rho_gof is not None else float("nan")
+        spearman_p = float(p_gof) if p_gof is not None else float("nan")
+    else:
+        spearman_rho = float("nan")
+        spearman_p = float("nan")
+
     # Tsao Fig 4A orthogonal-tuning summary (per model). Fixed seed so the
     # number is reproducible across reruns; a per-fit randomness would
     # complicate population pooling.
@@ -502,6 +514,8 @@ def _fit_model_axes(
         has_shape_mu=spec.has_shape_mu,
         ridge_summary=ridge.summary(),
         predictions=predictions.tolist(),
+        spearman_rho=spearman_rho,
+        spearman_p=spearman_p,
         orth_tuning_x=orth_tune.get("orth_tuning_x"),
         orth_tuning_mean=orth_tune.get("orth_tuning_mean"),
         orth_tuning_sd=orth_tune.get("orth_tuning_sd"),
@@ -3059,6 +3073,8 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
         n_stimuli_per_axis: int = 12,
         panel_config: Optional["PlotPanelConfig"] = None,
         axis_models: Optional[list[ModelSpec]] = None,
+        permutation_test: bool = False,
+        export_to_repository: bool = True,
     ):
         super().__init__()
         self.component_types = component_types or [
@@ -3072,11 +3088,16 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
         self.rf_filter = rf_filter
         self.n_stimuli_per_axis = n_stimuli_per_axis
         self.panel_config = panel_config or PlotPanelConfig()
-        # Models drive both fit_axis_coding and the per-model figures emitted
-        # in analyze(). Defaults to [shape, appearance, shape+appearance].
         self.axis_models = (
             list(axis_models) if axis_models is not None else default_axis_models()
         )
+        # Permutation tests (e.g. for orth-axis Spearman significance) are
+        # off by default — analytical p from scipy.stats.spearmanr is fast and
+        # adequate. Set True only when you want the permutation null for a
+        # final figure.
+        self.permutation_test = bool(permutation_test)
+        # Whether to upsert per-model metrics + arrays into allen_data_repository.
+        self.export_to_repository = bool(export_to_repository)
 
     # ------------------------------------------------------------------
     # Analysis API
@@ -3085,6 +3106,26 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
         self.save_path = f"{self.save_path}/axis_coding"
         os.makedirs(f"{self.save_path}", exist_ok=True)
+
+        # Resolve channel="Cluster" to the current experiment's cluster
+        # channel list. unit_name (for display, filenames, repo rows) stays
+        # "Cluster"; the underlying response extraction uses the resolved
+        # channel list.
+        unit_name = _format_unit_name(channel)
+        if channel == "Cluster":
+            try:
+                cluster = context.ga_config.db_util.read_current_cluster(context.ga_name)
+            except Exception as exc:
+                raise RuntimeError(
+                    f"channel='Cluster' requires a defined cluster in the GA db: {exc}"
+                ) from exc
+            channel = [ch.value for ch in cluster]
+            print(
+                f"[axis_coding] channel='Cluster' (unit_name={unit_name}) "
+                f"resolved to {len(channel)} channels: {channel}"
+            )
+        self._unit_name = unit_name  # used by filenames + exporter
+
         compiled_data = self._prepare_dataframe(compiled_data)
         if self.rf_filter is not None:
             if self.rf_filter.save_dir is None:
@@ -3138,6 +3179,28 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                     axis_models=self.axis_models,
                 )
                 results[component_type][strategy.label] = result
+
+                # Upsert per-model metrics + arrays into allen_data_repository.
+                if self.export_to_repository:
+                    try:
+                        from src.repository.export_axis_coding import (
+                            export_axis_coding_result,
+                        )
+                        from clat.util.connection import Connection
+                        repo_conn = Connection("allen_data_repository")
+                        session_id_for_export, _ = read_session_id_and_date_from_db_name(
+                            context.ga_database
+                        )
+                        export_axis_coding_result(
+                            repo_conn=repo_conn,
+                            session_id=session_id_for_export,
+                            unit_name=getattr(self, "_unit_name", _format_unit_name(channel)),
+                            component_type=component_type,
+                            strategy=strategy.label,
+                            result=result,
+                        )
+                    except Exception as exc:
+                        print(f"  [export] failed: {exc}")
 
                 # Prototype amplitudes for multi-prototype selectors.
                 if result.prototype_amplitudes is not None:
@@ -3410,6 +3473,20 @@ def flatten(dictionary:dict):
 def _channel_to_str(channel: Union[str, list[str]]) -> str:
     if isinstance(channel, list):
         return f"{len(channel)}channels"
+    return str(channel)
+
+
+def _format_unit_name(channel: Union[str, list[str]]) -> str:
+    """
+    Repository unit_name convention:
+      - "Cluster" → "Cluster"
+      - "GA" → "GA"
+      - single intan string → as-is, e.g. "A-001"
+      - list of channels → "<N>chan" sentinel (Cluster should be passed as
+        the string "Cluster" before resolution; bare lists fall here).
+    """
+    if isinstance(channel, list):
+        return f"{len(channel)}chan"
     return str(channel)
 
 
