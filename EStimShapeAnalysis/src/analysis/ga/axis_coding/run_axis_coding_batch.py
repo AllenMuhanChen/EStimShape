@@ -57,12 +57,17 @@ def run_batch(
     return out
 
 
+def list_all_session_ids() -> list[str]:
+    """All session_ids in allen_data_repository.Sessions, oldest first."""
+    from clat.util.connection import Connection
+    repo_conn = Connection("allen_data_repository")
+    repo_conn.execute("SELECT session_id FROM Sessions ORDER BY session_date ASC")
+    return [row[0] for row in repo_conn.fetch_all()]
+
+
 def main():
-    session_ids = [
-        "260426_0",
-        # "260420_1",
-        # ...
-    ]
+    session_ids = list_all_session_ids()
+    print(f"[batch] running on {len(session_ids)} sessions: {session_ids}")
     run_batch(session_ids, channels=("Cluster",))
 
 
