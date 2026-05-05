@@ -3638,17 +3638,17 @@ def main():
         # plotting, axis-coding, and orth-tuning analysis as every other
         # strategy. Uncomment to enable; pass experiment_id matching the
         # one used when run_rwa.py wrote the pkl files.
-        # AxisCodingStrategy(
-        #     label="rwa_peak",
-        #     selector_factory=lambda: RWAPeakSelector(
-        #         rwa_dir=context.rwa_output_dir,
-        #         experiment_id=context.ga_config.db_util.read_current_experiment_id(
-        #             context.ga_name,
-        #         ),
-        #     ),
-        #     ridge_factory=ridge,
-        #     n_pcs=6,
-        # ),
+        AxisCodingStrategy(
+            label="rwa_peak",
+            selector_factory=lambda: RWAPeakSelector(
+                rwa_dir=context.rwa_output_dir,
+                experiment_id=context.ga_config.db_util.read_current_experiment_id(
+                    context.ga_name,
+                ),
+            ),
+            ridge_factory=ridge,
+            n_pcs=6,
+        ),
     ]
 
     analysis = AxisCodingAnalysis(
@@ -3660,9 +3660,9 @@ def main():
     )
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     compiled_data = None
-    compiled_data = analysis.compile_and_export()
+    # compiled_data = analysis.compile_and_export()
     # session_id="260426_0"
-    channel = "A-028"
+    channel = "Cluster"
     analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
 
