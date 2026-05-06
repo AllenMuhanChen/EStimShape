@@ -348,45 +348,16 @@ def _plot_figure(
     rows: list[BinnedAxis],
     title: str,
     mu_decoded: Optional[dict],
-    nonpos_pca: Optional["NonPositionResidualPCA"] = None,
 ) -> plt.Figure:
     n_rows = len(rows)
-
-    # Outer layout: a top subfigure for the per-axis position panels
-    # (this function's responsibility) and an optional bottom subfigure
-    # rendered entirely by the NonPositionResidualPCA class. Subfigures
-    # keep the two sections' gridspecs / constrained-layout state isolated
-    # so changes inside one block can't bleed into the other.
-    if nonpos_pca is not None:
-        bottom_h = 6.0
-        fig = plt.figure(
-            figsize=(18, 3.6 * n_rows + bottom_h),
-            constrained_layout=True,
-        )
-        top_subfig, bot_subfig = fig.subfigures(
-            nrows=2, ncols=1,
-            height_ratios=[3.6 * n_rows, bottom_h],
-        )
-        axes = top_subfig.subplots(
-            nrows=n_rows,
-            ncols=4,
-            squeeze=False,
-            gridspec_kw={"width_ratios": [1, 1, 1, 3]},
-        )
-        host_for_colorbar = top_subfig
-    else:
-        fig = plt.figure(
-            figsize=(18, 3.6 * n_rows),
-            constrained_layout=True,
-        )
-        bot_subfig = None
-        axes = fig.subplots(
-            nrows=n_rows,
-            ncols=4,
-            squeeze=False,
-            gridspec_kw={"width_ratios": [1, 1, 1, 3]},
-        )
-        host_for_colorbar = fig
+    fig, axes = plt.subplots(
+        nrows=n_rows,
+        ncols=4,
+        figsize=(18, 3.6 * n_rows),
+        squeeze=False,
+        gridspec_kw={"width_ratios": [1, 1, 1, 3]},
+        constrained_layout=True,
+    )
 
     col_titles = [
         "radialPosition (mean ± SEM)",
@@ -486,15 +457,12 @@ def _plot_figure(
         norm=plt.Normalize(vmin=-z_abs_max, vmax=z_abs_max),
     )
     sm.set_array([])
-    cbar = host_for_colorbar.colorbar(
+    cbar = fig.colorbar(
         sm, ax=axes[:, 3].ravel().tolist(),
         fraction=0.018, pad=0.015, aspect=30,
     )
     cbar.set_label("mean z (depth)", fontsize=8)
     cbar.ax.tick_params(labelsize=7)
-
-    if bot_subfig is not None:
-        nonpos_pca.render(bot_subfig)
 
     fig.suptitle(title, fontsize=12)
     return fig
@@ -574,54 +542,48 @@ def _draw_arrow_row(
 
 
 # ===========================================================================
-# Hypothesis-test analysis: is the preferred axis ≈ object-centered position?
+# Hypothesis-test analysis: position vs shape composition of the preferred
+# axis vs the saved orthogonal PCs.
 #
-# Self-contained class. Owns its own feature partition, residualization,
-# PCA, binning, and rendering. The only inputs are the design matrix, the
-# preferred-axis projections, and the feature names. The only output is a
-# render method that fills a matplotlib SubFigure.
+# Self-contained class. Reduces every axis to two scalar indices —
+# geometric (axis-weight share in the position block) and variance
+# partition (R^2 of axis projections regressed on position features) —
+# and a signed PSI = 2*R^2_pos - 1 in [-1, +1]. Renders one bar chart per
+# JSON; no entanglement with the position-along-axis figure.
 # ===========================================================================
 
-class NonPositionResidualPCA:
+class AxisCompositionAnalysis:
     """
-    Test whether variation along the preferred axis is dominated by
-    object-centered position by partialing position out of the non-position
-    features and asking whether the residual non-position structure has any
-    organization along the preferred axis.
+    Two complementary indices per axis:
 
-    Pipeline:
-      1. Partition feature_names into a position block (anything starting
-         with 'radialPosition' or 'angularPosition') and a non-position
-         block (everything else).
-      2. Linearly residualize each non-position feature against the
-         position block (OLS with intercept).
-      3. Run PCA twice on the non-position block:
-           - raw: un-residualized — control. Will slope along the
-             preferred axis if non-position features carry position
-             variance, which is the prediction if the axis is "really"
-             a position axis.
-           - residualized: position partialed out. If the axis is fully
-             explained by position, these PCs should be flat along it.
-      4. Bin the top-K PC loadings by preferred-axis projection (z-scored)
-         and report mean ± SEM.
+    1. Geometric:  ||a_pos||^2 / ||a||^2.  Fraction of axis squared norm
+       in the position block (radialPosition.*, angularPosition.*). Pure
+       axis-weight measure; ignores feature correlations.
 
-    Read-out: flat residualized curves + sloped raw curves => axis is
-    position. Sloped residualized curves => some non-position structure
-    also tracks the axis.
+    2. Variance partition:  R^2_pos = R^2 of axis_proj = X @ a regressed
+       on the position features. Direct decomposition: since axis_proj
+       lies in span(X), R^2_pos exactly partitions the variance into a
+       position-explained share and a non-position-residual share, with
+       R^2_nonpos|pos = 1 - R^2_pos.
+
+    PSI = 2 * R^2_pos - 1 maps R^2_pos onto [-1, +1] for a signed read-out:
+      +1 = pure position, 0 = balanced, -1 = pure non-position.
+
+    Compares the preferred axis against the top-K saved PCs orthogonal
+    to it (already PCA-derived inside the model — see
+    compute_all_orthogonal_axes in axis_coding_analysis.py:1001). A
+    chance baseline n_pos / n_total is drawn for context: a random unit
+    direction's expected geometric / R^2 share.
     """
 
     POSITION_PREFIXES = ("radialPosition", "angularPosition")
 
     def __init__(
         self,
-        top_k: int = 5,
-        n_bins: int = 9,
-        z_range: float = 2.0,
+        top_k_orth: int = 5,
         position_prefixes: tuple = POSITION_PREFIXES,
     ):
-        self.top_k = top_k
-        self.n_bins = n_bins
-        self.z_range = z_range
+        self.top_k_orth = top_k_orth
         self.position_prefixes = position_prefixes
         self._fitted: Optional[dict] = None
 
@@ -630,83 +592,86 @@ class NonPositionResidualPCA:
     def fit(
         self,
         X: np.ndarray,
-        axis_projections: np.ndarray,
         feature_names: list[str],
         w_in_feature_space: Optional[np.ndarray] = None,
-    ) -> "NonPositionResidualPCA":
+        all_orth_axes_in_feature_space: Optional[np.ndarray] = None,
+        all_orth_variances: Optional[np.ndarray] = None,
+    ) -> "AxisCompositionAnalysis":
         X = np.asarray(X, dtype=np.float64)
-        proj = np.asarray(axis_projections, dtype=np.float64)
-        # Drop stims with any NaN in X or projection.
-        finite = np.all(np.isfinite(X), axis=1) & np.isfinite(proj)
-        if int(finite.sum()) < 5:
+        finite = np.all(np.isfinite(X), axis=1)
+        X = X[finite]
+        if X.shape[0] < 5:
             self._fitted = {"available": False, "reason": "fewer than 5 valid stims"}
             return self
-        X = X[finite]
-        proj = proj[finite]
-
         if not feature_names or len(feature_names) != X.shape[1]:
             self._fitted = {"available": False, "reason": "feature_names mismatch"}
             return self
 
+        d = X.shape[1]
         pos_mask = np.array([self._is_position(n) for n in feature_names], dtype=bool)
-        nonpos_mask = ~pos_mask
-        if int(nonpos_mask.sum()) == 0:
-            self._fitted = {"available": False, "reason": "no non-position features"}
+        n_pos = int(pos_mask.sum())
+        if n_pos == 0 or n_pos == d:
+            self._fitted = {
+                "available": False,
+                "reason": "no position/non-position partition possible",
+            }
             return self
-        if int(pos_mask.sum()) == 0:
-            self._fitted = {"available": False, "reason": "no position features"}
-            return self
-
+        chance = n_pos / float(d)
         X_pos = X[:, pos_mask]
-        X_nonpos = X[:, nonpos_mask]
 
-        # Linear OLS: residualize non-position against position + intercept.
-        n = X.shape[0]
-        design = np.hstack([np.ones((n, 1)), X_pos])
-        B, *_ = np.linalg.lstsq(design, X_nonpos, rcond=None)
-        X_nonpos_resid = X_nonpos - design @ B
+        # Build the list of axes to score: preferred + top-K orth PCs by var.
+        axes_to_score: list[tuple[str, np.ndarray, Optional[float]]] = []
 
-        raw_centered = X_nonpos - X_nonpos.mean(axis=0)
-        resid_centered = X_nonpos_resid - X_nonpos_resid.mean(axis=0)
-
-        raw_pcs, raw_var = self._pca_top_k(raw_centered, self.top_k)
-        resid_pcs, resid_var = self._pca_top_k(resid_centered, self.top_k)
-
-        raw_loadings = raw_centered @ raw_pcs        # (n_stim, k)
-        resid_loadings = resid_centered @ resid_pcs
-
-        # Headline scalar: fraction of preferred-axis squared norm that
-        # lives in the position block. Cheap sanity check; complements the
-        # binned curves.
-        position_norm_frac: Optional[float] = None
         if w_in_feature_space is not None:
             w = np.asarray(w_in_feature_space, dtype=np.float64)
-            if w.size == X.shape[1]:
-                w_norm_sq = float(np.sum(w * w))
-                if w_norm_sq > 1e-12:
-                    position_norm_frac = float(
-                        np.sum(w[pos_mask] ** 2) / w_norm_sq
+            if w.size == d and float(np.sum(w * w)) > 1e-12:
+                axes_to_score.append(("preferred", w, None))
+
+        if (all_orth_axes_in_feature_space is not None
+                and all_orth_variances is not None):
+            orth = np.asarray(all_orth_axes_in_feature_space, dtype=np.float64)
+            orth_var = np.asarray(all_orth_variances, dtype=np.float64)
+            if (orth.ndim == 2 and orth.shape[0] == d
+                    and orth.shape[1] == orth_var.size):
+                order = np.argsort(-orth_var)
+                for rank, k in enumerate(order[: self.top_k_orth]):
+                    axis_vec = orth[:, k]
+                    if float(np.sum(axis_vec * axis_vec)) < 1e-12:
+                        continue
+                    axes_to_score.append(
+                        (f"PC#{rank + 1} ⊥ w", axis_vec, float(orth_var[k]))
                     )
 
-        raw_binned = [
-            self._bin_loading(proj, raw_loadings[:, k])
-            for k in range(raw_pcs.shape[1])
-        ]
-        resid_binned = [
-            self._bin_loading(proj, resid_loadings[:, k])
-            for k in range(resid_pcs.shape[1])
-        ]
+        if not axes_to_score:
+            self._fitted = {"available": False, "reason": "no axes to score"}
+            return self
+
+        results = []
+        for label, axis, axis_var in axes_to_score:
+            axis_norm_sq = float(np.sum(axis * axis))
+            geom = float(np.sum(axis[pos_mask] ** 2)) / axis_norm_sq
+
+            axis_proj = X @ axis
+            r2_pos = self._r2_on_position(X_pos, axis_proj)
+            psi = 2.0 * r2_pos - 1.0
+
+            results.append({
+                "label": label,
+                "geom_index": float(geom),
+                "r2_pos": float(r2_pos),
+                "psi": float(psi),
+                "axis_var": axis_var,
+            })
 
         self._fitted = {
             "available": True,
-            "n_used": int(n),
-            "position_features": [n_ for n_, m in zip(feature_names, pos_mask) if m],
-            "nonpos_features": [n_ for n_, m in zip(feature_names, nonpos_mask) if m],
-            "raw_var": raw_var,
-            "resid_var": resid_var,
-            "raw_binned": raw_binned,
-            "resid_binned": resid_binned,
-            "position_norm_frac": position_norm_frac,
+            "results": results,
+            "chance_baseline": float(chance),
+            "n_pos": n_pos,
+            "n_total": d,
+            "n_used": int(X.shape[0]),
+            "position_features": [n for n, m in zip(feature_names, pos_mask) if m],
+            "nonpos_features": [n for n, m in zip(feature_names, ~pos_mask) if m],
         }
         return self
 
@@ -716,112 +681,83 @@ class NonPositionResidualPCA:
         return any(name.startswith(p) for p in self.position_prefixes)
 
     @staticmethod
-    def _pca_top_k(centered: np.ndarray, k: int) -> tuple[np.ndarray, np.ndarray]:
-        n_feats = centered.shape[1]
-        if n_feats == 0 or centered.shape[0] < 2:
-            return np.zeros((n_feats, 0)), np.array([])
-        cov = centered.T @ centered / max(1, len(centered) - 1)
-        vals, vecs = np.linalg.eigh(cov)
-        order = np.argsort(-vals)
-        vals = vals[order]
-        vecs = vecs[:, order]
-        keep = max(0, min(int(k), int(vals.size), int(n_feats)))
-        return vecs[:, :keep], vals[:keep]
+    def _r2_on_position(X_pos: np.ndarray, axis_proj: np.ndarray) -> float:
+        """OLS R^2 of axis_proj regressed on X_pos with intercept."""
+        n = X_pos.shape[0]
+        proj_c = axis_proj - axis_proj.mean()
+        ss_tot = float(np.sum(proj_c * proj_c))
+        if ss_tot < 1e-12:
+            return 0.0
+        design = np.hstack([np.ones((n, 1)), X_pos])
+        coefs, *_ = np.linalg.lstsq(design, axis_proj, rcond=None)
+        residuals = axis_proj - design @ coefs
+        ss_res = float(np.sum(residuals * residuals))
+        return float(max(0.0, min(1.0 - ss_res / ss_tot, 1.0)))
 
-    def _bin_loading(self, projections: np.ndarray, loadings: np.ndarray) -> dict:
-        proj = np.asarray(projections, dtype=np.float64)
-        load = np.asarray(loadings, dtype=np.float64)
-        finite = np.isfinite(proj) & np.isfinite(load)
-        proj = proj[finite]
-        load = load[finite]
-        empty = np.full(self.n_bins, np.nan)
-        centers = np.linspace(-self.z_range, self.z_range, self.n_bins)
-        if proj.size == 0:
-            return {"centers": centers, "mean": empty.copy(), "sem": empty.copy(),
-                    "counts": np.zeros(self.n_bins, dtype=int)}
-        std = float(np.std(proj, ddof=1)) if proj.size >= 2 else 1.0
-        if std < 1e-12:
-            std = 1.0
-        z = (proj - float(np.mean(proj))) / std
-        edges = np.linspace(-self.z_range, self.z_range, self.n_bins + 1)
-        centers = 0.5 * (edges[:-1] + edges[1:])
-        bin_idx = np.digitize(z, edges) - 1
-        valid = (bin_idx >= 0) & (bin_idx < self.n_bins)
-        mean = empty.copy()
-        sem = empty.copy()
-        counts = np.zeros(self.n_bins, dtype=int)
-        for b in range(self.n_bins):
-            sel = valid & (bin_idx == b)
-            n_sel = int(sel.sum())
-            counts[b] = n_sel
-            if n_sel == 0:
-                continue
-            vals_b = load[sel]
-            mean[b] = float(vals_b.mean())
-            sem[b] = float(vals_b.std(ddof=1) / np.sqrt(n_sel)) if n_sel > 1 else 0.0
-        return {"centers": centers, "mean": mean, "sem": sem, "counts": counts}
+    # ---------------------------------------------------------------- render
 
-    # --------------------------------------------------------------- render
+    def render(self, fig: Optional[plt.Figure] = None) -> plt.Figure:
+        """Produce (or fill) a Figure with the axis-composition bar chart."""
+        if fig is None:
+            fig = plt.figure(figsize=(12, 5), constrained_layout=True)
 
-    def render(self, subfig) -> None:
-        """Fill ``subfig`` (a matplotlib SubFigure) with the analysis panels."""
         fitted = self._fitted
         if fitted is None or not fitted.get("available"):
-            ax = subfig.subplots(1, 1)
+            ax = fig.add_subplot(1, 1, 1)
             reason = (fitted or {}).get("reason", "not fitted")
             ax.text(
-                0.5, 0.5,
-                f"Non-position residual PCA: {reason}",
+                0.5, 0.5, f"Axis composition: {reason}",
                 ha="center", va="center", fontsize=10, color="dimgray",
             )
             ax.axis("off")
-            return
+            return fig
 
-        k = len(fitted["raw_binned"])
-        if k == 0:
-            ax = subfig.subplots(1, 1)
-            ax.text(0.5, 0.5,
-                    "Non-position residual PCA: 0 PCs available",
-                    ha="center", va="center", fontsize=10, color="dimgray")
-            ax.axis("off")
-            return
+        results = fitted["results"]
+        labels = [r["label"] for r in results]
+        geom = np.array([r["geom_index"] for r in results])
+        r2pos = np.array([r["r2_pos"] for r in results])
+        psi = np.array([r["psi"] for r in results])
+        chance = fitted["chance_baseline"]
 
-        title = (
-            "Non-position structure along preferred axis  —  "
-            "raw (control) vs residualized (position partialed out)"
+        ax = fig.add_subplot(1, 1, 1)
+        x = np.arange(len(labels))
+        width = 0.4
+        ax.bar(x - width / 2, geom, width,
+               label="‖a_pos‖² / ‖a‖²  (geometric)",
+               color="tab:blue", alpha=0.85)
+        ax.bar(x + width / 2, r2pos, width,
+               label="R²_pos  (variance partition)",
+               color="tab:purple", alpha=0.85)
+        ax.axhline(
+            chance, color="grey", linestyle="--", lw=1.0,
+            label=f"chance = {fitted['n_pos']}/{fitted['n_total']} = {chance:.2f}",
         )
-        if fitted.get("position_norm_frac") is not None:
-            title += (
-                f"   |   ‖w_pos‖²/‖w‖² = {fitted['position_norm_frac']:.2f}"
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels, rotation=20, ha="right", fontsize=9)
+        ax.set_ylabel("position content")
+        ax.set_ylim(0, 1.10)
+        ax.legend(fontsize=8, loc="upper right")
+        ax.grid(alpha=0.25, axis="y")
+
+        # PSI annotations above each axis group.
+        for i, p in enumerate(psi):
+            top = max(geom[i], r2pos[i])
+            ax.annotate(
+                f"PSI={p:+.2f}",
+                xy=(i, top + 0.025),
+                ha="center", va="bottom",
+                fontsize=8, color="black",
             )
-        title += f"   |   n_stim = {fitted['n_used']}"
-        subfig.suptitle(title, fontsize=11, fontweight="bold")
 
-        axes = subfig.subplots(nrows=2, ncols=k, squeeze=False, sharex=True)
-
-        rows = [
-            ("raw\n(control)",  "tab:gray",   "raw_binned",   "raw_var"),
-            ("residualized",    "tab:purple", "resid_binned", "resid_var"),
-        ]
-        for r, (row_label, color, key, var_key) in enumerate(rows):
-            for col in range(k):
-                ax = axes[r, col]
-                b = fitted[key][col]
-                ax.errorbar(
-                    b["centers"], b["mean"], yerr=b["sem"],
-                    fmt="o-", color=color, capsize=2, lw=1.0, ms=3,
-                )
-                ax.axhline(0, color="lightgrey", lw=0.5, zorder=0)
-                if r == 0:
-                    var_arr = fitted[var_key]
-                    var_str = f"{float(var_arr[col]):.2f}" if col < len(var_arr) else "?"
-                    ax.set_title(f"PC{col + 1}  (var={var_str})", fontsize=9)
-                if col == 0:
-                    ax.set_ylabel(row_label, fontsize=10, fontweight="bold")
-                if r == 1:
-                    ax.set_xlabel("axis projection (z)", fontsize=8)
-                ax.tick_params(labelsize=7)
-                ax.grid(alpha=0.25)
+        if results:
+            r0 = results[0]
+            ax.set_title(
+                f"Axis composition  |  preferred: geom={r0['geom_index']:.2f}, "
+                f"R²_pos={r0['r2_pos']:.2f}, PSI={r0['psi']:+.2f}  |  "
+                f"n_stim={fitted['n_used']}",
+                fontsize=11,
+            )
+        return fig
 
 
 # ---------------------------------------------------------------------------
@@ -835,7 +771,7 @@ def process_json(
     top_orth: int,
     n_bins: int,
     z_range: float,
-    top_k_residual: int = 5,
+    top_k_composition: int = 5,
 ) -> Optional[str]:
     """Render and save one figure for ``json_path``. Returns the saved path."""
     with open(json_path, "r") as f:
@@ -898,38 +834,14 @@ def process_json(
                     )
                 )
 
-    # Independent hypothesis-test analysis: does position alone explain the
-    # preferred axis? Self-contained — owns its design-matrix consumption,
-    # PCA, and rendering. Skips silently if the design matrix can't be
-    # rebuilt for this JSON.
-    nonpos_pca: Optional[NonPositionResidualPCA] = None
-    try:
-        X, feature_names = _build_design_matrix_for_json(
-            stim_ids, selected_indices, components_by_stim, component_type,
-        )
-        w_feat = result.get("w_in_feature_space")
-        nonpos_pca = NonPositionResidualPCA(
-            top_k=top_k_residual,
-            n_bins=n_bins,
-            z_range=z_range,
-        ).fit(
-            X=X,
-            axis_projections=np.asarray(axis_projections, dtype=np.float64),
-            feature_names=feature_names,
-            w_in_feature_space=(
-                np.asarray(w_feat, dtype=np.float64) if w_feat is not None else None
-            ),
-        )
-    except Exception as exc:
-        print(f"  [nonpos-pca] disabled ({exc})")
-        nonpos_pca = None
-
+    # ------------------------------------------------------------------
+    # Figure 1: position-along-axis (descriptive).
+    # ------------------------------------------------------------------
     title = (
         f"Position along axis  |  channel={channel}  "
         f"type={component_type}  strategy={strategy_label}"
     )
-    fig = _plot_figure(rows, title, mu_decoded, nonpos_pca=nonpos_pca)
-
+    fig = _plot_figure(rows, title, mu_decoded)
     out_path = os.path.join(
         os.path.dirname(json_path),
         f"position_along_axis_{channel}_{component_type}_{strategy_label}.png",
@@ -937,6 +849,43 @@ def process_json(
     fig.savefig(out_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
     print(f"  saved: {out_path}")
+
+    # ------------------------------------------------------------------
+    # Figure 2: axis composition (hypothesis test). Self-contained class —
+    # owns its own design-matrix consumption, indices, and rendering.
+    # Skips silently if the design matrix can't be rebuilt or the JSON
+    # lacks feature-space axes.
+    # ------------------------------------------------------------------
+    try:
+        X, feature_names = _build_design_matrix_for_json(
+            stim_ids, selected_indices, components_by_stim, component_type,
+        )
+        composition = AxisCompositionAnalysis(top_k_orth=top_k_composition).fit(
+            X=X,
+            feature_names=feature_names,
+            w_in_feature_space=result.get("w_in_feature_space"),
+            all_orth_axes_in_feature_space=result.get(
+                "all_orthogonal_axes_in_feature_space"
+            ),
+            all_orth_variances=result.get("all_orthogonal_variances"),
+        )
+        comp_fig = composition.render()
+        comp_fig.suptitle(
+            f"channel={channel}  type={component_type}  "
+            f"strategy={strategy_label}",
+            fontsize=10,
+        )
+        comp_out = os.path.join(
+            os.path.dirname(json_path),
+            f"axis_composition_{channel}_{component_type}_{strategy_label}.png",
+        )
+        comp_fig.savefig(comp_out, dpi=150, bbox_inches="tight")
+        plt.close(comp_fig)
+        print(f"  saved: {comp_out}")
+    except Exception as exc:
+        print(f"  [composition] skipped ({exc})")
+        import traceback
+        traceback.print_exc()
     return out_path
 
 
@@ -959,9 +908,9 @@ def main():
     n_bins = 9
     z_range = 2.0
 
-    # Number of top residual / raw non-position PCs to plot in the
-    # NonPositionResidualPCA section.
-    top_k_residual = 5
+    # Number of top orthogonal PCs (already PCA-derived inside the model)
+    # to score alongside the preferred axis in the composition figure.
+    top_k_composition = 5
 
     # ----------------------------------------------------------------------
 
@@ -996,7 +945,7 @@ def main():
                 top_orth=top_orth,
                 n_bins=n_bins,
                 z_range=z_range,
-                top_k_residual=top_k_residual,
+                top_k_composition=top_k_composition,
             ) is not None:
                 n_ok += 1
         except Exception as exc:
