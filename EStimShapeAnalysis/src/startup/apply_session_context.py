@@ -69,8 +69,18 @@ def run_axis_coding_for_session(
 
     Pass extra ``AxisCodingAnalysis`` kwargs through ``analyzer_kwargs`` —
     e.g. strategies, axis_models, panel_config, rf_filter.
+
+    When ``analyzer_kwargs["recompute"]`` is False and every
+    (channel, component_type, strategy) combination already has
+    AxisCodingFitMetrics rows, skip the whole session before doing the
+    expensive compile_and_export.
     """
-    from src.analysis.ga.axis_coding.axis_coding_analysis import AxisCodingAnalysis
+    from src.analysis.ga.axis_coding.axis_coding_analysis import (
+        AxisCodingAnalysis, _format_unit_name, _has_existing_metrics,
+    )
+    from src.repository.export_to_repository import (
+        read_session_id_and_date_from_db_name,
+    )
 
     apply_session_context(session_id)
 
@@ -78,6 +88,40 @@ def run_axis_coding_for_session(
         show_plots=show_plots,
         **analyzer_kwargs,
     )
+
+    if not analysis.recompute:
+        try:
+            session_id_for_check, _ = read_session_id_and_date_from_db_name(
+                context.ga_database
+            )
+        except Exception:
+            session_id_for_check = None
+
+        if session_id_for_check is not None:
+            all_done = True
+            for channel in channels:
+                unit_name = _format_unit_name(channel)
+                for component_type in analysis.component_types:
+                    for strategy in analysis.strategies:
+                        if not _has_existing_metrics(
+                            session_id_for_check, unit_name,
+                            component_type, strategy.label,
+                        ):
+                            all_done = False
+                            break
+                    if not all_done:
+                        break
+                if not all_done:
+                    break
+
+            if all_done:
+                print(
+                    f"[skip] session={session_id_for_check} already has "
+                    f"AxisCodingFitMetrics for every (channel, component_type, "
+                    f"strategy) — skipping compile_and_export "
+                    f"(pass recompute=True to override)"
+                )
+                return {channel: "skipped" for channel in channels}
 
     if compiled_data is None:
         compiled_data = analysis.compile_and_export()
