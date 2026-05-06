@@ -3046,6 +3046,28 @@ def plot_mu_decoded(
 # Orchestrator
 # ---------------------------------------------------------------------------
 
+def _has_existing_metrics(
+    session_id: str,
+    unit_name: str,
+    component_type: str,
+    strategy: str,
+) -> bool:
+    """True if AxisCodingFitMetrics has any row for this (session,unit,ct,strategy)."""
+    try:
+        from clat.util.connection import Connection
+        repo_conn = Connection("allen_data_repository")
+        repo_conn.execute(
+            "SELECT 1 FROM AxisCodingFitMetrics "
+            "WHERE session_id = %s AND unit_name = %s "
+            "AND component_type = %s AND strategy = %s LIMIT 1",
+            params=(session_id, unit_name, component_type, strategy),
+        )
+        return repo_conn.fetch_one() is not None
+    except Exception as exc:
+        print(f"  [skip-check] failed to query metrics, will recompute: {exc}")
+        return False
+
+
 class AxisCodingAnalysis(PlotTopNAnalysis):
     """
     Orchestrates per-component-type axis coding analysis for one channel
@@ -3075,6 +3097,7 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
         axis_models: Optional[list[ModelSpec]] = None,
         permutation_test: bool = False,
         export_to_repository: bool = True,
+        recompute: bool = True,
     ):
         super().__init__()
         self.component_types = component_types or [
@@ -3098,6 +3121,10 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
         self.permutation_test = bool(permutation_test)
         # Whether to upsert per-model metrics + arrays into allen_data_repository.
         self.export_to_repository = bool(export_to_repository)
+        # When False, skip any (session, unit, component_type, strategy) that
+        # already has rows in AxisCodingFitMetrics — useful for resuming a
+        # batch without redoing successful fits.
+        self.recompute = bool(recompute)
 
     # ------------------------------------------------------------------
     # Analysis API
@@ -3158,6 +3185,16 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
 
         results: dict[str, dict[str, AxisCodingResult]] = {}
 
+        unit_name_for_skip = getattr(
+            self, "_unit_name", _format_unit_name(channel)
+        )
+        try:
+            session_id_for_skip, _ = read_session_id_and_date_from_db_name(
+                context.ga_database
+            )
+        except Exception:
+            session_id_for_skip = None
+
         for component_type in self.component_types:
             results[component_type] = {}
             for strategy in self.strategies:
@@ -3165,6 +3202,18 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                     f"\n[axis_coding] channel={channel} "
                     f"type={component_type} strategy={strategy.label}"
                 )
+                if (not self.recompute and session_id_for_skip is not None
+                        and _has_existing_metrics(
+                            session_id_for_skip, unit_name_for_skip,
+                            component_type, strategy.label,
+                        )):
+                    print(
+                        f"  [skip] AxisCodingFitMetrics already has rows for "
+                        f"session={session_id_for_skip} unit={unit_name_for_skip} "
+                        f"type={component_type} strategy={strategy.label} "
+                        f"(pass recompute=True to override)"
+                    )
+                    continue
                 result = fit_axis_coding(
                     df=compiled_data,
                     component_type=component_type,
