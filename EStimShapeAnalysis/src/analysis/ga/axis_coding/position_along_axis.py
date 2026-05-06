@@ -696,6 +696,33 @@ class AxisCompositionAnalysis:
         ss_res = float(np.sum(residuals * residuals))
         return float(max(0.0, min(1.0 - ss_res / ss_tot, 1.0)))
 
+    # ---------------------------------------------------------------- export
+
+    def to_db_rows(self) -> list[dict]:
+        """
+        Per-axis rows for export to AxisCompositionMetrics. Empty when
+        not fitted or unavailable. ``axis_rank`` is 0 for the preferred
+        axis and 1, 2, ... for the orthogonal PCs in saved-variance order.
+        """
+        fitted = self._fitted
+        if not fitted or not fitted.get("available"):
+            return []
+        rows = []
+        for rank, r in enumerate(fitted["results"]):
+            rows.append({
+                "axis_label": r["label"],
+                "axis_rank": int(rank),
+                "r2_pos": float(r["r2_pos"]),
+                "r2_shape": float(r["r2_shape"]),
+                "psi": float(r["psi"]),
+                "axis_variance": (
+                    None if r.get("axis_var") is None else float(r["axis_var"])
+                ),
+                "chance_baseline_pos": float(fitted["chance_baseline"]),
+                "n_stim_used": int(fitted["n_used"]),
+            })
+        return rows
+
     # ---------------------------------------------------------------- render
 
     def render(self, fig: Optional[plt.Figure] = None) -> plt.Figure:
@@ -1057,6 +1084,25 @@ class AxisIndependenceAnalysis:
             })
         return curves
 
+    # ---------------------------------------------------------------- export
+
+    def to_db_row(self) -> Optional[dict]:
+        """Scalars for export to AxisIndependenceMetrics. None if not fitted."""
+        fitted = self._fitted
+        if not fitted or not fitted.get("available"):
+            return None
+        return {
+            "n_stim_used": int(fitted["n_used"]),
+            "r2_pos_only": float(fitted["r2_p"]),
+            "r2_shape_only": float(fitted["r2_s"]),
+            "r2_additive": float(fitted["r2_add"]),
+            "r2_interaction": float(fitted["r2_int"]),
+            "interaction_gap": float(fitted["interaction_gap"]),
+            "corr_p_s": float(fitted["corr_ps"]),
+            "ridge_alpha_p": float(fitted["ridge_alpha_p"]),
+            "ridge_alpha_s": float(fitted["ridge_alpha_s"]),
+        }
+
     # ---------------------------------------------------------------- render
 
     def render(self, fig: Optional[plt.Figure] = None) -> plt.Figure:
@@ -1235,8 +1281,19 @@ def process_json(
     z_range: float,
     top_k_composition: int = 5,
     n_position_bins: int = 5,
+    session_id: Optional[str] = None,
+    unit_name: Optional[str] = None,
+    repo_conn=None,
 ) -> Optional[str]:
-    """Render and save one figure for ``json_path``. Returns the saved path."""
+    """
+    Render figures for one ``json_path`` and optionally upsert composition +
+    independence metrics into the data repository.
+
+    DB writes happen only when ``session_id``, ``unit_name``, and
+    ``repo_conn`` are all provided. Failures during DB write are caught
+    and logged so a transient repo issue can't take down the figure
+    pipeline.
+    """
     with open(json_path, "r") as f:
         result = json.load(f)
 
@@ -1345,6 +1402,28 @@ def process_json(
         comp_fig.savefig(comp_out, dpi=150, bbox_inches="tight")
         plt.close(comp_fig)
         print(f"  saved: {comp_out}")
+
+        if repo_conn is not None and session_id and unit_name:
+            try:
+                from src.repository.export_axis_independence import (
+                    export_axis_composition_metrics,
+                )
+                axis_rows = composition.to_db_rows()
+                if axis_rows:
+                    export_axis_composition_metrics(
+                        repo_conn=repo_conn,
+                        session_id=session_id,
+                        unit_name=unit_name,
+                        component_type=component_type,
+                        strategy=strategy_label,
+                        axis_rows=axis_rows,
+                    )
+                    print(
+                        f"  [db] AxisCompositionMetrics: "
+                        f"{len(axis_rows)} axes upserted"
+                    )
+            except Exception as exc:
+                print(f"  [db composition] failed: {exc}")
     except Exception as exc:
         print(f"  [composition] skipped ({exc})")
         import traceback
@@ -1384,6 +1463,25 @@ def process_json(
             ind_fig.savefig(ind_out, dpi=150, bbox_inches="tight")
             plt.close(ind_fig)
             print(f"  saved: {ind_out}")
+
+            if repo_conn is not None and session_id and unit_name:
+                try:
+                    from src.repository.export_axis_independence import (
+                        export_axis_independence_metrics,
+                    )
+                    scalars = independence.to_db_row()
+                    if scalars is not None:
+                        export_axis_independence_metrics(
+                            repo_conn=repo_conn,
+                            session_id=session_id,
+                            unit_name=unit_name,
+                            component_type=component_type,
+                            strategy=strategy_label,
+                            scalars=scalars,
+                        )
+                        print("  [db] AxisIndependenceMetrics: 1 row upserted")
+                except Exception as exc:
+                    print(f"  [db independence] failed: {exc}")
         except Exception as exc:
             print(f"  [independence] skipped ({exc})")
             import traceback
@@ -1420,6 +1518,12 @@ def main():
     # often too coarse to see structure; 5–7 is a usable default.
     n_position_bins = 5
 
+    # Unit name used for DB rows (joins with AxisCodingFitMetrics). Should
+    # match the original AxisCodingAnalysis run — typically "Cluster".
+    # Set write_to_db=False to skip the upserts entirely.
+    unit_name = "Cluster"
+    write_to_db = True
+
     # ----------------------------------------------------------------------
 
     save_dir = os.path.abspath(save_dir)
@@ -1432,6 +1536,17 @@ def main():
 
     print(f"[position_along_axis] {len(json_paths)} JSONs in {save_dir}")
     df = _prepare_session_df(session_id)
+
+    repo_conn = None
+    if write_to_db:
+        try:
+            from clat.util.connection import Connection
+            repo_conn = Connection("allen_data_repository")
+            print("[position_along_axis] db: writing to allen_data_repository")
+        except Exception as exc:
+            print(f"[position_along_axis] db: connection failed ({exc}); "
+                  f"continuing without DB writes")
+            repo_conn = None
 
     cache: dict[str, dict] = {}
 
@@ -1455,6 +1570,9 @@ def main():
                 z_range=z_range,
                 top_k_composition=top_k_composition,
                 n_position_bins=n_position_bins,
+                session_id=session_id,
+                unit_name=unit_name,
+                repo_conn=repo_conn,
             ) is not None:
                 n_ok += 1
         except Exception as exc:
