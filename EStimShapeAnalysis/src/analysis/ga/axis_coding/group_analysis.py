@@ -125,6 +125,7 @@ def plot_population_orth_tuning_curves(
 
         for col_idx, model in enumerate(models):
             ax = axes[row_idx, col_idx]
+            ax.set_ylim(0,2)
             sub = merged[merged["model_name"] == model]
             n_cells = len(sub)
             for _, row in sub.iterrows():

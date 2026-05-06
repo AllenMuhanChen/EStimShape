@@ -3637,17 +3637,17 @@ def make_default_strategies():
         # plotting, axis-coding, and orth-tuning analysis as every other
         # strategy. Uncomment to enable; pass experiment_id matching the
         # one used when run_rwa.py wrote the pkl files.
-        AxisCodingStrategy(
-            label="rwa_peak",
-            selector_factory=lambda: RWAPeakSelector(
-                rwa_dir=context.rwa_output_dir,
-                experiment_id=context.ga_config.db_util.read_current_experiment_id(
-                    context.ga_name,
-                ),
-            ),
-            ridge_factory=ridge,
-            n_pcs=6,
-        ),
+        # AxisCodingStrategy(
+        #     label="rwa_peak",
+        #     selector_factory=lambda: RWAPeakSelector(
+        #         rwa_dir=context.rwa_output_dir,
+        #         experiment_id=context.ga_config.db_util.read_current_experiment_id(
+        #             context.ga_name,
+        #         ),
+        #     ),
+        #     ridge_factory=ridge,
+        #     n_pcs=6,
+        # ),
     ]
 
 
