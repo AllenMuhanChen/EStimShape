@@ -73,7 +73,8 @@ def list_all_session_ids() -> list[str]:
     return [row[0] for row in repo_conn.fetch_all()]
 
 
-def main(recompute: bool = False):
+def main():
+    recompute = False
     session_ids = list_all_session_ids()
     print(f"[batch] running on {len(session_ids)} sessions "
           f"(recompute={recompute}): {session_ids}")
