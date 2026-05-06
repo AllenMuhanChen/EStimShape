@@ -14,17 +14,11 @@ preferred axis should have a chosen component closer to the neuron's preferred
 location; stimuli at the negative end should be farther/elsewhere. Orthogonal
 axes should show no such trend if the axis-coding result holds.
 
-CLI::
-
-    python -m src.analysis.ga.axis_coding.position_along_axis \
-        --save-dir /path/to/.../axis_coding \
-        --session-id 260426_0 \
-        [--top-orth 3] [--n-bins 9] [--z-range 2.0]
+Set the variables in ``main()`` below and run the file directly.
 """
 
 from __future__ import annotations
 
-import argparse
 import glob
 import json
 import os
@@ -500,41 +494,36 @@ def process_json(
 
 
 # ---------------------------------------------------------------------------
-# CLI
+# Entry point — edit the variables below and run this file directly.
 # ---------------------------------------------------------------------------
 
-def main(argv: Optional[list[str]] = None) -> int:
-    parser = argparse.ArgumentParser(
-        description=(
-            "Visualize object-centered position along the preferred + top-N "
-            "orthogonal axes from saved axis_coding_*.json model files."
-        )
-    )
-    parser.add_argument(
-        "--save-dir", required=True,
-        help="Directory containing axis_coding_*.json files.",
-    )
-    parser.add_argument(
-        "--session-id", required=True,
-        help="Session id (e.g. '260426_0') used to fetch the source df.",
-    )
-    parser.add_argument("--top-orth", type=int, default=3)
-    parser.add_argument("--n-bins", type=int, default=9)
-    parser.add_argument("--z-range", type=float, default=2.0)
-    args = parser.parse_args(argv)
+def main():
+    # Directory containing the axis_coding_*.json model files.
+    save_dir = "/home/connorlab/Documents/plots/<session_id>/axis_coding"
 
-    save_dir = os.path.abspath(args.save_dir)
+    # Session id used to fetch the source df (post-conditioning).
+    session_id = "260426_0"
+
+    # How many orthogonal axes (top by variance from the saved 300) to plot
+    # alongside the preferred axis.
+    top_orth = 3
+
+    # Binning for the per-axis tuning curves.
+    n_bins = 9
+    z_range = 2.0
+
+    # ----------------------------------------------------------------------
+
+    save_dir = os.path.abspath(save_dir)
     if not os.path.isdir(save_dir):
-        print(f"--save-dir not found: {save_dir}", file=sys.stderr)
-        return 2
+        raise FileNotFoundError(f"save_dir not found: {save_dir}")
 
     json_paths = sorted(glob.glob(os.path.join(save_dir, "axis_coding_*.json")))
     if not json_paths:
-        print(f"No axis_coding_*.json in {save_dir}", file=sys.stderr)
-        return 1
+        raise FileNotFoundError(f"No axis_coding_*.json in {save_dir}")
 
     print(f"[position_along_axis] {len(json_paths)} JSONs in {save_dir}")
-    df = _prepare_session_df(args.session_id)
+    df = _prepare_session_df(session_id)
 
     cache: dict[str, dict] = {}
 
@@ -553,9 +542,9 @@ def main(argv: Optional[list[str]] = None) -> int:
         try:
             if process_json(
                 path, factory,
-                top_orth=args.top_orth,
-                n_bins=args.n_bins,
-                z_range=args.z_range,
+                top_orth=top_orth,
+                n_bins=n_bins,
+                z_range=z_range,
             ) is not None:
                 n_ok += 1
         except Exception as exc:
@@ -564,8 +553,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             traceback.print_exc()
 
     print(f"\n[position_along_axis] done — {n_ok}/{len(json_paths)} figures written.")
-    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
