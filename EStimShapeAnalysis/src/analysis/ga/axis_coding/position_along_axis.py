@@ -554,26 +554,27 @@ def _draw_arrow_row(
 
 class AxisCompositionAnalysis:
     """
-    Two complementary indices per axis:
+    Per-axis position-vs-shape decomposition. For each axis a, regress the
+    per-stim axis projection axis_proj = X @ a on each feature block
+    separately and report the two block-only R²s:
 
-    1. Geometric:  ||a_pos||^2 / ||a||^2.  Fraction of axis squared norm
-       in the position block (radialPosition.*, angularPosition.*). Pure
-       axis-weight measure; ignores feature correlations.
+      - R²_pos    : R² of axis_proj regressed on position features alone.
+      - R²_shape  : R² of axis_proj regressed on non-position (shape)
+                    features alone.
 
-    2. Variance partition:  R^2_pos = R^2 of axis_proj = X @ a regressed
-       on the position features. Direct decomposition: since axis_proj
-       lies in span(X), R^2_pos exactly partitions the variance into a
-       position-explained share and a non-position-residual share, with
-       R^2_nonpos|pos = 1 - R^2_pos.
+    These are NOT a partition. With correlated feature blocks they can sum
+    to more than 1 (overlap) or less (when neither block alone explains
+    the axis well). That's by design: the gap between them is the
+    informative bit.
 
-    PSI = 2 * R^2_pos - 1 maps R^2_pos onto [-1, +1] for a signed read-out:
-      +1 = pure position, 0 = balanced, -1 = pure non-position.
+    PSI = R²_pos − R²_shape in [-1, +1] is a signed position-vs-shape
+    index — positive means position dominates, negative means shape
+    dominates, near zero means both blocks alone explain the axis equally.
 
     Compares the preferred axis against the top-K saved PCs orthogonal
     to it (already PCA-derived inside the model — see
     compute_all_orthogonal_axes in axis_coding_analysis.py:1001). A
-    chance baseline n_pos / n_total is drawn for context: a random unit
-    direction's expected geometric / R^2 share.
+    chance baseline n_pos / n_total is drawn for context.
     """
 
     POSITION_PREFIXES = ("radialPosition", "angularPosition")
@@ -618,6 +619,7 @@ class AxisCompositionAnalysis:
             return self
         chance = n_pos / float(d)
         X_pos = X[:, pos_mask]
+        X_shape = X[:, ~pos_mask]
 
         # Build the list of axes to score: preferred + top-K orth PCs by var.
         axes_to_score: list[tuple[str, np.ndarray, Optional[float]]] = []
@@ -648,17 +650,15 @@ class AxisCompositionAnalysis:
 
         results = []
         for label, axis, axis_var in axes_to_score:
-            axis_norm_sq = float(np.sum(axis * axis))
-            geom = float(np.sum(axis[pos_mask] ** 2)) / axis_norm_sq
-
             axis_proj = X @ axis
-            r2_pos = self._r2_on_position(X_pos, axis_proj)
-            psi = 2.0 * r2_pos - 1.0
+            r2_pos = self._r2_on_block(X_pos, axis_proj)
+            r2_shape = self._r2_on_block(X_shape, axis_proj)
+            psi = r2_pos - r2_shape
 
             results.append({
                 "label": label,
-                "geom_index": float(geom),
                 "r2_pos": float(r2_pos),
+                "r2_shape": float(r2_shape),
                 "psi": float(psi),
                 "axis_var": axis_var,
             })
@@ -681,14 +681,16 @@ class AxisCompositionAnalysis:
         return any(name.startswith(p) for p in self.position_prefixes)
 
     @staticmethod
-    def _r2_on_position(X_pos: np.ndarray, axis_proj: np.ndarray) -> float:
-        """OLS R^2 of axis_proj regressed on X_pos with intercept."""
-        n = X_pos.shape[0]
+    def _r2_on_block(X_block: np.ndarray, axis_proj: np.ndarray) -> float:
+        """OLS R^2 of axis_proj regressed on X_block with intercept."""
+        if X_block.shape[1] == 0:
+            return 0.0
+        n = X_block.shape[0]
         proj_c = axis_proj - axis_proj.mean()
         ss_tot = float(np.sum(proj_c * proj_c))
         if ss_tot < 1e-12:
             return 0.0
-        design = np.hstack([np.ones((n, 1)), X_pos])
+        design = np.hstack([np.ones((n, 1)), X_block])
         coefs, *_ = np.linalg.lstsq(design, axis_proj, rcond=None)
         residuals = axis_proj - design @ coefs
         ss_res = float(np.sum(residuals * residuals))
@@ -714,37 +716,42 @@ class AxisCompositionAnalysis:
 
         results = fitted["results"]
         labels = [r["label"] for r in results]
-        geom = np.array([r["geom_index"] for r in results])
         r2pos = np.array([r["r2_pos"] for r in results])
+        r2shape = np.array([r["r2_shape"] for r in results])
         psi = np.array([r["psi"] for r in results])
         chance = fitted["chance_baseline"]
+        chance_shape = 1.0 - chance
 
         ax = fig.add_subplot(1, 1, 1)
         x = np.arange(len(labels))
         width = 0.4
-        ax.bar(x - width / 2, geom, width,
-               label="‖a_pos‖² / ‖a‖²  (geometric)",
+        ax.bar(x - width / 2, r2pos, width,
+               label="R²_pos   (axis_proj ~ position features)",
                color="tab:blue", alpha=0.85)
-        ax.bar(x + width / 2, r2pos, width,
-               label="R²_pos  (variance partition)",
-               color="tab:purple", alpha=0.85)
+        ax.bar(x + width / 2, r2shape, width,
+               label="R²_shape (axis_proj ~ non-position features)",
+               color="tab:orange", alpha=0.85)
         ax.axhline(
-            chance, color="grey", linestyle="--", lw=1.0,
-            label=f"chance = {fitted['n_pos']}/{fitted['n_total']} = {chance:.2f}",
+            chance, color="tab:blue", linestyle=":", lw=1.0, alpha=0.7,
+            label=f"chance R²_pos   = {fitted['n_pos']}/{fitted['n_total']} = {chance:.2f}",
+        )
+        ax.axhline(
+            chance_shape, color="tab:orange", linestyle=":", lw=1.0, alpha=0.7,
+            label=f"chance R²_shape = {fitted['n_total'] - fitted['n_pos']}/{fitted['n_total']} = {chance_shape:.2f}",
         )
         ax.set_xticks(x)
         ax.set_xticklabels(labels, rotation=20, ha="right", fontsize=9)
-        ax.set_ylabel("position content")
-        ax.set_ylim(0, 1.10)
+        ax.set_ylabel("variance of axis projection explained (R²)")
+        ax.set_ylim(0, 1.15)
         ax.legend(fontsize=8, loc="upper right")
         ax.grid(alpha=0.25, axis="y")
 
         # PSI annotations above each axis group.
         for i, p in enumerate(psi):
-            top = max(geom[i], r2pos[i])
+            top = max(r2pos[i], r2shape[i])
             ax.annotate(
                 f"PSI={p:+.2f}",
-                xy=(i, top + 0.025),
+                xy=(i, top + 0.03),
                 ha="center", va="bottom",
                 fontsize=8, color="black",
             )
@@ -752,8 +759,8 @@ class AxisCompositionAnalysis:
         if results:
             r0 = results[0]
             ax.set_title(
-                f"Axis composition  |  preferred: geom={r0['geom_index']:.2f}, "
-                f"R²_pos={r0['r2_pos']:.2f}, PSI={r0['psi']:+.2f}  |  "
+                f"Axis composition  |  preferred: R²_pos={r0['r2_pos']:.2f}, "
+                f"R²_shape={r0['r2_shape']:.2f}, PSI={r0['psi']:+.2f}  |  "
                 f"n_stim={fitted['n_used']}",
                 fontsize=11,
             )
