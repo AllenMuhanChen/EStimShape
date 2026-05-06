@@ -1495,11 +1495,14 @@ def process_json(
 # ---------------------------------------------------------------------------
 
 def main():
-    # Directory containing the axis_coding_*.json model files.
-    save_dir = "/home/connorlab/Documents/plots/<session_id>/axis_coding"
 
     # Session id used to fetch the source df (post-conditioning).
-    session_id = "260426_0"
+    session_id = "260423_0"
+
+    # Directory containing the axis_coding_*.json model files.
+    save_dir = f"/home/connorlab/Documents/plots/{session_id}/axis_coding"
+
+
 
     # How many orthogonal axes (top by variance from the saved 300) to plot
     # alongside the preferred axis.

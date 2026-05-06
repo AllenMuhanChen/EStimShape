@@ -365,7 +365,7 @@ def main():
 
     # Optional filters when reading the tables. Leave None to read all rows.
     component_type = None
-    strategy = None
+    strategy = "multi_prototype_pca"
 
     # ----------------------------------------------------------------------
 
