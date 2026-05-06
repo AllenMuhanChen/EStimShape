@@ -143,7 +143,7 @@ def plot_population_modulation_depth_histogram(
     repo_conn: Connection,
     component_type: str,
     strategy: str,
-    bins: int = 30,
+    bins: int = 80,
     title: Optional[str] = None,
 ) -> Optional[plt.Figure]:
     """Histogram of orth_amplitude_norm = a / (a+c) across cells, by model."""
@@ -179,6 +179,7 @@ def plot_population_modulation_depth_histogram(
 
     ax.axvline(0.0, color="black", lw=0.7, ls="--", label="flat (axis coding)")
     ax.axvline(1.0, color="gray", lw=0.7, ls=":", label="full bump (exemplar)")
+    ax.set_xlim((-2, 2))
     ax.set_xlabel("Modulation depth  a / (a + c)")
     ax.set_ylabel("Cell count")
     ax.set_title(title or
@@ -196,7 +197,7 @@ def plot_population_spearman_p_histogram(
     repo_conn: Connection,
     component_type: str,
     strategy: str,
-    bins: int = 30,
+    bins: int = 80,
     title: Optional[str] = None,
 ) -> Optional[plt.Figure]:
     """
@@ -247,6 +248,7 @@ def plot_population_spearman_p_histogram(
     ax2.axvline(0.0, color="black", lw=0.7, ls="--")
     ax2.set_xlabel("Spearman ρ (predicted vs actual)")
     ax2.set_ylabel("Cell count")
+    ax2.set_xlim(0, 1.0)
     ax2.set_title("Goodness-of-fit effect size")
     ax2.legend(fontsize=8, loc="best")
 
