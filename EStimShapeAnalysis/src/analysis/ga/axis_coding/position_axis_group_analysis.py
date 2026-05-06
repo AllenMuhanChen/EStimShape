@@ -88,10 +88,18 @@ def plot_independence_summary(
     )
     ax.grid(alpha=0.25)
 
-    # (B) R²_pos_only vs R²_shape_only scatter.
+    # (B) RPI vs interaction_gap, colored by component_type.
+    # RPI = R²_pos_only − R²_shape_only is the CV-based response position
+    # index — positive means position alone explains more held-out variance
+    # than shape alone. Pairing it against the interaction gap on the
+    # y-axis answers "do certain groups / RPI values have certain
+    # interaction effects".
     ax = axes[1]
-    rp = df["r2_pos_only"].astype(float).values
-    rs = df["r2_shape_only"].astype(float).values
+    rpi = (
+        df["r2_pos_only"].astype(float).values
+        - df["r2_shape_only"].astype(float).values
+    )
+    gap = df["interaction_gap"].astype(float).values
     ctypes = df["component_type"].astype(str).values
     palette = {
         "Shaft": "tab:blue",
@@ -101,19 +109,19 @@ def plot_independence_summary(
     for ctype in np.unique(ctypes):
         sel = ctypes == ctype
         ax.scatter(
-            rp[sel], rs[sel],
+            rpi[sel], gap[sel],
             s=20, alpha=0.7,
             color=palette.get(ctype, "tab:gray"),
             edgecolors="black", linewidths=0.3,
             label=f"{ctype} (n={int(sel.sum())})",
         )
-    lim_lo = float(np.nanmin([rp.min(), rs.min(), 0.0]))
-    lim_hi = float(np.nanmax([rp.max(), rs.max(), 1.0]))
-    ax.plot([lim_lo, lim_hi], [lim_lo, lim_hi], color="grey", lw=0.8, ls="--",
-            label="y = x")
-    ax.set_xlabel("R²_pos_only  (CV)")
-    ax.set_ylabel("R²_shape_only  (CV)")
-    ax.set_title("Position-only vs shape-only response variance explained")
+    ax.axhline(0, color="grey", lw=0.8, ls="--")
+    ax.axvline(0, color="grey", lw=0.8, ls="--")
+    ax.set_xlabel("RPI = R²_pos_only − R²_shape_only  (CV)")
+    ax.set_ylabel("interaction gap = R²_int − R²_add  (CV)")
+    ax.set_title(
+        "Per-cell interaction effect by RPI and component type"
+    )
     ax.legend(fontsize=8, loc="best")
     ax.grid(alpha=0.25)
 
@@ -276,6 +284,78 @@ def plot_composition_by_component_type(
 
 
 # ---------------------------------------------------------------------------
+# Plot 4: independence (CV-based RPI) by component type
+# ---------------------------------------------------------------------------
+
+def plot_independence_by_component_type(
+    indep_df: pd.DataFrame,
+    *,
+    save_path: Optional[str] = None,
+) -> plt.Figure:
+    """
+    Box + strip plot of the CV-based response position index
+    RPI = R²_pos_only − R²_shape_only grouped by component_type. Same
+    layout as plot_composition_by_component_type, but the index comes
+    from cross-validated response variance partitioning rather than
+    OLS axis-projection partitioning.
+    """
+    if indep_df.empty:
+        raise ValueError("AxisIndependenceMetrics is empty.")
+
+    df = indep_df.copy()
+    df["rpi"] = (
+        df["r2_pos_only"].astype(float)
+        - df["r2_shape_only"].astype(float)
+    )
+
+    fig, ax = plt.subplots(1, 1, figsize=(8, 5), constrained_layout=True)
+
+    types = sorted(df["component_type"].dropna().unique())
+    palette = {
+        "Shaft": "tab:blue",
+        "Termination": "tab:orange",
+        "Junction": "tab:green",
+    }
+    data = [
+        df.loc[df["component_type"] == t, "rpi"].dropna().values
+        for t in types
+    ]
+    counts = [len(d) for d in data]
+
+    bp = ax.boxplot(
+        data, positions=range(len(types)), widths=0.5,
+        patch_artist=True, showfliers=False,
+    )
+    for patch, t in zip(bp["boxes"], types):
+        patch.set_facecolor(palette.get(t, "lightgray"))
+        patch.set_alpha(0.6)
+
+    rng = np.random.default_rng(0)
+    for i, (t, d) in enumerate(zip(types, data)):
+        if d.size == 0:
+            continue
+        jitter = rng.uniform(-0.12, 0.12, size=d.size)
+        ax.scatter(
+            np.full(d.size, i) + jitter, d,
+            s=12, alpha=0.6,
+            color=palette.get(t, "tab:gray"),
+            edgecolors="black", linewidths=0.2,
+        )
+
+    ax.axhline(0, color="grey", lw=0.8, ls="--")
+    ax.set_xticks(range(len(types)))
+    ax.set_xticklabels([f"{t}\nn={n}" for t, n in zip(types, counts)])
+    ax.set_ylabel("RPI = R²_pos_only − R²_shape_only  (CV)")
+    ax.set_title("Response position index by component type")
+    ax.grid(alpha=0.25, axis="y")
+
+    if save_path:
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        print(f"  saved: {save_path}")
+    return fig
+
+
+# ---------------------------------------------------------------------------
 # Entry point — edit the variables below and run this file directly.
 # ---------------------------------------------------------------------------
 
@@ -312,8 +392,15 @@ def main():
             save_path=os.path.join(save_dir, "independence_summary.png"),
         )
         plt.close("all")
+        plot_independence_by_component_type(
+            indep_df,
+            save_path=os.path.join(
+                save_dir, "independence_by_component_type.png",
+            ),
+        )
+        plt.close("all")
     else:
-        print("[group] no AxisIndependenceMetrics rows — skipping plot 1.")
+        print("[group] no AxisIndependenceMetrics rows — skipping plots 1 & 4.")
 
     if not comp_df.empty:
         plot_composition_summary(
