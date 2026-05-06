@@ -152,9 +152,16 @@ def plot_population_orth_tuning_curves(
                 if curves:
                     stacked = np.vstack(curves)
                     mean_curve = np.nanmean(stacked, axis=0)
-                    ax.plot(np.asarray(valid.iloc[0]["x"], dtype=np.float64),
-                            mean_curve, color="black", lw=2.5,
+                    n_per_bin = np.sum(~np.isnan(stacked), axis=0)
+                    sem_curve = np.nanstd(stacked, axis=0, ddof=1) / np.sqrt(
+                        np.maximum(n_per_bin, 1)
+                    )
+                    x_axis = np.asarray(valid.iloc[0]["x"], dtype=np.float64)
+                    ax.plot(x_axis, mean_curve, color="black", lw=2.5,
                             label=f"population mean (n={len(curves)})")
+                    ax.errorbar(x_axis, mean_curve, yerr=sem_curve,
+                                fmt="o", color="black", ecolor="black",
+                                ms=4, elinewidth=1.0, capsize=2, zorder=5)
 
             ax.axhline(1.0, color="gray", lw=0.6, ls=":", alpha=0.7)
             ax.axhline(0.0, color="black", lw=0.5)
