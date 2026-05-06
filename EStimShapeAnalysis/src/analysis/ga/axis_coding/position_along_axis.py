@@ -767,6 +767,461 @@ class AxisCompositionAnalysis:
         return fig
 
 
+# ===========================================================================
+# Hypothesis-test analysis: are the position and shape axes independent?
+#
+# Self-contained class. Owns its own ridge fits for "best position-only"
+# and "best shape-only" axes, the additive-vs-interaction CV R² test, and
+# the per-bin shape-tuning overlay. Uses the cell's actual responses
+# (not axis projections) as the dependent variable — the goal is to ask
+# how the response factorizes, not to characterize the saved preferred
+# axis.
+# ===========================================================================
+
+class AxisIndependenceAnalysis:
+    """
+    Decompose the response into position-driven and shape-driven parts and
+    ask whether the two combine additively (independent axes) or
+    interactively (intertwined axes).
+
+    Pipeline:
+      1. Partition feature_names into position vs non-position blocks.
+      2. RidgeCV: y ~ X_pos -> w_p (in position subspace). p_proj = X_pos @ w_p.
+      3. RidgeCV: y ~ X_shape -> w_s. s_proj = X_shape @ w_s.
+      4. Cross-validated R² for four nested models with [p_proj, s_proj]
+         as features:
+           pos_only:    y ~ p_proj
+           shape_only:  y ~ s_proj
+           additive:    y ~ p_proj + s_proj
+           interaction: y ~ p_proj + s_proj + p_proj * s_proj
+         The interaction-minus-additive gap is the headline scalar.
+      5. Bin stims by p_proj into n_position_bins (parameterized — 3 is
+         often too coarse; 5–7 is a good default). Within each bin compute
+         the shape tuning curve (response vs s_proj_perp, where s_proj_perp
+         is s_proj residualized against p_proj across all stims so the
+         within-bin range isn't restricted by the cross-axis correlation).
+         Overlapping curves -> independent. Differently shaped curves ->
+         intertwined.
+
+    Renders three panels in one Figure:
+      A. (p_proj, s_proj) heatmap of mean response, with 1D marginals on
+         top + right; an inset shows the (p_proj, s_proj) scatter to make
+         the cross-axis correlation visible.
+      B. Bar chart of CV R² for the four nested models.
+      C. Per-bin shape tuning curves (response vs s_proj_perp), one curve
+         per p_proj bin, color-coded by bin position.
+    """
+
+    POSITION_PREFIXES = ("radialPosition", "angularPosition")
+
+    def __init__(
+        self,
+        n_position_bins: int = 5,
+        n_shape_bins: int = 9,
+        n_heatmap_bins: int = 8,
+        ridge_alphas: tuple = (0.01, 0.1, 1.0, 10.0, 100.0),
+        cv_n_folds: int = 5,
+        position_prefixes: tuple = POSITION_PREFIXES,
+    ):
+        self.n_position_bins = int(n_position_bins)
+        self.n_shape_bins = int(n_shape_bins)
+        self.n_heatmap_bins = int(n_heatmap_bins)
+        self.ridge_alphas = tuple(ridge_alphas)
+        self.cv_n_folds = int(cv_n_folds)
+        self.position_prefixes = position_prefixes
+        self._fitted: Optional[dict] = None
+
+    # ------------------------------------------------------------------ fit
+
+    def fit(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        feature_names: list[str],
+    ) -> "AxisIndependenceAnalysis":
+        from sklearn.linear_model import RidgeCV
+        from sklearn.model_selection import KFold, cross_val_score
+
+        X = np.asarray(X, dtype=np.float64)
+        y = np.asarray(y, dtype=np.float64).ravel()
+        finite = np.all(np.isfinite(X), axis=1) & np.isfinite(y)
+        X = X[finite]
+        y = y[finite]
+        if X.shape[0] < max(20, 2 * self.cv_n_folds):
+            self._fitted = {"available": False, "reason": "too few stims for CV"}
+            return self
+        if not feature_names or len(feature_names) != X.shape[1]:
+            self._fitted = {"available": False, "reason": "feature_names mismatch"}
+            return self
+
+        d = X.shape[1]
+        pos_mask = np.array([self._is_position(n) for n in feature_names], dtype=bool)
+        if pos_mask.sum() == 0 or pos_mask.sum() == d:
+            self._fitted = {"available": False, "reason": "no position/shape partition"}
+            return self
+
+        X_pos = X[:, pos_mask]
+        X_shape = X[:, ~pos_mask]
+
+        # Best position-only and shape-only axes (RidgeCV).
+        ridge_p = RidgeCV(alphas=self.ridge_alphas).fit(X_pos, y)
+        ridge_s = RidgeCV(alphas=self.ridge_alphas).fit(X_shape, y)
+        # Pure subspace projections (no intercept; centering handled below).
+        p_proj = X_pos @ ridge_p.coef_
+        s_proj = X_shape @ ridge_s.coef_
+
+        # Standardize projections so coefficients are on comparable scales
+        # in the additive and interaction regressions.
+        p_z = self._zscore(p_proj)
+        s_z = self._zscore(s_proj)
+
+        kf = KFold(n_splits=self.cv_n_folds, shuffle=True, random_state=0)
+
+        def cv_r2(features: np.ndarray) -> float:
+            scores = cross_val_score(
+                RidgeCV(alphas=self.ridge_alphas),
+                features, y, cv=kf, scoring="r2",
+            )
+            return float(np.mean(scores))
+
+        feats_p = p_z.reshape(-1, 1)
+        feats_s = s_z.reshape(-1, 1)
+        feats_add = np.column_stack([p_z, s_z])
+        feats_int = np.column_stack([p_z, s_z, p_z * s_z])
+
+        r2_p = cv_r2(feats_p)
+        r2_s = cv_r2(feats_s)
+        r2_add = cv_r2(feats_add)
+        r2_int = cv_r2(feats_int)
+        interaction_gap = r2_int - r2_add
+
+        # Pearson correlation between the two projections across stims.
+        corr_ps = float(np.corrcoef(p_z, s_z)[0, 1])
+
+        # Residualize shape projection against position projection so the
+        # within-bin range of s_proj isn't artificially restricted by the
+        # (p_z, s_z) correlation. Used by Panel C.
+        beta = float(np.dot(p_z, s_z) / max(np.dot(p_z, p_z), 1e-12))
+        s_perp = s_z - beta * p_z
+
+        # Heatmap: mean response on a (p_z, s_z) grid.
+        heatmap = self._mean_response_grid(
+            p_z, s_z, y, n_bins=self.n_heatmap_bins,
+        )
+
+        # Per-position-bin shape tuning curves (response vs s_perp).
+        per_bin_curves = self._per_position_bin_tuning(
+            p_z, s_perp, y,
+            n_position_bins=self.n_position_bins,
+            n_shape_bins=self.n_shape_bins,
+        )
+
+        # 1D marginals of the heatmap (averaged response in each axis bin).
+        marginals = self._marginals(p_z, s_z, y, n_bins=self.n_heatmap_bins)
+
+        self._fitted = {
+            "available": True,
+            "n_used": int(X.shape[0]),
+            "r2_p": r2_p,
+            "r2_s": r2_s,
+            "r2_add": r2_add,
+            "r2_int": r2_int,
+            "interaction_gap": float(interaction_gap),
+            "corr_ps": corr_ps,
+            "p_z": p_z,
+            "s_z": s_z,
+            "y": y,
+            "heatmap": heatmap,
+            "marginals": marginals,
+            "per_bin_curves": per_bin_curves,
+            "n_position_bins": self.n_position_bins,
+            "ridge_alpha_p": float(ridge_p.alpha_),
+            "ridge_alpha_s": float(ridge_s.alpha_),
+        }
+        return self
+
+    # ---------------------------------------------------------------- helpers
+
+    def _is_position(self, name: str) -> bool:
+        return any(name.startswith(p) for p in self.position_prefixes)
+
+    @staticmethod
+    def _zscore(v: np.ndarray) -> np.ndarray:
+        v = np.asarray(v, dtype=np.float64).ravel()
+        m = float(v.mean())
+        s = float(v.std(ddof=1)) if v.size >= 2 else 1.0
+        if s < 1e-12:
+            s = 1.0
+        return (v - m) / s
+
+    @staticmethod
+    def _bin_edges(z: np.ndarray, n_bins: int) -> np.ndarray:
+        # Symmetric edges in z-units; clip to data range.
+        lo = float(np.nanpercentile(z, 1))
+        hi = float(np.nanpercentile(z, 99))
+        lo = min(lo, -2.0)
+        hi = max(hi, 2.0)
+        return np.linspace(lo, hi, n_bins + 1)
+
+    def _mean_response_grid(self, p_z, s_z, y, *, n_bins: int) -> dict:
+        p_edges = self._bin_edges(p_z, n_bins)
+        s_edges = self._bin_edges(s_z, n_bins)
+        p_idx = np.clip(np.digitize(p_z, p_edges) - 1, 0, n_bins - 1)
+        s_idx = np.clip(np.digitize(s_z, s_edges) - 1, 0, n_bins - 1)
+        grid_mean = np.full((n_bins, n_bins), np.nan)
+        grid_n = np.zeros((n_bins, n_bins), dtype=int)
+        for ip in range(n_bins):
+            for is_ in range(n_bins):
+                sel = (p_idx == ip) & (s_idx == is_)
+                n = int(sel.sum())
+                grid_n[ip, is_] = n
+                if n > 0:
+                    grid_mean[ip, is_] = float(y[sel].mean())
+        return {
+            "mean": grid_mean,           # (n_bins, n_bins) indexed [p, s]
+            "count": grid_n,
+            "p_edges": p_edges,
+            "s_edges": s_edges,
+        }
+
+    def _marginals(self, p_z, s_z, y, *, n_bins: int) -> dict:
+        p_edges = self._bin_edges(p_z, n_bins)
+        s_edges = self._bin_edges(s_z, n_bins)
+        p_centers = 0.5 * (p_edges[:-1] + p_edges[1:])
+        s_centers = 0.5 * (s_edges[:-1] + s_edges[1:])
+        p_idx = np.clip(np.digitize(p_z, p_edges) - 1, 0, n_bins - 1)
+        s_idx = np.clip(np.digitize(s_z, s_edges) - 1, 0, n_bins - 1)
+
+        def avg(idx):
+            m = np.full(n_bins, np.nan)
+            sem = np.full(n_bins, np.nan)
+            for b in range(n_bins):
+                sel = idx == b
+                n = int(sel.sum())
+                if n == 0:
+                    continue
+                vals = y[sel]
+                m[b] = float(vals.mean())
+                sem[b] = float(vals.std(ddof=1) / np.sqrt(n)) if n > 1 else 0.0
+            return m, sem
+
+        p_mean, p_sem = avg(p_idx)
+        s_mean, s_sem = avg(s_idx)
+        return {
+            "p_centers": p_centers, "p_mean": p_mean, "p_sem": p_sem,
+            "s_centers": s_centers, "s_mean": s_mean, "s_sem": s_sem,
+        }
+
+    def _per_position_bin_tuning(
+        self, p_z, s_perp, y, *, n_position_bins: int, n_shape_bins: int,
+    ) -> list[dict]:
+        # Equal-count quantile bins along p_z so each bin holds a similar
+        # number of stims.
+        quantiles = np.linspace(0, 1, n_position_bins + 1)
+        p_edges = np.quantile(p_z, quantiles)
+        # Disambiguate ties by nudging right-edges very slightly.
+        for i in range(1, len(p_edges)):
+            if p_edges[i] <= p_edges[i - 1]:
+                p_edges[i] = p_edges[i - 1] + 1e-12
+        p_idx = np.clip(np.digitize(p_z, p_edges) - 1, 0, n_position_bins - 1)
+
+        s_edges = self._bin_edges(s_perp, n_shape_bins)
+        s_centers = 0.5 * (s_edges[:-1] + s_edges[1:])
+
+        curves = []
+        for b in range(n_position_bins):
+            in_bin = p_idx == b
+            n_in_bin = int(in_bin.sum())
+            mean = np.full(n_shape_bins, np.nan)
+            sem = np.full(n_shape_bins, np.nan)
+            counts = np.zeros(n_shape_bins, dtype=int)
+            if n_in_bin > 0:
+                s_idx = np.clip(np.digitize(s_perp[in_bin], s_edges) - 1, 0, n_shape_bins - 1)
+                y_in_bin = y[in_bin]
+                for sb in range(n_shape_bins):
+                    sel = s_idx == sb
+                    n = int(sel.sum())
+                    counts[sb] = n
+                    if n > 0:
+                        vals = y_in_bin[sel]
+                        mean[sb] = float(vals.mean())
+                        sem[sb] = float(vals.std(ddof=1) / np.sqrt(n)) if n > 1 else 0.0
+            p_lo, p_hi = float(p_edges[b]), float(p_edges[b + 1])
+            curves.append({
+                "p_lo": p_lo, "p_hi": p_hi,
+                "n_in_bin": n_in_bin,
+                "centers": s_centers,
+                "mean": mean,
+                "sem": sem,
+                "counts": counts,
+            })
+        return curves
+
+    # ---------------------------------------------------------------- render
+
+    def render(self, fig: Optional[plt.Figure] = None) -> plt.Figure:
+        if fig is None:
+            fig = plt.figure(figsize=(16, 10), constrained_layout=True)
+
+        fitted = self._fitted
+        if fitted is None or not fitted.get("available"):
+            ax = fig.add_subplot(1, 1, 1)
+            reason = (fitted or {}).get("reason", "not fitted")
+            ax.text(
+                0.5, 0.5, f"Axis independence: {reason}",
+                ha="center", va="center", fontsize=10, color="dimgray",
+            )
+            ax.axis("off")
+            return fig
+
+        gs = fig.add_gridspec(
+            nrows=2, ncols=2,
+            height_ratios=[1.0, 0.9],
+            width_ratios=[1.6, 1.0],
+        )
+        self._draw_panel_a_heatmap(fig, gs[0, 0], fitted)
+        self._draw_panel_b_bars(fig, gs[0, 1], fitted)
+        self._draw_panel_c_curves(fig, gs[1, :], fitted)
+
+        fig.suptitle(
+            f"Axis independence  |  R²_add={fitted['r2_add']:.2f}  "
+            f"R²_int={fitted['r2_int']:.2f}  "
+            f"interaction gap={fitted['interaction_gap']:+.3f}  |  "
+            f"corr(p_proj, s_proj)={fitted['corr_ps']:+.2f}  |  "
+            f"n_stim={fitted['n_used']}",
+            fontsize=11,
+        )
+        return fig
+
+    def _draw_panel_a_heatmap(self, fig, gs_cell, fitted):
+        # Heatmap with marginals using a sub-gridspec inside the cell.
+        sub = gs_cell.subgridspec(
+            nrows=2, ncols=2,
+            height_ratios=[0.25, 1.0],
+            width_ratios=[1.0, 0.25],
+            hspace=0.05, wspace=0.05,
+        )
+        ax_top = fig.add_subplot(sub[0, 0])
+        ax_main = fig.add_subplot(sub[1, 0], sharex=ax_top)
+        ax_right = fig.add_subplot(sub[1, 1], sharey=ax_main)
+
+        hm = fitted["heatmap"]
+        marg = fitted["marginals"]
+
+        # imshow expects rows = y axis. We'll display with s_z on Y, p_z on X,
+        # so transpose grid_mean from [p, s] to [s, p].
+        im = ax_main.imshow(
+            hm["mean"].T,
+            origin="lower",
+            extent=(hm["p_edges"][0], hm["p_edges"][-1],
+                    hm["s_edges"][0], hm["s_edges"][-1]),
+            aspect="auto",
+            cmap="viridis",
+            interpolation="nearest",
+        )
+        ax_main.set_xlabel("position projection (z)", fontsize=9)
+        ax_main.set_ylabel("shape projection (z)", fontsize=9)
+        cbar = fig.colorbar(im, ax=ax_main, fraction=0.04, pad=0.02)
+        cbar.set_label("mean response", fontsize=8)
+        cbar.ax.tick_params(labelsize=7)
+
+        # Top marginal: response vs p_proj.
+        ax_top.errorbar(
+            marg["p_centers"], marg["p_mean"], yerr=marg["p_sem"],
+            fmt="o-", color="tab:blue", capsize=2, lw=1.0, ms=3,
+        )
+        ax_top.set_ylabel("ŷ | p", fontsize=8)
+        ax_top.tick_params(axis="x", labelbottom=False, labelsize=7)
+        ax_top.tick_params(axis="y", labelsize=7)
+        ax_top.grid(alpha=0.25)
+
+        # Right marginal: response vs s_proj (rotated).
+        ax_right.errorbar(
+            marg["s_mean"], marg["s_centers"], xerr=marg["s_sem"],
+            fmt="o-", color="tab:orange", capsize=2, lw=1.0, ms=3,
+        )
+        ax_right.set_xlabel("ŷ | s", fontsize=8)
+        ax_right.tick_params(axis="y", labelleft=False, labelsize=7)
+        ax_right.tick_params(axis="x", labelsize=7)
+        ax_right.grid(alpha=0.25)
+
+        # Inset: scatter of (p_z, s_z) so the cross-axis correlation is
+        # visible — restricted within-bin range is the confound that
+        # motivates s_perp in Panel C.
+        inset = ax_main.inset_axes([0.03, 0.74, 0.30, 0.24])
+        inset.scatter(
+            fitted["p_z"], fitted["s_z"],
+            s=4, alpha=0.35, color="white", edgecolors="black", linewidths=0.2,
+        )
+        inset.set_xticks([]); inset.set_yticks([])
+        inset.set_title(
+            f"corr(p,s)={fitted['corr_ps']:+.2f}",
+            fontsize=7, color="white",
+        )
+        inset.set_facecolor("#222222")
+        for spine in inset.spines.values():
+            spine.set_edgecolor("white")
+        ax_main.tick_params(labelsize=7)
+
+    def _draw_panel_b_bars(self, fig, gs_cell, fitted):
+        ax = fig.add_subplot(gs_cell)
+        labels = ["pos only", "shape only", "additive", "interaction"]
+        values = np.array([
+            fitted["r2_p"], fitted["r2_s"], fitted["r2_add"], fitted["r2_int"],
+        ])
+        colors = ["tab:blue", "tab:orange", "tab:gray", "tab:purple"]
+        x = np.arange(len(labels))
+        bars = ax.bar(x, values, color=colors, alpha=0.85)
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels, rotation=15, ha="right", fontsize=8)
+        ax.set_ylabel("CV R²", fontsize=9)
+        ax.set_title(
+            f"interaction − additive = {fitted['interaction_gap']:+.3f}",
+            fontsize=9,
+        )
+        ax.axhline(0, color="lightgrey", lw=0.5)
+        ax.grid(alpha=0.25, axis="y")
+        ax.tick_params(labelsize=7)
+        for b, v in zip(bars, values):
+            ax.annotate(
+                f"{v:+.3f}",
+                xy=(b.get_x() + b.get_width() / 2, v),
+                xytext=(0, 3 if v >= 0 else -10),
+                textcoords="offset points",
+                ha="center", fontsize=7,
+            )
+
+    def _draw_panel_c_curves(self, fig, gs_cell, fitted):
+        ax = fig.add_subplot(gs_cell)
+        curves = fitted["per_bin_curves"]
+        n_bins = len(curves)
+        cmap = plt.get_cmap("viridis")
+
+        for i, c in enumerate(curves):
+            color = cmap(i / max(n_bins - 1, 1))
+            label = (
+                f"p ∈ [{c['p_lo']:+.2f}, {c['p_hi']:+.2f}]   "
+                f"n={c['n_in_bin']}"
+            )
+            ax.errorbar(
+                c["centers"], c["mean"], yerr=c["sem"],
+                fmt="o-", color=color, capsize=2, lw=1.2, ms=4,
+                label=label,
+            )
+
+        ax.set_xlabel("shape projection ⟂ position  (s_perp, z)", fontsize=9)
+        ax.set_ylabel("mean response", fontsize=9)
+        ax.set_title(
+            f"Shape tuning per position-projection quantile bin "
+            f"(n_position_bins={n_bins}).  "
+            "Overlapping curves ⇒ axes independent; differently shaped ⇒ intertwined.",
+            fontsize=10,
+        )
+        ax.legend(fontsize=7, loc="best")
+        ax.grid(alpha=0.25)
+        ax.tick_params(labelsize=8)
+
+
 # ---------------------------------------------------------------------------
 # Per-JSON driver
 # ---------------------------------------------------------------------------
@@ -779,6 +1234,7 @@ def process_json(
     n_bins: int,
     z_range: float,
     top_k_composition: int = 5,
+    n_position_bins: int = 5,
 ) -> Optional[str]:
     """Render and save one figure for ``json_path``. Returns the saved path."""
     with open(json_path, "r") as f:
@@ -893,6 +1349,46 @@ def process_json(
         print(f"  [composition] skipped ({exc})")
         import traceback
         traceback.print_exc()
+
+    # ------------------------------------------------------------------
+    # Figure 3: axis independence (additive vs interaction, with the
+    # per-position-bin shape tuning overlay). Self-contained class —
+    # owns its own ridge fits, CV scoring, and rendering.
+    # ------------------------------------------------------------------
+    actual_responses = result.get("actual_responses")
+    if actual_responses is None:
+        print("  [independence] skipped (no actual_responses in JSON)")
+    else:
+        try:
+            X_ind, feature_names_ind = _build_design_matrix_for_json(
+                stim_ids, selected_indices, components_by_stim, component_type,
+            )
+            independence = AxisIndependenceAnalysis(
+                n_position_bins=n_position_bins,
+            ).fit(
+                X=X_ind,
+                y=np.asarray(actual_responses, dtype=np.float64),
+                feature_names=feature_names_ind,
+            )
+            ind_fig = independence.render()
+            ind_fig.text(
+                0.01, 0.985,
+                f"channel={channel}  type={component_type}  "
+                f"strategy={strategy_label}",
+                fontsize=9, color="dimgray", ha="left", va="top",
+            )
+            ind_out = os.path.join(
+                os.path.dirname(json_path),
+                f"axis_independence_{channel}_{component_type}_{strategy_label}.png",
+            )
+            ind_fig.savefig(ind_out, dpi=150, bbox_inches="tight")
+            plt.close(ind_fig)
+            print(f"  saved: {ind_out}")
+        except Exception as exc:
+            print(f"  [independence] skipped ({exc})")
+            import traceback
+            traceback.print_exc()
+
     return out_path
 
 
@@ -918,6 +1414,11 @@ def main():
     # Number of top orthogonal PCs (already PCA-derived inside the model)
     # to score alongside the preferred axis in the composition figure.
     top_k_composition = 5
+
+    # Number of position-projection quantile bins for the per-bin shape
+    # tuning overlay in the axis-independence figure (Panel C). 3 is
+    # often too coarse to see structure; 5–7 is a usable default.
+    n_position_bins = 5
 
     # ----------------------------------------------------------------------
 
@@ -953,6 +1454,7 @@ def main():
                 n_bins=n_bins,
                 z_range=z_range,
                 top_k_composition=top_k_composition,
+                n_position_bins=n_position_bins,
             ) is not None:
                 n_ok += 1
         except Exception as exc:
