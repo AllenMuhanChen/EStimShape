@@ -177,10 +177,36 @@ class BinnedAxis:
     radial_mean: np.ndarray
     radial_sem: np.ndarray
     theta_mean: np.ndarray         # circular mean
+    theta_sem: np.ndarray          # circular SEM (radians)
     phi_mean: np.ndarray           # circular mean
-    mag_mean: np.ndarray           # ||mean(xyz)|| per bin (concentration)
+    phi_sem: np.ndarray            # circular SEM (radians)
     xyz_mean: np.ndarray           # (n_bins, 3) Cartesian mean position
     variance: Optional[float] = None  # axis variance (for orth axes)
+
+
+def _circular_mean_sem(angles: np.ndarray) -> tuple[float, float]:
+    """
+    Circular mean and circular SEM (radians) of a set of angles.
+
+    SEM uses Fisher's circular standard deviation
+    ``sigma = sqrt(-2 * ln(R))`` where R is the mean resultant length, then
+    divides by sqrt(n). With n == 1 there is no within-bin variability,
+    so SEM is 0. R == 0 (perfectly anti-aligned) -> infinite SEM, capped
+    at pi for plotting.
+    """
+    n = angles.size
+    if n == 0:
+        return float("nan"), float("nan")
+    mean_cos = float(np.mean(np.cos(angles)))
+    mean_sin = float(np.mean(np.sin(angles)))
+    mu = float(np.arctan2(mean_sin, mean_cos))
+    if n == 1:
+        return mu, 0.0
+    R = float(np.hypot(mean_cos, mean_sin))
+    R = max(min(R, 1.0), 1e-12)
+    sigma = float(np.sqrt(-2.0 * np.log(R)))
+    sem = float(min(sigma / np.sqrt(n), np.pi))
+    return mu, sem
 
 
 def _bin_axis(
@@ -227,8 +253,9 @@ def _bin_axis(
     radial_mean = np.full(n_bins, np.nan)
     radial_sem = np.full(n_bins, np.nan)
     theta_mean = np.full(n_bins, np.nan)
+    theta_sem = np.full(n_bins, np.nan)
     phi_mean = np.full(n_bins, np.nan)
-    mag_mean = np.full(n_bins, np.nan)
+    phi_sem = np.full(n_bins, np.nan)
     xyz_mean = np.full((n_bins, 3), np.nan)
 
     for b in range(n_bins):
@@ -242,13 +269,9 @@ def _bin_axis(
         radial_sem[b] = (
             float(np.std(rs, ddof=1) / np.sqrt(n_sel)) if n_sel > 1 else 0.0
         )
-        theta_mean[b] = float(np.arctan2(np.mean(np.sin(theta[sel])),
-                                         np.mean(np.cos(theta[sel]))))
-        phi_mean[b] = float(np.arctan2(np.mean(np.sin(phi[sel])),
-                                       np.mean(np.cos(phi[sel]))))
-        mean_xyz = xyz[sel].mean(axis=0)
-        xyz_mean[b] = mean_xyz
-        mag_mean[b] = float(np.linalg.norm(mean_xyz))
+        theta_mean[b], theta_sem[b] = _circular_mean_sem(theta[sel])
+        phi_mean[b], phi_sem[b] = _circular_mean_sem(phi[sel])
+        xyz_mean[b] = xyz[sel].mean(axis=0)
 
     return BinnedAxis(
         label=label,
@@ -257,8 +280,9 @@ def _bin_axis(
         radial_mean=radial_mean,
         radial_sem=radial_sem,
         theta_mean=theta_mean,
+        theta_sem=theta_sem,
         phi_mean=phi_mean,
-        mag_mean=mag_mean,
+        phi_sem=phi_sem,
         xyz_mean=xyz_mean,
         variance=axis_variance,
     )
@@ -276,24 +300,37 @@ def _plot_figure(
     n_rows = len(rows)
     fig, axes = plt.subplots(
         nrows=n_rows,
-        ncols=5,
-        figsize=(20, 3.6 * n_rows),
+        ncols=4,
+        figsize=(18, 3.6 * n_rows),
         squeeze=False,
+        gridspec_kw={"width_ratios": [1, 1, 1, 3]},
+        constrained_layout=True,
     )
 
     col_titles = [
         "radialPosition (mean ± SEM)",
         "angularPosition.theta (circular mean)",
         "angularPosition.phi (circular mean)",
-        "‖mean position vector‖",
-        "mean (x, y) per bin",
+        "mean (x, y) vector per bin  |  color = depth z   "
+        "(blue = +z away, red = −z toward)",
     ]
 
-    # Shared colormap for arrows so adjacent bins are visually ordered.
-    cmap = plt.get_cmap("viridis")
+    # Symmetric coolwarm matches the depth convention used in the μ plot
+    # (axis_coding_analysis.py:2490): blue = +z (away, φ=0), red = −z
+    # (toward, φ=π).
+    depth_cmap = plt.cm.coolwarm
+
+    # Global depth scale across all rows so colors are comparable. Use the
+    # max |z| seen across every row's xyz_mean (so all arrows share a colorbar).
+    all_z = np.concatenate(
+        [b.xyz_mean[:, 2][np.isfinite(b.xyz_mean[:, 2])] for b in rows]
+    )
+    z_abs_max = float(np.max(np.abs(all_z))) if all_z.size else 1.0
+    if z_abs_max < 1e-12:
+        z_abs_max = 1.0
 
     for r, b in enumerate(rows):
-        for c in range(5):
+        for c in range(4):
             ax = axes[r, c]
             if r == 0:
                 ax.set_title(col_titles[c], fontsize=10)
@@ -313,7 +350,10 @@ def _plot_figure(
                 ax.set_ylabel(b.label, fontsize=10)
                 ax.set_xlabel("axis projection (z)", fontsize=8)
             elif c == 1:
-                ax.plot(b.centers, b.theta_mean, "o-", color="tab:orange")
+                ax.errorbar(
+                    b.centers, b.theta_mean, yerr=b.theta_sem,
+                    fmt="o-", color="tab:orange", capsize=3, lw=1.2,
+                )
                 if mu_decoded is not None and "angularPosition.theta" in mu_decoded:
                     ax.axhline(
                         float(mu_decoded["angularPosition.theta"]),
@@ -324,7 +364,10 @@ def _plot_figure(
                 ax.set_yticklabels(["-π", "-π/2", "0", "π/2", "π"], fontsize=7)
                 ax.set_xlabel("axis projection (z)", fontsize=8)
             elif c == 2:
-                ax.plot(b.centers, b.phi_mean, "o-", color="tab:green")
+                ax.errorbar(
+                    b.centers, b.phi_mean, yerr=b.phi_sem,
+                    fmt="o-", color="tab:green", capsize=3, lw=1.2,
+                )
                 if mu_decoded is not None and "angularPosition.phi" in mu_decoded:
                     ax.axhline(
                         float(mu_decoded["angularPosition.phi"]),
@@ -335,52 +378,9 @@ def _plot_figure(
                 ax.set_yticklabels(["0", "π/4", "π/2", "3π/4", "π"], fontsize=7)
                 ax.set_xlabel("axis projection (z)", fontsize=8)
             elif c == 3:
-                ax.plot(b.centers, b.mag_mean, "o-", color="tab:red")
-                ax.set_ylim(bottom=0)
-                ax.set_xlabel("axis projection (z)", fontsize=8)
-            elif c == 4:
-                # 2D top-down arrows from origin to mean (x, y) per bin,
-                # color = bin position along axis. Arrow length = how
-                # consistent a preferred location the bin agrees on.
-                xy = b.xyz_mean[:, :2]
-                finite = np.isfinite(xy).all(axis=1)
-                if finite.any():
-                    bin_idxs = np.arange(b.centers.size)[finite]
-                    norm_idx = bin_idxs / max(b.centers.size - 1, 1)
-                    for k, ci in zip(bin_idxs, norm_idx):
-                        ax.annotate(
-                            "",
-                            xy=(xy[k, 0], xy[k, 1]),
-                            xytext=(0, 0),
-                            arrowprops=dict(
-                                arrowstyle="->",
-                                color=cmap(ci),
-                                lw=1.5,
-                            ),
-                        )
-                    if mu_decoded is not None:
-                        try:
-                            mu_r = float(mu_decoded.get("radialPosition", np.nan))
-                            mu_t = float(mu_decoded["angularPosition.theta"])
-                            mu_p = float(mu_decoded["angularPosition.phi"])
-                            mu_x = mu_r * np.sin(mu_p) * np.cos(mu_t)
-                            mu_y = mu_r * np.sin(mu_p) * np.sin(mu_t)
-                            if np.isfinite([mu_x, mu_y]).all():
-                                ax.scatter(
-                                    [mu_x], [mu_y], marker="x", s=80,
-                                    color="black", label="μ",
-                                )
-                                ax.legend(fontsize=7, loc="best")
-                        except (KeyError, TypeError, ValueError):
-                            pass
-                    lim = float(np.nanmax(np.abs(xy[finite]))) * 1.2 or 1.0
-                    ax.set_xlim(-lim, lim)
-                    ax.set_ylim(-lim, lim)
-                ax.axhline(0, color="lightgrey", lw=0.5, zorder=0)
-                ax.axvline(0, color="lightgrey", lw=0.5, zorder=0)
-                ax.set_aspect("equal", adjustable="box")
-                ax.set_xlabel("x")
-                ax.set_ylabel("y")
+                _draw_arrow_row(
+                    ax, b, depth_cmap=depth_cmap, z_abs_max=z_abs_max,
+                )
 
             ax.tick_params(labelsize=7)
             ax.grid(alpha=0.25)
@@ -399,9 +399,94 @@ def _plot_figure(
             fontsize=11, fontweight="bold",
         )
 
+    # Shared depth colorbar on the right edge of the arrow column.
+    sm = plt.cm.ScalarMappable(
+        cmap=depth_cmap,
+        norm=plt.Normalize(vmin=-z_abs_max, vmax=z_abs_max),
+    )
+    sm.set_array([])
+    cbar = fig.colorbar(
+        sm, ax=axes[:, 3].ravel().tolist(),
+        fraction=0.018, pad=0.015, aspect=30,
+    )
+    cbar.set_label("mean z (depth)", fontsize=8)
+    cbar.ax.tick_params(labelsize=7)
+
     fig.suptitle(title, fontsize=12)
-    fig.tight_layout(rect=(0.02, 0, 1, 0.97))
     return fig
+
+
+def _draw_arrow_row(
+    ax,
+    b: BinnedAxis,
+    *,
+    depth_cmap,
+    z_abs_max: float,
+) -> None:
+    """
+    Per-bin arrow showing the mean (x, y) vector at each bin's projection
+    position. Each arrow's tail sits at (bin center on the projection axis,
+    0); the head is offset by the scaled mean (x, y); the color encodes the
+    mean z component using ``depth_cmap``.
+
+    Arrows share a single linear scale so relative magnitudes across bins are
+    comparable. The scale is chosen so the largest in-plane vector takes up
+    roughly 80% of the bin spacing, keeping arrows visible without
+    overlapping.
+    """
+    centers = b.centers
+    xy = b.xyz_mean[:, :2]
+    z = b.xyz_mean[:, 2]
+    finite = np.isfinite(b.xyz_mean).all(axis=1)
+
+    ax.set_xlim(centers[0] - 0.5, centers[-1] + 0.5)
+    ax.axhline(0, color="lightgrey", lw=0.5, zorder=0)
+    ax.set_xlabel("axis projection (z)", fontsize=8)
+    ax.set_ylabel("(x, y) component", fontsize=8)
+
+    if not finite.any():
+        return
+
+    bin_spacing = float(np.mean(np.diff(centers))) if centers.size >= 2 else 1.0
+    in_plane_norms = np.linalg.norm(xy[finite], axis=1)
+    max_in_plane = float(in_plane_norms.max()) if in_plane_norms.size else 1.0
+    if max_in_plane < 1e-12:
+        max_in_plane = 1.0
+    arrow_scale = (0.8 * bin_spacing) / max_in_plane
+
+    arrow_max = arrow_scale * max_in_plane
+    ax.set_ylim(-1.4 * arrow_max, 1.4 * arrow_max)
+
+    for k in np.where(finite)[0]:
+        x0 = float(centers[k])
+        dx = arrow_scale * float(xy[k, 0])
+        dy = arrow_scale * float(xy[k, 1])
+        zc = float(z[k])
+        color = depth_cmap(0.5 + 0.5 * (zc / z_abs_max))
+        ax.annotate(
+            "",
+            xy=(x0 + dx, dy),
+            xytext=(x0, 0),
+            arrowprops=dict(arrowstyle="->", color=color, lw=2.0),
+        )
+        ax.scatter([x0], [0], color="black", s=8, zorder=3)
+
+    # Faint reference arrow showing how long an in-plane unit looks at this
+    # scale, anchored at the upper-left corner of the panel.
+    legend_x = centers[0] - 0.4
+    legend_y = arrow_max
+    ref_len = arrow_scale * max_in_plane
+    ax.annotate(
+        "",
+        xy=(legend_x + ref_len, legend_y),
+        xytext=(legend_x, legend_y),
+        arrowprops=dict(arrowstyle="->", color="dimgray", lw=1.0),
+    )
+    ax.text(
+        legend_x, legend_y - 0.18 * arrow_max,
+        f"|(x,y)| = {max_in_plane:.2f}",
+        fontsize=6, color="dimgray",
+    )
 
 
 # ---------------------------------------------------------------------------
