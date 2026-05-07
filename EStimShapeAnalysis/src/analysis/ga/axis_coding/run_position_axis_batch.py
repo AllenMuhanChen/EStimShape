@@ -48,7 +48,7 @@ def run_batch(
     n_bins: int = 9,
     z_range: float = 2.0,
     top_k_composition: int = 5,
-    n_position_bins: int = 5,
+    n_position_bins: int = 3,
     save_dir_override: Optional[str] = None,
 ) -> dict:
     """
@@ -154,7 +154,7 @@ def main():
         f"unit_name={unit_name}  write_to_db={write_to_db}"
     )
     summary = run_batch(
-        session_ids,
+        session_ids[::-1],
         unit_name=unit_name,
         write_to_db=write_to_db,
     )

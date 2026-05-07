@@ -1314,7 +1314,7 @@ def process_json(
     n_bins: int,
     z_range: float,
     top_k_composition: int = 5,
-    n_position_bins: int = 5,
+    n_position_bins: int = 3,
     session_id: Optional[str] = None,
     unit_name: Optional[str] = None,
     repo_conn=None,

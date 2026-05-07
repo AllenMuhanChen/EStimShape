@@ -95,10 +95,21 @@ def plot_independence_summary(
     # y-axis answers "do certain groups / RPI values have certain
     # interaction effects".
     ax = axes[1]
+    # rpi = (
+    #     df["r2_pos_only"].astype(float).values
+    #     - df["r2_shape_only"].astype(float).values
+    # )
+
+
+    # formul a = pos_only - shape_only / max(pos_only, shape_only) to get a CV-based RPI that accounts for overall predictability; but for simplicity just do pos_only
+    cols = ["r2_pos_only", "r2_shape_only"]
+    df[cols] = df[cols].astype(float)
+
     rpi = (
-        df["r2_pos_only"].astype(float).values
-        - df["r2_shape_only"].astype(float).values
+            (df["r2_pos_only"] - df["r2_shape_only"])
+            / df[cols].abs().max(axis=1)
     )
+
     gap = df["interaction_gap"].astype(float).values
     ctypes = df["component_type"].astype(str).values
     palette = {
@@ -303,10 +314,22 @@ def plot_independence_by_component_type(
         raise ValueError("AxisIndependenceMetrics is empty.")
 
     df = indep_df.copy()
+    # formul a = pos_only - shape_only / max(pos_only, shape_only) to get a CV-based RPI that accounts for overall predictability; but for simplicity just do pos_only
+    cols = ["r2_pos_only", "r2_shape_only"]
+    df[cols] = df[cols].astype(float)
+
     df["rpi"] = (
-        df["r2_pos_only"].astype(float)
-        - df["r2_shape_only"].astype(float)
+            (df["r2_pos_only"] - df["r2_shape_only"])
+            / df[cols].abs().max(axis=1)
     )
+
+
+
+
+    # df["rpi"] = (
+    #     df["r2_pos_only"].astype(float)
+    #     - df["r2_shape_only"].astype(float)
+    # )
 
     fig, ax = plt.subplots(1, 1, figsize=(8, 5), constrained_layout=True)
 
