@@ -379,6 +379,225 @@ def plot_independence_by_component_type(
 
 
 # ---------------------------------------------------------------------------
+# Variance partitioning (a.k.a. commonality analysis)
+#
+# Reference: de Heer, Huth, Griffiths, Gallant & Theunissen 2017, J Neurosci.
+# Figs 4–5 use the same four-component decomposition for fMRI responses.
+# Classical statistical source: Borcard, Legendre & Drapeau 1992, Ecology.
+# ---------------------------------------------------------------------------
+
+REGIME_ORDER: tuple[str, ...] = (
+    "pos_only", "additive", "shape_only", "interaction", "redundant", "no_fit",
+)
+REGIME_PALETTE: dict[str, str] = {
+    "pos_only":    "tab:blue",
+    "shape_only":  "tab:orange",
+    "additive":    "tab:green",
+    "interaction": "tab:purple",
+    "redundant":   "tab:gray",
+    "no_fit":      "lightgray",
+}
+
+
+def _classify_regimes(
+    df: pd.DataFrame,
+    *,
+    eps: float = 0.02,
+    fit_threshold: float = 0.03,
+) -> pd.DataFrame:
+    """
+    Decompose CV R² into the four variance shares and tag each row with a
+    categorical regime label. Returns a copy with new columns:
+
+      unique_pos        = R²_add − R²_shape   (position above-and-beyond shape)
+      unique_shape      = R²_add − R²_pos     (shape above-and-beyond position)
+      shared            = R²_pos + R²_shape − R²_add   (collinear contribution)
+      interaction_extra = R²_int − R²_add     (cross-term beyond additive)
+
+    Negative values are CV noise and are kept verbatim — the plots handle
+    them.
+
+    Regime rules (with epsilon ε for "indistinguishable from zero" and
+    fit_threshold for "this cell is predictable at all"):
+
+      no_fit       R²_int < fit_threshold
+      interaction  interaction_extra > ε
+      additive     unique_pos > ε  AND  unique_shape > ε
+      pos_only     unique_pos > ε  AND  unique_shape ≤ ε
+      shape_only   unique_shape > ε AND unique_pos ≤ ε
+      redundant    fit but neither unique_* > ε (collinearity dominates)
+    """
+    df = df.copy()
+    r2_p = df["r2_pos_only"].astype(float)
+    r2_s = df["r2_shape_only"].astype(float)
+    r2_a = df["r2_additive"].astype(float)
+    r2_i = df["r2_interaction"].astype(float)
+
+    df["unique_pos"] = r2_a - r2_s
+    df["unique_shape"] = r2_a - r2_p
+    df["shared"] = r2_p + r2_s - r2_a
+    df["interaction_extra"] = r2_i - r2_a
+
+    fit = r2_i.fillna(0.0) > fit_threshold
+    has_int = df["interaction_extra"].fillna(0.0) > eps
+    has_unique_pos = df["unique_pos"].fillna(0.0) > eps
+    has_unique_shape = df["unique_shape"].fillna(0.0) > eps
+
+    regime = pd.Series("no_fit", index=df.index, dtype=object)
+    regime.loc[fit & has_int] = "interaction"
+    regime.loc[fit & ~has_int & has_unique_pos & has_unique_shape] = "additive"
+    regime.loc[fit & ~has_int & has_unique_pos & ~has_unique_shape] = "pos_only"
+    regime.loc[fit & ~has_int & ~has_unique_pos & has_unique_shape] = "shape_only"
+    regime.loc[fit & ~has_int & ~has_unique_pos & ~has_unique_shape] = "redundant"
+    df["regime"] = regime
+    return df
+
+
+# ---------------------------------------------------------------------------
+# Plot 5: regime pie chart (population + per-component-type)
+# ---------------------------------------------------------------------------
+
+def plot_regime_pie(
+    indep_df: pd.DataFrame,
+    *,
+    eps: float = 0.02,
+    fit_threshold: float = 0.03,
+    save_path: Optional[str] = None,
+) -> plt.Figure:
+    """
+    Pie of regime labels at the population scale plus one pie per
+    component_type. Percentages are within-panel; counts are absolute.
+    """
+    if indep_df.empty:
+        raise ValueError("AxisIndependenceMetrics is empty.")
+
+    df = _classify_regimes(indep_df, eps=eps, fit_threshold=fit_threshold)
+    types = sorted(df["component_type"].dropna().astype(str).unique())
+    panels: list[tuple[str, pd.DataFrame]] = [("All", df)]
+    for t in types:
+        panels.append((t, df[df["component_type"] == t]))
+
+    fig, axes = plt.subplots(
+        1, len(panels), figsize=(4.0 * len(panels), 4.6),
+        constrained_layout=True,
+    )
+    if len(panels) == 1:
+        axes = [axes]
+
+    for ax, (label, sub) in zip(axes, panels):
+        counts = (
+            sub["regime"].value_counts()
+            .reindex(REGIME_ORDER, fill_value=0)
+        )
+        nz = counts[counts > 0]
+        if len(nz) == 0:
+            ax.text(0.5, 0.5, "no data", ha="center", va="center")
+            ax.axis("off")
+            ax.set_title(f"{label}  n=0")
+            continue
+        ax.pie(
+            nz.values,
+            labels=[f"{name}\n({n})" for name, n in nz.items()],
+            colors=[REGIME_PALETTE[name] for name in nz.index],
+            autopct="%1.0f%%",
+            startangle=90,
+            textprops={"fontsize": 8},
+            wedgeprops={"edgecolor": "white", "linewidth": 0.6},
+        )
+        ax.set_title(f"{label}  n={len(sub)}", fontsize=10)
+
+    fig.suptitle(
+        f"Variance-partitioning regimes  |  ε={eps}  fit_threshold={fit_threshold}",
+        fontsize=11,
+    )
+    if save_path:
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        print(f"  saved: {save_path}")
+    return fig
+
+
+# ---------------------------------------------------------------------------
+# Plot 6: per-cell stacked variance shares
+# ---------------------------------------------------------------------------
+
+def plot_variance_share_stacked(
+    indep_df: pd.DataFrame,
+    *,
+    sort_by: str = "unique_pos",
+    save_path: Optional[str] = None,
+) -> plt.Figure:
+    """
+    Stacked-bar profile of every cell. One bar per cell, decomposed into
+    four variance-share components: unique_pos (blue), shared (gray),
+    unique_shape (orange), interaction_extra (purple). Cells are sorted
+    by ``sort_by`` descending so the population gradient is readable.
+
+    Negative shares (CV noise) stack downward at reduced alpha so the
+    eye doesn't double-count them as positive contributions.
+    """
+    if indep_df.empty:
+        raise ValueError("AxisIndependenceMetrics is empty.")
+    df = _classify_regimes(indep_df).copy()
+    if sort_by not in df.columns:
+        raise ValueError(f"sort_by={sort_by} not in {list(df.columns)}")
+
+    df = df.sort_values(by=sort_by, ascending=False).reset_index(drop=True)
+    n = len(df)
+
+    components = [
+        ("unique_pos",        "tab:blue",   "unique position"),
+        ("shared",            "tab:gray",   "shared (collinear)"),
+        ("unique_shape",      "tab:orange", "unique shape"),
+        ("interaction_extra", "tab:purple", "interaction extra"),
+    ]
+
+    fig, ax = plt.subplots(
+        1, 1,
+        figsize=(max(8.0, min(n * 0.06, 22.0)), 5.0),
+        constrained_layout=True,
+    )
+    x = np.arange(n)
+    bottom_pos = np.zeros(n)
+    bottom_neg = np.zeros(n)
+    for col, color, label in components:
+        vals = df[col].astype(float).fillna(0.0).values
+        pos_part = np.where(vals > 0, vals, 0)
+        neg_part = np.where(vals < 0, vals, 0)
+        ax.bar(
+            x, pos_part, bottom=bottom_pos,
+            color=color, alpha=0.85, label=label,
+            width=1.0, edgecolor="none",
+        )
+        # Negative parts (CV noise) drawn faintly so they're visible but
+        # don't dominate the impression. No legend entry — same color.
+        if (neg_part != 0).any():
+            ax.bar(
+                x, neg_part, bottom=bottom_neg,
+                color=color, alpha=0.30,
+                width=1.0, edgecolor="none",
+            )
+        bottom_pos += pos_part
+        bottom_neg += neg_part
+
+    ax.axhline(0, color="black", lw=0.5)
+    ax.set_xlabel(f"cells (sorted by {sort_by} descending)")
+    ax.set_ylabel("CV R² contribution")
+    ax.set_title(
+        f"Per-cell variance partitioning  |  n={n}  "
+        f"(unique_pos + shared + unique_shape + interaction_extra ≈ R²_int)",
+        fontsize=10,
+    )
+    ax.legend(fontsize=8, loc="upper right")
+    ax.grid(alpha=0.25, axis="y")
+    ax.set_xlim(-0.5, n - 0.5)
+
+    if save_path:
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        print(f"  saved: {save_path}")
+    return fig
+
+
+# ---------------------------------------------------------------------------
 # Entry point — edit the variables below and run this file directly.
 # ---------------------------------------------------------------------------
 
@@ -389,6 +608,12 @@ def main():
     # Optional filters when reading the tables. Leave None to read all rows.
     component_type = None
     strategy = "multi_prototype_pca"
+
+    # Variance-partitioning thresholds for the regime classifier.
+    # Reference: de Heer et al. 2017 J Neurosci (Figs 4–5) for the four-way
+    # partition; Borcard, Legendre & Drapeau 1992 Ecology for the math.
+    regime_epsilon = 0.02       # noise floor for unique / interaction shares
+    fit_threshold = 0.03        # below this, the cell is unfit at all
 
     # ----------------------------------------------------------------------
 
@@ -422,8 +647,23 @@ def main():
             ),
         )
         plt.close("all")
+        plot_regime_pie(
+            indep_df,
+            eps=regime_epsilon,
+            fit_threshold=fit_threshold,
+            save_path=os.path.join(save_dir, "variance_regime_pie.png"),
+        )
+        plt.close("all")
+        plot_variance_share_stacked(
+            indep_df,
+            save_path=os.path.join(save_dir, "variance_share_stacked.png"),
+        )
+        plt.close("all")
     else:
-        print("[group] no AxisIndependenceMetrics rows — skipping plots 1 & 4.")
+        print(
+            "[group] no AxisIndependenceMetrics rows — "
+            "skipping independence plots."
+        )
 
     if not comp_df.empty:
         plot_composition_summary(
