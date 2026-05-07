@@ -133,11 +133,17 @@ def _build_design_matrix_for_json(
     X = np.full((n, d), np.nan)
     for i, sid in enumerate(stim_ids):
         comps_enc = encoded.get(sid)
-        if comps_enc is None and not isinstance(sid, int):
-            try:
-                comps_enc = encoded.get(int(sid))
-            except (TypeError, ValueError):
-                comps_enc = None
+        if comps_enc is None:
+            for cast in (int, str, float):
+                try:
+                    alt = cast(sid)
+                except (TypeError, ValueError):
+                    continue
+                if alt == sid:
+                    continue
+                comps_enc = encoded.get(alt)
+                if comps_enc is not None:
+                    break
         if comps_enc is None or comps_enc.shape[0] == 0:
             continue
         idx = int(selected_indices[i])
@@ -173,21 +179,31 @@ def _extract_positions(
     xyz = np.full((n, 3), np.nan)
     valid = np.zeros(n, dtype=bool)
 
-    n_warn = 0
+    n_no_comps = 0
+    n_idx_oor = 0
+    n_field_miss = 0
     for i, sid in enumerate(stim_ids):
         comps = components_by_stim.get(sid)
-        if not comps and not isinstance(sid, int):
-            try:
-                comps = components_by_stim.get(int(sid))
-            except (TypeError, ValueError):
-                comps = None
+        # Fall back through alternate type representations of the stim id —
+        # JSON-parsed ints vs str(StimSpecId) in the df both happen.
         if not comps:
-            n_warn += 1
+            for cast in (int, str, float):
+                try:
+                    alt = cast(sid)
+                except (TypeError, ValueError):
+                    continue
+                if alt == sid:
+                    continue
+                comps = components_by_stim.get(alt)
+                if comps:
+                    break
+        if not comps:
+            n_no_comps += 1
             continue
 
         idx = int(selected_indices[i])
         if idx < 0 or idx >= len(comps):
-            n_warn += 1
+            n_idx_oor += 1
             continue
 
         comp = comps[idx]
@@ -196,7 +212,7 @@ def _extract_positions(
             t = float(comp["angularPosition"]["theta"])
             p = float(comp["angularPosition"]["phi"])
         except (KeyError, TypeError, ValueError):
-            n_warn += 1
+            n_field_miss += 1
             continue
 
         radial[i] = r
@@ -208,11 +224,29 @@ def _extract_positions(
         )
         valid[i] = True
 
+    n_warn = n_no_comps + n_idx_oor + n_field_miss
     if n_warn:
         print(
-            f"  [position] warning: {n_warn}/{n} stim missing component "
-            f"position (selected_indices out of range or fields absent)."
+            f"  [position] warning: {n_warn}/{n} stim dropped — "
+            f"no_comps={n_no_comps}, idx_OOR={n_idx_oor}, "
+            f"field_missing={n_field_miss}"
         )
+        # When the dominant failure mode is "no_comps", almost always a
+        # stim_id type / membership mismatch. Print samples so the next
+        # rerun makes the cause obvious.
+        if n_no_comps and n_no_comps == n_warn:
+            df_keys = list(components_by_stim.keys())[:3]
+            json_sids = list(stim_ids[:3])
+            print(
+                f"    df components_by_stim: n_keys={len(components_by_stim)}, "
+                f"sample={df_keys} "
+                f"(types: {[type(k).__name__ for k in df_keys]})"
+            )
+            print(
+                f"    json stim_ids:         n={len(stim_ids)}, "
+                f"sample={json_sids} "
+                f"(types: {[type(s).__name__ for s in json_sids]})"
+            )
 
     return PositionTable(radial=radial, theta=theta, phi=phi, xyz=xyz, valid_mask=valid)
 
