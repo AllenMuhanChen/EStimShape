@@ -215,3 +215,28 @@ def shape_plus_appearance_model() -> ModelSpec:
 def default_axis_models() -> list[ModelSpec]:
     """Default model set: shape only, appearance only, additive joint."""
     return [shape_model(), appearance_model(), shape_plus_appearance_model()]
+
+
+def alexnet_model() -> ModelSpec:
+    """
+    AlexNet conv3 features as the primary axis model. Same build behaviour
+    as shape_model — PCA-aware back-projection, ``has_shape_mu=True`` so μ
+    decoding wires through — but reported under the name ``alexnet`` so it
+    isn't confused with the geometry-parameterized ``shape`` model. Used by
+    AlexNetAxisCodingAnalysis where appearance comparison doesn't apply
+    (conv3 already mixes shape and color/texture).
+    """
+    def build(ctx: FitContext) -> BuildResult:
+        if ctx.pca_pre is not None:
+            bp = ctx.pca_pre.back_project
+            feat_interp = list(ctx.shape_feature_names_orig)
+        else:
+            bp = None
+            feat_interp = list(ctx.shape_feature_names_model)
+        return BuildResult(
+            design=ctx.X_shape,
+            feature_names_model=list(ctx.shape_feature_names_model),
+            feature_names_interp=feat_interp,
+            back_project=bp,
+        )
+    return ModelSpec(name="alexnet", builder=build, has_shape_mu=True)

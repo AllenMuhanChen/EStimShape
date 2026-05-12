@@ -564,6 +564,7 @@ def fit_axis_coding(
     n_pcs: Optional[int] = None,
     axis_models: Optional[list[ModelSpec]] = None,
     dataset: Optional[AxisCodingDataset] = None,
+    primary_model_name: str = "shape",
 ) -> AxisCodingResult:
     # Allow callers (e.g. alexnet_axis_coding_analysis) to inject a pre-built
     # dataset whose ``components_per_stim`` come from a non-geometry source.
@@ -623,13 +624,23 @@ def fit_axis_coding(
     # AxisCodingResult fields below for backward compatibility with callers
     # that don't know about model_fits yet.
     # ------------------------------------------------------------------
-    appearance = AppearanceFeatures.build(df, dataset.stim_ids)
-    A = appearance.features
-    if appearance.n_missing_texture or appearance.n_missing_rgb:
-        print(
-            f"  [appearance] missing texture: {appearance.n_missing_texture}, "
-            f"missing RGB: {appearance.n_missing_rgb} (of {appearance.n_stim})"
-        )
+    # Only build texture / RGB appearance features when at least one requested
+    # model actually uses them. For pipelines like AlexNet, where the primary
+    # feature representation already entangles shape and appearance, the
+    # comparison is uninterpretable and we skip it entirely.
+    models_for_check = list(axis_models) if axis_models is not None else default_axis_models()
+    _wants_appearance = any(getattr(m, "requires_appearance", False) for m in models_for_check)
+    if _wants_appearance:
+        appearance = AppearanceFeatures.build(df, dataset.stim_ids)
+        A = appearance.features
+        if appearance.n_missing_texture or appearance.n_missing_rgb:
+            print(
+                f"  [appearance] missing texture: {appearance.n_missing_texture}, "
+                f"missing RGB: {appearance.n_missing_rgb} (of {appearance.n_stim})"
+            )
+    else:
+        appearance = AppearanceFeatures.build_empty(dataset.stim_ids)
+        A = appearance.features
 
     fit_ctx = FitContext(
         X_shape=X,
@@ -653,15 +664,17 @@ def fit_axis_coding(
         cv_str = f"{cv:+.3f}" if cv is not None and not (isinstance(cv, float) and np.isnan(cv)) else "n/a"
         print(f"  [model:{spec.name}] cv_r2={cv_str}  d={len(ms.get('feature_names') or [])}")
 
-    # Pull shape-model artifacts back out as locals for the rest of the
-    # function (residual fit, μ decoding, result construction) — these still
-    # operate on the shape model specifically.
-    if "shape" not in model_fits:
+    # Pull the primary-model artifacts back out as locals for the rest of the
+    # function (residual fit, μ decoding, result construction). Default
+    # primary_model_name is "shape"; AlexNetAxisCodingAnalysis passes
+    # "alexnet" so its axis_models can be [alexnet_model()] alone without
+    # tripping the hardcoded shape key.
+    if primary_model_name not in model_fits:
         raise RuntimeError(
-            "axis_models must include a 'shape' model; got: "
+            f"axis_models must include a '{primary_model_name}' model; got: "
             f"{[s.name for s in models]}"
         )
-    shape_fit = model_fits["shape"]
+    shape_fit = model_fits[primary_model_name]
     predicted = np.asarray(shape_fit.predictions, dtype=np.float64)
     axis_projections = np.asarray(shape_fit.axis_projections, dtype=np.float64)
     orth_projections = np.asarray(shape_fit.orth_projections, dtype=np.float64)
@@ -3094,6 +3107,10 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
     # different feature pipeline (e.g. AlexNet) override this so their figures
     # / JSON dumps don't collide with the shape-axis-coding ones.
     _save_subdir: str = "axis_coding"
+    # Name of the primary axis model whose fit drives the result's flat fields
+    # (axis_projections, orthogonal_*, etc.). Subclasses override (AlexNet uses
+    # "alexnet") so they don't have to include a model named "shape".
+    _primary_model_name: str = "shape"
 
     def __init__(
         self,
@@ -3325,10 +3342,20 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                     f"{channel_str} | {component_type} | {strategy.label}"
                 )
 
-                # Figure 1: shape vs appearance.
-                fig_app = plot_shape_vs_appearance(
-                    result,
-                    title=f"{base_title}  —  shape vs appearance",
+                # Figure 1: shape vs appearance. Skipped when the requested
+                # axis_models don't include an appearance comparison (e.g.
+                # AlexNet, whose conv3 features already mix shape and
+                # color/texture, making the decomposition uninterpretable).
+                has_appearance_model = any(
+                    spec.name in ("appearance", "shape+appearance")
+                    for spec in self.axis_models
+                )
+                fig_app = (
+                    plot_shape_vs_appearance(
+                        result,
+                        title=f"{base_title}  —  shape vs appearance",
+                    )
+                    if has_appearance_model else None
                 )
                 if fig_app is not None:
                     if save_dir is not None:
@@ -3350,7 +3377,7 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                 for spec in self.axis_models:
                     if spec.name not in (result.model_fits or {}):
                         continue
-                    suffix = "" if spec.name == "shape" else f"_{spec.name.replace('+', 'plus')}"
+                    suffix = "" if spec.name == self._primary_model_name else f"_{spec.name.replace('+', 'plus')}"
                     fig_m = plot_axis_coding_consolidated(
                         result,
                         encoder=encoders_for_run[component_type],
@@ -3484,6 +3511,7 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
             ridge_factory=strategy.ridge_factory,
             n_pcs=strategy.n_pcs,
             axis_models=self.axis_models,
+            primary_model_name=self._primary_model_name,
         )
 
     # ------------------------------------------------------------------

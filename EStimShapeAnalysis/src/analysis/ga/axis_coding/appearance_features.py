@@ -37,6 +37,22 @@ class AppearanceFeatures:
         return self.features.shape[1]
 
     @classmethod
+    def build_empty(cls, stim_ids) -> "AppearanceFeatures":
+        """
+        Empty (no-feature) instance aligned to ``stim_ids``. Used by callers
+        that don't want a shape-vs-appearance decomposition — e.g. AlexNet
+        axis coding where the primary features already mix shape and color.
+        """
+        n = len(stim_ids)
+        return cls(
+            features=np.zeros((n, 0), dtype=np.float64),
+            feature_names=[],
+            texture_per_stim=[None] * n,
+            n_missing_texture=0,
+            n_missing_rgb=0,
+        )
+
+    @classmethod
     def build(
         cls,
         df: pd.DataFrame,

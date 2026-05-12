@@ -61,6 +61,7 @@ from src.analysis.ga.axis_coding.axis_coding_analysis import (
     default_ridge_factory,
     fit_axis_coding,
 )
+from src.analysis.ga.axis_coding.axis_models import alexnet_model
 from src.analysis.ga.axis_coding.axis_coding_dataset import (
     AxisCodingDataset,
     _extract_per_trial_response,
@@ -468,6 +469,7 @@ class AlexNetAxisCodingAnalysis(AxisCodingAnalysis):
     """
 
     _save_subdir = "alexnet_axis_coding"
+    _primary_model_name = "alexnet"
 
     def __init__(
         self,
@@ -484,8 +486,10 @@ class AlexNetAxisCodingAnalysis(AxisCodingAnalysis):
         kwargs["component_types"] = [DEFAULT_COMPONENT_TYPE]
         kwargs["encoders"] = {DEFAULT_COMPONENT_TYPE: AlexNetFeatureEncoder(feature_names=[])}
         kwargs["strategies"] = strategies or make_default_alexnet_strategies(n_pcs=n_pcs)
-        # Texture/RGB appearance comparison is still meaningful (AlexNet
-        # features vs texture/RGB), so keep the default axis_models.
+        # AlexNet conv3 already mixes shape and color/texture, so a shape-vs-
+        # appearance decomposition is uninterpretable here. Use a single
+        # primary model named "alexnet" and no appearance/joint comparison.
+        kwargs.setdefault("axis_models", [alexnet_model()])
         super().__init__(**kwargs)
         self.extractor = extractor or AlexNetActivationExtractor()
         self.stim_path_col = stim_path_col
