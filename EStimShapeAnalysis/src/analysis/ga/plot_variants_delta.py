@@ -56,6 +56,17 @@ class PlotVariantDeltas(PlotTopNAnalysis):
                 self.response_table
             )
 
+        # Resolve channel="Cluster" to the current experiment's cluster channel list.
+        if channel == "Cluster":
+            try:
+                cluster = context.ga_config.db_util.read_current_cluster(context.ga_name)
+            except Exception as exc:
+                raise RuntimeError(
+                    f"channel='Cluster' requires a defined cluster in the GA db: {exc}"
+                ) from exc
+            channel = [ch.value for ch in cluster]
+            print(f"channel='Cluster' resolved to {len(channel)} channels: {channel}")
+
         # Setup response column (shared across all modes)
         if self.use_ga_response:
             if 'GA Response' not in compiled_data.columns:
@@ -68,11 +79,21 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             print("Using GA Response (not channel-specific)")
         else:
             compiled_data = compiled_data[compiled_data[self.spike_rates_col].notna()]
-            compiled_data['Spike Rate'] = compiled_data[self.spike_rates_col].apply(
-                lambda x: x[channel] if channel in x else 0)
+            if isinstance(channel, list):
+                def avg_channels(x):
+                    if not isinstance(x, dict):
+                        return 0
+                    vals = [x.get(ch, 0) for ch in channel]
+                    return sum(vals) / len(vals) if vals else 0
+
+                compiled_data['Spike Rate'] = compiled_data[self.spike_rates_col].apply(avg_channels)
+                print(f"Using channel-specific spike rates averaged across {len(channel)} channels: {channel}")
+            else:
+                compiled_data['Spike Rate'] = compiled_data[self.spike_rates_col].apply(
+                    lambda x: x[channel] if isinstance(x, dict) and channel in x else 0)
+                print(f"Using channel-specific spike rates for {channel}")
             response_col_name = 'Spike Rate'
             response_key = channel
-            print(f"Using channel-specific spike rates for {channel}")
 
         if self.plot_mode == PLOT_MODE_DB_INCLUDED:
             plot_data, title = self._build_plot_data_from_db(compiled_data, response_col_name)
