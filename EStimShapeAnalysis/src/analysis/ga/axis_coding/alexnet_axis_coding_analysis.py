@@ -87,14 +87,29 @@ DEFAULT_LAYER_OUTPUT_NAME = "conv3"
 
 class AlexNetActivationExtractor:
     """
-    Run images through AlexNet (ONNX) and return the flattened activation
-    vector of a chosen layer. Caches per-image-path so repeated stim_ids only
-    incur one forward pass.
+    Run images through AlexNet (ONNX) and return a per-stim activation vector
+    from a chosen layer. Caches per-image-path so repeated stim_ids only incur
+    one forward pass.
+
+    Spatial handling for conv layers (``pooling``):
+      - ``"mean_pool"`` (default): average activations over the H×W grid so
+        each filter contributes one number per stim. Translation-invariant,
+        D = C. Closest to Chang & Tsao 2017 (PCA on per-stim feature vectors).
+      - ``"max_pool"``: max over H×W. "Is this filter active anywhere?"
+      - ``"center"``: take a single (x, y) location (default mid-grid). D = C.
+        Matches the project's existing single-unit convention
+        (``conv3_u374_x7_y7`` in alexnet_context.py).
+      - ``"flatten"``: full C × H × W with no pooling. Use only if you want
+        spatial position baked into the feature representation. Note that
+        conv weights are tied across the grid, so neighbouring spatial
+        locations carry redundant information.
 
     The default preprocessing is ShapePreprocessTransform (227×227, bbox-crop
     on gray background) — same transform used by the mock-GA AlexNet pipeline,
     so axis-coding results are directly comparable to those response signals.
     """
+
+    POOLING_OPTIONS = ("mean_pool", "max_pool", "center", "flatten")
 
     def __init__(
         self,
@@ -103,9 +118,17 @@ class AlexNetActivationExtractor:
         bbox_scale: float = 0.5,
         target_size: int = 227,
         background_value: int = 127,
+        pooling: str = "mean_pool",
+        center_xy: Optional[tuple[int, int]] = None,
     ):
+        if pooling not in self.POOLING_OPTIONS:
+            raise ValueError(
+                f"pooling={pooling!r} must be one of {self.POOLING_OPTIONS}"
+            )
         self.onnx_path = onnx_path
         self.layer_output_name = layer_output_name
+        self.pooling = pooling
+        self.center_xy = center_xy  # None → mid-grid resolved on first call
         self._session: Optional[onnxruntime.InferenceSession] = None
         self._input_name: Optional[str] = None
         self._activation_shape: Optional[tuple[int, ...]] = None
@@ -124,7 +147,7 @@ class AlexNetActivationExtractor:
 
     @property
     def activation_shape(self) -> tuple[int, ...]:
-        """Shape of one conv3 output excluding the batch dim (C, H, W)."""
+        """Raw conv output shape excluding the batch dim (C, H, W)."""
         if self._activation_shape is None:
             raise RuntimeError(
                 "activation_shape unknown until at least one image has been "
@@ -132,8 +155,22 @@ class AlexNetActivationExtractor:
             )
         return self._activation_shape
 
+    def _pool(self, raw: np.ndarray) -> np.ndarray:
+        """Apply the configured pooling to a (C, H, W) array → (D,) vector."""
+        if self.pooling == "flatten":
+            return raw.ravel()
+        if self.pooling == "mean_pool":
+            return raw.mean(axis=(1, 2))
+        if self.pooling == "max_pool":
+            return raw.max(axis=(1, 2))
+        if self.pooling == "center":
+            _, h, w = raw.shape
+            x, y = self.center_xy if self.center_xy is not None else (h // 2, w // 2)
+            return raw[:, x, y]
+        raise AssertionError(f"unreachable pooling={self.pooling}")  # pragma: no cover
+
     def extract(self, image_path: str) -> np.ndarray:
-        """Return the flattened (D,) conv3 activation vector for an image."""
+        """Return the pooled (D,) activation vector for an image."""
         if image_path in self._cache:
             return self._cache[image_path]
 
@@ -143,31 +180,34 @@ class AlexNetActivationExtractor:
         out = session.run(
             [self.layer_output_name],
             {self._input_name: tensor},
-        )[0]  # shape (1, C, H, W) — bias-relu may already be applied in ONNX.
+        )[0]  # shape (1, C, H, W)
 
         if self._activation_shape is None:
             self._activation_shape = tuple(out.shape[1:])
 
-        flat = np.asarray(out[0], dtype=np.float64).ravel()
-        self._cache[image_path] = flat
-        return flat
+        raw = np.asarray(out[0], dtype=np.float64)
+        pooled = self._pool(raw)
+        self._cache[image_path] = pooled
+        return pooled
 
     def extract_many(self, paths: list[str]) -> list[np.ndarray]:
         return [self.extract(p) for p in paths]
 
     def feature_names(self) -> list[str]:
-        """
-        One label per flattened feature: ``conv3_u{u}_x{x}_y{y}`` matching the
-        UnitIdentifier convention used elsewhere in the project. Requires that
-        at least one image has been processed so the (C,H,W) shape is known.
-        """
+        """One label per pooled feature; depends on ``pooling``."""
         c, h, w = self.activation_shape  # type: ignore[misc]
-        return [
-            f"{self.layer_output_name}_u{u}_x{x}_y{y}"
-            for u in range(c)
-            for x in range(h)
-            for y in range(w)
-        ]
+        layer = self.layer_output_name
+        if self.pooling == "flatten":
+            return [f"{layer}_u{u}_x{x}_y{y}"
+                    for u in range(c) for x in range(h) for y in range(w)]
+        if self.pooling == "mean_pool":
+            return [f"{layer}_u{u}_meanpool" for u in range(c)]
+        if self.pooling == "max_pool":
+            return [f"{layer}_u{u}_maxpool" for u in range(c)]
+        if self.pooling == "center":
+            x, y = self.center_xy if self.center_xy is not None else (h // 2, w // 2)
+            return [f"{layer}_u{u}_x{x}_y{y}" for u in range(c)]
+        raise AssertionError(f"unreachable pooling={self.pooling}")  # pragma: no cover
 
 
 # ---------------------------------------------------------------------------
