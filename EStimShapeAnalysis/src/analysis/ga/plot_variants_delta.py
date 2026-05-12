@@ -57,6 +57,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             )
 
         # Resolve channel="Cluster" to the current experiment's cluster channel list.
+        # channel_label is the stable string used for filenames (independent of list order).
         if channel == "Cluster":
             try:
                 cluster = context.ga_config.db_util.read_current_cluster(context.ga_name)
@@ -65,7 +66,12 @@ class PlotVariantDeltas(PlotTopNAnalysis):
                     f"channel='Cluster' requires a defined cluster in the GA db: {exc}"
                 ) from exc
             channel = [ch.value for ch in cluster]
+            channel_label = "Cluster"
             print(f"channel='Cluster' resolved to {len(channel)} channels: {channel}")
+        elif isinstance(channel, list):
+            channel_label = f"{len(channel)}_channels"
+        else:
+            channel_label = channel
 
         # Setup response column (shared across all modes)
         if self.use_ga_response:
@@ -105,7 +111,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             if plot_data is None:
                 return
 
-        save_path = f"{self.save_path}/{channel}_delta_variant_pairs.png"
+        save_path = f"{self.save_path}/{channel_label}_delta_variant_pairs.png"
         visualize_params = {
             'cell_size': (200, 200),
             'response_rate_col': response_col_name,
