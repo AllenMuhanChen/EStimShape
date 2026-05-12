@@ -80,14 +80,13 @@ class PlotVariantDeltas(PlotTopNAnalysis):
         else:
             compiled_data = compiled_data[compiled_data[self.spike_rates_col].notna()]
             if isinstance(channel, list):
-                def avg_channels(x):
+                def sum_channels(x):
                     if not isinstance(x, dict):
                         return 0
-                    vals = [x.get(ch, 0) for ch in channel]
-                    return sum(vals) / len(vals) if vals else 0
+                    return sum(x.get(ch, 0) for ch in channel)
 
-                compiled_data['Spike Rate'] = compiled_data[self.spike_rates_col].apply(avg_channels)
-                print(f"Using channel-specific spike rates averaged across {len(channel)} channels: {channel}")
+                compiled_data['Spike Rate'] = compiled_data[self.spike_rates_col].apply(sum_channels)
+                print(f"Using channel-specific spike rates summed across {len(channel)} channels: {channel}")
             else:
                 compiled_data['Spike Rate'] = compiled_data[self.spike_rates_col].apply(
                     lambda x: x[channel] if isinstance(x, dict) and channel in x else 0)
