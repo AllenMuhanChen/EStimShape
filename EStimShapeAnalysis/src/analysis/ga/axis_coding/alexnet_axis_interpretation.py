@@ -229,10 +229,30 @@ def interpret_alexnet_axes_with_shape(
     variance_partitions: dict[str, VariancePartition] = {}
 
     # Stim ids the result was fit on, in order. Axis projections align 1:1.
+    # result.stim_ids round-trips through _jsonable, which falls through to
+    # str(x) for plain Python ints — so they end up as strings while the
+    # df's StimSpecId column is integer. Filter via stringified compare so
+    # the mismatch can't drop every row silently.
     result_stim_ids = list(result.stim_ids)
+    result_stim_ids_str = {str(s) for s in result_stim_ids}
 
     # Build a quick stim-grouped df once; we re-use it for each (axis, type).
-    df_for_stims = df[df["StimSpecId"].isin(result_stim_ids)].copy()
+    df_for_stims = df[df["StimSpecId"].astype(str).isin(result_stim_ids_str)].copy()
+    if df_for_stims.empty:
+        raise RuntimeError(
+            f"After filtering df to result.stim_ids, zero rows remained. "
+            f"Result has {len(result_stim_ids)} stim_ids (e.g. "
+            f"{result_stim_ids[:3]}); df has {len(df)} rows with "
+            f"StimSpecId examples "
+            f"{df['StimSpecId'].head(3).tolist() if 'StimSpecId' in df.columns else 'MISSING'}. "
+            f"Check that you're passing the right df (compiled for the "
+            f"same session as the saved result)."
+        )
+    print(
+        f"[shape-interp] df filtered to {len(df_for_stims)} rows for "
+        f"{len(result_stim_ids)} stim_ids "
+        f"({df_for_stims['StimSpecId'].nunique()} unique)."
+    )
 
     for axis_name, proj_per_stim, do_commonality in axes_to_fit:
         if proj_per_stim.shape[0] != len(result_stim_ids):
