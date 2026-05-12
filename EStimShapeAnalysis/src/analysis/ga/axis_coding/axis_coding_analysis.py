@@ -563,14 +563,21 @@ def fit_axis_coding(
     ridge_factory: Optional[RidgeFactory] = None,
     n_pcs: Optional[int] = None,
     axis_models: Optional[list[ModelSpec]] = None,
+    dataset: Optional[AxisCodingDataset] = None,
 ) -> AxisCodingResult:
-    dataset = AxisCodingDataset.build(
-        df=df,
-        component_type=component_type,
-        encoder=encoder,
-        channel=channel,
-        spike_rates_col=spike_rates_col,
-    )
+    # Allow callers (e.g. alexnet_axis_coding_analysis) to inject a pre-built
+    # dataset whose ``components_per_stim`` come from a non-geometry source.
+    # All downstream logic (selector, PCA, ridge, μ decoding, plotting) only
+    # depends on the AxisCodingDataset surface, so swapping the builder is
+    # enough to reuse this entire function.
+    if dataset is None:
+        dataset = AxisCodingDataset.build(
+            df=df,
+            component_type=component_type,
+            encoder=encoder,
+            channel=channel,
+            spike_rates_col=spike_rates_col,
+        )
 
     # Optional PCA: fit on all encoded (z-scored) component vectors, then
     # transform each stimulus's component matrix from (m_i, d) to (m_i, k).
@@ -3083,6 +3090,11 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
 
     # logging_path = context.logging_path
 
+    # Subdirectory under self.save_path written by analyze(). Subclasses with a
+    # different feature pipeline (e.g. AlexNet) override this so their figures
+    # / JSON dumps don't collide with the shape-axis-coding ones.
+    _save_subdir: str = "axis_coding"
+
     def __init__(
         self,
         component_types: Optional[list[str]] = None,
@@ -3131,7 +3143,7 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
     # ------------------------------------------------------------------
 
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
-        self.save_path = f"{self.save_path}/axis_coding"
+        self.save_path = f"{self.save_path}/{self._save_subdir}"
         os.makedirs(f"{self.save_path}", exist_ok=True)
 
         # Resolve channel="Cluster" to the current experiment's cluster
@@ -3174,14 +3186,7 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
 
         # Re-instantiate encoders per analyze call so the StandardScaler is fit
         # fresh on the data we are about to process.
-        encoders_for_run = {
-            t: ComponentEncoder(
-                linear_params=list(self.encoders[t].linear_params),
-                circular_params=list(self.encoders[t].circular_params),
-                spherical_params=list(self.encoders[t].spherical_params),
-            )
-            for t in self.component_types
-        }
+        encoders_for_run = self._build_encoders_for_run()
 
         results: dict[str, dict[str, AxisCodingResult]] = {}
 
@@ -3214,18 +3219,13 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                         f"(pass recompute=True to override)"
                     )
                     continue
-                result = fit_axis_coding(
+                result = self._fit_one_strategy(
                     df=compiled_data,
                     component_type=component_type,
                     encoder=encoders_for_run[component_type],
-                    selector=strategy.selector_factory(),
+                    strategy=strategy,
                     channel=channel,
-                    spike_rates_col=self.spike_rates_col,
-                    strategy_label=strategy.label,
                     save_dir=save_dir,
-                    ridge_factory=strategy.ridge_factory,
-                    n_pcs=strategy.n_pcs,
-                    axis_models=self.axis_models,
                 )
                 results[component_type][strategy.label] = result
 
@@ -3436,6 +3436,55 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                         plt.close(fig_stim)
 
         return results
+
+    # ------------------------------------------------------------------
+    # Hook points (subclasses can override to swap the feature pipeline)
+    # ------------------------------------------------------------------
+
+    def _build_encoders_for_run(self) -> dict[str, ComponentEncoder]:
+        """
+        Return one fresh encoder per ``component_type``. Shape analysis re-
+        instantiates ``ComponentEncoder`` so the StandardScaler is fit fresh.
+        Subclasses (e.g. AlexNet) override this to produce encoders whose
+        encoded vectors come from a different source.
+        """
+        return {
+            t: ComponentEncoder(
+                linear_params=list(self.encoders[t].linear_params),
+                circular_params=list(self.encoders[t].circular_params),
+                spherical_params=list(self.encoders[t].spherical_params),
+            )
+            for t in self.component_types
+        }
+
+    def _fit_one_strategy(
+        self,
+        *,
+        df: pd.DataFrame,
+        component_type: str,
+        encoder: ComponentEncoder,
+        strategy: AxisCodingStrategy,
+        channel,
+        save_dir: Optional[str],
+    ) -> AxisCodingResult:
+        """
+        One (component_type, strategy) call to ``fit_axis_coding``. Subclasses
+        override to inject a pre-built ``dataset`` from a different feature
+        source while reusing every downstream step.
+        """
+        return fit_axis_coding(
+            df=df,
+            component_type=component_type,
+            encoder=encoder,
+            selector=strategy.selector_factory(),
+            channel=channel,
+            spike_rates_col=self.spike_rates_col,
+            strategy_label=strategy.label,
+            save_dir=save_dir,
+            ridge_factory=strategy.ridge_factory,
+            n_pcs=strategy.n_pcs,
+            axis_models=self.axis_models,
+        )
 
     # ------------------------------------------------------------------
     # Cleaning helpers
