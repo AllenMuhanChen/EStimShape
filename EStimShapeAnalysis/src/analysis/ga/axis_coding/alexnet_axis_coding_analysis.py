@@ -478,6 +478,8 @@ class AlexNetAxisCodingAnalysis(AxisCodingAnalysis):
         stim_path_col: str = "ThumbnailPath",
         strategies: Optional[list[AxisCodingStrategy]] = None,
         n_pcs: int = 50,
+        run_shape_interpretation: bool = True,
+        shape_interpretation_config: Optional["ShapeInterpretationConfig"] = None,
         **kwargs,
     ):
         # Force component_types to the AlexNet pseudo-type and supply matching
@@ -493,6 +495,12 @@ class AlexNetAxisCodingAnalysis(AxisCodingAnalysis):
         super().__init__(**kwargs)
         self.extractor = extractor or AlexNetActivationExtractor()
         self.stim_path_col = stim_path_col
+        # Opt-in post-fit shape-space interpretation of the AlexNet preferred
+        # / orthogonal axes (see alexnet_axis_interpretation.py). Defaults on
+        # because the interpretation is cheap relative to the AlexNet forward
+        # passes and adds materially to the diagnostic output.
+        self.run_shape_interpretation = bool(run_shape_interpretation)
+        self.shape_interpretation_config = shape_interpretation_config
 
     # ------------------------------------------------------------------
     # Hook overrides
@@ -523,7 +531,7 @@ class AlexNetAxisCodingAnalysis(AxisCodingAnalysis):
             stim_path_col=self.stim_path_col,
             component_type_label=component_type,
         )
-        return fit_axis_coding(
+        result = fit_axis_coding(
             df=df,
             component_type=component_type,
             encoder=encoder,
@@ -536,7 +544,35 @@ class AlexNetAxisCodingAnalysis(AxisCodingAnalysis):
             n_pcs=strategy.n_pcs,
             axis_models=self.axis_models,
             dataset=dataset,
+            primary_model_name=self._primary_model_name,
         )
+
+        # Opt-in post-fit shape-space interpretation of the AlexNet preferred
+        # axis + top-N orthogonal axes. Imported lazily so the heavyweight
+        # MultiPrototypeAttentionSelector isn't pulled in when this feature
+        # is disabled.
+        if self.run_shape_interpretation:
+            try:
+                from src.analysis.ga.axis_coding.alexnet_axis_interpretation import (
+                    interpret_alexnet_axes_with_shape,
+                )
+                interpret_alexnet_axes_with_shape(
+                    result=result,
+                    df=df,
+                    config=self.shape_interpretation_config,
+                    save_dir=save_dir,
+                    save_prefix=(
+                        f"alexnet_shape_interp_"
+                        f"{component_type}_{strategy.label}"
+                    ),
+                    title_prefix=(
+                        f"{component_type} | {strategy.label}"
+                    ),
+                    show_plots=self.show_plots,
+                )
+            except Exception as exc:
+                print(f"  [shape-interp] failed: {exc}")
+        return result
 
 
 # ---------------------------------------------------------------------------
