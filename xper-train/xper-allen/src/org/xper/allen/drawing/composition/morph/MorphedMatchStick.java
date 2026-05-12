@@ -37,9 +37,9 @@ public class MorphedMatchStick extends AllenMatchStick {
     // with the morph parameters, so we don't need to check the relation to the old tangent.
 
     private static final int NUM_ATTEMPTS_PER_COMPONENT = 15;
-    private static final int NUM_ATTEMPTS_PER_SKELETON = 2;
-    private static final int NUM_ATTEMPTS_PER_ARC = 2;
-    private static final double NUM_ATTEMPTS_PER_RADIUS_PROFILE = 2;
+    private static final int NUM_ATTEMPTS_PER_SKELETON = 15;
+    private static final int NUM_ATTEMPTS_PER_ARC = 15;
+    private static final double NUM_ATTEMPTS_PER_RADIUS_PROFILE = 15;
     protected AllenMAxisArc newArc;
     private int[] compLabel;
     private MorphedMatchStick localBackup;

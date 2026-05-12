@@ -80,7 +80,7 @@ from src.startup import context
 # Default ONNX model path matches the one used by AlexNetONNXResponseParser
 # and alexnet_ga_responses.extract_activations.
 DEFAULT_ONNX_PATH = (
-    "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3"
+    "/home/connorlab/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3"
 )
 DEFAULT_LAYER_OUTPUT_NAME = "conv3"
 
@@ -118,7 +118,7 @@ class AlexNetActivationExtractor:
         bbox_scale: float = 0.5,
         target_size: int = 227,
         background_value: int = 127,
-        pooling: str = "mean_pool",
+        pooling: str = "max_pool",
         center_xy: Optional[tuple[int, int]] = None,
     ):
         if pooling not in self.POOLING_OPTIONS:

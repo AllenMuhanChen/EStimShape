@@ -17,14 +17,14 @@ PLOT_MODE_DB_INCLUDED = 'db_included'  # Show exactly the stims with included=1 
 
 def main():
 
-    use_ga = True
-    channel = "A-030"
+    use_ga = False
+    channel = "Cluster"
 
     analysis = PlotVariantDeltas(
         use_ga_response=use_ga,
         to_save_to_db=False,
         delta_threshold=0.6,
-        variant_threshold=0.6,
+        variant_threshold=0.5,
         plot_mode=PLOT_MODE_DB_INCLUDED,)
     compiled_data = None  # Set to None to import from repository
     # compiled_data = analysis.compile_and_export()
@@ -151,7 +151,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             return None, None
 
         print(f"Found {len(included_pairs)} DB-included pairs")
-        included_pairs['Rank'] = included_pairs['Ratio'].rank(ascending=True, method='first')
+        included_pairs['Rank'] = included_pairs['Ratio'].rank(ascending=False, method='first')
 
         delta_ids = included_pairs['StimSpecId'].unique()
         deltas_raw = compiled_data[compiled_data['StimSpecId'].isin(delta_ids)].copy()
