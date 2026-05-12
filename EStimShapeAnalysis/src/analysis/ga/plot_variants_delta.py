@@ -150,16 +150,8 @@ class PlotVariantDeltas(PlotTopNAnalysis):
 
         delta_ids = included_pairs['StimSpecId'].unique()
         deltas_raw = compiled_data[compiled_data['StimSpecId'].isin(delta_ids)].copy()
-        deltas_agg = deltas_raw.groupby(['StimSpecId', 'ParentId']).agg({
-            'GenId': 'first',
-            'Lineage': 'first',
-            response_col_name: 'mean',
-            'ThumbnailPath': 'first',
-            'StimType': 'first',
-            'GA Response': 'first',
-        }).reset_index()
         deltas_plot_data = included_pairs[['StimSpecId', 'Rank']].merge(
-            deltas_agg, on='StimSpecId', how='inner'
+            deltas_raw, on='StimSpecId', how='inner'
         )
         if self.use_ga_response:
             deltas_plot_data = deltas_plot_data.drop_duplicates(subset=['StimSpecId', 'Rank'], keep='first')
@@ -303,17 +295,9 @@ class PlotVariantDeltas(PlotTopNAnalysis):
 
         # Build delta rows for plot
         plot_delta_ids = plot_subset['StimSpecId'].unique()
-        deltas_plot_data = compiled_data[compiled_data['StimSpecId'].isin(plot_delta_ids)].copy()
-        deltas_plot_data = deltas_plot_data.groupby(['StimSpecId', 'ParentId']).agg({
-            'GenId': 'first',
-            'Lineage': 'first',
-            response_col_name: 'mean',
-            'ThumbnailPath': 'first',
-            'StimType': 'first',
-            'GA Response': 'first',
-        }).reset_index()
+        deltas_raw = compiled_data[compiled_data['StimSpecId'].isin(plot_delta_ids)].copy()
         deltas_plot_data = plot_subset[['StimSpecId', 'Rank']].merge(
-            deltas_plot_data, on='StimSpecId', how='outer'
+            deltas_raw, on='StimSpecId', how='inner'
         )
         if self.use_ga_response:
             deltas_plot_data = deltas_plot_data.drop_duplicates(subset=['StimSpecId', 'Rank'], keep='first')
