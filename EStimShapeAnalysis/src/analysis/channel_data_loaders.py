@@ -309,3 +309,125 @@ class RWALoader:
                 title=f"{label} RWA\nr (Pearson)",
             ))
         return metrics
+
+
+class AxisCodingPredictionLoader:
+    """Load preferred-axis ridge predictions from ``axis_coding_*.json`` files
+    and produce Pearson-r ``StimVectorCorrelation`` metrics, one per component
+    type (Shaft / Termination / Junction).
+
+    Same shape as ``RWALoader`` so the two are interchangeable downstream:
+    ``as_metrics(response_matrix)`` returns a 3-element list or ``None`` if
+    any required JSON is missing, and ``pred_map`` is populated for use by
+    per-channel scatter subfolders.
+
+    The "prediction" used here is the model's ``predicted_responses`` per
+    stim — already saved in the JSON by ``fit_axis_coding`` — which is the
+    ridge fit ``X @ w + intercept`` of the preferred-axis model. Correlation
+    is affine-invariant, so projection-vs-prediction is equivalent for the
+    Pearson r; ``predicted_responses`` is chosen for parity with the RWA
+    convention of "predicted response value."
+    """
+
+    DEFAULT_COMPONENT_TYPES: tuple = ("Shaft", "Termination", "Junction")
+
+    def __init__(
+        self,
+        save_dir: str,
+        *,
+        strategy: str = "multi_prototype_pca",
+        channel_pattern: str = "*",
+        component_types: tuple = DEFAULT_COMPONENT_TYPES,
+    ):
+        self._save_dir = save_dir
+        self._strategy = strategy
+        self._channel_pattern = channel_pattern
+        self._component_types = tuple(component_types)
+        self.pred_map: Optional[Dict[int, tuple]] = None  # set by as_metrics()
+
+    # ------------------------------------------------------------------ JSON lookup
+
+    def _find_json(self, component_type: str) -> Optional[str]:
+        import glob as _glob
+        pattern = os.path.join(
+            self._save_dir,
+            f"axis_coding_{self._channel_pattern}_{component_type}_{self._strategy}.json",
+        )
+        matches = sorted(_glob.glob(pattern))
+        if not matches:
+            return None
+        if len(matches) > 1:
+            print(
+                f"  [axis_loader] multiple JSONs match {component_type}/"
+                f"{self._strategy}; using first: {os.path.basename(matches[0])}"
+            )
+        return matches[0]
+
+    def _load_pred_for_ctype(self, component_type: str) -> Optional[Dict[int, float]]:
+        path = self._find_json(component_type)
+        if path is None:
+            print(
+                f"  [axis_loader] no JSON for {component_type}/{self._strategy} "
+                f"in {self._save_dir}"
+            )
+            return None
+        with open(path, "r") as f:
+            result = json.load(f)
+        stim_ids = result.get("stim_ids") or []
+        preds = result.get("predicted_responses")
+        if not stim_ids or preds is None or len(preds) != len(stim_ids):
+            print(
+                f"  [axis_loader] {os.path.basename(path)}: stim_ids / "
+                f"predicted_responses missing or mismatched"
+            )
+            return None
+        out: Dict[int, float] = {}
+        for sid, pred in zip(stim_ids, preds):
+            try:
+                sid_key = int(sid)
+            except (TypeError, ValueError):
+                sid_key = sid
+            try:
+                out[sid_key] = float(pred)
+            except (TypeError, ValueError):
+                continue
+        return out
+
+    # ------------------------------------------------------------------ public API
+
+    def _build_pred_map(self) -> Optional[Dict[int, tuple]]:
+        """Return ``{stim_id: (shaft_pred, term_pred, junc_pred)}`` aligned
+        across the three component_types. Returns ``None`` if any ctype's
+        JSON can't be loaded."""
+        per_ctype: Dict[str, Dict[int, float]] = {}
+        for ctype in self._component_types:
+            m = self._load_pred_for_ctype(ctype)
+            if m is None:
+                return None
+            per_ctype[ctype] = m
+        all_sids = sorted(set().union(*(set(m) for m in per_ctype.values())))
+        return {
+            sid: tuple(
+                per_ctype[ctype].get(sid, float("nan"))
+                for ctype in self._component_types
+            )
+            for sid in all_sids
+        }
+
+    def as_metrics(
+        self, response_matrix: Dict[str, Dict[int, float]]
+    ) -> Optional[List["StimVectorCorrelation"]]:
+        from src.analysis.channel_metric_plot import StimVectorCorrelation
+        pred_map = self._build_pred_map()
+        if pred_map is None:
+            return None
+        self.pred_map = pred_map
+        metrics = []
+        for slot, label in enumerate(self._component_types):
+            target = {sid: triple[slot] for sid, triple in pred_map.items()}
+            metrics.append(StimVectorCorrelation(
+                response_matrix, target,
+                method='pearson',
+                title=f"{label} Axis\nr (Pearson)",
+            ))
+        return metrics

@@ -36,6 +36,7 @@ import pandas as pd
 
 from clat.util.connection import Connection
 from src.analysis.channel_data_loaders import (
+    AxisCodingPredictionLoader,
     ClusterChannelLoader,
     DeltaVariantStimLoader,
     GAResponseLoader,
@@ -68,6 +69,15 @@ def main():
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     save_path = f"/home/connorlab/Documents/plots/{session_id}/delta_variant_correlation.png"
     experiment_id = context.ga_config.db_util.read_current_experiment_id(context.ga_name)
+
+    # Axis-coding JSONs live in the standard AxisCodingAnalysis save_dir.
+    # If the directory doesn't exist (e.g. axis-coding wasn't run on this
+    # session) plot_delta_variant_correlation skips the axis-coding columns
+    # silently.
+    axis_coding_save_dir = (
+        f"/home/connorlab/Documents/plots/{session_id}/axis_coding"
+    )
+
     plot_delta_variant_correlation(
         session_id=session_id,
         ga_database=context.ga_database,
@@ -76,6 +86,8 @@ def main():
         experiment_id=experiment_id,
         scatter_color_by=SCATTER_COLOR_BY,
         scatter_top_n=SCATTER_TOP_N,
+        axis_coding_save_dir=axis_coding_save_dir,
+        axis_coding_strategy="multi_prototype_pca",
         save_path=save_path,
     )
 
@@ -102,50 +114,77 @@ def _build_groups(
     return groups
 
 
-def _save_rwa_channel_scatters(
+def _save_prediction_channel_scatters(
         channel_matrix: Dict[str, Dict[int, float]],
-        rwa_pred_map: Dict[int, Tuple],
+        pred_map: Dict[int, Tuple],
         scatter_dir: str,
+        *,
+        labels: Tuple[str, ...] = ("Shaft", "Termination", "Junction"),
+        predictor_name: str = "RWA",
+        filename_suffix: str = "vs_rwa",
         group_map: Optional[Dict[int, any]] = None,
         color_by: str = "Group",
         top_n: Optional[int] = None,
 ):
     """
-    For each channel save a 3-panel figure: real spike rate vs shaft / termination
-    / junction RWA-predicted response, with dots optionally coloured by *color_by*.
-    One PNG per channel.
+    For each channel save a 3-panel figure: real spike rate vs the three
+    component-type predictions (Shaft / Termination / Junction by default).
+    ``predictor_name`` is the legend / title token (e.g. "RWA", "Axis");
+    ``filename_suffix`` is the per-channel filename token.
     """
     os.makedirs(scatter_dir, exist_ok=True)
     for channel, stim_rates in sorted(channel_matrix.items()):
-        common = [sid for sid in stim_rates if sid in rwa_pred_map]
+        common = [sid for sid in stim_rates if sid in pred_map]
         if len(common) < 3:
             continue
 
-        real  = np.array([stim_rates[sid]      for sid in common], dtype=float)
-        shaft = np.array([rwa_pred_map[sid][0]  for sid in common], dtype=float)
-        term  = np.array([rwa_pred_map[sid][1]  for sid in common], dtype=float)
-        junc  = np.array([rwa_pred_map[sid][2]  for sid in common], dtype=float)
+        real = np.array([stim_rates[sid] for sid in common], dtype=float)
+        preds_by_label = {
+            label: np.array(
+                [pred_map[sid][i] for sid in common], dtype=float,
+            )
+            for i, label in enumerate(labels)
+        }
 
         groups = _build_groups(common, group_map, top_n)
 
-        fig, axes = plt.subplots(1, 3, figsize=(15, 5), constrained_layout=True)
-        for ax, (pred, label) in zip(axes, [
-            (shaft, "Shaft"), (term, "Termination"), (junc, "Junction"),
-        ]):
+        fig, axes = plt.subplots(
+            1, len(labels), figsize=(5 * len(labels), 5),
+            constrained_layout=True,
+        )
+        if len(labels) == 1:
+            axes = [axes]
+        for ax, label in zip(axes, labels):
             plot_real_vs_predicted_grouped(
-                real, pred,
+                real, preds_by_label[label],
                 groups=groups, group_label=color_by,
-                title=f"{label} RWA", ax=ax,
+                title=f"{label} {predictor_name}", ax=ax,
             )
             ax.set_xlabel(f"Real Response ({channel})", fontsize=9)
-            ax.set_ylabel(f"Predicted (RWA {label})", fontsize=9)
+            ax.set_ylabel(f"Predicted ({predictor_name} {label})", fontsize=9)
 
-        fig.suptitle(f"RWA Prediction Scatter — {channel}", fontsize=12, fontweight='bold')
-        path = os.path.join(scatter_dir, f"{channel}_vs_rwa.png")
+        fig.suptitle(
+            f"{predictor_name} Prediction Scatter — {channel}",
+            fontsize=12, fontweight='bold',
+        )
+        path = os.path.join(scatter_dir, f"{channel}_{filename_suffix}.png")
         fig.savefig(path, dpi=150, bbox_inches='tight')
         plt.close(fig)
 
-    print(f"Saved RWA channel scatters to {scatter_dir}")
+    print(f"Saved {predictor_name} channel scatters to {scatter_dir}")
+
+
+# Back-compat alias — anything that imported _save_rwa_channel_scatters
+# directly keeps working.
+def _save_rwa_channel_scatters(
+        channel_matrix, rwa_pred_map, scatter_dir,
+        group_map=None, color_by: str = "Group", top_n: Optional[int] = None,
+):
+    return _save_prediction_channel_scatters(
+        channel_matrix, rwa_pred_map, scatter_dir,
+        predictor_name="RWA", filename_suffix="vs_rwa",
+        group_map=group_map, color_by=color_by, top_n=top_n,
+    )
 
 
 def _save_ga_channel_scatters(
@@ -200,6 +239,8 @@ def plot_delta_variant_correlation(
         experiment_id=None,
         scatter_color_by: Optional[str] = "Texture",
         scatter_top_n: Optional[int] = 4,
+        axis_coding_save_dir: Optional[str] = None,
+        axis_coding_strategy: str = "multi_prototype_pca",
         save_path: Optional[str] = None,
 ):
     """
@@ -278,6 +319,22 @@ def plot_delta_variant_correlation(
     rwa_metrics = rwa_loader.as_metrics(all_matrix) if rwa_loader is not None else None
     has_rwa = rwa_metrics is not None
 
+    # ---- AXIS-CODING PREDICTION GROUP (optional, mirrors RWA) ----
+    axis_loader = None
+    axis_metrics = None
+    if axis_coding_save_dir is not None and os.path.isdir(axis_coding_save_dir):
+        axis_loader = AxisCodingPredictionLoader(
+            save_dir=axis_coding_save_dir,
+            strategy=axis_coding_strategy,
+        )
+        axis_metrics = axis_loader.as_metrics(all_matrix)
+    elif axis_coding_save_dir is not None:
+        print(
+            f"axis_coding_save_dir not found ({axis_coding_save_dir}) — "
+            f"skipping axis-coding columns."
+        )
+    has_axis = axis_metrics is not None
+
     # ---- cluster channel list (channels with response data in either matrix) ----
     cluster_channel_list = sorted(
         ch for ch in cluster_channels
@@ -311,10 +368,12 @@ def plot_delta_variant_correlation(
     col_width   = 3
     spacer_width = 0.5
 
-    # widths: [n_cols left] [spacer] [n_cols right] ([spacer] [3 rwa cols])?
+    # widths: [n_cols left] [spacer] [n_cols right]
+    #         ([spacer] [3 rwa cols])? ([spacer] [3 axis cols])?
     width_ratios = (
         [col_width] * n_cols + [spacer_width] + [col_width] * n_cols
         + ([spacer_width] + [col_width] * 3 if has_rwa else [])
+        + ([spacer_width] + [col_width] * 3 if has_axis else [])
     )
     n_gs_cols = len(width_ratios)
     fig_width = sum(w for w in width_ratios if w == col_width) + 2
@@ -332,6 +391,11 @@ def plot_delta_variant_correlation(
         ax_shaft = fig.add_subplot(gs[0, rwa_start],     sharey=axes_left[0])
         ax_term  = fig.add_subplot(gs[0, rwa_start + 1], sharey=axes_left[0])
         ax_junc  = fig.add_subplot(gs[0, rwa_start + 2], sharey=axes_left[0])
+    if has_axis:
+        axis_start = 2 * n_cols + 2 + (4 if has_rwa else 0)
+        ax_axis_shaft = fig.add_subplot(gs[0, axis_start],     sharey=axes_left[0])
+        ax_axis_term  = fig.add_subplot(gs[0, axis_start + 1], sharey=axes_left[0])
+        ax_axis_junc  = fig.add_subplot(gs[0, axis_start + 2], sharey=axes_left[0])
 
     scatter_ref = None
     included_label = "included pairs only" if included_only else "all pairs"
@@ -339,8 +403,12 @@ def plot_delta_variant_correlation(
     # All columns rendered through the same metric pipeline; show_yticks only
     # on the leftmost axis.
     rwa_axes = [ax_shaft, ax_term, ax_junc] if has_rwa else []
-    column_axes = list(axes_left) + list(axes_right) + rwa_axes
-    column_metrics = list(dv_metrics) + list(topn_metrics) + (rwa_metrics or [])
+    axis_axes = [ax_axis_shaft, ax_axis_term, ax_axis_junc] if has_axis else []
+    column_axes = list(axes_left) + list(axes_right) + rwa_axes + axis_axes
+    column_metrics = (
+        list(dv_metrics) + list(topn_metrics)
+        + (rwa_metrics or []) + (axis_metrics or [])
+    )
     for col_idx, (ax, metric) in enumerate(zip(column_axes, column_metrics)):
         _, ref = render_metric(
             ax, metric, channel_strings, cluster_channels,
@@ -354,6 +422,15 @@ def plot_delta_variant_correlation(
     if has_rwa:
         ax_term.annotate(
             "RWA Prediction r",
+            xy=(0.5, 1.0), xycoords='axes fraction',
+            xytext=(0, 30), textcoords='offset points',
+            ha='center', fontsize=11, fontweight='bold', color='#333333',
+        )
+
+    # Bracket label for axis-coding group
+    if has_axis:
+        ax_axis_term.annotate(
+            f"Axis-coding ({axis_coding_strategy}) Prediction r",
             xy=(0.5, 1.0), xycoords='axes fraction',
             xytext=(0, 30), textcoords='offset points',
             ha='center', fontsize=11, fontweight='bold', color='#333333',
@@ -404,9 +481,20 @@ def plot_delta_variant_correlation(
 
     # ---- scatter subfolders ----
     if plot_dir and has_rwa:
-        _save_rwa_channel_scatters(
+        _save_prediction_channel_scatters(
             all_matrix, rwa_loader.pred_map,
             os.path.join(plot_dir, "rwa_channel_scatters"),
+            predictor_name="RWA", filename_suffix="vs_rwa",
+            group_map=group_map,
+            color_by=scatter_color_by or "Group",
+            top_n=scatter_top_n,
+        )
+
+    if plot_dir and has_axis:
+        _save_prediction_channel_scatters(
+            all_matrix, axis_loader.pred_map,
+            os.path.join(plot_dir, "axis_channel_scatters"),
+            predictor_name="Axis", filename_suffix="vs_axis",
             group_map=group_map,
             color_by=scatter_color_by or "Group",
             top_n=scatter_top_n,
