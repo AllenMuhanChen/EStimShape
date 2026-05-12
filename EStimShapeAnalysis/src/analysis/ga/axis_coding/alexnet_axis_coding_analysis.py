@@ -571,7 +571,9 @@ class AlexNetAxisCodingAnalysis(AxisCodingAnalysis):
                     show_plots=self.show_plots,
                 )
             except Exception as exc:
-                print(f"  [shape-interp] failed: {exc}")
+                import traceback
+                print(f"  [shape-interp] FAILED: {exc}")
+                traceback.print_exc()
         return result
 
 

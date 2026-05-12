@@ -180,7 +180,7 @@ def interpret_alexnet_axes_with_shape(
     save_dir: Optional[str] = None,
     save_prefix: str = "alexnet_shape_interp",
     title_prefix: str = "",
-    show_plots: bool = False,
+    show_plots: bool = True,
 ) -> ShapeInterpretationResult:
     """
     Run the shape-parameter interpretation pipeline on one AlexNet
@@ -344,7 +344,11 @@ def _fit_per_type_axis(
     Returns (fit_record, X_pooled (N_t, d_or_k), target (N_t,), stim_ids_used)
     or ``None`` if no stims have components for this type.
     """
-    proj_by_stim = dict(zip(stim_ids, axis_projections.tolist()))
+    # result.stim_ids comes through _jsonable, which falls through to str(x)
+    # for plain Python ints — so result.stim_ids is a list of strings whereas
+    # the df's StimSpecId is integers. Normalize both sides via str(...) so
+    # the lookup matches regardless of upstream typing.
+    proj_by_stim = {str(s): float(p) for s, p in zip(stim_ids, axis_projections.tolist())}
 
     df_local = df.copy()
     df_local[component_type] = df_local[component_type].apply(_coerce_to_list_of_dicts)
@@ -353,15 +357,26 @@ def _fit_per_type_axis(
     kept_stim_ids: list = []
     kept_components: list[list[dict]] = []
     kept_responses: list[float] = []
-    for sid in stim_ids:
-        if sid not in per_stim_components.index:
+    n_no_proj = 0
+    n_empty_components = 0
+    for raw_sid, comps in per_stim_components.items():
+        sid_key = str(raw_sid)
+        if sid_key not in proj_by_stim:
+            n_no_proj += 1
             continue
-        comps = per_stim_components.loc[sid]
         if comps is None or (isinstance(comps, list) and len(comps) == 0):
+            n_empty_components += 1
             continue
-        kept_stim_ids.append(sid)
+        kept_stim_ids.append(raw_sid)
         kept_components.append(comps)
-        kept_responses.append(float(proj_by_stim[sid]))
+        kept_responses.append(proj_by_stim[sid_key])
+
+    print(
+        f"  [shape-interp] {axis_name}/{component_type}: "
+        f"matched={len(kept_stim_ids)}  "
+        f"no_projection={n_no_proj}  empty_components={n_empty_components}  "
+        f"(input stim_ids={len(proj_by_stim)})"
+    )
 
     if not kept_stim_ids:
         print(f"  [shape-interp] {axis_name}/{component_type}: no stims with components")
@@ -680,11 +695,20 @@ def _plot_axis_interpretation(
     bars for orth axes).
     """
     if not per_type:
+        print(
+            f"  [shape-interp] {axis_name}: no per-type fits to plot; "
+            f"figure skipped."
+        )
         return None
 
     types = [t for t in config.component_types if t in per_type]
     n_types = len(types)
     if n_types == 0:
+        print(
+            f"  [shape-interp] {axis_name}: 0 of "
+            f"{len(config.component_types)} requested types fit; "
+            f"figure skipped."
+        )
         return None
 
     n_cols = n_types + 1  # one per type + one for variance partition
@@ -784,3 +808,167 @@ def _result_to_jsonable(out: ShapeInterpretationResult) -> dict:
             for axis_name, vp in out.variance_partitions.items()
         },
     }
+
+
+# ---------------------------------------------------------------------------
+# Standalone driver: run interpretation from a saved AxisCodingResult JSON
+# ---------------------------------------------------------------------------
+
+def load_axis_coding_result(path: str) -> AxisCodingResult:
+    """
+    Reconstruct an AxisCodingResult from the JSON dumped by
+    ``fit_axis_coding``. Unknown keys (forward / backward schema drift) are
+    silently ignored so the loader is resilient across versions.
+    """
+    with open(path) as f:
+        d = json.load(f)
+    valid = {f.name for f in dataclasses.fields(AxisCodingResult)}
+    return AxisCodingResult(**{k: v for k, v in d.items() if k in valid})
+
+
+def run_interpretation_from_saved(
+    result_json_path: str,
+    *,
+    df: Optional[pd.DataFrame] = None,
+    session_id: Optional[str] = None,
+    config: Optional[ShapeInterpretationConfig] = None,
+    encoders: Optional[dict[str, ComponentEncoder]] = None,
+    save_dir: Optional[str] = None,
+    save_prefix: Optional[str] = None,
+    title_prefix: str = "",
+    show_plots: bool = True,
+    apply_axis_coding_cleaning: bool = True,
+) -> ShapeInterpretationResult:
+    """
+    Run shape-space interpretation on a previously-saved AxisCodingResult
+    JSON, without re-running AlexNet.
+
+    Parameters
+    ----------
+    result_json_path
+        Path to the JSON written by ``fit_axis_coding`` (typically
+        ``<save_path>/alexnet_axis_coding/axis_coding_<channel>_AlexNetConv3_<strategy>.json``).
+    df
+        Pre-loaded compiled dataframe. If ``None``, loaded via
+        ``import_from_repository`` using ``session_id`` (or the current
+        ``context.ga_database`` if ``session_id`` is also ``None``).
+    save_dir
+        Where to write figures + JSON. Defaults to the directory of
+        ``result_json_path`` — so re-running interpretation drops its output
+        alongside the original AlexNet results.
+    save_prefix
+        Prefix for the interpretation JSON + figure filenames. Defaults to a
+        prefix derived from the result-JSON filename so reruns don't
+        clobber the original axis-coding dump.
+    apply_axis_coding_cleaning
+        When ``True`` (default), apply the same trial filters and
+        spherical-angle conditioning that ``AxisCodingAnalysis._prepare_dataframe``
+        uses, so per-stim component lookups match the saved result. Set
+        ``False`` only if ``df`` is already cleaned.
+    """
+    # Resolve df.
+    if df is None:
+        from src.repository.import_from_repository import import_from_repository
+        if session_id is None:
+            from src.repository.export_to_repository import (
+                read_session_id_and_date_from_db_name,
+            )
+            from src.startup import context
+            session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
+        print(f"[shape-interp] loading compiled df for session {session_id}")
+        df = import_from_repository(session_id, "ga", "GAStimInfo", None)
+    if apply_axis_coding_cleaning:
+        from src.analysis.ga.axis_coding.axis_coding_analysis import (
+            AxisCodingAnalysis,
+        )
+        df = AxisCodingAnalysis._prepare_dataframe(df)
+
+    # Load result.
+    result = load_axis_coding_result(result_json_path)
+    print(
+        f"[shape-interp] loaded result from {result_json_path} "
+        f"(n_stim={result.n_stim}, type={result.component_type}, "
+        f"strategy={result.strategy_label})"
+    )
+
+    # Default save_dir = directory of the result json.
+    if save_dir is None:
+        save_dir = os.path.dirname(os.path.abspath(result_json_path)) or "."
+    if save_prefix is None:
+        base = os.path.splitext(os.path.basename(result_json_path))[0]
+        save_prefix = f"shape_interp__{base}"
+
+    return interpret_alexnet_axes_with_shape(
+        result=result,
+        df=df,
+        config=config,
+        encoders=encoders,
+        save_dir=save_dir,
+        save_prefix=save_prefix,
+        title_prefix=title_prefix or (
+            f"{result.component_type} | {result.strategy_label}"
+        ),
+        show_plots=show_plots,
+    )
+
+
+def find_saved_alexnet_results(roots: Optional[list[str]] = None) -> list[str]:
+    """
+    Search common plots roots for AlexNet axis-coding result JSONs.
+
+    Defaults to ``/home/connorlab/Documents/plots`` (the project's
+    ``Analysis.parse_data_type`` default) plus, if available,
+    ``context.ga_plots_dir``.
+    """
+    import glob
+    if roots is None:
+        roots = ["/home/connorlab/Documents/plots"]
+        try:
+            from src.startup import context
+            extra = getattr(context, "ga_plots_dir", None)
+            if extra:
+                roots.append(extra)
+        except Exception:
+            pass
+    seen: list[str] = []
+    for root in roots:
+        if not root or not os.path.isdir(root):
+            continue
+        pattern = os.path.join(
+            root, "**", "alexnet_axis_coding",
+            "axis_coding_*_AlexNetConv3_*.json",
+        )
+        for path in glob.glob(pattern, recursive=True):
+            if path not in seen:
+                seen.append(path)
+    return sorted(seen)
+
+
+def main():
+    """
+    Re-run interpretation for the current session's AlexNet axis-coding
+    result without re-running the AlexNet forward passes.
+
+    Globs the project's plots roots for
+    ``axis_coding_*_AlexNetConv3_*.json``. If multiple matches exist, runs
+    interpretation on every one of them. For per-file control, call
+    ``run_interpretation_from_saved(path)`` directly.
+    """
+    matches = find_saved_alexnet_results()
+    if not matches:
+        raise FileNotFoundError(
+            "No AlexNet axis-coding result JSONs found under the standard "
+            "plots roots. Run alexnet_axis_coding_analysis.main() to "
+            "generate one, or pass result_json_path to "
+            "run_interpretation_from_saved() directly."
+        )
+    print(f"[shape-interp] found {len(matches)} result(s):")
+    for m in matches:
+        print(f"  - {m}")
+    for path in matches:
+        print(f"\n========== {path} ==========")
+        run_interpretation_from_saved(path)
+
+
+if __name__ == "__main__":
+    main()
