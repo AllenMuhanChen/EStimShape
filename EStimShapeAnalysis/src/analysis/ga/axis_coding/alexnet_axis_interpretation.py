@@ -75,12 +75,25 @@ class ShapeInterpretationConfig:
     component_types: list[str] = field(
         default_factory=lambda: ["Shaft", "Termination", "Junction"]
     )
-    top_n_orth_axes: int = 1
-    # Per-PC × shape regression: how predictable each top-N AlexNet PC is
-    # from shape parameters. Set ``do_pc_shape_fits=False`` to skip it
-    # (cheaper, but the summary plot loses the per-PC heatmap panel).
+    top_n_orth_axes: int = 3
+    # Object-centered position-along-axis plots — one figure per component
+    # type, showing how the shape selector's chosen component's
+    # radialPosition / angularPosition.theta / .phi varies along the
+    # AlexNet preferred axis + top-N orth axes (binned by z-scored
+    # projection). Reuses position_along_axis._bin_axis / _plot_figure.
+    do_position_along_axis: bool = True
+    position_top_n_orth: int = 3
+    position_n_bins: int = 9
+    position_z_range: float = 2.0
+    # Per-PC × shape regression: how predictable each AlexNet PC is from
+    # shape parameters. The PC set is the *union* of two picks: top-N by
+    # PCA variance (general structure of the AlexNet representation) and
+    # top-N by the preferred axis's loading magnitude (PCs the neuron
+    # actually uses). With overlap, the union may be smaller than the sum.
+    # Set ``do_pc_shape_fits=False`` to skip the panel entirely.
     do_pc_shape_fits: bool = True
-    n_top_pcs_for_shape_fit: int = 10
+    n_top_pcs_by_variance: int = 2
+    n_top_pcs_by_preferred_axis_loading: int = 2
 
     # Match the shape pipeline's MultiPrototypeAttentionSelector + n_pcs.
     n_pcs: Optional[int] = 6
@@ -148,6 +161,12 @@ class PerTypeAxisFit:
     pca_explained_variance: Optional[list[float]] = None
     selector_summary: Optional[dict] = None
     stim_ids: Optional[list] = None                     # stim_ids used in this fit
+    # Hard-selected component index per stim (aligned with ``stim_ids``) from
+    # the MultiPrototypeAttentionSelector — i.e. which Shaft/Termination/
+    # Junction the selector chose to represent each stim. Used by the
+    # object-centered position-along-axis plot so it can pull the chosen
+    # component's radialPosition / angularPosition.theta / .phi.
+    selected_indices: Optional[list[int]] = None
 
 
 @dataclass
@@ -354,7 +373,8 @@ def interpret_alexnet_axes_with_shape(
         config.do_pc_shape_fits
         and result.pc_scores_per_stim is not None
         and result.pca_explained_variance is not None
-        and config.n_top_pcs_for_shape_fit > 0
+        and (config.n_top_pcs_by_variance
+             + config.n_top_pcs_by_preferred_axis_loading) > 0
     ):
         pc_fits = _run_pc_shape_fits(
             result=result,
@@ -400,6 +420,29 @@ def interpret_alexnet_axes_with_shape(
             if result.all_orthogonal_variances is not None else None
         ),
     )
+
+    # Object-centered position along axis: per component type, render the
+    # binned-mean of the shape selector's chosen component's
+    # radialPosition / angularPosition along the AlexNet preferred axis and
+    # the top-N orth axes. Selection comes from the preferred-axis fit so
+    # all axes share one set of "chosen components" per stim.
+    if config.do_position_along_axis and "preferred" in axis_fits:
+        try:
+            _plot_position_along_alexnet_axes(
+                axis_fits_preferred=axis_fits["preferred"],
+                df_for_stims=df_for_stims,
+                result=result,
+                result_stim_ids=result_stim_ids,
+                config=config,
+                save_dir=save_dir,
+                save_prefix=save_prefix,
+                title_prefix=title_prefix,
+                show_plots=show_plots,
+            )
+        except Exception as exc:
+            import traceback
+            print(f"  [shape-interp] position-along-axis FAILED: {exc}")
+            traceback.print_exc()
 
     # Comprehensive summary figure: scree + per-axis PC energy + per-PC
     # shape predictability heatmap + per-axis shape predictability bars.
@@ -564,6 +607,10 @@ def _fit_per_type_axis(
         ),
         selector_summary=selector.summary(components_for_selector),
         stim_ids=[_jsonable(s) for s in kept_stim_ids],
+        selected_indices=(
+            [int(i) for i in selector.selected_indices_]
+            if selector.selected_indices_ is not None else None
+        ),
     )
 
     cv = fit_rec.cv_r2_mean
@@ -939,10 +986,16 @@ def _run_pc_shape_fits(
     config: ShapeInterpretationConfig,
 ) -> dict[str, dict[str, PerTypeAxisFit]]:
     """
-    For each of the top-N AlexNet PCs (ranked by explained variance), fit
-    the same per-component-type attention+ridge pipeline used for axis
-    interpretation, but with the PC's per-stim scores as the regression
-    target. Yields a {pc_name: {type: PerTypeAxisFit}} dict.
+    For a union of top PCs (top-N by variance + top-N by preferred-axis
+    loading), fit the per-component-type attention+ridge pipeline with the
+    PC's per-stim scores as the target. Yields a {pc_name: {type: fit}}
+    dict.
+
+    Two pick criteria, unioned (so a PC heavily loaded by the preferred
+    axis is included even if it's far down the variance list, and vice
+    versa):
+      - top ``n_top_pcs_by_variance`` by explained variance ratio.
+      - top ``n_top_pcs_by_preferred_axis_loading`` by |w_pref_i|.
     """
     pc_scores = np.asarray(result.pc_scores_per_stim, dtype=np.float64)  # (n_stim, k)
     if pc_scores.ndim != 2 or pc_scores.shape[0] != len(result_stim_ids):
@@ -956,10 +1009,36 @@ def _run_pc_shape_fits(
     k_actual = min(pc_scores.shape[1], explained.shape[0])
     if k_actual == 0:
         return {}
-    top_n = min(int(config.n_top_pcs_for_shape_fit), k_actual)
-    # PCs are already in descending-variance order (sklearn convention), so
-    # we just take the first ``top_n`` columns rather than re-sorting.
-    pc_indices = list(range(top_n))
+
+    # Top-N by variance (sklearn PCs are already variance-sorted).
+    n_var = max(0, min(int(config.n_top_pcs_by_variance), k_actual))
+    idx_by_var = list(range(n_var))
+
+    # Top-N by preferred-axis loading magnitude.
+    n_pref = max(0, min(int(config.n_top_pcs_by_preferred_axis_loading), k_actual))
+    idx_by_pref: list[int] = []
+    pref_w = (
+        result.ridge_summary.get("weights")
+        if result.ridge_summary is not None else None
+    )
+    if n_pref > 0 and pref_w is not None and len(pref_w) >= k_actual:
+        w_abs = np.abs(np.asarray(pref_w[:k_actual], dtype=np.float64))
+        order = np.argsort(-w_abs)
+        idx_by_pref = [int(i) for i in order[:n_pref]]
+    elif n_pref > 0:
+        print(
+            "[shape-interp] preferred-axis loadings unavailable; "
+            "falling back to variance-only PC selection."
+        )
+
+    # Union preserving variance-sorted order so the heatmap reads left→right
+    # from "highest-variance" toward "preferred-axis-favorite".
+    pc_indices_set = set(idx_by_var) | set(idx_by_pref)
+    pc_indices = sorted(pc_indices_set)
+    print(
+        f"[shape-interp] PC × shape fits on {len(pc_indices)} PC(s): "
+        f"by-variance={idx_by_var}  by-preferred-loading={idx_by_pref}"
+    )
 
     pc_fits: dict[str, dict[str, PerTypeAxisFit]] = {}
     for pc_idx in pc_indices:
@@ -990,6 +1069,141 @@ def _run_pc_shape_fits(
         if per_type:
             pc_fits[pc_name] = per_type
     return pc_fits
+
+
+# ---------------------------------------------------------------------------
+# Object-centered position along axis (per component type)
+# ---------------------------------------------------------------------------
+
+def _plot_position_along_alexnet_axes(
+    *,
+    axis_fits_preferred: dict,
+    df_for_stims: pd.DataFrame,
+    result: AxisCodingResult,
+    result_stim_ids: list,
+    config: ShapeInterpretationConfig,
+    save_dir: Optional[str],
+    save_prefix: str,
+    title_prefix: str,
+    show_plots: bool,
+) -> None:
+    """
+    Reuse ``position_along_axis._extract_positions / _bin_axis / _plot_figure``
+    against the AlexNet preferred + top-N orth axes, with each component
+    type's per-stim selection coming from that type's preferred-axis fit
+    (the shape selector trained against the AlexNet preferred axis).
+
+    One figure per component type. Skipped silently for any type whose
+    preferred-axis fit failed (no selection to bin against).
+    """
+    from src.analysis.ga.axis_coding.position_along_axis import (
+        _per_stim_components, _extract_positions, _bin_axis, _plot_figure,
+    )
+
+    pref_proj_full = np.asarray(result.axis_projections, dtype=np.float64)
+    orth_proj_full = (
+        np.asarray(result.all_orthogonal_projections, dtype=np.float64)
+        if result.all_orthogonal_projections is not None else None
+    )  # (N, n_orth)
+    orth_vars = (
+        np.asarray(result.all_orthogonal_variances, dtype=np.float64)
+        if result.all_orthogonal_variances is not None else None
+    )
+    full_idx_by_stim = {str(sid): i for i, sid in enumerate(result_stim_ids)}
+
+    top_orth = max(0, int(config.position_top_n_orth))
+    orth_top_cols: list[int] = []
+    if (
+        top_orth > 0 and orth_proj_full is not None and orth_vars is not None
+        and orth_proj_full.ndim == 2 and orth_proj_full.shape[1] >= 1
+    ):
+        order = np.argsort(-orth_vars)
+        orth_top_cols = [int(j) for j in order[:top_orth]]
+
+    for comp_type, fit in axis_fits_preferred.items():
+        if fit.selected_indices is None or not fit.stim_ids:
+            print(
+                f"  [shape-interp] position-along-axis {comp_type}: "
+                f"no selected_indices; skipping."
+            )
+            continue
+
+        # Subset the full-stim AlexNet projections to the stims this type's
+        # selector actually picked components for.
+        type_stim_ids = list(fit.stim_ids)
+        subset_idx = []
+        for sid in type_stim_ids:
+            key = str(sid)
+            if key not in full_idx_by_stim:
+                continue
+            subset_idx.append(full_idx_by_stim[key])
+        subset_idx_arr = np.asarray(subset_idx, dtype=int)
+        if subset_idx_arr.size == 0:
+            print(
+                f"  [shape-interp] position-along-axis {comp_type}: "
+                f"no stim_ids in result mapping; skipping."
+            )
+            continue
+
+        # Reorder selected_indices to match subset_idx_arr (i.e. the order
+        # of full result_stim_ids).
+        pref_proj = pref_proj_full[subset_idx_arr]
+        sid_to_sel = {str(sid): int(idx) for sid, idx in zip(type_stim_ids, fit.selected_indices)}
+        ordered_stim_ids = [result_stim_ids[i] for i in subset_idx_arr]
+        ordered_sel = [sid_to_sel[str(sid)] for sid in ordered_stim_ids]
+
+        components_by_stim = _per_stim_components(df_for_stims, comp_type)
+        pos = _extract_positions(ordered_stim_ids, ordered_sel, components_by_stim)
+        if not pos.valid_mask.any():
+            print(
+                f"  [shape-interp] position-along-axis {comp_type}: "
+                f"no extractable positions; skipping."
+            )
+            continue
+
+        rows = [
+            _bin_axis(
+                pref_proj, pos, label="preferred (AlexNet)",
+                n_bins=config.position_n_bins, z_range=config.position_z_range,
+            )
+        ]
+        if orth_top_cols and orth_proj_full is not None:
+            for rank, j in enumerate(orth_top_cols):
+                rows.append(
+                    _bin_axis(
+                        orth_proj_full[subset_idx_arr, j],
+                        pos,
+                        label=f"orth_{rank + 1} (AlexNet)",
+                        n_bins=config.position_n_bins,
+                        z_range=config.position_z_range,
+                        axis_variance=float(orth_vars[j]) if orth_vars is not None else None,
+                    )
+                )
+
+        title = (
+            f"{title_prefix}  {comp_type} object-centered position along AlexNet axes"
+            if title_prefix else
+            f"{comp_type} object-centered position along AlexNet axes"
+        )
+        try:
+            fig = _plot_figure(rows, title=title, mu_decoded=fit.prototype_mu_decoded)
+        except TypeError:
+            # _bin_axis returns a BinnedAxis dataclass that may have a
+            # legacy "mag_mean" attribute on older checkouts; surface the
+            # error rather than silently swallow.
+            raise
+
+        if save_dir is not None:
+            os.makedirs(save_dir, exist_ok=True)
+            fig_path = os.path.join(
+                save_dir, f"{save_prefix}_position_{comp_type}.png"
+            )
+            fig.savefig(fig_path, dpi=150, bbox_inches="tight")
+            print(f"  [shape-interp] saved: {fig_path}")
+        if show_plots:
+            plt.show()
+        else:
+            plt.close(fig)
 
 
 # ---------------------------------------------------------------------------
