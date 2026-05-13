@@ -15,6 +15,7 @@ import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.nafc.blockgen.EStimShapeProceduralBehavioralGenType;
 import org.xper.allen.nafc.blockgen.procedural.EStimExperimentGenType;
 import org.xper.allen.nafc.blockgen.procedural.EStimExperimentVariantOrDeltaGenType;
+import org.xper.allen.nafc.blockgen.procedural.EStimExperimentVariantsDeletedGenType;
 import org.xper.allen.nafc.blockgen.procedural.EStimExperimentVariantsDeltaGenType;
 import org.xper.allen.nafc.blockgen.procedural.EStimExperimentVariantsGenType;
 import org.xper.allen.pga.ReceptiveFieldSource;
@@ -122,7 +123,8 @@ public class EStimExperimentAppConfig {
                 eStimExperimentVariantsGenType(),
                 eStimExperimentVariantsDeltaGenType(),
                 eStimExperimentVariantsOnlyGenType(),
-                eStimExperimentDeltasOnlyGenType()
+                eStimExperimentDeltasOnlyGenType(),
+                eStimExperimentVariantsDeletedGenType()
         ));
         gui.setDefaultStimType(proceduralAppConfig.proceduralRandGenType());
         return gui;
@@ -131,6 +133,13 @@ public class EStimExperimentAppConfig {
     @Bean
     public EStimExperimentVariantsDeltaGenType eStimExperimentVariantsDeltaGenType() {
         EStimExperimentVariantsDeltaGenType genType = new EStimExperimentVariantsDeltaGenType();
+        genType.setGenerator(generator());
+        return genType;
+    }
+
+    @Bean
+    public EStimExperimentVariantsDeletedGenType eStimExperimentVariantsDeletedGenType() {
+        EStimExperimentVariantsDeletedGenType genType = new EStimExperimentVariantsDeletedGenType();
         genType.setGenerator(generator());
         return genType;
     }
