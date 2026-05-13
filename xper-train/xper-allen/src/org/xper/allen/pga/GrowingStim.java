@@ -41,7 +41,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
 
             if (parentPositioningStrategy == PositioningStrategy.RF_STRATEGY) {
                 RFStrategy parentRFStrategy = rfStrategyManager.readProperty(parentId);
-                if (parentRFStrategy == RFStrategy.COMPLETELY_INSIDE) {
+                if (parentRFStrategy == RFStrategy.COMPLETELY_INSIDE || parentRFStrategy == RFStrategy.RANDOMLY_INSIDE) {
                     Point3d parentCenterOfMass = parentLocation.getPosition();
                     Point3d newCenterOfMass = mutatePosition(parentCenterOfMass);
                     position = new MStickPosition(PositioningStrategy.MOVE_CENTER_TO_SPECIFIC_LOCATION, newCenterOfMass);
@@ -72,7 +72,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
             MStickPosition parentLocation = positionManager.readProperty(parentId);
             if (parentPositioningStrategy == PositioningStrategy.RF_STRATEGY) {
                 RFStrategy parentRFStrategy = rfStrategyManager.readProperty(parentId);
-                if (parentRFStrategy == RFStrategy.COMPLETELY_INSIDE) {
+                if (parentRFStrategy == RFStrategy.COMPLETELY_INSIDE || parentRFStrategy == RFStrategy.RANDOMLY_INSIDE) {
                     Point3d parentCenterOfMass = parentLocation.getPosition();
                     position = new MStickPosition(PositioningStrategy.MOVE_CENTER_TO_SPECIFIC_LOCATION, parentCenterOfMass);
                 } else if (parentRFStrategy == RFStrategy.PARTIALLY_INSIDE) {

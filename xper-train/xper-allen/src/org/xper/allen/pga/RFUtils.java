@@ -57,17 +57,21 @@ public class RFUtils {
             throw new MorphedMatchStick.MorphException("Could not find a point in the RF with at least" + thresholdPercentageOutOfRF + "% points outisde of RF after testing " + numPointsToTry + " points per threshold reduction");
 
         } else if (rfStrategy.equals(RFStrategy.COMPLETELY_INSIDE)) {
-            double rfRadius = rf.getRadius();
-            rfCenter = rf.getCenter();
+            List<Coordinates2D> pointsToTest = generateUniformPointsInCircle(rf.getCenter(), rf.radius, numPointsToTry);
+            Collections.shuffle(pointsToTest);
 
-            // find a random point within the RF to move the mass center of the matchstick to
-
-
-            mStick.moveCenterOfMassTo(new Point3d(rfCenter.getX(), rfCenter.getY(), 0.0));
-
-            if (!checkAllInRF(1.0, rf, mStick)) {
-                throw new MorphedMatchStick.MorphException("Shape cannot fit in RF");
+            for (Coordinates2D point : pointsToTest) {
+                mStick.moveCenterOfMassTo(new Point3d(point.getX(), point.getY(), 0.0));
+                if (checkAllInRF(1.0, rf, mStick)) {
+                    return;
+                }
             }
+
+            throw new MorphedMatchStick.MorphException("Shape cannot fit completely in RF after testing " + numPointsToTry + " points");
+
+        } else if (rfStrategy.equals(RFStrategy.RANDOMLY_INSIDE)) {
+            rfCenter = rf.getCenter();
+            mStick.moveCenterOfMassTo(new Point3d(rfCenter.getX(), rfCenter.getY(), 0.0));
         }
     }
 

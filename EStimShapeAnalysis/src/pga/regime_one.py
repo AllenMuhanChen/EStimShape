@@ -257,7 +257,7 @@ class GrowingPhaseTransitioner(RegimeTransitioner):
     def should_transition(self, lineage):
 
         if self.override:
-                return True
+            return True
 
         self.peak_responses = []
         self.change = None

@@ -1,5 +1,5 @@
 package org.xper.allen.pga;
 
 public enum RFStrategy {
-    PARTIALLY_INSIDE, COMPLETELY_INSIDE
+    PARTIALLY_INSIDE, COMPLETELY_INSIDE, RANDOMLY_INSIDE
 }
