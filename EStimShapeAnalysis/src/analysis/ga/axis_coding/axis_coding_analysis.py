@@ -145,6 +145,10 @@ class AxisCodingResult:
     prototype_amplitudes: Optional[list[float]] = None
     # Thumbnail paths aligned with stim_ids (for axis-stimulus visualization)
     thumbnail_paths: Optional[list[Optional[str]]] = None
+    # Per-stim PC scores when PCA is active; (n_stim, k_pc). None when PCA
+    # is disabled. Needed by downstream "regress shape against each PC"
+    # analyses so they don't have to re-run AlexNet.
+    pc_scores_per_stim: Optional[list[list[float]]] = None
 
     # ---- Appearance comparison (texture + average RGB) ---------------------
     # All aligned with stim_ids. ``texture_per_stim`` holds the raw label per
@@ -868,6 +872,9 @@ def fit_axis_coding(
         mus_decoded=mus_decoded_list,
         prototype_amplitudes=(amps.tolist() if amps is not None else None),
         thumbnail_paths=thumbnail_paths,
+        pc_scores_per_stim=(
+            X.tolist() if pca_pre is not None else None
+        ),
         appearance_features=A.tolist() if A.size else None,
         appearance_feature_names=list(appearance.feature_names) or None,
         texture_per_stim=list(appearance.texture_per_stim) or None,

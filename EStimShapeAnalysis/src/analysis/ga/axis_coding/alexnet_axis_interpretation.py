@@ -76,6 +76,11 @@ class ShapeInterpretationConfig:
         default_factory=lambda: ["Shaft", "Termination", "Junction"]
     )
     top_n_orth_axes: int = 3
+    # Per-PC × shape regression: how predictable each top-N AlexNet PC is
+    # from shape parameters. Set ``do_pc_shape_fits=False`` to skip it
+    # (cheaper, but the summary plot loses the per-PC heatmap panel).
+    do_pc_shape_fits: bool = True
+    n_top_pcs_for_shape_fit: int = 10
 
     # Match the shape pipeline's MultiPrototypeAttentionSelector + n_pcs.
     n_pcs: Optional[int] = 6
@@ -165,6 +170,20 @@ class ShapeInterpretationResult:
     primary_axis_name: str
     axis_fits: dict[str, dict[str, PerTypeAxisFit]]      # {axis_name: {type: fit}}
     variance_partitions: dict[str, VariancePartition]   # {axis_name: partition}
+    # Per-PC × per-type fits answering "how predictable is each AlexNet PC
+    # from shape parameters". Keys like "PC_1", "PC_2", ... aligned with
+    # the indices of the top-N PCs by explained variance.
+    pc_fits: dict[str, dict[str, PerTypeAxisFit]] = field(default_factory=dict)
+    # Convenience: PCA explained-variance ratio copied from the source
+    # AxisCodingResult so the summary plot has everything it needs in one
+    # place when loaded from JSON.
+    pca_explained_variance: Optional[list[float]] = None
+    # PC-space weights of preferred + each kept orth axis, copied from the
+    # source AxisCodingResult; used by the summary plot's "axis energy per
+    # PC" panel.
+    preferred_axis_pc_weights: Optional[list[float]] = None
+    orth_axes_pc_weights: Optional[list[list[float]]] = None         # (k, n_orth)
+    orth_axes_pc_variances: Optional[list[float]] = None             # (n_orth,)
 
 
 # ---------------------------------------------------------------------------
@@ -325,12 +344,79 @@ def interpret_alexnet_axes_with_shape(
                 else:
                     plt.close(fig)
 
+    # Per-PC × per-type shape regression. Tells you, for each of the top-N
+    # AlexNet PCs (by explained variance), how well shape parameters of
+    # each component type predict the PC's scores. Skipped if the result
+    # JSON has no PC scores (PCA wasn't active, or the result was produced
+    # before pc_scores_per_stim was added).
+    pc_fits: dict[str, dict[str, PerTypeAxisFit]] = {}
+    if (
+        config.do_pc_shape_fits
+        and result.pc_scores_per_stim is not None
+        and result.pca_explained_variance is not None
+        and config.n_top_pcs_for_shape_fit > 0
+    ):
+        pc_fits = _run_pc_shape_fits(
+            result=result,
+            df_for_stims=df_for_stims,
+            result_stim_ids=result_stim_ids,
+            encoders=encoders,
+            config=config,
+        )
+    elif config.do_pc_shape_fits:
+        msg = (
+            "[shape-interp] PC × shape fits skipped: "
+            f"pc_scores_per_stim is {'set' if result.pc_scores_per_stim is not None else 'None'}; "
+            f"pca_explained_variance is {'set' if result.pca_explained_variance is not None else 'None'}."
+        )
+        if result.pc_scores_per_stim is None:
+            msg += (
+                "  Re-run AlexNetAxisCodingAnalysis on this session to "
+                "regenerate the result JSON (older JSONs don't have "
+                "pc_scores_per_stim populated)."
+            )
+        print(msg)
+
     out = ShapeInterpretationResult(
         config=dataclasses.asdict(config),
         primary_axis_name="preferred",
         axis_fits=axis_fits,
         variance_partitions=variance_partitions,
+        pc_fits=pc_fits,
+        pca_explained_variance=list(result.pca_explained_variance)
+            if result.pca_explained_variance is not None else None,
+        preferred_axis_pc_weights=(
+            list(result.ridge_summary.get("weights"))
+            if (result.ridge_summary is not None
+                and result.ridge_summary.get("weights") is not None)
+            else None
+        ),
+        orth_axes_pc_weights=(
+            list(result.all_orthogonal_axes)
+            if result.all_orthogonal_axes is not None else None
+        ),
+        orth_axes_pc_variances=(
+            list(result.all_orthogonal_variances)
+            if result.all_orthogonal_variances is not None else None
+        ),
     )
+
+    # Comprehensive summary figure: scree + per-axis PC energy + per-PC
+    # shape predictability heatmap + per-axis shape predictability bars.
+    if save_dir is not None or show_plots:
+        fig_sum = _plot_pc_summary(
+            out, title_prefix=title_prefix,
+        )
+        if fig_sum is not None and save_dir is not None:
+            os.makedirs(save_dir, exist_ok=True)
+            sum_path = os.path.join(save_dir, f"{save_prefix}_summary.png")
+            fig_sum.savefig(sum_path, dpi=150, bbox_inches="tight")
+            print(f"  [shape-interp] saved: {sum_path}")
+        if fig_sum is not None:
+            if show_plots:
+                plt.show()
+            else:
+                plt.close(fig_sum)
 
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
@@ -827,7 +913,286 @@ def _result_to_jsonable(out: ShapeInterpretationResult) -> dict:
             axis_name: dataclasses.asdict(vp)
             for axis_name, vp in out.variance_partitions.items()
         },
+        "pc_fits": {
+            pc_name: {
+                t: dataclasses.asdict(fit) for t, fit in per_type.items()
+            }
+            for pc_name, per_type in out.pc_fits.items()
+        },
+        "pca_explained_variance": out.pca_explained_variance,
+        "preferred_axis_pc_weights": out.preferred_axis_pc_weights,
+        "orth_axes_pc_weights": out.orth_axes_pc_weights,
+        "orth_axes_pc_variances": out.orth_axes_pc_variances,
     }
+
+
+# ---------------------------------------------------------------------------
+# Per-PC × shape fits (panel C in the summary plot)
+# ---------------------------------------------------------------------------
+
+def _run_pc_shape_fits(
+    *,
+    result: AxisCodingResult,
+    df_for_stims: pd.DataFrame,
+    result_stim_ids: list,
+    encoders: dict[str, ComponentEncoder],
+    config: ShapeInterpretationConfig,
+) -> dict[str, dict[str, PerTypeAxisFit]]:
+    """
+    For each of the top-N AlexNet PCs (ranked by explained variance), fit
+    the same per-component-type attention+ridge pipeline used for axis
+    interpretation, but with the PC's per-stim scores as the regression
+    target. Yields a {pc_name: {type: PerTypeAxisFit}} dict.
+    """
+    pc_scores = np.asarray(result.pc_scores_per_stim, dtype=np.float64)  # (n_stim, k)
+    if pc_scores.ndim != 2 or pc_scores.shape[0] != len(result_stim_ids):
+        print(
+            f"[shape-interp] PC × shape fits: pc_scores shape {pc_scores.shape} "
+            f"doesn't match {len(result_stim_ids)} stims; skipping."
+        )
+        return {}
+
+    explained = np.asarray(result.pca_explained_variance, dtype=np.float64)
+    k_actual = min(pc_scores.shape[1], explained.shape[0])
+    if k_actual == 0:
+        return {}
+    top_n = min(int(config.n_top_pcs_for_shape_fit), k_actual)
+    # PCs are already in descending-variance order (sklearn convention), so
+    # we just take the first ``top_n`` columns rather than re-sorting.
+    pc_indices = list(range(top_n))
+
+    pc_fits: dict[str, dict[str, PerTypeAxisFit]] = {}
+    for pc_idx in pc_indices:
+        pc_name = f"PC_{pc_idx + 1}"
+        target = pc_scores[:, pc_idx]
+        per_type: dict[str, PerTypeAxisFit] = {}
+        for comp_type in config.component_types:
+            if comp_type not in df_for_stims.columns:
+                continue
+            encoder = ComponentEncoder(
+                linear_params=list(encoders[comp_type].linear_params),
+                circular_params=list(encoders[comp_type].circular_params),
+                spherical_params=list(encoders[comp_type].spherical_params),
+            )
+            fit_out = _fit_per_type_axis(
+                df_for_stims,
+                stim_ids=result_stim_ids,
+                axis_projections=target,
+                component_type=comp_type,
+                encoder=encoder,
+                config=config,
+                axis_name=pc_name,
+            )
+            if fit_out is None:
+                continue
+            fit_rec, _Xp, _t, _sids = fit_out
+            per_type[comp_type] = fit_rec
+        if per_type:
+            pc_fits[pc_name] = per_type
+    return pc_fits
+
+
+# ---------------------------------------------------------------------------
+# Comprehensive summary plot (4 panels)
+# ---------------------------------------------------------------------------
+
+def _plot_pc_summary(
+    out: ShapeInterpretationResult,
+    *,
+    title_prefix: str = "",
+) -> Optional[plt.Figure]:
+    """
+    One figure summarizing the AlexNet axis + shape interpretation:
+
+      A: PCA scree (explained variance ratio per PC + cumulative line).
+      B: Axis "energy per PC" — bars of w_i² for the preferred axis +
+         lines for the kept top orth axes. Tells you how many PCs the
+         preferred axis actually cares about.
+      C: PC × shape predictability heatmap (rows = component types, cols
+         = top-N PCs, cell = CV R² of shape→PC ridge).
+      D: Axis × shape predictability bars (preferred + each kept orth
+         axis, height = joint shape-S+T+J CV R² with marginal stacks).
+    """
+    has_scree = out.pca_explained_variance is not None
+    has_axis_energy = out.preferred_axis_pc_weights is not None
+    has_pc_heatmap = bool(out.pc_fits)
+    has_axis_bars = bool(out.variance_partitions)
+    n_panels = sum([has_scree, has_axis_energy, has_pc_heatmap, has_axis_bars])
+    if n_panels == 0:
+        return None
+
+    fig, axes = plt.subplots(2, 2, figsize=(13, 9))
+    axA, axB = axes[0, 0], axes[0, 1]
+    axC, axD = axes[1, 0], axes[1, 1]
+
+    # ----- Panel A: scree ------------------------------------------------
+    if has_scree:
+        ev = np.asarray(out.pca_explained_variance, dtype=np.float64)
+        xs = np.arange(1, ev.size + 1)
+        axA.bar(xs, ev, color="#3a7bd5", alpha=0.8, label="per-PC")
+        ax2 = axA.twinx()
+        ax2.plot(xs, np.cumsum(ev), "o-", color="#d54848",
+                 markersize=3, linewidth=1.2, label="cumulative")
+        ax2.set_ylabel("cumulative variance", color="#d54848", fontsize=9)
+        ax2.tick_params(axis="y", labelsize=8, colors="#d54848")
+        ax2.set_ylim(0, 1.05)
+        axA.set_xlabel("PC index", fontsize=9)
+        axA.set_ylabel("variance ratio", color="#3a7bd5", fontsize=9)
+        axA.tick_params(axis="both", labelsize=8)
+        axA.tick_params(axis="y", colors="#3a7bd5")
+        axA.set_title(
+            f"A. AlexNet PCA scree  (k={ev.size}, "
+            f"cum@all={ev.sum():.1%})",
+            fontsize=10,
+        )
+    else:
+        axA.set_visible(False)
+
+    # ----- Panel B: axis energy per PC ----------------------------------
+    if has_axis_energy:
+        w_pref = np.asarray(out.preferred_axis_pc_weights, dtype=np.float64)
+        w2 = w_pref ** 2
+        norm = w2.sum()
+        frac = w2 / norm if norm > 0 else w2
+        xs = np.arange(1, w2.size + 1)
+        axB.bar(xs, frac, color="#3a7bd5", alpha=0.85,
+                label="preferred")
+        if (out.orth_axes_pc_weights is not None
+                and out.orth_axes_pc_variances is not None):
+            orth = np.asarray(out.orth_axes_pc_weights, dtype=np.float64)
+            if orth.ndim == 2 and orth.shape[0] == w_pref.size:
+                orth_vars = np.asarray(out.orth_axes_pc_variances, dtype=np.float64)
+                order = np.argsort(-orth_vars)
+                top_k = min(3, orth.shape[1])
+                cmap = plt.cm.viridis(np.linspace(0.2, 0.85, top_k))
+                for rank in range(top_k):
+                    j = int(order[rank])
+                    o2 = orth[:, j] ** 2
+                    onorm = o2.sum()
+                    of = o2 / onorm if onorm > 0 else o2
+                    axB.plot(xs, of, "o-", color=cmap[rank],
+                             markersize=3, linewidth=1.0,
+                             label=f"orth {rank + 1}")
+        axB.set_xlabel("PC index", fontsize=9)
+        axB.set_ylabel("|axis_i|² / ||axis||²", fontsize=9)
+        axB.set_title(
+            "B. Axis energy per PC  (how many PCs the axis cares about)",
+            fontsize=10,
+        )
+        axB.tick_params(axis="both", labelsize=8)
+        axB.axhline(0, color="k", lw=0.5)
+        axB.legend(fontsize=8, loc="upper right")
+    else:
+        axB.set_visible(False)
+
+    # ----- Panel C: PC × shape predictability heatmap -------------------
+    if has_pc_heatmap:
+        pc_names = sorted(
+            out.pc_fits.keys(),
+            key=lambda s: int(s.split("_")[-1]) if s.split("_")[-1].isdigit() else 0,
+        )
+        types_in_any = []
+        for pc in pc_names:
+            for t in out.pc_fits[pc].keys():
+                if t not in types_in_any:
+                    types_in_any.append(t)
+        M = np.full((len(types_in_any), len(pc_names)), np.nan, dtype=np.float64)
+        for j, pc in enumerate(pc_names):
+            for i, t in enumerate(types_in_any):
+                fit = out.pc_fits[pc].get(t)
+                if fit is None:
+                    continue
+                cv = fit.cv_r2_mean
+                M[i, j] = cv if cv == cv else np.nan  # nan-safe
+        # Clip negative CV R² to 0 for the color scale so the heatmap
+        # focuses on positive predictability; annotate raw values.
+        vmin, vmax = 0.0, max(0.1, float(np.nanmax(M)) if np.isfinite(np.nanmax(M)) else 0.1)
+        im = axC.imshow(np.clip(M, vmin, vmax), aspect="auto",
+                        cmap="viridis", vmin=vmin, vmax=vmax)
+        axC.set_xticks(np.arange(len(pc_names)))
+        axC.set_xticklabels(pc_names, fontsize=8, rotation=45, ha="right")
+        axC.set_yticks(np.arange(len(types_in_any)))
+        axC.set_yticklabels(types_in_any, fontsize=8)
+        for i in range(M.shape[0]):
+            for j in range(M.shape[1]):
+                v = M[i, j]
+                if not np.isnan(v):
+                    txt_color = "white" if v < (vmin + vmax) * 0.5 else "black"
+                    axC.text(j, i, f"{v:+.2f}", ha="center", va="center",
+                             fontsize=7, color=txt_color)
+        cbar = plt.colorbar(im, ax=axC, fraction=0.04, pad=0.02)
+        cbar.ax.tick_params(labelsize=7)
+        axC.set_title(
+            "C. shape → PC CV R²  "
+            "(how predictable each PC is from shape parameters)",
+            fontsize=10,
+        )
+    else:
+        axC.set_visible(False)
+
+    # ----- Panel D: axis × shape predictability bars --------------------
+    if has_axis_bars:
+        axis_names = list(out.variance_partitions.keys())
+        types_order = list(
+            out.config.get("component_types",
+                           ["Shaft", "Termination", "Junction"])
+        )
+        # Stack: marginal R² per type, plus a black bar for the joint
+        # (S+T+J) on top so you can see both per-type contribution and
+        # the joint ceiling.
+        x = np.arange(len(axis_names))
+        bottoms = np.zeros(len(axis_names))
+        cmap = {"Shaft": "#3a7bd5", "Termination": "#3ad58b",
+                "Junction": "#d57b3a"}
+        for t in types_order:
+            heights = []
+            for an in axis_names:
+                vp = out.variance_partitions[an]
+                v = vp.marginal_r2.get(t, float("nan"))
+                heights.append(0.0 if v != v else max(0.0, v))
+            heights = np.asarray(heights)
+            axD.bar(x, heights, bottom=bottoms,
+                    color=cmap.get(t, "#888"), label=f"{t} (marg.)",
+                    alpha=0.7, width=0.55)
+            bottoms = bottoms + heights
+        # Joint R² as a black outline marker above the stacked bars.
+        joint_vals = []
+        for an in axis_names:
+            vp = out.variance_partitions[an]
+            joint_key = "+".join(types_order)
+            v = vp.joint_r2.get(joint_key)
+            if v is None and vp.commonality is not None:
+                v = vp.commonality.get("_total_R2_STJ")
+            joint_vals.append(float("nan") if v is None else float(v))
+        joint_arr = np.asarray(joint_vals)
+        for xi, jv in zip(x, joint_arr):
+            if not np.isnan(jv):
+                axD.scatter([xi], [jv], marker="_", s=350, color="black",
+                            linewidths=2.5, zorder=10)
+        axD.set_xticks(x)
+        axD.set_xticklabels(axis_names, fontsize=8, rotation=20, ha="right")
+        axD.set_ylabel("CV R² (shape → axis)", fontsize=9)
+        axD.tick_params(axis="both", labelsize=8)
+        axD.axhline(0, color="k", lw=0.5)
+        axD.legend(fontsize=7, loc="upper right",
+                   title="bars: per-type marginal\nbar  : joint S+T+J",
+                   title_fontsize=7)
+        axD.set_title(
+            "D. Shape → AlexNet axis CV R²  "
+            "(how well shape predicts each axis)",
+            fontsize=10,
+        )
+    else:
+        axD.set_visible(False)
+
+    title = (
+        f"{title_prefix}  AlexNet axes + shape interpretation summary"
+        if title_prefix else
+        "AlexNet axes + shape interpretation summary"
+    )
+    fig.suptitle(title, fontsize=12)
+    fig.tight_layout(rect=(0, 0, 1, 0.95))
+    return fig
 
 
 # ---------------------------------------------------------------------------
