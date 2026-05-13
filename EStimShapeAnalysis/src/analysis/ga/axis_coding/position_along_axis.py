@@ -1531,7 +1531,7 @@ def process_json(
 def main():
 
     # Session id used to fetch the source df (post-conditioning).
-    session_id = "260423_0"
+    session_id = "260512_0"
 
     # Directory containing the axis_coding_*.json model files.
     save_dir = f"/home/connorlab/Documents/plots/{session_id}/axis_coding"

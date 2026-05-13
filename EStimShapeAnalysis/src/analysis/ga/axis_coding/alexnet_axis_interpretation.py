@@ -75,14 +75,14 @@ class ShapeInterpretationConfig:
     component_types: list[str] = field(
         default_factory=lambda: ["Shaft", "Termination", "Junction"]
     )
-    top_n_orth_axes: int = 3
+    top_n_orth_axes: int = 2
     # Object-centered position-along-axis plots — one figure per component
     # type, showing how the shape selector's chosen component's
     # radialPosition / angularPosition.theta / .phi varies along the
     # AlexNet preferred axis + top-N orth axes (binned by z-scored
     # projection). Reuses position_along_axis._bin_axis / _plot_figure.
     do_position_along_axis: bool = True
-    position_top_n_orth: int = 3
+    position_top_n_orth: int = 2
     position_n_bins: int = 9
     position_z_range: float = 2.0
     # Per-PC × shape regression: how predictable each AlexNet PC is from
