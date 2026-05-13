@@ -75,7 +75,7 @@ class ShapeInterpretationConfig:
     component_types: list[str] = field(
         default_factory=lambda: ["Shaft", "Termination", "Junction"]
     )
-    top_n_orth_axes: int = 3
+    top_n_orth_axes: int = 1
     # Per-PC × shape regression: how predictable each top-N AlexNet PC is
     # from shape parameters. Set ``do_pc_shape_fits=False`` to skip it
     # (cheaper, but the summary plot loses the per-PC heatmap panel).
