@@ -136,10 +136,13 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
     protected void assignLabels() {
         labels.setSample(new LinkedList<>(Arrays.asList("sample")));
         labels.setMatch(new LinkedList<>(Arrays.asList("match")));
-        // Slot 0 is the non-sample: if the sample is the variant, the distractor is the delta, and vice versa.
-        String nonSampleLabel = isDelta ? "variant" : "delta";
+        // Slot 0 is always labeled "delta" — this is the established analysis convention
+        // (nafc_database_fields.py IsHypothesizedField). The label denotes "non-match
+        // procedural slot," not the literal identity: in a variant trial that file holds the
+        // real delta; in a delta trial that file holds the real variant. IsHypothesizedField
+        // forks on IsDelta to interpret it correctly.
         if (numProceduralDistractors >= 1) {
-            labels.addProceduralDistractor(new LinkedList<>(Arrays.asList(nonSampleLabel)));
+            labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("delta")));
         }
         if (numProceduralDistractors >= 2 && includeRemovedChoice) {
             labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("removed")));
