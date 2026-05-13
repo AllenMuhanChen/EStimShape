@@ -212,6 +212,10 @@ class ChoiceField(ChoiceSetField):
             return "match"
         elif "_procedural" in choice_path:
             return "procedural"
+        elif "_variant" in choice_path:
+            return "variant"
+        elif "_removed" in choice_path:
+            return "removed"
         elif "_delta" in choice_path:
             return "delta"
         elif "_rand" in choice_path:
@@ -551,6 +555,31 @@ class IsDeltaField(CachedDatabaseField):
         # If not found in either column, raise an error
         raise ValueError(f"BaseMStickId {base_mstick_id} not found in IncludedDeltas table")
 
+class IsRemovedTrialField(ChoiceSetField):
+    """True when the trial's sample is the variant with its tuned-for component deleted.
+
+    Detected by choice composition: deleted-as-sample trials offer the intact variant as a
+    procedural distractor labeled "_variant", which never appears in variant/delta paired
+    trials (their non-match procedural is always labeled "_delta" by legacy convention).
+    """
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "IsRemovedTrial"
+
+    def get(self, when: When):
+        stim_spec = self.get_cached_super(when, StimSpecField)
+        choice_obj_ids = stim_spec['StimSpec']['choiceObjData']['long']
+        # choiceObjData['long'] is a list when multiple choices; a single value otherwise.
+        if not isinstance(choice_obj_ids, list):
+            choice_obj_ids = [choice_obj_ids]
+        for cid in choice_obj_ids:
+            path = self._get_choice_png_path(cid)
+            if "_variant" in path:
+                return True
+        return False
+
 class TrialTypeField(IsDeltaField):
     def __init__(self, conn: Connection):
         super().__init__(conn)
@@ -559,6 +588,9 @@ class TrialTypeField(IsDeltaField):
         return "TrialType"
 
     def get(self, when: When):
+        is_removed_trial = self.get_cached_super(when, IsRemovedTrialField)
+        if is_removed_trial:
+            return "Removed Shape"
         is_delta = self.get_cached_super(when, IsDeltaField)
         if is_delta is None:
             return "Hypothesized Shape"
@@ -575,14 +607,24 @@ class IsHypothesizedField(IsDeltaField):
         return "IsHypothesized"
 
     def get(self, when: When):
-        is_delta = self.get_cached_super(when, IsDeltaField)
+        is_removed_trial = self.get_cached_super(when, IsRemovedTrialField)
         choice = self.get_cached_super(when, ChoiceField)
+        if is_removed_trial:
+            # Sample is the removed shape; the variant is offered as an explicit choice.
+            # IsDelta would say False here (baseMStickId is the variantId), so the variant-trial
+            # branch below would misclassify match-picks as hypothesized. Handle this case first.
+            return choice == "variant"
+        is_delta = self.get_cached_super(when, IsDeltaField)
         if not is_delta:
+            # Variant trial: the sample (= match) is the variant.
             if choice == "match":
                 return True
             else:
                 return False
         else:
+            # Delta trial: the non-match procedural (labeled "_delta" by legacy convention) is
+            # actually the variant. See nafc_database_fields.py history and the Java side at
+            # EStimShapeVariantsDeltaNAFCStim.assignLabels.
             if choice == "delta":
                 return True
             else:
