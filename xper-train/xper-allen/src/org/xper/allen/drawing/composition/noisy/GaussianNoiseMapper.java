@@ -445,7 +445,14 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
                                                             double amplitude, double background,
                                                             AbstractRenderer renderer, List<Integer> compsToNoise){
 
-        Point3d noiseOrigin = calculateNoiseOrigin(mStick, compsToNoise);
+        // Prefer a noise origin pre-set on the mStick (e.g. by checkInNoise, or copied from an
+        // intact parent whose driving component was later deleted). Falls back to recomputing
+        // from this mStick's geometry, which is the only option for shapes that never had
+        // checkInNoise run.
+        Point3d noiseOrigin = mStick.getNoiseOrigin();
+        if (noiseOrigin == null) {
+            noiseOrigin = calculateNoiseOrigin(mStick, compsToNoise);
+        }
 
 
 //        double sigmaPixels = mmToPixels(renderer, mStick.noiseRadiusMm/6);

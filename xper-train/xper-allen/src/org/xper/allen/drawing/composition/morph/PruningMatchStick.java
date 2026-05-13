@@ -18,6 +18,12 @@ public class PruningMatchStick extends ProceduralMatchStick {
     private MorphedMatchStick matchStickToMorph;
     public List<Integer> toPreserveInParent = new ArrayList<>();
     public List<Integer> preservedComps = new ArrayList<>();
+    // When positioningAnchorChildComp is set, positionShape() aligns this component's mass
+    // center (in the child) to positioningAnchorParentComp's mass center (in matchStickToMorph)
+    // instead of using preservedComps. Used by deleted-trial sample generation where the
+    // preserved comp no longer exists on the child.
+    private Integer positioningAnchorChildComp = null;
+    private Integer positioningAnchorParentComp = null;
 
     /**
      * Not really used right now
@@ -40,6 +46,20 @@ public class PruningMatchStick extends ProceduralMatchStick {
 
     public PruningMatchStick(Point3d centerOfMassLocation, NAFCNoiseMapper noiseMapper) {
         super(centerOfMassLocation, noiseMapper);
+        this.positioningStrategy = PositioningStrategy.PRESERVED_COMP_BASED;
+    }
+
+    /**
+     * Configure positioning to anchor on a non-preserved component instead of
+     * {@code preservedComps.get(0)}. Required by deleted-trial generation: when the preserved
+     * comp is removed, we still need to position the child so a surviving comp lands at the
+     * same world location as it had in the parent — keeping noise (and the rest of the shape)
+     * indistinguishable on screen from variant/delta trials of the same variantId.
+     */
+    public void setPositioningAnchor(MorphedMatchStick parent, int anchorCompInChild, int anchorCompInParent) {
+        this.matchStickToMorph = parent;
+        this.positioningAnchorChildComp = anchorCompInChild;
+        this.positioningAnchorParentComp = anchorCompInParent;
         this.positioningStrategy = PositioningStrategy.PRESERVED_COMP_BASED;
     }
 
@@ -122,10 +142,19 @@ public class PruningMatchStick extends ProceduralMatchStick {
         if (positioningStrategy == PositioningStrategy.RF_STRATEGY) {
             RFUtils.positionAroundRF(rfStrategy, this, rf, 1000);
         } else if (positioningStrategy == PositioningStrategy.PRESERVED_COMP_BASED) {
-            Point3d pointToMove = getComp()[preservedComps.get(0)].getMassCenter();
+            int childComp;
+            int parentComp;
+            if (positioningAnchorChildComp != null) {
+                childComp = positioningAnchorChildComp;
+                parentComp = positioningAnchorParentComp;
+            } else {
+                childComp = preservedComps.get(0);
+                parentComp = toPreserveInParent.get(0);
+            }
+            Point3d pointToMove = getComp()[childComp].getMassCenter();
             Point3d destination;
             if (toMoveCenterOfMassLocation == null) {
-                destination = matchStickToMorph.getComp()[toPreserveInParent.get(0)].getMassCenter();
+                destination = matchStickToMorph.getComp()[parentComp].getMassCenter();
             } else{
                 destination = toMoveCenterOfMassLocation;
             }

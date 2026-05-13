@@ -7,11 +7,13 @@ import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 
 import javax.sql.DataSource;
+import javax.vecmath.Point3d;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 /**
  * NAFC trial where the sample has the tuned-for component deleted. Choices are the variant
@@ -75,24 +77,56 @@ public class EStimShapeVariantsDeletedNAFCStim extends EStimShapeVariantsNAFCSti
 
     @Override
     protected ProceduralMatchStick generateSample() {
-        // Load the variant as a base.
-        AllenMStickSpec baseStickSpec = new AllenMStickSpec();
+        // Load the variant (intact) — this is both the source for deletion and the geometry
+        // we use to compute where the noise circle should appear. Variant/delta trials place
+        // the noise at the preserved comp's junction; we want the deleted trial's noise to
+        // land at the same screen location so trial type can't be inferred from noise.
+        AllenMStickSpec variantSpec = new AllenMStickSpec();
         PruningMatchStick variantMStick = new PruningMatchStick(noiseMapper);
         variantMStick.setProperties(sampleSize, texture, is2D(), 1.0);
         variantMStick.setStimColor(color);
+        variantMStick.setRf(rfSource.getReceptiveField());
         variantMStick.genMatchStickFromFile(gaSpecPath + "/" + baseMStickStimSpecId + "_spec.xml");
-        baseStickSpec.setMStickInfo(variantMStick, false);
+        variantSpec.setMStickInfo(variantMStick, false);
 
-        // Build a fresh PruningMatchStick from the variant spec and delete the tuned-for component(s).
+        // Compute noise origin from the intact variant. checkInNoise both validates and
+        // populates variantMStick.noiseOrigin; we reuse that on the deleted sample below.
+        noiseMapper.checkInNoise(variantMStick, noiseComponentIndcs, 0.45);
+        Point3d variantNoiseOrigin = variantMStick.getNoiseOrigin();
+
+        // Pick a positioning anchor: the first variant component that isn't being deleted.
+        // After deletion the preserved comp is gone, so positionShape can't use it.
+        Set<Integer> toRemove = new HashSet<>(noiseComponentIndcs);
+        Integer anchorInParent = null;
+        for (Integer compId : variantMStick.getCompIds()) {
+            if (compId != 0 && !toRemove.contains(compId)) {
+                anchorInParent = compId;
+                break;
+            }
+        }
+        if (anchorInParent == null) {
+            throw new RuntimeException("No non-preserved component available to anchor positioning for deleted sample (variantId=" + baseMStickStimSpecId + ")");
+        }
+        // removeComponent compacts indices: surviving comps keep their relative order, so the
+        // child index equals the parent index minus the number of removed comps that came before it.
+        int anchorInChild = anchorInParent;
+        for (Integer removedComp : toRemove) {
+            if (removedComp < anchorInParent) {
+                anchorInChild--;
+            }
+        }
+
         PruningMatchStick sample = new PruningMatchStick(noiseMapper);
         sample.setProperties(sampleSize, texture, is2D(), 1.0);
         sample.setStimColor(color);
         sample.setRf(rfSource.getReceptiveField());
-        sample.genMatchStickFromShapeSpec(baseStickSpec, new double[]{0, 0, 0});
+        sample.setPositioningAnchor(variantMStick, anchorInChild, anchorInParent);
+        sample.genRemovedLimbsMatchStick(variantMStick, toRemove);
 
-        sample.genRemovedLimbsMatchStick(sample, new HashSet<>(noiseComponentIndcs));
+        // Carry the variant's noise origin onto the deleted sample so generateGaussianNoiseMapFor
+        // renders the noise circle in the same world location as the variant/delta would.
+        sample.setNoiseOrigin(variantNoiseOrigin);
 
-        // Don't apply noise: the components it targeted have been deleted, so the indices are stale.
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));
 
