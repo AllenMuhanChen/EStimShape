@@ -2839,6 +2839,11 @@ def plot_pref_orth_grid(
     the preferred axis.
     """
     if not result.thumbnail_paths or all(p is None for p in result.thumbnail_paths):
+        print(
+            "  [pref_orth_grid] no usable thumbnail_paths on result; "
+            "skipping. This happens when the compiled df has no "
+            "ThumbnailPath column (or it's all None)."
+        )
         return None
 
     proj_pref = compute_axis_projections(result)
@@ -2846,8 +2851,20 @@ def plot_pref_orth_grid(
         np.asarray(result.all_orthogonal_projections, dtype=np.float64)
         if result.all_orthogonal_projections is not None else None
     )
-    if (proj_orth_all is None or proj_orth_all.ndim != 2
-            or orth_axis_idx >= proj_orth_all.shape[1]):
+    if proj_orth_all is None:
+        print("  [pref_orth_grid] result.all_orthogonal_projections is None; skipping.")
+        return None
+    if proj_orth_all.ndim != 2:
+        print(
+            f"  [pref_orth_grid] all_orthogonal_projections has "
+            f"ndim={proj_orth_all.ndim} (expected 2); skipping."
+        )
+        return None
+    if orth_axis_idx >= proj_orth_all.shape[1]:
+        print(
+            f"  [pref_orth_grid] orth_axis_idx={orth_axis_idx} but only "
+            f"{proj_orth_all.shape[1]} orth axes available; skipping."
+        )
         return None
     proj_orth = proj_orth_all[:, orth_axis_idx]
 
@@ -3637,14 +3654,29 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                 # changes when moving along an orth direction while held at
                 # a given preferred-axis position (e.g. rightmost column =
                 # high preferred, top vs bottom = +/- orth).
-                if (self.pref_orth_grid_n_orth_axes > 0
-                        and result.all_orthogonal_variances is not None):
+                if self.pref_orth_grid_n_orth_axes <= 0:
+                    print(
+                        f"  [pref_orth_grid] skipped (n_orth_axes="
+                        f"{self.pref_orth_grid_n_orth_axes})"
+                    )
+                elif result.all_orthogonal_variances is None:
+                    print(
+                        "  [pref_orth_grid] skipped: "
+                        "result.all_orthogonal_variances is None"
+                    )
+                else:
                     orth_vars_arr = np.asarray(
                         result.all_orthogonal_variances, dtype=np.float64
                     )
                     top_orth_order = np.argsort(-orth_vars_arr)[
                         : self.pref_orth_grid_n_orth_axes
                     ]
+                    print(
+                        f"  [pref_orth_grid] generating "
+                        f"{len(top_orth_order)} grid(s); "
+                        f"n_pref_bins={self.pref_orth_grid_n_pref_bins}, "
+                        f"n_orth_bins={self.pref_orth_grid_n_orth_bins}"
+                    )
                     for rank, orth_j in enumerate(top_orth_order):
                         fig_grid = plot_pref_orth_grid(
                             result,
@@ -3660,6 +3692,10 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                             ),
                         )
                         if fig_grid is None:
+                            print(
+                                f"  [pref_orth_grid] orth #{rank + 1}: "
+                                f"plot returned None (see preceding log)"
+                            )
                             continue
                         if save_dir is not None:
                             grid_path = os.path.join(
