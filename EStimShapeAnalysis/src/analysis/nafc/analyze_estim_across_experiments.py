@@ -325,6 +325,25 @@ def plot_across_experiments(experiments: list, save_path: str = None,
 def main():
     experiments = [
         {
+            "label": "260512",
+            "exp_db": "allen_estimshape_exp_260512_0",
+
+            # Gen-id range (ON and OFF)
+            "start_gen_id": 3,
+            "max_gen_id": 5,
+
+            # Extra gen-id range for ON trials only
+            "start_gen_id_estim_on": 0,
+            "max_gen_id_estim_on": None,
+
+            # Filters
+            "include_trial_types": ["Hypothesized Shape"],
+            "include_noise_chances": None,
+            "combine_noise_chances": False,
+            "include_sample_lengths": None,
+            "include_spec_ids": [1],
+        },
+        {
             "label":   "260426",
             "exp_db":  "allen_estimshape_exp_260426_0",
 
@@ -400,8 +419,8 @@ def main():
     plot_across_experiments(
         experiments,
         save_path="/home/connorlab/Documents/plots/across_experiments/pct_hypothesized.png",
-        show_n=False,
-        show_effect_size=False,
+        show_n=True,
+        show_effect_size=True,
         x_spacing=0.5,       # reduce to compress experiments closer together (1.0 = default spacing)
         width_per_exp=1.0,   # inches per experiment slot
     )
