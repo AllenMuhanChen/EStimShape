@@ -2803,6 +2803,156 @@ def plot_axes_stimuli(
     return fig
 
 
+# ---------------------------------------------------------------------------
+# 2D pref × orth stimulus grid
+# ---------------------------------------------------------------------------
+
+def plot_pref_orth_grid(
+    result: AxisCodingResult,
+    *,
+    orth_axis_idx: int,
+    n_pref_bins: int = 9,
+    n_orth_bins: int = 5,
+    pref_z_range: float = 2.0,
+    orth_z_range: float = 2.0,
+    border_width: int = 30,
+    color_mode: str = "intensity",
+    title: Optional[str] = None,
+) -> Optional[plt.Figure]:
+    """
+    Stimulus grid binned by preferred-axis projection (columns) × orthogonal-
+    axis projection (rows).
+
+    Columns sweep the z-scored preferred-axis projection from -pref_z_range
+    to +pref_z_range. Rows sweep the z-scored orth-axis projection (top row
+    = most positive, bottom row = most negative), with the *middle* row
+    pinned at z=0 so it mirrors the on-preferred-axis row from
+    ``plot_axes_stimuli`` (n_orth_bins is forced to the nearest odd ≥ 3).
+
+    Each cell renders the thumbnail of the stimulus whose (z_pref, z_orth)
+    is closest to that cell's centre, ordered by neural-response colour
+    border (same convention as ``plot_axes_stimuli``). Empty cells render
+    as a grey placeholder.
+
+    Use case: pick the rightmost column to see what changes in stim
+    appearance as you move up/down the orth axis while staying high on
+    the preferred axis.
+    """
+    if not result.thumbnail_paths or all(p is None for p in result.thumbnail_paths):
+        return None
+
+    proj_pref = compute_axis_projections(result)
+    proj_orth_all = (
+        np.asarray(result.all_orthogonal_projections, dtype=np.float64)
+        if result.all_orthogonal_projections is not None else None
+    )
+    if (proj_orth_all is None or proj_orth_all.ndim != 2
+            or orth_axis_idx >= proj_orth_all.shape[1]):
+        return None
+    proj_orth = proj_orth_all[:, orth_axis_idx]
+
+    # Force odd row count so a middle row exists at z_orth=0.
+    if n_orth_bins % 2 == 0:
+        n_orth_bins = max(3, n_orth_bins + 1)
+    n_pref_bins = max(2, int(n_pref_bins))
+
+    pref = np.asarray(proj_pref, dtype=np.float64)
+    orth = np.asarray(proj_orth, dtype=np.float64)
+    paths = result.thumbnail_paths
+    actual = np.asarray(result.actual_responses, dtype=np.float64)
+
+    def _z(arr: np.ndarray) -> np.ndarray:
+        s = float(np.std(arr, ddof=1)) if arr.size >= 2 else 1.0
+        if s < 1e-12:
+            s = 1.0
+        return (arr - float(np.mean(arr))) / s
+
+    z_pref = _z(pref)
+    z_orth = _z(orth)
+
+    pref_centers = np.linspace(-pref_z_range, pref_z_range, n_pref_bins)
+    orth_centers = np.linspace(-orth_z_range, orth_z_range, n_orth_bins)
+
+    # For every (row, col) cell, pick the stim whose (z_pref, z_orth) is
+    # closest to that cell's centre. Stims that are nearest to one cell but
+    # very far away in absolute terms still get picked here — we don't
+    # require the stim to fall inside the cell, so sparse regions of the
+    # 2D projection space still render the closest exemplar.
+    min_val = float(np.nanmin(actual)) if actual.size else 0.0
+    max_val = float(np.nanmax(actual)) if actual.size else 1.0
+    border_helper = GroupedStimuliPlotter_matplotlib(
+        border_width=border_width,
+        color_mode=color_mode,
+    )
+
+    fig, axes = plt.subplots(
+        n_orth_bins, n_pref_bins,
+        figsize=(1.5 * n_pref_bins, 1.8 * n_orth_bins),
+        squeeze=False,
+    )
+
+    # Distance metric is Euclidean in (z_pref, z_orth) space so distortion
+    # along either axis is treated equally — independent of axis variances.
+    for orth_bin_idx, oc in enumerate(orth_centers):
+        # display_row = 0 should be the *top* of the figure = most positive orth.
+        display_row = n_orth_bins - 1 - orth_bin_idx
+        for pref_bin_idx, pc in enumerate(pref_centers):
+            ax = axes[display_row, pref_bin_idx]
+            ax.set_xticks([])
+            ax.set_yticks([])
+            for spine in ax.spines.values():
+                spine.set_visible(False)
+
+            d2 = (z_pref - pc) ** 2 + (z_orth - oc) ** 2
+            idx = int(np.argmin(d2))
+            path = paths[idx] if idx < len(paths) else None
+            shown = False
+            if path and isinstance(path, str) and os.path.exists(path):
+                try:
+                    img = Image.open(path)
+                    img_with_border = border_helper._add_colored_border(
+                        img, float(actual[idx]), min_val, max_val,
+                    )
+                    ax.imshow(np.asarray(img_with_border))
+                    shown = True
+                except Exception:
+                    pass
+            if not shown:
+                ax.text(0.5, 0.5, "—", ha="center", va="center",
+                        transform=ax.transAxes, fontsize=12, color="gray")
+
+            # Mark the actual (z_pref, z_orth) of the displayed stim under
+            # the cell, so it's obvious when a stim has been "stretched"
+            # across cells from a sparse region.
+            ax.set_xlabel(
+                f"{z_pref[idx]:+.1f}, {z_orth[idx]:+.1f}",
+                fontsize=6,
+            )
+
+    # Row labels (orth z-scores) on the left.
+    for orth_bin_idx, oc in enumerate(orth_centers):
+        display_row = n_orth_bins - 1 - orth_bin_idx
+        marker = "  (pref)" if abs(oc) < 1e-12 else ""
+        axes[display_row, 0].set_ylabel(
+            f"z_orth={oc:+.2f}{marker}",
+            fontsize=8, rotation=0, ha="right", va="center", labelpad=24,
+        )
+
+    # Column-header z-scores along the top.
+    for pref_bin_idx, pc in enumerate(pref_centers):
+        axes[0, pref_bin_idx].set_title(f"z_pref={pc:+.2f}", fontsize=8)
+
+    if title:
+        fig.suptitle(title, fontsize=11)
+    fig.tight_layout()
+    return fig
+
+
+# ---------------------------------------------------------------------------
+# (continues with downstream plotting / encoding helpers)
+# ---------------------------------------------------------------------------
+
+
 def plot_mu_decoded(
     result: AxisCodingResult,
     encoder: ComponentEncoder,
@@ -3129,6 +3279,11 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
         outlier_min_trials: int = 3,
         rf_filter: Optional[ReceptiveFieldFilter] = None,
         n_stimuli_per_axis: int = 12,
+        pref_orth_grid_n_orth_axes: int = 3,
+        pref_orth_grid_n_pref_bins: int = 9,
+        pref_orth_grid_n_orth_bins: int = 5,
+        pref_orth_grid_pref_z_range: float = 2.0,
+        pref_orth_grid_orth_z_range: float = 2.0,
         panel_config: Optional["PlotPanelConfig"] = None,
         axis_models: Optional[list[ModelSpec]] = None,
         permutation_test: bool = False,
@@ -3146,6 +3301,14 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
         self.outlier_min_trials = outlier_min_trials
         self.rf_filter = rf_filter
         self.n_stimuli_per_axis = n_stimuli_per_axis
+        # 2D pref × orth stimulus-grid config (see plot_pref_orth_grid). One
+        # figure per top-N orth axis (by variance). Set ``n_orth_axes=0`` to
+        # disable the new plot entirely.
+        self.pref_orth_grid_n_orth_axes = int(pref_orth_grid_n_orth_axes)
+        self.pref_orth_grid_n_pref_bins = int(pref_orth_grid_n_pref_bins)
+        self.pref_orth_grid_n_orth_bins = int(pref_orth_grid_n_orth_bins)
+        self.pref_orth_grid_pref_z_range = float(pref_orth_grid_pref_z_range)
+        self.pref_orth_grid_orth_z_range = float(pref_orth_grid_orth_z_range)
         self.panel_config = panel_config or PlotPanelConfig()
         self.axis_models = (
             list(axis_models) if axis_models is not None else default_axis_models()
@@ -3468,6 +3631,49 @@ class AxisCodingAnalysis(PlotTopNAnalysis):
                         plt.show()
                     else:
                         plt.close(fig_stim)
+
+                # 2D pref × orth stimulus grid — one figure per top-N orth
+                # axis (by variance). Lets you read off how stim appearance
+                # changes when moving along an orth direction while held at
+                # a given preferred-axis position (e.g. rightmost column =
+                # high preferred, top vs bottom = +/- orth).
+                if (self.pref_orth_grid_n_orth_axes > 0
+                        and result.all_orthogonal_variances is not None):
+                    orth_vars_arr = np.asarray(
+                        result.all_orthogonal_variances, dtype=np.float64
+                    )
+                    top_orth_order = np.argsort(-orth_vars_arr)[
+                        : self.pref_orth_grid_n_orth_axes
+                    ]
+                    for rank, orth_j in enumerate(top_orth_order):
+                        fig_grid = plot_pref_orth_grid(
+                            result,
+                            orth_axis_idx=int(orth_j),
+                            n_pref_bins=self.pref_orth_grid_n_pref_bins,
+                            n_orth_bins=self.pref_orth_grid_n_orth_bins,
+                            pref_z_range=self.pref_orth_grid_pref_z_range,
+                            orth_z_range=self.pref_orth_grid_orth_z_range,
+                            title=(
+                                f"{_channel_to_str(channel)} | "
+                                f"{component_type} | {strategy.label}  —  "
+                                f"pref × orth #{rank + 1} stimulus grid"
+                            ),
+                        )
+                        if fig_grid is None:
+                            continue
+                        if save_dir is not None:
+                            grid_path = os.path.join(
+                                save_dir,
+                                f"axis_coding_{_channel_to_str(channel)}_"
+                                f"{component_type}_{strategy.label}"
+                                f"_pref_orth_grid_{rank + 1}.png",
+                            )
+                            fig_grid.savefig(grid_path, dpi=150, bbox_inches="tight")
+                            print(f"  saved: {grid_path}")
+                        if self.show_plots:
+                            plt.show()
+                        else:
+                            plt.close(fig_grid)
 
         return results
 
