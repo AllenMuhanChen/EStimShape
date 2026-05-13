@@ -3,7 +3,6 @@ package org.xper.allen.nafc.blockgen.procedural;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
-import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 
@@ -106,31 +105,30 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
 
     @Override
     protected void generateProceduralDistractors(ProceduralMatchStick sample) {
-        if (numProceduralDistractors >= 1){
-            // just load the delta here
-            AllenMStickSpec distractorSpec = new AllenMStickSpec();
-            PruningMatchStick distractorMStick = new PruningMatchStick(noiseMapper);
-            correctNoiseRadius(distractorMStick);
-            distractorMStick.setProperties(choiceSize, texture, is2D(), 1.0);
-            distractorMStick.setStimColor(color);
-            distractorMStick.setMaxDiameterDegrees(maxSampleSize);
-
-            distractorMStick.genMatchStickFromFile(gaSpecPath + "/" + distractorMStickStimSpecId + "_spec.xml");
-            distractorMStick.centerShape();
-            distractorSpec.setMStickInfo(distractorMStick, false);
-            mSticks.addProceduralDistractor(distractorMStick);
-            mStickSpecs.addProceduralDistractor(mStickToSpec(distractorMStick));
-
+        int required = 1 + (includeRemovedChoice ? 1 : 0);
+        if (numProceduralDistractors > required) {
+            throw new IllegalStateException("Excess procedural distractor slots for variant/delta trial: numProceduralDistractors=" + numProceduralDistractors + ", but only " + required + " procedural choices are defined (non-sample" + (includeRemovedChoice ? " + removed" : "") + "). Reduce numChoices or increase numRandDistractors.");
         }
-        for (int i = 0; i < numProceduralDistractors-1; i++) {
-            ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick(noiseMapper);
-            correctNoiseRadius(proceduralDistractor);
-            proceduralDistractor.setProperties(choiceSize, texture, is2D(), 1.0);
-            proceduralDistractor.setStimColor(color);
-            proceduralDistractor.setMaxDiameterDegrees(maxSampleSize); //TODO: using max sample size here due to weird glitch with using max choice size...
-            proceduralDistractor.genNewComponentsMatchStick(sample, morphComponentIndcs, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts, noiseComponentIndcs);
-            mSticks.addProceduralDistractor(proceduralDistractor);
-            mStickSpecs.addProceduralDistractor(mStickToSpec(proceduralDistractor));
+        if (numProceduralDistractors < required) {
+            throw new IllegalStateException("Not enough procedural distractor slots for variant/delta trial: need " + required + " (non-sample" + (includeRemovedChoice ? " + removed" : "") + ") but only " + numProceduralDistractors + " available. Random distractors are taking the slots — reduce numRandDistractors or increase numChoices.");
+        }
+
+        // Slot 0: the non-sample shape (delta if sample is variant; variant if sample is delta).
+        PruningMatchStick distractorMStick = new PruningMatchStick(noiseMapper);
+        correctNoiseRadius(distractorMStick);
+        distractorMStick.setProperties(choiceSize, texture, is2D(), 1.0);
+        distractorMStick.setStimColor(color);
+        distractorMStick.setMaxDiameterDegrees(maxSampleSize);
+        distractorMStick.genMatchStickFromFile(gaSpecPath + "/" + distractorMStickStimSpecId + "_spec.xml");
+        distractorMStick.centerShape();
+        mSticks.addProceduralDistractor(distractorMStick);
+        mStickSpecs.addProceduralDistractor(mStickToSpec(distractorMStick));
+
+        // Slot 1: the variant with the tuned-for comp deleted.
+        if (includeRemovedChoice) {
+            ProceduralMatchStick removed = createRemovedDistractor();
+            mSticks.addProceduralDistractor(removed);
+            mStickSpecs.addProceduralDistractor(mStickToSpec(removed));
         }
     }
 
@@ -138,13 +136,13 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
     protected void assignLabels() {
         labels.setSample(new LinkedList<>(Arrays.asList("sample")));
         labels.setMatch(new LinkedList<>(Arrays.asList("match")));
-        for (int i = 0; i < numProceduralDistractors; i++) {
-            if (i==0){
-                labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("delta")));
-            } else{
-                labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("procedural")));
-            }
-
+        // Slot 0 is the non-sample: if the sample is the variant, the distractor is the delta, and vice versa.
+        String nonSampleLabel = isDelta ? "variant" : "delta";
+        if (numProceduralDistractors >= 1) {
+            labels.addProceduralDistractor(new LinkedList<>(Arrays.asList(nonSampleLabel)));
+        }
+        if (numProceduralDistractors >= 2 && includeRemovedChoice) {
+            labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("removed")));
         }
         for (int i = 0; i < numRandDistractors; i++) {
             labels.addRandDistractor(new LinkedList<>(Arrays.asList("rand")));

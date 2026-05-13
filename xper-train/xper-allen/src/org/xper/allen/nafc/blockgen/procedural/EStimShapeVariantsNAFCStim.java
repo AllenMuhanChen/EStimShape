@@ -13,8 +13,12 @@ import org.xper.allen.util.AllenDbUtil;
 import javax.sql.DataSource;
 import javax.vecmath.Point3d;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
 
@@ -26,6 +30,14 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
     protected String texture;
     protected Float sampleSize;
     protected NAFCNoiseMapper noiseMapper;
+    // When true, one procedural distractor slot is filled by a "removed" shape — the variant
+    // with its tuned-for component deleted. Keeps the choice set composition the same across
+    // variant/delta/deleted trial types so trial type can't be inferred from which choices appear.
+    protected boolean includeRemovedChoice = false;
+
+    public void setIncludeRemovedChoice(boolean includeRemovedChoice) {
+        this.includeRemovedChoice = includeRemovedChoice;
+    }
 
 
     public static EStimShapeVariantsNAFCStim createSampledIdEStimShapeVariantsNAFCStim(
@@ -154,7 +166,14 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
 
     @Override
     protected void generateProceduralDistractors(ProceduralMatchStick sample) {
-        for (int i = 0; i < numProceduralDistractors; i++) {
+        int startIndex = 0;
+        if (includeRemovedChoice && numProceduralDistractors >= 1) {
+            ProceduralMatchStick removed = createRemovedDistractor();
+            mSticks.addProceduralDistractor(removed);
+            mStickSpecs.addProceduralDistractor(mStickToSpec(removed));
+            startIndex = 1;
+        }
+        for (int i = startIndex; i < numProceduralDistractors; i++) {
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick(noiseMapper);
             correctNoiseRadius(proceduralDistractor);
             proceduralDistractor.setProperties(choiceSize, texture, is2D(), 1.0);
@@ -163,6 +182,43 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
             proceduralDistractor.genNewComponentsMatchStick(sample, morphComponentIndcs, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts, noiseComponentIndcs);
             mSticks.addProceduralDistractor(proceduralDistractor);
             mStickSpecs.addProceduralDistractor(mStickToSpec(proceduralDistractor));
+        }
+    }
+
+    /**
+     * Build a choice-sized matchstick that is the variant ({@link #baseMStickStimSpecId}) with
+     * its tuned-for components ({@link #noiseComponentIndcs}) deleted. Used by subclasses as a
+     * distractor; the returned mStick is centered (no anchor alignment) since each choice is
+     * rendered into its own tile and doesn't need to align with the sample's world frame.
+     */
+    protected ProceduralMatchStick createRemovedDistractor() {
+        PruningMatchStick variantSource = new PruningMatchStick(noiseMapper);
+        variantSource.setProperties(choiceSize, texture, is2D(), 1.0);
+        variantSource.setStimColor(color);
+        variantSource.genMatchStickFromFile(gaSpecPath + "/" + baseMStickStimSpecId + "_spec.xml");
+
+        ProceduralMatchStick removed = new ProceduralMatchStick(noiseMapper);
+        correctNoiseRadius(removed);
+        removed.setProperties(choiceSize, texture, is2D(), 1.0);
+        removed.setStimColor(color);
+        removed.setMaxDiameterDegrees(maxSampleSize);
+        removed.genRemovedLimbsMatchStick(variantSource, new HashSet<>(noiseComponentIndcs));
+        return removed;
+    }
+
+    @Override
+    protected void assignLabels() {
+        labels.setSample(new LinkedList<>(Arrays.asList("sample")));
+        labels.setMatch(new LinkedList<>(Arrays.asList("match")));
+        for (int i = 0; i < numProceduralDistractors; i++) {
+            if (i == 0 && includeRemovedChoice) {
+                labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("removed")));
+            } else {
+                labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("procedural")));
+            }
+        }
+        for (int i = 0; i < numRandDistractors; i++) {
+            labels.addRandDistractor(new LinkedList<>(Arrays.asList("rand")));
         }
     }
 

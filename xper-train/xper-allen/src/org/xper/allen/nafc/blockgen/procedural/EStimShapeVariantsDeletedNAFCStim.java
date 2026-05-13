@@ -135,58 +135,41 @@ public class EStimShapeVariantsDeletedNAFCStim extends EStimShapeVariantsNAFCSti
 
     @Override
     protected void generateProceduralDistractors(ProceduralMatchStick sample) {
-        // Distractor 0 = the variant (tuned-for component intact).
-        if (numProceduralDistractors >= 1) {
-            PruningMatchStick variantDistractor = new PruningMatchStick(noiseMapper);
-            correctNoiseRadius(variantDistractor);
-            variantDistractor.setProperties(choiceSize, texture, is2D(), 1.0);
-            variantDistractor.setStimColor(color);
-            variantDistractor.setMaxDiameterDegrees(maxSampleSize);
-            variantDistractor.genMatchStickFromFile(gaSpecPath + "/" + baseMStickStimSpecId + "_spec.xml");
-            variantDistractor.centerShape();
-            mSticks.addProceduralDistractor(variantDistractor);
-            mStickSpecs.addProceduralDistractor(mStickToSpec(variantDistractor));
+        // Deleted trials always have exactly two procedural choices: variant and delta. The
+        // sample itself is the "removed" shape, so includeRemovedChoice doesn't apply here.
+        if (numProceduralDistractors != 2) {
+            throw new IllegalStateException("Deleted trial requires exactly 2 procedural distractors (variant + delta), got " + numProceduralDistractors + ". Set numChoices=" + (3 + numRandDistractors) + " or adjust numRandDistractors.");
         }
 
-        // Distractor 1 = the paired delta (tuned-for component changed to a non-driver).
-        if (numProceduralDistractors >= 2) {
-            PruningMatchStick deltaDistractor = new PruningMatchStick(noiseMapper);
-            correctNoiseRadius(deltaDistractor);
-            deltaDistractor.setProperties(choiceSize, texture, is2D(), 1.0);
-            deltaDistractor.setStimColor(color);
-            deltaDistractor.setMaxDiameterDegrees(maxSampleSize);
-            deltaDistractor.genMatchStickFromFile(gaSpecPath + "/" + deltaMStickStimSpecId + "_spec.xml");
-            deltaDistractor.centerShape();
-            mSticks.addProceduralDistractor(deltaDistractor);
-            mStickSpecs.addProceduralDistractor(mStickToSpec(deltaDistractor));
-        }
+        // Slot 0 = the variant (tuned-for component intact).
+        PruningMatchStick variantDistractor = new PruningMatchStick(noiseMapper);
+        correctNoiseRadius(variantDistractor);
+        variantDistractor.setProperties(choiceSize, texture, is2D(), 1.0);
+        variantDistractor.setStimColor(color);
+        variantDistractor.setMaxDiameterDegrees(maxSampleSize);
+        variantDistractor.genMatchStickFromFile(gaSpecPath + "/" + baseMStickStimSpecId + "_spec.xml");
+        variantDistractor.centerShape();
+        mSticks.addProceduralDistractor(variantDistractor);
+        mStickSpecs.addProceduralDistractor(mStickToSpec(variantDistractor));
 
-        // Any additional procedural distractors are morph-based, generated from the deleted sample.
-        for (int i = 0; i < numProceduralDistractors - 2; i++) {
-            ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick(noiseMapper);
-            correctNoiseRadius(proceduralDistractor);
-            proceduralDistractor.setProperties(choiceSize, texture, is2D(), 1.0);
-            proceduralDistractor.setStimColor(color);
-            proceduralDistractor.setMaxDiameterDegrees(maxSampleSize);
-            proceduralDistractor.genNewComponentsMatchStick(sample, morphComponentIndcs, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts, noiseComponentIndcs);
-            mSticks.addProceduralDistractor(proceduralDistractor);
-            mStickSpecs.addProceduralDistractor(mStickToSpec(proceduralDistractor));
-        }
+        // Slot 1 = the paired delta (tuned-for component changed to a non-driver).
+        PruningMatchStick deltaDistractor = new PruningMatchStick(noiseMapper);
+        correctNoiseRadius(deltaDistractor);
+        deltaDistractor.setProperties(choiceSize, texture, is2D(), 1.0);
+        deltaDistractor.setStimColor(color);
+        deltaDistractor.setMaxDiameterDegrees(maxSampleSize);
+        deltaDistractor.genMatchStickFromFile(gaSpecPath + "/" + deltaMStickStimSpecId + "_spec.xml");
+        deltaDistractor.centerShape();
+        mSticks.addProceduralDistractor(deltaDistractor);
+        mStickSpecs.addProceduralDistractor(mStickToSpec(deltaDistractor));
     }
 
     @Override
     protected void assignLabels() {
         labels.setSample(new LinkedList<>(Arrays.asList("sample")));
         labels.setMatch(new LinkedList<>(Arrays.asList("match")));
-        for (int i = 0; i < numProceduralDistractors; i++) {
-            if (i == 0) {
-                labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("variant")));
-            } else if (i == 1) {
-                labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("delta")));
-            } else {
-                labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("procedural")));
-            }
-        }
+        labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("variant")));
+        labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("delta")));
         for (int i = 0; i < numRandDistractors; i++) {
             labels.addRandDistractor(new LinkedList<>(Arrays.asList("rand")));
         }

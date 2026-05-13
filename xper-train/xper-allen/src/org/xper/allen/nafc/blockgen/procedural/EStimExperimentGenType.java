@@ -121,6 +121,7 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
         public int compId;
         public boolean isEStimEnabled;
         public long eStimSpecId;
+        public boolean includeRemovedChoice;
 
         public EStimExperimentGenParameters(GenParameters genParameters, int numDeltaTrialSets, long stimId, int compId, boolean isEStimEnabled, long eStimSpecId) {
             super(genParameters, numDeltaTrialSets);

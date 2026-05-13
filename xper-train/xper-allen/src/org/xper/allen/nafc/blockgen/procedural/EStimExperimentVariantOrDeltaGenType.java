@@ -66,6 +66,7 @@ public class EStimExperimentVariantOrDeltaGenType extends EStimExperimentVariant
                     isDelta,
                     parameters.isEStimEnabled,
                     parameters.eStimSpecId);
+            stim.setIncludeRemovedChoice(parameters.includeRemovedChoice);
             newBlock.add(stim);
         }
         return newBlock;

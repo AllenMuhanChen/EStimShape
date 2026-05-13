@@ -11,6 +11,7 @@ public class EStimExperimentVariantsGenType extends ProceduralRandGenType<EStimE
     protected JTextField stimIdField;
     protected JTextField isEStimEnabledField;
     protected JTextField eStimSpecIdField;
+    protected JTextField includeRemovedChoiceField;
 
     public EStimExperimentVariantsGenType() {
         super();
@@ -24,8 +25,10 @@ public class EStimExperimentVariantsGenType extends ProceduralRandGenType<EStimE
         long stimId = Long.parseLong(stimIdField.getText());
         boolean isEStimEnabled = Boolean.parseBoolean(isEStimEnabledField.getText());
         long eStimSpecId = Long.parseLong(eStimSpecIdField.getText());
+        boolean includeRemovedChoice = Boolean.parseBoolean(includeRemovedChoiceField.getText());
         EStimExperimentGenType.EStimExperimentGenParameters params = new EStimExperimentGenType.EStimExperimentGenParameters(
                 super.readFromFields(), 0, stimId, -1, isEStimEnabled, eStimSpecId);
+        params.includeRemovedChoice = includeRemovedChoice;
         return params;
     }
 
@@ -38,20 +41,22 @@ public class EStimExperimentVariantsGenType extends ProceduralRandGenType<EStimE
 
         //use that trial's base matchstick to generate the rest of the trials
         for (int i = 0; i < parameters.getNumTrials(); i++) {
+            EStimShapeVariantsNAFCStim stim;
             if (parameters.stimId == 0){
-                newBlock.add(EStimShapeVariantsNAFCStim.createSampledIdEStimShapeVariantsNAFCStim(
+                stim = EStimShapeVariantsNAFCStim.createSampledIdEStimShapeVariantsNAFCStim(
                         (EStimShapeExperimentTrialGenerator) generator,
                         parameters.getProceduralStimParameters(),
-                        parameters.isEStimEnabled, parameters.eStimSpecId));
+                        parameters.isEStimEnabled, parameters.eStimSpecId);
             } else {
                 //using estim value from the GUI field
-                EStimShapeVariantsNAFCStim stim = new EStimShapeVariantsNAFCStim(
+                stim = new EStimShapeVariantsNAFCStim(
                         (EStimShapeExperimentTrialGenerator) generator,
                         parameters.getProceduralStimParameters(),
                         parameters.stimId,
                         parameters.isEStimEnabled, parameters.eStimSpecId);
-                newBlock.add(stim);
             }
+            stim.setIncludeRemovedChoice(parameters.includeRemovedChoice);
+            newBlock.add(stim);
         }
         return newBlock;
     }
@@ -61,6 +66,7 @@ public class EStimExperimentVariantsGenType extends ProceduralRandGenType<EStimE
         stimIdField = new JTextField("0", 10);
         isEStimEnabledField = new JTextField("true", 10);
         eStimSpecIdField = new JTextField("0", 10);
+        includeRemovedChoiceField = new JTextField("false", 10);
 
         labelsForFields.put(stimIdField, "stimId:");
         defaultsForFields.put(stimIdField, "0");
@@ -70,6 +76,9 @@ public class EStimExperimentVariantsGenType extends ProceduralRandGenType<EStimE
 
         labelsForFields.put(eStimSpecIdField, "eStimSpecId:");
         defaultsForFields.put(eStimSpecIdField, "0");
+
+        labelsForFields.put(includeRemovedChoiceField, "includeRemovedChoice (true/false):");
+        defaultsForFields.put(includeRemovedChoiceField, "false");
     }
 
     @Override
@@ -78,6 +87,7 @@ public class EStimExperimentVariantsGenType extends ProceduralRandGenType<EStimE
         stimIdField.setText(String.valueOf(((EStimExperimentGenType.EStimExperimentGenParameters) blockParams).stimId));
         isEStimEnabledField.setText(String.valueOf(((EStimExperimentGenType.EStimExperimentGenParameters) blockParams).isEStimEnabled));
         eStimSpecIdField.setText(String.valueOf(((EStimExperimentGenType.EStimExperimentGenParameters) blockParams).eStimSpecId));
+        includeRemovedChoiceField.setText(String.valueOf(((EStimExperimentGenType.EStimExperimentGenParameters) blockParams).includeRemovedChoice));
     }
 
 }

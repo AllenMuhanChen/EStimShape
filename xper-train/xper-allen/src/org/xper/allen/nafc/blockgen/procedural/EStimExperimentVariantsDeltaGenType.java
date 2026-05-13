@@ -54,44 +54,25 @@ public class EStimExperimentVariantsDeltaGenType extends EStimExperimentVariants
         //use that trial's base matchstick to generate the rest of the trials
 
         for (int i = 0; i < numTrials; i++) {
-            if (parameters.stimId == 0){
-                long variantId = assignedVariantIds.get(i);
+            long variantId = parameters.stimId == 0 ? assignedVariantIds.get(i) : parameters.stimId;
 
-                EStimShapeVariantsNAFCStim stim = new EStimShapeVariantsDeltaNAFCStim(
-                        (EStimShapeExperimentTrialGenerator) generator,
-                        parameters.getProceduralStimParameters(),
-                        variantId,
-                        false,
-                        parameters.isEStimEnabled, parameters.eStimSpecId);
-                newBlock.add(stim);
+            EStimShapeVariantsNAFCStim stim = new EStimShapeVariantsDeltaNAFCStim(
+                    (EStimShapeExperimentTrialGenerator) generator,
+                    parameters.getProceduralStimParameters(),
+                    variantId,
+                    false,
+                    parameters.isEStimEnabled, parameters.eStimSpecId);
+            stim.setIncludeRemovedChoice(parameters.includeRemovedChoice);
+            newBlock.add(stim);
 
-                EStimShapeVariantsNAFCStim deltaStim = new EStimShapeVariantsDeltaNAFCStim(
-                        (EStimShapeExperimentTrialGenerator) generator,
-                        parameters.getProceduralStimParameters(),
-                        variantId,
-                        true,
-                        parameters.isEStimEnabled, parameters.eStimSpecId);
-                newBlock.add(deltaStim);
-            } else {
-                //using estim value from the GUI field
-                EStimShapeVariantsNAFCStim stim = new EStimShapeVariantsDeltaNAFCStim(
-                        (EStimShapeExperimentTrialGenerator) generator,
-                        parameters.getProceduralStimParameters(),
-                        parameters.stimId,
-                        false,
-                        parameters.isEStimEnabled,
-                        parameters.eStimSpecId);
-                newBlock.add(stim);
-
-                EStimShapeVariantsNAFCStim deltaStim = new EStimShapeVariantsDeltaNAFCStim(
-                        (EStimShapeExperimentTrialGenerator) generator,
-                        parameters.getProceduralStimParameters(),
-                        parameters.stimId,
-                        true,
-                        parameters.isEStimEnabled,
-                        parameters.eStimSpecId);
-                newBlock.add(deltaStim);
-            }
+            EStimShapeVariantsNAFCStim deltaStim = new EStimShapeVariantsDeltaNAFCStim(
+                    (EStimShapeExperimentTrialGenerator) generator,
+                    parameters.getProceduralStimParameters(),
+                    variantId,
+                    true,
+                    parameters.isEStimEnabled, parameters.eStimSpecId);
+            deltaStim.setIncludeRemovedChoice(parameters.includeRemovedChoice);
+            newBlock.add(deltaStim);
         }
 //        Collections.shuffle(newBlock);
         return newBlock;
