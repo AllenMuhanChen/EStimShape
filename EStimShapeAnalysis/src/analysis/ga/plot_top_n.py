@@ -18,6 +18,7 @@ from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField,
 from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField, \
     MassCenterField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField, GenIdField, ParentIdField
+from src.analysis.ga.response_spec import ResponseSpec
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
 from src.analysis.lightness.lightness_analysis import TextureField, ColorField, AverageRGBField
@@ -52,14 +53,19 @@ class PlotTopNAnalysis(Analysis):
     logging_path = context.logging_path
 
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
-        if self.using_ga_response():
-            # If channel is "GA", we want to use the "GA Response" column instead of spike rates for ranking
-            compiled_data['Spike Rate'] = compiled_data['GA Response']
-            compiled_data = compiled_data.sort_values(by=['Lineage', 'Spike Rate'], ascending=[True, False])
-            self.spike_rates_col = 'Spike Rate'
-        compiled_data = add_lineage_rank_to_df(compiled_data, self.spike_rates_col, channel)
+        spec_channel = ResponseSpec.GA if self.using_ga_response() else channel
+        spec = ResponseSpec(spec_channel)
+        prepared = spec.apply(compiled_data, spike_rates_col=self.spike_rates_col)
+        compiled_data = prepared.data
 
-        return self.analyze_one_channel(channel, compiled_data)
+        if spec.use_ga_response:
+            compiled_data = compiled_data.sort_values(
+                by=['Lineage', prepared.response_col], ascending=[True, False]
+            )
+
+        compiled_data = rank_within_lineage(compiled_data, prepared.response_col)
+
+        return self.analyze_one_channel(prepared, compiled_data)
 
 
     def import_data(self, compiled_data: pd.DataFrame) -> pd.DataFrame:
@@ -74,21 +80,10 @@ class PlotTopNAnalysis(Analysis):
 
         return compiled_data
 
-    def analyze_one_channel(self, channel, compiled_data):
-        # MODULATE DATA BASED ON CHANNEL(S)
-        # Generate appropriate filename based on channel type
-        if isinstance(channel, list):
-            # Create a descriptive name for multiple channels
-            channel_str = f"{len(channel)}_channels"
-            # Use the response_rate_key as a list to sum dictionary values
-            response_key = channel
-        else:
-            channel_str = channel
-            response_key = channel
-        # THE ACTUAL ANALYSIS
+    def analyze_one_channel(self, prepared, compiled_data):
         visualize_module = create_grouped_stimuli_module(
-            response_rate_col=self.spike_rates_col,
-            response_rate_key=response_key,
+            response_rate_col=prepared.response_col,
+            response_rate_key=prepared.response_key,
             path_col='ThumbnailPath',
             col_col='RankWithinLineage',
             row_col='Lineage',
@@ -96,16 +91,12 @@ class PlotTopNAnalysis(Analysis):
             filter_values={"Lineage": get_top_n_lineages(compiled_data, 4),
                            "RankWithinLineage": range(1, 21)},  # only show top 20 per lineage
             sort_rules={"RankWithinLineage": "ascending"},  # sort by rank within lineage
-            save_path=f"{self.save_path}/{channel_str}_plot_top_n.png",
+            save_path=f"{self.save_path}/{prepared.channel_label}_plot_top_n.png",
             publish_mode=True,
             subplot_spacing=(20, 0),
             module_name="plot_top_n",
             border_width=50
         )
-        # Create and run pipeline with aggregated data
-        # pipeline = create_pipeline().then(visualize_module).build()
-        # result = pipeline.run(compiled_data)
-        # Create pipeline with both branches
         pipeline = create_pipeline().then(visualize_module).build()
         result = pipeline.run(compiled_data)
         plt.show()
@@ -185,6 +176,29 @@ class PlotTopNAnalysis(Analysis):
 
     def using_ga_response(self):
         return self.response_table == None
+
+
+def rank_within_lineage(compiled_data: pd.DataFrame, response_col: str) -> pd.DataFrame:
+    """Add RankWithinLineage column based on the mean of `response_col` per (Lineage, StimSpecId).
+
+    Assumes `response_col` is already a scalar column (e.g. produced by
+    `ResponseSpec.apply`). Use this instead of `add_lineage_rank_to_df` when
+    you've prepared a scalar response column upstream.
+    """
+    avg_response = (
+        compiled_data.groupby(['Lineage', 'StimSpecId'])[response_col].mean().reset_index()
+    )
+    avg_response.rename(columns={response_col: 'Avg Response Rate'}, inplace=True)
+    avg_response['RankWithinLineage'] = avg_response.groupby('Lineage')['Avg Response Rate'].rank(
+        ascending=False, method='first'
+    )
+    return compiled_data.merge(
+        avg_response[['Lineage', 'StimSpecId', 'RankWithinLineage']],
+        on=['Lineage', 'StimSpecId'],
+        how='left',
+    )
+
+
 def add_lineage_rank_to_df(compiled_data, spike_rates_col, channel):
     """
     Add ranking information based on spike rates within each lineage.

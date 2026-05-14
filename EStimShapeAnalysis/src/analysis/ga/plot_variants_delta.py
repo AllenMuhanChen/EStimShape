@@ -1,8 +1,8 @@
 from matplotlib import pyplot as plt
 from clat.pipeline.pipeline_base_classes import create_branch, create_pipeline
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
+from src.analysis.ga.response_spec import ResponseSpec
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
-from src.pga.response_processing import RankBaselineNormalizer
 from src.pga.stim_types import StimType
 from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.repository.import_from_repository import import_from_repository
@@ -64,53 +64,18 @@ class PlotVariantDeltas(PlotTopNAnalysis):
                 self.response_table
             )
 
-        # Resolve channel="Cluster" to the current experiment's cluster channel list.
-        # channel_label is the stable string used for filenames (independent of list order).
-        if channel == "Cluster":
-            try:
-                cluster = context.ga_config.db_util.read_current_cluster(context.ga_name)
-            except Exception as exc:
-                raise RuntimeError(
-                    f"channel='Cluster' requires a defined cluster in the GA db: {exc}"
-                ) from exc
-            channel = [ch.value for ch in cluster]
-            channel_label = "Cluster"
-            print(f"channel='Cluster' resolved to {len(channel)} channels: {channel}")
-        elif isinstance(channel, list):
-            channel_label = f"{len(channel)}_channels"
-        else:
-            channel_label = channel
-
-        # Setup response column (shared across all modes)
-        if self.use_ga_response:
-            if 'GA Response' not in compiled_data.columns:
-                print("Error: 'GA Response' column not found in data!")
-                print(f"Available columns: {compiled_data.columns.tolist()}")
-                return
-            compiled_data = compiled_data[compiled_data['GA Response'].notna()]
-            response_col_name = 'GA Response'
-            response_key = None
-            print("Using GA Response (not channel-specific)")
-        else:
-            compiled_data = compiled_data[compiled_data[self.spike_rates_col].notna()]
-            if isinstance(channel, list):
-                def sum_channels(x):
-                    if not isinstance(x, dict):
-                        return 0
-                    return sum(x.get(ch, 0) for ch in channel)
-
-                compiled_data['Spike Rate'] = compiled_data[self.spike_rates_col].apply(sum_channels)
-                print(f"Using channel-specific spike rates summed across {len(channel)} channels: {channel}")
-            else:
-                compiled_data['Spike Rate'] = compiled_data[self.spike_rates_col].apply(
-                    lambda x: x[channel] if isinstance(x, dict) and channel in x else 0)
-                print(f"Using channel-specific spike rates for {channel}")
-
-            if self.use_baseline_correction:
-                compiled_data = self._apply_baseline_correction(compiled_data)
-
-            response_col_name = 'Spike Rate'
-            response_key = channel
+        spec_channel = ResponseSpec.GA if self.use_ga_response else channel
+        spec = ResponseSpec(spec_channel, use_baseline_correction=self.use_baseline_correction)
+        try:
+            prepared = spec.apply(compiled_data, spike_rates_col=self.spike_rates_col)
+        except ValueError as exc:
+            print(f"Error: {exc}")
+            return
+        compiled_data = prepared.data
+        channel = prepared.channel
+        channel_label = prepared.channel_label
+        response_col_name = prepared.response_col
+        response_key = prepared.response_key
 
         if self.plot_mode == PLOT_MODE_DB_INCLUDED:
             plot_data, title = self._build_plot_data_from_db(compiled_data, response_col_name)
@@ -123,8 +88,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             if plot_data is None:
                 return
 
-        baseline_suffix = "_baseline_corrected" if (self.use_baseline_correction and not self.use_ga_response) else ""
-        save_path = f"{self.save_path}/{channel_label}{baseline_suffix}_delta_variant_pairs.png"
+        save_path = f"{self.save_path}/{channel_label}{spec.baseline_suffix}_delta_variant_pairs.png"
         visualize_params = {
             'cell_size': (200, 200),
             'response_rate_col': response_col_name,
@@ -150,47 +114,6 @@ class PlotVariantDeltas(PlotTopNAnalysis):
 
         if self.to_save_to_db and delta_avg_response is not None:
             self._save_deltas_to_db(delta_avg_response)
-
-    def _apply_baseline_correction(self, compiled_data):
-        """Multiply each trial's 'Spike Rate' by its stim's rank-based baseline factor.
-
-        Per-stim factor is computed from the stim's mean spike rate across trials, then
-        applied uniformly to every trial of that stim. Baseline / catch / regime-zero
-        stims pass through unchanged (see `BaselineNormalizer.SKIP_STIM_TYPES`).
-        """
-        required = {'StimSpecId', 'StimType', 'GenId', 'ParentId', 'Spike Rate'}
-        missing = required - set(compiled_data.columns)
-        if missing:
-            print(f"Baseline correction skipped: missing columns {sorted(missing)}")
-            return compiled_data
-
-        mean_response_per_stim = (
-            compiled_data.groupby('StimSpecId')['Spike Rate'].mean().to_dict()
-        )
-        info = compiled_data.drop_duplicates('StimSpecId').set_index('StimSpecId')
-        stim_types = info['StimType'].to_dict()
-        gen_ids = info['GenId'].to_dict()
-        parent_ids = info['ParentId'].to_dict()
-
-        normalizer = RankBaselineNormalizer()
-        normalized = normalizer.normalize(
-            mean_response_per_stim, stim_types, gen_ids, parent_ids, strict=False,
-        )
-
-        factors: dict = {}
-        for sid, raw in mean_response_per_stim.items():
-            corrected = normalized.get(sid, raw)
-            factors[sid] = (corrected / raw) if raw else 1.0
-
-        n_corrected = sum(1 for sid, f in factors.items() if f != 1.0)
-        print(f"Baseline correction: applied non-trivial factor to {n_corrected}/{len(factors)} stims")
-
-        compiled_data = compiled_data.copy()
-        compiled_data['Spike Rate'] = (
-            compiled_data['Spike Rate']
-            * compiled_data['StimSpecId'].map(factors).fillna(1.0)
-        )
-        return compiled_data
 
     def _build_plot_data_from_db(self, compiled_data, response_col_name):
         """Build plot data using included=1 pairs from DB; responses come from compiled_data (current channel)."""
