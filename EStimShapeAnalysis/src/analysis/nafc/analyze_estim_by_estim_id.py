@@ -651,10 +651,25 @@ def plot_pairs_figure(data_exp, ga_conn, variant_to_delta,
 
     noise_levels = sorted(data_exp['NoiseChance'].unique())
 
+    # Removed-as-sample trials carry the variantId in BaseMStickId (same as variant trials),
+    # so without an IsRemovedTrial split they'd contaminate the Variant column. Always apply
+    # the filter; conditionally add a third column when removed trials exist.
+    has_is_removed_col = 'IsRemovedTrial' in data_exp.columns
+    has_removed = has_is_removed_col and (data_exp['IsRemovedTrial'] == True).any()
+    n_cols = 3 if has_removed else 2
+
     n_rows = len(variants_in_data)
-    fig = plt.figure(figsize=(12, 6 * n_rows))
-    gs = GridSpec(n_rows * 2, 2, figure=fig,
+    fig = plt.figure(figsize=(6 * n_cols, 6 * n_rows))
+    gs = GridSpec(n_rows * 2, n_cols, figure=fig,
                   height_ratios=[1, 2] * n_rows, hspace=1.0, wspace=0.3)
+
+    def stim_data_for(stim_id, is_removed):
+        d = data_exp[data_exp['BaseMStickId'] == stim_id]
+        if has_is_removed_col:
+            d = d[d['IsRemovedTrial'] == is_removed]
+        elif is_removed:
+            return d.iloc[0:0].copy()
+        return d.copy()
 
     for pair_idx, variant_id in enumerate(variants_in_data):
         delta_id = variant_to_delta[variant_id]
@@ -685,15 +700,33 @@ def plot_pairs_figure(data_exp, ga_conn, variant_to_delta,
             dtitle += f'\nResponse: {delta_response:.3f}'
         ax_dimg.set_title(dtitle, fontsize=10, fontweight='bold')
 
+        if has_removed:
+            # No standalone thumbnail exists for the deleted-trial sample (generated at trial
+            # time); reuse the variant image so the user has a visual anchor and annotate the
+            # title to make clear what's being shown.
+            ax_rimg = fig.add_subplot(gs[row_start, 2])
+            load_and_display_image(ax_rimg, variant_thumb, variant_response,
+                                   global_min_response, global_max_response,
+                                   border_width, border_color_mode)
+            rtitle = f'Removed (from {variant_id})'
+            if variant_response is not None:
+                rtitle += f'\nVariant response: {variant_response:.3f}'
+            ax_rimg.set_title(rtitle, fontsize=10, fontweight='bold')
+
         # --- Psychometric curves ---
         ax_v = fig.add_subplot(gs[row_start + 1, 0])
         ax_d = fig.add_subplot(gs[row_start + 1, 1])
 
-        for stim_id, ax, label_prefix in [
-            (variant_id, ax_v, 'Variant'),
-            (delta_id,   ax_d, 'Delta'),
-        ]:
-            stim_data = data_exp[data_exp['BaseMStickId'] == stim_id].copy()
+        curve_cols = [
+            (variant_id, ax_v, 'Variant', False),
+            (delta_id,   ax_d, 'Delta',   False),
+        ]
+        if has_removed:
+            ax_r = fig.add_subplot(gs[row_start + 1, 2])
+            curve_cols.append((variant_id, ax_r, 'Removed', True))
+
+        for stim_id, ax, label_prefix, is_removed in curve_cols:
+            stim_data = stim_data_for(stim_id, is_removed)
             on = stim_data[
                 (stim_data['EStimEnabled'] == True) &
                 (stim_data['GenId'] >= start_gen_id_estim_on) &
@@ -737,10 +770,12 @@ def plot_pairs_figure(data_exp, ga_conn, variant_to_delta,
             ax.grid(True, alpha=0.3)
             ax.legend(fontsize=8)
 
-        print(f"Pair {pair_idx + 1}: Variant {variant_id} & Delta {delta_id}")
+        print(f"Pair {pair_idx + 1}: Variant {variant_id} & Delta {delta_id}"
+              + (f" (+ Removed from {variant_id})" if has_removed else ""))
 
+    title_suffix = "Variant-Delta-Removed" if has_removed else "Variant-Delta Pairs"
     fig.suptitle(
-        f'Psychometric Curves: Variant-Delta Pairs (by EStimSpecId) — {isCorrectFieldName}',
+        f'Psychometric Curves: {title_suffix} (by EStimSpecId) — {isCorrectFieldName}',
         fontsize=16, y=0.995
     )
     return fig
