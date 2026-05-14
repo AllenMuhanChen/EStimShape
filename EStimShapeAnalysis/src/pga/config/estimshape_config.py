@@ -63,12 +63,13 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
     def delta_resp_ratio_threshold(self):
         return self.var_fetcher.get("delta_resp_ratio_threshold", dtype=float)
 
-    # def make_response_processor(self) -> GAResponseProcessor:
-    #     return RankBaselineNormalizeResponseProcessor(
-    #         db_util=self.db_util,
-    #         repetition_combination_strategy=mean,
-    #         cluster_combination_strategy=sum
-    #     )
+    def make_response_processor(self) -> GAResponseProcessor:
+        return RankBaselineNormalizeResponseProcessor(
+            db_util=self.db_util,
+            repetition_combination_strategy=mean,
+            cluster_combination_strategy=sum
+        )
+
 class MockGrowingPhaseTransitioner(RegimeTransitioner):
     num_times = 0
     def should_transition(self, lineage: Lineage) -> bool:
