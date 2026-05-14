@@ -2,6 +2,7 @@ from matplotlib import pyplot as plt
 from clat.pipeline.pipeline_base_classes import create_branch, create_pipeline
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
+from src.pga.response_processing import RankBaselineNormalizer
 from src.pga.stim_types import StimType
 from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.repository.import_from_repository import import_from_repository
@@ -19,13 +20,15 @@ def main():
 
     use_ga = False
     channel = "Cluster"
+    use_baseline_correction = False
 
     analysis = PlotVariantDeltas(
         use_ga_response=use_ga,
         to_save_to_db=False,
         delta_threshold=0.6,
         variant_threshold=0.5,
-        plot_mode=PLOT_MODE_DB_INCLUDED,)
+        plot_mode=PLOT_MODE_DB_INCLUDED,
+        use_baseline_correction=use_baseline_correction,)
     compiled_data = None  # Set to None to import from repository
     # compiled_data = analysis.compile_and_export()
     if use_ga:
@@ -39,13 +42,18 @@ def main():
 
 class PlotVariantDeltas(PlotTopNAnalysis):
     def __init__(self, use_ga_response=True, to_save_to_db=False, delta_threshold=0.5,
-                 plot_mode=PLOT_MODE_PASSING, variant_threshold=0.75):
+                 plot_mode=PLOT_MODE_PASSING, variant_threshold=0.75,
+                 use_baseline_correction=False):
         super().__init__()
         self.use_ga_response = use_ga_response
         self.to_save_to_db = to_save_to_db
         self.threshold = delta_threshold
         self.plot_mode = plot_mode
         self.variant_threshold = variant_threshold
+        # Apply rank-based baseline correction to per-channel spike rates.
+        # No-op when use_ga_response=True (GA Response already reflects the
+        # response processor's baseline policy).
+        self.use_baseline_correction = use_baseline_correction
 
     def analyze(self, channel, compiled_data=None):
         if compiled_data is None:
@@ -97,6 +105,10 @@ class PlotVariantDeltas(PlotTopNAnalysis):
                 compiled_data['Spike Rate'] = compiled_data[self.spike_rates_col].apply(
                     lambda x: x[channel] if isinstance(x, dict) and channel in x else 0)
                 print(f"Using channel-specific spike rates for {channel}")
+
+            if self.use_baseline_correction:
+                compiled_data = self._apply_baseline_correction(compiled_data)
+
             response_col_name = 'Spike Rate'
             response_key = channel
 
@@ -111,7 +123,8 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             if plot_data is None:
                 return
 
-        save_path = f"{self.save_path}/{channel_label}_delta_variant_pairs.png"
+        baseline_suffix = "_baseline_corrected" if (self.use_baseline_correction and not self.use_ga_response) else ""
+        save_path = f"{self.save_path}/{channel_label}{baseline_suffix}_delta_variant_pairs.png"
         visualize_params = {
             'cell_size': (200, 200),
             'response_rate_col': response_col_name,
@@ -137,6 +150,47 @@ class PlotVariantDeltas(PlotTopNAnalysis):
 
         if self.to_save_to_db and delta_avg_response is not None:
             self._save_deltas_to_db(delta_avg_response)
+
+    def _apply_baseline_correction(self, compiled_data):
+        """Multiply each trial's 'Spike Rate' by its stim's rank-based baseline factor.
+
+        Per-stim factor is computed from the stim's mean spike rate across trials, then
+        applied uniformly to every trial of that stim. Baseline / catch / regime-zero
+        stims pass through unchanged (see `BaselineNormalizer.SKIP_STIM_TYPES`).
+        """
+        required = {'StimSpecId', 'StimType', 'GenId', 'ParentId', 'Spike Rate'}
+        missing = required - set(compiled_data.columns)
+        if missing:
+            print(f"Baseline correction skipped: missing columns {sorted(missing)}")
+            return compiled_data
+
+        mean_response_per_stim = (
+            compiled_data.groupby('StimSpecId')['Spike Rate'].mean().to_dict()
+        )
+        info = compiled_data.drop_duplicates('StimSpecId').set_index('StimSpecId')
+        stim_types = info['StimType'].to_dict()
+        gen_ids = info['GenId'].to_dict()
+        parent_ids = info['ParentId'].to_dict()
+
+        normalizer = RankBaselineNormalizer()
+        normalized = normalizer.normalize(
+            mean_response_per_stim, stim_types, gen_ids, parent_ids, strict=False,
+        )
+
+        factors: dict = {}
+        for sid, raw in mean_response_per_stim.items():
+            corrected = normalized.get(sid, raw)
+            factors[sid] = (corrected / raw) if raw else 1.0
+
+        n_corrected = sum(1 for sid, f in factors.items() if f != 1.0)
+        print(f"Baseline correction: applied non-trivial factor to {n_corrected}/{len(factors)} stims")
+
+        compiled_data = compiled_data.copy()
+        compiled_data['Spike Rate'] = (
+            compiled_data['Spike Rate']
+            * compiled_data['StimSpecId'].map(factors).fillna(1.0)
+        )
+        return compiled_data
 
     def _build_plot_data_from_db(self, compiled_data, response_col_name):
         """Build plot data using included=1 pairs from DB; responses come from compiled_data (current channel)."""

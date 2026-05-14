@@ -81,65 +81,73 @@ class GAResponseProcessor:
         return driving_responses_for_stim_ids
 
 
-class BaselineNormalizeResponseProcessor(GAResponseProcessor):
-    def process_to_db(self, ga_name: str) -> None:
-        ready_info = self.db_util.read_ready_gas_and_generations_info()
-        current_gen_id = ready_info[ga_name]
-        if current_gen_id == 1:
-            return super().process_to_db(ga_name)  # no normalization for gen 1 since we don't have baselines yet
+class BaselineNormalizer:
+    """
+    In-memory baseline normalization. Pairs Gen-N baseline stims with their
+    Gen-1 (regime-zero) parents by identity.
 
-        # For each stim, combine their cluster responses for each repetition
-        responses_for_each_stim_id = self._process_clusters(ga_name)
-        # remove empty lists (stims with no responses) to avoid issues in the next steps
-        responses_for_each_stim_id = {stim_id: resp for stim_id, resp in responses_for_each_stim_id.items() if resp}
+    Operates purely on dicts so callers can use it outside of the GA pipeline
+    (e.g. analyses that already loaded stim data into a DataFrame). The
+    DB-bound `BaselineNormalizeResponseProcessor` is a thin wrapper around this.
+    """
 
-        # Process repetitions for each stim into driving response
-        driving_response_for_each_stim_id = self._process_repetitions(responses_for_each_stim_id)
+    SKIP_STIM_TYPES = (
+        StimType.BASELINE.value,
+        "CATCH",
+        StimType.REGIME_ZERO.value,
+        StimType.REGIME_ZERO_2D.value,
+    )
 
-        # --- Pass 1: collect per-gen baseline responses keyed by parent_id ---
-        # baselines_by_gen: {gen_id: {parent_id: response}}
+    def normalize(self,
+                  driving_responses: dict[int, float],
+                  stim_types: dict[int, str],
+                  gen_ids: dict[int, int],
+                  parent_ids: dict[int, int],
+                  *,
+                  strict: bool = True) -> dict[int, float]:
+        """
+        Return a new dict of normalized driving responses.
+
+        Baseline, catch, and regime-zero stims pass through unchanged. If no
+        regime-zero parents of baselines are found, raises ValueError when
+        `strict=True`; otherwise returns responses unchanged.
+        """
         baselines_by_gen: dict[int, dict[int, float]] = defaultdict(dict)
-        regime_zero_parent_ids = set()
+        regime_zero_parent_ids: set[int] = set()
 
-        for stim_id, driving_response in driving_response_for_each_stim_id.items():
-            stim_type = self.db_util.read_stim_type(stim_id)
-            gen_id = self.db_util.read_gen_id(stim_id)
+        for stim_id, response in driving_responses.items():
+            if stim_types.get(stim_id) == StimType.BASELINE.value:
+                pid = parent_ids.get(stim_id)
+                gid = gen_ids.get(stim_id)
+                if pid is None or gid is None:
+                    continue
+                baselines_by_gen[gid][pid] = response
+                regime_zero_parent_ids.add(pid)
 
-            if stim_type == StimType.BASELINE.value:
-                stim_info = self.db_util.read_stim_ga_info_entry(stim_id)
-                if stim_info is not None:
-                    baselines_by_gen[gen_id][stim_info.parent_id] = driving_response
-                    regime_zero_parent_ids.add(stim_info.parent_id)
-
-        # --- Pass 2: build gen-1 reference dict from regime-zero parents ---
         gen1_dict: dict[int, float] = {
-            pid: driving_response_for_each_stim_id[pid]
+            pid: driving_responses[pid]
             for pid in regime_zero_parent_ids
-            if pid in driving_response_for_each_stim_id
+            if pid in driving_responses
         }
 
         if not gen1_dict:
-            raise ValueError("No regime-zero parents of baseline stims found; cannot normalize.")
+            if strict:
+                raise ValueError("No regime-zero parents of baseline stims found; cannot normalize.")
+            return dict(driving_responses)
 
-        # --- Pass 3: apply interpolated normalization to experimental stims ---
-        for stim_id in list(driving_response_for_each_stim_id.keys()):
-            stim_type = self.db_util.read_stim_type(stim_id)
-            is_regime_zero = stim_type in (StimType.REGIME_ZERO.value, StimType.REGIME_ZERO_2D.value)
+        result = dict(driving_responses)
+        for stim_id, r in driving_responses.items():
+            stype = stim_types.get(stim_id)
+            if stype in self.SKIP_STIM_TYPES:
+                continue
+            gid = gen_ids.get(stim_id)
+            if gid is None:
+                continue
+            bN_dict = baselines_by_gen.get(gid, {})
+            factor = self._compute_factor(r, gid, bN_dict, baselines_by_gen, gen1_dict)
+            result[stim_id] = r * factor
 
-            if stim_type in (StimType.BASELINE.value, "CATCH") or is_regime_zero:
-                continue  # leave baseline, catch, and regime-zero stims unnormalized
-
-            gen_id = self.db_util.read_gen_id(stim_id)
-            r = driving_response_for_each_stim_id[stim_id]
-            bN_dict = baselines_by_gen.get(gen_id, {})
-            factor = self._compute_factor(r, gen_id, bN_dict, baselines_by_gen, gen1_dict)
-            driving_response_for_each_stim_id[stim_id] *= factor
-
-        # Write processed responses to database
-        stim_ids_to_update = self.db_util.read_stims_with_no_driving_response()
-        for stim_id in stim_ids_to_update:
-            if stim_id in driving_response_for_each_stim_id:
-                self.db_util.update_driving_response(stim_id, float(driving_response_for_each_stim_id[stim_id]))
+        return result
 
     @staticmethod
     def _interpolated_factor(r: float,
@@ -158,12 +166,12 @@ class BaselineNormalizeResponseProcessor(GAResponseProcessor):
         common = sorted(set(bN_dict) & set(gen1_dict))
         if len(common) < 2:
             return 1.0
-        bN_arr   = np.array([bN_dict[p]   for p in common])
-        gen1_arr = np.array([gen1_dict[p]  for p in common])
-        sort_N       = np.argsort(bN_arr)
-        bN_sorted    = bN_arr[sort_N]
-        gen1_sorted  = gen1_arr[sort_N]
-        factors      = gen1_sorted / bN_sorted
+        bN_arr = np.array([bN_dict[p] for p in common])
+        gen1_arr = np.array([gen1_dict[p] for p in common])
+        sort_N = np.argsort(bN_arr)
+        bN_sorted = bN_arr[sort_N]
+        gen1_sorted = gen1_arr[sort_N]
+        factors = gen1_sorted / bN_sorted
         return float(np.interp(r, bN_sorted, factors))
 
     def _compute_factor(self, r: float, gen_id: int, bN_dict: dict[int, float],
@@ -171,21 +179,10 @@ class BaselineNormalizeResponseProcessor(GAResponseProcessor):
                         gen1_dict: dict[int, float]) -> float:
         return self._interpolated_factor(r, bN_dict, gen1_dict)
 
-    def _process_clusters(self, ga_name) -> dict[int, list[float]]:
-        stims_to_process = self.db_util.read_all_stims()
 
-        response_vector_for_each_stim: dict[int, list[float]] = {}
-        for stim_id in stims_to_process:
-            responses_for_stim_id = self.fetch_response_vector_for_repetitions_of(stim_id, ga_name=ga_name)
-
-            response_vector_for_each_stim[stim_id] = responses_for_stim_id
-
-        return response_vector_for_each_stim
-
-
-class RankBaselineNormalizeResponseProcessor(BaselineNormalizeResponseProcessor):
+class RankBaselineNormalizer(BaselineNormalizer):
     """
-    Normalizes GA responses using baseline stimuli paired by rank rather than identity.
+    Normalizes responses using baseline stimuli paired by rank rather than identity.
 
     Baseline responses in Gen N and Gen 1 are each sorted independently by response
     magnitude and paired position-by-position (lowest↔lowest, highest↔highest).
@@ -216,12 +213,72 @@ class RankBaselineNormalizeResponseProcessor(BaselineNormalizeResponseProcessor)
                              gen1_dict: dict[int, float]) -> float:
         if r == 0:
             return 1.0
-        bN_sorted   = np.sort(list(bN_dict.values()))
+        bN_sorted = np.sort(list(bN_dict.values()))
         gen1_sorted = np.sort(list(gen1_dict.values()))
         n = min(len(bN_sorted), len(gen1_sorted))
         if n < 2:
             return 1.0
-        bN_sorted   = bN_sorted[:n]
+        bN_sorted = bN_sorted[:n]
         gen1_sorted = gen1_sorted[:n]
-        factors     = gen1_sorted / bN_sorted
+        factors = gen1_sorted / bN_sorted
         return float(np.interp(r, bN_sorted, factors))
+
+
+class BaselineNormalizeResponseProcessor(GAResponseProcessor):
+    normalizer_cls: type[BaselineNormalizer] = BaselineNormalizer
+
+    def process_to_db(self, ga_name: str) -> None:
+        ready_info = self.db_util.read_ready_gas_and_generations_info()
+        current_gen_id = ready_info[ga_name]
+        if current_gen_id == 1:
+            return super().process_to_db(ga_name)  # no normalization for gen 1 since we don't have baselines yet
+
+        # For each stim, combine their cluster responses for each repetition
+        responses_for_each_stim_id = self._process_clusters(ga_name)
+        # remove empty lists (stims with no responses) to avoid issues in the next steps
+        responses_for_each_stim_id = {stim_id: resp for stim_id, resp in responses_for_each_stim_id.items() if resp}
+
+        # Process repetitions for each stim into driving response
+        driving_response_for_each_stim_id = self._process_repetitions(responses_for_each_stim_id)
+
+        # Pull per-stim metadata needed by the normalizer
+        stim_types: dict[int, str] = {}
+        gen_ids: dict[int, int] = {}
+        parent_ids: dict[int, int] = {}
+        for stim_id in driving_response_for_each_stim_id:
+            stim_types[stim_id] = self.db_util.read_stim_type(stim_id)
+            gen_ids[stim_id] = self.db_util.read_gen_id(stim_id)
+            info = self.db_util.read_stim_ga_info_entry(stim_id)
+            if info is not None:
+                parent_ids[stim_id] = info.parent_id
+
+        normalizer = self.normalizer_cls()
+        normalized = normalizer.normalize(
+            driving_response_for_each_stim_id,
+            stim_types,
+            gen_ids,
+            parent_ids,
+            strict=True,
+        )
+
+        # Write processed responses to database
+        stim_ids_to_update = self.db_util.read_stims_with_no_driving_response()
+        for stim_id in stim_ids_to_update:
+            if stim_id in normalized:
+                self.db_util.update_driving_response(stim_id, float(normalized[stim_id]))
+
+    def _process_clusters(self, ga_name) -> dict[int, list[float]]:
+        stims_to_process = self.db_util.read_all_stims()
+
+        response_vector_for_each_stim: dict[int, list[float]] = {}
+        for stim_id in stims_to_process:
+            responses_for_stim_id = self.fetch_response_vector_for_repetitions_of(stim_id, ga_name=ga_name)
+
+            response_vector_for_each_stim[stim_id] = responses_for_stim_id
+
+        return response_vector_for_each_stim
+
+
+class RankBaselineNormalizeResponseProcessor(BaselineNormalizeResponseProcessor):
+    """DB-bound wrapper around `RankBaselineNormalizer`."""
+    normalizer_cls = RankBaselineNormalizer
