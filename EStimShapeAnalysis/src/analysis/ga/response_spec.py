@@ -24,12 +24,15 @@ class PreparedResponses:
             modules that index by key. ``None`` for GA.
         channel: Resolved channel spec ("Cluster" expanded to the channel list).
         channel_label: Human-readable label suitable for filenames / titles.
+        baseline_suffix: Filename suffix reflecting whether baseline correction
+            was applied (empty string if not). Concatenate after `channel_label`.
     """
     data: pd.DataFrame
     response_col: str
     response_key: Optional[ChannelSpec]
     channel: ChannelSpec
     channel_label: str
+    baseline_suffix: str = ""
 
 
 class ResponseSpec:
@@ -96,6 +99,7 @@ class ResponseSpec:
             response_key=None,
             channel=self.GA,
             channel_label=self.GA,
+            baseline_suffix=self.baseline_suffix,
         )
 
     def _apply_channel(self, compiled_data: pd.DataFrame,
@@ -132,6 +136,7 @@ class ResponseSpec:
             response_key=channel,
             channel=channel,
             channel_label=channel_label,
+            baseline_suffix=self.baseline_suffix,
         )
 
     def _resolve_channel(self) -> tuple[ChannelSpec, str]:

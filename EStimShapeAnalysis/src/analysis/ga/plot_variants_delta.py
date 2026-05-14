@@ -44,16 +44,12 @@ class PlotVariantDeltas(PlotTopNAnalysis):
     def __init__(self, use_ga_response=True, to_save_to_db=False, delta_threshold=0.5,
                  plot_mode=PLOT_MODE_PASSING, variant_threshold=0.75,
                  use_baseline_correction=False):
-        super().__init__()
+        super().__init__(use_baseline_correction=use_baseline_correction)
         self.use_ga_response = use_ga_response
         self.to_save_to_db = to_save_to_db
         self.threshold = delta_threshold
         self.plot_mode = plot_mode
         self.variant_threshold = variant_threshold
-        # Apply rank-based baseline correction to per-channel spike rates.
-        # No-op when use_ga_response=True (GA Response already reflects the
-        # response processor's baseline policy).
-        self.use_baseline_correction = use_baseline_correction
 
     def analyze(self, channel, compiled_data=None):
         if compiled_data is None:
@@ -88,7 +84,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             if plot_data is None:
                 return
 
-        save_path = f"{self.save_path}/{channel_label}{spec.baseline_suffix}_delta_variant_pairs.png"
+        save_path = f"{self.save_path}/{channel_label}{prepared.baseline_suffix}_delta_variant_pairs.png"
         visualize_params = {
             'cell_size': (200, 200),
             'response_rate_col': response_col_name,

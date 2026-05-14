@@ -52,9 +52,17 @@ def main():
 class PlotTopNAnalysis(Analysis):
     logging_path = context.logging_path
 
+    def __init__(self, use_baseline_correction: bool = False):
+        super().__init__()
+        # Apply rank-based baseline correction to per-channel spike rates.
+        # Silently a no-op in GA mode (the precomputed GA Response already
+        # reflects whichever baseline policy the response processor used).
+        # Subclasses just forward this through `super().__init__` to expose it.
+        self.use_baseline_correction = use_baseline_correction
+
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
         spec_channel = ResponseSpec.GA if self.using_ga_response() else channel
-        spec = ResponseSpec(spec_channel)
+        spec = ResponseSpec(spec_channel, use_baseline_correction=self.use_baseline_correction)
         prepared = spec.apply(compiled_data, spike_rates_col=self.spike_rates_col)
         compiled_data = prepared.data
 
@@ -91,7 +99,7 @@ class PlotTopNAnalysis(Analysis):
             filter_values={"Lineage": get_top_n_lineages(compiled_data, 4),
                            "RankWithinLineage": range(1, 21)},  # only show top 20 per lineage
             sort_rules={"RankWithinLineage": "ascending"},  # sort by rank within lineage
-            save_path=f"{self.save_path}/{prepared.channel_label}_plot_top_n.png",
+            save_path=f"{self.save_path}/{prepared.channel_label}{prepared.baseline_suffix}_plot_top_n.png",
             publish_mode=True,
             subplot_spacing=(20, 0),
             module_name="plot_top_n",
