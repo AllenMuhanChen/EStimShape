@@ -61,8 +61,7 @@ class PlotTopNAnalysis(Analysis):
         self.use_baseline_correction = use_baseline_correction
 
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
-        spec_channel = ResponseSpec.GA if self.using_ga_response() else channel
-        spec = ResponseSpec(spec_channel, use_baseline_correction=self.use_baseline_correction)
+        spec = ResponseSpec(channel, use_baseline_correction=self.use_baseline_correction)
         prepared = spec.apply(compiled_data, spike_rates_col=self.spike_rates_col)
         compiled_data = prepared.data
 
@@ -181,10 +180,6 @@ class PlotTopNAnalysis(Analysis):
         # Remove Catch
         data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['ThumbnailPath'].apply(lambda x: x is not None)]
         return data_for_all_tasks
-
-    def using_ga_response(self):
-        return self.response_table == None
-
 
 def rank_within_lineage(compiled_data: pd.DataFrame, response_col: str) -> pd.DataFrame:
     """Add RankWithinLineage column based on the mean of `response_col` per (Lineage, StimSpecId).

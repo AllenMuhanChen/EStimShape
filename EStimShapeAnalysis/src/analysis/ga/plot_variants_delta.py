@@ -18,12 +18,10 @@ PLOT_MODE_DB_INCLUDED = 'db_included'  # Show exactly the stims with included=1 
 
 def main():
 
-    use_ga = False
-    channel = "Cluster"
+    channel = "Cluster"  # "GA" for GA Response, "Cluster" for current cluster, single channel name, or list
     use_baseline_correction = False
 
     analysis = PlotVariantDeltas(
-        use_ga_response=use_ga,
         to_save_to_db=False,
         delta_threshold=0.6,
         variant_threshold=0.5,
@@ -31,25 +29,23 @@ def main():
         use_baseline_correction=use_baseline_correction,)
     compiled_data = None  # Set to None to import from repository
     # compiled_data = analysis.compile_and_export()
-    if use_ga:
-        channel = "GA"
-        data_type= "GA"
-    else:
-        data_type = "raw"
+    data_type = "GA" if channel == "GA" else "raw"
     (session_id, _) = read_session_id_and_date_from_db_name(context.ga_database)
     analysis.run(session_id, data_type, channel, compiled_data=compiled_data)
 
 
 class PlotVariantDeltas(PlotTopNAnalysis):
-    def __init__(self, use_ga_response=True, to_save_to_db=False, delta_threshold=0.5,
+    def __init__(self, to_save_to_db=False, delta_threshold=0.5,
                  plot_mode=PLOT_MODE_PASSING, variant_threshold=0.75,
                  use_baseline_correction=False):
         super().__init__(use_baseline_correction=use_baseline_correction)
-        self.use_ga_response = use_ga_response
         self.to_save_to_db = to_save_to_db
         self.threshold = delta_threshold
         self.plot_mode = plot_mode
         self.variant_threshold = variant_threshold
+        # Set by analyze() from the channel arg; internal helpers read this
+        # to switch between per-stim (GA) and per-trial (channel) dedup logic.
+        self.use_ga_response: bool = False
 
     def analyze(self, channel, compiled_data=None):
         if compiled_data is None:
@@ -60,13 +56,13 @@ class PlotVariantDeltas(PlotTopNAnalysis):
                 self.response_table
             )
 
-        spec_channel = ResponseSpec.GA if self.use_ga_response else channel
-        spec = ResponseSpec(spec_channel, use_baseline_correction=self.use_baseline_correction)
+        spec = ResponseSpec(channel, use_baseline_correction=self.use_baseline_correction)
         try:
             prepared = spec.apply(compiled_data, spike_rates_col=self.spike_rates_col)
         except ValueError as exc:
             print(f"Error: {exc}")
             return
+        self.use_ga_response = spec.use_ga_response
         compiled_data = prepared.data
         channel = prepared.channel
         channel_label = prepared.channel_label
