@@ -868,14 +868,17 @@ def plot_rand_choice_panel(ax, stim_subset, estim_off_data, spec_ids, noise_leve
 def plot_removed_choice_panel(ax, stim_subset, estim_off_data, spec_ids, noise_levels,
                               title, global_test_side, n_permutations=1000,
                               combine_sample_lengths=False, combine_spec_ids=False):
-    """Tracks how often the monkey picked the "_removed" choice tile. Dilutes to 0 for
-    trials that didn't offer a removed choice (e.g. variant/delta trials with
-    includeRemovedChoice=false), which is the same dilution semantics as %Rand handles."""
+    """Tracks how often the monkey picked a *removed-component shape*. That covers two cases:
+    (1) a tile labeled "_removed" was selected in a variant/delta trial that offered the
+    removed-component shape as a distractor, and (2) "match" was selected in a removed-as-sample
+    trial — there the match tile IS the removed shape, just labeled "_match" by the renderer.
+    Dilutes to 0 for trials that offered neither, same semantics as %Rand."""
     METRIC = 'IsRemoved'
 
     def inject_is_removed(df):
         d = df.copy()
-        d[METRIC] = d['Choice'] == 'removed'
+        is_removed_match = (d['Choice'] == 'match') & (d.get('IsRemovedTrial', False) == True)
+        d[METRIC] = (d['Choice'] == 'removed') | is_removed_match
         return d
 
     off_data = inject_is_removed(estim_off_data)
