@@ -35,16 +35,16 @@ def main():
 
 
     # compiled_data = compile_and_export()
-    analysis = PlotTopNAnalysis()
+    analysis = PlotTopNAnalysis(use_baseline_correction=False)
     compiled_data = None
     # compiled_data = analysis.compile_and_export()
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     # session_id = "260327_0"
     # channel = ["A-009", "A-000", "A-006", "A-009", "A-015", "A-022", "A-024"]
-    channel = "GA"
+    channel = "Cluster"
     # channel = read_cluster_channels(session_id)
     # channel = "A-028"
-    analysis.run(session_id, "GA", channel, compiled_data=compiled_data)
+    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
 
     
 
@@ -71,7 +71,8 @@ class PlotTopNAnalysis(Analysis):
             )
 
         compiled_data = rank_within_lineage(compiled_data, prepared.response_col)
-
+        #remove baseline
+        compiled_data = compiled_data[compiled_data['StimType']!='BASELINE']
         return self.analyze_one_channel(prepared, compiled_data)
 
 

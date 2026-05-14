@@ -252,7 +252,7 @@ class GrowingPhaseTransitioner(RegimeTransitioner):
         self.min_num_generations = min_num_generations
         self.change = None
         self.peak_responses = None
-        self.override = False
+        self.override = True
         # self.override = True #ALLEN 260408 TO GET PAST GIZMO ALMOST BEING DONE WORKING
     def should_transition(self, lineage):
 
