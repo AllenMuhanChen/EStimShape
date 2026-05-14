@@ -120,7 +120,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             return None, None
 
         print(f"Found {len(included_pairs)} DB-included pairs")
-        included_pairs['Rank'] = included_pairs['Ratio'].rank(ascending=False, method='first')
+        included_pairs['Rank'] = included_pairs['Ratio'].rank(ascending=True, method='first')
 
         delta_ids = included_pairs['StimSpecId'].unique()
         deltas_raw = compiled_data[compiled_data['StimSpecId'].isin(delta_ids)].copy()
@@ -265,7 +265,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             print("No pairs to plot!")
             return None, None, delta_avg_response
 
-        plot_subset['Rank'] = plot_subset['Ratio'].rank(ascending=False, method='first')
+        plot_subset['Rank'] = plot_subset['Ratio'].rank(ascending=True, method='first')
 
         # Build delta rows for plot
         plot_delta_ids = plot_subset['StimSpecId'].unique()
