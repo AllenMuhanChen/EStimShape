@@ -4,6 +4,7 @@ import pandas as pd
 from clat.util.connection import Connection
 from src.analysis import Analysis
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
+from src.analysis.ga.response_spec import ResponseSpec
 from src.repository.good_channels import read_cluster_channels
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
@@ -16,7 +17,8 @@ def main():
 
     for session_id in session_ids:
         channels = read_cluster_channels(session_id)
-        analysis.run(session_id, "raw", channels, compiled_data=None)
+        data_type = "GA" if channels == "GA" else "raw"
+        analysis.run(session_id, data_type, channels, compiled_data=None)
 
 
 
@@ -58,25 +60,16 @@ class GALineageScoreAnalysis(PlotTopNAnalysis):
         - m_i = max response for lineage i
         - score = sum(m_i / M) across all lineages with more than one stimulus
         """
-        # Extract/sum responses across channels
-        if isinstance(channel, list):
-            # Sum responses from multiple channels
-            def sum_channels(x):
-                if not isinstance(x, dict):
-                    return 0
-                total = 0
-                for ch in channel:
-                    total += x.get(ch, 0)
-                return total
+        spec = ResponseSpec(channel, use_baseline_correction=self.use_baseline_correction)
+        try:
+            prepared = spec.apply(compiled_data, spike_rates_col=self.spike_rates_col)
+        except ValueError as exc:
+            print(f"Error: {exc}")
+            return 0.0
+        compiled_data = prepared.data
+        response_col = prepared.response_col
 
-            compiled_data['Response'] = compiled_data[self.spike_rates_col].apply(sum_channels)
-        else:
-            # Single channel extraction
-            compiled_data['Response'] = compiled_data[self.spike_rates_col].apply(
-                lambda x: x[channel] if isinstance(x, dict) and channel in x else 0
-            )
-
-        # Filter out lineages with only one stimulus
+        # Filter out lineages with too few stimuli
         lineage_stim_counts = compiled_data.groupby('Lineage')['StimSpecId'].nunique()
         valid_lineages = lineage_stim_counts[lineage_stim_counts > 10].index
         compiled_data = compiled_data[compiled_data['Lineage'].isin(valid_lineages)]
@@ -85,20 +78,13 @@ class GALineageScoreAnalysis(PlotTopNAnalysis):
             print(f"Warning: No lineages with more than one stimulus for session {self.session_id}")
             return 0.0
 
-        # Calculate M: absolute max response across entire experiment (only valid lineages)
-        M = compiled_data['Response'].max()
-
+        M = compiled_data[response_col].max()
         if M == 0:
             print(f"Warning: Maximum response is 0 for session {self.session_id}")
             return 0.0
 
-        # Calculate m_i: max response for each lineage
-        lineage_max_responses = compiled_data.groupby('Lineage')['Response'].max()
-
-        # Calculate sum(m_i / M)
-        lineage_score = (lineage_max_responses / M).sum()
-        lineage_score = lineage_score / len(valid_lineages)
-
+        lineage_max_responses = compiled_data.groupby('Lineage')[response_col].max()
+        lineage_score = (lineage_max_responses / M).sum() / len(valid_lineages)
         return float(lineage_score)
 
     def _store_lineage_score(self, lineage_score: float):

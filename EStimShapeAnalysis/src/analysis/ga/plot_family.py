@@ -14,7 +14,8 @@ from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, Regi
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
     IntanSpikeRateByChannelField
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
-from src.analysis.ga.plot_top_n import PlotTopNAnalysis, add_lineage_rank_to_df
+from src.analysis.ga.plot_top_n import PlotTopNAnalysis, rank_within_lineage
+from src.analysis.ga.response_spec import ResponseSpec
 from src.intan.MultiFileParser import MultiFileParser
 from src.repository.export_to_repository import export_to_repository, read_session_id_and_date_from_db_name
 from src.repository.good_channels import read_cluster_channels
@@ -31,7 +32,8 @@ def main():
     # channels = "A-020"
     channels = read_cluster_channels(session_id)
 
-    analysis.run(session_id, "raw", channels, compiled_data=compiled_data)
+    data_type = "GA" if channels == "GA" else "raw"
+    analysis.run(session_id, data_type, channels, compiled_data=compiled_data)
 
 
 class PlotFamilyAnalysis(PlotTopNAnalysis):
@@ -52,46 +54,39 @@ class PlotFamilyAnalysis(PlotTopNAnalysis):
                 self.response_table
             )
 
-        # Add spike rate column for the specified channel(s)
-        compiled_data = add_lineage_rank_to_df(compiled_data, self.spike_rates_col, channel)
+        spec = ResponseSpec(channel, use_baseline_correction=self.use_baseline_correction)
+        try:
+            prepared = spec.apply(compiled_data, spike_rates_col=self.spike_rates_col)
+        except ValueError as exc:
+            print(f"Error: {exc}")
+            return
+        compiled_data = rank_within_lineage(prepared.data, prepared.response_col)
 
-        # Get top N stimuli based on response rate
-        top_n = 10  # Number of top stimuli to show
-        top_stimuli = get_top_n_stimuli(compiled_data, top_n)
-
+        top_n = 10
+        top_stimuli = get_top_n_stimuli(compiled_data, top_n, prepared.response_col)
         print(f"Found {len(top_stimuli)} top stimuli: {top_stimuli}")
 
-        # Build family tree data
         family_data = build_family_tree_data(compiled_data, top_stimuli)
-
         print(f"Built family tree with {len(family_data)} total rows")
         print(f"Number of families: {family_data['FamilyId'].nunique() if not family_data.empty else 0}")
 
-        # Generate appropriate filename based on channel type
-        if isinstance(channel, list):
-            channel_str = f"{len(channel)}_channels"
-            response_key = channel
-        else:
-            channel_str = channel
-            response_key = channel
-
-        # Create visualization module
-        visualize_module = create_grouped_stimuli_module(
-            response_rate_col=self.spike_rates_col,
-            response_rate_key=response_key,
+        viz_kwargs = dict(
+            response_rate_col=prepared.response_col,
             path_col='ThumbnailPath',
             row_col='FamilyId',
             col_col='PositionInFamily',
             title=f'Top {top_n} Stimuli Families',
-            save_path=f"{self.save_path}/{channel_str}_plot_family.png",
+            save_path=f"{self.save_path}/{prepared.channel_label}{prepared.baseline_suffix}_plot_family.png",
             publish_mode=False,
             save_pdf=True,
             subplot_spacing=(20, 0),
             module_name="plot_family",
-            border_width=50
+            border_width=50,
         )
+        if prepared.response_key is not None:
+            viz_kwargs['response_rate_key'] = prepared.response_key
+        visualize_module = create_grouped_stimuli_module(**viz_kwargs)
 
-        # Create and run pipeline
         pipeline = create_pipeline().then(visualize_module).build()
         result = pipeline.run(family_data)
 
@@ -167,23 +162,10 @@ def compile_data_with_parent(conn: Connection) -> pd.DataFrame:
     return data
 
 
-def get_top_n_stimuli(compiled_data: pd.DataFrame, n: int) -> list:
-    """
-    Get the top N stimuli by average spike rate.
-
-    Args:
-        compiled_data: DataFrame with 'Spike Rate' column already added
-        n: Number of top stimuli to return
-
-    Returns:
-        List of StimSpecIds for the top N stimuli
-    """
-    # Calculate average response rate for each StimSpecId
-    avg_response = compiled_data.groupby('StimSpecId')['Spike Rate'].mean().reset_index()
-
-    # Sort by response rate and get top N
-    top_n = avg_response.nlargest(n, 'Spike Rate')
-
+def get_top_n_stimuli(compiled_data: pd.DataFrame, n: int, response_col: str = 'Spike Rate') -> list:
+    """Get the top N stimuli by mean of `response_col` per StimSpecId."""
+    avg_response = compiled_data.groupby('StimSpecId')[response_col].mean().reset_index()
+    top_n = avg_response.nlargest(n, response_col)
     return top_n['StimSpecId'].tolist()
 
 

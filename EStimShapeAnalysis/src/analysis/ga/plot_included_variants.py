@@ -2,6 +2,7 @@ from matplotlib import pyplot as plt
 
 from clat.pipeline.pipeline_base_classes import create_branch, create_pipeline
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
+from src.analysis.ga.response_spec import ResponseSpec
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
@@ -14,7 +15,8 @@ def main():
     compiled_data = analysis.compile()
     session_id = "260421_0"
     channel = "GA"
-    analysis.run(session_id, "GA", channel, compiled_data=compiled_data)
+    data_type = "GA" if channel == "GA" else "raw"
+    analysis.run(session_id, data_type, channel, compiled_data=compiled_data)
 
 
 class PlotIncludedVariants(PlotTopNAnalysis):
@@ -27,31 +29,33 @@ class PlotIncludedVariants(PlotTopNAnalysis):
                 self.response_table
             )
 
-        compiled_data = compiled_data[compiled_data[self.spike_rates_col].notna()]
-        compiled_data['Spike Rate'] = compiled_data[self.spike_rates_col].apply(
-            lambda x: x[channel] if channel in x else 0)
+        spec = ResponseSpec(channel, use_baseline_correction=self.use_baseline_correction)
+        try:
+            prepared = spec.apply(compiled_data, spike_rates_col=self.spike_rates_col)
+        except ValueError as exc:
+            print(f"Error: {exc}")
+            return
+        compiled_data = prepared.data
+        response_col = prepared.response_col
 
         # Get included variants from database
         included_stim_ids = self._get_included_variants_from_db()
-
         if not included_stim_ids:
             print("No included variants found in IncludedVariants table!")
             return
-
         print(f"Found {len(included_stim_ids)} included variants in database")
 
         # Filter compiled_data to only include these variants
         included_data = compiled_data[
             compiled_data['StimSpecId'].isin(included_stim_ids)
         ].copy()
-
         if included_data.empty:
             print("No matching data found for included variants!")
             return
 
         # Calculate average response and rank
-        avg_response = included_data.groupby('StimSpecId')['Spike Rate'].mean().reset_index()
-        avg_response.rename(columns={'Spike Rate': 'Avg Response Rate'}, inplace=True)
+        avg_response = included_data.groupby('StimSpecId')[response_col].mean().reset_index()
+        avg_response.rename(columns={response_col: 'Avg Response Rate'}, inplace=True)
         avg_response['Rank'] = avg_response['Avg Response Rate'].rank(
             ascending=False, method='first')
 
@@ -64,17 +68,18 @@ class PlotIncludedVariants(PlotTopNAnalysis):
 
         print(f"Plotting {len(included_data)} included variant presentations")
 
-        # Create visualization - single row, sorted by rank
-        visualize_module = create_grouped_stimuli_module(
+        viz_kwargs = dict(
             cell_size=(200, 200),
-            response_rate_col=self.spike_rates_col,
-            response_rate_key=channel,
+            response_rate_col=response_col,
             path_col='ThumbnailPath',
             col_col='Rank',
-            save_path=f"{self.save_path}/{channel}_included_variants.png",
+            save_path=f"{self.save_path}/{prepared.channel_label}{prepared.baseline_suffix}_included_variants.png",
             module_name="Included_Variants",
             publish_mode=False,
         )
+        if prepared.response_key is not None:
+            viz_kwargs['response_rate_key'] = prepared.response_key
+        visualize_module = create_grouped_stimuli_module(**viz_kwargs)
 
         visualize_branch = create_branch().then(visualize_module)
         pipeline = create_pipeline().make_branch(visualize_branch).build()

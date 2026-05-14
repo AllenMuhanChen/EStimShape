@@ -2,6 +2,7 @@ from matplotlib import pyplot as plt
 
 from clat.pipeline.pipeline_base_classes import create_branch, create_pipeline
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
+from src.analysis.ga.response_spec import ResponseSpec
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.pga.estim_phase import has_preservation_history
 from src.pga.stim_types import StimType
@@ -12,26 +13,20 @@ import pandas as pd
 
 
 def main():
-    analysis = PlotVariants(use_ga_response=True,
-                            save_included_variants=False)  # Set to False to use channel-specific spike rates
+    channel = "GA"  # "GA", "Cluster", a single channel name, or a list of channel names
+    analysis = PlotVariants(save_included_variants=False)
     compiled_data = None
     # compiled_data = analysis.compile_and_export()
     session_id = "260512_0"
-    channel = "GA"
-    analysis.run(session_id, "GA", channel, compiled_data=compiled_data)
+    data_type = "GA" if channel == "GA" else "raw"
+    analysis.run(session_id, data_type, channel, compiled_data=compiled_data)
 
 
 class PlotVariants(PlotTopNAnalysis):
     threshold = 0.75
-    def __init__(self, use_ga_response=True, save_included_variants=False):
-        """
-        Initialize PlotVariants analysis.
 
-        Args:
-            use_ga_response: If True, use 'GA Response' column. If False, use channel-specific spike rates.
-        """
-        super().__init__()
-        self.use_ga_response = use_ga_response
+    def __init__(self, save_included_variants=False, use_baseline_correction=False):
+        super().__init__(use_baseline_correction=use_baseline_correction)
         self.save_included_variants = save_included_variants
 
     def analyze(self, channel, compiled_data=None):
@@ -43,53 +38,26 @@ class PlotVariants(PlotTopNAnalysis):
                 self.response_table
             )
 
-        # Setup response column based on mode
-        if self.use_ga_response:
-            if 'GA Response' not in compiled_data.columns:
-                print("Error: 'GA Response' column not found in data!")
-                print(f"Available columns: {compiled_data.columns.tolist()}")
-                return
-
-            compiled_data = compiled_data[compiled_data['GA Response'].notna()]
-            response_col = 'GA Response'
-            response_key = None
-            print(f"Using GA Response (not channel-specific)")
-        else:
-            compiled_data = compiled_data[compiled_data[self.spike_rates_col].notna()]
-            compiled_data['Spike Rate'] = compiled_data[self.spike_rates_col].apply(
-                lambda x: x[channel] if channel in x else 0)
-            response_col = self.spike_rates_col
-            response_key = channel
-            print(f"Using channel-specific spike rates for {channel}")
+        spec = ResponseSpec(channel, use_baseline_correction=self.use_baseline_correction)
+        try:
+            prepared = spec.apply(compiled_data, spike_rates_col=self.spike_rates_col)
+        except ValueError as exc:
+            print(f"Error: {exc}")
+            return
+        compiled_data = prepared.data
+        response_col = prepared.response_col
 
         # Find lineages with more than 10 stimuli
         lineage_counts = compiled_data['Lineage'].value_counts()
         top_lineages = lineage_counts[lineage_counts > 10].index
-
         print(f"Top {len(top_lineages)} lineages: {top_lineages.tolist()}")
 
         # Filter for variants only
         variants_data = self.filter_for_variants(compiled_data)
-        # variants_data = compiled_data[
-        #     (compiled_data['CompsToPreserve'].apply(lambda x: x != []))
-
-            #& (compiled_data['StimType'] != "REGIME_ESTIM_DELTA")
-            # ]
-        # Get response values for grouping
-        if self.use_ga_response:
-            response_values = variants_data['GA Response']
-        else:
-            response_values = variants_data['Spike Rate']
 
         # Calculate average response rate and rank for variants
-        avg_response = variants_data.groupby(['GenId', 'StimSpecId', 'Lineage'])[
-            'GA Response' if self.use_ga_response else 'Spike Rate'
-        ].mean().reset_index()
-
-        avg_response.rename(
-            columns={'GA Response' if self.use_ga_response else 'Spike Rate': 'Avg Response Rate'},
-            inplace=True
-        )
+        avg_response = variants_data.groupby(['GenId', 'StimSpecId', 'Lineage'])[response_col].mean().reset_index()
+        avg_response.rename(columns={response_col: 'Avg Response Rate'}, inplace=True)
         avg_response['Rank'] = avg_response.groupby('Lineage')['Avg Response Rate'].rank(
             ascending=False, method='first')
 
@@ -99,8 +67,6 @@ class PlotVariants(PlotTopNAnalysis):
             on=['GenId', 'StimSpecId', 'Lineage'],
             how='left'
         )
-
-        # Add RowType for variants
         variants_data['RowType'] = 'Variant'
 
         # DEBUG: Check parent IDs
@@ -109,10 +75,8 @@ class PlotVariants(PlotTopNAnalysis):
         print(f"Number of unique ParentIds in variants: {len(parent_ids)}")
         print(f"Sample ParentIds: {parent_ids[:5]}")
 
-        # Check if these parent IDs exist in compiled_data
         matching_parents = compiled_data[compiled_data['StimSpecId'].isin(parent_ids)]
         print(f"Number of matching parents found in compiled_data: {len(matching_parents)}")
-
         if matching_parents.empty:
             print("\nChecking why no parents found...")
             print(f"Sample StimSpecIds in compiled_data: {compiled_data['StimSpecId'].head(10).tolist()}")
@@ -121,12 +85,9 @@ class PlotVariants(PlotTopNAnalysis):
         # Get parent information for each variant
         parent_rows = []
         parents_data = compiled_data[compiled_data['StimSpecId'].isin(parent_ids)].copy()
-
-        # For each variant rank, duplicate parent at same position
         for _, variant in variants_data.iterrows():
             parent_id = variant['ParentId']
             matching_parents = parents_data[parents_data['StimSpecId'] == parent_id]
-
             if not matching_parents.empty:
                 parent_row = matching_parents.iloc[0].copy()
                 parent_row['Rank'] = variant['Rank']
@@ -142,7 +103,6 @@ class PlotVariants(PlotTopNAnalysis):
             print("No parent data found - plotting variants only")
             plot_data = variants_data
 
-        # Create visualization with row_col for two rows
         visualize_params = {
             'cell_size': (200, 200),
             'response_rate_col': response_col,
@@ -150,28 +110,22 @@ class PlotVariants(PlotTopNAnalysis):
             'row_col': 'RowType',
             'col_col': 'Rank',
             'subgroup_col': 'Lineage',
-            'filter_values': {
-                "Lineage": top_lineages.tolist(),
-            },
-            'save_path': f"{self.save_path}/{channel}_variants_with_parents.png",
+            'filter_values': {"Lineage": top_lineages.tolist()},
+            'save_path': f"{self.save_path}/{prepared.channel_label}{prepared.baseline_suffix}_variants_with_parents.png",
             'module_name': "Variants_With_Parents",
             'publish_mode': False,
             'border_width': 50,
         }
-
-        # Add response_rate_key only if using channel-specific mode
-        if not self.use_ga_response:
-            visualize_params['response_rate_key'] = response_key
+        if prepared.response_key is not None:
+            visualize_params['response_rate_key'] = prepared.response_key
 
         visualize_module = create_grouped_stimuli_module(**visualize_params)
-
         visualize_branch = create_branch().then(visualize_module)
         pipeline = create_pipeline().make_branch(visualize_branch).build()
         result = pipeline.run(plot_data)
 
-        # Save to database after visualization
         if self.save_included_variants:
-            self._save_included_variants_to_db(compiled_data)
+            self._save_included_variants_to_db(compiled_data, response_col)
 
         plt.show()
 
@@ -180,7 +134,7 @@ class PlotVariants(PlotTopNAnalysis):
             compiled_data['StimType'].isin([StimType.REGIME_ESTIM_VARIANTS.value, StimType.REGIME_ESTIM_DELTA.value])]
         return variants_data
 
-    def _save_included_variants_to_db(self, compiled_data):
+    def _save_included_variants_to_db(self, compiled_data, response_col):
         """Save included variants to the GA database."""
         try:
             conn = Connection(context.ga_database)
@@ -215,21 +169,16 @@ class PlotVariants(PlotTopNAnalysis):
                 print("No variants found to save")
                 return
 
-            # Select response column based on mode
-            response_col_name = 'GA Response' if self.use_ga_response else 'Spike Rate'
-
             # Group by StimSpecId and get mean response (deduplicate)
-            variants_grouped = variants.groupby('StimSpecId')[response_col_name].mean().reset_index()
+            variants_grouped = variants.groupby('StimSpecId')[response_col].mean().reset_index()
 
             # Calculate threshold (60% of max)
-            max_response = variants_grouped[response_col_name].max()
-
+            max_response = variants_grouped[response_col].max()
             threshold = self.threshold * max_response
-
             print(f"Max response: {max_response:.2f}, Threshold (60%): {threshold:.2f}")
 
             # Filter by threshold
-            included = variants_grouped[variants_grouped[response_col_name] >= threshold]
+            included = variants_grouped[variants_grouped[response_col] >= threshold]
 
             print(f"Found {len(included)} variants above threshold")
 
@@ -247,7 +196,7 @@ class PlotVariants(PlotTopNAnalysis):
 
                 conn.execute(insert_sql, (
                     stim_id,
-                    float(row[response_col_name]),
+                    float(row[response_col]),
                     threshold,
                     excluded,
                     exclusion_reason
