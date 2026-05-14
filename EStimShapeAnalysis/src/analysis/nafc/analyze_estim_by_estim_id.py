@@ -20,7 +20,8 @@ from src.analysis.nafc.nafc_database_fields import (
     IsCorrectField, NoiseChanceField, NumRandDistractorsField,
     StimTypeField, ChoiceField, AnswerField, GenIdField,
     BaseMStickIdField, IsDeltaField, IsHypothesizedField,
-    EStimEnabledField, EStimSpecIdField, EStimSpecField, EStimPolarityField, SampleLengthField
+    EStimEnabledField, EStimSpecIdField, EStimSpecField, EStimPolarityField, SampleLengthField,
+    IsRemovedTrialField,
 )
 from src.analysis.nafc.psychometric_curves import collect_choice_trials, plot_psychometric_curve_on_ax
 from src.startup import context
@@ -109,16 +110,27 @@ def main():
     fields.append(EStimSpecIdField(exp_conn))
     fields.append(BaseMStickIdField(exp_conn))
     fields.append(IsDeltaField(exp_conn))
+    fields.append(IsRemovedTrialField(exp_conn))
     fields.append(EStimPolarityField(exp_conn))
     fields.append(ChoiceField(exp_conn))
     fields.append(SampleLengthField(exp_conn))
 
     data = fields.to_data(trial_tstamps)
     data = data[(data['GenId'] >= start_gen_id) & (data['GenId'] <= max_gen_id)]
-    data_exp = data[data['StimType'] == 'EStimShapeVariantsDeltaNAFCStim']
+    data_exp = data[data['StimType'].isin([
+        'EStimShapeVariantsDeltaNAFCStim',
+        'EStimShapeVariantsDeletedNAFCStim',
+    ])]
 
-    data_delta   = data_exp[data_exp['IsDelta'] == True].copy()
-    data_variant = data_exp[data_exp['IsDelta'] == False].copy()
+    # Three-way partition: deleted-as-sample trials sit on top of IsDelta=False (their
+    # baseMStickId is the variantId), so they'd otherwise be lumped into the variant bucket.
+    data_removed = data_exp[data_exp['IsRemovedTrial'] == True].copy()
+    data_delta   = data_exp[(data_exp['IsRemovedTrial'] == False) & (data_exp['IsDelta'] == True)].copy()
+    data_variant = data_exp[(data_exp['IsRemovedTrial'] == False) & (data_exp['IsDelta'] == False)].copy()
+
+    has_removed_trials = len(data_removed) > 0
+    has_removed_choice = (data_exp['Choice'] == 'removed').any()
+    include_removed    = has_removed_trials or has_removed_choice
 
     def estim_on(df):
         return df[
@@ -131,6 +143,8 @@ def main():
     data_delta_off   = data_delta[data_delta['EStimEnabled'] == False].copy()
     data_variant_on  = estim_on(data_variant)
     data_variant_off = data_variant[data_variant['EStimEnabled'] == False].copy()
+    data_removed_on  = estim_on(data_removed)
+    data_removed_off = data_removed[data_removed['EStimEnabled'] == False].copy()
 
     if include_sample_lengths is not None:
         sl_set = set(include_sample_lengths)
@@ -138,14 +152,18 @@ def main():
         data_delta_off   = data_delta_off[data_delta_off['SampleLength'].isin(sl_set)].copy()
         data_variant_on  = data_variant_on[data_variant_on['SampleLength'].isin(sl_set)].copy()
         data_variant_off = data_variant_off[data_variant_off['SampleLength'].isin(sl_set)].copy()
+        data_removed_on  = data_removed_on[data_removed_on['SampleLength'].isin(sl_set)].copy()
+        data_removed_off = data_removed_off[data_removed_off['SampleLength'].isin(sl_set)].copy()
 
     delta_spec_ids   = data_delta_on['EStimSpecId'].dropna().unique()
     variant_spec_ids = data_variant_on['EStimSpecId'].dropna().unique()
+    removed_spec_ids = data_removed_on['EStimSpecId'].dropna().unique()
 
     if include_spec_ids is not None:
         spec_id_set      = set(include_spec_ids)
         delta_spec_ids   = [s for s in delta_spec_ids   if s in spec_id_set]
         variant_spec_ids = [s for s in variant_spec_ids if s in spec_id_set]
+        removed_spec_ids = [s for s in removed_spec_ids if s in spec_id_set]
 
     noise_levels = sorted(data_exp['NoiseChance'].unique())
 
@@ -156,10 +174,13 @@ def main():
         data_delta_off   = data_delta_off[data_delta_off['NoiseChance'].isin(nc_set)].copy()
         data_variant_on  = data_variant_on[data_variant_on['NoiseChance'].isin(nc_set)].copy()
         data_variant_off = data_variant_off[data_variant_off['NoiseChance'].isin(nc_set)].copy()
+        data_removed_on  = data_removed_on[data_removed_on['NoiseChance'].isin(nc_set)].copy()
+        data_removed_off = data_removed_off[data_removed_off['NoiseChance'].isin(nc_set)].copy()
 
     if combine_noise_chances and noise_levels:
         combined_nc = float(np.mean(noise_levels))
-        for df in [data_delta_on, data_delta_off, data_variant_on, data_variant_off]:
+        for df in [data_delta_on, data_delta_off, data_variant_on, data_variant_off,
+                   data_removed_on, data_removed_off]:
             df['NoiseChance'] = combined_nc
         noise_levels = [combined_nc]
 
@@ -171,6 +192,11 @@ def main():
         ('% Rand Choice',               None,               plot_rand_choice_panel),
         (f'% Hypothesized (rand-excl)', isCorrectFieldName, plot_rand_excluded_panel),
     ]
+    if include_removed:
+        # New row tracks how often the monkey picks the removed-component choice — only
+        # meaningful when removed is actually offered (variant/delta trials with
+        # includeRemovedChoice=true) or when removed-as-sample trials exist.
+        row_labels.append(('% Removed Choice', None, plot_removed_choice_panel))
 
     def _call_panel(panel_fn, ax, data_on, data_off, spec_ids, noise_levels, metric_field, title):
         kwargs = dict(title=title, global_test_side=global_test_side,
@@ -182,13 +208,18 @@ def main():
             return panel_fn(ax, data_on, data_off, spec_ids, noise_levels, **kwargs)
 
     if stim_group_mode == 'both':
-        fig1 = plt.figure(figsize=(22, 21))
-        gs1 = GridSpec(3, 3, figure=fig1, width_ratios=[2, 2, 3], hspace=0.45, wspace=0.3)
+        n_plot_cols = 3 if include_removed else 2
+        n_rows = len(row_labels)
+        width_ratios = [2] * n_plot_cols + [3]
+        fig1 = plt.figure(figsize=(7 * n_plot_cols + 8, 7 * n_rows))
+        gs1 = GridSpec(n_rows, n_plot_cols + 1, figure=fig1,
+                       width_ratios=width_ratios, hspace=0.45, wspace=0.3)
+        stats_col = n_plot_cols
 
         for row, (row_title, metric_field, panel_fn) in enumerate(row_labels):
             ax_delta   = fig1.add_subplot(gs1[row, 0])
             ax_variant = fig1.add_subplot(gs1[row, 1])
-            ax_stats   = fig1.add_subplot(gs1[row, 2])
+            ax_stats   = fig1.add_subplot(gs1[row, stats_col])
 
             delta_stats   = _call_panel(panel_fn, ax_delta,   data_delta_on,   data_delta_off,
                                         delta_spec_ids,   noise_levels, metric_field,
@@ -197,11 +228,19 @@ def main():
                                         variant_spec_ids, noise_levels, metric_field,
                                         title=f'{row_title}: Variant')
 
+            removed_stats = ""
+            if include_removed:
+                ax_removed = fig1.add_subplot(gs1[row, 2])
+                removed_stats = _call_panel(panel_fn, ax_removed, data_removed_on, data_removed_off,
+                                            removed_spec_ids, noise_levels, metric_field,
+                                            title=f'{row_title}: Removed')
+
             stats_text = (
                 f"{row_title.upper()} — PERMUTATION TEST ({global_test_side})\n"
                 f"n_permutations={n_permutations}\n"
                 f"{'=' * 45}\n\n"
                 + delta_stats + "\n" + variant_stats
+                + (("\n" + removed_stats) if removed_stats else "")
                 + "\n* p<0.05, ** p<0.01, *** p<0.001"
             )
             ax_stats.text(0.02, 0.98, stats_text,
@@ -816,6 +855,124 @@ def plot_rand_choice_panel(ax, stim_subset, estim_off_data, spec_ids, noise_leve
     ax.invert_xaxis()
     ax.set_ylim([0, 110])
     ax.set_ylabel('% Chose Rand')
+    ax.grid(True, alpha=0.3)
+    ax.legend(fontsize=7)
+
+    return results_text
+
+
+# ===========================================================================
+# % Removed choice by EStimSpecId
+# ===========================================================================
+
+def plot_removed_choice_panel(ax, stim_subset, estim_off_data, spec_ids, noise_levels,
+                              title, global_test_side, n_permutations=1000,
+                              combine_sample_lengths=False, combine_spec_ids=False):
+    """Tracks how often the monkey picked the "_removed" choice tile. Dilutes to 0 for
+    trials that didn't offer a removed choice (e.g. variant/delta trials with
+    includeRemovedChoice=false), which is the same dilution semantics as %Rand handles."""
+    METRIC = 'IsRemoved'
+
+    def inject_is_removed(df):
+        d = df.copy()
+        d[METRIC] = d['Choice'] == 'removed'
+        return d
+
+    off_data = inject_is_removed(estim_off_data)
+    on_data  = inject_is_removed(stim_subset)
+
+    sl_map = None if combine_sample_lengths else get_sl_marker_map(pd.concat([on_data, off_data]))
+
+    if len(off_data) > 0:
+        plot_psychometric_curve_on_ax(
+            off_data, ax,
+            title=title, show_n=True, num_rep_min=0,
+            color='black', linestyle='--', linewidth=2, marker='o',
+            label=f'EStim OFF (n={len(off_data)})',
+            isCorrectColumnName=METRIC
+        )
+        scatter_by_sample_length(ax, off_data, METRIC, noise_levels,
+                                 color='black', label_prefix='OFF', sl_marker_map=sl_map)
+
+    results_text = f"{title}\n{'=' * 50}\n\n"
+
+    if combine_spec_ids:
+        spec_data = on_data[on_data['EStimSpecId'].isin(spec_ids)].copy()
+        if len(spec_data) > 0:
+            plot_psychometric_curve_on_ax(
+                spec_data, ax,
+                title=title, show_n=True, num_rep_min=0,
+                color='tab:blue', marker='o',
+                label=f'All SpecIds combined (n={len(spec_data)})',
+                isCorrectColumnName=METRIC
+            )
+            scatter_by_sample_length(ax, spec_data, METRIC, noise_levels,
+                                     color='tab:blue', label_prefix='Combined', sl_marker_map=sl_map)
+            combined = pd.concat([spec_data, off_data])
+            results_text += f"All SpecIds combined vs OFF\n{'-' * 30}\n"
+            if len(off_data) > 0:
+                np.random.seed(42)
+                observed_sum, overall_p, overall_sig, level_diffs, _ = run_permutation_test(
+                    combined, noise_levels, METRIC, global_test_side, n_permutations
+                )
+                for noise in sorted(level_diffs.keys()):
+                    pct_on, pct_off, diff, n_on, n_off, p, sig = level_diffs[noise]
+                    results_text += f"  N{noise * 100:.0f}%: {diff:+.1f}% p={p:.3f}{sig}\n"
+                results_text += f"  Overall: {observed_sum:+.1f}% p={overall_p:.4f} {overall_sig}\n"
+                if not combine_sample_lengths:
+                    sl_text = run_per_sample_length_stats(
+                        spec_data, off_data, noise_levels, METRIC,
+                        global_test_side, n_permutations
+                    )
+                    if sl_text:
+                        results_text += f"  By SampleLength:\n{sl_text}"
+                results_text += "\n"
+            else:
+                results_text += "  Insufficient data\n\n"
+    else:
+        colors = cm.tab10(np.linspace(0, 1, max(len(spec_ids), 1)))
+        for color, spec_id in zip(colors, sorted(spec_ids)):
+            spec_data = on_data[on_data['EStimSpecId'] == spec_id].copy()
+            if len(spec_data) == 0:
+                continue
+
+            plot_psychometric_curve_on_ax(
+                spec_data, ax,
+                title=title, show_n=True, num_rep_min=0,
+                color=color, marker='o',
+                label=f'SpecId={spec_id} (n={len(spec_data)})',
+                isCorrectColumnName=METRIC
+            )
+            scatter_by_sample_length(ax, spec_data, METRIC, noise_levels,
+                                     color=color, label_prefix=f'Spec{spec_id}',
+                                     sl_marker_map=sl_map)
+
+            combined = pd.concat([spec_data, off_data])
+            results_text += f"SpecId={spec_id} vs OFF\n{'-' * 30}\n"
+
+            if len(spec_data) > 0 and len(off_data) > 0:
+                np.random.seed(42)
+                observed_sum, overall_p, overall_sig, level_diffs, _ = run_permutation_test(
+                    combined, noise_levels, METRIC, global_test_side, n_permutations
+                )
+                for noise in sorted(level_diffs.keys()):
+                    pct_on, pct_off, diff, n_on, n_off, p, sig = level_diffs[noise]
+                    results_text += f"  N{noise * 100:.0f}%: {diff:+.1f}% p={p:.3f}{sig}\n"
+                results_text += f"  Overall: {observed_sum:+.1f}% p={overall_p:.4f} {overall_sig}\n"
+                if not combine_sample_lengths:
+                    sl_text = run_per_sample_length_stats(
+                        spec_data, off_data, noise_levels, METRIC,
+                        global_test_side, n_permutations
+                    )
+                    if sl_text:
+                        results_text += f"  By SampleLength:\n{sl_text}"
+                results_text += "\n"
+            else:
+                results_text += "  Insufficient data\n\n"
+
+    ax.invert_xaxis()
+    ax.set_ylim([0, 110])
+    ax.set_ylabel('% Chose Removed')
     ax.grid(True, alpha=0.3)
     ax.legend(fontsize=7)
 
