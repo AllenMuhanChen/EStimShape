@@ -36,7 +36,7 @@ def create_cutoffs_table():
             session_id      VARCHAR(10)  NOT NULL,
             conditions      LONGTEXT     NOT NULL,
             algorithm_label VARCHAR(100) NOT NULL,
-            max_task_id     INT          NOT NULL,
+            max_task_id     BIGINT       NOT NULL,
             created_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
 
             PRIMARY KEY (session_id, conditions(500), algorithm_label(100)),
@@ -44,6 +44,7 @@ def create_cutoffs_table():
         ) ENGINE = InnoDB DEFAULT CHARSET = latin1
     """)
     _migrate_cutoffs_table(conn)
+    _widen_task_id_column(conn)
     print("EStimSessionCutoffs table created/verified")
 
 
@@ -58,7 +59,24 @@ def _migrate_cutoffs_table(conn):
     if conn.fetch_all()[0][0] == 0:
         return
     print("Migrating EStimSessionCutoffs: renaming max_gen_id to max_task_id...")
-    conn.execute("ALTER TABLE EStimSessionCutoffs CHANGE max_gen_id max_task_id INT NOT NULL")
+    conn.execute("ALTER TABLE EStimSessionCutoffs CHANGE max_gen_id max_task_id BIGINT NOT NULL")
+    print("Migration complete")
+    _widen_task_id_column(conn)
+
+
+def _widen_task_id_column(conn):
+    """Widen max_task_id from INT to BIGINT if needed (task_ids are timestamp-based)."""
+    conn.execute("""
+        SELECT DATA_TYPE FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME   = 'EStimSessionCutoffs'
+          AND COLUMN_NAME  = 'max_task_id'
+    """)
+    rows = conn.fetch_all()
+    if not rows or rows[0][0].lower() == 'bigint':
+        return
+    print("Migrating EStimSessionCutoffs: widening max_task_id to BIGINT...")
+    conn.execute("ALTER TABLE EStimSessionCutoffs MODIFY max_task_id BIGINT NOT NULL")
     print("Migration complete")
 
 
