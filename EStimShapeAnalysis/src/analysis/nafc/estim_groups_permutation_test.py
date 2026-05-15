@@ -57,9 +57,9 @@ def run_permutation_tests(session_id=None, n_permutations=1000, force_recompute=
                 continue
 
         cond_dict  = json.loads(conditions_json)
-        max_gen_id = cutoffs.get((sess_id, conditions_json))
+        max_task_id = cutoffs.get((sess_id, conditions_json))
 
-        trial_data = get_trial_data_for_condition(sess_id, cond_dict, max_gen_id=max_gen_id)
+        trial_data = get_trial_data_for_condition(sess_id, cond_dict, max_task_id=max_task_id)
 
         if len(trial_data['estim_on']) == 0 or len(trial_data['estim_off']) == 0:
             print(f"Skipping {sess_id}, {cond_dict}: insufficient data")
@@ -88,18 +88,18 @@ def _fetch_all_cutoffs(algorithm_label):
         return {}
     conn = Connection("allen_data_repository")
     conn.execute("""
-        SELECT session_id, conditions, max_gen_id FROM EStimSessionCutoffs
+        SELECT session_id, conditions, max_task_id FROM EStimSessionCutoffs
         WHERE algorithm_label = %s
     """, (algorithm_label,))
     return {(row[0], row[1]): row[2] for row in conn.fetch_all()}
 
 
-def get_trial_data_for_condition(session_id, cond_dict, max_gen_id=None):
+def get_trial_data_for_condition(session_id, cond_dict, max_task_id=None):
     """
     Get trial-level data for a specific condition combination.
 
     Args:
-        max_gen_id: if provided, only include trials with gen_id <= max_gen_id (cutoff).
+        max_task_id: if provided, only include trials with task_id <= max_task_id (cutoff).
 
     Returns dict with:
         'estim_on': list of is_hypothesized_choice values
@@ -116,9 +116,9 @@ def get_trial_data_for_condition(session_id, cond_dict, max_gen_id=None):
     """
     params = [session_id]
 
-    if max_gen_id is not None:
-        query += " AND t.gen_id <= %s"
-        params.append(max_gen_id)
+    if max_task_id is not None:
+        query += " AND t.task_id <= %s"
+        params.append(max_task_id)
 
     if 'trial_type' in cond_dict:
         query += " AND t.trial_type = %s"

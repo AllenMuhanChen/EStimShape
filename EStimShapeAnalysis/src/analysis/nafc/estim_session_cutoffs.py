@@ -36,26 +36,41 @@ def create_cutoffs_table():
             session_id      VARCHAR(10)  NOT NULL,
             conditions      LONGTEXT     NOT NULL,
             algorithm_label VARCHAR(100) NOT NULL,
-            max_gen_id      INT          NOT NULL,
+            max_task_id     INT          NOT NULL,
             created_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
 
             PRIMARY KEY (session_id, conditions(500), algorithm_label(100)),
             FOREIGN KEY (session_id) REFERENCES Sessions (session_id) ON DELETE CASCADE
         ) ENGINE = InnoDB DEFAULT CHARSET = latin1
     """)
+    _migrate_cutoffs_table(conn)
     print("EStimSessionCutoffs table created/verified")
 
 
-def _get_trials_with_gen_id(session_id, cond_dict):
+def _migrate_cutoffs_table(conn):
+    """Rename max_gen_id → max_task_id if the table was created with the old column name."""
+    conn.execute("""
+        SELECT COUNT(*) FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME   = 'EStimSessionCutoffs'
+          AND COLUMN_NAME  = 'max_gen_id'
+    """)
+    if conn.fetch_all()[0][0] == 0:
+        return
+    print("Migrating EStimSessionCutoffs: renaming max_gen_id to max_task_id...")
+    conn.execute("ALTER TABLE EStimSessionCutoffs CHANGE max_gen_id max_task_id INT NOT NULL")
+    print("Migration complete")
+
+
+def _get_trials_by_task_order(session_id, cond_dict):
     """
-    Returns a DataFrame with columns [gen_id, is_estim_on, is_hypothesized_choice]
-    for the given session and condition, sorted by gen_id ascending.
-    Applies the same condition filters as get_trial_data_for_condition.
+    Returns a DataFrame with columns [task_id, is_estim_on, is_hypothesized_choice]
+    for the given session and condition, sorted by task_id ascending (true trial order).
     """
     conn = Connection("allen_data_repository")
 
     query = f"""
-        SELECT t.gen_id, t.is_estim_on, t.is_hypothesized_choice, t.task_id
+        SELECT t.task_id, t.is_estim_on, t.is_hypothesized_choice
         FROM EStimShapeTrials t
         LEFT JOIN ({EStimParameterClassifier.active_channel_sql_subquery()}) ep
           ON t.session_id = ep.session_id AND t.estim_spec_id = ep.estim_spec_id
@@ -104,7 +119,7 @@ def _get_trials_with_gen_id(session_id, cond_dict):
     conn.execute(query, tuple(params))
     rows = conn.fetch_all()
 
-    df = pd.DataFrame(rows, columns=['gen_id', 'is_estim_on', 'is_hypothesized_choice', 'task_id'])
+    df = pd.DataFrame(rows, columns=['task_id', 'is_estim_on', 'is_hypothesized_choice'])
     df = df[df['is_hypothesized_choice'].notna()].copy()
     df['is_estim_on'] = df['is_estim_on'].astype(int)
     df['is_hypothesized_choice'] = df['is_hypothesized_choice'].astype(int)
@@ -149,7 +164,7 @@ def compute_last_sustained_positive_window(session_id, cond_dict,
     Returns: max_gen_id (int) of the last trial in the last qualifying window,
              or None if no cutoff should be applied.
     """
-    df = _get_trials_with_gen_id(session_id, cond_dict)
+    df = _get_trials_by_task_order(session_id, cond_dict)
 
     if len(df) < window_size:
         return None
@@ -178,17 +193,17 @@ def compute_last_sustained_positive_window(session_id, cond_dict,
         return None
 
     end_trial_idx = windows[last_above_idx][0]
-    return int(df.iloc[end_trial_idx]['gen_id'])
+    return int(df.iloc[end_trial_idx]['task_id'])
 
 
-def save_cutoff(session_id, conditions_json, algorithm_label, max_gen_id):
+def save_cutoff(session_id, conditions_json, algorithm_label, max_task_id):
     conn = Connection("allen_data_repository")
     conn.execute("""
-        INSERT INTO EStimSessionCutoffs (session_id, conditions, algorithm_label, max_gen_id)
+        INSERT INTO EStimSessionCutoffs (session_id, conditions, algorithm_label, max_task_id)
         VALUES (%s, %s, %s, %s)
-        ON DUPLICATE KEY UPDATE max_gen_id = VALUES(max_gen_id),
+        ON DUPLICATE KEY UPDATE max_task_id = VALUES(max_task_id),
                                 created_at = CURRENT_TIMESTAMP
-    """, (session_id, conditions_json, algorithm_label, max_gen_id))
+    """, (session_id, conditions_json, algorithm_label, max_task_id))
 
 
 def run_last_sustained_cutoffs(window_size=100, step_size=10, threshold=5.0,
@@ -238,14 +253,14 @@ def run_last_sustained_cutoffs(window_size=100, step_size=10, threshold=5.0,
             if conn.fetch_all():
                 continue
 
-        max_gen_id = compute_last_sustained_positive_window(
+        max_task_id = compute_last_sustained_positive_window(
             sid, cond_dict, window_size, step_size, threshold
         )
 
-        if max_gen_id is None:
+        if max_task_id is None:
             n_no_degradation += 1
         else:
-            save_cutoff(sid, conditions_json, algorithm_label, max_gen_id)
+            save_cutoff(sid, conditions_json, algorithm_label, max_task_id)
             n_cutoffs += 1
 
     print(f"\nDone. Cutoffs applied: {n_cutoffs}  |  No degradation / not applicable: {n_no_degradation}")
@@ -253,10 +268,10 @@ def run_last_sustained_cutoffs(window_size=100, step_size=10, threshold=5.0,
 
 
 def get_session_cutoffs(session_id, algorithm_label):
-    """Return {conditions_json: max_gen_id} for this session+algorithm_label."""
+    """Return {conditions_json: max_task_id} for this session+algorithm_label."""
     conn = Connection("allen_data_repository")
     conn.execute("""
-        SELECT conditions, max_gen_id FROM EStimSessionCutoffs
+        SELECT conditions, max_task_id FROM EStimSessionCutoffs
         WHERE session_id = %s AND algorithm_label = %s
     """, (session_id, algorithm_label))
     return {row[0]: row[1] for row in conn.fetch_all()}
@@ -290,10 +305,10 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
                'a1': 'amp', 'post_stim_refractory_period': 'refrac',
                'enable_charge_recovery': 'CR'}
 
-    for ax_idx, (conditions_json, max_gen_id) in enumerate(cutoffs.items()):
+    for ax_idx, (conditions_json, max_task_id) in enumerate(cutoffs.items()):
         ax        = axes_flat[ax_idx]
         cond_dict = json.loads(conditions_json)
-        df        = _get_trials_with_gen_id(session_id, cond_dict)
+        df        = _get_trials_by_task_order(session_id, cond_dict)
 
         windows = _sliding_window_effects(df, window_size, step_size)
         xs      = [end - window_size // 2 for end, _ in windows]
@@ -304,11 +319,11 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
                    label=f'threshold ({threshold}%)')
         ax.axhline(y=0, color='gray', linestyle=':', linewidth=1, alpha=0.5)
 
-        # Find the window whose last trial has gen_id == max_gen_id and mark it
+        # Find the window whose last trial has task_id == max_task_id and mark it
         for (end_idx, _), x in zip(windows, xs):
-            if int(df.iloc[end_idx]['gen_id']) == max_gen_id:
+            if int(df.iloc[end_idx]['task_id']) == max_task_id:
                 ax.axvline(x=x, color='red', linestyle='--', linewidth=2,
-                           label=f'cutoff (gen_id={max_gen_id})')
+                           label=f'cutoff (task_id={max_task_id})')
                 break
 
         label_parts = [f"{abbrevs.get(k, k)}={v}" for k, v in cond_dict.items() if v is not None]

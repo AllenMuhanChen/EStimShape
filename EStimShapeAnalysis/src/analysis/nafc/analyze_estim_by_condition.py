@@ -55,7 +55,7 @@ def main():
         data = read_trial_data_from_repository(session_id)
         print(f"\n=== {session_id}: {len(data)} trials ===")
 
-        gen_id_cutoffs = _fetch_gen_id_cutoffs(session_id, algorithm_label)
+        task_id_cutoffs = _fetch_task_id_cutoffs(session_id, algorithm_label)
 
         sliding_window_analysis(
             data,
@@ -64,21 +64,21 @@ def main():
             window_size=100,
             step_size=10,
             session_id=session_id,
-            cutoff_gen_ids=gen_id_cutoffs,
+            cutoff_task_ids=task_id_cutoffs,
         )
 
         condition_groups_data = split_data_by_conditions(
             data, behavioral_conditions, estim_conditions,
-            gen_id_cutoffs=gen_id_cutoffs,
+            task_id_cutoffs=task_id_cutoffs,
         )
         results = calculate_estim_effects(condition_groups_data)
         save_estim_effects_to_repository(session_id, results, algorithm_label)
         print(f"Saved {len(results)} effects for {session_id} (algorithm='{algorithm_label}')")
 
 
-def _fetch_gen_id_cutoffs(session_id, algorithm_label):
+def _fetch_task_id_cutoffs(session_id, algorithm_label):
     """
-    Return {conditions_json: max_gen_id} for all conditions in this session
+    Return {conditions_json: max_task_id} for all conditions in this session
     that have a cutoff stored under algorithm_label.
     Returns an empty dict if algorithm_label is 'none' or no cutoffs exist.
     """
@@ -86,7 +86,7 @@ def _fetch_gen_id_cutoffs(session_id, algorithm_label):
         return {}
     conn = Connection("allen_data_repository")
     conn.execute("""
-        SELECT conditions, max_gen_id FROM EStimSessionCutoffs
+        SELECT conditions, max_task_id FROM EStimSessionCutoffs
         WHERE session_id = %s AND algorithm_label = %s
     """, (session_id, algorithm_label))
     return {row[0]: row[1] for row in conn.fetch_all()}
@@ -95,7 +95,7 @@ def _fetch_gen_id_cutoffs(session_id, algorithm_label):
 def sliding_window_analysis(data, behavioral_conditions, estim_conditions,
                             window_size=100, step_size=5,
                             show_gen_boundaries=True, session_id=None,
-                            cutoff_gen_ids=None):
+                            cutoff_task_ids=None):
     """
     Sliding window estim-effect analysis grouped by behavioral + estim conditions.
 
@@ -138,11 +138,11 @@ def sliding_window_analysis(data, behavioral_conditions, estim_conditions,
                     'estim_off_n': result['estim_off_n_trials']
                 })
 
-    # Convert gen_id cutoffs → trial-index cutoffs for plotting
+    # Convert task_id cutoffs → trial-index positions for plotting
     cutoff_trial_numbers = {}
-    if cutoff_gen_ids:
-        for conditions_json, max_gen_id in cutoff_gen_ids.items():
-            mask = data_sorted['gen_id'] <= max_gen_id
+    if cutoff_task_ids:
+        for conditions_json, max_task_id in cutoff_task_ids.items():
+            mask = data_sorted['task_id'] <= max_task_id
             if mask.any():
                 cutoff_trial_numbers[conditions_json] = int(mask.values.nonzero()[0][-1])
 
@@ -494,7 +494,7 @@ def save_estim_effects_to_repository(session_id, results, algorithm_label='none'
 
 
 def split_data_by_conditions(data, behavioral_conditions, estim_conditions,
-                             gen_id_cutoffs=None):
+                             task_id_cutoffs=None):
     """
     Split data for estim vs no-estim comparisons.
 
@@ -554,13 +554,13 @@ def split_data_by_conditions(data, behavioral_conditions, estim_conditions,
             estim_off_trimmed = estim_off_data.copy()
 
             # Apply adaptation cutoff for this condition if one exists
-            if gen_id_cutoffs and 'gen_id' in data.columns:
+            if task_id_cutoffs and 'task_id' in data.columns:
                 all_conds = {**behavioral_dict, **estim_dict}
                 cond_key  = json.dumps(all_conds, sort_keys=True, cls=_NumpyEncoder)
-                if cond_key in gen_id_cutoffs:
-                    max_gen = gen_id_cutoffs[cond_key]
-                    estim_on_trimmed  = estim_on_trimmed[estim_on_trimmed['gen_id']  <= max_gen]
-                    estim_off_trimmed = estim_off_trimmed[estim_off_trimmed['gen_id'] <= max_gen]
+                if cond_key in task_id_cutoffs:
+                    max_task = task_id_cutoffs[cond_key]
+                    estim_on_trimmed  = estim_on_trimmed[estim_on_trimmed['task_id']  <= max_task]
+                    estim_off_trimmed = estim_off_trimmed[estim_off_trimmed['task_id'] <= max_task]
 
             comparisons.append({
                 'behavioral_conditions': behavioral_dict,
