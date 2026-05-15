@@ -1,11 +1,12 @@
 """
-For each session, pick the best condition (max |effect_size|) from EStimPermutationTests,
-plot EStim ON (red) and EStim OFF (black) as two dots — same style as
-estim_examples_across_experiments.py — and annotate the max-stat permutation p-value.
+For each session, pick the best condition (largest positive effect_size, n>=10 each group)
+from EStimPermutationTests, plot EStim ON (red) and EStim OFF (black) as two dots —
+same style as estim_examples_across_experiments.py — and annotate the max-stat
+permutation p-value per session plus population statistics in a side panel.
 
-Max-stat p-value per session:
-  observed_max = max_c |effect_c|
-  null_max[k]  = max_c |null_c[k]|  (element-wise max across all conditions for iteration k)
+Max-stat p-value per session (one-tailed, positive direction):
+  observed_max = max_c(T_c)           — best positive effect across conditions
+  null_max[k]  = max_c(null_c[k])     — element-wise max across conditions, iteration k
   p            = fraction of k where null_max[k] >= observed_max
 """
 
@@ -17,6 +18,7 @@ from pathlib import Path
 import matplotlib.patches as mpatches
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.gridspec import GridSpec
 
 sys.path.insert(0, str(Path(__file__).parents[3]))
 
@@ -33,12 +35,11 @@ def _get_sessions_with_permutation_data():
 def _build_max_stat_for_session(session_id):
     """
     Returns dict with:
-        observed_signed : signed effect of the best condition (retains direction)
-        observed_max    : |effect| of the best condition
-        max_stat_null   : array (n_perms,) — element-wise max of |null_c[k]| across conditions
-        p_value         : fraction of null_max >= observed_max
+        observed_signed : signed effect of the best positive condition
+        max_stat_null   : array (n_perms,) — element-wise max across conditions per iteration
+        p_value         : fraction of null_max >= observed_signed
         best_cond_dict  : condition filter dict for the best condition
-    Returns None if no data.
+    Returns None if no qualifying conditions (n>=10 each group).
     """
     conn = Connection("allen_data_repository")
     conn.execute("""
@@ -74,12 +75,11 @@ def _build_max_stat_for_session(session_id):
     null_matrix   = np.stack([e['null'] for e in entries], axis=0)  # (n_conds, n_perms)
     max_stat_null = null_matrix.max(axis=0)                          # (n_perms,)
 
-    observed_max = best['obs_effect']
-    p_value      = float(np.mean(max_stat_null >= observed_max))
+    observed_signed = best['obs_effect']
+    p_value         = float(np.mean(max_stat_null >= observed_signed))
 
     return {
-        'observed_signed': best['obs_effect'],
-        'observed_max':    observed_max,
+        'observed_signed': observed_signed,
         'max_stat_null':   max_stat_null,
         'p_value':         p_value,
         'best_cond_dict':  best['cond_dict'],
@@ -105,16 +105,25 @@ def _fmt_p(p):
 
 def compute_population_stats(rows):
     """
-    Three convergent population tests on per-session max-stat results.
+    Two convergent population tests on per-session max-stat results.
 
     Permutation test on mean max-stat:
-        A_obs  = mean_i(observed_signed_i)
-        A*[k]  = mean_i(max_stat_null_i[k])   — average the per-session nulls element-wise
+        A_obs  = mean_i(observed_signed_i)  across sessions
+        A*[k]  = mean_i(max_stat_null_i[k]) for each permutation iteration k
         p_perm = fraction of k where A*[k] >= A_obs
 
-    Stouffer's Z:  combine per-session p-values into a single Z (one-tailed positive).
+    Stouffer's combined p-value:
+        Converts each session's one-tailed p_i into a standard normal z_i = Phi^{-1}(1 - p_i),
+        sums them, and divides by sqrt(n).  The resulting p gives the probability of observing
+        this level of consistent evidence across sessions if H0 were true in all of them.
+        Unlike the permutation test (which tests the mean effect size), Stouffer's is sensitive
+        to sessions with very small p-values even if their effect size is modest.
 
-    Sign test:     binomial test — how many sessions have positive best effects.
+    n_sig: number of sessions individually significant at p<0.05 (descriptive only).
+
+    Note: a sign test is not used here because we select the best *positive* condition per
+    session — the max of C conditions from a symmetric null is positive >50% of the time,
+    so a 50% baseline would be anticonservative.
     """
     from scipy import stats as sp_stats
 
@@ -128,31 +137,81 @@ def compute_population_stats(rows):
     null_matrix = np.stack([d['max_stat_null'] for d in rows], axis=0)  # (n_sessions, n_perms)
     pop_null    = null_matrix.mean(axis=0)                               # (n_perms,)
     p_perm      = float(np.mean(pop_null >= A_obs))
+    null_95     = float(np.percentile(pop_null, 95))
 
-    p_values  = np.clip([d['p_value'] for d in rows], 1e-6, 1 - 1e-6)
-    stouffer_z = float(np.sum(sp_stats.norm.ppf(1 - p_values)) / np.sqrt(n))
+    p_values   = np.clip([d['p_value'] for d in rows], 1e-6, 1 - 1e-6)
+    z_scores   = sp_stats.norm.ppf(1 - np.array(p_values))
+    stouffer_z = float(np.sum(z_scores) / np.sqrt(n))
     stouffer_p = float(1 - sp_stats.norm.cdf(stouffer_z))
 
-    n_positive = int(np.sum(observed > 0))
-    sign_p     = float(sp_stats.binomtest(n_positive, n, p=0.5, alternative='greater').pvalue)
+    n_sig = int(np.sum(np.array([d['p_value'] for d in rows]) < 0.05))
 
     stats = {
         'n':          n,
         'A_obs':      A_obs,
+        'null_95':    null_95,
         'p_perm':     p_perm,
         'stouffer_z': stouffer_z,
         'stouffer_p': stouffer_p,
-        'n_positive': n_positive,
-        'sign_p':     sign_p,
+        'n_sig':      n_sig,
     }
 
     print(f"\nPopulation stats (n={n} sessions):")
-    print(f"  Mean best effect:  {A_obs:+.2f}%")
-    print(f"  Permutation test:  {_fmt_p(p_perm)}")
-    print(f"  Stouffer Z={stouffer_z:.2f}   {_fmt_p(stouffer_p)}")
-    print(f"  Sign test:  {n_positive}/{n} positive  {_fmt_p(sign_p)}")
+    print(f"  Observed mean best effect:  {A_obs:+.2f}%")
+    print(f"  Null 95th percentile:       {null_95:+.2f}%")
+    print(f"  Permutation test:           {_fmt_p(p_perm)}")
+    print(f"  Stouffer combined:          {_fmt_p(stouffer_p)}  (Z={stouffer_z:.2f})")
+    print(f"  Individually significant:   {n_sig}/{n} sessions (p<0.05)")
 
     return stats
+
+
+def _draw_stats_panel(ax_text, pop, rows):
+    """Render population statistics as descriptive text in a borderless axes."""
+    ax_text.axis('off')
+    if pop is None:
+        return
+
+    sig_color = "darkred" if pop['p_perm'] < 0.05 else "#444444"
+
+    lines = [
+        ("Population Statistics", 1.00, 11, "bold", sig_color),
+        (f"n = {pop['n']} sessions", 0.92, 9, "normal", "black"),
+        ("", 0.86, 9, "normal", "black"),
+
+        ("Permutation test", 0.80, 9, "bold", "black"),
+        ("H₀: stimulation has no effect on choice.", 0.73, 8, "normal", "#444444"),
+        ("Null = mean of per-session max-stat", 0.67, 8, "normal", "#444444"),
+        ("distributions, averaged across sessions.", 0.61, 8, "normal", "#444444"),
+        (f"  Observed mean best effect: {pop['A_obs']:+.2f}%", 0.54, 9, "normal", sig_color),
+        (f"  Null 95th percentile:      {pop['null_95']:+.2f}%", 0.47, 9, "normal", "#444444"),
+        (f"  {_fmt_p(pop['p_perm'])}", 0.40, 10, "bold", sig_color),
+        ("", 0.34, 9, "normal", "black"),
+
+        ("Stouffer's combined test", 0.28, 9, "bold", "black"),
+        ("Combines per-session p-values; sensitive", 0.21, 8, "normal", "#444444"),
+        ("to consistent evidence even when individual", 0.15, 8, "normal", "#444444"),
+        ("sessions are just sub-threshold.", 0.09, 8, "normal", "#444444"),
+        (f"  {_fmt_p(pop['stouffer_p'])}", 0.02, 10, "bold",
+         "darkred" if pop['stouffer_p'] < 0.05 else "#444444"),
+    ]
+
+    # Individually significant count — append below
+    n_sig_line = f"Sessions individually significant (p<0.05): {pop['n_sig']}/{pop['n']}"
+
+    for text, y, size, weight, color in lines:
+        ax_text.text(0.05, y, text, transform=ax_text.transAxes,
+                     fontsize=size, fontweight=weight, color=color,
+                     va="top", ha="left", wrap=False)
+
+    ax_text.text(0.05, -0.06, n_sig_line, transform=ax_text.transAxes,
+                 fontsize=8, color="#444444", va="top", ha="left")
+
+    ax_text.add_patch(plt.Rectangle((0, -0.08), 1.0, 1.12,
+                                    transform=ax_text.transAxes,
+                                    fill=True, facecolor="#f8f8f8",
+                                    edgecolor="#cccccc", linewidth=0.8,
+                                    zorder=-1, clip_on=False))
 
 
 def plot_max_stat_per_experiment(session_ids=None, save_path=None, show_n=True,
@@ -164,7 +223,7 @@ def plot_max_stat_per_experiment(session_ids=None, save_path=None, show_n=True,
     for sid in session_ids:
         result = _build_max_stat_for_session(sid)
         if result is None:
-            print(f"[{sid}] no permutation data, skipping")
+            print(f"[{sid}] no permutation data or no conditions with n>=10, skipping")
             continue
         pct_on, pct_off, n_on, n_off = _get_pct_on_off(sid, result['best_cond_dict'])
         if pct_on is None:
@@ -189,10 +248,17 @@ def plot_max_stat_per_experiment(session_ids=None, save_path=None, show_n=True,
 
     pop = compute_population_stats(rows)
 
-    n_exp     = len(rows)
-    _LEGEND_W = 1.5
-    fig_w     = width_per_exp * n_exp * x_spacing + _LEGEND_W
-    fig, ax   = plt.subplots(figsize=(fig_w, 6), constrained_layout=True)
+    n_exp        = len(rows)
+    plot_width   = width_per_exp * n_exp * x_spacing
+    panel_width  = 3.2   # inches for the stats panel
+    fig_w        = plot_width + panel_width
+
+    fig = plt.figure(figsize=(fig_w, 6))
+    gs  = GridSpec(1, 2, figure=fig,
+                   width_ratios=[plot_width, panel_width],
+                   wspace=0.05)
+    ax       = fig.add_subplot(gs[0])
+    ax_panel = fig.add_subplot(gs[1])
 
     _COLOR_OFF = "black"
     _COLOR_ON  = "red"
@@ -200,11 +266,9 @@ def plot_max_stat_per_experiment(session_ids=None, save_path=None, show_n=True,
     for i, d in enumerate(rows):
         x = float(i) * x_spacing
 
-        # Connecting line
         ax.plot([x, x], [d['pct_off'], d['pct_on']],
                 color="gray", alpha=0.6, linewidth=1.5, zorder=1)
 
-        # Effect size at midpoint
         effect = d['pct_on'] - d['pct_off']
         mid_y  = (d['pct_on'] + d['pct_off']) / 2
         sign   = "+" if effect >= 0 else ""
@@ -212,20 +276,17 @@ def plot_max_stat_per_experiment(session_ids=None, save_path=None, show_n=True,
                 ha="left", va="center", fontsize=8,
                 color="red" if effect >= 0 else "black")
 
-        # EStim OFF dot
         ax.scatter(x, d['pct_off'], color=_COLOR_OFF, s=90, zorder=3, edgecolors="none")
         if show_n:
             ax.text(x - 0.06, d['pct_off'], f"n={d['n_off']}",
                     ha="right", va="center", fontsize=7, color="dimgray")
 
-        # EStim ON dot
         ax.scatter(x, d['pct_on'], color=_COLOR_ON, s=90, zorder=3,
                    edgecolors="black", linewidths=0.6)
         if show_n:
             ax.text(x + 0.06, d['pct_on'], f"n={d['n_on']}",
                     ha="left", va="center", fontsize=7, color=_COLOR_ON)
 
-        # Max-stat p-value at top
         is_sig = d['p_value'] < 0.05
         ax.text(x, 97, _fmt_p(d['p_value']),
                 ha="center", va="bottom", fontsize=8,
@@ -248,16 +309,11 @@ def plot_max_stat_per_experiment(session_ids=None, save_path=None, show_n=True,
         mpatches.Patch(color=_COLOR_OFF, label="EStim OFF (best condition)"),
         mpatches.Patch(color=_COLOR_ON,  label="EStim ON (best condition)"),
     ]
-    ax.legend(handles=legend_handles, fontsize=9,
-              loc="upper left", bbox_to_anchor=(1.01, 1),
-              framealpha=0.85, borderpad=0.7)
+    ax.legend(handles=legend_handles, fontsize=9, loc="lower right", framealpha=0.85)
 
-    if pop is not None:
-        summary = (f"n={pop['n']}  mean best={pop['A_obs']:+.1f}%  "
-                   f"perm {_fmt_p(pop['p_perm'])}  "
-                   f"Stouffer Z={pop['stouffer_z']:.2f} ({_fmt_p(pop['stouffer_p'])})  "
-                   f"sign {pop['n_positive']}/{pop['n']} ({_fmt_p(pop['sign_p'])})")
-        fig.suptitle(summary, fontsize=9, color="darkred" if pop['p_perm'] < 0.05 else "gray")
+    _draw_stats_panel(ax_panel, pop, rows)
+
+    fig.tight_layout()
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
