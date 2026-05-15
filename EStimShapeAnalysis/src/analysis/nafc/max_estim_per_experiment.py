@@ -23,7 +23,8 @@ from matplotlib.gridspec import GridSpec
 sys.path.insert(0, str(Path(__file__).parents[3]))
 
 from clat.util.connection import Connection
-from src.analysis.nafc.estim_groups_permutation_test import get_trial_data_for_condition
+from src.analysis.nafc.estim_groups_permutation_test import (
+    get_trial_data_for_condition, create_permutation_test_table)
 
 
 def _get_sessions_with_permutation_data(algorithm_label='none'):
@@ -224,6 +225,7 @@ def plot_max_stat_per_experiment(session_ids=None, start_session_id=None,
                        (lexicographic comparison works because session_id is YYMMDD_N).
     algorithm_label  : which cutoff variant to read from EStimPermutationTests.
     """
+    create_permutation_test_table()  # ensures algorithm_label column exists
     if session_ids is None:
         session_ids = _get_sessions_with_permutation_data(algorithm_label)
     if start_session_id is not None:
