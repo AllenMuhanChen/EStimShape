@@ -48,7 +48,8 @@ def create_cutoffs_table():
 
 
 def _migrate_cutoffs_table(conn):
-    """Replace any legacy max_gen_id / max_task_id column with max_trial_start DATETIME."""
+    """Replace legacy columns and fix max_trial_start type if it was created as DATETIME."""
+    # Drop any old column names (max_gen_id, max_task_id)
     conn.execute("""
         SELECT COLUMN_NAME FROM information_schema.COLUMNS
         WHERE TABLE_SCHEMA = DATABASE()
@@ -56,14 +57,28 @@ def _migrate_cutoffs_table(conn):
           AND COLUMN_NAME  IN ('max_gen_id', 'max_task_id')
     """)
     old_cols = [row[0] for row in conn.fetch_all()]
-    if not old_cols:
+    if old_cols:
+        print(f"Migrating EStimSessionCutoffs: replacing {old_cols} with max_trial_start BIGINT...")
+        conn.execute("DELETE FROM EStimSessionCutoffs")
+        for col in old_cols:
+            conn.execute(f"ALTER TABLE EStimSessionCutoffs DROP COLUMN {col}")
+        conn.execute("ALTER TABLE EStimSessionCutoffs ADD COLUMN max_trial_start BIGINT NOT NULL")
+        print("Migration complete")
         return
-    print(f"Migrating EStimSessionCutoffs: replacing {old_cols} with max_trial_start DATETIME...")
-    conn.execute("DELETE FROM EStimSessionCutoffs")
-    for col in old_cols:
-        conn.execute(f"ALTER TABLE EStimSessionCutoffs DROP COLUMN {col}")
-    conn.execute("ALTER TABLE EStimSessionCutoffs ADD COLUMN max_trial_start BIGINT NOT NULL")
-    print("Migration complete")
+
+    # Fix max_trial_start if it was previously created with the wrong type (DATETIME)
+    conn.execute("""
+        SELECT DATA_TYPE FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME   = 'EStimSessionCutoffs'
+          AND COLUMN_NAME  = 'max_trial_start'
+    """)
+    rows = conn.fetch_all()
+    if rows and rows[0][0].lower() != 'bigint':
+        print(f"Migrating EStimSessionCutoffs: changing max_trial_start to BIGINT...")
+        conn.execute("DELETE FROM EStimSessionCutoffs")
+        conn.execute("ALTER TABLE EStimSessionCutoffs MODIFY max_trial_start BIGINT NOT NULL")
+        print("Migration complete")
 
 
 def _get_all_trials_ordered(session_id):
