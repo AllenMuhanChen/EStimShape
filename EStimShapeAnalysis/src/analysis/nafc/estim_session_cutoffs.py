@@ -239,41 +239,104 @@ def get_session_cutoffs(session_id, algorithm_label):
     return {row[0]: row[1] for row in conn.fetch_all()}
 
 
-def plot_session_cutoffs(session_id, algorithm_label, window_size=100, step_size=10):
+def plot_session_cutoffs(session_id, algorithm_label, k, threshold, save_path=None):
     """
-    Re-run sliding window analysis for a session and overlay the cutoff lines
-    so you can visually verify each cutoff is reasonable.
-    Reuses plot_sliding_window_results from analyze_estim_by_condition.
+    For each condition in session_id that has a stored cutoff under algorithm_label,
+    plot one subplot showing:
+      - Rolling window effect (window = k trials, same k used to compute the cutoff)
+      - Horizontal dashed line at the threshold
+      - Vertical red line at the cutoff trial index
+    Intended purely for visual validation that the cutoff lands where you expect.
     """
-    from src.analysis.nafc.analyze_estim_by_condition import (
-        read_trial_data_from_repository,
-        sliding_window_analysis,
-    )
+    import os
+    import matplotlib.pyplot as plt
 
     cutoffs = get_session_cutoffs(session_id, algorithm_label)
     if not cutoffs:
         print(f"No cutoffs found for session={session_id} algorithm={algorithm_label}")
+        return None
 
-    data = read_trial_data_from_repository(session_id)
-    print(f"[{session_id}] {len(data)} trials, {len(cutoffs)} condition cutoffs to overlay")
+    n   = len(cutoffs)
+    cols = min(3, n)
+    rows = (n + cols - 1) // cols
 
-    behavioral_conditions = ['trial_type', 'noise_chance', 'sample_length']
-    estim_conditions      = ['num_channels', 'polarity', 'shape', 'a1',
-                              'post_stim_refractory_period', 'enable_charge_recovery']
+    fig, axes = plt.subplots(rows, cols, figsize=(6 * cols, 4 * rows), squeeze=False)
+    axes_flat = axes.flatten()
 
-    sliding_window_analysis(
-        data,
-        behavioral_conditions,
-        estim_conditions,
-        window_size=window_size,
-        step_size=step_size,
-        session_id=f"{session_id}_cutoffs_{algorithm_label}",
-        cutoff_gen_ids=cutoffs,
-    )
+    for ax_idx, (conditions_json, max_gen_id) in enumerate(cutoffs.items()):
+        ax        = axes_flat[ax_idx]
+        cond_dict = json.loads(conditions_json)
+        df        = _get_trials_with_gen_id(session_id, cond_dict)
+
+        # Compute rolling window effect (same k as cutoff algorithm)
+        trial_indices = []
+        effects       = []
+        for end in range(k - 1, len(df)):
+            eff = _window_effect(df.iloc[end - k + 1: end + 1])
+            trial_indices.append(end)
+            effects.append(eff)
+
+        ax.plot(trial_indices, effects, color='steelblue', linewidth=1.5)
+        ax.axhline(y=threshold, color='orange', linestyle='--', linewidth=1.5,
+                   label=f'threshold ({threshold}%)')
+        ax.axhline(y=0, color='gray', linestyle=':', linewidth=1, alpha=0.5)
+
+        # Mark the cutoff: find the last trial row whose gen_id == max_gen_id
+        cutoff_rows = df[df['gen_id'] == max_gen_id]
+        if not cutoff_rows.empty:
+            cutoff_trial = cutoff_rows.index[-1]
+            ax.axvline(x=cutoff_trial, color='red', linestyle='--', linewidth=2,
+                       label=f'cutoff (gen_id={max_gen_id})')
+
+        # Short label from condition dict
+        label_parts = []
+        abbrevs = {'trial_type': 'type', 'noise_chance': 'noise', 'sample_length': 'smpl',
+                   'num_channels': 'ch', 'polarity': 'pol', 'shape': 'shp',
+                   'a1': 'amp', 'post_stim_refractory_period': 'refrac',
+                   'enable_charge_recovery': 'CR'}
+        for key, val in cond_dict.items():
+            if val is not None:
+                label_parts.append(f"{abbrevs.get(key, key)}={val}")
+        ax.set_title(' | '.join(label_parts), fontsize=7)
+        ax.set_xlabel('Trial index')
+        ax.set_ylabel('Effect size (%)')
+        ax.legend(fontsize=7)
+        ax.grid(True, alpha=0.3)
+
+    for ax in axes_flat[n:]:
+        ax.set_visible(False)
+
+    fig.suptitle(f'{session_id}  —  cutoff validation  ({algorithm_label})', fontsize=12)
+    plt.tight_layout()
+
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, bbox_inches='tight', dpi=150)
+        print(f"Saved to {save_path}")
+
+    plt.show()
+    return fig
 
 
 def main():
-    run_last_sustained_cutoffs(k=3, threshold=5.0)
+    k         = 30
+    threshold = 5.0
+    session_id = None  # None = all sessions
+
+    algorithm_label = run_last_sustained_cutoffs(k=k, threshold=threshold,
+                                                 session_id=session_id)
+
+    # Visual validation: one figure per session that got cutoffs
+    conn = Connection("allen_data_repository")
+    if session_id:
+        sessions_with_cutoffs = [session_id]
+    else:
+        conn.execute("SELECT DISTINCT session_id FROM EStimSessionCutoffs WHERE algorithm_label = %s",
+                     (algorithm_label,))
+        sessions_with_cutoffs = [row[0] for row in conn.fetch_all()]
+
+    for sid in sessions_with_cutoffs:
+        plot_session_cutoffs(sid, algorithm_label, k=k, threshold=threshold)
 
 
 if __name__ == "__main__":
