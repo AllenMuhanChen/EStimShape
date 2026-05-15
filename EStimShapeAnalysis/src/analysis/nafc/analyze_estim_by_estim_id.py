@@ -1216,13 +1216,13 @@ def sliding_window_analysis_by_spec_id(data_exp, session_id,
                       if estim_on_pct is not None and estim_off_pct is not None else None)
             cond_data['windows'].append({'trial_number': trial_num, 'effect_size': effect})
 
-    # Generation boundaries: trial indices where GenId transitions
+    # Generation boundaries: (trial_index, new_gen_id) at each GenId transition
     gen_boundaries = []
     prev_gen = None
     for i, gen in enumerate(data_sorted['GenId']):
         if pd.notna(gen):
             if prev_gen is not None and gen != prev_gen:
-                gen_boundaries.append(i)
+                gen_boundaries.append((i, int(gen)))
             prev_gen = gen
 
     # Baseline windows: % correct for no-estim trials by trial_type + Combined

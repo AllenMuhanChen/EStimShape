@@ -122,13 +122,13 @@ def sliding_window_analysis(data, behavioral_conditions, estim_conditions,
 
 
 def compute_gen_boundaries(data_sorted):
-    """Return sorted trial indices where gen_id transitions between consecutive trials."""
+    """Return list of (trial_index, new_gen_id) at each gen_id transition."""
     boundaries = []
     prev_gen = None
     for i, gen in enumerate(data_sorted['gen_id']):
         if pd.notna(gen):
             if prev_gen is not None and gen != prev_gen:
-                boundaries.append(i)
+                boundaries.append((i, int(gen)))
             prev_gen = gen
     return boundaries
 
@@ -287,9 +287,13 @@ def plot_sliding_window_results(condition_groups,
 
     if show_gen_boundaries and gen_boundary_trial_numbers:
         axes_to_mark = [ax_effect] + ([ax_baseline] if ax_baseline is not None else [])
-        for trial_num in gen_boundary_trial_numbers:
+        for trial_num, gen_id in gen_boundary_trial_numbers:
             for ax in axes_to_mark:
                 ax.axvline(x=trial_num, color='gray', linestyle=':', linewidth=1, alpha=0.6)
+            ax_effect.text(trial_num, 1.0, f' G{gen_id}',
+                           transform=ax_effect.get_xaxis_transform(),
+                           rotation=90, va='top', ha='left',
+                           fontsize=7, color='gray', alpha=0.85)
 
     plt.tight_layout()
     if output_path:
