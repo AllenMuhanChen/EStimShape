@@ -433,9 +433,9 @@ def main():
     window_size      = 100
     step_size        = 10
     threshold        = 5.0
-    n_steps_below    = 3
+    n_steps_below    = 1
     min_estim_trials = 10
-    session_id       = None  # None = all sessions
+    session_id       = "260514_0"  # None = all sessions
 
     algorithm_label = run_cutoffs(
         window_size=window_size, step_size=step_size,

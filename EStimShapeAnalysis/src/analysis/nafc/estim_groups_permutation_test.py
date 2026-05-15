@@ -263,10 +263,10 @@ def _migrate_permutation_test_table(conn):
 
 def main():
     run_permutation_tests(
-        session_id=None,
+        session_id="260514_0",
         n_permutations=10000,
-        force_recompute=False,
-        algorithm_label='none',
+        force_recompute=True,
+        algorithm_label='first_drop_w100_s10_t5.0_n3',
     )
 
 

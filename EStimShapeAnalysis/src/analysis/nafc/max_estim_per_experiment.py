@@ -340,9 +340,10 @@ def plot_max_stat_per_experiment(session_ids=None, start_session_id=None,
 
 def main():
     plot_max_stat_per_experiment(
-        session_ids=None,
-        start_session_id="260401_0",
-        algorithm_label='none',        # or e.g. 'last_sustained_k3_t5.0'
+        session_ids=["260514_0"],
+        start_session_id=None,
+        algorithm_label='first_drop_w100_s10_t5.0_n3_m10',        # or e.g. 'last_sustained_k3_t5.0'
+        # algorithm_label='first_drop_w100_s10_t5.0_n3',
         save_path="/home/connorlab/Documents/plots/across_experiments/max_estim_per_experiment.png",
         show_n=True,
         x_spacing=0.5,
