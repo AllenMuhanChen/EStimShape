@@ -15,6 +15,7 @@ Downstream usage:
 """
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -24,8 +25,31 @@ from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).parents[3]))
 
+import math
+
 from clat.util.connection import Connection
 from src.analysis.nafc.estim_parameter_classifier import EStimParameterClassifier
+
+
+def _normalize_cond_key(cond_dict):
+    """Canonical JSON key, robust to NaN vs None and numpy vs Python types."""
+    def _v(v):
+        if isinstance(v, float) and math.isnan(v):
+            return None
+        if isinstance(v, np.integer):
+            return int(v)
+        if isinstance(v, np.floating):
+            f = float(v)
+            return None if math.isnan(f) else f
+        if isinstance(v, np.bool_):
+            return bool(v)
+        return v
+    return json.dumps({k: _v(v) for k, v in cond_dict.items()}, sort_keys=True)
+
+
+def _parse_conditions_json(conditions_json):
+    """Parse conditions JSON that may contain bare NaN."""
+    return json.loads(re.sub(r'\bNaN\b', 'null', conditions_json))
 
 
 def create_cutoffs_table():
@@ -286,17 +310,30 @@ def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
     n_cutoffs = 0
     n_no_degradation = 0
 
+    seen_keys = set()  # deduplicate (session_id, normalized_key) across algorithm_label rows
+
     for row in tqdm(all_rows, desc="Computing cutoffs"):
         row_dict = dict(zip(col_names, row))
         sid             = row_dict['session_id']
         conditions_json = row_dict['conditions']
-        cond_dict       = json.loads(conditions_json)
+        try:
+            cond_dict = _parse_conditions_json(conditions_json)
+        except Exception as e:
+            print(f"  WARNING: skipping unparseable conditions for {sid}: {e}")
+            continue
+        # Normalize so the stored key matches what analyze_estim_by_condition looks up
+        normalized_json = _normalize_cond_key(cond_dict)
+
+        dedup_key = (sid, normalized_json)
+        if dedup_key in seen_keys:
+            continue
+        seen_keys.add(dedup_key)
 
         if not force_recompute:
             conn.execute("""
                 SELECT 1 FROM EStimSessionCutoffs
                 WHERE session_id = %s AND conditions = %s AND algorithm_label = %s
-            """, (sid, conditions_json, algorithm_label))
+            """, (sid, normalized_json, algorithm_label))
             if conn.fetch_all():
                 continue
 
@@ -307,7 +344,7 @@ def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
         if max_trial_start is None:
             n_no_degradation += 1
         else:
-            save_cutoff(sid, conditions_json, algorithm_label, max_trial_start)
+            save_cutoff(sid, normalized_json, algorithm_label, max_trial_start)
             n_cutoffs += 1
 
     print(f"\nDone. Cutoffs applied: {n_cutoffs}  |  No degradation / not applicable: {n_no_degradation}")

@@ -1,6 +1,8 @@
 from clat.util.connection import Connection
 import pandas as pd
 import json
+import re
+import math
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -18,6 +20,31 @@ class _NumpyEncoder(json.JSONEncoder):
         if isinstance(obj, np.bool_):
             return bool(obj)
         return super().default(obj)
+
+
+def _normalize_cond_key(cond_dict):
+    """
+    Canonical JSON key for a condition dict, robust to NaN vs None and numpy vs Python types.
+    NaN is treated as None (null in JSON) so stored keys and freshly-generated keys compare equal.
+    """
+    def _v(v):
+        if isinstance(v, float) and math.isnan(v):
+            return None
+        if isinstance(v, np.integer):
+            return int(v)
+        if isinstance(v, np.floating):
+            f = float(v)
+            return None if math.isnan(f) else f
+        if isinstance(v, np.bool_):
+            return bool(v)
+        return v
+    return json.dumps({k: _v(v) for k, v in cond_dict.items()}, sort_keys=True)
+
+
+def _parse_conditions_json(conditions_json):
+    """Parse a conditions JSON string that may contain bare NaN (not valid JSON)."""
+    cleaned = re.sub(r'\bNaN\b', 'null', conditions_json)
+    return json.loads(cleaned)
 
 
 def _get_all_session_ids():
@@ -82,8 +109,9 @@ def main():
 
 def _fetch_trial_start_cutoffs(session_id, algorithm_label):
     """
-    Return {conditions_json: max_trial_start} for all conditions in this session
+    Return {normalized_cond_key: max_trial_start} for all conditions in this session
     that have a cutoff stored under algorithm_label.
+    Keys are normalized via _normalize_cond_key so NaN vs None and int vs float don't break lookup.
     Returns an empty dict if algorithm_label is 'none' or no cutoffs exist.
     """
     if algorithm_label == 'none':
@@ -93,7 +121,17 @@ def _fetch_trial_start_cutoffs(session_id, algorithm_label):
         SELECT conditions, max_trial_start FROM EStimSessionCutoffs
         WHERE session_id = %s AND algorithm_label = %s
     """, (session_id, algorithm_label))
-    return {row[0]: row[1] for row in conn.fetch_all()}
+    rows = conn.fetch_all()
+    print(f"  [cutoffs] found {len(rows)} stored cutoffs for {session_id} / {algorithm_label}")
+    result = {}
+    for conditions_json, max_trial_start in rows:
+        try:
+            cond_dict = _parse_conditions_json(conditions_json)
+            key = _normalize_cond_key(cond_dict)
+            result[key] = max_trial_start
+        except Exception as e:
+            print(f"  [cutoffs] WARNING: could not parse conditions_json: {e}")
+    return result
 
 
 def sliding_window_analysis(data, behavioral_conditions, estim_conditions,
@@ -490,7 +528,7 @@ def save_estim_effects_to_repository(session_id, results, algorithm_label='none'
     conn = Connection("allen_data_repository")
 
     for result in results:
-        conditions_str = json.dumps(result['conditions'], sort_keys=True, cls=_NumpyEncoder)
+        conditions_str = _normalize_cond_key(result['conditions'])
         estim_on_pct  = float(result['estim_on_pct_hypothesized'])  if result['estim_on_pct_hypothesized']  is not None else None
         estim_off_pct = float(result['estim_off_pct_hypothesized']) if result['estim_off_pct_hypothesized'] is not None else None
         estim_on_n    = int(result['estim_on_n_trials'])             if result['estim_on_n_trials']          is not None else None
@@ -576,7 +614,7 @@ def split_data_by_conditions(data, behavioral_conditions, estim_conditions,
             # Apply adaptation cutoff for this condition if one exists
             if trial_start_cutoffs and 'trial_start' in data.columns:
                 all_conds = {**behavioral_dict, **estim_dict}
-                cond_key  = json.dumps(all_conds, sort_keys=True, cls=_NumpyEncoder)
+                cond_key  = _normalize_cond_key(all_conds)
                 if cond_key in trial_start_cutoffs:
                     max_ts = trial_start_cutoffs[cond_key]
                     estim_on_trimmed  = estim_on_trimmed[estim_on_trimmed['trial_start']  <= max_ts]
@@ -615,7 +653,9 @@ def read_trial_data_from_repository(session_id):
     # Join trials with estim parameters; active_channel_sql_subquery counts only
     # non-zero-amplitude channels so num_channels excludes ground-pulse channels.
     query = f"""
-            SELECT t.*,
+            SELECT t.session_id, t.task_id, t.trial_start,
+                   t.is_estim_on, t.is_hypothesized_choice, t.is_correct_choice,
+                   t.trial_type, t.noise_chance, t.sample_length, t.gen_id,
                    ep.channel,
                    ep.num_channels,
                    ep.shape,
@@ -642,7 +682,7 @@ def read_trial_data_from_repository(session_id):
             LEFT JOIN ({EStimParameterClassifier.active_channel_sql_subquery()}) ep
               ON t.session_id = ep.session_id AND t.estim_spec_id = ep.estim_spec_id
             WHERE t.session_id = %s
-            ORDER BY t.task_id
+            ORDER BY t.trial_start
             """
 
     repo_conn.execute(query, (session_id,))
