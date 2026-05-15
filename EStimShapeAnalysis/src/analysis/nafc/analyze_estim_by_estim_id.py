@@ -1172,14 +1172,14 @@ def sliding_window_analysis_by_spec_id(data_exp, session_id,
 
         off_valid = window_data.loc[
             window_data['EStimEnabled'] == False, 'IsHypothesized'
-        ].dropna()
+        ].dropna()  # effect size still uses % hypothesized
         estim_off_pct = float(off_valid.mean()) * 100 if len(off_valid) > 0 else None
 
         for spec_id in spec_ids:
             on_valid = window_data.loc[
                 (window_data['EStimEnabled'] == True) & (window_data['EStimSpecId'] == spec_id),
                 'IsHypothesized'
-            ].dropna()
+            ].dropna()  # effect size still uses % hypothesized
             estim_on_pct = float(on_valid.mean()) * 100 if len(on_valid) > 0 else None
             effect = (estim_on_pct - estim_off_pct
                       if estim_on_pct is not None and estim_off_pct is not None else None)
@@ -1218,9 +1218,9 @@ def sliding_window_analysis_by_spec_id(data_exp, session_id,
         }
         for lbl in baseline_labels:
             if lbl == 'Combined':
-                choices = window_off['IsHypothesized'].dropna()
+                choices = window_off['IsCorrect'].dropna()
             else:
-                choices = window_off.loc[masks[lbl], 'IsHypothesized'].dropna()
+                choices = window_off.loc[masks[lbl], 'IsCorrect'].dropna()
             pct = float(choices.mean()) * 100 if len(choices) > 0 else None
             baseline_windows[lbl].append({'trial_number': trial_num, 'pct': pct})
 

@@ -150,11 +150,11 @@ def compute_baseline_windows(data_sorted, window_positions, window_size):
         window_off = window_off[window_off['is_estim_on'] == 0]
 
         for tt in trial_types:
-            choices = window_off.loc[window_off['trial_type'] == tt, 'is_hypothesized_choice'].dropna()
+            choices = window_off.loc[window_off['trial_type'] == tt, 'is_correct_choice'].dropna()
             result[tt].append({'trial_number': trial_num,
                                 'pct': float(choices.mean()) * 100 if len(choices) > 0 else None})
 
-        all_choices = window_off['is_hypothesized_choice'].dropna()
+        all_choices = window_off['is_correct_choice'].dropna()
         result['Combined'].append({'trial_number': trial_num,
                                    'pct': float(all_choices.mean()) * 100 if len(all_choices) > 0 else None})
 
@@ -278,7 +278,7 @@ def plot_sliding_window_results(condition_groups,
             ax_baseline.plot(trial_nums, pcts, color=color, linestyle=ls,
                              linewidth=1.5, label=tt)
         ax_baseline.axhline(y=50, color='black', linestyle=':', linewidth=0.8, alpha=0.5)
-        ax_baseline.set_ylabel('% Hyp Choice\n(No EStim)', fontsize=10)
+        ax_baseline.set_ylabel('% Correct\n(No EStim)', fontsize=10)
         ax_baseline.set_xlabel('Trial Number (Window Center)', fontsize=12)
         ax_baseline.legend(fontsize=8, framealpha=0.9)
         ax_baseline.grid(True, alpha=0.3)
