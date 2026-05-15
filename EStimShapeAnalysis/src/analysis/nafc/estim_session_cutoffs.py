@@ -36,7 +36,7 @@ def create_cutoffs_table():
             session_id       VARCHAR(10)  NOT NULL,
             conditions       LONGTEXT     NOT NULL,
             algorithm_label  VARCHAR(100) NOT NULL,
-            max_trial_start  DATETIME     NOT NULL,
+            max_trial_start  BIGINT       NOT NULL,
             created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
 
             PRIMARY KEY (session_id, conditions(500), algorithm_label(100)),
@@ -62,7 +62,7 @@ def _migrate_cutoffs_table(conn):
     conn.execute("DELETE FROM EStimSessionCutoffs")
     for col in old_cols:
         conn.execute(f"ALTER TABLE EStimSessionCutoffs DROP COLUMN {col}")
-    conn.execute("ALTER TABLE EStimSessionCutoffs ADD COLUMN max_trial_start DATETIME NOT NULL")
+    conn.execute("ALTER TABLE EStimSessionCutoffs ADD COLUMN max_trial_start BIGINT NOT NULL")
     print("Migration complete")
 
 
@@ -190,7 +190,7 @@ def compute_first_sustained_drop(session_id, cond_dict,
             if i == 0:
                 return None  # no good window to keep before the drop
             end_trial_idx = windows[i - 1][0]
-            return df.iloc[end_trial_idx]['trial_start']
+            return int(df.iloc[end_trial_idx]['trial_start'])
 
     return None  # never had a sustained drop
 
