@@ -653,9 +653,7 @@ def read_trial_data_from_repository(session_id):
     # Join trials with estim parameters; active_channel_sql_subquery counts only
     # non-zero-amplitude channels so num_channels excludes ground-pulse channels.
     query = f"""
-            SELECT t.session_id, t.task_id, t.trial_start,
-                   t.is_estim_on, t.is_hypothesized_choice, t.is_correct_choice,
-                   t.trial_type, t.noise_chance, t.sample_length, t.gen_id,
+            SELECT t.*,
                    ep.channel,
                    ep.num_channels,
                    ep.shape,
@@ -682,7 +680,7 @@ def read_trial_data_from_repository(session_id):
             LEFT JOIN ({EStimParameterClassifier.active_channel_sql_subquery()}) ep
               ON t.session_id = ep.session_id AND t.estim_spec_id = ep.estim_spec_id
             WHERE t.session_id = %s
-            ORDER BY t.trial_start
+            ORDER BY t.task_id
             """
 
     repo_conn.execute(query, (session_id,))
