@@ -33,61 +33,47 @@ def create_cutoffs_table():
     conn.execute("""
         CREATE TABLE IF NOT EXISTS EStimSessionCutoffs
         (
-            session_id      VARCHAR(10)  NOT NULL,
-            conditions      LONGTEXT     NOT NULL,
-            algorithm_label VARCHAR(100) NOT NULL,
-            max_task_id     BIGINT       NOT NULL,
-            created_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+            session_id       VARCHAR(10)  NOT NULL,
+            conditions       LONGTEXT     NOT NULL,
+            algorithm_label  VARCHAR(100) NOT NULL,
+            max_trial_start  DATETIME     NOT NULL,
+            created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
 
             PRIMARY KEY (session_id, conditions(500), algorithm_label(100)),
             FOREIGN KEY (session_id) REFERENCES Sessions (session_id) ON DELETE CASCADE
         ) ENGINE = InnoDB DEFAULT CHARSET = latin1
     """)
     _migrate_cutoffs_table(conn)
-    _widen_task_id_column(conn)
     print("EStimSessionCutoffs table created/verified")
 
 
 def _migrate_cutoffs_table(conn):
-    """Rename max_gen_id → max_task_id if the table was created with the old column name."""
+    """Replace any legacy max_gen_id / max_task_id column with max_trial_start DATETIME."""
     conn.execute("""
-        SELECT COUNT(*) FROM information_schema.COLUMNS
+        SELECT COLUMN_NAME FROM information_schema.COLUMNS
         WHERE TABLE_SCHEMA = DATABASE()
           AND TABLE_NAME   = 'EStimSessionCutoffs'
-          AND COLUMN_NAME  = 'max_gen_id'
+          AND COLUMN_NAME  IN ('max_gen_id', 'max_task_id')
     """)
-    if conn.fetch_all()[0][0] == 0:
+    old_cols = [row[0] for row in conn.fetch_all()]
+    if not old_cols:
         return
-    print("Migrating EStimSessionCutoffs: renaming max_gen_id to max_task_id...")
-    conn.execute("ALTER TABLE EStimSessionCutoffs CHANGE max_gen_id max_task_id BIGINT NOT NULL")
-    print("Migration complete")
-    _widen_task_id_column(conn)
-
-
-def _widen_task_id_column(conn):
-    """Widen max_task_id from INT to BIGINT if needed (task_ids are timestamp-based)."""
-    conn.execute("""
-        SELECT DATA_TYPE FROM information_schema.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME   = 'EStimSessionCutoffs'
-          AND COLUMN_NAME  = 'max_task_id'
-    """)
-    rows = conn.fetch_all()
-    if not rows or rows[0][0].lower() == 'bigint':
-        return
-    print("Migrating EStimSessionCutoffs: widening max_task_id to BIGINT...")
-    conn.execute("ALTER TABLE EStimSessionCutoffs MODIFY max_task_id BIGINT NOT NULL")
+    print(f"Migrating EStimSessionCutoffs: replacing {old_cols} with max_trial_start DATETIME...")
+    conn.execute("DELETE FROM EStimSessionCutoffs")
+    for col in old_cols:
+        conn.execute(f"ALTER TABLE EStimSessionCutoffs DROP COLUMN {col}")
+    conn.execute("ALTER TABLE EStimSessionCutoffs ADD COLUMN max_trial_start DATETIME NOT NULL")
     print("Migration complete")
 
 
 def _get_all_trials_ordered(session_id):
     """
-    Fetch ALL trials for the session (all conditions), sorted by task_id.
+    Fetch ALL trials for the session (all conditions), sorted by trial_start.
     The window slides over this full trial sequence, exactly as sliding_window_analysis does.
     """
     conn = Connection("allen_data_repository")
     query = f"""
-        SELECT t.task_id, t.is_estim_on, t.is_hypothesized_choice,
+        SELECT t.trial_start, t.is_estim_on, t.is_hypothesized_choice,
                t.trial_type, t.noise_chance, t.sample_length,
                ep.polarity, ep.shape, ep.num_channels, ep.a1,
                ep.post_stim_refractory_period, ep.enable_charge_recovery
@@ -95,12 +81,12 @@ def _get_all_trials_ordered(session_id):
         LEFT JOIN ({EStimParameterClassifier.active_channel_sql_subquery()}) ep
           ON t.session_id = ep.session_id AND t.estim_spec_id = ep.estim_spec_id
         WHERE t.session_id = %s
-        ORDER BY t.task_id ASC
+        ORDER BY t.trial_start ASC
     """
     conn.execute(query, (session_id,))
     rows = conn.fetch_all()
     df = pd.DataFrame(rows, columns=[
-        'task_id', 'is_estim_on', 'is_hypothesized_choice',
+        'trial_start', 'is_estim_on', 'is_hypothesized_choice',
         'trial_type', 'noise_chance', 'sample_length',
         'polarity', 'shape', 'num_channels', 'a1',
         'post_stim_refractory_period', 'enable_charge_recovery',
@@ -165,20 +151,19 @@ def _sliding_window_effects(df, window_size, step_size, cond_dict):
     return results
 
 
-def compute_last_sustained_positive_window(session_id, cond_dict,
-                                           window_size, step_size, threshold):
+def compute_first_sustained_drop(session_id, cond_dict,
+                                  window_size, step_size, threshold, n_steps_below):
     """
-    Uses the same sliding window as sliding_window_analysis (window_size trials,
-    step_size step) to compute reliable effect estimates, then finds the last
-    window position where effect >= threshold.
+    Slides a window over ALL session trials (ordered by trial_start) and finds the
+    FIRST time the effect drops below threshold and stays there for n_steps_below
+    consecutive windows.  The cutoff is the window immediately before that drop.
 
     Conservative rules:
       - First window effect <= 0  → condition started negative, skip.
-      - Effect never reaches threshold → not strong enough, skip.
-      - Last qualifying window is the final one → never degraded, skip.
+      - Effect never drops below threshold → no adaptation, skip.
+      - First drop is window 0 → no positive period to keep, skip.
 
-    Returns: max_gen_id (int) of the last trial in the last qualifying window,
-             or None if no cutoff should be applied.
+    Returns: trial_start of the last trial in the last good window, or None.
     """
     df = _get_all_trials_ordered(session_id)
 
@@ -194,51 +179,48 @@ def compute_last_sustained_positive_window(session_id, cond_dict,
     if first_effect is None or first_effect <= 0:
         return None
 
-    # A window only qualifies if: (1) it is above threshold, and (2) the mean of
-    # all subsequent window effects is below threshold. This handles late spikes —
-    # a brief recovery at the very end has no subsequent windows so cannot qualify,
-    # preventing the "never degraded" false negative.
-    last_above_idx = None
     for i, (_, effect) in enumerate(windows):
-        if effect is not None and effect >= threshold:
-            subsequent = [e for _, e in windows[i + 1:] if e is not None]
-            if subsequent and np.mean(subsequent) < threshold:
-                last_above_idx = i
+        if effect is None or effect >= threshold:
+            continue
+        # Check n_steps_below - 1 subsequent windows are also below threshold
+        run = windows[i: i + n_steps_below]
+        if len(run) < n_steps_below:
+            break  # not enough windows left to confirm sustained drop
+        if all(e is None or e < threshold for _, e in run):
+            if i == 0:
+                return None  # no good window to keep before the drop
+            end_trial_idx = windows[i - 1][0]
+            return df.iloc[end_trial_idx]['trial_start']
 
-    if last_above_idx is None:
-        return None
-
-    end_trial_idx = windows[last_above_idx][0]
-    return int(df.iloc[end_trial_idx]['task_id'])
+    return None  # never had a sustained drop
 
 
-def save_cutoff(session_id, conditions_json, algorithm_label, max_task_id):
+def save_cutoff(session_id, conditions_json, algorithm_label, max_trial_start):
     conn = Connection("allen_data_repository")
     conn.execute("""
-        INSERT INTO EStimSessionCutoffs (session_id, conditions, algorithm_label, max_task_id)
+        INSERT INTO EStimSessionCutoffs (session_id, conditions, algorithm_label, max_trial_start)
         VALUES (%s, %s, %s, %s)
-        ON DUPLICATE KEY UPDATE max_task_id = VALUES(max_task_id),
+        ON DUPLICATE KEY UPDATE max_trial_start = VALUES(max_trial_start),
                                 created_at = CURRENT_TIMESTAMP
-    """, (session_id, conditions_json, algorithm_label, max_task_id))
+    """, (session_id, conditions_json, algorithm_label, max_trial_start))
 
 
-def run_last_sustained_cutoffs(window_size=100, step_size=10, threshold=5.0,
-                               session_id=None, force_recompute=False):
+def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
+                session_id=None, force_recompute=False):
     """
-    Compute and store last-sustained-positive-window cutoffs for all conditions.
-    Uses the same sliding window (window_size, step_size) as sliding_window_analysis
-    so the validation plot is directly comparable to the analysis plot.
+    Compute and store first-sustained-drop cutoffs for all conditions.
 
     Args:
-        window_size : trials per window (should match sliding_window_analysis, default 100)
-        step_size   : trials between window positions (default 10)
-        threshold   : minimum effect size (pp) to count as "still working"
-        session_id  : restrict to one session, or None for all
+        window_size    : trials per window (match sliding_window_analysis, default 100)
+        step_size      : trials between window positions (default 10)
+        threshold      : effect must drop below this (pp) to count as degraded
+        n_steps_below  : number of consecutive windows below threshold required
+        session_id     : restrict to one session, or None for all
         force_recompute: overwrite existing rows
     """
     create_cutoffs_table()
 
-    algorithm_label = f"last_sustained_w{window_size}_s{step_size}_t{threshold}"
+    algorithm_label = f"first_drop_w{window_size}_s{step_size}_t{threshold}_n{n_steps_below}"
 
     conn = Connection("allen_data_repository")
     if session_id:
@@ -252,7 +234,6 @@ def run_last_sustained_cutoffs(window_size=100, step_size=10, threshold=5.0,
     print(f"Processing {len(all_rows)} conditions with algorithm '{algorithm_label}'")
 
     n_cutoffs = 0
-    n_skipped = 0
     n_no_degradation = 0
 
     for row in tqdm(all_rows, desc="Computing cutoffs"):
@@ -269,14 +250,14 @@ def run_last_sustained_cutoffs(window_size=100, step_size=10, threshold=5.0,
             if conn.fetch_all():
                 continue
 
-        max_task_id = compute_last_sustained_positive_window(
-            sid, cond_dict, window_size, step_size, threshold
+        max_trial_start = compute_first_sustained_drop(
+            sid, cond_dict, window_size, step_size, threshold, n_steps_below
         )
 
-        if max_task_id is None:
+        if max_trial_start is None:
             n_no_degradation += 1
         else:
-            save_cutoff(sid, conditions_json, algorithm_label, max_task_id)
+            save_cutoff(sid, conditions_json, algorithm_label, max_trial_start)
             n_cutoffs += 1
 
     print(f"\nDone. Cutoffs applied: {n_cutoffs}  |  No degradation / not applicable: {n_no_degradation}")
@@ -284,10 +265,10 @@ def run_last_sustained_cutoffs(window_size=100, step_size=10, threshold=5.0,
 
 
 def get_session_cutoffs(session_id, algorithm_label):
-    """Return {conditions_json: max_task_id} for this session+algorithm_label."""
+    """Return {conditions_json: max_trial_start} for this session+algorithm_label."""
     conn = Connection("allen_data_repository")
     conn.execute("""
-        SELECT conditions, max_task_id FROM EStimSessionCutoffs
+        SELECT conditions, max_trial_start FROM EStimSessionCutoffs
         WHERE session_id = %s AND algorithm_label = %s
     """, (session_id, algorithm_label))
     return {row[0]: row[1] for row in conn.fetch_all()}
@@ -296,10 +277,9 @@ def get_session_cutoffs(session_id, algorithm_label):
 def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, threshold,
                          save_path=None):
     """
-    For each condition with a stored cutoff, show the same sliding window effect series
-    (window_size, step_size) used to compute the cutoff, with:
-      - Horizontal orange dashed line at the threshold
-      - Vertical red dashed line at the cutoff window position
+    For each condition with a stored cutoff, show the sliding window effect series with:
+      - Orange dashed threshold line
+      - Red dashed vertical line at the cutoff window position
     x-axis is window center trial index, identical to sliding_window_analysis.
     """
     import os
@@ -321,7 +301,7 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
                'a1': 'amp', 'post_stim_refractory_period': 'refrac',
                'enable_charge_recovery': 'CR'}
 
-    for ax_idx, (conditions_json, max_task_id) in enumerate(cutoffs.items()):
+    for ax_idx, (conditions_json, max_trial_start) in enumerate(cutoffs.items()):
         ax        = axes_flat[ax_idx]
         cond_dict = json.loads(conditions_json)
         df        = _get_all_trials_ordered(session_id)
@@ -335,11 +315,9 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
                    label=f'threshold ({threshold}%)')
         ax.axhline(y=0, color='gray', linestyle=':', linewidth=1, alpha=0.5)
 
-        # Find the window whose last trial has task_id == max_task_id and mark it
         for (end_idx, _), x in zip(windows, xs):
-            if int(df.iloc[end_idx]['task_id']) == max_task_id:
-                ax.axvline(x=x, color='red', linestyle='--', linewidth=2,
-                           label=f'cutoff (task_id={max_task_id})')
+            if df.iloc[end_idx]['trial_start'] == max_trial_start:
+                ax.axvline(x=x, color='red', linestyle='--', linewidth=2, label='cutoff')
                 break
 
         label_parts = [f"{abbrevs.get(k, k)}={v}" for k, v in cond_dict.items() if v is not None]
@@ -365,13 +343,15 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
 
 
 def main():
-    window_size = 100
-    step_size   = 10
-    threshold   = 5.0
-    session_id  = None  # None = all sessions
+    window_size   = 100
+    step_size     = 10
+    threshold     = 5.0
+    n_steps_below = 3
+    session_id    = None  # None = all sessions
 
-    algorithm_label = run_last_sustained_cutoffs(
-        window_size=window_size, step_size=step_size, threshold=threshold,
+    algorithm_label = run_cutoffs(
+        window_size=window_size, step_size=step_size,
+        threshold=threshold, n_steps_below=n_steps_below,
         session_id=session_id,
     )
 

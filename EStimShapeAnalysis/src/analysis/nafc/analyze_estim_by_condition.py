@@ -55,7 +55,7 @@ def main():
         data = read_trial_data_from_repository(session_id)
         print(f"\n=== {session_id}: {len(data)} trials ===")
 
-        task_id_cutoffs = _fetch_task_id_cutoffs(session_id, algorithm_label)
+        trial_start_cutoffs = _fetch_trial_start_cutoffs(session_id, algorithm_label)
 
         sliding_window_analysis(
             data,
@@ -64,21 +64,21 @@ def main():
             window_size=100,
             step_size=10,
             session_id=session_id,
-            cutoff_task_ids=task_id_cutoffs,
+            cutoff_trial_starts=trial_start_cutoffs,
         )
 
         condition_groups_data = split_data_by_conditions(
             data, behavioral_conditions, estim_conditions,
-            task_id_cutoffs=task_id_cutoffs,
+            trial_start_cutoffs=trial_start_cutoffs,
         )
         results = calculate_estim_effects(condition_groups_data)
         save_estim_effects_to_repository(session_id, results, algorithm_label)
         print(f"Saved {len(results)} effects for {session_id} (algorithm='{algorithm_label}')")
 
 
-def _fetch_task_id_cutoffs(session_id, algorithm_label):
+def _fetch_trial_start_cutoffs(session_id, algorithm_label):
     """
-    Return {conditions_json: max_task_id} for all conditions in this session
+    Return {conditions_json: max_trial_start} for all conditions in this session
     that have a cutoff stored under algorithm_label.
     Returns an empty dict if algorithm_label is 'none' or no cutoffs exist.
     """
@@ -86,7 +86,7 @@ def _fetch_task_id_cutoffs(session_id, algorithm_label):
         return {}
     conn = Connection("allen_data_repository")
     conn.execute("""
-        SELECT conditions, max_task_id FROM EStimSessionCutoffs
+        SELECT conditions, max_trial_start FROM EStimSessionCutoffs
         WHERE session_id = %s AND algorithm_label = %s
     """, (session_id, algorithm_label))
     return {row[0]: row[1] for row in conn.fetch_all()}
@@ -95,7 +95,7 @@ def _fetch_task_id_cutoffs(session_id, algorithm_label):
 def sliding_window_analysis(data, behavioral_conditions, estim_conditions,
                             window_size=100, step_size=5,
                             show_gen_boundaries=True, session_id=None,
-                            cutoff_task_ids=None):
+                            cutoff_trial_starts=None):
     """
     Sliding window estim-effect analysis grouped by behavioral + estim conditions.
 
@@ -138,11 +138,11 @@ def sliding_window_analysis(data, behavioral_conditions, estim_conditions,
                     'estim_off_n': result['estim_off_n_trials']
                 })
 
-    # Convert task_id cutoffs → trial-index positions for plotting
+    # Convert trial_start cutoffs → trial-index positions for plotting
     cutoff_trial_numbers = {}
-    if cutoff_task_ids:
-        for conditions_json, max_task_id in cutoff_task_ids.items():
-            mask = data_sorted['task_id'] <= max_task_id
+    if cutoff_trial_starts:
+        for conditions_json, max_trial_start in cutoff_trial_starts.items():
+            mask = data_sorted['trial_start'] <= max_trial_start
             if mask.any():
                 cutoff_trial_numbers[conditions_json] = int(mask.values.nonzero()[0][-1])
 
@@ -494,7 +494,7 @@ def save_estim_effects_to_repository(session_id, results, algorithm_label='none'
 
 
 def split_data_by_conditions(data, behavioral_conditions, estim_conditions,
-                             task_id_cutoffs=None):
+                             trial_start_cutoffs=None):
     """
     Split data for estim vs no-estim comparisons.
 
@@ -554,13 +554,13 @@ def split_data_by_conditions(data, behavioral_conditions, estim_conditions,
             estim_off_trimmed = estim_off_data.copy()
 
             # Apply adaptation cutoff for this condition if one exists
-            if task_id_cutoffs and 'task_id' in data.columns:
+            if trial_start_cutoffs and 'trial_start' in data.columns:
                 all_conds = {**behavioral_dict, **estim_dict}
                 cond_key  = json.dumps(all_conds, sort_keys=True, cls=_NumpyEncoder)
-                if cond_key in task_id_cutoffs:
-                    max_task = task_id_cutoffs[cond_key]
-                    estim_on_trimmed  = estim_on_trimmed[estim_on_trimmed['task_id']  <= max_task]
-                    estim_off_trimmed = estim_off_trimmed[estim_off_trimmed['task_id'] <= max_task]
+                if cond_key in trial_start_cutoffs:
+                    max_ts = trial_start_cutoffs[cond_key]
+                    estim_on_trimmed  = estim_on_trimmed[estim_on_trimmed['trial_start']  <= max_ts]
+                    estim_off_trimmed = estim_off_trimmed[estim_off_trimmed['trial_start'] <= max_ts]
 
             comparisons.append({
                 'behavioral_conditions': behavioral_dict,
