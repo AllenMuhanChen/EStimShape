@@ -325,6 +325,25 @@ def plot_across_experiments(experiments: list, save_path: str = None,
 def main():
     experiments = [
         {
+            "label": "260514",
+            "exp_db": "allen_estimshape_exp_260514_0",
+
+            # Gen-id range (ON and OFF)
+            "start_gen_id": 4,
+            "max_gen_id": 5,
+
+            # Extra gen-id range for ON trials only
+            "start_gen_id_estim_on": 0,
+            "max_gen_id_estim_on": None,
+
+            # Filters
+            "include_trial_types": ["Removed Trial"],
+            "include_noise_chances": None,
+            "combine_noise_chances": False,
+            "include_sample_lengths": None,
+            "include_spec_ids": [2],
+        },
+        {
             "label": "260512",
             "exp_db": "allen_estimshape_exp_260512_0",
 

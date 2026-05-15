@@ -22,10 +22,10 @@ def main():
     use_baseline_correction = True
 
     analysis = PlotVariantDeltas(
-        to_save_to_db=False,
+        to_save_to_db=True,
         delta_threshold=0.6,
-        variant_threshold=0.5,
-        plot_mode=PLOT_MODE_ALL,
+        variant_threshold=0.4,
+        plot_mode=PLOT_MODE_DB_INCLUDED,
         use_baseline_correction=use_baseline_correction,)
     compiled_data = None  # Set to None to import from repository
     # compiled_data = analysis.compile_and_export()

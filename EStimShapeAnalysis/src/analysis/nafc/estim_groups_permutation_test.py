@@ -293,7 +293,7 @@ def create_permutation_test_table():
 
 def main():
     # Run for specific session or all
-    session_id = None  # or None for all sessions
+    session_id = "260514_0"  # or None for all sessions
 
     run_permutation_tests(
         session_id=session_id,

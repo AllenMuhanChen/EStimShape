@@ -3,7 +3,7 @@ from clat.util import time_util
 from src.analysis.nafc.nafc_database_fields import IsCorrectField, IsHypothesizedField, NoiseChanceField, \
     NumRandDistractorsField, StimTypeField, ChoiceField, GenIdField, EStimEnabledField, BaseMStickIdField, IsDeltaField, \
     EStimPolarityField, EStimSpecIdField, StimSpecIdField, IsHypothesizedFieldLegacy, EStimEnabledFieldLegacy, \
-    SampleLengthField
+    SampleLengthField, IsRemovedTrialField
 from src.analysis.nafc.psychometric_curves import collect_choice_trials
 
 
@@ -24,6 +24,7 @@ def compile_latest(exp_conn):
     fields.append(EStimSpecIdField(exp_conn))
     fields.append(BaseMStickIdField(exp_conn))
     fields.append(IsDeltaField(exp_conn))
+    fields.append(IsRemovedTrialField(exp_conn))
     fields.append(EStimPolarityField(exp_conn))
     fields.append(ChoiceField(exp_conn))
     fields.append(SampleLengthField(exp_conn))
@@ -36,6 +37,8 @@ def compile_latest(exp_conn):
 
     if 'IsDelta' in data.columns:
         data['trial_type'] = data['IsDelta'].apply(lambda x: "Hypothesized Shape" if not x else "Delta Shape")
+    if 'IsRemovedTrial' in data.columns:
+        data['trial_type'] = data.apply(lambda row: "Removed Trial" if row['IsRemovedTrial'] else row.get('trial_type', None), axis=1)
 
     # if trial class is EStimShapeProceduralBehavioralStim then trial_type is behavioral
     data['trial_type'] = data.apply(lambda row: "Behavioral" if row['StimType'] == 'EStimShapeProceduralBehavioralStim' else row.get('trial_type', None), axis=1)

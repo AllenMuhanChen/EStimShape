@@ -8,7 +8,7 @@ from src.startup import context
 
 
 def main():
-    session_id = "260414_0"
+    session_id = "260514_0"
 
     # Read data from repository
     data = read_trial_data_from_repository(session_id)
