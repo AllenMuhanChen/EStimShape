@@ -42,7 +42,8 @@ def _build_max_stat_for_session(session_id):
     """
     conn = Connection("allen_data_repository")
     conn.execute("""
-        SELECT conditions, observed_effect_size, null_distribution
+        SELECT conditions, observed_effect_size, null_distribution,
+               n_trials_estim_on, n_trials_estim_off
         FROM EStimPermutationTests
         WHERE session_id = %s
     """, (session_id,))
@@ -52,8 +53,10 @@ def _build_max_stat_for_session(session_id):
         return None
 
     entries = []
-    for conditions_json, obs_effect, null_json in rows:
+    for conditions_json, obs_effect, null_json, n_on, n_off in rows:
         if null_json is None or obs_effect is None:
+            continue
+        if n_on is None or n_off is None or n_on < 10 or n_off < 10:
             continue
         entries.append({
             'cond_dict':  json.loads(conditions_json),
