@@ -452,22 +452,33 @@ def create_estim_effects_table():
 
 
 def _migrate_estim_effects_table(conn):
-    """Add algorithm_label column and update PK for tables created before this column existed."""
-    # Check if algorithm_label column exists
+    """Add algorithm_label column and ensure PK includes it. Checks each step independently
+    so a partial migration (column added, PK not updated) is correctly retried."""
+    # Step 1: add column if missing
     conn.execute("""
         SELECT COUNT(*) FROM information_schema.COLUMNS
         WHERE TABLE_SCHEMA = DATABASE()
           AND TABLE_NAME   = 'EStimEffects'
           AND COLUMN_NAME  = 'algorithm_label'
     """)
-    if conn.fetch_all()[0][0] > 0:
-        return  # already migrated
+    if conn.fetch_all()[0][0] == 0:
+        print("Migrating EStimEffects: adding algorithm_label column...")
+        conn.execute("ALTER TABLE EStimEffects ADD COLUMN algorithm_label VARCHAR(100) NOT NULL DEFAULT 'none'")
+        print("Column added")
 
-    print("Migrating EStimEffects: adding algorithm_label column and updating PK...")
-    conn.execute("ALTER TABLE EStimEffects ADD COLUMN algorithm_label VARCHAR(100) NOT NULL DEFAULT 'none'")
-    conn.execute("ALTER TABLE EStimEffects DROP PRIMARY KEY")
-    conn.execute("ALTER TABLE EStimEffects ADD PRIMARY KEY (session_id, conditions(500), algorithm_label(100))")
-    print("Migration complete")
+    # Step 2: ensure algorithm_label is actually part of the PRIMARY KEY
+    conn.execute("""
+        SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE
+        WHERE TABLE_SCHEMA    = DATABASE()
+          AND TABLE_NAME      = 'EStimEffects'
+          AND CONSTRAINT_NAME = 'PRIMARY'
+          AND COLUMN_NAME     = 'algorithm_label'
+    """)
+    if conn.fetch_all()[0][0] == 0:
+        print("Migrating EStimEffects: updating PRIMARY KEY to include algorithm_label...")
+        conn.execute("ALTER TABLE EStimEffects DROP PRIMARY KEY")
+        conn.execute("ALTER TABLE EStimEffects ADD PRIMARY KEY (session_id, conditions(500), algorithm_label(100))")
+        print("Migration complete")
 
 
 def save_estim_effects_to_repository(session_id, results, algorithm_label='none'):
