@@ -103,6 +103,58 @@ def _fmt_p(p):
     return f"p={p:.2f}"
 
 
+def compute_population_stats(rows):
+    """
+    Three convergent population tests on per-session max-stat results.
+
+    Permutation test on mean max-stat:
+        A_obs  = mean_i(observed_signed_i)
+        A*[k]  = mean_i(max_stat_null_i[k])   — average the per-session nulls element-wise
+        p_perm = fraction of k where A*[k] >= A_obs
+
+    Stouffer's Z:  combine per-session p-values into a single Z (one-tailed positive).
+
+    Sign test:     binomial test — how many sessions have positive best effects.
+    """
+    from scipy import stats as sp_stats
+
+    n = len(rows)
+    if n == 0:
+        return None
+
+    observed = np.array([d['observed_signed'] for d in rows])
+    A_obs    = float(np.mean(observed))
+
+    null_matrix = np.stack([d['max_stat_null'] for d in rows], axis=0)  # (n_sessions, n_perms)
+    pop_null    = null_matrix.mean(axis=0)                               # (n_perms,)
+    p_perm      = float(np.mean(pop_null >= A_obs))
+
+    p_values  = np.clip([d['p_value'] for d in rows], 1e-6, 1 - 1e-6)
+    stouffer_z = float(np.sum(sp_stats.norm.ppf(1 - p_values)) / np.sqrt(n))
+    stouffer_p = float(1 - sp_stats.norm.cdf(stouffer_z))
+
+    n_positive = int(np.sum(observed > 0))
+    sign_p     = float(sp_stats.binomtest(n_positive, n, p=0.5, alternative='greater').pvalue)
+
+    stats = {
+        'n':          n,
+        'A_obs':      A_obs,
+        'p_perm':     p_perm,
+        'stouffer_z': stouffer_z,
+        'stouffer_p': stouffer_p,
+        'n_positive': n_positive,
+        'sign_p':     sign_p,
+    }
+
+    print(f"\nPopulation stats (n={n} sessions):")
+    print(f"  Mean best effect:  {A_obs:+.2f}%")
+    print(f"  Permutation test:  {_fmt_p(p_perm)}")
+    print(f"  Stouffer Z={stouffer_z:.2f}   {_fmt_p(stouffer_p)}")
+    print(f"  Sign test:  {n_positive}/{n} positive  {_fmt_p(sign_p)}")
+
+    return stats
+
+
 def plot_max_stat_per_experiment(session_ids=None, save_path=None, show_n=True,
                                  x_spacing=1.0, width_per_exp=1.5):
     if session_ids is None:
@@ -126,6 +178,7 @@ def plot_max_stat_per_experiment(session_ids=None, save_path=None, show_n=True,
             'n_off':           n_off,
             'p_value':         result['p_value'],
             'observed_signed': result['observed_signed'],
+            'max_stat_null':   result['max_stat_null'],
         })
         print(f"[{sid}] best effect={result['observed_signed']:+.1f}%  p={result['p_value']:.3f}  "
               f"ON={pct_on:.1f}% (n={n_on})  OFF={pct_off:.1f}% (n={n_off})")
@@ -133,6 +186,8 @@ def plot_max_stat_per_experiment(session_ids=None, save_path=None, show_n=True,
     if not rows:
         print("No data to plot.")
         return None
+
+    pop = compute_population_stats(rows)
 
     n_exp     = len(rows)
     _LEGEND_W = 1.5
@@ -196,6 +251,13 @@ def plot_max_stat_per_experiment(session_ids=None, save_path=None, show_n=True,
     ax.legend(handles=legend_handles, fontsize=9,
               loc="upper left", bbox_to_anchor=(1.01, 1),
               framealpha=0.85, borderpad=0.7)
+
+    if pop is not None:
+        summary = (f"n={pop['n']}  mean best={pop['A_obs']:+.1f}%  "
+                   f"perm {_fmt_p(pop['p_perm'])}  "
+                   f"Stouffer Z={pop['stouffer_z']:.2f} ({_fmt_p(pop['stouffer_p'])})  "
+                   f"sign {pop['n_positive']}/{pop['n']} ({_fmt_p(pop['sign_p'])})")
+        fig.suptitle(summary, fontsize=9, color="darkred" if pop['p_perm'] < 0.05 else "gray")
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
