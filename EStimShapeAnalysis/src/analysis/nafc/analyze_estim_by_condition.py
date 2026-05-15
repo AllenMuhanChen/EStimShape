@@ -8,6 +8,18 @@ from src.analysis.nafc.estim_parameter_classifier import EStimParameterClassifie
 from src.startup import context
 
 
+class _NumpyEncoder(json.JSONEncoder):
+    """Converts numpy scalar types to Python natives so json.dumps works on pandas groupby keys."""
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.bool_):
+            return bool(obj)
+        return super().default(obj)
+
+
 def main():
     session_id = "260514_0"
 
@@ -84,7 +96,7 @@ def sliding_window_analysis(data, behavioral_conditions, estim_conditions,
     # Group data to find unique combinations
     temp_groups = split_data_by_conditions(data, behavioral_conditions, estim_conditions)
     for group in temp_groups:
-        condition_key = json.dumps({**group['behavioral_conditions'], **group['estim_conditions']}, sort_keys=True)
+        condition_key = json.dumps({**group['behavioral_conditions'], **group['estim_conditions']}, sort_keys=True, cls=_NumpyEncoder)
         condition_groups[condition_key] = {
             'label': format_condition_label(group['behavioral_conditions'], group['estim_conditions']),
             'behavioral': group['behavioral_conditions'],
@@ -107,7 +119,7 @@ def sliding_window_analysis(data, behavioral_conditions, estim_conditions,
 
         # Store results for each condition
         for result in window_results:
-            condition_key = json.dumps(result['conditions'], sort_keys=True)
+            condition_key = json.dumps(result['conditions'], sort_keys=True, cls=_NumpyEncoder)
             if condition_key in condition_groups:
                 condition_groups[condition_key]['windows'].append({
                     'window_center': window_start + window_size // 2,
@@ -378,7 +390,7 @@ def save_estim_effects_to_repository(session_id, results):
 
     for result in results:
         # Convert conditions dict to JSON string for storage
-        conditions_str = json.dumps(result['conditions'], sort_keys=True)
+        conditions_str = json.dumps(result['conditions'], sort_keys=True, cls=_NumpyEncoder)
 
         # Convert numpy types to Python native types
         estim_on_pct = float(result['estim_on_pct_hypothesized']) if result[
