@@ -47,6 +47,42 @@ def _parse_conditions_json(conditions_json):
     return json.loads(cleaned)
 
 
+def _cond_val_equal(a, b):
+    """Fuzzy equality for condition values: NaN==None, int==float if close, bool(False)==int(0)."""
+    def _n(v):
+        if v is None:
+            return None
+        if isinstance(v, float) and math.isnan(v):
+            return None
+        return v
+    a, b = _n(a), _n(b)
+    if a is None and b is None:
+        return True
+    if a is None or b is None:
+        return False
+    if isinstance(a, (int, float, bool)) and isinstance(b, (int, float, bool)):
+        return math.isclose(float(a), float(b), rel_tol=1e-6, abs_tol=1e-9)
+    return a == b
+
+
+def _find_cutoff_for_condition(all_conds, trial_start_cutoffs):
+    """
+    Look up max_trial_start for all_conds in trial_start_cutoffs using fuzzy comparison.
+    trial_start_cutoffs maps raw conditions_json strings → max_trial_start.
+    Returns the max_trial_start or None if no match found.
+    """
+    for conditions_json, max_ts in trial_start_cutoffs.items():
+        try:
+            stored = _parse_conditions_json(conditions_json)
+        except Exception:
+            continue
+        if set(stored.keys()) != set(all_conds.keys()):
+            continue
+        if all(_cond_val_equal(all_conds.get(k), stored.get(k)) for k in stored):
+            return max_ts
+    return None
+
+
 def _get_all_session_ids():
     """Return all session_ids present in EStimShapeTrials."""
     repo_conn = Connection("allen_data_repository")
@@ -123,15 +159,7 @@ def _fetch_trial_start_cutoffs(session_id, algorithm_label):
     """, (session_id, algorithm_label))
     rows = conn.fetch_all()
     print(f"  [cutoffs] found {len(rows)} stored cutoffs for {session_id} / {algorithm_label}")
-    result = {}
-    for conditions_json, max_trial_start in rows:
-        try:
-            cond_dict = _parse_conditions_json(conditions_json)
-            key = _normalize_cond_key(cond_dict)
-            result[key] = max_trial_start
-        except Exception as e:
-            print(f"  [cutoffs] WARNING: could not parse conditions_json: {e}")
-    return result
+    return {row[0]: row[1] for row in rows}
 
 
 def sliding_window_analysis(data, behavioral_conditions, estim_conditions,
@@ -614,9 +642,8 @@ def split_data_by_conditions(data, behavioral_conditions, estim_conditions,
             # Apply adaptation cutoff for this condition if one exists
             if trial_start_cutoffs and 'trial_start' in data.columns:
                 all_conds = {**behavioral_dict, **estim_dict}
-                cond_key  = _normalize_cond_key(all_conds)
-                if cond_key in trial_start_cutoffs:
-                    max_ts = trial_start_cutoffs[cond_key]
+                max_ts = _find_cutoff_for_condition(all_conds, trial_start_cutoffs)
+                if max_ts is not None:
                     estim_on_trimmed  = estim_on_trimmed[estim_on_trimmed['trial_start']  <= max_ts]
                     estim_off_trimmed = estim_off_trimmed[estim_off_trimmed['trial_start'] <= max_ts]
 
