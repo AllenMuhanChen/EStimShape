@@ -139,150 +139,100 @@ def sliding_window_analysis(data, behavioral_conditions, estim_conditions,
     # Plot results
     plot_sliding_window_results(condition_groups, output_path=output_path, window_size=window_size, step_size=step_size, session_id=session_id)
 
-def format_condition_label(behavioral_dict, estim_dict):
-    """Create a readable label for a condition combination"""
-    # Abbreviate for readability
-    label_parts = []
+_KEY_ABBREVS = {
+    'trial_type': 'type',
+    'noise_chance': 'noise',
+    'sample_length': 'smpl',
+    'num_channels': 'ch',
+    'polarity': 'pol',
+    'shape': 'shp',
+    'a1': 'amp',
+    'post_stim_refractory_period': 'refrac',
+    'enable_charge_recovery': 'CR',
+}
 
-    # Add key behavioral conditions
-    if 'trial_type' in behavioral_dict:
-        trial_type = behavioral_dict['trial_type']
-        type_abbrev = trial_type[:3] if trial_type != 'Combined' else 'Cmb'
-        label_parts.append(type_abbrev)
+_VALUE_FORMATTERS = {
+    'trial_type': lambda v: {'Delta Shape': 'Del', 'Hypothesized Shape': 'Hyp',
+                             'Removed Trial': 'Rmv', 'Combined': 'Cmb'}.get(str(v), str(v)[:4]),
+    'polarity': lambda v: 'Pos' if str(v) == 'PositiveFirst' else 'Neg',
+    'noise_chance': lambda v: f"{int(float(v) * 100)}%",
+    'a1': lambda v: f"{float(v):.1f}µA",
+    'post_stim_refractory_period': lambda v: f"{int(float(v))}µs",
+    'enable_charge_recovery': lambda v: 'CR+' if v else 'CR-',
+    'sample_length': lambda v: f"{v}ms",
+}
 
-    if 'noise_chance' in behavioral_dict:
-        noise = int(behavioral_dict['noise_chance'] * 100)
-        label_parts.append(f"{noise}%")
 
-    # Add key estim conditions
-    if 'polarity' in estim_dict:
-        pol = estim_dict['polarity']
-        pol_abbrev = 'Pos' if pol == 'PositiveFirst' else 'Neg'
-        label_parts.append(pol_abbrev)
-
-    if 'num_channels' in estim_dict:
-        label_parts.append(f"{estim_dict['num_channels']}ch")
-
-    if 'a1' in estim_dict and estim_dict['a1'] is not None:
-        # Format current amplitude (a1 is in microamps)
-        label_parts.append(f"I:{estim_dict['a1']:.1f}µA")
-    return ' '.join(label_parts)
+def format_condition_label(behavioral_dict, estim_dict, varying_keys=None):
+    """Build a label from condition dicts, showing only keys in varying_keys (or all if None)."""
+    all_conditions = {**behavioral_dict, **estim_dict}
+    keys_to_show = varying_keys if varying_keys is not None else list(all_conditions.keys())
+    parts = []
+    for key in keys_to_show:
+        val = all_conditions.get(key)
+        if val is None:
+            continue
+        fmt = _VALUE_FORMATTERS.get(key, str)
+        abbrev = _KEY_ABBREVS.get(key, key)
+        parts.append(f"{abbrev}={fmt(val)}")
+    return ' | '.join(parts) if parts else 'baseline'
 
 
 def plot_sliding_window_results(condition_groups, output_path=None, window_size=None, step_size=None, session_id=None):
     """
     Plot sliding window results showing effect size over time for each condition.
-
-    Args:
-        condition_groups: Dict of condition data with sliding window results
-        output_path: Path to save the plot
-        window_size: Size of sliding window (for display in text box)
-        step_size: Step size for sliding window (for display in text box)
+    Each unique condition combination gets a distinct color; the legend includes
+    only the dimensions that actually vary across conditions.
     """
-    fig, ax = plt.subplots(figsize=(14, 8))
+    # Determine which condition dimensions vary across all groups
+    all_values_by_key = {}
+    for cond_data in condition_groups.values():
+        for k, v in {**cond_data['behavioral'], **cond_data['estim']}.items():
+            all_values_by_key.setdefault(k, set()).add(str(v))
+    varying_keys = [k for k, vs in all_values_by_key.items() if len(vs) > 1]
 
-    # Define styling based on conditions
-    trial_type_colors = {
-        'Delta Shape': 'red',
-        'Del': 'red',  # Abbreviated version
-        'Hypothesized Shape': 'blue',
-        'Hyp': 'blue',  # Abbreviated version
-        'Combined': 'purple',
-        'Cmb': 'purple'  # Abbreviated version
-    }
+    # Collect only conditions that have data to plot
+    active = [
+        cond_data for cond_data in condition_groups.values()
+        if cond_data['windows'] and not all(w['effect_size'] is None for w in cond_data['windows'])
+    ]
 
-    # Line styles for polarity
-    polarity_linestyles = {
-        'PositiveFirst': '-',
-        'Pos': '-',
-        'NegativeFirst': '--',
-        'Neg': '--'
-    }
+    # Assign a unique color to each active condition
+    n = len(active)
+    if n <= 10:
+        palette = [plt.cm.tab10(i / 10) for i in range(n)]
+    elif n <= 20:
+        palette = [plt.cm.tab20(i / 20) for i in range(n)]
+    else:
+        palette = [plt.cm.hsv(i / n) for i in range(n)]
 
-    # Marker styles for charge recovery
-    charge_recovery_markers = {
-        True: 'o',
-        False: 's',
-        1: 'o',
-        0: 's'
-    }
+    fig, ax = plt.subplots(figsize=(16, 8))
 
-    # Plot each condition
-    for condition_key, condition_data in condition_groups.items():
-        if len(condition_data['windows']) == 0:
-            continue
-
-        # Extract data for plotting
-        trial_numbers = [w['trial_number'] for w in condition_data['windows']]
-        effect_sizes = [w['effect_size'] for w in condition_data['windows']]
-
-        # Skip if all None
-        if all(e is None for e in effect_sizes):
-            continue
-
-        # Determine styling based on conditions
-        behavioral = condition_data['behavioral']
-        estim = condition_data['estim']
-
-        # Color: trial type
-        trial_type = behavioral.get('trial_type', 'Combined')
-        color = trial_type_colors.get(trial_type, 'gray')
-
-        # Alpha: noise chance (lower noise = more opacity)
-        noise_chance = behavioral.get('noise_chance', 1.0)
-        alpha = 0.3 + (1.0 - noise_chance) * 0.5  # Range from 0.3 (100% noise) to 0.8 (0% noise)
-
-        # Line style: polarity
-        polarity = estim.get('polarity', 'PositiveFirst')
-        linestyle = polarity_linestyles.get(polarity, '-')
-
-        # Marker: charge recovery
-        charge_recovery = estim.get('enable_charge_recovery', True)
-        marker = charge_recovery_markers.get(charge_recovery, 'o')
-
-        # Line width: number of channels (more channels = thicker line)
-        num_channels = estim.get('num_channels', 1)
-        linewidth = 1 + (num_channels / 10)  # Scale linewidth with channel count
-
-        # Plot line
+    for cond_data, color in zip(active, palette):
+        trial_numbers = [w['trial_number'] for w in cond_data['windows']]
+        effect_sizes = [w['effect_size'] for w in cond_data['windows']]
+        label = format_condition_label(cond_data['behavioral'], cond_data['estim'], varying_keys)
         ax.plot(trial_numbers, effect_sizes,
                 color=color,
-                alpha=alpha,
-                linestyle=linestyle,
-                marker=marker,
+                marker='o',
                 markersize=3,
-                linewidth=linewidth,
-                label=condition_data['label'])
+                linewidth=1.5,
+                label=label)
 
-    # Add zero line for reference
     ax.axhline(y=0, color='black', linestyle='--', linewidth=1, alpha=0.5)
 
-    # Add text box with window parameters and legend key
     if window_size is not None and step_size is not None:
-        textstr = (f'Window Size: {window_size} trials\n'
-                   f'Step Size: {step_size} trials\n\n'
-                   f'Styling:\n'
-                   f'Color: Red=Delta, Blue=Hyp, Purple=Combined\n'
-                   f'Opacity: Higher=Lower Noise\n'
-                   f'Line: Solid=Pos, Dash=Neg\n'
-                   f'Marker: Circle=CR+, Square=CR-\n'
-                   f'Width: Thicker=More Channels')
+        textstr = f'Window: {window_size} trials  |  Step: {step_size} trials'
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.8)
         ax.text(0.02, 0.98, textstr, transform=ax.transAxes, fontsize=9,
                 verticalalignment='top', bbox=props)
 
-    # Labels and formatting
     ax.set_xlabel('Trial Number (Window Center)', fontsize=12)
-    ax.set_ylabel('Effect Size (EStim ON - EStim OFF %)', fontsize=12)
-
-    if session_id is not None:
-        ax.set_title(f'{session_id} - Sliding Window Analysis: EStim Effect Over Time by Condition', fontsize=14)
-    else:
-        ax.set_title('Sliding Window Analysis: EStim Effect Over Time by Condition', fontsize=14)
-
-    ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+    ax.set_ylabel('Effect Size (EStim ON − EStim OFF %)', fontsize=12)
+    title = f'{session_id} − Sliding Window Analysis' if session_id else 'Sliding Window Analysis'
+    ax.set_title(title, fontsize=14)
+    ax.legend(bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=8, framealpha=0.9)
     ax.grid(True, alpha=0.3)
-
     plt.tight_layout()
 
     if output_path:

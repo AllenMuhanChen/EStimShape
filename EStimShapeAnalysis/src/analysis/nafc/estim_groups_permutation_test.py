@@ -172,9 +172,9 @@ def get_trial_data_for_condition(session_id, cond_dict):
     repo_conn.execute(query, tuple(params))
     results = repo_conn.fetch_all()
 
-    # Separate into estim_on and estim_off
-    estim_on = [row[0] for row in results if row[1] == 1]
-    estim_off = [row[0] for row in results if row[1] == 0]
+    # Separate into estim_on and estim_off; skip rows where is_hypothesized_choice is NULL
+    estim_on = [row[0] for row in results if row[1] == 1 and row[0] is not None]
+    estim_off = [row[0] for row in results if row[1] == 0 and row[0] is not None]
 
     return {'estim_on': estim_on, 'estim_off': estim_off}
 
