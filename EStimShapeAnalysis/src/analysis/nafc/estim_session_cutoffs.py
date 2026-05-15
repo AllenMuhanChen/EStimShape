@@ -62,89 +62,87 @@ def _migrate_cutoffs_table(conn):
     print("Migration complete")
 
 
-def _get_trials_by_task_order(session_id, cond_dict):
+def _get_all_trials_ordered(session_id):
     """
-    Returns a DataFrame with columns [task_id, is_estim_on, is_hypothesized_choice]
-    for the given session and condition, sorted by task_id ascending (true trial order).
+    Fetch ALL trials for the session (all conditions), sorted by task_id.
+    The window slides over this full trial sequence, exactly as sliding_window_analysis does.
     """
     conn = Connection("allen_data_repository")
-
     query = f"""
-        SELECT t.task_id, t.is_estim_on, t.is_hypothesized_choice
+        SELECT t.task_id, t.is_estim_on, t.is_hypothesized_choice,
+               t.trial_type, t.noise_chance, t.sample_length,
+               ep.polarity, ep.shape, ep.num_channels, ep.a1,
+               ep.post_stim_refractory_period, ep.enable_charge_recovery
         FROM EStimShapeTrials t
         LEFT JOIN ({EStimParameterClassifier.active_channel_sql_subquery()}) ep
           ON t.session_id = ep.session_id AND t.estim_spec_id = ep.estim_spec_id
         WHERE t.session_id = %s
+        ORDER BY t.task_id ASC
     """
-    params = [session_id]
-
-    if 'trial_type' in cond_dict:
-        query += " AND t.trial_type = %s"
-        params.append(cond_dict['trial_type'])
-    if 'noise_chance' in cond_dict:
-        query += " AND ABS(t.noise_chance - %s) < 0.001"
-        params.append(cond_dict['noise_chance'])
-    if 'sample_length' in cond_dict:
-        if cond_dict['sample_length'] is None:
-            query += " AND t.sample_length IS NULL"
-        else:
-            query += " AND t.sample_length = %s"
-            params.append(cond_dict['sample_length'])
-
-    estim_conds = []
-    if 'polarity' in cond_dict:
-        estim_conds.append("(t.is_estim_on = 0 OR ep.polarity = %s)")
-        params.append(cond_dict['polarity'])
-    if 'shape' in cond_dict:
-        estim_conds.append("(t.is_estim_on = 0 OR ep.shape = %s)")
-        params.append(cond_dict['shape'])
-    if 'num_channels' in cond_dict:
-        estim_conds.append("(t.is_estim_on = 0 OR ep.num_channels = %s)")
-        params.append(cond_dict['num_channels'])
-    if 'a1' in cond_dict:
-        estim_conds.append("(t.is_estim_on = 0 OR ABS(ep.a1 - %s) < 0.01)")
-        params.append(cond_dict['a1'])
-    if 'post_stim_refractory_period' in cond_dict:
-        estim_conds.append("(t.is_estim_on = 0 OR ABS(ep.post_stim_refractory_period - %s) < 1.0)")
-        params.append(cond_dict['post_stim_refractory_period'])
-    if 'enable_charge_recovery' in cond_dict:
-        estim_conds.append("(t.is_estim_on = 0 OR ep.enable_charge_recovery = %s)")
-        params.append(cond_dict['enable_charge_recovery'])
-
-    if estim_conds:
-        query += " AND " + " AND ".join(estim_conds)
-
-    query += " ORDER BY t.task_id ASC"
-
-    conn.execute(query, tuple(params))
+    conn.execute(query, (session_id,))
     rows = conn.fetch_all()
-
-    df = pd.DataFrame(rows, columns=['task_id', 'is_estim_on', 'is_hypothesized_choice'])
+    df = pd.DataFrame(rows, columns=[
+        'task_id', 'is_estim_on', 'is_hypothesized_choice',
+        'trial_type', 'noise_chance', 'sample_length',
+        'polarity', 'shape', 'num_channels', 'a1',
+        'post_stim_refractory_period', 'enable_charge_recovery',
+    ])
     df = df[df['is_hypothesized_choice'].notna()].copy()
     df['is_estim_on'] = df['is_estim_on'].astype(int)
     df['is_hypothesized_choice'] = df['is_hypothesized_choice'].astype(int)
     return df.reset_index(drop=True)
 
 
-def _window_effect(window_df):
-    """Effect size (pp) for a DataFrame slice of trials."""
-    on  = window_df[window_df['is_estim_on'] == 1]['is_hypothesized_choice']
-    off = window_df[window_df['is_estim_on'] == 0]['is_hypothesized_choice']
+def _window_effect_for_condition(window_df, cond_dict):
+    """
+    Compute effect size (pp) for a specific condition within a window of ALL trials.
+    Behavioral filters (trial_type, noise_chance, sample_length) apply to both groups.
+    Estim-param filters (polarity, a1, …) apply only to estim-on trials.
+    """
+    mask = pd.Series(True, index=window_df.index)
+    if 'trial_type' in cond_dict:
+        mask &= window_df['trial_type'] == cond_dict['trial_type']
+    if 'noise_chance' in cond_dict:
+        mask &= (window_df['noise_chance'] - cond_dict['noise_chance']).abs() < 0.001
+    if 'sample_length' in cond_dict:
+        if cond_dict['sample_length'] is None:
+            mask &= window_df['sample_length'].isna()
+        else:
+            mask &= window_df['sample_length'] == cond_dict['sample_length']
+
+    behavioral_df = window_df[mask]
+    off = behavioral_df.loc[behavioral_df['is_estim_on'] == 0, 'is_hypothesized_choice']
+
+    on_df = behavioral_df[behavioral_df['is_estim_on'] == 1].copy()
+    if 'polarity' in cond_dict:
+        on_df = on_df[on_df['polarity'] == cond_dict['polarity']]
+    if 'shape' in cond_dict:
+        on_df = on_df[on_df['shape'] == cond_dict['shape']]
+    if 'num_channels' in cond_dict:
+        on_df = on_df[on_df['num_channels'] == cond_dict['num_channels']]
+    if 'a1' in cond_dict:
+        on_df = on_df[(on_df['a1'] - cond_dict['a1']).abs() < 0.01]
+    if 'post_stim_refractory_period' in cond_dict:
+        on_df = on_df[(on_df['post_stim_refractory_period'] - cond_dict['post_stim_refractory_period']).abs() < 1.0]
+    if 'enable_charge_recovery' in cond_dict:
+        on_df = on_df[on_df['enable_charge_recovery'] == cond_dict['enable_charge_recovery']]
+
+    on = on_df['is_hypothesized_choice']
     if len(on) == 0 or len(off) == 0:
         return None
-    return (on.mean() - off.mean()) * 100.0
+    return float((on.mean() - off.mean()) * 100.0)
 
 
-def _sliding_window_effects(df, window_size, step_size):
+def _sliding_window_effects(df, window_size, step_size, cond_dict):
     """
-    Compute sliding window effect estimates using the same logic as sliding_window_analysis.
+    Slide a window of window_size trials (step_size apart) over ALL session trials,
+    computing the per-condition effect at each position.
     Returns list of (window_end_trial_idx, effect_pct).
-    window_end_trial_idx is the index of the last trial in each window.
     """
     n       = len(df)
     results = []
     for start in range(0, n - window_size + 1, step_size):
-        effect = _window_effect(df.iloc[start: start + window_size])
+        effect = _window_effect_for_condition(df.iloc[start: start + window_size], cond_dict)
         results.append((start + window_size - 1, effect))
     return results
 
@@ -164,12 +162,12 @@ def compute_last_sustained_positive_window(session_id, cond_dict,
     Returns: max_gen_id (int) of the last trial in the last qualifying window,
              or None if no cutoff should be applied.
     """
-    df = _get_trials_by_task_order(session_id, cond_dict)
+    df = _get_all_trials_ordered(session_id)
 
     if len(df) < window_size:
         return None
 
-    windows = _sliding_window_effects(df, window_size, step_size)
+    windows = _sliding_window_effects(df, window_size, step_size, cond_dict)
 
     if not windows:
         return None
@@ -308,9 +306,9 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
     for ax_idx, (conditions_json, max_task_id) in enumerate(cutoffs.items()):
         ax        = axes_flat[ax_idx]
         cond_dict = json.loads(conditions_json)
-        df        = _get_trials_by_task_order(session_id, cond_dict)
+        df        = _get_all_trials_ordered(session_id)
 
-        windows = _sliding_window_effects(df, window_size, step_size)
+        windows = _sliding_window_effects(df, window_size, step_size, cond_dict)
         xs      = [end - window_size // 2 for end, _ in windows]
         effects = [eff for _, eff in windows]
 
