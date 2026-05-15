@@ -12,6 +12,8 @@ import matplotlib.cm as cm
 from PIL import Image
 import xmltodict
 
+from src.analysis.nafc.analyze_estim_by_condition import plot_sliding_window_results
+
 from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
 from clat.util import time_util
 from clat.util.connection import Connection
@@ -305,6 +307,8 @@ def main():
         pairs_fig.savefig(save_path.replace("_estim_results.png", "_pairs_estim_results.png"),
                           bbox_inches='tight', dpi=150)
     print(f"Saved plots to {os.path.dirname(save_path)}")
+
+    sliding_window_analysis_by_spec_id(data_exp, session_id, window_size=100, step_size=10)
 
     plt.show()
 
@@ -1126,6 +1130,115 @@ def plot_rand_excluded_panel(ax, stim_subset, estim_off_data, spec_ids, noise_le
     ax.legend(fontsize=7)
 
     return results_text
+
+
+# ===========================================================================
+# Sliding window analysis by EStimSpecId
+# ===========================================================================
+
+def sliding_window_analysis_by_spec_id(data_exp, session_id,
+                                        window_size=100, step_size=10,
+                                        show_gen_boundaries=True):
+    """
+    Sliding window effect-size plot where each line = one EStimSpecId.
+
+    Uses the experiment-DB data format (EStimEnabled, EStimSpecId, IsHypothesized, GenId).
+    Shares plot_sliding_window_results with analyze_estim_by_condition.
+    Baseline subplot shows % hypothesized for no-estim trials split by Delta / Variant / Combined.
+    """
+    data_sorted = data_exp.sort_index().reset_index(drop=True)
+
+    print(f"\nRunning sliding window analysis (by spec_id) for {session_id}:")
+    print(f"  Window size: {window_size} trials, Step: {step_size} trials, Total: {len(data_sorted)}")
+
+    spec_ids = sorted(
+        data_sorted.loc[data_sorted['EStimEnabled'] == True, 'EStimSpecId'].dropna().unique()
+    )
+
+    condition_groups = {}
+    for spec_id in spec_ids:
+        condition_groups[str(spec_id)] = {
+            'label': f"spec {int(spec_id)}",
+            'behavioral': {},
+            'estim': {'estim_spec_id': int(spec_id)},
+            'windows': []
+        }
+
+    window_positions = range(0, len(data_sorted) - window_size + 1, step_size)
+
+    for window_start in window_positions:
+        window_data = data_sorted.iloc[window_start:window_start + window_size]
+        trial_num = window_start + window_size // 2
+
+        off_valid = window_data.loc[
+            window_data['EStimEnabled'] == False, 'IsHypothesized'
+        ].dropna()
+        estim_off_pct = float(off_valid.mean()) * 100 if len(off_valid) > 0 else None
+
+        for spec_id in spec_ids:
+            on_valid = window_data.loc[
+                (window_data['EStimEnabled'] == True) & (window_data['EStimSpecId'] == spec_id),
+                'IsHypothesized'
+            ].dropna()
+            estim_on_pct = float(on_valid.mean()) * 100 if len(on_valid) > 0 else None
+            effect = (estim_on_pct - estim_off_pct
+                      if estim_on_pct is not None and estim_off_pct is not None else None)
+            condition_groups[str(spec_id)]['windows'].append({
+                'trial_number': trial_num,
+                'effect_size': effect,
+            })
+
+    # Generation boundaries: trial indices where GenId transitions
+    gen_boundaries = []
+    prev_gen = None
+    for i, gen in enumerate(data_sorted['GenId']):
+        if pd.notna(gen):
+            if prev_gen is not None and gen != prev_gen:
+                gen_boundaries.append(i)
+            prev_gen = gen
+
+    # Baseline windows: % hyp for no-estim trials by Delta / Variant / Combined
+    has_removed_col = 'IsRemovedTrial' in data_sorted.columns
+    has_removed = has_removed_col and (data_sorted['IsRemovedTrial'] == True).any()
+    baseline_labels = ['Delta', 'Variant'] + (['Removed'] if has_removed else []) + ['Combined']
+    baseline_windows = {lbl: [] for lbl in baseline_labels}
+
+    for window_start in window_positions:
+        trial_num = window_start + window_size // 2
+        window_off = data_sorted.iloc[window_start:window_start + window_size]
+        window_off = window_off[window_off['EStimEnabled'] == False]
+
+        removed_mask = (window_off['IsRemovedTrial'] == True) if has_removed_col else pd.Series(
+            False, index=window_off.index)
+
+        masks = {
+            'Delta':   (window_off.get('IsDelta', pd.Series(False, index=window_off.index)) == True) & ~removed_mask,
+            'Variant': (window_off.get('IsDelta', pd.Series(False, index=window_off.index)) == False) & ~removed_mask,
+            'Removed': removed_mask,
+        }
+        for lbl in baseline_labels:
+            if lbl == 'Combined':
+                choices = window_off['IsHypothesized'].dropna()
+            else:
+                choices = window_off.loc[masks[lbl], 'IsHypothesized'].dropna()
+            pct = float(choices.mean()) * 100 if len(choices) > 0 else None
+            baseline_windows[lbl].append({'trial_number': trial_num, 'pct': pct})
+
+    save_dir = f"/home/connorlab/Documents/plots/{session_id}/estimshape/"
+    os.makedirs(save_dir, exist_ok=True)
+    output_path = os.path.join(save_dir,
+                               f'sliding_window_by_spec_{session_id}_w{window_size}_s{step_size}.png')
+
+    plot_sliding_window_results(
+        condition_groups,
+        baseline_windows=baseline_windows,
+        gen_boundary_trial_numbers=gen_boundaries,
+        show_gen_boundaries=show_gen_boundaries,
+        output_path=output_path,
+        window_size=window_size,
+        step_size=step_size,
+        session_id=session_id,
+    )
 
 
 if __name__ == '__main__':

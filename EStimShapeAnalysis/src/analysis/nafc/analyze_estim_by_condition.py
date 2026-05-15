@@ -21,16 +21,9 @@ class _NumpyEncoder(json.JSONEncoder):
 
 
 def main():
-    session_id = "260514_0"
+    session_ids = ["260514_0"]   # add more sessions to process multiple at once
+    force_recompute = True        # False = skip sessions already present in EStimEffects
 
-    # Read data from repository
-    data = read_trial_data_from_repository(session_id)
-    print(f"Loaded {len(data)} trials for session {session_id}")
-
-    # Data Combinations:
-    # data = combine_trial_types_at_max_noise(data)
-
-    ## Searchlight analysis
     behavioral_conditions = ['trial_type', 'noise_chance', 'sample_length']
     estim_conditions = [
         'num_channels',
@@ -41,62 +34,53 @@ def main():
         'enable_charge_recovery'
     ]
 
-    sliding_window_analysis(
-        data,
-        behavioral_conditions,
-        estim_conditions,
-        window_size=100,
-        step_size=10,
-        output_path=f'searchlight_{session_id}.png',
-        session_id=session_id
-    )
-
-
-
-
-    # Define conditions for main analysis
-    condition_groups = split_data_by_conditions(data, behavioral_conditions, estim_conditions)
-    print(f"\nFound {len(condition_groups)} unique condition combinations")
-
-    # Calculate No EStim vs EStim effects
-    results = calculate_estim_effects(condition_groups)
-    print(f"\nCalculated effects for {len(results)} condition combinations")
-
-    # Save results to repository
     create_estim_effects_table()
-    save_estim_effects_to_repository(session_id, results)
-    print(f"\nSaved results to EStimEffects table")
+
+    for session_id in session_ids:
+        if not force_recompute and _session_has_effects_computed(session_id):
+            print(f"Skipping {session_id} (already in EStimEffects)")
+            continue
+
+        data = read_trial_data_from_repository(session_id)
+        print(f"\n=== {session_id}: {len(data)} trials ===")
+
+        sliding_window_analysis(
+            data,
+            behavioral_conditions,
+            estim_conditions,
+            window_size=100,
+            step_size=10,
+            session_id=session_id
+        )
+
+        condition_groups_data = split_data_by_conditions(data, behavioral_conditions, estim_conditions)
+        results = calculate_estim_effects(condition_groups_data)
+        save_estim_effects_to_repository(session_id, results)
+        print(f"Saved {len(results)} effects for {session_id}")
 
 
 def sliding_window_analysis(data, behavioral_conditions, estim_conditions,
-                            window_size=100, step_size=5, output_path=None, session_id=None):
+                            window_size=100, step_size=5,
+                            show_gen_boundaries=True, session_id=None):
     """
-    Perform sliding window analysis to track estim effects over time.
+    Sliding window estim-effect analysis grouped by behavioral + estim conditions.
 
-    Args:
-        data: DataFrame with trial data
-        behavioral_conditions: List of behavioral condition columns
-        estim_conditions: List of estim parameter columns
-        window_size: Number of trials in each window
-        step_size: Number of trials to slide the window
-        output_path: Path to save the plot (if None, uses default from context)
+    For each window: effect_size = estim_on % hyp − estim_off % hyp.
+    Plots effect-size lines per condition (top) and no-estim baseline % hyp (bottom).
+    Dotted vertical lines mark generation boundaries (toggleable via show_gen_boundaries).
     """
-    # Sort by trial_start chronologically
+    import os
     data_sorted = data.sort_values('trial_start').reset_index(drop=True)
 
-    print(f"\nRunning sliding window analysis:")
-    print(f"  Window size: {window_size} trials")
-    print(f"  Step size: {step_size} trials")
-    print(f"  Total trials: {len(data_sorted)}")
+    print(f"\nRunning sliding window analysis (by condition):")
+    print(f"  Window size: {window_size} trials, Step: {step_size} trials, Total: {len(data_sorted)}")
 
-    # Identify unique condition combinations we want to track
-    all_conditions = behavioral_conditions + estim_conditions
     condition_groups = {}
-
-    # Group data to find unique combinations
     temp_groups = split_data_by_conditions(data, behavioral_conditions, estim_conditions)
     for group in temp_groups:
-        condition_key = json.dumps({**group['behavioral_conditions'], **group['estim_conditions']}, sort_keys=True, cls=_NumpyEncoder)
+        condition_key = json.dumps(
+            {**group['behavioral_conditions'], **group['estim_conditions']},
+            sort_keys=True, cls=_NumpyEncoder)
         condition_groups[condition_key] = {
             'label': format_condition_label(group['behavioral_conditions'], group['estim_conditions']),
             'behavioral': group['behavioral_conditions'],
@@ -105,39 +89,77 @@ def sliding_window_analysis(data, behavioral_conditions, estim_conditions,
         }
 
     print(f"  Tracking {len(condition_groups)} condition combinations")
-
-    # Slide window through data
     window_positions = range(0, len(data_sorted) - window_size + 1, step_size)
 
     for window_start in window_positions:
-        window_end = window_start + window_size
-        window_data = data_sorted.iloc[window_start:window_end]
-
-        # Calculate effects for this window
+        window_data = data_sorted.iloc[window_start:window_start + window_size]
         window_groups = split_data_by_conditions(window_data, behavioral_conditions, estim_conditions)
-        window_results = calculate_estim_effects(window_groups)
-
-        # Store results for each condition
-        for result in window_results:
+        for result in calculate_estim_effects(window_groups):
             condition_key = json.dumps(result['conditions'], sort_keys=True, cls=_NumpyEncoder)
             if condition_key in condition_groups:
                 condition_groups[condition_key]['windows'].append({
-                    'window_center': window_start + window_size // 2,
                     'trial_number': window_start + window_size // 2,
                     'effect_size': result['effect_size'],
                     'estim_on_n': result['estim_on_n_trials'],
                     'estim_off_n': result['estim_off_n_trials']
                 })
 
-
-    import os
-    save_dir = "/home/connorlab/Documents/plots/260120_0/estimshape/"
+    session_label = session_id or (data['session_id'].iloc[0] if 'session_id' in data.columns else 'unknown')
+    save_dir = f"/home/connorlab/Documents/plots/{session_label}/estimshape/"
     os.makedirs(save_dir, exist_ok=True)
-    session_id = data['session_id'].iloc[0] if 'session_id' in data.columns else 'unknown'
-    output_path = os.path.join(save_dir, f'sliding_window_{session_id}_w{window_size}_s{step_size}.png')
+    output_path = os.path.join(save_dir, f'sliding_window_{session_label}_w{window_size}_s{step_size}.png')
 
-    # Plot results
-    plot_sliding_window_results(condition_groups, output_path=output_path, window_size=window_size, step_size=step_size, session_id=session_id)
+    plot_sliding_window_results(
+        condition_groups,
+        baseline_windows=compute_baseline_windows(data_sorted, window_positions, window_size),
+        gen_boundary_trial_numbers=compute_gen_boundaries(data_sorted),
+        show_gen_boundaries=show_gen_boundaries,
+        output_path=output_path,
+        window_size=window_size,
+        step_size=step_size,
+        session_id=session_label
+    )
+
+
+def compute_gen_boundaries(data_sorted):
+    """Return sorted trial indices where gen_id transitions between consecutive trials."""
+    boundaries = []
+    prev_gen = None
+    for i, gen in enumerate(data_sorted['gen_id']):
+        if pd.notna(gen):
+            if prev_gen is not None and gen != prev_gen:
+                boundaries.append(i)
+            prev_gen = gen
+    return boundaries
+
+
+def compute_baseline_windows(data_sorted, window_positions, window_size):
+    """
+    % hypothesized choice for estim-off trials per window, split by trial_type + Combined.
+    Returns dict: trial_type -> list of {trial_number, pct}.
+    """
+    trial_types = sorted(
+        data_sorted.loc[data_sorted['is_estim_on'] == 0, 'trial_type'].dropna().unique()
+    )
+    result = {tt: [] for tt in trial_types}
+    result['Combined'] = []
+
+    for window_start in window_positions:
+        trial_num = window_start + window_size // 2
+        window_off = data_sorted.iloc[window_start:window_start + window_size]
+        window_off = window_off[window_off['is_estim_on'] == 0]
+
+        for tt in trial_types:
+            choices = window_off.loc[window_off['trial_type'] == tt, 'is_hypothesized_choice'].dropna()
+            result[tt].append({'trial_number': trial_num,
+                                'pct': float(choices.mean()) * 100 if len(choices) > 0 else None})
+
+        all_choices = window_off['is_hypothesized_choice'].dropna()
+        result['Combined'].append({'trial_number': trial_num,
+                                   'pct': float(all_choices.mean()) * 100 if len(all_choices) > 0 else None})
+
+    return result
+
 
 _KEY_ABBREVS = {
     'trial_type': 'type',
@@ -178,26 +200,30 @@ def format_condition_label(behavioral_dict, estim_dict, varying_keys=None):
     return ' | '.join(parts) if parts else 'baseline'
 
 
-def plot_sliding_window_results(condition_groups, output_path=None, window_size=None, step_size=None, session_id=None):
+def plot_sliding_window_results(condition_groups,
+                                baseline_windows=None,
+                                gen_boundary_trial_numbers=None,
+                                show_gen_boundaries=True,
+                                output_path=None,
+                                window_size=None,
+                                step_size=None,
+                                session_id=None):
     """
-    Plot sliding window results showing effect size over time for each condition.
-    Each unique condition combination gets a distinct color; the legend includes
-    only the dimensions that actually vary across conditions.
+    Plot sliding window effect sizes, with optional extras:
+      - baseline_windows: adds a second subplot (% hyp for no-estim trials by trial_type)
+      - gen_boundary_trial_numbers + show_gen_boundaries: dotted vertical lines at gen transitions
+    Each condition gets a unique color; legend shows only varying dimensions.
     """
-    # Determine which condition dimensions vary across all groups
     all_values_by_key = {}
     for cond_data in condition_groups.values():
         for k, v in {**cond_data['behavioral'], **cond_data['estim']}.items():
             all_values_by_key.setdefault(k, set()).add(str(v))
     varying_keys = [k for k, vs in all_values_by_key.items() if len(vs) > 1]
 
-    # Collect only conditions that have data to plot
     active = [
         cond_data for cond_data in condition_groups.values()
         if cond_data['windows'] and not all(w['effect_size'] is None for w in cond_data['windows'])
     ]
-
-    # Assign a unique color to each active condition
     n = len(active)
     if n <= 10:
         palette = [plt.cm.tab10(i / 10) for i in range(n)]
@@ -206,35 +232,66 @@ def plot_sliding_window_results(condition_groups, output_path=None, window_size=
     else:
         palette = [plt.cm.hsv(i / n) for i in range(n)]
 
-    fig, ax = plt.subplots(figsize=(16, 8))
+    has_baseline = baseline_windows is not None
+    if has_baseline:
+        fig, (ax_effect, ax_baseline) = plt.subplots(
+            2, 1, figsize=(16, 10), sharex=True,
+            gridspec_kw={'height_ratios': [2, 1]})
+    else:
+        fig, ax_effect = plt.subplots(figsize=(16, 8))
+        ax_baseline = None
 
     for cond_data, color in zip(active, palette):
         trial_numbers = [w['trial_number'] for w in cond_data['windows']]
         effect_sizes = [w['effect_size'] for w in cond_data['windows']]
         label = format_condition_label(cond_data['behavioral'], cond_data['estim'], varying_keys)
-        ax.plot(trial_numbers, effect_sizes,
-                color=color,
-                marker='o',
-                markersize=3,
-                linewidth=1.5,
-                label=label)
+        ax_effect.plot(trial_numbers, effect_sizes,
+                       color=color, marker='o', markersize=3, linewidth=1.5, label=label)
 
-    ax.axhline(y=0, color='black', linestyle='--', linewidth=1, alpha=0.5)
+    ax_effect.axhline(y=0, color='black', linestyle='--', linewidth=1, alpha=0.5)
+    ax_effect.set_ylabel('Effect Size (EStim ON − EStim OFF %)', fontsize=12)
+    title = f'{session_id} − Sliding Window Analysis' if session_id else 'Sliding Window Analysis'
+    ax_effect.set_title(title, fontsize=14)
+    ax_effect.legend(bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=8, framealpha=0.9)
+    ax_effect.grid(True, alpha=0.3)
 
     if window_size is not None and step_size is not None:
         textstr = f'Window: {window_size} trials  |  Step: {step_size} trials'
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.8)
-        ax.text(0.02, 0.98, textstr, transform=ax.transAxes, fontsize=9,
-                verticalalignment='top', bbox=props)
+        ax_effect.text(0.02, 0.98, textstr, transform=ax_effect.transAxes, fontsize=9,
+                       verticalalignment='top', bbox=props)
 
-    ax.set_xlabel('Trial Number (Window Center)', fontsize=12)
-    ax.set_ylabel('Effect Size (EStim ON − EStim OFF %)', fontsize=12)
-    title = f'{session_id} − Sliding Window Analysis' if session_id else 'Sliding Window Analysis'
-    ax.set_title(title, fontsize=14)
-    ax.legend(bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=8, framealpha=0.9)
-    ax.grid(True, alpha=0.3)
+    if has_baseline:
+        _BASELINE_COLORS = {
+            'Delta Shape': '#d62728', 'Delta': '#d62728',
+            'Hypothesized Shape': '#1f77b4', 'Variant': '#1f77b4',
+            'Removed Trial': '#8c564b', 'Removed': '#8c564b',
+            'Combined': 'black',
+        }
+        for tt, windows in baseline_windows.items():
+            trial_nums = [w['trial_number'] for w in windows]
+            pcts = [w['pct'] for w in windows]
+            if all(p is None for p in pcts):
+                continue
+            color = _BASELINE_COLORS.get(tt, 'gray')
+            ls = '--' if tt == 'Combined' else '-'
+            ax_baseline.plot(trial_nums, pcts, color=color, linestyle=ls,
+                             linewidth=1.5, label=tt)
+        ax_baseline.axhline(y=50, color='black', linestyle=':', linewidth=0.8, alpha=0.5)
+        ax_baseline.set_ylabel('% Hyp Choice\n(No EStim)', fontsize=10)
+        ax_baseline.set_xlabel('Trial Number (Window Center)', fontsize=12)
+        ax_baseline.legend(fontsize=8, framealpha=0.9)
+        ax_baseline.grid(True, alpha=0.3)
+    else:
+        ax_effect.set_xlabel('Trial Number (Window Center)', fontsize=12)
+
+    if show_gen_boundaries and gen_boundary_trial_numbers:
+        axes_to_mark = [ax_effect] + ([ax_baseline] if ax_baseline is not None else [])
+        for trial_num in gen_boundary_trial_numbers:
+            for ax in axes_to_mark:
+                ax.axvline(x=trial_num, color='gray', linestyle=':', linewidth=1, alpha=0.6)
+
     plt.tight_layout()
-
     if output_path:
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         print(f"\nSaved sliding window plot to {output_path}")
@@ -436,6 +493,13 @@ def split_data_by_conditions(data, behavioral_conditions, estim_conditions):
             })
 
     return comparisons
+
+
+def _session_has_effects_computed(session_id):
+    """Return True if EStimEffects already has at least one row for this session."""
+    repo_conn = Connection("allen_data_repository")
+    repo_conn.execute("SELECT COUNT(*) FROM EStimEffects WHERE session_id = %s", (session_id,))
+    return repo_conn.fetch_all()[0][0] > 0
 
 
 def read_trial_data_from_repository(session_id):
