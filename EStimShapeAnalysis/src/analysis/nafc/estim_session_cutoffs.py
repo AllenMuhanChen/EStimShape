@@ -120,48 +120,62 @@ def _window_effect(window_df):
     return (on.mean() - off.mean()) * 100.0
 
 
-def compute_last_sustained_positive_window(session_id, cond_dict, k, threshold):
+def _sliding_window_effects(df, window_size, step_size):
     """
-    Algorithm: last_sustained_positive_window
+    Compute sliding window effect estimates using the same logic as sliding_window_analysis.
+    Returns list of (window_end_trial_idx, effect_pct).
+    window_end_trial_idx is the index of the last trial in each window.
+    """
+    n       = len(df)
+    results = []
+    for start in range(0, n - window_size + 1, step_size):
+        effect = _window_effect(df.iloc[start: start + window_size])
+        results.append((start + window_size - 1, effect))
+    return results
 
-    Slides a window of K *trials* (ordered by task_id) forward through the session.
-    At each position the effect size = mean(estim_on choices) - mean(estim_off choices)
-    in that window.  Finds the last trial index where the window effect >= threshold.
-    Returns the gen_id of that trial so the cutoff can be applied as gen_id <= max_gen_id.
+
+def compute_last_sustained_positive_window(session_id, cond_dict,
+                                           window_size, step_size, threshold):
+    """
+    Uses the same sliding window as sliding_window_analysis (window_size trials,
+    step_size step) to compute reliable effect estimates, then finds the last
+    window position where effect >= threshold.
 
     Conservative rules:
-      - First-window effect <= 0  → condition started negative, skip.
-      - Effect never reaches threshold → never strong enough to call adaptation, skip.
-      - Last qualifying window is the final window → never degraded, skip.
+      - First window effect <= 0  → condition started negative, skip.
+      - Effect never reaches threshold → not strong enough, skip.
+      - Last qualifying window is the final one → never degraded, skip.
 
-    Returns: max_gen_id (int) or None if no cutoff should be applied.
+    Returns: max_gen_id (int) of the last trial in the last qualifying window,
+             or None if no cutoff should be applied.
     """
     df = _get_trials_with_gen_id(session_id, cond_dict)
-    n  = len(df)
 
-    if n < k:
+    if len(df) < window_size:
         return None
 
-    # Check initial direction using the first K trials
-    first_effect = _window_effect(df.iloc[:k])
+    windows = _sliding_window_effects(df, window_size, step_size)
+
+    if not windows:
+        return None
+
+    first_effect = windows[0][1]
     if first_effect is None or first_effect <= 0:
         return None
 
-    # Slide over trials, track the last position where effect >= threshold
-    last_above_threshold_idx = None
-    for end in range(k - 1, n):
-        effect = _window_effect(df.iloc[end - k + 1: end + 1])
+    last_above_idx = None   # index into windows list
+    for i, (_, effect) in enumerate(windows):
         if effect is not None and effect >= threshold:
-            last_above_threshold_idx = end
+            last_above_idx = i
 
-    if last_above_threshold_idx is None:
+    if last_above_idx is None:
         return None
 
-    if last_above_threshold_idx == n - 1:
-        # Never degraded below threshold — no cutoff needed
-        return None
+    if last_above_idx == len(windows) - 1:
+        return None  # never degraded
 
-    return int(df.iloc[last_above_threshold_idx]['gen_id'])
+    end_trial_idx = windows[last_above_idx][0]
+    return int(df.iloc[end_trial_idx]['gen_id'])
 
 
 def save_cutoff(session_id, conditions_json, algorithm_label, max_gen_id):
@@ -174,19 +188,23 @@ def save_cutoff(session_id, conditions_json, algorithm_label, max_gen_id):
     """, (session_id, conditions_json, algorithm_label, max_gen_id))
 
 
-def run_last_sustained_cutoffs(k=3, threshold=5.0, session_id=None, force_recompute=False):
+def run_last_sustained_cutoffs(window_size=100, step_size=10, threshold=5.0,
+                               session_id=None, force_recompute=False):
     """
     Compute and store last-sustained-positive-window cutoffs for all conditions.
+    Uses the same sliding window (window_size, step_size) as sliding_window_analysis
+    so the validation plot is directly comparable to the analysis plot.
 
     Args:
-        k          : rolling window size in gen_ids
-        threshold  : minimum effect size (pp) to count as "still working"
-        session_id : restrict to one session, or None for all
+        window_size : trials per window (should match sliding_window_analysis, default 100)
+        step_size   : trials between window positions (default 10)
+        threshold   : minimum effect size (pp) to count as "still working"
+        session_id  : restrict to one session, or None for all
         force_recompute: overwrite existing rows
     """
     create_cutoffs_table()
 
-    algorithm_label = f"last_sustained_k{k}_t{threshold}"
+    algorithm_label = f"last_sustained_w{window_size}_s{step_size}_t{threshold}"
 
     conn = Connection("allen_data_repository")
     if session_id:
@@ -217,7 +235,9 @@ def run_last_sustained_cutoffs(k=3, threshold=5.0, session_id=None, force_recomp
             if conn.fetch_all():
                 continue
 
-        max_gen_id = compute_last_sustained_positive_window(sid, cond_dict, k, threshold)
+        max_gen_id = compute_last_sustained_positive_window(
+            sid, cond_dict, window_size, step_size, threshold
+        )
 
         if max_gen_id is None:
             n_no_degradation += 1
@@ -239,14 +259,14 @@ def get_session_cutoffs(session_id, algorithm_label):
     return {row[0]: row[1] for row in conn.fetch_all()}
 
 
-def plot_session_cutoffs(session_id, algorithm_label, k, threshold, save_path=None):
+def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, threshold,
+                         save_path=None):
     """
-    For each condition in session_id that has a stored cutoff under algorithm_label,
-    plot one subplot showing:
-      - Rolling window effect (window = k trials, same k used to compute the cutoff)
-      - Horizontal dashed line at the threshold
-      - Vertical red line at the cutoff trial index
-    Intended purely for visual validation that the cutoff lands where you expect.
+    For each condition with a stored cutoff, show the same sliding window effect series
+    (window_size, step_size) used to compute the cutoff, with:
+      - Horizontal orange dashed line at the threshold
+      - Vertical red dashed line at the cutoff window position
+    x-axis is window center trial index, identical to sliding_window_analysis.
     """
     import os
     import matplotlib.pyplot as plt
@@ -256,49 +276,41 @@ def plot_session_cutoffs(session_id, algorithm_label, k, threshold, save_path=No
         print(f"No cutoffs found for session={session_id} algorithm={algorithm_label}")
         return None
 
-    n   = len(cutoffs)
-    cols = min(3, n)
-    rows = (n + cols - 1) // cols
-
+    n     = len(cutoffs)
+    cols  = min(3, n)
+    rows  = (n + cols - 1) // cols
     fig, axes = plt.subplots(rows, cols, figsize=(6 * cols, 4 * rows), squeeze=False)
     axes_flat = axes.flatten()
+
+    abbrevs = {'trial_type': 'type', 'noise_chance': 'noise', 'sample_length': 'smpl',
+               'num_channels': 'ch', 'polarity': 'pol', 'shape': 'shp',
+               'a1': 'amp', 'post_stim_refractory_period': 'refrac',
+               'enable_charge_recovery': 'CR'}
 
     for ax_idx, (conditions_json, max_gen_id) in enumerate(cutoffs.items()):
         ax        = axes_flat[ax_idx]
         cond_dict = json.loads(conditions_json)
         df        = _get_trials_with_gen_id(session_id, cond_dict)
 
-        # Compute rolling window effect (same k as cutoff algorithm)
-        trial_indices = []
-        effects       = []
-        for end in range(k - 1, len(df)):
-            eff = _window_effect(df.iloc[end - k + 1: end + 1])
-            trial_indices.append(end)
-            effects.append(eff)
+        windows = _sliding_window_effects(df, window_size, step_size)
+        xs      = [end - window_size // 2 for end, _ in windows]
+        effects = [eff for _, eff in windows]
 
-        ax.plot(trial_indices, effects, color='steelblue', linewidth=1.5)
+        ax.plot(xs, effects, color='steelblue', linewidth=1.5, marker='o', markersize=3)
         ax.axhline(y=threshold, color='orange', linestyle='--', linewidth=1.5,
                    label=f'threshold ({threshold}%)')
         ax.axhline(y=0, color='gray', linestyle=':', linewidth=1, alpha=0.5)
 
-        # Mark the cutoff: find the last trial row whose gen_id == max_gen_id
-        cutoff_rows = df[df['gen_id'] == max_gen_id]
-        if not cutoff_rows.empty:
-            cutoff_trial = cutoff_rows.index[-1]
-            ax.axvline(x=cutoff_trial, color='red', linestyle='--', linewidth=2,
-                       label=f'cutoff (gen_id={max_gen_id})')
+        # Find the window whose last trial has gen_id == max_gen_id and mark it
+        for (end_idx, _), x in zip(windows, xs):
+            if int(df.iloc[end_idx]['gen_id']) == max_gen_id:
+                ax.axvline(x=x, color='red', linestyle='--', linewidth=2,
+                           label=f'cutoff (gen_id={max_gen_id})')
+                break
 
-        # Short label from condition dict
-        label_parts = []
-        abbrevs = {'trial_type': 'type', 'noise_chance': 'noise', 'sample_length': 'smpl',
-                   'num_channels': 'ch', 'polarity': 'pol', 'shape': 'shp',
-                   'a1': 'amp', 'post_stim_refractory_period': 'refrac',
-                   'enable_charge_recovery': 'CR'}
-        for key, val in cond_dict.items():
-            if val is not None:
-                label_parts.append(f"{abbrevs.get(key, key)}={val}")
+        label_parts = [f"{abbrevs.get(k, k)}={v}" for k, v in cond_dict.items() if v is not None]
         ax.set_title(' | '.join(label_parts), fontsize=7)
-        ax.set_xlabel('Trial index')
+        ax.set_xlabel('Trial index (window center)')
         ax.set_ylabel('Effect size (%)')
         ax.legend(fontsize=7)
         ax.grid(True, alpha=0.3)
@@ -319,14 +331,16 @@ def plot_session_cutoffs(session_id, algorithm_label, k, threshold, save_path=No
 
 
 def main():
-    k         = 30
-    threshold = 5.0
-    session_id = None  # None = all sessions
+    window_size = 100
+    step_size   = 10
+    threshold   = 5.0
+    session_id  = None  # None = all sessions
 
-    algorithm_label = run_last_sustained_cutoffs(k=k, threshold=threshold,
-                                                 session_id=session_id)
+    algorithm_label = run_last_sustained_cutoffs(
+        window_size=window_size, step_size=step_size, threshold=threshold,
+        session_id=session_id,
+    )
 
-    # Visual validation: one figure per session that got cutoffs
     conn = Connection("allen_data_repository")
     if session_id:
         sessions_with_cutoffs = [session_id]
@@ -336,7 +350,9 @@ def main():
         sessions_with_cutoffs = [row[0] for row in conn.fetch_all()]
 
     for sid in sessions_with_cutoffs:
-        plot_session_cutoffs(sid, algorithm_label, k=k, threshold=threshold)
+        plot_session_cutoffs(sid, algorithm_label,
+                             window_size=window_size, step_size=step_size,
+                             threshold=threshold)
 
 
 if __name__ == "__main__":
