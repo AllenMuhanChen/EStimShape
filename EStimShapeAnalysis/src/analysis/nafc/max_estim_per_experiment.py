@@ -26,13 +26,14 @@ from clat.util.connection import Connection
 from src.analysis.nafc.estim_groups_permutation_test import get_trial_data_for_condition
 
 
-def _get_sessions_with_permutation_data():
+def _get_sessions_with_permutation_data(algorithm_label='none'):
     conn = Connection("allen_data_repository")
-    conn.execute("SELECT DISTINCT session_id FROM EStimPermutationTests ORDER BY session_id")
+    conn.execute("SELECT DISTINCT session_id FROM EStimPermutationTests WHERE algorithm_label = %s ORDER BY session_id",
+                 (algorithm_label,))
     return [row[0] for row in conn.fetch_all()]
 
 
-def _build_max_stat_for_session(session_id):
+def _build_max_stat_for_session(session_id, algorithm_label='none'):
     """
     Returns dict with:
         observed_signed : signed effect of the best positive condition
@@ -46,8 +47,8 @@ def _build_max_stat_for_session(session_id):
         SELECT conditions, observed_effect_size, null_distribution,
                n_trials_estim_on, n_trials_estim_off
         FROM EStimPermutationTests
-        WHERE session_id = %s
-    """, (session_id,))
+        WHERE session_id = %s AND algorithm_label = %s
+    """, (session_id, algorithm_label))
     rows = conn.fetch_all()
 
     if not rows:
@@ -215,20 +216,22 @@ def _draw_stats_panel(ax_text, pop, rows):
 
 
 def plot_max_stat_per_experiment(session_ids=None, start_session_id=None,
+                                 algorithm_label='none',
                                  save_path=None, show_n=True,
                                  x_spacing=1.0, width_per_exp=1.5):
     """
     start_session_id : if given, only include sessions whose session_id >= this value
                        (lexicographic comparison works because session_id is YYMMDD_N).
+    algorithm_label  : which cutoff variant to read from EStimPermutationTests.
     """
     if session_ids is None:
-        session_ids = _get_sessions_with_permutation_data()
+        session_ids = _get_sessions_with_permutation_data(algorithm_label)
     if start_session_id is not None:
         session_ids = [s for s in session_ids if s >= start_session_id]
 
     rows = []
     for sid in session_ids:
-        result = _build_max_stat_for_session(sid)
+        result = _build_max_stat_for_session(sid, algorithm_label)
         if result is None:
             print(f"[{sid}] no permutation data or no conditions with n>=10, skipping")
             continue
@@ -336,7 +339,8 @@ def plot_max_stat_per_experiment(session_ids=None, start_session_id=None,
 def main():
     plot_max_stat_per_experiment(
         session_ids=None,
-        start_session_id="260401_0",   # only sessions on or after this date
+        start_session_id="260401_0",
+        algorithm_label='none',        # or e.g. 'last_sustained_k3_t5.0'
         save_path="/home/connorlab/Documents/plots/across_experiments/max_estim_per_experiment.png",
         show_n=True,
         x_spacing=0.5,
