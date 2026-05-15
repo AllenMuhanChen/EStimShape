@@ -20,8 +20,15 @@ class _NumpyEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
+def _get_all_session_ids():
+    """Return all session_ids present in EStimShapeTrials."""
+    repo_conn = Connection("allen_data_repository")
+    repo_conn.execute("SELECT DISTINCT session_id FROM EStimShapeTrials ORDER BY session_id")
+    return [row[0] for row in repo_conn.fetch_all()]
+
+
 def main():
-    session_ids = ["260514_0"]   # add more sessions to process multiple at once
+    session_ids = ["260514_0"]   # set to None to run all sessions in EStimShapeTrials
     force_recompute = True        # False = skip sessions already present in EStimEffects
 
     behavioral_conditions = ['trial_type', 'noise_chance', 'sample_length']
@@ -36,7 +43,10 @@ def main():
 
     create_estim_effects_table()
 
-    for session_id in session_ids:
+    ids_to_run = _get_all_session_ids() if session_ids is None else session_ids
+    print(f"Sessions to process: {ids_to_run}")
+
+    for session_id in ids_to_run:
         if not force_recompute and _session_has_effects_computed(session_id):
             print(f"Skipping {session_id} (already in EStimEffects)")
             continue
