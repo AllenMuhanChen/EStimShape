@@ -163,16 +163,19 @@ def compute_last_sustained_positive_window(session_id, cond_dict,
     if first_effect is None or first_effect <= 0:
         return None
 
-    last_above_idx = None   # index into windows list
+    # A window only qualifies if: (1) it is above threshold, and (2) the mean of
+    # all subsequent window effects is below threshold. This handles late spikes —
+    # a brief recovery at the very end has no subsequent windows so cannot qualify,
+    # preventing the "never degraded" false negative.
+    last_above_idx = None
     for i, (_, effect) in enumerate(windows):
         if effect is not None and effect >= threshold:
-            last_above_idx = i
+            subsequent = [e for _, e in windows[i + 1:] if e is not None]
+            if subsequent and np.mean(subsequent) < threshold:
+                last_above_idx = i
 
     if last_above_idx is None:
         return None
-
-    if last_above_idx == len(windows) - 1:
-        return None  # never degraded
 
     end_trial_idx = windows[last_above_idx][0]
     return int(df.iloc[end_trial_idx]['gen_id'])
