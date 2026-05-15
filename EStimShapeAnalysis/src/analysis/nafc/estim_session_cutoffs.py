@@ -55,7 +55,7 @@ def _get_trials_with_gen_id(session_id, cond_dict):
     conn = Connection("allen_data_repository")
 
     query = f"""
-        SELECT t.gen_id, t.is_estim_on, t.is_hypothesized_choice
+        SELECT t.gen_id, t.is_estim_on, t.is_hypothesized_choice, t.task_id
         FROM EStimShapeTrials t
         LEFT JOIN ({EStimParameterClassifier.active_channel_sql_subquery()}) ep
           ON t.session_id = ep.session_id AND t.estim_spec_id = ep.estim_spec_id
@@ -99,23 +99,22 @@ def _get_trials_with_gen_id(session_id, cond_dict):
     if estim_conds:
         query += " AND " + " AND ".join(estim_conds)
 
-    query += " ORDER BY t.gen_id ASC"
+    query += " ORDER BY t.task_id ASC"
 
     conn.execute(query, tuple(params))
     rows = conn.fetch_all()
 
-    df = pd.DataFrame(rows, columns=['gen_id', 'is_estim_on', 'is_hypothesized_choice'])
+    df = pd.DataFrame(rows, columns=['gen_id', 'is_estim_on', 'is_hypothesized_choice', 'task_id'])
     df = df[df['is_hypothesized_choice'].notna()].copy()
     df['is_estim_on'] = df['is_estim_on'].astype(int)
     df['is_hypothesized_choice'] = df['is_hypothesized_choice'].astype(int)
-    return df
+    return df.reset_index(drop=True)
 
 
-def _window_effect(df, gen_ids_in_window):
-    """Effect size (pp) for trials whose gen_id is in gen_ids_in_window."""
-    sub = df[df['gen_id'].isin(gen_ids_in_window)]
-    on  = sub[sub['is_estim_on'] == 1]['is_hypothesized_choice']
-    off = sub[sub['is_estim_on'] == 0]['is_hypothesized_choice']
+def _window_effect(window_df):
+    """Effect size (pp) for a DataFrame slice of trials."""
+    on  = window_df[window_df['is_estim_on'] == 1]['is_hypothesized_choice']
+    off = window_df[window_df['is_estim_on'] == 0]['is_hypothesized_choice']
     if len(on) == 0 or len(off) == 0:
         return None
     return (on.mean() - off.mean()) * 100.0
@@ -125,48 +124,44 @@ def compute_last_sustained_positive_window(session_id, cond_dict, k, threshold):
     """
     Algorithm: last_sustained_positive_window
 
-    For each position i (from k-1 to end), compute the effect of the K gen_ids
-    ending at position i.  Find the last gen_id where that rolling effect >= threshold.
-    That gen_id becomes max_gen_id (all trials after it are excluded).
+    Slides a window of K *trials* (ordered by task_id) forward through the session.
+    At each position the effect size = mean(estim_on choices) - mean(estim_off choices)
+    in that window.  Finds the last trial index where the window effect >= threshold.
+    Returns the gen_id of that trial so the cutoff can be applied as gen_id <= max_gen_id.
 
     Conservative rules:
-      - If the first window effect is <= 0, the condition started negative — return None
-        (no cutoff; caller should not insert a row).
-      - If the condition never reaches threshold, return None (never strong enough to
-        call degradation meaningful).
-      - If the last rolling-window gen_id with effect >= threshold is the final gen_id
-        in the session, the condition never degraded — return None (no cutoff needed).
+      - First-window effect <= 0  → condition started negative, skip.
+      - Effect never reaches threshold → never strong enough to call adaptation, skip.
+      - Last qualifying window is the final window → never degraded, skip.
 
-    Returns: max_gen_id (int) to cut off at, or None if no cutoff should be applied.
+    Returns: max_gen_id (int) or None if no cutoff should be applied.
     """
     df = _get_trials_with_gen_id(session_id, cond_dict)
-    gen_ids = sorted(df['gen_id'].unique())
+    n  = len(df)
 
-    if len(gen_ids) < k:
+    if n < k:
         return None
 
-    # Check initial direction: first K gen_ids must show a positive effect
-    first_effect = _window_effect(df, gen_ids[:k])
+    # Check initial direction using the first K trials
+    first_effect = _window_effect(df.iloc[:k])
     if first_effect is None or first_effect <= 0:
         return None
 
-    # Roll forward and track the last gen_id where effect >= threshold
-    last_above_threshold_gen_id = None
-    for i in range(k - 1, len(gen_ids)):
-        window_gen_ids = gen_ids[i - k + 1: i + 1]
-        effect = _window_effect(df, window_gen_ids)
+    # Slide over trials, track the last position where effect >= threshold
+    last_above_threshold_idx = None
+    for end in range(k - 1, n):
+        effect = _window_effect(df.iloc[end - k + 1: end + 1])
         if effect is not None and effect >= threshold:
-            last_above_threshold_gen_id = gen_ids[i]
+            last_above_threshold_idx = end
 
-    if last_above_threshold_gen_id is None:
-        # Was initially positive but never hit threshold — not strong enough to call adaptation
+    if last_above_threshold_idx is None:
         return None
 
-    if last_above_threshold_gen_id == gen_ids[-1]:
+    if last_above_threshold_idx == n - 1:
         # Never degraded below threshold — no cutoff needed
         return None
 
-    return int(last_above_threshold_gen_id)
+    return int(df.iloc[last_above_threshold_idx]['gen_id'])
 
 
 def save_cutoff(session_id, conditions_json, algorithm_label, max_gen_id):
