@@ -166,7 +166,7 @@ def compute_last_sustained_positive_window(session_id, cond_dict, k, threshold):
         # Never degraded below threshold — no cutoff needed
         return None
 
-    return last_above_threshold_gen_id
+    return int(last_above_threshold_gen_id)
 
 
 def save_cutoff(session_id, conditions_json, algorithm_label, max_gen_id):
