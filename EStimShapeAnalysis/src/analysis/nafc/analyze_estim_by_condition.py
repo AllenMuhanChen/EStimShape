@@ -33,7 +33,7 @@ def main():
         behavioral_conditions,
         estim_conditions,
         window_size=100,
-        step_size=25,
+        step_size=10,
         output_path=f'searchlight_{session_id}.png',
         session_id=session_id
     )
