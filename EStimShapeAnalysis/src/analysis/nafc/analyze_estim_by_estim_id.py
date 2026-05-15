@@ -41,7 +41,7 @@ def main():
     ga_conn  = Connection(context.ga_database)
 
     since_date            = time_util.from_date_to_now(2024, 7, 10)
-    start_gen_id          = 4
+    start_gen_id          = 0
     max_gen_id            = float('inf')
     start_gen_id_estim_on = 0
     max_gen_id_estim_on   = float('inf')
@@ -308,7 +308,7 @@ def main():
                           bbox_inches='tight', dpi=150)
     print(f"Saved plots to {os.path.dirname(save_path)}")
 
-    sliding_window_analysis_by_spec_id(data_exp, session_id, window_size=100, step_size=10)
+    sliding_window_analysis_by_spec_id(data_exp, session_id, window_size=100, step_size=20)
 
     plt.show()
 

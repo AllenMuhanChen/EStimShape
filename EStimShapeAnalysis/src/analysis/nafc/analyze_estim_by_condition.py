@@ -28,8 +28,8 @@ def _get_all_session_ids():
 
 
 def main():
-    session_ids = ["260514_0"]   # set to None to run all sessions in EStimShapeTrials
-    force_recompute = True        # False = skip sessions already present in EStimEffects
+    session_ids = None   # set to None to run all sessions in EStimShapeTrials
+    force_recompute = False        # False = skip sessions already present in EStimEffects
 
     behavioral_conditions = ['trial_type', 'noise_chance', 'sample_length']
     estim_conditions = [

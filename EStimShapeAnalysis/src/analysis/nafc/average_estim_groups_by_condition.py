@@ -14,12 +14,12 @@ def main():
     # 260115_0 single plot
     filter_conditions = {
         # 'noise_chance': [0.9, 1.0],
-        # 'num_channels': [1,2, 3, 9],
-        # 'trial_type': ["Hypothesized Shape", "Delta Shape"],
+        'num_channels': [1,2, 3, 9],
+        'trial_type': ["Hypothesized Shape", "Delta Shape"],
         'polarity': ["PositiveFirst", "NegativeFirst"],
         # 'shape': ['Biphasic', 'BiphasicWithInterphaseDelay'],
         # 'a1' : [2.5, 3.5]
-        'enable_charge_recovery':[1.0, 0.0],
+        # 'enable_charge_recovery':[1.0, 0.0],
     }
 
     # Optional: control how bars are arranged and colored in enumerated mode
@@ -29,17 +29,17 @@ def main():
     condition_formatting_type = {
         # 'polarity': 'x-axis',
         # 'noise_chance': 'x-axis',
-        # 'num_channels': 'x-axis',
+        'num_channels': 'x-axis',
         # 'trial_type' : 'x-axis',
-        'enable_charge_recovery': 'x-axis',
+        # 'enable_charge_recovery': 'x-axis',
         # 'a1' : 'x-axis',
         # 'shape':'color',
-        'polarity': 'color',
+        # 'polarity': 'color',
         # 'num_channels': 'color',
-        # 'trial_type': 'color',
+        'trial_type': 'color',
         # 'a1': 'hatch',
         # 'trial_type': 'hatch',
-        # 'polarity': 'hatch',
+        'polarity': 'hatch',
         # 'noise_chance': 'hatch',
     }
 
@@ -56,8 +56,10 @@ def main():
     required_conditions = {
         # 'num_channels': 1.0,
         # 'polarity': 'PositiveFirst',
-        # 'noise_chance': 0.9,
+        'noise_chance': 0.9,
+        'a1': 3.5,
         # 'noise_chance':1.0,
+
     }
     # required_conditions = None  # Set to None to disable
 
