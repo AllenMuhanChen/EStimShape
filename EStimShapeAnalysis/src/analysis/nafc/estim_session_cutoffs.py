@@ -234,6 +234,49 @@ def run_last_sustained_cutoffs(k=3, threshold=5.0, session_id=None, force_recomp
     return algorithm_label
 
 
+def get_session_cutoffs(session_id, algorithm_label):
+    """Return {conditions_json: max_gen_id} for this session+algorithm_label."""
+    conn = Connection("allen_data_repository")
+    conn.execute("""
+        SELECT conditions, max_gen_id FROM EStimSessionCutoffs
+        WHERE session_id = %s AND algorithm_label = %s
+    """, (session_id, algorithm_label))
+    return {row[0]: row[1] for row in conn.fetch_all()}
+
+
+def plot_session_cutoffs(session_id, algorithm_label, window_size=100, step_size=10):
+    """
+    Re-run sliding window analysis for a session and overlay the cutoff lines
+    so you can visually verify each cutoff is reasonable.
+    Reuses plot_sliding_window_results from analyze_estim_by_condition.
+    """
+    from src.analysis.nafc.analyze_estim_by_condition import (
+        read_trial_data_from_repository,
+        sliding_window_analysis,
+    )
+
+    cutoffs = get_session_cutoffs(session_id, algorithm_label)
+    if not cutoffs:
+        print(f"No cutoffs found for session={session_id} algorithm={algorithm_label}")
+
+    data = read_trial_data_from_repository(session_id)
+    print(f"[{session_id}] {len(data)} trials, {len(cutoffs)} condition cutoffs to overlay")
+
+    behavioral_conditions = ['trial_type', 'noise_chance', 'sample_length']
+    estim_conditions      = ['num_channels', 'polarity', 'shape', 'a1',
+                              'post_stim_refractory_period', 'enable_charge_recovery']
+
+    sliding_window_analysis(
+        data,
+        behavioral_conditions,
+        estim_conditions,
+        window_size=window_size,
+        step_size=step_size,
+        session_id=f"{session_id}_cutoffs_{algorithm_label}",
+        cutoff_gen_ids=cutoffs,
+    )
+
+
 def main():
     run_last_sustained_cutoffs(k=3, threshold=5.0)
 

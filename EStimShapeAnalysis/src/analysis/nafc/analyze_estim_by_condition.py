@@ -28,8 +28,9 @@ def _get_all_session_ids():
 
 
 def main():
-    session_ids = None   # set to None to run all sessions in EStimShapeTrials
-    force_recompute = False        # False = skip sessions already present in EStimEffects
+    session_ids      = None   # set to None to run all sessions in EStimShapeTrials
+    force_recompute  = False  # False = skip sessions already computed for this algorithm_label
+    algorithm_label  = 'none' # 'none' = no cutoff; set to e.g. 'last_sustained_k3_t5.0' to apply cutoffs
 
     behavioral_conditions = ['trial_type', 'noise_chance', 'sample_length']
     estim_conditions = [
@@ -47,12 +48,14 @@ def main():
     print(f"Sessions to process: {ids_to_run}")
 
     for session_id in ids_to_run:
-        if not force_recompute and _session_has_effects_computed(session_id):
-            print(f"Skipping {session_id} (already in EStimEffects)")
+        if not force_recompute and _session_has_effects_computed(session_id, algorithm_label):
+            print(f"Skipping {session_id} (already in EStimEffects for '{algorithm_label}')")
             continue
 
         data = read_trial_data_from_repository(session_id)
         print(f"\n=== {session_id}: {len(data)} trials ===")
+
+        gen_id_cutoffs = _fetch_gen_id_cutoffs(session_id, algorithm_label)
 
         sliding_window_analysis(
             data,
@@ -60,18 +63,39 @@ def main():
             estim_conditions,
             window_size=100,
             step_size=10,
-            session_id=session_id
+            session_id=session_id,
+            cutoff_gen_ids=gen_id_cutoffs,
         )
 
-        condition_groups_data = split_data_by_conditions(data, behavioral_conditions, estim_conditions)
+        condition_groups_data = split_data_by_conditions(
+            data, behavioral_conditions, estim_conditions,
+            gen_id_cutoffs=gen_id_cutoffs,
+        )
         results = calculate_estim_effects(condition_groups_data)
-        save_estim_effects_to_repository(session_id, results)
-        print(f"Saved {len(results)} effects for {session_id}")
+        save_estim_effects_to_repository(session_id, results, algorithm_label)
+        print(f"Saved {len(results)} effects for {session_id} (algorithm='{algorithm_label}')")
+
+
+def _fetch_gen_id_cutoffs(session_id, algorithm_label):
+    """
+    Return {conditions_json: max_gen_id} for all conditions in this session
+    that have a cutoff stored under algorithm_label.
+    Returns an empty dict if algorithm_label is 'none' or no cutoffs exist.
+    """
+    if algorithm_label == 'none':
+        return {}
+    conn = Connection("allen_data_repository")
+    conn.execute("""
+        SELECT conditions, max_gen_id FROM EStimSessionCutoffs
+        WHERE session_id = %s AND algorithm_label = %s
+    """, (session_id, algorithm_label))
+    return {row[0]: row[1] for row in conn.fetch_all()}
 
 
 def sliding_window_analysis(data, behavioral_conditions, estim_conditions,
                             window_size=100, step_size=5,
-                            show_gen_boundaries=True, session_id=None):
+                            show_gen_boundaries=True, session_id=None,
+                            cutoff_gen_ids=None):
     """
     Sliding window estim-effect analysis grouped by behavioral + estim conditions.
 
@@ -114,6 +138,14 @@ def sliding_window_analysis(data, behavioral_conditions, estim_conditions,
                     'estim_off_n': result['estim_off_n_trials']
                 })
 
+    # Convert gen_id cutoffs → trial-index cutoffs for plotting
+    cutoff_trial_numbers = {}
+    if cutoff_gen_ids:
+        for conditions_json, max_gen_id in cutoff_gen_ids.items():
+            mask = data_sorted['gen_id'] <= max_gen_id
+            if mask.any():
+                cutoff_trial_numbers[conditions_json] = int(mask.values.nonzero()[0][-1])
+
     session_label = session_id or (data['session_id'].iloc[0] if 'session_id' in data.columns else 'unknown')
     save_dir = f"/home/connorlab/Documents/plots/{session_label}/estimshape/"
     os.makedirs(save_dir, exist_ok=True)
@@ -127,7 +159,8 @@ def sliding_window_analysis(data, behavioral_conditions, estim_conditions,
         output_path=output_path,
         window_size=window_size,
         step_size=step_size,
-        session_id=session_label
+        session_id=session_label,
+        cutoff_trial_numbers=cutoff_trial_numbers,
     )
 
 
@@ -217,7 +250,8 @@ def plot_sliding_window_results(condition_groups,
                                 output_path=None,
                                 window_size=None,
                                 step_size=None,
-                                session_id=None):
+                                session_id=None,
+                                cutoff_trial_numbers=None):
     """
     Plot sliding window effect sizes, with optional extras:
       - baseline_windows: adds a second subplot (% hyp for no-estim trials by trial_type)
@@ -251,12 +285,25 @@ def plot_sliding_window_results(condition_groups,
         fig, ax_effect = plt.subplots(figsize=(16, 8))
         ax_baseline = None
 
+    cutoff_drawn = False
     for cond_data, color in zip(active, palette):
         trial_numbers = [w['trial_number'] for w in cond_data['windows']]
         effect_sizes = [w['effect_size'] for w in cond_data['windows']]
         label = format_condition_label(cond_data['behavioral'], cond_data['estim'], varying_keys)
         ax_effect.plot(trial_numbers, effect_sizes,
                        color=color, marker='o', markersize=3, linewidth=1.5, label=label)
+
+        # Draw cutoff line for this condition if one exists
+        if cutoff_trial_numbers:
+            cond_key = json.dumps(
+                {**cond_data['behavioral'], **cond_data['estim']},
+                sort_keys=True, cls=_NumpyEncoder)
+            if cond_key in cutoff_trial_numbers:
+                cutoff_x = cutoff_trial_numbers[cond_key]
+                ax_effect.axvline(x=cutoff_x, color=color, linestyle='--',
+                                  linewidth=2, alpha=0.8,
+                                  label='cutoff' if not cutoff_drawn else '_nolegend_')
+                cutoff_drawn = True
 
     ax_effect.axhline(y=0, color='black', linestyle='--', linewidth=1, alpha=0.5)
     ax_effect.set_ylabel('Effect Size (EStim ON − EStim OFF %)', fontsize=12)
@@ -376,73 +423,78 @@ def calculate_estim_effects(condition_groups):
 
 
 def create_estim_effects_table():
-    """Create EStimEffects table if it doesn't exist"""
-    repo_conn = Connection("allen_data_repository")
+    """Create EStimEffects table if it doesn't exist, and run any pending migrations."""
+    conn = Connection("allen_data_repository")
 
-    repo_conn.execute("""
-                      CREATE TABLE IF NOT EXISTS EStimEffects
-                      (
-                          session_id                 VARCHAR(10) NOT NULL,
-                          conditions                 LONGTEXT    NOT NULL,
-                          estim_on_pct_hypothesized  FLOAT,
-                          estim_off_pct_hypothesized FLOAT,
-                          estim_on_n_trials          INT,
-                          estim_off_n_trials         INT,
-                          effect_size                FLOAT,
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS EStimEffects
+        (
+            session_id                 VARCHAR(10)  NOT NULL,
+            conditions                 LONGTEXT     NOT NULL,
+            algorithm_label            VARCHAR(100) NOT NULL DEFAULT 'none',
+            estim_on_pct_hypothesized  FLOAT,
+            estim_off_pct_hypothesized FLOAT,
+            estim_on_n_trials          INT,
+            estim_off_n_trials         INT,
+            effect_size                FLOAT,
 
-                          PRIMARY KEY (session_id, conditions(500)),
-                          FOREIGN KEY (session_id) REFERENCES Sessions (session_id) ON DELETE CASCADE
-                      ) ENGINE = InnoDB
-                        DEFAULT CHARSET = latin1
-                      """)
+            PRIMARY KEY (session_id, conditions(500), algorithm_label(100)),
+            FOREIGN KEY (session_id) REFERENCES Sessions (session_id) ON DELETE CASCADE
+        ) ENGINE = InnoDB DEFAULT CHARSET = latin1
+    """)
 
-    print("EStimEffects table created successfully")
+    _migrate_estim_effects_table(conn)
+    print("EStimEffects table ready")
 
 
-def save_estim_effects_to_repository(session_id, results):
-    """
-    Save calculated effects to EStimEffects table
+def _migrate_estim_effects_table(conn):
+    """Add algorithm_label column and update PK for tables created before this column existed."""
+    # Check if algorithm_label column exists
+    conn.execute("""
+        SELECT COUNT(*) FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME   = 'EStimEffects'
+          AND COLUMN_NAME  = 'algorithm_label'
+    """)
+    if conn.fetch_all()[0][0] > 0:
+        return  # already migrated
 
-    Args:
-        session_id: Session identifier
-        results: List of dicts with calculated effects
-    """
-    repo_conn = Connection("allen_data_repository")
+    print("Migrating EStimEffects: adding algorithm_label column and updating PK...")
+    conn.execute("ALTER TABLE EStimEffects ADD COLUMN algorithm_label VARCHAR(100) NOT NULL DEFAULT 'none'")
+    conn.execute("ALTER TABLE EStimEffects DROP PRIMARY KEY")
+    conn.execute("ALTER TABLE EStimEffects ADD PRIMARY KEY (session_id, conditions(500), algorithm_label(100))")
+    print("Migration complete")
+
+
+def save_estim_effects_to_repository(session_id, results, algorithm_label='none'):
+    conn = Connection("allen_data_repository")
 
     for result in results:
-        # Convert conditions dict to JSON string for storage
         conditions_str = json.dumps(result['conditions'], sort_keys=True, cls=_NumpyEncoder)
+        estim_on_pct  = float(result['estim_on_pct_hypothesized'])  if result['estim_on_pct_hypothesized']  is not None else None
+        estim_off_pct = float(result['estim_off_pct_hypothesized']) if result['estim_off_pct_hypothesized'] is not None else None
+        estim_on_n    = int(result['estim_on_n_trials'])             if result['estim_on_n_trials']          is not None else None
+        estim_off_n   = int(result['estim_off_n_trials'])            if result['estim_off_n_trials']         is not None else None
+        effect        = float(result['effect_size'])                  if result['effect_size']                is not None else None
 
-        # Convert numpy types to Python native types
-        estim_on_pct = float(result['estim_on_pct_hypothesized']) if result[
-                                                                         'estim_on_pct_hypothesized'] is not None else None
-        estim_off_pct = float(result['estim_off_pct_hypothesized']) if result[
-                                                                           'estim_off_pct_hypothesized'] is not None else None
-        estim_on_n = int(result['estim_on_n_trials']) if result['estim_on_n_trials'] is not None else None
-        estim_off_n = int(result['estim_off_n_trials']) if result['estim_off_n_trials'] is not None else None
-        effect = float(result['effect_size']) if result['effect_size'] is not None else None
-
-        repo_conn.execute("""
-                          INSERT IGNORE INTO EStimEffects (session_id,
-                                                           conditions,
-                                                           estim_on_pct_hypothesized,
-                                                           estim_off_pct_hypothesized,
-                                                           estim_on_n_trials,
-                                                           estim_off_n_trials,
-                                                           effect_size)
-                          VALUES (%s, %s, %s, %s, %s, %s, %s)
-                          """, (
-                              session_id,
-                              conditions_str,
-                              estim_on_pct,
-                              estim_off_pct,
-                              estim_on_n,
-                              estim_off_n,
-                              effect
-                          ))
+        conn.execute("""
+            INSERT INTO EStimEffects
+                (session_id, conditions, algorithm_label,
+                 estim_on_pct_hypothesized, estim_off_pct_hypothesized,
+                 estim_on_n_trials, estim_off_n_trials, effect_size)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                estim_on_pct_hypothesized  = VALUES(estim_on_pct_hypothesized),
+                estim_off_pct_hypothesized = VALUES(estim_off_pct_hypothesized),
+                estim_on_n_trials          = VALUES(estim_on_n_trials),
+                estim_off_n_trials         = VALUES(estim_off_n_trials),
+                effect_size                = VALUES(effect_size)
+        """, (session_id, conditions_str, algorithm_label,
+              estim_on_pct, estim_off_pct, estim_on_n, estim_off_n, effect))
 
 
-def split_data_by_conditions(data, behavioral_conditions, estim_conditions):
+def split_data_by_conditions(data, behavioral_conditions, estim_conditions,
+                             gen_id_cutoffs=None):
     """
     Split data for estim vs no-estim comparisons.
 
@@ -498,22 +550,34 @@ def split_data_by_conditions(data, behavioral_conditions, estim_conditions):
             else:
                 estim_dict = dict(zip(estim_conditions, estim_values))
 
-            # Add this comparison
+            estim_on_trimmed  = estim_group.copy()
+            estim_off_trimmed = estim_off_data.copy()
+
+            # Apply adaptation cutoff for this condition if one exists
+            if gen_id_cutoffs and 'gen_id' in data.columns:
+                all_conds = {**behavioral_dict, **estim_dict}
+                cond_key  = json.dumps(all_conds, sort_keys=True, cls=_NumpyEncoder)
+                if cond_key in gen_id_cutoffs:
+                    max_gen = gen_id_cutoffs[cond_key]
+                    estim_on_trimmed  = estim_on_trimmed[estim_on_trimmed['gen_id']  <= max_gen]
+                    estim_off_trimmed = estim_off_trimmed[estim_off_trimmed['gen_id'] <= max_gen]
+
             comparisons.append({
                 'behavioral_conditions': behavioral_dict,
                 'estim_conditions': estim_dict,
-                'estim_on_data': estim_group.copy(),
-                'estim_off_data': estim_off_data
+                'estim_on_data': estim_on_trimmed,
+                'estim_off_data': estim_off_trimmed,
             })
 
     return comparisons
 
 
-def _session_has_effects_computed(session_id):
-    """Return True if EStimEffects already has at least one row for this session."""
-    repo_conn = Connection("allen_data_repository")
-    repo_conn.execute("SELECT COUNT(*) FROM EStimEffects WHERE session_id = %s", (session_id,))
-    return repo_conn.fetch_all()[0][0] > 0
+def _session_has_effects_computed(session_id, algorithm_label='none'):
+    """Return True if EStimEffects already has rows for this session+algorithm_label."""
+    conn = Connection("allen_data_repository")
+    conn.execute("SELECT COUNT(*) FROM EStimEffects WHERE session_id = %s AND algorithm_label = %s",
+                 (session_id, algorithm_label))
+    return conn.fetch_all()[0][0] > 0
 
 
 def read_trial_data_from_repository(session_id):
