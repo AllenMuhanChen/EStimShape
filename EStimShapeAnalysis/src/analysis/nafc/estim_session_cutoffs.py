@@ -152,6 +152,35 @@ def _window_effect_for_condition(window_df, cond_dict):
     return float((on.mean() - off.mean()) * 100.0)
 
 
+def _count_estim_on_for_condition(df, cond_dict):
+    """Count estim-on trials in df that match cond_dict (same filters as _window_effect_for_condition)."""
+    mask = pd.Series(True, index=df.index)
+    if 'trial_type' in cond_dict:
+        mask &= df['trial_type'] == cond_dict['trial_type']
+    if 'noise_chance' in cond_dict:
+        mask &= (df['noise_chance'] - cond_dict['noise_chance']).abs() < 0.001
+    if 'sample_length' in cond_dict:
+        if cond_dict['sample_length'] is None:
+            mask &= df['sample_length'].isna()
+        else:
+            mask &= df['sample_length'] == cond_dict['sample_length']
+
+    on_df = df[mask & (df['is_estim_on'] == 1)].copy()
+    if 'polarity' in cond_dict:
+        on_df = on_df[on_df['polarity'] == cond_dict['polarity']]
+    if 'shape' in cond_dict:
+        on_df = on_df[on_df['shape'] == cond_dict['shape']]
+    if 'num_channels' in cond_dict:
+        on_df = on_df[on_df['num_channels'] == cond_dict['num_channels']]
+    if 'a1' in cond_dict:
+        on_df = on_df[(on_df['a1'] - cond_dict['a1']).abs() < 0.01]
+    if 'post_stim_refractory_period' in cond_dict:
+        on_df = on_df[(on_df['post_stim_refractory_period'] - cond_dict['post_stim_refractory_period']).abs() < 1.0]
+    if 'enable_charge_recovery' in cond_dict:
+        on_df = on_df[on_df['enable_charge_recovery'] == cond_dict['enable_charge_recovery']]
+    return len(on_df)
+
+
 def _sliding_window_effects(df, window_size, step_size, cond_dict):
     """
     Slide a window of window_size trials (step_size apart) over ALL session trials,
@@ -167,7 +196,8 @@ def _sliding_window_effects(df, window_size, step_size, cond_dict):
 
 
 def compute_first_sustained_drop(session_id, cond_dict,
-                                  window_size, step_size, threshold, n_steps_below):
+                                  window_size, step_size, threshold, n_steps_below,
+                                  min_estim_trials=10):
     """
     Slides a window over ALL session trials (ordered by trial_start) and finds the
     FIRST time the effect drops below threshold and stays there for n_steps_below
@@ -205,6 +235,9 @@ def compute_first_sustained_drop(session_id, cond_dict,
             if i == 0:
                 return None  # no good window to keep before the drop
             end_trial_idx = windows[i - 1][0]
+            kept_df = df.iloc[:end_trial_idx + 1]
+            if _count_estim_on_for_condition(kept_df, cond_dict) < min_estim_trials:
+                return None  # too few estim trials before the cutoff
             return int(df.iloc[end_trial_idx]['trial_start'])
 
     return None  # never had a sustained drop
@@ -221,21 +254,23 @@ def save_cutoff(session_id, conditions_json, algorithm_label, max_trial_start):
 
 
 def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
-                session_id=None, force_recompute=False):
+                min_estim_trials=10, session_id=None, force_recompute=False):
     """
     Compute and store first-sustained-drop cutoffs for all conditions.
 
     Args:
-        window_size    : trials per window (match sliding_window_analysis, default 100)
-        step_size      : trials between window positions (default 10)
-        threshold      : effect must drop below this (pp) to count as degraded
-        n_steps_below  : number of consecutive windows below threshold required
-        session_id     : restrict to one session, or None for all
-        force_recompute: overwrite existing rows
+        window_size      : trials per window (match sliding_window_analysis, default 100)
+        step_size        : trials between window positions (default 10)
+        threshold        : effect must drop below this (pp) to count as degraded
+        n_steps_below    : number of consecutive windows below threshold required
+        min_estim_trials : minimum estim-on trials in the kept portion; if fewer exist
+                           before the detected cutoff, no cutoff is applied
+        session_id       : restrict to one session, or None for all
+        force_recompute  : overwrite existing rows
     """
     create_cutoffs_table()
 
-    algorithm_label = f"first_drop_w{window_size}_s{step_size}_t{threshold}_n{n_steps_below}"
+    algorithm_label = f"first_drop_w{window_size}_s{step_size}_t{threshold}_n{n_steps_below}_m{min_estim_trials}"
 
     conn = Connection("allen_data_repository")
     if session_id:
@@ -266,7 +301,7 @@ def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
                 continue
 
         max_trial_start = compute_first_sustained_drop(
-            sid, cond_dict, window_size, step_size, threshold, n_steps_below
+            sid, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials
         )
 
         if max_trial_start is None:
@@ -358,15 +393,17 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
 
 
 def main():
-    window_size   = 100
-    step_size     = 10
-    threshold     = 5.0
-    n_steps_below = 3
-    session_id    = None  # None = all sessions
+    window_size      = 100
+    step_size        = 10
+    threshold        = 5.0
+    n_steps_below    = 3
+    min_estim_trials = 10
+    session_id       = None  # None = all sessions
 
     algorithm_label = run_cutoffs(
         window_size=window_size, step_size=step_size,
         threshold=threshold, n_steps_below=n_steps_below,
+        min_estim_trials=min_estim_trials,
         session_id=session_id,
     )
 
