@@ -30,7 +30,11 @@ def _get_all_session_ids():
 def main():
     session_ids      = None   # set to None to run all sessions in EStimShapeTrials
     force_recompute  = False  # False = skip sessions already computed for this algorithm_label
-    algorithm_label  = 'none' # 'none' = no cutoff; set to e.g. 'last_sustained_k3_t5.0' to apply cutoffs
+
+    # Must match the algorithm_label produced by estim_session_cutoffs.run_cutoffs().
+    # 'none' = no cutoff (raw data).
+    # To apply cutoffs, set to e.g. 'first_drop_w100_s10_t5.0_n3_m10'
+    algorithm_label  = 'first_drop_w100_s10_t5.0_n3_m10'
 
     behavioral_conditions = ['trial_type', 'noise_chance', 'sample_length']
     estim_conditions = [
