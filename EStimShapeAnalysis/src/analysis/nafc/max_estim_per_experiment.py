@@ -58,19 +58,20 @@ def _build_max_stat_for_session(session_id):
         entries.append({
             'cond_dict':  json.loads(conditions_json),
             'obs_effect': obs_effect,
-            'null_abs':   np.abs(np.array(json.loads(null_json))),
+            'null':       np.array(json.loads(null_json)),
         })
 
     if not entries:
         return None
 
-    best = max(entries, key=lambda e: abs(e['obs_effect']))
+    # Best = largest positive effect (directional: stim should increase choice)
+    best = max(entries, key=lambda e: e['obs_effect'])
 
-    # Element-wise max across all conditions for each permutation iteration
-    null_matrix   = np.stack([e['null_abs'] for e in entries], axis=0)  # (n_conds, n_perms)
-    max_stat_null = null_matrix.max(axis=0)                              # (n_perms,)
+    # Element-wise max across all conditions for each permutation iteration (signed, no abs)
+    null_matrix   = np.stack([e['null'] for e in entries], axis=0)  # (n_conds, n_perms)
+    max_stat_null = null_matrix.max(axis=0)                          # (n_perms,)
 
-    observed_max = abs(best['obs_effect'])
+    observed_max = best['obs_effect']
     p_value      = float(np.mean(max_stat_null >= observed_max))
 
     return {
