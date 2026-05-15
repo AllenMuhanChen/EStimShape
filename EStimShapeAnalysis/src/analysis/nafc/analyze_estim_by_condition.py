@@ -476,8 +476,12 @@ def _migrate_estim_effects_table(conn):
     """)
     if conn.fetch_all()[0][0] == 0:
         print("Migrating EStimEffects: updating PRIMARY KEY to include algorithm_label...")
+        # session_id stays in the new PK so all FK relationships remain valid;
+        # disable FK checks only for the duration of the PK swap.
+        conn.execute("SET FOREIGN_KEY_CHECKS=0")
         conn.execute("ALTER TABLE EStimEffects DROP PRIMARY KEY")
         conn.execute("ALTER TABLE EStimEffects ADD PRIMARY KEY (session_id, conditions(500), algorithm_label(100))")
+        conn.execute("SET FOREIGN_KEY_CHECKS=1")
         print("Migration complete")
 
 
