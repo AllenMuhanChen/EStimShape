@@ -3,6 +3,8 @@ from clat.util.connection import Connection
 import json
 from tqdm import tqdm
 
+from src.analysis.nafc.estim_parameter_classifier import EStimParameterClassifier
+
 
 def run_permutation_tests(session_id=None, n_permutations=1000, force_recompute=False):
     """
@@ -105,24 +107,12 @@ def get_trial_data_for_condition(session_id, cond_dict):
     """
     repo_conn = Connection("allen_data_repository")
 
-    # Build query to match conditions - use same join structure as main query
-    query = """
+    query = f"""
             SELECT t.is_hypothesized_choice, t.is_estim_on
             FROM EStimShapeTrials t
-                     LEFT JOIN (SELECT ep1.*, \
-                                       channel_counts.num_channels \
-                                FROM EStimParameters ep1 \
-                                         INNER JOIN (SELECT session_id, \
-                                                            estim_spec_id, \
-                                                            MIN(channel) as first_channel, \
-                                                            COUNT(*)     as num_channels \
-                                                     FROM EStimParameters \
-                                                     GROUP BY session_id, estim_spec_id) channel_counts \
-                                                    ON ep1.session_id = channel_counts.session_id \
-                                                        AND ep1.estim_spec_id = channel_counts.estim_spec_id \
-                                                        AND ep1.channel = channel_counts.first_channel) ep \
-                               ON t.session_id = ep.session_id AND t.estim_spec_id = ep.estim_spec_id
-            WHERE t.session_id = %s \
+            LEFT JOIN ({EStimParameterClassifier.active_channel_sql_subquery()}) ep
+              ON t.session_id = ep.session_id AND t.estim_spec_id = ep.estim_spec_id
+            WHERE t.session_id = %s
             """
 
     params = [session_id]
@@ -136,6 +126,13 @@ def get_trial_data_for_condition(session_id, cond_dict):
         # Use tolerance for float comparison (within 0.001)
         query += " AND ABS(t.noise_chance - %s) < 0.001"
         params.append(cond_dict['noise_chance'])
+
+    if 'sample_length' in cond_dict:
+        if cond_dict['sample_length'] is None:
+            query += " AND t.sample_length IS NULL"
+        else:
+            query += " AND t.sample_length = %s"
+            params.append(cond_dict['sample_length'])
 
     # Build estim parameter conditions
     # For estim_off trials, these should be NULL or don't matter

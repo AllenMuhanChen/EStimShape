@@ -4,6 +4,7 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 
+from src.analysis.nafc.estim_parameter_classifier import EStimParameterClassifier
 from src.startup import context
 
 
@@ -18,7 +19,7 @@ def main():
     # data = combine_trial_types_at_max_noise(data)
 
     ## Searchlight analysis
-    behavioral_conditions = ['trial_type', 'noise_chance']
+    behavioral_conditions = ['trial_type', 'noise_chance', 'sample_length']
     estim_conditions = [
         'num_channels',
         'polarity',
@@ -487,47 +488,37 @@ def read_trial_data_from_repository(session_id):
     """
     repo_conn = Connection("allen_data_repository")
 
-    # Join trials with estim parameters
-    query = """
-            SELECT t.*, \
-                   ep.channel, \
-                   ep.num_channels, \
-                   ep.shape, \
-                   ep.polarity, \
-                   ep.d1, \
-                   ep.d2, \
-                   ep.dp, \
-                   ep.a1, \
-                   ep.a2, \
-                   ep.pulse_repetition, \
-                   ep.num_repetitions, \
-                   ep.pulse_train_period, \
-                   ep.post_stim_refractory_period, \
-                   ep.trigger_edge_or_level, \
-                   ep.post_trigger_delay, \
-                   ep.enable_amp_settle, \
-                   ep.pre_stim_amp_settle, \
-                   ep.post_stim_amp_settle, \
-                   ep.maintain_amp_settle_during_pulse_train, \
-                   ep.enable_charge_recovery, \
-                   ep.post_stim_charge_recovery_on, \
+    # Join trials with estim parameters; active_channel_sql_subquery counts only
+    # non-zero-amplitude channels so num_channels excludes ground-pulse channels.
+    query = f"""
+            SELECT t.*,
+                   ep.channel,
+                   ep.num_channels,
+                   ep.shape,
+                   ep.polarity,
+                   ep.d1,
+                   ep.d2,
+                   ep.dp,
+                   ep.a1,
+                   ep.a2,
+                   ep.pulse_repetition,
+                   ep.num_repetitions,
+                   ep.pulse_train_period,
+                   ep.post_stim_refractory_period,
+                   ep.trigger_edge_or_level,
+                   ep.post_trigger_delay,
+                   ep.enable_amp_settle,
+                   ep.pre_stim_amp_settle,
+                   ep.post_stim_amp_settle,
+                   ep.maintain_amp_settle_during_pulse_train,
+                   ep.enable_charge_recovery,
+                   ep.post_stim_charge_recovery_on,
                    ep.post_stim_charge_recovery_off
             FROM EStimShapeTrials t
-                     LEFT JOIN (SELECT ep1.*, \
-                                       channel_counts.num_channels \
-                                FROM EStimParameters ep1 \
-                                         INNER JOIN (SELECT session_id, \
-                                                            estim_spec_id, \
-                                                            MIN(channel) as first_channel, \
-                                                            COUNT(*)     as num_channels \
-                                                     FROM EStimParameters \
-                                                     GROUP BY session_id, estim_spec_id) channel_counts \
-                                                    ON ep1.session_id = channel_counts.session_id \
-                                                        AND ep1.estim_spec_id = channel_counts.estim_spec_id \
-                                                        AND ep1.channel = channel_counts.first_channel) ep \
-                               ON t.session_id = ep.session_id AND t.estim_spec_id = ep.estim_spec_id
+            LEFT JOIN ({EStimParameterClassifier.active_channel_sql_subquery()}) ep
+              ON t.session_id = ep.session_id AND t.estim_spec_id = ep.estim_spec_id
             WHERE t.session_id = %s
-            ORDER BY t.task_id \
+            ORDER BY t.task_id
             """
 
     repo_conn.execute(query, (session_id,))
