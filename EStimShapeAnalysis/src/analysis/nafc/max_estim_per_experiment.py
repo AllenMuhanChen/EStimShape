@@ -214,10 +214,17 @@ def _draw_stats_panel(ax_text, pop, rows):
                                     zorder=-1, clip_on=False))
 
 
-def plot_max_stat_per_experiment(session_ids=None, save_path=None, show_n=True,
+def plot_max_stat_per_experiment(session_ids=None, start_session_id=None,
+                                 save_path=None, show_n=True,
                                  x_spacing=1.0, width_per_exp=1.5):
+    """
+    start_session_id : if given, only include sessions whose session_id >= this value
+                       (lexicographic comparison works because session_id is YYMMDD_N).
+    """
     if session_ids is None:
         session_ids = _get_sessions_with_permutation_data()
+    if start_session_id is not None:
+        session_ids = [s for s in session_ids if s >= start_session_id]
 
     rows = []
     for sid in session_ids:
@@ -329,6 +336,7 @@ def plot_max_stat_per_experiment(session_ids=None, save_path=None, show_n=True,
 def main():
     plot_max_stat_per_experiment(
         session_ids=None,
+        start_session_id="260401_0",   # only sessions on or after this date
         save_path="/home/connorlab/Documents/plots/across_experiments/max_estim_per_experiment.png",
         show_n=True,
         x_spacing=0.5,
