@@ -99,6 +99,7 @@ def main():
     # To apply cutoffs, set to e.g. 'first_drop_w100_s10_t5.0_n3_m10'
     algorithm_label  = 'first_drop_w100_s10_t5.0_n1_m10'
 
+
     behavioral_conditions = ['trial_type', 'noise_chance', 'sample_length']
     estim_conditions = [
         'num_channels',
