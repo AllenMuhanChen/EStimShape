@@ -21,6 +21,12 @@ class DataExporter(Protocol):
         pass
 
 
+class ClusterLoader(Protocol):
+    def load_current_cluster_info(self) -> tuple[list[Channel], int] | None:
+        """Returns (cluster_1_channels, gen_id), or None if no cluster exists."""
+        pass
+
+
 class ChannelMapper(Protocol):
     def get_coordinates(self, channel: Channel) -> dict[Any, np.ndarray]:
         pass

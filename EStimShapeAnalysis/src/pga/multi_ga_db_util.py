@@ -235,6 +235,17 @@ class MultiGaDbUtil:
         channels = [row[0] for row in rows]
         return channels
 
+    def read_current_cluster_with_gen_id(self, ga_name) -> tuple[list[Channel], int] | None:
+        current_experiment_id = self.read_current_experiment_id(ga_name)
+        self.conn.execute("SELECT MAX(gen_id) FROM ClusterInfo WHERE experiment_id = %s",
+                          (current_experiment_id,))
+        most_recent_gen_id = self.conn.fetch_one()
+        if most_recent_gen_id is None:
+            return None
+        cluster_as_strings = self.read_cluster_channels(current_experiment_id, most_recent_gen_id)
+        cluster = list(set(Channel.get_channel(c) for c in cluster_as_strings))
+        return cluster, most_recent_gen_id
+
     def read_current_cluster(self, ga_name) -> list[Channel]:
         # Get current experiment_id
         current_experiment_id = self.read_current_experiment_id(ga_name)

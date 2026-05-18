@@ -118,9 +118,19 @@ def read_cluster_channels(session_id: str) -> List[str]:
     # Format placeholders for SQL IN clause
     placeholders = ', '.join(['%s'] * len(experiment_ids))
 
-    # Query channels from ClusterInfo table for all experiments in this session
+    # Query channels from the most recent gen_id for each experiment
     conn.execute(
-        f"SELECT DISTINCT channel FROM ClusterInfo WHERE experiment_id IN ({placeholders}) ORDER BY channel",
+        f"""SELECT DISTINCT ci.channel
+            FROM ClusterInfo ci
+            JOIN (
+                SELECT experiment_id, MAX(gen_id) AS max_gen_id
+                FROM ClusterInfo
+                WHERE experiment_id IN ({placeholders})
+                GROUP BY experiment_id
+            ) latest
+              ON ci.experiment_id = latest.experiment_id
+             AND ci.gen_id = latest.max_gen_id
+            ORDER BY ci.channel""",
         params=experiment_ids
     )
 

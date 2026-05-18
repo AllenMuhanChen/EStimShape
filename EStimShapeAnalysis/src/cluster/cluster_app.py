@@ -3,14 +3,15 @@ from functools import partial
 import numpy as np
 from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtWidgets import QVBoxLayout, QPushButton, QWidget, QHBoxLayout, QListWidget, QListWidgetItem, \
-    QGridLayout, QBoxLayout
+    QGridLayout, QBoxLayout, QLabel
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.path import Path
 from matplotlib.widgets import LassoSelector, RectangleSelector
 
 from clat.intan.channels import Channel
-from src.cluster.cluster_app_classes import ClusterManager, DataLoader, DataExporter, ChannelMapper, Annotator
+from src.cluster.cluster_app_classes import ClusterManager, DataLoader, DataExporter, ChannelMapper, Annotator, \
+    ClusterLoader
 from src.cluster.dimensionality_reduction import DimensionalityReducer
 
 MAX_GROUPS = 10
@@ -24,7 +25,7 @@ def make_figure_and_canvas():
 
 class ClusterApplicationWindow(QWidget):
     def __init__(self, data_loader: DataLoader, data_exporter: DataExporter, reducers: list[DimensionalityReducer],
-                 channel_mapper: ChannelMapper):
+                 channel_mapper: ChannelMapper, cluster_loader: ClusterLoader = None):
         super().__init__()
         # GUI elements
         self.channel_labels_dim_reduction = None
@@ -36,6 +37,7 @@ class ClusterApplicationWindow(QWidget):
         self.button_delete_group = None
         self.widget_cluster_list = None
         self.button_new_group = None
+        self.label_gen_info = None
 
         # Dependency injection
         self.data_loader = data_loader
@@ -61,12 +63,31 @@ class ClusterApplicationWindow(QWidget):
         self.clusters_for_channels = None  # An array that stores the group number of each point
         # noinspection PyTypeChecker
         self.cluster_manager = ClusterManager(self.channels)
+        self.loaded_gen_id = None
+
+        # Load existing cluster if available
+        if cluster_loader is not None:
+            loaded = cluster_loader.load_current_cluster_info()
+            if loaded is not None:
+                cluster_channels, gen_id = loaded
+                self.cluster_manager.clusters_for_channels = {
+                    channel: (1 if channel in cluster_channels else 0)
+                    for channel in self.channels
+                }
+                self.clusters_for_channels = self.cluster_manager.clusters_for_channels
+                self.cluster_manager.num_clusters = 2
+                self.loaded_gen_id = gen_id
 
         # Create GUI
         self.create_gui()
 
         # Annotations
         self.annotator = Annotator()
+
+        # Auto-plot with first reducer if cluster was pre-loaded
+        if self.clusters_for_channels is not None and self.reducers:
+            self.current_reducer = self.reducers[0]
+            self.plot(self.reducers[0])
 
     def reduce_data(self, reducers: list[DimensionalityReducer],
                     points_to_reduce_for_channels: dict[Channel, np.ndarray]):
@@ -167,11 +188,18 @@ class ClusterApplicationWindow(QWidget):
         self.widget_cluster_list = self._make_group_list()
         self.button_new_group = self._make_new_cluster_button()
         self.button_delete_group = self._make_delete_cluster_button()
+        self.label_gen_info = QLabel(self._gen_info_text())
         group_panel = QVBoxLayout()
+        group_panel.addWidget(self.label_gen_info)
         group_panel.addWidget(self.button_new_group)
         group_panel.addWidget(self.button_delete_group)
         group_panel.addWidget(self.widget_cluster_list)
         return group_panel
+
+    def _gen_info_text(self) -> str:
+        if self.loaded_gen_id is not None:
+            return f"Loaded cluster from generation {self.loaded_gen_id}"
+        return "No cluster loaded"
 
     def _make_new_cluster_button(self) -> QPushButton:
         new_cluster_button = QPushButton('New Cluster')

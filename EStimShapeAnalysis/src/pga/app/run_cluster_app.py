@@ -4,7 +4,7 @@ import pandas as pd
 from clat.intan.channels import Channel
 from clat.util.connection import Connection
 from src.cluster.cluster_app import ClusterApplicationWindow
-from src.cluster.cluster_app_classes import DataLoader, DataExporter
+from src.cluster.cluster_app_classes import DataLoader, DataExporter, ClusterLoader
 from src.cluster.dimensionality_reduction import PCAReducer, MDSReducer, TSNEReducer, KernelPCAReducer, \
     SparsePCAReducer
 from src.cluster.mock_cluster_app import get_qapplication_instance
@@ -66,6 +66,17 @@ class DbDataLoader(DataLoader):
         return spikes_array
 
 
+class DbClusterLoader(ClusterLoader):
+    def __init__(self, multi_ga_db_util: MultiGaDbUtil):
+        self.db_util = multi_ga_db_util
+
+    def load_current_cluster_info(self):
+        try:
+            return self.db_util.read_current_cluster_with_gen_id(context.ga_name)
+        except Exception:
+            return None
+
+
 class DbDataExporter(DataExporter):
     def __init__(self, multi_ga_db_util: MultiGaDbUtil):
         self.db_util = multi_ga_db_util
@@ -94,7 +105,8 @@ def main():
                                        MDSReducer(),
                                        KernelPCAReducer(),
                                        SparsePCAReducer()],
-                                      DBCChannelMapper("A"))
+                                      DBCChannelMapper("A"),
+                                      DbClusterLoader(context.ga_config.db_util))
 
     #choosing the dimensionality reduction method
     #MDS: Multidimensional Scaling, a method that projects the data into a lower dimensional space while preserving the distances between the data points
