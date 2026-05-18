@@ -70,11 +70,13 @@ class ResponseMatrixLoader(ABC):
 class ClusterChannelLoader:
     """Load the set of cluster-channel names for a session."""
 
-    def __init__(self, session_id: str, conn: Connection):
+    def __init__(self, session_id: str, conn: Connection, experiment_type: str = "ga"):
         self._session_id = session_id
         self._conn = conn
+        self._experiment_type = experiment_type
 
     def load(self) -> Set[str]:
+        experiment_id = f"{self._session_id}_{self._experiment_type}"
         self._conn.execute(
             """SELECT DISTINCT c.channel
                FROM ClusterInfo c
@@ -86,8 +88,9 @@ class ClusterChannelLoader:
                ) latest
                  ON c.experiment_id = latest.experiment_id
                 AND c.gen_id = latest.max_gen_id
-               WHERE e.session_id = %s""",
-            (self._session_id,),
+               WHERE e.session_id = %s
+                 AND e.experiment_id = %s""",
+            (self._session_id, experiment_id),
         )
         return {row[0] for row in self._conn.fetch_all()}
 
