@@ -79,6 +79,13 @@ class ClusterChannelLoader:
             """SELECT DISTINCT c.channel
                FROM ClusterInfo c
                JOIN Experiments e ON c.experiment_id = e.experiment_id
+               JOIN (
+                   SELECT experiment_id, MAX(gen_id) AS max_gen_id
+                   FROM ClusterInfo
+                   GROUP BY experiment_id
+               ) latest
+                 ON c.experiment_id = latest.experiment_id
+                AND c.gen_id = latest.max_gen_id
                WHERE e.session_id = %s""",
             (self._session_id,),
         )
