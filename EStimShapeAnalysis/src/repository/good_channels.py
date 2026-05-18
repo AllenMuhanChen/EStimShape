@@ -92,23 +92,25 @@ def read_good_channels(session_id: str) -> List[str]:
     return [row[0] for row in conn.fetch_all()]
 
 
-def read_cluster_channels(session_id: str) -> List[str]:
+def read_cluster_channels(session_id: str, experiment_type: str = "ga") -> List[str]:
     """
     Reads the list of cluster channels for a specific session from the ClusterInfo table.
 
     Args:
         session_id: The session ID to retrieve cluster channels for
+        experiment_type: Suffix of the experiment_id to filter by (e.g. "ga" matches
+                         "260518_0_ga" but not "260518_0_isogabor"). Defaults to "ga".
 
     Returns:
-        A list of unique channel identifiers from the ClusterInfo table for all
-        experiments associated with the session
+        A list of unique channel identifiers from the ClusterInfo table for the
+        most-recent generation of the matching experiment.
     """
     conn = Connection("allen_data_repository")
 
-    # Query experiments for this session
+    # Query experiments for this session filtered by type
     conn.execute(
-        "SELECT experiment_id FROM Experiments WHERE session_id = %s",
-        params=(session_id,)
+        "SELECT experiment_id FROM Experiments WHERE session_id = %s AND experiment_id = %s",
+        params=(session_id, f"{session_id}_{experiment_type}")
     )
     experiment_ids = [row[0] for row in conn.fetch_all()]
 
