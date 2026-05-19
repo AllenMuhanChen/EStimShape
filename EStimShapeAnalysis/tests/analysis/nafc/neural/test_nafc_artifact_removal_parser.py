@@ -549,6 +549,10 @@ def _plot_pooled_stats(all_results: List[dict], channel_name: str):
 
 # Half-width of each spike-waveform snippet, in milliseconds.
 SPIKE_WAVEFORM_HALFWIDTH_MS = 1.0
+# Fixed y-limits for the spike-waveform overlay panels (uV). Keeps all
+# specs on the same readable MUA scale so artifact-contaminated traces
+# stand out instead of forcing a huge auto-range.
+SPIKE_WAVEFORM_YLIM_UV = (-200.0, 200.0)
 
 
 def _plot_spike_waveforms(
@@ -608,6 +612,7 @@ def _plot_spike_waveforms(
         ax.set_title(f'EStimSpecId {spec_id}', fontsize=9)
         ax.set_xlabel('Time from spike (ms)', fontsize=8)
         ax.set_ylabel('uV', fontsize=8)
+        ax.set_ylim(SPIKE_WAVEFORM_YLIM_UV[0], SPIKE_WAVEFORM_YLIM_UV[1])
         ax.tick_params(labelsize=7)
         ax.legend(fontsize=7, loc='upper right')
 
