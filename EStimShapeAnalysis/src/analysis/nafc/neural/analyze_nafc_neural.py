@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from clat.util import time_util
 
 from src.analysis.nafc.neural.analyze_nafc_neural_raster import load_data, run as run_raster
-from src.analysis.nafc.neural.analyze_nafc_neural_psth import run as run_psth
+from src.analysis.nafc.neural.analyze_nafc_neural_psth import run as run_psth, run_by_choice_and_estim_id
 
 
 # ═══════════════════════════ CONFIG ═════════════════════════════════════════
@@ -41,6 +41,7 @@ def main():
 
     run_raster(data, CHANNEL_NAME, RASTER_TIME_BEFORE_S, RASTER_TIME_AFTER_S)
     run_psth(data, CHANNEL_NAME, PSTH_TIME_BEFORE_S, PSTH_TIME_AFTER_S, BIN_SIZE_S, SHOW_STD)
+    run_by_choice_and_estim_id(data, CHANNEL_NAME, PSTH_TIME_BEFORE_S, PSTH_TIME_AFTER_S, BIN_SIZE_S, SHOW_STD)
 
 
 if __name__ == "__main__":
