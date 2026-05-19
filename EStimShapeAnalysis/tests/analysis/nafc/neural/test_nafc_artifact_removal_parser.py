@@ -244,9 +244,18 @@ def _read_trigger_channel(recording_dir: str) -> np.ndarray:
     return np.asarray(digital_in[0]).astype(np.int8)
 
 
+def _trigger_edges(trigger_channel: np.ndarray):
+    """Return (rising_samples, falling_samples) for a binary TTL trace."""
+    d = np.diff(trigger_channel)
+    rising = np.where(d == 1)[0] + 1
+    falling = np.where(d == -1)[0] + 1
+    return rising, falling
+
+
 def _read_trigger_samples(recording_dir: str) -> np.ndarray:
     """Rising edges of digital-in-01 (sample-on / eStim trigger)."""
-    return np.where(np.diff(_read_trigger_channel(recording_dir)) == 1)[0] + 1
+    rising, _ = _trigger_edges(_read_trigger_channel(recording_dir))
+    return rising
 
 
 def _process_one_recording(
@@ -268,15 +277,13 @@ def _process_one_recording(
         raw = raw[: int(max_seconds * sample_rate)]
 
     trigger_channel = _read_trigger_channel(recording_dir)
-    trigger_samples = np.where(np.diff(trigger_channel) == 1)[0] + 1
+    trigger_rising, trigger_falling = _trigger_edges(trigger_channel)
     post_trigger_delay_s = rec['post_trigger_delay_us'] * 1e-6
-    pulse_period_s = rec['post_stim_refractory_us'] * 1e-6
     detector = TriggerBasedArtifactDetector(
-        trigger_samples=trigger_samples,
+        trigger_rising_samples=trigger_rising,
+        trigger_falling_samples=trigger_falling,
         post_trigger_delay_s=post_trigger_delay_s,
         blank_half_width_s=ARTIFACT_BLANK_HALF_WIDTH_S,
-        num_pulses=rec['num_pulses'],
-        pulse_period_s=pulse_period_s,
     )
     parser = parser_factory(detector)
 
@@ -285,11 +292,10 @@ def _process_one_recording(
     result['recording_dir'] = recording_dir
     result['estim_spec_id'] = rec['estim_spec_id']
     result['stim_spec_id'] = rec['stim_spec_id']
-    result['trigger_samples'] = trigger_samples
+    result['trigger_samples'] = trigger_rising
+    result['trigger_falling_samples'] = trigger_falling
     result['trigger_channel'] = trigger_channel
     result['post_trigger_delay_s'] = post_trigger_delay_s
-    result['num_pulses'] = rec['num_pulses']
-    result['pulse_period_s'] = pulse_period_s
     return result
 
 
@@ -591,11 +597,12 @@ def _plot_trigger_context(
     halfwidth_ms: float,
 ):
     """
-    Per-spec sanity figure: digital trigger TTL on top, neural signal on
-    bottom, with the artifact blank zone shaded and vertical markers at
-    the trigger rising edge(s) and the expected stim onset(s)
-    (trigger + post_trigger_delay + k * pulse_period). Helps diagnose
-    misalignment between the blank zone and the real artifact.
+    Per-spec sanity figure: digital trigger TTL on top, preprocessed
+    neural signal on bottom, sharing a time axis centered on the trigger
+    rising edge. Vertical markers show the rising edge (red), expected
+    stim onset = rising + post_trigger_delay (purple dashed), and the
+    falling edge of the same TTL pulse (red dashed). The blank zone
+    (orange) should span from the purple line through the falling edge.
     """
     for spec, results in sorted(results_by_spec.items()):
         if not results:
@@ -603,25 +610,24 @@ def _plot_trigger_context(
         res = results[0]
         fs = res['sample_rate']
         pp = res['preprocessed']
-        cleaned = res['cleaned']
         blank = res['artifact_blank_mask']
         trig_ch = res['trigger_channel']
-        trigger_samples = res['trigger_samples']
+        rising = res['trigger_samples']
+        falling = res['trigger_falling_samples']
         spike_samples = res['spike_samples']
         delay_s = res['post_trigger_delay_s']
-        num_pulses = res['num_pulses']
-        pulse_period_s = res['pulse_period_s']
 
-        if not len(trigger_samples):
+        if not len(rising):
             print(f"EStimSpecId {spec}: no triggers in recording, skipping")
             continue
 
-        t0 = int(trigger_samples[0])
-        # Auto-extend the window to cover the full predicted pulse train
-        # (trigger + delay + (num_pulses - 1) * pulse_period) plus a margin
-        # on each side. User-supplied halfwidth_ms is the minimum.
-        train_span_ms = (delay_s + max(num_pulses - 1, 0) * pulse_period_s) * 1e3
-        effective_halfwidth_ms = max(halfwidth_ms, train_span_ms + 10.0)
+        t0 = int(rising[0])
+        # Find the falling edge that closes this TTL pulse, so we can size
+        # the window to cover the entire stim-on interval plus a margin.
+        after = falling[falling > t0]
+        fall_sample = int(after[0]) if len(after) else len(trig_ch)
+        ttl_high_ms = (fall_sample - t0) / fs * 1e3
+        effective_halfwidth_ms = max(halfwidth_ms, ttl_high_ms + 20.0)
         hw = int(effective_halfwidth_ms * 1e-3 * fs)
         lo = max(t0 - hw, 0)
         hi = min(t0 + hw, len(pp))
@@ -636,22 +642,19 @@ def _plot_trigger_context(
         axes[0].plot(t_ms, trig_ch[lo:hi], color='tab:blue', lw=0.9,
                      drawstyle='steps-post')
         axes[0].axvline(0, color='tab:red', lw=0.8,
-                        label='trigger rising edge')
-        for k in range(num_pulses):
-            stim_ms = (delay_s + k * pulse_period_s) * 1e3
-            axes[0].axvline(
-                stim_ms, color='tab:purple', lw=0.8, ls='--',
-                label='expected stim onset' if k == 0 else '_nolegend_',
-            )
+                        label='TTL rising edge')
+        axes[0].axvline((fall_sample - t0) / fs * 1e3,
+                        color='tab:red', lw=0.8, ls=':',
+                        label='TTL falling edge')
+        axes[0].axvline(delay_s * 1e3, color='tab:purple', lw=0.8, ls='--',
+                        label=f'expected stim onset (+{delay_s*1e3:.2f} ms)')
         axes[0].set_ylabel('digital-in-01')
         axes[0].set_ylim(-0.1, 1.2)
         axes[0].legend(loc='upper right', fontsize=8)
 
-        # Bottom: preprocessed + cleaned neural with blank-zone shading.
-        axes[1].plot(t_ms, pp[lo:hi], color='tab:gray', lw=0.7, alpha=0.8,
+        # Bottom: preprocessed neural with blank-zone shading.
+        axes[1].plot(t_ms, pp[lo:hi], color='tab:gray', lw=0.7, alpha=0.9,
                      label='preprocessed')
-        axes[1].plot(t_ms, cleaned[lo:hi], color='tab:blue', lw=0.8,
-                     label='cleaned')
 
         blank_seg = blank[lo:hi]
         if blank_seg.any():
@@ -662,12 +665,11 @@ def _plot_trigger_context(
             )
             axes[1].set_ylim(ymin, ymax)
 
-        # Mark trigger and expected stim onsets on the neural plot too.
         axes[1].axvline(0, color='tab:red', lw=0.6, alpha=0.7)
-        for k in range(num_pulses):
-            stim_ms = (delay_s + k * pulse_period_s) * 1e3
-            axes[1].axvline(stim_ms, color='tab:purple', lw=0.6,
-                            ls='--', alpha=0.7)
+        axes[1].axvline((fall_sample - t0) / fs * 1e3,
+                        color='tab:red', lw=0.6, ls=':', alpha=0.7)
+        axes[1].axvline(delay_s * 1e3, color='tab:purple', lw=0.6,
+                        ls='--', alpha=0.7)
 
         # Detected spikes.
         spike_mask = (spike_samples >= lo) & (spike_samples < hi)
@@ -680,15 +682,15 @@ def _plot_trigger_context(
             )
             labelled = True
 
-        axes[1].set_xlabel('Time from trigger rising edge (ms)')
+        axes[1].set_xlabel('Time from TTL rising edge (ms)')
         axes[1].set_ylabel('uV')
         axes[1].legend(loc='upper right', fontsize=8, ncol=2)
 
         fig.suptitle(
-            f'{channel_name}  |  EStimSpecId {spec}  |  trigger context '
+            f'{channel_name}  |  EStimSpecId {spec}  |  trigger context  '
             f'(delay={delay_s*1e6:.0f} us, '
-            f'{num_pulses} pulse(s) @ {pulse_period_s*1e6:.0f} us period, '
-            f'blank +/-{ARTIFACT_BLANK_HALF_WIDTH_S*1e3:.2f} ms)',
+            f'TTL high {ttl_high_ms:.1f} ms, '
+            f'blank +/-{ARTIFACT_BLANK_HALF_WIDTH_S*1e3:.2f} ms margin)',
             fontsize=9,
         )
         plt.tight_layout()
@@ -807,13 +809,14 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
             self.skipTest("SKIP_FULL_PARSE=1")
 
         rec = self.selected[0]
-        trigger_samples = _read_trigger_samples(rec['recording_dir'])
+        trigger_rising, trigger_falling = _trigger_edges(
+            _read_trigger_channel(rec['recording_dir']),
+        )
         detector = TriggerBasedArtifactDetector(
-            trigger_samples=trigger_samples,
+            trigger_rising_samples=trigger_rising,
+            trigger_falling_samples=trigger_falling,
             post_trigger_delay_s=rec['post_trigger_delay_us'] * 1e-6,
             blank_half_width_s=ARTIFACT_BLANK_HALF_WIDTH_S,
-            num_pulses=rec['num_pulses'],
-            pulse_period_s=rec['post_stim_refractory_us'] * 1e-6,
         )
         parser = self._build_parser(detector)
         events = parser.parse(rec['recording_dir'])

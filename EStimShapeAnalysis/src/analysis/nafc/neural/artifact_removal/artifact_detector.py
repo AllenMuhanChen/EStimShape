@@ -132,54 +132,65 @@ class ThresholdArtifactDetector(ArtifactDetector):
 
 class TriggerBasedArtifactDetector(ArtifactDetector):
     """
-    Construct artifact events from known stimulation trigger times rather
-    than detecting them by amplitude. Robust across experiments — no
-    threshold tuning, immune to baseline drift, immune to HP-filter ringing.
+    Build artifact events from known stimulation trigger times rather than
+    detecting them by amplitude. Robust across experiments — no threshold
+    tuning, immune to baseline drift, immune to HP-filter ringing.
 
-    Each trigger sample emits ``num_pulses`` artifact events spaced by
-    ``pulse_period_s``, with the first centered at::
+    Matches Intan HOLD-mode stimulation: the pulse train fires for as long
+    as the trigger TTL is held high. Each (rising, falling) edge pair
+    produces one ArtifactEvent spanning::
 
-        trigger_sample + round(post_trigger_delay_s * sample_rate)
+        rising + post_trigger_delay_s * fs       (start of first pulse)
+        falling                                    (end of last pulse)
 
-    and a blank window of half-width ``blank_half_width_s`` around each
-    pulse center.
+    padded by ``blank_half_width_s`` on each side. Pulse count and period
+    are not used — the TTL itself defines the train extent.
     """
 
     def __init__(
         self,
-        trigger_samples,
+        trigger_rising_samples,
+        trigger_falling_samples,
         post_trigger_delay_s: float,
         blank_half_width_s: float,
-        num_pulses: int = 1,
-        pulse_period_s: float = 0.0,
     ):
-        self.trigger_samples = np.asarray(trigger_samples, dtype=np.int64)
+        self.trigger_rising_samples = np.asarray(
+            trigger_rising_samples, dtype=np.int64,
+        )
+        self.trigger_falling_samples = np.asarray(
+            trigger_falling_samples, dtype=np.int64,
+        )
         self.post_trigger_delay_s = float(post_trigger_delay_s)
         self.blank_half_width_s = float(blank_half_width_s)
-        self.num_pulses = int(num_pulses)
-        self.pulse_period_s = float(pulse_period_s)
 
     def detect(self, signal: np.ndarray, sample_rate: float) -> List[ArtifactEvent]:
         n = len(signal)
         x = np.asarray(signal, dtype=np.float64)
         delay = int(round(self.post_trigger_delay_s * sample_rate))
         half = max(int(round(self.blank_half_width_s * sample_rate)), 1)
-        period = int(round(self.pulse_period_s * sample_rate))
 
+        # Pair each rising edge with the next falling edge at or after it.
+        # Drop any rising edge that has no matching falling edge.
+        risings = self.trigger_rising_samples
+        fallings = self.trigger_falling_samples
         events: List[ArtifactEvent] = []
-        for t in self.trigger_samples:
-            for k in range(self.num_pulses):
-                center = int(t) + delay + k * period
-                if center < 0 or center >= n:
-                    continue
-                start = max(center - half, 0)
-                end = min(center + half, n)
-                if end <= start:
-                    continue
-                events.append(ArtifactEvent(
-                    start_sample=start,
-                    end_sample=end,
-                    peak_sample=center,
-                    peak_value=float(x[center]),
-                ))
+        for rise in risings:
+            rise = int(rise)
+            after = fallings[fallings > rise]
+            if not len(after):
+                # TTL never went low again in this recording — blank to end.
+                fall = n
+            else:
+                fall = int(after[0])
+            start = max(rise + delay - half, 0)
+            end = min(fall + half, n)
+            if end <= start:
+                continue
+            center = (start + end) // 2
+            events.append(ArtifactEvent(
+                start_sample=start,
+                end_sample=end,
+                peak_sample=center,
+                peak_value=float(x[center]) if 0 <= center < n else 0.0,
+            ))
         return events
