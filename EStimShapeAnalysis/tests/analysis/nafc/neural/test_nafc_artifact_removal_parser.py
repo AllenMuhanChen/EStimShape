@@ -450,6 +450,81 @@ def _plot_pooled_stats(all_results: List[dict], channel_name: str):
     plt.tight_layout()
 
 
+# Half-width of each spike-waveform snippet, in milliseconds.
+SPIKE_WAVEFORM_HALFWIDTH_MS = 1.0
+
+
+def _plot_spike_waveforms(
+    results_by_spec: Dict[str, List[dict]],
+    channel_name: str,
+    halfwidth_ms: float,
+):
+    """
+    For every detected spike, extract a small window of the bandpass-filtered
+    trace centered on the spike sample and overlay them. Mean waveform on top.
+    One subplot per EStimSpecId.
+    """
+    spec_ids = sorted(results_by_spec.keys())
+    if not spec_ids:
+        return
+
+    n_cols = min(3, len(spec_ids))
+    n_rows = int(np.ceil(len(spec_ids) / n_cols))
+    fig, axes = plt.subplots(n_rows, n_cols,
+                             figsize=(4.2 * n_cols, 3.0 * n_rows),
+                             squeeze=False)
+
+    for ax, spec_id in zip(axes.flat, spec_ids):
+        snippets: List[np.ndarray] = []
+        fs_ref: Optional[float] = None
+        for res in results_by_spec[spec_id]:
+            fs = res['sample_rate']
+            filtered = res['filtered_for_spikes']
+            spike_samples = res['spike_samples']
+            if not len(spike_samples):
+                continue
+            if fs_ref is None:
+                fs_ref = fs
+            hw = int(halfwidth_ms * 1e-3 * fs)
+            for s in spike_samples:
+                lo = s - hw
+                hi = s + hw
+                if lo < 0 or hi > len(filtered):
+                    continue
+                snippets.append(filtered[lo:hi])
+
+        if not snippets or fs_ref is None:
+            ax.set_title(f'EStimSpecId {spec_id}  |  no spikes',
+                         fontsize=9)
+            ax.axis('off')
+            continue
+
+        stack = np.vstack(snippets)
+        t_ms = (np.arange(stack.shape[1]) - stack.shape[1] // 2) / fs_ref * 1e3
+
+        for snippet in stack:
+            ax.plot(t_ms, snippet, color='tab:gray', lw=0.4, alpha=0.25)
+        ax.plot(t_ms, stack.mean(axis=0), color='tab:red', lw=1.4,
+                label=f'mean (n={stack.shape[0]})')
+        ax.axvline(0, color='tab:green', lw=0.8, alpha=0.6,
+                   label='spike time')
+        ax.set_title(f'EStimSpecId {spec_id}', fontsize=9)
+        ax.set_xlabel('Time from spike (ms)', fontsize=8)
+        ax.set_ylabel('uV', fontsize=8)
+        ax.tick_params(labelsize=7)
+        ax.legend(fontsize=7, loc='upper right')
+
+    for ax in axes.flat[len(spec_ids):]:
+        ax.axis('off')
+
+    fig.suptitle(
+        f'{channel_name}  |  spike waveforms '
+        f'(bandpass-filtered, +/-{halfwidth_ms:g} ms)',
+        fontsize=10,
+    )
+    plt.tight_layout()
+
+
 # ── test class ────────────────────────────────────────────────────────────
 
 class TestNafcArtifactRemovalParser(unittest.TestCase):
@@ -540,6 +615,8 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
 
         _plot_per_spec_windows(results_by_spec, CHANNEL_NAME,
                                N_WINDOWS_PER_SPEC, WINDOW_HALFWIDTH_MS)
+        _plot_spike_waveforms(results_by_spec, CHANNEL_NAME,
+                              SPIKE_WAVEFORM_HALFWIDTH_MS)
         _plot_spike_near_artifact_diagnostic(all_results, CHANNEL_NAME)
         _plot_pooled_stats(all_results, CHANNEL_NAME)
         plt.show()
