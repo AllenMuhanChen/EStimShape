@@ -142,62 +142,82 @@ def _build_matrices(
     rates_by_id: Dict[str, Dict[str, float]],
     channels: List[str],
     estim_ids: List[str],
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Returns (rate_mat, zscore_baseline_mat, zscore_across_eids_mat)."""
     n_ch, n_ids = len(channels), len(estim_ids)
-    rate_mat   = np.full((n_ch, n_ids), np.nan)
-    zscore_mat = np.full((n_ch, n_ids), np.nan)
+    rate_mat        = np.full((n_ch, n_ids), np.nan)
+    zscore_baseline = np.full((n_ch, n_ids), np.nan)
+    zscore_eids     = np.full((n_ch, n_ids), np.nan)
+
     for c_idx, ch in enumerate(channels):
         b_mean, b_std = baseline.get(ch, (0.0, 0.0))
         b_std_safe = max(b_std, 1e-9)
         for e_idx, eid in enumerate(estim_ids):
             rate = rates_by_id.get(eid, {}).get(ch)
             if rate is not None:
-                rate_mat[c_idx, e_idx]   = rate
-                zscore_mat[c_idx, e_idx] = (rate - b_mean) / b_std_safe
-    return rate_mat, zscore_mat
+                rate_mat[c_idx, e_idx]        = rate
+                zscore_baseline[c_idx, e_idx] = (rate - b_mean) / b_std_safe
+
+    # z-score each channel's rates across the estim-spec distribution
+    for c_idx in range(n_ch):
+        row = rate_mat[c_idx]
+        valid = row[np.isfinite(row)]
+        if len(valid) < 2:
+            continue
+        row_mean = valid.mean()
+        row_std  = max(valid.std(), 1e-9)
+        for e_idx in range(n_ids):
+            if np.isfinite(rate_mat[c_idx, e_idx]):
+                zscore_eids[c_idx, e_idx] = (rate_mat[c_idx, e_idx] - row_mean) / row_std
+
+    return rate_mat, zscore_baseline, zscore_eids
+
+
+def _heatmap_panel(ax, mat, ch_labels, estim_ids, title, cbar_label, cmap, vmin=None, vmax=None):
+    im = ax.imshow(mat, aspect="auto", cmap=cmap, origin="upper", vmin=vmin, vmax=vmax)
+    plt.colorbar(im, ax=ax, label=cbar_label)
+    ax.set_title(title, fontsize=10, fontweight="bold")
+    ax.set_xticks(range(len(estim_ids)))
+    ax.set_xticklabels(estim_ids, rotation=45, ha="right", fontsize=7)
+    ax.set_yticks(range(len(ch_labels)))
+    ax.set_yticklabels(ch_labels, fontsize=7)
+    ax.set_xlabel("EStimSpecId")
+    ax.set_ylabel("Channel (probe order)")
 
 
 def _plot_heatmaps(
-    rate_mat: np.ndarray, zscore_mat: np.ndarray,
+    rate_mat: np.ndarray, zscore_baseline: np.ndarray, zscore_eids: np.ndarray,
     channel_order: List[int], estim_ids: List[str],
     window_start_s: float, window_end_s: float,
 ) -> None:
-    n_ch, n_ids = rate_mat.shape
-    ch_labels   = [f"ch{idx}" for idx in channel_order]
+    ch_labels = [f"ch{idx}" for idx in channel_order]
+    n_ids = len(estim_ids)
 
-    fig_w = max(n_ids * 0.9 + 5, 12)
-    fig_h = max(n_ch * 0.38 + 3, 10)
-    fig, axes = plt.subplots(1, 2, figsize=(fig_w, fig_h))
+    fig_w = max(n_ids * 0.9 + 8, 16)
+    fig_h = max(len(ch_labels) * 0.38 + 3, 10)
+    fig, axes = plt.subplots(1, 3, figsize=(fig_w, fig_h))
 
     # ── raw rates ────────────────────────────────────────────────────────────
-    im0 = axes[0].imshow(rate_mat, aspect="auto", cmap="hot", origin="upper")
-    plt.colorbar(im0, ax=axes[0], label="spikes / s")
-    axes[0].set_title("Mean firing rate (estim on)", fontsize=10, fontweight="bold")
-    axes[0].set_xticks(range(n_ids))
-    axes[0].set_xticklabels(estim_ids, rotation=45, ha="right", fontsize=7)
-    axes[0].set_yticks(range(n_ch))
-    axes[0].set_yticklabels(ch_labels, fontsize=7)
-    axes[0].set_xlabel("EStimSpecId")
-    axes[0].set_ylabel("Channel (probe order)")
+    _heatmap_panel(axes[0], rate_mat, ch_labels, estim_ids,
+                   "Mean firing rate (estim on)", "spikes / s", "hot")
 
-    # ── z-scores ─────────────────────────────────────────────────────────────
-    finite = zscore_mat[np.isfinite(zscore_mat)]
-    vmax = float(np.percentile(np.abs(finite), 99)) if len(finite) else 1.0
-    vmax = max(vmax, 1.0)
-    im1 = axes[1].imshow(zscore_mat, aspect="auto", cmap="RdBu_r",
-                         vmin=-vmax, vmax=vmax, origin="upper")
-    plt.colorbar(im1, ax=axes[1], label="z-score")
-    axes[1].set_title("Z-score vs no-estim baseline (per channel)", fontsize=10, fontweight="bold")
-    axes[1].set_xticks(range(n_ids))
-    axes[1].set_xticklabels(estim_ids, rotation=45, ha="right", fontsize=7)
-    axes[1].set_yticks(range(n_ch))
-    axes[1].set_yticklabels(ch_labels, fontsize=7)
-    axes[1].set_xlabel("EStimSpecId")
-    axes[1].set_ylabel("Channel (probe order)")
+    # ── z-score vs no-estim baseline ─────────────────────────────────────────
+    finite = zscore_baseline[np.isfinite(zscore_baseline)]
+    vmax1 = max(float(np.percentile(np.abs(finite), 99)) if len(finite) else 1.0, 1.0)
+    _heatmap_panel(axes[1], zscore_baseline, ch_labels, estim_ids,
+                   "Z-score vs no-estim baseline", "z-score", "RdBu_r",
+                   vmin=-vmax1, vmax=vmax1)
+
+    # ── z-score across estim specs per channel ────────────────────────────────
+    finite2 = zscore_eids[np.isfinite(zscore_eids)]
+    vmax2 = max(float(np.percentile(np.abs(finite2), 99)) if len(finite2) else 1.0, 1.0)
+    _heatmap_panel(axes[2], zscore_eids, ch_labels, estim_ids,
+                   "Z-score across estim specs (per channel)", "z-score", "RdBu_r",
+                   vmin=-vmax2, vmax=vmax2)
 
     fig.suptitle(
         f"Spatial activation map  ·  window [{window_start_s:.2f}, {window_end_s:.2f}] s after sample_on\n"
-        f"Channels ordered by probe position  ·  z-score baseline = no-estim per channel",
+        f"Left: raw rates  ·  Centre: z vs no-estim baseline  ·  Right: z across estim specs per channel",
         fontsize=10,
     )
     plt.tight_layout()
@@ -226,8 +246,8 @@ def run_spatial(
         print("No estim trials found — check EStimEnabled column.")
         return
 
-    rate_mat, zscore_mat = _build_matrices(baseline, rates_by_id, channels, estim_ids)
-    _plot_heatmaps(rate_mat, zscore_mat, channel_order, estim_ids, window_start_s, window_end_s)
+    rate_mat, zscore_baseline, zscore_eids = _build_matrices(baseline, rates_by_id, channels, estim_ids)
+    _plot_heatmaps(rate_mat, zscore_baseline, zscore_eids, channel_order, estim_ids, window_start_s, window_end_s)
 
 
 # ── parser helpers (identical to analyze_nafc_neural.py) ─────────────────────
