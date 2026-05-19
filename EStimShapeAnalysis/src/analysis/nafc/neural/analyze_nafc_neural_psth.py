@@ -224,64 +224,12 @@ def plot_psth_panel_by_estim_id(ax, group_df, channel_name: str,
     ax.grid(True, linestyle="--", alpha=0.4)
 
 
-_ESTIM_ID_LINESTYLES = ["-", "--", "-.", ":"]
-
-
-def _linestyle_map(estim_ids: list) -> dict:
-    """Assign a linestyle to each unique EStimSpecId (cycles if > 4)."""
-    return {eid: _ESTIM_ID_LINESTYLES[i % len(_ESTIM_ID_LINESTYLES)]
-            for i, eid in enumerate(sorted(estim_ids))}
-
-
-def plot_psth_panel_by_choice_and_estim_id(ax, group_df, channel_name: str,
-                                            time_before: float, time_after: float,
-                                            bin_size: float, show_std: bool, title: str) -> None:
-    bins        = np.arange(-time_before, time_after + bin_size, bin_size)
-    bin_centers = bins[:-1] + bin_size / 2
-
-    spikes_by_key: dict[tuple, list] = {}
-    for _, trial in group_df.iterrows():
-        neural = trial.get("NeuralData")
-        if not isinstance(neural, dict) or neural.get("sample_off") is None:
-            continue
-        sem_choice = trial.get("SemanticChoice", "Rand")
-        estim_id   = trial.get("EStimSpecId", None)
-        key = (sem_choice, str(estim_id) if estim_id is not None else "None")
-        spikes = _aligned_spikes(neural, channel_name, time_before, time_after)
-        spikes_by_key.setdefault(key, []).append(spikes)
-
-    all_estim_ids = sorted({eid for _, eid in spikes_by_key.keys()})
-    linestyles = _linestyle_map(all_estim_ids)
-
-    for (sem_choice, estim_id), spike_lists in sorted(spikes_by_key.items()):
-        color = SEMANTIC_CHOICE_COLORS.get(sem_choice, "tab:purple")
-        ls    = linestyles.get(estim_id, "-")
-        mean, sem = _compute_psth(spike_lists, bins, bin_size)
-        n = len(spike_lists)
-        ax.plot(bin_centers, mean, color=color, linewidth=1.8, linestyle=ls,
-                label=f"{sem_choice} · {estim_id} (n={n})")
-        if show_std and n > 1:
-            ax.fill_between(bin_centers, mean - sem, mean + sem,
-                            color=color, alpha=0.15, linewidth=0)
-
-    for key, color, linestyle, _ in _PANEL_EVENT_DEFS:
-        t_rel = _median_event_rel(group_df, key)
-        if t_rel is not None and -time_before <= t_rel <= time_after:
-            ax.axvline(t_rel, color=color, linestyle=linestyle,
-                       linewidth=1.5, alpha=0.8)
-
-    ax.axvline(0, color="black", linewidth=1.2, linestyle="-", alpha=0.6)
-    ax.set_title(title, fontsize=9, fontweight="bold")
-    ax.set_xlim(-time_before, time_after)
-    ax.set_xlabel("Time from sample_off (s)", fontsize=8)
-    ax.set_ylabel("Firing rate (spikes/s)", fontsize=8)
-    ax.tick_params(labelsize=7)
-    ax.legend(fontsize=6, loc="upper right",
-              title="choice · EStimSpecId", title_fontsize=7)
-    ax.grid(True, linestyle="--", alpha=0.4)
-
-
 # ── figure builder (choice × EStimSpecId) ────────────────────────────────────
+# Layout: rows = trial type, cols = semantic choice, lines = EStimSpecId.
+# Each panel has a single semantic dimension, so color can be fully dedicated
+# to EStimSpecId without needing linestyle tricks.
+# To add this as a column to run() instead, pass each pre-filtered group
+# to plot_psth_panel_by_estim_id for column 3.
 
 def run_by_choice_and_estim_id(data, channel_name: str, time_before: float,
                                 time_after: float, bin_size: float,
@@ -291,32 +239,30 @@ def run_by_choice_and_estim_id(data, channel_name: str, time_before: float,
 
     not_removed = data["IsRemovedTrial"] == False
     is_removed  = data["IsRemovedTrial"] == True
+    estim_on    = data["EStimEnabled"] == True
 
-    groups = {
-        ("variant", False): ("Variant · EStim Off", data[not_removed & (data["IsDelta"] == False) & (data["EStimEnabled"] == False)]),
-        ("variant", True):  ("Variant · EStim On",  data[not_removed & (data["IsDelta"] == False) & (data["EStimEnabled"] == True)]),
-        ("delta",   False): ("Delta · EStim Off",   data[not_removed & (data["IsDelta"] == True)  & (data["EStimEnabled"] == False)]),
-        ("delta",   True):  ("Delta · EStim On",    data[not_removed & (data["IsDelta"] == True)  & (data["EStimEnabled"] == True)]),
-        ("removed", False): ("Removed · EStim Off", data[is_removed  & (data["EStimEnabled"] == False)]),
-        ("removed", True):  ("Removed · EStim On",  data[is_removed  & (data["EStimEnabled"] == True)]),
-    }
-
-    fig = plt.figure(figsize=(14, 12))
-    gs  = GridSpec(3, 2, figure=fig, hspace=0.5, wspace=0.35)
-
-    col_labels = ["EStim Off", "EStim On"]
-    row_keys   = ["variant", "delta", "removed"]
+    row_keys   = ["variant",               "delta",                           "removed"]
     row_labels = ["Variant\n(IsDelta=False)", "Delta\n(IsDelta=True)", "Removed\n(IsRemovedTrial=True)"]
+    row_masks  = [
+        not_removed & (data["IsDelta"] == False) & estim_on,
+        not_removed & (data["IsDelta"] == True)  & estim_on,
+        is_removed  & estim_on,
+    ]
+
+    sem_choices = list(SEMANTIC_CHOICE_COLORS.keys())  # Hypothesized, Delta, Removed, Rand
+
+    fig = plt.figure(figsize=(22, 10))
+    gs  = GridSpec(3, 4, figure=fig, hspace=0.5, wspace=0.35)
 
     all_axes = []
-    for r, (row_key, row_label) in enumerate(zip(row_keys, row_labels)):
-        for c, estim_on in enumerate([False, True]):
+    for r, (row_label, row_mask) in enumerate(zip(row_labels, row_masks)):
+        row_data = data[row_mask]
+        for c, sem_choice in enumerate(sem_choices):
             ax = fig.add_subplot(gs[r, c])
-            label, grp = groups[(row_key, estim_on)]
-            full_title = f"{col_labels[c]}\n{label}" if r == 0 else label
-            plot_psth_panel_by_choice_and_estim_id(
-                ax, grp, channel_name,
-                time_before, time_after, bin_size, show_std, full_title)
+            grp = row_data[row_data["SemanticChoice"] == sem_choice]
+            title = sem_choice if r == 0 else ""
+            plot_psth_panel_by_estim_id(ax, grp, channel_name,
+                                        time_before, time_after, bin_size, show_std, title)
             if c == 0:
                 ax.set_ylabel(f"{row_label}\n\nFiring rate (spikes/s)", fontsize=8)
             all_axes.append(ax)
@@ -326,9 +272,8 @@ def run_by_choice_and_estim_id(data, channel_name: str, time_before: float,
         ax.set_ylim(bottom=0, top=global_ymax)
 
     fig.suptitle(
-        f"NAFC Neural PSTH — channel: {channel_name}\n"
-        f"Aligned to sample_off  ·  Lines: semantic choice × EStimSpecId"
-        f"  (color=choice, linestyle=EStimSpecId)",
+        f"NAFC Neural PSTH — channel: {channel_name}  ·  EStim On only\n"
+        f"Rows: trial type  ·  Cols: semantic choice  ·  Lines: EStimSpecId",
         fontsize=11,
     )
     plt.tight_layout()
