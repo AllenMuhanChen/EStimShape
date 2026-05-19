@@ -2,15 +2,11 @@
 Spatial activation analysis: firing rate and z-score across probe channels × EStimSpecId.
 
 For each (channel, estim spec id) pair, computes mean firing rate during the
-stimulus window.  Each channel is z-scored against its own no-estim baseline
-(mean ± std of per-trial firing rates on no-estim trials), so the map shows
-where—along the probe—each estim spec drives activity above spontaneous level.
+stimulus window.  Two panels are shown:
+  - Raw mean firing rate during estim
+  - Per-channel z-score across estim specs (z=0 = average spec for that channel)
 
 Analysis window is relative to sample_on (start of stimulus presentation).
-ESTIM_BLANK_DURATION_S approximates the total blanked time per estim trial
-due to artifact removal, so the effective recording time is
-  (WINDOW_END_S - WINDOW_START_S) - ESTIM_BLANK_DURATION_S
-Leaving it at 0.0 gives a conservative (slightly underestimated) estim rate.
 """
 
 import sys
@@ -96,26 +92,6 @@ def _trial_rate(neural: dict, channel: str, window_start_s: float, window_end_s:
     return n / effective_duration
 
 
-def _baseline_stats(
-    no_estim_data, channels: List[str], window_start_s: float, window_end_s: float
-) -> Dict[str, Tuple[float, float]]:
-    """Per-channel (mean, std) firing rate from no-estim trials."""
-    duration = window_end_s - window_start_s
-    stats: Dict[str, Tuple[float, float]] = {}
-    for ch in channels:
-        rates = []
-        for _, trial in no_estim_data.iterrows():
-            r = _trial_rate(trial.get("NeuralData"), ch, window_start_s, window_end_s, duration)
-            if r is not None:
-                rates.append(r)
-        if rates:
-            arr = np.array(rates)
-            stats[ch] = (float(arr.mean()), float(arr.std()))
-        else:
-            stats[ch] = (0.0, 0.0)
-    return stats
-
-
 def _estim_mean_rates(
     estim_data, channels: List[str], window_start_s: float, window_end_s: float,
     estim_blank_s: float,
@@ -138,29 +114,23 @@ def _estim_mean_rates(
 
 
 def _build_matrices(
-    baseline: Dict[str, Tuple[float, float]],
     rates_by_id: Dict[str, Dict[str, float]],
     channels: List[str],
     estim_ids: List[str],
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Returns (rate_mat, zscore_baseline_mat, zscore_across_eids_mat)."""
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Returns (rate_mat, zscore_across_eids_mat)."""
     n_ch, n_ids = len(channels), len(estim_ids)
-    rate_mat        = np.full((n_ch, n_ids), np.nan)
-    zscore_baseline = np.full((n_ch, n_ids), np.nan)
-    zscore_eids     = np.full((n_ch, n_ids), np.nan)
+    rate_mat    = np.full((n_ch, n_ids), np.nan)
+    zscore_eids = np.full((n_ch, n_ids), np.nan)
 
     for c_idx, ch in enumerate(channels):
-        b_mean, b_std = baseline.get(ch, (0.0, 0.0))
-        b_std_safe = max(b_std, 1e-9)
         for e_idx, eid in enumerate(estim_ids):
             rate = rates_by_id.get(eid, {}).get(ch)
             if rate is not None:
-                rate_mat[c_idx, e_idx]        = rate
-                zscore_baseline[c_idx, e_idx] = (rate - b_mean) / b_std_safe
+                rate_mat[c_idx, e_idx] = rate
 
-    # z-score each channel's rates across the estim-spec distribution
     for c_idx in range(n_ch):
-        row = rate_mat[c_idx]
+        row   = rate_mat[c_idx]
         valid = row[np.isfinite(row)]
         if len(valid) < 2:
             continue
@@ -170,7 +140,7 @@ def _build_matrices(
             if np.isfinite(rate_mat[c_idx, e_idx]):
                 zscore_eids[c_idx, e_idx] = (rate_mat[c_idx, e_idx] - row_mean) / row_std
 
-    return rate_mat, zscore_baseline, zscore_eids
+    return rate_mat, zscore_eids
 
 
 def _heatmap_panel(ax, mat, ch_labels, estim_ids, title, cbar_label, cmap, vmin=None, vmax=None):
@@ -186,38 +156,31 @@ def _heatmap_panel(ax, mat, ch_labels, estim_ids, title, cbar_label, cmap, vmin=
 
 
 def _plot_heatmaps(
-    rate_mat: np.ndarray, zscore_baseline: np.ndarray, zscore_eids: np.ndarray,
+    rate_mat: np.ndarray, zscore_eids: np.ndarray,
     channel_order: List[int], estim_ids: List[str],
     window_start_s: float, window_end_s: float,
 ) -> None:
     ch_labels = [f"ch{idx}" for idx in channel_order]
     n_ids = len(estim_ids)
 
-    fig_w = max(n_ids * 0.9 + 8, 16)
+    fig_w = max(n_ids * 0.9 + 6, 12)
     fig_h = max(len(ch_labels) * 0.38 + 3, 10)
-    fig, axes = plt.subplots(1, 3, figsize=(fig_w, fig_h))
+    fig, axes = plt.subplots(1, 2, figsize=(fig_w, fig_h))
 
     # ── raw rates ────────────────────────────────────────────────────────────
     _heatmap_panel(axes[0], rate_mat, ch_labels, estim_ids,
                    "Mean firing rate (estim on)", "spikes / s", "hot")
 
-    # ── z-score vs no-estim baseline ─────────────────────────────────────────
-    finite = zscore_baseline[np.isfinite(zscore_baseline)]
-    vmax1 = max(float(np.percentile(np.abs(finite), 99)) if len(finite) else 1.0, 1.0)
-    _heatmap_panel(axes[1], zscore_baseline, ch_labels, estim_ids,
-                   "Z-score vs no-estim baseline", "z-score", "RdBu_r",
-                   vmin=-vmax1, vmax=vmax1)
-
     # ── z-score across estim specs per channel ────────────────────────────────
-    finite2 = zscore_eids[np.isfinite(zscore_eids)]
-    vmax2 = max(float(np.percentile(np.abs(finite2), 99)) if len(finite2) else 1.0, 1.0)
-    _heatmap_panel(axes[2], zscore_eids, ch_labels, estim_ids,
+    finite = zscore_eids[np.isfinite(zscore_eids)]
+    vmax = max(float(np.percentile(np.abs(finite), 99)) if len(finite) else 1.0, 1.0)
+    _heatmap_panel(axes[1], zscore_eids, ch_labels, estim_ids,
                    "Z-score across estim specs (per channel)", "z-score", "RdBu_r",
-                   vmin=-vmax2, vmax=vmax2)
+                   vmin=-vmax, vmax=vmax)
 
     fig.suptitle(
         f"Spatial activation map  ·  window [{window_start_s:.2f}, {window_end_s:.2f}] s after sample_on\n"
-        f"Left: raw rates  ·  Centre: z vs no-estim baseline  ·  Right: z across estim specs per channel",
+        f"Left: raw rates  ·  Right: z across estim specs per channel",
         fontsize=10,
     )
     plt.tight_layout()
@@ -232,13 +195,10 @@ def run_spatial(
     estim_blank_s: float = 0.0,
 ) -> None:
     channels = [_channel_name(idx) for idx in channel_order]
-
-    no_estim = data[data["EStimEnabled"] == False]
     estim    = data[data["EStimEnabled"] == True]
 
-    print(f"Baseline: {len(no_estim)} no-estim trials  |  Estim: {len(estim)} estim trials")
+    print(f"Estim: {len(estim)} trials")
 
-    baseline    = _baseline_stats(no_estim, channels, window_start_s, window_end_s)
     rates_by_id = _estim_mean_rates(estim, channels, window_start_s, window_end_s, estim_blank_s)
     estim_ids   = sorted(rates_by_id.keys())
 
@@ -246,8 +206,8 @@ def run_spatial(
         print("No estim trials found — check EStimEnabled column.")
         return
 
-    rate_mat, zscore_baseline, zscore_eids = _build_matrices(baseline, rates_by_id, channels, estim_ids)
-    _plot_heatmaps(rate_mat, zscore_baseline, zscore_eids, channel_order, estim_ids, window_start_s, window_end_s)
+    rate_mat, zscore_eids = _build_matrices(rates_by_id, channels, estim_ids)
+    _plot_heatmaps(rate_mat, zscore_eids, channel_order, estim_ids, window_start_s, window_end_s)
 
 
 # ── parser helpers (identical to analyze_nafc_neural.py) ─────────────────────
