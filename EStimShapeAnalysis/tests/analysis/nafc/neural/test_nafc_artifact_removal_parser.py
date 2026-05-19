@@ -46,8 +46,8 @@ from src.analysis.nafc.nafc_database_fields import (
 )
 from src.analysis.nafc.psychometric_curves import collect_choice_trials
 from src.analysis.nafc.neural.artifact_removal import (
-    ArtifactEvent, BaselineDriftPreprocessor, RmsThresholdSpikeDetector,
-    SampleInterpolateRemover, ThresholdArtifactDetector,
+    ArtifactEvent, BaselineDriftPreprocessor, FlatBaselineRemover,
+    RmsThresholdSpikeDetector, ThresholdArtifactDetector,
 )
 from src.analysis.nafc.neural.nafc_artifact_removal_parser import (
     NafcArtifactRemovalParser,
@@ -75,8 +75,15 @@ N_OVERVIEW_PLOTS = 3
 
 # Artifact-detector tuning.
 ARTIFACT_THRESHOLD_FACTOR = 8.0   # x MAD
-ARTIFACT_DURATION_S = 170e-6      # paper's a-priori value
 SPIKE_THRESHOLD_FACTOR = 4.0      # -N x RMS on the cleaned MUA band
+
+# Flat-baseline remover tuning. Window = [start - PRE_PAD, end + POST_PAD],
+# extended to at least MIN_DURATION after start. Small pads catch the
+# threshold-crossing onset lag and any ringing tail.
+REMOVER_PRE_PAD_S = 0.0002        # 200 us
+REMOVER_POST_PAD_S = 0.0005       # 500 us
+REMOVER_MIN_DURATION_S = 0.0      # rely on detected event width
+REMOVER_BASELINE = "zero"          # or "pre_median"
 
 MAX_SECONDS_TO_LOAD: Optional[float] = None
 # ───────────────────────────────────────────────────────────────────────────
@@ -361,8 +368,11 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
                 threshold_factor=ARTIFACT_THRESHOLD_FACTOR,
                 noise_scale="mad",
             ),
-            artifact_remover=SampleInterpolateRemover(
-                artifact_duration_s=ARTIFACT_DURATION_S,
+            artifact_remover=FlatBaselineRemover(
+                pre_pad_s=REMOVER_PRE_PAD_S,
+                post_pad_s=REMOVER_POST_PAD_S,
+                min_duration_s=REMOVER_MIN_DURATION_S,
+                baseline=REMOVER_BASELINE,
             ),
             spike_detector=RmsThresholdSpikeDetector(
                 threshold_factor=SPIKE_THRESHOLD_FACTOR,

@@ -1,10 +1,14 @@
 """
 Stimulus-artifact removal strategies.
 
-Heffer & Fallon (2008) "sample-and-interpolate": for each artifact event,
-replace the contaminated samples with values drawn from a straight line
-between the sample just before artifact onset and the sample at the end
-of the artifact (a fixed duration after onset, e.g. 170 us).
+Two interchangeable implementations:
+
+  - SampleInterpolateRemover : Heffer & Fallon (2008) sample-and-interpolate.
+        Linear interpolation across a fixed-duration window.
+  - FlatBaselineRemover      : replace contaminated samples with a flat baseline
+        (either zero or the median of a pre-artifact reference window).
+        Useful when artifacts are wide enough that linear interpolation
+        introduces obvious ramps.
 """
 
 from abc import ABC, abstractmethod
@@ -87,5 +91,78 @@ class SampleInterpolateRemover(ArtifactRemover):
             # endpoint=False so the linspace does not overwrite the right anchor.
             ramp = np.linspace(y_left, y_right, fill_len + 1, endpoint=False)[1:]
             cleaned[window_start:anchor_right_idx] = ramp
+
+        return cleaned
+
+
+class FlatBaselineRemover(ArtifactRemover):
+    """
+    Replace artifact-contaminated samples with a flat constant baseline.
+
+    For each detected event the removal window is
+
+        [event.start_sample - pre_pad,  event.end_sample + post_pad]
+
+    where ``event.end_sample`` is the detector's measured end-of-event.
+    If ``min_duration_s`` is set, the window is extended to at least that
+    duration after ``event.start_sample`` (useful when the threshold
+    crossing returns before the artifact has actually died down).
+
+    The fill value is determined by ``baseline``:
+        "zero"       : replace with 0.0.
+        "pre_median" : median of ``reference_window_s`` worth of samples
+                       immediately before the (padded) window. Falls back
+                       to 0.0 if the reference window is empty.
+    """
+
+    def __init__(
+        self,
+        pre_pad_s: float = 0.0,
+        post_pad_s: float = 0.0,
+        min_duration_s: float = 0.0,
+        baseline: str = "zero",
+        reference_window_s: float = 1e-3,
+    ):
+        if baseline not in {"zero", "pre_median"}:
+            raise ValueError(f"unknown baseline: {baseline!r}")
+        self.pre_pad_s = pre_pad_s
+        self.post_pad_s = post_pad_s
+        self.min_duration_s = min_duration_s
+        self.baseline = baseline
+        self.reference_window_s = reference_window_s
+
+    def remove(
+        self,
+        signal: np.ndarray,
+        events: Iterable[ArtifactEvent],
+        sample_rate: float,
+    ) -> np.ndarray:
+        cleaned = np.array(signal, dtype=np.float64, copy=True)
+        n = len(cleaned)
+        if n == 0:
+            return cleaned
+
+        pre_pad = max(int(round(self.pre_pad_s * sample_rate)), 0)
+        post_pad = max(int(round(self.post_pad_s * sample_rate)), 0)
+        min_duration = max(int(round(self.min_duration_s * sample_rate)), 0)
+        ref_len = max(int(round(self.reference_window_s * sample_rate)), 1)
+
+        for ev in events:
+            window_start = max(ev.start_sample - pre_pad, 0)
+            event_end = max(ev.end_sample, ev.start_sample + min_duration)
+            window_end = min(event_end + post_pad, n)
+            if window_end <= window_start:
+                continue
+
+            if self.baseline == "zero":
+                fill = 0.0
+            else:  # "pre_median"
+                ref_lo = max(window_start - ref_len, 0)
+                if ref_lo < window_start:
+                    fill = float(np.median(cleaned[ref_lo:window_start]))
+                else:
+                    fill = 0.0
+
+            cleaned[window_start:window_end] = fill
 
         return cleaned
