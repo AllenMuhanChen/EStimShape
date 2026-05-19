@@ -55,13 +55,13 @@ from src.analysis.nafc.neural.nafc_trial_events import NafcTrialEvents
 
 
 # ───────────────────────── CONFIG ──────────────────────────────────────────
-EXP_DB_NAME = "allen_estimshape_exp_260518_0"
+EXP_DB_NAME = "allen_estimshape_exp_260514_0"
 INTAN_BASE_PATH = (
     "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/"
-    "allen_estimshape_exp_260518_0/2026-05-18/"
+    "allen_estimshape_exp_260514_0/2026-05-14/"
 )
-SINCE_DATE = time_util.from_date_to_now(2026, 5, 18)
-CHANNEL_NAME = "A-006"
+SINCE_DATE = time_util.from_date_to_now(2024, 5, 18)
+CHANNEL_NAME = "A-027"
 
 # Recordings per EStimSpecId to process.
 N_PER_ESTIM_SPEC = 3
@@ -87,11 +87,11 @@ NEO_SMOOTHING_S        = 0.001
 REMOVER_PRE_PAD_S      = 0.0002   # 200 us
 REMOVER_POST_PAD_S     = 0.0002   # 200 us
 REMOVER_MIN_DURATION_S = 0.0
-REMOVER_BASELINE       = "pre_median"
+REMOVER_BASELINE       = "zero"
 
 # Post-artifact blank: spikes inside this zone are suppressed AND the zone
 # is excluded from the noise/threshold estimate.
-POST_ARTIFACT_BLANK_S = 0.002     # 2 ms
+POST_ARTIFACT_BLANK_S = 0.001     # 2 ms
 
 MAX_SECONDS_TO_LOAD: Optional[float] = None
 # ───────────────────────────────────────────────────────────────────────────

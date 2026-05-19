@@ -34,9 +34,9 @@ from src.analysis.nafc.neural.artifact_removal import (
 
 # ═══════════════════════════ CONFIG ═════════════════════════════════════════
 # ── shared ──────────────────────────────────────────────────────────────────
-EXP_DB_NAME     = "allen_estimshape_exp_260518_0"
-INTAN_BASE_PATH = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_estimshape_exp_260518_0/2026-05-18/"
-CHANNEL_NAME    = "A-026"
+EXP_DB_NAME     = "allen_estimshape_exp_260514_0"
+INTAN_BASE_PATH = f"/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/{EXP_DB_NAME}/2026-05-14/"
+CHANNEL_NAME    = "A-027"
 SINCE_DATE      = time_util.from_date_to_now(2026, 4, 26)
 
 # ── parser selection ────────────────────────────────────────────────────────
@@ -64,11 +64,11 @@ NEO_SMOOTHING_S           = 0.001      # 1 ms Bartlett window
 REMOVER_PRE_PAD_S         = 0.0002     # 200 us
 REMOVER_POST_PAD_S        = 0.0002     # 200 us
 REMOVER_MIN_DURATION_S    = 0.0        # rely on detected event width
-REMOVER_BASELINE          = "pre_median"  # or "zero"
-PREPROCESSOR_HIGHPASS_HZ  = 5.0
+REMOVER_BASELINE          = "zero"  # or "zero"
+PREPROCESSOR_HIGHPASS_HZ  = 5
 # Samples within this many seconds of any artifact window are excluded from
 # both the noise-threshold estimate and post-filter-ringing detection.
-POST_ARTIFACT_BLANK_S     = 0.002        # 2 ms
+POST_ARTIFACT_BLANK_S     = 0.001        # 2 ms
 
 # ── raster ──────────────────────────────────────────────────────────────────
 RASTER_TIME_BEFORE_S = 0.2   # seconds before sample_on
