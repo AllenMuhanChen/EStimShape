@@ -89,6 +89,11 @@ ARTIFACT_BLANK_HALF_WIDTH_S = 0.0015   # 1.5 ms each side of every pulse
 # onset, the actual artifact, and the blank zone all in one view.
 TRIGGER_CONTEXT_HALFWIDTH_MS = 20.0
 
+# Half-width of the zoomed-in TTL inset on the trigger-context plot.
+# Narrow window centered on the rising edge so the edge and the stim
+# onset (rising + delay) are clearly distinguishable.
+TTL_ZOOM_HALFWIDTH_MS = 1.0
+
 # Spike-detection backend: "neo" or "rms".
 #   "neo" — Nonlinear Energy Operator. Robust to slow baseline shifts
 #           (e.g. post-estim drift) that bias RMS thresholding.
@@ -638,7 +643,7 @@ def _plot_trigger_context(
             gridspec_kw={'height_ratios': [1, 3]},
         )
 
-        # Top: digital trigger TTL.
+        # Top: digital trigger TTL (full window).
         axes[0].plot(t_ms, trig_ch[lo:hi], color='tab:blue', lw=0.9,
                      drawstyle='steps-post')
         axes[0].axvline(0, color='tab:red', lw=0.8,
@@ -650,7 +655,23 @@ def _plot_trigger_context(
                         label=f'expected stim onset (+{delay_s*1e3:.2f} ms)')
         axes[0].set_ylabel('digital-in-01')
         axes[0].set_ylim(-0.1, 1.2)
-        axes[0].legend(loc='upper right', fontsize=8)
+        axes[0].legend(loc='lower right', fontsize=8)
+
+        # Zoomed inset on the rising edge.
+        zhw_samp = int(TTL_ZOOM_HALFWIDTH_MS * 1e-3 * fs)
+        zlo = max(t0 - zhw_samp, 0)
+        zhi = min(t0 + zhw_samp, len(trig_ch))
+        zt_ms = (np.arange(zlo, zhi) - t0) / fs * 1e3
+        inset = axes[0].inset_axes([0.02, 0.18, 0.32, 0.78])
+        inset.plot(zt_ms, trig_ch[zlo:zhi], color='tab:blue', lw=1.1,
+                   drawstyle='steps-post')
+        inset.axvline(0, color='tab:red', lw=0.8)
+        inset.axvline(delay_s * 1e3, color='tab:purple', lw=0.8, ls='--')
+        inset.set_xlim(-TTL_ZOOM_HALFWIDTH_MS, TTL_ZOOM_HALFWIDTH_MS)
+        inset.set_ylim(-0.1, 1.2)
+        inset.tick_params(labelsize=6)
+        inset.set_title(f'zoom +/-{TTL_ZOOM_HALFWIDTH_MS:g} ms',
+                        fontsize=7)
 
         # Bottom: preprocessed neural with blank-zone shading.
         axes[1].plot(t_ms, pp[lo:hi], color='tab:gray', lw=0.7, alpha=0.9,
