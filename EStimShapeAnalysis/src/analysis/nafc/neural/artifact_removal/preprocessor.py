@@ -10,7 +10,7 @@ was found to cause negligible changes to action-potential waveforms.
 from abc import ABC, abstractmethod
 
 import numpy as np
-from scipy.signal import butter, sosfiltfilt
+from scipy.signal import butter, sosfilt
 
 
 class SignalPreprocessor(ABC):
@@ -39,4 +39,4 @@ class BaselineDriftPreprocessor(SignalPreprocessor):
             self.filter_order, self.highpass_hz,
             btype='high', fs=sample_rate, output='sos',
         )
-        return sosfiltfilt(sos, x)
+        return sosfilt(sos, x)

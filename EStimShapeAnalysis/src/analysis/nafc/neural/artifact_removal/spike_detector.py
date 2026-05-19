@@ -20,7 +20,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 import numpy as np
-from scipy.signal import butter, sosfiltfilt
+from scipy.signal import butter, sosfilt
 
 
 class SpikeDetector(ABC):
@@ -107,7 +107,7 @@ class RmsThresholdSpikeDetector(SpikeDetector):
             [self.bandpass_low_hz, high],
             btype='band', fs=sample_rate, output='sos',
         )
-        return sosfiltfilt(sos, np.asarray(signal, dtype=np.float64))
+        return sosfilt(sos, np.asarray(signal, dtype=np.float64))
 
     def compute_threshold(
         self,
@@ -230,7 +230,7 @@ class NeoSpikeDetector(SpikeDetector):
             [self.bandpass_low_hz, high],
             btype='band', fs=sample_rate, output='sos',
         )
-        return sosfiltfilt(sos, np.asarray(signal, dtype=np.float64))
+        return sosfilt(sos, np.asarray(signal, dtype=np.float64))
 
     @staticmethod
     def neo(filtered: np.ndarray) -> np.ndarray:
