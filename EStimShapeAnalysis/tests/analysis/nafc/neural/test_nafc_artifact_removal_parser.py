@@ -638,18 +638,22 @@ def _plot_trigger_context(
             gridspec_kw={'height_ratios': [1, 3]},
         )
 
+        fall_ms = (fall_sample - t0) / fs * 1e3
+        fall_visible = -halfwidth_ms <= fall_ms <= halfwidth_ms
+
         # Top: digital trigger TTL (full window).
         axes[0].plot(t_ms, trig_ch[lo:hi], color='tab:blue', lw=0.9,
                      drawstyle='steps-post')
         axes[0].axvline(0, color='tab:red', lw=0.8,
                         label='TTL rising edge')
-        axes[0].axvline((fall_sample - t0) / fs * 1e3,
-                        color='tab:red', lw=0.8, ls=':',
-                        label='TTL falling edge')
+        if fall_visible:
+            axes[0].axvline(fall_ms, color='tab:red', lw=0.8, ls=':',
+                            label='TTL falling edge')
         axes[0].axvline(delay_s * 1e3, color='tab:purple', lw=0.8, ls='--',
                         label=f'expected stim onset (+{delay_s*1e3:.2f} ms)')
         axes[0].set_ylabel('digital-in-01')
         axes[0].set_ylim(-0.1, 1.2)
+        axes[0].set_xlim(-halfwidth_ms, halfwidth_ms)
         axes[0].legend(loc='lower right', fontsize=8)
 
         # Bottom: preprocessed neural with blank-zone shading.
@@ -666,8 +670,9 @@ def _plot_trigger_context(
             axes[1].set_ylim(ymin, ymax)
 
         axes[1].axvline(0, color='tab:red', lw=0.6, alpha=0.7)
-        axes[1].axvline((fall_sample - t0) / fs * 1e3,
-                        color='tab:red', lw=0.6, ls=':', alpha=0.7)
+        if fall_visible:
+            axes[1].axvline(fall_ms, color='tab:red', lw=0.6, ls=':',
+                            alpha=0.7)
         axes[1].axvline(delay_s * 1e3, color='tab:purple', lw=0.6,
                         ls='--', alpha=0.7)
 
@@ -684,6 +689,7 @@ def _plot_trigger_context(
 
         axes[1].set_xlabel('Time from TTL rising edge (ms)')
         axes[1].set_ylabel('uV')
+        axes[1].set_xlim(-halfwidth_ms, halfwidth_ms)
         axes[1].legend(loc='upper right', fontsize=8, ncol=2)
 
         fig.suptitle(
