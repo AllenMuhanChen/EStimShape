@@ -53,6 +53,9 @@ REMOVER_POST_PAD_S        = 0.0002     # 200 us
 REMOVER_MIN_DURATION_S    = 0.0        # rely on detected event width
 REMOVER_BASELINE          = "pre_median"  # or "zero"
 PREPROCESSOR_HIGHPASS_HZ  = 5.0
+# Samples within this many seconds of any artifact window are excluded from
+# both the noise-threshold estimate and post-filter-ringing detection.
+POST_ARTIFACT_BLANK_S     = 0.002        # 2 ms
 
 # ── raster ──────────────────────────────────────────────────────────────────
 RASTER_TIME_BEFORE_S = 0.2   # seconds before sample_on
@@ -89,6 +92,7 @@ def build_parser() -> NafcParserBase:
             threshold_factor=SPIKE_THRESHOLD_FACTOR,
             noise_scale="rms",
         ),
+        post_artifact_blank_s=POST_ARTIFACT_BLANK_S,
     )
 
 

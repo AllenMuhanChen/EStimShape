@@ -81,13 +81,32 @@ class NafcArtifactRemovalParser(NafcParserBase):
         artifact_detector: Optional[ArtifactDetector] = None,
         artifact_remover: Optional[ArtifactRemover] = None,
         spike_detector: Optional[SpikeDetector] = None,
+        post_artifact_blank_s: float = 0.002,
         to_cache: bool = False,
         cache_dir: Optional[str] = None,
     ):
+        """
+        Parameters
+        ----------
+        post_artifact_blank_s : float
+            Seconds added on each side of every artifact window before and
+            after spike detection. Serves two purposes:
+
+            1. **Noise-mask** — these samples are excluded from the RMS/MAD
+               noise estimate so zeroed regions don't pull the threshold down.
+            2. **Post-filter blank** — after bandpass-filtering the cleaned
+               signal the same windows are re-zeroed, preventing filter
+               edge-effects (ringing at removal boundaries) from being
+               detected as spikes.
+
+            Default 2 ms is conservative; reduce if you are losing genuine
+            short-latency responses.
+        """
         self.preprocessor = preprocessor or BaselineDriftPreprocessor()
         self.artifact_detector = artifact_detector or ThresholdArtifactDetector()
         self.artifact_remover = artifact_remover or SampleInterpolateRemover()
         self.spike_detector = spike_detector or RmsThresholdSpikeDetector()
+        self.post_artifact_blank_s = post_artifact_blank_s
         self.to_cache = to_cache
         self.cache_dir = cache_dir
 
@@ -134,37 +153,79 @@ class NafcArtifactRemovalParser(NafcParserBase):
         Run the full artifact-removal + spike-detection pipeline on a
         single channel and return all intermediate products.
 
+        Two correctness guarantees are enforced around artifact windows
+        (width = detector event + post_artifact_blank_s on each side):
+
+        * **Noise-mask** — the threshold (RMS/MAD) is computed only from
+          samples *outside* those windows, so zeroed regions don't lower
+          the noise estimate and make the threshold too permissive.
+        * **Post-filter blank** — after bandpass-filtering the cleaned
+          signal the same windows are re-zeroed so filter ringing at the
+          removal boundaries cannot be detected as spikes.
+
         Returns
         -------
-        dict
-            {
-              'preprocessed' : np.ndarray,
-              'artifacts'    : List[ArtifactEvent],
-              'cleaned'      : np.ndarray,
-              'spike_samples': np.ndarray (int),
-              'spike_times'  : np.ndarray (float, seconds),
-              'artifact_threshold' : float,
-            }
+        dict with keys:
+            preprocessed        : np.ndarray
+            artifacts           : List[ArtifactEvent]
+            cleaned             : np.ndarray
+            filtered_for_spikes : np.ndarray  (bandpass-filtered, re-blanked)
+            spike_samples       : np.ndarray (int)
+            spike_times         : np.ndarray (float, seconds)
+            artifact_threshold  : float or None
+            spike_threshold     : float
+            artifact_blank_mask : np.ndarray (bool) — True where spikes CAN occur
         """
         preprocessed = self.preprocessor.preprocess(raw_signal, sample_rate)
         artifacts: List[ArtifactEvent] = self.artifact_detector.detect(
             preprocessed, sample_rate,
         )
         cleaned = self.artifact_remover.remove(preprocessed, artifacts, sample_rate)
-        spike_samples = self.spike_detector.detect(cleaned, sample_rate)
+
+        # Build blank mask: True = sample is in an artifact-exclusion window.
+        blank_samples = max(int(round(self.post_artifact_blank_s * sample_rate)), 0)
+        n = len(cleaned)
+        blank_mask = np.zeros(n, dtype=bool)
+        for ev in artifacts:
+            lo = max(ev.start_sample - blank_samples, 0)
+            hi = min(ev.end_sample + blank_samples, n)
+            blank_mask[lo:hi] = True
+        noise_mask = ~blank_mask  # samples valid for noise estimation
+
+        # Bandpass-filter the cleaned signal, then re-blank artifact windows
+        # to prevent filter ringing at removal boundaries from being detected.
+        filtered = self.spike_detector.bandpass(cleaned, sample_rate)
+        filtered_for_spikes = filtered.copy()
+        filtered_for_spikes[blank_mask] = 0.0
+
+        # Detect spikes with noise threshold estimated from non-artifact samples.
+        if isinstance(self.spike_detector, RmsThresholdSpikeDetector):
+            spike_samples = self.spike_detector.detect_on_filtered(
+                filtered_for_spikes, sample_rate, noise_mask=noise_mask,
+            )
+            spike_threshold = self.spike_detector.compute_threshold(
+                filtered_for_spikes, noise_mask=noise_mask,
+            )
+        else:
+            spike_samples = self.spike_detector.detect(cleaned, sample_rate)
+            spike_threshold = float('nan')
+
         spike_times = spike_samples / sample_rate
 
-        threshold = None
+        artifact_threshold = None
         if isinstance(self.artifact_detector, ThresholdArtifactDetector):
-            threshold = self.artifact_detector.compute_threshold(preprocessed)
+            artifact_threshold = self.artifact_detector.compute_threshold(preprocessed)
 
         return {
             'preprocessed': preprocessed,
             'artifacts': artifacts,
             'cleaned': cleaned,
+            'filtered_for_spikes': filtered_for_spikes,
             'spike_samples': spike_samples,
             'spike_times': spike_times,
-            'artifact_threshold': threshold,
+            'artifact_threshold': artifact_threshold,
+            'spike_threshold': spike_threshold,
+            'artifact_blank_mask': blank_mask,
         }
 
     # -----------------------------------------------------------------------

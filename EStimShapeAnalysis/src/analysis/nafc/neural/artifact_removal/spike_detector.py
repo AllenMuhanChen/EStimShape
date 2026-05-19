@@ -2,13 +2,13 @@
 Spike (MUA) detection strategies, run *after* artifact removal.
 
 The default implementation uses a fixed negative threshold at
-``-N * RMS`` of the MUA-band-filtered trace (Quiroga 2004-style noise
-estimate via MAD is also available). The threshold strategy is
-deliberately separated from the parser so alternative detectors
-(template matching, sliding-SD, etc.) can be swapped in.
+``-N * RMS`` of the MUA-band-filtered trace. The threshold strategy is
+deliberately separated from the parser so alternative detectors can be
+swapped in.
 """
 
 from abc import ABC, abstractmethod
+from typing import Optional
 
 import numpy as np
 from scipy.signal import butter, sosfiltfilt
@@ -21,6 +21,29 @@ class SpikeDetector(ABC):
     def detect(self, signal: np.ndarray, sample_rate: float) -> np.ndarray:
         ...
 
+    def bandpass(self, signal: np.ndarray, sample_rate: float) -> np.ndarray:
+        """Return the bandpass-filtered trace used before thresholding.
+        Default implementation is a pass-through; override in subclasses."""
+        return signal
+
+    def detect_on_filtered(
+        self,
+        filtered: np.ndarray,
+        sample_rate: float,
+        noise_mask: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
+        """
+        Detect spikes on an already-bandpass-filtered trace.
+
+        Parameters
+        ----------
+        noise_mask : np.ndarray of bool, optional
+            Samples to *include* in the noise/threshold estimate.
+            Pass a mask that excludes artifact-removal windows so their
+            zeroed samples don't artificially lower the RMS.
+        """
+        return self.detect(filtered, sample_rate)
+
 
 class RmsThresholdSpikeDetector(SpikeDetector):
     """
@@ -29,12 +52,13 @@ class RmsThresholdSpikeDetector(SpikeDetector):
     Pipeline:
       1. Band-pass filter the signal in the MUA band
          (default 300-6000 Hz, zero-phase Butterworth).
-      2. Compute a noise scale: ``"rms"`` (default) or ``"mad"``
-         (median absolute deviation, scaled to SD; robust to spikes).
-      3. Mark threshold crossings where ``signal < -threshold_factor * scale``.
-         For each crossing, take the local negative peak (argmin) within a
-         short search window as the spike time.
-      4. Enforce a refractory period to avoid double-counting.
+      2. Estimate noise: ``"rms"`` (default) or ``"mad"`` (robust to spikes).
+      3. Mark crossings where ``signal < -threshold_factor * noise``.
+         Take the local negative peak within ``peak_search_s`` as the spike.
+      4. Enforce refractory period.
+
+    ``detect_on_filtered()`` skips step 1 and accepts an optional
+    ``noise_mask`` to exclude artifact windows from the noise estimate (step 2).
     """
 
     def __init__(
@@ -67,24 +91,47 @@ class RmsThresholdSpikeDetector(SpikeDetector):
         )
         return sosfiltfilt(sos, np.asarray(signal, dtype=np.float64))
 
-    def compute_threshold(self, filtered: np.ndarray) -> float:
+    def compute_threshold(
+        self,
+        filtered: np.ndarray,
+        noise_mask: Optional[np.ndarray] = None,
+    ) -> float:
+        """
+        Estimate the noise floor and return the detection threshold.
+
+        Parameters
+        ----------
+        noise_mask : np.ndarray of bool, optional
+            If given, only ``filtered[noise_mask]`` samples contribute.
+            Use this to exclude artifact-blanked regions from the noise
+            estimate so their zeros don't pull down the RMS.
+        """
+        x = filtered if noise_mask is None else filtered[noise_mask]
+        if len(x) == 0:
+            x = filtered
         if self.noise_scale == "mad":
-            scale = 1.4826 * np.median(np.abs(filtered - np.median(filtered)))
+            scale = 1.4826 * np.median(np.abs(x - np.median(x)))
         elif self.noise_scale == "rms":
-            scale = float(np.sqrt(np.mean(filtered * filtered)))
+            scale = float(np.sqrt(np.mean(x * x)))
         else:  # "std"
-            scale = float(np.std(filtered))
+            scale = float(np.std(x))
         return self.threshold_factor * max(scale, 1e-12)
 
     def detect(self, signal: np.ndarray, sample_rate: float) -> np.ndarray:
         filtered = self.bandpass(signal, sample_rate)
-        threshold = self.compute_threshold(filtered)
+        return self.detect_on_filtered(filtered, sample_rate, noise_mask=None)
 
+    def detect_on_filtered(
+        self,
+        filtered: np.ndarray,
+        sample_rate: float,
+        noise_mask: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
+        threshold = self.compute_threshold(filtered, noise_mask=noise_mask)
         below = filtered < -threshold
         if not below.any():
             return np.array([], dtype=int)
 
-        # Rising edges of the boolean (below -> True): start of each crossing.
         edges = np.diff(below.astype(np.int8))
         crossings = np.where(edges == 1)[0] + 1
         if below[0]:
