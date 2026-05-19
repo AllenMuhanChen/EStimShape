@@ -74,7 +74,8 @@ WINDOW_HALFWIDTH_MS = 2.0
 N_OVERVIEW_PLOTS = 3
 
 # Artifact-detector tuning.
-ARTIFACT_THRESHOLD_FACTOR = 8.0   # x MAD
+ARTIFACT_THRESHOLD_FACTOR = 100   # x MAD
+
 SPIKE_THRESHOLD_FACTOR = 4.0      # -N x RMS on the cleaned MUA band
 
 # Flat-baseline remover tuning. Window = [start - PRE_PAD, end + POST_PAD],
@@ -363,7 +364,7 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
 
     def _build_parser(self) -> NafcArtifactRemovalParser:
         return NafcArtifactRemovalParser(
-            preprocessor=BaselineDriftPreprocessor(highpass_hz=5.0),
+            preprocessor=BaselineDriftPreprocessor(highpass_hz=300.0),
             artifact_detector=ThresholdArtifactDetector(
                 threshold_factor=ARTIFACT_THRESHOLD_FACTOR,
                 noise_scale="mad",
