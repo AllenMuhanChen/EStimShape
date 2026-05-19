@@ -1,7 +1,6 @@
 import os
 import pickle
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
@@ -11,21 +10,8 @@ from clat.intan.marker_channels import read_digitalin_file
 from clat.intan.rhs.load_intan_rhs_format import read_data
 from clat.intan.spike_file import fetch_spike_tstamps_from_file
 
-
-@dataclass
-class NafcTrialEvents:
-    """
-    Parsed neural data for a single NAFC recording.
-
-    All timestamps are in seconds from the start of the recording.
-    """
-    task_id: int
-    sample_on: Optional[float]
-    sample_off: Optional[float]
-    choices_on: Optional[float]
-    choices_off: Optional[float]
-    spikes_by_channel: Dict = field(default_factory=dict)
-    sample_rate: float = 30000.0
+from src.analysis.nafc.neural.nafc_parser_base import NafcParserBase
+from src.analysis.nafc.neural.nafc_trial_events import NafcTrialEvents  # re-exported for back-compat
 
 
 def _task_id_from_dir(recording_dir: str) -> int:
@@ -48,7 +34,7 @@ def _first_as_seconds(indices: np.ndarray, sample_rate: float) -> Optional[float
     return float(indices[0]) / sample_rate
 
 
-class NafcNeuralParser:
+class NafcNeuralParser(NafcParserBase):
     """
     Parse a single-trial NAFC Intan recording directory.
 
