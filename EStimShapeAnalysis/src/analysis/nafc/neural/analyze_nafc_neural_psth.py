@@ -3,7 +3,13 @@ NAFC neural PSTH: firing-rate histograms aligned to sample_off.
 
   Rows    : Variant (IsDelta=False) | Delta (IsDelta=True) | Removed (IsRemovedTrial=True)
   Columns : EStim Off | EStim On | EStim On by EStimSpecId
-  Lines   : col 0-1: one per choice  ·  col 2: one per unique EStimSpecId
+  Lines   : col 0-1: one per semantic choice (Hypothesized/Delta/Removed/Rand)
+            col 2  : one per unique EStimSpecId
+
+Semantic choice mapping (mirrors IsHypothesizedField):
+  Variant trial  : match→Hypothesized, delta→Delta, *→Rand
+  Delta trial    : delta→Hypothesized, match→Delta, *→Rand
+  Removed trial  : variant→Hypothesized, match→Removed, *→Rand
 
 t = 0 is sample_off.  Median choices_on / choices_off marked per panel.
 """
@@ -34,11 +40,11 @@ BIN_SIZE_S      = 0.05   # 50 ms bins
 SHOW_STD        = True   # shaded ± 1 SEM band
 # ────────────────────────────────────────────────────────────────────────────
 
-CHOICE_COLORS = {
-    "match":      "tab:green",
-    "delta":      "tab:blue",
-    "rand":       "tab:gray",
-    "procedural": "tab:orange",
+SEMANTIC_CHOICE_COLORS = {
+    "Hypothesized": "tab:green",
+    "Delta":        "tab:blue",
+    "Removed":      "tab:red",
+    "Rand":         "tab:gray",
 }
 
 _PANEL_EVENT_DEFS = [
@@ -90,6 +96,32 @@ def _median_event_rel(group_df, key: str) -> float | None:
     return float(np.median(vals)) if vals else None
 
 
+# ── semantic choice mapping ───────────────────────────────────────────────────
+
+def _semantic_choice(row) -> str:
+    is_removed = row.get("IsRemovedTrial", False)
+    is_delta   = row.get("IsDelta", False)
+    choice     = row.get("Choice", "")
+    if is_removed:
+        if choice == "variant":
+            return "Hypothesized"
+        if choice == "match":
+            return "Removed"
+        return "Rand"
+    if is_delta:
+        if choice == "delta":
+            return "Hypothesized"
+        if choice == "match":
+            return "Delta"
+        return "Rand"
+    # variant trial
+    if choice == "match":
+        return "Hypothesized"
+    if choice == "delta":
+        return "Delta"
+    return "Rand"
+
+
 # ── colormap for EStimSpecId lines ───────────────────────────────────────────
 
 def _estim_id_colors(estim_ids: list) -> dict:
@@ -110,16 +142,16 @@ def plot_psth_panel(ax, group_df, channel_name: str,
         neural = trial.get("NeuralData")
         if not isinstance(neural, dict) or neural.get("sample_off") is None:
             continue
-        choice = trial.get("Choice", "None")
+        sem_choice = trial.get("SemanticChoice", "Rand")
         spikes = _aligned_spikes(neural, channel_name, time_before, time_after)
-        spikes_by_choice.setdefault(choice, []).append(spikes)
+        spikes_by_choice.setdefault(sem_choice, []).append(spikes)
 
-    for choice, spike_lists in sorted(spikes_by_choice.items()):
-        color = CHOICE_COLORS.get(choice, "tab:purple")
+    for sem_choice, spike_lists in sorted(spikes_by_choice.items()):
+        color = SEMANTIC_CHOICE_COLORS.get(sem_choice, "tab:purple")
         mean, sem = _compute_psth(spike_lists, bins, bin_size)
         n = len(spike_lists)
         ax.plot(bin_centers, mean, color=color, linewidth=1.8,
-                label=f"{choice} (n={n})")
+                label=f"{sem_choice} (n={n})")
         if show_std and n > 1:
             ax.fill_between(bin_centers, mean - sem, mean + sem,
                             color=color, alpha=0.25, linewidth=0)
@@ -191,7 +223,7 @@ def plot_psth_panel_by_estim_id(ax, group_df, channel_name: str,
 def _legend_handles():
     handles = [
         mlines.Line2D([], [], color=c, linewidth=1.8, label=name)
-        for name, c in CHOICE_COLORS.items()
+        for name, c in SEMANTIC_CHOICE_COLORS.items()
     ]
     handles.append(
         mlines.Line2D([], [], color="black", linestyle="-",
@@ -209,6 +241,9 @@ def _legend_handles():
 
 def run(data, channel_name: str, time_before: float, time_after: float,
         bin_size: float, show_std: bool) -> None:
+    data = data.copy()
+    data["SemanticChoice"] = data.apply(_semantic_choice, axis=1)
+
     not_removed = data["IsRemovedTrial"] == False
     is_removed  = data["IsRemovedTrial"] == True
 
