@@ -494,16 +494,10 @@ class EStimPulseWidthField(WaveformField):
         dp = float(wf.get('dp') or 0.0)
         shape = str(wf.get('shape') or '').lower()
         # dp (interphase delay) only contributes when the shape explicitly
-        # has an interphase delay; plain Biphasic / Triphasic ignore it.
+        # has an interphase delay; plain Biphasic / Triphasic skip it.
         if 'interphasedelay' in shape:
-            half = d1 + dp + d2
-        else:
-            half = d1 + d2
-        if 'triphasic' in shape:
-            return 3.0 * half
-        if 'biphasic' in shape:
-            return 2.0 * half
-        return half
+            return d1 + dp + d2
+        return d1 + d2
 
 
 class EStimPolarityField(WaveformField):
