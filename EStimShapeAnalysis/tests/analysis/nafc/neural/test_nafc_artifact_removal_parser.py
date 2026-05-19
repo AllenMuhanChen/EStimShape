@@ -84,6 +84,11 @@ PREPROCESSOR_HIGHPASS_HZ = 5.0
 # threshold, no tuning per experiment.
 ARTIFACT_BLANK_HALF_WIDTH_S = 0.0015   # 1.5 ms each side of every pulse
 
+# Half-width of the trigger-context diagnostic plot, in milliseconds.
+# Should be wide enough to see the trigger rising edge, the expected stim
+# onset, the actual artifact, and the blank zone all in one view.
+TRIGGER_CONTEXT_HALFWIDTH_MS = 20.0
+
 # Spike-detection backend: "neo" or "rms".
 #   "neo" — Nonlinear Energy Operator. Robust to slow baseline shifts
 #           (e.g. post-estim drift) that bias RMS thresholding.
@@ -233,11 +238,15 @@ def _find_channel_key(channel_to_data: dict, channel_name: str):
     return None
 
 
+def _read_trigger_channel(recording_dir: str) -> np.ndarray:
+    """Raw binary trace of digital-in-01 (sample-on / eStim trigger)."""
+    digital_in = read_digitalin_file(os.path.join(recording_dir, "digitalin.dat"))
+    return np.asarray(digital_in[0]).astype(np.int8)
+
+
 def _read_trigger_samples(recording_dir: str) -> np.ndarray:
     """Rising edges of digital-in-01 (sample-on / eStim trigger)."""
-    digital_in = read_digitalin_file(os.path.join(recording_dir, "digitalin.dat"))
-    trigger_ch = np.asarray(digital_in[0]).astype(np.int8)
-    return np.where(np.diff(trigger_ch) == 1)[0] + 1
+    return np.where(np.diff(_read_trigger_channel(recording_dir)) == 1)[0] + 1
 
 
 def _process_one_recording(
@@ -258,13 +267,16 @@ def _process_one_recording(
     if max_seconds is not None:
         raw = raw[: int(max_seconds * sample_rate)]
 
-    trigger_samples = _read_trigger_samples(recording_dir)
+    trigger_channel = _read_trigger_channel(recording_dir)
+    trigger_samples = np.where(np.diff(trigger_channel) == 1)[0] + 1
+    post_trigger_delay_s = rec['post_trigger_delay_us'] * 1e-6
+    pulse_period_s = rec['pulse_train_period_us'] * 1e-6
     detector = TriggerBasedArtifactDetector(
         trigger_samples=trigger_samples,
-        post_trigger_delay_s=rec['post_trigger_delay_us'] * 1e-6,
+        post_trigger_delay_s=post_trigger_delay_s,
         blank_half_width_s=ARTIFACT_BLANK_HALF_WIDTH_S,
         num_pulses=rec['num_pulses'],
-        pulse_period_s=rec['pulse_train_period_us'] * 1e-6,
+        pulse_period_s=pulse_period_s,
     )
     parser = parser_factory(detector)
 
@@ -274,6 +286,10 @@ def _process_one_recording(
     result['estim_spec_id'] = rec['estim_spec_id']
     result['stim_spec_id'] = rec['stim_spec_id']
     result['trigger_samples'] = trigger_samples
+    result['trigger_channel'] = trigger_channel
+    result['post_trigger_delay_s'] = post_trigger_delay_s
+    result['num_pulses'] = rec['num_pulses']
+    result['pulse_period_s'] = pulse_period_s
     return result
 
 
@@ -569,6 +585,110 @@ def _plot_spike_waveforms(
     plt.tight_layout()
 
 
+def _plot_trigger_context(
+    results_by_spec: Dict[str, List[dict]],
+    channel_name: str,
+    halfwidth_ms: float,
+):
+    """
+    Per-spec sanity figure: digital trigger TTL on top, neural signal on
+    bottom, with the artifact blank zone shaded and vertical markers at
+    the trigger rising edge(s) and the expected stim onset(s)
+    (trigger + post_trigger_delay + k * pulse_period). Helps diagnose
+    misalignment between the blank zone and the real artifact.
+    """
+    for spec, results in sorted(results_by_spec.items()):
+        if not results:
+            continue
+        res = results[0]
+        fs = res['sample_rate']
+        pp = res['preprocessed']
+        cleaned = res['cleaned']
+        blank = res['artifact_blank_mask']
+        trig_ch = res['trigger_channel']
+        trigger_samples = res['trigger_samples']
+        spike_samples = res['spike_samples']
+        delay_s = res['post_trigger_delay_s']
+        num_pulses = res['num_pulses']
+        pulse_period_s = res['pulse_period_s']
+
+        if not len(trigger_samples):
+            print(f"EStimSpecId {spec}: no triggers in recording, skipping")
+            continue
+
+        t0 = int(trigger_samples[0])
+        hw = int(halfwidth_ms * 1e-3 * fs)
+        lo = max(t0 - hw, 0)
+        hi = min(t0 + hw, len(pp))
+        t_ms = (np.arange(lo, hi) - t0) / fs * 1e3
+
+        fig, axes = plt.subplots(
+            2, 1, figsize=(12, 5), sharex=True,
+            gridspec_kw={'height_ratios': [1, 3]},
+        )
+
+        # Top: digital trigger TTL.
+        axes[0].plot(t_ms, trig_ch[lo:hi], color='tab:blue', lw=0.9,
+                     drawstyle='steps-post')
+        axes[0].axvline(0, color='tab:red', lw=0.8,
+                        label='trigger rising edge')
+        for k in range(num_pulses):
+            stim_ms = (delay_s + k * pulse_period_s) * 1e3
+            axes[0].axvline(
+                stim_ms, color='tab:purple', lw=0.8, ls='--',
+                label='expected stim onset' if k == 0 else '_nolegend_',
+            )
+        axes[0].set_ylabel('digital-in-01')
+        axes[0].set_ylim(-0.1, 1.2)
+        axes[0].legend(loc='upper right', fontsize=8)
+
+        # Bottom: preprocessed + cleaned neural with blank-zone shading.
+        axes[1].plot(t_ms, pp[lo:hi], color='tab:gray', lw=0.7, alpha=0.8,
+                     label='preprocessed')
+        axes[1].plot(t_ms, cleaned[lo:hi], color='tab:blue', lw=0.8,
+                     label='cleaned')
+
+        blank_seg = blank[lo:hi]
+        if blank_seg.any():
+            ymin, ymax = axes[1].get_ylim()
+            axes[1].fill_between(
+                t_ms, ymin, ymax, where=blank_seg,
+                color='tab:orange', alpha=0.2, label='blank zone',
+            )
+            axes[1].set_ylim(ymin, ymax)
+
+        # Mark trigger and expected stim onsets on the neural plot too.
+        axes[1].axvline(0, color='tab:red', lw=0.6, alpha=0.7)
+        for k in range(num_pulses):
+            stim_ms = (delay_s + k * pulse_period_s) * 1e3
+            axes[1].axvline(stim_ms, color='tab:purple', lw=0.6,
+                            ls='--', alpha=0.7)
+
+        # Detected spikes.
+        spike_mask = (spike_samples >= lo) & (spike_samples < hi)
+        labelled = False
+        for s in spike_samples[spike_mask]:
+            axes[1].axvline(
+                (s - t0) / fs * 1e3,
+                color='tab:green', lw=0.8, alpha=0.6,
+                label='detected spike' if not labelled else '_nolegend_',
+            )
+            labelled = True
+
+        axes[1].set_xlabel('Time from trigger rising edge (ms)')
+        axes[1].set_ylabel('uV')
+        axes[1].legend(loc='upper right', fontsize=8, ncol=2)
+
+        fig.suptitle(
+            f'{channel_name}  |  EStimSpecId {spec}  |  trigger context '
+            f'(delay={delay_s*1e6:.0f} us, '
+            f'{num_pulses} pulse(s) @ {pulse_period_s*1e6:.0f} us period, '
+            f'blank +/-{ARTIFACT_BLANK_HALF_WIDTH_S*1e3:.2f} ms)',
+            fontsize=9,
+        )
+        plt.tight_layout()
+
+
 # ── test class ────────────────────────────────────────────────────────────
 
 class TestNafcArtifactRemovalParser(unittest.TestCase):
@@ -655,6 +775,8 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
 
         self.assertTrue(all_results, "no recordings processed successfully")
 
+        _plot_trigger_context(results_by_spec, CHANNEL_NAME,
+                              TRIGGER_CONTEXT_HALFWIDTH_MS)
         _plot_per_spec_windows(results_by_spec, CHANNEL_NAME,
                                N_WINDOWS_PER_SPEC, WINDOW_HALFWIDTH_MS)
         _plot_spike_waveforms(results_by_spec, CHANNEL_NAME,
