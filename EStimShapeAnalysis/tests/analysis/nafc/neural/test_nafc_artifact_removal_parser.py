@@ -289,7 +289,7 @@ def _plot_pooled_stats(per_recording_results: List[dict], channel_name: str):
     axes[1].legend(fontsize=8)
 
     axes[2].bar(np.arange(len(counts_arr)), counts_arr,
-                color='tab:teal', edgecolor='black')
+                color='steelblue', edgecolor='black')
     axes[2].set_xlabel('Recording index')
     axes[2].set_ylabel('# artifacts')
     axes[2].set_title('Artifacts per recording')
