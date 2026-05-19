@@ -29,7 +29,7 @@ from clat.intan.rhs.load_intan_rhs_format import read_data
 
 from src.analysis.nafc.neural.artifact_removal import (
     ArtifactDetector, ArtifactEvent, ArtifactRemover,
-    BaselineDriftPreprocessor, RmsThresholdSpikeDetector,
+    BaselineDriftPreprocessor, NeoSpikeDetector, RmsThresholdSpikeDetector,
     SampleInterpolateRemover, SignalPreprocessor, SpikeDetector,
     ThresholdArtifactDetector,
 )
@@ -175,6 +175,9 @@ class NafcArtifactRemovalParser(NafcParserBase):
             artifact_threshold  : float or None
             spike_threshold     : float
             artifact_blank_mask : np.ndarray (bool) — True where spikes CAN occur
+            neo_signal          : np.ndarray or None — smoothed NEO trace
+                                  (only set when spike_detector is a NeoSpikeDetector)
+            neo_threshold       : float or None — NEO-domain detection threshold
         """
         preprocessed = self.preprocessor.preprocess(raw_signal, sample_rate)
         artifacts: List[ArtifactEvent] = self.artifact_detector.detect(
@@ -220,6 +223,16 @@ class NafcArtifactRemovalParser(NafcParserBase):
         if isinstance(self.artifact_detector, ThresholdArtifactDetector):
             artifact_threshold = self.artifact_detector.compute_threshold(preprocessed)
 
+        neo_signal = None
+        neo_threshold = None
+        if isinstance(self.spike_detector, NeoSpikeDetector):
+            neo_signal = self.spike_detector.smoothed_neo(
+                filtered_for_spikes, sample_rate,
+            )
+            neo_threshold = self.spike_detector.compute_threshold(
+                filtered_for_spikes, noise_mask=noise_mask, smoothed=neo_signal,
+            )
+
         return {
             'preprocessed': preprocessed,
             'artifacts': artifacts,
@@ -230,6 +243,8 @@ class NafcArtifactRemovalParser(NafcParserBase):
             'artifact_threshold': artifact_threshold,
             'spike_threshold': spike_threshold,
             'artifact_blank_mask': blank_mask,
+            'neo_signal': neo_signal,
+            'neo_threshold': neo_threshold,
         }
 
     # -----------------------------------------------------------------------

@@ -284,6 +284,8 @@ def _plot_per_spec_windows(
             spike_samples = res['spike_samples']
             blank_mask = res['artifact_blank_mask']
             spike_threshold = res['spike_threshold']
+            neo_signal = res.get('neo_signal')
+            neo_threshold = res.get('neo_threshold')
 
             halfwidth = int(halfwidth_ms * 1e-3 * fs)
             c = ev.peak_sample
@@ -306,16 +308,36 @@ def _plot_per_spec_windows(
                                 color='tab:orange', alpha=0.18,
                                 label='blank zone (no spikes)')
 
-            # Spike threshold lines.
-            if np.isfinite(spike_threshold):
+            # Detection signal: if a NEO detector ran, overlay the smoothed
+            # NEO trace + NEO threshold on a twin axis. Otherwise draw the
+            # voltage-domain -threshold line used by the RMS detector.
+            if neo_signal is not None:
+                ax_neo = ax.twinx()
+                ax_neo.plot(t_ms, neo_signal[lo:hi], color='tab:purple',
+                            lw=0.9, alpha=0.85, label='smoothed NEO')
+                if neo_threshold is not None and np.isfinite(neo_threshold):
+                    ax_neo.axhline(
+                        neo_threshold, color='tab:red', lw=0.6,
+                        linestyle='--',
+                        label=f'NEO threshold ({neo_threshold:.1f})',
+                    )
+                ax_neo.set_ylabel('NEO (uV^2)', fontsize=7,
+                                  color='tab:purple')
+                ax_neo.tick_params(axis='y', labelsize=7,
+                                   colors='tab:purple')
+                ax_neo.legend(loc='upper left', fontsize=7)
+            elif np.isfinite(spike_threshold):
                 ax.axhline(-spike_threshold, color='tab:red', lw=0.6,
                            linestyle='--', label=f'-threshold ({-spike_threshold:.1f})')
 
-            # Mark detected spikes.
+            # Mark detected spikes (first one gets the legend label).
             spike_mask = (spike_samples >= lo) & (spike_samples < hi)
-            for s in spike_samples[spike_mask]:
-                ax.axvline((s - c) / fs * 1e3,
-                           color='tab:green', lw=1.0, alpha=0.85)
+            for j, s in enumerate(spike_samples[spike_mask]):
+                ax.axvline(
+                    (s - c) / fs * 1e3,
+                    color='tab:green', lw=1.0, alpha=0.85,
+                    label='detected spike' if j == 0 else '_nolegend_',
+                )
 
             ax.set_title(
                 f'EStimSpecId {estim_spec_id}  |  '
