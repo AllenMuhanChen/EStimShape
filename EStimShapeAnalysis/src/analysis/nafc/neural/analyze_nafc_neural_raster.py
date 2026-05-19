@@ -173,7 +173,15 @@ def run(data, channel_name: str, time_before: float, time_after: float) -> None:
 
 # ── main ──────────────────────────────────────────────────────────────────────
 
-def load_data(exp_db_name: str, intan_base_path: str, since_date):
+def load_data(exp_db_name: str, intan_base_path: str, since_date, parser=None):
+    """
+    Parameters
+    ----------
+    parser : NafcParserBase, optional
+        Pluggable neural parser. Defaults to NafcNeuralParser (reads spike.dat).
+        Pass a NafcArtifactRemovalParser to detect spikes from raw amplifier
+        data after stimulus-artifact removal.
+    """
     exp_conn = Connection(exp_db_name)
     trial_tstamps = collect_choice_trials(exp_conn, since_date)
     if not trial_tstamps:
@@ -188,7 +196,7 @@ def load_data(exp_db_name: str, intan_base_path: str, since_date):
     fields.append(IsRemovedTrialField(exp_conn))
     fields.append(EStimEnabledField(exp_conn))
     fields.append(EStimSpecIdField(exp_conn))
-    fields.append(NafcNeuralDataField(intan_base_path, exp_conn))
+    fields.append(NafcNeuralDataField(intan_base_path, exp_conn, parser=parser))
 
     data = fields.to_data(trial_tstamps)
     # data = data[data["StimType"] == "EStimShapeVariantsDeltaNAFCStim"].copy()

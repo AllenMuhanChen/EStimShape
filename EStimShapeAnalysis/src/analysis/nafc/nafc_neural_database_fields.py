@@ -7,6 +7,7 @@ from clat.util.connection import Connection
 from clat.util.time_util import When
 
 from src.analysis.nafc.neural.nafc_neural_parser import NafcNeuralParser, NafcTrialEvents
+from src.analysis.nafc.neural.nafc_parser_base import NafcParserBase
 
 
 def _events_to_dict(events: NafcTrialEvents) -> dict:
@@ -38,10 +39,30 @@ class NafcNeuralDataField(CachedDatabaseField):
         {base}/{YYYY-MM-DD}/{stimSpecId}_{YYMMDD}_{HHMMSS}/
     """
 
-    def __init__(self, intan_base_path: str, conn: Connection, cache_dir: str = None):
+    def __init__(
+        self,
+        intan_base_path: str,
+        conn: Connection,
+        cache_dir: str = None,
+        parser: NafcParserBase = None,
+    ):
+        """
+        Parameters
+        ----------
+        parser : NafcParserBase, optional
+            Pluggable parser. Defaults to the spike.dat-based NafcNeuralParser.
+            Pass a NafcArtifactRemovalParser (or any other NafcParserBase) to
+            swap the spike-extraction backend without touching downstream code.
+            When ``parser`` is supplied, ``cache_dir`` is ignored — the caller
+            is responsible for configuring the parser's own caching.
+        """
         super().__init__(conn)
         self._base = intan_base_path
-        self._parser = NafcNeuralParser(to_cache=cache_dir is not None, cache_dir=cache_dir)
+        if parser is None:
+            parser = NafcNeuralParser(
+                to_cache=cache_dir is not None, cache_dir=cache_dir,
+            )
+        self._parser = parser
         self._index: dict[str, str] = {}
         self._build_index()
 
