@@ -85,14 +85,9 @@ PREPROCESSOR_HIGHPASS_HZ = 5.0
 ARTIFACT_BLANK_HALF_WIDTH_S = 0.0015   # 1.5 ms each side of every pulse
 
 # Half-width of the trigger-context diagnostic plot, in milliseconds.
-# Should be wide enough to see the trigger rising edge, the expected stim
-# onset, the actual artifact, and the blank zone all in one view.
+# Should be wide enough to see a handful of stim pulses (~5-6) and the
+# blank-zone boundary, but NOT the full TTL high duration.
 TRIGGER_CONTEXT_HALFWIDTH_MS = 20.0
-
-# Half-width of the zoomed-in TTL inset on the trigger-context plot.
-# Narrow window centered on the rising edge so the edge and the stim
-# onset (rising + delay) are clearly distinguishable.
-TTL_ZOOM_HALFWIDTH_MS = 1.0
 
 # Spike-detection backend: "neo" or "rms".
 #   "neo" — Nonlinear Energy Operator. Robust to slow baseline shifts
@@ -627,13 +622,13 @@ def _plot_trigger_context(
             continue
 
         t0 = int(rising[0])
-        # Find the falling edge that closes this TTL pulse, so we can size
-        # the window to cover the entire stim-on interval plus a margin.
+        # Find the falling edge that closes this TTL pulse (used only for
+        # markers; the plot window is fixed at +/-halfwidth_ms around the
+        # rising edge so individual pulse artifacts stay resolvable).
         after = falling[falling > t0]
         fall_sample = int(after[0]) if len(after) else len(trig_ch)
         ttl_high_ms = (fall_sample - t0) / fs * 1e3
-        effective_halfwidth_ms = max(halfwidth_ms, ttl_high_ms + 20.0)
-        hw = int(effective_halfwidth_ms * 1e-3 * fs)
+        hw = int(halfwidth_ms * 1e-3 * fs)
         lo = max(t0 - hw, 0)
         hi = min(t0 + hw, len(pp))
         t_ms = (np.arange(lo, hi) - t0) / fs * 1e3
@@ -656,22 +651,6 @@ def _plot_trigger_context(
         axes[0].set_ylabel('digital-in-01')
         axes[0].set_ylim(-0.1, 1.2)
         axes[0].legend(loc='lower right', fontsize=8)
-
-        # Zoomed inset on the rising edge.
-        zhw_samp = int(TTL_ZOOM_HALFWIDTH_MS * 1e-3 * fs)
-        zlo = max(t0 - zhw_samp, 0)
-        zhi = min(t0 + zhw_samp, len(trig_ch))
-        zt_ms = (np.arange(zlo, zhi) - t0) / fs * 1e3
-        inset = axes[0].inset_axes([0.02, 0.18, 0.32, 0.78])
-        inset.plot(zt_ms, trig_ch[zlo:zhi], color='tab:blue', lw=1.1,
-                   drawstyle='steps-post')
-        inset.axvline(0, color='tab:red', lw=0.8)
-        inset.axvline(delay_s * 1e3, color='tab:purple', lw=0.8, ls='--')
-        inset.set_xlim(-TTL_ZOOM_HALFWIDTH_MS, TTL_ZOOM_HALFWIDTH_MS)
-        inset.set_ylim(-0.1, 1.2)
-        inset.tick_params(labelsize=6)
-        inset.set_title(f'zoom +/-{TTL_ZOOM_HALFWIDTH_MS:g} ms',
-                        fontsize=7)
 
         # Bottom: preprocessed neural with blank-zone shading.
         axes[1].plot(t_ms, pp[lo:hi], color='tab:gray', lw=0.7, alpha=0.9,
