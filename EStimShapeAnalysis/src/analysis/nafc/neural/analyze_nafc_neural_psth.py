@@ -20,7 +20,7 @@ from matplotlib.gridspec import GridSpec
 
 from clat.util import time_util
 
-from src.analysis.nafc.analyze_nafc_neural_raster import load_data
+from src.analysis.nafc.neural.analyze_nafc_neural_raster import load_data
 
 
 # ─────────────────────────── CONFIG ─────────────────────────────────────────

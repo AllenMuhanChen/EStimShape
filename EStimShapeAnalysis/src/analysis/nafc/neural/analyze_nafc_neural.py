@@ -10,15 +10,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from clat.util import time_util
 
-from src.analysis.nafc.analyze_nafc_neural_raster import load_data, run as run_raster
-from src.analysis.nafc.analyze_nafc_neural_psth   import run as run_psth
+from src.analysis.nafc.neural.analyze_nafc_neural_raster import load_data, run as run_raster
+from src.analysis.nafc.neural.analyze_nafc_neural_psth import run as run_psth
 
 
 # ═══════════════════════════ CONFIG ═════════════════════════════════════════
 # ── shared ──────────────────────────────────────────────────────────────────
-EXP_DB_NAME     = "allen_estimshape_exp_260426_0"
-INTAN_BASE_PATH = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_estimshape_exp_260426_0/2026-04-26/"
-CHANNEL_NAME    = "A-007"
+EXP_DB_NAME     = "allen_estimshape_exp_260518_0"
+INTAN_BASE_PATH = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/allen_estimshape_exp_260518_0/2026-05-18/"
+CHANNEL_NAME    = "A-006"
 SINCE_DATE      = time_util.from_date_to_now(2026, 4, 26)
 
 # ── raster ───────────────────────────────────────────────────────────────────

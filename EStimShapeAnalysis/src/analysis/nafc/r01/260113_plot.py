@@ -4,7 +4,7 @@ from clat.util.connection import Connection
 import json
 from itertools import combinations
 
-from src.analysis.nafc.average_estim_groups_by_condition import compute_grand_null_distribution, \
+from src.analysis.nafc.group_analysis.average_estim_groups_by_condition import compute_grand_null_distribution, \
     get_significance_marker, calculate_p_value_two_tailed
 
 

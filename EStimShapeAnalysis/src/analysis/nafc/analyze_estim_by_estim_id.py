@@ -12,7 +12,7 @@ import matplotlib.cm as cm
 from PIL import Image
 import xmltodict
 
-from src.analysis.nafc.analyze_estim_by_condition import plot_sliding_window_results
+from src.analysis.nafc.group_analysis.analyze_estim_by_condition import plot_sliding_window_results
 
 from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
 from clat.util import time_util
@@ -20,9 +20,9 @@ from clat.util.connection import Connection
 
 from src.analysis.nafc.nafc_database_fields import (
     IsCorrectField, NoiseChanceField, NumRandDistractorsField,
-    StimTypeField, ChoiceField, AnswerField, GenIdField,
+    StimTypeField, ChoiceField, GenIdField,
     BaseMStickIdField, IsDeltaField, IsHypothesizedField,
-    EStimEnabledField, EStimSpecIdField, EStimSpecField, EStimPolarityField, SampleLengthField,
+    EStimEnabledField, EStimSpecIdField, EStimPolarityField, SampleLengthField,
     IsRemovedTrialField,
 )
 from src.analysis.nafc.psychometric_curves import collect_choice_trials, plot_psychometric_curve_on_ax
