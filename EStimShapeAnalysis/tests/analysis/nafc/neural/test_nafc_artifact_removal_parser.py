@@ -82,9 +82,9 @@ SPIKE_THRESHOLD_FACTOR = 4.0      # -N x RMS on the cleaned MUA band
 # extended to at least MIN_DURATION after start. Small pads catch the
 # threshold-crossing onset lag and any ringing tail.
 REMOVER_PRE_PAD_S = 0.0002        # 200 us
-REMOVER_POST_PAD_S = 0.0005       # 500 us
+REMOVER_POST_PAD_S = 0.0002       # 500 us
 REMOVER_MIN_DURATION_S = 0.0      # rely on detected event width
-REMOVER_BASELINE = "zero"          # or "pre_median"
+REMOVER_BASELINE = "pre_median"          # or "pre_median"
 
 MAX_SECONDS_TO_LOAD: Optional[float] = None
 # ───────────────────────────────────────────────────────────────────────────
