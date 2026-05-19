@@ -461,6 +461,21 @@ class EStimPulseTrainPeriodField(PulseTrainParametersField):
         return float(params['pulseTrainPeriod'])
 
 
+class EStimPostStimRefractoryPeriodField(PulseTrainParametersField):
+    """postStimRefractoryPeriod (us)."""
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "EStimPostStimRefractoryPeriod"
+
+    def get(self, when: When):
+        params = self.get_cached_super(when, PulseTrainParametersField)
+        if params is None:
+            return None
+        return float(params['postStimRefractoryPeriod'])
+
+
 class EStimPolarityField(WaveformField):
     def __init__(self, conn: Connection):
         super().__init__(conn)

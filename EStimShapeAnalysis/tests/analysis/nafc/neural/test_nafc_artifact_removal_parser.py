@@ -42,8 +42,8 @@ from clat.util import time_util
 from clat.util.connection import Connection
 
 from src.analysis.nafc.nafc_database_fields import (
-    EStimEnabledField, EStimNumPulsesField, EStimPostTriggerDelayField,
-    EStimPulseTrainPeriodField, EStimSpecIdField, StimSpecIdField,
+    EStimEnabledField, EStimNumPulsesField, EStimPostStimRefractoryPeriodField,
+    EStimPostTriggerDelayField, EStimSpecIdField, StimSpecIdField,
 )
 from src.analysis.nafc.psychometric_curves import collect_choice_trials
 from src.analysis.nafc.neural.artifact_removal import (
@@ -149,7 +149,7 @@ def _query_estim_on_trials(exp_db_name: str, since_date):
     Return a list of dicts:
         {'stim_spec_id': str, 'estim_spec_id': str,
          'post_trigger_delay_us': float, 'num_pulses': int,
-         'pulse_train_period_us': float}
+         'post_stim_refractory_us': float}
     for all EStim-ON trials found in the DB.
     """
     conn = Connection(exp_db_name)
@@ -163,7 +163,7 @@ def _query_estim_on_trials(exp_db_name: str, since_date):
     fields.append(EStimSpecIdField(conn))
     fields.append(EStimPostTriggerDelayField(conn))
     fields.append(EStimNumPulsesField(conn))
-    fields.append(EStimPulseTrainPeriodField(conn))
+    fields.append(EStimPostStimRefractoryPeriodField(conn))
     data = fields.to_data(trial_tstamps)
 
     estim_on = data[data["EStimEnabled"] == True].copy()
@@ -178,7 +178,7 @@ def _query_estim_on_trials(exp_db_name: str, since_date):
             'estim_spec_id': str(estim_spec_id) if estim_spec_id is not None else "unknown",
             'post_trigger_delay_us': float(row.get("EStimPostTriggerDelay") or 0.0),
             'num_pulses': int(row.get("EStimNumPulses") or 1),
-            'pulse_train_period_us': float(row.get("EStimPulseTrainPeriod") or 0.0),
+            'post_stim_refractory_us': float(row.get("EStimPostStimRefractoryPeriod") or 0.0),
         })
     return rows
 
@@ -220,7 +220,7 @@ def _select_recordings(
                 'estim_spec_id': estim_spec_id,
                 'post_trigger_delay_us': row['post_trigger_delay_us'],
                 'num_pulses': row['num_pulses'],
-                'pulse_train_period_us': row['pulse_train_period_us'],
+                'post_stim_refractory_us': row['post_stim_refractory_us'],
             })
 
     print(f"  selected {len(selected)} recordings across "
@@ -270,7 +270,7 @@ def _process_one_recording(
     trigger_channel = _read_trigger_channel(recording_dir)
     trigger_samples = np.where(np.diff(trigger_channel) == 1)[0] + 1
     post_trigger_delay_s = rec['post_trigger_delay_us'] * 1e-6
-    pulse_period_s = rec['pulse_train_period_us'] * 1e-6
+    pulse_period_s = rec['post_stim_refractory_us'] * 1e-6
     detector = TriggerBasedArtifactDetector(
         trigger_samples=trigger_samples,
         post_trigger_delay_s=post_trigger_delay_s,
@@ -617,7 +617,12 @@ def _plot_trigger_context(
             continue
 
         t0 = int(trigger_samples[0])
-        hw = int(halfwidth_ms * 1e-3 * fs)
+        # Auto-extend the window to cover the full predicted pulse train
+        # (trigger + delay + (num_pulses - 1) * pulse_period) plus a margin
+        # on each side. User-supplied halfwidth_ms is the minimum.
+        train_span_ms = (delay_s + max(num_pulses - 1, 0) * pulse_period_s) * 1e3
+        effective_halfwidth_ms = max(halfwidth_ms, train_span_ms + 10.0)
+        hw = int(effective_halfwidth_ms * 1e-3 * fs)
         lo = max(t0 - hw, 0)
         hi = min(t0 + hw, len(pp))
         t_ms = (np.arange(lo, hi) - t0) / fs * 1e3
@@ -808,7 +813,7 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
             post_trigger_delay_s=rec['post_trigger_delay_us'] * 1e-6,
             blank_half_width_s=ARTIFACT_BLANK_HALF_WIDTH_S,
             num_pulses=rec['num_pulses'],
-            pulse_period_s=rec['pulse_train_period_us'] * 1e-6,
+            pulse_period_s=rec['post_stim_refractory_us'] * 1e-6,
         )
         parser = self._build_parser(detector)
         events = parser.parse(rec['recording_dir'])
