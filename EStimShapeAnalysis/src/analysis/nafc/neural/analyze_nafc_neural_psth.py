@@ -1,7 +1,7 @@
 """
 NAFC neural PSTH: firing-rate histograms aligned to sample_off.
 
-  Rows    : Variant (IsDelta=False) | Delta (IsDelta=True)
+  Rows    : Variant (IsDelta=False) | Delta (IsDelta=True) | Removed (IsRemovedTrial=True)
   Columns : EStim Off | EStim On
   Lines   : one per choice (match / delta / rand / procedural)
 
@@ -156,29 +156,35 @@ def _legend_handles():
 
 def run(data, channel_name: str, time_before: float, time_after: float,
         bin_size: float, show_std: bool) -> None:
+    not_removed = data["IsRemovedTrial"] == False
+    is_removed  = data["IsRemovedTrial"] == True
+
     groups = {
-        (False, False): ("Variant · EStim Off", data[(data["IsDelta"] == False) & (data["EStimEnabled"] == False)]),
-        (False, True):  ("Variant · EStim On",  data[(data["IsDelta"] == False) & (data["EStimEnabled"] == True)]),
-        (True,  False): ("Delta · EStim Off",   data[(data["IsDelta"] == True)  & (data["EStimEnabled"] == False)]),
-        (True,  True):  ("Delta · EStim On",    data[(data["IsDelta"] == True)  & (data["EStimEnabled"] == True)]),
+        ("variant", False): ("Variant · EStim Off", data[not_removed & (data["IsDelta"] == False) & (data["EStimEnabled"] == False)]),
+        ("variant", True):  ("Variant · EStim On",  data[not_removed & (data["IsDelta"] == False) & (data["EStimEnabled"] == True)]),
+        ("delta",   False): ("Delta · EStim Off",   data[not_removed & (data["IsDelta"] == True)  & (data["EStimEnabled"] == False)]),
+        ("delta",   True):  ("Delta · EStim On",    data[not_removed & (data["IsDelta"] == True)  & (data["EStimEnabled"] == True)]),
+        ("removed", False): ("Removed · EStim Off", data[is_removed  & (data["EStimEnabled"] == False)]),
+        ("removed", True):  ("Removed · EStim On",  data[is_removed  & (data["EStimEnabled"] == True)]),
     }
 
-    fig = plt.figure(figsize=(14, 8))
-    gs  = GridSpec(2, 2, figure=fig, hspace=0.5, wspace=0.35)
+    fig = plt.figure(figsize=(14, 12))
+    gs  = GridSpec(3, 2, figure=fig, hspace=0.5, wspace=0.35)
 
     col_labels = ["EStim Off", "EStim On"]
-    row_labels = ["Variant\n(IsDelta=False)", "Delta\n(IsDelta=True)"]
+    row_keys   = ["variant", "delta", "removed"]
+    row_labels = ["Variant\n(IsDelta=False)", "Delta\n(IsDelta=True)", "Removed\n(IsRemovedTrial=True)"]
 
     all_axes = []
-    for r, is_delta in enumerate([False, True]):
+    for r, (row_key, row_label) in enumerate(zip(row_keys, row_labels)):
         for c, estim_on in enumerate([False, True]):
             ax = fig.add_subplot(gs[r, c])
-            label, grp = groups[(is_delta, estim_on)]
+            label, grp = groups[(row_key, estim_on)]
             full_title = f"{col_labels[c]}\n{label}" if r == 0 else label
             plot_psth_panel(ax, grp, channel_name,
                             time_before, time_after, bin_size, show_std, full_title)
             if c == 0:
-                ax.set_ylabel(f"{row_labels[r]}\n\nFiring rate (spikes/s)", fontsize=8)
+                ax.set_ylabel(f"{row_label}\n\nFiring rate (spikes/s)", fontsize=8)
             all_axes.append(ax)
 
     global_ymax = max(ax.get_ylim()[1] for ax in all_axes)
@@ -189,7 +195,7 @@ def run(data, channel_name: str, time_before: float, time_after: float,
                bbox_to_anchor=(0.99, 0.99), framealpha=0.9)
     fig.suptitle(
         f"NAFC Neural PSTH — channel: {channel_name}\n"
-        f"Aligned to sample_off  ·  Rows: Variant / Delta  ·  Cols: EStim Off / On",
+        f"Aligned to sample_off  ·  Rows: Variant / Delta / Removed  ·  Cols: EStim Off / On",
         fontsize=11,
     )
     plt.tight_layout()

@@ -1,7 +1,7 @@
 """
 NAFC neural raster: spike activity for EStimShapeVariantsDeltaNAFCStim trials.
 
-  Rows      : Variant (IsDelta=False) | Delta (IsDelta=True)
+  Rows      : Variant (IsDelta=False) | Delta (IsDelta=True) | Removed (IsRemovedTrial=True)
   Columns   : EStim Off | EStim On
   Tick color: by choice (match / delta / rand / procedural)
 
@@ -24,7 +24,7 @@ from clat.util.connection import Connection
 
 from src.analysis.nafc.nafc_database_fields import (
     ChoiceField, IsCorrectField, StimTypeField,
-    BaseMStickIdField, IsDeltaField, EStimEnabledField,
+    BaseMStickIdField, IsDeltaField, EStimEnabledField, IsRemovedTrialField,
 )
 from src.analysis.nafc.nafc_neural_database_fields import NafcNeuralDataField
 from src.analysis.nafc.psychometric_curves import collect_choice_trials
@@ -126,39 +126,45 @@ def _legend_handles():
 # ── figure builder ────────────────────────────────────────────────────────────
 
 def run(data, channel_name: str, time_before: float, time_after: float) -> None:
+    not_removed = data["IsRemovedTrial"] == False
+    is_removed  = data["IsRemovedTrial"] == True
+
     groups = {
-        (False, False): ("Variant · EStim Off", data[(data["IsDelta"] == False) & (data["EStimEnabled"] == False)]),
-        (False, True):  ("Variant · EStim On",  data[(data["IsDelta"] == False) & (data["EStimEnabled"] == True)]),
-        (True,  False): ("Delta · EStim Off",   data[(data["IsDelta"] == True)  & (data["EStimEnabled"] == False)]),
-        (True,  True):  ("Delta · EStim On",    data[(data["IsDelta"] == True)  & (data["EStimEnabled"] == True)]),
+        ("variant", False): ("Variant · EStim Off", data[not_removed & (data["IsDelta"] == False) & (data["EStimEnabled"] == False)]),
+        ("variant", True):  ("Variant · EStim On",  data[not_removed & (data["IsDelta"] == False) & (data["EStimEnabled"] == True)]),
+        ("delta",   False): ("Delta · EStim Off",   data[not_removed & (data["IsDelta"] == True)  & (data["EStimEnabled"] == False)]),
+        ("delta",   True):  ("Delta · EStim On",    data[not_removed & (data["IsDelta"] == True)  & (data["EStimEnabled"] == True)]),
+        ("removed", False): ("Removed · EStim Off", data[is_removed  & (data["EStimEnabled"] == False)]),
+        ("removed", True):  ("Removed · EStim On",  data[is_removed  & (data["EStimEnabled"] == True)]),
     }
 
-    n_row0 = max(len(groups[(False, False)][1]), len(groups[(False, True)][1]), 1)
-    n_row1 = max(len(groups[(True,  False)][1]), len(groups[(True,  True)][1]), 1)
-    fig_height = max(6, (n_row0 + n_row1) * 0.2 + 3)
+    row_keys   = ["variant", "delta", "removed"]
+    row_labels = ["Variant\n(IsDelta=False)", "Delta\n(IsDelta=True)", "Removed\n(IsRemovedTrial=True)"]
+
+    n_rows = [max(len(groups[(k, False)][1]), len(groups[(k, True)][1]), 1) for k in row_keys]
+    fig_height = max(8, sum(n_rows) * 0.2 + 3)
 
     fig = plt.figure(figsize=(14, fig_height))
-    gs  = GridSpec(2, 2, figure=fig,
-                   height_ratios=[n_row0, n_row1],
+    gs  = GridSpec(3, 2, figure=fig,
+                   height_ratios=n_rows,
                    hspace=0.45, wspace=0.35)
 
     col_labels = ["EStim Off", "EStim On"]
-    row_labels = ["Variant\n(IsDelta=False)", "Delta\n(IsDelta=True)"]
 
-    for r, is_delta in enumerate([False, True]):
+    for r, (row_key, row_label) in enumerate(zip(row_keys, row_labels)):
         for c, estim_on in enumerate([False, True]):
             ax = fig.add_subplot(gs[r, c])
-            label, grp = groups[(is_delta, estim_on)]
+            label, grp = groups[(row_key, estim_on)]
             full_title = f"{col_labels[c]}\n{label}" if r == 0 else label
             plot_raster_panel(ax, grp, channel_name, time_before, time_after, full_title)
             if c == 0:
-                ax.set_ylabel(f"{row_labels[r]}\n\nTrial", fontsize=8)
+                ax.set_ylabel(f"{row_label}\n\nTrial", fontsize=8)
 
     fig.legend(handles=_legend_handles(), loc="upper right", fontsize=8,
                bbox_to_anchor=(0.99, 0.99), framealpha=0.9)
     fig.suptitle(
         f"NAFC Neural Raster — channel: {channel_name}\n"
-        f"Rows: Variant / Delta  ·  Cols: EStim Off / On  ·  Colors: choice",
+        f"Rows: Variant / Delta / Removed  ·  Cols: EStim Off / On  ·  Colors: choice",
         fontsize=11,
     )
     plt.tight_layout()
@@ -179,6 +185,7 @@ def load_data(exp_db_name: str, intan_base_path: str, since_date):
     fields.append(IsCorrectField(exp_conn))
     fields.append(BaseMStickIdField(exp_conn))
     fields.append(IsDeltaField(exp_conn))
+    fields.append(IsRemovedTrialField(exp_conn))
     fields.append(EStimEnabledField(exp_conn))
     fields.append(NafcNeuralDataField(intan_base_path, exp_conn))
 
