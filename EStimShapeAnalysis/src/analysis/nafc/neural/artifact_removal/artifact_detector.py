@@ -140,12 +140,14 @@ class TriggerBasedArtifactDetector(ArtifactDetector):
     high, pulses fire repeatedly at ``pulse_period_s`` intervals starting
     at ``rising + post_trigger_delay_s``, until the falling edge.
 
-    Each pulse produces its own narrow ArtifactEvent of half-width
-    ``blank_half_width_s`` — gaps between pulses are NOT blanked, so spike
-    detection can run on inter-pulse intervals.
+    Each pulse produces a forward-asymmetric ArtifactEvent spanning::
 
-    Set ``pulse_period_s = 0`` to blank the whole TTL-high span as a
-    single event (useful when individual pulse semantics are unknown).
+        [onset - padding_before_s, onset + pulse_width_s + padding_after_s]
+
+    Gaps between pulses are NOT blanked, so spike detection can run on
+    inter-pulse intervals. Set ``pulse_period_s = 0`` to blank the whole
+    TTL-high span as a single event (useful when individual pulse
+    semantics are unknown).
     """
 
     def __init__(
@@ -153,7 +155,9 @@ class TriggerBasedArtifactDetector(ArtifactDetector):
         trigger_rising_samples,
         trigger_falling_samples,
         post_trigger_delay_s: float,
-        blank_half_width_s: float,
+        pulse_width_s: float,
+        padding_after_s: float = 0.0,
+        padding_before_s: float = 0.0,
         pulse_period_s: float = 0.0,
     ):
         self.trigger_rising_samples = np.asarray(
@@ -163,14 +167,18 @@ class TriggerBasedArtifactDetector(ArtifactDetector):
             trigger_falling_samples, dtype=np.int64,
         )
         self.post_trigger_delay_s = float(post_trigger_delay_s)
-        self.blank_half_width_s = float(blank_half_width_s)
+        self.pulse_width_s = float(pulse_width_s)
+        self.padding_after_s = float(padding_after_s)
+        self.padding_before_s = float(padding_before_s)
         self.pulse_period_s = float(pulse_period_s)
 
     def detect(self, signal: np.ndarray, sample_rate: float) -> List[ArtifactEvent]:
         n = len(signal)
         x = np.asarray(signal, dtype=np.float64)
         delay = int(round(self.post_trigger_delay_s * sample_rate))
-        half = max(int(round(self.blank_half_width_s * sample_rate)), 1)
+        width = max(int(round(self.pulse_width_s * sample_rate)), 1)
+        pad_before = max(int(round(self.padding_before_s * sample_rate)), 0)
+        pad_after = max(int(round(self.padding_after_s * sample_rate)), 0)
         period = int(round(self.pulse_period_s * sample_rate))
 
         risings = self.trigger_rising_samples
@@ -182,11 +190,9 @@ class TriggerBasedArtifactDetector(ArtifactDetector):
             fall = int(after[0]) if len(after) else n
 
             if period <= 0:
-                # No period given — blank the whole TTL-high span as one event.
-                pulse_centers = [rise + delay]
-                # Override pulse half-width: cover from start of stim to fall.
-                start = max(rise + delay - half, 0)
-                end = min(fall + half, n)
+                # No period — blank the whole TTL-high span as one event.
+                start = max(rise + delay - pad_before, 0)
+                end = min(fall + pad_after, n)
                 if end <= start:
                     continue
                 center = (start + end) // 2
@@ -197,23 +203,20 @@ class TriggerBasedArtifactDetector(ArtifactDetector):
                 ))
                 continue
 
-            # Per-pulse blanking: emit one narrow event per pulse while
-            # TTL is high. Pulses are at rising + delay + k * period.
+            # Per-pulse blanking: one forward-asymmetric event per pulse.
             k = 0
             while True:
-                center = rise + delay + k * period
-                if center >= fall:
+                onset = rise + delay + k * period
+                if onset >= fall or onset >= n:
                     break
-                if center >= n:
-                    break
-                start = max(center - half, 0)
-                end = min(center + half, n)
+                start = max(onset - pad_before, 0)
+                end = min(onset + width + pad_after, n)
                 if end > start:
                     events.append(ArtifactEvent(
                         start_sample=start, end_sample=end,
-                        peak_sample=center,
-                        peak_value=float(x[center])
-                        if 0 <= center < n else 0.0,
+                        peak_sample=onset,
+                        peak_value=float(x[onset])
+                        if 0 <= onset < n else 0.0,
                     ))
                 k += 1
         return events

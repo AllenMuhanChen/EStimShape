@@ -476,6 +476,24 @@ class EStimPostStimRefractoryPeriodField(PulseTrainParametersField):
         return float(params['postStimRefractoryPeriod'])
 
 
+class EStimPulseWidthField(WaveformField):
+    """Total stim waveform duration (us): d1 + dp + d2."""
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "EStimPulseWidth"
+
+    def get(self, when: When):
+        wf = self.get_cached_super(when, WaveformField)
+        if wf is None:
+            return None
+        d1 = float(wf.get('d1') or 0.0)
+        d2 = float(wf.get('d2') or 0.0)
+        dp = float(wf.get('dp') or 0.0)
+        return d1 + dp + d2
+
+
 class EStimPolarityField(WaveformField):
     def __init__(self, conn: Connection):
         super().__init__(conn)

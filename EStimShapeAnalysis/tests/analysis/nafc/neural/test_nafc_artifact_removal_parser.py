@@ -43,7 +43,8 @@ from clat.util.connection import Connection
 
 from src.analysis.nafc.nafc_database_fields import (
     EStimEnabledField, EStimNumPulsesField, EStimPostStimRefractoryPeriodField,
-    EStimPostTriggerDelayField, EStimSpecIdField, StimSpecIdField,
+    EStimPostTriggerDelayField, EStimPulseWidthField, EStimSpecIdField,
+    StimSpecIdField,
 )
 from src.analysis.nafc.psychometric_curves import collect_choice_trials
 from src.analysis.nafc.neural.artifact_removal import (
@@ -79,10 +80,13 @@ WINDOW_HALFWIDTH_MS = 2.0
 PREPROCESSOR_HIGHPASS_HZ = 5.0
 
 # Artifact-detector tuning.
-# Trigger-based detector blanks a fixed window around each known stim time
-# (sample-on rising edge + post_trigger_delay from EStim XML). No amplitude
-# threshold, no tuning per experiment.
-ARTIFACT_BLANK_HALF_WIDTH_S = 0.0015   # 1.5 ms each side of every pulse
+# Trigger-based detector blanks a forward-asymmetric window around each
+# known stim pulse: [onset - PADDING_BEFORE, onset + pulse_width + PADDING_AFTER].
+# pulse_width comes from the EStim XML (d1 + dp + d2) — no manual tuning.
+# Only the paddings are user-tuned; bump PADDING_AFTER if filter ringing
+# from the artifact leaks past the pulse end.
+PADDING_BEFORE_PULSE_S = 0.0001    # 100 us before each pulse onset
+PADDING_AFTER_PULSE_S  = 0.0005    # 500 us after each pulse end
 
 # Half-width of the trigger-context diagnostic plot, in milliseconds.
 # Should be wide enough to see a handful of stim pulses (~5-6) and the
@@ -164,6 +168,7 @@ def _query_estim_on_trials(exp_db_name: str, since_date):
     fields.append(EStimPostTriggerDelayField(conn))
     fields.append(EStimNumPulsesField(conn))
     fields.append(EStimPostStimRefractoryPeriodField(conn))
+    fields.append(EStimPulseWidthField(conn))
     data = fields.to_data(trial_tstamps)
 
     estim_on = data[data["EStimEnabled"] == True].copy()
@@ -179,6 +184,7 @@ def _query_estim_on_trials(exp_db_name: str, since_date):
             'post_trigger_delay_us': float(row.get("EStimPostTriggerDelay") or 0.0),
             'num_pulses': int(row.get("EStimNumPulses") or 1),
             'post_stim_refractory_us': float(row.get("EStimPostStimRefractoryPeriod") or 0.0),
+            'pulse_width_us': float(row.get("EStimPulseWidth") or 0.0),
         })
     return rows
 
@@ -221,6 +227,7 @@ def _select_recordings(
                 'post_trigger_delay_us': row['post_trigger_delay_us'],
                 'num_pulses': row['num_pulses'],
                 'post_stim_refractory_us': row['post_stim_refractory_us'],
+                'pulse_width_us': row['pulse_width_us'],
             })
 
     print(f"  selected {len(selected)} recordings across "
@@ -280,11 +287,14 @@ def _process_one_recording(
     trigger_rising, trigger_falling = _trigger_edges(trigger_channel)
     post_trigger_delay_s = rec['post_trigger_delay_us'] * 1e-6
     pulse_period_s = rec['post_stim_refractory_us'] * 1e-6
+    pulse_width_s = rec['pulse_width_us'] * 1e-6
     detector = TriggerBasedArtifactDetector(
         trigger_rising_samples=trigger_rising,
         trigger_falling_samples=trigger_falling,
         post_trigger_delay_s=post_trigger_delay_s,
-        blank_half_width_s=ARTIFACT_BLANK_HALF_WIDTH_S,
+        pulse_width_s=pulse_width_s,
+        padding_after_s=PADDING_AFTER_PULSE_S,
+        padding_before_s=PADDING_BEFORE_PULSE_S,
         pulse_period_s=pulse_period_s,
     )
     parser = parser_factory(detector)
@@ -698,7 +708,8 @@ def _plot_trigger_context(
             f'{channel_name}  |  EStimSpecId {spec}  |  trigger context  '
             f'(delay={delay_s*1e6:.0f} us, '
             f'TTL high {ttl_high_ms:.1f} ms, '
-            f'blank +/-{ARTIFACT_BLANK_HALF_WIDTH_S*1e3:.2f} ms margin)',
+            f'pad before {PADDING_BEFORE_PULSE_S*1e6:.0f} us / '
+            f'after {PADDING_AFTER_PULSE_S*1e6:.0f} us)',
             fontsize=9,
         )
         plt.tight_layout()
@@ -824,7 +835,9 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
             trigger_rising_samples=trigger_rising,
             trigger_falling_samples=trigger_falling,
             post_trigger_delay_s=rec['post_trigger_delay_us'] * 1e-6,
-            blank_half_width_s=ARTIFACT_BLANK_HALF_WIDTH_S,
+            pulse_width_s=rec['pulse_width_us'] * 1e-6,
+            padding_after_s=PADDING_AFTER_PULSE_S,
+            padding_before_s=PADDING_BEFORE_PULSE_S,
             pulse_period_s=rec['post_stim_refractory_us'] * 1e-6,
         )
         parser = self._build_parser(detector)
