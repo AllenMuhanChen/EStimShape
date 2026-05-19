@@ -128,3 +128,58 @@ class ThresholdArtifactDetector(ArtifactDetector):
                 peak_value=float(seg[peak_off]),
             ))
         return events
+
+
+class TriggerBasedArtifactDetector(ArtifactDetector):
+    """
+    Construct artifact events from known stimulation trigger times rather
+    than detecting them by amplitude. Robust across experiments — no
+    threshold tuning, immune to baseline drift, immune to HP-filter ringing.
+
+    Each trigger sample emits ``num_pulses`` artifact events spaced by
+    ``pulse_period_s``, with the first centered at::
+
+        trigger_sample + round(post_trigger_delay_s * sample_rate)
+
+    and a blank window of half-width ``blank_half_width_s`` around each
+    pulse center.
+    """
+
+    def __init__(
+        self,
+        trigger_samples,
+        post_trigger_delay_s: float,
+        blank_half_width_s: float,
+        num_pulses: int = 1,
+        pulse_period_s: float = 0.0,
+    ):
+        self.trigger_samples = np.asarray(trigger_samples, dtype=np.int64)
+        self.post_trigger_delay_s = float(post_trigger_delay_s)
+        self.blank_half_width_s = float(blank_half_width_s)
+        self.num_pulses = int(num_pulses)
+        self.pulse_period_s = float(pulse_period_s)
+
+    def detect(self, signal: np.ndarray, sample_rate: float) -> List[ArtifactEvent]:
+        n = len(signal)
+        x = np.asarray(signal, dtype=np.float64)
+        delay = int(round(self.post_trigger_delay_s * sample_rate))
+        half = max(int(round(self.blank_half_width_s * sample_rate)), 1)
+        period = int(round(self.pulse_period_s * sample_rate))
+
+        events: List[ArtifactEvent] = []
+        for t in self.trigger_samples:
+            for k in range(self.num_pulses):
+                center = int(t) + delay + k * period
+                if center < 0 or center >= n:
+                    continue
+                start = max(center - half, 0)
+                end = min(center + half, n)
+                if end <= start:
+                    continue
+                events.append(ArtifactEvent(
+                    start_sample=start,
+                    end_sample=end,
+                    peak_sample=center,
+                    peak_value=float(x[center]),
+                ))
+        return events

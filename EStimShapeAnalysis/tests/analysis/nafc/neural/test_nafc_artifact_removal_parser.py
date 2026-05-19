@@ -36,17 +36,20 @@ if str(_REPO_SRC_PARENT) not in sys.path:
 
 from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
 from clat.intan.amplifiers import read_amplifier_data_with_memmap
+from clat.intan.marker_channels import read_digitalin_file
 from clat.intan.rhs.load_intan_rhs_format import read_data
 from clat.util import time_util
 from clat.util.connection import Connection
 
 from src.analysis.nafc.nafc_database_fields import (
-    EStimEnabledField, EStimSpecIdField, StimSpecIdField,
+    EStimEnabledField, EStimNumPulsesField, EStimPostTriggerDelayField,
+    EStimPulseTrainPeriodField, EStimSpecIdField, StimSpecIdField,
 )
 from src.analysis.nafc.psychometric_curves import collect_choice_trials
 from src.analysis.nafc.neural.artifact_removal import (
     ArtifactEvent, BaselineDriftPreprocessor, FlatBaselineRemover,
     NeoSpikeDetector, RmsThresholdSpikeDetector, ThresholdArtifactDetector,
+    TriggerBasedArtifactDetector,
 )
 from src.analysis.nafc.neural.nafc_artifact_removal_parser import (
     NafcArtifactRemovalParser,
@@ -76,7 +79,10 @@ WINDOW_HALFWIDTH_MS = 2.0
 PREPROCESSOR_HIGHPASS_HZ = 5.0
 
 # Artifact-detector tuning.
-ARTIFACT_THRESHOLD_FACTOR = 100   # x MAD
+# Trigger-based detector blanks a fixed window around each known stim time
+# (sample-on rising edge + post_trigger_delay from EStim XML). No amplitude
+# threshold, no tuning per experiment.
+ARTIFACT_BLANK_HALF_WIDTH_S = 0.0015   # 1.5 ms each side of every pulse
 
 # Spike-detection backend: "neo" or "rms".
 #   "neo" — Nonlinear Energy Operator. Robust to slow baseline shifts
@@ -136,7 +142,9 @@ def _build_recording_index(base_path: str) -> dict:
 def _query_estim_on_trials(exp_db_name: str, since_date):
     """
     Return a list of dicts:
-        {'stim_spec_id': str, 'estim_spec_id': str}
+        {'stim_spec_id': str, 'estim_spec_id': str,
+         'post_trigger_delay_ms': float, 'num_pulses': int,
+         'pulse_train_period_ms': float}
     for all EStim-ON trials found in the DB.
     """
     conn = Connection(exp_db_name)
@@ -148,6 +156,9 @@ def _query_estim_on_trials(exp_db_name: str, since_date):
     fields.append(StimSpecIdField(conn))
     fields.append(EStimEnabledField(conn))
     fields.append(EStimSpecIdField(conn))
+    fields.append(EStimPostTriggerDelayField(conn))
+    fields.append(EStimNumPulsesField(conn))
+    fields.append(EStimPulseTrainPeriodField(conn))
     data = fields.to_data(trial_tstamps)
 
     estim_on = data[data["EStimEnabled"] == True].copy()
@@ -160,6 +171,9 @@ def _query_estim_on_trials(exp_db_name: str, since_date):
         rows.append({
             'stim_spec_id': str(int(stim_spec_id)),
             'estim_spec_id': str(estim_spec_id) if estim_spec_id is not None else "unknown",
+            'post_trigger_delay_ms': float(row.get("EStimPostTriggerDelay") or 0.0),
+            'num_pulses': int(row.get("EStimNumPulses") or 1),
+            'pulse_train_period_ms': float(row.get("EStimPulseTrainPeriod") or 0.0),
         })
     return rows
 
@@ -187,14 +201,21 @@ def _select_recordings(
         if sid in index:
             by_spec[row['estim_spec_id']].append(sid)
 
+    # Reindex trial rows by stim_spec_id so we can recover their estim params.
+    rows_by_sid: Dict[str, dict] = {r['stim_spec_id']: r for r in trial_rows}
+
     selected = []
     for estim_spec_id in sorted(by_spec.keys()):
         sids = by_spec[estim_spec_id][:n_per_spec]
         for sid in sids:
+            row = rows_by_sid[sid]
             selected.append({
                 'recording_dir': index[sid],
                 'stim_spec_id': sid,
                 'estim_spec_id': estim_spec_id,
+                'post_trigger_delay_ms': row['post_trigger_delay_ms'],
+                'num_pulses': row['num_pulses'],
+                'pulse_train_period_ms': row['pulse_train_period_ms'],
             })
 
     print(f"  selected {len(selected)} recordings across "
@@ -212,8 +233,15 @@ def _find_channel_key(channel_to_data: dict, channel_name: str):
     return None
 
 
+def _read_trigger_samples(recording_dir: str) -> np.ndarray:
+    """Rising edges of digital-in-01 (sample-on / eStim trigger)."""
+    digital_in = read_digitalin_file(os.path.join(recording_dir, "digitalin.dat"))
+    trigger_ch = np.asarray(digital_in[0]).astype(np.int8)
+    return np.where(np.diff(trigger_ch) == 1)[0] + 1
+
+
 def _process_one_recording(
-    rec: dict, channel_name: str, parser: NafcArtifactRemovalParser,
+    rec: dict, channel_name: str, parser_factory,
     max_seconds: Optional[float],
 ) -> Optional[dict]:
     recording_dir = rec['recording_dir']
@@ -230,11 +258,22 @@ def _process_one_recording(
     if max_seconds is not None:
         raw = raw[: int(max_seconds * sample_rate)]
 
+    trigger_samples = _read_trigger_samples(recording_dir)
+    detector = TriggerBasedArtifactDetector(
+        trigger_samples=trigger_samples,
+        post_trigger_delay_s=rec['post_trigger_delay_ms'] * 1e-3,
+        blank_half_width_s=ARTIFACT_BLANK_HALF_WIDTH_S,
+        num_pulses=rec['num_pulses'],
+        pulse_period_s=rec['pulse_train_period_ms'] * 1e-3,
+    )
+    parser = parser_factory(detector)
+
     result = parser.process_channel(raw, sample_rate)
     result['sample_rate'] = sample_rate
     result['recording_dir'] = recording_dir
     result['estim_spec_id'] = rec['estim_spec_id']
     result['stim_spec_id'] = rec['stim_spec_id']
+    result['trigger_samples'] = trigger_samples
     return result
 
 
@@ -562,15 +601,12 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
                 f"unknown SPIKE_DETECTOR_METHOD: {SPIKE_DETECTOR_METHOD!r}"
             )
 
-    def _build_parser(self) -> NafcArtifactRemovalParser:
+    def _build_parser(self, artifact_detector) -> NafcArtifactRemovalParser:
         return NafcArtifactRemovalParser(
             preprocessor=BaselineDriftPreprocessor(
                 highpass_hz=PREPROCESSOR_HIGHPASS_HZ,
             ),
-            artifact_detector=ThresholdArtifactDetector(
-                threshold_factor=ARTIFACT_THRESHOLD_FACTOR,
-                noise_scale="mad",
-            ),
+            artifact_detector=artifact_detector,
             artifact_remover=FlatBaselineRemover(
                 pre_pad_s=REMOVER_PRE_PAD_S,
                 post_pad_s=REMOVER_POST_PAD_S,
@@ -588,14 +624,13 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
           - Spike-near-artifact diagnostic (should show zero spikes in blank zone).
           - Pooled artifact-amplitude / width histograms.
         """
-        parser = self._build_parser()
         all_results: List[dict] = []
         results_by_spec: Dict[str, List[dict]] = defaultdict(list)
 
         for i, rec in enumerate(self.selected):
             try:
                 res = _process_one_recording(
-                    rec, CHANNEL_NAME, parser, MAX_SECONDS_TO_LOAD,
+                    rec, CHANNEL_NAME, self._build_parser, MAX_SECONDS_TO_LOAD,
                 )
             except Exception as exc:
                 print(f"[{i+1}] {os.path.basename(rec['recording_dir'])}: "
@@ -644,8 +679,17 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
         if os.environ.get("SKIP_FULL_PARSE") == "1":
             self.skipTest("SKIP_FULL_PARSE=1")
 
-        parser = self._build_parser()
-        events = parser.parse(self.selected[0]['recording_dir'])
+        rec = self.selected[0]
+        trigger_samples = _read_trigger_samples(rec['recording_dir'])
+        detector = TriggerBasedArtifactDetector(
+            trigger_samples=trigger_samples,
+            post_trigger_delay_s=rec['post_trigger_delay_ms'] * 1e-3,
+            blank_half_width_s=ARTIFACT_BLANK_HALF_WIDTH_S,
+            num_pulses=rec['num_pulses'],
+            pulse_period_s=rec['pulse_train_period_ms'] * 1e-3,
+        )
+        parser = self._build_parser(detector)
+        events = parser.parse(rec['recording_dir'])
 
         self.assertIsInstance(events, NafcTrialEvents)
         self.assertGreater(events.sample_rate, 0)

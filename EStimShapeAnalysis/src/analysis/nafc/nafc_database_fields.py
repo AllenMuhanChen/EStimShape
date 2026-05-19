@@ -398,6 +398,69 @@ class WaveformField(EStimSpecField):
         else:
             return estim_spec['org.xper.intan.stimulation.ChannelEStimParameters']['waveformParameters']
 
+class PulseTrainParametersField(EStimSpecField):
+    """Returns the pulseTrainParameters dict from the EStim XML."""
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "EStimPulseTrainParameters"
+
+    def get(self, when: When) -> dict:
+        estim_spec = self.get_cached_super(when, EStimSpecField)
+        if estim_spec is None:
+            return None
+        if type(estim_spec) == list:
+            return estim_spec[0]['org.xper.intan.stimulation.ChannelEStimParameters']['pulseTrainParameters']
+        else:
+            return estim_spec['org.xper.intan.stimulation.ChannelEStimParameters']['pulseTrainParameters']
+
+
+class EStimPostTriggerDelayField(PulseTrainParametersField):
+    """postTriggerDelay (ms): time between trigger edge and stim onset."""
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "EStimPostTriggerDelay"
+
+    def get(self, when: When):
+        params = self.get_cached_super(when, PulseTrainParametersField)
+        if params is None:
+            return None
+        return float(params['postTriggerDelay'])
+
+
+class EStimNumPulsesField(PulseTrainParametersField):
+    """numRepetitions: number of pulses per trigger."""
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "EStimNumPulses"
+
+    def get(self, when: When):
+        params = self.get_cached_super(when, PulseTrainParametersField)
+        if params is None:
+            return None
+        return int(params['numRepetitions'])
+
+
+class EStimPulseTrainPeriodField(PulseTrainParametersField):
+    """pulseTrainPeriod (ms): interval between successive pulses in a train."""
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "EStimPulseTrainPeriod"
+
+    def get(self, when: When):
+        params = self.get_cached_super(when, PulseTrainParametersField)
+        if params is None:
+            return None
+        return float(params['pulseTrainPeriod'])
+
+
 class EStimPolarityField(WaveformField):
     def __init__(self, conn: Connection):
         super().__init__(conn)
