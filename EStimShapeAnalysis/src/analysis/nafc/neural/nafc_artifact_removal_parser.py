@@ -206,6 +206,14 @@ class NafcArtifactRemovalParser(NafcParserBase):
             filtered_for_spikes, noise_mask=noise_mask,
         )
 
+        # Enforce the no-spikes-in-blank-zone invariant. Some detectors
+        # (e.g. NEO with smoothing) can report crossings inside the blank
+        # zone because the smoothing kernel pulls energy in from the
+        # boundary just outside the zone.
+        if blank_mask.any() and len(spike_samples):
+            keep = ~blank_mask[spike_samples]
+            spike_samples = spike_samples[keep]
+
         spike_times = spike_samples / sample_rate
 
         artifact_threshold = None
