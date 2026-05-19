@@ -340,10 +340,15 @@ class NeoSpikeDetector(SpikeDetector):
                 continue
             # Spike time = local negative peak of the bandpass-filtered trace.
             peak_idx = c + int(np.argmin(seg))
-            amp = abs(float(filtered[peak_idx]))
-            if amp < self.min_spike_amplitude_uv:
+            # Amplitude check: examine max |signal| in a window around the
+            # peak so a small negative trough sitting on a huge artifact
+            # excursion gets rejected.
+            wlo = max(peak_idx - peak_window, 0)
+            whi = min(peak_idx + peak_window, n)
+            window_amp = float(np.max(np.abs(filtered[wlo:whi])))
+            if window_amp < self.min_spike_amplitude_uv:
                 continue
-            if amp > self.max_spike_amplitude_uv:
+            if window_amp > self.max_spike_amplitude_uv:
                 continue
             if spikes and (peak_idx - spikes[-1]) < refractory_samples:
                 continue
