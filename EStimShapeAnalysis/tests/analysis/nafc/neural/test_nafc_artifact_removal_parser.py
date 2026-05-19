@@ -1,24 +1,22 @@
 """
 Visual + sanity test for NafcArtifactRemovalParser.
 
-Point INTAN_BASE_PATH at a directory of NAFC recordings (the same layout
-NafcNeuralDataField walks: optionally one date-subdir level, then
-{stimSpecId}_{YYMMDD}_{HHMMSS}/ trial dirs). The test will:
+Point INTAN_BASE_PATH at a directory of NAFC recordings and EXP_DB_NAME
+at the corresponding experiment database. The test will:
 
-  1. Find up to N_RECORDINGS recording directories under INTAN_BASE_PATH.
-  2. For each, load raw amplifier data for CHANNEL_NAME and run the full
-     pipeline (preprocess -> detect -> remove -> spike-detect).
-  3. Plot:
-       - One overview (raw vs. cleaned) per recording.
-       - N_WINDOWS short windows around individual artifacts sampled
-         across all recordings: raw + cleaned + threshold, with detected
-         spikes marked.
-       - Pooled histograms of artifact peak amplitudes and event widths
-         (these help us pick a sensible a-priori artifact duration).
-  4. Assert basic invariants (parser ran, returned a NafcTrialEvents,
-     spikes_by_channel populated for at least one channel).
+  1. Query the DB for trials with EStim ON; extract their stimSpecIds.
+  2. Map each stimSpecId to its recording directory under INTAN_BASE_PATH
+     (same layout NafcNeuralDataField uses).
+  3. Load CHANNEL_NAME from up to N_RECORDINGS of those directories and
+     run the full pipeline (preprocess -> detect -> remove -> spike-detect).
+  4. Plot:
+       - One overview (raw vs. cleaned) per recording (up to N_OVERVIEW_PLOTS).
+       - N_WINDOWS short windows around individual artifacts sampled across
+         all recordings: raw + cleaned + threshold, with detected spikes.
+       - Pooled histograms of artifact peak amplitudes and event widths.
+  5. Assert basic invariants.
 
-Run as a script to skip unittest plumbing:
+Run as a script:
     python -m tests.analysis.nafc.neural.test_nafc_artifact_removal_parser
 """
 
@@ -26,7 +24,7 @@ import os
 import sys
 import unittest
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional, Set, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -36,9 +34,17 @@ _REPO_SRC_PARENT = Path(__file__).resolve().parents[4]
 if str(_REPO_SRC_PARENT) not in sys.path:
     sys.path.insert(0, str(_REPO_SRC_PARENT))
 
+import xmltodict
+from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
 from clat.intan.amplifiers import read_amplifier_data_with_memmap
 from clat.intan.rhs.load_intan_rhs_format import read_data
+from clat.util import time_util
+from clat.util.connection import Connection
 
+from src.analysis.nafc.nafc_database_fields import (
+    EStimEnabledField, StimSpecIdField,
+)
+from src.analysis.nafc.psychometric_curves import collect_choice_trials
 from src.analysis.nafc.neural.artifact_removal import (
     ArtifactEvent, BaselineDriftPreprocessor, RmsThresholdSpikeDetector,
     SampleInterpolateRemover, ThresholdArtifactDetector,
@@ -50,66 +56,101 @@ from src.analysis.nafc.neural.nafc_trial_events import NafcTrialEvents
 
 
 # ───────────────────────── CONFIG ──────────────────────────────────────────
-# Point this at an Intan base directory. The test scans for recording
-# directories one level deep (and one level under a date subdir).
+EXP_DB_NAME = "allen_estimshape_exp_260518_0"
 INTAN_BASE_PATH = (
     "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/"
     "allen_estimshape_exp_260518_0/2026-05-18/"
 )
+SINCE_DATE = time_util.from_date_to_now(2026, 5, 18)
 CHANNEL_NAME = "A-006"
 
-# How many recordings to sample from INTAN_BASE_PATH.
+# How many EStim-ON recordings to use (chosen from the full set of matches).
 N_RECORDINGS = 10
-# How many example artifact windows to display, sampled across all
-# recordings.
+# How many example artifact windows to display across all recordings.
 N_WINDOWS = 12
 # Half-width of each artifact display window, in milliseconds.
 WINDOW_HALFWIDTH_MS = 2.0
-# How many overview traces to plot (one figure each). Set to 0 to skip.
+# How many per-recording overview traces to plot.
 N_OVERVIEW_PLOTS = 3
 
-# Artifact-detector tuning (kept loose; refine after viewing the plots).
+# Artifact-detector tuning.
 ARTIFACT_THRESHOLD_FACTOR = 8.0   # x MAD
 ARTIFACT_DURATION_S = 170e-6      # paper's a-priori value
 SPIKE_THRESHOLD_FACTOR = 4.0      # -N x RMS on the cleaned MUA band
 
-# Optional: limit how much raw data we load per recording. NAFC trials
-# are short so this is usually a no-op, but useful for sftp-mounted dirs
-# during exploration.
 MAX_SECONDS_TO_LOAD: Optional[float] = None
 # ───────────────────────────────────────────────────────────────────────────
 
 
-# ── recording-dir discovery (mirrors NafcNeuralDataField) ──────────────────
+# ── recording-dir index (mirrors NafcNeuralDataField) ─────────────────────
 
 def _is_recording_dir(name: str) -> bool:
     parts = name.split('_')
     return len(parts) >= 3 and len(parts[0]) > 10 and parts[0].isdigit()
 
 
-def _find_recording_dirs(base_path: str, limit: Optional[int] = None) -> List[str]:
-    """Return recording dirs found one level deep (or under a date subdir)."""
+def _build_recording_index(base_path: str) -> dict:
+    """Return {stimSpecId (str): recording_dir_path} for all trial dirs found."""
+    index: dict = {}
     if not os.path.isdir(base_path):
-        return []
-    found: List[str] = []
-    for entry in sorted(os.scandir(base_path), key=lambda e: e.name):
+        return index
+    try:
+        entries = list(os.scandir(base_path))
+    except OSError as exc:
+        print(f"Cannot scan {base_path}: {exc}")
+        return index
+    for entry in entries:
         if not entry.is_dir():
             continue
         if _is_recording_dir(entry.name):
-            found.append(entry.path)
+            index[entry.name.split('_')[0]] = entry.path
         else:
             try:
-                for sub in sorted(os.scandir(entry.path), key=lambda e: e.name):
+                for sub in os.scandir(entry.path):
                     if sub.is_dir() and _is_recording_dir(sub.name):
-                        found.append(sub.path)
+                        index[sub.name.split('_')[0]] = sub.path
             except OSError:
-                continue
-        if limit is not None and len(found) >= limit:
-            break
-    if limit is not None:
-        found = found[:limit]
-    return found
+                pass
+    return index
 
+
+def _estim_on_stim_spec_ids(exp_db_name: str, since_date) -> Set[str]:
+    """Query the DB and return stimSpecIds for trials where EStim is ON."""
+    conn = Connection(exp_db_name)
+    trial_tstamps = collect_choice_trials(conn, since_date)
+    if not trial_tstamps:
+        return set()
+
+    fields = CachedFieldList()
+    fields.append(StimSpecIdField(conn))
+    fields.append(EStimEnabledField(conn))
+    data = fields.to_data(trial_tstamps)
+
+    estim_on = data[data["EStimEnabled"] == True]
+    return set(str(int(sid)) for sid in estim_on["StimSpecId"].dropna())
+
+
+def _find_estim_on_recording_dirs(
+    exp_db_name: str, base_path: str, since_date, limit: int,
+) -> List[str]:
+    """Return up to `limit` recording dirs for EStim-ON trials."""
+    print("Building recording index from filesystem...")
+    index = _build_recording_index(base_path)
+    print(f"  found {len(index)} recording dirs")
+
+    print("Querying DB for EStim-ON trials...")
+    stim_spec_ids = _estim_on_stim_spec_ids(exp_db_name, since_date)
+    print(f"  found {len(stim_spec_ids)} EStim-ON trials")
+
+    dirs = [
+        index[sid] for sid in sorted(stim_spec_ids)
+        if sid in index
+    ]
+    print(f"  matched {len(dirs)} recording dirs; using first {min(limit, len(dirs))}")
+    return dirs[:limit]
+
+
+# ── per-recording pipeline run ─────────────────────────────────────────────
 
 def _find_channel_key(channel_to_data: dict, channel_name: str):
     for key in channel_to_data:
@@ -118,15 +159,11 @@ def _find_channel_key(channel_to_data: dict, channel_name: str):
     return None
 
 
-# ── per-recording pipeline run ─────────────────────────────────────────────
-
 def _process_one_recording(
     recording_dir: str, channel_name: str,
     parser: NafcArtifactRemovalParser,
     max_seconds: Optional[float],
 ) -> Optional[dict]:
-    """Returns a dict with pipeline outputs for one channel of one recording,
-    or None if the channel isn't present."""
     rhs = read_data(os.path.join(recording_dir, "info.rhs"))
     sample_rate = float(rhs['frequency_parameters']['amplifier_sample_rate'])
     amplifier_channels = rhs['amplifier_channels']
@@ -167,15 +204,14 @@ def _plot_overview(result: dict, channel_name: str):
             label='cleaned')
     if threshold is not None:
         ax.axhline(threshold, color='tab:red', linewidth=0.6, linestyle='--',
-                   label=f'+/- artifact threshold ({threshold:.1f} uV)')
+                   label=f'+/- threshold ({threshold:.1f} uV)')
         ax.axhline(-threshold, color='tab:red', linewidth=0.6, linestyle='--')
     for ev in artifacts:
         ax.axvline(ev.start_sample / fs,
                    color='tab:orange', alpha=0.15, linewidth=0.5)
     ax.set_xlabel('Time (s)')
     ax.set_ylabel('Voltage (uV)')
-    ax.set_title(f'{channel_name}  -  {name}  -  '
-                 f'{len(artifacts)} artifacts')
+    ax.set_title(f'{channel_name}  -  {name}  -  {len(artifacts)} artifacts')
     ax.legend(loc='upper right', fontsize=8)
     plt.tight_layout()
 
@@ -184,19 +220,17 @@ def _plot_pooled_artifact_windows(
     per_recording_results: List[dict], channel_name: str,
     n_windows: int, halfwidth_ms: float,
 ):
-    # Pool (recording_result, event) pairs, then evenly sample N of them.
     all_pairs: List[Tuple[dict, ArtifactEvent]] = []
     for res in per_recording_results:
         for ev in res['artifacts']:
             all_pairs.append((res, ev))
 
     if not all_pairs:
-        print("No artifacts detected across recordings - skipping windows.")
+        print("No artifacts detected - skipping per-event windows.")
         return
 
     idxs = np.linspace(0, len(all_pairs) - 1,
                        num=min(n_windows, len(all_pairs)), dtype=int)
-
     n_rows = len(idxs)
     fig, axes = plt.subplots(n_rows, 1, figsize=(10, 1.8 * n_rows))
     if n_rows == 1:
@@ -228,7 +262,6 @@ def _plot_pooled_artifact_windows(
         if threshold is not None:
             ax.axhline(threshold, color='tab:red', linewidth=0.5, linestyle='--')
             ax.axhline(-threshold, color='tab:red', linewidth=0.5, linestyle='--')
-
         spike_mask = (spike_samples >= lo) & (spike_samples < hi)
         for s in spike_samples[spike_mask]:
             ax.axvline((s - c) / fs * 1e3,
@@ -247,8 +280,8 @@ def _plot_pooled_artifact_windows(
     axes[0].legend(loc='upper right', fontsize=7)
     axes[-1].set_xlabel('Time relative to artifact peak (ms)')
     plt.suptitle(
-        f'{channel_name}  -  artifact removal windows '
-        f'(pooled across {len(per_recording_results)} recordings)',
+        f'{channel_name}  -  artifact windows '
+        f'(pooled, {len(per_recording_results)} EStim-ON recordings)',
         fontsize=10,
     )
     plt.tight_layout()
@@ -257,10 +290,10 @@ def _plot_pooled_artifact_windows(
 def _plot_pooled_stats(per_recording_results: List[dict], channel_name: str):
     peaks: List[float] = []
     widths_us: List[float] = []
-    counts_per_recording: List[int] = []
+    counts: List[int] = []
     for res in per_recording_results:
         fs = res['sample_rate']
-        counts_per_recording.append(len(res['artifacts']))
+        counts.append(len(res['artifacts']))
         for ev in res['artifacts']:
             peaks.append(abs(ev.peak_value))
             widths_us.append(ev.width_samples / fs * 1e6)
@@ -270,9 +303,10 @@ def _plot_pooled_stats(per_recording_results: List[dict], channel_name: str):
 
     peaks_arr = np.asarray(peaks)
     widths_arr = np.asarray(widths_us)
-    counts_arr = np.asarray(counts_per_recording)
+    counts_arr = np.asarray(counts)
 
     fig, axes = plt.subplots(1, 3, figsize=(14, 3.4))
+
     axes[0].hist(peaks_arr, bins=40, color='tab:orange', edgecolor='black')
     axes[0].set_xlabel('|peak| (uV)')
     axes[0].set_ylabel('count')
@@ -281,7 +315,8 @@ def _plot_pooled_stats(per_recording_results: List[dict], channel_name: str):
     axes[1].hist(widths_arr, bins=40, color='tab:purple', edgecolor='black')
     axes[1].set_xlabel('Event width above threshold (us)')
     axes[1].set_title(
-        f'Artifact widths  (median {np.median(widths_arr):.0f} us, '
+        f'Artifact widths  '
+        f'(median {np.median(widths_arr):.0f} us, '
         f'p95 {np.percentile(widths_arr, 95):.0f} us)'
     )
     axes[1].axvline(170, color='tab:red', linestyle='--', linewidth=1,
@@ -295,8 +330,8 @@ def _plot_pooled_stats(per_recording_results: List[dict], channel_name: str):
     axes[2].set_title('Artifacts per recording')
 
     plt.suptitle(
-        f'{channel_name}  -  pooled artifact statistics '
-        f'({len(peaks_arr)} events across {len(counts_arr)} recordings)',
+        f'{channel_name}  -  pooled artifact statistics  '
+        f'({len(peaks_arr)} events, {len(counts_arr)} EStim-ON recordings)',
         fontsize=10,
     )
     plt.tight_layout()
@@ -305,17 +340,19 @@ def _plot_pooled_stats(per_recording_results: List[dict], channel_name: str):
 # ── the test class ─────────────────────────────────────────────────────────
 
 class TestNafcArtifactRemovalParser(unittest.TestCase):
-    """Visual / sanity test against real Intan recordings."""
+    """Visual / sanity test against real EStim-ON NAFC recordings."""
 
     @classmethod
     def setUpClass(cls):
-        cls.recording_dirs = _find_recording_dirs(INTAN_BASE_PATH,
-                                                  limit=N_RECORDINGS)
+        cls.recording_dirs = _find_estim_on_recording_dirs(
+            EXP_DB_NAME, INTAN_BASE_PATH, SINCE_DATE, limit=N_RECORDINGS,
+        )
         if not cls.recording_dirs:
             raise unittest.SkipTest(
-                f"No recording dirs found under INTAN_BASE_PATH={INTAN_BASE_PATH}"
+                "No EStim-ON recording dirs found. "
+                f"Check EXP_DB_NAME={EXP_DB_NAME} and INTAN_BASE_PATH."
             )
-        print(f"\nFound {len(cls.recording_dirs)} recordings; using all.")
+        print(f"\nWill process {len(cls.recording_dirs)} EStim-ON recordings.")
 
     def _build_parser(self) -> NafcArtifactRemovalParser:
         return NafcArtifactRemovalParser(
@@ -333,11 +370,8 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
             ),
         )
 
-    # -- the "show me windows around artifacts" visual test ------------------
-
     def test_visualize_artifact_windows_across_recordings(self):
-        """Run the pipeline on one channel across N recordings and plot
-        diagnostic figures pooled across the lot."""
+        """Run pipeline on EStim-ON recordings and plot diagnostic figures."""
         parser = self._build_parser()
         results: List[dict] = []
 
@@ -347,26 +381,23 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
                     rec, CHANNEL_NAME, parser, MAX_SECONDS_TO_LOAD,
                 )
             except Exception as exc:
-                print(f"[{i+1}/{len(self.recording_dirs)}] {rec}: FAILED  ({exc})")
+                print(f"[{i+1}/{len(self.recording_dirs)}] FAILED: {exc}")
                 continue
             if res is None:
-                print(f"[{i+1}/{len(self.recording_dirs)}] {rec}: "
+                print(f"[{i+1}/{len(self.recording_dirs)}] "
                       f"channel {CHANNEL_NAME} not present, skipping")
                 continue
 
-            n_samples = len(res['preprocessed'])
+            n = len(res['preprocessed'])
             rec_name = os.path.basename(rec.rstrip('/\\'))
-            print(f"[{i+1}/{len(self.recording_dirs)}] "
-                  f"{rec_name}: "
-                  f"{n_samples} samples "
-                  f"({n_samples/res['sample_rate']:.2f} s), "
+            print(f"[{i+1}/{len(self.recording_dirs)}] {rec_name}: "
+                  f"{n} samples ({n/res['sample_rate']:.2f} s), "
                   f"{len(res['artifacts'])} artifacts, "
                   f"{len(res['spike_samples'])} spikes")
             results.append(res)
 
-        self.assertTrue(results, "no recordings processed")
+        self.assertTrue(results, "no recordings processed successfully")
 
-        # Plots: per-recording overview (limited), pooled windows, pooled stats.
         for res in results[:N_OVERVIEW_PLOTS]:
             _plot_overview(res, CHANNEL_NAME)
         _plot_pooled_artifact_windows(results, CHANNEL_NAME,
@@ -374,22 +405,17 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
         _plot_pooled_stats(results, CHANNEL_NAME)
         plt.show()
 
-        # Sanity asserts on aggregate output.
-        total_artifacts = sum(len(r['artifacts']) for r in results)
-        print(f"\nTotal artifacts detected: {total_artifacts} "
-              f"across {len(results)} recordings")
+        total = sum(len(r['artifacts']) for r in results)
+        print(f"\nTotal artifacts: {total} across {len(results)} recordings")
         for res in results:
             self.assertEqual(len(res['cleaned']), len(res['preprocessed']))
             self.assertTrue(np.isfinite(res['cleaned']).all())
 
-    # -- end-to-end parser test (NafcTrialEvents shape) ----------------------
-
     def test_parser_returns_nafc_trial_events(self):
-        """Parser runs to completion on one recording and produces a populated
-        NafcTrialEvents.
+        """Parser runs on one EStim-ON recording and returns a valid NafcTrialEvents.
 
-        WARNING: this runs the pipeline on every channel and can be slow.
-        Set SKIP_FULL_PARSE=1 in the env to skip.
+        Runs the pipeline on every channel — can be slow.
+        Set SKIP_FULL_PARSE=1 to skip.
         """
         if os.environ.get("SKIP_FULL_PARSE") == "1":
             self.skipTest("SKIP_FULL_PARSE=1")
@@ -401,10 +427,10 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
         self.assertGreater(events.sample_rate, 0)
         self.assertTrue(events.spikes_by_channel, "no channels parsed")
 
-        total_spikes = sum(len(v) for v in events.spikes_by_channel.values())
+        total = sum(len(v) for v in events.spikes_by_channel.values())
         print(f"task_id={events.task_id}  "
               f"channels={len(events.spikes_by_channel)}  "
-              f"total spikes={total_spikes}")
+              f"total spikes={total}")
 
 
 if __name__ == "__main__":
