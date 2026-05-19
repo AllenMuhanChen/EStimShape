@@ -477,7 +477,8 @@ class EStimPostStimRefractoryPeriodField(PulseTrainParametersField):
 
 
 class EStimPulseWidthField(WaveformField):
-    """Total stim waveform duration (us): d1 + dp + d2."""
+    """Total stim waveform duration (us). For biphasic polarity the XML
+    only stores one phase's worth of d1/dp/d2, so the result is doubled."""
     def __init__(self, conn: Connection):
         super().__init__(conn)
 
@@ -491,7 +492,11 @@ class EStimPulseWidthField(WaveformField):
         d1 = float(wf.get('d1') or 0.0)
         d2 = float(wf.get('d2') or 0.0)
         dp = float(wf.get('dp') or 0.0)
-        return d1 + dp + d2
+        half = d1 + dp + d2
+        polarity = str(wf.get('polarity') or '').lower()
+        if 'bi' in polarity:
+            return 2.0 * half
+        return half
 
 
 class EStimPolarityField(WaveformField):

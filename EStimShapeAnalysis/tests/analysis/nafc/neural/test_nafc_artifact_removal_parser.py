@@ -286,8 +286,10 @@ def _process_one_recording(
     trigger_channel = _read_trigger_channel(recording_dir)
     trigger_rising, trigger_falling = _trigger_edges(trigger_channel)
     post_trigger_delay_s = rec['post_trigger_delay_us'] * 1e-6
-    pulse_period_s = rec['post_stim_refractory_us'] * 1e-6
     pulse_width_s = rec['pulse_width_us'] * 1e-6
+    # Treat postStimRefractoryPeriod as the gap AFTER the pulse ends, so
+    # the onset-to-onset period is pulse_width + refractory.
+    pulse_period_s = pulse_width_s + rec['post_stim_refractory_us'] * 1e-6
     print(
         f"    DB params: delay={rec['post_trigger_delay_us']:.1f} us, "
         f"pulse_width={rec['pulse_width_us']:.1f} us, "
@@ -842,14 +844,15 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
         trigger_rising, trigger_falling = _trigger_edges(
             _read_trigger_channel(rec['recording_dir']),
         )
+        pw_s = rec['pulse_width_us'] * 1e-6
         detector = TriggerBasedArtifactDetector(
             trigger_rising_samples=trigger_rising,
             trigger_falling_samples=trigger_falling,
             post_trigger_delay_s=rec['post_trigger_delay_us'] * 1e-6,
-            pulse_width_s=rec['pulse_width_us'] * 1e-6,
+            pulse_width_s=pw_s,
             padding_after_s=PADDING_AFTER_PULSE_S,
             padding_before_s=PADDING_BEFORE_PULSE_S,
-            pulse_period_s=rec['post_stim_refractory_us'] * 1e-6,
+            pulse_period_s=pw_s + rec['post_stim_refractory_us'] * 1e-6,
         )
         parser = self._build_parser(detector)
         events = parser.parse(rec['recording_dir'])
