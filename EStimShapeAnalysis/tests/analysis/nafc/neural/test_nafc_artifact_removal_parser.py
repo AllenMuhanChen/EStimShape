@@ -279,11 +279,13 @@ def _process_one_recording(
     trigger_channel = _read_trigger_channel(recording_dir)
     trigger_rising, trigger_falling = _trigger_edges(trigger_channel)
     post_trigger_delay_s = rec['post_trigger_delay_us'] * 1e-6
+    pulse_period_s = rec['post_stim_refractory_us'] * 1e-6
     detector = TriggerBasedArtifactDetector(
         trigger_rising_samples=trigger_rising,
         trigger_falling_samples=trigger_falling,
         post_trigger_delay_s=post_trigger_delay_s,
         blank_half_width_s=ARTIFACT_BLANK_HALF_WIDTH_S,
+        pulse_period_s=pulse_period_s,
     )
     parser = parser_factory(detector)
 
@@ -823,6 +825,7 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
             trigger_falling_samples=trigger_falling,
             post_trigger_delay_s=rec['post_trigger_delay_us'] * 1e-6,
             blank_half_width_s=ARTIFACT_BLANK_HALF_WIDTH_S,
+            pulse_period_s=rec['post_stim_refractory_us'] * 1e-6,
         )
         parser = self._build_parser(detector)
         events = parser.parse(rec['recording_dir'])

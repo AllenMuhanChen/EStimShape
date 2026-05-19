@@ -136,15 +136,16 @@ class TriggerBasedArtifactDetector(ArtifactDetector):
     detecting them by amplitude. Robust across experiments — no threshold
     tuning, immune to baseline drift, immune to HP-filter ringing.
 
-    Matches Intan HOLD-mode stimulation: the pulse train fires for as long
-    as the trigger TTL is held high. Each (rising, falling) edge pair
-    produces one ArtifactEvent spanning::
+    Matches Intan HOLD-mode stimulation: while the trigger TTL is held
+    high, pulses fire repeatedly at ``pulse_period_s`` intervals starting
+    at ``rising + post_trigger_delay_s``, until the falling edge.
 
-        rising + post_trigger_delay_s * fs       (start of first pulse)
-        falling                                    (end of last pulse)
+    Each pulse produces its own narrow ArtifactEvent of half-width
+    ``blank_half_width_s`` — gaps between pulses are NOT blanked, so spike
+    detection can run on inter-pulse intervals.
 
-    padded by ``blank_half_width_s`` on each side. Pulse count and period
-    are not used — the TTL itself defines the train extent.
+    Set ``pulse_period_s = 0`` to blank the whole TTL-high span as a
+    single event (useful when individual pulse semantics are unknown).
     """
 
     def __init__(
@@ -153,6 +154,7 @@ class TriggerBasedArtifactDetector(ArtifactDetector):
         trigger_falling_samples,
         post_trigger_delay_s: float,
         blank_half_width_s: float,
+        pulse_period_s: float = 0.0,
     ):
         self.trigger_rising_samples = np.asarray(
             trigger_rising_samples, dtype=np.int64,
@@ -162,35 +164,56 @@ class TriggerBasedArtifactDetector(ArtifactDetector):
         )
         self.post_trigger_delay_s = float(post_trigger_delay_s)
         self.blank_half_width_s = float(blank_half_width_s)
+        self.pulse_period_s = float(pulse_period_s)
 
     def detect(self, signal: np.ndarray, sample_rate: float) -> List[ArtifactEvent]:
         n = len(signal)
         x = np.asarray(signal, dtype=np.float64)
         delay = int(round(self.post_trigger_delay_s * sample_rate))
         half = max(int(round(self.blank_half_width_s * sample_rate)), 1)
+        period = int(round(self.pulse_period_s * sample_rate))
 
-        # Pair each rising edge with the next falling edge at or after it.
-        # Drop any rising edge that has no matching falling edge.
         risings = self.trigger_rising_samples
         fallings = self.trigger_falling_samples
         events: List[ArtifactEvent] = []
         for rise in risings:
             rise = int(rise)
             after = fallings[fallings > rise]
-            if not len(after):
-                # TTL never went low again in this recording — blank to end.
-                fall = n
-            else:
-                fall = int(after[0])
-            start = max(rise + delay - half, 0)
-            end = min(fall + half, n)
-            if end <= start:
+            fall = int(after[0]) if len(after) else n
+
+            if period <= 0:
+                # No period given — blank the whole TTL-high span as one event.
+                pulse_centers = [rise + delay]
+                # Override pulse half-width: cover from start of stim to fall.
+                start = max(rise + delay - half, 0)
+                end = min(fall + half, n)
+                if end <= start:
+                    continue
+                center = (start + end) // 2
+                events.append(ArtifactEvent(
+                    start_sample=start, end_sample=end,
+                    peak_sample=center,
+                    peak_value=float(x[center]) if 0 <= center < n else 0.0,
+                ))
                 continue
-            center = (start + end) // 2
-            events.append(ArtifactEvent(
-                start_sample=start,
-                end_sample=end,
-                peak_sample=center,
-                peak_value=float(x[center]) if 0 <= center < n else 0.0,
-            ))
+
+            # Per-pulse blanking: emit one narrow event per pulse while
+            # TTL is high. Pulses are at rising + delay + k * period.
+            k = 0
+            while True:
+                center = rise + delay + k * period
+                if center >= fall:
+                    break
+                if center >= n:
+                    break
+                start = max(center - half, 0)
+                end = min(center + half, n)
+                if end > start:
+                    events.append(ArtifactEvent(
+                        start_sample=start, end_sample=end,
+                        peak_sample=center,
+                        peak_value=float(x[center])
+                        if 0 <= center < n else 0.0,
+                    ))
+                k += 1
         return events
