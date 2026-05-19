@@ -38,10 +38,10 @@ class NafcNeuralDataField(CachedDatabaseField):
         {base}/{YYYY-MM-DD}/{stimSpecId}_{YYMMDD}_{HHMMSS}/
     """
 
-    def __init__(self, intan_base_path: str, conn: Connection):
+    def __init__(self, intan_base_path: str, conn: Connection, cache_dir: str = None):
         super().__init__(conn)
         self._base = intan_base_path
-        self._parser = NafcNeuralParser()
+        self._parser = NafcNeuralParser(to_cache=cache_dir is not None, cache_dir=cache_dir)
         self._index: dict[str, str] = {}
         self._build_index()
 

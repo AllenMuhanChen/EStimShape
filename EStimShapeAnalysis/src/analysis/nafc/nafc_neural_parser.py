@@ -1,4 +1,5 @@
 import os
+import pickle
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
@@ -57,19 +58,56 @@ class NafcNeuralParser:
     Digital channel mapping:
         digital-in-01 (index 0): sample on / off
         digital-in-02 (index 1): choices on / off
+
+    If to_cache=True and cache_dir is set, parsed results are saved as
+    individual pickle files ({cache_dir}/{task_id}_parsed_nafc_trial.pkl)
+    and loaded from there on subsequent calls, matching the MultiFileParser
+    caching convention.
     """
+
+    def __init__(self, to_cache: bool = False, cache_dir: Optional[str] = None):
+        self.to_cache = to_cache
+        self.cache_dir = cache_dir
 
     def parse(self, recording_dir: str) -> NafcTrialEvents:
         task_id = _task_id_from_dir(recording_dir)
+
+        if self.to_cache and self.cache_dir is not None:
+            cached = self._load_cache(task_id)
+            if cached is not None:
+                return cached
+
         sample_rate = self._read_sample_rate(recording_dir)
         spikes_by_channel = self._read_spikes(recording_dir)
         events = self._read_events(recording_dir, sample_rate)
-        return NafcTrialEvents(
+        result = NafcTrialEvents(
             task_id=task_id,
             sample_rate=sample_rate,
             spikes_by_channel=spikes_by_channel,
             **events,
         )
+
+        if self.to_cache and self.cache_dir is not None:
+            self._cache(task_id, result)
+
+        return result
+
+    def _cache(self, task_id: int, events: NafcTrialEvents) -> None:
+        os.makedirs(self.cache_dir, exist_ok=True)
+        path = os.path.join(self.cache_dir, f"{task_id}_parsed_nafc_trial.pkl")
+        with open(path, 'wb') as f:
+            pickle.dump(events, f)
+
+    def _load_cache(self, task_id: int) -> Optional[NafcTrialEvents]:
+        path = os.path.join(self.cache_dir, f"{task_id}_parsed_nafc_trial.pkl")
+        if not os.path.exists(path):
+            return None
+        try:
+            with open(path, 'rb') as f:
+                return pickle.load(f)
+        except Exception as exc:
+            print(f"NafcNeuralParser: failed to load cache for task_id={task_id}: {exc}")
+            return None
 
     @staticmethod
     def _read_sample_rate(recording_dir: str) -> float:
