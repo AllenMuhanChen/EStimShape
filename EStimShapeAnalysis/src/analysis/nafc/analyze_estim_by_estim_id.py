@@ -36,7 +36,7 @@ from src.startup import context
 
 def main():
     # ============ CONFIGURATION ============
-    exp_db_name = "allen_estimshape_exp_260514_0"
+    exp_db_name = "allen_estimshape_exp_260518_0"
     exp_conn = Connection(exp_db_name)
     ga_conn  = Connection(context.ga_database)
 
@@ -308,7 +308,7 @@ def main():
                           bbox_inches='tight', dpi=150)
     print(f"Saved plots to {os.path.dirname(save_path)}")
 
-    sliding_window_analysis_by_spec_id(data_exp, session_id, window_size=100, step_size=20)
+    sliding_window_analysis_by_spec_id(data_exp, session_id, window_size=50, step_size=1)
 
     plt.show()
 

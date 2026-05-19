@@ -340,7 +340,7 @@ def plot_max_stat_per_experiment(session_ids=None, start_session_id=None,
 
 def main():
     plot_max_stat_per_experiment(
-        session_ids=["260514_0"],
+        session_ids=None,
         start_session_id=None,
         algorithm_label='first_drop_w100_s10_t5.0_n3_m10',        # or e.g. 'last_sustained_k3_t5.0'
         # algorithm_label='first_drop_w100_s10_t5.0_n3',
