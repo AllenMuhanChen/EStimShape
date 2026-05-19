@@ -2,8 +2,8 @@
 NAFC neural PSTH: firing-rate histograms aligned to sample_off.
 
   Rows    : Variant (IsDelta=False) | Delta (IsDelta=True) | Removed (IsRemovedTrial=True)
-  Columns : EStim Off | EStim On
-  Lines   : one per choice (match / delta / rand / procedural)
+  Columns : EStim Off | EStim On | EStim On by EStimSpecId
+  Lines   : col 0-1: one per choice  ·  col 2: one per unique EStimSpecId
 
 t = 0 is sample_off.  Median choices_on / choices_off marked per panel.
 """
@@ -90,6 +90,13 @@ def _median_event_rel(group_df, key: str) -> float | None:
     return float(np.median(vals)) if vals else None
 
 
+# ── colormap for EStimSpecId lines ───────────────────────────────────────────
+
+def _estim_id_colors(estim_ids: list) -> dict:
+    cmap = plt.cm.get_cmap("tab20", max(len(estim_ids), 1))
+    return {eid: cmap(i) for i, eid in enumerate(estim_ids)}
+
+
 # ── single-panel PSTH ─────────────────────────────────────────────────────────
 
 def plot_psth_panel(ax, group_df, channel_name: str,
@@ -133,6 +140,52 @@ def plot_psth_panel(ax, group_df, channel_name: str,
     ax.grid(True, linestyle="--", alpha=0.4)
 
 
+def plot_psth_panel_by_estim_id(ax, group_df, channel_name: str,
+                                time_before: float, time_after: float,
+                                bin_size: float, show_std: bool, title: str) -> None:
+    bins        = np.arange(-time_before, time_after + bin_size, bin_size)
+    bin_centers = bins[:-1] + bin_size / 2
+
+    spikes_by_estim_id: dict[str, list] = {}
+    for _, trial in group_df.iterrows():
+        neural = trial.get("NeuralData")
+        if not isinstance(neural, dict) or neural.get("sample_off") is None:
+            continue
+        estim_id = trial.get("EStimSpecId", None)
+        label = str(estim_id) if estim_id is not None else "None"
+        spikes = _aligned_spikes(neural, channel_name, time_before, time_after)
+        spikes_by_estim_id.setdefault(label, []).append(spikes)
+
+    sorted_ids = sorted(spikes_by_estim_id.keys())
+    colors = _estim_id_colors(sorted_ids)
+
+    for label in sorted_ids:
+        spike_lists = spikes_by_estim_id[label]
+        color = colors[label]
+        mean, sem = _compute_psth(spike_lists, bins, bin_size)
+        n = len(spike_lists)
+        ax.plot(bin_centers, mean, color=color, linewidth=1.8,
+                label=f"{label} (n={n})")
+        if show_std and n > 1:
+            ax.fill_between(bin_centers, mean - sem, mean + sem,
+                            color=color, alpha=0.25, linewidth=0)
+
+    for key, color, linestyle, _ in _PANEL_EVENT_DEFS:
+        t_rel = _median_event_rel(group_df, key)
+        if t_rel is not None and -time_before <= t_rel <= time_after:
+            ax.axvline(t_rel, color=color, linestyle=linestyle,
+                       linewidth=1.5, alpha=0.8)
+
+    ax.axvline(0, color="black", linewidth=1.2, linestyle="-", alpha=0.6)
+    ax.set_title(title, fontsize=9, fontweight="bold")
+    ax.set_xlim(-time_before, time_after)
+    ax.set_xlabel("Time from sample_off (s)", fontsize=8)
+    ax.set_ylabel("Firing rate (spikes/s)", fontsize=8)
+    ax.tick_params(labelsize=7)
+    ax.legend(fontsize=6, loc="upper right", title="EStimSpecId", title_fontsize=7)
+    ax.grid(True, linestyle="--", alpha=0.4)
+
+
 # ── legend ────────────────────────────────────────────────────────────────────
 
 def _legend_handles():
@@ -159,7 +212,7 @@ def run(data, channel_name: str, time_before: float, time_after: float,
     not_removed = data["IsRemovedTrial"] == False
     is_removed  = data["IsRemovedTrial"] == True
 
-    groups = {
+    choice_groups = {
         ("variant", False): ("Variant · EStim Off", data[not_removed & (data["IsDelta"] == False) & (data["EStimEnabled"] == False)]),
         ("variant", True):  ("Variant · EStim On",  data[not_removed & (data["IsDelta"] == False) & (data["EStimEnabled"] == True)]),
         ("delta",   False): ("Delta · EStim Off",   data[not_removed & (data["IsDelta"] == True)  & (data["EStimEnabled"] == False)]),
@@ -167,11 +220,16 @@ def run(data, channel_name: str, time_before: float, time_after: float,
         ("removed", False): ("Removed · EStim Off", data[is_removed  & (data["EStimEnabled"] == False)]),
         ("removed", True):  ("Removed · EStim On",  data[is_removed  & (data["EStimEnabled"] == True)]),
     }
+    estim_id_groups = {
+        "variant": ("Variant · By EStimSpecId", data[not_removed & (data["IsDelta"] == False) & (data["EStimEnabled"] == True)]),
+        "delta":   ("Delta · By EStimSpecId",   data[not_removed & (data["IsDelta"] == True)  & (data["EStimEnabled"] == True)]),
+        "removed": ("Removed · By EStimSpecId", data[is_removed  & (data["EStimEnabled"] == True)]),
+    }
 
-    fig = plt.figure(figsize=(14, 12))
-    gs  = GridSpec(3, 2, figure=fig, hspace=0.5, wspace=0.35)
+    fig = plt.figure(figsize=(20, 12))
+    gs  = GridSpec(3, 3, figure=fig, hspace=0.5, wspace=0.35)
 
-    col_labels = ["EStim Off", "EStim On"]
+    col_labels = ["EStim Off", "EStim On", "EStim On · by EStimSpecId"]
     row_keys   = ["variant", "delta", "removed"]
     row_labels = ["Variant\n(IsDelta=False)", "Delta\n(IsDelta=True)", "Removed\n(IsRemovedTrial=True)"]
 
@@ -179,13 +237,20 @@ def run(data, channel_name: str, time_before: float, time_after: float,
     for r, (row_key, row_label) in enumerate(zip(row_keys, row_labels)):
         for c, estim_on in enumerate([False, True]):
             ax = fig.add_subplot(gs[r, c])
-            label, grp = groups[(row_key, estim_on)]
+            label, grp = choice_groups[(row_key, estim_on)]
             full_title = f"{col_labels[c]}\n{label}" if r == 0 else label
             plot_psth_panel(ax, grp, channel_name,
                             time_before, time_after, bin_size, show_std, full_title)
             if c == 0:
                 ax.set_ylabel(f"{row_label}\n\nFiring rate (spikes/s)", fontsize=8)
             all_axes.append(ax)
+
+        ax3 = fig.add_subplot(gs[r, 2])
+        label3, grp3 = estim_id_groups[row_key]
+        full_title3 = f"{col_labels[2]}\n{label3}" if r == 0 else label3
+        plot_psth_panel_by_estim_id(ax3, grp3, channel_name,
+                                    time_before, time_after, bin_size, show_std, full_title3)
+        all_axes.append(ax3)
 
     global_ymax = max(ax.get_ylim()[1] for ax in all_axes)
     for ax in all_axes:
@@ -195,7 +260,8 @@ def run(data, channel_name: str, time_before: float, time_after: float,
                bbox_to_anchor=(0.99, 0.99), framealpha=0.9)
     fig.suptitle(
         f"NAFC Neural PSTH — channel: {channel_name}\n"
-        f"Aligned to sample_off  ·  Rows: Variant / Delta / Removed  ·  Cols: EStim Off / On",
+        f"Aligned to sample_off  ·  Rows: Variant / Delta / Removed  ·"
+        f"  Cols: EStim Off / EStim On (by choice) / EStim On (by EStimSpecId)",
         fontsize=11,
     )
     plt.tight_layout()
