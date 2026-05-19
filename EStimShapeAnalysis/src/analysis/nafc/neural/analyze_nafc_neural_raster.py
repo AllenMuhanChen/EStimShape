@@ -24,7 +24,7 @@ from clat.util.connection import Connection
 
 from src.analysis.nafc.nafc_database_fields import (
     ChoiceField, IsCorrectField, StimTypeField,
-    BaseMStickIdField, IsDeltaField, EStimEnabledField, IsRemovedTrialField,
+    BaseMStickIdField, IsDeltaField, EStimEnabledField, IsRemovedTrialField, EStimSpecIdField,
 )
 from src.analysis.nafc.nafc_neural_database_fields import NafcNeuralDataField
 from src.analysis.nafc.psychometric_curves import collect_choice_trials
@@ -187,10 +187,11 @@ def load_data(exp_db_name: str, intan_base_path: str, since_date):
     fields.append(IsDeltaField(exp_conn))
     fields.append(IsRemovedTrialField(exp_conn))
     fields.append(EStimEnabledField(exp_conn))
+    fields.append(EStimSpecIdField(exp_conn))
     fields.append(NafcNeuralDataField(intan_base_path, exp_conn))
 
     data = fields.to_data(trial_tstamps)
-    data = data[data["StimType"] == "EStimShapeVariantsDeltaNAFCStim"].copy()
+    # data = data[data["StimType"] == "EStimShapeVariantsDeltaNAFCStim"].copy()
     print(f"{len(data)} EStimShapeVariantsDeltaNAFCStim trials")
     return data, None
 

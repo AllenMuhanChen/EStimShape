@@ -6,7 +6,7 @@ from clat.compile.tstamp.cached_tstamp_fields import CachedDatabaseField
 from clat.util.connection import Connection
 from clat.util.time_util import When
 
-from src.analysis.nafc.nafc_neural_parser import NafcNeuralParser, NafcTrialEvents
+from src.analysis.nafc.neural.nafc_neural_parser import NafcNeuralParser, NafcTrialEvents
 
 
 def _events_to_dict(events: NafcTrialEvents) -> dict:
