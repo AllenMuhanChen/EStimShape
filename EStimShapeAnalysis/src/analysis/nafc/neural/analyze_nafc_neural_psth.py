@@ -115,12 +115,16 @@ def _semantic_choice(row) -> str:
             return "Hypothesized"
         if choice == "match":
             return "Delta"
+        if choice == "variant":
+            return "Removed"
         return "Rand"
     # variant trial
     if choice == "match":
         return "Hypothesized"
     if choice == "delta":
         return "Delta"
+    if choice == "variant":
+        return "Removed"
     return "Rand"
 
 
