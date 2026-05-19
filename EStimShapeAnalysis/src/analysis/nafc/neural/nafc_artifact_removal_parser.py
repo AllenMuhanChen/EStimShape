@@ -198,17 +198,13 @@ class NafcArtifactRemovalParser(NafcParserBase):
         filtered_for_spikes = filtered.copy()
         filtered_for_spikes[blank_mask] = 0.0
 
-        # Detect spikes with noise threshold estimated from non-artifact samples.
-        if isinstance(self.spike_detector, RmsThresholdSpikeDetector):
-            spike_samples = self.spike_detector.detect_on_filtered(
-                filtered_for_spikes, sample_rate, noise_mask=noise_mask,
-            )
-            spike_threshold = self.spike_detector.compute_threshold(
-                filtered_for_spikes, noise_mask=noise_mask,
-            )
-        else:
-            spike_samples = self.spike_detector.detect(cleaned, sample_rate)
-            spike_threshold = float('nan')
+        # Spike detection with noise estimated only from non-artifact samples.
+        spike_samples = self.spike_detector.detect_on_filtered(
+            filtered_for_spikes, sample_rate, noise_mask=noise_mask,
+        )
+        spike_threshold = self.spike_detector.compute_threshold(
+            filtered_for_spikes, noise_mask=noise_mask,
+        )
 
         spike_times = spike_samples / sample_rate
 

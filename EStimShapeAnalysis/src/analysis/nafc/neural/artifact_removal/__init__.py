@@ -8,12 +8,12 @@ from src.analysis.nafc.neural.artifact_removal.artifact_remover import (
     ArtifactRemover, SampleInterpolateRemover, FlatBaselineRemover,
 )
 from src.analysis.nafc.neural.artifact_removal.spike_detector import (
-    SpikeDetector, RmsThresholdSpikeDetector,
+    SpikeDetector, RmsThresholdSpikeDetector, NeoSpikeDetector,
 )
 
 __all__ = [
     "SignalPreprocessor", "BaselineDriftPreprocessor",
     "ArtifactDetector", "ArtifactEvent", "ThresholdArtifactDetector",
     "ArtifactRemover", "SampleInterpolateRemover", "FlatBaselineRemover",
-    "SpikeDetector", "RmsThresholdSpikeDetector",
+    "SpikeDetector", "RmsThresholdSpikeDetector", "NeoSpikeDetector",
 ]

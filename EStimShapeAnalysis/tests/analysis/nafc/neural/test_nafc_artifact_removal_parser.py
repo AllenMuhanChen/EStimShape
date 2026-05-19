@@ -46,7 +46,7 @@ from src.analysis.nafc.nafc_database_fields import (
 from src.analysis.nafc.psychometric_curves import collect_choice_trials
 from src.analysis.nafc.neural.artifact_removal import (
     ArtifactEvent, BaselineDriftPreprocessor, FlatBaselineRemover,
-    RmsThresholdSpikeDetector, ThresholdArtifactDetector,
+    NeoSpikeDetector, RmsThresholdSpikeDetector, ThresholdArtifactDetector,
 )
 from src.analysis.nafc.neural.nafc_artifact_removal_parser import (
     NafcArtifactRemovalParser,
@@ -72,7 +72,16 @@ WINDOW_HALFWIDTH_MS = 2.0
 
 # Artifact-detector tuning.
 ARTIFACT_THRESHOLD_FACTOR = 100   # x MAD
-SPIKE_THRESHOLD_FACTOR    = 4.0   # -N x RMS on cleaned MUA band
+
+# Spike-detection backend: "neo" or "rms".
+#   "neo" — Nonlinear Energy Operator. Robust to slow baseline shifts
+#           (e.g. post-estim drift) that bias RMS thresholding.
+#   "rms" — fixed negative -N x RMS threshold on the cleaned MUA band.
+SPIKE_DETECTOR_METHOD = "neo"
+SPIKE_THRESHOLD_FACTOR = 4.0   # for "rms"
+NEO_THRESHOLD_FACTOR   = 5.0   # for "neo"; C * noise(smoothed NEO)
+NEO_NOISE_SCALE        = "median"  # "median" (robust) or "mean" (literature)
+NEO_SMOOTHING_S        = 0.001
 
 # Flat-baseline remover.
 REMOVER_PRE_PAD_S      = 0.0002   # 200 us
@@ -434,6 +443,23 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
                 f"Check EXP_DB_NAME={EXP_DB_NAME} and INTAN_BASE_PATH."
             )
 
+    def _build_spike_detector(self):
+        if SPIKE_DETECTOR_METHOD == "neo":
+            return NeoSpikeDetector(
+                threshold_factor=NEO_THRESHOLD_FACTOR,
+                noise_scale=NEO_NOISE_SCALE,
+                smoothing_window_s=NEO_SMOOTHING_S,
+            )
+        elif SPIKE_DETECTOR_METHOD == "rms":
+            return RmsThresholdSpikeDetector(
+                threshold_factor=SPIKE_THRESHOLD_FACTOR,
+                noise_scale="rms",
+            )
+        else:
+            raise ValueError(
+                f"unknown SPIKE_DETECTOR_METHOD: {SPIKE_DETECTOR_METHOD!r}"
+            )
+
     def _build_parser(self) -> NafcArtifactRemovalParser:
         return NafcArtifactRemovalParser(
             preprocessor=BaselineDriftPreprocessor(highpass_hz=5.0),
@@ -447,10 +473,7 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
                 min_duration_s=REMOVER_MIN_DURATION_S,
                 baseline=REMOVER_BASELINE,
             ),
-            spike_detector=RmsThresholdSpikeDetector(
-                threshold_factor=SPIKE_THRESHOLD_FACTOR,
-                noise_scale="rms",
-            ),
+            spike_detector=self._build_spike_detector(),
             post_artifact_blank_s=POST_ARTIFACT_BLANK_S,
         )
 

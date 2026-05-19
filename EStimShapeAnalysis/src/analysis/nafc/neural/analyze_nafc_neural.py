@@ -28,6 +28,7 @@ from src.analysis.nafc.neural.artifact_removal import (
     ThresholdArtifactDetector,
     FlatBaselineRemover,
     RmsThresholdSpikeDetector,
+    NeoSpikeDetector,
 )
 
 
@@ -46,8 +47,20 @@ USE_ARTIFACT_REMOVAL_PARSER = True
 
 # Artifact-removal parser config (only used when USE_ARTIFACT_REMOVAL_PARSER).
 # Matches tests/analysis/nafc/neural/test_nafc_artifact_removal_parser.py.
+
+# Spike-detection backend: "rms" or "neo".
+#   "rms" — fixed negative threshold at -SPIKE_THRESHOLD_FACTOR * RMS.
+#           Fast, but biased by baseline shifts left over from artifacts.
+#   "neo" — Nonlinear Energy Operator. Threshold = NEO_THRESHOLD_FACTOR
+#           * mean(smoothed_NEO). Robust to slow baseline drift (e.g.
+#           post-estim recovery), which is what we want here.
+SPIKE_DETECTOR_METHOD     = "neo"
+
 ARTIFACT_THRESHOLD_FACTOR = 100        # x MAD
-SPIKE_THRESHOLD_FACTOR    = 4.0        # -N x RMS on the cleaned MUA band
+SPIKE_THRESHOLD_FACTOR    = 4.0        # used when SPIKE_DETECTOR_METHOD == "rms"
+NEO_THRESHOLD_FACTOR      = 5.0        # used when SPIKE_DETECTOR_METHOD == "neo"
+NEO_NOISE_SCALE           = "median"   # "median" (robust) or "mean" (literature)
+NEO_SMOOTHING_S           = 0.001      # 1 ms Bartlett window
 REMOVER_PRE_PAD_S         = 0.0002     # 200 us
 REMOVER_POST_PAD_S        = 0.0002     # 200 us
 REMOVER_MIN_DURATION_S    = 0.0        # rely on detected event width
@@ -69,6 +82,25 @@ SHOW_STD             = True  # shaded ± 1 SEM band
 # ════════════════════════════════════════════════════════════════════════════
 
 
+def build_spike_detector():
+    """Build the spike detector selected by SPIKE_DETECTOR_METHOD."""
+    if SPIKE_DETECTOR_METHOD == "neo":
+        return NeoSpikeDetector(
+            threshold_factor=NEO_THRESHOLD_FACTOR,
+            noise_scale=NEO_NOISE_SCALE,
+            smoothing_window_s=NEO_SMOOTHING_S,
+        )
+    elif SPIKE_DETECTOR_METHOD == "rms":
+        return RmsThresholdSpikeDetector(
+            threshold_factor=SPIKE_THRESHOLD_FACTOR,
+            noise_scale="rms",
+        )
+    else:
+        raise ValueError(
+            f"unknown SPIKE_DETECTOR_METHOD: {SPIKE_DETECTOR_METHOD!r}"
+        )
+
+
 def build_parser() -> NafcParserBase:
     """Build the parser selected by USE_ARTIFACT_REMOVAL_PARSER."""
     if not USE_ARTIFACT_REMOVAL_PARSER:
@@ -88,10 +120,7 @@ def build_parser() -> NafcParserBase:
             min_duration_s=REMOVER_MIN_DURATION_S,
             baseline=REMOVER_BASELINE,
         ),
-        spike_detector=RmsThresholdSpikeDetector(
-            threshold_factor=SPIKE_THRESHOLD_FACTOR,
-            noise_scale="rms",
-        ),
+        spike_detector=build_spike_detector(),
         post_artifact_blank_s=POST_ARTIFACT_BLANK_S,
     )
 
