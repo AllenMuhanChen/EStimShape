@@ -211,6 +211,8 @@ class NeoSpikeDetector(SpikeDetector):
         refractory_s: float = 0.001,
         peak_search_s: float = 0.0005,
         baseline_window_s: float = 0.0,
+        min_spike_amplitude_uv: float = 0.0,
+        max_spike_amplitude_uv: float = float('inf'),
     ):
         """
         ``baseline_window_s`` > 0 subtracts a running median of the
@@ -231,6 +233,8 @@ class NeoSpikeDetector(SpikeDetector):
         self.refractory_s = refractory_s
         self.peak_search_s = peak_search_s
         self.baseline_window_s = baseline_window_s
+        self.min_spike_amplitude_uv = float(min_spike_amplitude_uv)
+        self.max_spike_amplitude_uv = float(max_spike_amplitude_uv)
 
     def bandpass(self, signal: np.ndarray, sample_rate: float) -> np.ndarray:
         nyq = sample_rate / 2.0
@@ -336,6 +340,11 @@ class NeoSpikeDetector(SpikeDetector):
                 continue
             # Spike time = local negative peak of the bandpass-filtered trace.
             peak_idx = c + int(np.argmin(seg))
+            amp = abs(float(filtered[peak_idx]))
+            if amp < self.min_spike_amplitude_uv:
+                continue
+            if amp > self.max_spike_amplitude_uv:
+                continue
             if spikes and (peak_idx - spikes[-1]) < refractory_samples:
                 continue
             spikes.append(peak_idx)

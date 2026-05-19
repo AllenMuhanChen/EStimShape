@@ -106,6 +106,11 @@ NEO_SMOOTHING_S        = 0.001
 # thresholding. Kills post-pulse artifact-recovery drift that survives
 # the bandpass. 0 disables; try 0.002-0.005 s.
 NEO_BASELINE_WINDOW_S  = 0.003
+# Reject NEO detections whose bandpass-filtered peak amplitude is outside
+# this plausible MUA range (uV). Drops false positives from residual
+# artifact recovery while keeping real spikes.
+NEO_MIN_SPIKE_UV       = 30.0
+NEO_MAX_SPIKE_UV       = 500.0
 
 # Flat-baseline remover.
 REMOVER_PRE_PAD_S      = 0.0002   # 200 us
@@ -754,6 +759,8 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
                 noise_scale=NEO_NOISE_SCALE,
                 smoothing_window_s=NEO_SMOOTHING_S,
                 baseline_window_s=NEO_BASELINE_WINDOW_S,
+                min_spike_amplitude_uv=NEO_MIN_SPIKE_UV,
+                max_spike_amplitude_uv=NEO_MAX_SPIKE_UV,
             )
         elif SPIKE_DETECTOR_METHOD == "rms":
             return RmsThresholdSpikeDetector(
