@@ -288,6 +288,12 @@ def _process_one_recording(
     post_trigger_delay_s = rec['post_trigger_delay_us'] * 1e-6
     pulse_period_s = rec['post_stim_refractory_us'] * 1e-6
     pulse_width_s = rec['pulse_width_us'] * 1e-6
+    print(
+        f"    DB params: delay={rec['post_trigger_delay_us']:.1f} us, "
+        f"pulse_width={rec['pulse_width_us']:.1f} us, "
+        f"period(postStimRefractory)={rec['post_stim_refractory_us']:.1f} us, "
+        f"num_pulses={rec['num_pulses']}"
+    )
     detector = TriggerBasedArtifactDetector(
         trigger_rising_samples=trigger_rising,
         trigger_falling_samples=trigger_falling,
@@ -308,6 +314,8 @@ def _process_one_recording(
     result['trigger_falling_samples'] = trigger_falling
     result['trigger_channel'] = trigger_channel
     result['post_trigger_delay_s'] = post_trigger_delay_s
+    result['pulse_period_s'] = pulse_period_s
+    result['pulse_width_s'] = pulse_width_s
     return result
 
 
@@ -704,12 +712,15 @@ def _plot_trigger_context(
         axes[1].set_xlim(-halfwidth_ms, halfwidth_ms)
         axes[1].legend(loc='upper right', fontsize=8, ncol=2)
 
+        period_us = res.get('pulse_period_s', 0.0) * 1e6
+        width_us = res.get('pulse_width_s', 0.0) * 1e6
         fig.suptitle(
             f'{channel_name}  |  EStimSpecId {spec}  |  trigger context  '
             f'(delay={delay_s*1e6:.0f} us, '
+            f'pulse_width={width_us:.0f} us, '
+            f'period={period_us:.0f} us, '
             f'TTL high {ttl_high_ms:.1f} ms, '
-            f'pad before {PADDING_BEFORE_PULSE_S*1e6:.0f} us / '
-            f'after {PADDING_AFTER_PULSE_S*1e6:.0f} us)',
+            f'pad {PADDING_BEFORE_PULSE_S*1e6:.0f}/{PADDING_AFTER_PULSE_S*1e6:.0f} us)',
             fontsize=9,
         )
         plt.tight_layout()
