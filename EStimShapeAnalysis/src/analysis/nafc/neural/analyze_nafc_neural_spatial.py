@@ -129,16 +129,16 @@ def _build_matrices(
             if rate is not None:
                 rate_mat[c_idx, e_idx] = rate
 
-    for c_idx in range(n_ch):
-        row   = rate_mat[c_idx]
-        valid = row[np.isfinite(row)]
+    for e_idx in range(n_ids):
+        col   = rate_mat[:, e_idx]
+        valid = col[np.isfinite(col)]
         if len(valid) < 2:
             continue
-        row_mean = valid.mean()
-        row_std  = max(valid.std(), 1e-9)
-        for e_idx in range(n_ids):
+        col_mean = valid.mean()
+        col_std  = max(valid.std(), 1e-9)
+        for c_idx in range(n_ch):
             if np.isfinite(rate_mat[c_idx, e_idx]):
-                zscore_eids[c_idx, e_idx] = (rate_mat[c_idx, e_idx] - row_mean) / row_std
+                zscore_eids[c_idx, e_idx] = (rate_mat[c_idx, e_idx] - col_mean) / col_std
 
     return rate_mat, zscore_eids
 
@@ -175,12 +175,12 @@ def _plot_heatmaps(
     finite = zscore_eids[np.isfinite(zscore_eids)]
     vmax = max(float(np.percentile(np.abs(finite), 99)) if len(finite) else 1.0, 1.0)
     _heatmap_panel(axes[1], zscore_eids, ch_labels, estim_ids,
-                   "Z-score across estim specs (per channel)", "z-score", "RdBu_r",
+                   "Z-score across channels (per estim spec)", "z-score", "RdBu_r",
                    vmin=-vmax, vmax=vmax)
 
     fig.suptitle(
         f"Spatial activation map  ·  window [{window_start_s:.2f}, {window_end_s:.2f}] s after sample_on\n"
-        f"Left: raw rates  ·  Right: z across estim specs per channel",
+        f"Left: raw rates  ·  Right: z across channels per estim spec",
         fontsize=10,
     )
     plt.tight_layout()
