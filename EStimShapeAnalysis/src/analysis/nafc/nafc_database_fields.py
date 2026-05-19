@@ -493,9 +493,11 @@ class EStimPulseWidthField(WaveformField):
         d2 = float(wf.get('d2') or 0.0)
         dp = float(wf.get('dp') or 0.0)
         half = d1 + dp + d2
-        polarity = str(wf.get('polarity') or '').lower()
-        if 'bi' in polarity:
+        shape = str(wf.get('shape') or '').lower()
+        if 'biphasic' in shape:
             return 2.0 * half
+        if 'triphasic' in shape:
+            return 3.0 * half
         return half
 
 
