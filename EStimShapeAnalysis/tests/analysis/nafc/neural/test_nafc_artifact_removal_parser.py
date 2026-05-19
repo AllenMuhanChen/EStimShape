@@ -70,6 +70,11 @@ N_WINDOWS_PER_SPEC = 2
 # Half-width of each artifact display window, in milliseconds.
 WINDOW_HALFWIDTH_MS = 2.0
 
+# Preprocessor highpass (Hz). Removes baseline drift before artifact detection.
+# Raise to ~50-100 Hz to suppress slow baseline shifts that the artifact
+# detector otherwise collapses into very wide blanked regions.
+PREPROCESSOR_HIGHPASS_HZ = 5.0
+
 # Artifact-detector tuning.
 ARTIFACT_THRESHOLD_FACTOR = 100   # x MAD
 
@@ -559,7 +564,9 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
 
     def _build_parser(self) -> NafcArtifactRemovalParser:
         return NafcArtifactRemovalParser(
-            preprocessor=BaselineDriftPreprocessor(highpass_hz=5.0),
+            preprocessor=BaselineDriftPreprocessor(
+                highpass_hz=PREPROCESSOR_HIGHPASS_HZ,
+            ),
             artifact_detector=ThresholdArtifactDetector(
                 threshold_factor=ARTIFACT_THRESHOLD_FACTOR,
                 noise_scale="mad",
