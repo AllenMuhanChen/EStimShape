@@ -210,7 +210,16 @@ class NeoSpikeDetector(SpikeDetector):
         smoothing_window_s: float = 0.001,
         refractory_s: float = 0.001,
         peak_search_s: float = 0.0005,
+        baseline_window_s: float = 0.0,
     ):
+        """
+        ``baseline_window_s`` > 0 subtracts a running median of the
+        smoothed NEO with that window length before thresholding. Kills
+        post-pulse artifact-recovery drift that survives the upstream
+        bandpass. The median is robust to short spike peaks, so a window
+        a couple of ms wide tracks the recovery envelope without
+        flattening real spikes. Try 0.002-0.005 s. 0 disables.
+        """
         if noise_scale not in {"mean", "median"}:
             raise ValueError(f"unknown noise_scale: {noise_scale!r}")
         self.threshold_factor = threshold_factor
@@ -221,6 +230,7 @@ class NeoSpikeDetector(SpikeDetector):
         self.smoothing_window_s = smoothing_window_s
         self.refractory_s = refractory_s
         self.peak_search_s = peak_search_s
+        self.baseline_window_s = baseline_window_s
 
     def bandpass(self, signal: np.ndarray, sample_rate: float) -> np.ndarray:
         nyq = sample_rate / 2.0
@@ -251,7 +261,15 @@ class NeoSpikeDetector(SpikeDetector):
     def smoothed_neo(
         self, filtered: np.ndarray, sample_rate: float,
     ) -> np.ndarray:
-        return self.smooth(self.neo(filtered), sample_rate)
+        smoothed = self.smooth(self.neo(filtered), sample_rate)
+        if self.baseline_window_s > 0:
+            from scipy.ndimage import median_filter
+            win = max(int(round(self.baseline_window_s * sample_rate)), 3)
+            if win % 2 == 0:
+                win += 1
+            baseline = median_filter(smoothed, size=win, mode='reflect')
+            smoothed = np.maximum(smoothed - baseline, 0.0)
+        return smoothed
 
     def compute_threshold(
         self,

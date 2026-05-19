@@ -102,6 +102,10 @@ SPIKE_THRESHOLD_FACTOR = 4.0   # for "rms"
 NEO_THRESHOLD_FACTOR   = 5.0   # for "neo"; C * noise(smoothed NEO)
 NEO_NOISE_SCALE        = "median"  # "median" (robust) or "mean" (literature)
 NEO_SMOOTHING_S        = 0.001
+# Subtract a running median of the smoothed NEO with this window before
+# thresholding. Kills post-pulse artifact-recovery drift that survives
+# the bandpass. 0 disables; try 0.002-0.005 s.
+NEO_BASELINE_WINDOW_S  = 0.003
 
 # Flat-baseline remover.
 REMOVER_PRE_PAD_S      = 0.0002   # 200 us
@@ -749,6 +753,7 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
                 threshold_factor=NEO_THRESHOLD_FACTOR,
                 noise_scale=NEO_NOISE_SCALE,
                 smoothing_window_s=NEO_SMOOTHING_S,
+                baseline_window_s=NEO_BASELINE_WINDOW_S,
             )
         elif SPIKE_DETECTOR_METHOD == "rms":
             return RmsThresholdSpikeDetector(
