@@ -143,8 +143,8 @@ def _query_estim_on_trials(exp_db_name: str, since_date):
     """
     Return a list of dicts:
         {'stim_spec_id': str, 'estim_spec_id': str,
-         'post_trigger_delay_ms': float, 'num_pulses': int,
-         'pulse_train_period_ms': float}
+         'post_trigger_delay_us': float, 'num_pulses': int,
+         'pulse_train_period_us': float}
     for all EStim-ON trials found in the DB.
     """
     conn = Connection(exp_db_name)
@@ -171,9 +171,9 @@ def _query_estim_on_trials(exp_db_name: str, since_date):
         rows.append({
             'stim_spec_id': str(int(stim_spec_id)),
             'estim_spec_id': str(estim_spec_id) if estim_spec_id is not None else "unknown",
-            'post_trigger_delay_ms': float(row.get("EStimPostTriggerDelay") or 0.0),
+            'post_trigger_delay_us': float(row.get("EStimPostTriggerDelay") or 0.0),
             'num_pulses': int(row.get("EStimNumPulses") or 1),
-            'pulse_train_period_ms': float(row.get("EStimPulseTrainPeriod") or 0.0),
+            'pulse_train_period_us': float(row.get("EStimPulseTrainPeriod") or 0.0),
         })
     return rows
 
@@ -213,9 +213,9 @@ def _select_recordings(
                 'recording_dir': index[sid],
                 'stim_spec_id': sid,
                 'estim_spec_id': estim_spec_id,
-                'post_trigger_delay_ms': row['post_trigger_delay_ms'],
+                'post_trigger_delay_us': row['post_trigger_delay_us'],
                 'num_pulses': row['num_pulses'],
-                'pulse_train_period_ms': row['pulse_train_period_ms'],
+                'pulse_train_period_us': row['pulse_train_period_us'],
             })
 
     print(f"  selected {len(selected)} recordings across "
@@ -261,10 +261,10 @@ def _process_one_recording(
     trigger_samples = _read_trigger_samples(recording_dir)
     detector = TriggerBasedArtifactDetector(
         trigger_samples=trigger_samples,
-        post_trigger_delay_s=rec['post_trigger_delay_ms'] * 1e-3,
+        post_trigger_delay_s=rec['post_trigger_delay_us'] * 1e-6,
         blank_half_width_s=ARTIFACT_BLANK_HALF_WIDTH_S,
         num_pulses=rec['num_pulses'],
-        pulse_period_s=rec['pulse_train_period_ms'] * 1e-3,
+        pulse_period_s=rec['pulse_train_period_us'] * 1e-6,
     )
     parser = parser_factory(detector)
 
@@ -683,10 +683,10 @@ class TestNafcArtifactRemovalParser(unittest.TestCase):
         trigger_samples = _read_trigger_samples(rec['recording_dir'])
         detector = TriggerBasedArtifactDetector(
             trigger_samples=trigger_samples,
-            post_trigger_delay_s=rec['post_trigger_delay_ms'] * 1e-3,
+            post_trigger_delay_s=rec['post_trigger_delay_us'] * 1e-6,
             blank_half_width_s=ARTIFACT_BLANK_HALF_WIDTH_S,
             num_pulses=rec['num_pulses'],
-            pulse_period_s=rec['pulse_train_period_ms'] * 1e-3,
+            pulse_period_s=rec['pulse_train_period_us'] * 1e-6,
         )
         parser = self._build_parser(detector)
         events = parser.parse(rec['recording_dir'])

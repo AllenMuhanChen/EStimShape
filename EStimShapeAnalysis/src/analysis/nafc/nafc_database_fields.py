@@ -417,7 +417,7 @@ class PulseTrainParametersField(EStimSpecField):
 
 
 class EStimPostTriggerDelayField(PulseTrainParametersField):
-    """postTriggerDelay (ms): time between trigger edge and stim onset."""
+    """postTriggerDelay (us): time between trigger edge and stim onset."""
     def __init__(self, conn: Connection):
         super().__init__(conn)
 
@@ -447,7 +447,7 @@ class EStimNumPulsesField(PulseTrainParametersField):
 
 
 class EStimPulseTrainPeriodField(PulseTrainParametersField):
-    """pulseTrainPeriod (ms): interval between successive pulses in a train."""
+    """pulseTrainPeriod (us): interval between successive pulses in a train."""
     def __init__(self, conn: Connection):
         super().__init__(conn)
 
