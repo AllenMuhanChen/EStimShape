@@ -321,9 +321,12 @@ ENABLE_PER_SESSION_CORRECTIONS = True
 SESSION_CORR_BOUNDS = dict(daz=5.0, del_=5.0, ddepth=2.0)  # ± max effective correction
 SESSION_CORR_L2_WEIGHT = 0.1  # λ on Σ(delta_i / bound_i)²; raise to suppress, lower to allow
 
-# Regularization on global chamber rigid-body params (keeps optimizer near physical solution)
-CHAMBER_L2_WEIGHT  = 0.001   # λ on normalized chamber penalty; raise to constrain more
-CHAMBER_L2_SCALES  = dict(t_mm=5.0, r_deg=2.0, daz_deg=2.0, del_deg=2.0, ddepth_mm=1.0)
+# Regularization on global chamber rigid-body params (keeps optimizer near physical solution).
+# Penalty = mean squared Euclidean distance (mm²) between each projected penetration sample
+# under the current chamber + global daz/del/ddepth and its position at zero corrections.
+# This is more physically meaningful than penalizing raw chamber params, which mix mm/deg
+# units and have arbitrary scales.
+CHAMBER_L2_WEIGHT  = 0.01   # λ on mean squared penetration shift (mm²); raise to constrain more
 
 # Variance penalty: penalises unequal fit quality across sessions.
 # Loss = -mean(r) + VARIANCE_PENALTY_WEIGHT * var(r)
@@ -1544,7 +1547,6 @@ def optimize_trajectory_alignment(
         session_corr_bounds: dict = None,
         session_corr_l2_weight: float = SESSION_CORR_L2_WEIGHT,
         chamber_l2_weight: float = CHAMBER_L2_WEIGHT,
-        chamber_l2_scales: dict = None,
         variance_penalty_weight: float = VARIANCE_PENALTY_WEIGHT,
         softmin_beta: float = SOFTMIN_BETA,
         optimizer: str = 'nelder-mead',
@@ -1568,8 +1570,6 @@ def optimize_trajectory_alignment(
     # Resolve mutable defaults
     if session_corr_bounds is None:
         session_corr_bounds = SESSION_CORR_BOUNDS
-    if chamber_l2_scales is None:
-        chamber_l2_scales = CHAMBER_L2_SCALES
 
     # Pre-fetch penetration angles and depth arrays once (avoid DB hits in loop)
     session_info = {}
@@ -1593,6 +1593,24 @@ def optimize_trajectory_alignment(
     data = mri_pipeline['data']
     inv_corrected = mri_pipeline['inv_corrected']
     cor_offset = mri_pipeline['cor_offset']
+
+    # Precompute baseline projected penetration points (zero chamber + zero global corrections)
+    # for the chamber-distance regularizer. Penalty = mean ||current_pts - baseline_pts||² (mm²).
+    origin_b, x_b, y_b, normal_b = _apply_chamber_params(_OPT_X0, mri_pipeline)
+    baseline_pts = {}
+    for sid, sdata in session_info.items():
+        depths0 = sdata['depths']
+        if depths0.max() <= 0:
+            baseline_pts[sid] = None
+            continue
+        try:
+            _, direction0, top_pt0 = calc_penetration_target(
+                origin_b, sdata['az'], sdata['el'],
+                float(depths0.max()) + 1.0, x_b, y_b, normal_b, cor_offset,
+            )
+            baseline_pts[sid] = top_pt0 + depths0[:, None] * direction0[None, :]
+        except Exception:
+            baseline_pts[sid] = None
 
     # Build full parameter vector — core 10 globals + optional 3*N per-session deltas
     session_ids = list(session_info.keys())
@@ -1651,6 +1669,8 @@ def optimize_trajectory_alignment(
         per_sess_raw = params[9:].reshape(-1, 3) if enable_per_session_corrections else None
 
         rs, reg_sum = [], 0.0
+        chamber_dist_sq_sum = 0.0
+        chamber_dist_n = 0
 
         for i, sid in enumerate(session_ids):
             sdata = session_info[sid]
@@ -1665,6 +1685,22 @@ def optimize_trajectory_alignment(
             else:
                 daz_i = del_i = ddep_i = 0.0
 
+            # Chamber + global only projection (used for the chamber-distance penalty)
+            depths_g = sdata['depths'] + ddepth
+            if depths_g.max() > 0 and baseline_pts.get(sid) is not None:
+                try:
+                    _, direction_g, top_pt_g = calc_penetration_target(
+                        origin, sdata['az'] + daz, sdata['el'] + del_,
+                        float(depths_g.max()) + 1.0, x_vec, y_vec, normal, cor_offset,
+                    )
+                    pts_g = top_pt_g + depths_g[:, None] * direction_g[None, :]
+                    diffs = pts_g - baseline_pts[sid]
+                    chamber_dist_sq_sum += float(np.sum(diffs * diffs))
+                    chamber_dist_n += len(diffs)
+                except Exception:
+                    pass
+
+            # Full projection (with per-session corrections) used for MRI sampling
             depths = sdata['depths'] + ddepth + ddep_i
             if depths.max() <= 0:
                 continue
@@ -1700,15 +1736,9 @@ def optimize_trajectory_alignment(
         if include_reg and variance_penalty_weight > 0 and len(rs_arr) > 1:
             loss += variance_penalty_weight * rs_arr.var()
         if include_reg:
-            tx, ty, tz, rx, ry, rz, daz_g, del_g, ddepth_g = params[:9]
-            s = chamber_l2_scales
-            chamber_reg = (
-                (tx / s['t_mm'])**2 + (ty / s['t_mm'])**2 + (tz / s['t_mm'])**2
-                + (rx / s['r_deg'])**2 + (ry / s['r_deg'])**2 + (rz / s['r_deg'])**2
-                + (daz_g / s['daz_deg'])**2 + (del_g / s['del_deg'])**2
-                + (ddepth_g / s['ddepth_mm'])**2
-            )
-            loss += chamber_l2_weight * chamber_reg
+            if chamber_dist_n > 0:
+                chamber_reg = chamber_dist_sq_sum / chamber_dist_n  # mean squared mm shift
+                loss += chamber_l2_weight * chamber_reg
             if enable_per_session_corrections:
                 loss += session_corr_l2_weight * reg_sum
         return loss
@@ -2352,7 +2382,6 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                  session_corr_bounds: dict = None,
                  session_corr_l2_weight: float = SESSION_CORR_L2_WEIGHT,
                  chamber_l2_weight: float = CHAMBER_L2_WEIGHT,
-                 chamber_l2_scales: dict = None,
                  variance_penalty_weight: float = VARIANCE_PENALTY_WEIGHT,
                  softmin_beta: float = SOFTMIN_BETA,
                  optimizer: str = 'nelder-mead',
@@ -2450,7 +2479,6 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                                                    session_corr_bounds=session_corr_bounds,
                                                    session_corr_l2_weight=session_corr_l2_weight,
                                                    chamber_l2_weight=chamber_l2_weight,
-                                                   chamber_l2_scales=chamber_l2_scales,
                                                    variance_penalty_weight=variance_penalty_weight,
                                                    softmin_beta=softmin_beta,
                                                    optimizer=optimizer,
@@ -2471,7 +2499,6 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
             enable_per_session_corrections=enable_per_session_corrections,
             chamber_l2_weight=chamber_l2_weight,
             session_corr_l2_weight=session_corr_l2_weight,
-            chamber_l2_scales=chamber_l2_scales,
             session_corr_bounds=session_corr_bounds,
             maxiter=maxiter,
             start_from_file=start_from_file,
@@ -2530,8 +2557,7 @@ if __name__ == "__main__":
         enable_per_session_corrections=True,
         session_corr_bounds=None,       # None → use SESSION_CORR_BOUNDS default
         session_corr_l2_weight=0.5,
-        chamber_l2_weight=0.005,        # λ on normalized chamber penalty; raise to constrain more
-        chamber_l2_scales=None,         # None → use CHAMBER_L2_SCALES default
+        chamber_l2_weight=0.01,         # λ on mean squared penetration shift (mm²); raise to constrain more
         variance_penalty_weight=0.0,
         softmin_beta=20,               # 0 = mean; 3-5 = protect worst; 10+ ≈ min
         optimizer='cma-es',        # 'nelder-mead' | 'cma-es'
