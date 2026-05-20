@@ -64,21 +64,21 @@ USE_ARTIFACT_REMOVAL_PARSER = True
 SPIKE_DETECTOR_METHOD     = "neo"
 
 SPIKE_THRESHOLD_FACTOR    = 4.0        # used when SPIKE_DETECTOR_METHOD == "rms"
-NEO_THRESHOLD_FACTOR      = 5.0
+NEO_THRESHOLD_FACTOR      = 6.0
 NEO_NOISE_SCALE           = "median"
 NEO_SMOOTHING_S           = 0.001
-NEO_BASELINE_WINDOW_S     = 0.003
-NEO_MIN_SPIKE_UV          = 30.0
-NEO_MAX_SPIKE_UV          = 500.0
-REMOVER_PRE_PAD_S         = 0.0002
-REMOVER_POST_PAD_S        = 0.0002
+NEO_BASELINE_WINDOW_S     = 0.002
+NEO_MIN_SPIKE_UV          = 0
+NEO_MAX_SPIKE_UV          = 200
+REMOVER_PRE_PAD_S         = 0.000
+REMOVER_POST_PAD_S        = 0.000
 REMOVER_MIN_DURATION_S    = 0.0
 REMOVER_BASELINE          = "zero"
-PREPROCESSOR_HIGHPASS_HZ  = 500
-POST_ARTIFACT_BLANK_S     = 0.001
+PREPROCESSOR_HIGHPASS_HZ  = 500.0
+POST_ARTIFACT_BLANK_S     = 0.0001
 # Trigger-based blanking margins around each stim pulse.
 PADDING_BEFORE_PULSE_S    = 0.0001     # 100 us
-PADDING_AFTER_PULSE_S     = 0.0005     # 500 us
+PADDING_AFTER_PULSE_S     = 0.0015     # 1500 us
 
 # ── raster ──────────────────────────────────────────────────────────────────
 RASTER_TIME_BEFORE_S = 0.2   # seconds before sample_on
