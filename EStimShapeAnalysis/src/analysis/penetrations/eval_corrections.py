@@ -256,11 +256,11 @@ def evaluate(
 if __name__ == '__main__':
 
     # Path to the corrections JSON saved by save_optimized_params()
-    CORRECTIONS_PATH = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260512_150605.json"
+    CORRECTIONS_PATH = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260520_144918_best.json"
 
     # Sessions to evaluate (held-out sessions not used during optimization)
     SESSIONS = [
-        "260518_0",
+        "260520_0",
     ]
 
     # Set to the same list as SESSIONS for a strict train/test PCA split

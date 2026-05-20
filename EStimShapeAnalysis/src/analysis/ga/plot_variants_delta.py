@@ -18,14 +18,14 @@ PLOT_MODE_DB_INCLUDED = 'db_included'  # Show exactly the stims with included=1 
 
 def main():
 
-    channel = "A-005"  # "GA" for GA Response, "Cluster" for current cluster, single channel name, or list
-    use_baseline_correction = True
+    channel = "Cluster"  # "GA" for GA Response, "Cluster" for current cluster, single channel name, or list
+    use_baseline_correction = False
 
     analysis = PlotVariantDeltas(
-        to_save_to_db=False,
+        to_save_to_db=True,
         delta_threshold=0.6,
-        variant_threshold=0.7,
-        plot_mode=PLOT_MODE_ALL,
+        variant_threshold=0.4,
+        plot_mode=PLOT_MODE_PASSING,
         use_baseline_correction=use_baseline_correction,)
     compiled_data = None  # Set to None to import from repository
     # compiled_data = analysis.compile_and_export()

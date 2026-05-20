@@ -213,7 +213,7 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------------
     # Configure the sweep here
     # ---------------------------------------------------------------------
-    START_FROM_FILE = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260424_175651.json"
+    START_FROM_FILE = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260520_154617.json"
     PARAM_TO_FIX    = 'del_deg'
     SWEEP_VALUES    = [-12.0, -10.0, -8.0, -6.0, -4.0, -2.0, 0.0]
     # ---------------------------------------------------------------------
