@@ -330,7 +330,8 @@ def run(data, channel_name: str, time_before: float, time_after: float,
     row_keys   = ["variant", "delta", "removed"]
     row_labels = ["Variant\n(IsDelta=False)", "Delta\n(IsDelta=True)", "Removed\n(IsRemovedTrial=True)"]
 
-    all_axes = []
+    choice_axes   = []
+    estim_id_axes = []
     for r, (row_key, row_label) in enumerate(zip(row_keys, row_labels)):
         for c, estim_on in enumerate([False, True]):
             ax = fig.add_subplot(gs[r, c])
@@ -340,18 +341,24 @@ def run(data, channel_name: str, time_before: float, time_after: float,
                             time_before, time_after, bin_size, show_std, full_title)
             if c == 0:
                 ax.set_ylabel(f"{row_label}\n\nFiring rate (spikes/s)", fontsize=8)
-            all_axes.append(ax)
+            choice_axes.append(ax)
 
         ax3 = fig.add_subplot(gs[r, 2])
         label3, grp3 = estim_id_groups[row_key]
         full_title3 = f"{col_labels[2]}\n{label3}" if r == 0 else label3
         plot_psth_panel_by_estim_id(ax3, grp3, channel_name,
                                     time_before, time_after, bin_size, show_std, full_title3)
-        all_axes.append(ax3)
+        estim_id_axes.append(ax3)
 
-    global_ymax = max(ax.get_ylim()[1] for ax in all_axes)
-    for ax in all_axes:
-        ax.set_ylim(bottom=0, top=global_ymax)
+    # Scale cols 0-1 (choice) together, col 2 (EStimSpecId) separately.
+    # Mixing them inflates ymax because col-2 averages all choices combined.
+    choice_ymax = max(ax.get_ylim()[1] for ax in choice_axes)
+    for ax in choice_axes:
+        ax.set_ylim(bottom=0, top=choice_ymax)
+
+    estim_id_ymax = max(ax.get_ylim()[1] for ax in estim_id_axes)
+    for ax in estim_id_axes:
+        ax.set_ylim(bottom=0, top=estim_id_ymax)
 
     fig.legend(handles=_legend_handles(), loc="upper right", fontsize=8,
                bbox_to_anchor=(0.99, 0.99), framealpha=0.9)
