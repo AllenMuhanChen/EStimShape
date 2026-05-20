@@ -59,13 +59,13 @@ from src.analysis.nafc.neural.nafc_trial_events import NafcTrialEvents
 
 
 # ───────────────────────── CONFIG ──────────────────────────────────────────
-EXP_DB_NAME = "allen_estimshape_exp_260514_0"
+EXP_DB_NAME = "allen_estimshape_exp_260518_0"
 INTAN_BASE_PATH = (
     "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape/"
-    "allen_estimshape_exp_260514_0/2026-05-14/"
+    "allen_estimshape_exp_260518_0/2026-05-18/"
 )
 SINCE_DATE = time_util.from_date_to_now(2024, 5, 18)
-CHANNEL_NAME = "A-027"
+CHANNEL_NAME = "A-026"
 
 # Recordings per EStimSpecId to process.
 N_PER_ESTIM_SPEC = 3
@@ -77,7 +77,7 @@ WINDOW_HALFWIDTH_MS = 2.0
 # Preprocessor highpass (Hz). Removes baseline drift before artifact detection.
 # Raise to ~50-100 Hz to suppress slow baseline shifts that the artifact
 # detector otherwise collapses into very wide blanked regions.
-PREPROCESSOR_HIGHPASS_HZ = 5.0
+PREPROCESSOR_HIGHPASS_HZ = 500.0
 
 # Artifact-detector tuning.
 # Trigger-based detector blanks a forward-asymmetric window around each
@@ -86,7 +86,7 @@ PREPROCESSOR_HIGHPASS_HZ = 5.0
 # Only the paddings are user-tuned; bump PADDING_AFTER if filter ringing
 # from the artifact leaks past the pulse end.
 PADDING_BEFORE_PULSE_S = 0.0001    # 100 us before each pulse onset
-PADDING_AFTER_PULSE_S  = 0.0005    # 500 us after each pulse end
+PADDING_AFTER_PULSE_S  = 0.0015    # 500 us after each pulse end
 
 # Half-width of the trigger-context diagnostic plot, in milliseconds.
 # Should be wide enough to see a handful of stim pulses (~5-6) and the
@@ -99,28 +99,28 @@ TRIGGER_CONTEXT_HALFWIDTH_MS = 20.0
 #   "rms" — fixed negative -N x RMS threshold on the cleaned MUA band.
 SPIKE_DETECTOR_METHOD = "neo"
 SPIKE_THRESHOLD_FACTOR = 4.0   # for "rms"
-NEO_THRESHOLD_FACTOR   = 5.0   # for "neo"; C * noise(smoothed NEO)
+NEO_THRESHOLD_FACTOR   = 6.0   # for "neo"; C * noise(smoothed NEO)
 NEO_NOISE_SCALE        = "median"  # "median" (robust) or "mean" (literature)
 NEO_SMOOTHING_S        = 0.001
 # Subtract a running median of the smoothed NEO with this window before
 # thresholding. Kills post-pulse artifact-recovery drift that survives
 # the bandpass. 0 disables; try 0.002-0.005 s.
-NEO_BASELINE_WINDOW_S  = 0.003
+NEO_BASELINE_WINDOW_S  = 0.002
 # Reject NEO detections whose bandpass-filtered peak amplitude is outside
 # this plausible MUA range (uV). Drops false positives from residual
 # artifact recovery while keeping real spikes.
-NEO_MIN_SPIKE_UV       = 30.0
-NEO_MAX_SPIKE_UV       = 500.0
+NEO_MIN_SPIKE_UV       = 0
+NEO_MAX_SPIKE_UV       = 200
 
 # Flat-baseline remover.
-REMOVER_PRE_PAD_S      = 0.0002   # 200 us
-REMOVER_POST_PAD_S     = 0.0002   # 200 us
+REMOVER_PRE_PAD_S      = 0.000   # 200 us
+REMOVER_POST_PAD_S     = 0.000   # 200 us
 REMOVER_MIN_DURATION_S = 0.0
 REMOVER_BASELINE       = "zero"
 
 # Post-artifact blank: spikes inside this zone are suppressed AND the zone
 # is excluded from the noise/threshold estimate.
-POST_ARTIFACT_BLANK_S = 0.001     # 2 ms
+POST_ARTIFACT_BLANK_S = 0.0001     # 2 ms
 
 MAX_SECONDS_TO_LOAD: Optional[float] = None
 # ───────────────────────────────────────────────────────────────────────────
