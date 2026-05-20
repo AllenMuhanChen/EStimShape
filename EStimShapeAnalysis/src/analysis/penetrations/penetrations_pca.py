@@ -336,7 +336,7 @@ SESSION_CORR_L2_WEIGHT = 0.1  # λ on Σ(delta_i / bound_i)²; raise to suppress
 #   2. chamber_param_l2_weight: λ on Σ(param/scale)² over the raw chamber params.
 #      Constrains the chamber pose itself (catches the cases the distance penalty misses).
 # Use both for a balanced regularization.
-CHAMBER_DIST_L2_WEIGHT  = 0.01    # λ on mean squared penetration shift (mm²)
+CHAMBER_DIST_L2_WEIGHT  = 0.1    # λ on mean squared penetration shift (mm²)
 CHAMBER_PARAM_L2_WEIGHT = 0.001   # λ on normalized chamber-param penalty
 CHAMBER_L2_SCALES       = dict(t_mm=5.0, r_deg=2.0, daz_deg=2.0, del_deg=2.0, ddepth_mm=1.0)
 
@@ -2617,12 +2617,13 @@ if __name__ == "__main__":
         host="172.30.6.61"
     )
 
-    exclude_sessions = None
-    # exclude_sessions = ["260421_0"]
+    exclude_sessions = ["260331_0", "260402_0", "260520_0"]
+
     # Set to path of a prior opt_*.json to warm-start from that correction, or None to start from zero
     start_from_file = None
     # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260423_160856.json"
-    start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260424_175651.json"
+    # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260424_175651.json"
+    # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260520_131610.json"
     results = run_analysis(
         conn,
         n_pcs=2,
@@ -2636,13 +2637,13 @@ if __name__ == "__main__":
         session_corr_bounds=None,       # None → use SESSION_CORR_BOUNDS default
         session_corr_l2_weight=0.5,
         chamber_dist_l2_weight=0.01,    # λ on mean squared penetration shift (mm²)
-        chamber_param_l2_weight=0.001,  # λ on normalized chamber-param penalty
+        chamber_param_l2_weight=0.01,  # λ on normalized chamber-param penalty
         chamber_l2_scales=None,         # None → use CHAMBER_L2_SCALES default
         variance_penalty_weight=0.0,
-        softmin_beta=20,               # 0 = mean; 3-5 = protect worst; 10+ ≈ min
+        softmin_beta=10,               # 0 = mean; 3-5 = protect worst; 10+ ≈ min
         optimizer='cma-es',        # 'nelder-mead' | 'cma-es'
-        use_confidence_weights=False,   # False = unweighted r
-        top_downweight_mm=0.0,          # >0 = down-weight the top X mm of each penetration
+        use_confidence_weights=True,   # False = unweighted r
+        top_downweight_mm=5.0,          # >0 = down-weight the top X mm of each penetration
         top_downweight_factor=0.25,     # weight multiplier for those samples (0 = ignore)
     )
 
