@@ -62,7 +62,8 @@ def _opt_run_tag(
         softmin_beta: float,
         variance_penalty_weight: float,
         enable_per_session_corrections: bool,
-        chamber_l2_weight: float,
+        chamber_dist_l2_weight: float,
+        chamber_param_l2_weight: float,
         session_corr_l2_weight: float,
 ) -> str:
     """Short tag identifying an optimization run (includes timestamp for uniqueness)."""
@@ -72,7 +73,8 @@ def _opt_run_tag(
         f"beta{softmin_beta:g}",
         f"var{variance_penalty_weight:g}",
         f"sess{'T' if enable_per_session_corrections else 'F'}",
-        f"c{chamber_l2_weight:g}",
+        f"cd{chamber_dist_l2_weight:g}",
+        f"cp{chamber_param_l2_weight:g}",
     ]
     if enable_per_session_corrections:
         parts.append(f"Ls{session_corr_l2_weight:g}")
@@ -322,11 +324,18 @@ SESSION_CORR_BOUNDS = dict(daz=5.0, del_=5.0, ddepth=2.0)  # ± max effective co
 SESSION_CORR_L2_WEIGHT = 0.1  # λ on Σ(delta_i / bound_i)²; raise to suppress, lower to allow
 
 # Regularization on global chamber rigid-body params (keeps optimizer near physical solution).
-# Penalty = mean squared Euclidean distance (mm²) between each projected penetration sample
-# under the current chamber + global daz/del/ddepth and its position at zero corrections.
-# This is more physically meaningful than penalizing raw chamber params, which mix mm/deg
-# units and have arbitrary scales.
-CHAMBER_L2_WEIGHT  = 0.01   # λ on mean squared penetration shift (mm²); raise to constrain more
+# Two complementary penalties:
+#   1. chamber_dist_l2_weight: λ on mean squared Euclidean distance (mm²) between each
+#      projected penetration sample under the current chamber + global daz/del/ddepth and
+#      its position at zero corrections. Physical, intuitive — but doesn't constrain
+#      chamber motions that leave the penetrations roughly fixed (e.g. rotation about
+#      the penetration cluster centroid).
+#   2. chamber_param_l2_weight: λ on Σ(param/scale)² over the raw chamber params.
+#      Constrains the chamber pose itself (catches the cases the distance penalty misses).
+# Use both for a balanced regularization.
+CHAMBER_DIST_L2_WEIGHT  = 0.01    # λ on mean squared penetration shift (mm²)
+CHAMBER_PARAM_L2_WEIGHT = 0.001   # λ on normalized chamber-param penalty
+CHAMBER_L2_SCALES       = dict(t_mm=5.0, r_deg=2.0, daz_deg=2.0, del_deg=2.0, ddepth_mm=1.0)
 
 # Variance penalty: penalises unequal fit quality across sessions.
 # Loss = -mean(r) + VARIANCE_PENALTY_WEIGHT * var(r)
@@ -1546,7 +1555,9 @@ def optimize_trajectory_alignment(
         enable_per_session_corrections: bool = ENABLE_PER_SESSION_CORRECTIONS,
         session_corr_bounds: dict = None,
         session_corr_l2_weight: float = SESSION_CORR_L2_WEIGHT,
-        chamber_l2_weight: float = CHAMBER_L2_WEIGHT,
+        chamber_dist_l2_weight: float = CHAMBER_DIST_L2_WEIGHT,
+        chamber_param_l2_weight: float = CHAMBER_PARAM_L2_WEIGHT,
+        chamber_l2_scales: dict = None,
         variance_penalty_weight: float = VARIANCE_PENALTY_WEIGHT,
         softmin_beta: float = SOFTMIN_BETA,
         optimizer: str = 'nelder-mead',
@@ -1570,6 +1581,8 @@ def optimize_trajectory_alignment(
     # Resolve mutable defaults
     if session_corr_bounds is None:
         session_corr_bounds = SESSION_CORR_BOUNDS
+    if chamber_l2_scales is None:
+        chamber_l2_scales = CHAMBER_L2_SCALES
 
     # Pre-fetch penetration angles and depth arrays once (avoid DB hits in loop)
     session_info = {}
@@ -1736,9 +1749,19 @@ def optimize_trajectory_alignment(
         if include_reg and variance_penalty_weight > 0 and len(rs_arr) > 1:
             loss += variance_penalty_weight * rs_arr.var()
         if include_reg:
-            if chamber_dist_n > 0:
-                chamber_reg = chamber_dist_sq_sum / chamber_dist_n  # mean squared mm shift
-                loss += chamber_l2_weight * chamber_reg
+            if chamber_dist_l2_weight > 0 and chamber_dist_n > 0:
+                chamber_dist_reg = chamber_dist_sq_sum / chamber_dist_n  # mean squared mm shift
+                loss += chamber_dist_l2_weight * chamber_dist_reg
+            if chamber_param_l2_weight > 0:
+                tx, ty, tz, rx, ry, rz, daz_g, del_g, ddepth_g = params[:9]
+                s = chamber_l2_scales
+                chamber_param_reg = (
+                    (tx / s['t_mm'])**2 + (ty / s['t_mm'])**2 + (tz / s['t_mm'])**2
+                    + (rx / s['r_deg'])**2 + (ry / s['r_deg'])**2 + (rz / s['r_deg'])**2
+                    + (daz_g / s['daz_deg'])**2 + (del_g / s['del_deg'])**2
+                    + (ddepth_g / s['ddepth_mm'])**2
+                )
+                loss += chamber_param_l2_weight * chamber_param_reg
             if enable_per_session_corrections:
                 loss += session_corr_l2_weight * reg_sum
         return loss
@@ -2381,7 +2404,9 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                  enable_per_session_corrections: bool = ENABLE_PER_SESSION_CORRECTIONS,
                  session_corr_bounds: dict = None,
                  session_corr_l2_weight: float = SESSION_CORR_L2_WEIGHT,
-                 chamber_l2_weight: float = CHAMBER_L2_WEIGHT,
+                 chamber_dist_l2_weight: float = CHAMBER_DIST_L2_WEIGHT,
+                 chamber_param_l2_weight: float = CHAMBER_PARAM_L2_WEIGHT,
+                 chamber_l2_scales: dict = None,
                  variance_penalty_weight: float = VARIANCE_PENALTY_WEIGHT,
                  softmin_beta: float = SOFTMIN_BETA,
                  optimizer: str = 'nelder-mead',
@@ -2401,7 +2426,8 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         softmin_beta=softmin_beta,
         variance_penalty_weight=variance_penalty_weight,
         enable_per_session_corrections=enable_per_session_corrections,
-        chamber_l2_weight=chamber_l2_weight,
+        chamber_dist_l2_weight=chamber_dist_l2_weight,
+        chamber_param_l2_weight=chamber_param_l2_weight,
         session_corr_l2_weight=session_corr_l2_weight,
     )
     pca_dir, opt_dir = _make_run_dirs(pca_tag, opt_tag)
@@ -2478,7 +2504,9 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                                                    enable_per_session_corrections=enable_per_session_corrections,
                                                    session_corr_bounds=session_corr_bounds,
                                                    session_corr_l2_weight=session_corr_l2_weight,
-                                                   chamber_l2_weight=chamber_l2_weight,
+                                                   chamber_dist_l2_weight=chamber_dist_l2_weight,
+                                                   chamber_param_l2_weight=chamber_param_l2_weight,
+                                                   chamber_l2_scales=chamber_l2_scales,
                                                    variance_penalty_weight=variance_penalty_weight,
                                                    softmin_beta=softmin_beta,
                                                    optimizer=optimizer,
@@ -2497,7 +2525,9 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
             softmin_beta=softmin_beta,
             variance_penalty_weight=variance_penalty_weight,
             enable_per_session_corrections=enable_per_session_corrections,
-            chamber_l2_weight=chamber_l2_weight,
+            chamber_dist_l2_weight=chamber_dist_l2_weight,
+            chamber_param_l2_weight=chamber_param_l2_weight,
+            chamber_l2_scales=chamber_l2_scales,
             session_corr_l2_weight=session_corr_l2_weight,
             session_corr_bounds=session_corr_bounds,
             maxiter=maxiter,
@@ -2557,7 +2587,9 @@ if __name__ == "__main__":
         enable_per_session_corrections=True,
         session_corr_bounds=None,       # None → use SESSION_CORR_BOUNDS default
         session_corr_l2_weight=0.5,
-        chamber_l2_weight=0.01,         # λ on mean squared penetration shift (mm²); raise to constrain more
+        chamber_dist_l2_weight=0.01,    # λ on mean squared penetration shift (mm²)
+        chamber_param_l2_weight=0.001,  # λ on normalized chamber-param penalty
+        chamber_l2_scales=None,         # None → use CHAMBER_L2_SCALES default
         variance_penalty_weight=0.0,
         softmin_beta=20,               # 0 = mean; 3-5 = protect worst; 10+ ≈ min
         optimizer='cma-es',        # 'nelder-mead' | 'cma-es'
