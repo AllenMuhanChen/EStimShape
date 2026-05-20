@@ -195,9 +195,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         PruningMatchStick variantSource = new PruningMatchStick(noiseMapper);
         variantSource.setProperties(choiceSize, texture, is2D(), 1.0);
         variantSource.setStimColor(color);
-        variantSource.setMaxDiameterDegrees(maxSampleSize);
         variantSource.genMatchStickFromFile(gaSpecPath + "/" + baseMStickStimSpecId + "_spec.xml");
-        variantSource.centerShape();
 
         ProceduralMatchStick removed = new ProceduralMatchStick(noiseMapper);
         correctNoiseRadius(removed);
@@ -205,36 +203,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         removed.setStimColor(color);
         removed.setMaxDiameterDegrees(maxSampleSize);
         removed.genRemovedLimbsMatchStick(variantSource, new HashSet<>(noiseComponentIndcs));
-
-        // setProperties / scaleForMAxisShape is a multiplicative factor on unit-space comp data;
-        // it doesn't fit the rendered shape to a target diameter. After deleting a component the
-        // remaining comp data covers a smaller fraction of the variant's original unit-space
-        // footprint, so the obj1 mesh ends up smaller than variant/delta tiles by however much
-        // the removed comp contributed to extent. Match the variant's rendered radius so the
-        // three choice tiles read at the same visual size.
-        rescaleObjToMatchReference(removed, variantSource);
         return removed;
-    }
-
-    /** Scales subject.obj1 in place so its max distance from origin matches reference.obj1's. */
-    private static void rescaleObjToMatchReference(ProceduralMatchStick subject, ProceduralMatchStick reference) {
-        if (subject.getObj1() == null || reference.getObj1() == null) return;
-        double subjectMaxR = maxRadiusFromOrigin(subject.getObj1());
-        double referenceMaxR = maxRadiusFromOrigin(reference.getObj1());
-        if (subjectMaxR <= 0 || referenceMaxR <= 0) return;
-        if (subjectMaxR >= referenceMaxR) return;
-        subject.getObj1().scaleTheObj(referenceMaxR / subjectMaxR);
-    }
-
-    private static double maxRadiusFromOrigin(org.xper.drawing.stick.MStickObj4Smooth obj) {
-        double maxR = 0;
-        for (int i = 1; i <= obj.getnVect(); i++) {
-            javax.vecmath.Point3d v = obj.vect_info[i];
-            if (v == null) continue;
-            double r = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-            if (r > maxR) maxR = r;
-        }
-        return maxR;
     }
 
     @Override
