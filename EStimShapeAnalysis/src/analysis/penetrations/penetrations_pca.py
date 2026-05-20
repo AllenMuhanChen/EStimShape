@@ -1575,6 +1575,7 @@ def optimize_trajectory_alignment(
         use_confidence_weights: bool = True,
         top_downweight_mm: float = TOP_DOWNWEIGHT_MM,
         top_downweight_factor: float = TOP_DOWNWEIGHT_FACTOR,
+        fixed_globals: Optional[dict] = None,
 ) -> dict:
     """
     Find the rigid-body + scale + angle + depth correction that maximises the
@@ -1596,6 +1597,18 @@ def optimize_trajectory_alignment(
         session_corr_bounds = SESSION_CORR_BOUNDS
     if chamber_param_tolerances is None:
         chamber_param_tolerances = CHAMBER_PARAM_TOLERANCES
+
+    # Optional fixed-global support: e.g. fixed_globals={'del_deg': -5.0} locks that
+    # global parameter and lets the optimizer search only over the remaining ones.
+    fix_idx_val = []
+    if fixed_globals:
+        for name, val in fixed_globals.items():
+            if name not in _OPT_PARAM_NAMES:
+                raise ValueError(f"Unknown global param {name!r}. "
+                                 f"Choose from: {_OPT_PARAM_NAMES}")
+            fix_idx_val.append((_OPT_PARAM_NAMES.index(name), float(val)))
+        print(f"  Holding fixed: " + ", ".join(
+            f"{_OPT_PARAM_NAMES[i]}={v:+.4f}" for i, v in fix_idx_val))
 
     # Pre-fetch penetration angles and depth arrays once (avoid DB hits in loop)
     session_info = {}
@@ -1691,6 +1704,10 @@ def optimize_trajectory_alignment(
     else:
         print("  Starting from zero (no prior correction file provided)")
 
+    # Apply fixed-global pins to the starting vector (overrides warm-start values)
+    for idx, val in fix_idx_val:
+        full_x0[idx] = val
+
     best = {'score': -np.inf, 'params': full_x0.copy(), 'iter': 0}
     call_count = [0]
     # Stashes the most recent evaluation's per-session weighted and raw (unweighted)
@@ -1698,6 +1715,11 @@ def optimize_trajectory_alignment(
     latest = {'mean_weighted': np.nan, 'mean_raw': np.nan}
 
     def score_for_params(params, include_reg=True):
+        # Honor fixed_globals: overwrite locked dims regardless of optimizer's choice.
+        if fix_idx_val:
+            params = np.array(params, dtype=float, copy=True)
+            for idx, val in fix_idx_val:
+                params[idx] = val
         try:
             origin, x_vec, y_vec, normal = _apply_chamber_params(params, mri_pipeline)
         except Exception:
@@ -1847,9 +1869,18 @@ def optimize_trajectory_alignment(
     steps[8]   = 0.5  # ddepth (mm)
     if enable_per_session_corrections and n_p > 9:
         steps[9:] = 0.5  # per-session raw (tanh-space)
+    # Tiny step for fixed dims so the optimizer doesn't waste effort exploring them
+    # (score_for_params clobbers them anyway).
+    for idx, _ in fix_idx_val:
+        steps[idx] = 1e-9
 
     maxiter_adj = maxiter + 500 * n_sess if enable_per_session_corrections else maxiter
     result = _OPTIMIZERS[optimizer](score_for_params, full_x0, steps, callback_nelder, maxiter_adj)
+
+    # Clobber the fixed dims in the returned solution so downstream code sees the
+    # pinned values rather than whatever drift the optimizer happened to leave.
+    for idx, val in fix_idx_val:
+        result.x[idx] = val
 
     score_after = -score_for_params(result.x, include_reg=False)
     raw_after = latest['mean_raw']
@@ -1893,6 +1924,7 @@ def optimize_trajectory_alignment(
         'softmin_beta': softmin_beta,
         'optimizer': optimizer,
         'use_confidence_weights': use_confidence_weights,
+        'fixed_globals': dict(fixed_globals) if fixed_globals else None,
     }
 
 
