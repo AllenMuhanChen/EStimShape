@@ -196,12 +196,12 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         variantSource.setProperties(choiceSize, texture, is2D(), 1.0);
         variantSource.setStimColor(color);
         variantSource.genMatchStickFromFile(gaSpecPath + "/" + baseMStickStimSpecId + "_spec.xml");
+        variantSource.centerShape();
 
         ProceduralMatchStick removed = new ProceduralMatchStick(noiseMapper);
         correctNoiseRadius(removed);
         removed.setProperties(choiceSize, texture, is2D(), 1.0);
         removed.setStimColor(color);
-        removed.setMaxDiameterDegrees(maxSampleSize);
         removed.genRemovedLimbsMatchStick(variantSource, new HashSet<>(noiseComponentIndcs));
         return removed;
     }

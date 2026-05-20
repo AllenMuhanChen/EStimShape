@@ -136,6 +136,7 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
 
         if (getnComponent() == 1) {
             this.setObj1(MObj[1]);
+            postProcess(MObj);
             return true;
         }
 
@@ -151,10 +152,17 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
             }
         }
 
+        postProcess(MObj);
+
+        return true;
+    }
+
+    private void postProcess(MStickObj4Smooth[] MObj) {
+        MStickObj4Smooth nowObj;
+        int i;
         // 3. general smooth afterward
+        nowObj = MObj[1]; // use soft copy is fine here
         nowObj.smoothVertexAndNormMat(6, 15); // smooth the vertex by 4 times. normal by 10times
-
-
 
         this.setObj1(MObj[1]);
         this.getObj1().rotateMesh(getFinalRotation());
@@ -164,7 +172,6 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
         getObj1().translateFwd(shiftVec);
         this.getObj1().scaleTheObj(getScaleForMAxisShape()); //AC: IMPORTANT CHANGE
         getObj1().translateBack(shiftVec);
-
 
         if (isDoCenterObject()) {
             setFinalShiftinDepth(this.getObj1().subCenterOfMass());
@@ -187,9 +194,6 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
                 }
             }
         }
-
-
-        return true;
     }
 
     @Override

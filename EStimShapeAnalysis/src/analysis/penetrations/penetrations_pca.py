@@ -2682,10 +2682,10 @@ if __name__ == "__main__":
         top_downweight_factor=0.25,     # weight multiplier for those samples (0 = ignore)
         # Lock one or more global params at chosen values; the optimizer searches the rest.
         # Set to None (or omit) for unconstrained. Examples:
-        #   fixed_globals={'del_deg': 0.0}          → force zero elevation correction
+          fixed_globals={'del_deg': 0.0}  ,#        → force zero elevation correction
         #   fixed_globals={'del_deg': 0.0,          → also lock other globals
         #                  'ddepth_mm': 0.0}
-        fixed_globals=None,
+        # fixed_globals=None,
     )
 
     # results = run_analysis(conn, n_pcs=6, exclude_sessions =exclude_sessions, within_session_normalize=False)

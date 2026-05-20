@@ -18,7 +18,7 @@ PLOT_MODE_DB_INCLUDED = 'db_included'  # Show exactly the stims with included=1 
 
 def main():
 
-    channel = "Cluster"  # "GA" for GA Response, "Cluster" for current cluster, single channel name, or list
+    channel = "A-006"  # "GA" for GA Response, "Cluster" for current cluster, single channel name, or list
     use_baseline_correction = False
 
     analysis = PlotVariantDeltas(

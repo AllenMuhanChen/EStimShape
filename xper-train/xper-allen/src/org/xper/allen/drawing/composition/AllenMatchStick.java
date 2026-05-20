@@ -5062,7 +5062,7 @@ public class AllenMatchStick extends MatchStick {
 			MObj[i] = new MStickObj4Smooth(getComp()[i]); // use constructor to do the initialization
 
 		if (getnComponent() == 1) {
-			this.setObj1(MObj[1]);
+			postProcess(MObj);
 			return true;
 		}
 
@@ -5081,23 +5081,25 @@ public class AllenMatchStick extends MatchStick {
 		// 3. general smooth afterward
 		nowObj.smoothVertexAndNormMat(6, 15); // smooth the vertex by 4 times. normal by 10times
 
+        postProcess(MObj);
 
-
-		this.setObj1(MObj[1]);
-		Point3d shiftVec = getMassCenter();
-		getObj1().translateFwd(shiftVec);
-		this.getObj1().scaleTheObj(getScaleForMAxisShape()); //AC: IMPORTANT CHANGE
-		getObj1().translateBack(shiftVec);
-
-		this.getObj1().rotateMesh(getFinalRotation());
-		if (isDoCenterObject()) {
-			setFinalShiftinDepth(this.getObj1().subCenterOfMass());
-		}
-
-		return true;
+        return true;
 	}
 
-	/**
+    private void postProcess(MStickObj4Smooth[] MObj) {
+        this.setObj1(MObj[1]);
+        Point3d shiftVec = getMassCenter();
+        getObj1().translateFwd(shiftVec);
+        this.getObj1().scaleTheObj(getScaleForMAxisShape()); //AC: IMPORTANT CHANGE
+        getObj1().translateBack(shiftVec);
+
+        this.getObj1().rotateMesh(getFinalRotation());
+        if (isDoCenterObject()) {
+            setFinalShiftinDepth(this.getObj1().subCenterOfMass());
+        }
+    }
+
+    /**
 	 * Translation Corrected Scaling. Subtract by massCenter before scaling and add it back after scaling
 	 * @param point
 	 * @return
