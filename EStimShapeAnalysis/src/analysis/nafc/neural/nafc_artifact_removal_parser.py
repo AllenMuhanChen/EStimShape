@@ -31,7 +31,7 @@ from src.analysis.nafc.neural.artifact_removal import (
     ArtifactDetector, ArtifactEvent, ArtifactRemover,
     BaselineDriftPreprocessor, NeoSpikeDetector, RmsThresholdSpikeDetector,
     SampleInterpolateRemover, SignalPreprocessor, SpikeDetector,
-    ThresholdArtifactDetector,
+    ThresholdArtifactDetector, TriggerBasedArtifactDetector,
 )
 from src.analysis.nafc.neural.nafc_parser_base import NafcParserBase
 from src.analysis.nafc.neural.nafc_trial_events import NafcTrialEvents
@@ -84,23 +84,22 @@ class NafcArtifactRemovalParser(NafcParserBase):
         post_artifact_blank_s: float = 0.002,
         to_cache: bool = False,
         cache_dir: Optional[str] = None,
+        trigger_params_by_stim_spec_id: Optional[dict] = None,
+        padding_before_pulse_s: float = 0.0001,
+        padding_after_pulse_s: float = 0.0005,
     ):
         """
-        Parameters
-        ----------
-        post_artifact_blank_s : float
-            Seconds added on each side of every artifact window before and
-            after spike detection. Serves two purposes:
-
-            1. **Noise-mask** — these samples are excluded from the RMS/MAD
-               noise estimate so zeroed regions don't pull the threshold down.
-            2. **Post-filter blank** — after bandpass-filtering the cleaned
-               signal the same windows are re-zeroed, preventing filter
-               edge-effects (ringing at removal boundaries) from being
-               detected as spikes.
-
-            Default 2 ms is conservative; reduce if you are losing genuine
-            short-latency responses.
+        When ``trigger_params_by_stim_spec_id`` is provided, parse() builds
+        a fresh TriggerBasedArtifactDetector per recording from the rising
+        and falling edges of digital-in-01 plus the per-trial entries:
+            {stim_spec_id (str): {
+                'post_trigger_delay_us': float,
+                'pulse_width_us': float,
+                'pulse_period_us': float,
+            }}
+        ``padding_before_pulse_s`` / ``padding_after_pulse_s`` set the
+        blank-zone margins. The fixed ``artifact_detector`` is used only
+        as a fallback when no entry matches.
         """
         self.preprocessor = preprocessor or BaselineDriftPreprocessor()
         self.artifact_detector = artifact_detector or ThresholdArtifactDetector()
@@ -109,6 +108,9 @@ class NafcArtifactRemovalParser(NafcParserBase):
         self.post_artifact_blank_s = post_artifact_blank_s
         self.to_cache = to_cache
         self.cache_dir = cache_dir
+        self.trigger_params_by_stim_spec_id = trigger_params_by_stim_spec_id
+        self.padding_before_pulse_s = padding_before_pulse_s
+        self.padding_after_pulse_s = padding_after_pulse_s
 
     # -----------------------------------------------------------------------
     # NafcParserBase
@@ -126,8 +128,18 @@ class NafcArtifactRemovalParser(NafcParserBase):
         sample_rate = float(rhs['frequency_parameters']['amplifier_sample_rate'])
         amplifier_channels = rhs['amplifier_channels']
 
-        channel_to_raw = self._read_amplifier(recording_dir, amplifier_channels)
-        spikes_by_channel = self._detect_spikes_all_channels(channel_to_raw, sample_rate)
+        # If per-trial trigger params were provided, build a fresh
+        # TriggerBasedArtifactDetector for this recording. Otherwise fall
+        # back to the constructor-time artifact_detector.
+        prev_detector = self.artifact_detector
+        trigger_detector = self._maybe_build_trigger_detector(recording_dir)
+        if trigger_detector is not None:
+            self.artifact_detector = trigger_detector
+        try:
+            channel_to_raw = self._read_amplifier(recording_dir, amplifier_channels)
+            spikes_by_channel = self._detect_spikes_all_channels(channel_to_raw, sample_rate)
+        finally:
+            self.artifact_detector = prev_detector
 
         events_dict = self._read_events(recording_dir, sample_rate)
         result = NafcTrialEvents(
@@ -250,6 +262,32 @@ class NafcArtifactRemovalParser(NafcParserBase):
     # -----------------------------------------------------------------------
     # I/O helpers
     # -----------------------------------------------------------------------
+
+    def _maybe_build_trigger_detector(
+        self, recording_dir: str,
+    ) -> Optional[TriggerBasedArtifactDetector]:
+        if not self.trigger_params_by_stim_spec_id:
+            return None
+        stim_spec_id = str(_task_id_from_dir(recording_dir))
+        params = self.trigger_params_by_stim_spec_id.get(stim_spec_id)
+        if params is None:
+            return None
+        digital_in = read_digitalin_file(
+            os.path.join(recording_dir, "digitalin.dat"),
+        )
+        ttl = np.asarray(digital_in[0]).astype(np.int8)
+        d = np.diff(ttl)
+        rising = np.where(d == 1)[0] + 1
+        falling = np.where(d == -1)[0] + 1
+        return TriggerBasedArtifactDetector(
+            trigger_rising_samples=rising,
+            trigger_falling_samples=falling,
+            post_trigger_delay_s=float(params['post_trigger_delay_us']) * 1e-6,
+            pulse_width_s=float(params['pulse_width_us']) * 1e-6,
+            padding_before_s=self.padding_before_pulse_s,
+            padding_after_s=self.padding_after_pulse_s,
+            pulse_period_s=float(params['pulse_period_us']) * 1e-6,
+        )
 
     @staticmethod
     def _read_rhs(recording_dir: str) -> dict:

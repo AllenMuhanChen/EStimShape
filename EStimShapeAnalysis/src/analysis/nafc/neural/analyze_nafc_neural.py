@@ -15,17 +15,24 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
+from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
 from clat.util import time_util
+from clat.util.connection import Connection
 
 from src.analysis.nafc.neural.analyze_nafc_neural_raster import load_data, run as run_raster
 from src.analysis.nafc.neural.analyze_nafc_neural_psth import run as run_psth, run_by_choice_and_estim_id
 
+from src.analysis.nafc.nafc_database_fields import (
+    EStimEnabledField, EStimPostStimRefractoryPeriodField,
+    EStimPostTriggerDelayField, EStimPulseWidthField, EStimSpecIdField,
+    StimSpecIdField,
+)
+from src.analysis.nafc.psychometric_curves import collect_choice_trials
 from src.analysis.nafc.neural.nafc_parser_base import NafcParserBase
 from src.analysis.nafc.neural.nafc_neural_parser import NafcNeuralParser
 from src.analysis.nafc.neural.nafc_artifact_removal_parser import NafcArtifactRemovalParser
 from src.analysis.nafc.neural.artifact_removal import (
     BaselineDriftPreprocessor,
-    ThresholdArtifactDetector,
     FlatBaselineRemover,
     RmsThresholdSpikeDetector,
     NeoSpikeDetector,
@@ -56,19 +63,22 @@ USE_ARTIFACT_REMOVAL_PARSER = True
 #           post-estim recovery), which is what we want here.
 SPIKE_DETECTOR_METHOD     = "neo"
 
-ARTIFACT_THRESHOLD_FACTOR = 100        # x MAD
 SPIKE_THRESHOLD_FACTOR    = 4.0        # used when SPIKE_DETECTOR_METHOD == "rms"
-NEO_THRESHOLD_FACTOR      = 5.0        # used when SPIKE_DETECTOR_METHOD == "neo"
-NEO_NOISE_SCALE           = "median"   # "median" (robust) or "mean" (literature)
-NEO_SMOOTHING_S           = 0.001      # 1 ms Bartlett window
-REMOVER_PRE_PAD_S         = 0.0002     # 200 us
-REMOVER_POST_PAD_S        = 0.0002     # 200 us
-REMOVER_MIN_DURATION_S    = 0.0        # rely on detected event width
-REMOVER_BASELINE          = "zero"  # or "zero"
-PREPROCESSOR_HIGHPASS_HZ  = 5
-# Samples within this many seconds of any artifact window are excluded from
-# both the noise-threshold estimate and post-filter-ringing detection.
-POST_ARTIFACT_BLANK_S     = 0.001        # 2 ms
+NEO_THRESHOLD_FACTOR      = 5.0
+NEO_NOISE_SCALE           = "median"
+NEO_SMOOTHING_S           = 0.001
+NEO_BASELINE_WINDOW_S     = 0.003
+NEO_MIN_SPIKE_UV          = 30.0
+NEO_MAX_SPIKE_UV          = 500.0
+REMOVER_PRE_PAD_S         = 0.0002
+REMOVER_POST_PAD_S        = 0.0002
+REMOVER_MIN_DURATION_S    = 0.0
+REMOVER_BASELINE          = "zero"
+PREPROCESSOR_HIGHPASS_HZ  = 500
+POST_ARTIFACT_BLANK_S     = 0.001
+# Trigger-based blanking margins around each stim pulse.
+PADDING_BEFORE_PULSE_S    = 0.0001     # 100 us
+PADDING_AFTER_PULSE_S     = 0.0005     # 500 us
 
 # ── raster ──────────────────────────────────────────────────────────────────
 RASTER_TIME_BEFORE_S = 0.2   # seconds before sample_on
@@ -89,6 +99,9 @@ def build_spike_detector():
             threshold_factor=NEO_THRESHOLD_FACTOR,
             noise_scale=NEO_NOISE_SCALE,
             smoothing_window_s=NEO_SMOOTHING_S,
+            baseline_window_s=NEO_BASELINE_WINDOW_S,
+            min_spike_amplitude_uv=NEO_MIN_SPIKE_UV,
+            max_spike_amplitude_uv=NEO_MAX_SPIKE_UV,
         )
     elif SPIKE_DETECTOR_METHOD == "rms":
         return RmsThresholdSpikeDetector(
@@ -101,19 +114,52 @@ def build_spike_detector():
         )
 
 
+def _build_trigger_params(exp_db_name: str, since_date) -> dict:
+    """Query DB once for per-trial EStim timing; return {stim_spec_id (str):
+    {post_trigger_delay_us, pulse_width_us, pulse_period_us}}. The period
+    is pulse_width + postStimRefractoryPeriod (end-to-start)."""
+    conn = Connection(exp_db_name)
+    trial_tstamps = collect_choice_trials(conn, since_date)
+    if not trial_tstamps:
+        return {}
+    fields = CachedFieldList()
+    fields.append(StimSpecIdField(conn))
+    fields.append(EStimEnabledField(conn))
+    fields.append(EStimSpecIdField(conn))
+    fields.append(EStimPostTriggerDelayField(conn))
+    fields.append(EStimPostStimRefractoryPeriodField(conn))
+    fields.append(EStimPulseWidthField(conn))
+    data = fields.to_data(trial_tstamps)
+    estim_on = data[data["EStimEnabled"] == True].copy()
+    out = {}
+    for _, row in estim_on.iterrows():
+        sid = row.get("StimSpecId")
+        if sid is None:
+            continue
+        width_us = float(row.get("EStimPulseWidth") or 0.0)
+        out[str(int(sid))] = {
+            'post_trigger_delay_us': float(row.get("EStimPostTriggerDelay") or 0.0),
+            'pulse_width_us': width_us,
+            'pulse_period_us': width_us + float(
+                row.get("EStimPostStimRefractoryPeriod") or 0.0
+            ),
+        }
+    return out
+
+
 def build_parser() -> NafcParserBase:
     """Build the parser selected by USE_ARTIFACT_REMOVAL_PARSER."""
     if not USE_ARTIFACT_REMOVAL_PARSER:
         return NafcNeuralParser()
 
+    trigger_params = _build_trigger_params(EXP_DB_NAME, SINCE_DATE)
+    print(f"Loaded trigger params for {len(trigger_params)} EStim-on trials")
+
     return NafcArtifactRemovalParser(
         preprocessor=BaselineDriftPreprocessor(
             highpass_hz=PREPROCESSOR_HIGHPASS_HZ,
         ),
-        artifact_detector=ThresholdArtifactDetector(
-            threshold_factor=ARTIFACT_THRESHOLD_FACTOR,
-            noise_scale="mad",
-        ),
+        artifact_detector=None,  # built per-trial from trigger_params
         artifact_remover=FlatBaselineRemover(
             pre_pad_s=REMOVER_PRE_PAD_S,
             post_pad_s=REMOVER_POST_PAD_S,
@@ -122,6 +168,9 @@ def build_parser() -> NafcParserBase:
         ),
         spike_detector=build_spike_detector(),
         post_artifact_blank_s=POST_ARTIFACT_BLANK_S,
+        trigger_params_by_stim_spec_id=trigger_params,
+        padding_before_pulse_s=PADDING_BEFORE_PULSE_S,
+        padding_after_pulse_s=PADDING_AFTER_PULSE_S,
     )
 
 
