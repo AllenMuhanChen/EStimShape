@@ -2486,7 +2486,8 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                  optimizer: str = 'nelder-mead',
                  use_confidence_weights: bool = True,
                  top_downweight_mm: float = TOP_DOWNWEIGHT_MM,
-                 top_downweight_factor: float = TOP_DOWNWEIGHT_FACTOR):
+                 top_downweight_factor: float = TOP_DOWNWEIGHT_FACTOR,
+                 fixed_globals: Optional[dict] = None):
     """Run complete PCA analysis with correlations and plots."""
 
     # Build output directories
@@ -2588,7 +2589,8 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                                                    optimizer=optimizer,
                                                    use_confidence_weights=use_confidence_weights,
                                                    top_downweight_mm=top_downweight_mm,
-                                                   top_downweight_factor=top_downweight_factor)
+                                                   top_downweight_factor=top_downweight_factor,
+                                                   fixed_globals=fixed_globals)
 
         print("\n── MRI comparison with optimised transformation ──")
         opt_pipeline, daz, del_, ddepth = apply_optimized_pipeline(mri_pipeline, opt_result)
@@ -2610,6 +2612,7 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
             session_corr_bounds=session_corr_bounds,
             top_downweight_mm=top_downweight_mm,
             top_downweight_factor=top_downweight_factor,
+            fixed_globals=fixed_globals,
             maxiter=maxiter,
             start_from_file=start_from_file,
         ), opt_result=opt_result)
@@ -2677,7 +2680,12 @@ if __name__ == "__main__":
         use_confidence_weights=True,   # False = unweighted r
         top_downweight_mm=5,          # >0 = down-weight the top X mm of each penetration
         top_downweight_factor=0.25,     # weight multiplier for those samples (0 = ignore)
-
+        # Lock one or more global params at chosen values; the optimizer searches the rest.
+        # Set to None (or omit) for unconstrained. Examples:
+        #   fixed_globals={'del_deg': 0.0}          → force zero elevation correction
+        #   fixed_globals={'del_deg': 0.0,          → also lock other globals
+        #                  'ddepth_mm': 0.0}
+        fixed_globals=None,
     )
 
     # results = run_analysis(conn, n_pcs=6, exclude_sessions =exclude_sessions, within_session_normalize=False)
