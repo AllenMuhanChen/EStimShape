@@ -10,6 +10,7 @@ import os
 import sys
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 # Allow `from src.mri...` imports the same way penetrations_pca does
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
@@ -24,6 +25,73 @@ from src.analysis.penetrations.penetrations_pca import (
     _OPT_PARAM_NAMES,
 )
 from clat.util.connection import Connection
+
+
+def plot_sweep(table, param_to_fix: str, save_path: str = None):
+    """Plot a sweep summary: fit quality + how each global param compensates.
+
+    Accepts either a DataFrame or a path to a sweep CSV.
+    """
+    if isinstance(table, str):
+        table = pd.read_csv(table)
+
+    x = table['fixed_val'].values
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+    # --- Top-left: fit quality vs sweep ---
+    ax = axes[0, 0]
+    ax.plot(x, table['score'], 'o-', label='score (softmin, with penalties)',
+            color='C0', linewidth=2, markersize=8)
+    ax.plot(x, table['raw'], 's-', label='raw (unweighted mean r)',
+            color='C1', linewidth=2, markersize=8)
+    ax.set_xlabel(f'fixed {param_to_fix}')
+    ax.set_ylabel('correlation')
+    ax.set_title('Fit quality vs constrained value')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    # --- Top-right: chamber translation ---
+    ax = axes[0, 1]
+    for col, c in zip(['tx_mm', 'ty_mm', 'tz_mm'], ['C0', 'C1', 'C2']):
+        ax.plot(x, table[col], 'o-', label=col, color=c, linewidth=2, markersize=6)
+    ax.axhline(0, color='gray', linewidth=0.5)
+    ax.set_xlabel(f'fixed {param_to_fix}')
+    ax.set_ylabel('mm')
+    ax.set_title('Chamber translation (absorbs constraint?)')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    # --- Bottom-left: chamber rotation ---
+    ax = axes[1, 0]
+    for col, c in zip(['rx_deg', 'ry_deg', 'rz_deg'], ['C0', 'C1', 'C2']):
+        ax.plot(x, table[col], 'o-', label=col, color=c, linewidth=2, markersize=6)
+    ax.axhline(0, color='gray', linewidth=0.5)
+    ax.set_xlabel(f'fixed {param_to_fix}')
+    ax.set_ylabel('deg')
+    ax.set_title('Chamber rotation (absorbs constraint?)')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    # --- Bottom-right: other global angle/depth offsets ---
+    ax = axes[1, 1]
+    other_globals = [n for n in ['daz_deg', 'del_deg', 'ddepth_mm'] if n != param_to_fix]
+    for col, c in zip(other_globals, ['C0', 'C1', 'C2']):
+        unit = 'deg' if col.endswith('_deg') else 'mm'
+        ax.plot(x, table[col], 'o-', label=f'{col} ({unit})', color=c, linewidth=2, markersize=6)
+    ax.axhline(0, color='gray', linewidth=0.5)
+    ax.set_xlabel(f'fixed {param_to_fix}')
+    ax.set_ylabel('deg or mm')
+    ax.set_title('Other global offsets')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    fig.suptitle(f'Sweep: holding {param_to_fix} fixed at each value, re-optimizing the rest',
+                 fontsize=13, y=1.00)
+    plt.tight_layout()
+    if save_path is not None:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        print(f"Saved plot to: {save_path}")
+    plt.show()
 
 
 def sweep_fixed_param(
@@ -113,17 +181,28 @@ def sweep_fixed_param(
         fmt[c] = fmt[c].map(lambda x: f"{x:+.4f}" if isinstance(x, float) else x)
     print(fmt.to_string(index=False))
 
-    # Persist as CSV next to the start_from_file
+    # Persist as CSV and PNG next to the start_from_file
     out_dir = os.path.dirname(start_from_file) or "."
     base = os.path.splitext(os.path.basename(start_from_file))[0]
-    out_path = os.path.join(out_dir, f"sweep_{base}_fix_{param_to_fix}.csv")
-    table.to_csv(out_path, index=False)
-    print(f"\nSaved sweep to: {out_path}")
+    csv_path = os.path.join(out_dir, f"sweep_{base}_fix_{param_to_fix}.csv")
+    png_path = os.path.join(out_dir, f"sweep_{base}_fix_{param_to_fix}.png")
+    table.to_csv(csv_path, index=False)
+    print(f"\nSaved sweep to: {csv_path}")
+    plot_sweep(table, param_to_fix, save_path=png_path)
 
     return table
 
 
 if __name__ == "__main__":
+    # If a CSV path is given on the command line, just plot it and exit.
+    # This lets you re-plot a previous sweep without re-running optimization.
+    if len(sys.argv) > 1 and sys.argv[1].endswith('.csv'):
+        csv_path = sys.argv[1]
+        param = sys.argv[2] if len(sys.argv) > 2 else 'del_deg'
+        png_path = csv_path.replace('.csv', '.png')
+        plot_sweep(csv_path, param, save_path=png_path)
+        sys.exit(0)
+
     conn = Connection(
         database="allen_data_repository",
         user="xper_rw",
