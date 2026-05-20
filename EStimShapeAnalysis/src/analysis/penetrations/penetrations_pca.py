@@ -337,6 +337,14 @@ CHAMBER_DIST_L2_WEIGHT  = 0.01    # λ on mean squared penetration shift (mm²)
 CHAMBER_PARAM_L2_WEIGHT = 0.001   # λ on normalized chamber-param penalty
 CHAMBER_L2_SCALES       = dict(t_mm=5.0, r_deg=2.0, daz_deg=2.0, del_deg=2.0, ddepth_mm=1.0)
 
+# Down-weight the top X mm of each penetration when scoring tissue_score vs MRI.
+# Useful when the surface-most samples are unreliable (tissue drag, prior-recording damage)
+# and don't match the MRI signal as well. Applied per-session, relative to the shallowest
+# depth recorded in that session: samples with depth <= min(depth) + TOP_DOWNWEIGHT_MM get
+# their weight multiplied by TOP_DOWNWEIGHT_FACTOR.
+TOP_DOWNWEIGHT_MM     = 0.0   # 0 = disabled. e.g. 1.0 → top 1 mm of each penetration
+TOP_DOWNWEIGHT_FACTOR = 0.25  # weight multiplier for those samples (0 = ignore, 1 = no effect)
+
 # Variance penalty: penalises unequal fit quality across sessions.
 # Loss = -mean(r) + VARIANCE_PENALTY_WEIGHT * var(r)
 # 0 = disabled; raise to force more equitable fits.
@@ -1562,6 +1570,8 @@ def optimize_trajectory_alignment(
         softmin_beta: float = SOFTMIN_BETA,
         optimizer: str = 'nelder-mead',
         use_confidence_weights: bool = True,
+        top_downweight_mm: float = TOP_DOWNWEIGHT_MM,
+        top_downweight_factor: float = TOP_DOWNWEIGHT_FACTOR,
 ) -> dict:
     """
     Find the rigid-body + scale + angle + depth correction that maximises the
@@ -1591,13 +1601,22 @@ def optimize_trajectory_alignment(
         if pen is None:
             continue
         mask = df_conf['session_id'] == session_id
+        depths = df_conf.loc[mask, 'depth_under_chamber_mm'].values.copy()
+        # Multiplier applied to each sample's correlation weight; down-weights the
+        # shallowest TOP_DOWNWEIGHT_MM of each penetration (tissue drag / prior damage).
+        if top_downweight_mm > 0 and len(depths) > 0:
+            top_thresh = depths.min() + top_downweight_mm
+            depth_weight = np.where(depths <= top_thresh, top_downweight_factor, 1.0)
+        else:
+            depth_weight = None
         session_info[session_id] = {
             'az': pen['az_deg'],
             'el': pen['el_deg'],
-            'depths': df_conf.loc[mask, 'depth_under_chamber_mm'].values.copy(),
+            'depths': depths,
             'ts': df_conf.loc[mask, 'tissue_score'].values.copy(),
             'confidence': df_conf.loc[mask, 'tissue_confidence'].values.copy()
                 if 'tissue_confidence' in df_conf.columns else None,
+            'depth_weight': depth_weight,
         }
 
     if not session_info:
@@ -1731,6 +1750,9 @@ def optimize_trajectory_alignment(
                 continue
 
             conf = sdata['confidence'] if use_confidence_weights else None
+            dw = sdata.get('depth_weight')
+            if dw is not None:
+                conf = (conf if conf is not None else np.ones(len(sdata['ts']))) * dw
             r = _weighted_pearson_r(sdata['ts'], mri_vals, conf)
             if not np.isnan(r):
                 rs.append(r)
@@ -1792,8 +1814,10 @@ def optimize_trajectory_alignment(
     var_note  = (f"  variance penalty λ={variance_penalty_weight}"
                  if variance_penalty_weight > 0 else "")
     conf_note = "" if use_confidence_weights else "  confidence weights OFF"
+    top_note = (f"  top {top_downweight_mm:.2f}mm × {top_downweight_factor:.2f}"
+                if top_downweight_mm > 0 else "")
     print(f"\nOptimising over {len(session_info)} sessions  "
-          f"(initial score = {score_before:.4f}){agg_note}{var_note}{conf_note} ...")
+          f"(initial score = {score_before:.4f}){agg_note}{var_note}{conf_note}{top_note} ...")
     print(f"  Optimizer: {optimizer}")
 
     if optimizer not in _OPTIMIZERS:
@@ -2410,7 +2434,9 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                  variance_penalty_weight: float = VARIANCE_PENALTY_WEIGHT,
                  softmin_beta: float = SOFTMIN_BETA,
                  optimizer: str = 'nelder-mead',
-                 use_confidence_weights: bool = True):
+                 use_confidence_weights: bool = True,
+                 top_downweight_mm: float = TOP_DOWNWEIGHT_MM,
+                 top_downweight_factor: float = TOP_DOWNWEIGHT_FACTOR):
     """Run complete PCA analysis with correlations and plots."""
 
     # Build output directories
@@ -2510,7 +2536,9 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                                                    variance_penalty_weight=variance_penalty_weight,
                                                    softmin_beta=softmin_beta,
                                                    optimizer=optimizer,
-                                                   use_confidence_weights=use_confidence_weights)
+                                                   use_confidence_weights=use_confidence_weights,
+                                                   top_downweight_mm=top_downweight_mm,
+                                                   top_downweight_factor=top_downweight_factor)
 
         print("\n── MRI comparison with optimised transformation ──")
         opt_pipeline, daz, del_, ddepth = apply_optimized_pipeline(mri_pipeline, opt_result)
@@ -2530,6 +2558,8 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
             chamber_l2_scales=chamber_l2_scales,
             session_corr_l2_weight=session_corr_l2_weight,
             session_corr_bounds=session_corr_bounds,
+            top_downweight_mm=top_downweight_mm,
+            top_downweight_factor=top_downweight_factor,
             maxiter=maxiter,
             start_from_file=start_from_file,
         ), opt_result=opt_result)
@@ -2594,6 +2624,8 @@ if __name__ == "__main__":
         softmin_beta=20,               # 0 = mean; 3-5 = protect worst; 10+ ≈ min
         optimizer='cma-es',        # 'nelder-mead' | 'cma-es'
         use_confidence_weights=False,   # False = unweighted r
+        top_downweight_mm=0.0,          # >0 = down-weight the top X mm of each penetration
+        top_downweight_factor=0.25,     # weight multiplier for those samples (0 = ignore)
     )
 
     # results = run_analysis(conn, n_pcs=6, exclude_sessions =exclude_sessions, within_session_normalize=False)
