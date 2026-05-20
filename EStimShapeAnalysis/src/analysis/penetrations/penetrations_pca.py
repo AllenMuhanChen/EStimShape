@@ -116,6 +116,9 @@ def _write_fit_log(
         f"  Score before: {opt_result.get('score_before', float('nan')):.4f}",
         f"  Score after:  {opt_result.get('score_after',  float('nan')):.4f}",
         f"  Delta:        {opt_result.get('score_after', 0.) - opt_result.get('score_before', 0.):+.4f}",
+        f"  Raw before:   {opt_result.get('raw_before',   float('nan')):.4f}",
+        f"  Raw after:    {opt_result.get('raw_after',    float('nan')):.4f}",
+        f"  Raw delta:    {opt_result.get('raw_after', 0.)   - opt_result.get('raw_before', 0.):+.4f}",
         "",
         "=== Global Parameters ===",
     ]
@@ -1690,6 +1693,9 @@ def optimize_trajectory_alignment(
 
     best = {'score': -np.inf, 'params': full_x0.copy(), 'iter': 0}
     call_count = [0]
+    # Stashes the most recent evaluation's per-session weighted and raw (unweighted)
+    # Pearson r values so the callback can print both without an extra pass.
+    latest = {'mean_weighted': np.nan, 'mean_raw': np.nan}
 
     def score_for_params(params, include_reg=True):
         try:
@@ -1700,7 +1706,7 @@ def optimize_trajectory_alignment(
         _, _, _, _, _, _, daz, del_, ddepth = params[:9]
         per_sess_raw = params[9:].reshape(-1, 3) if enable_per_session_corrections else None
 
-        rs, reg_sum = [], 0.0
+        rs, rs_raw, reg_sum = [], [], 0.0
         chamber_dist_sq_sum = 0.0
         chamber_dist_n = 0
 
@@ -1754,9 +1760,14 @@ def optimize_trajectory_alignment(
             if dw is not None:
                 conf = (conf if conf is not None else np.ones(len(sdata['ts']))) * dw
             r = _weighted_pearson_r(sdata['ts'], mri_vals, conf)
+            r_raw = _weighted_pearson_r(sdata['ts'], mri_vals, None)
             if not np.isnan(r):
                 rs.append(r)
+            if not np.isnan(r_raw):
+                rs_raw.append(r_raw)
 
+        latest['mean_weighted'] = float(np.mean(rs)) if rs else np.nan
+        latest['mean_raw']      = float(np.mean(rs_raw)) if rs_raw else np.nan
         if not rs:
             return np.inf
         rs_arr = np.array(rs)
@@ -1796,7 +1807,7 @@ def optimize_trajectory_alignment(
             best['params'] = xk.copy()
             best['iter'] = call_count[0]
             tx, ty, tz, rx, ry, rz, daz, del_, ddepth = xk[:9]
-            print(f"  [{call_count[0]:4d}] score={s_pure:.4f}  "
+            print(f"  [{call_count[0]:4d}] score={s_pure:.4f}  raw={latest['mean_raw']:.4f}  "
                   f"t=({tx:.2f},{ty:.2f},{tz:.2f})  "
                   f"r=({rx:.2f},{ry:.2f},{rz:.2f})  "
                   f"daz={daz:.2f}  del={del_:.2f}  ddepth={ddepth:.2f}")
@@ -1810,6 +1821,7 @@ def optimize_trajectory_alignment(
                       f"max|Δdep|={np.abs(eff_ddep).max():.2f}mm")
 
     score_before = -score_for_params(full_x0, include_reg=False)
+    raw_before = latest['mean_raw']
     agg_note = (f"  softmin β={softmin_beta}" if softmin_beta > 0 else "  mean aggregation")
     var_note  = (f"  variance penalty λ={variance_penalty_weight}"
                  if variance_penalty_weight > 0 else "")
@@ -1817,7 +1829,8 @@ def optimize_trajectory_alignment(
     top_note = (f"  top {top_downweight_mm:.2f}mm × {top_downweight_factor:.2f}"
                 if top_downweight_mm > 0 else "")
     print(f"\nOptimising over {len(session_info)} sessions  "
-          f"(initial score = {score_before:.4f}){agg_note}{var_note}{conf_note}{top_note} ...")
+          f"(initial score = {score_before:.4f}, raw = {raw_before:.4f})"
+          f"{agg_note}{var_note}{conf_note}{top_note} ...")
     print(f"  Optimizer: {optimizer}")
 
     if optimizer not in _OPTIMIZERS:
@@ -1839,9 +1852,12 @@ def optimize_trajectory_alignment(
     result = _OPTIMIZERS[optimizer](score_for_params, full_x0, steps, callback_nelder, maxiter_adj)
 
     score_after = -score_for_params(result.x, include_reg=False)
+    raw_after = latest['mean_raw']
     print(f"\nOptimisation done: {result.message}")
     print(f"  score: {score_before:.4f} → {score_after:.4f}  "
           f"(Δ = {score_after - score_before:+.4f})")
+    print(f"  raw:   {raw_before:.4f} → {raw_after:.4f}  "
+          f"(Δ = {raw_after - raw_before:+.4f})")
     print("\nOptimised global parameters:")
     for name, val in zip(_OPT_PARAM_NAMES, result.x[:9]):
         print(f"  {name:<14s} = {val:+.4f}")
@@ -1867,6 +1883,8 @@ def optimize_trajectory_alignment(
         'result': result,
         'score_before': score_before,
         'score_after': score_after,
+        'raw_before': raw_before,
+        'raw_after': raw_after,
         'per_session_corrections': per_session_corrections,
         'session_ids': session_ids,
         'session_corr_bounds': session_corr_bounds,
