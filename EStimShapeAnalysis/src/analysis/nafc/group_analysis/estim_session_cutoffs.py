@@ -297,11 +297,16 @@ def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
     algorithm_label = f"first_drop_w{window_size}_s{step_size}_t{threshold}_n{n_steps_below}_m{min_estim_trials}"
 
     conn = Connection("allen_data_repository")
+    # Limit to one metric so cutoff search iterates each (session, conditions) once;
+    # cutoffs are metric-agnostic — they apply via trial_start, not the EStimEffects rows.
     if session_id:
-        conn.execute("SELECT session_id, conditions FROM EStimEffects WHERE session_id = %s",
-                     (session_id,))
+        conn.execute(
+            "SELECT session_id, conditions FROM EStimEffects "
+            "WHERE session_id = %s AND metric = 'pct_hypothesized'",
+            (session_id,))
     else:
-        conn.execute("SELECT session_id, conditions FROM EStimEffects")
+        conn.execute(
+            "SELECT session_id, conditions FROM EStimEffects WHERE metric = 'pct_hypothesized'")
 
     col_names = [d[0] for d in conn.my_cursor.description]
     all_rows = conn.fetch_all()

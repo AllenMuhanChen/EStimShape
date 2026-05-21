@@ -10,6 +10,17 @@ from src.analysis.nafc.estim_parameter_classifier import EStimParameterClassifie
 from src.startup import context
 
 
+# Metric identifiers stored in EStimEffects.metric (and EStimPermutationTests.metric).
+# pct_hypothesized: mean(is_hypothesized_choice) over all trials in the group.
+# pct_hyp_vs_delta: mean(is_hypothesized_choice) restricted to trials where the
+#   monkey committed to either the hypothesized or the delta alternative — drops
+#   choice in {'rand', 'removed'}. Effectively a 2AFC collapse of the task.
+METRIC_PCT_HYPOTHESIZED = 'pct_hypothesized'
+METRIC_PCT_HYP_VS_DELTA = 'pct_hyp_vs_delta'
+ALL_METRICS = (METRIC_PCT_HYPOTHESIZED, METRIC_PCT_HYP_VS_DELTA)
+_EXCLUDED_CHOICES_FOR_HYP_VS_DELTA = {'rand', 'removed'}
+
+
 class _NumpyEncoder(json.JSONEncoder):
     """Converts numpy scalar types to Python natives so json.dumps works on pandas groupby keys."""
     def default(self, obj):
@@ -199,7 +210,8 @@ def sliding_window_analysis(data, behavioral_conditions, estim_conditions,
     for window_start in window_positions:
         window_data = data_sorted.iloc[window_start:window_start + window_size]
         window_groups = split_data_by_conditions(window_data, behavioral_conditions, estim_conditions)
-        for result in calculate_estim_effects(window_groups):
+        # Sliding-window plot only uses the raw metric; computing both would double rows.
+        for result in calculate_estim_effects(window_groups, metrics=(METRIC_PCT_HYPOTHESIZED,)):
             condition_key = json.dumps(result['conditions'], sort_keys=True, cls=_NumpyEncoder)
             if condition_key in condition_groups:
                 condition_groups[condition_key]['windows'].append({
@@ -458,37 +470,48 @@ def combine_trial_types_at_max_noise(data):
     return data
 
 
-def calculate_estim_effects(condition_groups):
+def _filter_for_metric(df, metric):
+    """Apply per-metric row filtering before computing % hypothesized."""
+    if metric == METRIC_PCT_HYP_VS_DELTA and 'choice' in df.columns:
+        return df[~df['choice'].isin(_EXCLUDED_CHOICES_FOR_HYP_VS_DELTA)]
+    return df
+
+
+def calculate_estim_effects(condition_groups, metrics=ALL_METRICS):
     """
-    Calculate percentage of hypothesized choices for estim vs no-estim
+    Calculate % hypothesized for estim vs no-estim, one row per (condition, metric).
 
     Args:
         condition_groups: List of dicts with estim_on_data and estim_off_data
+        metrics: Iterable of metric identifiers (see METRIC_* constants).
+                 Default computes both pct_hypothesized and pct_hyp_vs_delta.
 
     Returns:
-        List of dicts with calculated effects
+        List of dicts with calculated effects (length = len(condition_groups) * len(metrics)).
     """
     results = []
 
     for group in condition_groups:
-        estim_on = group['estim_on_data']
-        estim_off = group['estim_off_data']
-
-        # Calculate percentages
-        estim_on_pct = estim_on['is_hypothesized_choice'].mean() * 100 if len(estim_on) > 0 else None
-        estim_off_pct = estim_off['is_hypothesized_choice'].mean() * 100 if len(estim_off) > 0 else None
-
-        # Combine all conditions into one dict
+        estim_on_full = group['estim_on_data']
+        estim_off_full = group['estim_off_data']
         all_conditions = {**group['behavioral_conditions'], **group['estim_conditions']}
 
-        results.append({
-            'conditions': all_conditions,
-            'estim_on_pct_hypothesized': estim_on_pct,
-            'estim_off_pct_hypothesized': estim_off_pct,
-            'estim_on_n_trials': len(estim_on),
-            'estim_off_n_trials': len(estim_off),
-            'effect_size': estim_on_pct - estim_off_pct if estim_on_pct is not None and estim_off_pct is not None else None
-        })
+        for metric in metrics:
+            estim_on = _filter_for_metric(estim_on_full, metric)
+            estim_off = _filter_for_metric(estim_off_full, metric)
+
+            estim_on_pct = estim_on['is_hypothesized_choice'].mean() * 100 if len(estim_on) > 0 else None
+            estim_off_pct = estim_off['is_hypothesized_choice'].mean() * 100 if len(estim_off) > 0 else None
+
+            results.append({
+                'conditions': all_conditions,
+                'metric': metric,
+                'estim_on_pct_hypothesized': estim_on_pct,
+                'estim_off_pct_hypothesized': estim_off_pct,
+                'estim_on_n_trials': len(estim_on),
+                'estim_off_n_trials': len(estim_off),
+                'effect_size': estim_on_pct - estim_off_pct if estim_on_pct is not None and estim_off_pct is not None else None
+            })
 
     return results
 
@@ -497,19 +520,20 @@ def create_estim_effects_table():
     """Create EStimEffects table if it doesn't exist, and run any pending migrations."""
     conn = Connection("allen_data_repository")
 
-    conn.execute("""
+    conn.execute(f"""
         CREATE TABLE IF NOT EXISTS EStimEffects
         (
             session_id                 VARCHAR(10)  NOT NULL,
             conditions                 LONGTEXT     NOT NULL,
             algorithm_label            VARCHAR(100) NOT NULL DEFAULT 'none',
+            metric                     VARCHAR(50)  NOT NULL DEFAULT '{METRIC_PCT_HYPOTHESIZED}',
             estim_on_pct_hypothesized  FLOAT,
             estim_off_pct_hypothesized FLOAT,
             estim_on_n_trials          INT,
             estim_off_n_trials         INT,
             effect_size                FLOAT,
 
-            PRIMARY KEY (session_id, conditions(500), algorithm_label(100)),
+            PRIMARY KEY (session_id, conditions(500), algorithm_label(100), metric(50)),
             FOREIGN KEY (session_id) REFERENCES Sessions (session_id) ON DELETE CASCADE
         ) ENGINE = InnoDB DEFAULT CHARSET = latin1
     """)
@@ -552,12 +576,44 @@ def _migrate_estim_effects_table(conn):
         """)
         print("Migration complete")
 
+    # Step 3: add metric column if missing
+    conn.execute("""
+        SELECT COUNT(*) FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME   = 'EStimEffects'
+          AND COLUMN_NAME  = 'metric'
+    """)
+    if conn.fetch_all()[0][0] == 0:
+        print("Migrating EStimEffects: adding metric column...")
+        conn.execute(
+            f"ALTER TABLE EStimEffects ADD COLUMN metric VARCHAR(50) NOT NULL DEFAULT '{METRIC_PCT_HYPOTHESIZED}'"
+        )
+        print("Column added (existing rows default to pct_hypothesized)")
+
+    # Step 4: ensure metric is in PRIMARY KEY
+    conn.execute("""
+        SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE
+        WHERE TABLE_SCHEMA    = DATABASE()
+          AND TABLE_NAME      = 'EStimEffects'
+          AND CONSTRAINT_NAME = 'PRIMARY'
+          AND COLUMN_NAME     = 'metric'
+    """)
+    if conn.fetch_all()[0][0] == 0:
+        print("Migrating EStimEffects: updating PRIMARY KEY to include metric...")
+        conn.execute("""
+            ALTER TABLE EStimEffects
+              DROP PRIMARY KEY,
+              ADD PRIMARY KEY (session_id, conditions(500), algorithm_label(100), metric(50))
+        """)
+        print("Migration complete")
+
 
 def save_estim_effects_to_repository(session_id, results, algorithm_label='none'):
     conn = Connection("allen_data_repository")
 
     for result in results:
         conditions_str = _normalize_cond_key(result['conditions'])
+        metric        = result.get('metric', METRIC_PCT_HYPOTHESIZED)
         estim_on_pct  = float(result['estim_on_pct_hypothesized'])  if result['estim_on_pct_hypothesized']  is not None else None
         estim_off_pct = float(result['estim_off_pct_hypothesized']) if result['estim_off_pct_hypothesized'] is not None else None
         estim_on_n    = int(result['estim_on_n_trials'])             if result['estim_on_n_trials']          is not None else None
@@ -566,17 +622,17 @@ def save_estim_effects_to_repository(session_id, results, algorithm_label='none'
 
         conn.execute("""
             INSERT INTO EStimEffects
-                (session_id, conditions, algorithm_label,
+                (session_id, conditions, algorithm_label, metric,
                  estim_on_pct_hypothesized, estim_off_pct_hypothesized,
                  estim_on_n_trials, estim_off_n_trials, effect_size)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
                 estim_on_pct_hypothesized  = VALUES(estim_on_pct_hypothesized),
                 estim_off_pct_hypothesized = VALUES(estim_off_pct_hypothesized),
                 estim_on_n_trials          = VALUES(estim_on_n_trials),
                 estim_off_n_trials         = VALUES(estim_off_n_trials),
                 effect_size                = VALUES(effect_size)
-        """, (session_id, conditions_str, algorithm_label,
+        """, (session_id, conditions_str, algorithm_label, metric,
               estim_on_pct, estim_off_pct, estim_on_n, estim_off_n, effect))
 
 

@@ -20,6 +20,8 @@ def plot_estim_effects_summary(session_id, effect_threshold=15, output_path=None
     """
     # Read data from EStimEffects table
     repo_conn = Connection("allen_data_repository")
+    # metric filter keeps this reader on the raw pct_hypothesized rows after
+    # EStimEffects was extended with pct_hyp_vs_delta; remove to compare metrics.
     if session_id is None or session_id == "All":
         repo_conn.execute("""
                           SELECT session_id,
@@ -30,6 +32,7 @@ def plot_estim_effects_summary(session_id, effect_threshold=15, output_path=None
                                  estim_off_n_trials,
                                  effect_size
                           FROM EStimEffects
+                          WHERE metric = 'pct_hypothesized'
                           """)
     else:
         repo_conn.execute("""
@@ -42,6 +45,7 @@ def plot_estim_effects_summary(session_id, effect_threshold=15, output_path=None
                                  effect_size
                           FROM EStimEffects
                           WHERE session_id = %s
+                            AND metric = 'pct_hypothesized'
                           """, (session_id,))
 
     column_names = [desc[0] for desc in repo_conn.my_cursor.description]
