@@ -186,30 +186,44 @@ def main():
     # If the natural outdir contains a space, work under ~/aw_work/<subj_id>/
     # instead and copy outputs back at the end.
     safe_subj_id = subj_id.replace(" ", "_")
-    if " " in outdir or " " in par_path or " " in template or " " in atlas:
-        work_outdir = os.path.expanduser(f"~/aw_work/{safe_subj_id}")
-        print(f"  Spaces detected in input/output paths — staging in {work_outdir} "
+    needs_staging = (" " in outdir or " " in par_path
+                     or " " in template or " " in atlas)
+    if needs_staging:
+        work_root = os.path.expanduser(f"~/aw_work/{safe_subj_id}")
+        work_outdir = os.path.join(work_root, "out")
+        work_inputs = os.path.join(work_root, "inputs")
+        print(f"  Spaces detected in input/output paths — staging in {work_root} "
               "to avoid tcsh parsing issues.")
     else:
         work_outdir = outdir
+        work_inputs = outdir  # subject NIfTI gets written here
+    # Clear any stale outputs from a previous failed run — AFNI bails on
+    # existing-file conflicts ("output dataset name conflicts with existing
+    # file"). We deliberately keep work_inputs across runs to allow reuse,
+    # but always start work_outdir fresh.
+    if os.path.isdir(work_outdir) and needs_staging:
+        shutil.rmtree(work_outdir)
     os.makedirs(work_outdir, exist_ok=True)
+    os.makedirs(work_inputs, exist_ok=True)
     os.makedirs(outdir, exist_ok=True)
 
     _require_afni()
 
-    # Symlink template + atlas into the work dir under clean names so
-    # @animal_warper never sees a path with a space.
+    # Symlink template + atlas into the inputs subdir under clean names so
+    # @animal_warper never sees a path with a space. The inputs subdir is
+    # separate from work_outdir so our symlinks can't collide with AFNI's
+    # output dataset names.
     def _stage(src, name):
         ext = ".nii.gz" if src.endswith(".gz") else ".nii"
-        dst = os.path.join(work_outdir, name + ext)
+        dst = os.path.join(work_inputs, name + ext)
         if os.path.lexists(dst):
             os.remove(dst)
         os.symlink(os.path.abspath(src), dst)
         return dst
 
-    if work_outdir != outdir:
-        template = _stage(template, "template")
-        atlas = _stage(atlas, "atlas")
+    if needs_staging:
+        template = _stage(template, "nmt_template")
+        atlas = _stage(atlas, "d99_atlas")
 
     # 1. Load subject correction if present so the NIfTI lands in
     # corrected-world space (matching what the viewer displays).
@@ -227,7 +241,9 @@ def main():
         print(f"  No {os.path.basename(corr_json)} found — using native affine.")
 
     space_tag = "corrected" if subj_corr is not None else "native"
-    subj_nii = os.path.join(work_outdir, f"{safe_subj_id}_{space_tag}.nii.gz")
+    # Write the subject NIfTI in the inputs subdir to keep it separate from
+    # @animal_warper's outputs.
+    subj_nii = os.path.join(work_inputs, f"{safe_subj_id}_{space_tag}.nii.gz")
     print(f"[1/3] Converting PAR/REC -> {subj_nii}")
     par_to_nifti(par_path, subj_nii, correction=subj_corr)
 
