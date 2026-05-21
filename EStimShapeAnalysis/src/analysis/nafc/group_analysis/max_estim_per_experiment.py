@@ -23,7 +23,7 @@ from matplotlib.gridspec import GridSpec
 sys.path.insert(0, str(Path(__file__).parents[3]))
 
 from clat.util.connection import Connection
-from src.analysis.nafc.group_analysis.analyze_estim_by_condition import METRIC_PCT_HYPOTHESIZED
+from src.analysis.nafc.group_analysis.analyze_estim_by_condition import METRIC_PCT_HYPOTHESIZED, METRIC_PCT_HYP_VS_DELTA
 from src.analysis.nafc.group_analysis.estim_groups_permutation_test import (
     get_trial_data_for_condition, create_permutation_test_table)
 
@@ -349,7 +349,7 @@ def main():
         session_ids=None,
         start_session_id="260423_0",
         algorithm_label='None',        # or e.g. 'last_sustained_k3_t5.0'
-        metric=METRIC_PCT_HYPOTHESIZED,  # switch to METRIC_PCT_HYP_VS_DELTA to test Hyp vs Delta only
+        metric=METRIC_PCT_HYP_VS_DELTA,  # switch to METRIC_PCT_HYP_VS_DELTA to test Hyp vs Delta only
         # algorithm_label='first_drop_w100_s10_t5.0_n3',
         save_path="/home/connorlab/Documents/plots/across_experiments/max_estim_per_experiment.png",
         show_n=True,

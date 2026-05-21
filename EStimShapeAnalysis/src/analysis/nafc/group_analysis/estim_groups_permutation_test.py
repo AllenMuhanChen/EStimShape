@@ -316,7 +316,7 @@ def main():
         n_permutations=10000,
         force_recompute=True,
         algorithm_label='None',
-        metric=METRIC_PCT_HYPOTHESIZED,
+        metric=METRIC_PCT_HYP_VS_DELTA,
     )
 
 

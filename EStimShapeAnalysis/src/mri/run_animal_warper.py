@@ -156,6 +156,10 @@ def find_outputs(outdir, subj_id, atlas_nii):
 
 
 def main():
+    import os, shutil
+    print("PATH:", os.environ.get("PATH"))
+    print("which @animal_warper:", shutil.which("@animal_warper"))
+
     if not os.path.exists(CONFIG_PATH):
         sys.exit(f"Config not found: {CONFIG_PATH}\n"
                  f"Run from the directory containing mri_viewer_config.json.")

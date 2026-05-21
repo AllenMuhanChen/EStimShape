@@ -338,7 +338,7 @@ SESSION_CORR_PENALTY = 0.1  # λ on Σ(delta_i / bound_i)²; raise to suppress, 
 # Use both for a balanced regularization.
 CHAMBER_DIST_PENALTY  = 0.001    # λ on mean squared penetration shift (mm²)
 CHAMBER_PARAM_PENALTY = 0.001   # λ on normalized chamber-param penalty
-CHAMBER_PARAM_TOLERANCES       = dict(t_mm=5, r_deg=2.0, daz_deg=2.0, del_deg=2.0, ddepth_mm=1.0)
+CHAMBER_PARAM_TOLERANCES       = dict(t_mm=5, r_deg=5.0, daz_deg=1.0, del_deg=1.0, ddepth_mm=2.0)
 
 # Down-weight the top X mm of each penetration when scoring tissue_score vs MRI.
 # Useful when the surface-most samples are unreliable (tissue drag, prior-recording damage)
@@ -2671,18 +2671,18 @@ if __name__ == "__main__":
         enable_per_session_corrections=True,
         session_corr_bounds=None,       # None → use SESSION_CORR_BOUNDS default
         session_corr_penalty=0.5,
-        chamber_dist_penalty=0.001,    # λ on mean squared penetration shift (mm²)
+        chamber_dist_penalty=0.000,    # λ on mean squared penetration shift (mm²)
         chamber_param_penalty=0.001,  # λ on normalized chamber-param penalty
-        chamber_param_tolerances=None,         # None → use CHAMBER_PARAM_TOLERANCES default
+        chamber_param_tolerances=dict(t_mm=4, r_deg=2.5, daz_deg=0.5, del_deg=0.5, ddepth_mm=1.0),         # None → use CHAMBER_PARAM_TOLERANCES default
         variance_penalty=0.0,
         softmin_beta=20,               # 0 = mean; 3-5 = protect worst; 10+ ≈ min
         optimizer='cma-es',        # 'nelder-mead' | 'cma-es'
-        use_confidence_weights=True,   # False = unweighted r
+        use_confidence_weights=False,   # False = unweighted r
         top_downweight_mm=5,          # >0 = down-weight the top X mm of each penetration
         top_downweight_factor=0.25,     # weight multiplier for those samples (0 = ignore)
         # Lock one or more global params at chosen values; the optimizer searches the rest.
         # Set to None (or omit) for unconstrained. Examples:
-          fixed_globals={'del_deg': 0.0}  ,#        → force zero elevation correction
+        #   fixed_globals={'del_deg': 0.0}  ,#        → force zero elevation correction
         #   fixed_globals={'del_deg': 0.0,          → also lock other globals
         #                  'ddepth_mm': 0.0}
         # fixed_globals=None,
