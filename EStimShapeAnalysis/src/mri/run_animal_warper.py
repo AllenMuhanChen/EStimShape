@@ -51,11 +51,28 @@ CONFIG_PATH = os.path.join(os.getcwd(), "mri_viewer_config.json")
 
 
 def _require_afni():
-    if shutil.which("@animal_warper") is None:
-        sys.exit(
-            "ERROR: '@animal_warper' not found on PATH. Install AFNI first "
-            "(see header docstring of this file)."
-        )
+    """Locate @animal_warper. If not on PATH (common under conda envs which
+    rebuild PATH on activation), look in standard AFNI install locations and
+    prepend the directory to os.environ['PATH'] so subprocess calls inherit it.
+    """
+    if shutil.which("@animal_warper") is not None:
+        return
+    candidates = [
+        os.path.expanduser("~/abin"),
+        "/usr/local/abin",
+        "/opt/abin",
+        "/usr/local/afni",
+    ]
+    for d in candidates:
+        if os.path.isfile(os.path.join(d, "@animal_warper")):
+            os.environ["PATH"] = d + os.pathsep + os.environ.get("PATH", "")
+            print(f"  Found AFNI in {d}, prepended to PATH for subprocesses.")
+            return
+    sys.exit(
+        "ERROR: '@animal_warper' not found on PATH or in standard locations "
+        f"({', '.join(candidates)}). Install AFNI first "
+        "(see header docstring of this file)."
+    )
 
 
 def par_to_nifti(par_path, out_nii, correction=None):
