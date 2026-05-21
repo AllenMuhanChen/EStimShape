@@ -101,29 +101,42 @@ def _get_all_session_ids():
     return [row[0] for row in repo_conn.fetch_all()]
 
 
-def main():
-    session_ids      = ["260520_0"]   # set to None to run all sessions in EStimShapeTrials
-    force_recompute  = True  # False = skip sessions already computed for this algorithm_label
+_DEFAULT_BEHAVIORAL_CONDITIONS = ['trial_type', 'noise_chance', 'sample_length']
+_DEFAULT_ESTIM_CONDITIONS = [
+    'num_channels',
+    'polarity',
+    'shape',
+    'a1',
+    'post_stim_refractory_period',
+    'enable_charge_recovery',
+]
 
-    # Must match the algorithm_label produced by estim_session_cutoffs.run_cutoffs().
-    # 'none' = no cutoff (raw data).
-    # To apply cutoffs, set to e.g. 'first_drop_w100_s10_t5.0_n3_m10'
-    algorithm_label  = 'None'
 
+def run_pipeline(session_ids=None, algorithm_label='None', force_recompute=True,
+                 behavioral_conditions=None, estim_conditions=None,
+                 window_size=100, step_size=10,
+                 show_sliding_window=True):
+    """
+    Compute and persist EStimEffects for one or more sessions.
 
-    behavioral_conditions = ['trial_type', 'noise_chance', 'sample_length']
-    estim_conditions = [
-        'num_channels',
-        'polarity',
-        'shape',
-        'a1',
-        'post_stim_refractory_period',
-        'enable_charge_recovery'
-    ]
+    Args:
+        session_ids   : list of session_ids, or None to use every session in
+                        EStimShapeTrials.
+        algorithm_label: cutoff label (must match an entry in EStimSessionCutoffs,
+                        or 'None'/'none' for raw data).
+        force_recompute: if False, sessions already present in EStimEffects for
+                        this algorithm_label are skipped.
+        show_sliding_window: when running across many sessions you usually want
+                        this off — the sliding-window plot blocks on plt.show().
+    """
+    if behavioral_conditions is None:
+        behavioral_conditions = _DEFAULT_BEHAVIORAL_CONDITIONS
+    if estim_conditions is None:
+        estim_conditions = _DEFAULT_ESTIM_CONDITIONS
 
     create_estim_effects_table()
 
-    ids_to_run = _get_all_session_ids() if session_ids is None else session_ids
+    ids_to_run = _get_all_session_ids() if session_ids is None else list(session_ids)
     print(f"Sessions to process: {ids_to_run}")
 
     for session_id in ids_to_run:
@@ -136,15 +149,16 @@ def main():
 
         trial_start_cutoffs = _fetch_trial_start_cutoffs(session_id, algorithm_label)
 
-        sliding_window_analysis(
-            data,
-            behavioral_conditions,
-            estim_conditions,
-            window_size=100,
-            step_size=10,
-            session_id=session_id,
-            cutoff_trial_starts=trial_start_cutoffs,
-        )
+        if show_sliding_window:
+            sliding_window_analysis(
+                data,
+                behavioral_conditions,
+                estim_conditions,
+                window_size=window_size,
+                step_size=step_size,
+                session_id=session_id,
+                cutoff_trial_starts=trial_start_cutoffs,
+            )
 
         condition_groups_data = split_data_by_conditions(
             data, behavioral_conditions, estim_conditions,
@@ -153,6 +167,17 @@ def main():
         results = calculate_estim_effects(condition_groups_data)
         save_estim_effects_to_repository(session_id, results, algorithm_label)
         print(f"Saved {len(results)} effects for {session_id} (algorithm='{algorithm_label}')")
+
+
+def main():
+    # Single-session interactive default; orchestrator scripts should call
+    # run_pipeline() directly. session_ids=None runs every session.
+    run_pipeline(
+        session_ids=["260520_0"],
+        algorithm_label='None',
+        force_recompute=True,
+        show_sliding_window=True,
+    )
 
 
 def _fetch_trial_start_cutoffs(session_id, algorithm_label):
