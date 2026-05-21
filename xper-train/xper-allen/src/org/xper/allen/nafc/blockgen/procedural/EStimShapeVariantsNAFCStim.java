@@ -93,7 +93,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
 
         choiceSize = Math.min(sampleSize, MAX_CHOICE_SIZE);
 
-        double choiceLim = calculateMinDistanceChoicesCanBeWithoutOverlap(maxChoiceSize, parameters.numChoices);
+        double choiceLim = calculateMinDistanceChoicesCanBeWithoutOverlap(maxChoiceSize, parameters.numChoices) + 1;
 
         parameters.setChoiceDistanceLims(new Lims(choiceLim, choiceLim));
         parameters.setEyeWinRadius(maxChoiceSize/2); // 4 back to back limbs, and divide by two for radius corr

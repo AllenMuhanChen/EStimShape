@@ -91,7 +91,7 @@ def _get_all_session_ids():
 
 
 def main():
-    session_ids      = ["260518_0"]   # set to None to run all sessions in EStimShapeTrials
+    session_ids      = ["260520_0"]   # set to None to run all sessions in EStimShapeTrials
     force_recompute  = True  # False = skip sessions already computed for this algorithm_label
 
     # Must match the algorithm_label produced by estim_session_cutoffs.run_cutoffs().

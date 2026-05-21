@@ -1031,8 +1031,14 @@ def plot_rand_excluded_panel(ax, stim_subset, estim_off_data, spec_ids, noise_le
     def drop_rand(df):
         return df[df['Choice'] != 'rand'].copy()
 
+    def drop_removed(df):
+        return df[df['Choice'] != 'removed'].copy()
+
+
     off_data = drop_rand(estim_off_data)
+    off_data = drop_removed(off_data)
     on_data  = drop_rand(stim_subset)
+    on_data = drop_removed(on_data)
 
     sl_map = None if combine_sample_lengths else get_sl_marker_map(pd.concat([on_data, off_data]))
 
