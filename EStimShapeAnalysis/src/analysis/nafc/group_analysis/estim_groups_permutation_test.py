@@ -4,10 +4,12 @@ import json
 from tqdm import tqdm
 
 from src.analysis.nafc.estim_parameter_classifier import EStimParameterClassifier
+from src.analysis.nafc.group_analysis.analyze_estim_by_condition import (
+    METRIC_PCT_HYPOTHESIZED, METRIC_PCT_HYP_VS_DELTA)
 
 
 def run_permutation_tests(session_id=None, n_permutations=1000, force_recompute=False,
-                          algorithm_label='none'):
+                          algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED):
     """
     Run permutation tests for all condition combinations.
 
@@ -17,6 +19,9 @@ def run_permutation_tests(session_id=None, n_permutations=1000, force_recompute=
         force_recompute : If True, recompute even if results exist
         algorithm_label : Which cutoff to apply (matches EStimEffects.algorithm_label).
                           'none' = no cutoff, raw data.
+        metric          : Which EStimEffects metric row to test. For
+                          'pct_hyp_vs_delta', trial-level data is filtered to drop
+                          choice in {'rand', 'removed'} before permuting.
     """
     create_permutation_test_table()
 
@@ -26,18 +31,19 @@ def run_permutation_tests(session_id=None, n_permutations=1000, force_recompute=
         conn.execute("""
             SELECT session_id, conditions, estim_on_n_trials, estim_off_n_trials, effect_size
             FROM EStimEffects
-            WHERE session_id = %s AND algorithm_label = %s
-        """, (session_id, algorithm_label))
+            WHERE session_id = %s AND algorithm_label = %s AND metric = %s
+        """, (session_id, algorithm_label, metric))
     else:
         conn.execute("""
             SELECT session_id, conditions, estim_on_n_trials, estim_off_n_trials, effect_size
             FROM EStimEffects
-            WHERE algorithm_label = %s
-        """, (algorithm_label,))
+            WHERE algorithm_label = %s AND metric = %s
+        """, (algorithm_label, metric))
 
     column_names = [desc[0] for desc in conn.my_cursor.description]
     conditions_to_test = conn.fetch_all()
-    print(f"Found {len(conditions_to_test)} condition combinations to test (algorithm='{algorithm_label}')")
+    print(f"Found {len(conditions_to_test)} condition combinations to test "
+          f"(algorithm='{algorithm_label}', metric='{metric}')")
 
     # Pre-fetch all cutoffs for this algorithm so we don't query per-row
     cutoffs = _fetch_all_cutoffs(algorithm_label)
@@ -51,15 +57,17 @@ def run_permutation_tests(session_id=None, n_permutations=1000, force_recompute=
         if not force_recompute:
             conn.execute("""
                 SELECT 1 FROM EStimPermutationTests
-                WHERE session_id = %s AND conditions = %s AND algorithm_label = %s
-            """, (sess_id, conditions_json, algorithm_label))
+                WHERE session_id = %s AND conditions = %s
+                  AND algorithm_label = %s AND metric = %s
+            """, (sess_id, conditions_json, algorithm_label, metric))
             if conn.fetch_all():
                 continue
 
         cond_dict  = json.loads(conditions_json)
         max_trial_start = cutoffs.get((sess_id, conditions_json))
 
-        trial_data = get_trial_data_for_condition(sess_id, cond_dict, max_trial_start=max_trial_start)
+        trial_data = get_trial_data_for_condition(
+            sess_id, cond_dict, max_trial_start=max_trial_start, metric=metric)
 
         if len(trial_data['estim_on']) == 0 or len(trial_data['estim_off']) == 0:
             print(f"Skipping {sess_id}, {cond_dict}: insufficient data")
@@ -74,7 +82,7 @@ def run_permutation_tests(session_id=None, n_permutations=1000, force_recompute=
         p_less       = calculate_p_value_one_tailed(observed_effect, null_distribution, direction='less')
 
         save_permutation_results(
-            sess_id, conditions_json, algorithm_label, observed_effect, null_distribution,
+            sess_id, conditions_json, algorithm_label, metric, observed_effect, null_distribution,
             p_two_tailed, p_greater, p_less, n_permutations,
             len(trial_data['estim_on']), len(trial_data['estim_off'])
         )
@@ -94,12 +102,17 @@ def _fetch_all_cutoffs(algorithm_label):
     return {(row[0], row[1]): row[2] for row in conn.fetch_all()}
 
 
-def get_trial_data_for_condition(session_id, cond_dict, max_trial_start=None):
+def get_trial_data_for_condition(session_id, cond_dict, max_trial_start=None,
+                                  metric=METRIC_PCT_HYPOTHESIZED):
     """
     Get trial-level data for a specific condition combination.
 
     Args:
         max_trial_start: if provided, only include trials with trial_start <= max_trial_start.
+        metric         : matches the EStimEffects metric semantics. For
+                         'pct_hyp_vs_delta', excludes rows whose choice is 'rand'
+                         or 'removed' — so the permutation null matches what was
+                         summarised in EStimEffects.
 
     Returns dict with:
         'estim_on': list of is_hypothesized_choice values
@@ -115,6 +128,9 @@ def get_trial_data_for_condition(session_id, cond_dict, max_trial_start=None):
         WHERE t.session_id = %s
     """
     params = [session_id]
+
+    if metric == METRIC_PCT_HYP_VS_DELTA:
+        query += " AND (t.choice IS NULL OR t.choice NOT IN ('rand', 'removed'))"
 
     if max_trial_start is not None:
         query += " AND t.trial_start <= %s"
@@ -194,16 +210,18 @@ def calculate_p_value_one_tailed(observed, null_distribution, direction='greater
     return float(np.mean(null_array <= observed))
 
 
-def save_permutation_results(session_id, conditions_json, algorithm_label, observed_effect,
-                             null_distribution, p_two_tailed, p_greater, p_less,
+def save_permutation_results(session_id, conditions_json, algorithm_label, metric,
+                             observed_effect, null_distribution,
+                             p_two_tailed, p_greater, p_less,
                              n_permutations, n_trials_on, n_trials_off):
     conn = Connection("allen_data_repository")
     conn.execute("""
         INSERT INTO EStimPermutationTests
-            (session_id, conditions, algorithm_label, observed_effect_size, null_distribution,
+            (session_id, conditions, algorithm_label, metric,
+             observed_effect_size, null_distribution,
              p_value_two_tailed, p_value_greater, p_value_less,
              n_permutations, n_trials_estim_on, n_trials_estim_off)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON DUPLICATE KEY UPDATE
             observed_effect_size = VALUES(observed_effect_size),
             null_distribution    = VALUES(null_distribution),
@@ -213,19 +231,20 @@ def save_permutation_results(session_id, conditions_json, algorithm_label, obser
             n_permutations       = VALUES(n_permutations),
             n_trials_estim_on    = VALUES(n_trials_estim_on),
             n_trials_estim_off   = VALUES(n_trials_estim_off)
-    """, (session_id, conditions_json, algorithm_label, observed_effect,
+    """, (session_id, conditions_json, algorithm_label, metric, observed_effect,
           json.dumps(null_distribution), p_two_tailed, p_greater, p_less,
           n_permutations, n_trials_on, n_trials_off))
 
 
 def create_permutation_test_table():
     conn = Connection("allen_data_repository")
-    conn.execute("""
+    conn.execute(f"""
         CREATE TABLE IF NOT EXISTS EStimPermutationTests
         (
             session_id           VARCHAR(10)  NOT NULL,
             conditions           LONGTEXT     NOT NULL,
             algorithm_label      VARCHAR(100) NOT NULL DEFAULT 'none',
+            metric               VARCHAR(50)  NOT NULL DEFAULT '{METRIC_PCT_HYPOTHESIZED}',
             observed_effect_size FLOAT,
             null_distribution    LONGTEXT,
             p_value_two_tailed   FLOAT,
@@ -235,7 +254,7 @@ def create_permutation_test_table():
             n_trials_estim_on    INT,
             n_trials_estim_off   INT,
 
-            PRIMARY KEY (session_id, conditions(500), algorithm_label(100)),
+            PRIMARY KEY (session_id, conditions(500), algorithm_label(100), metric(50)),
             FOREIGN KEY (session_id) REFERENCES Sessions (session_id) ON DELETE CASCADE
         ) ENGINE = InnoDB DEFAULT CHARSET = latin1
     """)
@@ -244,21 +263,51 @@ def create_permutation_test_table():
 
 
 def _migrate_permutation_test_table(conn):
-    """Add algorithm_label column and update PK for tables created before this column existed."""
+    """Bring legacy EStimPermutationTests tables forward — add algorithm_label, then metric, updating the PK after each."""
+    # Step 1: algorithm_label column + PK
     conn.execute("""
         SELECT COUNT(*) FROM information_schema.COLUMNS
         WHERE TABLE_SCHEMA = DATABASE()
           AND TABLE_NAME   = 'EStimPermutationTests'
           AND COLUMN_NAME  = 'algorithm_label'
     """)
-    if conn.fetch_all()[0][0] > 0:
-        return
+    if conn.fetch_all()[0][0] == 0:
+        print("Migrating EStimPermutationTests: adding algorithm_label column and updating PK...")
+        conn.execute("ALTER TABLE EStimPermutationTests ADD COLUMN algorithm_label VARCHAR(100) NOT NULL DEFAULT 'none'")
+        conn.execute("ALTER TABLE EStimPermutationTests DROP PRIMARY KEY")
+        conn.execute("ALTER TABLE EStimPermutationTests ADD PRIMARY KEY (session_id, conditions(500), algorithm_label(100))")
+        print("Migration complete")
 
-    print("Migrating EStimPermutationTests: adding algorithm_label column and updating PK...")
-    conn.execute("ALTER TABLE EStimPermutationTests ADD COLUMN algorithm_label VARCHAR(100) NOT NULL DEFAULT 'none'")
-    conn.execute("ALTER TABLE EStimPermutationTests DROP PRIMARY KEY")
-    conn.execute("ALTER TABLE EStimPermutationTests ADD PRIMARY KEY (session_id, conditions(500), algorithm_label(100))")
-    print("Migration complete")
+    # Step 2: metric column
+    conn.execute("""
+        SELECT COUNT(*) FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME   = 'EStimPermutationTests'
+          AND COLUMN_NAME  = 'metric'
+    """)
+    if conn.fetch_all()[0][0] == 0:
+        print("Migrating EStimPermutationTests: adding metric column...")
+        conn.execute(
+            f"ALTER TABLE EStimPermutationTests ADD COLUMN metric VARCHAR(50) NOT NULL DEFAULT '{METRIC_PCT_HYPOTHESIZED}'"
+        )
+        print("Column added (existing rows default to pct_hypothesized)")
+
+    # Step 3: metric in PK
+    conn.execute("""
+        SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE
+        WHERE TABLE_SCHEMA    = DATABASE()
+          AND TABLE_NAME      = 'EStimPermutationTests'
+          AND CONSTRAINT_NAME = 'PRIMARY'
+          AND COLUMN_NAME     = 'metric'
+    """)
+    if conn.fetch_all()[0][0] == 0:
+        print("Migrating EStimPermutationTests: updating PK to include metric...")
+        conn.execute("""
+            ALTER TABLE EStimPermutationTests
+              DROP PRIMARY KEY,
+              ADD PRIMARY KEY (session_id, conditions(500), algorithm_label(100), metric(50))
+        """)
+        print("Migration complete")
 
 
 def main():
@@ -267,6 +316,7 @@ def main():
         n_permutations=10000,
         force_recompute=True,
         algorithm_label='None',
+        metric=METRIC_PCT_HYPOTHESIZED,
     )
 
 

@@ -37,12 +37,17 @@ def export_to_repo(session_id, data):
     data = data.copy()
     data['session_id'] = session_id
 
+    # Compile pipelines leave the Choice column under its capitalized name; rename
+    # so it lands in EStimShapeTrials.choice (used by metric='pct_hyp_vs_delta').
+    if 'Choice' in data.columns and 'choice' not in data.columns:
+        data = data.rename(columns={'Choice': 'choice'})
+
     # Define expected table columns
     table_columns = [
         'session_id', 'task_id', 'estim_spec_id', 'is_estim_on',
         'is_hypothesized_choice', 'is_correct_choice', 'trial_type',
         'noise_chance', 'base_mstick_id', 'gen_id', 'trial_start', 'trial_end',
-        'sample_length', 'trial_class'
+        'sample_length', 'trial_class', 'choice'
     ]
 
     # Find which columns we have in the dataframe
@@ -122,6 +127,12 @@ def create_estimshape_trials_table():
                      """)
     except:
         # Columns already exist, ignore the error
+        pass
+
+    try:
+        conn.execute("ALTER TABLE EStimShapeTrials ADD COLUMN choice VARCHAR(20)")
+    except:
+        # Column already exists, ignore the error
         pass
 
 def export_estim_parameters(exp_conn):

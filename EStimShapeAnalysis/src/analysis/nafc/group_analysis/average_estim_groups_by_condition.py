@@ -364,12 +364,15 @@ def analyze_condition_combinations(filter_conditions, output_path=None, session_
             session_ids = [session_ids]
 
         placeholders = ','.join(['%s'] * len(session_ids))
+        # metric filter keeps this reader on the raw pct_hypothesized rows after
+        # EStimEffects was extended with pct_hyp_vs_delta; remove to compare metrics.
         query = f"""
-            SELECT session_id, conditions, effect_size, 
+            SELECT session_id, conditions, effect_size,
                    estim_on_pct_hypothesized, estim_off_pct_hypothesized,
                    estim_on_n_trials, estim_off_n_trials
             FROM EStimEffects
             WHERE effect_size IS NOT NULL
+            AND metric = 'pct_hypothesized'
             AND session_id IN ({placeholders})
         """
         repo_conn.execute(query, tuple(session_ids))
@@ -384,6 +387,7 @@ def analyze_condition_combinations(filter_conditions, output_path=None, session_
                                  estim_off_n_trials
                           FROM EStimEffects
                           WHERE effect_size IS NOT NULL
+                          AND metric = 'pct_hypothesized'
                           """)
 
     column_names = [desc[0] for desc in repo_conn.my_cursor.description]

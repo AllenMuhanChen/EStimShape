@@ -23,18 +23,21 @@ from matplotlib.gridspec import GridSpec
 sys.path.insert(0, str(Path(__file__).parents[3]))
 
 from clat.util.connection import Connection
+from src.analysis.nafc.group_analysis.analyze_estim_by_condition import METRIC_PCT_HYPOTHESIZED
 from src.analysis.nafc.group_analysis.estim_groups_permutation_test import (
     get_trial_data_for_condition, create_permutation_test_table)
 
 
-def _get_sessions_with_permutation_data(algorithm_label='none'):
+def _get_sessions_with_permutation_data(algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED):
     conn = Connection("allen_data_repository")
-    conn.execute("SELECT DISTINCT session_id FROM EStimPermutationTests WHERE algorithm_label = %s ORDER BY session_id",
-                 (algorithm_label,))
+    conn.execute(
+        "SELECT DISTINCT session_id FROM EStimPermutationTests "
+        "WHERE algorithm_label = %s AND metric = %s ORDER BY session_id",
+        (algorithm_label, metric))
     return [row[0] for row in conn.fetch_all()]
 
 
-def _build_max_stat_for_session(session_id, algorithm_label='none'):
+def _build_max_stat_for_session(session_id, algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED):
     """
     Returns dict with:
         observed_signed : signed effect of the best positive condition
@@ -48,8 +51,8 @@ def _build_max_stat_for_session(session_id, algorithm_label='none'):
         SELECT conditions, observed_effect_size, null_distribution,
                n_trials_estim_on, n_trials_estim_off
         FROM EStimPermutationTests
-        WHERE session_id = %s AND algorithm_label = %s
-    """, (session_id, algorithm_label))
+        WHERE session_id = %s AND algorithm_label = %s AND metric = %s
+    """, (session_id, algorithm_label, metric))
     rows = conn.fetch_all()
 
     if not rows:
@@ -88,8 +91,8 @@ def _build_max_stat_for_session(session_id, algorithm_label='none'):
     }
 
 
-def _get_pct_on_off(session_id, cond_dict):
-    trial_data = get_trial_data_for_condition(session_id, cond_dict)
+def _get_pct_on_off(session_id, cond_dict, metric=METRIC_PCT_HYPOTHESIZED):
+    trial_data = get_trial_data_for_condition(session_id, cond_dict, metric=metric)
     on  = trial_data['estim_on']
     off = trial_data['estim_off']
     if not on or not off:
@@ -217,27 +220,30 @@ def _draw_stats_panel(ax_text, pop, rows):
 
 
 def plot_max_stat_per_experiment(session_ids=None, start_session_id=None,
-                                 algorithm_label='none',
+                                 algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                                  save_path=None, show_n=True,
                                  x_spacing=1.0, width_per_exp=1.5):
     """
     start_session_id : if given, only include sessions whose session_id >= this value
                        (lexicographic comparison works because session_id is YYMMDD_N).
     algorithm_label  : which cutoff variant to read from EStimPermutationTests.
+    metric           : which EStimEffects metric row to plot (e.g. 'pct_hypothesized'
+                       or 'pct_hyp_vs_delta'). Must match a metric previously stored
+                       by run_permutation_tests for the same algorithm_label.
     """
     create_permutation_test_table()  # ensures algorithm_label column exists
     if session_ids is None:
-        session_ids = _get_sessions_with_permutation_data(algorithm_label)
+        session_ids = _get_sessions_with_permutation_data(algorithm_label, metric)
     if start_session_id is not None:
         session_ids = [s for s in session_ids if s >= start_session_id]
 
     rows = []
     for sid in session_ids:
-        result = _build_max_stat_for_session(sid, algorithm_label)
+        result = _build_max_stat_for_session(sid, algorithm_label, metric)
         if result is None:
             print(f"[{sid}] no permutation data or no conditions with n>=10, skipping")
             continue
-        pct_on, pct_off, n_on, n_off = _get_pct_on_off(sid, result['best_cond_dict'])
+        pct_on, pct_off, n_on, n_off = _get_pct_on_off(sid, result['best_cond_dict'], metric=metric)
         if pct_on is None:
             print(f"[{sid}] no trial data for best condition, skipping")
             continue
@@ -343,6 +349,7 @@ def main():
         session_ids=None,
         start_session_id="260423_0",
         algorithm_label='None',        # or e.g. 'last_sustained_k3_t5.0'
+        metric=METRIC_PCT_HYPOTHESIZED,  # switch to METRIC_PCT_HYP_VS_DELTA to test Hyp vs Delta only
         # algorithm_label='first_drop_w100_s10_t5.0_n3',
         save_path="/home/connorlab/Documents/plots/across_experiments/max_estim_per_experiment.png",
         show_n=True,
