@@ -181,9 +181,35 @@ def main():
 
     subj_id = os.path.basename(rec_stem)
     outdir = rec_stem + "_warper"
+    # @animal_warper is a tcsh script and breaks on spaces in any path it
+    # processes ("set: Variable name must contain alphanumeric characters.").
+    # If the natural outdir contains a space, work under ~/aw_work/<subj_id>/
+    # instead and copy outputs back at the end.
+    safe_subj_id = subj_id.replace(" ", "_")
+    if " " in outdir or " " in par_path or " " in template or " " in atlas:
+        work_outdir = os.path.expanduser(f"~/aw_work/{safe_subj_id}")
+        print(f"  Spaces detected in input/output paths — staging in {work_outdir} "
+              "to avoid tcsh parsing issues.")
+    else:
+        work_outdir = outdir
+    os.makedirs(work_outdir, exist_ok=True)
     os.makedirs(outdir, exist_ok=True)
 
     _require_afni()
+
+    # Symlink template + atlas into the work dir under clean names so
+    # @animal_warper never sees a path with a space.
+    def _stage(src, name):
+        ext = ".nii.gz" if src.endswith(".gz") else ".nii"
+        dst = os.path.join(work_outdir, name + ext)
+        if os.path.lexists(dst):
+            os.remove(dst)
+        os.symlink(os.path.abspath(src), dst)
+        return dst
+
+    if work_outdir != outdir:
+        template = _stage(template, "template")
+        atlas = _stage(atlas, "atlas")
 
     # 1. Load subject correction if present so the NIfTI lands in
     # corrected-world space (matching what the viewer displays).
@@ -201,23 +227,40 @@ def main():
         print(f"  No {os.path.basename(corr_json)} found — using native affine.")
 
     space_tag = "corrected" if subj_corr is not None else "native"
-    subj_nii = os.path.join(outdir, f"{subj_id}_{space_tag}.nii.gz")
+    subj_nii = os.path.join(work_outdir, f"{safe_subj_id}_{space_tag}.nii.gz")
     print(f"[1/3] Converting PAR/REC -> {subj_nii}")
     par_to_nifti(par_path, subj_nii, correction=subj_corr)
 
     # 2. @animal_warper.
     print(f"[2/3] Running @animal_warper (template={os.path.basename(template)}, "
           f"atlas={os.path.basename(atlas)})")
-    run_animal_warper(subj_nii, template, atlas, outdir, subj_id)
+    run_animal_warper(subj_nii, template, atlas, work_outdir, safe_subj_id)
+
+    # If we staged in a separate work dir, mirror the contents back to the
+    # user-facing outdir next to the PAR file.
+    if work_outdir != outdir:
+        print(f"  Copying outputs from {work_outdir} -> {outdir}")
+        for name in os.listdir(work_outdir):
+            src = os.path.join(work_outdir, name)
+            dst = os.path.join(outdir, name)
+            if os.path.islink(src):
+                continue  # skip our input symlinks
+            if os.path.isdir(src):
+                if os.path.isdir(dst):
+                    shutil.rmtree(dst)
+                shutil.copytree(src, dst)
+            else:
+                shutil.copy2(src, dst)
 
     # 3. Sidecar JSON.
     print(f"[3/3] Locating outputs in {outdir}")
-    warped_atlas, warped_template = find_outputs(outdir, subj_id, atlas)
+    warped_atlas, warped_template = find_outputs(outdir, safe_subj_id, atlas)
     summary_path = rec_stem + "_warper.json"
     summary = {
         "par_file": par_path,
-        "subj_id": subj_id,
+        "subj_id": safe_subj_id,
         "outdir": outdir,
+        "work_outdir": work_outdir if work_outdir != outdir else None,
         "source_template": template,
         "source_atlas": atlas,
         "subject_space": space_tag,
