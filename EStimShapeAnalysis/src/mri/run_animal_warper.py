@@ -1,36 +1,39 @@
 """
 Drive AFNI's @animal_warper to register a subject PAR/REC MRI to the NMT v2.0
-sym template, producing an atlas + template warped into the subject's native
-scanner space.
+sym template, producing an atlas + template warped into the subject's
+corrected-world space (matching the mri_viewer display).
 
 Usage
 -----
-    python -m src.mri.run_animal_warper SUBJECT.PAR [options]
+    python -m src.mri.run_animal_warper
 
-When run with no options, paths are read from mri_viewer_config.json in the
-current working directory:
-    template_mri_path   -> @animal_warper -base
-    atlas_nifti_path    -> @animal_warper -atlas (followset)
+No command-line arguments. Everything is read from `mri_viewer_config.json`
+in the current working directory:
 
-Outputs are written to <subject>_warper/ next to the PAR file. Two files in
-that directory are what the viewer should subsequently load:
-    <subj>_in_<subj>_NMT.nii.gz                — template warped to subject
-    <subj>_in_<subj>_D99_atlas_in_NMT...nii.gz — atlas labels warped to subject
+    default_path       -> subject PAR/REC to warp
+    template_mri_path  -> @animal_warper -base (e.g. NMT_v2.0_sym.nii.gz)
+    atlas_nifti_path   -> @animal_warper -atlas_followers (e.g. D99 atlas)
 
-A summary JSON <subject>_warper.json is also written alongside the PAR file
-listing the resulting paths so they can be auto-picked up by the viewer.
+If `<par>_corrections.json` exists with a non-identity matrix, that subject
+correction is composed into the NIfTI affine before warping so the warped
+atlas/template land directly in the viewer's corrected-world space. The
+viewer's atlas_correction should then be left at identity.
 
-Prerequisite: AFNI must be installed and on PATH. Quick install on Linux:
+Outputs:
+    <par>_warper/                       — @animal_warper working directory
+    <par>_warper.json                   — sidecar listing warped output paths
+
+Prerequisite: AFNI installed and on PATH. Quick install on Linux:
 
     cd /tmp
     curl -fL -o setup.tcsh https://afni.nimh.nih.gov/pub/dist/bin/misc/@update.afni.binaries
     tcsh setup.tcsh -package linux_ubuntu_24_64 -do_extras
-    # then add ~/abin to PATH, log out/in, and verify with: @animal_warper -help
+    # add ~/abin to PATH, restart shell, verify with: @animal_warper -help
 
-Runtime is typically 30-60 min per subject on a workstation.
+Runtime: typically 30-60 min per subject on a workstation.
 """
 
-import argparse
+import glob
 import json
 import os
 import shutil
@@ -42,6 +45,9 @@ import nibabel as nib
 import numpy as np
 
 from src.mri.correction import load_corrections
+
+
+CONFIG_PATH = os.path.join(os.getcwd(), "mri_viewer_config.json")
 
 
 def _require_afni():
@@ -80,9 +86,7 @@ def par_to_nifti(par_path, out_nii, correction=None):
     return out_nii
 
 
-def run_animal_warper(subj_nii, base_nii, atlas_nii, outdir, subj_id,
-                      extra_args=None):
-    """Invoke @animal_warper. Returns the completed-process object."""
+def run_animal_warper(subj_nii, base_nii, atlas_nii, outdir, subj_id):
     cmd = [
         "@animal_warper",
         "-input", subj_nii,
@@ -91,9 +95,6 @@ def run_animal_warper(subj_nii, base_nii, atlas_nii, outdir, subj_id,
         "-outdir", outdir,
         "-input_abbrev", subj_id,
     ]
-    if extra_args:
-        cmd.extend(extra_args)
-
     print("Running:")
     print("  " + " ".join(cmd))
     t0 = time.time()
@@ -102,23 +103,18 @@ def run_animal_warper(subj_nii, base_nii, atlas_nii, outdir, subj_id,
     print(f"@animal_warper exited with code {proc.returncode} after {dt/60:.1f} min")
     if proc.returncode != 0:
         sys.exit(proc.returncode)
-    return proc
 
 
 def find_outputs(outdir, subj_id, atlas_nii):
     """Locate the atlas-in-subject and template-in-subject NIfTIs produced by
-    @animal_warper. Naming convention: <subj_id>_<atlas_basename>_in_subj.nii.gz
-    or similar — actual layout can vary between AFNI versions, so we glob.
+    @animal_warper. Layout varies between AFNI versions, so we glob.
     """
-    import glob
-
     atlas_base = os.path.basename(atlas_nii)
     for ext in (".nii.gz", ".nii"):
         if atlas_base.endswith(ext):
             atlas_base = atlas_base[: -len(ext)]
             break
 
-    # Search common @animal_warper output patterns.
     atlas_candidates = (
         glob.glob(os.path.join(outdir, f"*{atlas_base}*in*{subj_id}*.nii*"))
         + glob.glob(os.path.join(outdir, f"*{subj_id}*{atlas_base}*.nii*"))
@@ -138,74 +134,54 @@ def find_outputs(outdir, subj_id, atlas_nii):
         cands.sort(key=lambda p: len(p))
         return cands[0]
 
-    return pick(atlas_candidates, "atlas-in-subject"), pick(template_candidates, "template-in-subject")
+    return (pick(atlas_candidates, "atlas-in-subject"),
+            pick(template_candidates, "template-in-subject"))
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("par_file", help="Subject PAR file (REC must be alongside).")
-    ap.add_argument("--template", help="Override template NIfTI (-base).")
-    ap.add_argument("--atlas", help="Override atlas NIfTI (-atlas_followers).")
-    ap.add_argument("--config",
-                    default=os.path.join(os.getcwd(), "mri_viewer_config.json"),
-                    help="mri_viewer_config.json to read template/atlas paths from.")
-    ap.add_argument("--outdir", help="Output directory (default: <par>_warper/).")
-    ap.add_argument("--subj-id", help="Short subject id used in output names (default: PAR basename).")
-    ap.add_argument("--keep-nifti", action="store_true",
-                    help="Keep the intermediate subject NIfTI conversion.")
-    ap.add_argument("--no-subject-correction", action="store_true",
-                    help="Skip applying <par>_corrections.json to the NIfTI affine. "
-                         "Use this only if you intend to set atlas_correction to "
-                         "your subject correction matrix manually in the viewer.")
-    ap.add_argument("--extra", nargs=argparse.REMAINDER,
-                    help="Pass remaining args verbatim to @animal_warper (must be last).")
-    args = ap.parse_args()
+    if not os.path.exists(CONFIG_PATH):
+        sys.exit(f"Config not found: {CONFIG_PATH}\n"
+                 f"Run from the directory containing mri_viewer_config.json.")
+    with open(CONFIG_PATH) as f:
+        cfg = json.load(f)
 
-    par_path = os.path.abspath(args.par_file)
-    if not os.path.isfile(par_path):
-        sys.exit(f"PAR file not found: {par_path}")
+    par_path = cfg.get("default_path")
+    template = cfg.get("template_mri_path")
+    atlas = cfg.get("atlas_nifti_path")
 
-    rec_path = os.path.splitext(par_path)[0]
-    if not (os.path.exists(rec_path + ".REC") or os.path.exists(rec_path + ".rec")):
+    missing = [k for k, v in (("default_path", par_path),
+                              ("template_mri_path", template),
+                              ("atlas_nifti_path", atlas)) if not v]
+    if missing:
+        sys.exit(f"Missing keys in {CONFIG_PATH}: {', '.join(missing)}")
+    for label, p in (("PAR", par_path), ("template", template), ("atlas", atlas)):
+        if not os.path.isfile(p):
+            sys.exit(f"{label} file does not exist: {p}")
+
+    rec_stem = os.path.splitext(par_path)[0]
+    if not (os.path.exists(rec_stem + ".REC") or os.path.exists(rec_stem + ".rec")):
         sys.exit(f"REC file not found alongside {par_path}")
 
-    # Resolve template + atlas from CLI overrides or config.
-    cfg = {}
-    if os.path.exists(args.config):
-        with open(args.config) as f:
-            cfg = json.load(f)
-    template = args.template or cfg.get("template_mri_path")
-    atlas = args.atlas or cfg.get("atlas_nifti_path")
-    if not template or not os.path.isfile(template):
-        sys.exit("Template NIfTI not specified or missing. Pass --template or set "
-                 "template_mri_path in mri_viewer_config.json.")
-    if not atlas or not os.path.isfile(atlas):
-        sys.exit("Atlas NIfTI not specified or missing. Pass --atlas or set "
-                 "atlas_nifti_path in mri_viewer_config.json.")
-
-    par_stem = os.path.splitext(par_path)[0]
-    subj_id = args.subj_id or os.path.basename(par_stem)
-    outdir = args.outdir or (par_stem + "_warper")
+    subj_id = os.path.basename(rec_stem)
+    outdir = rec_stem + "_warper"
     os.makedirs(outdir, exist_ok=True)
 
     _require_afni()
 
-    # 1. PAR/REC -> NIfTI, optionally pre-applying the subject correction so
-    # the NIfTI lives in the viewer's corrected-world display space.
+    # 1. Load subject correction if present so the NIfTI lands in
+    # corrected-world space (matching what the viewer displays).
     subj_corr = None
-    if not args.no_subject_correction:
-        corr_json = par_stem + "_corrections.json"
-        if os.path.exists(corr_json):
-            subj_corr, _ = load_corrections(corr_json)
-            if np.allclose(subj_corr, np.eye(4)):
-                subj_corr = None
-                print("  Subject correction is identity — using native affine.")
-            else:
-                print(f"  Applying subject correction from {os.path.basename(corr_json)} "
-                      "so the NIfTI lives in corrected-world space.")
+    corr_json = rec_stem + "_corrections.json"
+    if os.path.exists(corr_json):
+        subj_corr, _ = load_corrections(corr_json)
+        if np.allclose(subj_corr, np.eye(4)):
+            subj_corr = None
+            print("  Subject correction is identity — using native affine.")
         else:
-            print(f"  No {os.path.basename(corr_json)} found — using native affine.")
+            print(f"  Applying subject correction from {os.path.basename(corr_json)} "
+                  "so the NIfTI lives in corrected-world space.")
+    else:
+        print(f"  No {os.path.basename(corr_json)} found — using native affine.")
 
     space_tag = "corrected" if subj_corr is not None else "native"
     subj_nii = os.path.join(outdir, f"{subj_id}_{space_tag}.nii.gz")
@@ -215,20 +191,19 @@ def main():
     # 2. @animal_warper.
     print(f"[2/3] Running @animal_warper (template={os.path.basename(template)}, "
           f"atlas={os.path.basename(atlas)})")
-    run_animal_warper(subj_nii, template, atlas, outdir, subj_id,
-                      extra_args=args.extra)
+    run_animal_warper(subj_nii, template, atlas, outdir, subj_id)
 
-    # 3. Locate outputs and write a sidecar JSON.
+    # 3. Sidecar JSON.
     print(f"[3/3] Locating outputs in {outdir}")
     warped_atlas, warped_template = find_outputs(outdir, subj_id, atlas)
-    summary_path = par_stem + "_warper.json"
+    summary_path = rec_stem + "_warper.json"
     summary = {
         "par_file": par_path,
         "subj_id": subj_id,
         "outdir": outdir,
         "source_template": template,
         "source_atlas": atlas,
-        "subject_space": "corrected" if subj_corr is not None else "native",
+        "subject_space": space_tag,
         "warped_template_in_subject": warped_template,
         "warped_atlas_in_subject": warped_atlas,
     }
@@ -236,27 +211,20 @@ def main():
         json.dump(summary, f, indent=2)
     print(f"Wrote summary -> {summary_path}")
 
-    if not args.keep_nifti:
-        try:
-            os.remove(subj_nii)
-        except OSError:
-            pass
-
     print()
-    print("Done. To load the warped atlas in mri_viewer, update "
-          "mri_viewer_config.json:")
+    print("Done. To use in mri_viewer, update mri_viewer_config.json:")
     if warped_atlas:
         print(f'  "atlas_nifti_path":   "{warped_atlas}",')
     if warped_template:
         print(f'  "template_mri_path":  "{warped_template}",')
     if subj_corr is not None:
-        print("The atlas_correction in the viewer should be reset to identity — "
-              "the warp aligned to your AC/PC-corrected MRI space, so display "
-              "lines up automatically.")
+        print("Reset atlas_correction to identity in the viewer — the warp "
+              "aligned to your AC/PC-corrected MRI space, so display lines "
+              "up automatically.")
     else:
-        print("The NIfTI was warped in the subject's native scanner space. If "
-              "you use a subject correction matrix in the viewer, set the atlas "
-              "correction to that same matrix; otherwise leave it at identity.")
+        print("The NIfTI was warped in native scanner space. If you use a "
+              "subject correction matrix in the viewer, set atlas_correction "
+              "to that same matrix; otherwise leave it at identity.")
 
 
 if __name__ == "__main__":
