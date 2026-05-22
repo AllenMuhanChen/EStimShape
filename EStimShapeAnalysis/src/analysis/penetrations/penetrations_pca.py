@@ -2652,13 +2652,13 @@ if __name__ == "__main__":
         host="172.30.6.61"
     )
 
-    exclude_sessions = ["260331_0", "260402_0", "260520_0"]
+    exclude_sessions = ["260331_0", "260402_0", "260520_0", "260423_0"]
 
     # Set to path of a prior opt_*.json to warm-start from that correction, or None to start from zero
     start_from_file = None
     # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260423_160856.json"
     # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260424_175651.json"
-    # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260520_135109_good.json"
+    start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260521_184542_best?.json"
     results = run_analysis(
         conn,
         n_pcs=2,
@@ -2672,13 +2672,13 @@ if __name__ == "__main__":
         session_corr_bounds=None,       # None → use SESSION_CORR_BOUNDS default
         session_corr_penalty=0.5,
         chamber_dist_penalty=0.000,    # λ on mean squared penetration shift (mm²)
-        chamber_param_penalty=0.001,  # λ on normalized chamber-param penalty
-        chamber_param_tolerances=dict(t_mm=4, r_deg=2.5, daz_deg=0.5, del_deg=0.5, ddepth_mm=1.0),         # None → use CHAMBER_PARAM_TOLERANCES default
+        chamber_param_penalty=0.000,  # λ on normalized chamber-param penalty
+        chamber_param_tolerances=dict(t_mm=4, r_deg=2.5, daz_deg=0.5, del_deg=0.5, ddepth_mm=4.0),         # None → use CHAMBER_PARAM_TOLERANCES default
         variance_penalty=0.0,
         softmin_beta=20,               # 0 = mean; 3-5 = protect worst; 10+ ≈ min
         optimizer='cma-es',        # 'nelder-mead' | 'cma-es'
         use_confidence_weights=False,   # False = unweighted r
-        top_downweight_mm=5,          # >0 = down-weight the top X mm of each penetration
+        top_downweight_mm=0,          # >0 = down-weight the top X mm of each penetration
         top_downweight_factor=0.25,     # weight multiplier for those samples (0 = ignore)
         # Lock one or more global params at chosen values; the optimizer searches the rest.
         # Set to None (or omit) for unconstrained. Examples:
