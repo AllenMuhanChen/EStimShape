@@ -58,7 +58,7 @@ CONFIG_PATH = os.path.join(os.getcwd(), "mri_viewer_config.json")
 # Flip this to False to warp from native scanner space instead of composing
 # in the subject correction matrix from <par>_corrections.json. Useful for
 # debugging when the pre-correction seems to be biasing the warp.
-USE_SUBJECT_CORRECTION = True
+USE_SUBJECT_CORRECTION = False
 
 
 def _require_afni():
