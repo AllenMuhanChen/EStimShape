@@ -310,11 +310,18 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
     # ================================================================ File I/O
     def _browse(self):
         d = os.path.dirname(self.default_path) if self.default_path and not os.path.isdir(self.default_path) else self.default_path
-        fn = filedialog.askopenfilename(title="Select PAR File",
-                                        filetypes=[("PAR", "*.PAR *.par"), ("All", "*.*")],
+        fn = filedialog.askopenfilename(title="Select MRI File",
+                                        filetypes=[("MRI", "*.PAR *.par *.nii *.nii.gz"),
+                                                   ("PAR", "*.PAR *.par"),
+                                                   ("NIfTI", "*.nii *.nii.gz"),
+                                                   ("All", "*.*")],
                                         initialdir=d)
         if fn:
             self.file_path_var.set(fn)
+
+    def _is_nifti(self, p):
+        pl = p.lower()
+        return pl.endswith(".nii") or pl.endswith(".nii.gz")
 
     def _check_rec(self, par):
         b = os.path.splitext(par)[0]
@@ -391,11 +398,13 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
             messagebox.showerror("Error", "Select a PAR file."); return
         if not os.path.exists(par):
             messagebox.showerror("Error", f"{par} not found."); return
-        if not par.upper().endswith(".PAR"):
-            if not messagebox.askyesno("Warning", "Not a .PAR extension. Continue?"):
-                return
-        if not self._check_rec(par):
-            messagebox.showerror("Error", ".REC not found."); return
+        if not self._is_nifti(par):
+            if not par.upper().endswith(".PAR"):
+                if not messagebox.askyesno("Warning",
+                                           "Not a .PAR or .nii(.gz) extension. Continue?"):
+                    return
+            if not self._check_rec(par):
+                messagebox.showerror("Error", ".REC not found."); return
 
         try:
             self.status_var.set(f"Loading {par}..."); self.root.update()

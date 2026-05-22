@@ -21,11 +21,22 @@ space. Flip the module-level `USE_SUBJECT_CORRECTION` constant to False to
 skip this and warp from native scanner space instead (useful if the
 pre-correction seems to be biasing the warp).
 
+If `RIGID_POSE_MATCH_TO_TEMPLATE` is True (default), a final step computes a
+6-DOF rigid transform (rotation + translation only — no scale, no shear)
+from the subject to the template via `3dAllineate -warp shift_rotate`, then
+applies it as a header-only affine update to the subject NIfTI and the
+atlas-in-subject NIfTI. Voxel data is unchanged so subject morphology and
+voxel grid are preserved exactly (important for electrode targeting). The
+original template can then be loaded as-is in the viewer.
+
 Outputs are tagged with the space used so different parameterizations don't
 collide, and the script refuses to overwrite existing results:
 
-    <par>_warper_<space>/               — @animal_warper working directory
-    <par>_warper_<space>.json           — sidecar listing warped output paths
+    <par>_warper_<space>/                       — @animal_warper working dir
+    <par>_warper_<space>/subject_pose_matched.nii.gz   — pose-matched subject
+    <par>_warper_<space>/atlas_pose_matched.nii.gz     — pose-matched atlas
+    <par>_warper_<space>/rigid_xfm_RAS.txt             — 4x4 rigid transform
+    <par>_warper_<space>.json                          — sidecar JSON
 
 where <space> is "corrected" or "native".
 
@@ -59,6 +70,16 @@ CONFIG_PATH = os.path.join(os.getcwd(), "mri_viewer_config.json")
 # in the subject correction matrix from <par>_corrections.json. Useful for
 # debugging when the pre-correction seems to be biasing the warp.
 USE_SUBJECT_CORRECTION = False
+
+# After @animal_warper finishes, compute a 6-DOF rigid (rotation + translation
+# only — no scale, no shear) transform from the subject MRI to the template
+# via 3dAllineate, and apply it as a header-only affine update to both the
+# subject NIfTI and the atlas-in-subject NIfTI. Voxel data is unchanged so
+# subject morphology and voxel grid (the targeting space for the electrode)
+# are preserved exactly. The pose-matched files are written into the warper
+# outdir as subject_pose_matched.nii.gz and atlas_pose_matched.nii.gz, and
+# the original template can then be loaded as-is in the viewer.
+RIGID_POSE_MATCH_TO_TEMPLATE = True
 
 
 def _require_afni():
@@ -131,6 +152,102 @@ def run_animal_warper(subj_nii, base_nii, atlas_nii, outdir, subj_id):
     print(f"@animal_warper exited with code {proc.returncode} after {dt/60:.1f} min")
     if proc.returncode != 0:
         sys.exit(proc.returncode)
+
+
+def _load_afni_aff12(path):
+    """Parse 3dAllineate's -1Dmatrix_save output (one line of 12 numbers in
+    row-major order) into a 4x4 matrix. AFNI's coordinate convention is RAI
+    (DICOM); caller must convert to RAS for use with NIfTI affines.
+    """
+    with open(path) as f:
+        for line in f:
+            s = line.strip()
+            if not s or s.startswith("#"):
+                continue
+            nums = [float(x) for x in s.split()]
+            if len(nums) == 12:
+                M = np.eye(4)
+                M[:3, :] = np.array(nums).reshape(3, 4)
+                return M
+    raise ValueError(f"No 12-number row found in {path}")
+
+
+def _rai_to_ras(M):
+    """Convert a 4x4 AFNI-RAI affine to NIfTI-RAS by flipping the z axis."""
+    F = np.diag([1.0, 1.0, -1.0, 1.0])
+    return F @ M @ F
+
+
+def rigid_pose_match(subj_nii, template_nii, atlas_in_subj_nii,
+                     work_dir, out_dir):
+    """Run 3dAllineate to compute a 6-DOF rigid transform subject -> template,
+    then header-rewrite the subject NIfTI and atlas-in-subject NIfTI so they
+    live in template-aligned pose with zero voxel resampling.
+
+    3dAllineate's `-1Dmatrix_save` writes M such that source_RAI = M @ base_RAI.
+    To move the subject into the base's pose without resampling, we
+    pre-multiply the subject's affine by the inverse: new_affine_RAS =
+    inv(M_RAS) @ old_affine_RAS. The same transform applied to the atlas
+    keeps it aligned with the subject.
+
+    Returns (pose_subj_path, pose_atlas_path_or_None, M_ras).
+    """
+    xfm_dir = os.path.join(work_dir, "rigid_pose")
+    os.makedirs(xfm_dir, exist_ok=True)
+    xfm_path = os.path.join(xfm_dir, "xfm.aff12.1D")
+    throwaway = os.path.join(xfm_dir, "rigid_resampled.nii.gz")
+
+    cmd = [
+        "3dAllineate",
+        "-source", subj_nii,
+        "-base", template_nii,
+        "-warp", "shift_rotate",
+        "-cost", "lpa",
+        "-1Dmatrix_save", xfm_path,
+        "-final", "NN",
+        "-prefix", throwaway,
+        "-overwrite",
+    ]
+    print("Running:")
+    print("  " + " ".join(cmd))
+    t0 = time.time()
+    proc = subprocess.run(cmd, check=False)
+    dt = time.time() - t0
+    print(f"3dAllineate (rigid) exited with code {proc.returncode} after {dt/60:.1f} min")
+    if proc.returncode != 0:
+        sys.exit(proc.returncode)
+
+    M_rai = _load_afni_aff12(xfm_path)
+    M_ras = _rai_to_ras(M_rai)
+    M_ras_inv = np.linalg.inv(M_ras)
+
+    np.savetxt(
+        os.path.join(out_dir, "rigid_xfm_RAS.txt"), M_ras,
+        header=("6-DOF rigid transform (RAS, NIfTI convention).\n"
+                "source_RAS = M_ras @ base_RAS.\n"
+                "Subject pose-matched affine = inv(M_ras) @ old_affine."),
+    )
+
+    def _rewrite_affine(in_path, out_path):
+        img = nib.load(in_path)
+        new_affine = M_ras_inv @ img.affine
+        data = np.asanyarray(img.dataobj)
+        new_img = nib.Nifti1Image(data, new_affine, header=img.header)
+        qcode = img.header.get_qform(coded=True)[1] or 1
+        scode = img.header.get_sform(coded=True)[1] or 1
+        new_img.set_qform(new_affine, code=qcode)
+        new_img.set_sform(new_affine, code=scode)
+        nib.save(new_img, out_path)
+
+    pose_subj = os.path.join(out_dir, "subject_pose_matched.nii.gz")
+    _rewrite_affine(subj_nii, pose_subj)
+
+    pose_atlas = None
+    if atlas_in_subj_nii and os.path.exists(atlas_in_subj_nii):
+        pose_atlas = os.path.join(out_dir, "atlas_pose_matched.nii.gz")
+        _rewrite_affine(atlas_in_subj_nii, pose_atlas)
+
+    return pose_subj, pose_atlas, M_ras
 
 
 def find_outputs(outdir, subj_id, atlas_nii):
@@ -276,14 +393,16 @@ def main():
         template = _stage(template, "nmt_template")
         atlas = _stage(atlas, "d99_atlas")
 
+    n_steps = 4 if RIGID_POSE_MATCH_TO_TEMPLATE else 3
+
     # 1. Convert PAR/REC to NIfTI, composing in the subject correction
     # resolved above if applicable.
     subj_nii = os.path.join(work_inputs, f"{safe_subj_id}_{space_tag}.nii.gz")
-    print(f"[1/3] Converting PAR/REC -> {subj_nii}")
+    print(f"[1/{n_steps}] Converting PAR/REC -> {subj_nii}")
     par_to_nifti(par_path, subj_nii, correction=subj_corr)
 
     # 2. @animal_warper.
-    print(f"[2/3] Running @animal_warper (template={os.path.basename(template)}, "
+    print(f"[2/{n_steps}] Running @animal_warper (template={os.path.basename(template)}, "
           f"atlas={os.path.basename(atlas)})")
     run_animal_warper(subj_nii, template, atlas, work_outdir, safe_subj_id)
 
@@ -303,9 +422,26 @@ def main():
             else:
                 shutil.copy2(src, dst)
 
-    # 3. Sidecar JSON.
-    print(f"[3/3] Locating outputs in {outdir}")
+    # 3. Locate the warped outputs.
+    print(f"[3/{n_steps}] Locating outputs in {outdir}")
     warped_atlas, warped_template = find_outputs(outdir, safe_subj_id, atlas)
+
+    # 4. Optional rigid pose-match to template (6-DOF, header-only).
+    pose_subj = None
+    pose_atlas = None
+    if RIGID_POSE_MATCH_TO_TEMPLATE:
+        print(f"[4/{n_steps}] Rigid pose-match (6-DOF) subject -> template")
+        pose_subj, pose_atlas, _ = rigid_pose_match(
+            subj_nii=subj_nii,
+            template_nii=template,
+            atlas_in_subj_nii=warped_atlas,
+            work_dir=work_outdir,
+            out_dir=outdir,
+        )
+        print(f"  Pose-matched subject: {pose_subj}")
+        if pose_atlas:
+            print(f"  Pose-matched atlas:   {pose_atlas}")
+
     summary = {
         "par_file": par_path,
         "subj_id": safe_subj_id,
@@ -316,6 +452,9 @@ def main():
         "subject_space": space_tag,
         "warped_template_in_subject": warped_template,
         "warped_atlas_in_subject": warped_atlas,
+        "rigid_pose_matched": RIGID_POSE_MATCH_TO_TEMPLATE,
+        "pose_matched_subject": pose_subj,
+        "pose_matched_atlas": pose_atlas,
     }
     with open(summary_path, "w") as f:
         json.dump(summary, f, indent=2)
@@ -323,18 +462,28 @@ def main():
 
     print()
     print("Done. To use in mri_viewer, update mri_viewer_config.json:")
-    if warped_atlas:
-        print(f'  "atlas_nifti_path":   "{warped_atlas}",')
-    if warped_template:
-        print(f'  "template_mri_path":  "{warped_template}",')
-    if subj_corr is not None:
-        print("Reset atlas_correction to identity in the viewer — the warp "
-              "aligned to your AC/PC-corrected MRI space, so display lines "
-              "up automatically.")
+    if RIGID_POSE_MATCH_TO_TEMPLATE and pose_subj:
+        print(f'  "default_path":       "{pose_subj}",')
+        if pose_atlas:
+            print(f'  "atlas_nifti_path":   "{pose_atlas}",')
+        print(f'  "template_mri_path":  "{cfg.get("template_mri_path")}",')
+        print("Reset atlas_correction to identity. Subject and atlas have "
+              "been rigidly pose-matched to the template (rotation + "
+              "translation only, no scale/shear, voxel data unchanged) so "
+              "the template can be loaded as-is and everything overlays.")
     else:
-        print("The NIfTI was warped in native scanner space. If you use a "
-              "subject correction matrix in the viewer, set atlas_correction "
-              "to that same matrix; otherwise leave it at identity.")
+        if warped_atlas:
+            print(f'  "atlas_nifti_path":   "{warped_atlas}",')
+        if warped_template:
+            print(f'  "template_mri_path":  "{warped_template}",')
+        if subj_corr is not None:
+            print("Reset atlas_correction to identity in the viewer — the warp "
+                  "aligned to your AC/PC-corrected MRI space, so display lines "
+                  "up automatically.")
+        else:
+            print("The NIfTI was warped in native scanner space. If you use a "
+                  "subject correction matrix in the viewer, set atlas_correction "
+                  "to that same matrix; otherwise leave it at identity.")
 
 
 if __name__ == "__main__":

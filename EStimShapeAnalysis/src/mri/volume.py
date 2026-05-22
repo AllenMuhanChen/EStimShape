@@ -8,9 +8,16 @@ import nibabel as nib
 from scipy.ndimage import map_coordinates
 
 
-def load_volume(par_path):
-    """Load a PAR/REC file. Returns (data_3or4d, native_affine, voxel_sizes)."""
-    img = load_parrec(par_path, strict_sort=True)
+def load_volume(path):
+    """Load a PAR/REC or NIfTI volume.
+
+    Returns (data_3or4d, native_affine, voxel_sizes, img).
+    """
+    lower = path.lower()
+    if lower.endswith(".nii") or lower.endswith(".nii.gz"):
+        img = nib.load(path)
+    else:
+        img = load_parrec(path, strict_sort=True)
     data = img.get_fdata()
     affine = img.affine.copy()
     voxel_sizes = nib.affines.voxel_sizes(affine)
