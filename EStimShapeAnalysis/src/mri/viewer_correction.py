@@ -1,6 +1,8 @@
+import os
 import numpy as np
+import nibabel as nib
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, filedialog, messagebox
 from src.mri.correction import rot_x, rot_y, rot_z, xlate, load_corrections, save_corrections, push_correction
 
 class CorrectionMixin:
@@ -42,6 +44,57 @@ class CorrectionMixin:
         self._recompute()
         self.cursor_world = np.clip(self.cursor_world, self.full_world_min, self.full_world_max)
         self._setup_sliders(); self._update_corr_info(); self.display_all()
+
+    def _save_corrected_as_nifti(self):
+        """Save current volume with the corrected affine baked in as a NIfTI.
+
+        The output's affine equals `correction @ native_affine`, so loading
+        it fresh (with identity correction) reproduces exactly the same
+        world-space anatomy the user is looking at. Useful for feeding into
+        @animal_warper without depending on the corrections.json sidecar.
+        For 4D inputs, only the currently displayed dynamic is saved.
+        """
+        if self.data is None:
+            messagebox.showerror("Error", "No volume loaded.")
+            return
+
+        src = self.default_path or ""
+        default_dir = os.path.dirname(src) if src else os.getcwd()
+        stem = os.path.basename(src)
+        for ext in (".nii.gz", ".nii", ".PAR", ".par"):
+            if stem.endswith(ext):
+                stem = stem[: -len(ext)]
+                break
+        if not stem:
+            stem = "subject"
+        default_name = f"{stem}_corrected.nii.gz"
+
+        out = filedialog.asksaveasfilename(
+            title="Save corrected MRI as NIfTI",
+            initialdir=default_dir,
+            initialfile=default_name,
+            defaultextension=".nii.gz",
+            filetypes=[("NIfTI (.nii.gz)", "*.nii.gz"),
+                       ("NIfTI (.nii)", "*.nii"),
+                       ("All", "*.*")],
+        )
+        if not out:
+            return
+
+        data = self.data
+        if data.ndim == 4:
+            data = data[:, :, :, self.current_dynamic]
+        img = nib.Nifti1Image(data.astype(np.float32), self.corrected_affine)
+        nib.save(img, out)
+        self.status_var.set(f"Saved corrected MRI -> {out}")
+        messagebox.showinfo(
+            "Saved",
+            f"Wrote {out}\n\n"
+            "To run @animal_warper on this file, set it as default_path in "
+            "mri_viewer_config.json. The new NIfTI's affine already includes "
+            "the correction, so loading it fresh will start with identity "
+            "correction.",
+        )
 
     def _load_version(self, idx):
         hist = self.corr_config["correction_history"]

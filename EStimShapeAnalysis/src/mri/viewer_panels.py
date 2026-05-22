@@ -58,6 +58,8 @@ class PanelsMixin:
         self.btn_redo.pack(side=tk.LEFT, padx=3)
         ttk.Button(b_row, text="History", command=self._show_history).pack(side=tk.LEFT, padx=3)
         ttk.Button(b_row, text="Header", command=self._show_header).pack(side=tk.LEFT, padx=3)
+        ttk.Button(b_row, text="Save Corrected as NIfTI...",
+                   command=self._save_corrected_as_nifti).pack(side=tk.LEFT, padx=3)
         self.corr_info_var = tk.StringVar(value="Correction: identity")
         ttk.Label(corr, textvariable=self.corr_info_var).pack(anchor="w", padx=5, pady=1)
         self.corr_ver_var = tk.StringVar(value="")
