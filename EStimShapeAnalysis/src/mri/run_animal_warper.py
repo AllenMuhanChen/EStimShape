@@ -89,7 +89,7 @@ RIGID_POSE_MATCH_TO_TEMPLATE = True
 # below), set this to True. It skips the PAR->NIfTI conversion and the
 # 30-60 min @animal_warper run, reuses the existing outputs, and only
 # regenerates the *_pose_matched.nii.gz files (which it will overwrite).
-RERUN_RIGID_ONLY = False
+RERUN_RIGID_ONLY = True
 
 
 def _require_afni():
