@@ -1,3 +1,4 @@
+import random
 import time
 from dataclasses import dataclass
 from typing import Callable, List, Dict, Type
@@ -104,7 +105,21 @@ class EStimPhaseMutationAssigner(MutationAssigner):
 
 
 class EStimPhaseMagnitudeAssigner(MutationMagnitudeAssigner):
+    """
+    With probability `chance` returns a magnitude drawn uniformly from
+    [min_magnitude, max_magnitude]; otherwise returns 0. A nonzero magnitude
+    instructs the Java side to apply a slight mutation to the variant's
+    preserved limb.
+    """
+
+    def __init__(self, chance: float = 0.5, min_magnitude: float = 0.05, max_magnitude: float = 0.15):
+        self.chance = chance
+        self.min_magnitude = min_magnitude
+        self.max_magnitude = max_magnitude
+
     def assign_mutation_magnitude(self, lineage: Lineage, stimulus: Stimulus) -> float:
+        if random.random() < self.chance:
+            return random.uniform(self.min_magnitude, self.max_magnitude)
         return 0
 
 
@@ -119,6 +134,11 @@ class EStimVariantSideTest(SideTest):
     conn: Type[connection]
     threshold: float = 0.5
     max_stim_per_lineage: int = 2
+    magnitude_assigner: MutationMagnitudeAssigner = None
+
+    def __post_init__(self):
+        if self.magnitude_assigner is None:
+            self.magnitude_assigner = EStimPhaseMagnitudeAssigner()
 
     def run(self, lineages: List[Lineage], gen_id: int):
         selector = EStimPhaseParentSelector(self.get_all_stim_func, self.threshold, self.conn)
@@ -128,7 +148,8 @@ class EStimVariantSideTest(SideTest):
                 for parent in chosen_parents:
                     new_stimulus = Stimulus(time_util.now(),
                                             StimType.REGIME_ESTIM_VARIANTS.value,
-                                            mutation_magnitude=0,
+                                            mutation_magnitude=self.magnitude_assigner.assign_mutation_magnitude(
+                                                lineage, parent),
                                             gen_id=gen_id,
                                             parent_id=parent.id
                                             )

@@ -319,4 +319,50 @@ public class PruningMatchStick extends ProceduralMatchStick {
     public void setPreservedComps(List<Integer> preservedComps) {
         this.preservedComps = preservedComps;
     }
+
+    /**
+     * Apply a small mutation to the preserved component(s) of this match stick,
+     * without adding or removing limbs. Intended for variant stimuli that should
+     * "wiggle" slightly so the GA can explore around a known good shape.
+     *
+     * Mirrors {@link GrowingMatchStick#genInsideRFMorphedMStick} (which morphs only
+     * specialEndComp), but operates on PruningMatchStick state and morphs the
+     * already-generated child further by perturbing its preserved comp.
+     */
+    public void mutatePreservedComps(double magnitude) {
+        if (magnitude <= 0 || preservedComps.isEmpty()) return;
+
+        NormalMorphDistributer normalMorphDistributer = new NormalMorphDistributer(1.0 / 3.0);
+        Map<Integer, ComponentMorphParameters> paramsForComps = new HashMap<>();
+        for (Integer compId : preservedComps) {
+            paramsForComps.put(compId,
+                    new NormalDistributedComponentMorphParameters(magnitude, normalMorphDistributer));
+        }
+
+        // genMorphedComponentsMatchStick uses copyFrom internally, which doesn't preserve
+        // PruningMatchStick-specific fields. Save them, then restore after.
+        List<Integer> savedPreservedComps = new ArrayList<>(this.preservedComps);
+        List<Integer> savedToPreserveInParent = new ArrayList<>(this.toPreserveInParent);
+        MorphedMatchStick savedParent = this.matchStickToMorph;
+
+        // Snapshot current state as the morph source.
+        MorphedMatchStick source = new MorphedMatchStick();
+        source.copyFrom(this);
+
+        try {
+            // doPositionShape=false because our overridden positionShape() relies on the
+            // Pruning fields that get wiped during the internal copyFrom.
+            genMorphedComponentsMatchStick(paramsForComps, source, false, true, false);
+            this.preservedComps = savedPreservedComps;
+            this.toPreserveInParent = savedToPreserveInParent;
+            this.matchStickToMorph = savedParent;
+            positionShape();
+        } catch (Exception e) {
+            System.err.println("Preserved-comp mutation failed; leaving variant unperturbed: " + e.getMessage());
+            this.copyFrom(source);
+            this.preservedComps = savedPreservedComps;
+            this.toPreserveInParent = savedToPreserveInParent;
+            this.matchStickToMorph = savedParent;
+        }
+    }
 }
