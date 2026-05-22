@@ -84,6 +84,13 @@ USE_SUBJECT_CORRECTION = False
 # the original template can then be loaded as-is in the viewer.
 RIGID_POSE_MATCH_TO_TEMPLATE = True
 
+# If you've already run @animal_warper successfully and just want to redo
+# the rigid pose-match step (e.g. after tweaking the 3dAllineate options
+# below), set this to True. It skips the PAR->NIfTI conversion and the
+# 30-60 min @animal_warper run, reuses the existing outputs, and only
+# regenerates the *_pose_matched.nii.gz files (which it will overwrite).
+RERUN_RIGID_ONLY = False
+
 
 def _require_afni():
     """Locate @animal_warper. If not on PATH (common under conda envs which
@@ -202,12 +209,25 @@ def rigid_pose_match(subj_nii, template_nii, atlas_in_subj_nii,
     xfm_path = os.path.join(xfm_dir, "xfm.aff12.1D")
     throwaway = os.path.join(xfm_dir, "rigid_resampled.nii.gz")
 
+    # Options chosen after AFNI's own runtime warnings:
+    #   -cmass            : initial center-of-mass shift. Without it, the
+    #                       optimizer starts at identity and gets stuck in
+    #                       local minima when the two brains aren't already
+    #                       centered (AFNI prints "PLEASE PLEASE PLEASE" if
+    #                       the cmass shift would have been >20% of search).
+    #   -source_automask+4: AFNI strongly recommends this with lpa/lpc.
+    #   -twobest 5        : keep 5 coarse-pass candidates and refine each;
+    #                       picks the best final fit. Cheap robustness against
+    #                       local minima.
     cmd = [
         "3dAllineate",
         "-source", subj_nii,
         "-base", template_nii,
         "-warp", "shift_rotate",
         "-cost", "lpa",
+        "-source_automask+4",
+        "-cmass",
+        "-twobest", "5",
         "-1Dmatrix_save", xfm_path,
         "-final", "NN",
         "-prefix", throwaway,
@@ -260,15 +280,21 @@ def rigid_pose_match(subj_nii, template_nii, atlas_in_subj_nii,
     return pose_subj, pose_atlas, pose_template, M_ras
 
 
-def find_outputs(outdir, subj_id, atlas_nii):
+def find_outputs(outdir, subj_id, atlas_nii, template_nii=None):
     """Locate the atlas-in-subject and template-in-subject NIfTIs produced by
     @animal_warper. Layout varies between AFNI versions, so we glob.
     """
-    atlas_base = os.path.basename(atlas_nii)
-    for ext in (".nii.gz", ".nii"):
-        if atlas_base.endswith(ext):
-            atlas_base = atlas_base[: -len(ext)]
-            break
+    def _strip_ext(name):
+        for ext in (".nii.gz", ".nii"):
+            if name.endswith(ext):
+                return name[: -len(ext)]
+        return name
+
+    atlas_base = _strip_ext(os.path.basename(atlas_nii))
+    # When we staged the template, it was renamed (e.g. "nmt_template"), so
+    # the glob has to use the actual staged basename rather than a hardcoded
+    # "NMT" pattern.
+    template_base = _strip_ext(os.path.basename(template_nii)) if template_nii else "NMT"
 
     atlas_candidates = (
         glob.glob(os.path.join(outdir, f"*{atlas_base}*in*{subj_id}*.nii*"))
@@ -276,8 +302,8 @@ def find_outputs(outdir, subj_id, atlas_nii):
         + glob.glob(os.path.join(outdir, "follow_ROI_*", f"*{atlas_base}*.nii*"))
     )
     template_candidates = (
-        glob.glob(os.path.join(outdir, f"*NMT*in*{subj_id}*.nii*"))
-        + glob.glob(os.path.join(outdir, f"*{subj_id}*NMT*.nii*"))
+        glob.glob(os.path.join(outdir, f"*{template_base}*in*{subj_id}*.nii*"))
+        + glob.glob(os.path.join(outdir, f"*{subj_id}*{template_base}*.nii*"))
         + glob.glob(os.path.join(outdir, f"{subj_id}*aw_*.nii*"))
     )
 
@@ -347,18 +373,20 @@ def main():
 
     # Never overwrite a previous run — refuse if either the output directory
     # (non-empty) or the sidecar JSON already exists. User must move/delete
-    # them explicitly to re-run with the same parameters.
-    existing = []
-    if os.path.isdir(outdir) and os.listdir(outdir):
-        existing.append(outdir)
-    if os.path.exists(summary_path):
-        existing.append(summary_path)
-    if existing:
-        sys.exit(
-            "ERROR: refusing to overwrite existing outputs:\n  "
-            + "\n  ".join(existing)
-            + "\nMove or delete them, or re-run with different parameters."
-        )
+    # them explicitly to re-run with the same parameters. Skipped when
+    # RERUN_RIGID_ONLY is set since we expect the outputs to be there.
+    if not RERUN_RIGID_ONLY:
+        existing = []
+        if os.path.isdir(outdir) and os.listdir(outdir):
+            existing.append(outdir)
+        if os.path.exists(summary_path):
+            existing.append(summary_path)
+        if existing:
+            sys.exit(
+                "ERROR: refusing to overwrite existing outputs:\n  "
+                + "\n  ".join(existing)
+                + "\nMove or delete them, or re-run with different parameters."
+            )
     # @animal_warper is a tcsh script and breaks on spaces in any path it
     # processes ("set: Variable name must contain alphanumeric characters.").
     # If the natural outdir contains a space, work under ~/aw_work/<subj_id>/
@@ -378,8 +406,9 @@ def main():
     # Clear any stale outputs from a previous failed run — AFNI bails on
     # existing-file conflicts ("output dataset name conflicts with existing
     # file"). We deliberately keep work_inputs across runs to allow reuse,
-    # but always start work_outdir fresh.
-    if os.path.isdir(work_outdir) and needs_staging:
+    # but always start work_outdir fresh. Skip this in rigid-only mode since
+    # we need the existing @animal_warper outputs.
+    if os.path.isdir(work_outdir) and needs_staging and not RERUN_RIGID_ONLY:
         shutil.rmtree(work_outdir)
     os.makedirs(work_outdir, exist_ok=True)
     os.makedirs(work_inputs, exist_ok=True)
@@ -434,7 +463,8 @@ def main():
 
     # 3. Locate the warped outputs.
     print(f"[3/{n_steps}] Locating outputs in {outdir}")
-    warped_atlas, warped_template = find_outputs(outdir, safe_subj_id, atlas)
+    warped_atlas, warped_template = find_outputs(outdir, safe_subj_id, atlas,
+                                                  template_nii=template)
 
     # 4. Optional rigid pose-match to template (6-DOF, header-only).
     pose_subj = None
