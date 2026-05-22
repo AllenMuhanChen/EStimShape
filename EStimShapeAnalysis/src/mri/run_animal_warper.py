@@ -158,7 +158,8 @@ def find_outputs(outdir, subj_id, atlas_nii):
         + glob.glob(os.path.join(outdir, "follow_ROI_*", f"*{atlas_base}*.nii*"))
     )
     template_candidates = (
-        glob.glob(os.path.join(outdir, f"*NMT*in*{subj_id}*.nii*"))
+        glob.glob(os.path.join(outdir, f"BASEORIG*in*{subj_id}*.nii*"))
+        + glob.glob(os.path.join(outdir, f"*NMT*in*{subj_id}*.nii*"))
         + glob.glob(os.path.join(outdir, f"*{subj_id}*NMT*.nii*"))
         + glob.glob(os.path.join(outdir, f"{subj_id}*aw_*.nii*"))
     )
