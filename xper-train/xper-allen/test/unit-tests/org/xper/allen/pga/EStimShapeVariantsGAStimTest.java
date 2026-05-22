@@ -222,55 +222,77 @@ public class EStimShapeVariantsGAStimTest {
 
     // --- helpers that replicate the matchstick pipeline in EStimShapeVariantsGAStim ---
 
+    /**
+     * Generates a 2-component parent. Two comps is the sweet spot used by every
+     * working test in {@code GAMatchStickTest}: with 1 preserved + 1 morphed, the
+     * pruning morph almost always lands a valid skeleton on the first try. Three
+     * or more comps makes the morph dramatically slower because each additional
+     * non-preserved comp multiplies the chance of a "Skeleton Collision Check Failed"
+     * retry inside {@code genPruningMatchStick}.
+     */
     private GAMatchStick genParent() {
         RGBColor color = new RGBColor(1.0, 0.0, 0.0);
         GAMatchStick parent = new GAMatchStick(COMPLETE_RF, COMPLETELY_INSIDE);
-        // bias toward 3-comp parents so there's always a non-preserved comp to morph
-        parent.PARAM_nCompDist = new double[]{0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0};
+        parent.PARAM_nCompDist = new double[]{0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         parent.setProperties(3.0, "SHADE", 1.0);
         parent.setStimColor(color);
         parent.genMatchStickRand();
         return parent;
     }
 
+    /**
+     * Fixed magnitude 0.75 (instead of EStimShapeVariantsGAStim's runtime
+     * Math.random()*0.4+0.5) — the upper end of that range causes long retry
+     * storms; 0.75 matches what GAMatchStickTest.draw_pruning_mstick uses.
+     */
     private PruningMatchStick generatePruningVariant(GAMatchStick parent) {
         RGBColor color = new RGBColor(1.0, 0.0, 0.0);
-        while (true) {
+        int outerAttempts = 0;
+        while (outerAttempts < 5) {
+            outerAttempts++;
             try {
                 PruningMatchStick child = new PruningMatchStick(noiseMapper);
                 child.setRf(COMPLETE_RF);
-                child.setMaxTotalAttempts(15);
+                child.setMaxTotalAttempts(5);
                 child.setProperties(3.0, "SHADE", 1.0);
                 child.setStimColor(color);
 
                 List<Integer> compsToPreserve = PruningMatchStick.chooseRandomComponentsToPreserve(1, parent);
-                // matches the magnitude range used inside EStimShapeVariantsGAStim.createMStick
-                double pruningMagnitude = Math.random() * 0.4 + 0.5;
-                child.genPruningMatchStick(parent, pruningMagnitude, compsToPreserve, null);
+                child.genPruningMatchStick(parent, 0.75, compsToPreserve, null);
                 return child;
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+        throw new RuntimeException("Could not generate pruning variant in " + outerAttempts + " attempts");
     }
 
+    /**
+     * For the "regrow components in noise" branch we need at least one new comp
+     * to grow from the preserved one, so nComp must exceed compsToPreserve.size().
+     * Regrowing is much more tolerant of collisions than morphing, so 3 total
+     * comps is still fast.
+     */
     private PruningMatchStick generateComponentsInNoiseVariant(GAMatchStick parent) {
         RGBColor color = new RGBColor(1.0, 0.0, 0.0);
-        while (true) {
+        int outerAttempts = 0;
+        while (outerAttempts < 5) {
+            outerAttempts++;
             try {
                 PruningMatchStick child = new PruningMatchStick(noiseMapper);
                 child.setRf(COMPLETE_RF);
-                child.setMaxTotalAttempts(15);
+                child.setMaxTotalAttempts(5);
                 child.setProperties(3.0, "SHADE", 1.0);
                 child.setStimColor(color);
 
                 List<Integer> compsToPreserve = PruningMatchStick.chooseRandomComponentsToPreserve(1, parent);
-                int nComp = compsToPreserve.size() + 2; // ensure at least one regrown comp
-                child.genMatchStickFromComponentsInNoise(parent, compsToPreserve, nComp, true, 15);
+                int nComp = compsToPreserve.size() + 1; // one regrown comp
+                child.genMatchStickFromComponentsInNoise(parent, compsToPreserve, nComp, true, 5);
                 return child;
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+        throw new RuntimeException("Could not generate components-in-noise variant in " + outerAttempts + " attempts");
     }
 }
