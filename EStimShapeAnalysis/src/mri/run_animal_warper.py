@@ -5,23 +5,28 @@ corrected-world space (matching the mri_viewer display).
 
 Usage
 -----
-    python -m src.mri.run_animal_warper
+    python -m src.mri.run_animal_warper [--no-correction]
 
-No command-line arguments. Everything is read from `mri_viewer_config.json`
-in the current working directory:
+Everything is read from `mri_viewer_config.json` in the current working
+directory:
 
     default_path       -> subject PAR/REC to warp
     template_mri_path  -> @animal_warper -base (e.g. NMT_v2.0_sym.nii.gz)
     atlas_nifti_path   -> @animal_warper -atlas_followers (e.g. D99 atlas)
 
-If `<par>_corrections.json` exists with a non-identity matrix, that subject
-correction is composed into the NIfTI affine before warping so the warped
-atlas/template land directly in the viewer's corrected-world space. The
-viewer's atlas_correction should then be left at identity.
+By default, if `<par>_corrections.json` exists with a non-identity matrix,
+that subject correction is composed into the NIfTI affine before warping so
+the warped atlas/template land directly in the viewer's corrected-world
+space. Pass `--no-correction` to skip this and warp from native scanner
+space instead (useful if the pre-correction seems to be biasing the warp).
 
-Outputs:
-    <par>_warper/                       — @animal_warper working directory
-    <par>_warper.json                   — sidecar listing warped output paths
+Outputs are tagged with the space used so different parameterizations don't
+collide, and the script refuses to overwrite existing results:
+
+    <par>_warper_<space>/               — @animal_warper working directory
+    <par>_warper_<space>.json           — sidecar listing warped output paths
+
+where <space> is "corrected" or "native".
 
 Prerequisite: AFNI installed and on PATH. Quick install on Linux:
 
@@ -33,6 +38,7 @@ Prerequisite: AFNI installed and on PATH. Quick install on Linux:
 Runtime: typically 30-60 min per subject on a workstation.
 """
 
+import argparse
 import glob
 import json
 import os
@@ -157,6 +163,17 @@ def find_outputs(outdir, subj_id, atlas_nii):
 
 def main():
     import os, shutil
+    parser = argparse.ArgumentParser(
+        description="Drive AFNI @animal_warper to register an atlas to a subject MRI."
+    )
+    parser.add_argument(
+        "--no-correction",
+        action="store_true",
+        help="Skip the subject correction matrix (warp from native scanner "
+             "space instead of corrected-world space).",
+    )
+    args = parser.parse_args()
+
     print("PATH:", os.environ.get("PATH"))
     print("which @animal_warper:", shutil.which("@animal_warper"))
 
@@ -183,8 +200,44 @@ def main():
     if not (os.path.exists(rec_stem + ".REC") or os.path.exists(rec_stem + ".rec")):
         sys.exit(f"REC file not found alongside {par_path}")
 
+    # Resolve subject correction up front so we can include the resulting
+    # space tag in the output directory / sidecar names. That way runs with
+    # and without correction can coexist without overwriting each other.
+    subj_corr = None
+    corr_json = rec_stem + "_corrections.json"
+    if args.no_correction:
+        print("  --no-correction set — skipping subject correction, using native affine.")
+    elif os.path.exists(corr_json):
+        subj_corr, _ = load_corrections(corr_json)
+        if np.allclose(subj_corr, np.eye(4)):
+            subj_corr = None
+            print("  Subject correction is identity — using native affine.")
+        else:
+            print(f"  Applying subject correction from {os.path.basename(corr_json)} "
+                  "so the NIfTI lives in corrected-world space.")
+    else:
+        print(f"  No {os.path.basename(corr_json)} found — using native affine.")
+
+    space_tag = "corrected" if subj_corr is not None else "native"
+
     subj_id = os.path.basename(rec_stem)
-    outdir = rec_stem + "_warper"
+    outdir = rec_stem + f"_warper_{space_tag}"
+    summary_path = rec_stem + f"_warper_{space_tag}.json"
+
+    # Never overwrite a previous run — refuse if either the output directory
+    # (non-empty) or the sidecar JSON already exists. User must move/delete
+    # them explicitly to re-run with the same parameters.
+    existing = []
+    if os.path.isdir(outdir) and os.listdir(outdir):
+        existing.append(outdir)
+    if os.path.exists(summary_path):
+        existing.append(summary_path)
+    if existing:
+        sys.exit(
+            "ERROR: refusing to overwrite existing outputs:\n  "
+            + "\n  ".join(existing)
+            + "\nMove or delete them, or re-run with different parameters."
+        )
     # @animal_warper is a tcsh script and breaks on spaces in any path it
     # processes ("set: Variable name must contain alphanumeric characters.").
     # If the natural outdir contains a space, work under ~/aw_work/<subj_id>/
@@ -193,7 +246,7 @@ def main():
     needs_staging = (" " in outdir or " " in par_path
                      or " " in template or " " in atlas)
     if needs_staging:
-        work_root = os.path.expanduser(f"~/aw_work/{safe_subj_id}")
+        work_root = os.path.expanduser(f"~/aw_work/{safe_subj_id}_{space_tag}")
         work_outdir = os.path.join(work_root, "out")
         work_inputs = os.path.join(work_root, "inputs")
         print(f"  Spaces detected in input/output paths — staging in {work_root} "
@@ -229,24 +282,8 @@ def main():
         template = _stage(template, "nmt_template")
         atlas = _stage(atlas, "d99_atlas")
 
-    # 1. Load subject correction if present so the NIfTI lands in
-    # corrected-world space (matching what the viewer displays).
-    subj_corr = None
-    corr_json = rec_stem + "_corrections.json"
-    if os.path.exists(corr_json):
-        subj_corr, _ = load_corrections(corr_json)
-        if np.allclose(subj_corr, np.eye(4)):
-            subj_corr = None
-            print("  Subject correction is identity — using native affine.")
-        else:
-            print(f"  Applying subject correction from {os.path.basename(corr_json)} "
-                  "so the NIfTI lives in corrected-world space.")
-    else:
-        print(f"  No {os.path.basename(corr_json)} found — using native affine.")
-
-    space_tag = "corrected" if subj_corr is not None else "native"
-    # Write the subject NIfTI in the inputs subdir to keep it separate from
-    # @animal_warper's outputs.
+    # 1. Convert PAR/REC to NIfTI, composing in the subject correction
+    # resolved above if applicable.
     subj_nii = os.path.join(work_inputs, f"{safe_subj_id}_{space_tag}.nii.gz")
     print(f"[1/3] Converting PAR/REC -> {subj_nii}")
     par_to_nifti(par_path, subj_nii, correction=subj_corr)
@@ -275,7 +312,6 @@ def main():
     # 3. Sidecar JSON.
     print(f"[3/3] Locating outputs in {outdir}")
     warped_atlas, warped_template = find_outputs(outdir, safe_subj_id, atlas)
-    summary_path = rec_stem + "_warper.json"
     summary = {
         "par_file": par_path,
         "subj_id": safe_subj_id,
