@@ -35,6 +35,9 @@ collide, and the script refuses to overwrite existing results:
     <par>_warper_<space>/                       — @animal_warper working dir
     <par>_warper_<space>/subject_pose_matched.nii.gz   — pose-matched subject
     <par>_warper_<space>/atlas_pose_matched.nii.gz     — pose-matched atlas
+    <par>_warper_<space>/template_in_subject_pose_matched.nii.gz
+                                                       — pose-matched NMT
+                                                         deformed to subject
     <par>_warper_<space>/rigid_xfm_RAS.txt             — 4x4 rigid transform
     <par>_warper_<space>.json                          — sidecar JSON
 
@@ -179,18 +182,20 @@ def _rai_to_ras(M):
 
 
 def rigid_pose_match(subj_nii, template_nii, atlas_in_subj_nii,
-                     work_dir, out_dir):
+                     template_in_subj_nii, work_dir, out_dir):
     """Run 3dAllineate to compute a 6-DOF rigid transform subject -> template,
-    then header-rewrite the subject NIfTI and atlas-in-subject NIfTI so they
-    live in template-aligned pose with zero voxel resampling.
+    then header-rewrite the subject NIfTI, the atlas-in-subject NIfTI, and
+    the template-in-subject NIfTI so all three live in template-aligned pose
+    with zero voxel resampling.
 
     3dAllineate's `-1Dmatrix_save` writes M such that source_RAI = M @ base_RAI.
     To move the subject into the base's pose without resampling, we
     pre-multiply the subject's affine by the inverse: new_affine_RAS =
     inv(M_RAS) @ old_affine_RAS. The same transform applied to the atlas
-    keeps it aligned with the subject.
+    and to the @animal_warper template_in_subject (NMT nonlinearly deformed
+    to subject anatomy) keeps everything mutually aligned.
 
-    Returns (pose_subj_path, pose_atlas_path_or_None, M_ras).
+    Returns (pose_subj, pose_atlas_or_None, pose_template_or_None, M_ras).
     """
     xfm_dir = os.path.join(work_dir, "rigid_pose")
     os.makedirs(xfm_dir, exist_ok=True)
@@ -247,7 +252,12 @@ def rigid_pose_match(subj_nii, template_nii, atlas_in_subj_nii,
         pose_atlas = os.path.join(out_dir, "atlas_pose_matched.nii.gz")
         _rewrite_affine(atlas_in_subj_nii, pose_atlas)
 
-    return pose_subj, pose_atlas, M_ras
+    pose_template = None
+    if template_in_subj_nii and os.path.exists(template_in_subj_nii):
+        pose_template = os.path.join(out_dir, "template_in_subject_pose_matched.nii.gz")
+        _rewrite_affine(template_in_subj_nii, pose_template)
+
+    return pose_subj, pose_atlas, pose_template, M_ras
 
 
 def find_outputs(outdir, subj_id, atlas_nii):
@@ -429,18 +439,22 @@ def main():
     # 4. Optional rigid pose-match to template (6-DOF, header-only).
     pose_subj = None
     pose_atlas = None
+    pose_template = None
     if RIGID_POSE_MATCH_TO_TEMPLATE:
         print(f"[4/{n_steps}] Rigid pose-match (6-DOF) subject -> template")
-        pose_subj, pose_atlas, _ = rigid_pose_match(
+        pose_subj, pose_atlas, pose_template, _ = rigid_pose_match(
             subj_nii=subj_nii,
             template_nii=template,
             atlas_in_subj_nii=warped_atlas,
+            template_in_subj_nii=warped_template,
             work_dir=work_outdir,
             out_dir=outdir,
         )
-        print(f"  Pose-matched subject: {pose_subj}")
+        print(f"  Pose-matched subject:  {pose_subj}")
         if pose_atlas:
-            print(f"  Pose-matched atlas:   {pose_atlas}")
+            print(f"  Pose-matched atlas:    {pose_atlas}")
+        if pose_template:
+            print(f"  Pose-matched template: {pose_template}")
 
     summary = {
         "par_file": par_path,
@@ -455,6 +469,7 @@ def main():
         "rigid_pose_matched": RIGID_POSE_MATCH_TO_TEMPLATE,
         "pose_matched_subject": pose_subj,
         "pose_matched_atlas": pose_atlas,
+        "pose_matched_template_in_subject": pose_template,
     }
     with open(summary_path, "w") as f:
         json.dump(summary, f, indent=2)
@@ -466,11 +481,16 @@ def main():
         print(f'  "default_path":       "{pose_subj}",')
         if pose_atlas:
             print(f'  "atlas_nifti_path":   "{pose_atlas}",')
-        print(f'  "template_mri_path":  "{cfg.get("template_mri_path")}",')
-        print("Reset atlas_correction to identity. Subject and atlas have "
-              "been rigidly pose-matched to the template (rotation + "
-              "translation only, no scale/shear, voxel data unchanged) so "
-              "the template can be loaded as-is and everything overlays.")
+        if pose_template:
+            print(f'  "template_mri_path":  "{pose_template}",')
+        else:
+            print(f'  "template_mri_path":  "{cfg.get("template_mri_path")}",  '
+                  "# fallback: raw NMT (template_in_subject not found)")
+        print("Reset atlas_correction to identity. Subject, atlas, and the "
+              "@animal_warper template_in_subject (NMT nonlinearly deformed "
+              "to your monkey's anatomy) have all been rigidly pose-matched "
+              "to NMT's coordinate frame — rotation + translation only, no "
+              "scale/shear, voxel data unchanged.")
     else:
         if warped_atlas:
             print(f'  "atlas_nifti_path":   "{warped_atlas}",')
