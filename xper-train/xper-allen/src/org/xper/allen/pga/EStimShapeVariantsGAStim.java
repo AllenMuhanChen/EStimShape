@@ -80,8 +80,8 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
         boolean r = random.nextBoolean();
 
         if (r) {
-            double magnitude = random.nextDouble() * 0.4 + 0.5;
-            childMStick.genPruningMatchStick(parentMStick, magnitude, compsToPreserveInParent, null);
+            double pruningMagnitude = random.nextDouble() * 0.4 + 0.5;
+            childMStick.genPruningMatchStick(parentMStick, pruningMagnitude, compsToPreserveInParent, null);
         }
         else {
             int nComp = 0;
@@ -92,6 +92,9 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
                     true, 15);
         }
 
+        // Slightly mutate the preserved limb if Python assigned a nonzero magnitude.
+        // Never adds or removes limbs - only morphs the preserved comp(s) in place.
+        childMStick.mutatePreservedComps(magnitude);
 
 
         // Save data for this stimulus
