@@ -5,10 +5,10 @@ corrected-world space (matching the mri_viewer display).
 
 Usage
 -----
-    python -m src.mri.run_animal_warper [--no-correction]
+    python -m src.mri.run_animal_warper
 
-Everything is read from `mri_viewer_config.json` in the current working
-directory:
+No command-line arguments. Everything is read from `mri_viewer_config.json`
+in the current working directory:
 
     default_path       -> subject PAR/REC to warp
     template_mri_path  -> @animal_warper -base (e.g. NMT_v2.0_sym.nii.gz)
@@ -17,8 +17,9 @@ directory:
 By default, if `<par>_corrections.json` exists with a non-identity matrix,
 that subject correction is composed into the NIfTI affine before warping so
 the warped atlas/template land directly in the viewer's corrected-world
-space. Pass `--no-correction` to skip this and warp from native scanner
-space instead (useful if the pre-correction seems to be biasing the warp).
+space. Flip the module-level `USE_SUBJECT_CORRECTION` constant to False to
+skip this and warp from native scanner space instead (useful if the
+pre-correction seems to be biasing the warp).
 
 Outputs are tagged with the space used so different parameterizations don't
 collide, and the script refuses to overwrite existing results:
@@ -38,7 +39,6 @@ Prerequisite: AFNI installed and on PATH. Quick install on Linux:
 Runtime: typically 30-60 min per subject on a workstation.
 """
 
-import argparse
 import glob
 import json
 import os
@@ -54,6 +54,11 @@ from src.mri.correction import load_corrections
 
 
 CONFIG_PATH = os.path.join(os.getcwd(), "mri_viewer_config.json")
+
+# Flip this to False to warp from native scanner space instead of composing
+# in the subject correction matrix from <par>_corrections.json. Useful for
+# debugging when the pre-correction seems to be biasing the warp.
+USE_SUBJECT_CORRECTION = True
 
 
 def _require_afni():
@@ -163,17 +168,6 @@ def find_outputs(outdir, subj_id, atlas_nii):
 
 def main():
     import os, shutil
-    parser = argparse.ArgumentParser(
-        description="Drive AFNI @animal_warper to register an atlas to a subject MRI."
-    )
-    parser.add_argument(
-        "--no-correction",
-        action="store_true",
-        help="Skip the subject correction matrix (warp from native scanner "
-             "space instead of corrected-world space).",
-    )
-    args = parser.parse_args()
-
     print("PATH:", os.environ.get("PATH"))
     print("which @animal_warper:", shutil.which("@animal_warper"))
 
@@ -205,8 +199,8 @@ def main():
     # and without correction can coexist without overwriting each other.
     subj_corr = None
     corr_json = rec_stem + "_corrections.json"
-    if args.no_correction:
-        print("  --no-correction set — skipping subject correction, using native affine.")
+    if not USE_SUBJECT_CORRECTION:
+        print("  USE_SUBJECT_CORRECTION=False — skipping subject correction, using native affine.")
     elif os.path.exists(corr_json):
         subj_corr, _ = load_corrections(corr_json)
         if np.allclose(subj_corr, np.eye(4)):
