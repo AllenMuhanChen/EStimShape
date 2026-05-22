@@ -7,27 +7,36 @@ Usage
 -----
     python -m src.mri.run_animal_warper
 
-No command-line arguments. Everything is read from `mri_viewer_config.json`
+No command-line arguments. Set the SUBJECT_MRI / TEMPLATE_MRI / ATLAS_MRI /
+OUTPUT_DIR / STAGING_ROOT / USE_SUBJECT_CORRECTION constants directly in
+this file (see the EDIT THESE PATHS DIRECTLY block below). Any constant
+left at None falls back to the corresponding key in `mri_viewer_config.json`
 in the current working directory:
 
-    default_path       -> subject MRI to warp (PAR/REC or .nii/.nii.gz)
-    template_mri_path  -> @animal_warper -base (e.g. NMT_v2.0_sym.nii.gz)
-    atlas_nifti_path   -> @animal_warper -atlas_followers (e.g. D99 atlas)
+    SUBJECT_MRI  <- cfg["default_path"]        (PAR/REC or .nii/.nii.gz)
+    TEMPLATE_MRI <- cfg["template_mri_path"]   (e.g. NMT_v2.0_sym.nii.gz)
+    ATLAS_MRI    <- cfg["atlas_nifti_path"]    (e.g. D99 atlas)
 
-By default, if `<stem>_corrections.json` exists with a non-identity matrix,
-that subject correction is composed into the NIfTI affine before warping so
-the warped atlas/template land directly in the viewer's corrected-world
-space. Flip the module-level `USE_SUBJECT_CORRECTION` constant to False to
-skip this and warp from native scanner space instead (useful if the
-pre-correction seems to be biasing the warp).
+The script prints every resolved path (and the resolved targets of any
+staged symlinks) before running so you can verify what's actually being
+fed to @animal_warper.
 
-Outputs are tagged with the space used so different parameterizations don't
-collide, and the script refuses to overwrite existing results:
+If USE_SUBJECT_CORRECTION is True and `<subject_stem>_corrections.json`
+exists with a non-identity matrix, that subject correction is composed
+into the NIfTI affine before warping so the warped atlas/template land
+in the viewer's corrected-world space. Setting it to False skips that
+step. If your subject MRI is already a .nii.gz with corrections baked in
+(via the viewer's "Save Corrected as NIfTI" button), leave it at True —
+the script will simply not find a sidecar and treat the input as-is.
 
-    <stem>_warper_<space>/               — @animal_warper working directory
-    <stem>_warper_<space>.json           — sidecar listing warped output paths
+Outputs are tagged with the space used so different parameterizations
+don't collide, and the script refuses to overwrite existing results:
 
-where <space> is "corrected" or "native".
+    <subject_stem>_warper_<space>/      — @animal_warper working directory
+    <subject_stem>_warper_<space>.json  — sidecar listing warped output paths
+
+where <space> is "corrected" or "native". Override the outdir entirely by
+setting the OUTPUT_DIR constant below.
 
 Prerequisite: AFNI installed and on PATH. Quick install on Linux:
 
@@ -55,10 +64,38 @@ from src.mri.correction import load_corrections
 
 CONFIG_PATH = os.path.join(os.getcwd(), "mri_viewer_config.json")
 
-# Flip this to False to warp from native scanner space instead of composing
-# in the subject correction matrix from <stem>_corrections.json. Useful for
-# debugging when the pre-correction seems to be biasing the warp.
+# ============================================================================
+# EDIT THESE PATHS DIRECTLY.
+#
+# Set absolute paths so you know exactly what's being fed to @animal_warper.
+# Leave any value as None to fall back to mri_viewer_config.json (legacy
+# behavior). The script will print every resolved path before running so you
+# can double-check.
+# ============================================================================
+
+# Subject MRI. PAR/REC or .nii(.gz). Falls back to cfg["default_path"].
+SUBJECT_MRI  = None
+# Reference template (e.g. NMT_v2.0_sym.nii.gz). Falls back to cfg["template_mri_path"].
+TEMPLATE_MRI = None
+# Atlas to follow (e.g. D99_atlas_in_NMT_v2.0_sym.nii.gz). Falls back to cfg["atlas_nifti_path"].
+ATLAS_MRI    = None
+
+# Where to put the @animal_warper outdir. None = <subject_stem>_warper_<space>
+# next to the subject MRI.
+OUTPUT_DIR   = None
+
+# @animal_warper is a tcsh script that breaks on spaces in any input path.
+# When any input path contains a space we stage everything under STAGING_ROOT
+# (with symlinks for template/atlas and a fresh-written subject NIfTI), run
+# AFNI there, and copy outputs back. None = ~/aw_work/<subject_id>_<space>/.
+# Set to a no-space absolute path of your choice if you want to control it.
+STAGING_ROOT = None
+
+# Apply <subject_stem>_corrections.json sidecar to the subject affine before
+# warping. If the input is a NIfTI that already has corrections baked into
+# its affine, you probably want this False (or just no sidecar present).
 USE_SUBJECT_CORRECTION = True
+# ============================================================================
 
 
 def _require_afni():
@@ -181,21 +218,40 @@ def main():
     print("PATH:", os.environ.get("PATH"))
     print("which @animal_warper:", shutil.which("@animal_warper"))
 
-    if not os.path.exists(CONFIG_PATH):
-        sys.exit(f"Config not found: {CONFIG_PATH}\n"
-                 f"Run from the directory containing mri_viewer_config.json.")
-    with open(CONFIG_PATH) as f:
-        cfg = json.load(f)
+    # Load config only if any of the override constants are missing.
+    cfg = {}
+    needs_cfg = SUBJECT_MRI is None or TEMPLATE_MRI is None or ATLAS_MRI is None
+    if needs_cfg:
+        if not os.path.exists(CONFIG_PATH):
+            sys.exit(f"Config not found: {CONFIG_PATH}\n"
+                     "Set SUBJECT_MRI / TEMPLATE_MRI / ATLAS_MRI directly in "
+                     "the script, or run from a directory containing "
+                     "mri_viewer_config.json.")
+        with open(CONFIG_PATH) as f:
+            cfg = json.load(f)
 
-    subj_path = cfg.get("default_path")
-    template = cfg.get("template_mri_path")
-    atlas = cfg.get("atlas_nifti_path")
+    subj_path = SUBJECT_MRI  or cfg.get("default_path")
+    template  = TEMPLATE_MRI or cfg.get("template_mri_path")
+    atlas     = ATLAS_MRI    or cfg.get("atlas_nifti_path")
 
-    missing = [k for k, v in (("default_path", subj_path),
-                              ("template_mri_path", template),
-                              ("atlas_nifti_path", atlas)) if not v]
+    print()
+    print("=== INPUTS ===")
+    def _src(override, cfg_val, label):
+        if override is not None:
+            return "constant"
+        if cfg_val is not None:
+            return f"{label} (config)"
+        return "MISSING"
+    print(f"  subject  : {subj_path}   [{_src(SUBJECT_MRI, cfg.get('default_path'), 'default_path')}]")
+    print(f"  template : {template}   [{_src(TEMPLATE_MRI, cfg.get('template_mri_path'), 'template_mri_path')}]")
+    print(f"  atlas    : {atlas}   [{_src(ATLAS_MRI, cfg.get('atlas_nifti_path'), 'atlas_nifti_path')}]")
+    print()
+
+    missing = [k for k, v in (("SUBJECT_MRI", subj_path),
+                              ("TEMPLATE_MRI", template),
+                              ("ATLAS_MRI", atlas)) if not v]
     if missing:
-        sys.exit(f"Missing keys in {CONFIG_PATH}: {', '.join(missing)}")
+        sys.exit(f"Missing required paths: {', '.join(missing)}")
     for label, p in (("subject", subj_path), ("template", template), ("atlas", atlas)):
         if not os.path.isfile(p):
             sys.exit(f"{label} file does not exist: {p}")
@@ -234,8 +290,18 @@ def main():
     space_tag = "corrected" if subj_corr is not None else "native"
 
     subj_id = os.path.basename(stem)
-    outdir = stem + f"_warper_{space_tag}"
-    summary_path = stem + f"_warper_{space_tag}.json"
+    if OUTPUT_DIR is not None:
+        outdir = OUTPUT_DIR
+        summary_path = OUTPUT_DIR.rstrip("/") + ".json"
+    else:
+        outdir = stem + f"_warper_{space_tag}"
+        summary_path = stem + f"_warper_{space_tag}.json"
+
+    print("=== OUTPUTS ===")
+    print(f"  outdir       : {outdir}")
+    print(f"  summary json : {summary_path}")
+    print(f"  space tag    : {space_tag}")
+    print()
 
     # Never overwrite a previous run — refuse if either the output directory
     # (non-empty) or the sidecar JSON already exists. User must move/delete
@@ -259,11 +325,14 @@ def main():
     needs_staging = (" " in outdir or " " in subj_path
                      or " " in template or " " in atlas)
     if needs_staging:
-        work_root = os.path.expanduser(f"~/aw_work/{safe_subj_id}_{space_tag}")
+        if STAGING_ROOT is not None:
+            work_root = STAGING_ROOT
+        else:
+            work_root = os.path.expanduser(f"~/aw_work/{safe_subj_id}_{space_tag}")
+        print(f"  Spaces detected in input paths — staging in {work_root} "
+              "to avoid tcsh parsing issues.")
         work_outdir = os.path.join(work_root, "out")
         work_inputs = os.path.join(work_root, "inputs")
-        print(f"  Spaces detected in input/output paths — staging in {work_root} "
-              "to avoid tcsh parsing issues.")
     else:
         work_outdir = outdir
         work_inputs = outdir  # subject NIfTI gets written here
@@ -294,6 +363,13 @@ def main():
     if needs_staging:
         template = _stage(template, "nmt_template")
         atlas = _stage(atlas, "d99_atlas")
+        print("=== STAGED SYMLINKS (verify these resolve to the correct files!) ===")
+        for link in (template, atlas):
+            try:
+                print(f"  {link}  ->  {os.readlink(link)}")
+            except OSError:
+                print(f"  {link}  (not a symlink)")
+        print()
 
     # 1. Convert subject MRI to NIfTI, composing in the subject correction
     # resolved above if applicable. For NIfTI input with no correction this
