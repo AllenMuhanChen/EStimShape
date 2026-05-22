@@ -80,6 +80,12 @@ TEMPLATE_MRI = None
 # Atlas to follow (e.g. D99_atlas_in_NMT_v2.0_sym.nii.gz). Falls back to cfg["atlas_nifti_path"].
 ATLAS_MRI    = None
 
+# Brain mask in template space (e.g. NMT_v2.0_asym_brainmask.nii.gz). When set,
+# passed to @animal_warper as -skullstrip so it warps the template brainmask
+# onto the subject instead of running generic 3dSkullStrip. Strongly preferred
+# for monkey MRI. None = let @animal_warper run its default skull-stripping.
+BRAIN_MASK   = None
+
 # Where to put the @animal_warper outdir. None = <subject_stem>_warper_<space>
 # next to the subject MRI.
 OUTPUT_DIR   = None
@@ -160,7 +166,8 @@ def subject_to_nifti(in_path, out_nii, correction=None):
     return out_nii
 
 
-def run_animal_warper(subj_nii, base_nii, atlas_nii, outdir, subj_id):
+def run_animal_warper(subj_nii, base_nii, atlas_nii, outdir, subj_id,
+                      brain_mask=None):
     cmd = [
         "@animal_warper",
         "-input", subj_nii,
@@ -169,6 +176,8 @@ def run_animal_warper(subj_nii, base_nii, atlas_nii, outdir, subj_id):
         "-outdir", outdir,
         "-input_abbrev", subj_id,
     ]
+    if brain_mask:
+        cmd += ["-skullstrip", brain_mask]
     print("Running:")
     print("  " + " ".join(cmd))
     t0 = time.time()
@@ -218,21 +227,18 @@ def main():
     print("PATH:", os.environ.get("PATH"))
     print("which @animal_warper:", shutil.which("@animal_warper"))
 
-    # Load config only if any of the override constants are missing.
+    # Load config if it exists so the constants can fall back to it for any
+    # unset values. If it doesn't exist and any required constant is unset,
+    # we error out below.
     cfg = {}
-    needs_cfg = SUBJECT_MRI is None or TEMPLATE_MRI is None or ATLAS_MRI is None
-    if needs_cfg:
-        if not os.path.exists(CONFIG_PATH):
-            sys.exit(f"Config not found: {CONFIG_PATH}\n"
-                     "Set SUBJECT_MRI / TEMPLATE_MRI / ATLAS_MRI directly in "
-                     "the script, or run from a directory containing "
-                     "mri_viewer_config.json.")
+    if os.path.exists(CONFIG_PATH):
         with open(CONFIG_PATH) as f:
             cfg = json.load(f)
 
-    subj_path = SUBJECT_MRI  or cfg.get("default_path")
-    template  = TEMPLATE_MRI or cfg.get("template_mri_path")
-    atlas     = ATLAS_MRI    or cfg.get("atlas_nifti_path")
+    subj_path  = SUBJECT_MRI  or cfg.get("default_path")
+    template   = TEMPLATE_MRI or cfg.get("template_mri_path")
+    atlas      = ATLAS_MRI    or cfg.get("atlas_nifti_path")
+    brain_mask = BRAIN_MASK   or cfg.get("brain_mask_path")
 
     print()
     print("=== INPUTS ===")
@@ -242,9 +248,10 @@ def main():
         if cfg_val is not None:
             return f"{label} (config)"
         return "MISSING"
-    print(f"  subject  : {subj_path}   [{_src(SUBJECT_MRI, cfg.get('default_path'), 'default_path')}]")
-    print(f"  template : {template}   [{_src(TEMPLATE_MRI, cfg.get('template_mri_path'), 'template_mri_path')}]")
-    print(f"  atlas    : {atlas}   [{_src(ATLAS_MRI, cfg.get('atlas_nifti_path'), 'atlas_nifti_path')}]")
+    print(f"  subject    : {subj_path}   [{_src(SUBJECT_MRI, cfg.get('default_path'), 'default_path')}]")
+    print(f"  template   : {template}   [{_src(TEMPLATE_MRI, cfg.get('template_mri_path'), 'template_mri_path')}]")
+    print(f"  atlas      : {atlas}   [{_src(ATLAS_MRI, cfg.get('atlas_nifti_path'), 'atlas_nifti_path')}]")
+    print(f"  brain mask : {brain_mask}   [{_src(BRAIN_MASK, cfg.get('brain_mask_path'), 'brain_mask_path')}]")
     print()
 
     missing = [k for k, v in (("SUBJECT_MRI", subj_path),
@@ -255,6 +262,8 @@ def main():
     for label, p in (("subject", subj_path), ("template", template), ("atlas", atlas)):
         if not os.path.isfile(p):
             sys.exit(f"{label} file does not exist: {p}")
+    if brain_mask and not os.path.isfile(brain_mask):
+        sys.exit(f"brain mask file does not exist: {brain_mask}")
 
     is_nifti_input = _is_nifti(subj_path)
     if is_nifti_input:
@@ -323,7 +332,8 @@ def main():
     # instead and copy outputs back at the end.
     safe_subj_id = subj_id.replace(" ", "_")
     needs_staging = (" " in outdir or " " in subj_path
-                     or " " in template or " " in atlas)
+                     or " " in template or " " in atlas
+                     or (brain_mask is not None and " " in brain_mask))
     if needs_staging:
         if STAGING_ROOT is not None:
             work_root = STAGING_ROOT
@@ -363,8 +373,10 @@ def main():
     if needs_staging:
         template = _stage(template, "nmt_template")
         atlas = _stage(atlas, "d99_atlas")
+        if brain_mask:
+            brain_mask = _stage(brain_mask, "nmt_brainmask")
         print("=== STAGED SYMLINKS (verify these resolve to the correct files!) ===")
-        for link in (template, atlas):
+        for link in [template, atlas] + ([brain_mask] if brain_mask else []):
             try:
                 print(f"  {link}  ->  {os.readlink(link)}")
             except OSError:
@@ -380,8 +392,11 @@ def main():
 
     # 2. @animal_warper.
     print(f"[2/3] Running @animal_warper (template={os.path.basename(template)}, "
-          f"atlas={os.path.basename(atlas)})")
-    run_animal_warper(subj_nii, template, atlas, work_outdir, safe_subj_id)
+          f"atlas={os.path.basename(atlas)}"
+          + (f", skullstrip={os.path.basename(brain_mask)}" if brain_mask else "")
+          + ")")
+    run_animal_warper(subj_nii, template, atlas, work_outdir, safe_subj_id,
+                      brain_mask=brain_mask)
 
     # If we staged in a separate work dir, mirror the contents back to the
     # user-facing outdir next to the input file.
