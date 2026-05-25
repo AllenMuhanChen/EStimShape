@@ -178,18 +178,15 @@ class DeltaVariantCurationApp:
             .set_index("StimSpecId")["ThumbnailPath"].to_dict()
         )
 
-        # Default the inclusion state to whatever is already curated in the DB,
-        # matching on the full (delta, variant) pair; pairs not present in the DB
-        # keep their ratio-threshold default.
+        # If the DB already has curated pairs, it is the source of truth: a pair
+        # is included only if it appears in the DB with included=TRUE (matched on
+        # the full delta+variant pair). Otherwise we keep the ratio-threshold
+        # default that compute_pairs produced.
         db_map = self._read_db_included()
         if db_map:
-            for (delta_id, variant_id), included in db_map.items():
-                mask = ((pairs["StimSpecId"] == delta_id)
-                        & (pairs["PairedVariantId"] == variant_id))
-                if mask.any():
-                    pairs.loc[mask, "Included"] = included
+            self._apply_db_authoritative(pairs, db_map)
 
-        # Manual overrides made during this session win over both.
+        # Manual overrides made during this session win over the default.
         for (delta_id, variant_id), included in self.manual_overrides.items():
             mask = ((pairs["StimSpecId"] == delta_id)
                     & (pairs["PairedVariantId"] == variant_id))
@@ -218,8 +215,27 @@ class DeltaVariantCurationApp:
             for _, r in db.iterrows()
         }
 
+    def _apply_db_authoritative(self, df, db_map):
+        """Set ``Included`` so it is True only for pairs the DB marks included=TRUE.
+
+        Every other pair (excluded in the DB, or absent from it) is set False.
+        Matches on the full (delta, variant) pair.
+        """
+        df["Included"] = False
+        for (delta_id, variant_id), included in db_map.items():
+            if not included:
+                continue
+            mask = ((df["StimSpecId"] == delta_id)
+                    & (df["PairedVariantId"] == variant_id))
+            df.loc[mask, "Included"] = True
+
     def load_from_db(self):
-        """Overwrite current checkbox states with the IncludedDeltas table."""
+        """Set the checkboxes to exactly the DB's included=TRUE pairs.
+
+        This is authoritative: any pair not marked included in the DB (whether
+        stored as excluded or simply absent) is unchecked. Discards in-session
+        manual overrides so the displayed state matches the DB exactly.
+        """
         if self.pairs is None:
             messagebox.showwarning("No pairs", "Compute pairs first.")
             return
@@ -227,16 +243,11 @@ class DeltaVariantCurationApp:
         if not db_map:
             messagebox.showinfo("Load from DB", "No data found in the IncludedDeltas table.")
             return
-        n_applied = 0
-        for (delta_id, variant_id), included in db_map.items():
-            mask = self._pair_mask(delta_id, variant_id)
-            if mask.any():
-                self.pairs.loc[mask, "Included"] = included
-                # make the loaded state sticky across recomputes
-                self.manual_overrides[(delta_id, variant_id)] = included
-                n_applied += 1
+        self.manual_overrides.clear()
+        self._apply_db_authoritative(self.pairs, db_map)
+        n_included = int(self.pairs["Included"].sum())
         self.render()
-        self.status_var.set(self.status_var.get() + f"   (loaded {n_applied} from DB)")
+        self.status_var.set(self.status_var.get() + f"   (loaded {n_included} included from DB)")
 
     def reset_to_threshold(self):
         """Discard manual overrides and restore the ratio-threshold defaults."""
