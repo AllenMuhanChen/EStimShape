@@ -236,14 +236,21 @@ class DeltaVariantCurationApp:
         self.render()
 
     def _ordered_pairs(self) -> pd.DataFrame:
-        df = self.pairs
+        df = self.pairs.copy()
         sort_col = SORT_COLUMNS[self.sort_var.get()]
         ascending = not self.descending_var.get()
 
         by, asc = [], []
         if self.group_variant_var.get():
-            by.append("PairedVariantId")
-            asc.append(True)
+            # Keep the chosen metric as the primary ordering: position each
+            # variant group by its best member under the current direction, so
+            # groups flow left-to-right by metric while same-variant columns
+            # stay adjacent. PairedVariantId only breaks ties between groups
+            # that share the same representative value.
+            group_agg = "min" if ascending else "max"
+            df["_group_key"] = df.groupby("PairedVariantId")[sort_col].transform(group_agg)
+            by += ["_group_key", "PairedVariantId"]
+            asc += [ascending, True]
         if self.included_first_var.get():
             by.append("Included")
             asc.append(False)  # True (included) sorts first
