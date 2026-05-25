@@ -46,8 +46,9 @@ class DeltaVariantCurationApp:
 
         # Current pair table (one row per pair). 'Included' tracks checkbox state.
         self.pairs: pd.DataFrame | None = None
-        # StimSpecId -> thumbnail path, refreshed on every recompute.
+        # StimSpecId -> thumbnail path / generation id, refreshed on recompute.
         self.thumb_map: dict[int, str] = {}
+        self.gen_map: dict[int, int] = {}
         # Manual include/exclude decisions keyed by delta StimSpecId. Re-applied
         # after a recompute so changing channel/baseline doesn't wipe curation.
         self.manual_overrides: dict[int, bool] = {}
@@ -193,10 +194,9 @@ class DeltaVariantCurationApp:
             self.status_var.set("No delta-variant pairs found for this setting.")
             return
 
-        self.thumb_map = (
-            prepared.data.drop_duplicates("StimSpecId")
-            .set_index("StimSpecId")["ThumbnailPath"].to_dict()
-        )
+        info = prepared.data.drop_duplicates("StimSpecId").set_index("StimSpecId")
+        self.thumb_map = info["ThumbnailPath"].to_dict()
+        self.gen_map = info["GenId"].to_dict() if "GenId" in info.columns else {}
 
         # If the DB already has curated pairs, it is the source of truth: a pair
         # is included only if it appears in the DB with included=TRUE (matched on
@@ -394,14 +394,19 @@ class DeltaVariantCurationApp:
             tk.Label(self.grid_frame, text=f"ratio {ratio:.2f}", font=("Arial", 9, "bold"),
                      background="white").grid(row=0, column=col, padx=3, pady=(2, 0))
 
+            delta_gen = self._gen_label(delta_id)
+            variant_gen = self._gen_label(variant_id)
+
             self._make_image_cell(self.grid_frame, delta_photo, f"delta\n{delta_id}").grid(
                 row=1, column=col, padx=3, pady=2)
-            tk.Label(self.grid_frame, text=f"Δ {d_resp:.1f}\nd{delta_id}", font=("Arial", 8),
-                     background="white", justify="center").grid(row=2, column=col, padx=3)
+            tk.Label(self.grid_frame, text=f"Δ {d_resp:.1f}\ngen {delta_gen}\nd{delta_id}",
+                     font=("Arial", 8), background="white", justify="center").grid(
+                row=2, column=col, padx=3)
 
             self._make_image_cell(self.grid_frame, variant_photo, f"variant\n{variant_id}").grid(
                 row=3, column=col, padx=3, pady=2)
-            tk.Label(self.grid_frame, text=f"V {v_resp:.1f} ({pct_of_max:.0f}% max)\nv{variant_id}",
+            tk.Label(self.grid_frame,
+                     text=f"V {v_resp:.1f} ({pct_of_max:.0f}% max)\ngen {variant_gen}\nv{variant_id}",
                      font=("Arial", 8), background="white", justify="center").grid(
                 row=4, column=col, padx=3)
 
@@ -427,6 +432,12 @@ class DeltaVariantCurationApp:
         """Row mask matching a single (delta, variant) pair, not just the delta."""
         return ((self.pairs["StimSpecId"] == delta_id)
                 & (self.pairs["PairedVariantId"] == variant_id))
+
+    def _gen_label(self, stim_id):
+        gen = self.gen_map.get(stim_id)
+        if gen is None or pd.isna(gen):
+            return "?"
+        return str(int(gen))
 
     def _update_status(self):
         n_total = len(self.pairs)
