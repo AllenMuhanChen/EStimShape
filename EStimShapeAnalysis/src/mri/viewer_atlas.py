@@ -2,7 +2,7 @@ import os
 import numpy as np
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-from src.mri.atlas import load_atlas, load_atlas_labels, reslice_atlas, draw_atlas_contours, atlas_label_at_cursor, atlas_label_detail, load_template_mri, reslice_template_mri
+from src.mri.atlas import load_atlas, load_atlas_labels, reslice_atlas, draw_atlas_contours, atlas_label_at_cursor, atlas_label_detail, load_template_mri, reslice_template_mri, load_follower
 from src.mri.correction import rot_x, rot_y, rot_z, xlate, load_corrections, save_corrections, push_correction, scale
 
 
@@ -37,6 +37,11 @@ class AtlasMixin:
             # Load or create atlas correction JSON alongside the NIfTI
             self.atlas_corr_json_path = self._atlas_corr_json_for(nifti_path)
             self.atlas_correction, self.atlas_corr_config = load_corrections(self.atlas_corr_json_path)
+
+            # Restore any saved per-region color highlights (name -> color)
+            self.atlas_region_highlights = dict(
+                self.atlas_corr_config.get("region_highlights", {}))
+            self._update_region_highlight_info()
 
             # Enable UI
             self.btn_load_atlas_labels.config(state="normal")
@@ -368,3 +373,166 @@ class AtlasMixin:
                 self._load_atlas_version(t); win.destroy()
         ttk.Button(jf, text="Jump", command=jump).pack(side=tk.LEFT, padx=3)
         txt.config(state=tk.DISABLED)
+
+    # ---- Per-region color highlights ----
+    def _region_name_index_map(self):
+        """Build {lowercased name/token: label_index} from the loaded label table."""
+        m = {}
+        for idx, name in self.atlas_label_names.items():
+            tokens = [name] + [t.strip() for t in name.split(',')]
+            for t in tokens:
+                t = t.strip().lower()
+                if t:
+                    m.setdefault(t, idx)
+        return m
+
+    def _resolve_region_highlights(self):
+        """Resolve the stored {name: color} highlights to {label_index: color}
+        using the current label table. Unmatched names are skipped."""
+        if not self.atlas_region_highlights or not self.atlas_label_names:
+            return {}
+        name_map = self._region_name_index_map()
+        out = {}
+        for name, color in self.atlas_region_highlights.items():
+            idx = name_map.get(name.strip().lower())
+            if idx is not None:
+                out[idx] = color
+        return out
+
+    def _add_region_highlight(self):
+        if not self.atlas_loaded:
+            self.status_var.set("Load an atlas first.")
+            return
+        if not self.atlas_label_names:
+            messagebox.showwarning("No labels",
+                "Load the atlas label table first so region names can be matched.")
+            return
+        name = self.atlas_region_name_var.get().strip()
+        if not name:
+            return
+        color = self.atlas_region_color_var.get()
+        if self._region_name_index_map().get(name.lower()) is None:
+            messagebox.showwarning("Region not found",
+                f"'{name}' did not match any label name in the loaded table.")
+            return
+        self.atlas_region_highlights[name] = color
+        self._persist_region_highlights()
+        self._update_region_highlight_info()
+        self.atlas_region_name_var.set("")
+        if self.data is not None:
+            self.display_all()
+
+    def _remove_region_highlight(self):
+        name = self.atlas_region_name_var.get().strip()
+        # Remove by exact key, else case-insensitive match.
+        if name in self.atlas_region_highlights:
+            del self.atlas_region_highlights[name]
+        else:
+            for k in list(self.atlas_region_highlights):
+                if k.lower() == name.lower():
+                    del self.atlas_region_highlights[k]
+                    break
+        self._persist_region_highlights()
+        self._update_region_highlight_info()
+        if self.data is not None:
+            self.display_all()
+
+    def _clear_region_highlights(self):
+        self.atlas_region_highlights = {}
+        self._persist_region_highlights()
+        self._update_region_highlight_info()
+        if self.data is not None:
+            self.display_all()
+
+    def _on_region_alpha_change(self, event=None):
+        try:
+            self.atlas_region_fill_alpha = float(self.atlas_region_alpha_var.get())
+        except (ValueError, tk.TclError):
+            return
+        if self.data is not None:
+            self.display_all()
+
+    def _persist_region_highlights(self):
+        if self.atlas_corr_config is None or not self.atlas_corr_json_path:
+            return
+        self.atlas_corr_config["region_highlights"] = dict(self.atlas_region_highlights)
+        save_corrections(self.atlas_corr_json_path, self.atlas_corr_config)
+
+    def _update_region_highlight_info(self):
+        if not hasattr(self, "atlas_region_list_var"):
+            return
+        if not self.atlas_region_highlights:
+            self.atlas_region_list_var.set("(none)")
+        else:
+            self.atlas_region_list_var.set(
+                "  ".join(f"{n}={c}" for n, c in self.atlas_region_highlights.items()))
+
+    # ---- Follower overlay ----
+    def _browse_follower_nifti(self):
+        fn = filedialog.askopenfilename(
+            title="Select Follower NIfTI",
+            filetypes=[("NIfTI", "*.nii *.nii.gz"), ("All", "*.*")])
+        if not fn:
+            return
+        self._load_follower_from_path(fn)
+
+    def _load_follower_from_path(self, nifti_path):
+        try:
+            self.status_var.set(f"Loading follower {os.path.basename(nifti_path)}...")
+            self.root.update()
+            data, sform, is_label = load_follower(nifti_path)
+            self.follower_data = data
+            self.follower_sform = sform
+            self._follower_nifti_path = nifti_path
+            self.follower_loaded = True
+            self.follower_is_label = is_label
+
+            # Fixed display range so colors are consistent across slices.
+            finite = data[np.isfinite(data)]
+            if is_label:
+                self.follower_vmin = 0
+                self.follower_vmax = float(finite.max()) if finite.size else 1.0
+            else:
+                if finite.size:
+                    lo, hi = np.percentile(finite[finite != 0] if np.any(finite != 0) else finite, [1, 99])
+                    self.follower_vmin, self.follower_vmax = float(lo), float(hi)
+                else:
+                    self.follower_vmin, self.follower_vmax = 0.0, 1.0
+
+            # Sync UI mode checkbox to the auto-detected type.
+            if hasattr(self, "follower_label_mode_var"):
+                self.follower_label_mode_var.set(is_label)
+
+            self.btn_toggle_follower.config(state="normal")
+            self.follower_show = True
+            self.btn_toggle_follower.config(text="Hide Follower")
+            kind = "labels" if is_label else "continuous"
+            self.follower_info_var.set(
+                f"Follower: {os.path.basename(nifti_path)}  shape={list(data.shape)}  ({kind})")
+            if self.data is not None:
+                self.display_all()
+            self.status_var.set(f"Follower loaded: {os.path.basename(nifti_path)}")
+        except Exception as e:
+            messagebox.showerror("Error loading follower", str(e))
+            import traceback; traceback.print_exc()
+
+    def _toggle_follower(self):
+        self.follower_show = not self.follower_show
+        self.btn_toggle_follower.config(
+            text="Hide Follower" if self.follower_show else "Show Follower")
+        if self.data is not None:
+            self.display_all()
+
+    def _on_follower_appearance_change(self, event=None):
+        self.follower_cmap = self.follower_cmap_var.get()
+        try:
+            self.follower_alpha = float(self.follower_alpha_var.get())
+        except (ValueError, tk.TclError):
+            pass
+        if self.data is not None and self.follower_show:
+            self.display_all()
+
+    def _on_follower_mode_change(self):
+        self.follower_is_label = self.follower_label_mode_var.get()
+        if self.data is not None and self.follower_show:
+            self.display_all()

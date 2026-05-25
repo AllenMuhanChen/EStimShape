@@ -447,6 +447,32 @@ class PanelsMixin:
         self.atlas_alpha_var = tk.DoubleVar(value=0.7)
         ttk.Entry(r5, textvariable=self.atlas_alpha_var, width=5).pack(side=tk.LEFT, padx=3)
 
+        # Row 6: per-region color highlights
+        r6 = ttk.LabelFrame(at, text="Highlight regions (fill a named area with a color)")
+        r6.pack(fill=tk.X, padx=3, pady=2)
+        r6a = ttk.Frame(r6); r6a.pack(fill=tk.X, padx=3, pady=2)
+        ttk.Label(r6a, text="Region:").pack(side=tk.LEFT, padx=3)
+        self.atlas_region_name_var = tk.StringVar(value="")
+        e = ttk.Entry(r6a, textvariable=self.atlas_region_name_var, width=12)
+        e.pack(side=tk.LEFT, padx=3)
+        e.bind("<Return>", lambda ev: self._add_region_highlight())
+        ttk.Label(r6a, text="Color:").pack(side=tk.LEFT, padx=(8, 2))
+        self.atlas_region_color_var = tk.StringVar(value="red")
+        ttk.Combobox(r6a, textvariable=self.atlas_region_color_var, state="readonly", width=10,
+                     values=["red", "yellow", "lime", "cyan", "magenta", "orange",
+                             "blue", "green", "white", "deeppink"]).pack(side=tk.LEFT, padx=3)
+        ttk.Button(r6a, text="Add / Update", command=self._add_region_highlight).pack(side=tk.LEFT, padx=3)
+        ttk.Button(r6a, text="Remove", command=self._remove_region_highlight).pack(side=tk.LEFT, padx=3)
+        ttk.Button(r6a, text="Clear All", command=self._clear_region_highlights).pack(side=tk.LEFT, padx=3)
+        ttk.Label(r6a, text="Fill alpha:").pack(side=tk.LEFT, padx=(8, 2))
+        self.atlas_region_alpha_var = tk.DoubleVar(value=0.5)
+        ea = ttk.Entry(r6a, textvariable=self.atlas_region_alpha_var, width=5)
+        ea.pack(side=tk.LEFT, padx=3)
+        ea.bind("<Return>", lambda ev: self._on_region_alpha_change())
+        self.atlas_region_list_var = tk.StringVar(value="(none)")
+        ttk.Label(r6, textvariable=self.atlas_region_list_var, foreground="#444444",
+                  wraplength=700, justify="left").pack(anchor="w", padx=5, pady=(0, 3))
+
         # Info / version
         self.atlas_corr_info_var = tk.StringVar(value="")
         ttk.Label(at, textvariable=self.atlas_corr_info_var).pack(anchor="w", padx=5, pady=1)
@@ -458,6 +484,41 @@ class PanelsMixin:
         ttk.Label(nr, text="Note:").pack(side=tk.LEFT, padx=3)
         self.atlas_corr_note_var = tk.StringVar(value="")
         ttk.Entry(nr, textvariable=self.atlas_corr_note_var, width=50).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=3)
+
+    def _build_follower_panel(self, parent):
+        fp = ttk.LabelFrame(parent, text="Follower Overlay  (any NIfTI, e.g. segmentation — no labels file needed)")
+        fp.pack(fill=tk.X, padx=5, pady=2)
+        self._panel_frames['follower'] = fp
+
+        r1 = ttk.Frame(fp); r1.pack(fill=tk.X, padx=3, pady=2)
+        self.btn_load_follower = ttk.Button(r1, text="Load Follower NIfTI...",
+                                             command=self._browse_follower_nifti)
+        self.btn_load_follower.pack(side=tk.LEFT, padx=3)
+        self.btn_toggle_follower = ttk.Button(r1, text="Show Follower",
+                                               command=self._toggle_follower, state="disabled")
+        self.btn_toggle_follower.pack(side=tk.LEFT, padx=3)
+        self.follower_info_var = tk.StringVar(value="No follower loaded")
+        ttk.Label(r1, textvariable=self.follower_info_var).pack(side=tk.LEFT, padx=8)
+
+        r2 = ttk.Frame(fp); r2.pack(fill=tk.X, padx=3, pady=2)
+        ttk.Label(r2, text="Colormap:").pack(side=tk.LEFT, padx=3)
+        self.follower_cmap_var = tk.StringVar(value="tab10")
+        cb = ttk.Combobox(r2, textvariable=self.follower_cmap_var, state="readonly", width=12,
+                          values=["tab10", "tab20", "Set1", "Set3", "viridis",
+                                  "jet", "hot", "cool", "autumn", "gray"])
+        cb.pack(side=tk.LEFT, padx=3)
+        cb.bind("<<ComboboxSelected>>", self._on_follower_appearance_change)
+
+        ttk.Label(r2, text="Alpha:").pack(side=tk.LEFT, padx=(8, 2))
+        self.follower_alpha_var = tk.DoubleVar(value=0.5)
+        ea = ttk.Entry(r2, textvariable=self.follower_alpha_var, width=5)
+        ea.pack(side=tk.LEFT, padx=3)
+        ea.bind("<Return>", self._on_follower_appearance_change)
+
+        self.follower_label_mode_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(r2, text="Discrete labels (NN; off = continuous)",
+                        variable=self.follower_label_mode_var,
+                        command=self._on_follower_mode_change).pack(side=tk.LEFT, padx=(12, 3))
 
     def _build_sliders(self, parent):
         sf = ttk.Frame(parent); sf.pack(fill=tk.X, padx=5, pady=2)
