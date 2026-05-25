@@ -33,7 +33,7 @@ public class ManualTriggerIntanRHSControllerTest {
         controller = new ManualTriggerIntanRHS();
         controller.setIntanClient(intanClient);
         controller.setDefaultParameters(defaultParameters());
-
+        controller.setPorts(Collections.singletonList("a"));
         controller.connect();
 //        assertTrue(controller.getIntanClient().get("b-000.maintainampsettle").equals("True"));
     }
@@ -289,9 +289,9 @@ public class ManualTriggerIntanRHSControllerTest {
                 PulseRepetition.SinglePulse,
                 1,
                 0.0,
-                0.0,
-                TriggerEdgeOrLevel.Edge,
-                0.0);
+                4000,
+                TriggerEdgeOrLevel.Level,
+                100);
 
         ChannelEStimParameters channelEStimParameters = new ChannelEStimParameters(waveformParameters, pulseTrainParameters);
         parametersForChannels.put(RHSChannel.A025, channelEStimParameters);

@@ -1,14 +1,14 @@
 {
-  "default_path": "/home/connorlab/Documents/MRI/45X MRI/45X_110315_4_1.PAR",
+  "default_path": "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/subject_rigid_aligned.nii.gz",
   "ebz_world": [
-    1.0759375079539097,
-    -9.383001365719679,
-    6.827579176157762
+    -13.951491154327229,
+    -5.6610360604210115,
+    -4.632021826071821
   ],
   "monkey_specific_path": "/home/connorlab/git/stereotax/monkey_specific.py",
-  "atlas_nifti_path": "/home/connorlab/Documents/MRI/45X MRI/45X_110315_4_1_warper/d99_atlas_in_45X_110315_4_1.nii.gz",
+  "atlas_nifti_path": "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/atlas_rigid_aligned.nii.gz",
   "atlas_label_path": "/home/connorlab/Documents/NMT_v2.0_asym/tables_D99/D99_labeltable.txt",
-  "template_mri_path": "/home/connorlab/Documents/MRI/45X MRI/45X_110315_4_1_warper/NMT2_in_45X_110315_4_1.nii.gz",
+  "template_mri_path": "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/template_in_subject_rigid_aligned.nii.gz",
   "pen_view_path": "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/importants.json",
   "session_id": "260520_0"
 }

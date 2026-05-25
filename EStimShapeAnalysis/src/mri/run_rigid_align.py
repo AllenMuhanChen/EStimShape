@@ -41,19 +41,19 @@ import numpy as np
 # Skull-stripped subject from @animal_warper outdir. 3dAllineate works better
 # on skull-stripped brains. This is the file the rigid fit uses for cost
 # evaluation — it is NOT the file that gets exported.
-SUBJECT_NS_NII          = None   # e.g. ".../<outdir>/45X_..._corrected_ns.nii.gz"
+SUBJECT_NS_NII          = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/45X_110315_4_1_corrected_ns.nii.gz"   # e.g. ".../<outdir>/45X_..._corrected_ns.nii.gz"
 
 # The three @animal_warper subject-space outputs whose affines we'll rewrite:
-SUBJECT_NII             = None   # ".../<outdir>/45X_..._corrected.nii.gz"
-ATLAS_IN_SUBJECT_NII    = None   # ".../<outdir>/d99_atlas_in_45X_..._corrected.nii.gz"
-TEMPLATE_IN_SUBJECT_NII = None   # ".../<outdir>/BASEORIG_in_45X_..._corrected.nii.gz"
+SUBJECT_NII             = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/45X_110315_4_1_corrected.nii.gz"   # ".../<outdir>/45X_..._corrected.nii.gz"
+ATLAS_IN_SUBJECT_NII    = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/d99_atlas_in_45X_110315_4_1_corrected.nii.gz"   # ".../<outdir>/d99_atlas_in_45X_..._corrected.nii.gz"
+TEMPLATE_IN_SUBJECT_NII = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/NMT2_in_45X_110315_4_1_corrected.nii.gz"   # ".../<outdir>/BASEORIG_in_45X_..._corrected.nii.gz"
 
 # The original NMT template — the rigid alignment target.
-ORIGINAL_TEMPLATE       = None   # e.g. ".../NMT_v2.0_sym.nii.gz"
+ORIGINAL_TEMPLATE       = "/home/connorlab/Documents/NMT_v2.0_asym/NMT_v2.0_asym/NMT_v2.0_asym.nii.gz"   # e.g. ".../NMT_v2.0_sym.nii.gz"
 
 # Output directory for the rigid-aligned NIfTIs + transform files. Must not
 # already exist with contents (script refuses to overwrite).
-OUTPUT_DIR              = None   # e.g. ".../<outdir>/rigid_aligned"
+OUTPUT_DIR              = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned"   # e.g. ".../<outdir>/rigid_aligned"
 # ============================================================================
 
 

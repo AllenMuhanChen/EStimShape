@@ -74,17 +74,17 @@ CONFIG_PATH = os.path.join(os.getcwd(), "mri_viewer_config.json")
 # ============================================================================
 
 # Subject MRI. PAR/REC or .nii(.gz). Falls back to cfg["default_path"].
-SUBJECT_MRI  = None
+SUBJECT_MRI  = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected.nii.gz"
 # Reference template (e.g. NMT_v2.0_sym.nii.gz). Falls back to cfg["template_mri_path"].
-TEMPLATE_MRI = None
+TEMPLATE_MRI = "/home/connorlab/Documents/NMT_v2.0_asym/NMT_v2.0_asym/NMT_v2.0_asym.nii.gz"
 # Atlas to follow (e.g. D99_atlas_in_NMT_v2.0_sym.nii.gz). Falls back to cfg["atlas_nifti_path"].
-ATLAS_MRI    = None
+ATLAS_MRI    = "/home/connorlab/Documents/NMT_v2.0_asym/NMT_v2.0_asym/D99_atlas_in_NMT_v2.0_asym.nii.gz"
 
 # Brain mask in template space (e.g. NMT_v2.0_asym_brainmask.nii.gz). When set,
 # passed to @animal_warper as -skullstrip so it warps the template brainmask
 # onto the subject instead of running generic 3dSkullStrip. Strongly preferred
 # for monkey MRI. None = let @animal_warper run its default skull-stripping.
-BRAIN_MASK   = None
+BRAIN_MASK   = "/home/connorlab/Documents/NMT_v2.0_asym/NMT_v2.0_asym/NMT_v2.0_asym_brainmask.nii.gz"
 
 # Where to put the @animal_warper outdir. None = <subject_stem>_warper_<space>
 # next to the subject MRI.
@@ -100,7 +100,7 @@ STAGING_ROOT = None
 # Apply <subject_stem>_corrections.json sidecar to the subject affine before
 # warping. If the input is a NIfTI that already has corrections baked into
 # its affine, you probably want this False (or just no sidecar present).
-USE_SUBJECT_CORRECTION = True
+USE_SUBJECT_CORRECTION = False
 # ============================================================================
 
 
@@ -175,6 +175,7 @@ def run_animal_warper(subj_nii, base_nii, atlas_nii, outdir, subj_id,
         "-atlas_followers", atlas_nii,
         "-outdir", outdir,
         "-input_abbrev", subj_id,
+        "-ok_to_exist"
     ]
     if brain_mask:
         cmd += ["-skullstrip", brain_mask]
