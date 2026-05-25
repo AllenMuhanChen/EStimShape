@@ -50,7 +50,7 @@ def main():
     global_test_side   = 'two-tailed'
     # run_permutation_tests: False skips the (slow) permutation tests; observed effects are
     # still shown but p-values/significance are reported as n/a.
-    run_permutation_tests = True
+    run_permutation_tests = False
     n_permutations     = 1000 if run_permutation_tests else 0
 
     add_borders       = True

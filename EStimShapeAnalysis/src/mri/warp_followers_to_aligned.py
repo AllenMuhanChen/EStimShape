@@ -99,7 +99,7 @@ FOLLOWERS = [
 
 # Where to write the *_rigid_aligned.nii.gz outputs. None = the same dir as
 # XFM_RAS_TXT (alongside the existing aligned files).
-OUTPUT_DIR = None
+OUTPUT_DIR = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned"
 # ============================================================================
 
 
