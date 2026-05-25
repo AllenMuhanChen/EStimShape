@@ -23,7 +23,7 @@ from src.analysis.nafc.nafc_database_fields import (
     StimTypeField, ChoiceField, GenIdField,
     BaseMStickIdField, IsDeltaField, IsHypothesizedField,
     EStimEnabledField, EStimSpecIdField, EStimPolarityField, SampleLengthField,
-    IsRemovedTrialField, VariantIdField, VariantPctMaxResponseField,
+    IsRemovedTrialField,
 )
 from src.analysis.nafc.psychometric_curves import collect_choice_trials, plot_psychometric_curve_on_ax
 from src.startup import context
@@ -111,8 +111,6 @@ def main():
     fields.append(EStimEnabledField(exp_conn))
     fields.append(EStimSpecIdField(exp_conn))
     fields.append(BaseMStickIdField(exp_conn))
-    fields.append(VariantIdField(exp_conn, ga_conn))
-    fields.append(VariantPctMaxResponseField(exp_conn, ga_conn))
     fields.append(IsDeltaField(exp_conn))
     fields.append(IsRemovedTrialField(exp_conn))
     fields.append(EStimPolarityField(exp_conn))
@@ -303,20 +301,11 @@ def main():
         isCorrectFieldName, add_borders, border_width, border_color_mode
     )
 
-    # ---- Figure 3: variant tuning vs. estim effect ----
-    response_effect_fig = plot_variant_response_vs_effect(
-        data_exp, isCorrectFieldName, start_gen_id_estim_on, max_gen_id_estim_on
-    )
-
     fig1.savefig(save_path.replace("_estim_results.png", "_overview_estim_results.png"),
                  bbox_inches='tight', dpi=150)
     if pairs_fig is not None:
         pairs_fig.savefig(save_path.replace("_estim_results.png", "_pairs_estim_results.png"),
                           bbox_inches='tight', dpi=150)
-    if response_effect_fig is not None:
-        response_effect_fig.savefig(
-            save_path.replace("_estim_results.png", "_response_effect_estim_results.png"),
-            bbox_inches='tight', dpi=150)
     print(f"Saved plots to {os.path.dirname(save_path)}")
 
     sliding_window_analysis_by_spec_id(data_exp, session_id, window_size=50, step_size=1)
@@ -647,71 +636,6 @@ def load_and_display_image(ax, image_path, response_rate=None, min_val=0.0, max_
         ax.text(0.5, 0.5, 'Error loading image', ha='center', va='center',
                 transform=ax.transAxes)
     ax.axis('off')
-
-
-# ===========================================================================
-# Figure 3: variant tuning vs. estim effect scatter
-# ===========================================================================
-
-def plot_variant_response_vs_effect(data_exp, metric_field,
-                                    start_gen_id_estim_on, max_gen_id_estim_on):
-    """Scatter of estim effect against the variant's GA response tuning.
-
-    x-axis: VariantPctMaxResponse — the variant's response as a percentage of the max
-            variant response across all included variants.
-    y-axis: estim effect = (% estim-on - % estim-off) on `metric_field` (e.g. IsHypothesized).
-
-    One dot per variant_id: delta and variant trials of the same (delta, variant) pair are
-    pooled (they share a variant_id), and all conditions (NoiseChance, EStimSpecId,
-    SampleLength, ...) are pooled into a single on/off average.
-    """
-    df = data_exp.copy()
-    if 'IsRemovedTrial' in df.columns:
-        df = df[df['IsRemovedTrial'] != True]
-    df = df[df['VariantId'].notna() & df['VariantPctMaxResponse'].notna()].copy()
-    if len(df) == 0:
-        print("No variant tuning data — skipping variant-response-vs-effect plot.")
-        return None
-
-    df.loc[df[metric_field] == "No Data", metric_field] = False
-    df[f'{metric_field}_bool'] = (df[metric_field] == True)
-
-    on_mask = (
-        (df['EStimEnabled'] == True) &
-        (df['GenId'] >= start_gen_id_estim_on) &
-        (df['GenId'] <= max_gen_id_estim_on)
-    )
-    off_mask = (df['EStimEnabled'] == False)
-
-    points = []  # (x, effect, n_on, n_off, variant_id)
-    for variant_id, grp in df.groupby('VariantId'):
-        x = grp['VariantPctMaxResponse'].iloc[0]
-        on = grp[on_mask.loc[grp.index]]
-        off = grp[off_mask.loc[grp.index]]
-        if len(on) == 0 or len(off) == 0:
-            continue
-        pct_on = 100 * on[f'{metric_field}_bool'].mean()
-        pct_off = 100 * off[f'{metric_field}_bool'].mean()
-        points.append((x, pct_on - pct_off, len(on), len(off), int(variant_id)))
-
-    if not points:
-        print("No variants with both estim-on and estim-off trials — skipping plot.")
-        return None
-
-    fig, ax = plt.subplots(figsize=(8, 7))
-    xs = [p[0] for p in points]
-    ys = [p[1] for p in points]
-    ax.scatter(xs, ys, s=80, color='steelblue', edgecolors='black', linewidths=0.8, zorder=5)
-    for x, y, n_on, n_off, variant_id in points:
-        ax.annotate(f"{variant_id}\n(on={n_on}/off={n_off})", (x, y),
-                    fontsize=5, textcoords='offset points', xytext=(5, 4))
-    ax.axhline(0, color='gray', lw=1, ls='--', zorder=1)
-    ax.set_xlabel('Variant response (% of max variant response)')
-    ax.set_ylabel(f'EStim effect: %on - %off ({metric_field})')
-    ax.set_title('EStim effect vs. variant tuning\n(one dot per variant; delta + variant trials pooled)')
-    ax.grid(True, alpha=0.3)
-    fig.tight_layout()
-    return fig
 
 
 # ===========================================================================
