@@ -61,6 +61,8 @@ class DeltaVariantCurationApp:
         # --- control variables ---
         self.channel_var = tk.StringVar(value=str(default_channel))
         self.baseline_var = tk.BooleanVar(value=analysis.use_baseline_correction)
+        self.delta_threshold_var = tk.StringVar(value=str(analysis.threshold))
+        self.variant_threshold_var = tk.StringVar(value=str(analysis.variant_threshold))
         self.sort_var = tk.StringVar(value="ratio")
         self.descending_var = tk.BooleanVar(value=False)
         self.included_first_var = tk.BooleanVar(value=True)
@@ -88,7 +90,17 @@ class DeltaVariantCurationApp:
         tk.Checkbutton(src, text="Baseline correction",
                        variable=self.baseline_var).grid(row=2, column=0, columnspan=2, sticky="w", padx=4)
         tk.Button(src, text="Recompute", bg="lightblue",
-                  command=self.recompute_pairs).grid(row=0, column=2, rowspan=3, padx=6, pady=2, sticky="ns")
+                  command=self.recompute_pairs).grid(row=0, column=3, rowspan=3, padx=6, pady=2, sticky="ns")
+
+        # Thresholds (applied on Recompute).
+        thr = tk.LabelFrame(bar, text="Thresholds", font=("Arial", 10, "bold"))
+        thr.pack(side="left", padx=4, fill="y")
+        tk.Label(thr, text="Delta (ratio <):").grid(row=0, column=0, padx=4, pady=2, sticky="w")
+        tk.Entry(thr, textvariable=self.delta_threshold_var, width=8).grid(row=0, column=1, padx=4, pady=2)
+        tk.Label(thr, text="Variant (frac of max):").grid(row=1, column=0, padx=4, pady=2, sticky="w")
+        tk.Entry(thr, textvariable=self.variant_threshold_var, width=8).grid(row=1, column=1, padx=4, pady=2)
+        tk.Label(thr, text="applied on Recompute", font=("Arial", 7),
+                 fg="gray").grid(row=2, column=0, columnspan=2, sticky="w", padx=4)
 
         # Ordering.
         order = tk.LabelFrame(bar, text="Ordering", font=("Arial", 10, "bold"))
@@ -158,6 +170,14 @@ class DeltaVariantCurationApp:
         channel = self._parse_channel()
         if not channel:
             messagebox.showwarning("Channel required", "Please enter a channel.")
+            return
+
+        try:
+            self.analysis.threshold = float(self.delta_threshold_var.get())
+            self.analysis.variant_threshold = float(self.variant_threshold_var.get())
+        except ValueError:
+            messagebox.showwarning("Invalid threshold",
+                                   "Delta and variant thresholds must be numbers.")
             return
 
         self.analysis.use_baseline_correction = self.baseline_var.get()
