@@ -13,45 +13,47 @@ WHY TWO STEPS
 -------------
 The viewer's atlas (`atlas_rigid_aligned.nii.gz`) was produced by:
 
-  1. @animal_warper: NMT template space --(12-DOF affine + NONLINEAR warp)-->
-     subject native space. This is the `*_in_<subj>.nii.gz` outputs.
+  1. @animal_warper: NMT template space --(affine + NONLINEAR warp)-->
+     subject native space. This made the `*_in_<subj>.nii.gz` outputs.
   2. run_rigid_align: a pure 6-DOF header rewrite (no resampling) re-posing
      those subject-space volumes to line up with the original template.
      The transform is saved as xfm_RAS.txt.
 
 Any NMT-space input must go through BOTH. An affine-only copy would be wrong
-because it skips the nonlinear deformation @animal_warper computed. This
-script:
+because it skips the nonlinear deformation @animal_warper computed.
 
-  * locates @animal_warper's saved template->native nonlinear warp
-    (`*_base2osh_WARP.nii.gz`, the exact warp that made the atlas-in-subject),
-  * 3dNwarpApply's it onto the subject grid (NN for label volumes, wsinc5 for
-    continuous), reproducing the `*_in_<subj>` step, then
-  * reuses xfm_RAS.txt to apply the identical header-only rigid rewrite.
+HOW (the two transform files)
+------------------------------
+@animal_warper saves the template<->subject transform as two files in its
+output dir. We need the TEMPLATE->SUBJECT (inverse) direction:
+
+  affine : <subj>_composite_linear_to_template_inv.1D
+  warp   : <subj>_corrected_shft_WARPINV.nii.gz
+
+3dNwarpApply applies them (warp first, then affine) to put a template-space
+source onto the subject grid — exactly how d99_atlas_in_<subj> was made.
+Then xfm_RAS.txt does the identical header-only rigid rewrite.
 
 Output: `<name>_rigid_aligned.nii.gz`, drop-in alongside the existing aligned
 files.
 
 Usage
 -----
-    1. Set the path constants below: the @animal_warper template->native warp
-       (or its outdir), the subject master grid, run_rigid_align's xfm_RAS.txt,
-       and your follower files + interpolation.
+    1. Set the path constants below.
     2. python -m src.mri.warp_followers_to_aligned
 
-VERIFY (recommended)
---------------------
-Because the no-re-run path depends on globbing @animal_warper's internal warp
-filenames (which vary by AFNI version), sanity-check once: add the ORIGINAL
-D99 atlas (the template-space `D99_atlas_in_NMT_v2.0_asym.nii.gz`) as a
-follower with "NN". The result should match the existing
-`atlas_rigid_aligned.nii.gz` voxel-for-voxel. If it does, the discovered warp
-+ master grid are correct and you can trust the other followers.
+VERIFY (do this once)
+---------------------
+Set FOLLOWERS to the ORIGINAL template-space D99 atlas
+(D99_atlas_in_NMT_v2.0_asym.nii.gz) with "NN" and run. The resulting
+*_rigid_aligned.nii.gz should match the existing atlas_rigid_aligned.nii.gz.
+If it does, the transform files + order are right and everything else
+(segmentation, etc.) is correct too. If it doesn't, swap the order of the two
+-nwarp files (see NWARP_ORDER below).
 
-Prerequisite: AFNI on PATH (3dNwarpApply, 3dNwarpCat).
+Prerequisite: AFNI on PATH (3dNwarpApply).
 """
 
-import glob
 import json
 import os
 import subprocess
@@ -67,18 +69,19 @@ from src.mri.run_rigid_align import _rewrite_affine
 # EDIT THESE PATHS DIRECTLY.
 # ============================================================================
 
-# @animal_warper's saved template->native nonlinear warp — the exact warp that
-# produced the `*_in_<subj>` atlas. It's usually buried in the warper outdir as
-# `*_base2osh_WARP.nii.gz`. Set the file directly if you know it. Otherwise
-# leave this None and set WARPER_OUTDIR below; the script will find (or
-# reconstruct) it from that directory.
-WARP_TEMPLATE_TO_NATIVE = None
+# The two @animal_warper transform files, TEMPLATE->SUBJECT (inverse) direction.
+# Both already exist in your warper output dir. The affine ends in
+# "_inv.1D"; the nonlinear warp ends in "WARPINV.nii.gz".
+AFFINE_TEMPLATE_TO_NATIVE = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/45X_110315_4_1_corrected_composite_linear_to_template_inv.1D"
+WARP_TEMPLATE_TO_NATIVE   = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/45X_110315_4_1_corrected_shft_WARPINV.nii.gz"
 
-# @animal_warper output directory. Only used to auto-locate the warp above when
-# WARP_TEMPLATE_TO_NATIVE is None. Set to None if you set the warp explicitly.
-WARPER_OUTDIR = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native"
+# 3dNwarpApply applies the -nwarp list right-to-left (rightmost first). To map
+# template->subject we want the nonlinear WARPINV applied first, then the
+# inverse affine: "<affine> <warp>". If the VERIFY check below comes out
+# misaligned, flip this to ("warp", "affine").
+NWARP_ORDER = ("affine", "warp")  # or ("warp", "affine")
 
-# Subject native-space anatomy = the master grid. This is the SAME SUBJECT_NII
+# Subject native-space anatomy = the master grid. Same SUBJECT_NII
 # run_rigid_align used, so followers land on the identical grid as the atlas.
 SUBJECT_NII = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/45X_110315_4_1_corrected.nii.gz"
 
@@ -113,56 +116,16 @@ def _require(prog):
     sys.exit(f"ERROR: {prog} not found on PATH or standard AFNI locations.")
 
 
-def _find_template_to_native_warp(outdir):
-    """Locate @animal_warper's catenated template->native nonlinear warp.
-
-    This is the same warp that produced the `*_in_<subj>` atlas. AFNI writes it
-    under an intermediate subdir, so search recursively. Returns the path, or
-    None if not found.
-    """
-    cands = glob.glob(os.path.join(outdir, "**", "*base2osh_WARP.nii*"),
-                      recursive=True)
-    cands = sorted(set(cands), key=len)
-    return cands[0] if cands else None
-
-
-def _build_template_to_native_warp(outdir, work_prefix):
-    """Fallback: reconstruct the template->native warp from the affine +
-    nonlinear pieces, mirroring @animal_warper's own 3dNwarpCat:
-
-        3dNwarpCat -iwarp -warp2 <..._al2std_mat.aff12.1D>
-                          -warp1 <..._WARP.nii.gz>
-                          -prefix <out>
-
-    Returns the path to the newly written warp, or None if pieces are missing.
-    """
-    aff = sorted(glob.glob(os.path.join(outdir, "**", "*al2std_mat.aff12.1D"),
-                           recursive=True), key=len)
-    warp = sorted(glob.glob(os.path.join(outdir, "**", "*_WARP.nii*"),
-                            recursive=True), key=len)
-    # Exclude already-catenated base2osh/osh2base from the incremental warp pick.
-    warp = [w for w in warp if "base2osh" not in os.path.basename(w)
-            and "osh2base" not in os.path.basename(w)]
-    if not aff or not warp:
-        return None
-    out = work_prefix + "_base2osh_WARP.nii.gz"
-    cmd = ["3dNwarpCat", "-overwrite", "-iwarp",
-           "-warp2", aff[0], "-warp1", warp[0], "-prefix", out]
-    print("  Reconstructing template->native warp:")
-    print("    " + " ".join(cmd))
-    if subprocess.run(cmd, check=False).returncode != 0:
-        sys.exit("3dNwarpCat failed reconstructing the warp.")
-    return out
-
-
 def main():
     _require("3dNwarpApply")
-    _require("3dNwarpCat")
 
-    if not os.path.isfile(SUBJECT_NII):
-        sys.exit(f"SUBJECT_NII not found: {SUBJECT_NII}")
-    if not os.path.isfile(XFM_RAS_TXT):
-        sys.exit(f"XFM_RAS_TXT not found: {XFM_RAS_TXT}")
+    for label, p in (("AFFINE_TEMPLATE_TO_NATIVE", AFFINE_TEMPLATE_TO_NATIVE),
+                     ("WARP_TEMPLATE_TO_NATIVE", WARP_TEMPLATE_TO_NATIVE),
+                     ("SUBJECT_NII", SUBJECT_NII),
+                     ("XFM_RAS_TXT", XFM_RAS_TXT)):
+        if not os.path.isfile(p):
+            sys.exit(f"{label} not found: {p}")
+
     M_ras = np.loadtxt(XFM_RAS_TXT)
     if M_ras.shape != (4, 4):
         sys.exit(f"{XFM_RAS_TXT} is not a 4x4 matrix.")
@@ -171,32 +134,13 @@ def main():
     out_dir = OUTPUT_DIR or os.path.dirname(XFM_RAS_TXT)
     os.makedirs(out_dir, exist_ok=True)
 
-    # Resolve the template->native warp: explicit path wins; else find or
-    # reconstruct it from WARPER_OUTDIR.
-    warp = WARP_TEMPLATE_TO_NATIVE
-    if warp is not None:
-        if not os.path.isfile(warp):
-            sys.exit(f"WARP_TEMPLATE_TO_NATIVE not found: {warp}")
-    else:
-        if not WARPER_OUTDIR or not os.path.isdir(WARPER_OUTDIR):
-            sys.exit("Set WARP_TEMPLATE_TO_NATIVE to the *_base2osh_WARP.nii.gz "
-                     "file, or set WARPER_OUTDIR to the @animal_warper output "
-                     "directory so it can be found.")
-        warp = _find_template_to_native_warp(WARPER_OUTDIR)
-        if warp is None:
-            print("  No *_base2osh_WARP found — reconstructing from affine + warp.")
-            warp = _build_template_to_native_warp(
-                WARPER_OUTDIR, os.path.join(out_dir, "_recat"))
-        if warp is None:
-            sys.exit(
-                "ERROR: could not find or reconstruct the template->native warp in\n"
-                f"  {WARPER_OUTDIR}\n"
-                "Expected '*_base2osh_WARP.nii.gz' (or an affine '*al2std_mat.aff12.1D'\n"
-                "plus incremental '*_WARP.nii.gz' to reconstruct from). List that dir\n"
-                "and set WARP_TEMPLATE_TO_NATIVE directly.")
+    pieces = {"affine": AFFINE_TEMPLATE_TO_NATIVE, "warp": WARP_TEMPLATE_TO_NATIVE}
+    if set(NWARP_ORDER) != {"affine", "warp"}:
+        sys.exit('NWARP_ORDER must be ("affine", "warp") or ("warp", "affine").')
+    nwarp = " ".join(pieces[k] for k in NWARP_ORDER)
 
     print("=== RESOLVED ===")
-    print(f"  template->native: {warp}")
+    print(f"  -nwarp          : {nwarp}")
     print(f"  subject master  : {SUBJECT_NII}")
     print(f"  rigid xfm (RAS) : {XFM_RAS_TXT}")
     print(f"  output dir      : {out_dir}")
@@ -215,11 +159,11 @@ def main():
         in_subject = os.path.join(out_dir, f"{stem}_in_subject.nii.gz")
         aligned = os.path.join(out_dir, f"{stem}_rigid_aligned.nii.gz")
 
-        # Step 1: NMT template space -> subject native grid (same warp + master
-        # that produced the atlas-in-subject).
+        # Step 1: NMT template space -> subject native grid (same transforms +
+        # master that produced the atlas-in-subject).
         cmd = ["3dNwarpApply", "-overwrite",
                "-ainterp", interp,
-               "-nwarp", warp,
+               "-nwarp", nwarp,
                "-source", src,
                "-master", SUBJECT_NII,
                "-prefix", in_subject]
@@ -236,7 +180,9 @@ def main():
                         "rigid_aligned": aligned}
 
     summary = {
-        "template_to_native_warp": warp,
+        "affine_template_to_native": AFFINE_TEMPLATE_TO_NATIVE,
+        "warp_template_to_native": WARP_TEMPLATE_TO_NATIVE,
+        "nwarp_order": list(NWARP_ORDER),
         "subject_master": SUBJECT_NII,
         "xfm_RAS_txt": XFM_RAS_TXT,
         "followers": results,
@@ -246,8 +192,9 @@ def main():
 
     print("Done. Load any *_rigid_aligned.nii.gz in mri_viewer alongside")
     print("subject_rigid_aligned.nii.gz / atlas_rigid_aligned.nii.gz.")
-    print("VERIFY: warp the original D99 atlas through this script with 'NN'")
-    print("and confirm it matches atlas_rigid_aligned.nii.gz.")
+    print("VERIFY once: warp the original template-space D99 atlas with 'NN'")
+    print("and confirm it matches atlas_rigid_aligned.nii.gz. If misaligned,")
+    print("flip NWARP_ORDER at the top of this file and re-run.")
 
 
 if __name__ == "__main__":
