@@ -34,8 +34,9 @@ files.
 
 Usage
 -----
-    1. Set the constants below (point at the two summary JSONs the earlier
-       scripts wrote, and list your follower files + interpolation).
+    1. Set the path constants below: the @animal_warper template->native warp
+       (or its outdir), the subject master grid, run_rigid_align's xfm_RAS.txt,
+       and your follower files + interpolation.
     2. python -m src.mri.warp_followers_to_aligned
 
 VERIFY (recommended)
@@ -66,13 +67,23 @@ from src.mri.run_rigid_align import _rewrite_affine
 # EDIT THESE PATHS DIRECTLY.
 # ============================================================================
 
-# Summary JSON written by run_animal_warper (sits next to the warper outdir).
-# Used to locate the warper output directory and its saved warp files.
-WARPER_SUMMARY_JSON = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native.json"
+# @animal_warper's saved template->native nonlinear warp — the exact warp that
+# produced the `*_in_<subj>` atlas. It's usually buried in the warper outdir as
+# `*_base2osh_WARP.nii.gz`. Set the file directly if you know it. Otherwise
+# leave this None and set WARPER_OUTDIR below; the script will find (or
+# reconstruct) it from that directory.
+WARP_TEMPLATE_TO_NATIVE = None
 
-# Summary JSON written by run_rigid_align (inside its OUTPUT_DIR). Used for the
-# subject grid (master) and the saved rigid transform xfm_RAS.txt.
-RIGID_ALIGN_JSON = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/rigid_align.json"
+# @animal_warper output directory. Only used to auto-locate the warp above when
+# WARP_TEMPLATE_TO_NATIVE is None. Set to None if you set the warp explicitly.
+WARPER_OUTDIR = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native"
+
+# Subject native-space anatomy = the master grid. This is the SAME SUBJECT_NII
+# run_rigid_align used, so followers land on the identical grid as the atlas.
+SUBJECT_NII = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/45X_110315_4_1_corrected.nii.gz"
+
+# The 6-DOF rigid transform run_rigid_align saved (in its OUTPUT_DIR).
+XFM_RAS_TXT = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/xfm_RAS.txt"
 
 # Template-space volumes to carry over, each with an interpolation mode:
 #   "NN"     -> nearest-neighbor: label / segmentation / atlas volumes.
@@ -84,7 +95,7 @@ FOLLOWERS = [
 ]
 
 # Where to write the *_rigid_aligned.nii.gz outputs. None = the same dir as
-# RIGID_ALIGN_JSON (alongside the existing aligned files).
+# XFM_RAS_TXT (alongside the existing aligned files).
 OUTPUT_DIR = None
 # ============================================================================
 
@@ -100,13 +111,6 @@ def _require(prog):
             print(f"  Found AFNI in {d}, prepended to PATH.")
             return
     sys.exit(f"ERROR: {prog} not found on PATH or standard AFNI locations.")
-
-
-def _load_json(path, label):
-    if not os.path.isfile(path):
-        sys.exit(f"{label} not found: {path}")
-    with open(path) as f:
-        return json.load(f)
 
 
 def _find_template_to_native_warp(outdir):
@@ -155,44 +159,46 @@ def main():
     _require("3dNwarpApply")
     _require("3dNwarpCat")
 
-    warper = _load_json(WARPER_SUMMARY_JSON, "WARPER_SUMMARY_JSON")
-    rigid = _load_json(RIGID_ALIGN_JSON, "RIGID_ALIGN_JSON")
-
-    outdir = warper["outdir"]
-    if not os.path.isdir(outdir):
-        sys.exit(f"warper outdir does not exist: {outdir}")
-
-    subject_master = rigid["inputs"]["SUBJECT_NII"]
-    if not os.path.isfile(subject_master):
-        sys.exit(f"subject master grid not found: {subject_master}")
-
-    xfm_ras_txt = rigid["xfm_RAS_txt"]
-    M_ras = np.loadtxt(xfm_ras_txt)
+    if not os.path.isfile(SUBJECT_NII):
+        sys.exit(f"SUBJECT_NII not found: {SUBJECT_NII}")
+    if not os.path.isfile(XFM_RAS_TXT):
+        sys.exit(f"XFM_RAS_TXT not found: {XFM_RAS_TXT}")
+    M_ras = np.loadtxt(XFM_RAS_TXT)
     if M_ras.shape != (4, 4):
-        sys.exit(f"{xfm_ras_txt} is not a 4x4 matrix.")
+        sys.exit(f"{XFM_RAS_TXT} is not a 4x4 matrix.")
     M_ras_inv = np.linalg.inv(M_ras)
 
-    out_dir = OUTPUT_DIR or os.path.dirname(xfm_ras_txt)
+    out_dir = OUTPUT_DIR or os.path.dirname(XFM_RAS_TXT)
     os.makedirs(out_dir, exist_ok=True)
 
-    warp = _find_template_to_native_warp(outdir)
-    if warp is None:
-        print("  No *_base2osh_WARP found — reconstructing from affine + warp.")
-        warp = _build_template_to_native_warp(
-            outdir, os.path.join(out_dir, "_recat"))
-    if warp is None:
-        sys.exit(
-            "ERROR: could not find or reconstruct the template->native warp in\n"
-            f"  {outdir}\n"
-            "Expected a '*_base2osh_WARP.nii.gz' (or an affine '*al2std_mat.aff12.1D'\n"
-            "plus incremental '*_WARP.nii.gz' to reconstruct from). List that dir\n"
-            "and point this script at the right files.")
+    # Resolve the template->native warp: explicit path wins; else find or
+    # reconstruct it from WARPER_OUTDIR.
+    warp = WARP_TEMPLATE_TO_NATIVE
+    if warp is not None:
+        if not os.path.isfile(warp):
+            sys.exit(f"WARP_TEMPLATE_TO_NATIVE not found: {warp}")
+    else:
+        if not WARPER_OUTDIR or not os.path.isdir(WARPER_OUTDIR):
+            sys.exit("Set WARP_TEMPLATE_TO_NATIVE to the *_base2osh_WARP.nii.gz "
+                     "file, or set WARPER_OUTDIR to the @animal_warper output "
+                     "directory so it can be found.")
+        warp = _find_template_to_native_warp(WARPER_OUTDIR)
+        if warp is None:
+            print("  No *_base2osh_WARP found — reconstructing from affine + warp.")
+            warp = _build_template_to_native_warp(
+                WARPER_OUTDIR, os.path.join(out_dir, "_recat"))
+        if warp is None:
+            sys.exit(
+                "ERROR: could not find or reconstruct the template->native warp in\n"
+                f"  {WARPER_OUTDIR}\n"
+                "Expected '*_base2osh_WARP.nii.gz' (or an affine '*al2std_mat.aff12.1D'\n"
+                "plus incremental '*_WARP.nii.gz' to reconstruct from). List that dir\n"
+                "and set WARP_TEMPLATE_TO_NATIVE directly.")
 
     print("=== RESOLVED ===")
-    print(f"  warper outdir   : {outdir}")
     print(f"  template->native: {warp}")
-    print(f"  subject master  : {subject_master}")
-    print(f"  rigid xfm (RAS) : {xfm_ras_txt}")
+    print(f"  subject master  : {SUBJECT_NII}")
+    print(f"  rigid xfm (RAS) : {XFM_RAS_TXT}")
     print(f"  output dir      : {out_dir}")
     print()
 
@@ -215,7 +221,7 @@ def main():
                "-ainterp", interp,
                "-nwarp", warp,
                "-source", src,
-               "-master", subject_master,
+               "-master", SUBJECT_NII,
                "-prefix", in_subject]
         print(f"[warp] {os.path.basename(src)}  (ainterp={interp})")
         print("  " + " ".join(cmd))
@@ -230,11 +236,9 @@ def main():
                         "rigid_aligned": aligned}
 
     summary = {
-        "warper_summary_json": WARPER_SUMMARY_JSON,
-        "rigid_align_json": RIGID_ALIGN_JSON,
         "template_to_native_warp": warp,
-        "subject_master": subject_master,
-        "xfm_RAS_txt": xfm_ras_txt,
+        "subject_master": SUBJECT_NII,
+        "xfm_RAS_txt": XFM_RAS_TXT,
         "followers": results,
     }
     with open(os.path.join(out_dir, "warp_followers.json"), "w") as f:
