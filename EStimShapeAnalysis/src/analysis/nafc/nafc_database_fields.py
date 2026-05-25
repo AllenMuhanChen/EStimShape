@@ -657,6 +657,91 @@ class IsDeltaField(CachedDatabaseField):
         # If not found in either column, raise an error
         raise ValueError(f"BaseMStickId {base_mstick_id} not found in IncludedDeltas table")
 
+
+class VariantIdField(BaseMStickIdField):
+    """Resolves a trial's BaseMStickId to the variant_id of its (delta, variant) pair.
+
+    A variant trial's BaseMStickId is itself the variant_id; a delta trial's BaseMStickId
+    is the delta_id, which maps to a variant_id via IncludedDeltas. This makes delta and
+    variant trials of the same pair share a single grouping key.
+
+    IncludedDeltas (with response_variant) is populated in the GA database, so the variant
+    lookups use ga_conn while the inherited BaseMStickId resolution uses the exp connection.
+    """
+    def __init__(self, conn: Connection, ga_conn: Connection):
+        super().__init__(conn)
+        self.ga_conn = ga_conn
+
+    def get_name(self):
+        return "VariantId"
+
+    def _resolve_variant_id(self, base_mstick_id):
+        if base_mstick_id is None:
+            return None
+        # Variant trial: BaseMStickId is already a variant_id.
+        self.ga_conn.execute(
+            "SELECT variant_id FROM IncludedDeltas WHERE variant_id = %s AND included = 1 LIMIT 1;",
+            params=(base_mstick_id,))
+        if self.ga_conn.fetch_one() is not None:
+            return int(base_mstick_id)
+        # Delta trial: map delta_id -> variant_id.
+        self.ga_conn.execute(
+            "SELECT variant_id FROM IncludedDeltas WHERE delta_id = %s AND included = 1 LIMIT 1;",
+            params=(base_mstick_id,))
+        result = self.ga_conn.fetch_one()
+        if result is not None:
+            return int(result)
+        return None
+
+    def get(self, when: When):
+        base_mstick_id = self.get_cached_super(when, BaseMStickIdField)
+        return self._resolve_variant_id(base_mstick_id)
+
+
+class VariantPctMaxResponseField(VariantIdField):
+    """This trial's variant GA response as a percentage of the max variant response.
+
+    Looks up response_variant for the trial's resolved variant_id in IncludedDeltas and
+    divides by the max response_variant across all included variant_ids (x100). The metric
+    is the response relative to the max response of the variant; a ratio-based variant could
+    be added later.
+    """
+    def __init__(self, conn: Connection, ga_conn: Connection):
+        super().__init__(conn, ga_conn)
+        self._response_by_variant = None
+        self._max_response = None
+
+    def get_name(self):
+        return "VariantPctMaxResponse"
+
+    def _ensure_response_map(self):
+        if self._response_by_variant is not None:
+            return
+        self.ga_conn.execute(
+            "SELECT variant_id, response_variant FROM IncludedDeltas "
+            "WHERE included = 1 AND response_variant IS NOT NULL;")
+        response_by_variant = {}
+        for variant_id, response_variant in self.ga_conn.fetch_all():
+            if response_variant is None:
+                continue
+            response_by_variant[int(variant_id)] = float(response_variant)
+        self._response_by_variant = response_by_variant
+        self._max_response = max(response_by_variant.values()) if response_by_variant else None
+
+    def get(self, when: When):
+        base_mstick_id = self.get_cached_super(when, BaseMStickIdField)
+        variant_id = self._resolve_variant_id(base_mstick_id)
+        if variant_id is None:
+            return None
+        self._ensure_response_map()
+        if not self._max_response:
+            return None
+        response_variant = self._response_by_variant.get(int(variant_id))
+        if response_variant is None:
+            return None
+        return 100.0 * response_variant / self._max_response
+
+
 class IsRemovedTrialField(ChoiceSetField):
     """True when the trial's sample is the variant with its tuned-for component deleted.
 
