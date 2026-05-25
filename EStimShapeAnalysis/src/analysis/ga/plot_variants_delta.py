@@ -162,13 +162,29 @@ class PlotVariantDeltas(PlotTopNAnalysis):
 
         return plot_data, 'DB Included Deltas with Paired Variants'
 
-    def _build_plot_data_from_calculations(self, compiled_data, response_col_name):
-        """Build plot data by computing variant/delta pairs and applying threshold logic."""
+    def compute_pairs(self, compiled_data, channel):
+        """Compute the delta-variant pair table for a given channel/baseline setting.
+
+        Returns ``(delta_avg_response, prepared)`` where ``delta_avg_response`` is
+        the per-pair table (or ``None``) and ``prepared`` is the `PreparedResponses`
+        produced by `ResponseSpec` (holds the prepared data with a scalar response
+        column plus thumbnail paths). Used by the interactive curation GUI so it can
+        recompute pairs without triggering any plotting or DB writes.
+        """
+        spec = ResponseSpec(channel, use_baseline_correction=self.use_baseline_correction)
+        prepared = spec.apply(compiled_data, spike_rates_col=self.spike_rates_col)
+        self.use_ga_response = spec.use_ga_response
+        pairs = self._compute_pairs_table(prepared.data, prepared.response_col)
+        return pairs, prepared
+
+    def _compute_pairs_table(self, compiled_data, response_col_name):
+        """Compute the full delta-variant pair table (all pairs, with threshold-based
+        ``Included`` flag) from prepared compiled data. Returns the DataFrame or None."""
         # Compute included variants from data (no DB dependency)
         included_variant_ids, variant_responses = self._compute_included_variants(compiled_data, response_col_name)
         if not included_variant_ids:
             print("No included variants found!")
-            return None, None, None
+            return None
         print(f"Found {len(included_variant_ids)} included variants")
 
         # Only DELTA-type stims are candidates to be the "delta" in a pair,
@@ -176,7 +192,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
         deltas_data = compiled_data[compiled_data['StimType'] == StimType.REGIME_ESTIM_DELTA.value].copy()
         if deltas_data.empty:
             print("No REGIME_ESTIM_DELTA stimuli found!")
-            return None, None, None
+            return None
 
         # Build lookup used both during pair-building and the lineage filter
         stim_info = compiled_data.drop_duplicates('StimSpecId').set_index('StimSpecId')[['StimType', 'ParentId']]
@@ -209,7 +225,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
 
         if not pair_records:
             print("No valid delta-variant pairs found!")
-            return None, None, None
+            return None
 
         paired_delta_ids = {r['StimSpecId'] for r in pair_records}
         deltas_data = deltas_data[deltas_data['StimSpecId'].isin(paired_delta_ids)].copy()
@@ -252,6 +268,14 @@ class PlotVariantDeltas(PlotTopNAnalysis):
         print(f"Valid pairs after lineage filter: {len(delta_avg_response)}")
         print(f"  Included (ratio < {self.threshold}): {delta_avg_response['Included'].sum()}")
         print(f"  Excluded: {(~delta_avg_response['Included']).sum()}")
+
+        return delta_avg_response
+
+    def _build_plot_data_from_calculations(self, compiled_data, response_col_name):
+        """Build plot data by computing variant/delta pairs and applying threshold logic."""
+        delta_avg_response = self._compute_pairs_table(compiled_data, response_col_name)
+        if delta_avg_response is None or delta_avg_response.empty:
+            return None, None, None
 
         # Decide which pairs go into the plot
         if self.plot_mode == PLOT_MODE_PASSING:
@@ -365,8 +389,13 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             print(f"Error reading from IncludedDeltas table: {e}")
             return None
 
-    def _save_deltas_to_db(self, delta_data):
-        """Save delta information to IncludedDeltas table."""
+    def _save_deltas_to_db(self, delta_data, skip_prompt=False):
+        """Save delta information to IncludedDeltas table.
+
+        When ``skip_prompt`` is True the existing-data confirmation prompt is
+        bypassed (the caller is responsible for confirming the overwrite, e.g.
+        the curation GUI shows its own dialog before calling).
+        """
         try:
             conn = Connection(context.ga_database)
 
@@ -391,13 +420,13 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             conn.execute("SELECT COUNT(*) FROM IncludedDeltas")
             existing_count = conn.fetch_one()
 
-            if existing_count > 0:
+            if existing_count > 0 and not skip_prompt:
                 print(f"\nWARNING: IncludedDeltas table already contains {existing_count} entries!")
                 response = input("Do you want to DELETE all existing data and replace it? (yes/no): ").strip().lower()
 
                 if response not in ['yes', 'y']:
                     print("Operation cancelled. No changes made to database.")
-                    return
+                    return False
 
                 print("User confirmed: proceeding with deletion and replacement...")
 
@@ -426,9 +455,13 @@ class PlotVariantDeltas(PlotTopNAnalysis):
             print(f"Saved {len(delta_data)} deltas to IncludedDeltas table")
             print(f"  Included: {delta_data['Included'].sum()}")
             print(f"  Excluded: {(~delta_data['Included']).sum()}")
+            return True
 
         except Exception as e:
             print(f"Warning: Could not save to database: {e}")
+            if skip_prompt:
+                raise
+            return False
 
 
 if __name__ == "__main__":
