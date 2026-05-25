@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from src.mri.volume import reslice_view
 from src.mri.chamber import draw_chamber_overlay, calc_target_angles
-from src.mri.atlas import reslice_atlas, draw_atlas_contours, atlas_label_at_cursor, atlas_label_detail, reslice_template_mri
+from src.mri.atlas import reslice_atlas, draw_atlas_contours, atlas_label_at_cursor, atlas_label_detail, reslice_template_mri, draw_region_fills, reslice_follower, draw_follower_overlay, follower_value_at_cursor
 from src.mri.correction import save_crop_bounds, save_corrections
 
 _TIP_TO_BOTTOM_CH_UM = 600   # μm from probe tip to bottommost channel
@@ -86,7 +86,7 @@ class DisplayMixin:
                 except:
                     pass
 
-            # ---- Atlas contour overlay ----
+            # ---- Atlas contour overlay (+ per-region fills) ----
             if atlas_inv is not None:
                 try:
                     label_2d, a_h, a_v = reslice_atlas(
@@ -95,6 +95,14 @@ class DisplayMixin:
                         self.grid_sizes[vi],
                         self.SLICE_CFG[vi],
                         self.cursor_world)
+                    # Filled highlights for named regions of interest, drawn
+                    # under the contours so the outlines stay visible.
+                    region_idx_colors = self._resolve_region_highlights()
+                    if region_idx_colors:
+                        draw_region_fills(
+                            ax, label_2d, a_h, a_v, region_idx_colors,
+                            display_offset_h=h_off, display_offset_v=v_off,
+                            alpha=self.atlas_region_fill_alpha)
                     draw_atlas_contours(
                         ax, label_2d, a_h, a_v,
                         display_offset_h=h_off,
@@ -104,6 +112,25 @@ class DisplayMixin:
                         alpha=self.atlas_contour_alpha)
                 except Exception:
                     pass  # don't let atlas errors break MRI display
+
+            # ---- Follower overlay (filled colormap) ----
+            if self.follower_loaded and self.follower_show:
+                try:
+                    fol_inv = self._follower_inv_combined()
+                    val_2d, f_h, f_v = reslice_follower(
+                        self.follower_data, fol_inv,
+                        self.view_display_bounds[vi],
+                        self.grid_sizes[vi],
+                        self.SLICE_CFG[vi],
+                        self.cursor_world,
+                        interp_order=(0 if self.follower_is_label else 1))
+                    draw_follower_overlay(
+                        ax, val_2d, f_h, f_v,
+                        display_offset_h=h_off, display_offset_v=v_off,
+                        cmap=self.follower_cmap, alpha=self.follower_alpha,
+                        vmin=self.follower_vmin, vmax=self.follower_vmax)
+                except Exception:
+                    pass
 
             # Crosshair
             ax.axvline(self.cursor_world[h_wax] - h_off, color='lime', lw=0.7, alpha=0.6)
@@ -220,6 +247,15 @@ class DisplayMixin:
                     self.cursor_world, self.atlas_label_names)
                 if region:
                     txt += f"   atlas: {region}"
+            except Exception:
+                pass
+        if self.follower_loaded and self.follower_show:
+            try:
+                fval = follower_value_at_cursor(
+                    self.follower_data, self._follower_inv_combined(),
+                    self.cursor_world, is_label=self.follower_is_label)
+                if fval is not None:
+                    txt += f"   follower={fval}" if self.follower_is_label else f"   follower={fval:.3g}"
             except Exception:
                 pass
         self.cursor_info_var.set(txt)
@@ -445,6 +481,18 @@ class DisplayMixin:
                             hover_world, self.atlas_label_names)
                         if region:
                             status += f"   [{region}]"
+                    except Exception:
+                        pass
+
+                # Follower value at hover position
+                if self.follower_loaded and self.follower_show:
+                    try:
+                        fval = follower_value_at_cursor(
+                            self.follower_data, self._follower_inv_combined(),
+                            hover_world, is_label=self.follower_is_label)
+                        if fval is not None:
+                            fstr = f"{fval}" if self.follower_is_label else f"{fval:.3g}"
+                            status += f"   follower={fstr}"
                     except Exception:
                         pass
 

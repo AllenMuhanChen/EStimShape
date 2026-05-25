@@ -195,6 +195,22 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
         self.atlas_contour_color = 'cyan'
         self.atlas_contour_lw = 0.6
         self.atlas_contour_alpha = 0.7
+        # Per-region color highlights: {region_name: color_str}. Names are
+        # resolved to label indices at draw time against the loaded label table.
+        self.atlas_region_highlights = {}
+        self.atlas_region_fill_alpha = 0.5
+
+        # ---- Follower overlay state (arbitrary NIfTI, e.g. segmentation) ----
+        self.follower_data = None
+        self.follower_sform = None
+        self.follower_loaded = False
+        self.follower_show = False
+        self._follower_nifti_path = None
+        self.follower_is_label = True
+        self.follower_cmap = 'tab10'
+        self.follower_alpha = 0.5
+        self.follower_vmin = None
+        self.follower_vmax = None
 
         # ---- Template MRI state ----
         self.template_data = None       # ndarray (I,J,K) float — template MRI volume
@@ -254,6 +270,7 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
             ("Chamber",     "chamber",     self._build_chamber_panel),
             ("Trajectory",  "trajectory",  self._build_trajectory_panel),
             ("Atlas",       "atlas",       self._build_atlas_panel),
+            ("Follower",    "follower",    self._build_follower_panel),
         ]
         for label, key, builder in panel_defs:
             btn = ttk.Button(self._panel_bar, text=label,
@@ -494,5 +511,10 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
     def _atlas_inv_combined(self):
         """inv(atlas_correction @ atlas_sform): corrected_world → atlas_voxel."""
         return np.linalg.inv(self.atlas_correction @ self.atlas_sform)
+
+    def _follower_inv_combined(self):
+        """corrected_world → follower_voxel. The follower shares the atlas's
+        aligned space, so it rides on the same manual atlas_correction nudge."""
+        return np.linalg.inv(self.atlas_correction @ self.follower_sform)
 
     # ================================================================ Display
