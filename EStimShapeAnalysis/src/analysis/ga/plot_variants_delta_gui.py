@@ -178,18 +178,21 @@ class DeltaVariantCurationApp:
             .set_index("StimSpecId")["ThumbnailPath"].to_dict()
         )
 
-        # Default the inclusion state to whatever is already curated in the DB;
-        # pairs not present in the DB keep their ratio-threshold default.
+        # Default the inclusion state to whatever is already curated in the DB,
+        # matching on the full (delta, variant) pair; pairs not present in the DB
+        # keep their ratio-threshold default.
         db_map = self._read_db_included()
         if db_map:
-            for delta_id, included in db_map.items():
-                mask = pairs["StimSpecId"] == delta_id
+            for (delta_id, variant_id), included in db_map.items():
+                mask = ((pairs["StimSpecId"] == delta_id)
+                        & (pairs["PairedVariantId"] == variant_id))
                 if mask.any():
                     pairs.loc[mask, "Included"] = included
 
         # Manual overrides made during this session win over both.
-        for delta_id, included in self.manual_overrides.items():
-            mask = pairs["StimSpecId"] == delta_id
+        for (delta_id, variant_id), included in self.manual_overrides.items():
+            mask = ((pairs["StimSpecId"] == delta_id)
+                    & (pairs["PairedVariantId"] == variant_id))
             if mask.any():
                 pairs.loc[mask, "Included"] = included
 
@@ -199,14 +202,21 @@ class DeltaVariantCurationApp:
             self.status_var.set(self.status_var.get() + "   (defaults from DB)")
 
     def _read_db_included(self):
-        """Return {delta_id: included} from the IncludedDeltas table, or None."""
+        """Return {(delta_id, variant_id): included} from IncludedDeltas, or None.
+
+        Keyed by the full pair so a delta paired with a different variant in the
+        DB than in the current computation does not inherit that included flag.
+        """
         try:
             db = self.analysis._read_deltas_from_db()
         except Exception:
             return None
         if db is None or db.empty:
             return None
-        return {int(r["StimSpecId"]): bool(r["Included"]) for _, r in db.iterrows()}
+        return {
+            (int(r["StimSpecId"]), int(r["PairedVariantId"])): bool(r["Included"])
+            for _, r in db.iterrows()
+        }
 
     def load_from_db(self):
         """Overwrite current checkbox states with the IncludedDeltas table."""
@@ -218,11 +228,12 @@ class DeltaVariantCurationApp:
             messagebox.showinfo("Load from DB", "No data found in the IncludedDeltas table.")
             return
         n_applied = 0
-        for delta_id, included in db_map.items():
-            mask = self.pairs["StimSpecId"] == delta_id
+        for (delta_id, variant_id), included in db_map.items():
+            mask = self._pair_mask(delta_id, variant_id)
             if mask.any():
                 self.pairs.loc[mask, "Included"] = included
-                self.manual_overrides[delta_id] = included  # make the loaded state sticky
+                # make the loaded state sticky across recomputes
+                self.manual_overrides[(delta_id, variant_id)] = included
                 n_applied += 1
         self.render()
         self.status_var.set(self.status_var.get() + f"   (loaded {n_applied} from DB)")
@@ -359,7 +370,7 @@ class DeltaVariantCurationApp:
             var = tk.BooleanVar(value=bool(pair["Included"]))
             chk = tk.Checkbutton(
                 self.grid_frame, text="include", variable=var, background="white",
-                command=lambda did=delta_id, v=var: self._on_toggle(did, v),
+                command=lambda did=delta_id, vid=variant_id, v=var: self._on_toggle(did, vid, v),
             )
             chk.grid(row=3, column=col, padx=3, pady=2)
 
@@ -367,11 +378,17 @@ class DeltaVariantCurationApp:
         self.canvas.update_idletasks()
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
-    def _on_toggle(self, delta_id, var):
+    def _on_toggle(self, delta_id, variant_id, var):
         value = bool(var.get())
-        self.pairs.loc[self.pairs["StimSpecId"] == delta_id, "Included"] = value
-        self.manual_overrides[delta_id] = value
+        mask = self._pair_mask(delta_id, variant_id)
+        self.pairs.loc[mask, "Included"] = value
+        self.manual_overrides[(delta_id, variant_id)] = value
         self._update_status()
+
+    def _pair_mask(self, delta_id, variant_id):
+        """Row mask matching a single (delta, variant) pair, not just the delta."""
+        return ((self.pairs["StimSpecId"] == delta_id)
+                & (self.pairs["PairedVariantId"] == variant_id))
 
     def _update_status(self):
         n_total = len(self.pairs)
