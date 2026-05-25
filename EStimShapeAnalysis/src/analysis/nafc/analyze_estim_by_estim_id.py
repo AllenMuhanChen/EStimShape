@@ -48,7 +48,10 @@ def main():
 
     isCorrectFieldName = "IsHypothesized"
     global_test_side   = 'two-tailed'
-    n_permutations     = 1000
+    # run_permutation_tests: False skips the (slow) permutation tests; observed effects are
+    # still shown but p-values/significance are reported as n/a.
+    run_permutation_tests = True
+    n_permutations     = 1000 if run_permutation_tests else 0
 
     add_borders       = True
     border_width      = 20
@@ -241,7 +244,7 @@ def main():
 
             stats_text = (
                 f"{row_title.upper()} — PERMUTATION TEST ({global_test_side})\n"
-                f"n_permutations={n_permutations}\n"
+                f"n_permutations={n_permutations if n_permutations > 0 else 'DISABLED'}\n"
                 f"{'=' * 45}\n\n"
                 + delta_stats + "\n" + variant_stats
                 + (("\n" + removed_stats) if removed_stats else "")
@@ -282,7 +285,7 @@ def main():
 
             stats_text = (
                 f"{row_title.upper()} — PERMUTATION TEST ({global_test_side})\n"
-                f"n_permutations={n_permutations}\n"
+                f"n_permutations={n_permutations if n_permutations > 0 else 'DISABLED'}\n"
                 f"{'=' * 45}\n\n"
                 + grp_stats
                 + "\n* p<0.05, ** p<0.01, *** p<0.001"
@@ -404,6 +407,14 @@ def run_permutation_test(data_for_perm, noise_levels, metric_field,
         return sum_diff, level_diffs
 
     observed_sum, observed_level_diffs = calculate_sum_diff(data_for_perm)
+
+    # Permutation tests disabled: report observed effects only, no p-values.
+    if n_permutations <= 0:
+        for noise in list(observed_level_diffs.keys()):
+            pct_on, pct_off, diff, n_on, n_off = observed_level_diffs[noise]
+            observed_level_diffs[noise] = (pct_on, pct_off, diff, n_on, n_off,
+                                           float('nan'), "n/a")
+        return observed_sum, float('nan'), "n/a", observed_level_diffs, np.array([])
 
     permuted_sums = []
     permuted_level_diffs = {noise: [] for noise in noise_levels}
