@@ -369,12 +369,14 @@ class DeltaVariantCurationApp:
 
         ordered = self._ordered_pairs()
         vmin, vmax = self._response_range()
+        variant_max = float(self.pairs["Variant Response"].max())
 
-        # Row labels.
+        # Grid rows: 0 ratio, 1 delta image, 2 delta info, 3 variant image,
+        # 4 variant info, 5 checkbox. Row labels align with the image rows.
         tk.Label(self.grid_frame, text="Delta", font=("Arial", 11, "bold"),
-                 background="white").grid(row=0, column=0, padx=4, sticky="e")
-        tk.Label(self.grid_frame, text="Variant", font=("Arial", 11, "bold"),
                  background="white").grid(row=1, column=0, padx=4, sticky="e")
+        tk.Label(self.grid_frame, text="Variant", font=("Arial", 11, "bold"),
+                 background="white").grid(row=3, column=0, padx=4, sticky="e")
 
         for pos, (_, pair) in enumerate(ordered.iterrows()):
             col = pos + 1
@@ -383,27 +385,32 @@ class DeltaVariantCurationApp:
             d_resp = pair["Delta Response"]
             v_resp = pair["Variant Response"]
             ratio = pair["Ratio"]
+            pct_of_max = (100.0 * v_resp / variant_max) if variant_max else 0.0
 
             delta_photo = self._load_thumb(delta_id, d_resp, vmin, vmax)
             variant_photo = self._load_thumb(variant_id, v_resp, vmin, vmax)
 
-            self._make_image_cell(self.grid_frame, delta_photo, f"delta\n{delta_id}").grid(
-                row=0, column=col, padx=3, pady=2)
-            self._make_image_cell(self.grid_frame, variant_photo, f"variant\n{variant_id}").grid(
-                row=1, column=col, padx=3, pady=2)
+            # Ratio on top of the column.
+            tk.Label(self.grid_frame, text=f"ratio {ratio:.2f}", font=("Arial", 9, "bold"),
+                     background="white").grid(row=0, column=col, padx=3, pady=(2, 0))
 
-            info = (f"ratio {ratio:.2f}\n"
-                    f"Δ {d_resp:.1f}  V {v_resp:.1f}\n"
-                    f"d{delta_id}\nv{variant_id}")
-            tk.Label(self.grid_frame, text=info, font=("Arial", 8),
+            self._make_image_cell(self.grid_frame, delta_photo, f"delta\n{delta_id}").grid(
+                row=1, column=col, padx=3, pady=2)
+            tk.Label(self.grid_frame, text=f"Δ {d_resp:.1f}\nd{delta_id}", font=("Arial", 8),
                      background="white", justify="center").grid(row=2, column=col, padx=3)
+
+            self._make_image_cell(self.grid_frame, variant_photo, f"variant\n{variant_id}").grid(
+                row=3, column=col, padx=3, pady=2)
+            tk.Label(self.grid_frame, text=f"V {v_resp:.1f} ({pct_of_max:.0f}% max)\nv{variant_id}",
+                     font=("Arial", 8), background="white", justify="center").grid(
+                row=4, column=col, padx=3)
 
             var = tk.BooleanVar(value=bool(pair["Included"]))
             chk = tk.Checkbutton(
                 self.grid_frame, text="include", variable=var, background="white",
                 command=lambda did=delta_id, vid=variant_id, v=var: self._on_toggle(did, vid, v),
             )
-            chk.grid(row=3, column=col, padx=3, pady=2)
+            chk.grid(row=5, column=col, padx=3, pady=2)
 
         self._update_status()
         self.canvas.update_idletasks()
