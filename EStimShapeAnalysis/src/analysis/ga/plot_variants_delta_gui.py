@@ -108,6 +108,8 @@ class DeltaVariantCurationApp:
         # Actions.
         actions = tk.LabelFrame(bar, text="Actions", font=("Arial", 10, "bold"))
         actions.pack(side="left", padx=4, fill="y")
+        tk.Button(actions, text="Load from DB",
+                  command=self.load_from_db).pack(side="top", padx=4, pady=2, fill="x")
         tk.Button(actions, text="Reset to threshold",
                   command=self.reset_to_threshold).pack(side="top", padx=4, pady=2, fill="x")
         tk.Button(actions, text="Export to DB", bg="lightgreen",
@@ -176,7 +178,16 @@ class DeltaVariantCurationApp:
             .set_index("StimSpecId")["ThumbnailPath"].to_dict()
         )
 
-        # Re-apply manual overrides on top of the threshold-derived defaults.
+        # Default the inclusion state to whatever is already curated in the DB;
+        # pairs not present in the DB keep their ratio-threshold default.
+        db_map = self._read_db_included()
+        if db_map:
+            for delta_id, included in db_map.items():
+                mask = pairs["StimSpecId"] == delta_id
+                if mask.any():
+                    pairs.loc[mask, "Included"] = included
+
+        # Manual overrides made during this session win over both.
         for delta_id, included in self.manual_overrides.items():
             mask = pairs["StimSpecId"] == delta_id
             if mask.any():
@@ -184,6 +195,37 @@ class DeltaVariantCurationApp:
 
         self.pairs = pairs.reset_index(drop=True)
         self.render()
+        if db_map:
+            self.status_var.set(self.status_var.get() + "   (defaults from DB)")
+
+    def _read_db_included(self):
+        """Return {delta_id: included} from the IncludedDeltas table, or None."""
+        try:
+            db = self.analysis._read_deltas_from_db()
+        except Exception:
+            return None
+        if db is None or db.empty:
+            return None
+        return {int(r["StimSpecId"]): bool(r["Included"]) for _, r in db.iterrows()}
+
+    def load_from_db(self):
+        """Overwrite current checkbox states with the IncludedDeltas table."""
+        if self.pairs is None:
+            messagebox.showwarning("No pairs", "Compute pairs first.")
+            return
+        db_map = self._read_db_included()
+        if not db_map:
+            messagebox.showinfo("Load from DB", "No data found in the IncludedDeltas table.")
+            return
+        n_applied = 0
+        for delta_id, included in db_map.items():
+            mask = self.pairs["StimSpecId"] == delta_id
+            if mask.any():
+                self.pairs.loc[mask, "Included"] = included
+                self.manual_overrides[delta_id] = included  # make the loaded state sticky
+                n_applied += 1
+        self.render()
+        self.status_var.set(self.status_var.get() + f"   (loaded {n_applied} from DB)")
 
     def reset_to_threshold(self):
         """Discard manual overrides and restore the ratio-threshold defaults."""
