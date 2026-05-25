@@ -59,6 +59,11 @@ def main():
             if template_mri and os.path.exists(template_mri):
                 app._load_template_from_path(template_mri)
 
+        # Auto-load follower overlay if saved in config
+        follower_nifti = cfg.get("follower_nifti_path")
+        if follower_nifti and os.path.exists(follower_nifti):
+            app._load_follower_from_path(follower_nifti)
+
     root.mainloop()
 
 

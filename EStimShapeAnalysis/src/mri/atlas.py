@@ -200,6 +200,136 @@ def draw_atlas_contours(ax, label_2d, h_coords, v_coords,
                alpha=alpha)
 
 
+def draw_region_fills(ax, label_2d, h_coords, v_coords, highlights,
+                      display_offset_h=0.0, display_offset_v=0.0, alpha=0.5):
+    """
+    Fill specific atlas regions with solid colors.
+
+    Parameters
+    ----------
+    label_2d : ndarray (n_v, n_h), int — resliced atlas label image
+    highlights : dict {int label_index: color_str}
+    alpha : float — fill transparency
+    """
+    h_disp = h_coords - display_offset_h
+    v_disp = v_coords - display_offset_v
+    for idx, color in highlights.items():
+        mask = (label_2d == idx)
+        if not mask.any():
+            continue
+        # contourf needs at least one full cell of the region; guard tiny masks
+        try:
+            ax.contourf(h_disp, v_disp, mask.astype(float),
+                        levels=[0.5, 1.5], colors=[color], alpha=alpha)
+        except Exception:
+            pass
+
+
+# ====================================================================
+# Follower overlay (arbitrary NIfTI shown as a filled colormap, no labels)
+# ====================================================================
+
+def load_follower(nifti_path):
+    """
+    Load an arbitrary overlay NIfTI (e.g. a tissue segmentation) that shares
+    the atlas's aligned world space.
+
+    Returns
+    -------
+    data : ndarray (I, J, K), float32
+    sform : ndarray (4, 4)
+    is_label : bool — True if the volume looks like discrete integer labels
+    """
+    img = nib.load(nifti_path)
+    sform = img.affine.copy()
+
+    hdr = img.header
+    slope, inter = hdr.get_slope_inter()
+    if slope is None or (isinstance(slope, float) and np.isnan(slope)):
+        hdr.set_slope_inter(1, 0)
+
+    data = np.asarray(img.dataobj, dtype=np.float32)
+    if data.ndim == 4 and data.shape[3] == 1:
+        data = data[:, :, :, 0]
+
+    # Heuristic: integer-valued with few distinct values => label volume.
+    finite = data[np.isfinite(data)]
+    is_label = False
+    if finite.size:
+        rounded = np.round(finite)
+        if np.allclose(finite, rounded, atol=1e-4):
+            n_distinct = len(np.unique(rounded))
+            is_label = n_distinct <= 256
+    return data, sform, is_label
+
+
+def reslice_follower(data, inv_combined, view_display_bounds, grid_size,
+                     slice_cfg, cursor_world, interp_order=0):
+    """
+    Sample a 2-D slice from a follower volume. interp_order=0 (NN) for label
+    volumes, higher for continuous. Returns (val_2d float, h_coords, v_coords).
+    """
+    fix_wax, h_wax, v_wax = slice_cfg
+    n_h, n_v = grid_size
+    h_lo, h_hi, v_lo, v_hi = view_display_bounds
+
+    fix_val = cursor_world[fix_wax]
+    h_coords = np.linspace(h_lo, h_hi, n_h)
+    v_coords = np.linspace(v_hi, v_lo, n_v)
+    hh, vv = np.meshgrid(h_coords, v_coords)
+
+    world_pts = np.ones((n_v, n_h, 4))
+    world_pts[:, :, fix_wax] = fix_val
+    world_pts[:, :, h_wax] = hh
+    world_pts[:, :, v_wax] = vv
+
+    flat = world_pts.reshape(-1, 4)
+    vox_flat = (inv_combined @ flat.T).T[:, :3]
+    coords = [vox_flat[:, ax] for ax in range(3)]
+    sampled = map_coordinates(data, coords, order=interp_order,
+                              mode='constant', cval=0)
+    return sampled.reshape(n_v, n_h), h_coords, v_coords
+
+
+def draw_follower_overlay(ax, val_2d, h_coords, v_coords,
+                          display_offset_h=0.0, display_offset_v=0.0,
+                          cmap='tab10', alpha=0.5, vmin=None, vmax=None,
+                          mask_zero=True):
+    """
+    Draw a follower volume as a translucent filled colormap over the MRI.
+
+    Background (value 0) is rendered transparent when mask_zero is True.
+    """
+    arr = np.array(val_2d, dtype=float)
+    if mask_zero:
+        arr = np.ma.masked_where(arr == 0, arr)
+    if not np.ma.is_masked(arr) and not np.any(np.isfinite(arr)):
+        return
+    h_disp = h_coords - display_offset_h
+    v_disp = v_coords - display_offset_v
+    extent = [h_disp[0], h_disp[-1], v_disp[-1], v_disp[0]]
+    ax.imshow(arr, cmap=cmap, alpha=alpha, aspect='equal', origin='upper',
+              interpolation='nearest', extent=extent, vmin=vmin, vmax=vmax)
+
+
+def follower_value_at_cursor(data, inv_combined, cursor_world, is_label=True):
+    """
+    Return the follower volume's value at a world point, or None if outside.
+    For label volumes the value is returned as an int.
+    """
+    pt = np.array([cursor_world[0], cursor_world[1], cursor_world[2], 1.0])
+    vox = (inv_combined @ pt)[:3]
+    vox_idx = tuple(np.round(vox).astype(int))
+    shape = data.shape[:3]
+    for v, s in zip(vox_idx, shape):
+        if v < 0 or v >= s:
+            return None
+    val = data[vox_idx[0], vox_idx[1], vox_idx[2]]
+    if is_label:
+        return int(round(float(val)))
+    return float(val)
+
+
 def atlas_label_at_cursor(atlas_data, inv_atlas_combined, cursor_world, label_names):
     """
     Look up the atlas region label at a world-space point.
