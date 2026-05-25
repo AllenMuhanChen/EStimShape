@@ -257,7 +257,7 @@ class DeltaVariantCurationApp:
             else:
                 norm = 0.5
             border_color = (int(255 * norm), 0, 0)  # black -> red intensity
-            img = ImageOps.expand(base, border=6, fill=border_color)
+            img = ImageOps.expand(base, border=20, fill=border_color)
             img = img.resize((self.thumb_size, self.thumb_size), Image.LANCZOS)
             photo = ImageTk.PhotoImage(img)
             self._photo_refs.append(photo)
