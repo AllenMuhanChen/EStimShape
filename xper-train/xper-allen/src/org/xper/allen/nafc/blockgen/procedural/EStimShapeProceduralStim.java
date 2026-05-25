@@ -324,7 +324,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         }
     }
 
-    private boolean isAmbiguousTrial() {
+    protected boolean isAmbiguousTrial() {
         return parameters.noiseChance == 1.0;
     }
 
