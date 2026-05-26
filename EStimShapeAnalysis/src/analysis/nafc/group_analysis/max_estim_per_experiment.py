@@ -108,21 +108,122 @@ def _fmt_p(p):
     return f"p={p:.2f}"
 
 
-def compute_population_stats(rows):
+# ---------------------------------------------------------------------------
+# Population weighting strategies
+# ---------------------------------------------------------------------------
+#
+# The cross-session combination (permutation mean + Stouffer's) is identical
+# regardless of weighting — only the per-session weights change. Each strategy
+# supplies those weights, letting the caller switch between the original
+# equal-per-session test and trial-weighted variants without touching the
+# statistics. ``best_cond_trials(row)`` = n_on + n_off of the session's selected
+# best condition, i.e. the precision of the effect actually being tested.
+
+from abc import ABC, abstractmethod
+
+
+def _best_cond_trials(row):
+    return float(row['n_on'] + row['n_off'])
+
+
+class PopulationWeighting(ABC):
+    """Per-session weights for combining max-stat results across sessions."""
+
+    label: str = "unweighted"
+
+    @abstractmethod
+    def raw_weights(self, rows) -> np.ndarray:
+        """Unnormalized per-session weights (one per row)."""
+
+    def normalized_weights(self, rows) -> np.ndarray:
+        """Weights summing to 1; used for the weighted-mean combinations."""
+        w = self.raw_weights(rows).astype(float)
+        total = w.sum()
+        if total <= 0:
+            return np.ones(len(rows)) / len(rows)
+        return w / total
+
+
+class UnweightedPopulation(PopulationWeighting):
+    """Original behavior: every session counts equally."""
+
+    label = "unweighted"
+
+    def raw_weights(self, rows) -> np.ndarray:
+        return np.ones(len(rows))
+
+
+class TrialWeighting(PopulationWeighting):
+    """Weight each session by its best condition's trial count (n_on + n_off).
+
+    Inverse-variance-style weighting; gives the most power to large sessions
+    but lets a single very large session dominate.
+    """
+
+    label = "best-cond trials"
+
+    def raw_weights(self, rows) -> np.ndarray:
+        return np.array([_best_cond_trials(d) for d in rows], dtype=float)
+
+
+class SqrtTrialWeighting(PopulationWeighting):
+    """Weight each session by sqrt(best-condition trials).
+
+    The classic Stouffer weight: large sessions get more say, but the influence
+    of any one session grows only with sqrt(n), so no single session dominates.
+    Recommended default when session sizes are skewed.
+    """
+
+    label = "sqrt(best-cond trials)"
+
+    def raw_weights(self, rows) -> np.ndarray:
+        return np.sqrt([_best_cond_trials(d) for d in rows])
+
+
+# Registry so callers can select a strategy by short name.
+WEIGHTINGS = {
+    'unweighted': UnweightedPopulation,
+    'trials':     TrialWeighting,
+    'sqrt':       SqrtTrialWeighting,
+}
+
+
+def make_weighting(weighting):
+    """Coerce ``weighting`` (None / str key / instance) into a PopulationWeighting."""
+    if weighting is None:
+        return UnweightedPopulation()
+    if isinstance(weighting, PopulationWeighting):
+        return weighting
+    if isinstance(weighting, str):
+        try:
+            return WEIGHTINGS[weighting]()
+        except KeyError:
+            raise ValueError(
+                f"unknown weighting {weighting!r}; choose from {sorted(WEIGHTINGS)}")
+    raise TypeError(f"weighting must be None, str, or PopulationWeighting, got {type(weighting)}")
+
+
+def compute_population_stats(rows, weighting=None):
     """
     Two convergent population tests on per-session max-stat results.
 
-    Permutation test on mean max-stat:
-        A_obs  = mean_i(observed_signed_i)  across sessions
-        A*[k]  = mean_i(max_stat_null_i[k]) for each permutation iteration k
+    Permutation test on (weighted) mean max-stat:
+        A_obs  = Σ wᵢ·observed_signed_i      (weights normalized to sum to 1)
+        A*[k]  = Σ wᵢ·max_stat_null_i[k]     for each permutation iteration k
         p_perm = fraction of k where A*[k] >= A_obs
 
-    Stouffer's combined p-value:
-        Converts each session's one-tailed p_i into a standard normal z_i = Phi^{-1}(1 - p_i),
-        sums them, and divides by sqrt(n).  The resulting p gives the probability of observing
-        this level of consistent evidence across sessions if H0 were true in all of them.
-        Unlike the permutation test (which tests the mean effect size), Stouffer's is sensitive
-        to sessions with very small p-values even if their effect size is modest.
+    Stouffer's combined p-value (weighted form):
+        Converts each session's one-tailed p_i into a standard normal
+        z_i = Phi^{-1}(1 - p_i), then combines as Z = Σ Wᵢzᵢ / sqrt(Σ Wᵢ²).
+        With equal weights this reduces to Σz_i / sqrt(n), the unweighted test.
+        Unlike the permutation test (which tests the mean effect size), Stouffer's
+        is sensitive to sessions with very small p-values even if their effect
+        size is modest.
+
+    ``weighting`` selects the per-session weighting strategy (None / str key /
+    PopulationWeighting instance). Default ``None`` reproduces the original
+    equal-per-session test exactly. The permutation null is still regenerated by
+    the same permutations, so the weighted p-value remains valid.
 
     n_sig: number of sessions individually significant at p<0.05 (descriptive only).
 
@@ -136,17 +237,22 @@ def compute_population_stats(rows):
     if n == 0:
         return None
 
+    weighting = make_weighting(weighting)
+
     observed = np.array([d['observed_signed'] for d in rows])
-    A_obs    = float(np.mean(observed))
+
+    w_norm = weighting.normalized_weights(rows)                          # sums to 1
+    A_obs  = float(np.dot(w_norm, observed))
 
     null_matrix = np.stack([d['max_stat_null'] for d in rows], axis=0)  # (n_sessions, n_perms)
-    pop_null    = null_matrix.mean(axis=0)                               # (n_perms,)
+    pop_null    = (null_matrix * w_norm[:, None]).sum(axis=0)            # (n_perms,)
     p_perm      = float(np.mean(pop_null >= A_obs))
     null_95     = float(np.percentile(pop_null, 95))
 
     p_values   = np.clip([d['p_value'] for d in rows], 1e-6, 1 - 1e-6)
     z_scores   = sp_stats.norm.ppf(1 - np.array(p_values))
-    stouffer_z = float(np.sum(z_scores) / np.sqrt(n))
+    w_raw      = weighting.raw_weights(rows).astype(float)
+    stouffer_z = float(np.sum(w_raw * z_scores) / np.sqrt(np.sum(w_raw ** 2)))
     stouffer_p = float(1 - sp_stats.norm.cdf(stouffer_z))
 
     n_sig = int(np.sum(np.array([d['p_value'] for d in rows]) < 0.05))
@@ -159,9 +265,10 @@ def compute_population_stats(rows):
         'stouffer_z': stouffer_z,
         'stouffer_p': stouffer_p,
         'n_sig':      n_sig,
+        'weighting':  weighting.label,
     }
 
-    print(f"\nPopulation stats (n={n} sessions):")
+    print(f"\nPopulation stats (n={n} sessions, weighting={weighting.label}):")
     print(f"  Observed mean best effect:  {A_obs:+.2f}%")
     print(f"  Null 95th percentile:       {null_95:+.2f}%")
     print(f"  Permutation test:           {_fmt_p(p_perm)}")
@@ -179,15 +286,24 @@ def _draw_stats_panel(ax_text, pop, rows):
 
     sig_color = "darkred" if pop['p_perm'] < 0.05 else "#444444"
 
+    weighted = pop.get('weighting', UnweightedPopulation.label) != UnweightedPopulation.label
+    if weighted:
+        null_desc = ["Null = trial-weighted mean of per-",
+                     "session max-stat distributions."]
+    else:
+        null_desc = ["Null = mean of per-session max-stat",
+                     "distributions, averaged across sessions."]
+
     lines = [
         ("Population Statistics", 1.00, 11, "bold", sig_color),
-        (f"n = {pop['n']} sessions", 0.92, 9, "normal", "black"),
+        (f"n = {pop['n']} sessions  ·  weighting: {pop.get('weighting', 'unweighted')}",
+         0.92, 9, "normal", "black"),
         ("", 0.86, 9, "normal", "black"),
 
         ("Permutation test", 0.80, 9, "bold", "black"),
         ("H₀: stimulation has no effect on choice.", 0.73, 8, "normal", "#444444"),
-        ("Null = mean of per-session max-stat", 0.67, 8, "normal", "#444444"),
-        ("distributions, averaged across sessions.", 0.61, 8, "normal", "#444444"),
+        (null_desc[0], 0.67, 8, "normal", "#444444"),
+        (null_desc[1], 0.61, 8, "normal", "#444444"),
         (f"  Observed mean best effect: {pop['A_obs']:+.2f}%", 0.54, 9, "normal", sig_color),
         (f"  Null 95th percentile:      {pop['null_95']:+.2f}%", 0.47, 9, "normal", "#444444"),
         (f"  {_fmt_p(pop['p_perm'])}", 0.40, 10, "bold", sig_color),
@@ -222,7 +338,8 @@ def _draw_stats_panel(ax_text, pop, rows):
 def plot_max_stat_per_experiment(session_ids=None, start_session_id=None,
                                  algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                                  save_path=None, show_n=True,
-                                 x_spacing=1.0, width_per_exp=1.5):
+                                 x_spacing=1.0, width_per_exp=1.5,
+                                 weighting=None):
     """
     start_session_id : if given, only include sessions whose session_id >= this value
                        (lexicographic comparison works because session_id is YYMMDD_N).
@@ -230,6 +347,10 @@ def plot_max_stat_per_experiment(session_ids=None, start_session_id=None,
     metric           : which EStimEffects metric row to plot (e.g. 'pct_hypothesized'
                        or 'pct_hyp_vs_delta'). Must match a metric previously stored
                        by run_permutation_tests for the same algorithm_label.
+    weighting        : per-session weighting for the population tests. None (default)
+                       reproduces the original equal-per-session test; pass a key from
+                       WEIGHTINGS ('trials', 'sqrt') or a PopulationWeighting instance
+                       to weight larger sessions more.
     """
     create_permutation_test_table()  # ensures algorithm_label column exists
     if session_ids is None:
@@ -264,7 +385,7 @@ def plot_max_stat_per_experiment(session_ids=None, start_session_id=None,
         print("No data to plot.")
         return None
 
-    pop = compute_population_stats(rows)
+    pop = compute_population_stats(rows, weighting=weighting)
 
     n_exp        = len(rows)
     plot_width   = width_per_exp * n_exp * x_spacing
@@ -355,6 +476,10 @@ def main():
         show_n=True,
         x_spacing=0.5,
         width_per_exp=1.0,
+        # weighting=None    -> original equal-per-session test (default)
+        # weighting='sqrt'  -> weight sessions by sqrt(best-condition trials) [recommended]
+        # weighting='trials'-> weight sessions by best-condition trial count
+        weighting=None,
     )
 
 
