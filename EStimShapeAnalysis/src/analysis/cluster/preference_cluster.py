@@ -6,6 +6,7 @@ from src.analysis.channel_data_loaders import (
     ChannelResponseVectorLoader,
     ClusterChannelLoader,
     IsochromaticPreferenceLoader,
+    PreferredFrequencyLoader,
     SolidPreferenceLoader,
 )
 from src.analysis.channel_metric_plot import (
@@ -186,6 +187,9 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
 
     solid_metric = SolidPreferenceLoader(session_id, conn).as_metric(title='Solid Preference')
 
+    freq_metric = PreferredFrequencyLoader(session_id, conn).as_normalized_metric(
+        frequencies, title='Preferred\nFrequency')
+
     if not iso_metrics and solid_metric.compute() == {}:
         print(f"No data found for session {session_id}")
         return
@@ -206,31 +210,41 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
     n_corr_cols = len(corr_metrics)
 
     # Create subplots - adjust based on number of correlation columns
-    # Layout: [isochromatic (4 cols), solid (1 col), correlation cols (n_corr_cols)]
+    # Layout: [preferred freq (1 col), isochromatic (4 cols), solid (1 col),
+    #          correlation cols (n_corr_cols)]
     if n_corr_cols > 0:
-        width_ratios = [4, 1] + [1] * n_corr_cols
-        n_cols = 2 + n_corr_cols
-        fig, axes = plt.subplots(1, n_cols, figsize=(14 + 2 * n_corr_cols, 12),
+        width_ratios = [1, 4, 1] + [1] * n_corr_cols
+        n_cols = 3 + n_corr_cols
+        fig, axes = plt.subplots(1, n_cols, figsize=(16 + 2 * n_corr_cols, 12),
                                  sharey=True, gridspec_kw={'width_ratios': width_ratios, 'wspace': 0.15})
-        ax_iso = axes[0]
-        ax_solid = axes[1]
-        ax_corr_list = axes[2:]
+        ax_freq = axes[0]
+        ax_iso = axes[1]
+        ax_solid = axes[2]
+        ax_corr_list = axes[3:]
     else:
-        fig, (ax_iso, ax_solid) = plt.subplots(1, 2, figsize=(14, 12),
-                                               sharey=True, gridspec_kw={'width_ratios': [4, 1], 'wspace': 0.15})
+        fig, (ax_freq, ax_iso, ax_solid) = plt.subplots(1, 3, figsize=(15, 12),
+                                               sharey=True, gridspec_kw={'width_ratios': [1, 4, 1], 'wspace': 0.15})
         ax_corr_list = []
 
     # Set up colormap (diverging around 0)
     cmap, norm = default_cmap_norm()
 
-    # Plot isochromatic preferences - one metric per frequency, all on ax_iso
+    # Plot preferred frequency as the leftmost column (owns the y-tick labels)
     scatter = None
+    _, ref = render_metric(
+        ax_freq, freq_metric, channel_strings, cluster_channels,
+        cmap=cmap, norm=norm,
+        show_yticks=True,
+    )
+    scatter = ref or scatter
+
+    # Plot isochromatic preferences - one metric per frequency, all on ax_iso
     for freq_idx, metric in enumerate(iso_metrics):
         _, ref = render_metric(
             ax_iso, metric, channel_strings, cluster_channels,
             cmap=cmap, norm=norm,
             x_position=freq_idx,
-            show_yticks=(freq_idx == 0),
+            show_yticks=False,
             format_axis=False, set_title=False,
         )
         scatter = ref or scatter

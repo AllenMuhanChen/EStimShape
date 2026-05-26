@@ -155,6 +155,48 @@ class IsochromaticPreferenceLoader:
         return [LookupMetric(data[freq], title=f'{freq} Hz') for freq in self.frequencies]
 
 
+class PreferredFrequencyLoader(ChannelValueLoader):
+    """Load preferred frequency per channel from ``PreferredFrequencies``.
+
+    ``load()`` returns raw ``{channel: preferred_frequency}``.  Use
+    ``as_normalized_metric(frequencies)`` to get a ``LookupMetric`` whose
+    values are linearly mapped so the highest tested frequency → +1 and the
+    lowest → -1 (centred at 0)."""
+
+    def __init__(self, session_id: str, conn: Connection):
+        self._session_id = session_id
+        self._conn = conn
+
+    def load(self) -> Dict[str, float]:
+        self._conn.execute(
+            """SELECT unit_name, preferred_frequency
+               FROM PreferredFrequencies
+               WHERE session_id = %s AND unit_name NOT LIKE '%%Unit%%'
+               ORDER BY unit_name""",
+            (self._session_id,),
+        )
+        return {row[0]: row[1] for row in self._conn.fetch_all()}
+
+    def as_normalized_metric(self, frequencies: Optional[List[float]] = None,
+                             **kwargs) -> LookupMetric:
+        """Map preferred frequencies to [-1, 1] (highest → +1, lowest → -1).
+
+        ``frequencies`` defines the reference range; if not supplied the range
+        is taken from the loaded preferred-frequency values themselves."""
+        data = self.load()
+        if frequencies:
+            lo, hi = min(frequencies), max(frequencies)
+        else:
+            vals = list(data.values())
+            lo, hi = (min(vals), max(vals)) if vals else (0.0, 1.0)
+        span = hi - lo
+        normalized = {
+            ch: (2.0 * (freq - lo) / span - 1.0) if span > 0 else 0.0
+            for ch, freq in data.items()
+        }
+        return LookupMetric(normalized, **kwargs)
+
+
 class SolidPreferenceLoader(ChannelValueLoader):
     """Load solid preference indices from ``SolidPreferenceIndices``."""
 
