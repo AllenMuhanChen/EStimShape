@@ -80,34 +80,60 @@ def _load_qualifying_conditions(session_id, algorithm_label='none', metric=METRI
 
 
 def _build_max_stat_for_session(session_id, algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
-                                min_trials=DEFAULT_MIN_TRIALS):
+                                min_trials=DEFAULT_MIN_TRIALS, studentize=False):
     """
     Returns dict with:
-        observed_signed : signed effect of the best positive condition
+        observed_signed : signed statistic of the best positive condition
         max_stat_null   : array (n_perms,) — element-wise max across conditions per iteration
         p_value         : fraction of null_max >= observed_signed
         best_cond_dict  : condition filter dict for the best condition
     Returns None if no qualifying conditions (n>=min_trials each group).
+
+    ``studentize``: if True, each condition's statistic is standardized by its own
+    permutation null (T_c = (effect_c - mean(null_c)) / std(null_c)) before taking
+    the max across conditions. This puts conditions with very different trial counts
+    on a common scale so the noisiest (small-n, wide-null) conditions don't dominate
+    the max. Observed/null are then in z units instead of percentage points.
     """
     entries = _load_qualifying_conditions(session_id, algorithm_label, metric, min_trials=min_trials)
     if not entries:
         return None
 
-    # Best = largest positive effect (directional: stim should increase choice)
-    best = max(entries, key=lambda e: e['obs_effect'])
+    # Build (cond_dict, observed_stat, null_array) per condition. In studentized
+    # mode, standardize each by its own null; drop degenerate (zero-spread) nulls.
+    obs_list, null_list, cond_list = [], [], []
+    for e in entries:
+        null = e['null']
+        if studentize:
+            mu = float(np.mean(null))
+            sd = float(np.std(null, ddof=1))
+            if not np.isfinite(sd) or sd <= 0:
+                continue
+            obs_list.append((e['obs_effect'] - mu) / sd)
+            null_list.append((null - mu) / sd)
+        else:
+            obs_list.append(e['obs_effect'])
+            null_list.append(null)
+        cond_list.append(e['cond_dict'])
+
+    if not obs_list:
+        return None
+
+    # Best = largest positive (studentized) effect (directional: stim should increase choice)
+    best_idx = int(np.argmax(obs_list))
 
     # Element-wise max across all conditions for each permutation iteration (signed, no abs)
-    null_matrix   = np.stack([e['null'] for e in entries], axis=0)  # (n_conds, n_perms)
-    max_stat_null = null_matrix.max(axis=0)                          # (n_perms,)
+    null_matrix   = np.stack(null_list, axis=0)  # (n_conds, n_perms)
+    max_stat_null = null_matrix.max(axis=0)       # (n_perms,)
 
-    observed_signed = best['obs_effect']
+    observed_signed = float(obs_list[best_idx])
     p_value         = float(np.mean(max_stat_null >= observed_signed))
 
     return {
         'observed_signed': observed_signed,
         'max_stat_null':   max_stat_null,
         'p_value':         p_value,
-        'best_cond_dict':  best['cond_dict'],
+        'best_cond_dict':  cond_list[best_idx],
     }
 
 
@@ -223,7 +249,7 @@ def make_weighting(weighting):
     raise TypeError(f"weighting must be None, str, or PopulationWeighting, got {type(weighting)}")
 
 
-def compute_population_stats(rows, weighting=None):
+def compute_population_stats(rows, weighting=None, value_label="%"):
     """
     Two convergent population tests on per-session max-stat results.
 
@@ -286,11 +312,12 @@ def compute_population_stats(rows, weighting=None):
         'stouffer_p': stouffer_p,
         'n_sig':      n_sig,
         'weighting':  weighting.label,
+        'value_label': value_label,
     }
 
     print(f"\nPopulation stats (n={n} sessions, weighting={weighting.label}):")
-    print(f"  Observed mean best effect:  {A_obs:+.2f}%")
-    print(f"  Null 95th percentile:       {null_95:+.2f}%")
+    print(f"  Observed mean best effect:  {A_obs:+.2f}{value_label}")
+    print(f"  Null 95th percentile:       {null_95:+.2f}{value_label}")
     print(f"  Permutation test:           {_fmt_p(p_perm)}")
     print(f"  Stouffer combined:          {_fmt_p(stouffer_p)}  (Z={stouffer_z:.2f})")
     print(f"  Individually significant:   {n_sig}/{n} sessions (p<0.05)")
@@ -314,18 +341,23 @@ def _draw_stats_panel(ax_text, pop, rows):
         null_desc = ["Null = mean of per-session max-stat",
                      "distributions, averaged across sessions."]
 
+    stat_kind = "studentized max-stat" if pop.get('value_label', '%') == 'z' else "raw max-stat"
+
     lines = [
         ("Population Statistics", 1.00, 11, "bold", sig_color),
         (f"n = {pop['n']} sessions  ·  weighting: {pop.get('weighting', 'unweighted')}",
          0.92, 9, "normal", "black"),
-        ("", 0.86, 9, "normal", "black"),
+        (f"statistic: {stat_kind}", 0.865, 8, "italic", "#444444"),
+        ("", 0.84, 9, "normal", "black"),
 
         ("Permutation test", 0.80, 9, "bold", "black"),
         ("H₀: stimulation has no effect on choice.", 0.73, 8, "normal", "#444444"),
         (null_desc[0], 0.67, 8, "normal", "#444444"),
         (null_desc[1], 0.61, 8, "normal", "#444444"),
-        (f"  Observed mean best effect: {pop['A_obs']:+.2f}%", 0.54, 9, "normal", sig_color),
-        (f"  Null 95th percentile:      {pop['null_95']:+.2f}%", 0.47, 9, "normal", "#444444"),
+        (f"  Observed mean best effect: {pop['A_obs']:+.2f}{pop.get('value_label', '%')}",
+         0.54, 9, "normal", sig_color),
+        (f"  Null 95th percentile:      {pop['null_95']:+.2f}{pop.get('value_label', '%')}",
+         0.47, 9, "normal", "#444444"),
         (f"  {_fmt_p(pop['p_perm'])}", 0.40, 10, "bold", sig_color),
         ("", 0.34, 9, "normal", "black"),
 
@@ -359,7 +391,8 @@ def plot_max_stat_per_experiment(session_ids=None, start_session_id=None,
                                  algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                                  save_path=None, show_n=True,
                                  x_spacing=1.0, width_per_exp=1.5,
-                                 weighting=None, min_trials=DEFAULT_MIN_TRIALS):
+                                 weighting=None, min_trials=DEFAULT_MIN_TRIALS,
+                                 studentize=False):
     """
     start_session_id : if given, only include sessions whose session_id >= this value
                        (lexicographic comparison works because session_id is YYMMDD_N).
@@ -372,6 +405,10 @@ def plot_max_stat_per_experiment(session_ids=None, start_session_id=None,
                        WEIGHTINGS ('trials', 'sqrt') or a PopulationWeighting instance
                        to weight larger sessions more.
     min_trials       : minimum trials required in each group for a condition to qualify.
+    studentize       : if True, standardize each condition by its own permutation null
+                       before taking the max (fairer across conditions with very
+                       different trial counts). p-values become studentized; the ON/OFF
+                       dots stay in % as descriptive context.
     """
     create_permutation_test_table()  # ensures algorithm_label column exists
     if session_ids is None:
@@ -381,7 +418,8 @@ def plot_max_stat_per_experiment(session_ids=None, start_session_id=None,
 
     rows = []
     for sid in session_ids:
-        result = _build_max_stat_for_session(sid, algorithm_label, metric, min_trials=min_trials)
+        result = _build_max_stat_for_session(sid, algorithm_label, metric,
+                                             min_trials=min_trials, studentize=studentize)
         if result is None:
             print(f"[{sid}] no permutation data or no conditions with n>={min_trials}, skipping")
             continue
@@ -399,14 +437,16 @@ def plot_max_stat_per_experiment(session_ids=None, start_session_id=None,
             'observed_signed': result['observed_signed'],
             'max_stat_null':   result['max_stat_null'],
         })
-        print(f"[{sid}] best effect={result['observed_signed']:+.1f}%  p={result['p_value']:.3f}  "
+        stat_unit = "z" if studentize else "%"
+        print(f"[{sid}] best stat={result['observed_signed']:+.2f}{stat_unit}  p={result['p_value']:.3f}  "
               f"ON={pct_on:.1f}% (n={n_on})  OFF={pct_off:.1f}% (n={n_off})")
 
     if not rows:
         print("No data to plot.")
         return None
 
-    pop = compute_population_stats(rows, weighting=weighting)
+    pop = compute_population_stats(rows, weighting=weighting,
+                                   value_label=("z" if studentize else "%"))
 
     n_exp        = len(rows)
     plot_width   = width_per_exp * n_exp * x_spacing
@@ -638,9 +678,13 @@ def main():
         x_spacing=0.5,
         width_per_exp=1.0,
         # weighting=None    #-> original equal-per-session test (default)
-        weighting='sqrt'  #-> weight sessions by sqrt(best-condition trials)
+        weighting='sqrt',  #-> weight sessions by sqrt(best-condition trials)
         # weighting='trials'-> weight sessions by best-condition trial count
         # weighting=None,
+        # studentize=False -> raw % effect (default); True -> standardize each
+        #                     condition by its own null before taking the max
+        #                     (fairer across conditions with very different n).
+        studentize=False,
     )
 
     # ---- Test 2: exceedance-count (are there more conditions over x% than chance?) ----
