@@ -387,13 +387,15 @@ def _draw_stats_panel(ax_text, pop, rows):
                                     zorder=-1, clip_on=False))
 
 
-def plot_max_stat_per_experiment(session_ids=None, start_session_id=None,
+def plot_max_stat_per_experiment(exclude_session_ids=None, start_session_id=None,
                                  algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                                  save_path=None, show_n=True,
                                  x_spacing=1.0, width_per_exp=1.5,
                                  weighting=None, min_trials=DEFAULT_MIN_TRIALS,
                                  studentize=False):
     """
+    exclude_session_ids : optional iterable of session_ids to drop; all other
+                       sessions with permutation data are included.
     start_session_id : if given, only include sessions whose session_id >= this value
                        (lexicographic comparison works because session_id is YYMMDD_N).
     algorithm_label  : which cutoff variant to read from EStimPermutationTests.
@@ -411,8 +413,10 @@ def plot_max_stat_per_experiment(session_ids=None, start_session_id=None,
                        dots stay in % as descriptive context.
     """
     create_permutation_test_table()  # ensures algorithm_label column exists
-    if session_ids is None:
-        session_ids = _get_sessions_with_permutation_data(algorithm_label, metric)
+    session_ids = _get_sessions_with_permutation_data(algorithm_label, metric)
+    if exclude_session_ids:
+        excluded = set(exclude_session_ids)
+        session_ids = [s for s in session_ids if s not in excluded]
     if start_session_id is not None:
         session_ids = [s for s in session_ids if s >= start_session_id]
 
@@ -668,7 +672,7 @@ def plot_exceedance_count_test(session_ids=None, start_session_id=None,
 def main():
     # ---- Test 1: max-stat per experiment (is the BEST condition > chance?) ----
     plot_max_stat_per_experiment(
-        session_ids=None,
+        exclude_session_ids=None,   # e.g. ["260423_0", "260501_0"] to drop sessions
         start_session_id="260423_0",
         algorithm_label='None',        # or e.g. 'last_sustained_k3_t5.0'
         metric=METRIC_PCT_HYP_VS_DELTA,  # switch to METRIC_PCT_HYP_VS_DELTA to test Hyp vs Delta only
