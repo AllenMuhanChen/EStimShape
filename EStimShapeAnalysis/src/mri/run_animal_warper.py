@@ -74,7 +74,7 @@ CONFIG_PATH = os.path.join(os.getcwd(), "mri_viewer_config.json")
 # ============================================================================
 
 # Subject MRI. PAR/REC or .nii(.gz). Falls back to cfg["default_path"].
-SUBJECT_MRI  = "/home/connorlab/Documents/MRI/Bixby/bixby_WIP_MPrageAX_.70mm_New.nii.gz"
+SUBJECT_MRI  = "/home/connorlab/Documents/MRI/Bixby/bixby_WIP_MPrageAX_.70mm_New_corrected.nii.gz"
 # Reference template (e.g. NMT_v2.0_sym.nii.gz). Falls back to cfg["template_mri_path"].
 TEMPLATE_MRI = "/home/connorlab/Documents/NMT_v2.0_asym/NMT_v2.0_asym/NMT_v2.0_asym.nii.gz"
 # Atlas to follow (e.g. D99_atlas_in_NMT_v2.0_sym.nii.gz). Falls back to cfg["atlas_nifti_path"].
