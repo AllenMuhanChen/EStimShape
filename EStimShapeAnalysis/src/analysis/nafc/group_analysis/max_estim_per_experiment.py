@@ -550,23 +550,26 @@ def plot_max_stat_per_experiment(exclude_session_ids=None, start_session_id=None
 # summing per-iteration exceedances is a valid joint null draw. Because the
 # result depends on the (arbitrary) threshold, we sweep several thresholds.
 
-def compute_exceedance_count_stats(session_ids=None, start_session_id=None,
+def compute_exceedance_count_stats(exclude_session_ids=None, start_session_id=None,
                                    algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                                    thresholds=(5.0, 10.0, 15.0, 20.0),
                                    min_trials=DEFAULT_MIN_TRIALS):
     """Pool all qualifying conditions across sessions and run the exceedance-count
     permutation test at each threshold.
 
-    ``min_trials`` is the minimum trials required in each group for a condition to
-    be pooled.
+    ``exclude_session_ids`` is an optional iterable of session_ids to drop; all
+    other sessions with permutation data are pooled. ``min_trials`` is the minimum
+    trials required in each group for a condition to be pooled.
 
     Returns a dict with the pooled condition/permutation counts and a per-threshold
     list of {threshold, n_obs, null_mean, null_95, p_value}. Returns None if no
     qualifying conditions exist.
     """
     create_permutation_test_table()
-    if session_ids is None:
-        session_ids = _get_sessions_with_permutation_data(algorithm_label, metric)
+    session_ids = _get_sessions_with_permutation_data(algorithm_label, metric)
+    if exclude_session_ids:
+        excluded = set(exclude_session_ids)
+        session_ids = [s for s in session_ids if s not in excluded]
     if start_session_id is not None:
         session_ids = [s for s in session_ids if s >= start_session_id]
 
@@ -611,13 +614,13 @@ def compute_exceedance_count_stats(session_ids=None, start_session_id=None,
     }
 
 
-def plot_exceedance_count_test(session_ids=None, start_session_id=None,
+def plot_exceedance_count_test(exclude_session_ids=None, start_session_id=None,
                                algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                                thresholds=(5.0, 10.0, 15.0, 20.0), save_path=None,
                                min_trials=DEFAULT_MIN_TRIALS):
     """Plot observed exceedance counts vs the permutation null across thresholds."""
     stats = compute_exceedance_count_stats(
-        session_ids=session_ids, start_session_id=start_session_id,
+        exclude_session_ids=exclude_session_ids, start_session_id=start_session_id,
         algorithm_label=algorithm_label, metric=metric, thresholds=thresholds,
         min_trials=min_trials)
     if stats is None:
@@ -696,7 +699,7 @@ def main():
 
     # ---- Test 2: exceedance-count (are there more conditions over x% than chance?) ----
     plot_exceedance_count_test(
-        session_ids=None,
+        exclude_session_ids=None,   # e.g. ["260423_0"] to drop sessions
         # rejected for: ["Improper GA", "GA on cell not correlated with surrounding cells"]
         # start_session_id="260423_0",
         start_session_id="260325_0",
