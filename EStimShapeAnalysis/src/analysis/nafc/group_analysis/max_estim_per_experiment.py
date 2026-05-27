@@ -556,8 +556,8 @@ def plot_max_stat_per_experiment(exclude_session_ids=None, start_session_id=None
 
 def compute_exceedance_count_stats(exclude_session_ids=None, start_session_id=None,
                                    algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
-                                   thresholds=(5.0, 10.0, 15.0, 20.0),
-                                   min_trials=DEFAULT_MIN_TRIALS):
+                                   thresholds=None, min_trials=DEFAULT_MIN_TRIALS,
+                                   studentize=False):
     """Pool all qualifying conditions across sessions and run the exceedance-count
     permutation test at each threshold.
 
@@ -565,9 +565,18 @@ def compute_exceedance_count_stats(exclude_session_ids=None, start_session_id=No
     other sessions with permutation data are pooled. ``min_trials`` is the minimum
     trials required in each group for a condition to be pooled.
 
-    Returns a dict with the pooled condition/permutation counts and a per-threshold
-    list of {threshold, n_obs, null_mean, null_95, p_value}. Returns None if no
-    qualifying conditions exist.
+    ``studentize``: if True, each condition's effect is standardized by its own
+    permutation null (T = (effect - mean(null)) / std(null)) before counting
+    exceedances, so thresholds are in z units ("how many conditions exceed z SDs
+    above their own chance level") rather than raw percentage points. Conditions
+    with degenerate (zero-spread) nulls are dropped.
+
+    ``thresholds``: sweep of cutoffs. Defaults to (5,10,15,20) % in raw mode and
+    (1.0,1.5,2.0,2.5,3.0) z in studentized mode.
+
+    Returns a dict with the pooled condition/permutation counts, the threshold
+    ``unit`` ('%' or 'z'), and a per-threshold list of {threshold, n_obs,
+    null_mean, null_95, p_value}. Returns None if no qualifying conditions exist.
     """
     create_permutation_test_table()
     session_ids = _get_sessions_with_permutation_data(algorithm_label, metric)
@@ -587,9 +596,33 @@ def compute_exceedance_count_stats(exclude_session_ids=None, start_session_id=No
 
     # Align null lengths across conditions, then pool into one (C, P) matrix.
     n_perms = min(len(e['null']) for e in entries)
-    null_matrix = np.stack([e['null'][:n_perms] for e in entries], axis=0)  # (C, P)
-    obs = np.array([e['obs_effect'] for e in entries])
-    n_conditions = len(entries)
+
+    if studentize:
+        obs_vals, null_rows = [], []
+        for e in entries:
+            null = e['null'][:n_perms]
+            mu = float(np.mean(null))
+            sd = float(np.std(null, ddof=1))
+            if not np.isfinite(sd) or sd <= 0:
+                continue
+            obs_vals.append((e['obs_effect'] - mu) / sd)
+            null_rows.append((null - mu) / sd)
+        if not obs_vals:
+            print("No conditions with usable (non-degenerate) nulls to studentize.")
+            return None
+        obs = np.array(obs_vals)
+        null_matrix = np.stack(null_rows, axis=0)               # (C, P), in z units
+        unit = "z"
+        if thresholds is None:
+            thresholds = (1.0, 1.5, 2.0, 2.5, 3.0)
+    else:
+        null_matrix = np.stack([e['null'][:n_perms] for e in entries], axis=0)  # (C, P)
+        obs = np.array([e['obs_effect'] for e in entries])
+        unit = "%"
+        if thresholds is None:
+            thresholds = (5.0, 10.0, 15.0, 20.0)
+
+    n_conditions = int(obs.shape[0])
 
     results = []
     for thr in thresholds:
@@ -604,9 +637,10 @@ def compute_exceedance_count_stats(exclude_session_ids=None, start_session_id=No
             'p_value':    p_value,
         })
 
-    print(f"\nExceedance-count test ({n_conditions} conditions pooled, {n_perms} perms):")
+    kind = "studentized " if studentize else ""
+    print(f"\n{kind.capitalize()}exceedance-count test ({n_conditions} conditions pooled, {n_perms} perms):")
     for r in results:
-        print(f"  effect >= {r['threshold']:.0f}%:  observed={r['n_obs']:3d}  "
+        print(f"  effect >= {r['threshold']:.1f}{unit}:  observed={r['n_obs']:3d}  "
               f"null mean={r['null_mean']:5.1f}  null 95th={r['null_95']:5.1f}  "
               f"{_fmt_p(r['p_value'])}")
 
@@ -614,19 +648,25 @@ def compute_exceedance_count_stats(exclude_session_ids=None, start_session_id=No
         'n_conditions': n_conditions,
         'n_perms':      n_perms,
         'thresholds':   [float(t) for t in thresholds],
+        'unit':         unit,
+        'studentize':   studentize,
         'results':      results,
     }
 
 
 def plot_exceedance_count_test(exclude_session_ids=None, start_session_id=None,
                                algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
-                               thresholds=(5.0, 10.0, 15.0, 20.0), save_path=None,
-                               min_trials=DEFAULT_MIN_TRIALS):
-    """Plot observed exceedance counts vs the permutation null across thresholds."""
+                               thresholds=None, save_path=None,
+                               min_trials=DEFAULT_MIN_TRIALS, studentize=False):
+    """Plot observed exceedance counts vs the permutation null across thresholds.
+
+    ``studentize``: count exceedances of each condition's studentized effect
+    (z = effect / own-null SD) instead of raw % — thresholds become z cutoffs.
+    """
     stats = compute_exceedance_count_stats(
         exclude_session_ids=exclude_session_ids, start_session_id=start_session_id,
         algorithm_label=algorithm_label, metric=metric, thresholds=thresholds,
-        min_trials=min_trials)
+        min_trials=min_trials, studentize=studentize)
     if stats is None:
         print("No data to plot.")
         return None
@@ -653,9 +693,12 @@ def plot_exceedance_count_test(exclude_session_ids=None, start_session_id=None,
                     fontsize=9, color="darkred" if is_sig else "gray",
                     fontweight="bold" if is_sig else "normal")
 
-    ax.set_xlabel("EStim effect-size threshold (%)", fontsize=13)
+    unit = stats.get('unit', '%')
+    unit_label = "studentized effect (z)" if unit == 'z' else "effect size (%)"
+    kind = "Studentized exceedance-count" if stats.get('studentize') else "Exceedance-count"
+    ax.set_xlabel(f"EStim {unit_label} threshold", fontsize=13)
     ax.set_ylabel("# conditions with effect ≥ threshold", fontsize=13)
-    ax.set_title("Exceedance-count permutation test\n"
+    ax.set_title(f"{kind} permutation test\n"
                  f"{stats['n_conditions']} conditions pooled · {stats['n_perms']} perms",
                  fontsize=12, fontweight="bold")
     ax.set_xticks(thr)
@@ -762,6 +805,93 @@ def plot_studentized_winners(exclude_session_ids=None, start_session_id=None,
     return fig
 
 
+def plot_winning_conditions(exclude_session_ids=None, start_session_id=None,
+                            algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
+                            min_trials=DEFAULT_MIN_TRIALS, studentize=True,
+                            save_path=None):
+    """Across sessions, tally which condition parameters tend to win the max-stat.
+
+    For each session the winning condition (studentized maxT winner by default;
+    set studentize=False for the raw-effect winner) is recorded, then for every
+    parameter key that appears in the winning condition dicts we bar-chart the
+    frequency of each winning value. Shows which estim/behavioral parameter
+    settings most often produce the best effect (polarity, shape, num_channels,
+    a1, noise_chance, ...).
+
+    Note: parameters are only counted for sessions whose winning condition
+    actually specifies that key, so per-parameter totals can differ.
+    """
+    from collections import Counter, defaultdict
+
+    create_permutation_test_table()
+    session_ids = _get_sessions_with_permutation_data(algorithm_label, metric)
+    if exclude_session_ids:
+        excluded = set(exclude_session_ids)
+        session_ids = [s for s in session_ids if s not in excluded]
+    if start_session_id is not None:
+        session_ids = [s for s in session_ids if s >= start_session_id]
+
+    winners = []
+    for sid in session_ids:
+        result = _build_max_stat_for_session(sid, algorithm_label, metric,
+                                             min_trials=min_trials, studentize=studentize)
+        if result is None:
+            continue
+        winners.append((sid, result['best_cond_dict']))
+
+    if not winners:
+        print("No winning conditions found.")
+        return None
+
+    per_key = defaultdict(Counter)
+    for _sid, cond in winners:
+        for k, v in cond.items():
+            per_key[k][str(v)] += 1
+
+    print(f"\nWinning conditions across {len(winners)} sessions "
+          f"({'studentized' if studentize else 'raw'} maxT):")
+    for k in sorted(per_key):
+        tally = ", ".join(f"{val}×{cnt}" for val, cnt in per_key[k].most_common())
+        print(f"  {k}: {tally}")
+
+    keys = sorted(per_key)
+    n = len(keys)
+    ncols = min(3, n)
+    nrows = (n + ncols - 1) // ncols
+    fig, axes = plt.subplots(nrows, ncols, figsize=(5 * ncols, 3.5 * nrows), squeeze=False)
+
+    for i, k in enumerate(keys):
+        ax = axes[i // ncols][i % ncols]
+        counter = per_key[k]
+        labels = sorted(counter, key=lambda x: (-counter[x], x))
+        counts = [counter[l] for l in labels]
+        ax.bar(range(len(labels)), counts, color="steelblue", edgecolor="black")
+        ax.set_xticks(range(len(labels)))
+        ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=8)
+        ax.set_title(k, fontsize=10, fontweight="bold")
+        ax.set_ylabel("# winning sessions", fontsize=8)
+        ax.grid(True, axis="y", alpha=0.3)
+        ax.set_axisbelow(True)
+
+    for j in range(n, nrows * ncols):
+        axes[j // ncols][j % ncols].axis("off")
+
+    kind = "studentized" if studentize else "raw"
+    fig.suptitle(f"Winning conditions across {len(winners)} sessions ({kind} maxT)",
+                 fontsize=13, fontweight="bold")
+    fig.tight_layout(rect=[0, 0, 1, 0.96])
+
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, bbox_inches="tight", dpi=150)
+        svg_path = save_path.rsplit(".", 1)[0] + ".svg"
+        fig.savefig(svg_path, bbox_inches="tight")
+        print(f"Saved to {save_path}")
+
+    plt.show()
+    return fig
+
+
 def main():
     # ---- Test 1: max-stat per experiment (is the BEST condition > chance?) ----
     plot_max_stat_per_experiment(
@@ -795,7 +925,10 @@ def main():
         start_session_id="260325_0",
         algorithm_label='None',
         metric=METRIC_PCT_HYP_VS_DELTA,
-        thresholds=(5.0, 10.0, 15.0, 20.0),
+        # thresholds=None -> (5,10,15,20)% in raw mode, (1.0..3.0) z when studentized
+        thresholds=None,
+        # studentize=True -> count exceedances of z = effect/own-null SD instead of raw %
+        studentize=True,
         save_path="/home/connorlab/Documents/plots/across_experiments/exceedance_count_test.png",
     )
 
@@ -807,6 +940,17 @@ def main():
         metric=METRIC_PCT_HYP_VS_DELTA,
         min_trials=10,
         save_path="/home/connorlab/Documents/plots/across_experiments/studentized_winners.png",
+    )
+
+    # ---- Test 4: which condition parameters tend to win the max ----
+    plot_winning_conditions(
+        exclude_session_ids=["260421_0", "260410_0"],
+        start_session_id="260402_0",
+        algorithm_label='None',
+        metric=METRIC_PCT_HYP_VS_DELTA,
+        min_trials=10,
+        studentize=True,   # tally winners of the studentized maxT
+        save_path="/home/connorlab/Documents/plots/across_experiments/winning_conditions.png",
     )
 
 
