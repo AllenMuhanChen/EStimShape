@@ -25,6 +25,7 @@ Uses the Connection class from clat for DB access.
 """
 
 import json
+import re
 import time
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
@@ -32,8 +33,24 @@ from tkinter import filedialog, ttk, messagebox
 COLORS = ['cyan', 'yellow', 'magenta', 'orange', 'lime', 'deepskyblue',
           'red', 'white', 'pink', 'gold']
 
-CREATE_TABLE_SQL = """
-CREATE TABLE IF NOT EXISTS Penetrations (
+DEFAULT_TABLE = "Penetrations"
+_TABLE_NAME_RE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
+
+
+def _validate_table(name):
+    """Table names can't be passed as bound params, so they're interpolated
+    into SQL. Restrict to a safe identifier to avoid injection."""
+    name = (name or "").strip()
+    if not _TABLE_NAME_RE.match(name):
+        raise ValueError(
+            f"Invalid penetration table name: {name!r} "
+            "(use letters, digits, and underscores; must not start with a digit)")
+    return name
+
+
+def _create_table_sql(table):
+    return f"""
+CREATE TABLE IF NOT EXISTS {table} (
     id           INT AUTO_INCREMENT PRIMARY KEY,
     tstamp       BIGINT,
     session_id   VARCHAR(64),
@@ -49,27 +66,43 @@ CREATE TABLE IF NOT EXISTS Penetrations (
 )
 """
 
-# Migration queries: add new columns to existing tables that lack them
-_MIGRATE_SQLS = [
-    "ALTER TABLE Penetrations ADD COLUMN session_id VARCHAR(64) AFTER tstamp",
-    "ALTER TABLE Penetrations ADD COLUMN pen_type VARCHAR(16) DEFAULT 'planned' AFTER dist_mm",
-    "ALTER TABLE Penetrations ADD COLUMN line_visible TINYINT DEFAULT 1 AFTER visible",
-    # Backfill: copy label -> session_id for existing rows that have no session_id yet
-    "UPDATE Penetrations SET session_id = label WHERE session_id IS NULL",
-]
+
+def _migrate_sqls(table):
+    # Migration queries: add new columns to existing tables that lack them
+    return [
+        f"ALTER TABLE {table} ADD COLUMN session_id VARCHAR(64) AFTER tstamp",
+        f"ALTER TABLE {table} ADD COLUMN pen_type VARCHAR(16) DEFAULT 'planned' AFTER dist_mm",
+        f"ALTER TABLE {table} ADD COLUMN line_visible TINYINT DEFAULT 1 AFTER visible",
+        # Backfill: copy label -> session_id for existing rows that have no session_id yet
+        f"UPDATE {table} SET session_id = label WHERE session_id IS NULL",
+    ]
 
 
 class PenetrationStore:
-    """Manages penetrations via a MySQL table."""
+    """Manages penetrations via a MySQL table.
+
+    The table name is configurable so different monkeys can keep their
+    penetrations in separate tables (set via the config's penetration_table).
+    """
 
     def __init__(self, host="172.30.6.61", database="allen_data_repository",
-                 user="xper_rw", password="up2nite"):
+                 user="xper_rw", password="up2nite", table=DEFAULT_TABLE):
         self.conn = None
         self._host = host
         self._database = database
         self._user = user
         self._password = password
+        self.table = _validate_table(table)
         self._cache = []  # local cache of rows
+
+    def set_table(self, name):
+        """Change which table this store reads/writes. Returns True if it changed.
+        Caller is responsible for reconnecting/refreshing afterwards."""
+        name = _validate_table(name)
+        if name == self.table:
+            return False
+        self.table = name
+        return True
 
     def connect(self):
         """Establish DB connection, ensure table exists, and migrate if needed."""
@@ -80,13 +113,13 @@ class PenetrationStore:
             password=self._password,
             host=self._host,
         )
-        self.conn.execute(CREATE_TABLE_SQL)
+        self.conn.execute(_create_table_sql(self.table))
         self._migrate()
         self.refresh()
 
     def _migrate(self):
         """Apply schema migrations (safe to re-run: ignores 'duplicate column' errors)."""
-        for sql in _MIGRATE_SQLS:
+        for sql in _migrate_sqls(self.table):
             try:
                 self.conn.execute(sql)
             except Exception as e:
@@ -106,7 +139,7 @@ class PenetrationStore:
             return
         self.conn.execute(
             "SELECT id, tstamp, session_id, label, az_deg, el_deg, dist_mm, "
-            "pen_type, color, visible, line_visible, notes FROM Penetrations ORDER BY id")
+            f"pen_type, color, visible, line_visible, notes FROM {self.table} ORDER BY id")
         rows = self.conn.fetch_all()
         self._cache = []
         for row in rows:
@@ -138,7 +171,7 @@ class PenetrationStore:
         if not label:
             label = f"P{len(self._cache) + 1}"
         self.conn.execute(
-            "INSERT INTO Penetrations "
+            f"INSERT INTO {self.table} "
             "(tstamp, session_id, label, az_deg, el_deg, dist_mm, pen_type, color, visible, line_visible, notes) "
             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
             (tstamp, session_id, label, az_deg, el_deg, dist_mm, pen_type, color,
@@ -161,14 +194,14 @@ class PenetrationStore:
         if not sets:
             return
         vals.append(pen_id)
-        self.conn.execute(f"UPDATE Penetrations SET {', '.join(sets)} WHERE id = %s", tuple(vals))
+        self.conn.execute(f"UPDATE {self.table} SET {', '.join(sets)} WHERE id = %s", tuple(vals))
         self.refresh()
 
     def delete(self, pen_id):
         """Delete a penetration by id."""
         if not self.connected:
             return
-        self.conn.execute("DELETE FROM Penetrations WHERE id = %s", (pen_id,))
+        self.conn.execute(f"DELETE FROM {self.table} WHERE id = %s", (pen_id,))
         self.refresh()
 
     def delete_session_planned(self, session_id):
@@ -179,7 +212,7 @@ class PenetrationStore:
         if not self.connected:
             return
         self.conn.execute(
-            "DELETE FROM Penetrations "
+            f"DELETE FROM {self.table} "
             "WHERE session_id = %s AND pen_type IN ('planned', 'planned_tip')",
             (session_id,))
         self.refresh()
@@ -196,13 +229,13 @@ class PenetrationStore:
         if id_set:
             ph = ','.join(['%s'] * len(id_set))
             self.conn.execute(
-                f"UPDATE Penetrations SET visible = 1 WHERE id IN ({ph})",
+                f"UPDATE {self.table} SET visible = 1 WHERE id IN ({ph})",
                 tuple(id_set))
             self.conn.execute(
-                f"UPDATE Penetrations SET visible = 0 WHERE id NOT IN ({ph})",
+                f"UPDATE {self.table} SET visible = 0 WHERE id NOT IN ({ph})",
                 tuple(id_set))
         else:
-            self.conn.execute("UPDATE Penetrations SET visible = 0")
+            self.conn.execute(f"UPDATE {self.table} SET visible = 0")
         self.refresh()
 
     def toggle_visible(self, pen_id):

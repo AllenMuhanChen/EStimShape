@@ -25,7 +25,7 @@ from src.mri.correction import (
     load_crop_bounds, save_crop_bounds,
 )
 from src.mri.chamber import fit_chamber, draw_chamber_overlay, calc_penetration_target, calc_target_angles
-from src.mri.penetrations import PenetrationStore, PenetrationListWindow, COLORS
+from src.mri.penetrations import PenetrationStore, PenetrationListWindow, COLORS, DEFAULT_TABLE
 from src.mri.atlas import (
     load_atlas, load_atlas_labels,
     reslice_atlas, draw_atlas_contours,
@@ -398,6 +398,9 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
                 c["follower_nifti_path"] = self._follower_nifti_path
             if self._pen_view_path and os.path.exists(self._pen_view_path):
                 c["pen_view_path"] = self._pen_view_path
+            pen_table = self.pen_table_var.get().strip() if hasattr(self, "pen_table_var") else self.pen_store.table
+            if pen_table:
+                c["penetration_table"] = pen_table
             sid = self.session_id_var.get().strip()
             if sid:
                 c["session_id"] = sid
@@ -465,6 +468,24 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
         pen_view = cfg.get("pen_view_path")
         if pen_view and os.path.exists(pen_view):
             self._pen_view_path_to_load = pen_view
+
+        # Penetration table — lets each monkey keep its penetrations separate.
+        # Absent key resets to the default table.
+        pen_table = cfg.get("penetration_table", DEFAULT_TABLE)
+        try:
+            changed = self.pen_store.set_table(pen_table)
+        except ValueError as e:
+            messagebox.showerror("Config error", str(e))
+            changed = False
+        if hasattr(self, "pen_table_var"):
+            self.pen_table_var.set(self.pen_store.table)
+        # If already connected (runtime config switch), reconnect to the new table.
+        if changed and self.pen_store.connected:
+            try:
+                self.pen_store.connect()
+                self._on_db_connected()
+            except Exception as e:
+                self.status_var.set(f"DB reconnect failed for table '{pen_table}': {e}")
 
         if not do_load:
             return cfg
