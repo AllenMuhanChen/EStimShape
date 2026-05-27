@@ -30,9 +30,10 @@ from lfp_power_law import LFPPowerLaw, LFPPowerLawSpectrumPlotter, LFPSpikeRateP
 from src.lfp.lfp_power_law import FOOOFPowerLaw
 from src.lfp.mua_detection import detect_mua_spikes
 from src.repository.export_to_repository import read_session_id_and_date_from_db_name
+from src.startup import context
 
 # Import context for Intan path and database name
-from src.startup.context import ga_intan_path, ga_database
+from src.startup.context import ga_database
 
 # Import session ID parser (reuse existing function, do not recreate)
 
@@ -41,7 +42,7 @@ from src.startup.context import ga_intan_path, ga_database
 # CONFIGURATION
 # ============================================================================
 
-ACQUISITION_SECONDS = 30
+ACQUISITION_SECONDS = 60
 
 CHANNEL_ORDER = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
                  27, 20, 4, 11, 28, 19, 1, 14, 3, 12, 29, 18, 2, 13, 30, 17]
@@ -167,7 +168,7 @@ def ReadWaveformDataDemo():
     depth = input("Enter electrode depth (integer): ").strip()
     session_id, _ = read_session_id_and_date_from_db_name(ga_database)
     base_filename = f"idle_{session_id}_{depth}"
-    local_intan_path = sftp_to_local_path(ga_intan_path)
+    local_intan_path = sftp_to_local_path(context.ga_intan_path)
     print(f'Intan save path : {local_intan_path}')
     print(f'Intan base name : {base_filename}')
 

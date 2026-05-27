@@ -59,7 +59,7 @@ def _load_qualifying_conditions(session_id, algorithm_label='none', metric=METRI
     for conditions_json, obs_effect, null_json, n_on, n_off in conn.fetch_all():
         if null_json is None or obs_effect is None:
             continue
-        if n_on is None or n_off is None or n_on < 10 or n_off < 10:
+        if n_on is None or n_off is None or n_on < 15 or n_off < 15:
             continue
         entries.append({
             'session_id': session_id,
@@ -620,10 +620,10 @@ def main():
         show_n=True,
         x_spacing=0.5,
         width_per_exp=1.0,
-        # weighting=None    -> original equal-per-session test (default)
-        # weighting='sqrt'  -> weight sessions by sqrt(best-condition trials) [recommended]
+        # weighting=None    #-> original equal-per-session test (default)
+        weighting='sqrt'  #-> weight sessions by sqrt(best-condition trials)
         # weighting='trials'-> weight sessions by best-condition trial count
-        weighting=None,
+        # weighting=None,
     )
 
     # ---- Test 2: exceedance-count (are there more conditions over x% than chance?) ----

@@ -2672,7 +2672,7 @@ if __name__ == "__main__":
         session_corr_bounds=None,       # None → use SESSION_CORR_BOUNDS default
         session_corr_penalty=0.5,
         chamber_dist_penalty=0.000,    # λ on mean squared penetration shift (mm²)
-        chamber_param_penalty=0.000,  # λ on normalized chamber-param penalty
+        chamber_param_penalty=0.0005,  # λ on normalized chamber-param penalty
         chamber_param_tolerances=dict(t_mm=4, r_deg=2.5, daz_deg=0.5, del_deg=0.5, ddepth_mm=4.0),         # None → use CHAMBER_PARAM_TOLERANCES default
         variance_penalty=0.0,
         softmin_beta=20,               # 0 = mean; 3-5 = protect worst; 10+ ≈ min
