@@ -672,8 +672,10 @@ def plot_exceedance_count_test(session_ids=None, start_session_id=None,
 def main():
     # ---- Test 1: max-stat per experiment (is the BEST condition > chance?) ----
     plot_max_stat_per_experiment(
-        exclude_session_ids=None,   # e.g. ["260423_0", "260501_0"] to drop sessions
-        start_session_id="260423_0",
+        exclude_session_ids=["260421_0", "260410_0"],   # e.g. ["260421_0", "260410_0"] to drop sessions
+        # exclusion reasons: ["Incorrect GA Response behavior", "Weird clustering, too small"]
+        # start_session_id="260423_0",
+        start_session_id="260402_0", #first variant experiment
         algorithm_label='None',        # or e.g. 'last_sustained_k3_t5.0'
         metric=METRIC_PCT_HYP_VS_DELTA,  # switch to METRIC_PCT_HYP_VS_DELTA to test Hyp vs Delta only
         # algorithm_label='first_drop_w100_s10_t5.0_n3',
@@ -688,13 +690,16 @@ def main():
         # studentize=False -> raw % effect (default); True -> standardize each
         #                     condition by its own null before taking the max
         #                     (fairer across conditions with very different n).
-        studentize=False,
+        studentize=True,
+        min_trials=10
     )
 
     # ---- Test 2: exceedance-count (are there more conditions over x% than chance?) ----
     plot_exceedance_count_test(
         session_ids=None,
-        start_session_id="260423_0",
+        # rejected for: ["Improper GA", "GA on cell not correlated with surrounding cells"]
+        # start_session_id="260423_0",
+        start_session_id="260325_0",
         algorithm_label='None',
         metric=METRIC_PCT_HYP_VS_DELTA,
         thresholds=(5.0, 10.0, 15.0, 20.0),
