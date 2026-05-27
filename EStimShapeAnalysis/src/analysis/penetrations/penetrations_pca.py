@@ -1272,7 +1272,8 @@ def load_mri_pipeline(config_path: str = MRI_VIEWER_CONFIG_PATH) -> dict:
     screws_ebz = np.array(mod.get_screw_hole_coords())
     ref_idx = mod.get_reference_screw_idx()
     cor_offset = mod.get_center_of_rotation_offset()
-    is_fit_circle = mod.get_is_fit_circle()
+    # get_is_fit_circle is optional; absent means use the screwhole centroid.
+    is_fit_circle = mod.get_is_fit_circle() if hasattr(mod, 'get_is_fit_circle') else False
 
     ch_corr_path = os.path.splitext(monkey_specific_path)[0] + '_chamber_corrections.json'
     ch_corr, _ = load_corrections(ch_corr_path)

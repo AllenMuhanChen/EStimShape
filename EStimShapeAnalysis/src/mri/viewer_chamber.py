@@ -23,7 +23,10 @@ class ChamberMixin:
             screws_ebz = mod.get_screw_hole_coords()
             self._chamber_params['ref_screw_idx'] = mod.get_reference_screw_idx()
             self._chamber_params['center_of_rotation_offset'] = mod.get_center_of_rotation_offset()
-            self._chamber_params['is_fit_circle'] = mod.get_is_fit_circle()
+            # get_is_fit_circle is optional; absent means use the screwhole
+            # centroid instead of fitting a circle.
+            self._chamber_params['is_fit_circle'] = (
+                mod.get_is_fit_circle() if hasattr(mod, 'get_is_fit_circle') else False)
             if hasattr(mod, 'get_chamber_depth'):
                 self._chamber_params['chamber_depth'] = mod.get_chamber_depth()
 
