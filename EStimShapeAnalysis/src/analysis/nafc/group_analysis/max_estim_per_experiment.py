@@ -37,6 +37,39 @@ def _get_sessions_with_permutation_data(algorithm_label='none', metric=METRIC_PC
     return [row[0] for row in conn.fetch_all()]
 
 
+def _load_qualifying_conditions(session_id, algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED):
+    """Load all conditions for a session that pass the n>=10-each-group filter.
+
+    Shared by both population tests: the max-stat test reduces these to the best
+    condition, the exceedance-count test counts how many exceed a threshold.
+
+    Returns a list of entries, each:
+        {'session_id', 'cond_dict', 'obs_effect', 'null' (np.array, n_perms)}
+    Empty list if the session has no qualifying conditions.
+    """
+    conn = Connection("allen_data_repository")
+    conn.execute("""
+        SELECT conditions, observed_effect_size, null_distribution,
+               n_trials_estim_on, n_trials_estim_off
+        FROM EStimPermutationTests
+        WHERE session_id = %s AND algorithm_label = %s AND metric = %s
+    """, (session_id, algorithm_label, metric))
+
+    entries = []
+    for conditions_json, obs_effect, null_json, n_on, n_off in conn.fetch_all():
+        if null_json is None or obs_effect is None:
+            continue
+        if n_on is None or n_off is None or n_on < 10 or n_off < 10:
+            continue
+        entries.append({
+            'session_id': session_id,
+            'cond_dict':  json.loads(conditions_json),
+            'obs_effect': obs_effect,
+            'null':       np.array(json.loads(null_json)),
+        })
+    return entries
+
+
 def _build_max_stat_for_session(session_id, algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED):
     """
     Returns dict with:
@@ -46,30 +79,7 @@ def _build_max_stat_for_session(session_id, algorithm_label='none', metric=METRI
         best_cond_dict  : condition filter dict for the best condition
     Returns None if no qualifying conditions (n>=10 each group).
     """
-    conn = Connection("allen_data_repository")
-    conn.execute("""
-        SELECT conditions, observed_effect_size, null_distribution,
-               n_trials_estim_on, n_trials_estim_off
-        FROM EStimPermutationTests
-        WHERE session_id = %s AND algorithm_label = %s AND metric = %s
-    """, (session_id, algorithm_label, metric))
-    rows = conn.fetch_all()
-
-    if not rows:
-        return None
-
-    entries = []
-    for conditions_json, obs_effect, null_json, n_on, n_off in rows:
-        if null_json is None or obs_effect is None:
-            continue
-        if n_on is None or n_off is None or n_on < 10 or n_off < 10:
-            continue
-        entries.append({
-            'cond_dict':  json.loads(conditions_json),
-            'obs_effect': obs_effect,
-            'null':       np.array(json.loads(null_json)),
-        })
-
+    entries = _load_qualifying_conditions(session_id, algorithm_label, metric)
     if not entries:
         return None
 
@@ -465,7 +475,141 @@ def plot_max_stat_per_experiment(session_ids=None, start_session_id=None,
     return fig
 
 
+# ===========================================================================
+# Test 2: exceedance-count permutation test
+# ===========================================================================
+#
+# Different question from the max-stat test. Instead of "is the single best
+# condition larger than chance?", this asks "across all conditions pooled, are
+# there more conditions with effect >= x% than chance produces?".
+#
+# Statistic (per threshold x):
+#   N_obs        = #conditions with observed_effect >= x
+#   null_count[k]= #conditions with null_c[k] >= x   (exceedances summed across
+#                  all pooled conditions at permutation iteration k)
+#   p            = fraction of k where null_count[k] >= N_obs
+#
+# Conditions are pooled across all sessions into one family. Within-session
+# cross-condition correlation is preserved (those nulls share the shuffle);
+# across sessions the nulls are independent, which is the true situation, so
+# summing per-iteration exceedances is a valid joint null draw. Because the
+# result depends on the (arbitrary) threshold, we sweep several thresholds.
+
+def compute_exceedance_count_stats(session_ids=None, start_session_id=None,
+                                   algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
+                                   thresholds=(5.0, 10.0, 15.0, 20.0)):
+    """Pool all qualifying conditions across sessions and run the exceedance-count
+    permutation test at each threshold.
+
+    Returns a dict with the pooled condition/permutation counts and a per-threshold
+    list of {threshold, n_obs, null_mean, null_95, p_value}. Returns None if no
+    qualifying conditions exist.
+    """
+    create_permutation_test_table()
+    if session_ids is None:
+        session_ids = _get_sessions_with_permutation_data(algorithm_label, metric)
+    if start_session_id is not None:
+        session_ids = [s for s in session_ids if s >= start_session_id]
+
+    entries = []
+    for sid in session_ids:
+        entries.extend(_load_qualifying_conditions(sid, algorithm_label, metric))
+
+    if not entries:
+        print("No qualifying conditions (n>=10 each group) to test.")
+        return None
+
+    # Align null lengths across conditions, then pool into one (C, P) matrix.
+    n_perms = min(len(e['null']) for e in entries)
+    null_matrix = np.stack([e['null'][:n_perms] for e in entries], axis=0)  # (C, P)
+    obs = np.array([e['obs_effect'] for e in entries])
+    n_conditions = len(entries)
+
+    results = []
+    for thr in thresholds:
+        n_obs       = int(np.sum(obs >= thr))
+        null_counts = np.sum(null_matrix >= thr, axis=0)         # (P,)
+        p_value     = float(np.mean(null_counts >= n_obs))
+        results.append({
+            'threshold':  float(thr),
+            'n_obs':      n_obs,
+            'null_mean':  float(np.mean(null_counts)),
+            'null_95':    float(np.percentile(null_counts, 95)),
+            'p_value':    p_value,
+        })
+
+    print(f"\nExceedance-count test ({n_conditions} conditions pooled, {n_perms} perms):")
+    for r in results:
+        print(f"  effect >= {r['threshold']:.0f}%:  observed={r['n_obs']:3d}  "
+              f"null mean={r['null_mean']:5.1f}  null 95th={r['null_95']:5.1f}  "
+              f"{_fmt_p(r['p_value'])}")
+
+    return {
+        'n_conditions': n_conditions,
+        'n_perms':      n_perms,
+        'thresholds':   [float(t) for t in thresholds],
+        'results':      results,
+    }
+
+
+def plot_exceedance_count_test(session_ids=None, start_session_id=None,
+                               algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
+                               thresholds=(5.0, 10.0, 15.0, 20.0), save_path=None):
+    """Plot observed exceedance counts vs the permutation null across thresholds."""
+    stats = compute_exceedance_count_stats(
+        session_ids=session_ids, start_session_id=start_session_id,
+        algorithm_label=algorithm_label, metric=metric, thresholds=thresholds)
+    if stats is None:
+        print("No data to plot.")
+        return None
+
+    res       = stats['results']
+    thr       = [r['threshold'] for r in res]
+    n_obs     = [r['n_obs'] for r in res]
+    null_mean = [r['null_mean'] for r in res]
+    null_95   = [r['null_95'] for r in res]
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    ax.fill_between(thr, 0, null_95, color="gray", alpha=0.2,
+                    label="Null (≤ 95th percentile)")
+    ax.plot(thr, null_mean, color="gray", linestyle="--", marker="o",
+            linewidth=1.5, label="Null mean count")
+    ax.plot(thr, n_obs, color="red", marker="o", linewidth=2.0,
+            markeredgecolor="black", markeredgewidth=0.6, label="Observed count")
+
+    for r in res:
+        is_sig = r['p_value'] < 0.05
+        ax.annotate(_fmt_p(r['p_value']), (r['threshold'], r['n_obs']),
+                    textcoords="offset points", xytext=(0, 9), ha="center",
+                    fontsize=9, color="darkred" if is_sig else "gray",
+                    fontweight="bold" if is_sig else "normal")
+
+    ax.set_xlabel("EStim effect-size threshold (%)", fontsize=13)
+    ax.set_ylabel("# conditions with effect ≥ threshold", fontsize=13)
+    ax.set_title("Exceedance-count permutation test\n"
+                 f"{stats['n_conditions']} conditions pooled · {stats['n_perms']} perms",
+                 fontsize=12, fontweight="bold")
+    ax.set_xticks(thr)
+    ax.set_ylim(bottom=0)
+    ax.grid(True, alpha=0.3)
+    ax.legend(fontsize=9, loc="upper right", framealpha=0.85)
+
+    fig.tight_layout()
+
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, bbox_inches="tight", dpi=150)
+        svg_path = save_path.rsplit(".", 1)[0] + ".svg"
+        fig.savefig(svg_path, bbox_inches="tight")
+        print(f"Saved to {save_path}")
+
+    plt.show()
+    return fig
+
+
 def main():
+    # ---- Test 1: max-stat per experiment (is the BEST condition > chance?) ----
     plot_max_stat_per_experiment(
         session_ids=None,
         start_session_id="260423_0",
@@ -480,6 +624,16 @@ def main():
         # weighting='sqrt'  -> weight sessions by sqrt(best-condition trials) [recommended]
         # weighting='trials'-> weight sessions by best-condition trial count
         weighting=None,
+    )
+
+    # ---- Test 2: exceedance-count (are there more conditions over x% than chance?) ----
+    plot_exceedance_count_test(
+        session_ids=None,
+        start_session_id="260423_0",
+        algorithm_label='None',
+        metric=METRIC_PCT_HYP_VS_DELTA,
+        thresholds=(5.0, 10.0, 15.0, 20.0),
+        save_path="/home/connorlab/Documents/plots/across_experiments/exceedance_count_test.png",
     )
 
 
