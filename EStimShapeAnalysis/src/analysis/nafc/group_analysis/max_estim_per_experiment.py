@@ -99,9 +99,10 @@ def _build_max_stat_for_session(session_id, algorithm_label='none', metric=METRI
     if not entries:
         return None
 
-    # Build (cond_dict, observed_stat, null_array) per condition. In studentized
-    # mode, standardize each by its own null; drop degenerate (zero-spread) nulls.
-    obs_list, null_list, cond_list = [], [], []
+    # Build (cond_dict, observed_stat, null_array) per condition, tracking the
+    # raw effect too. In studentized mode, standardize each by its own null;
+    # drop degenerate (zero-spread) nulls.
+    raw_list, obs_list, null_list, cond_list = [], [], [], []
     for e in entries:
         null = e['null']
         if studentize:
@@ -114,6 +115,7 @@ def _build_max_stat_for_session(session_id, algorithm_label='none', metric=METRI
         else:
             obs_list.append(e['obs_effect'])
             null_list.append(null)
+        raw_list.append(e['obs_effect'])
         cond_list.append(e['cond_dict'])
 
     if not obs_list:
@@ -130,10 +132,12 @@ def _build_max_stat_for_session(session_id, algorithm_label='none', metric=METRI
     p_value         = float(np.mean(max_stat_null >= observed_signed))
 
     return {
-        'observed_signed': observed_signed,
-        'max_stat_null':   max_stat_null,
-        'p_value':         p_value,
-        'best_cond_dict':  cond_list[best_idx],
+        'observed_signed':      observed_signed,
+        'observed_raw':         float(raw_list[best_idx]),
+        'observed_studentized': float(obs_list[best_idx]) if studentize else None,
+        'max_stat_null':        max_stat_null,
+        'p_value':              p_value,
+        'best_cond_dict':       cond_list[best_idx],
     }
 
 
@@ -672,6 +676,92 @@ def plot_exceedance_count_test(exclude_session_ids=None, start_session_id=None,
     return fig
 
 
+def plot_studentized_winners(exclude_session_ids=None, start_session_id=None,
+                             algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
+                             min_trials=DEFAULT_MIN_TRIALS, save_path=None):
+    """Diagnostic for the studentized maxT winner per session.
+
+    For each session, take the condition that wins the *studentized* max-stat and
+    plot it in terms of BOTH its raw effect (percentage points) and its
+    studentized effect (z = effect / null SD). A scatter of raw (x) vs studentized
+    (y) makes the failure mode obvious: a point high on y but near zero on x is a
+    winner that only looks strong because its null SD is tiny (small-n / degenerate
+    null), whereas a point that is high on both is a genuinely strong, precisely
+    measured effect.
+    """
+    create_permutation_test_table()
+    session_ids = _get_sessions_with_permutation_data(algorithm_label, metric)
+    if exclude_session_ids:
+        excluded = set(exclude_session_ids)
+        session_ids = [s for s in session_ids if s not in excluded]
+    if start_session_id is not None:
+        session_ids = [s for s in session_ids if s >= start_session_id]
+
+    rows = []
+    for sid in session_ids:
+        result = _build_max_stat_for_session(sid, algorithm_label, metric,
+                                             min_trials=min_trials, studentize=True)
+        if result is None:
+            print(f"[{sid}] no conditions with n>={min_trials}, skipping")
+            continue
+        pct_on, pct_off, n_on, n_off = _get_pct_on_off(sid, result['best_cond_dict'], metric=metric)
+        rows.append({
+            'session_id': sid,
+            'raw':        result['observed_raw'],
+            'z':          result['observed_studentized'],
+            'p_value':    result['p_value'],
+            'n_on':       n_on,
+            'n_off':      n_off,
+        })
+        print(f"[{sid}] studentized winner: raw={result['observed_raw']:+.1f}%  "
+              f"z={result['observed_studentized']:+.2f}  p={result['p_value']:.3f}  "
+              f"(n_on={n_on}, n_off={n_off})")
+
+    if not rows:
+        print("No data to plot.")
+        return None
+
+    fig, ax = plt.subplots(figsize=(8, 7))
+    ax.axvline(0, color="gray", linewidth=0.8, alpha=0.5)
+    ax.axhline(0, color="gray", linewidth=0.8, alpha=0.5)
+
+    for d in rows:
+        is_sig = d['p_value'] < 0.05
+        ax.scatter(d['raw'], d['z'],
+                   s=90, color="red" if is_sig else "gray",
+                   edgecolors="black", linewidths=0.6, zorder=3,
+                   alpha=0.9 if is_sig else 0.7)
+        ax.annotate(f"{d['session_id']}\n{_fmt_p(d['p_value'])}",
+                    (d['raw'], d['z']), textcoords="offset points",
+                    xytext=(6, 4), fontsize=7,
+                    color="darkred" if is_sig else "dimgray")
+
+    ax.set_xlabel("Studentized winner — raw effect size (percentage points)", fontsize=12)
+    ax.set_ylabel("Studentized winner — studentized effect (z = effect / null SD)", fontsize=12)
+    ax.set_title("Studentized maxT winners: raw vs studentized effect\n"
+                 "(high-z + near-zero-raw ⇒ tiny-null artifact; high on both ⇒ genuine)",
+                 fontsize=11, fontweight="bold")
+    ax.grid(True, alpha=0.3)
+
+    legend_handles = [
+        mpatches.Patch(color="red",  label="studentized p < 0.05"),
+        mpatches.Patch(color="gray", label="n.s."),
+    ]
+    ax.legend(handles=legend_handles, fontsize=9, loc="lower right", framealpha=0.85)
+
+    fig.tight_layout()
+
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, bbox_inches="tight", dpi=150)
+        svg_path = save_path.rsplit(".", 1)[0] + ".svg"
+        fig.savefig(svg_path, bbox_inches="tight")
+        print(f"Saved to {save_path}")
+
+    plt.show()
+    return fig
+
+
 def main():
     # ---- Test 1: max-stat per experiment (is the BEST condition > chance?) ----
     plot_max_stat_per_experiment(
@@ -707,6 +797,16 @@ def main():
         metric=METRIC_PCT_HYP_VS_DELTA,
         thresholds=(5.0, 10.0, 15.0, 20.0),
         save_path="/home/connorlab/Documents/plots/across_experiments/exceedance_count_test.png",
+    )
+
+    # ---- Test 3: studentized winners — raw vs studentized effect (diagnostic) ----
+    plot_studentized_winners(
+        exclude_session_ids=["260421_0", "260410_0"],
+        start_session_id="260402_0",
+        algorithm_label='None',
+        metric=METRIC_PCT_HYP_VS_DELTA,
+        min_trials=10,
+        save_path="/home/connorlab/Documents/plots/across_experiments/studentized_winners.png",
     )
 
 
