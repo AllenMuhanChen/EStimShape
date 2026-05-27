@@ -347,7 +347,7 @@ def _draw_stats_panel(ax_text, pop, rows):
         ("Population Statistics", 1.00, 11, "bold", sig_color),
         (f"n = {pop['n']} sessions  ·  weighting: {pop.get('weighting', 'unweighted')}",
          0.92, 9, "normal", "black"),
-        (f"statistic: {stat_kind}", 0.865, 8, "italic", "#444444"),
+        (f"statistic: {stat_kind}", 0.865, 8, "normal", "#444444"),
         ("", 0.84, 9, "normal", "black"),
 
         ("Permutation test", 0.80, 9, "bold", "black"),
