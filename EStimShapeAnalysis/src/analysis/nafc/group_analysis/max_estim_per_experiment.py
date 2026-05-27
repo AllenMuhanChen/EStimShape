@@ -1,5 +1,5 @@
 """
-For each session, pick the best condition (largest positive effect_size, n>=10 each group)
+For each session, pick the best condition (largest positive effect_size, n>=min_trials each group)
 from EStimPermutationTests, plot EStim ON (red) and EStim OFF (black) as two dots —
 same style as estim_examples_across_experiments.py — and annotate the max-stat
 permutation p-value per session plus population statistics in a side panel.
@@ -37,11 +37,20 @@ def _get_sessions_with_permutation_data(algorithm_label='none', metric=METRIC_PC
     return [row[0] for row in conn.fetch_all()]
 
 
-def _load_qualifying_conditions(session_id, algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED):
-    """Load all conditions for a session that pass the n>=10-each-group filter.
+# Minimum trials required in EACH group (EStim ON / OFF) for a condition to be
+# included in either population test.
+DEFAULT_MIN_TRIALS = 15
+
+
+def _load_qualifying_conditions(session_id, algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
+                                min_trials=DEFAULT_MIN_TRIALS):
+    """Load all conditions for a session that pass the per-group min-trials filter.
 
     Shared by both population tests: the max-stat test reduces these to the best
     condition, the exceedance-count test counts how many exceed a threshold.
+
+    ``min_trials`` is the minimum number of trials required in BOTH the EStim-ON
+    and EStim-OFF groups for a condition to qualify.
 
     Returns a list of entries, each:
         {'session_id', 'cond_dict', 'obs_effect', 'null' (np.array, n_perms)}
@@ -59,7 +68,7 @@ def _load_qualifying_conditions(session_id, algorithm_label='none', metric=METRI
     for conditions_json, obs_effect, null_json, n_on, n_off in conn.fetch_all():
         if null_json is None or obs_effect is None:
             continue
-        if n_on is None or n_off is None or n_on < 15 or n_off < 15:
+        if n_on is None or n_off is None or n_on < min_trials or n_off < min_trials:
             continue
         entries.append({
             'session_id': session_id,
@@ -70,16 +79,17 @@ def _load_qualifying_conditions(session_id, algorithm_label='none', metric=METRI
     return entries
 
 
-def _build_max_stat_for_session(session_id, algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED):
+def _build_max_stat_for_session(session_id, algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
+                                min_trials=DEFAULT_MIN_TRIALS):
     """
     Returns dict with:
         observed_signed : signed effect of the best positive condition
         max_stat_null   : array (n_perms,) — element-wise max across conditions per iteration
         p_value         : fraction of null_max >= observed_signed
         best_cond_dict  : condition filter dict for the best condition
-    Returns None if no qualifying conditions (n>=10 each group).
+    Returns None if no qualifying conditions (n>=min_trials each group).
     """
-    entries = _load_qualifying_conditions(session_id, algorithm_label, metric)
+    entries = _load_qualifying_conditions(session_id, algorithm_label, metric, min_trials=min_trials)
     if not entries:
         return None
 
@@ -349,7 +359,7 @@ def plot_max_stat_per_experiment(session_ids=None, start_session_id=None,
                                  algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                                  save_path=None, show_n=True,
                                  x_spacing=1.0, width_per_exp=1.5,
-                                 weighting=None):
+                                 weighting=None, min_trials=DEFAULT_MIN_TRIALS):
     """
     start_session_id : if given, only include sessions whose session_id >= this value
                        (lexicographic comparison works because session_id is YYMMDD_N).
@@ -361,6 +371,7 @@ def plot_max_stat_per_experiment(session_ids=None, start_session_id=None,
                        reproduces the original equal-per-session test; pass a key from
                        WEIGHTINGS ('trials', 'sqrt') or a PopulationWeighting instance
                        to weight larger sessions more.
+    min_trials       : minimum trials required in each group for a condition to qualify.
     """
     create_permutation_test_table()  # ensures algorithm_label column exists
     if session_ids is None:
@@ -370,9 +381,9 @@ def plot_max_stat_per_experiment(session_ids=None, start_session_id=None,
 
     rows = []
     for sid in session_ids:
-        result = _build_max_stat_for_session(sid, algorithm_label, metric)
+        result = _build_max_stat_for_session(sid, algorithm_label, metric, min_trials=min_trials)
         if result is None:
-            print(f"[{sid}] no permutation data or no conditions with n>=10, skipping")
+            print(f"[{sid}] no permutation data or no conditions with n>={min_trials}, skipping")
             continue
         pct_on, pct_off, n_on, n_off = _get_pct_on_off(sid, result['best_cond_dict'], metric=metric)
         if pct_on is None:
@@ -497,9 +508,13 @@ def plot_max_stat_per_experiment(session_ids=None, start_session_id=None,
 
 def compute_exceedance_count_stats(session_ids=None, start_session_id=None,
                                    algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
-                                   thresholds=(5.0, 10.0, 15.0, 20.0)):
+                                   thresholds=(5.0, 10.0, 15.0, 20.0),
+                                   min_trials=DEFAULT_MIN_TRIALS):
     """Pool all qualifying conditions across sessions and run the exceedance-count
     permutation test at each threshold.
+
+    ``min_trials`` is the minimum trials required in each group for a condition to
+    be pooled.
 
     Returns a dict with the pooled condition/permutation counts and a per-threshold
     list of {threshold, n_obs, null_mean, null_95, p_value}. Returns None if no
@@ -513,10 +528,10 @@ def compute_exceedance_count_stats(session_ids=None, start_session_id=None,
 
     entries = []
     for sid in session_ids:
-        entries.extend(_load_qualifying_conditions(sid, algorithm_label, metric))
+        entries.extend(_load_qualifying_conditions(sid, algorithm_label, metric, min_trials=min_trials))
 
     if not entries:
-        print("No qualifying conditions (n>=10 each group) to test.")
+        print(f"No qualifying conditions (n>={min_trials} each group) to test.")
         return None
 
     # Align null lengths across conditions, then pool into one (C, P) matrix.
@@ -554,11 +569,13 @@ def compute_exceedance_count_stats(session_ids=None, start_session_id=None,
 
 def plot_exceedance_count_test(session_ids=None, start_session_id=None,
                                algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
-                               thresholds=(5.0, 10.0, 15.0, 20.0), save_path=None):
+                               thresholds=(5.0, 10.0, 15.0, 20.0), save_path=None,
+                               min_trials=DEFAULT_MIN_TRIALS):
     """Plot observed exceedance counts vs the permutation null across thresholds."""
     stats = compute_exceedance_count_stats(
         session_ids=session_ids, start_session_id=start_session_id,
-        algorithm_label=algorithm_label, metric=metric, thresholds=thresholds)
+        algorithm_label=algorithm_label, metric=metric, thresholds=thresholds,
+        min_trials=min_trials)
     if stats is None:
         print("No data to plot.")
         return None
