@@ -45,14 +45,21 @@ class CorrectionMixin:
         self.cursor_world = np.clip(self.cursor_world, self.full_world_min, self.full_world_max)
         self._setup_sliders(); self._update_corr_info(); self.display_all()
 
-    def _save_corrected_as_nifti(self):
-        """Save current volume with the corrected affine baked in as a NIfTI.
+    @staticmethod
+    def _strip_nifti_ext(name):
+        for ext in (".nii.gz", ".nii", ".PAR", ".par"):
+            if name.endswith(ext):
+                return name[: -len(ext)]
+        return name
 
-        The output's affine equals `correction @ native_affine`, so loading
-        it fresh (with identity correction) reproduces exactly the same
-        world-space anatomy the user is looking at. Useful for feeding into
-        @animal_warper without depending on the corrections.json sidecar.
-        For 4D inputs, only the currently displayed dynamic is saved.
+    def _save_corrected_as_nifti(self):
+        """Save every loaded volume with the subject correction baked into its
+        affine, into a user-chosen output folder.
+
+        Each output's affine equals `correction @ <source voxel→world>`, so the
+        subject MRI, atlas, follower and template are all written in the same
+        corrected world space and line up when loaded fresh (identity correction).
+        For 4D subject inputs, only the currently displayed dynamic is saved.
         """
         if self.data is None:
             messagebox.showerror("Error", "No volume loaded.")
@@ -60,40 +67,54 @@ class CorrectionMixin:
 
         src = self.default_path or ""
         default_dir = os.path.dirname(src) if src else os.getcwd()
-        stem = os.path.basename(src)
-        for ext in (".nii.gz", ".nii", ".PAR", ".par"):
-            if stem.endswith(ext):
-                stem = stem[: -len(ext)]
-                break
-        if not stem:
-            stem = "subject"
-        default_name = f"{stem}_corrected.nii.gz"
-
-        out = filedialog.asksaveasfilename(
-            title="Save corrected MRI as NIfTI",
-            initialdir=default_dir,
-            initialfile=default_name,
-            defaultextension=".nii.gz",
-            filetypes=[("NIfTI (.nii.gz)", "*.nii.gz"),
-                       ("NIfTI (.nii)", "*.nii"),
-                       ("All", "*.*")],
-        )
-        if not out:
+        out_dir = filedialog.askdirectory(
+            title="Select output folder for corrected NIfTI files",
+            initialdir=default_dir)
+        if not out_dir:
             return
 
-        data = self.data
-        if data.ndim == 4:
-            data = data[:, :, :, self.current_dynamic]
-        img = nib.Nifti1Image(data.astype(np.float32), self.corrected_affine)
-        nib.save(img, out)
-        self.status_var.set(f"Saved corrected MRI -> {out}")
+        written = []
+
+        def _save(data, affine, src_name, fallback_stem):
+            stem = self._strip_nifti_ext(os.path.basename(src_name)) if src_name else ""
+            if not stem:
+                stem = fallback_stem
+            out = os.path.join(out_dir, f"{stem}_corrected.nii.gz")
+            img = nib.Nifti1Image(np.asarray(data).astype(np.float32), affine)
+            nib.save(img, out)
+            written.append(out)
+
+        try:
+            # Subject MRI
+            data = self.data
+            if data.ndim == 4:
+                data = data[:, :, :, self.current_dynamic]
+            _save(data, self.corrected_affine, src, "subject")
+
+            # Atlas, follower, template all ride on the same subject correction.
+            if self.atlas_loaded and self.atlas_data is not None:
+                _save(self.atlas_data, self.correction @ self.atlas_sform,
+                      self._atlas_nifti_path, "atlas")
+            if self.follower_loaded and self.follower_data is not None:
+                _save(self.follower_data, self.correction @ self.follower_sform,
+                      self._follower_nifti_path, "follower")
+            if self.template_loaded and self.template_data is not None:
+                _save(self.template_data, self.correction @ self.template_sform,
+                      self._template_mri_path, "template")
+        except Exception as e:
+            self.status_var.set("Error saving corrected NIfTI")
+            messagebox.showerror("Error", str(e))
+            import traceback; traceback.print_exc()
+            return
+
+        self.status_var.set(f"Saved {len(written)} corrected NIfTI file(s) -> {out_dir}")
+        listing = "\n".join(os.path.basename(p) for p in written)
         messagebox.showinfo(
             "Saved",
-            f"Wrote {out}\n\n"
-            "To run @animal_warper on this file, set it as default_path in "
-            "mri_viewer_config.json. The new NIfTI's affine already includes "
-            "the correction, so loading it fresh will start with identity "
-            "correction.",
+            f"Wrote {len(written)} file(s) to:\n{out_dir}\n\n{listing}\n\n"
+            "Each NIfTI's affine already includes the subject correction, so "
+            "they all share the same corrected world space and line up when "
+            "loaded fresh (identity correction).",
         )
 
     def _load_version(self, idx):
@@ -184,8 +205,8 @@ class CorrectionMixin:
             txt.insert(tk.END, f"\n=== ATLAS ===\n")
             txt.insert(tk.END, f"NIfTI: {self._atlas_nifti_path}\n")
             txt.insert(tk.END, f"sform:\n{self.atlas_sform}\n")
-            txt.insert(tk.END, f"atlas_correction:\n{self.atlas_correction}\n")
-            txt.insert(tk.END, f"combined (atlas_corr @ sform):\n{self.atlas_correction @ self.atlas_sform}\n")
+            txt.insert(tk.END, f"subject correction:\n{self.correction}\n")
+            txt.insert(tk.END, f"combined (correction @ sform):\n{self.correction @ self.atlas_sform}\n")
         h = self.img.header
         if hasattr(h, "general_info"):
             txt.insert(tk.END, "\n=== GENERAL INFO ===\n")

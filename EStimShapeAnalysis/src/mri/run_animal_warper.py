@@ -439,14 +439,10 @@ def main():
         print(f'  "atlas_nifti_path":   "{warped_atlas}",')
     if warped_template:
         print(f'  "template_mri_path":  "{warped_template}",')
-    if subj_corr is not None:
-        print("Reset atlas_correction to identity in the viewer — the warp "
-              "aligned to your AC/PC-corrected MRI space, so display lines "
-              "up automatically.")
-    else:
-        print("The NIfTI was warped in native scanner space. If you use a "
-              "subject correction matrix in the viewer, set atlas_correction "
-              "to that same matrix; otherwise leave it at identity.")
+    print("The atlas/template now ride on the subject correction in the "
+          "viewer (animal_warper output is in native subject space), so they "
+          "track the subject MRI automatically — no atlas-specific alignment "
+          "step is needed.")
 
 
 if __name__ == "__main__":
