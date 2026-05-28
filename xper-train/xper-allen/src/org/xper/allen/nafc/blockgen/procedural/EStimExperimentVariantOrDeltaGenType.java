@@ -1,10 +1,13 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
 import org.xper.allen.nafc.NAFCStim;
 
 import javax.sql.DataSource;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -86,22 +89,28 @@ public class EStimExperimentVariantOrDeltaGenType extends EStimExperimentVariant
      * trials — vs. the variant-only path which yields numVariants * numSets.
      */
     private List<NAFCStim> genDeltaOnlyTrials(EStimExperimentGenType.EStimExperimentGenParameters parameters) {
-        List<NAFCStim> newBlock = new LinkedList<>();
+        List<NAFCStim> newBlock = new LinkedList<NAFCStim>();
 
         DataSource gaDataSource = ((EStimShapeExperimentTrialGenerator) generator).getGaDataSource();
         JdbcTemplate gaJDBCTemplate = new JdbcTemplate(gaDataSource);
 
-        List<long[]> allPairs;
+        RowMapper pairMapper = new RowMapper() {
+            public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
+                return new long[]{rs.getLong("variant_id"), rs.getLong("delta_id")};
+            }
+        };
+
+        List allPairs;
         if (parameters.stimId == 0) {
             allPairs = gaJDBCTemplate.query(
                     "SELECT variant_id, delta_id FROM IncludedDeltas WHERE included = TRUE",
-                    (rs, n) -> new long[]{rs.getLong("variant_id"), rs.getLong("delta_id")}
+                    pairMapper
             );
         } else {
             allPairs = gaJDBCTemplate.query(
                     "SELECT variant_id, delta_id FROM IncludedDeltas WHERE included = TRUE AND variant_id = ?",
                     new Object[]{parameters.stimId},
-                    (rs, n) -> new long[]{rs.getLong("variant_id"), rs.getLong("delta_id")}
+                    pairMapper
             );
         }
         if (allPairs.isEmpty()) {
@@ -110,7 +119,7 @@ public class EStimExperimentVariantOrDeltaGenType extends EStimExperimentVariant
                     " Run the PlotVariantDeltas analysis pipeline first to populate this table.");
         }
 
-        List<long[]> assignedPairs = new LinkedList<>();
+        List assignedPairs = new LinkedList();
         if (parameters.getNumTrials() <= 0) {
             int numSets = parameters.getNumTrials() * -1;
             for (int i = 0; i < numSets; i++) {
@@ -124,7 +133,8 @@ public class EStimExperimentVariantOrDeltaGenType extends EStimExperimentVariant
             }
         }
 
-        for (long[] pair : assignedPairs) {
+        for (int i = 0; i < assignedPairs.size(); i++) {
+            long[] pair = (long[]) assignedPairs.get(i);
             long variantId = pair[0];
             long sampleDeltaId = pair[1];
 
