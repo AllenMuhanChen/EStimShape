@@ -1,6 +1,8 @@
 package org.xper.allen.shuffle;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.xper.Dependency;
 import org.xper.allen.Stim;
 import org.xper.allen.app.shuffle.ShuffleConfig;
@@ -11,10 +13,16 @@ import org.xper.allen.twodvsthreed.TwoDVsThreeDTrialGenerator;
 import org.xper.util.FileUtil;
 
 import javax.sql.DataSource;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class ShuffleTrialGenerator extends TwoDVsThreeDTrialGenerator {
+
+    private static final int NUM_BINS = 5;
+    private static final int STIMS_PER_BIN = 2;
 
     private List<ShuffleType> shuffleTypes = Arrays.asList(
             ShuffleType.NONE,
@@ -24,40 +32,6 @@ public class ShuffleTrialGenerator extends TwoDVsThreeDTrialGenerator {
     );
 
     public static void main(String[] args) {
-        // Set default values
-        int startRank = 1;
-        int endRank = 10;
-
-        // Parse command line arguments if provided
-        if (args.length >= 1) {
-            try {
-                startRank = Integer.parseInt(args[0]);
-            } catch (NumberFormatException e) {
-                System.err.println("Error parsing startRank argument. Using default value: " + startRank);
-            }
-        }
-
-        if (args.length >= 2) {
-            try {
-                endRank = Integer.parseInt(args[1]);
-            } catch (NumberFormatException e) {
-                System.err.println("Error parsing endRank argument. Using default value: " + endRank);
-            }
-        }
-
-        // Validate the input
-        if (startRank < 1) {
-            System.err.println("startRank must be at least 1. Using default value: 1");
-            startRank = 1;
-        }
-
-        if (endRank < startRank) {
-            System.err.println("endRank must be greater than or equal to startRank. Using value: " + startRank);
-            endRank = startRank;
-        }
-
-        System.out.println("Using rank range: " + startRank + " to " + endRank);
-
         // Create and configure the generator
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.config_class"),
@@ -66,18 +40,14 @@ public class ShuffleTrialGenerator extends TwoDVsThreeDTrialGenerator {
 
         ShuffleTrialGenerator gen = context.getBean(ShuffleTrialGenerator.class, "generator");
 
-        // Set the rank range
-        gen.startRank = startRank;
-        gen.endRank = endRank;
-
         // Generate trials
         gen.generate();
     }
 
     @Override
     protected void addTrials() {
-        //Read top N 3D stimuli from the ga database
-        List<Long> threeDStimIds = fetchTopNStimIds("3D");
+        // Read 3D stimuli uniformly sampled across the response distribution
+        List<Long> threeDStimIds = fetchBinnedStimIds("3D");
 
         ShuffleStim stim;
         for (Long gaStimId : threeDStimIds) {
@@ -89,5 +59,76 @@ public class ShuffleTrialGenerator extends TwoDVsThreeDTrialGenerator {
                 stims.add(stim);
             }
         }
+    }
+
+    /**
+     * Fetches stimuli ids for a specific texture type, uniformly sampled across
+     * the response distribution. Divides the sorted-by-response stimuli into
+     * NUM_BINS equally-sized bins and pulls the top STIMS_PER_BIN from each bin.
+     */
+    protected List<Long> fetchBinnedStimIds(String type) {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(getGaDataSource());
+        List<Long> resultStimIds = new ArrayList<>();
+
+        int totalCount;
+        if ("3D".equals(type)) {
+            totalCount = (Integer) jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM StimGaInfo s " +
+                            "JOIN StimTexture t ON s.stim_id = t.stim_id " +
+                            "WHERE t.texture_type IN ('SHADE', 'SPECULAR')",
+                    Integer.class
+            );
+        } else {
+            totalCount = (Integer) jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM StimGaInfo s " +
+                            "JOIN StimTexture t ON s.stim_id = t.stim_id " +
+                            "WHERE t.texture_type = ?",
+                    new Object[]{type},
+                    Integer.class
+            );
+        }
+
+        int binSize = totalCount / NUM_BINS;
+        System.out.println("Total " + type + " stimuli: " + totalCount + ", bin size: " + binSize);
+
+        for (int bin = 0; bin < NUM_BINS; bin++) {
+            int offset = bin * binSize;
+            List<Long> binStimIds;
+            if ("3D".equals(type)) {
+                binStimIds = jdbcTemplate.query(
+                        "SELECT s.stim_id FROM StimGaInfo s " +
+                                "JOIN StimTexture t ON s.stim_id = t.stim_id " +
+                                "WHERE t.texture_type IN ('SHADE', 'SPECULAR') " +
+                                "ORDER BY s.response DESC " +
+                                "LIMIT ? OFFSET ?",
+                        new Object[]{STIMS_PER_BIN, offset},
+                        new RowMapper() {
+                            @Override
+                            public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
+                                return rs.getLong("stim_id");
+                            }
+                        }
+                );
+            } else {
+                binStimIds = jdbcTemplate.query(
+                        "SELECT s.stim_id FROM StimGaInfo s " +
+                                "JOIN StimTexture t ON s.stim_id = t.stim_id " +
+                                "WHERE t.texture_type = ? " +
+                                "ORDER BY s.response DESC " +
+                                "LIMIT ? OFFSET ?",
+                        new Object[]{type, STIMS_PER_BIN, offset},
+                        new RowMapper() {
+                            @Override
+                            public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
+                                return rs.getLong("stim_id");
+                            }
+                        }
+                );
+            }
+            System.out.println("Bin " + bin + " (offset " + offset + ") stim IDs: " + binStimIds);
+            resultStimIds.addAll(binStimIds);
+        }
+
+        return resultStimIds;
     }
 }
