@@ -31,7 +31,9 @@ import java.util.Set;
  */
 public class EStimShapeVariantsDeletedNAFCStim extends EStimShapeVariantsNAFCStim {
 
-    protected long deltaMStickStimSpecId;
+    // The variant's included deltas. With 2 deltas in the GA, both can be offered as procedural
+    // distractors; the count actually used autowires from numProceduralDistractors.
+    protected List<Long> deltaMStickStimSpecIds;
 
     public static EStimShapeVariantsDeletedNAFCStim createSampledDeletedNAFCStim(
             EStimShapeExperimentTrialGenerator generator,
@@ -62,10 +64,10 @@ public class EStimShapeVariantsDeletedNAFCStim extends EStimShapeVariantsNAFCSti
         super(generator, parameters, variantId, isEStimEnabled, eStimSpecId);
         // Sample is built from the variant (its tuned-for comp is then deleted).
         baseMStickStimSpecId = variantId;
-        deltaMStickStimSpecId = getDeltaIdFromVariantId(variantId);
+        deltaMStickStimSpecIds = getDeltaIdsFromVariantId(variantId);
     }
 
-    private long getDeltaIdFromVariantId(Long variantId) {
+    private List<Long> getDeltaIdsFromVariantId(Long variantId) {
         JdbcTemplate gaJDBCTemplate = new JdbcTemplate(gaDataSource);
 
         List<Long> deltaIds = gaJDBCTemplate.queryForList(
@@ -78,8 +80,7 @@ public class EStimShapeVariantsDeletedNAFCStim extends EStimShapeVariantsNAFCSti
             throw new RuntimeException("No included deltas found for variant_id: " + variantId);
         }
 
-        Random random = new Random();
-        return deltaIds.get(random.nextInt(deltaIds.size()));
+        return deltaIds;
     }
 
     @Override
@@ -159,25 +160,29 @@ public class EStimShapeVariantsDeletedNAFCStim extends EStimShapeVariantsNAFCSti
 
     @Override
     protected void generateProceduralDistractors(ProceduralMatchStick sample) {
+        // Slot layout:
+        //   includeRemovedChoice=true:  procedural = [variant, delta_0, delta_1, ...]
+        //   includeRemovedChoice=false: procedural = [delta_0, delta_1, ...]
+        // The variant takes one slot only when the removed shape is the match.
+        int variantSlots = includeRemovedChoice ? 1 : 0;
+        int deltaSlots = numProceduralDistractors - variantSlots;
+
+        if (deltaSlots < 0) {
+            throw new IllegalStateException("Deleted trial with includeRemovedChoice requires at least 1 procedural distractor slot for the variant, but numProceduralDistractors=" + numProceduralDistractors + ". Increase numChoices or reduce numRandDistractors.");
+        }
+        // No-go: can't ask for more delta distractors than there are delta pairs for this variant.
+        if (deltaSlots > deltaMStickStimSpecIds.size()) {
+            throw new IllegalStateException("Requested " + deltaSlots + " delta distractor(s) for deleted trial, but only " + deltaMStickStimSpecIds.size() + " delta pair(s) are available for this variant. Reduce numChoices, increase numRandDistractors, or produce more deltas.");
+        }
+
         if (includeRemovedChoice) {
-            // Removed shape is the sample/match; variant and delta are both procedural choices.
-            if (numProceduralDistractors != 2) {
-                throw new IllegalStateException("Deleted trial with includeRemovedChoice requires exactly 2 procedural distractors (variant + delta), got " + numProceduralDistractors + ". Set numChoices=" + (3 + numRandDistractors) + " or adjust numRandDistractors.");
-            }
             PruningMatchStick variantDistractor = buildChoiceFromSpec(baseMStickStimSpecId);
             mSticks.addProceduralDistractor(variantDistractor);
             mStickSpecs.addProceduralDistractor(mStickToSpec(variantDistractor));
-
-            PruningMatchStick deltaDistractor = buildChoiceFromSpec(deltaMStickStimSpecId);
-            mSticks.addProceduralDistractor(deltaDistractor);
-            mStickSpecs.addProceduralDistractor(mStickToSpec(deltaDistractor));
-        } else {
-            // Removed shape is hidden; variant is the match (see generateMatch), delta is the
-            // sole procedural distractor.
-            if (numProceduralDistractors != 1) {
-                throw new IllegalStateException("Deleted trial without includeRemovedChoice requires exactly 1 procedural distractor (delta), got " + numProceduralDistractors + ". Set numChoices=" + (2 + numRandDistractors) + " or adjust numRandDistractors.");
-            }
-            PruningMatchStick deltaDistractor = buildChoiceFromSpec(deltaMStickStimSpecId);
+        }
+        for (int i = 0; i < deltaSlots; i++) {
+            long specId = deltaMStickStimSpecIds.get(i).longValue();
+            PruningMatchStick deltaDistractor = buildChoiceFromSpec(specId);
             mSticks.addProceduralDistractor(deltaDistractor);
             mStickSpecs.addProceduralDistractor(mStickToSpec(deltaDistractor));
         }
@@ -204,12 +209,15 @@ public class EStimShapeVariantsDeletedNAFCStim extends EStimShapeVariantsNAFCSti
     @Override
     protected void assignLabels() {
         labels.setSample(new LinkedList<>(Arrays.asList("sample")));
+        int variantSlots = includeRemovedChoice ? 1 : 0;
+        int deltaSlots = numProceduralDistractors - variantSlots;
         if (includeRemovedChoice) {
             labels.setMatch(new LinkedList<>(Arrays.asList("match")));
             labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("variant")));
-            labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("delta")));
         } else {
             labels.setMatch(new LinkedList<>(Arrays.asList("variant")));
+        }
+        for (int i = 0; i < deltaSlots; i++) {
             labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("delta")));
         }
         for (int i = 0; i < numRandDistractors; i++) {
