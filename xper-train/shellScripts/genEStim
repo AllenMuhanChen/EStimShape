@@ -7,6 +7,6 @@ cd $DIST/allen
 
 #shape, polarity, d, d1, d2, dp, a, a1, a2, refractoryPeriod
 #PARAMS='channels=[A023, A009, A021]. polarity={PositiveFirst;NegativeFirst}. a=(3.5, 3.5). refractoryPeriod=4000. triggerDelay=100'
-PARAMS='channels=[A000, A024, A006]. polarity={PositiveFirst;NegativeFirst}. a=(3.5, 3.5). refractoryPeriod=4000. triggerDelay=100'
+PARAMS='channels=[A028, A011, A001]. polarity={PositiveFirst;NegativeFirst}. a=(3.5, 3.5). refractoryPeriod=4000. triggerDelay=100'
 
 java -jar EStimSpecWriter.jar "$PARAMS"
