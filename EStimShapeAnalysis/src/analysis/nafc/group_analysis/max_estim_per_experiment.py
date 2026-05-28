@@ -907,22 +907,22 @@ def main():
         x_spacing=0.5,
         width_per_exp=1.0,
         # weighting=None    #-> original equal-per-session test (default)
-        weighting='sqrt',  #-> weight sessions by sqrt(best-condition trials)
+        # weighting='sqrt',  #-> weight sessions by sqrt(best-condition trials)
         # weighting='trials'-> weight sessions by best-condition trial count
         # weighting=None,
         # studentize=False -> raw % effect (default); True -> standardize each
         #                     condition by its own null before taking the max
         #                     (fairer across conditions with very different n).
         studentize=True,
-        min_trials=10
+        min_trials=15
     )
 
     # ---- Test 2: exceedance-count (are there more conditions over x% than chance?) ----
     plot_exceedance_count_test(
-        exclude_session_ids=None,   # e.g. ["260423_0"] to drop sessions
+        exclude_session_ids=["260421_0", "260410_0"],    # e.g. ["260423_0"] to drop sessions
         # rejected for: ["Improper GA", "GA on cell not correlated with surrounding cells"]
         # start_session_id="260423_0",
-        start_session_id="260325_0",
+        start_session_id="260402_0",
         algorithm_label='None',
         metric=METRIC_PCT_HYP_VS_DELTA,
         # thresholds=None -> (5,10,15,20)% in raw mode, (1.0..3.0) z when studentized
@@ -949,6 +949,27 @@ def main():
         algorithm_label='None',
         metric=METRIC_PCT_HYP_VS_DELTA,
         min_trials=10,
+        studentize=True,   # tally winners of the studentized maxT
+        save_path="/home/connorlab/Documents/plots/across_experiments/winning_conditions.png",
+    )
+
+    # ---- Test 3: studentized winners — raw vs studentized effect (diagnostic) ----
+    plot_studentized_winners(
+        exclude_session_ids=["260421_0", "260410_0"],
+        start_session_id="260402_0",
+        algorithm_label='None',
+        metric=METRIC_PCT_HYP_VS_DELTA,
+        min_trials=15,
+        save_path="/home/connorlab/Documents/plots/across_experiments/studentized_winners.png",
+    )
+
+    # ---- Test 4: which condition parameters tend to win the max ----
+    plot_winning_conditions(
+        exclude_session_ids=["260421_0", "260410_0"],
+        start_session_id="260402_0",
+        algorithm_label='None',
+        metric=METRIC_PCT_HYP_VS_DELTA,
+        min_trials=15,
         studentize=True,   # tally winners of the studentized maxT
         save_path="/home/connorlab/Documents/plots/across_experiments/winning_conditions.png",
     )
