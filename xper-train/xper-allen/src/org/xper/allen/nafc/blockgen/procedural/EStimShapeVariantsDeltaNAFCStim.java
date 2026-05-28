@@ -57,19 +57,38 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
             // Sample is one of the deltas; the remaining choices are the variant and the other deltas.
             Random random = new Random();
             long sampleDeltaId = includedDeltaIds.get(random.nextInt(includedDeltaIds.size()));
-            baseMStickStimSpecId = sampleDeltaId;
-
-            distractorMStickStimSpecIds = new ArrayList<>();
-            distractorMStickStimSpecIds.add(variantId);
-            for (Long deltaId : includedDeltaIds) {
-                if (!deltaId.equals(sampleDeltaId)) {
-                    distractorMStickStimSpecIds.add(deltaId);
-                }
-            }
+            assignDeltaTrialSpecs(variantId, sampleDeltaId, includedDeltaIds);
         } else{
             // Sample is the variant; the choices are the variant's included deltas.
             baseMStickStimSpecId = variantId;
             distractorMStickStimSpecIds = new ArrayList<>(includedDeltaIds);
+        }
+    }
+
+    /**
+     * Delta-trial constructor with an explicit sample delta. Use this when the caller is
+     * iterating over delta_id pairs (so each included delta becomes its own sample trial)
+     * rather than letting the constructor pick one delta at random per variant.
+     */
+    public EStimShapeVariantsDeltaNAFCStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, Long variantId, Long sampleDeltaId, boolean isEStimEnabled, Long eStimSpecId) {
+        super(generator, parameters, variantId, isEStimEnabled, eStimSpecId);
+        this.isDelta = true;
+
+        List<Long> includedDeltaIds = getDeltaIdsFromVariantId(variantId);
+        if (!includedDeltaIds.contains(sampleDeltaId)) {
+            throw new RuntimeException("sampleDeltaId " + sampleDeltaId + " is not an included delta for variant_id " + variantId);
+        }
+        assignDeltaTrialSpecs(variantId, sampleDeltaId, includedDeltaIds);
+    }
+
+    private void assignDeltaTrialSpecs(Long variantId, long sampleDeltaId, List<Long> includedDeltaIds) {
+        baseMStickStimSpecId = sampleDeltaId;
+        distractorMStickStimSpecIds = new ArrayList<>();
+        distractorMStickStimSpecIds.add(variantId);
+        for (Long deltaId : includedDeltaIds) {
+            if (!deltaId.equals(sampleDeltaId)) {
+                distractorMStickStimSpecIds.add(deltaId);
+            }
         }
     }
 
