@@ -25,7 +25,7 @@ from src.mri.correction import (
     load_crop_bounds, save_crop_bounds,
 )
 from src.mri.chamber import fit_chamber, draw_chamber_overlay, calc_penetration_target, calc_target_angles
-from src.mri.penetrations import PenetrationStore, PenetrationListWindow, COLORS
+from src.mri.penetrations import PenetrationStore, PenetrationListWindow, COLORS, DEFAULT_TABLE
 from src.mri.atlas import (
     load_atlas, load_atlas_labels,
     reslice_atlas, draw_atlas_contours,
@@ -94,6 +94,10 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
         self.voxel_sizes = None
         self.default_path = default_path
         self.output_voxel_size = 0.4
+
+        # Config file (EBZ + paths are stored per-config, so configs are
+        # effectively per-MRI/per-monkey and can be loaded/saved at runtime).
+        self.config_path = os.path.join(os.getcwd(), "mri_viewer_config.json")
 
         # Correction persistence
         self.corr_config = None
@@ -181,14 +185,13 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
 
         # ---- Atlas state ----
         self.atlas_data = None          # ndarray (I,J,K) int labels
-        self.atlas_sform = None         # 4×4 voxel→atlas-stereo
-        self.atlas_correction = np.eye(4)  # 4×4 atlas-stereo→corrected-world
+        self.atlas_sform = None         # 4×4 voxel→subject-native-world
         self.atlas_label_names = {}     # {int: str}
         self.atlas_show = False         # overlay visible?
         self.atlas_loaded = False
         self._atlas_nifti_path = None
         self._atlas_label_path = None
-        # Atlas correction persistence (reuses correction.py helpers)
+        # Atlas sidecar JSON — now only persists per-region color highlights
         self.atlas_corr_config = None
         self.atlas_corr_json_path = None
         # Contour appearance
@@ -228,15 +231,25 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
         main = ttk.Frame(self.root)
         main.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
+        # Config row (top): load/save the config that bundles MRI path + EBZ +
+        # atlas/follower/template/chamber paths for this monkey/session.
+        cfg_row = ttk.Frame(main); cfg_row.pack(fill=tk.X, pady=2)
+        ttk.Label(cfg_row, text="Config:").pack(side=tk.LEFT, padx=3)
+        self.config_path_var = tk.StringVar(value=self.config_path)
+        ttk.Entry(cfg_row, textvariable=self.config_path_var, width=55,
+                  state="readonly").pack(side=tk.LEFT, fill=tk.X, expand=True, padx=3)
+        ttk.Button(cfg_row, text="Load Config...", command=self._load_config_dialog).pack(side=tk.LEFT, padx=2)
+        ttk.Button(cfg_row, text="Save", command=self._save_defaults).pack(side=tk.LEFT, padx=2)
+        ttk.Button(cfg_row, text="Save As...", command=self._save_config_as).pack(side=tk.LEFT, padx=2)
+
         # File row
         row = ttk.Frame(main); row.pack(fill=tk.X, pady=2)
-        ttk.Label(row, text="PAR File:").pack(side=tk.LEFT, padx=3)
+        ttk.Label(row, text="MRI File:").pack(side=tk.LEFT, padx=3)
         self.file_path_var = tk.StringVar(value=self.default_path or "")
         ttk.Entry(row, textvariable=self.file_path_var, width=55).pack(
             side=tk.LEFT, fill=tk.X, expand=True, padx=3)
         ttk.Button(row, text="Browse...", command=self._browse).pack(side=tk.LEFT, padx=2)
         ttk.Button(row, text="Load", command=self.load_and_visualize).pack(side=tk.LEFT, padx=2)
-        ttk.Button(row, text="Save Defaults", command=self._save_defaults).pack(side=tk.LEFT, padx=2)
 
         # Status
         self.status_var = tk.StringVar(value="Ready")
@@ -345,10 +358,30 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
         return os.path.exists(b + ".REC") or os.path.exists(b + ".rec")
 
     def _save_defaults(self):
+        """Save the current config to the active config file."""
+        self._save_config(self.config_path)
+
+    def _save_config_as(self):
+        """Save the current config to a new file and make it the active one."""
+        p = self.file_path_var.get().strip()
+        initialdir = os.path.dirname(self.config_path) if self.config_path else os.getcwd()
+        initialfile = os.path.basename(self.config_path) if self.config_path else "mri_viewer_config.json"
+        out = filedialog.asksaveasfilename(
+            title="Save config as",
+            initialdir=initialdir, initialfile=initialfile,
+            defaultextension=".json",
+            filetypes=[("JSON config", "*.json"), ("All", "*.*")])
+        if not out:
+            return
+        if self._save_config(out):
+            self.config_path = out
+            self.config_path_var.set(out)
+
+    def _save_config(self, cp):
+        """Write the current state to config file `cp`. Returns True on success."""
         p = self.file_path_var.get().strip()
         if not p:
-            messagebox.showerror("Error", "No path"); return
-        cp = os.path.join(os.getcwd(), "mri_viewer_config.json")
+            messagebox.showerror("Error", "No MRI path to save."); return False
         try:
             c = {"default_path": p}
             if self.ebz_set:
@@ -361,20 +394,129 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
                 c["atlas_label_path"] = self._atlas_label_path
             if self._template_mri_path and os.path.exists(self._template_mri_path):
                 c["template_mri_path"] = self._template_mri_path
+            if self._follower_nifti_path and os.path.exists(self._follower_nifti_path):
+                c["follower_nifti_path"] = self._follower_nifti_path
             if self._pen_view_path and os.path.exists(self._pen_view_path):
                 c["pen_view_path"] = self._pen_view_path
+            pen_table = self.pen_table_var.get().strip() if hasattr(self, "pen_table_var") else self.pen_store.table
+            if pen_table:
+                c["penetration_table"] = pen_table
             sid = self.session_id_var.get().strip()
             if sid:
                 c["session_id"] = sid
             with open(cp, "w") as f:
                 json.dump(c, f, indent=2)
             self.default_path = p
-            # Show exactly what got saved so it's easy to verify
             saved_keys = [k for k in c if k != "default_path"]
             extra = f"  +  {', '.join(saved_keys)}" if saved_keys else ""
-            messagebox.showinfo("Saved", f"Defaults saved{extra}")
+            messagebox.showinfo("Saved", f"Config saved to {os.path.basename(cp)}{extra}")
+            return True
         except Exception as e:
-            messagebox.showerror("Error", str(e))
+            messagebox.showerror("Error", str(e)); return False
+
+    def _load_config_dialog(self):
+        out = filedialog.askopenfilename(
+            title="Load config",
+            initialdir=os.path.dirname(self.config_path) if self.config_path else os.getcwd(),
+            filetypes=[("JSON config", "*.json"), ("All", "*.*")])
+        if not out:
+            return
+        self._load_config(out)
+
+    def _reset_overlay_state(self):
+        """Clear atlas/follower/template overlays so a config switch starts clean.
+        The new config re-applies whatever it specifies on top of this."""
+        self.atlas_data = None; self.atlas_loaded = False; self.atlas_show = False
+        self.atlas_label_names = {}; self._atlas_nifti_path = None; self._atlas_label_path = None
+        self.atlas_region_highlights = {}
+        self.follower_data = None; self.follower_loaded = False; self.follower_show = False
+        self._follower_nifti_path = None
+        self.template_data = None; self.template_loaded = False
+        self._template_mri_path = None; self.template_blend = 0.0
+        if hasattr(self, "btn_toggle_atlas"):
+            self.btn_toggle_atlas.config(text="Show Atlas")
+        if hasattr(self, "btn_toggle_follower"):
+            self.btn_toggle_follower.config(text="Show Follower")
+        if hasattr(self, "blend_var"):
+            self.blend_var.set(0.0); self.blend_lbl.config(text="0%")
+
+    def _load_config(self, path, do_load=True, override_default_path=None):
+        """Read config JSON at `path` and apply it. When do_load is True, fully
+        loads the MRI + EBZ + chamber + atlas + follower + template (like startup).
+        Returns the parsed config dict (or {} if the file is missing/invalid)."""
+        cfg = {}
+        if os.path.exists(path):
+            try:
+                with open(path) as f:
+                    cfg = json.load(f)
+            except Exception as e:
+                messagebox.showerror("Config error", str(e)); return {}
+            self.config_path = path
+            self.config_path_var.set(path)
+        elif override_default_path is None:
+            return {}
+
+        saved = override_default_path or cfg.get("default_path")
+        if saved:
+            self.default_path = saved
+            self.file_path_var.set(saved)
+        if "ebz_world" in cfg:
+            ew = cfg["ebz_world"]
+            self.ebz_ml_var.set(ew[0]); self.ebz_ap_var.set(ew[1]); self.ebz_dv_var.set(ew[2])
+        if "session_id" in cfg:
+            self.session_id_var.set(cfg["session_id"])
+        pen_view = cfg.get("pen_view_path")
+        if pen_view and os.path.exists(pen_view):
+            self._pen_view_path_to_load = pen_view
+
+        # Penetration table — lets each monkey keep its penetrations separate.
+        # Absent key resets to the default table.
+        pen_table = cfg.get("penetration_table", DEFAULT_TABLE)
+        try:
+            changed = self.pen_store.set_table(pen_table)
+        except ValueError as e:
+            messagebox.showerror("Config error", str(e))
+            changed = False
+        if hasattr(self, "pen_table_var"):
+            self.pen_table_var.set(self.pen_store.table)
+        # If already connected (runtime config switch), reconnect to the new table.
+        if changed and self.pen_store.connected:
+            try:
+                self.pen_store.connect()
+                self._on_db_connected()
+            except Exception as e:
+                self.status_var.set(f"DB reconnect failed for table '{pen_table}': {e}")
+
+        if not do_load:
+            return cfg
+
+        if not (saved and os.path.exists(saved)):
+            return cfg
+
+        self._reset_overlay_state()
+        self.load_and_visualize()
+        if "ebz_world" in cfg:
+            self._set_ebz_manual()
+        else:
+            self._reset_ebz()
+        monkey_path = cfg.get("monkey_specific_path")
+        if monkey_path and os.path.exists(monkey_path):
+            self._load_chamber_from_path(monkey_path)
+        atlas_nifti = cfg.get("atlas_nifti_path")
+        if atlas_nifti and os.path.exists(atlas_nifti):
+            self._load_atlas_from_path(atlas_nifti)
+            atlas_labels = cfg.get("atlas_label_path")
+            if atlas_labels and os.path.exists(atlas_labels):
+                self._load_atlas_labels_from_path(atlas_labels)
+            template_mri = cfg.get("template_mri_path")
+            if template_mri and os.path.exists(template_mri):
+                self._load_template_from_path(template_mri)
+        follower_nifti = cfg.get("follower_nifti_path")
+        if follower_nifti and os.path.exists(follower_nifti):
+            self._load_follower_from_path(follower_nifti)
+        if self.data is not None:
+            self.display_all()
+        return cfg
 
     def _corr_json_for(self, par):
         return os.path.splitext(par)[0] + "_corrections.json"
@@ -509,12 +651,17 @@ class TriplanarMRIViewer(PanelsMixin, DisplayMixin, CropMixin, ChamberMixin,
 
     # ================================================================ Atlas combined inverse
     def _atlas_inv_combined(self):
-        """inv(atlas_correction @ atlas_sform): corrected_world → atlas_voxel."""
-        return np.linalg.inv(self.atlas_correction @ self.atlas_sform)
+        """inv(correction @ atlas_sform): corrected_world → atlas_voxel.
+
+        animal_warper brings the atlas into the subject's native scanner
+        space, so the atlas voxel→world map is just atlas_sform. The subject
+        correction (AC/PC alignment) then moves the atlas in lock-step with
+        the subject MRI."""
+        return np.linalg.inv(self.correction @ self.atlas_sform)
 
     def _follower_inv_combined(self):
-        """corrected_world → follower_voxel. The follower shares the atlas's
-        aligned space, so it rides on the same manual atlas_correction nudge."""
-        return np.linalg.inv(self.atlas_correction @ self.follower_sform)
+        """corrected_world → follower_voxel. The follower shares the subject's
+        native space, so it rides on the same subject correction."""
+        return np.linalg.inv(self.correction @ self.follower_sform)
 
     # ================================================================ Display

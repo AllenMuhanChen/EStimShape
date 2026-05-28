@@ -9,6 +9,8 @@
   "atlas_nifti_path": "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/atlas_rigid_aligned.nii.gz",
   "atlas_label_path": "/home/connorlab/Documents/NMT_v2.0_asym/tables_D99/D99_labeltable.txt",
   "template_mri_path": "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/template_in_subject_rigid_aligned.nii.gz",
+  "follower_nifti_path": "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/NMT_v2.0_asym_segmentation_rigid_aligned.nii.gz",
   "pen_view_path": "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/importants.json",
-  "session_id": "260520_0"
+  "penetration_table": "Penetrations",
+  "session_id": "260528_0"
 }

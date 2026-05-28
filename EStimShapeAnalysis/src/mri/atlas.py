@@ -1,19 +1,20 @@
 """
 Atlas overlay for the tri-planar MRI viewer.
 
-Loads a NIfTI label atlas (e.g. D99 in NMT v2.0), applies a user-adjustable
-correction transform to register it to the MRI's corrected world space, and
-draws region-boundary contours on top of the MRI slices.
+Loads a NIfTI label atlas (e.g. D99 in NMT v2.0) that animal_warper has
+warped into the subject's native scanner space, and draws region-boundary
+contours on top of the MRI slices.
 
 Transform chain
 ---------------
-    atlas_voxel  →  [atlas_sform]  →  atlas_stereo  →  [atlas_correction]  →  corrected_world
+    atlas_voxel  →  [atlas_sform]  →  subject_native_world  →  [correction]  →  corrected_world
 
-    atlas_correction is the manually adjustable 4×4 affine (rotation + translation)
-    that brings the atlas template space into alignment with the subject MRI.
+    The atlas shares the subject's native voxel→world map (animal_warper output),
+    so the subject correction (AC/PC alignment) moves the atlas in lock-step
+    with the subject MRI — there is no atlas-specific correction.
 
     To reslice from corrected_world back to atlas voxels:
-        atlas_voxel = inv(atlas_correction @ atlas_sform) @ corrected_world_pt
+        atlas_voxel = inv(correction @ atlas_sform) @ corrected_world_pt
 """
 
 import numpy as np
@@ -91,7 +92,7 @@ def reslice_atlas(atlas_data, inv_atlas_combined, view_display_bounds, grid_size
     atlas_data : ndarray (I, J, K)
         Integer label volume.
     inv_atlas_combined : ndarray (4, 4)
-        inv(atlas_correction @ atlas_sform) — maps corrected-world → atlas voxel.
+        inv(correction @ atlas_sform) — maps corrected-world → atlas voxel.
     view_display_bounds : (h_lo, h_hi, v_lo, v_hi)
         Horizontal and vertical world-coordinate extent for this view.
     grid_size : (n_h, n_v)

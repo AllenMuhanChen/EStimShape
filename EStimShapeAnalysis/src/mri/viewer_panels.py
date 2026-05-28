@@ -109,6 +109,9 @@ class PanelsMixin:
         self.btn_load_chamber.pack(side=tk.LEFT, padx=3)
         self.btn_toggle_chamber = ttk.Button(r1, text="Hide Chamber", command=self._toggle_chamber, state="disabled")
         self.btn_toggle_chamber.pack(side=tk.LEFT, padx=3)
+        ttk.Label(r1, text="Pen table:").pack(side=tk.LEFT, padx=(10, 2))
+        self.pen_table_var = tk.StringVar(value=self.pen_store.table)
+        ttk.Entry(r1, textvariable=self.pen_table_var, width=22).pack(side=tk.LEFT, padx=2)
         self.btn_connect_db = ttk.Button(r1, text="Connect DB", command=self._connect_db)
         self.btn_connect_db.pack(side=tk.LEFT, padx=3)
         self.btn_pen_list = ttk.Button(r1, text="Penetration List", command=self._show_pen_list, state="disabled")
@@ -379,56 +382,9 @@ class PanelsMixin:
         self.blend_lbl = ttk.Label(r1b, text="0%", width=5)
         self.blend_lbl.pack(side=tk.LEFT, padx=3)
 
-        # Row 2: rotation
-        r2 = ttk.Frame(at); r2.pack(fill=tk.X, padx=3, pady=2)
-        ttk.Label(r2, text="Rotate (deg):").pack(side=tk.LEFT, padx=3)
-        for al, an in [("X(ML/roll)", "x"), ("Y(AP/pitch)", "y"), ("Z(DV/yaw)", "z")]:
-            ttk.Label(r2, text=f"{al}:").pack(side=tk.LEFT, padx=(6, 2))
-            v = tk.DoubleVar(value=0.0); setattr(self, f"atlas_rot_{an}_var", v)
-            ttk.Entry(r2, textvariable=v, width=7).pack(side=tk.LEFT, padx=2)
-
-        # Row 3: translation
-        r3 = ttk.Frame(at); r3.pack(fill=tk.X, padx=3, pady=2)
-        ttk.Label(r3, text="Translate (mm):").pack(side=tk.LEFT, padx=3)
-        for al, an in [("X(ML)", "tx"), ("Y(AP)", "ty"), ("Z(DV)", "tz")]:
-            ttk.Label(r3, text=f"{al}:").pack(side=tk.LEFT, padx=(6, 2))
-            v = tk.DoubleVar(value=0.0); setattr(self, f"atlas_trans_{an}_var", v)
-            ttk.Entry(r3, textvariable=v, width=7).pack(side=tk.LEFT, padx=2)
-
-        # Row 3b: scale (uniform by default, per-axis optional)
-        r3b = ttk.Frame(at); r3b.pack(fill=tk.X, padx=3, pady=2)
-        ttk.Label(r3b, text="Scale (%):").pack(side=tk.LEFT, padx=3)
-        ttk.Label(r3b, text="Uniform:").pack(side=tk.LEFT, padx=(6, 2))
-        self.atlas_scale_uniform_var = tk.DoubleVar(value=0.0)
-        self.atlas_scale_uniform_entry = ttk.Entry(r3b, textvariable=self.atlas_scale_uniform_var, width=7)
-        self.atlas_scale_uniform_entry.pack(side=tk.LEFT, padx=2)
-        ttk.Label(r3b, text="  Per-axis:").pack(side=tk.LEFT, padx=(10, 2))
-        self.atlas_scale_peraxis_var = tk.BooleanVar(value=False)
-        self.atlas_scale_peraxis_cb = ttk.Checkbutton(
-            r3b, variable=self.atlas_scale_peraxis_var,
-            command=self._on_atlas_scale_mode_change)
-        self.atlas_scale_peraxis_cb.pack(side=tk.LEFT, padx=2)
-        self.atlas_scale_axis_vars = {}
-        self.atlas_scale_axis_entries = {}
-        for al, an in [("X:", "sx"), ("Y:", "sy"), ("Z:", "sz")]:
-            lbl = ttk.Label(r3b, text=al); lbl.pack(side=tk.LEFT, padx=(4, 1))
-            v = tk.DoubleVar(value=0.0); self.atlas_scale_axis_vars[an] = v
-            e = ttk.Entry(r3b, textvariable=v, width=6, state="disabled")
-            e.pack(side=tk.LEFT, padx=1)
-            self.atlas_scale_axis_entries[an] = e
-        ttk.Label(r3b, text="(0 = no change)", foreground="#555555").pack(side=tk.LEFT, padx=6)
-
-        # Row 4: buttons
-        r4 = ttk.Frame(at); r4.pack(fill=tk.X, padx=3, pady=2)
-        self.btn_atlas_apply = ttk.Button(r4, text="Apply", command=self._apply_atlas_correction, state="disabled")
-        self.btn_atlas_apply.pack(side=tk.LEFT, padx=3)
-        self.btn_atlas_reset = ttk.Button(r4, text="Reset to Identity", command=self._reset_atlas_correction, state="disabled")
-        self.btn_atlas_reset.pack(side=tk.LEFT, padx=3)
-        self.btn_atlas_undo = ttk.Button(r4, text="Undo", command=self._atlas_undo, state="disabled")
-        self.btn_atlas_undo.pack(side=tk.LEFT, padx=3)
-        self.btn_atlas_redo = ttk.Button(r4, text="Redo", command=self._atlas_redo, state="disabled")
-        self.btn_atlas_redo.pack(side=tk.LEFT, padx=3)
-        ttk.Button(r4, text="History", command=self._show_atlas_history).pack(side=tk.LEFT, padx=3)
+        # Atlas alignment now follows the subject correction (animal_warper
+        # brings the atlas into native subject space), so there are no
+        # atlas-specific rotation/translation/scale controls here.
 
         # Row 5: appearance
         r5 = ttk.Frame(at); r5.pack(fill=tk.X, padx=3, pady=2)
@@ -441,11 +397,16 @@ class PanelsMixin:
 
         ttk.Label(r5, text="Line width:").pack(side=tk.LEFT, padx=(8, 3))
         self.atlas_lw_var = tk.DoubleVar(value=0.6)
-        ttk.Entry(r5, textvariable=self.atlas_lw_var, width=5).pack(side=tk.LEFT, padx=3)
+        lw_e = ttk.Entry(r5, textvariable=self.atlas_lw_var, width=5)
+        lw_e.pack(side=tk.LEFT, padx=3)
+        lw_e.bind("<Return>", self._on_atlas_appearance_change)
 
         ttk.Label(r5, text="Alpha:").pack(side=tk.LEFT, padx=(8, 3))
         self.atlas_alpha_var = tk.DoubleVar(value=0.7)
-        ttk.Entry(r5, textvariable=self.atlas_alpha_var, width=5).pack(side=tk.LEFT, padx=3)
+        al_e = ttk.Entry(r5, textvariable=self.atlas_alpha_var, width=5)
+        al_e.pack(side=tk.LEFT, padx=3)
+        al_e.bind("<Return>", self._on_atlas_appearance_change)
+        ttk.Label(r5, text="(Enter to apply)", foreground="#555555").pack(side=tk.LEFT, padx=3)
 
         # Row 6: per-region color highlights
         r6 = ttk.LabelFrame(at, text="Highlight regions (fill a named area with a color)")
@@ -472,18 +433,6 @@ class PanelsMixin:
         self.atlas_region_list_var = tk.StringVar(value="(none)")
         ttk.Label(r6, textvariable=self.atlas_region_list_var, foreground="#444444",
                   wraplength=700, justify="left").pack(anchor="w", padx=5, pady=(0, 3))
-
-        # Info / version
-        self.atlas_corr_info_var = tk.StringVar(value="")
-        ttk.Label(at, textvariable=self.atlas_corr_info_var).pack(anchor="w", padx=5, pady=1)
-        self.atlas_corr_ver_var = tk.StringVar(value="")
-        ttk.Label(at, textvariable=self.atlas_corr_ver_var).pack(anchor="w", padx=5, pady=1)
-
-        # Note
-        nr = ttk.Frame(at); nr.pack(fill=tk.X, padx=3, pady=2)
-        ttk.Label(nr, text="Note:").pack(side=tk.LEFT, padx=3)
-        self.atlas_corr_note_var = tk.StringVar(value="")
-        ttk.Entry(nr, textvariable=self.atlas_corr_note_var, width=50).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=3)
 
     def _build_follower_panel(self, parent):
         fp = ttk.LabelFrame(parent, text="Follower Overlay  (any NIfTI, e.g. segmentation — no labels file needed)")

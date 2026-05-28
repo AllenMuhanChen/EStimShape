@@ -532,6 +532,10 @@ class DisplayMixin:
         self.ebz_ml_var.set(round(self.ebz_world[0], 3))
         self.ebz_set = True
         self.btn_reset_ebz.config(state="normal")
+        # Chamber is fit in world space (screws + EBZ), so re-fit when EBZ moves
+        # or the ring/origin/axes drift away from the screw markers.
+        if self.chamber_state.get('loaded'):
+            self._refit_chamber()
         self.display_all()
 
     def _set_ebz_manual(self):
@@ -541,6 +545,8 @@ class DisplayMixin:
             self.ebz_world = np.array([self.ebz_ml_var.get(), self.ebz_ap_var.get(), self.ebz_dv_var.get()])
             self.ebz_set = True
             self.btn_reset_ebz.config(state="normal")
+            if self.chamber_state.get('loaded'):
+                self._refit_chamber()
             self.display_all()
         except Exception as e:
             messagebox.showerror("Error", str(e))
@@ -549,6 +555,8 @@ class DisplayMixin:
         self.ebz_set = False; self.ebz_world = np.zeros(3)
         self.ebz_ap_var.set(0); self.ebz_dv_var.set(0); self.ebz_ml_var.set(0)
         self.btn_reset_ebz.config(state="disabled")
+        if self.chamber_state.get('loaded'):
+            self._refit_chamber()
         self.display_all()
 
     def _toggle_ebz_pick(self):

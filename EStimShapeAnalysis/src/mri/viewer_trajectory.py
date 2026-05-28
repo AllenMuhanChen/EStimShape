@@ -23,9 +23,15 @@ def _channel_corrected_dist(tip_dist_mm, channel_num):
 
 
 class TrajectoryMixin:
+    def _apply_pen_table_from_ui(self):
+        """Sync the penetration table name from the UI field into the store."""
+        if hasattr(self, "pen_table_var"):
+            self.pen_store.set_table(self.pen_table_var.get())
+
     def _connect_db(self):
         """Manual DB connect — shows an error dialog on failure."""
         try:
+            self._apply_pen_table_from_ui()
             self.pen_store.connect()
             self._on_db_connected()
         except Exception as e:
@@ -35,6 +41,7 @@ class TrajectoryMixin:
     def _auto_connect_db(self):
         """Called once on startup. Fails silently (status bar only)."""
         try:
+            self._apply_pen_table_from_ui()
             self.pen_store.connect()
             self._on_db_connected()
         except Exception as e:
@@ -55,7 +62,7 @@ class TrajectoryMixin:
         if self.temp_trajectory is not None:
             self.btn_record_actual.config(state="normal")
         n = len(self.pen_store.penetrations)
-        self.status_var.set(f"DB connected. {n} penetrations loaded.")
+        self.status_var.set(f"DB connected [{self.pen_store.table}]. {n} penetrations loaded.")
         if self.chamber_state['loaded']:
             self.btn_load_session.config(state="normal")
 

@@ -74,7 +74,7 @@ CONFIG_PATH = os.path.join(os.getcwd(), "mri_viewer_config.json")
 # ============================================================================
 
 # Subject MRI. PAR/REC or .nii(.gz). Falls back to cfg["default_path"].
-SUBJECT_MRI  = "/home/connorlab/Documents/MRI/Bixby/bixby_WIP_MPrageAX_.70mm_New.nii.gz"
+SUBJECT_MRI  = "/home/connorlab/Documents/MRI/Bixby/bixby_WIP_MPrageAX_.70mm_New_corrected.nii.gz"
 # Reference template (e.g. NMT_v2.0_sym.nii.gz). Falls back to cfg["template_mri_path"].
 TEMPLATE_MRI = "/home/connorlab/Documents/NMT_v2.0_asym/NMT_v2.0_asym/NMT_v2.0_asym.nii.gz"
 # Atlas to follow (e.g. D99_atlas_in_NMT_v2.0_sym.nii.gz). Falls back to cfg["atlas_nifti_path"].
@@ -439,14 +439,10 @@ def main():
         print(f'  "atlas_nifti_path":   "{warped_atlas}",')
     if warped_template:
         print(f'  "template_mri_path":  "{warped_template}",')
-    if subj_corr is not None:
-        print("Reset atlas_correction to identity in the viewer — the warp "
-              "aligned to your AC/PC-corrected MRI space, so display lines "
-              "up automatically.")
-    else:
-        print("The NIfTI was warped in native scanner space. If you use a "
-              "subject correction matrix in the viewer, set atlas_correction "
-              "to that same matrix; otherwise leave it at identity.")
+    print("The atlas/template now ride on the subject correction in the "
+          "viewer (animal_warper output is in native subject space), so they "
+          "track the subject MRI automatically — no atlas-specific alignment "
+          "step is needed.")
 
 
 if __name__ == "__main__":
