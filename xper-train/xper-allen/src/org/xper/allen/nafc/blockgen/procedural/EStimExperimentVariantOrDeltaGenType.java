@@ -5,6 +5,7 @@ import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
 import org.xper.allen.nafc.NAFCStim;
 
 import javax.sql.DataSource;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -27,6 +28,13 @@ public class EStimExperimentVariantOrDeltaGenType extends EStimExperimentVariant
 
     @Override
     protected List<NAFCStim> genTrials(EStimExperimentGenType.EStimExperimentGenParameters parameters) {
+        if (isDelta) {
+            return genDeltaOnlyTrials(parameters);
+        }
+        return genVariantOnlyTrials(parameters);
+    }
+
+    private List<NAFCStim> genVariantOnlyTrials(EStimExperimentGenType.EStimExperimentGenParameters parameters) {
         List<NAFCStim> newBlock = new LinkedList<>();
 
         List<Long> assignedVariantIds = new LinkedList<>();
@@ -63,7 +71,68 @@ public class EStimExperimentVariantOrDeltaGenType extends EStimExperimentVariant
                     (EStimShapeExperimentTrialGenerator) generator,
                     parameters.getProceduralStimParameters(),
                     variantId,
-                    isDelta,
+                    false,
+                    parameters.isEStimEnabled,
+                    parameters.eStimSpecId);
+            stim.setIncludeRemovedChoice(parameters.includeRemovedChoice);
+            newBlock.add(stim);
+        }
+        return newBlock;
+    }
+
+    /**
+     * Iterate over (variant_id, delta_id) pairs so each included delta becomes its own sample
+     * trial. With N deltas across the included variants and numSets sets, this yields N * numSets
+     * trials — vs. the variant-only path which yields numVariants * numSets.
+     */
+    private List<NAFCStim> genDeltaOnlyTrials(EStimExperimentGenType.EStimExperimentGenParameters parameters) {
+        List<NAFCStim> newBlock = new LinkedList<>();
+
+        DataSource gaDataSource = ((EStimShapeExperimentTrialGenerator) generator).getGaDataSource();
+        JdbcTemplate gaJDBCTemplate = new JdbcTemplate(gaDataSource);
+
+        List<long[]> allPairs;
+        if (parameters.stimId == 0) {
+            allPairs = gaJDBCTemplate.query(
+                    "SELECT variant_id, delta_id FROM IncludedDeltas WHERE included = TRUE",
+                    (rs, n) -> new long[]{rs.getLong("variant_id"), rs.getLong("delta_id")}
+            );
+        } else {
+            allPairs = gaJDBCTemplate.query(
+                    "SELECT variant_id, delta_id FROM IncludedDeltas WHERE included = TRUE AND variant_id = ?",
+                    new Object[]{parameters.stimId},
+                    (rs, n) -> new long[]{rs.getLong("variant_id"), rs.getLong("delta_id")}
+            );
+        }
+        if (allPairs.isEmpty()) {
+            throw new RuntimeException("No included delta pairs found in IncludedDeltas table" +
+                    (parameters.stimId == 0 ? "." : " for variant_id " + parameters.stimId + ".") +
+                    " Run the PlotVariantDeltas analysis pipeline first to populate this table.");
+        }
+
+        List<long[]> assignedPairs = new LinkedList<>();
+        if (parameters.getNumTrials() <= 0) {
+            int numSets = parameters.getNumTrials() * -1;
+            for (int i = 0; i < numSets; i++) {
+                assignedPairs.addAll(allPairs);
+            }
+        } else {
+            int numTrials = parameters.getNumTrials();
+            Collections.shuffle(allPairs);
+            for (int i = 0; i < numTrials; i++) {
+                assignedPairs.add(allPairs.get(i % allPairs.size()));
+            }
+        }
+
+        for (long[] pair : assignedPairs) {
+            long variantId = pair[0];
+            long sampleDeltaId = pair[1];
+
+            EStimShapeVariantsNAFCStim stim = new EStimShapeVariantsDeltaNAFCStim(
+                    (EStimShapeExperimentTrialGenerator) generator,
+                    parameters.getProceduralStimParameters(),
+                    variantId,
+                    Long.valueOf(sampleDeltaId),
                     parameters.isEStimEnabled,
                     parameters.eStimSpecId);
             stim.setIncludeRemovedChoice(parameters.includeRemovedChoice);
