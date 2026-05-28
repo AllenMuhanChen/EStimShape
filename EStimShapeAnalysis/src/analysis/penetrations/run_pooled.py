@@ -184,14 +184,14 @@ if __name__ == "__main__":
     # Single corrections file used for all predictors so the MRI samples are identical.
     corrections_path = (
         "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/"
-        "opt_20260525_121133_best.json"
+        "opt_20260525_122040"
     )
 
     # Add / remove TissuePredictor instances here to evaluate different methods.
     predictors: List[TissuePredictor] = [
-        TissueModelPredictor(name='MODEL_PCA_V1', model=MODEL_PCA_V1),
+        # TissueModelPredictor(name='MODEL_PCA_V1', model=MODEL_PCA_V1),
         TissueModelPredictor(name='MODEL_PCA_V2', model=MODEL_PCA_V2),
-        TissueModelPredictor(name='MODEL_PCA_V4', model=MODEL_PCA_V4),
+        # TissueModelPredictor(name='MODEL_PCA_V4', model=MODEL_PCA_V4),
     ]
 
     results = compare_predictors_on_corrections(
