@@ -669,6 +669,362 @@ def optimize_trajectory_alignment(
     }
 
 
+def optimize_trajectory_alignment_seg(
+        df_conf: pd.DataFrame,
+        conn: Connection,
+        mri_pipeline: dict,
+        seg_volume: dict,
+        maxiter: int = 10000,
+        start_from_file: Optional[str] = None,
+        enable_per_session_corrections: bool = ENABLE_PER_SESSION_CORRECTIONS,
+        session_corr_bounds: dict = None,
+        session_corr_penalty: float = SESSION_CORR_PENALTY,
+        chamber_dist_penalty: float = CHAMBER_DIST_PENALTY,
+        chamber_param_penalty: float = CHAMBER_PARAM_PENALTY,
+        chamber_param_tolerances: dict = None,
+        variance_penalty: float = VARIANCE_PENALTY,
+        softmin_beta: float = SOFTMIN_BETA,
+        optimizer: str = 'cma-es',
+        use_confidence_weights: bool = True,
+        top_downweight_mm: float = TOP_DOWNWEIGHT_MM,
+        top_downweight_factor: float = TOP_DOWNWEIGHT_FACTOR,
+        fixed_globals: Optional[dict] = None,
+) -> dict:
+    """Seg-target counterpart of optimize_trajectory_alignment.
+
+    Scores 3-class classification accuracy of argmax(p_sulcus, p_gm, p_wm) vs
+    the segmentation class label sampled along the trajectory. Predicted
+    class is invariant during optimization (depends only on the fixed PC
+    scores); only the segmentation samples move as chamber/per-session
+    corrections change.
+
+    Note: accuracy is a step function in the chamber parameters (a small
+    wiggle only changes the score when a sample's seg class flips), so the
+    landscape is rougher than the Pearson-r version. Default optimizer is
+    CMA-ES; Nelder-Mead is likely to stall. Use more iterations than for
+    the MRI version.
+
+    Requires df_conf to contain columns: p_sulcus, p_gm, p_wm,
+    tissue_confidence (optional), and depth_under_chamber_mm + session_id.
+    """
+    from src.mri.chamber import calc_penetration_target
+
+    if session_corr_bounds is None:
+        session_corr_bounds = SESSION_CORR_BOUNDS
+    if chamber_param_tolerances is None:
+        chamber_param_tolerances = CHAMBER_PARAM_TOLERANCES
+
+    required_p = ['p_sulcus', 'p_gm', 'p_wm']
+    missing = [c for c in required_p if c not in df_conf.columns]
+    if missing:
+        raise RuntimeError(
+            f"optimize_trajectory_alignment_seg needs columns {required_p}; "
+            f"missing {missing}. Use a TissueModel with sulcus/gm/wm classes."
+        )
+
+    fix_idx_val = []
+    if fixed_globals:
+        for name, val in fixed_globals.items():
+            if name not in _OPT_PARAM_NAMES:
+                raise ValueError(f"Unknown global param {name!r}. "
+                                 f"Choose from: {_OPT_PARAM_NAMES}")
+            fix_idx_val.append((_OPT_PARAM_NAMES.index(name), float(val)))
+        print(f"  Holding fixed: " + ", ".join(
+            f"{_OPT_PARAM_NAMES[i]}={v:+.4f}" for i, v in fix_idx_val))
+
+    # Pre-cache per session. predicted_class is invariant during optimization
+    # because the PC scores (and therefore the p_* columns) don't depend on the
+    # chamber/per-session corrections — only the sampled signal does.
+    session_info = {}
+    for session_id in df_conf['session_id'].unique():
+        pen = get_penetration_for_session(conn, session_id)
+        if pen is None:
+            continue
+        mask = df_conf['session_id'] == session_id
+        depths = df_conf.loc[mask, 'depth_under_chamber_mm'].values.copy()
+        if top_downweight_mm > 0 and len(depths) > 0:
+            top_thresh = depths.min() + top_downweight_mm
+            depth_weight = np.where(depths <= top_thresh, top_downweight_factor, 1.0)
+        else:
+            depth_weight = None
+        p_arr = df_conf.loc[mask, required_p].values
+        predicted_class = np.argmax(p_arr, axis=1).astype(int)
+        session_info[session_id] = {
+            'az': pen['az_deg'],
+            'el': pen['el_deg'],
+            'depths': depths,
+            'predicted_class': predicted_class,
+            'confidence': df_conf.loc[mask, 'tissue_confidence'].values.copy()
+                if 'tissue_confidence' in df_conf.columns else None,
+            'depth_weight': depth_weight,
+        }
+
+    if not session_info:
+        raise RuntimeError("No sessions with penetration data found.")
+
+    seg_data = seg_volume['data']
+    seg_inv = seg_volume['inv_corrected']
+    cor_offset = mri_pipeline['cor_offset']
+
+    origin_b, x_b, y_b, normal_b = _apply_chamber_params(_OPT_X0, mri_pipeline)
+    baseline_pts = {}
+    for sid, sdata in session_info.items():
+        depths0 = sdata['depths']
+        if depths0.max() <= 0:
+            baseline_pts[sid] = None
+            continue
+        try:
+            _, direction0, top_pt0 = calc_penetration_target(
+                origin_b, sdata['az'], sdata['el'],
+                float(depths0.max()) + 1.0, x_b, y_b, normal_b, cor_offset,
+            )
+            baseline_pts[sid] = top_pt0 + depths0[:, None] * direction0[None, :]
+        except Exception:
+            baseline_pts[sid] = None
+
+    session_ids = list(session_info.keys())
+    n_sess = len(session_ids)
+
+    if enable_per_session_corrections:
+        per_sess_names = []
+        for sid in session_ids:
+            per_sess_names += [f'daz_{sid}', f'del_{sid}', f'ddepth_{sid}']
+        full_param_names = _OPT_PARAM_NAMES + per_sess_names
+        full_x0 = np.concatenate([_OPT_X0, np.zeros(3 * n_sess)])
+        print(f"  Per-session corrections enabled: {n_sess} sessions × 3 params")
+    else:
+        full_param_names = _OPT_PARAM_NAMES
+        full_x0 = _OPT_X0.copy()
+
+    if start_from_file is not None:
+        with open(start_from_file) as _f:
+            _prior = json.load(_f)
+        _prior_params = _prior.get('params', {})
+        for _i, _name in enumerate(_OPT_PARAM_NAMES):
+            if _name in _prior_params:
+                full_x0[_i] = float(_prior_params[_name])
+        if enable_per_session_corrections and 'per_session_corrections' in _prior:
+            _prior_sess = _prior['per_session_corrections']
+            for _j, _sid in enumerate(session_ids):
+                _sc = _prior_sess.get(str(_sid), {})
+                if _sc:
+                    full_x0[9 + _j * 3]     = float(np.arctanh(np.clip(
+                        _sc.get('daz_deg',   0.) / session_corr_bounds['daz'],   -0.9999, 0.9999)))
+                    full_x0[9 + _j * 3 + 1] = float(np.arctanh(np.clip(
+                        _sc.get('del_deg',   0.) / session_corr_bounds['del_'],  -0.9999, 0.9999)))
+                    full_x0[9 + _j * 3 + 2] = float(np.arctanh(np.clip(
+                        _sc.get('ddepth_mm', 0.) / session_corr_bounds['ddepth'], -0.9999, 0.9999)))
+        print(f"  Warm-starting from: {os.path.basename(start_from_file)}")
+
+    for idx, val in fix_idx_val:
+        full_x0[idx] = val
+
+    best = {'score': -np.inf, 'params': full_x0.copy(), 'iter': 0}
+    call_count = [0]
+    latest = {'mean_weighted': np.nan, 'mean_raw': np.nan}
+
+    def _session_accuracy(predicted_class, seg_class, conf):
+        """Per-session classification accuracy (optionally confidence-weighted)."""
+        match = (predicted_class == seg_class).astype(float)
+        if conf is None:
+            return float(match.mean())
+        w_sum = float(conf.sum())
+        if w_sum <= 0:
+            return float(match.mean())
+        return float((conf * match).sum() / w_sum)
+
+    def score_for_params(params, include_reg=True):
+        if fix_idx_val:
+            params = np.array(params, dtype=float, copy=True)
+            for idx, val in fix_idx_val:
+                params[idx] = val
+        try:
+            origin, x_vec, y_vec, normal = _apply_chamber_params(params, mri_pipeline)
+        except Exception:
+            return np.inf
+
+        _, _, _, _, _, _, daz, del_, ddepth = params[:9]
+        per_sess_raw = params[9:].reshape(-1, 3) if enable_per_session_corrections else None
+
+        accs, accs_raw, reg_sum = [], [], 0.0
+        chamber_dist_sq_sum = 0.0
+        chamber_dist_n = 0
+
+        for i, sid in enumerate(session_ids):
+            sdata = session_info[sid]
+
+            if per_sess_raw is not None:
+                daz_i  = _tanh_bound(per_sess_raw[i, 0], session_corr_bounds['daz'])
+                del_i  = _tanh_bound(per_sess_raw[i, 1], session_corr_bounds['del_'])
+                ddep_i = _tanh_bound(per_sess_raw[i, 2], session_corr_bounds['ddepth'])
+                reg_sum += (daz_i  / session_corr_bounds['daz'])  ** 2
+                reg_sum += (del_i  / session_corr_bounds['del_']) ** 2
+                reg_sum += (ddep_i / session_corr_bounds['ddepth']) ** 2
+            else:
+                daz_i = del_i = ddep_i = 0.0
+
+            depths_g = sdata['depths'] + ddepth
+            if depths_g.max() > 0 and baseline_pts.get(sid) is not None:
+                try:
+                    _, direction_g, top_pt_g = calc_penetration_target(
+                        origin, sdata['az'] + daz, sdata['el'] + del_,
+                        float(depths_g.max()) + 1.0, x_vec, y_vec, normal, cor_offset,
+                    )
+                    pts_g = top_pt_g + depths_g[:, None] * direction_g[None, :]
+                    diffs = pts_g - baseline_pts[sid]
+                    chamber_dist_sq_sum += float(np.sum(diffs * diffs))
+                    chamber_dist_n += len(diffs)
+                except Exception:
+                    pass
+
+            depths = sdata['depths'] + ddepth + ddep_i
+            if depths.max() <= 0:
+                continue
+            try:
+                _, direction, top_pt = calc_penetration_target(
+                    origin, sdata['az'] + daz + daz_i, sdata['el'] + del_ + del_i,
+                    float(depths.max()) + 1.0, x_vec, y_vec, normal, cor_offset,
+                )
+                pts = top_pt + depths[:, None] * direction[None, :]
+                ones = np.ones((len(pts), 1))
+                vox = (seg_inv @ np.hstack([pts, ones]).T).T[:, :3]
+                seg_vals = map_coordinates(seg_data, vox.T, order=0,
+                                           mode='constant', cval=0.0).astype(int)
+            except Exception:
+                continue
+
+            seg_class = seg_values_to_classes(seg_vals)
+            conf = sdata['confidence'] if use_confidence_weights else None
+            dw = sdata.get('depth_weight')
+            if dw is not None:
+                conf = (conf if conf is not None
+                        else np.ones(len(sdata['predicted_class']))) * dw
+
+            acc = _session_accuracy(sdata['predicted_class'], seg_class, conf)
+            acc_raw = _session_accuracy(sdata['predicted_class'], seg_class, None)
+            if not np.isnan(acc):
+                accs.append(acc)
+            if not np.isnan(acc_raw):
+                accs_raw.append(acc_raw)
+
+        latest['mean_weighted'] = float(np.mean(accs)) if accs else np.nan
+        latest['mean_raw']      = float(np.mean(accs_raw)) if accs_raw else np.nan
+        if not accs:
+            return np.inf
+        accs_arr = np.array(accs)
+        if softmin_beta > 0 and len(accs_arr) > 1:
+            neg_br = -softmin_beta * accs_arr
+            lse = neg_br.max() + np.log(np.exp(neg_br - neg_br.max()).sum())
+            loss = lse / softmin_beta
+        else:
+            loss = -accs_arr.mean()
+        if include_reg and variance_penalty > 0 and len(accs_arr) > 1:
+            loss += variance_penalty * accs_arr.var()
+        if include_reg:
+            if chamber_dist_penalty > 0 and chamber_dist_n > 0:
+                chamber_dist_reg = chamber_dist_sq_sum / chamber_dist_n
+                loss += chamber_dist_penalty * chamber_dist_reg
+            if chamber_param_penalty > 0:
+                tx, ty, tz, rx, ry, rz, daz_g, del_g, ddepth_g = params[:9]
+                s = chamber_param_tolerances
+                chamber_param_reg = (
+                    (tx / s['t_mm'])**2 + (ty / s['t_mm'])**2 + (tz / s['t_mm'])**2
+                    + (rx / s['r_deg'])**2 + (ry / s['r_deg'])**2 + (rz / s['r_deg'])**2
+                    + (daz_g / s['daz_deg'])**2 + (del_g / s['del_deg'])**2
+                    + (ddepth_g / s['ddepth_mm'])**2
+                )
+                loss += chamber_param_penalty * chamber_param_reg
+            if enable_per_session_corrections:
+                loss += session_corr_penalty * reg_sum
+        return loss
+
+    def callback_progress(xk):
+        call_count[0] += 1
+        s_pure = -score_for_params(xk, include_reg=False)
+        if s_pure > best['score']:
+            best['score'] = s_pure
+            best['params'] = xk.copy()
+            best['iter'] = call_count[0]
+            tx, ty, tz, rx, ry, rz, daz, del_, ddepth = xk[:9]
+            print(f"  [{call_count[0]:4d}] acc={s_pure:.4f}  raw={latest['mean_raw']:.4f}  "
+                  f"t=({tx:.2f},{ty:.2f},{tz:.2f})  "
+                  f"r=({rx:.2f},{ry:.2f},{rz:.2f})  "
+                  f"daz={daz:.2f}  del={del_:.2f}  ddepth={ddepth:.2f}")
+
+    score_before = -score_for_params(full_x0, include_reg=False)
+    raw_before = latest['mean_raw']
+    print(f"\nOptimising (segmentation accuracy) over {len(session_info)} sessions  "
+          f"(initial acc = {score_before:.4f}, raw = {raw_before:.4f}) ...")
+    print(f"  Optimizer: {optimizer}")
+
+    if optimizer not in _OPTIMIZERS:
+        raise ValueError(f"Unknown optimizer {optimizer!r}.  Choose from: {list(_OPTIMIZERS)}")
+
+    n_p = len(full_x0)
+    steps = np.zeros(n_p)
+    steps[:3] = 1.0
+    steps[3:6] = 1.0
+    steps[6]   = 0.5
+    steps[7]   = 0.5
+    steps[8]   = 0.5
+    if enable_per_session_corrections and n_p > 9:
+        steps[9:] = 0.5
+    for idx, _ in fix_idx_val:
+        steps[idx] = 1e-9
+
+    maxiter_adj = maxiter + 500 * n_sess if enable_per_session_corrections else maxiter
+    result = _OPTIMIZERS[optimizer](score_for_params, full_x0, steps,
+                                    callback_progress, maxiter_adj)
+
+    for idx, val in fix_idx_val:
+        result.x[idx] = val
+
+    score_after = -score_for_params(result.x, include_reg=False)
+    raw_after = latest['mean_raw']
+    print(f"\nOptimisation done: {result.message}")
+    print(f"  acc:   {score_before:.4f} → {score_after:.4f}  "
+          f"(Δ = {score_after - score_before:+.4f})")
+    print(f"  raw:   {raw_before:.4f} → {raw_after:.4f}  "
+          f"(Δ = {raw_after - raw_before:+.4f})")
+    print("\nOptimised global parameters:")
+    for name, val in zip(_OPT_PARAM_NAMES, result.x[:9]):
+        print(f"  {name:<14s} = {val:+.4f}")
+
+    per_session_corrections = {}
+    if enable_per_session_corrections and len(result.x) > 9:
+        per = result.x[9:].reshape(-1, 3)
+        for i, sid in enumerate(session_ids):
+            per_session_corrections[sid] = dict(
+                daz_deg   = _tanh_bound(per[i, 0], session_corr_bounds['daz']),
+                del_deg   = _tanh_bound(per[i, 1], session_corr_bounds['del_']),
+                ddepth_mm = _tanh_bound(per[i, 2], session_corr_bounds['ddepth']),
+            )
+        print("\nPer-session corrections (effective, deg/mm):")
+        for sid, c in per_session_corrections.items():
+            print(f"  {str(sid):<20s}  daz={c['daz_deg']:+.3f}°  "
+                  f"del={c['del_deg']:+.3f}°  ddepth={c['ddepth_mm']:+.3f}mm")
+
+    return {
+        'params': result.x,
+        'param_names': full_param_names,
+        'result': result,
+        'score_before': score_before,
+        'score_after': score_after,
+        'raw_before': raw_before,
+        'raw_after': raw_after,
+        'per_session_corrections': per_session_corrections,
+        'session_ids': session_ids,
+        'session_corr_bounds': session_corr_bounds,
+        'session_corr_penalty': session_corr_penalty,
+        'variance_penalty': variance_penalty,
+        'softmin_beta': softmin_beta,
+        'optimizer': optimizer,
+        'use_confidence_weights': use_confidence_weights,
+        'fixed_globals': dict(fixed_globals) if fixed_globals else None,
+        'target': 'segmentation',
+    }
+
+
 def apply_optimized_pipeline(mri_pipeline: dict, opt_result: dict) -> tuple:
     """Build a corrected pipeline and extract angle/depth offsets from opt_result."""
     params = opt_result['params']

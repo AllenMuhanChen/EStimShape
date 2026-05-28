@@ -40,9 +40,13 @@ from src.analysis.penetrations.alignment_optimize import (
     VARIANCE_PENALTY,
     apply_optimized_pipeline,
     compute_mri_comparison,
+    compute_segmentation_accuracy,
+    compute_segmentation_comparison,
     compute_trajectory_fit_scores,
     load_mri_pipeline,
+    load_segmentation_volume,
     optimize_trajectory_alignment,
+    optimize_trajectory_alignment_seg,
     save_optimized_params,
 )
 from src.analysis.penetrations.penetration_plots import (
@@ -83,8 +87,23 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                  use_confidence_weights: bool = True,
                  top_downweight_mm: float = TOP_DOWNWEIGHT_MM,
                  top_downweight_factor: float = TOP_DOWNWEIGHT_FACTOR,
-                 fixed_globals: Optional[dict] = None):
-    """Run complete PCA analysis with correlations, plots, and trajectory alignment."""
+                 fixed_globals: Optional[dict] = None,
+                 optimize_target: str = 'mri',
+                 segmentation_path: Optional[str] = None):
+    """Run complete PCA analysis with correlations, plots, and trajectory alignment.
+
+    optimize_target : {'mri', 'segmentation'}
+        - 'mri'         : optimise weighted Pearson r between tissue_score
+                          and raw MRI intensity (default; original behaviour).
+        - 'segmentation': optimise 3-class classification accuracy of
+                          argmax(p_*) against the NMT-style segmentation
+                          label. Requires segmentation_path.
+    """
+    if optimize_target not in ('mri', 'segmentation'):
+        raise ValueError(f"optimize_target must be 'mri' or 'segmentation', "
+                         f"got {optimize_target!r}")
+    if optimize_target == 'segmentation' and segmentation_path is None:
+        raise ValueError("optimize_target='segmentation' requires segmentation_path")
 
     pca_tag = _pca_run_tag(
         decomp_method=decomp_method,
@@ -145,41 +164,84 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
     cortex_pca_result = run_cortex_pca(df_conf, feature_columns, n_pcs=4, save_dir=pca_dir)
 
     fit_scores = None
+    seg_scores = None
     opt_result = None
     mri_pipeline = None
+    seg_volume = None
     try:
         print("\nLoading MRI pipeline ...")
         mri_pipeline = load_mri_pipeline(mri_config_path)
 
-        print("\n── Initial MRI comparison ──")
-        df_conf = compute_mri_comparison(df_conf, conn, mri_pipeline)
-        fit_scores = compute_trajectory_fit_scores(df_conf)
+        if optimize_target == 'segmentation':
+            print(f"\nLoading segmentation volume: {segmentation_path}")
+            seg_volume = load_segmentation_volume(segmentation_path)
 
-        print("\n── Optimising transformation ──")
-        opt_result = optimize_trajectory_alignment(df_conf, conn, mri_pipeline,
-                                                   maxiter=maxiter,
-                                                   start_from_file=start_from_file,
-                                                   enable_per_session_corrections=enable_per_session_corrections,
-                                                   session_corr_bounds=session_corr_bounds,
-                                                   session_corr_penalty=session_corr_penalty,
-                                                   chamber_dist_penalty=chamber_dist_penalty,
-                                                   chamber_param_penalty=chamber_param_penalty,
-                                                   chamber_param_tolerances=chamber_param_tolerances,
-                                                   variance_penalty=variance_penalty,
-                                                   softmin_beta=softmin_beta,
-                                                   optimizer=optimizer,
-                                                   use_confidence_weights=use_confidence_weights,
-                                                   top_downweight_mm=top_downweight_mm,
-                                                   top_downweight_factor=top_downweight_factor,
-                                                   fixed_globals=fixed_globals)
+            print("\n── Initial segmentation comparison ──")
+            df_conf = compute_segmentation_comparison(df_conf, conn, mri_pipeline, seg_volume)
+            seg_scores = compute_segmentation_accuracy(df_conf)
 
-        print("\n── MRI comparison with optimised transformation ──")
-        opt_pipeline, daz, del_, ddepth = apply_optimized_pipeline(mri_pipeline, opt_result)
-        df_conf = compute_mri_comparison(df_conf, conn, opt_pipeline,
-                                         daz=daz, del_=del_, ddepth=ddepth,
-                                         per_session_corrections=opt_result.get('per_session_corrections'))
-        fit_scores = compute_trajectory_fit_scores(df_conf)
-        plot_mri_comparison_by_session(df_conf, fit_scores, save_dir=opt_dir)
+            print("\n── Optimising transformation (segmentation accuracy) ──")
+            opt_result = optimize_trajectory_alignment_seg(
+                df_conf, conn, mri_pipeline, seg_volume,
+                maxiter=maxiter,
+                start_from_file=start_from_file,
+                enable_per_session_corrections=enable_per_session_corrections,
+                session_corr_bounds=session_corr_bounds,
+                session_corr_penalty=session_corr_penalty,
+                chamber_dist_penalty=chamber_dist_penalty,
+                chamber_param_penalty=chamber_param_penalty,
+                chamber_param_tolerances=chamber_param_tolerances,
+                variance_penalty=variance_penalty,
+                softmin_beta=softmin_beta,
+                optimizer=optimizer,
+                use_confidence_weights=use_confidence_weights,
+                top_downweight_mm=top_downweight_mm,
+                top_downweight_factor=top_downweight_factor,
+                fixed_globals=fixed_globals,
+            )
+
+            print("\n── Comparisons with optimised transformation ──")
+            opt_pipeline, daz, del_, ddepth = apply_optimized_pipeline(mri_pipeline, opt_result)
+            per_sess = opt_result.get('per_session_corrections')
+            df_conf = compute_mri_comparison(df_conf, conn, opt_pipeline,
+                                             daz=daz, del_=del_, ddepth=ddepth,
+                                             per_session_corrections=per_sess)
+            df_conf = compute_segmentation_comparison(df_conf, conn, opt_pipeline, seg_volume,
+                                                      daz=daz, del_=del_, ddepth=ddepth,
+                                                      per_session_corrections=per_sess)
+            fit_scores = compute_trajectory_fit_scores(df_conf)
+            seg_scores = compute_segmentation_accuracy(df_conf)
+            plot_mri_comparison_by_session(df_conf, fit_scores, save_dir=opt_dir)
+        else:
+            print("\n── Initial MRI comparison ──")
+            df_conf = compute_mri_comparison(df_conf, conn, mri_pipeline)
+            fit_scores = compute_trajectory_fit_scores(df_conf)
+
+            print("\n── Optimising transformation ──")
+            opt_result = optimize_trajectory_alignment(df_conf, conn, mri_pipeline,
+                                                       maxiter=maxiter,
+                                                       start_from_file=start_from_file,
+                                                       enable_per_session_corrections=enable_per_session_corrections,
+                                                       session_corr_bounds=session_corr_bounds,
+                                                       session_corr_penalty=session_corr_penalty,
+                                                       chamber_dist_penalty=chamber_dist_penalty,
+                                                       chamber_param_penalty=chamber_param_penalty,
+                                                       chamber_param_tolerances=chamber_param_tolerances,
+                                                       variance_penalty=variance_penalty,
+                                                       softmin_beta=softmin_beta,
+                                                       optimizer=optimizer,
+                                                       use_confidence_weights=use_confidence_weights,
+                                                       top_downweight_mm=top_downweight_mm,
+                                                       top_downweight_factor=top_downweight_factor,
+                                                       fixed_globals=fixed_globals)
+
+            print("\n── MRI comparison with optimised transformation ──")
+            opt_pipeline, daz, del_, ddepth = apply_optimized_pipeline(mri_pipeline, opt_result)
+            df_conf = compute_mri_comparison(df_conf, conn, opt_pipeline,
+                                             daz=daz, del_=del_, ddepth=ddepth,
+                                             per_session_corrections=opt_result.get('per_session_corrections'))
+            fit_scores = compute_trajectory_fit_scores(df_conf)
+            plot_mri_comparison_by_session(df_conf, fit_scores, save_dir=opt_dir)
 
         _write_fit_log(opt_dir, pca_tag, fit_scores=fit_scores, opt_params=dict(
             softmin_beta=softmin_beta,
@@ -218,8 +280,10 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         'loadings': loadings_df,
         'correlations': corr_df,
         'fit_scores': fit_scores,
+        'seg_scores': seg_scores,
         'opt_result': opt_result,
         'mri_pipeline': mri_pipeline,
+        'seg_volume': seg_volume,
         'cortex_pca': cortex_pca_result,
     }
 
