@@ -245,14 +245,14 @@ if __name__ == "__main__":
     # Single corrections file used for all predictors so the MRI samples are identical.
     corrections_path = (
         "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/"
-        "opt_20260525_122040"
+        "opt_20260525_122040.json"
     )
 
     # Path to the rigid-aligned NMT segmentation. Values 0=out-of-brain, 1=sulcus,
     # 2=GM, 3=sub-brain, 4=WM (mapped internally to sulcus/GM/WM).
     segmentation_path = (
-        "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/"
-        "NMT_v2.0_asym_segmentation_rigid_aligned.nii"
+        "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/"
+        "NMT_v2.0_asym_segmentation_rigid_aligned.nii.gz"
     )
 
     # Add / remove TissuePredictor instances here to evaluate different methods.

@@ -27,8 +27,8 @@ MRI_VIEWER_CONFIG_PATH = os.path.join(os.path.dirname(__file__), '../../mri/mri_
 
 # Per-session az/el/depth correction (added on top of global daz/del/ddepth)
 ENABLE_PER_SESSION_CORRECTIONS = True
-SESSION_CORR_BOUNDS = dict(daz=5.0, del_=5.0, ddepth=2.0)
-SESSION_CORR_PENALTY = 0.1
+SESSION_CORRECTION_BOUNDS = dict(daz=5.0, del_=5.0, ddepth=5.0)
+SESSION_CORRECTION_PENALTY = 0.1
 
 CHAMBER_DIST_PENALTY  = 0.001
 CHAMBER_PARAM_PENALTY = 0.001
@@ -340,7 +340,7 @@ def optimize_trajectory_alignment(
         start_from_file: Optional[str] = None,
         enable_per_session_corrections: bool = ENABLE_PER_SESSION_CORRECTIONS,
         session_corr_bounds: dict = None,
-        session_corr_penalty: float = SESSION_CORR_PENALTY,
+        session_corr_penalty: float = SESSION_CORRECTION_PENALTY,
         chamber_dist_penalty: float = CHAMBER_DIST_PENALTY,
         chamber_param_penalty: float = CHAMBER_PARAM_PENALTY,
         chamber_param_tolerances: dict = None,
@@ -359,7 +359,7 @@ def optimize_trajectory_alignment(
     from src.mri.chamber import calc_penetration_target
 
     if session_corr_bounds is None:
-        session_corr_bounds = SESSION_CORR_BOUNDS
+        session_corr_bounds = SESSION_CORRECTION_BOUNDS
     if chamber_param_tolerances is None:
         chamber_param_tolerances = CHAMBER_PARAM_TOLERANCES
 
@@ -678,7 +678,7 @@ def optimize_trajectory_alignment_seg(
         start_from_file: Optional[str] = None,
         enable_per_session_corrections: bool = ENABLE_PER_SESSION_CORRECTIONS,
         session_corr_bounds: dict = None,
-        session_corr_penalty: float = SESSION_CORR_PENALTY,
+        session_corr_penalty: float = SESSION_CORRECTION_PENALTY,
         chamber_dist_penalty: float = CHAMBER_DIST_PENALTY,
         chamber_param_penalty: float = CHAMBER_PARAM_PENALTY,
         chamber_param_tolerances: dict = None,
@@ -710,7 +710,7 @@ def optimize_trajectory_alignment_seg(
     from src.mri.chamber import calc_penetration_target
 
     if session_corr_bounds is None:
-        session_corr_bounds = SESSION_CORR_BOUNDS
+        session_corr_bounds = SESSION_CORRECTION_BOUNDS
     if chamber_param_tolerances is None:
         chamber_param_tolerances = CHAMBER_PARAM_TOLERANCES
 
@@ -1075,8 +1075,8 @@ def save_optimized_params(
         'del_deg': float(del_),
         'ddepth_mm': float(ddepth),
         'per_session_corrections': opt_result.get('per_session_corrections', {}),
-        'session_corr_bounds': opt_result.get('session_corr_bounds', SESSION_CORR_BOUNDS),
-        'session_corr_penalty': opt_result.get('session_corr_penalty', SESSION_CORR_PENALTY),
+        'session_corr_bounds': opt_result.get('session_corr_bounds', SESSION_CORRECTION_BOUNDS),
+        'session_corr_penalty': opt_result.get('session_corr_penalty', SESSION_CORRECTION_PENALTY),
         'variance_penalty': opt_result.get('variance_penalty', VARIANCE_PENALTY),
         'softmin_beta': opt_result.get('softmin_beta', SOFTMIN_BETA),
     }
