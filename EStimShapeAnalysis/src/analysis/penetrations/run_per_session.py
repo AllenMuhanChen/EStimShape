@@ -30,10 +30,12 @@ from src.analysis.penetrations.pca_predict import (
 )
 from src.analysis.penetrations.alignment_optimize import (
     CHAMBER_DIST_PENALTY,
+    CHAMBER_IN_BRAIN_PENALTY,
     CHAMBER_PARAM_PENALTY,
+    CHAMBER_RADIUS_MM,
     ENABLE_PER_SESSION_CORRECTIONS,
     MRI_VIEWER_CONFIG_PATH,
-    SCREW_IN_BRAIN_PENALTY,
+    N_CHAMBER_RING_SAMPLES,
     SESSION_CORRECTION_PENALTY,
     SOFTMIN_BETA,
     TOP_DOWNWEIGHT_FACTOR,
@@ -86,20 +88,23 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                  top_downweight_factor: float = TOP_DOWNWEIGHT_FACTOR,
                  fixed_globals: Optional[dict] = None,
                  no_skull_mri_path: Optional[str] = None,
-                 screw_in_brain_penalty: float = SCREW_IN_BRAIN_PENALTY):
+                 chamber_in_brain_penalty: float = CHAMBER_IN_BRAIN_PENALTY,
+                 chamber_radius_mm: float = CHAMBER_RADIUS_MM,
+                 n_chamber_ring_samples: int = N_CHAMBER_RING_SAMPLES):
     """Run complete PCA analysis with correlations, plots, and trajectory alignment.
 
     no_skull_mri_path : optional path to a brain-extracted MRI volume (e.g.
         subject_ns_rigid_aligned). When provided, the optimiser samples this
         volume instead of the config's `default_path`, so trajectory MRI
         signal is zero outside the brain. Required if you want the
-        screw-in-brain penalty to be meaningful.
+        chamber-in-brain penalty to be meaningful.
 
-    screw_in_brain_penalty : λ on a penalty that samples the MRI at the
-        (chamber-transformed) screw positions and adds the mean normalised
-        intensity to the loss. Defaults to 0 (disabled). When >0, use with
-        no_skull_mri_path — otherwise the penalty fires for screws in skull
-        / scalp too, which is wrong.
+    chamber_in_brain_penalty : λ on a penalty that samples the MRI at
+        n_chamber_ring_samples points around the chamber circle (radius
+        chamber_radius_mm) and adds the mean normalised intensity to the
+        loss. Defaults to 0 (disabled). When >0, use with no_skull_mri_path —
+        otherwise the penalty fires for any non-zero voxel (skull / scalp)
+        too, which is wrong.
     """
     pca_tag = _pca_run_tag(
         decomp_method=decomp_method,
@@ -189,7 +194,9 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                                                    top_downweight_mm=top_downweight_mm,
                                                    top_downweight_factor=top_downweight_factor,
                                                    fixed_globals=fixed_globals,
-                                                   screw_in_brain_penalty=screw_in_brain_penalty)
+                                                   chamber_in_brain_penalty=chamber_in_brain_penalty,
+                                                   chamber_radius_mm=chamber_radius_mm,
+                                                   n_chamber_ring_samples=n_chamber_ring_samples)
 
         print("\n── MRI comparison with optimised transformation ──")
         opt_pipeline, daz, del_, ddepth = apply_optimized_pipeline(mri_pipeline, opt_result)
@@ -212,7 +219,9 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
             top_downweight_factor=top_downweight_factor,
             fixed_globals=fixed_globals,
             no_skull_mri_path=no_skull_mri_path,
-            screw_in_brain_penalty=screw_in_brain_penalty,
+            chamber_in_brain_penalty=chamber_in_brain_penalty,
+            chamber_radius_mm=chamber_radius_mm,
+            n_chamber_ring_samples=n_chamber_ring_samples,
             maxiter=maxiter,
             start_from_file=start_from_file,
         ), opt_result=opt_result)
@@ -279,7 +288,11 @@ if __name__ == "__main__":
         # Brain-extracted MRI: zero outside brain so the optimiser doesn't fit
         # to skull/scalp signal. Set to None to fall back to the config default.
         # no_skull_mri_path="/path/to/subject_ns_rigid_aligned.nii",
-        # Heavy penalty (λ) for chamber screws landing inside brain tissue.
-        # Only meaningful with no_skull_mri_path set. 0 = disabled; 10 = heavy.
-        # screw_in_brain_penalty=10.0,
+        # Heavy penalty (λ) for any part of the chamber ring landing inside
+        # brain tissue. Samples 32 points around the chamber circle (radius
+        # 7 mm by default). Only meaningful with no_skull_mri_path set;
+        # 0 = disabled, 10 = heavy (≈ 1.0 swing in mean fit r per unit penalty).
+        # chamber_in_brain_penalty=10.0,
+        # chamber_radius_mm=7.0,
+        # n_chamber_ring_samples=32,
     )

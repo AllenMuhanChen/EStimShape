@@ -41,11 +41,16 @@ TOP_DOWNWEIGHT_FACTOR = 0.25
 VARIANCE_PENALTY = 0.0
 SOFTMIN_BETA = 5
 
-# λ on a penalty that samples the MRI volume at the (chamber-transformed) screw
-# positions and pushes them toward zero intensity. Only meaningful with a
+# λ on a penalty that samples the MRI volume at N points around the chamber
+# circle (and uses the chamber's current pose). Only meaningful with a
 # brain-extracted ("no-skull") MRI volume, where outside-brain voxels are 0
 # and inside-brain voxels are positive. 0 = disabled.
-SCREW_IN_BRAIN_PENALTY = 0.0
+CHAMBER_IN_BRAIN_PENALTY = 0.0
+
+# Chamber circle geometry used by the chamber-in-brain penalty. Matches the
+# default in the MRI viewer (viewer.py: 'radius': 7.0).
+CHAMBER_RADIUS_MM = 7.0
+N_CHAMBER_RING_SAMPLES = 32
 
 _OPT_PARAM_NAMES = [
     'tx_mm', 'ty_mm', 'tz_mm',
@@ -369,20 +374,25 @@ def optimize_trajectory_alignment(
         top_downweight_mm: float = TOP_DOWNWEIGHT_MM,
         top_downweight_factor: float = TOP_DOWNWEIGHT_FACTOR,
         fixed_globals: Optional[dict] = None,
-        screw_in_brain_penalty: float = SCREW_IN_BRAIN_PENALTY,
+        chamber_in_brain_penalty: float = CHAMBER_IN_BRAIN_PENALTY,
+        chamber_radius_mm: float = CHAMBER_RADIUS_MM,
+        n_chamber_ring_samples: int = N_CHAMBER_RING_SAMPLES,
 ) -> dict:
     """
     Find the rigid-body + angle + depth correction that maximises the
     mean weighted Pearson r between tissue_score and MRI across all sessions.
 
-    screw_in_brain_penalty : λ on a penalty that samples mri_pipeline['data']
-        at the (chamber-transformed) screw positions and adds the mean
-        normalised intensity to the loss. Designed for use with a brain-
-        extracted MRI (load_mri_pipeline(volume_path=...)) where outside-brain
-        voxels are 0 — then any positive intensity at a screw position means
-        the screw landed inside brain tissue, which is physically impossible
-        for chamber screws. 0 = disabled. Values around 10 give "heavy"
-        penalisation on the same scale as a 1.0 swing in mean fit r.
+    chamber_in_brain_penalty : λ on a penalty that samples mri_pipeline['data']
+        at n_chamber_ring_samples points around the chamber circle (radius
+        chamber_radius_mm, in the chamber's current x/y plane at center =
+        origin - cor_offset * normal). Adds the mean normalised intensity to
+        the loss. Sampling the whole ring (rather than just the discrete screw
+        positions) prevents the optimiser from tucking the chamber so that
+        screws are safe but a chunk of the ring between two screws lands
+        inside brain tissue. Designed for use with a brain-extracted MRI
+        (load_mri_pipeline(volume_path=...)) where outside-brain voxels are 0.
+        0 = disabled. Values around 10 give "heavy" penalisation on the same
+        scale as a 1.0 swing in mean fit r.
     """
     from src.mri.chamber import calc_penetration_target
 
@@ -430,19 +440,25 @@ def optimize_trajectory_alignment(
     inv_corrected = mri_pipeline['inv_corrected']
     cor_offset = mri_pipeline['cor_offset']
 
-    # Pre-compute normaliser for the screw-in-brain penalty so the lambda
+    # Pre-compute normaliser for the chamber-in-brain penalty so the lambda
     # magnitude is on the same scale as the Pearson-r loss (≈ [0, 1]).
     # We use the 99th percentile of positive voxel intensities — robust to
     # outliers, ≈ peak brain intensity for a brain-extracted MRI.
-    if screw_in_brain_penalty > 0:
+    if chamber_in_brain_penalty > 0:
         brain_pos = data[data > 0]
-        screw_brain_ref = float(np.percentile(brain_pos, 99)) if brain_pos.size > 0 else 1.0
-        if screw_brain_ref <= 0:
-            screw_brain_ref = 1.0
-        print(f"  Screw-in-brain penalty λ={screw_in_brain_penalty:g}  "
-              f"(normalised by 99th-pctile brain intensity = {screw_brain_ref:.1f})")
+        chamber_brain_ref = float(np.percentile(brain_pos, 99)) if brain_pos.size > 0 else 1.0
+        if chamber_brain_ref <= 0:
+            chamber_brain_ref = 1.0
+        # Pre-compute ring angles once.
+        ring_theta = np.linspace(0.0, 2.0 * np.pi, n_chamber_ring_samples, endpoint=False)
+        ring_cos = np.cos(ring_theta)
+        ring_sin = np.sin(ring_theta)
+        print(f"  Chamber-in-brain penalty λ={chamber_in_brain_penalty:g}  "
+              f"(ring: {n_chamber_ring_samples} pts × r={chamber_radius_mm}mm; "
+              f"normalised by 99th-pctile brain intensity = {chamber_brain_ref:.1f})")
     else:
-        screw_brain_ref = 1.0
+        chamber_brain_ref = 1.0
+        ring_cos = ring_sin = None
 
     origin_b, x_b, y_b, normal_b = _apply_chamber_params(_OPT_X0, mri_pipeline)
     baseline_pts = {}
@@ -607,25 +623,26 @@ def optimize_trajectory_alignment(
                     + (ddepth_g / s['ddepth_mm'])**2
                 )
                 loss += chamber_param_penalty * chamber_param_reg
-            if screw_in_brain_penalty > 0:
-                # Sample MRI at the current chamber's screw positions in world
-                # coordinates. With a brain-extracted MRI, any positive intensity
-                # indicates a screw landed inside brain tissue (physically
-                # impossible). Mean is normalised by 99th-pctile brain intensity
-                # so loss contribution is roughly in [0, 1].
-                from src.mri.correction import rot_x, rot_y, rot_z, xlate
-                tx_s, ty_s, tz_s, rx_s, ry_s, rz_s, *_ = params[:6]
-                screws_base = mri_pipeline['screws_world_base']
-                corr_s = xlate(tx_s, ty_s, tz_s) @ rot_z(rz_s) @ rot_y(ry_s) @ rot_x(rx_s)
-                R_s, t_s = corr_s[:3, :3], corr_s[:3, 3]
-                screws_world = (R_s @ screws_base.T).T + t_s
-                ones_s = np.ones((len(screws_world), 1))
-                vox_screws = (inv_corrected @ np.hstack([screws_world, ones_s]).T).T[:, :3]
-                screw_intensities = map_coordinates(
-                    data, vox_screws.T, order=1, mode='constant', cval=0.0,
+            if chamber_in_brain_penalty > 0:
+                # Sample MRI at n_chamber_ring_samples points around the chamber
+                # circle in its current pose. Chamber center = origin - cor_offset
+                # * normal; ring lies in the (x_vec, y_vec) plane at radius
+                # chamber_radius_mm. With a brain-extracted MRI, any positive
+                # intensity along the ring indicates a portion of the chamber
+                # footprint landed inside brain tissue (physically impossible).
+                # Sampling the whole ring (not just the discrete screws) catches
+                # chamber poses where the gaps between screws end up in brain.
+                center_w = origin - cor_offset * normal
+                ring_pts = (center_w[None, :]
+                            + chamber_radius_mm * (ring_cos[:, None] * x_vec[None, :]
+                                                   + ring_sin[:, None] * y_vec[None, :]))
+                ones_r = np.ones((len(ring_pts), 1))
+                vox_ring = (inv_corrected @ np.hstack([ring_pts, ones_r]).T).T[:, :3]
+                ring_intensities = map_coordinates(
+                    data, vox_ring.T, order=1, mode='constant', cval=0.0,
                 ).astype(float)
-                screw_penalty = float(np.clip(screw_intensities, 0.0, None).mean()) / screw_brain_ref
-                loss += screw_in_brain_penalty * screw_penalty
+                ring_penalty = float(np.clip(ring_intensities, 0.0, None).mean()) / chamber_brain_ref
+                loss += chamber_in_brain_penalty * ring_penalty
             if enable_per_session_corrections:
                 loss += session_corr_penalty * reg_sum
         return loss
@@ -727,7 +744,9 @@ def optimize_trajectory_alignment(
         'optimizer': optimizer,
         'use_confidence_weights': use_confidence_weights,
         'fixed_globals': dict(fixed_globals) if fixed_globals else None,
-        'screw_in_brain_penalty': screw_in_brain_penalty,
+        'chamber_in_brain_penalty': chamber_in_brain_penalty,
+        'chamber_radius_mm': chamber_radius_mm,
+        'n_chamber_ring_samples': n_chamber_ring_samples,
     }
 
 
