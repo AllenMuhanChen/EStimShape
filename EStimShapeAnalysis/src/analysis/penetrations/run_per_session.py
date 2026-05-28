@@ -33,6 +33,7 @@ from src.analysis.penetrations.alignment_optimize import (
     CHAMBER_PARAM_PENALTY,
     ENABLE_PER_SESSION_CORRECTIONS,
     MRI_VIEWER_CONFIG_PATH,
+    SCREW_IN_BRAIN_PENALTY,
     SESSION_CORRECTION_PENALTY,
     SOFTMIN_BETA,
     TOP_DOWNWEIGHT_FACTOR,
@@ -40,13 +41,9 @@ from src.analysis.penetrations.alignment_optimize import (
     VARIANCE_PENALTY,
     apply_optimized_pipeline,
     compute_mri_comparison,
-    compute_segmentation_accuracy,
-    compute_segmentation_comparison,
     compute_trajectory_fit_scores,
     load_mri_pipeline,
-    load_segmentation_volume,
     optimize_trajectory_alignment,
-    optimize_trajectory_alignment_seg,
     save_optimized_params,
 )
 from src.analysis.penetrations.penetration_plots import (
@@ -88,23 +85,22 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
                  top_downweight_mm: float = TOP_DOWNWEIGHT_MM,
                  top_downweight_factor: float = TOP_DOWNWEIGHT_FACTOR,
                  fixed_globals: Optional[dict] = None,
-                 optimize_target: str = 'mri',
-                 segmentation_path: Optional[str] = None):
+                 no_skull_mri_path: Optional[str] = None,
+                 screw_in_brain_penalty: float = SCREW_IN_BRAIN_PENALTY):
     """Run complete PCA analysis with correlations, plots, and trajectory alignment.
 
-    optimize_target : {'mri', 'segmentation'}
-        - 'mri'         : optimise weighted Pearson r between tissue_score
-                          and raw MRI intensity (default; original behaviour).
-        - 'segmentation': optimise 3-class classification accuracy of
-                          argmax(p_*) against the NMT-style segmentation
-                          label. Requires segmentation_path.
-    """
-    if optimize_target not in ('mri', 'segmentation'):
-        raise ValueError(f"optimize_target must be 'mri' or 'segmentation', "
-                         f"got {optimize_target!r}")
-    if optimize_target == 'segmentation' and segmentation_path is None:
-        raise ValueError("optimize_target='segmentation' requires segmentation_path")
+    no_skull_mri_path : optional path to a brain-extracted MRI volume (e.g.
+        subject_ns_rigid_aligned). When provided, the optimiser samples this
+        volume instead of the config's `default_path`, so trajectory MRI
+        signal is zero outside the brain. Required if you want the
+        screw-in-brain penalty to be meaningful.
 
+    screw_in_brain_penalty : λ on a penalty that samples the MRI at the
+        (chamber-transformed) screw positions and adds the mean normalised
+        intensity to the loss. Defaults to 0 (disabled). When >0, use with
+        no_skull_mri_path — otherwise the penalty fires for screws in skull
+        / scalp too, which is wrong.
+    """
     pca_tag = _pca_run_tag(
         decomp_method=decomp_method,
         varimax_n_components=varimax_n_components,
@@ -164,84 +160,44 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
     cortex_pca_result = run_cortex_pca(df_conf, feature_columns, n_pcs=4, save_dir=pca_dir)
 
     fit_scores = None
-    seg_scores = None
     opt_result = None
     mri_pipeline = None
-    seg_volume = None
     try:
         print("\nLoading MRI pipeline ...")
-        mri_pipeline = load_mri_pipeline(mri_config_path)
+        if no_skull_mri_path is not None:
+            print(f"  Using brain-extracted MRI: {no_skull_mri_path}")
+        mri_pipeline = load_mri_pipeline(mri_config_path, volume_path=no_skull_mri_path)
 
-        if optimize_target == 'segmentation':
-            print(f"\nLoading segmentation volume: {segmentation_path}")
-            seg_volume = load_segmentation_volume(segmentation_path)
+        print("\n── Initial MRI comparison ──")
+        df_conf = compute_mri_comparison(df_conf, conn, mri_pipeline)
+        fit_scores = compute_trajectory_fit_scores(df_conf)
 
-            print("\n── Initial segmentation comparison ──")
-            df_conf = compute_segmentation_comparison(df_conf, conn, mri_pipeline, seg_volume)
-            seg_scores = compute_segmentation_accuracy(df_conf)
+        print("\n── Optimising transformation ──")
+        opt_result = optimize_trajectory_alignment(df_conf, conn, mri_pipeline,
+                                                   maxiter=maxiter,
+                                                   start_from_file=start_from_file,
+                                                   enable_per_session_corrections=enable_per_session_corrections,
+                                                   session_corr_bounds=session_corr_bounds,
+                                                   session_corr_penalty=session_corr_penalty,
+                                                   chamber_dist_penalty=chamber_dist_penalty,
+                                                   chamber_param_penalty=chamber_param_penalty,
+                                                   chamber_param_tolerances=chamber_param_tolerances,
+                                                   variance_penalty=variance_penalty,
+                                                   softmin_beta=softmin_beta,
+                                                   optimizer=optimizer,
+                                                   use_confidence_weights=use_confidence_weights,
+                                                   top_downweight_mm=top_downweight_mm,
+                                                   top_downweight_factor=top_downweight_factor,
+                                                   fixed_globals=fixed_globals,
+                                                   screw_in_brain_penalty=screw_in_brain_penalty)
 
-            print("\n── Optimising transformation (segmentation accuracy) ──")
-            opt_result = optimize_trajectory_alignment_seg(
-                df_conf, conn, mri_pipeline, seg_volume,
-                maxiter=maxiter,
-                start_from_file=start_from_file,
-                enable_per_session_corrections=enable_per_session_corrections,
-                session_corr_bounds=session_corr_bounds,
-                session_corr_penalty=session_corr_penalty,
-                chamber_dist_penalty=chamber_dist_penalty,
-                chamber_param_penalty=chamber_param_penalty,
-                chamber_param_tolerances=chamber_param_tolerances,
-                variance_penalty=variance_penalty,
-                softmin_beta=softmin_beta,
-                optimizer=optimizer,
-                use_confidence_weights=use_confidence_weights,
-                top_downweight_mm=top_downweight_mm,
-                top_downweight_factor=top_downweight_factor,
-                fixed_globals=fixed_globals,
-            )
-
-            print("\n── Comparisons with optimised transformation ──")
-            opt_pipeline, daz, del_, ddepth = apply_optimized_pipeline(mri_pipeline, opt_result)
-            per_sess = opt_result.get('per_session_corrections')
-            df_conf = compute_mri_comparison(df_conf, conn, opt_pipeline,
-                                             daz=daz, del_=del_, ddepth=ddepth,
-                                             per_session_corrections=per_sess)
-            df_conf = compute_segmentation_comparison(df_conf, conn, opt_pipeline, seg_volume,
-                                                      daz=daz, del_=del_, ddepth=ddepth,
-                                                      per_session_corrections=per_sess)
-            fit_scores = compute_trajectory_fit_scores(df_conf)
-            seg_scores = compute_segmentation_accuracy(df_conf)
-            plot_mri_comparison_by_session(df_conf, fit_scores, save_dir=opt_dir)
-        else:
-            print("\n── Initial MRI comparison ──")
-            df_conf = compute_mri_comparison(df_conf, conn, mri_pipeline)
-            fit_scores = compute_trajectory_fit_scores(df_conf)
-
-            print("\n── Optimising transformation ──")
-            opt_result = optimize_trajectory_alignment(df_conf, conn, mri_pipeline,
-                                                       maxiter=maxiter,
-                                                       start_from_file=start_from_file,
-                                                       enable_per_session_corrections=enable_per_session_corrections,
-                                                       session_corr_bounds=session_corr_bounds,
-                                                       session_corr_penalty=session_corr_penalty,
-                                                       chamber_dist_penalty=chamber_dist_penalty,
-                                                       chamber_param_penalty=chamber_param_penalty,
-                                                       chamber_param_tolerances=chamber_param_tolerances,
-                                                       variance_penalty=variance_penalty,
-                                                       softmin_beta=softmin_beta,
-                                                       optimizer=optimizer,
-                                                       use_confidence_weights=use_confidence_weights,
-                                                       top_downweight_mm=top_downweight_mm,
-                                                       top_downweight_factor=top_downweight_factor,
-                                                       fixed_globals=fixed_globals)
-
-            print("\n── MRI comparison with optimised transformation ──")
-            opt_pipeline, daz, del_, ddepth = apply_optimized_pipeline(mri_pipeline, opt_result)
-            df_conf = compute_mri_comparison(df_conf, conn, opt_pipeline,
-                                             daz=daz, del_=del_, ddepth=ddepth,
-                                             per_session_corrections=opt_result.get('per_session_corrections'))
-            fit_scores = compute_trajectory_fit_scores(df_conf)
-            plot_mri_comparison_by_session(df_conf, fit_scores, save_dir=opt_dir)
+        print("\n── MRI comparison with optimised transformation ──")
+        opt_pipeline, daz, del_, ddepth = apply_optimized_pipeline(mri_pipeline, opt_result)
+        df_conf = compute_mri_comparison(df_conf, conn, opt_pipeline,
+                                         daz=daz, del_=del_, ddepth=ddepth,
+                                         per_session_corrections=opt_result.get('per_session_corrections'))
+        fit_scores = compute_trajectory_fit_scores(df_conf)
+        plot_mri_comparison_by_session(df_conf, fit_scores, save_dir=opt_dir)
 
         _write_fit_log(opt_dir, pca_tag, fit_scores=fit_scores, opt_params=dict(
             softmin_beta=softmin_beta,
@@ -255,6 +211,8 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
             top_downweight_mm=top_downweight_mm,
             top_downweight_factor=top_downweight_factor,
             fixed_globals=fixed_globals,
+            no_skull_mri_path=no_skull_mri_path,
+            screw_in_brain_penalty=screw_in_brain_penalty,
             maxiter=maxiter,
             start_from_file=start_from_file,
         ), opt_result=opt_result)
@@ -280,10 +238,8 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         'loadings': loadings_df,
         'correlations': corr_df,
         'fit_scores': fit_scores,
-        'seg_scores': seg_scores,
         'opt_result': opt_result,
         'mri_pipeline': mri_pipeline,
-        'seg_volume': seg_volume,
         'cortex_pca': cortex_pca_result,
     }
 
@@ -320,6 +276,10 @@ if __name__ == "__main__":
         use_confidence_weights=False,
         top_downweight_mm=0,
         top_downweight_factor=0.25,
-        # optimize_target='segmentation',
-        # segmentation_path="/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/NMT_v2.0_asym_segmentation_rigid_aligned.nii.gz",
+        # Brain-extracted MRI: zero outside brain so the optimiser doesn't fit
+        # to skull/scalp signal. Set to None to fall back to the config default.
+        # no_skull_mri_path="/path/to/subject_ns_rigid_aligned.nii",
+        # Heavy penalty (λ) for chamber screws landing inside brain tissue.
+        # Only meaningful with no_skull_mri_path set. 0 = disabled; 10 = heavy.
+        # screw_in_brain_penalty=10.0,
     )

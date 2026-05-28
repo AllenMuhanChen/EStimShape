@@ -48,6 +48,7 @@ from src.analysis.penetrations.alignment_optimize import (  # noqa: F401
     ENABLE_PER_SESSION_CORRECTIONS,
     MRI_VIEWER_CONFIG_PATH,
     OPTIMIZATIONS_path,
+    SCREW_IN_BRAIN_PENALTY,
     SESSION_CORRECTION_BOUNDS,
     SESSION_CORRECTION_PENALTY,
     SOFTMIN_BETA,

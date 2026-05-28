@@ -41,6 +41,12 @@ TOP_DOWNWEIGHT_FACTOR = 0.25
 VARIANCE_PENALTY = 0.0
 SOFTMIN_BETA = 5
 
+# λ on a penalty that samples the MRI volume at the (chamber-transformed) screw
+# positions and pushes them toward zero intensity. Only meaningful with a
+# brain-extracted ("no-skull") MRI volume, where outside-brain voxels are 0
+# and inside-brain voxels are positive. 0 = disabled.
+SCREW_IN_BRAIN_PENALTY = 0.0
+
 _OPT_PARAM_NAMES = [
     'tx_mm', 'ty_mm', 'tz_mm',
     'rx_deg', 'ry_deg', 'rz_deg',
@@ -54,8 +60,20 @@ _OPT_X0 = np.array([0., 0., 0.,   0., 0., 0.,   0., 0.,   0.])
 # MRI pipeline + sampling
 # ---------------------------------------------------------------------------
 
-def load_mri_pipeline(config_path: str = MRI_VIEWER_CONFIG_PATH) -> dict:
-    """Load MRI volume, correction matrix, and chamber geometry for trajectory sampling."""
+def load_mri_pipeline(
+        config_path: str = MRI_VIEWER_CONFIG_PATH,
+        volume_path: Optional[str] = None,
+) -> dict:
+    """Load MRI volume, correction matrix, and chamber geometry for trajectory sampling.
+
+    volume_path : optional override that replaces `cfg['default_path']` for the
+        MRI volume. Use to swap in a brain-extracted ("no-skull") MRI so the
+        trajectory sampler doesn't read skull/scalp signal. The MRI corrections
+        file is still resolved relative to `volume_path` (so place a paired
+        `<volume_path>_corrections.json` next to it, or rely on identity).
+        Chamber geometry, screws, and the monkey-specific config still come
+        from the JSON config.
+    """
     from src.mri.volume import load_volume
     from src.mri.correction import load_corrections
     from src.mri.chamber import fit_chamber
@@ -63,7 +81,7 @@ def load_mri_pipeline(config_path: str = MRI_VIEWER_CONFIG_PATH) -> dict:
     with open(config_path) as f:
         cfg = json.load(f)
 
-    par_path = cfg['default_path']
+    par_path = volume_path if volume_path is not None else cfg['default_path']
     ebz_world = np.array(cfg['ebz_world'])
     monkey_specific_path = cfg['monkey_specific_path']
 
@@ -351,10 +369,20 @@ def optimize_trajectory_alignment(
         top_downweight_mm: float = TOP_DOWNWEIGHT_MM,
         top_downweight_factor: float = TOP_DOWNWEIGHT_FACTOR,
         fixed_globals: Optional[dict] = None,
+        screw_in_brain_penalty: float = SCREW_IN_BRAIN_PENALTY,
 ) -> dict:
     """
     Find the rigid-body + angle + depth correction that maximises the
     mean weighted Pearson r between tissue_score and MRI across all sessions.
+
+    screw_in_brain_penalty : λ on a penalty that samples mri_pipeline['data']
+        at the (chamber-transformed) screw positions and adds the mean
+        normalised intensity to the loss. Designed for use with a brain-
+        extracted MRI (load_mri_pipeline(volume_path=...)) where outside-brain
+        voxels are 0 — then any positive intensity at a screw position means
+        the screw landed inside brain tissue, which is physically impossible
+        for chamber screws. 0 = disabled. Values around 10 give "heavy"
+        penalisation on the same scale as a 1.0 swing in mean fit r.
     """
     from src.mri.chamber import calc_penetration_target
 
@@ -401,6 +429,20 @@ def optimize_trajectory_alignment(
     data = mri_pipeline['data']
     inv_corrected = mri_pipeline['inv_corrected']
     cor_offset = mri_pipeline['cor_offset']
+
+    # Pre-compute normaliser for the screw-in-brain penalty so the lambda
+    # magnitude is on the same scale as the Pearson-r loss (≈ [0, 1]).
+    # We use the 99th percentile of positive voxel intensities — robust to
+    # outliers, ≈ peak brain intensity for a brain-extracted MRI.
+    if screw_in_brain_penalty > 0:
+        brain_pos = data[data > 0]
+        screw_brain_ref = float(np.percentile(brain_pos, 99)) if brain_pos.size > 0 else 1.0
+        if screw_brain_ref <= 0:
+            screw_brain_ref = 1.0
+        print(f"  Screw-in-brain penalty λ={screw_in_brain_penalty:g}  "
+              f"(normalised by 99th-pctile brain intensity = {screw_brain_ref:.1f})")
+    else:
+        screw_brain_ref = 1.0
 
     origin_b, x_b, y_b, normal_b = _apply_chamber_params(_OPT_X0, mri_pipeline)
     baseline_pts = {}
@@ -565,6 +607,25 @@ def optimize_trajectory_alignment(
                     + (ddepth_g / s['ddepth_mm'])**2
                 )
                 loss += chamber_param_penalty * chamber_param_reg
+            if screw_in_brain_penalty > 0:
+                # Sample MRI at the current chamber's screw positions in world
+                # coordinates. With a brain-extracted MRI, any positive intensity
+                # indicates a screw landed inside brain tissue (physically
+                # impossible). Mean is normalised by 99th-pctile brain intensity
+                # so loss contribution is roughly in [0, 1].
+                from src.mri.correction import rot_x, rot_y, rot_z, xlate
+                tx_s, ty_s, tz_s, rx_s, ry_s, rz_s, *_ = params[:6]
+                screws_base = mri_pipeline['screws_world_base']
+                corr_s = xlate(tx_s, ty_s, tz_s) @ rot_z(rz_s) @ rot_y(ry_s) @ rot_x(rx_s)
+                R_s, t_s = corr_s[:3, :3], corr_s[:3, 3]
+                screws_world = (R_s @ screws_base.T).T + t_s
+                ones_s = np.ones((len(screws_world), 1))
+                vox_screws = (inv_corrected @ np.hstack([screws_world, ones_s]).T).T[:, :3]
+                screw_intensities = map_coordinates(
+                    data, vox_screws.T, order=1, mode='constant', cval=0.0,
+                ).astype(float)
+                screw_penalty = float(np.clip(screw_intensities, 0.0, None).mean()) / screw_brain_ref
+                loss += screw_in_brain_penalty * screw_penalty
             if enable_per_session_corrections:
                 loss += session_corr_penalty * reg_sum
         return loss
@@ -666,6 +727,7 @@ def optimize_trajectory_alignment(
         'optimizer': optimizer,
         'use_confidence_weights': use_confidence_weights,
         'fixed_globals': dict(fixed_globals) if fixed_globals else None,
+        'screw_in_brain_penalty': screw_in_brain_penalty,
     }
 
 
