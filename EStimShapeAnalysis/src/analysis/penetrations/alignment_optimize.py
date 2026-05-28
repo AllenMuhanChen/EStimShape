@@ -775,6 +775,214 @@ def apply_pca_opt_result(result_path: str, mri_pipeline: dict) -> None:
     print(f"  Pen offsets updated → {pen_offsets_path}")
 
 
+# ---------------------------------------------------------------------------
+# Segmentation-volume comparison
+# ---------------------------------------------------------------------------
+#
+# Maps NMT-style segmentation values (0=out-of-brain, 1=sulcus, 2=GM,
+# 3=sub-brain, 4=WM) onto a 3-class tissue label:
+#   {0, 1} -> 0 (sulcus, tissue_score 0.0)
+#   {2, 3} -> 1 (GM,     tissue_score 0.5)
+#   {4}    -> 2 (WM,     tissue_score 1.0)
+
+_SEG_CLASS_NAMES = ['sulcus', 'gm', 'wm']
+_SEG_CLASS_TISSUE_SCORES = np.array([0.0, 0.5, 1.0])
+
+
+def seg_values_to_classes(values: np.ndarray) -> np.ndarray:
+    """Vectorised mapping of raw seg values (0-4) to 3-class labels (0/1/2)."""
+    v = np.asarray(values)
+    return np.where(v <= 1, 0, np.where(v <= 3, 1, 2)).astype(int)
+
+
+def load_segmentation_volume(seg_path: str) -> dict:
+    """Load a segmentation NIfTI for nearest-neighbor sampling along trajectories.
+
+    If a paired `<seg_path>_corrections.json` exists, that correction is applied
+    (analogous to load_mri_pipeline). Otherwise the native affine is used as-is,
+    which is the right choice when the segmentation has been rigidly aligned
+    into MRI space already (e.g. NMT_v2.0_asym_segmentation_rigid_aligned).
+    """
+    from src.mri.volume import load_volume
+    from src.mri.correction import load_corrections
+
+    data, native_affine, _, _ = load_volume(seg_path)
+    if data.ndim == 4:
+        data = data[..., 0]
+
+    corr_path = os.path.splitext(seg_path)[0] + '_corrections.json'
+    if os.path.exists(corr_path):
+        seg_corr, _ = load_corrections(corr_path)
+        print(f"  Segmentation correction: {corr_path}")
+    else:
+        seg_corr = np.eye(4)
+        print(f"  Segmentation: no paired _corrections.json found "
+              f"(assuming already aligned to MRI space)")
+
+    corrected_affine = seg_corr @ native_affine
+    inv_corrected = np.linalg.inv(corrected_affine)
+
+    return {
+        'data': data,
+        'inv_corrected': inv_corrected,
+        'path': seg_path,
+    }
+
+
+def sample_segmentation_along_trajectory(
+        mri_pipeline: dict,
+        seg_volume: dict,
+        az_deg: float,
+        el_deg: float,
+        depths_mm: np.ndarray,
+) -> np.ndarray:
+    """Nearest-neighbor sample of the segmentation volume along a trajectory.
+
+    Penetration geometry (chamber origin/x/y/normal, cor_offset) is reused from
+    mri_pipeline; only the voxel grid changes. order=0 because segmentation
+    labels are categorical.
+    """
+    from src.mri.chamber import calc_penetration_target
+
+    origin = mri_pipeline['origin']
+    x = mri_pipeline['x']
+    y = mri_pipeline['y']
+    normal = mri_pipeline['normal']
+    cor_offset = mri_pipeline['cor_offset']
+
+    data = seg_volume['data']
+    inv_corrected = seg_volume['inv_corrected']
+
+    max_dist = float(np.max(depths_mm)) + 1.0
+    _, direction, top_pt = calc_penetration_target(
+        origin, az_deg, el_deg, max_dist, x, y, normal, cor_offset
+    )
+
+    pts = np.array([top_pt + d * direction for d in depths_mm])
+    ones = np.ones((len(pts), 1))
+    vox_coords = (inv_corrected @ np.hstack([pts, ones]).T).T[:, :3]
+
+    values = map_coordinates(data, vox_coords.T, order=0, mode='constant', cval=0.0)
+    return values.astype(int)
+
+
+def compute_segmentation_comparison(
+        df: pd.DataFrame,
+        conn: Connection,
+        mri_pipeline: dict,
+        seg_volume: dict,
+        daz: float = 0.0,
+        del_: float = 0.0,
+        ddepth: float = 0.0,
+        per_session_corrections: dict = None,
+) -> pd.DataFrame:
+    """Add segmentation columns sampled along each session's corrected trajectory.
+
+    Adds:
+      seg_raw          : raw seg label (0-4)
+      seg_class        : 3-class label (0=sulcus, 1=GM, 2=WM); -1 where no penetration
+      seg_tissue_score : 0.0 / 0.5 / 1.0
+    """
+    df = df.copy()
+    df['seg_raw'] = -1
+    df['seg_class'] = -1
+    df['seg_tissue_score'] = np.nan
+
+    for session_id in df['session_id'].unique():
+        pen = get_penetration_for_session(conn, session_id)
+        if pen is None:
+            print(f"  Warning: no penetration found for session {session_id}, skipping segmentation.")
+            continue
+
+        sc = (per_session_corrections or {}).get(session_id, {})
+        sess_daz    = daz    + sc.get('daz_deg',    0.0)
+        sess_del    = del_   + sc.get('del_deg',    0.0)
+        sess_ddepth = ddepth + sc.get('ddepth_mm',  0.0)
+
+        mask = df['session_id'] == session_id
+        depths = df.loc[mask, 'depth_under_chamber_mm'].values + sess_ddepth
+        seg_vals = sample_segmentation_along_trajectory(
+            mri_pipeline, seg_volume,
+            pen['az_deg'] + sess_daz, pen['el_deg'] + sess_del, depths,
+        )
+        classes = seg_values_to_classes(seg_vals)
+        tissue_scores = _SEG_CLASS_TISSUE_SCORES[classes]
+
+        df.loc[mask, 'seg_raw'] = seg_vals
+        df.loc[mask, 'seg_class'] = classes
+        df.loc[mask, 'seg_tissue_score'] = tissue_scores
+
+        n_sulcus = int((classes == 0).sum())
+        n_gm     = int((classes == 1).sum())
+        n_wm     = int((classes == 2).sum())
+        print(f"  {session_id} ({pen['pen_type']}): "
+              f"seg sulcus/gm/wm = {n_sulcus}/{n_gm}/{n_wm}")
+
+    return df
+
+
+def compute_segmentation_accuracy(df: pd.DataFrame) -> pd.DataFrame:
+    """Per-session 3-class classification accuracy (argmax over p_sulcus/p_gm/p_wm
+    vs seg_class).
+
+    Confidence-weighted accuracy is also returned for inspection (rewards
+    confident correct predictions, downweights uncertain ones).
+    """
+    required_p = ['p_sulcus', 'p_gm', 'p_wm']
+    missing = [c for c in required_p if c not in df.columns]
+    if missing:
+        raise RuntimeError(
+            f"compute_segmentation_accuracy needs columns {required_p}; missing {missing}. "
+            "Make sure the predictor's TissueModel has sulcus / gm / wm classes."
+        )
+    if 'seg_class' not in df.columns:
+        raise RuntimeError("compute_segmentation_accuracy needs a 'seg_class' column "
+                           "(call compute_segmentation_comparison first).")
+
+    p_arr = df[required_p].values
+    predicted_class = np.argmax(p_arr, axis=1)
+    has_conf = 'tissue_confidence' in df.columns
+
+    records = []
+    for session_id in df['session_id'].unique():
+        mask = df['session_id'] == session_id
+        sdata = df[mask]
+        valid = (sdata['seg_class'] >= 0).values
+        n_valid = int(valid.sum())
+        if n_valid < 1:
+            records.append({
+                'session_id': session_id,
+                'accuracy': np.nan,
+                'weighted_accuracy': np.nan,
+                'n_points': 0,
+            })
+            continue
+
+        true_c = sdata['seg_class'].values[valid]
+        pred_c = predicted_class[mask.values][valid]
+        match = (pred_c == true_c).astype(float)
+
+        acc = float(match.mean())
+        if has_conf:
+            w = sdata['tissue_confidence'].values[valid]
+            w_sum = float(w.sum())
+            w_acc = float((w * match).sum() / w_sum) if w_sum > 0 else np.nan
+        else:
+            w_acc = np.nan
+
+        records.append({
+            'session_id': session_id,
+            'accuracy': acc,
+            'weighted_accuracy': w_acc,
+            'n_points': n_valid,
+        })
+
+    result = pd.DataFrame(records).set_index('session_id')
+    print("\nSegmentation classification accuracy:")
+    print(result.to_string())
+    return result
+
+
 def load_corrections_file(corrections_path: str) -> dict:
     """Load a saved opt_*.json corrections file (timestamped output of save_optimized_params).
 

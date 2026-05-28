@@ -836,15 +836,18 @@ def plot_predictor_comparison_by_session(
 ) -> None:
     """Side-by-side per-session comparison of multiple tissue predictors.
 
-    Layout per session: MRI strip | one (tissue strip + overlay line) pair per predictor.
-    The MRI strip is shared across predictors (same corrections file → same sampled MRI).
+    Layout per session:
+        [MRI strip] [Seg strip if present] | (tissue strip + overlay line) per predictor.
+
+    The reference strips (MRI / segmentation) are shared across predictors —
+    the corrections file is fixed, so the sampled signals don't change.
+    A `seg_tissue_score` column on any predictor's df enables the seg strip.
 
     Parameters
     ----------
     predictor_results : dict[str, dict]
-        Mapping predictor name -> {'df': df_with_mri_and_tissue, 'fit_scores': DataFrame}.
-        Every df must share the same MRI columns (mri_normalized) and the same
-        depth_under_chamber_mm grid per session.
+        Mapping predictor name -> {'df': df_with_signals_and_tissue, 'fit_scores': DataFrame}.
+        Every df must share the same depth_under_chamber_mm grid per session.
     """
     if not predictor_results:
         print("plot_predictor_comparison_by_session: no predictors to plot.")
@@ -855,9 +858,13 @@ def plot_predictor_comparison_by_session(
     if sessions is None:
         sessions = sorted(ref_df['session_id'].unique())
 
+    has_mri = 'mri_normalized' in ref_df.columns
+    has_seg = 'seg_tissue_score' in ref_df.columns
+
     n_pred = len(names)
-    panels_per_session = 1 + 2 * n_pred   # MRI strip + (ts strip + line) per predictor
-    width_ratios_unit = [strip_width] + [strip_width, 1] * n_pred
+    n_ref = int(has_mri) + int(has_seg)
+    panels_per_session = n_ref + 2 * n_pred
+    width_ratios_unit = ([strip_width] * n_ref) + [strip_width, 1] * n_pred
 
     # ── Combined figure ──────────────────────────────────────────────────────
     n_sessions = len(sessions)
@@ -876,12 +883,26 @@ def plot_predictor_comparison_by_session(
         if ref_sdata.empty:
             continue
         depths = ref_sdata['depth_under_chamber_mm'].values
-        mri_norm = ref_sdata['mri_normalized'].values
-        mri_vmax = float(np.nanmax(mri_norm)) if np.any(np.isfinite(mri_norm)) else 1.0
+
+        if has_mri:
+            mri_norm = ref_sdata['mri_normalized'].values
+            mri_vmax = float(np.nanmax(mri_norm)) if np.any(np.isfinite(mri_norm)) else 1.0
+        else:
+            mri_norm = np.full(len(depths), np.nan)
+            mri_vmax = 1.0
+        seg_ts = ref_sdata['seg_tissue_score'].values if has_seg else None
 
         axes = ax_groups[col_idx]
-        _draw_tissue_strip(axes[0], depths, mri_norm,
-                           title=f'{session}\nMRI', vmax=mri_vmax)
+        ref_idx = 0
+        if has_mri:
+            _draw_tissue_strip(axes[ref_idx], depths, mri_norm,
+                               title=f'{session}\nMRI', vmax=mri_vmax)
+            ref_idx += 1
+        if has_seg:
+            _draw_tissue_strip(axes[ref_idx], depths, seg_ts,
+                               title=(f'{session}\nSeg' if not has_mri else 'Seg'),
+                               vmax=1.0)
+            ref_idx += 1
 
         for j, name in enumerate(names):
             res = predictor_results[name]
@@ -892,15 +913,16 @@ def plot_predictor_comparison_by_session(
             conf = sdata['tissue_confidence'].values if 'tissue_confidence' in sdata.columns else None
             fit_scores = res.get('fit_scores')
 
-            ax_ts   = axes[1 + 2 * j]
-            ax_line = axes[1 + 2 * j + 1]
+            ax_ts   = axes[n_ref + 2 * j]
+            ax_line = axes[n_ref + 2 * j + 1]
             _draw_tissue_strip(ax_ts, depths, ts, title=name, vmax=1.0)
             _draw_mri_tissue_line(ax_line, depths, ts, mri_norm, fit_scores, session, conf)
 
         if col_idx > 0:
-            axes[0].set_ylabel('')
+            for r in range(n_ref):
+                axes[r].set_ylabel('')
             for j in range(n_pred):
-                axes[1 + 2 * j].set_ylabel('')
+                axes[n_ref + 2 * j].set_ylabel('')
 
     fig_all.suptitle(
         'Predictor comparison (single corrections file)\n'
@@ -917,15 +939,27 @@ def plot_predictor_comparison_by_session(
         if ref_sdata.empty:
             continue
         depths = ref_sdata['depth_under_chamber_mm'].values
-        mri_norm = ref_sdata['mri_normalized'].values
-        mri_vmax = float(np.nanmax(mri_norm)) if np.any(np.isfinite(mri_norm)) else 1.0
+
+        if has_mri:
+            mri_norm = ref_sdata['mri_normalized'].values
+            mri_vmax = float(np.nanmax(mri_norm)) if np.any(np.isfinite(mri_norm)) else 1.0
+        else:
+            mri_norm = np.full(len(depths), np.nan)
+            mri_vmax = 1.0
+        seg_ts = ref_sdata['seg_tissue_score'].values if has_seg else None
 
         fig, axes = plt.subplots(
             1, panels_per_session,
             figsize=(2 + 2.0 * n_pred, 10),
             gridspec_kw={'width_ratios': width_ratios_unit},
         )
-        _draw_tissue_strip(axes[0], depths, mri_norm, title='MRI', vmax=mri_vmax)
+        ref_idx = 0
+        if has_mri:
+            _draw_tissue_strip(axes[ref_idx], depths, mri_norm, title='MRI', vmax=mri_vmax)
+            ref_idx += 1
+        if has_seg:
+            _draw_tissue_strip(axes[ref_idx], depths, seg_ts, title='Seg', vmax=1.0)
+            ref_idx += 1
 
         for j, name in enumerate(names):
             res = predictor_results[name]
@@ -936,8 +970,8 @@ def plot_predictor_comparison_by_session(
             conf = sdata['tissue_confidence'].values if 'tissue_confidence' in sdata.columns else None
             fit_scores = res.get('fit_scores')
 
-            ax_ts   = axes[1 + 2 * j]
-            ax_line = axes[1 + 2 * j + 1]
+            ax_ts   = axes[n_ref + 2 * j]
+            ax_line = axes[n_ref + 2 * j + 1]
             _draw_tissue_strip(ax_ts, depths, ts, title=name, vmax=1.0)
             _draw_mri_tissue_line(ax_line, depths, ts, mri_norm, fit_scores, session, conf)
 
