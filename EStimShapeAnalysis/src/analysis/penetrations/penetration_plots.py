@@ -444,10 +444,16 @@ def plot_depth_profiles_by_session(
         pca: PCA,
         n_pcs: int = None,
         sessions: list = None,
+        feature_columns: Optional[list] = None,
         figsize_per_session: tuple = (12, 6),
         save_dir: Optional[str] = None,
 ):
-    """Plot depth profiles for each session showing PC values vs depth."""
+    """Plot depth profiles for each session showing PC values vs depth.
+
+    feature_columns : if given, also plot each raw input feature as its own
+        panel after the PCs (same shared depth axis). Lets you see which
+        metrics drive each PC's pattern within a session.
+    """
     if sessions is None:
         sessions = df['session_id'].unique()
 
@@ -459,6 +465,17 @@ def plot_depth_profiles_by_session(
     pc_columns = pc_columns[:n_pcs]
     pc_colors = plt.cm.Set1(np.linspace(0, 1, n_pcs))
 
+    feat_cols = [f for f in (feature_columns or []) if f in df.columns]
+    n_features = len(feat_cols)
+    feat_colors = (plt.cm.tab20(np.linspace(0, 1, max(n_features, 1)))
+                   if n_features > 0 else None)
+
+    show_mri = 'mri_normalized' in df.columns
+
+    n_panels = n_pcs + n_features + (1 if show_mri else 0)
+    width_per_panel = max(2.0, figsize_per_session[0] / max(n_pcs, 1))
+    fig_height = figsize_per_session[1]
+
     for session in sessions:
         session_data = df[df['session_id'] == session].copy()
         session_data = session_data.sort_values('depth_under_chamber_mm')
@@ -469,25 +486,58 @@ def plot_depth_profiles_by_session(
 
         depths = session_data['depth_under_chamber_mm'].values
 
-        fig, axes = plt.subplots(1, n_pcs, figsize=figsize_per_session, sharey=True)
-        if n_pcs == 1:
+        fig, axes = plt.subplots(1, n_panels,
+                                 figsize=(width_per_panel * n_panels, fig_height),
+                                 sharey=True)
+        if n_panels == 1:
             axes = [axes]
 
-        for i, (pc_col, ax) in enumerate(zip(pc_columns, axes)):
+        # PC panels
+        for i, (pc_col, ax) in enumerate(zip(pc_columns, axes[:n_pcs])):
             values = session_data[pc_col].values
             var_explained = pca.explained_variance_ratio_[i] * 100
 
             ax.plot(values, depths, 'o-', color=pc_colors[i], linewidth=1.5, markersize=5, alpha=0.8)
             ax.axvline(x=0, color='gray', linestyle='--', linewidth=0.8, alpha=0.5)
 
-            ax.set_xlabel(f'{pc_col} ({var_explained:.1f}%)')
+            ax.set_xlabel(f'{pc_col} ({var_explained:.1f}%)', fontsize=9)
             if i == 0:
                 ax.set_ylabel('Depth under chamber (mm)')
 
             ax.set_ylim(depths.max() + 0.5, depths.min() - 0.5)
             _setup_depth_yaxis(ax, depths)
 
-        fig.suptitle(f'Session: {session}', fontsize=14)
+        # Raw-feature panels (optional)
+        feat_slice = axes[n_pcs:n_pcs + n_features]
+        for j, (feat, ax) in enumerate(zip(feat_cols, feat_slice)):
+            values = session_data[feat].values
+            ax.plot(values, depths, 'o-', color=feat_colors[j],
+                    linewidth=1.3, markersize=4, alpha=0.85)
+            ax.axvline(x=0, color='gray', linestyle='--', linewidth=0.6, alpha=0.4)
+            ax.set_xlabel(feat, fontsize=8)
+            ax.set_ylim(depths.max() + 0.5, depths.min() - 0.5)
+            _setup_depth_yaxis(ax, depths)
+
+        # MRI panel (optional — added when mri_normalized has been sampled)
+        if show_mri:
+            ax = axes[-1]
+            mri_vals = session_data['mri_normalized'].values
+            ax.plot(mri_vals, depths, 'o-', color='steelblue',
+                    linewidth=1.5, markersize=4, alpha=0.9)
+            ax.set_xlabel('MRI', fontsize=9, color='steelblue')
+            ax.tick_params(axis='x', colors='steelblue')
+            ax.set_ylim(depths.max() + 0.5, depths.min() - 0.5)
+            _setup_depth_yaxis(ax, depths)
+
+        title = f'Session: {session}'
+        extras = []
+        if n_features:
+            extras.append(f'{n_features} raw metrics')
+        if show_mri:
+            extras.append('MRI')
+        if extras:
+            title += f'  —  {n_pcs} PCs + ' + ' + '.join(extras)
+        fig.suptitle(title, fontsize=13)
         plt.tight_layout()
         _save_fig(save_dir, f'depth_profile_{session}.png')
         plt.show()
