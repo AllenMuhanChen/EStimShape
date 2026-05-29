@@ -613,7 +613,7 @@ def compute_tissue_confidence(
 
 
 # ---------------------------------------------------------------------------
-# TissuePredictor abstraction — API hook for run_pooled predictor comparison
+# TissuePredictor / TissuePipeline — API for run_pooled comparisons + run_per_session
 # ---------------------------------------------------------------------------
 
 class TissuePredictor(Protocol):
@@ -631,9 +631,112 @@ class TissuePredictor(Protocol):
 
 @dataclass
 class TissueModelPredictor:
-    """Adapter: wrap a `TissueModel` as a `TissuePredictor`."""
+    """Adapter: wrap a `TissueModel` as a `TissuePredictor`.
+
+    Note: as of the TissuePipeline refactor this only handles the
+    (PC scores -> tissue scores) half. Prefer TissuePipeline when you
+    also need to specify the decomposition recipe — that's the unit
+    that plugs into run_pooled.compare_pipelines_on_corrections and
+    run_per_session.run_analysis.
+    """
     name: str
     model: TissueModel
 
     def predict(self, df: pd.DataFrame) -> pd.DataFrame:
         return compute_tissue_confidence(df, model=self.model)
+
+
+@dataclass
+class TissuePipeline:
+    """A complete tissue-prediction recipe: raw features -> decomposition -> tissue scores.
+
+    Owns every choice that affects predictions, so two pipelines with
+    different decomp methods (e.g. PCA-V2 vs ICA-V1) can be compared
+    side-by-side in a single run_pooled call — each fits its own
+    decomposition independently.
+
+    Fields
+    ------
+    name              : short identifier used in plot labels / save_dir / summary.
+    model             : TissueModel (or None to skip the prediction step, e.g.
+                        for decomposition-only diagnostic runs).
+    decomp_method     : 'pca' | 'fa' | 'ica'.
+    n_components      : total components to extract. None preserves the
+                        per-method default (all features for PCA;
+                        varimax_n_components for FA/ICA).
+    varimax_n_components : how many to varimax-rotate. None means rotate all
+                        n_components.
+    use_varimax       : enable varimax. Has no effect for ICA.
+    within_session_normalize : z-score features per session before decomposition.
+    pc_smooth_sigma   : gaussian smoothing of PC scores vs depth (per session).
+    exclude_features  : column names to drop from the feature matrix.
+
+    Methods
+    -------
+    fit_decomposition(conn, ...) -> (df_with_PCs, pca, X_pca, feature_columns, scaler)
+    predict(df_with_PCs)         -> df_with_tissue_score
+    fit_and_predict(conn, ...)   -> the two above in one shot, returns a dict.
+    """
+    name: str
+    model: Optional[TissueModel] = None
+    decomp_method: str = 'pca'
+    n_components: Optional[int] = None
+    varimax_n_components: Optional[int] = None
+    use_varimax: bool = True
+    within_session_normalize: bool = False
+    pc_smooth_sigma: float = 2.0
+    exclude_features: list = field(default_factory=list)
+
+    def fit_decomposition(
+            self,
+            conn: Connection,
+            table_name: str = "PenetrationMetrics",
+            exclude_sessions: Optional[list] = None,
+    ):
+        return load_and_perform_pca(
+            conn, table_name,
+            exclude_sessions=exclude_sessions,
+            within_session_normalize=self.within_session_normalize,
+            pc_smooth_sigma=self.pc_smooth_sigma,
+            n_components=self.n_components,
+            varimax_n_components=self.varimax_n_components,
+            decomp_method=self.decomp_method,
+            use_varimax=self.use_varimax,
+            exclude_features=self.exclude_features,
+        )
+
+    def predict(self, df: pd.DataFrame) -> pd.DataFrame:
+        if self.model is None:
+            raise RuntimeError(
+                f"TissuePipeline {self.name!r} has model=None — call "
+                "fit_decomposition only, or set a TissueModel before predicting."
+            )
+        return compute_tissue_confidence(df, model=self.model)
+
+    def fit_and_predict(
+            self,
+            conn: Connection,
+            table_name: str = "PenetrationMetrics",
+            exclude_sessions: Optional[list] = None,
+    ) -> dict:
+        df, pca, X_pca, feature_columns, scaler = self.fit_decomposition(
+            conn, table_name, exclude_sessions,
+        )
+        out = {'df': df, 'pca': pca, 'X_pca': X_pca,
+               'feature_columns': feature_columns, 'scaler': scaler}
+        if self.model is not None:
+            out['df'] = self.predict(df)
+        return out
+
+    def tag(self) -> str:
+        """Compact filename-safe tag describing the decomposition config."""
+        norm_tag = 'T' if self.within_session_normalize else 'F'
+        vm_tag   = 'T' if self.use_varimax else 'F'
+        ncomp = self.n_components if self.n_components is not None else (
+            self.varimax_n_components or 'all')
+        parts = [self.decomp_method, f"{ncomp}pcs",
+                 f"vm{vm_tag}", f"norm{norm_tag}",
+                 f"sig{self.pc_smooth_sigma:.1f}"]
+        if self.exclude_features:
+            parts.append(f"excl{len(self.exclude_features)}")
+        return "_".join(str(p) for p in parts)
