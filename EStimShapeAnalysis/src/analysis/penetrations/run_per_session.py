@@ -262,8 +262,8 @@ if __name__ == "__main__":
     )
 
     exclude_sessions = ["260331_0", "260402_0", "260520_0", "260423_0"]
-
-    start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260525_121133_best.json"
+    start_from_file = None
+    # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260525_121133_best.json"
     results = run_analysis(
         conn,
         n_pcs=2,
@@ -277,7 +277,7 @@ if __name__ == "__main__":
         session_corr_bounds=None,
         session_corr_penalty=0.5,
         chamber_dist_penalty=0.000,
-        chamber_param_penalty=0.0005,
+        chamber_param_penalty=0.0000,
         chamber_param_tolerances=dict(t_mm=4, r_deg=2.5, daz_deg=0.5, del_deg=0.5, ddepth_mm=4.0),
         variance_penalty=0.0,
         softmin_beta=0,
@@ -292,7 +292,9 @@ if __name__ == "__main__":
         # brain tissue. Samples 32 points around the chamber circle (radius
         # 7 mm by default). Only meaningful with no_skull_mri_path set;
         # 0 = disabled, 10 = heavy (≈ 1.0 swing in mean fit r per unit penalty).
-        # chamber_in_brain_penalty=10.0,
-        # chamber_radius_mm=7.0,
-        # n_chamber_ring_samples=32,
+        chamber_in_brain_penalty=10.0,
+        chamber_radius_mm=7.0,
+        n_chamber_ring_samples=32,
+        no_skull_mri_path="/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/subject_ns_rigid_aligned.nii.gz",
+
     )

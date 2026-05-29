@@ -36,12 +36,12 @@ from src.startup import context
 
 def main():
     # ============ CONFIGURATION ============
-    exp_db_name = "allen_estimshape_exp_260526_0"
+    exp_db_name = "allen_estimshape_exp_260528_0"
     exp_conn = Connection(exp_db_name)
     ga_conn  = Connection(context.ga_database)
 
     since_date            = time_util.from_date_to_now(2024, 7, 10)
-    start_gen_id          = 2
+    start_gen_id          = 9
     max_gen_id            = float('inf')
     start_gen_id_estim_on = 0
     max_gen_id_estim_on   = float('inf')
@@ -50,7 +50,7 @@ def main():
     global_test_side   = 'positive'
     # run_permutation_tests: False skips the (slow) permutation tests; observed effects are
     # still shown but p-values/significance are reported as n/a.
-    run_permutation_tests = True
+    run_permutation_tests = False
     n_permutations     = 1000 if run_permutation_tests else 0
 
     add_borders       = True

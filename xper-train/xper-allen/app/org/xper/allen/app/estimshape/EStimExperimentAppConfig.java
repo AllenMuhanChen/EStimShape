@@ -198,7 +198,7 @@ public class EStimExperimentAppConfig {
         pngMaker.setWidth(sampleDPIUtil().calculateMinResolution());
         pngMaker.setHeight(sampleDPIUtil().calculateMinResolution());
         pngMaker.setDpiUtil(sampleDPIUtil());
-        RGBColor backColor = new RGBColor(0.5, 0.5, 0.5);
+        RGBColor backColor = new RGBColor(0.0, 0.0, 0.0);
         pngMaker.setBackColor(backColor);
         pngMaker.setDepth(6000);
         pngMaker.setDistance(500);
