@@ -108,6 +108,7 @@ def load_and_perform_pca(
         varimax_n_components: Optional[int] = 6,
         decomp_method: str = DECOMPOSITION_METHOD,
         use_varimax: bool = USE_VARIMAX,
+        exclude_features: Optional[list] = None,
 ):
     """Load data and run a pooled decomposition across all sessions.
 
@@ -126,6 +127,11 @@ def load_and_perform_pca(
         varimax-rotated. Defaults to 6; capped at n_components. Ignored
         for ICA (already a rotation method).
     use_varimax : enable varimax rotation. Has no effect for ICA.
+    exclude_features : list of column names to drop from the feature
+        matrix before fitting. Useful when iterating to see how a single
+        metric (or group of metrics) influences the components. The
+        primary keys (session_id, depth_under_chamber_mm) and r_squared
+        are always excluded; this extends that list.
 
     Returns
     -------
@@ -146,13 +152,23 @@ def load_and_perform_pca(
 
     pk_columns = ['session_id', 'depth_under_chamber_mm']
     exclude_columns = pk_columns + ['r_squared']
+    if exclude_features:
+        user_excluded = list(exclude_features)
+        unknown = [c for c in user_excluded if c not in df.columns]
+        if unknown:
+            print(f"  WARNING: exclude_features contains columns not in the "
+                  f"table — ignoring: {unknown}")
+        exclude_columns = exclude_columns + [c for c in user_excluded if c in df.columns]
+        print(f"  User-excluded features: "
+              f"{[c for c in user_excluded if c in df.columns]}")
     feature_columns = [
         col for col in df.columns
         if col not in exclude_columns
            and pd.api.types.is_numeric_dtype(df[col])
     ]
 
-    print(f"Feature columns for decomposition: {feature_columns}")
+    print(f"Feature columns for decomposition ({len(feature_columns)}): "
+          f"{feature_columns}")
 
     X = df[feature_columns].copy()
     X = X.fillna(X.mean())

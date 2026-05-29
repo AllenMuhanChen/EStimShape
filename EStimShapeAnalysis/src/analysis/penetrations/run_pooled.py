@@ -152,6 +152,7 @@ def visualize_pooled_pca(
         varimax_n_components: Optional[int] = None,
         decomp_method: str = DECOMPOSITION_METHOD,
         use_varimax: bool = USE_VARIMAX,
+        exclude_features: Optional[list] = None,
         n_pcs_to_plot: Optional[int] = None,
         sessions_to_plot_individually: Optional[list] = None,
         corrections_path: Optional[str] = None,
@@ -188,6 +189,8 @@ def visualize_pooled_pca(
                      else (varimax_n_components or 'all'))
         tag = (f"{decomp_method}_{ncomp_tag}pcs_vm{vm_tag}"
                f"_norm{norm_tag}_sig{pc_smooth_sigma:.1f}")
+        if exclude_features:
+            tag += f"_excl{len(exclude_features)}"
         save_dir = os.path.join(PLOT_BASE_DIR, 'pca_viz', tag)
     os.makedirs(save_dir, exist_ok=True)
     print(f"\nDecomposition visualisation output → {save_dir}")
@@ -201,6 +204,7 @@ def visualize_pooled_pca(
         varimax_n_components=varimax_n_components,
         decomp_method=decomp_method,
         use_varimax=use_varimax,
+        exclude_features=exclude_features,
     )
 
     if n_pcs_to_plot is None:
@@ -238,6 +242,7 @@ def compare_predictors_on_corrections(
         varimax_n_components: Optional[int] = None,
         decomp_method: str = DECOMPOSITION_METHOD,
         use_varimax: bool = USE_VARIMAX,
+        exclude_features: Optional[list] = None,
         save_dir: Optional[str] = None,
         plot_pca_diagnostics: bool = True,
         n_pcs_to_plot: Optional[int] = None,
@@ -270,9 +275,11 @@ def compare_predictors_on_corrections(
         corrections_tag = os.path.splitext(os.path.basename(corrections_path))[0]
         ncomp_tag = (n_components if n_components is not None
                      else (varimax_n_components or 'all'))
+        run_tag = f"{corrections_tag}_{decomp_method}_{ncomp_tag}pcs"
+        if exclude_features:
+            run_tag += f"_excl{len(exclude_features)}"
         save_dir = os.path.join(
-            PLOT_BASE_DIR, 'predictor_comparison',
-            f"{corrections_tag}_{decomp_method}_{ncomp_tag}pcs",
+            PLOT_BASE_DIR, 'predictor_comparison', run_tag,
         )
     os.makedirs(save_dir, exist_ok=True)
     print(f"\nPredictor comparison output → {save_dir}")
@@ -287,6 +294,7 @@ def compare_predictors_on_corrections(
         varimax_n_components=varimax_n_components,
         decomp_method=decomp_method,
         use_varimax=use_varimax,
+        exclude_features=exclude_features,
     )
 
     # ── 2) Load corrections, apply, and sample MRI ONCE ──────────────────
@@ -374,6 +382,11 @@ if __name__ == "__main__":
     # --- Feature preprocessing ---
     WITHIN_SESSION_NORMALIZE = False      # z-score features per session before decomposition
     PC_SMOOTH_SIGMA = 2.0                 # gaussian smoothing of component scores vs depth
+    # Drop these PenetrationMetrics columns from the feature matrix before
+    # decomposition (in addition to session_id / depth_under_chamber_mm /
+    # r_squared which are always excluded). Use this to test "what does
+    # the PCA look like without metric X?". [] = use all numeric features.
+    EXCLUDE_FEATURES: list = []
 
     # --- Plot scope ---
     N_PCS_TO_PLOT = None                  # None → matches N_COMPONENTS
@@ -462,6 +475,7 @@ if __name__ == "__main__":
         n_components=N_COMPONENTS,
         varimax_n_components=VARIMAX_N_COMPONENTS,
         use_varimax=USE_VARIMAX_ROTATION,
+        exclude_features=EXCLUDE_FEATURES,
         plot_pca_diagnostics=True,
         n_pcs_to_plot=N_PCS_TO_PLOT,
         sessions_to_plot_individually=SESSIONS_TO_PLOT_INDIVIDUALLY,
