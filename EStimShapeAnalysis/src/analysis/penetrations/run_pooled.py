@@ -54,6 +54,8 @@ from src.analysis.penetrations.alignment_optimize import (
 from src.analysis.penetrations.penetration_plots import (
     PLOT_BASE_DIR,
     plot_correlation_heatmap,
+    plot_depth_profiles_all_sessions,
+    plot_depth_profiles_by_session,
     plot_depth_profiles_overlaid,
     plot_loadings,
     plot_predictor_comparison_by_session,
@@ -65,8 +67,17 @@ from src.analysis.penetrations.penetration_plots import (
 # PCA diagnostics — used by both visualize_pooled_pca and the comparison
 # ---------------------------------------------------------------------------
 
-def _generate_pca_diagnostics(df, pca, feature_columns, n_pcs, save_dir):
-    """Run the standard pooled-PCA diagnostic plot set into save_dir."""
+def _generate_pca_diagnostics(
+        df, pca, feature_columns, n_pcs, save_dir,
+        sessions_to_plot_individually=None,
+):
+    """Run the standard pooled-decomposition diagnostic plot set into save_dir.
+
+    sessions_to_plot_individually : list of session_id strings. For each
+        session in the list, also save a single-session figure showing every
+        component vs depth. None or [] = skip the per-session figures (the
+        depth_profiles_all_sessions grid still covers all sessions).
+    """
     print("\n" + "=" * 60)
     print("PCA LOADINGS")
     print("=" * 60)
@@ -80,6 +91,15 @@ def _generate_pca_diagnostics(df, pca, feature_columns, n_pcs, save_dir):
     plot_loadings(pca, feature_columns, n_pcs=n_pcs, save_dir=save_dir)
     plot_correlation_heatmap(corr_df, feature_columns, save_dir=save_dir)
     plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs, save_dir=save_dir)
+    # Grid of every session × every PC — one figure, easy side-by-side compare.
+    plot_depth_profiles_all_sessions(df, pca, n_pcs=n_pcs, save_dir=save_dir)
+    # One zoomed figure per requested session.
+    if sessions_to_plot_individually:
+        plot_depth_profiles_by_session(
+            df, pca, n_pcs=n_pcs,
+            sessions=sessions_to_plot_individually,
+            save_dir=save_dir,
+        )
 
 
 def visualize_pooled_pca(
@@ -93,6 +113,7 @@ def visualize_pooled_pca(
         decomp_method: str = DECOMPOSITION_METHOD,
         use_varimax: bool = USE_VARIMAX,
         n_pcs_to_plot: Optional[int] = None,
+        sessions_to_plot_individually: Optional[list] = None,
         save_dir: Optional[str] = None,
 ):
     """Fit the pooled decomposition and emit diagnostic plots — no MRI / comparison.
@@ -140,7 +161,10 @@ def visualize_pooled_pca(
         n_pcs_to_plot = max(varimax_n_components or X_pca.shape[1], 1)
     n_pcs_to_plot = min(n_pcs_to_plot, X_pca.shape[1])
 
-    _generate_pca_diagnostics(df, pca, feature_columns, n_pcs_to_plot, save_dir)
+    _generate_pca_diagnostics(
+        df, pca, feature_columns, n_pcs_to_plot, save_dir,
+        sessions_to_plot_individually=sessions_to_plot_individually,
+    )
 
     return df, pca, X_pca, feature_columns, scaler
 
@@ -165,6 +189,7 @@ def compare_predictors_on_corrections(
         save_dir: Optional[str] = None,
         plot_pca_diagnostics: bool = True,
         n_pcs_to_plot: Optional[int] = None,
+        sessions_to_plot_individually: Optional[list] = None,
 ) -> dict:
     """Fit pooled PCA once, sample MRI once under a fixed corrections file,
     then evaluate every predictor's tissue_score against the MRI.
@@ -216,7 +241,10 @@ def compare_predictors_on_corrections(
         if n_pcs_to_plot is None:
             n_pcs_to_plot = max(varimax_n_components or X_pca.shape[1], 1)
         n_pcs_to_plot = min(n_pcs_to_plot, X_pca.shape[1])
-        _generate_pca_diagnostics(df, pca, feature_columns, n_pcs_to_plot, save_dir)
+        _generate_pca_diagnostics(
+            df, pca, feature_columns, n_pcs_to_plot, save_dir,
+            sessions_to_plot_individually=sessions_to_plot_individually,
+        )
 
     # ── 2) Load corrections + apply to MRI pipeline ───────────────────────
     print("\nLoading MRI pipeline ...")
@@ -315,6 +343,11 @@ if __name__ == "__main__":
 
     # --- Plot scope ---
     N_PCS_TO_PLOT = None                  # None → matches N_COMPONENTS
+    # Sessions to plot in their own dedicated per-session figures (one figure
+    # per session, all PCs side by side). The depth_profiles_all_sessions
+    # grid always covers every session regardless; this list adds zoomed
+    # single-session views on top. [] = skip.
+    SESSIONS_TO_PLOT_INDIVIDUALLY: list = []
 
     # --- Trajectory alignment ---
     CORRECTIONS_PATH = (
@@ -376,6 +409,7 @@ if __name__ == "__main__":
     #     varimax_n_components=VARIMAX_N_COMPONENTS,
     #     use_varimax=USE_VARIMAX_ROTATION,
     #     n_pcs_to_plot=N_PCS_TO_PLOT,
+    #     sessions_to_plot_individually=SESSIONS_TO_PLOT_INDIVIDUALLY,
     # )
 
     # Step 2: compare predictors against MRI under a fixed corrections file.
@@ -395,4 +429,5 @@ if __name__ == "__main__":
         use_varimax=USE_VARIMAX_ROTATION,
         plot_pca_diagnostics=True,
         n_pcs_to_plot=N_PCS_TO_PLOT,
+        sessions_to_plot_individually=SESSIONS_TO_PLOT_INDIVIDUALLY,
     )

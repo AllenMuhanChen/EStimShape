@@ -445,6 +445,7 @@ def plot_depth_profiles_by_session(
         n_pcs: int = None,
         sessions: list = None,
         figsize_per_session: tuple = (12, 6),
+        save_dir: Optional[str] = None,
 ):
     """Plot depth profiles for each session showing PC values vs depth."""
     if sessions is None:
@@ -488,7 +489,7 @@ def plot_depth_profiles_by_session(
 
         fig.suptitle(f'Session: {session}', fontsize=14)
         plt.tight_layout()
-        plt.savefig(f'depth_profile_{session}.png', dpi=150, bbox_inches='tight')
+        _save_fig(save_dir, f'depth_profile_{session}.png')
         plt.show()
 
 
@@ -497,8 +498,9 @@ def plot_depth_profiles_all_sessions(
         pca: PCA,
         n_pcs: int = None,
         sessions: list = None,
+        save_dir: Optional[str] = None,
 ):
-    """Plot depth profiles for all sessions on a single figure."""
+    """Plot depth profiles for all sessions in a single grid figure (rows=sessions, cols=PCs)."""
     if sessions is None:
         sessions = df['session_id'].unique()
 
@@ -559,7 +561,7 @@ def plot_depth_profiles_all_sessions(
 
     plt.suptitle('Depth Profiles by Session', fontsize=14, y=1.01)
     plt.tight_layout()
-    plt.savefig('depth_profiles_all_sessions.png', dpi=150, bbox_inches='tight')
+    _save_fig(save_dir, 'depth_profiles_all_sessions.png')
     plt.show()
 
 
