@@ -282,6 +282,8 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
 
 
 if __name__ == "__main__":
+    from src.analysis.penetrations.pca_predict import Evidence, TissueClass
+
     conn = Connection(
         database="allen_data_repository",
         user="xper_rw",
@@ -292,30 +294,90 @@ if __name__ == "__main__":
     exclude_sessions = ["260331_0", "260402_0", "260520_0", "260423_0"]
     start_from_file = None
     # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260525_121133_best.json"
+    # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260529_132317_best_bottom.json"
+
+    # ════════════════════════════════════════════════════════════════════
+    # PIPELINE — the same object you'd drop into run_pooled's
+    # compare_pipelines_on_corrections. Owns the full recipe
+    # (decomposition + tissue model). Build inline here while
+    # experimenting; once stable, promote MODEL_*** and the pipeline to
+    # pca_predict.py so both scripts can import the same name.
+    #
+    # Swap which PIPELINE = ... line is active to switch recipes. The
+    # alternative is kept above as a commented-out template.
+    # ════════════════════════════════════════════════════════════════════
+
+    # --- Legacy PCA-V2 pipeline (was the previous default) ---
+    # PIPE_PCA_V2 = TissuePipeline(
+    #     name='PCA_V2',
+    #     model=MODEL_PCA_V2,
+    #     decomp_method='pca',
+    #     n_components=2,
+    #     use_varimax=True,
+    #     within_session_normalize=False,
+    #     pc_smooth_sigma=2.0,
+    #     exclude_features=[],
+    # )
+    # PIPELINE = PIPE_PCA_V2
+
+    # --- New ICA-V1 pipeline (from run_pooled iteration) ---
+    MODEL_ICA_V1 = TissueModel([
+        TissueClass('wm', score=1.0, evidence=[
+            Evidence('PC1', sign=+1),
+            Evidence('PC2', sign=+1),
+        ]),
+        TissueClass('gm', score=0.5, evidence=[
+            Evidence('PC1', sign=-1),
+            Evidence('PC2', sign=+1),
+        ]),
+        TissueClass('sulcus', score=0.0, evidence=[
+            Evidence('PC2', sign=-1),
+        ]),
+    ])
+
+    PIPE_ICA_V1 = TissuePipeline(
+        name='ICA_V1',
+        model=MODEL_ICA_V1,
+        decomp_method='ica',
+        n_components=2,
+        use_varimax=False,
+        within_session_normalize=False,
+        pc_smooth_sigma=2.0,
+        exclude_features=[
+            "band_power_delta_theta",
+            "band_power_alpha_beta",
+            "band_power_gamma",
+        ],
+    )
+    PIPELINE = PIPE_ICA_V1
+
+    # ════════════════════════════════════════════════════════════════════
+    # Run — pipeline supplies the decomp + model; everything else here is
+    # alignment / regularisation / MRI / penalty configuration.
+    # ════════════════════════════════════════════════════════════════════
     results = run_analysis(
         conn,
+        pipeline=PIPELINE,
         n_pcs=2,
         exclude_sessions=exclude_sessions,
-        within_session_normalize=False,
-        tissue_model=MODEL_PCA_V2,
-        varimax_n_components=2,
         maxiter=100000,
         start_from_file=start_from_file,
         enable_per_session_corrections=True,
         session_corr_bounds=None,
         session_corr_penalty=0.5,
         chamber_dist_penalty=0.000,
-        chamber_param_penalty=0.0000,
+        chamber_param_penalty=0.000,
         chamber_param_tolerances=dict(t_mm=4, r_deg=2.5, daz_deg=0.5, del_deg=0.5, ddepth_mm=4.0),
         variance_penalty=0.0,
-        softmin_beta=0,
+        softmin_beta=20,
         optimizer='cma-es',
         use_confidence_weights=False,
-        top_downweight_mm=0,
+        # top_downweight_mm=7,
         top_downweight_factor=0.25,
         # Brain-extracted MRI: zero outside brain so the optimiser doesn't fit
         # to skull/scalp signal. Set to None to fall back to the config default.
-        # no_skull_mri_path="/path/to/subject_ns_rigid_aligned.nii",
+        no_skull_mri_path="/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/subject_ns_rigid_aligned.nii.gz",
+        # no_skull_mri_path="/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/NMT_v2.0_asym_SS_rigid_aligned.nii.gz",
         # Heavy penalty (λ) for any part of the chamber ring landing inside
         # brain tissue. Samples 32 points around the chamber circle (radius
         # 7 mm by default). Only meaningful with no_skull_mri_path set;
@@ -323,6 +385,4 @@ if __name__ == "__main__":
         chamber_in_brain_penalty=10.0,
         chamber_radius_mm=7.0,
         n_chamber_ring_samples=32,
-        no_skull_mri_path="/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/subject_ns_rigid_aligned.nii.gz",
-
     )
