@@ -1,24 +1,33 @@
-"""Master script: pooled PCA + compare multiple tissue-prediction methods
-against MRI using a single saved corrections file.
+"""Master script: pooled-decomposition tissue-prediction pipelines + MRI scoring.
+
+The unit of configuration is `TissuePipeline` (in pca_predict.py). One
+pipeline owns: decomp_method, n_components, varimax, normalisation,
+feature exclusion, AND the TissueModel. Same object plugs into
+run_per_session.run_analysis for full optimisation.
 
 Two entry points:
 
-  - visualize_pooled_pca(conn, ...)        — fit the pooled PCA and dump
-    diagnostic plots (scree, loadings, depth-profile-overlaid). Use this
-    when iterating on PC count / normalization choices before you have a
-    TissueModel to compare. No corrections file or MRI sampling needed.
+  - visualize_pooled_pca(conn, pipeline, ...)
+        Fit one pipeline's decomposition and dump diagnostic plots
+        (scree, loadings, depth profiles). Optional corrections_path
+        adds an MRI panel to the per-session plot. Use this when
+        iterating on PC count / method / model.
 
-  - compare_predictors_on_corrections(conn, corrections_path, predictors, ...)
-    — full flow: fit pooled PCA, sample MRI once under a fixed corrections
-    file, evaluate every predictor's tissue_score against the MRI, render
-    side-by-side per-session comparison plots. Also generates the PCA
-    diagnostic plots into the comparison directory unless disabled.
+  - compare_pipelines_on_corrections(conn, corrections_path, pipelines, ...)
+        Run multiple pipelines side-by-side: each fits its own
+        decomposition, samples MRI under a fixed corrections file,
+        and scores tissue_score vs MRI. Each pipeline's diagnostic
+        plots land in its own subdir; a single comparison figure
+        and CSV summarise the result.
 
-To iterate on a new model:
-  1. Run visualize_pooled_pca with the PC count you want to try.
-  2. Look at loadings / depth profiles in PLOT_BASE_DIR/pca_viz/<tag>/.
-  3. Define a TissueModel inline (see __main__ for an example).
-  4. Run compare_predictors_on_corrections with the model in the list.
+To iterate on a new pipeline:
+  1. Define a TissuePipeline inline in __main__ (see PIPELINES below).
+  2. Run visualize_pooled_pca on it to see loadings / depth profiles.
+  3. Refine the TissueModel based on what you see.
+  4. Add it to PIPELINES and run compare_pipelines_on_corrections to
+     score it against alternatives.
+  5. To run full optimisation: pass the same pipeline object to
+     run_per_session.run_analysis(conn, pipeline=PIPE_X, ...).
 """
 import os
 from typing import List, Optional
@@ -28,19 +37,15 @@ import pandas as pd
 from clat.util.connection import Connection
 
 from src.analysis.penetrations.pca_predict import (
-    DECOMPOSITION_METHOD,
     Evidence,
     MODEL_PCA_V1,
     MODEL_PCA_V2,
     MODEL_PCA_V4,
     TissueClass,
     TissueModel,
-    TissueModelPredictor,
-    TissuePredictor,
-    USE_VARIMAX,
+    TissuePipeline,
     get_feature_correlations,
     get_loadings_df,
-    load_and_perform_pca,
     print_feature_correlations,
 )
 from src.analysis.penetrations.alignment_optimize import (
@@ -64,7 +69,7 @@ from src.analysis.penetrations.penetration_plots import (
 
 
 # ---------------------------------------------------------------------------
-# PCA diagnostics — used by both visualize_pooled_pca and the comparison
+# Shared helpers
 # ---------------------------------------------------------------------------
 
 def _load_and_sample_mri(
@@ -106,18 +111,12 @@ def _generate_pca_diagnostics(
 ):
     """Run the standard pooled-decomposition diagnostic plot set into save_dir.
 
-    If df already has an 'mri_normalized' column (i.e. MRI was sampled), the
-    per-session plot adds an MRI panel too. Raw input features are also
-    added as panels in the per-session view.
-
-    sessions_to_plot_individually : list of session_id strings. For each
-        session in the list, save a single-session figure showing every PC,
-        every raw input feature, and the MRI signal (when available) vs depth.
-        None or [] = skip the per-session figures (the depth_profiles_all_sessions
-        grid still covers all sessions).
+    Picks up an 'mri_normalized' column automatically (per-session plot adds
+    an MRI panel when present). Raw input features become extra per-session
+    panels alongside the PCs.
     """
     print("\n" + "=" * 60)
-    print("PCA LOADINGS")
+    print("LOADINGS")
     print("=" * 60)
     loadings_df = get_loadings_df(pca, feature_columns)
     print(loadings_df.round(3))
@@ -129,10 +128,7 @@ def _generate_pca_diagnostics(
     plot_loadings(pca, feature_columns, n_pcs=n_pcs, save_dir=save_dir)
     plot_correlation_heatmap(corr_df, feature_columns, save_dir=save_dir)
     plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs, save_dir=save_dir)
-    # Grid of every session × every PC — one figure, easy side-by-side compare.
     plot_depth_profiles_all_sessions(df, pca, n_pcs=n_pcs, save_dir=save_dir)
-    # One zoomed figure per requested session — includes raw features and
-    # MRI signal (if df has 'mri_normalized') alongside the PC panels.
     if sessions_to_plot_individually:
         plot_depth_profiles_by_session(
             df, pca, n_pcs=n_pcs,
@@ -142,196 +138,185 @@ def _generate_pca_diagnostics(
         )
 
 
+# ---------------------------------------------------------------------------
+# Step 1: visualise a single pipeline's decomposition
+# ---------------------------------------------------------------------------
+
 def visualize_pooled_pca(
         conn: Connection,
+        pipeline: TissuePipeline,
         table_name: str = "PenetrationMetrics",
         exclude_sessions: Optional[list] = None,
-        within_session_normalize: bool = False,
-        pc_smooth_sigma: float = 2.0,
-        n_components: Optional[int] = None,
-        varimax_n_components: Optional[int] = None,
-        decomp_method: str = DECOMPOSITION_METHOD,
-        use_varimax: bool = USE_VARIMAX,
-        exclude_features: Optional[list] = None,
         n_pcs_to_plot: Optional[int] = None,
         sessions_to_plot_individually: Optional[list] = None,
         corrections_path: Optional[str] = None,
         mri_config_path: str = MRI_VIEWER_CONFIG_PATH,
         save_dir: Optional[str] = None,
 ):
-    """Fit the pooled decomposition and emit diagnostic plots.
+    """Fit one pipeline's decomposition and emit diagnostic plots.
 
-    Useful when iterating on decomp_method, n_components, varimax, or
-    normalisation choices before committing to a TissueModel.
+    If corrections_path is given, also sample MRI under that corrections
+    file so the per-session plot includes an MRI panel. No optimisation
+    is performed — corrections are applied as-is, which is what you want
+    for "look before designing a model" iteration.
 
-    Parameters
-    ----------
-    decomp_method : 'pca' | 'fa' | 'ica'
-    n_components  : total components to extract. If None, defaults to
-        varimax_n_components for FA/ICA and to "all features" for PCA.
-    varimax_n_components : how many components get varimax-rotated.
-        Defaults to n_components when not given. Ignored for ICA.
-    corrections_path : optional opt_*.json corrections file. When provided,
-        MRI is sampled along each session's corrected trajectory and the
-        per-session diagnostic plot adds an MRI panel next to the PCs and
-        raw features. No optimisation — corrections are applied as-is.
-
-    Returns the same tuple as load_and_perform_pca:
-        (df, pca, X_pca, feature_columns, scaler)
+    Returns (df, pca, X_pca, feature_columns, scaler).
     """
-    if varimax_n_components is None and n_components is not None:
-        varimax_n_components = n_components
-
     if save_dir is None:
-        norm_tag = 'T' if within_session_normalize else 'F'
-        vm_tag   = 'T' if use_varimax else 'F'
-        ncomp_tag = (n_components if n_components is not None
-                     else (varimax_n_components or 'all'))
-        tag = (f"{decomp_method}_{ncomp_tag}pcs_vm{vm_tag}"
-               f"_norm{norm_tag}_sig{pc_smooth_sigma:.1f}")
-        if exclude_features:
-            tag += f"_excl{len(exclude_features)}"
-        save_dir = os.path.join(PLOT_BASE_DIR, 'pca_viz', tag)
+        save_dir = os.path.join(PLOT_BASE_DIR, 'pca_viz',
+                                f"{pipeline.name}_{pipeline.tag()}")
     os.makedirs(save_dir, exist_ok=True)
     print(f"\nDecomposition visualisation output → {save_dir}")
+    print(f"  Pipeline: {pipeline.name}  ({pipeline.tag()})")
 
-    df, pca, X_pca, feature_columns, scaler = load_and_perform_pca(
-        conn, table_name,
-        exclude_sessions=exclude_sessions,
-        within_session_normalize=within_session_normalize,
-        pc_smooth_sigma=pc_smooth_sigma,
-        n_components=n_components,
-        varimax_n_components=varimax_n_components,
-        decomp_method=decomp_method,
-        use_varimax=use_varimax,
-        exclude_features=exclude_features,
+    df, pca, X_pca, feature_columns, scaler = pipeline.fit_decomposition(
+        conn, table_name, exclude_sessions,
     )
 
+    if pipeline.model is not None:
+        df = pipeline.predict(df)
+
+    if corrections_path is not None:
+        df, _ = _load_and_sample_mri(conn, df, corrections_path, mri_config_path)
+
     if n_pcs_to_plot is None:
-        n_pcs_to_plot = max(varimax_n_components or X_pca.shape[1], 1)
+        n_pcs_to_plot = max(
+            pipeline.varimax_n_components or pipeline.n_components or X_pca.shape[1],
+            1,
+        )
     n_pcs_to_plot = min(n_pcs_to_plot, X_pca.shape[1])
 
-    # Optionally sample MRI under a corrections file so the per-session
-    # diagnostic plot can include an MRI panel alongside PCs and features.
-    df_for_plots = df
-    if corrections_path is not None:
-        df_for_plots, _ = _load_and_sample_mri(conn, df, corrections_path, mri_config_path)
-
     _generate_pca_diagnostics(
-        df_for_plots, pca, feature_columns, n_pcs_to_plot, save_dir,
+        df, pca, feature_columns, n_pcs_to_plot, save_dir,
         sessions_to_plot_individually=sessions_to_plot_individually,
     )
 
-    return df_for_plots, pca, X_pca, feature_columns, scaler
+    return df, pca, X_pca, feature_columns, scaler
 
 
 # ---------------------------------------------------------------------------
-# Predictor comparison against MRI
+# Step 2: side-by-side pipeline comparison
 # ---------------------------------------------------------------------------
 
-def compare_predictors_on_corrections(
+def compare_pipelines_on_corrections(
         conn: Connection,
         corrections_path: str,
-        predictors: List[TissuePredictor],
+        pipelines: List[TissuePipeline],
         table_name: str = "PenetrationMetrics",
         mri_config_path: str = MRI_VIEWER_CONFIG_PATH,
         exclude_sessions: Optional[list] = None,
-        within_session_normalize: bool = False,
-        pc_smooth_sigma: float = 2.0,
-        n_components: Optional[int] = None,
-        varimax_n_components: Optional[int] = None,
-        decomp_method: str = DECOMPOSITION_METHOD,
-        use_varimax: bool = USE_VARIMAX,
-        exclude_features: Optional[list] = None,
         save_dir: Optional[str] = None,
         plot_pca_diagnostics: bool = True,
         n_pcs_to_plot: Optional[int] = None,
         sessions_to_plot_individually: Optional[list] = None,
 ) -> dict:
-    """Fit pooled PCA once, sample MRI once under a fixed corrections file,
-    then evaluate every predictor's tissue_score against the MRI.
+    """Run multiple TissuePipelines side-by-side against the same MRI samples.
 
-    plot_pca_diagnostics : if True, also dumps scree / loadings / depth-profile-
-        overlaid plots of the pooled PCA into save_dir before the comparison.
-    n_pcs_to_plot : how many PCs to include in the diagnostic plots
-        (default = varimax_n_components).
+    Each pipeline fits its OWN decomposition (so you can compare PCA vs ICA
+    vs FA with different component counts in one call), then is scored
+    against MRI sampled under the fixed corrections_path.
 
-    Returns
-    -------
-    dict with keys:
-        pca, X_pca, feature_columns, scaler   — pooled PCA outputs
-        mri_pipeline                          — corrected pipeline
-        df_with_mri                           — df with PC columns + MRI columns
-        predictor_results : {name: {'df': df, 'fit_scores': DataFrame}}
-        summary : DataFrame indexed by predictor name with per-session r and means
+    Each pipeline's per-decomposition diagnostic plots land in
+    save_dir/pipeline_<name>/; the side-by-side comparison figure and
+    CSV summary land at save_dir/.
+
+    Every pipeline must have model != None.
+
+    Returns a dict with keys:
+        pipeline_results : {name: {df, fit_scores, pca, X_pca, feature_columns,
+                                   save_dir}}
+        summary          : DataFrame indexed by pipeline name with per-session r
+                           and aggregated means / median / min.
+        save_dir         : top-level output directory.
+        mri_pipeline     : corrected pipeline (shared across pipelines).
     """
-    if not predictors:
-        raise ValueError("No predictors supplied.")
-
-    if varimax_n_components is None and n_components is not None:
-        varimax_n_components = n_components
+    if not pipelines:
+        raise ValueError("No pipelines supplied.")
+    missing_models = [p.name for p in pipelines if p.model is None]
+    if missing_models:
+        raise ValueError(
+            f"Pipelines without a TissueModel cannot be compared against MRI: "
+            f"{missing_models}. Set .model on each pipeline."
+        )
+    names = [p.name for p in pipelines]
+    if len(set(names)) != len(names):
+        raise ValueError(f"Duplicate pipeline names: {names}")
 
     if save_dir is None:
         corrections_tag = os.path.splitext(os.path.basename(corrections_path))[0]
-        ncomp_tag = (n_components if n_components is not None
-                     else (varimax_n_components or 'all'))
-        run_tag = f"{corrections_tag}_{decomp_method}_{ncomp_tag}pcs"
-        if exclude_features:
-            run_tag += f"_excl{len(exclude_features)}"
-        save_dir = os.path.join(
-            PLOT_BASE_DIR, 'predictor_comparison', run_tag,
-        )
+        run_tag = corrections_tag + "_" + "_".join(p.name for p in pipelines)
+        save_dir = os.path.join(PLOT_BASE_DIR, 'pipeline_comparison', run_tag)
     os.makedirs(save_dir, exist_ok=True)
-    print(f"\nPredictor comparison output → {save_dir}")
+    print(f"\nPipeline comparison output → {save_dir}")
+    print(f"  Pipelines: {[p.name for p in pipelines]}")
 
-    # ── 1) Pooled decomposition across all sessions ──────────────────────
-    df, pca, X_pca, feature_columns, scaler = load_and_perform_pca(
-        conn, table_name,
-        exclude_sessions=exclude_sessions,
-        within_session_normalize=within_session_normalize,
-        pc_smooth_sigma=pc_smooth_sigma,
-        n_components=n_components,
-        varimax_n_components=varimax_n_components,
-        decomp_method=decomp_method,
-        use_varimax=use_varimax,
-        exclude_features=exclude_features,
+    # Load MRI pipeline + corrections ONCE — independent of pipelines.
+    print("\nLoading MRI pipeline (shared across pipelines) ...")
+    mri_pipeline = load_mri_pipeline(mri_config_path)
+
+    print(f"\nLoading corrections from {corrections_path}")
+    corrections = load_corrections_file(corrections_path)
+    print(f"  score_before={corrections.get('score_before', 'NA')}  "
+          f"score_after={corrections.get('score_after', 'NA')}")
+    print(f"  global: daz={corrections.get('daz_deg', 0):+.3f}°  "
+          f"del={corrections.get('del_deg', 0):+.3f}°  "
+          f"ddepth={corrections.get('ddepth_mm', 0):+.3f}mm")
+
+    opt_pipeline, daz, del_, ddepth, per_session = apply_corrections_to_pipeline(
+        mri_pipeline, corrections,
     )
 
-    # ── 2) Load corrections, apply, and sample MRI ONCE ──────────────────
-    df_with_mri, opt_pipeline = _load_and_sample_mri(
-        conn, df, corrections_path, mri_config_path,
-    )
-
-    # ── 3) PCA diagnostics (incl. per-session PC + features + MRI panels) ──
-    if plot_pca_diagnostics:
-        if n_pcs_to_plot is None:
-            n_pcs_to_plot = max(varimax_n_components or X_pca.shape[1], 1)
-        n_pcs_to_plot = min(n_pcs_to_plot, X_pca.shape[1])
-        _generate_pca_diagnostics(
-            df_with_mri, pca, feature_columns, n_pcs_to_plot, save_dir,
-            sessions_to_plot_individually=sessions_to_plot_individually,
-        )
-
-    # ── 4) For each predictor, compute tissue_score + per-session r ───────
-    predictor_results: dict = {}
+    pipeline_results: dict = {}
     summary_rows = []
 
-    for predictor in predictors:
-        print(f"\n── Predictor: {predictor.name} ──")
-        df_pred = predictor.predict(df_with_mri)
+    for pipe in pipelines:
+        print(f"\n══════════════════════════════════════════════════════")
+        print(f"  Pipeline: {pipe.name}  ({pipe.tag()})")
+        print(f"══════════════════════════════════════════════════════")
 
-        if 'tissue_score' not in df_pred.columns:
-            raise RuntimeError(
-                f"Predictor {predictor.name!r} did not add a 'tissue_score' column."
+        pipe_dir = os.path.join(save_dir, f"pipeline_{pipe.name}")
+        os.makedirs(pipe_dir, exist_ok=True)
+
+        # 1. Pipeline's own decomposition.
+        df_decomp, pca, X_pca, feature_columns, scaler = pipe.fit_decomposition(
+            conn, table_name, exclude_sessions,
+        )
+
+        # 2. Sample MRI on this pipeline's df (same corrections, same trajectories).
+        df_with_mri = compute_mri_comparison(
+            df_decomp, conn, opt_pipeline,
+            daz=daz, del_=del_, ddepth=ddepth,
+            per_session_corrections=per_session,
+        )
+
+        # 3. Apply the tissue model.
+        df_pred = pipe.predict(df_with_mri)
+
+        # 4. Diagnostic plots (per-pipeline subdir).
+        if plot_pca_diagnostics:
+            n_pcs = n_pcs_to_plot
+            if n_pcs is None:
+                n_pcs = max(pipe.varimax_n_components or pipe.n_components
+                            or X_pca.shape[1], 1)
+            n_pcs = min(n_pcs, X_pca.shape[1])
+            _generate_pca_diagnostics(
+                df_pred, pca, feature_columns, n_pcs, pipe_dir,
+                sessions_to_plot_individually=sessions_to_plot_individually,
             )
 
+        # 5. Score against MRI.
         fit_scores = compute_trajectory_fit_scores(df_pred)
-        predictor_results[predictor.name] = {
+
+        pipeline_results[pipe.name] = {
             'df': df_pred,
             'fit_scores': fit_scores,
+            'pca': pca,
+            'X_pca': X_pca,
+            'feature_columns': feature_columns,
+            'save_dir': pipe_dir,
         }
 
-        row = {'predictor': predictor.name}
+        row = {'pipeline': pipe.name}
         for sid, fs in fit_scores.iterrows():
             row[f'r_{sid}'] = fs['fit_score']
         row['r_mean']   = fit_scores['fit_score'].mean()
@@ -339,28 +324,79 @@ def compare_predictors_on_corrections(
         row['r_min']    = fit_scores['fit_score'].min()
         summary_rows.append(row)
 
-    summary = pd.DataFrame(summary_rows).set_index('predictor')
-    print("\n=== Predictor comparison summary ===")
+    summary = pd.DataFrame(summary_rows).set_index('pipeline')
+    print("\n=== Pipeline comparison summary ===")
     print(summary.round(4).to_string())
 
-    # ── 5) Side-by-side per-session plots ─────────────────────────────────
-    plot_predictor_comparison_by_session(predictor_results, save_dir=save_dir)
+    # Side-by-side per-session comparison figure (top-level save_dir).
+    plot_predictor_comparison_by_session(pipeline_results, save_dir=save_dir)
 
-    summary_path = os.path.join(save_dir, 'predictor_comparison_summary.csv')
+    summary_path = os.path.join(save_dir, 'pipeline_comparison_summary.csv')
     summary.to_csv(summary_path)
     print(f"\n  Summary CSV → {summary_path}")
 
     return {
-        'pca': pca,
-        'X_pca': X_pca,
-        'feature_columns': feature_columns,
-        'scaler': scaler,
-        'mri_pipeline': opt_pipeline,
-        'df_with_mri': df_with_mri,
-        'predictor_results': predictor_results,
+        'pipeline_results': pipeline_results,
         'summary': summary,
         'save_dir': save_dir,
+        'mri_pipeline': opt_pipeline,
     }
+
+
+# ---------------------------------------------------------------------------
+# Backwards-compat: legacy compare_predictors_on_corrections
+# ---------------------------------------------------------------------------
+# The old API took shared decomp args + a list of TissueModelPredictor. It's
+# kept as a shim that builds one TissuePipeline per predictor with shared
+# decomp settings and dispatches to compare_pipelines_on_corrections.
+
+def compare_predictors_on_corrections(
+        conn: Connection,
+        corrections_path: str,
+        predictors,
+        table_name: str = "PenetrationMetrics",
+        mri_config_path: str = MRI_VIEWER_CONFIG_PATH,
+        exclude_sessions: Optional[list] = None,
+        within_session_normalize: bool = False,
+        pc_smooth_sigma: float = 2.0,
+        n_components: Optional[int] = None,
+        varimax_n_components: Optional[int] = None,
+        decomp_method: str = 'pca',
+        use_varimax: bool = True,
+        exclude_features: Optional[list] = None,
+        save_dir: Optional[str] = None,
+        plot_pca_diagnostics: bool = True,
+        n_pcs_to_plot: Optional[int] = None,
+        sessions_to_plot_individually: Optional[list] = None,
+) -> dict:
+    """Legacy shim — builds a TissuePipeline per predictor using the shared
+    decomp settings, then calls compare_pipelines_on_corrections."""
+    pipelines = [
+        TissuePipeline(
+            name=p.name,
+            model=p.model,
+            decomp_method=decomp_method,
+            n_components=n_components,
+            varimax_n_components=varimax_n_components,
+            use_varimax=use_varimax,
+            within_session_normalize=within_session_normalize,
+            pc_smooth_sigma=pc_smooth_sigma,
+            exclude_features=list(exclude_features or []),
+        )
+        for p in predictors
+    ]
+    return compare_pipelines_on_corrections(
+        conn,
+        corrections_path=corrections_path,
+        pipelines=pipelines,
+        table_name=table_name,
+        mri_config_path=mri_config_path,
+        exclude_sessions=exclude_sessions,
+        save_dir=save_dir,
+        plot_pca_diagnostics=plot_pca_diagnostics,
+        n_pcs_to_plot=n_pcs_to_plot,
+        sessions_to_plot_individually=sessions_to_plot_individually,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -369,38 +405,70 @@ def compare_predictors_on_corrections(
 
 if __name__ == "__main__":
     # ════════════════════════════════════════════════════════════════════
-    # CONFIGURATION — edit these to try different decomposition setups.
+    # CONFIGURATION
     # ════════════════════════════════════════════════════════════════════
     EXCLUDE_SESSIONS = ["260331_0", "260402_0", "260520_0", "260423_0"]
 
-    # --- Decomposition method ---
-    DECOMP_METHOD = 'pca'                 # 'pca' | 'fa' | 'ica'
-    N_COMPONENTS = 2                      # how many components to extract
-    USE_VARIMAX_ROTATION = True           # rotate for interpretability (ignored for ICA)
-    VARIMAX_N_COMPONENTS = None           # None → rotate all N_COMPONENTS
+    SESSIONS_TO_PLOT_INDIVIDUALLY: list = ["260528_0", "260526_0"]
 
-    # --- Feature preprocessing ---
-    WITHIN_SESSION_NORMALIZE = False      # z-score features per session before decomposition
-    PC_SMOOTH_SIGMA = 2.0                 # gaussian smoothing of component scores vs depth
-    # Drop these PenetrationMetrics columns from the feature matrix before
-    # decomposition (in addition to session_id / depth_under_chamber_mm /
-    # r_squared which are always excluded). Use this to test "what does
-    # the PCA look like without metric X?". [] = use all numeric features.
-    EXCLUDE_FEATURES: list = []
-
-    # --- Plot scope ---
-    N_PCS_TO_PLOT = None                  # None → matches N_COMPONENTS
-    # Sessions to plot in their own dedicated per-session figures (one figure
-    # per session, all PCs side by side). The depth_profiles_all_sessions
-    # grid always covers every session regardless; this list adds zoomed
-    # single-session views on top. [] = skip.
-    SESSIONS_TO_PLOT_INDIVIDUALLY: list = []
-
-    # --- Trajectory alignment ---
     CORRECTIONS_PATH = (
         "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/"
-        "opt_20260525_122040.json"
+        "opt_20260529_132317_best_bottom.json"
     )
+
+    SHARED_EXCLUDE_FEATURES = [
+        "band_power_delta_theta", "band_power_alpha_beta", "band_power_gamma",
+    ]
+
+    # ════════════════════════════════════════════════════════════════════
+    # TISSUE MODELS — define inline; promote stable ones to pca_predict.py.
+    # ════════════════════════════════════════════════════════════════════
+
+    MODEL_ICA_V1 = TissueModel([
+        TissueClass('wm', score=1.0, evidence=[
+            Evidence('PC1', sign=+1),
+            Evidence('PC2', sign=+1),
+        ]),
+        TissueClass('gm', score=0.5, evidence=[
+            Evidence('PC1', sign=-1),
+            Evidence('PC2', sign=+1),
+        ]),
+        TissueClass('sulcus', score=0.0, evidence=[
+            Evidence('PC2', sign=-1),
+        ]),
+    ])
+
+    # ════════════════════════════════════════════════════════════════════
+    # PIPELINES — each owns its own decomp recipe + tissue model. Drop one
+    # of these into run_per_session.run_analysis(pipeline=...) to optimise.
+    # ════════════════════════════════════════════════════════════════════
+
+    PIPE_PCA_V2 = TissuePipeline(
+        name='PCA_V2',
+        model=MODEL_PCA_V2,
+        decomp_method='pca',
+        n_components=2,
+        use_varimax=True,
+        within_session_normalize=False,
+        pc_smooth_sigma=2.0,
+        exclude_features=SHARED_EXCLUDE_FEATURES,
+    )
+
+    PIPE_ICA_V1 = TissuePipeline(
+        name='ICA_V1',
+        model=MODEL_ICA_V1,
+        decomp_method='ica',
+        n_components=2,
+        use_varimax=False,
+        within_session_normalize=False,
+        pc_smooth_sigma=2.0,
+        exclude_features=SHARED_EXCLUDE_FEATURES,
+    )
+
+    PIPELINES: List[TissuePipeline] = [
+        PIPE_PCA_V2,
+        PIPE_ICA_V1,
+    ]
 
     conn = Connection(
         database="allen_data_repository",
@@ -410,73 +478,28 @@ if __name__ == "__main__":
     )
 
     # ════════════════════════════════════════════════════════════════════
-    # TISSUE MODELS — add custom models inline, no need to edit pca_predict.py
-    # while iterating.  Each Evidence references a PC column (PC1, PC2, ...).
-    # Promote a stabilised model to pca_predict.py once you're happy with it.
-    # ════════════════════════════════════════════════════════════════════
-
-    # Example: 3-PC variant — uncomment after running visualize_pooled_pca
-    # with VARIMAX_N_COMPONENTS=3 and inspecting the loadings:
-    # MODEL_PCA_V5_3PC = TissueModel([
-    #     TissueClass('wm', score=1.0, evidence=[
-    #         Evidence('PC1', sign=+1),    # set sign based on loadings plot
-    #         Evidence('PC2', sign=-1),
-    #         Evidence('PC3', sign=+1),    # whatever PC3 captures
-    #     ]),
-    #     TissueClass('gm', score=0.5, evidence=[
-    #         Evidence('PC1', sign=+1),
-    #         Evidence('PC2', sign=+1),
-    #     ]),
-    #     TissueClass('sulcus', score=0.0, evidence=[
-    #         Evidence('PC1', sign=-1),
-    #     ]),
-    # ])
-
-    predictors: List[TissuePredictor] = [
-        # TissueModelPredictor(name='MODEL_PCA_V1', model=MODEL_PCA_V1),
-        TissueModelPredictor(name='MODEL_PCA_V2', model=MODEL_PCA_V2),
-        # TissueModelPredictor(name='MODEL_PCA_V4', model=MODEL_PCA_V4),
-        # TissueModelPredictor(name='MODEL_PCA_V5_3PC', model=MODEL_PCA_V5_3PC),
-    ]
-
-    # ════════════════════════════════════════════════════════════════════
     # WORKFLOW
     # ════════════════════════════════════════════════════════════════════
-    # Step 1 (optional): just fit the PCA and look at loadings / depth profiles.
-    # Use this when changing VARIMAX_N_COMPONENTS to design a new model.
-    # Comment out the comparison call below while iterating.
+    # Step 1 (optional): visualise a single pipeline's decomposition.
+    # Use this when designing a new TissueModel — fits decomp, dumps
+    # loadings / depth profiles, optionally adds an MRI panel.
     #
-    # df, pca, X_pca, feature_columns, scaler = visualize_pooled_pca(
+    # visualize_pooled_pca(
     #     conn,
+    #     pipeline=PIPE_ICA_V1,
     #     exclude_sessions=EXCLUDE_SESSIONS,
-    #     within_session_normalize=WITHIN_SESSION_NORMALIZE,
-    #     pc_smooth_sigma=PC_SMOOTH_SIGMA,
-    #     decomp_method=DECOMP_METHOD,
-    #     n_components=N_COMPONENTS,
-    #     varimax_n_components=VARIMAX_N_COMPONENTS,
-    #     use_varimax=USE_VARIMAX_ROTATION,
-    #     n_pcs_to_plot=N_PCS_TO_PLOT,
     #     sessions_to_plot_individually=SESSIONS_TO_PLOT_INDIVIDUALLY,
-    #     corrections_path=CORRECTIONS_PATH,   # optional — adds MRI panel to per-session plots
+    #     corrections_path=CORRECTIONS_PATH,   # optional → adds MRI panel
     # )
 
-    # Step 2: compare predictors against MRI under a fixed corrections file.
-    # plot_pca_diagnostics=True emits the same diagnostic plots into the
-    # comparison directory, so step 1 is optional unless you don't have a
-    # model ready yet.
-    results = compare_predictors_on_corrections(
+    # Step 2: compare every pipeline in PIPELINES side-by-side against MRI.
+    # Each pipeline fits its OWN decomposition; per-pipeline diagnostic
+    # plots land in <save_dir>/pipeline_<name>/.
+    results = compare_pipelines_on_corrections(
         conn,
         corrections_path=CORRECTIONS_PATH,
-        predictors=predictors,
+        pipelines=PIPELINES,
         exclude_sessions=EXCLUDE_SESSIONS,
-        within_session_normalize=WITHIN_SESSION_NORMALIZE,
-        pc_smooth_sigma=PC_SMOOTH_SIGMA,
-        decomp_method=DECOMP_METHOD,
-        n_components=N_COMPONENTS,
-        varimax_n_components=VARIMAX_N_COMPONENTS,
-        use_varimax=USE_VARIMAX_ROTATION,
-        exclude_features=EXCLUDE_FEATURES,
         plot_pca_diagnostics=True,
-        n_pcs_to_plot=N_PCS_TO_PLOT,
         sessions_to_plot_individually=SESSIONS_TO_PLOT_INDIVIDUALLY,
     )

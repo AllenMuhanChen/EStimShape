@@ -19,6 +19,7 @@ from src.analysis.penetrations.pca_predict import (
     MODEL_PCA_V1,
     MODEL_PCA_V2,
     TissueModel,
+    TissuePipeline,
     _TISSUE_CONF_FA_NO_VARIMAX,
     _TISSUE_CONF_FA_VARIMAX,
     compute_tissue_confidence,
@@ -65,12 +66,15 @@ from src.analysis.penetrations.penetration_plots import (
 
 def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs: int = 4,
                  mri_config_path: str = MRI_VIEWER_CONFIG_PATH, exclude_sessions=None,
+                 pipeline: Optional[TissuePipeline] = None,
                  within_session_normalize: bool = False,
                  swap_tissue_pcs: bool = False,
                  pc_smooth_sigma: float = 2.0,
+                 n_components: Optional[int] = None,
                  varimax_n_components: int = 6,
                  decomp_method: str = DECOMPOSITION_METHOD,
                  use_varimax: bool = USE_VARIMAX,
+                 exclude_features: Optional[list] = None,
                  tissue_model: Optional[TissueModel] = None,
                  maxiter: int = 100000,
                  start_from_file: Optional[str] = None,
@@ -105,7 +109,29 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         loss. Defaults to 0 (disabled). When >0, use with no_skull_mri_path —
         otherwise the penalty fires for any non-zero voxel (skull / scalp)
         too, which is wrong.
+
+    pipeline : if provided, a TissuePipeline. Its decomp_method,
+        n_components, varimax_n_components, use_varimax,
+        within_session_normalize, pc_smooth_sigma, exclude_features, and
+        model OVERRIDE the corresponding individual keyword arguments —
+        so the same pipeline object you pass to run_pooled's
+        compare_pipelines_on_corrections drops in here without restating
+        the recipe. Set pipeline=None to use the individual kwargs
+        (legacy behaviour).
     """
+    # Unpack the pipeline (if given) into the legacy kwargs so the rest of
+    # this function sees a uniform interface. Pipeline fields win.
+    if pipeline is not None:
+        print(f"\nUsing TissuePipeline: {pipeline.name}  ({pipeline.tag()})")
+        decomp_method = pipeline.decomp_method
+        n_components = pipeline.n_components
+        varimax_n_components = pipeline.varimax_n_components
+        use_varimax = pipeline.use_varimax
+        within_session_normalize = pipeline.within_session_normalize
+        pc_smooth_sigma = pipeline.pc_smooth_sigma
+        exclude_features = list(pipeline.exclude_features)
+        tissue_model = pipeline.model
+
     pca_tag = _pca_run_tag(
         decomp_method=decomp_method,
         varimax_n_components=varimax_n_components,
@@ -131,9 +157,11 @@ def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs
         exclude_sessions=exclude_sessions,
         within_session_normalize=within_session_normalize,
         pc_smooth_sigma=pc_smooth_sigma,
+        n_components=n_components,
         varimax_n_components=varimax_n_components,
         decomp_method=decomp_method,
         use_varimax=use_varimax,
+        exclude_features=exclude_features,
     )
 
     print("\n" + "=" * 60)
