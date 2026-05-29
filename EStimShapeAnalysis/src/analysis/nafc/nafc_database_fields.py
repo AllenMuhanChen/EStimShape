@@ -216,6 +216,13 @@ class ChoiceField(ChoiceSetField):
             return "variant"
         elif "_removed" in choice_path:
             return "removed"
+        elif "_delta_distractor" in choice_path:
+            # Must precede "_delta" — the substring "_delta" matches both "_delta.png" and
+            # "_delta_distractor.png", so the more specific tag has to be tested first.
+            # "_delta_distractor" identifies the extra delta(s) in a delta trial that are NOT the
+            # hypothesized comparison (slot 0, the variant by convention, is labeled "_delta"
+            # and IsHypothesizedField treats only that one as hypothesized).
+            return "delta_distractor"
         elif "_delta" in choice_path:
             return "delta"
         elif "_rand" in choice_path:
