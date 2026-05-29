@@ -138,8 +138,9 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
 
     @Override
     protected void generateProceduralDistractors(ProceduralMatchStick sample) {
-        // The number of delta distractors autowires from numProceduralDistractors (which the GUI
-        // derives as numChoices - numRandDistractors - 1), minus the removed-choice slot when used.
+        // Resolve the removed slot first so the delta count is what's left over. Otherwise a
+        // user asking for "1 delta + 1 removed" with 2 deltas available could be misread as
+        // needing 2 delta slots and trip the no-go check unnecessarily.
         int numRemovedSlots = includeRemovedChoice ? 1 : 0;
         int numDeltaSlots = numProceduralDistractors - numRemovedSlots;
 
@@ -151,10 +152,18 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
             throw new IllegalStateException("Requested " + numDeltaSlots + " procedural delta distractor(s) for variant/delta trial, but only " + distractorMStickStimSpecIds.size() + " delta pair(s) are available for this variant. Reduce numChoices, increase numRandDistractors, or produce more deltas.");
         }
 
-        // Slots 0..numDeltaSlots-1: the non-sample shapes (deltas if sample is variant; variant +
-        // other deltas if sample is delta).
+        // Slot 0: the variant with the tuned-for comp deleted (when enabled).
+        if (includeRemovedChoice) {
+            ProceduralMatchStick removed = createRemovedDistractor();
+            mSticks.addProceduralDistractor(removed);
+            mStickSpecs.addProceduralDistractor(mStickToSpec(removed));
+        }
+
+        // Remaining slots: the non-sample shapes (deltas if sample is variant; variant + other
+        // deltas if sample is delta). distractorMStickStimSpecIds is built in the constructor
+        // with the variant at index 0 in a delta trial — see assignLabels for the label split.
         for (int i = 0; i < numDeltaSlots; i++) {
-            long specId = distractorMStickStimSpecIds.get(i);
+            long specId = distractorMStickStimSpecIds.get(i).longValue();
             PruningMatchStick distractorMStick = new PruningMatchStick(noiseMapper);
             correctNoiseRadius(distractorMStick);
             distractorMStick.setProperties(choiceSize, texture, is2D(), 1.0);
@@ -165,32 +174,37 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
             mSticks.addProceduralDistractor(distractorMStick);
             mStickSpecs.addProceduralDistractor(mStickToSpec(distractorMStick));
         }
-
-        // Last slot: the variant with the tuned-for comp deleted.
-        if (includeRemovedChoice) {
-            ProceduralMatchStick removed = createRemovedDistractor();
-            mSticks.addProceduralDistractor(removed);
-            mStickSpecs.addProceduralDistractor(mStickToSpec(removed));
-        }
     }
 
     @Override
     protected void assignLabels() {
         labels.setSample(new LinkedList<>(Arrays.asList("sample")));
         labels.setMatch(new LinkedList<>(Arrays.asList("match")));
-        // The delta slots are always labeled "delta" — this is the established analysis convention
-        // (nafc_database_fields.py IsHypothesizedField). The label denotes "non-match
-        // procedural slot," not the literal identity: in a variant trial those files hold the
-        // real deltas; in a delta trial they hold the variant and the other deltas.
-        // IsHypothesizedField forks on IsDelta to interpret it correctly.
+
         int numRemovedSlots = includeRemovedChoice ? 1 : 0;
         int numDeltaSlots = numProceduralDistractors - numRemovedSlots;
-        for (int i = 0; i < numDeltaSlots; i++) {
-            labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("delta")));
-        }
+
+        // Mirror generateProceduralDistractors: removed first, then deltas.
         if (includeRemovedChoice) {
             labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("removed")));
         }
+        // Delta-slot labels follow the established analysis convention (nafc_database_fields.py
+        // IsHypothesizedField): index 0 is the "hypothesized" comparison — in a variant trial
+        // that's a real delta; in a delta trial that's the variant standing in for the delta.
+        // Either way, label it "delta".
+        //
+        // On a delta trial the constructor packs the variant at index 0 and the *other* deltas
+        // at index 1+. Those extra deltas are NOT the hypothesized shape — they're additional
+        // distractors — so they get a distinct label "delta_distractor" to keep the existing
+        // pipeline's "delta" semantics intact without a refactor.
+        //
+        // On a variant trial all delta-slot entries are real deltas of the variant; the pipeline
+        // already treats them interchangeably, so they all stay "delta".
+        for (int i = 0; i < numDeltaSlots; i++) {
+            String label = (isDelta && i > 0) ? "delta_distractor" : "delta";
+            labels.addProceduralDistractor(new LinkedList<>(Arrays.asList(label)));
+        }
+
         for (int i = 0; i < numRandDistractors; i++) {
             labels.addRandDistractor(new LinkedList<>(Arrays.asList("rand")));
         }
