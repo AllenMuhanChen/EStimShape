@@ -78,18 +78,24 @@ def _varimax(Phi, gamma=1.0, q=1000, tol=1e-8):
     return Phi @ R, R
 
 
-class _FactorAnalysisAdapter:
-    """Wraps FactorAnalysis to expose the same components_/explained_variance_ratio_ interface as PCA."""
-    def __init__(self, fa: FactorAnalysis, X_scores: np.ndarray):
-        self.components_ = fa.components_
-        self.noise_variance_ = fa.noise_variance_
+class _DecompositionAdapter:
+    """Wraps any decomposer (FactorAnalysis, FastICA, ...) to expose the same
+    components_ / explained_variance_ratio_ interface that downstream code
+    (loadings plots, tissue models) expects from sklearn PCA."""
+    def __init__(self, decomposer, X_scores: np.ndarray):
+        self.components_ = decomposer.components_
         score_var = np.var(X_scores, axis=0)
         total = score_var.sum() if score_var.sum() > 0 else 1.0
         self.explained_variance_ratio_ = score_var / total
+        self._inner = decomposer
+
+
+# Backwards-compat alias.
+_FactorAnalysisAdapter = _DecompositionAdapter
 
 
 # ---------------------------------------------------------------------------
-# Pooled PCA / FA over all sessions
+# Pooled decomposition over all sessions
 # ---------------------------------------------------------------------------
 
 def load_and_perform_pca(
@@ -98,11 +104,34 @@ def load_and_perform_pca(
         exclude_sessions: Optional[list] = None,
         within_session_normalize: bool = True,
         pc_smooth_sigma: float = 2.0,
-        varimax_n_components: int = 6,
+        n_components: Optional[int] = None,
+        varimax_n_components: Optional[int] = 6,
         decomp_method: str = DECOMPOSITION_METHOD,
         use_varimax: bool = USE_VARIMAX,
 ):
-    """Load data and perform PCA (or Factor Analysis) over all sessions pooled."""
+    """Load data and run a pooled decomposition across all sessions.
+
+    Parameters
+    ----------
+    decomp_method : {'pca', 'fa', 'ica'}
+        - 'pca'  : sklearn PCA (linear, orthogonal, ranked by variance).
+        - 'fa'   : sklearn FactorAnalysis (latent-variable model).
+        - 'ica'  : sklearn FastICA (independent components — already
+                   sparse-like; varimax is ignored when use_varimax=True).
+    n_components : total number of components to extract. None means:
+        all features for PCA; varimax_n_components (or all features) for
+        FA / ICA. Set this explicitly to decouple "how many components"
+        from "how many to varimax-rotate".
+    varimax_n_components : how many of the extracted components get
+        varimax-rotated. Defaults to 6; capped at n_components. Ignored
+        for ICA (already a rotation method).
+    use_varimax : enable varimax rotation. Has no effect for ICA.
+
+    Returns
+    -------
+    (df_with_PCs, pca_or_adapter, X_pca, feature_columns, scaler)
+        df has PC1..PCk columns added, where k = n_components actually used.
+    """
     conn.execute(f"SELECT * FROM {table_name}")
     results = conn.fetch_all()
 
@@ -123,7 +152,7 @@ def load_and_perform_pca(
            and pd.api.types.is_numeric_dtype(df[col])
     ]
 
-    print(f"Feature columns for PCA: {feature_columns}")
+    print(f"Feature columns for decomposition: {feature_columns}")
 
     X = df[feature_columns].copy()
     X = X.fillna(X.mean())
@@ -142,16 +171,39 @@ def load_and_perform_pca(
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
-    if decomp_method == 'fa':
-        n_factors = varimax_n_components if varimax_n_components else X_scaled.shape[1]
-        print(f"\nUsing Factor Analysis (n_factors={n_factors}) ...")
-        fa = FactorAnalysis(n_components=n_factors, random_state=42)
-        X_pca = fa.fit_transform(X_scaled)
-        pca = _FactorAnalysisAdapter(fa, X_pca)
+    # Resolve n_components.
+    n_features = X_scaled.shape[1]
+    if n_components is None:
+        if decomp_method == 'pca':
+            n_components_eff = n_features
+        else:
+            n_components_eff = varimax_n_components or n_features
     else:
-        print("\nUsing PCA ...")
-        pca = PCA()
+        n_components_eff = min(int(n_components), n_features)
+
+    if decomp_method == 'pca':
+        print(f"\nUsing PCA (n_components={n_components_eff}) ...")
+        pca = PCA(n_components=n_components_eff if n_components is not None else None)
         X_pca = pca.fit_transform(X_scaled)
+    elif decomp_method == 'fa':
+        print(f"\nUsing Factor Analysis (n_components={n_components_eff}) ...")
+        fa = FactorAnalysis(n_components=n_components_eff, random_state=42)
+        X_pca = fa.fit_transform(X_scaled)
+        pca = _DecompositionAdapter(fa, X_pca)
+    elif decomp_method == 'ica':
+        from sklearn.decomposition import FastICA
+        print(f"\nUsing FastICA (n_components={n_components_eff}) ...")
+        ica = FastICA(n_components=n_components_eff, random_state=42,
+                      max_iter=2000, tol=1e-4, whiten='unit-variance')
+        X_pca = ica.fit_transform(X_scaled)
+        pca = _DecompositionAdapter(ica, X_pca)
+        if use_varimax:
+            print("  (ignoring use_varimax=True — ICA components are already rotated)")
+            use_varimax = False
+    else:
+        raise ValueError(
+            f"Unknown decomp_method {decomp_method!r}. "
+            f"Choose 'pca', 'fa', or 'ica'.")
 
     if use_varimax and varimax_n_components and varimax_n_components > 1:
         n_rot = min(varimax_n_components, X_pca.shape[1])

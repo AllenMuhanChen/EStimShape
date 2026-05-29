@@ -54,6 +54,8 @@ from src.analysis.penetrations.alignment_optimize import (
 from src.analysis.penetrations.penetration_plots import (
     PLOT_BASE_DIR,
     plot_correlation_heatmap,
+    plot_depth_profiles_all_sessions,
+    plot_depth_profiles_by_session,
     plot_depth_profiles_overlaid,
     plot_loadings,
     plot_predictor_comparison_by_session,
@@ -65,8 +67,17 @@ from src.analysis.penetrations.penetration_plots import (
 # PCA diagnostics — used by both visualize_pooled_pca and the comparison
 # ---------------------------------------------------------------------------
 
-def _generate_pca_diagnostics(df, pca, feature_columns, n_pcs, save_dir):
-    """Run the standard pooled-PCA diagnostic plot set into save_dir."""
+def _generate_pca_diagnostics(
+        df, pca, feature_columns, n_pcs, save_dir,
+        sessions_to_plot_individually=None,
+):
+    """Run the standard pooled-decomposition diagnostic plot set into save_dir.
+
+    sessions_to_plot_individually : list of session_id strings. For each
+        session in the list, also save a single-session figure showing every
+        component vs depth. None or [] = skip the per-session figures (the
+        depth_profiles_all_sessions grid still covers all sessions).
+    """
     print("\n" + "=" * 60)
     print("PCA LOADINGS")
     print("=" * 60)
@@ -80,6 +91,15 @@ def _generate_pca_diagnostics(df, pca, feature_columns, n_pcs, save_dir):
     plot_loadings(pca, feature_columns, n_pcs=n_pcs, save_dir=save_dir)
     plot_correlation_heatmap(corr_df, feature_columns, save_dir=save_dir)
     plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs, save_dir=save_dir)
+    # Grid of every session × every PC — one figure, easy side-by-side compare.
+    plot_depth_profiles_all_sessions(df, pca, n_pcs=n_pcs, save_dir=save_dir)
+    # One zoomed figure per requested session.
+    if sessions_to_plot_individually:
+        plot_depth_profiles_by_session(
+            df, pca, n_pcs=n_pcs,
+            sessions=sessions_to_plot_individually,
+            save_dir=save_dir,
+        )
 
 
 def visualize_pooled_pca(
@@ -88,44 +108,63 @@ def visualize_pooled_pca(
         exclude_sessions: Optional[list] = None,
         within_session_normalize: bool = False,
         pc_smooth_sigma: float = 2.0,
-        varimax_n_components: int = 6,
+        n_components: Optional[int] = None,
+        varimax_n_components: Optional[int] = None,
         decomp_method: str = DECOMPOSITION_METHOD,
         use_varimax: bool = USE_VARIMAX,
         n_pcs_to_plot: Optional[int] = None,
+        sessions_to_plot_individually: Optional[list] = None,
         save_dir: Optional[str] = None,
 ):
-    """Fit the pooled PCA and emit diagnostic plots — no MRI / comparison.
+    """Fit the pooled decomposition and emit diagnostic plots — no MRI / comparison.
 
-    Useful when iterating on n_pcs, varimax_n_components, or normalisation
-    choices before committing to a TissueModel.
+    Useful when iterating on decomp_method, n_components, varimax, or
+    normalisation choices before committing to a TissueModel.
+
+    Parameters
+    ----------
+    decomp_method : 'pca' | 'fa' | 'ica'
+    n_components  : total components to extract. If None, defaults to
+        varimax_n_components for FA/ICA and to "all features" for PCA.
+    varimax_n_components : how many components get varimax-rotated.
+        Defaults to n_components when not given. Ignored for ICA.
 
     Returns the same tuple as load_and_perform_pca:
         (df, pca, X_pca, feature_columns, scaler)
     """
+    if varimax_n_components is None and n_components is not None:
+        varimax_n_components = n_components
+
     if save_dir is None:
         norm_tag = 'T' if within_session_normalize else 'F'
         vm_tag   = 'T' if use_varimax else 'F'
-        tag = (f"{decomp_method}_{varimax_n_components}pcs_vm{vm_tag}"
+        ncomp_tag = (n_components if n_components is not None
+                     else (varimax_n_components or 'all'))
+        tag = (f"{decomp_method}_{ncomp_tag}pcs_vm{vm_tag}"
                f"_norm{norm_tag}_sig{pc_smooth_sigma:.1f}")
         save_dir = os.path.join(PLOT_BASE_DIR, 'pca_viz', tag)
     os.makedirs(save_dir, exist_ok=True)
-    print(f"\nPCA visualisation output → {save_dir}")
+    print(f"\nDecomposition visualisation output → {save_dir}")
 
     df, pca, X_pca, feature_columns, scaler = load_and_perform_pca(
         conn, table_name,
         exclude_sessions=exclude_sessions,
         within_session_normalize=within_session_normalize,
         pc_smooth_sigma=pc_smooth_sigma,
+        n_components=n_components,
         varimax_n_components=varimax_n_components,
         decomp_method=decomp_method,
         use_varimax=use_varimax,
     )
 
     if n_pcs_to_plot is None:
-        n_pcs_to_plot = max(varimax_n_components, 1)
+        n_pcs_to_plot = max(varimax_n_components or X_pca.shape[1], 1)
     n_pcs_to_plot = min(n_pcs_to_plot, X_pca.shape[1])
 
-    _generate_pca_diagnostics(df, pca, feature_columns, n_pcs_to_plot, save_dir)
+    _generate_pca_diagnostics(
+        df, pca, feature_columns, n_pcs_to_plot, save_dir,
+        sessions_to_plot_individually=sessions_to_plot_individually,
+    )
 
     return df, pca, X_pca, feature_columns, scaler
 
@@ -143,12 +182,14 @@ def compare_predictors_on_corrections(
         exclude_sessions: Optional[list] = None,
         within_session_normalize: bool = False,
         pc_smooth_sigma: float = 2.0,
-        varimax_n_components: int = 6,
+        n_components: Optional[int] = None,
+        varimax_n_components: Optional[int] = None,
         decomp_method: str = DECOMPOSITION_METHOD,
         use_varimax: bool = USE_VARIMAX,
         save_dir: Optional[str] = None,
         plot_pca_diagnostics: bool = True,
         n_pcs_to_plot: Optional[int] = None,
+        sessions_to_plot_individually: Optional[list] = None,
 ) -> dict:
     """Fit pooled PCA once, sample MRI once under a fixed corrections file,
     then evaluate every predictor's tissue_score against the MRI.
@@ -170,20 +211,27 @@ def compare_predictors_on_corrections(
     if not predictors:
         raise ValueError("No predictors supplied.")
 
+    if varimax_n_components is None and n_components is not None:
+        varimax_n_components = n_components
+
     if save_dir is None:
         corrections_tag = os.path.splitext(os.path.basename(corrections_path))[0]
+        ncomp_tag = (n_components if n_components is not None
+                     else (varimax_n_components or 'all'))
         save_dir = os.path.join(
-            PLOT_BASE_DIR, 'predictor_comparison', corrections_tag,
+            PLOT_BASE_DIR, 'predictor_comparison',
+            f"{corrections_tag}_{decomp_method}_{ncomp_tag}pcs",
         )
     os.makedirs(save_dir, exist_ok=True)
     print(f"\nPredictor comparison output → {save_dir}")
 
-    # ── 1) Pooled PCA across all sessions ─────────────────────────────────
+    # ── 1) Pooled decomposition across all sessions ──────────────────────
     df, pca, X_pca, feature_columns, scaler = load_and_perform_pca(
         conn, table_name,
         exclude_sessions=exclude_sessions,
         within_session_normalize=within_session_normalize,
         pc_smooth_sigma=pc_smooth_sigma,
+        n_components=n_components,
         varimax_n_components=varimax_n_components,
         decomp_method=decomp_method,
         use_varimax=use_varimax,
@@ -191,9 +239,12 @@ def compare_predictors_on_corrections(
 
     if plot_pca_diagnostics:
         if n_pcs_to_plot is None:
-            n_pcs_to_plot = max(varimax_n_components, 1)
+            n_pcs_to_plot = max(varimax_n_components or X_pca.shape[1], 1)
         n_pcs_to_plot = min(n_pcs_to_plot, X_pca.shape[1])
-        _generate_pca_diagnostics(df, pca, feature_columns, n_pcs_to_plot, save_dir)
+        _generate_pca_diagnostics(
+            df, pca, feature_columns, n_pcs_to_plot, save_dir,
+            sessions_to_plot_individually=sessions_to_plot_individually,
+        )
 
     # ── 2) Load corrections + apply to MRI pipeline ───────────────────────
     print("\nLoading MRI pipeline ...")
@@ -276,16 +327,29 @@ def compare_predictors_on_corrections(
 
 if __name__ == "__main__":
     # ════════════════════════════════════════════════════════════════════
-    # CONFIGURATION — edit these to try different PCA setups / data slices.
+    # CONFIGURATION — edit these to try different decomposition setups.
     # ════════════════════════════════════════════════════════════════════
     EXCLUDE_SESSIONS = ["260331_0", "260402_0", "260520_0", "260423_0"]
-    WITHIN_SESSION_NORMALIZE = False     # z-score features per session before PCA
-    PC_SMOOTH_SIGMA = 2.0                 # gaussian smoothing of PCs vs depth
-    VARIMAX_N_COMPONENTS = 2              # rotate this many PCs (set 3 to try 3-PC models)
-    USE_VARIMAX_ROTATION = True
-    DECOMP = 'pca'                        # 'pca' | 'fa'
-    N_PCS_TO_PLOT = None                  # None → matches VARIMAX_N_COMPONENTS
 
+    # --- Decomposition method ---
+    DECOMP_METHOD = 'pca'                 # 'pca' | 'fa' | 'ica'
+    N_COMPONENTS = 2                      # how many components to extract
+    USE_VARIMAX_ROTATION = True           # rotate for interpretability (ignored for ICA)
+    VARIMAX_N_COMPONENTS = None           # None → rotate all N_COMPONENTS
+
+    # --- Feature preprocessing ---
+    WITHIN_SESSION_NORMALIZE = False      # z-score features per session before decomposition
+    PC_SMOOTH_SIGMA = 2.0                 # gaussian smoothing of component scores vs depth
+
+    # --- Plot scope ---
+    N_PCS_TO_PLOT = None                  # None → matches N_COMPONENTS
+    # Sessions to plot in their own dedicated per-session figures (one figure
+    # per session, all PCs side by side). The depth_profiles_all_sessions
+    # grid always covers every session regardless; this list adds zoomed
+    # single-session views on top. [] = skip.
+    SESSIONS_TO_PLOT_INDIVIDUALLY: list = []
+
+    # --- Trajectory alignment ---
     CORRECTIONS_PATH = (
         "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/"
         "opt_20260525_122040.json"
@@ -340,10 +404,12 @@ if __name__ == "__main__":
     #     exclude_sessions=EXCLUDE_SESSIONS,
     #     within_session_normalize=WITHIN_SESSION_NORMALIZE,
     #     pc_smooth_sigma=PC_SMOOTH_SIGMA,
+    #     decomp_method=DECOMP_METHOD,
+    #     n_components=N_COMPONENTS,
     #     varimax_n_components=VARIMAX_N_COMPONENTS,
-    #     decomp_method=DECOMP,
     #     use_varimax=USE_VARIMAX_ROTATION,
     #     n_pcs_to_plot=N_PCS_TO_PLOT,
+    #     sessions_to_plot_individually=SESSIONS_TO_PLOT_INDIVIDUALLY,
     # )
 
     # Step 2: compare predictors against MRI under a fixed corrections file.
@@ -357,9 +423,11 @@ if __name__ == "__main__":
         exclude_sessions=EXCLUDE_SESSIONS,
         within_session_normalize=WITHIN_SESSION_NORMALIZE,
         pc_smooth_sigma=PC_SMOOTH_SIGMA,
+        decomp_method=DECOMP_METHOD,
+        n_components=N_COMPONENTS,
         varimax_n_components=VARIMAX_N_COMPONENTS,
-        decomp_method=DECOMP,
         use_varimax=USE_VARIMAX_ROTATION,
         plot_pca_diagnostics=True,
         n_pcs_to_plot=N_PCS_TO_PLOT,
+        sessions_to_plot_individually=SESSIONS_TO_PLOT_INDIVIDUALLY,
     )
