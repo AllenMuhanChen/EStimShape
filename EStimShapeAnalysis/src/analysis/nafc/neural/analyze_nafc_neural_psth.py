@@ -113,6 +113,10 @@ def _semantic_choice(row) -> str:
     if is_delta:
         if choice == "delta":
             return "Hypothesized"
+        if choice == "delta_distractor":
+            # An extra delta of the same variant offered alongside the hypothesized comparison.
+            # Distinct from "Rand" so it doesn't get pooled with random distractors.
+            return "DeltaDistractor"
         if choice == "match":
             return "Delta"
         if choice == "removed":
