@@ -67,16 +67,54 @@ from src.analysis.penetrations.penetration_plots import (
 # PCA diagnostics — used by both visualize_pooled_pca and the comparison
 # ---------------------------------------------------------------------------
 
+def _load_and_sample_mri(
+        conn: Connection,
+        df: pd.DataFrame,
+        corrections_path: str,
+        mri_config_path: str,
+):
+    """Load MRI pipeline, apply a corrections file, sample MRI along each
+    session's corrected trajectory. Returns (df_with_mri, corrected_pipeline).
+    """
+    print("\nLoading MRI pipeline ...")
+    mri_pipeline = load_mri_pipeline(mri_config_path)
+
+    print(f"\nLoading corrections from {corrections_path}")
+    corrections = load_corrections_file(corrections_path)
+    print(f"  score_before={corrections.get('score_before', 'NA')}  "
+          f"score_after={corrections.get('score_after', 'NA')}")
+    print(f"  global: daz={corrections.get('daz_deg', 0):+.3f}°  "
+          f"del={corrections.get('del_deg', 0):+.3f}°  "
+          f"ddepth={corrections.get('ddepth_mm', 0):+.3f}mm")
+
+    opt_pipeline, daz, del_, ddepth, per_session = apply_corrections_to_pipeline(
+        mri_pipeline, corrections,
+    )
+
+    print("\nSampling MRI along corrected trajectories ...")
+    df_with_mri = compute_mri_comparison(
+        df, conn, opt_pipeline,
+        daz=daz, del_=del_, ddepth=ddepth,
+        per_session_corrections=per_session,
+    )
+    return df_with_mri, opt_pipeline
+
+
 def _generate_pca_diagnostics(
         df, pca, feature_columns, n_pcs, save_dir,
         sessions_to_plot_individually=None,
 ):
     """Run the standard pooled-decomposition diagnostic plot set into save_dir.
 
+    If df already has an 'mri_normalized' column (i.e. MRI was sampled), the
+    per-session plot adds an MRI panel too. Raw input features are also
+    added as panels in the per-session view.
+
     sessions_to_plot_individually : list of session_id strings. For each
-        session in the list, also save a single-session figure showing every
-        component vs depth. None or [] = skip the per-session figures (the
-        depth_profiles_all_sessions grid still covers all sessions).
+        session in the list, save a single-session figure showing every PC,
+        every raw input feature, and the MRI signal (when available) vs depth.
+        None or [] = skip the per-session figures (the depth_profiles_all_sessions
+        grid still covers all sessions).
     """
     print("\n" + "=" * 60)
     print("PCA LOADINGS")
@@ -93,11 +131,13 @@ def _generate_pca_diagnostics(
     plot_depth_profiles_overlaid(df, pca, n_pcs=n_pcs, save_dir=save_dir)
     # Grid of every session × every PC — one figure, easy side-by-side compare.
     plot_depth_profiles_all_sessions(df, pca, n_pcs=n_pcs, save_dir=save_dir)
-    # One zoomed figure per requested session.
+    # One zoomed figure per requested session — includes raw features and
+    # MRI signal (if df has 'mri_normalized') alongside the PC panels.
     if sessions_to_plot_individually:
         plot_depth_profiles_by_session(
             df, pca, n_pcs=n_pcs,
             sessions=sessions_to_plot_individually,
+            feature_columns=feature_columns,
             save_dir=save_dir,
         )
 
@@ -114,9 +154,11 @@ def visualize_pooled_pca(
         use_varimax: bool = USE_VARIMAX,
         n_pcs_to_plot: Optional[int] = None,
         sessions_to_plot_individually: Optional[list] = None,
+        corrections_path: Optional[str] = None,
+        mri_config_path: str = MRI_VIEWER_CONFIG_PATH,
         save_dir: Optional[str] = None,
 ):
-    """Fit the pooled decomposition and emit diagnostic plots — no MRI / comparison.
+    """Fit the pooled decomposition and emit diagnostic plots.
 
     Useful when iterating on decomp_method, n_components, varimax, or
     normalisation choices before committing to a TissueModel.
@@ -128,6 +170,10 @@ def visualize_pooled_pca(
         varimax_n_components for FA/ICA and to "all features" for PCA.
     varimax_n_components : how many components get varimax-rotated.
         Defaults to n_components when not given. Ignored for ICA.
+    corrections_path : optional opt_*.json corrections file. When provided,
+        MRI is sampled along each session's corrected trajectory and the
+        per-session diagnostic plot adds an MRI panel next to the PCs and
+        raw features. No optimisation — corrections are applied as-is.
 
     Returns the same tuple as load_and_perform_pca:
         (df, pca, X_pca, feature_columns, scaler)
@@ -161,12 +207,18 @@ def visualize_pooled_pca(
         n_pcs_to_plot = max(varimax_n_components or X_pca.shape[1], 1)
     n_pcs_to_plot = min(n_pcs_to_plot, X_pca.shape[1])
 
+    # Optionally sample MRI under a corrections file so the per-session
+    # diagnostic plot can include an MRI panel alongside PCs and features.
+    df_for_plots = df
+    if corrections_path is not None:
+        df_for_plots, _ = _load_and_sample_mri(conn, df, corrections_path, mri_config_path)
+
     _generate_pca_diagnostics(
-        df, pca, feature_columns, n_pcs_to_plot, save_dir,
+        df_for_plots, pca, feature_columns, n_pcs_to_plot, save_dir,
         sessions_to_plot_individually=sessions_to_plot_individually,
     )
 
-    return df, pca, X_pca, feature_columns, scaler
+    return df_for_plots, pca, X_pca, feature_columns, scaler
 
 
 # ---------------------------------------------------------------------------
@@ -237,38 +289,20 @@ def compare_predictors_on_corrections(
         use_varimax=use_varimax,
     )
 
+    # ── 2) Load corrections, apply, and sample MRI ONCE ──────────────────
+    df_with_mri, opt_pipeline = _load_and_sample_mri(
+        conn, df, corrections_path, mri_config_path,
+    )
+
+    # ── 3) PCA diagnostics (incl. per-session PC + features + MRI panels) ──
     if plot_pca_diagnostics:
         if n_pcs_to_plot is None:
             n_pcs_to_plot = max(varimax_n_components or X_pca.shape[1], 1)
         n_pcs_to_plot = min(n_pcs_to_plot, X_pca.shape[1])
         _generate_pca_diagnostics(
-            df, pca, feature_columns, n_pcs_to_plot, save_dir,
+            df_with_mri, pca, feature_columns, n_pcs_to_plot, save_dir,
             sessions_to_plot_individually=sessions_to_plot_individually,
         )
-
-    # ── 2) Load corrections + apply to MRI pipeline ───────────────────────
-    print("\nLoading MRI pipeline ...")
-    mri_pipeline = load_mri_pipeline(mri_config_path)
-
-    print(f"\nLoading corrections from {corrections_path}")
-    corrections = load_corrections_file(corrections_path)
-    print(f"  score_before={corrections.get('score_before', 'NA')}  "
-          f"score_after={corrections.get('score_after', 'NA')}")
-    print(f"  global: daz={corrections.get('daz_deg', 0):+.3f}°  "
-          f"del={corrections.get('del_deg', 0):+.3f}°  "
-          f"ddepth={corrections.get('ddepth_mm', 0):+.3f}mm")
-
-    opt_pipeline, daz, del_, ddepth, per_session = apply_corrections_to_pipeline(
-        mri_pipeline, corrections,
-    )
-
-    # ── 3) Sample MRI ONCE ────────────────────────────────────────────────
-    print("\nSampling MRI along corrected trajectories ...")
-    df_with_mri = compute_mri_comparison(
-        df, conn, opt_pipeline,
-        daz=daz, del_=del_, ddepth=ddepth,
-        per_session_corrections=per_session,
-    )
 
     # ── 4) For each predictor, compute tissue_score + per-session r ───────
     predictor_results: dict = {}
@@ -410,6 +444,7 @@ if __name__ == "__main__":
     #     use_varimax=USE_VARIMAX_ROTATION,
     #     n_pcs_to_plot=N_PCS_TO_PLOT,
     #     sessions_to_plot_individually=SESSIONS_TO_PLOT_INDIVIDUALLY,
+    #     corrections_path=CORRECTIONS_PATH,   # optional — adds MRI panel to per-session plots
     # )
 
     # Step 2: compare predictors against MRI under a fixed corrections file.
