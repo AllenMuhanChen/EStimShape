@@ -68,6 +68,34 @@ from src.analysis.penetrations.penetration_plots import (
 )
 
 
+EXCUDE_REL_LFP = [
+    "band_power_delta_theta", "band_power_alpha_beta", "band_power_gamma",
+]
+MODEL_PCA_EXCL_REL_LFP = TissueModel([
+    TissueClass('wm', score=1.0, evidence=[
+        Evidence('PC1', sign=-1),
+        Evidence('PC2', sign=+1),
+    ]),
+    TissueClass('gm', score=0.5, evidence=[
+        Evidence('PC1', sign=+1),
+        Evidence('PC2', sign=+1),
+    ]),
+    TissueClass('sulcus', score=0.0, evidence=[
+        Evidence('PC2', sign=-1),
+    ])
+])
+
+PIPE_PCA_exclude_rel_lfp = TissuePipeline(
+    name='PCA_V2_excl_rel_lfp',
+    model=MODEL_PCA_EXCL_REL_LFP,
+    decomp_method='pca',
+    n_components=2,
+    use_varimax=False,
+    within_session_normalize=False,
+    pc_smooth_sigma=2.0,
+    exclude_features=EXCUDE_REL_LFP,
+)
+
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
@@ -416,9 +444,6 @@ if __name__ == "__main__":
         "opt_20260529_132317_best_bottom.json"
     )
 
-    SHARED_EXCLUDE_FEATURES = [
-        "band_power_delta_theta", "band_power_alpha_beta", "band_power_gamma",
-    ]
 
     # ════════════════════════════════════════════════════════════════════
     # TISSUE MODELS — define inline; promote stable ones to pca_predict.py.
@@ -438,20 +463,31 @@ if __name__ == "__main__":
         ]),
     ])
 
+
     # ════════════════════════════════════════════════════════════════════
     # PIPELINES — each owns its own decomp recipe + tissue model. Drop one
     # of these into run_per_session.run_analysis(pipeline=...) to optimise.
     # ════════════════════════════════════════════════════════════════════
 
-    PIPE_PCA_V2 = TissuePipeline(
+    PIPE_PCA = TissuePipeline(
         name='PCA_V2',
         model=MODEL_PCA_V2,
         decomp_method='pca',
         n_components=2,
-        use_varimax=True,
+        use_varimax=False,
         within_session_normalize=False,
         pc_smooth_sigma=2.0,
-        exclude_features=SHARED_EXCLUDE_FEATURES,
+    )
+
+    PIPE_PCA_exclude_rel_lfp = TissuePipeline(
+        name='PCA_V2_excl_rel_lfp',
+        model=MODEL_PCA_EXCL_REL_LFP,
+        decomp_method='pca',
+        n_components=2,
+        use_varimax=False,
+        within_session_normalize=False,
+        pc_smooth_sigma=2.0,
+        exclude_features=EXCUDE_REL_LFP,
     )
 
     PIPE_ICA_V1 = TissuePipeline(
@@ -462,11 +498,12 @@ if __name__ == "__main__":
         use_varimax=False,
         within_session_normalize=False,
         pc_smooth_sigma=2.0,
-        exclude_features=SHARED_EXCLUDE_FEATURES,
+        exclude_features=EXCUDE_REL_LFP,
     )
 
     PIPELINES: List[TissuePipeline] = [
-        PIPE_PCA_V2,
+        PIPE_PCA,
+        PIPE_PCA_exclude_rel_lfp,
         PIPE_ICA_V1,
     ]
 
@@ -484,13 +521,13 @@ if __name__ == "__main__":
     # Use this when designing a new TissueModel — fits decomp, dumps
     # loadings / depth profiles, optionally adds an MRI panel.
     #
-    # visualize_pooled_pca(
-    #     conn,
-    #     pipeline=PIPE_ICA_V1,
-    #     exclude_sessions=EXCLUDE_SESSIONS,
-    #     sessions_to_plot_individually=SESSIONS_TO_PLOT_INDIVIDUALLY,
-    #     corrections_path=CORRECTIONS_PATH,   # optional → adds MRI panel
-    # )
+    visualize_pooled_pca(
+        conn,
+        pipeline=PIPE_PCA_exclude_rel_lfp,
+        exclude_sessions=EXCLUDE_SESSIONS,
+        sessions_to_plot_individually=SESSIONS_TO_PLOT_INDIVIDUALLY,
+        corrections_path=CORRECTIONS_PATH,   # optional → adds MRI panel
+    )
 
     # Step 2: compare every pipeline in PIPELINES side-by-side against MRI.
     # Each pipeline fits its OWN decomposition; per-pipeline diagnostic

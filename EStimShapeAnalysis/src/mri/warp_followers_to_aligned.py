@@ -93,8 +93,8 @@ XFM_RAS_TXT = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_wa
 #   "wsinc5" -> high-quality continuous: anatomicals, probability maps.
 #   (any 3dNwarpApply -ainterp value: NN, linear, cubic, quintic, wsinc5)
 FOLLOWERS = [
-    ("/home/connorlab/Documents/NMT_v2.0_asym/NMT_v2.0_asym/NMT_v2.0_asym_segmentation.nii.gz", "NN"),
-    # ("/path/to/another_template_space_map.nii.gz", "wsinc5"),
+    # ("/home/connorlab/Documents/NMT_v2.0_asym/NMT_v2.0_asym/NMT_v2.0_asym_segmentation.nii.gz", "NN"),
+    ("/home/connorlab/Documents/NMT_v2.0_asym/NMT_v2.0_asym/NMT_v2.0_asym_SS.nii.gz", "wsinc5"),
 ]
 
 # Where to write the *_rigid_aligned.nii.gz outputs. None = the same dir as

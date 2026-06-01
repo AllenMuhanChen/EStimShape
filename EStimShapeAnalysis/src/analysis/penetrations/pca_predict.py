@@ -28,7 +28,7 @@ from sklearn.preprocessing import StandardScaler
 from clat.util.connection import Connection
 
 
-DECOMPOSITION_METHOD = 'pca'   # 'pca' | 'fa'  (factor analysis)
+DECOMPOSITION_METHOD = 'pca'   # 'pca' | 'fa' | 'ica' (factor analysis)
 USE_VARIMAX = True             # applies to both PCA and FA
 WM_THRESHOLD = 0.0             # z-score WM signal must exceed before counting as WM evidence
 
@@ -497,6 +497,19 @@ MODEL_PCA_V4 = TissueModel([
     ]),
 ])
 
+MODEL_ICA_V1 = TissueModel([
+    TissueClass('wm', score=1.0, evidence=[
+        Evidence('PC1', sign=+1),
+        Evidence('PC2', sign=+1)
+    ]),
+    TissueClass('gm', score=0.5, evidence=[
+        Evidence('PC1', sign=-1),
+        Evidence('PC2', sign=+1)
+    ]),
+    TissueClass('sulcus', score=0.0, evidence=[
+        Evidence('PC2', sign=-1),
+    ])
+])
 # Legacy column-mapping dicts (kept for backward compat with old call sites)
 _TISSUE_CONF_PCA              = dict(wm_col='PC1', wm2_col='PC3', wm2_sign=1,  gm_col='PC2', sulcus_col='PC4')
 _TISSUE_CONF_FA_VARIMAX       = dict(wm_col='PC2', wm2_col='PC3', wm2_sign=-1, gm_col='PC1', sulcus_col='PC5')

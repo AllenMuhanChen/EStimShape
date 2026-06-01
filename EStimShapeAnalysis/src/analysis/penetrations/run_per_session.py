@@ -27,7 +27,7 @@ from src.analysis.penetrations.pca_predict import (
     get_loadings_df,
     load_and_perform_pca,
     print_feature_correlations,
-    run_cortex_pca,
+    run_cortex_pca, MODEL_ICA_V1,
 )
 from src.analysis.penetrations.alignment_optimize import (
     CHAMBER_DIST_PENALTY,
@@ -62,6 +62,7 @@ from src.analysis.penetrations.penetration_plots import (
     plot_scree,
     plot_tissue_confidence_by_session,
 )
+from src.analysis.penetrations.run_pooled import EXCUDE_REL_LFP, PIPE_PCA_exclude_rel_lfp
 
 
 def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs: int = 4,
@@ -295,6 +296,7 @@ if __name__ == "__main__":
     start_from_file = None
     # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260525_121133_best.json"
     # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260529_132317_best_bottom.json"
+    # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260529_144758.json"
 
     # ════════════════════════════════════════════════════════════════════
     # PIPELINE — the same object you'd drop into run_pooled's
@@ -308,48 +310,19 @@ if __name__ == "__main__":
     # ════════════════════════════════════════════════════════════════════
 
     # --- Legacy PCA-V2 pipeline (was the previous default) ---
-    # PIPE_PCA_V2 = TissuePipeline(
-    #     name='PCA_V2',
-    #     model=MODEL_PCA_V2,
-    #     decomp_method='pca',
-    #     n_components=2,
-    #     use_varimax=True,
-    #     within_session_normalize=False,
-    #     pc_smooth_sigma=2.0,
-    #     exclude_features=[],
-    # )
-    # PIPELINE = PIPE_PCA_V2
-
-    # --- New ICA-V1 pipeline (from run_pooled iteration) ---
-    MODEL_ICA_V1 = TissueModel([
-        TissueClass('wm', score=1.0, evidence=[
-            Evidence('PC1', sign=+1),
-            Evidence('PC2', sign=+1),
-        ]),
-        TissueClass('gm', score=0.5, evidence=[
-            Evidence('PC1', sign=-1),
-            Evidence('PC2', sign=+1),
-        ]),
-        TissueClass('sulcus', score=0.0, evidence=[
-            Evidence('PC2', sign=-1),
-        ]),
-    ])
-
-    PIPE_ICA_V1 = TissuePipeline(
-        name='ICA_V1',
-        model=MODEL_ICA_V1,
-        decomp_method='ica',
+    PIPE_PCA_V2 = TissuePipeline(
+        name='PCA_V2',
+        model=MODEL_PCA_V2,
+        decomp_method='pca',
         n_components=2,
         use_varimax=False,
         within_session_normalize=False,
         pc_smooth_sigma=2.0,
-        exclude_features=[
-            "band_power_delta_theta",
-            "band_power_alpha_beta",
-            "band_power_gamma",
-        ],
+        exclude_features=[],
     )
-    PIPELINE = PIPE_ICA_V1
+    PIPELINE = PIPE_PCA_V2
+
+    # PIPELINE = PIPE_PCA_exclude_rel_lfp
 
     # ════════════════════════════════════════════════════════════════════
     # Run — pipeline supplies the decomp + model; everything else here is
@@ -369,7 +342,7 @@ if __name__ == "__main__":
         chamber_param_penalty=0.000,
         chamber_param_tolerances=dict(t_mm=4, r_deg=2.5, daz_deg=0.5, del_deg=0.5, ddepth_mm=4.0),
         variance_penalty=0.0,
-        softmin_beta=20,
+        softmin_beta=0,
         optimizer='cma-es',
         use_confidence_weights=False,
         # top_downweight_mm=7,
