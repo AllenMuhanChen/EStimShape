@@ -38,9 +38,30 @@ class _QueueStream:
         pass
 
 
-def _run_script_worker(module_name: str, func_name: str, args: list, q: mp.Queue):
+def _run_script_worker(module_name: str, func_name: str, args: list,
+                       q: mp.Queue, in_q: mp.Queue):
     sys.stdout = _QueueStream(q, 'out')
     sys.stderr = _QueueStream(q, 'err')
+
+    # Replace builtins.input so scripts that read from stdin route their
+    # prompt through the panel's Entry widget.
+    import builtins
+
+    def _panel_input(prompt: str = '') -> str:
+        if prompt:
+            sys.stdout.write(prompt)
+            sys.stdout.flush()
+        q.put(('input', ''))
+        try:
+            line = in_q.get()
+        except (EOFError, OSError):
+            raise EOFError("input channel closed")
+        sys.stdout.write(line + '\n')
+        sys.stdout.flush()
+        return line
+
+    builtins.input = _panel_input
+
     try:
         mod = importlib.import_module(module_name)
         func = getattr(mod, func_name)
@@ -60,14 +81,16 @@ class ScriptPanel:
     BODY_HEIGHT = 12  # text widget rows
 
     def __init__(self, parent: tk.Widget, script_name: str,
-                 process: mp.Process, q: mp.Queue,
+                 process: mp.Process, q: mp.Queue, in_q: mp.Queue,
                  on_close):
         self.process = process
         self.q = q
+        self.in_q = in_q
         self.script_name = script_name
         self.on_close = on_close
         self.minimized = False
         self._finished = False
+        self._awaiting_input = False
 
         self.frame = tk.LabelFrame(parent, text=script_name,
                                    font=("Arial", 10, "bold"))
@@ -100,7 +123,25 @@ class ScriptPanel:
                                  state="disabled", bg="black", fg="white")
         self.text.tag_configure("err", foreground="salmon")
         self.text.tag_configure("sys", foreground="lightyellow")
+        self.text.tag_configure("in",  foreground="lightblue")
         self.text.pack(fill="both", expand=True)
+
+        # stdin input row — hidden until the worker calls input()
+        self.input_frame = tk.Frame(self.body)
+        self.input_prompt = tk.Label(self.input_frame, text="stdin →",
+                                     fg="lightblue", bg="black",
+                                     font=("Courier", 9))
+        self.input_prompt.pack(side="left")
+        self.input_var = tk.StringVar()
+        self.input_entry = tk.Entry(self.input_frame, textvariable=self.input_var,
+                                    bg="black", fg="white",
+                                    insertbackground="white",
+                                    font=("Courier", 9))
+        self.input_entry.pack(side="left", fill="x", expand=True, padx=4)
+        self.input_entry.bind("<Return>", lambda e: self._submit_input())
+        self.input_send = tk.Button(self.input_frame, text="Send",
+                                    command=self._submit_input)
+        self.input_send.pack(side="right")
 
     def toggle_minimize(self):
         if self.minimized:
@@ -113,9 +154,28 @@ class ScriptPanel:
 
     def append(self, tag: str, s: str):
         self.text.config(state="normal")
-        self.text.insert("end", s, tag if tag in ("err", "sys") else None)
+        self.text.insert("end", s, tag if tag in ("err", "sys", "in") else None)
         self.text.see("end")
         self.text.config(state="disabled")
+
+    def request_input(self):
+        if self._awaiting_input:
+            return
+        self._awaiting_input = True
+        self.input_frame.pack(fill="x", pady=(4, 0))
+        self.input_entry.focus_set()
+
+    def _submit_input(self):
+        if not self._awaiting_input:
+            return
+        line = self.input_var.get()
+        self.input_var.set("")
+        self.input_frame.pack_forget()
+        self._awaiting_input = False
+        try:
+            self.in_q.put(line)
+        except (EOFError, OSError):
+            pass
 
     def _end(self):
         if self.process.is_alive():
@@ -386,15 +446,16 @@ class ScriptRunnerApp:
         func_name = func.__name__
 
         q: mp.Queue = self.mp_ctx.Queue()
+        in_q: mp.Queue = self.mp_ctx.Queue()
         process = self.mp_ctx.Process(
             target=_run_script_worker,
-            args=(module_name, func_name, args, q),
+            args=(module_name, func_name, args, q, in_q),
             daemon=True,
         )
         process.start()
 
         panel = ScriptPanel(self.panels_container, script_name,
-                            process=process, q=q,
+                            process=process, q=q, in_q=in_q,
                             on_close=self._remove_panel)
         panel.append("sys", f"[Started PID {process.pid}: "
                             f"{module_name}.{func_name}({', '.join(args)})]\n")
@@ -408,6 +469,8 @@ class ScriptRunnerApp:
                     tag, payload = panel.q.get_nowait()
                     if tag == 'done':
                         panel.mark_finished(payload)
+                    elif tag == 'input':
+                        panel.request_input()
                     else:
                         panel.append(tag, payload)
             except queue.Empty:
