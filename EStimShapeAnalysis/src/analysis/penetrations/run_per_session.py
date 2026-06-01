@@ -297,6 +297,7 @@ if __name__ == "__main__":
     # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260525_121133_best.json"
     # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260529_132317_best_bottom.json"
     # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260529_144758.json"
+    # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260601_152133.json"
 
     # ════════════════════════════════════════════════════════════════════
     # PIPELINE — the same object you'd drop into run_pooled's
@@ -339,13 +340,13 @@ if __name__ == "__main__":
         session_corr_bounds=None,
         session_corr_penalty=0.5,
         chamber_dist_penalty=0.000,
-        chamber_param_penalty=0.000,
+        chamber_param_penalty=0.0005,
         chamber_param_tolerances=dict(t_mm=4, r_deg=2.5, daz_deg=0.5, del_deg=0.5, ddepth_mm=4.0),
         variance_penalty=0.0,
-        softmin_beta=0,
+        softmin_beta=5,
         optimizer='cma-es',
         use_confidence_weights=False,
-        # top_downweight_mm=7,
+        top_downweight_mm=7,
         top_downweight_factor=0.25,
         # Brain-extracted MRI: zero outside brain so the optimiser doesn't fit
         # to skull/scalp signal. Set to None to fall back to the config default.

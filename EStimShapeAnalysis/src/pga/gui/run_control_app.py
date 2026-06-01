@@ -10,10 +10,12 @@ from tkinter.scrolledtext import ScrolledText
 from typing import Dict
 
 from src.analysis import compile_current_context, analyze_raw_data, analyze_current_context
-from src.analysis.ga import raw_channel_candidacy_analysis, ga_raster_analysis
+from src.analysis.ga import raw_channel_candidacy_analysis, ga_raster_analysis, baseline_analysis, plot_top_n, \
+    plot_variants_delta_gui
 from src.eyecal import plot_eyecal, apply_eyecal
 from src.pga.app import run_ga, start_new_ga, process_first_gen, run_cluster_app, calculate_spontaneous_firing_rate, \
-    run_rwa, plot_rwa, transfer_eye_cal_params, abandon_generation, process_last_gen, recalculate_ga, run_tree_graph_app
+    run_rwa, plot_rwa, transfer_eye_cal_params, abandon_generation, process_last_gen, recalculate_ga, \
+    run_tree_graph_app, run_delta_side_test
 from src.startup import db_factory, setup_xper_properties_and_dirs, backup, startup_system
 
 
@@ -228,9 +230,8 @@ class ScriptRunnerApp:
 
         self.root.protocol("WM_DELETE_WINDOW", self._on_root_close)
 
-        # Organized scripts by sections
         self.scripts = {
-            "Running GA": {
+            "Before GA":{
                 "Startup System": {
                     "func": startup_system.main,
                     "params": []
@@ -239,6 +240,8 @@ class ScriptRunnerApp:
                     "func": plot_eyecal.main,
                     "params": []
                 },
+            },
+            "Running GA": {
                 "Start New GA": {
                     "func": start_new_ga.main,
                     "params": []
@@ -265,6 +268,37 @@ class ScriptRunnerApp:
                 },
                 "Process Last Generation": {
                     "func": process_last_gen.main,
+                    "params": []
+                },
+                "Run Delta Side Tests": {
+                    "func": run_delta_side_test.main,
+                    "params": []
+                }
+
+            },
+            "Live Analysis": {
+                "GA Candidacy Analysis": {
+                    "func": raw_channel_candidacy_analysis.main,
+                    "params": []
+                },
+                "GA Raster": {
+                    "func": ga_raster_analysis.main,
+                    "params": []
+                },
+                "Analyze Current Context": {
+                    "func": analyze_current_context.main,
+                    "params": []
+                },
+                "Baseline Analysis": {
+                    "func": baseline_analysis.main,
+                    "params": []
+                },
+                "Plot Top N": {
+                    "func": plot_top_n.main,
+                    "params": []
+                },
+                "Variant-Delta GUI": {
+                    "func": plot_variants_delta_gui.main,
                     "params": []
                 }
             },
@@ -296,22 +330,9 @@ class ScriptRunnerApp:
                     "params": []
                 }
             },
-            "Live Analysis": {
-                "GA Candidacy Analysis": {
-                    "func": raw_channel_candidacy_analysis.main,
-                    "params": []
-                },
-                "GA Raster": {
-                  "func": ga_raster_analysis.main,
-                    "params": []
-                },
-                "Run Analysis": {
-                    "func": analyze_current_context.main,
-                    "params": []
-                },
 
-            },
         }
+        # Organized scripts by sections
 
         self.create_interface()
 

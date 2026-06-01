@@ -242,7 +242,7 @@ def plot_tissue_score_vs_mri(session_id: str) -> None:
     if pen_offsets:
         print(f"  pen_offsets: daz={daz:+.3f}°  del={del_:+.3f}°  "
               f"ddepth={ddepth:+.3f} mm  "
-              f"({len(per_session_corrections)} per-session entries)")
+              f"({len(per_session_corrections)}_ per-session entries)")
 
     df_conf = compute_mri_comparison(
         df_conf, conn, mri_pipeline,
@@ -495,7 +495,7 @@ def ReadWaveformDataDemo():
     db_name = f"allen_ga_exp_{session_id}"
     from src.lfp.penetration_lfp_analysis import INTAN_SFTP_PREFIX
     intan_path = f"{INTAN_SFTP_PREFIX}/{db_name}"
-    tip_start = 6.02
+    tip_start = 5.9
     from src.lfp.penetration_lfp_analysis import PenetrationLFPAnalysis
     PenetrationLFPAnalysis(session_id=session_id, intan_path=intan_path, tip_start_mm=tip_start).run()
 
