@@ -949,6 +949,42 @@ def plot_driven_depth(
 
 
 
+_PENETRATION_TIP_START_TABLE = "PenetrationTipStart"
+
+_CREATE_PENETRATION_TIP_START_SQL = f"""
+CREATE TABLE IF NOT EXISTS {_PENETRATION_TIP_START_TABLE} (
+    session_id      VARCHAR(32)     NOT NULL,
+    tip_start_mm    DOUBLE          NOT NULL,
+    PRIMARY KEY (session_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+"""
+
+_UPSERT_PENETRATION_TIP_START_SQL = f"""
+INSERT INTO {_PENETRATION_TIP_START_TABLE} (session_id, tip_start_mm)
+VALUES (%s, %s)
+ON DUPLICATE KEY UPDATE tip_start_mm = VALUES(tip_start_mm)
+"""
+
+
+def save_tip_start(session_id: str, tip_start_mm: float) -> None:
+    """Upsert the tip start depth for a session into allen_data_repository."""
+    conn = Connection("allen_data_repository")
+    conn.execute(_CREATE_PENETRATION_TIP_START_SQL)
+    conn.execute(_UPSERT_PENETRATION_TIP_START_SQL, (session_id, tip_start_mm))
+
+
+def get_tip_start(session_id: str) -> Optional[float]:
+    """Return tip_start_mm for a session, or None if not found."""
+    conn = Connection("allen_data_repository")
+    conn.execute(_CREATE_PENETRATION_TIP_START_SQL)
+    conn.execute(
+        f"SELECT tip_start_mm FROM {_PENETRATION_TIP_START_TABLE} WHERE session_id = %s",
+        (session_id,),
+    )
+    rows = conn.fetch_all()
+    return float(rows[0][0]) if rows else None
+
+
 _PENETRATION_METRICS_TABLE = "PenetrationMetrics"
 
 _CREATE_PENETRATION_METRICS_SQL = f"""
@@ -1201,6 +1237,7 @@ class PenetrationLFPAnalysis:
 
         print("Saving metrics to allen_data_repository ...")
         try:
+            save_tip_start(self.session_id, self.tip_start_mm)
             save_to_repository(
                 self.session_id, bin_depths, normalized,
                 b_fits, b_spike, b_polarity, b_peak_count, b_ttp, b_amp,
