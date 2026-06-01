@@ -344,9 +344,7 @@ class ScriptRunnerApp:
         left_canvas.pack(side="left", fill="both", expand=True)
         left_scroll.pack(side="right", fill="y")
 
-        def _on_left_mousewheel(event):
-            left_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-        left_canvas.bind("<MouseWheel>", _on_left_mousewheel)
+        self._bind_mousewheel(left_canvas)
 
         # --- Right side: scrollable container of ScriptPanels ------------
         right_canvas = tk.Canvas(right_frame, highlightthickness=0)
@@ -367,12 +365,41 @@ class ScriptRunnerApp:
         right_canvas.pack(side="left", fill="both", expand=True)
         right_scroll.pack(side="right", fill="y")
 
-        def _on_right_mousewheel(event):
-            right_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-        right_canvas.bind("<MouseWheel>", _on_right_mousewheel)
+        self._bind_mousewheel(right_canvas)
 
         # Begin draining queues from worker processes
         self.root.after(self.POLL_INTERVAL_MS, self._poll_panels)
+
+    @staticmethod
+    def _bind_mousewheel(canvas: tk.Canvas) -> None:
+        """Cross-platform mousewheel scrolling.
+
+        Linux sends Button-4 / Button-5; Windows + macOS send <MouseWheel>
+        with event.delta. bind_all is necessary because the canvas's child
+        widgets (the buttons / labels packed inside) eat the event before it
+        reaches the canvas. We swap bindings on Enter/Leave so each canvas
+        only scrolls when the cursor is over it.
+        """
+        def _on_wheel(event):
+            if event.num == 4:
+                canvas.yview_scroll(-1, "units")
+            elif event.num == 5:
+                canvas.yview_scroll(1, "units")
+            else:
+                canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        def _enter(_e):
+            canvas.bind_all("<MouseWheel>", _on_wheel)
+            canvas.bind_all("<Button-4>", _on_wheel)
+            canvas.bind_all("<Button-5>", _on_wheel)
+
+        def _leave(_e):
+            canvas.unbind_all("<MouseWheel>")
+            canvas.unbind_all("<Button-4>")
+            canvas.unbind_all("<Button-5>")
+
+        canvas.bind("<Enter>", _enter)
+        canvas.bind("<Leave>", _leave)
 
     def create_parameter_entries(self, parent):
         """Create parameter entry widgets for all scripts that need them"""
