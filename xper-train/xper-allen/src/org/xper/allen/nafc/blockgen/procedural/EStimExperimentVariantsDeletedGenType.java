@@ -60,6 +60,7 @@ public class EStimExperimentVariantsDeletedGenType extends EStimExperimentVarian
                     variantId,
                     parameters.isEStimEnabled,
                     parameters.eStimSpecId);
+            stim.setIncludeRemovedChoice(parameters.includeRemovedChoice);
             newBlock.add(stim);
         }
         return newBlock;
