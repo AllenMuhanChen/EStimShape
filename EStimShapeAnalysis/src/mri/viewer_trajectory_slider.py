@@ -29,6 +29,9 @@ Dependencies (provided by TriplanarMRIViewer at run-time):
 import tkinter as tk
 from tkinter import ttk
 
+# Probe geometry (mirrors viewer_trajectory.py / viewer_display.py)
+_TIP_TO_BOTTOM_CH_MM = 0.6   # bottommost channel is 600 μm above the tip
+
 
 class TrajectorySliderMixin:
     """
@@ -114,6 +117,19 @@ class TrajectorySliderMixin:
 
         ttk.Button(row2, text="→", width=3,
                    command=lambda: self._on_traj_step(+1)).pack(side=tk.LEFT, padx=(2, 0))
+
+        # ── Row 2b: cursor mode toggles ───────────────────────────────
+        # Default ON: traverse by bottom channel and apply ddepth correction.
+        self._traj_bottom_channel_var = tk.BooleanVar(value=True)
+        self._traj_apply_correction_var = tk.BooleanVar(value=True)
+        row_mode = ttk.Frame(outer)
+        row_mode.pack(fill=tk.X, padx=6, pady=(0, 2))
+        ttk.Checkbutton(row_mode, text="Cursor on bottom channel (else tip)",
+                        variable=self._traj_bottom_channel_var,
+                        command=self._on_traj_mode_change).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Checkbutton(row_mode, text="Apply ddepth correction",
+                        variable=self._traj_apply_correction_var,
+                        command=self._on_traj_mode_change).pack(side=tk.LEFT)
 
         # ── Row 3: range labels ───────────────────────────────────────
         row3 = ttk.Frame(outer)
@@ -318,10 +334,53 @@ class TrajectorySliderMixin:
         microns = (depth_mm - self._get_elec_start_mm()) * 1000.0
         self._traj_microns_var.set(f"{microns:.0f}")
 
+    def _traj_ddepth_total(self):
+        """Global + (optionally) per-session ddepth_mm for the current session."""
+        if not getattr(self, 'pen_offsets', None):
+            return 0.0
+        ddepth = self.pen_offsets.get('ddepth_mm', 0.0)
+        if getattr(self, 'per_session_corrections_enabled', False) \
+                and hasattr(self, 'session_id_var'):
+            sid = self.session_id_var.get().strip()
+            per_sess = self.pen_offsets.get('per_session_corrections', {})
+            ddepth += per_sess.get(sid, {}).get('ddepth_mm', 0.0)
+        return ddepth
+
+    def _traj_effective_tip_depth(self, slider_val):
+        # Slider value is the nominal/dialed tip depth (matches dist_mm
+        # convention). Adding ddepth puts us in the same space _offset_pen
+        # renders saved pens into, so cursor and dot will agree.
+        if getattr(self, '_traj_apply_correction_var', None) \
+                and self._traj_apply_correction_var.get():
+            return slider_val + self._traj_ddepth_total()
+        return slider_val
+
+    def _traj_cursor_depth(self, slider_val):
+        """Where the crosshair is drawn (tip vs bottom-channel offset)."""
+        tip_depth = self._traj_effective_tip_depth(slider_val)
+        if getattr(self, '_traj_bottom_channel_var', None) \
+                and self._traj_bottom_channel_var.get():
+            return tip_depth - _TIP_TO_BOTTOM_CH_MM
+        return tip_depth
+
+    def _on_traj_mode_change(self):
+        """Bottom-channel / correction toggle changed — re-place the cursor."""
+        if self.temp_trajectory is None:
+            return
+        try:
+            depth_mm = float(self._traj_slider_var.get())
+        except (ValueError, tk.TclError):
+            return
+        self._move_cursor_to_depth(depth_mm)
+
     def _move_cursor_to_depth(self, depth_mm):
-        """Shared helper: update cursor_world and redraw."""
+        # depth_mm = slider's nominal tip depth. Crosshair goes to the cursor
+        # depth (tip or bottom-channel, optionally ddepth-corrected); the
+        # dist var keeps the raw slider value so save logic sees the user's
+        # dialed tip depth.
         t = self._corrected_traj_for_display(self.temp_trajectory)
-        self.cursor_world = t['top_pt'] + depth_mm * t['direction']
+        cursor_depth = self._traj_cursor_depth(depth_mm)
+        self.cursor_world = t['top_pt'] + cursor_depth * t['direction']
         if hasattr(self, 'traj_actual_dist_var'):
             self.traj_actual_dist_var.set(round(depth_mm, 2))
         self._sync_microns_from_depth(depth_mm)

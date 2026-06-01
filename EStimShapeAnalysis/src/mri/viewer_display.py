@@ -169,10 +169,21 @@ class DisplayMixin:
                         '-', color='yellow', lw=1.5, alpha=0.9)
                 ax.plot(target[h_wax] - h_off, target[v_wax] - v_off,
                         'x', color='yellow', markersize=8, markeredgewidth=2)
-                # Per-channel dots along the probe shank
+                # Per-channel dots: track the slider's CURRENT effective tip
+                # depth so the user sees where each channel sits as they
+                # traverse. Falls back to the trajectory's stored tip if the
+                # slider hasn't been built yet.
+                ch_tip_depth = dist
+                if hasattr(self, '_traj_slider_var') \
+                        and hasattr(self, '_traj_effective_tip_depth'):
+                    try:
+                        ch_tip_depth = self._traj_effective_tip_depth(
+                            float(self._traj_slider_var.get()))
+                    except (ValueError, tk.TclError, AttributeError):
+                        pass
                 for idx in range(32):
                     offset_mm = (_TIP_TO_BOTTOM_CH_UM + (31 - idx) * _CH_SPACING_UM) / 1000.0
-                    ch_dist = dist - offset_mm
+                    ch_dist = ch_tip_depth - offset_mm
                     if ch_dist < 0:
                         continue
                     pt = top_pt + ch_dist * direction

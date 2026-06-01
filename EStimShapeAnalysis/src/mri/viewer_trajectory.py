@@ -425,10 +425,17 @@ class TrajectoryMixin:
         label = self.traj_actual_label_var.get().strip() or session_id
         notes = self.traj_actual_notes_var.get().strip()
 
-        # Apply channel correction if a channel was given, otherwise use tip dist directly
+        # Apply channel correction if a channel was given. Otherwise, if the
+        # slider is in "bottom channel" mode, save at the bottom-channel offset
+        # so the rendered dot lands where the crosshair visually was. Else use
+        # tip dist directly.
         if channel_num is not None:
             corrected_dist = _channel_corrected_dist(tip_dist, channel_num)
             notes_extra = f"ch{channel_num} tip={tip_dist:.2f}mm corrected={corrected_dist:.2f}mm"
+        elif getattr(self, '_traj_bottom_channel_var', None) \
+                and self._traj_bottom_channel_var.get():
+            corrected_dist = tip_dist - 0.6  # bottom channel = tip − 600 μm
+            notes_extra = f"tip={tip_dist:.2f}mm bottom_ch={corrected_dist:.2f}mm"
         else:
             corrected_dist = tip_dist
             notes_extra = f"tip={tip_dist:.2f}mm (no channel correction)"
