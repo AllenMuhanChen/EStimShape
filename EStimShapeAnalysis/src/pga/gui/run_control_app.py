@@ -1,6 +1,12 @@
 from ordered_set import OrderedSet
+import importlib
+import multiprocessing as mp
+import queue
+import sys
+import traceback
 import tkinter as tk
 from tkinter import messagebox, ttk
+from tkinter.scrolledtext import ScrolledText
 from typing import Dict
 
 from src.analysis import compile_current_context, analyze_raw_data, analyze_current_context
@@ -11,13 +17,155 @@ from src.pga.app import run_ga, start_new_ga, process_first_gen, run_cluster_app
 from src.startup import db_factory, setup_xper_properties_and_dirs, backup, startup_system
 
 
+# ---------------------------------------------------------------------------
+# Worker process entry point — must be a top-level function so 'spawn' can
+# pickle it. Redirects stdout/stderr to a Queue, then calls the target.
+# ---------------------------------------------------------------------------
+
+class _QueueStream:
+    def __init__(self, q: mp.Queue, tag: str):
+        self.q = q
+        self.tag = tag
+
+    def write(self, s: str):
+        if s:
+            try:
+                self.q.put((self.tag, s))
+            except Exception:
+                pass
+
+    def flush(self):
+        pass
+
+
+def _run_script_worker(module_name: str, func_name: str, args: list, q: mp.Queue):
+    sys.stdout = _QueueStream(q, 'out')
+    sys.stderr = _QueueStream(q, 'err')
+    try:
+        mod = importlib.import_module(module_name)
+        func = getattr(mod, func_name)
+        result = func(*args)
+        q.put(('done', f'completed (returned {result!r})' if result else 'completed'))
+    except SystemExit as e:
+        q.put(('done', f'exited (code {e.code})'))
+    except BaseException:
+        sys.stderr.write(traceback.format_exc())
+        q.put(('done', 'failed'))
+
+
+class ScriptPanel:
+    """Collapsible panel on the right side showing one running script's
+    stdout/stderr, with Minimize and End buttons."""
+
+    BODY_HEIGHT = 12  # text widget rows
+
+    def __init__(self, parent: tk.Widget, script_name: str,
+                 process: mp.Process, q: mp.Queue,
+                 on_close):
+        self.process = process
+        self.q = q
+        self.script_name = script_name
+        self.on_close = on_close
+        self.minimized = False
+        self._finished = False
+
+        self.frame = tk.LabelFrame(parent, text=script_name,
+                                   font=("Arial", 10, "bold"))
+        self.frame.pack(fill="x", padx=4, pady=4)
+
+        header = tk.Frame(self.frame)
+        header.pack(fill="x", padx=4, pady=2)
+
+        self.status_label = tk.Label(header, text="running…",
+                                     fg="darkgreen", font=("Arial", 9))
+        self.status_label.pack(side="left")
+
+        self.close_button = tk.Button(header, text="✕", width=2,
+                                      command=self._close)
+        self.close_button.pack(side="right", padx=2)
+
+        self.end_button = tk.Button(header, text="End", width=5,
+                                    bg="lightcoral", command=self._end)
+        self.end_button.pack(side="right", padx=2)
+
+        self.min_button = tk.Button(header, text="–", width=2,
+                                    command=self.toggle_minimize)
+        self.min_button.pack(side="right", padx=2)
+
+        self.body = tk.Frame(self.frame)
+        self.body.pack(fill="both", expand=True, padx=4, pady=2)
+
+        self.text = ScrolledText(self.body, height=self.BODY_HEIGHT,
+                                 wrap="word", font=("Courier", 9),
+                                 state="disabled", bg="black", fg="white")
+        self.text.tag_configure("err", foreground="salmon")
+        self.text.tag_configure("sys", foreground="lightyellow")
+        self.text.pack(fill="both", expand=True)
+
+    def toggle_minimize(self):
+        if self.minimized:
+            self.body.pack(fill="both", expand=True, padx=4, pady=2)
+            self.min_button.config(text="–")
+        else:
+            self.body.pack_forget()
+            self.min_button.config(text="▢")
+        self.minimized = not self.minimized
+
+    def append(self, tag: str, s: str):
+        self.text.config(state="normal")
+        self.text.insert("end", s, tag if tag in ("err", "sys") else None)
+        self.text.see("end")
+        self.text.config(state="disabled")
+
+    def _end(self):
+        if self.process.is_alive():
+            self.append("sys", "\n[End requested — terminating…]\n")
+            self.process.terminate()
+            self.frame.after(2000, self._kill_if_alive)
+
+    def _kill_if_alive(self):
+        if self.process.is_alive():
+            self.append("sys", "[Still alive after terminate — killing…]\n")
+            self.process.kill()
+
+    def mark_finished(self, msg: str):
+        if self._finished:
+            return
+        self._finished = True
+        self.status_label.config(text=msg, fg="gray")
+        self.end_button.config(state="disabled")
+
+    def _close(self):
+        if self.process.is_alive():
+            if not messagebox.askyesno(
+                    "Script still running",
+                    f"{self.script_name} is still running. Terminate and close?"):
+                return
+            self.process.terminate()
+            self.process.join(timeout=1.0)
+            if self.process.is_alive():
+                self.process.kill()
+        self.frame.destroy()
+        self.on_close(self)
+
+
 class ScriptRunnerApp:
+    POLL_INTERVAL_MS = 100
+
     def __init__(self, root):
         self.root = root
         self.root.title("Script Runner")
 
         # Dictionary to store parameter entry widgets
         self.param_entries = {}
+
+        # Active script panels (one per running/finished process)
+        self.panels: list = []
+
+        # mp context — 'spawn' avoids Tk/fork interaction issues
+        self.mp_ctx = mp.get_context('spawn')
+
+        self.root.protocol("WM_DELETE_WINDOW", self._on_root_close)
 
         # Organized scripts by sections
         self.scripts = {
@@ -107,38 +255,64 @@ class ScriptRunnerApp:
         self.create_interface()
 
     def create_interface(self):
-        # Create a main frame with scrollbar
-        main_frame = tk.Frame(self.root)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        # Horizontal split: left = script buttons, right = running-script panels
+        paned = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
+        paned.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        # Create canvas and scrollbar
-        canvas = tk.Canvas(main_frame)
-        scrollbar = ttk.Scrollbar(main_frame, orient="vertical", command=canvas.yview)
-        scrollable_frame = tk.Frame(canvas)
+        left_frame = tk.Frame(paned)
+        right_frame = tk.LabelFrame(paned, text="Running Scripts",
+                                    font=("Arial", 11, "bold"))
+        paned.add(left_frame, weight=1)
+        paned.add(right_frame, weight=1)
+
+        # --- Left side: scrollable list of script buttons ----------------
+        left_canvas = tk.Canvas(left_frame, highlightthickness=0)
+        left_scroll = ttk.Scrollbar(left_frame, orient="vertical",
+                                    command=left_canvas.yview)
+        scrollable_frame = tk.Frame(left_canvas)
 
         scrollable_frame.bind(
             "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+            lambda e: left_canvas.configure(scrollregion=left_canvas.bbox("all"))
         )
+        left_canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        left_canvas.configure(yscrollcommand=left_scroll.set)
 
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-
-        # Create parameter entries first (for scripts that need them)
         self.create_parameter_entries(scrollable_frame)
-
-        # Create section buttons
         self.create_section_buttons(scrollable_frame)
 
-        # Pack canvas and scrollbar
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        left_canvas.pack(side="left", fill="both", expand=True)
+        left_scroll.pack(side="right", fill="y")
 
-        # Bind mousewheel to canvas
-        def _on_mousewheel(event):
-            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        def _on_left_mousewheel(event):
+            left_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        left_canvas.bind("<MouseWheel>", _on_left_mousewheel)
 
-        canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        # --- Right side: scrollable container of ScriptPanels ------------
+        right_canvas = tk.Canvas(right_frame, highlightthickness=0)
+        right_scroll = ttk.Scrollbar(right_frame, orient="vertical",
+                                     command=right_canvas.yview)
+        self.panels_container = tk.Frame(right_canvas)
+        self.panels_container.bind(
+            "<Configure>",
+            lambda e: right_canvas.configure(scrollregion=right_canvas.bbox("all"))
+        )
+        self._right_window_id = right_canvas.create_window(
+            (0, 0), window=self.panels_container, anchor="nw")
+        right_canvas.bind(
+            "<Configure>",
+            lambda e: right_canvas.itemconfigure(self._right_window_id,
+                                                 width=e.width))
+        right_canvas.configure(yscrollcommand=right_scroll.set)
+        right_canvas.pack(side="left", fill="both", expand=True)
+        right_scroll.pack(side="right", fill="y")
+
+        def _on_right_mousewheel(event):
+            right_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        right_canvas.bind("<MouseWheel>", _on_right_mousewheel)
+
+        # Begin draining queues from worker processes
+        self.root.after(self.POLL_INTERVAL_MS, self._poll_panels)
 
     def create_parameter_entries(self, parent):
         """Create parameter entry widgets for all scripts that need them"""
@@ -191,36 +365,81 @@ class ScriptRunnerApp:
                 run_button.pack(side="right")
 
     def run_script(self, script_info: Dict, script_name: str):
-        """Run a script with its parameters"""
+        """Spawn a worker process running the script and attach a panel for
+        its console output."""
         func = script_info["func"]
         params = script_info["params"]
 
         args = []
         for param in params:
             entry = self.param_entries.get(param)
-            if entry:
-                value = entry.get().strip()
-                if value:
-                    args.append(value)
-                else:
-                    messagebox.showwarning("Warning", f"Please enter a value for {param}.")
-                    return
-            else:
+            if entry is None:
                 messagebox.showerror("Error", f"Parameter entry for {param} not found.")
                 return
+            value = entry.get().strip()
+            if not value:
+                messagebox.showwarning("Warning", f"Please enter a value for {param}.")
+                return
+            args.append(value)
 
-        try:
-            result = func(*args)
-            if result:
-                messagebox.showinfo("Success", f"{script_name} completed successfully!\n\nResult: {result}")
-            else:
-                messagebox.showinfo("Success", f"{script_name} completed successfully!")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to run {script_name}:\n\n{str(e)}")
+        module_name = func.__module__
+        func_name = func.__name__
+
+        q: mp.Queue = self.mp_ctx.Queue()
+        process = self.mp_ctx.Process(
+            target=_run_script_worker,
+            args=(module_name, func_name, args, q),
+            daemon=True,
+        )
+        process.start()
+
+        panel = ScriptPanel(self.panels_container, script_name,
+                            process=process, q=q,
+                            on_close=self._remove_panel)
+        panel.append("sys", f"[Started PID {process.pid}: "
+                            f"{module_name}.{func_name}({', '.join(args)})]\n")
+        self.panels.append(panel)
+
+    def _poll_panels(self):
+        """Drain each panel's queue and update its status."""
+        for panel in list(self.panels):
+            try:
+                while True:
+                    tag, payload = panel.q.get_nowait()
+                    if tag == 'done':
+                        panel.mark_finished(payload)
+                    else:
+                        panel.append(tag, payload)
+            except queue.Empty:
+                pass
+            except (EOFError, OSError):
+                pass
+
+            if not panel.process.is_alive() and not panel._finished:
+                # Process died without sending a 'done' (e.g. killed).
+                code = panel.process.exitcode
+                panel.mark_finished(f"exited (code {code})")
+
+        self.root.after(self.POLL_INTERVAL_MS, self._poll_panels)
+
+    def _remove_panel(self, panel: ScriptPanel):
+        if panel in self.panels:
+            self.panels.remove(panel)
+
+    def _on_root_close(self):
+        for panel in list(self.panels):
+            if panel.process.is_alive():
+                panel.process.terminate()
+        for panel in list(self.panels):
+            panel.process.join(timeout=0.5)
+            if panel.process.is_alive():
+                panel.process.kill()
+        self.root.destroy()
 
 
 if __name__ == "__main__":
+    mp.freeze_support()
     root = tk.Tk()
-    root.geometry("600x800")
+    root.geometry("1200x800")
     app = ScriptRunnerApp(root)
     root.mainloop()
