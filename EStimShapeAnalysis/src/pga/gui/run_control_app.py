@@ -66,12 +66,13 @@ def _run_script_worker(module_name: str, func_name: str, args: list,
         mod = importlib.import_module(module_name)
         func = getattr(mod, func_name)
         result = func(*args)
-        q.put(('done', f'completed (returned {result!r})' if result else 'completed'))
+        msg = f'completed (returned {result!r})' if result else 'completed'
+        q.put(('done_ok', msg))
     except SystemExit as e:
-        q.put(('done', f'exited (code {e.code})'))
-    except BaseException:
+        q.put(('done_exit', f'exited (code {e.code})'))
+    except BaseException as e:
         sys.stderr.write(traceback.format_exc())
-        q.put(('done', 'failed'))
+        q.put(('done_err', f'failed: {e}'))
 
 
 class ScriptPanel:
@@ -494,7 +495,17 @@ class ScriptRunnerApp:
             try:
                 while True:
                     tag, payload = panel.q.get_nowait()
-                    if tag == 'done':
+                    if tag == 'done_ok':
+                        panel.mark_finished(payload)
+                        messagebox.showinfo(
+                            "Success",
+                            f"{panel.script_name} {payload}!")
+                    elif tag == 'done_err':
+                        panel.mark_finished(payload)
+                        messagebox.showerror(
+                            "Error",
+                            f"{panel.script_name} {payload}")
+                    elif tag == 'done_exit':
                         panel.mark_finished(payload)
                     elif tag == 'input':
                         panel.request_input()
