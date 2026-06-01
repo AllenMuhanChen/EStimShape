@@ -75,6 +75,17 @@ MUA_THRESHOLD_RMS  = 4.0     # threshold multiplier: -N × RMS
 MUA_REFRACTORY_SEC = 0.001   # 1 ms refractory period
 # -------------------------------------------------------------------------
 
+# ---- Tissue-score / MRI plot config -------------------------------------
+# Brain-extracted MRI used by the alignment optimiser in run_per_session.
+# Setting volume_path to this avoids fitting tissue scores to skull/scalp.
+NO_SKULL_MRI_PATH = (
+    "/home/connorlab/Documents/MRI/45X_MRI/"
+    "45X_110315_4_1_corrected_warper_native/rigid_aligned/"
+    "subject_ns_rigid_aligned.nii.gz"
+)
+TISSUE_PLOT_N_PCS = 2
+# -------------------------------------------------------------------------
+
 
 class GetSampleRateFailure(Exception):
     pass
@@ -154,6 +165,131 @@ class DataReader:
 
     def get_data(self):
         return b''.join(self.chunks)
+
+
+def _load_pen_offsets(monkey_specific_path: str) -> dict:
+    """Read the latest global az/el/depth offsets saved by the alignment optimiser.
+
+    Returns an empty dict if the file does not exist, so callers can pass the
+    result straight through to compute_mri_comparison.
+    """
+    import json
+    import os
+    path = os.path.splitext(monkey_specific_path)[0] + '_pen_offsets.json'
+    if not os.path.exists(path):
+        return {}
+    with open(path) as f:
+        return json.load(f)
+
+
+def plot_tissue_score_vs_mri(session_id: str) -> None:
+    """Load PCA, predict tissue score for this session, sample MRI along the
+    trajectory, and plot per-session tissue vs MRI with PC profiles.
+
+    Mirrors the per-session figure produced by run_per_session, restricted to
+    a single session and with an extra PC-profile panel so you can see what
+    drove the prediction.
+    """
+    from clat.util.connection import Connection
+
+    from src.analysis.penetrations.pca_predict import (
+        MODEL_PCA_V2, TissuePipeline,
+    )
+    from src.analysis.penetrations.alignment_optimize import (
+        MRI_VIEWER_CONFIG_PATH, compute_mri_comparison,
+        compute_trajectory_fit_scores, load_mri_pipeline,
+    )
+    from src.analysis.penetrations.penetration_plots import (
+        _draw_mri_tissue_line, _draw_pc_profiles, _draw_tissue_strip,
+    )
+
+    conn = Connection(
+        database="allen_data_repository",
+        user="xper_rw",
+        password="up2nite",
+        host="172.30.6.61",
+    )
+
+    pipeline = TissuePipeline(
+        name='PCA_V2',
+        model=MODEL_PCA_V2,
+        decomp_method='pca',
+        n_components=2,
+        use_varimax=False,
+        within_session_normalize=False,
+        pc_smooth_sigma=2.0,
+        exclude_features=[],
+    )
+
+    print(f"\nFitting PCA across all sessions and predicting tissue scores ...")
+    fit = pipeline.fit_and_predict(conn)
+    df_conf = fit['df']
+    pca = fit['pca']
+
+    if session_id not in df_conf['session_id'].unique():
+        print(f"  No PenetrationMetrics rows for session {session_id} — "
+              f"skipping tissue/MRI plot.")
+        return
+
+    print("\nLoading MRI pipeline (with saved chamber + pen corrections) ...")
+    mri_pipeline = load_mri_pipeline(MRI_VIEWER_CONFIG_PATH,
+                                     volume_path=NO_SKULL_MRI_PATH)
+    pen_offsets = _load_pen_offsets(mri_pipeline['monkey_specific_path'])
+    daz    = float(pen_offsets.get('daz_deg',    0.0))
+    del_   = float(pen_offsets.get('del_deg',    0.0))
+    ddepth = float(pen_offsets.get('ddepth_mm',  0.0))
+    per_session_corrections = pen_offsets.get('per_session_corrections', {})
+    if pen_offsets:
+        print(f"  pen_offsets: daz={daz:+.3f}°  del={del_:+.3f}°  "
+              f"ddepth={ddepth:+.3f} mm  "
+              f"({len(per_session_corrections)} per-session entries)")
+
+    df_conf = compute_mri_comparison(
+        df_conf, conn, mri_pipeline,
+        daz=daz, del_=del_, ddepth=ddepth,
+        per_session_corrections=per_session_corrections,
+    )
+    fit_scores = compute_trajectory_fit_scores(df_conf)
+
+    sdata = (df_conf[df_conf['session_id'] == session_id]
+             .copy()
+             .sort_values('depth_under_chamber_mm'))
+    depths   = sdata['depth_under_chamber_mm'].values
+    ts       = sdata['tissue_score'].values
+    conf     = sdata['tissue_confidence'].values
+    mri_norm = sdata['mri_normalized'].values
+    mri_vmax = float(np.nanmax(mri_norm)) if np.any(np.isfinite(mri_norm)) else 1.0
+
+    strip_w = 0.4
+    fig, axes = plt.subplots(
+        1, 5,
+        figsize=(14, 10),
+        gridspec_kw={'width_ratios': [strip_w, strip_w, strip_w, 1.0, 1.2]},
+    )
+    ax_mri, ax_ts, ax_conf, ax_line, ax_pc = axes
+    _draw_tissue_strip(ax_mri,  depths, mri_norm, title='MRI',        vmax=mri_vmax)
+    _draw_tissue_strip(ax_ts,   depths, ts,       title='Tissue',     vmax=1.0)
+    _draw_tissue_strip(ax_conf, depths, conf,     title='Confidence', vmax=1.0)
+    _draw_mri_tissue_line(ax_line, depths, ts, mri_norm, fit_scores, session_id, conf)
+    _draw_pc_profiles(ax_pc, sdata, depths, pca, n_pcs=TISSUE_PLOT_N_PCS)
+
+    fig.suptitle(
+        f'Tissue score vs MRI — {session_id}\n'
+        '(black=sulcus, gray=GM, white=WM)',
+        fontsize=11,
+    )
+    plt.tight_layout()
+
+    savepath = f"/home/connorlab/Documents/plots/{session_id}/tissue_score_vs_mri.png"
+    try:
+        import os
+        os.makedirs(os.path.dirname(savepath), exist_ok=True)
+        fig.savefig(savepath, dpi=300)
+        print(f"  Saved → {savepath}")
+    except Exception as exc:
+        print(f"  Could not save figure: {exc}")
+
+    plt.show()
 
 
 def ReadWaveformDataDemo():
@@ -362,6 +498,13 @@ def ReadWaveformDataDemo():
     tip_start = 6.02
     from src.lfp.penetration_lfp_analysis import PenetrationLFPAnalysis
     PenetrationLFPAnalysis(session_id=session_id, intan_path=intan_path, tip_start_mm=tip_start).run()
+
+    try:
+        plot_tissue_score_vs_mri(session_id)
+    except Exception as exc:
+        import traceback
+        print(f"  Tissue/MRI plot skipped: {exc}")
+        traceback.print_exc()
 
     print('Plotting...')
     #
