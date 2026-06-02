@@ -312,11 +312,11 @@ def _migrate_permutation_test_table(conn):
 
 def main():
     run_permutation_tests(
-        session_id="260526_0",
+        session_id="260601_0",
         n_permutations=10000,
         force_recompute=True,
         algorithm_label='None',
-        metric=METRIC_PCT_HYPOTHESIZED,
+        metric=METRIC_PCT_HYP_VS_DELTA,
     )
 
 
