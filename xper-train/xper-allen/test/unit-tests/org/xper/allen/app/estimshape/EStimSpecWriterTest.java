@@ -115,10 +115,65 @@ public class EStimSpecWriterTest extends TestCase {
         assertEquals(100.0, params.getPulseTrainParameters().getPostTriggerDelay());
     }
 
-    public void testTriggerTypeLevel() {
+    public void testTriggerTypeLevel_defaultsToSinglePulse() {
         Map<String, Object> parsed = parser.parse("channels=[\"A025\"]. triggerType=Level");
         ChannelEStimParameters params = EStimSpecWriter.buildChannelParams(parsed);
-        assertEquals(TriggerEdgeOrLevel.Level, params.getPulseTrainParameters().getTriggerEdgeOrLevel());
+        PulseTrainParameters pt = params.getPulseTrainParameters();
+        assertEquals(TriggerEdgeOrLevel.Level, pt.getTriggerEdgeOrLevel());
+        assertEquals(PulseRepetition.SinglePulse, pt.getPulseRepetition());
+    }
+
+    public void testLevel_oldParadigmExactPreservation_explicitRefractory() {
+        // Exact mimic of old PARAMS: refractoryPeriod=8000. triggerDelay=100
+        Map<String, Object> parsed = parser.parse(
+                "channels=[\"A025\"]. triggerType=Level. refractoryPeriod=8000. triggerDelay=100");
+        ChannelEStimParameters params = EStimSpecWriter.buildChannelParams(parsed);
+        PulseTrainParameters pt = params.getPulseTrainParameters();
+        assertEquals(TriggerEdgeOrLevel.Level, pt.getTriggerEdgeOrLevel());
+        assertEquals(PulseRepetition.SinglePulse, pt.getPulseRepetition());
+        assertEquals(8000.0, pt.getPostStimRefractoryPeriod());
+        assertEquals(100.0, pt.getPostTriggerDelay());
+    }
+
+    public void testLevel_freqComputesRefractoryPeriod() {
+        // Default waveform: d1=200, dp=100, d2=200 -> pulseWidth=500 µs
+        // freq=100 Hz -> period=10000 µs -> refractory=10000-500-(100ms triggerDelay default)
+        // Use explicit small triggerDelay to keep math clean:
+        Map<String, Object> parsed = parser.parse(
+                "channels=[\"A025\"]. triggerType=Level. freq=100. triggerDelay=0");
+        ChannelEStimParameters params = EStimSpecWriter.buildChannelParams(parsed);
+        PulseTrainParameters pt = params.getPulseTrainParameters();
+        // refractory = 1_000_000/100 - 500 - 0 = 9500 µs
+        assertEquals(9500.0, pt.getPostStimRefractoryPeriod());
+    }
+
+    public void testLevel_explicitRefractoryWinsOverFreq() {
+        Map<String, Object> parsed = parser.parse(
+                "channels=[\"A025\"]. triggerType=Level. freq=100. refractoryPeriod=5000");
+        ChannelEStimParameters params = EStimSpecWriter.buildChannelParams(parsed);
+        assertEquals(5000.0, params.getPulseTrainParameters().getPostStimRefractoryPeriod());
+    }
+
+    public void testLevel_freqTooHighThrows() {
+        // pulseWidth = 500 µs; freq=10000 Hz means period=100 µs < pulseWidth → error
+        Map<String, Object> parsed = parser.parse(
+                "channels=[\"A025\"]. triggerType=Level. freq=10000. triggerDelay=0");
+        try {
+            EStimSpecWriter.buildChannelParams(parsed);
+            fail("Expected IllegalArgumentException for freq too high");
+        } catch (IllegalArgumentException e) {
+            // expected
+        }
+    }
+
+    public void testPulseRepetitionOverride_LevelPulseTrain() {
+        Map<String, Object> parsed = parser.parse(
+                "channels=[\"A025\"]. triggerType=Level. pulseRepetition=PulseTrain. freq=200. duration=50");
+        ChannelEStimParameters params = EStimSpecWriter.buildChannelParams(parsed);
+        PulseTrainParameters pt = params.getPulseTrainParameters();
+        assertEquals(TriggerEdgeOrLevel.Level, pt.getTriggerEdgeOrLevel());
+        assertEquals(PulseRepetition.PulseTrain, pt.getPulseRepetition());
+        assertEquals(10, pt.getNumRepetitions()); // 50 ms / 5 ms period
     }
 
     public void testNoSplits_oneCondition() {

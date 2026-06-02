@@ -41,43 +41,62 @@
 #
 #   triggerType         Edge | Level                          (default: Edge)
 #
-#     Edge:  Train fires once per rising edge. Holding the trigger high longer
-#            does NOT extend the train. Pulse count is bounded by `duration`
-#            (or `numPulses`).
-#     Level: Pulses keep firing as long as the trigger is held high, separated
-#            by refractoryPeriod. This is the OLD hold paradigm. Note that in
-#            Level mode, triggerDelay effectively adds to the refractory period
-#            (each pulse waits triggerDelay AFTER the previous before firing).
+#     Edge:  Defaults to PulseTrain. Train fires once per rising edge.
+#            Holding the trigger high longer does NOT extend the train.
+#            Pulse count is bounded by `duration` (or `numPulses`).
+#
+#     Level: Defaults to SinglePulse — THIS IS THE OLD "HOLD" PARADIGM.
+#            Each held tick fires one pulse, then pulseWidth + refractoryPeriod
+#            + triggerDelay elapses, then if still held, the next pulse fires.
+#            Total firing duration is controlled by how long the trigger is held.
+#            In Level mode you specify the pulse RATE via `freq` (which auto-
+#            computes refractoryPeriod), OR you set refractoryPeriod directly
+#            the way you used to. `duration` and `numPulses` are ignored here.
+#
+#   pulseRepetition     PulseTrain | SinglePulse              (optional override)
+#                       By default determined by triggerType (see above). Set
+#                       this only if you want a non-default combination, e.g.
+#                       Level + PulseTrain (train auto-restarts while held).
 #
 #   freq                Pulse frequency in HZ                 (default: 200)
-#                       Pulse train period = 1 / freq.
-#                       e.g. freq=200 → 5000 µs period.
+#                       Edge/PulseTrain: pulse train period = 1 / freq.
+#                       Level/SinglePulse: AUTO-COMPUTES refractoryPeriod so the
+#                       pulse-to-pulse rate while held matches freq.
+#                       Formula: refractoryPeriod = 1/freq - pulseWidth - triggerDelay.
+#                       Errors if freq is too high for the given pulse width
+#                       plus triggerDelay.
+#                       If you ALSO specify refractoryPeriod / refractoryPeriodMs,
+#                       that overrides the freq calc.
 #
 #   duration            Target train duration in MILLISECONDS (default: 200)
+#                       Only used in PulseTrain mode. Ignored in SinglePulse mode.
 #                       numPulses is computed as floor(duration / period).
 #                       Constraints:
-#                         - Intan caps trains at 256 pulses. If your
-#                           duration would require more, the program FAILS
-#                           with a message telling you the max duration
-#                           possible at that frequency.
+#                         - Intan caps trains at 256 pulses. If duration would
+#                           require more, the program FAILS with a message
+#                           telling you the max duration possible at that freq.
 #                         - If duration is not an integer multiple of the
 #                           period, the program WARNS and rounds DOWN to the
 #                           nearest whole number of pulses, telling you the
 #                           actual duration achieved.
 #
 #   numPulses           OVERRIDE: explicitly set pulse count, ignoring duration.
-#                       Capped at 256.
+#                       Capped at 256. PulseTrain mode only.
 #
 #   triggerDelayMs      Post-trigger delay in MILLISECONDS    (default: 100)
-#                       Time from trigger edge to the FIRST pulse of the train.
-#                       In Edge mode this is purely a startup delay and does
-#                       NOT affect refractory or pulse spacing — set it as long
-#                       as you want (e.g. 100 ms is fine).
+#                       Time from the rising trigger edge to the first pulse.
+#                       Edge: purely a one-shot startup delay; does NOT add to
+#                         refractory or pulse spacing. Set as long as you want.
+#                       Level: paid on every pulse cycle. Adds to the pulse-to-
+#                         pulse spacing (this is the OLD coupling between
+#                         triggerDelay and refractory that you ran into before).
 #
 #   refractoryPeriodMs  Post-train refractory in MILLISECONDS (default: 100)
-#                       Time after the train finishes during which the channel
-#                       ignores new triggers (and during which post-train charge
-#                       recovery runs, if enabled).
+#                       PulseTrain: time after train completes before another
+#                         trigger is accepted (charge recovery runs here).
+#                       SinglePulse: the gap between successive pulses while
+#                         held. This is what your old PARAMS controlled
+#                         directly with `refractoryPeriod=8000`.
 #
 # Legacy aliases (still accepted, both interpret value as MICROSECONDS):
 #   triggerDelay        Same as triggerDelayMs but in µs.
@@ -108,18 +127,33 @@
 # -----------------------------------------------------------------------------
 # EXAMPLES
 # -----------------------------------------------------------------------------
-#   # Defaults: Edge, 200 Hz, 200 ms (40 pulses), 100 ms trigger delay,
-#   # 100 ms refractory, PostTrain ground.
+#   # ─── NEW EDGE-TRIGGERED PARADIGM ───
+#   # Defaults: Edge + PulseTrain, 200 Hz, 200 ms (40 pulses), 100 ms trigger
+#   # delay, 100 ms refractory, PostTrain ground.
 #   PARAMS='channels=[A020, A011]'
 #
-#   # Same channels, sweep polarity, custom amplitude:
+#   # Sweep polarity, custom amplitude (still Edge default):
 #   PARAMS='channels=[A020, A011]. polarity={PositiveFirst;NegativeFirst}. a=(3.5, 3.5)'
 #
-#   # 100 ms train at 100 Hz with between-pulse grounding:
+#   # 100 ms train at 100 Hz, between-pulse grounding (requires held trigger
+#   # spanning the train; see GROUNDING section above):
 #   PARAMS='channels=[A020]. freq=100. duration=100. groundMode=BetweenPulse'
 #
-#   # Stick with the old Level/hold paradigm:
-#   PARAMS='channels=[A020]. triggerType=Level. groundMode=BetweenPulse'
+#   # ─── OLD LEVEL/HOLD PARADIGM — exact equivalent of your previous setup ───
+#   # Old script was:
+#   #   refractoryPeriod=8000. triggerDelay=100
+#   # Translation #1 — keep specifying refractoryPeriod directly (most exact):
+#   PARAMS='channels=[A020, A011]. polarity={PositiveFirst;NegativeFirst}. a=(3.5, 3.5). triggerType=Level. refractoryPeriod=8000. triggerDelay=100. groundMode=BetweenPulse'
+#
+#   # Translation #2 — same paradigm but specify pulse rate as a frequency
+#   # instead of a raw refractory. At a 200 µs + 100 µs + 200 µs = 500 µs
+#   # pulse width and 100 µs triggerDelay, refractoryPeriod=8000 µs corresponds
+#   # to ~116 Hz. Letting freq drive it:
+#   PARAMS='channels=[A020, A011]. polarity={PositiveFirst;NegativeFirst}. a=(3.5, 3.5). triggerType=Level. freq=116. triggerDelay=100. groundMode=BetweenPulse'
+#
+#   # ─── ADVANCED ───
+#   # Force Level + PulseTrain (train auto-restarts while held):
+#   PARAMS='channels=[A020]. triggerType=Level. pulseRepetition=PulseTrain. freq=200. duration=50'
 #
 # =============================================================================
 

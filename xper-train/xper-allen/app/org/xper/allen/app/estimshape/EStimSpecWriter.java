@@ -52,19 +52,27 @@ public class EStimSpecWriter {
      *
      * Pulse train parameters:
      *   triggerType         Edge | Level (default Edge)
-     *                       Edge: train fires once per rising edge; numPulses bounded.
-     *                       Level: pulses keep firing while trigger is held high, separated by refractory.
-     *   freq                pulse frequency in Hz (default 200). Determines train period = 1/freq.
-     *   duration            target train duration in ms (default 200). numPulses = floor(duration / period).
-     *                       Errors if numPulses would exceed 256.
-     *                       Warns and rounds down if duration is not an integer multiple of the period.
-     *   numPulses           OVERRIDE: explicitly set number of pulses (ignores duration). Capped at 256.
-     *   triggerDelayMs      post-trigger delay in ms (default 100). Time from trigger to first pulse.
-     *                       In Edge mode this is independent of refractory; in Level mode it adds latency
-     *                       between successive pulses.
-     *   refractoryPeriodMs  post-train refractory in ms (default 100). Time after train completes
-     *                       before another trigger can be accepted (and during which charge recovery
-     *                       runs if enabled).
+     *                         Edge:  PulseTrain by default. Fires a fixed-N train once per rising edge.
+     *                                freq+duration determine numPulses.
+     *                         Level: SinglePulse by default — the old "hold paradigm". Each held tick
+     *                                fires one pulse; pulses repeat while held, separated by
+     *                                pulseWidth + refractoryPeriod + triggerDelay. In this mode
+     *                                freq sets the pulse rate (auto-computes refractoryPeriod).
+     *   pulseRepetition     PulseTrain | SinglePulse (optional override; defaults set by triggerType)
+     *   freq                Pulse frequency in Hz (default 200).
+     *                       In Edge/PulseTrain mode → train period = 1/freq.
+     *                       In Level/SinglePulse mode → auto-computes refractoryPeriod so the
+     *                       repeat rate while held matches freq. If user also sets refractoryPeriod
+     *                       explicitly, that wins and freq is ignored for the refractory calc.
+     *   duration            Target train duration in ms (default 200). Only used in PulseTrain mode.
+     *                       numPulses = floor(duration / period). Errors if > 256.
+     *                       Warns and rounds down if not an integer multiple of the period.
+     *   numPulses           OVERRIDE: explicitly set pulse count (PulseTrain only). Capped at 256.
+     *   triggerDelayMs      Post-trigger delay in ms (default 100). Time from rising edge to first pulse.
+     *                       In Edge mode this is a one-shot startup delay.
+     *                       In Level mode this is paid every cycle (adds to the pulse-to-pulse spacing).
+     *   refractoryPeriodMs  Post-train refractory in ms (default 100). In Level/SinglePulse mode,
+     *                       this is the gap between successive pulses while held.
      *
      * Legacy microsecond aliases (kept for backwards compatibility — prefer the *Ms forms above):
      *   triggerDelay        post-trigger delay in µs
@@ -147,6 +155,7 @@ public class EStimSpecWriter {
         double postTriggerDelayUs = defaultPostTriggerDelayMs * 1000.0;
         double refractoryPeriodUs = defaultRefractoryPeriodMs * 1000.0;
         Integer numPulsesOverride = null;
+        PulseRepetition pulseRepetitionOverride = null;
 
         if (parsed.containsKey("shape")) {
             shape = StimulationShape.valueOf((String) parsed.remove("shape"));
@@ -183,7 +192,11 @@ public class EStimSpecWriter {
         if (parsed.containsKey("triggerType")) {
             triggerType = TriggerEdgeOrLevel.valueOf((String) parsed.remove("triggerType"));
         }
-        if (parsed.containsKey("freq")) {
+        if (parsed.containsKey("pulseRepetition")) {
+            pulseRepetitionOverride = PulseRepetition.valueOf((String) parsed.remove("pulseRepetition"));
+        }
+        boolean userSetFreq = parsed.containsKey("freq");
+        if (userSetFreq) {
             freqHz = Double.parseDouble((String) parsed.remove("freq"));
         }
         if (parsed.containsKey("duration")) {
@@ -198,6 +211,7 @@ public class EStimSpecWriter {
         if (parsed.containsKey("triggerDelay")) {
             postTriggerDelayUs = Double.parseDouble((String) parsed.remove("triggerDelay"));
         }
+        boolean userSetRefractory = parsed.containsKey("refractoryPeriodMs") || parsed.containsKey("refractoryPeriod");
         if (parsed.containsKey("refractoryPeriodMs")) {
             refractoryPeriodUs = Double.parseDouble((String) parsed.remove("refractoryPeriodMs")) * 1000.0;
         }
@@ -205,16 +219,44 @@ public class EStimSpecWriter {
             refractoryPeriodUs = Double.parseDouble((String) parsed.remove("refractoryPeriod"));
         }
 
-        double pulseTrainPeriodUs = 1_000_000.0 / freqHz;
-        int numPulses = computeNumPulses(numPulsesOverride, durationMs, pulseTrainPeriodUs, freqHz);
+        // pulseRepetition defaults: Edge → PulseTrain (new); Level → SinglePulse (old "hold" paradigm).
+        // User can override with pulseRepetition=... if they want a non-default combination.
+        PulseRepetition pulseRepetition = (pulseRepetitionOverride != null)
+                ? pulseRepetitionOverride
+                : (triggerType == TriggerEdgeOrLevel.Level ? PulseRepetition.SinglePulse : PulseRepetition.PulseTrain);
 
-        // Always use PulseTrain repetition. PulseTrainParameters' constructor silently rewrites
-        // numRepetitions and pulseTrainPeriod when SinglePulse is selected, which corrupts the
-        // values we want for a 1-pulse train. PulseTrain with numPulses=1 fires identically on Intan.
+        double pulseWidth = d1 + d2 + dp;
+        double pulseTrainPeriodUs;
+        int numPulses;
+
+        if (pulseRepetition == PulseRepetition.SinglePulse) {
+            // Old paradigm: each held tick fires one pulse, separated by refractoryPeriod.
+            // freq sets the pulse rate by computing refractoryPeriod = 1/freq - pulseWidth - triggerDelay.
+            // numPulses and duration are irrelevant (Intan ignores them in SinglePulse mode).
+            numPulses = 1;
+            pulseTrainPeriodUs = 1_000_000.0 / freqHz; // unused by Intan; we set it consistently for clarity
+            if (userSetFreq && !userSetRefractory) {
+                double targetRefractoryUs = 1_000_000.0 / freqHz - pulseWidth - postTriggerDelayUs;
+                if (targetRefractoryUs < 0) {
+                    throw new IllegalArgumentException(String.format(
+                            "freq=%.1f Hz is too high for pulse width %.1f µs + triggerDelay %.1f µs. " +
+                                    "Minimum period is %.1f µs (%.1f Hz max). Lower freq, shorten pulse, or reduce triggerDelay.",
+                            freqHz, pulseWidth, postTriggerDelayUs,
+                            pulseWidth + postTriggerDelayUs,
+                            1_000_000.0 / (pulseWidth + postTriggerDelayUs)));
+                }
+                refractoryPeriodUs = targetRefractoryUs;
+            }
+        } else {
+            // PulseTrain: freq → trainPeriod, duration → numPulses, refractory applies after the train.
+            pulseTrainPeriodUs = 1_000_000.0 / freqHz;
+            numPulses = computeNumPulses(numPulsesOverride, durationMs, pulseTrainPeriodUs, freqHz);
+        }
+
         WaveformParameters waveform = new WaveformParameters(shape, polarity, d1, d2, dp, a1, a2);
 
         PulseTrainParameters pulseTrainParameters = new PulseTrainParameters(
-                PulseRepetition.PulseTrain,
+                pulseRepetition,
                 numPulses,
                 pulseTrainPeriodUs,
                 refractoryPeriodUs,
@@ -343,7 +385,7 @@ public class EStimSpecWriter {
             throw new IllegalArgumentException(
                     "Unrecognized parameter(s): " + remaining.keySet()
                             + ". Valid parameters: channels, shape, polarity, d, d1, d2, dp, a, a1, a2, "
-                            + "triggerType, freq, duration, numPulses, "
+                            + "triggerType, pulseRepetition, freq, duration, numPulses, "
                             + "triggerDelayMs, triggerDelay, refractoryPeriodMs, refractoryPeriod, "
                             + "groundMode");
         }
