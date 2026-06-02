@@ -938,27 +938,6 @@ def main():
         start_session_id="260402_0",
         algorithm_label='None',
         metric=METRIC_PCT_HYP_VS_DELTA,
-        min_trials=10,
-        save_path="/home/connorlab/Documents/plots/across_experiments/studentized_winners.png",
-    )
-
-    # ---- Test 4: which condition parameters tend to win the max ----
-    plot_winning_conditions(
-        exclude_session_ids=["260421_0", "260410_0"],
-        start_session_id="260402_0",
-        algorithm_label='None',
-        metric=METRIC_PCT_HYP_VS_DELTA,
-        min_trials=10,
-        studentize=True,   # tally winners of the studentized maxT
-        save_path="/home/connorlab/Documents/plots/across_experiments/winning_conditions.png",
-    )
-
-    # ---- Test 3: studentized winners — raw vs studentized effect (diagnostic) ----
-    plot_studentized_winners(
-        exclude_session_ids=["260421_0", "260410_0"],
-        start_session_id="260402_0",
-        algorithm_label='None',
-        metric=METRIC_PCT_HYP_VS_DELTA,
         min_trials=15,
         save_path="/home/connorlab/Documents/plots/across_experiments/studentized_winners.png",
     )
@@ -973,6 +952,9 @@ def main():
         studentize=True,   # tally winners of the studentized maxT
         save_path="/home/connorlab/Documents/plots/across_experiments/winning_conditions.png",
     )
+
+
+
 
 
 if __name__ == "__main__":

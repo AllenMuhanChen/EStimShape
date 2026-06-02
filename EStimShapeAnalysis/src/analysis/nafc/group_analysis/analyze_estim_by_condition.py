@@ -498,7 +498,9 @@ def combine_trial_types_at_max_noise(data):
 def _filter_for_metric(df, metric):
     """Apply per-metric row filtering before computing % hypothesized."""
     if metric == METRIC_PCT_HYP_VS_DELTA and 'choice' in df.columns:
-        return df[~df['choice'].isin(_EXCLUDED_CHOICES_FOR_HYP_VS_DELTA)]
+        df = df[~df['choice'].isin(_EXCLUDED_CHOICES_FOR_HYP_VS_DELTA)]
+        # filter out where trial type is "Removed Trial" and choice is "match"
+        df = df[~((df['trial_type'] == 'Removed Trial') & (df['choice'] == 'match'))]
     return df
 
 
