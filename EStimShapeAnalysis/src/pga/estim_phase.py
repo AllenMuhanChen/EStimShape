@@ -160,9 +160,11 @@ class EStimVariantSideTest(SideTest):
 
 
 class EStimVariantDeltaSideTest(SideTest):
-    def __init__(self, num_deltas_per_variant: int = 1, delta_resp_ratio_threshold: float = 0.5, conn=Type[connection]):
+    def __init__(self, num_deltas_per_variant: int = 1, delta_resp_ratio_threshold: float = 0.5,
+                 max_attempts_per_variant_multiplier: int = 3, conn=Type[connection]):
         self.num_deltas_per_variant = num_deltas_per_variant
         self.delta_resp_ratio_threshold = delta_resp_ratio_threshold
+        self.max_attempts_per_variant_multiplier = max_attempts_per_variant_multiplier
         self.conn = conn
 
     def run(self, lineages: List[Lineage], gen_id: int):
@@ -223,15 +225,21 @@ class EStimVariantDeltaSideTest(SideTest):
 
 
             #go through eligible stimuli and check
+        max_attempts_per_variant = self.max_attempts_per_variant_multiplier * self.num_deltas_per_variant
         eligible_stimuli : List[Stimulus] = []
         for candidate_parent in past_threshold_stim:
-            no_deltas_for_variant = not candidate_parent.id in eligible_deltas_for_variants
-            too_few_deltas_for_variant = False
-            number_of_deltas_to_make = self.num_deltas_per_variant - len(eligible_deltas_for_variants[candidate_parent.id])
-            if not no_deltas_for_variant:
-                too_few_deltas_for_variant = len(eligible_deltas_for_variants[candidate_parent.id]) < self.num_deltas_per_variant
+            num_eligible_deltas = len(eligible_deltas_for_variants.get(candidate_parent.id, []))
+            num_total_attempts = len(deltas_for_variants.get(candidate_parent.id, []))
 
-            if no_deltas_for_variant or too_few_deltas_for_variant:
+            # stop trying if we've already attempted too many times
+            remaining_attempts = max_attempts_per_variant - num_total_attempts
+            if remaining_attempts <= 0:
+                continue
+
+            number_of_deltas_to_make = self.num_deltas_per_variant - num_eligible_deltas
+            number_of_deltas_to_make = min(number_of_deltas_to_make, remaining_attempts)
+
+            if number_of_deltas_to_make > 0:
                 for i in range(number_of_deltas_to_make):
                     eligible_stimuli.append(candidate_parent)
 

@@ -28,6 +28,7 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
         return [DnessSideTest(n_top_3d=4, n_top_2d=4),
                 EStimVariantDeltaSideTest(num_deltas_per_variant=self.num_deltas_per_variant(),
                                           delta_resp_ratio_threshold=self.delta_resp_ratio_threshold(),
+                                          max_attempts_per_variant_multiplier=self.max_attempts_per_variant_multiplier(),
                                           conn=self.connection()
                                           ),
                 EStimVariantSideTest(self.get_all_stimuli_func(),
@@ -62,6 +63,9 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
 
     def delta_resp_ratio_threshold(self):
         return self.var_fetcher.get("delta_resp_ratio_threshold", dtype=float)
+
+    def max_attempts_per_variant_multiplier(self):
+        return self.var_fetcher.get("max_attempts_per_variant_multiplier", dtype=int)
 
     # def make_response_processor(self) -> GAResponseProcessor:
     #     return RankBaselineNormalizeResponseProcessor(
