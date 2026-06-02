@@ -227,10 +227,13 @@ class EStimVariantDeltaSideTest(SideTest):
         for candidate_parent in past_threshold_stim:
             no_deltas_for_variant = not candidate_parent.id in eligible_deltas_for_variants
             too_few_deltas_for_variant = False
+            number_of_deltas_to_make = self.num_deltas_per_variant - len(eligible_deltas_for_variants[candidate_parent.id])
             if not no_deltas_for_variant:
                 too_few_deltas_for_variant = len(eligible_deltas_for_variants[candidate_parent.id]) < self.num_deltas_per_variant
+
             if no_deltas_for_variant or too_few_deltas_for_variant:
-                eligible_stimuli.append(candidate_parent)
+                for i in range(number_of_deltas_to_make):
+                    eligible_stimuli.append(candidate_parent)
 
 
         #add to lineage
