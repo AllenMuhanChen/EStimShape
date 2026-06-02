@@ -2,33 +2,34 @@ package org.xper.allen.intan.stimulation;
 
 import org.xper.intan.stimulation.*;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 public class ChargeRecoveryDecorator {
 
+    private final GroundMode groundMode;
+
+    public ChargeRecoveryDecorator() {
+        this(GroundMode.PostTrain);
+    }
+
+    public ChargeRecoveryDecorator(GroundMode groundMode) {
+        this.groundMode = groundMode;
+    }
 
     public EStimParameters decorate(EStimParameters inputParameters) {
-
 
         ChannelEStimParameters modelParam = inputParameters.geteStimParametersForChannels().values().iterator().next();
         WaveformParameters modelWaveform = modelParam.getWaveformParameters();
 
-        // using a model waveform to generate same waveform but ZERO amplitude.
-        StimulationShape shape =  modelWaveform.getShape();
+        // Zero-amplitude waveform with same timing as the stim waveform
+        StimulationShape shape = modelWaveform.getShape();
         double d1 = modelWaveform.getD1();
         double d2 = modelWaveform.getD2();
         double dp = modelWaveform.getDp();
-        double a1 = 0.0;
-        double a2 = 0.0;
-        WaveformParameters groundWaveFormParameters = new WaveformParameters(shape, StimulationPolarity.PositiveFirst, d1, d2, dp, a1, a2);
-        PulseTrainParameters groundPulseTrainParameters = new PulseTrainParameters(modelParam.getPulseTrainParameters());
-        AmpSettleParameters groundChargeAmpSettleParameters = new AmpSettleParameters();
+        WaveformParameters groundWaveFormParameters = new WaveformParameters(
+                shape, StimulationPolarity.PositiveFirst, d1, d2, dp, 0.0, 0.0);
 
-        // this relies on an already calculated charge recovery... and applies it to non-stim channels.
-        // maybe we consider changing this to automatic calculation of proper timing from waveform and apply it.
+        PulseTrainParameters groundPulseTrainParameters = buildGroundPulseTrain(modelParam, d1, d2, dp);
         ChargeRecoveryParameters groundChargeRecoveryParameters = new ChargeRecoveryParameters(modelParam.getChargeRecoveryParameters());
+        AmpSettleParameters groundChargeAmpSettleParameters = new AmpSettleParameters();
 
         ChannelEStimParameters groundPulseParameters = new ChannelEStimParameters(
                 groundWaveFormParameters,
@@ -37,14 +38,49 @@ public class ChargeRecoveryDecorator {
                 groundChargeRecoveryParameters
         );
 
-        // Make Output Parameters and add ground pulse to channels without EStim already
         EStimParameters outputParameters = new EStimParameters(inputParameters);
-        //TODO: make not only rely on "A", and be set by parameters (or auto detect)
+        // TODO: don't hardcode port "A"
         for (RHSChannel channel : RHSChannel.getChannelsForPort("A")){
             if (!outputParameters.geteStimParametersForChannels().containsKey(channel)){
                 outputParameters.put(channel, new ChannelEStimParameters(groundPulseParameters));
             }
         }
         return outputParameters;
+    }
+
+    /**
+     * Build the pulse-train config for ground-only channels based on groundMode.
+     *
+     * PostTrain: clone the stim channel's pulse train exactly. Ground pulses fire
+     * cycle-for-cycle with stim pulses; charge recovery happens after the train.
+     *
+     * BetweenPulse: Level + SinglePulse so each held-high tick fires one ground
+     * pulse. refractoryPeriod is set to leave room for one stim pulse worth of
+     * waveform between ground pulses, matching the stim cadence so ground pulses
+     * land between stim pulses when both share the same held trigger window.
+     */
+    private PulseTrainParameters buildGroundPulseTrain(ChannelEStimParameters modelParam, double d1, double d2, double dp) {
+        PulseTrainParameters stimTrain = modelParam.getPulseTrainParameters();
+        if (groundMode == GroundMode.PostTrain) {
+            return new PulseTrainParameters(stimTrain);
+        }
+        // BetweenPulse: Level + SinglePulse
+        double pulseWidth = d1 + d2 + dp;
+        double refractory = stimTrain.getPulseTrainPeriod() - pulseWidth;
+        if (refractory < 0) {
+            refractory = 0;
+        }
+        return new PulseTrainParameters(
+                PulseRepetition.SinglePulse,
+                1,
+                stimTrain.getPulseTrainPeriod(),
+                refractory,
+                TriggerEdgeOrLevel.Level,
+                stimTrain.getPostTriggerDelay()
+        );
+    }
+
+    public GroundMode getGroundMode() {
+        return groundMode;
     }
 }

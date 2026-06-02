@@ -10,48 +10,89 @@ import java.util.*;
 
 public class EStimSpecWriter {
 
-    // Template defaults
-    static StimulationShape defaultShape = StimulationShape.Biphasic;
-    static StimulationPolarity defaultPolarity = StimulationPolarity.PositiveFirst;
-    static double defaultD1 = 200.0;
-    static double defaultD2 = 200.0;
-    static double defaultDp = 100.0;
-    static double defaultA1 = 2.5;
-    static double defaultA2 = 2.5;
-    static int defaultPostStimRefractoryPeriod = 3500;
-    static PulseRepetition defaultPulseRepetition = PulseRepetition.SinglePulse;
-    static int defaultNumRepetitions = 1;
-    static double defaultPulseTrainPeriod = 10.0;
-    static TriggerEdgeOrLevel defaultTriggerEdgeOrLevel = TriggerEdgeOrLevel.Level;
-    static double defaultPostTriggerDelay = 50.0;
+    // Hard hardware limit on number of pulses per train (Intan RHS)
+    public static final int MAX_PULSES_PER_TRAIN = 256;
+
+    // Waveform defaults
+    static StimulationShape defaultShape = StimulationShape.BiphasicWithInterphaseDelay;
+    static StimulationPolarity defaultPolarity = StimulationPolarity.NegativeFirst;
+    static double defaultD1 = 200.0;   // µs
+    static double defaultD2 = 200.0;   // µs
+    static double defaultDp = 100.0;   // µs
+    static double defaultA1 = 2.5;     // µA
+    static double defaultA2 = 2.5;     // µA
+
+    // Pulse train defaults (new edge-triggered paradigm)
+    static TriggerEdgeOrLevel defaultTriggerType = TriggerEdgeOrLevel.Edge;
+    static double defaultPulseFreqHz = 200.0;
+    static double defaultPulseDurationMs = 200.0;
+    static double defaultPostTriggerDelayMs = 100.0;
+    static double defaultRefractoryPeriodMs = 100.0;
+    static GroundMode defaultGroundMode = GroundMode.PostTrain;
 
     /**
      * Generates EStim parameter sets and writes them to the database.
      *
-     * Takes a single argument: a parameter string that specifies channels and optional overrides
-     * to the default stimulation template. Unspecified parameters use template defaults.
+     * Takes a single argument: a parameter string that specifies channels and optional
+     * overrides to the default stimulation template. Unspecified parameters use defaults.
      *
      * Syntax:
      *   - Parameters separated by ". "
      *   - channels (required): list of channels, e.g. ["A025","A030"]
-     *   - Optional overrides: a, a1, a2, d, d1, d2, dp, pol, shape, refractoryPeriod, triggerDelay
      *   - Use {} with ; to split into multiple conditions (cartesian product)
      *
+     * Waveform parameters (per phase, microseconds / microamps):
+     *   shape       StimulationShape enum (Biphasic, BiphasicWithInterphaseDelay, Triphasic, Monophasic)
+     *   polarity    StimulationPolarity enum (NegativeFirst, PositiveFirst)
+     *   d           tuple (d1,d2) phase durations in µs
+     *   d1, d2      individual phase duration overrides in µs
+     *   dp          interphase delay in µs
+     *   a           tuple (a1,a2) phase amplitudes in µA
+     *   a1, a2      individual phase amplitude overrides in µA
+     *
+     * Pulse train parameters:
+     *   triggerType         Edge | Level (default Edge)
+     *                       Edge: train fires once per rising edge; numPulses bounded.
+     *                       Level: pulses keep firing while trigger is held high, separated by refractory.
+     *   freq                pulse frequency in Hz (default 200). Determines train period = 1/freq.
+     *   duration            target train duration in ms (default 200). numPulses = floor(duration / period).
+     *                       Errors if numPulses would exceed 256.
+     *                       Warns and rounds down if duration is not an integer multiple of the period.
+     *   numPulses           OVERRIDE: explicitly set number of pulses (ignores duration). Capped at 256.
+     *   triggerDelayMs      post-trigger delay in ms (default 100). Time from trigger to first pulse.
+     *                       In Edge mode this is independent of refractory; in Level mode it adds latency
+     *                       between successive pulses.
+     *   refractoryPeriodMs  post-train refractory in ms (default 100). Time after train completes
+     *                       before another trigger can be accepted (and during which charge recovery
+     *                       runs if enabled).
+     *
+     * Legacy microsecond aliases (kept for backwards compatibility — prefer the *Ms forms above):
+     *   triggerDelay        post-trigger delay in µs
+     *   refractoryPeriod    post-train refractory in µs
+     *
+     * Ground / charge recovery:
+     *   groundMode    PostTrain | BetweenPulse (default PostTrain)
+     *                 PostTrain: ground-only channels mirror the stim train (zero amplitude).
+     *                            Charge recovery happens AFTER the train (Intan hardware limitation).
+     *                 BetweenPulse: ground-only channels use Level + SinglePulse with refractory
+     *                            sized to interleave with stim pulses. Reproduces the original
+     *                            "edge hold to ground" paradigm. Requires a held-high trigger
+     *                            spanning the stim train duration.
+     *
+     * Splits — wrap any value in {a;b;c} to generate the cartesian product across all splits.
+     *
      * Examples:
-     *   # Single condition with defaults
+     *   # Single condition with defaults (Edge, 200 Hz, 200 ms, PostTrain ground)
      *   channels=["A025","A030"]
      *
      *   # Override amplitude
      *   channels=["A025","A030"]. a=(3.5,3.5)
      *
-     *   # Split across amplitudes (generates 2 conditions)
-     *   channels=["A025","A030"]. a={(3.5,3.5);(5,5)}
+     *   # 100 ms train at 100 Hz, between-pulse grounding
+     *   channels=["A025"]. freq=100. duration=100. groundMode=BetweenPulse
      *
-     *   # Cartesian product of amplitude and polarity (generates 4 conditions)
-     *   channels=["A025","A030"]. a={(3.5,3.5);(5,5)}. pol={NegativeFirst;PositiveFirst}
-     *
-     * All generated conditions are decorated with charge recovery ground pulses
-     * on remaining port A channels before being written to the database.
+     *   # Cartesian product across amplitude and polarity (4 conditions)
+     *   channels=["A025","A030"]. a={(3.5,3.5);(5,5)}. polarity={NegativeFirst;PositiveFirst}
      */
     public static void main(String[] args) {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
@@ -61,16 +102,20 @@ public class EStimSpecWriter {
         EStimParamParser parser = new EStimParamParser();
         Map<String, Object> parsed = parser.parse(args[0]);
 
+        // Pull groundMode out before building conditions (it's a top-level decorator setting)
+        GroundMode groundMode = defaultGroundMode;
+        if (parsed.containsKey("groundMode")) {
+            groundMode = GroundMode.valueOf((String) parsed.remove("groundMode"));
+        }
+
         List<EStimParameters> allEStimParameters = buildAllConditions(parsed);
 
-        // Decorate
-        ChargeRecoveryDecorator decorator = new ChargeRecoveryDecorator();
+        ChargeRecoveryDecorator decorator = new ChargeRecoveryDecorator(groundMode);
         List<EStimParameters> decoratedParameters = new ArrayList<EStimParameters>();
         for (EStimParameters eStimParams : allEStimParameters) {
             decoratedParameters.add(decorator.decorate(eStimParams));
         }
 
-        // Write to DB
         List<Long> estimIds = dbUtil.readEStimObjIds();
         Long maxId = estimIds.stream().max(new Comparator<Long>() {
             @Override
@@ -86,6 +131,7 @@ public class EStimSpecWriter {
             nextId += 1;
         }
     }
+
     static ChannelEStimParameters buildChannelParams(Map<String, Object> parsed) {
         StimulationShape shape = defaultShape;
         StimulationPolarity polarity = defaultPolarity;
@@ -94,7 +140,13 @@ public class EStimSpecWriter {
         double dp = defaultDp;
         double a1 = defaultA1;
         double a2 = defaultA2;
-        int postStimRefractoryPeriod = defaultPostStimRefractoryPeriod;
+
+        TriggerEdgeOrLevel triggerType = defaultTriggerType;
+        double freqHz = defaultPulseFreqHz;
+        double durationMs = defaultPulseDurationMs;
+        double postTriggerDelayUs = defaultPostTriggerDelayMs * 1000.0;
+        double refractoryPeriodUs = defaultRefractoryPeriodMs * 1000.0;
+        Integer numPulsesOverride = null;
 
         if (parsed.containsKey("shape")) {
             shape = StimulationShape.valueOf((String) parsed.remove("shape"));
@@ -127,28 +179,53 @@ public class EStimSpecWriter {
         if (parsed.containsKey("a2")) {
             a2 = Double.parseDouble((String) parsed.remove("a2"));
         }
-        if (parsed.containsKey("refractoryPeriod")) {
-            postStimRefractoryPeriod = Integer.parseInt((String) parsed.remove("refractoryPeriod"));
+
+        if (parsed.containsKey("triggerType")) {
+            triggerType = TriggerEdgeOrLevel.valueOf((String) parsed.remove("triggerType"));
         }
-        if (parsed.containsKey("triggerDelay")){
-            defaultPostTriggerDelay = Double.parseDouble((String) parsed.remove("triggerDelay"));
+        if (parsed.containsKey("freq")) {
+            freqHz = Double.parseDouble((String) parsed.remove("freq"));
+        }
+        if (parsed.containsKey("duration")) {
+            durationMs = Double.parseDouble((String) parsed.remove("duration"));
+        }
+        if (parsed.containsKey("numPulses")) {
+            numPulsesOverride = Integer.parseInt((String) parsed.remove("numPulses"));
+        }
+        if (parsed.containsKey("triggerDelayMs")) {
+            postTriggerDelayUs = Double.parseDouble((String) parsed.remove("triggerDelayMs")) * 1000.0;
+        }
+        if (parsed.containsKey("triggerDelay")) {
+            postTriggerDelayUs = Double.parseDouble((String) parsed.remove("triggerDelay"));
+        }
+        if (parsed.containsKey("refractoryPeriodMs")) {
+            refractoryPeriodUs = Double.parseDouble((String) parsed.remove("refractoryPeriodMs")) * 1000.0;
+        }
+        if (parsed.containsKey("refractoryPeriod")) {
+            refractoryPeriodUs = Double.parseDouble((String) parsed.remove("refractoryPeriod"));
         }
 
+        double pulseTrainPeriodUs = 1_000_000.0 / freqHz;
+        int numPulses = computeNumPulses(numPulsesOverride, durationMs, pulseTrainPeriodUs, freqHz);
+
+        // Always use PulseTrain repetition. PulseTrainParameters' constructor silently rewrites
+        // numRepetitions and pulseTrainPeriod when SinglePulse is selected, which corrupts the
+        // values we want for a 1-pulse train. PulseTrain with numPulses=1 fires identically on Intan.
         WaveformParameters waveform = new WaveformParameters(shape, polarity, d1, d2, dp, a1, a2);
 
         PulseTrainParameters pulseTrainParameters = new PulseTrainParameters(
-                defaultPulseRepetition,
-                defaultNumRepetitions,
-                defaultPulseTrainPeriod,
-                postStimRefractoryPeriod,
-                defaultTriggerEdgeOrLevel,
-                defaultPostTriggerDelay
+                PulseRepetition.PulseTrain,
+                numPulses,
+                pulseTrainPeriodUs,
+                refractoryPeriodUs,
+                triggerType,
+                postTriggerDelayUs
         );
 
         ChargeRecoveryParameters chargeRecoveryParameters = new ChargeRecoveryParameters(
                 true,
                 0.0,
-                (double) postStimRefractoryPeriod
+                refractoryPeriodUs
         );
 
         return new ChannelEStimParameters(
@@ -159,8 +236,52 @@ public class EStimSpecWriter {
         );
     }
 
+    /**
+     * Resolve numPulses from either an explicit override or from duration + freq.
+     * Throws IllegalArgumentException if the result exceeds MAX_PULSES_PER_TRAIN.
+     * Prints a warning to stderr if duration is not an integer multiple of the period
+     * (the actual achieved duration is rounded down).
+     */
+    static int computeNumPulses(Integer numPulsesOverride, double durationMs, double pulseTrainPeriodUs, double freqHz) {
+        if (numPulsesOverride != null) {
+            if (numPulsesOverride > MAX_PULSES_PER_TRAIN) {
+                throw new IllegalArgumentException(String.format(
+                        "numPulses=%d exceeds Intan RHS max of %d pulses per train.",
+                        numPulsesOverride, MAX_PULSES_PER_TRAIN));
+            }
+            if (numPulsesOverride < 1) {
+                throw new IllegalArgumentException("numPulses must be >= 1, got " + numPulsesOverride);
+            }
+            return numPulsesOverride;
+        }
+
+        double durationUs = durationMs * 1000.0;
+        double exact = durationUs / pulseTrainPeriodUs;
+        int numPulses = (int) Math.floor(exact);
+        if (numPulses < 1) {
+            throw new IllegalArgumentException(String.format(
+                    "duration=%.3f ms is shorter than one pulse period (%.3f µs at %.1f Hz).",
+                    durationMs, pulseTrainPeriodUs, freqHz));
+        }
+        if (numPulses > MAX_PULSES_PER_TRAIN) {
+            double maxDurationMs = MAX_PULSES_PER_TRAIN * pulseTrainPeriodUs / 1000.0;
+            throw new IllegalArgumentException(String.format(
+                    "duration=%.3f ms at %.1f Hz requires %d pulses, exceeds Intan RHS max of %d. " +
+                            "Max duration at this frequency is %.3f ms (or lower the frequency).",
+                    durationMs, freqHz, numPulses, MAX_PULSES_PER_TRAIN, maxDurationMs));
+        }
+
+        double actualDurationMs = numPulses * pulseTrainPeriodUs / 1000.0;
+        if (Math.abs(actualDurationMs - durationMs) > 1e-6) {
+            System.err.println(String.format(
+                    "WARNING: requested duration=%.3f ms is not an integer multiple of the pulse period " +
+                            "(%.3f µs at %.1f Hz). Rounding down to %d pulses = %.3f ms actual duration.",
+                    durationMs, pulseTrainPeriodUs, freqHz, numPulses, actualDurationMs));
+        }
+        return numPulses;
+    }
+
     static List<EStimParameters> buildAllConditions(Map<String, Object> parsed) {
-        // Work on a mutable copy so we can consume keys
         Map<String, Object> working = new LinkedHashMap<String, Object>(parsed);
 
         List<String> splitKeys = new ArrayList<String>();
@@ -184,11 +305,8 @@ public class EStimSpecWriter {
             return result;
         }
 
-        // For splits, resolve and validate on first combination,
-        // then proceed with the rest
         List<int[]> combinations = cartesianProduct(splitKeys, working);
 
-        // Remove split keys from working — they'll be resolved per combination
         for (String key : splitKeys) {
             working.remove(key);
         }
@@ -206,7 +324,6 @@ public class EStimSpecWriter {
             List<RHSChannel> channels = parseChannels(resolved);
             ChannelEStimParameters channelParams = buildChannelParams(resolved);
 
-            // Validate on first combination only
             if (i == 0) {
                 validateNoRemainingKeys(resolved);
             }
@@ -225,15 +342,13 @@ public class EStimSpecWriter {
         if (!remaining.isEmpty()) {
             throw new IllegalArgumentException(
                     "Unrecognized parameter(s): " + remaining.keySet()
-                            + ". Valid parameters: channels, a, a1, a2, d, d1, d2, dp, polarity, shape, refractoryPeriod");
+                            + ". Valid parameters: channels, shape, polarity, d, d1, d2, dp, a, a1, a2, "
+                            + "triggerType, freq, duration, numPulses, "
+                            + "triggerDelayMs, triggerDelay, refractoryPeriodMs, refractoryPeriod, "
+                            + "groundMode");
         }
     }
 
-    /**
-     * Generates all index combinations for the cartesian product of splits.
-     * For example, if split A has 2 values and split B has 3 values,
-     * returns: [0,0], [0,1], [0,2], [1,0], [1,1], [1,2]
-     */
     private static List<int[]> cartesianProduct(List<String> splitKeys, Map<String, Object> parsed) {
         List<int[]> result = new ArrayList<int[]>();
         int[] sizes = new int[splitKeys.size()];

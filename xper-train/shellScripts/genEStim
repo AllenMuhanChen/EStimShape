@@ -1,12 +1,134 @@
 #!/bin/bash
+# =============================================================================
+# genEStim — Generate Intan RHS stimulation specs and write them to the DB.
+#
+# Invocation: ./genEStim          (uses the PARAMS string below)
+#
+# -----------------------------------------------------------------------------
+# STYLING GUIDE — How to build a PARAMS string
+# -----------------------------------------------------------------------------
+# Format: 'key=value. key=value. key=value'   (parameters separated by ". ")
+#
+# Required:
+#   channels=[A020, A011]              List of stim channels (port + 3-digit num).
+#                                      Channels NOT listed here become ground-only
+#                                      channels on port A (zero-amplitude pulses).
+#
+# Splits (cartesian product):
+#   Wrap any value in {a;b;c} to generate one spec per value.
+#   e.g. polarity={NegativeFirst;PositiveFirst} produces two specs.
+#   Stacking multiple splits produces all combinations.
+#
+# -----------------------------------------------------------------------------
+# WAVEFORM PARAMETERS
+# -----------------------------------------------------------------------------
+#   shape       StimulationShape: Biphasic | BiphasicWithInterphaseDelay |
+#                                 Triphasic | Monophasic
+#               (default: BiphasicWithInterphaseDelay)
+#   polarity    NegativeFirst | PositiveFirst  (default: NegativeFirst)
+#   d=(d1,d2)   First/second phase duration in MICROSECONDS  (default: 200,200)
+#   d1, d2      Individual overrides in MICROSECONDS
+#   dp          Interphase delay in MICROSECONDS              (default: 100)
+#   a=(a1,a2)   First/second phase amplitude in MICROAMPS     (default: 2.5,2.5)
+#   a1, a2      Individual overrides in MICROAMPS
+#
+# -----------------------------------------------------------------------------
+# PULSE TRAIN PARAMETERS  (the part that changed — read this carefully)
+# -----------------------------------------------------------------------------
+# The new default paradigm is Edge-triggered PulseTrain. On the rising edge of
+# the digital trigger line, Intan fires a fixed-count train of pulses at the
+# specified frequency, independent of whether the trigger is held high.
+#
+#   triggerType         Edge | Level                          (default: Edge)
+#
+#     Edge:  Train fires once per rising edge. Holding the trigger high longer
+#            does NOT extend the train. Pulse count is bounded by `duration`
+#            (or `numPulses`).
+#     Level: Pulses keep firing as long as the trigger is held high, separated
+#            by refractoryPeriod. This is the OLD hold paradigm. Note that in
+#            Level mode, triggerDelay effectively adds to the refractory period
+#            (each pulse waits triggerDelay AFTER the previous before firing).
+#
+#   freq                Pulse frequency in HZ                 (default: 200)
+#                       Pulse train period = 1 / freq.
+#                       e.g. freq=200 → 5000 µs period.
+#
+#   duration            Target train duration in MILLISECONDS (default: 200)
+#                       numPulses is computed as floor(duration / period).
+#                       Constraints:
+#                         - Intan caps trains at 256 pulses. If your
+#                           duration would require more, the program FAILS
+#                           with a message telling you the max duration
+#                           possible at that frequency.
+#                         - If duration is not an integer multiple of the
+#                           period, the program WARNS and rounds DOWN to the
+#                           nearest whole number of pulses, telling you the
+#                           actual duration achieved.
+#
+#   numPulses           OVERRIDE: explicitly set pulse count, ignoring duration.
+#                       Capped at 256.
+#
+#   triggerDelayMs      Post-trigger delay in MILLISECONDS    (default: 100)
+#                       Time from trigger edge to the FIRST pulse of the train.
+#                       In Edge mode this is purely a startup delay and does
+#                       NOT affect refractory or pulse spacing — set it as long
+#                       as you want (e.g. 100 ms is fine).
+#
+#   refractoryPeriodMs  Post-train refractory in MILLISECONDS (default: 100)
+#                       Time after the train finishes during which the channel
+#                       ignores new triggers (and during which post-train charge
+#                       recovery runs, if enabled).
+#
+# Legacy aliases (still accepted, both interpret value as MICROSECONDS):
+#   triggerDelay        Same as triggerDelayMs but in µs.
+#   refractoryPeriod    Same as refractoryPeriodMs but in µs.
+#
+# -----------------------------------------------------------------------------
+# GROUNDING (charge recovery on non-stim channels)
+# -----------------------------------------------------------------------------
+#   groundMode    PostTrain | BetweenPulse                    (default: PostTrain)
+#
+#     PostTrain:    Ground-only channels mirror the stim train exactly, at zero
+#                   amplitude. Charge recovery happens AFTER the train completes
+#                   (this is an Intan RHS hardware limitation — you cannot
+#                   charge-recover between pulses within a single train).
+#                   Use when you don't need per-pulse grounding.
+#
+#     BetweenPulse: Ground-only channels are configured as Level + SinglePulse,
+#                   with refractory sized so each ground pulse fires between
+#                   successive stim pulses. This reproduces the original
+#                   "edge hold to ground" paradigm.
+#                   IMPORTANT: this requires a HELD-HIGH trigger spanning the
+#                   stim train duration. Since stim channels run Edge-triggered
+#                   trains (which fire once on the rising edge and ignore the
+#                   held level), you must arrange the trigger pulse so its
+#                   held duration matches the stim train duration. Verify
+#                   timing on a scope before relying on it.
+#
+# -----------------------------------------------------------------------------
+# EXAMPLES
+# -----------------------------------------------------------------------------
+#   # Defaults: Edge, 200 Hz, 200 ms (40 pulses), 100 ms trigger delay,
+#   # 100 ms refractory, PostTrain ground.
+#   PARAMS='channels=[A020, A011]'
+#
+#   # Same channels, sweep polarity, custom amplitude:
+#   PARAMS='channels=[A020, A011]. polarity={PositiveFirst;NegativeFirst}. a=(3.5, 3.5)'
+#
+#   # 100 ms train at 100 Hz with between-pulse grounding:
+#   PARAMS='channels=[A020]. freq=100. duration=100. groundMode=BetweenPulse'
+#
+#   # Stick with the old Level/hold paradigm:
+#   PARAMS='channels=[A020]. triggerType=Level. groundMode=BetweenPulse'
+#
+# =============================================================================
+
 source version
 source paths
 sudo -S <<< Whedon101 cp $XPER_PROPERTIES_PROCEDURAL $DIST/xper.properties
 sudo -S <<< Whedon101 cp $XPER_PROPERTIES_PROCEDURAL $DIST/allen/xper.properties
 cd $DIST/allen
 
-#shape, polarity, d, d1, d2, dp, a, a1, a2, refractoryPeriod
-#PARAMS='channels=[A023, A009, A021]. polarity={PositiveFirst;NegativeFirst}. a=(3.5, 3.5). refractoryPeriod=4000. triggerDelay=100'
-PARAMS='channels=[A020, A011]. polarity={PositiveFirst;NegativeFirst}. a=(3.5, 3.5). refractoryPeriod=8000. triggerDelay=100'
+PARAMS='channels=[A020, A011]. polarity={PositiveFirst;NegativeFirst}. a=(3.5, 3.5). triggerType=Edge. freq=200. duration=200. triggerDelayMs=100. refractoryPeriodMs=100. groundMode=PostTrain'
 
 java -jar EStimSpecWriter.jar "$PARAMS"

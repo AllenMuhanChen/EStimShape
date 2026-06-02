@@ -33,6 +33,15 @@ public class EStimSpecWriterTest extends TestCase {
         assertEquals(100.0, wf.getDp());
         assertEquals(2.5, wf.getA1());
         assertEquals(2.5, wf.getA2());
+
+        PulseTrainParameters pt = params.getPulseTrainParameters();
+        assertEquals(TriggerEdgeOrLevel.Edge, pt.getTriggerEdgeOrLevel());
+        assertEquals(PulseRepetition.PulseTrain, pt.getPulseRepetition());
+        // 200 Hz -> 5000 µs period; 200 ms -> 40 pulses
+        assertEquals(5000.0, pt.getPulseTrainPeriod());
+        assertEquals(40, pt.getNumRepetitions());
+        assertEquals(100000.0, pt.getPostTriggerDelay()); // 100 ms in µs
+        assertEquals(100000.0, pt.getPostStimRefractoryPeriod()); // 100 ms in µs
     }
 
     public void testOverrideAmplitudeTuple() {
@@ -45,10 +54,71 @@ public class EStimSpecWriterTest extends TestCase {
     }
 
     public void testOverridePolarity() {
-        Map<String, Object> parsed = parser.parse("channels=[\"A025\"]. pol=PositiveFirst");
+        Map<String, Object> parsed = parser.parse("channels=[\"A025\"]. polarity=PositiveFirst");
 
         ChannelEStimParameters params = EStimSpecWriter.buildChannelParams(parsed);
         assertEquals(StimulationPolarity.PositiveFirst, params.getWaveformParameters().getPolarity());
+    }
+
+    public void testFreqAndDuration() {
+        Map<String, Object> parsed = parser.parse("channels=[\"A025\"]. freq=100. duration=100");
+        ChannelEStimParameters params = EStimSpecWriter.buildChannelParams(parsed);
+        PulseTrainParameters pt = params.getPulseTrainParameters();
+        // 100 Hz -> 10000 µs period; 100 ms -> 10 pulses
+        assertEquals(10000.0, pt.getPulseTrainPeriod());
+        assertEquals(10, pt.getNumRepetitions());
+    }
+
+    public void testNumPulsesOverride() {
+        Map<String, Object> parsed = parser.parse("channels=[\"A025\"]. freq=200. numPulses=5");
+        ChannelEStimParameters params = EStimSpecWriter.buildChannelParams(parsed);
+        assertEquals(5, params.getPulseTrainParameters().getNumRepetitions());
+    }
+
+    public void testDurationExceedsMaxPulsesThrows() {
+        // 200 Hz, 256 pulses -> 1280 ms max. 2000 ms should fail.
+        Map<String, Object> parsed = parser.parse("channels=[\"A025\"]. freq=200. duration=2000");
+        try {
+            EStimSpecWriter.buildChannelParams(parsed);
+            fail("Expected IllegalArgumentException for duration exceeding max pulses");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("256"));
+        }
+    }
+
+    public void testNumPulsesOverrideExceedsMaxThrows() {
+        Map<String, Object> parsed = parser.parse("channels=[\"A025\"]. numPulses=300");
+        try {
+            EStimSpecWriter.buildChannelParams(parsed);
+            fail("Expected IllegalArgumentException for numPulses > 256");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("256"));
+        }
+    }
+
+    public void testDurationRoundsDownWithWarning() {
+        // 200 Hz -> 5000 µs period. 7 ms = 7000 µs = 1.4 pulses -> floor to 1, warn.
+        Map<String, Object> parsed = parser.parse("channels=[\"A025\"]. freq=200. duration=7");
+        ChannelEStimParameters params = EStimSpecWriter.buildChannelParams(parsed);
+        assertEquals(1, params.getPulseTrainParameters().getNumRepetitions());
+    }
+
+    public void testTriggerDelayMs() {
+        Map<String, Object> parsed = parser.parse("channels=[\"A025\"]. triggerDelayMs=50");
+        ChannelEStimParameters params = EStimSpecWriter.buildChannelParams(parsed);
+        assertEquals(50000.0, params.getPulseTrainParameters().getPostTriggerDelay());
+    }
+
+    public void testTriggerDelayMicrosecondsLegacy() {
+        Map<String, Object> parsed = parser.parse("channels=[\"A025\"]. triggerDelay=100");
+        ChannelEStimParameters params = EStimSpecWriter.buildChannelParams(parsed);
+        assertEquals(100.0, params.getPulseTrainParameters().getPostTriggerDelay());
+    }
+
+    public void testTriggerTypeLevel() {
+        Map<String, Object> parsed = parser.parse("channels=[\"A025\"]. triggerType=Level");
+        ChannelEStimParameters params = EStimSpecWriter.buildChannelParams(parsed);
+        assertEquals(TriggerEdgeOrLevel.Level, params.getPulseTrainParameters().getTriggerEdgeOrLevel());
     }
 
     public void testNoSplits_oneCondition() {
@@ -68,15 +138,12 @@ public class EStimSpecWriterTest extends TestCase {
                 "channels=[\"A025\",\"A030\"]. a={(3.5,3.5);(5,5)}");
 
         List<EStimParameters> conditions = EStimSpecWriter.buildAllConditions(parsed);
-        System.out.println(conditions);
         assertEquals(2, conditions.size());
 
-        // First condition: a=3.5
         ChannelEStimParameters first = conditions.get(0).geteStimParametersForChannels().get(RHSChannel.A025);
         assertEquals(3.5, first.getWaveformParameters().getA1());
         assertEquals(3.5, first.getWaveformParameters().getA2());
 
-        // Second condition: a=5
         ChannelEStimParameters second = conditions.get(1).geteStimParametersForChannels().get(RHSChannel.A025);
         assertEquals(5.0, second.getWaveformParameters().getA1());
         assertEquals(5.0, second.getWaveformParameters().getA2());
@@ -84,7 +151,7 @@ public class EStimSpecWriterTest extends TestCase {
 
     public void testSplitPolarity_twoConditions() {
         Map<String, Object> parsed = parser.parse(
-                "channels=[\"A025\"]. pol={NegativeFirst;PositiveFirst}");
+                "channels=[\"A025\"]. polarity={NegativeFirst;PositiveFirst}");
 
         List<EStimParameters> conditions = EStimSpecWriter.buildAllConditions(parsed);
         assertEquals(2, conditions.size());
@@ -99,30 +166,16 @@ public class EStimSpecWriterTest extends TestCase {
 
     public void testCartesianProduct_twoSplits() {
         Map<String, Object> parsed = parser.parse(
-                "channels=[\"A025\"]. a={(3.5,3.5);(5,5)}. pol={NegativeFirst;PositiveFirst}");
+                "channels=[\"A025\"]. a={(3.5,3.5);(5,5)}. polarity={NegativeFirst;PositiveFirst}");
 
         List<EStimParameters> conditions = EStimSpecWriter.buildAllConditions(parsed);
         assertEquals(4, conditions.size());
 
-        // (3.5, NegativeFirst)
         WaveformParameters wf0 = conditions.get(0).geteStimParametersForChannels()
                 .get(RHSChannel.A025).getWaveformParameters();
         assertEquals(3.5, wf0.getA1());
         assertEquals(StimulationPolarity.NegativeFirst, wf0.getPolarity());
 
-        // (3.5, PositiveFirst)
-        WaveformParameters wf1 = conditions.get(1).geteStimParametersForChannels()
-                .get(RHSChannel.A025).getWaveformParameters();
-        assertEquals(3.5, wf1.getA1());
-        assertEquals(StimulationPolarity.PositiveFirst, wf1.getPolarity());
-
-        // (5, NegativeFirst)
-        WaveformParameters wf2 = conditions.get(2).geteStimParametersForChannels()
-                .get(RHSChannel.A025).getWaveformParameters();
-        assertEquals(5.0, wf2.getA1());
-        assertEquals(StimulationPolarity.NegativeFirst, wf2.getPolarity());
-
-        // (5, PositiveFirst)
         WaveformParameters wf3 = conditions.get(3).geteStimParametersForChannels()
                 .get(RHSChannel.A025).getWaveformParameters();
         assertEquals(5.0, wf3.getA1());
@@ -136,7 +189,6 @@ public class EStimSpecWriterTest extends TestCase {
         List<EStimParameters> conditions = EStimSpecWriter.buildAllConditions(parsed);
         assertEquals(2, conditions.size());
 
-        // dp=50 should be constant across both conditions
         for (EStimParameters condition : conditions) {
             assertEquals(50.0, condition.geteStimParametersForChannels()
                     .get(RHSChannel.A025).getWaveformParameters().getDp());
@@ -151,5 +203,19 @@ public class EStimSpecWriterTest extends TestCase {
         } catch (IllegalArgumentException e) {
             // expected
         }
+    }
+
+    public void testComputeNumPulses_exactMatch() {
+        // 200 Hz -> 5000 µs period, 200 ms -> 40 pulses
+        assertEquals(40, EStimSpecWriter.computeNumPulses(null, 200.0, 5000.0, 200.0));
+    }
+
+    public void testComputeNumPulses_roundsDown() {
+        // 7 ms / 5000 µs period = 1.4 -> 1
+        assertEquals(1, EStimSpecWriter.computeNumPulses(null, 7.0, 5000.0, 200.0));
+    }
+
+    public void testComputeNumPulses_overrideHonored() {
+        assertEquals(10, EStimSpecWriter.computeNumPulses(10, 9999.0, 5000.0, 200.0));
     }
 }
