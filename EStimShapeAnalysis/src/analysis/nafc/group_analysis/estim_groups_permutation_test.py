@@ -21,7 +21,9 @@ def run_permutation_tests(session_id=None, n_permutations=1000, force_recompute=
                           'none' = no cutoff, raw data.
         metric          : Which EStimEffects metric row to test. For
                           'pct_hyp_vs_delta', trial-level data is filtered to drop
-                          choice in {'rand', 'removed'} before permuting.
+                          choice in {'rand', 'removed'}, plus trials where
+                          trial_type is 'Removed Trial' and choice is 'match',
+                          before permuting.
     """
     create_permutation_test_table()
 
@@ -111,8 +113,9 @@ def get_trial_data_for_condition(session_id, cond_dict, max_trial_start=None,
         max_trial_start: if provided, only include trials with trial_start <= max_trial_start.
         metric         : matches the EStimEffects metric semantics. For
                          'pct_hyp_vs_delta', excludes rows whose choice is 'rand'
-                         or 'removed' — so the permutation null matches what was
-                         summarised in EStimEffects.
+                         or 'removed', and rows where trial_type is 'Removed Trial'
+                         and choice is 'match' — so the permutation null matches
+                         what was summarised in EStimEffects.
 
     Returns dict with:
         'estim_on': list of is_hypothesized_choice values
@@ -131,6 +134,7 @@ def get_trial_data_for_condition(session_id, cond_dict, max_trial_start=None,
 
     if metric == METRIC_PCT_HYP_VS_DELTA:
         query += " AND (t.choice IS NULL OR t.choice NOT IN ('rand', 'removed'))"
+        query += " AND NOT (t.trial_type = 'Removed Trial' AND t.choice = 'match')"
 
     if max_trial_start is not None:
         query += " AND t.trial_start <= %s"
