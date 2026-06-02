@@ -195,7 +195,7 @@ def main():
     row_labels = [
         (metric_name,                   isCorrectFieldName, plot_spec_id_panel),
         ('% Rand Choice',               None,               plot_rand_choice_panel),
-        (f'% Hypothesized (rand-excl)', isCorrectFieldName, plot_rand_excluded_panel),
+        (f'% Hypothesized vs Delta', isCorrectFieldName, plot_rand_excluded_panel),
     ]
     if include_removed:
         # New row tracks how often the monkey picks the removed-component choice — only
@@ -1033,7 +1033,7 @@ def plot_removed_choice_panel(ax, stim_subset, estim_off_data, spec_ids, noise_l
 
 
 # ===========================================================================
-# Figure 4: % Hypothesized (rand-excluded) by EStimSpecId
+# Figure 4: % Hypothesized vs Delta by EStimSpecId
 # ===========================================================================
 
 def plot_rand_excluded_panel(ax, stim_subset, estim_off_data, spec_ids, noise_levels,
@@ -1045,11 +1045,17 @@ def plot_rand_excluded_panel(ax, stim_subset, estim_off_data, spec_ids, noise_le
     def drop_removed(df):
         return df[df['Choice'] != 'removed'].copy()
 
+    def drop_removed_trial_match(df):
+        if 'IsRemovedTrial' not in df.columns:
+            return df
+        return df[~((df['IsRemovedTrial'] == True) & (df['Choice'] == 'match'))].copy()
 
     off_data = drop_rand(estim_off_data)
     off_data = drop_removed(off_data)
+    off_data = drop_removed_trial_match(off_data)
     on_data  = drop_rand(stim_subset)
     on_data = drop_removed(on_data)
+    on_data = drop_removed_trial_match(on_data)
 
     sl_map = None if combine_sample_lengths else get_sl_marker_map(pd.concat([on_data, off_data]))
 
@@ -1142,7 +1148,7 @@ def plot_rand_excluded_panel(ax, stim_subset, estim_off_data, spec_ids, noise_le
 
     ax.invert_xaxis()
     ax.set_ylim([0, 110])
-    ax.set_ylabel(f'% {metric_field} (rand excluded)')
+    ax.set_ylabel(f'% {metric_field} (Hypothesized vs Delta)')
     ax.grid(True, alpha=0.3)
     ax.legend(fontsize=7)
 
