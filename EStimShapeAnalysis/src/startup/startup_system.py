@@ -18,7 +18,7 @@ INTAN_BASE_PATH = "/mnt/data/EStimShape"
 
 # Template constants
 TEMPLATE_TYPE = 'exp'
-TEMPLATE_DATE = '260512'
+TEMPLATE_DATE = '260601'
 TEMPLATE_LOCATION_ID = '0'
 
 # Database connection constants
