@@ -92,6 +92,10 @@ public class NAFCBlockGen extends AbstractMStickPngTrialGenerator<Stim> {
         return stimBlocks.get(blockIndex);
     }
 
+    public int getBlockCount(){
+        return stimBlocks.size();
+    }
+
     public GenParameters getParamsForBlock(int blockIndex){
         List<NAFCStim> block = getBlock(blockIndex);
         return paramsForBlocks.get(block);

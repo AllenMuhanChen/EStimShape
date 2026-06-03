@@ -112,6 +112,12 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
         isEStimEnabledField.setText(String.valueOf(((EStimExperimentGenParameters) blockParams).isEStimEnabled));
     }
 
+    @Override
+    public String getInfo() {
+        return super.getInfo() +
+                ", isEStimEnabled: " + isEStimEnabledField.getText();
+    }
+
     public void setGaSpecPath(String gaSpecPath) {
         this.gaSpecPath = gaSpecPath;
     }

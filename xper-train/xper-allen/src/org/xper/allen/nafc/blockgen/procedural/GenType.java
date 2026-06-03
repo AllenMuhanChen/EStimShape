@@ -3,8 +3,13 @@ package org.xper.allen.nafc.blockgen.procedural;
 import org.xper.allen.nafc.NAFCStim;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiConsumer;
 
 /**
@@ -20,6 +25,36 @@ public abstract class GenType<T extends GenParameters> {
 
     protected Map<JTextField, String> labelsForFields;
     protected Map<JTextField, String> defaultsForFields;
+
+    protected final Set<JTextField> modifiedFields = new HashSet<>();
+    protected boolean suppressDirtyTracking = false;
+
+    public void setSuppressDirtyTracking(boolean suppress) {
+        this.suppressDirtyTracking = suppress;
+    }
+
+    public void clearModifiedFields() {
+        modifiedFields.clear();
+    }
+
+    /** Returns label -> current text for each field the user modified since last clear. */
+    public Map<String, String> getModifiedFieldValues() {
+        Map<String, String> result = new LinkedHashMap<>();
+        if (labelsForFields == null) return result;
+        for (JTextField f : modifiedFields) {
+            String label = labelsForFields.get(f);
+            if (label != null) result.put(label, f.getText());
+        }
+        return result;
+    }
+
+    /** Returns label -> field for the current field set. */
+    public Map<String, JTextField> getFieldsByLabel() {
+        Map<String, JTextField> result = new LinkedHashMap<>();
+        if (labelsForFields == null) return result;
+        labelsForFields.forEach((field, label) -> result.put(label, field));
+        return result;
+    }
 
     public abstract String getLabel();
 
@@ -55,6 +90,17 @@ public abstract class GenType<T extends GenParameters> {
                 panel.add(paramField);
             }
         });
+
+        modifiedFields.clear();
+        suppressDirtyTracking = false;
+        for (final JTextField field : labelsForFields.keySet()) {
+            field.getDocument().addDocumentListener(new DocumentListener() {
+                @Override public void insertUpdate(DocumentEvent e) { mark(); }
+                @Override public void removeUpdate(DocumentEvent e) { mark(); }
+                @Override public void changedUpdate(DocumentEvent e) { mark(); }
+                private void mark() { if (!suppressDirtyTracking) modifiedFields.add(field); }
+            });
+        }
     }
 
     public abstract String getInfo();

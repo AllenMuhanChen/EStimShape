@@ -90,4 +90,11 @@ public class EStimExperimentVariantsGenType extends ProceduralRandGenType<EStimE
         includeRemovedChoiceField.setText(String.valueOf(((EStimExperimentGenType.EStimExperimentGenParameters) blockParams).includeRemovedChoice));
     }
 
+    @Override
+    public String getInfo() {
+        return super.getInfo() +
+                ", isEStimEnabled: " + isEStimEnabledField.getText() +
+                ", eStimSpecId: " + eStimSpecIdField.getText();
+    }
+
 }
