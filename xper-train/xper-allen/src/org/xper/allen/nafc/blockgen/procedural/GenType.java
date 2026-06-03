@@ -104,4 +104,13 @@ public abstract class GenType<T extends GenParameters> {
     }
 
     public abstract String getInfo();
+
+    /**
+     * Returns descriptive info derived from the stored params rather than from the
+     * current state of the UI fields. Subclasses should override; default falls
+     * back to the field-based getInfo() for backward compatibility.
+     */
+    public String getInfo(GenParameters params) {
+        return getInfo();
+    }
 }

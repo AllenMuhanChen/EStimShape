@@ -176,4 +176,18 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
                 ", NumChoices: " + numChoicesField.getText() +
                 ", NumRandDistractors: " + numRandDistractorsField.getText();
     }
+
+    @Override
+    public String getInfo(GenParameters params) {
+        if (params == null) return getInfo();
+        ProceduralStim.ProceduralStimParameters psp = params.getProceduralStimParameters();
+        String noiseChance = psp != null ? String.valueOf(psp.noiseChance) : "n/a";
+        String numChoices = psp != null ? String.valueOf(psp.numChoices) : "n/a";
+        String numRandDistractors = psp != null ? String.valueOf(psp.numRandDistractors) : "n/a";
+        return "Type: " + getLabel() +
+                ", Trials: " + params.getNumTrials() +
+                ", NoiseChance: " + noiseChance +
+                ", NumChoices: " + numChoices +
+                ", NumRandDistractors: " + numRandDistractors;
+    }
 }

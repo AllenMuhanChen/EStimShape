@@ -97,4 +97,17 @@ public class EStimExperimentVariantsGenType extends ProceduralRandGenType<EStimE
                 ", eStimSpecId: " + eStimSpecIdField.getText();
     }
 
+    @Override
+    public String getInfo(GenParameters params) {
+        String base = super.getInfo(params);
+        if (params instanceof EStimExperimentGenType.EStimExperimentGenParameters) {
+            EStimExperimentGenType.EStimExperimentGenParameters p =
+                    (EStimExperimentGenType.EStimExperimentGenParameters) params;
+            return base +
+                    ", isEStimEnabled: " + p.isEStimEnabled +
+                    ", eStimSpecId: " + p.eStimSpecId;
+        }
+        return base;
+    }
+
 }

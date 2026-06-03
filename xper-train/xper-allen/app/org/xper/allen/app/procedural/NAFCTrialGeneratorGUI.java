@@ -300,7 +300,7 @@ public class NAFCTrialGeneratorGUI {
                 }
                 current = child;
             }
-            String leafText = "[" + i + "] " + (type == null ? "?" : type.getInfo());
+            String leafText = "[" + i + "] " + (type == null ? "?" : type.getInfo(params));
             current.add(new DefaultMutableTreeNode(new BlockLeaf(i, leafText)));
         }
 
