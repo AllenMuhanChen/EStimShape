@@ -11,7 +11,7 @@ from typing import Dict
 
 from src.analysis import compile_current_context, analyze_raw_data, analyze_current_context
 from src.analysis.ga import raw_channel_candidacy_analysis, ga_raster_analysis, baseline_analysis, plot_top_n, \
-    plot_variants_delta_gui
+    plot_variants_delta_gui, lfp_analysis
 from src.eyecal import plot_eyecal, apply_eyecal
 from src.pga.app import run_ga, start_new_ga, process_first_gen, run_cluster_app, calculate_spontaneous_firing_rate, \
     run_rwa, plot_rwa, transfer_eye_cal_params, abandon_generation, process_last_gen, recalculate_ga, \
@@ -283,6 +283,10 @@ class ScriptRunnerApp:
                 },
                 "GA Raster": {
                     "func": ga_raster_analysis.main,
+                    "params": []
+                },
+                "LFP Analysis":{
+                    "func": lfp_analysis.main,
                     "params": []
                 },
                 "Analyze Current Context": {

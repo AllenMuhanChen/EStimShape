@@ -124,6 +124,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
                 break;
             } catch (Exception e) {
                 System.out.println("MorphRepetition FAILED: " + e.getMessage());
+                System.out.println("BaseMStickId is: " + baseMStickStimSpecId);
             }
         }
     }

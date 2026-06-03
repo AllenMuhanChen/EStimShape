@@ -67,12 +67,12 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
     def max_attempts_per_variant_multiplier(self):
         return self.var_fetcher.get("max_attempts_per_variant_multiplier", dtype=int)
 
-    # def make_response_processor(self) -> GAResponseProcessor:
-    #     return RankBaselineNormalizeResponseProcessor(
-    #         db_util=self.db_util,
-    #         repetition_combination_strategy=mean,
-    #         cluster_combination_strategy=sum
-    #     )
+    def make_response_processor(self) -> GAResponseProcessor:
+        return RankBaselineNormalizeResponseProcessor(
+            db_util=self.db_util,
+            repetition_combination_strategy=mean,
+            cluster_combination_strategy=sum
+        )
 
 class MockGrowingPhaseTransitioner(RegimeTransitioner):
     num_times = 0
