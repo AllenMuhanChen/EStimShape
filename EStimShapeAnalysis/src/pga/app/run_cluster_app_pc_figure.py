@@ -32,9 +32,8 @@ from clat.util.connection import Connection
 from src.cluster.cluster_app import ClusterApplicationWindow
 from src.cluster.cluster_app_classes import DataExporter, MAX_GROUPS
 from src.cluster.cluster_isolation_score import (
-    compute_estim_isolation_score,
-    fetch_active_estim_channels,
-    save_estim_isolation_score)
+    compute_per_spec_isolation_scores,
+    save_per_spec_isolation_scores)
 from src.cluster.dimensionality_reduction import (DimensionalityReducer,
                                                   PCAReducer, SparsePCAReducer)
 from src.cluster.mock_cluster_app import get_qapplication_instance
@@ -112,22 +111,20 @@ class PcInterpretationFigureExporter(DataExporter):
 
     def _compute_and_save_estim_isolation_score(self,
                                                 channels_for_clusters: dict[int, list[Channel]]):
-        estim_channels = fetch_active_estim_channels(self.session_id)
-        if not estim_channels:
-            print(f"No active estim channels found in EStimParameters for session "
+        scores_by_spec = compute_per_spec_isolation_scores(
+            channels_for_clusters, self.channel_mapper, self.session_id)
+        if not scores_by_spec:
+            print(f"No estim specs found in EStimParameters for session "
                   f"{self.session_id} (no rows with a1 > 0); skipping isolation score.")
             return
-        print(f"Active estim channels for session {self.session_id}: "
-              f"{[ch.name for ch in estim_channels]}")
-        score = compute_estim_isolation_score(
-            estim_channels, channels_for_clusters, self.channel_mapper)
-        if score is None:
-            print("Skipped estim isolation score: estim channels not assigned to "
-                  "any cluster, or no other-cluster channels to measure against.")
-            return
-        print(f"Estim isolation score: {score:.1f} um")
+        for spec_id, score in sorted(scores_by_spec.items()):
+            if score is None:
+                print(f"  estim_spec_id={spec_id}: score skipped (channels unassigned "
+                      f"or no other-cluster channels).")
+            else:
+                print(f"  estim_spec_id={spec_id}: isolation = {score:.1f} um")
         repo_conn = Connection("allen_data_repository")
-        save_estim_isolation_score(repo_conn, self.session_id, score)
+        save_per_spec_isolation_scores(repo_conn, self.session_id, scores_by_spec)
 
     @staticmethod
     def _normalize_per_channel(values: list[np.ndarray]) -> np.ndarray:

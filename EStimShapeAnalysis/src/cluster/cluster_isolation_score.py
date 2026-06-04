@@ -1,18 +1,21 @@
 """
-Estim isolation score: how isolated the session's active estim channels are
-from channels in any other cluster, in microns on the probe.
+Per-estim-spec isolation score: how isolated each estim spec's active
+channels are from channels in any other cluster, in microns on the probe.
 
 Estim channels are identified by reading allen_data_repository.EStimParameters
-and selecting channels with a1 > 0 (i.e. channels actually delivering
-current; channels with a1 = 0 are ground / charge-recovery pulses and are
-excluded). This matches the convention used by
-src/analysis/nafc/estim_parameter_classifier.py.
+and selecting channels with a1 > 0 (channels actually delivering current;
+a1 = 0 are ground / charge-recovery pulses and are excluded). Matches the
+convention in src/analysis/nafc/estim_parameter_classifier.py.
 
-For each active estim channel:
+Different estim_spec_ids within a session may stimulate different
+electrodes, so the score is computed *per estim_spec_id* and written to
+allen_data_repository.EStimParameterData keyed by (session_id, estim_spec_id).
+
+For each estim spec, for each active estim channel:
   - look up which cluster it's assigned to (from the GUI's clustering),
   - compute mean distance (microns) to every channel assigned to a
     *different* cluster.
-Then average across estim channels.
+Then average across that spec's estim channels.
 
 Two penalties drop out of the same formula:
   - Split estim assignment: estim channels in different clusters become
@@ -20,10 +23,6 @@ Two penalties drop out of the same formula:
     other physically, the distance shrinks and the score drops.
   - Boundary placement: an estim channel at the edge of its cluster has
     other-cluster channels nearby, dragging its mean distance down.
-
-A large diffuse cluster's estim channels still score well — even at the
-cluster edge, other clusters are physically far. A small cluster needs
-to be well-isolated *and* the estim channels well-centered.
 """
 
 import numpy as np
@@ -32,32 +31,30 @@ from clat.util.connection import Connection
 
 from src.cluster.cluster_app_classes import ChannelMapper
 
-ISOLATION_COLUMN = "estim_isolation_um"
-LEGACY_ISOLATION_COLUMN = "estim_cluster_isolation_um"
 
-
-def fetch_active_estim_channels(session_id: str) -> list[Channel]:
-    """Return Channel enums for every channel actively delivering current
-    in this session (DISTINCT channels with a1 > 0 in EStimParameters).
+def fetch_active_estim_channels_by_spec(session_id: str) -> dict[int, list[Channel]]:
+    """Map estim_spec_id → list of Channel enums for channels actively
+    delivering current under that spec (a1 > 0).
 
     Ground-pulse channels (a1 = 0) are excluded — they're not real estim
     sites, just charge-recovery pulses.
     """
     repo_conn = Connection("allen_data_repository")
     repo_conn.execute(
-        "SELECT DISTINCT channel FROM EStimParameters "
+        "SELECT estim_spec_id, channel FROM EStimParameters "
         "WHERE session_id = %s AND a1 > 0",
         (session_id,),
     )
     rows = repo_conn.fetch_all()
-    channels: list[Channel] = []
-    for row in rows:
-        ch_str = row[0]
+    by_spec: dict[int, list[Channel]] = {}
+    for spec_id, ch_str in rows:
         try:
-            channels.append(Channel[ch_str.replace("-", "_")])
+            ch = Channel[ch_str.replace("-", "_")]
         except KeyError:
             print(f"WARN: unknown channel '{ch_str}' in EStimParameters; skipping")
-    return channels
+            continue
+        by_spec.setdefault(int(spec_id), []).append(ch)
+    return by_spec
 
 
 def compute_estim_isolation_score(
@@ -67,11 +64,6 @@ def compute_estim_isolation_score(
 ) -> float | None:
     """Mean distance, in microns, from each estim channel to all channels
     assigned to a different cluster than that estim channel.
-
-    estim_channels can fall into any cluster(s) in `channels_for_clusters`;
-    each estim channel uses its own assignment as the reference for
-    "other cluster," so splits across clusters and boundary placement
-    both get penalized naturally.
 
     Returns None if no estim channels can be scored (e.g. none are
     assigned to any cluster, or there are no other-cluster channels).
@@ -103,41 +95,54 @@ def compute_estim_isolation_score(
     return float(np.mean(per_estim_means))
 
 
-def save_estim_isolation_score(
+def compute_per_spec_isolation_scores(
+    channels_for_clusters: dict[int, list[Channel]],
+    channel_mapper: ChannelMapper,
+    session_id: str,
+) -> dict[int, float | None]:
+    """Compute the isolation score for every estim_spec_id in the session.
+
+    Returns {estim_spec_id: score or None}.
+    """
+    by_spec = fetch_active_estim_channels_by_spec(session_id)
+    return {
+        spec_id: compute_estim_isolation_score(
+            estim_channels, channels_for_clusters, channel_mapper)
+        for spec_id, estim_channels in by_spec.items()
+    }
+
+
+def save_per_spec_isolation_scores(
     repo_conn: Connection,
     session_id: str,
-    score: float | None,
+    scores_by_spec: dict[int, float | None],
 ) -> None:
-    """Upsert the score into allen_data_repository.EStimShapeSessionData."""
-    _ensure_isolation_column(repo_conn)
-    value = float(score) if score is not None else None
+    """Upsert per-spec isolation scores into EStimParameterData."""
+    _ensure_estim_parameter_data_table(repo_conn)
+    for spec_id, score in scores_by_spec.items():
+        value = float(score) if score is not None else None
+        repo_conn.execute(
+            """
+            INSERT INTO EStimParameterData (session_id, estim_spec_id, estim_isolation_um)
+            VALUES (%s, %s, %s)
+            ON DUPLICATE KEY UPDATE estim_isolation_um = VALUES(estim_isolation_um)
+            """,
+            (session_id, int(spec_id), value),
+        )
+        print(f"Saved estim_isolation_um={value} for session {session_id}, "
+              f"estim_spec_id={spec_id}")
+
+
+def _ensure_estim_parameter_data_table(repo_conn: Connection) -> None:
     repo_conn.execute(
-        f"""
-        INSERT INTO EStimShapeSessionData (session_id, cluster_size, {ISOLATION_COLUMN})
-        VALUES (%s, %s, %s)
-        ON DUPLICATE KEY UPDATE {ISOLATION_COLUMN} = VALUES({ISOLATION_COLUMN})
-        """,
-        (session_id, 0, value),
+        """
+        CREATE TABLE IF NOT EXISTS EStimParameterData (
+            session_id          VARCHAR(10) NOT NULL,
+            estim_spec_id       BIGINT      NOT NULL,
+            estim_isolation_um  FLOAT       NULL,
+            PRIMARY KEY (session_id, estim_spec_id),
+            CONSTRAINT EStimParameterData_session_fk
+                FOREIGN KEY (session_id) REFERENCES Sessions (session_id) ON DELETE CASCADE
+        ) ENGINE = InnoDB DEFAULT CHARSET = latin1
+        """
     )
-    print(f"Saved {ISOLATION_COLUMN}={value} for session {session_id}")
-
-
-def _ensure_isolation_column(repo_conn: Connection) -> None:
-    """Make sure the score column exists under the current name, migrating
-    from the legacy `estim_cluster_isolation_um` name if needed."""
-    try:
-        repo_conn.execute(
-            f"ALTER TABLE EStimShapeSessionData "
-            f"CHANGE COLUMN {LEGACY_ISOLATION_COLUMN} {ISOLATION_COLUMN} FLOAT NULL"
-        )
-        print(f"Renamed {LEGACY_ISOLATION_COLUMN} → {ISOLATION_COLUMN}")
-    except Exception:
-        pass  # legacy column didn't exist; that's fine
-    try:
-        repo_conn.execute(
-            f"ALTER TABLE EStimShapeSessionData "
-            f"ADD COLUMN {ISOLATION_COLUMN} FLOAT NULL"
-        )
-        print(f"Added {ISOLATION_COLUMN} column to EStimShapeSessionData")
-    except Exception:
-        pass  # column already exists
