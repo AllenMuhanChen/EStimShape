@@ -76,6 +76,18 @@ ISOLATION_COLUMNS = {
     'estim_mean_isolation_um': 'estim_mean_isolation_um',
 }
 
+# Polarity-first ordering maps to the leading phase of the biphasic pulse:
+# PositiveFirst = anodic-first, NegativeFirst = cathodic-first. Plotted as
+# separate series since we don't yet know how to fold polarity into the metric.
+POLARITY_LABELS = {
+    'PositiveFirst': 'Anodic (PositiveFirst)',
+    'NegativeFirst': 'Cathodic (NegativeFirst)',
+}
+POLARITY_COLORS = {
+    'PositiveFirst': '#D32F2F',   # red — anodic
+    'NegativeFirst': '#1976D2',   # blue — cathodic
+}
+
 
 # ---------------------------------------------------------------------------
 # Trial filtering
@@ -225,6 +237,34 @@ def _fetch_isolation_scores(session_ids=None):
     return scores
 
 
+def _fetch_estim_power_and_polarity(session_ids=None):
+    """Return {(session_id, estim_spec_id): {'total_current_uA': ..., 'polarity': ...,
+    'n_active': ...}} from EStimParameters.
+
+    Total current is the sum of a1 across all actively-stimulating channels
+    (a1 > 0), matching the active-channel convention everywhere else. Polarity is
+    read off the active channels (uniform per spec under the current paradigm)."""
+    conn = Connection("allen_data_repository")
+    base = ("SELECT session_id, estim_spec_id, SUM(a1) AS total_current, "
+            "MIN(polarity) AS polarity, COUNT(*) AS n_active "
+            "FROM EStimParameters WHERE a1 > 0")
+    if session_ids:
+        placeholders = ', '.join(['%s'] * len(session_ids))
+        conn.execute(f"{base} AND session_id IN ({placeholders}) "
+                     "GROUP BY session_id, estim_spec_id", tuple(session_ids))
+    else:
+        conn.execute(f"{base} GROUP BY session_id, estim_spec_id")
+
+    out = {}
+    for sess_id, spec_id, total_current, polarity, n_active in conn.fetch_all():
+        out[(sess_id, int(spec_id))] = {
+            'total_current_uA': float(total_current) if total_current is not None else None,
+            'polarity': polarity,
+            'n_active': int(n_active) if n_active is not None else None,
+        }
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Combined table
 # ---------------------------------------------------------------------------
@@ -245,7 +285,8 @@ def compute_isolation_effect_table(session_ids=None, metric=METRIC_PCT_HYPOTHESI
     Returns:
         DataFrame with columns: session_id, estim_spec_id, n_on, n_off,
         on_pct, off_pct, effect_size, estim_min_isolation_um,
-        estim_mean_isolation_um. Empty DataFrame if nothing matched.
+        estim_mean_isolation_um, total_current_uA, polarity,
+        n_active_channels. Empty DataFrame if nothing matched.
     """
     if session_ids is None:
         # Only sessions actually scored by the cluster app are worth processing —
@@ -268,7 +309,8 @@ def compute_isolation_effect_table(session_ids=None, metric=METRIC_PCT_HYPOTHESI
         print("No per-spec effects computed.")
         return pd.DataFrame(columns=[
             'session_id', 'estim_spec_id', 'n_on', 'n_off', 'on_pct', 'off_pct',
-            'effect_size', 'estim_min_isolation_um', 'estim_mean_isolation_um'])
+            'effect_size', 'estim_min_isolation_um', 'estim_mean_isolation_um',
+            'total_current_uA', 'polarity', 'n_active_channels'])
 
     df = pd.DataFrame(all_rows)
 
@@ -278,6 +320,17 @@ def compute_isolation_effect_table(session_ids=None, metric=METRIC_PCT_HYPOTHESI
         for s, spec in zip(df['session_id'], df['estim_spec_id'])]
     df['estim_mean_isolation_um'] = [
         (isolation.get((s, int(spec)), {}) or {}).get('estim_mean_isolation_um')
+        for s, spec in zip(df['session_id'], df['estim_spec_id'])]
+
+    power = _fetch_estim_power_and_polarity(sorted(df['session_id'].unique().tolist()))
+    df['total_current_uA'] = [
+        (power.get((s, int(spec)), {}) or {}).get('total_current_uA')
+        for s, spec in zip(df['session_id'], df['estim_spec_id'])]
+    df['polarity'] = [
+        (power.get((s, int(spec)), {}) or {}).get('polarity')
+        for s, spec in zip(df['session_id'], df['estim_spec_id'])]
+    df['n_active_channels'] = [
+        (power.get((s, int(spec)), {}) or {}).get('n_active')
         for s, spec in zip(df['session_id'], df['estim_spec_id'])]
 
     n_with_iso = df['estim_min_isolation_um'].notna().sum()
@@ -419,6 +472,133 @@ def plot_isolation_vs_effect(session_ids=None, metric=METRIC_PCT_HYPOTHESIZED,
     return plot_df
 
 
+def plot_power_over_isolation_vs_effect(session_ids=None, metric=METRIC_PCT_HYPOTHESIZED,
+                                        isolation_metric='min', required_conditions=None,
+                                        behavioral_conditions=BEHAVIORAL_KEYS,
+                                        min_on_trials=15, min_off_trials=15,
+                                        require_positive_isolation=True,
+                                        abs_effect=False, output_path=None, df=None):
+    """Scatter (total stimulation current / isolation) vs estim effect, one point
+    per estim spec, split into anodic vs cathodic series.
+
+    The x metric combines stimulation power with isolation:
+
+        power_over_isolation = total_current_uA / isolation_um
+
+    where total_current_uA is the summed a1 across the spec's active channels and
+    isolation_um is estim_min/mean_isolation_um. Intuition: a lot of current
+    delivered into poorly-isolated tissue (small isolation) spreads across
+    clusters — both too-high and too-low values of this ratio are expected to be
+    bad, so the effect-vs-ratio relationship should be hump-shaped rather than
+    monotonic. Anodic (PositiveFirst) and cathodic (NegativeFirst) specs are
+    plotted as separate series because we don't yet know how polarity should
+    enter the metric.
+
+    Args:
+        isolation_metric: 'min' / 'mean' (denominator of the ratio).
+        require_positive_isolation: drop specs whose isolation <= 0. Isolation
+            goes negative when a spec's channels split across clusters (see
+            cluster_isolation_score.SPLIT_PENALTY_UM); dividing current by a
+            negative/zero isolation makes the ratio uninterpretable, so by
+            default those specs are excluded. Set False to keep them.
+        abs_effect: plot |effect| instead of signed effect.
+        df: precomputed table (skips recompute).
+
+    Returns the filtered DataFrame actually plotted.
+    """
+    iso_col = ISOLATION_COLUMNS.get(isolation_metric)
+    if iso_col is None:
+        raise ValueError(f"isolation_metric must be one of {sorted(ISOLATION_COLUMNS)}; "
+                         f"got {isolation_metric!r}")
+
+    if df is None:
+        df = compute_isolation_effect_table(
+            session_ids=session_ids, metric=metric,
+            required_conditions=required_conditions,
+            behavioral_conditions=behavioral_conditions)
+    if len(df) == 0:
+        print("Nothing to plot.")
+        return df
+
+    plot_df = df[
+        df['effect_size'].notna()
+        & df[iso_col].notna()
+        & df['total_current_uA'].notna()
+        & (df['n_on'] >= min_on_trials)
+        & (df['n_off'] >= min_off_trials)
+    ].copy()
+
+    if require_positive_isolation:
+        n_before = len(plot_df)
+        plot_df = plot_df[plot_df[iso_col] > 0]
+        dropped = n_before - len(plot_df)
+        if dropped:
+            print(f"Dropped {dropped} specs with {iso_col} <= 0 "
+                  f"(set require_positive_isolation=False to keep them)")
+
+    if len(plot_df) == 0:
+        print("No specs pass filters.")
+        return plot_df
+
+    plot_df['power_over_isolation'] = plot_df['total_current_uA'] / plot_df[iso_col]
+    plot_df['y'] = plot_df['effect_size'].abs() if abs_effect else plot_df['effect_size']
+
+    fig, ax = plt.subplots(figsize=(9, 7))
+
+    # One series per polarity; unknown/other polarities collapse into a gray series.
+    series_order = ['PositiveFirst', 'NegativeFirst']
+    present = [p for p in series_order if (plot_df['polarity'] == p).any()]
+    other = [p for p in plot_df['polarity'].dropna().unique() if p not in series_order]
+    for pol in present + other:
+        sub = plot_df[plot_df['polarity'] == pol]
+        if len(sub) == 0:
+            continue
+        color = POLARITY_COLORS.get(pol, '#757575')
+        label = POLARITY_LABELS.get(pol, str(pol))
+        corr = _correlation(sub['power_over_isolation'].to_numpy(), sub['y'].to_numpy())
+        if corr:
+            label += f"  (n={corr['n']}, r={corr['pearson_r']:.2f}"
+            if corr['pearson_p'] is not None:
+                label += f", p={corr['pearson_p']:.3g}"
+            label += ")"
+        ax.scatter(sub['power_over_isolation'], sub['y'], s=60, alpha=0.8,
+                   color=color, edgecolors='black', linewidths=0.5, label=label)
+        # Per-series trend line
+        if len(sub) >= 2:
+            xs = sub['power_over_isolation'].to_numpy(dtype=float)
+            ys = sub['y'].to_numpy(dtype=float)
+            slope, intercept = np.polyfit(xs, ys, 1)
+            x_line = np.array([xs.min(), xs.max()])
+            ax.plot(x_line, slope * x_line + intercept, color=color,
+                    linewidth=2, alpha=0.7)
+
+    if not abs_effect:
+        ax.axhline(0, color='black', linestyle='--', linewidth=1, alpha=0.5)
+
+    ax.set_xlabel(f"total current (µA) / {iso_col}  "
+                  f"(power per µm of isolation)", fontsize=12)
+    ax.set_ylabel(f"{'|effect|' if abs_effect else 'effect'} "
+                  f"(EStim ON − OFF %, metric={metric})", fontsize=12)
+
+    title = "Stimulation power / isolation vs raw effect (per estim spec)"
+    if required_conditions:
+        req = ', '.join(f"{k}={v}" for k, v in required_conditions.items())
+        title += f"\nrequired: {req}"
+    ax.set_title(title, fontsize=12)
+    ax.legend(fontsize=9, framealpha=0.9)
+    ax.grid(True, alpha=0.3)
+
+    fig.tight_layout()
+    if output_path:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        fig.savefig(output_path, dpi=150, bbox_inches='tight')
+        svg_path = output_path.rsplit('.', 1)[0] + '.svg'
+        fig.savefig(svg_path, bbox_inches='tight')
+        print(f"Saved plot to {output_path}")
+    plt.show()
+    return plot_df
+
+
 def main():
     # Any metric understood by the rest of the group_analysis code works here.
     metric = METRIC_PCT_HYP_VS_DELTA
@@ -434,20 +614,37 @@ def main():
     }
 
     save_dir = "/home/connorlab/Documents/plots/across_experiments/"
-    output_path = os.path.join(save_dir, "isolation_vs_effect_min.png")
 
     # 'min'  -> estim_min_isolation_um (worst channel)
     # 'mean' -> estim_mean_isolation_um (average per channel)
+    isolation_metric = 'min'
+
+    # Plot 1: raw isolation vs effect.
     plot_isolation_vs_effect(
-        session_ids=None,            # None = all sessions
+        session_ids=None,            # None = all sessions with isolation scores
         metric=metric,
-        isolation_metric='min',
+        isolation_metric=isolation_metric,
         required_conditions=required_conditions or None,
         min_on_trials=15,
         min_off_trials=15,
         abs_effect=False,            # True -> relate isolation to effect MAGNITUDE
         color_by_session=True,
-        output_path=output_path,
+        output_path=os.path.join(save_dir, f"isolation_vs_effect_{isolation_metric}.png"),
+    )
+
+    # Plot 2: combined metric — total stimulation current / isolation, split by
+    # polarity (anodic vs cathodic). NOTE: don't pin polarity in
+    # required_conditions here, or one of the two series will be empty.
+    plot_power_over_isolation_vs_effect(
+        session_ids=None,
+        metric=metric,
+        isolation_metric=isolation_metric,
+        required_conditions=required_conditions or None,
+        min_on_trials=15,
+        min_off_trials=15,
+        require_positive_isolation=True,  # drop splits-across-clusters (isolation <= 0)
+        abs_effect=False,
+        output_path=os.path.join(save_dir, f"power_over_isolation_vs_effect_{isolation_metric}.png"),
     )
 
 
