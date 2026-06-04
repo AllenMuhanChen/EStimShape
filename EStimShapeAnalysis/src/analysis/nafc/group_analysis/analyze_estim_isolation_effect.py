@@ -294,15 +294,19 @@ def _fetch_estim_power_and_polarity(session_ids=None):
 # Combined table
 # ---------------------------------------------------------------------------
 
-def compute_isolation_effect_table(session_ids=None, metric=METRIC_PCT_HYPOTHESIZED,
+def compute_isolation_effect_table(start_session_id=None, exclude_session_ids=None,
+                                   *, metric=METRIC_PCT_HYPOTHESIZED,
                                    required_conditions=None,
                                    behavioral_conditions=BEHAVIORAL_KEYS):
     """Build a per-(session, estim_spec) DataFrame of raw estim effect joined with
     isolation scores.
 
+    Operates on every session scored in EStimParameterData, then:
+      - start_session_id    : keep only sessions whose id >= this value
+                              (lexicographic works because ids are YYMMDD_N).
+      - exclude_session_ids : iterable of session ids to drop.
+
     Args:
-        session_ids: list of session_ids, single id string, or None for every
-                     session in EStimShapeTrials.
         metric:      any metric understood by _filter_for_metric.
         required_conditions: optional global trial filter (see module docstring).
         behavioral_conditions: keys used to match the estim-OFF baseline.
@@ -313,13 +317,16 @@ def compute_isolation_effect_table(session_ids=None, metric=METRIC_PCT_HYPOTHESI
         estim_mean_isolation_um, total_current_uA, polarity,
         n_active_channels. Empty DataFrame if nothing matched.
     """
-    if session_ids is None:
-        # Only sessions actually scored by the cluster app are worth processing —
-        # specs without isolation scores can't enter the isolation-vs-effect plot.
-        session_ids = _get_sessions_with_isolation()
-        print(f"Sessions with isolation scores in EStimParameterData: {len(session_ids)}")
-    elif isinstance(session_ids, str):
-        session_ids = [session_ids]
+    # Only sessions scored in EStimParameterData are worth processing — specs
+    # without any isolation/PC score can't enter the plots.
+    session_ids = _get_sessions_with_isolation()
+    if start_session_id is not None:
+        session_ids = [s for s in session_ids if s >= start_session_id]
+    if exclude_session_ids:
+        excluded = set(exclude_session_ids)
+        session_ids = [s for s in session_ids if s not in excluded]
+    print(f"Sessions scored in EStimParameterData (after start/exclude filters): "
+          f"{len(session_ids)}")
 
     all_rows = []
     for session_id in session_ids:
@@ -397,7 +404,8 @@ def _correlation(x, y):
     return result
 
 
-def plot_isolation_vs_effect(session_ids=None, metric=METRIC_PCT_HYPOTHESIZED,
+def plot_isolation_vs_effect(start_session_id=None, exclude_session_ids=None,
+                             *, metric=METRIC_PCT_HYPOTHESIZED,
                              isolation_metric='min', required_conditions=None,
                              behavioral_conditions=BEHAVIORAL_KEYS,
                              min_on_trials=15, min_off_trials=15,
@@ -406,6 +414,8 @@ def plot_isolation_vs_effect(session_ids=None, metric=METRIC_PCT_HYPOTHESIZED,
     """Scatter raw estim effect vs isolation score, one point per estim spec.
 
     Args:
+        start_session_id / exclude_session_ids: session selection (see
+            compute_isolation_effect_table).
         isolation_metric: 'min' / 'mean' (or the full column name).
         min_on_trials / min_off_trials: drop specs with too few trials.
         abs_effect: plot |effect| instead of signed effect — useful when you
@@ -422,7 +432,8 @@ def plot_isolation_vs_effect(session_ids=None, metric=METRIC_PCT_HYPOTHESIZED,
 
     if df is None:
         df = compute_isolation_effect_table(
-            session_ids=session_ids, metric=metric,
+            start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
+            metric=metric,
             required_conditions=required_conditions,
             behavioral_conditions=behavioral_conditions)
     if len(df) == 0:
@@ -506,7 +517,8 @@ def plot_isolation_vs_effect(session_ids=None, metric=METRIC_PCT_HYPOTHESIZED,
     return plot_df
 
 
-def plot_power_over_isolation_vs_effect(session_ids=None, metric=METRIC_PCT_HYPOTHESIZED,
+def plot_power_over_isolation_vs_effect(start_session_id=None, exclude_session_ids=None,
+                                        *, metric=METRIC_PCT_HYPOTHESIZED,
                                         isolation_metric='min', required_conditions=None,
                                         behavioral_conditions=BEHAVIORAL_KEYS,
                                         min_on_trials=15, min_off_trials=15,
@@ -560,7 +572,8 @@ def plot_power_over_isolation_vs_effect(session_ids=None, metric=METRIC_PCT_HYPO
 
     if df is None:
         df = compute_isolation_effect_table(
-            session_ids=session_ids, metric=metric,
+            start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
+            metric=metric,
             required_conditions=required_conditions,
             behavioral_conditions=behavioral_conditions)
     if len(df) == 0:
@@ -667,6 +680,13 @@ def main():
         # 'trial_type': 'Hypothesized Shape',
     }
 
+    # Session selection (same convention as max_estim_per_experiment):
+    #   start_session_id    -> e.g. "260402_0" to start from the first variant
+    #                          experiment; None = all scored sessions.
+    #   exclude_session_ids -> e.g. ["260421_0", "260410_0"].
+    start_session_id = None
+    exclude_session_ids = None
+
     save_dir = "/home/connorlab/Documents/plots/across_experiments/"
 
     # Which isolation metric to relate to effect:
@@ -681,7 +701,8 @@ def main():
 
     # Plot 1: raw isolation/distance vs effect.
     plot_isolation_vs_effect(
-        session_ids=None,            # None = all sessions scored in EStimParameterData
+        start_session_id=start_session_id,
+        exclude_session_ids=exclude_session_ids,
         metric=metric,
         isolation_metric=isolation_metric,
         required_conditions=required_conditions or None,
@@ -699,7 +720,8 @@ def main():
     # shouldn't be". NOTE: don't pin polarity in required_conditions here, or one
     # of the two series will be empty.
     plot_power_over_isolation_vs_effect(
-        session_ids=None,
+        start_session_id=start_session_id,
+        exclude_session_ids=exclude_session_ids,
         metric=metric,
         isolation_metric=isolation_metric,
         required_conditions=required_conditions or None,

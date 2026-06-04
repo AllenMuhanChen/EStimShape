@@ -348,22 +348,32 @@ def _sessions_with_estim():
     return [row[0] for row in conn.fetch_all()]
 
 
-def run_for_sessions(session_ids=None, *, reducer='pca', n_components=2,
+def run_for_sessions(start_session_id=None, exclude_session_ids=None, *,
+                     reducer='pca', n_components=2,
                      distance='euclidean', n_neighbors=3, exclude_other_estim=True,
                      within_session_norm='scale'):
-    """Compute and persist PC-neighbor scores for one or more sessions.
+    """Compute and persist PC-neighbor scores across sessions.
 
-    session_ids=None processes every session with estim data. Sessions that
-    raise (missing GA DB, etc.) are reported but don't abort the run."""
+    Operates on every session with estim data, then:
+      - start_session_id    : if given, keep only sessions whose id >= this value
+                              (lexicographic works because ids are YYMMDD_N).
+      - exclude_session_ids : iterable of session ids to drop.
+
+    Sessions that raise (missing GA DB, etc.) are reported but don't abort
+    the run."""
     repo_conn = Connection("allen_data_repository")
     _ensure_pc_neighbor_columns(repo_conn)
 
-    if session_ids is None:
-        session_ids = _sessions_with_estim()
-    elif isinstance(session_ids, str):
-        session_ids = [session_ids]
+    session_ids = _sessions_with_estim()
+    if start_session_id is not None:
+        session_ids = [s for s in session_ids if s >= start_session_id]
+    if exclude_session_ids:
+        excluded = set(exclude_session_ids)
+        session_ids = [s for s in session_ids if s not in excluded]
+
     print(f"PC-neighbor scoring {len(session_ids)} sessions "
-          f"(reducer={reducer}, n_components={n_components}, distance={distance}, "
+          f"(start={start_session_id}, excluded={sorted(exclude_session_ids) if exclude_session_ids else []}, "
+          f"reducer={reducer}, n_components={n_components}, distance={distance}, "
           f"n_neighbors={n_neighbors}, exclude_other_estim={exclude_other_estim}, "
           f"within_session_norm={within_session_norm})")
 
@@ -390,7 +400,9 @@ def run_for_sessions(session_ids=None, *, reducer='pca', n_components=2,
 
 def main():
     run_for_sessions(
-        session_ids=None,            # None = every session with estim data
+        start_session_id=None,        # e.g. "260402_0" to start from the first
+                                      # variant experiment; None = all sessions
+        exclude_session_ids=None,     # e.g. ["260421_0", "260410_0"]
         reducer='pca',               # 'pca' (matches cluster app) | 'mds' | 'none'
         n_components=2,               # 2 matches the cluster app; None = full space
         distance='euclidean',        # 'euclidean' (in embedding) | 'correlation'
