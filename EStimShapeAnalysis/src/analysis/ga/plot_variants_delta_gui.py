@@ -293,9 +293,11 @@ class DeltaVariantCurationApp:
         df = self.pairs.copy()
         sort_col = SORT_COLUMNS[self.sort_var.get()]
         ascending = not self.descending_var.get()
+        included_first = self.included_first_var.get()
+        group_variant = self.group_variant_var.get()
 
         by, asc = [], []
-        if self.group_variant_var.get():
+        if group_variant:
             # Keep the chosen metric as the primary ordering: position each
             # variant group by its best member under the current direction, so
             # groups flow left-to-right by metric while same-variant columns
@@ -303,9 +305,18 @@ class DeltaVariantCurationApp:
             # that share the same representative value.
             group_agg = "min" if ascending else "max"
             df["_group_key"] = df.groupby("PairedVariantId")[sort_col].transform(group_agg)
+            if included_first:
+                # Lift any group that contains at least one included pair above
+                # groups that have none; without this, the per-row Included key
+                # only ever sorts within a group (PairedVariantId already
+                # distinguishes groups), so "Included first" silently no-ops.
+                df["_group_has_included"] = (
+                    df.groupby("PairedVariantId")["Included"].transform("any"))
+                by.append("_group_has_included")
+                asc.append(False)
             by += ["_group_key", "PairedVariantId"]
             asc += [ascending, True]
-        if self.included_first_var.get():
+        if included_first:
             by.append("Included")
             asc.append(False)  # True (included) sorts first
         by.append(sort_col)
