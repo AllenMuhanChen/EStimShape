@@ -196,13 +196,14 @@ class PcInterpretationFigureExporter(DataExporter):
                        save_path):
         n_clusters = len(cluster_data)
         # Layout:
-        #   col 0                       : label column (scree at top, cluster labels below)
-        #   cols 1..N_AXIS_THUMBS       : PC1 axis rail (row 0), scatter (middle rows),
-        #                                  cluster thumbs (bottom rows; up to TOP_K_CLUSTER)
-        #   col N_AXIS_THUMBS + 1       : PC2 axis rail (vertical, beside scatter)
-        main_cols = max(N_AXIS_THUMBS, TOP_K_CLUSTER)
+        #   col 0                              : label column (scree at top, cluster labels below)
+        #   cols 1..(2*K_AXIS_PER_END)         : PC1 axis rail (row 0), scatter (middle rows),
+        #                                         cluster thumbs (bottom rows; up to TOP_K_CLUSTER)
+        #   col (2*K_AXIS_PER_END) + 1         : PC2 axis rail (vertical, beside scatter)
+        n_axis_thumbs = 2 * K_AXIS_PER_END
+        main_cols = max(n_axis_thumbs, TOP_K_CLUSTER)
         n_cols = 2 + main_cols
-        scatter_rowspan = N_AXIS_THUMBS  # one gridspec row per PC2 thumb
+        scatter_rowspan = n_axis_thumbs  # one gridspec row per PC2 thumb
         n_rows = 1 + scatter_rowspan + max(n_clusters, 1)
 
         fig = plt.figure(figsize=(1.6 * n_cols + 2, 1.4 * n_rows + 2),
