@@ -46,6 +46,14 @@ Design knobs (see run_for_sessions):
   - n_neighbors   : how many physically-nearest channels to average over (3).
   - exclude_other_estim : skip a spec's other active estim channels when picking
                     neighbors (they are the stim site, not surrounding tissue).
+  - within_session_norm : 'scale' (default) divides every distance by one
+                    within-session scalar — the RMS of all pairwise channel
+                    distances in the embedding — so a score reads as "multiples
+                    of this probe's typical spread" and is comparable across
+                    experiments regardless of each session's absolute PC scale.
+                    'none' leaves raw distances. The divisor preserves the PCA
+                    geometry (relative PC1/PC2 weighting), unlike per-PC
+                    whitening.
 
 Scores are upserted into EStimParameterData keyed by (session_id, estim_spec_id),
 alongside the existing isolation columns.
@@ -156,6 +164,24 @@ def _build_distance_fn(channels_with_data, normalized, reducer, n_components, di
     return dist
 
 
+def _within_session_scale(channels_with_data, dist_fn):
+    """RMS of all pairwise channel distances under dist_fn — one scalar per
+    session used to normalize distances for cross-session comparability.
+
+    Returns 1.0 (a no-op divisor) when there aren't enough channels or every
+    channel coincides."""
+    n = len(channels_with_data)
+    if n < 2:
+        return 1.0
+    squares = []
+    for i in range(n):
+        for j in range(i + 1, n):
+            d = dist_fn(channels_with_data[i], channels_with_data[j])
+            squares.append(d * d)
+    rms = float(np.sqrt(np.mean(squares))) if squares else 0.0
+    return rms if rms > 1e-12 else 1.0
+
+
 # ---------------------------------------------------------------------------
 # Per-channel + per-spec scoring
 # ---------------------------------------------------------------------------
@@ -198,6 +224,7 @@ def compute_pc_neighbor_score(estim_channels, channels_with_data, channel_mapper
 def compute_session_pc_neighbor_scores(session_id, *, reducer='pca', n_components=2,
                                        distance='euclidean', n_neighbors=3,
                                        exclude_other_estim=True,
+                                       within_session_norm='scale',
                                        channel_mapper=None):
     """Compute {estim_spec_id: {'mean': ..., 'max': ...}} for one session.
 
@@ -226,6 +253,17 @@ def compute_session_pc_neighbor_scores(session_id, *, reducer='pca', n_component
     normalized = normalize_per_channel(list(responses.values()))
     dist_fn = _build_distance_fn(channels_with_data, normalized, reducer,
                                  n_components, distance)
+
+    # Cross-session comparability: divide every distance by the probe's RMS
+    # pairwise distance so scores read as multiples of this session's spread.
+    if within_session_norm == 'scale':
+        scale = _within_session_scale(channels_with_data, dist_fn)
+        print(f"  {session_id}: within-session scale (RMS pairwise dist) = {scale:.3f}")
+        base_dist_fn = dist_fn
+        dist_fn = lambda a, b: base_dist_fn(a, b) / scale
+    elif within_session_norm not in (None, 'none'):
+        raise ValueError(f"within_session_norm must be 'scale' or 'none'; "
+                         f"got {within_session_norm!r}")
 
     if channel_mapper is None:
         channel_mapper = DBCChannelMapper("A")
@@ -311,7 +349,8 @@ def _sessions_with_estim():
 
 
 def run_for_sessions(session_ids=None, *, reducer='pca', n_components=2,
-                     distance='euclidean', n_neighbors=3, exclude_other_estim=True):
+                     distance='euclidean', n_neighbors=3, exclude_other_estim=True,
+                     within_session_norm='scale'):
     """Compute and persist PC-neighbor scores for one or more sessions.
 
     session_ids=None processes every session with estim data. Sessions that
@@ -325,7 +364,8 @@ def run_for_sessions(session_ids=None, *, reducer='pca', n_components=2,
         session_ids = [session_ids]
     print(f"PC-neighbor scoring {len(session_ids)} sessions "
           f"(reducer={reducer}, n_components={n_components}, distance={distance}, "
-          f"n_neighbors={n_neighbors}, exclude_other_estim={exclude_other_estim})")
+          f"n_neighbors={n_neighbors}, exclude_other_estim={exclude_other_estim}, "
+          f"within_session_norm={within_session_norm})")
 
     failed = []
     for sid in session_ids:
@@ -333,7 +373,8 @@ def run_for_sessions(session_ids=None, *, reducer='pca', n_components=2,
         try:
             scores = compute_session_pc_neighbor_scores(
                 sid, reducer=reducer, n_components=n_components, distance=distance,
-                n_neighbors=n_neighbors, exclude_other_estim=exclude_other_estim)
+                n_neighbors=n_neighbors, exclude_other_estim=exclude_other_estim,
+                within_session_norm=within_session_norm)
         except Exception:
             traceback.print_exc()
             failed.append(sid)
@@ -349,12 +390,14 @@ def run_for_sessions(session_ids=None, *, reducer='pca', n_components=2,
 
 def main():
     run_for_sessions(
-        session_ids=None,        # None = every session with estim data
-        reducer='pca',           # 'pca' (matches cluster app) | 'mds' | 'none'
-        n_components=2,           # 2 matches the cluster app; None = full space
-        distance='euclidean',    # 'euclidean' (in embedding) | 'correlation'
+        session_ids=None,            # None = every session with estim data
+        reducer='pca',               # 'pca' (matches cluster app) | 'mds' | 'none'
+        n_components=2,               # 2 matches the cluster app; None = full space
+        distance='euclidean',        # 'euclidean' (in embedding) | 'correlation'
         n_neighbors=3,
         exclude_other_estim=True,
+        within_session_norm='scale',  # 'scale' (RMS divisor, comparable across
+                                      # experiments) | 'none' (raw distances)
     )
 
 
