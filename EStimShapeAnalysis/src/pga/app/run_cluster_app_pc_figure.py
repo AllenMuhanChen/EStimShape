@@ -31,6 +31,9 @@ from clat.intan.channels import Channel
 from clat.util.connection import Connection
 from src.cluster.cluster_app import ClusterApplicationWindow
 from src.cluster.cluster_app_classes import DataExporter, MAX_GROUPS
+from src.cluster.cluster_isolation_score import (
+    compute_estim_cluster_isolation_score,
+    save_estim_cluster_isolation_score)
 from src.cluster.dimensionality_reduction import (DimensionalityReducer,
                                                   PCAReducer, SparsePCAReducer)
 from src.cluster.mock_cluster_app import get_qapplication_instance
@@ -39,6 +42,8 @@ from src.pga.app.run_cluster_app import DbClusterLoader, DbDataLoader
 from src.repository.export_to_repository import \
     read_session_id_and_date_from_db_name
 from src.startup import context
+
+PLOT_BASE_DIR = "/home/connorlab/Documents/plots"
 
 K_AXIS_PER_END = 4      # thumbs per PC end (so PC1 rail shows 2*K_AXIS_PER_END thumbs total)
 TOP_K_CLUSTER = 8       # top stimuli per cluster
@@ -49,13 +54,21 @@ LOADING_CMAP = 'coolwarm'  # diverging colormap for PC loading subtitle text
 
 class PcInterpretationFigureExporter(DataExporter):
     def __init__(self, data_loader: DbDataLoader, reducer: DimensionalityReducer,
-                 session_id: str, save_dir: str):
+                 channel_mapper, session_id: str, save_dir: str):
         self.data_loader = data_loader
         self.reducer = reducer
+        self.channel_mapper = channel_mapper
         self.session_id = session_id
         self.save_dir = save_dir
 
     def export_channels_for_clusters(self, channels_for_clusters: dict[int, list[Channel]]):
+        # Two separate analyses share the Export button. Keep them clearly
+        # disjoint so callers can reuse either independently.
+        self._render_pc_interpretation_figure(channels_for_clusters)
+        self._compute_and_save_estim_isolation_score(channels_for_clusters)
+
+    def _render_pc_interpretation_figure(self,
+                                         channels_for_clusters: dict[int, list[Channel]]):
         data_for_channels = self.data_loader.load_data_for_channels()
         data_for_channels = {ch: v for ch, v in data_for_channels.items() if len(v) > 0}
         channels = list(data_for_channels.keys())
@@ -81,10 +94,6 @@ class PcInterpretationFigureExporter(DataExporter):
 
         centroids = self._compute_centroids(channels, reduced, channels_for_clusters)
 
-        # PC axis thumbs: top-K most-negative + top-K most-positive loadings.
-        # Returned indices are sorted by loading value ascending so the rails
-        # read monotonically (PC1 neg→pos left-to-right; PC2 reversed for
-        # pos→neg top-to-bottom in _render_pc2_rail).
         pc1_axis_idxs = _signed_extreme_thumbs(loadings[0], K_AXIS_PER_END)
         pc2_axis_idxs = _signed_extreme_thumbs(loadings[1], K_AXIS_PER_END)
 
@@ -99,6 +108,18 @@ class PcInterpretationFigureExporter(DataExporter):
                             explained_variance_ratio,
                             save_path)
         print(f"Saved PC interpretation figure to {save_path}")
+
+    def _compute_and_save_estim_isolation_score(self,
+                                                channels_for_clusters: dict[int, list[Channel]]):
+        score = compute_estim_cluster_isolation_score(
+            channels_for_clusters, self.channel_mapper)
+        if score is None:
+            print("Skipped estim cluster isolation score: need at least one estim "
+                  "channel and one channel in another non-zero cluster.")
+            return
+        print(f"Estim cluster isolation score: {score:.1f} um")
+        repo_conn = Connection("allen_data_repository")
+        save_estim_cluster_isolation_score(repo_conn, self.session_id, score)
 
     @staticmethod
     def _normalize_per_channel(values: list[np.ndarray]) -> np.ndarray:
@@ -421,14 +442,16 @@ def _scaled_border_color(response: float, min_val: float, max_val: float,
 
 def main():
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
-    save_dir = context.pc_maps_path
+    save_dir = os.path.join(PLOT_BASE_DIR, session_id)
 
     data_loader = DbDataLoader(context.ga_config.connection())
+    channel_mapper = DBCChannelMapper("A")
     pca_reducer = PCAReducer()
     sparse_pca_reducer = SparsePCAReducer()
     exporter = PcInterpretationFigureExporter(
         data_loader=data_loader,
         reducer=pca_reducer,
+        channel_mapper=channel_mapper,
         session_id=session_id,
         save_dir=save_dir,
     )
@@ -438,7 +461,7 @@ def main():
         data_loader,
         exporter,
         [pca_reducer, sparse_pca_reducer],
-        DBCChannelMapper("A"),
+        channel_mapper,
         DbClusterLoader(context.ga_config.db_util),
     )
     window.show()
