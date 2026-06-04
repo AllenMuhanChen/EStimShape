@@ -20,10 +20,10 @@ Only PCA and SparsePCA reducers are supported (they expose linear loadings).
 import os
 from datetime import datetime
 
-import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image, ImageOps
 from matplotlib import cm
+from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
 from sklearn.decomposition import PCA
 
@@ -101,13 +101,17 @@ class PcInterpretationFigureExporter(DataExporter):
             channels, raw_responses, channels_for_clusters)
 
         save_path = self._build_save_path()
-        self._render_figure(reduced, channels, channels_for_clusters,
-                            centroids, cluster_data, loadings,
-                            pc1_axis_idxs, pc2_axis_idxs,
-                            stim_ids, thumbs,
-                            explained_variance_ratio,
-                            save_path)
+        fig = self._render_figure(reduced, channels, channels_for_clusters,
+                                  centroids, cluster_data, loadings,
+                                  pc1_axis_idxs, pc2_axis_idxs,
+                                  stim_ids, thumbs,
+                                  explained_variance_ratio,
+                                  save_path)
         print(f"Saved PC interpretation figure to {save_path}")
+        # Show on screen so clusters can be judged by their shape tuning before
+        # committing. Re-clicking Export re-renders here and re-writes the
+        # isolation scores, overriding the previous result.
+        self._show_figure_window(fig, save_path)
 
     def _compute_and_save_estim_isolation_score(self,
                                                 channels_for_clusters: dict[int, list[Channel]]):
@@ -235,8 +239,11 @@ class PcInterpretationFigureExporter(DataExporter):
         scatter_rowspan = n_axis_thumbs  # one gridspec row per PC2 thumb
         n_rows = 1 + scatter_rowspan + max(n_clusters, 1)
 
-        fig = plt.figure(figsize=(1.6 * n_cols + 2, 1.4 * n_rows + 2),
-                         constrained_layout=True)
+        # Build the figure without pyplot so it doesn't touch global state /
+        # interfere with the running Qt event loop; it's displayed in its own
+        # window by _show_figure_window.
+        fig = Figure(figsize=(1.6 * n_cols + 2, 1.4 * n_rows + 2),
+                     constrained_layout=True)
         gs = GridSpec(
             n_rows, n_cols, figure=fig,
             width_ratios=[1.2] + [1.0] * main_cols + [1.0],
@@ -260,7 +267,43 @@ class PcInterpretationFigureExporter(DataExporter):
         fig.suptitle(f"PC interpretation — {self.reducer.get_name()} "
                      f"(session {self.session_id})", fontsize=14)
         fig.savefig(save_path, dpi=120)
-        plt.close(fig)
+        return fig
+
+    def _show_figure_window(self, fig, save_path):
+        """Display the rendered figure in its own non-blocking Qt window with a
+        navigation toolbar (zoom/pan to inspect each cluster's shape tuning).
+
+        Keeps a single window per exporter: re-exporting closes the previous one
+        so the screen always shows the latest clustering.
+        """
+        from matplotlib.backends.backend_qt5agg import (
+            FigureCanvasQTAgg, NavigationToolbar2QT)
+        from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout
+
+        previous = getattr(self, '_figure_window', None)
+        if previous is not None:
+            try:
+                previous.close()
+            except Exception:
+                pass
+
+        window = QMainWindow()
+        window.setWindowTitle(
+            f"PC interpretation — {self.reducer.get_name()} "
+            f"(session {self.session_id}) — {os.path.basename(save_path)}")
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        canvas = FigureCanvasQTAgg(fig)
+        toolbar = NavigationToolbar2QT(canvas, container)
+        layout.addWidget(toolbar)
+        layout.addWidget(canvas)
+        window.setCentralWidget(container)
+        window.resize(1500, 950)
+        window.show()
+        canvas.draw()
+        # Hold a reference so the window isn't garbage-collected when this
+        # method returns.
+        self._figure_window = window
 
     @staticmethod
     def _render_scree(ax, explained_variance_ratio):
