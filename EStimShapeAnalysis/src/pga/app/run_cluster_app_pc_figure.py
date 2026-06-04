@@ -5,9 +5,11 @@ instead of writing cluster channels to the GA database.
 The figure shows, for the currently-displayed PCA-family reducer:
   - a scree plot of explained variance (full PCA, not just 2 components)
   - the cluster scatter with centroids marked
-  - thumbnails of stimuli at the +/- extremes of PC1 and PC2, positioned
-    above / to the right of the scatter at their actual loading values
-    (rescaled to the scatter's score range, biplot-style)
+  - N thumbnails along each PC axis, sampled at evenly-spaced quantiles
+    of the loading distribution (not just the extremes). PC1 thumbs run
+    left-to-right above the scatter, ordered by ascending loading;
+    PC2 thumbs run top-to-bottom to the right, ordered by descending
+    loading. Each thumb's loading value is printed beneath it.
   - top-K thumbnails per cluster ranked by mean response across the cluster's
     channels, with cluster-colored borders whose intensity scales with each
     cluster's own min..max response range.
@@ -23,8 +25,6 @@ import numpy as np
 from PIL import Image, ImageOps
 from matplotlib import cm
 from matplotlib.gridspec import GridSpec
-from matplotlib.patches import ConnectionPatch
-from matplotlib.transforms import blended_transform_factory
 from sklearn.decomposition import PCA
 
 from clat.intan.channels import Channel
@@ -40,13 +40,10 @@ from src.repository.export_to_repository import \
     read_session_id_and_date_from_db_name
 from src.startup import context
 
-TOP_K_AXIS = 4         # thumbs per PC end (PC1 has TOP_K_AXIS on each side, PC2 same)
-TOP_K_CLUSTER = 8      # top stimuli per cluster
-BORDER_WIDTH = 30      # pixels of colored border around each cluster thumb
+N_AXIS_THUMBS = 8       # thumbs sampled along each PC axis (across the loading distribution)
+TOP_K_CLUSTER = 8       # top stimuli per cluster
+BORDER_WIDTH = 30       # pixels of colored border around each cluster thumb
 SCREE_MAX_COMPONENTS = 20
-AXIS_FILL_RATIO = 0.92  # scale loadings so the max-shown loading reaches this fraction of axis extent
-LEADER_COLOR = 'darkgray'
-LEADER_LW = 0.8
 
 
 class PcInterpretationFigureExporter(DataExporter):
@@ -83,10 +80,10 @@ class PcInterpretationFigureExporter(DataExporter):
 
         centroids = self._compute_centroids(channels, reduced, channels_for_clusters)
 
-        pc1_pos = np.argsort(loadings[0])[-TOP_K_AXIS:][::-1]
-        pc1_neg = np.argsort(loadings[0])[:TOP_K_AXIS]
-        pc2_pos = np.argsort(loadings[1])[-TOP_K_AXIS:][::-1]
-        pc2_neg = np.argsort(loadings[1])[:TOP_K_AXIS]
+        # PC axis thumbs: sample evenly through the sorted-loading distribution.
+        # Returned indices are sorted by loading value ascending.
+        pc1_axis_idxs = _sample_thumbs_by_loading_distribution(loadings[0], N_AXIS_THUMBS)
+        pc2_axis_idxs = _sample_thumbs_by_loading_distribution(loadings[1], N_AXIS_THUMBS)
 
         cluster_data = self._compute_cluster_top_by_mean_response(
             channels, raw_responses, channels_for_clusters)
@@ -94,7 +91,7 @@ class PcInterpretationFigureExporter(DataExporter):
         save_path = self._build_save_path()
         self._render_figure(reduced, channels, channels_for_clusters,
                             centroids, cluster_data, loadings,
-                            pc1_pos, pc1_neg, pc2_pos, pc2_neg,
+                            pc1_axis_idxs, pc2_axis_idxs,
                             stim_ids, thumbs,
                             explained_variance_ratio,
                             save_path)
@@ -190,49 +187,46 @@ class PcInterpretationFigureExporter(DataExporter):
 
     def _render_figure(self, reduced, channels, channels_for_clusters,
                        centroids, cluster_data, loadings,
-                       pc1_pos, pc1_neg, pc2_pos, pc2_neg,
+                       pc1_axis_idxs, pc2_axis_idxs,
                        stim_ids, thumbs,
                        explained_variance_ratio,
                        save_path):
         n_clusters = len(cluster_data)
         # Layout:
-        #   col 0                      : label column (scree at top, cluster labels below)
-        #   cols 1..TOP_K_CLUSTER      : PC1 axis rail (row 0), scatter (middle rows),
-        #                                cluster thumbs (bottom rows)
-        #   col TOP_K_CLUSTER + 1      : PC2 axis rail (vertical, beside scatter)
-        n_cols = 2 + TOP_K_CLUSTER
-        scatter_rowspan = 2 * TOP_K_AXIS  # match PC2 rail height
+        #   col 0                       : label column (scree at top, cluster labels below)
+        #   cols 1..N_AXIS_THUMBS       : PC1 axis rail (row 0), scatter (middle rows),
+        #                                  cluster thumbs (bottom rows; up to TOP_K_CLUSTER)
+        #   col N_AXIS_THUMBS + 1       : PC2 axis rail (vertical, beside scatter)
+        main_cols = max(N_AXIS_THUMBS, TOP_K_CLUSTER)
+        n_cols = 2 + main_cols
+        scatter_rowspan = N_AXIS_THUMBS  # one gridspec row per PC2 thumb
         n_rows = 1 + scatter_rowspan + max(n_clusters, 1)
 
-        fig = plt.figure(figsize=(1.6 * n_cols + 2, 1.6 * n_rows + 2))
+        fig = plt.figure(figsize=(1.6 * n_cols + 2, 1.4 * n_rows + 2),
+                         constrained_layout=True)
         gs = GridSpec(
-            n_rows, n_cols, figure=fig, hspace=0.55, wspace=0.3,
-            width_ratios=[1.2] + [1.0] * TOP_K_CLUSTER + [1.0],
+            n_rows, n_cols, figure=fig,
+            width_ratios=[1.2] + [1.0] * main_cols + [1.0],
         )
 
         scree_ax = fig.add_subplot(gs[0:2, 0])
         self._render_scree(scree_ax, explained_variance_ratio)
 
-        scatter_ax = fig.add_subplot(gs[1:1 + scatter_rowspan, 1:1 + TOP_K_CLUSTER])
+        scatter_ax = fig.add_subplot(gs[1:1 + scatter_rowspan, 1:1 + main_cols])
         self._render_scatter(scatter_ax, reduced, channels,
                              channels_for_clusters, centroids)
 
-        # PC axis rails — rank-ordered, evenly spaced thumbs with leader lines
-        # going to each thumb's actual loading position on the scatter edge.
-        pc1_axes = self._render_pc1_rail(fig, gs, pc1_neg, pc1_pos, loadings,
-                                         stim_ids, thumbs)
-        pc2_axes = self._render_pc2_rail(fig, gs, pc2_neg, pc2_pos, loadings,
-                                         stim_ids, thumbs, scatter_rowspan,
-                                         n_cols)
-        self._draw_leader_lines(fig, scatter_ax, pc1_axes, pc2_axes,
-                                loadings, reduced)
+        self._render_pc1_rail(fig, gs, pc1_axis_idxs, loadings, stim_ids, thumbs,
+                              main_cols)
+        self._render_pc2_rail(fig, gs, pc2_axis_idxs, loadings, stim_ids, thumbs,
+                              scatter_rowspan, n_cols)
 
         self._render_cluster_rows(fig, gs, cluster_data, stim_ids, thumbs,
                                   scatter_rowspan)
 
         fig.suptitle(f"PC interpretation — {self.reducer.get_name()} "
-                     f"(session {self.session_id})", fontsize=14, y=1.0)
-        fig.savefig(save_path, dpi=120, bbox_inches='tight')
+                     f"(session {self.session_id})", fontsize=14)
+        fig.savefig(save_path, dpi=120)
         plt.close(fig)
 
     @staticmethod
@@ -248,79 +242,37 @@ class PcInterpretationFigureExporter(DataExporter):
         ax.set_xticks(xs[::max(1, n // 6)])
 
     @staticmethod
-    def _render_pc1_rail(fig, gs, pc1_neg, pc1_pos, loadings, stim_ids, thumbs):
-        """Top row, evenly-spaced rank-ordered thumbs spanning the cluster-thumb columns.
+    def _render_pc1_rail(fig, gs, pc1_axis_idxs, loadings, stim_ids, thumbs,
+                         main_cols):
+        """Top row, thumbs ordered left-to-right by ascending PC1 loading.
 
-        Returns a list of (thumb_ax, stim_idx) for leader-line connection.
+        pc1_axis_idxs is already sorted by ascending loading (output of
+        _sample_thumbs_by_loading_distribution).
         """
-        ordered = list(pc1_neg) + list(pc1_pos)
-        # If we're showing fewer thumbs than TOP_K_CLUSTER columns, center them.
-        offset = (TOP_K_CLUSTER - len(ordered)) // 2
-        out = []
-        for slot, stim_idx in enumerate(ordered):
+        n = len(pc1_axis_idxs)
+        offset = (main_cols - n) // 2  # center if fewer than main_cols
+        for slot, stim_idx in enumerate(pc1_axis_idxs):
             col = 1 + offset + slot
             ax = fig.add_subplot(gs[0, col])
-            _draw_simple_thumb(ax, stim_idx, stim_ids, thumbs,
+            _draw_simple_thumb(ax, int(stim_idx), stim_ids, thumbs,
                                subtitle=f"PC1: {loadings[0, stim_idx]:+.2f}")
-            out.append((ax, stim_idx))
-        return out
 
     @staticmethod
-    def _render_pc2_rail(fig, gs, pc2_neg, pc2_pos, loadings, stim_ids, thumbs,
-                        scatter_rowspan, n_cols):
-        """Right column, evenly-spaced rank-ordered thumbs.
+    def _render_pc2_rail(fig, gs, pc2_axis_idxs, loadings, stim_ids, thumbs,
+                         scatter_rowspan, n_cols):
+        """Right column, thumbs ordered top-to-bottom by descending PC2 loading.
 
-        Most-positive on top, most-negative on bottom.
+        pc2_axis_idxs is sorted ascending — reverse for top=most-positive layout.
         """
-        ordered_top_to_bottom = list(pc2_pos) + list(pc2_neg)
+        top_to_bottom = list(reversed(list(pc2_axis_idxs)))
         col = n_cols - 1
-        out = []
-        for slot, stim_idx in enumerate(ordered_top_to_bottom):
-            row = 1 + slot
+        n = len(top_to_bottom)
+        offset = (scatter_rowspan - n) // 2
+        for slot, stim_idx in enumerate(top_to_bottom):
+            row = 1 + offset + slot
             ax = fig.add_subplot(gs[row, col])
-            _draw_simple_thumb(ax, stim_idx, stim_ids, thumbs,
+            _draw_simple_thumb(ax, int(stim_idx), stim_ids, thumbs,
                                subtitle=f"PC2: {loadings[1, stim_idx]:+.2f}")
-            out.append((ax, stim_idx))
-        return out
-
-    @staticmethod
-    def _draw_leader_lines(fig, scatter_ax, pc1_axes, pc2_axes, loadings, reduced):
-        """Draw a thin line from each PC rail thumb to its actual loading
-        position on the corresponding scatter axis edge.
-
-        Loading values are scaled so the most-extreme shown loading lands at
-        AXIS_FILL_RATIO of the scatter's score range — same as the
-        biplot-style positioning we'd use without the rail.
-        """
-        pc1_indices = [idx for _, idx in pc1_axes]
-        pc2_indices = [idx for _, idx in pc2_axes]
-        pc1_scale = _loading_to_score_scale(loadings[0], reduced[:, 0], pc1_indices)
-        pc2_scale = _loading_to_score_scale(loadings[1], reduced[:, 1], pc2_indices)
-
-        # x in scatter data coords, y in scatter axes-fraction
-        bt_xdata_yaxes = blended_transform_factory(scatter_ax.transData,
-                                                   scatter_ax.transAxes)
-        # x in scatter axes-fraction, y in scatter data coords
-        bt_xaxes_ydata = blended_transform_factory(scatter_ax.transAxes,
-                                                   scatter_ax.transData)
-
-        for thumb_ax, stim_idx in pc1_axes:
-            x_data = float(loadings[0, stim_idx]) * pc1_scale
-            con = ConnectionPatch(
-                xyA=(0.5, 0.0), coordsA=thumb_ax.transAxes,
-                xyB=(x_data, 1.0), coordsB=bt_xdata_yaxes,
-                color=LEADER_COLOR, linewidth=LEADER_LW, zorder=0,
-            )
-            fig.add_artist(con)
-
-        for thumb_ax, stim_idx in pc2_axes:
-            y_data = float(loadings[1, stim_idx]) * pc2_scale
-            con = ConnectionPatch(
-                xyA=(0.0, 0.5), coordsA=thumb_ax.transAxes,
-                xyB=(1.0, y_data), coordsB=bt_xaxes_ydata,
-                color=LEADER_COLOR, linewidth=LEADER_LW, zorder=0,
-            )
-            fig.add_artist(con)
 
     @staticmethod
     def _render_scatter(ax, reduced, channels, channels_for_clusters, centroids):
@@ -347,8 +299,9 @@ class PcInterpretationFigureExporter(DataExporter):
     def _render_cluster_rows(fig, gs, cluster_data, stim_ids, thumbs,
                              scatter_rowspan):
         colormap = cm.get_cmap('tab10', MAX_GROUPS)
+        first_cluster_row = 1 + scatter_rowspan  # row 0 = PC1 rail, rows 1..scatter_rowspan = scatter
         for row_offset, (cid, info) in enumerate(sorted(cluster_data.items())):
-            row = scatter_rowspan + row_offset
+            row = first_cluster_row + row_offset
             base_color = colormap(cid / MAX_GROUPS)[:3]  # RGB 0-1
             label_ax = fig.add_subplot(gs[row, 0])
             label_ax.text(0.5, 0.5,
@@ -397,16 +350,24 @@ def _draw_simple_thumb(ax, stim_idx: int, stim_ids: list, thumbs: dict,
         ax.set_title(subtitle, fontsize=7, pad=1, color='dimgray')
 
 
-def _loading_to_score_scale(loading_vec, score_vec, shown_idxs) -> float:
-    """Scale factor that maps the most-extreme shown loading onto
-    AXIS_FILL_RATIO of the score range, so thumbs land inside the axes."""
-    if len(shown_idxs) == 0:
-        return 1.0
-    max_loading = max(abs(float(loading_vec[i])) for i in shown_idxs)
-    max_score = float(np.max(np.abs(score_vec))) if len(score_vec) else 1.0
-    if max_loading == 0 or max_score == 0:
-        return 1.0
-    return (max_score * AXIS_FILL_RATIO) / max_loading
+def _sample_thumbs_by_loading_distribution(loading_vec, n_thumbs: int) -> np.ndarray:
+    """Pick n_thumbs stim indices whose loadings span the loading distribution.
+
+    Samples evenly through the sorted order (i.e. evenly spaced quantiles), so
+    a thumb at slot k represents roughly the k-th percentile of stimuli on that
+    PC. Indices are returned sorted by loading value ascending, so the caller
+    can lay them out in monotonic order.
+    """
+    loading_vec = np.asarray(loading_vec)
+    n_stims = len(loading_vec)
+    if n_stims == 0:
+        return np.array([], dtype=int)
+    sorted_idxs = np.argsort(loading_vec)
+    if n_thumbs >= n_stims:
+        return sorted_idxs
+    positions = np.linspace(0, n_stims - 1, n_thumbs).round().astype(int)
+    positions = np.unique(positions)
+    return sorted_idxs[positions]
 
 
 def _load_thumb_image(stim_idx: int, stim_ids: list, thumbs: dict):
