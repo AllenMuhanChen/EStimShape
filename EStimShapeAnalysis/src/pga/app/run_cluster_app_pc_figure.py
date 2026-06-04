@@ -23,7 +23,8 @@ import numpy as np
 from PIL import Image, ImageOps
 from matplotlib import cm
 from matplotlib.gridspec import GridSpec
-from matplotlib.offsetbox import AnnotationBbox, OffsetImage
+from matplotlib.patches import ConnectionPatch
+from matplotlib.transforms import blended_transform_factory
 from sklearn.decomposition import PCA
 
 from clat.intan.channels import Channel
@@ -43,8 +44,9 @@ TOP_K_AXIS = 4         # thumbs per PC end (PC1 has TOP_K_AXIS on each side, PC2
 TOP_K_CLUSTER = 8      # top stimuli per cluster
 BORDER_WIDTH = 30      # pixels of colored border around each cluster thumb
 SCREE_MAX_COMPONENTS = 20
-AXIS_THUMB_ZOOM = 0.20    # OffsetImage zoom for PC axis thumbs (relative to native pixel size)
-AXIS_FILL_RATIO = 0.92    # scale loadings so max-shown lands at this fraction of axis extent
+AXIS_FILL_RATIO = 0.92  # scale loadings so the max-shown loading reaches this fraction of axis extent
+LEADER_COLOR = 'darkgray'
+LEADER_LW = 0.8
 
 
 class PcInterpretationFigureExporter(DataExporter):
@@ -193,35 +195,43 @@ class PcInterpretationFigureExporter(DataExporter):
                        explained_variance_ratio,
                        save_path):
         n_clusters = len(cluster_data)
-        # Simplified layout:
-        #   col 0                       : label column (cluster labels, scree at top)
-        #   cols 1..TOP_K_CLUSTER       : scatter (upper rows) + cluster thumbs (lower rows)
-        # PC1/PC2 axis thumbs float as AnnotationBboxes on the scatter, anchored at
-        # their actual loading values (rescaled to the scatter's score range).
-        n_cols = 1 + TOP_K_CLUSTER
-        scatter_rowspan = 5
-        scree_rowspan = 2
-        n_rows = scatter_rowspan + max(n_clusters, 1)
+        # Layout:
+        #   col 0                      : label column (scree at top, cluster labels below)
+        #   cols 1..TOP_K_CLUSTER      : PC1 axis rail (row 0), scatter (middle rows),
+        #                                cluster thumbs (bottom rows)
+        #   col TOP_K_CLUSTER + 1      : PC2 axis rail (vertical, beside scatter)
+        n_cols = 2 + TOP_K_CLUSTER
+        scatter_rowspan = 2 * TOP_K_AXIS  # match PC2 rail height
+        n_rows = 1 + scatter_rowspan + max(n_clusters, 1)
 
-        fig = plt.figure(figsize=(1.8 * n_cols + 2, 1.7 * n_rows + 2))
-        gs = GridSpec(n_rows, n_cols, figure=fig, hspace=0.6, wspace=0.3,
-                      width_ratios=[1.2] + [1.0] * TOP_K_CLUSTER)
+        fig = plt.figure(figsize=(1.6 * n_cols + 2, 1.6 * n_rows + 2))
+        gs = GridSpec(
+            n_rows, n_cols, figure=fig, hspace=0.55, wspace=0.3,
+            width_ratios=[1.2] + [1.0] * TOP_K_CLUSTER + [1.0],
+        )
 
-        scree_ax = fig.add_subplot(gs[0:scree_rowspan, 0])
+        scree_ax = fig.add_subplot(gs[0:2, 0])
         self._render_scree(scree_ax, explained_variance_ratio)
 
-        scatter_ax = fig.add_subplot(gs[0:scatter_rowspan, 1:n_cols])
+        scatter_ax = fig.add_subplot(gs[1:1 + scatter_rowspan, 1:1 + TOP_K_CLUSTER])
         self._render_scatter(scatter_ax, reduced, channels,
                              channels_for_clusters, centroids)
-        self._overlay_pc_axis_thumbs(scatter_ax, loadings, reduced,
-                                     pc1_pos, pc1_neg, pc2_pos, pc2_neg,
-                                     stim_ids, thumbs)
+
+        # PC axis rails — rank-ordered, evenly spaced thumbs with leader lines
+        # going to each thumb's actual loading position on the scatter edge.
+        pc1_axes = self._render_pc1_rail(fig, gs, pc1_neg, pc1_pos, loadings,
+                                         stim_ids, thumbs)
+        pc2_axes = self._render_pc2_rail(fig, gs, pc2_neg, pc2_pos, loadings,
+                                         stim_ids, thumbs, scatter_rowspan,
+                                         n_cols)
+        self._draw_leader_lines(fig, scatter_ax, pc1_axes, pc2_axes,
+                                loadings, reduced)
 
         self._render_cluster_rows(fig, gs, cluster_data, stim_ids, thumbs,
                                   scatter_rowspan)
 
         fig.suptitle(f"PC interpretation — {self.reducer.get_name()} "
-                     f"(session {self.session_id})", fontsize=14, y=1.02)
+                     f"(session {self.session_id})", fontsize=14, y=1.0)
         fig.savefig(save_path, dpi=120, bbox_inches='tight')
         plt.close(fig)
 
@@ -238,41 +248,79 @@ class PcInterpretationFigureExporter(DataExporter):
         ax.set_xticks(xs[::max(1, n // 6)])
 
     @staticmethod
-    def _overlay_pc_axis_thumbs(scatter_ax, loadings, reduced,
-                                pc1_pos, pc1_neg, pc2_pos, pc2_neg,
-                                stim_ids, thumbs):
-        """Float PC axis thumbnails on the scatter axes, anchored at their
-        loading values (rescaled so the most-extreme shown loading lands at
-        AXIS_FILL_RATIO of the scatter's score range).
+    def _render_pc1_rail(fig, gs, pc1_neg, pc1_pos, loadings, stim_ids, thumbs):
+        """Top row, evenly-spaced rank-ordered thumbs spanning the cluster-thumb columns.
+
+        Returns a list of (thumb_ax, stim_idx) for leader-line connection.
         """
-        pc1_shown = list(pc1_neg) + list(pc1_pos)
-        pc2_shown = list(pc2_neg) + list(pc2_pos)
-        pc1_scale = _loading_to_score_scale(loadings[0], reduced[:, 0], pc1_shown)
-        pc2_scale = _loading_to_score_scale(loadings[1], reduced[:, 1], pc2_shown)
+        ordered = list(pc1_neg) + list(pc1_pos)
+        # If we're showing fewer thumbs than TOP_K_CLUSTER columns, center them.
+        offset = (TOP_K_CLUSTER - len(ordered)) // 2
+        out = []
+        for slot, stim_idx in enumerate(ordered):
+            col = 1 + offset + slot
+            ax = fig.add_subplot(gs[0, col])
+            _draw_simple_thumb(ax, stim_idx, stim_ids, thumbs,
+                               subtitle=f"PC1: {loadings[0, stim_idx]:+.2f}")
+            out.append((ax, stim_idx))
+        return out
 
-        # PC1 thumbs: anchored above scatter, x = scaled loading on PC1 (data coords).
-        for stim_idx in pc1_shown:
+    @staticmethod
+    def _render_pc2_rail(fig, gs, pc2_neg, pc2_pos, loadings, stim_ids, thumbs,
+                        scatter_rowspan, n_cols):
+        """Right column, evenly-spaced rank-ordered thumbs.
+
+        Most-positive on top, most-negative on bottom.
+        """
+        ordered_top_to_bottom = list(pc2_pos) + list(pc2_neg)
+        col = n_cols - 1
+        out = []
+        for slot, stim_idx in enumerate(ordered_top_to_bottom):
+            row = 1 + slot
+            ax = fig.add_subplot(gs[row, col])
+            _draw_simple_thumb(ax, stim_idx, stim_ids, thumbs,
+                               subtitle=f"PC2: {loadings[1, stim_idx]:+.2f}")
+            out.append((ax, stim_idx))
+        return out
+
+    @staticmethod
+    def _draw_leader_lines(fig, scatter_ax, pc1_axes, pc2_axes, loadings, reduced):
+        """Draw a thin line from each PC rail thumb to its actual loading
+        position on the corresponding scatter axis edge.
+
+        Loading values are scaled so the most-extreme shown loading lands at
+        AXIS_FILL_RATIO of the scatter's score range — same as the
+        biplot-style positioning we'd use without the rail.
+        """
+        pc1_indices = [idx for _, idx in pc1_axes]
+        pc2_indices = [idx for _, idx in pc2_axes]
+        pc1_scale = _loading_to_score_scale(loadings[0], reduced[:, 0], pc1_indices)
+        pc2_scale = _loading_to_score_scale(loadings[1], reduced[:, 1], pc2_indices)
+
+        # x in scatter data coords, y in scatter axes-fraction
+        bt_xdata_yaxes = blended_transform_factory(scatter_ax.transData,
+                                                   scatter_ax.transAxes)
+        # x in scatter axes-fraction, y in scatter data coords
+        bt_xaxes_ydata = blended_transform_factory(scatter_ax.transAxes,
+                                                   scatter_ax.transData)
+
+        for thumb_ax, stim_idx in pc1_axes:
             x_data = float(loadings[0, stim_idx]) * pc1_scale
-            _place_floating_thumb(scatter_ax, stim_idx, stim_ids, thumbs,
-                                  xy=(x_data, 1.02),
-                                  xycoords=('data', 'axes fraction'),
-                                  box_alignment=(0.5, 0.0),
-                                  label=f"{loadings[0, stim_idx]:+.2f}")
+            con = ConnectionPatch(
+                xyA=(0.5, 0.0), coordsA=thumb_ax.transAxes,
+                xyB=(x_data, 1.0), coordsB=bt_xdata_yaxes,
+                color=LEADER_COLOR, linewidth=LEADER_LW, zorder=0,
+            )
+            fig.add_artist(con)
 
-        # PC2 thumbs: anchored right of scatter, y = scaled loading on PC2.
-        for stim_idx in pc2_shown:
+        for thumb_ax, stim_idx in pc2_axes:
             y_data = float(loadings[1, stim_idx]) * pc2_scale
-            _place_floating_thumb(scatter_ax, stim_idx, stim_ids, thumbs,
-                                  xy=(1.02, y_data),
-                                  xycoords=('axes fraction', 'data'),
-                                  box_alignment=(0.0, 0.5),
-                                  label=f"{loadings[1, stim_idx]:+.2f}")
-
-        scatter_ax.text(0.5, 1.12, "PC1 axis (loading)", transform=scatter_ax.transAxes,
-                        ha='center', va='bottom', fontsize=9, color='dimgray')
-        scatter_ax.text(1.12, 0.5, "PC2 axis (loading)", transform=scatter_ax.transAxes,
-                        ha='left', va='center', fontsize=9, color='dimgray',
-                        rotation=90)
+            con = ConnectionPatch(
+                xyA=(0.0, 0.5), coordsA=thumb_ax.transAxes,
+                xyB=(1.0, y_data), coordsB=bt_xaxes_ydata,
+                color=LEADER_COLOR, linewidth=LEADER_LW, zorder=0,
+            )
+            fig.add_artist(con)
 
     @staticmethod
     def _render_scatter(ax, reduced, channels, channels_for_clusters, centroids):
@@ -335,33 +383,18 @@ def _draw_thumb_with_border(ax, stim_idx: int, stim_ids: list, thumbs: dict,
     ax.set_title(f"{response:.1f}", fontsize=7, pad=1)
 
 
-def _place_floating_thumb(ax, stim_idx: int, stim_ids: list, thumbs: dict,
-                          xy, xycoords, box_alignment, label: str = None):
-    """Float a stimulus thumbnail on the given axes via AnnotationBbox.
-
-    Uses mixed coordinate systems for xy so the thumb can be anchored to a
-    data coordinate on one axis and an axes-fraction offset on the other.
-    """
+def _draw_simple_thumb(ax, stim_idx: int, stim_ids: list, thumbs: dict,
+                       subtitle: str = None):
+    ax.axis('off')
     img = _load_thumb_image(stim_idx, stim_ids, thumbs)
     if img is None:
-        return
-    offset_img = OffsetImage(img, zoom=AXIS_THUMB_ZOOM)
-    ab = AnnotationBbox(
-        offset_img, xy=xy, xycoords=xycoords,
-        frameon=True, pad=0.15, box_alignment=box_alignment,
-        bboxprops=dict(edgecolor='lightgray', linewidth=0.5),
-    )
-    ax.add_artist(ab)
-    if label is not None:
-        # Annotate the loading value just outside the thumb, away from the scatter.
-        if box_alignment == (0.5, 0.0):     # PC1 thumb above scatter
-            ax.annotate(label, xy=xy, xycoords=xycoords,
-                        xytext=(0, -2), textcoords='offset points',
-                        ha='center', va='top', fontsize=6, color='gray')
-        elif box_alignment == (0.0, 0.5):   # PC2 thumb right of scatter
-            ax.annotate(label, xy=xy, xycoords=xycoords,
-                        xytext=(-2, 0), textcoords='offset points',
-                        ha='right', va='center', fontsize=6, color='gray')
+        sid = stim_ids[stim_idx] if stim_idx < len(stim_ids) else None
+        ax.text(0.5, 0.5, f"stim {sid}\n(no thumb)" if sid is not None else "n/a",
+                ha='center', va='center', fontsize=7, color='gray')
+    else:
+        ax.imshow(img)
+    if subtitle is not None:
+        ax.set_title(subtitle, fontsize=7, pad=1, color='dimgray')
 
 
 def _loading_to_score_scale(loading_vec, score_vec, shown_idxs) -> float:
