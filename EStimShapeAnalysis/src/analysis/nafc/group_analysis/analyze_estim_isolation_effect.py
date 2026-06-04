@@ -511,30 +511,38 @@ def plot_power_over_isolation_vs_effect(session_ids=None, metric=METRIC_PCT_HYPO
                                         behavioral_conditions=BEHAVIORAL_KEYS,
                                         min_on_trials=15, min_off_trials=15,
                                         require_positive_isolation=True,
+                                        combine_op='auto',
                                         abs_effect=False, output_path=None, df=None):
-    """Scatter (total stimulation current / isolation) vs estim effect, one point
-    per estim spec, split into anodic vs cathodic series.
+    """Scatter a combined power/isolation metric vs estim effect, one point per
+    estim spec, split into anodic vs cathodic series.
 
-    The x metric combines stimulation power with isolation:
+    The x metric combines stimulation power with isolation. How they combine
+    depends on the isolation column's polarity (``combine_op``):
 
-        power_over_isolation = total_current_uA / isolation_um
+      - 'divide'   x = total_current_uA / isolation   — for estim_*_isolation_um,
+                   where higher isolation = BETTER. A lot of current into
+                   poorly-isolated tissue (small isolation) gives a large ratio.
+      - 'multiply' x = total_current_uA * isolation    — for the PC-neighbor
+                   distance columns, where higher distance = WORSE. A lot of
+                   current at a functional boundary (large distance) gives a
+                   large product.
+      - 'auto'     multiply for higher-is-worse columns (PC-neighbor), divide
+                   otherwise (isolation). Default.
 
-    where total_current_uA is the summed a1 across the spec's active channels and
-    isolation_um is estim_min/mean_isolation_um. Intuition: a lot of current
-    delivered into poorly-isolated tissue (small isolation) spreads across
-    clusters — both too-high and too-low values of this ratio are expected to be
-    bad, so the effect-vs-ratio relationship should be hump-shaped rather than
-    monotonic. Anodic (PositiveFirst) and cathodic (NegativeFirst) specs are
-    plotted as separate series because we don't yet know how polarity should
+    Either way a LARGE x means "lots of current delivered where it shouldn't be",
+    so the effect-vs-x relationship is expected to be hump-shaped: too-low x
+    (weak / well-targeted) and too-high x (overdriven / spilling across a
+    boundary) both bad. Anodic (PositiveFirst) and cathodic (NegativeFirst) specs
+    are plotted as separate series because we don't yet know how polarity should
     enter the metric.
 
     Args:
-        isolation_metric: 'min' / 'mean' (denominator of the ratio).
-        require_positive_isolation: drop specs whose isolation <= 0. Isolation
-            goes negative when a spec's channels split across clusters (see
-            cluster_isolation_score.SPLIT_PENALTY_UM); dividing current by a
-            negative/zero isolation makes the ratio uninterpretable, so by
-            default those specs are excluded. Set False to keep them.
+        isolation_metric: 'min'/'mean' (isolation µm) or 'pc_mean'/'pc_max'
+            (PC-neighbor distance). See ISOLATION_COLUMNS.
+        combine_op: 'auto' (default), 'divide', or 'multiply'.
+        require_positive_isolation: when dividing, drop specs whose isolation
+            <= 0 (isolation goes negative when channels split across clusters;
+            dividing by it is uninterpretable). Ignored when multiplying.
         abs_effect: plot |effect| instead of signed effect.
         df: precomputed table (skips recompute).
 
@@ -544,6 +552,11 @@ def plot_power_over_isolation_vs_effect(session_ids=None, metric=METRIC_PCT_HYPO
     if iso_col is None:
         raise ValueError(f"isolation_metric must be one of {sorted(ISOLATION_COLUMNS)}; "
                          f"got {isolation_metric!r}")
+
+    if combine_op == 'auto':
+        combine_op = 'multiply' if iso_col in HIGHER_IS_WORSE_COLUMNS else 'divide'
+    if combine_op not in ('divide', 'multiply'):
+        raise ValueError(f"combine_op must be 'auto', 'divide', or 'multiply'; got {combine_op!r}")
 
     if df is None:
         df = compute_isolation_effect_table(
@@ -562,7 +575,9 @@ def plot_power_over_isolation_vs_effect(session_ids=None, metric=METRIC_PCT_HYPO
         & (df['n_off'] >= min_off_trials)
     ].copy()
 
-    if require_positive_isolation:
+    # Dividing by a non-positive isolation is uninterpretable; only relevant for
+    # the divide path (PC distances are >= 0 and used multiplicatively).
+    if combine_op == 'divide' and require_positive_isolation:
         n_before = len(plot_df)
         plot_df = plot_df[plot_df[iso_col] > 0]
         dropped = n_before - len(plot_df)
@@ -574,7 +589,10 @@ def plot_power_over_isolation_vs_effect(session_ids=None, metric=METRIC_PCT_HYPO
         print("No specs pass filters.")
         return plot_df
 
-    plot_df['power_over_isolation'] = plot_df['total_current_uA'] / plot_df[iso_col]
+    if combine_op == 'divide':
+        plot_df['power_over_isolation'] = plot_df['total_current_uA'] / plot_df[iso_col]
+    else:
+        plot_df['power_over_isolation'] = plot_df['total_current_uA'] * plot_df[iso_col]
     plot_df['y'] = plot_df['effect_size'].abs() if abs_effect else plot_df['effect_size']
 
     fig, ax = plt.subplots(figsize=(9, 7))
@@ -609,12 +627,14 @@ def plot_power_over_isolation_vs_effect(session_ids=None, metric=METRIC_PCT_HYPO
     if not abs_effect:
         ax.axhline(0, color='black', linestyle='--', linewidth=1, alpha=0.5)
 
-    ax.set_xlabel(f"total current (µA) / {iso_col}  "
-                  f"(stimulation power per unit isolation)", fontsize=12)
+    op_symbol = '/' if combine_op == 'divide' else '×'
+    ax.set_xlabel(f"total current (µA) {op_symbol} {iso_col}  "
+                  f"(combined stimulation power & isolation; larger = worse)",
+                  fontsize=12)
     ax.set_ylabel(f"{'|effect|' if abs_effect else 'effect'} "
                   f"(EStim ON − OFF %, metric={metric})", fontsize=12)
 
-    title = "Stimulation power / isolation vs raw effect (per estim spec)"
+    title = f"Stimulation power {op_symbol} isolation vs raw effect (per estim spec)"
     if required_conditions:
         req = ', '.join(f"{k}={v}" for k, v in required_conditions.items())
         title += f"\nrequired: {req}"
@@ -649,26 +669,35 @@ def main():
 
     save_dir = "/home/connorlab/Documents/plots/across_experiments/"
 
-    # 'min'  -> estim_min_isolation_um (worst channel)
-    # 'mean' -> estim_mean_isolation_um (average per channel)
-    isolation_metric = 'min'
+    # Which isolation metric to relate to effect:
+    #   'min'     -> estim_min_isolation_um      (manual-cluster, worst channel)
+    #   'mean'    -> estim_mean_isolation_um     (manual-cluster, average)
+    #   'pc_max'  -> estim_max_pc_neighbor_dist  (clustering-free, worst channel;
+    #                                             HIGHER = worse / more boundary-like)
+    #   'pc_mean' -> estim_mean_pc_neighbor_dist (clustering-free, average)
+    # The pc_* columns require compute_estim_pc_neighbor_scores.main() to have
+    # been run first.
+    isolation_metric = 'pc_max'
 
-    # Plot 1: raw isolation vs effect.
+    # Plot 1: raw isolation/distance vs effect.
     plot_isolation_vs_effect(
-        session_ids=None,            # None = all sessions with isolation scores
+        session_ids=None,            # None = all sessions scored in EStimParameterData
         metric=metric,
         isolation_metric=isolation_metric,
         required_conditions=required_conditions or None,
         min_on_trials=15,
         min_off_trials=15,
-        abs_effect=False,            # True -> relate isolation to effect MAGNITUDE
+        abs_effect=False,            # True -> relate to effect MAGNITUDE
         color_by_session=True,
         output_path=os.path.join(save_dir, f"isolation_vs_effect_{isolation_metric}.png"),
     )
 
-    # Plot 2: combined metric — total stimulation current / isolation, split by
-    # polarity (anodic vs cathodic). NOTE: don't pin polarity in
-    # required_conditions here, or one of the two series will be empty.
+    # Plot 2: combined metric — stimulation power combined with isolation, split
+    # by polarity (anodic vs cathodic). combine_op='auto' divides by the
+    # isolation columns (higher=better) and multiplies by the PC-neighbor columns
+    # (higher=worse), so a LARGE x always means "lots of current where it
+    # shouldn't be". NOTE: don't pin polarity in required_conditions here, or one
+    # of the two series will be empty.
     plot_power_over_isolation_vs_effect(
         session_ids=None,
         metric=metric,
@@ -676,9 +705,10 @@ def main():
         required_conditions=required_conditions or None,
         min_on_trials=15,
         min_off_trials=15,
-        require_positive_isolation=True,  # drop splits-across-clusters (isolation <= 0)
+        require_positive_isolation=True,  # (divide path only) drop isolation <= 0
+        combine_op='auto',
         abs_effect=False,
-        output_path=os.path.join(save_dir, f"power_over_isolation_vs_effect_{isolation_metric}.png"),
+        output_path=os.path.join(save_dir, f"power_x_isolation_vs_effect_{isolation_metric}.png"),
     )
 
 
