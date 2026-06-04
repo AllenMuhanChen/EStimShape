@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from sklearn.decomposition import PCA, KernelPCA
+from sklearn.decomposition import PCA, KernelPCA, SparsePCA
 from sklearn.manifold import MDS, TSNE
 import numpy as np
 
@@ -54,8 +54,12 @@ class KernelPCAReducer(DimensionalityReducer):
 
 
 class SparsePCAReducer(DimensionalityReducer):
+    def __init__(self, n_components: int = 2, alpha: float = 1.0):
+        super().__init__(n_components=n_components)
+        self.alpha = alpha
+
     def fit_transform(self, X: np.ndarray):
-        self.model = PCA(n_components=self.n_components)
+        self.model = SparsePCA(n_components=self.n_components, alpha=self.alpha)
         return self.model.fit_transform(X)
 
     def get_name(self):
