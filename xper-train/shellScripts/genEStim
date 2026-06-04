@@ -163,6 +163,6 @@ sudo -S <<< Whedon101 cp $XPER_PROPERTIES_PROCEDURAL $DIST/xper.properties
 sudo -S <<< Whedon101 cp $XPER_PROPERTIES_PROCEDURAL $DIST/allen/xper.properties
 cd $DIST/allen
 
-PARAMS='channels=[A020, A011]. polarity={PositiveFirst;NegativeFirst}. a=(3.5, 3.5). triggerType=Edge. freq=200. duration=200. triggerDelayMs=100. refractoryPeriodMs=100. groundMode=PostTrain'
+PARAMS='channels=[A013, A018, A002]. polarity={PositiveFirst;NegativeFirst}. a=(3.5, 3.5). triggerType=Edge. freq=250. duration=450. triggerDelayMs=50. groundMode=PostTrain'
 
 java -jar EStimSpecWriter.jar "$PARAMS"

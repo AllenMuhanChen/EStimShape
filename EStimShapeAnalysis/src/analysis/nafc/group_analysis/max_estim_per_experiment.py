@@ -930,6 +930,7 @@ def main():
         # studentize=True -> count exceedances of z = effect/own-null SD instead of raw %
         studentize=True,
         save_path="/home/connorlab/Documents/plots/across_experiments/exceedance_count_test.png",
+        min_trials=10
     )
 
     # ---- Test 3: studentized winners — raw vs studentized effect (diagnostic) ----
