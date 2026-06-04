@@ -40,10 +40,11 @@ from src.repository.export_to_repository import \
     read_session_id_and_date_from_db_name
 from src.startup import context
 
-N_AXIS_THUMBS = 8       # thumbs sampled along each PC axis (across the loading distribution)
+K_AXIS_PER_END = 4      # thumbs per PC end (so PC1 rail shows 2*K_AXIS_PER_END thumbs total)
 TOP_K_CLUSTER = 8       # top stimuli per cluster
 BORDER_WIDTH = 30       # pixels of colored border around each cluster thumb
 SCREE_MAX_COMPONENTS = 20
+LOADING_CMAP = 'coolwarm'  # diverging colormap for PC loading subtitle text
 
 
 class PcInterpretationFigureExporter(DataExporter):
@@ -80,10 +81,12 @@ class PcInterpretationFigureExporter(DataExporter):
 
         centroids = self._compute_centroids(channels, reduced, channels_for_clusters)
 
-        # PC axis thumbs: sample evenly through the sorted-loading distribution.
-        # Returned indices are sorted by loading value ascending.
-        pc1_axis_idxs = _sample_thumbs_by_loading_distribution(loadings[0], N_AXIS_THUMBS)
-        pc2_axis_idxs = _sample_thumbs_by_loading_distribution(loadings[1], N_AXIS_THUMBS)
+        # PC axis thumbs: top-K most-negative + top-K most-positive loadings.
+        # Returned indices are sorted by loading value ascending so the rails
+        # read monotonically (PC1 neg→pos left-to-right; PC2 reversed for
+        # pos→neg top-to-bottom in _render_pc2_rail).
+        pc1_axis_idxs = _signed_extreme_thumbs(loadings[0], K_AXIS_PER_END)
+        pc2_axis_idxs = _signed_extreme_thumbs(loadings[1], K_AXIS_PER_END)
 
         cluster_data = self._compute_cluster_top_by_mean_response(
             channels, raw_responses, channels_for_clusters)
@@ -244,35 +247,36 @@ class PcInterpretationFigureExporter(DataExporter):
     @staticmethod
     def _render_pc1_rail(fig, gs, pc1_axis_idxs, loadings, stim_ids, thumbs,
                          main_cols):
-        """Top row, thumbs ordered left-to-right by ascending PC1 loading.
-
-        pc1_axis_idxs is already sorted by ascending loading (output of
-        _sample_thumbs_by_loading_distribution).
-        """
+        """Top row, thumbs ordered left-to-right by ascending PC1 loading."""
         n = len(pc1_axis_idxs)
-        offset = (main_cols - n) // 2  # center if fewer than main_cols
+        offset = (main_cols - n) // 2
+        max_abs_load = max(abs(float(loadings[0, i])) for i in pc1_axis_idxs) \
+            if n else 0.0
         for slot, stim_idx in enumerate(pc1_axis_idxs):
             col = 1 + offset + slot
             ax = fig.add_subplot(gs[0, col])
+            load = float(loadings[0, stim_idx])
             _draw_simple_thumb(ax, int(stim_idx), stim_ids, thumbs,
-                               subtitle=f"PC1: {loadings[0, stim_idx]:+.2f}")
+                               subtitle=f"PC1: {load:+.2f}",
+                               subtitle_color=_loading_text_color(load, max_abs_load))
 
     @staticmethod
     def _render_pc2_rail(fig, gs, pc2_axis_idxs, loadings, stim_ids, thumbs,
                          scatter_rowspan, n_cols):
-        """Right column, thumbs ordered top-to-bottom by descending PC2 loading.
-
-        pc2_axis_idxs is sorted ascending — reverse for top=most-positive layout.
-        """
+        """Right column, thumbs ordered top-to-bottom by descending PC2 loading."""
         top_to_bottom = list(reversed(list(pc2_axis_idxs)))
         col = n_cols - 1
         n = len(top_to_bottom)
         offset = (scatter_rowspan - n) // 2
+        max_abs_load = max(abs(float(loadings[1, i])) for i in top_to_bottom) \
+            if n else 0.0
         for slot, stim_idx in enumerate(top_to_bottom):
             row = 1 + offset + slot
             ax = fig.add_subplot(gs[row, col])
+            load = float(loadings[1, stim_idx])
             _draw_simple_thumb(ax, int(stim_idx), stim_ids, thumbs,
-                               subtitle=f"PC2: {loadings[1, stim_idx]:+.2f}")
+                               subtitle=f"PC2: {load:+.2f}",
+                               subtitle_color=_loading_text_color(load, max_abs_load))
 
     @staticmethod
     def _render_scatter(ax, reduced, channels, channels_for_clusters, centroids):
@@ -337,7 +341,7 @@ def _draw_thumb_with_border(ax, stim_idx: int, stim_ids: list, thumbs: dict,
 
 
 def _draw_simple_thumb(ax, stim_idx: int, stim_ids: list, thumbs: dict,
-                       subtitle: str = None):
+                       subtitle: str = None, subtitle_color='dimgray'):
     ax.axis('off')
     img = _load_thumb_image(stim_idx, stim_ids, thumbs)
     if img is None:
@@ -347,27 +351,37 @@ def _draw_simple_thumb(ax, stim_idx: int, stim_ids: list, thumbs: dict,
     else:
         ax.imshow(img)
     if subtitle is not None:
-        ax.set_title(subtitle, fontsize=7, pad=1, color='dimgray')
+        ax.set_title(subtitle, fontsize=8, pad=1, color=subtitle_color,
+                     fontweight='bold')
 
 
-def _sample_thumbs_by_loading_distribution(loading_vec, n_thumbs: int) -> np.ndarray:
-    """Pick n_thumbs stim indices whose loadings span the loading distribution.
-
-    Samples evenly through the sorted order (i.e. evenly spaced quantiles), so
-    a thumb at slot k represents roughly the k-th percentile of stimuli on that
-    PC. Indices are returned sorted by loading value ascending, so the caller
-    can lay them out in monotonic order.
+def _signed_extreme_thumbs(loading_vec, k_per_end: int) -> np.ndarray:
+    """Return the k most-negative + k most-positive loading indices, sorted by
+    loading value ascending. Near-zero loadings are skipped — they carry no
+    information about what the PC represents.
     """
     loading_vec = np.asarray(loading_vec)
     n_stims = len(loading_vec)
     if n_stims == 0:
         return np.array([], dtype=int)
     sorted_idxs = np.argsort(loading_vec)
-    if n_thumbs >= n_stims:
-        return sorted_idxs
-    positions = np.linspace(0, n_stims - 1, n_thumbs).round().astype(int)
-    positions = np.unique(positions)
-    return sorted_idxs[positions]
+    k = min(k_per_end, n_stims // 2)
+    negs = sorted_idxs[:k]
+    poss = sorted_idxs[-k:]
+    return np.concatenate([negs, poss])  # ascending by loading
+
+
+def _loading_text_color(loading_val: float, max_abs_load: float):
+    """Map a loading value to a diverging-colormap color (blue↔gray↔red).
+
+    Used to color the small 'PC1: +0.34' subtitle under each axis thumb so
+    the sign and magnitude of the loading are visible at a glance.
+    """
+    if max_abs_load <= 0:
+        return 'gray'
+    normalized = (loading_val / max_abs_load + 1.0) / 2.0
+    normalized = max(0.0, min(1.0, normalized))
+    return cm.get_cmap(LOADING_CMAP)(normalized)
 
 
 def _load_thumb_image(stim_idx: int, stim_ids: list, thumbs: dict):
