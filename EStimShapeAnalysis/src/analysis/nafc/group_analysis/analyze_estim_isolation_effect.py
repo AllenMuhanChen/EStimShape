@@ -74,7 +74,23 @@ ISOLATION_COLUMNS = {
     'mean': 'estim_mean_isolation_um',
     'estim_min_isolation_um': 'estim_min_isolation_um',
     'estim_mean_isolation_um': 'estim_mean_isolation_um',
+    # Clustering-free PC-neighbor distance (compute_estim_pc_neighbor_scores).
+    # NOTE: higher = WORSE (more boundary-like), opposite of the isolation cols.
+    'pc_mean': 'estim_mean_pc_neighbor_dist',
+    'pc_max': 'estim_max_pc_neighbor_dist',
+    'estim_mean_pc_neighbor_dist': 'estim_mean_pc_neighbor_dist',
+    'estim_max_pc_neighbor_dist': 'estim_max_pc_neighbor_dist',
 }
+
+# Columns where higher means worse isolation (so the x-axis hint flips).
+HIGHER_IS_WORSE_COLUMNS = {'estim_mean_pc_neighbor_dist', 'estim_max_pc_neighbor_dist'}
+
+
+def _isolation_axis_hint(iso_col):
+    """Human-readable direction hint for an isolation/distance column."""
+    if iso_col in HIGHER_IS_WORSE_COLUMNS:
+        return "higher = more boundary-like (worse)"
+    return "higher = better isolated"
 
 # Polarity-first ordering maps to the leading phase of the biphasic pulse:
 # PositiveFirst = anodic-first, NegativeFirst = cathodic-first. Plotted as
@@ -205,34 +221,43 @@ def compute_effect_by_spec_for_session(session_id, metric=METRIC_PCT_HYPOTHESIZE
 # ---------------------------------------------------------------------------
 
 def _get_sessions_with_isolation():
-    """Session ids that have at least one non-null isolation score in
-    EStimParameterData. Used to skip sessions the cluster app never scored."""
+    """Session ids that have any row in EStimParameterData — i.e. were scored by
+    the cluster app (isolation) and/or compute_estim_pc_neighbor_scores. The
+    final per-spec join still drops specs missing the specific metric used."""
     conn = Connection("allen_data_repository")
     conn.execute(
-        "SELECT DISTINCT session_id FROM EStimParameterData "
-        "WHERE estim_min_isolation_um IS NOT NULL "
-        "   OR estim_mean_isolation_um IS NOT NULL "
-        "ORDER BY session_id")
+        "SELECT DISTINCT session_id FROM EStimParameterData ORDER BY session_id")
     return [row[0] for row in conn.fetch_all()]
 
 
+# Score columns we surface from EStimParameterData. Kept as a list so a missing
+# (not-yet-migrated) column is simply skipped rather than raising.
+_SCORE_COLUMNS = (
+    'estim_min_isolation_um', 'estim_mean_isolation_um',
+    'estim_mean_pc_neighbor_dist', 'estim_max_pc_neighbor_dist',
+)
+
+
 def _fetch_isolation_scores(session_ids=None):
-    """Return {(session_id, estim_spec_id): {'min': ..., 'mean': ...}} from
-    EStimParameterData, optionally restricted to session_ids."""
+    """Return {(session_id, estim_spec_id): {col: value or None}} from
+    EStimParameterData, reading columns by name so PC-neighbor columns that
+    haven't been added yet are simply absent rather than an error."""
     conn = Connection("allen_data_repository")
-    base = ("SELECT session_id, estim_spec_id, "
-            "estim_min_isolation_um, estim_mean_isolation_um FROM EStimParameterData")
+    base = "SELECT * FROM EStimParameterData"
     if session_ids:
         placeholders = ', '.join(['%s'] * len(session_ids))
         conn.execute(f"{base} WHERE session_id IN ({placeholders})", tuple(session_ids))
     else:
         conn.execute(base)
 
+    columns = [desc[0] for desc in conn.my_cursor.description]
     scores = {}
-    for sess_id, spec_id, min_um, mean_um in conn.fetch_all():
-        scores[(sess_id, int(spec_id))] = {
-            'estim_min_isolation_um': float(min_um) if min_um is not None else None,
-            'estim_mean_isolation_um': float(mean_um) if mean_um is not None else None,
+    for row in conn.fetch_all():
+        row_dict = dict(zip(columns, row))
+        key = (row_dict['session_id'], int(row_dict['estim_spec_id']))
+        scores[key] = {
+            col: (float(row_dict[col]) if row_dict.get(col) is not None else None)
+            for col in _SCORE_COLUMNS if col in row_dict
         }
     return scores
 
@@ -310,6 +335,7 @@ def compute_isolation_effect_table(session_ids=None, metric=METRIC_PCT_HYPOTHESI
         return pd.DataFrame(columns=[
             'session_id', 'estim_spec_id', 'n_on', 'n_off', 'on_pct', 'off_pct',
             'effect_size', 'estim_min_isolation_um', 'estim_mean_isolation_um',
+            'estim_mean_pc_neighbor_dist', 'estim_max_pc_neighbor_dist',
             'total_current_uA', 'polarity', 'n_active_channels'])
 
     df = pd.DataFrame(all_rows)
@@ -320,6 +346,14 @@ def compute_isolation_effect_table(session_ids=None, metric=METRIC_PCT_HYPOTHESI
         for s, spec in zip(df['session_id'], df['estim_spec_id'])]
     df['estim_mean_isolation_um'] = [
         (isolation.get((s, int(spec)), {}) or {}).get('estim_mean_isolation_um')
+        for s, spec in zip(df['session_id'], df['estim_spec_id'])]
+    # Clustering-free PC-neighbor distance (compute_estim_pc_neighbor_scores);
+    # absent (all-None) until that script has been run.
+    df['estim_mean_pc_neighbor_dist'] = [
+        (isolation.get((s, int(spec)), {}) or {}).get('estim_mean_pc_neighbor_dist')
+        for s, spec in zip(df['session_id'], df['estim_spec_id'])]
+    df['estim_max_pc_neighbor_dist'] = [
+        (isolation.get((s, int(spec)), {}) or {}).get('estim_max_pc_neighbor_dist')
         for s, spec in zip(df['session_id'], df['estim_spec_id'])]
 
     power = _fetch_estim_power_and_polarity(sorted(df['session_id'].unique().tolist()))
@@ -441,7 +475,7 @@ def plot_isolation_vs_effect(session_ids=None, metric=METRIC_PCT_HYPOTHESIZED,
     if not abs_effect:
         ax.axhline(0, color='black', linestyle='--', linewidth=1, alpha=0.5)
 
-    ax.set_xlabel(f"{iso_col}  (µm; higher = better isolated)", fontsize=12)
+    ax.set_xlabel(f"{iso_col}  ({_isolation_axis_hint(iso_col)})", fontsize=12)
     ax.set_ylabel(f"{'|effect|' if abs_effect else 'effect'} "
                   f"(EStim ON − OFF %, metric={metric})", fontsize=12)
 
@@ -576,7 +610,7 @@ def plot_power_over_isolation_vs_effect(session_ids=None, metric=METRIC_PCT_HYPO
         ax.axhline(0, color='black', linestyle='--', linewidth=1, alpha=0.5)
 
     ax.set_xlabel(f"total current (µA) / {iso_col}  "
-                  f"(power per µm of isolation)", fontsize=12)
+                  f"(stimulation power per unit isolation)", fontsize=12)
     ax.set_ylabel(f"{'|effect|' if abs_effect else 'effect'} "
                   f"(EStim ON − OFF %, metric={metric})", fontsize=12)
 
