@@ -25,11 +25,32 @@ Two penalties drop out of the same formula:
     other-cluster channels nearby, dragging its mean distance down.
 """
 
+import re
+
 import numpy as np
 from clat.intan.channels import Channel
 from clat.util.connection import Connection
 
 from src.cluster.cluster_app_classes import ChannelMapper
+
+_CHANNEL_STR_RE = re.compile(r'^([A-Za-z])-?(\d+)$')
+
+
+def _parse_channel(ch_str: str) -> Channel | None:
+    """Parse the assortment of channel string formats we see in the DB
+    ("A-012", "A012", "a-12", ...) into the canonical Channel enum
+    (Channel.A_012). Returns None if unrecognizable.
+    """
+    match = _CHANNEL_STR_RE.match(ch_str.strip())
+    if not match:
+        return None
+    letter = match.group(1).upper()
+    num = int(match.group(2))
+    enum_name = f"{letter}_{num:03d}"
+    try:
+        return Channel[enum_name]
+    except KeyError:
+        return None
 
 
 def fetch_active_estim_channels_by_spec(session_id: str) -> dict[int, list[Channel]]:
@@ -48,10 +69,9 @@ def fetch_active_estim_channels_by_spec(session_id: str) -> dict[int, list[Chann
     rows = repo_conn.fetch_all()
     by_spec: dict[int, list[Channel]] = {}
     for spec_id, ch_str in rows:
-        try:
-            ch = Channel[ch_str.replace("-", "_")]
-        except KeyError:
-            print(f"WARN: unknown channel '{ch_str}' in EStimParameters; skipping")
+        ch = _parse_channel(ch_str)
+        if ch is None:
+            print(f"WARN: unparseable channel '{ch_str}' in EStimParameters; skipping")
             continue
         by_spec.setdefault(int(spec_id), []).append(ch)
     return by_spec
