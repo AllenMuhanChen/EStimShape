@@ -56,6 +56,14 @@ class DeltaVariantCurationApp:
         self._photo_refs: list[ImageTk.PhotoImage] = []
         # Cache of raw PIL images by path to avoid re-reading from disk.
         self._image_cache: dict[str, Image.Image] = {}
+        # Cache of final rendered PhotoImages keyed by (path, border_color), so a
+        # sort/group change reuses photos without redoing the LANCZOS resize.
+        # Cleared on recompute since vmin/vmax (and thus border colors) change.
+        self._photo_cache: dict[tuple, ImageTk.PhotoImage] = {}
+        # Pool of column widget sets reused across renders; resorting just
+        # re-grids existing widgets instead of destroying and rebuilding them.
+        self._column_pool: list[dict] = []
+        self._row_labels_built = False
 
         self.root.title("Delta-Variant Curation")
 
@@ -214,6 +222,10 @@ class DeltaVariantCurationApp:
                 pairs.loc[mask, "Included"] = included
 
         self.pairs = pairs.reset_index(drop=True)
+        # vmin/vmax (and thus border colors) may have changed, so cached
+        # PhotoImages are stale.
+        self._photo_cache.clear()
+        self._photo_refs.clear()
         self.render()
         if db_map:
             self.status_var.set(self.status_var.get() + "   (defaults from DB)")
@@ -326,6 +338,9 @@ class DeltaVariantCurationApp:
         for child in self.grid_frame.winfo_children():
             child.destroy()
         self._photo_refs.clear()
+        self._photo_cache.clear()
+        self._column_pool.clear()
+        self._row_labels_built = False
 
     def _response_range(self):
         vals = pd.concat([self.pairs["Delta Response"], self.pairs["Variant Response"]])
@@ -338,34 +353,72 @@ class DeltaVariantCurationApp:
         path = self.thumb_map.get(stim_id)
         if not path or not os.path.exists(path):
             return None
+        if vmax > vmin and response is not None and not pd.isna(response):
+            norm = max(0.0, min(1.0, (response - vmin) / (vmax - vmin)))
+        else:
+            norm = 0.5
+        border_color = (int(255 * norm), 0, 0)  # black -> red intensity
+        key = (path, border_color)
+        cached = self._photo_cache.get(key)
+        if cached is not None:
+            return cached
         try:
             base = self._image_cache.get(path)
             if base is None:
                 base = Image.open(path).convert("RGB")
                 self._image_cache[path] = base
-            if vmax > vmin and response is not None and not pd.isna(response):
-                norm = max(0.0, min(1.0, (response - vmin) / (vmax - vmin)))
-            else:
-                norm = 0.5
-            border_color = (int(255 * norm), 0, 0)  # black -> red intensity
             img = ImageOps.expand(base, border=20, fill=border_color)
             img = img.resize((self.thumb_size, self.thumb_size), Image.LANCZOS)
             photo = ImageTk.PhotoImage(img)
+            self._photo_cache[key] = photo
             self._photo_refs.append(photo)
             return photo
         except Exception:
             return None
 
-    def _make_image_cell(self, parent, photo, fallback_text):
+    def _ensure_row_labels(self):
+        if self._row_labels_built:
+            return
+        tk.Label(self.grid_frame, text="Delta", font=("Arial", 11, "bold"),
+                 background="white").grid(row=1, column=0, padx=4, sticky="e")
+        tk.Label(self.grid_frame, text="Variant", font=("Arial", 11, "bold"),
+                 background="white").grid(row=3, column=0, padx=4, sticky="e")
+        self._row_labels_built = True
+
+    def _get_column(self, idx):
+        """Return (creating if needed) the widget set for column ``idx``."""
+        while len(self._column_pool) <= idx:
+            col = {
+                "ratio": tk.Label(self.grid_frame, font=("Arial", 9, "bold"),
+                                  background="white"),
+                "delta_img": tk.Label(self.grid_frame, borderwidth=0,
+                                      background="white"),
+                "delta_info": tk.Label(self.grid_frame, font=("Arial", 8),
+                                       background="white", justify="center"),
+                "variant_img": tk.Label(self.grid_frame, borderwidth=0,
+                                        background="white"),
+                "variant_info": tk.Label(self.grid_frame, font=("Arial", 8),
+                                         background="white", justify="center"),
+            }
+            var = tk.BooleanVar()
+            col["var"] = var
+            col["chk"] = tk.Checkbutton(self.grid_frame, text="include",
+                                        variable=var, background="white")
+            self._column_pool.append(col)
+        return self._column_pool[idx]
+
+    @staticmethod
+    def _set_image_label(label, photo, fallback_text):
         if photo is not None:
-            return tk.Label(parent, image=photo, borderwidth=0, background="white")
-        return tk.Label(parent, text=fallback_text, width=18, height=8,
-                        relief="groove", background="white", fg="gray")
+            label.configure(image=photo, text="", width=0, height=0,
+                            relief="flat", fg="black")
+        else:
+            label.configure(image="", text=fallback_text, width=18, height=8,
+                            relief="groove", fg="gray")
 
     def render(self):
         if self.pairs is None or self.pairs.empty:
             return
-        self._clear_grid()
 
         ordered = self._ordered_pairs()
         vmin, vmax = self._response_range()
@@ -373,49 +426,63 @@ class DeltaVariantCurationApp:
 
         # Grid rows: 0 ratio, 1 delta image, 2 delta info, 3 variant image,
         # 4 variant info, 5 checkbox. Row labels align with the image rows.
-        tk.Label(self.grid_frame, text="Delta", font=("Arial", 11, "bold"),
-                 background="white").grid(row=1, column=0, padx=4, sticky="e")
-        tk.Label(self.grid_frame, text="Variant", font=("Arial", 11, "bold"),
-                 background="white").grid(row=3, column=0, padx=4, sticky="e")
+        self._ensure_row_labels()
 
-        for pos, (_, pair) in enumerate(ordered.iterrows()):
-            col = pos + 1
-            delta_id = int(pair["StimSpecId"])
-            variant_id = int(pair["PairedVariantId"])
-            d_resp = pair["Delta Response"]
-            v_resp = pair["Variant Response"]
-            ratio = pair["Ratio"]
+        # Pull column arrays once; iterrows is slow at this scale and itertuples
+        # mangles the ``Delta Response`` / ``Variant Response`` names.
+        sids = ordered["StimSpecId"].to_numpy()
+        vids = ordered["PairedVariantId"].to_numpy()
+        dresps = ordered["Delta Response"].to_numpy()
+        vresps = ordered["Variant Response"].to_numpy()
+        ratios = ordered["Ratio"].to_numpy()
+        incs = ordered["Included"].to_numpy()
+
+        n = len(ordered)
+        for pos in range(n):
+            delta_id = int(sids[pos])
+            variant_id = int(vids[pos])
+            d_resp = dresps[pos]
+            v_resp = vresps[pos]
+            ratio = float(ratios[pos])
+            included = bool(incs[pos])
             pct_of_max = (100.0 * v_resp / variant_max) if variant_max else 0.0
+            col = pos + 1
 
+            widgets = self._get_column(pos)
             delta_photo = self._load_thumb(delta_id, d_resp, vmin, vmax)
             variant_photo = self._load_thumb(variant_id, v_resp, vmin, vmax)
 
-            # Ratio on top of the column.
-            tk.Label(self.grid_frame, text=f"ratio {ratio:.2f}", font=("Arial", 9, "bold"),
-                     background="white").grid(row=0, column=col, padx=3, pady=(2, 0))
+            widgets["ratio"].configure(text=f"ratio {ratio:.2f}")
+            widgets["ratio"].grid(row=0, column=col, padx=3, pady=(2, 0))
 
-            delta_gen = self._gen_label(delta_id)
-            variant_gen = self._gen_label(variant_id)
+            self._set_image_label(widgets["delta_img"], delta_photo,
+                                  f"delta\n{delta_id}")
+            widgets["delta_img"].grid(row=1, column=col, padx=3, pady=2)
 
-            self._make_image_cell(self.grid_frame, delta_photo, f"delta\n{delta_id}").grid(
-                row=1, column=col, padx=3, pady=2)
-            tk.Label(self.grid_frame, text=f"Δ {d_resp:.1f}\ngen {delta_gen}\nd{delta_id}",
-                     font=("Arial", 8), background="white", justify="center").grid(
-                row=2, column=col, padx=3)
+            widgets["delta_info"].configure(
+                text=f"Δ {d_resp:.1f}\ngen {self._gen_label(delta_id)}\nd{delta_id}")
+            widgets["delta_info"].grid(row=2, column=col, padx=3)
 
-            self._make_image_cell(self.grid_frame, variant_photo, f"variant\n{variant_id}").grid(
-                row=3, column=col, padx=3, pady=2)
-            tk.Label(self.grid_frame,
-                     text=f"V {v_resp:.1f} ({pct_of_max:.0f}% max)\ngen {variant_gen}\nv{variant_id}",
-                     font=("Arial", 8), background="white", justify="center").grid(
-                row=4, column=col, padx=3)
+            self._set_image_label(widgets["variant_img"], variant_photo,
+                                  f"variant\n{variant_id}")
+            widgets["variant_img"].grid(row=3, column=col, padx=3, pady=2)
 
-            var = tk.BooleanVar(value=bool(pair["Included"]))
-            chk = tk.Checkbutton(
-                self.grid_frame, text="include", variable=var, background="white",
-                command=lambda did=delta_id, vid=variant_id, v=var: self._on_toggle(did, vid, v),
-            )
-            chk.grid(row=5, column=col, padx=3, pady=2)
+            widgets["variant_info"].configure(
+                text=f"V {v_resp:.1f} ({pct_of_max:.0f}% max)\n"
+                     f"gen {self._gen_label(variant_id)}\nv{variant_id}")
+            widgets["variant_info"].grid(row=4, column=col, padx=3)
+
+            widgets["var"].set(included)
+            widgets["chk"].configure(
+                command=lambda did=delta_id, vid=variant_id, v=widgets["var"]:
+                    self._on_toggle(did, vid, v))
+            widgets["chk"].grid(row=5, column=col, padx=3, pady=2)
+
+        # Hide pool columns left over from a larger previous render.
+        for pos in range(n, len(self._column_pool)):
+            for w in self._column_pool[pos].values():
+                if isinstance(w, (tk.Label, tk.Checkbutton)):
+                    w.grid_forget()
 
         self._update_status()
         self.canvas.update_idletasks()
