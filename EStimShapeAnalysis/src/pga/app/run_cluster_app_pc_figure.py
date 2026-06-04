@@ -117,12 +117,15 @@ class PcInterpretationFigureExporter(DataExporter):
             print(f"No estim specs found in EStimParameters for session "
                   f"{self.session_id} (no rows with a1 > 0); skipping isolation score.")
             return
-        for spec_id, score in sorted(scores_by_spec.items()):
-            if score is None:
-                print(f"  estim_spec_id={spec_id}: score skipped (channels unassigned "
+        for spec_id, scores in sorted(scores_by_spec.items()):
+            min_v, mean_v = scores.get('min'), scores.get('mean')
+            if min_v is None:
+                print(f"  estim_spec_id={spec_id}: skipped (channels unassigned "
                       f"or no other-cluster channels).")
             else:
-                print(f"  estim_spec_id={spec_id}: isolation = {score:.1f} um")
+                print(f"  estim_spec_id={spec_id}: "
+                      f"min={min_v:.1f} um (worst pair), "
+                      f"mean={mean_v:.1f} um (avg per-channel nearest)")
         repo_conn = Connection("allen_data_repository")
         save_per_spec_isolation_scores(repo_conn, self.session_id, scores_by_spec)
 

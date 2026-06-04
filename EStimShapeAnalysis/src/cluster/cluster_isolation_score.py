@@ -1,28 +1,33 @@
 """
-Per-estim-spec isolation score: how isolated each estim spec's active
-channels are from channels in any other cluster, in microns on the probe.
+Per-estim-spec isolation score: how close each estim spec's active
+channels sit to channels in any other cluster, in microns on the probe.
 
-Estim channels are identified by reading allen_data_repository.EStimParameters
-and selecting channels with a1 > 0 (channels actually delivering current;
-a1 = 0 are ground / charge-recovery pulses and are excluded). Matches the
-convention in src/analysis/nafc/estim_parameter_classifier.py.
+Estim channels come from allen_data_repository.EStimParameters: channels
+with a1 > 0 are actively delivering current (channels with a1 = 0 are
+ground / charge-recovery pulses and are excluded). Matches the convention
+in src/analysis/nafc/estim_parameter_classifier.py.
 
 Different estim_spec_ids within a session may stimulate different
-electrodes, so the score is computed *per estim_spec_id* and written to
-allen_data_repository.EStimParameterData keyed by (session_id, estim_spec_id).
+electrodes, so scores are computed per estim_spec_id and written to
+allen_data_repository.EStimParameterData keyed by (session_id,
+estim_spec_id).
 
-For each estim spec, for each active estim channel:
-  - look up which cluster it's assigned to (from the GUI's clustering),
-  - compute mean distance (microns) to every channel assigned to a
-    *different* cluster.
-Then average across that spec's estim channels.
+For each active estim channel e:
+  - look up its cluster assignment from `channels_for_clusters`,
+  - find the *single nearest* channel in any cluster ≠ e's cluster.
+This single distance per channel is the basis for two scores per spec:
 
-Two penalties drop out of the same formula:
-  - Split estim assignment: estim channels in different clusters become
-    each other's "other cluster" — and since they're typically near each
-    other physically, the distance shrinks and the score drops.
-  - Boundary placement: an estim channel at the edge of its cluster has
-    other-cluster channels nearby, dragging its mean distance down.
+  estim_min_isolation_um  : min  over estim channels of that nearest distance
+                            (worst case — the closest estim-to-other-cluster pair
+                             anywhere in this spec)
+  estim_mean_isolation_um : mean over estim channels of that nearest distance
+                            (each estim site contributes its own worst-case
+                             neighbor; one bad channel is averaged with the rest)
+
+Both penalize splits across clusters and boundary placement automatically:
+estim channels in different clusters are each other's "other cluster," so
+a split puts very small distances into the formula. Channels at cluster
+boundaries get small distances from nearby other-cluster contacts.
 """
 
 import re
@@ -37,29 +42,21 @@ _CHANNEL_STR_RE = re.compile(r'^([A-Za-z])-?(\d+)$')
 
 
 def _parse_channel(ch_str: str) -> Channel | None:
-    """Parse the assortment of channel string formats we see in the DB
-    ("A-012", "A012", "a-12", ...) into the canonical Channel enum
-    (Channel.A_012). Returns None if unrecognizable.
-    """
+    """Parse channel strings like 'A012' or 'A-12' into Channel.A_012."""
     match = _CHANNEL_STR_RE.match(ch_str.strip())
     if not match:
         return None
     letter = match.group(1).upper()
     num = int(match.group(2))
-    enum_name = f"{letter}_{num:03d}"
     try:
-        return Channel[enum_name]
+        return Channel[f"{letter}_{num:03d}"]
     except KeyError:
         return None
 
 
 def fetch_active_estim_channels_by_spec(session_id: str) -> dict[int, list[Channel]]:
     """Map estim_spec_id → list of Channel enums for channels actively
-    delivering current under that spec (a1 > 0).
-
-    Ground-pulse channels (a1 = 0) are excluded — they're not real estim
-    sites, just charge-recovery pulses.
-    """
+    delivering current under that spec (a1 > 0)."""
     repo_conn = Connection("allen_data_repository")
     repo_conn.execute(
         "SELECT estim_spec_id, channel FROM EStimParameters "
@@ -77,22 +74,22 @@ def fetch_active_estim_channels_by_spec(session_id: str) -> dict[int, list[Chann
     return by_spec
 
 
-def compute_estim_isolation_score(
+def compute_estim_isolation_scores(
     estim_channels: list[Channel],
     channels_for_clusters: dict[int, list[Channel]],
     channel_mapper: ChannelMapper,
-) -> float | None:
-    """Mean distance, in microns, from each estim channel to all channels
-    assigned to a different cluster than that estim channel.
+) -> dict[str, float | None]:
+    """For each estim channel, find distance to the *nearest* channel in
+    any other cluster than its own. Then return both the min and mean of
+    those per-channel nearest distances as a {'min': ..., 'mean': ...} dict.
 
-    Returns None if no estim channels can be scored (e.g. none are
-    assigned to any cluster, or there are no other-cluster channels).
+    Returns {'min': None, 'mean': None} if nothing can be scored.
     """
     cluster_for_channel = {
         ch: cid for cid, chs in channels_for_clusters.items() for ch in chs
     }
 
-    per_estim_means = []
+    nearest_per_estim: list[float] = []
     for estim_ch in estim_channels:
         own_cluster = cluster_for_channel.get(estim_ch)
         if own_cluster is None:
@@ -108,25 +105,24 @@ def compute_estim_isolation_score(
         e_pos = np.asarray(channel_mapper.get_coordinates(estim_ch))
         other_pos = np.array([channel_mapper.get_coordinates(c) for c in other_channels])
         dists = np.linalg.norm(other_pos - e_pos, axis=1)
-        per_estim_means.append(dists.mean())
+        nearest_per_estim.append(float(dists.min()))
 
-    if not per_estim_means:
-        return None
-    return float(np.mean(per_estim_means))
+    if not nearest_per_estim:
+        return {'min': None, 'mean': None}
+    arr = np.asarray(nearest_per_estim)
+    return {'min': float(arr.min()), 'mean': float(arr.mean())}
 
 
 def compute_per_spec_isolation_scores(
     channels_for_clusters: dict[int, list[Channel]],
     channel_mapper: ChannelMapper,
     session_id: str,
-) -> dict[int, float | None]:
-    """Compute the isolation score for every estim_spec_id in the session.
-
-    Returns {estim_spec_id: score or None}.
-    """
+) -> dict[int, dict[str, float | None]]:
+    """Compute {'min': ..., 'mean': ...} isolation scores for every
+    estim_spec_id in the session."""
     by_spec = fetch_active_estim_channels_by_spec(session_id)
     return {
-        spec_id: compute_estim_isolation_score(
+        spec_id: compute_estim_isolation_scores(
             estim_channels, channels_for_clusters, channel_mapper)
         for spec_id, estim_channels in by_spec.items()
     }
@@ -135,34 +131,57 @@ def compute_per_spec_isolation_scores(
 def save_per_spec_isolation_scores(
     repo_conn: Connection,
     session_id: str,
-    scores_by_spec: dict[int, float | None],
+    scores_by_spec: dict[int, dict[str, float | None]],
 ) -> None:
     """Upsert per-spec isolation scores into EStimParameterData."""
     _ensure_estim_parameter_data_table(repo_conn)
-    for spec_id, score in scores_by_spec.items():
-        value = float(score) if score is not None else None
+    for spec_id, scores in scores_by_spec.items():
+        min_value = scores.get('min')
+        mean_value = scores.get('mean')
         repo_conn.execute(
             """
-            INSERT INTO EStimParameterData (session_id, estim_spec_id, estim_isolation_um)
-            VALUES (%s, %s, %s)
-            ON DUPLICATE KEY UPDATE estim_isolation_um = VALUES(estim_isolation_um)
+            INSERT INTO EStimParameterData
+                (session_id, estim_spec_id, estim_min_isolation_um, estim_mean_isolation_um)
+            VALUES (%s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                estim_min_isolation_um  = VALUES(estim_min_isolation_um),
+                estim_mean_isolation_um = VALUES(estim_mean_isolation_um)
             """,
-            (session_id, int(spec_id), value),
+            (session_id, int(spec_id),
+             float(min_value) if min_value is not None else None,
+             float(mean_value) if mean_value is not None else None),
         )
-        print(f"Saved estim_isolation_um={value} for session {session_id}, "
-              f"estim_spec_id={spec_id}")
+        print(f"Saved estim_min_isolation_um={min_value}, "
+              f"estim_mean_isolation_um={mean_value} "
+              f"for session {session_id}, estim_spec_id={spec_id}")
 
 
 def _ensure_estim_parameter_data_table(repo_conn: Connection) -> None:
+    """Create the table if missing, then make sure both score columns
+    exist. Migrates the legacy single-column schema if present."""
     repo_conn.execute(
         """
         CREATE TABLE IF NOT EXISTS EStimParameterData (
-            session_id          VARCHAR(10) NOT NULL,
-            estim_spec_id       BIGINT      NOT NULL,
-            estim_isolation_um  FLOAT       NULL,
+            session_id              VARCHAR(10) NOT NULL,
+            estim_spec_id           BIGINT      NOT NULL,
+            estim_min_isolation_um  FLOAT       NULL,
+            estim_mean_isolation_um FLOAT       NULL,
             PRIMARY KEY (session_id, estim_spec_id),
             CONSTRAINT EStimParameterData_session_fk
                 FOREIGN KEY (session_id) REFERENCES Sessions (session_id) ON DELETE CASCADE
         ) ENGINE = InnoDB DEFAULT CHARSET = latin1
         """
     )
+    # Migrate from the prior single-column schema (estim_isolation_um
+    # held a mean-of-means score; the semantics changed when we moved to
+    # nearest-other-cluster as the basis, so drop it rather than keep
+    # ambiguous values around).
+    for stmt in (
+        "ALTER TABLE EStimParameterData ADD COLUMN estim_min_isolation_um FLOAT NULL",
+        "ALTER TABLE EStimParameterData ADD COLUMN estim_mean_isolation_um FLOAT NULL",
+        "ALTER TABLE EStimParameterData DROP COLUMN estim_isolation_um",
+    ):
+        try:
+            repo_conn.execute(stmt)
+        except Exception:
+            pass
