@@ -1,33 +1,34 @@
 """
-Per-estim-spec isolation score: how close each estim spec's active
-channels sit to channels in any other cluster, in microns on the probe.
+Per-estim-spec isolation score: how isolated each estim spec's active
+channels are, in microns, accounting for both boundary placement AND
+splits across clusters.
 
 Estim channels come from allen_data_repository.EStimParameters: channels
 with a1 > 0 are actively delivering current (channels with a1 = 0 are
 ground / charge-recovery pulses and are excluded). Matches the convention
 in src/analysis/nafc/estim_parameter_classifier.py.
 
-Different estim_spec_ids within a session may stimulate different
-electrodes, so scores are computed per estim_spec_id and written to
-allen_data_repository.EStimParameterData keyed by (session_id,
-estim_spec_id).
+Scoring (per active estim channel e):
+    nearest(e) = min distance to any channel in a cluster ≠ e's cluster
+    splits(e)  = count of *other* estim channels assigned to a cluster ≠ e's cluster
+    score(e)   = nearest(e) - SPLIT_PENALTY_UM * splits(e)
 
-For each active estim channel e:
-  - look up its cluster assignment from `channels_for_clusters`,
-  - find the *single nearest* channel in any cluster ≠ e's cluster.
-This single distance per channel is the basis for two scores per spec:
+Aggregated per estim_spec:
+    estim_min_isolation_um  = min over estim channels of score(e)   (worst channel)
+    estim_mean_isolation_um = mean over estim channels of score(e)  (average)
 
-  estim_min_isolation_um  : min  over estim channels of that nearest distance
-                            (worst case — the closest estim-to-other-cluster pair
-                             anywhere in this spec)
-  estim_mean_isolation_um : mean over estim channels of that nearest distance
-                            (each estim site contributes its own worst-case
-                             neighbor; one bad channel is averaged with the rest)
+The split penalty is what lets the score go arbitrarily negative when
+estim channels land in different clusters. Pure distance maxes at the
+probe length (~2015 µm for the DBC probe); any single split subtracts
+SPLIT_PENALTY_UM µm regardless of physical layout, so multi-cluster
+splits dominate boundary issues. With the default penalty of 2000 µm,
+even one split partner per channel produces a score lower than any
+attainable distance-only score, and the all-different-clusters scenario
+the user called out scales as (N-1) × penalty in the negative direction.
 
-Both penalize splits across clusters and boundary placement automatically:
-estim channels in different clusters are each other's "other cluster," so
-a split puts very small distances into the formula. Channels at cluster
-boundaries get small distances from nearby other-cluster contacts.
+Scores are saved per (session_id, estim_spec_id) into the
+EStimParameterData table — different estim_spec_ids within a session
+may stimulate different electrode sets.
 """
 
 import re
@@ -37,6 +38,12 @@ from clat.intan.channels import Channel
 from clat.util.connection import Connection
 
 from src.cluster.cluster_app_classes import ChannelMapper
+
+# Microns subtracted from a channel's score for each *other* estim channel
+# in a different cluster. Chosen larger than the DBC probe length (~2015 µm)
+# so that even a single split partner guarantees a worse score than any
+# attainable distance-only result.
+SPLIT_PENALTY_UM = 2000.0
 
 _CHANNEL_STR_RE = re.compile(r'^([A-Za-z])-?(\d+)$')
 
@@ -78,20 +85,24 @@ def compute_estim_isolation_scores(
     estim_channels: list[Channel],
     channels_for_clusters: dict[int, list[Channel]],
     channel_mapper: ChannelMapper,
+    split_penalty_um: float = SPLIT_PENALTY_UM,
 ) -> dict[str, float | None]:
-    """For each estim channel, find distance to the *nearest* channel in
-    any other cluster than its own. Then return both the min and mean of
-    those per-channel nearest distances as a {'min': ..., 'mean': ...} dict.
+    """Per-estim-channel score combines boundary distance with a split
+    penalty, then aggregates to {'min': worst-channel, 'mean': average}.
+
+    score(e) = nearest_other_cluster_distance(e)
+               - split_penalty_um * (# other estim channels in a different cluster)
 
     Returns {'min': None, 'mean': None} if nothing can be scored.
     """
     cluster_for_channel = {
         ch: cid for cid, chs in channels_for_clusters.items() for ch in chs
     }
+    estim_cluster_for = {e: cluster_for_channel.get(e) for e in estim_channels}
 
-    nearest_per_estim: list[float] = []
+    per_channel_scores: list[float] = []
     for estim_ch in estim_channels:
-        own_cluster = cluster_for_channel.get(estim_ch)
+        own_cluster = estim_cluster_for[estim_ch]
         if own_cluster is None:
             continue
         other_channels = [
@@ -104,12 +115,21 @@ def compute_estim_isolation_scores(
             continue
         e_pos = np.asarray(channel_mapper.get_coordinates(estim_ch))
         other_pos = np.array([channel_mapper.get_coordinates(c) for c in other_channels])
-        dists = np.linalg.norm(other_pos - e_pos, axis=1)
-        nearest_per_estim.append(float(dists.min()))
+        nearest_dist = float(np.linalg.norm(other_pos - e_pos, axis=1).min())
 
-    if not nearest_per_estim:
+        split_partners = sum(
+            1
+            for e2 in estim_channels
+            if e2 is not estim_ch
+            and estim_cluster_for[e2] is not None
+            and estim_cluster_for[e2] != own_cluster
+        )
+
+        per_channel_scores.append(nearest_dist - split_penalty_um * split_partners)
+
+    if not per_channel_scores:
         return {'min': None, 'mean': None}
-    arr = np.asarray(nearest_per_estim)
+    arr = np.asarray(per_channel_scores)
     return {'min': float(arr.min()), 'mean': float(arr.mean())}
 
 
