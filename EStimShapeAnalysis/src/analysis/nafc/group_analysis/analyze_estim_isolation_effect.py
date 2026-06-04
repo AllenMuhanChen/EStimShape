@@ -61,7 +61,6 @@ from src.analysis.nafc.group_analysis.analyze_estim_by_condition import (
     METRIC_PCT_HYP_VS_DELTA,
     _filter_for_metric,
     read_trial_data_from_repository,
-    _get_all_session_ids,
 )
 
 # Behavioral keys apply to every trial (estim on AND off). Everything else in a
@@ -168,10 +167,9 @@ def compute_effect_by_spec_for_session(session_id, metric=METRIC_PCT_HYPOTHESIZE
 
     rows = []
     for spec_id, on_vals in spec_on_vals.items():
-        off_vals = np.concatenate(
-            [off_by_bkey[bkey] for bkey in spec_behavioral_keys[spec_id]
-             if len(off_by_bkey.get(bkey, [])) > 0]
-        ) if spec_behavioral_keys[spec_id] else np.array([])
+        off_arrays = [off_by_bkey[bkey] for bkey in spec_behavioral_keys[spec_id]
+                      if len(off_by_bkey.get(bkey, [])) > 0]
+        off_vals = np.concatenate(off_arrays) if off_arrays else np.array([])
 
         on_arr = np.asarray(on_vals, dtype=float)
         on_pct = float(on_arr.mean() * 100) if len(on_arr) > 0 else None
@@ -193,6 +191,18 @@ def compute_effect_by_spec_for_session(session_id, metric=METRIC_PCT_HYPOTHESIZE
 # ---------------------------------------------------------------------------
 # Isolation scores
 # ---------------------------------------------------------------------------
+
+def _get_sessions_with_isolation():
+    """Session ids that have at least one non-null isolation score in
+    EStimParameterData. Used to skip sessions the cluster app never scored."""
+    conn = Connection("allen_data_repository")
+    conn.execute(
+        "SELECT DISTINCT session_id FROM EStimParameterData "
+        "WHERE estim_min_isolation_um IS NOT NULL "
+        "   OR estim_mean_isolation_um IS NOT NULL "
+        "ORDER BY session_id")
+    return [row[0] for row in conn.fetch_all()]
+
 
 def _fetch_isolation_scores(session_ids=None):
     """Return {(session_id, estim_spec_id): {'min': ..., 'mean': ...}} from
@@ -238,7 +248,10 @@ def compute_isolation_effect_table(session_ids=None, metric=METRIC_PCT_HYPOTHESI
         estim_mean_isolation_um. Empty DataFrame if nothing matched.
     """
     if session_ids is None:
-        session_ids = _get_all_session_ids()
+        # Only sessions actually scored by the cluster app are worth processing —
+        # specs without isolation scores can't enter the isolation-vs-effect plot.
+        session_ids = _get_sessions_with_isolation()
+        print(f"Sessions with isolation scores in EStimParameterData: {len(session_ids)}")
     elif isinstance(session_ids, str):
         session_ids = [session_ids]
 
