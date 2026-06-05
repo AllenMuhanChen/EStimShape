@@ -1,9 +1,10 @@
 from functools import partial
 
 import numpy as np
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtWidgets import QVBoxLayout, QPushButton, QWidget, QHBoxLayout, QListWidget, QListWidgetItem, \
-    QGridLayout, QBoxLayout, QLabel
+    QGridLayout, QBoxLayout, QLabel, QSlider
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.path import Path
@@ -38,6 +39,9 @@ class ClusterApplicationWindow(QWidget):
         self.widget_cluster_list = None
         self.button_new_group = None
         self.label_gen_info = None
+        self.button_reload_data = None
+        self.slider_generation = None
+        self.label_gen_cutoff = None
 
         # Dependency injection
         self.data_loader = data_loader
@@ -50,6 +54,10 @@ class ClusterApplicationWindow(QWidget):
         self.reduced_points_for_reducer = None
         self.current_reducer = None
         self.reduced_points_for_reducer = {}
+
+        # Generation segmentation: load all data initially, and find the latest generation
+        self.max_generation = self.data_loader.get_max_generation()
+        self.gen_cutoff = self.max_generation
         self.high_dim_points_for_channels = self.data_loader.load_data_for_channels()
 
         # Process Data
@@ -137,6 +145,7 @@ class ClusterApplicationWindow(QWidget):
         left_panel = self._make_channel_mapping_panel()
 
         right_bottom_panel = self._make_export_panel()
+        data_control_panel = self._make_data_control_panel()
         # Layout the panels
         layout = QGridLayout()
         layout.addLayout(top_panel, 0, 0, 1, 3)
@@ -144,6 +153,7 @@ class ClusterApplicationWindow(QWidget):
         layout.addWidget(middle_panel, 1, 1)
         layout.addWidget(left_panel, 1, 0)
         layout.addLayout(right_bottom_panel, 2, 2)
+        layout.addLayout(data_control_panel, 3, 0, 1, 3)
         # Set stretch factors
         layout.setColumnStretch(0, 1)  # Set stretch factor for column 0 (canvas column) to 3
         layout.setColumnStretch(1, 3)  # Set stretch factor for column 1 (group_panel column) to 1
@@ -167,6 +177,41 @@ class ClusterApplicationWindow(QWidget):
         export_button = QPushButton('Export')
         export_button.clicked.connect(self.on_export)
         return export_button
+
+    def _make_data_control_panel(self) -> QBoxLayout:
+        # Reload button: re-query the data source to pick up newer generations
+        self.button_reload_data = QPushButton('Reload Data')
+        self.button_reload_data.clicked.connect(self.on_reload_data)
+
+        # Generation slider: include all generations up to and including the slider value.
+        # Far right = all generations; far left = only generation 1.
+        self.slider_generation = QSlider(Qt.Horizontal)
+        # Block signals during initial setup so we don't trigger a reload/plot before
+        # the rest of the window is constructed (data is already loaded for all generations).
+        self.slider_generation.blockSignals(True)
+        self.slider_generation.setMinimum(1)
+        self.slider_generation.setMaximum(max(self.max_generation, 1))
+        self.slider_generation.setValue(max(self.max_generation, 1))
+        self.slider_generation.setTickPosition(QSlider.TicksBelow)
+        self.slider_generation.setTickInterval(1)
+        self.slider_generation.setSingleStep(1)
+        self.slider_generation.setPageStep(1)
+        self.slider_generation.blockSignals(False)
+        self.slider_generation.valueChanged.connect(self.on_generation_slider_changed)
+
+        self.label_gen_cutoff = QLabel(self._gen_cutoff_text(max(self.max_generation, 1)))
+
+        data_control_panel = QHBoxLayout()
+        data_control_panel.addWidget(self.button_reload_data)
+        data_control_panel.addWidget(QLabel("Show generations ≤"))
+        data_control_panel.addWidget(self.slider_generation)
+        data_control_panel.addWidget(self.label_gen_cutoff)
+        return data_control_panel
+
+    def _gen_cutoff_text(self, cutoff: int) -> str:
+        if cutoff >= self.max_generation:
+            return f"All generations (1–{self.max_generation})"
+        return f"Generations 1–{cutoff}"
 
     def _make_reducer_mode_panel(self) -> QBoxLayout:
         buttons = []
@@ -333,6 +378,51 @@ class ClusterApplicationWindow(QWidget):
     def on_reducer(self, reducer: DimensionalityReducer):
         self.plot(reducer)
         self.current_reducer = reducer
+
+    def on_reload_data(self) -> None:
+        """Re-query the data source to pick up data from newer generations, and refresh
+        the generation slider's range to reflect the newly available generations."""
+        self.max_generation = self.data_loader.get_max_generation()
+
+        # Refresh the slider range; keep it pinned to the latest generation so the
+        # reload shows everything that's now available.
+        self.slider_generation.blockSignals(True)
+        self.slider_generation.setMaximum(max(self.max_generation, 1))
+        self.slider_generation.setValue(max(self.max_generation, 1))
+        self.slider_generation.blockSignals(False)
+
+        self.gen_cutoff = self.max_generation
+        self._reload_with_gen_cutoff(self.max_generation)
+
+    def on_generation_slider_changed(self, value: int) -> None:
+        self.gen_cutoff = value
+        self._reload_with_gen_cutoff(value)
+
+    def _reload_with_gen_cutoff(self, cutoff: int) -> None:
+        """Reload data including only generations up to and including cutoff, re-run
+        dimensionality reduction, and re-plot. Existing cluster assignments are preserved
+        for channels that still have data."""
+        # Preserve current cluster assignments so segmenting/reloading doesn't wipe them
+        old_clusters = dict(self.cluster_manager.clusters_for_channels)
+
+        # At (or above) the latest generation, load everything (no generation filter)
+        gen_filter = None if cutoff >= self.max_generation else cutoff
+        self.high_dim_points_for_channels = self.data_loader.load_data_for_channels(gen_filter)
+        self.reduced_points_for_reducer = self.reduce_data(self.reducers,
+                                                           self.high_dim_points_for_channels)
+
+        # reduce_data refreshes self.channels; re-sync the cluster manager to the new set
+        self.cluster_manager.channels = self.channels
+        self.clusters_for_channels = {channel: old_clusters.get(channel, 0)
+                                      for channel in self.channels}
+        self.cluster_manager.clusters_for_channels = self.clusters_for_channels
+
+        self.label_gen_cutoff.setText(self._gen_cutoff_text(cutoff))
+
+        if self.current_reducer is None and self.reducers:
+            self.current_reducer = self.reducers[0]
+        if self.current_reducer is not None:
+            self.plot(self.current_reducer)
 
     def on_new_cluster(self) -> None:
         # Increment current_group, but don't assign it to any points yet

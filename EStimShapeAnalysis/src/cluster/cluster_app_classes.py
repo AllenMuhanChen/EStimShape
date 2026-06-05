@@ -12,7 +12,13 @@ MAX_GROUPS = 10
 
 
 class DataLoader(Protocol):
-    def load_data_for_channels(self) -> dict[Channel, np.ndarray]:
+    def load_data_for_channels(self, max_gen: int | None = None) -> dict[Channel, np.ndarray]:
+        """Load per-channel data. If max_gen is given, only include data from
+        generations up to and including max_gen; if None, include all data."""
+        pass
+
+    def get_max_generation(self) -> int:
+        """Return the highest generation that currently has data available."""
         pass
 
 

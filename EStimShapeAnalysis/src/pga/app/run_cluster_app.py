@@ -24,37 +24,67 @@ class DbDataLoader(DataLoader):
     def __init__(self, conn: Connection):
         self.conn = conn
 
-    def load_data_for_channels(self):
+    def load_data_for_channels(self, max_gen: int | None = None):
         # The data will be dictionary between channels and their data
         # the data will be an (n_tasks) ndarray of the response rates
         data_for_channels = {}
         for index, channel in enumerate(channels_for_prefix("A")):
-            spikes_data = self.get_spikes_per_channel(channel.value)
+            spikes_data = self.get_spikes_per_channel(channel.value, max_gen)
             # if spikes_data.size == 0:
             #     continue
             data_for_channels[channel] = spikes_data
         return data_for_channels
 
-    def get_spikes_per_channel(self, channel_name: str) -> np.ndarray:
+    def get_max_generation(self) -> int:
+        """
+        Returns the highest generation id that currently has channel responses recorded.
+        Falls back to 1 when no generation information is available.
+        """
+        query = """
+            SELECT MAX(sgi.gen_id)
+            FROM StimGaInfo sgi
+            JOIN ChannelResponses cr ON cr.stim_id = sgi.stim_id
+        """
+        self.conn.execute(query)
+        max_gen = self.conn.fetch_one()
+        if max_gen is None:
+            return 1
+        return int(max_gen)
+
+    def get_spikes_per_channel(self, channel_name: str, max_gen: int | None = None) -> np.ndarray:
         """
         Fetches average spikes per second for a specific channel, grouped by stim_id and averaged across task_ids,
         ordered by stim_id, and returns as a numpy array.
 
         Parameters:
         - channel_name: The name of the channel for which average spikes per second are required.
+        - max_gen: If provided, only include responses to stimuli from generations up to and
+          including this generation. If None, include all responses.
 
         Returns:
         - A numpy array containing the averaged spikes_per_second for the specified channel,
           grouped by stim_id and ordered by stim_id.
         """
-        query = """
-            SELECT stim_id, AVG(spikes_per_second) as avg_spikes_per_second
-            FROM ChannelResponses
-            WHERE channel = %s
-            GROUP BY stim_id
-            ORDER BY stim_id
-        """
-        self.conn.execute(query, (str(channel_name),))  # Execute the query with the parameter
+        if max_gen is None:
+            query = """
+                SELECT stim_id, AVG(spikes_per_second) as avg_spikes_per_second
+                FROM ChannelResponses
+                WHERE channel = %s
+                GROUP BY stim_id
+                ORDER BY stim_id
+            """
+            params = (str(channel_name),)
+        else:
+            query = """
+                SELECT cr.stim_id, AVG(cr.spikes_per_second) as avg_spikes_per_second
+                FROM ChannelResponses cr
+                JOIN StimGaInfo sgi ON cr.stim_id = sgi.stim_id
+                WHERE cr.channel = %s AND sgi.gen_id <= %s
+                GROUP BY cr.stim_id
+                ORDER BY cr.stim_id
+            """
+            params = (str(channel_name), max_gen)
+        self.conn.execute(query, params)  # Execute the query with the parameter
         data = self.conn.fetch_all()  # Fetch all results
 
         # If no data is returned, return an empty array
