@@ -403,10 +403,10 @@ def main():
         start_session_id=None,        # e.g. "260402_0" to start from the first
                                       # variant experiment; None = all sessions
         exclude_session_ids=None,     # e.g. ["260421_0", "260410_0"]
-        reducer='pca',               # 'pca' (matches cluster app) | 'mds' | 'none'
-        n_components=2,               # 2 matches the cluster app; None = full space
+        reducer='mds',               # 'pca' (matches cluster app) | 'mds' | 'none'
+        n_components=5,               # 2 matches the cluster app; None = full space
         distance='euclidean',        # 'euclidean' (in embedding) | 'correlation'
-        n_neighbors=3,
+        n_neighbors=5,
         exclude_other_estim=True,
         within_session_norm='scale',  # 'scale' (RMS divisor, comparable across
                                       # experiments) | 'none' (raw distances)

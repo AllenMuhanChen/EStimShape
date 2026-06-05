@@ -677,15 +677,15 @@ def main():
         # 'noise_chance': 0.9,
         # 'a1': 3.5,
         # 'polarity': 'PositiveFirst',
-        # 'trial_type': 'Hypothesized Shape',
+        'trial_type': 'Hypothesized Shape',
     }
 
     # Session selection (same convention as max_estim_per_experiment):
     #   start_session_id    -> e.g. "260402_0" to start from the first variant
     #                          experiment; None = all scored sessions.
     #   exclude_session_ids -> e.g. ["260421_0", "260410_0"].
-    start_session_id = None
-    exclude_session_ids = None
+    start_session_id = "260402_0"
+    exclude_session_ids = ["260421_0", "260410_0"]
 
     save_dir = "/home/connorlab/Documents/plots/across_experiments/"
 
@@ -697,7 +697,7 @@ def main():
     #   'pc_mean' -> estim_mean_pc_neighbor_dist (clustering-free, average)
     # The pc_* columns require compute_estim_pc_neighbor_scores.main() to have
     # been run first.
-    isolation_metric = 'pc_max'
+    isolation_metric = 'pc_mean'
 
     # Plot 1: raw isolation/distance vs effect.
     plot_isolation_vs_effect(
@@ -706,9 +706,9 @@ def main():
         metric=metric,
         isolation_metric=isolation_metric,
         required_conditions=required_conditions or None,
-        min_on_trials=15,
-        min_off_trials=15,
-        abs_effect=False,            # True -> relate to effect MAGNITUDE
+        min_on_trials=10,
+        min_off_trials=10,
+        abs_effect=False,            # True -> relate isolation to effect MAGNITUDE
         color_by_session=True,
         output_path=os.path.join(save_dir, f"isolation_vs_effect_{isolation_metric}.png"),
     )
@@ -725,9 +725,9 @@ def main():
         metric=metric,
         isolation_metric=isolation_metric,
         required_conditions=required_conditions or None,
-        min_on_trials=15,
-        min_off_trials=15,
-        require_positive_isolation=True,  # (divide path only) drop isolation <= 0
+        min_on_trials=10,
+        min_off_trials=10,
+        require_positive_isolation=False,  # (divide path only) drop isolation <= 0
         combine_op='auto',
         abs_effect=False,
         output_path=os.path.join(save_dir, f"power_x_isolation_vs_effect_{isolation_metric}.png"),
