@@ -273,12 +273,18 @@ class PcInterpretationFigureExporter(DataExporter):
         """Display the rendered figure in its own non-blocking Qt window with a
         navigation toolbar (zoom/pan to inspect each cluster's shape tuning).
 
+        The canvas is rendered at the figure's full native pixel size inside a
+        scroll area, so thumbnails appear at the same scale as the saved PNG.
+        Without this, matplotlib's Qt canvas shrinks the (large) figure to fit
+        the window, squishing every thumbnail down to an unreadable size.
+
         Keeps a single window per exporter: re-exporting closes the previous one
         so the screen always shows the latest clustering.
         """
         from matplotlib.backends.backend_qt5agg import (
             FigureCanvasQTAgg, NavigationToolbar2QT)
-        from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout
+        from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
+                                     QScrollArea)
 
         previous = getattr(self, '_figure_window', None)
         if previous is not None:
@@ -291,12 +297,27 @@ class PcInterpretationFigureExporter(DataExporter):
         window.setWindowTitle(
             f"PC interpretation — {self.reducer.get_name()} "
             f"(session {self.session_id}) — {os.path.basename(save_path)}")
+
+        canvas = FigureCanvasQTAgg(fig)
+        # Pin the canvas to the figure's native pixel size so thumbnails render
+        # at the designed scale (same as the saved PNG) rather than being
+        # squeezed to the window. The scroll area lets the user pan around when
+        # the figure is larger than the screen; setWidgetResizable(True) still
+        # lets it grow to fill a larger window.
+        dpi = fig.get_dpi()
+        native_w = int(fig.get_figwidth() * dpi)
+        native_h = int(fig.get_figheight() * dpi)
+        canvas.setMinimumSize(native_w, native_h)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(canvas)
+
         container = QWidget()
         layout = QVBoxLayout(container)
-        canvas = FigureCanvasQTAgg(fig)
         toolbar = NavigationToolbar2QT(canvas, container)
         layout.addWidget(toolbar)
-        layout.addWidget(canvas)
+        layout.addWidget(scroll)
         window.setCentralWidget(container)
         window.resize(1500, 950)
         window.show()
