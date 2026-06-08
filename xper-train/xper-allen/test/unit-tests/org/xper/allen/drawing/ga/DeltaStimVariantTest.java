@@ -246,9 +246,8 @@ public class DeltaStimVariantTest {
         Random random = new Random();
         boolean r = random.nextBoolean();
         double magnitude;
-        magnitude = random.nextDouble() * 0.2 + 0.3;
+        magnitude = random.nextDouble() * 0.5 + 0.3;
         double discreteness = random.nextDouble();
-//        magnitude = 0.3;
         childMStick.genNewComponentsMatchStick(parentMStick, compsToMutateInParent, magnitude, discreteness,
                 true, 15, compsToMutateInParent);
         // ========================================================================

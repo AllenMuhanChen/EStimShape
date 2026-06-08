@@ -75,10 +75,10 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
         // Generate child
         Random random = new Random();
         boolean r = random.nextBoolean();
-        double magnitude = random.nextDouble() * 0.3 + 0.5;
+        double magnitude = random.nextDouble() * 0.5 + 0.3;
+        double discreteness = random.nextDouble();
 
-
-        childMStick.genNewComponentsMatchStick(parentMStick, compsToMutateInParent, magnitude, 0.5,
+        childMStick.genNewComponentsMatchStick(parentMStick, compsToMutateInParent, magnitude, discreteness,
                 true, 15, compsToMutateInParent);
 
         // Save data for this stimulus
