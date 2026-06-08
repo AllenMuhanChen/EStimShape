@@ -98,7 +98,7 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
 //
         int proceduralCount = numChoices - randCount - 1;
         System.out.println("Bonus +" + proceduralCount + " because of procedural count");
-        rewardMultiplier = rewardMultiplier + proceduralCount;
+//        rewardMultiplier = rewardMultiplier + proceduralCount;
 //        rewardMultiplier = proceduralCount + (rewardMultiplier) - 1;
         rewardMultiplier = Math.max(1, rewardMultiplier);
     }

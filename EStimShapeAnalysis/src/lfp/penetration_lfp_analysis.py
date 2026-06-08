@@ -1350,7 +1350,7 @@ if __name__ == '__main__':
         "260520_0": 6.4,
         "260526_0": 6.15,
         "260528_0": 6.5,
-        "260601_0": 5.90
+        "260601_0": 5.90,
     }
 
     for session_id, tip_start in tip_starts_for_session_ids.items():
