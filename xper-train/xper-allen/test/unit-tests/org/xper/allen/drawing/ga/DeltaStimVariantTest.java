@@ -250,6 +250,7 @@ public class DeltaStimVariantTest {
         double discreteness = random.nextDouble();
         childMStick.genNewComponentsMatchStick(parentMStick, compsToMutateInParent, magnitude, discreteness,
                 true, 15, compsToMutateInParent);
+//        System.out.println(childMStick.morphData.dataForComps.get(1).toXml());
         // ========================================================================
 
         return new DeltaResult(childMStick, magnitude, discreteness);
