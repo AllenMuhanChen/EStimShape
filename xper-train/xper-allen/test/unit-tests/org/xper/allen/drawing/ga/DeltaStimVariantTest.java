@@ -4,6 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
+import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 import org.xper.util.ThreadUtil;
 
@@ -63,6 +64,27 @@ public class DeltaStimVariantTest {
 
     // ---------------------------------------------------------------------------------------------
 
+    /** Mock receptive field (mirrors GAMatchStickTest.COMPLETE_RF) — the sticks need one. */
+    private static final ReceptiveField MOCK_RF = new ReceptiveField() {
+        double h = 50;
+        double k = 50;
+        double r = 20;
+
+        {
+            center = new Coordinates2D(h, k);
+            radius = r;
+            for (int i = 0; i < 100; i++) {
+                double angle = 2 * Math.PI * i / 100;
+                outline.add(new Coordinates2D(h + r * Math.cos(angle), k + r * Math.sin(angle)));
+            }
+        }
+
+        @Override
+        public boolean isInRF(double x, double y) {
+            return (x - h) * (x - h) + (y - k) * (y - k) < r * r;
+        }
+    };
+
     private TestMatchStickDrawer drawer;
     private GaussianNoiseMapper noiseMapper;
 
@@ -84,6 +106,7 @@ public class DeltaStimVariantTest {
     public void generate_and_save_deltas() {
         // --- Load the parent shape from file ---
         PruningMatchStick parentMStick = new PruningMatchStick(noiseMapper);
+        parentMStick.setRf(MOCK_RF);
         parentMStick.setProperties(SIZE_DIAMETER_DEGREES, TEXTURE_TYPE, IS_2D, CONTRAST);
         parentMStick.setStimColor(COLOR);
         parentMStick.genMatchStickFromFile(PARENT_SPEC_PATH);
@@ -203,6 +226,7 @@ public class DeltaStimVariantTest {
         // Position the child so its first preserved comp lands where it was in the parent.
         Point3d toPreserveCompLocation = parentMStick.getComp()[compsToPreserveInParent.get(0)].getMassCenter();
         PruningMatchStick childMStick = new PruningMatchStick(toPreserveCompLocation, noiseMapper);
+        childMStick.setRf(MOCK_RF);
         childMStick.setPreservedComps(compsToPreserveInParent);
         childMStick.setToPreserveInParent(compsToPreserveInParent);
 
