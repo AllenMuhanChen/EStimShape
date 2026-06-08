@@ -11,7 +11,7 @@ public class MorphData {
     public Map<Integer, ComponentMorphData> dataForComps = new HashMap<>();
     public Map<Integer, String> typesForAddedComps = new HashMap<>();
     public List<Integer> removedComps = new ArrayList<>();
-    public Double morphDiscreteness;
+    public Double morphDiscreteness = null;
     public MorphData() {
     }
 

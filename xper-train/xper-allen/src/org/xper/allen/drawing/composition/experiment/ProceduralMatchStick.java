@@ -173,7 +173,7 @@ public class ProceduralMatchStick extends GAMatchStick {
     public void genNewComponentMatchStick(ProceduralMatchStick baseMatchStick, int morphComponentIndx, double magnitude, double discreteness, boolean doPositionShape, int maxAttempts) {
         Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
         //TODO: could refractor ComponentMorphParameters into data class and factory for different applications
-        morphData.morphDiscreteness = discreteness;
+        baseMatchStick.morphData.morphDiscreteness = discreteness;
         morphParametersForComponents.put(morphComponentIndx, new NormalDistributedComponentMorphParameters(magnitude, new NormalMorphDistributer(discreteness)));
 
         int numAttempts = 0;
@@ -197,7 +197,7 @@ public class ProceduralMatchStick extends GAMatchStick {
 
     public void genNewComponentsMatchStick(ProceduralMatchStick baseMatchStick, List<Integer> morphComponentIndcs, double magnitude, double discreteness, boolean doPositionShape, int maxAttempts, List<Integer> inNoiseComponentIndcs){
         Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
-        morphData.morphDiscreteness = discreteness;
+        baseMatchStick.morphData.morphDiscreteness = discreteness;
         for (Integer morphComponentIndx : morphComponentIndcs) {
             morphParametersForComponents.put(morphComponentIndx, new NormalDistributedComponentMorphParameters(magnitude, new NormalMorphDistributer(discreteness)));
         }
