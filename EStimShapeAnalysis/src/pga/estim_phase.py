@@ -287,7 +287,7 @@ class EStimVariantDeltaSideTest(SideTest):
                         deltas_for_variants[candidate_parent.id].append(stim)
 
 
-            #check existing deltas for compatibility (can't accidentally have too high resp rate)
+        #check existing deltas for compatibility (can't accidentally have too high resp rate)
         eligible_deltas_for_variants : Dict[int, List[Stimulus]] = {}
         for variant_id, deltas in deltas_for_variants.items():
             # get resp for variant_id
@@ -305,7 +305,7 @@ class EStimVariantDeltaSideTest(SideTest):
 
 
 
-            #go through eligible stimuli and check
+        #go through eligible stimuli and check
         max_attempts_per_variant = self.max_attempts_per_variant_multiplier * self.num_deltas_per_variant
         exploit_after_attempts = self.exploit_after_multiplier * self.num_deltas_per_variant
         eligible_stimuli : List[Stimulus] = []

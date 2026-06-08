@@ -46,8 +46,7 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
      */
     @Override
     protected boolean shouldPreserveRandomComps() {
-        Random r = new Random();
-        return r.nextDouble() < magnitude;
+        return false;
     }
 
     /**
@@ -76,8 +75,7 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
 
         // Decide which parent component this delta mutates. Priority:
         //  1) a comp Python pre-assigned on THIS delta's own row (the GA's exploit choice);
-        //  2) otherwise the legacy behavior: with probability `magnitude` explore a random comp,
-        //     else mutate the parent's hypothesized comp.
+        //  2) otherwise the legacy behavior
         // hypothesizedCompData holds the PARENT's row here (set by chooseHypothesizedComp()).
         List<Integer> compsToMutateInParent = readForcedCompToMutate();
         if (compsToMutateInParent == null) {
