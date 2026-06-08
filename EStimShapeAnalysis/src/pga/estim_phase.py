@@ -241,22 +241,25 @@ class EStimVariantDeltaSideTest(SideTest):
         # regimes = [l.current_regime_index for l in lineages]
         # if max(regimes) < 3:
         #     return
-        variant_stimuli : List[Stimulus] = []
+        # Deltas can be made from any non-baseline stimulus, not just variants: a high-response
+        # delta or regime_one stim is still worth driving down with a delta. Whatever a delta is
+        # made from plays the "variant" role for that pair. The response threshold below keeps us
+        # to high-response parents.
+        candidate_parents : List[Stimulus] = []
         lineages_for_stim_id = {}
         for lineage in lineages:
             for stim in lineage.stimuli:
-                if stim.mutation_type == StimType.REGIME_ESTIM_VARIANTS.value:
-                    if stim.response_rate is not None:
-                        variant_stimuli.append(stim)
-                        lineages_for_stim_id[stim.id] = lineage
-        if len(variant_stimuli) == 0:
+                if stim.mutation_type != StimType.BASELINE.value and stim.response_rate is not None:
+                    candidate_parents.append(stim)
+                    lineages_for_stim_id[stim.id] = lineage
+        if len(candidate_parents) == 0:
             return
         #filter out via response rate
-        max_response_stim = max(variant_stimuli, key=lambda s: s.response_rate)
+        max_response_stim = max(candidate_parents, key=lambda s: s.response_rate)
         threshold = max_response_stim.response_rate * 0.6
 
         past_threshold_stim: List[Stimulus] = []
-        for s in variant_stimuli:
+        for s in candidate_parents:
             if s.response_rate >= threshold:
                 past_threshold_stim.append(s)
 
@@ -294,10 +297,9 @@ class EStimVariantDeltaSideTest(SideTest):
 
 
         #go through eligible stimuli and check
-        # Predict phase lasts this many responded attempts (the "num_pairs * max_try" threshold);
-        # the same budget caps how long we exploit a single component before giving up on it.
+        # `budget` is the per-component attempt cap (the "num_pairs * max_try" threshold): it bounds
+        # both the variant predict phase and how long we exploit one component before dropping it.
         budget = self.max_attempts_per_variant_multiplier * self.num_deltas_per_variant
-        predict_attempts = budget
         eligible_stimuli : List[Stimulus] = []
         # variant_id -> instruction for its new deltas: None = predict (no row written),
         # ('EXPLORE', None) = let Java pick a random different comp, ('EXPLOIT', comp) = mutate comp.
@@ -326,7 +328,13 @@ class EStimVariantDeltaSideTest(SideTest):
             num_responded = len([d for d in all_deltas if d.response_rate is not None])
             num_in_flight = len(all_deltas) - num_responded
 
-            # Decide the phase for this variant's new deltas.
+            # Variants have a genuine driver hypothesis, so they get a predict phase first. Any
+            # other parent (delta, regime_one, ...) has no predicted driver, so it explores from
+            # the start (predict_attempts = 0).
+            is_variant_parent = candidate_parent.mutation_type == StimType.REGIME_ESTIM_VARIANTS.value
+            predict_attempts = budget if is_variant_parent else 0
+
+            # Decide the phase for this parent's new deltas.
             instruction = None  # predict: mutate the predicted comp (no row written)
             target_progress = max(eligible_by_comp.values(), default=0)  # predicted comp during predict
             if num_responded >= predict_attempts:
