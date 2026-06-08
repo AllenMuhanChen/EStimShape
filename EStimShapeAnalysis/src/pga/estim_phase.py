@@ -211,7 +211,8 @@ class EStimVariantSideTest(SideTest):
 class EStimVariantDeltaSideTest(SideTest):
     def __init__(self, num_deltas_per_variant: int = 1, delta_resp_ratio_threshold: float = 0.5,
                  max_attempts_per_variant_multiplier: int = 3, conn=Type[connection],
-                 min_magnitude: float = 0.3, max_magnitude: float = 0.8):
+                 min_magnitude: float = 0.3, max_magnitude: float = 0.8,
+                 max_deltas_per_generation: int = None):
         self.num_deltas_per_variant = num_deltas_per_variant
         self.delta_resp_ratio_threshold = delta_resp_ratio_threshold
         self.max_attempts_per_variant_multiplier = max_attempts_per_variant_multiplier
@@ -221,47 +222,52 @@ class EStimVariantDeltaSideTest(SideTest):
         # [min_magnitude, max_magnitude]. Discreteness is still chosen randomly on the Java side.
         self.min_magnitude = min_magnitude
         self.max_magnitude = max_magnitude
+        # Optional ceiling on how many deltas to create across all parents in a single generation.
+        # None means uncapped. When capped, higher-response parents are served first.
+        self.max_deltas_per_generation = max_deltas_per_generation
 
     def assign_mutation_magnitude(self) -> float:
         return random.uniform(self.min_magnitude, self.max_magnitude)
 
-    def _best_eligible_comp(self, eligible_deltas: List[Stimulus]):
-        """
-        The component to exploit: the one mutated by the eligible (threshold-passing) delta with
-        the biggest response drop (lowest response rate). If several components have threshold-
-        passing deltas, this picks the best of them. Returns a list of ints, or None if no eligible
-        delta has a readable mutated component.
-        """
-        candidates = [d for d in eligible_deltas if d.response_rate is not None]
-        for delta in sorted(candidates, key=lambda d: d.response_rate):
+    def _mutated_comp_by_delta(self, deltas: List[Stimulus]) -> Dict[int, tuple]:
+        """Map each responded delta's id to the component it mutated (a tuple of ints)."""
+        comp_by_id: Dict[int, tuple] = {}
+        for delta in deltas:
+            if delta.response_rate is None:
+                continue
             comp = _read_mutated_comp(self.conn, delta.id)
-            if comp:
-                return list(comp)
-        return None
+            if comp is not None:
+                comp_by_id[delta.id] = comp
+        return comp_by_id
 
     def run(self, lineages: List[Lineage], gen_id: int):
         #identify eligible stimuli (variants)
         # regimes = [l.current_regime_index for l in lineages]
         # if max(regimes) < 3:
         #     return
-        variant_stimuli : List[Stimulus] = []
+        # Deltas can be made from any non-baseline stimulus, not just variants: a high-response
+        # delta or regime_one stim is still worth driving down with a delta. Whatever a delta is
+        # made from plays the "variant" role for that pair. The response threshold below keeps us
+        # to high-response parents.
+        candidate_parents : List[Stimulus] = []
         lineages_for_stim_id = {}
         for lineage in lineages:
             for stim in lineage.stimuli:
-                if stim.mutation_type == StimType.REGIME_ESTIM_VARIANTS.value:
-                    if stim.response_rate is not None:
-                        variant_stimuli.append(stim)
-                        lineages_for_stim_id[stim.id] = lineage
-        if len(variant_stimuli) == 0:
+                if stim.mutation_type != StimType.BASELINE.value and stim.response_rate is not None:
+                    candidate_parents.append(stim)
+                    lineages_for_stim_id[stim.id] = lineage
+        if len(candidate_parents) == 0:
             return
         #filter out via response rate
-        max_response_stim = max(variant_stimuli, key=lambda s: s.response_rate)
+        max_response_stim = max(candidate_parents, key=lambda s: s.response_rate)
         threshold = max_response_stim.response_rate * 0.6
 
         past_threshold_stim: List[Stimulus] = []
-        for s in variant_stimuli:
+        for s in candidate_parents:
             if s.response_rate >= threshold:
                 past_threshold_stim.append(s)
+        # Serve higher-response parents first so the per-generation cap (if any) goes to them.
+        past_threshold_stim.sort(key=lambda s: s.response_rate, reverse=True)
 
         #filter out ones that have been tested enough already
             #first make dict of deltas for variants
@@ -297,43 +303,78 @@ class EStimVariantDeltaSideTest(SideTest):
 
 
         #go through eligible stimuli and check
-        # Predict phase lasts this many responded attempts (the "num_pairs * max_try" threshold).
-        # After it, if no delta has beaten the threshold we explore other components; once at least
-        # one has, we exploit the best such component.
-        predict_attempts = self.max_attempts_per_variant_multiplier * self.num_deltas_per_variant
+        # `budget` is the per-component attempt cap (the "num_pairs * max_try" threshold): it bounds
+        # both the variant predict phase and how long we exploit one component before dropping it.
+        budget = self.max_attempts_per_variant_multiplier * self.num_deltas_per_variant
         eligible_stimuli : List[Stimulus] = []
         # variant_id -> instruction for its new deltas: None = predict (no row written),
         # ('EXPLORE', None) = let Java pick a random different comp, ('EXPLOIT', comp) = mutate comp.
         instruction_for_variant: Dict[int, tuple] = {}
         for candidate_parent in past_threshold_stim:
             eligible_deltas = eligible_deltas_for_variants.get(candidate_parent.id, [])
-            num_eligible_deltas = len(eligible_deltas)
-            if num_eligible_deltas >= self.num_deltas_per_variant:
-                continue  # already have enough deltas that drop the response
-
             all_deltas = deltas_for_variants.get(candidate_parent.id, [])
-            # Only deltas that have come back with a response drive the phase decision; an in-flight
-            # (null-response) delta is still being generated and tells us nothing yet.
+
+            # Group deltas by the component they actually mutated, so noise on the wrong component
+            # is tracked separately from progress on the real driver.
+            comp_by_id = self._mutated_comp_by_delta(all_deltas)
+            responded_by_comp: Dict[tuple, int] = {}
+            for comp in comp_by_id.values():
+                responded_by_comp[comp] = responded_by_comp.get(comp, 0) + 1
+            eligible_by_comp: Dict[tuple, int] = {}
+            for delta in eligible_deltas:
+                comp = comp_by_id.get(delta.id)
+                if comp is not None:
+                    eligible_by_comp[comp] = eligible_by_comp.get(comp, 0) + 1
+
+            # Done when a SINGLE component has enough threshold-passing deltas. A lone noise-driven
+            # eligible on the wrong component must not, by itself, satisfy the requirement.
+            if max(eligible_by_comp.values(), default=0) >= self.num_deltas_per_variant:
+                continue
+
             num_responded = len([d for d in all_deltas if d.response_rate is not None])
             num_in_flight = len(all_deltas) - num_responded
 
-            # Don't double-make: account for deltas already in flight toward the target.
-            number_of_deltas_to_make = self.num_deltas_per_variant - num_eligible_deltas - num_in_flight
+            # Variants have a genuine driver hypothesis, so they get a predict phase first. Any
+            # other parent (delta, regime_one, ...) has no predicted driver, so it explores from
+            # the start (predict_attempts = 0).
+            is_variant_parent = candidate_parent.mutation_type == StimType.REGIME_ESTIM_VARIANTS.value
+            predict_attempts = budget if is_variant_parent else 0
+
+            # Decide the phase for this parent's new deltas.
+            instruction = None  # predict: mutate the predicted comp (no row written)
+            target_progress = max(eligible_by_comp.values(), default=0)  # predicted comp during predict
+            if num_responded >= predict_attempts:
+                # The predicted comp hasn't produced enough threshold-passing deltas. Exploit the
+                # best component that (a) has a threshold-passing delta and (b) has not already been
+                # tried up to `budget` times without reaching the target - such a component is
+                # treated as a noise fluke and dropped, sending us back to exploration.
+                exploit_comp = None
+                eligible_with_comp = [(d.response_rate, comp_by_id[d.id]) for d in eligible_deltas
+                                      if d.response_rate is not None and d.id in comp_by_id]
+                for resp_rate, comp in sorted(eligible_with_comp, key=lambda x: x[0]):
+                    if responded_by_comp.get(comp, 0) < budget:
+                        exploit_comp = comp
+                        break
+                if exploit_comp is not None:
+                    instruction = ('EXPLOIT', list(exploit_comp))
+                    target_progress = eligible_by_comp.get(exploit_comp, 0)
+                else:
+                    instruction = ('EXPLORE', None)
+                    target_progress = 0
+
+            # Don't double-make: count progress toward the target component plus deltas in flight.
+            number_of_deltas_to_make = self.num_deltas_per_variant - target_progress - num_in_flight
             if number_of_deltas_to_make <= 0:
                 continue
-
-            # Decide the phase for this variant's new deltas.
-            instruction = None  # predict: mutate the predicted comp (no row written)
-            if num_responded >= predict_attempts:
-                # The predicted comp hasn't produced enough threshold-passing deltas. If some comp
-                # has beaten the threshold, exploit the best one; otherwise keep exploring.
-                exploit_comp = self._best_eligible_comp(eligible_deltas)
-                instruction = ('EXPLOIT', exploit_comp) if exploit_comp is not None else ('EXPLORE', None)
 
             instruction_for_variant[candidate_parent.id] = instruction
             for i in range(number_of_deltas_to_make):
                 eligible_stimuli.append(candidate_parent)
 
+        # Cap total deltas this generation. eligible_stimuli is already ordered by parent response
+        # (highest first), so truncating keeps the highest-response parents' deltas.
+        if self.max_deltas_per_generation is not None:
+            eligible_stimuli = eligible_stimuli[:self.max_deltas_per_generation]
 
         #add to lineage
         for candidate_parent in eligible_stimuli:

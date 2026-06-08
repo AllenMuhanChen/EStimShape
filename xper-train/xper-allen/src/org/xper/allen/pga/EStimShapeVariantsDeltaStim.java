@@ -22,20 +22,11 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
 
     @Override
     protected void choosePosition() {
-        MStickPosition parentLocation = positionManager.readProperty(parentId);
-        // could be another variant or a growing stick or zooming or whatever...
-        if (parentLocation.positioningStrategy == PositioningStrategy.PRESERVED_COMP_BASED){
-//            position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, null);
-              position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, null);
-        } else{
-            System.out.println("Parent positioning strategy: " + parentLocation.positioningStrategy);
-            System.out.println("Parent Id: " + parentId);
-            if (!hypothesizedCompManager.hasProperty(parentId)){
-                throw new IllegalArgumentException("Delta parent's positioning strategy should have to be preserved comp based OR have stim comps to preserve");
-            }
-            position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, null);
-
-        }
+        // A delta anchors itself on the component it preserves (computed in createMStick), so it
+        // always uses a preserved-comp-based position regardless of the parent's own positioning.
+        // This lets a delta be made from any (non-baseline) high-response parent - a variant, a
+        // delta, regime_one, etc. - not just preserved-comp-based variants.
+        position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, null);
     }
 
     /**
@@ -48,20 +39,30 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
      *   - row, comp present    -> EXPLOIT: mutate exactly that component
      *
      * hypothesizedCompData holds the PARENT's row here (set by chooseHypothesizedComp()), so its
-     * hypothesized comp is the predicted comp this delta would otherwise mutate.
+     * hypothesized comp is the predicted comp this delta would otherwise mutate. A non-variant
+     * parent may have no predicted comp (null), in which case there is nothing to predict and we
+     * explore a random component.
      */
     private List<Integer> chooseCompsToMutate(PruningMatchStick parentMStick) {
-        List<Integer> predictedComp = hypothesizedCompData.getHypothesizedComp();
+        List<Integer> predictedComp = (hypothesizedCompData != null) ? hypothesizedCompData.getHypothesizedComp() : null;
         if (!hypothesizedCompManager.hasProperty(stimId)) {
-            return predictedComp; // PREDICT
+            // PREDICT: mutate the parent's predicted comp; with none, explore instead.
+            if (predictedComp != null && !predictedComp.isEmpty()) {
+                return predictedComp;
+            }
+            return randomComp(parentMStick, predictedComp);
         }
         List<Integer> instructed = hypothesizedCompManager.readProperty(stimId).getParentHypothesizedComps();
         if (instructed != null && !instructed.isEmpty()) {
             return instructed; // EXPLOIT
         }
-        // EXPLORE: pick a random component different from the predicted one.
+        return randomComp(parentMStick, predictedComp); // EXPLORE
+    }
+
+    /** A random, non-empty set of components to mutate, avoiding {@code avoid} (the predicted comp) when given. */
+    private List<Integer> randomComp(PruningMatchStick parentMStick, List<Integer> avoid) {
         List<Integer> explored = Collections.emptyList();
-        while (explored.isEmpty() || explored.equals(predictedComp)) {
+        while (explored.isEmpty() || explored.equals(avoid)) {
             explored = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
         }
         return explored;

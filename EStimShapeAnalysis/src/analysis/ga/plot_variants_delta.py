@@ -178,69 +178,53 @@ class PlotVariantDeltas(PlotTopNAnalysis):
         return pairs, prepared
 
     def _compute_pairs_table(self, compiled_data, response_col_name):
-        """Compute the full delta-variant pair table (all pairs, with threshold-based
-        ``Included`` flag) from prepared compiled data. Returns the DataFrame or None."""
-        # Compute included variants from data (no DB dependency)
-        included_variant_ids, variant_responses = self._compute_included_variants(compiled_data, response_col_name)
-        if not included_variant_ids:
-            print("No included variants found!")
-            return None
-        print(f"Found {len(included_variant_ids)} included variants")
+        """Compute the full (delta, parent) pair table from prepared compiled data.
 
-        # Only DELTA-type stims are candidates to be the "delta" in a pair,
-        # preventing variant/variant pairs from forming.
+        Every REGIME_ESTIM_DELTA stim is paired with the stimulus it was made from - its parent -
+        which plays the "variant" role for that pair, whatever the parent's own type is (a variant,
+        a delta, regime_one, ...). A pair is kept when the parent is a high-response "included"
+        parent. This generalizes the old variant->delta-only pairing to delta-from-anything,
+        including delta->delta chains. Returns the DataFrame (with a threshold-based ``Included``
+        flag) or None.
+        """
+        # Any non-baseline stim is a candidate parent ("variant" role); keep the high-response ones.
+        included_parent_ids, parent_responses = self._compute_included_parents(compiled_data, response_col_name)
+        if not included_parent_ids:
+            print("No included parents found!")
+            return None
+        print(f"Found {len(included_parent_ids)} included parents")
+
         deltas_data = compiled_data[compiled_data['StimType'] == StimType.REGIME_ESTIM_DELTA.value].copy()
         if deltas_data.empty:
             print("No REGIME_ESTIM_DELTA stimuli found!")
             return None
 
-        # Build lookup used both during pair-building and the lineage filter
+        # Pair each delta with its parent; keep the pair only when the parent is an included parent.
+        # The final (child) delta is the "delta" and its parent is the "variant" for the pair.
         stim_info = compiled_data.drop_duplicates('StimSpecId').set_index('StimSpecId')[['StimType', 'ParentId']]
-
-        # Build valid (delta, paired_variant) pairs
         pair_records = []
-        for _, row in compiled_data.iterrows():
-            parent_id = row['ParentId']
-            stim_id = row['StimSpecId']
-
-            if parent_id in included_variant_ids and stim_id in deltas_data['StimSpecId'].values:
-                # Normal: included variant is parent, delta child
-                pair_records.append({'StimSpecId': stim_id, 'PairedVariantId': parent_id})
-            elif stim_id in included_variant_ids:
-                # Reversed: stim IS the included variant, parent may be the delta
-                if parent_id in included_variant_ids:
-                    continue  # variant→variant, skip
-                # Only accept parent as delta if it is actually DELTA type
-                if parent_id not in stim_info.index:
-                    continue
-                if stim_info.loc[parent_id, 'StimType'] != StimType.REGIME_ESTIM_DELTA.value:
-                    continue
-                parent_row = compiled_data[compiled_data['StimSpecId'] == parent_id]
-                if not parent_row.empty:
-                    if parent_id not in deltas_data['StimSpecId'].values:
-                        deltas_data = pd.concat([deltas_data, parent_row], ignore_index=True)
-                    pair_records.append({'StimSpecId': parent_id, 'PairedVariantId': stim_id})
-                else:
-                    print(f"Warning: Parent ID {parent_id} of included variant {stim_id} not found in compiled data!")
+        for delta_id in deltas_data['StimSpecId'].unique():
+            if delta_id not in stim_info.index:
+                continue
+            parent_id = stim_info.loc[delta_id, 'ParentId']
+            if parent_id in included_parent_ids:
+                pair_records.append({'StimSpecId': delta_id, 'PairedVariantId': parent_id})
 
         if not pair_records:
-            print("No valid delta-variant pairs found!")
+            print("No valid delta-parent pairs found!")
             return None
 
-        paired_delta_ids = {r['StimSpecId'] for r in pair_records}
-        deltas_data = deltas_data[deltas_data['StimSpecId'].isin(paired_delta_ids)].copy()
         pair_map = pd.DataFrame(pair_records).drop_duplicates()
+        print(f"Found {len(pair_map)} delta-parent pairs")
 
-        print(f"Found {len(pair_map)} delta-variant pairs")
-
-        # Average response per (delta, paired_variant)
+        # Average response per (delta, parent)
         deltas_merged = deltas_data.merge(pair_map, on='StimSpecId', how='inner')
         delta_avg_response = deltas_merged.groupby(['StimSpecId', 'PairedVariantId'])[
             response_col_name].mean().reset_index()
         delta_avg_response.rename(columns={response_col_name: 'Delta Response'}, inplace=True)
 
         delta_avg_response = delta_avg_response.merge(
-            variant_responses[['StimSpecId', 'Response']],
+            parent_responses[['StimSpecId', 'Response']],
             left_on='PairedVariantId',
             right_on='StimSpecId',
             how='left',
@@ -252,20 +236,7 @@ class PlotVariantDeltas(PlotTopNAnalysis):
         delta_avg_response['Ratio'] = delta_avg_response['Delta Response'] / delta_avg_response['Variant Response']
         delta_avg_response['Included'] = delta_avg_response['Ratio'] < self.threshold
 
-        # Drop pairs where a DELTA-type stim acts as the "variant" but isn't the child of the true delta
-        rows_to_drop = []
-        for idx, row in delta_avg_response.iterrows():
-            variant_id = row['PairedVariantId']
-            delta_id = row['StimSpecId']
-            if variant_id not in stim_info.index:
-                continue
-            if stim_info.loc[variant_id, 'StimType'] == StimType.REGIME_ESTIM_DELTA.value:
-                if stim_info.loc[variant_id, 'ParentId'] != delta_id:
-                    rows_to_drop.append(idx)
-                    print(f"  Dropped pair: DELTA {variant_id} acting as variant is not child of {delta_id}")
-        delta_avg_response = delta_avg_response.drop(rows_to_drop).reset_index(drop=True)
-
-        print(f"Valid pairs after lineage filter: {len(delta_avg_response)}")
+        print(f"Valid pairs: {len(delta_avg_response)}")
         print(f"  Included (ratio < {self.threshold}): {delta_avg_response['Included'].sum()}")
         print(f"  Excluded: {(~delta_avg_response['Included']).sum()}")
 
@@ -333,21 +304,24 @@ class PlotVariantDeltas(PlotTopNAnalysis):
 
         return plot_data, title, delta_avg_response
 
-    def _compute_included_variants(self, compiled_data, response_col_name):
-        """Compute included variants from compiled_data using the variant threshold."""
-        variants = compiled_data[compiled_data['StimType'].isin(
-            [StimType.REGIME_ESTIM_VARIANTS.value, StimType.REGIME_ESTIM_DELTA.value]
-        )].copy()
+    def _compute_included_parents(self, compiled_data, response_col_name):
+        """Compute high-response parents (the "variant" role of a pair) from compiled_data.
 
-        if variants.empty:
+        Any non-baseline stimulus can be a delta parent, so the candidate pool is all non-baseline
+        stims (variants, deltas, regime_one, ...). A parent is included when its mean response is at
+        least ``variant_threshold`` of the maximum parent response.
+        """
+        parents = compiled_data[compiled_data['StimType'] != StimType.BASELINE.value].copy()
+
+        if parents.empty:
             return [], pd.DataFrame(columns=['StimSpecId', 'Response'])
 
-        variants_grouped = variants.groupby('StimSpecId')[response_col_name].mean().reset_index()
-        max_response = variants_grouped[response_col_name].max()
+        parents_grouped = parents.groupby('StimSpecId')[response_col_name].mean().reset_index()
+        max_response = parents_grouped[response_col_name].max()
         cutoff = self.variant_threshold * max_response
-        print(f"Variant selection: max response={max_response:.2f}, threshold={cutoff:.2f} ({self.variant_threshold*100:.0f}%)")
+        print(f"Parent selection: max response={max_response:.2f}, threshold={cutoff:.2f} ({self.variant_threshold*100:.0f}%)")
 
-        included = variants_grouped[variants_grouped[response_col_name] >= cutoff].copy()
+        included = parents_grouped[parents_grouped[response_col_name] >= cutoff].copy()
         included_ids = included['StimSpecId'].tolist()
         included_responses = included[['StimSpecId', response_col_name]].rename(
             columns={response_col_name: 'Response'}
