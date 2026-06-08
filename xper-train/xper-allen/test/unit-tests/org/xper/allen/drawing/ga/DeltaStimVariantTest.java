@@ -43,7 +43,7 @@ public class DeltaStimVariantTest {
     // ---------------------------------------------------------------------------------------------
 
     /** Path to the parent shape spec xml. (You said you'll handle this.) */
-    private static final String PARENT_SPEC_PATH = "/home/connorlab/Documents/xper-test/delta-test/parent_spec.xml";
+    private static final String PARENT_SPEC_PATH = "/home/connorlab/Documents/EStimShape/allen_ga_exp_260605_0/stimuli/ga/specs/1780682234087784_spec.xml";
 
     /** Hardcoded "special limbs": the parent component indices to MUTATE. Everything else is preserved. */
     private static final List<Integer> COMPS_TO_MUTATE_IN_PARENT = new ArrayList<>(Arrays.asList(1));
@@ -55,20 +55,20 @@ public class DeltaStimVariantTest {
     private static final String OUTPUT_DIR = "/home/connorlab/Documents/xper-test/delta-test";
 
     // Shape rendering / morph properties (mirror EStimShapeVariantsDeltaStim defaults).
-    private static final double SIZE_DIAMETER_DEGREES = 3.0;
-    private static final double MAX_DIAMETER_DEGREES = 10.0;
-    private static final String TEXTURE_TYPE = "SHADE";
+    private static final double SIZE_DIAMETER_DEGREES = 1.0;
+    private static final double MAX_DIAMETER_DEGREES = 35.0;
+    private static final String TEXTURE_TYPE = "SPECULAR";
     private static final boolean IS_2D = false;
     private static final double CONTRAST = 1.0;
-    private static final RGBColor COLOR = new RGBColor(1.0, 0.0, 0.0);
+    private static final RGBColor COLOR = new RGBColor(0.0, 1.0, 0.0);
 
     // ---------------------------------------------------------------------------------------------
 
     /** Mock receptive field (mirrors GAMatchStickTest.COMPLETE_RF) — the sticks need one. */
     private static final ReceptiveField MOCK_RF = new ReceptiveField() {
-        double h = 50;
-        double k = 50;
-        double r = 20;
+        double h = 0;
+        double k = 0;
+        double r = 5;
 
         {
             center = new Coordinates2D(h, k);
@@ -108,6 +108,7 @@ public class DeltaStimVariantTest {
         PruningMatchStick parentMStick = new PruningMatchStick(noiseMapper);
         parentMStick.setRf(MOCK_RF);
         parentMStick.setProperties(SIZE_DIAMETER_DEGREES, TEXTURE_TYPE, IS_2D, CONTRAST);
+
         parentMStick.setStimColor(COLOR);
         parentMStick.genMatchStickFromFile(PARENT_SPEC_PATH);
 
@@ -240,9 +241,11 @@ public class DeltaStimVariantTest {
         // *** This is the block to experiment with. ***
         Random random = new Random();
         boolean r = random.nextBoolean();
-        double magnitude = random.nextDouble() * 0.3 + 0.5;
-
-        childMStick.genNewComponentsMatchStick(parentMStick, compsToMutateInParent, magnitude, 0.5,
+        double magnitude;
+        magnitude = random.nextDouble() * 0.2 + 0.3;
+        double discreteness = random.nextDouble();
+//        magnitude = 0.3;
+        childMStick.genNewComponentsMatchStick(parentMStick, compsToMutateInParent, magnitude, discreteness,
                 true, 15, compsToMutateInParent);
         // ========================================================================
 
