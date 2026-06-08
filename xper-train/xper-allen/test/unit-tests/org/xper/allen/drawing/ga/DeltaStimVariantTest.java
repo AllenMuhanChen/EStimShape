@@ -15,8 +15,10 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
@@ -154,17 +156,19 @@ public class DeltaStimVariantTest {
             }
 
             String magStr = String.format("%.2f", result.magnitude);
+            String discStr = String.format("%.2f", result.discreteness);
             drawer.drawThumbnail(result.stick);
             ThreadUtil.sleep(500);
-            labels.add("mag " + magStr);
-            paths.add(drawer.saveImage(OUTPUT_DIR + "/delta_" + deltaIdx + "_mag_" + magStr));
+            labels.add("mag " + magStr + " disc " + discStr);
+            paths.add(drawer.saveImage(OUTPUT_DIR + "/delta_" + deltaIdx + "_mag_" + magStr + "_disc_" + discStr));
             ThreadUtil.sleep(250);
             drawer.clear();
-            System.out.println("Saved delta " + deltaIdx + " (magnitude=" + magStr + ")");
+            System.out.println("Saved delta " + deltaIdx + " (magnitude=" + magStr + ", discreteness=" + discStr + ")");
         }
 
-        // Collate the original + all deltas into a single figure.
-        String collagePath = OUTPUT_DIR + "/collage.png";
+        // Collate the original + all deltas into a single figure, timestamped so each run is kept.
+        String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String collagePath = OUTPUT_DIR + "/collage_" + timestamp + ".png";
         collate(labels, paths, collagePath);
 
         System.out.println("Done. Wrote original + " + NUM_DELTAS + " deltas and collage to " + OUTPUT_DIR);
@@ -249,17 +253,19 @@ public class DeltaStimVariantTest {
                 true, 15, compsToMutateInParent);
         // ========================================================================
 
-        return new DeltaResult(childMStick, magnitude);
+        return new DeltaResult(childMStick, magnitude, discreteness);
     }
 
-    /** Holds a generated delta along with the magnitude actually used to produce it. */
+    /** Holds a generated delta along with the params actually used to produce it. */
     private static class DeltaResult {
         final PruningMatchStick stick;
         final double magnitude;
+        final double discreteness;
 
-        DeltaResult(PruningMatchStick stick, double magnitude) {
+        DeltaResult(PruningMatchStick stick, double magnitude, double discreteness) {
             this.stick = stick;
             this.magnitude = magnitude;
+            this.discreteness = discreteness;
         }
     }
 }
