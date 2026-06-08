@@ -30,7 +30,7 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
         } else{
             System.out.println("Parent positioning strategy: " + parentLocation.positioningStrategy);
             System.out.println("Parent Id: " + parentId);
-            if (!compsToPreserveManager.hasProperty(parentId)){
+            if (!hypothesizedCompManager.hasProperty(parentId)){
                 throw new IllegalArgumentException("Delta parent's positioning strategy should have to be preserved comp based OR have stim comps to preserve");
             }
             position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, null);
@@ -58,11 +58,11 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
         List<Integer> compsToMutateInParent = Collections.emptyList();
         if (shouldPreserveRandomComps()){
             //ensure we don't randomly draw the same as the parents
-            while(!compsToMutateInParent.equals(preservedComponentData.getCompsToPreserve()))
+            while(!compsToMutateInParent.equals(hypothesizedCompData.getHypothesizedComp()))
                 compsToMutateInParent = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
         }
         else {
-            compsToMutateInParent = preservedComponentData.getCompsToPreserve();
+            compsToMutateInParent = hypothesizedCompData.getHypothesizedComp();
         }
 
 
@@ -104,12 +104,12 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
         List<Integer> compsToPreserveInNextChild = childMStick.getPreservedComps();
         position.setPosition(childMStick.getMassCenterForComponent(compsToPreserveInNextChild.get(0)));
         position.setTargetComp(compsToPreserveInNextChild.get(0));
-        PreservedComponentData childData = new PreservedComponentData(
+        HypothesizedCompData childData = new HypothesizedCompData(
                 compsToPreserveInNextChild,
                 parentId,
                 compsToMutateInParent
         );
-//        compsToPreserveManager.writeProperty(stimId, childData);
+//        hypothesizedCompManager.writeProperty(stimId, childData);
 
         //TODO: perhaps add manager for writing relationship between this stim and parentId in here? i.e explicit table
 

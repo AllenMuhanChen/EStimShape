@@ -15,7 +15,7 @@ from clat.pipeline.pipeline_base_classes import (
 )
 from clat.util.connection import Connection
 from src.analysis import Analysis
-from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, CompsToPreserveField
+from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, HypothesizedCompField
 from src.analysis.ga.cached_ga_fields import ParentIdField, LineageField, GenIdField, RegimeScoreField
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, IntanSpikeRateByChannelField, \
@@ -85,7 +85,7 @@ class GARasterAnalysis(Analysis):
         fields.append(StimPathField(conn))
         fields.append(ThumbnailField(conn))
         # fields.append(GAResponseField(conn))
-        fields.append(CompsToPreserveField(conn))
+        fields.append(HypothesizedCompField(conn))
         # fields.append(ClusterResponseField(conn, cluster_combination_strategy))
         fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
         fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))

@@ -5,7 +5,7 @@ import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.experiment.PositioningStrategy;
 import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
-import org.xper.allen.stimproperty.CompsToPreserveManager;
+import org.xper.allen.stimproperty.HypothesizedCompManager;
 
 import javax.vecmath.Point3d;
 import java.util.Collections;
@@ -61,7 +61,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
             } else if(parentPositioningStrategy == PositioningStrategy.PRESERVED_COMP_BASED) {
                 Point3d parentPreservedCompLocation = parentLocation.getPosition();
                 Point3d newPreservedCompLocation = mutatePosition(parentPreservedCompLocation);
-                Integer compToPreserveInChild = preservedComponentData.getCompsToPreserve().get(0);
+                Integer compToPreserveInChild = hypothesizedCompData.getHypothesizedComp().get(0);
                 position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, compToPreserveInChild, newPreservedCompLocation);
             }else {
                 throw new IllegalArgumentException("Unknown PositioningStrategy: " + parentPositioningStrategy);
@@ -179,7 +179,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
             childMStick.setRf(generator.getReceptiveField());
             childMStick.setRfStrategy(rfStrategy);
         } else if (position.positioningStrategy == PositioningStrategy.PRESERVED_COMP_BASED){
-            childMStick = new GrowingMatchStick(compsToPreserveManager.readProperty(parentId).getCompsToPreserve().get(0), position.position,1/3.0);
+            childMStick = new GrowingMatchStick(hypothesizedCompManager.readProperty(parentId).getHypothesizedComp().get(0), position.position,1/3.0);
             childMStick.setRf(generator.getReceptiveField());
             childMStick.setRfStrategy(rfStrategy);
         }

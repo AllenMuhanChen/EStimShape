@@ -66,13 +66,13 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
         childMStick.setRf(generator.getReceptiveField());
         // Read or choose components to preserve from parent
 
-//        List<Integer> compsToPreserveInParent = preservedComponentData.getCompsToPreserve();
+//        List<Integer> compsToPreserveInParent = hypothesizedCompData.getHypothesizedComp();
         List<Integer> compsToPreserveInParent;
         if (shouldPreserveRandomComps()) {
             compsToPreserveInParent = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
         } else {
-            PreservedComponentData parentData = compsToPreserveManager.readProperty(parentId);
-            compsToPreserveInParent = parentData.getCompsToPreserve();
+            HypothesizedCompData parentData = hypothesizedCompManager.readProperty(parentId);
+            compsToPreserveInParent = parentData.getHypothesizedComp();
         }
 
         // Generate child
@@ -101,12 +101,12 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
         List<Integer> compsToPreserveInNextChild = childMStick.getPreservedComps();
         position.setPosition(childMStick.getMassCenterForComponent(compsToPreserveInNextChild.get(0)));
         position.setTargetComp(compsToPreserveInNextChild.get(0));
-        preservedComponentData = new PreservedComponentData(
+        hypothesizedCompData = new HypothesizedCompData(
                 compsToPreserveInNextChild,
                 parentId,
                 compsToPreserveInParent
         );
-//        compsToPreserveManager.writeProperty(stimId, childData); //shouldn't have to do this now, we put this in GAStim
+//        hypothesizedCompManager.writeProperty(stimId, childData); //shouldn't have to do this now, we put this in GAStim
 
         return childMStick;
     }
@@ -133,7 +133,7 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
      */
     protected boolean shouldPreserveRandomComps() {
         // We want to assign new comps to preserve if it has preservation history AND is delta or growing
-        if (parentHasCompsToPreserve()){ //has preservation history
+        if (parentHasHypothesizedComp()){ //has preservation history
             if (stimTypeManager.readProperty(parentId) == StimType.REGIME_ONE){
                 return true; // if it's regime one, we probably have changed the preserved comp and other comps, so we don't know what's driving response, need to re-test.
             }
@@ -146,7 +146,7 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
 
     }
 
-    protected boolean parentHasCompsToPreserve() {
-        return compsToPreserveManager.hasProperty(parentId);
+    protected boolean parentHasHypothesizedComp() {
+        return hypothesizedCompManager.hasProperty(parentId);
     }
 }

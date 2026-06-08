@@ -77,7 +77,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         TexturePropertyManager texturePropertyManager = new TexturePropertyManager(gaJDBCTemplate);
         ColorPropertyManager colorPropertyManager = new ColorPropertyManager(gaJDBCTemplate);
         UnderlingAverageRGBPropertyManager underlingAverageRGBPropertyManager = new UnderlingAverageRGBPropertyManager(gaJDBCTemplate);
-        CompsToPreserveManager compsToPreserveManager = new CompsToPreserveManager(gaJDBCTemplate);
+        HypothesizedCompManager hypothesizedCompManager = new HypothesizedCompManager(gaJDBCTemplate);
 
         sampleSize = sizePropertyManager.readProperty(variantId);
 
@@ -99,8 +99,8 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         parameters.setEyeWinRadius(maxChoiceSize/2); // 4 back to back limbs, and divide by two for radius corr
 
         noiseMapper = generator.getNoiseMapper();
-        morphComponentIndcs = compsToPreserveManager.readProperty(variantId).getCompsToPreserve();
-        noiseComponentIndcs = compsToPreserveManager.readProperty(variantId).getCompsToPreserve();
+        morphComponentIndcs = hypothesizedCompManager.readProperty(variantId).getHypothesizedComp();
+        noiseComponentIndcs = hypothesizedCompManager.readProperty(variantId).getHypothesizedComp();
     }
 
     protected boolean is2D() {

@@ -14,7 +14,7 @@ from clat.util.connection import Connection
 from src.analysis import Analysis, get_all_channels
 
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField, \
-    CompsToPreserveField
+    HypothesizedCompField
 from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, JunctionField, StimSpecDataField, \
     MassCenterField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField, GenIdField, ParentIdField
@@ -159,7 +159,7 @@ class PlotTopNAnalysis(Analysis):
         fields.append(StimPathField(conn))
         fields.append(ThumbnailField(conn))
         fields.append(GAResponseField(conn))
-        fields.append(CompsToPreserveField(conn))
+        fields.append(HypothesizedCompField(conn))
         fields.append(TextureField(conn))
         fields.append(AverageRGBField(conn))
         fields.append(ClusterResponseField(conn, cluster_combination_strategy))

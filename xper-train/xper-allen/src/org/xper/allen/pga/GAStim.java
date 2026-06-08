@@ -33,7 +33,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected final UnderlyingTexturePropertyManager underlyingTextureManager;
     protected final UnderlingAverageRGBPropertyManager underyingAverageRGBManager;
     protected final PositionPropertyManager positionManager;
-    protected final CompsToPreserveManager compsToPreserveManager;
+    protected final HypothesizedCompManager hypothesizedCompManager;
     protected final StimTypePropertyManager stimTypeManager;
 
     protected Long stimId;
@@ -45,7 +45,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected boolean is2d;
     protected String underlyingTexture;
     protected RGBColor averageRGB;
-    protected PreservedComponentData preservedComponentData;
+    protected HypothesizedCompData hypothesizedCompData;
     protected MStickPosition position;
 
 
@@ -78,7 +78,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         underlyingTextureManager = new UnderlyingTexturePropertyManager(jdbcTemplate);
         underyingAverageRGBManager = new UnderlingAverageRGBPropertyManager(jdbcTemplate);
         positionManager = new PositionPropertyManager(jdbcTemplate);
-        compsToPreserveManager = new CompsToPreserveManager(jdbcTemplate);
+        hypothesizedCompManager = new HypothesizedCompManager(jdbcTemplate);
         stimTypeManager = new StimTypePropertyManager(jdbcTemplate);
     }
 
@@ -104,7 +104,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         underlyingTextureManager = new UnderlyingTexturePropertyManager(jdbcTemplate);
         underyingAverageRGBManager = new UnderlingAverageRGBPropertyManager(jdbcTemplate);
         positionManager = new PositionPropertyManager(jdbcTemplate);
-        compsToPreserveManager = new CompsToPreserveManager(jdbcTemplate);
+        hypothesizedCompManager = new HypothesizedCompManager(jdbcTemplate);
         stimTypeManager = new StimTypePropertyManager(jdbcTemplate);
     }
 
@@ -197,7 +197,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
 
     protected void setProperties(){
         chooseRFStrategy(); //must be first otherwise chooseSize may fail
-        choosePreservedComps();
+        chooseHypothesizedComp();
         choosePosition();
         chooseSize();
         chooseTextureType();
@@ -220,9 +220,9 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         }
     }
 
-    protected void choosePreservedComps() {
-        if (compsToPreserveManager.hasProperty(parentId)){
-            preservedComponentData = compsToPreserveManager.readProperty(parentId);
+    protected void chooseHypothesizedComp() {
+        if (hypothesizedCompManager.hasProperty(parentId)){
+            hypothesizedCompData = hypothesizedCompManager.readProperty(parentId);
         }
     }
 
@@ -280,8 +280,8 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         underlyingTextureManager.writeProperty(stimId, underlyingTexture);
         underyingAverageRGBManager.writeProperty(stimId, averageRGB);
         positionManager.writeProperty(stimId, position);
-        if (preservedComponentData != null){
-            compsToPreserveManager.writeProperty(stimId, preservedComponentData);
+        if (hypothesizedCompData != null){
+            hypothesizedCompManager.writeProperty(stimId, hypothesizedCompData);
         }
     }
 

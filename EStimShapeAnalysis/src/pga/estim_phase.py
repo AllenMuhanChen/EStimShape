@@ -12,11 +12,18 @@ from src.pga.regime_one import calculate_peak_response
 from src.pga.stim_types import StimType
 
 
+def _hypothesized_comp_table(connection: Type[connection]) -> str:
+    # Renamed from StimCompsToPreserve to HypothesizedComp; fall back for old, un-migrated DBs.
+    connection.execute("SHOW TABLES LIKE 'HypothesizedComp'")
+    return "HypothesizedComp" if connection.fetch_one() else "StimCompsToPreserve"
+
+
 def has_preservation_history(connection: Type[connection], id: int) -> bool:
     """
-    Check if the stimulus with the given ID has a preservation history in the database.
+    Check if the stimulus with the given ID has a hypothesized-component history in the database.
     """
-    connection.execute("SELECT COUNT(*) FROM StimCompsToPreserve WHERE stim_id = %s", (id,))
+    table = _hypothesized_comp_table(connection)
+    connection.execute(f"SELECT COUNT(*) FROM {table} WHERE stim_id = %s", (id,))
     num_entries = connection.fetch_one()
     return num_entries > 0
 

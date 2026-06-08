@@ -20,17 +20,27 @@ class StimTypeField(StimSpecIdField):
     def get_name(self):
         return "StimType"
 
-class CompsToPreserveField(StimSpecIdField):
+class HypothesizedCompField(StimSpecIdField):
+    # The table was renamed from StimCompsToPreserve to HypothesizedComp. Old, un-migrated DBs
+    # still have the old table, so resolve the name once and fall back. SELECT * means we don't
+    # depend on the renamed columns here.
+    _table = None
+
+    def _table_name(self):
+        if self._table is None:
+            self.conn.execute("SHOW TABLES LIKE 'HypothesizedComp'")
+            self._table = "HypothesizedComp" if self.conn.fetch_one() else "StimCompsToPreserve"
+        return self._table
 
     def get(self, task_id) -> tuple:
         stim_spec_id = self.get_cached_super(task_id, StimSpecIdField)
-        self.conn.execute("SELECT * FROM StimCompsToPreserve WHERE stim_id = %s",
+        self.conn.execute(f"SELECT * FROM {self._table_name()} WHERE stim_id = %s",
                           params=(stim_spec_id,))
-        comps_to_preserve = self.conn.fetch_all()
-        return comps_to_preserve
+        hypothesized_comp = self.conn.fetch_all()
+        return hypothesized_comp
 
     def get_name(self):
-        return "CompsToPreserve"
+        return "HypothesizedComp"
 
 class StimPathField(StimSpecIdField):
     def get(self, task_id) -> str:
