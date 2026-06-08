@@ -143,22 +143,23 @@ public class DeltaStimVariantTest {
         System.out.println("Comps to preserve: " + compsToPreserveInParent);
 
         for (int deltaIdx = 0; deltaIdx < NUM_DELTAS; deltaIdx++) {
-            PruningMatchStick childMStick = null;
-            while (childMStick == null) {
+            DeltaResult result = null;
+            while (result == null) {
                 try {
-                    childMStick = generateDelta(parentMStick, compsToMutateInParent, compsToPreserveInParent);
+                    result = generateDelta(parentMStick, compsToMutateInParent, compsToPreserveInParent);
                 } catch (Exception e) {
                     System.out.println("Delta " + deltaIdx + " attempt failed, retrying: " + e.getMessage());
                 }
             }
 
-            drawer.drawThumbnail(childMStick);
+            String magStr = String.format("%.2f", result.magnitude);
+            drawer.drawThumbnail(result.stick);
             ThreadUtil.sleep(500);
-            labels.add("delta_" + deltaIdx);
-            paths.add(drawer.saveImage(OUTPUT_DIR + "/delta_" + deltaIdx));
+            labels.add("mag " + magStr);
+            paths.add(drawer.saveImage(OUTPUT_DIR + "/delta_" + deltaIdx + "_mag_" + magStr));
             ThreadUtil.sleep(250);
             drawer.clear();
-            System.out.println("Saved delta " + deltaIdx);
+            System.out.println("Saved delta " + deltaIdx + " (magnitude=" + magStr + ")");
         }
 
         // Collate the original + all deltas into a single figure.
@@ -192,17 +193,18 @@ public class DeltaStimVariantTest {
             int x = col * cellW + pad;
             int y = row * cellH + pad;
 
-            g.setColor(Color.WHITE);
-            g.drawString(labels.get(i), x, y + labelH - 4);
-
             try {
                 BufferedImage img = ImageIO.read(new File(paths.get(i)));
                 if (img != null) {
-                    g.drawImage(img, x, y + labelH, cell, cell, null);
+                    g.drawImage(img, x, y, cell, cell, null);
                 }
             } catch (IOException e) {
                 System.out.println("Could not read " + paths.get(i) + " for collage: " + e.getMessage());
             }
+
+            // Label (magnitude) in white text under the image.
+            g.setColor(Color.WHITE);
+            g.drawString(labels.get(i), x, y + cell + labelH - 4);
         }
         g.dispose();
 
@@ -220,9 +222,9 @@ public class DeltaStimVariantTest {
      * THIS is the part you're testing — tweak the "Generate child" block below to make deltas
      * more likely to be geometrically distinct, then port the winner back into the real class.
      */
-    private PruningMatchStick generateDelta(PruningMatchStick parentMStick,
-                                            List<Integer> compsToMutateInParent,
-                                            List<Integer> compsToPreserveInParent) {
+    private DeltaResult generateDelta(PruningMatchStick parentMStick,
+                                      List<Integer> compsToMutateInParent,
+                                      List<Integer> compsToPreserveInParent) {
         // Position the child so its first preserved comp lands where it was in the parent.
         Point3d toPreserveCompLocation = parentMStick.getComp()[compsToPreserveInParent.get(0)].getMassCenter();
         PruningMatchStick childMStick = new PruningMatchStick(toPreserveCompLocation, noiseMapper);
@@ -244,6 +246,17 @@ public class DeltaStimVariantTest {
                 true, 15, compsToMutateInParent);
         // ========================================================================
 
-        return childMStick;
+        return new DeltaResult(childMStick, magnitude);
+    }
+
+    /** Holds a generated delta along with the magnitude actually used to produce it. */
+    private static class DeltaResult {
+        final PruningMatchStick stick;
+        final double magnitude;
+
+        DeltaResult(PruningMatchStick stick, double magnitude) {
+            this.stick = stick;
+            this.magnitude = magnitude;
+        }
     }
 }
