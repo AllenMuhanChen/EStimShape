@@ -7,8 +7,13 @@ import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.drawing.RGBColor;
 import org.xper.util.ThreadUtil;
 
+import javax.imageio.ImageIO;
 import javax.vecmath.Point3d;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -83,10 +88,16 @@ public class DeltaStimVariantTest {
         parentMStick.setStimColor(COLOR);
         parentMStick.genMatchStickFromFile(PARENT_SPEC_PATH);
 
-        // Save the original for reference (shape + component map so it's easy to pick "special limbs").
-        drawer.draw(parentMStick);
+        // Track saved images so we can collate them into one figure at the end.
+        List<String> labels = new ArrayList<>();
+        List<String> paths = new ArrayList<>();
+
+        // Save the original thumbnail + a component map (the comp map makes it easy to pick
+        // which component indices to use as "special limbs").
+        drawer.drawThumbnail(parentMStick);
         ThreadUtil.sleep(500);
-        drawer.saveImage(OUTPUT_DIR + "/original");
+        labels.add("original");
+        paths.add(drawer.saveImage(OUTPUT_DIR + "/original"));
         ThreadUtil.sleep(250);
         drawer.clear();
         drawer.drawCompMap(parentMStick);
@@ -118,15 +129,66 @@ public class DeltaStimVariantTest {
                 }
             }
 
-            drawer.draw(childMStick);
+            drawer.drawThumbnail(childMStick);
             ThreadUtil.sleep(500);
-            drawer.saveImage(OUTPUT_DIR + "/delta_" + deltaIdx);
+            labels.add("delta_" + deltaIdx);
+            paths.add(drawer.saveImage(OUTPUT_DIR + "/delta_" + deltaIdx));
             ThreadUtil.sleep(250);
             drawer.clear();
             System.out.println("Saved delta " + deltaIdx);
         }
 
-        System.out.println("Done. Wrote original + " + NUM_DELTAS + " deltas to " + OUTPUT_DIR);
+        // Collate the original + all deltas into a single figure.
+        String collagePath = OUTPUT_DIR + "/collage.png";
+        collate(labels, paths, collagePath);
+
+        System.out.println("Done. Wrote original + " + NUM_DELTAS + " deltas and collage to " + OUTPUT_DIR);
+    }
+
+    /**
+     * Tiles the given images into a single labeled grid figure and writes it to {@code outPath}.
+     */
+    private static void collate(List<String> labels, List<String> paths, String outPath) {
+        int cols = 4;
+        int cell = 220;          // scaled image size per cell
+        int labelH = 18;         // space for the text label above each image
+        int pad = 6;             // padding around each cell
+        int n = paths.size();
+        int rows = (int) Math.ceil(n / (double) cols);
+
+        int cellW = cell + 2 * pad;
+        int cellH = cell + labelH + 2 * pad;
+        BufferedImage figure = new BufferedImage(cols * cellW, rows * cellH, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = figure.createGraphics();
+        g.setColor(Color.BLACK);
+        g.fillRect(0, 0, figure.getWidth(), figure.getHeight());
+
+        for (int i = 0; i < n; i++) {
+            int row = i / cols;
+            int col = i % cols;
+            int x = col * cellW + pad;
+            int y = row * cellH + pad;
+
+            g.setColor(Color.WHITE);
+            g.drawString(labels.get(i), x, y + labelH - 4);
+
+            try {
+                BufferedImage img = ImageIO.read(new File(paths.get(i)));
+                if (img != null) {
+                    g.drawImage(img, x, y + labelH, cell, cell, null);
+                }
+            } catch (IOException e) {
+                System.out.println("Could not read " + paths.get(i) + " for collage: " + e.getMessage());
+            }
+        }
+        g.dispose();
+
+        try {
+            ImageIO.write(figure, "png", new File(outPath));
+            System.out.println("Wrote collage to " + outPath);
+        } catch (IOException e) {
+            System.out.println("Could not write collage: " + e.getMessage());
+        }
     }
 
     /**
