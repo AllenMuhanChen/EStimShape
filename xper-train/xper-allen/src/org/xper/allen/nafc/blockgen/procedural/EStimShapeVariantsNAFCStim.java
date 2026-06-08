@@ -28,6 +28,9 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
     protected DataSource gaDataSource;
     protected double maxSampleSize;
     protected List<Integer> noiseComponentIndcs;
+    // The variant ("variant" role) of this trial's pair. For a variant trial this is the sample;
+    // for a delta trial the sample is the delta and this is its parent variant.
+    protected Long variantId;
     protected String gaSpecPath;
     protected String texture;
     protected Float sampleSize;
@@ -71,6 +74,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
 
     public EStimShapeVariantsNAFCStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, Long variantId, boolean isEStimEnabled, Long eStimSpecId){
         super(generator, parameters, null, new ArrayList<>(), isEStimEnabled, variantId, -1, eStimSpecId);
+        this.variantId = variantId;
         gaSpecPath = generator.getGaSpecPath();
 
         gaDataSource = generator.getGaDataSource();
@@ -325,6 +329,17 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
     protected void writeExtraData() {
         AllenDbUtil dbUtil = (AllenDbUtil) generator.getDbUtil();
         dbUtil.writeBaseMStickId(getStimId(), baseMStickStimSpecId); //don't really need to save this info since it's present in another table
+        // Record the sample's role unambiguously for analysis (needed for delta->delta chains).
+        dbUtil.writeSampleRole(getStimId(), isSampleDelta(), variantId);
+    }
+
+    /**
+     * Whether this trial's sample is the delta (hypothesized-changed) rather than the variant
+     * (hypothesized-preserved). Variant and deleted trials override to the variant role (false);
+     * delta trials override to true.
+     */
+    protected boolean isSampleDelta() {
+        return false;
     }
 
 

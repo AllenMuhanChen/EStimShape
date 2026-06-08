@@ -378,4 +378,19 @@ public class AllenDbUtil extends DbUtil {
         jt.update("insert into BaseMStickId (stim_id, base_mstick_stim_spec_id) values (?, ?)",
                 new Object[] { stimId, baseMStickStimSpecId});
     }
+
+    /**
+     * Record, per NAFC trial, whether the trial's sample is the delta (hypothesized-changed) or
+     * the variant (hypothesized-preserved) of its pair, plus the variant id of that pair. The
+     * generator knows this unambiguously, which matters for delta->delta chains where a stimulus
+     * can be a delta in one pair and the variant in another (so it can't be inferred globally).
+     */
+    public void writeSampleRole(long stimId, boolean isSampleDelta, long variantId) {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        jt.execute("CREATE TABLE IF NOT EXISTS NafcSampleRole (" +
+                "stim_id BIGINT PRIMARY KEY, is_sample_delta BOOLEAN, variant_id BIGINT)");
+        jt.update("INSERT INTO NafcSampleRole (stim_id, is_sample_delta, variant_id) VALUES (?, ?, ?) " +
+                        "ON DUPLICATE KEY UPDATE is_sample_delta = ?, variant_id = ?",
+                new Object[] { stimId, isSampleDelta, variantId, isSampleDelta, variantId });
+    }
 }

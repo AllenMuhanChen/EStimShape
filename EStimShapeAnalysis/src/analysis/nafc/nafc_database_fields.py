@@ -628,8 +628,29 @@ class IsDeltaField(CachedDatabaseField):
     def get_name(self):
         return "IsDelta"
 
+    def _has_sample_role_table(self) -> bool:
+        if not hasattr(self, "_sample_role_checked"):
+            self.conn.execute("SHOW TABLES LIKE 'NafcSampleRole'")
+            self._sample_role_exists = self.conn.fetch_one() is not None
+            self._sample_role_checked = True
+        return self._sample_role_exists
+
     def get(self, when: When):
-        # First get the BaseMStickId
+        # Prefer the per-trial role recorded by the generator. This is unambiguous for delta->delta
+        # chains, where a stimulus can be the delta in one pair and the variant in another, so its
+        # role can't be decided from global IncludedDeltas membership.
+        if self._has_sample_role_table():
+            trial_stim_id = get_stim_spec_id(self.conn, when)
+            if trial_stim_id is not None:
+                self.conn.execute(
+                    "SELECT is_sample_delta FROM NafcSampleRole WHERE stim_id = %s LIMIT 1;",
+                    params=(trial_stim_id,))
+                role = self.conn.fetch_one()
+                if role is not None:
+                    return bool(role)
+
+        # Fallback for trials generated before per-trial roles were recorded (no delta->delta
+        # chains exist there, so global IncludedDeltas membership is unambiguous).
         base_mstick_id = self.get_cached_super(when, BaseMStickIdField)
 
         if base_mstick_id is None:

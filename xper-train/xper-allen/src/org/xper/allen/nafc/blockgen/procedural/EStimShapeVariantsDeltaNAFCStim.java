@@ -93,6 +93,11 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
     }
 
     @Override
+    protected boolean isSampleDelta() {
+        return isDelta;
+    }
+
+    @Override
     protected ProceduralMatchStick generateSample() {
         AllenMStickSpec baseStickSpec = new AllenMStickSpec();
         PruningMatchStick baseMatchStick = new PruningMatchStick(noiseMapper);
