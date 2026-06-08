@@ -80,7 +80,6 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
         // chosen randomly here (Python ignores it for now).
         Random random = new Random();
         double discreteness = random.nextDouble();
-
         childMStick.genNewComponentsMatchStick(parentMStick, compsToMutateInParent, magnitude, discreteness,
                 true, 15, compsToMutateInParent);
 

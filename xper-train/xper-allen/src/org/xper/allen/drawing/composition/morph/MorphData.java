@@ -11,6 +11,7 @@ public class MorphData {
     public Map<Integer, ComponentMorphData> dataForComps = new HashMap<>();
     public Map<Integer, String> typesForAddedComps = new HashMap<>();
     public List<Integer> removedComps = new ArrayList<>();
+    public Double morphDiscreteness;
     public MorphData() {
     }
 
@@ -24,6 +25,7 @@ public class MorphData {
         }
         typesForAddedComps.putAll(toDeepCopy.typesForAddedComps);
         removedComps.addAll(toDeepCopy.removedComps);
+        morphDiscreteness = toDeepCopy.morphDiscreteness;
     }
 
     public void addDataForComp(int compId, ComponentMorphData data){

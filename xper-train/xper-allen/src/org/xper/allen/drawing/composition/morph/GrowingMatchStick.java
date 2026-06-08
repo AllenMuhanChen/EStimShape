@@ -14,14 +14,28 @@ public class GrowingMatchStick extends GAMatchStick {
     private double sigma;
     private List<Integer> componentsToNotRemove = new ArrayList<Integer>();
 
-    public GrowingMatchStick(double sigma) {
-        this.sigma = sigma;
+    public GrowingMatchStick(Double sigma) {
+        if (sigma == null) {
+            Random r = new Random();
+            this.sigma = r.nextDouble();
+            // add sigma to morphdata
+            morphData.morphDiscreteness = sigma;
+        } else {
+            this.sigma = sigma;
+        }
     }
 
 
-    public GrowingMatchStick(ReceptiveField rf, double sigma, RFStrategy rfStrategy, String textureType1) {
+    public GrowingMatchStick(ReceptiveField rf, Double sigma, RFStrategy rfStrategy, String textureType1) {
         super(rf, rfStrategy);
-        this.sigma = sigma;
+        if (sigma == null) {
+            Random r = new Random();
+            this.sigma = r.nextDouble();
+            // add sigma to morphdata
+            morphData.morphDiscreteness = sigma;
+        } else {
+            this.sigma = sigma;
+        }
     }
 
     /**
@@ -29,20 +43,34 @@ public class GrowingMatchStick extends GAMatchStick {
      * @param centerOfMassLocation
      * @param sigma
      */
-    public GrowingMatchStick(Point3d centerOfMassLocation, double sigma) {
+    public GrowingMatchStick(Point3d centerOfMassLocation, Double sigma) {
         super(centerOfMassLocation);
-        this.sigma = sigma;
+        if (sigma == null) {
+            Random r = new Random();
+            this.sigma = r.nextDouble();
+            // add sigma to morphdata
+            morphData.morphDiscreteness = sigma;
+        } else {
+            this.sigma = sigma;
+        }
     }
 
-    public GrowingMatchStick(int compIdToMove, Point3d compCOMLocation, double sigma) {
+    public GrowingMatchStick(int compIdToMove, Point3d compCOMLocation, Double sigma) {
         super(compIdToMove, compCOMLocation);
         this.componentsToNotRemove.add(compIdToMove);
         this.getSpecialEndComp().add(compIdToMove);
-        this.sigma = sigma;
+        if (sigma == null) {
+            Random r = new Random();
+            this.sigma = r.nextDouble();
+            // add sigma to morphdata
+            morphData.morphDiscreteness = sigma;
+        } else {
+            this.sigma = sigma;
+        }
     }
 
     public GrowingMatchStick(ReceptiveField rf, RFStrategy rfStrategy) {
-        this(rf, 1/3.0, rfStrategy, "SHADE");
+        this(rf, null, rfStrategy, "SHADE");
     }
 
     private MorphedMatchStick genComponentMorphMatchStick(MorphedMatchStick matchStickToMorph, Map<Integer, ComponentMorphParameters> paramsForComps, MorphedMatchStick removedLimbMatchStick) {

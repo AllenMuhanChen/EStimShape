@@ -382,6 +382,7 @@ public class MorphedMatchStick extends AllenMatchStick {
 //                }
                 morphComponent(componentIndex, morphParams);
                 System.out.println("Successfully morphed component " + componentIndex);
+                morphData.addDataForComp(componentIndex, morphParams.getMorphData());
                 return;
             } catch (MorphException e) {
                 System.err.println(e.getMessage());

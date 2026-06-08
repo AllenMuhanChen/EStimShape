@@ -17,7 +17,7 @@ import plotly.express as px
 def main():
     analysis = AnalyzeMagnitudesAnalysis()
     compiled_data = analysis.compile()
-    analysis.analyze(None, compiled_data)
+    analysis.analyze("GA", compiled_data)
 
 
 def format_magnitude_plot(fig):

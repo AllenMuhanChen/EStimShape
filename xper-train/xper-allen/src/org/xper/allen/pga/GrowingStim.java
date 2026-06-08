@@ -155,14 +155,14 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
         if (position.positioningStrategy == PositioningStrategy.RF_STRATEGY) {
             childMStick = new GrowingMatchStick(
                     generator.getReceptiveField(),
-                    1/3.0,
+                    null,
                     rfStrategy,
                     textureType);
             if (rfStrategy == RFStrategy.PARTIALLY_INSIDE) {
                 position.setTargetComp(childMStick.getSpecialEndComp().get(0));
             }
         } else if (position.positioningStrategy == PositioningStrategy.MOVE_CENTER_TO_SPECIFIC_LOCATION){
-            childMStick = new GrowingMatchStick(position.position, 1/3.0);
+            childMStick = new GrowingMatchStick(position.position, null);
             childMStick.setRf(generator.getReceptiveField());
             childMStick.setRfStrategy(rfStrategy);
         } else if (position.positioningStrategy == PositioningStrategy.MOVE_COMP_TO_SPECIFIC_LOCATION){
@@ -175,7 +175,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
                     position.position = parentMStick.getMassCenterForComponent(position.targetComp);
                 }
             }
-            childMStick = new GrowingMatchStick(position.targetComp, position.position,1/3.0);
+            childMStick = new GrowingMatchStick(position.targetComp, position.position,null);
             childMStick.setRf(generator.getReceptiveField());
             childMStick.setRfStrategy(rfStrategy);
         } else if (position.positioningStrategy == PositioningStrategy.PRESERVED_COMP_BASED){

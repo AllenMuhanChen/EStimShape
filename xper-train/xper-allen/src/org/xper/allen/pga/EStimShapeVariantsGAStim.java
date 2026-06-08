@@ -80,7 +80,7 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
         boolean r = random.nextBoolean();
 
         if (r) {
-            double pruningMagnitude = random.nextDouble() * 0.4 + 0.5;
+            double pruningMagnitude = random.nextDouble() * 0.5 + 0.3;
             childMStick.genPruningMatchStick(parentMStick, pruningMagnitude, compsToPreserveInParent, null);
         }
         else {

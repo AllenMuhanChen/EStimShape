@@ -96,7 +96,10 @@ public class PruningMatchStick extends ProceduralMatchStick {
 
 
         // MORPH ALL COMPONENTS STRATEGY
-        NormalMorphDistributer normalMorphDistributer = new NormalMorphDistributer(1/3.0);
+        Random r = new Random();
+        double discreteness = r.nextDouble();
+        morphData.morphDiscreteness = discreteness;
+        NormalMorphDistributer normalMorphDistributer = new NormalMorphDistributer(discreteness);
         // Construct MorphParameters for componentsToMorph
         Map<Integer, ComponentMorphParameters> paramsForComps = new HashMap<>();
         for (Integer comp : componentsToMorph) {
