@@ -13,8 +13,11 @@ import java.util.Random;
 
 public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
 
-    public EStimShapeVariantsDeltaStim(Long stimId, FromDbGABlockGenerator generator, Long parentId) {
-        super(stimId, generator, parentId, 0);
+    private final double magnitude;
+
+    public EStimShapeVariantsDeltaStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double magnitude) {
+        super(stimId, generator, parentId, magnitude);
+        this.magnitude = magnitude;
     }
 
     @Override
@@ -73,9 +76,9 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
 
 
         // Generate child
+        // Magnitude is decided by Python (passed in as a parameter); discreteness is still
+        // chosen randomly here (Python ignores it for now).
         Random random = new Random();
-        boolean r = random.nextBoolean();
-        double magnitude = random.nextDouble() * 0.5 + 0.3;
         double discreteness = random.nextDouble();
 
         childMStick.genNewComponentsMatchStick(parentMStick, compsToMutateInParent, magnitude, discreteness,

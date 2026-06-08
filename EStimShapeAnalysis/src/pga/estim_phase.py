@@ -161,11 +161,20 @@ class EStimVariantSideTest(SideTest):
 
 class EStimVariantDeltaSideTest(SideTest):
     def __init__(self, num_deltas_per_variant: int = 1, delta_resp_ratio_threshold: float = 0.5,
-                 max_attempts_per_variant_multiplier: int = 3, conn=Type[connection]):
+                 max_attempts_per_variant_multiplier: int = 3, conn=Type[connection],
+                 min_magnitude: float = 0.3, max_magnitude: float = 0.8):
         self.num_deltas_per_variant = num_deltas_per_variant
         self.delta_resp_ratio_threshold = delta_resp_ratio_threshold
         self.max_attempts_per_variant_multiplier = max_attempts_per_variant_multiplier
         self.conn = conn
+        # Mutation magnitude for deltas is decided here (Python) rather than on the Java side,
+        # mirroring how the rest of the GA assigns magnitudes. Drawn uniformly from
+        # [min_magnitude, max_magnitude]. Discreteness is still chosen randomly on the Java side.
+        self.min_magnitude = min_magnitude
+        self.max_magnitude = max_magnitude
+
+    def assign_mutation_magnitude(self) -> float:
+        return random.uniform(self.min_magnitude, self.max_magnitude)
 
     def run(self, lineages: List[Lineage], gen_id: int):
         #identify eligible stimuli (variants)
@@ -248,7 +257,7 @@ class EStimVariantDeltaSideTest(SideTest):
         for candidate_parent in eligible_stimuli:
             new_stimulus = Stimulus(time_util.now(),
                                     StimType.REGIME_ESTIM_DELTA.value,
-                                    mutation_magnitude=0,
+                                    mutation_magnitude=self.assign_mutation_magnitude(),
                                     gen_id=gen_id,
                                     parent_id=candidate_parent.id
                                     )
