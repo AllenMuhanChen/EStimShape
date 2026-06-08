@@ -58,6 +58,15 @@ public class HypothesizedCompManager extends StimPropertyManager<HypothesizedCom
         return OLD_TABLE_NAME.equals(resolveTableName());
     }
 
+    /**
+     * True when reading from the old, un-migrated table. Callers that depend on delta rows
+     * recording the actually-mutated comp (a Phase-2 behavior) should treat legacy data
+     * differently, since old delta rows were written as copies of their parent's row.
+     */
+    public boolean isLegacyTable() {
+        return isOldTable();
+    }
+
     private String hypothesizedCompColumn() {
         return isOldTable() ? "comps_to_preserve" : "hypothesized_comp";
     }

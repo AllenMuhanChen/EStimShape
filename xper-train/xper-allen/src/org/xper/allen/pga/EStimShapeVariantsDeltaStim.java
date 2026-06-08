@@ -38,13 +38,33 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
         }
     }
 
+    /**
+     * Fallback policy for whether to mutate a randomly chosen component instead of the parent's
+     * hypothesized comp. This only applies when Python has NOT pre-assigned a component for this
+     * delta (see {@link #readForcedCompToMutate()}). Random exploration here is what generates the
+     * alternative-component data that Python's exploit step later uses to pick the best comp.
+     */
     @Override
     protected boolean shouldPreserveRandomComps() {
-        //we will have pythons side of GA assign a magnitude that represents chance to change mutated component as opposed
-        // to shape change magnitude.
         Random r = new Random();
         return r.nextDouble() < magnitude;
+    }
 
+    /**
+     * The component Python has decided this delta should mutate, or null if Python left the choice
+     * to the Java side. Python pre-populates this delta's own HypothesizedComp row (with the
+     * chosen comp in parent_hypothesized_comps) once a variant has accumulated enough failed delta
+     * attempts that the GA wants to exploit the empirically best-dropping component. The chosen
+     * comp is expressed in the parent's numbering, which is what we mutate against the parent here.
+     */
+    private List<Integer> readForcedCompToMutate() {
+        if (hypothesizedCompManager.hasProperty(stimId)) {
+            List<Integer> forced = hypothesizedCompManager.readProperty(stimId).getParentHypothesizedComps();
+            if (forced != null && !forced.isEmpty()) {
+                return forced;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -54,15 +74,23 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
         parentMStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
         parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 
-        // Read or choose components to preserve from parent
-        List<Integer> compsToMutateInParent = Collections.emptyList();
-        if (shouldPreserveRandomComps()){
-            //ensure we don't randomly draw the same as the parents
-            while(!compsToMutateInParent.equals(hypothesizedCompData.getHypothesizedComp()))
-                compsToMutateInParent = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
-        }
-        else {
-            compsToMutateInParent = hypothesizedCompData.getHypothesizedComp();
+        // Decide which parent component this delta mutates. Priority:
+        //  1) a comp Python pre-assigned on THIS delta's own row (the GA's exploit choice);
+        //  2) otherwise the legacy behavior: with probability `magnitude` explore a random comp,
+        //     else mutate the parent's hypothesized comp.
+        // hypothesizedCompData holds the PARENT's row here (set by chooseHypothesizedComp()).
+        List<Integer> compsToMutateInParent = readForcedCompToMutate();
+        if (compsToMutateInParent == null) {
+            if (shouldPreserveRandomComps()){
+                // redraw until we pick a comp different from the parent's hypothesized comp
+                compsToMutateInParent = Collections.emptyList();
+                while(compsToMutateInParent.isEmpty()
+                        || compsToMutateInParent.equals(hypothesizedCompData.getHypothesizedComp()))
+                    compsToMutateInParent = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
+            }
+            else {
+                compsToMutateInParent = hypothesizedCompData.getHypothesizedComp();
+            }
         }
 
 
@@ -104,14 +132,16 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
         List<Integer> compsToPreserveInNextChild = childMStick.getPreservedComps();
         position.setPosition(childMStick.getMassCenterForComponent(compsToPreserveInNextChild.get(0)));
         position.setTargetComp(compsToPreserveInNextChild.get(0));
-        HypothesizedCompData childData = new HypothesizedCompData(
+        // Record what this delta actually mutated. parent_hypothesized_comps = compsToMutateInParent
+        // (the tested comp, in the parent's numbering) is what Python's exploit step and the NAFC
+        // generators read back. Assigning the field lets the inherited writeStimProperties persist
+        // it; previously this row was left as a stale copy of the parent's, which was wrong whenever
+        // a random/forced comp (not the parent's hypothesized comp) was mutated.
+        hypothesizedCompData = new HypothesizedCompData(
                 compsToPreserveInNextChild,
                 parentId,
                 compsToMutateInParent
         );
-//        hypothesizedCompManager.writeProperty(stimId, childData);
-
-        //TODO: perhaps add manager for writing relationship between this stim and parentId in here? i.e explicit table
 
         return childMStick;
     }

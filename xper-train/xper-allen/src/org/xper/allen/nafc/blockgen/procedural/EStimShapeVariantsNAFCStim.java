@@ -99,8 +99,64 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         parameters.setEyeWinRadius(maxChoiceSize/2); // 4 back to back limbs, and divide by two for radius corr
 
         noiseMapper = generator.getNoiseMapper();
-        morphComponentIndcs = hypothesizedCompManager.readProperty(variantId).getHypothesizedComp();
-        noiseComponentIndcs = hypothesizedCompManager.readProperty(variantId).getHypothesizedComp();
+        List<Integer> hypothesizedComp = resolveHypothesizedComp(variantId, gaJDBCTemplate, hypothesizedCompManager);
+        morphComponentIndcs = hypothesizedComp;
+        noiseComponentIndcs = hypothesizedComp;
+    }
+
+    /**
+     * Resolve the variant's hypothesized (driving) component: the one whose junction we noise,
+     * whose limb we morph for procedural distractors, and which the deleted trial removes.
+     *
+     * <p>The GA may have exploited a component other than the variant's original (often random)
+     * hypothesized comp, so we prefer the component that the variant's <em>included deltas</em>
+     * actually mutated — that is the empirically discovered driver. This holds even for
+     * variant-only trials: the deltas still tell us which component to test. We fall back to the
+     * variant's own stored hypothesized comp when no usable delta information exists (e.g. the
+     * IncludedDeltas table hasn't been populated, or the variant has no included deltas).
+     *
+     * <p>On a legacy (un-migrated) DB we keep the original behavior outright, because old delta
+     * rows were written as copies of their parent's row and so don't reliably record what the
+     * delta mutated.
+     */
+    protected List<Integer> resolveHypothesizedComp(Long variantId, JdbcTemplate gaJDBCTemplate,
+                                                    HypothesizedCompManager hypothesizedCompManager) {
+        if (hypothesizedCompManager.isLegacyTable()) {
+            return hypothesizedCompManager.readProperty(variantId).getHypothesizedComp();
+        }
+
+        if (tableExists(gaJDBCTemplate, "IncludedDeltas")) {
+            List<Long> deltaIds = gaJDBCTemplate.queryForList(
+                    "SELECT delta_id FROM IncludedDeltas WHERE variant_id = ? AND included = TRUE",
+                    new Object[]{variantId}, Long.class);
+            Set<List<Integer>> mutatedComps = new HashSet<>();
+            for (Long deltaId : deltaIds) {
+                if (hypothesizedCompManager.hasProperty(deltaId)) {
+                    List<Integer> mutated = hypothesizedCompManager.readProperty(deltaId).getParentHypothesizedComps();
+                    if (mutated != null && !mutated.isEmpty()) {
+                        mutatedComps.add(mutated);
+                    }
+                }
+            }
+            if (mutatedComps.size() == 1) {
+                return mutatedComps.iterator().next();
+            }
+            if (mutatedComps.size() > 1) {
+                throw new RuntimeException("Included deltas for variant " + variantId +
+                        " disagree on the mutated (hypothesized) component: " + mutatedComps +
+                        ". The GA exploit should have converged on a single component.");
+            }
+            // no usable delta rows: fall through to the variant's own hypothesized comp
+        }
+
+        return hypothesizedCompManager.readProperty(variantId).getHypothesizedComp();
+    }
+
+    private boolean tableExists(JdbcTemplate jt, String name) {
+        Integer count = (Integer) jt.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?",
+                new Object[]{name}, Integer.class);
+        return count != null && count > 0;
     }
 
     protected boolean is2D() {
