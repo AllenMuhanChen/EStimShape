@@ -723,6 +723,14 @@ def split_data_by_conditions(data, behavioral_conditions, estim_conditions,
             estim_on_trimmed  = estim_group.copy()
             estim_off_trimmed = estim_off_data.copy()
 
+            # Restrict the estim_off baseline to the gen_ids this estim condition
+            # actually ran in. An estim condition is often only presented during a
+            # subset of generations; comparing it against estim_off trials drawn from
+            # every generation mixes in unrelated baselines from other gen_ids.
+            if 'gen_id' in estim_on_trimmed.columns:
+                cond_gen_ids = estim_on_trimmed['gen_id'].dropna().unique()
+                estim_off_trimmed = estim_off_trimmed[estim_off_trimmed['gen_id'].isin(cond_gen_ids)]
+
             # Apply adaptation cutoff for this condition if one exists
             if trial_start_cutoffs and 'trial_start' in data.columns:
                 all_conds = {**behavioral_dict, **estim_dict}
