@@ -38,6 +38,14 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
         }
     }
 
+    @Override
+    protected boolean shouldPreserveRandomComps() {
+        //we will have pythons side of GA assign a magnitude that represents chance to change mutated component as opposed
+        // to shape change magnitude.
+        Random r = new Random();
+        return r.nextDouble() < magnitude;
+
+    }
 
     @Override
     protected PruningMatchStick createMStick() {
@@ -48,7 +56,15 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
 
 
         // Read or choose components to preserve from parent
-        List<Integer> compsToMutateInParent = preservedComponentData.getCompsToPreserve();
+        List<Integer> compsToMutateInParent;
+        if (shouldPreserveRandomComps()){
+            compsToMutateInParent = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
+        }
+        else {
+            compsToMutateInParent = preservedComponentData.getCompsToPreserve();
+        }
+
+
 
         List<Integer> compsToPreserveInParent = new ArrayList<>();
         for (int i=1; i<=parentMStick.getNComponent(); i++){
