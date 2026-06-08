@@ -225,19 +225,16 @@ class EStimVariantDeltaSideTest(SideTest):
     def assign_mutation_magnitude(self) -> float:
         return random.uniform(self.min_magnitude, self.max_magnitude)
 
-    def _best_eligible_comp(self, eligible_deltas: List[Stimulus]):
-        """
-        The component to exploit: the one mutated by the eligible (threshold-passing) delta with
-        the biggest response drop (lowest response rate). If several components have threshold-
-        passing deltas, this picks the best of them. Returns a list of ints, or None if no eligible
-        delta has a readable mutated component.
-        """
-        candidates = [d for d in eligible_deltas if d.response_rate is not None]
-        for delta in sorted(candidates, key=lambda d: d.response_rate):
+    def _mutated_comp_by_delta(self, deltas: List[Stimulus]) -> Dict[int, tuple]:
+        """Map each responded delta's id to the component it mutated (a tuple of ints)."""
+        comp_by_id: Dict[int, tuple] = {}
+        for delta in deltas:
+            if delta.response_rate is None:
+                continue
             comp = _read_mutated_comp(self.conn, delta.id)
-            if comp:
-                return list(comp)
-        return None
+            if comp is not None:
+                comp_by_id[delta.id] = comp
+        return comp_by_id
 
     def run(self, lineages: List[Lineage], gen_id: int):
         #identify eligible stimuli (variants)
@@ -297,38 +294,64 @@ class EStimVariantDeltaSideTest(SideTest):
 
 
         #go through eligible stimuli and check
-        # Predict phase lasts this many responded attempts (the "num_pairs * max_try" threshold).
-        # After it, if no delta has beaten the threshold we explore other components; once at least
-        # one has, we exploit the best such component.
-        predict_attempts = self.max_attempts_per_variant_multiplier * self.num_deltas_per_variant
+        # Predict phase lasts this many responded attempts (the "num_pairs * max_try" threshold);
+        # the same budget caps how long we exploit a single component before giving up on it.
+        budget = self.max_attempts_per_variant_multiplier * self.num_deltas_per_variant
+        predict_attempts = budget
         eligible_stimuli : List[Stimulus] = []
         # variant_id -> instruction for its new deltas: None = predict (no row written),
         # ('EXPLORE', None) = let Java pick a random different comp, ('EXPLOIT', comp) = mutate comp.
         instruction_for_variant: Dict[int, tuple] = {}
         for candidate_parent in past_threshold_stim:
             eligible_deltas = eligible_deltas_for_variants.get(candidate_parent.id, [])
-            num_eligible_deltas = len(eligible_deltas)
-            if num_eligible_deltas >= self.num_deltas_per_variant:
-                continue  # already have enough deltas that drop the response
-
             all_deltas = deltas_for_variants.get(candidate_parent.id, [])
-            # Only deltas that have come back with a response drive the phase decision; an in-flight
-            # (null-response) delta is still being generated and tells us nothing yet.
+
+            # Group deltas by the component they actually mutated, so noise on the wrong component
+            # is tracked separately from progress on the real driver.
+            comp_by_id = self._mutated_comp_by_delta(all_deltas)
+            responded_by_comp: Dict[tuple, int] = {}
+            for comp in comp_by_id.values():
+                responded_by_comp[comp] = responded_by_comp.get(comp, 0) + 1
+            eligible_by_comp: Dict[tuple, int] = {}
+            for delta in eligible_deltas:
+                comp = comp_by_id.get(delta.id)
+                if comp is not None:
+                    eligible_by_comp[comp] = eligible_by_comp.get(comp, 0) + 1
+
+            # Done when a SINGLE component has enough threshold-passing deltas. A lone noise-driven
+            # eligible on the wrong component must not, by itself, satisfy the requirement.
+            if max(eligible_by_comp.values(), default=0) >= self.num_deltas_per_variant:
+                continue
+
             num_responded = len([d for d in all_deltas if d.response_rate is not None])
             num_in_flight = len(all_deltas) - num_responded
 
-            # Don't double-make: account for deltas already in flight toward the target.
-            number_of_deltas_to_make = self.num_deltas_per_variant - num_eligible_deltas - num_in_flight
-            if number_of_deltas_to_make <= 0:
-                continue
-
             # Decide the phase for this variant's new deltas.
             instruction = None  # predict: mutate the predicted comp (no row written)
+            target_progress = max(eligible_by_comp.values(), default=0)  # predicted comp during predict
             if num_responded >= predict_attempts:
-                # The predicted comp hasn't produced enough threshold-passing deltas. If some comp
-                # has beaten the threshold, exploit the best one; otherwise keep exploring.
-                exploit_comp = self._best_eligible_comp(eligible_deltas)
-                instruction = ('EXPLOIT', exploit_comp) if exploit_comp is not None else ('EXPLORE', None)
+                # The predicted comp hasn't produced enough threshold-passing deltas. Exploit the
+                # best component that (a) has a threshold-passing delta and (b) has not already been
+                # tried up to `budget` times without reaching the target - such a component is
+                # treated as a noise fluke and dropped, sending us back to exploration.
+                exploit_comp = None
+                eligible_with_comp = [(d.response_rate, comp_by_id[d.id]) for d in eligible_deltas
+                                      if d.response_rate is not None and d.id in comp_by_id]
+                for resp_rate, comp in sorted(eligible_with_comp, key=lambda x: x[0]):
+                    if responded_by_comp.get(comp, 0) < budget:
+                        exploit_comp = comp
+                        break
+                if exploit_comp is not None:
+                    instruction = ('EXPLOIT', list(exploit_comp))
+                    target_progress = eligible_by_comp.get(exploit_comp, 0)
+                else:
+                    instruction = ('EXPLORE', None)
+                    target_progress = 0
+
+            # Don't double-make: count progress toward the target component plus deltas in flight.
+            number_of_deltas_to_make = self.num_deltas_per_variant - target_progress - num_in_flight
+            if number_of_deltas_to_make <= 0:
+                continue
 
             instruction_for_variant[candidate_parent.id] = instruction
             for i in range(number_of_deltas_to_make):
