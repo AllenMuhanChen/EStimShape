@@ -54,11 +54,12 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
         parentMStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
         parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 
-
         // Read or choose components to preserve from parent
-        List<Integer> compsToMutateInParent;
+        List<Integer> compsToMutateInParent = Collections.emptyList();
         if (shouldPreserveRandomComps()){
-            compsToMutateInParent = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
+            //ensure we don't randomly draw the same as the parents
+            while(!compsToMutateInParent.equals(preservedComponentData.getCompsToPreserve()))
+                compsToMutateInParent = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
         }
         else {
             compsToMutateInParent = preservedComponentData.getCompsToPreserve();
