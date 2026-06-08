@@ -14,9 +14,11 @@ import javax.sql.DataSource;
 import javax.vecmath.Point3d;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
@@ -129,27 +131,45 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
             List<Long> deltaIds = gaJDBCTemplate.queryForList(
                     "SELECT delta_id FROM IncludedDeltas WHERE variant_id = ? AND included = TRUE",
                     new Object[]{variantId}, Long.class);
-            Set<List<Integer>> mutatedComps = new HashSet<>();
+            // The GA's explore phase deliberately tries several components, so included deltas may
+            // span more than one. Take the component the majority of them mutated: the exploit
+            // phase converges on the true driver, so that is the most frequent comp. Ties break on
+            // the lower component index for determinism.
+            Map<List<Integer>, Integer> counts = new HashMap<>();
             for (Long deltaId : deltaIds) {
                 if (hypothesizedCompManager.hasProperty(deltaId)) {
                     List<Integer> mutated = hypothesizedCompManager.readProperty(deltaId).getParentHypothesizedComps();
                     if (mutated != null && !mutated.isEmpty()) {
-                        mutatedComps.add(mutated);
+                        counts.merge(mutated, 1, Integer::sum);
                     }
                 }
             }
-            if (mutatedComps.size() == 1) {
-                return mutatedComps.iterator().next();
+            List<Integer> majority = null;
+            int bestCount = -1;
+            for (Map.Entry<List<Integer>, Integer> e : counts.entrySet()) {
+                if (e.getValue() > bestCount
+                        || (e.getValue() == bestCount && compareComps(e.getKey(), majority) < 0)) {
+                    majority = e.getKey();
+                    bestCount = e.getValue();
+                }
             }
-            if (mutatedComps.size() > 1) {
-                throw new RuntimeException("Included deltas for variant " + variantId +
-                        " disagree on the mutated (hypothesized) component: " + mutatedComps +
-                        ". The GA exploit should have converged on a single component.");
+            if (majority != null) {
+                return majority;
             }
             // no usable delta rows: fall through to the variant's own hypothesized comp
         }
 
         return hypothesizedCompManager.readProperty(variantId).getHypothesizedComp();
+    }
+
+    /** Lexicographic comparison of component lists, used only to break majority-vote ties. */
+    private int compareComps(List<Integer> a, List<Integer> b) {
+        if (b == null) return -1;
+        for (int i = 0; i < Math.min(a.size(), b.size()); i++) {
+            int c = Integer.compare(a.get(i), b.get(i));
+            if (c != 0) return c;
+        }
+        return Integer.compare(a.size(), b.size());
     }
 
     private boolean tableExists(JdbcTemplate jt, String name) {

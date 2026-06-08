@@ -39,31 +39,32 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
     }
 
     /**
-     * Fallback policy for whether to mutate a randomly chosen component instead of the parent's
-     * hypothesized comp. This only applies when Python has NOT pre-assigned a component for this
-     * delta (see {@link #readForcedCompToMutate()}). Random exploration here is what generates the
-     * alternative-component data that Python's exploit step later uses to pick the best comp.
+     * Which component this delta should mutate, per the GA's instruction on this delta's own
+     * HypothesizedComp row. Python writes the row to drive the predict -> explore -> exploit
+     * progression; the Java side does no random exploration on its own.
+     *
+     *   - no row              -> PREDICT: mutate the parent's hypothesized (predicted) comp
+     *   - row, comp empty      -> EXPLORE: mutate a random component different from the predicted one
+     *   - row, comp present    -> EXPLOIT: mutate exactly that component
+     *
+     * hypothesizedCompData holds the PARENT's row here (set by chooseHypothesizedComp()), so its
+     * hypothesized comp is the predicted comp this delta would otherwise mutate.
      */
-    @Override
-    protected boolean shouldPreserveRandomComps() {
-        return false;
-    }
-
-    /**
-     * The component Python has decided this delta should mutate, or null if Python left the choice
-     * to the Java side. Python pre-populates this delta's own HypothesizedComp row (with the
-     * chosen comp in parent_hypothesized_comps) once a variant has accumulated enough failed delta
-     * attempts that the GA wants to exploit the empirically best-dropping component. The chosen
-     * comp is expressed in the parent's numbering, which is what we mutate against the parent here.
-     */
-    private List<Integer> readForcedCompToMutate() {
-        if (hypothesizedCompManager.hasProperty(stimId)) {
-            List<Integer> forced = hypothesizedCompManager.readProperty(stimId).getParentHypothesizedComps();
-            if (forced != null && !forced.isEmpty()) {
-                return forced;
-            }
+    private List<Integer> chooseCompsToMutate(PruningMatchStick parentMStick) {
+        List<Integer> predictedComp = hypothesizedCompData.getHypothesizedComp();
+        if (!hypothesizedCompManager.hasProperty(stimId)) {
+            return predictedComp; // PREDICT
         }
-        return null;
+        List<Integer> instructed = hypothesizedCompManager.readProperty(stimId).getParentHypothesizedComps();
+        if (instructed != null && !instructed.isEmpty()) {
+            return instructed; // EXPLOIT
+        }
+        // EXPLORE: pick a random component different from the predicted one.
+        List<Integer> explored = Collections.emptyList();
+        while (explored.isEmpty() || explored.equals(predictedComp)) {
+            explored = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
+        }
+        return explored;
     }
 
     @Override
@@ -73,23 +74,7 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
         parentMStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
         parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 
-        // Decide which parent component this delta mutates. Priority:
-        //  1) a comp Python pre-assigned on THIS delta's own row (the GA's exploit choice);
-        //  2) otherwise the legacy behavior
-        // hypothesizedCompData holds the PARENT's row here (set by chooseHypothesizedComp()).
-        List<Integer> compsToMutateInParent = readForcedCompToMutate();
-        if (compsToMutateInParent == null) {
-            if (shouldPreserveRandomComps()){
-                // redraw until we pick a comp different from the parent's hypothesized comp
-                compsToMutateInParent = Collections.emptyList();
-                while(compsToMutateInParent.isEmpty()
-                        || compsToMutateInParent.equals(hypothesizedCompData.getHypothesizedComp()))
-                    compsToMutateInParent = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
-            }
-            else {
-                compsToMutateInParent = hypothesizedCompData.getHypothesizedComp();
-            }
-        }
+        List<Integer> compsToMutateInParent = chooseCompsToMutate(parentMStick);
 
 
 
