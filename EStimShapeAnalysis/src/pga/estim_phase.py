@@ -211,7 +211,8 @@ class EStimVariantSideTest(SideTest):
 class EStimVariantDeltaSideTest(SideTest):
     def __init__(self, num_deltas_per_variant: int = 1, delta_resp_ratio_threshold: float = 0.5,
                  max_attempts_per_variant_multiplier: int = 3, conn=Type[connection],
-                 min_magnitude: float = 0.3, max_magnitude: float = 0.8):
+                 min_magnitude: float = 0.3, max_magnitude: float = 0.8,
+                 max_deltas_per_generation: int = None):
         self.num_deltas_per_variant = num_deltas_per_variant
         self.delta_resp_ratio_threshold = delta_resp_ratio_threshold
         self.max_attempts_per_variant_multiplier = max_attempts_per_variant_multiplier
@@ -221,6 +222,9 @@ class EStimVariantDeltaSideTest(SideTest):
         # [min_magnitude, max_magnitude]. Discreteness is still chosen randomly on the Java side.
         self.min_magnitude = min_magnitude
         self.max_magnitude = max_magnitude
+        # Optional ceiling on how many deltas to create across all parents in a single generation.
+        # None means uncapped. When capped, higher-response parents are served first.
+        self.max_deltas_per_generation = max_deltas_per_generation
 
     def assign_mutation_magnitude(self) -> float:
         return random.uniform(self.min_magnitude, self.max_magnitude)
@@ -262,6 +266,8 @@ class EStimVariantDeltaSideTest(SideTest):
         for s in candidate_parents:
             if s.response_rate >= threshold:
                 past_threshold_stim.append(s)
+        # Serve higher-response parents first so the per-generation cap (if any) goes to them.
+        past_threshold_stim.sort(key=lambda s: s.response_rate, reverse=True)
 
         #filter out ones that have been tested enough already
             #first make dict of deltas for variants
@@ -365,6 +371,10 @@ class EStimVariantDeltaSideTest(SideTest):
             for i in range(number_of_deltas_to_make):
                 eligible_stimuli.append(candidate_parent)
 
+        # Cap total deltas this generation. eligible_stimuli is already ordered by parent response
+        # (highest first), so truncating keeps the highest-response parents' deltas.
+        if self.max_deltas_per_generation is not None:
+            eligible_stimuli = eligible_stimuli[:self.max_deltas_per_generation]
 
         #add to lineage
         for candidate_parent in eligible_stimuli:
