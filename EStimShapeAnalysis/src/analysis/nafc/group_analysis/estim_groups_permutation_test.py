@@ -3,9 +3,10 @@ from clat.util.connection import Connection
 import json
 from tqdm import tqdm
 
-from src.analysis.nafc.estim_parameter_classifier import EStimParameterClassifier
 from src.analysis.nafc.group_analysis.analyze_estim_by_condition import (
-    METRIC_PCT_HYPOTHESIZED, METRIC_PCT_HYP_VS_DELTA)
+    METRIC_PCT_HYPOTHESIZED, METRIC_PCT_HYP_VS_DELTA,
+    read_trial_data_from_repository, split_data_by_conditions,
+    _filter_for_metric, _normalize_cond_key, _DEFAULT_BEHAVIORAL_CONDITIONS)
 
 
 def run_permutation_tests(session_ids=None, n_permutations=1000, force_recompute=False,
@@ -108,87 +109,69 @@ def _fetch_all_cutoffs(algorithm_label):
     return {(row[0], row[1]): row[2] for row in conn.fetch_all()}
 
 
+# Cache the per-session trial frame so run_permutation_tests doesn't re-query the
+# full session for every condition. The frame is treated as read-only (the split
+# copies any slice it keeps), so sharing it across conditions is safe.
+_SESSION_DATA_CACHE = {}
+
+
+def _read_session_data_cached(session_id):
+    df = _SESSION_DATA_CACHE.get(session_id)
+    if df is None:
+        df = read_trial_data_from_repository(session_id)
+        _SESSION_DATA_CACHE[session_id] = df
+    return df
+
+
 def get_trial_data_for_condition(session_id, cond_dict, max_trial_start=None,
                                   metric=METRIC_PCT_HYPOTHESIZED):
     """
-    Get trial-level data for a specific condition combination.
+    Trial-level outcomes for one condition, reusing the SAME split that
+    analyze_estim_by_condition uses to produce EStimEffects. This guarantees the
+    permutation null (and the n's shown downstream) come from exactly the estim-on /
+    estim-off trials the observed effect size summarises — including:
+      - keying the estim-on side by whatever estim conditions produced the row
+        (e.g. estim_spec_id), instead of a hard-coded parameter list, and
+      - restricting the estim-off baseline to the gen_id window the estim condition
+        actually ran in.
+    The previous implementation re-filtered trials with its own SQL that had no
+    estim_spec_id branch (so the estim-on n pooled every spec) and never applied the
+    gen window (so the estim-off n was far too high). Both diverged from EStimEffects.
 
     Args:
-        max_trial_start: if provided, only include trials with trial_start <= max_trial_start.
-        metric         : matches the EStimEffects metric semantics. For
-                         'pct_hyp_vs_delta', excludes rows whose choice is 'rand'
-                         or 'removed', and rows where trial_type is 'Removed Trial'
-                         and choice is 'match' — so the permutation null matches
-                         what was summarised in EStimEffects.
+        max_trial_start: optional trial_start cutoff, applied through the same path
+                         the effect pipeline uses (after the gen window, both groups).
+        metric         : matches EStimEffects metric semantics; 'pct_hyp_vs_delta'
+                         drops choice in {'rand','removed'} and removed-trial matches.
 
-    Returns dict with:
-        'estim_on': list of is_hypothesized_choice values
-        'estim_off': list of is_hypothesized_choice values
+    Returns dict with 'estim_on' / 'estim_off': lists of is_hypothesized_choice values.
     """
-    repo_conn = Connection("allen_data_repository")
+    data = _read_session_data_cached(session_id)
 
-    query = f"""
-        SELECT t.is_hypothesized_choice, t.is_estim_on
-        FROM EStimShapeTrials t
-        LEFT JOIN ({EStimParameterClassifier.active_channel_sql_subquery()}) ep
-          ON t.session_id = ep.session_id AND t.estim_spec_id = ep.estim_spec_id
-        WHERE t.session_id = %s
-    """
-    params = [session_id]
+    # The stored condition dict mixes behavioral and estim keys; split them the same
+    # way run_pipeline does so the regrouping reproduces the row exactly.
+    behavioral_keys = [k for k in cond_dict if k in _DEFAULT_BEHAVIORAL_CONDITIONS]
+    estim_keys      = [k for k in cond_dict if k not in _DEFAULT_BEHAVIORAL_CONDITIONS]
 
-    if metric == METRIC_PCT_HYP_VS_DELTA:
-        query += " AND (t.choice IS NULL OR t.choice NOT IN ('rand', 'removed'))"
-        query += " AND NOT (t.trial_type = 'Removed Trial' AND t.choice = 'match')"
+    # Apply the cutoff through split_data_by_conditions (keyed to this condition only)
+    # so the gen window is derived before the cutoff, identically to the effect pipeline.
+    cutoffs = {json.dumps(cond_dict): max_trial_start} if max_trial_start is not None else None
 
-    if max_trial_start is not None:
-        query += " AND t.trial_start <= %s"
-        params.append(max_trial_start)
+    comparisons = split_data_by_conditions(data, behavioral_keys, estim_keys,
+                                            trial_start_cutoffs=cutoffs)
 
-    if 'trial_type' in cond_dict:
-        query += " AND t.trial_type = %s"
-        params.append(cond_dict['trial_type'])
+    target_key = _normalize_cond_key(cond_dict)
+    for comp in comparisons:
+        merged = {**comp['behavioral_conditions'], **comp['estim_conditions']}
+        if _normalize_cond_key(merged) == target_key:
+            on_df  = _filter_for_metric(comp['estim_on_data'], metric)
+            off_df = _filter_for_metric(comp['estim_off_data'], metric)
+            return {
+                'estim_on':  on_df['is_hypothesized_choice'].dropna().tolist(),
+                'estim_off': off_df['is_hypothesized_choice'].dropna().tolist(),
+            }
 
-    if 'noise_chance' in cond_dict:
-        query += " AND ABS(t.noise_chance - %s) < 0.001"
-        params.append(cond_dict['noise_chance'])
-
-    if 'sample_length' in cond_dict:
-        if cond_dict['sample_length'] is None:
-            query += " AND t.sample_length IS NULL"
-        else:
-            query += " AND t.sample_length = %s"
-            params.append(cond_dict['sample_length'])
-
-    estim_conditions = []
-    if 'polarity' in cond_dict:
-        estim_conditions.append("(t.is_estim_on = 0 OR ep.polarity = %s)")
-        params.append(cond_dict['polarity'])
-    if 'shape' in cond_dict:
-        estim_conditions.append("(t.is_estim_on = 0 OR ep.shape = %s)")
-        params.append(cond_dict['shape'])
-    if 'num_channels' in cond_dict:
-        estim_conditions.append("(t.is_estim_on = 0 OR ep.num_channels = %s)")
-        params.append(cond_dict['num_channels'])
-    if 'a1' in cond_dict:
-        estim_conditions.append("(t.is_estim_on = 0 OR ABS(ep.a1 - %s) < 0.01)")
-        params.append(cond_dict['a1'])
-    if 'post_stim_refractory_period' in cond_dict:
-        estim_conditions.append("(t.is_estim_on = 0 OR ABS(ep.post_stim_refractory_period - %s) < 1.0)")
-        params.append(cond_dict['post_stim_refractory_period'])
-    if 'enable_charge_recovery' in cond_dict:
-        estim_conditions.append("(t.is_estim_on = 0 OR ep.enable_charge_recovery = %s)")
-        params.append(cond_dict['enable_charge_recovery'])
-
-    if estim_conditions:
-        query += " AND " + " AND ".join(estim_conditions)
-
-    repo_conn.execute(query, tuple(params))
-    results = repo_conn.fetch_all()
-
-    estim_on  = [row[0] for row in results if row[1] == 1 and row[0] is not None]
-    estim_off = [row[0] for row in results if row[1] == 0 and row[0] is not None]
-
-    return {'estim_on': estim_on, 'estim_off': estim_off}
+    return {'estim_on': [], 'estim_off': []}
 
 
 def run_single_permutation_test(estim_on_outcomes, estim_off_outcomes, n_permutations):
