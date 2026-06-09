@@ -95,7 +95,12 @@ public class SideTestStim extends GAStim<GAMatchStick, AllenMStickData> {
             position.setPosition(mStick.getMassCenterForComponent(position.getTargetComp()));
         } else if (position.getPositioningStrategy() == PositioningStrategy.PRESERVED_COMP_BASED){
             //No logic here to actually enforce this component to be preserved, and we won't preserve it.
-            Integer compToPreserve = hypothesizedCompManager.readProperty(parentId).getHypothesizedComp().get(0);
+            Integer compToPreserve;
+            if (!hypothesizedCompManager.hasProperty(parentId)){
+                compToPreserve = position.getTargetComp();
+            } else {
+                compToPreserve = hypothesizedCompManager.readProperty(parentId).getHypothesizedComp().get(0);
+            }
             position.setTargetComp(compToPreserve);
             position.setPosition(mStick.getMassCenterForComponent(compToPreserve));
 

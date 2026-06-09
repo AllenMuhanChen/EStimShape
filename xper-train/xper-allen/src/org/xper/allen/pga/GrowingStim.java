@@ -61,8 +61,13 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
             } else if(parentPositioningStrategy == PositioningStrategy.PRESERVED_COMP_BASED) {
                 Point3d parentPreservedCompLocation = parentLocation.getPosition();
                 Point3d newPreservedCompLocation = mutatePosition(parentPreservedCompLocation);
-                Integer compToPreserveInChild = hypothesizedCompData.getHypothesizedComp().get(0);
-                position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, compToPreserveInChild, newPreservedCompLocation);
+                if (!hypothesizedCompManager.hasProperty(parentId)) {
+                    Integer compToPreserveInChild = parentLocation.targetComp;
+                    position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, compToPreserveInChild, newPreservedCompLocation);
+                } else {
+                    Integer compToPreserveInChild = hypothesizedCompData.getHypothesizedComp().get(0);
+                    position = new MStickPosition(PositioningStrategy.PRESERVED_COMP_BASED, compToPreserveInChild, newPreservedCompLocation);
+                }
             }else {
                 throw new IllegalArgumentException("Unknown PositioningStrategy: " + parentPositioningStrategy);
             }
@@ -179,7 +184,13 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
             childMStick.setRf(generator.getReceptiveField());
             childMStick.setRfStrategy(rfStrategy);
         } else if (position.positioningStrategy == PositioningStrategy.PRESERVED_COMP_BASED){
-            childMStick = new GrowingMatchStick(hypothesizedCompManager.readProperty(parentId).getHypothesizedComp().get(0), position.position,1/3.0);
+            Integer compIdToMove;
+            if (hypothesizedCompManager.hasProperty(parentId)) {
+                compIdToMove = hypothesizedCompManager.readProperty(parentId).getHypothesizedComp().get(0);
+            } else{
+                compIdToMove = position.getTargetComp();
+            }
+            childMStick = new GrowingMatchStick(compIdToMove, position.position,1/3.0);
             childMStick.setRf(generator.getReceptiveField());
             childMStick.setRfStrategy(rfStrategy);
         }

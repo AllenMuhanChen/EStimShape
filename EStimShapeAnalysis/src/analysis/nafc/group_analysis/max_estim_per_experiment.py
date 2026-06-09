@@ -939,7 +939,7 @@ def main():
         start_session_id="260402_0",
         algorithm_label='None',
         metric=METRIC_PCT_HYP_VS_DELTA,
-        min_trials=15,
+        min_trials=10,
         save_path="/home/connorlab/Documents/plots/across_experiments/studentized_winners.png",
     )
 
@@ -949,7 +949,7 @@ def main():
         start_session_id="260402_0",
         algorithm_label='None',
         metric=METRIC_PCT_HYP_VS_DELTA,
-        min_trials=15,
+        min_trials=10,
         studentize=True,   # tally winners of the studentized maxT
         save_path="/home/connorlab/Documents/plots/across_experiments/winning_conditions.png",
     )
