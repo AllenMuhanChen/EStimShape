@@ -614,7 +614,7 @@ def compute_exceedance_count_stats(exclude_session_ids=None, start_session_id=No
         null_matrix = np.stack(null_rows, axis=0)               # (C, P), in z units
         unit = "z"
         if thresholds is None:
-            thresholds = (1.0, 1.5, 2.0, 2.5, 3.0)
+            thresholds = (0, 0.5, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0)
     else:
         null_matrix = np.stack([e['null'][:n_perms] for e in entries], axis=0)  # (C, P)
         obs = np.array([e['obs_effect'] for e in entries])
@@ -904,7 +904,7 @@ def main():
         # algorithm_label='first_drop_w100_s10_t5.0_n3',
         save_path="/home/connorlab/Documents/plots/across_experiments/max_estim_per_experiment.png",
         show_n=True,
-        x_spacing=0.5,
+        x_spacing=0.75,
         width_per_exp=1.0,
         # weighting=None    #-> original equal-per-session test (default)
         # weighting='sqrt',  #-> weight sessions by sqrt(best-condition trials)
@@ -914,7 +914,7 @@ def main():
         #                     condition by its own null before taking the max
         #                     (fairer across conditions with very different n).
         studentize=True,
-        min_trials=15
+        min_trials=10
     )
 
     # ---- Test 2: exceedance-count (are there more conditions over x% than chance?) ----
@@ -926,7 +926,7 @@ def main():
         algorithm_label='None',
         metric=METRIC_PCT_HYP_VS_DELTA,
         # thresholds=None -> (5,10,15,20)% in raw mode, (1.0..3.0) z when studentized
-        thresholds=None,
+        thresholds=[0, 0.5, 1, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0],
         # studentize=True -> count exceedances of z = effect/own-null SD instead of raw %
         studentize=True,
         save_path="/home/connorlab/Documents/plots/across_experiments/exceedance_count_test.png",

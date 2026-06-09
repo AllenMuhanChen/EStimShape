@@ -8,13 +8,13 @@ from src.analysis.nafc.group_analysis.analyze_estim_by_condition import (
     METRIC_PCT_HYPOTHESIZED, METRIC_PCT_HYP_VS_DELTA)
 
 
-def run_permutation_tests(session_id=None, n_permutations=1000, force_recompute=False,
+def run_permutation_tests(session_ids=None, n_permutations=1000, force_recompute=False,
                           algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED):
     """
     Run permutation tests for all condition combinations.
 
     Args:
-        session_id      : Specific session to analyze, or None for all sessions
+        session_ids      : Specific session to analyze, or None for all sessions
         n_permutations  : Number of permutations
         force_recompute : If True, recompute even if results exist
         algorithm_label : Which cutoff to apply (matches EStimEffects.algorithm_label).
@@ -29,12 +29,12 @@ def run_permutation_tests(session_id=None, n_permutations=1000, force_recompute=
 
     conn = Connection("allen_data_repository")
 
-    if session_id:
+    if session_ids:
         conn.execute("""
             SELECT session_id, conditions, estim_on_n_trials, estim_off_n_trials, effect_size
             FROM EStimEffects
             WHERE session_id = %s AND algorithm_label = %s AND metric = %s
-        """, (session_id, algorithm_label, metric))
+        """, (session_ids, algorithm_label, metric))
     else:
         conn.execute("""
             SELECT session_id, conditions, estim_on_n_trials, estim_off_n_trials, effect_size
@@ -78,6 +78,10 @@ def run_permutation_tests(session_id=None, n_permutations=1000, force_recompute=
         null_distribution = run_single_permutation_test(
             trial_data['estim_on'], trial_data['estim_off'], n_permutations
         )
+
+        if observed_effect is None:
+            print(f"Skipping {sess_id}, {cond_dict}: observed effect is None")
+            continue
 
         p_two_tailed = calculate_p_value_two_tailed(observed_effect, null_distribution)
         p_greater    = calculate_p_value_one_tailed(observed_effect, null_distribution, direction='greater')
@@ -315,13 +319,15 @@ def _migrate_permutation_test_table(conn):
 
 
 def main():
-    run_permutation_tests(
-        session_id="260603_0",
-        n_permutations=10000,
-        force_recompute=True,
-        algorithm_label='None',
-        metric=METRIC_PCT_HYP_VS_DELTA,
-    )
+    metrics = [METRIC_PCT_HYPOTHESIZED, METRIC_PCT_HYP_VS_DELTA]
+    for metric in metrics:
+        run_permutation_tests(
+            session_ids=None,
+            n_permutations=10000,
+            force_recompute=True,
+            algorithm_label='None',
+            metric=metric,
+        )
 
 
 if __name__ == '__main__':

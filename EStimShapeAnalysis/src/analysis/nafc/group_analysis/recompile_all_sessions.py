@@ -111,7 +111,7 @@ def run_full_pipeline(
         for metric in metrics:
             print(f"\n========== permutation tests (metric={metric}) ==========")
             estim_groups_permutation_test.run_permutation_tests(
-                session_id=None,
+                session_ids=None,
                 n_permutations=n_permutations,
                 force_recompute=True,
                 algorithm_label=algorithm_label,
