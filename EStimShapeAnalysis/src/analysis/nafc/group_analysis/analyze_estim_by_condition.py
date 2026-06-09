@@ -102,14 +102,12 @@ def _get_all_session_ids():
 
 
 _DEFAULT_BEHAVIORAL_CONDITIONS = ['trial_type', 'noise_chance', 'sample_length']
-_DEFAULT_ESTIM_CONDITIONS = [
-    'num_channels',
-    'polarity',
-    'shape',
-    'a1',
-    'post_stim_refractory_period',
-    'enable_charge_recovery',
-]
+# Key estim conditions by estim_spec_id so each spec is its own condition, matching
+# analyze_estim_by_estim_id. Grouping on a parameter subset (e.g. amplitude/shape/
+# polarity without channel) pools physically distinct specs — different electrode
+# sites, frequencies, etc. — into one row, which dilutes the effect size and inflates
+# n by drawing the gen-matched baseline from every pooled spec's generations.
+_DEFAULT_ESTIM_CONDITIONS = ['estim_spec_id']
 
 
 def run_pipeline(session_ids=None, algorithm_label='None', force_recompute=True,
@@ -313,6 +311,7 @@ def compute_baseline_windows(data_sorted, window_positions, window_size):
 
 
 _KEY_ABBREVS = {
+    'estim_spec_id': 'spec',
     'trial_type': 'type',
     'noise_chance': 'noise',
     'sample_length': 'smpl',
