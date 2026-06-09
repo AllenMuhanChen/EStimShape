@@ -33,6 +33,19 @@ class _NumpyEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
+def _groupkey_to_dict(condition_keys, group_values):
+    """Map a pandas groupby key back to {column: value}.
+
+    Robust to pandas >= 2.2 returning a length-1 tuple when grouping by a
+    single-column list (older pandas returned a bare scalar). Without this,
+    grouping by a single condition (e.g. ['estim_spec_id']) would store the value
+    wrapped in a list — e.g. {'estim_spec_id': [10.0]} instead of 10.0.
+    """
+    if not isinstance(group_values, tuple):
+        group_values = (group_values,)
+    return dict(zip(condition_keys, group_values))
+
+
 def _normalize_cond_key(cond_dict):
     """
     Canonical JSON key for a condition dict, robust to NaN vs None and numpy vs Python types.
@@ -692,10 +705,7 @@ def split_data_by_conditions(data, behavioral_conditions, estim_conditions,
 
     for behavioral_values, behavioral_group in behavioral_groups:
         # Create behavioral condition dict
-        if len(behavioral_conditions) == 1:
-            behavioral_dict = {behavioral_conditions[0]: behavioral_values}
-        else:
-            behavioral_dict = dict(zip(behavioral_conditions, behavioral_values))
+        behavioral_dict = _groupkey_to_dict(behavioral_conditions, behavioral_values)
 
         # Split into estim on/off within this behavioral group
         estim_off_data = behavioral_group.loc[behavioral_group['is_estim_on'] == 0].copy()
@@ -714,10 +724,7 @@ def split_data_by_conditions(data, behavioral_conditions, estim_conditions,
 
         for estim_values, estim_group in estim_groups:
             # Create estim condition dict
-            if len(estim_conditions) == 1:
-                estim_dict = {estim_conditions[0]: estim_values}
-            else:
-                estim_dict = dict(zip(estim_conditions, estim_values))
+            estim_dict = _groupkey_to_dict(estim_conditions, estim_values)
 
             estim_on_trimmed  = estim_group.copy()
             estim_off_trimmed = estim_off_data.copy()
