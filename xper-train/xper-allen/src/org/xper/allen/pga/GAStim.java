@@ -236,16 +236,18 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
      * coincide, which is why the row is still an acceptable last resort.
      */
     protected Integer resolveParentPreservedComp() {
-        Integer targetComp = positionManager.readProperty(parentId).getTargetComp();
-        if (targetComp != null) {
-            return targetComp;
+        if (positionManager.hasProperty(parentId)) {
+            Integer targetComp = positionManager.readProperty(parentId).getTargetComp();
+            if (targetComp != null) {
+                return targetComp;
+            }
         }
         List<Integer> comps = hypothesizedCompManager.readHypothesizedCompOrNull(parentId);
         Integer fallback = (comps != null) ? comps.get(0) : null;
         System.err.println("################################################################################");
         System.err.println("## CRITICAL WARNING: PRESERVED-COMP FALLBACK TRIGGERED - THIS SHOULD NEVER HAPPEN");
-        System.err.println("## Parent stim " + parentId + " has no target comp on its stored position, even");
-        System.err.println("## though it is being used as a preserved-comp-based parent. Falling back to its");
+        System.err.println("## Parent stim " + parentId + " has no stored position row or no target comp on");
+        System.err.println("## it, even though it is used as a preserved-comp-based parent. Falling back to its");
         System.err.println("## HypothesizedComp row: " + fallback + " (for a DELTA parent this is the comp it");
         System.err.println("## CHANGED, not its anchor - positioning may be wrong). Every preserved-comp-based");
         System.err.println("## stimulus should record its anchor comp on its position at generation time.");
