@@ -72,12 +72,19 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
         # Returns None when the GAVar row is absent, leaving deltas uncapped.
         return self.var_fetcher.get("max_deltas_per_generation", dtype=int)
 
-    # def make_response_processor(self) -> GAResponseProcessor:
-    #     return RankBaselineNormalizeResponseProcessor(
-    #         db_util=self.db_util,
-    #         repetition_combination_strategy=mean,
-    #         cluster_combination_strategy=sum
-    #     )
+    def make_response_processor(self) -> GAResponseProcessor:
+        if self.is_use_normalized_ga_response_processor():
+            return RankBaselineNormalizeResponseProcessor(
+                db_util=self.db_util,
+                repetition_combination_strategy=mean,
+                cluster_combination_strategy=sum
+            )
+        else:
+            return super().make_response_processor()
+
+    def is_use_normalized_ga_response_processor(self):
+        return self.var_fetcher.get("use_normalized_ga_response_processor", dtype=bool)
+
 
 class MockGrowingPhaseTransitioner(RegimeTransitioner):
     num_times = 0

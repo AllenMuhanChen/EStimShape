@@ -251,7 +251,7 @@ class EStimVariantDeltaSideTest(SideTest):
 
 
         #go through eligible stimuli and check
-        # No explore/exploit scheduling here: a parent simply gets deltas (each mutating one of the
+        # a parent simply gets deltas (each mutating one of the
         # parent's hypothesized comps, decided Java-side) until enough pass the response-drop
         # threshold or the attempt budget runs out. Failed (high-response) deltas pass the parent
         # threshold themselves, so chaining deltas onto deltas explores the remaining components.

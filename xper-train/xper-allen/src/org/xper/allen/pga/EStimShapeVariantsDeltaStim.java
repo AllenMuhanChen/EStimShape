@@ -78,7 +78,7 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
                 }
             }
         } else {
-            // Variant (or other hypothesis-bearing) parent: test its predicted driver by changing it.
+            // Variant parent: test its predicted driver by changing it.
             candidates = hypothesized;
         }
 
@@ -89,11 +89,8 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
             }
             return random;
         }
-        if (candidates.size() == 1) {
-            return candidates;
-        }
-        Random r = new Random();
-        return Collections.singletonList(candidates.get(r.nextInt(candidates.size())));
+
+        return candidates;
     }
 
     @Override
