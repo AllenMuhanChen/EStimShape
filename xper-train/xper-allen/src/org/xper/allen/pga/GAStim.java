@@ -226,6 +226,21 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         }
     }
 
+    /**
+     * The parent's preserved/hypothesized component, never throwing on missing data. Falls back to
+     * the preserved comp recorded on the parent's stored position (its target comp) when the parent
+     * has no usable HypothesizedComp row - e.g. early-generation stimuli, or rows with an empty
+     * comp list. May still return null if the position has no target comp either; callers that
+     * can't proceed without one should null-check and fail with a clear message.
+     */
+    protected Integer resolveParentPreservedComp() {
+        List<Integer> comps = hypothesizedCompManager.readHypothesizedCompOrNull(parentId);
+        if (comps != null) {
+            return comps.get(0);
+        }
+        return positionManager.readProperty(parentId).getTargetComp();
+    }
+
     protected void choosePosition() {
         position = positionManager.readProperty(parentId);
     }

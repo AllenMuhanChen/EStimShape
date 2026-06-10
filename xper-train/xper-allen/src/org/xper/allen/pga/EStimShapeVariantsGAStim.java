@@ -71,8 +71,8 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
         if (shouldPreserveRandomComps()) {
             compsToPreserveInParent = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
         } else {
-            HypothesizedCompData parentData = hypothesizedCompManager.readProperty(parentId);
-            compsToPreserveInParent = parentData.getHypothesizedComp();
+            // shouldPreserveRandomComps()==false guarantees a non-empty list via parentHasHypothesizedComp.
+            compsToPreserveInParent = hypothesizedCompManager.readHypothesizedCompOrNull(parentId);
         }
 
         // Generate child
@@ -147,6 +147,9 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
     }
 
     protected boolean parentHasHypothesizedComp() {
-        return hypothesizedCompManager.hasProperty(parentId);
+        // Require a non-empty comp list, not just a row: rows with an empty hypothesized_comp
+        // exist (e.g. pre-populated rows for deltas that were never generated) and must route to
+        // the random-comps path instead of an empty preserved list.
+        return hypothesizedCompManager.readHypothesizedCompOrNull(parentId) != null;
     }
 }
