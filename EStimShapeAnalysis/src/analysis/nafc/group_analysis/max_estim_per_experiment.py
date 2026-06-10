@@ -139,6 +139,10 @@ def _build_max_stat_for_session(session_id, algorithm_label='none', metric=METRI
         'max_stat_null':        max_stat_null,
         'p_value':              p_value,
         'best_cond_dict':       cond_list[best_idx],
+        # All candidate conditions the winner was chosen from (after the studentize
+        # degenerate-null filter, if any). Used by plot_winning_conditions to count
+        # how often each parameter value was *tested*, not just how often it won.
+        'cond_dicts':           cond_list,
     }
 
 
@@ -832,22 +836,38 @@ def _unfurl_estim_spec(session_id, estim_spec_id):
     return dict(zip(_UNFURL_ESTIM_PARAMS, rows[0]))
 
 
+def _expand_condition(session_id, cond_dict):
+    """Return a condition's parameters with estim_spec_id unfurled into the
+    physical EStimParameters (channel, polarity, shape, a1, ...). Non-spec keys
+    are passed through unchanged."""
+    expanded = dict(cond_dict)
+    spec_id = expanded.pop('estim_spec_id', None)
+    if spec_id is not None:
+        expanded.update(_unfurl_estim_spec(session_id, spec_id))
+    return expanded
+
+
 def plot_winning_conditions(exclude_session_ids=None, start_session_id=None,
                             algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                             min_trials=DEFAULT_MIN_TRIALS, studentize=True,
                             save_path=None):
-    """Across sessions, show how often each parameter value wins the max-stat.
+    """Across sessions, show each parameter value's WIN RATE: of all the times a
+    value was tested, what fraction of the time it was the winning condition.
 
-    For each session the winning condition (studentized maxT winner by default;
-    set studentize=False for the raw-effect winner) is recorded. Its estim_spec_id
-    is unfurled into the actual EStimParameters (channel, polarity, shape, a1,
-    pulse_train_period, ...) so the tally is over physical stimulation parameters,
-    not opaque spec ids. For every parameter key we bar-chart the *percentage of
-    winning sessions* that took each value — i.e. how often that setting is the
-    best — rather than a raw count.
+    Per session, every qualifying condition that entered the max-stat competition
+    is a "test" of its parameter values, and exactly one of them wins. A condition's
+    estim_spec_id is unfurled into the actual EStimParameters (channel, polarity,
+    shape, a1, pulse_train_period, ...) so the tally is over physical stimulation
+    parameters, not opaque spec ids. For every parameter value we bar-chart:
 
-    Note: percentages are within each parameter (a key's bars sum to 100% over the
-    winners that specify it), so per-parameter denominators can differ.
+        win rate = (# qualifying conditions with that value that won their session)
+                 / (# qualifying conditions with that value, across all sessions)
+
+    Unlike a breakdown of winners, these bars do NOT sum to 100% within a parameter
+    — each value is judged on its own ("when this value is on the table, how often
+    is it the best?"). Bars are annotated with won/tested counts. ``studentize``
+    selects the studentized maxT winner (default) vs the raw-effect winner, and also
+    fixes the candidate set the winner is chosen from.
     """
     from collections import Counter, defaultdict
 
@@ -859,39 +879,39 @@ def plot_winning_conditions(exclude_session_ids=None, start_session_id=None,
     if start_session_id is not None:
         session_ids = [s for s in session_ids if s >= start_session_id]
 
-    winners = []
+    sessions_data = []
     for sid in session_ids:
         result = _build_max_stat_for_session(sid, algorithm_label, metric,
                                              min_trials=min_trials, studentize=studentize)
         if result is None:
             continue
-        winners.append((sid, result['best_cond_dict']))
+        sessions_data.append((sid, result['cond_dicts'], result['best_cond_dict']))
 
-    if not winners:
+    if not sessions_data:
         print("No winning conditions found.")
         return None
 
-    # Unfurl estim_spec_id -> physical parameters, then tally per (key, value).
-    per_key = defaultdict(Counter)
-    key_totals = defaultdict(int)  # winners that specify each key (percentage denominator)
-    for sid, cond in winners:
-        expanded = dict(cond)
-        spec_id = expanded.pop('estim_spec_id', None)
-        if spec_id is not None:
-            expanded.update(_unfurl_estim_spec(sid, spec_id))
-        for k, v in expanded.items():
-            per_key[k][str(v)] += 1
-            key_totals[k] += 1
+    # Tally per (key, value): how often it was TESTED (every candidate condition,
+    # across all sessions) and how often it WON (the per-session winner).
+    tested = defaultdict(Counter)
+    won = defaultdict(Counter)
+    for sid, cond_dicts, best in sessions_data:
+        for cond in cond_dicts:
+            for k, v in _expand_condition(sid, cond).items():
+                tested[k][str(v)] += 1
+        for k, v in _expand_condition(sid, best).items():
+            won[k][str(v)] += 1
 
-    print(f"\nWinning conditions across {len(winners)} sessions "
+    n_sessions = len(sessions_data)
+    print(f"\nWin rate per parameter value across {n_sessions} sessions "
           f"({'studentized' if studentize else 'raw'} maxT):")
-    for k in sorted(per_key):
-        total = key_totals[k]
-        tally = ", ".join(f"{val} {100.0 * cnt / total:.0f}% ({cnt})"
-                          for val, cnt in per_key[k].most_common())
+    for k in sorted(tested):
+        tally = ", ".join(
+            f"{val} {100.0 * won[k][val] / tested[k][val]:.0f}% ({won[k][val]}/{tested[k][val]})"
+            for val, _ in tested[k].most_common())
         print(f"  {k}: {tally}")
 
-    keys = sorted(per_key)
+    keys = sorted(tested)
     n = len(keys)
     ncols = min(3, n)
     nrows = (n + ncols - 1) // ncols
@@ -899,18 +919,17 @@ def plot_winning_conditions(exclude_session_ids=None, start_session_id=None,
 
     for i, k in enumerate(keys):
         ax = axes[i // ncols][i % ncols]
-        counter = per_key[k]
-        total = key_totals[k]
-        labels = sorted(counter, key=lambda x: (-counter[x], x))
-        pct = [100.0 * counter[l] / total for l in labels]
-        ax.bar(range(len(labels)), pct, color="steelblue", edgecolor="black")
-        # annotate each bar with the underlying count
+        labels = sorted(tested[k], key=lambda x: (-won[k][x] / tested[k][x], x))
+        rate = [100.0 * won[k][l] / tested[k][l] for l in labels]
+        ax.bar(range(len(labels)), rate, color="steelblue", edgecolor="black")
+        # annotate each bar with won/tested
         for j, l in enumerate(labels):
-            ax.text(j, pct[j], str(counter[l]), ha="center", va="bottom", fontsize=7)
+            ax.text(j, rate[j], f"{won[k][l]}/{tested[k][l]}",
+                    ha="center", va="bottom", fontsize=7)
         ax.set_xticks(range(len(labels)))
         ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=8)
         ax.set_title(k, fontsize=10, fontweight="bold")
-        ax.set_ylabel("% of winning sessions", fontsize=8)
+        ax.set_ylabel("% of tests won", fontsize=8)
         ax.set_ylim(0, 100)
         ax.grid(True, axis="y", alpha=0.3)
         ax.set_axisbelow(True)
@@ -919,9 +938,10 @@ def plot_winning_conditions(exclude_session_ids=None, start_session_id=None,
         axes[j // ncols][j % ncols].axis("off")
 
     kind = "studentized" if studentize else "raw"
-    fig.suptitle(f"Winning conditions across {len(winners)} sessions ({kind} maxT)",
-                 fontsize=13, fontweight="bold")
-    fig.tight_layout(rect=[0, 0, 1, 0.96])
+    fig.suptitle(f"Win rate per parameter value across {n_sessions} sessions ({kind} maxT)\n"
+                 f"(% of times tested that the value was the winning condition)",
+                 fontsize=12, fontweight="bold")
+    fig.tight_layout(rect=[0, 0, 1, 0.94])
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
