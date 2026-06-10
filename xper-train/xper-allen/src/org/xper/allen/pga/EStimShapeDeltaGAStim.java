@@ -2,8 +2,6 @@ package org.xper.allen.pga;
 
 import org.xper.allen.drawing.composition.experiment.PositioningStrategy;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
-import org.xper.allen.drawing.ga.GAMatchStick;
-import org.xper.drawing.stick.stickMath_lib;
 
 import javax.vecmath.Point3d;
 import java.util.ArrayList;
@@ -11,11 +9,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
+public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
 
     private final double magnitude;
 
-    public EStimShapeVariantsDeltaStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double magnitude) {
+    public EStimShapeDeltaGAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double magnitude) {
         super(stimId, generator, parentId, magnitude);
         this.magnitude = magnitude;
     }
@@ -82,6 +80,7 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
             candidates = hypothesized;
         }
 
+        // If there are no hypothesized comps, we're going to choose a new one right now.
         if (candidates.isEmpty()) {
             List<Integer> random = Collections.emptyList();
             while (random.isEmpty()) {

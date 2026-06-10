@@ -68,7 +68,7 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
 
 //        List<Integer> compsToPreserveInParent = hypothesizedCompData.getHypothesizedComp();
         List<Integer> compsToPreserveInParent;
-        if (shouldPreserveRandomComps()) {
+        if (shouldChooseRandomCompsToTest()) {
             compsToPreserveInParent = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
         } else {
             // shouldPreserveRandomComps()==false guarantees a non-empty list via parentHasHypothesizedComp.
@@ -131,16 +131,21 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
      *
      * @return
      */
-    protected boolean shouldPreserveRandomComps() {
-        // We want to assign new comps to preserve if it has preservation history AND is delta or growing
-        if (parentHasHypothesizedComp()){ //has preservation history
-            if (stimTypeManager.readProperty(parentId) == StimType.REGIME_ONE){
-                return true; // if it's regime one, we probably have changed the preserved comp and other comps, so we don't know what's driving response, need to re-test.
-            }
-            Random r = new Random();
-            return r.nextDouble() < magnitude;
+    protected boolean shouldChooseRandomCompsToTest() {
+        // no preservation history, so preserve random comps.
+        if (!parentHasHypothesizedComp()) {
+            return true;
         }
-        else{
+
+        //has preservation history
+        if (stimTypeManager.readProperty(parentId) == StimType.REGIME_ONE){
+            return true; // if it's regime one, we probably have changed the preserved comp and other comps, so we don't know what's driving response, need to re-test.
+        } else if (stimTypeManager.readProperty(parentId) == StimType.REGIME_ESTIM_DELTA){
+            Random r  = new Random();
+            return r.nextBoolean(); // if it's a high response delta, then we might have changed the wrong component, or we have a new component that's driving even better.
+        } else if (stimTypeManager.readProperty(parentId) == StimType.REGIME_ESTIM_VARIANTS){
+            return false; // if it's a variant that's high response, then we know which comp we preserved in the parent, and we know that the preserved comp is still driving response in the child, so we should preserve that same comp in the child of the variant.
+        }else{ //in doubt, assign new comps to preserve randomly, because we don't know what's driving the response anymore.
             return true;
         }
 

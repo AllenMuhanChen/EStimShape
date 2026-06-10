@@ -4,6 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
+import org.xper.allen.pga.EStimShapeDeltaGAStim;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 import org.xper.util.ThreadUtil;
@@ -24,7 +25,7 @@ import java.util.Random;
 
 /**
  * Standalone harness for testing the delta-generation behavior of
- * {@link org.xper.allen.pga.EStimShapeVariantsDeltaStim}.
+ * {@link EStimShapeDeltaGAStim}.
  *
  * We can't use EStimShapeVariantsDeltaStim directly (it depends on DB-backed managers
  * and a generator), so this test reproduces its {@code createMStick()} logic with a

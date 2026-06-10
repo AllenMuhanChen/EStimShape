@@ -165,6 +165,11 @@ public class PruningMatchStick extends ProceduralMatchStick {
         }
     }
 
+    /**
+     * Can choose a single component or pairs of components that share a junction
+     * @param stickToMorph
+     * @return
+     */
     public static List<Integer> chooseRandomComponentsToPreserve(MorphedMatchStick stickToMorph) {
         List<List<Integer>> allValidCombinations = new ArrayList<>();
 
