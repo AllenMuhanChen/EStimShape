@@ -262,7 +262,7 @@ class GAVarParameterFetcher:
         query = "SELECT value FROM GAVar WHERE name=%s AND experiment_id=%s AND gen_id=%s AND arr_ind = 0"
         self.connection.execute(query, (name, experiment_id, gen_id))
         result = self.connection.fetch_one()
-        return dtype(result)
+        return self._convert(result, dtype)
 
     def get_array_parameter(self, name, dtype=str) -> list:
         experiment_id, gen_id = self.get_most_recent_experiment_and_gen_id(name)
@@ -272,4 +272,17 @@ class GAVarParameterFetcher:
         query = f"SELECT arr_ind, value FROM GAVar WHERE name = '{name}' AND experiment_id = {experiment_id} AND gen_id = {gen_id} ORDER BY arr_ind"
         self.connection.execute(query)
         result = self.connection.fetch_all()
-        return [dtype(value) for _, value in result]
+        return [self._convert(value, dtype) for _, value in result]
+
+    @staticmethod
+    def _convert(value, dtype):
+        # bool("false") is True since any non-empty string is truthy,
+        # so boolean values stored as text need explicit parsing
+        if dtype is bool:
+            text = str(value).strip().lower()
+            if text in ("true", "1", "yes"):
+                return True
+            if text in ("false", "0", "no", ""):
+                return False
+            raise ValueError(f"Cannot parse boolean from GAVar value: {value!r}")
+        return dtype(value)
