@@ -238,7 +238,17 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         if (comps != null) {
             return comps.get(0);
         }
-        return positionManager.readProperty(parentId).getTargetComp();
+        Integer fallback = positionManager.readProperty(parentId).getTargetComp();
+        System.err.println("################################################################################");
+        System.err.println("## CRITICAL WARNING: HypothesizedComp FALLBACK TRIGGERED - THIS SHOULD NEVER HAPPEN");
+        System.err.println("## Parent stim " + parentId + " has no usable HypothesizedComp row (missing or empty");
+        System.err.println("## comp list). Falling back to the target comp on its stored position: " + fallback);
+        System.err.println("## Every preserved-comp-based stimulus should persist its hypothesized comp at");
+        System.err.println("## generation time. If you see this, HypothesizedComp rows are not being written");
+        System.err.println("## (or are being read from the wrong table) - investigate before trusting results.");
+        System.err.println("## Stim being generated: " + stimId + " (" + this.getClass().getSimpleName() + ")");
+        System.err.println("################################################################################");
+        return fallback;
     }
 
     protected void choosePosition() {

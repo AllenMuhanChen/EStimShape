@@ -189,6 +189,15 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
             PositionPropertyManager positionManager = new PositionPropertyManager(gaJDBCTemplate);
             MStickPosition variantPosition = positionManager.readProperty(variantId);
             if (variantPosition != null && variantPosition.getTargetComp() != null) {
+                System.err.println("################################################################################");
+                System.err.println("## CRITICAL WARNING: HypothesizedComp FALLBACK TRIGGERED - THIS SHOULD NEVER HAPPEN");
+                System.err.println("## NAFC: variant " + variantId + " has no usable HypothesizedComp row (missing or");
+                System.err.println("## empty comp list) and no usable included-delta information. Falling back to the");
+                System.err.println("## target comp on its stored position: " + variantPosition.getTargetComp());
+                System.err.println("## Every preserved-comp-based GA stimulus should persist its hypothesized comp at");
+                System.err.println("## generation time. If you see this, HypothesizedComp rows are not being written");
+                System.err.println("## (or are being read from the wrong table) - investigate before trusting trials.");
+                System.err.println("################################################################################");
                 return new ArrayList<>(Collections.singletonList(variantPosition.getTargetComp()));
             }
         } catch (EmptyResultDataAccessException e) {
