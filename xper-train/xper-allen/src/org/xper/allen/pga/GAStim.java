@@ -227,25 +227,28 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     }
 
     /**
-     * The parent's preserved/hypothesized component, never throwing on missing data. Falls back to
-     * the preserved comp recorded on the parent's stored position (its target comp) when the parent
-     * has no usable HypothesizedComp row - e.g. early-generation stimuli, or rows with an empty
-     * comp list. May still return null if the position has no target comp either; callers that
-     * can't proceed without one should null-check and fail with a clear message.
+     * The parent's PRESERVED (positioning-anchor) component, never throwing on missing data.
+     *
+     * Primary source is the target comp on the parent's stored position: every preserved-comp-based
+     * stimulus records its anchor there, and it is correct for all stim types. The HypothesizedComp
+     * row can NOT be used directly for anchoring anymore: a delta's hypothesized_comp is the comp
+     * it CHANGED (the fragment under test), not the comp it anchors on. For variants the two
+     * coincide, which is why the row is still an acceptable last resort.
      */
     protected Integer resolveParentPreservedComp() {
-        List<Integer> comps = hypothesizedCompManager.readHypothesizedCompOrNull(parentId);
-        if (comps != null) {
-            return comps.get(0);
+        Integer targetComp = positionManager.readProperty(parentId).getTargetComp();
+        if (targetComp != null) {
+            return targetComp;
         }
-        Integer fallback = positionManager.readProperty(parentId).getTargetComp();
+        List<Integer> comps = hypothesizedCompManager.readHypothesizedCompOrNull(parentId);
+        Integer fallback = (comps != null) ? comps.get(0) : null;
         System.err.println("################################################################################");
-        System.err.println("## CRITICAL WARNING: HypothesizedComp FALLBACK TRIGGERED - THIS SHOULD NEVER HAPPEN");
-        System.err.println("## Parent stim " + parentId + " has no usable HypothesizedComp row (missing or empty");
-        System.err.println("## comp list). Falling back to the target comp on its stored position: " + fallback);
-        System.err.println("## Every preserved-comp-based stimulus should persist its hypothesized comp at");
-        System.err.println("## generation time. If you see this, HypothesizedComp rows are not being written");
-        System.err.println("## (or are being read from the wrong table) - investigate before trusting results.");
+        System.err.println("## CRITICAL WARNING: PRESERVED-COMP FALLBACK TRIGGERED - THIS SHOULD NEVER HAPPEN");
+        System.err.println("## Parent stim " + parentId + " has no target comp on its stored position, even");
+        System.err.println("## though it is being used as a preserved-comp-based parent. Falling back to its");
+        System.err.println("## HypothesizedComp row: " + fallback + " (for a DELTA parent this is the comp it");
+        System.err.println("## CHANGED, not its anchor - positioning may be wrong). Every preserved-comp-based");
+        System.err.println("## stimulus should record its anchor comp on its position at generation time.");
         System.err.println("## Stim being generated: " + stimId + " (" + this.getClass().getSimpleName() + ")");
         System.err.println("################################################################################");
         return fallback;

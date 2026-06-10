@@ -32,36 +32,57 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
     /**
      * Which of the parent's components this delta mutates.
      *
-     * The parent's hypothesized comp(s) are the candidate drivers: for a variant that is its single
-     * hypothesized driver; for a delta parent it is the comps that delta preserved (its mutation
-     * didn't kill the response, so the driver is among what it kept) - pick one of those at random.
-     * A parent with no hypothesis at all (e.g. regime_one) gets a fully random component.
+     * The hypothesized comp is THE FRAGMENT BEING TESTED, for every stim type: a variant tests it
+     * by preserving it (response should stay high); a delta tests it by changing it (response
+     * should drop). So the parent's hypothesized comp means opposite things for comp selection:
      *
-     * There is no explicit explore/exploit scheduling: high-response deltas become delta parents
-     * themselves, so chaining deltas onto deltas naturally walks through the remaining candidate
-     * components until one drops the response.
+     *  - Variant (or other) parent: its hypothesized comp is the predicted driver - change it.
+     *  - Delta parent: it already CHANGED its hypothesized comp and (being a high-response parent)
+     *    the response didn't drop, so that comp is refuted - change any comp EXCEPT it.
+     *  - No hypothesis at all (e.g. regime_one): change a fully random component.
+     *
+     * There is no explicit explore/exploit scheduling: each high-response delta refutes one comp,
+     * and chaining deltas onto deltas walks through the remaining candidates until one drops the
+     * response.
      */
     private List<Integer> chooseCompsToMutate(PruningMatchStick parentMStick) {
-        List<Integer> candidates = (hypothesizedCompData != null) ? hypothesizedCompData.getHypothesizedComp() : null;
+        List<Integer> hypothesized = (hypothesizedCompData != null) ? hypothesizedCompData.getHypothesizedComp() : null;
         // Drop comp indices that don't exist in the parent shape. A growing/sidetest stim's row is
         // an inherited COPY of its own parent's row, in that grandparent's numbering; growing
         // mutation can renumber or add comps, so an inherited index may not map onto this parent.
-        if (candidates != null) {
+        if (hypothesized != null) {
             List<Integer> valid = new ArrayList<>();
-            for (Integer comp : candidates) {
+            for (Integer comp : hypothesized) {
                 if (comp != null && comp >= 1 && comp <= parentMStick.getNComponent()) {
                     valid.add(comp);
                 }
             }
-            if (valid.size() < candidates.size()) {
-                System.err.println("WARNING: parent " + parentId + " HypothesizedComp " + candidates +
+            if (valid.size() < hypothesized.size()) {
+                System.err.println("WARNING: parent " + parentId + " HypothesizedComp " + hypothesized +
                         " contains comp indices outside the parent shape (nComp=" +
-                        parentMStick.getNComponent() + "); using " +
-                        (valid.isEmpty() ? "a random comp" : valid.toString()) + " instead.");
+                        parentMStick.getNComponent() + "); ignoring the out-of-range ones.");
             }
-            candidates = valid;
+            hypothesized = valid;
         }
-        if (candidates == null || candidates.isEmpty()) {
+
+        List<Integer> candidates;
+        if (hypothesized == null || hypothesized.isEmpty()) {
+            candidates = Collections.emptyList();
+        } else if (stimTypeManager.readProperty(parentId) == StimType.REGIME_ESTIM_DELTA) {
+            // Parent delta changed its hypothesized comp and the response stayed high: refuted.
+            // Candidates are every other component.
+            candidates = new ArrayList<>();
+            for (int i = 1; i <= parentMStick.getNComponent(); i++) {
+                if (!hypothesized.contains(i)) {
+                    candidates.add(i);
+                }
+            }
+        } else {
+            // Variant (or other hypothesis-bearing) parent: test its predicted driver by changing it.
+            candidates = hypothesized;
+        }
+
+        if (candidates.isEmpty()) {
             List<Integer> random = Collections.emptyList();
             while (random.isEmpty()) {
                 random = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
@@ -119,16 +140,26 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
         childMStick.genNewComponentsMatchStick(parentMStick, compsToMutateInParent, magnitude, discreteness,
                 true, 15, compsToMutateInParent);
 
-        // Save data for this stimulus
+        // Save data for this stimulus. Position still anchors on a PRESERVED comp (the changed one
+        // has new geometry and would drag the shape around).
         List<Integer> compsToPreserveInNextChild = childMStick.getPreservedComps();
         position.setPosition(childMStick.getMassCenterForComponent(compsToPreserveInNextChild.get(0)));
         position.setTargetComp(compsToPreserveInNextChild.get(0));
-        // Record what this delta actually mutated. parent_hypothesized_comps = compsToMutateInParent
-        // (the tested comp, in the parent's numbering) is what the NAFC generators read back, and
-        // hypothesized_comp = the preserved comps becomes the candidate-driver set for any deltas
-        // chained onto this one. Assigning the field lets the inherited writeStimProperties persist it.
+
+        // The hypothesized comp is the fragment THIS DELTA IS TESTING - the comp it CHANGED (a
+        // variant tests its hypothesized comp by preserving it; a delta tests it by changing it).
+        // Stored in the delta's own numbering (the complement of its preserved comps), with
+        // parent_hypothesized_comps = the same tested comp in the parent's numbering (what NAFC
+        // reads back). A delta chained onto this one excludes hypothesized_comp from its
+        // candidates: if this delta stays high-response, changing this comp didn't matter.
+        List<Integer> changedInChild = new ArrayList<>();
+        for (int i = 1; i <= childMStick.getNComponent(); i++) {
+            if (!compsToPreserveInNextChild.contains(i)) {
+                changedInChild.add(i);
+            }
+        }
         hypothesizedCompData = new HypothesizedCompData(
-                compsToPreserveInNextChild,
+                changedInChild,
                 parentId,
                 compsToMutateInParent
         );
