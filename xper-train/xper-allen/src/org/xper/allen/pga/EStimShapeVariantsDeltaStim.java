@@ -30,42 +30,31 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
     }
 
     /**
-     * Which component this delta should mutate, per the GA's instruction on this delta's own
-     * HypothesizedComp row. Python writes the row to drive the predict -> explore -> exploit
-     * progression; the Java side does no random exploration on its own.
+     * Which of the parent's components this delta mutates.
      *
-     *   - no row              -> PREDICT: mutate the parent's hypothesized (predicted) comp
-     *   - row, comp empty      -> EXPLORE: mutate a random component different from the predicted one
-     *   - row, comp present    -> EXPLOIT: mutate exactly that component
+     * The parent's hypothesized comp(s) are the candidate drivers: for a variant that is its single
+     * hypothesized driver; for a delta parent it is the comps that delta preserved (its mutation
+     * didn't kill the response, so the driver is among what it kept) - pick one of those at random.
+     * A parent with no hypothesis at all (e.g. regime_one) gets a fully random component.
      *
-     * hypothesizedCompData holds the PARENT's row here (set by chooseHypothesizedComp()), so its
-     * hypothesized comp is the predicted comp this delta would otherwise mutate. A non-variant
-     * parent may have no predicted comp (null), in which case there is nothing to predict and we
-     * explore a random component.
+     * There is no explicit explore/exploit scheduling: high-response deltas become delta parents
+     * themselves, so chaining deltas onto deltas naturally walks through the remaining candidate
+     * components until one drops the response.
      */
     private List<Integer> chooseCompsToMutate(PruningMatchStick parentMStick) {
-        List<Integer> predictedComp = (hypothesizedCompData != null) ? hypothesizedCompData.getHypothesizedComp() : null;
-        if (!hypothesizedCompManager.hasProperty(stimId)) {
-            // PREDICT: mutate the parent's predicted comp; with none, explore instead.
-            if (predictedComp != null && !predictedComp.isEmpty()) {
-                return predictedComp;
+        List<Integer> candidates = (hypothesizedCompData != null) ? hypothesizedCompData.getHypothesizedComp() : null;
+        if (candidates == null || candidates.isEmpty()) {
+            List<Integer> random = Collections.emptyList();
+            while (random.isEmpty()) {
+                random = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
             }
-            return randomComp(parentMStick, predictedComp);
+            return random;
         }
-        List<Integer> instructed = hypothesizedCompManager.readProperty(stimId).getParentHypothesizedComps();
-        if (instructed != null && !instructed.isEmpty()) {
-            return instructed; // EXPLOIT
+        if (candidates.size() == 1) {
+            return candidates;
         }
-        return randomComp(parentMStick, predictedComp); // EXPLORE
-    }
-
-    /** A random, non-empty set of components to mutate, avoiding {@code avoid} (the predicted comp) when given. */
-    private List<Integer> randomComp(PruningMatchStick parentMStick, List<Integer> avoid) {
-        List<Integer> explored = Collections.emptyList();
-        while (explored.isEmpty() || explored.equals(avoid)) {
-            explored = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
-        }
-        return explored;
+        Random r = new Random();
+        return Collections.singletonList(candidates.get(r.nextInt(candidates.size())));
     }
 
     @Override
@@ -117,10 +106,9 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
         position.setPosition(childMStick.getMassCenterForComponent(compsToPreserveInNextChild.get(0)));
         position.setTargetComp(compsToPreserveInNextChild.get(0));
         // Record what this delta actually mutated. parent_hypothesized_comps = compsToMutateInParent
-        // (the tested comp, in the parent's numbering) is what Python's exploit step and the NAFC
-        // generators read back. Assigning the field lets the inherited writeStimProperties persist
-        // it; previously this row was left as a stale copy of the parent's, which was wrong whenever
-        // a random/forced comp (not the parent's hypothesized comp) was mutated.
+        // (the tested comp, in the parent's numbering) is what the NAFC generators read back, and
+        // hypothesized_comp = the preserved comps becomes the candidate-driver set for any deltas
+        // chained onto this one. Assigning the field lets the inherited writeStimProperties persist it.
         hypothesizedCompData = new HypothesizedCompData(
                 compsToPreserveInNextChild,
                 parentId,

@@ -28,47 +28,6 @@ def has_preservation_history(connection: Type[connection], id: int) -> bool:
     return num_entries > 0
 
 
-def _read_mutated_comp(connection: Type[connection], stim_id: int):
-    """
-    Return the component a delta mutated (parent_hypothesized_comps, in the parent's numbering)
-    as a tuple of ints, or None if unknown. Falls back to the old table/column on un-migrated DBs.
-    """
-    table = _hypothesized_comp_table(connection)
-    col = "parent_hypothesized_comps" if table == "HypothesizedComp" else "parent_comps_preserved"
-    connection.execute(f"SELECT {col} FROM {table} WHERE stim_id = %s", (stim_id,))
-    val = connection.fetch_one()
-    if val is None or str(val).strip() == "":
-        return None
-    return tuple(int(x) for x in str(val).split(","))
-
-
-def _write_hypothesized_comp_instruction(connection: Type[connection], *, stim_id: int,
-                                         parent_id: int, comps: List[int] = None) -> None:
-    """
-    Instruct the Java side which component a delta should mutate, by pre-populating the delta's own
-    HypothesizedComp row. The Java side reads parent_hypothesized_comps:
-      - comps given  -> EXPLOIT: mutate exactly those components;
-      - comps None   -> EXPLORE: row present but no component, so Java mutates a random component
-                        different from the predicted one.
-    (No row at all means PREDICT - the default - which this function never writes.)
-
-    hypothesized_comp is left empty and filled in by Java once the delta is generated. Creates the
-    table if needed, since Python may run before the Java generator creates it on a new experiment.
-    """
-    connection.execute(
-        "CREATE TABLE IF NOT EXISTS HypothesizedComp ("
-        "stim_id BIGINT PRIMARY KEY, "
-        "hypothesized_comp VARCHAR(255) NOT NULL, "
-        "parent_id BIGINT, "
-        "parent_hypothesized_comps VARCHAR(255))")
-    comps_str = "" if comps is None else ",".join(str(c) for c in comps)
-    connection.execute(
-        "INSERT INTO HypothesizedComp (stim_id, hypothesized_comp, parent_id, parent_hypothesized_comps) "
-        "VALUES (%s, %s, %s, %s) "
-        "ON DUPLICATE KEY UPDATE hypothesized_comp = VALUES(hypothesized_comp), "
-        "parent_id = VALUES(parent_id), parent_hypothesized_comps = VALUES(parent_hypothesized_comps)",
-        (stim_id, "", parent_id, comps_str))
-
 @dataclass
 class EStimPhaseParentSelector(ParentSelector):
     get_all_stimuli_func: Callable[[], List[Stimulus]]
@@ -229,17 +188,6 @@ class EStimVariantDeltaSideTest(SideTest):
     def assign_mutation_magnitude(self) -> float:
         return random.uniform(self.min_magnitude, self.max_magnitude)
 
-    def _mutated_comp_by_delta(self, deltas: List[Stimulus]) -> Dict[int, tuple]:
-        """Map each responded delta's id to the component it mutated (a tuple of ints)."""
-        comp_by_id: Dict[int, tuple] = {}
-        for delta in deltas:
-            if delta.response_rate is None:
-                continue
-            comp = _read_mutated_comp(self.conn, delta.id)
-            if comp is not None:
-                comp_by_id[delta.id] = comp
-        return comp_by_id
-
     def run(self, lineages: List[Lineage], gen_id: int):
         #identify eligible stimuli (variants)
         # regimes = [l.current_regime_index for l in lineages]
@@ -303,71 +251,32 @@ class EStimVariantDeltaSideTest(SideTest):
 
 
         #go through eligible stimuli and check
-        # `budget` is the per-component attempt cap (the "num_pairs * max_try" threshold): it bounds
-        # both the variant predict phase and how long we exploit one component before dropping it.
-        budget = self.max_attempts_per_variant_multiplier * self.num_deltas_per_variant
+        # No explore/exploit scheduling here: a parent simply gets deltas (each mutating one of the
+        # parent's hypothesized comps, decided Java-side) until enough pass the response-drop
+        # threshold or the attempt budget runs out. Failed (high-response) deltas pass the parent
+        # threshold themselves, so chaining deltas onto deltas explores the remaining components.
+        max_attempts_per_variant = self.max_attempts_per_variant_multiplier * self.num_deltas_per_variant
         eligible_stimuli : List[Stimulus] = []
-        # variant_id -> instruction for its new deltas: None = predict (no row written),
-        # ('EXPLORE', None) = let Java pick a random different comp, ('EXPLOIT', comp) = mutate comp.
-        instruction_for_variant: Dict[int, tuple] = {}
         for candidate_parent in past_threshold_stim:
-            eligible_deltas = eligible_deltas_for_variants.get(candidate_parent.id, [])
+            num_eligible_deltas = len(eligible_deltas_for_variants.get(candidate_parent.id, []))
+            if num_eligible_deltas >= self.num_deltas_per_variant:
+                continue  # already have enough deltas that drop the response
+
             all_deltas = deltas_for_variants.get(candidate_parent.id, [])
-
-            # Group deltas by the component they actually mutated, so noise on the wrong component
-            # is tracked separately from progress on the real driver.
-            comp_by_id = self._mutated_comp_by_delta(all_deltas)
-            responded_by_comp: Dict[tuple, int] = {}
-            for comp in comp_by_id.values():
-                responded_by_comp[comp] = responded_by_comp.get(comp, 0) + 1
-            eligible_by_comp: Dict[tuple, int] = {}
-            for delta in eligible_deltas:
-                comp = comp_by_id.get(delta.id)
-                if comp is not None:
-                    eligible_by_comp[comp] = eligible_by_comp.get(comp, 0) + 1
-
-            # Done when a SINGLE component has enough threshold-passing deltas. A lone noise-driven
-            # eligible on the wrong component must not, by itself, satisfy the requirement.
-            if max(eligible_by_comp.values(), default=0) >= self.num_deltas_per_variant:
-                continue
-
             num_responded = len([d for d in all_deltas if d.response_rate is not None])
             num_in_flight = len(all_deltas) - num_responded
 
-            # Variants have a genuine driver hypothesis, so they get a predict phase first. Any
-            # other parent (delta, regime_one, ...) has no predicted driver, so it explores from
-            # the start (predict_attempts = 0).
-            is_variant_parent = candidate_parent.mutation_type == StimType.REGIME_ESTIM_VARIANTS.value
-            predict_attempts = budget if is_variant_parent else 0
+            # stop trying if we've already attempted too many times
+            remaining_attempts = max_attempts_per_variant - len(all_deltas)
+            if remaining_attempts <= 0:
+                continue
 
-            # Decide the phase for this parent's new deltas.
-            instruction = None  # predict: mutate the predicted comp (no row written)
-            target_progress = max(eligible_by_comp.values(), default=0)  # predicted comp during predict
-            if num_responded >= predict_attempts:
-                # The predicted comp hasn't produced enough threshold-passing deltas. Exploit the
-                # best component that (a) has a threshold-passing delta and (b) has not already been
-                # tried up to `budget` times without reaching the target - such a component is
-                # treated as a noise fluke and dropped, sending us back to exploration.
-                exploit_comp = None
-                eligible_with_comp = [(d.response_rate, comp_by_id[d.id]) for d in eligible_deltas
-                                      if d.response_rate is not None and d.id in comp_by_id]
-                for resp_rate, comp in sorted(eligible_with_comp, key=lambda x: x[0]):
-                    if responded_by_comp.get(comp, 0) < budget:
-                        exploit_comp = comp
-                        break
-                if exploit_comp is not None:
-                    instruction = ('EXPLOIT', list(exploit_comp))
-                    target_progress = eligible_by_comp.get(exploit_comp, 0)
-                else:
-                    instruction = ('EXPLORE', None)
-                    target_progress = 0
-
-            # Don't double-make: count progress toward the target component plus deltas in flight.
-            number_of_deltas_to_make = self.num_deltas_per_variant - target_progress - num_in_flight
+            # Don't double-make: account for deltas already in flight toward the target.
+            number_of_deltas_to_make = self.num_deltas_per_variant - num_eligible_deltas - num_in_flight
+            number_of_deltas_to_make = min(number_of_deltas_to_make, remaining_attempts)
             if number_of_deltas_to_make <= 0:
                 continue
 
-            instruction_for_variant[candidate_parent.id] = instruction
             for i in range(number_of_deltas_to_make):
                 eligible_stimuli.append(candidate_parent)
 
@@ -387,12 +296,3 @@ class EStimVariantDeltaSideTest(SideTest):
             time.sleep(0.001)
             lineages_for_stim_id[candidate_parent.id].tree.add_child_to(candidate_parent, new_stimulus) #we added .lineage manually
             lineages_for_stim_id[candidate_parent.id].stimuli.append(new_stimulus)
-
-            # Pre-populate the delta's HypothesizedComp row to drive the predict/explore/exploit
-            # progression. Predict (instruction None) writes nothing: Java mutates the predicted comp.
-            instruction = instruction_for_variant.get(candidate_parent.id)
-            if instruction is not None:
-                regime, comp = instruction
-                _write_hypothesized_comp_instruction(
-                    self.conn, stim_id=new_stimulus.id, parent_id=candidate_parent.id,
-                    comps=comp if regime == 'EXPLOIT' else None)
