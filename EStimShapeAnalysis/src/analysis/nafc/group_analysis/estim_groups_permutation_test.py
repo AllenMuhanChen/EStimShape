@@ -48,6 +48,21 @@ def run_permutation_tests(session_ids=None, n_permutations=1000, force_recompute
     print(f"Found {len(conditions_to_test)} condition combinations to test "
           f"(algorithm='{algorithm_label}', metric='{metric}')")
 
+    # Replace rather than accumulate. The conditions string is part of the primary
+    # key, so old-format rows (e.g. a previous grouping scheme, or [2.0] vs 2.0)
+    # would otherwise linger as orphans and double-count the same physical
+    # condition in the population tests. On a full recompute, clear the rows for
+    # the sessions/metric being recomputed first.
+    if force_recompute:
+        if session_ids:
+            conn.execute(
+                "DELETE FROM EStimPermutationTests WHERE session_id = %s AND algorithm_label = %s AND metric = %s",
+                (session_ids, algorithm_label, metric))
+        else:
+            conn.execute(
+                "DELETE FROM EStimPermutationTests WHERE algorithm_label = %s AND metric = %s",
+                (algorithm_label, metric))
+
     # Pre-fetch all cutoffs for this algorithm so we don't query per-row
     cutoffs = _fetch_all_cutoffs(algorithm_label)
 

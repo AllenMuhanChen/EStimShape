@@ -655,6 +655,18 @@ def _migrate_estim_effects_table(conn):
 def save_estim_effects_to_repository(session_id, results, algorithm_label='none'):
     conn = Connection("allen_data_repository")
 
+    # Replace this session's effects rather than accumulate. The conditions string
+    # is the primary key, so when the condition scheme changes (e.g. a 6-parameter
+    # grouping -> estim_spec_id, or [2.0] -> 2.0) ON DUPLICATE KEY UPDATE would
+    # leave the old-format rows behind as orphans, double-counting the same physical
+    # condition in the downstream population tests. Clear the metrics being written
+    # first so only current-format rows survive.
+    metrics_present = {result.get('metric', METRIC_PCT_HYPOTHESIZED) for result in results}
+    for metric in metrics_present:
+        conn.execute(
+            "DELETE FROM EStimEffects WHERE session_id = %s AND algorithm_label = %s AND metric = %s",
+            (session_id, algorithm_label, metric))
+
     for result in results:
         conditions_str = _normalize_cond_key(result['conditions'])
         metric        = result.get('metric', METRIC_PCT_HYPOTHESIZED)
