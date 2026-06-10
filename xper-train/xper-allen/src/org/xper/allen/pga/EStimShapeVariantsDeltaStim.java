@@ -43,6 +43,24 @@ public class EStimShapeVariantsDeltaStim extends EStimShapeVariantsGAStim{
      */
     private List<Integer> chooseCompsToMutate(PruningMatchStick parentMStick) {
         List<Integer> candidates = (hypothesizedCompData != null) ? hypothesizedCompData.getHypothesizedComp() : null;
+        // Drop comp indices that don't exist in the parent shape. A growing/sidetest stim's row is
+        // an inherited COPY of its own parent's row, in that grandparent's numbering; growing
+        // mutation can renumber or add comps, so an inherited index may not map onto this parent.
+        if (candidates != null) {
+            List<Integer> valid = new ArrayList<>();
+            for (Integer comp : candidates) {
+                if (comp != null && comp >= 1 && comp <= parentMStick.getNComponent()) {
+                    valid.add(comp);
+                }
+            }
+            if (valid.size() < candidates.size()) {
+                System.err.println("WARNING: parent " + parentId + " HypothesizedComp " + candidates +
+                        " contains comp indices outside the parent shape (nComp=" +
+                        parentMStick.getNComponent() + "); using " +
+                        (valid.isEmpty() ? "a random comp" : valid.toString()) + " instead.");
+            }
+            candidates = valid;
+        }
         if (candidates == null || candidates.isEmpty()) {
             List<Integer> random = Collections.emptyList();
             while (random.isEmpty()) {
