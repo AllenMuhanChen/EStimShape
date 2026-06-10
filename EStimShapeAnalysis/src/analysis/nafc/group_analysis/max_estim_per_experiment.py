@@ -631,16 +631,28 @@ def compute_exceedance_count_stats(exclude_session_ids=None, start_session_id=No
 
     results = []
     for thr in thresholds:
-        n_obs       = int(np.sum(obs >= thr))
-        null_counts = np.sum(null_matrix >= thr, axis=0)         # (P,)
-        p_value     = float(np.mean(null_counts >= n_obs))
-        results.append({
-            'threshold':  float(thr),
-            'n_obs':      n_obs,
-            'null_mean':  float(np.mean(null_counts)),
-            'null_95':    float(np.percentile(null_counts, 95)),
-            'p_value':    p_value,
-        })
+        if thr >= 0:
+            n_obs       = int(np.sum(obs >= thr))
+            null_counts = np.sum(null_matrix >= thr, axis=0)         # (P,)
+            p_value     = float(np.mean(null_counts >= n_obs))
+            results.append({
+                'threshold':  float(thr),
+                'n_obs':      n_obs,
+                'null_mean':  float(np.mean(null_counts)),
+                'null_95':    float(np.percentile(null_counts, 95)),
+                'p_value':    p_value,
+            })
+        else:
+            n_obs       = int(np.sum(obs <= thr))
+            null_counts = np.sum(null_matrix <= thr, axis=0)         # (P,)
+            p_value     = float(np.mean(null_counts >= n_obs))
+            results.append({
+                'threshold':  float(thr),
+                'n_obs':      n_obs,
+                'null_mean':  float(np.mean(null_counts)),
+                'null_95':    float(np.percentile(null_counts, 95)),
+                'p_value':    p_value,
+            })
 
     kind = "studentized " if studentize else ""
     print(f"\n{kind.capitalize()}exceedance-count test ({n_conditions} conditions pooled, {n_perms} perms):")
@@ -1048,7 +1060,7 @@ def main():
         algorithm_label='None',
         metric=METRIC_PCT_HYP_VS_DELTA,
         # thresholds=None -> (5,10,15,20)% in raw mode, (1.0..3.0) z when studentized
-        thresholds=[0, 0.5, 1, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0],
+        thresholds=[-1.5,-1.0,-0.5,0, 0.5, 1, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0],
         # studentize=True -> count exceedances of z = effect/own-null SD instead of raw %
         studentize=True,
         save_path="/home/connorlab/Documents/plots/across_experiments/exceedance_count_test.png",
