@@ -32,14 +32,29 @@ public class HypothesizedCompManager extends StimPropertyManager<HypothesizedCom
     }
 
     /**
-     * Resolve which table holds the data. The old table only exists on old, un-migrated DBs, so
-     * its presence is the reliable signal to read from it; otherwise use the new table. (We can't
-     * key off the new table's presence because {@link #createTableIfNotExists()} runs in the base
-     * constructor and would otherwise auto-create an empty new table even on an old DB.)
+     * Resolve which table holds the data. Prefer the table that actually has rows (new over old),
+     * then the table that merely exists (new over old), defaulting to the new table. This avoids
+     * reading from an empty old table that exists only because the DB was templated from an older
+     * experiment - which previously split reads (old, empty) from writes (new, populated) and made
+     * every read come back empty - while still reading a genuinely un-migrated old table that
+     * holds real data.
      */
     private String resolveTableName() {
-        if (resolvedTableName == null) {
-            resolvedTableName = tableExists(OLD_TABLE_NAME) ? OLD_TABLE_NAME : TABLE_NAME;
+        if (resolvedTableName != null) {
+            return resolvedTableName;
+        }
+        boolean newExists = tableExists(TABLE_NAME);
+        boolean oldExists = tableExists(OLD_TABLE_NAME);
+        if (newExists && hasRows(TABLE_NAME)) {
+            resolvedTableName = TABLE_NAME;
+        } else if (oldExists && hasRows(OLD_TABLE_NAME)) {
+            resolvedTableName = OLD_TABLE_NAME;
+        } else if (newExists) {
+            resolvedTableName = TABLE_NAME;
+        } else if (oldExists) {
+            resolvedTableName = OLD_TABLE_NAME;
+        } else {
+            return TABLE_NAME; // neither exists yet; created lazily, don't memoize
         }
         return resolvedTableName;
     }
@@ -51,6 +66,12 @@ public class HypothesizedCompManager extends StimPropertyManager<HypothesizedCom
                 new Object[]{name},
                 Integer.class
         );
+        return count != null && count > 0;
+    }
+
+    private boolean hasRows(String name) {
+        Integer count = (Integer) jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM " + name, Integer.class);
         return count != null && count > 0;
     }
 
@@ -84,13 +105,24 @@ public class HypothesizedCompManager extends StimPropertyManager<HypothesizedCom
         return count != null && count > 0;
     }
 
+    /**
+     * The stim's hypothesized comp list, or null when the row is missing OR the stored list is
+     * empty. Use this instead of readProperty().getHypothesizedComp() wherever a missing row is
+     * possible: readProperty throws on a missing row, and rows with an empty comp list exist in
+     * the wild (e.g. pre-populated rows for deltas that were never generated).
+     */
+    public List<Integer> readHypothesizedCompOrNull(Long stimId) {
+        if (!hasProperty(stimId)) {
+            return null;
+        }
+        List<Integer> comps = readProperty(stimId).getHypothesizedComp();
+        return (comps == null || comps.isEmpty()) ? null : comps;
+    }
+
     @Override
     public void createTableIfNotExists() {
-        // On an un-migrated DB the old table holds the data; don't create an empty new table
-        // alongside it (that would shadow the real data in resolveTableName()).
-        if (tableExists(OLD_TABLE_NAME)) {
-            return;
-        }
+        // Always ensure the new table exists. It no longer shadows a genuinely-populated old table,
+        // because resolveTableName() prefers whichever table actually has rows.
         jdbcTemplate.execute(
                 "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " (" +
                         "stim_id BIGINT PRIMARY KEY, " +
@@ -102,14 +134,18 @@ public class HypothesizedCompManager extends StimPropertyManager<HypothesizedCom
 
     @Override
     public void writeProperty(Long stimId, HypothesizedCompData data) {
+        // Write to the same table/columns that reads resolve to, so reads and writes never split.
+        String table = resolveTableName();
+        String compCol = hypothesizedCompColumn();
+        String parentCompCol = parentHypothesizedCompsColumn();
         String hypothesizedComp = serializeList(data.getHypothesizedComp());
         Long parentId = data.getParentId();
         String parentHypothesizedComps = serializeList(data.getParentHypothesizedComps());
 
         jdbcTemplate.update(
-                "INSERT INTO " + TABLE_NAME + " (stim_id, hypothesized_comp, parent_id, parent_hypothesized_comps) " +
+                "INSERT INTO " + table + " (stim_id, " + compCol + ", parent_id, " + parentCompCol + ") " +
                         "VALUES (?, ?, ?, ?) " +
-                        "ON DUPLICATE KEY UPDATE hypothesized_comp = ?, parent_id = ?, parent_hypothesized_comps = ?",
+                        "ON DUPLICATE KEY UPDATE " + compCol + " = ?, parent_id = ?, " + parentCompCol + " = ?",
                 new Object[]{stimId, hypothesizedComp, parentId, parentHypothesizedComps,
                         hypothesizedComp, parentId, parentHypothesizedComps}
         );

@@ -1,5 +1,6 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
@@ -7,6 +8,8 @@ import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.nafc.blockgen.Lims;
+import org.xper.allen.pga.MStickPosition;
+import org.xper.allen.pga.PositionPropertyManager;
 import org.xper.allen.stimproperty.*;
 import org.xper.allen.util.AllenDbUtil;
 
@@ -14,6 +17,7 @@ import javax.sql.DataSource;
 import javax.vecmath.Point3d;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -128,7 +132,11 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
     protected List<Integer> resolveHypothesizedComp(Long variantId, JdbcTemplate gaJDBCTemplate,
                                                     HypothesizedCompManager hypothesizedCompManager) {
         if (hypothesizedCompManager.isLegacyTable()) {
-            return hypothesizedCompManager.readProperty(variantId).getHypothesizedComp();
+            List<Integer> legacy = hypothesizedCompManager.readHypothesizedCompOrNull(variantId);
+            if (legacy != null) {
+                return legacy;
+            }
+            return fallbackToPositionTargetComp(variantId, gaJDBCTemplate);
         }
 
         if (tableExists(gaJDBCTemplate, "IncludedDeltas")) {
@@ -163,7 +171,33 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
             // no usable delta rows: fall through to the variant's own hypothesized comp
         }
 
-        return hypothesizedCompManager.readProperty(variantId).getHypothesizedComp();
+        List<Integer> own = hypothesizedCompManager.readHypothesizedCompOrNull(variantId);
+        if (own != null) {
+            return own;
+        }
+        return fallbackToPositionTargetComp(variantId, gaJDBCTemplate);
+    }
+
+    /**
+     * Last-resort source for the hypothesized comp: the preserved component recorded on the
+     * variant's stored position (its target comp), which every preserved-comp-based GA stim
+     * writes. Fails with a clear message if even that is unavailable, instead of an opaque
+     * EmptyResultDataAccessException from an unguarded read.
+     */
+    private List<Integer> fallbackToPositionTargetComp(Long variantId, JdbcTemplate gaJDBCTemplate) {
+        try {
+            PositionPropertyManager positionManager = new PositionPropertyManager(gaJDBCTemplate);
+            MStickPosition variantPosition = positionManager.readProperty(variantId);
+            if (variantPosition != null && variantPosition.getTargetComp() != null) {
+                return new ArrayList<>(Collections.singletonList(variantPosition.getTargetComp()));
+            }
+        } catch (EmptyResultDataAccessException e) {
+            // fall through to the explicit error below
+        }
+        throw new RuntimeException("Could not resolve hypothesized comp for variant " + variantId +
+                ": no usable HypothesizedComp row (missing or empty), no included-delta information," +
+                " and no target comp on its stored position. Was this stimulus generated with an" +
+                " older pipeline, or did its generation fail?");
     }
 
     /** Lexicographic comparison of component lists, used only to break majority-vote ties. */
