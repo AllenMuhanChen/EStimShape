@@ -52,6 +52,11 @@ def _normalize_cond_key(cond_dict):
     NaN is treated as None (null in JSON) so stored keys and freshly-generated keys compare equal.
     """
     def _v(v):
+        # pandas single-column groupby used to store values list/tuple-wrapped
+        # (e.g. [10.0] for estim_spec_id). Unwrap so a stored [10.0] compares
+        # equal to a freshly-split scalar 10.0 (and old data still resolves).
+        if isinstance(v, (list, tuple)) and len(v) == 1:
+            v = v[0]
         if isinstance(v, float) and math.isnan(v):
             return None
         if isinstance(v, np.integer):

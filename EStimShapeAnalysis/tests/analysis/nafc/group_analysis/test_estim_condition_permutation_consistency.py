@@ -171,6 +171,20 @@ class EStimConditionPermutationConsistencyTest(unittest.TestCase):
             self.assertNotIsInstance(value, (list, tuple),
                                      f"estim_spec_id stored as {value!r}")
 
+    def test_legacy_list_wrapped_condition_still_resolves(self):
+        """Rows stored before the single-key fix have estim_spec_id wrapped in a
+        list ([10.0]). The lookup must still resolve them against the scalar split,
+        otherwise run_permutation_tests skips them as 'insufficient data' and the
+        max-stat plot shows n_on=0/n_off=0."""
+        for effect in self.effects:
+            cond = self._stored_cond(effect)
+            legacy = dict(cond)
+            legacy['estim_spec_id'] = [cond['estim_spec_id']]  # pre-fix storage shape
+            td = perm.get_trial_data_for_condition(
+                'sess', legacy, metric=METRIC_PCT_HYPOTHESIZED)
+            self.assertEqual(len(td['estim_on']), effect['estim_on_n_trials'], legacy)
+            self.assertEqual(len(td['estim_off']), effect['estim_off_n_trials'], legacy)
+
 
 if __name__ == '__main__':
     unittest.main()
