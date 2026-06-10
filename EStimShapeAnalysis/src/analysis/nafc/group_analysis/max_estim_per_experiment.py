@@ -23,6 +23,7 @@ from matplotlib.gridspec import GridSpec
 sys.path.insert(0, str(Path(__file__).parents[3]))
 
 from clat.util.connection import Connection
+from src.analysis.nafc.estim_parameter_classifier import EStimParameterClassifier
 from src.analysis.nafc.group_analysis.analyze_estim_by_condition import METRIC_PCT_HYPOTHESIZED, METRIC_PCT_HYP_VS_DELTA
 from src.analysis.nafc.group_analysis.estim_groups_permutation_test import (
     get_trial_data_for_condition, create_permutation_test_table)
@@ -805,21 +806,48 @@ def plot_studentized_winners(exclude_session_ids=None, start_session_id=None,
     return fig
 
 
+# Physical stimulation parameters to unfurl from EStimParameters when a winning
+# condition is keyed by estim_spec_id, so the tally is over real parameters rather
+# than opaque spec ids. Read from the first active (a1 > 0) channel of the spec.
+_UNFURL_ESTIM_PARAMS = [
+    'channel', 'num_channels', 'polarity', 'shape', 'a1',
+    'pulse_train_period', 'post_stim_refractory_period', 'enable_charge_recovery',
+]
+
+
+def _unfurl_estim_spec(session_id, estim_spec_id):
+    """Return {param: value} for the active channel of (session_id, estim_spec_id),
+    or {} if the spec isn't found. Uses the same active-channel subquery as the
+    trial loader so num_channels counts only current-delivering (a1 > 0) channels."""
+    conn = Connection("allen_data_repository")
+    cols = ", ".join(f"ep.{c}" for c in _UNFURL_ESTIM_PARAMS)
+    conn.execute(f"""
+        SELECT {cols}
+        FROM ({EStimParameterClassifier.active_channel_sql_subquery()}) ep
+        WHERE ep.session_id = %s AND ep.estim_spec_id = %s
+    """, (session_id, int(estim_spec_id)))
+    rows = conn.fetch_all()
+    if not rows:
+        return {}
+    return dict(zip(_UNFURL_ESTIM_PARAMS, rows[0]))
+
+
 def plot_winning_conditions(exclude_session_ids=None, start_session_id=None,
                             algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                             min_trials=DEFAULT_MIN_TRIALS, studentize=True,
                             save_path=None):
-    """Across sessions, tally which condition parameters tend to win the max-stat.
+    """Across sessions, show how often each parameter value wins the max-stat.
 
     For each session the winning condition (studentized maxT winner by default;
-    set studentize=False for the raw-effect winner) is recorded, then for every
-    parameter key that appears in the winning condition dicts we bar-chart the
-    frequency of each winning value. Shows which estim/behavioral parameter
-    settings most often produce the best effect (polarity, shape, num_channels,
-    a1, noise_chance, ...).
+    set studentize=False for the raw-effect winner) is recorded. Its estim_spec_id
+    is unfurled into the actual EStimParameters (channel, polarity, shape, a1,
+    pulse_train_period, ...) so the tally is over physical stimulation parameters,
+    not opaque spec ids. For every parameter key we bar-chart the *percentage of
+    winning sessions* that took each value — i.e. how often that setting is the
+    best — rather than a raw count.
 
-    Note: parameters are only counted for sessions whose winning condition
-    actually specifies that key, so per-parameter totals can differ.
+    Note: percentages are within each parameter (a key's bars sum to 100% over the
+    winners that specify it), so per-parameter denominators can differ.
     """
     from collections import Counter, defaultdict
 
@@ -843,15 +871,24 @@ def plot_winning_conditions(exclude_session_ids=None, start_session_id=None,
         print("No winning conditions found.")
         return None
 
+    # Unfurl estim_spec_id -> physical parameters, then tally per (key, value).
     per_key = defaultdict(Counter)
-    for _sid, cond in winners:
-        for k, v in cond.items():
+    key_totals = defaultdict(int)  # winners that specify each key (percentage denominator)
+    for sid, cond in winners:
+        expanded = dict(cond)
+        spec_id = expanded.pop('estim_spec_id', None)
+        if spec_id is not None:
+            expanded.update(_unfurl_estim_spec(sid, spec_id))
+        for k, v in expanded.items():
             per_key[k][str(v)] += 1
+            key_totals[k] += 1
 
     print(f"\nWinning conditions across {len(winners)} sessions "
           f"({'studentized' if studentize else 'raw'} maxT):")
     for k in sorted(per_key):
-        tally = ", ".join(f"{val}×{cnt}" for val, cnt in per_key[k].most_common())
+        total = key_totals[k]
+        tally = ", ".join(f"{val} {100.0 * cnt / total:.0f}% ({cnt})"
+                          for val, cnt in per_key[k].most_common())
         print(f"  {k}: {tally}")
 
     keys = sorted(per_key)
@@ -863,13 +900,18 @@ def plot_winning_conditions(exclude_session_ids=None, start_session_id=None,
     for i, k in enumerate(keys):
         ax = axes[i // ncols][i % ncols]
         counter = per_key[k]
+        total = key_totals[k]
         labels = sorted(counter, key=lambda x: (-counter[x], x))
-        counts = [counter[l] for l in labels]
-        ax.bar(range(len(labels)), counts, color="steelblue", edgecolor="black")
+        pct = [100.0 * counter[l] / total for l in labels]
+        ax.bar(range(len(labels)), pct, color="steelblue", edgecolor="black")
+        # annotate each bar with the underlying count
+        for j, l in enumerate(labels):
+            ax.text(j, pct[j], str(counter[l]), ha="center", va="bottom", fontsize=7)
         ax.set_xticks(range(len(labels)))
         ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=8)
         ax.set_title(k, fontsize=10, fontweight="bold")
-        ax.set_ylabel("# winning sessions", fontsize=8)
+        ax.set_ylabel("% of winning sessions", fontsize=8)
+        ax.set_ylim(0, 100)
         ax.grid(True, axis="y", alpha=0.3)
         ax.set_axisbelow(True)
 
