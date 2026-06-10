@@ -714,7 +714,7 @@ def plot_exceedance_count_test(exclude_session_ids=None, start_session_id=None,
     unit_label = "studentized effect (z)" if unit == 'z' else "effect size (%)"
     kind = "Studentized exceedance-count" if stats.get('studentize') else "Exceedance-count"
     ax.set_xlabel(f"EStim {unit_label} threshold", fontsize=13)
-    ax.set_ylabel("# conditions with effect ≥ threshold", fontsize=13)
+    ax.set_ylabel("# conditions with effect ≤ (left) or ≥ (right) threshold", fontsize=13)
     ax.set_title(f"{kind} permutation test\n"
                  f"{stats['n_conditions']} conditions pooled · {stats['n_perms']} perms",
                  fontsize=12, fontweight="bold")
