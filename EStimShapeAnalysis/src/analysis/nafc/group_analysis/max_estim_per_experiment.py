@@ -1060,7 +1060,7 @@ def main():
         algorithm_label='None',
         metric=METRIC_PCT_HYP_VS_DELTA,
         # thresholds=None -> (5,10,15,20)% in raw mode, (1.0..3.0) z when studentized
-        thresholds=[-1.5,-1.0,-0.5,0, 0.5, 1, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0],
+        thresholds=[-3.0, -2.5, -2.0, -1.5,-1.0,-0.5,0, 0.5, 1, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0],
         # studentize=True -> count exceedances of z = effect/own-null SD instead of raw %
         studentize=True,
         save_path="/home/connorlab/Documents/plots/across_experiments/exceedance_count_test.png",
