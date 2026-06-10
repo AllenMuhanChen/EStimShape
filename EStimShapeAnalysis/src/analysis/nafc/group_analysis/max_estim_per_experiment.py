@@ -810,19 +810,70 @@ def plot_studentized_winners(exclude_session_ids=None, start_session_id=None,
     return fig
 
 
-# Physical stimulation parameters to unfurl from EStimParameters when a winning
-# condition is keyed by estim_spec_id, so the tally is over real parameters rather
-# than opaque spec ids. Read from the first active (a1 > 0) channel of the spec.
+# Raw EStimParameters columns read for an estim_spec_id (from the first active,
+# a1 > 0, channel). The electrode `channel` itself is intentionally NOT read — it
+# is irrelevant to this tally. The timing columns (pulse_train_period,
+# post_stim_refractory_period, trigger_edge_or_level, post_trigger_delay) are read
+# only to derive a single pulse rate; post_trigger_delay is also kept as its own
+# tallied parameter.
 _UNFURL_ESTIM_PARAMS = [
-    'channel', 'num_channels', 'polarity', 'shape', 'a1',
-    'pulse_train_period', 'post_stim_refractory_period', 'enable_charge_recovery',
+    'num_channels', 'polarity', 'shape', 'a1',
+    'pulse_train_period', 'post_stim_refractory_period',
+    'trigger_edge_or_level', 'post_trigger_delay',
+    'enable_charge_recovery',
 ]
+
+
+def _to_float(x):
+    """Coerce a DB value (Decimal/str/None) to float, or None if not numeric."""
+    if x is None:
+        return None
+    try:
+        return float(x)
+    except (TypeError, ValueError):
+        return None
+
+
+def _clean_num(x):
+    """Tidy a numeric DB value for use as a categorical label: drop trailing zeros
+    (1000.000 -> 1000) while leaving genuinely non-integer / non-numeric values
+    unchanged."""
+    f = _to_float(x)
+    if f is None:
+        return x
+    return int(f) if f == int(f) else f
+
+
+def _pulse_rate_hz(trigger_edge_or_level, pulse_train_period,
+                   post_stim_refractory_period, post_trigger_delay):
+    """Derive the pulse repetition rate (Hz) from Intan timing parameters.
+
+    Edge-triggered: one pulse train is emitted per trigger edge with pulses spaced
+    by pulse_train_period, so the period is just pulse_train_period.
+    Level-triggered: pulses repeat for as long as the trigger is held high; the
+    period is post_stim_refractory_period + post_trigger_delay.
+
+    All timing columns are stored in microseconds, so rate_hz = 1e6 / period_us.
+    Returns None if the relevant period is missing or non-positive.
+    """
+    if str(trigger_edge_or_level).strip().lower() == 'level':
+        period_us = (_to_float(post_stim_refractory_period) or 0.0) + \
+                    (_to_float(post_trigger_delay) or 0.0)
+    else:  # Edge (or unspecified): trust the pulse train period
+        period_us = _to_float(pulse_train_period)
+    if not period_us or period_us <= 0:
+        return None
+    return 1e6 / period_us
 
 
 def _unfurl_estim_spec(session_id, estim_spec_id):
     """Return {param: value} for the active channel of (session_id, estim_spec_id),
     or {} if the spec isn't found. Uses the same active-channel subquery as the
-    trial loader so num_channels counts only current-delivering (a1 > 0) channels."""
+    trial loader so num_channels counts only current-delivering (a1 > 0) channels.
+
+    The two timing columns and the trigger mode are collapsed into a single
+    ``pulse_rate_hz`` (see _pulse_rate_hz); ``post_trigger_delay`` is retained as
+    its own tallied parameter."""
     conn = Connection("allen_data_repository")
     cols = ", ".join(f"ep.{c}" for c in _UNFURL_ESTIM_PARAMS)
     conn.execute(f"""
@@ -833,13 +884,22 @@ def _unfurl_estim_spec(session_id, estim_spec_id):
     rows = conn.fetch_all()
     if not rows:
         return {}
-    return dict(zip(_UNFURL_ESTIM_PARAMS, rows[0]))
+    raw = dict(zip(_UNFURL_ESTIM_PARAMS, rows[0]))
+
+    rate = _pulse_rate_hz(raw.pop('trigger_edge_or_level', None),
+                          raw.pop('pulse_train_period', None),
+                          raw.pop('post_stim_refractory_period', None),
+                          raw.get('post_trigger_delay'))
+    if rate is not None:
+        raw['pulse_rate_hz'] = round(rate)
+    raw['post_trigger_delay'] = _clean_num(raw.get('post_trigger_delay'))
+    return raw
 
 
 def _expand_condition(session_id, cond_dict):
     """Return a condition's parameters with estim_spec_id unfurled into the
-    physical EStimParameters (channel, polarity, shape, a1, ...). Non-spec keys
-    are passed through unchanged."""
+    physical EStimParameters (polarity, shape, a1, pulse_rate_hz,
+    post_trigger_delay, ...). Non-spec keys are passed through unchanged."""
     expanded = dict(cond_dict)
     spec_id = expanded.pop('estim_spec_id', None)
     if spec_id is not None:
@@ -856,8 +916,8 @@ def plot_winning_conditions(exclude_session_ids=None, start_session_id=None,
 
     Per session, every qualifying condition that entered the max-stat competition
     is a "test" of its parameter values, and exactly one of them wins. A condition's
-    estim_spec_id is unfurled into the actual EStimParameters (channel, polarity,
-    shape, a1, pulse_train_period, ...) so the tally is over physical stimulation
+    estim_spec_id is unfurled into the actual EStimParameters (polarity, shape, a1,
+    pulse_rate_hz, post_trigger_delay, ...) so the tally is over physical stimulation
     parameters, not opaque spec ids. For every parameter value we bar-chart:
 
         win rate = (# qualifying conditions with that value that won their session)
