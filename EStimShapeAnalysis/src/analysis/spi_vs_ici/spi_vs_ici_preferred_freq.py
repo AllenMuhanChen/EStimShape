@@ -8,7 +8,8 @@ from clat.util.connection import Connection
 from src.analysis.spi_vs_ici.spi_vs_ici_windowsorted import get_selectivity_query
 
 
-def create_all_preference_plots(save_dir=None, threshold=0.7, filter_type='selectivity', spi_regression_max=None):
+def create_all_preference_plots(save_dir=None, threshold=0.7, filter_type='selectivity', spi_regression_max=None,
+                                nf_n_bins=4, nf_bin_edges=None):
     """
     Create all three types of preference plots.
 
@@ -22,6 +23,10 @@ def create_all_preference_plots(save_dir=None, threshold=0.7, filter_type='selec
                     - 'mapped_channel': Cluster channels that are also in ReceptiveFieldInfo
         spi_regression_max: If not None, points with Solid Preference Index above this value
                     are excluded from every regression (they are still plotted).
+        nf_n_bins: Number of normalized-frequency (freq / RF radius) quantile bins for Plot 4
+                    (used only when nf_bin_edges is None).
+        nf_bin_edges: Optional explicit normalized-frequency bin edges for Plot 4, e.g.
+                    [0, 0.5, np.inf] for bins [0, 0.5] and [0.5, inf].
     """
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
@@ -75,8 +80,10 @@ def create_all_preference_plots(save_dir=None, threshold=0.7, filter_type='selec
     normfreq_data = merged_data['all_strong']
     if not normfreq_data.empty:
         save_path_4 = os.path.join(save_dir, "04_combined_normalized_frequency.png") if save_dir else None
-        plot_combined_normalized_frequency(normfreq_data, save_path_4, threshold, spi_regression_max)
-        plot_normalized_frequency_bins(normfreq_data, save_dir, threshold, spi_regression_max)
+        plot_combined_normalized_frequency(normfreq_data, save_path_4, threshold, spi_regression_max,
+                                           nf_n_bins, nf_bin_edges)
+        plot_normalized_frequency_bins(normfreq_data, save_dir, threshold, spi_regression_max,
+                                       nf_n_bins, nf_bin_edges)
     else:
         print("No data for normalized frequency plots")
 
@@ -863,14 +870,17 @@ def plot_individual_frequencies(data, save_dir=None, threshold=0.7, spi_regressi
         print_category_regressions(category_results)
 
 
-def compute_normalized_frequency_bins(data, n_bins=4):
-    """Compute normalized-frequency (stimulus frequency / RF radius) quantile bins.
+def compute_normalized_frequency_bins(data, n_bins=4, bin_edges=None):
+    """Compute normalized-frequency (stimulus frequency / RF radius) bins.
 
     Skips points lacking a valid RF radius (NaN or <= 0), printing a warning.
 
     Args:
         data: DataFrame with 'frequency' and 'rf_radius' columns.
-        n_bins: Number of quantile bins.
+        n_bins: Number of quantile bins (used only when bin_edges is None).
+        bin_edges: Optional explicit bin edges, e.g. [0, 0.5, np.inf] for bins
+            [0, 0.5] and [0.5, inf]. When provided, these fixed edges are used
+            (via pd.cut) instead of quantile bins.
 
     Returns:
         (data_with_bins, bins, n_missing) where data_with_bins has added
@@ -891,25 +901,38 @@ def compute_normalized_frequency_bins(data, n_bins=4):
               f"radius and are skipped in the normalized-frequency plots.")
     data = data[valid].copy()
 
-    if len(data) < n_bins:
-        print(f"Not enough data points with RF radius ({len(data)}) for {n_bins} bins")
+    if data.empty:
+        print("No data points with valid RF radius available for normalized-frequency plots")
         return None
 
     # Normalized frequency = stimulus frequency / RF radius
     data['normalized_frequency'] = data['frequency'] / data['rf_radius']
 
-    # Quantile bins so each bin has a comparable number of points
-    try:
-        data['nf_bin'] = pd.qcut(data['normalized_frequency'], n_bins, duplicates='drop')
-    except ValueError as e:
-        print(f"Could not bin normalized frequency: {e}")
-        return None
+    if bin_edges is not None:
+        # Use caller-specified fixed bin edges
+        try:
+            data['nf_bin'] = pd.cut(data['normalized_frequency'], bins=list(bin_edges),
+                                    include_lowest=True)
+        except ValueError as e:
+            print(f"Could not bin normalized frequency with custom edges {bin_edges}: {e}")
+            return None
+    else:
+        # Quantile bins so each bin has a comparable number of points
+        if len(data) < n_bins:
+            print(f"Not enough data points with RF radius ({len(data)}) for {n_bins} bins")
+            return None
+        try:
+            data['nf_bin'] = pd.qcut(data['normalized_frequency'], n_bins, duplicates='drop')
+        except ValueError as e:
+            print(f"Could not bin normalized frequency: {e}")
+            return None
 
     bins = list(data['nf_bin'].cat.categories)
     return data, bins, n_missing
 
 
-def plot_combined_normalized_frequency(data, save_path=None, threshold=0.7, spi_regression_max=None, n_bins=4):
+def plot_combined_normalized_frequency(data, save_path=None, threshold=0.7, spi_regression_max=None,
+                                       n_bins=4, bin_edges=None):
     """Plot 4 (combined): SPI vs ICI with all normalized-frequency bins overlaid.
 
     Shows every bin's points (colored by bin) and a regression line per bin, plus an
@@ -921,9 +944,10 @@ def plot_combined_normalized_frequency(data, save_path=None, threshold=0.7, spi_
         save_path: Path to save the figure. If None, the plot is only displayed.
         threshold: Strong-frequency response threshold (used only for the title).
         spi_regression_max: If not None, exclude points with SPI > this value from the fits.
-        n_bins: Number of normalized-frequency bins.
+        n_bins: Number of normalized-frequency bins (used only when bin_edges is None).
+        bin_edges: Optional explicit bin edges, e.g. [0, 0.5, np.inf].
     """
-    result = compute_normalized_frequency_bins(data, n_bins)
+    result = compute_normalized_frequency_bins(data, n_bins, bin_edges)
     if result is None:
         return
     data, bins, n_missing = result
@@ -1013,12 +1037,13 @@ def plot_combined_normalized_frequency(data, save_path=None, threshold=0.7, spi_
                       f"n={len(bin_data)} ({n_sig} sig.), r={r_val:.3f}, p={p_val:.3f}")
 
 
-def plot_normalized_frequency_bins(data, save_dir=None, threshold=0.7, spi_regression_max=None, n_bins=4):
+def plot_normalized_frequency_bins(data, save_dir=None, threshold=0.7, spi_regression_max=None,
+                                   n_bins=4, bin_edges=None):
     """Plot 4: SPI vs ICI binned by normalized frequency (stimulus frequency / RF radius).
 
     Each data point's stimulus frequency (0.5, 1, 2, 4 Hz) is divided by the channel's
-    receptive field radius (from ReceptiveFieldInfo). Points are split into n_bins quantile
-    bins of this ratio and one plot is produced per bin (replacing the per-frequency plots).
+    receptive field radius (from ReceptiveFieldInfo). Points are split into bins of this
+    ratio and one plot is produced per bin (replacing the per-frequency plots).
 
     Channels without valid RF radius information are skipped, with a printed warning and an
     on-figure note. (In 'mapped_channel' mode every channel has RF info, so none are skipped.)
@@ -1028,9 +1053,10 @@ def plot_normalized_frequency_bins(data, save_dir=None, threshold=0.7, spi_regre
         save_dir: Directory to save plots. If None, plots are only displayed.
         threshold: Strong-frequency response threshold (used only for the title).
         spi_regression_max: If not None, exclude points with SPI > this value from the fits.
-        n_bins: Number of normalized-frequency bins (plots) to create.
+        n_bins: Number of quantile bins (used only when bin_edges is None).
+        bin_edges: Optional explicit bin edges, e.g. [0, 0.5, np.inf].
     """
-    result = compute_normalized_frequency_bins(data, n_bins)
+    result = compute_normalized_frequency_bins(data, n_bins, bin_edges)
     if result is None:
         return
     data, bins, n_missing = result
@@ -1173,9 +1199,12 @@ if __name__ == "__main__":
     # Example 4: Use mapped channels (cluster channels also in ReceptiveFieldInfo)
     # spi_regression_max excludes points with Solid Preference Index above this value
     # from every regression (the points are still plotted). Set to None to use all points.
+    # nf_bin_edges overrides the normalized-frequency (freq / RF radius) bins for Plot 4;
+    # set to None to use nf_n_bins quantile bins instead.
     create_all_preference_plots(
         save_dir="/home/connorlab/Documents/plots/spi_vs_ici_mapped_channel",
         threshold=0.7,
         filter_type='mapped_channel',
-        spi_regression_max=0.5
+        spi_regression_max=0.5,
+        nf_bin_edges=[0, 0.5, np.inf]
     )
