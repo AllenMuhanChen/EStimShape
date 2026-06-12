@@ -11,7 +11,7 @@ from scipy.stats import stats
 
 from src.pga.ga_classes import Stimulus, RegimeTransitioner, Lineage, ParentSelector, MutationAssigner, \
     MutationMagnitudeAssigner, SideTest
-from src.pga.stim_types import StimType
+from src.pga.stim_types import is_mutatable
 
 
 class ZoomSetHandler(Protocol):
@@ -151,7 +151,7 @@ class ZoomingPhaseParentSelector(ParentSelector):
         potential_parents = self.fetch_significantly_above_spontaneous_stimuli(lineage)
         self.filter_out_already_zoomed(potential_parents)
 
-        potential_parents = [stim for stim in potential_parents if stim.mutation_type != StimType.BASELINE.value and stim.response_rate is not None]
+        potential_parents = [stim for stim in potential_parents if is_mutatable(stim) and stim.response_rate is not None]
 
 
 
@@ -304,12 +304,8 @@ class ZoomingSideTest(SideTest):
         return top_responders, lineage_for_stim_id
 
     def _is_zoomable(self, stimulus: Stimulus) -> bool:
-        mutation_type = stimulus.mutation_type
-        if mutation_type is None:
-            return False
-        if "CATCH" in mutation_type:
-            return False
-        if mutation_type == StimType.BASELINE.value:
+        # Excludes baseline, catch, shuffle, ... (see is_mutatable).
+        if not is_mutatable(stimulus):
             return False
         # Don't zoom something that is itself a zoom stimulus.
         if self.zoom_set_handler.is_zoomed_already(stimulus):

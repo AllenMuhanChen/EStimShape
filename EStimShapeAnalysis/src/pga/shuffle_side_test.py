@@ -7,7 +7,7 @@ from typing import List
 from clat.util import time_util
 
 from src.pga.ga_classes import Lineage, Stimulus, SideTest
-from src.pga.stim_types import StimType
+from src.pga.stim_types import is_mutatable
 
 
 class ShuffleType(Enum):
@@ -50,7 +50,9 @@ class ShuffleSideTest(SideTest):
                     continue
                 if stim.response_rate is None:
                     continue
-                if not self._is_shuffleable(stim):
+                # Excludes baseline, catch, shuffle, ... (see is_mutatable); a shuffle is never
+                # itself shuffled.
+                if not is_mutatable(stim):
                     continue
                 candidates.append(stim)
                 lineage_for_stim_id[stim.id] = lineage
@@ -58,19 +60,6 @@ class ShuffleSideTest(SideTest):
         # Take the N highest responders across the whole previous generation.
         top_responders = sorted(candidates, key=lambda s: s.response_rate, reverse=True)[:self.n_top_responders]
         return top_responders, lineage_for_stim_id
-
-    def _is_shuffleable(self, stimulus: Stimulus) -> bool:
-        mutation_type = stimulus.mutation_type
-        if mutation_type is None:
-            return False
-        if "CATCH" in mutation_type:
-            return False
-        if mutation_type == StimType.BASELINE.value:
-            return False
-        # Don't shuffle a shuffle.
-        if "SHUFFLE" in mutation_type:
-            return False
-        return True
 
     def _make_shuffles(self, parent: Stimulus, lineage: Lineage, gen_id: int):
         for shuffle_type in ShuffleType:

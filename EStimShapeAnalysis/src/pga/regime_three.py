@@ -7,7 +7,7 @@ from scipy.stats import gaussian_kde
 
 from src.pga.ga_classes import Lineage, Stimulus
 from src.pga.ga_classes import ParentSelector, MutationAssigner, RegimeTransitioner, MutationMagnitudeAssigner
-from src.pga.stim_types import StimType
+from src.pga.stim_types import StimType, is_mutatable
 
 
 class SmoothedSamplingFunction:
@@ -30,12 +30,15 @@ class LeafingPhaseParentSelector(ParentSelector):
         self.sampling_func = SmoothedSamplingFunction(bandwidth=bandwidth)
 
     def select_parents(self, lineage, batch_size):
+        # Exclude non-mutatable stimuli (baseline, catch, shuffle, ... - see is_mutatable)
+        candidates = [s for s in lineage.stimuli if is_mutatable(s)]
+
         # Calculate the sampling function.
-        responses = [s.response_rate for s in lineage.stimuli]
+        responses = [s.response_rate for s in candidates]
         #for whatever reason if the max and min are the same, we just return a random sample
 
         if max(responses) - min(responses) == 0:
-            return np.random.choice(lineage.stimuli, size=batch_size, replace=True)
+            return np.random.choice(candidates, size=batch_size, replace=True)
 
         normalized_responses = [(response - min(responses)) / (max(responses) - min(responses)) for response in responses]
         sampling_func = self.sampling_func(normalized_responses)
@@ -48,7 +51,7 @@ class LeafingPhaseParentSelector(ParentSelector):
         fitness_scores = np.squeeze(fitness_scores)
 
         # Select parents probabilistically based on fitness scores.
-        return np.random.choice(lineage.stimuli, size=batch_size, p=fitness_scores, replace=True)
+        return np.random.choice(candidates, size=batch_size, p=fitness_scores, replace=True)
 
 
 class LeafingPhaseMutationAssigner(MutationAssigner):

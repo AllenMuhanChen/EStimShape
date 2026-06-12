@@ -8,6 +8,7 @@ from typing import Protocol, List
 from clat.util import time_util
 from src.pga.config.twod_threed_config import TwoDThreeDGAConfig
 from src.pga.ga_classes import Lineage, Stimulus, SideTest
+from src.pga.stim_types import is_mutatable
 from src.pga.mock.alexnet_mock_ga import AlexNetMockResponseParser
 
 
@@ -76,7 +77,8 @@ class DnessSideTest(SideTest):
                 if stim_to_test.gen_id == gen_id - 1:
                     if not is_side_test_stimulus(stim_to_test):
                         if stim_to_test.response_rate is not None:
-                            if stim_to_test.mutation_type != "CATCH":
+                            # Excludes baseline, catch, shuffle, ... (see is_mutatable)
+                            if is_mutatable(stim_to_test):
                                 self._assign_2d_or_3d(stim_to_test, lineage)
                                 self.lineages_for_stim[stim_to_test.id] = lineage
 

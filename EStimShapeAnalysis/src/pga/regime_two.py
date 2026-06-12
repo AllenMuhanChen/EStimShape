@@ -1,7 +1,7 @@
 import numpy as np
 
 from src.pga.regime_type import RegimeType
-from src.pga.stim_types import StimType
+from src.pga.stim_types import StimType, is_mutatable
 from src.pga.ga_classes import ParentSelector, MutationAssigner, RegimeTransitioner, MutationMagnitudeAssigner, \
     Lineage, Stimulus
 
@@ -16,8 +16,10 @@ class CanopyPhaseParentSelector(ParentSelector):
         self.num_to_select = num_to_select
 
     def select_parents(self, lineage, batch_size):
+        # Exclude non-mutatable stimuli (baseline, catch, shuffle, ... - see is_mutatable)
+        candidates = [s for s in lineage.stimuli if is_mutatable(s)]
         # Select the top x stimuli from the lineage based on their response rate.
-        top_stimuli = sorted(lineage.stimuli, key=lambda s: s.response_rate, reverse=True)[:self.num_to_select]
+        top_stimuli = sorted(candidates, key=lambda s: s.response_rate, reverse=True)[:self.num_to_select]
         # Filter out any stimuli that fall below a certain percentage of the max response rate.
         max_response_rate = top_stimuli[0].response_rate
         threshold = max_response_rate * self.percentage_of_max_threshold  # Adjust this value as necessary.
