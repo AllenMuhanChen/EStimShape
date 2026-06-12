@@ -127,7 +127,7 @@ class TestIsMutatable(unittest.TestCase):
     def test_excludes_terminal_test_outputs(self):
         for mutation_type in ["BASELINE", "CATCH",
                               "SHUFFLE_PIXEL", "SHUFFLE_PHASE", "SHUFFLE_MAGNITUDE",
-                              "LIGHTING_LEFT", "LIGHTING_RIGHT"]:
+                              "LIGHTING"]:
             self.assertFalse(is_mutatable(self._stim(mutation_type)),
                              f"{mutation_type} should not be mutatable")
 
