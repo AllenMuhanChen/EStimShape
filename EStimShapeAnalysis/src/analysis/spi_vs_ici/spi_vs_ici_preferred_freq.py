@@ -8,7 +8,7 @@ from clat.util.connection import Connection
 from src.analysis.spi_vs_ici.spi_vs_ici_windowsorted import get_selectivity_query
 
 
-def create_all_preference_plots(save_dir=None, threshold=0.7, filter_type='selectivity'):
+def create_all_preference_plots(save_dir=None, threshold=0.7, filter_type='selectivity', spi_regression_max=None):
     """
     Create all three types of preference plots.
 
@@ -20,6 +20,8 @@ def create_all_preference_plots(save_dir=None, threshold=0.7, filter_type='selec
                     - 'double_filter': Uses GoodChannels AND ChannelFiltering (from spi_vs_ici.py)
                     - 'cluster': Uses cluster channels only via ClusterInfo (from spi_ici_clusters.py)
                     - 'mapped_channel': Cluster channels that are also in ReceptiveFieldInfo
+        spi_regression_max: If not None, points with Solid Preference Index above this value
+                    are excluded from every regression (they are still plotted).
     """
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
@@ -31,6 +33,9 @@ def create_all_preference_plots(save_dir=None, threshold=0.7, filter_type='selec
         print("No data available for plotting")
         return
 
+    if spi_regression_max is not None:
+        print(f"Excluding SPI > {spi_regression_max} from all regressions")
+
     # 1. Preferred frequency only plot
     print("\n" + "=" * 60)
     print("Creating Plot 1: Preferred Frequencies Only")
@@ -38,7 +43,7 @@ def create_all_preference_plots(save_dir=None, threshold=0.7, filter_type='selec
     preferred_only_data = merged_data['preferred_only']
     if not preferred_only_data.empty:
         save_path_1 = os.path.join(save_dir, "01_preferred_frequency_only.png") if save_dir else None
-        plot_preferred_frequency_only(preferred_only_data, save_path_1)
+        plot_preferred_frequency_only(preferred_only_data, save_path_1, spi_regression_max)
     else:
         print("No data for preferred frequency plot")
 
@@ -49,7 +54,7 @@ def create_all_preference_plots(save_dir=None, threshold=0.7, filter_type='selec
     combined_data = merged_data['all_strong']
     if not combined_data.empty:
         save_path_2 = os.path.join(save_dir, "02_combined_strong_frequencies.png") if save_dir else None
-        plot_combined_strong_frequencies(combined_data, save_path_2, threshold)
+        plot_combined_strong_frequencies(combined_data, save_path_2, threshold, spi_regression_max)
     else:
         print("No data for combined plot")
 
@@ -59,7 +64,7 @@ def create_all_preference_plots(save_dir=None, threshold=0.7, filter_type='selec
     print("=" * 60)
     individual_data = merged_data['all_strong']
     if not individual_data.empty:
-        plot_individual_frequencies(individual_data, save_dir, threshold)
+        plot_individual_frequencies(individual_data, save_dir, threshold, spi_regression_max)
     else:
         print("No data for individual frequency plots")
 
@@ -423,10 +428,37 @@ def categorize_points(spi_values, p_values):
     return categories
 
 
-def plot_category_regressions(ax, x, y, p_values, linestyle='-', linewidth=2.5):
+def linregress_with_spi_cap(x, y, spi_regression_max=None):
+    """Linear regression that optionally excludes points with SPI above a cap.
+
+    Points with x (Solid Preference Index) greater than spi_regression_max are excluded
+    from the fit only; callers are expected to still plot all points.
+
+    Args:
+        x, y: Data arrays (x is the Solid Preference Index).
+        spi_regression_max: If not None, exclude points with x > this value from the fit.
+
+    Returns:
+        slope, intercept, r_value, p_value, r_squared, x_used
+        where x_used is the x array actually used for the regression.
+    """
+    x = np.asarray(x)
+    y = np.asarray(y)
+    if spi_regression_max is not None:
+        mask = x <= spi_regression_max
+        x = x[mask]
+        y = y[mask]
+    if len(x) > 1:
+        slope, intercept, r_value, p_value, _ = stats.linregress(x, y)
+        return slope, intercept, r_value, p_value, r_value ** 2, x
+    return 0.0, 0.0, 0.0, 0.0, 0.0, x
+
+
+def plot_category_regressions(ax, x, y, p_values, linestyle='-', linewidth=2.5, spi_regression_max=None):
     """Plot separate regression lines for sig-2D, non-sig, and sig-3D point categories.
 
-    Each line spans only the x-range of the points in its category.
+    Each line spans only the x-range of the points in its category. When
+    spi_regression_max is set, points with SPI above the cap are excluded from each fit.
 
     Args:
         ax: Matplotlib axis to draw on.
@@ -435,9 +467,11 @@ def plot_category_regressions(ax, x, y, p_values, linestyle='-', linewidth=2.5):
         p_values: Array of solid-preference p-values.
         linestyle: Line style for the regression lines.
         linewidth: Line width for the regression lines.
+        spi_regression_max: If not None, exclude points with SPI > this value from each fit.
 
     Returns:
-        Dict mapping category label -> (r_value, p_value, n).
+        Dict mapping category label -> (r_value, p_value, n) where n is the number of
+        points actually used in the fit.
     """
     x = np.asarray(x)
     y = np.asarray(y)
@@ -445,13 +479,13 @@ def plot_category_regressions(ax, x, y, p_values, linestyle='-', linewidth=2.5):
     results = {}
     for label, color in REGRESSION_CATEGORIES:
         mask = categories == label
-        n = int(np.sum(mask))
+        x_cat = x[mask]
+        y_cat = y[mask]
+        slope, intercept, r_value, p_val, r_squared, x_used = linregress_with_spi_cap(
+            x_cat, y_cat, spi_regression_max)
+        n = len(x_used)
         if n > 1:
-            x_cat = x[mask]
-            y_cat = y[mask]
-            slope, intercept, r_value, p_val, _ = stats.linregress(x_cat, y_cat)
-            r_squared = r_value ** 2
-            x_line = np.linspace(x_cat.min(), x_cat.max(), 100)
+            x_line = np.linspace(x_used.min(), x_used.max(), 100)
             line_y = slope * x_line + intercept
             ax.plot(x_line, line_y, color=color, linestyle=linestyle, linewidth=linewidth,
                     label=f'{label} (R²={r_squared:.2f}, n={n})')
@@ -533,7 +567,7 @@ def process_frequency_data(base_df):
     }
 
 
-def plot_preferred_frequency_only(data, save_path=None):
+def plot_preferred_frequency_only(data, save_path=None, spi_regression_max=None):
     """Plot 1: Only the preferred frequency for each unit."""
 
     x = data['solid_preference_index'].values
@@ -541,9 +575,8 @@ def plot_preferred_frequency_only(data, save_path=None):
     p_values = data['p_value'].values
     frequencies = data['preferred_frequency'].values
 
-    # Overall regression (used for the stats text box)
-    slope, intercept, r_value, p_value, _ = stats.linregress(x, y)
-    r_squared = r_value ** 2
+    # Overall regression (used for the stats text box; optionally excludes high-SPI points)
+    slope, intercept, r_value, p_value, r_squared, _ = linregress_with_spi_cap(x, y, spi_regression_max)
 
     # Create plot
     plt.figure(figsize=(12, 10))
@@ -572,7 +605,8 @@ def plot_preferred_frequency_only(data, save_path=None):
                     edgecolors=edge_color, linewidths=linewidth)
 
     # Separate regression lines for sig-2D, non-sig, and sig-3D categories
-    category_results = plot_category_regressions(plt.gca(), x, y, p_values)
+    category_results = plot_category_regressions(plt.gca(), x, y, p_values,
+                                                 spi_regression_max=spi_regression_max)
 
     # Create legend for frequencies (points) plus the category regression lines
     from matplotlib.patches import Patch
@@ -610,7 +644,7 @@ def plot_preferred_frequency_only(data, save_path=None):
     print_category_regressions(category_results)
 
 
-def plot_combined_strong_frequencies(data, save_path=None, threshold=0.7):
+def plot_combined_strong_frequencies(data, save_path=None, threshold=0.7, spi_regression_max=None):
     """Plot 2: Combined plot with all strong frequencies and separate trend lines."""
 
     x = data['solid_preference_index'].values
@@ -618,9 +652,9 @@ def plot_combined_strong_frequencies(data, save_path=None, threshold=0.7):
     p_values = data['p_value'].values
     frequencies = data['frequency'].values
 
-    # Overall regression
-    slope_all, intercept_all, r_value_all, p_value_all, _ = stats.linregress(x, y)
-    r_squared_all = r_value_all ** 2
+    # Overall regression (optionally excludes high-SPI points)
+    slope_all, intercept_all, r_value_all, p_value_all, r_squared_all, _ = linregress_with_spi_cap(
+        x, y, spi_regression_max)
 
     # Create plot
     plt.figure(figsize=(12, 10))
@@ -648,26 +682,27 @@ def plot_combined_strong_frequencies(data, save_path=None, threshold=0.7):
                     color=color, marker='o',
                     edgecolors=edge_color, linewidths=linewidth)
 
-    # Plot trend lines for each frequency
-    line_x = np.linspace(-1.1, 1.1, 100)
-
+    # Plot trend lines for each frequency (over the range used for each fit)
     for freq in all_freqs:
         freq_data = data[data['frequency'] == freq]
         if len(freq_data) > 1:
             x_freq = freq_data['solid_preference_index'].values
             y_freq = freq_data['isochromatic_preference_index'].values
 
-            slope, intercept, r_value, p_val, _ = stats.linregress(x_freq, y_freq)
-            r_squared = r_value ** 2
+            slope, intercept, r_value, p_val, r_squared, x_used = linregress_with_spi_cap(
+                x_freq, y_freq, spi_regression_max)
 
-            line_y = slope * line_x + intercept
-            plt.plot(line_x, line_y, linewidth=2, color=freq_colors[freq],
-                     linestyle='--', alpha=0.8,
-                     label=f'{freq} Hz (R²={r_squared:.2f}, n={len(x_freq)})')
+            if len(x_used) > 1:
+                line_x = np.linspace(x_used.min(), x_used.max(), 100)
+                line_y = slope * line_x + intercept
+                plt.plot(line_x, line_y, linewidth=2, color=freq_colors[freq],
+                         linestyle='--', alpha=0.8,
+                         label=f'{freq} Hz (R²={r_squared:.2f}, n={len(x_used)})')
 
     # Separate regression lines for sig-2D, non-sig, and sig-3D categories
     # (replaces the single overall trend line)
-    category_results = plot_category_regressions(plt.gca(), x, y, p_values, linestyle='-', linewidth=3)
+    category_results = plot_category_regressions(plt.gca(), x, y, p_values, linestyle='-', linewidth=3,
+                                                 spi_regression_max=spi_regression_max)
 
     # Formatting
     n_significant = np.sum((pd.notna(p_values)) & (p_values < 0.05))
@@ -699,14 +734,14 @@ def plot_combined_strong_frequencies(data, save_path=None, threshold=0.7):
         freq_data = data[data['frequency'] == freq]
         if not freq_data.empty:
             n_sig = np.sum((pd.notna(freq_data['p_value'])) & (freq_data['p_value'] < 0.05))
-            if len(freq_data) > 1:
-                x_f = freq_data['solid_preference_index'].values
-                y_f = freq_data['isochromatic_preference_index'].values
-                _, _, r_val, p_val, _ = stats.linregress(x_f, y_f)
+            x_f = freq_data['solid_preference_index'].values
+            y_f = freq_data['isochromatic_preference_index'].values
+            _, _, r_val, p_val, _, x_used = linregress_with_spi_cap(x_f, y_f, spi_regression_max)
+            if len(x_used) > 1:
                 print(f"    {freq} Hz: n={len(freq_data)} ({n_sig} sig.), r={r_val:.3f}, p={p_val:.3f}")
 
 
-def plot_individual_frequencies(data, save_dir=None, threshold=0.7):
+def plot_individual_frequencies(data, save_dir=None, threshold=0.7, spi_regression_max=None):
     """Plot 3: Individual plots for each frequency."""
 
     allowed_frequencies = [0.5, 1.0, 2.0, 4.0]
@@ -726,12 +761,9 @@ def plot_individual_frequencies(data, save_dir=None, threshold=0.7):
         y = freq_data['isochromatic_preference_index'].values
         p_values = freq_data['p_value'].values
 
-        # Calculate regression
-        if len(x) > 1:
-            slope, intercept, r_value, p_value, _ = stats.linregress(x, y)
-            r_squared = r_value ** 2
-        else:
-            slope = intercept = r_value = p_value = r_squared = 0
+        # Calculate regression (optionally excludes high-SPI points)
+        slope, intercept, r_value, p_value, r_squared, x_reg = linregress_with_spi_cap(
+            x, y, spi_regression_max)
 
         # Create plot
         plt.figure(figsize=(10, 8))
@@ -754,7 +786,8 @@ def plot_individual_frequencies(data, save_dir=None, threshold=0.7):
                         edgecolors=edge_color, linewidths=linewidth)
 
         # Separate regression lines for sig-2D, non-sig, and sig-3D categories
-        category_results = plot_category_regressions(plt.gca(), x, y, p_values)
+        category_results = plot_category_regressions(plt.gca(), x, y, p_values,
+                                                     spi_regression_max=spi_regression_max)
 
         # Formatting
         n_significant = np.sum((pd.notna(p_values)) & (p_values < 0.05))
@@ -780,7 +813,7 @@ def plot_individual_frequencies(data, save_dir=None, threshold=0.7):
         print(f"\n{freq} Hz Statistics:")
         print(f"  Data points: {len(freq_data)}")
         print(f"  Significant: {n_significant}")
-        if len(x) > 1:
+        if len(x_reg) > 1:
             print(f"  Overall: R² = {r_squared:.3f}, r = {r_value:.3f}, p = {p_value:.3f}")
         print(f"  By significance category:")
         print_category_regressions(category_results)
@@ -840,8 +873,11 @@ if __name__ == "__main__":
     # )
 
     # Example 4: Use mapped channels (cluster channels also in ReceptiveFieldInfo)
+    # spi_regression_max excludes points with Solid Preference Index above this value
+    # from every regression (the points are still plotted). Set to None to use all points.
     create_all_preference_plots(
         save_dir="/home/connorlab/Documents/plots/spi_vs_ici_mapped_channel",
         threshold=0.7,
-        filter_type='mapped_channel'
+        filter_type='mapped_channel',
+        spi_regression_max=0.5
     )
