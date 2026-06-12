@@ -426,7 +426,15 @@ def compare_predictors_on_corrections(
         sessions_to_plot_individually=sessions_to_plot_individually,
     )
 
-
+PIPE_PCA_new = TissuePipeline(
+    name='PCA_V4',
+    model=MODEL_PCA_V4,
+    decomp_method='pca',
+    n_components=4,
+    use_varimax=False,
+    within_session_normalize=False,
+    pc_smooth_sigma=2.0,
+)
 # ---------------------------------------------------------------------------
 # __main__
 # ---------------------------------------------------------------------------
@@ -437,11 +445,11 @@ if __name__ == "__main__":
     # ════════════════════════════════════════════════════════════════════
     EXCLUDE_SESSIONS = ["260331_0", "260402_0", "260520_0", "260423_0"]
 
-    SESSIONS_TO_PLOT_INDIVIDUALLY: list = ["260528_0", "260526_0"]
+    SESSIONS_TO_PLOT_INDIVIDUALLY: list = ["260609_0", "260605_0"]
 
     CORRECTIONS_PATH = (
         "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/"
-        "opt_20260529_132317_best_bottom.json"
+        "opt_20260602_170728_best.json"
     )
 
 
@@ -476,8 +484,10 @@ if __name__ == "__main__":
         n_components=2,
         use_varimax=False,
         within_session_normalize=False,
-        pc_smooth_sigma=2.0,
+        pc_smooth_sigma=1.0,
     )
+
+
 
     PIPE_PCA_exclude_rel_lfp = TissuePipeline(
         name='PCA_V2_excl_rel_lfp',
@@ -503,8 +513,7 @@ if __name__ == "__main__":
 
     PIPELINES: List[TissuePipeline] = [
         PIPE_PCA,
-        PIPE_PCA_exclude_rel_lfp,
-        PIPE_ICA_V1,
+        PIPE_PCA_new
     ]
 
     conn = Connection(
@@ -521,17 +530,17 @@ if __name__ == "__main__":
     # Use this when designing a new TissueModel — fits decomp, dumps
     # loadings / depth profiles, optionally adds an MRI panel.
     #
-    visualize_pooled_pca(
-        conn,
-        pipeline=PIPE_PCA_exclude_rel_lfp,
-        exclude_sessions=EXCLUDE_SESSIONS,
-        sessions_to_plot_individually=SESSIONS_TO_PLOT_INDIVIDUALLY,
-        corrections_path=CORRECTIONS_PATH,   # optional → adds MRI panel
-    )
+    # visualize_pooled_pca(
+    #     conn,
+    #     pipeline=PIPE_PCA_new,
+    #     exclude_sessions=EXCLUDE_SESSIONS,
+    #     sessions_to_plot_individually=SESSIONS_TO_PLOT_INDIVIDUALLY,
+    #     corrections_path=CORRECTIONS_PATH,   # optional → adds MRI panel
+    # )
 
-    # Step 2: compare every pipeline in PIPELINES side-by-side against MRI.
-    # Each pipeline fits its OWN decomposition; per-pipeline diagnostic
-    # plots land in <save_dir>/pipeline_<name>/.
+    # # Step 2: compare every pipeline in PIPELINES side-by-side against MRI.
+    # # Each pipeline fits its OWN decomposition; per-pipeline diagnostic
+    # # plots land in <save_dir>/pipeline_<name>/.
     results = compare_pipelines_on_corrections(
         conn,
         corrections_path=CORRECTIONS_PATH,

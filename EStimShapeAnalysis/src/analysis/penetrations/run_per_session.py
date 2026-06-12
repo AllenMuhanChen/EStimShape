@@ -62,7 +62,7 @@ from src.analysis.penetrations.penetration_plots import (
     plot_scree,
     plot_tissue_confidence_by_session,
 )
-from src.analysis.penetrations.run_pooled import EXCUDE_REL_LFP, PIPE_PCA_exclude_rel_lfp
+from src.analysis.penetrations.run_pooled import EXCUDE_REL_LFP, PIPE_PCA_exclude_rel_lfp, PIPE_PCA_new
 
 
 def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs: int = 4,
@@ -321,7 +321,7 @@ if __name__ == "__main__":
         pc_smooth_sigma=2.0,
         exclude_features=[],
     )
-    PIPELINE = PIPE_PCA_V2
+    PIPELINE = PIPE_PCA_new
 
     # PIPELINE = PIPE_PCA_exclude_rel_lfp
 
@@ -332,7 +332,6 @@ if __name__ == "__main__":
     results = run_analysis(
         conn,
         pipeline=PIPELINE,
-        n_pcs=2,
         exclude_sessions=exclude_sessions,
         maxiter=100000,
         start_from_file=start_from_file,

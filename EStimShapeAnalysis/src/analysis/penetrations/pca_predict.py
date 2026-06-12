@@ -484,16 +484,21 @@ MODEL_PCA_V3 = TissueModel([
 
 # For PCA with Varimax, 4 pcs
 MODEL_PCA_V4 = TissueModel([
-    TissueClass('wm',     score=1.0, combine='or', evidence=[
+    TissueClass('wm',     score=1.0, evidence=[
+        Evidence('PC1', sign=+1),
         Evidence('PC2', sign=-1),
-        Evidence('PC4', sign=+1),
+        Evidence('PC3', sign=+1),
+        Evidence('PC4', sign=-1),
     ]),
     TissueClass('gm',     score=0.5, evidence=[
+        Evidence('PC1', sign=+1),
         Evidence('PC2', sign=+1),
-        Evidence('PC4', sign=-1),
+        Evidence('PC3', sign=+1),
+        Evidence('PC4', sign=+1),
     ]),
     TissueClass('sulcus', score=0.0, evidence=[
         Evidence('PC3', sign=-1),
+        Evidence('PC1', sign=-1)
     ]),
 ])
 
