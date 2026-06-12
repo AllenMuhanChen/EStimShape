@@ -26,7 +26,7 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
     // Minimum spacing (in cycles-per-RF) between added values and existing in-range values.
     private static final double CYCLES_PER_RF_MARGIN = 1.0;
     // Desired number of test frequencies within the cycles-per-RF range (overridable via args[2]).
-    private static int targetNumInCyclesRange = 2;
+    private static final int targetNumInCyclesRange = 2;
     private final Random random = new Random();
 
     public static void main(String[] args) {
@@ -43,11 +43,6 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
             isTestOrientations = false;
         }
 
-        try {
-            targetNumInCyclesRange = Integer.parseInt(args[2]);
-        } catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
-            targetNumInCyclesRange = 2;
-        }
 
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.config_class"),
