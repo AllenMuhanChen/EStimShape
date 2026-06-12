@@ -97,6 +97,9 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
             if (parseShuffle(stimId, stimInfo, parentId)){
                 continue;
             }
+            if (parseLighting(stimId, stimInfo, parentId)){
+                continue;
+            }
             if (parseCatch(stimId, stimInfo)){
                 continue;
             }
@@ -196,6 +199,25 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
             System.out.println("Detected Shuffle with type = " + shuffleType);
 
             stims.add(new ShuffleGAStim(stimId, this, parentId, shuffleType));
+            return true;
+        }
+        return false;
+    }
+
+    private boolean parseLighting(Long stimId, StimGaInfoEntry stimInfo, Long parentId) {
+        String stimTypeString = stimInfo.getStimType();
+
+        // Check for "LIGHTING_<DIRECTION>" pattern written by the Python LightingSideTest.
+        Pattern pattern = Pattern.compile("LIGHTING_(LEFT|RIGHT)");
+        Matcher matcher = pattern.matcher(stimTypeString);
+        if (matcher.matches()) {
+            String direction = matcher.group(1);
+            float[] lightPosition = direction.equals("LEFT")
+                    ? LightingGAStim.LEFT_LIGHT
+                    : LightingGAStim.RIGHT_LIGHT;
+            System.out.println("Detected Lighting with direction = " + direction);
+
+            stims.add(new LightingGAStim(stimId, this, parentId, lightPosition));
             return true;
         }
         return false;

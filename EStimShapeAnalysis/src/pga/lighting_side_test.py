@@ -10,28 +10,28 @@ from src.pga.ga_classes import Lineage, Stimulus, SideTest
 from src.pga.stim_types import is_mutatable, is_3d
 
 
-class ShuffleType(Enum):
-    """The shuffle mutation types. The string values are read on the Java side
-    (FromDbGABlockGenerator -> ShuffleGAStim) to pick which shuffle script to run."""
-    PIXEL = "SHUFFLE_PIXEL"
-    PHASE = "SHUFFLE_PHASE"
-    MAGNITUDE = "SHUFFLE_MAGNITUDE"
+class LightingType(Enum):
+    """Lighting mutation types. The string values are read on the Java side
+    (FromDbGABlockGenerator -> LightingGAStim) to pick the rotated light direction.
+
+    The original/front light is {0, 0, 500, 1}; LEFT and RIGHT rotate it 45 degrees about the
+    vertical axis. The front-lit version is just the normal stimulus, so we only generate the
+    two rotated directions here."""
+    LEFT = "LIGHTING_LEFT"
+    RIGHT = "LIGHTING_RIGHT"
 
 
-class ShuffleSideTest(SideTest):
+class LightingSideTest(SideTest):
     """
-    Side test that takes the top-N responders from the previous generation and, for each,
-    makes a pixel shuffle, phase shuffle, and magnitude shuffle of the parent (preserving the
-    parent's texture and color).
+    Side test that takes the top-N (default 1) 3D responder(s) from the previous generation and,
+    for each, re-renders the same shape under two other lighting directions (45 degrees left and
+    45 degrees right of the front light).
 
-    This replaces the old post-hoc ShuffleTrialGenerator: instead of binning across the whole
-    experiment after the fact, every generation we shuffle the current top responder(s) so we
-    always have shuffle controls no matter when the GA stops.
+    Carries the old AlexNet LightingPostHocGenerator idea into the neural GA: instead of a
+    post-hoc sweep, every generation we light-probe the current top 3D stimulus so we always
+    have lighting-direction controls no matter when the GA stops.
 
-    The Java side reproduces the parent stimulus and runs the matching shuffle script on the
-    rendered image, keyed off the SHUFFLE_<TYPE> mutation_type written here.
-
-    Only 3D stimuli are shuffled - shuffling a flat 2D stimulus would make no sense.
+    Only 3D stimuli are used - lighting direction is meaningless for flat 2D stimuli.
     """
 
     def __init__(self, *, conn, n_top_responders: int = 1):
@@ -41,7 +41,7 @@ class ShuffleSideTest(SideTest):
     def run(self, lineages: List[Lineage], gen_id: int):
         top_responders, lineage_for_stim_id = self._collect_top_responders(lineages, gen_id)
         for parent in top_responders:
-            self._make_shuffles(parent, lineage_for_stim_id[parent.id], gen_id)
+            self._make_lighting_variants(parent, lineage_for_stim_id[parent.id], gen_id)
 
     def _collect_top_responders(self, lineages: List[Lineage], gen_id: int):
         # Pool previous-generation stimuli across all lineages, remembering each stim's lineage.
@@ -53,24 +53,23 @@ class ShuffleSideTest(SideTest):
                     continue
                 if stim.response_rate is None:
                     continue
-                # Excludes baseline, catch, shuffle, ... (see is_mutatable); a shuffle is never
-                # itself shuffled.
+                # Excludes baseline, catch, shuffle, lighting, ... (see is_mutatable).
                 if not is_mutatable(stim):
                     continue
-                # Only shuffle 3D stimuli - a flat 2D stimulus has nothing meaningful to shuffle.
+                # Lighting direction only makes sense for 3D stimuli.
                 if not is_3d(self.conn, stim.id):
                     continue
                 candidates.append(stim)
                 lineage_for_stim_id[stim.id] = lineage
 
-        # Take the N highest responders across the whole previous generation.
+        # Take the N highest 3D responders across the whole previous generation.
         top_responders = sorted(candidates, key=lambda s: s.response_rate, reverse=True)[:self.n_top_responders]
         return top_responders, lineage_for_stim_id
 
-    def _make_shuffles(self, parent: Stimulus, lineage: Lineage, gen_id: int):
-        for shuffle_type in ShuffleType:
+    def _make_lighting_variants(self, parent: Stimulus, lineage: Lineage, gen_id: int):
+        for lighting_type in LightingType:
             new_stimulus = Stimulus(time_util.now(),
-                                    shuffle_type.value,
+                                    lighting_type.value,
                                     mutation_magnitude=None,
                                     gen_id=gen_id,
                                     parent_id=parent.id)
