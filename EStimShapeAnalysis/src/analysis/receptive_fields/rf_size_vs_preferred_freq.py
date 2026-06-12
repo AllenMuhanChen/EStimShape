@@ -449,7 +449,7 @@ def _response_label(normalize):
 
 
 def plot_cycles_per_rf_vs_response(df, save_path=None, normalize='zscore', n_bins=8,
-                                   bin_edges=None):
+                                   bin_edges=None, xlim=None):
     """View 4: response vs cycles-per-RF (freq × RF diameter) across all frequencies.
 
     One point per (unit, tested frequency), colored by stimulus frequency, with a
@@ -464,6 +464,8 @@ def plot_cycles_per_rf_vs_response(df, save_path=None, normalize='zscore', n_bin
         bin_edges: Optional explicit bin edges for the trend line, e.g.
             [0, 1, 2, 4, 8] gives bins [0,1], [1,2], [2,4], [4,8]. Overrides n_bins.
             Use np.inf for an open final bin, e.g. [0, 2, 4, 8, np.inf].
+        xlim: Optional (xmin, xmax) cycles-per-RF range for the x-axis. This is a
+            display crop only — all points are still used for the binned trend.
     """
     long_df = expand_frequency_responses(df, normalize=normalize)
     if long_df.empty:
@@ -511,6 +513,8 @@ def plot_cycles_per_rf_vs_response(df, save_path=None, normalize='zscore', n_bin
     if normalize == 'zscore':
         ax.axhline(0, color='gray', linestyle='--', alpha=0.5)
 
+    if xlim is not None:
+        ax.set_xlim(xlim)
     ax.set_xlabel('Cycles per RF (frequency × RF diameter)', fontsize=13)
     ax.set_ylabel(_response_label(normalize), fontsize=13)
     ax.set_title(f'Response vs cycles per RF\n'
@@ -529,7 +533,8 @@ def plot_cycles_per_rf_vs_response(df, save_path=None, normalize='zscore', n_bin
 def create_rf_size_vs_preferred_freq_plots(save_dir=None, filter_type='all',
                                            size_col='rf_radius', log_log=True,
                                            response_normalize='zscore',
-                                           cycles_bin_edges=None, cycles_n_bins=8):
+                                           cycles_bin_edges=None, cycles_n_bins=8,
+                                           cycles_xlim=None):
     """Build all RF-size vs preferred-frequency plots and print summary stats.
 
     Args:
@@ -544,6 +549,8 @@ def create_rf_size_vs_preferred_freq_plots(save_dir=None, filter_type='all',
             line, e.g. [0, 2, 4, 8, np.inf]. Overrides cycles_n_bins.
         cycles_n_bins: Number of equal-width cycles-per-RF bins for View 4 when
             cycles_bin_edges is None.
+        cycles_xlim: Optional (xmin, xmax) x-axis range for the View 4 cycles-per-RF
+            plot (display crop only; all points still used for the trend).
     """
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
@@ -581,7 +588,8 @@ def create_rf_size_vs_preferred_freq_plots(save_dir=None, filter_type='all',
     # View 4: response vs cycles-per-RF across all tested frequencies.
     plot_cycles_per_rf_vs_response(
         df, _path(save_dir, f"04_cycles_per_rf_vs_response{suffix}.png"),
-        normalize=response_normalize, n_bins=cycles_n_bins, bin_edges=cycles_bin_edges)
+        normalize=response_normalize, n_bins=cycles_n_bins, bin_edges=cycles_bin_edges,
+        xlim=cycles_xlim)
 
     # Summary of the dimensionless cycles-across-RF quantity.
     cycles = pd.to_numeric(df['cycles_across_rf'], errors='coerce').dropna()
@@ -612,4 +620,6 @@ if __name__ == "__main__":
         # bins. Example: [0, 2, 4, 8, np.inf] for bins [0,2], [2,4], [4,8], [8,inf].
         cycles_bin_edges=None,
         cycles_n_bins=8,
+        # Crop the View 4 x-axis, e.g. (0, 10); None auto-scales to the data.
+        cycles_xlim=None,
     )
