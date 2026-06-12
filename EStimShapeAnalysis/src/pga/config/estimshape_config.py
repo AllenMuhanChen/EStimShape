@@ -8,6 +8,7 @@ from src.pga.ga_classes import Phase, Lineage, RegimeTransitioner
 from src.pga.response_processing import GAResponseProcessor, BaselineNormalizeResponseProcessor, \
     RankBaselineNormalizeResponseProcessor
 from src.pga.shuffle_side_test import ShuffleSideTest
+from src.pga.lighting_side_test import LightingSideTest
 
 
 class EStimShapeConfig(Simultaneous3Dvs2DConfig):
@@ -29,6 +30,7 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
         return [DnessSideTest(n_top_3d=4, n_top_2d=4),
                 self.zooming_side_test(),
                 self.shuffle_side_test(),
+                self.lighting_side_test(),
                 EStimVariantDeltaSideTest(num_deltas_per_variant=self.num_deltas_per_variant(),
                                           delta_resp_ratio_threshold=self.delta_resp_ratio_threshold(),
                                           max_attempts_per_variant_multiplier=self.max_attempts_per_variant_multiplier(),
@@ -60,11 +62,21 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
         )
 
     def shuffle_side_test(self):
-        return ShuffleSideTest(n_top_responders=self.shuffle_side_test_n_top_responders())
+        return ShuffleSideTest(conn=self.connection(),
+                               n_top_responders=self.shuffle_side_test_n_top_responders())
 
     def shuffle_side_test_n_top_responders(self):
         # Defaults to 1 when the GAVar row is absent.
         n = self.var_fetcher.get("shuffle_side_test_n_top_responders", dtype=int)
+        return n if n is not None else 1
+
+    def lighting_side_test(self):
+        return LightingSideTest(conn=self.connection(),
+                                n_top_responders=self.lighting_side_test_n_top_responders())
+
+    def lighting_side_test_n_top_responders(self):
+        # Defaults to 1 when the GAVar row is absent.
+        n = self.var_fetcher.get("lighting_side_test_n_top_responders", dtype=int)
         return n if n is not None else 1
 
     def variant_parent_response_threshold(self):

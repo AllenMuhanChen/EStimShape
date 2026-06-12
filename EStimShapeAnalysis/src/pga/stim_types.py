@@ -28,6 +28,7 @@ NON_MUTATABLE_MUTATION_TYPE_TOKENS = (
     "BASELINE",
     "CATCH",
     "SHUFFLE",
+    "LIGHTING",
 )
 
 
@@ -41,5 +42,20 @@ def is_mutatable(stimulus) -> bool:
     if mutation_type is None:
         return False
     return not any(token in mutation_type for token in NON_MUTATABLE_MUTATION_TYPE_TOKENS)
+
+
+# Texture types (StimTexture.texture_type) that count as 3D. "2D" is the only 2D value.
+THREE_D_TEXTURES = ("SHADE", "SPECULAR")
+
+
+def get_texture_type(conn, stim_id):
+    """Read a stimulus's texture_type from the StimTexture table, or None if absent."""
+    conn.execute("SELECT texture_type FROM StimTexture WHERE stim_id = %s", (stim_id,))
+    return conn.fetch_one()
+
+
+def is_3d(conn, stim_id) -> bool:
+    """Whether a stimulus is 3D (SHADE/SPECULAR texture). 2D and missing rows are not 3D."""
+    return get_texture_type(conn, stim_id) in THREE_D_TEXTURES
 
 

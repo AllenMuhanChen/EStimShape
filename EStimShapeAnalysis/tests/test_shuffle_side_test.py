@@ -6,11 +6,31 @@ from src.pga.shuffle_side_test import ShuffleSideTest, ShuffleType
 from src.pga.stim_types import is_mutatable
 
 
+class FakeTextureConn:
+    """Minimal stand-in for a clat Connection that answers StimTexture lookups.
+
+    Returns the texture mapped for a queried stim_id, or `default` (3D) when unmapped."""
+
+    def __init__(self, texture_for_id=None, default="SHADE"):
+        self.texture_for_id = texture_for_id or {}
+        self.default = default
+        self._pending = None
+
+    def execute(self, query, params=None):
+        self._pending = self.texture_for_id.get(params[0], self.default) if params else None
+
+    def fetch_one(self):
+        return self._pending
+
+
 class TestShuffleSideTest(unittest.TestCase):
     GEN_ID = 5
     PREV_GEN = GEN_ID - 1
 
     EXPECTED_SHUFFLES = ["SHUFFLE_PIXEL", "SHUFFLE_PHASE", "SHUFFLE_MAGNITUDE"]
+
+    def _side_test(self, n, textures=None) -> ShuffleSideTest:
+        return ShuffleSideTest(conn=FakeTextureConn(textures), n_top_responders=n)
 
     def _single_stim_lineage(self, stim: Stimulus) -> Lineage:
         return LineageFactory.create_lineage_from_stimuli([stim])
@@ -20,7 +40,7 @@ class TestShuffleSideTest(unittest.TestCase):
         return [s for s in lineage.stimuli if s is not founder and "SHUFFLE" in s.mutation_type]
 
     def test_makes_three_shuffles_for_top_responder(self):
-        side_test = ShuffleSideTest(n_top_responders=1)
+        side_test = self._side_test(1)
         parent = self._single_stim_lineage(
             Stimulus(1, "REGIME_ONE", response_rate=50, gen_id=self.PREV_GEN))
 
@@ -33,7 +53,7 @@ class TestShuffleSideTest(unittest.TestCase):
             self.assertEqual(child.parent_id, 1)
 
     def test_only_top_n_selected_globally(self):
-        side_test = ShuffleSideTest(n_top_responders=1)
+        side_test = self._side_test(1)
         high = self._single_stim_lineage(
             Stimulus(1, "REGIME_ONE", response_rate=50, gen_id=self.PREV_GEN))
         low = self._single_stim_lineage(
@@ -45,7 +65,7 @@ class TestShuffleSideTest(unittest.TestCase):
         self.assertEqual(self._shuffle_children(low), [])
 
     def test_respects_n_top_responders(self):
-        side_test = ShuffleSideTest(n_top_responders=2)
+        side_test = self._side_test(2)
         high = self._single_stim_lineage(
             Stimulus(1, "REGIME_ONE", response_rate=50, gen_id=self.PREV_GEN))
         mid = self._single_stim_lineage(
@@ -59,8 +79,21 @@ class TestShuffleSideTest(unittest.TestCase):
         self.assertEqual([c.mutation_type for c in self._shuffle_children(mid)], self.EXPECTED_SHUFFLES)
         self.assertEqual(self._shuffle_children(low), [])
 
+    def test_skips_2d_stimuli(self):
+        # The 2D stimulus is the higher responder, but only the 3D one gets shuffled.
+        side_test = self._side_test(1, textures={1: "2D", 2: "SHADE"})
+        two_d = self._single_stim_lineage(
+            Stimulus(1, "REGIME_ONE", response_rate=90, gen_id=self.PREV_GEN))
+        three_d = self._single_stim_lineage(
+            Stimulus(2, "REGIME_ONE", response_rate=30, gen_id=self.PREV_GEN))
+
+        side_test.run([two_d, three_d], self.GEN_ID)
+
+        self.assertEqual(self._shuffle_children(two_d), [])
+        self.assertEqual([c.mutation_type for c in self._shuffle_children(three_d)], self.EXPECTED_SHUFFLES)
+
     def test_filters_ineligible_stimuli(self):
-        side_test = ShuffleSideTest(n_top_responders=10)
+        side_test = self._side_test(10)
         catch = self._single_stim_lineage(
             Stimulus(1, "CATCH", response_rate=90, gen_id=self.PREV_GEN))
         baseline = self._single_stim_lineage(
@@ -93,7 +126,8 @@ class TestIsMutatable(unittest.TestCase):
 
     def test_excludes_terminal_test_outputs(self):
         for mutation_type in ["BASELINE", "CATCH",
-                              "SHUFFLE_PIXEL", "SHUFFLE_PHASE", "SHUFFLE_MAGNITUDE"]:
+                              "SHUFFLE_PIXEL", "SHUFFLE_PHASE", "SHUFFLE_MAGNITUDE",
+                              "LIGHTING_LEFT", "LIGHTING_RIGHT"]:
             self.assertFalse(is_mutatable(self._stim(mutation_type)),
                              f"{mutation_type} should not be mutatable")
 
