@@ -138,28 +138,38 @@ class TestZoomingSideTest(unittest.TestCase):
         self.assertEqual([c.mutation_type for c in self._zoom_children(past_zooming)], ["Zooming_1", "Zooming_2"])
 
     def test_filters_ineligible_stimuli(self):
-        # All of these are high-responding but should never be zoomed.
+        # Use a generous N so this test exercises eligibility, not top-N truncation.
+        side_test = ZoomingSideTest(
+            zoom_set_handler=SideTestMockZoomSetHandler(),
+            n_top_responders=10,
+            after_regime_index=1,
+        )
+
+        # These should never be zoomed regardless of how high they respond.
         already_zoomed = self._single_stim_lineage(
             Stimulus(1, "Zooming_1", response_rate=90, gen_id=self.PREV_GEN), 2)
         catch = self._single_stim_lineage(
             Stimulus(2, "CATCH", response_rate=90, gen_id=self.PREV_GEN), 2)
         baseline = self._single_stim_lineage(
             Stimulus(3, "BASELINE", response_rate=90, gen_id=self.PREV_GEN), 2)
-        side_test_stim = self._single_stim_lineage(
-            Stimulus(4, "SIDETEST_2Dvs3D", response_rate=90, gen_id=self.PREV_GEN), 2)
         no_response = self._single_stim_lineage(
             Stimulus(5, "REGIME_ONE", response_rate=None, gen_id=self.PREV_GEN), 2)
         wrong_gen = self._single_stim_lineage(
             Stimulus(6, "REGIME_ONE", response_rate=90, gen_id=self.PREV_GEN - 1), 2)
+
+        # SIDETEST stimuli (e.g. 2D-vs-3D) are valid zoom targets, just like regular stimuli.
+        side_test_stim = self._single_stim_lineage(
+            Stimulus(4, "SIDETEST_2Dvs3D", response_rate=90, gen_id=self.PREV_GEN), 2)
         eligible = self._single_stim_lineage(
             Stimulus(7, "REGIME_ONE", response_rate=20, gen_id=self.PREV_GEN), 2)
 
         lineages = [already_zoomed, catch, baseline, side_test_stim, no_response, wrong_gen, eligible]
-        self.side_test.run(lineages, self.GEN_ID)
+        side_test.run(lineages, self.GEN_ID)
 
-        for lineage in [already_zoomed, catch, baseline, side_test_stim, no_response, wrong_gen]:
+        for lineage in [already_zoomed, catch, baseline, no_response, wrong_gen]:
             self.assertEqual(self._zoom_children(lineage), [])
-        # Only the eligible (lower-responding) stimulus is zoomed.
+        # SIDETEST and regular stimuli both get full zoom sets.
+        self.assertEqual([c.mutation_type for c in self._zoom_children(side_test_stim)], ["Zooming_1", "Zooming_2"])
         self.assertEqual([c.mutation_type for c in self._zoom_children(eligible)], ["Zooming_1", "Zooming_2"])
 
 
