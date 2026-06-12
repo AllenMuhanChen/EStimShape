@@ -74,6 +74,8 @@ def create_all_preference_plots(save_dir=None, threshold=0.7, filter_type='selec
     print("=" * 60)
     normfreq_data = merged_data['all_strong']
     if not normfreq_data.empty:
+        save_path_4 = os.path.join(save_dir, "04_combined_normalized_frequency.png") if save_dir else None
+        plot_combined_normalized_frequency(normfreq_data, save_path_4, threshold, spi_regression_max)
         plot_normalized_frequency_bins(normfreq_data, save_dir, threshold, spi_regression_max)
     else:
         print("No data for normalized frequency plots")
@@ -861,6 +863,156 @@ def plot_individual_frequencies(data, save_dir=None, threshold=0.7, spi_regressi
         print_category_regressions(category_results)
 
 
+def compute_normalized_frequency_bins(data, n_bins=4):
+    """Compute normalized-frequency (stimulus frequency / RF radius) quantile bins.
+
+    Skips points lacking a valid RF radius (NaN or <= 0), printing a warning.
+
+    Args:
+        data: DataFrame with 'frequency' and 'rf_radius' columns.
+        n_bins: Number of quantile bins.
+
+    Returns:
+        (data_with_bins, bins, n_missing) where data_with_bins has added
+        'normalized_frequency' and 'nf_bin' columns, bins is the list of interval
+        categories, and n_missing is the number of skipped points. Returns None if
+        the data cannot be binned.
+    """
+    data = data.copy()
+
+    if 'rf_radius' not in data.columns:
+        print("WARNING: No rf_radius column found; cannot create normalized-frequency plots")
+        return None
+
+    valid = data['rf_radius'].notna() & (data['rf_radius'] > 0)
+    n_missing = int((~valid).sum())
+    if n_missing > 0:
+        print(f"WARNING: {n_missing} of {len(data)} data points lack a valid ReceptiveFieldInfo "
+              f"radius and are skipped in the normalized-frequency plots.")
+    data = data[valid].copy()
+
+    if len(data) < n_bins:
+        print(f"Not enough data points with RF radius ({len(data)}) for {n_bins} bins")
+        return None
+
+    # Normalized frequency = stimulus frequency / RF radius
+    data['normalized_frequency'] = data['frequency'] / data['rf_radius']
+
+    # Quantile bins so each bin has a comparable number of points
+    try:
+        data['nf_bin'] = pd.qcut(data['normalized_frequency'], n_bins, duplicates='drop')
+    except ValueError as e:
+        print(f"Could not bin normalized frequency: {e}")
+        return None
+
+    bins = list(data['nf_bin'].cat.categories)
+    return data, bins, n_missing
+
+
+def plot_combined_normalized_frequency(data, save_path=None, threshold=0.7, spi_regression_max=None, n_bins=4):
+    """Plot 4 (combined): SPI vs ICI with all normalized-frequency bins overlaid.
+
+    Shows every bin's points (colored by bin) and a regression line per bin, plus an
+    overall regression across all points. Channels lacking a valid RF radius are skipped
+    with a printed and on-figure warning.
+
+    Args:
+        data: 'all_strong' DataFrame (must include 'frequency' and 'rf_radius' columns).
+        save_path: Path to save the figure. If None, the plot is only displayed.
+        threshold: Strong-frequency response threshold (used only for the title).
+        spi_regression_max: If not None, exclude points with SPI > this value from the fits.
+        n_bins: Number of normalized-frequency bins.
+    """
+    result = compute_normalized_frequency_bins(data, n_bins)
+    if result is None:
+        return
+    data, bins, n_missing = result
+
+    x = data['solid_preference_index'].values
+    y = data['isochromatic_preference_index'].values
+    p_values = data['p_value'].values
+
+    # Overall regression across all points (optionally excludes high-SPI points)
+    slope_all, intercept_all, r_value_all, p_value_all, r_squared_all, x_all = linregress_with_spi_cap(
+        x, y, spi_regression_max)
+
+    plt.figure(figsize=(12, 8))
+
+    # Color map per bin
+    bin_cmap = plt.cm.plasma
+    bin_colors = {interval: bin_cmap(i / max(1, len(bins) - 1)) for i, interval in enumerate(bins)}
+
+    # Plot points colored by bin, alpha by significance
+    nf_bin_values = data['nf_bin'].values
+    for i in range(len(x)):
+        color = bin_colors[nf_bin_values[i]]
+        if pd.notna(p_values[i]) and p_values[i] < 0.05:
+            alpha_val, edge_color, lw = 0.7, 'black', 0.5
+        else:
+            alpha_val, edge_color, lw = 0.15, 'gray', 0.3
+        plt.scatter(x[i], y[i], alpha=alpha_val, s=100, color=color, marker='o',
+                    edgecolors=edge_color, linewidths=lw)
+
+    # Per-bin regression lines (over the range used for each fit)
+    for bin_idx, interval in enumerate(bins):
+        bin_data = data[data['nf_bin'] == interval]
+        if len(bin_data) > 1:
+            xb = bin_data['solid_preference_index'].values
+            yb = bin_data['isochromatic_preference_index'].values
+            slope, intercept, r_value, p_val, r_squared, x_used = linregress_with_spi_cap(
+                xb, yb, spi_regression_max)
+            if len(x_used) > 1:
+                line_x = np.linspace(x_used.min(), x_used.max(), 100)
+                plt.plot(line_x, slope * line_x + intercept, linewidth=2,
+                         color=bin_colors[interval], linestyle='--', alpha=0.8,
+                         label=f'Bin {bin_idx + 1} [{interval.left:.2f}, {interval.right:.2f}] '
+                               f'(R²={r_squared:.2f}, n={len(x_used)})')
+
+    # Overall regression across all points
+    if len(x_all) > 1:
+        line_x = np.linspace(x_all.min(), x_all.max(), 100)
+        plt.plot(line_x, slope_all * line_x + intercept_all, 'k-', linewidth=3, alpha=0.7,
+                 label=f'All (R²={r_squared_all:.2f}, n={len(x_all)})')
+
+    # Formatting
+    n_significant = np.sum((pd.notna(p_values)) & (p_values < 0.05))
+    plt.xlabel('Solid Preference Index', fontsize=14)
+    plt.ylabel('Isochromatic Preference Index', fontsize=14)
+    plt.title(
+        f'Solid vs Isochromatic Preference by Normalized Frequency (freq / RF radius)\n'
+        f'All {len(bins)} bins combined (≥{threshold * 100:.0f}% of max)\n'
+        f'(n={len(data)} data points, {n_significant} solid-pref significant)',
+        fontsize=14)
+
+    add_plot_formatting(plt.gca(), r_squared_all, r_value_all, p_value_all, len(data), n_significant)
+
+    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', title='Normalized-freq bin')
+    if n_missing > 0:
+        plt.gcf().text(0.99, 0.01, f'{n_missing} point(s) without RF radius skipped',
+                       ha='right', va='bottom', fontsize=8, color='red')
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"Saved: {save_path}")
+
+    print(f"\nCombined Normalized Frequency Statistics:")
+    print(f"  Total data points: {len(data)}")
+    print(f"  Significant: {n_significant}")
+    if len(x_all) > 1:
+        print(f"  Overall (all bins): R² = {r_squared_all:.3f}, r = {r_value_all:.3f}, p = {p_value_all:.3f}")
+    for bin_idx, interval in enumerate(bins):
+        bin_data = data[data['nf_bin'] == interval]
+        if not bin_data.empty:
+            n_sig = np.sum((pd.notna(bin_data['p_value'])) & (bin_data['p_value'] < 0.05))
+            xb = bin_data['solid_preference_index'].values
+            yb = bin_data['isochromatic_preference_index'].values
+            _, _, r_val, p_val, _, x_used = linregress_with_spi_cap(xb, yb, spi_regression_max)
+            if len(x_used) > 1:
+                print(f"    Bin {bin_idx + 1} [{interval.left:.3f}, {interval.right:.3f}]: "
+                      f"n={len(bin_data)} ({n_sig} sig.), r={r_val:.3f}, p={p_val:.3f}")
+
+
 def plot_normalized_frequency_bins(data, save_dir=None, threshold=0.7, spi_regression_max=None, n_bins=4):
     """Plot 4: SPI vs ICI binned by normalized frequency (stimulus frequency / RF radius).
 
@@ -878,34 +1030,10 @@ def plot_normalized_frequency_bins(data, save_dir=None, threshold=0.7, spi_regre
         spi_regression_max: If not None, exclude points with SPI > this value from the fits.
         n_bins: Number of normalized-frequency bins (plots) to create.
     """
-    data = data.copy()
-
-    # Identify points with usable RF radius
-    if 'rf_radius' not in data.columns:
-        print("WARNING: No rf_radius column found; cannot create normalized-frequency plots")
+    result = compute_normalized_frequency_bins(data, n_bins)
+    if result is None:
         return
-
-    valid = data['rf_radius'].notna() & (data['rf_radius'] > 0)
-    n_missing = int((~valid).sum())
-    if n_missing > 0:
-        print(f"WARNING: {n_missing} of {len(data)} data points lack a valid ReceptiveFieldInfo "
-              f"radius and are skipped in the normalized-frequency plots.")
-    data = data[valid].copy()
-
-    if len(data) < n_bins:
-        print(f"Not enough data points with RF radius ({len(data)}) for {n_bins} bins")
-        return
-
-    # Normalized frequency = stimulus frequency / RF radius
-    data['normalized_frequency'] = data['frequency'] / data['rf_radius']
-
-    # Quantile bins so each plot has a comparable number of points
-    try:
-        data['nf_bin'] = pd.qcut(data['normalized_frequency'], n_bins, duplicates='drop')
-    except ValueError as e:
-        print(f"Could not bin normalized frequency: {e}")
-        return
-    bins = list(data['nf_bin'].cat.categories)
+    data, bins, n_missing = result
 
     # Color points by their raw stimulus frequency
     allowed_frequencies = [0.5, 1.0, 2.0, 4.0]
