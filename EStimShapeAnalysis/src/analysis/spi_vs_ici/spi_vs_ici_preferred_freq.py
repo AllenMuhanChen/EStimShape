@@ -1061,10 +1061,8 @@ def plot_normalized_frequency_bins(data, save_dir=None, threshold=0.7, spi_regre
         return
     data, bins, n_missing = result
 
-    # Color points by their normalized frequency value, on a shared scale across all bins
-    nf_all = data['normalized_frequency'].values
+    # Color points by their normalized frequency value (color scale set per bin's own range)
     nf_cmap = plt.cm.viridis
-    nf_norm = plt.Normalize(vmin=float(np.min(nf_all)), vmax=float(np.max(nf_all)))
 
     for bin_idx, interval in enumerate(bins):
         bin_data = data[data['nf_bin'] == interval]
@@ -1075,6 +1073,9 @@ def plot_normalized_frequency_bins(data, save_dir=None, threshold=0.7, spi_regre
         y = bin_data['isochromatic_preference_index'].values
         p_values = bin_data['p_value'].values
         nf_values = bin_data['normalized_frequency'].values
+
+        # Color scale spans this bin's normalized-frequency range
+        nf_norm = plt.Normalize(vmin=float(np.min(nf_values)), vmax=float(np.max(nf_values)))
 
         # Overall regression (optionally excludes high-SPI points)
         slope, intercept, r_value, p_value, r_squared, x_reg = linregress_with_spi_cap(
