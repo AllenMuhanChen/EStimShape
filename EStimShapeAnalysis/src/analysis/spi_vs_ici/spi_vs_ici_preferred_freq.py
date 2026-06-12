@@ -258,6 +258,85 @@ def load_data_with_double_filter(threshold=0.7):
     return process_frequency_data(base_df)
 
 
+# Regression categories based on solid-preference significance and direction.
+# A point is "significantly 2D" if its solid preference is significant (p < 0.05)
+# and negative, "significantly 3D" if significant and positive, otherwise "non-significant".
+REGRESSION_CATEGORIES = [
+    ('Sig. 2D', 'tab:green'),
+    ('Non-sig.', 'tab:gray'),
+    ('Sig. 3D', 'tab:red'),
+]
+
+
+def categorize_points(spi_values, p_values):
+    """Categorize each point as significantly 2D, non-significant, or significantly 3D.
+
+    Args:
+        spi_values: Array of solid preference indices.
+        p_values: Array of solid-preference p-values.
+
+    Returns:
+        Object array of category labels matching REGRESSION_CATEGORIES.
+    """
+    spi_values = np.asarray(spi_values)
+    p_values = np.asarray(p_values)
+    categories = np.empty(len(spi_values), dtype=object)
+    for i in range(len(spi_values)):
+        if pd.notna(p_values[i]) and p_values[i] < 0.05:
+            categories[i] = 'Sig. 2D' if spi_values[i] < 0 else 'Sig. 3D'
+        else:
+            categories[i] = 'Non-sig.'
+    return categories
+
+
+def plot_category_regressions(ax, x, y, p_values, linestyle='-', linewidth=2.5):
+    """Plot separate regression lines for sig-2D, non-sig, and sig-3D point categories.
+
+    Each line spans only the x-range of the points in its category.
+
+    Args:
+        ax: Matplotlib axis to draw on.
+        x: Array of solid preference indices.
+        y: Array of isochromatic preference indices.
+        p_values: Array of solid-preference p-values.
+        linestyle: Line style for the regression lines.
+        linewidth: Line width for the regression lines.
+
+    Returns:
+        Dict mapping category label -> (r_value, p_value, n).
+    """
+    x = np.asarray(x)
+    y = np.asarray(y)
+    categories = categorize_points(x, p_values)
+    results = {}
+    for label, color in REGRESSION_CATEGORIES:
+        mask = categories == label
+        n = int(np.sum(mask))
+        if n > 1:
+            x_cat = x[mask]
+            y_cat = y[mask]
+            slope, intercept, r_value, p_val, _ = stats.linregress(x_cat, y_cat)
+            r_squared = r_value ** 2
+            x_line = np.linspace(x_cat.min(), x_cat.max(), 100)
+            line_y = slope * x_line + intercept
+            ax.plot(x_line, line_y, color=color, linestyle=linestyle, linewidth=linewidth,
+                    label=f'{label} (R²={r_squared:.2f}, n={n})')
+            results[label] = (r_value, p_val, n)
+        else:
+            results[label] = (np.nan, np.nan, n)
+    return results
+
+
+def print_category_regressions(results):
+    """Print regression statistics for each significance category."""
+    for label, _ in REGRESSION_CATEGORIES:
+        r_value, p_val, n = results[label]
+        if n > 1:
+            print(f"    {label}: n={n}, r={r_value:.3f}, p={p_val:.3f}")
+        else:
+            print(f"    {label}: n={n} (too few points for regression)")
+
+
 def parse_strong_frequencies(row, threshold):
     """
     Parse JSON frequency responses and identify frequencies >= threshold of max.
@@ -328,7 +407,7 @@ def plot_preferred_frequency_only(data, save_path=None):
     p_values = data['p_value'].values
     frequencies = data['preferred_frequency'].values
 
-    # Calculate regression
+    # Overall regression (used for the stats text box)
     slope, intercept, r_value, p_value, _ = stats.linregress(x, y)
     r_squared = r_value ** 2
 
@@ -358,16 +437,19 @@ def plot_preferred_frequency_only(data, save_path=None):
                     color=color, marker='o',
                     edgecolors=edge_color, linewidths=linewidth)
 
-    # Add trend line
-    line_x = np.linspace(-1.1, 1.1, 100)
-    line_y = slope * line_x + intercept
-    plt.plot(line_x, line_y, 'k-', linewidth=2, label=f'Trend (R²={r_squared:.3f})')
+    # Separate regression lines for sig-2D, non-sig, and sig-3D categories
+    category_results = plot_category_regressions(plt.gca(), x, y, p_values)
 
-    # Create legend for frequencies
+    # Create legend for frequencies (points) plus the category regression lines
     from matplotlib.patches import Patch
-    legend_elements = [Patch(facecolor=freq_colors[freq], label=f'{freq} Hz')
-                       for freq in all_freqs]
-    plt.legend(handles=legend_elements, bbox_to_anchor=(1.05, 1), loc='upper left', title='Preferred Frequency')
+    freq_legend_elements = [Patch(facecolor=freq_colors[freq], label=f'{freq} Hz')
+                            for freq in all_freqs]
+    line_handles, line_labels = plt.gca().get_legend_handles_labels()
+    first_legend = plt.legend(handles=line_handles, labels=line_labels,
+                              bbox_to_anchor=(1.05, 1), loc='upper left', title='Regression')
+    plt.gca().add_artist(first_legend)
+    plt.legend(handles=freq_legend_elements, bbox_to_anchor=(1.05, 0.6), loc='upper left',
+               title='Preferred Frequency')
 
     # Formatting
     n_significant = np.sum((pd.notna(p_values)) & (p_values < 0.05))
@@ -389,7 +471,9 @@ def plot_preferred_frequency_only(data, save_path=None):
     print(f"\nPreferred Frequency Statistics:")
     print(f"  Total units: {len(data)}")
     print(f"  Significant: {n_significant}")
-    print(f"  R² = {r_squared:.3f}, r = {r_value:.3f}, p = {p_value:.3f}")
+    print(f"  Overall: R² = {r_squared:.3f}, r = {r_value:.3f}, p = {p_value:.3f}")
+    print(f"  By significance category:")
+    print_category_regressions(category_results)
 
 
 def plot_combined_strong_frequencies(data, save_path=None, threshold=0.7):
@@ -447,10 +531,9 @@ def plot_combined_strong_frequencies(data, save_path=None, threshold=0.7):
                      linestyle='--', alpha=0.8,
                      label=f'{freq} Hz (R²={r_squared:.2f}, n={len(x_freq)})')
 
-    # Overall trend line
-    line_y_all = slope_all * line_x + intercept_all
-    plt.plot(line_x, line_y_all, 'k-', linewidth=3, alpha=0.5,
-             label=f'All (R²={r_squared_all:.2f}, n={len(x)})')
+    # Separate regression lines for sig-2D, non-sig, and sig-3D categories
+    # (replaces the single overall trend line)
+    category_results = plot_category_regressions(plt.gca(), x, y, p_values, linestyle='-', linewidth=3)
 
     # Formatting
     n_significant = np.sum((pd.notna(p_values)) & (p_values < 0.05))
@@ -475,6 +558,8 @@ def plot_combined_strong_frequencies(data, save_path=None, threshold=0.7):
     print(f"  Total data points: {len(data)}")
     print(f"  Significant: {n_significant}")
     print(f"  Overall: R² = {r_squared_all:.3f}, r = {r_value_all:.3f}, p = {p_value_all:.3f}")
+    print(f"  By significance category:")
+    print_category_regressions(category_results)
 
     for freq in all_freqs:
         freq_data = data[data['frequency'] == freq]
@@ -534,12 +619,8 @@ def plot_individual_frequencies(data, save_dir=None, threshold=0.7):
                         color=color, marker='o',
                         edgecolors=edge_color, linewidths=linewidth)
 
-        # Add trend line
-        if len(x) > 1:
-            line_x = np.linspace(-1.1, 1.1, 100)
-            line_y = slope * line_x + intercept
-            plt.plot(line_x, line_y, linewidth=2, color=color,
-                     label=f'Trend (R²={r_squared:.3f})')
+        # Separate regression lines for sig-2D, non-sig, and sig-3D categories
+        category_results = plot_category_regressions(plt.gca(), x, y, p_values)
 
         # Formatting
         n_significant = np.sum((pd.notna(p_values)) & (p_values < 0.05))
@@ -552,8 +633,8 @@ def plot_individual_frequencies(data, save_dir=None, threshold=0.7):
 
         add_plot_formatting(plt.gca(), r_squared, r_value, p_value, len(freq_data), n_significant)
 
-        if len(x) > 1:
-            plt.legend(loc='upper left')
+        if plt.gca().get_legend_handles_labels()[0]:
+            plt.legend(loc='upper left', title='Regression')
 
         plt.tight_layout()
 
@@ -566,7 +647,9 @@ def plot_individual_frequencies(data, save_dir=None, threshold=0.7):
         print(f"  Data points: {len(freq_data)}")
         print(f"  Significant: {n_significant}")
         if len(x) > 1:
-            print(f"  R² = {r_squared:.3f}, r = {r_value:.3f}, p = {p_value:.3f}")
+            print(f"  Overall: R² = {r_squared:.3f}, r = {r_value:.3f}, p = {p_value:.3f}")
+        print(f"  By significance category:")
+        print_category_regressions(category_results)
 
 
 def add_plot_formatting(ax, r_squared, r_value, p_value, n, n_sig):
