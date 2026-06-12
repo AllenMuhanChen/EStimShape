@@ -56,4 +56,4 @@ class RFGeneticAlgorithmConfig(GeneticAlgorithmConfig):
             after_regime_index=1)
 
     def zooming_side_test_n_top_responders(self):
-        return 4
+        return self.var_fetcher.get("zoom_side_test_n_top_responders", dtype=int)

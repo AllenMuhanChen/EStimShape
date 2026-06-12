@@ -268,7 +268,7 @@ class ZoomingSideTest(SideTest):
     phase, i.e. ``lineage.current_regime_index > after_regime_index``.
     """
 
-    def __init__(self, *, zoom_set_handler: ZoomSetHandler, n_top_responders: int = 4,
+    def __init__(self, *, zoom_set_handler: ZoomSetHandler, n_top_responders: int = 1,
                  after_regime_index: int = 1):
         self.zoom_set_handler = zoom_set_handler
         self.n_top_responders = n_top_responders
@@ -308,8 +308,6 @@ class ZoomingSideTest(SideTest):
         if mutation_type is None:
             return False
         if "CATCH" in mutation_type:
-            return False
-        if "SIDETEST" in mutation_type:
             return False
         if mutation_type == StimType.BASELINE.value:
             return False
