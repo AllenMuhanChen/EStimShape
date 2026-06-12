@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import random
+import time
 from typing import Protocol, List
 
 import xmltodict
+from clat.util import time_util
 from clat.util.connection import Connection
 from scipy.stats import stats
 
 from src.pga.ga_classes import Stimulus, RegimeTransitioner, Lineage, ParentSelector, MutationAssigner, \
-    MutationMagnitudeAssigner
+    MutationMagnitudeAssigner, SideTest
 from src.pga.stim_types import StimType
 
 
@@ -246,3 +248,85 @@ class ZoomingPhaseMutationAssigner(MutationAssigner):
 class ZoomingPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
     def assign_mutation_magnitude(self, lineage: Lineage, stimulus: Stimulus):
         return None
+
+
+class ZoomingSideTest(SideTest):
+    """
+    A side test that takes the highest-responding stimuli from the previous generation
+    and makes a full zoom set of each.
+
+    Unlike the zooming phase (which gates parent selection on significance, prioritizes
+    partial/empty sets, and is budgeted by the regime's batch size), this side test simply
+    takes the top N responders across the whole previous generation and zooms every
+    remaining component of each so that each gets a complete zoom set.
+
+    The zoom stimuli are identical in form to those produced by the zooming phase
+    (mutation type ``Zooming_<comp_id>``) and share the ZoomingPhaseSets bookkeeping via
+    ``ZoomSetHandler``, so a stimulus already fully zoomed by the phase is skipped here.
+
+    "For now" this only runs for lineages that have already transitioned past the zooming
+    phase, i.e. ``lineage.current_regime_index > after_regime_index``.
+    """
+
+    def __init__(self, *, zoom_set_handler: ZoomSetHandler, n_top_responders: int = 4,
+                 after_regime_index: int = 1):
+        self.zoom_set_handler = zoom_set_handler
+        self.n_top_responders = n_top_responders
+        # Index of the zooming phase in the regime list; the side test only acts on lineages
+        # that have moved beyond it.
+        self.after_regime_index = after_regime_index
+
+    def run(self, lineages: List[Lineage], gen_id: int):
+        top_responders, lineage_for_stim_id = self._collect_top_responders(lineages, gen_id)
+        for parent in top_responders:
+            self._make_full_zoom_set(parent, lineage_for_stim_id[parent.id], gen_id)
+
+    def _collect_top_responders(self, lineages: List[Lineage], gen_id: int):
+        # Pool previous-generation stimuli across all lineages, remembering each stim's lineage.
+        candidates: List[Stimulus] = []
+        lineage_for_stim_id = {}
+        for lineage in lineages:
+            # Only zoom stimuli whose lineage has progressed past the zooming phase.
+            if lineage.current_regime_index <= self.after_regime_index:
+                continue
+            for stim in lineage.stimuli:
+                if stim.gen_id != gen_id - 1:
+                    continue
+                if stim.response_rate is None:
+                    continue
+                if not self._is_zoomable(stim):
+                    continue
+                candidates.append(stim)
+                lineage_for_stim_id[stim.id] = lineage
+
+        # Take the N highest responders across the whole previous generation.
+        top_responders = sorted(candidates, key=lambda s: s.response_rate, reverse=True)[:self.n_top_responders]
+        return top_responders, lineage_for_stim_id
+
+    def _is_zoomable(self, stimulus: Stimulus) -> bool:
+        mutation_type = stimulus.mutation_type
+        if mutation_type is None:
+            return False
+        if "CATCH" in mutation_type:
+            return False
+        if "SIDETEST" in mutation_type:
+            return False
+        if mutation_type == StimType.BASELINE.value:
+            return False
+        # Don't zoom something that is itself a zoom stimulus.
+        if self.zoom_set_handler.is_zoomed_already(stimulus):
+            return False
+        return True
+
+    def _make_full_zoom_set(self, parent: Stimulus, lineage: Lineage, gen_id: int):
+        num_to_add = self.zoom_set_handler.get_how_many_stimuli_needed_to_make_full_set(parent)
+        for _ in range(num_to_add):
+            comp_id = self.zoom_set_handler.get_next_comp_to_zoom(parent)
+            new_stimulus = Stimulus(time_util.now(),
+                                    f"Zooming_{comp_id}",
+                                    mutation_magnitude=None,
+                                    gen_id=gen_id,
+                                    parent_id=parent.id)
+            time.sleep(0.001)
+            lineage.tree.add_child_to(parent, new_stimulus)
+            lineage.stimuli.append(new_stimulus)

@@ -3,7 +3,7 @@ from __future__ import annotations
 from src.pga.config.canopy_config import GeneticAlgorithmConfig, singleton
 from src.pga.ga_classes import Phase
 from src.pga.zooming_phase import ZoomingPhaseParentSelector, ZoomingPhaseMutationMagnitudeAssigner, ZoomSetHandler, \
-    ZoomingPhaseMutationAssigner, ZoomingPhaseTransitioner
+    ZoomingPhaseMutationAssigner, ZoomingPhaseTransitioner, ZoomingSideTest
 
 
 class RFGeneticAlgorithmConfig(GeneticAlgorithmConfig):
@@ -46,3 +46,14 @@ class RFGeneticAlgorithmConfig(GeneticAlgorithmConfig):
 
     def zooming_phase_complete_set_percent_threshold(self):
         return self.var_fetcher.get("zooming_phase_percentage_full_set_threshold", dtype=float)
+
+    def zooming_side_test(self):
+        # The zooming phase is the second regime (index 1) in make_phases(), so the side test
+        # only acts on lineages that have moved past it.
+        return ZoomingSideTest(
+            zoom_set_handler=self.get_zoom_set_handler(),
+            n_top_responders=self.zooming_side_test_n_top_responders(),
+            after_regime_index=1)
+
+    def zooming_side_test_n_top_responders(self):
+        return 4
