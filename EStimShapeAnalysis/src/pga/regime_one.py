@@ -9,7 +9,7 @@ from src.pga.ga_classes import Stimulus, ParentSelector, MutationAssigner, Mutat
     RegimeTransitioner, Lineage
 from src.pga.multi_ga_db_util import MultiGaDbUtil
 from src.pga.response_processing import GAResponseProcessor
-from src.pga.stim_types import StimType
+from src.pga.stim_types import StimType, is_mutatable
 
 
 class RankOrderedDistribution:
@@ -114,8 +114,8 @@ class GrowingPhaseParentSelector(ParentSelector):
 
     def select_parents(self, lineage, batch_size):
 
-        # Filter out baseline stimuli
-        potential_parents = [stim for stim in lineage.stimuli if stim.mutation_type != StimType.BASELINE.value and stim.response_rate is not None]
+        # Filter out non-mutatable stimuli (baseline, catch, shuffle, ... - see is_mutatable)
+        potential_parents = [stim for stim in lineage.stimuli if is_mutatable(stim) and stim.response_rate is not None]
 
         rank_ordered_distribution = RankOrderedDistribution(potential_parents, self.bin_proportions)
         sampled_stimuli_from_lineage = rank_ordered_distribution.sample_total_amount_across_bins(

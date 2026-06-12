@@ -3,6 +3,7 @@ from typing import List
 
 from src.pga.ga_classes import Stimulus, Lineage, LineageFactory
 from src.pga.shuffle_side_test import ShuffleSideTest, ShuffleType
+from src.pga.stim_types import is_mutatable
 
 
 class TestShuffleSideTest(unittest.TestCase):
@@ -84,6 +85,27 @@ class TestShuffleSideTest(unittest.TestCase):
         self.assertEqual(ShuffleType.PIXEL.value, "SHUFFLE_PIXEL")
         self.assertEqual(ShuffleType.PHASE.value, "SHUFFLE_PHASE")
         self.assertEqual(ShuffleType.MAGNITUDE.value, "SHUFFLE_MAGNITUDE")
+
+
+class TestIsMutatable(unittest.TestCase):
+    def _stim(self, mutation_type):
+        return Stimulus(1, mutation_type, response_rate=10)
+
+    def test_excludes_terminal_test_outputs(self):
+        for mutation_type in ["BASELINE", "CATCH",
+                              "SHUFFLE_PIXEL", "SHUFFLE_PHASE", "SHUFFLE_MAGNITUDE"]:
+            self.assertFalse(is_mutatable(self._stim(mutation_type)),
+                             f"{mutation_type} should not be mutatable")
+
+    def test_allows_regular_and_sidetest_stimuli(self):
+        # SIDETEST_2Dvs3D and Zooming are valid mutation/zoom targets and stay mutatable.
+        for mutation_type in ["REGIME_ONE", "REGIME_TWO", "REGIME_ESTIM_VARIANTS",
+                              "SIDETEST_2Dvs3D", "Zooming_1"]:
+            self.assertTrue(is_mutatable(self._stim(mutation_type)),
+                            f"{mutation_type} should be mutatable")
+
+    def test_none_mutation_type_is_not_mutatable(self):
+        self.assertFalse(is_mutatable(self._stim(None)))
 
 
 if __name__ == "__main__":

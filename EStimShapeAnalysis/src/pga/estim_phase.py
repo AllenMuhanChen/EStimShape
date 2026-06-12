@@ -9,7 +9,7 @@ from clat.util import time_util, connection
 from src.pga.ga_classes import ParentSelector, Stimulus, Lineage, MutationAssigner, MutationMagnitudeAssigner, \
     RegimeTransitioner, SideTest
 from src.pga.regime_one import calculate_peak_response
-from src.pga.stim_types import StimType
+from src.pga.stim_types import StimType, is_mutatable
 
 
 def _hypothesized_comp_table(connection: Type[connection]) -> str:
@@ -38,13 +38,10 @@ class EStimPhaseParentSelector(ParentSelector):
     def select_parents(self, lineage: Lineage, batch_size: int) -> list[Stimulus]:
         # eligible parents = within x% of the peak response?
         all_stim_across_lineages = self.get_all_stimuli_func()
-        #remove response rate is none
-        all_stim_across_lineages = [s for s in all_stim_across_lineages if s.response_rate is not None]
-
-        #remove baselines
-        for stimulus in all_stim_across_lineages:
-            if stimulus.mutation_type == StimType.BASELINE.value:
-                all_stim_across_lineages.remove(stimulus)
+        # Remove stimuli without a response and non-mutatable stimuli (baseline, catch,
+        # shuffle, ... - see is_mutatable).
+        all_stim_across_lineages = [s for s in all_stim_across_lineages
+                                    if s.response_rate is not None and is_mutatable(s)]
 
 
         # 260325_0 change ONLY
@@ -60,7 +57,7 @@ class EStimPhaseParentSelector(ParentSelector):
 
         threshold_response = (float(peak_normalized_response) * self.threshold) * max_response + min_response
 
-        passing_threshold = [s for s in lineage.stimuli if s.response_rate is not None and s.response_rate > threshold_response ]
+        passing_threshold = [s for s in lineage.stimuli if s.response_rate is not None and s.response_rate > threshold_response and is_mutatable(s)]
 
         # If no stimuli pass threshold, return empty list or handle edge case
         if not passing_threshold:
@@ -201,7 +198,7 @@ class EStimVariantDeltaSideTest(SideTest):
         lineages_for_stim_id = {}
         for lineage in lineages:
             for stim in lineage.stimuli:
-                if stim.mutation_type != StimType.BASELINE.value and stim.response_rate is not None:
+                if is_mutatable(stim) and stim.response_rate is not None:
                     candidate_parents.append(stim)
                     lineages_for_stim_id[stim.id] = lineage
         if len(candidate_parents) == 0:
