@@ -59,8 +59,8 @@ def create_frequency_preference_scatter_plots():
 
     # Get unique sessions and frequencies
     sessions = sorted(merged_df['session_id'].unique())
-    frequencies = sorted(merged_df['frequency'].unique())
-
+    # frequencies = sorted(merged_df['frequency'].unique())
+    frequencies = [0.5, 1.0, 2.0, 4.0]
     print(f"Found data for {len(sessions)} sessions: {sessions}")
     print(f"Creating plots for {len(frequencies)} frequencies: {frequencies}")
     print(f"Using only cluster channels - {len(merged_df['unit_name'].unique())} total unique units")
@@ -182,7 +182,7 @@ def plot_frequency_data(merged_df, frequency, sessions):
     plt.ylim(-1.1, 1.1)
 
     # Add legend
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    # plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
 
     # Add statistics text box
     stats_text = f'R² = {r_squared:.3f}\nr = {r_value:.3f}\np = {p_value:.3f}\nn = {total_unique_units}\nsig. = {n_significant}'

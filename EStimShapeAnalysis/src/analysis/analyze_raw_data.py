@@ -117,8 +117,8 @@ def run_analyses(channels_map: Dict[str, List[str]], analyses: List[type(Analysi
 
 def main():
     analyses = [
-        IsochromaticIndexAnalysis(),
-        GAResponseVectorAnalysis(),
+        # IsochromaticIndexAnalysis(),
+        # GAResponseVectorAnalysis(),
         # SolidPreferenceIndexAnalysis(),
         # IsoChromaticLuminantScoreAnalysis(),
         # IsoluminantComparisonAnalysis(),
