@@ -19,6 +19,7 @@ def create_all_preference_plots(save_dir=None, threshold=0.7, filter_type='selec
                     - 'selectivity': Uses stimulus selectivity threshold (original)
                     - 'double_filter': Uses GoodChannels AND ChannelFiltering (from spi_vs_ici.py)
                     - 'cluster': Uses cluster channels only via ClusterInfo (from spi_ici_clusters.py)
+                    - 'mapped_channel': Cluster channels that are also in ReceptiveFieldInfo
     """
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
@@ -82,8 +83,11 @@ def load_and_filter_data(threshold=0.7, filter_type='selectivity'):
         return load_data_with_double_filter(threshold)
     elif filter_type == 'cluster':
         return load_data_with_cluster_filter(threshold)
+    elif filter_type == 'mapped_channel':
+        return load_data_with_mapped_channel_filter(threshold)
     else:
-        raise ValueError(f"Unknown filter_type: {filter_type}. Use 'selectivity', 'double_filter', or 'cluster'")
+        raise ValueError(f"Unknown filter_type: {filter_type}. "
+                         f"Use 'selectivity', 'double_filter', 'cluster', or 'mapped_channel'")
 
 
 def load_data_with_selectivity_filter(threshold=0.7):
@@ -271,37 +275,78 @@ def load_data_with_cluster_filter(threshold=0.7):
     Returns:
         Dictionary with 'preferred_only' and 'all_strong' DataFrames
     """
+    return load_cluster_based_data(threshold, require_receptive_field=False)
+
+
+def load_data_with_mapped_channel_filter(threshold=0.7):
+    """
+    Mapped-channel data loading: selects channels that are BOTH cluster channels
+    (as in spi_ici_clusters.py) AND have a receptive field mapped for that session,
+    i.e. an entry in ReceptiveFieldInfo for the same (session_id, channel).
+
+    Returns:
+        Dictionary with 'preferred_only' and 'all_strong' DataFrames
+    """
+    return load_cluster_based_data(threshold, require_receptive_field=True)
+
+
+def load_cluster_based_data(threshold=0.7, require_receptive_field=False):
+    """
+    Shared loader for cluster-based channel selection.
+
+    Selects cluster channels (JOIN Experiments + ClusterInfo, matching
+    spi_ici_clusters.py). When require_receptive_field is True, additionally
+    requires the channel to have an entry in ReceptiveFieldInfo for that
+    session_id (mapped_channel mode).
+
+    Args:
+        threshold: Minimum fraction of absolute max response required.
+        require_receptive_field: If True, also require a ReceptiveFieldInfo entry.
+
+    Returns:
+        Dictionary with 'preferred_only' and 'all_strong' DataFrames
+    """
     conn = Connection("allen_data_repository")
 
-    print("Using cluster filter: ClusterInfo cluster channels (matches spi_ici_clusters.py)")
+    if require_receptive_field:
+        print("Using mapped_channel filter: ClusterInfo cluster channels that are also in ReceptiveFieldInfo")
+    else:
+        print("Using cluster filter: ClusterInfo cluster channels (matches spi_ici_clusters.py)")
+
+    # Optional join requiring the channel to also be in ReceptiveFieldInfo for that session.
+    def rf_join(alias):
+        if not require_receptive_field:
+            return ""
+        return (f"\n                           JOIN ReceptiveFieldInfo r "
+                f"ON r.session_id = {alias}.session_id AND r.channel = {alias}.unit_name")
 
     # Get solid preference indices for cluster channels only (matches spi_ici_clusters.py)
-    solid_query = """
+    solid_query = f"""
                   SELECT s.session_id, s.unit_name, s.solid_preference_index, s.p_value
                   FROM SolidPreferenceIndices s
                            JOIN Experiments e ON s.session_id = e.session_id
-                           JOIN ClusterInfo c ON e.experiment_id = c.experiment_id AND s.unit_name = c.channel
+                           JOIN ClusterInfo c ON e.experiment_id = c.experiment_id AND s.unit_name = c.channel{rf_join('s')}
                   """
 
     conn.execute(solid_query)
     solid_data = conn.fetch_all()
 
     if not solid_data:
-        print("No solid preference data found for cluster channels")
+        print("No solid preference data found for selected channels")
         return None
 
     solid_df = pd.DataFrame(solid_data,
                             columns=['session_id', 'unit_name', 'solid_preference_index', 'p_value'])
     solid_df = solid_df.drop_duplicates(['session_id', 'unit_name'])
 
-    print(f"Found {len(solid_df)} cluster units (SolidPreferenceIndices)")
+    print(f"Found {len(solid_df)} units (SolidPreferenceIndices)")
 
     # Get isochromatic preference indices for cluster channels only (matches spi_ici_clusters.py)
-    isochromatic_query = """
+    isochromatic_query = f"""
                          SELECT i.session_id, i.unit_name, i.frequency, i.isochromatic_preference_index
                          FROM IsochromaticPreferenceIndices i
                                   JOIN Experiments e ON i.session_id = e.session_id
-                                  JOIN ClusterInfo c ON e.experiment_id = c.experiment_id AND i.unit_name = c.channel
+                                  JOIN ClusterInfo c ON e.experiment_id = c.experiment_id AND i.unit_name = c.channel{rf_join('i')}
                          """
 
     conn.execute(isochromatic_query)
@@ -311,7 +356,7 @@ def load_data_with_cluster_filter(threshold=0.7):
                                             'isochromatic_preference_index'])
     isochromatic_df = isochromatic_df.drop_duplicates(['session_id', 'unit_name', 'frequency'])
 
-    # Get preferred frequencies (restricted to cluster channels via the inner merge below)
+    # Get preferred frequencies (restricted to selected channels via the inner merge below)
     preferred_freq_query = """
                            SELECT session_id, unit_name, preferred_frequency, all_freq_responses
                            FROM PreferredFrequencies
@@ -333,7 +378,7 @@ def load_data_with_cluster_filter(threshold=0.7):
         lambda row: parse_strong_frequencies(row, threshold), axis=1
     )
 
-    # Merge base data (inner merges keep only cluster channels with matching data)
+    # Merge base data (inner merges keep only selected channels with matching data)
     base_df = solid_df.merge(
         preferred_freq_df[['session_id', 'unit_name', 'preferred_frequency', 'strong_frequencies']],
         on=['session_id', 'unit_name'], how='inner'
@@ -788,8 +833,15 @@ if __name__ == "__main__":
     # )
 
     # Example 3: Use cluster channels only (matches spi_ici_clusters.py)
+    # create_all_preference_plots(
+    #     save_dir="/home/connorlab/Documents/plots/spi_vs_ici_cluster",
+    #     threshold=0.7,
+    #     filter_type='cluster'
+    # )
+
+    # Example 4: Use mapped channels (cluster channels also in ReceptiveFieldInfo)
     create_all_preference_plots(
-        save_dir="/home/connorlab/Documents/plots/spi_vs_ici_cluster",
+        save_dir="/home/connorlab/Documents/plots/spi_vs_ici_mapped_channel",
         threshold=0.7,
-        filter_type='cluster'
+        filter_type='mapped_channel'
     )
