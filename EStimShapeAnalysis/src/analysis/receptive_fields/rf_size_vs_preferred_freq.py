@@ -498,8 +498,46 @@ def load_isochromatic_preference_indices():
     return df.drop_duplicates(['session_id', 'unit_name', 'frequency'])
 
 
+def _compute_bin_edges(xb, n_bins, bin_edges):
+    """Bin edges for the cycles-per-RF trend: explicit edges or n equal-width bins."""
+    if bin_edges is not None:
+        return np.asarray(bin_edges, dtype=float)
+    return np.linspace(xb.min(), xb.max(), n_bins + 1)
+
+
+def _binned_mean_sem(xb, yb, edges):
+    """Mean ± SEM of yb within each cycles-per-RF bin. Skips empty bins.
+
+    Returns (centers, means, sems) lists; the closed top edge is folded into the
+    last bin, and an open (inf) final edge anchors its center at the bin's max x.
+    """
+    n_bin = len(edges) - 1
+    idx = np.digitize(xb, edges) - 1
+    centers, means, sems = [], [], []
+    for b in range(n_bin):
+        sel = (idx == b) if b < n_bin - 1 else (idx == b) | (xb == edges[-1])
+        n = int(sel.sum())
+        if n > 0:
+            hi = edges[b + 1] if np.isfinite(edges[b + 1]) else xb[sel].max()
+            centers.append(0.5 * (edges[b] + hi))
+            means.append(yb[sel].mean())
+            sems.append(yb[sel].std(ddof=1) / np.sqrt(n) if n > 1 else 0.0)
+    return centers, means, sems
+
+
+def _plot_group_trend(ax, xb, yb, edges, color, label):
+    """Draw one binned mean ± SEM trend line for a subset of points."""
+    if len(xb) < 1:
+        return
+    centers, means, sems = _binned_mean_sem(xb, yb, edges)
+    if centers:
+        ax.errorbar(centers, means, yerr=sems, color=color, linewidth=2.5,
+                    marker='o', capsize=3, zorder=5, label=f'{label} (n={len(xb)})')
+
+
 def plot_cycles_per_rf_vs_response(df, save_path=None, normalize='zscore', n_bins=8,
-                                   bin_edges=None, xlim=None, color_by='frequency'):
+                                   bin_edges=None, xlim=None, color_by='frequency',
+                                   ici_buffer=0.1):
     """View 4: response vs cycles-per-RF (freq × RF diameter) across all frequencies.
 
     One point per (unit, tested frequency), with a binned mean ± SEM trend line that
@@ -523,7 +561,12 @@ def plot_cycles_per_rf_vs_response(df, save_path=None, normalize='zscore', n_bin
             Use np.inf for an open final bin, e.g. [0, 2, 4, 8, np.inf].
         xlim: Optional (xmin, xmax) cycles-per-RF range for the x-axis. This is a
             display crop only — all points are still used for the binned trend.
-        color_by: Point coloring ('frequency', 'spi', or 'ici').
+        color_by: Point coloring ('frequency', 'spi', or 'ici'). This also splits the
+            trend lines: 'frequency' -> one overall line; 'spi' -> separate Sig. 2D,
+            Non-sig., and Sig. 3D lines; 'ici' -> one line for ICI >= +ici_buffer and
+            one for ICI <= -ici_buffer.
+        ici_buffer: Dead-zone half-width for the ICI trend split; points with
+            |ICI| < ici_buffer are excluded from the ICI trend lines (still plotted).
     """
     long_df = expand_frequency_responses(df, normalize=normalize)
     if long_df.empty:
@@ -592,28 +635,34 @@ def plot_cycles_per_rf_vs_response(df, save_path=None, normalize='zscore', n_bin
         sm.set_array([])
         fig.colorbar(sm, ax=ax, label=_color_label(color_by))
 
-    # Binned mean ± SEM trend across all points.
+    # Binned mean ± SEM trend(s). Bins are shared across groups so the lines align.
     finite = np.isfinite(x) & np.isfinite(y)
     xb, yb = x[finite], y[finite]
     if len(xb) >= 2 and xb.min() < xb.max():
-        if bin_edges is not None:
-            edges = np.asarray(bin_edges, dtype=float)
+        edges = _compute_bin_edges(xb, n_bins, bin_edges)
+        if color_by == 'spi':
+            # Split into Sig. 2D (sig & SPI<0), Non-sig., Sig. 3D (sig & SPI>0).
+            spi = long_df['solid_preference_index'].values[finite]
+            pvals = long_df['spi_p_value'].values[finite]
+            sig = np.isfinite(pvals) & (pvals < 0.05)
+            spi_groups = [
+                ('Sig. 2D', sig & (spi < 0), 'tab:green'),
+                ('Non-sig.', ~sig, 'tab:gray'),
+                ('Sig. 3D', sig & (spi > 0), 'tab:red'),
+            ]
+            for label, mask, color in spi_groups:
+                _plot_group_trend(ax, xb[mask], yb[mask], edges, color, label)
+        elif color_by == 'ici':
+            # One line above +buffer, one below -buffer; |ICI| < buffer excluded.
+            ici = long_df['isochromatic_preference_index'].values[finite]
+            ici_groups = [
+                (f'ICI ≥ +{ici_buffer:g}', ici >= ici_buffer, 'tab:red'),
+                (f'ICI ≤ −{ici_buffer:g}', ici <= -ici_buffer, 'tab:blue'),
+            ]
+            for label, mask, color in ici_groups:
+                _plot_group_trend(ax, xb[mask], yb[mask], edges, color, label)
         else:
-            edges = np.linspace(xb.min(), xb.max(), n_bins + 1)
-        n_bin = len(edges) - 1
-        # digitize returns 1..n_bin for in-range points; clip the closed final edge.
-        idx = np.digitize(xb, edges) - 1
-        centers, means, sems = [], [], []
-        for b in range(n_bin):
-            sel = (idx == b) if b < n_bin - 1 else (idx == b) | (xb == edges[-1])
-            if sel.sum() > 0:
-                # For an open (inf) edge, anchor the marker just past the last finite edge.
-                hi = edges[b + 1] if np.isfinite(edges[b + 1]) else xb[sel].max()
-                centers.append(0.5 * (edges[b] + hi))
-                means.append(yb[sel].mean())
-                sems.append(yb[sel].std(ddof=1) / np.sqrt(sel.sum()) if sel.sum() > 1 else 0.0)
-        ax.errorbar(centers, means, yerr=sems, color='black', linewidth=2.5,
-                    marker='o', capsize=3, zorder=5, label='binned mean ± SEM')
+            _plot_group_trend(ax, xb, yb, edges, 'black', 'binned mean ± SEM')
 
     if normalize == 'zscore':
         ax.axhline(0, color='gray', linestyle='--', alpha=0.5)
@@ -654,7 +703,7 @@ def create_rf_size_vs_preferred_freq_plots(save_dir=None, filter_type='all',
                                            size_col='rf_radius', log_log=True,
                                            response_normalize='zscore',
                                            cycles_bin_edges=None, cycles_n_bins=8,
-                                           cycles_xlim=None):
+                                           cycles_xlim=None, ici_buffer=0.1):
     """Build all RF-size vs preferred-frequency plots and print summary stats.
 
     Args:
@@ -671,6 +720,7 @@ def create_rf_size_vs_preferred_freq_plots(save_dir=None, filter_type='all',
             cycles_bin_edges is None.
         cycles_xlim: Optional (xmin, xmax) x-axis range for the View 4 cycles-per-RF
             plot (display crop only; all points still used for the trend).
+        ici_buffer: Dead-zone half-width for the ICI-colored trend split (View 4c).
     """
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
@@ -709,7 +759,7 @@ def create_rf_size_vs_preferred_freq_plots(save_dir=None, filter_type='all',
     # 4a: colored by stimulus frequency; 4b: by Solid Preference Index (alpha by
     # significance); 4c: by Isochromatic Preference Index (no significance).
     cycles_kwargs = dict(normalize=response_normalize, n_bins=cycles_n_bins,
-                         bin_edges=cycles_bin_edges, xlim=cycles_xlim)
+                         bin_edges=cycles_bin_edges, xlim=cycles_xlim, ici_buffer=ici_buffer)
     plot_cycles_per_rf_vs_response(
         df, _path(save_dir, f"04_cycles_per_rf_vs_response{suffix}.png"),
         color_by='frequency', **cycles_kwargs)
@@ -751,4 +801,7 @@ if __name__ == "__main__":
         cycles_n_bins=8,
         # Crop the View 4 x-axis, e.g. (0, 10); None auto-scales to the data.
         cycles_xlim=None,
+        # Dead-zone half-width for the ICI-colored trend split (View 4c):
+        # one line for ICI >= +ici_buffer, one for ICI <= -ici_buffer.
+        ici_buffer=0.1,
     )
