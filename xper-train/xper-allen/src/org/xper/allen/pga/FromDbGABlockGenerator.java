@@ -9,6 +9,7 @@ import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 
 import org.xper.allen.pga.sidetest.SideTestStim;
+import org.xper.allen.shuffle.ShuffleType;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
@@ -91,6 +92,9 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
 
             //For the cases where the type is an ENUM type
             if (parseZooming(stimId, stimInfo, parentId)){
+                continue;
+            }
+            if (parseShuffle(stimId, stimInfo, parentId)){
                 continue;
             }
             if (parseCatch(stimId, stimInfo)){
@@ -179,6 +183,22 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
         } else{
             return false;
         }
+    }
+
+    private boolean parseShuffle(Long stimId, StimGaInfoEntry stimInfo, Long parentId) {
+        String stimTypeString = stimInfo.getStimType();
+
+        // Check for "SHUFFLE_<TYPE>" pattern written by the Python ShuffleSideTest.
+        Pattern pattern = Pattern.compile("SHUFFLE_(PIXEL|PHASE|MAGNITUDE)");
+        Matcher matcher = pattern.matcher(stimTypeString);
+        if (matcher.matches()) {
+            ShuffleType shuffleType = ShuffleType.valueOf(matcher.group(1));
+            System.out.println("Detected Shuffle with type = " + shuffleType);
+
+            stims.add(new ShuffleGAStim(stimId, this, parentId, shuffleType));
+            return true;
+        }
+        return false;
     }
 
     private boolean parseZooming(Long stimId, StimGaInfoEntry stimInfo, Long parentId) {
