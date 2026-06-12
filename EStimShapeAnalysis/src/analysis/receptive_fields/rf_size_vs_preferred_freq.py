@@ -448,7 +448,8 @@ def _response_label(normalize):
     }.get(normalize, 'Response')
 
 
-def plot_cycles_per_rf_vs_response(df, save_path=None, normalize='zscore', n_bins=8):
+def plot_cycles_per_rf_vs_response(df, save_path=None, normalize='zscore', n_bins=8,
+                                   bin_edges=None):
     """View 4: response vs cycles-per-RF (freq × RF diameter) across all frequencies.
 
     One point per (unit, tested frequency), colored by stimulus frequency, with a
@@ -458,7 +459,11 @@ def plot_cycles_per_rf_vs_response(df, save_path=None, normalize='zscore', n_bin
         df: Analysis DataFrame from load_rf_size_vs_preferred_freq_data.
         save_path: Where to save the figure (None -> display only).
         normalize: Per-unit response normalization ('zscore', 'max', or 'none').
-        n_bins: Number of equal-width cycles-per-RF bins for the trend line.
+        n_bins: Number of equal-width cycles-per-RF bins for the trend line
+            (used only when bin_edges is None).
+        bin_edges: Optional explicit bin edges for the trend line, e.g.
+            [0, 1, 2, 4, 8] gives bins [0,1], [1,2], [2,4], [4,8]. Overrides n_bins.
+            Use np.inf for an open final bin, e.g. [0, 2, 4, 8, np.inf].
     """
     long_df = expand_frequency_responses(df, normalize=normalize)
     if long_df.empty:
@@ -484,13 +489,20 @@ def plot_cycles_per_rf_vs_response(df, save_path=None, normalize='zscore', n_bin
     finite = np.isfinite(x) & np.isfinite(y)
     xb, yb = x[finite], y[finite]
     if len(xb) >= 2 and xb.min() < xb.max():
-        edges = np.linspace(xb.min(), xb.max(), n_bins + 1)
-        idx = np.clip(np.digitize(xb, edges) - 1, 0, n_bins - 1)
+        if bin_edges is not None:
+            edges = np.asarray(bin_edges, dtype=float)
+        else:
+            edges = np.linspace(xb.min(), xb.max(), n_bins + 1)
+        n_bin = len(edges) - 1
+        # digitize returns 1..n_bin for in-range points; clip the closed final edge.
+        idx = np.digitize(xb, edges) - 1
         centers, means, sems = [], [], []
-        for b in range(n_bins):
-            sel = idx == b
+        for b in range(n_bin):
+            sel = (idx == b) if b < n_bin - 1 else (idx == b) | (xb == edges[-1])
             if sel.sum() > 0:
-                centers.append(0.5 * (edges[b] + edges[b + 1]))
+                # For an open (inf) edge, anchor the marker just past the last finite edge.
+                hi = edges[b + 1] if np.isfinite(edges[b + 1]) else xb[sel].max()
+                centers.append(0.5 * (edges[b] + hi))
                 means.append(yb[sel].mean())
                 sems.append(yb[sel].std(ddof=1) / np.sqrt(sel.sum()) if sel.sum() > 1 else 0.0)
         ax.errorbar(centers, means, yerr=sems, color='black', linewidth=2.5,
@@ -516,7 +528,8 @@ def plot_cycles_per_rf_vs_response(df, save_path=None, normalize='zscore', n_bin
 
 def create_rf_size_vs_preferred_freq_plots(save_dir=None, filter_type='all',
                                            size_col='rf_radius', log_log=True,
-                                           response_normalize='zscore'):
+                                           response_normalize='zscore',
+                                           cycles_bin_edges=None, cycles_n_bins=8):
     """Build all RF-size vs preferred-frequency plots and print summary stats.
 
     Args:
@@ -527,6 +540,10 @@ def create_rf_size_vs_preferred_freq_plots(save_dir=None, filter_type='all',
         log_log: If True, also draw the scatter views on log-log axes (power-law test).
         response_normalize: Per-unit response normalization for the cycles-per-RF view
             ('zscore', 'max', or 'none').
+        cycles_bin_edges: Optional explicit cycles-per-RF bin edges for the View 4 trend
+            line, e.g. [0, 2, 4, 8, np.inf]. Overrides cycles_n_bins.
+        cycles_n_bins: Number of equal-width cycles-per-RF bins for View 4 when
+            cycles_bin_edges is None.
     """
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
@@ -564,7 +581,7 @@ def create_rf_size_vs_preferred_freq_plots(save_dir=None, filter_type='all',
     # View 4: response vs cycles-per-RF across all tested frequencies.
     plot_cycles_per_rf_vs_response(
         df, _path(save_dir, f"04_cycles_per_rf_vs_response{suffix}.png"),
-        normalize=response_normalize)
+        normalize=response_normalize, n_bins=cycles_n_bins, bin_edges=cycles_bin_edges)
 
     # Summary of the dimensionless cycles-across-RF quantity.
     cycles = pd.to_numeric(df['cycles_across_rf'], errors='coerce').dropna()
@@ -591,4 +608,8 @@ if __name__ == "__main__":
         size_col='rf_radius',
         log_log=True,
         response_normalize='zscore',
+        # Customize the cycles-per-RF trend bins here; None -> cycles_n_bins equal-width
+        # bins. Example: [0, 2, 4, 8, np.inf] for bins [0,2], [2,4], [4,8], [8,inf].
+        cycles_bin_edges=None,
+        cycles_n_bins=8,
     )
