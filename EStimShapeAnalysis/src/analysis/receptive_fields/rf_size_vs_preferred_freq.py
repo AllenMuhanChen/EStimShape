@@ -791,16 +791,16 @@ if __name__ == "__main__":
     # log_log=True additionally produces log-log power-law versions of the scatter views.
     create_rf_size_vs_preferred_freq_plots(
         save_dir="/home/connorlab/Documents/plots/rf_size_vs_preferred_freq",
-        filter_type='all',
+        filter_type='cluster',
         size_col='rf_radius',
         log_log=True,
         response_normalize='zscore',
         # Customize the cycles-per-RF trend bins here; None -> cycles_n_bins equal-width
         # bins. Example: [0, 2, 4, 8, np.inf] for bins [0,2], [2,4], [4,8], [8,inf].
-        cycles_bin_edges=None,
+        cycles_bin_edges=[0, 1.5, 2.5, 4, 6, 8.0, np.inf],
         cycles_n_bins=8,
         # Crop the View 4 x-axis, e.g. (0, 10); None auto-scales to the data.
-        cycles_xlim=None,
+        cycles_xlim=(0,12),
         # Dead-zone half-width for the ICI-colored trend split (View 4c):
         # one line for ICI >= +ici_buffer, one for ICI <= -ici_buffer.
         ici_buffer=0.1,

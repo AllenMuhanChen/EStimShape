@@ -21,7 +21,7 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
 //    public static final List<Double> mixedPhases = Arrays.asList(0.0, 0.5);
 
     // Target cycles-per-RF range and how many test frequencies should fall within it.
-    private static final double MIN_CYCLES_PER_RF = 4.0;
+    private static final double MIN_CYCLES_PER_RF = 2.5;
     private static final double MAX_CYCLES_PER_RF = 8.0;
     // Minimum spacing (in cycles-per-RF) between added values and existing in-range values.
     private static final double CYCLES_PER_RF_MARGIN = 1.0;

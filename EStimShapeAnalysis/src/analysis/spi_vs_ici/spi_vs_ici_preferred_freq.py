@@ -1252,5 +1252,6 @@ if __name__ == "__main__":
         threshold=0.70,
         filter_type='cluster',
         spi_regression_max=0.5,
-        nf_bin_edges=[0, 2, 4, 8.0, np.inf]
+        nf_bin_edges=[0, 1.5, 2.5, 8.0, np.inf],
+        # nf_bin_edges=[0, 1.5, 2.5, 8.0, np.inf] # for 3d
     )
