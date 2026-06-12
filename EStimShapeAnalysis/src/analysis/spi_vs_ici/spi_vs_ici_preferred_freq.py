@@ -1061,12 +1061,10 @@ def plot_normalized_frequency_bins(data, save_dir=None, threshold=0.7, spi_regre
         return
     data, bins, n_missing = result
 
-    # Color points by their raw stimulus frequency
-    allowed_frequencies = [0.5, 1.0, 2.0, 4.0]
-    freq_cmap = plt.cm.viridis
-    freq_colors = {freq: freq_cmap(i / 3) for i, freq in enumerate(allowed_frequencies)}
-
-    from matplotlib.patches import Patch
+    # Color points by their normalized frequency value, on a shared scale across all bins
+    nf_all = data['normalized_frequency'].values
+    nf_cmap = plt.cm.viridis
+    nf_norm = plt.Normalize(vmin=float(np.min(nf_all)), vmax=float(np.max(nf_all)))
 
     for bin_idx, interval in enumerate(bins):
         bin_data = data[data['nf_bin'] == interval]
@@ -1076,7 +1074,7 @@ def plot_normalized_frequency_bins(data, save_dir=None, threshold=0.7, spi_regre
         x = bin_data['solid_preference_index'].values
         y = bin_data['isochromatic_preference_index'].values
         p_values = bin_data['p_value'].values
-        frequencies = bin_data['frequency'].values
+        nf_values = bin_data['normalized_frequency'].values
 
         # Overall regression (optionally excludes high-SPI points)
         slope, intercept, r_value, p_value, r_squared, x_reg = linregress_with_spi_cap(
@@ -1084,9 +1082,9 @@ def plot_normalized_frequency_bins(data, save_dir=None, threshold=0.7, spi_regre
 
         plt.figure(figsize=(12, 8))
 
-        # Plot points colored by stimulus frequency, alpha by significance
+        # Plot points colored by normalized frequency, alpha by significance
         for i in range(len(x)):
-            color = freq_colors.get(frequencies[i], 'black')
+            color = nf_cmap(nf_norm(nf_values[i]))
             if pd.notna(p_values[i]) and p_values[i] < 0.05:
                 alpha_val, edge_color, lw = 0.7, 'black', 0.5
             else:
@@ -1111,16 +1109,13 @@ def plot_normalized_frequency_bins(data, save_dir=None, threshold=0.7, spi_regre
 
         add_plot_formatting(plt.gca(), r_squared, r_value, p_value, len(bin_data), n_significant)
 
-        # Two legends: regression lines and stimulus-frequency colors
-        present_freqs = sorted(bin_data['frequency'].unique())
-        freq_legend_elements = [Patch(facecolor=freq_colors.get(f, 'black'), label=f'{f} Hz')
-                                for f in present_freqs]
-        line_handles, line_labels = plt.gca().get_legend_handles_labels()
-        first_legend = plt.legend(handles=line_handles, labels=line_labels,
-                                  bbox_to_anchor=(1.02, 1), loc='upper left', title='Regression')
-        plt.gca().add_artist(first_legend)
-        plt.legend(handles=freq_legend_elements, bbox_to_anchor=(1.02, 0.55), loc='upper left',
-                   title='Stim Frequency')
+        # Regression legend (right) plus a colorbar for normalized frequency (bottom)
+        if plt.gca().get_legend_handles_labels()[0]:
+            plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', title='Regression')
+        sm = plt.cm.ScalarMappable(norm=nf_norm, cmap=nf_cmap)
+        sm.set_array([])
+        plt.colorbar(sm, ax=plt.gca(), orientation='horizontal', fraction=0.046, pad=0.1,
+                     label='Normalized frequency (freq / RF radius)')
 
         if n_missing > 0:
             plt.gcf().text(0.99, 0.01, f'{n_missing} point(s) without RF radius skipped',
