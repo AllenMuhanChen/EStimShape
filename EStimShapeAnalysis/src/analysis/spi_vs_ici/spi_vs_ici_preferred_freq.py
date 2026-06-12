@@ -68,6 +68,16 @@ def create_all_preference_plots(save_dir=None, threshold=0.7, filter_type='selec
     else:
         print("No data for individual frequency plots")
 
+    # 4. Plots binned by normalized frequency (stimulus frequency / RF radius)
+    print("\n" + "=" * 60)
+    print("Creating Plot 4: Normalized Frequency (freq / RF radius) Bins")
+    print("=" * 60)
+    normfreq_data = merged_data['all_strong']
+    if not normfreq_data.empty:
+        plot_normalized_frequency_bins(normfreq_data, save_dir, threshold, spi_regression_max)
+    else:
+        print("No data for normalized frequency plots")
+
     plt.show()
 
 
@@ -530,6 +540,35 @@ def parse_strong_frequencies(row, threshold):
         return []
 
 
+def merge_receptive_field_radius(base_df):
+    """Left-merge receptive field radius (from ReceptiveFieldInfo) onto the data.
+
+    Adds an 'rf_radius' column matched on (session_id, unit_name). Channels without a
+    ReceptiveFieldInfo entry get NaN, so callers can warn about / skip them.
+
+    Args:
+        base_df: Merged dataframe with 'session_id' and 'unit_name' columns.
+
+    Returns:
+        base_df with an added 'rf_radius' column.
+    """
+    conn = Connection("allen_data_repository")
+    conn.execute("SELECT session_id, channel, radius FROM ReceptiveFieldInfo")
+    rf_data = conn.fetch_all()
+
+    if not rf_data:
+        print("WARNING: No ReceptiveFieldInfo rows found; rf_radius will be NaN for all points")
+        base_df = base_df.copy()
+        base_df['rf_radius'] = np.nan
+        return base_df
+
+    rf_df = pd.DataFrame(rf_data, columns=['session_id', 'unit_name', 'rf_radius'])
+    rf_df['rf_radius'] = pd.to_numeric(rf_df['rf_radius'], errors='coerce')
+    rf_df = rf_df.drop_duplicates(['session_id', 'unit_name'])
+
+    return base_df.merge(rf_df, on=['session_id', 'unit_name'], how='left')
+
+
 def process_frequency_data(base_df):
     """
     Process merged dataframe to create preferred_only and all_strong datasets.
@@ -547,6 +586,9 @@ def process_frequency_data(base_df):
     # Filter to allowed frequencies
     allowed_frequencies = [0.5, 1.0, 2.0, 4.0]
     base_df = base_df[base_df['frequency'].isin(allowed_frequencies)]
+
+    # Attach receptive field radius (NaN where the channel has no RF info)
+    base_df = merge_receptive_field_radius(base_df)
 
     # Create dataset 1: Preferred frequency only
     preferred_only = base_df[base_df['frequency'] == base_df['preferred_frequency']].copy()
@@ -812,6 +854,134 @@ def plot_individual_frequencies(data, save_dir=None, threshold=0.7, spi_regressi
 
         print(f"\n{freq} Hz Statistics:")
         print(f"  Data points: {len(freq_data)}")
+        print(f"  Significant: {n_significant}")
+        if len(x_reg) > 1:
+            print(f"  Overall: R² = {r_squared:.3f}, r = {r_value:.3f}, p = {p_value:.3f}")
+        print(f"  By significance category:")
+        print_category_regressions(category_results)
+
+
+def plot_normalized_frequency_bins(data, save_dir=None, threshold=0.7, spi_regression_max=None, n_bins=4):
+    """Plot 4: SPI vs ICI binned by normalized frequency (stimulus frequency / RF radius).
+
+    Each data point's stimulus frequency (0.5, 1, 2, 4 Hz) is divided by the channel's
+    receptive field radius (from ReceptiveFieldInfo). Points are split into n_bins quantile
+    bins of this ratio and one plot is produced per bin (replacing the per-frequency plots).
+
+    Channels without valid RF radius information are skipped, with a printed warning and an
+    on-figure note. (In 'mapped_channel' mode every channel has RF info, so none are skipped.)
+
+    Args:
+        data: 'all_strong' DataFrame (must include 'frequency' and 'rf_radius' columns).
+        save_dir: Directory to save plots. If None, plots are only displayed.
+        threshold: Strong-frequency response threshold (used only for the title).
+        spi_regression_max: If not None, exclude points with SPI > this value from the fits.
+        n_bins: Number of normalized-frequency bins (plots) to create.
+    """
+    data = data.copy()
+
+    # Identify points with usable RF radius
+    if 'rf_radius' not in data.columns:
+        print("WARNING: No rf_radius column found; cannot create normalized-frequency plots")
+        return
+
+    valid = data['rf_radius'].notna() & (data['rf_radius'] > 0)
+    n_missing = int((~valid).sum())
+    if n_missing > 0:
+        print(f"WARNING: {n_missing} of {len(data)} data points lack a valid ReceptiveFieldInfo "
+              f"radius and are skipped in the normalized-frequency plots.")
+    data = data[valid].copy()
+
+    if len(data) < n_bins:
+        print(f"Not enough data points with RF radius ({len(data)}) for {n_bins} bins")
+        return
+
+    # Normalized frequency = stimulus frequency / RF radius
+    data['normalized_frequency'] = data['frequency'] / data['rf_radius']
+
+    # Quantile bins so each plot has a comparable number of points
+    try:
+        data['nf_bin'] = pd.qcut(data['normalized_frequency'], n_bins, duplicates='drop')
+    except ValueError as e:
+        print(f"Could not bin normalized frequency: {e}")
+        return
+    bins = list(data['nf_bin'].cat.categories)
+
+    # Color points by their raw stimulus frequency
+    allowed_frequencies = [0.5, 1.0, 2.0, 4.0]
+    freq_cmap = plt.cm.viridis
+    freq_colors = {freq: freq_cmap(i / 3) for i, freq in enumerate(allowed_frequencies)}
+
+    from matplotlib.patches import Patch
+
+    for bin_idx, interval in enumerate(bins):
+        bin_data = data[data['nf_bin'] == interval]
+        if bin_data.empty:
+            continue
+
+        x = bin_data['solid_preference_index'].values
+        y = bin_data['isochromatic_preference_index'].values
+        p_values = bin_data['p_value'].values
+        frequencies = bin_data['frequency'].values
+
+        # Overall regression (optionally excludes high-SPI points)
+        slope, intercept, r_value, p_value, r_squared, x_reg = linregress_with_spi_cap(
+            x, y, spi_regression_max)
+
+        plt.figure(figsize=(12, 8))
+
+        # Plot points colored by stimulus frequency, alpha by significance
+        for i in range(len(x)):
+            color = freq_colors.get(frequencies[i], 'black')
+            if pd.notna(p_values[i]) and p_values[i] < 0.05:
+                alpha_val, edge_color, lw = 0.7, 'black', 0.5
+            else:
+                alpha_val, edge_color, lw = 0.15, 'gray', 0.3
+            plt.scatter(x[i], y[i], alpha=alpha_val, s=100, color=color, marker='o',
+                        edgecolors=edge_color, linewidths=lw)
+
+        # Separate regression lines for sig-2D, non-sig, and sig-3D categories
+        category_results = plot_category_regressions(plt.gca(), x, y, p_values,
+                                                     spi_regression_max=spi_regression_max)
+
+        # Formatting
+        n_significant = np.sum((pd.notna(p_values)) & (p_values < 0.05))
+        plt.xlabel('Solid Preference Index', fontsize=14)
+        plt.ylabel('Isochromatic Preference Index', fontsize=14)
+        plt.title(
+            f'Solid vs Isochromatic Preference by Normalized Frequency (freq / RF radius)\n'
+            f'Bin {bin_idx + 1}/{len(bins)}: ratio in [{interval.left:.3f}, {interval.right:.3f}] '
+            f'(≥{threshold * 100:.0f}% of max)\n'
+            f'(n={len(bin_data)} data points, {n_significant} solid-pref significant)',
+            fontsize=14)
+
+        add_plot_formatting(plt.gca(), r_squared, r_value, p_value, len(bin_data), n_significant)
+
+        # Two legends: regression lines and stimulus-frequency colors
+        present_freqs = sorted(bin_data['frequency'].unique())
+        freq_legend_elements = [Patch(facecolor=freq_colors.get(f, 'black'), label=f'{f} Hz')
+                                for f in present_freqs]
+        line_handles, line_labels = plt.gca().get_legend_handles_labels()
+        first_legend = plt.legend(handles=line_handles, labels=line_labels,
+                                  bbox_to_anchor=(1.02, 1), loc='upper left', title='Regression')
+        plt.gca().add_artist(first_legend)
+        plt.legend(handles=freq_legend_elements, bbox_to_anchor=(1.02, 0.55), loc='upper left',
+                   title='Stim Frequency')
+
+        if n_missing > 0:
+            plt.gcf().text(0.99, 0.01, f'{n_missing} point(s) without RF radius skipped',
+                           ha='right', va='bottom', fontsize=8, color='red')
+
+        plt.tight_layout()
+
+        if save_dir:
+            save_path = os.path.join(save_dir, f"04_normfreq_bin{bin_idx + 1}.png")
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"Saved: {save_path}")
+
+        print(f"\nNormalized Frequency Bin {bin_idx + 1} "
+              f"[{interval.left:.3f}, {interval.right:.3f}] Statistics:")
+        print(f"  Data points: {len(bin_data)}")
         print(f"  Significant: {n_significant}")
         if len(x_reg) > 1:
             print(f"  Overall: R² = {r_squared:.3f}, r = {r_value:.3f}, p = {p_value:.3f}")
