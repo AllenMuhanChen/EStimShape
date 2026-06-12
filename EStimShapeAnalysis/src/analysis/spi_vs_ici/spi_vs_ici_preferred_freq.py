@@ -954,7 +954,7 @@ def compute_normalized_frequency_bins(data, n_bins=4, bin_edges=None):
         return None
 
     # Normalized frequency = stimulus frequency / RF radius
-    data['normalized_frequency'] = data['frequency'] / data['rf_radius']
+    data['normalized_frequency'] = data['frequency'] * 2 * data['rf_radius']
 
     if bin_edges is not None:
         # Use caller-specified fixed bin edges
@@ -1237,7 +1237,9 @@ if __name__ == "__main__":
     # create_all_preference_plots(
     #     save_dir="/home/connorlab/Documents/plots/spi_vs_ici_cluster",
     #     threshold=0.7,
-    #     filter_type='cluster'
+    #     filter_type='cluster',
+    #     spi_regression_max=0.5,
+    #     n_normalized_freq_bins=3
     # )
 
     # Example 4: Use mapped channels (cluster channels also in ReceptiveFieldInfo)
@@ -1247,8 +1249,8 @@ if __name__ == "__main__":
     # set to None to use nf_n_bins quantile bins instead.
     create_all_preference_plots(
         save_dir="/home/connorlab/Documents/plots/spi_vs_ici_mapped_channel",
-        threshold=0.7,
-        filter_type='mapped_channel',
+        threshold=0.70,
+        filter_type='cluster',
         spi_regression_max=0.5,
-        nf_bin_edges=[0, 0.5, np.inf]
+        nf_bin_edges=[0, 2, 4, 8.0, np.inf]
     )

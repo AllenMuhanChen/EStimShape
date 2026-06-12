@@ -12,24 +12,32 @@ import javax.vecmath.Point3d;
  * Carries the old AlexNet LightingPostHocGenerator idea into the neural GA. Reproduces the
  * parent faithfully (same shape, texture, color, size, position) - only the OpenGL light
  * position changes (see {@link LightingGAMatchStick}). Created by {@link FromDbGABlockGenerator}
- * when it sees a "LIGHTING_LEFT" / "LIGHTING_RIGHT" stim_type written by the Python
- * LightingSideTest.
+ * when it sees a "LIGHTING" stim_type written by the Python LightingSideTest; the lighting
+ * direction is carried in the stimulus's mutation_magnitude (rotation angle in degrees).
  */
 public class LightingGAStim extends GAStim<GAMatchStick, AllenMStickData> {
 
-    // Front light is {0, 0, 500, 1}; rotate it 45 degrees about the vertical (Y) axis.
-    // +x is screen-right, so RIGHT has +x and LEFT has -x; z stays positive (in front).
+    // Front light is {0, 0, 500, 1}; rotating it about the vertical (Y) axis keeps z forward and
+    // sweeps x left/right.
     private static final float FORWARD = 500.0f;
-    private static final float OFFSET_45 = (float) (FORWARD * Math.sin(Math.toRadians(45.0)));
-    public static final float[] LEFT_LIGHT = {-OFFSET_45, 0.0f, OFFSET_45, 1.0f};
-    public static final float[] RIGHT_LIGHT = {OFFSET_45, 0.0f, OFFSET_45, 1.0f};
 
     private final float[] lightPosition;
 
-    public LightingGAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, float[] lightPosition) {
+    public LightingGAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double lightAngleDegrees) {
         // "PARENT" texture + no average-RGB swap: keep the parent's texture and color as-is.
         super(stimId, generator, parentId, "PARENT", false);
-        this.lightPosition = lightPosition;
+        this.lightPosition = lightPositionForAngle(lightAngleDegrees);
+    }
+
+    /**
+     * The OpenGL light position for the front light {0, 0, 500, 1} rotated by {@code angleDegrees}
+     * about the vertical (Y) axis. 0 degrees is the front light; positive sweeps toward +x.
+     */
+    public static float[] lightPositionForAngle(double angleDegrees) {
+        double radians = Math.toRadians(angleDegrees);
+        float x = (float) (FORWARD * Math.sin(radians));
+        float z = (float) (FORWARD * Math.cos(radians));
+        return new float[]{x, 0.0f, z, 1.0f};
     }
 
     @Override

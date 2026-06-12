@@ -97,7 +97,7 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
             if (parseShuffle(stimId, stimInfo, parentId)){
                 continue;
             }
-            if (parseLighting(stimId, stimInfo, parentId)){
+            if (parseLighting(stimId, stimInfo, parentId, magnitude)){
                 continue;
             }
             if (parseCatch(stimId, stimInfo)){
@@ -204,20 +204,12 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
         return false;
     }
 
-    private boolean parseLighting(Long stimId, StimGaInfoEntry stimInfo, Long parentId) {
-        String stimTypeString = stimInfo.getStimType();
-
-        // Check for "LIGHTING_<DIRECTION>" pattern written by the Python LightingSideTest.
-        Pattern pattern = Pattern.compile("LIGHTING_(LEFT|RIGHT)");
-        Matcher matcher = pattern.matcher(stimTypeString);
-        if (matcher.matches()) {
-            String direction = matcher.group(1);
-            float[] lightPosition = direction.equals("LEFT")
-                    ? LightingGAStim.LEFT_LIGHT
-                    : LightingGAStim.RIGHT_LIGHT;
-            System.out.println("Detected Lighting with direction = " + direction);
-
-            stims.add(new LightingGAStim(stimId, this, parentId, lightPosition));
+    private boolean parseLighting(Long stimId, StimGaInfoEntry stimInfo, Long parentId, double magnitude) {
+        // Written by the Python LightingSideTest as stim_type "LIGHTING"; the lighting direction
+        // is carried in the mutation_magnitude (rotation angle in degrees about the vertical axis).
+        if (stimInfo.getStimType().equals("LIGHTING")) {
+            System.out.println("Detected Lighting with angle = " + magnitude);
+            stims.add(new LightingGAStim(stimId, this, parentId, magnitude));
             return true;
         }
         return false;

@@ -822,11 +822,11 @@ if __name__ == "__main__":
     #   'raw_significant' - raw significant channels (p < 0.05, no spike sorting)
     #   'cluster'         - cluster channels via ClusterInfo (matches spi_ici_clusters.py)
     #   'mapped_channel'  - cluster channels also present in ReceptiveFieldInfo
-    selection_mode = 'cluster'
+    selection_mode = 'mapped_channel'
 
     # Exclude points with Solid Preference Index above this value from every regression
     # (the points are still plotted). Set to None to use all points.
-    spi_regression_max = 0.5
+    spi_regression_max = 0.3
 
     # Generate plots with OLS regression (default)
     print("=" * 80)
