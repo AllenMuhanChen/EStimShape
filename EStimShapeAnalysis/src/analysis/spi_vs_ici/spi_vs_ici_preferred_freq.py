@@ -18,6 +18,7 @@ def create_all_preference_plots(save_dir=None, threshold=0.7, filter_type='selec
         filter_type: Type of filtering to use. Options:
                     - 'selectivity': Uses stimulus selectivity threshold (original)
                     - 'double_filter': Uses GoodChannels AND ChannelFiltering (from spi_vs_ici.py)
+                    - 'cluster': Uses cluster channels only via ClusterInfo (from spi_ici_clusters.py)
     """
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
@@ -79,8 +80,10 @@ def load_and_filter_data(threshold=0.7, filter_type='selectivity'):
         return load_data_with_selectivity_filter(threshold)
     elif filter_type == 'double_filter':
         return load_data_with_double_filter(threshold)
+    elif filter_type == 'cluster':
+        return load_data_with_cluster_filter(threshold)
     else:
-        raise ValueError(f"Unknown filter_type: {filter_type}. Use 'selectivity' or 'double_filter'")
+        raise ValueError(f"Unknown filter_type: {filter_type}. Use 'selectivity', 'double_filter', or 'cluster'")
 
 
 def load_data_with_selectivity_filter(threshold=0.7):
@@ -245,6 +248,92 @@ def load_data_with_double_filter(threshold=0.7):
                                             'isochromatic_preference_index'])
 
     # Merge base data
+    base_df = solid_df.merge(
+        preferred_freq_df[['session_id', 'unit_name', 'preferred_frequency', 'strong_frequencies']],
+        on=['session_id', 'unit_name'], how='inner'
+    )
+
+    base_df = base_df.merge(
+        isochromatic_df,
+        on=['session_id', 'unit_name'], how='inner'
+    )
+
+    return process_frequency_data(base_df)
+
+
+def load_data_with_cluster_filter(threshold=0.7):
+    """
+    Cluster-based data loading: selects only cluster channels, using exactly the
+    same stimulus/channel selection as spi_ici_clusters.py (JOIN SolidPreferenceIndices /
+    IsochromaticPreferenceIndices with Experiments and ClusterInfo on
+    e.experiment_id = c.experiment_id AND unit_name = c.channel).
+
+    Returns:
+        Dictionary with 'preferred_only' and 'all_strong' DataFrames
+    """
+    conn = Connection("allen_data_repository")
+
+    print("Using cluster filter: ClusterInfo cluster channels (matches spi_ici_clusters.py)")
+
+    # Get solid preference indices for cluster channels only (matches spi_ici_clusters.py)
+    solid_query = """
+                  SELECT s.session_id, s.unit_name, s.solid_preference_index, s.p_value
+                  FROM SolidPreferenceIndices s
+                           JOIN Experiments e ON s.session_id = e.session_id
+                           JOIN ClusterInfo c ON e.experiment_id = c.experiment_id AND s.unit_name = c.channel
+                  """
+
+    conn.execute(solid_query)
+    solid_data = conn.fetch_all()
+
+    if not solid_data:
+        print("No solid preference data found for cluster channels")
+        return None
+
+    solid_df = pd.DataFrame(solid_data,
+                            columns=['session_id', 'unit_name', 'solid_preference_index', 'p_value'])
+    solid_df = solid_df.drop_duplicates(['session_id', 'unit_name'])
+
+    print(f"Found {len(solid_df)} cluster units (SolidPreferenceIndices)")
+
+    # Get isochromatic preference indices for cluster channels only (matches spi_ici_clusters.py)
+    isochromatic_query = """
+                         SELECT i.session_id, i.unit_name, i.frequency, i.isochromatic_preference_index
+                         FROM IsochromaticPreferenceIndices i
+                                  JOIN Experiments e ON i.session_id = e.session_id
+                                  JOIN ClusterInfo c ON e.experiment_id = c.experiment_id AND i.unit_name = c.channel
+                         """
+
+    conn.execute(isochromatic_query)
+    isochromatic_data = conn.fetch_all()
+    isochromatic_df = pd.DataFrame(isochromatic_data,
+                                   columns=['session_id', 'unit_name', 'frequency',
+                                            'isochromatic_preference_index'])
+    isochromatic_df = isochromatic_df.drop_duplicates(['session_id', 'unit_name', 'frequency'])
+
+    # Get preferred frequencies (restricted to cluster channels via the inner merge below)
+    preferred_freq_query = """
+                           SELECT session_id, unit_name, preferred_frequency, all_freq_responses
+                           FROM PreferredFrequencies
+                           """
+
+    conn.execute(preferred_freq_query)
+    preferred_freq_data = conn.fetch_all()
+
+    if not preferred_freq_data:
+        print("No preferred frequency data found")
+        return None
+
+    preferred_freq_df = pd.DataFrame(preferred_freq_data,
+                                     columns=['session_id', 'unit_name', 'preferred_frequency',
+                                              'all_freq_responses'])
+
+    # Parse JSON and identify strong frequencies
+    preferred_freq_df['strong_frequencies'] = preferred_freq_df.apply(
+        lambda row: parse_strong_frequencies(row, threshold), axis=1
+    )
+
+    # Merge base data (inner merges keep only cluster channels with matching data)
     base_df = solid_df.merge(
         preferred_freq_df[['session_id', 'unit_name', 'preferred_frequency', 'strong_frequencies']],
         on=['session_id', 'unit_name'], how='inner'
@@ -692,8 +781,15 @@ if __name__ == "__main__":
     # )
 
     # Example 2: Use double filtering (GoodChannels + ChannelFiltering)
+    # create_all_preference_plots(
+    #     save_dir="/home/connorlab/Documents/plots/spi_vs_ici_double_filter",
+    #     threshold=0.7,
+    #     filter_type='double_filter'
+    # )
+
+    # Example 3: Use cluster channels only (matches spi_ici_clusters.py)
     create_all_preference_plots(
-        save_dir="/home/connorlab/Documents/plots/spi_vs_ici_double_filter",
+        save_dir="/home/connorlab/Documents/plots/spi_vs_ici_cluster",
         threshold=0.7,
-        filter_type='double_filter'
+        filter_type='cluster'
     )
