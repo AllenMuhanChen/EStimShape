@@ -448,12 +448,69 @@ def _response_label(normalize):
     }.get(normalize, 'Response')
 
 
+def load_solid_preference_indices():
+    """Load per-unit Solid Preference Index and its significance p-value.
+
+    Returns:
+        DataFrame ['session_id', 'unit_name', 'solid_preference_index', 'spi_p_value'],
+        de-duplicated on (session_id, unit_name), or None if no rows.
+    """
+    conn = Connection("allen_data_repository")
+    conn.execute("""
+                 SELECT session_id, unit_name, solid_preference_index, p_value
+                 FROM SolidPreferenceIndices
+                 """)
+    rows = conn.fetch_all()
+    if not rows:
+        print("No SolidPreferenceIndices rows found")
+        return None
+    df = pd.DataFrame(rows, columns=['session_id', 'unit_name',
+                                     'solid_preference_index', 'spi_p_value'])
+    df['solid_preference_index'] = pd.to_numeric(df['solid_preference_index'], errors='coerce')
+    df['spi_p_value'] = pd.to_numeric(df['spi_p_value'], errors='coerce')
+    return df.drop_duplicates(['session_id', 'unit_name'])
+
+
+def load_isochromatic_preference_indices():
+    """Load per-(unit, frequency) Isochromatic Preference Index.
+
+    Unlike the solid index, this is stored per stimulus frequency and has no
+    significance p-value.
+
+    Returns:
+        DataFrame ['session_id', 'unit_name', 'frequency', 'isochromatic_preference_index'],
+        de-duplicated on (session_id, unit_name, frequency), or None if no rows.
+    """
+    conn = Connection("allen_data_repository")
+    conn.execute("""
+                 SELECT session_id, unit_name, frequency, isochromatic_preference_index
+                 FROM IsochromaticPreferenceIndices
+                 """)
+    rows = conn.fetch_all()
+    if not rows:
+        print("No IsochromaticPreferenceIndices rows found")
+        return None
+    df = pd.DataFrame(rows, columns=['session_id', 'unit_name', 'frequency',
+                                     'isochromatic_preference_index'])
+    df['frequency'] = pd.to_numeric(df['frequency'], errors='coerce')
+    df['isochromatic_preference_index'] = pd.to_numeric(
+        df['isochromatic_preference_index'], errors='coerce')
+    return df.drop_duplicates(['session_id', 'unit_name', 'frequency'])
+
+
 def plot_cycles_per_rf_vs_response(df, save_path=None, normalize='zscore', n_bins=8,
-                                   bin_edges=None, xlim=None):
+                                   bin_edges=None, xlim=None, color_by='frequency'):
     """View 4: response vs cycles-per-RF (freq × RF diameter) across all frequencies.
 
-    One point per (unit, tested frequency), colored by stimulus frequency, with a
-    binned mean ± SEM trend line that reveals any preferred number of cycles per RF.
+    One point per (unit, tested frequency), with a binned mean ± SEM trend line that
+    reveals any preferred number of cycles per RF.
+
+    Points can be colored three ways via ``color_by``:
+      - 'frequency': discrete color per stimulus frequency (default).
+      - 'spi': continuous color by the unit's Solid Preference Index, with
+        non-significant points (solid-pref p >= 0.05) drawn at lower alpha.
+      - 'ici': continuous color by the per-(unit, frequency) Isochromatic Preference
+        Index. This index has no significance statistic, so all points share one alpha.
 
     Args:
         df: Analysis DataFrame from load_rf_size_vs_preferred_freq_data.
@@ -466,11 +523,40 @@ def plot_cycles_per_rf_vs_response(df, save_path=None, normalize='zscore', n_bin
             Use np.inf for an open final bin, e.g. [0, 2, 4, 8, np.inf].
         xlim: Optional (xmin, xmax) cycles-per-RF range for the x-axis. This is a
             display crop only — all points are still used for the binned trend.
+        color_by: Point coloring ('frequency', 'spi', or 'ici').
     """
     long_df = expand_frequency_responses(df, normalize=normalize)
     if long_df.empty:
         print("No (unit, frequency) points available for cycles-per-RF plot")
         return None
+
+    # Attach the coloring variable when needed (SPI per unit, ICI per unit×frequency).
+    color_col = None
+    if color_by == 'spi':
+        spi_df = load_solid_preference_indices()
+        if spi_df is None:
+            return None
+        long_df = long_df.merge(spi_df, on=['session_id', 'unit_name'], how='left')
+        color_col = 'solid_preference_index'
+    elif color_by == 'ici':
+        iso_df = load_isochromatic_preference_indices()
+        if iso_df is None:
+            return None
+        long_df = long_df.merge(iso_df, on=['session_id', 'unit_name', 'frequency'], how='left')
+        color_col = 'isochromatic_preference_index'
+    elif color_by != 'frequency':
+        raise ValueError(f"Unknown color_by: {color_by}. Use 'frequency', 'spi', or 'ici'")
+
+    # Drop points lacking the coloring value so the color scale is meaningful.
+    if color_col is not None:
+        n_before = len(long_df)
+        long_df = long_df[long_df[color_col].notna()].copy()
+        n_missing = n_before - len(long_df)
+        if n_missing > 0:
+            print(f"color_by='{color_by}': skipped {n_missing} point(s) without a {color_col}")
+        if long_df.empty:
+            print(f"No points with a {color_col}; nothing to plot for color_by='{color_by}'")
+            return None
 
     y_col = 'response' if normalize == 'none' else 'norm_response'
     x = long_df['cycles_per_rf'].values
@@ -478,14 +564,33 @@ def plot_cycles_per_rf_vs_response(df, save_path=None, normalize='zscore', n_bin
 
     fig, ax = plt.subplots(figsize=(9, 7))
 
-    # Scatter colored by stimulus frequency.
-    freqs = sorted(long_df['frequency'].unique())
-    cmap = plt.cm.viridis
-    for i, freq in enumerate(freqs):
-        m = long_df['frequency'] == freq
-        ax.scatter(long_df.loc[m, 'cycles_per_rf'], long_df.loc[m, y_col],
-                   s=45, alpha=0.5, color=cmap(i / max(1, len(freqs) - 1)),
-                   edgecolors='none', label=f'{freq:g} Hz')
+    if color_col is None:
+        # Discrete color per stimulus frequency.
+        freqs = sorted(long_df['frequency'].unique())
+        cmap = plt.cm.viridis
+        for i, freq in enumerate(freqs):
+            m = long_df['frequency'] == freq
+            ax.scatter(long_df.loc[m, 'cycles_per_rf'], long_df.loc[m, y_col],
+                       s=45, alpha=0.5, color=cmap(i / max(1, len(freqs) - 1)),
+                       edgecolors='none', label=f'{freq:g} Hz')
+    else:
+        # Continuous color by a preference index, symmetric about 0 (indices span [-1, 1]).
+        cvals = long_df[color_col].values
+        vmax = float(np.nanmax(np.abs(cvals))) if len(cvals) else 1.0
+        vmax = vmax if np.isfinite(vmax) and vmax > 0 else 1.0
+        cnorm = plt.Normalize(vmin=-vmax, vmax=vmax)
+        cmap = plt.cm.coolwarm
+        rgba = cmap(cnorm(cvals))
+        if color_by == 'spi':
+            # Lower alpha for non-significant (or missing-p) solid preferences.
+            sig = long_df['spi_p_value'].notna() & (long_df['spi_p_value'] < 0.05)
+            rgba[:, 3] = np.where(sig.values, 0.85, 0.15)
+        else:
+            rgba[:, 3] = 0.6
+        ax.scatter(x, y, s=45, c=rgba, edgecolors='none')
+        sm = plt.cm.ScalarMappable(norm=cnorm, cmap=cmap)
+        sm.set_array([])
+        fig.colorbar(sm, ax=ax, label=_color_label(color_by))
 
     # Binned mean ± SEM trend across all points.
     finite = np.isfinite(x) & np.isfinite(y)
@@ -517,17 +622,32 @@ def plot_cycles_per_rf_vs_response(df, save_path=None, normalize='zscore', n_bin
         ax.set_xlim(xlim)
     ax.set_xlabel('Cycles per RF (frequency × RF diameter)', fontsize=13)
     ax.set_ylabel(_response_label(normalize), fontsize=13)
-    ax.set_title(f'Response vs cycles per RF\n'
-                 f'(n={len(long_df)} unit×frequency points, {df.shape[0]} units)', fontsize=14)
+    title_suffix = {'spi': ' — colored by Solid Preference Index',
+                    'ici': ' — colored by Isochromatic Preference Index'}.get(color_by, '')
+    ax.set_title(f'Response vs cycles per RF{title_suffix}\n'
+                 f'(n={len(long_df)} unit×frequency points, '
+                 f'{long_df[["session_id", "unit_name"]].drop_duplicates().shape[0]} units)',
+                 fontsize=13)
     ax.grid(True, alpha=0.3)
-    ax.legend(loc='best', fontsize=9, title='Stimulus frequency')
+    if color_col is None:
+        ax.legend(loc='best', fontsize=9, title='Stimulus frequency')
+    elif ax.get_legend_handles_labels()[0]:
+        # SPI/ICI use a colorbar; keep only the trend-line entry.
+        ax.legend(loc='best', fontsize=9)
     fig.tight_layout()
 
     _save(fig, save_path)
-    print(f"\nResponse vs cycles per RF (normalize='{normalize}'):")
-    print(f"  {len(long_df)} unit×frequency points across {df.shape[0]} units; "
+    print(f"\nResponse vs cycles per RF (normalize='{normalize}', color_by='{color_by}'):")
+    print(f"  {len(long_df)} unit×frequency points; "
           f"cycles_per_rf range [{np.nanmin(x):.3f}, {np.nanmax(x):.3f}]")
     return long_df
+
+
+def _color_label(color_by):
+    return {
+        'spi': 'Solid Preference Index',
+        'ici': 'Isochromatic Preference Index',
+    }.get(color_by, color_by)
 
 
 def create_rf_size_vs_preferred_freq_plots(save_dir=None, filter_type='all',
@@ -586,10 +706,19 @@ def create_rf_size_vs_preferred_freq_plots(save_dir=None, filter_type='all',
             log_log=True, size_col=size_col, freq_col='continuous_preferred_frequency')
 
     # View 4: response vs cycles-per-RF across all tested frequencies.
+    # 4a: colored by stimulus frequency; 4b: by Solid Preference Index (alpha by
+    # significance); 4c: by Isochromatic Preference Index (no significance).
+    cycles_kwargs = dict(normalize=response_normalize, n_bins=cycles_n_bins,
+                         bin_edges=cycles_bin_edges, xlim=cycles_xlim)
     plot_cycles_per_rf_vs_response(
         df, _path(save_dir, f"04_cycles_per_rf_vs_response{suffix}.png"),
-        normalize=response_normalize, n_bins=cycles_n_bins, bin_edges=cycles_bin_edges,
-        xlim=cycles_xlim)
+        color_by='frequency', **cycles_kwargs)
+    plot_cycles_per_rf_vs_response(
+        df, _path(save_dir, f"04b_cycles_per_rf_vs_response_spi{suffix}.png"),
+        color_by='spi', **cycles_kwargs)
+    plot_cycles_per_rf_vs_response(
+        df, _path(save_dir, f"04c_cycles_per_rf_vs_response_ici{suffix}.png"),
+        color_by='ici', **cycles_kwargs)
 
     # Summary of the dimensionless cycles-across-RF quantity.
     cycles = pd.to_numeric(df['cycles_across_rf'], errors='coerce').dropna()
