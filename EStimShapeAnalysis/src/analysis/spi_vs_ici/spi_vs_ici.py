@@ -46,6 +46,32 @@ def calculate_regression(x, y, method='ols'):
         raise ValueError(f"Unknown regression method: {method}. Use 'ols' or 'theil-sen'")
 
 
+def calculate_regression_with_spi_cap(x, y, method='ols', spi_regression_max=None):
+    """Run calculate_regression after excluding points with solid preference index above a cap.
+
+    Points with x (Solid Preference Index) greater than spi_regression_max are excluded
+    from the regression only; callers are expected to still plot all points.
+
+    Args:
+        x, y: Data arrays (x is the Solid Preference Index)
+        method: 'ols' or 'theil-sen'
+        spi_regression_max: If not None, exclude points with x > this value from the fit.
+
+    Returns:
+        slope, intercept, r_value, p_value, r_squared, x_used
+        where x_used is the x array actually used for the regression (handy for drawing
+        the trend line over the correct range).
+    """
+    x = np.asarray(x)
+    y = np.asarray(y)
+    if spi_regression_max is not None:
+        mask = x <= spi_regression_max
+        x = x[mask]
+        y = y[mask]
+    slope, intercept, r_value, p_value, r_squared = calculate_regression(x, y, method)
+    return slope, intercept, r_value, p_value, r_squared, x
+
+
 def load_validated_channels_data():
     """Load data for channels that pass BOTH manual (GoodChannels) AND algorithmic (ChannelFiltering) validation.
 
@@ -243,7 +269,7 @@ def load_data_for_selection_mode(selection_mode):
 
 
 def create_preference_indices_frequency_plots(plot_individual_sessions=False, regression_method='ols',
-                                              selection_mode='double_filter'):
+                                              selection_mode='double_filter', spi_regression_max=None):
     """Create separate plots for each session, with subplots for each frequency, plus combined plots.
 
     Args:
@@ -256,6 +282,8 @@ def create_preference_indices_frequency_plots(plot_individual_sessions=False, re
             - 'raw_significant': Raw significant channels (p < 0.05, no spike sorting)
             - 'cluster': Cluster channels via ClusterInfo (matches spi_ici_clusters.py)
             - 'mapped_channel': Cluster channels that are also in ReceptiveFieldInfo
+        spi_regression_max: If not None, points with Solid Preference Index above this
+            value are excluded from every regression (they are still plotted).
     """
 
     # ==================== DATA LOADING SECTION ====================
@@ -279,6 +307,8 @@ def create_preference_indices_frequency_plots(plot_individual_sessions=False, re
     print(f"Using spatial frequencies: {frequencies}")
     print(f"Data source: {data_description}")
     print(f"Total channels: {len(merged_df['unit_name'].unique())}")
+    if spi_regression_max is not None:
+        print(f"Excluding SPI > {spi_regression_max} from all regressions")
 
     # Show breakdown by session for validation - NOW INCLUDING SIGNIFICANCE COUNT
     for session in sessions:
@@ -292,21 +322,26 @@ def create_preference_indices_frequency_plots(plot_individual_sessions=False, re
     # Create a separate plot for each session (if enabled)
     if plot_individual_sessions:
         for session_id in sessions:
-            plot_session_frequencies(merged_df, session_id, frequencies, regression_method, data_description)
+            plot_session_frequencies(merged_df, session_id, frequencies, regression_method, data_description,
+                                     spi_regression_max)
 
     # Add combined plots
     print(f"\nCreating combined plots using {regression_method.upper()} regression...")
-    create_combined_frequency_plots(merged_df, sessions, frequencies, regression_method, data_description)
+    create_combined_frequency_plots(merged_df, sessions, frequencies, regression_method, data_description,
+                                    spi_regression_max)
 
     # Add significance-based regression plots
     print(f"\nCreating significance-based regression plots using {regression_method.upper()}...")
-    plot_significant_cells_by_frequency(merged_df, frequencies, regression_method, data_description)
-    plot_nonsignificant_cells_by_frequency(merged_df, frequencies, regression_method, data_description)
+    plot_significant_cells_by_frequency(merged_df, frequencies, regression_method, data_description,
+                                        spi_regression_max)
+    plot_nonsignificant_cells_by_frequency(merged_df, frequencies, regression_method, data_description,
+                                           spi_regression_max)
 
     return merged_df
 
 
-def plot_session_frequencies(merged_df, session_id, frequencies, regression_method='ols', data_description=""):
+def plot_session_frequencies(merged_df, session_id, frequencies, regression_method='ols', data_description="",
+                             spi_regression_max=None):
     """Create a plot for one session with subplots for each frequency."""
 
     # Filter data for this session
@@ -356,8 +391,9 @@ def plot_session_frequencies(merged_df, session_id, frequencies, regression_meth
         y = freq_data['isochromatic_preference_index'].values
         p_values = freq_data['p_value'].values
 
-        # Calculate regression using specified method
-        slope, intercept, r_value, p_value, r_squared = calculate_regression(x, y, regression_method)
+        # Calculate regression using specified method (optionally excluding high-SPI points)
+        slope, intercept, r_value, p_value, r_squared, x_reg = calculate_regression_with_spi_cap(
+            x, y, regression_method, spi_regression_max)
 
         # Plot points with different alpha based on significance
         for i in range(len(x)):
@@ -372,9 +408,9 @@ def plot_session_frequencies(merged_df, session_id, frequencies, regression_meth
 
             ax.scatter(x[i], y[i], alpha=alpha_val, s=60, color=color)
 
-        # Add trend line if we have enough points
-        if len(x) > 1 and not np.isnan(slope):
-            line_x = np.linspace(x.min(), x.max(), 100)
+        # Add trend line if we have enough points (over the range used for the regression)
+        if len(x_reg) > 1 and not np.isnan(slope):
+            line_x = np.linspace(x_reg.min(), x_reg.max(), 100)
             line_y = slope * line_x + intercept
             ax.plot(line_x, line_y, 'r-', linewidth=2, alpha=0.8)
 
@@ -398,7 +434,7 @@ def plot_session_frequencies(merged_df, session_id, frequencies, regression_meth
         ax.set_ylim(-1.1, 1.1)
 
         # Add statistics text
-        if len(x) > 1:
+        if len(x_reg) > 1:
             stats_text = f'R²={r_squared:.3f}\nr={r_value:.3f}\np={p_value:.3f}'
             ax.text(0.02, 0.98, stats_text, transform=ax.transAxes,
                     verticalalignment='top', fontsize=10,
@@ -428,8 +464,9 @@ def plot_session_frequencies(merged_df, session_id, frequencies, regression_meth
             y = freq_data['isochromatic_preference_index'].values
             p_vals = freq_data['p_value'].values
             n_sig = np.sum((pd.notna(p_vals)) & (p_vals < 0.05))
-            if len(x) > 1:
-                _, _, r_value, p_value, _ = calculate_regression(x, y, regression_method)
+            _, _, r_value, p_value, _, x_reg = calculate_regression_with_spi_cap(
+                x, y, regression_method, spi_regression_max)
+            if len(x_reg) > 1:
                 print(f"  {frequency} Hz: n={len(freq_data)} ({n_sig} sig.), r={r_value:.3f}, p={p_value:.3f}")
             else:
                 print(f"  {frequency} Hz: n={len(freq_data)} ({n_sig} sig.) (insufficient data for correlation)")
@@ -437,15 +474,18 @@ def plot_session_frequencies(merged_df, session_id, frequencies, regression_meth
             print(f"  {frequency} Hz: No data")
 
 
-def create_combined_frequency_plots(merged_df, sessions, frequencies, regression_method='ols', data_description=""):
+def create_combined_frequency_plots(merged_df, sessions, frequencies, regression_method='ols', data_description="",
+                                    spi_regression_max=None):
     """Create combined plots showing all sessions together for each frequency."""
 
     # Create a separate combined plot for each frequency
     for frequency in frequencies:
-        plot_combined_frequency_data(merged_df, frequency, sessions, regression_method, data_description)
+        plot_combined_frequency_data(merged_df, frequency, sessions, regression_method, data_description,
+                                     spi_regression_max)
 
 
-def plot_combined_frequency_data(merged_df, frequency, sessions, regression_method='ols', data_description=""):
+def plot_combined_frequency_data(merged_df, frequency, sessions, regression_method='ols', data_description="",
+                                 spi_regression_max=None):
     """Create a combined plot for one frequency with all sessions."""
 
     # Filter data for this frequency
@@ -460,8 +500,9 @@ def plot_combined_frequency_data(merged_df, frequency, sessions, regression_meth
     y = freq_data['isochromatic_preference_index'].values
     p_values = freq_data['p_value'].values
 
-    # Calculate regression for combined data using specified method
-    slope, intercept, r_value, p_value, r_squared = calculate_regression(x, y, regression_method)
+    # Calculate regression for combined data (optionally excluding high-SPI points)
+    slope, intercept, r_value, p_value, r_squared, x_reg = calculate_regression_with_spi_cap(
+        x, y, regression_method, spi_regression_max)
 
     # Create the scatter plot
     plt.figure(figsize=(12, 8))
@@ -494,10 +535,11 @@ def plot_combined_frequency_data(merged_df, frequency, sessions, regression_meth
                     plt.scatter([], [], c=[session_colors[i]], alpha=0.7, s=60,
                                 label=f'Session {session_id} (n={len(session_data)}, 0 sig.)')
 
-    # Add trend line for combined data
-    line_x = np.linspace(x.min(), x.max(), 100)
-    line_y = slope * line_x + intercept
-    plt.plot(line_x, line_y, 'k-', linewidth=2, label=f'Combined trend (R² = {r_squared:.3f})')
+    # Add trend line for combined data (over the range used for the regression)
+    if len(x_reg) > 1:
+        line_x = np.linspace(x_reg.min(), x_reg.max(), 100)
+        line_y = slope * line_x + intercept
+        plt.plot(line_x, line_y, 'k-', linewidth=2, label=f'Combined trend (R² = {r_squared:.3f})')
 
     # Add labels and title - NOW INCLUDING SIGNIFICANCE COUNT
     n_significant = np.sum((pd.notna(p_values)) & (p_values < 0.05))
@@ -548,7 +590,8 @@ def plot_combined_frequency_data(merged_df, frequency, sessions, regression_meth
     print(f"  Correlation: r = {r_value:.3f}, R² = {r_squared:.3f}, p = {p_value:.3f}")
 
 
-def plot_significant_cells_by_frequency(merged_df, frequencies, regression_method='ols', data_description=""):
+def plot_significant_cells_by_frequency(merged_df, frequencies, regression_method='ols', data_description="",
+                                        spi_regression_max=None):
     """Create a plot with subplots for each frequency showing only significant (p < 0.05) cells with SPI > 0."""
 
     # Filter for significant cells with positive solid preference index
@@ -599,15 +642,16 @@ def plot_significant_cells_by_frequency(merged_df, frequencies, regression_metho
         x = freq_data['solid_preference_index'].values
         y = freq_data['isochromatic_preference_index'].values
 
-        # Calculate regression using specified method
-        slope, intercept, r_value, p_value, r_squared = calculate_regression(x, y, regression_method)
+        # Calculate regression using specified method (optionally excluding high-SPI points)
+        slope, intercept, r_value, p_value, r_squared, x_reg = calculate_regression_with_spi_cap(
+            x, y, regression_method, spi_regression_max)
 
         # Plot points
         ax.scatter(x, y, alpha=0.7, s=60, color='blue')
 
-        # Add trend line if we have enough points
-        if len(x) > 1 and not np.isnan(slope):
-            line_x = np.linspace(x.min(), x.max(), 100)
+        # Add trend line if we have enough points (over the range used for the regression)
+        if len(x_reg) > 1 and not np.isnan(slope):
+            line_x = np.linspace(x_reg.min(), x_reg.max(), 100)
             line_y = slope * line_x + intercept
             ax.plot(line_x, line_y, 'r-', linewidth=2, alpha=0.8)
 
@@ -628,7 +672,7 @@ def plot_significant_cells_by_frequency(merged_df, frequencies, regression_metho
         ax.set_ylim(-1.1, 1.1)
 
         # Add statistics text
-        if len(x) > 1:
+        if len(x_reg) > 1:
             stats_text = f'R²={r_squared:.3f}\nr={r_value:.3f}\np={p_value:.3f}'
             ax.text(0.02, 0.98, stats_text, transform=ax.transAxes,
                     verticalalignment='top', fontsize=10,
@@ -649,8 +693,9 @@ def plot_significant_cells_by_frequency(merged_df, frequencies, regression_metho
         if not freq_data.empty:
             x = freq_data['solid_preference_index'].values
             y = freq_data['isochromatic_preference_index'].values
-            if len(x) > 1:
-                _, _, r_value, p_value, _ = calculate_regression(x, y, regression_method)
+            _, _, r_value, p_value, _, x_reg = calculate_regression_with_spi_cap(
+                x, y, regression_method, spi_regression_max)
+            if len(x_reg) > 1:
                 print(f"  {frequency} Hz: n={len(freq_data)}, r={r_value:.3f}, p={p_value:.3f}")
             else:
                 print(f"  {frequency} Hz: n={len(freq_data)} (insufficient data for correlation)")
@@ -658,7 +703,8 @@ def plot_significant_cells_by_frequency(merged_df, frequencies, regression_metho
             print(f"  {frequency} Hz: No data")
 
 
-def plot_nonsignificant_cells_by_frequency(merged_df, frequencies, regression_method='ols', data_description=""):
+def plot_nonsignificant_cells_by_frequency(merged_df, frequencies, regression_method='ols', data_description="",
+                                           spi_regression_max=None):
     """Create a plot with subplots for each frequency showing non-significant or 2D-preferring cells."""
 
     # Filter for cells that are NOT significant 3D-preferring (p >= 0.05 or SPI <= 0 or p is NaN)
@@ -709,15 +755,16 @@ def plot_nonsignificant_cells_by_frequency(merged_df, frequencies, regression_me
         x = freq_data['solid_preference_index'].values
         y = freq_data['isochromatic_preference_index'].values
 
-        # Calculate regression using specified method
-        slope, intercept, r_value, p_value, r_squared = calculate_regression(x, y, regression_method)
+        # Calculate regression using specified method (optionally excluding high-SPI points)
+        slope, intercept, r_value, p_value, r_squared, x_reg = calculate_regression_with_spi_cap(
+            x, y, regression_method, spi_regression_max)
 
         # Plot points in gray
         ax.scatter(x, y, alpha=0.4, s=60, color='gray')
 
-        # Add trend line if we have enough points
-        if len(x) > 1 and not np.isnan(slope):
-            line_x = np.linspace(x.min(), x.max(), 100)
+        # Add trend line if we have enough points (over the range used for the regression)
+        if len(x_reg) > 1 and not np.isnan(slope):
+            line_x = np.linspace(x_reg.min(), x_reg.max(), 100)
             line_y = slope * line_x + intercept
             ax.plot(line_x, line_y, 'r-', linewidth=2, alpha=0.8)
 
@@ -738,7 +785,7 @@ def plot_nonsignificant_cells_by_frequency(merged_df, frequencies, regression_me
         ax.set_ylim(-1.1, 1.1)
 
         # Add statistics text
-        if len(x) > 1:
+        if len(x_reg) > 1:
             stats_text = f'R²={r_squared:.3f}\nr={r_value:.3f}\np={p_value:.3f}'
             ax.text(0.02, 0.98, stats_text, transform=ax.transAxes,
                     verticalalignment='top', fontsize=10,
@@ -759,8 +806,9 @@ def plot_nonsignificant_cells_by_frequency(merged_df, frequencies, regression_me
         if not freq_data.empty:
             x = freq_data['solid_preference_index'].values
             y = freq_data['isochromatic_preference_index'].values
-            if len(x) > 1:
-                _, _, r_value, p_value, _ = calculate_regression(x, y, regression_method)
+            _, _, r_value, p_value, _, x_reg = calculate_regression_with_spi_cap(
+                x, y, regression_method, spi_regression_max)
+            if len(x_reg) > 1:
                 print(f"  {frequency} Hz: n={len(freq_data)}, r={r_value:.3f}, p={p_value:.3f}")
             else:
                 print(f"  {frequency} Hz: n={len(freq_data)} (insufficient data for correlation)")
@@ -776,14 +824,20 @@ if __name__ == "__main__":
     #   'mapped_channel'  - cluster channels also present in ReceptiveFieldInfo
     selection_mode = 'cluster'
 
+    # Exclude points with Solid Preference Index above this value from every regression
+    # (the points are still plotted). Set to None to use all points.
+    spi_regression_max = 0.5
+
     # Generate plots with OLS regression (default)
     print("=" * 80)
     print(f"GENERATING PLOTS WITH OLS REGRESSION (selection_mode='{selection_mode}')")
     print("=" * 80)
-    data_ols = create_preference_indices_frequency_plots(regression_method='ols', selection_mode=selection_mode)
+    data_ols = create_preference_indices_frequency_plots(regression_method='ols', selection_mode=selection_mode,
+                                                         spi_regression_max=spi_regression_max)
 
     # Generate plots with Theil-Sen regression
     print("\n" + "=" * 80)
     print(f"GENERATING PLOTS WITH THEIL-SEN REGRESSION (selection_mode='{selection_mode}')")
     print("=" * 80)
-    data_theilsen = create_preference_indices_frequency_plots(regression_method='theil-sen', selection_mode=selection_mode)
+    data_theilsen = create_preference_indices_frequency_plots(regression_method='theil-sen', selection_mode=selection_mode,
+                                                              spi_regression_max=spi_regression_max)
