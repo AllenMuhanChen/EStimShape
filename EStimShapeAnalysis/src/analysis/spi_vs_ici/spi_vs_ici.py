@@ -147,7 +147,103 @@ def load_raw_significant_channels_data():
     return merged_df, data_description
 
 
-def create_preference_indices_frequency_plots(plot_individual_sessions=False, regression_method='ols'):
+def load_cluster_channels_data(require_receptive_field=False):
+    """Load data for cluster channels using the same selection as spi_ici_clusters.py.
+
+    Selects cluster channels by joining SolidPreferenceIndices / IsochromaticPreferenceIndices
+    with Experiments and ClusterInfo (e.experiment_id = c.experiment_id AND unit_name = c.channel).
+    When require_receptive_field is True, additionally requires the channel to have an entry in
+    ReceptiveFieldInfo for the same session_id (mapped_channel mode).
+
+    Args:
+        require_receptive_field: If True, also require a ReceptiveFieldInfo entry.
+
+    Returns:
+        merged_df: DataFrame with solid and isochromatic preference indices for selected channels
+        data_description: String describing the data source
+    """
+    # Connect to the data repository database
+    conn = Connection("allen_data_repository")
+
+    # Optional join requiring the channel to also be in ReceptiveFieldInfo for that session.
+    def rf_join(alias):
+        if not require_receptive_field:
+            return ""
+        return (f"\n                           JOIN ReceptiveFieldInfo r "
+                f"ON r.session_id = {alias}.session_id AND r.channel = {alias}.unit_name")
+
+    # Query solid preference indices for cluster channels only (matches spi_ici_clusters.py)
+    solid_query = f"""
+                  SELECT s.session_id, s.unit_name, s.solid_preference_index, s.p_value
+                  FROM SolidPreferenceIndices s
+                           JOIN Experiments e ON s.session_id = e.session_id
+                           JOIN ClusterInfo c ON e.experiment_id = c.experiment_id AND s.unit_name = c.channel{rf_join('s')}
+                  """
+
+    # Query isochromatic preference indices for cluster channels only (matches spi_ici_clusters.py)
+    isochromatic_query = f"""
+                         SELECT i.session_id, i.unit_name, i.frequency, i.isochromatic_preference_index
+                         FROM IsochromaticPreferenceIndices i
+                                  JOIN Experiments e ON i.session_id = e.session_id
+                                  JOIN ClusterInfo c ON e.experiment_id = c.experiment_id AND i.unit_name = c.channel{rf_join('i')}
+                         """
+
+    # Execute queries and fetch data
+    conn.execute(solid_query)
+    solid_data = conn.fetch_all()
+
+    conn.execute(isochromatic_query)
+    isochromatic_data = conn.fetch_all()
+
+    # Convert to DataFrames
+    solid_df = pd.DataFrame(solid_data,
+                            columns=['session_id', 'unit_name', 'solid_preference_index', 'p_value'])
+    isochromatic_df = pd.DataFrame(isochromatic_data,
+                                   columns=['session_id', 'unit_name', 'frequency', 'isochromatic_preference_index'])
+
+    # Remove duplicates (matches spi_ici_clusters.py)
+    solid_df = solid_df.drop_duplicates(['session_id', 'unit_name'])
+    isochromatic_df = isochromatic_df.drop_duplicates(['session_id', 'unit_name', 'frequency'])
+
+    # Merge the data on session_id and unit_name
+    merged_df = pd.merge(solid_df, isochromatic_df, on=['session_id', 'unit_name'], how='inner')
+
+    if require_receptive_field:
+        data_description = "Mapped Channels (cluster channels also in ReceptiveFieldInfo)"
+    else:
+        data_description = "Cluster Channels (ClusterInfo)"
+
+    return merged_df, data_description
+
+
+def load_data_for_selection_mode(selection_mode):
+    """Load (merged_df, data_description) for the requested channel selection mode.
+
+    Args:
+        selection_mode: One of
+            - 'double_filter': GoodChannels AND ChannelFiltering (validated channels)
+            - 'raw_significant': Raw significant channels (p < 0.05, no spike sorting)
+            - 'cluster': Cluster channels via ClusterInfo (matches spi_ici_clusters.py)
+            - 'mapped_channel': Cluster channels that are also in ReceptiveFieldInfo
+
+    Returns:
+        merged_df, data_description
+    """
+    if selection_mode == 'double_filter':
+        return load_validated_channels_data()
+    elif selection_mode == 'raw_significant':
+        return load_raw_significant_channels_data()
+    elif selection_mode == 'cluster':
+        return load_cluster_channels_data(require_receptive_field=False)
+    elif selection_mode == 'mapped_channel':
+        return load_cluster_channels_data(require_receptive_field=True)
+    else:
+        raise ValueError(f"Unknown selection_mode: {selection_mode}. "
+                         f"Use 'double_filter', 'raw_significant', 'cluster', or 'mapped_channel'")
+
+
+def create_preference_indices_frequency_plots(plot_individual_sessions=False, regression_method='ols',
+                                              selection_mode='double_filter'):
     """Create separate plots for each session, with subplots for each frequency, plus combined plots.
 
     Args:
@@ -155,17 +251,16 @@ def create_preference_indices_frequency_plots(plot_individual_sessions=False, re
         regression_method: Type of regression to use. Options:
             - 'ols': Ordinary Least Squares (standard linear regression)
             - 'theil-sen': Theil-Sen robust estimator (resistant to outliers)
+        selection_mode: Channel selection mode. Options:
+            - 'double_filter': GoodChannels AND ChannelFiltering (validated channels)
+            - 'raw_significant': Raw significant channels (p < 0.05, no spike sorting)
+            - 'cluster': Cluster channels via ClusterInfo (matches spi_ici_clusters.py)
+            - 'mapped_channel': Cluster channels that are also in ReceptiveFieldInfo
     """
 
     # ==================== DATA LOADING SECTION ====================
-    # CHOOSE ONE: Comment out the method you don't want to use
-
-    # Method 1: Load validated channels (GoodChannels AND ChannelFiltering)
-    merged_df, data_description = load_validated_channels_data()
-
-    # Method 2: Load raw significant channels (p < 0.05, no spike sorting)
-    # merged_df, data_description = load_raw_significant_channels_data()
-
+    # Channel selection is controlled by the selection_mode argument.
+    merged_df, data_description = load_data_for_selection_mode(selection_mode)
     # ==============================================================
 
     if merged_df.empty:
@@ -674,14 +769,21 @@ def plot_nonsignificant_cells_by_frequency(merged_df, frequencies, regression_me
 
 
 if __name__ == "__main__":
+    # Choose the channel selection mode:
+    #   'double_filter'   - GoodChannels AND ChannelFiltering (validated channels)
+    #   'raw_significant' - raw significant channels (p < 0.05, no spike sorting)
+    #   'cluster'         - cluster channels via ClusterInfo (matches spi_ici_clusters.py)
+    #   'mapped_channel'  - cluster channels also present in ReceptiveFieldInfo
+    selection_mode = 'cluster'
+
     # Generate plots with OLS regression (default)
     print("=" * 80)
-    print("GENERATING PLOTS WITH OLS REGRESSION")
+    print(f"GENERATING PLOTS WITH OLS REGRESSION (selection_mode='{selection_mode}')")
     print("=" * 80)
-    data_ols = create_preference_indices_frequency_plots(regression_method='ols')
+    data_ols = create_preference_indices_frequency_plots(regression_method='ols', selection_mode=selection_mode)
 
     # Generate plots with Theil-Sen regression
     print("\n" + "=" * 80)
-    print("GENERATING PLOTS WITH THEIL-SEN REGRESSION")
+    print(f"GENERATING PLOTS WITH THEIL-SEN REGRESSION (selection_mode='{selection_mode}')")
     print("=" * 80)
-    data_theilsen = create_preference_indices_frequency_plots(regression_method='theil-sen')
+    data_theilsen = create_preference_indices_frequency_plots(regression_method='theil-sen', selection_mode=selection_mode)
