@@ -354,8 +354,169 @@ def _print_fit(label, fit):
           f"{'  [log-log]' if fit['log_log'] else ''}")
 
 
+def _normalize_responses(values, method):
+    """Normalize a single unit's responses across its tested frequencies.
+
+    Args:
+        values: 1-D array of that unit's responses (one per tested frequency).
+        method: 'zscore' (per-unit z-score), 'max' (divide by the unit's max), or
+            'none' (raw values).
+
+    Returns:
+        Array of normalized responses, or None if normalization is undefined for
+        this unit (e.g. zero variance for z-score, non-positive max for 'max').
+    """
+    values = np.asarray(values, dtype=float)
+    if method == 'none':
+        return values
+    if method == 'max':
+        peak = np.max(values)
+        if not np.isfinite(peak) or peak <= 0:
+            return None
+        return values / peak
+    if method == 'zscore':
+        sd = np.std(values)
+        if not np.isfinite(sd) or sd == 0:
+            return None
+        return (values - np.mean(values)) / sd
+    raise ValueError(f"Unknown normalize method: {method}. Use 'zscore', 'max', or 'none'")
+
+
+def expand_frequency_responses(df, normalize='zscore'):
+    """Explode all_freq_responses into one row per (unit, tested frequency).
+
+    For each unit and each frequency in its response profile, computes
+    ``cycles_per_rf = frequency * 2 * rf_radius`` and the (optionally per-unit
+    normalized) response, giving a population spatial-frequency tuning dataset in
+    RF-normalized units.
+
+    Args:
+        df: Analysis DataFrame (must include 'all_freq_responses' and 'rf_radius').
+        normalize: Per-unit response normalization ('zscore', 'max', or 'none').
+
+    Returns:
+        Long-form DataFrame with ['session_id', 'unit_name', 'rf_radius', 'frequency',
+        'response', 'norm_response', 'cycles_per_rf'].
+    """
+    records = []
+    n_skipped = 0
+    for row in df.itertuples(index=False):
+        try:
+            responses = json.loads(row.all_freq_responses)
+        except (TypeError, ValueError):
+            n_skipped += 1
+            continue
+
+        freqs, vals = [], []
+        for freq, resp in responses.items():
+            try:
+                freqs.append(float(freq))
+                vals.append(float(resp))
+            except (TypeError, ValueError):
+                continue
+        if not freqs:
+            n_skipped += 1
+            continue
+
+        norm = _normalize_responses(vals, normalize)
+        if norm is None:
+            n_skipped += 1
+            continue
+
+        for freq, raw, nv in zip(freqs, vals, norm):
+            records.append({
+                'session_id': row.session_id,
+                'unit_name': row.unit_name,
+                'rf_radius': row.rf_radius,
+                'frequency': freq,
+                'response': raw,
+                'norm_response': nv,
+                'cycles_per_rf': freq * 2.0 * row.rf_radius,
+            })
+
+    if n_skipped > 0:
+        print(f"Expanded responses: skipped {n_skipped} unit(s) "
+              f"(unparseable profile or undefined '{normalize}' normalization)")
+    return pd.DataFrame.from_records(records)
+
+
+def _response_label(normalize):
+    return {
+        'zscore': 'Response (z-scored per unit)',
+        'max': 'Response (normalized to unit max)',
+        'none': 'Response (raw)',
+    }.get(normalize, 'Response')
+
+
+def plot_cycles_per_rf_vs_response(df, save_path=None, normalize='zscore', n_bins=8):
+    """View 4: response vs cycles-per-RF (freq × RF diameter) across all frequencies.
+
+    One point per (unit, tested frequency), colored by stimulus frequency, with a
+    binned mean ± SEM trend line that reveals any preferred number of cycles per RF.
+
+    Args:
+        df: Analysis DataFrame from load_rf_size_vs_preferred_freq_data.
+        save_path: Where to save the figure (None -> display only).
+        normalize: Per-unit response normalization ('zscore', 'max', or 'none').
+        n_bins: Number of equal-width cycles-per-RF bins for the trend line.
+    """
+    long_df = expand_frequency_responses(df, normalize=normalize)
+    if long_df.empty:
+        print("No (unit, frequency) points available for cycles-per-RF plot")
+        return None
+
+    y_col = 'response' if normalize == 'none' else 'norm_response'
+    x = long_df['cycles_per_rf'].values
+    y = long_df[y_col].values
+
+    fig, ax = plt.subplots(figsize=(9, 7))
+
+    # Scatter colored by stimulus frequency.
+    freqs = sorted(long_df['frequency'].unique())
+    cmap = plt.cm.viridis
+    for i, freq in enumerate(freqs):
+        m = long_df['frequency'] == freq
+        ax.scatter(long_df.loc[m, 'cycles_per_rf'], long_df.loc[m, y_col],
+                   s=45, alpha=0.5, color=cmap(i / max(1, len(freqs) - 1)),
+                   edgecolors='none', label=f'{freq:g} Hz')
+
+    # Binned mean ± SEM trend across all points.
+    finite = np.isfinite(x) & np.isfinite(y)
+    xb, yb = x[finite], y[finite]
+    if len(xb) >= 2 and xb.min() < xb.max():
+        edges = np.linspace(xb.min(), xb.max(), n_bins + 1)
+        idx = np.clip(np.digitize(xb, edges) - 1, 0, n_bins - 1)
+        centers, means, sems = [], [], []
+        for b in range(n_bins):
+            sel = idx == b
+            if sel.sum() > 0:
+                centers.append(0.5 * (edges[b] + edges[b + 1]))
+                means.append(yb[sel].mean())
+                sems.append(yb[sel].std(ddof=1) / np.sqrt(sel.sum()) if sel.sum() > 1 else 0.0)
+        ax.errorbar(centers, means, yerr=sems, color='black', linewidth=2.5,
+                    marker='o', capsize=3, zorder=5, label='binned mean ± SEM')
+
+    if normalize == 'zscore':
+        ax.axhline(0, color='gray', linestyle='--', alpha=0.5)
+
+    ax.set_xlabel('Cycles per RF (frequency × RF diameter)', fontsize=13)
+    ax.set_ylabel(_response_label(normalize), fontsize=13)
+    ax.set_title(f'Response vs cycles per RF\n'
+                 f'(n={len(long_df)} unit×frequency points, {df.shape[0]} units)', fontsize=14)
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc='best', fontsize=9, title='Stimulus frequency')
+    fig.tight_layout()
+
+    _save(fig, save_path)
+    print(f"\nResponse vs cycles per RF (normalize='{normalize}'):")
+    print(f"  {len(long_df)} unit×frequency points across {df.shape[0]} units; "
+          f"cycles_per_rf range [{np.nanmin(x):.3f}, {np.nanmax(x):.3f}]")
+    return long_df
+
+
 def create_rf_size_vs_preferred_freq_plots(save_dir=None, filter_type='all',
-                                           size_col='rf_radius', log_log=True):
+                                           size_col='rf_radius', log_log=True,
+                                           response_normalize='zscore'):
     """Build all RF-size vs preferred-frequency plots and print summary stats.
 
     Args:
@@ -364,6 +525,8 @@ def create_rf_size_vs_preferred_freq_plots(save_dir=None, filter_type='all',
         filter_type: 'all', 'cluster', or 'mapped_channel' (see load_preferred_frequency_data).
         size_col: RF-size measure for the x-axis ('rf_radius', 'rf_diameter', 'sqrt_area').
         log_log: If True, also draw the scatter views on log-log axes (power-law test).
+        response_normalize: Per-unit response normalization for the cycles-per-RF view
+            ('zscore', 'max', or 'none').
     """
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
@@ -398,6 +561,11 @@ def create_rf_size_vs_preferred_freq_plots(save_dir=None, filter_type='all',
             df, _path(save_dir, f"03b_rf_size_vs_continuous_freq_loglog{suffix}.png"),
             log_log=True, size_col=size_col, freq_col='continuous_preferred_frequency')
 
+    # View 4: response vs cycles-per-RF across all tested frequencies.
+    plot_cycles_per_rf_vs_response(
+        df, _path(save_dir, f"04_cycles_per_rf_vs_response{suffix}.png"),
+        normalize=response_normalize)
+
     # Summary of the dimensionless cycles-across-RF quantity.
     cycles = pd.to_numeric(df['cycles_across_rf'], errors='coerce').dropna()
     if not cycles.empty:
@@ -422,4 +590,5 @@ if __name__ == "__main__":
         filter_type='all',
         size_col='rf_radius',
         log_log=True,
+        response_normalize='zscore',
     )
