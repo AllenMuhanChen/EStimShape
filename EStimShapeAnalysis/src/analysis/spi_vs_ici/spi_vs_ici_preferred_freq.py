@@ -552,8 +552,10 @@ def parse_strong_frequencies(row, threshold):
 def merge_receptive_field_radius(base_df):
     """Left-merge receptive field radius (from ReceptiveFieldInfo) onto the data.
 
-    Adds an 'rf_radius' column matched on (session_id, unit_name). Channels without a
-    ReceptiveFieldInfo entry get NaN, so callers can warn about / skip them.
+    Adds an 'rf_radius' column matched on (session_id, unit_name). If a channel has no
+    direct ReceptiveFieldInfo entry, it falls back to the radius of another channel in the
+    same cluster (same experiment_id + cluster_id in ClusterInfo) that does have RF info.
+    Channels with neither direct nor cluster RF info get NaN, so callers can warn / skip.
 
     Args:
         base_df: Merged dataframe with 'session_id' and 'unit_name' columns.
@@ -573,9 +575,55 @@ def merge_receptive_field_radius(base_df):
 
     rf_df = pd.DataFrame(rf_data, columns=['session_id', 'unit_name', 'rf_radius'])
     rf_df['rf_radius'] = pd.to_numeric(rf_df['rf_radius'], errors='coerce')
-    rf_df = rf_df.drop_duplicates(['session_id', 'unit_name'])
+    rf_df = rf_df.dropna(subset=['rf_radius']).drop_duplicates(['session_id', 'unit_name'])
 
-    return base_df.merge(rf_df, on=['session_id', 'unit_name'], how='left')
+    # Direct match: radius for the channel itself
+    merged = base_df.merge(rf_df, on=['session_id', 'unit_name'], how='left')
+
+    # Cluster fallback: for channels lacking a direct radius, borrow from a clustermate.
+    conn.execute(
+        """
+        SELECT e.session_id, c.experiment_id, c.cluster_id, c.channel
+        FROM ClusterInfo c
+                 JOIN Experiments e ON e.experiment_id = c.experiment_id
+        """
+    )
+    cluster_data = conn.fetch_all()
+
+    if not cluster_data:
+        print("WARNING: No ClusterInfo rows found; cluster fallback for RF radius unavailable")
+        return merged
+
+    cluster_df = pd.DataFrame(cluster_data,
+                              columns=['session_id', 'experiment_id', 'cluster_id', 'unit_name'])
+    cluster_df = cluster_df.drop_duplicates(['session_id', 'experiment_id', 'cluster_id', 'unit_name'])
+
+    # Mean radius of cluster members that have direct RF info
+    cluster_rf = cluster_df.merge(rf_df, on=['session_id', 'unit_name'], how='inner')
+    cluster_radius = (cluster_rf
+                      .groupby(['session_id', 'experiment_id', 'cluster_id'])['rf_radius']
+                      .mean().reset_index())
+
+    # Radius available to each channel via its cluster(s)
+    channel_cluster_radius = cluster_df.merge(
+        cluster_radius, on=['session_id', 'experiment_id', 'cluster_id'], how='inner')
+    channel_cluster_radius = (channel_cluster_radius
+                              .groupby(['session_id', 'unit_name'])['rf_radius']
+                              .mean().reset_index()
+                              .rename(columns={'rf_radius': 'cluster_rf_radius'}))
+
+    merged = merged.merge(channel_cluster_radius, on=['session_id', 'unit_name'], how='left')
+
+    fallback_mask = merged['rf_radius'].isna() & merged['cluster_rf_radius'].notna()
+    n_filled = int(fallback_mask.sum())
+    merged.loc[fallback_mask, 'rf_radius'] = merged.loc[fallback_mask, 'cluster_rf_radius']
+    merged = merged.drop(columns=['cluster_rf_radius'])
+
+    if n_filled > 0:
+        print(f"Filled RF radius for {n_filled} data point(s) via cluster fallback "
+              f"(channel lacked direct RF info but a clustermate had it)")
+
+    return merged
 
 
 def process_frequency_data(base_df):
