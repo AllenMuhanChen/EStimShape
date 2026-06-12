@@ -17,7 +17,6 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
     private final int numRepeats = 5;
     private GaborSpec gaborSpec;
     public static final List<Double> frequencies = Arrays.asList(0.5, 1.0, 2.0, 4.0);
-//    public static final List<Double> frequencies = Arrays.asList(0.2, 0.4, 0.5, 0.8, 1.0, 1.6, 2.0);
         public static final List<Double> orientationOffsets = Arrays.asList(0.0, 45.0, 90.0, 135.0);
 //    public static final List<Double> mixedPhases = Arrays.asList(0.0, 0.5);
 
@@ -53,6 +52,23 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
         // Get RF Info
         RFInfo rfInfo = getRFInfo(jdbcTemplate);
 
+        // Calculate RF based frequencies to test
+        double rfDiameter = rfInfo.getRadius() * 2.0;
+        List<Double> cyclesPerRFToTest = new ArrayList<>();
+        for (Double frequency : frequencies) {
+            cyclesPerRFToTest.add(frequency * rfDiameter);
+        }
+        int numInRange = 0;
+        for (Double cyclesPerRF : cyclesPerRFToTest) {
+            if (cyclesPerRF >= 4 && cyclesPerRF <= 8) {
+                numInRange++;
+            }
+        }
+
+        if (numInRange == 0) {
+            frequencies.add(rfDiameter * 6.0);
+        }
+
         // Get StimSpec
         GaborSpec stimSpec = getStimSpec(jdbcTemplate);
         double plottedOrientation = stimSpec.getOrientation();
@@ -61,7 +77,8 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
         gaborSpec = new GaborSpec();
         gaborSpec.setXCenter(rfInfo.getCenter().getX());
         gaborSpec.setYCenter(rfInfo.getCenter().getY());
-        gaborSpec.setSize((rfInfo.getRadius()*2.0)*1.33);
+
+        gaborSpec.setSize(rfDiameter *1.33);
         gaborSpec.setPhase(0);
         gaborSpec.setAnimation(false);
 

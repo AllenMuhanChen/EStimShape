@@ -1249,7 +1249,7 @@ if __name__ == "__main__":
     # set to None to use nf_n_bins quantile bins instead.
     create_all_preference_plots(
         save_dir="/home/connorlab/Documents/plots/spi_vs_ici_mapped_channel",
-        threshold=0.7,
+        threshold=0.70,
         filter_type='cluster',
         spi_regression_max=0.5,
         nf_bin_edges=[0, 2, 4, 8.0, np.inf]
