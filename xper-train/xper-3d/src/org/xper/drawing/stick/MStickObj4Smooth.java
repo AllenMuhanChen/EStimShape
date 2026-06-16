@@ -1241,7 +1241,7 @@ public class MStickObj4Smooth {
         return nFac;
     }
 
-    void setDoLighting(boolean doLighting) {
+    public void setDoLighting(boolean doLighting) {
         this.doLighting = doLighting;
     }
 

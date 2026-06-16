@@ -7,6 +7,7 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
+import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.pga.MStickPosition;
 import org.xper.allen.pga.PositionPropertyManager;
@@ -39,6 +40,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
     protected String texture;
     protected Float sampleSize;
     protected NAFCNoiseMapper noiseMapper;
+    protected ReceptiveField receptiveField;
     // When true, one procedural distractor slot is filled by a "removed" shape — the variant
     // with its tuned-for component deleted. Keeps the choice set composition the same across
     // variant/delta/deleted trial types so trial type can't be inferred from which choices appear.
@@ -109,6 +111,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         parameters.setEyeWinRadius(maxChoiceSize/2); // 4 back to back limbs, and divide by two for radius corr
 
         noiseMapper = generator.getNoiseMapper();
+        receptiveField = generator.getRfSource().getReceptiveField();
         List<Integer> hypothesizedComp = resolveHypothesizedComp(variantId, gaJDBCTemplate, hypothesizedCompManager);
         morphComponentIndcs = hypothesizedComp;
         noiseComponentIndcs = hypothesizedComp;

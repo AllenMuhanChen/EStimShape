@@ -86,10 +86,10 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
             while (random.isEmpty()) {
                 random = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
             }
-            return random;
+            return Collections.singletonList(random.get(0));
         }
 
-        return candidates;
+        return Collections.singletonList(candidates.get(0));
     }
 
     @Override

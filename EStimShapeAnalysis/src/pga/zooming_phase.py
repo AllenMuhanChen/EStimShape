@@ -128,7 +128,7 @@ class ZoomingPhaseTransitioner(RegimeTransitioner):
         if self.total_num_eligible == 0:
             return False
             # If the percentage of stimuli with full sets is greater than the threshold, transition
-        return self.num_full_sets / self.total_num_eligible >= self.percentage_full_set_threshold
+        return self.num_full_sets >= 1
 
     def get_transition_data(self, lineage):
 
@@ -307,6 +307,8 @@ class ZoomingSideTest(SideTest):
         # Excludes baseline, catch, shuffle, ... (see is_mutatable).
         if not is_mutatable(stimulus):
             return False
+        # if stimulus.mutation_type in ["REGIME_ESTIM_DELTA", "REGIME_ESTIM_VARIANTS"]:
+        #     return False
         # Don't zoom something that is itself a zoom stimulus.
         if self.zoom_set_handler.is_zoomed_already(stimulus):
             return False
