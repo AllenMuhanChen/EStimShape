@@ -124,9 +124,8 @@ def _fit_slope(x, y, spi_regression_max=None):
     raise.
     """
     x = np.asarray(x, dtype=float)
-    if spi_regression_max is not None:
-        x = x[x <= spi_regression_max]
-    if len(x) < 2 or np.unique(x).size < 2:
+    x_check = x[x <= spi_regression_max] if spi_regression_max is not None else x
+    if len(x_check) < 2 or np.unique(x_check).size < 2:
         return np.nan
     slope, _, _, _, _, x_used = linregress_with_spi_cap(x, y, spi_regression_max)
     if len(x_used) < 2:
