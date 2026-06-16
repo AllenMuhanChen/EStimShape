@@ -29,7 +29,14 @@ pseudo-replication from a unit contributing several frequency rows.
    the per-bin "observed > null" comparisons are also reported but should be
    read with the caveat in the module docstring / chat answer.
 
-2. ``permutation_test_scramble_spi`` shuffles (SPI, p_value) across units,
+2. ``permutation_test_scramble_frequency`` shuffles the stimulus frequency
+   *within* each unit (a repeated-measures factor), the complement of the RF
+   scramble. It isolates the stimulus-frequency ingredient of normalized
+   frequency. When the observed between-bin heterogeneity exceeds BOTH the RF
+   null and this frequency null, both ingredients of normalized frequency
+   contribute to the effect (see ``print_decomposition_summary``).
+
+3. ``permutation_test_scramble_spi`` shuffles (SPI, p_value) across units,
    breaking the SPI-ICI pairing while leaving the normalized-frequency bins
    fixed. This is the null for "does SPI have an effect on ICI?" (per bin and
    per significance category).
@@ -256,6 +263,71 @@ def permutation_test_scramble_rf(data, n_perms=1000, spi_regression_max=None,
             "bin_indices": bin_indices}
 
 
+def permutation_test_scramble_frequency(data, n_perms=1000, spi_regression_max=None,
+                                        n_bins=4, bin_edges=None, seed=0):
+    """Permutation test that scrambles stimulus frequency *within* each unit.
+
+    Stimulus frequency is a within-unit (repeated-measures) factor: each unit
+    contributes one row per strong frequency, each with its own ICI, while SPI
+    and RF radius are constant for the unit. Under the null "ICI is exchangeable
+    across a unit's strong frequencies", we permute the frequency labels among a
+    unit's own rows (keeping each ICI, SPI, and the RF radius in place),
+    recompute normalized frequency, and re-bin.
+
+    This isolates the *stimulus-frequency* component of normalized frequency, the
+    complement of ``permutation_test_scramble_rf`` (which isolates RF size). If
+    the observed between-bin heterogeneity exceeds BOTH this null and the RF null,
+    both ingredients of normalized frequency contribute to the effect.
+
+    Caveats:
+        * Only units with more than one strong frequency can be permuted; single
+          -frequency units are fixed points (reported as n_permutable_units).
+        * The between-bin slope-heterogeneity statistic is the cleaner readout
+          here. frac_pos heterogeneity can also move under plain ICI frequency
+          -tuning (a real effect this null does not assume away), so read the
+          frac_pos result as "frequency matters" rather than specifically
+          "frequency modulates the SPI->ICI relationship".
+
+    Returns the same structure as ``permutation_test_scramble_rf``.
+    """
+    rng = np.random.default_rng(seed)
+    data = add_unit_key(data).reset_index(drop=True)
+
+    observed_binned = compute_normfreq_bins_quiet(data, n_bins, bin_edges)
+    if observed_binned is None:
+        print("scramble_frequency: could not bin observed data")
+        return None
+    observed = compute_bin_stats(observed_binned, spi_regression_max)
+    bin_labels = _bin_labels(observed_binned)
+    bin_indices = sorted({b for (b, _c) in observed})
+
+    # Row positions for each unit (only multi-row units can actually be shuffled).
+    freq = data["frequency"].to_numpy(dtype=float)
+    groups = [g.to_numpy() for _k, g in data.groupby("unit_key").groups.items()]
+    n_permutable = sum(1 for pos in groups if len(pos) > 1)
+    print(f"scramble_frequency: {n_permutable} of {len(groups)} units have >1 strong "
+          f"frequency and contribute to the permutation")
+
+    null_stats = []
+    for _ in range(n_perms):
+        new_freq = freq.copy()
+        for pos in groups:
+            if len(pos) > 1:
+                new_freq[pos] = rng.permutation(freq[pos])
+        d = data.copy()
+        d["frequency"] = new_freq
+        binned = compute_normfreq_bins_quiet(d, n_bins, bin_edges)
+        if binned is None:
+            continue
+        null_stats.append(compute_bin_stats(binned, spi_regression_max))
+
+    results = _build_results_table(observed, null_stats, bin_indices, bin_labels)
+    heterogeneity = _build_heterogeneity_table(observed, null_stats, bin_indices)
+    return {"observed": observed, "bin_labels": bin_labels, "results": results,
+            "heterogeneity": heterogeneity, "null_stats": null_stats,
+            "bin_indices": bin_indices, "n_permutable_units": n_permutable}
+
+
 def permutation_test_scramble_spi(data, n_perms=1000, spi_regression_max=None,
                                   n_bins=4, bin_edges=None, seed=0):
     """Permutation test that scrambles (SPI, p_value) across units.
@@ -364,9 +436,38 @@ def print_results(title, results, heterogeneity=None):
                            "display.float_format", lambda v: f"{v:.3f}"):
         print(results.to_string(index=False))
     if heterogeneity is not None:
-        print("\nBetween-bin heterogeneity (does the trend depend on normalized RF?):")
+        print("\nBetween-bin heterogeneity (does the trend depend on the scrambled factor?):")
         with pd.option_context("display.float_format", lambda v: f"{v:.3f}"):
             print(heterogeneity.to_string(index=False))
+
+
+def print_decomposition_summary(rf_result, freq_result):
+    """Summarise whether the effect survives scrambling each ingredient.
+
+    For each category, prints the between-bin heterogeneity p-value under the RF
+    scramble and under the frequency scramble. The effect depends on BOTH RF size
+    and stimulus frequency where both p-values are small (observed spread exceeds
+    both nulls).
+    """
+    rf = rf_result["heterogeneity"].set_index("category")
+    fq = freq_result["heterogeneity"].set_index("category")
+    rows = []
+    for category in CATEGORIES:
+        rows.append({
+            "category": category,
+            "slope_p_scramble_RF": rf.loc[category, "slope_spread_p_greater"],
+            "slope_p_scramble_freq": fq.loc[category, "slope_spread_p_greater"],
+            "fracpos_p_scramble_RF": rf.loc[category, "frac_pos_spread_p_greater"],
+            "fracpos_p_scramble_freq": fq.loc[category, "frac_pos_spread_p_greater"],
+        })
+    summary = pd.DataFrame(rows)
+    print("\n" + "=" * 72)
+    print("DECOMPOSITION SUMMARY - both ingredients of normalized frequency")
+    print("Small p under BOTH columns => that ingredient is necessary to the effect.")
+    print("(slope = SPI->ICI modulation; fracpos = % ICI>0 gradient.)")
+    print("=" * 72)
+    with pd.option_context("display.float_format", lambda v: f"{v:.3f}"):
+        print(summary.to_string(index=False))
 
 
 def plot_null_distributions(test_result, statistic, title, save_path=None):
@@ -526,12 +627,29 @@ def run(save_dir=None, threshold=0.7, filter_type="cluster", spi_regression_max=
             rf_result, "frac_pos", "Scramble RF size: fraction ICI > 0",
             os.path.join(save_dir, "perm_rf_fracpos.png") if save_dir else None)
 
-    # Permutation test 2: scramble SPI (tests whether SPI affects ICI).
+    # Permutation test 2: scramble stimulus frequency within unit (the complement
+    # of the RF test). Together with test 1 this shows that both ingredients of
+    # normalized frequency contribute: the effect should exceed BOTH nulls.
+    freq_result = permutation_test_scramble_frequency(
+        data, n_perms=n_perms, spi_regression_max=spi_regression_max,
+        n_bins=n_bins, bin_edges=bin_edges, seed=seed)
+    if freq_result is not None:
+        print_results("PERMUTATION TEST 2 - scramble stimulus frequency (within unit) "
+                      "(null for 'trend depends on stimulus frequency')",
+                      freq_result["results"], freq_result["heterogeneity"])
+        plot_null_distributions(
+            freq_result, "slope", "Scramble frequency: ICI~SPI slope",
+            os.path.join(save_dir, "perm_freq_slope.png") if save_dir else None)
+        plot_null_distributions(
+            freq_result, "frac_pos", "Scramble frequency: fraction ICI > 0",
+            os.path.join(save_dir, "perm_freq_fracpos.png") if save_dir else None)
+
+    # Permutation test 3: scramble SPI (tests whether SPI affects ICI).
     spi_result = permutation_test_scramble_spi(
         data, n_perms=n_perms, spi_regression_max=spi_regression_max,
         n_bins=n_bins, bin_edges=bin_edges, seed=seed)
     if spi_result is not None:
-        print_results("PERMUTATION TEST 2 - scramble SPI "
+        print_results("PERMUTATION TEST 3 - scramble SPI "
                       "(null for 'SPI has an effect on ICI')",
                       spi_result["results"])
         plot_null_distributions(
@@ -541,9 +659,13 @@ def run(save_dir=None, threshold=0.7, filter_type="cluster", spi_regression_max=
             spi_result, "frac_pos", "Scramble SPI: fraction ICI > 0",
             os.path.join(save_dir, "perm_spi_fracpos.png") if save_dir else None)
 
+    # Side-by-side summary: does the effect survive scrambling each ingredient?
+    if rf_result is not None and freq_result is not None:
+        print_decomposition_summary(rf_result, freq_result)
+
     if show:
         plt.show()
-    return {"rf": rf_result, "spi": spi_result}
+    return {"rf": rf_result, "frequency": freq_result, "spi": spi_result}
 
 
 if __name__ == "__main__":
