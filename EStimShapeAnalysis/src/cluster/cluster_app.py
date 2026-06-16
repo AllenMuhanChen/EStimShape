@@ -4,11 +4,13 @@ import numpy as np
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtWidgets import QVBoxLayout, QPushButton, QWidget, QHBoxLayout, QListWidget, QListWidgetItem, \
-    QGridLayout, QBoxLayout, QLabel, QSlider
+    QGridLayout, QBoxLayout, QLabel, QSlider, QSpinBox, QCheckBox
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.path import Path
 from matplotlib.widgets import LassoSelector, RectangleSelector
+# Importing mplot3d registers the '3d' projection used for the optional 3D view.
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
 
 from clat.intan.channels import Channel
 from src.cluster.cluster_app_classes import ClusterManager, DataLoader, DataExporter, ChannelMapper, Annotator, \
@@ -16,6 +18,11 @@ from src.cluster.cluster_app_classes import ClusterManager, DataLoader, DataExpo
 from src.cluster.dimensionality_reduction import DimensionalityReducer
 
 MAX_GROUPS = 10
+
+# How many components to compute for each reducer so the user can browse beyond
+# the first two PCs. Clamped per-reducer to the data dimensions (and to each
+# reducer's own max_components) in reduce_data.
+DEFAULT_N_COMPONENTS = 10
 
 
 def make_figure_and_canvas():
@@ -35,6 +42,12 @@ class ClusterApplicationWindow(QWidget):
         self.button_pca = None
         self.canvas_dim_reduction = None
         self.figure_dim_reduction = None
+        self.canvas_variance = None
+        self.figure_variance = None
+        self.spin_x_axis = None
+        self.spin_y_axis = None
+        self.spin_z_axis = None
+        self.checkbox_3d = None
         self.button_delete_group = None
         self.widget_cluster_list = None
         self.button_new_group = None
@@ -54,6 +67,13 @@ class ClusterApplicationWindow(QWidget):
         self.reduced_points_for_reducer = None
         self.current_reducer = None
         self.reduced_points_for_reducer = {}
+
+        # Which components (0-indexed) are shown on each axis, and whether the
+        # scatter is drawn in 3D. Defaults: PC1 vs PC2 (vs PC3 when in 3D).
+        self.x_axis_idx = 0
+        self.y_axis_idx = 1
+        self.z_axis_idx = 2
+        self.is_3d = False
 
         # Generation segmentation: load all data initially, and find the latest generation
         self.max_generation = self.data_loader.get_max_generation()
@@ -116,8 +136,20 @@ class ClusterApplicationWindow(QWidget):
         # Concatenate all the normalized data into a single 2D array
         stacked_points = np.vstack(normalized_points)
 
+        # Number of components is bounded by the data: at most n_samples and
+        # at most n_features (PCA/MDS/etc. all require this).
+        n_samples, n_features = stacked_points.shape
+        data_limit = max(2, min(n_samples, n_features))
+
         reduced_points_for_reducer = {}
         for reducer in reducers:
+            # Compute extra components so the user can browse beyond PC1/PC2,
+            # clamped to the data and to this reducer's own ceiling.
+            desired = min(DEFAULT_N_COMPONENTS, data_limit)
+            if reducer.max_components is not None:
+                desired = min(desired, reducer.max_components)
+            reducer.n_components = max(2, desired)
+
             # Perform dimensionality reduction on normalized data
             all_reduced_data = reducer.fit_transform(stacked_points)
 
@@ -165,7 +197,74 @@ class ClusterApplicationWindow(QWidget):
         # Connect the hover event to the function _update_annotation
         self.canvas_dim_reduction.mpl_connect("pick_event", self.on_pick_dim_reduction)
         self.canvas_dim_reduction.mpl_connect("figure_leave_event", self.on_leave_dim_reduction)
-        return self.canvas_dim_reduction
+
+        # Variance-explained (scree) plot, always shown beneath the scatter.
+        self.figure_variance, self.canvas_variance = make_figure_and_canvas()
+        self.canvas_variance.setMaximumHeight(180)
+
+        axis_controls = self._make_axis_controls()
+
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addLayout(axis_controls)
+        layout.addWidget(self.canvas_dim_reduction, stretch=4)
+        layout.addWidget(self.canvas_variance, stretch=1)
+        return container
+
+    def _make_axis_controls(self) -> QBoxLayout:
+        """Spin boxes to pick which component is shown on each axis, plus a 2D/3D
+        toggle. PC numbers are 1-indexed in the UI (PC1 == component 0)."""
+        self.spin_x_axis = self._make_axis_spinbox(self.x_axis_idx + 1)
+        self.spin_y_axis = self._make_axis_spinbox(self.y_axis_idx + 1)
+        self.spin_z_axis = self._make_axis_spinbox(self.z_axis_idx + 1)
+        self.spin_z_axis.setEnabled(False)  # only meaningful in 3D
+
+        self.checkbox_3d = QCheckBox("3D view")
+        self.checkbox_3d.setChecked(False)
+        self.checkbox_3d.stateChanged.connect(self.on_toggle_3d)
+
+        controls = QHBoxLayout()
+        controls.addWidget(QLabel("X axis: PC"))
+        controls.addWidget(self.spin_x_axis)
+        controls.addWidget(QLabel("Y axis: PC"))
+        controls.addWidget(self.spin_y_axis)
+        controls.addWidget(QLabel("Z axis: PC"))
+        controls.addWidget(self.spin_z_axis)
+        controls.addWidget(self.checkbox_3d)
+        controls.addStretch(1)
+        return controls
+
+    def _make_axis_spinbox(self, value: int) -> QSpinBox:
+        spinbox = QSpinBox()
+        spinbox.setMinimum(1)
+        spinbox.setMaximum(max(value, 2))  # widened to match the data in _update_axis_controls
+        spinbox.setValue(value)
+        spinbox.valueChanged.connect(self.on_axis_changed)
+        return spinbox
+
+    def _num_components_for(self, reducer: DimensionalityReducer) -> int:
+        """How many components the given reducer actually produced."""
+        reduced_for_channels = self.reduced_points_for_reducer.get(reducer)
+        if not reduced_for_channels:
+            return 2
+        any_point = next(iter(reduced_for_channels.values()))
+        return int(len(any_point))
+
+    def _update_axis_controls(self, reducer: DimensionalityReducer) -> None:
+        """Cap the spin boxes to the number of components available for the
+        current reducer, and re-sync the stored axis indices."""
+        n_components = self._num_components_for(reducer)
+        for spinbox in (self.spin_x_axis, self.spin_y_axis, self.spin_z_axis):
+            if spinbox is None:
+                continue
+            spinbox.blockSignals(True)
+            spinbox.setMaximum(n_components)
+            spinbox.blockSignals(False)
+        # Spin boxes clamp their own values to the new maximum; read them back.
+        self.x_axis_idx = self.spin_x_axis.value() - 1
+        self.y_axis_idx = self.spin_y_axis.value() - 1
+        self.z_axis_idx = self.spin_z_axis.value() - 1
 
     def _make_export_panel(self) -> QBoxLayout:
         button_export = self._make_export_button()
@@ -272,38 +371,92 @@ class ClusterApplicationWindow(QWidget):
         if self.clusters_for_channels is None:
             self.clusters_for_channels = self.cluster_manager.init_clusters_for_channels()
 
+        self._update_axis_controls(reducer)
         dim_reduction_ax = self._plot_dim_reduction(reducer)
+        self._plot_variance_explained(reducer)
         channel_map_ax = self._plot_channel_map()
-        self._handle_dim_reduction_lasso_selection(dim_reduction_ax)
+        # Lasso selection only works in the 2D scatter; the 3D view is for
+        # inspection (rotate/zoom). Clusters can still be edited via the channel
+        # map's rectangle selector while in 3D.
+        if not self.is_3d:
+            self._handle_dim_reduction_lasso_selection(dim_reduction_ax)
+        elif self.lasso_selector_for_dim_reduction is not None:
+            self.lasso_selector_for_dim_reduction.disconnect_events()
+            self.lasso_selector_for_dim_reduction = None
         self._handle_channel_mapping_selection(channel_map_ax)
         self._draw_cluster_list()
 
     def _plot_dim_reduction(self, reducer):
         colors_per_point = self.cluster_manager.get_colormap_colors_per_channel_based_on_cluster()
-        reduced_points_x_y = self._prep_reduced_points_for_plotting(reducer)
-        dim_reduction_ax = self._plot_clustered_scatter(reduced_points_x_y, colors_per_point)
+        reduced_data_values = self._prep_reduced_points_for_plotting(reducer)
+        dim_reduction_ax = self._plot_clustered_scatter(reduced_data_values, colors_per_point)
         return dim_reduction_ax
 
     def _prep_reduced_points_for_plotting(self, reducer: DimensionalityReducer):
-        # Concatenate the reduced data arrays along the first axis
+        # Stack the per-channel reduced points into (n_channels, n_components).
         reduced_points_for_channels = self.reduced_points_for_reducer[reducer]
         reduced_data_values = np.vstack(list(reduced_points_for_channels.values()))
         return reduced_data_values
 
-    def _plot_clustered_scatter(self, reduced_points_x_y: np.ndarray, colors_per_point: list[float]):
-        # Plot the reduced data
+    def _plot_clustered_scatter(self, reduced_data_values: np.ndarray, colors_per_point: list[float]):
+        # Plot the reduced data using the user-selected components for each axis.
         self.figure_dim_reduction.clear()
-        self.scatter_dim_reduction = self.figure_dim_reduction.subplots()
+        x_idx, y_idx = self.x_axis_idx, self.y_axis_idx
+        x = reduced_data_values[:, x_idx]
+        y = reduced_data_values[:, y_idx]
 
-        # Scatter plot with picker enabled
-        self.scatter_dim_reduction.scatter(reduced_points_x_y[:, 0], reduced_points_x_y[:, 1], c=colors_per_point,
-                                           cmap=self.cluster_manager.color_map, picker=True)
-
-        # Create the annotation for this plot
-        self.channel_labels_dim_reduction = self.annotator.init_annotations(self.scatter_dim_reduction)
+        if self.is_3d:
+            z_idx = self.z_axis_idx
+            z = reduced_data_values[:, z_idx]
+            self.scatter_dim_reduction = self.figure_dim_reduction.add_subplot(projection='3d')
+            self.scatter_dim_reduction.scatter(x, y, z, c=colors_per_point,
+                                               cmap=self.cluster_manager.color_map, picker=True)
+            self.scatter_dim_reduction.set_xlabel(f"PC{x_idx + 1}")
+            self.scatter_dim_reduction.set_ylabel(f"PC{y_idx + 1}")
+            self.scatter_dim_reduction.set_zlabel(f"PC{z_idx + 1}")
+            # Annotations are a 2D-only convenience; skip them in 3D.
+            self.channel_labels_dim_reduction = None
+        else:
+            self.scatter_dim_reduction = self.figure_dim_reduction.subplots()
+            self.scatter_dim_reduction.scatter(x, y, c=colors_per_point,
+                                               cmap=self.cluster_manager.color_map, picker=True)
+            self.scatter_dim_reduction.set_xlabel(f"PC{x_idx + 1}")
+            self.scatter_dim_reduction.set_ylabel(f"PC{y_idx + 1}")
+            # Create the annotation for this plot
+            self.channel_labels_dim_reduction = self.annotator.init_annotations(self.scatter_dim_reduction)
 
         self.canvas_dim_reduction.draw()
         return self.scatter_dim_reduction
+
+    def _plot_variance_explained(self, reducer: DimensionalityReducer) -> None:
+        """Draw a bar chart of variance explained per component, highlighting the
+        components currently shown on the axes. Falls back to a message for
+        reducers that don't expose explained variance (MDS, TSNE, SparsePCA)."""
+        self.figure_variance.clear()
+        ax = self.figure_variance.subplots()
+
+        ratios = reducer.get_explained_variance_ratio()
+        if ratios is None or len(ratios) == 0:
+            ax.text(0.5, 0.5, f"Variance explained not available for {reducer.get_name()}",
+                    ha='center', va='center', fontsize=9, color='gray')
+            ax.axis('off')
+            self.canvas_variance.draw()
+            return
+
+        ratios = np.asarray(ratios)
+        xs = np.arange(1, len(ratios) + 1)
+        selected = {self.x_axis_idx, self.y_axis_idx}
+        if self.is_3d:
+            selected.add(self.z_axis_idx)
+        colors = ['orange' if (i in selected) else 'steelblue' for i in range(len(ratios))]
+        ax.bar(xs, ratios, color=colors, edgecolor='black', linewidth=0.5)
+        ax.set_xlabel("PC", fontsize=8)
+        ax.set_ylabel("Var. expl.", fontsize=8)
+        ax.set_title("Variance explained per PC (selected axes highlighted)", fontsize=9)
+        ax.set_xticks(xs)
+        ax.tick_params(axis='both', labelsize=7)
+        self.figure_variance.tight_layout()
+        self.canvas_variance.draw()
 
     def _plot_channel_map(self):
         # Clear the previous plot
@@ -335,6 +488,9 @@ class ClusterApplicationWindow(QWidget):
                                                                               self.on_channel_map_rectangle_selector)
 
     def on_pick_dim_reduction(self, event):
+        # Annotations are only drawn in the 2D scatter.
+        if self.is_3d or self.channel_labels_dim_reduction is None:
+            return
         ind = event.ind[0]  # Get the index of the point
         x, y = event.artist.get_offsets().data[ind]  # Get the coordinates of the point
         channel_label = str(self.channels[ind]).split('.')[-1]
@@ -361,8 +517,10 @@ class ClusterApplicationWindow(QWidget):
         channel_label = str(self.channels[channel_indx]).split('.')[-1]
         self.annotator.show_annotation_at(x, y, channel_label, self.channel_labels_channel_map)
 
-        # Show the corresponding annotation on the dim_reduction plot
-        x_dim, y_dim = self.reduced_points_for_reducer[self.current_reducer][self.channels[channel_indx]]
+        # Show the corresponding annotation on the dim_reduction plot, projected
+        # onto the components currently shown on the X and Y axes (2D only).
+        point = self.reduced_points_for_reducer[self.current_reducer][self.channels[channel_indx]]
+        x_dim, y_dim = point[self.x_axis_idx], point[self.y_axis_idx]
         self.annotator.show_annotation_at(x_dim, y_dim, channel_label, self.channel_labels_dim_reduction)
 
         self.canvas_dim_reduction.draw()
@@ -376,8 +534,24 @@ class ClusterApplicationWindow(QWidget):
         self.canvas_dim_reduction.draw()
 
     def on_reducer(self, reducer: DimensionalityReducer):
-        self.plot(reducer)
         self.current_reducer = reducer
+        self.plot(reducer)
+
+    def on_axis_changed(self, _value: int = 0) -> None:
+        """Re-plot when the user picks a different component for any axis."""
+        self.x_axis_idx = self.spin_x_axis.value() - 1
+        self.y_axis_idx = self.spin_y_axis.value() - 1
+        self.z_axis_idx = self.spin_z_axis.value() - 1
+        if self.current_reducer is not None:
+            self.plot(self.current_reducer)
+
+    def on_toggle_3d(self, _state: int = 0) -> None:
+        """Toggle between the 2D and 3D scatter views."""
+        self.is_3d = self.checkbox_3d.isChecked()
+        if self.spin_z_axis is not None:
+            self.spin_z_axis.setEnabled(self.is_3d)
+        if self.current_reducer is not None:
+            self.plot(self.current_reducer)
 
     def on_reload_data(self) -> None:
         """Re-query the data source to pick up data from newer generations, and refresh
@@ -456,7 +630,8 @@ class ClusterApplicationWindow(QWidget):
         selected_channels = []
 
         for channel, data in self.reduced_points_for_reducer[self.current_reducer].items():
-            point = data  # since each channel corresponds to one point
+            # Project the channel's reduced point onto the two components shown.
+            point = (data[self.x_axis_idx], data[self.y_axis_idx])
             if path.contains_point(point):
                 selected_channels.append(channel)
 

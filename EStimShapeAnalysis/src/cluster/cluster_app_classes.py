@@ -120,12 +120,16 @@ class Annotator:
         :param text: label for annotation
         :param annotated_axes: an axes object that has been annotated with ax.annotate. Get this from init_annotations
         """
+        if annotated_axes is None:
+            return
         annotated_axes.xy = (x, y)
         annotated_axes.set_text(text)
         annotated_axes.set_visible(True)
 
     @staticmethod
     def hide_annotations_for(annotation: plt.Annotation):
+        if annotation is None:
+            return
         annotation.set_visible(False)
 
 

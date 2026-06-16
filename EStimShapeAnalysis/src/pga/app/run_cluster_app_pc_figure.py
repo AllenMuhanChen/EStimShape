@@ -80,9 +80,9 @@ class PcInterpretationFigureExporter(DataExporter):
             self.reducer.fit_transform(X)
 
         model = self.reducer.model
-        loadings = model.components_           # (2, n_stim_ids)
+        loadings = model.components_           # (n_components, n_stim_ids); rows 0,1 = PC1,PC2
         mean = model.mean_                     # (n_stim_ids,)
-        reduced = (X - mean) @ loadings.T      # (n_channels, 2) — matches GUI fit
+        reduced = (X - mean) @ loadings.T      # (n_channels, n_components) — matches GUI fit
 
         explained_variance_ratio = self._fit_full_pca_for_scree(X)
 
