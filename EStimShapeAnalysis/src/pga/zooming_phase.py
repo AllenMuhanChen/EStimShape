@@ -97,17 +97,17 @@ class ZoomSetHandler(Protocol):
 
 class ZoomingPhaseTransitioner(RegimeTransitioner):
     zoom_set_handler: ZoomSetHandler
-    percentage_full_set_threshold: float
+    num_full_sets: float
     parent_selector: ZoomingPhaseParentSelector
 
     total_num_eligible: int
     num_full_sets: int
     num_partial_sets: int
 
-    def __init__(self, *, zoom_set_handler: ZoomSetHandler, percentage_full_set_threshold: float,
+    def __init__(self, *, zoom_set_handler: ZoomSetHandler, num_full_set: float,
                  parent_selector: ZoomingPhaseParentSelector):
         self.zoom_set_handler = zoom_set_handler
-        self.percentage_full_set_threshold = percentage_full_set_threshold
+        self.num_full_sets = num_full_set
         self.parent_selector = parent_selector
 
     def should_transition(self, lineage: Lineage):

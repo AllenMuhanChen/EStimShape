@@ -41,11 +41,11 @@ class RFGeneticAlgorithmConfig(GeneticAlgorithmConfig):
     def zooming_phase_transitioner(self):
         return ZoomingPhaseTransitioner(
             zoom_set_handler=self.get_zoom_set_handler(),
-            percentage_full_set_threshold=self.zooming_phase_complete_set_percent_threshold(),
+            num_full_set=self.zooming_phase_complete_set_number_threshold(),
             parent_selector=self.zooming_phase_parent_selector())
 
-    def zooming_phase_complete_set_percent_threshold(self):
-        return self.var_fetcher.get("zooming_phase_percentage_full_set_threshold", dtype=float)
+    def zooming_phase_complete_set_number_threshold(self):
+        return self.var_fetcher.get("zooming_phase_number_full_set_threshold", dtype=float)
 
     def zooming_side_test(self):
         # The zooming phase is the second regime (index 1) in make_phases(), so the side test
