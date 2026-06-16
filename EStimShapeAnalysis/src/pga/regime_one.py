@@ -247,12 +247,12 @@ def calculate_peak_response(responses, across_n=3) -> floating[Any]:
 
 
 class GrowingPhaseTransitioner(RegimeTransitioner):
-    def __init__(self, convergence_threshold, min_num_generations):
+    def __init__(self, convergence_threshold, min_num_generations, is_override=False):
         self.convergence_threshold = convergence_threshold
         self.min_num_generations = min_num_generations
         self.change = None
         self.peak_responses = None
-        self.override = False
+        self.override = is_override
         # self.override = True #ALLEN 260408 TO GET PAST GIZMO ALMOST BEING DONE WORKING
     def should_transition(self, lineage):
 

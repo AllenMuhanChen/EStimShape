@@ -116,8 +116,11 @@ class GeneticAlgorithmConfig:
     def growing_phase_transitioner(self):
         return GrowingPhaseTransitioner(
             self.convergence_threshold(),
-            self.min_num_generations_to_calculate_convergence()
+            self.min_num_generations_to_calculate_convergence(),
+            self.is_override_growing_phase()
         )
+    def is_override_growing_phase(self):
+        return self.var_fetcher.get_array_parameter("override_growing_phase", dtype=bool)
 
     def growing_phase_mutation_assigner(self):
         return GrowingPhaseMutationAssigner()
