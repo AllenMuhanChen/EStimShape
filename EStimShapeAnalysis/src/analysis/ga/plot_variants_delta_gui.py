@@ -547,6 +547,15 @@ def launch(default_channel: str = "GA", *, delta_threshold: float = 0.6,
     root = tk.Tk()
     root.geometry("1400x800")
     DeltaVariantCurationApp(root, analysis, compiled_data, default_channel=default_channel)
+
+    # Closing a window holding thousands of Tk widgets and PhotoImages (one per
+    # stimulus) triggers a very slow synchronous teardown: Tk destroys every
+    # widget/image one at a time, then the interpreter GCs every cached PIL/Tk
+    # image during shutdown. With a lot of stimuli this pegs a core and thrashes
+    # memory, freezing the machine. This GUI runs in its own subprocess whose
+    # only job is the window, so on close we skip the graceful teardown entirely
+    # and let the OS reclaim everything at once — an instant exit.
+    root.protocol("WM_DELETE_WINDOW", lambda: os._exit(0))
     root.mainloop()
 
 
