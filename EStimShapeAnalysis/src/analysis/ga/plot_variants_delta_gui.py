@@ -32,6 +32,10 @@ SORT_COLUMNS = {
     "variant_resp": "Variant Response",
 }
 
+# Width (px) of the response-colored border drawn around each thumbnail in the
+# final, already-downscaled image.
+THUMB_BORDER = 6
+
 
 class DeltaVariantCurationApp:
     """Tkinter app for curating delta-variant pairs."""
@@ -374,12 +378,18 @@ class DeltaVariantCurationApp:
         if cached is not None:
             return cached
         try:
+            # Cache the image already downscaled to its final inner size, NOT at
+            # full resolution. With many stimuli, caching full-res PIL images
+            # (and LANCZOS-resizing each) costs gigabytes and swaps the machine
+            # to a crawl; the inner-sized base is ~100x smaller and is resized
+            # only once per path.
+            inner = max(1, self.thumb_size - 2 * THUMB_BORDER)
             base = self._image_cache.get(path)
             if base is None:
-                base = Image.open(path).convert("RGB")
+                with Image.open(path) as im:
+                    base = im.convert("RGB").resize((inner, inner), Image.LANCZOS)
                 self._image_cache[path] = base
-            img = ImageOps.expand(base, border=20, fill=border_color)
-            img = img.resize((self.thumb_size, self.thumb_size), Image.LANCZOS)
+            img = ImageOps.expand(base, border=THUMB_BORDER, fill=border_color)
             photo = ImageTk.PhotoImage(img)
             self._photo_cache[key] = photo
             self._photo_refs.append(photo)
@@ -547,6 +557,15 @@ def launch(default_channel: str = "GA", *, delta_threshold: float = 0.6,
     root = tk.Tk()
     root.geometry("1400x800")
     DeltaVariantCurationApp(root, analysis, compiled_data, default_channel=default_channel)
+
+    # Closing a window holding thousands of Tk widgets and PhotoImages (one per
+    # stimulus) triggers a very slow synchronous teardown: Tk destroys every
+    # widget/image one at a time, then the interpreter GCs every cached PIL/Tk
+    # image during shutdown. With a lot of stimuli this pegs a core and thrashes
+    # memory, freezing the machine. This GUI runs in its own subprocess whose
+    # only job is the window, so on close we skip the graceful teardown entirely
+    # and let the OS reclaim everything at once — an instant exit.
+    root.protocol("WM_DELETE_WINDOW", lambda: os._exit(0))
     root.mainloop()
 
 
