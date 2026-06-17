@@ -386,7 +386,7 @@ class PcInterpretationFigureExporter(DataExporter):
             ax.scatter([centroid[0]], [centroid[1]],
                        marker='X', s=200, c=[color], edgecolors='black', linewidths=1.5,
                        zorder=5)
-            ax.annotate(f"C{cid}", xy=centroid, xytext=(6, 6),
+            ax.annotate(f"C{cid}", xy=(centroid[0], centroid[1]), xytext=(6, 6),
                         textcoords='offset points', fontsize=11, fontweight='bold')
         ax.set_xlabel("PC1")
         ax.set_ylabel("PC2")
