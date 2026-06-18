@@ -184,11 +184,11 @@ def phase_randomize_preserve_contrast(image, mask=None, capture_ffts=False):
     # This ensures phase shuffling operates on interior content only
     if capture_ffts:
         randomized_L_roi = apply_clean_interior_processing(
-            L, mask, processing_func_with_capture, erosion_iterations=2
+            L, mask, processing_func_with_capture, erosion_iterations=1
         )
     else:
         randomized_L_roi = apply_clean_interior_processing(
-            L, mask, phase_shuffle_function, erosion_iterations=2
+            L, mask, phase_shuffle_function, erosion_iterations=1
         )
 
     # The result already includes boundary reconstruction, so we can use it directly

@@ -139,7 +139,7 @@ def process_image(input_path, output_path, keep_intermediates=False):
         img_array = np.array(img)
 
         # Apply interior pixel shuffling
-        processed_array = pixel_randomize_preserve_contrast(img_array, erosion_iterations=2)
+        processed_array = pixel_randomize_preserve_contrast(img_array, erosion_iterations=0)
 
         # Create analysis plot if requested
         if keep_intermediates:
