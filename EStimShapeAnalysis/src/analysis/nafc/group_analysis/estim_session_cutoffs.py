@@ -29,15 +29,6 @@ import math
 
 from clat.util.connection import Connection
 from src.analysis.nafc.estim_parameter_classifier import EStimParameterClassifier
-from src.analysis.nafc.group_analysis.analyze_estim_by_condition import METRIC_PCT_HYPOTHESIZED
-from src.analysis.nafc.group_analysis.estim_groups_permutation_test import (
-    create_permutation_test_table, save_permutation_results)
-
-
-def _algorithm_label(window_size, step_size, threshold, n_steps_below, min_estim_trials):
-    """Cutoff identifier shared by the cutoffs table and the permutation-test rows."""
-    return f"first_drop_w{window_size}_s{step_size}_t{threshold}_n{n_steps_below}_m{min_estim_trials}"
-
 
 
 def _normalize_cond_key(cond_dict):
@@ -442,7 +433,7 @@ def permutation_test_for_condition(session_id, cond_dict,
 def run_cutoff_permutation_tests(session_id=None, window_size=100, step_size=10,
                                  threshold=5.0, n_steps_below=3, min_estim_trials=10,
                                  n_permutations=1000, seed=None,
-                                 session_level=True, studentize=False,
+                                 session_level=True, studentize=True,
                                  exceedance_thresholds=None, plot=True,
                                  metric=METRIC_PCT_HYPOTHESIZED, save_results=True):
     """
@@ -892,12 +883,12 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
 
 def main():
     window_size      = 50
-    step_size        = 10
+    step_size        = 5
     threshold        = 0
-    n_steps_below    = 3
+    n_steps_below    = 2
     min_estim_trials = 10
     n_permutations   = 1000
-    session_id       = "260617_0"  # str = one session, list = several, None = all
+    session_id       = None  # str = one session, list = several, None = all
 
     # Normalize the selection to a list of run_cutoffs arguments (None means "all").
     if session_id is None or isinstance(session_id, str):
@@ -912,7 +903,7 @@ def main():
             threshold=threshold, n_steps_below=n_steps_below,
             min_estim_trials=min_estim_trials,
             session_id=s,
-            force_recompute=True,
+            force_recompute=False,
             verbose=True,
         )
 
@@ -932,10 +923,10 @@ def main():
                              window_size=window_size, step_size=step_size,
                              threshold=threshold)
 
-    # Permutation test (Option B). Prompt only when a single session was requested;
+    # Permutation test. Prompt only when a single session was requested;
     # for a list or all sessions, proceed automatically.
     if isinstance(session_id, str):
-        resp = input("\nMove on to the Option-B permutation test for this session? [y/N]: ")
+        resp = input("\nMove on to the permutation test for this session? [y/N]: ")
         if resp.strip().lower() not in ('y', 'yes'):
             print("Skipping permutation test.")
             return
@@ -949,6 +940,7 @@ def main():
             session_id=sid, window_size=window_size, step_size=step_size,
             threshold=threshold, n_steps_below=n_steps_below,
             min_estim_trials=min_estim_trials, n_permutations=n_permutations,
+            studentize=True
         )
 
 
