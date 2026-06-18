@@ -29,14 +29,18 @@ Run:
 
 import sys
 
+# Force matplotlib to a non-GUI backend BEFORE anything imports pyplot (the compile path
+# pulls in matplotlib). Otherwise matplotlib may load a Qt binding that conflicts with the
+# one pyqtgraph uses, and mixing two Qt bindings in one process segfaults (SIGSEGV).
+import matplotlib
+matplotlib.use('Agg')
+
 import numpy as np
 import pandas as pd
 import pyqtgraph as pg
-from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
-    QPushButton, QLabel, QSpinBox, QCheckBox, QScrollArea,
-)
-from PyQt5.QtCore import QTimer, Qt
+# Use pyqtgraph's Qt shim so every Qt class comes from the SAME binding pyqtgraph selected.
+# Importing PyQt5 directly alongside pyqtgraph risks a binding mismatch -> SIGSEGV.
+from pyqtgraph.Qt import QtWidgets, QtCore
 
 from clat.util.connection import Connection
 from src.startup import context
@@ -200,7 +204,7 @@ class LiveEstimWindow(QMainWindow):
 
         self._setup_ui()
 
-        self.timer = QTimer(self)
+        self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self._refresh)
         self._refresh()  # initial compile + draw
         self.timer.start(self.interval_spin.value() * 1000)
@@ -210,41 +214,41 @@ class LiveEstimWindow(QMainWindow):
         self.setWindowTitle(f'Live EStim Analysis — {self.session_id}')
         self.setGeometry(100, 100, 1500, 1000)
 
-        central = QWidget()
+        central = QtWidgets.QWidget()
         self.setCentralWidget(central)
-        layout = QVBoxLayout(central)
+        layout = QtWidgets.QVBoxLayout(central)
 
         # Control bar — seed for future buttons/dropdowns.
-        bar = QHBoxLayout()
-        self.refresh_button = QPushButton('Refresh now')
+        bar = QtWidgets.QHBoxLayout()
+        self.refresh_button = QtWidgets.QPushButton('Refresh now')
         self.refresh_button.clicked.connect(self._force_refresh)
 
-        self.live_checkbox = QCheckBox('Live')
+        self.live_checkbox = QtWidgets.QCheckBox('Live')
         self.live_checkbox.setChecked(True)
         self.live_checkbox.stateChanged.connect(self._toggle_live)
 
-        self.interval_spin = QSpinBox()
+        self.interval_spin = QtWidgets.QSpinBox()
         self.interval_spin.setRange(1, 120)
         self.interval_spin.setValue(DEFAULT_POLL_SECONDS)
         self.interval_spin.setSuffix(' s')
         self.interval_spin.valueChanged.connect(self._change_interval)
 
-        self.status_label = QLabel('Starting…')
+        self.status_label = QtWidgets.QLabel('Starting…')
 
         bar.addWidget(self.refresh_button)
         bar.addWidget(self.live_checkbox)
-        bar.addWidget(QLabel('Poll every'))
+        bar.addWidget(QtWidgets.QLabel('Poll every'))
         bar.addWidget(self.interval_spin)
         bar.addStretch(1)
         bar.addWidget(self.status_label)
         layout.addLayout(bar)
 
         # Scrollable grid of panels.
-        self.scroll = QScrollArea()
+        self.scroll = QtWidgets.QScrollArea()
         self.scroll.setWidgetResizable(True)
-        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.grid_host = QWidget()
-        self.grid_layout = QGridLayout(self.grid_host)
+        self.scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.grid_host = QtWidgets.QWidget()
+        self.grid_layout = QtWidgets.QGridLayout(self.grid_host)
         self.grid_layout.setContentsMargins(4, 4, 4, 4)
         self.scroll.setWidget(self.grid_host)
         layout.addWidget(self.scroll)
@@ -347,7 +351,7 @@ class LiveEstimWindow(QMainWindow):
         legend = self.legends[(row, col_key)]
 
         # Series to show in this cell: EStim OFF (black dashed) + one per spec (colored).
-        wanted = {'OFF': (off_df, 'EStim OFF', pg.mkPen('k', width=2, style=Qt.DashLine), (0, 0, 0))}
+        wanted = {'OFF': (off_df, 'EStim OFF', pg.mkPen('k', width=2, style=QtCore.Qt.DashLine), (0, 0, 0))}
         for i, spec in enumerate(sorted(spec_ids)):
             color = _SPEC_COLORS[i % len(_SPEC_COLORS)]
             wanted[('spec', spec)] = (on_df[on_df['EStimSpecId'] == spec],
@@ -382,7 +386,7 @@ def main():
     exp_conn = Connection(context.nafc_database)
     session_id, _ = read_session_id_and_date_from_db_name(context.nafc_database)
 
-    app = QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     window = LiveEstimWindow(exp_conn, session_id)
     window.show()
     sys.exit(app.exec_())
