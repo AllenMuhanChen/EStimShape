@@ -30,7 +30,7 @@ Run:
 import sys
 
 import pandas as pd
-import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from PyQt5.QtWidgets import (
@@ -174,7 +174,9 @@ class LiveEstimWindow(QMainWindow):
         # Figure inside a scroll area: the overview figure is tall, so render it at a
         # readable size (fit to width) and let the wheel scroll it vertically rather than
         # squashing everything into the window.
-        self.figure = plt.figure(figsize=(16, 16))
+        # A bare Figure (not plt.figure) so the only canvas/manager is ours — a pyplot-managed
+        # figure embedded in Qt produces phantom/overlapping renders on repeated redraws.
+        self.figure = Figure(figsize=(16, 16))
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(False)
         self.scroll.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
