@@ -240,20 +240,6 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
         return out;
     }
 
-    /** Most-recent value of a GAVar, or {@code defaultValue} if absent/unreadable. */
-    private double readGaVarDouble(String name, double defaultValue) {
-        JdbcTemplate jt = new JdbcTemplate(generator.getDbUtil().getDataSource());
-        try {
-            String v = (String) jt.queryForObject(
-                    "SELECT value FROM GAVar WHERE name = ? ORDER BY experiment_id DESC, gen_id DESC, arr_ind ASC LIMIT 1",
-                    new Object[]{name}, String.class);
-            if (v != null && !v.trim().isEmpty()) return Double.parseDouble(v.trim());
-        } catch (Exception e) {
-            // missing table/row or non-numeric -> default
-        }
-        return defaultValue;
-    }
-
     @Override
     protected PruningMatchStick createMStick() {
         MStickPosition parentPosition = positionManager.readProperty(parentId);

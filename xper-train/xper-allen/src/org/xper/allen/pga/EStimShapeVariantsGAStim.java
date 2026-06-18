@@ -175,9 +175,10 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
      * Choose which of the parent's comp(s) to preserve when testing fresh comps (i.e. not simply
      * inheriting a variant-parent's hypothesized comp). Mirrors the delta search, but for PRESERVING
      * comps, and leans exploit:
-     *   - EXPLOIT: if a sibling variant preserved some comp(s) and held the response at/above the
-     *     parent (response > parent), preserve those same comp(s) - the highest-response sibling wins.
-     *     A preserved comp that holds the response up is evidence it drives the response.
+     *   - EXPLOIT: if a sibling variant preserved some comp(s) and kept at least
+     *     variant_parent_response_threshold of the parent's response, preserve those same comp(s) -
+     *     the highest-response sibling wins. A preserved comp that holds the response up is evidence
+     *     it drives the response.
      *   - EXPLORE: otherwise, test leaves first - sample a leaf weighted by its best preserved
      *     response (higher response preserved = more likely; reductions least likely). Untested leaves
      *     use the parent's response as a neutral-optimistic prior, so they're tried before reductions.
@@ -188,11 +189,15 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
         int nComp = parentMStick.getNComponent();
         List<SiblingVariant> siblings = readSiblingVariants();
         double parentResp = readResponse(parentId);
+        // A sibling "preserved" the response if it kept at least this fraction of the parent's
+        // response (the same variant_parent_response_threshold used to gate variant parents).
+        double preserveThreshold = readGaVarDouble("variant_parent_response_threshold", 0.8);
 
-        // EXPLOIT: highest-response sibling that held the response above the parent.
+        // EXPLOIT: highest-response sibling that held the response at/above the threshold.
         SiblingVariant best = null;
         for (SiblingVariant s : siblings) {
-            if (s.response != null && s.response > parentResp && !s.preservedComps.isEmpty()) {
+            if (s.response != null && parentResp > 0 && s.response / parentResp >= preserveThreshold
+                    && !s.preservedComps.isEmpty()) {
                 if (best == null || s.response > best.response) best = s;
             }
         }
@@ -292,6 +297,20 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
             out.add(new SiblingVariant(preserved, response));
         }
         return out;
+    }
+
+    /** Most-recent value of a GAVar, or {@code defaultValue} if absent/unreadable. */
+    protected double readGaVarDouble(String name, double defaultValue) {
+        JdbcTemplate jt = new JdbcTemplate(generator.getDbUtil().getDataSource());
+        try {
+            String v = (String) jt.queryForObject(
+                    "SELECT value FROM GAVar WHERE name = ? ORDER BY experiment_id DESC, gen_id DESC, arr_ind ASC LIMIT 1",
+                    new Object[]{name}, String.class);
+            if (v != null && !v.trim().isEmpty()) return Double.parseDouble(v.trim());
+        } catch (Exception e) {
+            // missing table/row or non-numeric -> default
+        }
+        return defaultValue;
     }
 
     /** A stim's GA response, or 0 if missing. */
