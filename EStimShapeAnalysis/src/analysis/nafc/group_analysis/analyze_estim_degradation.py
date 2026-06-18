@@ -22,6 +22,12 @@ behavioral conditions (trial_type, noise_chance, sample_length). For every
 parameter we plot each metric against that parameter's value. Numeric
 parameters (e.g. a1) are coerced to float and sorted ascending; categorical
 parameters (e.g. polarity) are shown as ordered categories.
+
+A second analysis asks whether the same parameters predict WHETHER a condition
+degraded at all. Each condition is labelled 'degraded' (has a cutoff) or
+'robust' (no cutoff and a full-data effect that clears an effect-size / n
+threshold, default > 15 pp and n_on > 10). For every parameter we then plot the
+fraction of conditions that degraded against that parameter's value.
 """
 
 import sys
@@ -45,16 +51,26 @@ from src.analysis.nafc.group_analysis.max_estim_per_experiment import (
     _to_float,
     _clean_num,
 )
+from src.analysis.nafc.group_analysis.analyze_estim_by_condition import (
+    METRIC_PCT_HYP_VS_DELTA,
+    _normalize_cond_key,
+)
 
 DEFAULT_ALGORITHM_LABEL = 'first_drop_w50_s5_t0_n2_m10'
 
-# Columns of the degradation table that are bookkeeping / metrics, NOT parameters
-# to plot against. Everything else in the table is treated as a condition parameter.
+# Thresholds defining a "robust" (non-degraded) condition for the degraded-vs-robust
+# comparison: a condition with NO cutoff whose full-data effect clears these bars.
+DEFAULT_EFFECT_THRESHOLD = 15.0  # percentage points
+DEFAULT_MIN_N = 10               # estim-on trials
+
+# Columns of the degradation / classification tables that are bookkeeping / metrics,
+# NOT parameters to plot against. Everything else is treated as a condition parameter.
 _NON_PARAM_COLUMNS = {
     'session_id', 'estim_spec_id', 'max_trial_start',
     'degradation_strength', 'degradation_onset',
     'effect_before', 'effect_after',
     'n_on_before', 'n_on_after', 'n_off_before', 'n_off_after',
+    'group', 'full_effect', 'n_on', 'n_off',
 }
 
 # The metrics we plot, in display order: column name -> axis label.
@@ -282,20 +298,219 @@ def plot_degradation_metric(df, metric_key, algorithm_label=DEFAULT_ALGORITHM_LA
     return fig
 
 
-def run(algorithm_label=DEFAULT_ALGORITHM_LABEL, session_id=None, save_dir=None):
-    """Build the degradation table and plot every metric against every parameter."""
-    df = build_degradation_table(algorithm_label, session_id)
-    if df.empty:
-        print("Nothing to analyze — no cutoffs found for this algorithm_label.")
-        return df
+# ---------------------------------------------------------------------------
+# Degraded vs robust comparison: do the same parameters predict WHETHER a
+# condition degraded at all?  A condition is "degraded" if it has a stored
+# cutoff under this algorithm_label; it is "robust" if it has NO cutoff and its
+# full-data effect clears an effect-size and trial-count threshold (default
+# > 15 pp, n_on > 10).  Conditions that neither degraded nor reached a strong
+# stable effect are dropped (they tell us nothing about degradation).
+# ---------------------------------------------------------------------------
 
-    for metric_key in _METRICS:
-        save_path = None
-        if save_dir:
-            save_path = f"{save_dir}/estim_degradation_{metric_key}_{algorithm_label}.png"
-        plot_degradation_metric(df, metric_key, algorithm_label=algorithm_label,
-                                save_path=save_path)
+def _get_condition_universe(metric, session_id=None):
+    """All distinct (session_id, conditions_json) present in EStimEffects for a metric.
+
+    EStimEffects is the same condition universe the cutoff search iterates, so this
+    captures every condition that could have degraded — whether or not it did.
+    """
+    conn = Connection("allen_data_repository")
+    if session_id:
+        conn.execute(
+            "SELECT DISTINCT session_id, conditions FROM EStimEffects "
+            "WHERE metric = %s AND session_id = %s", (metric, session_id))
+    else:
+        conn.execute(
+            "SELECT DISTINCT session_id, conditions FROM EStimEffects WHERE metric = %s",
+            (metric,))
+    return [(row[0], row[1]) for row in conn.fetch_all()]
+
+
+def build_condition_classification_table(algorithm_label=DEFAULT_ALGORITHM_LABEL,
+                                         metric=METRIC_PCT_HYP_VS_DELTA,
+                                         effect_threshold=DEFAULT_EFFECT_THRESHOLD,
+                                         min_n=DEFAULT_MIN_N, session_id=None):
+    """
+    Label every condition as 'degraded' (has a cutoff) or 'robust' (no cutoff and
+    full-data effect > effect_threshold with n_on > min_n), and join each with its
+    estim parameters (estim_spec_id unfurled) and behavioral conditions.
+
+    Returns a one-row-per-condition DataFrame; conditions that are neither degraded
+    nor robust are excluded.
+    """
+    # Degraded conditions: those with a stored cutoff under this algorithm_label.
+    degraded_keys = set()
+    for sid, conditions_json, _ in get_cutoffs(algorithm_label, session_id):
+        try:
+            cond = _parse_conditions_json(conditions_json)
+        except Exception:
+            continue
+        degraded_keys.add((sid, _normalize_cond_key(cond)))
+
+    trials_cache = {}
+    seen = set()
+    records = []
+    for sid, conditions_json in _get_condition_universe(metric, session_id):
+        try:
+            cond_dict = _parse_conditions_json(conditions_json)
+        except Exception:
+            continue
+        key = (sid, _normalize_cond_key(cond_dict))
+        if key in seen:
+            continue
+        seen.add(key)
+
+        if sid not in trials_cache:
+            trials_cache[sid] = _get_all_trials_ordered(sid)
+        full_eff, n_on, n_off = _effect_and_ns_for_condition(trials_cache[sid], cond_dict)
+
+        if key in degraded_keys:
+            group = 'degraded'
+        elif full_eff is not None and full_eff > effect_threshold and n_on > min_n:
+            group = 'robust'
+        else:
+            continue  # neither clearly degraded nor a strong stable effect
+
+        record = {'session_id': sid, 'group': group,
+                  'full_effect': full_eff, 'n_on': n_on, 'n_off': n_off}
+        record.update(_expand_condition(sid, cond_dict))
+        records.append(record)
+
+    df = pd.DataFrame(records)
+    if df.empty:
+        print("No conditions classified as degraded or robust.")
+        return df
+    n_deg = int((df['group'] == 'degraded').sum())
+    n_rob = int((df['group'] == 'robust').sum())
+    print(f"Classified {len(df)} conditions: {n_deg} degraded, {n_rob} robust "
+          f"(robust = no cutoff, effect > {effect_threshold}pp, n_on > {min_n})")
     return df
+
+
+def _plot_likelihood_numeric(ax, xs, is_degraded):
+    """Plot fraction-degraded vs a numeric parameter, annotated with counts."""
+    by_x = {}
+    for x, d in zip(xs, is_degraded):
+        by_x.setdefault(x, []).append(d)
+    uniq = sorted(by_x)
+    fracs = [float(np.mean(by_x[x])) for x in uniq]
+    ax.plot(uniq, fracs, '-o', color='purple', markersize=5, linewidth=1.5)
+    for x in uniq:
+        lst = by_x[x]
+        ax.annotate(f"{int(sum(lst))}/{len(lst)}", (x, float(np.mean(lst))),
+                    textcoords='offset points', xytext=(0, 6), fontsize=7, ha='center')
+
+
+def _plot_likelihood_categorical(ax, cats, is_degraded):
+    """Bar chart of fraction-degraded per category, annotated with counts."""
+    labels = sorted(set(cats), key=str)
+    by_cat = {}
+    for c, d in zip(cats, is_degraded):
+        by_cat.setdefault(c, []).append(d)
+    fracs = [float(np.mean(by_cat[c])) for c in labels]
+    ax.bar(range(len(labels)), fracs, color='mediumpurple', edgecolor='black')
+    for i, c in enumerate(labels):
+        lst = by_cat[c]
+        ax.text(i, float(np.mean(lst)), f"{int(sum(lst))}/{len(lst)}",
+                ha='center', va='bottom', fontsize=7)
+    ax.set_xticks(range(len(labels)))
+    ax.set_xticklabels([str(_clean_num(c)) for c in labels], rotation=30, ha='right',
+                       fontsize=8)
+
+
+def plot_degradation_likelihood(df, algorithm_label=DEFAULT_ALGORITHM_LABEL,
+                                effect_threshold=DEFAULT_EFFECT_THRESHOLD,
+                                min_n=DEFAULT_MIN_N, save_path=None):
+    """
+    For every condition parameter, plot the fraction of conditions that DEGRADED as a
+    function of that parameter's value (degraded vs robust, one subplot per parameter).
+    Numeric parameters are sorted ascending; categorical parameters are ordered
+    categories. Each point/bar is annotated with (# degraded / # conditions).
+    """
+    if df.empty:
+        print("No classified conditions to plot.")
+        return None
+
+    is_deg_col = (df['group'] == 'degraded').astype(int)
+    params = _parameter_columns(df)
+    n = len(params)
+    ncols = min(3, n)
+    nrows = (n + ncols - 1) // ncols
+    fig, axes = plt.subplots(nrows, ncols, figsize=(5.5 * ncols, 4 * nrows),
+                             squeeze=False)
+
+    for i, param in enumerate(params):
+        ax = axes[i // ncols][i % ncols]
+        mask = df[param].notna()
+        if not mask.any():
+            ax.text(0.5, 0.5, 'no data', ha='center', va='center', transform=ax.transAxes)
+            ax.set_title(param, fontsize=10, fontweight='bold')
+            continue
+
+        raw_vals = df.loc[mask, param].tolist()
+        is_deg = is_deg_col[mask].tolist()
+
+        if _is_numeric_param(raw_vals):
+            _plot_likelihood_numeric(ax, [_to_float(v) for v in raw_vals], is_deg)
+        else:
+            _plot_likelihood_categorical(ax, [str(v) for v in raw_vals], is_deg)
+
+        ax.axhline(0.5, color='gray', linestyle=':', linewidth=1, alpha=0.6)
+        ax.set_ylim(-0.05, 1.1)
+        ax.set_title(param, fontsize=10, fontweight='bold')
+        ax.set_xlabel(param, fontsize=9)
+        ax.set_ylabel('Fraction degraded', fontsize=8)
+        ax.grid(True, alpha=0.3)
+        ax.set_axisbelow(True)
+
+    for j in range(n, nrows * ncols):
+        axes[j // ncols][j % ncols].axis('off')
+
+    n_deg = int(is_deg_col.sum())
+    n_rob = len(df) - n_deg
+    fig.suptitle(f"Fraction of conditions that degraded vs condition parameters\n"
+                 f"({n_deg} degraded vs {n_rob} robust [effect > {effect_threshold}pp, "
+                 f"n_on > {min_n}], algorithm='{algorithm_label}')",
+                 fontsize=13, fontweight='bold')
+    fig.tight_layout(rect=[0, 0, 1, 0.93])
+
+    if save_path:
+        import os
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, bbox_inches='tight', dpi=150)
+        print(f"Saved to {save_path}")
+
+    plt.show()
+    return fig
+
+
+def run(algorithm_label=DEFAULT_ALGORITHM_LABEL, session_id=None, save_dir=None,
+        metric=METRIC_PCT_HYP_VS_DELTA, effect_threshold=DEFAULT_EFFECT_THRESHOLD,
+        min_n=DEFAULT_MIN_N):
+    """
+    Build the degradation table and plot every metric against every parameter, then
+    build the degraded-vs-robust classification table and plot, per parameter, the
+    fraction of conditions that degraded.
+    """
+    df = build_degradation_table(algorithm_label, session_id)
+    if not df.empty:
+        for metric_key in _METRICS:
+            save_path = (f"{save_dir}/estim_degradation_{metric_key}_{algorithm_label}.png"
+                         if save_dir else None)
+            plot_degradation_metric(df, metric_key, algorithm_label=algorithm_label,
+                                    save_path=save_path)
+    else:
+        print("No cutoffs found for this algorithm_label — skipping degradation-metric plots.")
+
+    class_df = build_condition_classification_table(
+        algorithm_label, metric=metric, effect_threshold=effect_threshold,
+        min_n=min_n, session_id=session_id)
+    if not class_df.empty:
+        save_path = (f"{save_dir}/estim_degradation_likelihood_{algorithm_label}.png"
+                     if save_dir else None)
+        plot_degradation_likelihood(class_df, algorithm_label=algorithm_label,
+                                    effect_threshold=effect_threshold, min_n=min_n,
+                                    save_path=save_path)
+    return df, class_df
 
 
 def main():
@@ -303,6 +518,8 @@ def main():
         algorithm_label=DEFAULT_ALGORITHM_LABEL,
         session_id=None,  # str = one session, None = all sessions with a cutoff
         save_dir="/home/connorlab/Documents/plots/group_analysis/estimshape",
+        effect_threshold=DEFAULT_EFFECT_THRESHOLD,
+        min_n=DEFAULT_MIN_N,
     )
 
 
