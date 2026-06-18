@@ -29,7 +29,8 @@ import math
 
 from clat.util.connection import Connection
 from src.analysis.nafc.estim_parameter_classifier import EStimParameterClassifier
-from src.analysis.nafc.group_analysis.analyze_estim_by_condition import METRIC_PCT_HYP_VS_DELTA
+from src.analysis.nafc.group_analysis.analyze_estim_by_condition import (
+    METRIC_PCT_HYPOTHESIZED, METRIC_PCT_HYP_VS_DELTA)
 from src.analysis.nafc.group_analysis.estim_groups_permutation_test import (
     create_permutation_test_table, save_permutation_results)
 
@@ -698,7 +699,7 @@ def save_cutoff(session_id, conditions_json, algorithm_label, max_trial_start):
 
 def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
                 min_estim_trials=10, session_id=None, force_recompute=False,
-                verbose=False):
+                verbose=False, metric=METRIC_PCT_HYP_VS_DELTA):
     """
     Compute and store first-sustained-drop cutoffs for all conditions.
 
@@ -714,6 +715,9 @@ def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
         verbose          : print per-condition effect size and trial counts
                            (n_on / n_off) for the full data and the kept
                            (after-cutoff) portion
+        metric           : which EStimEffects metric to enumerate conditions from
+                           (only used to list the conditions; cutoffs themselves are
+                           metric-agnostic — they apply via trial_start)
     """
     create_cutoffs_table()
 
@@ -725,11 +729,11 @@ def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
     if session_id:
         conn.execute(
             "SELECT session_id, conditions FROM EStimEffects "
-            "WHERE session_id = %s AND metric = 'pct_hyp_vs_delta'",
-            (session_id,))
+            "WHERE session_id = %s AND metric = %s",
+            (session_id, metric))
     else:
         conn.execute(
-            "SELECT session_id, conditions FROM EStimEffects WHERE metric = 'pct_hyp_vs_delta'")
+            "SELECT session_id, conditions FROM EStimEffects WHERE metric = %s", (metric,))
 
     col_names = [d[0] for d in conn.my_cursor.description]
     all_rows = conn.fetch_all()
@@ -897,6 +901,7 @@ def main():
     min_estim_trials = 10
     n_permutations   = 1000
     session_id       = None  # str = one session, list = several, None = all
+    metric           = METRIC_PCT_HYP_VS_DELTA  # or METRIC_PCT_HYPOTHESIZED
 
     # Normalize the selection to a list of run_cutoffs arguments (None means "all").
     if session_id is None or isinstance(session_id, str):
@@ -913,6 +918,7 @@ def main():
             session_id=s,
             force_recompute=False,
             verbose=True,
+            metric=metric,
         )
 
     # Resolve which sessions to plot.
@@ -948,7 +954,7 @@ def main():
             session_id=sid, window_size=window_size, step_size=step_size,
             threshold=threshold, n_steps_below=n_steps_below,
             min_estim_trials=min_estim_trials, n_permutations=n_permutations,
-            studentize=True
+            studentize=True, metric=metric,
         )
 
 
