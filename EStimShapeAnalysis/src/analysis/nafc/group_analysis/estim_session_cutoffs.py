@@ -23,14 +23,20 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from src.analysis.nafc.group_analysis.analyze_estim_by_condition import METRIC_PCT_HYP_VS_DELTA
-
 sys.path.insert(0, str(Path(__file__).parents[3]))
 
 import math
 
 from clat.util.connection import Connection
 from src.analysis.nafc.estim_parameter_classifier import EStimParameterClassifier
+from src.analysis.nafc.group_analysis.analyze_estim_by_condition import METRIC_PCT_HYP_VS_DELTA
+from src.analysis.nafc.group_analysis.estim_groups_permutation_test import (
+    create_permutation_test_table, save_permutation_results)
+
+
+def _algorithm_label(window_size, step_size, threshold, n_steps_below, min_estim_trials):
+    """Cutoff identifier shared by the cutoffs table and the permutation-test rows."""
+    return f"first_drop_w{window_size}_s{step_size}_t{threshold}_n{n_steps_below}_m{min_estim_trials}"
 
 
 def _normalize_cond_key(cond_dict):
