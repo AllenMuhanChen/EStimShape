@@ -449,11 +449,12 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
                 w.setParent(None)
                 w.deleteLater()
         self.plots, self.legends, self.series = {}, {}, {}
-        self._grid_config = config
 
         for r, (row_title, _kind) in enumerate(rows):
             for c, (col_key, col_title, *_rest) in enumerate(cols):
-                glw = _ScrollGraphicsLayout(self.scroll, background='w')
+                # Background comes from the global setConfigOptions; do NOT pass background= to
+                # GraphicsLayoutWidget (it forwards kwargs to GraphicsLayout, which rejects it).
+                glw = _ScrollGraphicsLayout(self.scroll)
                 glw.setFixedHeight(PLOT_HEIGHT)
                 # Plot in col 0 (stretches); legend in a fixed-width col 1 to its right, so the
                 # legend never overlaps the data.
@@ -477,6 +478,10 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
                 self.grid_layout.addWidget(glw, r, c)
                 self.plots[(r, col_key)] = pi
                 self.legends[(r, col_key)] = legend
+
+        # Only record the config once the grid is fully built, so a failure mid-build retries
+        # next time instead of leaving an empty grid that matches the config (KeyError storms).
+        self._grid_config = config
 
     def _color_for_spec(self, spec):
         """Return this spec's stable color, assigning the next palette entry on first sight."""
