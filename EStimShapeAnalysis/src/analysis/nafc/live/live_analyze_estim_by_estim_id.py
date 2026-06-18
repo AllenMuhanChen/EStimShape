@@ -35,9 +35,9 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLabel, QSpinBox, QCheckBox,
+    QPushButton, QLabel, QSpinBox, QCheckBox, QScrollArea,
 )
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, Qt
 
 from clat.util.connection import Connection
 from src.startup import context
@@ -101,8 +101,25 @@ def read_session_trials_as_exp_format(session_id, start_gen_id=START_GEN_ID):
     return out
 
 
+class _ScrollableCanvas(FigureCanvas):
+    """FigureCanvas whose wheel events scroll the surrounding QScrollArea vertically rather
+    than triggering matplotlib's zoom — so the tall overview figure can be scrolled through."""
+
+    def __init__(self, figure):
+        super().__init__(figure)
+        self.scroll_area = None
+
+    def wheelEvent(self, event):
+        if self.scroll_area is not None:
+            bar = self.scroll_area.verticalScrollBar()
+            bar.setValue(bar.value() - event.angleDelta().y())
+            event.accept()
+        else:
+            super().wheelEvent(event)
+
+
 class LiveEstimWindow(QMainWindow):
-    """Main window: a control bar + an embedded matplotlib canvas showing Plot 1."""
+    """Main window: a control bar + a scrollable matplotlib canvas showing Plot 1."""
 
     def __init__(self, exp_conn, session_id):
         super().__init__()
@@ -151,12 +168,37 @@ class LiveEstimWindow(QMainWindow):
         bar.addWidget(self.status_label)
         layout.addLayout(bar)
 
-        # Figure + matplotlib navigation toolbar.
+        # Figure inside a scroll area: the overview figure is tall, so render it at a
+        # readable size (fit to width) and let the wheel scroll it vertically rather than
+        # squashing everything into the window.
         self.figure = plt.figure(figsize=(16, 16))
-        self.canvas = FigureCanvas(self.figure)
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(False)
+        self.scroll.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+        self.canvas = _ScrollableCanvas(self.figure)
+        self.canvas.scroll_area = self.scroll
+        self.scroll.setWidget(self.canvas)
+
         self.toolbar = NavigationToolbar(self.canvas, self)
         layout.addWidget(self.toolbar)
-        layout.addWidget(self.canvas)
+        layout.addWidget(self.scroll)
+
+    def _fit_canvas(self):
+        """Size the canvas to the scroll viewport width, keeping the figure's aspect ratio,
+        so content stays readable and only vertical scrolling is needed."""
+        w_in, h_in = self.figure.get_size_inches()
+        if w_in <= 0:
+            return
+        # -2 px guard so the canvas never exceeds the viewport and forces a horizontal bar.
+        width = max(self.scroll.viewport().width() - 2, 600)
+        height = int(width * (h_in / w_in))
+        self.canvas.setFixedSize(width, height)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._fit_canvas()
 
     # ---- polling / refresh ---------------------------------------------
     def _toggle_live(self):
@@ -193,9 +235,11 @@ class LiveEstimWindow(QMainWindow):
 
         if data_exp is None or len(data_exp) == 0:
             self.figure.clear()
+            self.figure.set_size_inches(12, 8)
             ax = self.figure.add_subplot(111)
             ax.text(0.5, 0.5, 'Waiting for trials…', ha='center', va='center', fontsize=14)
             ax.axis('off')
+            self._fit_canvas()
             self.canvas.draw()
             return 0
 
@@ -205,6 +249,7 @@ class LiveEstimWindow(QMainWindow):
         self.figure.suptitle(
             f'Live EStimSpecId Analysis — {self.session_id} — {IS_CORRECT_FIELD_NAME}',
             fontsize=15, y=1.005)
+        self._fit_canvas()
         self.canvas.draw()
         return len(data_exp)
 
