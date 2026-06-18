@@ -1028,13 +1028,16 @@ def plot_winning_conditions(exclude_session_ids=None, start_session_id=None,
 
 def main():
     # ---- Test 1: max-stat per experiment (is the BEST condition > chance?) ----
+    metric = METRIC_PCT_HYP_VS_DELTA
+    exclude_session_ids = ["260421_0", "260410_0"]
+    start_session_id = "260402_0"
     plot_max_stat_per_experiment(
-        exclude_session_ids=["260421_0", "260410_0"],   # e.g. ["260421_0", "260410_0"] to drop sessions
+        exclude_session_ids=exclude_session_ids,   # e.g. ["260421_0", "260410_0"] to drop sessions
         # exclusion reasons: ["Incorrect GA Response behavior", "Weird clustering, too small"]
         # start_session_id="260423_0",
-        start_session_id="260402_0", #first variant experiment
+        start_session_id=start_session_id, #first variant experiment
         algorithm_label='None',        # or e.g. 'last_sustained_k3_t5.0'
-        metric=METRIC_PCT_HYP_VS_DELTA,  # switch to METRIC_PCT_HYP_VS_DELTA to test Hyp vs Delta only
+        metric=metric,  # switch to METRIC_PCT_HYP_VS_DELTA to test Hyp vs Delta only
         # algorithm_label='first_drop_w100_s10_t5.0_n3',
         save_path="/home/connorlab/Documents/plots/across_experiments/max_estim_per_experiment.png",
         show_n=True,
@@ -1053,12 +1056,12 @@ def main():
 
     # ---- Test 2: exceedance-count (are there more conditions over x% than chance?) ----
     plot_exceedance_count_test(
-        exclude_session_ids=["260421_0", "260410_0"],    # e.g. ["260423_0"] to drop sessions
+        exclude_session_ids=exclude_session_ids,    # e.g. ["260423_0"] to drop sessions
         # rejected for: ["Improper GA", "GA on cell not correlated with surrounding cells"]
         # start_session_id="260423_0",
-        start_session_id="260402_0",
+        start_session_id=start_session_id,
         algorithm_label='None',
-        metric=METRIC_PCT_HYP_VS_DELTA,
+        metric=metric,
         # thresholds=None -> (5,10,15,20)% in raw mode, (1.0..3.0) z when studentized
         thresholds=[-3.0, -2.5, -2.0, -1.5,-1.0,-0.5,0, 0.5, 1, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0],
         # studentize=True -> count exceedances of z = effect/own-null SD instead of raw %
@@ -1069,20 +1072,20 @@ def main():
 
     # ---- Test 3: studentized winners — raw vs studentized effect (diagnostic) ----
     plot_studentized_winners(
-        exclude_session_ids=["260421_0", "260410_0"],
-        start_session_id="260402_0",
+        exclude_session_ids=exclude_session_ids,
+        start_session_id=start_session_id,
         algorithm_label='None',
-        metric=METRIC_PCT_HYP_VS_DELTA,
+        metric=metric,
         min_trials=10,
         save_path="/home/connorlab/Documents/plots/across_experiments/studentized_winners.png",
     )
 
     # ---- Test 4: which condition parameters tend to win the max ----
     plot_winning_conditions(
-        exclude_session_ids=["260421_0", "260410_0"],
-        start_session_id="260402_0",
+        exclude_session_ids=exclude_session_ids,
+        start_session_id=start_session_id,
         algorithm_label='None',
-        metric=METRIC_PCT_HYP_VS_DELTA,
+        metric=metric,
         min_trials=10,
         studentize=True,   # tally winners of the studentized maxT
         save_path="/home/connorlab/Documents/plots/across_experiments/winning_conditions.png",

@@ -105,6 +105,9 @@ public class EStimExperimentVariantsDeltaGenType extends EStimExperimentVariants
 
         //Sample remaining after putting one full list
         int remaining = numTrials - variantIds.size();
+        if (remaining > allVariantIds.size()) {
+            throw new IllegalArgumentException("Number of trials requested exceeds the number this code is willing to distribute. Can rework this code or input -1.");
+        }
         Collections.shuffle(allVariantIds);
         for (int i = 0; i < remaining; i++) {
             variantIds.add(allVariantIds.get(i));
