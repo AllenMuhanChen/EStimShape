@@ -136,27 +136,23 @@ def _get_all_trials_ordered(session_id):
     return df.reset_index(drop=True)
 
 
-def _window_effect_for_condition(window_df, cond_dict):
-    """
-    Compute effect size (pp) for a specific condition within a window of ALL trials.
-    Behavioral filters (trial_type, noise_chance, sample_length) apply to both groups.
-    Estim-param filters (polarity, a1, …) apply only to estim-on trials.
-    """
-    mask = pd.Series(True, index=window_df.index)
+def _behavioral_mask(df, cond_dict):
+    """Boolean mask of trials matching the behavioral filters (apply to on AND off)."""
+    mask = pd.Series(True, index=df.index)
     if 'trial_type' in cond_dict:
-        mask &= window_df['trial_type'] == cond_dict['trial_type']
+        mask &= df['trial_type'] == cond_dict['trial_type']
     if 'noise_chance' in cond_dict:
-        mask &= (window_df['noise_chance'] - cond_dict['noise_chance']).abs() < 0.001
+        mask &= (df['noise_chance'] - cond_dict['noise_chance']).abs() < 0.001
     if 'sample_length' in cond_dict:
         if cond_dict['sample_length'] is None:
-            mask &= window_df['sample_length'].isna()
+            mask &= df['sample_length'].isna()
         else:
-            mask &= window_df['sample_length'] == cond_dict['sample_length']
+            mask &= df['sample_length'] == cond_dict['sample_length']
+    return mask
 
-    behavioral_df = window_df[mask]
-    off = behavioral_df.loc[behavioral_df['is_estim_on'] == 0, 'is_hypothesized_choice']
 
-    on_df = behavioral_df[behavioral_df['is_estim_on'] == 1].copy()
+def _estim_on_subset(on_df, cond_dict):
+    """Restrict estim-on trials to those matching the estim-param filters."""
     if 'estim_spec_id' in cond_dict:
         on_df = on_df[(on_df['estim_spec_id'] - cond_dict['estim_spec_id']).abs() < 0.5]
     if 'polarity' in cond_dict:
@@ -171,7 +167,29 @@ def _window_effect_for_condition(window_df, cond_dict):
         on_df = on_df[(on_df['post_stim_refractory_period'] - cond_dict['post_stim_refractory_period']).abs() < 1.0]
     if 'enable_charge_recovery' in cond_dict:
         on_df = on_df[on_df['enable_charge_recovery'] == cond_dict['enable_charge_recovery']]
+    return on_df
 
+
+def _condition_groups(df, cond_dict):
+    """
+    Return (on_df, off) for a condition within df.
+      off : is_hypothesized_choice of behavioral-matched estim-off trials
+      on_df : behavioral-matched, param-matched estim-on trials
+    Behavioral filters apply to both groups; estim-param filters apply only to estim-on.
+    """
+    behavioral_df = df[_behavioral_mask(df, cond_dict)]
+    off = behavioral_df.loc[behavioral_df['is_estim_on'] == 0, 'is_hypothesized_choice']
+    on_df = _estim_on_subset(behavioral_df[behavioral_df['is_estim_on'] == 1], cond_dict)
+    return on_df, off
+
+
+def _window_effect_for_condition(window_df, cond_dict):
+    """
+    Compute effect size (pp) for a specific condition within a window of ALL trials.
+    Behavioral filters (trial_type, noise_chance, sample_length) apply to both groups.
+    Estim-param filters (polarity, a1, …) apply only to estim-on trials.
+    """
+    on_df, off = _condition_groups(window_df, cond_dict)
     on = on_df['is_hypothesized_choice']
     if len(on) == 0 or len(off) == 0:
         return None
@@ -180,33 +198,8 @@ def _window_effect_for_condition(window_df, cond_dict):
 
 def _count_estim_on_for_condition(df, cond_dict):
     """Count estim-on trials in df that match cond_dict (same filters as _window_effect_for_condition)."""
-    mask = pd.Series(True, index=df.index)
-    if 'trial_type' in cond_dict:
-        mask &= df['trial_type'] == cond_dict['trial_type']
-    if 'noise_chance' in cond_dict:
-        mask &= (df['noise_chance'] - cond_dict['noise_chance']).abs() < 0.001
-    if 'sample_length' in cond_dict:
-        if cond_dict['sample_length'] is None:
-            mask &= df['sample_length'].isna()
-        else:
-            mask &= df['sample_length'] == cond_dict['sample_length']
-
-    on_df = df[mask & (df['is_estim_on'] == 1)].copy()
-    if 'estim_spec_id' in cond_dict:
-        on_df = on_df[(on_df['estim_spec_id'] - cond_dict['estim_spec_id']).abs() < 0.5]
-    if 'polarity' in cond_dict:
-        on_df = on_df[on_df['polarity'] == cond_dict['polarity']]
-    if 'shape' in cond_dict:
-        on_df = on_df[on_df['shape'] == cond_dict['shape']]
-    if 'num_channels' in cond_dict:
-        on_df = on_df[on_df['num_channels'] == cond_dict['num_channels']]
-    if 'a1' in cond_dict:
-        on_df = on_df[(on_df['a1'] - cond_dict['a1']).abs() < 0.01]
-    if 'post_stim_refractory_period' in cond_dict:
-        on_df = on_df[(on_df['post_stim_refractory_period'] - cond_dict['post_stim_refractory_period']).abs() < 1.0]
-    if 'enable_charge_recovery' in cond_dict:
-        on_df = on_df[on_df['enable_charge_recovery'] == cond_dict['enable_charge_recovery']]
-    return len(on_df)
+    behavioral_df = df[_behavioral_mask(df, cond_dict)]
+    return len(_estim_on_subset(behavioral_df[behavioral_df['is_estim_on'] == 1], cond_dict))
 
 
 def _effect_and_ns_for_condition(df, cond_dict):
@@ -215,36 +208,7 @@ def _effect_and_ns_for_condition(df, cond_dict):
     (e.g. the kept portion after a cutoff).
     Returns (effect_pct_or_None, n_estim_on, n_estim_off).
     """
-    mask = pd.Series(True, index=df.index)
-    if 'trial_type' in cond_dict:
-        mask &= df['trial_type'] == cond_dict['trial_type']
-    if 'noise_chance' in cond_dict:
-        mask &= (df['noise_chance'] - cond_dict['noise_chance']).abs() < 0.001
-    if 'sample_length' in cond_dict:
-        if cond_dict['sample_length'] is None:
-            mask &= df['sample_length'].isna()
-        else:
-            mask &= df['sample_length'] == cond_dict['sample_length']
-
-    behavioral_df = df[mask]
-    off = behavioral_df.loc[behavioral_df['is_estim_on'] == 0, 'is_hypothesized_choice']
-
-    on_df = behavioral_df[behavioral_df['is_estim_on'] == 1].copy()
-    if 'estim_spec_id' in cond_dict:
-        on_df = on_df[(on_df['estim_spec_id'] - cond_dict['estim_spec_id']).abs() < 0.5]
-    if 'polarity' in cond_dict:
-        on_df = on_df[on_df['polarity'] == cond_dict['polarity']]
-    if 'shape' in cond_dict:
-        on_df = on_df[on_df['shape'] == cond_dict['shape']]
-    if 'num_channels' in cond_dict:
-        on_df = on_df[on_df['num_channels'] == cond_dict['num_channels']]
-    if 'a1' in cond_dict:
-        on_df = on_df[(on_df['a1'] - cond_dict['a1']).abs() < 0.01]
-    if 'post_stim_refractory_period' in cond_dict:
-        on_df = on_df[(on_df['post_stim_refractory_period'] - cond_dict['post_stim_refractory_period']).abs() < 1.0]
-    if 'enable_charge_recovery' in cond_dict:
-        on_df = on_df[on_df['enable_charge_recovery'] == cond_dict['enable_charge_recovery']]
-
+    on_df, off = _condition_groups(df, cond_dict)
     on = on_df['is_hypothesized_choice']
     n_on, n_off = len(on), len(off)
     if n_on == 0 or n_off == 0:
@@ -294,7 +258,18 @@ def compute_first_sustained_drop(session_id, cond_dict,
     Returns: trial_start of the last trial in the last good window, or None.
     """
     df = _get_all_trials_ordered(session_id)
+    return _first_sustained_drop_from_df(
+        df, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials)
 
+
+def _first_sustained_drop_from_df(df, cond_dict,
+                                  window_size, step_size, threshold, n_steps_below,
+                                  min_estim_trials=10):
+    """
+    DataFrame-based core of compute_first_sustained_drop. Kept separate so the
+    permutation test can re-run the identical cutoff procedure on relabeled data
+    without re-querying the database.
+    """
     if len(df) < window_size:
         return None
 
@@ -334,6 +309,150 @@ def compute_first_sustained_drop(session_id, cond_dict,
             return int(df.iloc[end_trial_idx]['trial_start'])
 
     return None  # never had a sustained drop
+
+
+# ---------------------------------------------------------------------------
+# Permutation test (Option B): the cutoff is selected FROM the choice outcomes,
+# so a valid null must apply the identical cutoff-selection procedure to relabeled
+# data. We permute the estim-on / estim-off labels across the whole session
+# (keeping trial times fixed), re-run the cutoff detection on the permuted series,
+# and take the effect on the surviving trials as the null statistic. Comparing the
+# observed cutoff-selected effect to this null cancels the selection bias.
+# (Permuting only the surviving trials would be circular and inflate significance.)
+# ---------------------------------------------------------------------------
+
+def _cutoff_selected_effect(df, cond_dict, window_size, step_size, threshold,
+                            n_steps_below, min_estim_trials):
+    """
+    Test statistic: the condition's effect size AFTER applying the cutoff procedure.
+    If the procedure finds a cutoff, the effect is computed over the kept (<= cutoff)
+    trials; otherwise over all trials. Returns effect in pp (0.0 if not computable).
+    """
+    max_ts = _first_sustained_drop_from_df(
+        df, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials)
+    kept = df if max_ts is None else df[df['trial_start'] <= max_ts]
+    eff, _, _ = _effect_and_ns_for_condition(kept, cond_dict)
+    return 0.0 if eff is None else eff
+
+
+def _condition_pool_index(df, cond_dict):
+    """
+    Index labels of the trials that participate in this condition's comparison:
+    behavioral-matched estim-off (baseline) trials and behavioral+param-matched
+    estim-on trials. These are the exchangeable units under H0.
+    """
+    behavioral_df = df[_behavioral_mask(df, cond_dict)]
+    off_idx = behavioral_df.index[behavioral_df['is_estim_on'] == 0]
+    on_idx = _estim_on_subset(behavioral_df[behavioral_df['is_estim_on'] == 1], cond_dict).index
+    return on_idx.union(off_idx)
+
+
+def permutation_test_for_condition(session_id, cond_dict,
+                                   window_size, step_size, threshold, n_steps_below,
+                                   min_estim_trials=10, n_permutations=1000, rng=None):
+    """
+    Option-B permutation test for a single condition. Returns a dict with the
+    observed cutoff-selected effect, its cutoff, the null distribution and p-values,
+    or None if the condition has no usable data.
+    """
+    if rng is None:
+        rng = np.random.default_rng()
+
+    df = _get_all_trials_ordered(session_id)
+
+    max_ts = _first_sustained_drop_from_df(
+        df, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials)
+    kept = df if max_ts is None else df[df['trial_start'] <= max_ts]
+    observed, n_on, n_off = _effect_and_ns_for_condition(kept, cond_dict)
+    if observed is None:
+        return None
+
+    pool_idx = _condition_pool_index(df, cond_dict)
+    if len(pool_idx) == 0:
+        return None
+    pool_choices = df.loc[pool_idx, 'is_hypothesized_choice'].to_numpy()
+
+    # Mutate one working copy's choice column in place each permutation instead of
+    # copying the whole frame n_permutations times.
+    df_work = df.copy()
+    null = np.empty(n_permutations)
+    for k in range(n_permutations):
+        df_work.loc[pool_idx, 'is_hypothesized_choice'] = rng.permutation(pool_choices)
+        null[k] = _cutoff_selected_effect(
+            df_work, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials)
+
+    p_two     = float(np.mean(np.abs(null) >= abs(observed)))
+    p_greater = float(np.mean(null >= observed))
+    p_less    = float(np.mean(null <= observed))
+
+    return {
+        'observed': observed, 'max_trial_start': max_ts,
+        'n_on': n_on, 'n_off': n_off,
+        'p_two_tailed': p_two, 'p_greater': p_greater, 'p_less': p_less,
+        'null_mean': float(np.mean(null)), 'n_permutations': n_permutations,
+    }
+
+
+def run_cutoff_permutation_tests(session_id=None, window_size=100, step_size=10,
+                                 threshold=5.0, n_steps_below=3, min_estim_trials=10,
+                                 n_permutations=1000, seed=None):
+    """
+    Run the Option-B permutation test for every condition in one or all sessions and
+    print a per-condition summary. The null applies the full cutoff-selection
+    procedure to relabeled data, so the p-values are valid even though the cutoff is
+    chosen from the data.
+    """
+    rng = np.random.default_rng(seed)
+    conn = Connection("allen_data_repository")
+    if session_id:
+        conn.execute(
+            "SELECT session_id, conditions FROM EStimEffects "
+            "WHERE session_id = %s AND metric = 'pct_hypothesized'", (session_id,))
+    else:
+        conn.execute(
+            "SELECT session_id, conditions FROM EStimEffects WHERE metric = 'pct_hypothesized'")
+    col_names = [d[0] for d in conn.my_cursor.description]
+    all_rows = conn.fetch_all()
+
+    print(f"\nOption-B permutation test  |  {len(all_rows)} conditions  |  "
+          f"{n_permutations} permutations each")
+    print("(permute estim-on/off labels across the whole session, repeat the cutoff "
+          "procedure, test the surviving-trials effect)\n")
+
+    seen_keys = set()
+    results = []
+    for row in tqdm(all_rows, desc="Permutation tests"):
+        row_dict = dict(zip(col_names, row))
+        sid = row_dict['session_id']
+        try:
+            cond_dict = _parse_conditions_json(row_dict['conditions'])
+        except Exception:
+            continue
+        dedup_key = (sid, _normalize_cond_key(cond_dict))
+        if dedup_key in seen_keys:
+            continue
+        seen_keys.add(dedup_key)
+
+        res = permutation_test_for_condition(
+            sid, cond_dict, window_size, step_size, threshold, n_steps_below,
+            min_estim_trials, n_permutations=n_permutations, rng=rng)
+        if res is None:
+            continue
+        results.append((sid, cond_dict, res))
+
+        cut_str = (f"cutoff@{res['max_trial_start']}" if res['max_trial_start'] is not None
+                   else "no cutoff")
+        sig = '*' if res['p_two_tailed'] < 0.05 else ' '
+        tqdm.write(
+            f"{sig} [{sid}] {_format_cond_label(cond_dict)}  |  {cut_str}\n"
+            f"      observed={res['observed']:+.1f}pp  (n_on={res['n_on']}, n_off={res['n_off']})  "
+            f"null_mean={res['null_mean']:+.1f}pp\n"
+            f"      p(two)={res['p_two_tailed']:.4f}  p(greater)={res['p_greater']:.4f}  "
+            f"p(less)={res['p_less']:.4f}")
+
+    n_sig = sum(1 for _, _, r in results if r['p_two_tailed'] < 0.05)
+    print(f"\nDone. {len(results)} conditions tested  |  {n_sig} significant at p<0.05 (two-tailed)")
+    return results
 
 
 def save_cutoff(session_id, conditions_json, algorithm_label, max_trial_start):
@@ -545,29 +664,60 @@ def main():
     threshold        = 0
     n_steps_below    = 3
     min_estim_trials = 10
-    session_id       = "260617_0"  # None = all sessions
+    n_permutations   = 1000
+    session_id       = "260617_0"  # str = one session, list = several, None = all
 
-    algorithm_label = run_cutoffs(
-        window_size=window_size, step_size=step_size,
-        threshold=threshold, n_steps_below=n_steps_below,
-        min_estim_trials=min_estim_trials,
-        session_id=session_id,
-        force_recompute=True,
-        verbose=True,
-    )
-
-    conn = Connection("allen_data_repository")
-    if session_id:
-        sessions_with_cutoffs = [session_id]
+    # Normalize the selection to a list of run_cutoffs arguments (None means "all").
+    if session_id is None or isinstance(session_id, str):
+        session_args = [session_id]
     else:
+        session_args = list(session_id)
+
+    algorithm_label = None
+    for s in session_args:
+        algorithm_label = run_cutoffs(
+            window_size=window_size, step_size=step_size,
+            threshold=threshold, n_steps_below=n_steps_below,
+            min_estim_trials=min_estim_trials,
+            session_id=s,
+            force_recompute=True,
+            verbose=True,
+        )
+
+    # Resolve which sessions to plot.
+    if isinstance(session_id, str):
+        sessions_with_cutoffs = [session_id]
+    elif session_id is None:
+        conn = Connection("allen_data_repository")
         conn.execute("SELECT DISTINCT session_id FROM EStimSessionCutoffs WHERE algorithm_label = %s",
                      (algorithm_label,))
         sessions_with_cutoffs = [row[0] for row in conn.fetch_all()]
+    else:
+        sessions_with_cutoffs = list(session_id)
 
     for sid in sessions_with_cutoffs:
         plot_session_cutoffs(sid, algorithm_label,
                              window_size=window_size, step_size=step_size,
                              threshold=threshold)
+
+    # Permutation test (Option B). Prompt only when a single session was requested;
+    # for a list or all sessions, proceed automatically.
+    if isinstance(session_id, str):
+        resp = input("\nMove on to the Option-B permutation test for this session? [y/N]: ")
+        if resp.strip().lower() not in ('y', 'yes'):
+            print("Skipping permutation test.")
+            return
+        perm_sessions = [session_id]
+    else:
+        print("\nMultiple/all sessions selected — running permutation test automatically.")
+        perm_sessions = sessions_with_cutoffs if session_id is None else list(session_id)
+
+    for sid in perm_sessions:
+        run_cutoff_permutation_tests(
+            session_id=sid, window_size=window_size, step_size=step_size,
+            threshold=threshold, n_steps_below=n_steps_below,
+            min_estim_trials=min_estim_trials, n_permutations=n_permutations,
+        )
 
 
 if __name__ == "__main__":
