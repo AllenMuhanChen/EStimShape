@@ -96,6 +96,20 @@ _PARAM_ORDER = [
     'trial_type', 'noise_chance', 'sample_length',
 ]
 
+# Formula shown in parentheses on the x-axis label for derived hyperparameters.
+_PARAM_FORMULAS = {
+    'total_current_per_pulse': 'a1 * num_channels',
+    'total_current': 'a1 * num_channels * num_pulses',
+    'current_per_second': 'a1 * num_channels * pulse_rate_hz',
+}
+
+
+def _param_xlabel(param):
+    """X-axis label for a parameter, with the derivation formula in parentheses
+    for hyperparameters (e.g. 'total_current\\n(a1 * num_channels * num_pulses)')."""
+    formula = _PARAM_FORMULAS.get(param)
+    return f"{param}\n({formula})" if formula else param
+
 
 # Some parameters carry small jitter / spurious precision (e.g. a pulse rate that
 # lands at 98 or 203 Hz, or post-trigger delays a few µs off a round value). Bin
@@ -321,7 +335,7 @@ def plot_degradation_metric(df, metric_key, algorithm_label=DEFAULT_ALGORITHM_LA
             ax.axhline(1.0, color='gray', linestyle=':', linewidth=1, alpha=0.6)
             ax.axhline(0.0, color='gray', linestyle='--', linewidth=0.8, alpha=0.4)
         ax.set_title(param, fontsize=10, fontweight='bold')
-        ax.set_xlabel(param, fontsize=9)
+        ax.set_xlabel(_param_xlabel(param), fontsize=9)
         ax.set_ylabel(_METRICS[metric_key], fontsize=8)
         ax.grid(True, alpha=0.3)
         ax.set_axisbelow(True)
@@ -503,7 +517,7 @@ def plot_degradation_likelihood(df, algorithm_label=DEFAULT_ALGORITHM_LABEL,
         ax.axhline(0.5, color='gray', linestyle=':', linewidth=1, alpha=0.6)
         ax.set_ylim(-0.05, 1.1)
         ax.set_title(param, fontsize=10, fontweight='bold')
-        ax.set_xlabel(param, fontsize=9)
+        ax.set_xlabel(_param_xlabel(param), fontsize=9)
         ax.set_ylabel('Fraction degraded', fontsize=8)
         ax.grid(True, alpha=0.3)
         ax.set_axisbelow(True)
