@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 import os
+from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
@@ -28,6 +29,158 @@ from src.analysis.nafc.nafc_database_fields import (
 from src.analysis.nafc.psychometric_curves import collect_choice_trials, plot_psychometric_curve_on_ax
 from src.startup import context
 
+
+# ===========================================================================
+# Plot 1 (EStimSpecId overview) — reusable building blocks
+#
+# These are factored out of main() so the batch script and the live GUI
+# (live_analyze_estim_by_estim_id.py) construct Plot 1 from the exact same code.
+# ===========================================================================
+
+@dataclass
+class EstimPartition:
+    """Three-way (delta / variant / removed) estim-on/off partition of experimental trials,
+    plus the EStimSpecIds present in each group and the shared noise levels. Produced by
+    partition_estim_data; consumed by build_overview_figure."""
+    data_delta_on: "pd.DataFrame"
+    data_delta_off: "pd.DataFrame"
+    data_variant_on: "pd.DataFrame"
+    data_variant_off: "pd.DataFrame"
+    data_removed_on: "pd.DataFrame"
+    data_removed_off: "pd.DataFrame"
+    delta_spec_ids: object
+    variant_spec_ids: object
+    removed_spec_ids: object
+    noise_levels: list
+    include_removed: bool
+
+
+def partition_estim_data(data_exp, start_gen_id_estim_on=0, max_gen_id_estim_on=float('inf')):
+    """Partition experimental trials into delta/variant/removed, each split estim-on vs off.
+
+    Mirrors the partitioning in main() but without the optional filtering/combining knobs, so
+    it can be reused by the live GUI. `data_exp` must carry the experiment-format columns
+    (IsRemovedTrial, IsDelta, EStimEnabled, GenId, EStimSpecId, NoiseChance, Choice)."""
+    data_removed = data_exp[data_exp['IsRemovedTrial'] == True].copy()
+    data_delta   = data_exp[(data_exp['IsRemovedTrial'] == False) & (data_exp['IsDelta'] == True)].copy()
+    data_variant = data_exp[(data_exp['IsRemovedTrial'] == False) & (data_exp['IsDelta'] == False)].copy()
+
+    has_removed_trials = len(data_removed) > 0
+    has_removed_choice = (data_exp['Choice'] == 'removed').any()
+    include_removed    = has_removed_trials or has_removed_choice
+
+    def estim_on(df):
+        return df[
+            (df['EStimEnabled'] == True) &
+            (df['GenId'] >= start_gen_id_estim_on) &
+            (df['GenId'] <= max_gen_id_estim_on)
+        ].copy()
+
+    data_delta_on    = estim_on(data_delta)
+    data_delta_off   = data_delta[data_delta['EStimEnabled'] == False].copy()
+    data_variant_on  = estim_on(data_variant)
+    data_variant_off = data_variant[data_variant['EStimEnabled'] == False].copy()
+    data_removed_on  = estim_on(data_removed)
+    data_removed_off = data_removed[data_removed['EStimEnabled'] == False].copy()
+
+    return EstimPartition(
+        data_delta_on=data_delta_on, data_delta_off=data_delta_off,
+        data_variant_on=data_variant_on, data_variant_off=data_variant_off,
+        data_removed_on=data_removed_on, data_removed_off=data_removed_off,
+        delta_spec_ids=data_delta_on['EStimSpecId'].dropna().unique(),
+        variant_spec_ids=data_variant_on['EStimSpecId'].dropna().unique(),
+        removed_spec_ids=data_removed_on['EStimSpecId'].dropna().unique(),
+        noise_levels=sorted(data_exp['NoiseChance'].unique()),
+        include_removed=include_removed,
+    )
+
+
+def make_overview_row_labels(isCorrectFieldName, include_removed):
+    """Return the (row_title, metric_field, panel_fn) rows for Plot 1, optionally adding the
+    %-removed-choice row when removed trials/choices are present."""
+    metric_name = "ACCURACY" if isCorrectFieldName == "IsCorrect" else "% HYPOTHESIZED"
+    row_labels = [
+        (metric_name,                isCorrectFieldName, plot_spec_id_panel),
+        ('% Rand Choice',            None,               plot_rand_choice_panel),
+        ('% Hypothesized vs Delta',  isCorrectFieldName, plot_rand_excluded_panel),
+    ]
+    if include_removed:
+        # Tracks how often the monkey picks the removed-component choice — only meaningful when
+        # removed is actually offered (variant/delta trials with includeRemovedChoice=true) or
+        # when removed-as-sample trials exist.
+        row_labels.append(('% Removed Choice', None, plot_removed_choice_panel))
+    return row_labels
+
+
+def _call_panel(panel_fn, ax, data_on, data_off, spec_ids, noise_levels, metric_field, *,
+                title, global_test_side, n_permutations,
+                combine_sample_lengths, combine_spec_ids):
+    """Invoke a panel function, passing metric_field only for panels that take one."""
+    kwargs = dict(title=title, global_test_side=global_test_side,
+                  n_permutations=n_permutations, combine_sample_lengths=combine_sample_lengths,
+                  combine_spec_ids=combine_spec_ids)
+    if metric_field is not None:
+        return panel_fn(ax, data_on, data_off, spec_ids, noise_levels, metric_field, **kwargs)
+    return panel_fn(ax, data_on, data_off, spec_ids, noise_levels, **kwargs)
+
+
+def build_overview_figure(fig, partition, row_labels, *, global_test_side='positive',
+                          n_permutations=0, combine_sample_lengths=False,
+                          combine_spec_ids=False):
+    """Render Plot 1 (the EStimSpecId overview grid) onto `fig` in 'both' mode: one row per
+    metric, Delta / Variant [/ Removed] columns plus a per-row stats column. Clears the figure
+    first so it can be called repeatedly for live updates. Returns `fig`."""
+    fig.clear()
+    include_removed = partition.include_removed
+    n_plot_cols = 3 if include_removed else 2
+    n_rows = len(row_labels)
+    width_ratios = [2] * n_plot_cols + [3]
+    fig.set_size_inches(7 * n_plot_cols + 8, 7 * n_rows)
+    gs1 = GridSpec(n_rows, n_plot_cols + 1, figure=fig,
+                   width_ratios=width_ratios, hspace=0.45, wspace=0.3)
+    stats_col = n_plot_cols
+
+    panel_kwargs = dict(global_test_side=global_test_side, n_permutations=n_permutations,
+                        combine_sample_lengths=combine_sample_lengths,
+                        combine_spec_ids=combine_spec_ids)
+
+    for row, (row_title, metric_field, panel_fn) in enumerate(row_labels):
+        ax_delta   = fig.add_subplot(gs1[row, 0])
+        ax_variant = fig.add_subplot(gs1[row, 1])
+        ax_stats   = fig.add_subplot(gs1[row, stats_col])
+
+        delta_stats   = _call_panel(panel_fn, ax_delta, partition.data_delta_on,
+                                    partition.data_delta_off, partition.delta_spec_ids,
+                                    partition.noise_levels, metric_field,
+                                    title=f'{row_title}: Delta', **panel_kwargs)
+        variant_stats = _call_panel(panel_fn, ax_variant, partition.data_variant_on,
+                                    partition.data_variant_off, partition.variant_spec_ids,
+                                    partition.noise_levels, metric_field,
+                                    title=f'{row_title}: Variant', **panel_kwargs)
+
+        removed_stats = ""
+        if include_removed:
+            ax_removed = fig.add_subplot(gs1[row, 2])
+            removed_stats = _call_panel(panel_fn, ax_removed, partition.data_removed_on,
+                                        partition.data_removed_off, partition.removed_spec_ids,
+                                        partition.noise_levels, metric_field,
+                                        title=f'{row_title}: Removed', **panel_kwargs)
+
+        stats_text = (
+            f"{row_title.upper()} — PERMUTATION TEST ({global_test_side})\n"
+            f"n_permutations={n_permutations if n_permutations > 0 else 'DISABLED'}\n"
+            f"{'=' * 45}\n\n"
+            + delta_stats + "\n" + variant_stats
+            + (("\n" + removed_stats) if removed_stats else "")
+            + "\n* p<0.05, ** p<0.01, *** p<0.001"
+        )
+        ax_stats.text(0.02, 0.98, stats_text,
+                      transform=ax_stats.transAxes, fontsize=6,
+                      verticalalignment='top', fontfamily='monospace',
+                      bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+        ax_stats.axis('off')
+
+    return fig
 
 
 # ===========================================================================
@@ -189,70 +342,23 @@ def main():
             df['NoiseChance'] = combined_nc
         noise_levels = [combined_nc]
 
-    metric_name  = "ACCURACY" if isCorrectFieldName == "IsCorrect" else "% HYPOTHESIZED"
-
     # ---- Figure 1: combined metrics ----
-    row_labels = [
-        (metric_name,                   isCorrectFieldName, plot_spec_id_panel),
-        ('% Rand Choice',               None,               plot_rand_choice_panel),
-        (f'% Hypothesized vs Delta', isCorrectFieldName, plot_rand_excluded_panel),
-    ]
-    if include_removed:
-        # New row tracks how often the monkey picks the removed-component choice — only
-        # meaningful when removed is actually offered (variant/delta trials with
-        # includeRemovedChoice=true) or when removed-as-sample trials exist.
-        row_labels.append(('% Removed Choice', None, plot_removed_choice_panel))
-
-    def _call_panel(panel_fn, ax, data_on, data_off, spec_ids, noise_levels, metric_field, title):
-        kwargs = dict(title=title, global_test_side=global_test_side,
-                      n_permutations=n_permutations, combine_sample_lengths=combine_sample_lengths,
-                      combine_spec_ids=combine_spec_ids)
-        if metric_field is not None:
-            return panel_fn(ax, data_on, data_off, spec_ids, noise_levels, metric_field, **kwargs)
-        else:
-            return panel_fn(ax, data_on, data_off, spec_ids, noise_levels, **kwargs)
+    row_labels = make_overview_row_labels(isCorrectFieldName, include_removed)
 
     if stim_group_mode == 'both':
-        n_plot_cols = 3 if include_removed else 2
-        n_rows = len(row_labels)
-        width_ratios = [2] * n_plot_cols + [3]
-        fig1 = plt.figure(figsize=(7 * n_plot_cols + 8, 7 * n_rows))
-        gs1 = GridSpec(n_rows, n_plot_cols + 1, figure=fig1,
-                       width_ratios=width_ratios, hspace=0.45, wspace=0.3)
-        stats_col = n_plot_cols
-
-        for row, (row_title, metric_field, panel_fn) in enumerate(row_labels):
-            ax_delta   = fig1.add_subplot(gs1[row, 0])
-            ax_variant = fig1.add_subplot(gs1[row, 1])
-            ax_stats   = fig1.add_subplot(gs1[row, stats_col])
-
-            delta_stats   = _call_panel(panel_fn, ax_delta,   data_delta_on,   data_delta_off,
-                                        delta_spec_ids,   noise_levels, metric_field,
-                                        title=f'{row_title}: Delta')
-            variant_stats = _call_panel(panel_fn, ax_variant, data_variant_on, data_variant_off,
-                                        variant_spec_ids, noise_levels, metric_field,
-                                        title=f'{row_title}: Variant')
-
-            removed_stats = ""
-            if include_removed:
-                ax_removed = fig1.add_subplot(gs1[row, 2])
-                removed_stats = _call_panel(panel_fn, ax_removed, data_removed_on, data_removed_off,
-                                            removed_spec_ids, noise_levels, metric_field,
-                                            title=f'{row_title}: Removed')
-
-            stats_text = (
-                f"{row_title.upper()} — PERMUTATION TEST ({global_test_side})\n"
-                f"n_permutations={n_permutations if n_permutations > 0 else 'DISABLED'}\n"
-                f"{'=' * 45}\n\n"
-                + delta_stats + "\n" + variant_stats
-                + (("\n" + removed_stats) if removed_stats else "")
-                + "\n* p<0.05, ** p<0.01, *** p<0.001"
-            )
-            ax_stats.text(0.02, 0.98, stats_text,
-                          transform=ax_stats.transAxes, fontsize=6,
-                          verticalalignment='top', fontfamily='monospace',
-                          bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
-            ax_stats.axis('off')
+        partition = EstimPartition(
+            data_delta_on=data_delta_on, data_delta_off=data_delta_off,
+            data_variant_on=data_variant_on, data_variant_off=data_variant_off,
+            data_removed_on=data_removed_on, data_removed_off=data_removed_off,
+            delta_spec_ids=delta_spec_ids, variant_spec_ids=variant_spec_ids,
+            removed_spec_ids=removed_spec_ids, noise_levels=noise_levels,
+            include_removed=include_removed,
+        )
+        fig1 = plt.figure()
+        build_overview_figure(fig1, partition, row_labels,
+                              global_test_side=global_test_side, n_permutations=n_permutations,
+                              combine_sample_lengths=combine_sample_lengths,
+                              combine_spec_ids=combine_spec_ids)
 
     else:
         # Single-column mode: delta, variant, or combined
@@ -279,7 +385,11 @@ def main():
 
             grp_stats = _call_panel(panel_fn, ax_stim, grp_on, grp_off, grp_spec_ids,
                                     noise_levels, metric_field,
-                                    title=f'{row_title}: {grp_label}')
+                                    title=f'{row_title}: {grp_label}',
+                                    global_test_side=global_test_side,
+                                    n_permutations=n_permutations,
+                                    combine_sample_lengths=combine_sample_lengths,
+                                    combine_spec_ids=combine_spec_ids)
 
             stats_text = (
                 f"{row_title.upper()} — PERMUTATION TEST ({global_test_side})\n"

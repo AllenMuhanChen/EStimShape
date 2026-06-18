@@ -7,9 +7,15 @@ from src.analysis.nafc.nafc_database_fields import IsCorrectField, IsHypothesize
 from src.analysis.nafc.psychometric_curves import collect_choice_trials
 
 
-def compile_latest(exp_conn):
-    since_date = time_util.from_date_to_now(2024, 7, 10)
-    trial_tstamps = collect_choice_trials(exp_conn, since_date)
+def compile_latest(exp_conn, trial_tstamps=None):
+    """Compile choice trials into the EStimShapeTrials column format.
+
+    trial_tstamps: optional list of trial timestamps (When) to compile. When None, every
+    choice trial since 2024-07-10 is compiled (the batch default). The live GUI passes a
+    subset so only newly-completed trials are (re)compiled."""
+    if trial_tstamps is None:
+        since_date = time_util.from_date_to_now(2024, 7, 10)
+        trial_tstamps = collect_choice_trials(exp_conn, since_date)
 
     fields = CachedFieldList()
     fields.append(StimSpecIdField(exp_conn))
