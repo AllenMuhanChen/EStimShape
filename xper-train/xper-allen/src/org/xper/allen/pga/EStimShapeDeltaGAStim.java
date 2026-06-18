@@ -39,9 +39,16 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
      * Which of the parent's components this delta mutates. The hypothesized comp is the fragment
      * being tested: a variant tests it by preserving it, a delta tests it by changing it.
      *
-     *  1) Variant parent -> change its hypothesized (predicted-driver) comp(s).
-     *  2) Non-variant parent (delta, growing, regime_one, ...) -> systematically search the parent's
-     *     components, using the parent's existing delta-children as the record of what's been tried:
+     *  1) Variant parent -> first drive its hypothesized (predicted-driver) comp(s). We keep
+     *     re-testing the hypothesized comp until we've spent a budget of FAILED single-comp attempts
+     *     on it (num_deltas_per_variant): a failed attempt is a responded delta that did NOT drop the
+     *     response past delta_resp_ratio_threshold. Successes don't consume the budget, so each
+     *     success effectively buys another attempt. Once the budget is spent without driving the
+     *     response down, we fall through to the same tiered leaf/pair search non-variant parents use
+     *     (the hypothesized comp now counts as a tested leaf there, so the search explores the rest).
+     *  2) Non-variant parent (delta, growing, regime_one, ...), or a variant whose hypothesized-comp
+     *     budget is spent -> systematically search the parent's components, using the parent's
+     *     existing delta-children as the record of what's been tried:
      *       a) some leaf hasn't been tested as a single-comp delta yet -> test an untested leaf;
      *       b) all leaves tested but NONE dropped the response past the GAVar threshold
      *          (delta_resp_ratio_threshold) -> explore two comps that share a junction;
@@ -51,24 +58,41 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
      */
     private List<Integer> chooseCompsToMutate(PruningMatchStick parentMStick) {
         int nComp = parentMStick.getNComponent();
+        List<SiblingDelta> siblings = readSiblingDeltas();
 
-        // 1) Variant parent: change its predicted driver.
+        // 1) Variant parent: drive its predicted driver until the failed-attempt budget is spent.
         if (stimTypeManager.readProperty(parentId) == StimType.REGIME_ESTIM_VARIANTS) {
-            Random r = new Random();
             List<Integer> hypothesized = inRange(
                     hypothesizedCompData != null ? hypothesizedCompData.getHypothesizedComp() : null, nComp);
-            return hypothesized.isEmpty()
-                    ? Collections.singletonList(parentMStick.chooseRandLeaf())
-                    : Collections.singletonList(hypothesized.get(r.nextInt(hypothesized.size())));
+            if (hypothesized.isEmpty()) {
+                return Collections.singletonList(parentMStick.chooseRandLeaf());
+            }
+            // Budget = number of FAILED single-comp attempts on the hypothesized comp we'll tolerate
+            // before escalating. Successes don't count, so each success buys another attempt.
+            int budget = (int) Math.round(readGaVarDouble("num_deltas_per_variant", 1));
+            double parentResp = readResponse(parentId);
+            double dropThreshold = readGaVarDouble("delta_resp_ratio_threshold", 0.5);
+            int failedOnHypothesized = 0;
+            for (SiblingDelta s : siblings) {
+                if (s.changedComps.size() == 1 && hypothesized.contains(s.changedComps.get(0))
+                        && s.response != null && parentResp > 0
+                        && s.response / parentResp >= dropThreshold) {
+                    failedOnHypothesized++;
+                }
+            }
+            if (failedOnHypothesized < budget) {
+                Random r = new Random();
+                return Collections.singletonList(hypothesized.get(r.nextInt(hypothesized.size())));
+            }
+            // Budget spent without dropping the response: escalate to the tiered search below. The
+            // hypothesized comp is already a tested leaf, so the search naturally explores the rest.
         }
 
-        // 2) Non-variant parent: tiered search over the parent's leaves.
+        // 2) Tiered search over the parent's leaves.
         List<Integer> leaves = leavesOf(parentMStick);
         if (leaves.isEmpty()) {
             for (int i = 1; i <= nComp; i++) leaves.add(i);
         }
-
-        List<SiblingDelta> siblings = readSiblingDeltas();
 
         // (a) Test a leaf that hasn't been tried as a single-comp delta yet.
         Set<Integer> testedLeaves = new HashSet<>();
