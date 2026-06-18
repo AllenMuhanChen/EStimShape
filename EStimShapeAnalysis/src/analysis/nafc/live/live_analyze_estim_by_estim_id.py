@@ -403,7 +403,9 @@ def main():
     app = QtWidgets.QApplication(sys.argv)
     window = LiveEstimWindow(exp_conn, session_id)
     window.show()
-    sys.exit(app.exec_())
+    # PyQt6/PySide6 use exec(); PyQt5 uses exec_().
+    run = app.exec if hasattr(app, 'exec') else app.exec_
+    sys.exit(run())
 
 
 if __name__ == '__main__':
