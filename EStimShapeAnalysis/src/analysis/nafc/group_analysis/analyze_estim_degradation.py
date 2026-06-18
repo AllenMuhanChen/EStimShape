@@ -97,14 +97,39 @@ _PARAM_ORDER = [
 ]
 
 
+# Some parameters carry small jitter / spurious precision (e.g. a pulse rate that
+# lands at 98 or 203 Hz, or post-trigger delays a few µs off a round value). Bin
+# these to a sensible grid before grouping/plotting so near-identical conditions
+# collapse onto the same x value. param name -> bin width (nearest multiple).
+_PARAM_BIN_SIZES = {
+    'pulse_rate_hz': 50,        # nearest 50 Hz (±25)
+    'post_trigger_delay': 1000,  # nearest 1000 µs
+}
+
+
+def _bin_value(value, bin_size):
+    """Round a numeric value to the nearest multiple of bin_size; pass through
+    None / non-numeric values unchanged. Integer-valued bins stay ints for clean
+    axis labels."""
+    f = _to_float(value)
+    if f is None:
+        return value
+    binned = round(f / bin_size) * bin_size
+    return int(binned) if binned == int(binned) else binned
+
+
 def _expand_with_hyperparameters(session_id, cond_dict):
     """Unfurl a condition's estim_spec_id into its physical EStimParameters AND its
     derived hyperparameters (total current per pulse / total current / current per
-    second), keeping behavioral keys unchanged. Used by both build_* tables."""
+    second), keeping behavioral keys unchanged, then bin the jittery parameters.
+    Used by both build_* tables."""
     params = _expand_condition(session_id, cond_dict)
     spec_id = cond_dict.get('estim_spec_id')
     if spec_id is not None:
         params.update(get_estim_hyperparameters(session_id, spec_id))
+    for key, bin_size in _PARAM_BIN_SIZES.items():
+        if params.get(key) is not None:
+            params[key] = _bin_value(params[key], bin_size)
     return params
 
 
