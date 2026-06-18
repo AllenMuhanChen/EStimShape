@@ -113,7 +113,7 @@ def _get_all_trials_ordered(session_id):
     conn = Connection("allen_data_repository")
     query = f"""
         SELECT t.trial_start, t.is_estim_on, t.is_hypothesized_choice,
-               t.trial_type, t.noise_chance, t.sample_length,
+               t.trial_type, t.noise_chance, t.sample_length, t.estim_spec_id,
                ep.polarity, ep.shape, ep.num_channels, ep.a1,
                ep.post_stim_refractory_period, ep.enable_charge_recovery
         FROM EStimShapeTrials t
@@ -126,7 +126,7 @@ def _get_all_trials_ordered(session_id):
     rows = conn.fetch_all()
     df = pd.DataFrame(rows, columns=[
         'trial_start', 'is_estim_on', 'is_hypothesized_choice',
-        'trial_type', 'noise_chance', 'sample_length',
+        'trial_type', 'noise_chance', 'sample_length', 'estim_spec_id',
         'polarity', 'shape', 'num_channels', 'a1',
         'post_stim_refractory_period', 'enable_charge_recovery',
     ])
@@ -157,6 +157,8 @@ def _window_effect_for_condition(window_df, cond_dict):
     off = behavioral_df.loc[behavioral_df['is_estim_on'] == 0, 'is_hypothesized_choice']
 
     on_df = behavioral_df[behavioral_df['is_estim_on'] == 1].copy()
+    if 'estim_spec_id' in cond_dict:
+        on_df = on_df[(on_df['estim_spec_id'] - cond_dict['estim_spec_id']).abs() < 0.5]
     if 'polarity' in cond_dict:
         on_df = on_df[on_df['polarity'] == cond_dict['polarity']]
     if 'shape' in cond_dict:
@@ -190,6 +192,8 @@ def _count_estim_on_for_condition(df, cond_dict):
             mask &= df['sample_length'] == cond_dict['sample_length']
 
     on_df = df[mask & (df['is_estim_on'] == 1)].copy()
+    if 'estim_spec_id' in cond_dict:
+        on_df = on_df[(on_df['estim_spec_id'] - cond_dict['estim_spec_id']).abs() < 0.5]
     if 'polarity' in cond_dict:
         on_df = on_df[on_df['polarity'] == cond_dict['polarity']]
     if 'shape' in cond_dict:
