@@ -335,16 +335,37 @@ def _cutoff_selected_effect(df, cond_dict, window_size, step_size, threshold,
     return 0.0 if eff is None else eff
 
 
-def _condition_pool_index(df, cond_dict):
+def _condition_on_off_index(df, cond_dict):
     """
-    Index labels of the trials that participate in this condition's comparison:
-    behavioral-matched estim-off (baseline) trials and behavioral+param-matched
-    estim-on trials. These are the exchangeable units under H0.
+    (on_idx, off_idx) index labels for the condition: behavioral+param-matched
+    estim-on trials and behavioral-matched estim-off (baseline) trials. These are
+    the exchangeable units under H0.
     """
     behavioral_df = df[_behavioral_mask(df, cond_dict)]
     off_idx = behavioral_df.index[behavioral_df['is_estim_on'] == 0]
     on_idx = _estim_on_subset(behavioral_df[behavioral_df['is_estim_on'] == 1], cond_dict).index
+    return on_idx, off_idx
+
+
+def _condition_pool_index(df, cond_dict):
+    """Union of the condition's estim-on and estim-off index labels."""
+    on_idx, off_idx = _condition_on_off_index(df, cond_dict)
     return on_idx.union(off_idx)
+
+
+def _simple_label_shuffle_null(on_vals, off_vals, n_permutations, rng):
+    """
+    Plain two-sample label-shuffle null for the effect size (pp). Valid when no
+    cutoff was applied (no selection to correct for), and much cheaper than
+    re-running the cutoff detection on every permutation.
+    """
+    pooled = np.concatenate([on_vals, off_vals])
+    n_on = len(on_vals)
+    null = np.empty(n_permutations)
+    for k in range(n_permutations):
+        perm = rng.permutation(pooled)
+        null[k] = perm[:n_on].mean() * 100.0 - perm[n_on:].mean() * 100.0
+    return null
 
 
 def permutation_test_for_condition(session_id, cond_dict,
@@ -367,26 +388,39 @@ def permutation_test_for_condition(session_id, cond_dict,
     if observed is None:
         return None
 
-    pool_idx = _condition_pool_index(df, cond_dict)
-    if len(pool_idx) == 0:
+    on_idx, off_idx = _condition_on_off_index(df, cond_dict)
+    if len(on_idx) == 0 or len(off_idx) == 0:
         return None
-    pool_choices = df.loc[pool_idx, 'is_hypothesized_choice'].to_numpy()
 
-    # Mutate one working copy's choice column in place each permutation instead of
-    # copying the whole frame n_permutations times.
-    df_work = df.copy()
-    null = np.empty(n_permutations)
-    for k in range(n_permutations):
-        df_work.loc[pool_idx, 'is_hypothesized_choice'] = rng.permutation(pool_choices)
-        null[k] = _cutoff_selected_effect(
-            df_work, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials)
+    if max_ts is None:
+        # No cutoff was applied → the observed effect carries no selection bias, so a
+        # plain label-shuffle null is valid and avoids re-running the sliding-window
+        # cutoff detection on every permutation.
+        method = 'simple'
+        null = _simple_label_shuffle_null(
+            df.loc[on_idx, 'is_hypothesized_choice'].to_numpy(),
+            df.loc[off_idx, 'is_hypothesized_choice'].to_numpy(),
+            n_permutations, rng)
+    else:
+        # A cutoff was selected from the data → the null must apply the same
+        # cutoff-selection procedure to relabeled data. Mutate one working copy's
+        # choice column in place each permutation instead of copying the frame.
+        method = 'cutoff_resampled'
+        pool_idx = on_idx.union(off_idx)
+        pool_choices = df.loc[pool_idx, 'is_hypothesized_choice'].to_numpy()
+        df_work = df.copy()
+        null = np.empty(n_permutations)
+        for k in range(n_permutations):
+            df_work.loc[pool_idx, 'is_hypothesized_choice'] = rng.permutation(pool_choices)
+            null[k] = _cutoff_selected_effect(
+                df_work, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials)
 
     p_two     = float(np.mean(np.abs(null) >= abs(observed)))
     p_greater = float(np.mean(null >= observed))
     p_less    = float(np.mean(null <= observed))
 
     return {
-        'observed': observed, 'max_trial_start': max_ts,
+        'observed': observed, 'max_trial_start': max_ts, 'method': method,
         'n_on': n_on, 'n_off': n_off,
         'p_two_tailed': p_two, 'p_greater': p_greater, 'p_less': p_less,
         'null_mean': float(np.mean(null)), 'n_permutations': n_permutations,
@@ -397,10 +431,11 @@ def run_cutoff_permutation_tests(session_id=None, window_size=100, step_size=10,
                                  threshold=5.0, n_steps_below=3, min_estim_trials=10,
                                  n_permutations=1000, seed=None):
     """
-    Run the Option-B permutation test for every condition in one or all sessions and
-    print a per-condition summary. The null applies the full cutoff-selection
-    procedure to relabeled data, so the p-values are valid even though the cutoff is
-    chosen from the data.
+    Run the permutation test for every condition in one or all sessions and print a
+    per-condition summary. Conditions WITH a cutoff use the Option-B null (re-run the
+    cutoff-selection procedure on relabeled data) so the selection bias is cancelled;
+    conditions WITHOUT a cutoff use a plain label-shuffle null (no selection to
+    correct, far cheaper).
     """
     rng = np.random.default_rng(seed)
     conn = Connection("allen_data_repository")
@@ -414,10 +449,10 @@ def run_cutoff_permutation_tests(session_id=None, window_size=100, step_size=10,
     col_names = [d[0] for d in conn.my_cursor.description]
     all_rows = conn.fetch_all()
 
-    print(f"\nOption-B permutation test  |  {len(all_rows)} conditions  |  "
+    print(f"\nPermutation test  |  {len(all_rows)} conditions  |  "
           f"{n_permutations} permutations each")
-    print("(permute estim-on/off labels across the whole session, repeat the cutoff "
-          "procedure, test the surviving-trials effect)\n")
+    print("(cutoff conditions: re-run cutoff procedure on relabeled data; "
+          "no-cutoff conditions: plain label shuffle)\n")
 
     seen_keys = set()
     results = []
@@ -440,8 +475,9 @@ def run_cutoff_permutation_tests(session_id=None, window_size=100, step_size=10,
             continue
         results.append((sid, cond_dict, res))
 
-        cut_str = (f"cutoff@{res['max_trial_start']}" if res['max_trial_start'] is not None
-                   else "no cutoff")
+        cut_str = (f"cutoff@{res['max_trial_start']} [{res['method']}]"
+                   if res['max_trial_start'] is not None
+                   else f"no cutoff [{res['method']}]")
         sig = '*' if res['p_two_tailed'] < 0.05 else ' '
         tqdm.write(
             f"{sig} [{sid}] {_format_cond_label(cond_dict)}  |  {cut_str}\n"
