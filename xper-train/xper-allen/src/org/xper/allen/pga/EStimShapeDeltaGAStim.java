@@ -11,9 +11,11 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
 
@@ -37,13 +39,14 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
      * Which of the parent's components this delta mutates. The hypothesized comp is the fragment
      * being tested: a variant tests it by preserving it, a delta tests it by changing it.
      *
-     *  1) Variant parent -> first drive its hypothesized (predicted-driver) comp(s). We keep
-     *     re-testing the hypothesized comp until we've spent a budget of FAILED single-comp attempts
-     *     on it (num_deltas_per_variant): a failed attempt is a responded delta that did NOT drop the
-     *     response past delta_resp_ratio_threshold. Successes don't consume the budget, so each
-     *     success effectively buys another attempt. Once the budget is spent without driving the
-     *     response down, we fall through to the same tiered leaf/pair search non-variant parents use
-     *     (the hypothesized comp now counts as a tested leaf there, so the search explores the rest).
+     *  1) Variant parent -> first drive its hypothesized (predicted-driver) comp(s). We mutate the
+     *     WHOLE hypothesized comp-set together - including both comps when it's multi-component (e.g.
+     *     the parent variant preserved a junction pair). We keep re-testing it until we've spent a
+     *     budget of FAILED attempts on that comp-set (num_deltas_per_variant): a failed attempt is a
+     *     responded delta that changed exactly those comps and did NOT drop the response past
+     *     delta_resp_ratio_threshold. Successes don't consume the budget, so each success effectively
+     *     buys another attempt. Once the budget is spent without driving the response down, we fall
+     *     through to the same tiered leaf/pair search non-variant parents use.
      *  2) Non-variant parent (delta, growing, regime_one, ...), or a variant whose hypothesized-comp
      *     budget is spent -> systematically search the parent's components, using the parent's
      *     existing delta-children as the record of what's been tried:
@@ -77,16 +80,20 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
             if (hypothesized.isEmpty()) {
                 return Collections.singletonList(parentMStick.chooseRandLeaf());
             }
+            // Count failed attempts on the WHOLE hypothesized comp-set (a sibling that changed exactly
+            // these comps and didn't drop the response). The hypothesized comp may be multi-component
+            // (e.g. the parent variant preserved a junction pair); we test it as a unit.
+            Set<Integer> hypothesizedSet = new HashSet<>(hypothesized);
             int failedOnHypothesized = 0;
             for (SiblingDelta s : siblings) {
-                if (isFailedSingleComp(s, parentResponse, dropThreshold)
-                        && hypothesized.contains(s.changedComps.get(0))) {
+                if (isFailedDelta(s, parentResponse, dropThreshold)
+                        && new HashSet<>(s.changedComps).equals(hypothesizedSet)) {
                     failedOnHypothesized++;
                 }
             }
             if (failedOnHypothesized < budget) {
-                Random r = new Random();
-                return Collections.singletonList(hypothesized.get(r.nextInt(hypothesized.size())));
+                // Mutate the hypothesized comp(s) - all of them together when it's multi-component.
+                return new ArrayList<>(hypothesized);
             }
             // Budget spent without dropping the response: escalate to the tiered search below. The
             // hypothesized comp is already a budgeted leaf, so the search naturally explores the rest.
@@ -152,15 +159,19 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
     }
 
     /**
-     * Whether a sibling delta counts as a FAILED single-comp attempt: it changed exactly one comp,
-     * has come back with a response, and that response did NOT drop past the ratio threshold relative
-     * to the parent. In-flight (null response) and multi-comp deltas are not failures.
+     * Whether a sibling delta counts as FAILED: it has come back with a response and that response
+     * did NOT drop past the ratio threshold relative to the parent. In-flight (null response) deltas
+     * are not failures. Says nothing about how many comps it changed.
      */
-    private boolean isFailedSingleComp(SiblingDelta s, double parentResponse, double dropThreshold) {
-        return s.changedComps.size() == 1
-                && s.response != null
+    private boolean isFailedDelta(SiblingDelta s, double parentResponse, double dropThreshold) {
+        return s.response != null
                 && parentResponse > 0
                 && s.response / parentResponse >= dropThreshold;
+    }
+
+    /** A FAILED delta (see {@link #isFailedDelta}) that changed exactly one comp. */
+    private boolean isFailedSingleComp(SiblingDelta s, double parentResponse, double dropThreshold) {
+        return s.changedComps.size() == 1 && isFailedDelta(s, parentResponse, dropThreshold);
     }
 
     /**
