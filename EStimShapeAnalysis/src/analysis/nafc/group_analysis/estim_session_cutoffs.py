@@ -209,6 +209,58 @@ def _count_estim_on_for_condition(df, cond_dict):
     return len(on_df)
 
 
+def _effect_and_ns_for_condition(df, cond_dict):
+    """
+    Effect size (pp) and trial counts for a condition over an arbitrary df
+    (e.g. the kept portion after a cutoff).
+    Returns (effect_pct_or_None, n_estim_on, n_estim_off).
+    """
+    mask = pd.Series(True, index=df.index)
+    if 'trial_type' in cond_dict:
+        mask &= df['trial_type'] == cond_dict['trial_type']
+    if 'noise_chance' in cond_dict:
+        mask &= (df['noise_chance'] - cond_dict['noise_chance']).abs() < 0.001
+    if 'sample_length' in cond_dict:
+        if cond_dict['sample_length'] is None:
+            mask &= df['sample_length'].isna()
+        else:
+            mask &= df['sample_length'] == cond_dict['sample_length']
+
+    behavioral_df = df[mask]
+    off = behavioral_df.loc[behavioral_df['is_estim_on'] == 0, 'is_hypothesized_choice']
+
+    on_df = behavioral_df[behavioral_df['is_estim_on'] == 1].copy()
+    if 'estim_spec_id' in cond_dict:
+        on_df = on_df[(on_df['estim_spec_id'] - cond_dict['estim_spec_id']).abs() < 0.5]
+    if 'polarity' in cond_dict:
+        on_df = on_df[on_df['polarity'] == cond_dict['polarity']]
+    if 'shape' in cond_dict:
+        on_df = on_df[on_df['shape'] == cond_dict['shape']]
+    if 'num_channels' in cond_dict:
+        on_df = on_df[on_df['num_channels'] == cond_dict['num_channels']]
+    if 'a1' in cond_dict:
+        on_df = on_df[(on_df['a1'] - cond_dict['a1']).abs() < 0.01]
+    if 'post_stim_refractory_period' in cond_dict:
+        on_df = on_df[(on_df['post_stim_refractory_period'] - cond_dict['post_stim_refractory_period']).abs() < 1.0]
+    if 'enable_charge_recovery' in cond_dict:
+        on_df = on_df[on_df['enable_charge_recovery'] == cond_dict['enable_charge_recovery']]
+
+    on = on_df['is_hypothesized_choice']
+    n_on, n_off = len(on), len(off)
+    if n_on == 0 or n_off == 0:
+        return None, n_on, n_off
+    return float((on.mean() - off.mean()) * 100.0), n_on, n_off
+
+
+def _format_cond_label(cond_dict):
+    """Compact human-readable condition label for diagnostics."""
+    abbrevs = {'estim_spec_id': 'spec', 'trial_type': 'type', 'noise_chance': 'noise',
+               'sample_length': 'smpl', 'num_channels': 'ch', 'polarity': 'pol',
+               'shape': 'shp', 'a1': 'amp', 'post_stim_refractory_period': 'refrac',
+               'enable_charge_recovery': 'CR'}
+    return ' '.join(f"{abbrevs.get(k, k)}={v}" for k, v in cond_dict.items() if v is not None)
+
+
 def _sliding_window_effects(df, window_size, step_size, cond_dict):
     """
     Slide a window of window_size trials (step_size apart) over ALL session trials,
@@ -295,7 +347,8 @@ def save_cutoff(session_id, conditions_json, algorithm_label, max_trial_start):
 
 
 def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
-                min_estim_trials=10, session_id=None, force_recompute=False):
+                min_estim_trials=10, session_id=None, force_recompute=False,
+                verbose=False):
     """
     Compute and store first-sustained-drop cutoffs for all conditions.
 
@@ -308,6 +361,9 @@ def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
                            before the detected cutoff, no cutoff is applied
         session_id       : restrict to one session, or None for all
         force_recompute  : overwrite existing rows
+        verbose          : print per-condition effect size and trial counts
+                           (n_on / n_off) for the full data and the kept
+                           (after-cutoff) portion
     """
     create_cutoffs_table()
 
@@ -368,6 +424,24 @@ def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
         else:
             save_cutoff(sid, normalized_json, algorithm_label, max_trial_start)
             n_cutoffs += 1
+
+        if verbose:
+            df = _get_all_trials_ordered(sid)
+            eff_full, on_full, off_full = _effect_and_ns_for_condition(df, cond_dict)
+            if max_trial_start is None:
+                cut_str = "no cutoff (kept all trials)"
+                eff_cut, on_cut, off_cut = eff_full, on_full, off_full
+            else:
+                kept = df[df['trial_start'] <= max_trial_start]
+                eff_cut, on_cut, off_cut = _effect_and_ns_for_condition(kept, cond_dict)
+                cut_str = f"cutoff@trial_start={max_trial_start}"
+            eff_full_s = f"{eff_full:+.1f}pp" if eff_full is not None else "n/a"
+            eff_cut_s  = f"{eff_cut:+.1f}pp"  if eff_cut  is not None else "n/a"
+            tqdm.write(
+                f"  [{sid}] {_format_cond_label(cond_dict)}  |  {cut_str}\n"
+                f"        full:       effect={eff_full_s}  n_on={on_full}  n_off={off_full}\n"
+                f"        after-cut:  effect={eff_cut_s}  n_on={on_cut}  n_off={off_cut}"
+            )
 
     print(f"\nDone. Cutoffs applied: {n_cutoffs}  |  No degradation / not applicable: {n_no_degradation}")
     return algorithm_label
@@ -464,6 +538,8 @@ def main():
         threshold=threshold, n_steps_below=n_steps_below,
         min_estim_trials=min_estim_trials,
         session_id=session_id,
+        force_recompute=True,
+        verbose=True,
     )
 
     conn = Connection("allen_data_repository")
