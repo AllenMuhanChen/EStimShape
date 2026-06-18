@@ -385,7 +385,10 @@ def permutation_test_for_condition(session_id, cond_dict,
         df, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials)
     kept = df if max_ts is None else df[df['trial_start'] <= max_ts]
     observed, n_on, n_off = _effect_and_ns_for_condition(kept, cond_dict)
-    if observed is None:
+    # Too few estim-on trials in the tested (kept) portion → not enough data to test.
+    # (Cutoff conditions already pass this via _first_sustained_drop_from_df; this
+    # mainly skips low-n no-cutoff conditions.)
+    if observed is None or n_on < min_estim_trials or n_off == 0:
         return None
 
     on_idx, off_idx = _condition_on_off_index(df, cond_dict)
@@ -456,6 +459,7 @@ def run_cutoff_permutation_tests(session_id=None, window_size=100, step_size=10,
 
     seen_keys = set()
     results = []
+    n_skipped = 0
     for row in tqdm(all_rows, desc="Permutation tests"):
         row_dict = dict(zip(col_names, row))
         sid = row_dict['session_id']
@@ -472,6 +476,7 @@ def run_cutoff_permutation_tests(session_id=None, window_size=100, step_size=10,
             sid, cond_dict, window_size, step_size, threshold, n_steps_below,
             min_estim_trials, n_permutations=n_permutations, rng=rng)
         if res is None:
+            n_skipped += 1
             continue
         results.append((sid, cond_dict, res))
 
@@ -487,7 +492,8 @@ def run_cutoff_permutation_tests(session_id=None, window_size=100, step_size=10,
             f"p(less)={res['p_less']:.4f}")
 
     n_sig = sum(1 for _, _, r in results if r['p_two_tailed'] < 0.05)
-    print(f"\nDone. {len(results)} conditions tested  |  {n_sig} significant at p<0.05 (two-tailed)")
+    print(f"\nDone. {len(results)} conditions tested  |  {n_sig} significant at p<0.05 (two-tailed)"
+          f"  |  {n_skipped} skipped (< {min_estim_trials} estim-on trials or no baseline)")
     return results
 
 
