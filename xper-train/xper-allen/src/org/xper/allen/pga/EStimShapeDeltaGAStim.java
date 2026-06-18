@@ -11,11 +11,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 
 public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
 
@@ -49,10 +47,12 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
      *  2) Non-variant parent (delta, growing, regime_one, ...), or a variant whose hypothesized-comp
      *     budget is spent -> systematically search the parent's components, using the parent's
      *     existing delta-children as the record of what's been tried:
-     *       a) some leaf hasn't been tested as a single-comp delta yet -> test an untested leaf;
-     *       b) all leaves tested but NONE dropped the response past the GAVar threshold
+     *       a) some leaf still has failed-attempt budget left -> test it as a single-comp delta,
+     *          using the SAME budget as the hypothesized comp (a leaf is retried until it has failed
+     *          num_deltas_per_variant times; successes don't count);
+     *       b) every leaf exhausted its budget but NONE dropped the response past the GAVar threshold
      *          (delta_resp_ratio_threshold) -> explore two comps that share a junction;
-     *       c) all leaves tested and SOME passed -> exploit them: pick a passing leaf with
+     *       c) every leaf exhausted its budget and SOME passed -> exploit them: pick a passing leaf with
      *          probability proportional to its response reduction. Recomputed every call from the
      *          current sibling responses, so the probabilities update as more deltas come back.
      */
@@ -60,23 +60,25 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
         int nComp = parentMStick.getNComponent();
         List<SiblingDelta> siblings = readSiblingDeltas();
 
-        // 1) Variant parent: drive its predicted driver until the failed-attempt budget is spent.
+        // Per-comp budget shared by the hypothesized comp and the leaf search: how many FAILED
+        // single-comp attempts we'll tolerate on a comp before giving up on it. A failed attempt is
+        // a responded delta that did NOT drop the response past dropThreshold; successes don't count,
+        // so each success buys another attempt on that comp.
+        int budget = (int) Math.round(readGaVarDouble("num_deltas_per_variant", 1));
+        double parentResponse = readResponse(parentId);
+        double dropThreshold = readGaVarDouble("delta_resp_ratio_threshold", 0.5);
+
+        // 1) Variant parent: drive its predicted driver until its failed-attempt budget is spent.
         if (stimTypeManager.readProperty(parentId) == StimType.REGIME_ESTIM_VARIANTS) {
             List<Integer> hypothesized = inRange(
                     hypothesizedCompData != null ? hypothesizedCompData.getHypothesizedComp() : null, nComp);
             if (hypothesized.isEmpty()) {
                 return Collections.singletonList(parentMStick.chooseRandLeaf());
             }
-            // Budget = number of FAILED single-comp attempts on the hypothesized comp we'll tolerate
-            // before escalating. Successes don't count, so each success buys another attempt.
-            int budget = (int) Math.round(readGaVarDouble("num_deltas_per_variant", 1));
-            double parentResp = readResponse(parentId);
-            double dropThreshold = readGaVarDouble("delta_resp_ratio_threshold", 0.5);
             int failedOnHypothesized = 0;
             for (SiblingDelta s : siblings) {
-                if (s.changedComps.size() == 1 && hypothesized.contains(s.changedComps.get(0))
-                        && s.response != null && parentResp > 0
-                        && s.response / parentResp >= dropThreshold) {
+                if (isFailedSingleComp(s, parentResponse, dropThreshold)
+                        && hypothesized.contains(s.changedComps.get(0))) {
                     failedOnHypothesized++;
                 }
             }
@@ -85,7 +87,7 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
                 return Collections.singletonList(hypothesized.get(r.nextInt(hypothesized.size())));
             }
             // Budget spent without dropping the response: escalate to the tiered search below. The
-            // hypothesized comp is already a tested leaf, so the search naturally explores the rest.
+            // hypothesized comp is already a budgeted leaf, so the search naturally explores the rest.
         }
 
         // 2) Tiered search over the parent's leaves.
@@ -94,22 +96,26 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
             for (int i = 1; i <= nComp; i++) leaves.add(i);
         }
 
-        // (a) Test a leaf that hasn't been tried as a single-comp delta yet.
-        Set<Integer> testedLeaves = new HashSet<>();
+        // (a) Test a leaf that still has failed-attempt budget left, using the SAME budget as the
+        //     hypothesized comp: a leaf stays eligible until it has failed `budget` times (successes
+        //     don't count). Picked at random among the still-eligible leaves.
+        Map<Integer, Integer> failedPerLeaf = new HashMap<>();
         for (SiblingDelta s : siblings) {
-            if (s.changedComps.size() == 1) testedLeaves.add(s.changedComps.get(0));
+            if (isFailedSingleComp(s, parentResponse, dropThreshold)) {
+                int leaf = s.changedComps.get(0);
+                failedPerLeaf.put(leaf, failedPerLeaf.getOrDefault(leaf, 0) + 1);
+            }
         }
-        List<Integer> untested = new ArrayList<>();
+        List<Integer> eligible = new ArrayList<>();
         for (Integer leaf : leaves) {
-            if (!testedLeaves.contains(leaf)) untested.add(leaf);
+            if (failedPerLeaf.getOrDefault(leaf, 0) < budget) eligible.add(leaf);
         }
-        if (!untested.isEmpty()) {
-            return Collections.singletonList(untested.get(new Random().nextInt(untested.size())));
+        if (!eligible.isEmpty()) {
+            return Collections.singletonList(eligible.get(new Random().nextInt(eligible.size())));
         }
 
-        // All leaves tested: best response-reduction ratio per leaf, from RESPONDED siblings.
-        double parentResponse = readResponse(parentId);
-        double threshold = readGaVarDouble("delta_resp_ratio_threshold", 0.5);
+        // All leaves exhausted their failure budget: best response-reduction ratio per leaf, from
+        // RESPONDED siblings.
         Map<Integer, Double> bestRatio = new HashMap<>();
         if (parentResponse > 0) {
             for (SiblingDelta s : siblings) {
@@ -123,7 +129,7 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
         }
         List<Integer> passing = new ArrayList<>();
         for (Map.Entry<Integer, Double> e : bestRatio.entrySet()) {
-            if (e.getValue() < threshold) passing.add(e.getKey());
+            if (e.getValue() < dropThreshold) passing.add(e.getKey());
         }
 
         // (b) Nothing single-comp dropped the response enough: explore two comps sharing a junction.
@@ -138,6 +144,18 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
 
         // (c) Exploit: pick a passing leaf weighted by its response reduction (1 - ratio).
         return Collections.singletonList(weightedPickByReduction(passing, bestRatio));
+    }
+
+    /**
+     * Whether a sibling delta counts as a FAILED single-comp attempt: it changed exactly one comp,
+     * has come back with a response, and that response did NOT drop past the ratio threshold relative
+     * to the parent. In-flight (null response) and multi-comp deltas are not failures.
+     */
+    private boolean isFailedSingleComp(SiblingDelta s, double parentResponse, double dropThreshold) {
+        return s.changedComps.size() == 1
+                && s.response != null
+                && parentResponse > 0
+                && s.response / parentResponse >= dropThreshold;
     }
 
     /** Component indices from {@code comps} that exist in a shape with {@code nComp} comps (1-based). */
