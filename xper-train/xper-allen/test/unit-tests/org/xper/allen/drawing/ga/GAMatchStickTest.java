@@ -309,6 +309,12 @@ public class GAMatchStickTest {
     }
 
     @Test
+    public void test_draw_thumbnail_comp_map() {
+        GAMatchStick GAMatchStick = genPartiallyInside();
+        testMatchStickDrawer.drawThumbnailCompMap(GAMatchStick);
+        ThreadUtil.sleep(10000);
+    }
+    @Test
     public void test_draw_comp_map_partially_inside_rf(){
         GAMatchStick GAMatchStick = genPartiallyInside();
 

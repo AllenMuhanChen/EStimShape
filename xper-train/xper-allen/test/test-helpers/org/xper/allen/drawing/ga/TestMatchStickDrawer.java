@@ -219,6 +219,15 @@ public class TestMatchStickDrawer {
         });
     }
 
+    public void drawThumbnailCompMap(GAMatchStick mStick) {
+        window.draw(new Drawable() {
+            @Override
+            public void draw() {
+                mStick.drawCompMapThumbnail(window.renderer.getWidth(), window.renderer.getHeight());
+            }
+        });
+    }
+
     public void drawThumbnail(Thumbnailable mStick) {
         window.draw(new Drawable() {
             @Override
@@ -419,4 +428,6 @@ public class TestMatchStickDrawer {
         drawPoint(objCenter, new RGBColor(1,1,0), 5f);
 
     }
+
+
 }
