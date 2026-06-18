@@ -6,6 +6,7 @@ import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.experiment.PositioningStrategy;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 import org.xper.allen.drawing.ga.GAMatchStick;
+import org.xper.drawing.stick.JuncPt_struct;
 import org.xper.drawing.stick.stickMath_lib;
 
 import javax.vecmath.Point3d;
@@ -182,7 +183,8 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
      *   - EXPLORE: otherwise, test leaves first - sample a leaf weighted by its best preserved
      *     response (higher response preserved = more likely; reductions least likely). Untested leaves
      *     use the parent's response as a neutral-optimistic prior, so they're tried before reductions.
-     *     Once every leaf has been tried by a sibling, escalate to two comps sharing a junction.
+     *     Once every leaf has been tried by a sibling, escalate to two comps sharing a junction -
+     *     also sampled probabilistically, weighted by best preserved response the same way.
      * Unlike deltas there's no per-comp attempt budget: one sibling per leaf is enough to call it tried.
      */
     protected List<Integer> chooseCompsToPreserve(GAMatchStick parentMStick) {
@@ -206,17 +208,18 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
             if (!comps.isEmpty()) return comps;
         }
 
-        // EXPLORE: best (max) preserved response per single comp, and which leaves have been tried.
-        Map<Integer, Double> bestPreservedResp = new HashMap<>();
-        Set<Integer> triedLeaves = new HashSet<>();
+        // EXPLORE: best (max) preserved response per preserved comp-set, and which comp-sets have
+        // been tried. Keyed by the sorted comp list, so both single leaves and pairs are handled.
+        Map<List<Integer>, Double> bestPreservedResp = new HashMap<>();
+        Set<List<Integer>> triedCompSets = new HashSet<>();
         for (SiblingVariant s : siblings) {
-            if (s.preservedComps.size() == 1) {
-                int comp = s.preservedComps.get(0);
-                triedLeaves.add(comp);
-                if (s.response != null) {
-                    Double prev = bestPreservedResp.get(comp);
-                    if (prev == null || s.response > prev) bestPreservedResp.put(comp, s.response);
-                }
+            List<Integer> key = inRange(s.preservedComps, nComp);
+            if (key.isEmpty()) continue;
+            Collections.sort(key);
+            triedCompSets.add(key);
+            if (s.response != null) {
+                Double prev = bestPreservedResp.get(key);
+                if (prev == null || s.response > prev) bestPreservedResp.put(key, s.response);
             }
         }
 
@@ -225,35 +228,66 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
             for (int i = 1; i <= nComp; i++) leaves.add(i);
         }
 
-        // Leaves first: once every leaf has been tried, escalate to a junction-sharing pair.
-        if (triedLeaves.containsAll(leaves) && nComp >= 3) {
-            List<Integer> pair = inRange(
-                    PruningMatchStick.chooseRandomComponentsToPreserve(2, parentMStick), nComp);
-            if (pair.size() == 2) return pair;
+        // Candidate comp-sets to sample from: leaves first, then junction-sharing pairs once every
+        // leaf has been tried. Both tiers are sampled probabilistically (weighted by best preserved
+        // response; untried comp-sets use the parent's response as a neutral-optimistic prior).
+        boolean allLeavesTried = true;
+        for (Integer leaf : leaves) {
+            if (!triedCompSets.contains(Collections.singletonList(leaf))) { allLeavesTried = false; break; }
         }
-
-        // Otherwise sample a leaf weighted by its best preserved response.
-        return Collections.singletonList(weightedSampleByPreservedResp(leaves, bestPreservedResp, parentResp));
+        List<List<Integer>> candidates = new ArrayList<>();
+        if (allLeavesTried && nComp >= 3) {
+            candidates = junctionPairsOf(parentMStick, nComp);
+        }
+        if (candidates.isEmpty()) {
+            for (Integer leaf : leaves) candidates.add(Collections.singletonList(leaf));
+        }
+        return weightedSampleByPreservedResp(candidates, bestPreservedResp, parentResp);
     }
 
-    /** Pick a leaf with probability proportional to its best preserved response (untried -> prior). */
-    private Integer weightedSampleByPreservedResp(List<Integer> leaves, Map<Integer, Double> bestPreservedResp,
-                                                  double prior) {
+    /** Pick a comp-set with probability proportional to its best preserved response (untried -> prior). */
+    private List<Integer> weightedSampleByPreservedResp(List<List<Integer>> candidates,
+                                                        Map<List<Integer>, Double> bestPreservedResp, double prior) {
         double total = 0;
-        for (Integer leaf : leaves) total += preservedWeight(leaf, bestPreservedResp, prior);
+        for (List<Integer> comps : candidates) total += preservedWeight(comps, bestPreservedResp, prior);
         double r = random.nextDouble() * total;
         double cum = 0;
-        for (Integer leaf : leaves) {
-            cum += preservedWeight(leaf, bestPreservedResp, prior);
-            if (r <= cum) return leaf;
+        for (List<Integer> comps : candidates) {
+            cum += preservedWeight(comps, bestPreservedResp, prior);
+            if (r <= cum) return comps;
         }
-        return leaves.get(leaves.size() - 1);
+        return candidates.get(candidates.size() - 1);
     }
 
-    /** Sampling weight for a leaf: its best preserved response, or the prior if not yet tried. */
-    private double preservedWeight(Integer leaf, Map<Integer, Double> bestPreservedResp, double prior) {
-        Double resp = bestPreservedResp.get(leaf);
+    /** Sampling weight for a comp-set: its best preserved response, or the prior if not yet tried. */
+    private double preservedWeight(List<Integer> comps, Map<List<Integer>, Double> bestPreservedResp, double prior) {
+        Double resp = bestPreservedResp.get(comps);
         return Math.max(1e-6, resp != null ? resp : prior);
+    }
+
+    /** All distinct junction-sharing comp pairs of the parent, each as a sorted in-range pair. */
+    private List<List<Integer>> junctionPairsOf(GAMatchStick parentMStick, int nComp) {
+        List<List<Integer>> pairs = new ArrayList<>();
+        Set<List<Integer>> seen = new HashSet<>();
+        JuncPt_struct[] juncs = parentMStick.getJuncPt();
+        if (juncs == null) return pairs;
+        for (JuncPt_struct junc : juncs) {
+            if (junc == null) continue;
+            List<Integer> compsInJunc = new ArrayList<>();
+            for (int compId : junc.getCompIds()) {
+                if (compId >= 1 && compId <= nComp) compsInJunc.add(compId);
+            }
+            for (int i = 0; i < compsInJunc.size(); i++) {
+                for (int j = i + 1; j < compsInJunc.size(); j++) {
+                    List<Integer> pair = new ArrayList<>();
+                    pair.add(compsInJunc.get(i));
+                    pair.add(compsInJunc.get(j));
+                    Collections.sort(pair);
+                    if (seen.add(pair)) pairs.add(pair);
+                }
+            }
+        }
+        return pairs;
     }
 
     /** A sibling variant of this variant's parent: the parent-numbered comp(s) it preserved + response. */
