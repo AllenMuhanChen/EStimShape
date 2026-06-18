@@ -166,12 +166,17 @@ class EStimVariantSideTest(SideTest):
 
 class EStimVariantDeltaSideTest(SideTest):
     def __init__(self, num_deltas_per_variant: int = 1, delta_resp_ratio_threshold: float = 0.5,
-                 max_attempts_per_variant_multiplier: int = 3, conn=Type[connection],
+                 max_attempts_per_variant: int = 9, conn=Type[connection],
                  min_magnitude: float = 0.3, max_magnitude: float = 0.8,
                  max_deltas_per_generation: int = None):
         self.num_deltas_per_variant = num_deltas_per_variant
         self.delta_resp_ratio_threshold = delta_resp_ratio_threshold
-        self.max_attempts_per_variant_multiplier = max_attempts_per_variant_multiplier
+        # Absolute ceiling on how many deltas we'll make for a single variant before giving up.
+        # The Java side searches comp-by-comp (the predicted driver, then each leaf, each with its
+        # own failure budget, then junction pairs), so the total attempts needed scales with the
+        # parent's leaf count - hence an absolute cap set generously, rather than a multiple of
+        # num_deltas_per_variant (which now also serves as Java's per-comp failure budget).
+        self.max_attempts_per_variant = max_attempts_per_variant
         self.conn = conn
         # Mutation magnitude for deltas is decided here (Python) rather than on the Java side,
         # mirroring how the rest of the GA assigns magnitudes. Drawn uniformly from
@@ -254,7 +259,7 @@ class EStimVariantDeltaSideTest(SideTest):
         # parent's hypothesized comps, decided Java-side) until enough pass the response-drop
         # threshold or the attempt budget runs out. Failed (high-response) deltas pass the parent
         # threshold themselves, so chaining deltas onto deltas explores the remaining components.
-        max_attempts_per_variant = self.max_attempts_per_variant_multiplier * self.num_deltas_per_variant
+        max_attempts_per_variant = self.max_attempts_per_variant
         eligible_stimuli : List[Stimulus] = []
         for candidate_parent in past_threshold_stim:
             num_eligible_deltas = len(eligible_deltas_for_variants.get(candidate_parent.id, []))

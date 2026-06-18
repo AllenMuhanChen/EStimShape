@@ -33,7 +33,7 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
                 self.lighting_side_test(),
                 EStimVariantDeltaSideTest(num_deltas_per_variant=self.num_deltas_per_variant(),
                                           delta_resp_ratio_threshold=self.delta_resp_ratio_threshold(),
-                                          max_attempts_per_variant_multiplier=self.max_attempts_per_variant_multiplier(),
+                                          max_attempts_per_variant=self.max_attempts_per_variant(),
                                           max_deltas_per_generation=self.max_deltas_per_generation(),
                                           conn=self.connection()
                                           ),
@@ -88,8 +88,10 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
     def delta_resp_ratio_threshold(self):
         return self.var_fetcher.get("delta_resp_ratio_threshold", dtype=float)
 
-    def max_attempts_per_variant_multiplier(self):
-        return self.var_fetcher.get("max_attempts_per_variant_multiplier", dtype=int)
+    def max_attempts_per_variant(self):
+        # Absolute ceiling on delta attempts per variant before giving up. Defaults when GAVar absent.
+        n = self.var_fetcher.get("max_attempts_per_variant", dtype=int)
+        return n if n is not None else 9
 
     def max_deltas_per_generation(self):
         # Returns None when the GAVar row is absent, leaving deltas uncapped.
