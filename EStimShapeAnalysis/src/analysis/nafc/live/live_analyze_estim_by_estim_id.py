@@ -130,6 +130,8 @@ class LiveEstimWindow(QMainWindow):
         # Default axes limits from the previous build, used to tell whether the user has
         # manually zoomed/panned an axes (and so wants that view kept across refreshes).
         self._prev_default_limits = None
+        # Whether we've drawn at least once — forces the initial draw even with no new trials.
+        self._has_drawn = False
         self._setup_ui()
 
         self.timer = QTimer(self)
@@ -149,7 +151,7 @@ class LiveEstimWindow(QMainWindow):
         # Control bar — seed for future buttons/dropdowns.
         bar = QHBoxLayout()
         self.refresh_button = QPushButton('Refresh now')
-        self.refresh_button.clicked.connect(self._refresh)
+        self.refresh_button.clicked.connect(self._force_refresh)
 
         self.live_checkbox = QCheckBox('Live')
         self.live_checkbox.setChecked(True)
@@ -199,7 +201,9 @@ class LiveEstimWindow(QMainWindow):
         # -2 px guard so the canvas never exceeds the viewport and forces a horizontal bar.
         width = max(self.scroll.viewport().width() - 2, 600)
         height = int(width * (h_in / w_in))
-        self.canvas.setFixedSize(width, height)
+        # Only resize when it actually changed, to avoid layout churn on every redraw.
+        if self.canvas.width() != width or self.canvas.height() != height:
+            self.canvas.setFixedSize(width, height)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -216,17 +220,29 @@ class LiveEstimWindow(QMainWindow):
         if self.live_checkbox.isChecked():
             self.timer.start(value * 1000)
 
-    def _refresh(self):
-        """Compile any new trials, then redraw. Errors are surfaced in the status label rather
-        than killing the timer, so a transient DB hiccup doesn't stop the live view."""
+    def _force_refresh(self):
+        """Refresh requested explicitly (button) — always redraw."""
+        self._refresh(force=True)
+
+    def _refresh(self, force=False):
+        """Compile any new trials, then redraw *only if something changed* (or forced).
+
+        Redrawing rebuilds the whole figure and resizes the canvas; doing that every tick
+        would yank the view around while you're scrolling. So when no new trials arrived and
+        we've already drawn once, we leave the current view completely untouched. Errors are
+        surfaced in the status label rather than killing the timer."""
         try:
             n_new = compile_new_trials(self.exp_conn, self.session_id, self.seen_starts)
         except Exception as e:
             self.status_label.setText(f'Compile error: {e}')
             return
 
+        if n_new == 0 and self._has_drawn and not force:
+            return  # nothing changed — don't disturb the user's scroll/zoom
+
         try:
             n_trials = self._redraw()
+            self._has_drawn = True
         except Exception as e:
             self.status_label.setText(f'Plot error: {e}')
             return
