@@ -90,12 +90,12 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
 
     def max_attempts_per_variant(self):
         # Absolute ceiling on delta attempts per variant before giving up. Defaults when GAVar absent.
-        n = self.var_fetcher.get("max_attempts_per_variant", dtype=int)
+        n = self.var_fetcher.get("delta_max_attempts_per_variant", dtype=int)
         return n if n is not None else 9
 
     def max_deltas_per_generation(self):
         # Returns None when the GAVar row is absent, leaving deltas uncapped.
-        return self.var_fetcher.get("max_deltas_per_generation", dtype=int)
+        return self.var_fetcher.get("deltas_max_per_generation", dtype=int)
 
     def make_response_processor(self) -> GAResponseProcessor:
         if self.is_use_normalized_ga_response_processor():

@@ -303,13 +303,9 @@ class MySQLTreeDataAccess(TreeDataAccess):
             "REGIME_ZERO": "black",
             "REGIME_ZERO_2D": "black",
             "REGIME_ONE": "red",
-            "REGIME_ONE_2D": "red",
-            "REGIME_TWO": "blue",
-            "REGIME_TWO_2D": "blue",
-            "REGIME_THREE": "green",
-            "REGIME_THREE_2D": "green",
-            "REGIME_FOUR": "yellow",
-            "REGIME_FOUR_2D": "yellow",
+            "REGIME_ONE_2D": "gray",
+            "REGIME_ESTIM_VARIANTS": "blue",
+            "REGIME_ESTIM_DELTA": "red",
         }
 
         edge_colors = {}
