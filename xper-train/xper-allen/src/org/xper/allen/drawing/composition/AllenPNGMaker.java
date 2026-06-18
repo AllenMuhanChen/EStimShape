@@ -76,6 +76,13 @@ public class AllenPNGMaker{
 		return window.drawCompMap(obj, stimObjId, labels);
 	}
 
+	public String createAndSaveCompMapThumbnail(Thumbnailable obj, Long stimObjId, List<String> labels, String destinationFolder) {
+		window.setImageFolderName(destinationFolder);
+		window.setBackgroundColor(backColor.getRed(), backColor.getGreen(), backColor.getGreen());
+		System.out.println("creating and saving PNG...");
+		return window.drawCompMapThumbnail(obj, stimObjId, labels);
+	}
+
 	public String createAndSavePNG(Drawable obj, Long stimObjId, String destinationFolder) {
 		window.setImageFolderName(destinationFolder);
 		window.setBackgroundColor(backColor.getRed(), backColor.getGreen(), backColor.getGreen());

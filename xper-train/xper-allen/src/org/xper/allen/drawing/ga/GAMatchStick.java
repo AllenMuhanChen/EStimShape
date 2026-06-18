@@ -260,6 +260,21 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
         GL11.glPopMatrix();
     }
 
+    @Override
+    public void drawCompMapThumbnail(double imageWidthMm, double imageHeightMm){
+        init();
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        GL11.glPushMatrix();
+        centerRFAndScale(imageWidthMm, imageHeightMm);
+        drawSkeleton(true);
+        drawRF();
+        GL11.glPopMatrix();
+    }
+
     private void centerRFAndScale(double imageWidthMm, double imageHeightMm) {
         double rfDiameter = rf.getRadius() * 2;
         double widthScaleFactor = (imageWidthMm / rfDiameter)/2;

@@ -342,6 +342,22 @@ public class AllenDrawingManager implements Drawable {
 		return pngMaker.saveImage(stimObjId, labels, height, width, imageFolderName);
 	}
 
+	public String drawCompMapThumbnail(Thumbnailable obj, Long stimObjId, List<String> labels) {
+		labels.add("compmap_thumbnail");
+		ThreadUtil.sleep(100);
+		GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
+		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
+		renderer.draw(new Drawable() {
+			@Override
+			public void draw() {
+				obj.drawCompMapThumbnail(renderer.getWidth(), renderer.getHeight());
+			}
+		});
+
+		window.swapBuffers();
+		return pngMaker.saveImage(stimObjId, labels, height, width, imageFolderName);
+	}
+
 
 	public void draw() {
 		if (nStim > 0) {
