@@ -78,6 +78,20 @@ _SPEC_COLORS = [
 pg.setConfigOptions(antialias=True, background='w', foreground='k')
 
 
+def _qt_enum(enum_cls_name, member):
+    """Resolve a Qt enum value across bindings: PyQt6/PySide6 scope enums under their class
+    (Qt.PenStyle.DashLine) while PyQt5 exposes them flat (Qt.DashLine). pyqtgraph may bind to
+    either, so try the scoped form first and fall back to the flat one."""
+    enum_cls = getattr(QtCore.Qt, enum_cls_name, None)
+    if enum_cls is not None and hasattr(enum_cls, member):
+        return getattr(enum_cls, member)
+    return getattr(QtCore.Qt, member)
+
+
+_SCROLLBAR_OFF = _qt_enum('ScrollBarPolicy', 'ScrollBarAlwaysOff')
+_DASH_LINE = _qt_enum('PenStyle', 'DashLine')
+
+
 def read_session_trials_as_exp_format(session_id, start_gen_id=START_GEN_ID):
     """Read this session's rows from EStimShapeTrials and map them back to the experiment-DB
     column names the partitioning expects. Applies the start_gen_id cut and restricts to
@@ -246,7 +260,7 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         # Scrollable grid of panels.
         self.scroll = QtWidgets.QScrollArea()
         self.scroll.setWidgetResizable(True)
-        self.scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.scroll.setHorizontalScrollBarPolicy(_SCROLLBAR_OFF)
         self.grid_host = QtWidgets.QWidget()
         self.grid_layout = QtWidgets.QGridLayout(self.grid_host)
         self.grid_layout.setContentsMargins(4, 4, 4, 4)
@@ -351,7 +365,7 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         legend = self.legends[(row, col_key)]
 
         # Series to show in this cell: EStim OFF (black dashed) + one per spec (colored).
-        wanted = {'OFF': (off_df, 'EStim OFF', pg.mkPen('k', width=2, style=QtCore.Qt.DashLine), (0, 0, 0))}
+        wanted = {'OFF': (off_df, 'EStim OFF', pg.mkPen('k', width=2, style=_DASH_LINE), (0, 0, 0))}
         for i, spec in enumerate(sorted(spec_ids)):
             color = _SPEC_COLORS[i % len(_SPEC_COLORS)]
             wanted[('spec', spec)] = (on_df[on_df['EStimSpecId'] == spec],
