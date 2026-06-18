@@ -23,6 +23,9 @@ import org.xper.allen.util.DPIUtil;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.exception.DbException;
+import org.xper.experiment.DatabaseSystemVariableContainer;
+import org.xper.experiment.SystemVariableContainer;
+import org.xper.util.DbUtil;
 import org.xper.utils.RGBColor;
 
 import javax.sql.DataSource;
@@ -92,6 +95,8 @@ public class EStimExperimentAppConfig {
         return generator;
     }
 
+
+
     @Bean
     public DataSource gaDataSource() {
         ComboPooledDataSource source = new ComboPooledDataSource();
@@ -104,6 +109,20 @@ public class EStimExperimentAppConfig {
         source.setUser(baseConfig.jdbcUserName);
         source.setPassword(baseConfig.jdbcPassword);
         return source;
+    }
+
+    @Bean
+    public DbUtil gaDbUtil() {
+        DbUtil dbUtil = new DbUtil();
+        dbUtil.setDataSource(gaDataSource());
+        return dbUtil;
+    }
+
+
+    @Bean
+    public SystemVariableContainer gaSystemVariableContainer()
+    {
+        return new DatabaseSystemVariableContainer(gaDbUtil());
     }
 
     @Bean
@@ -217,9 +236,10 @@ public class EStimExperimentAppConfig {
         return dpiUtil;
     }
 
+
     @Bean
     public int maxSampleSizeDegrees() {
-        return 50;
+        return Integer.parseInt(gaSystemVariableContainer().get("xper_max_image_dimension_degrees", 0));
     }
 
     @Bean
