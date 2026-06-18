@@ -18,9 +18,11 @@ import os
 import tkinter as tk
 from tkinter import messagebox, ttk
 
+import numpy as np
 import pandas as pd
 from PIL import Image, ImageOps, ImageTk
 
+from clat.util.connection import Connection
 from src.analysis.ga.plot_variants_delta import PlotVariantDeltas
 from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.startup import context
@@ -35,6 +37,25 @@ SORT_COLUMNS = {
 # Width (px) of the response-colored border drawn around each thumbnail in the
 # final, already-downscaled image.
 THUMB_BORDER = 6
+
+# Component-index -> RGB color used by the Java comp-map renderer (see
+# AllenMatchStick.drawSkeleton's colorCode, which is 1-indexed). A delta's
+# hypothesized component is matched against these colors in its comp-map
+# thumbnail to figure out which pixels to highlight.
+COMP_COLORS = {
+    1: (255, 255, 255),
+    2: (255, 0, 0),
+    3: (0, 255, 0),
+    4: (0, 0, 255),
+    5: (0, 255, 255),
+    6: (255, 0, 255),
+    7: (255, 255, 0),
+    8: (102, 26, 153),
+}
+
+# Translucent highlight painted over the hypothesized component(s) of a delta.
+OVERLAY_COLOR = (255, 0, 0)
+OVERLAY_ALPHA = 0.45  # 0 = invisible, 1 = opaque
 
 
 class DeltaVariantCurationApp:
@@ -53,6 +74,9 @@ class DeltaVariantCurationApp:
         # StimSpecId -> thumbnail path / generation id, refreshed on recompute.
         self.thumb_map: dict[int, str] = {}
         self.gen_map: dict[int, int] = {}
+        # Delta StimSpecId -> hypothesized component indices (this stim's own
+        # numbering), read from the HypothesizedComp table on recompute.
+        self.hypothesized_map: dict[int, list[int]] = {}
         # Manual include/exclude decisions keyed by delta StimSpecId. Re-applied
         # after a recompute so changing channel/baseline doesn't wipe curation.
         self.manual_overrides: dict[int, bool] = {}
@@ -60,6 +84,10 @@ class DeltaVariantCurationApp:
         self._photo_refs: list[ImageTk.PhotoImage] = []
         # Cache of raw PIL images by path to avoid re-reading from disk.
         self._image_cache: dict[str, Image.Image] = {}
+        # Cache of the inner-sized comp-map thumbnail by thumbnail path. A value
+        # of False means "no comp-map thumbnail on disk" (e.g. old data), so we
+        # don't keep hitting the filesystem for it.
+        self._compmap_cache: dict[str, object] = {}
         # Cache of final rendered PhotoImages keyed by (path, border_color), so a
         # sort/group change reuses photos without redoing the LANCZOS resize.
         # Cleared on recompute since vmin/vmax (and thus border colors) change.
@@ -80,6 +108,8 @@ class DeltaVariantCurationApp:
         self.descending_var = tk.BooleanVar(value=False)
         self.included_first_var = tk.BooleanVar(value=True)
         self.group_variant_var = tk.BooleanVar(value=False)
+        # Toggle for the hypothesized-component overlay on delta thumbnails.
+        self.show_comps_var = tk.BooleanVar(value=True)
         self.status_var = tk.StringVar(value="Set the channel and click Recompute.")
 
         self._build_controls()
@@ -129,6 +159,14 @@ class DeltaVariantCurationApp:
                        command=self.render).grid(row=2, column=0, sticky="w", padx=4)
         tk.Checkbutton(order, text="Group by variant", variable=self.group_variant_var,
                        command=self.render).grid(row=2, column=1, sticky="w", padx=4)
+
+        # Display options.
+        disp = tk.LabelFrame(bar, text="Display", font=("Arial", 10, "bold"))
+        disp.pack(side="left", padx=4, fill="y")
+        tk.Checkbutton(disp, text="Hypothesized comps", variable=self.show_comps_var,
+                       command=self.render).pack(anchor="w", padx=4, pady=2)
+        tk.Label(disp, text="red overlay on deltas\n(needs comp-map thumbnails)",
+                 font=("Arial", 7), fg="gray").pack(anchor="w", padx=4)
 
         # Actions.
         actions = tk.LabelFrame(bar, text="Actions", font=("Arial", 10, "bold"))
@@ -226,6 +264,9 @@ class DeltaVariantCurationApp:
                 pairs.loc[mask, "Included"] = included
 
         self.pairs = pairs.reset_index(drop=True)
+        # Hypothesized components for the deltas, for the overlay.
+        self.hypothesized_map = self._load_hypothesized_comps(
+            self.pairs["StimSpecId"].unique())
         # vmin/vmax (and thus border colors) may have changed, so cached
         # PhotoImages are stale.
         self._photo_cache.clear()
@@ -364,7 +405,97 @@ class DeltaVariantCurationApp:
             return 0.0, 1.0
         return float(vals.min()), float(vals.max())
 
-    def _load_thumb(self, stim_id, response, vmin, vmax):
+    def _load_hypothesized_comps(self, stim_ids):
+        """Read hypothesized component indices for the given stims.
+
+        Returns ``{stim_id: [comp, ...]}`` using each stim's own component
+        numbering (which matches the colors in its comp-map thumbnail). Stims
+        with no row, or no comps, are simply omitted.
+        """
+        result: dict[int, list[int]] = {}
+        try:
+            conn = Connection(context.ga_database)
+            # The table was renamed from StimCompsToPreserve to HypothesizedComp;
+            # old DBs may still have the original name.
+            conn.execute("SHOW TABLES LIKE 'HypothesizedComp'")
+            table = "HypothesizedComp" if conn.fetch_one() else "StimCompsToPreserve"
+            for sid in stim_ids:
+                conn.execute(
+                    f"SELECT hypothesized_comp FROM {table} WHERE stim_id = %s",
+                    (int(sid),))
+                row = conn.fetch_one()
+                if row is None:
+                    continue
+                comps = [int(p.strip()) for p in str(row).split(",")
+                         if p.strip().lstrip("-").isdigit()]
+                if comps:
+                    result[int(sid)] = comps
+        except Exception as exc:
+            print(f"Could not read hypothesized comps: {exc}")
+        return result
+
+    @staticmethod
+    def _compmap_thumb_path(thumb_path):
+        """Path of the comp-map thumbnail that pairs with ``thumb_path``."""
+        if thumb_path.endswith("_thumbnail.png"):
+            return thumb_path[:-len("_thumbnail.png")] + "_compmap_thumbnail.png"
+        if thumb_path.endswith(".png"):
+            return thumb_path[:-4] + "_compmap_thumbnail.png"
+        return None
+
+    def _load_compmap_inner(self, thumb_path, inner):
+        """Inner-sized comp-map thumbnail for ``thumb_path``, or None if absent.
+
+        The comp map is rendered at the same RF-centered zoom as the thumbnail,
+        so resizing it to the same inner size keeps it pixel-aligned. NEAREST
+        keeps the component colors flat (no blended edge colors to misclassify).
+        """
+        cached = self._compmap_cache.get(thumb_path)
+        if cached is not None:
+            return cached or None  # False sentinel -> None
+        cm_path = self._compmap_thumb_path(thumb_path)
+        if not cm_path or not os.path.exists(cm_path):
+            self._compmap_cache[thumb_path] = False
+            return None
+        try:
+            with Image.open(cm_path) as im:
+                img = im.convert("RGB").resize((inner, inner), Image.NEAREST)
+        except Exception:
+            self._compmap_cache[thumb_path] = False
+            return None
+        self._compmap_cache[thumb_path] = img
+        return img
+
+    def _hypothesized_mask(self, thumb_path, comps, inner):
+        """Boolean (inner, inner) mask of pixels belonging to ``comps``.
+
+        Each pixel of the comp map is classified to the nearest palette color
+        (the background plus the eight component colors); a pixel is kept when
+        its nearest color is one of the requested components. Nearest-color
+        classification (rather than exact match) tolerates the shading the
+        renderer applies to each component. Returns None when there's no
+        comp-map thumbnail or no valid component is requested.
+        """
+        wanted = [c for c in comps if 1 <= c <= 8]
+        if not wanted:
+            return None
+        comp_img = self._load_compmap_inner(thumb_path, inner)
+        if comp_img is None:
+            return None
+        # int32 (not int16): squaring color differences overflows int16
+        # (e.g. 245**2 wraps negative), which corrupts the nearest-color search.
+        arr = np.asarray(comp_img, dtype=np.int32)
+        # Estimate the background from the image corners.
+        corners = np.stack([arr[0, 0], arr[0, -1], arr[-1, 0], arr[-1, -1]])
+        bg = np.median(corners, axis=0)
+        # Palette index 0 = background, index k = component k.
+        targets = np.asarray([bg] + [COMP_COLORS[i] for i in range(1, 9)],
+                             dtype=np.int32)
+        diff = arr[:, :, None, :] - targets[None, None, :, :]
+        nearest = (diff * diff).sum(axis=3).argmin(axis=2)
+        return np.isin(nearest, wanted)
+
+    def _load_thumb(self, stim_id, response, vmin, vmax, overlay_comps=None):
         path = self.thumb_map.get(stim_id)
         if not path or not os.path.exists(path):
             return None
@@ -373,7 +504,8 @@ class DeltaVariantCurationApp:
         else:
             norm = 0.5
         border_color = (int(255 * norm), 0, 0)  # black -> red intensity
-        key = (path, border_color)
+        overlay_comps = tuple(overlay_comps) if overlay_comps else ()
+        key = (path, border_color, overlay_comps)
         cached = self._photo_cache.get(key)
         if cached is not None:
             return cached
@@ -389,7 +521,15 @@ class DeltaVariantCurationApp:
                 with Image.open(path) as im:
                     base = im.convert("RGB").resize((inner, inner), Image.LANCZOS)
                 self._image_cache[path] = base
-            img = ImageOps.expand(base, border=THUMB_BORDER, fill=border_color)
+            inner_img = base
+            if overlay_comps:
+                mask = self._hypothesized_mask(path, overlay_comps, inner)
+                if mask is not None and mask.any():
+                    overlay = Image.new("RGB", base.size, OVERLAY_COLOR)
+                    alpha = Image.fromarray(
+                        (mask * int(255 * OVERLAY_ALPHA)).astype("uint8"), mode="L")
+                    inner_img = Image.composite(overlay, base, alpha)
+            img = ImageOps.expand(inner_img, border=THUMB_BORDER, fill=border_color)
             photo = ImageTk.PhotoImage(img)
             self._photo_cache[key] = photo
             self._photo_refs.append(photo)
@@ -470,7 +610,10 @@ class DeltaVariantCurationApp:
             col = pos + 1
 
             widgets = self._get_column(pos)
-            delta_photo = self._load_thumb(delta_id, d_resp, vmin, vmax)
+            overlay_comps = (self.hypothesized_map.get(delta_id)
+                             if self.show_comps_var.get() else None)
+            delta_photo = self._load_thumb(delta_id, d_resp, vmin, vmax,
+                                           overlay_comps=overlay_comps)
             variant_photo = self._load_thumb(variant_id, v_resp, vmin, vmax)
 
             widgets["ratio"].configure(text=f"ratio {ratio:.2f}")
