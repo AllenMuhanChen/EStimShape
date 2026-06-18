@@ -1,5 +1,7 @@
 package org.xper.allen.pga;
 
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.experiment.PositioningStrategy;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
@@ -7,8 +9,16 @@ import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.drawing.stick.stickMath_lib;
 
 import javax.vecmath.Point3d;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMStickData>{
     private static final Random random = new Random();
@@ -69,9 +79,12 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
 //        List<Integer> compsToPreserveInParent = hypothesizedCompData.getHypothesizedComp();
         List<Integer> compsToPreserveInParent;
         if (shouldChooseRandomCompsToTest()) {
-            compsToPreserveInParent = PruningMatchStick.chooseRandomComponentsToPreserve(parentMStick);
+            // Sibling-aware search over which comp(s) to preserve: leaves first, then junction pairs,
+            // exploiting comps that held the response up (see chooseCompsToPreserve).
+            compsToPreserveInParent = chooseCompsToPreserve(parentMStick);
         } else {
             // shouldPreserveRandomComps()==false guarantees a non-empty list via parentHasHypothesizedComp.
+            // Variant-of-a-variant: preserve the same comp the parent preserved (its hypothesized comp).
             compsToPreserveInParent = hypothesizedCompManager.readHypothesizedCompOrNull(parentId);
         }
 
@@ -156,5 +169,162 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
         // exist (e.g. pre-populated rows for deltas that were never generated) and must route to
         // the random-comps path instead of an empty preserved list.
         return hypothesizedCompManager.readHypothesizedCompOrNull(parentId) != null;
+    }
+
+    /**
+     * Choose which of the parent's comp(s) to preserve when testing fresh comps (i.e. not simply
+     * inheriting a variant-parent's hypothesized comp). Mirrors the delta search, but for PRESERVING
+     * comps, and leans exploit:
+     *   - EXPLOIT: if a sibling variant preserved some comp(s) and held the response at/above the
+     *     parent (response > parent), preserve those same comp(s) - the highest-response sibling wins.
+     *     A preserved comp that holds the response up is evidence it drives the response.
+     *   - EXPLORE: otherwise, test leaves first - sample a leaf weighted by its best preserved
+     *     response (higher response preserved = more likely; reductions least likely). Untested leaves
+     *     use the parent's response as a neutral-optimistic prior, so they're tried before reductions.
+     *     Once every leaf has been tried by a sibling, escalate to two comps sharing a junction.
+     * Unlike deltas there's no per-comp attempt budget: one sibling per leaf is enough to call it tried.
+     */
+    protected List<Integer> chooseCompsToPreserve(GAMatchStick parentMStick) {
+        int nComp = parentMStick.getNComponent();
+        List<SiblingVariant> siblings = readSiblingVariants();
+        double parentResp = readResponse(parentId);
+
+        // EXPLOIT: highest-response sibling that held the response above the parent.
+        SiblingVariant best = null;
+        for (SiblingVariant s : siblings) {
+            if (s.response != null && s.response > parentResp && !s.preservedComps.isEmpty()) {
+                if (best == null || s.response > best.response) best = s;
+            }
+        }
+        if (best != null) {
+            List<Integer> comps = inRange(best.preservedComps, nComp);
+            if (!comps.isEmpty()) return comps;
+        }
+
+        // EXPLORE: best (max) preserved response per single comp, and which leaves have been tried.
+        Map<Integer, Double> bestPreservedResp = new HashMap<>();
+        Set<Integer> triedLeaves = new HashSet<>();
+        for (SiblingVariant s : siblings) {
+            if (s.preservedComps.size() == 1) {
+                int comp = s.preservedComps.get(0);
+                triedLeaves.add(comp);
+                if (s.response != null) {
+                    Double prev = bestPreservedResp.get(comp);
+                    if (prev == null || s.response > prev) bestPreservedResp.put(comp, s.response);
+                }
+            }
+        }
+
+        List<Integer> leaves = leavesOf(parentMStick);
+        if (leaves.isEmpty()) {
+            for (int i = 1; i <= nComp; i++) leaves.add(i);
+        }
+
+        // Leaves first: once every leaf has been tried, escalate to a junction-sharing pair.
+        if (triedLeaves.containsAll(leaves) && nComp >= 3) {
+            List<Integer> pair = inRange(
+                    PruningMatchStick.chooseRandomComponentsToPreserve(2, parentMStick), nComp);
+            if (pair.size() == 2) return pair;
+        }
+
+        // Otherwise sample a leaf weighted by its best preserved response.
+        return Collections.singletonList(weightedSampleByPreservedResp(leaves, bestPreservedResp, parentResp));
+    }
+
+    /** Pick a leaf with probability proportional to its best preserved response (untried -> prior). */
+    private Integer weightedSampleByPreservedResp(List<Integer> leaves, Map<Integer, Double> bestPreservedResp,
+                                                  double prior) {
+        double total = 0;
+        for (Integer leaf : leaves) total += preservedWeight(leaf, bestPreservedResp, prior);
+        double r = random.nextDouble() * total;
+        double cum = 0;
+        for (Integer leaf : leaves) {
+            cum += preservedWeight(leaf, bestPreservedResp, prior);
+            if (r <= cum) return leaf;
+        }
+        return leaves.get(leaves.size() - 1);
+    }
+
+    /** Sampling weight for a leaf: its best preserved response, or the prior if not yet tried. */
+    private double preservedWeight(Integer leaf, Map<Integer, Double> bestPreservedResp, double prior) {
+        Double resp = bestPreservedResp.get(leaf);
+        return Math.max(1e-6, resp != null ? resp : prior);
+    }
+
+    /** A sibling variant of this variant's parent: the parent-numbered comp(s) it preserved + response. */
+    private static class SiblingVariant {
+        final List<Integer> preservedComps;
+        final Double response;
+        SiblingVariant(List<Integer> preservedComps, Double response) {
+            this.preservedComps = preservedComps;
+            this.response = response;
+        }
+    }
+
+    /**
+     * Every variant sibling of this variant's parent, with the comp(s) it preserved (in the parent's
+     * numbering, from its HypothesizedComp.parent_hypothesized_comps) and its response (null = not yet
+     * collected). This variant's own row, if already written, contributes nothing (null response).
+     */
+    private List<SiblingVariant> readSiblingVariants() {
+        JdbcTemplate jt = new JdbcTemplate(generator.getDbUtil().getDataSource());
+        List idAndResponse = jt.query(
+                "SELECT stim_id, response FROM StimGaInfo WHERE parent_id = ? AND stim_type = ?",
+                new Object[]{parentId, StimType.REGIME_ESTIM_VARIANTS.getValue()},
+                new RowMapper() {
+                    public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
+                        long siblingId = rs.getLong("stim_id");
+                        double resp = rs.getDouble("response");
+                        Double response = rs.wasNull() ? null : resp;
+                        return new Object[]{siblingId, response};
+                    }
+                });
+        List<SiblingVariant> out = new ArrayList<>();
+        for (Object o : idAndResponse) {
+            Object[] row = (Object[]) o;
+            Long siblingId = (Long) row[0];
+            Double response = (Double) row[1];
+            List<Integer> preserved = Collections.emptyList();
+            if (hypothesizedCompManager.hasProperty(siblingId)) {
+                List<Integer> c = hypothesizedCompManager.readProperty(siblingId).getParentHypothesizedComps();
+                if (c != null) preserved = c;
+            }
+            out.add(new SiblingVariant(preserved, response));
+        }
+        return out;
+    }
+
+    /** A stim's GA response, or 0 if missing. */
+    protected double readResponse(Long stimId) {
+        JdbcTemplate jt = new JdbcTemplate(generator.getDbUtil().getDataSource());
+        try {
+            Double r = (Double) jt.queryForObject(
+                    "SELECT response FROM StimGaInfo WHERE stim_id = ?", new Object[]{stimId}, Double.class);
+            return r != null ? r : 0.0;
+        } catch (Exception e) {
+            return 0.0;
+        }
+    }
+
+    /** Component indices from {@code comps} that exist in a shape with {@code nComp} comps (1-based). */
+    protected List<Integer> inRange(List<Integer> comps, int nComp) {
+        List<Integer> valid = new ArrayList<>();
+        if (comps != null) {
+            for (Integer c : comps) {
+                if (c != null && c >= 1 && c <= nComp) valid.add(c);
+            }
+        }
+        return valid;
+    }
+
+    /** Leaf (terminal) component indices of the parent shape, 1-based. */
+    protected List<Integer> leavesOf(GAMatchStick parentMStick) {
+        parentMStick.decideLeafBranch();
+        boolean[] leafBranch = parentMStick.getLeafBranch();
+        List<Integer> leaves = new ArrayList<>();
+        for (int i = 1; i <= parentMStick.getNComponent() && i < leafBranch.length; i++) {
+            if (leafBranch[i]) leaves.add(i);
+        }
+        return leaves;
     }
 }

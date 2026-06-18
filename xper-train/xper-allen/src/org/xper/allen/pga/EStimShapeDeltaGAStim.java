@@ -163,28 +163,6 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
                 && s.response / parentResponse >= dropThreshold;
     }
 
-    /** Component indices from {@code comps} that exist in a shape with {@code nComp} comps (1-based). */
-    private List<Integer> inRange(List<Integer> comps, int nComp) {
-        List<Integer> valid = new ArrayList<>();
-        if (comps != null) {
-            for (Integer c : comps) {
-                if (c != null && c >= 1 && c <= nComp) valid.add(c);
-            }
-        }
-        return valid;
-    }
-
-    /** Leaf (terminal) component indices of the parent shape, 1-based. */
-    private List<Integer> leavesOf(PruningMatchStick parentMStick) {
-        parentMStick.decideLeafBranch();
-        boolean[] leafBranch = parentMStick.getLeafBranch();
-        List<Integer> leaves = new ArrayList<>();
-        for (int i = 1; i <= parentMStick.getNComponent() && i < leafBranch.length; i++) {
-            if (leafBranch[i]) leaves.add(i);
-        }
-        return leaves;
-    }
-
     /**
      * Pick one candidate leaf with probability proportional to its response reduction (1 - bestRatio):
      * leaves that dropped the response more are favored, but every candidate keeps a non-zero chance.
@@ -260,18 +238,6 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
             out.add(new SiblingDelta(changed, response));
         }
         return out;
-    }
-
-    /** A stim's GA response, or 0 if missing. */
-    private double readResponse(Long stimId) {
-        JdbcTemplate jt = new JdbcTemplate(generator.getDbUtil().getDataSource());
-        try {
-            Double r = (Double) jt.queryForObject(
-                    "SELECT response FROM StimGaInfo WHERE stim_id = ?", new Object[]{stimId}, Double.class);
-            return r != null ? r : 0.0;
-        } catch (Exception e) {
-            return 0.0;
-        }
     }
 
     /** Most-recent value of a GAVar, or {@code defaultValue} if absent/unreadable. */
