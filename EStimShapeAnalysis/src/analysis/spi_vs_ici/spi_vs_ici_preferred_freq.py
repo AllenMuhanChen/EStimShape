@@ -351,7 +351,7 @@ def load_cluster_based_data(threshold=0.7, require_receptive_field=False):
                   FROM SolidPreferenceIndices s
                            JOIN Experiments e ON s.session_id = e.session_id
                            JOIN ClusterInfo c ON e.experiment_id = c.experiment_id AND s.unit_name = c.channel{rf_join('s')}
-                  WHERE c.experiment_id LIKE '%isogabor'
+                  WHERE c.experiment_id LIKE '%isogabor' AND c.gen_id=1
                   """
 
     conn.execute(solid_query)

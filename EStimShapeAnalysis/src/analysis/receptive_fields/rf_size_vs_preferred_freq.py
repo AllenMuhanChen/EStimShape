@@ -77,6 +77,7 @@ def load_preferred_frequency_data(filter_type='all'):
                          JOIN Experiments e ON p.session_id = e.session_id
                          JOIN ClusterInfo c ON e.experiment_id = c.experiment_id
                                             AND p.unit_name = c.channel{rf_join}
+                WHERE c.experiment_id LIKE '%isogabor' AND c.gen_id=1
                 """
     else:
         raise ValueError(f"Unknown filter_type: {filter_type}. "
@@ -797,8 +798,7 @@ if __name__ == "__main__":
         response_normalize='zscore',
         # Customize the cycles-per-RF trend bins here; None -> cycles_n_bins equal-width
         # bins. Example: [0, 2, 4, 8, np.inf] for bins [0,2], [2,4], [4,8], [8,inf].
-        cycles_bin_edges=[0, 1.5, 2.5, 4, 6, 8.0, np.inf],
-        cycles_n_bins=8,
+        cycles_bin_edges=[0, 0.5, 1.0, 1.5, 2.5, 4, 6, 8.0, np.inf],
         # Crop the View 4 x-axis, e.g. (0, 10); None auto-scales to the data.
         cycles_xlim=(0,12),
         # Dead-zone half-width for the ICI-colored trend split (View 4c):
