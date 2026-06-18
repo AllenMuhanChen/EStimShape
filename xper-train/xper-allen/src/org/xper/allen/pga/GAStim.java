@@ -177,6 +177,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         drawCompMaps(mStick);
         String pngPath = drawPngs(mStick);
         drawThumbnails(mStick);
+        drawCompMapThumbnails(mStick);
 
         D mStickData = (D) mStick.getMStickData();
         writeStimSpec(pngPath, mStickData);
@@ -347,6 +348,11 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected void drawThumbnails(T mStick) {
         List<String> labels = new LinkedList<>();
         generator.getPngMaker().createAndSaveThumbnail(mStick, stimId, labels, generator.getGeneratorPngPath());
+    }
+
+    protected void drawCompMapThumbnails(T mStick) {
+        List<String> labels = new LinkedList<>();
+        generator.getPngMaker().createAndSaveCompMapThumbnail(mStick, stimId, labels, generator.getGeneratorPngPath());
     }
 
     protected void saveMStickSpec(T mStick) {
