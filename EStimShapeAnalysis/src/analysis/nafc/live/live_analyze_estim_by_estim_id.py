@@ -124,6 +124,9 @@ def read_session_trials_as_exp_format(session_id, start_gen_id=START_GEN_ID):
     out['StimType']       = db['trial_class']
     out['IsDelta']        = db['trial_type'] == 'Delta Shape'
     out['IsRemovedTrial'] = db['trial_type'] == 'Removed Trial'
+    # Readable trial-type label used by the behavioral filter.
+    out['TrialType'] = np.where(out['IsRemovedTrial'], 'Removed Trial',
+                                np.where(out['IsDelta'], 'Delta Shape', 'Hypothesized Shape'))
 
     out = out[out['GenId'] >= start_gen_id]
     out = out[out['StimType'].isin(_EXPERIMENTAL_STIM_TYPES)]
@@ -199,6 +202,39 @@ class _ScrollPlotWidget(pg.PlotWidget):
         ev.accept()
 
 
+class _MultiCheckFilter(QtWidgets.QWidget):
+    """A labelled row of checkboxes (one per distinct value) for including/excluding a
+    behavioral parameter. Values are added (checked) as they first appear in the data and the
+    user's selections persist. selected() returns the set of checked values, or None when all
+    are checked (i.e. no filtering)."""
+
+    def __init__(self, title, on_change, fmt=str):
+        super().__init__()
+        self._on_change = on_change
+        self._fmt = fmt
+        self._boxes = {}  # value -> QCheckBox
+        self._layout = QtWidgets.QHBoxLayout(self)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(4)
+        self._layout.addWidget(QtWidgets.QLabel(f'{title}:'))
+
+    def sync(self, values):
+        """Ensure a checkbox exists for each value (new ones default to checked)."""
+        for v in values:
+            if v not in self._boxes:
+                cb = QtWidgets.QCheckBox(self._fmt(v))
+                cb.setChecked(True)
+                cb.stateChanged.connect(lambda _state: self._on_change())
+                self._boxes[v] = cb
+                self._layout.addWidget(cb)
+
+    def selected(self):
+        if not self._boxes:
+            return None
+        checked = {v for v, cb in self._boxes.items() if cb.isChecked()}
+        return None if len(checked) == len(self._boxes) else checked
+
+
 class LiveEstimWindow(QtWidgets.QMainWindow):
     """Control bar + a vertically-scrolling grid of pyqtgraph panels showing Plot 1."""
 
@@ -209,6 +245,7 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         # Seed seen trials from what's already compiled so a restart doesn't redo the session.
         self.seen_starts = get_existing_trial_starts(session_id)
         self._has_drawn = False
+        self.start_gen_id = START_GEN_ID
 
         # Grid state.
         self._grid_config = None          # (n_rows, tuple(col_keys)) — rebuilt only on change
@@ -249,13 +286,36 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
 
         self.status_label = QtWidgets.QLabel('Starting…')
 
+        self.start_gen_spin = QtWidgets.QSpinBox()
+        self.start_gen_spin.setRange(0, 1000000)
+        self.start_gen_spin.setValue(self.start_gen_id)
+        self.start_gen_spin.valueChanged.connect(self._on_start_gen_changed)
+
         bar.addWidget(self.refresh_button)
         bar.addWidget(self.live_checkbox)
         bar.addWidget(QtWidgets.QLabel('Poll every'))
         bar.addWidget(self.interval_spin)
+        bar.addSpacing(16)
+        bar.addWidget(QtWidgets.QLabel('Start gen'))
+        bar.addWidget(self.start_gen_spin)
         bar.addStretch(1)
         bar.addWidget(self.status_label)
         layout.addLayout(bar)
+
+        # Behavioral-parameter filters. Each re-renders (no recompile) on toggle. Checkboxes
+        # are populated from the data as values appear; all-checked means no filtering.
+        filt_bar = QtWidgets.QHBoxLayout()
+        self.noise_filter = _MultiCheckFilter('Noise', self._rerender,
+                                              fmt=lambda v: f'{float(v) * 100:.0f}%')
+        self.type_filter = _MultiCheckFilter('Trial type', self._rerender)
+        self.sl_filter = _MultiCheckFilter('Sample len', self._rerender, fmt=lambda v: f'{v}')
+        filt_bar.addWidget(self.noise_filter)
+        filt_bar.addSpacing(12)
+        filt_bar.addWidget(self.type_filter)
+        filt_bar.addSpacing(12)
+        filt_bar.addWidget(self.sl_filter)
+        filt_bar.addStretch(1)
+        layout.addLayout(filt_bar)
 
         # Scrollable grid of panels.
         self.scroll = QtWidgets.QScrollArea()
@@ -280,6 +340,35 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
 
     def _force_refresh(self):
         self._refresh(force=True)
+
+    def _on_start_gen_changed(self, value):
+        self.start_gen_id = value
+        self._rerender()
+
+    def _rerender(self):
+        """Redraw from the already-compiled data (no DB poll). Used when start-gen or a filter
+        changes — those only affect what we display, not what's compiled."""
+        try:
+            n_trials = self._update_plots()
+            self._has_drawn = True
+        except Exception as e:
+            self.status_label.setText(f'Plot error: {e}')
+            return
+        self.status_label.setText(f'{self.session_id}: {n_trials} trials plotted')
+
+    def _apply_filters(self, data):
+        """Drop rows excluded by the behavioral-parameter filters."""
+        df = data
+        sel = self.noise_filter.selected()
+        if sel is not None:
+            df = df[df['NoiseChance'].isin(sel)]
+        sel = self.type_filter.selected()
+        if sel is not None:
+            df = df[df['TrialType'].isin(sel)]
+        sel = self.sl_filter.selected()
+        if sel is not None:
+            df = df[df['SampleLength'].isin(sel)]
+        return df
 
     def _refresh(self, force=False):
         """Compile new trials, then update the curves only if something changed (or forced).
@@ -307,15 +396,30 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
     # ---- plotting -------------------------------------------------------
     def _update_plots(self):
         """Recompute metric curves and push them into the existing pyqtgraph curves. Returns
-        the number of plotted trials."""
-        data_exp = read_session_trials_as_exp_format(self.session_id, START_GEN_ID)
-        if data_exp is None or len(data_exp) == 0:
+        the number of plotted trials (after filtering)."""
+        data_full = read_session_trials_as_exp_format(self.session_id, self.start_gen_id)
+        if data_full is None or len(data_full) == 0:
             self.status_label.setText(f'{self.session_id}: waiting for trials…')
+            return 0
+
+        # Offer every available value in the filters (so deselected ones can be re-enabled),
+        # then apply the current selection.
+        self.noise_filter.sync(sorted(data_full['NoiseChance'].dropna().unique()))
+        self.type_filter.sync([t for t in ('Hypothesized Shape', 'Delta Shape', 'Removed Trial')
+                               if (data_full['TrialType'] == t).any()])
+        self.sl_filter.sync(sorted(data_full['SampleLength'].dropna().unique(), key=float))
+
+        data_exp = self._apply_filters(data_full)
+        if len(data_exp) == 0:
+            self.status_label.setText(f'{self.session_id}: 0 trials after filters')
             return 0
 
         partition = partition_estim_data(data_exp)
         rows = _rows_for(partition.include_removed)
-        cols = _columns_for(partition)
+        # Skip a column entirely when it has no data (e.g. its trial type was filtered out).
+        cols = [c for c in _columns_for(partition) if (len(c[2]) + len(c[3])) > 0]
+        if not cols:
+            return 0
         self._ensure_grid(rows, cols)
 
         for r, (_row_title, kind) in enumerate(rows):
@@ -353,7 +457,9 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
                 vb = pi.getViewBox()
                 vb.invertX(True)  # higher noise on the left, matching the batch plot
                 # Fixed ranges + no autorange so live updates never move the user's view.
-                vb.setRange(xRange=(-5, 105), yRange=(-5, 110), padding=0)
+                # Clamp y to [0, 100] so the plot can never show values outside that range.
+                vb.setRange(xRange=(-5, 105), yRange=(0, 100), padding=0)
+                vb.setLimits(yMin=0, yMax=100)
                 vb.disableAutoRange()
                 pi.addLegend(offset=(-10, 10))
                 self.grid_layout.addWidget(pw, r, c)
@@ -384,13 +490,34 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             entry['curve'].setData(xs, ys)
             if entry['label'] is not None:
                 entry['label'].setText(f"{entry['base']} (n={int(sum(ns))})")
+            self._sync_point_labels(plot, entry, xs, ys, ns, color)
 
         # Drop series no longer present (e.g. a spec that disappeared after filtering).
         for sid in [s for s in self.series if s[0] == row and s[1] == col_key and s[2] not in wanted]:
             entry = self.series.pop(sid)
             plot.removeItem(entry['curve'])
+            for t in entry.get('texts', []):
+                plot.removeItem(t)
             try:
                 legend.removeItem(entry['curve'])
+            except Exception:
+                pass
+
+    def _sync_point_labels(self, plot, entry, xs, ys, ns, color):
+        """Show the per-point sample size (n) as text above each data point (below it near the
+        top, so labels stay inside the 0–100 view)."""
+        texts = entry.setdefault('texts', [])
+        while len(texts) < len(xs):
+            t = pg.TextItem(anchor=(0.5, 1.0), color=color)
+            plot.addItem(t)
+            texts.append(t)
+        while len(texts) > len(xs):
+            plot.removeItem(texts.pop())
+        for t, x, y, n in zip(texts, xs, ys, ns):
+            t.setText(str(int(n)))
+            t.setPos(x, y)
+            try:
+                t.setAnchor((0.5, 1.0) if y <= 85 else (0.5, 0.0))
             except Exception:
                 pass
 
