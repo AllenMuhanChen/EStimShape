@@ -426,19 +426,26 @@ def permutation_test_for_condition(session_id, cond_dict,
         'observed': observed, 'max_trial_start': max_ts, 'method': method,
         'n_on': n_on, 'n_off': n_off,
         'p_two_tailed': p_two, 'p_greater': p_greater, 'p_less': p_less,
-        'null_mean': float(np.mean(null)), 'n_permutations': n_permutations,
+        'null_mean': float(np.mean(null)), 'null': null, 'n_permutations': n_permutations,
     }
 
 
 def run_cutoff_permutation_tests(session_id=None, window_size=100, step_size=10,
                                  threshold=5.0, n_steps_below=3, min_estim_trials=10,
-                                 n_permutations=1000, seed=None):
+                                 n_permutations=1000, seed=None,
+                                 session_level=True, studentize=False,
+                                 exceedance_thresholds=None, plot=True):
     """
     Run the permutation test for every condition in one or all sessions and print a
     per-condition summary. Conditions WITH a cutoff use the Option-B null (re-run the
     cutoff-selection procedure on relabeled data) so the selection bias is cancelled;
     conditions WITHOUT a cutoff use a plain label-shuffle null (no selection to
     correct, far cheaper).
+
+    When session_level is True, also runs and (if plot) plots the per-session maxT
+    and exceedance-count tests built from the per-condition nulls. studentize puts
+    conditions on a common z scale before aggregating; exceedance_thresholds overrides
+    the default threshold sweep.
     """
     rng = np.random.default_rng(seed)
     conn = Connection("allen_data_repository")
@@ -494,7 +501,165 @@ def run_cutoff_permutation_tests(session_id=None, window_size=100, step_size=10,
     n_sig = sum(1 for _, _, r in results if r['p_two_tailed'] < 0.05)
     print(f"\nDone. {len(results)} conditions tested  |  {n_sig} significant at p<0.05 (two-tailed)"
           f"  |  {n_skipped} skipped (< {min_estim_trials} estim-on trials or no baseline)")
+
+    if session_level and results:
+        by_session = {}
+        for sid, cond_dict, res in results:
+            by_session.setdefault(sid, []).append(res)
+        for sid, entries in by_session.items():
+            max_res = session_max_stat_test(entries, studentize=studentize)
+            exc_res = session_exceedance_test(entries, thresholds=exceedance_thresholds,
+                                              studentize=studentize)
+            _print_session_level_tests(sid, max_res, exc_res)
+            if plot:
+                plot_session_permutation_tests(sid, max_res, exc_res)
+
     return results
+
+
+# ---------------------------------------------------------------------------
+# Session-level tests built from the per-condition permutation nulls.
+# maxT (family-wise): is the single best condition larger than the max chance
+# produces across all of the session's conditions?
+# Exceedance-count: are there more conditions above a threshold than chance?
+# Per-condition nulls are combined by iteration index (treated as independent
+# across conditions, matching max_estim_per_experiment's population test).
+# ---------------------------------------------------------------------------
+
+def _fmt_p(p):
+    return "p<0.001" if p < 0.001 else f"p={p:.3f}"
+
+
+def _stack_obs_null(entries, studentize=False):
+    """
+    Build (obs_vector, null_matrix (C, P), unit) from per-condition result dicts.
+    studentize standardizes each condition by its own null so wide-null (small-n)
+    conditions don't dominate; thresholds are then in z units.
+    """
+    n_perms = min(len(r['null']) for r in entries)
+    obs_vals, null_rows = [], []
+    for r in entries:
+        null = np.asarray(r['null'][:n_perms], dtype=float)
+        if studentize:
+            mu, sd = float(np.mean(null)), float(np.std(null, ddof=1))
+            if not np.isfinite(sd) or sd <= 0:
+                continue
+            obs_vals.append((r['observed'] - mu) / sd)
+            null_rows.append((null - mu) / sd)
+        else:
+            obs_vals.append(r['observed'])
+            null_rows.append(null)
+    if not obs_vals:
+        return None
+    return np.array(obs_vals), np.stack(null_rows, axis=0), ('z' if studentize else 'pp'), n_perms
+
+
+def session_max_stat_test(entries, studentize=False):
+    """
+    maxT test for one session. observed_max = largest observed effect across the
+    session's conditions; null is the per-iteration max across conditions.
+    Returns dict (or None if no usable conditions).
+    """
+    stacked = _stack_obs_null(entries, studentize)
+    if stacked is None:
+        return None
+    obs, null_matrix, unit, n_perms = stacked
+    max_null = null_matrix.max(axis=0)
+    observed_max = float(np.max(obs))
+    return {
+        'observed_max': observed_max,
+        'max_null': max_null,
+        'p_value': float(np.mean(max_null >= observed_max)),
+        'unit': unit, 'n_conditions': int(obs.shape[0]), 'n_perms': n_perms,
+    }
+
+
+def session_exceedance_test(entries, thresholds=None, studentize=False):
+    """
+    Exceedance-count test for one session. For each threshold x: observed count of
+    conditions with effect >= x, vs the null distribution of that count.
+    Returns dict (or None if no usable conditions).
+    """
+    stacked = _stack_obs_null(entries, studentize)
+    if stacked is None:
+        return None
+    obs, null_matrix, unit, n_perms = stacked
+    if thresholds is None:
+        thresholds = (1.0, 1.5, 2.0, 2.5, 3.0) if studentize else (5.0, 10.0, 15.0, 20.0)
+    rows = []
+    for thr in thresholds:
+        n_obs = int(np.sum(obs >= thr))
+        null_counts = np.sum(null_matrix >= thr, axis=0)
+        rows.append({
+            'threshold': float(thr), 'n_obs': n_obs,
+            'null_mean': float(np.mean(null_counts)),
+            'null_95': float(np.percentile(null_counts, 95)),
+            'p_value': float(np.mean(null_counts >= n_obs)),
+        })
+    return {'unit': unit, 'n_conditions': int(obs.shape[0]), 'n_perms': n_perms, 'rows': rows}
+
+
+def _print_session_level_tests(session_id, max_res, exc_res):
+    print(f"\n=== Session-level tests for {session_id} ===")
+    if max_res is not None:
+        print(f"  Max-stat (maxT): observed max = {max_res['observed_max']:+.2f}{max_res['unit']}  "
+              f"null mean = {float(np.mean(max_res['max_null'])):+.2f}{max_res['unit']}  "
+              f"{_fmt_p(max_res['p_value'])}  ({max_res['n_conditions']} conditions)")
+    if exc_res is not None:
+        print(f"  Exceedance-count ({exc_res['n_conditions']} conditions):")
+        for r in exc_res['rows']:
+            print(f"    effect >= {r['threshold']:5.1f}{exc_res['unit']}:  observed={r['n_obs']:3d}  "
+                  f"null mean={r['null_mean']:5.1f}  null 95th={r['null_95']:5.1f}  "
+                  f"{_fmt_p(r['p_value'])}")
+
+
+def plot_session_permutation_tests(session_id, max_res, exc_res, save_path=None):
+    """Two-panel figure: maxT null vs observed max, and exceedance observed vs null."""
+    import os
+    import matplotlib.pyplot as plt
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5))
+
+    if max_res is not None:
+        ax1.hist(max_res['max_null'], bins=40, color='lightsteelblue', edgecolor='gray')
+        ax1.axvline(max_res['observed_max'], color='red', linewidth=2,
+                    label=f"observed max = {max_res['observed_max']:+.1f}{max_res['unit']}")
+        ax1.set_title(f"Max-stat test  ({_fmt_p(max_res['p_value'])}, "
+                      f"{max_res['n_conditions']} conds, {max_res['n_perms']} perms)")
+        ax1.set_xlabel(f"max effect across conditions ({max_res['unit']})")
+        ax1.set_ylabel("permutations")
+        ax1.legend(fontsize=8)
+    else:
+        ax1.text(0.5, 0.5, "no usable conditions", ha='center', va='center', transform=ax1.transAxes)
+
+    if exc_res is not None:
+        thr       = [r['threshold'] for r in exc_res['rows']]
+        n_obs     = [r['n_obs'] for r in exc_res['rows']]
+        null_mean = [r['null_mean'] for r in exc_res['rows']]
+        null_95   = [r['null_95'] for r in exc_res['rows']]
+        ax2.plot(thr, n_obs, 'o-', color='red', label='observed')
+        ax2.plot(thr, null_mean, 's--', color='gray', label='null mean')
+        ax2.plot(thr, null_95, ':', color='darkgray', label='null 95th pct')
+        for r in exc_res['rows']:
+            ax2.annotate(_fmt_p(r['p_value']), (r['threshold'], r['n_obs']),
+                         textcoords='offset points', xytext=(0, 7), fontsize=7, ha='center')
+        ax2.set_title(f"Exceedance-count test ({exc_res['n_conditions']} conds)")
+        ax2.set_xlabel(f"effect threshold ({exc_res['unit']})")
+        ax2.set_ylabel("# conditions exceeding threshold")
+        ax2.legend(fontsize=8)
+    else:
+        ax2.text(0.5, 0.5, "no usable conditions", ha='center', va='center', transform=ax2.transAxes)
+
+    fig.suptitle(f"{session_id}  —  session-level permutation tests", fontsize=12)
+    plt.tight_layout()
+
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, bbox_inches='tight', dpi=150)
+        print(f"Saved to {save_path}")
+
+    plt.show()
+    return fig
 
 
 def save_cutoff(session_id, conditions_json, algorithm_label, max_trial_start):
