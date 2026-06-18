@@ -319,9 +319,10 @@ def load_cluster_based_data(threshold=0.7, require_receptive_field=False):
     Shared loader for cluster-based channel selection.
 
     Selects cluster channels (JOIN Experiments + ClusterInfo, matching
-    spi_ici_clusters.py). When require_receptive_field is True, additionally
-    requires the channel to have an entry in ReceptiveFieldInfo for that
-    session_id (mapped_channel mode).
+    spi_ici_clusters.py). Only ClusterInfo rows whose experiment_id ends in
+    'isogabor' (e.g. 260617_0_isogabor) are considered. When
+    require_receptive_field is True, additionally requires the channel to have
+    an entry in ReceptiveFieldInfo for that session_id (mapped_channel mode).
 
     Args:
         threshold: Minimum fraction of absolute max response required.
@@ -350,6 +351,7 @@ def load_cluster_based_data(threshold=0.7, require_receptive_field=False):
                   FROM SolidPreferenceIndices s
                            JOIN Experiments e ON s.session_id = e.session_id
                            JOIN ClusterInfo c ON e.experiment_id = c.experiment_id AND s.unit_name = c.channel{rf_join('s')}
+                  WHERE c.experiment_id LIKE '%isogabor'
                   """
 
     conn.execute(solid_query)
@@ -371,6 +373,7 @@ def load_cluster_based_data(threshold=0.7, require_receptive_field=False):
                          FROM IsochromaticPreferenceIndices i
                                   JOIN Experiments e ON i.session_id = e.session_id
                                   JOIN ClusterInfo c ON e.experiment_id = c.experiment_id AND i.unit_name = c.channel{rf_join('i')}
+                         WHERE c.experiment_id LIKE '%isogabor'
                          """
 
     conn.execute(isochromatic_query)
