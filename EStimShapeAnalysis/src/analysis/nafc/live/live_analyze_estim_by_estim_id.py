@@ -188,9 +188,12 @@ def _columns_for(partition):
 # Widgets
 # ---------------------------------------------------------------------------
 
-class _ScrollPlotWidget(pg.PlotWidget):
-    """PlotWidget whose wheel scrolls the surrounding QScrollArea (page scroll) instead of
-    zooming. Mouse drag still pans/zooms the individual plot."""
+LEGEND_WIDTH = 170  # px reserved to the right of each plot for its legend
+
+
+class _ScrollGraphicsLayout(pg.GraphicsLayoutWidget):
+    """GraphicsLayoutWidget (holds a plot + a legend beside it) whose wheel scrolls the
+    surrounding QScrollArea (page scroll) instead of zooming. Mouse drag still pans/zooms."""
 
     def __init__(self, scroll_area, **kwargs):
         super().__init__(**kwargs)
@@ -252,6 +255,9 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.plots = {}                   # (row, col_key) -> PlotItem
         self.legends = {}                 # (row, col_key) -> LegendItem
         self.series = {}                  # (row, col_key, series_key) -> {'curve','label','base'}
+        # Stable spec_id -> color: a spec keeps its color for the whole session and across
+        # every panel, regardless of which other specs are present or when it first appears.
+        self._spec_color = {}
 
         self._setup_ui()
 
@@ -447,9 +453,16 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
 
         for r, (row_title, _kind) in enumerate(rows):
             for c, (col_key, col_title, *_rest) in enumerate(cols):
-                pw = _ScrollPlotWidget(self.scroll, background='w')
-                pw.setFixedHeight(PLOT_HEIGHT)
-                pi = pw.getPlotItem()
+                glw = _ScrollGraphicsLayout(self.scroll, background='w')
+                glw.setFixedHeight(PLOT_HEIGHT)
+                # Plot in col 0 (stretches); legend in a fixed-width col 1 to its right, so the
+                # legend never overlaps the data.
+                pi = glw.addPlot(row=0, col=0)
+                legend = pg.LegendItem(offset=(10, 10))
+                glw.addItem(legend, row=0, col=1)
+                glw.ci.layout.setColumnStretchFactor(0, 1)
+                glw.ci.layout.setColumnFixedWidth(1, LEGEND_WIDTH)
+
                 pi.setTitle(f'{row_title}: {col_title}')
                 pi.showGrid(x=True, y=True, alpha=0.3)
                 pi.setLabel('left', '%')
@@ -461,10 +474,16 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
                 vb.setRange(xRange=(-5, 105), yRange=(0, 100), padding=0)
                 vb.setLimits(yMin=0, yMax=100)
                 vb.disableAutoRange()
-                pi.addLegend(offset=(-10, 10))
-                self.grid_layout.addWidget(pw, r, c)
+                self.grid_layout.addWidget(glw, r, c)
                 self.plots[(r, col_key)] = pi
-                self.legends[(r, col_key)] = pi.legend
+                self.legends[(r, col_key)] = legend
+
+    def _color_for_spec(self, spec):
+        """Return this spec's stable color, assigning the next palette entry on first sight."""
+        spec = int(spec)
+        if spec not in self._spec_color:
+            self._spec_color[spec] = _SPEC_COLORS[len(self._spec_color) % len(_SPEC_COLORS)]
+        return self._spec_color[spec]
 
     def _update_cell(self, row, col_key, kind, on_df, off_df, spec_ids):
         plot = self.plots[(row, col_key)]
@@ -472,8 +491,8 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
 
         # Series to show in this cell: EStim OFF (black dashed) + one per spec (colored).
         wanted = {'OFF': (off_df, 'EStim OFF', pg.mkPen('k', width=2, style=_DASH_LINE), (0, 0, 0))}
-        for i, spec in enumerate(sorted(spec_ids)):
-            color = _SPEC_COLORS[i % len(_SPEC_COLORS)]
+        for spec in sorted(spec_ids):
+            color = self._color_for_spec(spec)
             wanted[('spec', spec)] = (on_df[on_df['EStimSpecId'] == spec],
                                       f'Spec {int(spec)}', pg.mkPen(color, width=2), color)
 
@@ -482,7 +501,8 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             sid = (row, col_key, series_key)
             if sid not in self.series:
                 curve = plot.plot([], [], pen=pen, symbol='o', symbolSize=6,
-                                  symbolBrush=color, symbolPen=color, name=base)
+                                  symbolBrush=color, symbolPen=color)
+                legend.addItem(curve, base)
                 # Hold the legend LabelItem so we can update the n-count in place.
                 label = legend.items[-1][1] if legend.items else None
                 self.series[sid] = {'curve': curve, 'label': label, 'base': base}
