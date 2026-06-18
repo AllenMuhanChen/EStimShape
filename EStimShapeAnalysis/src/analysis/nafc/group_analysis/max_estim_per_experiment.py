@@ -1031,12 +1031,14 @@ def main():
     metric = METRIC_PCT_HYP_VS_DELTA
     exclude_session_ids = ["260421_0", "260410_0"]
     start_session_id = "260402_0"
+    # algorithm_label = 'None'
+    algorithm_label = 'first_drop_w50_s5_t0_n2_m10'
     plot_max_stat_per_experiment(
         exclude_session_ids=exclude_session_ids,   # e.g. ["260421_0", "260410_0"] to drop sessions
         # exclusion reasons: ["Incorrect GA Response behavior", "Weird clustering, too small"]
         # start_session_id="260423_0",
         start_session_id=start_session_id, #first variant experiment
-        algorithm_label='None',        # or e.g. 'last_sustained_k3_t5.0'
+        algorithm_label=algorithm_label,        # or e.g. 'last_sustained_k3_t5.0'
         metric=metric,  # switch to METRIC_PCT_HYP_VS_DELTA to test Hyp vs Delta only
         # algorithm_label='first_drop_w100_s10_t5.0_n3',
         save_path="/home/connorlab/Documents/plots/across_experiments/max_estim_per_experiment.png",
@@ -1060,7 +1062,7 @@ def main():
         # rejected for: ["Improper GA", "GA on cell not correlated with surrounding cells"]
         # start_session_id="260423_0",
         start_session_id=start_session_id,
-        algorithm_label='None',
+        algorithm_label=algorithm_label,
         metric=metric,
         # thresholds=None -> (5,10,15,20)% in raw mode, (1.0..3.0) z when studentized
         thresholds=[-3.0, -2.5, -2.0, -1.5,-1.0,-0.5,0, 0.5, 1, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0],
@@ -1074,7 +1076,7 @@ def main():
     plot_studentized_winners(
         exclude_session_ids=exclude_session_ids,
         start_session_id=start_session_id,
-        algorithm_label='None',
+        algorithm_label=algorithm_label,
         metric=metric,
         min_trials=10,
         save_path="/home/connorlab/Documents/plots/across_experiments/studentized_winners.png",
@@ -1084,7 +1086,7 @@ def main():
     plot_winning_conditions(
         exclude_session_ids=exclude_session_ids,
         start_session_id=start_session_id,
-        algorithm_label='None',
+        algorithm_label=algorithm_label,
         metric=metric,
         min_trials=10,
         studentize=True,   # tally winners of the studentized maxT

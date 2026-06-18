@@ -23,6 +23,8 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+from src.analysis.nafc.group_analysis.analyze_estim_by_condition import METRIC_PCT_HYP_VS_DELTA
+
 sys.path.insert(0, str(Path(__file__).parents[3]))
 
 import math
@@ -435,7 +437,7 @@ def run_cutoff_permutation_tests(session_id=None, window_size=100, step_size=10,
                                  n_permutations=1000, seed=None,
                                  session_level=True, studentize=True,
                                  exceedance_thresholds=None, plot=True,
-                                 metric=METRIC_PCT_HYPOTHESIZED, save_results=True):
+                                 metric=METRIC_PCT_HYP_VS_DELTA, save_results=True):
     """
     Run the permutation test for every condition in one or all sessions and print a
     per-condition summary. Conditions WITH a cutoff use the Option-B null (re-run the
