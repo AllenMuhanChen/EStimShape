@@ -73,6 +73,13 @@ _SPEC_COLORS = [
     (31, 119, 180), (255, 127, 14), (44, 160, 44), (214, 39, 40), (148, 103, 189),
     (140, 86, 75), (227, 119, 194), (127, 127, 127), (188, 189, 34), (23, 190, 207),
 ]
+
+# Sliding-window tab.
+WINDOW_SIZE = 50          # trials per window
+WINDOW_STEP = 5           # window stride (trials)
+WINDOW_PLOT_HEIGHT = 440  # px per sliding-window panel
+WINDOW_METRIC = 'hyp_vs_delta'   # effect size uses % hypothesized vs delta
+_TRIAL_TYPE_ORDER = ('Hypothesized Shape', 'Delta Shape', 'Removed Trial')
 # ---------------------------------------------------------------------------
 
 pg.setConfigOptions(antialias=True, background='w', foreground='k')
@@ -184,6 +191,47 @@ def _columns_for(partition):
     return cols
 
 
+def _alpha_for_noise(noise):
+    """Map a noise chance (0..1) to a stable line alpha — higher noise = more opaque."""
+    return max(0.25, min(1.0, 0.3 + 0.7 * float(noise)))
+
+
+def sliding_window_series(data, window_size=WINDOW_SIZE, step=WINDOW_STEP, kind=WINDOW_METRIC):
+    """Compute sliding-window effect-size traces, conditioned on behavioral params AND spec.
+
+    For each window (a contiguous block of trials in task order) and each condition
+    (trial_type, noise_chance, estim_spec_id), effect = estim_on %metric − estim_off %metric,
+    where the OFF baseline is matched on (trial_type, noise_chance). The metric (default
+    % hypothesized vs delta) drops rand/removed choices before averaging.
+
+    Returns {trial_type: {(spec_id, noise): (xs, ys)}} with xs = window-center trial index.
+    """
+    out = {}
+    if data is None or len(data) == 0:
+        return out
+    data = data.reset_index(drop=True)
+    n = len(data)
+    for start in range(0, max(n - window_size, 0) + 1, step):
+        w = data.iloc[start:start + window_size]
+        center = start + window_size // 2
+        d, vals = _metric_series(w, kind)
+        if len(d) == 0:
+            continue
+        work = d.assign(_v=np.asarray(vals, dtype=float))
+        on = work[work['EStimEnabled'] == True].dropna(subset=['EStimSpecId'])
+        off = work[work['EStimEnabled'] == False]
+        if len(on) == 0 or len(off) == 0:
+            continue
+        off_pct = off.groupby(['TrialType', 'NoiseChance'])['_v'].mean() * 100.0
+        on_pct = on.groupby(['TrialType', 'NoiseChance', 'EStimSpecId'])['_v'].mean() * 100.0
+        for (tt, noise, spec), pct_on in on_pct.items():
+            if (tt, noise) in off_pct.index:
+                xs, ys = out.setdefault(tt, {}).setdefault((int(spec), float(noise)), ([], []))
+                xs.append(center)
+                ys.append(pct_on - off_pct[(tt, noise)])
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Widgets
 # ---------------------------------------------------------------------------
@@ -250,11 +298,18 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self._has_drawn = False
         self.start_gen_id = START_GEN_ID
 
-        # Grid state.
+        # Overview-tab grid state.
         self._grid_config = None          # (n_rows, tuple(col_keys)) — rebuilt only on change
         self.plots = {}                   # (row, col_key) -> PlotItem
         self.legends = {}                 # (row, col_key) -> LegendItem
         self.series = {}                  # (row, col_key, series_key) -> {'curve','label','base'}
+
+        # Sliding-window-tab grid state (columns = trial types).
+        self._win_config = None           # tuple(trial_types) — rebuilt only on change
+        self.win_plots = {}               # trial_type -> PlotItem
+        self.win_legends = {}             # trial_type -> LegendItem
+        self.win_series = {}              # (trial_type, spec, noise) -> {'curve','label'}
+
         # Stable spec_id -> color: a spec keeps its color for the whole session and across
         # every panel, regardless of which other specs are present or when it first appears.
         self._spec_color = {}
@@ -323,7 +378,11 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         filt_bar.addStretch(1)
         layout.addLayout(filt_bar)
 
-        # Scrollable grid of panels.
+        # Tabs: Overview (Plot 1) and Sliding Window. Both share the control bar/filters above.
+        self.tabs = QtWidgets.QTabWidget()
+        layout.addWidget(self.tabs)
+
+        # Overview tab — vertically-scrolling grid of metric x trial-type panels.
         self.scroll = QtWidgets.QScrollArea()
         self.scroll.setWidgetResizable(True)
         self.scroll.setHorizontalScrollBarPolicy(_SCROLLBAR_OFF)
@@ -331,7 +390,20 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.grid_layout = QtWidgets.QGridLayout(self.grid_host)
         self.grid_layout.setContentsMargins(4, 4, 4, 4)
         self.scroll.setWidget(self.grid_host)
-        layout.addWidget(self.scroll)
+        self.tabs.addTab(self.scroll, 'Overview')
+
+        # Sliding-window tab — one effect-size panel per trial type (columns).
+        self.win_scroll = QtWidgets.QScrollArea()
+        self.win_scroll.setWidgetResizable(True)
+        self.win_scroll.setHorizontalScrollBarPolicy(_SCROLLBAR_OFF)
+        self.win_host = QtWidgets.QWidget()
+        self.win_grid_layout = QtWidgets.QGridLayout(self.win_host)
+        self.win_grid_layout.setContentsMargins(4, 4, 4, 4)
+        self.win_scroll.setWidget(self.win_host)
+        self.tabs.addTab(self.win_scroll, 'Sliding Window')
+
+        # Render the newly-shown tab so it reflects the latest data/filters.
+        self.tabs.currentChanged.connect(lambda _idx: self._rerender())
 
     # ---- polling --------------------------------------------------------
     def _toggle_live(self):
@@ -355,7 +427,7 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         """Redraw from the already-compiled data (no DB poll). Used when start-gen or a filter
         changes — those only affect what we display, not what's compiled."""
         try:
-            n_trials = self._update_plots()
+            n_trials = self._update_active()
             self._has_drawn = True
         except Exception as e:
             self.status_label.setText(f'Plot error: {e}')
@@ -390,7 +462,7 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             return
 
         try:
-            n_trials = self._update_plots()
+            n_trials = self._update_active()
             self._has_drawn = True
         except Exception as e:
             self.status_label.setText(f'Plot error: {e}')
@@ -400,38 +472,49 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.status_label.setText(f'{self.session_id}: {n_trials} trials plotted{suffix}')
 
     # ---- plotting -------------------------------------------------------
-    def _update_plots(self):
-        """Recompute metric curves and push them into the existing pyqtgraph curves. Returns
-        the number of plotted trials (after filtering)."""
+    def _read_and_filter(self):
+        """Read this session's compiled trials, refresh the filter choices, and apply them.
+        Returns the filtered experiment-format DataFrame, or None when there is nothing to
+        plot (status label is set accordingly)."""
         data_full = read_session_trials_as_exp_format(self.session_id, self.start_gen_id)
         if data_full is None or len(data_full) == 0:
             self.status_label.setText(f'{self.session_id}: waiting for trials…')
-            return 0
+            return None
 
         # Offer every available value in the filters (so deselected ones can be re-enabled),
         # then apply the current selection.
         self.noise_filter.sync(sorted(data_full['NoiseChance'].dropna().unique()))
-        self.type_filter.sync([t for t in ('Hypothesized Shape', 'Delta Shape', 'Removed Trial')
-                               if (data_full['TrialType'] == t).any()])
+        self.type_filter.sync([t for t in _TRIAL_TYPE_ORDER if (data_full['TrialType'] == t).any()])
         self.sl_filter.sync(sorted(data_full['SampleLength'].dropna().unique(), key=float))
 
         data_exp = self._apply_filters(data_full)
         if len(data_exp) == 0:
             self.status_label.setText(f'{self.session_id}: 0 trials after filters')
-            return 0
+            return None
+        return data_exp
 
+    def _update_active(self):
+        """Render whichever tab is currently visible. Returns the number of plotted trials."""
+        data_exp = self._read_and_filter()
+        if data_exp is None:
+            return 0
+        if self.tabs.currentWidget() is self.win_scroll:
+            self._render_window(data_exp)
+        else:
+            self._render_overview(data_exp)
+        return len(data_exp)
+
+    def _render_overview(self, data_exp):
         partition = partition_estim_data(data_exp)
         rows = _rows_for(partition.include_removed)
         # Skip a column entirely when it has no data (e.g. its trial type was filtered out).
         cols = [c for c in _columns_for(partition) if (len(c[2]) + len(c[3])) > 0]
         if not cols:
-            return 0
+            return
         self._ensure_grid(rows, cols)
-
         for r, (_row_title, kind) in enumerate(rows):
             for (col_key, _col_title, on_df, off_df, spec_ids) in cols:
                 self._update_cell(r, col_key, kind, on_df, off_df, spec_ids)
-        return len(data_exp)
 
     def _ensure_grid(self, rows, cols):
         """(Re)build the panel grid only when the row/column layout changes (e.g. the Removed
@@ -543,6 +626,82 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             t.setPos(x, y)
             try:
                 t.setAnchor((0.5, 1.0) if y <= 85 else (0.5, 0.0))
+            except Exception:
+                pass
+
+    # ---- sliding-window tab --------------------------------------------
+    def _render_window(self, data_exp):
+        """Sliding-window effect-size traces, one panel per trial type (column). Each line is a
+        (spec, noise) condition: color = spec (shared with the overview), alpha = noise."""
+        series_by_type = sliding_window_series(data_exp)
+        trial_types = [tt for tt in _TRIAL_TYPE_ORDER if tt in series_by_type]
+        if not trial_types:
+            self.status_label.setText(f'{self.session_id}: not enough trials for a window')
+            return
+        self._ensure_window_grid(trial_types)
+        for tt in trial_types:
+            self._update_window_cell(tt, series_by_type[tt])
+
+    def _ensure_window_grid(self, trial_types):
+        """(Re)build the sliding-window grid only when the set of trial types changes."""
+        config = tuple(trial_types)
+        if config == self._win_config:
+            return
+
+        while self.win_grid_layout.count():
+            item = self.win_grid_layout.takeAt(0)
+            w = item.widget()
+            if w is not None:
+                w.setParent(None)
+                w.deleteLater()
+        self.win_plots, self.win_legends, self.win_series = {}, {}, {}
+
+        for c, tt in enumerate(trial_types):
+            glw = _ScrollGraphicsLayout(self.win_scroll)
+            glw.setMinimumHeight(WINDOW_PLOT_HEIGHT)
+            pi = glw.addPlot(row=0, col=0)
+            legend = pg.LegendItem(offset=(10, 10))
+            glw.addItem(legend, row=0, col=1)
+            glw.ci.layout.setColumnStretchFactor(0, 1)
+            glw.ci.layout.setColumnFixedWidth(1, LEGEND_WIDTH)
+
+            pi.setTitle(tt)
+            pi.showGrid(x=True, y=True, alpha=0.3)
+            pi.setLabel('left', 'Effect size (ON − OFF, % hyp vs delta)')
+            pi.setLabel('bottom', 'Trial (window center)')
+            pi.addLine(y=0, pen=pg.mkPen((120, 120, 120), style=_DASH_LINE))
+            vb = pi.getViewBox()
+            # Effect size is a difference in [-100, 100]; clamp y there, let x follow the trials.
+            vb.setYRange(-100, 100, padding=0)
+            vb.setLimits(yMin=-100, yMax=100)
+            self.win_grid_layout.addWidget(glw, 0, c)
+            self.win_plots[tt] = pi
+            self.win_legends[tt] = legend
+
+        self._win_config = config
+
+    def _update_window_cell(self, trial_type, series):
+        plot = self.win_plots[trial_type]
+        legend = self.win_legends[trial_type]
+
+        wanted = set()
+        for (spec, noise), (xs, ys) in sorted(series.items()):
+            wanted.add((spec, noise))
+            base = self._color_for_spec(spec)
+            color = (base[0], base[1], base[2], int(_alpha_for_noise(noise) * 255))
+            sid = (trial_type, spec, noise)
+            if sid not in self.win_series:
+                curve = plot.plot([], [], pen=pg.mkPen(color, width=2))
+                legend.addItem(curve, f'Spec {spec} | {noise * 100:.0f}%')
+                self.win_series[sid] = {'curve': curve}
+            self.win_series[sid]['curve'].setData(xs, ys)
+
+        # Drop (spec, noise) lines no longer present.
+        for sid in [s for s in self.win_series if s[0] == trial_type and (s[1], s[2]) not in wanted]:
+            entry = self.win_series.pop(sid)
+            plot.removeItem(entry['curve'])
+            try:
+                legend.removeItem(entry['curve'])
             except Exception:
                 pass
 
