@@ -185,7 +185,7 @@ class _ScrollPlotWidget(pg.PlotWidget):
         ev.accept()
 
 
-class LiveEstimWindow(QMainWindow):
+class LiveEstimWindow(QtWidgets.QMainWindow):
     """Control bar + a vertically-scrolling grid of pyqtgraph panels showing Plot 1."""
 
     def __init__(self, exp_conn, session_id):
