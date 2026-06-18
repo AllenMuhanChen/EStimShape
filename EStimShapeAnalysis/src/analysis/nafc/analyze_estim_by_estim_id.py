@@ -128,16 +128,22 @@ def build_overview_figure(fig, partition, row_labels, *, global_test_side='posit
                           n_permutations=0, combine_sample_lengths=False,
                           combine_spec_ids=False):
     """Render Plot 1 (the EStimSpecId overview grid) onto `fig` in 'both' mode: one row per
-    metric, Delta / Variant [/ Removed] columns plus a per-row stats column. Clears the figure
-    first so it can be called repeatedly for live updates. Returns `fig`."""
+    metric, Delta / Variant [/ Removed] columns. A per-row permutation-test stats column is
+    added only when n_permutations > 0 (otherwise there is nothing to report and it just
+    wastes width). Clears the figure first so it can be called repeatedly for live updates.
+    Returns `fig`."""
     fig.clear()
     include_removed = partition.include_removed
+    show_stats = n_permutations > 0
     n_plot_cols = 3 if include_removed else 2
+    n_cols = n_plot_cols + (1 if show_stats else 0)
     n_rows = len(row_labels)
-    width_ratios = [2] * n_plot_cols + [3]
-    fig.set_size_inches(7 * n_plot_cols + 8, 7 * n_rows)
-    gs1 = GridSpec(n_rows, n_plot_cols + 1, figure=fig,
-                   width_ratios=width_ratios, hspace=0.45, wspace=0.3)
+    width_ratios = [2] * n_plot_cols + ([3] if show_stats else [])
+    fig.set_size_inches(7 * n_plot_cols + (8 if show_stats else 0), 7 * n_rows)
+    # Explicit top/bottom margins so the bottom row's rotated tick labels and x-label are not
+    # clipped at the figure edge; hspace leaves room for each row's labels.
+    gs1 = GridSpec(n_rows, n_cols, figure=fig, width_ratios=width_ratios,
+                   top=0.95, bottom=0.05, hspace=0.5, wspace=0.3)
     stats_col = n_plot_cols
 
     panel_kwargs = dict(global_test_side=global_test_side, n_permutations=n_permutations,
@@ -147,7 +153,6 @@ def build_overview_figure(fig, partition, row_labels, *, global_test_side='posit
     for row, (row_title, metric_field, panel_fn) in enumerate(row_labels):
         ax_delta   = fig.add_subplot(gs1[row, 0])
         ax_variant = fig.add_subplot(gs1[row, 1])
-        ax_stats   = fig.add_subplot(gs1[row, stats_col])
 
         delta_stats   = _call_panel(panel_fn, ax_delta, partition.data_delta_on,
                                     partition.data_delta_off, partition.delta_spec_ids,
@@ -166,19 +171,21 @@ def build_overview_figure(fig, partition, row_labels, *, global_test_side='posit
                                         partition.noise_levels, metric_field,
                                         title=f'{row_title}: Removed', **panel_kwargs)
 
-        stats_text = (
-            f"{row_title.upper()} — PERMUTATION TEST ({global_test_side})\n"
-            f"n_permutations={n_permutations if n_permutations > 0 else 'DISABLED'}\n"
-            f"{'=' * 45}\n\n"
-            + delta_stats + "\n" + variant_stats
-            + (("\n" + removed_stats) if removed_stats else "")
-            + "\n* p<0.05, ** p<0.01, *** p<0.001"
-        )
-        ax_stats.text(0.02, 0.98, stats_text,
-                      transform=ax_stats.transAxes, fontsize=6,
-                      verticalalignment='top', fontfamily='monospace',
-                      bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
-        ax_stats.axis('off')
+        if show_stats:
+            ax_stats = fig.add_subplot(gs1[row, stats_col])
+            stats_text = (
+                f"{row_title.upper()} — PERMUTATION TEST ({global_test_side})\n"
+                f"n_permutations={n_permutations}\n"
+                f"{'=' * 45}\n\n"
+                + delta_stats + "\n" + variant_stats
+                + (("\n" + removed_stats) if removed_stats else "")
+                + "\n* p<0.05, ** p<0.01, *** p<0.001"
+            )
+            ax_stats.text(0.02, 0.98, stats_text,
+                          transform=ax_stats.transAxes, fontsize=6,
+                          verticalalignment='top', fontfamily='monospace',
+                          bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+            ax_stats.axis('off')
 
     return fig
 

@@ -127,6 +127,9 @@ class LiveEstimWindow(QMainWindow):
         self.session_id = session_id
         # Seed seen trials from what's already compiled so a restart doesn't redo the session.
         self.seen_starts = get_existing_trial_starts(session_id)
+        # Default axes limits from the previous build, used to tell whether the user has
+        # manually zoomed/panned an axes (and so wants that view kept across refreshes).
+        self._prev_default_limits = None
         self._setup_ui()
 
         self.timer = QTimer(self)
@@ -230,8 +233,16 @@ class LiveEstimWindow(QMainWindow):
         self.status_label.setText(f'{self.session_id}: {n_trials} trials plotted{suffix}')
 
     def _redraw(self):
-        """Rebuild Plot 1 from EStimShapeTrials. Returns the number of plotted trials."""
+        """Rebuild Plot 1 from EStimShapeTrials. Returns the number of plotted trials.
+
+        The rebuild clears the figure, which would reset the scroll position and any manual
+        zoom/pan. We capture both first and reapply them: scroll always, and per-axes limits
+        only for axes the user actually changed from the previous build's defaults (so axes
+        they haven't touched still auto-scale as live data accumulates)."""
         data_exp = read_session_trials_as_exp_format(self.session_id, START_GEN_ID)
+
+        scroll_v = self.scroll.verticalScrollBar().value()
+        saved_limits = [(ax.get_xlim(), ax.get_ylim()) for ax in self.figure.axes]
 
         if data_exp is None or len(data_exp) == 0:
             self.figure.clear()
@@ -239,8 +250,10 @@ class LiveEstimWindow(QMainWindow):
             ax = self.figure.add_subplot(111)
             ax.text(0.5, 0.5, 'Waiting for trials…', ha='center', va='center', fontsize=14)
             ax.axis('off')
+            self._prev_default_limits = None
             self._fit_canvas()
             self.canvas.draw()
+            self.scroll.verticalScrollBar().setValue(scroll_v)
             return 0
 
         partition = partition_estim_data(data_exp)
@@ -248,9 +261,27 @@ class LiveEstimWindow(QMainWindow):
         build_overview_figure(self.figure, partition, row_labels, n_permutations=0)
         self.figure.suptitle(
             f'Live EStimSpecId Analysis — {self.session_id} — {IS_CORRECT_FIELD_NAME}',
-            fontsize=15, y=1.005)
+            fontsize=15, y=0.99)
+
+        # Default (freshly-built) view, captured before reapplying the user's zoom.
+        new_axes = self.figure.axes
+        new_defaults = [(ax.get_xlim(), ax.get_ylim()) for ax in new_axes]
+
+        # Reset the toolbar history to the rebuilt axes now, so the default view is "Home"
+        # (and back/forward don't reference the deleted pre-rebuild axes).
+        self.toolbar.update()
+
+        if (self._prev_default_limits is not None
+                and len(saved_limits) == len(self._prev_default_limits) == len(new_axes)):
+            for ax, saved, prev_default in zip(new_axes, saved_limits, self._prev_default_limits):
+                if saved != prev_default:  # user had zoomed/panned this axes
+                    ax.set_xlim(saved[0])
+                    ax.set_ylim(saved[1])
+        self._prev_default_limits = new_defaults
+
         self._fit_canvas()
         self.canvas.draw()
+        self.scroll.verticalScrollBar().setValue(scroll_v)
         return len(data_exp)
 
 
