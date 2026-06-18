@@ -317,10 +317,10 @@ def _migrate_permutation_test_table(conn):
 
 
 def main():
-    metrics = [METRIC_PCT_HYPOTHESIZED, METRIC_PCT_HYP_VS_DELTA]
+    metrics = [METRIC_PCT_HYP_VS_DELTA]
     for metric in metrics:
         run_permutation_tests(
-            session_ids="260611_0",
+            session_ids=None,
             n_permutations=10000,
             force_recompute=True,
             algorithm_label='None',

@@ -99,7 +99,7 @@ public class EStimShapeVariantsDeletedNAFCStim extends EStimShapeVariantsNAFCSti
 
         // Compute noise origin from the intact variant. checkInNoise both validates and
         // populates variantMStick.noiseOrigin; we reuse that on the deleted sample below.
-        noiseMapper.checkInNoise(variantMStick, noiseComponentIndcs, 0.45);
+        noiseMapper.checkInNoise(variantMStick, noiseComponentIndcs, 0.3);
         Point3d variantNoiseOrigin = variantMStick.getNoiseOrigin();
 
         // Pick a positioning anchor: the first variant component that isn't being deleted.

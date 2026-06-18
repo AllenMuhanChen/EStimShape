@@ -176,7 +176,7 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
     private void addIsochromaticTrials() {
         IsoGaborSpec spec = new IsoGaborSpec(gaborSpec, "Gray");
         IsoGaborStim stim = new IsoGaborStim(this, spec);
-        getStims().add(stim);
+//        getStims().add(stim);
 
         spec = new IsoGaborSpec(gaborSpec, "Red");
         stim = new IsoGaborStim(this, spec);

@@ -54,11 +54,12 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
 
         // 1) Variant parent: change its predicted driver.
         if (stimTypeManager.readProperty(parentId) == StimType.REGIME_ESTIM_VARIANTS) {
+            Random r = new Random();
             List<Integer> hypothesized = inRange(
                     hypothesizedCompData != null ? hypothesizedCompData.getHypothesizedComp() : null, nComp);
             return hypothesized.isEmpty()
                     ? Collections.singletonList(parentMStick.chooseRandLeaf())
-                    : hypothesized;
+                    : Collections.singletonList(hypothesized.get(r.nextInt(hypothesized.size())));
         }
 
         // 2) Non-variant parent: tiered search over the parent's leaves.

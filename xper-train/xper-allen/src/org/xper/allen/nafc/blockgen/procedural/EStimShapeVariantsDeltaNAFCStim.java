@@ -115,7 +115,7 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
 
         sample.genMatchStickFromShapeSpec(baseStickSpec, new double[]{0,0,0});
 
-        noiseMapper.checkInNoise(sample, noiseComponentIndcs, 0.45);
+        noiseMapper.checkInNoise(sample, noiseComponentIndcs, 0.3);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));
 

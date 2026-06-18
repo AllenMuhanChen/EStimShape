@@ -213,7 +213,7 @@ public class ProceduralMatchStick extends GAMatchStick {
                         inNoiseComponentIndcs = morphComponentIndcs;
                     }
 
-                    noiseMapper.checkInNoise(this, inNoiseComponentIndcs, 0.5);
+                    noiseMapper.checkInNoise(this, inNoiseComponentIndcs, 0.3);
                 }
                 if (this.maxDiameterDegrees != null) {
                     centerShape();
@@ -275,7 +275,7 @@ public class ProceduralMatchStick extends GAMatchStick {
             }
 
             try {
-                this.noiseMapper.checkInNoise(this, compsToNoise, 0.5);
+                this.noiseMapper.checkInNoise(this, compsToNoise, 0.3);
             } catch (Exception e) {
                 if (noiseDebugMode){
                     return;
