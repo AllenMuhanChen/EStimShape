@@ -47,14 +47,16 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
      *  2) Non-variant parent (delta, growing, regime_one, ...), or a variant whose hypothesized-comp
      *     budget is spent -> systematically search the parent's components, using the parent's
      *     existing delta-children as the record of what's been tried:
-     *       a) some leaf still has failed-attempt budget left -> test it as a single-comp delta,
-     *          using the SAME budget as the hypothesized comp (a leaf is retried until it has failed
-     *          num_deltas_per_variant times; successes don't count);
-     *       b) every leaf exhausted its budget but NONE dropped the response past the GAVar threshold
-     *          (delta_resp_ratio_threshold) -> explore two comps that share a junction;
-     *       c) every leaf exhausted its budget and SOME passed -> exploit them: pick a passing leaf with
-     *          probability proportional to its response reduction. Recomputed every call from the
-     *          current sibling responses, so the probabilities update as more deltas come back.
+     *       a) at least one leaf still has failed-attempt budget left -> pick among those leaves at
+     *          random, WEIGHTED by each leaf's best response reduction (1 - bestRatio), so leaves that
+     *          dropped the response more are tested more often but every under-budget leaf keeps a
+     *          chance (soft weighting, not greedy). A leaf is retried until it has failed
+     *          num_deltas_per_variant times; successes don't count. Untested leaves use the mean
+     *          observed reduction as a prior, so before any responses come back the pick is uniform.
+     *          Weights are recomputed every call from the current sibling responses;
+     *       b) every leaf exhausted its budget and SOME passed -> exploit them: pick a passing leaf
+     *          weighted by its response reduction;
+     *       c) every leaf exhausted its budget and NONE passed -> explore two comps sharing a junction.
      */
     private List<Integer> chooseCompsToMutate(PruningMatchStick parentMStick) {
         int nComp = parentMStick.getNComponent();
@@ -96,26 +98,8 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
             for (int i = 1; i <= nComp; i++) leaves.add(i);
         }
 
-        // (a) Test a leaf that still has failed-attempt budget left, using the SAME budget as the
-        //     hypothesized comp: a leaf stays eligible until it has failed `budget` times (successes
-        //     don't count). Picked at random among the still-eligible leaves.
-        Map<Integer, Integer> failedPerLeaf = new HashMap<>();
-        for (SiblingDelta s : siblings) {
-            if (isFailedSingleComp(s, parentResponse, dropThreshold)) {
-                int leaf = s.changedComps.get(0);
-                failedPerLeaf.put(leaf, failedPerLeaf.getOrDefault(leaf, 0) + 1);
-            }
-        }
-        List<Integer> eligible = new ArrayList<>();
-        for (Integer leaf : leaves) {
-            if (failedPerLeaf.getOrDefault(leaf, 0) < budget) eligible.add(leaf);
-        }
-        if (!eligible.isEmpty()) {
-            return Collections.singletonList(eligible.get(new Random().nextInt(eligible.size())));
-        }
-
-        // All leaves exhausted their failure budget: best response-reduction ratio per leaf, from
-        // RESPONDED siblings.
+        // Best (lowest) response-reduction ratio per leaf, from RESPONDED siblings. Lower ratio =
+        // bigger response drop. Recomputed every call, so weights update as more deltas come back.
         Map<Integer, Double> bestRatio = new HashMap<>();
         if (parentResponse > 0) {
             for (SiblingDelta s : siblings) {
@@ -127,12 +111,35 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
                 }
             }
         }
+
+        // Failed single-comp attempts per leaf (successes don't count toward the budget).
+        Map<Integer, Integer> failedPerLeaf = new HashMap<>();
+        for (SiblingDelta s : siblings) {
+            if (isFailedSingleComp(s, parentResponse, dropThreshold)) {
+                int leaf = s.changedComps.get(0);
+                failedPerLeaf.put(leaf, failedPerLeaf.getOrDefault(leaf, 0) + 1);
+            }
+        }
+
+        // (a) Among the leaves that still have failure budget left (same budget as the hypothesized
+        //     comp), pick one weighted by its response reduction (1 - bestRatio): bigger drops are
+        //     more likely, but every under-budget leaf keeps a chance - it's soft weighting, not
+        //     greedy. Leaves with no responded data yet use the mean observed reduction as a neutral
+        //     prior, so before any responses come back the pick is uniform.
+        List<Integer> eligible = new ArrayList<>();
+        for (Integer leaf : leaves) {
+            if (failedPerLeaf.getOrDefault(leaf, 0) < budget) eligible.add(leaf);
+        }
+        if (!eligible.isEmpty()) {
+            return Collections.singletonList(weightedPickByReduction(eligible, bestRatio));
+        }
+
+        // (b) Every leaf exhausted its failure budget. If some leaf ever dropped the response past
+        //     the threshold, exploit the best of them; otherwise explore two comps sharing a junction.
         List<Integer> passing = new ArrayList<>();
         for (Map.Entry<Integer, Double> e : bestRatio.entrySet()) {
             if (e.getValue() < dropThreshold) passing.add(e.getKey());
         }
-
-        // (b) Nothing single-comp dropped the response enough: explore two comps sharing a junction.
         if (passing.isEmpty()) {
             if (nComp >= 3) {
                 List<Integer> pair = inRange(
@@ -141,8 +148,6 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
             }
             return Collections.singletonList(parentMStick.chooseRandLeaf());
         }
-
-        // (c) Exploit: pick a passing leaf weighted by its response reduction (1 - ratio).
         return Collections.singletonList(weightedPickByReduction(passing, bestRatio));
     }
 
@@ -180,17 +185,35 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
         return leaves;
     }
 
-    /** Pick a passing leaf with probability proportional to its response reduction (1 - ratio). */
-    private Integer weightedPickByReduction(List<Integer> passing, Map<Integer, Double> bestRatio) {
+    /**
+     * Pick one candidate leaf with probability proportional to its response reduction (1 - bestRatio):
+     * leaves that dropped the response more are favored, but every candidate keeps a non-zero chance.
+     * A candidate with no responded data in {@code bestRatio} uses the mean observed reduction as a
+     * neutral prior (and when nothing has responded at all, every candidate weighs the same, so the
+     * pick is uniform). Always returns one of {@code candidates}.
+     */
+    private Integer weightedPickByReduction(List<Integer> candidates, Map<Integer, Double> bestRatio) {
+        // Mean observed reduction, used as the prior for candidates that have no data yet.
+        double sumReduction = 0;
+        for (Double ratio : bestRatio.values()) sumReduction += Math.max(0.0, 1.0 - ratio);
+        double priorReduction = bestRatio.isEmpty() ? 1.0 : sumReduction / bestRatio.size();
+
         double total = 0;
-        for (Integer leaf : passing) total += Math.max(1e-6, 1.0 - bestRatio.get(leaf));
+        for (Integer leaf : candidates) total += reductionWeight(leaf, bestRatio, priorReduction);
         double r = new Random().nextDouble() * total;
         double cum = 0;
-        for (Integer leaf : passing) {
-            cum += Math.max(1e-6, 1.0 - bestRatio.get(leaf));
+        for (Integer leaf : candidates) {
+            cum += reductionWeight(leaf, bestRatio, priorReduction);
             if (r <= cum) return leaf;
         }
-        return passing.get(passing.size() - 1);
+        return candidates.get(candidates.size() - 1);
+    }
+
+    /** Sampling weight for a leaf: its response reduction (1 - bestRatio), or the prior if untested. */
+    private double reductionWeight(Integer leaf, Map<Integer, Double> bestRatio, double priorReduction) {
+        Double ratio = bestRatio.get(leaf);
+        double reduction = (ratio != null) ? (1.0 - ratio) : priorReduction;
+        return Math.max(1e-6, reduction);
     }
 
     /** A delta child of this delta's parent: the parent-numbered comp(s) it changed + its response (nullable). */
