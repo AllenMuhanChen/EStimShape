@@ -435,12 +435,12 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
 
 
 def main():
-    window_size      = 100
+    window_size      = 20
     step_size        = 10
-    threshold        = 5.0
+    threshold        = 0
     n_steps_below    = 1
     min_estim_trials = 10
-    session_id       = "260514_0"  # None = all sessions
+    session_id       = "260617_0"  # None = all sessions
 
     algorithm_label = run_cutoffs(
         window_size=window_size, step_size=step_size,
