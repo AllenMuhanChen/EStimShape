@@ -17,9 +17,11 @@ and two degradation metrics are computed per condition:
      estim-on presentations the effect survived before degrading).
 
 Each condition's estim_spec_id is unfurled into its physical EStimParameters
-(a1, polarity, shape, num_channels, pulse_rate_hz, ...) and combined with its
-behavioral conditions (trial_type, noise_chance, sample_length). For every
-parameter we plot each metric against that parameter's value. Numeric
+(a1, polarity, shape, num_channels, pulse_rate_hz, ...), its derived
+hyperparameters (total current per pulse / total current / current per second,
+from estim_hyperparameters), and combined with its behavioral conditions
+(trial_type, noise_chance, sample_length). For every parameter we plot each
+metric against that parameter's value. Numeric
 parameters (e.g. a1) are coerced to float and sorted ascending; categorical
 parameters (e.g. polarity) are shown as ordered categories.
 
@@ -55,6 +57,10 @@ from src.analysis.nafc.group_analysis.analyze_estim_by_condition import (
     METRIC_PCT_HYP_VS_DELTA,
     _normalize_cond_key,
 )
+from src.analysis.nafc.estim_hyperparameters import (
+    get_estim_hyperparameters,
+    HYPERPARAMETER_NAMES,
+)
 
 DEFAULT_ALGORITHM_LABEL = 'first_drop_w50_s5_t0_n2_m10'
 
@@ -80,12 +86,26 @@ _METRICS = {
 }
 
 # Preferred left-to-right ordering of parameters in the plot grid. Any parameter
-# not listed here is appended afterwards in alphabetical order.
+# not listed here is appended afterwards in alphabetical order. The derived
+# hyperparameters (total current per pulse, total current, current per second)
+# are included alongside the base estim parameters.
 _PARAM_ORDER = [
     'a1', 'polarity', 'shape', 'num_channels', 'pulse_rate_hz',
     'post_trigger_delay', 'enable_charge_recovery',
+    'total_current_per_pulse', 'total_current', 'current_per_second',
     'trial_type', 'noise_chance', 'sample_length',
 ]
+
+
+def _expand_with_hyperparameters(session_id, cond_dict):
+    """Unfurl a condition's estim_spec_id into its physical EStimParameters AND its
+    derived hyperparameters (total current per pulse / total current / current per
+    second), keeping behavioral keys unchanged. Used by both build_* tables."""
+    params = _expand_condition(session_id, cond_dict)
+    spec_id = cond_dict.get('estim_spec_id')
+    if spec_id is not None:
+        params.update(get_estim_hyperparameters(session_id, spec_id))
+    return params
 
 
 def get_cutoffs(algorithm_label, session_id=None):
@@ -164,9 +184,10 @@ def build_degradation_table(algorithm_label=DEFAULT_ALGORITHM_LABEL, session_id=
 
         metrics = compute_degradation_metrics(trials_df, cond_dict, max_trial_start)
 
-        # Unfurl estim_spec_id into the physical stimulation parameters and keep the
-        # behavioral keys (trial_type, noise_chance, sample_length) as-is.
-        params = _expand_condition(sid, cond_dict)
+        # Unfurl estim_spec_id into the physical stimulation parameters + derived
+        # hyperparameters, keeping the behavioral keys (trial_type, noise_chance,
+        # sample_length) as-is.
+        params = _expand_with_hyperparameters(sid, cond_dict)
 
         record = {'session_id': sid, 'max_trial_start': max_trial_start}
         record.update(params)
@@ -372,7 +393,7 @@ def build_condition_classification_table(algorithm_label=DEFAULT_ALGORITHM_LABEL
 
         record = {'session_id': sid, 'group': group,
                   'full_effect': full_eff, 'n_on': n_on, 'n_off': n_off}
-        record.update(_expand_condition(sid, cond_dict))
+        record.update(_expand_with_hyperparameters(sid, cond_dict))
         records.append(record)
 
     df = pd.DataFrame(records)
