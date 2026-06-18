@@ -503,6 +503,20 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
                 ax.axvline(x=x, color='red', linestyle='--', linewidth=2, label='cutoff')
                 break
 
+        # Resulting effect size and trial counts: full data vs after-cutoff kept data
+        eff_full, on_full, off_full = _effect_and_ns_for_condition(df, cond_dict)
+        kept = df[df['trial_start'] <= max_trial_start]
+        eff_cut, on_cut, off_cut = _effect_and_ns_for_condition(kept, cond_dict)
+        eff_full_s = f"{eff_full:+.1f}pp" if eff_full is not None else "n/a"
+        eff_cut_s  = f"{eff_cut:+.1f}pp"  if eff_cut  is not None else "n/a"
+        ax.text(
+            0.02, 0.02,
+            f"full:  {eff_full_s}  (n_on={on_full}, n_off={off_full})\n"
+            f"after: {eff_cut_s}  (n_on={on_cut}, n_off={off_cut})",
+            transform=ax.transAxes, fontsize=6.5, va='bottom', ha='left',
+            bbox=dict(boxstyle='round', facecolor='white', alpha=0.7, edgecolor='gray'),
+        )
+
         label_parts = [f"{abbrevs.get(k, k)}={v}" for k, v in cond_dict.items() if v is not None]
         ax.set_title(' | '.join(label_parts), fontsize=7)
         ax.set_xlabel('Trial index (window center)')
