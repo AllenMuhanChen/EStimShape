@@ -375,11 +375,11 @@ def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
     if session_id:
         conn.execute(
             "SELECT session_id, conditions FROM EStimEffects "
-            "WHERE session_id = %s AND metric = 'pct_hypothesized'",
+            "WHERE session_id = %s AND metric = 'pct_hyp_vs_delta'",
             (session_id,))
     else:
         conn.execute(
-            "SELECT session_id, conditions FROM EStimEffects WHERE metric = 'pct_hypothesized'")
+            "SELECT session_id, conditions FROM EStimEffects WHERE metric = 'pct_hyp_vs_delta'")
 
     col_names = [d[0] for d in conn.my_cursor.description]
     all_rows = conn.fetch_all()
@@ -526,10 +526,10 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
 
 
 def main():
-    window_size      = 20
+    window_size      = 50
     step_size        = 10
     threshold        = 0
-    n_steps_below    = 1
+    n_steps_below    = 3
     min_estim_trials = 10
     session_id       = "260617_0"  # None = all sessions
 
