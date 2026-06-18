@@ -30,7 +30,7 @@ import math
 from clat.util.connection import Connection
 from src.analysis.nafc.estim_parameter_classifier import EStimParameterClassifier
 from src.analysis.nafc.group_analysis.analyze_estim_by_condition import (
-    METRIC_PCT_HYPOTHESIZED, METRIC_PCT_HYP_VS_DELTA)
+    METRIC_PCT_HYPOTHESIZED, METRIC_PCT_HYP_VS_DELTA, _filter_for_metric)
 from src.analysis.nafc.group_analysis.estim_groups_permutation_test import (
     create_permutation_test_table, save_permutation_results)
 
@@ -121,7 +121,7 @@ def _get_all_trials_ordered(session_id):
     """
     conn = Connection("allen_data_repository")
     query = f"""
-        SELECT t.trial_start, t.is_estim_on, t.is_hypothesized_choice,
+        SELECT t.trial_start, t.is_estim_on, t.is_hypothesized_choice, t.choice,
                t.trial_type, t.noise_chance, t.sample_length, t.estim_spec_id,
                ep.polarity, ep.shape, ep.num_channels, ep.a1,
                ep.post_stim_refractory_period, ep.enable_charge_recovery
@@ -134,7 +134,7 @@ def _get_all_trials_ordered(session_id):
     conn.execute(query, (session_id,))
     rows = conn.fetch_all()
     df = pd.DataFrame(rows, columns=[
-        'trial_start', 'is_estim_on', 'is_hypothesized_choice',
+        'trial_start', 'is_estim_on', 'is_hypothesized_choice', 'choice',
         'trial_type', 'noise_chance', 'sample_length', 'estim_spec_id',
         'polarity', 'shape', 'num_channels', 'a1',
         'post_stim_refractory_period', 'enable_charge_recovery',
@@ -179,45 +179,49 @@ def _estim_on_subset(on_df, cond_dict):
     return on_df
 
 
-def _condition_groups(df, cond_dict):
+def _condition_groups(df, cond_dict, metric=METRIC_PCT_HYPOTHESIZED):
     """
     Return (on_df, off) for a condition within df.
       off : is_hypothesized_choice of behavioral-matched estim-off trials
       on_df : behavioral-matched, param-matched estim-on trials
     Behavioral filters apply to both groups; estim-param filters apply only to estim-on.
+    The metric applies the same per-trial filtering used by the main pipeline
+    (e.g. pct_hyp_vs_delta drops rand/removed choices) to both groups.
     """
     behavioral_df = df[_behavioral_mask(df, cond_dict)]
-    off = behavioral_df.loc[behavioral_df['is_estim_on'] == 0, 'is_hypothesized_choice']
-    on_df = _estim_on_subset(behavioral_df[behavioral_df['is_estim_on'] == 1], cond_dict)
-    return on_df, off
+    off_df = _filter_for_metric(behavioral_df[behavioral_df['is_estim_on'] == 0], metric)
+    on_df = _filter_for_metric(
+        _estim_on_subset(behavioral_df[behavioral_df['is_estim_on'] == 1], cond_dict), metric)
+    return on_df, off_df['is_hypothesized_choice']
 
 
-def _window_effect_for_condition(window_df, cond_dict):
+def _window_effect_for_condition(window_df, cond_dict, metric=METRIC_PCT_HYPOTHESIZED):
     """
     Compute effect size (pp) for a specific condition within a window of ALL trials.
     Behavioral filters (trial_type, noise_chance, sample_length) apply to both groups.
     Estim-param filters (polarity, a1, …) apply only to estim-on trials.
     """
-    on_df, off = _condition_groups(window_df, cond_dict)
+    on_df, off = _condition_groups(window_df, cond_dict, metric)
     on = on_df['is_hypothesized_choice']
     if len(on) == 0 or len(off) == 0:
         return None
     return float((on.mean() - off.mean()) * 100.0)
 
 
-def _count_estim_on_for_condition(df, cond_dict):
+def _count_estim_on_for_condition(df, cond_dict, metric=METRIC_PCT_HYPOTHESIZED):
     """Count estim-on trials in df that match cond_dict (same filters as _window_effect_for_condition)."""
     behavioral_df = df[_behavioral_mask(df, cond_dict)]
-    return len(_estim_on_subset(behavioral_df[behavioral_df['is_estim_on'] == 1], cond_dict))
+    on_df = _estim_on_subset(behavioral_df[behavioral_df['is_estim_on'] == 1], cond_dict)
+    return len(_filter_for_metric(on_df, metric))
 
 
-def _effect_and_ns_for_condition(df, cond_dict):
+def _effect_and_ns_for_condition(df, cond_dict, metric=METRIC_PCT_HYPOTHESIZED):
     """
     Effect size (pp) and trial counts for a condition over an arbitrary df
     (e.g. the kept portion after a cutoff).
     Returns (effect_pct_or_None, n_estim_on, n_estim_off).
     """
-    on_df, off = _condition_groups(df, cond_dict)
+    on_df, off = _condition_groups(df, cond_dict, metric)
     on = on_df['is_hypothesized_choice']
     n_on, n_off = len(on), len(off)
     if n_on == 0 or n_off == 0:
@@ -234,7 +238,7 @@ def _format_cond_label(cond_dict):
     return ' '.join(f"{abbrevs.get(k, k)}={v}" for k, v in cond_dict.items() if v is not None)
 
 
-def _sliding_window_effects(df, window_size, step_size, cond_dict):
+def _sliding_window_effects(df, window_size, step_size, cond_dict, metric=METRIC_PCT_HYPOTHESIZED):
     """
     Slide a window of window_size trials (step_size apart) over ALL session trials,
     computing the per-condition effect at each position.
@@ -243,14 +247,14 @@ def _sliding_window_effects(df, window_size, step_size, cond_dict):
     n       = len(df)
     results = []
     for start in range(0, n - window_size + 1, step_size):
-        effect = _window_effect_for_condition(df.iloc[start: start + window_size], cond_dict)
+        effect = _window_effect_for_condition(df.iloc[start: start + window_size], cond_dict, metric)
         results.append((start + window_size - 1, effect))
     return results
 
 
 def compute_first_sustained_drop(session_id, cond_dict,
                                   window_size, step_size, threshold, n_steps_below,
-                                  min_estim_trials=10):
+                                  min_estim_trials=10, metric=METRIC_PCT_HYPOTHESIZED):
     """
     Slides a window over ALL session trials (ordered by trial_start) and finds the
     FIRST time the effect drops below threshold and stays there for n_steps_below
@@ -268,12 +272,12 @@ def compute_first_sustained_drop(session_id, cond_dict,
     """
     df = _get_all_trials_ordered(session_id)
     return _first_sustained_drop_from_df(
-        df, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials)
+        df, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials, metric)
 
 
 def _first_sustained_drop_from_df(df, cond_dict,
                                   window_size, step_size, threshold, n_steps_below,
-                                  min_estim_trials=10):
+                                  min_estim_trials=10, metric=METRIC_PCT_HYPOTHESIZED):
     """
     DataFrame-based core of compute_first_sustained_drop. Kept separate so the
     permutation test can re-run the identical cutoff procedure on relabeled data
@@ -282,7 +286,7 @@ def _first_sustained_drop_from_df(df, cond_dict,
     if len(df) < window_size:
         return None
 
-    windows = _sliding_window_effects(df, window_size, step_size, cond_dict)
+    windows = _sliding_window_effects(df, window_size, step_size, cond_dict, metric)
 
     if not windows:
         return None
@@ -313,7 +317,7 @@ def _first_sustained_drop_from_df(df, cond_dict,
                 return None  # no good window to keep before the drop
             end_trial_idx = windows[prev_idx][0]
             kept_df = df.iloc[:end_trial_idx + 1]
-            if _count_estim_on_for_condition(kept_df, cond_dict) < min_estim_trials:
+            if _count_estim_on_for_condition(kept_df, cond_dict, metric) < min_estim_trials:
                 return None  # too few estim trials before the cutoff
             return int(df.iloc[end_trial_idx]['trial_start'])
 
@@ -331,34 +335,35 @@ def _first_sustained_drop_from_df(df, cond_dict,
 # ---------------------------------------------------------------------------
 
 def _cutoff_selected_effect(df, cond_dict, window_size, step_size, threshold,
-                            n_steps_below, min_estim_trials):
+                            n_steps_below, min_estim_trials, metric=METRIC_PCT_HYPOTHESIZED):
     """
     Test statistic: the condition's effect size AFTER applying the cutoff procedure.
     If the procedure finds a cutoff, the effect is computed over the kept (<= cutoff)
     trials; otherwise over all trials. Returns effect in pp (0.0 if not computable).
     """
     max_ts = _first_sustained_drop_from_df(
-        df, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials)
+        df, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials, metric)
     kept = df if max_ts is None else df[df['trial_start'] <= max_ts]
-    eff, _, _ = _effect_and_ns_for_condition(kept, cond_dict)
+    eff, _, _ = _effect_and_ns_for_condition(kept, cond_dict, metric)
     return 0.0 if eff is None else eff
 
 
-def _condition_on_off_index(df, cond_dict):
+def _condition_on_off_index(df, cond_dict, metric=METRIC_PCT_HYPOTHESIZED):
     """
     (on_idx, off_idx) index labels for the condition: behavioral+param-matched
-    estim-on trials and behavioral-matched estim-off (baseline) trials. These are
-    the exchangeable units under H0.
+    estim-on trials and behavioral-matched estim-off (baseline) trials, after the
+    metric's per-trial filtering. These are the exchangeable units under H0.
     """
     behavioral_df = df[_behavioral_mask(df, cond_dict)]
-    off_idx = behavioral_df.index[behavioral_df['is_estim_on'] == 0]
-    on_idx = _estim_on_subset(behavioral_df[behavioral_df['is_estim_on'] == 1], cond_dict).index
+    off_idx = _filter_for_metric(behavioral_df[behavioral_df['is_estim_on'] == 0], metric).index
+    on_idx = _filter_for_metric(
+        _estim_on_subset(behavioral_df[behavioral_df['is_estim_on'] == 1], cond_dict), metric).index
     return on_idx, off_idx
 
 
-def _condition_pool_index(df, cond_dict):
+def _condition_pool_index(df, cond_dict, metric=METRIC_PCT_HYPOTHESIZED):
     """Union of the condition's estim-on and estim-off index labels."""
-    on_idx, off_idx = _condition_on_off_index(df, cond_dict)
+    on_idx, off_idx = _condition_on_off_index(df, cond_dict, metric)
     return on_idx.union(off_idx)
 
 
@@ -379,7 +384,8 @@ def _simple_label_shuffle_null(on_vals, off_vals, n_permutations, rng):
 
 def permutation_test_for_condition(session_id, cond_dict,
                                    window_size, step_size, threshold, n_steps_below,
-                                   min_estim_trials=10, n_permutations=1000, rng=None):
+                                   min_estim_trials=10, n_permutations=1000, rng=None,
+                                   metric=METRIC_PCT_HYPOTHESIZED):
     """
     Option-B permutation test for a single condition. Returns a dict with the
     observed cutoff-selected effect, its cutoff, the null distribution and p-values,
@@ -391,16 +397,16 @@ def permutation_test_for_condition(session_id, cond_dict,
     df = _get_all_trials_ordered(session_id)
 
     max_ts = _first_sustained_drop_from_df(
-        df, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials)
+        df, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials, metric)
     kept = df if max_ts is None else df[df['trial_start'] <= max_ts]
-    observed, n_on, n_off = _effect_and_ns_for_condition(kept, cond_dict)
+    observed, n_on, n_off = _effect_and_ns_for_condition(kept, cond_dict, metric)
     # Too few estim-on trials in the tested (kept) portion → not enough data to test.
     # (Cutoff conditions already pass this via _first_sustained_drop_from_df; this
     # mainly skips low-n no-cutoff conditions.)
     if observed is None or n_on < min_estim_trials or n_off == 0:
         return None
 
-    on_idx, off_idx = _condition_on_off_index(df, cond_dict)
+    on_idx, off_idx = _condition_on_off_index(df, cond_dict, metric)
     if len(on_idx) == 0 or len(off_idx) == 0:
         return None
 
@@ -425,7 +431,8 @@ def permutation_test_for_condition(session_id, cond_dict,
         for k in range(n_permutations):
             df_work.loc[pool_idx, 'is_hypothesized_choice'] = rng.permutation(pool_choices)
             null[k] = _cutoff_selected_effect(
-                df_work, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials)
+                df_work, cond_dict, window_size, step_size, threshold, n_steps_below,
+                min_estim_trials, metric)
 
     p_two     = float(np.mean(np.abs(null) >= abs(observed)))
     p_greater = float(np.mean(null >= observed))
@@ -499,7 +506,7 @@ def run_cutoff_permutation_tests(session_id=None, window_size=100, step_size=10,
 
         res = permutation_test_for_condition(
             sid, cond_dict, window_size, step_size, threshold, n_steps_below,
-            min_estim_trials, n_permutations=n_permutations, rng=rng)
+            min_estim_trials, n_permutations=n_permutations, rng=rng, metric=metric)
         if res is None:
             n_skipped += 1
             continue
@@ -770,7 +777,7 @@ def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
                 continue
 
         max_trial_start = compute_first_sustained_drop(
-            sid, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials
+            sid, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials, metric
         )
 
         if max_trial_start is None:
@@ -781,13 +788,13 @@ def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
 
         if verbose:
             df = _get_all_trials_ordered(sid)
-            eff_full, on_full, off_full = _effect_and_ns_for_condition(df, cond_dict)
+            eff_full, on_full, off_full = _effect_and_ns_for_condition(df, cond_dict, metric)
             if max_trial_start is None:
                 cut_str = "no cutoff (kept all trials)"
                 eff_cut, on_cut, off_cut = eff_full, on_full, off_full
             else:
                 kept = df[df['trial_start'] <= max_trial_start]
-                eff_cut, on_cut, off_cut = _effect_and_ns_for_condition(kept, cond_dict)
+                eff_cut, on_cut, off_cut = _effect_and_ns_for_condition(kept, cond_dict, metric)
                 cut_str = f"cutoff@trial_start={max_trial_start}"
             eff_full_s = f"{eff_full:+.1f}pp" if eff_full is not None else "n/a"
             eff_cut_s  = f"{eff_cut:+.1f}pp"  if eff_cut  is not None else "n/a"
@@ -812,12 +819,13 @@ def get_session_cutoffs(session_id, algorithm_label):
 
 
 def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, threshold,
-                         save_path=None):
+                         save_path=None, metric=METRIC_PCT_HYPOTHESIZED):
     """
     For each condition with a stored cutoff, show the sliding window effect series with:
       - Orange dashed threshold line
       - Red dashed vertical line at the cutoff window position
     x-axis is window center trial index, identical to sliding_window_analysis.
+    The metric must match the one the cutoffs were computed with.
     """
     import os
     import matplotlib.pyplot as plt
@@ -843,7 +851,7 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
         cond_dict = json.loads(conditions_json)
         df        = _get_all_trials_ordered(session_id)
 
-        windows = _sliding_window_effects(df, window_size, step_size, cond_dict)
+        windows = _sliding_window_effects(df, window_size, step_size, cond_dict, metric)
         xs      = [end - window_size // 2 for end, _ in windows]
         effects = [eff for _, eff in windows]
 
@@ -858,9 +866,9 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
                 break
 
         # Resulting effect size and trial counts: full data vs after-cutoff kept data
-        eff_full, on_full, off_full = _effect_and_ns_for_condition(df, cond_dict)
+        eff_full, on_full, off_full = _effect_and_ns_for_condition(df, cond_dict, metric)
         kept = df[df['trial_start'] <= max_trial_start]
-        eff_cut, on_cut, off_cut = _effect_and_ns_for_condition(kept, cond_dict)
+        eff_cut, on_cut, off_cut = _effect_and_ns_for_condition(kept, cond_dict, metric)
         eff_full_s = f"{eff_full:+.1f}pp" if eff_full is not None else "n/a"
         eff_cut_s  = f"{eff_cut:+.1f}pp"  if eff_cut  is not None else "n/a"
         ax.text(
@@ -935,7 +943,7 @@ def main():
     for sid in sessions_with_cutoffs:
         plot_session_cutoffs(sid, algorithm_label,
                              window_size=window_size, step_size=step_size,
-                             threshold=threshold)
+                             threshold=threshold, metric=metric)
 
     # Permutation test. Prompt only when a single session was requested;
     # for a list or all sessions, proceed automatically.
