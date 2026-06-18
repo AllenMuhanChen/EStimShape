@@ -192,6 +192,38 @@ class EStimVariantDeltaSideTest(SideTest):
     def assign_mutation_magnitude(self) -> float:
         return random.uniform(self.min_magnitude, self.max_magnitude)
 
+    def _max_passers_on_a_single_leaf(self, passing_deltas: List[Stimulus]) -> int:
+        """Largest number of passing deltas that all changed the SAME parent leaf(s).
+
+        Passers are grouped by the comp(s) they changed (in the parent's numbering, read from the
+        HypothesizedComp table). Deltas whose changed comp can't be resolved are ignored.
+        """
+        counts: Dict = {}
+        for delta in passing_deltas:
+            leaf_key = self._changed_leaf_key(delta.id)
+            if leaf_key is None:
+                continue
+            counts[leaf_key] = counts.get(leaf_key, 0) + 1
+        return max(counts.values()) if counts else 0
+
+    def _changed_leaf_key(self, delta_id: int):
+        """The parent-numbered comp(s) a delta changed, as a normalized (sorted) tuple key.
+
+        Returns None when the row/value is missing or unparseable. Two deltas that changed the same
+        parent leaf(s) share a key, so passers can be counted per comp.
+        """
+        table = _hypothesized_comp_table(self.conn)
+        column = "parent_comps_preserved" if table == "StimCompsToPreserve" else "parent_hypothesized_comps"
+        self.conn.execute(f"SELECT {column} FROM {table} WHERE stim_id = %s", (delta_id,))
+        raw = self.conn.fetch_one()
+        if raw is None or str(raw).strip() == "":
+            return None
+        try:
+            comps = tuple(sorted(int(c.strip()) for c in str(raw).split(",") if c.strip() != ""))
+        except ValueError:
+            return None
+        return comps if comps else None
+
     def run(self, lineages: List[Lineage], gen_id: int):
         #identify eligible stimuli (variants)
         # regimes = [l.current_regime_index for l in lineages]
@@ -256,15 +288,19 @@ class EStimVariantDeltaSideTest(SideTest):
 
         #go through eligible stimuli and check
         # a parent simply gets deltas (each mutating one of the
-        # parent's hypothesized comps, decided Java-side) until enough pass the response-drop
-        # threshold or the attempt budget runs out. Failed (high-response) deltas pass the parent
+        # parent's hypothesized comps, decided Java-side) until ONE comp has reliably dropped the
+        # response or the attempt budget runs out. Failed (high-response) deltas pass the parent
         # threshold themselves, so chaining deltas onto deltas explores the remaining components.
         max_attempts_per_variant = self.max_attempts_per_variant
         eligible_stimuli : List[Stimulus] = []
         for candidate_parent in past_threshold_stim:
-            num_eligible_deltas = len(eligible_deltas_for_variants.get(candidate_parent.id, []))
-            if num_eligible_deltas >= self.num_deltas_per_variant:
-                continue  # already have enough deltas that drop the response
+            passing_deltas = eligible_deltas_for_variants.get(candidate_parent.id, [])
+            # Stop once a SINGLE comp has driven the response down num_deltas_per_variant times: we
+            # want that many confirmations on the *same* leaf, not just that many passers scattered
+            # across different leaves.
+            max_passers_on_a_leaf = self._max_passers_on_a_single_leaf(passing_deltas)
+            if max_passers_on_a_leaf >= self.num_deltas_per_variant:
+                continue  # one comp has reliably dropped the response - done with this variant
 
             all_deltas = deltas_for_variants.get(candidate_parent.id, [])
             num_responded = len([d for d in all_deltas if d.response_rate is not None])
@@ -275,8 +311,10 @@ class EStimVariantDeltaSideTest(SideTest):
             if remaining_attempts <= 0:
                 continue
 
-            # Don't double-make: account for deltas already in flight toward the target.
-            number_of_deltas_to_make = self.num_deltas_per_variant - num_eligible_deltas - num_in_flight
+            # Keep up to num_deltas_per_variant deltas in flight toward the goal at a time. We don't
+            # subtract the passers here: passers on different leaves don't satisfy the same-leaf
+            # target, so they shouldn't throttle throughput.
+            number_of_deltas_to_make = self.num_deltas_per_variant - num_in_flight
             number_of_deltas_to_make = min(number_of_deltas_to_make, remaining_attempts)
             if number_of_deltas_to_make <= 0:
                 continue
