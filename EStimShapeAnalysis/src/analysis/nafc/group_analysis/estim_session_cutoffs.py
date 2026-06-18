@@ -29,6 +29,15 @@ import math
 
 from clat.util.connection import Connection
 from src.analysis.nafc.estim_parameter_classifier import EStimParameterClassifier
+from src.analysis.nafc.group_analysis.analyze_estim_by_condition import METRIC_PCT_HYPOTHESIZED
+from src.analysis.nafc.group_analysis.estim_groups_permutation_test import (
+    create_permutation_test_table, save_permutation_results)
+
+
+def _algorithm_label(window_size, step_size, threshold, n_steps_below, min_estim_trials):
+    """Cutoff identifier shared by the cutoffs table and the permutation-test rows."""
+    return f"first_drop_w{window_size}_s{step_size}_t{threshold}_n{n_steps_below}_m{min_estim_trials}"
+
 
 
 def _normalize_cond_key(cond_dict):
@@ -434,7 +443,8 @@ def run_cutoff_permutation_tests(session_id=None, window_size=100, step_size=10,
                                  threshold=5.0, n_steps_below=3, min_estim_trials=10,
                                  n_permutations=1000, seed=None,
                                  session_level=True, studentize=False,
-                                 exceedance_thresholds=None, plot=True):
+                                 exceedance_thresholds=None, plot=True,
+                                 metric=METRIC_PCT_HYPOTHESIZED, save_results=True):
     """
     Run the permutation test for every condition in one or all sessions and print a
     per-condition summary. Conditions WITH a cutoff use the Option-B null (re-run the
@@ -442,27 +452,35 @@ def run_cutoff_permutation_tests(session_id=None, window_size=100, step_size=10,
     conditions WITHOUT a cutoff use a plain label-shuffle null (no selection to
     correct, far cheaper).
 
+    When save_results is True, each condition's observed effect, null distribution and
+    p-values are written to EStimPermutationTests under the cutoff's algorithm_label,
+    so downstream population analyses (e.g. max_estim_per_experiment) can use them.
+
     When session_level is True, also runs and (if plot) plots the per-session maxT
     and exceedance-count tests built from the per-condition nulls. studentize puts
     conditions on a common z scale before aggregating; exceedance_thresholds overrides
     the default threshold sweep.
     """
     rng = np.random.default_rng(seed)
+    algorithm_label = _algorithm_label(window_size, step_size, threshold, n_steps_below, min_estim_trials)
+    if save_results:
+        create_permutation_test_table()
     conn = Connection("allen_data_repository")
     if session_id:
         conn.execute(
             "SELECT session_id, conditions FROM EStimEffects "
-            "WHERE session_id = %s AND metric = 'pct_hypothesized'", (session_id,))
+            "WHERE session_id = %s AND metric = %s", (session_id, metric))
     else:
         conn.execute(
-            "SELECT session_id, conditions FROM EStimEffects WHERE metric = 'pct_hypothesized'")
+            "SELECT session_id, conditions FROM EStimEffects WHERE metric = %s", (metric,))
     col_names = [d[0] for d in conn.my_cursor.description]
     all_rows = conn.fetch_all()
 
-    print(f"\nPermutation test  |  {len(all_rows)} conditions  |  "
-          f"{n_permutations} permutations each")
+    print(f"\nPermutation test  |  algorithm='{algorithm_label}'  |  metric='{metric}'  |  "
+          f"{len(all_rows)} conditions  |  {n_permutations} permutations each")
     print("(cutoff conditions: re-run cutoff procedure on relabeled data; "
-          "no-cutoff conditions: plain label shuffle)\n")
+          "no-cutoff conditions: plain label shuffle)")
+    print(f"saving to EStimPermutationTests: {save_results}\n")
 
     seen_keys = set()
     results = []
@@ -486,6 +504,13 @@ def run_cutoff_permutation_tests(session_id=None, window_size=100, step_size=10,
             n_skipped += 1
             continue
         results.append((sid, cond_dict, res))
+
+        if save_results:
+            save_permutation_results(
+                sid, _normalize_cond_key(cond_dict), algorithm_label, metric,
+                res['observed'], res['null'].tolist(),
+                res['p_two_tailed'], res['p_greater'], res['p_less'],
+                res['n_permutations'], res['n_on'], res['n_off'])
 
         cut_str = (f"cutoff@{res['max_trial_start']} [{res['method']}]"
                    if res['max_trial_start'] is not None
@@ -693,7 +718,7 @@ def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
     """
     create_cutoffs_table()
 
-    algorithm_label = f"first_drop_w{window_size}_s{step_size}_t{threshold}_n{n_steps_below}_m{min_estim_trials}"
+    algorithm_label = _algorithm_label(window_size, step_size, threshold, n_steps_below, min_estim_trials)
 
     conn = Connection("allen_data_repository")
     # Limit to one metric so cutoff search iterates each (session, conditions) once;
