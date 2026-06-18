@@ -232,9 +232,12 @@ def compute_first_sustained_drop(session_id, cond_dict,
     consecutive windows.  The cutoff is the window immediately before that drop.
 
     Conservative rules:
-      - First window effect <= 0  → condition started negative, skip.
+      - First window WITH DATA has effect <= 0  → condition started negative, skip.
+        (Estim specs are introduced progressively, so the first window that
+        actually contains trials for this condition is rarely window 0.)
       - Effect never drops below threshold → no adaptation, skip.
-      - First drop is window 0 → no positive period to keep, skip.
+      - First drop is the condition's first data window → no positive period to
+        keep, skip.
 
     Returns: trial_start of the last trial in the last good window, or None.
     """
@@ -248,11 +251,18 @@ def compute_first_sustained_drop(session_id, cond_dict,
     if not windows:
         return None
 
-    first_effect = windows[0][1]
-    if first_effect is None or first_effect <= 0:
+    # The condition's "first window" is the first one that actually has data for
+    # it, not the literal window 0 (which usually predates this spec).
+    first_idx = next((i for i, (_, e) in enumerate(windows) if e is not None), None)
+    if first_idx is None:
+        return None  # condition never had a computable window
+
+    first_effect = windows[first_idx][1]
+    if first_effect <= 0:
         return None
 
-    for i, (_, effect) in enumerate(windows):
+    for i in range(first_idx, len(windows)):
+        effect = windows[i][1]
         if effect is None or effect >= threshold:
             continue
         # Check n_steps_below - 1 subsequent windows are also below threshold
@@ -260,9 +270,12 @@ def compute_first_sustained_drop(session_id, cond_dict,
         if len(run) < n_steps_below:
             break  # not enough windows left to confirm sustained drop
         if all(e is None or e < threshold for _, e in run):
-            if i == 0:
+            # The window to keep is the last one BEFORE the drop that had data.
+            prev_idx = next((j for j in range(i - 1, first_idx - 1, -1)
+                             if windows[j][1] is not None), None)
+            if prev_idx is None:
                 return None  # no good window to keep before the drop
-            end_trial_idx = windows[i - 1][0]
+            end_trial_idx = windows[prev_idx][0]
             kept_df = df.iloc[:end_trial_idx + 1]
             if _count_estim_on_for_condition(kept_df, cond_dict) < min_estim_trials:
                 return None  # too few estim trials before the cutoff
