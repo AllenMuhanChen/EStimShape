@@ -96,15 +96,54 @@ _PARAM_ORDER = [
     'trial_type', 'noise_chance', 'sample_length',
 ]
 
+# Formula shown in parentheses on the x-axis label for derived hyperparameters.
+_PARAM_FORMULAS = {
+    'total_current_per_pulse': 'a1 * num_channels',
+    'total_current': 'a1 * num_channels * num_pulses',
+    'current_per_second': 'a1 * num_channels * pulse_rate_hz',
+}
+
+
+def _param_xlabel(param):
+    """X-axis label for a parameter, with the derivation formula in parentheses
+    for hyperparameters (e.g. 'total_current\\n(a1 * num_channels * num_pulses)')."""
+    formula = _PARAM_FORMULAS.get(param)
+    return f"{param}\n({formula})" if formula else param
+
+
+# Some parameters carry small jitter / spurious precision (e.g. a pulse rate that
+# lands at 98 or 203 Hz, or post-trigger delays a few µs off a round value). Bin
+# these to a sensible grid before grouping/plotting so near-identical conditions
+# collapse onto the same x value. param name -> bin width (nearest multiple).
+_PARAM_BIN_SIZES = {
+    'pulse_rate_hz': 50,        # nearest 50 Hz (±25)
+    'post_trigger_delay': 1000,  # nearest 1000 µs
+}
+
+
+def _bin_value(value, bin_size):
+    """Round a numeric value to the nearest multiple of bin_size; pass through
+    None / non-numeric values unchanged. Integer-valued bins stay ints for clean
+    axis labels."""
+    f = _to_float(value)
+    if f is None:
+        return value
+    binned = round(f / bin_size) * bin_size
+    return int(binned) if binned == int(binned) else binned
+
 
 def _expand_with_hyperparameters(session_id, cond_dict):
     """Unfurl a condition's estim_spec_id into its physical EStimParameters AND its
     derived hyperparameters (total current per pulse / total current / current per
-    second), keeping behavioral keys unchanged. Used by both build_* tables."""
+    second), keeping behavioral keys unchanged, then bin the jittery parameters.
+    Used by both build_* tables."""
     params = _expand_condition(session_id, cond_dict)
     spec_id = cond_dict.get('estim_spec_id')
     if spec_id is not None:
         params.update(get_estim_hyperparameters(session_id, spec_id))
+    for key, bin_size in _PARAM_BIN_SIZES.items():
+        if params.get(key) is not None:
+            params[key] = _bin_value(params[key], bin_size)
     return params
 
 
@@ -296,7 +335,7 @@ def plot_degradation_metric(df, metric_key, algorithm_label=DEFAULT_ALGORITHM_LA
             ax.axhline(1.0, color='gray', linestyle=':', linewidth=1, alpha=0.6)
             ax.axhline(0.0, color='gray', linestyle='--', linewidth=0.8, alpha=0.4)
         ax.set_title(param, fontsize=10, fontweight='bold')
-        ax.set_xlabel(param, fontsize=9)
+        ax.set_xlabel(_param_xlabel(param), fontsize=9)
         ax.set_ylabel(_METRICS[metric_key], fontsize=8)
         ax.grid(True, alpha=0.3)
         ax.set_axisbelow(True)
@@ -478,7 +517,7 @@ def plot_degradation_likelihood(df, algorithm_label=DEFAULT_ALGORITHM_LABEL,
         ax.axhline(0.5, color='gray', linestyle=':', linewidth=1, alpha=0.6)
         ax.set_ylim(-0.05, 1.1)
         ax.set_title(param, fontsize=10, fontweight='bold')
-        ax.set_xlabel(param, fontsize=9)
+        ax.set_xlabel(_param_xlabel(param), fontsize=9)
         ax.set_ylabel('Fraction degraded', fontsize=8)
         ax.grid(True, alpha=0.3)
         ax.set_axisbelow(True)

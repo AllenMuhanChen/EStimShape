@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).parents[3]))
 
 from clat.util.connection import Connection
 from src.analysis.nafc.estim_parameter_classifier import EStimParameterClassifier
+from src.analysis.nafc.estim_hyperparameters import pulse_rate_hz
 from src.analysis.nafc.group_analysis.analyze_estim_by_condition import METRIC_PCT_HYPOTHESIZED, METRIC_PCT_HYP_VS_DELTA
 from src.analysis.nafc.group_analysis.estim_groups_permutation_test import (
     get_trial_data_for_condition, create_permutation_test_table)
@@ -856,36 +857,14 @@ def _clean_num(x):
     return int(f) if f == int(f) else f
 
 
-def _pulse_rate_hz(trigger_edge_or_level, pulse_train_period,
-                   post_stim_refractory_period, post_trigger_delay):
-    """Derive the pulse repetition rate (Hz) from Intan timing parameters.
-
-    Edge-triggered: one pulse train is emitted per trigger edge with pulses spaced
-    by pulse_train_period, so the period is just pulse_train_period.
-    Level-triggered: pulses repeat for as long as the trigger is held high; the
-    period is post_stim_refractory_period + post_trigger_delay.
-
-    All timing columns are stored in microseconds, so rate_hz = 1e6 / period_us.
-    Returns None if the relevant period is missing or non-positive.
-    """
-    if str(trigger_edge_or_level).strip().lower() == 'level':
-        period_us = (_to_float(post_stim_refractory_period) or 0.0) + \
-                    (_to_float(post_trigger_delay) or 0.0)
-    else:  # Edge (or unspecified): trust the pulse train period
-        period_us = _to_float(pulse_train_period)
-    if not period_us or period_us <= 0:
-        return None
-    return 1e6 / period_us
-
-
 def _unfurl_estim_spec(session_id, estim_spec_id):
     """Return {param: value} for the active channel of (session_id, estim_spec_id),
     or {} if the spec isn't found. Uses the same active-channel subquery as the
     trial loader so num_channels counts only current-delivering (a1 > 0) channels.
 
     The two timing columns and the trigger mode are collapsed into a single
-    ``pulse_rate_hz`` (see _pulse_rate_hz); ``post_trigger_delay`` is retained as
-    its own tallied parameter."""
+    ``pulse_rate_hz`` (see estim_hyperparameters.pulse_rate_hz); ``post_trigger_delay``
+    is retained as its own tallied parameter."""
     conn = Connection("allen_data_repository")
     cols = ", ".join(f"ep.{c}" for c in _UNFURL_ESTIM_PARAMS)
     conn.execute(f"""
@@ -898,10 +877,10 @@ def _unfurl_estim_spec(session_id, estim_spec_id):
         return {}
     raw = dict(zip(_UNFURL_ESTIM_PARAMS, rows[0]))
 
-    rate = _pulse_rate_hz(raw.pop('trigger_edge_or_level', None),
-                          raw.pop('pulse_train_period', None),
-                          raw.pop('post_stim_refractory_period', None),
-                          raw.get('post_trigger_delay'))
+    rate = pulse_rate_hz(raw.pop('trigger_edge_or_level', None),
+                         raw.pop('pulse_train_period', None),
+                         raw.pop('post_stim_refractory_period', None),
+                         raw.get('post_trigger_delay'))
     if rate is not None:
         raw['pulse_rate_hz'] = round(rate)
     raw['post_trigger_delay'] = _clean_num(raw.get('post_trigger_delay'))
