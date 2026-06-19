@@ -57,6 +57,7 @@ from src.analysis.nafc.live.live_estim_compile import (
 DEFAULT_POLL_SECONDS = 5
 START_GEN_ID = 1                 # keep start_gen_id; trials below this are not plotted
 PLOT_HEIGHT = 300                # px per panel; the column of panels scrolls vertically
+RECENT_TRIALS_N = 5              # how many most-recent trials to summarize under the status
 # Experimental stim types that make up Plot 1 (matches analyze_estim_by_estim_id.main).
 _EXPERIMENTAL_STIM_TYPES = ['EStimShapeVariantsDeltaNAFCStim', 'EStimShapeVariantsDeletedNAFCStim']
 
@@ -159,6 +160,26 @@ def read_session_trials_as_exp_format(session_id, start_gen_id=START_GEN_ID,
         allowed.append(_BEHAVIORAL_STIM_TYPE)
     out = out[out['StimType'].isin(allowed)]
     return out
+
+
+def read_recent_trials(session_id, n=RECENT_TRIALS_N):
+    """Return a short text summary of the n most-recent trials (newest first): trial type,
+    estim spec id (or 'no estim'), and noise level. Independent of tab/filters."""
+    conn = Connection(REPO_DB)
+    conn.execute("""
+        SELECT trial_type, is_estim_on, estim_spec_id, noise_chance
+        FROM EStimShapeTrials
+        WHERE session_id = %s
+        ORDER BY task_id DESC
+        LIMIT %s
+    """, (session_id, n))
+    rows = conn.fetch_all()
+    lines = []
+    for trial_type, is_estim_on, spec, noise in rows:
+        estim = f'spec {int(spec)}' if (is_estim_on and spec is not None) else 'no estim'
+        noise_s = f'{float(noise) * 100:.0f}%' if noise is not None else 'n/a'
+        lines.append(f'{trial_type}  |  {estim}  |  noise {noise_s}')
+    return lines
 
 
 # ---------------------------------------------------------------------------
@@ -416,6 +437,14 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         bar.addWidget(self.status_label)
         layout.addLayout(bar)
 
+        # Summary of the most-recent trials, shown just under the status line.
+        self.recent_label = QtWidgets.QLabel('')
+        self.recent_label.setStyleSheet('color: #444;')
+        font = self.recent_label.font()
+        font.setFamily('monospace')
+        self.recent_label.setFont(font)
+        layout.addWidget(self.recent_label)
+
         # Behavioral-parameter filters. Each re-renders (no recompile) on toggle. Checkboxes
         # are populated from the data as values appear; all-checked means no filtering.
         filt_bar = QtWidgets.QHBoxLayout()
@@ -548,8 +577,18 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             return None
         return data_exp
 
+    def _update_recent_label(self):
+        """Refresh the most-recent-trials summary under the status line."""
+        try:
+            lines = read_recent_trials(self.session_id, RECENT_TRIALS_N)
+        except Exception:
+            return
+        header = f'Last {len(lines)} trials (newest first):'
+        self.recent_label.setText('\n'.join([header] + [f'  {ln}' for ln in lines]))
+
     def _update_active(self):
         """Render whichever tab is currently visible. Returns the number of plotted trials."""
+        self._update_recent_label()
         window_tab = self.tabs.currentWidget() is self.win_scroll
         data_exp = self._read_and_filter(include_behavioral=window_tab)
         if data_exp is None:
