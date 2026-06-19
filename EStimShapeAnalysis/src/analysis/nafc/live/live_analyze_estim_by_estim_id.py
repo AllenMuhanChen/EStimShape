@@ -109,6 +109,10 @@ def _qt_enum(enum_cls_name, member):
 
 _SCROLLBAR_OFF = _qt_enum('ScrollBarPolicy', 'ScrollBarAlwaysOff')
 _DASH_LINE = _qt_enum('PenStyle', 'DashLine')
+# Pen styles used to distinguish noise levels within a spec in the sliding-window tab
+# (alpha alone was too subtle). Assigned per noise value, stable for the session.
+_NOISE_STYLES = [_qt_enum('PenStyle', name) for name in
+                 ('SolidLine', 'DashLine', 'DotLine', 'DashDotLine', 'DashDotDotLine')]
 
 
 def read_session_trials_as_exp_format(session_id, start_gen_id=START_GEN_ID,
@@ -209,8 +213,9 @@ def _columns_for(partition):
 
 
 def _alpha_for_noise(noise):
-    """Map a noise chance (0..1) to a stable line alpha — higher noise = more opaque."""
-    return max(0.25, min(1.0, 0.3 + 0.7 * float(noise)))
+    """Map a noise chance (0..1) to a line alpha — higher noise = more opaque. Kept fairly
+    high so lines stay visible; line style (not alpha) is the primary noise distinguisher."""
+    return max(0.55, min(1.0, 0.55 + 0.45 * float(noise)))
 
 
 def sliding_window_series(data, window_size=WINDOW_SIZE, step=WINDOW_STEP, kind=WINDOW_METRIC):
@@ -359,6 +364,8 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         # Stable spec_id -> color: a spec keeps its color for the whole session and across
         # every panel, regardless of which other specs are present or when it first appears.
         self._spec_color = {}
+        # Stable noise -> pen style for the sliding-window tab (noise distinguisher).
+        self._noise_style = {}
 
         self._setup_ui()
 
@@ -622,6 +629,13 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             self._spec_color[spec] = _SPEC_COLORS[len(self._spec_color) % len(_SPEC_COLORS)]
         return self._spec_color[spec]
 
+    def _style_for_noise(self, noise):
+        """Return this noise level's stable pen style, assigned on first sight."""
+        noise = round(float(noise), 6)
+        if noise not in self._noise_style:
+            self._noise_style[noise] = _NOISE_STYLES[len(self._noise_style) % len(_NOISE_STYLES)]
+        return self._noise_style[noise]
+
     def _update_cell(self, row, col_key, kind, on_df, off_df, spec_ids):
         plot = self.plots[(row, col_key)]
         legend = self.legends[(row, col_key)]
@@ -756,10 +770,12 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         for (spec, noise), (xs, ys) in sorted(series.items()):
             wanted.add((spec, noise))
             base = self._color_for_spec(spec)
+            # Color = spec, line style = noise (primary), alpha = noise (secondary cue).
             color = (base[0], base[1], base[2], int(_alpha_for_noise(noise) * 255))
+            pen = pg.mkPen(color, width=2, style=self._style_for_noise(noise))
             sid = (trial_type, spec, noise)
             if sid not in self.win_series:
-                curve = plot.plot([], [], pen=pg.mkPen(color, width=2))
+                curve = plot.plot([], [], pen=pen)
                 legend.addItem(curve, f'Spec {spec} | {noise * 100:.0f}%')
                 self.win_series[sid] = {'curve': curve}
             self.win_series[sid]['curve'].setData(xs, ys)
