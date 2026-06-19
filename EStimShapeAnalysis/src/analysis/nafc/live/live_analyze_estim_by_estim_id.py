@@ -80,6 +80,18 @@ WINDOW_STEP = 5           # window stride (trials)
 WINDOW_PLOT_HEIGHT = 440  # px per sliding-window panel
 WINDOW_METRIC = 'hyp_vs_delta'   # effect size uses % hypothesized vs delta
 _TRIAL_TYPE_ORDER = ('Hypothesized Shape', 'Delta Shape', 'Removed Trial')
+# Behavioral (catch/training) trials: kept out of the estim analysis but shown in the
+# sliding-window % correct baseline, like analyze_estim_by_condition's sliding window.
+_BEHAVIORAL_STIM_TYPE = 'EStimShapeProceduralBehavioralStim'
+_ALL_TRIAL_TYPES = ('Hypothesized Shape', 'Delta Shape', 'Removed Trial', 'Behavioral')
+# Colors for the no-estim % correct baseline lines (one per trial type + Combined).
+_BASELINE_COLORS = {
+    'Hypothesized Shape': (31, 119, 180),
+    'Delta Shape':        (214, 39, 40),
+    'Removed Trial':      (140, 86, 75),
+    'Behavioral':         (44, 160, 44),
+    'Combined':           (0, 0, 0),
+}
 # ---------------------------------------------------------------------------
 
 pg.setConfigOptions(antialias=True, background='w', foreground='k')
@@ -99,10 +111,12 @@ _SCROLLBAR_OFF = _qt_enum('ScrollBarPolicy', 'ScrollBarAlwaysOff')
 _DASH_LINE = _qt_enum('PenStyle', 'DashLine')
 
 
-def read_session_trials_as_exp_format(session_id, start_gen_id=START_GEN_ID):
+def read_session_trials_as_exp_format(session_id, start_gen_id=START_GEN_ID,
+                                      include_behavioral=False):
     """Read this session's rows from EStimShapeTrials and map them back to the experiment-DB
     column names the partitioning expects. Applies the start_gen_id cut and restricts to
-    experimental stim types."""
+    experimental stim types (plus behavioral trials when include_behavioral, for the
+    sliding-window % correct baseline)."""
     conn = Connection(REPO_DB)
     conn.execute("""
         SELECT task_id, estim_spec_id, is_estim_on, is_hypothesized_choice,
@@ -131,12 +145,15 @@ def read_session_trials_as_exp_format(session_id, start_gen_id=START_GEN_ID):
     out['StimType']       = db['trial_class']
     out['IsDelta']        = db['trial_type'] == 'Delta Shape'
     out['IsRemovedTrial'] = db['trial_type'] == 'Removed Trial'
-    # Readable trial-type label used by the behavioral filter.
-    out['TrialType'] = np.where(out['IsRemovedTrial'], 'Removed Trial',
-                                np.where(out['IsDelta'], 'Delta Shape', 'Hypothesized Shape'))
+    # Use the compiled trial-type label directly so 'Behavioral' survives (deriving it from
+    # IsDelta/IsRemovedTrial would mislabel behavioral trials as 'Hypothesized Shape').
+    out['TrialType'] = db['trial_type']
 
     out = out[out['GenId'] >= start_gen_id]
-    out = out[out['StimType'].isin(_EXPERIMENTAL_STIM_TYPES)]
+    allowed = list(_EXPERIMENTAL_STIM_TYPES)
+    if include_behavioral:
+        allowed.append(_BEHAVIORAL_STIM_TYPE)
+    out = out[out['StimType'].isin(allowed)]
     return out
 
 
@@ -229,6 +246,35 @@ def sliding_window_series(data, window_size=WINDOW_SIZE, step=WINDOW_STEP, kind=
                 xs, ys = out.setdefault(tt, {}).setdefault((int(spec), float(noise)), ([], []))
                 xs.append(center)
                 ys.append(pct_on - off_pct[(tt, noise)])
+    return out
+
+
+def sliding_window_baseline(data, window_size=WINDOW_SIZE, step=WINDOW_STEP):
+    """Per-window % correct of NO-ESTIM trials, split by trial type (+ Combined) — the baseline
+    panel from analyze_estim_by_condition's sliding window. Behavioral trials are included.
+
+    Returns {label: (xs, ys)} with xs = window-center trial index, ys = % correct.
+    """
+    out = {}
+    if data is None or len(data) == 0:
+        return out
+    data = data.reset_index(drop=True)
+    n = len(data)
+    for start in range(0, max(n - window_size, 0) + 1, step):
+        w = data.iloc[start:start + window_size]
+        center = start + window_size // 2
+        off = w[w['EStimEnabled'] == False]
+        for tt, sub in off.groupby('TrialType'):
+            vals = sub['IsCorrect'].dropna()
+            if len(vals) > 0:
+                xs, ys = out.setdefault(tt, ([], []))
+                xs.append(center)
+                ys.append(float(vals.mean()) * 100.0)
+        combined = off['IsCorrect'].dropna()
+        if len(combined) > 0:
+            xs, ys = out.setdefault('Combined', ([], []))
+            xs.append(center)
+            ys.append(float(combined.mean()) * 100.0)
     return out
 
 
@@ -472,11 +518,13 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.status_label.setText(f'{self.session_id}: {n_trials} trials plotted{suffix}')
 
     # ---- plotting -------------------------------------------------------
-    def _read_and_filter(self):
+    def _read_and_filter(self, include_behavioral=False):
         """Read this session's compiled trials, refresh the filter choices, and apply them.
         Returns the filtered experiment-format DataFrame, or None when there is nothing to
-        plot (status label is set accordingly)."""
-        data_full = read_session_trials_as_exp_format(self.session_id, self.start_gen_id)
+        plot (status label is set accordingly). include_behavioral also pulls behavioral
+        trials in (for the sliding-window % correct baseline)."""
+        data_full = read_session_trials_as_exp_format(
+            self.session_id, self.start_gen_id, include_behavioral=include_behavioral)
         if data_full is None or len(data_full) == 0:
             self.status_label.setText(f'{self.session_id}: waiting for trials…')
             return None
@@ -484,7 +532,7 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         # Offer every available value in the filters (so deselected ones can be re-enabled),
         # then apply the current selection.
         self.noise_filter.sync(sorted(data_full['NoiseChance'].dropna().unique()))
-        self.type_filter.sync([t for t in _TRIAL_TYPE_ORDER if (data_full['TrialType'] == t).any()])
+        self.type_filter.sync([t for t in _ALL_TRIAL_TYPES if (data_full['TrialType'] == t).any()])
         self.sl_filter.sync(sorted(data_full['SampleLength'].dropna().unique(), key=float))
 
         data_exp = self._apply_filters(data_full)
@@ -495,10 +543,11 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
 
     def _update_active(self):
         """Render whichever tab is currently visible. Returns the number of plotted trials."""
-        data_exp = self._read_and_filter()
+        window_tab = self.tabs.currentWidget() is self.win_scroll
+        data_exp = self._read_and_filter(include_behavioral=window_tab)
         if data_exp is None:
             return 0
-        if self.tabs.currentWidget() is self.win_scroll:
+        if window_tab:
             self._render_window(data_exp)
         else:
             self._render_overview(data_exp)
@@ -631,20 +680,46 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
 
     # ---- sliding-window tab --------------------------------------------
     def _render_window(self, data_exp):
-        """Sliding-window effect-size traces, one panel per trial type (column). Each line is a
-        (spec, noise) condition: color = spec (shared with the overview), alpha = noise."""
+        """Sliding-window panels: row 0 = effect-size per trial type (line = (spec, noise),
+        color = spec shared with the overview, alpha = noise); row 1 = a full-width no-estim
+        % correct baseline split by trial type (incl. behavioral) + Combined."""
         series_by_type = sliding_window_series(data_exp)
-        trial_types = [tt for tt in _TRIAL_TYPE_ORDER if tt in series_by_type]
-        if not trial_types:
+        baseline = sliding_window_baseline(data_exp)
+        effect_types = [tt for tt in _TRIAL_TYPE_ORDER if tt in series_by_type]
+        if not effect_types and not baseline:
             self.status_label.setText(f'{self.session_id}: not enough trials for a window')
             return
-        self._ensure_window_grid(trial_types)
-        for tt in trial_types:
+        self._ensure_window_grid(effect_types)
+        for tt in effect_types:
             self._update_window_cell(tt, series_by_type[tt])
+        self._update_baseline_cell(baseline)
 
-    def _ensure_window_grid(self, trial_types):
-        """(Re)build the sliding-window grid only when the set of trial types changes."""
-        config = tuple(trial_types)
+    def _make_window_panel(self, title, ylabel, yrange, zero_line):
+        """Create a scrollable plot+legend panel for the sliding-window tab. Returns
+        (widget, plot_item, legend)."""
+        glw = _ScrollGraphicsLayout(self.win_scroll)
+        glw.setMinimumHeight(WINDOW_PLOT_HEIGHT)
+        pi = glw.addPlot(row=0, col=0)
+        legend = pg.LegendItem(offset=(10, 10))
+        glw.addItem(legend, row=0, col=1)
+        glw.ci.layout.setColumnStretchFactor(0, 1)
+        glw.ci.layout.setColumnFixedWidth(1, LEGEND_WIDTH)
+        pi.setTitle(title)
+        pi.showGrid(x=True, y=True, alpha=0.3)
+        pi.setLabel('left', ylabel)
+        pi.setLabel('bottom', 'Trial (window center)')
+        if zero_line:
+            pi.addLine(y=0, pen=pg.mkPen((120, 120, 120), style=_DASH_LINE))
+        vb = pi.getViewBox()
+        # y is clamped to its meaningful range; x follows the trials as they accumulate.
+        vb.setYRange(yrange[0], yrange[1], padding=0)
+        vb.setLimits(yMin=yrange[0], yMax=yrange[1])
+        return glw, pi, legend
+
+    def _ensure_window_grid(self, effect_types):
+        """(Re)build the sliding-window grid only when the set of effect-size trial types
+        changes. Row 0: one effect-size panel per trial type; row 1: a full-width baseline."""
+        config = tuple(effect_types)
         if config == self._win_config:
             return
 
@@ -656,27 +731,20 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
                 w.deleteLater()
         self.win_plots, self.win_legends, self.win_series = {}, {}, {}
 
-        for c, tt in enumerate(trial_types):
-            glw = _ScrollGraphicsLayout(self.win_scroll)
-            glw.setMinimumHeight(WINDOW_PLOT_HEIGHT)
-            pi = glw.addPlot(row=0, col=0)
-            legend = pg.LegendItem(offset=(10, 10))
-            glw.addItem(legend, row=0, col=1)
-            glw.ci.layout.setColumnStretchFactor(0, 1)
-            glw.ci.layout.setColumnFixedWidth(1, LEGEND_WIDTH)
-
-            pi.setTitle(tt)
-            pi.showGrid(x=True, y=True, alpha=0.3)
-            pi.setLabel('left', 'Effect size (ON − OFF, % hyp vs delta)')
-            pi.setLabel('bottom', 'Trial (window center)')
-            pi.addLine(y=0, pen=pg.mkPen((120, 120, 120), style=_DASH_LINE))
-            vb = pi.getViewBox()
-            # Effect size is a difference in [-100, 100]; clamp y there, let x follow the trials.
-            vb.setYRange(-100, 100, padding=0)
-            vb.setLimits(yMin=-100, yMax=100)
+        n_cols = max(len(effect_types), 1)
+        for c, tt in enumerate(effect_types):
+            glw, pi, legend = self._make_window_panel(
+                tt, 'Effect size (ON − OFF, % hyp vs delta)', (-100, 100), zero_line=True)
             self.win_grid_layout.addWidget(glw, 0, c)
             self.win_plots[tt] = pi
             self.win_legends[tt] = legend
+
+        # Full-width no-estim % correct baseline, spanning all effect columns.
+        glw, pi, legend = self._make_window_panel(
+            'No-estim % correct (by trial type)', '% correct', (0, 100), zero_line=False)
+        self.win_grid_layout.addWidget(glw, 1, 0, 1, n_cols)
+        self.win_plots['__baseline__'] = pi
+        self.win_legends['__baseline__'] = legend
 
         self._win_config = config
 
@@ -698,6 +766,36 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
 
         # Drop (spec, noise) lines no longer present.
         for sid in [s for s in self.win_series if s[0] == trial_type and (s[1], s[2]) not in wanted]:
+            entry = self.win_series.pop(sid)
+            plot.removeItem(entry['curve'])
+            try:
+                legend.removeItem(entry['curve'])
+            except Exception:
+                pass
+
+    def _update_baseline_cell(self, baseline):
+        """Update the no-estim % correct baseline: one line per trial type (incl. behavioral)
+        plus a dashed Combined line."""
+        plot = self.win_plots['__baseline__']
+        legend = self.win_legends['__baseline__']
+
+        wanted = set()
+        for label in list(_ALL_TRIAL_TYPES) + ['Combined']:
+            if label not in baseline:
+                continue
+            wanted.add(label)
+            xs, ys = baseline[label]
+            color = _BASELINE_COLORS.get(label, (127, 127, 127))
+            sid = ('__baseline__', label)
+            if sid not in self.win_series:
+                style = _DASH_LINE if label == 'Combined' else None
+                pen = pg.mkPen(color, width=2, style=style) if style else pg.mkPen(color, width=2)
+                curve = plot.plot([], [], pen=pen)
+                legend.addItem(curve, label)
+                self.win_series[sid] = {'curve': curve}
+            self.win_series[sid]['curve'].setData(xs, ys)
+
+        for sid in [s for s in self.win_series if s[0] == '__baseline__' and s[1] not in wanted]:
             entry = self.win_series.pop(sid)
             plot.removeItem(entry['curve'])
             try:
