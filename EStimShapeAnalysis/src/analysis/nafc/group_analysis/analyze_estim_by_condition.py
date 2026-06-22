@@ -189,7 +189,7 @@ def main():
     # Single-session interactive default; orchestrator scripts should call
     # run_pipeline() directly. session_ids=None runs every session.
     run_pipeline(
-        session_ids=["260617_0"],
+        session_ids=["260619_0"],
         algorithm_label='None',
         force_recompute=True,
         show_sliding_window=True,
