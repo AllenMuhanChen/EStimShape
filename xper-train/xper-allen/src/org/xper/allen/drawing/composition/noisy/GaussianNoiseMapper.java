@@ -454,7 +454,18 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
         bisector.add(tangent1);
         bisector.add(tangent2);
         bisector.normalize();
-        bisector.negate();
+
+        // Orient the bisector toward the special component (the one we are hiding) instead of blindly
+        // negating. The non-special tangents point toward their component bodies, so the un-flipped
+        // bisector points between/toward the non-special comps; we want to aim into the gap where the
+        // special comp sits. An unconditional negate assumes the special comp is on the reflex side of
+        // the two non-special comps, which is wrong when the special comp lies in the smaller arc
+        // between them (then the offset goes the wrong way). Use the special comp's own junction
+        // tangent as ground truth and flip the bisector so it points into the same half-plane.
+        Vector2d specialDir = projectTo2D(getJuncTangentForMulti(proceduralMatchStick, junc, specialCompId));
+        if (bisector.dot(specialDir) < 0) {
+            bisector.negate();
+        }
         Vector3d bisector_3d = new Vector3d(bisector.getX(), bisector.getY(), 0);
         proceduralMatchStick.projectedTangent = bisector_3d;
 
