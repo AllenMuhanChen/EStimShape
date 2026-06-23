@@ -429,7 +429,12 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
             for (int j = i + 1; j < nonSpecialTangents.size(); j++){
                 Vector3d tangent1 = nonSpecialTangents.get(i);
                 Vector3d tangent2 = nonSpecialTangents.get(j);
-                double externalAngle = 2*Math.PI - tangent1.angle(tangent2);
+                // The noise origin is placed in the image (XY) plane and the bisector below is computed
+                // in 2D, so choose the widest gap using the 2D-projected angle, not the 3D angle. Two
+                // tangents far apart in 3D can project to nearly-collinear 2D vectors (and vice versa);
+                // using the 3D angle here can select a pair whose 2D bisector does not match the gap we
+                // actually see in the image.
+                double externalAngle = 2*Math.PI - projectTo2D(tangent1).angle(projectTo2D(tangent2));
                 externalAnglesForTangentPairs.put(Arrays.asList(tangent1, tangent2), externalAngle);
                 int jIndex1 = jIndicesForTangent.get(i);
                 int jIndex2 = jIndicesForTangent.get(j);
