@@ -162,6 +162,21 @@ class PenetrationStore:
     def penetrations(self):
         return self._cache
 
+    def get_tip_start(self, session_id):
+        """Return tip_start_mm for a session from the PenetrationTipStart table
+        in allen_data_repository, or None if not connected or not found.
+
+        Tip start is the depth along the trajectory where the electrode tip
+        begins; it is always read from the database, never defaulted.
+        """
+        if not self.connected:
+            return None
+        self.conn.execute(
+            "SELECT tip_start_mm FROM PenetrationTipStart WHERE session_id = %s",
+            (session_id,))
+        rows = self.conn.fetch_all()
+        return float(rows[0][0]) if rows else None
+
     def add(self, az_deg, el_deg, dist_mm, label="", session_id="",
             pen_type="planned", color="cyan", notes="", line_visible=True):
         """Insert a new penetration and return its id."""

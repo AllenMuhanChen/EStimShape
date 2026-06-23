@@ -622,6 +622,17 @@ class TrajectoryMixin:
         self._update_pt_info()
         self._update_temp_points_display()
 
+        # Populate the electrode start ("tip start") from the DB. It is always
+        # read from PenetrationTipStart in allen_data_repository, never defaulted.
+        if hasattr(self, '_traj_elec_start_var'):
+            tip_start_mm = self.pen_store.get_tip_start(session_id)
+            if tip_start_mm is not None:
+                self._traj_elec_start_var.set(f"{tip_start_mm:.2f}")
+                self._sync_microns_from_depth(self._traj_slider_var.get())
+            else:
+                print(f"No tip start found in PenetrationTipStart for session "
+                      f"{session_id}; electrode start left unchanged.")
+
         # Enable all controls
         self.btn_clear_traj.config(state="normal")
         self.btn_add_point.config(state="normal")

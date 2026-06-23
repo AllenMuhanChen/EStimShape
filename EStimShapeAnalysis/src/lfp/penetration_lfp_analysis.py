@@ -1147,17 +1147,26 @@ def save_to_repository(
 # ============================================================================
 
 class PenetrationLFPAnalysis:
-    def __init__(self, session_id: str, intan_path: str, tip_start_mm: float,
+    def __init__(self, session_id: str, intan_path: str,
                  spatial_smooth_sigma: float = 1.5,
                  waveform_smooth_sigma: float = 3.0):
         self.session_id            = session_id
         self.intan_path            = intan_path
-        self.tip_start_mm          = tip_start_mm
+        # tip_start_mm is never defaulted: it is read from the
+        # PenetrationTipStart table in allen_data_repository inside run().
+        self.tip_start_mm          = None
         self.spatial_smooth_sigma  = spatial_smooth_sigma
         self.waveform_smooth_sigma = waveform_smooth_sigma  # larger sigma for noisy spike metrics
 
     def run(self) -> None:
 
+        # Tip start must come from the database, never a default. If this
+        # session has no entry, skip it rather than guessing a value.
+        self.tip_start_mm = get_tip_start(self.session_id)
+        if self.tip_start_mm is None:
+            print(f"No tip start found in {_PENETRATION_TIP_START_TABLE} for "
+                  f"session {self.session_id}; skipping.")
+            return
 
         print(f"Scanning {self.intan_path}  (session {self.session_id}) ...")
         recordings = discover_recordings(self.intan_path, self.session_id)
@@ -1329,31 +1338,23 @@ class PenetrationLFPAnalysis:
 
 
 if __name__ == '__main__':
-    # tip   = float(input("Enter tip start depth (mm): ").strip())
-    # sigma_str = input("Spatial smoothing sigma in depth bins [default 1.5, 0 = off]: ").strip()
-    # sigma = float(sigma_str) if sigma_str else 1.5
-    tip_starts_for_session_ids = {
-        # "260416_0": 5.6,
-        # "260414_0": 6.05,
-        # "260410_0": 6.35,
-        # "260408_0": 6.25,
-        # "260407_0": 6.3,
-        # "260402_0":6.4,
-        # "260331_0":6.05,
-        # "260327_0":6.35,
-        "260421_0": 5.45,
-        "260423_0": 5.65,
-        "260426_0": 6.3,
-        "260512_0": 6.3,
-        "260514_0": 6.1,
-        "260518_0": 6.25,
-        "260520_0": 6.4,
-        "260526_0": 6.15,
-        "260528_0": 6.5,
-        "260601_0": 5.90,
-    }
+    # Tip start for each session is read from the PenetrationTipStart table in
+    # allen_data_repository inside run() — never hardcoded here. Sessions without
+    # a tip start entry are skipped.
+    session_ids = [
+        "260421_0",
+        "260423_0",
+        "260426_0",
+        "260512_0",
+        "260514_0",
+        "260518_0",
+        "260520_0",
+        "260526_0",
+        "260528_0",
+        "260601_0",
+    ]
 
-    for session_id, tip_start in tip_starts_for_session_ids.items():
+    for session_id in session_ids:
         db_name    = f"allen_ga_exp_{session_id}"
         intan_path = f"{INTAN_SFTP_PREFIX}/{db_name}"
-        PenetrationLFPAnalysis(session_id=session_id, intan_path=intan_path, tip_start_mm=tip_start).run()
+        PenetrationLFPAnalysis(session_id=session_id, intan_path=intan_path).run()
