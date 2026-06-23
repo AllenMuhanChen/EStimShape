@@ -51,12 +51,12 @@ public class EStimShapeDeltaGAStimTest {
     private static final String PARENT_SPEC_PATH = null;
 
     private static final double SIZE = 3.0;                 // maxSizeDiameterDegrees
-    private static final double MAX_DIAMETER_DEGREES = 15;  // PNG box; must fit the shape
-    private static final double NOISE_RADIUS_MM = 8.0;      // bigger than a limb, smaller than the shape
+    private static final double MAX_DIAMETER_DEGREES = 35;  // PNG box; must fit the shape
+    private static final double NOISE_RADIUS_MM = 16.0;      // bigger than a limb, smaller than the shape
 
     private static final ReceptiveField COMPLETE_RF = new ReceptiveField() {
-        double h = 50;
-        double k = 50;
+        double h = 0;
+        double k = 0;
         double r = 20;
 
         {
