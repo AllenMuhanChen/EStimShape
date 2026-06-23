@@ -200,6 +200,8 @@ class PreferredFrequencyLoader(ChannelValueLoader):
 class SolidPreferenceLoader(ChannelValueLoader):
     """Load solid preference indices from ``SolidPreferenceIndices``."""
 
+    SIGNIFICANCE_ALPHA = 0.05
+
     def __init__(self, session_id: str, conn: Connection):
         self._session_id = session_id
         self._conn = conn
@@ -213,6 +215,46 @@ class SolidPreferenceLoader(ChannelValueLoader):
             (self._session_id,),
         )
         return {row[0]: row[1] for row in self._conn.fetch_all()}
+
+    def load_significance(self) -> Dict[str, float]:
+        """Return ``{channel: significance_category}`` for the solid preference.
+
+        The category combines the permutation-test ``p_value`` with the sign of
+        the solid preference index:
+
+            ``1``   significant 3D preference  (p < alpha and index > 0)
+            ``-1``  significant 2D preference  (p < alpha and index <= 0)
+            ``0``   not significant            (p >= alpha)
+
+        Channels with no ``p_value`` (test not run) are omitted so they render
+        as gray "no data" markers.  Returns an empty dict if the ``p_value``
+        column does not exist yet (permutation test never run for this DB).
+        """
+        try:
+            self._conn.execute(
+                """SELECT unit_name, solid_preference_index, p_value
+                   FROM SolidPreferenceIndices
+                   WHERE session_id = %s AND unit_name NOT LIKE '%%Unit%%'
+                   ORDER BY unit_name""",
+                (self._session_id,),
+            )
+        except Exception as exc:  # p_value column missing or query failed
+            print(f"Warning: could not load solid preference significance: {exc}")
+            return {}
+
+        result: Dict[str, float] = {}
+        for unit_name, index_value, p_value in self._conn.fetch_all():
+            if p_value is None:
+                continue  # test not run for this channel → "no data"
+            if p_value < self.SIGNIFICANCE_ALPHA:
+                result[unit_name] = 1.0 if (index_value is not None and index_value > 0) else -1.0
+            else:
+                result[unit_name] = 0.0
+        return result
+
+    def as_significance_metric(self, **kwargs) -> LookupMetric:
+        """Wrap ``load_significance()`` as a LookupMetric (0 / +1 / -1)."""
+        return LookupMetric(self.load_significance(), **kwargs)
 
 
 # ---------------------------------------------------------------------------

@@ -186,7 +186,9 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
     frequencies = iso_loader.frequencies
     n_frequencies = len(frequencies)
 
-    solid_metric = SolidPreferenceLoader(session_id, conn).as_metric(title='Solid Preference')
+    solid_loader = SolidPreferenceLoader(session_id, conn)
+    solid_metric = solid_loader.as_metric(title='Solid Preference')
+    solid_sig_metric = solid_loader.as_significance_metric(title='Solid Pref\nSignificance')
 
     freq_metric = PreferredFrequencyLoader(session_id, conn).as_normalized_metric(
         frequencies, title='Preferred\nFrequency')
@@ -212,19 +214,21 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
 
     # Create subplots - adjust based on number of correlation columns
     # Layout: [preferred freq (1 col), isochromatic (4 cols), solid (1 col),
-    #          correlation cols (n_corr_cols)]
+    #          solid significance (1 col), correlation cols (n_corr_cols)]
     if n_corr_cols > 0:
-        width_ratios = [1, 4, 1] + [1] * n_corr_cols
-        n_cols = 3 + n_corr_cols
-        fig, axes = plt.subplots(1, n_cols, figsize=(16 + 2 * n_corr_cols, 12),
+        width_ratios = [1, 4, 1, 1] + [1] * n_corr_cols
+        n_cols = 4 + n_corr_cols
+        fig, axes = plt.subplots(1, n_cols, figsize=(17 + 2 * n_corr_cols, 12),
                                  sharey=True, gridspec_kw={'width_ratios': width_ratios, 'wspace': 0.15})
         ax_freq = axes[0]
         ax_iso = axes[1]
         ax_solid = axes[2]
-        ax_corr_list = axes[3:]
+        ax_solid_sig = axes[3]
+        ax_corr_list = axes[4:]
     else:
-        fig, (ax_freq, ax_iso, ax_solid) = plt.subplots(1, 3, figsize=(15, 12),
-                                               sharey=True, gridspec_kw={'width_ratios': [1, 4, 1], 'wspace': 0.15})
+        fig, (ax_freq, ax_iso, ax_solid, ax_solid_sig) = plt.subplots(
+            1, 4, figsize=(16, 12),
+            sharey=True, gridspec_kw={'width_ratios': [1, 4, 1, 1], 'wspace': 0.15})
         ax_corr_list = []
 
     # Set up colormap (diverging around 0)
@@ -258,9 +262,10 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
     ax_iso.grid(True, axis='y', alpha=0.3, linestyle='--')
     ax_iso.grid(True, axis='x', alpha=0.2, linestyle='--')
 
-    # Plot solid preference and correlations through the same pipeline
+    # Plot solid preference, its significance, and correlations through the same pipeline
     correlations: dict = {}  # {cluster_channel: {channel: rho}} for downstream stats
-    for ax, metric in [(ax_solid, solid_metric), *zip(ax_corr_list, corr_metrics)]:
+    for ax, metric in [(ax_solid, solid_metric), (ax_solid_sig, solid_sig_metric),
+                       *zip(ax_corr_list, corr_metrics)]:
         data, ref = render_metric(
             ax, metric, channel_strings, cluster_channels,
             cmap=cmap, norm=norm,
@@ -326,6 +331,22 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
             print(f"  Cluster channel indices: {[f'{v:.3f}' for v in cluster_values]}")
     else:
         print("  No solid preference data available")
+
+    print(f"\n--- Solid Preference Significance (0=n.s., +1=sig 3D, -1=sig 2D) ---")
+    sig_data = solid_sig_metric.compute()
+    if sig_data:
+        n_sig_3d = sum(1 for v in sig_data.values() if v == 1)
+        n_sig_2d = sum(1 for v in sig_data.values() if v == -1)
+        n_nonsig = sum(1 for v in sig_data.values() if v == 0)
+        print(f"  Channels tested: {len(sig_data)}/{len(channel_strings)}")
+        print(f"  Significant 3D (+1): {n_sig_3d}")
+        print(f"  Significant 2D (-1): {n_sig_2d}")
+        print(f"  Not significant (0): {n_nonsig}")
+        cluster_sig = {ch: v for ch, v in sig_data.items() if ch in cluster_channels}
+        if cluster_sig:
+            print(f"  Cluster channel categories: {cluster_sig}")
+    else:
+        print("  No significance data available (permutation test may not have been run)")
 
     # Print correlation statistics
     if correlations:
