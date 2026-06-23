@@ -84,10 +84,23 @@ public class AllenPNGMaker{
 	public String createAndSavePartTexturePNG(AllenMatchStick obj, Long stimObjId, List<String> labels,
 											   String destinationFolder, String baseTexture, String partTexture,
 											   java.util.Set<Integer> partComponents) {
+		return createAndSavePartTexturePNG(obj, stimObjId, labels, destinationFolder, baseTexture, partTexture,
+				partComponents, null, null);
+	}
+
+	/**
+	 * As above, but renders each texture pass in a specified color (null = the shape's existing
+	 * color). Used to give a 2D pass a luminance-matched flat color (e.g. underlying average RGB).
+	 */
+	public String createAndSavePartTexturePNG(AllenMatchStick obj, Long stimObjId, List<String> labels,
+											   String destinationFolder, String baseTexture, String partTexture,
+											   java.util.Set<Integer> partComponents,
+											   org.xper.drawing.RGBColor baseColor, org.xper.drawing.RGBColor partColor) {
 		window.setImageFolderName(destinationFolder);
 		window.setBackgroundColor(backColor.getRed(), backColor.getGreen(), backColor.getGreen());
 		System.out.println("creating and saving part-texture PNG...");
-		return window.drawPartTextureStimulus(obj, stimObjId, labels, baseTexture, partTexture, partComponents);
+		return window.drawPartTextureStimulus(obj, stimObjId, labels, baseTexture, partTexture, partComponents,
+				baseColor, partColor);
 	}
 
 	public String createAndSaveCompMap(AllenMatchStick obj, Long stimObjId, List<String> labels, String destinationFolder) {

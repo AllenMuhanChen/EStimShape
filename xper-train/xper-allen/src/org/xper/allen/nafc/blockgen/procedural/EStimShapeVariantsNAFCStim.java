@@ -300,8 +300,8 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
             mStickSpecs.addProceduralDistractor(mStickToSpec(removed));
             startIndex = 1;
         }
-        // Reserve the last procedural slot for the same-geometry texture foil (injected in preWrite).
-        int endIndex = numProceduralDistractors - (hasTextureFoil() ? 1 : 0);
+        // Leave room for any reserved special distractors (injected in preWrite).
+        int endIndex = numProceduralDistractors - numReservedProceduralSlots();
         for (int i = startIndex; i < endIndex; i++) {
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick(noiseMapper);
             proceduralDistractor.setRf(rfSource.getReceptiveField());
@@ -340,15 +340,15 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
     protected void assignLabels() {
         labels.setSample(new LinkedList<>(Arrays.asList("sample")));
         labels.setMatch(new LinkedList<>(Arrays.asList("match")));
-        for (int i = 0; i < numProceduralDistractors; i++) {
+        int numRegular = numProceduralDistractors - numReservedProceduralSlots();
+        for (int i = 0; i < numRegular; i++) {
             if (i == 0 && includeRemovedChoice) {
                 labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("removed")));
-            } else if (hasTextureFoil() && i == numProceduralDistractors - 1) {
-                labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("textureFoil")));
             } else {
                 labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("procedural")));
             }
         }
+        appendReservedProceduralLabels();
         for (int i = 0; i < numRandDistractors; i++) {
             labels.addRandDistractor(new LinkedList<>(Arrays.asList("rand")));
         }

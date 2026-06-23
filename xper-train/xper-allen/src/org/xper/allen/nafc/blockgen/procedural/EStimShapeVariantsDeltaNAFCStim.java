@@ -147,10 +147,9 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
         // user asking for "1 delta + 1 removed" with 2 deltas available could be misread as
         // needing 2 delta slots and trip the no-go check unnecessarily.
         int numRemovedSlots = includeRemovedChoice ? 1 : 0;
-        // The texture foil (same geometry as the match) occupies its own slot, injected in
-        // preWrite, so it reduces how many delta distractors we generate here.
-        int numFoilSlots = hasTextureFoil() ? 1 : 0;
-        int numDeltaSlots = numProceduralDistractors - numRemovedSlots - numFoilSlots;
+        // Reserved special distractors (e.g. a texture foil) are injected in preWrite, so they
+        // reduce how many delta distractors we generate here.
+        int numDeltaSlots = numProceduralDistractors - numRemovedSlots - numReservedProceduralSlots();
 
         if (numDeltaSlots < 0) {
             throw new IllegalStateException("includeRemovedChoice requires at least 1 procedural distractor slot for the removed choice, but numProceduralDistractors=" + numProceduralDistractors + ". Increase numChoices or reduce numRandDistractors.");
@@ -191,8 +190,7 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
         labels.setMatch(new LinkedList<>(Arrays.asList("match")));
 
         int numRemovedSlots = includeRemovedChoice ? 1 : 0;
-        int numFoilSlots = hasTextureFoil() ? 1 : 0;
-        int numDeltaSlots = numProceduralDistractors - numRemovedSlots - numFoilSlots;
+        int numDeltaSlots = numProceduralDistractors - numRemovedSlots - numReservedProceduralSlots();
 
         // Mirror generateProceduralDistractors: removed first, then deltas.
         if (includeRemovedChoice) {
@@ -215,10 +213,8 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
             labels.addProceduralDistractor(new LinkedList<>(Arrays.asList(label)));
         }
 
-        // Texture foil last, mirroring injectTextureFoilDistractor().
-        if (hasTextureFoil()) {
-            labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("textureFoil")));
-        }
+        // Reserved special distractors (e.g. texture foil) last, mirroring injectReservedProceduralDistractors().
+        appendReservedProceduralLabels();
 
         for (int i = 0; i < numRandDistractors; i++) {
             labels.addRandDistractor(new LinkedList<>(Arrays.asList("rand")));

@@ -46,20 +46,34 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     protected long baseMStickStimSpecId;
 
     /**
-     * When non-null, this is a "split texture" trial (see {@link SplitTextureConfig}): the
-     * hypothesized limb is rendered in a contrasting texture, and an extra same-geometry
-     * "texture-foil" distractor occupies one procedural choice slot. Null ⇒ ordinary
-     * all-one-texture rendering (unchanged behavior).
+     * Number of procedural choice slots a trial type reserves for special distractors it injects
+     * itself (beyond the regular morphed/delta distractors). Generation leaves this many slots
+     * empty; the trial type fills them in {@link #injectReservedProceduralDistractors()} and
+     * labels them in {@link #appendReservedProceduralLabels()}. Default 0 (no reservation).
      */
-    protected SplitTextureConfig splitTextureConfig = null;
-
-    public void setSplitTextureConfig(SplitTextureConfig splitTextureConfig) {
-        this.splitTextureConfig = splitTextureConfig;
+    protected int numReservedProceduralSlots() {
+        return 0;
     }
 
-    /** True when this trial reserves a procedural slot for the same-geometry texture foil. */
-    protected boolean hasTextureFoil() {
-        return splitTextureConfig != null;
+    /**
+     * Hook for trial types to add their reserved distractors after the regular ones are generated
+     * (called from {@link #preWrite()}). Must add exactly {@link #numReservedProceduralSlots()}
+     * procedural distractors. Default no-op.
+     */
+    protected void injectReservedProceduralDistractors() {
+    }
+
+    /**
+     * Hook for trial types to append labels for their reserved procedural slots, after the regular
+     * procedural-distractor labels. Must add exactly {@link #numReservedProceduralSlots()} labels.
+     * Default no-op.
+     */
+    protected void appendReservedProceduralLabels() {
+    }
+
+    /** The shape's own authored texture (SHADE/SPECULAR/2D); see constructor. */
+    protected String getTexture() {
+        return texture;
     }
 
 
@@ -137,34 +151,9 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         assignStimObjIds();
         assignLabels();
         generateMatchSticksAndSaveSpecs();
-        if (hasTextureFoil()) {
-            injectTextureFoilDistractor();
-        }
+        injectReservedProceduralDistractors();
         drawPNGs();
         assignCoords();
-    }
-
-    /**
-     * Fill the reserved procedural slot with the texture foil: the same geometry and spec as
-     * the match, occupying the last procedural choice slot (see {@link #hasTextureFoil()}).
-     * It is rendered with the opposite treatment of the match in {@link #drawProceduralDistractors}.
-     * Generation reserves this slot by producing one fewer regular procedural distractor.
-     */
-    protected void injectTextureFoilDistractor() {
-        // Generation should have produced exactly one fewer regular procedural distractor to
-        // leave room for the foil. If it didn't, the choice budget (numChoices, numRandDistractors,
-        // includeRemovedChoice) left no slot for the foil — fail loudly rather than desync the
-        // parallel id/label/coord lists.
-        int expectedRegular = numProceduralDistractors - 1;
-        int actualRegular = mSticks.getProceduralDistractors().size();
-        if (actualRegular != expectedRegular) {
-            throw new IllegalStateException("Split-texture trial has no room for the texture-foil distractor: "
-                    + "expected " + expectedRegular + " regular procedural distractor(s) before the foil but found "
-                    + actualRegular + " (numProceduralDistractors=" + numProceduralDistractors + "). "
-                    + "Increase numChoices, reduce numRandDistractors, or disable includeRemovedChoice.");
-        }
-        mSticks.addProceduralDistractor(mSticks.getMatch());
-        mStickSpecs.addProceduralDistractor(mStickSpecs.getMatch());
     }
 
     protected double calculateMinDistanceChoicesCanBeWithoutOverlap(double choiceSize, int numChoices) {
@@ -226,77 +215,29 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         generateSampleCompMap();
         samplePngMaker.close();
 
-        //Match
         choicePNGMaker.createDrawerWindow();
-        boolean matchSplit = splitTextureConfig != null && splitTextureConfig.matchIsSplit();
-        String matchPath = renderChoice(choicePNGMaker, mSticks.getMatch(), stimObjIds.getMatch(), labels.getMatch(), generatorPngPath, matchSplit);
-        experimentPngPaths.setMatch(generator.convertPngPathToExperiment(matchPath));
-        System.out.println("Match Path: " + matchPath);
-
+        drawMatch(choicePNGMaker, generatorPngPath);
         drawProceduralDistractors(choicePNGMaker, generatorPngPath);
-
-        //Rand Distractor (always plain body texture)
-        for (int i = 0; i < numRandDistractors; i++) {
-            String randDistractorPath = renderChoice(choicePNGMaker, mSticks.getRandDistractors().get(i), stimObjIds.getRandDistractors().get(i), labels.getRandDistractors().get(i), generatorPngPath, false);
-            experimentPngPaths.addRandDistractor(generator.convertPngPathToExperiment(randDistractorPath));
-            System.out.println("Rand Distractor Path: " + randDistractorPath);
-        }
+        drawRandDistractors(choicePNGMaker, generatorPngPath);
         choicePNGMaker.close();
     }
 
-    @Override
-    protected void drawSample(AllenPNGMaker pngMaker, String generatorPngPath) {
-        boolean sampleSplit = splitTextureConfig != null && splitTextureConfig.sampleIsSplit();
-        String samplePath = renderChoice(pngMaker, mSticks.getSample(), stimObjIds.getSample(), labels.getSample(), generatorPngPath, sampleSplit);
-        System.out.println("Sample Path: " + samplePath);
-        experimentPngPaths.setSample(generator.convertPngPathToExperiment(samplePath));
-    }
-
-    @Override
-    protected void drawProceduralDistractors(AllenPNGMaker pngMaker, String generatorPngPath) {
-        // With a texture foil, the last procedural slot is the same-geometry foil and carries
-        // the opposite treatment of the match; all other procedural distractors are plain.
-        int foilIndex = hasTextureFoil() ? numProceduralDistractors - 1 : -1;
-        for (int i = 0; i < numProceduralDistractors; i++) {
-            boolean split = (i == foilIndex) && splitTextureConfig.foilIsSplit();
-            String path = renderChoice(pngMaker, mSticks.getProceduralDistractors().get(i), stimObjIds.getProceduralDistractors().get(i), labels.getProceduralDistractors().get(i), generatorPngPath, split);
-            experimentPngPaths.addProceduralDistractor(generator.convertPngPathToExperiment(path));
-            System.out.println("Procedural Distractor Path: " + path);
-        }
-    }
-
     /**
-     * Renders one choice shape. With no split-texture config this is the ordinary
-     * {@code createAndSavePNG}. Otherwise {@code split} chooses between a part-texture render
-     * (body + hypothesized limb in the contrast texture) and a plain render in the body
-     * texture; in normal (non-inverted) trials the plain body texture equals the shape's own
-     * texture, so the plain path is unchanged from default behavior.
+     * Draws the match choice. Overridable so trial types (e.g. split texture) can change how the
+     * match is rendered without re-implementing the whole {@link #drawPNGs()} orchestration.
      */
-    protected String renderChoice(AllenPNGMaker pngMaker, ProceduralMatchStick mStick, Long stimObjId, List<String> labels, String generatorPngPath, boolean split) {
-        if (splitTextureConfig == null) {
-            return pngMaker.createAndSavePNG(mStick, stimObjId, labels, generatorPngPath);
+    protected void drawMatch(AllenPNGMaker pngMaker, String generatorPngPath) {
+        String matchPath = pngMaker.createAndSavePNG(mSticks.getMatch(), stimObjIds.getMatch(), labels.getMatch(), generatorPngPath);
+        experimentPngPaths.setMatch(generator.convertPngPathToExperiment(matchPath));
+        System.out.println("Match Path: " + matchPath);
+    }
+
+    protected void drawRandDistractors(AllenPNGMaker pngMaker, String generatorPngPath) {
+        for (int i = 0; i < numRandDistractors; i++) {
+            String randDistractorPath = pngMaker.createAndSavePNG(mSticks.getRandDistractors().get(i), stimObjIds.getRandDistractors().get(i), labels.getRandDistractors().get(i), generatorPngPath);
+            experimentPngPaths.addRandDistractor(generator.convertPngPathToExperiment(randDistractorPath));
+            System.out.println("Rand Distractor Path: " + randDistractorPath);
         }
-        if (split) {
-            return pngMaker.createAndSavePartTexturePNG(mStick, stimObjId, labels, generatorPngPath,
-                    bodyTexture(), splitLimbTexture(), splitComps());
-        }
-        String previousTexture = mStick.getTextureType();
-        mStick.setTextureType(bodyTexture());
-        String path = pngMaker.createAndSavePNG(mStick, stimObjId, labels, generatorPngPath);
-        mStick.setTextureType(previousTexture);
-        return path;
-    }
-
-    private String bodyTexture() {
-        return splitTextureConfig.bodyTexture(texture);
-    }
-
-    private String splitLimbTexture() {
-        return splitTextureConfig.splitLimbTexture(texture);
-    }
-
-    private Set<Integer> splitComps() {
-        return new HashSet<>(morphComponentIndcs);
     }
 
     protected void generateNoiseMap() {
@@ -361,7 +302,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
 
     @Override
     protected void generateProceduralDistractors(ProceduralMatchStick sample) {
-        int numRegular = numProceduralDistractors - (hasTextureFoil() ? 1 : 0);
+        int numRegular = numProceduralDistractors - numReservedProceduralSlots();
         for (int i = 0; i < numRegular; i++) {
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
             correctNoiseRadius(proceduralDistractor);
