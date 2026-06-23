@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
+
 /**
  * Visual debugging harness for {@link GaussianNoiseMapper}'s noise-circle placement.
  *
@@ -168,6 +170,65 @@ public class GaussianNoiseMapperDebugTest {
 
         drawer.saveImage("/tmp/noise_debug");
         ThreadUtil.sleep(60000);
+    }
+
+    /**
+     * Verifies the frame fix: once checkInNoise has placed the noise origin, translating the whole
+     * shape (centerShape / positionShape / moveCenterOfMassTo all go through applyTranslation) must
+     * carry the origin along, so the limb stays inside the circle. Before the applyTranslation override
+     * the origin was left behind and coverage collapsed after a translation.
+     */
+    @Test
+    public void noise_origin_tracks_shape_through_translation() {
+        ProceduralMatchStick sample = generateSampleFromComponent(4);
+        List<Integer> compsToNoise = sample.getSpecialEndComp();
+
+        // Generous radius so the limb starts fully inside; isolates the translation behavior.
+        double extent = maxExtentOfInNoiseComps(sample, compsToNoise);
+        sample.noiseRadiusMm = extent * 1.5;
+
+        // debugMode (set in setUp) suppresses throws; we only need the origin computed.
+        noiseMapper.checkInNoise(sample, compsToNoise, 0.0);
+
+        Point3d originBefore = new Point3d(sample.getNoiseOrigin());
+        double insideBefore = noiseMapper.fractionInside(sample, compsToNoise, sample.getNoiseOrigin(), sample.noiseRadiusMm);
+
+        // Move the whole shape well away from where the noise was computed.
+        sample.moveCenterOfMassTo(new Point3d(137.0, -86.0, 0.0));
+
+        Point3d originAfter = sample.getNoiseOrigin();
+        double insideAfter = noiseMapper.fractionInside(sample, compsToNoise, sample.getNoiseOrigin(), sample.noiseRadiusMm);
+
+        System.out.println("origin before: " + originBefore + "  after: " + originAfter);
+        System.out.println("fractionInside before: " + insideBefore + "  after: " + insideAfter);
+
+        // With the applyTranslation override the circle tracks the shape, so coverage is unchanged.
+        // Without it, the shape moves off the stale origin and coverage drops -> this assertion fails.
+        assertEquals("noise origin must track the shape through translation", insideBefore, insideAfter, 1e-9);
+    }
+
+    private ProceduralMatchStick generateSampleFromComponent(int size) {
+        ProceduralMatchStick base = newBase(size);
+        while (true) {
+            try {
+                ProceduralMatchStick candidate = new ProceduralMatchStick(noiseMapper);
+                candidate.PARAM_nCompDist = new double[]{0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+                candidate.setProperties(size, "SHADE", 1.0);
+                candidate.genMatchStickFromComponent(base, Collections.singletonList(1), 0, ProceduralMatchStick.maxAttempts);
+                return candidate;
+            } catch (Exception e) {
+                System.out.println("regen base/sample: " + e.getMessage());
+                base = newBase(size);
+            }
+        }
+    }
+
+    private ProceduralMatchStick newBase(int size) {
+        ProceduralMatchStick base = new ProceduralMatchStick(noiseMapper);
+        base.setProperties(size, "SHADE", 1.0);
+        base.genMatchStickRand();
+        base.setMaxAttempts(-1);
+        return base;
     }
 
     private double maxExtentOfInNoiseComps(ProceduralMatchStick mStick, List<Integer> compsToNoise) {
