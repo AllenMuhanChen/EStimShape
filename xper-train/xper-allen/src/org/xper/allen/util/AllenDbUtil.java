@@ -393,4 +393,20 @@ public class AllenDbUtil extends DbUtil {
                         "ON DUPLICATE KEY UPDATE is_sample_delta = ?, variant_id = ?",
                 new Object[] { stimId, isSampleDelta, variantId, isSampleDelta, variantId });
     }
+
+    /**
+     * Records the split-texture parameters for a trial so analysis can tell, beyond the
+     * {@code EStimShapeSplitTextureNAFCStim} stim type, whether the split cue was on the
+     * sample/match (target) or the foil (split_render_is_sample), which texture was the body
+     * vs. the cue (inverted_shading), and the contrast texture used.
+     */
+    public void writeSplitTextureParams(long stimId, boolean splitRenderIsSample, boolean invertedShading, String contrastTexture) {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        jt.execute("CREATE TABLE IF NOT EXISTS NafcSplitTextureParams (" +
+                "stim_id BIGINT PRIMARY KEY, split_render_is_sample BOOLEAN, inverted_shading BOOLEAN, contrast_texture VARCHAR(50))");
+        jt.update("INSERT INTO NafcSplitTextureParams (stim_id, split_render_is_sample, inverted_shading, contrast_texture) VALUES (?, ?, ?, ?) " +
+                        "ON DUPLICATE KEY UPDATE split_render_is_sample = ?, inverted_shading = ?, contrast_texture = ?",
+                new Object[] { stimId, splitRenderIsSample, invertedShading, contrastTexture,
+                        splitRenderIsSample, invertedShading, contrastTexture });
+    }
 }
