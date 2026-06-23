@@ -147,7 +147,10 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
         // user asking for "1 delta + 1 removed" with 2 deltas available could be misread as
         // needing 2 delta slots and trip the no-go check unnecessarily.
         int numRemovedSlots = includeRemovedChoice ? 1 : 0;
-        int numDeltaSlots = numProceduralDistractors - numRemovedSlots;
+        // The texture foil (same geometry as the match) occupies its own slot, injected in
+        // preWrite, so it reduces how many delta distractors we generate here.
+        int numFoilSlots = hasTextureFoil() ? 1 : 0;
+        int numDeltaSlots = numProceduralDistractors - numRemovedSlots - numFoilSlots;
 
         if (numDeltaSlots < 0) {
             throw new IllegalStateException("includeRemovedChoice requires at least 1 procedural distractor slot for the removed choice, but numProceduralDistractors=" + numProceduralDistractors + ". Increase numChoices or reduce numRandDistractors.");
@@ -188,7 +191,8 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
         labels.setMatch(new LinkedList<>(Arrays.asList("match")));
 
         int numRemovedSlots = includeRemovedChoice ? 1 : 0;
-        int numDeltaSlots = numProceduralDistractors - numRemovedSlots;
+        int numFoilSlots = hasTextureFoil() ? 1 : 0;
+        int numDeltaSlots = numProceduralDistractors - numRemovedSlots - numFoilSlots;
 
         // Mirror generateProceduralDistractors: removed first, then deltas.
         if (includeRemovedChoice) {
@@ -209,6 +213,11 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
         for (int i = 0; i < numDeltaSlots; i++) {
             String label = (isDelta && i > 0) ? "delta_distractor" : "delta";
             labels.addProceduralDistractor(new LinkedList<>(Arrays.asList(label)));
+        }
+
+        // Texture foil last, mirroring injectTextureFoilDistractor().
+        if (hasTextureFoil()) {
+            labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("textureFoil")));
         }
 
         for (int i = 0; i < numRandDistractors; i++) {

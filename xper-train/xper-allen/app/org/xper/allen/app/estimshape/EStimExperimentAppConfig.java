@@ -14,6 +14,7 @@ import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.nafc.blockgen.EStimShapeProceduralBehavioralGenType;
 import org.xper.allen.nafc.blockgen.procedural.EStimExperimentGenType;
+import org.xper.allen.nafc.blockgen.procedural.EStimExperimentSplitTextureGenType;
 import org.xper.allen.nafc.blockgen.procedural.EStimExperimentVariantOrDeltaGenType;
 import org.xper.allen.nafc.blockgen.procedural.EStimExperimentVariantsDeletedGenType;
 import org.xper.allen.nafc.blockgen.procedural.EStimExperimentVariantsDeltaGenType;
@@ -143,6 +144,8 @@ public class EStimExperimentAppConfig {
                 eStimExperimentVariantsDeltaGenType(),
                 eStimExperimentVariantsOnlyGenType(),
                 eStimExperimentDeltasOnlyGenType(),
+                eStimExperimentVariantSplitTextureGenType(),
+                eStimExperimentDeltaSplitTextureGenType(),
                 eStimExperimentVariantsDeletedGenType()
         ));
         gui.setDefaultStimType(proceduralAppConfig.proceduralRandGenType());
@@ -174,6 +177,22 @@ public class EStimExperimentAppConfig {
     @Bean
     public EStimExperimentVariantOrDeltaGenType eStimExperimentDeltasOnlyGenType() {
         EStimExperimentVariantOrDeltaGenType genType = new EStimExperimentVariantOrDeltaGenType();
+        genType.setGenerator(generator());
+        genType.setDelta(true);
+        return genType;
+    }
+
+    @Bean
+    public EStimExperimentSplitTextureGenType eStimExperimentVariantSplitTextureGenType() {
+        EStimExperimentSplitTextureGenType genType = new EStimExperimentSplitTextureGenType();
+        genType.setGenerator(generator());
+        genType.setDelta(false);
+        return genType;
+    }
+
+    @Bean
+    public EStimExperimentSplitTextureGenType eStimExperimentDeltaSplitTextureGenType() {
+        EStimExperimentSplitTextureGenType genType = new EStimExperimentSplitTextureGenType();
         genType.setGenerator(generator());
         genType.setDelta(true);
         return genType;
