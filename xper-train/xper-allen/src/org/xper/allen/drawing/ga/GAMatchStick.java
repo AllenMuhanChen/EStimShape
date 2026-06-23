@@ -267,7 +267,6 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
         centerRFAndScale(imageWidthMm, imageHeightMm);
         drawSkeleton(false);
         drawRF();
-        drawDisplayNoiseCircle();
         GL11.glPopMatrix();
     }
 
@@ -303,7 +302,11 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
         }
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         GL11.glLineWidth(2.0f);
-        GL11.glColor3f(1.0f, 0.0f, 0.0f);
+        // Red-orange, NOT pure red: the comp map draws component 1 in pure red (CompMapColors), so a
+        // pure-red ring would be indistinguishable from it. This distinct red-orange still reads as a
+        // red noise ring, and lets the curation GUI pick the ring out of the comp-map thumbnail
+        // unambiguously (R high, G mid, B low) to overlay it.
+        GL11.glColor3f(1.0f, 0.3f, 0.0f);
         GL11.glBegin(GL11.GL_LINE_LOOP);
         int numSegments = 100;
         for (int i = 0; i < numSegments; i++) {
