@@ -138,6 +138,11 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
         public boolean isEStimEnabled;
         public long eStimSpecId;
         public boolean includeRemovedChoice;
+        // Split-texture trial parameters (see SplitTextureConfig / EStimExperimentSplitTextureGenType).
+        // Defaults are inert for non-split trial types.
+        public boolean splitRenderIsSample;
+        public boolean invertedShading;
+        public String contrastTexture = "2D";
 
         public EStimExperimentGenParameters(GenParameters genParameters, int numDeltaTrialSets, long stimId, int compId, boolean isEStimEnabled, long eStimSpecId) {
             super(genParameters, numDeltaTrialSets);

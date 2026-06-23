@@ -351,7 +351,9 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
             mStickSpecs.addProceduralDistractor(mStickToSpec(removed));
             startIndex = 1;
         }
-        for (int i = startIndex; i < numProceduralDistractors; i++) {
+        // Reserve the last procedural slot for the same-geometry texture foil (injected in preWrite).
+        int endIndex = numProceduralDistractors - (hasTextureFoil() ? 1 : 0);
+        for (int i = startIndex; i < endIndex; i++) {
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick(noiseMapper);
             proceduralDistractor.setRf(rfSource.getReceptiveField());
             correctNoiseRadius(proceduralDistractor);
@@ -392,6 +394,8 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         for (int i = 0; i < numProceduralDistractors; i++) {
             if (i == 0 && includeRemovedChoice) {
                 labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("removed")));
+            } else if (hasTextureFoil() && i == numProceduralDistractors - 1) {
+                labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("textureFoil")));
             } else {
                 labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("procedural")));
             }
