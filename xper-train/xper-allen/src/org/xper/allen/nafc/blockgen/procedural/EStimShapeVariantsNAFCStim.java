@@ -272,7 +272,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
 
 
         sample.genMatchStickFromShapeSpec(baseStickSpec, new double[]{0,0,0});
-        noiseMapper.checkInNoise(sample, noiseComponentIndcs, 0.3);
+        noiseMapper.checkInNoise(sample, noiseComponentIndcs, 0.25);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));
 
@@ -302,6 +302,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         }
         for (int i = startIndex; i < numProceduralDistractors; i++) {
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick(noiseMapper);
+            proceduralDistractor.setRf(rfSource.getReceptiveField());
             correctNoiseRadius(proceduralDistractor);
             proceduralDistractor.setProperties(choiceSize, texture, is2D(), 1.0);
             proceduralDistractor.setStimColor(color);

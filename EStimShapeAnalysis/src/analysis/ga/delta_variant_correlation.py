@@ -81,7 +81,7 @@ def main():
     plot_delta_variant_correlation(
         session_id=session_id,
         ga_database=context.ga_database,
-        included_only=False,
+        included_only=True,
         top_n=20,
         experiment_id=experiment_id,
         scatter_color_by=SCATTER_COLOR_BY,

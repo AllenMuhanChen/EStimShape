@@ -119,7 +119,8 @@ public class PruningMatchStick extends ProceduralMatchStick {
                         doPositionShape,
                         doPreserveJunction,
                         doCheckObjCentPosition);
-                noiseMapper.checkInNoise(this, compsToPreserve, 0.3);
+                noiseMapper.checkInNoise(this, compsToPreserve, 0.25);
+                System.err.println("thrown in genPruningMatchStick: ");
                 System.out.println("success!");
                 return;
             } catch(Exception e) {

@@ -115,7 +115,7 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
 
         sample.genMatchStickFromShapeSpec(baseStickSpec, new double[]{0,0,0});
 
-        noiseMapper.checkInNoise(sample, noiseComponentIndcs, 0.3);
+        noiseMapper.checkInNoise(sample, noiseComponentIndcs, 0.25);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));
 
@@ -170,6 +170,7 @@ public class EStimShapeVariantsDeltaNAFCStim extends EStimShapeVariantsNAFCStim{
         for (int i = 0; i < numDeltaSlots; i++) {
             long specId = distractorMStickStimSpecIds.get(i).longValue();
             PruningMatchStick distractorMStick = new PruningMatchStick(noiseMapper);
+            distractorMStick.setRf(rfSource.getReceptiveField());
             correctNoiseRadius(distractorMStick);
             distractorMStick.setProperties(choiceSize, texture, is2D(), 1.0);
             distractorMStick.setStimColor(color);

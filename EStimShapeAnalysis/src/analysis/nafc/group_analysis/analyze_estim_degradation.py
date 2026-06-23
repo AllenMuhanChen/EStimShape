@@ -66,7 +66,7 @@ DEFAULT_ALGORITHM_LABEL = 'first_drop_w50_s5_t0_n2_m10'
 
 # Thresholds defining a "robust" (non-degraded) condition for the degraded-vs-robust
 # comparison: a condition with NO cutoff whose full-data effect clears these bars.
-DEFAULT_EFFECT_THRESHOLD = 15.0  # percentage points
+DEFAULT_EFFECT_THRESHOLD = 5  # percentage points
 DEFAULT_MIN_N = 10               # estim-on trials
 
 # Columns of the degradation / classification tables that are bookkeeping / metrics,

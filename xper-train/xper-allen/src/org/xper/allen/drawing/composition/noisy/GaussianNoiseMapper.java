@@ -36,7 +36,7 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
      * can obscure more of the shape than wanted.
      *
      */
-    private boolean doEnforceHiddenJunction = false;
+    private boolean doEnforceHiddenJunction = true;
 
     /*
     08/19/24 AC: These debugging variables were used to visualize the noise circle and the points that were used to check
@@ -120,8 +120,8 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
             } else{
                 debug_points_outside.add(new Point2d(point.getX(), point.getY()));
                 double error = Math.abs(point.distance(new Point2d(proceduralMatchStick.getNoiseOrigin().getX(), proceduralMatchStick.getNoiseOrigin().getY())) - proceduralMatchStick.noiseRadiusMm);
-                System.out.println("OUTSIDE: " + point.getX() + ", " + point.getY()
-                        + " with error: " + error);
+//                System.out.println("OUTSIDE: " + point.getX() + ", " + point.getY()
+//                        + " with error: " + error);
             }
         }
         //TODO: potential improvement: we could replace the mechanism for this by somehow identifying points in the junction itself
@@ -129,7 +129,7 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
         double percentRequiredInside = 0.95;
         double actualPercentageInside = (double) numPointsInside / pointsToCheck.size();
         if (actualPercentageInside < percentRequiredInside){
-//            throw new NoiseException("Found points outside of noise circle: " + actualPercentageInside + "% inside + with noise Radius: " + proceduralMatchStick.noiseRadiusMm);
+            throw new NoiseException("Found points outside of noise circle: " + actualPercentageInside + "% inside + with noise Radius: " + proceduralMatchStick.noiseRadiusMm);
         }
         System.out.println("PERCENT REQUIRED INSIDE: " + percentRequiredInside);
         System.out.println("ACTUAL PERCENT INSIDE: " + actualPercentageInside);
@@ -194,16 +194,23 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
                 }
             }
         } else if (compsToBeInNoise.size() == 2){
-//            int baseCompId = -1;
-//            for (int i = 1; i<= proceduralMatchStick.getnComponent(); i++){
-//                if (!compsToBeInNoise.contains(i)){
-//                    baseCompId = i;
-//                }
-//            }
-            int baseCompId = compsToBeInNoise.get(1);
+            int baseCompId = -1;
+
+            for (JuncPt_struct junc : proceduralMatchStick.getJuncPt()) {
+                if (junc!= null){
+                    for (int toNoiseCompId : compsToBeInNoise){
+                        int potentialBaseComp = ProceduralMatchStick.findBaseCompId(toNoiseCompId, junc);
+                        if (!compsToBeInNoise.contains(potentialBaseComp)){
+                            baseCompId = potentialBaseComp;
+                        }
+                    }
+                }
+            }
+
 
             for (JuncPt_struct junc : proceduralMatchStick.getJuncPt()) {
                 if (junc != null) {
+
                     int finalBaseCompId = baseCompId;
                     int numMatch = Arrays.stream(junc.getCompIds()).filter(new IntPredicate() {
                         @Override

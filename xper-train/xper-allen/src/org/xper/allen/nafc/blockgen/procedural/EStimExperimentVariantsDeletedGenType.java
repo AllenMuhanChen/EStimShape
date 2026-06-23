@@ -18,7 +18,7 @@ public class EStimExperimentVariantsDeletedGenType extends EStimExperimentVarian
 
     @Override
     public String getLabel() {
-        return "EStimExperimentDeletedVariants";
+        return "EStimExperimentRemovedVariants";
     }
 
     @Override

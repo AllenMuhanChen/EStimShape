@@ -293,7 +293,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
      */
     protected void correctNoiseRadius(ProceduralMatchStick proceduralDistractor) {
         double scaleFactor = generator.getImageDimensionsDegrees() / RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, rfSource.getRFRadiusDegrees());
-        proceduralDistractor.noiseRadiusMm = rfSource.getRFRadiusMm() * scaleFactor;
+        proceduralDistractor.noiseRadiusMm = proceduralDistractor.noiseRadiusMm * scaleFactor;
     }
 
     @Override

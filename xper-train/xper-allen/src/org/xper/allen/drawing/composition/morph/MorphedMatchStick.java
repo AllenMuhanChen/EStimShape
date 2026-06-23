@@ -4,6 +4,7 @@ import org.jzy3d.plot3d.pipelines.NotImplementedException;
 import org.xper.allen.drawing.composition.AllenMAxisArc;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenTubeComp;
+import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.util.CoordinateConverter;
 import org.xper.drawing.stick.EndPt_struct;
 import org.xper.drawing.stick.JuncPt_struct;
@@ -75,7 +76,6 @@ public class MorphedMatchStick extends AllenMatchStick {
 
                 //TODO: expand to also store and check more than one compsToMorph
 
-
                 morphAllComponents(morphParametersForComponents);
 //                MutateSUB_reAssignJunctionRadius();
                 centerShape();
@@ -86,7 +86,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                     positionShape();
                 }
 
-                if (this.compareObjectCenteredPosition){
+                if (this.compareObjectCenteredPosition) {
                     int compIndxToPreserve = compsToPreserve.get(0);
                     CoordinateConverter.SphericalCoordinates originalObjCenteredPos = calcObjCenteredPosForComp(matchStickToMorph, compIndxToPreserve);
 
@@ -94,6 +94,9 @@ public class MorphedMatchStick extends AllenMatchStick {
                     compareObjectCenteredPositions(originalObjCenteredPos, newDrivingObjectCenteredPos, objCenteredPositionTolerance);
                 }
                 return;
+            } catch (ProceduralMatchStick.MorphRepetitionException re){
+                System.err.println("Caught morph repetition exception: " + re.getMessage());
+                throw re;
             } catch (Exception e) {
                 cleanData();
                 this.setObj1(null);
@@ -105,7 +108,7 @@ public class MorphedMatchStick extends AllenMatchStick {
             }
         }
         if (numAttempts >= getMaxTotalAttempts()) {
-            throw new MorphException("Failed to morph matchstick after " + getMaxTotalAttempts() + " attempts.");
+            throw new ProceduralMatchStick.MorphRepetitionException("Failed to morph matchstick after " + getMaxTotalAttempts() + " attempts.");
         }
     }
 
@@ -393,7 +396,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 numAttempts++;
             }
         }
-        throw new MorphException("Did not successfully morph component " + componentIndex + " after " + NUM_ATTEMPTS_PER_COMPONENT + " attempts.");
+        throw new ProceduralMatchStick.MorphRepetitionException("Did not successfully morph component " + componentIndex + " after " + NUM_ATTEMPTS_PER_COMPONENT + " attempts.");
     }
 
     private void morphComponent(int id, ComponentMorphParameters morphParams) throws MorphException{

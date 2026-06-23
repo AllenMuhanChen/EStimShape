@@ -99,7 +99,7 @@ public class EStimShapeVariantsDeletedNAFCStim extends EStimShapeVariantsNAFCSti
 
         // Compute noise origin from the intact variant. checkInNoise both validates and
         // populates variantMStick.noiseOrigin; we reuse that on the deleted sample below.
-        noiseMapper.checkInNoise(variantMStick, noiseComponentIndcs, 0.3);
+        noiseMapper.checkInNoise(variantMStick, noiseComponentIndcs, 0.25);
         Point3d variantNoiseOrigin = variantMStick.getNoiseOrigin();
 
         // Pick a positioning anchor: the first variant component that isn't being deleted.
@@ -190,6 +190,7 @@ public class EStimShapeVariantsDeletedNAFCStim extends EStimShapeVariantsNAFCSti
 
     private PruningMatchStick buildChoiceFromSpec(long specId) {
         PruningMatchStick choice = new PruningMatchStick(noiseMapper);
+        choice.setRf(rfSource.getReceptiveField());
         correctNoiseRadius(choice);
         choice.setProperties(choiceSize, texture, is2D(), 1.0);
         choice.setStimColor(color);

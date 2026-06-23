@@ -1237,7 +1237,7 @@ class PenetrationLFPAnalysis:
 
         print("Saving metrics to allen_data_repository ...")
         try:
-            save_tip_start(self.session_id, self.tip_start_mm)
+            # save_tip_start(self.session_id, self.tip_start_mm)
             save_to_repository(
                 self.session_id, bin_depths, normalized,
                 b_fits, b_spike, b_polarity, b_peak_count, b_ttp, b_amp,

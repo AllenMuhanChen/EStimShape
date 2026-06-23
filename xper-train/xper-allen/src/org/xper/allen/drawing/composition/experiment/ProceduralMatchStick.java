@@ -48,7 +48,7 @@ public class ProceduralMatchStick extends GAMatchStick {
     }
 
     protected void setNoiseRadiusRelativeToRF(ReceptiveField rf) {
-        this.noiseRadiusMm = rf.getRadius()*4;
+        this.noiseRadiusMm = rf.getRadius()*16;
     }
 
     /**
@@ -205,6 +205,7 @@ public class ProceduralMatchStick extends GAMatchStick {
         int numAttempts = 0;
         while ((numAttempts < maxAttempts || maxAttempts == -1)) {
             try {
+                numAttempts++;
                 genMorphedComponentsMatchStick(morphParametersForComponents, baseMatchStick, doPositionShape, null, null);
 
                 boolean checkNoise = true;
@@ -213,21 +214,26 @@ public class ProceduralMatchStick extends GAMatchStick {
                         inNoiseComponentIndcs = morphComponentIndcs;
                     }
 
-                    noiseMapper.checkInNoise(this, inNoiseComponentIndcs, 0.3);
+                    noiseMapper.checkInNoise(this, inNoiseComponentIndcs, 0.25);
                 }
                 if (this.maxDiameterDegrees != null) {
                     centerShape();
                     checkMStickFitsInPNG(maxDiameterDegrees);
                     positionShape();
                 }
-            } catch(MorphException e) {
+
+            }
+            catch (MorphRepetitionException re){
+//                System.out.println("If we get stuck here, comment out continue and put throw back in");
+//                continue;
+                throw re;
+            }
+            catch(MorphException e) {
                 System.out.println(e.getMessage());
                 continue;
             } catch (NoiseException ne) {
                 System.out.println(ne.getMessage());
                 continue;
-            }finally{
-                numAttempts++;
             }
             break;
         }
@@ -275,7 +281,7 @@ public class ProceduralMatchStick extends GAMatchStick {
             }
 
             try {
-                this.noiseMapper.checkInNoise(this, compsToNoise, 0.3);
+                this.noiseMapper.checkInNoise(this, compsToNoise, 0.25);
             } catch (Exception e) {
                 if (noiseDebugMode){
                     return;
