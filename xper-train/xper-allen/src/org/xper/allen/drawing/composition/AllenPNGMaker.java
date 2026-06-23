@@ -69,6 +69,27 @@ public class AllenPNGMaker{
 		return window.drawThumbnail(obj, stimObjId, labels);
 	}
 
+	/**
+	 * Renders a match stick whose chosen components are drawn in {@code partTexture} and all
+	 * other components in {@code baseTexture} (e.g. base SHADE with a few 2D limbs), then
+	 * saves the composited result.
+	 *
+	 * <p>The shape is rendered three times from the identical pose — once all-{@code baseTexture},
+	 * once all-{@code partTexture}, and once as a component-ID map — and combined per pixel by
+	 * {@link LimbTextureCompositor}. See that class for why this is seamless and
+	 * occlusion-correct.
+	 *
+	 * @param partComponents 1-indexed component numbers to draw in {@code partTexture}
+	 */
+	public String createAndSavePartTexturePNG(AllenMatchStick obj, Long stimObjId, List<String> labels,
+											   String destinationFolder, String baseTexture, String partTexture,
+											   java.util.Set<Integer> partComponents) {
+		window.setImageFolderName(destinationFolder);
+		window.setBackgroundColor(backColor.getRed(), backColor.getGreen(), backColor.getGreen());
+		System.out.println("creating and saving part-texture PNG...");
+		return window.drawPartTextureStimulus(obj, stimObjId, labels, baseTexture, partTexture, partComponents);
+	}
+
 	public String createAndSaveCompMap(AllenMatchStick obj, Long stimObjId, List<String> labels, String destinationFolder) {
 		window.setImageFolderName(destinationFolder);
 		window.setBackgroundColor(backColor.getRed(), backColor.getGreen(), backColor.getGreen());
@@ -253,7 +274,47 @@ public class AllenPNGMaker{
 		}
 	}
 
+	/**
+	 * Saves an already-built {@link BufferedImage} (e.g. a composite of several renders)
+	 * using the same path/label convention as the frame-buffer {@code saveImage} methods.
+	 */
+	public static String saveImage(BufferedImage image, long stimObjId, List<String> labels, String imageFolderName) {
+		String path = imageFolderName + "/" + stimObjId;
+		for (String str:labels) {
+			if(!str.isEmpty())
+				path=path+"_"+str;
+		}
+		path=path+".png";
+
+		try {
+			javax.imageio.ImageIO.write(image, "png", new java.io.File(path));
+			return path;
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+			return "Error: No Path";
+		}
+	}
+
 	public static byte[] screenShotBinary(int width, int height)
+	{
+		try {
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			javax.imageio.ImageIO.write(captureFrame(width, height), "png", out);
+			return out.toByteArray();
+		}
+		catch (Exception e) {
+			System.out.println("screenShot(): exception " + e);
+			return null;
+		}
+	}
+
+	/**
+	 * Reads the current OpenGL frame buffer into an ARGB {@link BufferedImage} (instead of
+	 * encoding it straight to PNG bytes). Used when a frame needs further processing in
+	 * memory, e.g. compositing several renders together before saving.
+	 */
+	public static BufferedImage captureFrame(int width, int height)
 	{
 		ByteBuffer framebytes = allocBytes(width * height * 3);
 
@@ -275,20 +336,9 @@ public class AllenPNGMaker{
 		// flip the pixels vertically (opengl has 0,0 at lower left, java is upper left)
 		pixels = GLImage.flipPixels(pixels, width, height);
 
-		try {
-			ByteArrayOutputStream out = new ByteArrayOutputStream();
-			BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-			image.setRGB(0, 0, width, height, pixels, 0, width);
-
-			javax.imageio.ImageIO.write(image, "png", out);
-			byte[] data = out.toByteArray();
-
-			return data;
-		}
-		catch (Exception e) {
-			System.out.println("screenShot(): exception " + e);
-			return null;
-		}
+		BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+		image.setRGB(0, 0, width, height, pixels, 0, width);
+		return image;
 	}
 
 	public static ByteBuffer allocBytes(int howmany) {

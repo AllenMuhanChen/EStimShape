@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.PixelFormat;
@@ -302,6 +303,65 @@ public class AllenDrawingManager implements Drawable {
 
 		window.swapBuffers();
 		return pngMaker.saveImage(stimObjId, labels, height, width, imageFolderName);
+	}
+
+	/**
+	 * Renders {@code obj} three times from the same pose — once all in {@code baseTexture},
+	 * once all in {@code partTexture}, and once as a component-ID map — then composites them
+	 * so that {@code partComponents} are drawn in {@code partTexture} and the rest in
+	 * {@code baseTexture}. See {@link LimbTextureCompositor}.
+	 */
+	public String drawPartTextureStimulus(final AllenMatchStick obj, Long stimObjId, List<String> labels,
+										   final String baseTexture, final String partTexture,
+										   Set<Integer> partComponents) {
+		ThreadUtil.sleep(100);
+		final String originalTexture = obj.getTextureType();
+
+		BufferedImage baseImage = renderFrame(new Drawable() {
+			@Override
+			public void draw() {
+				obj.setTextureType(baseTexture);
+				obj.draw();
+			}
+		});
+		BufferedImage partImage = renderFrame(new Drawable() {
+			@Override
+			public void draw() {
+				obj.setTextureType(partTexture);
+				obj.draw();
+			}
+		});
+		BufferedImage compMap = renderFrame(new Drawable() {
+			@Override
+			public void draw() {
+				obj.drawCompMap();
+			}
+		});
+
+		obj.setTextureType(originalTexture);
+
+		BufferedImage composite = new LimbTextureCompositor().compose(
+				baseImage, partImage, compMap,
+				CompMapColors.paletteFor(obj.getnComponent()), partComponents);
+
+		return pngMaker.saveImage(composite, stimObjId, labels, imageFolderName);
+	}
+
+	/**
+	 * Clears the buffer, runs one draw through the renderer, swaps, and reads the result
+	 * back as a {@link BufferedImage}. Used to capture each pass of a multi-pass render.
+	 */
+	private BufferedImage renderFrame(final Drawable drawable) {
+		GL11.glClearColor(r_bkgrd, g_bkgrd, b_bkgrd, 1);
+		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
+		renderer.draw(new Drawable() {
+			@Override
+			public void draw() {
+				drawable.draw();
+			}
+		});
+		window.swapBuffers();
+		return AllenPNGMaker.captureFrame(width, height);
 	}
 
 	/**
