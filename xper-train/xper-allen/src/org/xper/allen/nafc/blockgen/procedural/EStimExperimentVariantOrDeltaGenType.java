@@ -70,17 +70,34 @@ public class EStimExperimentVariantOrDeltaGenType extends EStimExperimentVariant
         for (int i = 0; i < numTrials; i++) {
             long variantId = parameters.stimId == 0 ? assignedVariantIds.get(i) : parameters.stimId;
 
-            EStimShapeVariantsNAFCStim stim = new EStimShapeVariantsDeltaNAFCStim(
+            EStimShapeVariantsNAFCStim stim = createVariantOnlyStim(
                     (EStimShapeExperimentTrialGenerator) generator,
                     parameters.getProceduralStimParameters(),
                     variantId,
-                    false,
                     parameters.isEStimEnabled,
                     parameters.eStimSpecId);
             stim.setIncludeRemovedChoice(parameters.includeRemovedChoice);
             newBlock.add(stim);
         }
         return newBlock;
+    }
+
+    /**
+     * Creates the stim for a variant-only trial. Overridable so subclasses (e.g. split-texture)
+     * can substitute a different concrete {@link org.xper.allen.nafc.NAFCStim} class.
+     */
+    protected EStimShapeVariantsNAFCStim createVariantOnlyStim(EStimShapeExperimentTrialGenerator generator,
+            ProceduralStim.ProceduralStimParameters parameters, long variantId, boolean isEStimEnabled, Long eStimSpecId) {
+        return new EStimShapeVariantsDeltaNAFCStim(generator, parameters, variantId, false, isEStimEnabled, eStimSpecId);
+    }
+
+    /**
+     * Creates the stim for a delta-only trial (sample is a specific delta). Overridable like
+     * {@link #createVariantOnlyStim}.
+     */
+    protected EStimShapeVariantsNAFCStim createDeltaOnlyStim(EStimShapeExperimentTrialGenerator generator,
+            ProceduralStim.ProceduralStimParameters parameters, long variantId, long sampleDeltaId, boolean isEStimEnabled, Long eStimSpecId) {
+        return new EStimShapeVariantsDeltaNAFCStim(generator, parameters, variantId, Long.valueOf(sampleDeltaId), isEStimEnabled, eStimSpecId);
     }
 
     /**
@@ -138,11 +155,11 @@ public class EStimExperimentVariantOrDeltaGenType extends EStimExperimentVariant
             long variantId = pair[0];
             long sampleDeltaId = pair[1];
 
-            EStimShapeVariantsNAFCStim stim = new EStimShapeVariantsDeltaNAFCStim(
+            EStimShapeVariantsNAFCStim stim = createDeltaOnlyStim(
                     (EStimShapeExperimentTrialGenerator) generator,
                     parameters.getProceduralStimParameters(),
                     variantId,
-                    Long.valueOf(sampleDeltaId),
+                    sampleDeltaId,
                     parameters.isEStimEnabled,
                     parameters.eStimSpecId);
             stim.setIncludeRemovedChoice(parameters.includeRemovedChoice);

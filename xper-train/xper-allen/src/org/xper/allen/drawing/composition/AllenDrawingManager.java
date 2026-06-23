@@ -314,13 +314,27 @@ public class AllenDrawingManager implements Drawable {
 	public String drawPartTextureStimulus(final AllenMatchStick obj, Long stimObjId, List<String> labels,
 										   final String baseTexture, final String partTexture,
 										   Set<Integer> partComponents) {
+		return drawPartTextureStimulus(obj, stimObjId, labels, baseTexture, partTexture, partComponents, null, null);
+	}
+
+	/**
+	 * As above, but renders each texture pass in a specified color. A null color means "use the
+	 * shape's existing color". This lets a 2D pass use a luminance-matched flat color (e.g. the
+	 * underlying average RGB) while the 3D pass keeps the normal color.
+	 */
+	public String drawPartTextureStimulus(final AllenMatchStick obj, Long stimObjId, List<String> labels,
+										   final String baseTexture, final String partTexture,
+										   Set<Integer> partComponents,
+										   final RGBColor baseColor, final RGBColor partColor) {
 		ThreadUtil.sleep(100);
 		final String originalTexture = obj.getTextureType();
+		final RGBColor originalColor = obj.getStimColor();
 
 		BufferedImage baseImage = renderFrame(new Drawable() {
 			@Override
 			public void draw() {
 				obj.setTextureType(baseTexture);
+				obj.setStimColor(baseColor != null ? baseColor : originalColor);
 				obj.draw();
 			}
 		});
@@ -328,6 +342,7 @@ public class AllenDrawingManager implements Drawable {
 			@Override
 			public void draw() {
 				obj.setTextureType(partTexture);
+				obj.setStimColor(partColor != null ? partColor : originalColor);
 				obj.draw();
 			}
 		});
@@ -339,6 +354,7 @@ public class AllenDrawingManager implements Drawable {
 		});
 
 		obj.setTextureType(originalTexture);
+		obj.setStimColor(originalColor);
 
 		BufferedImage composite = new LimbTextureCompositor().compose(
 				baseImage, partImage, compMap,

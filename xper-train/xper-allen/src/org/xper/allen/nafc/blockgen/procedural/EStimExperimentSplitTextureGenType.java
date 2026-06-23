@@ -1,9 +1,8 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
-import org.xper.allen.nafc.NAFCStim;
+import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
 
 import javax.swing.*;
-import java.util.List;
 
 /**
  * "Split texture" variant/delta NAFC trials: the hypothesized limb of the shape is rendered
@@ -25,6 +24,9 @@ public class EStimExperimentSplitTextureGenType extends EStimExperimentVariantOr
     protected JTextField invertedShadingField;
     protected JTextField contrastTextureField;
 
+    /** Config for the block currently being generated; set at the start of {@link #readFromFields()}. */
+    private SplitTextureConfig currentConfig = new SplitTextureConfig(null, false, true);
+
     @Override
     public String getLabel() {
         return isDelta() ? "EStimExperimentDeltaSplitTexture" : "EStimExperimentVariantSplitTexture";
@@ -36,18 +38,21 @@ public class EStimExperimentSplitTextureGenType extends EStimExperimentVariantOr
         params.splitRenderIsSample = Boolean.parseBoolean(splitRenderIsSampleField.getText());
         params.invertedShading = Boolean.parseBoolean(invertedShadingField.getText());
         params.contrastTexture = contrastTextureField.getText();
+        currentConfig = new SplitTextureConfig(
+                params.contrastTexture, params.invertedShading, params.splitRenderIsSample);
         return params;
     }
 
     @Override
-    protected List<NAFCStim> genTrials(EStimExperimentGenType.EStimExperimentGenParameters parameters) {
-        List<NAFCStim> block = super.genTrials(parameters);
-        SplitTextureConfig config = new SplitTextureConfig(
-                parameters.contrastTexture, parameters.invertedShading, parameters.splitRenderIsSample);
-        for (NAFCStim stim : block) {
-            ((EStimShapeProceduralStim) stim).setSplitTextureConfig(config);
-        }
-        return block;
+    protected EStimShapeVariantsNAFCStim createVariantOnlyStim(EStimShapeExperimentTrialGenerator generator,
+            ProceduralStim.ProceduralStimParameters parameters, long variantId, boolean isEStimEnabled, Long eStimSpecId) {
+        return new EStimShapeSplitTextureNAFCStim(generator, parameters, variantId, false, isEStimEnabled, eStimSpecId, currentConfig);
+    }
+
+    @Override
+    protected EStimShapeVariantsNAFCStim createDeltaOnlyStim(EStimShapeExperimentTrialGenerator generator,
+            ProceduralStim.ProceduralStimParameters parameters, long variantId, long sampleDeltaId, boolean isEStimEnabled, Long eStimSpecId) {
+        return new EStimShapeSplitTextureNAFCStim(generator, parameters, variantId, Long.valueOf(sampleDeltaId), isEStimEnabled, eStimSpecId, currentConfig);
     }
 
     @Override
