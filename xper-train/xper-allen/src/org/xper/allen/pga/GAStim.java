@@ -7,6 +7,8 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphData;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
+import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
 import org.xper.allen.drawing.composition.noisy.NoiseCircle;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.stimproperty.*;
@@ -334,6 +336,53 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
             return null;
         }
         return new NoiseCircle(mStick.getNoiseOrigin(), mStick.noiseRadiusMm);
+    }
+
+    /** The inside-fraction an owner's circle (and a delta's parent limb) must reach. Tunable: 1.0
+     * requires the whole limb hidden; lower it if 100%-inside makes generation retry too often. */
+    protected static final double OWNER_CIRCLE_TARGET_INSIDE = 1.0;
+
+    /** Snapshot of the shared mapper's owner-optimization settings, for restore after generation. */
+    protected static class NoiseOptState {
+        final boolean optimize;
+        final double target;
+        final double required;
+        NoiseOptState(boolean optimize, double target, double required) {
+            this.optimize = optimize;
+            this.target = target;
+            this.required = required;
+        }
+    }
+
+    /**
+     * Switch the shared noise mapper into "owner" mode for the duration of this stim's generation: the
+     * circle is placed by the smallest-shift search that hides the whole limb (target/required inside =
+     * OWNER_CIRCLE_TARGET_INSIDE). Returns the previous settings (or null for a non-Gaussian mapper) so
+     * the caller MUST restore them in a finally - the mapper is shared with NAFC and other paths.
+     */
+    protected NoiseOptState beginOwnerCircleOptimization() {
+        NAFCNoiseMapper mapper = generator.getNoiseMapper();
+        if (!(mapper instanceof GaussianNoiseMapper)) {
+            return null;
+        }
+        GaussianNoiseMapper gm = (GaussianNoiseMapper) mapper;
+        NoiseOptState prev = new NoiseOptState(
+                gm.isOptimizeShiftToHideComps(), gm.getTargetInsideFraction(), gm.getPercentRequiredInside());
+        gm.setOptimizeShiftToHideComps(true);
+        gm.setTargetInsideFraction(OWNER_CIRCLE_TARGET_INSIDE);
+        gm.setPercentRequiredInside(OWNER_CIRCLE_TARGET_INSIDE);
+        return prev;
+    }
+
+    protected void endOwnerCircleOptimization(NoiseOptState prev) {
+        NAFCNoiseMapper mapper = generator.getNoiseMapper();
+        if (prev == null || !(mapper instanceof GaussianNoiseMapper)) {
+            return;
+        }
+        GaussianNoiseMapper gm = (GaussianNoiseMapper) mapper;
+        gm.setOptimizeShiftToHideComps(prev.optimize);
+        gm.setTargetInsideFraction(prev.target);
+        gm.setPercentRequiredInside(prev.required);
     }
 
     protected T createRandMStick() {

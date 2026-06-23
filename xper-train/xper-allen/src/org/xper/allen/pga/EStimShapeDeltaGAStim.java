@@ -3,7 +3,9 @@ package org.xper.allen.pga;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.xper.allen.drawing.composition.experiment.PositioningStrategy;
+import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 
 import javax.vecmath.Point3d;
 import java.sql.ResultSet;
@@ -287,13 +289,19 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
 
 
 
-        // Generate child
+        // Generate child. Owner mode: place the noise circle with the smallest-shift search that hides
+        // the whole mutated limb. Restore the shared mapper afterward (used by NAFC/other paths too).
         // Magnitude is decided by Python (passed in as a parameter); discreteness is still
         // chosen randomly here (Python ignores it for now).
         Random random = new Random();
         double discreteness = random.nextDouble();
-        childMStick.genNewComponentsMatchStick(parentMStick, compsToMutateInParent, magnitude, discreteness,
-                true, 15, compsToMutateInParent);
+        NoiseOptState prevNoiseOpt = beginOwnerCircleOptimization();
+        try {
+            childMStick.genNewComponentsMatchStick(parentMStick, compsToMutateInParent, magnitude, discreteness,
+                    true, 15, compsToMutateInParent);
+        } finally {
+            endOwnerCircleOptimization(prevNoiseOpt);
+        }
 
         // Save data for this stimulus. Position still anchors on a PRESERVED comp (the changed one
         // has new geometry and would drag the shape around).
@@ -320,10 +328,24 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
         );
 
         // This delta owns the shared noise circle (computed during generation, tracked through
-        // positioning by the applyTranslation override). Validating that it also hides the parent's
-        // corresponding limb - and switching the owner generation to the smallest-shift optimizer -
-        // is wired in a later step.
+        // positioning by the applyTranslation override).
         noiseCircle = captureNoiseCircle(childMStick);
+
+        // The same circle must also hide the parent's corresponding limb, so the variant and this
+        // delta can share one circle in the NAFC trial. The child was positioned so its preserved
+        // comp aligns to the parent's, putting both in a common frame, so we can check the parent's
+        // mutated-in-child comps against the child's circle directly. If it can't hide them, reject
+        // this delta -> writeStim() retries with a different comp choice.
+        if (noiseCircle != null && generator.getNoiseMapper() instanceof GaussianNoiseMapper) {
+            GaussianNoiseMapper gm = (GaussianNoiseMapper) generator.getNoiseMapper();
+            double parentInside = gm.fractionInside(
+                    parentMStick, compsToMutateInParent, noiseCircle.getOrigin(), noiseCircle.getRadiusMm());
+            if (parentInside < OWNER_CIRCLE_TARGET_INSIDE) {
+                throw new MorphedMatchStick.MorphException(
+                        "Delta noise circle does not hide the parent's limb (" + parentInside
+                                + " inside, need " + OWNER_CIRCLE_TARGET_INSIDE + "); regenerating");
+            }
+        }
 
         return childMStick;
     }
