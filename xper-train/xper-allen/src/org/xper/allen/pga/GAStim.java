@@ -39,6 +39,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected final HypothesizedCompManager hypothesizedCompManager;
     protected final StimTypePropertyManager stimTypeManager;
     protected final NoiseCirclePropertyManager noiseCircleManager;
+    protected final SharedNoiseCircleManager sharedNoiseCircleManager;
 
     protected Long stimId;
     protected String textureType;
@@ -87,6 +88,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         hypothesizedCompManager = new HypothesizedCompManager(jdbcTemplate);
         stimTypeManager = new StimTypePropertyManager(jdbcTemplate);
         noiseCircleManager = new NoiseCirclePropertyManager(jdbcTemplate);
+        sharedNoiseCircleManager = new SharedNoiseCircleManager(jdbcTemplate);
     }
 
     /**
@@ -114,6 +116,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         hypothesizedCompManager = new HypothesizedCompManager(jdbcTemplate);
         stimTypeManager = new StimTypePropertyManager(jdbcTemplate);
         noiseCircleManager = new NoiseCirclePropertyManager(jdbcTemplate);
+        sharedNoiseCircleManager = new SharedNoiseCircleManager(jdbcTemplate);
     }
 
     @Override

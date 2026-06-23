@@ -24,10 +24,11 @@ import static org.junit.Assert.assertTrue;
  * stim - so size, RF, position, the noise mapper and the parent spec are all read from the DB exactly
  * as production does (see {@link GAStimTest} for the same context-booting pattern).
  *
- * The real createMStick() now (a) computes the delta's circle with the smallest-shift owner optimizer
- * and (b) rejects the delta unless that same circle also hides the parent's corresponding limb. So if
- * createMStick() returns without throwing, the shared-circle rule held for this parent; we then
- * re-confirm the delta's own limb is fully inside the stored circle.
+ * The real createMStick() now anchors ONE shared circle on the PARENT's hypothesized component (the
+ * smallest-shift placement that hides it), keyed by (parent_id, comp-set) so every delta of this
+ * parent mutating the same comp(s) reuses it; the delta is then generated to fit that fixed circle,
+ * retrying morphs and skipping if none fit. So if createMStick() returns without throwing, a delta was
+ * found that fits the parent-anchored circle; we then re-confirm its mutated limb is fully inside it.
  *
  * Set {@link #PARENT_ID} to the stim you want to make a delta from.
  */
