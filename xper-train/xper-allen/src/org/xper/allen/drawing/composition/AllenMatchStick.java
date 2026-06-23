@@ -729,17 +729,7 @@ public class AllenMatchStick extends MatchStick {
 		int i;
 		if (showComponents)
 			for (i=1; i<=getnComponent(); i++) {
-				float[][] colorCode= {
-						{1.0f, 1.0f, 1.0f},
-						{1.0f, 0.0f, 0.0f},
-						{0.0f, 1.0f, 0.0f},
-						{0.0f, 0.0f, 1.0f},
-						{0.0f, 1.0f, 1.0f},
-						{1.0f, 0.0f, 1.0f},
-						{1.0f, 1.0f, 0.0f},
-						{0.4f, 0.1f, 0.6f}
-				};
-				getComp()[i].drawSurfPt(colorCode[i-1],getScaleForMAxisShape(), massCenter);
+				getComp()[i].drawSurfPt(CompMapColors.colorFor(i),getScaleForMAxisShape(), massCenter);
 
 			}
 		else
