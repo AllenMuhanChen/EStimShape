@@ -61,7 +61,7 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
      *
      * Defaults to false so production behavior is unchanged.
      */
-    private boolean debugMode = true;
+    private boolean debugMode = false;
 
     // Captured during the most recent noise-origin computation when debugMode is true.
     public Point3d debug_junctionPosition;       // junc.getPos() in raw mAxis space (NOT where the junction visually is)
