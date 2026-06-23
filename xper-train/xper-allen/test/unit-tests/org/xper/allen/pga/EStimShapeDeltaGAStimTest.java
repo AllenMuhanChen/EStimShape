@@ -34,7 +34,7 @@ import static org.junit.Assert.assertTrue;
 public class EStimShapeDeltaGAStimTest {
 
     /** The existing stim to make a delta out of. */
-    private static final long PARENT_ID = 1782150336038420L;
+    private static final long PARENT_ID = 1782151044785062L;
     /** Any unused id for the generated delta. */
     private static final long DELTA_STIM_ID = 999999L;
     /** Mutation magnitude (Python passes this in production). */

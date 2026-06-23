@@ -342,7 +342,7 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
                     parentMStick, compsToMutateInParent, noiseCircle.getOrigin(), noiseCircle.getRadiusMm());
             if (parentInside < OWNER_CIRCLE_TARGET_INSIDE) {
                 throw new MorphedMatchStick.MorphException(
-                        "Delta noise circle does not hide the parent's limb (" + parentInside
+                        "Delta noise circle does not hide the parent's limb " +  compsToMutateInParent + "(" + parentInside
                                 + " inside, need " + OWNER_CIRCLE_TARGET_INSIDE + "); regenerating");
             }
         }
