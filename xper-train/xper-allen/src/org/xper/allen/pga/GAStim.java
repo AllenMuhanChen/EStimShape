@@ -184,6 +184,13 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         }
 
 
+        // Overlay the shared noise circle (in red) on the comp-map and skeleton thumbnails so the
+        // noise region is visible in the curation GUI. Set on the final (possibly useAverageRGB-
+        // rebuilt) mStick, which is a plain GAMatchStick that carries no noiseOrigin of its own.
+        if (noiseCircle != null && mStick != null) {
+            mStick.setDisplayNoiseCircle(noiseCircle);
+        }
+
         saveMStickSpec(mStick);
         drawCompMaps(mStick);
         String pngPath = drawPngs(mStick);

@@ -5,6 +5,7 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.experiment.PositioningStrategy;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
+import org.xper.allen.drawing.composition.noisy.NoiseCircle;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 import org.xper.allen.util.CoordinateConverter;
@@ -26,6 +27,15 @@ import java.util.*;
  */
 public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
 
+    // Optional shared noise circle to overlay (in red) on this shape's comp-map and skeleton
+    // thumbnails, so the noise region is visible in the curation GUI. Null = draw nothing. Set by
+    // GAStim after generation; carried here (not on ProceduralMatchStick) because the useAverageRGB
+    // path rebuilds the drawn mStick as a plain GAMatchStick that has no noiseOrigin of its own.
+    protected NoiseCircle displayNoiseCircle;
+
+    public void setDisplayNoiseCircle(NoiseCircle displayNoiseCircle) {
+        this.displayNoiseCircle = displayNoiseCircle;
+    }
 
     protected Point3d toMoveCenterOfMassLocation;
     protected ReceptiveField rf;
@@ -257,6 +267,7 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
         centerRFAndScale(imageWidthMm, imageHeightMm);
         drawSkeleton(false);
         drawRF();
+        drawDisplayNoiseCircle();
         GL11.glPopMatrix();
     }
 
@@ -272,7 +283,36 @@ public class GAMatchStick extends MorphedMatchStick implements Thumbnailable {
         centerRFAndScale(imageWidthMm, imageHeightMm);
         drawSkeleton(true);
         drawRF();
+        drawDisplayNoiseCircle();
         GL11.glPopMatrix();
+    }
+
+    /**
+     * Draw the shared noise circle (if one has been set) as a red outline in the current (already
+     * RF-centered + scaled) coordinate frame, so it lands on top of the skeleton/comp-map thumbnail
+     * at the same place the noise is rendered on the stimulus.
+     */
+    protected void drawDisplayNoiseCircle() {
+        if (displayNoiseCircle == null) {
+            return;
+        }
+        Point3d origin = displayNoiseCircle.getOrigin();
+        double radius = displayNoiseCircle.getRadiusMm();
+        if (radius <= 0) {
+            return;
+        }
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        GL11.glLineWidth(2.0f);
+        GL11.glColor3f(1.0f, 0.0f, 0.0f);
+        GL11.glBegin(GL11.GL_LINE_LOOP);
+        int numSegments = 100;
+        for (int i = 0; i < numSegments; i++) {
+            double angle = 2.0 * Math.PI * i / numSegments;
+            GL11.glVertex2d(origin.getX() + radius * Math.cos(angle),
+                            origin.getY() + radius * Math.sin(angle));
+        }
+        GL11.glEnd();
+        GL11.glEnable(GL11.GL_DEPTH_TEST);
     }
 
     private void centerRFAndScale(double imageWidthMm, double imageHeightMm) {
