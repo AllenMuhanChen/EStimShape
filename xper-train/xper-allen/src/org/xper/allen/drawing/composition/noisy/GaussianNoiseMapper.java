@@ -64,7 +64,8 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
     private boolean debugMode = false;
 
     // Captured during the most recent noise-origin computation when debugMode is true.
-    public Point3d debug_junctionPosition;   // junc.getPos() as used by the noise math (raw)
+    public Point3d debug_junctionPosition;       // junc.getPos() in raw mAxis space (NOT where the junction visually is)
+    public Point3d debug_junctionPositionScaled; // junc.getPos() mapped into the scaled vect_info frame (where the junction actually is)
     public double debug_junctionRadius;      // junc.getRad() as used by the noise math (raw)
     public double debug_scaleForMAxisShape;  // scale factor multiplied into the shift
     public double debug_shiftAmount;         // inward shift applied to junc.getPos()
@@ -293,7 +294,7 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
         proceduralMatchStick.projectedTangent = new Vector3d(proceduralMatchStick.projectedTangent.x, proceduralMatchStick.projectedTangent.y, 0);
 
         // Choose a starting point
-        Point3d startingPosition = chooseStartingPoint(junc, proceduralMatchStick.projectedTangent, proceduralMatchStick.getScaleForMAxisShape());
+        Point3d startingPosition = chooseStartingPoint(proceduralMatchStick, junc, proceduralMatchStick.projectedTangent, proceduralMatchStick.getScaleForMAxisShape());
         System.out.println("Starting position: " + startingPosition);
         projectedPoint = pointAlong2dTangent(startingPosition,
                 proceduralMatchStick.projectedTangent,
@@ -452,21 +453,33 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
         Vector3d bisector_3d = new Vector3d(bisector.getX(), bisector.getY(), 0);
         proceduralMatchStick.projectedTangent = bisector_3d;
 
-        Point3d startingPosition = chooseStartingPoint(junc, bisector_3d, proceduralMatchStick.getScaleForMAxisShape());
+        Point3d startingPosition = chooseStartingPoint(proceduralMatchStick, junc, bisector_3d, proceduralMatchStick.getScaleForMAxisShape());
         projectedPoint = pointAlong2dTangent(startingPosition, bisector_3d, proceduralMatchStick.noiseRadiusMm);
         return projectedPoint;
     }
 
-    public Point3d chooseStartingPoint(JuncPt_struct junc, Vector3d tangent, double scaleForMAxisShape) {
+    public Point3d chooseStartingPoint(ProceduralMatchStick mStick, JuncPt_struct junc, Vector3d tangent, double scaleForMAxisShape) {
         Vector3d reverseTangent = new Vector3d(tangent);
         reverseTangent.negate(); //reverse so we end up with a point inside of the shape
+
+        // junc.getPos() is still in raw mAxis space at noise time (modifyJuncPtFinalInfoForAnalysis
+        // has not run yet), but the component vect_info we anchor/test against has already been scaled
+        // by scaleForMAxisShape about the mass center (GAMatchStick.postProcess). Put the junction into
+        // that same scaled frame so the noise circle is anchored where the junction actually is rather
+        // than at the (smaller, mass-center-ward) raw position. The mass center is invariant under this
+        // scaling, so transCorScalePoint reproduces exactly the transform applied to vect_info.
+        Point3d scaledJuncPos = mStick.transCorScalePoint(junc.getPos());
+
+        // The junction radius lives in the same raw frame as junc.getPos(), so it must be scaled too
+        // to express the shift in the scaled frame.
         double shiftAmount = doEnforceHiddenJunction ? junc.getRad()*scaleForMAxisShape : 0.0;
         Point3d startingPosition = choosePositionAlongTangent(
                 reverseTangent,
-                junc.getPos(), //this is shifted by applyTranslation
-                shiftAmount); // this is not shifted by smoothize
+                scaledJuncPos,
+                shiftAmount);
         if (debugMode) {
             debug_junctionPosition = new Point3d(junc.getPos());
+            debug_junctionPositionScaled = new Point3d(scaledJuncPos);
             debug_junctionRadius = junc.getRad();
             debug_scaleForMAxisShape = scaleForMAxisShape;
             debug_shiftAmount = shiftAmount;

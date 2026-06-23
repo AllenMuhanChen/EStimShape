@@ -101,15 +101,18 @@ public class GaussianNoiseMapperDebugTest {
         noiseMapper.checkInNoise(sample, compsToNoise, 0.0);
 
         // 4. Pull out what the math did.
+        //    magenta = junction in raw mAxis space (the OLD anchor); orange = junction mapped into the
+        //    scaled vect_info frame (where the junction actually is). After the fix, the noise circle
+        //    (cyan) / starting position (yellow) should be anchored on ORANGE, not magenta.
         Point3d juncRaw = noiseMapper.debug_junctionPosition;
-        Point3d juncScaled = juncRaw == null ? null : sample.transCorScalePoint(juncRaw);
+        Point3d juncScaled = noiseMapper.debug_junctionPositionScaled;
         Point3d startPos = noiseMapper.debug_startingPosition;
         Point3d noiseOrigin = noiseMapper.debug_noiseOrigin3d;
 
         System.out.println("==== NOISE PLACEMENT DEBUG ====");
         System.out.println("scaleForMAxisShape:        " + sample.getScaleForMAxisShape());
-        System.out.println("junction pos (RAW):        " + juncRaw);
-        System.out.println("junction pos (SCALED):     " + juncScaled);
+        System.out.println("junction pos (RAW/magenta):    " + juncRaw);
+        System.out.println("junction pos (SCALED/orange):  " + juncScaled);
         System.out.println("junction radius (RAW):     " + noiseMapper.debug_junctionRadius);
         System.out.println("junction radius * scale:   " + (noiseMapper.debug_junctionRadius * sample.getScaleForMAxisShape()));
         System.out.println("shiftAmount (rad*scale):   " + noiseMapper.debug_shiftAmount);
