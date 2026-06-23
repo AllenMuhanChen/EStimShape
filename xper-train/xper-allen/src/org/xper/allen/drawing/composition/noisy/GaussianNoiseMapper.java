@@ -459,9 +459,6 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
     }
 
     public Point3d chooseStartingPoint(ProceduralMatchStick mStick, JuncPt_struct junc, Vector3d tangent, double scaleForMAxisShape) {
-        Vector3d reverseTangent = new Vector3d(tangent);
-        reverseTangent.negate(); //reverse so we end up with a point inside of the shape
-
         // junc.getPos() is still in raw mAxis space at noise time (modifyJuncPtFinalInfoForAnalysis
         // has not run yet), but the component vect_info we anchor/test against has already been scaled
         // by scaleForMAxisShape about the mass center (GAMatchStick.postProcess). Put the junction into
@@ -473,10 +470,20 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
         // The junction radius lives in the same raw frame as junc.getPos(), so it must be scaled too
         // to express the shift in the scaled frame.
         double shiftAmount = doEnforceHiddenJunction ? junc.getRad()*scaleForMAxisShape : 0.0;
-        Point3d startingPosition = choosePositionAlongTangent(
-                reverseTangent,
-                scaledJuncPos,
+
+        // The noise map lives in the image (XY) plane, and the noise-radius step below
+        // (pointAlong2dTangent) measures its distance in 2D. Do the inward shift the same way:
+        // project the tangent into 2D and re-normalize (inside point2dAlongTangent) so the shift
+        // covers the full shiftAmount in-plane regardless of any z-component. Doing the shift with a
+        // 3D-normalized tangent would foreshorten it in the image and not go far enough to clear the
+        // junction. Reverse it so we step backwards (into the shape, toward the base component).
+        Vector2d reverseTangent2d = projectTo2D(tangent);
+        reverseTangent2d.negate(); //reverse so we end up with a point inside of the shape
+        Point2d start2d = point2dAlongTangent(
+                new Point2d(scaledJuncPos.x, scaledJuncPos.y),
+                reverseTangent2d,
                 shiftAmount);
+        Point3d startingPosition = new Point3d(start2d.x, start2d.y, 0);
         if (debugMode) {
             debug_junctionPosition = new Point3d(junc.getPos());
             debug_junctionPositionScaled = new Point3d(scaledJuncPos);
