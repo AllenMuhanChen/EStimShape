@@ -3,6 +3,7 @@ package org.xper.allen.nafc.blockgen.procedural;
 import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
+import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.RGBColor;
 
 import java.util.Arrays;
@@ -160,6 +161,19 @@ public class EStimShapeSplitTextureNAFCStim extends EStimShapeVariantsDeltaNAFCS
             return mStick.getStimColor();
         }
         return pngMaker.getWindow().calculateAverageRGB(mStick);
+    }
+
+    @Override
+    protected void writeExtraData() {
+        super.writeExtraData();
+        // Persist the split parameters so analysis can recover whether the split cue rode on the
+        // target (sample/match) or the foil, plus the textures used. stimType already identifies
+        // these as split-texture trials.
+        ((AllenDbUtil) generator.getDbUtil()).writeSplitTextureParams(
+                getStimId(),
+                splitTextureConfig.isSplitRenderIsSample(),
+                splitTextureConfig.isInverted(),
+                splitTextureConfig.getContrastTexture());
     }
 
     public SplitTextureConfig getSplitTextureConfig() {
