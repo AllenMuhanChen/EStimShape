@@ -3,6 +3,7 @@ package org.xper.allen.pga;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
+import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.drawing.composition.noisy.NoiseCircle;
@@ -53,7 +54,8 @@ public class EStimShapeDeltaGAStimTest {
         drawer = new TestMatchStickDrawer();
         // Inherit the real viewing geometry + image size from the generator so the delta is drawn at
         // the same scale production would render it (rather than hardcoded 500x500 / distance 500).
-        drawer.setupFrom(generator.getPngMaker());
+        // Push the far clip plane way back so a shape with depth can't be z-clipped.
+        drawer.setupFrom(generator.getPngMaker(), 1_000_000);
     }
 
     @Test
@@ -93,6 +95,24 @@ public class EStimShapeDeltaGAStimTest {
         drawer.drawCompMap(child);
         drawer.saveImage(figPath + "/delta_from_db_" + PARENT_ID+"_compMap");
         ThreadUtil.sleep(1000);
+
+        // Render the parent the same way (centered, same drawer) so the delta can be compared limb-by-
+        // limb against it - to tell whether a wrong-looking component came from the parent spec or from
+        // the delta generation. Loaded exactly as createMStick() loads it (same properties + GA spec).
+        ProceduralMatchStick parent = new ProceduralMatchStick(generator.getNoiseMapper());
+        parent.setProperties(delta.sizeDiameterDegrees, delta.textureType, delta.is2d, delta.contrast);
+        parent.setStimColor(delta.color);
+        parent.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + PARENT_ID + "_spec.xml");
+        parent.centerShape();
+
+        drawer.clear();
+        drawer.drawMStick(parent);
+        ThreadUtil.sleep(1000);
+        drawer.saveImage(figPath + "/parent_" + PARENT_ID);
+        drawer.drawCompMap(parent);
+        drawer.saveImage(figPath + "/parent_" + PARENT_ID + "_compMap");
+        ThreadUtil.sleep(1000);
+
         assertTrue("delta's mutated limb should be (near) fully inside its own circle: " + inside,
                 inside >= 0.99);
 

@@ -63,11 +63,20 @@ public class TestMatchStickDrawer {
      * production would render it - rather than the hardcoded test defaults.
      */
     public void setupFrom(AllenPNGMaker pngMaker){
+        setupFrom(pngMaker, pngMaker.getDepth());
+    }
+
+    /**
+     * Same as {@link #setupFrom(AllenPNGMaker)} but with an explicit viewing depth, so callers can push
+     * the far clip plane (distance + depth) way back to rule out z-clipping of a shape that extends in
+     * depth.
+     */
+    public void setupFrom(AllenPNGMaker pngMaker, double depth){
         this.height = pngMaker.getHeight();
         this.width = pngMaker.getWidth();
         double rendererMM = pngMaker.getDpiUtil().calculateMmForRenderer();
         window = TestDrawingWindow.createDrawerWindow(height, width,
-                pngMaker.getDistance(), pngMaker.getPupilDistance(), pngMaker.getDepth(), rendererMM);
+                pngMaker.getDistance(), pngMaker.getPupilDistance(), depth, rendererMM);
     }
 
     public void drawMStick(MatchStick mStick){
