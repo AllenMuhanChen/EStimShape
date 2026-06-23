@@ -68,6 +68,7 @@ public class GaussianNoiseMapperDebugTest {
         //    (driving) component that should be hidden in noise, with a junction connecting it.
         ProceduralMatchStick base = new ProceduralMatchStick(noiseMapper);
         base.setProperties(size, "SHADE", 1.0);
+        base.noiseRadiusMm=40;
         base.genMatchStickRand();
         base.setMaxAttempts(-1);
 
