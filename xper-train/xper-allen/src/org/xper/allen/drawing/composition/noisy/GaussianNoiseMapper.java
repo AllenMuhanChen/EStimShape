@@ -513,13 +513,13 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
     }
 
     protected static Point3d choosePositionAlongTangent(Vector3d tangent, Point3d pos, double distance) {
-        // Project the tangent into the 2D (x,y) plane before shifting so the move
-        // covers the full `distance` in the plane the noise map lives in. Scaling
-        // the raw 3D tangent falls short whenever it has a z-component, leaving the
-        // starting point too close to the junction to hide it.
-        Vector2d tangent2d = projectTo2D(tangent);
-        Point2d moved2d = point2dAlongTangent(new Point2d(pos.x, pos.y), tangent2d, distance);
-        return new Point3d(moved2d.x, moved2d.y, pos.z);
+        Vector3d normalizedTangent = new Vector3d(tangent);
+        normalizedTangent.normalize();
+        normalizedTangent.scale(distance);
+        Point3d startingPosition = new Point3d(pos);
+        startingPosition.add(normalizedTangent);
+        return startingPosition;
+
     }
 
     public BufferedImage generateGaussianNoiseMapFor(ProceduralMatchStick mStick,
