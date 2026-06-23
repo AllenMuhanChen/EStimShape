@@ -57,6 +57,19 @@ public class TestMatchStickDrawer {
         window = TestDrawingWindow.createDrawerWindow(height, width);
     }
 
+    /**
+     * Sets up the drawing window using the experiment's real viewing geometry and image size, read
+     * from the generator's PNG maker, so a drawn stimulus appears at the same scale (and pixel size)
+     * production would render it - rather than the hardcoded test defaults.
+     */
+    public void setupFrom(AllenPNGMaker pngMaker){
+        this.height = pngMaker.getHeight();
+        this.width = pngMaker.getWidth();
+        double rendererMM = pngMaker.getDpiUtil().calculateMmForRenderer();
+        window = TestDrawingWindow.createDrawerWindow(height, width,
+                pngMaker.getDistance(), pngMaker.getPupilDistance(), pngMaker.getDepth(), rendererMM);
+    }
+
     public void drawMStick(MatchStick mStick){
         window.draw(new Drawable() {
             @Override

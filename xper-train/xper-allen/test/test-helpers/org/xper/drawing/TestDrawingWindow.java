@@ -57,6 +57,24 @@ public class TestDrawingWindow {
 
     }
 
+    /**
+     * Like {@link #createDrawerWindow(int, int)} but using the experiment's real viewing geometry
+     * (distance, pupil distance, depth, screen size in mm) instead of the hardcoded defaults, so a
+     * drawn stimulus appears at the same scale the generator's PNG maker would render it. Mirrors how
+     * production's {@code AllenDrawingManager.init()} configures its renderer from the PNG maker.
+     */
+    public static TestDrawingWindow createDrawerWindow(int height, int width,
+                                                       double distance, double pupilDistance,
+                                                       double depth, double rendererMM) {
+        initXperLibs();
+
+        TestDrawingWindow drawingWindow = new TestDrawingWindow();
+        if(drawingWindow.window == null || !drawingWindow.window.isOpen()) {
+            drawingWindow.init(height, width, distance, pupilDistance, depth, rendererMM);
+        }
+        return drawingWindow;
+    }
+
     public static void initXperLibs() {
         List<String> libs = new ArrayList<String>();
         libs.add("xper");
@@ -77,6 +95,26 @@ public class TestDrawingWindow {
         renderer.setHeight(height / dpmm);
         renderer.setWidth(width / dpmm);
         renderer.setDepth(10000);
+        renderer.init(window.getWidth(), window.getHeight());
+        GL11.glShadeModel(GL11.GL_SMOOTH);
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+
+        GL11.glClearColor(0,0,0,1);
+    }
+
+    private void init(int height, int width,
+                      double distance, double pupilDistance, double depth, double rendererMM){
+        window = new BaseWindow(height, width);
+        PixelFormat pixelFormat = new PixelFormat(0, 8, 1, 4);
+        window.setPixelFormat(pixelFormat);
+        window.create();
+
+        renderer = new PerspectiveRenderer();
+        renderer.setDistance(distance);
+        renderer.setPupilDistance(pupilDistance);
+        renderer.setHeight(rendererMM);
+        renderer.setWidth(rendererMM);
+        renderer.setDepth(depth);
         renderer.init(window.getWidth(), window.getHeight());
         GL11.glShadeModel(GL11.GL_SMOOTH);
         GL11.glDisable(GL11.GL_DEPTH_TEST);

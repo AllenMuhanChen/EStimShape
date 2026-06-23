@@ -51,7 +51,9 @@ public class EStimShapeDeltaGAStimTest {
         generator = context.getBean(FromDbGABlockGenerator.class);
 
         drawer = new TestMatchStickDrawer();
-        drawer.setup(500, 500);
+        // Inherit the real viewing geometry + image size from the generator so the delta is drawn at
+        // the same scale production would render it (rather than hardcoded 500x500 / distance 500).
+        drawer.setupFrom(generator.getPngMaker());
     }
 
     @Test
