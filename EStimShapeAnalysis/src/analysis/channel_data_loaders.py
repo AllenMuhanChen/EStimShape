@@ -200,7 +200,8 @@ class PreferredFrequencyLoader(ChannelValueLoader):
 class SolidPreferenceLoader(ChannelValueLoader):
     """Load solid preference indices from ``SolidPreferenceIndices``."""
 
-    SIGNIFICANCE_ALPHA = 0.05
+    SIGNIFICANCE_ALPHA = 0.05   # p below this → "significant" → full saturation
+    NEAR_SIG_CEILING = 0.5      # max |colour| just above alpha (paleness of near-sig)
 
     def __init__(self, session_id: str, conn: Connection):
         self._session_id = session_id
@@ -216,6 +217,24 @@ class SolidPreferenceLoader(ChannelValueLoader):
         )
         return {row[0]: row[1] for row in self._conn.fetch_all()}
 
+    def _load_index_and_pvalue(self):
+        """Yield ``(unit_name, solid_preference_index, p_value)`` rows.
+
+        Returns an empty list if the ``p_value`` column does not exist yet
+        (permutation test never run for this DB)."""
+        try:
+            self._conn.execute(
+                """SELECT unit_name, solid_preference_index, p_value
+                   FROM SolidPreferenceIndices
+                   WHERE session_id = %s AND unit_name NOT LIKE '%%Unit%%'
+                   ORDER BY unit_name""",
+                (self._session_id,),
+            )
+        except Exception as exc:  # p_value column missing or query failed
+            print(f"Warning: could not load solid preference significance: {exc}")
+            return []
+        return self._conn.fetch_all()
+
     def load_significance(self) -> Dict[str, float]:
         """Return ``{channel: significance_category}`` for the solid preference.
 
@@ -227,23 +246,10 @@ class SolidPreferenceLoader(ChannelValueLoader):
             ``0``   not significant            (p >= alpha)
 
         Channels with no ``p_value`` (test not run) are omitted so they render
-        as gray "no data" markers.  Returns an empty dict if the ``p_value``
-        column does not exist yet (permutation test never run for this DB).
+        as gray "no data" markers.
         """
-        try:
-            self._conn.execute(
-                """SELECT unit_name, solid_preference_index, p_value
-                   FROM SolidPreferenceIndices
-                   WHERE session_id = %s AND unit_name NOT LIKE '%%Unit%%'
-                   ORDER BY unit_name""",
-                (self._session_id,),
-            )
-        except Exception as exc:  # p_value column missing or query failed
-            print(f"Warning: could not load solid preference significance: {exc}")
-            return {}
-
         result: Dict[str, float] = {}
-        for unit_name, index_value, p_value in self._conn.fetch_all():
+        for unit_name, index_value, p_value in self._load_index_and_pvalue():
             if p_value is None:
                 continue  # test not run for this channel → "no data"
             if p_value < self.SIGNIFICANCE_ALPHA:
@@ -252,9 +258,36 @@ class SolidPreferenceLoader(ChannelValueLoader):
                 result[unit_name] = 0.0
         return result
 
+    def load_significance_strength(self) -> Dict[str, float]:
+        """Return ``{channel: signed significance strength}`` in ``[-1, 1]`` for
+        colouring, where the *magnitude* scales with the p-value:
+
+            ``|strength| = 1``                              when p < alpha
+            ``|strength| = ceiling * (1 - p)/(1 - alpha)``  when p >= alpha
+
+        The sign encodes direction (``+`` = 3D / index > 0, ``-`` = 2D).  So a
+        significant channel is drawn at full saturation, a *near*-significant
+        channel (p just above alpha) is pale, and a clearly non-significant
+        channel (large p) fades toward white.  Channels with no ``p_value`` are
+        omitted so they render as gray "no data" markers.
+        """
+        result: Dict[str, float] = {}
+        for unit_name, index_value, p_value in self._load_index_and_pvalue():
+            if p_value is None:
+                continue  # test not run for this channel → "no data"
+            sign = 1.0 if (index_value is not None and index_value > 0) else -1.0
+            if p_value < self.SIGNIFICANCE_ALPHA:
+                magnitude = 1.0
+            else:
+                magnitude = self.NEAR_SIG_CEILING * (1.0 - p_value) / (1.0 - self.SIGNIFICANCE_ALPHA)
+                magnitude = max(0.0, magnitude)
+            result[unit_name] = sign * magnitude
+        return result
+
     def as_significance_metric(self, **kwargs) -> LookupMetric:
-        """Wrap ``load_significance()`` as a LookupMetric (0 / +1 / -1)."""
-        return LookupMetric(self.load_significance(), **kwargs)
+        """Wrap ``load_significance_strength()`` as a LookupMetric whose colour
+        magnitude scales with the p-value (full at p < alpha, pale near it)."""
+        return LookupMetric(self.load_significance_strength(), **kwargs)
 
 
 # ---------------------------------------------------------------------------

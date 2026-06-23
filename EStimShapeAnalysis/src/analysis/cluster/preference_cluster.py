@@ -333,7 +333,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
         print("  No solid preference data available")
 
     print(f"\n--- Solid Preference Significance (0=n.s., +1=sig 3D, -1=sig 2D) ---")
-    sig_data = solid_sig_metric.compute()
+    sig_data = solid_loader.load_significance()
     if sig_data:
         n_sig_3d = sum(1 for v in sig_data.values() if v == 1)
         n_sig_2d = sum(1 for v in sig_data.values() if v == -1)
