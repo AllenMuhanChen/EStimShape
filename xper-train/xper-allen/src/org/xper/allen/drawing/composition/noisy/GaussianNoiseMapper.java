@@ -47,6 +47,32 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
     public List<Point2d> debug_points_obj1 = new LinkedList<>();
     public Point2d debug_noise_origin;
 
+    /**
+     * 06/23/26 AC: When true, the noise mapper runs in a non-throwing "debug" mode so that the
+     * placement of the noise circle can be visualized even when the in/out checks would normally
+     * fail. The checks still run and print their results, but {@link NoiseException}s are suppressed.
+     *
+     * In addition, the intermediate quantities used to place the noise circle (junction position,
+     * junction radius, the inward shift, the starting position, the noise origin and the noise
+     * radius) are captured in the debug_* fields below so a test can draw them. This lets us inspect
+     * the coordinate-system relationship between junc.getPos()/junc.getRad() (raw mAxis space, since
+     * modifyJuncPtFinalInfoForAnalysis has not run yet at noise time) and the component vect_info
+     * (already scaled by scaleForMAxisShape in GAMatchStick.postProcess).
+     *
+     * Defaults to false so production behavior is unchanged.
+     */
+    private boolean debugMode = false;
+
+    // Captured during the most recent noise-origin computation when debugMode is true.
+    public Point3d debug_junctionPosition;   // junc.getPos() as used by the noise math (raw)
+    public double debug_junctionRadius;      // junc.getRad() as used by the noise math (raw)
+    public double debug_scaleForMAxisShape;  // scale factor multiplied into the shift
+    public double debug_shiftAmount;         // inward shift applied to junc.getPos()
+    public Point3d debug_startingPosition;   // junc.getPos() shifted inward by debug_shiftAmount
+    public Vector3d debug_projectedTangent;  // tangent the noise origin is projected along
+    public Point3d debug_noiseOrigin3d;      // computed center of the noise circle
+    public double debug_noiseRadiusMm;       // radius of the noise circle
+
     @Override
     public String mapNoise(ProceduralMatchStick mStick,
                            double amplitude,
@@ -68,6 +94,10 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
         Point3d noiseOrigin = calculateNoiseOrigin(proceduralMatchStick, mustBeInNoiseCompIds);
         proceduralMatchStick.setNoiseOrigin(noiseOrigin);
         debug_noise_origin = new Point2d(proceduralMatchStick.getNoiseOrigin().getX(), proceduralMatchStick.getNoiseOrigin().getY());
+        if (debugMode) {
+            debug_noiseOrigin3d = new Point3d(noiseOrigin);
+            debug_noiseRadiusMm = proceduralMatchStick.noiseRadiusMm;
+        }
         debug_points_vect.clear();
         debug_points_obj1.clear();
         debug_points_outside.clear();
@@ -129,7 +159,12 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
         double percentRequiredInside = 0.95;
         double actualPercentageInside = (double) numPointsInside / pointsToCheck.size();
         if (actualPercentageInside < percentRequiredInside){
-            throw new NoiseException("Found points outside of noise circle: " + actualPercentageInside + "% inside + with noise Radius: " + proceduralMatchStick.noiseRadiusMm);
+            String msg = "Found points outside of noise circle: " + actualPercentageInside + "% inside + with noise Radius: " + proceduralMatchStick.noiseRadiusMm;
+            if (debugMode) {
+                System.out.println("[NOISE DEBUG] (suppressed) " + msg);
+            } else {
+                throw new NoiseException(msg);
+            }
         }
         System.out.println("PERCENT REQUIRED INSIDE: " + percentRequiredInside);
         System.out.println("ACTUAL PERCENT INSIDE: " + actualPercentageInside);
@@ -159,7 +194,11 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
         double percentOutside = (double) numPointsOutside / pointsToCheckIfOutside.size();
         System.out.println("%%%% OUTSIDE: " + percentOutside);
         if (percentOutside < percentRequiredOutsideNoise){
-            throw new NoiseException("Not enough points outside of noise circle");
+            if (debugMode) {
+                System.out.println("[NOISE DEBUG] (suppressed) Not enough points outside of noise circle: " + percentOutside);
+            } else {
+                throw new NoiseException("Not enough points outside of noise circle");
+            }
         }
         System.out.println("SUCCEEDED CHECK IN NOISE");
     }
@@ -426,6 +465,14 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
                 reverseTangent,
                 junc.getPos(), //this is shifted by applyTranslation
                 shiftAmount); // this is not shifted by smoothize
+        if (debugMode) {
+            debug_junctionPosition = new Point3d(junc.getPos());
+            debug_junctionRadius = junc.getRad();
+            debug_scaleForMAxisShape = scaleForMAxisShape;
+            debug_shiftAmount = shiftAmount;
+            debug_startingPosition = new Point3d(startingPosition);
+            debug_projectedTangent = new Vector3d(tangent);
+        }
         return startingPosition;
     }
 
@@ -652,5 +699,13 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
 
     public void setDoEnforceHiddenJunction(boolean doEnforceHiddenJunction) {
         this.doEnforceHiddenJunction = doEnforceHiddenJunction;
+    }
+
+    public boolean isDebugMode() {
+        return debugMode;
+    }
+
+    public void setDebugMode(boolean debugMode) {
+        this.debugMode = debugMode;
     }
 }
