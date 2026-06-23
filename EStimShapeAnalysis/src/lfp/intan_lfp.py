@@ -495,9 +495,19 @@ def ReadWaveformDataDemo():
     db_name = f"allen_ga_exp_{session_id}"
     from src.lfp.penetration_lfp_analysis import INTAN_SFTP_PREFIX
     intan_path = f"{INTAN_SFTP_PREFIX}/{db_name}"
-    tip_start = 5.9
-    from src.lfp.penetration_lfp_analysis import PenetrationLFPAnalysis
-    PenetrationLFPAnalysis(session_id=session_id, intan_path=intan_path, tip_start_mm=tip_start).run()
+    # Tip start is read from PenetrationTipStart in allen_data_repository, never
+    # defaulted. If this session has no tip start yet, prompt for it and save it
+    # before analyzing so the value lives in the database.
+    from src.lfp.penetration_lfp_analysis import (
+        PenetrationLFPAnalysis, get_tip_start, save_tip_start,
+    )
+    if get_tip_start(session_id) is None:
+        entered = input(
+            f"No tip start found for session {session_id}. "
+            f"Enter tip start depth (mm): ").strip()
+        save_tip_start(session_id, float(entered))
+        print(f"Saved tip start {entered} mm for session {session_id}.")
+    PenetrationLFPAnalysis(session_id=session_id, intan_path=intan_path).run()
 
     try:
         plot_tissue_score_vs_mri(session_id)
