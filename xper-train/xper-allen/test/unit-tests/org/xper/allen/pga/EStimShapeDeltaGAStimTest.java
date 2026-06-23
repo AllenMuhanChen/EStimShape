@@ -33,13 +33,13 @@ import static org.junit.Assert.assertTrue;
 public class EStimShapeDeltaGAStimTest {
 
     /** The existing stim to make a delta out of. */
-    private static final long PARENT_ID = 1L;
+    private static final long PARENT_ID = 1782150336038420L;
     /** Any unused id for the generated delta. */
     private static final long DELTA_STIM_ID = 999999L;
     /** Mutation magnitude (Python passes this in production). */
     private static final double MAGNITUDE = 0.5;
 
-    private static final String figPath = "/home/r2_allen/Pictures";
+    private static final String figPath = "/home/connorlab/Documents/xper-test";
 
     private FromDbGABlockGenerator generator;
     private TestMatchStickDrawer drawer;
@@ -79,11 +79,13 @@ public class EStimShapeDeltaGAStimTest {
         System.out.println("delta limb inside = " + inside + " ; noiseRadiusMm=" + child.noiseRadiusMm);
 
         drawer.drawMStick(child);
-        drawer.drawCompMap(child);
-        drawer.saveImage(figPath + "/delta_from_db_" + PARENT_ID);
         ThreadUtil.sleep(500);
-
+        drawer.saveImage(figPath + "/delta_from_db_" + PARENT_ID);
+        drawer.drawCompMap(child);
+        drawer.saveImage(figPath + "/delta_from_db_" + PARENT_ID+"_compMap");
+        ThreadUtil.sleep(1000);
         assertTrue("delta's mutated limb should be (near) fully inside its own circle: " + inside,
                 inside >= 0.99);
+
     }
 }
