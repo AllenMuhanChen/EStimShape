@@ -4,6 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
+import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.drawing.composition.noisy.NoiseCircle;
@@ -59,18 +60,29 @@ public class EStimShapeDeltaGAStimTest {
         drawer.setupFrom(generator.getPngMaker(), 1_000_000);
     }
 
+    /** How many times to retry making the delta (each attempt re-picks comps), like writeStim does. */
+    private static final int CREATE_ATTEMPTS = 30;
+
     @Test
     public void generate_delta_from_db_stim() {
         EStimShapeDeltaGAStim delta = new EStimShapeDeltaGAStim(DELTA_STIM_ID, generator, PARENT_ID, MAGNITUDE);
         // Reads size / texture / color / contrast for this lineage from the DB, same as writeStim().
         delta.setProperties();
 
-        // The real pipeline: owner smallest-shift optimizer places the circle, and the delta is
-        // rejected (MorphException -> retry) unless the circle also hides the parent's limb. If this
-        // returns, the shared-circle rule held.
-        PruningMatchStick child = delta.createMStick();
+        // Each createMStick() re-picks comps and retries morphs to fit the parent-anchored circle, but a
+        // given comp-set can still be unfittable; retry the whole thing (as writeStim does) before giving up.
+        PruningMatchStick child = null;
+        int attempts = 0;
+        while (child == null && attempts < CREATE_ATTEMPTS) {
+            attempts++;
+            try {
+                child = delta.createMStick();
+            } catch (MorphedMatchStick.MorphException e) {
+                System.out.println("createMStick attempt " + attempts + " failed: " + e.getMessage());
+            }
+        }
 
-        assertNotNull("delta failed to generate", child);
+        assertNotNull("delta failed to generate after " + attempts + " attempts", child);
         NoiseCircle circle = delta.noiseCircle;
         assertNotNull("delta produced no noise circle", circle);
 
