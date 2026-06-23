@@ -223,25 +223,64 @@ public class MorphedMatchStick extends AllenMatchStick {
         int numAttempts = 0;
         while (numAttempts < getMaxTotalAttempts()) {
             try {
-                decideLeafBranch();
-                boolean[] removeFlags = new boolean[getnComponent()+1];
-                for (int i=1; i<=getnComponent(); i++){
-                    if (componentsToRemove.contains(i)){
-                        if (getLeafBranch()[i])
-                            removeFlags[i] = true;
-                        else {
-                            System.err.println("ERROR, you have specified a branch to remove, not a leaf." +
-                                    "Not removing.");
-                            componentsToRemove.remove(i);
+                // Remove leaves one at a time, re-deciding leaf/branch status after
+                // each removal. A component that is a branch initially may become a
+                // leaf once a leaf hanging off of it is removed, so we must remove
+                // leaves first rather than attempting to remove a branch directly.
+                //
+                // removeComponent() re-indexes the remaining components, so we track
+                // each component's current index alongside its original index (the
+                // latter is what we record in MorphData).
+                Map<Integer, Integer> remainingToRemove = new HashMap<>();
+                for (int i = 1; i <= getnComponent(); i++) {
+                    if (componentsToRemove.contains(i)) {
+                        remainingToRemove.put(i, i); // currentIndex -> originalIndex
+                    }
+                }
+
+                while (!remainingToRemove.isEmpty()) {
+                    decideLeafBranch();
+
+                    // Find a component still to remove that is currently a leaf.
+                    Integer leafToRemove = null;
+                    for (Integer currentIndex : remainingToRemove.keySet()) {
+                        if (getLeafBranch()[currentIndex]) {
+                            leafToRemove = currentIndex;
+                            break;
                         }
                     }
-                }
-                removeComponent(removeFlags);
-                for (int i=1; i<=getnComponent(); i++){
-                    if (removeFlags[i]){
-                        getMorphData().addRemovedComp(i);
+
+                    if (leafToRemove == null) {
+                        // None of the remaining specified components are leaves, and
+                        // removing them now would split the shape. These are genuine
+                        // branches that never reduced to leaves, so we skip them.
+                        System.err.println("ERROR, you have specified branch(es) to remove " +
+                                "that never became leaves (original indices " +
+                                new ArrayList<>(remainingToRemove.values()) + "). Not removing.");
+                        break;
                     }
+
+                    int originalIndex = remainingToRemove.remove(leafToRemove);
+
+                    boolean[] removeFlags = new boolean[getnComponent() + 1];
+                    removeFlags[leafToRemove] = true;
+                    removeComponent(removeFlags);
+                    getMorphData().addRemovedComp(originalIndex);
+
+                    // removeComponent shifts every index above the removed one down by
+                    // one, so update the current indices of the components still waiting.
+                    Map<Integer, Integer> updated = new HashMap<>();
+                    for (Map.Entry<Integer, Integer> entry : remainingToRemove.entrySet()) {
+                        int currentIndex = entry.getKey();
+                        if (currentIndex > leafToRemove) {
+                            updated.put(currentIndex - 1, entry.getValue());
+                        } else {
+                            updated.put(currentIndex, entry.getValue());
+                        }
+                    }
+                    remainingToRemove = updated;
                 }
+
                 updateEndPtsAndJunctionPositions();
                 centerShape();
                 applyRadiusProfile();
