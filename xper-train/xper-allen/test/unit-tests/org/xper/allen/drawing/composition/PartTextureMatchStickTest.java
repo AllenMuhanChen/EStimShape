@@ -43,10 +43,10 @@ public class PartTextureMatchStickTest {
     @Before
     public void setUp() throws Exception {
         initXperLibs();
-        testBin = ResourceUtil.getResource("testBin");
+        testBin = "/home/connorlab/Documents/xper-test";
 
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
-                FileUtil.loadConfigClass("experiment.config_class"));
+                FileUtil.loadConfigClass("experiment.ga.config_class"));
         pngMaker = context.getBean(AllenPNGMaker.class);
         pngMaker.createDrawerWindow();
 
