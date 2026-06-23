@@ -37,6 +37,8 @@ _TABLE_COLUMNS = [
     'is_hypothesized_choice', 'is_correct_choice', 'trial_type',
     'noise_chance', 'base_mstick_id', 'gen_id', 'trial_start', 'trial_end',
     'sample_length', 'trial_class', 'choice',
+    'is_texture_split', 'split_render_is_sample', 'inverted_shading',
+    'contrast_texture', 'is_3d_choice',
 ]
 
 

@@ -135,6 +135,20 @@ def create_estimshape_trials_table():
         # Column already exists, ignore the error
         pass
 
+    # Split-texture (EStimShapeSplitTextureNAFCStim) per-trial columns; NULL for other trials.
+    # Added one at a time so a partial prior run doesn't block the rest.
+    for _col_ddl in (
+        "ADD COLUMN is_texture_split BOOLEAN",
+        "ADD COLUMN split_render_is_sample BOOLEAN",
+        "ADD COLUMN inverted_shading BOOLEAN",
+        "ADD COLUMN contrast_texture VARCHAR(20)",
+        "ADD COLUMN is_3d_choice BOOLEAN",
+    ):
+        try:
+            conn.execute("ALTER TABLE EStimShapeTrials " + _col_ddl)
+        except:
+            pass
+
 def export_estim_parameters(exp_conn):
     session_id, _ = read_session_id_and_date_from_db_name(context.nafc_database)
     repo_conn = Connection("allen_data_repository")

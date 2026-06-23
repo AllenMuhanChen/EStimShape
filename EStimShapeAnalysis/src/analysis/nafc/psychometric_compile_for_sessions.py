@@ -3,7 +3,8 @@ from clat.util import time_util
 from src.analysis.nafc.nafc_database_fields import IsCorrectField, IsHypothesizedField, NoiseChanceField, \
     NumRandDistractorsField, StimTypeField, ChoiceField, GenIdField, EStimEnabledField, BaseMStickIdField, IsDeltaField, \
     EStimPolarityField, EStimSpecIdField, StimSpecIdField, IsHypothesizedFieldLegacy, EStimEnabledFieldLegacy, \
-    SampleLengthField, IsRemovedTrialField
+    SampleLengthField, IsRemovedTrialField, IsTextureSplitField, SplitRenderIsSampleField, InvertedShadingField, \
+    ContrastTextureField, Is3DChoiceField
 from src.analysis.nafc.psychometric_curves import collect_choice_trials
 
 
@@ -34,6 +35,12 @@ def compile_latest(exp_conn, trial_tstamps=None):
     fields.append(EStimPolarityField(exp_conn))
     fields.append(ChoiceField(exp_conn))
     fields.append(SampleLengthField(exp_conn))
+    # Split-texture (EStimShapeSplitTextureNAFCStim) trial info; None/NaN for other trial types.
+    fields.append(IsTextureSplitField(exp_conn))
+    fields.append(SplitRenderIsSampleField(exp_conn))
+    fields.append(InvertedShadingField(exp_conn))
+    fields.append(ContrastTextureField(exp_conn))
+    fields.append(Is3DChoiceField(exp_conn))
 
     data = fields.to_data(trial_tstamps)
     if 'TrialStartStop' in data.columns:
@@ -60,6 +67,11 @@ def compile_latest(exp_conn, trial_tstamps=None):
         'BaseMStickId': 'base_mstick_id',
         'GenId': 'gen_id',
         'SampleLength': 'sample_length',
+        'IsTextureSplit': 'is_texture_split',
+        'SplitRenderIsSample': 'split_render_is_sample',
+        'InvertedShading': 'inverted_shading',
+        'ContrastTexture': 'contrast_texture',
+        'Is3DChoice': 'is_3d_choice',
     })
     return data
 

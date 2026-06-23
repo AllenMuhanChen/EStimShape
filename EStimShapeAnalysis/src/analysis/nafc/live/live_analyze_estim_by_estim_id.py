@@ -59,7 +59,8 @@ START_GEN_ID = 1                 # keep start_gen_id; trials below this are not 
 PLOT_HEIGHT = 300                # px per panel; the column of panels scrolls vertically
 RECENT_TRIALS_N = 5              # how many most-recent trials to summarize under the status
 # Experimental stim types that make up Plot 1 (matches analyze_estim_by_estim_id.main).
-_EXPERIMENTAL_STIM_TYPES = ['EStimShapeVariantsDeltaNAFCStim', 'EStimShapeVariantsDeletedNAFCStim']
+_EXPERIMENTAL_STIM_TYPES = ['EStimShapeVariantsDeltaNAFCStim', 'EStimShapeVariantsDeletedNAFCStim',
+                            'EStimShapeSplitTextureNAFCStim']
 
 # (row_title, metric_kind) for the metric rows; the removed row is appended when relevant.
 _BASE_ROWS = [
@@ -126,7 +127,9 @@ def read_session_trials_as_exp_format(session_id, start_gen_id=START_GEN_ID,
     conn.execute("""
         SELECT task_id, estim_spec_id, is_estim_on, is_hypothesized_choice,
                is_correct_choice, trial_type, noise_chance, base_mstick_id,
-               gen_id, trial_start, sample_length, trial_class, choice
+               gen_id, trial_start, sample_length, trial_class, choice,
+               is_texture_split, split_render_is_sample, inverted_shading,
+               contrast_texture, is_3d_choice
         FROM EStimShapeTrials
         WHERE session_id = %s
         ORDER BY task_id
@@ -150,6 +153,13 @@ def read_session_trials_as_exp_format(session_id, start_gen_id=START_GEN_ID,
     out['StimType']       = db['trial_class']
     out['IsDelta']        = db['trial_type'] == 'Delta Shape'
     out['IsRemovedTrial'] = db['trial_type'] == 'Removed Trial'
+    # Split-texture columns; NULL/None for non-split trials. Kept nullable (no astype(bool)) so
+    # the split panel can select split trials and the others stay out of its denominators.
+    out['IsTextureSplit']      = db['is_texture_split'].fillna(0).astype(bool)
+    out['SplitRenderIsSample'] = db['split_render_is_sample']
+    out['InvertedShading']     = db['inverted_shading']
+    out['ContrastTexture']     = db['contrast_texture']
+    out['Is3DChoice']          = db['is_3d_choice']
     # Use the compiled trial-type label directly so 'Behavioral' survives (deriving it from
     # IsDelta/IsRemovedTrial would mislabel behavioral trials as 'Hypothesized Shape').
     out['TrialType'] = db['trial_type']

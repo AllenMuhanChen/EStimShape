@@ -210,6 +210,10 @@ class ChoiceField(ChoiceSetField):
 
         if "_match" in choice_path:
             return "match"
+        elif "_textureFoil" in choice_path:
+            # Split-texture trials: the same-geometry shape as the match, rendered with the
+            # opposite texture treatment (the critical lure). See EStimShapeSplitTextureNAFCStim.
+            return "textureFoil"
         elif "_procedural" in choice_path:
             return "procedural"
         elif "_variant" in choice_path:
@@ -759,6 +763,93 @@ class IsHypothesizedField(IsDeltaField):
                 return True
             else:
                 return False
+
+class IsTextureSplitField(StimTypeField):
+    """True for split-texture trials (stimType EStimShapeSplitTextureNAFCStim)."""
+    def get_name(self):
+        return "IsTextureSplit"
+
+    def get(self, when: When):
+        stim_type = self.get_cached_super(when, StimTypeField)
+        return stim_type == "EStimShapeSplitTextureNAFCStim"
+
+
+class _SplitTextureParamsField(CachedDatabaseField):
+    """Base for fields read from NafcSplitTextureParams (written by the generator per split trial)."""
+    def _has_split_texture_table(self) -> bool:
+        if not hasattr(self, "_split_params_checked"):
+            self.conn.execute("SHOW TABLES LIKE 'NafcSplitTextureParams'")
+            self._split_params_exists = self.conn.fetch_one() is not None
+            self._split_params_checked = True
+        return self._split_params_exists
+
+    def _read_param(self, when: When, column: str):
+        if not self._has_split_texture_table():
+            return None
+        stim_id = get_stim_spec_id(self.conn, when)
+        if stim_id is None:
+            return None
+        self.conn.execute(
+            "SELECT " + column + " FROM NafcSplitTextureParams WHERE stim_id = %s LIMIT 1;",
+            params=(stim_id,))
+        return self.conn.fetch_one()
+
+
+class SplitRenderIsSampleField(_SplitTextureParamsField):
+    """Whether the split cue rode on the sample/match (True) or the texture foil (False).
+    None for non-split trials."""
+    def get_name(self):
+        return "SplitRenderIsSample"
+
+    def get(self, when: When):
+        row = self._read_param(when, "split_render_is_sample")
+        return None if row is None else bool(row)
+
+
+class InvertedShadingField(_SplitTextureParamsField):
+    """Whether the body was the contrast texture and the hypothesized limb the original (True),
+    vs. the normal arrangement (False). None for non-split trials."""
+    def get_name(self):
+        return "InvertedShading"
+
+    def get(self, when: When):
+        row = self._read_param(when, "inverted_shading")
+        return None if row is None else bool(row)
+
+
+class ContrastTextureField(_SplitTextureParamsField):
+    """The contrast texture used in a split trial (e.g. '2D'). None for non-split trials."""
+    def get_name(self):
+        return "ContrastTexture"
+
+    def get(self, when: When):
+        return self._read_param(when, "contrast_texture")
+
+
+class Is3DChoiceField(CachedDatabaseField):
+    """For split-texture trials where the subject chose the match or the texture foil: True if the
+    chosen option's hypothesized limb was rendered in 3D (SPECULAR/SHADE), False if 2D, None
+    otherwise (non-split trial, or a choice that was neither the match nor the foil).
+
+    The match and foil are the same geometry with opposite texture treatments, so exactly one of
+    them shows the hypothesized limb in 3D. The match shows the 3D limb iff
+    split_render_is_sample == inverted_shading (see SplitTextureConfig on the Java side); the foil
+    is the opposite. This is the primitive for the split panel's "% 3D" metric, which compares
+    only match-vs-foil picks (other distractors don't count toward it)."""
+    def get_name(self):
+        return "Is3DChoice"
+
+    def get(self, when: When):
+        choice = self.get_cached_super(when, ChoiceField)
+        if choice not in ("match", "textureFoil"):
+            return None
+        split_render_is_sample = self.get_cached_super(when, SplitRenderIsSampleField)
+        inverted = self.get_cached_super(when, InvertedShadingField)
+        if split_render_is_sample is None or inverted is None:
+            return None
+        match_is_3d_limb = (bool(split_render_is_sample) == bool(inverted))
+        return match_is_3d_limb if choice == "match" else (not match_is_3d_limb)
+
 
 class IsHypothesizedFieldLegacy(IsDeltaField):
     def __init__(self, conn: Connection):
