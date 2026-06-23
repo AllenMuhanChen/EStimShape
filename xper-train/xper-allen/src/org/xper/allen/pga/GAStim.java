@@ -7,6 +7,7 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphData;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
+import org.xper.allen.drawing.composition.noisy.NoiseCircle;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.stimproperty.*;
 import org.xper.drawing.Coordinates2D;
@@ -35,6 +36,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected final PositionPropertyManager positionManager;
     protected final HypothesizedCompManager hypothesizedCompManager;
     protected final StimTypePropertyManager stimTypeManager;
+    protected final NoiseCirclePropertyManager noiseCircleManager;
 
     protected Long stimId;
     protected String textureType;
@@ -47,6 +49,8 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected RGBColor averageRGB;
     protected HypothesizedCompData hypothesizedCompData;
     protected MStickPosition position;
+    // The shared noise circle this stim owns (set during createMStick, persisted in writeStimProperties).
+    protected NoiseCircle noiseCircle;
 
 
     private T mStick;
@@ -80,6 +84,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         positionManager = new PositionPropertyManager(jdbcTemplate);
         hypothesizedCompManager = new HypothesizedCompManager(jdbcTemplate);
         stimTypeManager = new StimTypePropertyManager(jdbcTemplate);
+        noiseCircleManager = new NoiseCirclePropertyManager(jdbcTemplate);
     }
 
     /**
@@ -106,6 +111,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         positionManager = new PositionPropertyManager(jdbcTemplate);
         hypothesizedCompManager = new HypothesizedCompManager(jdbcTemplate);
         stimTypeManager = new StimTypePropertyManager(jdbcTemplate);
+        noiseCircleManager = new NoiseCirclePropertyManager(jdbcTemplate);
     }
 
     @Override
@@ -311,9 +317,23 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         underlyingTextureManager.writeProperty(stimId, underlyingTexture);
         underyingAverageRGBManager.writeProperty(stimId, averageRGB);
         positionManager.writeProperty(stimId, position);
+        if (noiseCircle != null){
+            noiseCircleManager.writeProperty(stimId, noiseCircle);
+        }
         if (hypothesizedCompData != null){
             hypothesizedCompManager.writeProperty(stimId, hypothesizedCompData);
         }
+    }
+
+    /**
+     * Snapshot the shape's final noise circle (origin + radius) after generation/positioning so it
+     * can be persisted and shared. Returns null if no noise origin was computed for this shape.
+     */
+    protected NoiseCircle captureNoiseCircle(ProceduralMatchStick mStick) {
+        if (mStick.getNoiseOrigin() == null) {
+            return null;
+        }
+        return new NoiseCircle(mStick.getNoiseOrigin(), mStick.noiseRadiusMm);
     }
 
     protected T createRandMStick() {

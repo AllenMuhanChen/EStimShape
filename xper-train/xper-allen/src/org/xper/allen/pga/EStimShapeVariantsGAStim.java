@@ -122,6 +122,9 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
         );
 //        hypothesizedCompManager.writeProperty(stimId, childData); //shouldn't have to do this now, we put this in GAStim
 
+        // This variant owns its noise circle (computed during generation, tracked through positioning).
+        noiseCircle = captureNoiseCircle(childMStick);
+
         return childMStick;
     }
 

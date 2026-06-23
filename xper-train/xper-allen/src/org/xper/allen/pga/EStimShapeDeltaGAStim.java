@@ -319,6 +319,12 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
                 compsToMutateInParent
         );
 
+        // This delta owns the shared noise circle (computed during generation, tracked through
+        // positioning by the applyTranslation override). Validating that it also hides the parent's
+        // corresponding limb - and switching the owner generation to the smallest-shift optimizer -
+        // is wired in a later step.
+        noiseCircle = captureNoiseCircle(childMStick);
+
         return childMStick;
     }
 }
