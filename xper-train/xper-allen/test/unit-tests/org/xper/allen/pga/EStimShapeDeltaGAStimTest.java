@@ -80,6 +80,13 @@ public class EStimShapeDeltaGAStimTest {
         System.out.println("parent=" + PARENT_ID + " mutated(child)=" + mutatedInChild + " " + circle);
         System.out.println("delta limb inside = " + inside + " ; noiseRadiusMm=" + child.noiseRadiusMm);
 
+        // The delta is generated at the parent's stored RF location, which is off-center; the drawer's
+        // field is now sized tightly to the image box (inherited from the generator), so an off-center
+        // shape spills outside the frame. Center it for the drawing only (validation above already used
+        // the real geometry). centerShape() carries the noise origin along (applyTranslation override),
+        // so the comp map's noise stays consistent with the shape.
+        child.centerShape();
+
         drawer.drawMStick(child);
         ThreadUtil.sleep(1000);
         drawer.saveImage(figPath + "/delta_from_db_" + PARENT_ID);
