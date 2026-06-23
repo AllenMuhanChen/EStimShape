@@ -338,6 +338,22 @@ public class ProceduralMatchStick extends GAMatchStick {
         this.noiseOrigin = noiseOrigin;
     }
 
+    /**
+     * Keep the noise origin attached to the shape. The base applyTranslation moves comps, junctions,
+     * endpoints and Obj1, but it does not know about noiseOrigin (which lives here), so without this
+     * any centerShape()/positionShape()/moveCenterOfMassTo() AFTER checkInNoise has set the origin
+     * would leave the noise circle behind. The delta path does exactly that: genNewComponentsMatchStick
+     * computes the noise origin and then re-centers/positions the shape. Carrying the origin here keeps
+     * the stored/rendered circle in the same frame as the final positioned shape.
+     */
+    @Override
+    protected void applyTranslation(Vector3d shiftVec) {
+        super.applyTranslation(shiftVec);
+        if (noiseOrigin != null) {
+            noiseOrigin.add(shiftVec);
+        }
+    }
+
 //    protected boolean validMStickSize() {
 ////        double buffer = 0.5; //in degrees, on each side. So total buffer is 1 degree
 //        double maxRadius = getScaleForMAxisShape(); // degree

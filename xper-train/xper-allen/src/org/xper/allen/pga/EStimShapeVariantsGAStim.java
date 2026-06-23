@@ -89,26 +89,32 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
             compsToPreserveInParent = hypothesizedCompManager.readHypothesizedCompOrNull(parentId);
         }
 
-        // Generate child
+        // Generate child. Owner mode: place the noise circle with the smallest-shift search that hides
+        // the whole preserved limb. Restore the shared mapper afterward (used by NAFC/other paths too).
         Random random = new Random();
         boolean r = random.nextBoolean();
 
-        if (r) {
-            double pruningMagnitude = random.nextDouble() * 0.5 + 0.3;
-            childMStick.genPruningMatchStick(parentMStick, pruningMagnitude, compsToPreserveInParent, null);
-        }
-        else {
-            int nComp = 0;
-            while (nComp <= compsToPreserveInParent.size()) {
-                nComp = stickMath_lib.pickFromProbDist(PruningMatchStick.PARAM_nCompDist);
+        NoiseOptState prevNoiseOpt = beginOwnerCircleOptimization();
+        try {
+            if (r) {
+                double pruningMagnitude = random.nextDouble() * 0.5 + 0.3;
+                childMStick.genPruningMatchStick(parentMStick, pruningMagnitude, compsToPreserveInParent, null);
             }
-            childMStick.genMatchStickFromComponentsInNoise(parentMStick, compsToPreserveInParent, nComp,
-                    true, 15);
-        }
+            else {
+                int nComp = 0;
+                while (nComp <= compsToPreserveInParent.size()) {
+                    nComp = stickMath_lib.pickFromProbDist(PruningMatchStick.PARAM_nCompDist);
+                }
+                childMStick.genMatchStickFromComponentsInNoise(parentMStick, compsToPreserveInParent, nComp,
+                        true, 15);
+            }
 
-        // Slightly mutate the preserved limb if Python assigned a nonzero magnitude.
-        // Never adds or removes limbs - only morphs the preserved comp(s) in place.
-        childMStick.mutatePreservedComps(magnitude);
+            // Slightly mutate the preserved limb if Python assigned a nonzero magnitude.
+            // Never adds or removes limbs - only morphs the preserved comp(s) in place.
+            childMStick.mutatePreservedComps(magnitude);
+        } finally {
+            endOwnerCircleOptimization(prevNoiseOpt);
+        }
 
 
         // Save data for this stimulus
@@ -121,6 +127,9 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
                 compsToPreserveInParent
         );
 //        hypothesizedCompManager.writeProperty(stimId, childData); //shouldn't have to do this now, we put this in GAStim
+
+        // This variant owns its noise circle (computed during generation, tracked through positioning).
+        noiseCircle = captureNoiseCircle(childMStick);
 
         return childMStick;
     }

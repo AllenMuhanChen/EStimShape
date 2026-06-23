@@ -7,6 +7,9 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphData;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
+import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
+import org.xper.allen.drawing.composition.noisy.NoiseCircle;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.stimproperty.*;
 import org.xper.drawing.Coordinates2D;
@@ -35,6 +38,8 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected final PositionPropertyManager positionManager;
     protected final HypothesizedCompManager hypothesizedCompManager;
     protected final StimTypePropertyManager stimTypeManager;
+    protected final NoiseCirclePropertyManager noiseCircleManager;
+    protected final SharedNoiseCircleManager sharedNoiseCircleManager;
 
     protected Long stimId;
     protected String textureType;
@@ -47,6 +52,8 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected RGBColor averageRGB;
     protected HypothesizedCompData hypothesizedCompData;
     protected MStickPosition position;
+    // The shared noise circle this stim owns (set during createMStick, persisted in writeStimProperties).
+    protected NoiseCircle noiseCircle;
 
 
     private T mStick;
@@ -80,6 +87,8 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         positionManager = new PositionPropertyManager(jdbcTemplate);
         hypothesizedCompManager = new HypothesizedCompManager(jdbcTemplate);
         stimTypeManager = new StimTypePropertyManager(jdbcTemplate);
+        noiseCircleManager = new NoiseCirclePropertyManager(jdbcTemplate);
+        sharedNoiseCircleManager = new SharedNoiseCircleManager(jdbcTemplate);
     }
 
     /**
@@ -106,6 +115,8 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         positionManager = new PositionPropertyManager(jdbcTemplate);
         hypothesizedCompManager = new HypothesizedCompManager(jdbcTemplate);
         stimTypeManager = new StimTypePropertyManager(jdbcTemplate);
+        noiseCircleManager = new NoiseCirclePropertyManager(jdbcTemplate);
+        sharedNoiseCircleManager = new SharedNoiseCircleManager(jdbcTemplate);
     }
 
     @Override
@@ -172,6 +183,13 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
             throw new ProceduralMatchStick.MorphRepetitionException("CRITICAL ERROR: COULD NOT GENERATE MORPHED MATCHSTICK  OF TYPE" + this.getClass().getSimpleName());
         }
 
+
+        // Overlay the shared noise circle (in red) on the comp-map and skeleton thumbnails so the
+        // noise region is visible in the curation GUI. Set on the final (possibly useAverageRGB-
+        // rebuilt) mStick, which is a plain GAMatchStick that carries no noiseOrigin of its own.
+        if (noiseCircle != null && mStick != null) {
+            mStick.setDisplayNoiseCircle(noiseCircle);
+        }
 
         saveMStickSpec(mStick);
         drawCompMaps(mStick);
@@ -311,9 +329,70 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         underlyingTextureManager.writeProperty(stimId, underlyingTexture);
         underyingAverageRGBManager.writeProperty(stimId, averageRGB);
         positionManager.writeProperty(stimId, position);
+        if (noiseCircle != null){
+            noiseCircleManager.writeProperty(stimId, noiseCircle);
+        }
         if (hypothesizedCompData != null){
             hypothesizedCompManager.writeProperty(stimId, hypothesizedCompData);
         }
+    }
+
+    /**
+     * Snapshot the shape's final noise circle (origin + radius) after generation/positioning so it
+     * can be persisted and shared. Returns null if no noise origin was computed for this shape.
+     */
+    protected NoiseCircle captureNoiseCircle(ProceduralMatchStick mStick) {
+        if (mStick.getNoiseOrigin() == null) {
+            return null;
+        }
+        return new NoiseCircle(mStick.getNoiseOrigin(), mStick.noiseRadiusMm);
+    }
+
+    /** The inside-fraction an owner's circle (and a delta's parent limb) must reach. Tunable: 1.0
+     * requires the whole limb hidden; lower it if 100%-inside makes generation retry too often. */
+    protected static final double OWNER_CIRCLE_TARGET_INSIDE = 1.0;
+
+    /** Snapshot of the shared mapper's owner-optimization settings, for restore after generation. */
+    protected static class NoiseOptState {
+        final boolean optimize;
+        final double target;
+        final double required;
+        NoiseOptState(boolean optimize, double target, double required) {
+            this.optimize = optimize;
+            this.target = target;
+            this.required = required;
+        }
+    }
+
+    /**
+     * Switch the shared noise mapper into "owner" mode for the duration of this stim's generation: the
+     * circle is placed by the smallest-shift search that hides the whole limb (target/required inside =
+     * OWNER_CIRCLE_TARGET_INSIDE). Returns the previous settings (or null for a non-Gaussian mapper) so
+     * the caller MUST restore them in a finally - the mapper is shared with NAFC and other paths.
+     */
+    protected NoiseOptState beginOwnerCircleOptimization() {
+        NAFCNoiseMapper mapper = generator.getNoiseMapper();
+        if (!(mapper instanceof GaussianNoiseMapper)) {
+            return null;
+        }
+        GaussianNoiseMapper gm = (GaussianNoiseMapper) mapper;
+        NoiseOptState prev = new NoiseOptState(
+                gm.isOptimizeShiftToHideComps(), gm.getTargetInsideFraction(), gm.getPercentRequiredInside());
+        gm.setOptimizeShiftToHideComps(true);
+        gm.setTargetInsideFraction(OWNER_CIRCLE_TARGET_INSIDE);
+        gm.setPercentRequiredInside(OWNER_CIRCLE_TARGET_INSIDE);
+        return prev;
+    }
+
+    protected void endOwnerCircleOptimization(NoiseOptState prev) {
+        NAFCNoiseMapper mapper = generator.getNoiseMapper();
+        if (prev == null || !(mapper instanceof GaussianNoiseMapper)) {
+            return;
+        }
+        GaussianNoiseMapper gm = (GaussianNoiseMapper) mapper;
+        gm.setOptimizeShiftToHideComps(prev.optimize);
+        gm.setTargetInsideFraction(prev.target);
+        gm.setPercentRequiredInside(prev.required);
     }
 
     protected T createRandMStick() {

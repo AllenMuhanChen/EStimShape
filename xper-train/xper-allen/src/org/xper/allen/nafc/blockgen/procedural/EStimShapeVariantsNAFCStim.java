@@ -6,7 +6,10 @@ import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
+import org.xper.allen.drawing.composition.noisy.InheritedNoiseCircleMapper;
 import org.xper.allen.drawing.composition.noisy.NAFCNoiseMapper;
+import org.xper.allen.drawing.composition.noisy.NoiseCircle;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.pga.MStickPosition;
@@ -115,6 +118,44 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         List<Integer> hypothesizedComp = resolveHypothesizedComp(variantId, gaJDBCTemplate, hypothesizedCompManager);
         morphComponentIndcs = hypothesizedComp;
         noiseComponentIndcs = hypothesizedComp;
+
+        // Inherit the shared noise circle the GA anchored on this variant's hypothesized component
+        // (keyed by (variant_id, comp-set)), so the sample - variant, delta, or deleted - is noised
+        // with the SAME circle every member of the trial group uses, rather than recomputing a
+        // per-shape one. Falls back to the generator's recomputing mapper when no shared circle was
+        // stored (e.g. legacy data, or a variant with no included deltas).
+        useSharedNoiseCircleIfAvailable(gaJDBCTemplate, variantId, noiseComponentIndcs);
+    }
+
+    /**
+     * If the GA stored a shared noise circle for (variantId, comps), replace {@link #noiseMapper} with
+     * an {@link InheritedNoiseCircleMapper} pinned to it so checkInNoise applies+validates that exact
+     * circle (and the baked noise map renders it). Best-effort: any failure leaves the per-shape mapper
+     * in place so trial generation still works on databases without the shared circle.
+     */
+    private void useSharedNoiseCircleIfAvailable(JdbcTemplate gaJDBCTemplate, Long variantId, List<Integer> comps) {
+        try {
+            if (!tableExists(gaJDBCTemplate, "SharedNoiseCircle")) {
+                return;
+            }
+            SharedNoiseCircleManager sharedCircleManager = new SharedNoiseCircleManager(gaJDBCTemplate);
+            if (!sharedCircleManager.hasProperty(variantId, comps)) {
+                return;
+            }
+            NoiseCircle shared = sharedCircleManager.readProperty(variantId, comps);
+            InheritedNoiseCircleMapper inherited = new InheritedNoiseCircleMapper(shared);
+            if (noiseMapper instanceof GaussianNoiseMapper) {
+                GaussianNoiseMapper src = (GaussianNoiseMapper) noiseMapper;
+                inherited.setWidth(src.width);
+                inherited.setHeight(src.height);
+            }
+            inherited.setBackground(0);
+            inherited.setDoEnforceHiddenJunction(true);
+            noiseMapper = inherited;
+        } catch (Exception e) {
+            System.err.println("No shared noise circle for variant " + variantId + " comps " + comps
+                    + "; using per-shape noise. " + e.getMessage());
+        }
     }
 
     /**
@@ -233,9 +274,14 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         return this.texture.equals("2D");
     }
 
+    /** How many times to retry generating the whole choice set before failing the trial. */
+    protected static final int MAX_TRIAL_GENERATION_ATTEMPTS = 30;
+
     @Override
     protected void generateMatchSticksAndSaveSpecs() {
-        while(true) {
+        int attempts = 0;
+        while (attempts < MAX_TRIAL_GENERATION_ATTEMPTS) {
+            attempts++;
             this.mSticks = new Procedural<>();
             this.mStickSpecs = new Procedural<>();
             try {
@@ -247,12 +293,17 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
 
                 generateRandDistractors();
 
-                break;
+                return;
             } catch (Exception e) {
-                System.out.println("MorphRepetition FAILED: " + e.getMessage());
+                System.out.println("NAFC trial generation attempt " + attempts + " FAILED: " + e.getMessage());
                 System.out.println("BaseMStickId is: " + baseMStickStimSpecId);
             }
         }
+        // Bounded so an inherited noise circle the sample/choices can't fit fails the trial instead of
+        // looping forever (a fixed spec regenerates identically). Skips this trial rather than the block.
+        throw new RuntimeException("Could not generate NAFC trial for variant " + variantId
+                + " (baseMStick " + baseMStickStimSpecId + ") after " + MAX_TRIAL_GENERATION_ATTEMPTS
+                + " attempts - the sample or a choice could not fit the shared noise circle.");
     }
 
     @Override

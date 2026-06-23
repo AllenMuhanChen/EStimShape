@@ -57,6 +57,13 @@ COMP_COLORS = {
 OVERLAY_COLOR = (255, 0, 0)
 OVERLAY_ALPHA = 0.45  # 0 = invisible, 1 = opaque
 
+# The Java comp-map renderer bakes the shared noise circle into the comp-map thumbnail
+# as a red-orange ring (GAMatchStick.drawDisplayNoiseCircle): R high, G mid, B low -
+# deliberately distinct from the flat component colors (component 2 is pure red) so it
+# can be picked out here and redrawn. Shown only when the hypothesized-comp overlay is
+# on, since that's when the comp-map thumbnail is consulted.
+NOISE_RING_COLOR = (255, 0, 0)
+
 
 class DeltaVariantCurationApp:
     """Tkinter app for curating delta-variant pairs."""
@@ -495,6 +502,21 @@ class DeltaVariantCurationApp:
         nearest = (diff * diff).sum(axis=3).argmin(axis=2)
         return np.isin(nearest, wanted)
 
+    def _noise_ring_mask(self, thumb_path, inner):
+        """Boolean (inner, inner) mask of the baked shared-noise-circle ring.
+
+        The Java renderer draws the noise circle into the comp-map thumbnail in a
+        red-orange the components never use (R high, G mid, B low), so we can pick it
+        out by color band alone - no overlap with the flat component colors (notably
+        pure-red component 2). Returns None when there's no comp-map thumbnail.
+        """
+        comp_img = self._load_compmap_inner(thumb_path, inner)
+        if comp_img is None:
+            return None
+        arr = np.asarray(comp_img, dtype=np.int32)
+        r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
+        return (r > 200) & (g > 30) & (g < 150) & (b < 80)
+
     def _load_thumb(self, stim_id, response, vmin, vmax, overlay_comps=None):
         path = self.thumb_map.get(stim_id)
         if not path or not os.path.exists(path):
@@ -529,6 +551,13 @@ class DeltaVariantCurationApp:
                     alpha = Image.fromarray(
                         (mask * int(255 * OVERLAY_ALPHA)).astype("uint8"), mode="L")
                     inner_img = Image.composite(overlay, base, alpha)
+                # Draw the shared noise circle (opaque red ring) on top, when present.
+                ring = self._noise_ring_mask(path, inner)
+                if ring is not None and ring.any():
+                    ring_img = Image.new("RGB", inner_img.size, NOISE_RING_COLOR)
+                    ring_alpha = Image.fromarray(
+                        (ring * 255).astype("uint8"), mode="L")
+                    inner_img = Image.composite(ring_img, inner_img, ring_alpha)
             img = ImageOps.expand(inner_img, border=THUMB_BORDER, fill=border_color)
             photo = ImageTk.PhotoImage(img)
             self._photo_cache[key] = photo

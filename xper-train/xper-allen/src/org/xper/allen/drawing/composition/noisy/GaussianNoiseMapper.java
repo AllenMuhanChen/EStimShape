@@ -74,6 +74,25 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
     public Point3d debug_noiseOrigin3d;      // computed center of the noise circle
     public double debug_noiseRadiusMm;       // radius of the noise circle
 
+    /**
+     * Minimum fraction of the to-hide component's points that must fall inside the noise circle for
+     * checkInNoise to pass. Defaults to the historical 0.95; set to 1.0 to require the whole limb.
+     */
+    private double percentRequiredInside = 0.95;
+
+    /**
+     * When true, calculateNoiseOrigin replaces the fixed geometric shift (junc.getRad()*scale) with a
+     * search for the SMALLEST shift along the aim direction that gets percentRequiredInsideForSearch of
+     * the to-hide component inside the (fixed-radius) circle. Smallest shift also maximizes how much of
+     * the rest stays outside, so the two goals are aligned. Defaults to false (current behavior).
+     */
+    private boolean optimizeShiftToHideComps = false;
+    /** Target inside-fraction the shift search aims to reach (1.0 = hide the whole limb). */
+    private double targetInsideFraction = 1.0;
+    /** Number of discrete shift samples the search scans between origin-at-junction and full radius. */
+    private int shiftSearchSteps = 200;
+
+
     @Override
     public String mapNoise(ProceduralMatchStick mStick,
                            double amplitude,
@@ -94,73 +113,17 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
     public void checkInNoise(ProceduralMatchStick proceduralMatchStick, List<Integer> mustBeInNoiseCompIds, double percentRequiredOutsideNoise) throws NoiseException{
         Point3d noiseOrigin = calculateNoiseOrigin(proceduralMatchStick, mustBeInNoiseCompIds);
         proceduralMatchStick.setNoiseOrigin(noiseOrigin);
-        debug_noise_origin = new Point2d(proceduralMatchStick.getNoiseOrigin().getX(), proceduralMatchStick.getNoiseOrigin().getY());
+        double radius = proceduralMatchStick.noiseRadiusMm;
+        debug_noise_origin = new Point2d(noiseOrigin.getX(), noiseOrigin.getY());
         if (debugMode) {
             debug_noiseOrigin3d = new Point3d(noiseOrigin);
-            debug_noiseRadiusMm = proceduralMatchStick.noiseRadiusMm;
-        }
-        debug_points_vect.clear();
-        debug_points_obj1.clear();
-        debug_points_outside.clear();
-
-//        for (Point3d point : proceduralMatchStick.getObj1().vect_info){
-//            if (point != null) {
-//                debug_points_obj1.add(new Point2d(point.getX(), point.getY()));
-//            }
-//        }
-
-        ArrayList<ConcaveHull.Point> pointsToCheck = new ArrayList<>();
-        Point3d massCenter = proceduralMatchStick.getMassCenter();
-        int index = 0;
-        for (int mustBeInNoiseCompId : mustBeInNoiseCompIds) {
-            AllenTubeComp testingComp = proceduralMatchStick.getComp()[mustBeInNoiseCompId];
-
-            //Must Correct the points here:
-            Point3d[] compVect_info = testingComp.getVect_info();
-//            Point3d[] correctedVect_info = new Point3d[compVect_info.length];
-            int compIndex = 0;
-            for (Point3d in : compVect_info) {
-                if (in != null) {
-                    Point3d correctedPoint = new Point3d(in);
-                    //AC: Removing this correction because we added this correction to compVect_info already!
-//                    correctedPoint.sub(massCenter);
-//                    correctedPoint.scale(proceduralMatchStick.getScaleForMAxisShape());
-//                    correctedPoint.add(massCenter);
-//                    correctedVect_info[compIndex] = correctedPoint;
-                    debug_points_vect.add(new Point2d(correctedPoint.getX(), correctedPoint.getY()));
-                    pointsToCheck.add(new ConcaveHull.Point(correctedPoint.getX(), correctedPoint.getY()));
-                    compIndex++;
-                    index++;
-                }
-            }
-
-//            index=0;
-//            for (Point3d point3d : correctedVect_info) {
-//                if (point3d != null) {
-//                    debug_points_vect.add(new Point2d(point3d.getX(), point3d.getY()));
-//                    pointsToCheck.add(new ConcaveHull.Point(point3d.getX(), point3d.getY()));
-//                    index++;
-//                }
-//            }
+            debug_noiseRadiusMm = radius;
+            captureDebugPoints(proceduralMatchStick, mustBeInNoiseCompIds, noiseOrigin, radius);
         }
 
-        int numPointsInside = 0;
-        for (ConcaveHull.Point point: pointsToCheck){
-            if (isPointWithinCircle(new Point2d(point.getX(), point.getY()), new Point2d(proceduralMatchStick.getNoiseOrigin().getX(), proceduralMatchStick.getNoiseOrigin().getY()), proceduralMatchStick.noiseRadiusMm)){
-                numPointsInside++;
-            } else{
-                debug_points_outside.add(new Point2d(point.getX(), point.getY()));
-                double error = Math.abs(point.distance(new Point2d(proceduralMatchStick.getNoiseOrigin().getX(), proceduralMatchStick.getNoiseOrigin().getY())) - proceduralMatchStick.noiseRadiusMm);
-//                System.out.println("OUTSIDE: " + point.getX() + ", " + point.getY()
-//                        + " with error: " + error);
-            }
-        }
-        //TODO: potential improvement: we could replace the mechanism for this by somehow identifying points in the junction itself
-//        double percentRequiredInside = doEnforceHiddenJunction ? 1.0 : 0.95;
-        double percentRequiredInside = 0.95;
-        double actualPercentageInside = (double) numPointsInside / pointsToCheck.size();
+        double actualPercentageInside = fractionInside(proceduralMatchStick, mustBeInNoiseCompIds, noiseOrigin, radius);
         if (actualPercentageInside < percentRequiredInside){
-            String msg = "Found points outside of noise circle: " + actualPercentageInside + "% inside + with noise Radius: " + proceduralMatchStick.noiseRadiusMm;
+            String msg = "Found points outside of noise circle: " + actualPercentageInside + " inside, with noise Radius: " + radius;
             if (debugMode) {
                 System.out.println("[NOISE DEBUG] (suppressed) " + msg);
             } else {
@@ -170,29 +133,7 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
         System.out.println("PERCENT REQUIRED INSIDE: " + percentRequiredInside);
         System.out.println("ACTUAL PERCENT INSIDE: " + actualPercentageInside);
 
-        //Check if enough points not in compId are outside of the noise circle
-        ArrayList<Point2d> pointsToCheckIfOutside = new ArrayList<>();
-        for (int compIdx = 1; compIdx<= proceduralMatchStick.getnComponent(); compIdx++){
-            if (!mustBeInNoiseCompIds.contains(compIdx)){
-                Point3d[] compVectInfo = proceduralMatchStick.getComp()[compIdx].getVect_info();
-                index = 0;
-                for (Point3d point3d: compVectInfo){
-                    if (point3d != null){
-                        if (index % 1 == 0) //For speed, we only check every other point for the hull
-                            pointsToCheckIfOutside.add(new Point2d(point3d.getX(), point3d.getY()));
-                        index++;
-                    }
-                }
-            }
-        }
-
-        int numPointsOutside = 0;
-        for (Point2d point: pointsToCheckIfOutside){
-            if (!isPointWithinCircle(point, new Point2d(proceduralMatchStick.getNoiseOrigin().getX(), proceduralMatchStick.getNoiseOrigin().getY()), proceduralMatchStick.noiseRadiusMm)){
-                numPointsOutside++;
-            }
-        }
-        double percentOutside = (double) numPointsOutside / pointsToCheckIfOutside.size();
+        double percentOutside = fractionOutside(proceduralMatchStick, mustBeInNoiseCompIds, noiseOrigin, radius);
         System.out.println("%%%% OUTSIDE: " + percentOutside);
         if (percentOutside < percentRequiredOutsideNoise){
             if (debugMode) {
@@ -202,6 +143,66 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
             }
         }
         System.out.println("SUCCEEDED CHECK IN NOISE");
+    }
+
+    /**
+     * Fraction of the given components' vect_info points that lie inside the circle. Pure (no side
+     * effects), so both checkInNoise and the shift search can call it to agree on coverage.
+     */
+    public double fractionInside(ProceduralMatchStick mStick, List<Integer> comps, Point3d origin, double radius) {
+        Point2d center = new Point2d(origin.getX(), origin.getY());
+        int total = 0, inside = 0;
+        for (int compId : comps) {
+            for (Point3d p : mStick.getComp()[compId].getVect_info()) {
+                if (p != null) {
+                    total++;
+                    if (isPointWithinCircle(new Point2d(p.getX(), p.getY()), center, radius)) {
+                        inside++;
+                    }
+                }
+            }
+        }
+        return total == 0 ? 1.0 : (double) inside / total;
+    }
+
+    /**
+     * Fraction of the points belonging to components NOT in inNoiseComps that lie outside the circle.
+     */
+    public double fractionOutside(ProceduralMatchStick mStick, List<Integer> inNoiseComps, Point3d origin, double radius) {
+        Point2d center = new Point2d(origin.getX(), origin.getY());
+        int total = 0, outside = 0;
+        for (int compId = 1; compId <= mStick.getnComponent(); compId++) {
+            if (inNoiseComps.contains(compId)) {
+                continue;
+            }
+            for (Point3d p : mStick.getComp()[compId].getVect_info()) {
+                if (p != null) {
+                    total++;
+                    if (!isPointWithinCircle(new Point2d(p.getX(), p.getY()), center, radius)) {
+                        outside++;
+                    }
+                }
+            }
+        }
+        return total == 0 ? 1.0 : (double) outside / total;
+    }
+
+    private void captureDebugPoints(ProceduralMatchStick mStick, List<Integer> inNoiseComps, Point3d origin, double radius) {
+        debug_points_vect.clear();
+        debug_points_obj1.clear();
+        debug_points_outside.clear();
+        Point2d center = new Point2d(origin.getX(), origin.getY());
+        for (int compId : inNoiseComps) {
+            for (Point3d p : mStick.getComp()[compId].getVect_info()) {
+                if (p != null) {
+                    Point2d p2 = new Point2d(p.getX(), p.getY());
+                    debug_points_vect.add(p2);
+                    if (!isPointWithinCircle(p2, center, radius)) {
+                        debug_points_outside.add(p2);
+                    }
+                }
+            }
+        }
     }
 
     public Point3d calculateNoiseOrigin(ProceduralMatchStick proceduralMatchStick, List<Integer> compsToBeInNoise){
@@ -224,9 +225,9 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
                     if (isContainsSpecialId) {
                         if (junc.getnComp() == 2) {
                             int baseCompId = ProceduralMatchStick.findBaseCompId(specialCompId, junc);
-                            return calcProjectionFromSingleJunctionWithSingleComp(proceduralMatchStick, baseCompId, junc);
+                            return calcProjectionFromSingleJunctionWithSingleComp(proceduralMatchStick, baseCompId, junc, compsToBeInNoise);
                         } else if (junc.getnComp() > 2) {
-                            return calcProjectionFromJunctionWithMultiComp(proceduralMatchStick, specialCompId, junc);
+                            return calcProjectionFromJunctionWithMultiComp(proceduralMatchStick, specialCompId, junc, compsToBeInNoise);
                         } else{
                             throw new IllegalArgumentException("Junction has less than 2 components");
                         }
@@ -260,7 +261,7 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
                     }).toArray().length;
 
                     if (numMatch == 1) {
-                        return calcProjectionFromSingleJunctionWithSingleComp(proceduralMatchStick, baseCompId, junc);
+                        return calcProjectionFromSingleJunctionWithSingleComp(proceduralMatchStick, baseCompId, junc, compsToBeInNoise);
                     }
                 }
             }
@@ -286,20 +287,12 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
      * @param junc
      * @return
      */
-    public Point3d calcProjectionFromSingleJunctionWithSingleComp(ProceduralMatchStick proceduralMatchStick, Integer baseCompId, JuncPt_struct junc) {
-        Point3d projectedPoint;
-
+    public Point3d calcProjectionFromSingleJunctionWithSingleComp(ProceduralMatchStick proceduralMatchStick, Integer baseCompId, JuncPt_struct junc, List<Integer> toHideComps) {
         // Find tangent to project along for noise origin
         proceduralMatchStick.projectedTangent = getJuncTangentForSingle(proceduralMatchStick, junc, baseCompId);
         proceduralMatchStick.projectedTangent = new Vector3d(proceduralMatchStick.projectedTangent.x, proceduralMatchStick.projectedTangent.y, 0);
 
-        // Choose a starting point
-        Point3d startingPosition = chooseStartingPoint(proceduralMatchStick, junc, proceduralMatchStick.projectedTangent, proceduralMatchStick.getScaleForMAxisShape());
-        System.out.println("Starting position: " + startingPosition);
-        projectedPoint = pointAlong2dTangent(startingPosition,
-                proceduralMatchStick.projectedTangent,
-                proceduralMatchStick.noiseRadiusMm);
-        return projectedPoint;
+        return placeNoiseOrigin(proceduralMatchStick, junc, proceduralMatchStick.projectedTangent, toHideComps);
     }
 
     public static Vector3d getJuncTangentForSingle(ProceduralMatchStick proceduralMatchStick, JuncPt_struct junc, int baseCompId) {
@@ -408,8 +401,7 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
      * @param junc
      * @return
      */
-    public Point3d calcProjectionFromJunctionWithMultiComp(ProceduralMatchStick proceduralMatchStick, Integer specialCompId, JuncPt_struct junc) {
-        Point3d projectedPoint;
+    public Point3d calcProjectionFromJunctionWithMultiComp(ProceduralMatchStick proceduralMatchStick, Integer specialCompId, JuncPt_struct junc, List<Integer> toHideComps) {
         // Collect tangents for this junction - excluding special component
         List<Vector3d> nonSpecialTangents = new LinkedList<>();
         List<Integer> jIndicesForTangent = new LinkedList<>();
@@ -469,9 +461,64 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
         Vector3d bisector_3d = new Vector3d(bisector.getX(), bisector.getY(), 0);
         proceduralMatchStick.projectedTangent = bisector_3d;
 
-        Point3d startingPosition = chooseStartingPoint(proceduralMatchStick, junc, bisector_3d, proceduralMatchStick.getScaleForMAxisShape());
-        projectedPoint = pointAlong2dTangent(startingPosition, bisector_3d, proceduralMatchStick.noiseRadiusMm);
-        return projectedPoint;
+        return placeNoiseOrigin(proceduralMatchStick, junc, bisector_3d, toHideComps);
+    }
+
+    /**
+     * Turns an aim direction into a noise-circle origin. Default behavior is the fixed geometric shift
+     * (chooseStartingPoint + project by noiseRadius). When optimizeShiftToHideComps is on, it instead
+     * searches for the smallest shift along the aim direction that hides the to-hide component.
+     */
+    private Point3d placeNoiseOrigin(ProceduralMatchStick mStick, JuncPt_struct junc, Vector3d aimTangent, List<Integer> toHideComps) {
+        if (optimizeShiftToHideComps) {
+            return searchSmallestShiftOrigin(mStick, junc, aimTangent, toHideComps);
+        }
+        Point3d startingPosition = chooseStartingPoint(mStick, junc, aimTangent, mStick.getScaleForMAxisShape());
+        System.out.println("Starting position: " + startingPosition);
+        return pointAlong2dTangent(startingPosition, aimTangent, mStick.noiseRadiusMm);
+    }
+
+    /**
+     * Scans the noise-circle center along the (fixed) aim direction and returns the SMALLEST shift that
+     * gets targetInsideFraction of the to-hide component inside the fixed-radius circle.
+     *
+     * The center is a linear function of the inward shift s:
+     *     origin(s) = scaledJunc + D * (radius - s)
+     * where D is the unit aim direction and scaledJunc is the junction in the vect_info frame. s = 0
+     * puts the junction on the circle's near edge (half the limb out); growing s pulls the circle back
+     * over the limb. Smallest qualifying s also keeps the circle pushed maximally away from the rest of
+     * the shape, so it maximizes how much stays outside. If nothing in [0, radius] qualifies, the limb
+     * cannot be hidden by this radius; we return the center-on-junction circle and let checkInNoise
+     * reject it.
+     */
+    private Point3d searchSmallestShiftOrigin(ProceduralMatchStick mStick, JuncPt_struct junc, Vector3d aimTangent, List<Integer> toHideComps) {
+        Point3d scaledJunc = mStick.transCorScalePoint(junc.getPos());
+        Vector2d d = projectTo2D(aimTangent);
+        d.normalize();
+        double radius = mStick.noiseRadiusMm;
+        double step = radius / shiftSearchSteps;
+
+        Point3d chosen = new Point3d(scaledJunc.x, scaledJunc.y, 0); // fallback: centered on junction (max coverage)
+        for (double s = 0; s <= radius + 1e-9; s += step) {
+            double offset = radius - s;
+            Point3d origin = new Point3d(scaledJunc.x + d.x * offset, scaledJunc.y + d.y * offset, 0);
+            if (fractionInside(mStick, toHideComps, origin, radius) >= targetInsideFraction) {
+                chosen = origin;
+                break;
+            }
+        }
+
+        if (debugMode) {
+            debug_junctionPosition = new Point3d(junc.getPos());
+            debug_junctionPositionScaled = new Point3d(scaledJunc);
+            debug_junctionRadius = junc.getRad();
+            debug_scaleForMAxisShape = mStick.getScaleForMAxisShape();
+            debug_projectedTangent = new Vector3d(aimTangent);
+            // near edge of the circle (toward the rest of the shape) = origin - D*radius
+            debug_startingPosition = new Point3d(chosen.x - d.x * radius, chosen.y - d.y * radius, 0);
+            debug_shiftAmount = radius - (new Vector2d(chosen.x - scaledJunc.x, chosen.y - scaledJunc.y)).dot(d);
+        }
+        return chosen;
     }
 
     public Point3d chooseStartingPoint(ProceduralMatchStick mStick, JuncPt_struct junc, Vector3d tangent, double scaleForMAxisShape) {
@@ -743,5 +790,37 @@ public class GaussianNoiseMapper implements NAFCNoiseMapper {
 
     public void setDebugMode(boolean debugMode) {
         this.debugMode = debugMode;
+    }
+
+    public double getPercentRequiredInside() {
+        return percentRequiredInside;
+    }
+
+    public void setPercentRequiredInside(double percentRequiredInside) {
+        this.percentRequiredInside = percentRequiredInside;
+    }
+
+    public boolean isOptimizeShiftToHideComps() {
+        return optimizeShiftToHideComps;
+    }
+
+    public void setOptimizeShiftToHideComps(boolean optimizeShiftToHideComps) {
+        this.optimizeShiftToHideComps = optimizeShiftToHideComps;
+    }
+
+    public double getTargetInsideFraction() {
+        return targetInsideFraction;
+    }
+
+    public void setTargetInsideFraction(double targetInsideFraction) {
+        this.targetInsideFraction = targetInsideFraction;
+    }
+
+    public int getShiftSearchSteps() {
+        return shiftSearchSteps;
+    }
+
+    public void setShiftSearchSteps(int shiftSearchSteps) {
+        this.shiftSearchSteps = shiftSearchSteps;
     }
 }

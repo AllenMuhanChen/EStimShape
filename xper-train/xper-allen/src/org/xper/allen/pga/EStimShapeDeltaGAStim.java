@@ -3,7 +3,10 @@ package org.xper.allen.pga;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.xper.allen.drawing.composition.experiment.PositioningStrategy;
+import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
+import org.xper.allen.drawing.composition.noisy.NoiseCircle;
 
 import javax.vecmath.Point3d;
 import java.sql.ResultSet;
@@ -269,31 +272,27 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
             }
         }
 
-        PruningMatchStick childMStick;
-        if (position.getPosition() == null){
-            Point3d toPreserveCompLocation = parentMStick.getComp()[compsToPreserveInParent.get(0)].getMassCenter();
-            childMStick = new PruningMatchStick(toPreserveCompLocation, generator.getNoiseMapper());
-            childMStick.setPreservedComps(compsToPreserveInParent);
-            childMStick.setToPreserveInParent(compsToPreserveInParent);
-        } else {
+        if (position.getPosition() != null) {
             throw new IllegalArgumentException("Delta parent's position should be preserved comp based");
         }
 
+        // The shared noise circle is anchored on the PARENT's hypothesized component, so every delta of
+        // this parent that mutates the same comp(s) uses ONE identical circle (and the variant in the
+        // NAFC trial does too). The first delta for this (parent, comp-set) computes it from the parent
+        // and saves it; later siblings read it back and must reuse it.
+        boolean computedCircle = false;
+        NoiseCircle sharedCircle;
+        if (sharedNoiseCircleManager.hasProperty(parentId, compsToMutateInParent)) {
+            sharedCircle = sharedNoiseCircleManager.readProperty(parentId, compsToMutateInParent);
+        } else {
+            sharedCircle = computeParentCircle(parentMStick, compsToMutateInParent);
+            computedCircle = true;
+        }
 
-        childMStick.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
-        childMStick.setStimColor(color);
-        childMStick.setMaxDiameterDegrees(generator.getImageDimensionsDegrees());
-
-
-
-
-        // Generate child
-        // Magnitude is decided by Python (passed in as a parameter); discreteness is still
-        // chosen randomly here (Python ignores it for now).
-        Random random = new Random();
-        double discreteness = random.nextDouble();
-        childMStick.genNewComponentsMatchStick(parentMStick, compsToMutateInParent, magnitude, discreteness,
-                true, 15, compsToMutateInParent);
+        // Generate a delta whose mutated limb fits that fixed circle (retry-then-skip): retry fresh
+        // morphs until one fits, else throw so writeStim() ultimately skips this delta.
+        PruningMatchStick childMStick = generateDeltaFittingCircle(
+                parentMStick, compsToMutateInParent, compsToPreserveInParent, sharedCircle);
 
         // Save data for this stimulus. Position still anchors on a PRESERVED comp (the changed one
         // has new geometry and would drag the shape around).
@@ -319,6 +318,98 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
                 compsToMutateInParent
         );
 
+        // This delta uses the shared (parent-anchored) circle. Persist it per-stim (writeStimProperties)
+        // and, if we were the first delta for this comp-set, record it as the group's shared circle.
+        noiseCircle = sharedCircle;
+        if (computedCircle) {
+            sharedNoiseCircleManager.writeProperty(parentId, compsToMutateInParent, sharedCircle);
+        }
+
         return childMStick;
+    }
+
+    /** How many fresh morphs to try fitting the fixed parent circle before giving up on this delta. */
+    private static final int DELTA_CIRCLE_FIT_ATTEMPTS = 20;
+    /** Fraction of the rest of the shape that must stay outside the circle (matches generation's gate). */
+    private static final double DELTA_REQUIRED_OUTSIDE = 0.25;
+
+    /**
+     * The shared circle for this trial group, anchored on the PARENT's hypothesized component: the
+     * smallest-shift placement (owner optimizer) that hides the whole component at the fixed RF radius.
+     * Independent of any single delta's mutation, so all siblings share it. Throws if the parent's comp
+     * cannot be hidden at this radius (that comp-set is unusable -> writeStim() retries / skips).
+     */
+    private NoiseCircle computeParentCircle(PruningMatchStick parentMStick, List<Integer> compsToHide) {
+        if (!(generator.getNoiseMapper() instanceof GaussianNoiseMapper)) {
+            throw new MorphedMatchStick.MorphException("Noise mapper cannot compute a shared circle");
+        }
+        GaussianNoiseMapper gm = (GaussianNoiseMapper) generator.getNoiseMapper();
+        // Match setNoiseRadiusRelativeToRF (rf.getRadius()*16) so the shared circle uses the same radius
+        // every other stimulus in the trial group does.
+        double radius = generator.getReceptiveField().getRadius() * 16;
+        parentMStick.noiseRadiusMm = radius;
+        NoiseOptState prev = beginOwnerCircleOptimization();
+        Point3d origin;
+        try {
+            origin = gm.calculateNoiseOrigin(parentMStick, compsToHide);
+        } finally {
+            endOwnerCircleOptimization(prev);
+        }
+        double parentInside = gm.fractionInside(parentMStick, compsToHide, origin, radius);
+        if (parentInside < OWNER_CIRCLE_TARGET_INSIDE) {
+            throw new MorphedMatchStick.MorphException(
+                    "Cannot hide the parent's hypothesized comp with the shared circle (" + parentInside
+                            + " inside, need " + OWNER_CIRCLE_TARGET_INSIDE + "); choosing a different comp");
+        }
+        return new NoiseCircle(origin, radius);
+    }
+
+    /**
+     * Generate a delta that mutates compsToMutateInParent and whose mutated limb fits the fixed shared
+     * circle. The child ends up in the parent-aligned frame (its preserved comp is moved onto the
+     * parent's), so the parent-anchored circle applies directly; we check the mutated limb is fully
+     * inside it and the rest sufficiently outside. Retries fresh morphs up to a budget, then throws a
+     * MorphException so writeStim() ultimately skips this delta. On success the mutated limb is pinned
+     * to the inherited circle.
+     */
+    private PruningMatchStick generateDeltaFittingCircle(PruningMatchStick parentMStick,
+            List<Integer> compsToMutateInParent, List<Integer> compsToPreserveInParent, NoiseCircle circle) {
+        Point3d toPreserveCompLocation = parentMStick.getComp()[compsToPreserveInParent.get(0)].getMassCenter();
+        GaussianNoiseMapper gm = (generator.getNoiseMapper() instanceof GaussianNoiseMapper)
+                ? (GaussianNoiseMapper) generator.getNoiseMapper() : new GaussianNoiseMapper();
+        Random random = new Random();
+        for (int attempt = 0; attempt < DELTA_CIRCLE_FIT_ATTEMPTS; attempt++) {
+            PruningMatchStick child = new PruningMatchStick(toPreserveCompLocation, generator.getNoiseMapper());
+            child.setPreservedComps(compsToPreserveInParent);
+            child.setToPreserveInParent(compsToPreserveInParent);
+            child.setProperties(sizeDiameterDegrees, textureType, is2d, contrast);
+            child.setStimColor(color);
+            child.setMaxDiameterDegrees(generator.getImageDimensionsDegrees());
+            // Generate against the shared radius so the internal hideability gate uses the same circle size.
+            child.noiseRadiusMm = circle.getRadiusMm();
+            // Magnitude is decided by Python (passed in); discreteness is chosen randomly per attempt.
+            double discreteness = random.nextDouble();
+            try {
+                child.genNewComponentsMatchStick(parentMStick, compsToMutateInParent, magnitude, discreteness,
+                        true, 15, compsToMutateInParent);
+            } catch (MorphedMatchStick.MorphException e) {
+                // Covers MorphRepetitionException too (a subclass): this morph attempt failed, try another.
+                continue;
+            }
+            List<Integer> changedInChild = new ArrayList<>();
+            for (int i = 1; i <= child.getNComponent(); i++) {
+                if (!child.getPreservedComps().contains(i)) changedInChild.add(i);
+            }
+            double inside = gm.fractionInside(child, changedInChild, circle.getOrigin(), circle.getRadiusMm());
+            double outside = gm.fractionOutside(child, changedInChild, circle.getOrigin(), circle.getRadiusMm());
+            if (inside >= OWNER_CIRCLE_TARGET_INSIDE && outside >= DELTA_REQUIRED_OUTSIDE) {
+                child.noiseRadiusMm = circle.getRadiusMm();
+                child.setNoiseOrigin(circle.getOrigin());
+                return child;
+            }
+        }
+        throw new MorphedMatchStick.MorphException(
+                "Delta could not fit the parent-anchored noise circle after " + DELTA_CIRCLE_FIT_ATTEMPTS
+                        + " morph attempts");
     }
 }
