@@ -81,7 +81,7 @@ public class EStimShapeDeltaGAStimTest {
         System.out.println("delta limb inside = " + inside + " ; noiseRadiusMm=" + child.noiseRadiusMm);
 
         drawer.drawMStick(child);
-        ThreadUtil.sleep(500);
+        ThreadUtil.sleep(1000);
         drawer.saveImage(figPath + "/delta_from_db_" + PARENT_ID);
         drawer.drawCompMap(child);
         drawer.saveImage(figPath + "/delta_from_db_" + PARENT_ID+"_compMap");
