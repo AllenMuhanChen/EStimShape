@@ -203,6 +203,11 @@ def _metric_series(df, kind):
         d = df[~df['Choice'].isin(['rand', 'removed'])]
         d = d[~((d['IsRemovedTrial'] == True) & (d['Choice'] == 'match'))]
         return d, d['IsHypothesized'].astype(bool)
+    if kind == 'pct_3d':
+        # Split-texture trials only: among match-vs-foil picks (Is3DChoice non-null), the
+        # fraction that chose the option whose hypothesized limb was rendered in 3D.
+        d = df[df['Is3DChoice'].notna()]
+        return d, d['Is3DChoice'].astype(bool)
     if kind == 'rand':
         return df, (df['Choice'] == 'rand')
     if kind == 'removed':
@@ -392,6 +397,12 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.win_legends = {}             # trial_type -> LegendItem
         self.win_series = {}              # (trial_type, spec, noise) -> {'curve','label'}
 
+        # Texture-split-tab grid state (rows = split/inverted combos, columns = variant/delta).
+        self._split_grid_config = None    # (tuple(row_keys), tuple(col_keys)) — rebuilt on change
+        self.split_plots = {}             # (row_key, col_key) -> PlotItem
+        self.split_legends = {}           # (row_key, col_key) -> LegendItem
+        self.split_series = {}            # (row_key, col_key, series_key) -> {'curve','label','base'}
+
         # Stable spec_id -> color: a spec keeps its color for the whole session and across
         # every panel, regardless of which other specs are present or when it first appears.
         self._spec_color = {}
@@ -468,6 +479,13 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         filt_bar.addSpacing(12)
         filt_bar.addWidget(self.sl_filter)
         filt_bar.addStretch(1)
+        # Texture Split tab: pool a condition dimension into one row instead of splitting it out.
+        self.combine_sample_cb = QtWidgets.QCheckBox('Split: combine sample/foil')
+        self.combine_sample_cb.stateChanged.connect(lambda _s: self._rerender())
+        self.combine_inverted_cb = QtWidgets.QCheckBox('Split: combine normal/inverted')
+        self.combine_inverted_cb.stateChanged.connect(lambda _s: self._rerender())
+        filt_bar.addWidget(self.combine_sample_cb)
+        filt_bar.addWidget(self.combine_inverted_cb)
         layout.addLayout(filt_bar)
 
         # Tabs: Overview (Plot 1) and Sliding Window. Both share the control bar/filters above.
@@ -493,6 +511,16 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.win_grid_layout.setContentsMargins(4, 4, 4, 4)
         self.win_scroll.setWidget(self.win_host)
         self.tabs.addTab(self.win_scroll, 'Sliding Window')
+
+        # Texture Split tab — % 3D grid (rows = split/inverted combos, columns = variant/delta).
+        self.split_scroll = QtWidgets.QScrollArea()
+        self.split_scroll.setWidgetResizable(True)
+        self.split_scroll.setHorizontalScrollBarPolicy(_SCROLLBAR_OFF)
+        self.split_host = QtWidgets.QWidget()
+        self.split_grid_layout = QtWidgets.QGridLayout(self.split_host)
+        self.split_grid_layout.setContentsMargins(4, 4, 4, 4)
+        self.split_scroll.setWidget(self.split_host)
+        self.tabs.addTab(self.split_scroll, 'Texture Split')
 
         # Render the newly-shown tab so it reflects the latest data/filters.
         self.tabs.currentChanged.connect(lambda _idx: self._rerender())
@@ -600,11 +628,14 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         """Render whichever tab is currently visible. Returns the number of plotted trials."""
         self._update_recent_label()
         window_tab = self.tabs.currentWidget() is self.win_scroll
+        split_tab = self.tabs.currentWidget() is self.split_scroll
         data_exp = self._read_and_filter(include_behavioral=window_tab)
         if data_exp is None:
             return 0
         if window_tab:
             self._render_window(data_exp)
+        elif split_tab:
+            self._render_split(data_exp)
         else:
             self._render_overview(data_exp)
         return len(data_exp)
@@ -738,6 +769,125 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             t.setPos(x, y)
             try:
                 t.setAnchor((0.5, 1.0) if y <= 85 else (0.5, 0.0))
+            except Exception:
+                pass
+
+    # ---- texture-split tab ---------------------------------------------
+    def _split_rows(self, df, combine_sample, combine_inverted):
+        """Build (row_key, row_title, mask) for each active split/inverted combo present in df.
+
+        A 'combined' dimension is pooled (None) rather than split into its own rows. Rows with no
+        trials are dropped so the grid only shows conditions that actually have data."""
+        sample_opts = [None] if combine_sample else [True, False]
+        inverted_opts = [None] if combine_inverted else [True, False]
+        rows = []
+        for s in sample_opts:
+            for inv in inverted_opts:
+                def mask(d, s=s, inv=inv):
+                    m = pd.Series(True, index=d.index)
+                    if s is not None:
+                        m &= (d['SplitRenderIsSample'] == s)
+                    if inv is not None:
+                        m &= (d['InvertedShading'] == inv)
+                    return m
+                if not mask(df).any():
+                    continue
+                sample_lbl = 'sample+foil' if s is None else ('split=sample' if s else 'split=foil')
+                inv_lbl = 'normal+inverted' if inv is None else ('inverted' if inv else 'normal')
+                rows.append((f's={s}|i={inv}', f'{sample_lbl}, {inv_lbl}', mask))
+        return rows
+
+    def _render_split(self, data_exp):
+        """% 3D grid for split-texture trials: rows = split/inverted combos (pooled per the
+        combine toggles), columns = Variant/Delta. Each cell: % chose the 3D-limb option among
+        match-vs-foil picks, vs noise, with the estim-off baseline + one curve per spec."""
+        df = data_exp[data_exp['IsTextureSplit'] == True]
+        if len(df) == 0:
+            self.status_label.setText(f'{self.session_id}: no texture-split trials')
+            return
+        rows = self._split_rows(df, self.combine_sample_cb.isChecked(),
+                                self.combine_inverted_cb.isChecked())
+        cols = [('variant', 'Variant', False), ('delta', 'Delta', True)]
+        cols = [c for c in cols if (df['IsDelta'] == c[2]).any()]
+        if not rows or not cols:
+            self.status_label.setText(f'{self.session_id}: no texture-split trials to plot')
+            return
+        self._ensure_split_grid(rows, cols)
+        for (row_key, _row_title, mask) in rows:
+            sub = df[mask(df)]
+            for (col_key, _col_title, is_delta) in cols:
+                coldf = sub[sub['IsDelta'] == is_delta]
+                on_df = coldf[coldf['EStimEnabled'] == True]
+                off_df = coldf[coldf['EStimEnabled'] == False]
+                spec_ids = on_df['EStimSpecId'].dropna().unique()
+                self._update_split_cell(row_key, col_key, on_df, off_df, spec_ids)
+
+    def _ensure_split_grid(self, rows, cols):
+        """(Re)build the split grid only when the row/column layout changes (combine toggles or a
+        new condition appearing)."""
+        config = (tuple(r[0] for r in rows), tuple(c[0] for c in cols))
+        if config == self._split_grid_config:
+            return
+        while self.split_grid_layout.count():
+            item = self.split_grid_layout.takeAt(0)
+            w = item.widget()
+            if w is not None:
+                w.setParent(None)
+                w.deleteLater()
+        self.split_plots, self.split_legends, self.split_series = {}, {}, {}
+        for r, (row_key, row_title, *_rest) in enumerate(rows):
+            for c, (col_key, col_title, *_crest) in enumerate(cols):
+                glw = _ScrollGraphicsLayout(self.split_scroll)
+                glw.setFixedHeight(PLOT_HEIGHT)
+                pi = glw.addPlot(row=0, col=0)
+                legend = pg.LegendItem(offset=(10, 10))
+                glw.addItem(legend, row=0, col=1)
+                glw.ci.layout.setColumnStretchFactor(0, 1)
+                glw.ci.layout.setColumnFixedWidth(1, LEGEND_WIDTH)
+                pi.setTitle(f'% 3D — {col_title}: {row_title}')
+                pi.showGrid(x=True, y=True, alpha=0.3)
+                pi.setLabel('left', '% chose 3D limb')
+                pi.setLabel('bottom', 'Noise Chance (%)')
+                vb = pi.getViewBox()
+                vb.invertX(True)
+                vb.setRange(xRange=(-5, 105), yRange=(0, 100), padding=0)
+                vb.setLimits(yMin=0, yMax=100)
+                vb.disableAutoRange()
+                self.split_grid_layout.addWidget(glw, r, c)
+                self.split_plots[(row_key, col_key)] = pi
+                self.split_legends[(row_key, col_key)] = legend
+        self._split_grid_config = config
+
+    def _update_split_cell(self, row_key, col_key, on_df, off_df, spec_ids):
+        plot = self.split_plots[(row_key, col_key)]
+        legend = self.split_legends[(row_key, col_key)]
+        wanted = {'OFF': (off_df, 'EStim OFF', pg.mkPen('k', width=2, style=_DASH_LINE), (0, 0, 0))}
+        for spec in sorted(spec_ids):
+            color = self._color_for_spec(spec)
+            wanted[('spec', spec)] = (on_df[on_df['EStimSpecId'] == spec],
+                                      f'Spec {int(spec)}', pg.mkPen(color, width=2), color)
+        for series_key, (df, base, pen, color) in wanted.items():
+            xs, ys, ns = curve_points(df, 'pct_3d')
+            sid = (row_key, col_key, series_key)
+            if sid not in self.split_series:
+                curve = plot.plot([], [], pen=pen, symbol='o', symbolSize=6,
+                                  symbolBrush=color, symbolPen=color)
+                legend.addItem(curve, base)
+                label = legend.items[-1][1] if legend.items else None
+                self.split_series[sid] = {'curve': curve, 'label': label, 'base': base}
+            entry = self.split_series[sid]
+            entry['curve'].setData(xs, ys)
+            if entry['label'] is not None:
+                entry['label'].setText(f"{entry['base']} (n={int(sum(ns))})")
+            self._sync_point_labels(plot, entry, xs, ys, ns, color)
+        for sid in [s for s in self.split_series
+                    if s[0] == row_key and s[1] == col_key and s[2] not in wanted]:
+            entry = self.split_series.pop(sid)
+            plot.removeItem(entry['curve'])
+            for t in entry.get('texts', []):
+                plot.removeItem(t)
+            try:
+                legend.removeItem(entry['curve'])
             except Exception:
                 pass
 
