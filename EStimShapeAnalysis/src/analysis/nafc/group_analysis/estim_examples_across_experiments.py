@@ -82,7 +82,9 @@ def load_experiment_data(config: dict) -> pd.DataFrame:
         "SELECT gen_id, noise_chance, sample_length, estim_spec_id, "
         "       is_estim_on, is_hypothesized_choice, trial_type "
         "FROM EStimShapeTrials "
-        "WHERE session_id = %s AND gen_id >= %s"
+        # Split-texture trials have their own analysis; exclude them so they aren't
+        # pooled into the cross-experiment by-condition effects.
+        "WHERE session_id = %s AND gen_id >= %s AND COALESCE(is_texture_split, 0) = 0"
     )
     if max_gen is not None:
         query += " AND gen_id <= %s"

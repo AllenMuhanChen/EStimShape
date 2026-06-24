@@ -129,6 +129,9 @@ def _get_all_trials_ordered(session_id):
         LEFT JOIN ({EStimParameterClassifier.active_channel_sql_subquery()}) ep
           ON t.session_id = ep.session_id AND t.estim_spec_id = ep.estim_spec_id
         WHERE t.session_id = %s
+          -- Split-texture trials have their own analysis; keep them out of the sliding
+          -- window so they don't pollute the adaptation cutoffs / permutation nulls.
+          AND COALESCE(t.is_texture_split, 0) = 0
         ORDER BY t.trial_start ASC
     """
     conn.execute(query, (session_id,))

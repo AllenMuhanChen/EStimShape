@@ -822,6 +822,10 @@ def read_trial_data_from_repository(session_id):
             LEFT JOIN ({EStimParameterClassifier.active_channel_sql_subquery()}) ep
               ON t.session_id = ep.session_id AND t.estim_spec_id = ep.estim_spec_id
             WHERE t.session_id = %s
+              -- Split-texture trials (EStimShapeSplitTextureNAFCStim) have their own
+              -- dedicated analysis; exclude them here so they aren't pooled into the
+              -- by-condition delta/variant effects (they share trial_type/noise/etc.).
+              AND COALESCE(t.is_texture_split, 0) = 0
             ORDER BY t.task_id
             """
 
