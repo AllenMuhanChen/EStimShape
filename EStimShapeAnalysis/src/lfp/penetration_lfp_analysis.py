@@ -59,7 +59,7 @@ CHANNEL_SPACING_UM = 65       # µm between adjacent channels on probe
 # Spike waveform feature parameters
 PEAK_COUNT_PROMINENCE_FRACTION = 0.15  # prominence threshold as fraction of peak-to-peak (post-smoothing)
 PEAK_COUNT_SMOOTH_MS           = 0.3   # Gaussian smooth sigma in ms before peak detection (filters sub-ms noise)
-PEAK_COUNT_NEGATIVE_ONLY       = True  # if True, exclude positive-leading spikes from peak count mean
+PEAK_COUNT_NEGATIVE_ONLY       = False  # if True, exclude positive-leading spikes from peak count mean
 TROUGH_PEAK_SMOOTH_MS          = 0.1   # Gaussian smooth sigma in ms before trough-to-peak measurement
 TROUGH_PEAK_NEGATIVE_ONLY      = True  # if True, exclude positive-leading spikes from trough-to-peak mean
 SPIKE_AMPLITUDE_SMOOTH_MS      = 0.0   # smooth before amplitude measurement (0 = no smoothing, preserves true amplitude)
