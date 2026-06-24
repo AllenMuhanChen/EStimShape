@@ -23,6 +23,7 @@ interface together into the incremental loop.
 
 from __future__ import annotations
 
+import time
 from abc import ABC, abstractmethod
 from typing import Optional
 
@@ -75,6 +76,12 @@ class LiveAnalysis:
     remembers them.
     """
 
+    # Grace period (seconds) between detecting new trials and compiling them. The trial can be
+    # recorded in the experiment DB before Intan has finished flushing its spike file to disk,
+    # so we wait for the file to settle before epoching/parsing — otherwise we'd parse a
+    # partially-written file.
+    SETTLE_SECONDS = 5
+
     def __init__(self, analysis: LiveCompilable):
         self.analysis = analysis
         # Seed seen tasks from what's already in the repo so a restart doesn't redo work.
@@ -82,6 +89,10 @@ class LiveAnalysis:
 
     def compile_and_export_new(self) -> int:
         """Compile + export any completed tasks not yet seen. Returns the count of new tasks.
+
+        After detecting new tasks we wait `SETTLE_SECONDS` before compiling, to give Intan
+        time to finish writing the spike file the trial maps to (the trial can appear in the
+        experiment DB before its file is fully flushed).
 
         Tasks are marked seen whether or not they survive the analysis's cleaning step
         (a task with no usable response is genuinely not exportable, so retrying it every
@@ -91,6 +102,10 @@ class LiveAnalysis:
         new_ids = [t for t in all_ids if t not in self.seen_task_ids]
         if not new_ids:
             return 0
+
+        # Let the just-detected trials' spike files settle on disk before parsing them.
+        if self.SETTLE_SECONDS:
+            time.sleep(self.SETTLE_SECONDS)
 
         data = self.analysis.compile(task_ids=new_ids)
         if data is not None and len(data) > 0:
