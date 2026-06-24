@@ -2,6 +2,7 @@ import os
 import subprocess
 
 from src.startup import context
+from src.analysis.ga.repo_ga_response_update import update_repository_with_ga_responses
 
 
 def main(r, g, b):
@@ -12,6 +13,10 @@ def main(r, g, b):
     ga = context.ga_config.make_genetic_algorithm()
     ga.trial_generator.set_color(r, g, b)
     ga.run()
+
+    # ga.run() computed + stored the last generation's GA Responses; push them
+    # into the repository so live-compiled trials reflect them (best-effort).
+    update_repository_with_ga_responses()
 
 
 def prompt_rgb_values():
