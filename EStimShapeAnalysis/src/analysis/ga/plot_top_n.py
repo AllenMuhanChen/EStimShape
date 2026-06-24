@@ -12,6 +12,7 @@ from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.pipeline.pipeline_base_classes import create_pipeline, create_branch
 from clat.util.connection import Connection
 from src.analysis import Analysis, get_all_channels
+from src.analysis.live_analysis import LiveCompilable
 
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, ClusterResponseField, \
     HypothesizedCompField
@@ -49,8 +50,10 @@ def main():
     
 
 
-class PlotTopNAnalysis(Analysis):
+class PlotTopNAnalysis(Analysis, LiveCompilable):
     logging_path = context.logging_path
+    # Repository experiment name this analysis exports under (experiment_id = f"{session_id}_{EXP_NAME}").
+    EXP_NAME = "ga"
 
     def __init__(self, use_baseline_correction: bool = False):
         super().__init__()
@@ -111,9 +114,13 @@ class PlotTopNAnalysis(Analysis):
         plt.show()
         return result
 
-    def compile_and_export(self):
-        data = self.compile()
-        export_to_repository(data, context.ga_database, "ga",
+    def compile_and_export(self, task_ids: Optional[list] = None):
+        data = self.compile(task_ids=task_ids)
+        self.export(data)
+        return data
+
+    def export(self, data: pd.DataFrame) -> None:
+        export_to_repository(data, context.ga_database, self.EXP_NAME,
                              stim_info_table="GAStimInfo",
                              stim_info_columns=[
                                  "Lineage",
@@ -132,17 +139,42 @@ class PlotTopNAnalysis(Analysis):
                                  "Texture",
                                  "AverageRGB"
                              ])
-        return data
 
-    def compile(self):
+    def compile(self, task_ids: Optional[list] = None):
         conn = Connection(context.ga_database)
-        data_for_all_tasks = self.compile_data(conn)
+        data_for_all_tasks = self.compile_data(conn, task_ids=task_ids)
         data_for_all_tasks = self.clean_ga_data(data_for_all_tasks)
         return data_for_all_tasks
 
-    def compile_data(self, conn: Connection) -> pd.DataFrame:
-        collector = TaskIdCollector(conn)
-        task_ids = collector.collect_task_ids()
+    # ---- LiveCompilable interface --------------------------------------
+    def get_source_connection(self) -> Connection:
+        return Connection(context.ga_database)
+
+    def collect_task_ids(self, conn: Connection) -> list:
+        return TaskIdCollector(conn).collect_task_ids()
+
+    def get_exported_task_ids(self) -> set:
+        """Task ids already exported to the repository for this session's GA experiment.
+
+        Returns an empty set when the session/experiment isn't in the repository yet
+        (e.g. the very first live poll of a brand-new session)."""
+        session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
+        experiment_id = f"{session_id}_{self.EXP_NAME}"
+        repo_conn = Connection("allen_data_repository")
+        repo_conn.execute(
+            """
+            SELECT tsm.task_id
+            FROM TaskStimMapping tsm
+            JOIN StimExperimentMapping sem ON tsm.stim_id = sem.stim_id
+            WHERE sem.experiment_id = %s
+            """,
+            (experiment_id,),
+        )
+        return {int(row[0]) for row in repo_conn.fetch_all()}
+
+    def compile_data(self, conn: Connection, task_ids: Optional[list] = None) -> pd.DataFrame:
+        if task_ids is None:
+            task_ids = self.collect_task_ids(conn)
         response_processor = context.ga_config.make_response_processor()
         cluster_combination_strategy = response_processor.cluster_combination_strategy
         parser = MultiFileParser(to_cache=True, cache_dir=context.ga_parsed_spikes_path)
