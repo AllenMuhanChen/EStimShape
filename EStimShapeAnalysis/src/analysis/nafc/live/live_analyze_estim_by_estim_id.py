@@ -641,6 +641,9 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         return len(data_exp)
 
     def _render_overview(self, data_exp):
+        # Split-texture trials have their own tab (Texture Split); keep them out of the
+        # Overview so they don't get bucketed into the delta/variant % curves and counts.
+        data_exp = data_exp[data_exp['IsTextureSplit'] == False]
         partition = partition_estim_data(data_exp)
         rows = _rows_for(partition.include_removed)
         # Skip a column entirely when it has no data (e.g. its trial type was filtered out).
