@@ -51,7 +51,7 @@ from src.analysis.nafc.live.live_estim_compile import (
     REPO_DB, ensure_estimshape_trials_table, compile_new_trials, get_existing_trial_starts,
 )
 from src.analysis.nafc.live.upcoming_trials import (
-    read_upcoming_trials, group_upcoming_counts,
+    read_upcoming_trials, group_upcoming_counts, task_ids_for_group, delete_upcoming_tasks,
     GROUP_DIMENSIONS, DEFAULT_GROUP_DIMENSIONS,
 )
 
@@ -116,21 +116,26 @@ def _qt_enum(enum_cls_name, member):
 _SCROLLBAR_OFF = _qt_enum('ScrollBarPolicy', 'ScrollBarAlwaysOff')
 _DASH_LINE = _qt_enum('PenStyle', 'DashLine')
 _EDIT_ROLE = _qt_enum('ItemDataRole', 'EditRole')
+_USER_ROLE = _qt_enum('ItemDataRole', 'UserRole')
 
 
-def _item_view_enum(member):
-    """Resolve a QAbstractItemView enum value across bindings: PyQt6/PySide6 scope it under a
-    nested enum class (QAbstractItemView.EditTrigger.NoEditTriggers) while PyQt5 exposes it
-    flat (QAbstractItemView.NoEditTriggers)."""
-    view = QtWidgets.QAbstractItemView
-    for enum_cls_name in ('EditTrigger', 'EditTriggers'):
-        enum_cls = getattr(view, enum_cls_name, None)
-        if enum_cls is not None and hasattr(enum_cls, member):
-            return getattr(enum_cls, member)
-    return getattr(view, member)
+def _scoped_enum(cls, member):
+    """Resolve a Qt widget enum value across bindings: PyQt5 exposes them flat on the class
+    (QMessageBox.Yes, QAbstractItemView.NoEditTriggers), while PyQt6/PySide6 scope them under
+    a nested enum class (QMessageBox.StandardButton.Yes, QAbstractItemView.SelectionBehavior.
+    SelectRows). Try the flat form first, then search nested enum classes."""
+    if hasattr(cls, member):
+        return getattr(cls, member)
+    for name in dir(cls):
+        sub = getattr(cls, name)
+        if isinstance(sub, type) and hasattr(sub, member):
+            return getattr(sub, member)
+    raise AttributeError(f'{cls.__name__} has no enum member {member!r}')
 
 
-_NO_EDIT_TRIGGERS = _item_view_enum('NoEditTriggers')
+_NO_EDIT_TRIGGERS = _scoped_enum(QtWidgets.QAbstractItemView, 'NoEditTriggers')
+_SELECT_ROWS = _scoped_enum(QtWidgets.QAbstractItemView, 'SelectRows')
+_MSG_YES = _scoped_enum(QtWidgets.QMessageBox, 'Yes')
 # Pen styles used to distinguish noise levels within a spec in the sliding-window tab
 # (alpha alone was too subtle). Assigned per noise value, stable for the session.
 _NOISE_STYLES = [_qt_enum('PenStyle', name) for name in
@@ -192,12 +197,26 @@ def read_session_trials_as_exp_format(session_id, start_gen_id=START_GEN_ID,
     return out
 
 
+def _recent_trial_type_label(trial_type, is_texture_split):
+    """Trial-type label for the recent-trials summary, marking split-texture trials so they're
+    distinguishable from ordinary ones (e.g. 'Hypothesized Split Texture')."""
+    if not is_texture_split:
+        return trial_type
+    if trial_type == 'Hypothesized Shape':
+        return 'Hypothesized Split Texture'
+    if trial_type == 'Delta Shape':
+        return 'Delta Split Texture'
+    # Any other base type (Removed Trial, Behavioral, …): just flag the split treatment.
+    return f'{trial_type} (Split Texture)'
+
+
 def read_recent_trials(session_id, n=RECENT_TRIALS_N):
-    """Return a short text summary of the n most-recent trials (newest first): trial type,
-    estim spec id (or 'no estim'), and noise level. Independent of tab/filters."""
+    """Return a short text summary of the n most-recent trials (newest first): trial type
+    (split-texture trials are labelled as such), estim spec id (or 'no estim'), and noise
+    level. Independent of tab/filters."""
     conn = Connection(REPO_DB)
     conn.execute("""
-        SELECT trial_type, is_estim_on, estim_spec_id, noise_chance
+        SELECT trial_type, is_estim_on, estim_spec_id, noise_chance, is_texture_split
         FROM EStimShapeTrials
         WHERE session_id = %s
         ORDER BY task_id DESC
@@ -205,10 +224,11 @@ def read_recent_trials(session_id, n=RECENT_TRIALS_N):
     """, (session_id, n))
     rows = conn.fetch_all()
     lines = []
-    for trial_type, is_estim_on, spec, noise in rows:
+    for trial_type, is_estim_on, spec, noise, is_texture_split in rows:
+        label = _recent_trial_type_label(trial_type, bool(is_texture_split))
         estim = f'spec {int(spec)}' if (is_estim_on and spec is not None) else 'no estim'
         noise_s = f'{float(noise) * 100:.0f}%' if noise is not None else 'n/a'
-        lines.append(f'{trial_type}  |  {estim}  |  noise {noise_s}')
+        lines.append(f'{label}  |  {estim}  |  noise {noise_s}')
     return lines
 
 
@@ -423,8 +443,11 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.split_legends = {}           # (row_key, col_key) -> LegendItem
         self.split_series = {}            # (row_key, col_key, series_key) -> {'curve','label','base'}
 
-        # Upcoming-trials-tab state: which grouping dimensions are checked.
+        # Upcoming-trials-tab state: which grouping dimensions are checked, plus the last-read
+        # trials/grouping so a delete can map a selected row back to its task_ids.
         self.upcoming_checks = {}          # column -> QCheckBox
+        self._upcoming_df = None
+        self._upcoming_group_dims = []
 
         # Stable spec_id -> color: a spec keeps its color for the whole session and across
         # every panel, regardless of which other specs are present or when it first appears.
@@ -502,13 +525,6 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         filt_bar.addSpacing(12)
         filt_bar.addWidget(self.sl_filter)
         filt_bar.addStretch(1)
-        # Texture Split tab: pool a condition dimension into one row instead of splitting it out.
-        self.combine_sample_cb = QtWidgets.QCheckBox('Split: combine sample/foil')
-        self.combine_sample_cb.stateChanged.connect(lambda _s: self._rerender())
-        self.combine_inverted_cb = QtWidgets.QCheckBox('Split: combine normal/inverted')
-        self.combine_inverted_cb.stateChanged.connect(lambda _s: self._rerender())
-        filt_bar.addWidget(self.combine_sample_cb)
-        filt_bar.addWidget(self.combine_inverted_cb)
         layout.addLayout(filt_bar)
 
         # Tabs: Overview (Plot 1) and Sliding Window. Both share the control bar/filters above.
@@ -536,6 +552,19 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.tabs.addTab(self.win_scroll, 'Sliding Window')
 
         # Texture Split tab — % 3D grid (rows = split/inverted combos, columns = variant/delta).
+        # The combine toggles live here because they only affect this tab's row layout.
+        self.split_tab = QtWidgets.QWidget()
+        split_tab_layout = QtWidgets.QVBoxLayout(self.split_tab)
+        split_ctrl = QtWidgets.QHBoxLayout()
+        self.combine_sample_cb = QtWidgets.QCheckBox('Combine sample/foil')
+        self.combine_sample_cb.stateChanged.connect(lambda _s: self._rerender())
+        self.combine_inverted_cb = QtWidgets.QCheckBox('Combine normal/inverted')
+        self.combine_inverted_cb.stateChanged.connect(lambda _s: self._rerender())
+        split_ctrl.addWidget(self.combine_sample_cb)
+        split_ctrl.addWidget(self.combine_inverted_cb)
+        split_ctrl.addStretch(1)
+        split_tab_layout.addLayout(split_ctrl)
+
         self.split_scroll = QtWidgets.QScrollArea()
         self.split_scroll.setWidgetResizable(True)
         self.split_scroll.setHorizontalScrollBarPolicy(_SCROLLBAR_OFF)
@@ -543,7 +572,8 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.split_grid_layout = QtWidgets.QGridLayout(self.split_host)
         self.split_grid_layout.setContentsMargins(4, 4, 4, 4)
         self.split_scroll.setWidget(self.split_host)
-        self.tabs.addTab(self.split_scroll, 'Texture Split')
+        split_tab_layout.addWidget(self.split_scroll)
+        self.tabs.addTab(self.split_tab, 'Texture Split')
 
         # Upcoming Trials tab — counts of queued-but-not-yet-run trials (TaskToDo minus
         # TaskDone), grouped by the dimensions the user checks. Independent of the
@@ -567,7 +597,17 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.upcoming_table = QtWidgets.QTableWidget()
         self.upcoming_table.setEditTriggers(_NO_EDIT_TRIGGERS)
         self.upcoming_table.setSortingEnabled(True)
+        self.upcoming_table.setSelectionBehavior(_SELECT_ROWS)
         upcoming_layout.addWidget(self.upcoming_table)
+
+        # Delete-by-group control: removes the queued trials in the selected group(s) from
+        # TaskToDo (after a confirmation showing the exact count).
+        delete_bar = QtWidgets.QHBoxLayout()
+        delete_bar.addStretch(1)
+        self.delete_upcoming_button = QtWidgets.QPushButton('Delete selected group(s)')
+        self.delete_upcoming_button.clicked.connect(self._delete_selected_upcoming)
+        delete_bar.addWidget(self.delete_upcoming_button)
+        upcoming_layout.addLayout(delete_bar)
         self.tabs.addTab(self.upcoming_tab, 'Upcoming Trials')
 
         # Render the newly-shown tab so it reflects the latest data/filters.
@@ -684,7 +724,7 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         if self.tabs.currentWidget() is self.upcoming_tab:
             return self._render_upcoming()
         window_tab = self.tabs.currentWidget() is self.win_scroll
-        split_tab = self.tabs.currentWidget() is self.split_scroll
+        split_tab = self.tabs.currentWidget() is self.split_tab
         data_exp = self._read_and_filter(include_behavioral=window_tab)
         if data_exp is None:
             return 0
@@ -727,6 +767,9 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         total = len(df)
         group_dims = self._selected_group_dims()
         counts = group_upcoming_counts(df, group_dims)
+        # Stash the raw trials + grouping so a delete can map a selected row back to task_ids.
+        self._upcoming_df = df
+        self._upcoming_group_dims = group_dims
 
         table = self.upcoming_table
         table.setSortingEnabled(False)
@@ -736,11 +779,18 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         table.setRowCount(len(counts))
         for r in range(len(counts)):
             row = counts.iloc[r]
+            # The group key (raw values) reconstructs this row's filter; stash it on the first
+            # cell so the delete action survives the user re-sorting the table.
+            group_key = {col: row[col] for col in group_dims}
             for c, col in enumerate(group_dims):
                 item = QtWidgets.QTableWidgetItem(self._fmt_upcoming_value(col, row[col]))
+                if c == 0:
+                    item.setData(_USER_ROLE, group_key)
                 table.setItem(r, c, item)
             count_item = QtWidgets.QTableWidgetItem()
             count_item.setData(_EDIT_ROLE, int(row['count']))
+            if not group_dims:
+                count_item.setData(_USER_ROLE, group_key)  # total-only row: empty key = all
             table.setItem(r, len(group_dims), count_item)
         table.setSortingEnabled(True)
         table.resizeColumnsToContents()
@@ -748,6 +798,57 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.upcoming_total_label.setText(f'{total} upcoming trials')
         self.status_label.setText(f'{self.session_id}: {total} upcoming trials')
         return total
+
+    def _group_key_label(self, group_key, n):
+        """Human description of a group (its dim=value pairs) and its trial count, for the
+        delete confirmation dialog."""
+        if not group_key:
+            return f'ALL upcoming trials ({n})'
+        labels = dict(GROUP_DIMENSIONS)
+        parts = [f'{labels.get(col, col)}={self._fmt_upcoming_value(col, val)}'
+                 for col, val in group_key.items()]
+        return f'{", ".join(parts)}  ({n})'
+
+    def _delete_selected_upcoming(self):
+        """Delete the queued trials in the selected table row(s) from TaskToDo, after a
+        confirmation showing the exact count. Each row corresponds to one condition group."""
+        df = self._upcoming_df
+        if df is None or len(df) == 0:
+            return
+        table = self.upcoming_table
+        selected_rows = sorted({idx.row() for idx in table.selectionModel().selectedRows()})
+        if not selected_rows:
+            QtWidgets.QMessageBox.information(
+                self, 'Delete upcoming trials', 'Select one or more group rows first.')
+            return
+
+        task_ids, descriptions = [], []
+        for r in selected_rows:
+            first_item = table.item(r, 0)
+            if first_item is None:
+                continue
+            group_key = first_item.data(_USER_ROLE)
+            if group_key is None:
+                continue
+            ids = task_ids_for_group(df, group_key)
+            task_ids.extend(ids)
+            descriptions.append(self._group_key_label(group_key, len(ids)))
+        task_ids = sorted(set(task_ids))
+        if not task_ids:
+            return
+
+        msg = ('Delete these upcoming trials from TaskToDo?\n\n  '
+               + '\n  '.join(descriptions)
+               + f'\n\nTotal: {len(task_ids)} trial(s). This cannot be undone.')
+        if QtWidgets.QMessageBox.question(self, 'Delete upcoming trials', msg) != _MSG_YES:
+            return
+        try:
+            deleted = delete_upcoming_tasks(self.exp_conn, task_ids)
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, 'Delete failed', str(e))
+            return
+        self.status_label.setText(f'{self.session_id}: deleted {deleted} upcoming trial(s)')
+        self._render_upcoming()
 
     def _render_overview(self, data_exp):
         # Split-texture trials have their own tab (Texture Split); keep them out of the

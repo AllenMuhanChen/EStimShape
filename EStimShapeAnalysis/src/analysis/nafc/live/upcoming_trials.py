@@ -240,6 +240,44 @@ def read_upcoming_trials(conn: Connection) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=UPCOMING_COLUMNS)
 
 
+def task_ids_for_group(df: pd.DataFrame, group_key: dict):
+    """Return the task_ids of rows in df matching group_key (a {column: value} dict, as produced
+    per row by group_upcoming_counts). Matches NULL/NaN values correctly so an estim-OFF or
+    no-noise group selects exactly its own trials."""
+    if df is None or len(df) == 0:
+        return []
+    mask = pd.Series(True, index=df.index)
+    for col, value in group_key.items():
+        if value is None or (isinstance(value, float) and pd.isna(value)):
+            mask &= df[col].isna()
+        else:
+            mask &= (df[col] == value)
+    return df.loc[mask, 'task_id'].tolist()
+
+
+def delete_upcoming_tasks(conn: Connection, task_ids) -> int:
+    """Delete the given tasks from TaskToDo so the experiment will not run them. Only removes
+    rows that are still upcoming (no TaskDone row) as a safety guard against deleting a task
+    that completed between the read and the delete. Returns the number of rows deleted.
+
+    Mirrors the existing clear_incomplete_tasks convention of operating on TaskToDo only;
+    per-stim generation rows (StimSpec, NafcSampleRole, …) are left untouched and harmless."""
+    task_ids = [t for t in task_ids if t is not None]
+    if not task_ids:
+        return 0
+    deleted = 0
+    for chunk in _chunks(task_ids):
+        placeholders = ','.join(['%s'] * len(chunk))
+        conn.execute(
+            "DELETE FROM TaskToDo WHERE task_id IN (%s) "
+            "AND task_id NOT IN (SELECT task_id FROM TaskDone)" % placeholders,
+            params=tuple(chunk))
+        # rowcount reflects rows actually removed (the TaskDone guard may exclude some).
+        rowcount = getattr(getattr(conn, 'my_cursor', None), 'rowcount', None)
+        deleted += rowcount if isinstance(rowcount, int) and rowcount >= 0 else len(chunk)
+    return deleted
+
+
 def group_upcoming_counts(df: pd.DataFrame, group_by) -> pd.DataFrame:
     """Aggregate upcoming trials to a count per group.
 
