@@ -128,7 +128,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     public void writeStim() {
         int nTries = 0;
         mStick = null;
-        int maxTries = 30;
+        int maxTries = 50;
         setProperties();
         String originalTextureType = textureType;
         boolean originalDness = is2d;
@@ -172,7 +172,8 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
                 mStick = null;
                 System.out.println("WriteStim() failed on attempt " + nTries + ". Trying again");
             } catch(IllegalArgumentException e){
-                throw new ProceduralMatchStick.MorphRepetitionException("Illegal State.... We are skipping this trial");
+                e.printStackTrace();
+                throw new ProceduralMatchStick.MorphRepetitionException("Illegal Argument State.... We are skipping this trial");
             }
 
         }
