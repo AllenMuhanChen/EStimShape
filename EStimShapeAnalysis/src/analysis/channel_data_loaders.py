@@ -350,6 +350,96 @@ class PreferredOrientationLoader(ChannelValueLoader):
         return LookupMetric(normalized, **kwargs)
 
 
+class PreferredColorLoader(ChannelValueLoader):
+    """Load preferred colour (gabor type) per channel.
+
+    The preferred colour is the highest-responding gabor type at the channel's
+    preferred frequency (from ``PreferredFrequencies``). If the preferred frequency
+    has no entry in ``PreferredColors``, fall back to the next-highest frequency
+    that does (smallest colour frequency above the preferred; if none is above, the
+    highest available frequency).
+
+    ``load()`` returns ``{channel: type_name}`` (a categorical colour). Colour is
+    categorical, so use ``as_categorical_metric(type_order)`` to map each type to its
+    index in ``type_order`` for a discrete (ListedColormap) rendering.
+
+    A missing ``PreferredColors`` table yields an empty dict rather than an error."""
+
+    def __init__(self, session_id: str, conn: Connection):
+        self._session_id = session_id
+        self._conn = conn
+
+    def _load_preferred_frequencies(self) -> Dict[str, float]:
+        self._conn.execute(
+            """SELECT unit_name, preferred_frequency
+               FROM PreferredFrequencies
+               WHERE session_id = %s AND unit_name NOT LIKE '%%Unit%%'""",
+            (self._session_id,),
+        )
+        return {row[0]: row[1] for row in self._conn.fetch_all()}
+
+    def _load_colors_by_channel(self) -> Dict[str, Dict[float, str]]:
+        try:
+            self._conn.execute(
+                """SELECT unit_name, frequency, preferred_color
+                   FROM PreferredColors
+                   WHERE session_id = %s AND unit_name NOT LIKE '%%Unit%%'""",
+                (self._session_id,),
+            )
+            rows = self._conn.fetch_all()
+        except Exception as exc:  # table may not exist for sessions without colour data
+            print(f"Warning: could not load preferred colours: {exc}")
+            return {}
+
+        by_channel: Dict[str, Dict[float, str]] = {}
+        for unit_name, frequency, color in rows:
+            if color is None or frequency is None:
+                continue
+            by_channel.setdefault(unit_name, {})[float(frequency)] = str(color)
+        return by_channel
+
+    @staticmethod
+    def _select_frequency(preferred_freq, available_freqs):
+        """Pick the preferred frequency if available, else the next-highest, else
+        the highest available frequency."""
+        if not available_freqs:
+            return None
+        available = sorted(available_freqs)
+        if preferred_freq is not None:
+            for f in available:
+                if abs(f - preferred_freq) < 1e-6:  # preferred freq has colour data
+                    return f
+            above = [f for f in available if f > preferred_freq]
+            if above:
+                return min(above)  # next-highest frequency above the preferred
+        return max(available)  # no preferred / nothing above -> highest available
+
+    def load(self) -> Dict[str, str]:
+        pref_freqs = self._load_preferred_frequencies()
+        colors_by_channel = self._load_colors_by_channel()
+
+        result: Dict[str, str] = {}
+        for unit_name, freq_to_color in colors_by_channel.items():
+            preferred_freq = pref_freqs.get(unit_name)
+            preferred_freq = float(preferred_freq) if preferred_freq is not None else None
+            chosen = self._select_frequency(preferred_freq, list(freq_to_color.keys()))
+            if chosen is not None:
+                result[unit_name] = freq_to_color[chosen]
+        return result
+
+    def as_categorical_metric(self, type_order: List[str], **kwargs) -> LookupMetric:
+        """Map each channel's preferred colour to its index in ``type_order``.
+
+        Channels whose preferred colour is not in ``type_order`` are dropped (so they
+        render as "no data"). Pair the resulting metric with a ListedColormap whose
+        colours follow ``type_order`` (see preference_cluster)."""
+        index_of = {t: i for i, t in enumerate(type_order)}
+        data = self.load()
+        indexed = {ch: float(index_of[color]) for ch, color in data.items()
+                   if color in index_of}
+        return LookupMetric(indexed, **kwargs)
+
+
 class SolidPreferenceLoader(ChannelValueLoader):
     """Load solid preference indices from ``SolidPreferenceIndices``."""
 

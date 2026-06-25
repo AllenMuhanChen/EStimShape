@@ -10,6 +10,7 @@ from src.analysis.isogabor.frequency_response import create_frequency_response_m
 from src.analysis.isogabor.isogabor_index import create_isochromatic_index_module
 from src.analysis.isogabor.preferred_frequency import create_preferred_frequency_module
 from src.analysis.isogabor.preferred_orientation import create_preferred_orientation_module
+from src.analysis.isogabor.preferred_color import create_preferred_color_module
 from src.analysis.modules.matplotlib.grouped_rasters_matplotlib import create_grouped_raster_module
 from src.analysis.modules.grouped_rsth import create_psth_module
 
@@ -204,12 +205,23 @@ class IsochromaticIndexAnalysis(IsogaborAnalysis):
             save_path=f"{self.save_path}/{channel}_preferred_orientation.png"
         )
 
+        pref_color_module = create_preferred_color_module(
+            channel=channel,
+            session_id=self.session_id,
+            spike_data_col=self.spike_rates_col,
+            filter_values={
+                'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
+            },
+            save_path=f"{self.save_path}/{channel}_preferred_color.png"
+        )
+
         index_branch = create_branch().then(index_module)
         pref_freq_branch = create_branch().then(pref_freq_module)
         pref_orientation_branch = create_branch().then(pref_orientation_module)
+        pref_color_branch = create_branch().then(pref_color_module)
 
         pipeline = create_pipeline().make_branch(
-            index_branch, pref_freq_branch, pref_orientation_branch
+            index_branch, pref_freq_branch, pref_orientation_branch, pref_color_branch
         ).build()
 
         result = pipeline.run(compiled_data)
