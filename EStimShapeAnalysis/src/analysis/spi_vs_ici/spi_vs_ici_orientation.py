@@ -105,29 +105,25 @@ def _subplot_grid(n):
     return 2, (n + 1) // 2
 
 
-def plot_orientation_strong_spi_vs_ici(selection_mode='mapped_channel', threshold=0.7,
-                                       regression_method='ols', spi_regression_max=None,
-                                       save_path=None):
-    """SPI vs ICI by frequency, restricted to orientation-strong (cell, frequency) pairs.
+def load_orientation_strong_data(selection_mode='mapped_channel', threshold=0.7):
+    """Build the orientation-strong SPI/ICI dataset.
 
-    Args:
-        selection_mode: Channel selection ('double_filter', 'raw_significant',
-            'cluster', 'mapped_channel') - same options as spi_vs_ici.py.
-        threshold: Keep (cell, frequency) where orientation tuning depth is at
-            least this fraction of the cell's peak tuning depth (default 0.7).
-        regression_method: 'ols' or 'theil-sen'.
-        spi_regression_max: Exclude points with SPI above this from regressions.
-        save_path: Optional path to save the figure.
+    Loads the SPI/ICI rows for the selected channels, merges orientation tuning
+    from ``PreferredOrientations``, and keeps only the (cell, frequency) pairs
+    whose tuning depth is >= ``threshold`` of that cell's peak tuning depth.
+
+    Returns ``(strong_df, data_description)``; ``strong_df`` is ``None`` if no
+    data / no orientation data / nothing passes the threshold.
     """
     merged_df, data_description = load_data_for_selection_mode(selection_mode)
     if merged_df.empty:
         print(f"No matching data found for {data_description}")
-        return None
+        return None, data_description
 
     orient_df = load_preferred_orientations()
     if orient_df.empty:
         print("No orientation data available - cannot build orientation-strong plot")
-        return None
+        return None, data_description
 
     orient_df = add_orientation_tuning_strength(orient_df, threshold)
 
@@ -147,14 +143,34 @@ def plot_orientation_strong_spi_vs_ici(selection_mode='mapped_channel', threshol
     if strong.empty:
         print(f"No orientation-strong data at >= {threshold:.0%} of peak tuning "
               f"for {data_description}")
-        return None
+        return None, data_description
 
-    frequencies = sorted(strong['frequency'].unique())
     n_cells = strong[['session_id', 'unit_name']].drop_duplicates().shape[0]
     print(f"Orientation-strong SPI vs ICI ({data_description}): "
           f"{len(strong)} (cell, freq) points across {n_cells} cells, "
           f"threshold >= {threshold:.0%} of peak tuning")
+    return strong, data_description
 
+
+def plot_orientation_strong_spi_vs_ici(selection_mode='mapped_channel', threshold=0.7,
+                                       regression_method='ols', spi_regression_max=None,
+                                       save_path=None):
+    """SPI vs ICI by frequency, restricted to orientation-strong (cell, frequency) pairs.
+
+    Args:
+        selection_mode: Channel selection ('double_filter', 'raw_significant',
+            'cluster', 'mapped_channel') - same options as spi_vs_ici.py.
+        threshold: Keep (cell, frequency) where orientation tuning depth is at
+            least this fraction of the cell's peak tuning depth (default 0.7).
+        regression_method: 'ols' or 'theil-sen'.
+        spi_regression_max: Exclude points with SPI above this from regressions.
+        save_path: Optional path to save the figure.
+    """
+    strong, data_description = load_orientation_strong_data(selection_mode, threshold)
+    if strong is None or strong.empty:
+        return None
+
+    frequencies = sorted(strong['frequency'].unique())
     nrows, ncols = _subplot_grid(len(frequencies))
     fig, axes = plt.subplots(nrows, ncols, figsize=(6 * ncols, 5 * nrows), squeeze=False)
     axes = axes.flatten()
@@ -214,6 +230,77 @@ def plot_orientation_strong_spi_vs_ici(selection_mode='mapped_channel', threshol
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         print(f"Saved orientation-strong SPI vs ICI plot: {save_path}")
+    plt.show()
+
+    return strong
+
+
+def plot_orientation_strong_spi_vs_ici_combined(selection_mode='mapped_channel', threshold=0.7,
+                                                regression_method='ols', spi_regression_max=None,
+                                                save_path=None):
+    """SPI vs ICI for orientation-strong cells/frequencies, pooled into a single
+    scatter (NOT split by frequency).
+
+    Every orientation-strong (cell, frequency) point is plotted on one axis,
+    with a single regression over the pooled data.
+
+    Args:
+        selection_mode: Channel selection (same options as spi_vs_ici.py).
+        threshold: Keep (cell, frequency) where orientation tuning depth is at
+            least this fraction of the cell's peak tuning depth (default 0.7).
+        regression_method: 'ols' or 'theil-sen'.
+        spi_regression_max: Exclude points with SPI above this from the regression.
+        save_path: Optional path to save the figure.
+    """
+    strong, data_description = load_orientation_strong_data(selection_mode, threshold)
+    if strong is None or strong.empty:
+        return None
+
+    x = strong['solid_preference_index'].values
+    y = strong['isochromatic_preference_index'].values
+    p_values = strong['p_value'].values
+
+    slope, intercept, r_value, p_value, r_squared, x_reg = calculate_regression_with_spi_cap(
+        x, y, regression_method, spi_regression_max)
+
+    n_cells = strong[['session_id', 'unit_name']].drop_duplicates().shape[0]
+
+    plt.figure(figsize=(10, 8))
+
+    # Significant solid-preference points solid blue, others faded gray
+    sig_mask = pd.notna(p_values) & (p_values < 0.05)
+    plt.scatter(x[sig_mask], y[sig_mask], alpha=0.7, s=60, color='blue',
+                label=f'solid-pref sig. (n={int(sig_mask.sum())})')
+    plt.scatter(x[~sig_mask], y[~sig_mask], alpha=0.25, s=60, color='gray',
+                label=f'not sig. (n={int((~sig_mask).sum())})')
+
+    if len(x_reg) > 1 and not np.isnan(slope):
+        line_x = np.linspace(x_reg.min(), x_reg.max(), 100)
+        plt.plot(line_x, slope * line_x + intercept, 'r-', linewidth=2, alpha=0.8,
+                 label=f'{regression_method.upper()} fit (R²={r_squared:.3f})')
+
+    plt.xlabel('Solid Preference Index')
+    plt.ylabel('Isochromatic Preference Index')
+    plt.title(
+        f'Solid vs Isochromatic Preference - Orientation-Strong (pooled across frequencies)\n'
+        f'{data_description} (tuning >= {threshold:.0%} of peak, '
+        f'{len(strong)} points, {n_cells} cells)')
+    plt.axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+    plt.axvline(x=0, color='gray', linestyle='--', alpha=0.5)
+    plt.grid(True, alpha=0.3)
+    plt.xlim(-1.1, 1.1)
+    plt.ylim(-1.1, 1.1)
+    plt.legend(loc='best')
+
+    stats_text = f'R² = {r_squared:.3f}\nr = {r_value:.3f}\np = {p_value:.3f}\nn = {len(strong)}'
+    plt.text(0.02, 0.98, stats_text, transform=plt.gca().transAxes,
+             verticalalignment='top',
+             bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
+
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"Saved pooled orientation-strong SPI vs ICI plot: {save_path}")
     plt.show()
 
     return strong
@@ -321,6 +408,12 @@ if __name__ == "__main__":
         selection_mode=selection_mode, threshold=0.7,
         regression_method='ols', spi_regression_max=0.3,
         save_path=_path("orientation_strong_spi_vs_ici.png"))
+
+    # 1b) Same data, pooled into a single scatter (not split by frequency)
+    plot_orientation_strong_spi_vs_ici_combined(
+        selection_mode=selection_mode, threshold=0.7,
+        regression_method='ols', spi_regression_max=0.3,
+        save_path=_path("orientation_strong_spi_vs_ici_combined.png"))
 
     # 2) Cycles per RF vs orientation tuning (max - min)
     plot_rf_size_vs_orientation_tuning(
