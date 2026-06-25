@@ -96,6 +96,13 @@ class PreferredOrientationCalculator(ComputationModule):
 
             best_type_data = freq_data[freq_data['Type'] == best_type].sort_values('Orientation')
 
+            # Skip frequencies that only have a single orientation - there is no
+            # tuning curve to describe.
+            if best_type_data['Orientation'].nunique() < 2:
+                print(f"\nSkipping {frequency} cycles/° for {self.response_key}: "
+                      f"only one orientation tested")
+                continue
+
             # Vector of responses across all orientations (for the best type)
             orientation_responses = {float(o): float(r) for o, r in
                                      zip(best_type_data['Orientation'], best_type_data['SpikeRate'])}
