@@ -35,6 +35,7 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
                                           delta_resp_ratio_threshold=self.delta_resp_ratio_threshold(),
                                           max_attempts_per_variant=self.max_attempts_per_variant(),
                                           max_deltas_per_generation=self.max_deltas_per_generation(),
+                                          max_variant_deltas_per_generation=self.max_variant_deltas_per_generation(),
                                           conn=self.connection()
                                           ),
                 EStimVariantSideTest(self.get_all_stimuli_func(),
@@ -96,6 +97,12 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
     def max_deltas_per_generation(self):
         # Returns None when the GAVar row is absent, leaving deltas uncapped.
         return self.var_fetcher.get("deltas_max_per_generation", dtype=int)
+
+    def max_variant_deltas_per_generation(self):
+        # Per-generation ceiling on deltas made from true variant parents. Defaults to 25 when the
+        # GAVar row is absent.
+        n = self.var_fetcher.get("variant_deltas_max_per_generation", dtype=int)
+        return n if n is not None else 25
 
     def make_response_processor(self) -> GAResponseProcessor:
         if self.is_use_normalized_ga_response_processor():

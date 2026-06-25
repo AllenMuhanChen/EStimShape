@@ -168,7 +168,8 @@ class EStimVariantDeltaSideTest(SideTest):
     def __init__(self, num_deltas_per_variant: int = 1, delta_resp_ratio_threshold: float = 0.5,
                  max_attempts_per_variant: int = 9, conn=Type[connection],
                  min_magnitude: float = 0.3, max_magnitude: float = 0.8,
-                 max_deltas_per_generation: int = None):
+                 max_deltas_per_generation: int = None,
+                 max_variant_deltas_per_generation: int = 25):
         self.num_deltas_per_variant = num_deltas_per_variant
         self.delta_resp_ratio_threshold = delta_resp_ratio_threshold
         # Absolute ceiling on how many deltas we'll make for a single variant before giving up.
@@ -188,6 +189,12 @@ class EStimVariantDeltaSideTest(SideTest):
         # parent do NOT count toward this cap - only deltas whose parent is something else (e.g. a
         # chained delta or a regime_one stim). When capped, higher-response parents are served first.
         self.max_deltas_per_generation = max_deltas_per_generation
+        # Ceiling on how many deltas made from a true variant (REGIME_ESTIM_VARIANTS) parent to
+        # create across all variants in a single generation. None means uncapped. When capped, we
+        # prioritize partially-complete variants (those that already have at least one delta) so we
+        # finish what we started before spreading to fresh variants, and serve higher-response
+        # variants first within that ordering.
+        self.max_variant_deltas_per_generation = max_variant_deltas_per_generation
 
     def assign_mutation_magnitude(self) -> float:
         return random.uniform(self.min_magnitude, self.max_magnitude)
@@ -322,22 +329,34 @@ class EStimVariantDeltaSideTest(SideTest):
             for i in range(number_of_deltas_to_make):
                 eligible_stimuli.append(candidate_parent)
 
-        # Cap the number of *non-variant* deltas this generation. Deltas made from a true variant
-        # (REGIME_ESTIM_VARIANTS) parent are always kept and don't count toward the cap; only deltas
-        # whose parent is something else (chained deltas, regime_one stims, ...) are limited.
-        # eligible_stimuli is already ordered by parent response (highest first), so the cap keeps
-        # the highest-response non-variant parents' deltas.
+        # Cap variant-parented and non-variant-parented deltas separately, each with its own
+        # per-generation ceiling.
+        #
+        # Variant deltas (parent is a true REGIME_ESTIM_VARIANTS stim) are capped at
+        # max_variant_deltas_per_generation. We prioritize variants that are already partially
+        # explored (have at least one delta made) so we finish what we started before spreading to
+        # fresh variants, and among equally-started variants we serve higher-response ones first.
+        #
+        # Non-variant deltas (chained deltas, regime_one stims, ...) are capped at
+        # max_deltas_per_generation, highest-response parent first.
+        #
+        # eligible_stimuli is already ordered by parent response (highest first), and Python's sort
+        # is stable, so sorting variants only by partial-completeness preserves the response order
+        # within each group.
+        variant_stimuli = [p for p in eligible_stimuli
+                           if p.mutation_type == StimType.REGIME_ESTIM_VARIANTS.value]
+        non_variant_stimuli = [p for p in eligible_stimuli
+                               if p.mutation_type != StimType.REGIME_ESTIM_VARIANTS.value]
+
+        if self.max_variant_deltas_per_generation is not None:
+            variant_stimuli.sort(
+                key=lambda p: 0 if len(deltas_for_variants.get(p.id, [])) > 0 else 1)
+            variant_stimuli = variant_stimuli[:self.max_variant_deltas_per_generation]
+
         if self.max_deltas_per_generation is not None:
-            capped_stimuli: List[Stimulus] = []
-            num_non_variant_deltas = 0
-            for candidate_parent in eligible_stimuli:
-                is_variant_parent = candidate_parent.mutation_type == StimType.REGIME_ESTIM_VARIANTS.value
-                if is_variant_parent:
-                    capped_stimuli.append(candidate_parent)
-                elif num_non_variant_deltas < self.max_deltas_per_generation:
-                    capped_stimuli.append(candidate_parent)
-                    num_non_variant_deltas += 1
-            eligible_stimuli = capped_stimuli
+            non_variant_stimuli = non_variant_stimuli[:self.max_deltas_per_generation]
+
+        eligible_stimuli = variant_stimuli + non_variant_stimuli
 
         #add to lineage
         for candidate_parent in eligible_stimuli:
