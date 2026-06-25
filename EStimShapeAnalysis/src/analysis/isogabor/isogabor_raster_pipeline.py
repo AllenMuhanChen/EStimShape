@@ -9,6 +9,8 @@ from src.analysis import Analysis
 from src.analysis.isogabor.frequency_response import create_frequency_response_module
 from src.analysis.isogabor.isogabor_index import create_isochromatic_index_module
 from src.analysis.isogabor.preferred_frequency import create_preferred_frequency_module
+from src.analysis.isogabor.preferred_orientation import create_preferred_orientation_module
+from src.analysis.isogabor.preferred_color import create_preferred_color_module
 from src.analysis.modules.matplotlib.grouped_rasters_matplotlib import create_grouped_raster_module
 from src.analysis.modules.grouped_rsth import create_psth_module
 
@@ -16,7 +18,7 @@ from src.intan.MultiFileParser import MultiFileParser
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 from src.analysis.isogabor.old_isogabor_analysis import TypeField, FrequencyField, IntanSpikesByChannelField, \
-    EpochStartStopTimesField, IsoTypeField, IntanSpikeRateByChannelField
+    EpochStartStopTimesField, IsoTypeField, IntanSpikeRateByChannelField, OrientationField
 
 # Import our pipeline framework
 from clat.pipeline.pipeline_base_classes import (
@@ -192,10 +194,35 @@ class IsochromaticIndexAnalysis(IsogaborAnalysis):
                 'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
             }
         )
+
+        pref_orientation_module = create_preferred_orientation_module(
+            channel=channel,
+            session_id=self.session_id,
+            spike_data_col=self.spike_rates_col,
+            filter_values={
+                'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
+            },
+            save_path=f"{self.save_path}/{channel}_preferred_orientation.png"
+        )
+
+        pref_color_module = create_preferred_color_module(
+            channel=channel,
+            session_id=self.session_id,
+            spike_data_col=self.spike_rates_col,
+            filter_values={
+                'Type': ['Red', 'Green', 'Cyan', 'Orange', 'RedGreen', 'CyanOrange']
+            },
+            save_path=f"{self.save_path}/{channel}_preferred_color.png"
+        )
+
         index_branch = create_branch().then(index_module)
         pref_freq_branch = create_branch().then(pref_freq_module)
+        pref_orientation_branch = create_branch().then(pref_orientation_module)
+        pref_color_branch = create_branch().then(pref_color_module)
 
-        pipeline = create_pipeline().make_branch(index_branch, pref_freq_branch).build()
+        pipeline = create_pipeline().make_branch(
+            index_branch, pref_freq_branch, pref_orientation_branch, pref_color_branch
+        ).build()
 
         result = pipeline.run(compiled_data)
         return result
@@ -207,7 +234,7 @@ def compile_and_export():
 
     export_to_repository(compiled_data, context.isogabor_database, "isogabor",
                          stim_info_table="IsoGaborStimInfo",
-                         stim_info_columns=['Type', 'Frequency', 'IsoType'])
+                         stim_info_columns=['Type', 'Frequency', 'IsoType', 'Orientation'])
 
 
 def compile():
@@ -222,6 +249,7 @@ def compile():
     fields.append(TypeField(conn))
     fields.append(FrequencyField(conn))
     fields.append(IsoTypeField(conn))
+    fields.append(OrientationField(conn))
     fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.isogabor_intan_path))
     fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.isogabor_intan_path))
     fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.isogabor_intan_path))

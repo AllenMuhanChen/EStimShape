@@ -1,14 +1,20 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap, BoundaryNorm
+from matplotlib.lines import Line2D
 from clat.intan.channels import Channel
 from clat.util.connection import Connection
 from src.analysis.channel_data_loaders import (
     ChannelResponseVectorLoader,
     ClusterChannelLoader,
     IsochromaticPreferenceLoader,
+    OrientationTuningWidthLoader,
     PreferredFrequencyLoader,
+    PreferredOrientationLoader,
+    PreferredColorLoader,
     SolidPreferenceLoader,
 )
+from src.analysis.isogabor.preferred_color import TYPE_ORDER, TYPE_DISPLAY_COLORS
 from src.analysis.channel_metric_plot import (
     StimVectorCorrelation,
     build_channel_strings,
@@ -193,6 +199,22 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
     freq_metric = PreferredFrequencyLoader(session_id, conn).as_normalized_metric(
         frequencies, title='Preferred\nFrequency')
 
+    orient_width_metric = OrientationTuningWidthLoader(session_id, conn).as_normalized_metric(
+        frequencies, title='Preferred\nFrequency\nby Orientation')
+
+    # Preferred orientation (at the preferred frequency, falling back to the next
+    # highest frequency with orientation data). Folded modulo 180 deg so opposite
+    # orientations share a colour, plotted with a cyclic colormap (see below).
+    orientation_period = 180.0
+    pref_orient_metric = PreferredOrientationLoader(session_id, conn).as_cyclic_metric(
+        period=orientation_period, title='Preferred\nOrientation')
+
+    # Preferred colour (gabor type) at the preferred frequency, falling back to the
+    # next highest frequency with colour data. Categorical: each type maps to its
+    # index in TYPE_ORDER and is rendered with a discrete colormap (see below).
+    pref_color_metric = PreferredColorLoader(session_id, conn).as_categorical_metric(
+        TYPE_ORDER, title='Preferred\nColor')
+
     if not iso_metrics and solid_metric.compute() == {}:
         print(f"No data found for session {session_id}")
         return
@@ -213,22 +235,27 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
     n_corr_cols = len(corr_metrics)
 
     # Create subplots - adjust based on number of correlation columns
-    # Layout: [preferred freq (1 col), isochromatic (4 cols), solid (1 col),
-    #          solid significance (1 col), correlation cols (n_corr_cols)]
+    # Layout: [preferred freq (1 col), orientation tuning width (1 col),
+    #          preferred orientation (1 col), preferred colour (1 col),
+    #          isochromatic (4 cols), solid (1 col), solid significance (1 col),
+    #          correlation cols (n_corr_cols)]
     if n_corr_cols > 0:
-        width_ratios = [1, 4, 1, 1] + [1] * n_corr_cols
-        n_cols = 4 + n_corr_cols
-        fig, axes = plt.subplots(1, n_cols, figsize=(17 + 2 * n_corr_cols, 12),
+        width_ratios = [1, 1, 1, 1, 4, 1, 1] + [1] * n_corr_cols
+        n_cols = 7 + n_corr_cols
+        fig, axes = plt.subplots(1, n_cols, figsize=(20 + 2 * n_corr_cols, 12),
                                  sharey=True, gridspec_kw={'width_ratios': width_ratios, 'wspace': 0.15})
         ax_freq = axes[0]
-        ax_iso = axes[1]
-        ax_solid = axes[2]
-        ax_solid_sig = axes[3]
-        ax_corr_list = axes[4:]
+        ax_orient = axes[1]
+        ax_pref_orient = axes[2]
+        ax_pref_color = axes[3]
+        ax_iso = axes[4]
+        ax_solid = axes[5]
+        ax_solid_sig = axes[6]
+        ax_corr_list = axes[7:]
     else:
-        fig, (ax_freq, ax_iso, ax_solid, ax_solid_sig) = plt.subplots(
-            1, 4, figsize=(16, 12),
-            sharey=True, gridspec_kw={'width_ratios': [1, 4, 1, 1], 'wspace': 0.15})
+        fig, (ax_freq, ax_orient, ax_pref_orient, ax_pref_color, ax_iso, ax_solid, ax_solid_sig) = plt.subplots(
+            1, 7, figsize=(19, 12),
+            sharey=True, gridspec_kw={'width_ratios': [1, 1, 1, 1, 4, 1, 1], 'wspace': 0.15})
         ax_corr_list = []
 
     # Set up colormap (diverging around 0)
@@ -242,6 +269,38 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
         show_yticks=True,
     )
     scatter = ref or scatter
+
+    # Orientation tuning width: frequency of deepest orientation tuning,
+    # coloured high freq = red, low freq = blue (same scale as preferred freq)
+    _, ref = render_metric(
+        ax_orient, orient_width_metric, channel_strings, cluster_channels,
+        cmap=cmap, norm=norm,
+        show_yticks=False,
+    )
+    scatter = ref or scatter
+
+    # Preferred orientation: cyclic colormap so opposite orientations (180 deg
+    # apart) and the 0/180 wrap-around share a colour. Kept separate from the
+    # diverging `scatter` mappable (it gets its own colorbar below).
+    orient_cmap = plt.cm.hsv
+    orient_color_norm = plt.Normalize(vmin=-1.0, vmax=1.0)
+    _, pref_orient_ref = render_metric(
+        ax_pref_orient, pref_orient_metric, channel_strings, cluster_channels,
+        cmap=orient_cmap, norm=orient_color_norm,
+        show_yticks=False,
+    )
+
+    # Preferred colour: categorical, one discrete colour per gabor type. Each
+    # channel's value is the type's index in TYPE_ORDER; a ListedColormap maps those
+    # indices to the type display colours. Uses a legend instead of a colorbar.
+    color_listed_cmap = ListedColormap([TYPE_DISPLAY_COLORS[t] for t in TYPE_ORDER])
+    color_cat_norm = BoundaryNorm(np.arange(-0.5, len(TYPE_ORDER) + 0.5, 1.0),
+                                  color_listed_cmap.N)
+    render_metric(
+        ax_pref_color, pref_color_metric, channel_strings, cluster_channels,
+        cmap=color_listed_cmap, norm=color_cat_norm,
+        show_yticks=False,
+    )
 
     # Plot isochromatic preferences - one metric per frequency, all on ax_iso
     for freq_idx, metric in enumerate(iso_metrics):
@@ -288,6 +347,29 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
     cbar = plt.colorbar(scatter, cax=cbar_ax, orientation='horizontal')
     cbar.set_label('Preference Index (Red = Prefers Isochromatic/3D, Blue = Prefers Isoluminant/2D)',
                    fontsize=10)
+
+    # Dedicated cyclic colorbar for the Preferred Orientation column (angles in
+    # degrees over [0, period); the two ends share a colour to show the wrap).
+    orient_sm = plt.cm.ScalarMappable(norm=orient_color_norm, cmap=orient_cmap)
+    orient_sm.set_array([])
+    ocbar_ax = fig.add_axes([0.92, 0.30, 0.012, 0.40])  # [left, bottom, width, height]
+    ocbar = plt.colorbar(orient_sm, cax=ocbar_ax)
+    ocbar.set_ticks([-1.0, -0.5, 0.0, 0.5, 1.0])
+    ocbar.set_ticklabels([f'{0:.0f}°', f'{orientation_period * 0.25:.0f}°',
+                          f'{orientation_period * 0.5:.0f}°', f'{orientation_period * 0.75:.0f}°',
+                          f'{orientation_period:.0f}°'])
+    ocbar.set_label('Preferred Orientation', fontsize=9)
+
+    # Discrete legend for the Preferred Colour column (one entry per gabor type).
+    color_handles = [
+        Line2D([0], [0], marker='o', color='w', markerfacecolor=TYPE_DISPLAY_COLORS[t],
+               markeredgecolor='black', markersize=9, markeredgewidth=0.5,
+               label=t, linestyle='None')
+        for t in TYPE_ORDER
+    ]
+    ax_pref_color.legend(handles=color_handles, title='Preferred Colour',
+                         loc='upper center', bbox_to_anchor=(0.5, -0.02),
+                         fontsize=7, title_fontsize=8, framealpha=0.9)
 
     # Add legend for cluster channels
     if cluster_channels:

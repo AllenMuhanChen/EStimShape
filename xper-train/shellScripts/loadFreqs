@@ -1,0 +1,17 @@
+#!/bin/bash
+source version
+source paths
+
+if [ -z "$1" ]; then
+  echo "Usage: ./loadFreqs <set_number>   (e.g. ./loadFreqs 1)"
+  exit 1
+fi
+
+sudo -S <<< Whedon101 cp $XPER_PROPERTIES_ISOGABOR $DIST/xper.properties
+sudo -S <<< Whedon101 cp $XPER_PROPERTIES_ISOGABOR $DIST/allen/xper.properties
+cd $DIST/allen
+
+# args: isTestMixed isTestOrientations setNumber
+# loadFreqs loads a predefined cycles-per-RF frequency set (set number = $1) at the
+# four orientations; orientations are forced on for any set number.
+java -jar IsoGaborGenerator.jar "false" "true" "$1"

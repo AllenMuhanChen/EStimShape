@@ -197,6 +197,249 @@ class PreferredFrequencyLoader(ChannelValueLoader):
         return LookupMetric(normalized, **kwargs)
 
 
+class OrientationTuningWidthLoader(ChannelValueLoader):
+    """Load, per channel, the frequency at which orientation tuning is deepest.
+
+    Reads ``PreferredOrientations`` and, for each channel, selects the frequency
+    whose ``max_minus_min`` (max - min response across orientations) is largest.
+
+    ``load()`` returns raw ``{channel: frequency_of_deepest_tuning}``.  Use
+    ``as_normalized_metric(frequencies)`` to map values to [-1, 1] so the highest
+    spatial frequency → +1 (red) and the lowest → -1 (blue), matching the
+    PreferredFrequency colouring.
+
+    Not every session has orientation data; a missing ``PreferredOrientations``
+    table (or empty result) yields an empty dict rather than an error."""
+
+    def __init__(self, session_id: str, conn: Connection):
+        self._session_id = session_id
+        self._conn = conn
+
+    def load(self) -> Dict[str, float]:
+        try:
+            self._conn.execute(
+                """SELECT unit_name, frequency, max_minus_min
+                   FROM PreferredOrientations
+                   WHERE session_id = %s AND unit_name NOT LIKE '%%Unit%%'
+                   ORDER BY unit_name""",
+                (self._session_id,),
+            )
+            rows = self._conn.fetch_all()
+        except Exception as exc:  # table may not exist for non-orientation sessions
+            print(f"Warning: could not load orientation tuning width: {exc}")
+            return {}
+
+        best: Dict[str, tuple] = {}  # channel -> (frequency, max_minus_min)
+        for unit_name, frequency, max_minus_min in rows:
+            if max_minus_min is None:
+                continue
+            if unit_name not in best or max_minus_min > best[unit_name][1]:
+                best[unit_name] = (frequency, max_minus_min)
+        return {ch: freq for ch, (freq, _depth) in best.items()}
+
+    def as_normalized_metric(self, frequencies: Optional[List[float]] = None,
+                             **kwargs) -> LookupMetric:
+        """Map deepest-tuning frequencies to [-1, 1] (highest → +1, lowest → -1).
+
+        ``frequencies`` defines the reference range; if not supplied the range is
+        taken from the loaded values themselves."""
+        data = self.load()
+        if frequencies:
+            lo, hi = min(frequencies), max(frequencies)
+        else:
+            vals = list(data.values())
+            lo, hi = (min(vals), max(vals)) if vals else (0.0, 1.0)
+        span = hi - lo
+        normalized = {
+            ch: (2.0 * (freq - lo) / span - 1.0) if span > 0 else 0.0
+            for ch, freq in data.items()
+        }
+        return LookupMetric(normalized, **kwargs)
+
+
+class PreferredOrientationLoader(ChannelValueLoader):
+    """Load preferred orientation per channel.
+
+    The preferred orientation is the orientation at the channel's preferred
+    frequency (from ``PreferredFrequencies``). If the preferred frequency has no
+    entry in ``PreferredOrientations``, fall back to the next-highest frequency
+    that does (the smallest orientation frequency above the preferred; if none is
+    above, the highest available frequency).
+
+    ``load()`` returns raw ``{channel: orientation_degrees}``. Orientation is a
+    circular variable, so use ``as_cyclic_metric(period)`` to fold angles modulo
+    ``period`` and map them to [-1, 1) for a cyclic colormap: with ``period=180``
+    (the grating-orientation convention) angles 180 deg apart collapse to the same
+    value, so opposite orientations share a colour and the wrap-around is seamless.
+
+    A missing ``PreferredOrientations`` table yields an empty dict rather than an
+    error, so sessions without orientation data don't crash."""
+
+    def __init__(self, session_id: str, conn: Connection, period: float = 180.0):
+        self._session_id = session_id
+        self._conn = conn
+        self.period = period
+
+    def _load_preferred_frequencies(self) -> Dict[str, float]:
+        self._conn.execute(
+            """SELECT unit_name, preferred_frequency
+               FROM PreferredFrequencies
+               WHERE session_id = %s AND unit_name NOT LIKE '%%Unit%%'""",
+            (self._session_id,),
+        )
+        return {row[0]: row[1] for row in self._conn.fetch_all()}
+
+    def _load_orientations_by_channel(self) -> Dict[str, Dict[float, float]]:
+        try:
+            self._conn.execute(
+                """SELECT unit_name, frequency, preferred_orientation
+                   FROM PreferredOrientations
+                   WHERE session_id = %s AND unit_name NOT LIKE '%%Unit%%'""",
+                (self._session_id,),
+            )
+            rows = self._conn.fetch_all()
+        except Exception as exc:  # table may not exist for non-orientation sessions
+            print(f"Warning: could not load preferred orientations: {exc}")
+            return {}
+
+        by_channel: Dict[str, Dict[float, float]] = {}
+        for unit_name, frequency, orientation in rows:
+            if orientation is None or frequency is None:
+                continue
+            by_channel.setdefault(unit_name, {})[float(frequency)] = float(orientation)
+        return by_channel
+
+    @staticmethod
+    def _select_frequency(preferred_freq, available_freqs):
+        """Pick the preferred frequency if available, else the next-highest, else
+        the highest available frequency."""
+        if not available_freqs:
+            return None
+        available = sorted(available_freqs)
+        if preferred_freq is not None:
+            for f in available:
+                if abs(f - preferred_freq) < 1e-6:  # preferred freq has orientation data
+                    return f
+            above = [f for f in available if f > preferred_freq]
+            if above:
+                return min(above)  # next-highest frequency above the preferred
+        return max(available)  # no preferred / nothing above -> highest available
+
+    def load(self) -> Dict[str, float]:
+        pref_freqs = self._load_preferred_frequencies()
+        orient_by_channel = self._load_orientations_by_channel()
+
+        result: Dict[str, float] = {}
+        for unit_name, freq_to_orient in orient_by_channel.items():
+            preferred_freq = pref_freqs.get(unit_name)
+            preferred_freq = float(preferred_freq) if preferred_freq is not None else None
+            chosen = self._select_frequency(preferred_freq, list(freq_to_orient.keys()))
+            if chosen is not None:
+                result[unit_name] = freq_to_orient[chosen]
+        return result
+
+    def as_cyclic_metric(self, period: Optional[float] = None, **kwargs) -> LookupMetric:
+        """Fold angles modulo ``period`` and map to [-1, 1) for a cyclic colormap.
+
+        ``v = (angle mod period) / (period / 2) - 1``; angles ``period`` apart map
+        to the same value (and thus the same colour under a cyclic colormap)."""
+        period = period if period is not None else self.period
+        half = period / 2.0
+        data = self.load()
+        normalized = {ch: ((angle % period) / half) - 1.0 for ch, angle in data.items()}
+        return LookupMetric(normalized, **kwargs)
+
+
+class PreferredColorLoader(ChannelValueLoader):
+    """Load preferred colour (gabor type) per channel.
+
+    The preferred colour is the highest-responding gabor type at the channel's
+    preferred frequency (from ``PreferredFrequencies``). If the preferred frequency
+    has no entry in ``PreferredColors``, fall back to the next-highest frequency
+    that does (smallest colour frequency above the preferred; if none is above, the
+    highest available frequency).
+
+    ``load()`` returns ``{channel: type_name}`` (a categorical colour). Colour is
+    categorical, so use ``as_categorical_metric(type_order)`` to map each type to its
+    index in ``type_order`` for a discrete (ListedColormap) rendering.
+
+    A missing ``PreferredColors`` table yields an empty dict rather than an error."""
+
+    def __init__(self, session_id: str, conn: Connection):
+        self._session_id = session_id
+        self._conn = conn
+
+    def _load_preferred_frequencies(self) -> Dict[str, float]:
+        self._conn.execute(
+            """SELECT unit_name, preferred_frequency
+               FROM PreferredFrequencies
+               WHERE session_id = %s AND unit_name NOT LIKE '%%Unit%%'""",
+            (self._session_id,),
+        )
+        return {row[0]: row[1] for row in self._conn.fetch_all()}
+
+    def _load_colors_by_channel(self) -> Dict[str, Dict[float, str]]:
+        try:
+            self._conn.execute(
+                """SELECT unit_name, frequency, preferred_color
+                   FROM PreferredColors
+                   WHERE session_id = %s AND unit_name NOT LIKE '%%Unit%%'""",
+                (self._session_id,),
+            )
+            rows = self._conn.fetch_all()
+        except Exception as exc:  # table may not exist for sessions without colour data
+            print(f"Warning: could not load preferred colours: {exc}")
+            return {}
+
+        by_channel: Dict[str, Dict[float, str]] = {}
+        for unit_name, frequency, color in rows:
+            if color is None or frequency is None:
+                continue
+            by_channel.setdefault(unit_name, {})[float(frequency)] = str(color)
+        return by_channel
+
+    @staticmethod
+    def _select_frequency(preferred_freq, available_freqs):
+        """Pick the preferred frequency if available, else the next-highest, else
+        the highest available frequency."""
+        if not available_freqs:
+            return None
+        available = sorted(available_freqs)
+        if preferred_freq is not None:
+            for f in available:
+                if abs(f - preferred_freq) < 1e-6:  # preferred freq has colour data
+                    return f
+            above = [f for f in available if f > preferred_freq]
+            if above:
+                return min(above)  # next-highest frequency above the preferred
+        return max(available)  # no preferred / nothing above -> highest available
+
+    def load(self) -> Dict[str, str]:
+        pref_freqs = self._load_preferred_frequencies()
+        colors_by_channel = self._load_colors_by_channel()
+
+        result: Dict[str, str] = {}
+        for unit_name, freq_to_color in colors_by_channel.items():
+            preferred_freq = pref_freqs.get(unit_name)
+            preferred_freq = float(preferred_freq) if preferred_freq is not None else None
+            chosen = self._select_frequency(preferred_freq, list(freq_to_color.keys()))
+            if chosen is not None:
+                result[unit_name] = freq_to_color[chosen]
+        return result
+
+    def as_categorical_metric(self, type_order: List[str], **kwargs) -> LookupMetric:
+        """Map each channel's preferred colour to its index in ``type_order``.
+
+        Channels whose preferred colour is not in ``type_order`` are dropped (so they
+        render as "no data"). Pair the resulting metric with a ListedColormap whose
+        colours follow ``type_order`` (see preference_cluster)."""
+        index_of = {t: i for i, t in enumerate(type_order)}
+        data = self.load()
+        indexed = {ch: float(index_of[color]) for ch, color in data.items()
+                   if color in index_of}
+        return LookupMetric(indexed, **kwargs)
+
+
 class SolidPreferenceLoader(ChannelValueLoader):
     """Load solid preference indices from ``SolidPreferenceIndices``."""
 

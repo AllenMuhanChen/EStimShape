@@ -313,12 +313,15 @@ class IsoTypeField(TypeField):
 
 
 class OrientationField(StimSpecField):
-    def get(self, task_id) -> str:
+    def get(self, task_id) -> float | None:
         stim_spec = self.get_cached_super(task_id, StimSpecField)
         stim_spec_dict = xmltodict.parse(stim_spec)
 
-        stim_spec_type = stim_spec_dict['StimSpec']['orientation']
-        return stim_spec_type
+        # Not every experiment encodes an orientation; return None instead of crashing.
+        orientation = stim_spec_dict['StimSpec'].get('orientation')
+        if orientation is None:
+            return None
+        return float(orientation)
 
     def get_name(self):
         return "Orientation"

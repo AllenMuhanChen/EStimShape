@@ -15,6 +15,7 @@ from src.analysis.lightness.lightness_analysis import LightnessAnalysis
 from src.analysis.shuffle.shuffle_analysis import ShuffleAnalysis
 from src.analysis.spi_vs_ici.isoluminant_comparison import IsoluminantComparisonAnalysis
 from src.repository.good_channels import read_cluster_channels
+from src.startup.apply_session_context import apply_session_context
 
 
 
@@ -102,9 +103,27 @@ def run_analyses(channels_map: Dict[str, List[str]], analyses: List[type(Analysi
             print(f"  - {channel}")
         print('=' * 60)
 
+        # Switch the global context (database names + derived paths) to this
+        # session so compile_and_export() reads the right session's data.
+        # Without this, every session re-compiles the default-session database.
+        try:
+            apply_session_context(session_id)
+        except Exception as e:
+            print(f"Error switching context to session {session_id}, skipping: {e}")
+            import traceback
+            traceback.print_exc()
+            continue
+
         for index, analysis in enumerate(analyses):
             # TEMP: compile and export
-            analysis.compile_and_export()
+            try:
+                analysis.compile_and_export()
+            except Exception as e:
+                print(f"Error compiling/exporting {analysis.__class__.__name__} "
+                      f"for session {session_id}: {e}")
+                import traceback
+                traceback.print_exc()
+                continue
             for channel in channels:
                 print(f"\nRunning {analysis.__class__.__name__} for session {session_id}, channel {channel}")
                 try:
@@ -117,7 +136,7 @@ def run_analyses(channels_map: Dict[str, List[str]], analyses: List[type(Analysi
 
 def main():
     analyses = [
-        # IsochromaticIndexAnalysis(),
+        IsochromaticIndexAnalysis(),
         # GAResponseVectorAnalysis(),
         # SolidPreferenceIndexAnalysis(),
         # IsoChromaticLuminantScoreAnalysis(),
