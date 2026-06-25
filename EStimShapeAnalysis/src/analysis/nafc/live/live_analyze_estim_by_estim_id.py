@@ -54,6 +54,7 @@ from src.analysis.nafc.live.upcoming_trials import (
     read_upcoming_trials, group_upcoming_counts, task_ids_for_group, delete_upcoming_tasks,
     GROUP_DIMENSIONS, DEFAULT_GROUP_DIMENSIONS,
 )
+from src.analysis.nafc.live.live_stats import run_session_stats, METRICS as STATS_METRICS
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -416,9 +417,10 @@ class _MultiCheckFilter(QtWidgets.QWidget):
 class LiveEstimWindow(QtWidgets.QMainWindow):
     """Control bar + a vertically-scrolling grid of pyqtgraph panels showing Plot 1."""
 
-    def __init__(self, exp_conn, session_id):
+    def __init__(self, exp_conn, session_id, session_date=None):
         super().__init__()
         self.exp_conn = exp_conn
+        self.session_date = session_date
         self.session_id = session_id
         # Seed seen trials from what's already compiled so a restart doesn't redo the session.
         self.seen_starts = get_existing_trial_starts(session_id)
@@ -448,6 +450,9 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.upcoming_checks = {}          # column -> QCheckBox
         self._upcoming_df = None
         self._upcoming_group_dims = []
+
+        # Stats-tab state. Runs only on explicit button press (never on the poll timer).
+        self._stats_result = None
 
         # Stable spec_id -> color: a spec keeps its color for the whole session and across
         # every panel, regardless of which other specs are present or when it first appears.
@@ -610,8 +615,58 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         upcoming_layout.addLayout(delete_bar)
         self.tabs.addTab(self.upcoming_tab, 'Upcoming Trials')
 
+        # Stats tab — runs analyze_estim_by_condition + permutation tests for THIS session
+        # (persisting to the repository) and visualizes the single-session max-stat and
+        # exceedance-count tests. Runs only when the button is pressed, never on the timer.
+        self._build_stats_tab()
+
         # Render the newly-shown tab so it reflects the latest data/filters.
         self.tabs.currentChanged.connect(lambda _idx: self._rerender())
+
+    def _build_stats_tab(self):
+        self.stats_tab = QtWidgets.QWidget()
+        stats_layout = QtWidgets.QVBoxLayout(self.stats_tab)
+
+        ctrl = QtWidgets.QHBoxLayout()
+        ctrl.addWidget(QtWidgets.QLabel('Metric:'))
+        self.stats_metric_combo = QtWidgets.QComboBox()
+        for value, label in STATS_METRICS:
+            self.stats_metric_combo.addItem(label, value)
+        ctrl.addWidget(self.stats_metric_combo)
+
+        self.stats_studentize_cb = QtWidgets.QCheckBox('Studentize')
+        ctrl.addWidget(self.stats_studentize_cb)
+
+        ctrl.addWidget(QtWidgets.QLabel('Min trials/group:'))
+        self.stats_min_trials_spin = QtWidgets.QSpinBox()
+        self.stats_min_trials_spin.setRange(1, 1000)
+        self.stats_min_trials_spin.setValue(15)
+        ctrl.addWidget(self.stats_min_trials_spin)
+
+        ctrl.addWidget(QtWidgets.QLabel('Permutations:'))
+        self.stats_nperm_spin = QtWidgets.QSpinBox()
+        self.stats_nperm_spin.setRange(100, 100000)
+        self.stats_nperm_spin.setSingleStep(1000)
+        self.stats_nperm_spin.setValue(1000)
+        ctrl.addWidget(self.stats_nperm_spin)
+
+        self.stats_run_button = QtWidgets.QPushButton('Run stats')
+        self.stats_run_button.clicked.connect(self._run_stats)
+        ctrl.addWidget(self.stats_run_button)
+        ctrl.addStretch(1)
+        self.stats_status_label = QtWidgets.QLabel('Not run yet.')
+        ctrl.addWidget(self.stats_status_label)
+        stats_layout.addLayout(ctrl)
+
+        # Two stacked pyqtgraph panels: max-stat bar chart (top) and exceedance test (bottom).
+        self.stats_maxstat_plot = pg.PlotWidget()
+        self.stats_maxstat_plot.setBackground('w')
+        self.stats_exceed_plot = pg.PlotWidget()
+        self.stats_exceed_plot.setBackground('w')
+        stats_layout.addWidget(self.stats_maxstat_plot)
+        stats_layout.addWidget(self.stats_exceed_plot)
+
+        self.tabs.addTab(self.stats_tab, 'Stats')
 
     # ---- polling --------------------------------------------------------
     def _toggle_live(self):
@@ -719,6 +774,10 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
     def _update_active(self):
         """Render whichever tab is currently visible. Returns the number of plotted trials."""
         self._update_recent_label()
+        # Stats tab only ever changes on an explicit "Run stats" press — the poll timer must
+        # not trigger the (expensive) permutation pipeline, so do nothing here for it.
+        if self.tabs.currentWidget() is self.stats_tab:
+            return 0
         # Upcoming-trials tab reads queued tasks straight from the experiment DB; it doesn't
         # use the compiled/completed-trial data or the behavioral filters.
         if self.tabs.currentWidget() is self.upcoming_tab:
@@ -849,6 +908,125 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             return
         self.status_label.setText(f'{self.session_id}: deleted {deleted} upcoming trial(s)')
         self._render_upcoming()
+
+    # ---- stats tab ------------------------------------------------------
+    @staticmethod
+    def _fmt_pval(p):
+        if p < 0.001:
+            return 'p<0.001'
+        if p < 0.01:
+            return f'p={p:.3f}'
+        return f'p={p:.2f}'
+
+    def _run_stats(self):
+        """Run the by-condition + permutation pipeline for this session (persisting to the
+        repository) and render the single-session max-stat and exceedance tests. Blocking."""
+        metric = self.stats_metric_combo.currentData()
+        studentize = self.stats_studentize_cb.isChecked()
+        min_trials = self.stats_min_trials_spin.value()
+        n_perm = self.stats_nperm_spin.value()
+
+        app = QtWidgets.QApplication.instance()
+
+        def progress(msg):
+            self.stats_status_label.setText(msg)
+            if app is not None:
+                app.processEvents()
+
+        self.stats_run_button.setEnabled(False)
+        try:
+            result = run_session_stats(
+                self.session_id, self.session_date, metric,
+                n_permutations=n_perm, min_trials=min_trials, studentize=studentize,
+                progress=progress)
+        except Exception as e:
+            self.stats_status_label.setText(f'Stats failed: {e}')
+            QtWidgets.QMessageBox.critical(self, 'Stats failed', str(e))
+            return
+        finally:
+            self.stats_run_button.setEnabled(True)
+
+        self._stats_result = result
+        self._render_stats(result)
+        self.stats_status_label.setText(
+            f"Done — saved to repository (algorithm='{result['algorithm_label']}', "
+            f"metric={metric}).")
+
+    def _render_stats(self, result):
+        self._render_maxstat_plot(result)
+        self._render_exceedance_plot(result)
+
+    def _render_maxstat_plot(self, result):
+        """Bar chart: observed best (max-stat) effect vs the permutation null's mean, with the
+        null 95th percentile as a line and the p-value in the title."""
+        plot = self.stats_maxstat_plot
+        plot.clear()
+        unit = result['unit']
+        ms = result['max_stat']
+        if ms is None:
+            plot.setTitle(f"Max-stat: no condition with ≥{result['min_trials']} trials/group")
+            return
+
+        xs = [0, 1]
+        heights = [ms['observed'], ms['null_mean']]
+        bar = pg.BarGraphItem(x=xs, height=heights, width=0.6,
+                              brushes=[(214, 39, 40), (140, 140, 140)])
+        plot.addItem(bar)
+        # Null 95th percentile as a horizontal reference line.
+        line = pg.InfiniteLine(pos=ms['null_95'], angle=0,
+                               pen=pg.mkPen((80, 80, 80), style=_DASH_LINE))
+        plot.addItem(line)
+        p95_text = pg.TextItem(f"null 95th = {ms['null_95']:+.2f}{unit}", color=(80, 80, 80),
+                               anchor=(0, 1))
+        p95_text.setPos(-0.4, ms['null_95'])
+        plot.addItem(p95_text)
+
+        plot.getAxis('bottom').setTicks([[(0, f"Observed max\n({ms['observed']:+.2f}{unit})"),
+                                          (1, f"Null mean\n({ms['null_mean']:+.2f}{unit})")]])
+        plot.setLabel('left', f'Effect ({unit})')
+        sig = ms['p_value'] < 0.05
+        plot.setTitle(f"Max-stat test — {self._fmt_pval(ms['p_value'])}"
+                      + ('  *' if sig else ''))
+        plot.getViewBox().enableAutoRange()
+
+    def _render_exceedance_plot(self, result):
+        """This-session exceedance-count test: observed #conditions over each threshold vs the
+        permutation null (mean + 95th percentile band), p-value annotated per threshold."""
+        plot = self.stats_exceed_plot
+        plot.clear()
+        exc = result['exceedance']
+        if exc is None or not exc.get('results'):
+            plot.setTitle(f"Exceedance: no condition with ≥{result['min_trials']} trials/group")
+            return
+
+        res = exc['results']
+        thr = [r['threshold'] for r in res]
+        n_obs = [r['n_obs'] for r in res]
+        null_mean = [r['null_mean'] for r in res]
+        null_95 = [r['null_95'] for r in res]
+        unit = exc.get('unit', '%')
+
+        # Null 95th-percentile band (0..null_95) shaded, null mean dashed, observed solid red.
+        zero_curve = plot.plot(thr, [0] * len(thr), pen=None)
+        p95_curve = plot.plot(thr, null_95, pen=pg.mkPen((150, 150, 150)))
+        plot.addItem(pg.FillBetweenItem(zero_curve, p95_curve, brush=(200, 200, 200, 90)))
+        plot.plot(thr, null_mean, pen=pg.mkPen((120, 120, 120), style=_DASH_LINE),
+                  symbol='o', symbolSize=5, symbolBrush=(120, 120, 120), name='Null mean')
+        plot.plot(thr, n_obs, pen=pg.mkPen((214, 39, 40), width=2),
+                  symbol='o', symbolSize=6, symbolBrush=(214, 39, 40), name='Observed')
+
+        for r in res:
+            sig = r['p_value'] < 0.05
+            t = pg.TextItem(self._fmt_pval(r['p_value']),
+                            color=(139, 0, 0) if sig else (120, 120, 120), anchor=(0.5, 1.0))
+            t.setPos(r['threshold'], r['n_obs'])
+            plot.addItem(t)
+
+        plot.setLabel('bottom', f'Effect threshold ({unit})')
+        plot.setLabel('left', '# conditions ≥ threshold')
+        plot.setTitle(f"Exceedance-count test — {exc['n_conditions']} conditions, "
+                      f"{exc['n_perms']} perms")
+        plot.getViewBox().enableAutoRange()
 
     def _render_overview(self, data_exp):
         # Split-texture trials have their own tab (Texture Split); keep them out of the
@@ -1241,10 +1419,10 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
 def main():
     ensure_estimshape_trials_table()
     exp_conn = Connection(context.nafc_database)
-    session_id, _ = read_session_id_and_date_from_db_name(context.nafc_database)
+    session_id, session_date = read_session_id_and_date_from_db_name(context.nafc_database)
 
     app = QtWidgets.QApplication(sys.argv)
-    window = LiveEstimWindow(exp_conn, session_id)
+    window = LiveEstimWindow(exp_conn, session_id, session_date)
     window.show()
     # PyQt6/PySide6 use exec(); PyQt5 uses exec_().
     run = app.exec if hasattr(app, 'exec') else app.exec_
