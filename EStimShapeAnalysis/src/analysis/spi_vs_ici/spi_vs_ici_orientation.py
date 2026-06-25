@@ -526,6 +526,11 @@ if __name__ == "__main__":
     selection_mode = 'mapped_channel'
     save_dir = None  # e.g. "/home/connorlab/Documents/plots"
 
+    # Cycles-per-RF x-axis range for the orientation-tuning plot. Set to None to
+    # auto-scale, or e.g. (0, 8) to crop the display (all points still feed the
+    # binned trend). Matches the cycles_xlim option in rf_size_vs_preferred_freq.py.
+    cycles_xlim = None  # e.g. (0, 8)
+
     def _path(name):
         return os.path.join(save_dir, name) if save_dir else None
 
@@ -545,4 +550,5 @@ if __name__ == "__main__":
     #    a binned mean +/- SEM trend line.
     plot_rf_size_vs_orientation_tuning(
         selection_mode=selection_mode, normalize='zscore', n_bins=8,
+        xlim=cycles_xlim,
         save_path=_path("rf_size_vs_orientation_tuning.png"))
