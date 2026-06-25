@@ -197,6 +197,66 @@ class PreferredFrequencyLoader(ChannelValueLoader):
         return LookupMetric(normalized, **kwargs)
 
 
+class OrientationTuningWidthLoader(ChannelValueLoader):
+    """Load, per channel, the frequency at which orientation tuning is deepest.
+
+    Reads ``PreferredOrientations`` and, for each channel, selects the frequency
+    whose ``max_minus_min`` (max - min response across orientations) is largest.
+
+    ``load()`` returns raw ``{channel: frequency_of_deepest_tuning}``.  Use
+    ``as_normalized_metric(frequencies)`` to map values to [-1, 1] so the highest
+    spatial frequency → +1 (red) and the lowest → -1 (blue), matching the
+    PreferredFrequency colouring.
+
+    Not every session has orientation data; a missing ``PreferredOrientations``
+    table (or empty result) yields an empty dict rather than an error."""
+
+    def __init__(self, session_id: str, conn: Connection):
+        self._session_id = session_id
+        self._conn = conn
+
+    def load(self) -> Dict[str, float]:
+        try:
+            self._conn.execute(
+                """SELECT unit_name, frequency, max_minus_min
+                   FROM PreferredOrientations
+                   WHERE session_id = %s AND unit_name NOT LIKE '%%Unit%%'
+                   ORDER BY unit_name""",
+                (self._session_id,),
+            )
+            rows = self._conn.fetch_all()
+        except Exception as exc:  # table may not exist for non-orientation sessions
+            print(f"Warning: could not load orientation tuning width: {exc}")
+            return {}
+
+        best: Dict[str, tuple] = {}  # channel -> (frequency, max_minus_min)
+        for unit_name, frequency, max_minus_min in rows:
+            if max_minus_min is None:
+                continue
+            if unit_name not in best or max_minus_min > best[unit_name][1]:
+                best[unit_name] = (frequency, max_minus_min)
+        return {ch: freq for ch, (freq, _depth) in best.items()}
+
+    def as_normalized_metric(self, frequencies: Optional[List[float]] = None,
+                             **kwargs) -> LookupMetric:
+        """Map deepest-tuning frequencies to [-1, 1] (highest → +1, lowest → -1).
+
+        ``frequencies`` defines the reference range; if not supplied the range is
+        taken from the loaded values themselves."""
+        data = self.load()
+        if frequencies:
+            lo, hi = min(frequencies), max(frequencies)
+        else:
+            vals = list(data.values())
+            lo, hi = (min(vals), max(vals)) if vals else (0.0, 1.0)
+        span = hi - lo
+        normalized = {
+            ch: (2.0 * (freq - lo) / span - 1.0) if span > 0 else 0.0
+            for ch, freq in data.items()
+        }
+        return LookupMetric(normalized, **kwargs)
+
+
 class SolidPreferenceLoader(ChannelValueLoader):
     """Load solid preference indices from ``SolidPreferenceIndices``."""
 

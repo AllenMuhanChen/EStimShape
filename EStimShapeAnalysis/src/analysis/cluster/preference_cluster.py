@@ -6,6 +6,7 @@ from src.analysis.channel_data_loaders import (
     ChannelResponseVectorLoader,
     ClusterChannelLoader,
     IsochromaticPreferenceLoader,
+    OrientationTuningWidthLoader,
     PreferredFrequencyLoader,
     SolidPreferenceLoader,
 )
@@ -193,6 +194,9 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
     freq_metric = PreferredFrequencyLoader(session_id, conn).as_normalized_metric(
         frequencies, title='Preferred\nFrequency')
 
+    orient_width_metric = OrientationTuningWidthLoader(session_id, conn).as_normalized_metric(
+        frequencies, title='Orientation\nTuning Width')
+
     if not iso_metrics and solid_metric.compute() == {}:
         print(f"No data found for session {session_id}")
         return
@@ -213,22 +217,24 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
     n_corr_cols = len(corr_metrics)
 
     # Create subplots - adjust based on number of correlation columns
-    # Layout: [preferred freq (1 col), isochromatic (4 cols), solid (1 col),
-    #          solid significance (1 col), correlation cols (n_corr_cols)]
+    # Layout: [preferred freq (1 col), orientation tuning width (1 col),
+    #          isochromatic (4 cols), solid (1 col), solid significance (1 col),
+    #          correlation cols (n_corr_cols)]
     if n_corr_cols > 0:
-        width_ratios = [1, 4, 1, 1] + [1] * n_corr_cols
-        n_cols = 4 + n_corr_cols
-        fig, axes = plt.subplots(1, n_cols, figsize=(17 + 2 * n_corr_cols, 12),
+        width_ratios = [1, 1, 4, 1, 1] + [1] * n_corr_cols
+        n_cols = 5 + n_corr_cols
+        fig, axes = plt.subplots(1, n_cols, figsize=(18 + 2 * n_corr_cols, 12),
                                  sharey=True, gridspec_kw={'width_ratios': width_ratios, 'wspace': 0.15})
         ax_freq = axes[0]
-        ax_iso = axes[1]
-        ax_solid = axes[2]
-        ax_solid_sig = axes[3]
-        ax_corr_list = axes[4:]
+        ax_orient = axes[1]
+        ax_iso = axes[2]
+        ax_solid = axes[3]
+        ax_solid_sig = axes[4]
+        ax_corr_list = axes[5:]
     else:
-        fig, (ax_freq, ax_iso, ax_solid, ax_solid_sig) = plt.subplots(
-            1, 4, figsize=(16, 12),
-            sharey=True, gridspec_kw={'width_ratios': [1, 4, 1, 1], 'wspace': 0.15})
+        fig, (ax_freq, ax_orient, ax_iso, ax_solid, ax_solid_sig) = plt.subplots(
+            1, 5, figsize=(17, 12),
+            sharey=True, gridspec_kw={'width_ratios': [1, 1, 4, 1, 1], 'wspace': 0.15})
         ax_corr_list = []
 
     # Set up colormap (diverging around 0)
@@ -240,6 +246,15 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
         ax_freq, freq_metric, channel_strings, cluster_channels,
         cmap=cmap, norm=norm,
         show_yticks=True,
+    )
+    scatter = ref or scatter
+
+    # Orientation tuning width: frequency of deepest orientation tuning,
+    # coloured high freq = red, low freq = blue (same scale as preferred freq)
+    _, ref = render_metric(
+        ax_orient, orient_width_metric, channel_strings, cluster_channels,
+        cmap=cmap, norm=norm,
+        show_yticks=False,
     )
     scatter = ref or scatter
 
