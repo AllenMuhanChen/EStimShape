@@ -405,7 +405,7 @@ def run_selection_test(calib=None, decision_ns=(3, 4, 5, 6, 8),
         return None
 
     if exceedance_thresholds is None:
-        exceedance_thresholds = ((1.0, 1.5, 2.0, 2.5, 3.0) if studentize
+        exceedance_thresholds = ((0,0, 0.5, 1.0, 1.5, 2.0) if studentize
                                  else (5.0, 10.0, 15.0, 20.0))
     exc_obs = _exceedance_counts(real_entries, exceedance_thresholds, studentize)
 
@@ -534,7 +534,7 @@ def main():
     test = run_selection_test(
         calib=calib,
         decision_ns=(3, 4, 5, 6, 8),       # bounded to the realistic kill range
-        thresholds_kill=(0.0, 5.0, 10.0, 15.0),
+        thresholds_kill=(-10, -5.0, 0.0, 5.0, 10.0, 15.0, 20.0),
         n_sims=2000,
         studentize=True,                    # match max_estim_per_experiment.main()
         weighting=None,                     # unweighted, like the default headline
