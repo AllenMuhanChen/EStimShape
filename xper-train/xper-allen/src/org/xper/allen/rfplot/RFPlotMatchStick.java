@@ -49,6 +49,17 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
         matchStick.drawFast();
     }
 
+    /**
+     * Match sticks are 3-D meshes: positioning them by translating in world space under the
+     * perspective frustum would shear them off-axis. The scene therefore renders them centered
+     * and applies the RF position as a screen-space shift instead. See
+     * {@link org.xper.rfplot.drawing.RFPlotDrawable#usesScreenSpaceTranslation()}.
+     */
+    @Override
+    public boolean usesScreenSpaceTranslation() {
+        return true;
+    }
+
     @Override
     public void setSpec(String spec) {
         this.matchStickSpec = RFPlotMatchStickSpec.fromXml(spec);
@@ -85,9 +96,15 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
 
         ArrayList<Point> nextMeshPoints = new ArrayList<>();
         Point3d[] vectInfo = matchStick.getObj1().vect_info;
+        // Project each vertex through the same centered perspective the scene renders with, so the
+        // 2-D outline matches the on-screen shape (and the experiment's centered render). +z is
+        // toward the viewer, so the screen-plane magnification is distance / (distance - z).
+        double distance = renderer.getDistance();
         for (Point3d point : vectInfo) {
             if (point != null) {
-                nextMeshPoints.add(new Point(point.getX(), point.getY()));
+                double denom = distance - point.getZ();
+                double scale = (denom != 0.0) ? distance / denom : 1.0;
+                nextMeshPoints.add(new Point(point.getX() * scale, point.getY() * scale));
             }
         }
 

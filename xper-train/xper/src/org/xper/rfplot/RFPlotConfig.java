@@ -50,11 +50,25 @@ public class RFPlotConfig {
 	@ExternalValue("rfplot.intan_path")
 	public String rfPlotIntanPath;
 
+	/**
+	 * Half-extent (mm), in front of and behind the screen plane, of the depth volume the RF
+	 * plotter keeps inside the view frustum. RF-plot stimuli (including 3-D match sticks) live
+	 * within a few cm of the screen plane, so a tight volume is plenty and it gives the depth
+	 * buffer enough precision to self-occlude the match-stick mesh correctly even on the
+	 * low-bit-depth on-screen depth buffer. Does not affect mm-to-degree or x/y positioning.
+	 */
+	public static final double RFPLOT_DEPTH_HALF_RANGE_MM = 200.0;
+
 	@Bean
 	public PerspectiveRenderer rfRenderer () {
 		PerspectiveRenderer renderer = new PerspectiveRenderer();
-		renderer.setDistance(classicConfig.xperMonkeyScreenDistance());
-		renderer.setDepth(classicConfig.xperMonkeyScreenDepth());
+		double distance = classicConfig.xperMonkeyScreenDistance();
+		renderer.setDistance(distance);
+		// Tighten the depth frustum around the screen plane instead of using the full
+		// xperMonkeyScreenDepth (which puts the far plane thousands of mm away and destroys
+		// depth precision at the stimulus, making the 3-D match stick render with holes).
+		renderer.setDepth(RFPLOT_DEPTH_HALF_RANGE_MM);
+		renderer.setCustomNearPlaneDistance(Math.max(10.0, distance - RFPLOT_DEPTH_HALF_RANGE_MM));
 		renderer.setHeight(classicConfig.xperMonkeyScreenHeight());
 		renderer.setWidth(classicConfig.xperMonkeyScreenWidth());
 		renderer.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
