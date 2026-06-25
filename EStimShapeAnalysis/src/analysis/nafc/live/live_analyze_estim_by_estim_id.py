@@ -116,6 +116,21 @@ def _qt_enum(enum_cls_name, member):
 _SCROLLBAR_OFF = _qt_enum('ScrollBarPolicy', 'ScrollBarAlwaysOff')
 _DASH_LINE = _qt_enum('PenStyle', 'DashLine')
 _EDIT_ROLE = _qt_enum('ItemDataRole', 'EditRole')
+
+
+def _item_view_enum(member):
+    """Resolve a QAbstractItemView enum value across bindings: PyQt6/PySide6 scope it under a
+    nested enum class (QAbstractItemView.EditTrigger.NoEditTriggers) while PyQt5 exposes it
+    flat (QAbstractItemView.NoEditTriggers)."""
+    view = QtWidgets.QAbstractItemView
+    for enum_cls_name in ('EditTrigger', 'EditTriggers'):
+        enum_cls = getattr(view, enum_cls_name, None)
+        if enum_cls is not None and hasattr(enum_cls, member):
+            return getattr(enum_cls, member)
+    return getattr(view, member)
+
+
+_NO_EDIT_TRIGGERS = _item_view_enum('NoEditTriggers')
 # Pen styles used to distinguish noise levels within a spec in the sliding-window tab
 # (alpha alone was too subtle). Assigned per noise value, stable for the session.
 _NOISE_STYLES = [_qt_enum('PenStyle', name) for name in
@@ -550,7 +565,7 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         upcoming_layout.addLayout(group_bar)
 
         self.upcoming_table = QtWidgets.QTableWidget()
-        self.upcoming_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.upcoming_table.setEditTriggers(_NO_EDIT_TRIGGERS)
         self.upcoming_table.setSortingEnabled(True)
         upcoming_layout.addWidget(self.upcoming_table)
         self.tabs.addTab(self.upcoming_tab, 'Upcoming Trials')
