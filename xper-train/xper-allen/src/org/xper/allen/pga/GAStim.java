@@ -40,6 +40,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected final StimTypePropertyManager stimTypeManager;
     protected final NoiseCirclePropertyManager noiseCircleManager;
     protected final SharedNoiseCircleManager sharedNoiseCircleManager;
+    protected final MutationSuccessFailManager mutationSuccessFailManager;
 
     protected Long stimId;
     protected String textureType;
@@ -89,6 +90,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         stimTypeManager = new StimTypePropertyManager(jdbcTemplate);
         noiseCircleManager = new NoiseCirclePropertyManager(jdbcTemplate);
         sharedNoiseCircleManager = new SharedNoiseCircleManager(jdbcTemplate);
+        mutationSuccessFailManager = new MutationSuccessFailManager(jdbcTemplate);
     }
 
     /**
@@ -117,6 +119,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         stimTypeManager = new StimTypePropertyManager(jdbcTemplate);
         noiseCircleManager = new NoiseCirclePropertyManager(jdbcTemplate);
         sharedNoiseCircleManager = new SharedNoiseCircleManager(jdbcTemplate);
+        mutationSuccessFailManager = new MutationSuccessFailManager(jdbcTemplate);
     }
 
     @Override
