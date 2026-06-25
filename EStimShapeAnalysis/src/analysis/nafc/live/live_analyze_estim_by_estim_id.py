@@ -50,6 +50,10 @@ from src.analysis.nafc.analyze_estim_by_estim_id import partition_estim_data
 from src.analysis.nafc.live.live_estim_compile import (
     REPO_DB, ensure_estimshape_trials_table, compile_new_trials, get_existing_trial_starts,
 )
+from src.analysis.nafc.live.upcoming_trials import (
+    read_upcoming_trials, group_upcoming_counts,
+    GROUP_DIMENSIONS, DEFAULT_GROUP_DIMENSIONS,
+)
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -111,6 +115,7 @@ def _qt_enum(enum_cls_name, member):
 
 _SCROLLBAR_OFF = _qt_enum('ScrollBarPolicy', 'ScrollBarAlwaysOff')
 _DASH_LINE = _qt_enum('PenStyle', 'DashLine')
+_EDIT_ROLE = _qt_enum('ItemDataRole', 'EditRole')
 # Pen styles used to distinguish noise levels within a spec in the sliding-window tab
 # (alpha alone was too subtle). Assigned per noise value, stable for the session.
 _NOISE_STYLES = [_qt_enum('PenStyle', name) for name in
@@ -403,6 +408,9 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.split_legends = {}           # (row_key, col_key) -> LegendItem
         self.split_series = {}            # (row_key, col_key, series_key) -> {'curve','label','base'}
 
+        # Upcoming-trials-tab state: which grouping dimensions are checked.
+        self.upcoming_checks = {}          # column -> QCheckBox
+
         # Stable spec_id -> color: a spec keeps its color for the whole session and across
         # every panel, regardless of which other specs are present or when it first appears.
         self._spec_color = {}
@@ -522,6 +530,31 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.split_scroll.setWidget(self.split_host)
         self.tabs.addTab(self.split_scroll, 'Texture Split')
 
+        # Upcoming Trials tab — counts of queued-but-not-yet-run trials (TaskToDo minus
+        # TaskDone), grouped by the dimensions the user checks. Independent of the
+        # completed-trial filters/start-gen above (those describe trials that already ran).
+        self.upcoming_tab = QtWidgets.QWidget()
+        upcoming_layout = QtWidgets.QVBoxLayout(self.upcoming_tab)
+
+        group_bar = QtWidgets.QHBoxLayout()
+        group_bar.addWidget(QtWidgets.QLabel('Group by:'))
+        for col, label in GROUP_DIMENSIONS:
+            cb = QtWidgets.QCheckBox(label)
+            cb.setChecked(col in DEFAULT_GROUP_DIMENSIONS)
+            cb.stateChanged.connect(lambda _s: self._render_upcoming())
+            self.upcoming_checks[col] = cb
+            group_bar.addWidget(cb)
+        group_bar.addStretch(1)
+        self.upcoming_total_label = QtWidgets.QLabel('')
+        group_bar.addWidget(self.upcoming_total_label)
+        upcoming_layout.addLayout(group_bar)
+
+        self.upcoming_table = QtWidgets.QTableWidget()
+        self.upcoming_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.upcoming_table.setSortingEnabled(True)
+        upcoming_layout.addWidget(self.upcoming_table)
+        self.tabs.addTab(self.upcoming_tab, 'Upcoming Trials')
+
         # Render the newly-shown tab so it reflects the latest data/filters.
         self.tabs.currentChanged.connect(lambda _idx: self._rerender())
 
@@ -578,7 +611,11 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             self.status_label.setText(f'Compile error: {e}')
             return
 
-        if n_new == 0 and self._has_drawn and not force:
+        # The upcoming-trials tab also changes when a new generation is queued (which adds
+        # TaskToDo rows without completing anything), so don't skip its redraw on "no new
+        # completed trials".
+        upcoming_active = self.tabs.currentWidget() is self.upcoming_tab
+        if n_new == 0 and self._has_drawn and not force and not upcoming_active:
             return
 
         try:
@@ -627,6 +664,10 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
     def _update_active(self):
         """Render whichever tab is currently visible. Returns the number of plotted trials."""
         self._update_recent_label()
+        # Upcoming-trials tab reads queued tasks straight from the experiment DB; it doesn't
+        # use the compiled/completed-trial data or the behavioral filters.
+        if self.tabs.currentWidget() is self.upcoming_tab:
+            return self._render_upcoming()
         window_tab = self.tabs.currentWidget() is self.win_scroll
         split_tab = self.tabs.currentWidget() is self.split_scroll
         data_exp = self._read_and_filter(include_behavioral=window_tab)
@@ -639,6 +680,59 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         else:
             self._render_overview(data_exp)
         return len(data_exp)
+
+    # ---- upcoming-trials tab -------------------------------------------
+    def _selected_group_dims(self):
+        """Return the checked grouping columns, in GROUP_DIMENSIONS order."""
+        return [col for col, _label in GROUP_DIMENSIONS
+                if self.upcoming_checks.get(col) is not None
+                and self.upcoming_checks[col].isChecked()]
+
+    @staticmethod
+    def _fmt_upcoming_value(col, value):
+        """Human-format a grouping value for the table (None -> em dash, noise -> %, bool ->
+        yes/no)."""
+        if value is None or (isinstance(value, float) and pd.isna(value)):
+            return '—'
+        if col == 'noise_chance':
+            return f'{float(value) * 100:.0f}%'
+        if isinstance(value, (bool, np.bool_)):
+            return 'yes' if value else 'no'
+        if col in ('estim_spec_id', 'gen_id'):
+            try:
+                return str(int(value))
+            except (TypeError, ValueError):
+                return str(value)
+        return str(value)
+
+    def _render_upcoming(self):
+        """Fill the upcoming-trials table with per-group counts of queued-but-unrun trials.
+        Returns the total number of upcoming trials."""
+        df = read_upcoming_trials(self.exp_conn)
+        total = len(df)
+        group_dims = self._selected_group_dims()
+        counts = group_upcoming_counts(df, group_dims)
+
+        table = self.upcoming_table
+        table.setSortingEnabled(False)
+        headers = [label for col, label in GROUP_DIMENSIONS if col in group_dims] + ['Count']
+        table.setColumnCount(len(headers))
+        table.setHorizontalHeaderLabels(headers)
+        table.setRowCount(len(counts))
+        for r in range(len(counts)):
+            row = counts.iloc[r]
+            for c, col in enumerate(group_dims):
+                item = QtWidgets.QTableWidgetItem(self._fmt_upcoming_value(col, row[col]))
+                table.setItem(r, c, item)
+            count_item = QtWidgets.QTableWidgetItem()
+            count_item.setData(_EDIT_ROLE, int(row['count']))
+            table.setItem(r, len(group_dims), count_item)
+        table.setSortingEnabled(True)
+        table.resizeColumnsToContents()
+
+        self.upcoming_total_label.setText(f'{total} upcoming trials')
+        self.status_label.setText(f'{self.session_id}: {total} upcoming trials')
+        return total
 
     def _render_overview(self, data_exp):
         # Split-texture trials have their own tab (Texture Split); keep them out of the
