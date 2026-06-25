@@ -14,20 +14,22 @@ import java.util.*;
 public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
     private static boolean isTestMixed;
     private static boolean isTestOrientations;
+    // loadFreqs mode: which predefined cycles-per-RF frequency set to load (1-based).
+    // 0 means normal mode (use the base cycles/degree frequencies above).
+    private static int setNumber;
     private final int numRepeats = 5;
     private GaborSpec gaborSpec;
     public static final List<Double> frequencies = Arrays.asList(0.5, 1.0, 2.0, 4.0);
         public static final List<Double> orientationOffsets = Arrays.asList(0.0, 45.0, 90.0, 135.0);
 //    public static final List<Double> mixedPhases = Arrays.asList(0.0, 0.5);
 
-    // Target cycles-per-RF range and how many test frequencies should fall within it.
-    private static final double MIN_CYCLES_PER_RF = 2.5;
-    private static final double MAX_CYCLES_PER_RF = 8.0;
-    // Minimum spacing (in cycles-per-RF) between added values and existing in-range values.
-    private static final double CYCLES_PER_RF_MARGIN = 1.0;
-    // Desired number of test frequencies within the cycles-per-RF range (overridable via args[2]).
-    private static final int targetNumInCyclesRange = 2;
-    private final Random random = new Random();
+    // Predefined frequency sets for the loadFreqs mode, indexed 1-based by set number.
+    // These values are in CYCLES PER RF (not cycles/degree); each is converted to a
+    // cycles/degree frequency at runtime as frequency = cyclesPerRF / rfDiameter.
+    // Add more sets here to make them available as ./loadFreqs 2, ./loadFreqs 3, ...
+    public static final List<List<Double>> cyclesPerRfSets = Arrays.asList(
+            Arrays.asList(1.0, 2.0, 4.0, 8.0)   // set 1
+    );
 
     public static void main(String[] args) {
         // Check if the argument is provided
@@ -41,6 +43,13 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
             isTestOrientations = Boolean.parseBoolean(args[1]);
         } catch (ArrayIndexOutOfBoundsException e) {
             isTestOrientations = false;
+        }
+
+        // Optional cycles-per-RF set number for loadFreqs mode (0 = normal mode).
+        try {
+            setNumber = Integer.parseInt(args[2]);
+        } catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
+            setNumber = 0;
         }
 
 
@@ -65,11 +74,17 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
         // Calculate RF based frequencies to test
         double rfDiameter = rfInfo.getRadius() * 2.0;
 
-        // Start from the base frequencies and make sure enough of them land in the target
-        // cycles-per-RF range, adding RF-scaled frequencies if needed. Work on a local copy so
-        // the shared static frequencies list is never mutated.
-        List<Double> frequenciesToTest = new ArrayList<>(frequencies);
-        addFrequenciesForCyclesPerRF(frequenciesToTest, rfDiameter);
+        // Determine the frequencies (in cycles/degree) to test.
+        // - loadFreqs mode (setNumber >= 1): use a predefined set of cycles-per-RF values,
+        //   converting each to a cycles/degree frequency for this RF.
+        // - normal mode (setNumber == 0): use the base cycles/degree frequencies.
+        // Work on a local copy so the shared static lists are never mutated.
+        List<Double> frequenciesToTest;
+        if (setNumber >= 1) {
+            frequenciesToTest = frequenciesFromCyclesPerRfSet(setNumber, rfDiameter);
+        } else {
+            frequenciesToTest = new ArrayList<>(frequencies);
+        }
 
         // Get StimSpec
         GaborSpec stimSpec = getStimSpec(jdbcTemplate);
@@ -83,10 +98,13 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
         gaborSpec.setPhase(0);
         gaborSpec.setAnimation(false);
 
+        // loadFreqs always sweeps the four orientations; otherwise honor the flag.
+        boolean sweepOrientations = isTestOrientations || setNumber >= 1;
+
         // Pure Gabors
         for (Double frequency : frequenciesToTest) {
             gaborSpec.setFrequency(frequency);
-            if (isTestOrientations) {
+            if (sweepOrientations) {
                 for (Double orientationOffset : orientationOffsets) {
                     gaborSpec.setOrientation(orientationOffset + plottedOrientation);
                     addIsochromaticTrials();
@@ -108,69 +126,29 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
     }
 
     /**
-     * Ensure at least {@link #targetNumInCyclesRange} of the test frequencies land within the
-     * target cycles-per-RF range [{@link #MIN_CYCLES_PER_RF}, {@link #MAX_CYCLES_PER_RF}].
+     * Convert the requested cycles-per-RF set into cycles/degree frequencies for this RF.
      *
-     * Frequencies already in range are kept. Any shortfall is filled with randomly chosen
-     * cycles-per-RF values that keep a {@link #CYCLES_PER_RF_MARGIN} margin from the existing
-     * in-range values and from each other (so e.g. a single existing in-range frequency gets a
-     * spaced-out partner, and an empty range gets up to the target number of values spread
-     * roughly uniformly across it). Each chosen cycles-per-RF value is converted to a frequency
-     * (frequency = cyclesPerRF / rfDiameter) and appended to {@code frequenciesToTest}.
+     * The predefined sets in {@link #cyclesPerRfSets} are specified in cycles-per-RF; each value
+     * is converted to a cycles/degree frequency as {@code frequency = cyclesPerRF / rfDiameter}.
      *
-     * @param frequenciesToTest list of frequencies to append to (modified in place)
-     * @param rfDiameter        receptive field diameter (same spatial units as the frequencies)
+     * @param setNumber  1-based set number (e.g. 1 for the first set)
+     * @param rfDiameter receptive field diameter (degrees)
+     * @return list of cycles/degree frequencies to test
+     * @throws IllegalArgumentException if the set number is out of range
      */
-    private void addFrequenciesForCyclesPerRF(List<Double> frequenciesToTest, double rfDiameter) {
-        // Collect cycles-per-RF values that already fall in the target range.
-        List<Double> chosenCycles = new ArrayList<>();
-        for (Double frequency : frequenciesToTest) {
-            double cyclesPerRF = frequency * rfDiameter;
-            if (cyclesPerRF >= MIN_CYCLES_PER_RF && cyclesPerRF <= MAX_CYCLES_PER_RF) {
-                chosenCycles.add(cyclesPerRF);
-            }
+    private List<Double> frequenciesFromCyclesPerRfSet(int setNumber, double rfDiameter) {
+        int index = setNumber - 1;
+        if (index < 0 || index >= cyclesPerRfSets.size()) {
+            throw new IllegalArgumentException(
+                    "Unknown loadFreqs set number: " + setNumber +
+                            ". Available sets: 1.." + cyclesPerRfSets.size());
         }
-
-        int numToAdd = targetNumInCyclesRange - chosenCycles.size();
-        if (numToAdd <= 0) {
-            return;
+        List<Double> cyclesPerRfSet = cyclesPerRfSets.get(index);
+        List<Double> frequenciesToTest = new ArrayList<>();
+        for (Double cyclesPerRF : cyclesPerRfSet) {
+            frequenciesToTest.add(cyclesPerRF / rfDiameter);
         }
-
-        // Sample additional cycles-per-RF values, keeping a margin from values already chosen.
-        for (int i = 0; i < numToAdd; i++) {
-            Double newCyclesPerRF = sampleCyclesPerRFWithMargin(chosenCycles);
-            if (newCyclesPerRF == null) {
-                // Could not satisfy the margin; stop rather than crowd the range.
-                break;
-            }
-            chosenCycles.add(newCyclesPerRF);
-            frequenciesToTest.add(newCyclesPerRF / rfDiameter);
-        }
-    }
-
-    /**
-     * Draw a random cycles-per-RF value within [{@link #MIN_CYCLES_PER_RF},
-     * {@link #MAX_CYCLES_PER_RF}] that is at least {@link #CYCLES_PER_RF_MARGIN} away from every
-     * value in {@code existing}. Returns null if no such value is found within a fixed number of
-     * attempts.
-     */
-    private Double sampleCyclesPerRFWithMargin(List<Double> existing) {
-        double range = MAX_CYCLES_PER_RF - MIN_CYCLES_PER_RF;
-        int maxAttempts = 1000;
-        for (int attempt = 0; attempt < maxAttempts; attempt++) {
-            double candidate = MIN_CYCLES_PER_RF + random.nextDouble() * range;
-            boolean farEnough = true;
-            for (Double value : existing) {
-                if (Math.abs(candidate - value) < CYCLES_PER_RF_MARGIN) {
-                    farEnough = false;
-                    break;
-                }
-            }
-            if (farEnough) {
-                return candidate;
-            }
-        }
-        return null;
+        return frequenciesToTest;
     }
 
     private void addIsochromaticTrials() {
