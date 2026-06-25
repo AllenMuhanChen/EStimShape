@@ -35,7 +35,7 @@ def main():
     # channel = None
     analysis = SideTestAnalysis()
     compiled_data = None
-    # compiled_data = compile()
+    compiled_data = compile()
     # session_id, _ = read_session_id_from_db_name(context.ga_database)
     # if channel is None:
         # channel = read_cluster_channels(session_id)[0]

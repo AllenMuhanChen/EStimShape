@@ -23,7 +23,7 @@ import time
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.analysis.live_analysis import LiveAnalysis
 
-DEFAULT_POLL_SECONDS = 10
+DEFAULT_POLL_SECONDS = 30
 
 
 def main(poll_seconds: int = DEFAULT_POLL_SECONDS):
