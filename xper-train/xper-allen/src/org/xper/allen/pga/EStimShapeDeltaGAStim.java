@@ -76,6 +76,10 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
         double parentResponse = readResponse(parentId);
         double dropThreshold = readGaVarDouble("delta_resp_ratio_threshold", 0.5);
 
+        // How many generation FAILS (with zero successes) a comp-set may accumulate before we treat it
+        // as ungeneratable and stop picking it. Read from the table written in createMStick().
+        int ungeneratableFailThreshold = (int) Math.round(readGaVarDouble("delta_ungeneratable_fail_threshold", 100));
+
         // 1) Variant parent: drive its predicted driver until its failed-attempt budget is spent.
         if (stimTypeManager.readProperty(parentId) == StimType.REGIME_ESTIM_VARIANTS) {
             List<Integer> hypothesized = inRange(
@@ -94,12 +98,14 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
                     failedOnHypothesized++;
                 }
             }
-            if (failedOnHypothesized < budget) {
+            if (failedOnHypothesized < budget && isMutable(hypothesized, ungeneratableFailThreshold)) {
                 // Mutate the hypothesized comp(s) - all of them together when it's multi-component.
                 return new ArrayList<>(hypothesized);
             }
-            // Budget spent without dropping the response: escalate to the tiered search below. The
-            // hypothesized comp is already a budgeted leaf, so the search naturally explores the rest.
+            // Fall through to the tiered search below when either the failed-attempt budget is spent
+            // (tried enough without dropping the response) OR the hypothesized comp-set is ungeneratable
+            // (we can't test it by mutation). The hypothesized comp is already a budgeted leaf, so the
+            // search naturally explores the rest.
         }
 
         // 2) Tiered search over the parent's leaves.
@@ -107,6 +113,15 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
         if (leaves.isEmpty()) {
             for (int i = 1; i <= nComp; i++) leaves.add(i);
         }
+
+        // Drop leaves the table shows are ungeneratable (only fails, no successes). If that would
+        // remove every leaf, keep the original list and let it try anyway (and eventually skip), so
+        // we never get stuck with nothing to pick.
+        List<Integer> mutableLeaves = new ArrayList<>();
+        for (Integer leaf : leaves) {
+            if (isMutable(Collections.singletonList(leaf), ungeneratableFailThreshold)) mutableLeaves.add(leaf);
+        }
+        if (!mutableLeaves.isEmpty()) leaves = mutableLeaves;
 
         // Best (lowest) response-reduction ratio per leaf, from RESPONDED siblings. Lower ratio =
         // bigger response drop. Recomputed every call, so weights update as more deltas come back.
@@ -152,9 +167,12 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
         }
         if (passing.isEmpty()) {
             if (nComp >= 3) {
-                List<Integer> pair = inRange(
-                        PruningMatchStick.chooseRandomComponentsToPreserve(2, parentMStick), nComp);
-                if (pair.size() == 2) return pair;
+                // Try a few random junction pairs, preferring one that isn't known-ungeneratable.
+                for (int attempt = 0; attempt < 10; attempt++) {
+                    List<Integer> pair = inRange(
+                            PruningMatchStick.chooseRandomComponentsToPreserve(2, parentMStick), nComp);
+                    if (pair.size() == 2 && isMutable(pair, ungeneratableFailThreshold)) return pair;
+                }
             }
             return Collections.singletonList(parentMStick.chooseRandLeaf());
         }
@@ -175,6 +193,17 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
     /** A FAILED delta (see {@link #isFailedDelta}) that changed exactly one comp. */
     private boolean isFailedSingleComp(SiblingDelta s, double parentResponse, double dropThreshold) {
         return s.changedComps.size() == 1 && isFailedDelta(s, parentResponse, dropThreshold);
+    }
+
+    /**
+     * Whether this comp-set is worth attempting to mutate, per the MutationSuccessFail table (written
+     * from createMStick). Any past success makes it mutable; otherwise it's mutable only until it has
+     * accumulated {@code failThreshold} generation fails. Keyed on the exact comp-set, so a single comp
+     * and a pair containing it are judged independently.
+     */
+    private boolean isMutable(List<Integer> comps, int failThreshold) {
+        if (mutationSuccessFailManager.successCount(parentId, comps) > 0) return true;
+        return mutationSuccessFailManager.failCount(parentId, comps) < failThreshold;
     }
 
     /**
