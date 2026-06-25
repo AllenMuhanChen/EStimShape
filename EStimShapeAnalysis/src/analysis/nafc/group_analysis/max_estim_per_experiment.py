@@ -563,13 +563,15 @@ def plot_max_stat_per_experiment(exclude_session_ids=None, start_session_id=None
 def compute_exceedance_count_stats(exclude_session_ids=None, start_session_id=None,
                                    algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                                    thresholds=None, min_trials=DEFAULT_MIN_TRIALS,
-                                   studentize=False):
+                                   studentize=False, only_session_ids=None):
     """Pool all qualifying conditions across sessions and run the exceedance-count
     permutation test at each threshold.
 
     ``exclude_session_ids`` is an optional iterable of session_ids to drop; all
-    other sessions with permutation data are pooled. ``min_trials`` is the minimum
-    trials required in each group for a condition to be pooled.
+    other sessions with permutation data are pooled. ``only_session_ids``, if given,
+    restricts the pool to exactly those sessions (e.g. a single live session).
+    ``min_trials`` is the minimum trials required in each group for a condition to be
+    pooled.
 
     ``studentize``: if True, each condition's effect is standardized by its own
     permutation null (T = (effect - mean(null)) / std(null)) before counting
@@ -586,6 +588,9 @@ def compute_exceedance_count_stats(exclude_session_ids=None, start_session_id=No
     """
     create_permutation_test_table()
     session_ids = _get_sessions_with_permutation_data(algorithm_label, metric)
+    if only_session_ids is not None:
+        keep = set(only_session_ids)
+        session_ids = [s for s in session_ids if s in keep]
     if exclude_session_ids:
         excluded = set(exclude_session_ids)
         session_ids = [s for s in session_ids if s not in excluded]

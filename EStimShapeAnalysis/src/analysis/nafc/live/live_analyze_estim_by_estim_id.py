@@ -50,6 +50,11 @@ from src.analysis.nafc.analyze_estim_by_estim_id import partition_estim_data
 from src.analysis.nafc.live.live_estim_compile import (
     REPO_DB, ensure_estimshape_trials_table, compile_new_trials, get_existing_trial_starts,
 )
+from src.analysis.nafc.live.upcoming_trials import (
+    read_upcoming_trials, group_upcoming_counts, task_ids_for_group, delete_upcoming_tasks,
+    GROUP_DIMENSIONS, DEFAULT_GROUP_DIMENSIONS,
+)
+from src.analysis.nafc.live.live_stats import run_session_stats, METRICS as STATS_METRICS
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -111,6 +116,27 @@ def _qt_enum(enum_cls_name, member):
 
 _SCROLLBAR_OFF = _qt_enum('ScrollBarPolicy', 'ScrollBarAlwaysOff')
 _DASH_LINE = _qt_enum('PenStyle', 'DashLine')
+_EDIT_ROLE = _qt_enum('ItemDataRole', 'EditRole')
+_USER_ROLE = _qt_enum('ItemDataRole', 'UserRole')
+
+
+def _scoped_enum(cls, member):
+    """Resolve a Qt widget enum value across bindings: PyQt5 exposes them flat on the class
+    (QMessageBox.Yes, QAbstractItemView.NoEditTriggers), while PyQt6/PySide6 scope them under
+    a nested enum class (QMessageBox.StandardButton.Yes, QAbstractItemView.SelectionBehavior.
+    SelectRows). Try the flat form first, then search nested enum classes."""
+    if hasattr(cls, member):
+        return getattr(cls, member)
+    for name in dir(cls):
+        sub = getattr(cls, name)
+        if isinstance(sub, type) and hasattr(sub, member):
+            return getattr(sub, member)
+    raise AttributeError(f'{cls.__name__} has no enum member {member!r}')
+
+
+_NO_EDIT_TRIGGERS = _scoped_enum(QtWidgets.QAbstractItemView, 'NoEditTriggers')
+_SELECT_ROWS = _scoped_enum(QtWidgets.QAbstractItemView, 'SelectRows')
+_MSG_YES = _scoped_enum(QtWidgets.QMessageBox, 'Yes')
 # Pen styles used to distinguish noise levels within a spec in the sliding-window tab
 # (alpha alone was too subtle). Assigned per noise value, stable for the session.
 _NOISE_STYLES = [_qt_enum('PenStyle', name) for name in
@@ -172,12 +198,26 @@ def read_session_trials_as_exp_format(session_id, start_gen_id=START_GEN_ID,
     return out
 
 
+def _recent_trial_type_label(trial_type, is_texture_split):
+    """Trial-type label for the recent-trials summary, marking split-texture trials so they're
+    distinguishable from ordinary ones (e.g. 'Hypothesized Split Texture')."""
+    if not is_texture_split:
+        return trial_type
+    if trial_type == 'Hypothesized Shape':
+        return 'Hypothesized Split Texture'
+    if trial_type == 'Delta Shape':
+        return 'Delta Split Texture'
+    # Any other base type (Removed Trial, Behavioral, …): just flag the split treatment.
+    return f'{trial_type} (Split Texture)'
+
+
 def read_recent_trials(session_id, n=RECENT_TRIALS_N):
-    """Return a short text summary of the n most-recent trials (newest first): trial type,
-    estim spec id (or 'no estim'), and noise level. Independent of tab/filters."""
+    """Return a short text summary of the n most-recent trials (newest first): trial type
+    (split-texture trials are labelled as such), estim spec id (or 'no estim'), and noise
+    level. Independent of tab/filters."""
     conn = Connection(REPO_DB)
     conn.execute("""
-        SELECT trial_type, is_estim_on, estim_spec_id, noise_chance
+        SELECT trial_type, is_estim_on, estim_spec_id, noise_chance, is_texture_split
         FROM EStimShapeTrials
         WHERE session_id = %s
         ORDER BY task_id DESC
@@ -185,10 +225,11 @@ def read_recent_trials(session_id, n=RECENT_TRIALS_N):
     """, (session_id, n))
     rows = conn.fetch_all()
     lines = []
-    for trial_type, is_estim_on, spec, noise in rows:
+    for trial_type, is_estim_on, spec, noise, is_texture_split in rows:
+        label = _recent_trial_type_label(trial_type, bool(is_texture_split))
         estim = f'spec {int(spec)}' if (is_estim_on and spec is not None) else 'no estim'
         noise_s = f'{float(noise) * 100:.0f}%' if noise is not None else 'n/a'
-        lines.append(f'{trial_type}  |  {estim}  |  noise {noise_s}')
+        lines.append(f'{label}  |  {estim}  |  noise {noise_s}')
     return lines
 
 
@@ -376,9 +417,10 @@ class _MultiCheckFilter(QtWidgets.QWidget):
 class LiveEstimWindow(QtWidgets.QMainWindow):
     """Control bar + a vertically-scrolling grid of pyqtgraph panels showing Plot 1."""
 
-    def __init__(self, exp_conn, session_id):
+    def __init__(self, exp_conn, session_id, session_date=None):
         super().__init__()
         self.exp_conn = exp_conn
+        self.session_date = session_date
         self.session_id = session_id
         # Seed seen trials from what's already compiled so a restart doesn't redo the session.
         self.seen_starts = get_existing_trial_starts(session_id)
@@ -402,6 +444,15 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.split_plots = {}             # (row_key, col_key) -> PlotItem
         self.split_legends = {}           # (row_key, col_key) -> LegendItem
         self.split_series = {}            # (row_key, col_key, series_key) -> {'curve','label','base'}
+
+        # Upcoming-trials-tab state: which grouping dimensions are checked, plus the last-read
+        # trials/grouping so a delete can map a selected row back to its task_ids.
+        self.upcoming_checks = {}          # column -> QCheckBox
+        self._upcoming_df = None
+        self._upcoming_group_dims = []
+
+        # Stats-tab state. Runs only on explicit button press (never on the poll timer).
+        self._stats_result = None
 
         # Stable spec_id -> color: a spec keeps its color for the whole session and across
         # every panel, regardless of which other specs are present or when it first appears.
@@ -479,13 +530,6 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         filt_bar.addSpacing(12)
         filt_bar.addWidget(self.sl_filter)
         filt_bar.addStretch(1)
-        # Texture Split tab: pool a condition dimension into one row instead of splitting it out.
-        self.combine_sample_cb = QtWidgets.QCheckBox('Split: combine sample/foil')
-        self.combine_sample_cb.stateChanged.connect(lambda _s: self._rerender())
-        self.combine_inverted_cb = QtWidgets.QCheckBox('Split: combine normal/inverted')
-        self.combine_inverted_cb.stateChanged.connect(lambda _s: self._rerender())
-        filt_bar.addWidget(self.combine_sample_cb)
-        filt_bar.addWidget(self.combine_inverted_cb)
         layout.addLayout(filt_bar)
 
         # Tabs: Overview (Plot 1) and Sliding Window. Both share the control bar/filters above.
@@ -513,6 +557,19 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.tabs.addTab(self.win_scroll, 'Sliding Window')
 
         # Texture Split tab — % 3D grid (rows = split/inverted combos, columns = variant/delta).
+        # The combine toggles live here because they only affect this tab's row layout.
+        self.split_tab = QtWidgets.QWidget()
+        split_tab_layout = QtWidgets.QVBoxLayout(self.split_tab)
+        split_ctrl = QtWidgets.QHBoxLayout()
+        self.combine_sample_cb = QtWidgets.QCheckBox('Combine sample/foil')
+        self.combine_sample_cb.stateChanged.connect(lambda _s: self._rerender())
+        self.combine_inverted_cb = QtWidgets.QCheckBox('Combine normal/inverted')
+        self.combine_inverted_cb.stateChanged.connect(lambda _s: self._rerender())
+        split_ctrl.addWidget(self.combine_sample_cb)
+        split_ctrl.addWidget(self.combine_inverted_cb)
+        split_ctrl.addStretch(1)
+        split_tab_layout.addLayout(split_ctrl)
+
         self.split_scroll = QtWidgets.QScrollArea()
         self.split_scroll.setWidgetResizable(True)
         self.split_scroll.setHorizontalScrollBarPolicy(_SCROLLBAR_OFF)
@@ -520,10 +577,96 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.split_grid_layout = QtWidgets.QGridLayout(self.split_host)
         self.split_grid_layout.setContentsMargins(4, 4, 4, 4)
         self.split_scroll.setWidget(self.split_host)
-        self.tabs.addTab(self.split_scroll, 'Texture Split')
+        split_tab_layout.addWidget(self.split_scroll)
+        self.tabs.addTab(self.split_tab, 'Texture Split')
+
+        # Upcoming Trials tab — counts of queued-but-not-yet-run trials (TaskToDo minus
+        # TaskDone), grouped by the dimensions the user checks. Independent of the
+        # completed-trial filters/start-gen above (those describe trials that already ran).
+        self.upcoming_tab = QtWidgets.QWidget()
+        upcoming_layout = QtWidgets.QVBoxLayout(self.upcoming_tab)
+
+        group_bar = QtWidgets.QHBoxLayout()
+        group_bar.addWidget(QtWidgets.QLabel('Group by:'))
+        for col, label in GROUP_DIMENSIONS:
+            cb = QtWidgets.QCheckBox(label)
+            cb.setChecked(col in DEFAULT_GROUP_DIMENSIONS)
+            cb.stateChanged.connect(lambda _s: self._render_upcoming())
+            self.upcoming_checks[col] = cb
+            group_bar.addWidget(cb)
+        group_bar.addStretch(1)
+        self.upcoming_total_label = QtWidgets.QLabel('')
+        group_bar.addWidget(self.upcoming_total_label)
+        upcoming_layout.addLayout(group_bar)
+
+        self.upcoming_table = QtWidgets.QTableWidget()
+        self.upcoming_table.setEditTriggers(_NO_EDIT_TRIGGERS)
+        self.upcoming_table.setSortingEnabled(True)
+        self.upcoming_table.setSelectionBehavior(_SELECT_ROWS)
+        upcoming_layout.addWidget(self.upcoming_table)
+
+        # Delete-by-group control: removes the queued trials in the selected group(s) from
+        # TaskToDo (after a confirmation showing the exact count).
+        delete_bar = QtWidgets.QHBoxLayout()
+        delete_bar.addStretch(1)
+        self.delete_upcoming_button = QtWidgets.QPushButton('Delete selected group(s)')
+        self.delete_upcoming_button.clicked.connect(self._delete_selected_upcoming)
+        delete_bar.addWidget(self.delete_upcoming_button)
+        upcoming_layout.addLayout(delete_bar)
+        self.tabs.addTab(self.upcoming_tab, 'Upcoming Trials')
+
+        # Stats tab — runs analyze_estim_by_condition + permutation tests for THIS session
+        # (persisting to the repository) and visualizes the single-session max-stat and
+        # exceedance-count tests. Runs only when the button is pressed, never on the timer.
+        self._build_stats_tab()
 
         # Render the newly-shown tab so it reflects the latest data/filters.
         self.tabs.currentChanged.connect(lambda _idx: self._rerender())
+
+    def _build_stats_tab(self):
+        self.stats_tab = QtWidgets.QWidget()
+        stats_layout = QtWidgets.QVBoxLayout(self.stats_tab)
+
+        ctrl = QtWidgets.QHBoxLayout()
+        ctrl.addWidget(QtWidgets.QLabel('Metric:'))
+        self.stats_metric_combo = QtWidgets.QComboBox()
+        for value, label in STATS_METRICS:
+            self.stats_metric_combo.addItem(label, value)
+        ctrl.addWidget(self.stats_metric_combo)
+
+        self.stats_studentize_cb = QtWidgets.QCheckBox('Studentize')
+        ctrl.addWidget(self.stats_studentize_cb)
+
+        ctrl.addWidget(QtWidgets.QLabel('Min trials/group:'))
+        self.stats_min_trials_spin = QtWidgets.QSpinBox()
+        self.stats_min_trials_spin.setRange(1, 1000)
+        self.stats_min_trials_spin.setValue(15)
+        ctrl.addWidget(self.stats_min_trials_spin)
+
+        ctrl.addWidget(QtWidgets.QLabel('Permutations:'))
+        self.stats_nperm_spin = QtWidgets.QSpinBox()
+        self.stats_nperm_spin.setRange(100, 100000)
+        self.stats_nperm_spin.setSingleStep(1000)
+        self.stats_nperm_spin.setValue(1000)
+        ctrl.addWidget(self.stats_nperm_spin)
+
+        self.stats_run_button = QtWidgets.QPushButton('Run stats')
+        self.stats_run_button.clicked.connect(self._run_stats)
+        ctrl.addWidget(self.stats_run_button)
+        ctrl.addStretch(1)
+        self.stats_status_label = QtWidgets.QLabel('Not run yet.')
+        ctrl.addWidget(self.stats_status_label)
+        stats_layout.addLayout(ctrl)
+
+        # Two stacked pyqtgraph panels: max-stat bar chart (top) and exceedance test (bottom).
+        self.stats_maxstat_plot = pg.PlotWidget()
+        self.stats_maxstat_plot.setBackground('w')
+        self.stats_exceed_plot = pg.PlotWidget()
+        self.stats_exceed_plot.setBackground('w')
+        stats_layout.addWidget(self.stats_maxstat_plot)
+        stats_layout.addWidget(self.stats_exceed_plot)
+
+        self.tabs.addTab(self.stats_tab, 'Stats')
 
     # ---- polling --------------------------------------------------------
     def _toggle_live(self):
@@ -578,7 +721,11 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             self.status_label.setText(f'Compile error: {e}')
             return
 
-        if n_new == 0 and self._has_drawn and not force:
+        # The upcoming-trials tab also changes when a new generation is queued (which adds
+        # TaskToDo rows without completing anything), so don't skip its redraw on "no new
+        # completed trials".
+        upcoming_active = self.tabs.currentWidget() is self.upcoming_tab
+        if n_new == 0 and self._has_drawn and not force and not upcoming_active:
             return
 
         try:
@@ -627,8 +774,16 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
     def _update_active(self):
         """Render whichever tab is currently visible. Returns the number of plotted trials."""
         self._update_recent_label()
+        # Stats tab only ever changes on an explicit "Run stats" press — the poll timer must
+        # not trigger the (expensive) permutation pipeline, so do nothing here for it.
+        if self.tabs.currentWidget() is self.stats_tab:
+            return 0
+        # Upcoming-trials tab reads queued tasks straight from the experiment DB; it doesn't
+        # use the compiled/completed-trial data or the behavioral filters.
+        if self.tabs.currentWidget() is self.upcoming_tab:
+            return self._render_upcoming()
         window_tab = self.tabs.currentWidget() is self.win_scroll
-        split_tab = self.tabs.currentWidget() is self.split_scroll
+        split_tab = self.tabs.currentWidget() is self.split_tab
         data_exp = self._read_and_filter(include_behavioral=window_tab)
         if data_exp is None:
             return 0
@@ -639,6 +794,239 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         else:
             self._render_overview(data_exp)
         return len(data_exp)
+
+    # ---- upcoming-trials tab -------------------------------------------
+    def _selected_group_dims(self):
+        """Return the checked grouping columns, in GROUP_DIMENSIONS order."""
+        return [col for col, _label in GROUP_DIMENSIONS
+                if self.upcoming_checks.get(col) is not None
+                and self.upcoming_checks[col].isChecked()]
+
+    @staticmethod
+    def _fmt_upcoming_value(col, value):
+        """Human-format a grouping value for the table (None -> em dash, noise -> %, bool ->
+        yes/no)."""
+        if value is None or (isinstance(value, float) and pd.isna(value)):
+            return '—'
+        if col == 'noise_chance':
+            return f'{float(value) * 100:.0f}%'
+        if isinstance(value, (bool, np.bool_)):
+            return 'yes' if value else 'no'
+        if col in ('estim_spec_id', 'gen_id'):
+            try:
+                return str(int(value))
+            except (TypeError, ValueError):
+                return str(value)
+        return str(value)
+
+    def _render_upcoming(self):
+        """Fill the upcoming-trials table with per-group counts of queued-but-unrun trials.
+        Returns the total number of upcoming trials."""
+        df = read_upcoming_trials(self.exp_conn)
+        total = len(df)
+        group_dims = self._selected_group_dims()
+        counts = group_upcoming_counts(df, group_dims)
+        # Stash the raw trials + grouping so a delete can map a selected row back to task_ids.
+        self._upcoming_df = df
+        self._upcoming_group_dims = group_dims
+
+        table = self.upcoming_table
+        table.setSortingEnabled(False)
+        headers = [label for col, label in GROUP_DIMENSIONS if col in group_dims] + ['Count']
+        table.setColumnCount(len(headers))
+        table.setHorizontalHeaderLabels(headers)
+        table.setRowCount(len(counts))
+        for r in range(len(counts)):
+            row = counts.iloc[r]
+            # The group key (raw values) reconstructs this row's filter; stash it on the first
+            # cell so the delete action survives the user re-sorting the table.
+            group_key = {col: row[col] for col in group_dims}
+            for c, col in enumerate(group_dims):
+                item = QtWidgets.QTableWidgetItem(self._fmt_upcoming_value(col, row[col]))
+                if c == 0:
+                    item.setData(_USER_ROLE, group_key)
+                table.setItem(r, c, item)
+            count_item = QtWidgets.QTableWidgetItem()
+            count_item.setData(_EDIT_ROLE, int(row['count']))
+            if not group_dims:
+                count_item.setData(_USER_ROLE, group_key)  # total-only row: empty key = all
+            table.setItem(r, len(group_dims), count_item)
+        table.setSortingEnabled(True)
+        table.resizeColumnsToContents()
+
+        self.upcoming_total_label.setText(f'{total} upcoming trials')
+        self.status_label.setText(f'{self.session_id}: {total} upcoming trials')
+        return total
+
+    def _group_key_label(self, group_key, n):
+        """Human description of a group (its dim=value pairs) and its trial count, for the
+        delete confirmation dialog."""
+        if not group_key:
+            return f'ALL upcoming trials ({n})'
+        labels = dict(GROUP_DIMENSIONS)
+        parts = [f'{labels.get(col, col)}={self._fmt_upcoming_value(col, val)}'
+                 for col, val in group_key.items()]
+        return f'{", ".join(parts)}  ({n})'
+
+    def _delete_selected_upcoming(self):
+        """Delete the queued trials in the selected table row(s) from TaskToDo, after a
+        confirmation showing the exact count. Each row corresponds to one condition group."""
+        df = self._upcoming_df
+        if df is None or len(df) == 0:
+            return
+        table = self.upcoming_table
+        selected_rows = sorted({idx.row() for idx in table.selectionModel().selectedRows()})
+        if not selected_rows:
+            QtWidgets.QMessageBox.information(
+                self, 'Delete upcoming trials', 'Select one or more group rows first.')
+            return
+
+        task_ids, descriptions = [], []
+        for r in selected_rows:
+            first_item = table.item(r, 0)
+            if first_item is None:
+                continue
+            group_key = first_item.data(_USER_ROLE)
+            if group_key is None:
+                continue
+            ids = task_ids_for_group(df, group_key)
+            task_ids.extend(ids)
+            descriptions.append(self._group_key_label(group_key, len(ids)))
+        task_ids = sorted(set(task_ids))
+        if not task_ids:
+            return
+
+        msg = ('Delete these upcoming trials from TaskToDo?\n\n  '
+               + '\n  '.join(descriptions)
+               + f'\n\nTotal: {len(task_ids)} trial(s). This cannot be undone.')
+        if QtWidgets.QMessageBox.question(self, 'Delete upcoming trials', msg) != _MSG_YES:
+            return
+        try:
+            deleted = delete_upcoming_tasks(self.exp_conn, task_ids)
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, 'Delete failed', str(e))
+            return
+        self.status_label.setText(f'{self.session_id}: deleted {deleted} upcoming trial(s)')
+        self._render_upcoming()
+
+    # ---- stats tab ------------------------------------------------------
+    @staticmethod
+    def _fmt_pval(p):
+        if p < 0.001:
+            return 'p<0.001'
+        if p < 0.01:
+            return f'p={p:.3f}'
+        return f'p={p:.2f}'
+
+    def _run_stats(self):
+        """Run the by-condition + permutation pipeline for this session (persisting to the
+        repository) and render the single-session max-stat and exceedance tests. Blocking."""
+        metric = self.stats_metric_combo.currentData()
+        studentize = self.stats_studentize_cb.isChecked()
+        min_trials = self.stats_min_trials_spin.value()
+        n_perm = self.stats_nperm_spin.value()
+
+        app = QtWidgets.QApplication.instance()
+
+        def progress(msg):
+            self.stats_status_label.setText(msg)
+            if app is not None:
+                app.processEvents()
+
+        self.stats_run_button.setEnabled(False)
+        try:
+            result = run_session_stats(
+                self.session_id, self.session_date, metric,
+                n_permutations=n_perm, min_trials=min_trials, studentize=studentize,
+                progress=progress)
+        except Exception as e:
+            self.stats_status_label.setText(f'Stats failed: {e}')
+            QtWidgets.QMessageBox.critical(self, 'Stats failed', str(e))
+            return
+        finally:
+            self.stats_run_button.setEnabled(True)
+
+        self._stats_result = result
+        self._render_stats(result)
+        self.stats_status_label.setText(
+            f"Done — saved to repository (algorithm='{result['algorithm_label']}', "
+            f"metric={metric}).")
+
+    def _render_stats(self, result):
+        self._render_maxstat_plot(result)
+        self._render_exceedance_plot(result)
+
+    def _render_maxstat_plot(self, result):
+        """Bar chart: observed best (max-stat) effect vs the permutation null's mean, with the
+        null 95th percentile as a line and the p-value in the title."""
+        plot = self.stats_maxstat_plot
+        plot.clear()
+        unit = result['unit']
+        ms = result['max_stat']
+        if ms is None:
+            plot.setTitle(f"Max-stat: no condition with ≥{result['min_trials']} trials/group")
+            return
+
+        xs = [0, 1]
+        heights = [ms['observed'], ms['null_mean']]
+        bar = pg.BarGraphItem(x=xs, height=heights, width=0.6,
+                              brushes=[(214, 39, 40), (140, 140, 140)])
+        plot.addItem(bar)
+        # Null 95th percentile as a horizontal reference line.
+        line = pg.InfiniteLine(pos=ms['null_95'], angle=0,
+                               pen=pg.mkPen((80, 80, 80), style=_DASH_LINE))
+        plot.addItem(line)
+        p95_text = pg.TextItem(f"null 95th = {ms['null_95']:+.2f}{unit}", color=(80, 80, 80),
+                               anchor=(0, 1))
+        p95_text.setPos(-0.4, ms['null_95'])
+        plot.addItem(p95_text)
+
+        plot.getAxis('bottom').setTicks([[(0, f"Observed max\n({ms['observed']:+.2f}{unit})"),
+                                          (1, f"Null mean\n({ms['null_mean']:+.2f}{unit})")]])
+        plot.setLabel('left', f'Effect ({unit})')
+        sig = ms['p_value'] < 0.05
+        plot.setTitle(f"Max-stat test — {self._fmt_pval(ms['p_value'])}"
+                      + ('  *' if sig else ''))
+        plot.getViewBox().enableAutoRange()
+
+    def _render_exceedance_plot(self, result):
+        """This-session exceedance-count test: observed #conditions over each threshold vs the
+        permutation null (mean + 95th percentile band), p-value annotated per threshold."""
+        plot = self.stats_exceed_plot
+        plot.clear()
+        exc = result['exceedance']
+        if exc is None or not exc.get('results'):
+            plot.setTitle(f"Exceedance: no condition with ≥{result['min_trials']} trials/group")
+            return
+
+        res = exc['results']
+        thr = [r['threshold'] for r in res]
+        n_obs = [r['n_obs'] for r in res]
+        null_mean = [r['null_mean'] for r in res]
+        null_95 = [r['null_95'] for r in res]
+        unit = exc.get('unit', '%')
+
+        # Null 95th-percentile band (0..null_95) shaded, null mean dashed, observed solid red.
+        zero_curve = plot.plot(thr, [0] * len(thr), pen=None)
+        p95_curve = plot.plot(thr, null_95, pen=pg.mkPen((150, 150, 150)))
+        plot.addItem(pg.FillBetweenItem(zero_curve, p95_curve, brush=(200, 200, 200, 90)))
+        plot.plot(thr, null_mean, pen=pg.mkPen((120, 120, 120), style=_DASH_LINE),
+                  symbol='o', symbolSize=5, symbolBrush=(120, 120, 120), name='Null mean')
+        plot.plot(thr, n_obs, pen=pg.mkPen((214, 39, 40), width=2),
+                  symbol='o', symbolSize=6, symbolBrush=(214, 39, 40), name='Observed')
+
+        for r in res:
+            sig = r['p_value'] < 0.05
+            t = pg.TextItem(self._fmt_pval(r['p_value']),
+                            color=(139, 0, 0) if sig else (120, 120, 120), anchor=(0.5, 1.0))
+            t.setPos(r['threshold'], r['n_obs'])
+            plot.addItem(t)
+
+        plot.setLabel('bottom', f'Effect threshold ({unit})')
+        plot.setLabel('left', '# conditions ≥ threshold')
+        plot.setTitle(f"Exceedance-count test — {exc['n_conditions']} conditions, "
+                      f"{exc['n_perms']} perms")
+        plot.getViewBox().enableAutoRange()
 
     def _render_overview(self, data_exp):
         # Split-texture trials have their own tab (Texture Split); keep them out of the
@@ -909,6 +1297,10 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         for tt in effect_types:
             self._update_window_cell(tt, series_by_type[tt])
         self._update_baseline_cell(baseline)
+        # Re-fit the X axis on every refresh so newly-appended windows are always visible
+        # ("view all" along x). Y stays clamped to its fixed, comparable scale.
+        for pi in self.win_plots.values():
+            pi.getViewBox().enableAutoRange(x=True)
 
     def _make_window_panel(self, title, ylabel, yrange, zero_line):
         """Create a scrollable plot+legend panel for the sliding-window tab. Returns
@@ -927,9 +1319,11 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         if zero_line:
             pi.addLine(y=0, pen=pg.mkPen((120, 120, 120), style=_DASH_LINE))
         vb = pi.getViewBox()
-        # y is clamped to its meaningful range; x follows the trials as they accumulate.
+        # y is clamped to its meaningful range; x auto-fits the trials as they accumulate so
+        # the newest window is always in view (re-asserted each refresh in _render_window).
         vb.setYRange(yrange[0], yrange[1], padding=0)
         vb.setLimits(yMin=yrange[0], yMax=yrange[1])
+        vb.enableAutoRange(x=True)
         return glw, pi, legend
 
     def _ensure_window_grid(self, effect_types):
@@ -1025,10 +1419,10 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
 def main():
     ensure_estimshape_trials_table()
     exp_conn = Connection(context.nafc_database)
-    session_id, _ = read_session_id_and_date_from_db_name(context.nafc_database)
+    session_id, session_date = read_session_id_and_date_from_db_name(context.nafc_database)
 
     app = QtWidgets.QApplication(sys.argv)
-    window = LiveEstimWindow(exp_conn, session_id)
+    window = LiveEstimWindow(exp_conn, session_id, session_date)
     window.show()
     # PyQt6/PySide6 use exec(); PyQt5 uses exec_().
     run = app.exec if hasattr(app, 'exec') else app.exec_
