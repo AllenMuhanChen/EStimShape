@@ -257,6 +257,99 @@ class OrientationTuningWidthLoader(ChannelValueLoader):
         return LookupMetric(normalized, **kwargs)
 
 
+class PreferredOrientationLoader(ChannelValueLoader):
+    """Load preferred orientation per channel.
+
+    The preferred orientation is the orientation at the channel's preferred
+    frequency (from ``PreferredFrequencies``). If the preferred frequency has no
+    entry in ``PreferredOrientations``, fall back to the next-highest frequency
+    that does (the smallest orientation frequency above the preferred; if none is
+    above, the highest available frequency).
+
+    ``load()`` returns raw ``{channel: orientation_degrees}``. Orientation is a
+    circular variable, so use ``as_cyclic_metric(period)`` to fold angles modulo
+    ``period`` and map them to [-1, 1) for a cyclic colormap: with ``period=180``
+    (the grating-orientation convention) angles 180 deg apart collapse to the same
+    value, so opposite orientations share a colour and the wrap-around is seamless.
+
+    A missing ``PreferredOrientations`` table yields an empty dict rather than an
+    error, so sessions without orientation data don't crash."""
+
+    def __init__(self, session_id: str, conn: Connection, period: float = 180.0):
+        self._session_id = session_id
+        self._conn = conn
+        self.period = period
+
+    def _load_preferred_frequencies(self) -> Dict[str, float]:
+        self._conn.execute(
+            """SELECT unit_name, preferred_frequency
+               FROM PreferredFrequencies
+               WHERE session_id = %s AND unit_name NOT LIKE '%%Unit%%'""",
+            (self._session_id,),
+        )
+        return {row[0]: row[1] for row in self._conn.fetch_all()}
+
+    def _load_orientations_by_channel(self) -> Dict[str, Dict[float, float]]:
+        try:
+            self._conn.execute(
+                """SELECT unit_name, frequency, preferred_orientation
+                   FROM PreferredOrientations
+                   WHERE session_id = %s AND unit_name NOT LIKE '%%Unit%%'""",
+                (self._session_id,),
+            )
+            rows = self._conn.fetch_all()
+        except Exception as exc:  # table may not exist for non-orientation sessions
+            print(f"Warning: could not load preferred orientations: {exc}")
+            return {}
+
+        by_channel: Dict[str, Dict[float, float]] = {}
+        for unit_name, frequency, orientation in rows:
+            if orientation is None or frequency is None:
+                continue
+            by_channel.setdefault(unit_name, {})[float(frequency)] = float(orientation)
+        return by_channel
+
+    @staticmethod
+    def _select_frequency(preferred_freq, available_freqs):
+        """Pick the preferred frequency if available, else the next-highest, else
+        the highest available frequency."""
+        if not available_freqs:
+            return None
+        available = sorted(available_freqs)
+        if preferred_freq is not None:
+            for f in available:
+                if abs(f - preferred_freq) < 1e-6:  # preferred freq has orientation data
+                    return f
+            above = [f for f in available if f > preferred_freq]
+            if above:
+                return min(above)  # next-highest frequency above the preferred
+        return max(available)  # no preferred / nothing above -> highest available
+
+    def load(self) -> Dict[str, float]:
+        pref_freqs = self._load_preferred_frequencies()
+        orient_by_channel = self._load_orientations_by_channel()
+
+        result: Dict[str, float] = {}
+        for unit_name, freq_to_orient in orient_by_channel.items():
+            preferred_freq = pref_freqs.get(unit_name)
+            preferred_freq = float(preferred_freq) if preferred_freq is not None else None
+            chosen = self._select_frequency(preferred_freq, list(freq_to_orient.keys()))
+            if chosen is not None:
+                result[unit_name] = freq_to_orient[chosen]
+        return result
+
+    def as_cyclic_metric(self, period: Optional[float] = None, **kwargs) -> LookupMetric:
+        """Fold angles modulo ``period`` and map to [-1, 1) for a cyclic colormap.
+
+        ``v = (angle mod period) / (period / 2) - 1``; angles ``period`` apart map
+        to the same value (and thus the same colour under a cyclic colormap)."""
+        period = period if period is not None else self.period
+        half = period / 2.0
+        data = self.load()
+        normalized = {ch: ((angle % period) / half) - 1.0 for ch, angle in data.items()}
+        return LookupMetric(normalized, **kwargs)
+
+
 class SolidPreferenceLoader(ChannelValueLoader):
     """Load solid preference indices from ``SolidPreferenceIndices``."""
 
