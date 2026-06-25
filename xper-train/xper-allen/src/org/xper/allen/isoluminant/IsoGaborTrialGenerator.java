@@ -28,7 +28,8 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<Stim> {
     // cycles/degree frequency at runtime as frequency = cyclesPerRF / rfDiameter.
     // Add more sets here to make them available as ./loadFreqs 2, ./loadFreqs 3, ...
     public static final List<List<Double>> cyclesPerRfSets = Arrays.asList(
-            Arrays.asList(1.0, 2.0, 4.0, 8.0)   // set 1
+            Arrays.asList(1.0, 2.0, 4.0, 8.0),
+            Arrays.asList(1.5, 3.0, 6.0, 10.0)// set 1
     );
 
     public static void main(String[] args) {

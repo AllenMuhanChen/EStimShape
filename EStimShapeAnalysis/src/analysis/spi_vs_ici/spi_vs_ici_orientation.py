@@ -533,7 +533,7 @@ if __name__ == "__main__":
     # Cycles-per-RF x-axis range for the orientation-tuning plot. Set to None to
     # auto-scale, or e.g. (0, 8) to crop the display (all points still feed the
     # binned trend). Matches the cycles_xlim option in rf_size_vs_preferred_freq.py.
-    cycles_xlim = None  # e.g. (0, 8)
+    cycles_xlim = [0,10]  # e.g. (0, 8)
 
     def _path(name):
         return os.path.join(save_dir, name) if save_dir else None
@@ -555,4 +555,5 @@ if __name__ == "__main__":
     plot_rf_size_vs_orientation_tuning(
         selection_mode=selection_mode, normalize='zscore', n_bins=8,
         xlim=cycles_xlim,
-        save_path=_path("rf_size_vs_orientation_tuning.png"))
+        save_path=_path("rf_size_vs_orientation_tuning.png"),
+        bin_edges=[0, 0.5, 1.0, 1.5, 2.5, 4, 6, 8.0, np.inf])
