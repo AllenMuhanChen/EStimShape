@@ -60,8 +60,9 @@ sys.path.insert(0, str(Path(__file__).parents[3]))
 from src.analysis.nafc.group_analysis.analyze_estim_by_condition import (
     METRIC_PCT_HYPOTHESIZED, METRIC_PCT_HYP_VS_DELTA,
     read_trial_data_from_repository, split_data_by_conditions, _filter_for_metric,
-    _DEFAULT_BEHAVIORAL_CONDITIONS, _DEFAULT_ESTIM_CONDITIONS, _get_all_session_ids)
-from src.analysis.nafc.group_analysis.max_estim_per_experiment import DEFAULT_MIN_TRIALS
+    _DEFAULT_BEHAVIORAL_CONDITIONS, _DEFAULT_ESTIM_CONDITIONS)
+from src.analysis.nafc.group_analysis.max_estim_per_experiment import (
+    DEFAULT_MIN_TRIALS, _get_sessions_with_permutation_data)
 
 
 @dataclass
@@ -156,26 +157,58 @@ def _condition_observation(session_id, comp, metric, min_trials):
     )
 
 
-def calibrate(session_ids=None, metric=METRIC_PCT_HYP_VS_DELTA,
+def _select_session_ids(exclude_session_ids=None, start_session_id=None,
+                        only_session_ids=None, algorithm_label='none',
+                        metric=METRIC_PCT_HYPOTHESIZED):
+    """Session universe + filters, identical to max_estim_per_experiment.
+
+    Draws from the same sessions the population tests run on (those with rows in
+    EStimPermutationTests for this algorithm_label/metric) and applies the same
+    only/exclude/start filters, so the calibration covers exactly the sessions in
+    the headline max-stat / exceedance figures.
+    """
+    session_ids = _get_sessions_with_permutation_data(algorithm_label, metric)
+    if only_session_ids is not None:
+        keep = set(only_session_ids)
+        session_ids = [s for s in session_ids if s in keep]
+    if exclude_session_ids:
+        excluded = set(exclude_session_ids)
+        session_ids = [s for s in session_ids if s not in excluded]
+    if start_session_id is not None:
+        session_ids = [s for s in session_ids if s >= start_session_id]
+    return session_ids
+
+
+def calibrate(exclude_session_ids=None, start_session_id=None, only_session_ids=None,
+              algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
               min_trials=DEFAULT_MIN_TRIALS,
               behavioral_conditions=None, estim_conditions=None):
     """Read EStimShapeTrials and measure the selection-model inputs.
 
+    Session selection mirrors max_estim_per_experiment exactly
+    (exclude_session_ids / start_session_id / only_session_ids / algorithm_label /
+    metric / min_trials), so the calibration spans the same sessions as the
+    population tests it is meant to correct.
+
     Enumerates conditions exactly as the effect pipeline does (same behavioral x
     estim_spec_id grouping, same gen-windowed OFF baseline), so "attempted
     conditions" includes the early-killed ones that the n>=min_trials filter later
-    removes from the population tests.
+    removes from the population tests. Note: the cutoff implied by algorithm_label is
+    intentionally NOT applied to the trials here — calibration wants the full
+    attempted set (including killed conditions), not the adaptation-trimmed view;
+    algorithm_label only selects which sessions are in scope.
     """
     if behavioral_conditions is None:
         behavioral_conditions = _DEFAULT_BEHAVIORAL_CONDITIONS
     if estim_conditions is None:
         estim_conditions = _DEFAULT_ESTIM_CONDITIONS
 
-    ids = _get_all_session_ids() if session_ids is None else list(session_ids)
+    session_ids = _select_session_ids(exclude_session_ids, start_session_id,
+                                      only_session_ids, algorithm_label, metric)
 
     calib = Calibration(min_trials=min_trials, metric=metric)
 
-    for sid in ids:
+    for sid in session_ids:
         data = read_trial_data_from_repository(sid)
         if data is None or len(data) == 0:
             continue
@@ -310,10 +343,19 @@ def plot_calibration(calib, save_path=None):
 
 
 def main():
+    # Mirror max_estim_per_experiment.main() so the calibration spans the same
+    # sessions as the population tests it corrects.
+    metric = METRIC_PCT_HYP_VS_DELTA
+    exclude_session_ids = ["260421_0", "260410_0"]
+    start_session_id = "260402_0"
+    algorithm_label = 'None'
+
     calib = calibrate(
-        session_ids=None,          # all sessions; pass a list to restrict
-        metric=METRIC_PCT_HYP_VS_DELTA,
-        min_trials=10,             # match max_estim_per_experiment's min_trials
+        exclude_session_ids=exclude_session_ids,
+        start_session_id=start_session_id,
+        algorithm_label=algorithm_label,
+        metric=metric,
+        min_trials=10,
     )
     print_summary(calib)
     plot_calibration(
