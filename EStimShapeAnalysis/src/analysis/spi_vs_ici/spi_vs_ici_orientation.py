@@ -308,90 +308,216 @@ def plot_orientation_strong_spi_vs_ici_combined(selection_mode='mapped_channel',
 
 # ---------------------------------------------------------------------------
 # Deliverable 2: cycles-per-RF vs orientation tuning depth
+#
+# Mirrors plot_cycles_per_rf_vs_response in
+# receptive_fields/rf_size_vs_preferred_freq.py: orientation tuning is
+# z-scored per unit (across that unit's frequencies) and a binned mean +/- SEM
+# trend line is overlaid on the scatter.
 # ---------------------------------------------------------------------------
 
-def plot_rf_size_vs_orientation_tuning(selection_mode='mapped_channel',
-                                       regression_method='ols', save_path=None):
-    """Scatter of cycles per RF (x) vs orientation tuning depth max-min (y).
+def _normalize_per_unit(values, method='zscore'):
+    """Normalize a single unit's tuning values across its tested frequencies.
 
-    cycles per RF = stimulus frequency x RF diameter = ``frequency * 2 * rf_radius``.
-    One point per (cell, frequency) that has both orientation tuning and an RF radius.
+    'zscore' -> per-unit z-score, 'max' -> divide by the unit's max, 'none' -> raw.
+    Returns None when normalization is undefined (zero variance / non-positive max).
+    """
+    values = np.asarray(values, dtype=float)
+    if method == 'none':
+        return values
+    if method == 'max':
+        peak = np.max(values)
+        if not np.isfinite(peak) or peak <= 0:
+            return None
+        return values / peak
+    if method == 'zscore':
+        sd = np.std(values)
+        if not np.isfinite(sd) or sd == 0:
+            return None
+        return (values - np.mean(values)) / sd
+    raise ValueError(f"Unknown normalize: {method}. Use 'zscore', 'max', or 'none'")
 
-    Args:
-        selection_mode: Channel selection mode (same options as spi_vs_ici.py).
-            'mapped_channel' is recommended since it requires RF info.
-        regression_method: 'ols' or 'theil-sen'.
-        save_path: Optional path to save the figure.
+
+def _compute_bin_edges(xb, n_bins, bin_edges):
+    """Bin edges for the cycles-per-RF trend: explicit edges or n equal-width bins."""
+    if bin_edges is not None:
+        return np.asarray(bin_edges, dtype=float)
+    return np.linspace(xb.min(), xb.max(), n_bins + 1)
+
+
+def _binned_mean_sem(xb, yb, edges):
+    """Mean +/- SEM of yb within each cycles-per-RF bin. Skips empty bins."""
+    n_bin = len(edges) - 1
+    idx = np.digitize(xb, edges) - 1
+    centers, means, sems = [], [], []
+    for b in range(n_bin):
+        sel = (idx == b) if b < n_bin - 1 else (idx == b) | (xb == edges[-1])
+        n = int(sel.sum())
+        if n > 0:
+            hi = edges[b + 1] if np.isfinite(edges[b + 1]) else xb[sel].max()
+            centers.append(0.5 * (edges[b] + hi))
+            means.append(yb[sel].mean())
+            sems.append(yb[sel].std(ddof=1) / np.sqrt(n) if n > 1 else 0.0)
+    return centers, means, sems
+
+
+def expand_orientation_tuning(selection_mode='mapped_channel', normalize='zscore'):
+    """Build a per-(unit, frequency) cycles-per-RF / orientation-tuning dataset.
+
+    For each selected unit, orientation tuning depth (``max_minus_min``) is
+    normalized across that unit's tested frequencies (per-unit z-score by
+    default), and ``cycles_per_rf = frequency * 2 * rf_radius`` is computed.
+
+    Returns ``(long_df, data_description)``; ``long_df`` is ``None`` if no data.
+    Columns: session_id, unit_name, rf_radius, frequency, tuning, norm_tuning,
+    cycles_per_rf.
     """
     base_df, data_description = load_data_for_selection_mode(selection_mode)
     if base_df.empty:
         print(f"No matching channels found for {data_description}")
-        return None
+        return None, data_description
 
     orient_df = load_preferred_orientations()
     if orient_df.empty:
         print("No orientation data available - cannot build RF-size vs tuning plot")
-        return None
+        return None, data_description
 
-    # Restrict orientation data to the selected channels
+    # Restrict orientation data to the selected channels and attach RF radius
     selected = base_df[['session_id', 'unit_name']].drop_duplicates()
     orient_sel = orient_df.merge(selected, on=['session_id', 'unit_name'], how='inner')
     if orient_sel.empty:
         print(f"No orientation data for selected channels ({data_description})")
-        return None
+        return None, data_description
 
-    # Attach RF radius (with cluster fallback) and compute cycles per RF
     orient_sel = merge_receptive_field_radius(orient_sel)
-    valid = orient_sel['rf_radius'].notna() & (orient_sel['rf_radius'] > 0)
+
+    # Per-unit normalization is over the unit's full orientation tuning profile
+    # (all its frequencies), then we keep points with a valid RF radius to plot.
+    records = []
+    n_skipped_norm = 0
+    for (session_id, unit_name), grp in orient_sel.groupby(['session_id', 'unit_name']):
+        grp = grp.dropna(subset=['max_minus_min'])
+        if grp.empty:
+            continue
+        norm = _normalize_per_unit(grp['max_minus_min'].values, normalize)
+        if norm is None:
+            n_skipped_norm += 1  # undefined normalization (e.g. zero variance)
+            continue
+        for (_, r), nv in zip(grp.iterrows(), norm):
+            records.append({
+                'session_id': session_id,
+                'unit_name': unit_name,
+                'rf_radius': r['rf_radius'],
+                'frequency': r['frequency'],
+                'tuning': r['max_minus_min'],
+                'norm_tuning': nv,
+                'cycles_per_rf': r['frequency'] * 2.0 * r['rf_radius'],
+            })
+
+    if n_skipped_norm > 0:
+        print(f"Skipped {n_skipped_norm} unit(s) with undefined '{normalize}' "
+              f"normalization (e.g. tuning identical across frequencies)")
+
+    long_df = pd.DataFrame.from_records(records)
+    if long_df.empty:
+        print("No orientation tuning points available after normalization")
+        return None, data_description
+
+    # Keep only points with a valid RF radius (needed for cycles-per-RF)
+    valid = long_df['rf_radius'].notna() & (long_df['rf_radius'] > 0)
     n_missing = int((~valid).sum())
     if n_missing > 0:
-        print(f"WARNING: {n_missing} of {len(orient_sel)} (cell, frequency) points "
+        print(f"WARNING: {n_missing} of {len(long_df)} (unit, frequency) points "
               f"lack a valid RF radius and are skipped.")
-    orient_sel = orient_sel[valid].copy()
-
-    if orient_sel.empty:
+    long_df = long_df[valid].copy()
+    if long_df.empty:
         print("No points with valid RF radius available for RF-size vs tuning plot")
+        return None, data_description
+
+    return long_df, data_description
+
+
+def plot_rf_size_vs_orientation_tuning(selection_mode='mapped_channel', normalize='zscore',
+                                       n_bins=8, bin_edges=None, xlim=None, save_path=None):
+    """Cycles per RF (x) vs orientation tuning (y), with a binned mean +/- SEM trend.
+
+    Copies plot_cycles_per_rf_vs_response: one point per (unit, frequency), the
+    orientation tuning depth (max - min) z-scored per unit across its frequencies,
+    points colored by stimulus frequency, and a black binned mean +/- SEM trend line.
+
+    cycles per RF = stimulus frequency x RF diameter = ``frequency * 2 * rf_radius``.
+
+    Args:
+        selection_mode: Channel selection mode (same options as spi_vs_ici.py).
+            'mapped_channel' is recommended since it requires RF info.
+        normalize: Per-unit tuning normalization ('zscore', 'max', or 'none').
+        n_bins: Number of equal-width cycles-per-RF bins for the trend line
+            (used only when bin_edges is None).
+        bin_edges: Optional explicit bin edges, e.g. [0, 2, 4, 8, np.inf].
+        xlim: Optional (xmin, xmax) display crop (all points still used for the trend).
+        save_path: Optional path to save the figure.
+    """
+    long_df, data_description = expand_orientation_tuning(selection_mode, normalize)
+    if long_df is None or long_df.empty:
         return None
 
-    # cycles per RF = frequency (cycles/deg) * RF diameter (deg)
-    orient_sel['cycles_per_rf'] = orient_sel['frequency'] * 2.0 * orient_sel['rf_radius']
+    y_col = 'tuning' if normalize == 'none' else 'norm_tuning'
+    x = long_df['cycles_per_rf'].values
+    y = long_df[y_col].values
 
-    x = orient_sel['cycles_per_rf'].values
-    y = orient_sel['max_minus_min'].values
+    n_cells = long_df[['session_id', 'unit_name']].drop_duplicates().shape[0]
+    print(f"RF-size vs orientation tuning ({data_description}, normalize='{normalize}'): "
+          f"{len(long_df)} (unit, freq) points across {n_cells} units; "
+          f"cycles_per_rf range [{np.nanmin(x):.3f}, {np.nanmax(x):.3f}]")
 
-    slope, intercept, r_value, p_value, r_squared, x_reg = calculate_regression_with_spi_cap(
-        x, y, regression_method, None)
+    fig, ax = plt.subplots(figsize=(9, 7))
 
-    n_cells = orient_sel[['session_id', 'unit_name']].drop_duplicates().shape[0]
-    print(f"RF-size vs orientation tuning ({data_description}): "
-          f"{len(orient_sel)} (cell, freq) points across {n_cells} cells")
+    # Discrete color per stimulus frequency
+    freqs = sorted(long_df['frequency'].unique())
+    cmap = plt.cm.viridis
+    for i, freq in enumerate(freqs):
+        m = long_df['frequency'] == freq
+        ax.scatter(long_df.loc[m, 'cycles_per_rf'], long_df.loc[m, y_col],
+                   s=45, alpha=0.5, color=cmap(i / max(1, len(freqs) - 1)),
+                   edgecolors='none', label=f'{freq:g} Hz')
 
-    plt.figure(figsize=(10, 7))
-    plt.scatter(x, y, alpha=0.6, s=60, color='purple')
+    # Binned mean +/- SEM trend line
+    finite = np.isfinite(x) & np.isfinite(y)
+    xb, yb = x[finite], y[finite]
+    if len(xb) >= 2 and xb.min() < xb.max():
+        edges = _compute_bin_edges(xb, n_bins, bin_edges)
+        centers, means, sems = _binned_mean_sem(xb, yb, edges)
+        if centers:
+            ax.errorbar(centers, means, yerr=sems, color='black', linewidth=2.5,
+                        marker='o', capsize=3, zorder=5,
+                        label=f'binned mean ± SEM (n={len(xb)})')
 
-    if len(x_reg) > 1 and not np.isnan(slope):
-        line_x = np.linspace(np.min(x_reg), np.max(x_reg), 100)
-        plt.plot(line_x, slope * line_x + intercept, 'k-', linewidth=2,
-                 label=f'{regression_method.upper()} fit (R²={r_squared:.3f})')
-        plt.legend(loc='best')
+    if normalize == 'zscore':
+        ax.axhline(0, color='gray', linestyle='--', alpha=0.5)
 
-    plt.xlabel('Cycles per RF (frequency × RF diameter)')
-    plt.ylabel('Orientation Tuning (max − min response, spikes/s)')
-    plt.title(f'RF Size vs Orientation Tuning\n{data_description}')
-    plt.grid(True, alpha=0.3)
+    if xlim is not None:
+        ax.set_xlim(xlim)
+    ax.set_xlabel('Cycles per RF (frequency × RF diameter)', fontsize=13)
+    ax.set_ylabel(_tuning_label(normalize), fontsize=13)
+    ax.set_title(f'Orientation tuning vs cycles per RF\n{data_description} '
+                 f'(n={len(long_df)} unit×frequency points, {n_cells} units)', fontsize=13)
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc='best', fontsize=9, title='Stimulus frequency')
+    fig.tight_layout()
 
-    stats_text = f'R² = {r_squared:.3f}\nr = {r_value:.3f}\np = {p_value:.3f}\nn = {len(x)}'
-    plt.text(0.02, 0.98, stats_text, transform=plt.gca().transAxes,
-             verticalalignment='top',
-             bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
-
-    plt.tight_layout()
     if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        fig.savefig(save_path, dpi=300, bbox_inches='tight')
         print(f"Saved RF-size vs orientation tuning plot: {save_path}")
     plt.show()
 
-    return orient_sel
+    return long_df
+
+
+def _tuning_label(normalize):
+    return {
+        'zscore': 'Orientation tuning (max − min, z-scored per unit)',
+        'max': 'Orientation tuning (max − min, normalized to unit max)',
+        'none': 'Orientation tuning (max − min response, spikes/s)',
+    }.get(normalize, 'Orientation tuning (max − min)')
 
 
 if __name__ == "__main__":
@@ -415,7 +541,8 @@ if __name__ == "__main__":
         regression_method='ols', spi_regression_max=0.3,
         save_path=_path("orientation_strong_spi_vs_ici_combined.png"))
 
-    # 2) Cycles per RF vs orientation tuning (max - min)
+    # 2) Cycles per RF vs orientation tuning (max - min), z-scored per unit with
+    #    a binned mean +/- SEM trend line.
     plot_rf_size_vs_orientation_tuning(
-        selection_mode=selection_mode, regression_method='ols',
+        selection_mode=selection_mode, normalize='zscore', n_bins=8,
         save_path=_path("rf_size_vs_orientation_tuning.png"))
