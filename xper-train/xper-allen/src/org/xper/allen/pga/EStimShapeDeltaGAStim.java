@@ -263,69 +263,78 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
 
         List<Integer> compsToMutateInParent = chooseCompsToMutate(parentMStick);
 
-
-
-        List<Integer> compsToPreserveInParent = new ArrayList<>();
-        for (int i=1; i<=parentMStick.getNComponent(); i++){
-            if (!compsToMutateInParent.contains(i)){
-                compsToPreserveInParent.add(i);
+        // Wrap generation so we log whether this (parent, comp-set) is generatable. On failure we record
+        // a fail and RETHROW, leaving the existing retry-then-skip behavior (writeStim) untouched. The
+        // exception that escapes here is a MorphException (generateDeltaFittingCircle throws it after its
+        // attempts are exhausted); MorphRepetitionException is a subclass, so this covers both. "Success"
+        // means generation feasibility, NOT behavioral response.
+        try {
+            List<Integer> compsToPreserveInParent = new ArrayList<>();
+            for (int i=1; i<=parentMStick.getNComponent(); i++){
+                if (!compsToMutateInParent.contains(i)){
+                    compsToPreserveInParent.add(i);
+                }
             }
-        }
 
-        if (position.getPosition() != null) {
-            throw new IllegalArgumentException("Delta parent's position should be preserved comp based");
-        }
-
-        // The shared noise circle is anchored on the PARENT's hypothesized component, so every delta of
-        // this parent that mutates the same comp(s) uses ONE identical circle (and the variant in the
-        // NAFC trial does too). The first delta for this (parent, comp-set) computes it from the parent
-        // and saves it; later siblings read it back and must reuse it.
-        boolean computedCircle = false;
-        NoiseCircle sharedCircle;
-        if (sharedNoiseCircleManager.hasProperty(parentId, compsToMutateInParent)) {
-            sharedCircle = sharedNoiseCircleManager.readProperty(parentId, compsToMutateInParent);
-        } else {
-            sharedCircle = computeParentCircle(parentMStick, compsToMutateInParent);
-            computedCircle = true;
-        }
-
-        // Generate a delta whose mutated limb fits that fixed circle (retry-then-skip): retry fresh
-        // morphs until one fits, else throw so writeStim() ultimately skips this delta.
-        PruningMatchStick childMStick = generateDeltaFittingCircle(
-                parentMStick, compsToMutateInParent, compsToPreserveInParent, sharedCircle);
-
-        // Save data for this stimulus. Position still anchors on a PRESERVED comp (the changed one
-        // has new geometry and would drag the shape around).
-        List<Integer> compsToPreserveInNextChild = childMStick.getPreservedComps();
-        position.setPosition(childMStick.getMassCenterForComponent(compsToPreserveInNextChild.get(0)));
-        position.setTargetComp(compsToPreserveInNextChild.get(0));
-
-        // The hypothesized comp is the fragment THIS DELTA IS TESTING - the comp it CHANGED (a
-        // variant tests its hypothesized comp by preserving it; a delta tests it by changing it).
-        // Stored in the delta's own numbering (the complement of its preserved comps), with
-        // parent_hypothesized_comps = the same tested comp in the parent's numbering (what NAFC
-        // reads back). A delta chained onto this one excludes hypothesized_comp from its
-        // candidates: if this delta stays high-response, changing this comp didn't matter.
-        List<Integer> changedInChild = new ArrayList<>();
-        for (int i = 1; i <= childMStick.getNComponent(); i++) {
-            if (!compsToPreserveInNextChild.contains(i)) {
-                changedInChild.add(i);
+            if (position.getPosition() != null) {
+                throw new IllegalArgumentException("Delta parent's position should be preserved comp based");
             }
-        }
-        hypothesizedCompData = new HypothesizedCompData(
-                changedInChild,
-                parentId,
-                compsToMutateInParent
-        );
 
-        // This delta uses the shared (parent-anchored) circle. Persist it per-stim (writeStimProperties)
-        // and, if we were the first delta for this comp-set, record it as the group's shared circle.
-        noiseCircle = sharedCircle;
-        if (computedCircle) {
-            sharedNoiseCircleManager.writeProperty(parentId, compsToMutateInParent, sharedCircle);
-        }
+            // The shared noise circle is anchored on the PARENT's hypothesized component, so every delta of
+            // this parent that mutates the same comp(s) uses ONE identical circle (and the variant in the
+            // NAFC trial does too). The first delta for this (parent, comp-set) computes it from the parent
+            // and saves it; later siblings read it back and must reuse it.
+            boolean computedCircle = false;
+            NoiseCircle sharedCircle;
+            if (sharedNoiseCircleManager.hasProperty(parentId, compsToMutateInParent)) {
+                sharedCircle = sharedNoiseCircleManager.readProperty(parentId, compsToMutateInParent);
+            } else {
+                sharedCircle = computeParentCircle(parentMStick, compsToMutateInParent);
+                computedCircle = true;
+            }
 
-        return childMStick;
+            // Generate a delta whose mutated limb fits that fixed circle (retry-then-skip): retry fresh
+            // morphs until one fits, else throw so writeStim() ultimately skips this delta.
+            PruningMatchStick childMStick = generateDeltaFittingCircle(
+                    parentMStick, compsToMutateInParent, compsToPreserveInParent, sharedCircle);
+
+            // Save data for this stimulus. Position still anchors on a PRESERVED comp (the changed one
+            // has new geometry and would drag the shape around).
+            List<Integer> compsToPreserveInNextChild = childMStick.getPreservedComps();
+            position.setPosition(childMStick.getMassCenterForComponent(compsToPreserveInNextChild.get(0)));
+            position.setTargetComp(compsToPreserveInNextChild.get(0));
+
+            // The hypothesized comp is the fragment THIS DELTA IS TESTING - the comp it CHANGED (a
+            // variant tests its hypothesized comp by preserving it; a delta tests it by changing it).
+            // Stored in the delta's own numbering (the complement of its preserved comps), with
+            // parent_hypothesized_comps = the same tested comp in the parent's numbering (what NAFC
+            // reads back). A delta chained onto this one excludes hypothesized_comp from its
+            // candidates: if this delta stays high-response, changing this comp didn't matter.
+            List<Integer> changedInChild = new ArrayList<>();
+            for (int i = 1; i <= childMStick.getNComponent(); i++) {
+                if (!compsToPreserveInNextChild.contains(i)) {
+                    changedInChild.add(i);
+                }
+            }
+            hypothesizedCompData = new HypothesizedCompData(
+                    changedInChild,
+                    parentId,
+                    compsToMutateInParent
+            );
+
+            // This delta uses the shared (parent-anchored) circle. Persist it per-stim (writeStimProperties)
+            // and, if we were the first delta for this comp-set, record it as the group's shared circle.
+            noiseCircle = sharedCircle;
+            if (computedCircle) {
+                sharedNoiseCircleManager.writeProperty(parentId, compsToMutateInParent, sharedCircle);
+            }
+
+            mutationSuccessFailManager.writeOutcome(stimId, parentId, compsToMutateInParent, true);
+            return childMStick;
+        } catch (MorphedMatchStick.MorphException e) {
+            mutationSuccessFailManager.writeOutcome(stimId, parentId, compsToMutateInParent, false);
+            throw e;
+        }
     }
 
     /** How many fresh morphs to try fitting the fixed parent circle before giving up on this delta. */
