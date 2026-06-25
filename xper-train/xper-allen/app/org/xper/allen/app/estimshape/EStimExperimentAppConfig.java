@@ -72,6 +72,11 @@ public class EStimExperimentAppConfig {
     }
 
     @Bean
+    public boolean isScaleByNumChoices() {
+        return false;
+    }
+
+    @Bean
     public EStimShapeExperimentTrialGenerator generator(){
         EStimShapeExperimentTrialGenerator generator = new EStimShapeExperimentTrialGenerator();
         generator.setDbUtil(pngConfig.config.allenDbUtil());

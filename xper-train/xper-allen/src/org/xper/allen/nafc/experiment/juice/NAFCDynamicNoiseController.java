@@ -41,6 +41,9 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
     @Dependency
     Renderer renderer;
 
+    @Dependency
+    boolean isScaleByNumChoices = false;
+
     private double rewardMultiplier = 1;
 
     //streaks
@@ -68,13 +71,15 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
         //4AFC Reward Multiplier
         int numChoices = task.getChoiceSpec().length;
         System.out.println("Choices: " + numChoices);
-        if (numChoices == 3){
-            System.out.println("Discounting reward by .0.75 because of 3AFC");
-            rewardMultiplier = 0.75 * rewardMultiplier;
-        }
-        else if (numChoices == 4){
-            rewardMultiplier = rewardMultiplier + 0;
-            System.out.println("Bonus +0 because of 4 choices");
+
+        if (isScaleByNumChoices) {
+            if (numChoices == 3) {
+                System.out.println("Discounting reward by .0.75 because of 3AFC");
+                rewardMultiplier = 0.75 * rewardMultiplier;
+            } else if (numChoices == 4) {
+                rewardMultiplier = rewardMultiplier + 0;
+                System.out.println("Bonus +0 because of 4 choices");
+            }
         }
 
 
@@ -244,5 +249,13 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
 
     public void setRenderer(Renderer renderer) {
         this.renderer = renderer;
+    }
+
+    public boolean isScaleByNumChoices() {
+        return isScaleByNumChoices;
+    }
+
+    public void setScaleByNumChoices(boolean scaleByNumChoices) {
+        isScaleByNumChoices = scaleByNumChoices;
     }
 }

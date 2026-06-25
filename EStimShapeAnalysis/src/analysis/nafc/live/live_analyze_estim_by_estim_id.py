@@ -795,7 +795,7 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
                     return m
                 if not mask(df).any():
                     continue
-                sample_lbl = 'sample+foil' if s is None else ('split=sample' if s else 'split=foil')
+                sample_lbl = 'sample+foil' if s is None else ('split=sample' if s else 'split=distractor')
                 inv_lbl = 'normal+inverted' if inv is None else ('inverted' if inv else 'normal')
                 rows.append((f's={s}|i={inv}', f'{sample_lbl}, {inv_lbl}', mask))
         return rows

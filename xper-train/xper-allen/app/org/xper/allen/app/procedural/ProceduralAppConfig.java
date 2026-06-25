@@ -126,7 +126,13 @@ public class ProceduralAppConfig {
         controller.setNoiseRewardFunction(noiseRewardFunction());
         controller.setRenderer(pngConfig.config.experimentGLRenderer());
         controller.setDrawingController((MarkStimTrialDrawingController) pngConfig.config.drawingController());
+        controller.setScaleByNumChoices(isScaleByNumChoices());
         return controller;
+    }
+
+    @Bean
+    public boolean isScaleByNumChoices() {
+        return true;
     }
 
     @Bean
