@@ -96,7 +96,7 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
 
     def max_deltas_per_generation(self):
         # Returns None when the GAVar row is absent, leaving deltas uncapped.
-        return self.var_fetcher.get("deltas_max_per_generation", dtype=int)
+        return self.var_fetcher.get("non_variant_deltas_max_per_generation", dtype=int)
 
     def max_variant_deltas_per_generation(self):
         # Per-generation ceiling on deltas made from true variant parents. Defaults to 25 when the
