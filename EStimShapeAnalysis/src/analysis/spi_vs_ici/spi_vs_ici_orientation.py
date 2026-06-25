@@ -152,6 +152,9 @@ def load_orientation_strong_data(selection_mode='mapped_channel', threshold=0.7)
     return strong, data_description
 
 
+
+
+
 def plot_orientation_strong_spi_vs_ici(selection_mode='mapped_channel', threshold=0.7,
                                        regression_method='ols', spi_regression_max=None,
                                        save_path=None):
@@ -200,7 +203,7 @@ def plot_orientation_strong_spi_vs_ici(selection_mode='mapped_channel', threshol
 
         # Significant solid-preference points solid blue, others faded gray
         sig_mask = pd.notna(p_values) & (p_values < 0.05)
-        ax.scatter(x[sig_mask], y[sig_mask], alpha=0.7, s=60, color='blue', label='sig.')
+        ax.scatter(x[sig_mask], y[sig_mask], alpha=threshold, s=60, color='blue', label='sig.')
         ax.scatter(x[~sig_mask], y[~sig_mask], alpha=0.25, s=60, color='gray')
 
         if len(x_reg) > 1 and not np.isnan(slope):
@@ -269,7 +272,7 @@ def plot_orientation_strong_spi_vs_ici_combined(selection_mode='mapped_channel',
 
     # Significant solid-preference points solid blue, others faded gray
     sig_mask = pd.notna(p_values) & (p_values < 0.05)
-    plt.scatter(x[sig_mask], y[sig_mask], alpha=0.7, s=60, color='blue',
+    plt.scatter(x[sig_mask], y[sig_mask], alpha=threshold, s=60, color='blue',
                 label=f'solid-pref sig. (n={int(sig_mask.sum())})')
     plt.scatter(x[~sig_mask], y[~sig_mask], alpha=0.25, s=60, color='gray',
                 label=f'not sig. (n={int((~sig_mask).sum())})')
@@ -525,6 +528,7 @@ if __name__ == "__main__":
     # requires RF info, which is needed for the cycles-per-RF plot.
     selection_mode = 'mapped_channel'
     save_dir = None  # e.g. "/home/connorlab/Documents/plots"
+    threshold = 0.75
 
     # Cycles-per-RF x-axis range for the orientation-tuning plot. Set to None to
     # auto-scale, or e.g. (0, 8) to crop the display (all points still feed the
@@ -536,13 +540,13 @@ if __name__ == "__main__":
 
     # 1) SPI vs ICI for orientation-strong cells/frequencies (tuning >= 70% of peak)
     plot_orientation_strong_spi_vs_ici(
-        selection_mode=selection_mode, threshold=0.7,
+        selection_mode=selection_mode, threshold=threshold,
         regression_method='ols', spi_regression_max=0.3,
         save_path=_path("orientation_strong_spi_vs_ici.png"))
 
     # 1b) Same data, pooled into a single scatter (not split by frequency)
     plot_orientation_strong_spi_vs_ici_combined(
-        selection_mode=selection_mode, threshold=0.7,
+        selection_mode=selection_mode, threshold=threshold,
         regression_method='ols', spi_regression_max=0.3,
         save_path=_path("orientation_strong_spi_vs_ici_combined.png"))
 

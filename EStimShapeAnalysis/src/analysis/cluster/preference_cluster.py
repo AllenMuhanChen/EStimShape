@@ -196,7 +196,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
         frequencies, title='Preferred\nFrequency')
 
     orient_width_metric = OrientationTuningWidthLoader(session_id, conn).as_normalized_metric(
-        frequencies, title='Orientation\nTuning Width')
+        frequencies, title='Preferred\nFrequency\nby Orientation')
 
     # Preferred orientation (at the preferred frequency, falling back to the next
     # highest frequency with orientation data). Folded modulo 180 deg so opposite
