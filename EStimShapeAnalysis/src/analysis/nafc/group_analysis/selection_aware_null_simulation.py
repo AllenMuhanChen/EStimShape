@@ -299,6 +299,89 @@ def run_selection_null(calib, kill_rule, n_sims=2000, studentize=True,
 
 
 # ---------------------------------------------------------------------------
+# Pinned-count null (the one run_selection_test uses)
+# ---------------------------------------------------------------------------
+#
+# run_selection_null above regenerates the whole attempt->kill->filter process, so
+# the SURVIVOR COUNT changes with the kill threshold: a more aggressive threshold
+# kills more, leaves fewer survivors, and the per-session max is taken over fewer
+# conditions -> the null shrinks -> p drops. That p-vs-threshold trend is a count
+# artifact, not a change in selection-bias strength, and it makes the comparison
+# unfair: your observed max is over your REAL ~K survivors, so the null must use the
+# same K (and the same per-survivor n's) or it is comparing different-sized maxima.
+#
+# This version pins the null to the real survivor structure: one simulated survivor
+# per real survivor, with that survivor's own (n_on, n_off, p_off), differing from
+# the observed only in that its outcomes are H0 + selection. The kill rule then acts
+# ONLY by conditioning each survivor on having passed its early bar (reject-sample
+# the decision window until interim effect >= threshold). The threshold now controls
+# selection bias PER SURVIVOR -- the quantity we actually want to bound -- instead of
+# secretly controlling how many survivors there are. Counts and n's match observed,
+# so p rises with threshold (more bias = heavier null), the intuitive direction.
+
+_MAX_REJECT_TRIES = 500
+
+
+def _simulate_pinned_survivor(rng, n_on, n_off, p_off, decision_n, threshold):
+    """One H0 survivor matched to a real survivor's (n_on, n_off, p_off), conditioned
+    on passing the kill bar at decision_n. Returns an _Entry."""
+    d = min(decision_n, n_on)
+    # Reject-sample the decision window until the interim effect clears the bar
+    # (this IS the selection: survivors are the early-lucky draws).
+    on_dec = rng.random(d) < p_off
+    for _ in range(_MAX_REJECT_TRIES):
+        if 100.0 * (on_dec.mean() - p_off) >= threshold:
+            break
+        on_dec = rng.random(d) < p_off
+    # Remaining ON trials are fresh H0 draws (the growth that dilutes the early luck).
+    extra = n_on - d
+    on_full = np.concatenate([on_dec, rng.random(extra) < p_off]) if extra > 0 else on_dec
+    off = rng.random(n_off) < p_off
+    effect = 100.0 * (on_full.mean() - off.mean())
+    z = _studentize(effect, n_on, n_off, float(off.mean()))
+    return _Entry(effect=effect, z=z, n_on=int(n_on), n_off=int(n_off))
+
+
+def run_selection_null_pinned(calib, decision_n, threshold, n_sims=2000,
+                              studentize=True, weighting=None, thresholds=None,
+                              seed=0):
+    """Selection-aware null with survivor count and per-survivor n's pinned to the
+    real survivors. Each real survivor is replaced by an H0 survivor that passed the
+    (decision_n, threshold) bar. Returns the same dict shape as run_selection_null."""
+    if thresholds is None:
+        thresholds = (1.0, 1.5, 2.0, 2.5, 3.0) if studentize else (5.0, 10.0, 15.0, 20.0)
+
+    # Group the real survivors by session, keeping each one's (n_on, n_off, p_off).
+    by_session = {}
+    for c in calib.survivors:
+        by_session.setdefault(c.session_id, []).append((c.n_on, c.n_off, c.p_off))
+
+    rng = np.random.default_rng(seed)
+    null_A = np.full(n_sims, np.nan)
+    null_exc = np.zeros((n_sims, len(thresholds)), dtype=int)
+
+    for k in range(n_sims):
+        session_entries = []
+        for survs in by_session.values():
+            entries = [_simulate_pinned_survivor(rng, n_on, n_off, p_off,
+                                                 decision_n, threshold)
+                       for (n_on, n_off, p_off) in survs]
+            session_entries.append(entries)
+        A = _population_stat(session_entries, studentize, weighting)
+        if A is not None:
+            null_A[k] = A
+        null_exc[k] = _exceedance_counts(session_entries, thresholds, studentize)
+
+    return {
+        'thresholds': list(thresholds),
+        'null_A': null_A,
+        'null_exc': null_exc,
+        'mean_survivors': float(len(calib.survivors)),  # pinned, so constant
+        'studentize': studentize,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Top-level test: observed vs selection-aware null, swept over the adversary grid
 # ---------------------------------------------------------------------------
 
@@ -342,10 +425,10 @@ def run_selection_test(calib=None, decision_ns=(3, 4, 5, 6, 8),
     for i, d_n in enumerate(decision_ns):
         cells = []
         for j, tau in enumerate(thresholds_kill):
-            rule = AggressiveKillRule(decision_n=d_n, threshold=tau)
-            res = run_selection_null(calib, rule, n_sims=n_sims, studentize=studentize,
-                                     weighting=weighting,
-                                     thresholds=exceedance_thresholds, seed=seed)
+            res = run_selection_null_pinned(calib, decision_n=d_n, threshold=tau,
+                                            n_sims=n_sims, studentize=studentize,
+                                            weighting=weighting,
+                                            thresholds=exceedance_thresholds, seed=seed)
             valid = res['null_A'][~np.isnan(res['null_A'])]
             p = float(np.mean(valid >= A_obs)) if valid.size else float('nan')
             grid[i, j] = p
@@ -356,7 +439,7 @@ def run_selection_test(calib=None, decision_ns=(3, 4, 5, 6, 8),
                 exc_worst_p[t_idx] = max(exc_worst_p[t_idx], pe)
             if p > worst['p']:
                 worst = {'p': p, 'decision_n': d_n, 'threshold': tau,
-                         'rule': rule, 'result': res}
+                         'result': res}
         print(f"  {d_n:>3}   " + "".join(f"{p:>8.3f}" for p in cells))
 
     print(f"\nMost adversarial cell (max-stat): decision_n={worst['decision_n']}, "
