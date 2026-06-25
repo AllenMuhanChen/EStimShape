@@ -1119,6 +1119,10 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         for tt in effect_types:
             self._update_window_cell(tt, series_by_type[tt])
         self._update_baseline_cell(baseline)
+        # Re-fit the X axis on every refresh so newly-appended windows are always visible
+        # ("view all" along x). Y stays clamped to its fixed, comparable scale.
+        for pi in self.win_plots.values():
+            pi.getViewBox().enableAutoRange(x=True)
 
     def _make_window_panel(self, title, ylabel, yrange, zero_line):
         """Create a scrollable plot+legend panel for the sliding-window tab. Returns
@@ -1137,9 +1141,11 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         if zero_line:
             pi.addLine(y=0, pen=pg.mkPen((120, 120, 120), style=_DASH_LINE))
         vb = pi.getViewBox()
-        # y is clamped to its meaningful range; x follows the trials as they accumulate.
+        # y is clamped to its meaningful range; x auto-fits the trials as they accumulate so
+        # the newest window is always in view (re-asserted each refresh in _render_window).
         vb.setYRange(yrange[0], yrange[1], padding=0)
         vb.setLimits(yMin=yrange[0], yMax=yrange[1])
+        vb.enableAutoRange(x=True)
         return glw, pi, legend
 
     def _ensure_window_grid(self, effect_types):
