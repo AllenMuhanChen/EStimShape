@@ -313,16 +313,23 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         paths = [
             self._plot_scree(result, label),
             self._plot_loadings_heatmap(result, label),
-            # Stimuli in PC space, colored three different ways.
-            self._plot_stimulus_scatter_categorical(
-                result, scores, compiled_data, 'Lineage', label, cmap='tab20'),
-            self._plot_stimulus_scatter_continuous(
-                result, scores, compiled_data, 'GA Response', label),
-            self._plot_stimulus_scatter_categorical(
-                result, scores, compiled_data, 'Texture', label, cmap='Set1'),
-            # Example thumbnails sampled along PC1.
-            self._plot_pc1_examples(result, scores, compiled_data, label),
         ]
+        # Show stimuli in PC1/PC2 always, and PC3/PC4 when enough PCs exist.
+        pc_pairs = [(0, 1)]
+        if scores.shape[1] >= 4:
+            pc_pairs.append((2, 3))
+        for px, py in pc_pairs:
+            paths.append(self._plot_stimulus_scatter_categorical(
+                result, scores, compiled_data, 'Lineage', label, px, py, cmap='tab20'))
+            paths.append(self._plot_stimulus_scatter_continuous(
+                result, scores, compiled_data, 'GA Response', label, px, py))
+            paths.append(self._plot_stimulus_scatter_categorical(
+                result, scores, compiled_data, 'Texture', label, px, py, cmap='Set1'))
+            # Center of mass: (x, y, z) mapped to RGB so similar colors == similar CoM.
+            paths.append(self._plot_stimulus_scatter_rgb(
+                result, scores, compiled_data, 'MassCenter', label, px, py))
+        # Example thumbnails sampled along PC1.
+        paths.append(self._plot_pc1_examples(result, scores, compiled_data, label))
         result.figure_paths = [p for p in paths if p is not None]
 
     def _label(self) -> str:
@@ -390,16 +397,16 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         fig.tight_layout()
         return self._save(fig, f"{label}_loadings_heatmap")
 
-    def _axis_labels(self, ax, result: StimulusPCAResult) -> None:
+    def _axis_labels(self, ax, result: StimulusPCAResult, pc_x: int, pc_y: int) -> None:
         evr = result.explained_variance_ratio
-        ax.set_xlabel(f"PC1 ({evr[0] * 100:.1f}%)")
-        ax.set_ylabel(f"PC2 ({evr[1] * 100:.1f}%)")
+        ax.set_xlabel(f"PC{pc_x + 1} ({evr[pc_x] * 100:.1f}%)")
+        ax.set_ylabel(f"PC{pc_y + 1} ({evr[pc_y] * 100:.1f}%)")
 
     def _plot_stimulus_scatter_categorical(
         self, result: StimulusPCAResult, scores: np.ndarray,
         compiled_data: pd.DataFrame, column: str, label: str,
-        cmap: str = 'tab20') -> Optional[str]:
-        """Stimuli in PC1/PC2 score space, one color per discrete `column`
+        pc_x: int, pc_y: int, cmap: str = 'tab20') -> Optional[str]:
+        """Stimuli in PCx/PCy score space, one color per discrete `column`
         value (e.g. Lineage, Texture)."""
         values = self._stim_value_lookup(compiled_data, column)
         if values is None:
@@ -415,25 +422,28 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         # Missing values first, in light gray, so they don't crowd the legend.
         missing = per_stim == None  # noqa: E711  (elementwise on object array)
         if missing.any():
-            ax.scatter(scores[missing, 0], scores[missing, 1], s=20,
+            ax.scatter(scores[missing, pc_x], scores[missing, pc_y], s=20,
                        color='lightgray', alpha=0.6, label='(missing)')
         for i, cat in enumerate(categories):
             mask = per_stim == cat
-            ax.scatter(scores[mask, 0], scores[mask, 1], s=25, alpha=0.8,
+            ax.scatter(scores[mask, pc_x], scores[mask, pc_y], s=25, alpha=0.8,
                        color=color_map(i % color_map.N), label=str(cat))
 
-        ax.set_title(f"Stimuli in PC space (colored by {column})")
-        self._axis_labels(ax, result)
+        ax.set_title(f"Stimuli in PC space ({self._pc_pair_label(pc_x, pc_y)}, "
+                     f"colored by {column})")
+        self._axis_labels(ax, result, pc_x, pc_y)
         # A legend is only useful for a manageable number of categories.
         if len(categories) <= 20:
             ax.legend(title=column, loc='best', fontsize=8, markerscale=1.2)
         fig.tight_layout()
-        return self._save(fig, f"{label}_stimulus_pc_by_{self._slug(column)}")
+        return self._save(
+            fig, f"{label}_stimulus_{self._pc_tag(pc_x, pc_y)}_by_{self._slug(column)}")
 
     def _plot_stimulus_scatter_continuous(
         self, result: StimulusPCAResult, scores: np.ndarray,
-        compiled_data: pd.DataFrame, column: str, label: str) -> Optional[str]:
-        """Stimuli in PC1/PC2 score space, colored by a continuous `column`
+        compiled_data: pd.DataFrame, column: str, label: str,
+        pc_x: int, pc_y: int) -> Optional[str]:
+        """Stimuli in PCx/PCy score space, colored by a continuous `column`
         (e.g. GA Response) with a colorbar."""
         values = self._stim_value_lookup(compiled_data, column)
         if values is None:
@@ -446,15 +456,64 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
 
         fig, ax = plt.subplots(figsize=(7.5, 7))
         if (~valid).any():
-            ax.scatter(scores[~valid, 0], scores[~valid, 1], s=20,
+            ax.scatter(scores[~valid, pc_x], scores[~valid, pc_y], s=20,
                        color='lightgray', alpha=0.6, label='(missing)')
-        sc = ax.scatter(scores[valid, 0], scores[valid, 1], c=vals[valid],
+        sc = ax.scatter(scores[valid, pc_x], scores[valid, pc_y], c=vals[valid],
                         cmap='viridis', s=28, alpha=0.9)
         fig.colorbar(sc, ax=ax, label=column)
-        ax.set_title(f"Stimuli in PC space (colored by {column})")
-        self._axis_labels(ax, result)
+        ax.set_title(f"Stimuli in PC space ({self._pc_pair_label(pc_x, pc_y)}, "
+                     f"colored by {column})")
+        self._axis_labels(ax, result, pc_x, pc_y)
         fig.tight_layout()
-        return self._save(fig, f"{label}_stimulus_pc_by_{self._slug(column)}")
+        return self._save(
+            fig, f"{label}_stimulus_{self._pc_tag(pc_x, pc_y)}_by_{self._slug(column)}")
+
+    def _plot_stimulus_scatter_rgb(
+        self, result: StimulusPCAResult, scores: np.ndarray,
+        compiled_data: pd.DataFrame, column: str, label: str,
+        pc_x: int, pc_y: int) -> Optional[str]:
+        """Stimuli in PCx/PCy score space, colored by a 3-vector `column`
+        (e.g. MassCenter's x/y/z) mapped to RGB. Each component is min-max
+        normalized across stimuli, so two points with similar colors have
+        similar centers of mass."""
+        values = self._stim_value_lookup(compiled_data, column)
+        if values is None:
+            print(f"Skipping '{column}' RGB scatter: column not available.")
+            return None
+
+        raw = [values.get(sid) for sid in result.response_matrix.index]
+        coords = np.full((len(raw), 3), np.nan)
+        for i, v in enumerate(raw):
+            vec = self._to_xyz(v)
+            if vec is not None:
+                coords[i] = vec
+        valid = ~np.isnan(coords).any(axis=1)
+        if not valid.any():
+            print(f"Skipping '{column}' RGB scatter: no parseable (x, y, z) values.")
+            return None
+
+        # Min-max normalize each axis independently over the valid points.
+        rgb = np.zeros((len(raw), 3))
+        cmin = coords[valid].min(axis=0)
+        cmax = coords[valid].max(axis=0)
+        span = np.where((cmax - cmin) > 1e-12, cmax - cmin, 1.0)
+        rgb[valid] = np.clip((coords[valid] - cmin) / span, 0.0, 1.0)
+
+        fig, ax = plt.subplots(figsize=(7.5, 7))
+        if (~valid).any():
+            ax.scatter(scores[~valid, pc_x], scores[~valid, pc_y], s=20,
+                       color='lightgray', alpha=0.5)
+        ax.scatter(scores[valid, pc_x], scores[valid, pc_y], c=rgb[valid],
+                   s=32, alpha=0.95, edgecolor='none')
+        ax.set_title(f"Stimuli in PC space ({self._pc_pair_label(pc_x, pc_y)}, "
+                     f"colored by {column} → RGB)")
+        self._axis_labels(ax, result, pc_x, pc_y)
+        ax.text(0.99, 0.01, "R = x   G = y   B = z\n(each min–max normalized)",
+                transform=ax.transAxes, ha='right', va='bottom', fontsize=8,
+                color='dimgray')
+        fig.tight_layout()
+        return self._save(
+            fig, f"{label}_stimulus_{self._pc_tag(pc_x, pc_y)}_by_{self._slug(column)}")
 
     def _plot_pc1_examples(self, result: StimulusPCAResult, scores: np.ndarray,
                            compiled_data: pd.DataFrame, label: str,
@@ -497,6 +556,34 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
     @staticmethod
     def _slug(column: str) -> str:
         return column.strip().lower().replace(' ', '_')
+
+    @staticmethod
+    def _pc_tag(pc_x: int, pc_y: int) -> str:
+        return f"pc{pc_x + 1}_pc{pc_y + 1}"
+
+    @staticmethod
+    def _pc_pair_label(pc_x: int, pc_y: int) -> str:
+        return f"PC{pc_x + 1} vs PC{pc_y + 1}"
+
+    @staticmethod
+    def _to_xyz(value) -> Optional[np.ndarray]:
+        """Coerce a MassCenter-style value into a length-3 float array, or None.
+
+        Handles tuples/lists of (x, y, z) (possibly string components from XML)
+        and string reprs like "(0.1, 0.2, 0.3)" / "0.1, 0.2, 0.3".
+        """
+        if value is None:
+            return None
+        try:
+            if isinstance(value, str):
+                parts = value.strip().strip('()[]').split(',')
+            else:
+                parts = list(value)
+            if len(parts) != 3:
+                return None
+            return np.array([float(p) for p in parts], dtype=float)
+        except (ValueError, TypeError):
+            return None
 
     @staticmethod
     def _stim_value_lookup(compiled_data: pd.DataFrame, column: str) -> Optional[dict]:
