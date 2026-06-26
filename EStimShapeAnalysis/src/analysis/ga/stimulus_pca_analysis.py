@@ -31,6 +31,7 @@ reuses that class's GA compile / import / export pipeline, and overrides
 and loadings figures, and cluster the channels by their loadings.
 """
 
+import ast
 import os
 from dataclasses import dataclass, field
 from typing import Optional, Sequence
@@ -103,19 +104,33 @@ class StimulusPCAResult:
         return "\n".join(lines)
 
 
-def main():
-    # Optional: color stimuli by their AlexNet conv3-PCA coordinates. Requires
-    # the deep-learning stack (onnxruntime / torch / PIL) and the ONNX model.
-    # from src.analysis.ga.alexnet_embedding import AlexNetLayer3PCAEmbedder
-    # alexnet_embedder = AlexNetLayer3PCAEmbedder(
-    #     "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3")
-    alexnet_embedder = None
+# Path to the AlexNet ONNX model exposing a conv3 output (same one the alexnet
+# GA pipeline uses). Set to None to disable AlexNet coloring.
+ALEXNET_ONNX_PATH = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3"
 
+
+def make_alexnet_embedder(onnx_path: Optional[str]):
+    """Build an AlexNet conv3-PCA embedder, or None if it can't be constructed
+    (missing model file or the onnx/torch stack not installed)."""
+    if not onnx_path or not os.path.exists(onnx_path):
+        print(f"AlexNet coloring disabled: ONNX model not found at {onnx_path}.")
+        return None
+    try:
+        from src.analysis.ga.alexnet_embedding import AlexNetLayer3PCAEmbedder
+        return AlexNetLayer3PCAEmbedder(onnx_path)
+    except Exception as exc:
+        print(f"AlexNet coloring disabled: {exc}")
+        return None
+
+
+def main():
     analysis = StimulusPCAAnalysis(
         standardize=True,
         n_loading_pcs=None,          # None -> use the elbow estimate
         n_channel_clusters=4,        # None -> cut the dendrogram by distance
-        alexnet_embedder=alexnet_embedder,
+        # AlexNet coloring shows up only when an embedder (or precomputed
+        # alexnet_pcs) is supplied; otherwise that one plot is simply skipped.
+        alexnet_embedder=make_alexnet_embedder(ALEXNET_ONNX_PATH),
     )
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     compiled_data = None
@@ -149,6 +164,10 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
             conv3-PCA coordinates.
         alexnet_pcs: optional precomputed ``{stim_id: (pc1, pc2)}`` mapping,
             used instead of running ``alexnet_embedder``.
+        highlighted_stim_ids: optional set of StimSpecIds to ring on every
+            scatter for special attention. ``None`` falls back to the
+            ``IncludedDeltas`` table (the included REGIME_ESTIM_DELTA stimuli and
+            their paired REGIME_ESTIM_VARIANTS).
     """
 
     logging_path = context.logging_path
@@ -163,6 +182,7 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         channels: Optional[Sequence[str]] = None,
         alexnet_embedder=None,
         alexnet_pcs: Optional[dict] = None,
+        highlighted_stim_ids: Optional[set] = None,
         use_baseline_correction: bool = False,
     ):
         super().__init__(use_baseline_correction=use_baseline_correction)
@@ -173,6 +193,9 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         self.channels = list(channels) if channels is not None else None
         self.alexnet_embedder = alexnet_embedder
         self.alexnet_pcs = alexnet_pcs
+        self.highlighted_stim_ids = highlighted_stim_ids
+        # Boolean mask over response_matrix.index, set per-run in _plot_all.
+        self._highlight_mask = None
 
     # ---- main entry point ------------------------------------------------
     def analyze(self, channel, compiled_data: pd.DataFrame = None) -> StimulusPCAResult:
@@ -330,6 +353,9 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
     def _plot_all(self, result: StimulusPCAResult, scores: np.ndarray,
                   n_loading_pcs: int, compiled_data: pd.DataFrame) -> None:
         label = self._label()
+        # Stimuli to ring for special attention (included deltas + their variants).
+        self._highlight_mask = self._compute_highlight_mask(result, compiled_data)
+
         paths = [
             self._plot_scree(result, label),
             self._plot_loadings_heatmap(result, label),
@@ -340,9 +366,10 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
                 result, scores, compiled_data, 'GA Response', label),
             self._plot_stimulus_scatter_categorical(
                 result, scores, compiled_data, 'Texture', label, cmap='Set1'),
-            # Stim / mutation type (e.g. GA generation vs mutation variants).
+            # Stim / mutation type: cmap=None -> large distinct palette so many
+            # regime/mutation types stay visually separable.
             self._plot_stimulus_scatter_categorical(
-                result, scores, compiled_data, 'StimType', label, cmap='tab10'),
+                result, scores, compiled_data, 'StimType', label, cmap=None),
             # Center of mass: (x, y, z) mapped to RGB so similar colors == similar CoM.
             self._plot_stimulus_scatter_rgb(
                 result, scores, compiled_data, 'MassCenter', label),
@@ -370,6 +397,46 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
             print("AlexNet coloring skipped: no StimPath/ThumbnailPath column.")
             return None
         return self.alexnet_embedder.embed(paths)
+
+    def _compute_highlight_mask(self, result: StimulusPCAResult,
+                                compiled_data: pd.DataFrame) -> Optional[np.ndarray]:
+        """Boolean mask over response_matrix.index of stimuli to ring."""
+        ids = self._resolve_highlight_ids(compiled_data)
+        if not ids:
+            return None
+        mask = np.array([sid in ids for sid in result.response_matrix.index])
+        if not mask.any():
+            print("No highlighted (included delta/variant) stimuli are in this data.")
+            return None
+        print(f"Highlighting {int(mask.sum())} included delta/variant stimuli.")
+        return mask
+
+    def _resolve_highlight_ids(self, compiled_data: pd.DataFrame) -> set:
+        if self.highlighted_stim_ids is not None:
+            return set(self.highlighted_stim_ids)
+        return self._load_included_delta_variant_ids()
+
+    def _load_included_delta_variant_ids(self) -> set:
+        """StimSpecIds of included REGIME_ESTIM_DELTA stimuli and their paired
+        REGIME_ESTIM_VARIANTS, read from the ``IncludedDeltas`` table.
+
+        Returns an empty set if the table is missing/empty or unreadable."""
+        try:
+            from clat.util.connection import Connection
+            conn = Connection(context.ga_database)
+            conn.execute(
+                "SELECT delta_id, variant_id FROM IncludedDeltas WHERE included = 1"
+            )
+            ids: set = set()
+            for delta_id, variant_id in conn.fetch_all():
+                if delta_id is not None:
+                    ids.add(int(delta_id))
+                if variant_id is not None:
+                    ids.add(int(variant_id))
+            return ids
+        except Exception as exc:
+            print(f"Could not read IncludedDeltas (highlight skipped): {exc}")
+            return set()
 
     def _label(self) -> str:
         suffix = "_std" if self.standardize else ""
@@ -456,18 +523,34 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         axes = np.atleast_1d(axes)
         for i, (ax, (px, py)) in enumerate(zip(axes, pc_pairs)):
             draw_fn(ax, fig, px, py, i == 0)
+            self._draw_highlights(ax, scores, px, py, annotate=(i == 0))
             self._axis_labels(ax, result, px, py)
             ax.set_title(self._pc_pair_label(px, py))
         fig.suptitle(suptitle)
         fig.tight_layout()
         return self._save(fig, f"{label}_stimulus_by_{slug}")
 
+    def _draw_highlights(self, ax, scores: np.ndarray, pc_x: int, pc_y: int,
+                         annotate: bool) -> None:
+        """Ring the highlighted (included delta/variant) stimuli on a panel."""
+        hm = self._highlight_mask
+        if hm is None or not hm.any():
+            return
+        ax.scatter(scores[hm, pc_x], scores[hm, pc_y], s=180, facecolors='none',
+                   edgecolors='black', linewidths=1.8, zorder=6)
+        if annotate:
+            ax.text(0.01, 0.01, f"○ included Δ / variant (n={int(hm.sum())})",
+                    transform=ax.transAxes, ha='left', va='bottom', fontsize=8,
+                    color='black',
+                    bbox=dict(boxstyle='round', fc='white', ec='gray', alpha=0.75))
+
     def _plot_stimulus_scatter_categorical(
         self, result: StimulusPCAResult, scores: np.ndarray,
         compiled_data: pd.DataFrame, column: str, label: str,
-        cmap: str = 'tab20') -> Optional[str]:
+        cmap: Optional[str] = 'tab20') -> Optional[str]:
         """Stimuli in PC space, one color per discrete `column` value
-        (e.g. Lineage, Texture)."""
+        (e.g. Lineage, Texture, StimType). ``cmap=None`` (or more categories
+        than the named map holds) uses a large distinct palette."""
         values = self._stim_value_lookup(compiled_data, column)
         if values is None:
             print(f"Skipping '{column}' scatter: column not available.")
@@ -476,7 +559,7 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         per_stim = np.array([values.get(sid, None) for sid in result.response_matrix.index],
                             dtype=object)
         categories = [c for c in pd.unique(per_stim) if c is not None]
-        color_map = plt.get_cmap(cmap)
+        colors = self._category_colors(len(categories), cmap)
         missing = per_stim == None  # noqa: E711  (elementwise on object array)
 
         def draw(ax, fig, px, py, is_first):
@@ -487,9 +570,9 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
             for i, cat in enumerate(categories):
                 mask = per_stim == cat
                 ax.scatter(scores[mask, px], scores[mask, py], s=25, alpha=0.8,
-                           color=color_map(i % color_map.N),
+                           color=colors[i],
                            label=str(cat) if is_first else None)
-            if is_first and len(categories) <= 20:
+            if is_first and len(categories) <= 30:
                 ax.legend(title=column, loc='best', fontsize=8, markerscale=1.2)
 
         return self._plot_coloring(
@@ -671,6 +754,27 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
                     fontsize=7, color='gray')
 
     # ---- color helpers ---------------------------------------------------
+    def _category_colors(self, n: int, cmap: Optional[str]) -> list:
+        """A color per category. Uses the named qualitative `cmap` when it has
+        enough discrete entries; otherwise a large distinct palette."""
+        if cmap is not None:
+            listed = getattr(plt.get_cmap(cmap), 'colors', None)
+            if listed is not None and n <= len(listed):
+                return [listed[i] for i in range(n)]
+        return self._distinct_colors(n)
+
+    @staticmethod
+    def _distinct_colors(n: int) -> list:
+        """`n` visually distinct colors: strong tab10 hues first, then tab20b/c
+        (50 total), falling back to evenly-spaced HSV beyond that."""
+        palette: list = []
+        for name in ('tab10', 'tab20b', 'tab20c'):
+            palette.extend(plt.get_cmap(name).colors)
+        if n <= len(palette):
+            return [tuple(palette[i]) for i in range(n)]
+        hues = np.linspace(0, 1, n, endpoint=False)
+        return [tuple(mcolors.hsv_to_rgb((h, 0.65, 0.9))) for h in hues]
+
     @staticmethod
     def _two_d_color_array(a_norm: np.ndarray, b_norm: np.ndarray) -> np.ndarray:
         """Map two [0,1] coordinates to RGB via HSV (hue<-a, saturation<-b) so
@@ -716,20 +820,22 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
     def _to_xyz(value) -> Optional[np.ndarray]:
         """Coerce a MassCenter-style value into a length-3 float array, or None.
 
-        Handles tuples/lists of (x, y, z) (possibly string components from XML)
-        and string reprs like "(0.1, 0.2, 0.3)" / "0.1, 0.2, 0.3".
+        Handles tuples/lists of (x, y, z) and string reprs from the repository
+        round-trip. MassCenter comes out of the matchstick XML as a tuple of
+        *string* components, so ``str()`` on export yields e.g.
+        ``"('0.1', '0.2', '0.3')"`` -- ``ast.literal_eval`` parses both that and
+        the plain ``"(0.1, 0.2, 0.3)"`` form, where a naive split on commas
+        would trip over the inner quotes.
         """
-        if value is None:
+        if value is None or (isinstance(value, float) and np.isnan(value)):
             return None
         try:
-            if isinstance(value, str):
-                parts = value.strip().strip('()[]').split(',')
-            else:
-                parts = list(value)
+            parsed = ast.literal_eval(value) if isinstance(value, str) else value
+            parts = list(parsed)
             if len(parts) != 3:
                 return None
             return np.array([float(p) for p in parts], dtype=float)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, SyntaxError):
             return None
 
     @staticmethod
