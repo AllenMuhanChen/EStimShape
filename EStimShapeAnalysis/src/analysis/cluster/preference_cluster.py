@@ -237,7 +237,7 @@ def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_p
     # Create subplots - adjust based on number of correlation columns
     # Layout: [preferred freq (1 col), orientation tuning width (1 col),
     #          preferred orientation (1 col), preferred colour (1 col),
-    #          isochromatic (4 cols), solid (1 col), solid significance (1 col),
+    #          isochromatic (4 cols), solid (1 col), solid significance (1 col),run
     #          correlation cols (n_corr_cols)]
     if n_corr_cols > 0:
         width_ratios = [1, 1, 1, 1, 4, 1, 1] + [1] * n_corr_cols

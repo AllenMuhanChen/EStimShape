@@ -106,7 +106,7 @@ class StimulusPCAResult:
 
 # Path to the AlexNet ONNX model exposing a conv3 output (same one the alexnet
 # GA pipeline uses). Set to None to disable AlexNet coloring.
-ALEXNET_ONNX_PATH = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3"
+ALEXNET_ONNX_PATH = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3"
 
 
 def make_alexnet_embedder(onnx_path: Optional[str]):
