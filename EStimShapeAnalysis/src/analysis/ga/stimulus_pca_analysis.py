@@ -164,10 +164,12 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
             conv3-PCA coordinates.
         alexnet_pcs: optional precomputed ``{stim_id: (pc1, pc2)}`` mapping,
             used instead of running ``alexnet_embedder``.
-        highlighted_stim_ids: optional set of StimSpecIds to ring on every
-            scatter for special attention. ``None`` falls back to the
-            ``IncludedDeltas`` table (the included REGIME_ESTIM_DELTA stimuli and
-            their paired REGIME_ESTIM_VARIANTS).
+        highlighted_stim_ids: optional StimSpecIds to ring on every scatter for
+            special attention. Either a set (role inferred from StimType) or a
+            dict ``{stim_id: 'delta' | 'variant'}`` to control ring color.
+            ``None`` falls back to the ``IncludedDeltas`` table (the included
+            REGIME_ESTIM_DELTA stimuli and their paired REGIME_ESTIM_VARIANTS),
+            which already carry their roles.
     """
 
     logging_path = context.logging_path
@@ -194,8 +196,8 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         self.alexnet_embedder = alexnet_embedder
         self.alexnet_pcs = alexnet_pcs
         self.highlighted_stim_ids = highlighted_stim_ids
-        # Boolean mask over response_matrix.index, set per-run in _plot_all.
-        self._highlight_mask = None
+        # {role -> boolean mask over response_matrix.index}, set in _plot_all.
+        self._highlight_roles = None
 
     # ---- main entry point ------------------------------------------------
     def analyze(self, channel, compiled_data: pd.DataFrame = None) -> StimulusPCAResult:
@@ -353,8 +355,9 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
     def _plot_all(self, result: StimulusPCAResult, scores: np.ndarray,
                   n_loading_pcs: int, compiled_data: pd.DataFrame) -> None:
         label = self._label()
-        # Stimuli to ring for special attention (included deltas + their variants).
-        self._highlight_mask = self._compute_highlight_mask(result, compiled_data)
+        # Stimuli to ring for special attention (included deltas + their variants),
+        # split by role so deltas and variants get different ring colors.
+        self._highlight_roles = self._compute_highlight_roles(result, compiled_data)
 
         paths = [
             self._plot_scree(result, label),
@@ -398,45 +401,71 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
             return None
         return self.alexnet_embedder.embed(paths)
 
-    def _compute_highlight_mask(self, result: StimulusPCAResult,
-                                compiled_data: pd.DataFrame) -> Optional[np.ndarray]:
-        """Boolean mask over response_matrix.index of stimuli to ring."""
-        ids = self._resolve_highlight_ids(compiled_data)
-        if not ids:
+    def _compute_highlight_roles(self, result: StimulusPCAResult,
+                                 compiled_data: pd.DataFrame) -> Optional[dict]:
+        """``{role -> boolean mask}`` over response_matrix.index for the stimuli
+        to ring, where role is 'delta' / 'variant' (or 'highlight' if unknown)."""
+        roles_for_id = self._resolve_highlight_roles(compiled_data)
+        if not roles_for_id:
             return None
-        mask = np.array([sid in ids for sid in result.response_matrix.index])
-        if not mask.any():
+
+        # Refine any unknown ('highlight') role from the StimType column.
+        stim_types = self._stim_value_lookup(compiled_data, 'StimType') or {}
+        role_per_index = []
+        for sid in result.response_matrix.index:
+            role = roles_for_id.get(sid)
+            if role == 'highlight':
+                st = stim_types.get(sid)
+                if st == 'REGIME_ESTIM_VARIANTS':
+                    role = 'variant'
+                elif st == 'REGIME_ESTIM_DELTA':
+                    role = 'delta'
+            role_per_index.append(role)
+        role_per_index = np.array(role_per_index, dtype=object)
+
+        masks = {}
+        for role in ('delta', 'variant', 'highlight'):
+            mask = role_per_index == role
+            if mask.any():
+                masks[role] = mask
+        if not masks:
             print("No highlighted (included delta/variant) stimuli are in this data.")
             return None
-        print(f"Highlighting {int(mask.sum())} included delta/variant stimuli.")
-        return mask
+        summary = ", ".join(f"{int(m.sum())} {r}" for r, m in masks.items())
+        print(f"Highlighting {summary}.")
+        return masks
 
-    def _resolve_highlight_ids(self, compiled_data: pd.DataFrame) -> set:
-        if self.highlighted_stim_ids is not None:
-            return set(self.highlighted_stim_ids)
-        return self._load_included_delta_variant_ids()
+    def _resolve_highlight_roles(self, compiled_data: pd.DataFrame) -> dict:
+        """``{stim_id -> role}``. Honors a dict override directly, treats a set
+        override as role-unknown ('highlight'), else reads ``IncludedDeltas``."""
+        override = self.highlighted_stim_ids
+        if override is not None:
+            if isinstance(override, dict):
+                return {int(k): v for k, v in override.items()}
+            return {int(k): 'highlight' for k in override}
+        return self._load_included_delta_variant_roles()
 
-    def _load_included_delta_variant_ids(self) -> set:
-        """StimSpecIds of included REGIME_ESTIM_DELTA stimuli and their paired
-        REGIME_ESTIM_VARIANTS, read from the ``IncludedDeltas`` table.
+    def _load_included_delta_variant_roles(self) -> dict:
+        """``{stim_id -> 'delta'|'variant'}`` for included REGIME_ESTIM_DELTA
+        stimuli and their paired REGIME_ESTIM_VARIANTS, from ``IncludedDeltas``.
 
-        Returns an empty set if the table is missing/empty or unreadable."""
+        Returns an empty dict if the table is missing/empty or unreadable."""
         try:
             from clat.util.connection import Connection
             conn = Connection(context.ga_database)
             conn.execute(
                 "SELECT delta_id, variant_id FROM IncludedDeltas WHERE included = 1"
             )
-            ids: set = set()
+            roles: dict = {}
             for delta_id, variant_id in conn.fetch_all():
                 if delta_id is not None:
-                    ids.add(int(delta_id))
+                    roles[int(delta_id)] = 'delta'
                 if variant_id is not None:
-                    ids.add(int(variant_id))
-            return ids
+                    roles[int(variant_id)] = 'variant'
+            return roles
         except Exception as exc:
             print(f"Could not read IncludedDeltas (highlight skipped): {exc}")
-            return set()
+            return {}
 
     def _label(self) -> str:
         suffix = "_std" if self.standardize else ""
@@ -530,19 +559,31 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         fig.tight_layout()
         return self._save(fig, f"{label}_stimulus_by_{slug}")
 
+    # Ring color + label per highlight role.
+    HIGHLIGHT_STYLE = {
+        'variant': ('red', 'included variant'),
+        'delta': ('black', 'included Δ (delta)'),
+        'highlight': ('black', 'included Δ / variant'),
+    }
+
     def _draw_highlights(self, ax, scores: np.ndarray, pc_x: int, pc_y: int,
                          annotate: bool) -> None:
-        """Ring the highlighted (included delta/variant) stimuli on a panel."""
-        hm = self._highlight_mask
-        if hm is None or not hm.any():
+        """Ring the highlighted stimuli on a panel, one ring color per role
+        (variant vs delta)."""
+        roles = self._highlight_roles
+        if not roles:
             return
-        ax.scatter(scores[hm, pc_x], scores[hm, pc_y], s=180, facecolors='none',
-                   edgecolors='black', linewidths=1.8, zorder=6)
-        if annotate:
-            ax.text(0.01, 0.01, f"○ included Δ / variant (n={int(hm.sum())})",
-                    transform=ax.transAxes, ha='left', va='bottom', fontsize=8,
-                    color='black',
-                    bbox=dict(boxstyle='round', fc='white', ec='gray', alpha=0.75))
+        y = 0.01
+        for role, mask in roles.items():
+            color, lbl = self.HIGHLIGHT_STYLE.get(role, ('black', role))
+            ax.scatter(scores[mask, pc_x], scores[mask, pc_y], s=180,
+                       facecolors='none', edgecolors=color, linewidths=1.8, zorder=6)
+            if annotate:
+                ax.text(0.01, y, f"○ {lbl} (n={int(mask.sum())})",
+                        transform=ax.transAxes, ha='left', va='bottom',
+                        fontsize=8, color=color,
+                        bbox=dict(boxstyle='round', fc='white', ec='gray', alpha=0.75))
+                y += 0.05
 
     def _plot_stimulus_scatter_categorical(
         self, result: StimulusPCAResult, scores: np.ndarray,
