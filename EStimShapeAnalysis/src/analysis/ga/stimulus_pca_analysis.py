@@ -37,7 +37,9 @@ from typing import Optional, Sequence
 
 import numpy as np
 import pandas as pd
+import matplotlib.colors as mcolors
 from matplotlib import pyplot as plt
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from scipy.cluster.hierarchy import fcluster, linkage
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
@@ -102,10 +104,18 @@ class StimulusPCAResult:
 
 
 def main():
+    # Optional: color stimuli by their AlexNet conv3-PCA coordinates. Requires
+    # the deep-learning stack (onnxruntime / torch / PIL) and the ONNX model.
+    # from src.analysis.ga.alexnet_embedding import AlexNetLayer3PCAEmbedder
+    # alexnet_embedder = AlexNetLayer3PCAEmbedder(
+    #     "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/data/AlexNetONNX_with_conv3")
+    alexnet_embedder = None
+
     analysis = StimulusPCAAnalysis(
         standardize=True,
         n_loading_pcs=None,          # None -> use the elbow estimate
         n_channel_clusters=4,        # None -> cut the dendrogram by distance
+        alexnet_embedder=alexnet_embedder,
     )
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     compiled_data = None
@@ -133,6 +143,12 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         channels: explicit feature channel list; defaults to all probe
             channels that carry varying data. The ``channel`` argument passed to
             ``run``/``analyze`` overrides this when it is a list.
+        alexnet_embedder: optional object with ``embed({stim_id: path}) ->
+            {stim_id: pc_vector}`` (e.g. ``AlexNetLayer3PCAEmbedder``). When
+            provided, stimuli are also colored by their first two AlexNet
+            conv3-PCA coordinates.
+        alexnet_pcs: optional precomputed ``{stim_id: (pc1, pc2)}`` mapping,
+            used instead of running ``alexnet_embedder``.
     """
 
     logging_path = context.logging_path
@@ -145,6 +161,8 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         n_channel_clusters: Optional[int] = 4,
         cluster_distance_threshold: float = 0.7,
         channels: Optional[Sequence[str]] = None,
+        alexnet_embedder=None,
+        alexnet_pcs: Optional[dict] = None,
         use_baseline_correction: bool = False,
     ):
         super().__init__(use_baseline_correction=use_baseline_correction)
@@ -153,6 +171,8 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         self.n_channel_clusters = n_channel_clusters
         self.cluster_distance_threshold = cluster_distance_threshold
         self.channels = list(channels) if channels is not None else None
+        self.alexnet_embedder = alexnet_embedder
+        self.alexnet_pcs = alexnet_pcs
 
     # ---- main entry point ------------------------------------------------
     def analyze(self, channel, compiled_data: pd.DataFrame = None) -> StimulusPCAResult:
@@ -313,24 +333,43 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         paths = [
             self._plot_scree(result, label),
             self._plot_loadings_heatmap(result, label),
-        ]
-        # Show stimuli in PC1/PC2 always, and PC3/PC4 when enough PCs exist.
-        pc_pairs = [(0, 1)]
-        if scores.shape[1] >= 4:
-            pc_pairs.append((2, 3))
-        for px, py in pc_pairs:
-            paths.append(self._plot_stimulus_scatter_categorical(
-                result, scores, compiled_data, 'Lineage', label, px, py, cmap='tab20'))
-            paths.append(self._plot_stimulus_scatter_continuous(
-                result, scores, compiled_data, 'GA Response', label, px, py))
-            paths.append(self._plot_stimulus_scatter_categorical(
-                result, scores, compiled_data, 'Texture', label, px, py, cmap='Set1'))
+            # Each scatter is one figure with PC1/PC2 and PC3/PC4 side by side.
+            self._plot_stimulus_scatter_categorical(
+                result, scores, compiled_data, 'Lineage', label, cmap='tab20'),
+            self._plot_stimulus_scatter_continuous(
+                result, scores, compiled_data, 'GA Response', label),
+            self._plot_stimulus_scatter_categorical(
+                result, scores, compiled_data, 'Texture', label, cmap='Set1'),
+            # Stim / mutation type (e.g. GA generation vs mutation variants).
+            self._plot_stimulus_scatter_categorical(
+                result, scores, compiled_data, 'StimType', label, cmap='tab10'),
             # Center of mass: (x, y, z) mapped to RGB so similar colors == similar CoM.
-            paths.append(self._plot_stimulus_scatter_rgb(
-                result, scores, compiled_data, 'MassCenter', label, px, py))
-        # Example thumbnails sampled along PC1.
-        paths.append(self._plot_pc1_examples(result, scores, compiled_data, label))
+            self._plot_stimulus_scatter_rgb(
+                result, scores, compiled_data, 'MassCenter', label),
+        ]
+        # AlexNet conv3-PCA coloring (first two PCs -> a 2D color), if available.
+        alexnet_pcs = self._resolve_alexnet_pcs(compiled_data)
+        if alexnet_pcs:
+            paths.append(self._plot_stimulus_scatter_alexnet(
+                result, scores, alexnet_pcs, label))
+        # Binned example thumbnails along each of PC1..PC4.
+        for pc_idx in range(min(4, scores.shape[1])):
+            paths.append(self._plot_pc_examples(result, scores, compiled_data, pc_idx, label))
         result.figure_paths = [p for p in paths if p is not None]
+
+    def _resolve_alexnet_pcs(self, compiled_data: pd.DataFrame) -> Optional[dict]:
+        """Per-stimulus AlexNet conv3-PCA coordinates: a precomputed dict if
+        given, else computed by the injected embedder from stimulus images."""
+        if self.alexnet_pcs is not None:
+            return self.alexnet_pcs
+        if self.alexnet_embedder is None:
+            return None
+        paths = (self._stim_value_lookup(compiled_data, 'StimPath')
+                 or self._stim_value_lookup(compiled_data, 'ThumbnailPath'))
+        if not paths:
+            print("AlexNet coloring skipped: no StimPath/ThumbnailPath column.")
+            return None
+        return self.alexnet_embedder.embed(paths)
 
     def _label(self) -> str:
         suffix = "_std" if self.standardize else ""
@@ -402,12 +441,33 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         ax.set_xlabel(f"PC{pc_x + 1} ({evr[pc_x] * 100:.1f}%)")
         ax.set_ylabel(f"PC{pc_y + 1} ({evr[pc_y] * 100:.1f}%)")
 
+    def _plot_coloring(self, result: StimulusPCAResult, scores: np.ndarray,
+                       label: str, slug: str, suptitle: str, draw_fn) -> str:
+        """One figure with PC1/PC2 (and PC3/PC4 when >=4 PCs exist) side by side.
+
+        ``draw_fn(ax, fig, pc_x, pc_y, is_first)`` paints a single panel; the
+        legend/colorbar/key should only be drawn on the first panel
+        (``is_first``) to avoid duplication.
+        """
+        pc_pairs = [(0, 1)]
+        if scores.shape[1] >= 4:
+            pc_pairs.append((2, 3))
+        fig, axes = plt.subplots(1, len(pc_pairs), figsize=(7.5 * len(pc_pairs), 7))
+        axes = np.atleast_1d(axes)
+        for i, (ax, (px, py)) in enumerate(zip(axes, pc_pairs)):
+            draw_fn(ax, fig, px, py, i == 0)
+            self._axis_labels(ax, result, px, py)
+            ax.set_title(self._pc_pair_label(px, py))
+        fig.suptitle(suptitle)
+        fig.tight_layout()
+        return self._save(fig, f"{label}_stimulus_by_{slug}")
+
     def _plot_stimulus_scatter_categorical(
         self, result: StimulusPCAResult, scores: np.ndarray,
         compiled_data: pd.DataFrame, column: str, label: str,
-        pc_x: int, pc_y: int, cmap: str = 'tab20') -> Optional[str]:
-        """Stimuli in PCx/PCy score space, one color per discrete `column`
-        value (e.g. Lineage, Texture)."""
+        cmap: str = 'tab20') -> Optional[str]:
+        """Stimuli in PC space, one color per discrete `column` value
+        (e.g. Lineage, Texture)."""
         values = self._stim_value_lookup(compiled_data, column)
         if values is None:
             print(f"Skipping '{column}' scatter: column not available.")
@@ -417,33 +477,29 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
                             dtype=object)
         categories = [c for c in pd.unique(per_stim) if c is not None]
         color_map = plt.get_cmap(cmap)
-
-        fig, ax = plt.subplots(figsize=(7, 7))
-        # Missing values first, in light gray, so they don't crowd the legend.
         missing = per_stim == None  # noqa: E711  (elementwise on object array)
-        if missing.any():
-            ax.scatter(scores[missing, pc_x], scores[missing, pc_y], s=20,
-                       color='lightgray', alpha=0.6, label='(missing)')
-        for i, cat in enumerate(categories):
-            mask = per_stim == cat
-            ax.scatter(scores[mask, pc_x], scores[mask, pc_y], s=25, alpha=0.8,
-                       color=color_map(i % color_map.N), label=str(cat))
 
-        ax.set_title(f"Stimuli in PC space ({self._pc_pair_label(pc_x, pc_y)}, "
-                     f"colored by {column})")
-        self._axis_labels(ax, result, pc_x, pc_y)
-        # A legend is only useful for a manageable number of categories.
-        if len(categories) <= 20:
-            ax.legend(title=column, loc='best', fontsize=8, markerscale=1.2)
-        fig.tight_layout()
-        return self._save(
-            fig, f"{label}_stimulus_{self._pc_tag(pc_x, pc_y)}_by_{self._slug(column)}")
+        def draw(ax, fig, px, py, is_first):
+            if missing.any():
+                ax.scatter(scores[missing, px], scores[missing, py], s=20,
+                           color='lightgray', alpha=0.6,
+                           label='(missing)' if is_first else None)
+            for i, cat in enumerate(categories):
+                mask = per_stim == cat
+                ax.scatter(scores[mask, px], scores[mask, py], s=25, alpha=0.8,
+                           color=color_map(i % color_map.N),
+                           label=str(cat) if is_first else None)
+            if is_first and len(categories) <= 20:
+                ax.legend(title=column, loc='best', fontsize=8, markerscale=1.2)
+
+        return self._plot_coloring(
+            result, scores, label, self._slug(column),
+            f"Stimuli in PC space (colored by {column})", draw)
 
     def _plot_stimulus_scatter_continuous(
         self, result: StimulusPCAResult, scores: np.ndarray,
-        compiled_data: pd.DataFrame, column: str, label: str,
-        pc_x: int, pc_y: int) -> Optional[str]:
-        """Stimuli in PCx/PCy score space, colored by a continuous `column`
+        compiled_data: pd.DataFrame, column: str, label: str) -> Optional[str]:
+        """Stimuli in PC space, colored by a continuous `column`
         (e.g. GA Response) with a colorbar."""
         values = self._stim_value_lookup(compiled_data, column)
         if values is None:
@@ -453,29 +509,28 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         raw = [values.get(sid, np.nan) for sid in result.response_matrix.index]
         vals = pd.to_numeric(pd.Series(raw), errors='coerce').to_numpy()
         valid = ~np.isnan(vals)
+        # Shared color scale across panels so colors are directly comparable.
+        vmin = float(np.min(vals[valid])) if valid.any() else 0.0
+        vmax = float(np.max(vals[valid])) if valid.any() else 1.0
 
-        fig, ax = plt.subplots(figsize=(7.5, 7))
-        if (~valid).any():
-            ax.scatter(scores[~valid, pc_x], scores[~valid, pc_y], s=20,
-                       color='lightgray', alpha=0.6, label='(missing)')
-        sc = ax.scatter(scores[valid, pc_x], scores[valid, pc_y], c=vals[valid],
-                        cmap='viridis', s=28, alpha=0.9)
-        fig.colorbar(sc, ax=ax, label=column)
-        ax.set_title(f"Stimuli in PC space ({self._pc_pair_label(pc_x, pc_y)}, "
-                     f"colored by {column})")
-        self._axis_labels(ax, result, pc_x, pc_y)
-        fig.tight_layout()
-        return self._save(
-            fig, f"{label}_stimulus_{self._pc_tag(pc_x, pc_y)}_by_{self._slug(column)}")
+        def draw(ax, fig, px, py, is_first):
+            if (~valid).any():
+                ax.scatter(scores[~valid, px], scores[~valid, py], s=20,
+                           color='lightgray', alpha=0.6)
+            sc = ax.scatter(scores[valid, px], scores[valid, py], c=vals[valid],
+                            cmap='viridis', s=28, alpha=0.9, vmin=vmin, vmax=vmax)
+            fig.colorbar(sc, ax=ax, label=column)
+
+        return self._plot_coloring(
+            result, scores, label, self._slug(column),
+            f"Stimuli in PC space (colored by {column})", draw)
 
     def _plot_stimulus_scatter_rgb(
         self, result: StimulusPCAResult, scores: np.ndarray,
-        compiled_data: pd.DataFrame, column: str, label: str,
-        pc_x: int, pc_y: int) -> Optional[str]:
-        """Stimuli in PCx/PCy score space, colored by a 3-vector `column`
-        (e.g. MassCenter's x/y/z) mapped to RGB. Each component is min-max
-        normalized across stimuli, so two points with similar colors have
-        similar centers of mass."""
+        compiled_data: pd.DataFrame, column: str, label: str) -> Optional[str]:
+        """Stimuli in PC space, colored by a 3-vector `column` (e.g. MassCenter's
+        x/y/z) mapped to RGB. Each component is min-max normalized across
+        stimuli, so similar colors == similar centers of mass."""
         values = self._stim_value_lookup(compiled_data, column)
         if values is None:
             print(f"Skipping '{column}' RGB scatter: column not available.")
@@ -492,74 +547,166 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
             print(f"Skipping '{column}' RGB scatter: no parseable (x, y, z) values.")
             return None
 
-        # Min-max normalize each axis independently over the valid points.
         rgb = np.zeros((len(raw), 3))
         cmin = coords[valid].min(axis=0)
         cmax = coords[valid].max(axis=0)
         span = np.where((cmax - cmin) > 1e-12, cmax - cmin, 1.0)
         rgb[valid] = np.clip((coords[valid] - cmin) / span, 0.0, 1.0)
 
-        fig, ax = plt.subplots(figsize=(7.5, 7))
-        if (~valid).any():
-            ax.scatter(scores[~valid, pc_x], scores[~valid, pc_y], s=20,
-                       color='lightgray', alpha=0.5)
-        ax.scatter(scores[valid, pc_x], scores[valid, pc_y], c=rgb[valid],
-                   s=32, alpha=0.95, edgecolor='none')
-        ax.set_title(f"Stimuli in PC space ({self._pc_pair_label(pc_x, pc_y)}, "
-                     f"colored by {column} → RGB)")
-        self._axis_labels(ax, result, pc_x, pc_y)
-        ax.text(0.99, 0.01, "R = x   G = y   B = z\n(each min–max normalized)",
-                transform=ax.transAxes, ha='right', va='bottom', fontsize=8,
-                color='dimgray')
-        fig.tight_layout()
-        return self._save(
-            fig, f"{label}_stimulus_{self._pc_tag(pc_x, pc_y)}_by_{self._slug(column)}")
+        def draw(ax, fig, px, py, is_first):
+            if (~valid).any():
+                ax.scatter(scores[~valid, px], scores[~valid, py], s=20,
+                           color='lightgray', alpha=0.5)
+            ax.scatter(scores[valid, px], scores[valid, py], c=rgb[valid],
+                       s=32, alpha=0.95, edgecolor='none')
+            if is_first:
+                ax.text(0.99, 0.01, "R = x   G = y   B = z\n(each min–max normalized)",
+                        transform=ax.transAxes, ha='right', va='bottom',
+                        fontsize=8, color='dimgray')
 
-    def _plot_pc1_examples(self, result: StimulusPCAResult, scores: np.ndarray,
-                           compiled_data: pd.DataFrame, label: str,
-                           n_examples: int = 7) -> Optional[str]:
-        """Show example stimulus thumbnails sampled evenly (by rank) along PC1,
-        from the lowest PC1 score to the highest."""
+        return self._plot_coloring(
+            result, scores, label, self._slug(column),
+            f"Stimuli in PC space (colored by {column} → RGB)", draw)
+
+    def _plot_stimulus_scatter_alexnet(
+        self, result: StimulusPCAResult, scores: np.ndarray,
+        alexnet_pcs: dict, label: str) -> Optional[str]:
+        """Stimuli in (neural) PC space, colored by the first two PCs of their
+        AlexNet conv3 activations, mapped to a 2D color. Similar colors mean the
+        stimuli look geometrically similar to AlexNet -- overlaying this on the
+        neural PCA shows whether V4-clustered stimuli also look alike."""
+        raw = [alexnet_pcs.get(sid) for sid in result.response_matrix.index]
+        ab = np.full((len(raw), 2), np.nan)
+        for i, v in enumerate(raw):
+            if v is not None and len(v) >= 2:
+                ab[i] = [float(v[0]), float(v[1])]
+        valid = ~np.isnan(ab).any(axis=1)
+        if not valid.any():
+            print("Skipping AlexNet scatter: no usable coordinates.")
+            return None
+
+        colors = self._two_d_colors(ab, valid)
+
+        def draw(ax, fig, px, py, is_first):
+            if (~valid).any():
+                ax.scatter(scores[~valid, px], scores[~valid, py], s=20,
+                           color='lightgray', alpha=0.5)
+            ax.scatter(scores[valid, px], scores[valid, py], c=colors[valid],
+                       s=32, alpha=0.95, edgecolor='none')
+            if is_first:
+                self._add_2d_color_key(ax, "AlexNet PC1", "AlexNet PC2")
+
+        return self._plot_coloring(
+            result, scores, label, "alexnet_conv3_pca",
+            "Stimuli in PC space (colored by AlexNet conv3 PCA: PC1→x, PC2→y)", draw)
+
+    def _plot_pc_examples(self, result: StimulusPCAResult, scores: np.ndarray,
+                          compiled_data: pd.DataFrame, pc_idx: int, label: str,
+                          n_bins: int = 5, n_per_bin: int = 6) -> Optional[str]:
+        """Grid of example thumbnails for one PC: rows are equal-width value
+        ranges of the PC (high at top), each row showing several example stimuli
+        drawn from that range."""
         thumbs = self._stim_value_lookup(compiled_data, 'ThumbnailPath')
         if thumbs is None:
-            print("Skipping PC1 examples: 'ThumbnailPath' column not available.")
+            print(f"Skipping PC{pc_idx + 1} examples: 'ThumbnailPath' not available.")
             return None
 
         stim_ids = list(result.response_matrix.index)
-        pc1 = scores[:, 0]
-        order = np.argsort(pc1)  # ascending PC1
-        # Evenly spaced positions in rank space (robust to PC1 outliers).
-        n = min(n_examples, len(order))
-        picks = order[np.linspace(0, len(order) - 1, n).round().astype(int)]
+        pc = scores[:, pc_idx]
+        lo, hi = float(np.min(pc)), float(np.max(pc))
+        if hi - lo < 1e-12:
+            print(f"Skipping PC{pc_idx + 1} examples: no spread along this PC.")
+            return None
+        edges = np.linspace(lo, hi, n_bins + 1)
 
-        fig, axes = plt.subplots(1, n, figsize=(2.4 * n, 3.0))
-        if n == 1:
-            axes = [axes]
-        for ax, idx in zip(axes, picks):
-            sid = stim_ids[idx]
-            path = thumbs.get(sid)
-            ax.set_title(f"PC1={pc1[idx]:.2f}", fontsize=9)
-            ax.axis('off')
-            if path and os.path.exists(path):
-                try:
-                    ax.imshow(plt.imread(path))
-                except Exception as exc:  # unreadable image -> note it, keep going
-                    ax.text(0.5, 0.5, f"(unreadable)\n{exc}", ha='center',
-                            va='center', fontsize=6)
+        fig, axes = plt.subplots(n_bins, n_per_bin,
+                                 figsize=(2.0 * n_per_bin, 2.3 * n_bins),
+                                 squeeze=False)
+        for row in range(n_bins):
+            bin_idx = n_bins - 1 - row  # top row = highest range
+            b_lo, b_hi = edges[bin_idx], edges[bin_idx + 1]
+            if bin_idx == n_bins - 1:  # include the right edge in the top bin
+                in_bin = np.where((pc >= b_lo) & (pc <= b_hi))[0]
             else:
-                ax.text(0.5, 0.5, "(no thumbnail)", ha='center', va='center',
-                        fontsize=8, color='gray')
-        fig.suptitle("Example stimuli sampled along PC1 (low → high)")
+                in_bin = np.where((pc >= b_lo) & (pc < b_hi))[0]
+            in_bin = in_bin[np.argsort(pc[in_bin])]
+            if len(in_bin) > n_per_bin:
+                sel = in_bin[np.linspace(0, len(in_bin) - 1, n_per_bin).round().astype(int)]
+            else:
+                sel = in_bin
+
+            for col in range(n_per_bin):
+                ax = axes[row][col]
+                if col < len(sel):
+                    self._show_thumb(ax, thumbs.get(stim_ids[sel[col]]))
+                else:
+                    ax.axis('off')
+            # Range label on the leftmost cell (frame off, keep the y-label).
+            left = axes[row][0]
+            left.set_xticks([])
+            left.set_yticks([])
+            for spine in left.spines.values():
+                spine.set_visible(False)
+            left.set_ylabel(f"[{b_lo:.1f}, {b_hi:.1f}]\nn={len(in_bin)}",
+                            fontsize=8, rotation=0, ha='right', va='center', labelpad=28)
+
+        evr = result.explained_variance_ratio
+        fig.suptitle(f"Example stimuli by PC{pc_idx + 1} range "
+                     f"({evr[pc_idx] * 100:.1f}% var; top = high)")
         fig.tight_layout()
-        return self._save(fig, f"{label}_pc1_examples")
+        return self._save(fig, f"{label}_pc{pc_idx + 1}_examples")
+
+    @staticmethod
+    def _show_thumb(ax, path: Optional[str]) -> None:
+        ax.set_xticks([])
+        ax.set_yticks([])
+        if path and os.path.exists(path):
+            try:
+                ax.imshow(plt.imread(path))
+                return
+            except Exception:  # unreadable image -> placeholder, keep going
+                ax.text(0.5, 0.5, "(unreadable)", ha='center', va='center', fontsize=6)
+        else:
+            ax.text(0.5, 0.5, "(no thumb)", ha='center', va='center',
+                    fontsize=7, color='gray')
+
+    # ---- color helpers ---------------------------------------------------
+    @staticmethod
+    def _two_d_color_array(a_norm: np.ndarray, b_norm: np.ndarray) -> np.ndarray:
+        """Map two [0,1] coordinates to RGB via HSV (hue<-a, saturation<-b) so
+        nearby (a, b) get nearby colors."""
+        a = np.asarray(a_norm, dtype=float)
+        b = np.asarray(b_norm, dtype=float)
+        h = 0.7 * a                      # hue sweeps red->blue across PC1
+        s = 0.35 + 0.6 * b               # saturation grows with PC2
+        v = np.full_like(h, 0.95)
+        return mcolors.hsv_to_rgb(np.stack([h, s, v], axis=-1))
+
+    def _two_d_colors(self, ab: np.ndarray, valid: np.ndarray) -> np.ndarray:
+        """Per-point RGB for an (n, 2) array, min-max normalized over `valid`."""
+        out = np.zeros((len(ab), 3))
+        sub = ab[valid]
+        mn, mx = sub.min(axis=0), sub.max(axis=0)
+        span = np.where((mx - mn) > 1e-12, mx - mn, 1.0)
+        norm = (sub - mn) / span
+        out[valid] = self._two_d_color_array(norm[:, 0], norm[:, 1])
+        return out
+
+    def _add_2d_color_key(self, ax, xlabel: str, ylabel: str) -> None:
+        """Inset showing the 2D color map, so the scatter colors are readable."""
+        cax = inset_axes(ax, width="26%", height="26%", loc='lower right')
+        n = 50
+        aa, bb = np.meshgrid(np.linspace(0, 1, n), np.linspace(0, 1, n))
+        grid = self._two_d_color_array(aa.ravel(), bb.ravel()).reshape(n, n, 3)
+        cax.imshow(grid, origin='lower', extent=[0, 1, 0, 1], aspect='auto')
+        cax.set_xticks([])
+        cax.set_yticks([])
+        cax.set_xlabel(xlabel, fontsize=6)
+        cax.set_ylabel(ylabel, fontsize=6)
 
     @staticmethod
     def _slug(column: str) -> str:
         return column.strip().lower().replace(' ', '_')
-
-    @staticmethod
-    def _pc_tag(pc_x: int, pc_y: int) -> str:
-        return f"pc{pc_x + 1}_pc{pc_y + 1}"
 
     @staticmethod
     def _pc_pair_label(pc_x: int, pc_y: int) -> str:
