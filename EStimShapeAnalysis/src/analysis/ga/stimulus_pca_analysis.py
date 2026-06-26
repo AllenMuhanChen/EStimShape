@@ -447,7 +447,9 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         self._highlight_items = items
 
         summary = ", ".join(f"{int(m.sum())} {r}" for r, m in masks.items())
-        print(f"Highlighting {summary}.")
+        print(f"Highlighting {summary}:")
+        for _pos, sid, role, letter in items:
+            print(f"  {letter} = {sid} ({role})")
         return masks
 
     def _resolve_highlight_roles(self, compiled_data: pd.DataFrame) -> dict:
@@ -553,12 +555,17 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         ax.set_ylabel(f"PC{pc_y + 1} ({evr[pc_y] * 100:.1f}%)")
 
     def _plot_coloring(self, result: StimulusPCAResult, scores: np.ndarray,
-                       label: str, slug: str, suptitle: str, draw_fn) -> str:
+                       label: str, slug: str, suptitle: str, draw_fn,
+                       right_pad_in: float = 0.0) -> str:
         """One figure with PC1/PC2 (and PC3/PC4 when >=4 PCs exist) side by side.
 
-        ``draw_fn(ax, fig, pc_x, pc_y, is_first)`` paints a single panel; the
-        legend/colorbar/key should only be drawn on the first panel
-        (``is_first``) to avoid duplication.
+        ``draw_fn(ax, fig, pc_x, pc_y, is_first, is_last)`` paints a single
+        panel; the legend/colorbar should be drawn only on the first panel and a
+        right-margin key only on the last, to avoid duplication.
+
+        ``right_pad_in`` reserves that many inches of right margin (e.g. for the
+        AlexNet color key) so it stays inside the figure for both plt.show() and
+        the saved PNG.
         """
         pc_pairs = [(0, 1)]
         if scores.shape[1] >= 4:
@@ -566,15 +573,15 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
 
         # Reserve real space at the bottom for the highlight legend so it is
         # inside the figure for BOTH plt.show() and the saved PNG (a negative-y
-        # fig.text falls off the interactive canvas).
+        # fig.text falls off the interactive canvas). Same idea for the right
+        # margin via right_pad_in.
         caption = self._highlight_caption()
         n_cap_lines = caption.count('\n') + 1 if caption else 0
         extra_h = 0.32 * n_cap_lines  # inches of bottom band for the legend
 
-        base_h = 7.0
-        fig_h = base_h + extra_h
-        fig, axes = plt.subplots(1, len(pc_pairs),
-                                 figsize=(7.5 * len(pc_pairs), fig_h))
+        fig_h = 7.0 + extra_h
+        fig_w = 7.5 * len(pc_pairs) + right_pad_in
+        fig, axes = plt.subplots(1, len(pc_pairs), figsize=(fig_w, fig_h))
         axes = np.atleast_1d(axes)
         last = len(pc_pairs) - 1
         for i, (ax, (px, py)) in enumerate(zip(axes, pc_pairs)):
@@ -584,13 +591,12 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
             ax.set_title(self._pc_pair_label(px, py))
         fig.suptitle(suptitle)
 
+        bottom_frac = (extra_h + 0.25) / fig_h if caption else 0.0
+        right_frac = 1.0 - (right_pad_in / fig_w) if right_pad_in else 1.0
+        fig.tight_layout(rect=[0, bottom_frac, right_frac, 1])
         if caption:
-            bottom_frac = (extra_h + 0.25) / fig_h
-            fig.tight_layout(rect=[0, bottom_frac, 1, 1])
-            fig.text(0.5, bottom_frac * 0.55, caption, ha='center', va='center',
-                     fontsize=8, family='monospace')
-        else:
-            fig.tight_layout()
+            fig.text(0.5 * right_frac, bottom_frac * 0.55, caption,
+                     ha='center', va='center', fontsize=8, family='monospace')
         return self._save(fig, f"{label}_stimulus_by_{slug}")
 
     # Ring color + label per highlight role.
@@ -775,7 +781,8 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
 
         return self._plot_coloring(
             result, scores, label, "alexnet_conv3_pca",
-            "Stimuli in PC space (colored by AlexNet conv3 PCA: PC1→x, PC2→y)", draw)
+            "Stimuli in PC space (colored by AlexNet conv3 PCA: PC1→x, PC2→y)", draw,
+            right_pad_in=2.0)  # reserve room for the color key
 
     def _plot_pc_examples(self, result: StimulusPCAResult, scores: np.ndarray,
                           compiled_data: pd.DataFrame, pc_idx: int, label: str,
@@ -893,11 +900,12 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         return out
 
     def _add_2d_color_key(self, ax, xlabel: str, ylabel: str) -> None:
-        """Small 2D color-map key placed *outside* the right edge of `ax` (in the
-        figure margin) so it never covers data points."""
+        """Small 2D color-map key placed *outside* the right edge of `ax`, in the
+        margin reserved via _plot_coloring(right_pad_in=...), so it never covers
+        data points and stays inside the figure for plt.show()."""
         cax = inset_axes(
             ax, width="100%", height="100%",
-            bbox_to_anchor=(1.03, 0.30, 0.16, 0.30),  # x0, y0, w, h in axes frac
+            bbox_to_anchor=(1.06, 0.38, 0.22, 0.24),  # x0, y0, w, h in axes frac
             bbox_transform=ax.transAxes, loc='lower left', borderpad=0,
         )
         n = 50
