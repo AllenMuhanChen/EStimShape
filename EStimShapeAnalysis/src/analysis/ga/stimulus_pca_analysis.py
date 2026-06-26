@@ -31,13 +31,14 @@ reuses that class's GA compile / import / export pipeline, and overrides
 and loadings figures, and cluster the channels by their loadings.
 """
 
+import os
 from dataclasses import dataclass, field
 from typing import Optional, Sequence
 
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from scipy.cluster.hierarchy import dendrogram, fcluster, linkage
+from scipy.cluster.hierarchy import fcluster, linkage
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
@@ -309,13 +310,20 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
     def _plot_all(self, result: StimulusPCAResult, scores: np.ndarray,
                   n_loading_pcs: int, compiled_data: pd.DataFrame) -> None:
         label = self._label()
-        result.figure_paths = [
+        paths = [
             self._plot_scree(result, label),
             self._plot_loadings_heatmap(result, label),
-            self._plot_channel_dendrogram(result, n_loading_pcs, label),
-            self._plot_channel_loading_space(result, n_loading_pcs, label),
-            self._plot_stimulus_scatter(result, scores, compiled_data, label),
+            # Stimuli in PC space, colored three different ways.
+            self._plot_stimulus_scatter_categorical(
+                result, scores, compiled_data, 'Lineage', label, cmap='tab20'),
+            self._plot_stimulus_scatter_continuous(
+                result, scores, compiled_data, 'GA Response', label),
+            self._plot_stimulus_scatter_categorical(
+                result, scores, compiled_data, 'Texture', label, cmap='Set1'),
+            # Example thumbnails sampled along PC1.
+            self._plot_pc1_examples(result, scores, compiled_data, label),
         ]
+        result.figure_paths = [p for p in paths if p is not None]
 
     def _label(self) -> str:
         suffix = "_std" if self.standardize else ""
@@ -382,76 +390,124 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         fig.tight_layout()
         return self._save(fig, f"{label}_loadings_heatmap")
 
-    def _plot_channel_dendrogram(self, result: StimulusPCAResult, n_loading_pcs: int,
-                                 label: str) -> str:
-        fig, ax = plt.subplots(figsize=(max(8, len(result.loadings) * 0.28), 5))
-        dendrogram(
-            result.linkage_matrix,
-            labels=list(result.loadings.index),
-            ax=ax,
-            leaf_rotation=90,
-            leaf_font_size=7,
-        )
-        ax.set_title(
-            f"Channel clustering by loadings (first {n_loading_pcs} PCs)"
-        )
-        ax.set_ylabel("Distance")
-        fig.tight_layout()
-        return self._save(fig, f"{label}_channel_dendrogram")
-
-    def _plot_channel_loading_space(self, result: StimulusPCAResult,
-                                    n_loading_pcs: int, label: str) -> str:
-        loadings = result.loadings
-        x = loadings['PC1'].to_numpy()
-        y = loadings['PC2'].to_numpy()
-        clusters = np.array([result.channel_clusters[ch] for ch in loadings.index])
-
-        fig, ax = plt.subplots(figsize=(7, 7))
-        scatter = ax.scatter(x, y, c=clusters, cmap='tab10', s=60,
-                             edgecolor='black', linewidth=0.5)
-        for ch, xi, yi in zip(loadings.index, x, y):
-            ax.annotate(ch.split('-')[-1], (xi, yi), fontsize=7,
-                        xytext=(3, 3), textcoords='offset points')
-        ax.axhline(0, color='gray', linewidth=0.5)
-        ax.axvline(0, color='gray', linewidth=0.5)
-        ax.set_xlabel("PC1 loading")
-        ax.set_ylabel("PC2 loading")
-        ax.set_title("Channels in loading space (colored by cluster)")
-        legend = ax.legend(*scatter.legend_elements(), title="Cluster",
-                           loc='best', fontsize=8)
-        ax.add_artist(legend)
-        fig.tight_layout()
-        return self._save(fig, f"{label}_channel_loading_space")
-
-    def _plot_stimulus_scatter(self, result: StimulusPCAResult, scores: np.ndarray,
-                               compiled_data: pd.DataFrame, label: str) -> str:
-        """Stimuli as points in PC1/PC2 score space, colored by lineage when
-        available -- the direct analog of the cluster_app scatter, flipped."""
-        fig, ax = plt.subplots(figsize=(7, 7))
-
-        lineage_by_stim = self._lineage_lookup(compiled_data)
-        if lineage_by_stim is not None:
-            lineages = [lineage_by_stim.get(sid, -1) for sid in result.response_matrix.index]
-            codes = pd.factorize(np.asarray(lineages))[0]
-            sc = ax.scatter(scores[:, 0], scores[:, 1], c=codes, cmap='tab20',
-                            s=25, alpha=0.8)
-            ax.set_title("Stimuli in PC space (colored by lineage)")
-        else:
-            ax.scatter(scores[:, 0], scores[:, 1], s=25, alpha=0.8, color='steelblue')
-            ax.set_title("Stimuli in PC space")
-
+    def _axis_labels(self, ax, result: StimulusPCAResult) -> None:
         evr = result.explained_variance_ratio
         ax.set_xlabel(f"PC1 ({evr[0] * 100:.1f}%)")
         ax.set_ylabel(f"PC2 ({evr[1] * 100:.1f}%)")
+
+    def _plot_stimulus_scatter_categorical(
+        self, result: StimulusPCAResult, scores: np.ndarray,
+        compiled_data: pd.DataFrame, column: str, label: str,
+        cmap: str = 'tab20') -> Optional[str]:
+        """Stimuli in PC1/PC2 score space, one color per discrete `column`
+        value (e.g. Lineage, Texture)."""
+        values = self._stim_value_lookup(compiled_data, column)
+        if values is None:
+            print(f"Skipping '{column}' scatter: column not available.")
+            return None
+
+        per_stim = np.array([values.get(sid, None) for sid in result.response_matrix.index],
+                            dtype=object)
+        categories = [c for c in pd.unique(per_stim) if c is not None]
+        color_map = plt.get_cmap(cmap)
+
+        fig, ax = plt.subplots(figsize=(7, 7))
+        # Missing values first, in light gray, so they don't crowd the legend.
+        missing = per_stim == None  # noqa: E711  (elementwise on object array)
+        if missing.any():
+            ax.scatter(scores[missing, 0], scores[missing, 1], s=20,
+                       color='lightgray', alpha=0.6, label='(missing)')
+        for i, cat in enumerate(categories):
+            mask = per_stim == cat
+            ax.scatter(scores[mask, 0], scores[mask, 1], s=25, alpha=0.8,
+                       color=color_map(i % color_map.N), label=str(cat))
+
+        ax.set_title(f"Stimuli in PC space (colored by {column})")
+        self._axis_labels(ax, result)
+        # A legend is only useful for a manageable number of categories.
+        if len(categories) <= 20:
+            ax.legend(title=column, loc='best', fontsize=8, markerscale=1.2)
         fig.tight_layout()
-        return self._save(fig, f"{label}_stimulus_scatter")
+        return self._save(fig, f"{label}_stimulus_pc_by_{self._slug(column)}")
+
+    def _plot_stimulus_scatter_continuous(
+        self, result: StimulusPCAResult, scores: np.ndarray,
+        compiled_data: pd.DataFrame, column: str, label: str) -> Optional[str]:
+        """Stimuli in PC1/PC2 score space, colored by a continuous `column`
+        (e.g. GA Response) with a colorbar."""
+        values = self._stim_value_lookup(compiled_data, column)
+        if values is None:
+            print(f"Skipping '{column}' scatter: column not available.")
+            return None
+
+        raw = [values.get(sid, np.nan) for sid in result.response_matrix.index]
+        vals = pd.to_numeric(pd.Series(raw), errors='coerce').to_numpy()
+        valid = ~np.isnan(vals)
+
+        fig, ax = plt.subplots(figsize=(7.5, 7))
+        if (~valid).any():
+            ax.scatter(scores[~valid, 0], scores[~valid, 1], s=20,
+                       color='lightgray', alpha=0.6, label='(missing)')
+        sc = ax.scatter(scores[valid, 0], scores[valid, 1], c=vals[valid],
+                        cmap='viridis', s=28, alpha=0.9)
+        fig.colorbar(sc, ax=ax, label=column)
+        ax.set_title(f"Stimuli in PC space (colored by {column})")
+        self._axis_labels(ax, result)
+        fig.tight_layout()
+        return self._save(fig, f"{label}_stimulus_pc_by_{self._slug(column)}")
+
+    def _plot_pc1_examples(self, result: StimulusPCAResult, scores: np.ndarray,
+                           compiled_data: pd.DataFrame, label: str,
+                           n_examples: int = 7) -> Optional[str]:
+        """Show example stimulus thumbnails sampled evenly (by rank) along PC1,
+        from the lowest PC1 score to the highest."""
+        thumbs = self._stim_value_lookup(compiled_data, 'ThumbnailPath')
+        if thumbs is None:
+            print("Skipping PC1 examples: 'ThumbnailPath' column not available.")
+            return None
+
+        stim_ids = list(result.response_matrix.index)
+        pc1 = scores[:, 0]
+        order = np.argsort(pc1)  # ascending PC1
+        # Evenly spaced positions in rank space (robust to PC1 outliers).
+        n = min(n_examples, len(order))
+        picks = order[np.linspace(0, len(order) - 1, n).round().astype(int)]
+
+        fig, axes = plt.subplots(1, n, figsize=(2.4 * n, 3.0))
+        if n == 1:
+            axes = [axes]
+        for ax, idx in zip(axes, picks):
+            sid = stim_ids[idx]
+            path = thumbs.get(sid)
+            ax.set_title(f"PC1={pc1[idx]:.2f}", fontsize=9)
+            ax.axis('off')
+            if path and os.path.exists(path):
+                try:
+                    ax.imshow(plt.imread(path))
+                except Exception as exc:  # unreadable image -> note it, keep going
+                    ax.text(0.5, 0.5, f"(unreadable)\n{exc}", ha='center',
+                            va='center', fontsize=6)
+            else:
+                ax.text(0.5, 0.5, "(no thumbnail)", ha='center', va='center',
+                        fontsize=8, color='gray')
+        fig.suptitle("Example stimuli sampled along PC1 (low → high)")
+        fig.tight_layout()
+        return self._save(fig, f"{label}_pc1_examples")
 
     @staticmethod
-    def _lineage_lookup(compiled_data: pd.DataFrame) -> Optional[dict]:
-        if compiled_data is None or 'Lineage' not in compiled_data.columns:
+    def _slug(column: str) -> str:
+        return column.strip().lower().replace(' ', '_')
+
+    @staticmethod
+    def _stim_value_lookup(compiled_data: pd.DataFrame, column: str) -> Optional[dict]:
+        """Map StimSpecId -> per-stimulus value for `column`, or None if the
+        column is absent."""
+        if compiled_data is None or column not in compiled_data.columns:
             return None
-        sub = compiled_data[['StimSpecId', 'Lineage']].dropna().drop_duplicates('StimSpecId')
-        return dict(zip(sub['StimSpecId'], sub['Lineage']))
+        sub = (compiled_data[['StimSpecId', column]]
+               .dropna(subset=['StimSpecId'])
+               .drop_duplicates('StimSpecId'))
+        return dict(zip(sub['StimSpecId'], sub[column]))
 
 
 if __name__ == "__main__":
