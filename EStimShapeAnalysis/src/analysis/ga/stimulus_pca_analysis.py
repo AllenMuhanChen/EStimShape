@@ -58,6 +58,14 @@ PROBE_CHANNELS = [f"A-{i:03d}" for i in CHANNEL_ORDER]
 # is enough").
 VARIANCE_THRESHOLDS = (0.80, 0.90, 0.95)
 
+# StimTypes always dropped from the analysis (and therefore every plot), on top
+# of these defaults. Shuffle side-test stimuli are control conditions, not part
+# of the encoding population we want to characterize.
+DEFAULT_EXCLUDED_STIM_TYPES = ("SHUFFLE_PIXEL", "SHUFFLE_PHASE", "SHUFFLE_MAGNITUDE")
+
+# Non-stimulus rows that are always dropped regardless of the exclusion list.
+ALWAYS_EXCLUDED_STIM_TYPES = ("BASELINE", "CATCH")
+
 
 @dataclass
 class StimulusPCAResult:
@@ -170,6 +178,10 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
             ``None`` falls back to the ``IncludedDeltas`` table (the included
             REGIME_ESTIM_DELTA stimuli and their paired REGIME_ESTIM_VARIANTS),
             which already carry their roles.
+        excluded_stim_types: StimTypes to drop from the whole analysis (PCA and
+            every plot). Defaults to the shuffle side-test controls
+            (``DEFAULT_EXCLUDED_STIM_TYPES``); pass a list/set to override, or
+            ``[]`` to keep everything. BASELINE/CATCH are always dropped.
     """
 
     logging_path = context.logging_path
@@ -185,6 +197,7 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         alexnet_embedder=None,
         alexnet_pcs: Optional[dict] = None,
         highlighted_stim_ids: Optional[set] = None,
+        excluded_stim_types: Optional[Sequence[str]] = None,
         use_baseline_correction: bool = False,
     ):
         super().__init__(use_baseline_correction=use_baseline_correction)
@@ -196,6 +209,9 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         self.alexnet_embedder = alexnet_embedder
         self.alexnet_pcs = alexnet_pcs
         self.highlighted_stim_ids = highlighted_stim_ids
+        self.excluded_stim_types = (list(DEFAULT_EXCLUDED_STIM_TYPES)
+                                    if excluded_stim_types is None
+                                    else list(excluded_stim_types))
         # {role -> boolean mask over response_matrix.index}, set in _plot_all.
         self._highlight_roles = None
         # [(position, stim_id, role, letter), ...] for per-point labels + legend.
@@ -251,9 +267,19 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         (n_stimuli x n_channels) matrix."""
         data = compiled_data.copy()
 
-        # Drop non-stimulus rows (baselines / catch trials) when typed.
+        # Drop non-stimulus rows (baseline/catch) and any user-excluded StimTypes.
+        # Filtering here removes them from the PCA and, since every plot keys off
+        # response_matrix.index, from all plots too.
         if 'StimType' in data.columns:
-            data = data[~data['StimType'].isin(['BASELINE', 'CATCH'])]
+            dropped = list(ALWAYS_EXCLUDED_STIM_TYPES) + list(self.excluded_stim_types)
+            before = data['StimSpecId'].nunique()
+            data = data[~data['StimType'].isin(dropped)]
+            after = data['StimSpecId'].nunique()
+            if self.excluded_stim_types:
+                print(f"Excluding StimTypes {sorted(set(self.excluded_stim_types))}: "
+                      f"{before - after} stimulus(es) dropped, {after} remain.")
+        elif self.excluded_stim_types:
+            print("StimType column absent; cannot apply excluded_stim_types.")
 
         spike_rates_col = self.spike_rates_col  # 'Spike Rate by channel' for raw
         data = data[data[spike_rates_col].notna()]
