@@ -198,6 +198,8 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         self.highlighted_stim_ids = highlighted_stim_ids
         # {role -> boolean mask over response_matrix.index}, set in _plot_all.
         self._highlight_roles = None
+        # [(position, stim_id, role, letter), ...] for per-point labels + legend.
+        self._highlight_items = None
 
     # ---- main entry point ------------------------------------------------
     def analyze(self, channel, compiled_data: pd.DataFrame = None) -> StimulusPCAResult:
@@ -430,7 +432,20 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
                 masks[role] = mask
         if not masks:
             print("No highlighted (included delta/variant) stimuli are in this data.")
+            self._highlight_items = None
             return None
+
+        # Assign a stable letter (A, B, C, ...) to each highlighted stimulus,
+        # grouped by role then stim id, for per-point labels + the legend.
+        stim_ids = list(result.response_matrix.index)
+        items = [[pos, stim_ids[pos], role_per_index[pos]]
+                 for pos in range(len(stim_ids))
+                 if role_per_index[pos] in ('delta', 'variant', 'highlight')]
+        items.sort(key=lambda t: (t[2], t[1]))
+        for k, item in enumerate(items):
+            item.append(self._letter(k))
+        self._highlight_items = items
+
         summary = ", ".join(f"{int(m.sum())} {r}" for r, m in masks.items())
         print(f"Highlighting {summary}.")
         return masks
@@ -550,13 +565,19 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
             pc_pairs.append((2, 3))
         fig, axes = plt.subplots(1, len(pc_pairs), figsize=(7.5 * len(pc_pairs), 7))
         axes = np.atleast_1d(axes)
+        last = len(pc_pairs) - 1
         for i, (ax, (px, py)) in enumerate(zip(axes, pc_pairs)):
-            draw_fn(ax, fig, px, py, i == 0)
+            draw_fn(ax, fig, px, py, i == 0, i == last)
             self._draw_highlights(ax, scores, px, py, annotate=(i == 0))
             self._axis_labels(ax, result, px, py)
             ax.set_title(self._pc_pair_label(px, py))
         fig.suptitle(suptitle)
         fig.tight_layout()
+        caption = self._highlight_caption()
+        if caption:
+            # Below the axes; bbox_inches='tight' at save time keeps it in frame.
+            fig.text(0.5, -0.02, caption, ha='center', va='top', fontsize=8,
+                     family='monospace')
         return self._save(fig, f"{label}_stimulus_by_{slug}")
 
     # Ring color + label per highlight role.
@@ -568,8 +589,8 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
 
     def _draw_highlights(self, ax, scores: np.ndarray, pc_x: int, pc_y: int,
                          annotate: bool) -> None:
-        """Ring the highlighted stimuli on a panel, one ring color per role
-        (variant vs delta)."""
+        """Ring the highlighted stimuli on a panel (one ring color per role) and
+        label each with its letter; the letter->id legend is added per-figure."""
         roles = self._highlight_roles
         if not roles:
             return
@@ -584,6 +605,24 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
                         fontsize=8, color=color,
                         bbox=dict(boxstyle='round', fc='white', ec='gray', alpha=0.75))
                 y += 0.05
+        # Letter labels next to each ringed point (on every panel).
+        for pos, _sid, role, letter in (self._highlight_items or []):
+            color = self.HIGHLIGHT_STYLE.get(role, ('black', role))[0]
+            ax.annotate(letter, (scores[pos, pc_x], scores[pos, pc_y]),
+                        xytext=(5, 5), textcoords='offset points',
+                        fontsize=9, fontweight='bold', color=color, zorder=7)
+
+    def _highlight_caption(self) -> Optional[str]:
+        """A 'A = <id> (role)' legend for the ringed stimuli, wrapped a few per
+        line, to print beneath the figure."""
+        items = self._highlight_items
+        if not items:
+            return None
+        entries = [f"{letter} = {sid} ({role})" for _pos, sid, role, letter in items]
+        per_line = 4
+        lines = ["    ".join(entries[i:i + per_line])
+                 for i in range(0, len(entries), per_line)]
+        return "Highlighted stimuli:\n" + "\n".join(lines)
 
     def _plot_stimulus_scatter_categorical(
         self, result: StimulusPCAResult, scores: np.ndarray,
@@ -603,7 +642,7 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         colors = self._category_colors(len(categories), cmap)
         missing = per_stim == None  # noqa: E711  (elementwise on object array)
 
-        def draw(ax, fig, px, py, is_first):
+        def draw(ax, fig, px, py, is_first, is_last):
             if missing.any():
                 ax.scatter(scores[missing, px], scores[missing, py], s=20,
                            color='lightgray', alpha=0.6,
@@ -637,7 +676,7 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         vmin = float(np.min(vals[valid])) if valid.any() else 0.0
         vmax = float(np.max(vals[valid])) if valid.any() else 1.0
 
-        def draw(ax, fig, px, py, is_first):
+        def draw(ax, fig, px, py, is_first, is_last):
             if (~valid).any():
                 ax.scatter(scores[~valid, px], scores[~valid, py], s=20,
                            color='lightgray', alpha=0.6)
@@ -677,7 +716,7 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         span = np.where((cmax - cmin) > 1e-12, cmax - cmin, 1.0)
         rgb[valid] = np.clip((coords[valid] - cmin) / span, 0.0, 1.0)
 
-        def draw(ax, fig, px, py, is_first):
+        def draw(ax, fig, px, py, is_first, is_last):
             if (~valid).any():
                 ax.scatter(scores[~valid, px], scores[~valid, py], s=20,
                            color='lightgray', alpha=0.5)
@@ -711,13 +750,14 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
 
         colors = self._two_d_colors(ab, valid)
 
-        def draw(ax, fig, px, py, is_first):
+        def draw(ax, fig, px, py, is_first, is_last):
             if (~valid).any():
                 ax.scatter(scores[~valid, px], scores[~valid, py], s=20,
                            color='lightgray', alpha=0.5)
             ax.scatter(scores[valid, px], scores[valid, py], c=colors[valid],
                        s=32, alpha=0.95, edgecolor='none')
-            if is_first:
+            # Color key sits outside the right edge of the last panel.
+            if is_last:
                 self._add_2d_color_key(ax, "AlexNet PC1", "AlexNet PC2")
 
         return self._plot_coloring(
@@ -818,14 +858,16 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
 
     @staticmethod
     def _two_d_color_array(a_norm: np.ndarray, b_norm: np.ndarray) -> np.ndarray:
-        """Map two [0,1] coordinates to RGB via HSV (hue<-a, saturation<-b) so
-        nearby (a, b) get nearby colors."""
+        """Map two [0,1] coordinates to RGB with each axis on its own, strongly
+        varying channel: PC1 -> red, PC2 -> green (constant blue floor so nothing
+        is pure black). Both axes are then clearly visible — unlike saturation,
+        a change in PC2 is an obvious green shift."""
         a = np.asarray(a_norm, dtype=float)
         b = np.asarray(b_norm, dtype=float)
-        h = 0.7 * a                      # hue sweeps red->blue across PC1
-        s = 0.35 + 0.6 * b               # saturation grows with PC2
-        v = np.full_like(h, 0.95)
-        return mcolors.hsv_to_rgb(np.stack([h, s, v], axis=-1))
+        r = a
+        g = b
+        blue = np.full_like(a, 0.35)
+        return np.clip(np.stack([r, g, blue], axis=-1), 0.0, 1.0)
 
     def _two_d_colors(self, ab: np.ndarray, valid: np.ndarray) -> np.ndarray:
         """Per-point RGB for an (n, 2) array, min-max normalized over `valid`."""
@@ -838,16 +880,22 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         return out
 
     def _add_2d_color_key(self, ax, xlabel: str, ylabel: str) -> None:
-        """Inset showing the 2D color map, so the scatter colors are readable."""
-        cax = inset_axes(ax, width="26%", height="26%", loc='lower right')
+        """Small 2D color-map key placed *outside* the right edge of `ax` (in the
+        figure margin) so it never covers data points."""
+        cax = inset_axes(
+            ax, width="100%", height="100%",
+            bbox_to_anchor=(1.03, 0.30, 0.16, 0.30),  # x0, y0, w, h in axes frac
+            bbox_transform=ax.transAxes, loc='lower left', borderpad=0,
+        )
         n = 50
         aa, bb = np.meshgrid(np.linspace(0, 1, n), np.linspace(0, 1, n))
         grid = self._two_d_color_array(aa.ravel(), bb.ravel()).reshape(n, n, 3)
         cax.imshow(grid, origin='lower', extent=[0, 1, 0, 1], aspect='auto')
         cax.set_xticks([])
         cax.set_yticks([])
-        cax.set_xlabel(xlabel, fontsize=6)
-        cax.set_ylabel(ylabel, fontsize=6)
+        cax.set_xlabel(xlabel, fontsize=7)
+        cax.set_ylabel(ylabel, fontsize=7)
+        cax.set_title("color key", fontsize=7)
 
     @staticmethod
     def _slug(column: str) -> str:
@@ -856,6 +904,16 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
     @staticmethod
     def _pc_pair_label(pc_x: int, pc_y: int) -> str:
         return f"PC{pc_x + 1} vs PC{pc_y + 1}"
+
+    @staticmethod
+    def _letter(k: int) -> str:
+        """0->A, 1->B, ... 25->Z, 26->AA, 27->AB, ... (spreadsheet-style)."""
+        s = ""
+        k += 1
+        while k > 0:
+            k, r = divmod(k - 1, 26)
+            s = chr(65 + r) + s
+        return s
 
     @staticmethod
     def _to_xyz(value) -> Optional[np.ndarray]:
