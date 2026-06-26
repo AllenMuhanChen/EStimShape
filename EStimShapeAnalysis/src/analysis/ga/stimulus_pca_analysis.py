@@ -563,7 +563,18 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         pc_pairs = [(0, 1)]
         if scores.shape[1] >= 4:
             pc_pairs.append((2, 3))
-        fig, axes = plt.subplots(1, len(pc_pairs), figsize=(7.5 * len(pc_pairs), 7))
+
+        # Reserve real space at the bottom for the highlight legend so it is
+        # inside the figure for BOTH plt.show() and the saved PNG (a negative-y
+        # fig.text falls off the interactive canvas).
+        caption = self._highlight_caption()
+        n_cap_lines = caption.count('\n') + 1 if caption else 0
+        extra_h = 0.32 * n_cap_lines  # inches of bottom band for the legend
+
+        base_h = 7.0
+        fig_h = base_h + extra_h
+        fig, axes = plt.subplots(1, len(pc_pairs),
+                                 figsize=(7.5 * len(pc_pairs), fig_h))
         axes = np.atleast_1d(axes)
         last = len(pc_pairs) - 1
         for i, (ax, (px, py)) in enumerate(zip(axes, pc_pairs)):
@@ -572,12 +583,14 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
             self._axis_labels(ax, result, px, py)
             ax.set_title(self._pc_pair_label(px, py))
         fig.suptitle(suptitle)
-        fig.tight_layout()
-        caption = self._highlight_caption()
+
         if caption:
-            # Below the axes; bbox_inches='tight' at save time keeps it in frame.
-            fig.text(0.5, -0.02, caption, ha='center', va='top', fontsize=8,
-                     family='monospace')
+            bottom_frac = (extra_h + 0.25) / fig_h
+            fig.tight_layout(rect=[0, bottom_frac, 1, 1])
+            fig.text(0.5, bottom_frac * 0.55, caption, ha='center', va='center',
+                     fontsize=8, family='monospace')
+        else:
+            fig.tight_layout()
         return self._save(fig, f"{label}_stimulus_by_{slug}")
 
     # Ring color + label per highlight role.
@@ -619,8 +632,8 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         if not items:
             return None
         entries = [f"{letter} = {sid} ({role})" for _pos, sid, role, letter in items]
-        per_line = 4
-        lines = ["    ".join(entries[i:i + per_line])
+        per_line = 3
+        lines = ["     ".join(entries[i:i + per_line])
                  for i in range(0, len(entries), per_line)]
         return "Highlighted stimuli:\n" + "\n".join(lines)
 
