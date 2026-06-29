@@ -140,6 +140,7 @@ def _get_all_trials_ordered(session_id):
     df = pd.DataFrame(rows, columns=[
         'trial_start', 'is_estim_on', 'is_hypothesized_choice', 'choice',
         'trial_type', 'noise_chance', 'sample_length', 'estim_spec_id',
+        'num_choices', 'num_procedural_distractors', 'num_rand_distractors',
         'polarity', 'shape', 'num_channels', 'a1',
         'post_stim_refractory_period', 'enable_charge_recovery',
     ])
