@@ -27,31 +27,44 @@ public class NAFCDatabaseTaskDataSource extends DatabaseTaskDataSource {
 	UngetPolicy ungetBehavior;
 	@Dependency
 	int ungetTaskThreshold;
+	@Dependency
+	boolean pruneDeletedTasks = true;
 
 	AtomicReference<LinkedList<NAFCExperimentTask>> currentGeneration = new AtomicReference<LinkedList<NAFCExperimentTask>>();
 	ThreadHelper threadHelper = new ThreadHelper("DatabaseTaskDataSource", this);
 	long currentGenId = -1;
 	long lastDoneTaskId = -1;
 
+	/**
+	 * Guards compound read/modify operations on the queue held in
+	 * {@link #currentGeneration}. Shared by {@link #getNextTask()},
+	 * {@link #ungetTask(NAFCExperimentTask)} and the prune/append steps in
+	 * {@link #run()} so that pruning deleted tasks cannot corrupt the list while
+	 * the experiment thread is taking from it.
+	 */
+	private final Object queueLock = new Object();
+
 	public boolean isRunning() {
 		return threadHelper.isRunning();
 	}
 
 	public NAFCExperimentTask getNextTask() {
-		try {
-			LinkedList<NAFCExperimentTask> tasks = currentGeneration.get();
-			if (tasks == null) {
+		synchronized (queueLock) {
+			try {
+				LinkedList<NAFCExperimentTask> tasks = currentGeneration.get();
+				if (tasks == null) {
+					return null;
+				}
+				NAFCExperimentTask task = tasks.removeFirst();
+
+				if (logger.isDebugEnabled()) {
+					logger.debug("	Get -- Generation: " + task.getGenId() + " task: "
+							+ task.getTaskId());
+				}
+				return task;
+			} catch (NoSuchElementException e) {
 				return null;
 			}
-			NAFCExperimentTask task = tasks.removeFirst();
-
-			if (logger.isDebugEnabled()) {
-				logger.debug("	Get -- Generation: " + task.getGenId() + " task: "
-						+ task.getTaskId());
-			}
-			return task;
-		} catch (NoSuchElementException e) {
-			return null;
 		}
 	}
 
@@ -65,38 +78,40 @@ public class NAFCDatabaseTaskDataSource extends DatabaseTaskDataSource {
 		if (t == null)
 			return;
 
-		LinkedList<NAFCExperimentTask> tasks = currentGeneration.get();
-		if (tasks == null) {
-			return;
-		}
+		synchronized (queueLock) {
+			LinkedList<NAFCExperimentTask> tasks = currentGeneration.get();
+			if (tasks == null) {
+				return;
+			}
 
-		NAFCExperimentTask cur;
-		try {
-			cur = tasks.getFirst();
-		} catch (NoSuchElementException e) {
-			cur = null;
-		}
+			NAFCExperimentTask cur;
+			try {
+				cur = tasks.getFirst();
+			} catch (NoSuchElementException e) {
+				cur = null;
+			}
 
-		if (cur == null || cur.getGenId() == t.getGenId()) {
-			if (tasks.size() >= ungetTaskThreshold) {
-				if (ungetBehavior == UngetPolicy.HEAD) {
-					tasks.addFirst(t);
-				} else if (ungetBehavior == UngetPolicy.TAIL) {
-					tasks.addLast(t);
-				} else {
-					int numTasks = tasks.size();
-					Random r = new Random();
-					int randIndex;
-					if (numTasks > 0) {
-						randIndex = r.nextInt(numTasks);
+			if (cur == null || cur.getGenId() == t.getGenId()) {
+				if (tasks.size() >= ungetTaskThreshold) {
+					if (ungetBehavior == UngetPolicy.HEAD) {
+						tasks.addFirst(t);
+					} else if (ungetBehavior == UngetPolicy.TAIL) {
+						tasks.addLast(t);
 					} else {
-						randIndex = 0;
-					}
+						int numTasks = tasks.size();
+						Random r = new Random();
+						int randIndex;
+						if (numTasks > 0) {
+							randIndex = r.nextInt(numTasks);
+						} else {
+							randIndex = 0;
+						}
 
-					tasks.add(randIndex, t);
+						tasks.add(randIndex, t);
+					}
+				} else{
+					System.out.println("Did not Unget Task because number of tasks does not exceed threshold");
 				}
-			} else{
-				System.out.println("Did not Unget Task because number of tasks does not exceed threshold");
 			}
 		}
 	}
@@ -127,15 +142,26 @@ public class NAFCDatabaseTaskDataSource extends DatabaseTaskDataSource {
 					}
 					if (taskToDo.size() > 0) {
 						/////////////////////////
-						LinkedList<NAFCExperimentTask> unfinished = currentGeneration.get();
-						if(unfinished==null){
-							unfinished = new LinkedList<>();
+						synchronized (queueLock) {
+							LinkedList<NAFCExperimentTask> unfinished = currentGeneration.get();
+							if(unfinished==null){
+								unfinished = new LinkedList<>();
+							}
+							unfinished.addAll(taskToDo);
+							currentGeneration.set(unfinished);
 						}
-						unfinished.addAll(taskToDo);
-						currentGeneration.set(unfinished);
 						currentGenId = info.getGenId();
 					}
 				}
+
+				// Reconcile the in-memory queue against TaskToDo so that tasks deleted
+				// from the DB while a generation is ongoing are dropped from the queue.
+				// Removal-only: we never re-add, so already-served/completed tasks are
+				// unaffected (they are no longer in the queue).
+				if (pruneDeletedTasks) {
+					pruneDeletedTasks();
+				}
+
 				try {
 					Thread.sleep(queryInterval);
 				} catch (InterruptedException ignored) {
@@ -147,6 +173,56 @@ public class NAFCDatabaseTaskDataSource extends DatabaseTaskDataSource {
 			} catch (Exception e) {
 				logger.warn(e.getMessage());
 				e.printStackTrace();
+			}
+		}
+	}
+
+	/**
+	 * Removes from the in-memory queue any task whose row no longer exists in
+	 * TaskToDo. The (potentially blocking) DB read is done outside {@link #queueLock};
+	 * only the fast in-memory reconciliation is done under the lock so the experiment
+	 * thread is not stalled by the query.
+	 */
+	private void pruneDeletedTasks() {
+		// Snapshot the generations currently represented in the queue.
+		java.util.Set<Long> genIds;
+		synchronized (queueLock) {
+			LinkedList<NAFCExperimentTask> tasks = currentGeneration.get();
+			if (tasks == null || tasks.isEmpty()) {
+				return;
+			}
+			genIds = new java.util.HashSet<Long>();
+			for (NAFCExperimentTask t : tasks) {
+				genIds.add(t.getGenId());
+			}
+		}
+
+		// Read the live set of task ids from the DB (no lock held).
+		java.util.Set<Long> aliveIds = new java.util.HashSet<Long>();
+		for (Long genId : genIds) {
+			aliveIds.addAll(dbUtil.readTaskToDoIds(genId, lastDoneTaskId));
+		}
+
+		// Drop queued tasks that have disappeared from TaskToDo. Only consider
+		// generations we actually queried, so a generation appended concurrently
+		// (whose ids we did not read) is never mistakenly pruned.
+		synchronized (queueLock) {
+			LinkedList<NAFCExperimentTask> tasks = currentGeneration.get();
+			if (tasks == null) {
+				return;
+			}
+			int before = tasks.size();
+			java.util.Iterator<NAFCExperimentTask> it = tasks.iterator();
+			while (it.hasNext()) {
+				NAFCExperimentTask task = it.next();
+				if (genIds.contains(task.getGenId()) && !aliveIds.contains(task.getTaskId())) {
+					it.remove();
+				}
+			}
+			int removed = before - tasks.size();
+			if (removed > 0) {
+				logger.info("Pruned " + removed + " task(s) deleted from TaskToDo");
+				System.out.println("Pruned " + removed + " task(s) deleted from TaskToDo");
 			}
 		}
 	}
@@ -192,5 +268,13 @@ public class NAFCDatabaseTaskDataSource extends DatabaseTaskDataSource {
 
 	public void setUngetTaskThreshold(int ungetTaskThreshold) {
 		this.ungetTaskThreshold = ungetTaskThreshold;
+	}
+
+	public boolean isPruneDeletedTasks() {
+		return pruneDeletedTasks;
+	}
+
+	public void setPruneDeletedTasks(boolean pruneDeletedTasks) {
+		this.pruneDeletedTasks = pruneDeletedTasks;
 	}
 }

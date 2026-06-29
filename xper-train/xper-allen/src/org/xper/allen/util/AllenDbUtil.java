@@ -366,6 +366,29 @@ public class AllenDbUtil extends DbUtil {
 		return taskToDo;
 	}
 
+	/**
+	 * Reads just the set of task_ids currently present in TaskToDo for the given
+	 * generation (filtered the same way as {@link #readNAFCExperimentTasks}).
+	 *
+	 * This is a lightweight query (no stim/xfm spec deserialization) intended to be
+	 * polled frequently so the in-memory task queue can be reconciled against the DB,
+	 * e.g. to drop tasks that were deleted from TaskToDo while a generation is ongoing.
+	 */
+	public java.util.Set<Long> readTaskToDoIds(long genId, long lastDoneTaskId) {
+		final java.util.Set<Long> ids = new java.util.HashSet<Long>();
+		JdbcTemplate jt = new JdbcTemplate(dataSource);
+		jt.query(
+				" select t.task_id " +
+				" from TaskToDo t " +
+				" where t.gen_id = ? and t.task_id > ? ",
+				new Object[] { genId, lastDoneTaskId },
+				new RowCallbackHandler() {
+					public void processRow(ResultSet rs) throws SQLException {
+						ids.add(rs.getLong("task_id"));
+					}});
+		return ids;
+	}
+
     /**
      * Write base matchstick stimulus spec ID for a given stimulus.
      * This links a stimulus to its base matchstick specification.
