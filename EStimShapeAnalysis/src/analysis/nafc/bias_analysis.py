@@ -81,7 +81,7 @@ def read_bias_trials(session_id, start_gen_id=None, max_gen_id=None, repo_conn=N
     placeholders = ', '.join(['%s'] * len(_LINEAGE_SAMPLE_TRIAL_TYPES))
     conn.execute(
         f"""
-        SELECT task_id, gen_id, trial_start, trial_type,
+        SELECT task_id, gen_id, trial_start, trial_type, choice,
                base_mstick_id, picked_base_mstick_id
         FROM EStimShapeTrials
         WHERE session_id = %s
@@ -103,6 +103,14 @@ def read_bias_trials(session_id, start_gen_id=None, max_gen_id=None, repo_conn=N
     # to_numeric first so Decimal/str values from the DB driver land as a clean nullable Int64.
     df['sample_id'] = pd.to_numeric(df['sample_id'], errors='coerce').astype('Int64')
     df['picked_id'] = pd.to_numeric(df['picked_id'], errors='coerce').astype('Int64')
+
+    # A 'match' pick is, by definition, the sample itself (the match is a copy of the sample), so
+    # its picked lineage id is the sample's. Fill it straight from the long-standing `choice`
+    # column. This makes the self-pick (diagonal) bars correct even on sessions compiled before
+    # picked_base_mstick_id existed; non-match picks still need the reconstructed column.
+    if 'choice' in df.columns:
+        match_mask = df['choice'].astype(str) == 'match'
+        df.loc[match_mask, 'picked_id'] = df.loc[match_mask, 'sample_id']
 
     if start_gen_id is not None:
         df = df[df['gen_id'] >= start_gen_id]
@@ -264,8 +272,14 @@ def resolve_thumbnail(stim_spec_id, image_dir=None):
         return None
     if not candidates:
         return None
-    thumbs = [f for f in candidates if 'thumbnail' in f]
-    chosen = sorted(thumbs or candidates)[0]
+    # Prefer the plain shape thumbnail ('<id>..._thumbnail.png'); never a derived map render
+    # (e.g. '_thumbnail_compmap.png' / '_thumbnail_noisemap.png').
+    plain_thumbs = [f for f in candidates if f.endswith('_thumbnail.png')]
+    if plain_thumbs:
+        chosen = sorted(plain_thumbs)[0]
+    else:
+        non_map = [f for f in candidates if 'compmap' not in f and 'noisemap' not in f]
+        chosen = sorted(non_map or candidates)[0]
     return os.path.join(image_dir, chosen)
 
 
