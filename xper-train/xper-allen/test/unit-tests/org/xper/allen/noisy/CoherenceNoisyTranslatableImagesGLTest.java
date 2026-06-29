@@ -37,15 +37,15 @@ import static org.junit.Assume.assumeTrue;
  */
 public class CoherenceNoisyTranslatableImagesGLTest {
 
-    private static final int SIZE = 512;
+    private static final int SIZE = 1024;
     /** On-screen stimulus size in degrees. */
-    private static final double STIM_DEGREES = 8.0;
+    private static final double STIM_DEGREES = 35;
     /** How many of the rendered frames to also save as PNGs. */
-    private static final int FRAMES_TO_SAVE = 8;
+    private static final int FRAMES_TO_SAVE = 0;
 
     private final String inputDir = System.getProperty("coherence.test.dir", "/home/connorlab/Documents/xper-test");
     /** On-screen presentation length, in seconds (at least 5 by default so it is actually watchable). */
-    private final double presentationSeconds = Double.parseDouble(System.getProperty("coherence.test.seconds", "5"));
+    private final double presentationSeconds = Double.parseDouble(System.getProperty("coherence.test.seconds", "1"));
     private final int frameRate = Integer.parseInt(System.getProperty("coherence.test.fps", "60"));
 
     private String firstPath;
@@ -55,7 +55,7 @@ public class CoherenceNoisyTranslatableImagesGLTest {
 
     private final Coordinates2D location = new Coordinates2D(0, 0);
     private final ImageDimensions dimensions = new ImageDimensions(STIM_DEGREES, STIM_DEGREES);
-    private final Color color = Color.WHITE;
+    private final Color color = new Color(127,255,0);
 
     private TestDrawingWindow window;
     private PerspectiveRenderer renderer;

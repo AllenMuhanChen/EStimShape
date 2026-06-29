@@ -14,9 +14,9 @@ def main():
     # 260115_0 single plot
     filter_conditions = {
         # 'noise_chance': [0.9, 1.0],
-        'num_channels': [1,2, 3, 9],
-        'trial_type': ["Hypothesized Shape", "Delta Shape"],
-        'polarity': ["PositiveFirst", "NegativeFirst"],
+        # 'num_channels': [1,2, 3, 9],
+        # 'trial_type': ["Hypothesized Shape", "Delta Shape"],
+        # 'polarity': ["PositiveFirst", "NegativeFirst"],
         # 'shape': ['Biphasic', 'BiphasicWithInterphaseDelay'],
         # 'a1' : [2.5, 3.5]
         # 'enable_charge_recovery':[1.0, 0.0],
@@ -26,41 +26,42 @@ def main():
     # 'x-axis' groups bars along x, 'color' colors bars within each group
     # 'hatch' adds texture patterns to bars within each group
     condition_formatting_type = None
-    condition_formatting_type = {
-        # 'polarity': 'x-axis',
-        # 'noise_chance': 'x-axis',
-        'num_channels': 'x-axis',
-        # 'trial_type' : 'x-axis',
-        # 'enable_charge_recovery': 'x-axis',
-        # 'a1' : 'x-axis',
-        # 'shape':'color',
-        # 'polarity': 'color',
-        # 'num_channels': 'color',
-        'trial_type': 'color',
-        # 'a1': 'hatch',
-        # 'trial_type': 'hatch',
-        'polarity': 'hatch',
-        # 'noise_chance': 'hatch',
-    }
+    # condition_formatting_type = {
+    #     # 'polarity': 'x-axis',
+    #     # 'noise_chance': 'x-axis',
+    #     'num_channels': 'x-axis',
+    #     # 'trial_type' : 'x-axis',
+    #     # 'enable_charge_recovery': 'x-axis',
+    #     # 'a1' : 'x-axis',
+    #     # 'shape':'color',
+    #     # 'polarity': 'color',
+    #     # 'num_channels': 'color',
+    #     'trial_type': 'color',
+    #     # 'a1': 'hatch',
+    #     # 'trial_type': 'hatch',
+    #     'polarity': 'hatch',
+    #     # 'noise_chance': 'hatch',
+    # }
 
     # Optional: custom colors for condition values
     condition_formatting = None
-    condition_formatting = {
-        'polarity': {'PositiveFirst': '#D32F2F', 'NegativeFirst': '#1976D2'},
-        # 'trial_type': {'Hypothesized Shape': '', 'Delta Shape': '//'},
-    }
+    # condition_formatting = {
+    #     'polarity': {'PositiveFirst': '#D32F2F', 'NegativeFirst': '#1976D2'},
+    #     # 'trial_type': {'Hypothesized Shape': '', 'Delta Shape': '//'},
+    # }
 
 
     # Required conditions: global data filter — all plotted data must match these.
     # These do NOT generate their own bars.
-    required_conditions = {
-        # 'num_channels': 1.0,
-        # 'polarity': 'PositiveFirst',
-        'noise_chance': 0.9,
-        'a1': 3.5,
-        # 'noise_chance':1.0,
-
-    }
+    required_conditions= None
+    # required_conditions = {
+    #     # 'num_channels': 1.0,
+    #     # 'polarity': 'PositiveFirst',
+    #     'noise_chance': 0.9,
+    #     'a1': 3.5,
+    #     # 'noise_chance':1.0,
+    #
+    # }
     # required_conditions = None  # Set to None to disable
 
     # Example 2: Session-level filters (excludes sessions that don't pass)

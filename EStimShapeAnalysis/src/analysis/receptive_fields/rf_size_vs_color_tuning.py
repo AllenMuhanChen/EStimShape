@@ -273,7 +273,7 @@ if __name__ == "__main__":
     # 'all', 'cluster', or 'mapped_channel' ('mapped_channel' requires RF info).
     filter_type = 'mapped_channel'
     save_dir = None  # e.g. "/home/connorlab/Documents/plots"
-    cycles_xlim = None  # e.g. (0, 8) to crop the display (all points still feed the trend)
+    cycles_xlim = [0,10]  # e.g. (0, 8) to crop the display (all points still feed the trend)
 
     def _path(name):
         return os.path.join(save_dir, name) if save_dir else None
@@ -281,4 +281,5 @@ if __name__ == "__main__":
     plot_rf_size_vs_color_tuning(
         filter_type=filter_type, normalize='zscore', n_bins=8,
         xlim=cycles_xlim,
+        bin_edges=[0, 0.5, 1.0, 1.5, 2.5, 4, 6, 8.0, np.inf],
         save_path=_path("rf_size_vs_color_tuning.png"))
