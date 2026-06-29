@@ -11,6 +11,7 @@ import org.xper.drawing.Drawable;
 import org.xper.drawing.TestDrawingWindow;
 import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.rfplot.drawing.png.ImageDimensions;
+import org.xper.util.ThreadUtil;
 
 import java.awt.Color;
 import java.io.File;
@@ -21,8 +22,8 @@ import static org.junit.Assume.assumeTrue;
 /**
  * OpenGL-context test / visual example for {@link CoherenceNoisyTranslatableImages}. It drives the
  * real GL draw path (per-frame texture upload + dynamic noise overlay) exactly as
- * {@code NoisyNAFCPngScene#drawSample} would, then reads the framebuffer back to PNGs so the dynamic
- * coherence stimulus can be inspected frame by frame.
+ * {@code NoisyNAFCPngScene#drawSample} would, animating the stimulus on screen at frame rate so the
+ * dynamic dither can be watched, and saving the first few frames to PNGs for offline inspection.
  *
  * <p>Uses the same inputs as {@link CoherenceImageCombinerTest} (override the directory with
  * {@code -Dcoherence.test.dir=...}); skips rather than fails when they are absent:
@@ -31,15 +32,22 @@ import static org.junit.Assume.assumeTrue;
  *   <li>{@code coherence_second.png}   - the second shape (e.g. delta), same size as the first</li>
  *   <li>{@code coherence_noisemap.png} - the noise map (red channel = noise probability), same size</li>
  * </ul>
- * Output is written to {@code <inputDir>/coherence_out_gl}.
+ * Output is written to {@code <inputDir>/coherence_out_gl}. Presentation length and frame rate can be
+ * overridden with {@code -Dcoherence.test.seconds=...} and {@code -Dcoherence.test.fps=...}.
  */
 public class CoherenceNoisyTranslatableImagesGLTest {
 
     private static final int SIZE = 512;
     /** On-screen stimulus size in degrees. */
     private static final double STIM_DEGREES = 8.0;
+    /** How many of the rendered frames to also save as PNGs. */
+    private static final int FRAMES_TO_SAVE = 8;
 
     private final String inputDir = System.getProperty("coherence.test.dir", "/home/connorlab/Documents/xper-test");
+    /** On-screen presentation length, in seconds (at least 5 by default so it is actually watchable). */
+    private final double presentationSeconds = Double.parseDouble(System.getProperty("coherence.test.seconds", "5"));
+    private final int frameRate = Integer.parseInt(System.getProperty("coherence.test.fps", "60"));
+
     private String firstPath;
     private String secondPath;
     private String noiseMapPath;
@@ -82,69 +90,84 @@ public class CoherenceNoisyTranslatableImagesGLTest {
     }
 
     /**
-     * Render a sequence of frames at 0% coherence (proportion 0.5). Each frame the sample texture is
-     * a freshly drawn mixture and the noise is refreshed, so the saved PNGs should differ frame to
-     * frame even though the coherence is fixed.
+     * Present a fixed 0% coherence (proportion 0.5) stimulus on screen for {@link #presentationSeconds}
+     * at {@link #frameRate}. Each frame the sample texture is a freshly drawn mixture and the noise is
+     * refreshed, so the dither visibly moves while the net evidence stays balanced. The first
+     * {@link #FRAMES_TO_SAVE} frames are also written to PNGs.
      */
     @Test
-    public void draws_dynamic_zero_coherence_through_opengl() throws Exception {
+    public void presents_dynamic_zero_coherence_through_opengl() throws Exception {
         assumeInputsPresent();
         new File(outDir).mkdirs();
 
-        int numNoiseFrames = 24;
-        int numSampleFrames = 8;
-        CoherenceNoisyTranslatableImages images =
-                new CoherenceNoisyTranslatableImages(numNoiseFrames, 1, 1.0, numSampleFrames);
-        images.initTextures();
-        images.loadCoherenceSample(firstPath, secondPath, 0.5, color, 12345L);
-        images.loadNoise(noiseMapPath, color);
-
-        for (int i = 0; i < numSampleFrames; i++) {
-            renderAndSave(images, outDir + String.format("/gl_zerocoherence_frame%02d.png", i));
-        }
+        CoherenceNoisyTranslatableImages images = newImages(0.5);
+        present(images, "gl_zerocoherence_frame");
         images.cleanUpImage();
-        System.out.println("Wrote " + numSampleFrames + " GL 0%-coherence frames to " + outDir);
+        System.out.println("Presented dynamic 0%-coherence for " + presentationSeconds + "s; first "
+                + FRAMES_TO_SAVE + " frames saved to " + outDir);
     }
 
     /**
-     * Render one frame at each of several coherences (proportion of pixels from the first shape) to
-     * show the sweep from pure-second through balanced to pure-first, all through the GL path.
+     * Sweep the coherence: present each proportion (fraction of pixels from the first shape) on screen
+     * for an equal share of {@link #presentationSeconds}, so the whole sweep lasts the full duration.
      */
     @Test
-    public void draws_coherence_sweep_through_opengl() throws Exception {
+    public void presents_coherence_sweep_through_opengl() throws Exception {
         assumeInputsPresent();
         new File(outDir).mkdirs();
 
         double[] proportions = {1.0, 0.75, 0.5, 0.25, 0.0};
+        double secondsEach = presentationSeconds / proportions.length;
         for (double proportion : proportions) {
-            CoherenceNoisyTranslatableImages images =
-                    new CoherenceNoisyTranslatableImages(8, 1, 1.0, 1);
-            images.initTextures();
-            images.loadCoherenceSample(firstPath, secondPath, proportion, color, 0L);
-            images.loadNoise(noiseMapPath, color);
-
+            CoherenceNoisyTranslatableImages images = newImages(proportion);
             String tag = String.format("p%02d", Math.round(proportion * 100));
-            renderAndSave(images, outDir + "/gl_sweep_" + tag + ".png");
+            present(images, secondsEach, "gl_sweep_" + tag);
             images.cleanUpImage();
         }
-        System.out.println("Wrote coherence sweep GL frames to " + outDir);
+        System.out.println("Presented coherence sweep over " + presentationSeconds + "s to " + outDir);
     }
 
-    /** Clear, draw one coherence frame through the renderer/Context, read the framebuffer back to a PNG, then swap. */
-    private void renderAndSave(final CoherenceNoisyTranslatableImages images, String path) throws Exception {
-        GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
-        renderer.draw(new Drawable() {
-            @Override
-            public void draw(Context c) {
-                images.drawCoherenceSample(true, c, location, dimensions);
-            }
-        }, context);
+    /**
+     * Build the images object for a given coherence, pre-generating one distinct frame per presentation
+     * frame (capped) so the dither does not visibly loop, plus matching dynamic noise frames.
+     */
+    private CoherenceNoisyTranslatableImages newImages(double proportionFirst) {
+        int distinctFrames = Math.min(120, Math.max(1, (int) Math.round(presentationSeconds * frameRate)));
+        CoherenceNoisyTranslatableImages images =
+                new CoherenceNoisyTranslatableImages(distinctFrames, 1, 1.0, distinctFrames);
+        images.initTextures();
+        images.loadCoherenceSample(firstPath, secondPath, proportionFirst, color, 12345L);
+        images.loadNoise(noiseMapPath, color);
+        return images;
+    }
 
-        byte[] png = AllenPNGMaker.screenShotBinary(SIZE, SIZE);
-        try (FileOutputStream fos = new FileOutputStream(path)) {
-            fos.write(png);
+    private void present(CoherenceNoisyTranslatableImages images, String savePrefix) throws Exception {
+        present(images, presentationSeconds, savePrefix);
+    }
+
+    /** Animate the coherence stimulus on screen for {@code seconds}, saving the first frames as PNGs. */
+    private void present(final CoherenceNoisyTranslatableImages images, double seconds, String savePrefix) throws Exception {
+        int totalFrames = Math.max(1, (int) Math.round(seconds * frameRate));
+        long frameMillis = Math.round(1000.0 / frameRate);
+        for (int i = 0; i < totalFrames; i++) {
+            GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+            renderer.draw(new Drawable() {
+                @Override
+                public void draw(Context c) {
+                    images.drawCoherenceSample(true, c, location, dimensions);
+                }
+            }, context);
+
+            if (savePrefix != null && i < FRAMES_TO_SAVE) {
+                // Read the back buffer (before the swap) and write it out.
+                byte[] png = AllenPNGMaker.screenShotBinary(SIZE, SIZE);
+                try (FileOutputStream fos = new FileOutputStream(outDir + "/" + savePrefix + String.format("%02d", i) + ".png")) {
+                    fos.write(png);
+                }
+            }
+            window.window.swapBuffers();
+            ThreadUtil.sleep(frameMillis);
         }
-        window.window.swapBuffers();
     }
 
     private void assumeInputsPresent() {
