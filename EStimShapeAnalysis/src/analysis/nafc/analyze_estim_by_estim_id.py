@@ -37,9 +37,14 @@ from src.startup import context
 # (live_analyze_estim_by_estim_id.py) construct Plot 1 from the exact same code.
 # ===========================================================================
 
+# Coherence trials (variant ⊕ delta mixture sample) carry this stim class. They are variant-role
+# (IsDelta False, not removed), so they must be separated by stim class rather than IsDelta/IsRemoved.
+COHERENCE_STIM_TYPE = 'EStimShapeCoherenceNAFCStim'
+
+
 @dataclass
 class EstimPartition:
-    """Three-way (delta / variant / removed) estim-on/off partition of experimental trials,
+    """Delta / variant / removed [/ coherence] estim-on/off partition of experimental trials,
     plus the EStimSpecIds present in each group and the shared noise levels. Produced by
     partition_estim_data; consumed by build_overview_figure."""
     data_delta_on: "pd.DataFrame"
@@ -53,6 +58,12 @@ class EstimPartition:
     removed_spec_ids: object
     noise_levels: list
     include_removed: bool
+    # Coherence group; defaulted so callers that don't populate it (the batch build_overview_figure)
+    # still construct an EstimPartition unchanged.
+    data_coherence_on: "pd.DataFrame" = None
+    data_coherence_off: "pd.DataFrame" = None
+    coherence_spec_ids: object = None
+    include_coherence: bool = False
 
 
 def partition_estim_data(data_exp, start_gen_id_estim_on=0, max_gen_id_estim_on=float('inf')):
@@ -61,13 +72,22 @@ def partition_estim_data(data_exp, start_gen_id_estim_on=0, max_gen_id_estim_on=
     Mirrors the partitioning in main() but without the optional filtering/combining knobs, so
     it can be reused by the live GUI. `data_exp` must carry the experiment-format columns
     (IsRemovedTrial, IsDelta, EStimEnabled, GenId, EStimSpecId, NoiseChance, Choice)."""
-    data_removed = data_exp[data_exp['IsRemovedTrial'] == True].copy()
-    data_delta   = data_exp[(data_exp['IsRemovedTrial'] == False) & (data_exp['IsDelta'] == True)].copy()
-    data_variant = data_exp[(data_exp['IsRemovedTrial'] == False) & (data_exp['IsDelta'] == False)].copy()
+    # Pull coherence trials out first (variant-role, so they would otherwise land in data_variant)
+    # and exclude them from the delta/variant/removed groups so they form their own column.
+    if 'StimType' in data_exp.columns:
+        is_coherence = data_exp['StimType'] == COHERENCE_STIM_TYPE
+    else:
+        is_coherence = pd.Series(False, index=data_exp.index)
+
+    data_coherence = data_exp[is_coherence].copy()
+    data_removed = data_exp[(~is_coherence) & (data_exp['IsRemovedTrial'] == True)].copy()
+    data_delta   = data_exp[(~is_coherence) & (data_exp['IsRemovedTrial'] == False) & (data_exp['IsDelta'] == True)].copy()
+    data_variant = data_exp[(~is_coherence) & (data_exp['IsRemovedTrial'] == False) & (data_exp['IsDelta'] == False)].copy()
 
     has_removed_trials = len(data_removed) > 0
-    has_removed_choice = (data_exp['Choice'] == 'removed').any()
+    has_removed_choice = ((~is_coherence) & (data_exp['Choice'] == 'removed')).any()
     include_removed    = has_removed_trials or has_removed_choice
+    include_coherence  = len(data_coherence) > 0
 
     def estim_on(df):
         return df[
@@ -82,6 +102,8 @@ def partition_estim_data(data_exp, start_gen_id_estim_on=0, max_gen_id_estim_on=
     data_variant_off = data_variant[data_variant['EStimEnabled'] == False].copy()
     data_removed_on  = estim_on(data_removed)
     data_removed_off = data_removed[data_removed['EStimEnabled'] == False].copy()
+    data_coherence_on  = estim_on(data_coherence)
+    data_coherence_off = data_coherence[data_coherence['EStimEnabled'] == False].copy()
 
     return EstimPartition(
         data_delta_on=data_delta_on, data_delta_off=data_delta_off,
@@ -92,6 +114,9 @@ def partition_estim_data(data_exp, start_gen_id_estim_on=0, max_gen_id_estim_on=
         removed_spec_ids=data_removed_on['EStimSpecId'].dropna().unique(),
         noise_levels=sorted(data_exp['NoiseChance'].unique()),
         include_removed=include_removed,
+        data_coherence_on=data_coherence_on, data_coherence_off=data_coherence_off,
+        coherence_spec_ids=data_coherence_on['EStimSpecId'].dropna().unique(),
+        include_coherence=include_coherence,
     )
 
 
