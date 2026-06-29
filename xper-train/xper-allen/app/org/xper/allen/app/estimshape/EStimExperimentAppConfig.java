@@ -16,6 +16,7 @@ import org.xper.allen.nafc.blockgen.EStimShapeProceduralBehavioralGenType;
 import org.xper.allen.nafc.blockgen.procedural.EStimExperimentGenType;
 import org.xper.allen.nafc.blockgen.procedural.EStimExperimentSplitTextureGenType;
 import org.xper.allen.nafc.blockgen.procedural.EStimExperimentVariantOrDeltaGenType;
+import org.xper.allen.nafc.blockgen.procedural.EStimExperimentCoherenceGenType;
 import org.xper.allen.nafc.blockgen.procedural.EStimExperimentVariantsDeletedGenType;
 import org.xper.allen.nafc.blockgen.procedural.EStimExperimentVariantsDeltaGenType;
 import org.xper.allen.nafc.blockgen.procedural.EStimExperimentVariantsGenType;
@@ -151,7 +152,8 @@ public class EStimExperimentAppConfig {
                 eStimExperimentDeltasOnlyGenType(),
                 eStimExperimentVariantSplitTextureGenType(),
                 eStimExperimentDeltaSplitTextureGenType(),
-                eStimExperimentVariantsDeletedGenType()
+                eStimExperimentVariantsDeletedGenType(),
+                eStimExperimentCoherenceGenType()
         ));
         gui.setDefaultStimType(proceduralAppConfig.proceduralRandGenType());
         return gui;
@@ -167,6 +169,13 @@ public class EStimExperimentAppConfig {
     @Bean
     public EStimExperimentVariantsDeletedGenType eStimExperimentVariantsDeletedGenType() {
         EStimExperimentVariantsDeletedGenType genType = new EStimExperimentVariantsDeletedGenType();
+        genType.setGenerator(generator());
+        return genType;
+    }
+
+    @Bean
+    public EStimExperimentCoherenceGenType eStimExperimentCoherenceGenType() {
+        EStimExperimentCoherenceGenType genType = new EStimExperimentCoherenceGenType();
         genType.setGenerator(generator());
         return genType;
     }

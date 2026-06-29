@@ -23,6 +23,11 @@ public class NAFCStimSpecWriter {
 	protected int[] rewardList;
     protected Long sampleDuration = -1L;
 
+    /** Coherence-trial only: StimObjData id of the second sample (delta) and the signed coherence.
+     *  Left null for every other trial type, so the written NAFCStimSpecSpec omits them. */
+    protected Long secondSampleObjData;
+    protected Double coherence;
+
     private NAFCStimSpecWriter(String stimType, Long taskId, AllenDbUtil dbUtil,
 							   NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
 							   NAFC<Long> stimObjIds, List<Long> eStimObjData, RewardPolicy rewardPolicy, int[] rewardList) {
@@ -121,7 +126,16 @@ public class NAFCStimSpecWriter {
 				rewardPolicy,
 				rewardList
                 );
+		// Coherence trials only: tag the second sample and coherence; null for all other trial types.
+		stimSpec.setSecondSampleObjData(secondSampleObjData);
+		stimSpec.setCoherence(coherence);
 		dbUtil.writeStimSpec(taskId, stimSpec.toXml(), trialParameters.toXml());
+	}
+
+	/** Coherence trials: set the delta's StimObjData id and the signed coherence to write into the spec. */
+	public void setCoherenceData(Long secondSampleObjData, Double coherence) {
+		this.secondSampleObjData = secondSampleObjData;
+		this.coherence = coherence;
 	}
 
 }
