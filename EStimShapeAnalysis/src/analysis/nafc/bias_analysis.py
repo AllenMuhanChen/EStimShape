@@ -67,10 +67,14 @@ def read_bias_trials(session_id, start_gen_id=None, max_gen_id=None, repo_conn=N
     """Estim-OFF variant/delta trials for a session, one row per trial.
 
     Returns a DataFrame with columns:
-        task_id, gen_id, trial_start, trial_type,
+        task_id, gen_id, trial_start, trial_type, choice,
+        noise_chance, sample_length, num_choices, num_procedural_distractors, num_rand_distractors,
         sample_id  (the sample's lineage id == base_mstick_id),
         picked_id  (the picked shape's lineage id == picked_base_mstick_id; may be NULL when the
                     animal picked a non-lineage shape such as a random distractor).
+
+    The behavioural-parameter columns are returned as-is so callers (e.g. the live GUI's top-bar
+    filters) can subset the trials before grouping/aggregating.
 
     Only estim-off trials that carry a sample lineage id are returned (this naturally excludes the
     procedural behavioural catch trials, which record no base_mstick_id, and split-texture trials,
@@ -82,6 +86,8 @@ def read_bias_trials(session_id, start_gen_id=None, max_gen_id=None, repo_conn=N
     conn.execute(
         f"""
         SELECT task_id, gen_id, trial_start, trial_type, choice,
+               noise_chance, sample_length,
+               num_choices, num_procedural_distractors, num_rand_distractors,
                base_mstick_id, picked_base_mstick_id
         FROM EStimShapeTrials
         WHERE session_id = %s
