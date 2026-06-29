@@ -32,6 +32,19 @@ public class NAFCStimSpecSpec {
     //@XStreamAlias("rewardList")
 	protected int[] rewardList;
 
+	/**
+	 * Coherence-trial only: the StimObjData id of the second sample (e.g. the delta) that is mixed
+	 * with {@link #sampleObjData}. Nullable wrapper so XStream omits it entirely for every other trial
+	 * type, leaving existing StimSpec XML unchanged and old rows deserializing with a null here.
+	 */
+	protected Long secondSampleObjData;
+
+	/**
+	 * Coherence-trial only: signed coherence in [-1, 1] (0 = balanced / 0% coherence). Nullable for the
+	 * same backward-compatibility reason as {@link #secondSampleObjData}.
+	 */
+	protected Double coherence;
+
 
 	//@XStreamAlias("eStimObjChans")
 	//protected int[] eStimObjChans;
@@ -187,5 +200,21 @@ public class NAFCStimSpecSpec {
 
 	public void setStimType(String stimType) {
 		this.stimType = stimType;
+	}
+
+	public Long getSecondSampleObjData() {
+		return secondSampleObjData;
+	}
+
+	public void setSecondSampleObjData(Long secondSampleObjData) {
+		this.secondSampleObjData = secondSampleObjData;
+	}
+
+	public Double getCoherence() {
+		return coherence;
+	}
+
+	public void setCoherence(Double coherence) {
+		this.coherence = coherence;
 	}
 }
