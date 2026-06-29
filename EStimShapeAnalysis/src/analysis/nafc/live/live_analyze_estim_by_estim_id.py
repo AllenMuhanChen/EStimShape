@@ -69,9 +69,10 @@ _EXPERIMENTAL_STIM_TYPES = ['EStimShapeVariantsDeltaNAFCStim', 'EStimShapeVarian
 
 # (row_title, metric_kind) for the metric rows; the removed row is appended when relevant.
 _BASE_ROWS = [
-    ('% Hypothesized',           'hypothesized'),
-    ('% Rand Choice',            'rand'),
     ('% Hypothesized vs Delta',  'hyp_vs_delta'),
+    ('% Hypothesized',           'hypothesized'),
+    ('% Correct',                'correct'),
+    ('% Rand Choice',            'rand'),
 ]
 _REMOVED_ROW = ('% Removed Choice', 'removed')
 
@@ -86,6 +87,18 @@ WINDOW_SIZE = 50          # trials per window
 WINDOW_STEP = 5           # window stride (trials)
 WINDOW_PLOT_HEIGHT = 440  # px per sliding-window panel
 WINDOW_METRIC = 'hyp_vs_delta'   # effect size uses % hypothesized vs delta
+# Behavioral parameters the sliding window conditions on, in addition to trial type and estim
+# spec. Each distinct combination present in the data becomes its own line (effect-size panels
+# and the no-estim % correct baseline alike), distinguished by pen style with the values spelled
+# out in the legend; noise additionally drives line alpha as a secondary cue. Only columns that
+# exist in the data are used, so this degrades gracefully on sessions missing the newer columns.
+_WINDOW_COND_COLS = ['NoiseChance', 'NumChoices', 'NumProceduralDistractors', 'NumRandDistractors']
+_WINDOW_COMBO_FMT = {
+    'NoiseChance':              lambda v: f'{float(v) * 100:.0f}%',
+    'NumChoices':               lambda v: f'{int(float(v))}ch',
+    'NumProceduralDistractors': lambda v: f'{int(float(v))}proc',
+    'NumRandDistractors':       lambda v: f'{int(float(v))}rand',
+}
 _TRIAL_TYPE_ORDER = ('Hypothesized Shape', 'Delta Shape', 'Removed Trial')
 # Behavioral (catch/training) trials: kept out of the estim analysis but shown in the
 # sliding-window % correct baseline, like analyze_estim_by_condition's sliding window.
@@ -259,6 +272,9 @@ def _metric_series(df, kind):
     if kind == 'removed':
         return df, ((df['Choice'] == 'removed') |
                     ((df['IsRemovedTrial'] == True) & (df['Choice'] == 'match')))
+    if kind == 'correct':
+        # % chose the match (the rewarded option), over all trials in the group.
+        return df, df['IsCorrect'].astype(bool)
     return df, df['IsHypothesized'].astype(bool)  # 'hypothesized'
 
 
@@ -300,19 +316,70 @@ def _alpha_for_noise(noise):
     return max(0.55, min(1.0, 0.55 + 0.45 * float(noise)))
 
 
-def sliding_window_series(data, window_size=WINDOW_SIZE, step=WINDOW_STEP, kind=WINDOW_METRIC):
+def _norm_combo_val(v):
+    """Normalize a grouping value for use as a stable dict key: numeric -> float (NaN -> None),
+    everything else unchanged. Avoids NaN!=NaN churn when keying lines on behavioral combos."""
+    if v is None:
+        return None
+    try:
+        f = float(v)
+        return None if np.isnan(f) else f
+    except (TypeError, ValueError):
+        return v
+
+
+def _window_cond_cols(data):
+    """The subset of _WINDOW_COND_COLS actually present in this data (always includes the ones
+    that exist; older sessions missing the newer columns just condition on fewer params)."""
+    if data is None:
+        return []
+    return [c for c in _WINDOW_COND_COLS if c in data.columns]
+
+
+def _format_window_combo(cond_cols, combo):
+    """Legend text for a behavioral combo, e.g. '50% 4ch 1proc 2rand'. None values (param not
+    recorded for that line) are skipped; an all-None combo renders as 'all'."""
+    parts = []
+    for col, v in zip(cond_cols, combo):
+        if v is None:
+            continue
+        parts.append(_WINDOW_COMBO_FMT.get(col, str)(v))
+    return ' '.join(parts) if parts else 'all'
+
+
+def _combo_value(cond_cols, combo, name):
+    """Pull one named param's value out of a combo tuple (None if absent)."""
+    if name in cond_cols:
+        i = cond_cols.index(name)
+        if i < len(combo):
+            return combo[i]
+    return None
+
+
+def _combo_sort_key(combo):
+    """Type-safe sort key for a combo tuple that may mix None and floats."""
+    return tuple((v is None, str(v)) for v in combo)
+
+
+def sliding_window_series(data, window_size=WINDOW_SIZE, step=WINDOW_STEP, kind=WINDOW_METRIC,
+                          cond_cols=None):
     """Compute sliding-window effect-size traces, conditioned on behavioral params AND spec.
 
     For each window (a contiguous block of trials in task order) and each condition
-    (trial_type, noise_chance, estim_spec_id), effect = estim_on %metric − estim_off %metric,
-    where the OFF baseline is matched on (trial_type, noise_chance). The metric (default
-    % hypothesized vs delta) drops rand/removed choices before averaging.
+    (trial_type, behavioral combo, estim_spec_id), effect = estim_on %metric − estim_off %metric,
+    where the OFF baseline is matched on (trial_type, behavioral combo). The behavioral combo is
+    the values of ``cond_cols`` (noise plus the choice-set params: # choices, # procedural and
+    # random distractors). The metric (default % hypothesized vs delta) drops rand/removed
+    choices before averaging.
 
-    Returns {trial_type: {(spec_id, noise): (xs, ys)}} with xs = window-center trial index.
+    Returns {trial_type: {(spec_id, combo): (xs, ys)}} with combo a tuple aligned to cond_cols
+    and xs = window-center trial index.
     """
     out = {}
     if data is None or len(data) == 0:
         return out
+    if cond_cols is None:
+        cond_cols = _window_cond_cols(data)
     data = data.reset_index(drop=True)
     n = len(data)
     for start in range(0, max(n - window_size, 0) + 1, step):
@@ -326,40 +393,60 @@ def sliding_window_series(data, window_size=WINDOW_SIZE, step=WINDOW_STEP, kind=
         off = work[work['EStimEnabled'] == False]
         if len(on) == 0 or len(off) == 0:
             continue
-        off_pct = off.groupby(['TrialType', 'NoiseChance'])['_v'].mean() * 100.0
-        on_pct = on.groupby(['TrialType', 'NoiseChance', 'EStimSpecId'])['_v'].mean() * 100.0
-        for (tt, noise, spec), pct_on in on_pct.items():
-            if (tt, noise) in off_pct.index:
-                xs, ys = out.setdefault(tt, {}).setdefault((int(spec), float(noise)), ([], []))
-                xs.append(center)
-                ys.append(pct_on - off_pct[(tt, noise)])
+        off_pct = off.groupby(['TrialType', *cond_cols], dropna=False)['_v'].mean() * 100.0
+        on_pct = on.groupby(['TrialType', *cond_cols, 'EStimSpecId'], dropna=False)['_v'].mean() * 100.0
+        # Normalized (trial_type, combo) -> baseline %; sidesteps NaN-in-MultiIndex lookups.
+        off_map = {}
+        for okey, v in off_pct.items():
+            okey = okey if isinstance(okey, tuple) else (okey,)
+            off_map[(okey[0], tuple(_norm_combo_val(x) for x in okey[1:]))] = v
+        for okey, pct_on in on_pct.items():
+            okey = okey if isinstance(okey, tuple) else (okey,)
+            tt = okey[0]
+            combo = tuple(_norm_combo_val(x) for x in okey[1:1 + len(cond_cols)])
+            spec = okey[-1]
+            base = off_map.get((tt, combo))
+            if base is None:
+                continue
+            xs, ys = out.setdefault(tt, {}).setdefault((int(spec), combo), ([], []))
+            xs.append(center)
+            ys.append(pct_on - base)
     return out
 
 
-def sliding_window_baseline(data, window_size=WINDOW_SIZE, step=WINDOW_STEP):
-    """Per-window % correct of NO-ESTIM trials, split by trial type (+ Combined) — the baseline
-    panel from analyze_estim_by_condition's sliding window. Behavioral trials are included.
+def sliding_window_baseline(data, window_size=WINDOW_SIZE, step=WINDOW_STEP, cond_cols=None):
+    """Per-window % correct of NO-ESTIM trials, split by trial type AND behavioral combo
+    (+ a pooled Combined) — the baseline panel from analyze_estim_by_condition's sliding window.
+    Behavioral trials are included.
 
-    Returns {label: (xs, ys)} with xs = window-center trial index, ys = % correct.
+    Returns {(trial_type, combo): (xs, ys)} with combo aligned to cond_cols; the pooled line is
+    keyed ('Combined', ()). xs = window-center trial index, ys = % correct.
     """
     out = {}
     if data is None or len(data) == 0:
         return out
+    if cond_cols is None:
+        cond_cols = _window_cond_cols(data)
     data = data.reset_index(drop=True)
     n = len(data)
     for start in range(0, max(n - window_size, 0) + 1, step):
         w = data.iloc[start:start + window_size]
         center = start + window_size // 2
         off = w[w['EStimEnabled'] == False]
-        for tt, sub in off.groupby('TrialType'):
+        if len(off) == 0:
+            continue
+        for gkey, sub in off.groupby(['TrialType', *cond_cols], dropna=False):
+            gkey = gkey if isinstance(gkey, tuple) else (gkey,)
+            tt = gkey[0]
+            combo = tuple(_norm_combo_val(x) for x in gkey[1:])
             vals = sub['IsCorrect'].dropna()
             if len(vals) > 0:
-                xs, ys = out.setdefault(tt, ([], []))
+                xs, ys = out.setdefault((tt, combo), ([], []))
                 xs.append(center)
                 ys.append(float(vals.mean()) * 100.0)
         combined = off['IsCorrect'].dropna()
         if len(combined) > 0:
-            xs, ys = out.setdefault('Combined', ([], []))
+            xs, ys = out.setdefault(('Combined', ()), ([], []))
             xs.append(center)
             ys.append(float(combined.mean()) * 100.0)
     return out
@@ -464,6 +551,9 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self._spec_color = {}
         # Stable noise -> pen style for the sliding-window tab (noise distinguisher).
         self._noise_style = {}
+        # Stable behavioral-combo -> pen style for the sliding-window tab, shared between the
+        # effect-size panels and the % correct baseline so the same combo looks the same in both.
+        self._combo_style = {}
 
         self._setup_ui()
 
@@ -1135,6 +1225,14 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             self._noise_style[noise] = _NOISE_STYLES[len(self._noise_style) % len(_NOISE_STYLES)]
         return self._noise_style[noise]
 
+    def _style_for_combo(self, combo):
+        """Return this behavioral-combo's stable pen style, assigned on first sight. Cycles the
+        small style palette; color (spec / trial type) plus the legend label disambiguate fully
+        when more combos exist than styles."""
+        if combo not in self._combo_style:
+            self._combo_style[combo] = _NOISE_STYLES[len(self._combo_style) % len(_NOISE_STYLES)]
+        return self._combo_style[combo]
+
     def _update_cell(self, row, col_key, kind, on_df, off_df, spec_ids):
         plot = self.plots[(row, col_key)]
         legend = self.legends[(row, col_key)]
@@ -1315,16 +1413,17 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         """Sliding-window panels: row 0 = effect-size per trial type (line = (spec, noise),
         color = spec shared with the overview, alpha = noise); row 1 = a full-width no-estim
         % correct baseline split by trial type (incl. behavioral) + Combined."""
-        series_by_type = sliding_window_series(data_exp)
-        baseline = sliding_window_baseline(data_exp)
+        cond_cols = _window_cond_cols(data_exp)
+        series_by_type = sliding_window_series(data_exp, cond_cols=cond_cols)
+        baseline = sliding_window_baseline(data_exp, cond_cols=cond_cols)
         effect_types = [tt for tt in _TRIAL_TYPE_ORDER if tt in series_by_type]
         if not effect_types and not baseline:
             self.status_label.setText(f'{self.session_id}: not enough trials for a window')
             return
         self._ensure_window_grid(effect_types)
         for tt in effect_types:
-            self._update_window_cell(tt, series_by_type[tt])
-        self._update_baseline_cell(baseline)
+            self._update_window_cell(tt, series_by_type[tt], cond_cols)
+        self._update_baseline_cell(baseline, cond_cols)
         # Re-fit the X axis on every refresh so newly-appended windows are always visible
         # ("view all" along x). Y stays clamped to its fixed, comparable scale.
         for pi in self.win_plots.values():
@@ -1386,25 +1485,28 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
 
         self._win_config = config
 
-    def _update_window_cell(self, trial_type, series):
+    def _update_window_cell(self, trial_type, series, cond_cols):
         plot = self.win_plots[trial_type]
         legend = self.win_legends[trial_type]
 
         wanted = set()
-        for (spec, noise), (xs, ys) in sorted(series.items()):
-            wanted.add((spec, noise))
+        for (spec, combo), (xs, ys) in sorted(series.items(),
+                                              key=lambda kv: (kv[0][0], _combo_sort_key(kv[0][1]))):
+            wanted.add((spec, combo))
             base = self._color_for_spec(spec)
-            # Color = spec, line style = noise (primary), alpha = noise (secondary cue).
-            color = (base[0], base[1], base[2], int(_alpha_for_noise(noise) * 255))
-            pen = pg.mkPen(color, width=2, style=self._style_for_noise(noise))
-            sid = (trial_type, spec, noise)
+            # Color = spec; line style = behavioral combo (primary); alpha = noise (secondary cue).
+            noise = _combo_value(cond_cols, combo, 'NoiseChance')
+            alpha = int(_alpha_for_noise(noise) * 255) if noise is not None else 255
+            color = (base[0], base[1], base[2], alpha)
+            pen = pg.mkPen(color, width=2, style=self._style_for_combo(combo))
+            sid = (trial_type, spec, combo)
             if sid not in self.win_series:
                 curve = plot.plot([], [], pen=pen)
-                legend.addItem(curve, f'Spec {spec} | {noise * 100:.0f}%')
+                legend.addItem(curve, f'Spec {spec} | {_format_window_combo(cond_cols, combo)}')
                 self.win_series[sid] = {'curve': curve}
             self.win_series[sid]['curve'].setData(xs, ys)
 
-        # Drop (spec, noise) lines no longer present.
+        # Drop (spec, combo) lines no longer present.
         for sid in [s for s in self.win_series if s[0] == trial_type and (s[1], s[2]) not in wanted]:
             entry = self.win_series.pop(sid)
             plot.removeItem(entry['curve'])
@@ -1413,29 +1515,38 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             except Exception:
                 pass
 
-    def _update_baseline_cell(self, baseline):
-        """Update the no-estim % correct baseline: one line per trial type (incl. behavioral)
-        plus a dashed Combined line."""
+    def _update_baseline_cell(self, baseline, cond_cols):
+        """Update the no-estim % correct baseline: one line per (trial type, behavioral combo),
+        incl. behavioral trials, plus a dashed pooled Combined line. Color = trial type (shared
+        with the rest of the baseline), line style = behavioral combo (shared with the
+        effect-size panels)."""
         plot = self.win_plots['__baseline__']
         legend = self.win_legends['__baseline__']
 
+        type_order = list(_ALL_TRIAL_TYPES) + ['Combined']
+
+        def sort_key(item):
+            (tt, combo) = item[0]
+            idx = type_order.index(tt) if tt in type_order else len(type_order)
+            return (idx, _combo_sort_key(combo))
+
         wanted = set()
-        for label in list(_ALL_TRIAL_TYPES) + ['Combined']:
-            if label not in baseline:
-                continue
-            wanted.add(label)
-            xs, ys = baseline[label]
-            color = _BASELINE_COLORS.get(label, (127, 127, 127))
-            sid = ('__baseline__', label)
+        for (tt, combo), (xs, ys) in sorted(baseline.items(), key=sort_key):
+            wanted.add((tt, combo))
+            color = _BASELINE_COLORS.get(tt, (127, 127, 127))
+            is_combined = (tt == 'Combined')
+            sid = ('__baseline__', tt, combo)
             if sid not in self.win_series:
-                style = _DASH_LINE if label == 'Combined' else None
+                style = _DASH_LINE if is_combined else self._style_for_combo(combo)
                 pen = pg.mkPen(color, width=2, style=style) if style else pg.mkPen(color, width=2)
                 curve = plot.plot([], [], pen=pen)
+                label = tt if (is_combined or not combo) \
+                    else f'{tt} | {_format_window_combo(cond_cols, combo)}'
                 legend.addItem(curve, label)
                 self.win_series[sid] = {'curve': curve}
             self.win_series[sid]['curve'].setData(xs, ys)
 
-        for sid in [s for s in self.win_series if s[0] == '__baseline__' and s[1] not in wanted]:
+        for sid in [s for s in self.win_series if s[0] == '__baseline__' and (s[1], s[2]) not in wanted]:
             entry = self.win_series.pop(sid)
             plot.removeItem(entry['curve'])
             try:
