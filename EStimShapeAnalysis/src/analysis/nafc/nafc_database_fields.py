@@ -288,6 +288,20 @@ class GenIdField(CachedDatabaseField):
 
 
 
+def _stim_spec_param(stim_spec_data, key):
+    """Read a scalar param (e.g. 'numChoices') from the trial's serialized StimSpec data.
+
+    The XML's single top-level element is the trial-parameters object (e.g.
+    ProceduralStimParameters); the behavioral counts live directly under it. Returns None
+    when the key is absent (legacy trials / trial types that don't record it) so compilation
+    of a mixed session never crashes on one odd trial."""
+    try:
+        params = stim_spec_data[next(iter(stim_spec_data))]
+        return params[key]
+    except (KeyError, StopIteration, TypeError):
+        return None
+
+
 class NumRandDistractorsField(StimSpecDataField):
     def __init__(self, conn: Connection):
         super().__init__(conn)
@@ -296,11 +310,47 @@ class NumRandDistractorsField(StimSpecDataField):
         return "NumRandDistractors"
 
     def get(self, when: When):
-        stim_spec_data = super().get(when)
+        stim_spec_data = self.get_cached_super(when, StimSpecDataField)
+        num = _stim_spec_param(stim_spec_data, "numRandDistractors")
+        return int(num) if num is not None else None
 
-        numRandDistractors = stim_spec_data[next(iter(stim_spec_data))]["numRandDistractors"]
-        numRandDistractors = int(numRandDistractors)
-        return numRandDistractors
+
+class NumChoicesField(StimSpecDataField):
+    """Number of choices offered on the trial (the match plus every distractor).
+
+    Read straight from the trial's StimSpec params (ProceduralStimParameters.numChoices)."""
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "NumChoices"
+
+    def get(self, when: When):
+        stim_spec_data = self.get_cached_super(when, StimSpecDataField)
+        num = _stim_spec_param(stim_spec_data, "numChoices")
+        return int(num) if num is not None else None
+
+
+class NumProceduralDistractorsField(StimSpecDataField):
+    """Number of procedural (structured, non-random) distractors on the trial.
+
+    Not stored explicitly in the StimSpec params, so it is derived the same way the Java
+    generator does (ProceduralStim.assignStimObjIds):
+        numProceduralDistractors = numChoices - numRandDistractors - 1
+    (the -1 is the match). Returns None if either input is missing."""
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "NumProceduralDistractors"
+
+    def get(self, when: When):
+        stim_spec_data = self.get_cached_super(when, StimSpecDataField)
+        num_choices = _stim_spec_param(stim_spec_data, "numChoices")
+        num_rand = _stim_spec_param(stim_spec_data, "numRandDistractors")
+        if num_choices is None or num_rand is None:
+            return None
+        return int(num_choices) - int(num_rand) - 1
 
 
 class TrialTypeField(StimSpecDataField):

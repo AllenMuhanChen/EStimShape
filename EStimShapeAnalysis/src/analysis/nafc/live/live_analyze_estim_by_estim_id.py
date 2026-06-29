@@ -155,7 +155,8 @@ def read_session_trials_as_exp_format(session_id, start_gen_id=START_GEN_ID,
                is_correct_choice, trial_type, noise_chance, base_mstick_id,
                gen_id, trial_start, sample_length, trial_class, choice,
                is_texture_split, split_render_is_sample, inverted_shading,
-               contrast_texture, is_3d_choice
+               contrast_texture, is_3d_choice,
+               num_choices, num_procedural_distractors, num_rand_distractors
         FROM EStimShapeTrials
         WHERE session_id = %s
         ORDER BY task_id
@@ -186,6 +187,10 @@ def read_session_trials_as_exp_format(session_id, start_gen_id=START_GEN_ID,
     out['InvertedShading']     = db['inverted_shading']
     out['ContrastTexture']     = db['contrast_texture']
     out['Is3DChoice']          = db['is_3d_choice']
+    # Behavioral choice-set parameters (nullable; not every trial records them).
+    out['NumChoices']              = db['num_choices']
+    out['NumProceduralDistractors'] = db['num_procedural_distractors']
+    out['NumRandDistractors']      = db['num_rand_distractors']
     # Use the compiled trial-type label directly so 'Behavioral' survives (deriving it from
     # IsDelta/IsRemovedTrial would mislabel behavioral trials as 'Hypothesized Shape').
     out['TrialType'] = db['trial_type']
@@ -524,11 +529,22 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
                                               fmt=lambda v: f'{float(v) * 100:.0f}%')
         self.type_filter = _MultiCheckFilter('Trial type', self._rerender)
         self.sl_filter = _MultiCheckFilter('Sample len', self._rerender, fmt=lambda v: f'{v}')
+        # Behavioral choice-set parameter filters (mirror the by-condition behavioral keys).
+        _int_fmt = lambda v: f'{int(float(v))}'
+        self.nchoices_filter = _MultiCheckFilter('# Choices', self._rerender, fmt=_int_fmt)
+        self.nproc_filter = _MultiCheckFilter('# Proc', self._rerender, fmt=_int_fmt)
+        self.nrand_filter = _MultiCheckFilter('# Rand', self._rerender, fmt=_int_fmt)
         filt_bar.addWidget(self.noise_filter)
         filt_bar.addSpacing(12)
         filt_bar.addWidget(self.type_filter)
         filt_bar.addSpacing(12)
         filt_bar.addWidget(self.sl_filter)
+        filt_bar.addSpacing(12)
+        filt_bar.addWidget(self.nchoices_filter)
+        filt_bar.addSpacing(12)
+        filt_bar.addWidget(self.nproc_filter)
+        filt_bar.addSpacing(12)
+        filt_bar.addWidget(self.nrand_filter)
         filt_bar.addStretch(1)
         layout.addLayout(filt_bar)
 
@@ -709,6 +725,15 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         sel = self.sl_filter.selected()
         if sel is not None:
             df = df[df['SampleLength'].isin(sel)]
+        sel = self.nchoices_filter.selected()
+        if sel is not None:
+            df = df[df['NumChoices'].isin(sel)]
+        sel = self.nproc_filter.selected()
+        if sel is not None:
+            df = df[df['NumProceduralDistractors'].isin(sel)]
+        sel = self.nrand_filter.selected()
+        if sel is not None:
+            df = df[df['NumRandDistractors'].isin(sel)]
         return df
 
     def _refresh(self, force=False):
@@ -755,6 +780,9 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.noise_filter.sync(sorted(data_full['NoiseChance'].dropna().unique()))
         self.type_filter.sync([t for t in _ALL_TRIAL_TYPES if (data_full['TrialType'] == t).any()])
         self.sl_filter.sync(sorted(data_full['SampleLength'].dropna().unique(), key=float))
+        self.nchoices_filter.sync(sorted(data_full['NumChoices'].dropna().unique(), key=float))
+        self.nproc_filter.sync(sorted(data_full['NumProceduralDistractors'].dropna().unique(), key=float))
+        self.nrand_filter.sync(sorted(data_full['NumRandDistractors'].dropna().unique(), key=float))
 
         data_exp = self._apply_filters(data_full)
         if len(data_exp) == 0:

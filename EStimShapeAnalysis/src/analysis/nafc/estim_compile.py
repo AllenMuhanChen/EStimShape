@@ -47,7 +47,8 @@ def export_to_repo(session_id, data):
         'session_id', 'task_id', 'estim_spec_id', 'is_estim_on',
         'is_hypothesized_choice', 'is_correct_choice', 'trial_type',
         'noise_chance', 'base_mstick_id', 'gen_id', 'trial_start', 'trial_end',
-        'sample_length', 'trial_class', 'choice'
+        'sample_length', 'trial_class', 'choice',
+        'num_choices', 'num_procedural_distractors', 'num_rand_distractors'
     ]
 
     # Find which columns we have in the dataframe
@@ -143,6 +144,12 @@ def create_estimshape_trials_table():
         "ADD COLUMN inverted_shading BOOLEAN",
         "ADD COLUMN contrast_texture VARCHAR(20)",
         "ADD COLUMN is_3d_choice BOOLEAN",
+        # Behavioral choice-set parameters: total choices on the trial, and how many of the
+        # distractors were procedural (structured) vs random. NULL for trials that don't
+        # record them. num_procedural_distractors = num_choices - num_rand_distractors - 1.
+        "ADD COLUMN num_choices INT",
+        "ADD COLUMN num_procedural_distractors INT",
+        "ADD COLUMN num_rand_distractors INT",
     ):
         try:
             conn.execute("ALTER TABLE EStimShapeTrials " + _col_ddl)

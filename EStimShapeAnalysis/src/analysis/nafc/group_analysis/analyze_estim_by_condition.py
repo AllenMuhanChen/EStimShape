@@ -119,7 +119,8 @@ def _get_all_session_ids():
     return [row[0] for row in repo_conn.fetch_all()]
 
 
-_DEFAULT_BEHAVIORAL_CONDITIONS = ['trial_type', 'noise_chance', 'sample_length']
+_DEFAULT_BEHAVIORAL_CONDITIONS = ['trial_type', 'noise_chance', 'sample_length',
+                                  'num_choices', 'num_procedural_distractors', 'num_rand_distractors']
 # Key estim conditions by estim_spec_id so each spec is its own condition, matching
 # analyze_estim_by_estim_id. Grouping on a parameter subset (e.g. amplitude/shape/
 # polarity without channel) pools physically distinct specs — different electrode
@@ -333,6 +334,9 @@ _KEY_ABBREVS = {
     'trial_type': 'type',
     'noise_chance': 'noise',
     'sample_length': 'smpl',
+    'num_choices': 'nCh',
+    'num_procedural_distractors': 'nProc',
+    'num_rand_distractors': 'nRand',
     'num_channels': 'ch',
     'polarity': 'pol',
     'shape': 'shp',
@@ -350,7 +354,22 @@ _VALUE_FORMATTERS = {
     'post_stim_refractory_period': lambda v: f"{int(float(v))}µs",
     'enable_charge_recovery': lambda v: 'CR+' if v else 'CR-',
     'sample_length': lambda v: f"{v}ms",
+    'num_choices': lambda v: _fmt_int(v),
+    'num_procedural_distractors': lambda v: _fmt_int(v),
+    'num_rand_distractors': lambda v: _fmt_int(v),
 }
+
+
+def _fmt_int(v):
+    """Format an integer-valued condition value, tolerating NaN/None (legacy trials that
+    didn't record the parameter) by showing 'NA' instead of crashing."""
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return str(v)
+    if math.isnan(f):
+        return 'NA'
+    return f"{int(f)}"
 
 
 def format_condition_label(behavioral_dict, estim_dict, varying_keys=None):
