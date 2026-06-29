@@ -78,17 +78,33 @@ public class EStimExperimentCoherenceGenType extends EStimExperimentVariantsDelt
             assignedVariantIds = distributeVariantIds(parameters.getNumTrials());
         }
 
+        // One coherence trial per (variant, included-delta) pair, so every delta of a variant is
+        // tested as its own mixture rather than only the first.
         for (int i = 0; i < numTrials; i++) {
             long variantId = parameters.stimId == 0 ? assignedVariantIds.get(i) : parameters.stimId;
-            EStimShapeCoherenceNAFCStim stim = new EStimShapeCoherenceNAFCStim(
-                    (EStimShapeExperimentTrialGenerator) generator,
-                    parameters.getProceduralStimParameters(),
-                    variantId,
-                    parameters.isEStimEnabled, parameters.eStimSpecId,
-                    parameters.coherence);
-            stim.setIncludeRemovedChoice(parameters.includeRemovedChoice);
-            newBlock.add(stim);
+            for (Long deltaId : getIncludedDeltaIds(variantId)) {
+                EStimShapeCoherenceNAFCStim stim = new EStimShapeCoherenceNAFCStim(
+                        (EStimShapeExperimentTrialGenerator) generator,
+                        parameters.getProceduralStimParameters(),
+                        variantId, deltaId,
+                        parameters.isEStimEnabled, parameters.eStimSpecId,
+                        parameters.coherence);
+                stim.setIncludeRemovedChoice(parameters.includeRemovedChoice);
+                newBlock.add(stim);
+            }
         }
         return newBlock;
+    }
+
+    private List<Long> getIncludedDeltaIds(long variantId) {
+        DataSource gaDataSource = ((EStimShapeExperimentTrialGenerator) generator).getGaDataSource();
+        JdbcTemplate gaJDBCTemplate = new JdbcTemplate(gaDataSource);
+        List<Long> deltaIds = gaJDBCTemplate.queryForList(
+                "SELECT delta_id FROM IncludedDeltas WHERE variant_id = ? AND included = TRUE",
+                new Object[]{variantId}, Long.class);
+        if (deltaIds.isEmpty()) {
+            throw new RuntimeException("No included deltas found for variant_id: " + variantId);
+        }
+        return deltaIds;
     }
 }
