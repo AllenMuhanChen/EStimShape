@@ -157,11 +157,11 @@ _NOISE_STYLES = [_qt_enum('PenStyle', name) for name in
 
 
 def read_session_trials_as_exp_format(session_id, start_gen_id=START_GEN_ID,
-                                      include_behavioral=False):
+                                      max_gen_id=None, include_behavioral=False):
     """Read this session's rows from EStimShapeTrials and map them back to the experiment-DB
-    column names the partitioning expects. Applies the start_gen_id cut and restricts to
-    experimental stim types (plus behavioral trials when include_behavioral, for the
-    sliding-window % correct baseline)."""
+    column names the partitioning expects. Applies the start_gen_id cut (and the max_gen_id cut
+    when given; None means no upper bound) and restricts to experimental stim types (plus
+    behavioral trials when include_behavioral, for the sliding-window % correct baseline)."""
     conn = Connection(REPO_DB)
     conn.execute("""
         SELECT task_id, estim_spec_id, is_estim_on, is_hypothesized_choice,
@@ -209,6 +209,8 @@ def read_session_trials_as_exp_format(session_id, start_gen_id=START_GEN_ID,
     out['TrialType'] = db['trial_type']
 
     out = out[out['GenId'] >= start_gen_id]
+    if max_gen_id is not None:
+        out = out[out['GenId'] <= max_gen_id]
     allowed = list(_EXPERIMENTAL_STIM_TYPES)
     if include_behavioral:
         allowed.append(_BEHAVIORAL_STIM_TYPE)
@@ -518,6 +520,7 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.seen_starts = get_existing_trial_starts(session_id)
         self._has_drawn = False
         self.start_gen_id = START_GEN_ID
+        self.max_gen_id = None   # None = no upper bound (default)
 
         # Overview-tab grid state.
         self._grid_config = None          # (n_rows, tuple(col_keys)) — rebuilt only on change
@@ -593,6 +596,14 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.start_gen_spin.setValue(self.start_gen_id)
         self.start_gen_spin.valueChanged.connect(self._on_start_gen_changed)
 
+        # Max gen: the minimum value (-1) is shown as 'No max' and means no upper bound (default),
+        # so there's always an "infinite" option. Any value >= 0 caps trials at that generation.
+        self.max_gen_spin = QtWidgets.QSpinBox()
+        self.max_gen_spin.setRange(-1, 1000000)
+        self.max_gen_spin.setSpecialValueText('No max')
+        self.max_gen_spin.setValue(-1)
+        self.max_gen_spin.valueChanged.connect(self._on_max_gen_changed)
+
         bar.addWidget(self.refresh_button)
         bar.addWidget(self.live_checkbox)
         bar.addWidget(QtWidgets.QLabel('Poll every'))
@@ -600,6 +611,9 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         bar.addSpacing(16)
         bar.addWidget(QtWidgets.QLabel('Start gen'))
         bar.addWidget(self.start_gen_spin)
+        bar.addSpacing(8)
+        bar.addWidget(QtWidgets.QLabel('Max gen'))
+        bar.addWidget(self.max_gen_spin)
         bar.addStretch(1)
         bar.addWidget(self.status_label)
         layout.addLayout(bar)
@@ -792,6 +806,11 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.start_gen_id = value
         self._rerender()
 
+    def _on_max_gen_changed(self, value):
+        # The spin's minimum (-1, shown as 'No max') means no upper bound.
+        self.max_gen_id = None if value < 0 else value
+        self._rerender()
+
     def _rerender(self):
         """Redraw from the already-compiled data (no DB poll). Used when start-gen or a filter
         changes — those only affect what we display, not what's compiled."""
@@ -860,7 +879,8 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         plot (status label is set accordingly). include_behavioral also pulls behavioral
         trials in (for the sliding-window % correct baseline)."""
         data_full = read_session_trials_as_exp_format(
-            self.session_id, self.start_gen_id, include_behavioral=include_behavioral)
+            self.session_id, self.start_gen_id, self.max_gen_id,
+            include_behavioral=include_behavioral)
         if data_full is None or len(data_full) == 0:
             self.status_label.setText(f'{self.session_id}: waiting for trials…')
             return None
