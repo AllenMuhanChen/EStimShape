@@ -5,8 +5,11 @@ import org.xper.Dependency;
 import org.xper.classic.vo.TrialContext;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.NAFCTaskScene;
+import org.xper.allen.nafc.experiment.CoherenceNAFCExperimentTask;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.nafc.experiment.NAFCTrialContext;
+import org.xper.allen.noisy.CoherenceImageCombiner;
+import org.xper.allen.noisy.CoherenceNoisyTranslatableImages;
 import org.xper.allen.noisy.NoisyTranslatableResizableImages;
 import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.drawing.AbstractTaskScene;
@@ -43,6 +46,11 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	private int numFrames;
 	private Color color;
 
+	/** True when the current trial is a coherence (interleaved variant/delta) trial. */
+	private boolean coherenceSample;
+	/** Upper bound on distinct pre-generated coherence frames; beyond ~1s @ 60Hz the dither repeat is imperceptible. */
+	private static final int SAMPLE_FRAME_CAP = 120;
+
 	@Override
 	public void initGL(int w, int h) {
 
@@ -55,6 +63,7 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	public void trialStart(NAFCTrialContext context) {
 		NAFCExperimentTask task = (NAFCExperimentTask) context.getCurrentTask();
 		numChoices = task.getChoiceSpec().length;
+		coherenceSample = task instanceof CoherenceNAFCExperimentTask;
 
 		//Choose numNoiseFrames
 		NoisyPngSpec sampleSpec = NoisyPngSpec.fromXml(task.getSampleSpec());
@@ -77,7 +86,12 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 
 		System.out.println("numFrames: " + numFrames);
 
-		images = new NoisyTranslatableResizableImages(numFrames, numChoices + 1, noiseRate);
+		if (coherenceSample) {
+			int numSampleFrames = Math.min(numFrames, SAMPLE_FRAME_CAP);
+			images = new CoherenceNoisyTranslatableImages(numFrames, numChoices + 1, noiseRate, numSampleFrames);
+		} else {
+			images = new NoisyTranslatableResizableImages(numFrames, numChoices + 1, noiseRate);
+		}
 		images.initTextures();
 	}
 
@@ -87,7 +101,16 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 		sampleLocation = new Coordinates2D(sampleSpec.getxCenter(), sampleSpec.getyCenter());
 		sampleDimensions = sampleSpec.getImageDimensions();
 		color = sampleSpec.getColor();
-		images.loadTexture(sampleSpec.getPath(), 0);
+		if (coherenceSample) {
+			CoherenceNAFCExperimentTask coherenceTask = (CoherenceNAFCExperimentTask) task;
+			NoisyPngSpec secondSpec = NoisyPngSpec.fromXml(coherenceTask.getSecondSampleSpec());
+			double proportionFirst = CoherenceImageCombiner.proportionForCoherence(coherenceTask.getCoherence());
+			// Seed the per-frame dither off the taskId so a trial's exact mixture is reproducible.
+			((CoherenceNoisyTranslatableImages) images).loadCoherenceSample(
+					sampleSpec.getPath(), secondSpec.getPath(), proportionFirst, color, coherenceTask.getTaskId());
+		} else {
+			images.loadTexture(sampleSpec.getPath(), 0);
+		}
 		String noiseMapPath = sampleSpec.getNoiseMapPath();
 
 		images.loadNoise(noiseMapPath, color);
@@ -125,7 +148,11 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
 				}
 				int pngIndex = 0; //Should be zero, the sample is assigned index of zero.
-				images.draw(true, context, pngIndex, sampleLocation, sampleDimensions);
+				if (coherenceSample) {
+					((CoherenceNoisyTranslatableImages) images).drawCoherenceSample(true, context, sampleLocation, sampleDimensions);
+				} else {
+					images.draw(true, context, pngIndex, sampleLocation, sampleDimensions);
+				}
 				if (useStencil) {
 					// 1 will pass for fixation and marker regions
 					GL11.glStencilFunc(GL11.GL_EQUAL, 1, 1);

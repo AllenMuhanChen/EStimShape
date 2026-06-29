@@ -16,6 +16,14 @@ public class RewardBehaviors {
         return new RewardBehavior(rewardPolicy, rewardList);
     }
 
+    /**
+     * Reward exactly the given choice indices (0 = match). Used by coherence trials to reward both
+     * shapes that compose the sample (the variant/match and the mixed delta).
+     */
+    public static RewardBehavior rewardChoices(int... rewardedIndices) {
+        return new RewardBehavior(RewardPolicy.LIST, rewardedIndices.clone());
+    }
+
     public static RewardBehavior rewardReasonableChoicesOnly(ProceduralStim.ProceduralStimParameters parameters) {
         // Only reward for choosing the correct, or procedural distractor, not a random distractor.
         int numProceduralDistractors = parameters.numChoices - parameters.numRandDistractors - 1;

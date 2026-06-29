@@ -14,6 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.xper.allen.nafc.experiment.CoherenceNAFCExperimentTask;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.saccade.SaccadeExperimentTask;
 import org.xper.allen.saccade.db.vo.StimSpecEntryUtil;
@@ -323,12 +324,27 @@ public class AllenDbUtil extends DbUtil {
 
 						StimSpecEntryUtil sseU = new StimSpecEntryUtil(sse);
 
-						NAFCExperimentTask task = new NAFCExperimentTask();
-
-						task.setGenId(rs.getLong("gen_id"));
 						//Serializing StimSpec
 						//sse.setSpec(rs.getString("stim_spec"));
 						NAFCStimSpecSpec ss = sseU.NAFCStimSpecSpecFromXmlSpec();
+
+						// Build a coherence task only when the stored stimType matches the coherence label;
+						// every other stimType (named or "None") falls through to the existing task/draw path.
+						NAFCExperimentTask task;
+						if (CoherenceNAFCExperimentTask.STIM_TYPE.equals(ss.getStimType())) {
+							if (ss.getSecondSampleObjData() == null || ss.getCoherence() == null) {
+								throw new IllegalStateException("Coherence trial (stim_id " + rs.getLong("stim_id")
+										+ ") is missing secondSampleObjData/coherence in its NAFCStimSpecSpec");
+							}
+							CoherenceNAFCExperimentTask coherenceTask = new CoherenceNAFCExperimentTask();
+							coherenceTask.setSecondSampleSpec(readStimObjData(ss.getSecondSampleObjData()).getSpec());
+							coherenceTask.setCoherence(ss.getCoherence());
+							task = coherenceTask;
+						} else {
+							task = new NAFCExperimentTask();
+						}
+
+						task.setGenId(rs.getLong("gen_id"));
                         System.out.println("ALLEN TESTING READ SAMPLE_DUR: " + ss.getSampleDuration());
 						//StimObjData
 						//task.setStimId(readStimObjData(ss.getSampleObjData()).getStimId());

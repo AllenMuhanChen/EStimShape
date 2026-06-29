@@ -143,6 +143,9 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
         public boolean splitRenderIsSample;
         public boolean invertedShading;
         public String contrastTexture = "2D";
+        // Coherence trial parameter (see EStimExperimentCoherenceGenType). Inert for other trial types.
+        // Signed coherence in [-1, 1]; 0 = balanced (0% coherence).
+        public double coherence = 0.0;
 
         public EStimExperimentGenParameters(GenParameters genParameters, int numDeltaTrialSets, long stimId, int compId, boolean isEStimEnabled, long eStimSpecId) {
             super(genParameters, numDeltaTrialSets);
