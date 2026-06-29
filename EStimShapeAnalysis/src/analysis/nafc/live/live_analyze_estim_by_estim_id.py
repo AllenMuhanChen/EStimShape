@@ -66,7 +66,7 @@ PLOT_HEIGHT = 300                # px per panel; the column of panels scrolls ve
 RECENT_TRIALS_N = 5              # how many most-recent trials to summarize under the status
 # Experimental stim types that make up Plot 1 (matches analyze_estim_by_estim_id.main).
 _EXPERIMENTAL_STIM_TYPES = ['EStimShapeVariantsDeltaNAFCStim', 'EStimShapeVariantsDeletedNAFCStim',
-                            'EStimShapeSplitTextureNAFCStim']
+                            'EStimShapeSplitTextureNAFCStim', 'EStimShapeCoherenceNAFCStim']
 
 # (row_title, metric_kind) for the metric rows; the removed row is appended when relevant.
 _BASE_ROWS = [
@@ -317,6 +317,10 @@ def _columns_for(partition):
     if partition.include_removed:
         cols.append(('removed', 'Removed', partition.data_removed_on,
                      partition.data_removed_off, partition.removed_spec_ids))
+    # Coherence column appears only when coherence trials are present this session.
+    if getattr(partition, 'include_coherence', False):
+        cols.append(('coherence', 'Coherence', partition.data_coherence_on,
+                     partition.data_coherence_off, partition.coherence_spec_ids))
     return cols
 
 
