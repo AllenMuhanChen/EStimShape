@@ -616,6 +616,7 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.bias_ts_plots = {}            # variant_id -> PlotItem (time series)
         self.bias_ts_legends = {}          # variant_id -> LegendItem
         self.bias_bar_items = {}           # variant_id -> BarGraphItem (replaced each update)
+        self.bias_bar_labels = {}          # variant_id -> [TextItem] colored cluster labels
         self.bias_ts_series = {}           # (variant_id, sample_id, picked_id) -> curve
 
         # Upcoming-trials-tab state: which grouping dimensions are checked, plus the last-read
@@ -1754,7 +1755,7 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
                 w.setParent(None)
                 w.deleteLater()
         self.bias_bar_plots, self.bias_ts_plots, self.bias_ts_legends = {}, {}, {}
-        self.bias_bar_items, self.bias_ts_series = {}, {}
+        self.bias_bar_items, self.bias_bar_labels, self.bias_ts_series = {}, {}, {}
 
         self.bias_grid_layout.setColumnStretch(0, 0)
         self.bias_grid_layout.setColumnStretch(1, 3)
@@ -1772,9 +1773,14 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             pi_bar.setTitle(f'Group {vid}: % picked, by sample')
             pi_bar.showGrid(x=False, y=True, alpha=0.3)
             pi_bar.setLabel('left', '% picked')
+            # We draw our own colour-coded sample labels under each cluster, so suppress the
+            # default x tick text. The small negative y-margin leaves room for those labels while
+            # the left axis still only ticks 0..100.
+            pi_bar.getAxis('bottom').setStyle(showValues=False)
+            pi_bar.getAxis('left').setTicks([[(v, str(v)) for v in range(0, 101, 20)]])
             vb = pi_bar.getViewBox()
-            vb.setYRange(0, 100, padding=0)
-            vb.setLimits(yMin=0, yMax=100)
+            vb.setYRange(-18, 100, padding=0)
+            vb.setLimits(yMin=-18, yMax=100)
             self.bias_grid_layout.addWidget(glw_bar, r, 1)
             self.bias_bar_plots[vid] = pi_bar
 
@@ -1800,9 +1806,13 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
 
         self._bias_config = config
 
+    _BIAS_COMBINED_LABEL_COLOR = (60, 60, 60)
+
     def _update_bias_bars(self, group):
-        """Draw/redraw one group's bar chart: clusters along x are samples; within a cluster, one
-        bar per member, coloured by the picked member; height = % of that sample's trials picked."""
+        """Draw/redraw one group's bar chart: x clusters are the samples plus a final 'Combined'
+        cluster that averages each member's bar across samples (so the blue bars from every sample
+        average into one blue Combined bar). Within a cluster, one bar per member coloured by the
+        picked member. Each cluster's label is drawn in the sample's colour."""
         vid = group['variant_id']
         plot = self.bias_bar_plots.get(vid)
         if plot is None:
@@ -1810,6 +1820,8 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         old = self.bias_bar_items.pop(vid, None)
         if old is not None:
             plot.removeItem(old)
+        for t in self.bias_bar_labels.pop(vid, []):
+            plot.removeItem(t)
 
         members = [int(m) for m in group['member_ids']]
         colors = group['colors']
@@ -1817,23 +1829,41 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         samples = [m for m in members if m in bars]   # keep member order
         m_count = len(members)
 
-        xs, heights, brushes = [], [], []
-        ticks = []
-        for i, sample in enumerate(samples):
+        # Clusters: (label, label_color, pct_by_member). One per sample, then a 'Combined' cluster
+        # = the per-sample bars of each member averaged (equal weight per sample).
+        clusters = []
+        for sample in samples:
+            clusters.append((f"smp {sample}\n(n={bars[sample]['n']})",
+                             colors[sample], bars[sample]['pct']))
+        combined = bias.combined_pick_pct(bars, members) if samples else {}
+        if combined:
+            clusters.append((f"Combined\n({combined['n_samples']} smp)",
+                             self._BIAS_COMBINED_LABEL_COLOR, combined))
+
+        xs, heights, brushes, labels = [], [], [], []
+        for i, (clabel, lcolor, pct) in enumerate(clusters):
             base_x = i * (m_count + 1)
             for j, picked in enumerate(members):
                 xs.append(base_x + j)
-                heights.append(bars[sample]['pct'][picked])
+                heights.append(float(pct.get(picked, 0.0)))
                 brushes.append(colors[picked])
             center = base_x + (m_count - 1) / 2.0
-            ticks.append((center, f"smp {sample}\n(n={bars[sample]['n']})"))
+            labels.append((center, clabel, lcolor))
 
         if not xs:
             return
         bar_item = pg.BarGraphItem(x=xs, height=heights, width=0.85, brushes=brushes)
         plot.addItem(bar_item)
         self.bias_bar_items[vid] = bar_item
-        plot.getAxis('bottom').setTicks([ticks])
+
+        # Colour-coded cluster labels just below the baseline (anchor top-center -> hang downward).
+        texts = []
+        for center, clabel, lcolor in labels:
+            t = pg.TextItem(clabel, color=lcolor, anchor=(0.5, 0))
+            t.setPos(center, -1)
+            plot.addItem(t)
+            texts.append(t)
+        self.bias_bar_labels[vid] = texts
         plot.getViewBox().setXRange(-0.7, max(xs) + 0.7, padding=0)
 
     def _bias_sample_style(self, members, sample):
@@ -1843,7 +1873,9 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
 
     def _update_bias_timeseries(self, group):
         """Draw/redraw one group's sliding-window time series. One line per (sample, picked):
-        colour = picked member (matches the bars/thumbnails), line style = which sample."""
+        colour = picked member (matches the bars/thumbnails), line style = which sample. The
+        sample-averaged 'Combined' traces (one per picked member) are drawn as thick solid lines,
+        the time-series analogue of the Combined bar cluster."""
         vid = group['variant_id']
         plot = self.bias_ts_plots.get(vid)
         legend = self.bias_ts_legends.get(vid)
@@ -1854,15 +1886,23 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         ts = group['timeseries']
 
         wanted = set()
-        for (sample, picked), (xs, ys) in sorted(ts.items()):
-            sample, picked = int(sample), int(picked)
-            wanted.add((sample, picked))
+        # Sort with a type-safe key (sample is an int or the COMBINED_KEY string).
+        for (sample, picked), (xs, ys) in sorted(ts.items(), key=lambda kv: (str(kv[0][0]), int(kv[0][1]))):
+            picked = int(picked)
+            is_combined = (sample == bias.COMBINED_KEY)
             color = colors[picked]
-            pen = pg.mkPen(color, width=2, style=self._bias_sample_style(members, sample))
+            if is_combined:
+                pen = pg.mkPen(color, width=3)            # thick solid = averaged over samples
+                label = f'all → {picked}'
+            else:
+                sample = int(sample)
+                pen = pg.mkPen(color, width=1, style=self._bias_sample_style(members, sample))
+                label = f'smp {sample} → {picked}'
+            wanted.add((sample, picked))
             sid = (vid, sample, picked)
             if sid not in self.bias_ts_series:
                 curve = plot.plot([], [], pen=pen)
-                legend.addItem(curve, f'smp {sample} → {picked}')
+                legend.addItem(curve, label)
                 self.bias_ts_series[sid] = curve
             self.bias_ts_series[sid].setData(xs, ys)
 

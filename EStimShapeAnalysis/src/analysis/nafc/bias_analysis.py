@@ -50,6 +50,10 @@ MEMBER_COLORS = [
 WINDOW_SIZE = 50
 WINDOW_STEP = 5
 
+# Sentinel used as the "sample" key for the sample-averaged ("Combined") traces in
+# bias_timeseries, distinguishing them from the per-sample (integer-keyed) traces.
+COMBINED_KEY = 'combined'
+
 
 def _repo(conn):
     return conn if conn is not None else Connection(REPO_DB)
@@ -217,7 +221,22 @@ def bias_bar_data(trials_df, member_ids):
     return out
 
 
-def bias_timeseries(trials_df, member_ids, window=WINDOW_SIZE, step=WINDOW_STEP):
+def combined_pick_pct(bars, member_ids):
+    """Sample-averaged pick distribution: for each member, the mean of its pick % across the
+    samples present in ``bars`` (equal weight per sample — i.e. average the per-sample bars of
+    the same colour). Returns {member_id: mean_pct, ..., 'n_samples': k}; {} if no samples.
+    """
+    members = [int(m) for m in member_ids]
+    samples = list(bars.keys())
+    if not samples:
+        return {}
+    out = {p: sum(bars[s]['pct'].get(p, 0.0) for s in samples) / len(samples) for p in members}
+    out['n_samples'] = len(samples)
+    return out
+
+
+def bias_timeseries(trials_df, member_ids, window=WINDOW_SIZE, step=WINDOW_STEP,
+                    include_combined=True):
     """Sliding-window version of bias_bar_data for one group.
 
     Slides a window of ``window`` trials (in chronological order) with stride ``step`` over the
@@ -227,6 +246,10 @@ def bias_timeseries(trials_df, member_ids, window=WINDOW_SIZE, step=WINDOW_STEP)
     Returns {(sample_id, picked_id): (xs, ys)} where xs is the window-center trial index within the
     group's trial sequence and ys is the percentage. A (s, p) trace only gets a point at windows
     where sample s occurs.
+
+    When ``include_combined`` is set, also emits sample-averaged traces keyed (COMBINED_KEY, p):
+    per window, the mean over the samples present of that picked member's % (the time-series
+    analogue of combined_pick_pct).
     """
     members = [int(m) for m in member_ids]
     mset = set(members)
@@ -241,16 +264,26 @@ def bias_timeseries(trials_df, member_ids, window=WINDOW_SIZE, step=WINDOW_STEP)
     for start in range(0, max(n - window, 0) + 1, step):
         w = sub.iloc[start:start + window]
         center = start + window // 2
+        # Per-sample pick % in this window; collected so the combined trace can average them.
+        per_sample = {}
         for sample in members:
             ws = w[w['sample_id'] == sample]
             denom = len(ws)
             if denom == 0:
                 continue
-            for picked in members:
-                pct = 100.0 * int((ws['picked_id'] == picked).sum()) / denom
+            pcts = {picked: 100.0 * int((ws['picked_id'] == picked).sum()) / denom
+                    for picked in members}
+            per_sample[sample] = pcts
+            for picked, pct in pcts.items():
                 xs, ys = out.setdefault((sample, picked), ([], []))
                 xs.append(center)
                 ys.append(pct)
+        if include_combined and per_sample:
+            for picked in members:
+                avg = sum(pcts[picked] for pcts in per_sample.values()) / len(per_sample)
+                xs, ys = out.setdefault((COMBINED_KEY, picked), ([], []))
+                xs.append(center)
+                ys.append(avg)
     return out
 
 
