@@ -919,7 +919,7 @@ def main():
     n_steps_below    = 2
     min_estim_trials = 10
     n_permutations   = 1000
-    session_id       = "260625_0"  # str = one session, list = several, None = all
+    session_id       = "260626_0"  # str = one session, list = several, None = all
     metric           = METRIC_PCT_HYP_VS_DELTA  # or METRIC_PCT_HYPOTHESIZED
 
     # Normalize the selection to a list of run_cutoffs arguments (None means "all").
