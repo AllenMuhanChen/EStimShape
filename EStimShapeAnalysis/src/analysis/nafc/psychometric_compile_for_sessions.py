@@ -2,7 +2,7 @@ from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
 from clat.util import time_util
 from src.analysis.nafc.nafc_database_fields import IsCorrectField, IsHypothesizedField, NoiseChanceField, \
     NumRandDistractorsField, NumChoicesField, NumProceduralDistractorsField, StimTypeField, ChoiceField, GenIdField, \
-    EStimEnabledField, BaseMStickIdField, IsDeltaField, \
+    EStimEnabledField, BaseMStickIdField, PickedBaseMStickIdField, IsDeltaField, \
     EStimPolarityField, EStimSpecIdField, StimSpecIdField, IsHypothesizedFieldLegacy, EStimEnabledFieldLegacy, \
     SampleLengthField, IsRemovedTrialField, IsTextureSplitField, SplitRenderIsSampleField, InvertedShadingField, \
     ContrastTextureField, Is3DChoiceField
@@ -33,6 +33,7 @@ def compile_latest(exp_conn, trial_tstamps=None):
     fields.append(EStimEnabledField(exp_conn))
     fields.append(EStimSpecIdField(exp_conn))
     fields.append(BaseMStickIdField(exp_conn))
+    fields.append(PickedBaseMStickIdField(exp_conn))
     fields.append(IsDeltaField(exp_conn))
     fields.append(IsRemovedTrialField(exp_conn))
     fields.append(EStimPolarityField(exp_conn))
@@ -71,6 +72,7 @@ def compile_latest(exp_conn, trial_tstamps=None):
         'NumChoices': 'num_choices',
         'NumProceduralDistractors': 'num_procedural_distractors',
         'BaseMStickId': 'base_mstick_id',
+        'PickedBaseMStickId': 'picked_base_mstick_id',
         'GenId': 'gen_id',
         'SampleLength': 'sample_length',
         'IsTextureSplit': 'is_texture_split',

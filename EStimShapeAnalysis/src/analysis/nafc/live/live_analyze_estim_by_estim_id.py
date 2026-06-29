@@ -40,7 +40,7 @@ import pandas as pd
 import pyqtgraph as pg
 # Use pyqtgraph's Qt shim so every Qt class comes from the SAME binding pyqtgraph selected.
 # Importing PyQt5 directly alongside pyqtgraph risks a binding mismatch -> SIGSEGV.
-from pyqtgraph.Qt import QtWidgets, QtCore
+from pyqtgraph.Qt import QtWidgets, QtCore, QtGui
 
 from clat.util.connection import Connection
 from src.startup import context
@@ -55,6 +55,7 @@ from src.analysis.nafc.live.upcoming_trials import (
     GROUP_DIMENSIONS, DEFAULT_GROUP_DIMENSIONS,
 )
 from src.analysis.nafc.live.live_stats import run_session_stats, METRICS as STATS_METRICS
+from src.analysis.nafc import bias_analysis as bias
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -131,6 +132,13 @@ _SCROLLBAR_OFF = _qt_enum('ScrollBarPolicy', 'ScrollBarAlwaysOff')
 _DASH_LINE = _qt_enum('PenStyle', 'DashLine')
 _EDIT_ROLE = _qt_enum('ItemDataRole', 'EditRole')
 _USER_ROLE = _qt_enum('ItemDataRole', 'UserRole')
+_KEEP_ASPECT = _qt_enum('AspectRatioMode', 'KeepAspectRatio')
+_SMOOTH_TRANSFORM = _qt_enum('TransformationMode', 'SmoothTransformation')
+_ALIGN_CENTER = _qt_enum('AlignmentFlag', 'AlignCenter')
+
+# Bias tab geometry.
+BIAS_ROW_HEIGHT = 260      # px per group row
+BIAS_THUMB_PX = 76         # thumbnail edge length
 
 
 def _scoped_enum(cls, member):
@@ -540,6 +548,14 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.split_legends = {}           # (row_key, col_key) -> LegendItem
         self.split_series = {}            # (row_key, col_key, series_key) -> {'curve','label','base'}
 
+        # Bias-tab grid state (rows = lineage groups; columns = thumbnails / bars / time series).
+        self._bias_config = None           # tuple of (variant_id, tuple(member_ids)) — rebuilt on change
+        self.bias_bar_plots = {}           # variant_id -> PlotItem (bar chart)
+        self.bias_ts_plots = {}            # variant_id -> PlotItem (time series)
+        self.bias_ts_legends = {}          # variant_id -> LegendItem
+        self.bias_bar_items = {}           # variant_id -> BarGraphItem (replaced each update)
+        self.bias_ts_series = {}           # (variant_id, sample_id, picked_id) -> curve
+
         # Upcoming-trials-tab state: which grouping dimensions are checked, plus the last-read
         # trials/grouping so a delete can map a selected row back to its task_ids.
         self.upcoming_checks = {}          # column -> QCheckBox
@@ -699,6 +715,18 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.split_scroll.setWidget(self.split_host)
         split_tab_layout.addWidget(self.split_scroll)
         self.tabs.addTab(self.split_tab, 'Texture Split')
+
+        # Bias tab — one row per lineage group (variant + its deltas). Col 0: member thumbnails
+        # with colour-coded borders (the legend); col 1: per-sample pick distribution bars
+        # (coloured by which member was picked); col 2: the sliding-window version. Estim-off
+        # (behavioural) variant/delta trials only; honours the start/max-gen filters.
+        self.bias_scroll = QtWidgets.QScrollArea()
+        self.bias_scroll.setWidgetResizable(True)
+        self.bias_host = QtWidgets.QWidget()
+        self.bias_grid_layout = QtWidgets.QGridLayout(self.bias_host)
+        self.bias_grid_layout.setContentsMargins(4, 4, 4, 4)
+        self.bias_scroll.setWidget(self.bias_host)
+        self.tabs.addTab(self.bias_scroll, 'Bias')
 
         # Upcoming Trials tab — counts of queued-but-not-yet-run trials (TaskToDo minus
         # TaskDone), grouped by the dimensions the user checks. Independent of the
@@ -920,6 +948,10 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         # use the compiled/completed-trial data or the behavioral filters.
         if self.tabs.currentWidget() is self.upcoming_tab:
             return self._render_upcoming()
+        # Bias tab reads its own (estim-off variant/delta) view from the repository via
+        # bias_analysis; it doesn't use the experiment-format frame or the behavioral filters.
+        if self.tabs.currentWidget() is self.bias_scroll:
+            return self._render_bias()
         window_tab = self.tabs.currentWidget() is self.win_scroll
         split_tab = self.tabs.currentWidget() is self.split_tab
         data_exp = self._read_and_filter(include_behavioral=window_tab)
@@ -1571,6 +1603,222 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             plot.removeItem(entry['curve'])
             try:
                 legend.removeItem(entry['curve'])
+            except Exception:
+                pass
+
+    # ---- bias tab -------------------------------------------------------
+    def _render_bias(self):
+        """Render the Bias tab: one row per lineage group (variant + its deltas), showing the
+        per-sample pick distribution (bars, coloured by which member was picked) and its
+        sliding-window version. Reads estim-off variant/delta trials from the repository through
+        bias_analysis, honouring the start/max-gen filters. Returns the trial count."""
+        try:
+            # Thumbnails are resolved lazily when the grid is (re)built (see
+            # _make_bias_thumbnail_panel), not on every refresh, so skip them here.
+            result = bias.compute_session_bias(
+                self.session_id, start_gen_id=self.start_gen_id, max_gen_id=self.max_gen_id,
+                window=WINDOW_SIZE, step=WINDOW_STEP, with_thumbnails=False)
+        except Exception as e:
+            self.status_label.setText(f'Bias error: {e}')
+            return 0
+
+        groups = result['groups']
+        n_trials = len(result['trials'])
+        if not groups:
+            self._ensure_bias_grid([])
+            self.status_label.setText(
+                f'{self.session_id}: no behavioural (estim-off) variant/delta trials yet')
+            return 0
+
+        self._ensure_bias_grid(groups)
+        for group in groups:
+            self._update_bias_bars(group)
+            self._update_bias_timeseries(group)
+        self.status_label.setText(f'{self.session_id}: bias over {n_trials} behavioural trials')
+        return n_trials
+
+    @staticmethod
+    def _rgb_css(color):
+        return f'rgb({color[0]}, {color[1]}, {color[2]})'
+
+    def _make_bias_thumbnail_panel(self, group):
+        """Column 0 for a group: each member's thumbnail (or a colour swatch fallback) with a
+        border in the member's assigned colour — this doubles as the legend for the two plots."""
+        panel = QtWidgets.QWidget()
+        vbox = QtWidgets.QVBoxLayout(panel)
+        vbox.setContentsMargins(2, 2, 2, 2)
+        vbox.setSpacing(2)
+        vbox.addWidget(QtWidgets.QLabel(f"Group {group['variant_id']}"))
+
+        row = QtWidgets.QHBoxLayout()
+        row.setSpacing(6)
+        members = group['member_ids']
+        for i, member in enumerate(members):
+            color = group['colors'][int(member)]
+            role = 'variant' if i == 0 else 'delta'
+
+            cell = QtWidgets.QVBoxLayout()
+            cell.setSpacing(1)
+            img = QtWidgets.QLabel()
+            img.setAlignment(_ALIGN_CENTER)
+            img.setFixedSize(BIAS_THUMB_PX, BIAS_THUMB_PX)
+            try:
+                path = bias.resolve_thumbnail(int(member))
+            except Exception:
+                path = None
+            pixmap = QtGui.QPixmap(path) if path else QtGui.QPixmap()
+            if not pixmap.isNull():
+                img.setPixmap(pixmap.scaled(BIAS_THUMB_PX - 8, BIAS_THUMB_PX - 8,
+                                            _KEEP_ASPECT, _SMOOTH_TRANSFORM))
+                img.setStyleSheet(f'border: 3px solid {self._rgb_css(color)};')
+            else:
+                # No thumbnail on disk — show a solid colour swatch so the legend colour is clear.
+                img.setStyleSheet(
+                    f'border: 3px solid {self._rgb_css(color)}; '
+                    f'background-color: {self._rgb_css(color)};')
+            cell.addWidget(img)
+            cap = QtWidgets.QLabel(f'{role}\n{int(member)}')
+            cap.setAlignment(_ALIGN_CENTER)
+            cap.setStyleSheet('font-size: 9px; color: #444;')
+            cell.addWidget(cap)
+            row.addLayout(cell)
+        row.addStretch(1)
+        vbox.addLayout(row)
+        vbox.addStretch(1)
+        return panel
+
+    def _ensure_bias_grid(self, groups):
+        """(Re)build the bias grid only when the set/shape of groups changes. Columns: thumbnails
+        (legend), per-sample pick bars, sliding-window time series."""
+        config = tuple((g['variant_id'], tuple(g['member_ids'])) for g in groups)
+        if config == self._bias_config:
+            return
+
+        while self.bias_grid_layout.count():
+            item = self.bias_grid_layout.takeAt(0)
+            w = item.widget()
+            if w is not None:
+                w.setParent(None)
+                w.deleteLater()
+        self.bias_bar_plots, self.bias_ts_plots, self.bias_ts_legends = {}, {}, {}
+        self.bias_bar_items, self.bias_ts_series = {}, {}
+
+        self.bias_grid_layout.setColumnStretch(0, 0)
+        self.bias_grid_layout.setColumnStretch(1, 3)
+        self.bias_grid_layout.setColumnStretch(2, 3)
+
+        for r, group in enumerate(groups):
+            vid = group['variant_id']
+
+            self.bias_grid_layout.addWidget(self._make_bias_thumbnail_panel(group), r, 0)
+
+            # Bars: % picked, per sample. No legend column (thumbnails are the legend).
+            glw_bar = _ScrollGraphicsLayout(self.bias_scroll)
+            glw_bar.setFixedHeight(BIAS_ROW_HEIGHT)
+            pi_bar = glw_bar.addPlot(row=0, col=0)
+            pi_bar.setTitle(f'Group {vid}: % picked, by sample')
+            pi_bar.showGrid(x=False, y=True, alpha=0.3)
+            pi_bar.setLabel('left', '% picked')
+            vb = pi_bar.getViewBox()
+            vb.setYRange(0, 100, padding=0)
+            vb.setLimits(yMin=0, yMax=100)
+            self.bias_grid_layout.addWidget(glw_bar, r, 1)
+            self.bias_bar_plots[vid] = pi_bar
+
+            # Time series: one line per (sample, picked), colour=picked, style=sample.
+            glw_ts = _ScrollGraphicsLayout(self.bias_scroll)
+            glw_ts.setFixedHeight(BIAS_ROW_HEIGHT)
+            pi_ts = glw_ts.addPlot(row=0, col=0)
+            legend = pg.LegendItem(offset=(10, 10))
+            glw_ts.addItem(legend, row=0, col=1)
+            glw_ts.ci.layout.setColumnStretchFactor(0, 1)
+            glw_ts.ci.layout.setColumnFixedWidth(1, LEGEND_WIDTH)
+            pi_ts.setTitle(f'Group {vid}: % picked over trials')
+            pi_ts.showGrid(x=True, y=True, alpha=0.3)
+            pi_ts.setLabel('left', '% picked')
+            pi_ts.setLabel('bottom', 'Trial (window center)')
+            vb = pi_ts.getViewBox()
+            vb.setYRange(0, 100, padding=0)
+            vb.setLimits(yMin=0, yMax=100)
+            vb.enableAutoRange(x=True)
+            self.bias_grid_layout.addWidget(glw_ts, r, 2)
+            self.bias_ts_plots[vid] = pi_ts
+            self.bias_ts_legends[vid] = legend
+
+        self._bias_config = config
+
+    def _update_bias_bars(self, group):
+        """Draw/redraw one group's bar chart: clusters along x are samples; within a cluster, one
+        bar per member, coloured by the picked member; height = % of that sample's trials picked."""
+        vid = group['variant_id']
+        plot = self.bias_bar_plots.get(vid)
+        if plot is None:
+            return
+        old = self.bias_bar_items.pop(vid, None)
+        if old is not None:
+            plot.removeItem(old)
+
+        members = [int(m) for m in group['member_ids']]
+        colors = group['colors']
+        bars = group['bars']
+        samples = [m for m in members if m in bars]   # keep member order
+        m_count = len(members)
+
+        xs, heights, brushes = [], [], []
+        ticks = []
+        for i, sample in enumerate(samples):
+            base_x = i * (m_count + 1)
+            for j, picked in enumerate(members):
+                xs.append(base_x + j)
+                heights.append(bars[sample]['pct'][picked])
+                brushes.append(colors[picked])
+            center = base_x + (m_count - 1) / 2.0
+            ticks.append((center, f"smp {sample}\n(n={bars[sample]['n']})"))
+
+        if not xs:
+            return
+        bar_item = pg.BarGraphItem(x=xs, height=heights, width=0.85, brushes=brushes)
+        plot.addItem(bar_item)
+        self.bias_bar_items[vid] = bar_item
+        plot.getAxis('bottom').setTicks([ticks])
+        plot.getViewBox().setXRange(-0.7, max(xs) + 0.7, padding=0)
+
+    def _bias_sample_style(self, members, sample):
+        """Stable pen style per sample (its index among the group's members)."""
+        idx = members.index(int(sample)) if int(sample) in members else 0
+        return _NOISE_STYLES[idx % len(_NOISE_STYLES)]
+
+    def _update_bias_timeseries(self, group):
+        """Draw/redraw one group's sliding-window time series. One line per (sample, picked):
+        colour = picked member (matches the bars/thumbnails), line style = which sample."""
+        vid = group['variant_id']
+        plot = self.bias_ts_plots.get(vid)
+        legend = self.bias_ts_legends.get(vid)
+        if plot is None:
+            return
+        members = [int(m) for m in group['member_ids']]
+        colors = group['colors']
+        ts = group['timeseries']
+
+        wanted = set()
+        for (sample, picked), (xs, ys) in sorted(ts.items()):
+            sample, picked = int(sample), int(picked)
+            wanted.add((sample, picked))
+            color = colors[picked]
+            pen = pg.mkPen(color, width=2, style=self._bias_sample_style(members, sample))
+            sid = (vid, sample, picked)
+            if sid not in self.bias_ts_series:
+                curve = plot.plot([], [], pen=pen)
+                legend.addItem(curve, f'smp {sample} → {picked}')
+                self.bias_ts_series[sid] = curve
+            self.bias_ts_series[sid].setData(xs, ys)
+
+        # Drop lines no longer present.
+        for sid in [s for s in self.bias_ts_series if s[0] == vid and (s[1], s[2]) not in wanted]:
+            curve = self.bias_ts_series.pop(sid)
+            plot.removeItem(curve)
+            try:
+                legend.removeItem(curve)
             except Exception:
                 pass
 

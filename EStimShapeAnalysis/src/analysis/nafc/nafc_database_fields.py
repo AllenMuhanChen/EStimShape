@@ -196,6 +196,39 @@ class ChoiceSetField(StimSpecField):
             choice = choices[0][0]
         return choice
 
+def classify_choice_path(choice_path):
+    """Map a choice PNG path to its category label, by the tag the generator appended to the
+    filename. Shared by ChoiceField and the picked-stimulus reconstruction so both agree on the
+    category of any choice in a trial (not just the one that was picked)."""
+    if choice_path is None:
+        return "None"
+    if "_match" in choice_path:
+        return "match"
+    elif "_textureFoil" in choice_path:
+        # Split-texture trials: the same-geometry shape as the match, rendered with the
+        # opposite texture treatment (the critical lure). See EStimShapeSplitTextureNAFCStim.
+        return "textureFoil"
+    elif "_procedural" in choice_path:
+        return "procedural"
+    elif "_variant" in choice_path:
+        return "variant"
+    elif "_removed" in choice_path:
+        return "removed"
+    elif "_delta_distractor" in choice_path:
+        # Must precede "_delta" — the substring "_delta" matches both "_delta.png" and
+        # "_delta_distractor.png", so the more specific tag has to be tested first.
+        # "_delta_distractor" identifies the extra delta(s) in a delta trial that are NOT the
+        # hypothesized comparison (slot 0, the variant by convention, is labeled "_delta"
+        # and IsHypothesizedField treats only that one as hypothesized).
+        return "delta_distractor"
+    elif "_delta" in choice_path:
+        return "delta"
+    elif "_rand" in choice_path:
+        return "rand"
+    else:
+        return "None"
+
+
 class ChoiceField(ChoiceSetField):
     def get_name(self):
         return "Choice"
@@ -207,32 +240,7 @@ class ChoiceField(ChoiceSetField):
 
         choice_path = self._get_choice_png_path(choice_stim_obj_id)
 
-
-        if "_match" in choice_path:
-            return "match"
-        elif "_textureFoil" in choice_path:
-            # Split-texture trials: the same-geometry shape as the match, rendered with the
-            # opposite texture treatment (the critical lure). See EStimShapeSplitTextureNAFCStim.
-            return "textureFoil"
-        elif "_procedural" in choice_path:
-            return "procedural"
-        elif "_variant" in choice_path:
-            return "variant"
-        elif "_removed" in choice_path:
-            return "removed"
-        elif "_delta_distractor" in choice_path:
-            # Must precede "_delta" — the substring "_delta" matches both "_delta.png" and
-            # "_delta_distractor.png", so the more specific tag has to be tested first.
-            # "_delta_distractor" identifies the extra delta(s) in a delta trial that are NOT the
-            # hypothesized comparison (slot 0, the variant by convention, is labeled "_delta"
-            # and IsHypothesizedField treats only that one as hypothesized).
-            return "delta_distractor"
-        elif "_delta" in choice_path:
-            return "delta"
-        elif "_rand" in choice_path:
-            return "rand"
-        else:
-            return "None"
+        return classify_choice_path(choice_path)
 
 class IsCorrectField(ChoiceField):
     def get_name(self):
@@ -921,3 +929,142 @@ class IsHypothesizedFieldLegacy(IsDeltaField):
                 return True
             else:
                 return False
+
+
+# Choice categories that correspond to a non-sample lineage member (a variant or delta offered
+# as a procedural distractor). Used to map a pick back to its specific lineage stimulus.
+_LINEAGE_DISTRACTOR_CATEGORIES = ("delta", "delta_distractor")
+
+
+def reconstruct_picked_lineage_id(categories, picked_index, sample_id,
+                                  distractor_lineage_order):
+    """Pure mapping from a trial's choice layout to the lineage id of the picked shape.
+
+    Args:
+        categories: per-choice category labels in choiceObjData order (see classify_choice_path).
+        picked_index: index into ``categories`` of the choice the animal selected.
+        sample_id: the sample's lineage id (== the 'match' choice's lineage id).
+        distractor_lineage_order: lineage ids of the procedural distractors, in the order the
+            generator added them (so the k-th delta-category choice is entry k).
+
+    Returns the picked lineage id, or None when the pick isn't a plain lineage member
+    (rand/removed/textureFoil/procedural) or the layout can't be mapped. Kept free of DB/IO so it
+    can be unit-tested and reused.
+    """
+    if picked_index is None or picked_index < 0 or picked_index >= len(categories):
+        return None
+    picked_cat = categories[picked_index]
+    if picked_cat == "match":
+        return sample_id
+    if picked_cat not in _LINEAGE_DISTRACTOR_CATEGORIES:
+        return None
+    if distractor_lineage_order is None:
+        return None
+    # Rank of the pick among delta-category choices, in order, indexes the distractor list.
+    k = sum(1 for c in categories[:picked_index] if c in _LINEAGE_DISTRACTOR_CATEGORIES)
+    if k >= len(distractor_lineage_order):
+        return None
+    return distractor_lineage_order[k]
+
+
+class PickedBaseMStickIdField(ChoiceSetField):
+    """The lineage stim-spec id (a variant_id or a delta_id) of the shape the animal actually
+    PICKED on a variant/delta NAFC trial — the counterpart to BaseMStickId, which is the SAMPLE's
+    lineage id. Returns None when the pick is not a plain lineage member (rand/removed/textureFoil),
+    when the trial isn't a variant/delta trial, or when the mapping can't be reconstructed.
+
+    Reconstruction (the DB records only the sample's lineage id, not each choice's):
+      - A 'match' pick is the sample itself  -> base_mstick_id.
+      - A non-match delta-category pick is the k-th lineage distractor, where k is its rank among
+        the trial's delta-category choices in choiceObjData order. That order mirrors the
+        generator's distractor list (EStimShapeVariantsDeltaNAFCStim.generateProceduralDistractors
+        / assignLabels): for a variant-sample trial the distractors are the variant's included
+        deltas (IncludedDeltas order); for a delta-sample trial they are [variant, other deltas...].
+
+    This relies on the per-variant IncludedDeltas ordering being stable between trial generation
+    and analysis, which holds within a session. Any failure degrades to None rather than raising,
+    so one odd trial never breaks compilation."""
+
+    def get_name(self):
+        return "PickedBaseMStickId"
+
+    def get(self, when: When):
+        try:
+            return self._compute(when)
+        except Exception:
+            return None
+
+    def _compute(self, when: When):
+        stim_spec = self.get_cached_super(when, StimSpecField)
+        choice_ids = stim_spec['StimSpec']['choiceObjData']['long']
+        if not isinstance(choice_ids, list):
+            # A single choice (non-NAFC) — no lineage distractor structure to map.
+            return None
+
+        picked_index = int(self._get_choice_index(when))
+        categories = [classify_choice_path(self._get_choice_png_path(cid)) for cid in choice_ids]
+
+        sample_id = self.get_cached_super(when, BaseMStickIdField)
+        if sample_id is None:
+            return None
+        sample_id = int(sample_id)
+
+        # Only resolve the distractor order when the pick is actually a non-sample lineage member
+        # (avoids the extra IncludedDeltas queries on match/rand picks).
+        needs_distractors = (picked_index < len(categories)
+                             and categories[picked_index] in _LINEAGE_DISTRACTOR_CATEGORIES)
+        distractors = self._distractor_lineage_order(when, sample_id) if needs_distractors else None
+        return reconstruct_picked_lineage_id(categories, picked_index, sample_id, distractors)
+
+    def _distractor_lineage_order(self, when: When, sample_id: int):
+        """The lineage ids of this trial's procedural distractors, in the order the generator
+        added them. None if the lineage can't be resolved."""
+        is_delta = self.get_cached_super(when, IsDeltaField)
+        variant_id = self._variant_id_for_trial(when, sample_id, is_delta)
+        if variant_id is None:
+            return None
+        included = self._included_delta_ids(variant_id)
+        if not is_delta:
+            # Variant-sample trial: distractors are the variant's included deltas, in order.
+            return included
+        # Delta-sample trial: distractors are [variant, then the other included deltas].
+        return [variant_id] + [d for d in included if d != sample_id]
+
+    def _variant_id_for_trial(self, when: When, sample_id: int, is_delta):
+        """The variant id of this trial's lineage. Prefers the per-trial NafcSampleRole record
+        (authoritative for delta->delta chains); falls back to IncludedDeltas membership."""
+        # Per-trial role (records the lineage's variant_id directly) when available.
+        if self._has_sample_role_table():
+            trial_stim_id = get_stim_spec_id(self.conn, when)
+            if trial_stim_id is not None:
+                self.conn.execute(
+                    "SELECT variant_id FROM NafcSampleRole WHERE stim_id = %s LIMIT 1;",
+                    params=(trial_stim_id,))
+                row = self.conn.fetch_one()
+                if row is not None:
+                    return int(row)
+        if not is_delta:
+            return sample_id  # the sample IS the variant
+        # Fallback: look the delta up in IncludedDeltas.
+        self.conn.execute(
+            "SELECT variant_id FROM IncludedDeltas WHERE delta_id = %s AND included = 1 LIMIT 1;",
+            params=(sample_id,))
+        row = self.conn.fetch_one()
+        return None if row is None else int(row)
+
+    def _included_delta_ids(self, variant_id: int):
+        """The included delta ids for a variant, in the DB's natural order — matching the
+        unordered query the generator used (EStimShapeVariantsDeltaNAFCStim.getDeltaIdsFromVariantId)
+        so distractor slot positions line up."""
+        self.conn.execute(
+            "SELECT delta_id FROM IncludedDeltas WHERE variant_id = %s AND included = 1;",
+            params=(int(variant_id),))
+        return [int(r[0]) for r in self.conn.fetch_all()]
+
+    def _has_sample_role_table(self) -> bool:
+        """Whether the per-trial NafcSampleRole table exists (added partway through the project)."""
+        if not hasattr(self, "_sample_role_checked"):
+            self.conn.execute("SHOW TABLES LIKE 'NafcSampleRole'")
+            self._sample_role_exists = self.conn.fetch_one() is not None
+            self._sample_role_checked = True
+        return self._sample_role_exists
