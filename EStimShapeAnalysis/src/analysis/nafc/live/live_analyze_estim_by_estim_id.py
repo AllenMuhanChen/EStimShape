@@ -1607,27 +1607,73 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
                 pass
 
     # ---- bias tab -------------------------------------------------------
+    # The top-bar filters were built against the experiment-format column names; the bias frame
+    # uses the repository column names. This maps one filter widget to its bias column.
+    _BIAS_FILTER_COLUMNS = (
+        ('noise_filter',    'noise_chance'),
+        ('type_filter',     'trial_type'),
+        ('sl_filter',       'sample_length'),
+        ('nchoices_filter', 'num_choices'),
+        ('nproc_filter',    'num_procedural_distractors'),
+        ('nrand_filter',    'num_rand_distractors'),
+    )
+
+    def _sync_bias_filters(self, trials):
+        """Populate the shared top-bar filters with the values present in the bias data (sync only
+        adds, never removes, so this never fights the other tabs' syncing)."""
+        if trials is None or len(trials) == 0:
+            return
+        self.noise_filter.sync(sorted(trials['noise_chance'].dropna().unique()))
+        self.type_filter.sync([t for t in _ALL_TRIAL_TYPES if (trials['trial_type'] == t).any()])
+        self.sl_filter.sync(sorted(trials['sample_length'].dropna().unique(), key=float))
+        self.nchoices_filter.sync(sorted(trials['num_choices'].dropna().unique(), key=float))
+        self.nproc_filter.sync(sorted(trials['num_procedural_distractors'].dropna().unique(), key=float))
+        self.nrand_filter.sync(sorted(trials['num_rand_distractors'].dropna().unique(), key=float))
+
+    def _apply_bias_filters(self, trials):
+        """Drop bias trials excluded by the top-bar behavioral-parameter filters."""
+        df = trials
+        for attr, column in self._BIAS_FILTER_COLUMNS:
+            sel = getattr(self, attr).selected()
+            if sel is not None and column in df.columns:
+                df = df[df[column].isin(sel)]
+        return df
+
     def _render_bias(self):
         """Render the Bias tab: one row per lineage group (variant + its deltas), showing the
         per-sample pick distribution (bars, coloured by which member was picked) and its
         sliding-window version. Reads estim-off variant/delta trials from the repository through
         bias_analysis, honouring the start/max-gen filters. Returns the trial count."""
         try:
+            trials = bias.read_bias_trials(
+                self.session_id, start_gen_id=self.start_gen_id, max_gen_id=self.max_gen_id)
+        except Exception as e:
+            self.status_label.setText(f'Bias error: {e}')
+            return 0
+
+        # Offer the top-bar behavioral-parameter filters the values present in the bias data, then
+        # apply the current selection — so the same Noise / Trial type / Sample len / #Choices /
+        # #Proc / #Rand filters that drive the other tabs also subset the bias view.
+        self._sync_bias_filters(trials)
+        trials = self._apply_bias_filters(trials)
+
+        try:
             # Thumbnails are resolved lazily when the grid is (re)built (see
             # _make_bias_thumbnail_panel), not on every refresh, so skip them here.
             result = bias.compute_session_bias(
-                self.session_id, start_gen_id=self.start_gen_id, max_gen_id=self.max_gen_id,
+                self.session_id, trials_df=trials,
                 window=WINDOW_SIZE, step=WINDOW_STEP, with_thumbnails=False)
         except Exception as e:
             self.status_label.setText(f'Bias error: {e}')
             return 0
 
         groups = result['groups']
-        n_trials = len(result['trials'])
+        n_trials = len(trials)
         if not groups:
             self._ensure_bias_grid([])
             self.status_label.setText(
-                f'{self.session_id}: no behavioural (estim-off) variant/delta trials yet')
+                f'{self.session_id}: no behavioural (estim-off) variant/delta trials '
+                f'match the current filters')
             return 0
 
         self._ensure_bias_grid(groups)
