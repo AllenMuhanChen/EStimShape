@@ -39,6 +39,7 @@ _TABLE_COLUMNS = [
     'sample_length', 'trial_class', 'choice',
     'is_texture_split', 'split_render_is_sample', 'inverted_shading',
     'contrast_texture', 'is_3d_choice',
+    'num_choices', 'num_procedural_distractors', 'num_rand_distractors',
 ]
 
 

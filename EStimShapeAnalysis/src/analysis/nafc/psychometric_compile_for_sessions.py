@@ -1,7 +1,8 @@
 from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
 from clat.util import time_util
 from src.analysis.nafc.nafc_database_fields import IsCorrectField, IsHypothesizedField, NoiseChanceField, \
-    NumRandDistractorsField, StimTypeField, ChoiceField, GenIdField, EStimEnabledField, BaseMStickIdField, IsDeltaField, \
+    NumRandDistractorsField, NumChoicesField, NumProceduralDistractorsField, StimTypeField, ChoiceField, GenIdField, \
+    EStimEnabledField, BaseMStickIdField, IsDeltaField, \
     EStimPolarityField, EStimSpecIdField, StimSpecIdField, IsHypothesizedFieldLegacy, EStimEnabledFieldLegacy, \
     SampleLengthField, IsRemovedTrialField, IsTextureSplitField, SplitRenderIsSampleField, InvertedShadingField, \
     ContrastTextureField, Is3DChoiceField
@@ -24,6 +25,8 @@ def compile_latest(exp_conn, trial_tstamps=None):
     fields.append(IsHypothesizedField(exp_conn))
     fields.append(NoiseChanceField(exp_conn))
     fields.append(NumRandDistractorsField(exp_conn))
+    fields.append(NumChoicesField(exp_conn))
+    fields.append(NumProceduralDistractorsField(exp_conn))
     fields.append(StimTypeField(exp_conn))
     fields.append(ChoiceField(exp_conn))
     fields.append(GenIdField(exp_conn))
@@ -64,6 +67,9 @@ def compile_latest(exp_conn, trial_tstamps=None):
         'IsHypothesized': 'is_hypothesized_choice',
         'EStimSpecId': 'estim_spec_id',
         'NoiseChance': 'noise_chance',
+        'NumRandDistractors': 'num_rand_distractors',
+        'NumChoices': 'num_choices',
+        'NumProceduralDistractors': 'num_procedural_distractors',
         'BaseMStickId': 'base_mstick_id',
         'GenId': 'gen_id',
         'SampleLength': 'sample_length',

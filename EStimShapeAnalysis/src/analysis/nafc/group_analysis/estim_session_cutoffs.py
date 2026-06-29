@@ -123,6 +123,7 @@ def _get_all_trials_ordered(session_id):
     query = f"""
         SELECT t.trial_start, t.is_estim_on, t.is_hypothesized_choice, t.choice,
                t.trial_type, t.noise_chance, t.sample_length, t.estim_spec_id,
+               t.num_choices, t.num_procedural_distractors, t.num_rand_distractors,
                ep.polarity, ep.shape, ep.num_channels, ep.a1,
                ep.post_stim_refractory_period, ep.enable_charge_recovery
         FROM EStimShapeTrials t
@@ -160,6 +161,13 @@ def _behavioral_mask(df, cond_dict):
             mask &= df['sample_length'].isna()
         else:
             mask &= df['sample_length'] == cond_dict['sample_length']
+    # Behavioral choice-set parameters (see analyze_estim_by_condition._DEFAULT_BEHAVIORAL_CONDITIONS).
+    for key in ('num_choices', 'num_procedural_distractors', 'num_rand_distractors'):
+        if key in cond_dict:
+            if cond_dict[key] is None:
+                mask &= df[key].isna()
+            else:
+                mask &= df[key] == cond_dict[key]
     return mask
 
 
