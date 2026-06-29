@@ -543,13 +543,133 @@ def plot_degradation_likelihood(df, algorithm_label=DEFAULT_ALGORITHM_LABEL,
     return fig
 
 
+# ---------------------------------------------------------------------------
+# Effect-size-vs-parameter comparison: instead of asking WHETHER a condition
+# degraded, plot the condition's actual full-data estim effect size (from
+# pct_hyp_vs_delta) against every parameter. Uses the same parameter set,
+# binning, and min_n trial-count gate as the degraded-vs-robust comparison, but
+# applies NO effect-size threshold — weak and reversed effects are kept so the
+# plotted mean is the true average effect at each parameter value.
+# ---------------------------------------------------------------------------
+
+# Axis label for the effect-size plots (metric is pct_hyp_vs_delta).
+_EFFECT_SIZE_YLABEL = 'Estim effect size (pp)\n(%hyp_vs_delta, estim-on - estim-off)'
+
+
+def build_effect_size_table(metric=METRIC_PCT_HYP_VS_DELTA, min_n=DEFAULT_MIN_N,
+                            session_id=None):
+    """
+    Build a one-row-per-condition DataFrame of each condition's full-data estim effect
+    size (measured with `metric`, default pct_hyp_vs_delta), joined with its estim
+    parameters (estim_spec_id unfurled + derived hyperparameters) and behavioral
+    conditions.
+
+    Conditions are kept if they have enough estim-on trials (n_on > min_n). Unlike the
+    degraded-vs-robust classification there is NO effect-size threshold, so weak,
+    zero, and reversed effects are all included.
+    """
+    trials_cache = {}
+    seen = set()
+    records = []
+    for sid, conditions_json in _get_condition_universe(metric, session_id):
+        try:
+            cond_dict = _parse_conditions_json(conditions_json)
+        except Exception:
+            continue
+        key = (sid, _normalize_cond_key(cond_dict))
+        if key in seen:
+            continue
+        seen.add(key)
+
+        if sid not in trials_cache:
+            trials_cache[sid] = _get_all_trials_ordered(sid)
+        full_eff, n_on, n_off = _effect_and_ns_for_condition(
+            trials_cache[sid], cond_dict, metric=metric)
+
+        if full_eff is None or n_on <= min_n:
+            continue
+
+        record = {'session_id': sid,
+                  'full_effect': full_eff, 'n_on': n_on, 'n_off': n_off}
+        record.update(_expand_with_hyperparameters(sid, cond_dict))
+        records.append(record)
+
+    df = pd.DataFrame(records)
+    print(f"Built effect-size table: {len(df)} conditions "
+          f"(n_on > {min_n}, metric='{metric}', no effect threshold)")
+    return df
+
+
+def plot_effect_size_by_parameter(df, metric=METRIC_PCT_HYP_VS_DELTA,
+                                  min_n=DEFAULT_MIN_N, save_path=None):
+    """
+    For every condition parameter, plot each condition's estim effect size against that
+    parameter's value (one subplot per parameter), overlaying the per-value mean effect.
+    Numeric parameters are sorted ascending on a float axis; categorical parameters are
+    shown as ordered categories.
+    """
+    if df.empty:
+        print("No conditions to plot effect size for.")
+        return None
+
+    params = _parameter_columns(df)
+    n = len(params)
+    ncols = min(3, n)
+    nrows = (n + ncols - 1) // ncols
+    fig, axes = plt.subplots(nrows, ncols, figsize=(5.5 * ncols, 4 * nrows),
+                             squeeze=False)
+
+    for i, param in enumerate(params):
+        ax = axes[i // ncols][i % ncols]
+        sub = df[[param, 'full_effect']].copy()
+        sub = sub[sub[param].notna() & sub['full_effect'].notna()]
+        if sub.empty:
+            ax.text(0.5, 0.5, 'no data', ha='center', va='center', transform=ax.transAxes)
+            ax.set_title(param, fontsize=10, fontweight='bold')
+            continue
+
+        ys = sub['full_effect'].astype(float).tolist()
+        raw_vals = sub[param].tolist()
+
+        if _is_numeric_param(raw_vals):
+            xs = [_to_float(v) for v in raw_vals]
+            _plot_numeric_param(ax, xs, ys)
+        else:
+            _plot_categorical_param(ax, [str(v) for v in raw_vals], ys)
+
+        ax.axhline(0.0, color='gray', linestyle='--', linewidth=0.8, alpha=0.4)
+        ax.set_title(param, fontsize=10, fontweight='bold')
+        ax.set_xlabel(_param_xlabel(param), fontsize=9)
+        ax.set_ylabel(_EFFECT_SIZE_YLABEL, fontsize=8)
+        ax.grid(True, alpha=0.3)
+        ax.set_axisbelow(True)
+
+    for j in range(n, nrows * ncols):
+        axes[j // ncols][j % ncols].axis('off')
+
+    fig.suptitle(f"Estim effect size vs condition parameters\n"
+                 f"({len(df)} conditions [n_on > {min_n}], metric='{metric}')",
+                 fontsize=13, fontweight='bold')
+    fig.tight_layout(rect=[0, 0, 1, 0.94])
+
+    if save_path:
+        import os
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, bbox_inches='tight', dpi=150)
+        print(f"Saved to {save_path}")
+
+    plt.show()
+    return fig
+
+
 def run(algorithm_label=DEFAULT_ALGORITHM_LABEL, session_id=None, save_dir=None,
         metric=METRIC_PCT_HYP_VS_DELTA, effect_threshold=DEFAULT_EFFECT_THRESHOLD,
         min_n=DEFAULT_MIN_N):
     """
     Build the degradation table and plot every metric against every parameter, then
     build the degraded-vs-robust classification table and plot, per parameter, the
-    fraction of conditions that degraded.
+    fraction of conditions that degraded. Finally, build the effect-size table and
+    plot each condition's estim effect size against every parameter.
     """
     df = build_degradation_table(algorithm_label, session_id)
     if not df.empty:
@@ -570,7 +690,16 @@ def run(algorithm_label=DEFAULT_ALGORITHM_LABEL, session_id=None, save_dir=None,
         plot_degradation_likelihood(class_df, algorithm_label=algorithm_label,
                                     effect_threshold=effect_threshold, min_n=min_n,
                                     save_path=save_path)
-    return df, class_df
+
+    # Effect size vs parameters: same parameters and min_n gate, but no effect
+    # threshold — plots the actual average estim effect at each parameter value.
+    effect_df = build_effect_size_table(metric=metric, min_n=min_n, session_id=session_id)
+    if not effect_df.empty:
+        save_path = (f"{save_dir}/estim_effect_size_by_parameter.png"
+                     if save_dir else None)
+        plot_effect_size_by_parameter(effect_df, metric=metric, min_n=min_n,
+                                      save_path=save_path)
+    return df, class_df, effect_df
 
 
 def main():
