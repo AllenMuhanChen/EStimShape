@@ -141,6 +141,7 @@ def main():
         alexnet_embedder=make_alexnet_embedder(ALEXNET_ONNX_PATH),
     )
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
+    # session_id = "260626_0"
     compiled_data = None
     # compiled_data = analysis.compile_and_export()
     analysis.run(session_id, "raw", "ALL", compiled_data=compiled_data)

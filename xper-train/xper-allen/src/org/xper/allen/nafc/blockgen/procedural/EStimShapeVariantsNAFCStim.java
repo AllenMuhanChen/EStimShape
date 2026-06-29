@@ -33,6 +33,7 @@ import java.util.Set;
 public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
 
     public static final int MAX_CHOICE_SIZE = 5;
+    public static final double MIN_CHOICE_SIZE = 2.0;
     protected DataSource gaDataSource;
     protected double maxSampleSize;
     protected List<Integer> noiseComponentIndcs;
@@ -107,6 +108,7 @@ public class EStimShapeVariantsNAFCStim extends EStimShapeProceduralStim{
         maxSampleSize = generator.getMaxSampleDimensionDegrees();
 
         choiceSize = Math.min(sampleSize, MAX_CHOICE_SIZE);
+        choiceSize = Math.max(choiceSize, MIN_CHOICE_SIZE);
 
         double choiceLim = calculateMinDistanceChoicesCanBeWithoutOverlap(maxChoiceSize, parameters.numChoices) + 1;
 
