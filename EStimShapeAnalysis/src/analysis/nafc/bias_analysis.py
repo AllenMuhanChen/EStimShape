@@ -34,6 +34,10 @@ from src.startup import context
 
 REPO_DB = "allen_data_repository"
 
+# Sample trial types that make up a lineage group. 'Removed Trial' (a variant with its tuned-for
+# component deleted) is a distinct paradigm and is intentionally left out of the bias view.
+_LINEAGE_SAMPLE_TRIAL_TYPES = ('Hypothesized Shape', 'Delta Shape')
+
 # Stable palette for lineage members within a group. The variant (member index 0) always gets the
 # first colour, so the same group always looks the same across the bar chart, time series, and the
 # thumbnail borders that act as the legend.
@@ -74,18 +78,20 @@ def read_bias_trials(session_id, start_gen_id=None, max_gen_id=None, repo_conn=N
     window as the rest of the live analysis; either may be None for no bound.
     """
     conn = _repo(repo_conn)
+    placeholders = ', '.join(['%s'] * len(_LINEAGE_SAMPLE_TRIAL_TYPES))
     conn.execute(
-        """
+        f"""
         SELECT task_id, gen_id, trial_start, trial_type,
                base_mstick_id, picked_base_mstick_id
         FROM EStimShapeTrials
         WHERE session_id = %s
           AND is_estim_on = 0
           AND base_mstick_id IS NOT NULL
+          AND trial_type IN ({placeholders})
           AND COALESCE(is_texture_split, 0) = 0
         ORDER BY trial_start, task_id
         """,
-        (session_id,))
+        (session_id, *_LINEAGE_SAMPLE_TRIAL_TYPES))
     columns = [desc[0] for desc in conn.my_cursor.description]
     df = pd.DataFrame(conn.fetch_all(), columns=columns)
     df = df.rename(columns={'base_mstick_id': 'sample_id',
@@ -93,9 +99,10 @@ def read_bias_trials(session_id, start_gen_id=None, max_gen_id=None, repo_conn=N
     if len(df) == 0:
         return df
 
-    # Lineage ids are integers; keep them nullable-int friendly (picked_id can be NULL).
-    df['sample_id'] = df['sample_id'].astype('Int64')
-    df['picked_id'] = df['picked_id'].astype('Int64')
+    # Lineage ids are integers; keep them nullable-int friendly (picked_id can be NULL). Coerce via
+    # to_numeric first so Decimal/str values from the DB driver land as a clean nullable Int64.
+    df['sample_id'] = pd.to_numeric(df['sample_id'], errors='coerce').astype('Int64')
+    df['picked_id'] = pd.to_numeric(df['picked_id'], errors='coerce').astype('Int64')
 
     if start_gen_id is not None:
         df = df[df['gen_id'] >= start_gen_id]
