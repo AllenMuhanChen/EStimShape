@@ -48,7 +48,8 @@ def export_to_repo(session_id, data):
         'is_hypothesized_choice', 'is_correct_choice', 'trial_type',
         'noise_chance', 'base_mstick_id', 'gen_id', 'trial_start', 'trial_end',
         'sample_length', 'trial_class', 'choice',
-        'num_choices', 'num_procedural_distractors', 'num_rand_distractors'
+        'num_choices', 'num_procedural_distractors', 'num_rand_distractors',
+        'picked_base_mstick_id'
     ]
 
     # Find which columns we have in the dataframe
@@ -150,6 +151,10 @@ def create_estimshape_trials_table():
         "ADD COLUMN num_choices INT",
         "ADD COLUMN num_procedural_distractors INT",
         "ADD COLUMN num_rand_distractors INT",
+        # Lineage id (variant_id / delta_id) of the shape the animal PICKED, reconstructed at
+        # compile (counterpart to base_mstick_id, the SAMPLE's lineage id). NULL when the pick
+        # isn't a lineage member (rand/removed) or the trial isn't a variant/delta trial.
+        "ADD COLUMN picked_base_mstick_id BIGINT",
     ):
         try:
             conn.execute("ALTER TABLE EStimShapeTrials " + _col_ddl)
