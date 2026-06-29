@@ -421,7 +421,8 @@ def build_condition_classification_table(algorithm_label=DEFAULT_ALGORITHM_LABEL
 
         if sid not in trials_cache:
             trials_cache[sid] = _get_all_trials_ordered(sid)
-        full_eff, n_on, n_off = _effect_and_ns_for_condition(trials_cache[sid], cond_dict)
+        full_eff, n_on, n_off = _effect_and_ns_for_condition(
+            trials_cache[sid], cond_dict, metric=metric)
 
         if key in degraded_keys:
             group = 'degraded'
