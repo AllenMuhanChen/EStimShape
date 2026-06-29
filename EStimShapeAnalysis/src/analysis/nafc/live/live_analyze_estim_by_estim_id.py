@@ -516,6 +516,68 @@ class _MultiCheckFilter(QtWidgets.QWidget):
         return None if len(checked) == len(self._boxes) else checked
 
 
+# Logical filter name -> DataFrame column name, for the two trial frames the filters run against:
+# the experiment-format frame (Overview / Sliding Window / Texture Split) and the bias frame.
+_EXP_FILTER_COLS = {
+    'noise': 'NoiseChance', 'type': 'TrialType', 'sl': 'SampleLength',
+    'nchoices': 'NumChoices', 'nproc': 'NumProceduralDistractors', 'nrand': 'NumRandDistractors',
+}
+_BIAS_FILTER_COLS = {
+    'noise': 'noise_chance', 'type': 'trial_type', 'sl': 'sample_length',
+    'nchoices': 'num_choices', 'nproc': 'num_procedural_distractors', 'nrand': 'num_rand_distractors',
+}
+
+
+class _FilterBar(QtWidgets.QWidget):
+    """A self-contained row of behavioral-parameter filters owned by a SINGLE panel, so each panel
+    filters independently. Bundles six _MultiCheckFilter widgets and knows how to populate (sync)
+    and apply them against a DataFrame given a logical-name -> column-name map."""
+
+    def __init__(self, on_change):
+        super().__init__()
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        _int_fmt = lambda v: f'{int(float(v))}'
+        # Insertion order is the display (and apply) order.
+        self.widgets = {
+            'noise':    _MultiCheckFilter('Noise', on_change, fmt=lambda v: f'{float(v) * 100:.0f}%'),
+            'type':     _MultiCheckFilter('Trial type', on_change),
+            'sl':       _MultiCheckFilter('Sample len', on_change, fmt=lambda v: f'{v}'),
+            'nchoices': _MultiCheckFilter('# Choices', on_change, fmt=_int_fmt),
+            'nproc':    _MultiCheckFilter('# Proc', on_change, fmt=_int_fmt),
+            'nrand':    _MultiCheckFilter('# Rand', on_change, fmt=_int_fmt),
+        }
+        for widget in self.widgets.values():
+            layout.addWidget(widget)
+            layout.addSpacing(12)
+        layout.addStretch(1)
+
+    def sync(self, df, columns, trial_types):
+        """Offer each filter the values present in df (sync only ADDS options, so a panel never
+        loses a previously-seen value)."""
+        if df is None or len(df) == 0:
+            return
+        for key, widget in self.widgets.items():
+            col = columns.get(key)
+            if col is None or col not in df.columns:
+                continue
+            if key == 'type':
+                widget.sync([t for t in trial_types if (df[col] == t).any()])
+            else:
+                widget.sync(sorted(df[col].dropna().unique(), key=float))
+
+    def apply(self, df, columns):
+        """Drop rows excluded by this panel's current selection."""
+        for key, widget in self.widgets.items():
+            col = columns.get(key)
+            if col is None or col not in df.columns:
+                continue
+            sel = widget.selected()
+            if sel is not None:
+                df = df[df[col].isin(sel)]
+        return df
+
+
 class LiveEstimWindow(QtWidgets.QMainWindow):
     """Control bar + a vertically-scrolling grid of pyqtgraph panels showing Plot 1."""
 
@@ -554,6 +616,7 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.bias_ts_plots = {}            # variant_id -> PlotItem (time series)
         self.bias_ts_legends = {}          # variant_id -> LegendItem
         self.bias_bar_items = {}           # variant_id -> BarGraphItem (replaced each update)
+        self.bias_bar_labels = {}          # variant_id -> [TextItem] colored cluster labels
         self.bias_ts_series = {}           # (variant_id, sample_id, picked_id) -> curve
 
         # Upcoming-trials-tab state: which grouping dimensions are checked, plus the last-read
@@ -642,37 +705,14 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.recent_label.setFont(font)
         layout.addWidget(self.recent_label)
 
-        # Behavioral-parameter filters. Each re-renders (no recompile) on toggle. Checkboxes
-        # are populated from the data as values appear; all-checked means no filtering.
-        filt_bar = QtWidgets.QHBoxLayout()
-        self.noise_filter = _MultiCheckFilter('Noise', self._rerender,
-                                              fmt=lambda v: f'{float(v) * 100:.0f}%')
-        self.type_filter = _MultiCheckFilter('Trial type', self._rerender)
-        self.sl_filter = _MultiCheckFilter('Sample len', self._rerender, fmt=lambda v: f'{v}')
-        # Behavioral choice-set parameter filters (mirror the by-condition behavioral keys).
-        _int_fmt = lambda v: f'{int(float(v))}'
-        self.nchoices_filter = _MultiCheckFilter('# Choices', self._rerender, fmt=_int_fmt)
-        self.nproc_filter = _MultiCheckFilter('# Proc', self._rerender, fmt=_int_fmt)
-        self.nrand_filter = _MultiCheckFilter('# Rand', self._rerender, fmt=_int_fmt)
-        filt_bar.addWidget(self.noise_filter)
-        filt_bar.addSpacing(12)
-        filt_bar.addWidget(self.type_filter)
-        filt_bar.addSpacing(12)
-        filt_bar.addWidget(self.sl_filter)
-        filt_bar.addSpacing(12)
-        filt_bar.addWidget(self.nchoices_filter)
-        filt_bar.addSpacing(12)
-        filt_bar.addWidget(self.nproc_filter)
-        filt_bar.addSpacing(12)
-        filt_bar.addWidget(self.nrand_filter)
-        filt_bar.addStretch(1)
-        layout.addLayout(filt_bar)
+        # Behavioral-parameter filters are PER PANEL (each tab owns its own _FilterBar), so
+        # filtering one view never changes another. Each re-renders the active tab on toggle.
 
-        # Tabs: Overview (Plot 1) and Sliding Window. Both share the control bar/filters above.
+        # Tabs: Overview / Sliding Window / Texture Split / Bias each carry their own filter bar.
         self.tabs = QtWidgets.QTabWidget()
         layout.addWidget(self.tabs)
 
-        # Overview tab — vertically-scrolling grid of metric x trial-type panels.
+        # Overview tab — its own filter bar above a vertically-scrolling grid of panels.
         self.scroll = QtWidgets.QScrollArea()
         self.scroll.setWidgetResizable(True)
         self.scroll.setHorizontalScrollBarPolicy(_SCROLLBAR_OFF)
@@ -680,9 +720,11 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.grid_layout = QtWidgets.QGridLayout(self.grid_host)
         self.grid_layout.setContentsMargins(4, 4, 4, 4)
         self.scroll.setWidget(self.grid_host)
-        self.tabs.addTab(self.scroll, 'Overview')
+        self.overview_filters = _FilterBar(self._rerender)
+        self.overview_tab = self._wrap_with_filter_bar(self.overview_filters, self.scroll)
+        self.tabs.addTab(self.overview_tab, 'Overview')
 
-        # Sliding-window tab — one effect-size panel per trial type (columns).
+        # Sliding-window tab — its own filter bar above one effect-size panel per trial type.
         self.win_scroll = QtWidgets.QScrollArea()
         self.win_scroll.setWidgetResizable(True)
         self.win_scroll.setHorizontalScrollBarPolicy(_SCROLLBAR_OFF)
@@ -690,12 +732,16 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.win_grid_layout = QtWidgets.QGridLayout(self.win_host)
         self.win_grid_layout.setContentsMargins(4, 4, 4, 4)
         self.win_scroll.setWidget(self.win_host)
-        self.tabs.addTab(self.win_scroll, 'Sliding Window')
+        self.window_filters = _FilterBar(self._rerender)
+        self.window_tab = self._wrap_with_filter_bar(self.window_filters, self.win_scroll)
+        self.tabs.addTab(self.window_tab, 'Sliding Window')
 
         # Texture Split tab — % 3D grid (rows = split/inverted combos, columns = variant/delta).
         # The combine toggles live here because they only affect this tab's row layout.
         self.split_tab = QtWidgets.QWidget()
         split_tab_layout = QtWidgets.QVBoxLayout(self.split_tab)
+        self.split_filters = _FilterBar(self._rerender)
+        split_tab_layout.addWidget(self.split_filters)
         split_ctrl = QtWidgets.QHBoxLayout()
         self.combine_sample_cb = QtWidgets.QCheckBox('Combine sample/foil')
         self.combine_sample_cb.stateChanged.connect(lambda _s: self._rerender())
@@ -726,7 +772,9 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.bias_grid_layout = QtWidgets.QGridLayout(self.bias_host)
         self.bias_grid_layout.setContentsMargins(4, 4, 4, 4)
         self.bias_scroll.setWidget(self.bias_host)
-        self.tabs.addTab(self.bias_scroll, 'Bias')
+        self.bias_filters = _FilterBar(self._rerender)
+        self.bias_tab = self._wrap_with_filter_bar(self.bias_filters, self.bias_scroll)
+        self.tabs.addTab(self.bias_tab, 'Bias')
 
         # Upcoming Trials tab — counts of queued-but-not-yet-run trials (TaskToDo minus
         # TaskDone), grouped by the dimensions the user checks. Independent of the
@@ -770,6 +818,17 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
 
         # Render the newly-shown tab so it reflects the latest data/filters.
         self.tabs.currentChanged.connect(lambda _idx: self._rerender())
+
+    @staticmethod
+    def _wrap_with_filter_bar(filter_bar, content):
+        """Stack a panel's own filter bar above its content in a container widget (used as the tab
+        page) so the behavioral-parameter filters are per panel, not global."""
+        container = QtWidgets.QWidget()
+        vbox = QtWidgets.QVBoxLayout(container)
+        vbox.setContentsMargins(0, 0, 0, 0)
+        vbox.addWidget(filter_bar)
+        vbox.addWidget(content)
+        return container
 
     def _build_stats_tab(self):
         self.stats_tab = QtWidgets.QWidget()
@@ -850,28 +909,15 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             return
         self.status_label.setText(f'{self.session_id}: {n_trials} trials plotted')
 
-    def _apply_filters(self, data):
-        """Drop rows excluded by the behavioral-parameter filters."""
-        df = data
-        sel = self.noise_filter.selected()
-        if sel is not None:
-            df = df[df['NoiseChance'].isin(sel)]
-        sel = self.type_filter.selected()
-        if sel is not None:
-            df = df[df['TrialType'].isin(sel)]
-        sel = self.sl_filter.selected()
-        if sel is not None:
-            df = df[df['SampleLength'].isin(sel)]
-        sel = self.nchoices_filter.selected()
-        if sel is not None:
-            df = df[df['NumChoices'].isin(sel)]
-        sel = self.nproc_filter.selected()
-        if sel is not None:
-            df = df[df['NumProceduralDistractors'].isin(sel)]
-        sel = self.nrand_filter.selected()
-        if sel is not None:
-            df = df[df['NumRandDistractors'].isin(sel)]
-        return df
+    def _active_exp_filter_bar(self):
+        """The filter bar belonging to whichever experiment-format panel (Overview / Sliding
+        Window / Texture Split) is currently shown."""
+        w = self.tabs.currentWidget()
+        if w is self.window_tab:
+            return self.window_filters
+        if w is self.split_tab:
+            return self.split_filters
+        return self.overview_filters
 
     def _refresh(self, force=False):
         """Compile new trials, then update the curves only if something changed (or forced).
@@ -913,16 +959,11 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             self.status_label.setText(f'{self.session_id}: waiting for trials…')
             return None
 
-        # Offer every available value in the filters (so deselected ones can be re-enabled),
-        # then apply the current selection.
-        self.noise_filter.sync(sorted(data_full['NoiseChance'].dropna().unique()))
-        self.type_filter.sync([t for t in _ALL_TRIAL_TYPES if (data_full['TrialType'] == t).any()])
-        self.sl_filter.sync(sorted(data_full['SampleLength'].dropna().unique(), key=float))
-        self.nchoices_filter.sync(sorted(data_full['NumChoices'].dropna().unique(), key=float))
-        self.nproc_filter.sync(sorted(data_full['NumProceduralDistractors'].dropna().unique(), key=float))
-        self.nrand_filter.sync(sorted(data_full['NumRandDistractors'].dropna().unique(), key=float))
-
-        data_exp = self._apply_filters(data_full)
+        # Offer the active panel's filters every available value (so deselected ones can be
+        # re-enabled), then apply that panel's current selection.
+        bar = self._active_exp_filter_bar()
+        bar.sync(data_full, _EXP_FILTER_COLS, _ALL_TRIAL_TYPES)
+        data_exp = bar.apply(data_full, _EXP_FILTER_COLS)
         if len(data_exp) == 0:
             self.status_label.setText(f'{self.session_id}: 0 trials after filters')
             return None
@@ -949,10 +990,10 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         if self.tabs.currentWidget() is self.upcoming_tab:
             return self._render_upcoming()
         # Bias tab reads its own (estim-off variant/delta) view from the repository via
-        # bias_analysis; it doesn't use the experiment-format frame or the behavioral filters.
-        if self.tabs.currentWidget() is self.bias_scroll:
+        # bias_analysis, with its own filter bar.
+        if self.tabs.currentWidget() is self.bias_tab:
             return self._render_bias()
-        window_tab = self.tabs.currentWidget() is self.win_scroll
+        window_tab = self.tabs.currentWidget() is self.window_tab
         split_tab = self.tabs.currentWidget() is self.split_tab
         data_exp = self._read_and_filter(include_behavioral=window_tab)
         if data_exp is None:
@@ -1607,38 +1648,6 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
                 pass
 
     # ---- bias tab -------------------------------------------------------
-    # The top-bar filters were built against the experiment-format column names; the bias frame
-    # uses the repository column names. This maps one filter widget to its bias column.
-    _BIAS_FILTER_COLUMNS = (
-        ('noise_filter',    'noise_chance'),
-        ('type_filter',     'trial_type'),
-        ('sl_filter',       'sample_length'),
-        ('nchoices_filter', 'num_choices'),
-        ('nproc_filter',    'num_procedural_distractors'),
-        ('nrand_filter',    'num_rand_distractors'),
-    )
-
-    def _sync_bias_filters(self, trials):
-        """Populate the shared top-bar filters with the values present in the bias data (sync only
-        adds, never removes, so this never fights the other tabs' syncing)."""
-        if trials is None or len(trials) == 0:
-            return
-        self.noise_filter.sync(sorted(trials['noise_chance'].dropna().unique()))
-        self.type_filter.sync([t for t in _ALL_TRIAL_TYPES if (trials['trial_type'] == t).any()])
-        self.sl_filter.sync(sorted(trials['sample_length'].dropna().unique(), key=float))
-        self.nchoices_filter.sync(sorted(trials['num_choices'].dropna().unique(), key=float))
-        self.nproc_filter.sync(sorted(trials['num_procedural_distractors'].dropna().unique(), key=float))
-        self.nrand_filter.sync(sorted(trials['num_rand_distractors'].dropna().unique(), key=float))
-
-    def _apply_bias_filters(self, trials):
-        """Drop bias trials excluded by the top-bar behavioral-parameter filters."""
-        df = trials
-        for attr, column in self._BIAS_FILTER_COLUMNS:
-            sel = getattr(self, attr).selected()
-            if sel is not None and column in df.columns:
-                df = df[df[column].isin(sel)]
-        return df
-
     def _render_bias(self):
         """Render the Bias tab: one row per lineage group (variant + its deltas), showing the
         per-sample pick distribution (bars, coloured by which member was picked) and its
@@ -1651,11 +1660,10 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             self.status_label.setText(f'Bias error: {e}')
             return 0
 
-        # Offer the top-bar behavioral-parameter filters the values present in the bias data, then
-        # apply the current selection — so the same Noise / Trial type / Sample len / #Choices /
-        # #Proc / #Rand filters that drive the other tabs also subset the bias view.
-        self._sync_bias_filters(trials)
-        trials = self._apply_bias_filters(trials)
+        # Offer the Bias panel's own filter bar the values present in the bias data, then apply
+        # its current selection.
+        self.bias_filters.sync(trials, _BIAS_FILTER_COLS, _ALL_TRIAL_TYPES)
+        trials = self.bias_filters.apply(trials, _BIAS_FILTER_COLS)
 
         try:
             # Thumbnails are resolved lazily when the grid is (re)built (see
@@ -1747,7 +1755,7 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
                 w.setParent(None)
                 w.deleteLater()
         self.bias_bar_plots, self.bias_ts_plots, self.bias_ts_legends = {}, {}, {}
-        self.bias_bar_items, self.bias_ts_series = {}, {}
+        self.bias_bar_items, self.bias_bar_labels, self.bias_ts_series = {}, {}, {}
 
         self.bias_grid_layout.setColumnStretch(0, 0)
         self.bias_grid_layout.setColumnStretch(1, 3)
@@ -1765,9 +1773,14 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             pi_bar.setTitle(f'Group {vid}: % picked, by sample')
             pi_bar.showGrid(x=False, y=True, alpha=0.3)
             pi_bar.setLabel('left', '% picked')
+            # We draw our own colour-coded sample labels under each cluster, so suppress the
+            # default x tick text. The small negative y-margin leaves room for those labels while
+            # the left axis still only ticks 0..100.
+            pi_bar.getAxis('bottom').setStyle(showValues=False)
+            pi_bar.getAxis('left').setTicks([[(v, str(v)) for v in range(0, 101, 20)]])
             vb = pi_bar.getViewBox()
-            vb.setYRange(0, 100, padding=0)
-            vb.setLimits(yMin=0, yMax=100)
+            vb.setYRange(-18, 100, padding=0)
+            vb.setLimits(yMin=-18, yMax=100)
             self.bias_grid_layout.addWidget(glw_bar, r, 1)
             self.bias_bar_plots[vid] = pi_bar
 
@@ -1793,9 +1806,13 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
 
         self._bias_config = config
 
+    _BIAS_COMBINED_LABEL_COLOR = (60, 60, 60)
+
     def _update_bias_bars(self, group):
-        """Draw/redraw one group's bar chart: clusters along x are samples; within a cluster, one
-        bar per member, coloured by the picked member; height = % of that sample's trials picked."""
+        """Draw/redraw one group's bar chart: x clusters are the samples plus a final 'Combined'
+        cluster that averages each member's bar across samples (so the blue bars from every sample
+        average into one blue Combined bar). Within a cluster, one bar per member coloured by the
+        picked member. Each cluster's label is drawn in the sample's colour."""
         vid = group['variant_id']
         plot = self.bias_bar_plots.get(vid)
         if plot is None:
@@ -1803,6 +1820,8 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         old = self.bias_bar_items.pop(vid, None)
         if old is not None:
             plot.removeItem(old)
+        for t in self.bias_bar_labels.pop(vid, []):
+            plot.removeItem(t)
 
         members = [int(m) for m in group['member_ids']]
         colors = group['colors']
@@ -1810,23 +1829,41 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         samples = [m for m in members if m in bars]   # keep member order
         m_count = len(members)
 
-        xs, heights, brushes = [], [], []
-        ticks = []
-        for i, sample in enumerate(samples):
+        # Clusters: (label, label_color, pct_by_member). One per sample, then a 'Combined' cluster
+        # = the per-sample bars of each member averaged (equal weight per sample).
+        clusters = []
+        for sample in samples:
+            clusters.append((f"smp {sample}\n(n={bars[sample]['n']})",
+                             colors[sample], bars[sample]['pct']))
+        combined = bias.combined_pick_pct(bars, members) if samples else {}
+        if combined:
+            clusters.append((f"Combined\n({combined['n_samples']} smp)",
+                             self._BIAS_COMBINED_LABEL_COLOR, combined))
+
+        xs, heights, brushes, labels = [], [], [], []
+        for i, (clabel, lcolor, pct) in enumerate(clusters):
             base_x = i * (m_count + 1)
             for j, picked in enumerate(members):
                 xs.append(base_x + j)
-                heights.append(bars[sample]['pct'][picked])
+                heights.append(float(pct.get(picked, 0.0)))
                 brushes.append(colors[picked])
             center = base_x + (m_count - 1) / 2.0
-            ticks.append((center, f"smp {sample}\n(n={bars[sample]['n']})"))
+            labels.append((center, clabel, lcolor))
 
         if not xs:
             return
         bar_item = pg.BarGraphItem(x=xs, height=heights, width=0.85, brushes=brushes)
         plot.addItem(bar_item)
         self.bias_bar_items[vid] = bar_item
-        plot.getAxis('bottom').setTicks([ticks])
+
+        # Colour-coded cluster labels just below the baseline (anchor top-center -> hang downward).
+        texts = []
+        for center, clabel, lcolor in labels:
+            t = pg.TextItem(clabel, color=lcolor, anchor=(0.5, 0))
+            t.setPos(center, -1)
+            plot.addItem(t)
+            texts.append(t)
+        self.bias_bar_labels[vid] = texts
         plot.getViewBox().setXRange(-0.7, max(xs) + 0.7, padding=0)
 
     def _bias_sample_style(self, members, sample):
@@ -1836,7 +1873,9 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
 
     def _update_bias_timeseries(self, group):
         """Draw/redraw one group's sliding-window time series. One line per (sample, picked):
-        colour = picked member (matches the bars/thumbnails), line style = which sample."""
+        colour = picked member (matches the bars/thumbnails), line style = which sample. The
+        sample-averaged 'Combined' traces (one per picked member) are drawn as thick solid lines,
+        the time-series analogue of the Combined bar cluster."""
         vid = group['variant_id']
         plot = self.bias_ts_plots.get(vid)
         legend = self.bias_ts_legends.get(vid)
@@ -1847,15 +1886,23 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         ts = group['timeseries']
 
         wanted = set()
-        for (sample, picked), (xs, ys) in sorted(ts.items()):
-            sample, picked = int(sample), int(picked)
-            wanted.add((sample, picked))
+        # Sort with a type-safe key (sample is an int or the COMBINED_KEY string).
+        for (sample, picked), (xs, ys) in sorted(ts.items(), key=lambda kv: (str(kv[0][0]), int(kv[0][1]))):
+            picked = int(picked)
+            is_combined = (sample == bias.COMBINED_KEY)
             color = colors[picked]
-            pen = pg.mkPen(color, width=2, style=self._bias_sample_style(members, sample))
+            if is_combined:
+                pen = pg.mkPen(color, width=3)            # thick solid = averaged over samples
+                label = f'all → {picked}'
+            else:
+                sample = int(sample)
+                pen = pg.mkPen(color, width=1, style=self._bias_sample_style(members, sample))
+                label = f'smp {sample} → {picked}'
+            wanted.add((sample, picked))
             sid = (vid, sample, picked)
             if sid not in self.bias_ts_series:
                 curve = plot.plot([], [], pen=pen)
-                legend.addItem(curve, f'smp {sample} → {picked}')
+                legend.addItem(curve, label)
                 self.bias_ts_series[sid] = curve
             self.bias_ts_series[sid].setData(xs, ys)
 
