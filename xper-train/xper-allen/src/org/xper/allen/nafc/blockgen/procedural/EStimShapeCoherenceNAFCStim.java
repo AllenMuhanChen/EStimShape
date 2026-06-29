@@ -43,13 +43,18 @@ public class EStimShapeCoherenceNAFCStim extends EStimShapeVariantsDeltaNAFCStim
     protected String secondSampleExperimentPngPath;
 
     public EStimShapeCoherenceNAFCStim(EStimShapeExperimentTrialGenerator generator,
-                                       ProceduralStimParameters parameters, Long variantId,
+                                       ProceduralStimParameters parameters, Long variantId, Long mixDeltaId,
                                        boolean isEStimEnabled, Long eStimSpecId, double coherence) {
         // Variant-role trial: sample is the variant, choices are the variant + its included deltas.
         super(generator, parameters, variantId, false, isEStimEnabled, eStimSpecId);
         this.coherence = coherence;
-        // Mix with the hypothesized delta (index 0 of the included deltas), which is also a choice.
-        this.secondSampleStimSpecId = distractorMStickStimSpecIds.get(0);
+        // Mix the variant with the caller-specified included delta, so the generator can emit one
+        // trial per (variant, delta) pair. The mixed delta is also one of this trial's choices.
+        if (!distractorMStickStimSpecIds.contains(mixDeltaId)) {
+            throw new RuntimeException("mixDeltaId " + mixDeltaId + " is not an included delta for variant "
+                    + variantId + " (included: " + distractorMStickStimSpecIds + ")");
+        }
+        this.secondSampleStimSpecId = mixDeltaId;
     }
 
     @Override
