@@ -69,7 +69,7 @@ class EStimPhaseParentSelector(ParentSelector):
         variant_response_sum = sum([s.response_rate for s in passing_threshold if self.has_preservation_history(s.id)])
         total_response_sum = sum([s.response_rate for s in passing_threshold])
         variant_response_proportion = variant_response_sum / total_response_sum
-        target_variant_chance = 0.9
+        target_variant_chance = 0.7
         if variant_response_proportion != 0:
             # avoid divide by 0
             bonus = target_variant_chance / variant_response_proportion
@@ -102,7 +102,7 @@ class EStimPhaseParentSelector(ParentSelector):
         """
         Check if the stimulus with the given ID has a preservation history in the database.
         """
-        has_preservation_history(self.conn, id)
+        return has_preservation_history(self.conn, id)
 
 class EStimPhaseMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage: Lineage, parent: Stimulus):
