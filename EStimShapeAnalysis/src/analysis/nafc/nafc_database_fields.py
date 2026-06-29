@@ -1002,7 +1002,7 @@ class PickedBaseMStickIdField(ChoiceSetField):
             return None
 
         picked_index = int(self._get_choice_index(when))
-        categories = [classify_choice_path(self._get_choice_png_path(cid)) for cid in choice_ids]
+        categories = [self._safe_category(cid) for cid in choice_ids]
 
         sample_id = self.get_cached_super(when, BaseMStickIdField)
         if sample_id is None:
@@ -1015,6 +1015,14 @@ class PickedBaseMStickIdField(ChoiceSetField):
                              and categories[picked_index] in _LINEAGE_DISTRACTOR_CATEGORIES)
         distractors = self._distractor_lineage_order(when, sample_id) if needs_distractors else None
         return reconstruct_picked_lineage_id(categories, picked_index, sample_id, distractors)
+
+    def _safe_category(self, choice_stim_obj_id):
+        """Category of one choice, tolerant of a missing/unreadable StimObjData row so one bad
+        choice doesn't nullify the whole trial's pick (returns 'None' on failure)."""
+        try:
+            return classify_choice_path(self._get_choice_png_path(choice_stim_obj_id))
+        except Exception:
+            return "None"
 
     def _distractor_lineage_order(self, when: When, sample_id: int):
         """The lineage ids of this trial's procedural distractors, in the order the generator
