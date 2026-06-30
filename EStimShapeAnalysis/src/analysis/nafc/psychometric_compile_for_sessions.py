@@ -5,7 +5,7 @@ from src.analysis.nafc.nafc_database_fields import IsCorrectField, IsHypothesize
     EStimEnabledField, BaseMStickIdField, PickedBaseMStickIdField, IsDeltaField, \
     EStimPolarityField, EStimSpecIdField, StimSpecIdField, IsHypothesizedFieldLegacy, EStimEnabledFieldLegacy, \
     SampleLengthField, IsRemovedTrialField, IsTextureSplitField, SplitRenderIsSampleField, InvertedShadingField, \
-    ContrastTextureField, Is3DChoiceField
+    ContrastTextureField, Is3DChoiceField, CoherenceField
 from src.analysis.nafc.psychometric_curves import collect_choice_trials
 
 
@@ -45,6 +45,7 @@ def compile_latest(exp_conn, trial_tstamps=None):
     fields.append(InvertedShadingField(exp_conn))
     fields.append(ContrastTextureField(exp_conn))
     fields.append(Is3DChoiceField(exp_conn))
+    fields.append(CoherenceField(exp_conn))
 
     data = fields.to_data(trial_tstamps)
     if 'TrialStartStop' in data.columns:
@@ -80,6 +81,7 @@ def compile_latest(exp_conn, trial_tstamps=None):
         'InvertedShading': 'inverted_shading',
         'ContrastTexture': 'contrast_texture',
         'Is3DChoice': 'is_3d_choice',
+        'Coherence': 'coherence',
     })
     return data
 

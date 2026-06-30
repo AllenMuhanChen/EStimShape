@@ -63,6 +63,24 @@ class SampleLengthField(StimSpecField):
             sampleLength = 1000
         return sampleLength
 
+class CoherenceField(StimSpecField):
+    """Signed coherence in [-1, 1] for coherence trials (0 = balanced). None for every other trial
+    type (the element is absent from their StimSpec)."""
+    def get_name(self):
+        return "Coherence"
+
+    def get(self, when: When):
+        stim_spec = self.get_cached_super(when, StimSpecField)
+        try:
+            value = stim_spec['StimSpec']['coherence']
+        except (KeyError, TypeError):
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+
 class IsRewardedField(CachedDatabaseField):
     def __init__(self, conn: Connection):
         super().__init__(conn)
