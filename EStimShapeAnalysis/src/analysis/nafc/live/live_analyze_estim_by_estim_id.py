@@ -1071,6 +1071,8 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             return '—'
         if col == 'noise_chance':
             return f'{float(value) * 100:.0f}%'
+        if col == 'coherence':
+            return f'{float(value):g}'
         if isinstance(value, (bool, np.bool_)):
             return 'yes' if value else 'no'
         if col in ('estim_spec_id', 'gen_id'):
