@@ -260,16 +260,41 @@ class ChoiceField(ChoiceSetField):
 
         return classify_choice_path(choice_path)
 
+_COHERENCE_STIM_TYPE = 'EStimShapeCoherenceNAFCStim'
+
+
 class IsCorrectField(ChoiceField):
     def get_name(self):
         return "IsCorrect"
 
     def get(self, when: When) -> bool:
         choice = self.get_cached_super(when, ChoiceField)
-        if choice == "match":
-            return True
-        else:
-            return False
+        stim_type = self.get_cached_super(when, StimTypeField)
+        if stim_type == _COHERENCE_STIM_TYPE:
+            return self._coherence_correct(when, choice)
+        # Normal trials: the match is the one rewarded/correct option.
+        return choice == "match"
+
+    def _coherence_correct(self, when, choice):
+        """Coherence-aware correctness, mirroring the generator's reward rule
+        (EStimShapeCoherenceNAFCStim.specifyRewardBehavior): the correct shape is the one the
+        mixture favors. The variant is the match; the mixed delta is a 'delta'-category choice.
+        On truly ambiguous trials (balanced coherence, estim, or pure noise) the generator rewards
+        either composing shape, so either counts as correct."""
+        chose_variant = (choice == "match")
+        chose_delta = choice in ("delta", "delta_distractor")
+
+        coherence = self.get_cached_super(when, CoherenceField)
+        estim_on = bool(self.get_cached_super(when, EStimEnabledField))
+        noise = self.get_cached_super(when, NoiseChanceField)
+        ambiguous = (coherence is None) or (float(coherence) == 0.0) or estim_on \
+            or (noise is not None and float(noise) == 1.0)
+
+        if ambiguous:
+            return chose_variant or chose_delta
+        if float(coherence) > 0:
+            return chose_variant       # mixture favors the variant
+        return chose_delta             # mixture favors the (mixed) delta
 
 
 class NoiseChanceField(StimSpecDataField):
