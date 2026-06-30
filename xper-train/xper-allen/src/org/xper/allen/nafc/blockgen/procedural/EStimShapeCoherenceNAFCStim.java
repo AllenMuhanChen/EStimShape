@@ -169,9 +169,24 @@ public class EStimShapeCoherenceNAFCStim extends EStimShapeVariantsDeltaNAFCStim
 
     @Override
     public RewardBehavior specifyRewardBehavior() {
-        // Reward both shapes that compose the sample: the variant (match, index 0) and the mixed
-        // delta. The mixed delta sits at the first delta choice slot, after the optional removed slot.
+        // Choice index 0 is the variant (match); the mixed delta is the first delta slot, after the
+        // optional removed slot.
+        int variantChoiceIndex = 0;
         int mixedDeltaChoiceIndex = 1 + (includeRemovedChoice ? 1 : 0);
-        return RewardBehaviors.rewardChoices(0, mixedDeltaChoiceIndex);
+
+        // Only TRULY ambiguous trials carry no net evidence toward either composing shape, so only
+        // those reward either choice: balanced coherence (0), estim (we test estim under no net
+        // information), or pure noise (noiseChance == 1).
+        boolean ambiguous = (coherence == 0.0) || isEStimEnabled || isAmbiguousTrial();
+        if (ambiguous) {
+            return RewardBehaviors.rewardChoices(variantChoiceIndex, mixedDeltaChoiceIndex);
+        }
+
+        // Otherwise the mixture favors one shape; reward the dominant one. Positive coherence favors
+        // the variant (the sample); negative favors the mixed delta.
+        if (coherence > 0) {
+            return RewardBehaviors.rewardChoices(variantChoiceIndex);
+        }
+        return RewardBehaviors.rewardChoices(mixedDeltaChoiceIndex);
     }
 }
