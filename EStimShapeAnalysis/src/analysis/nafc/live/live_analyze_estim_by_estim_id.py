@@ -46,7 +46,7 @@ from clat.util.connection import Connection
 from src.startup import context
 from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 
-from src.analysis.nafc.analyze_estim_by_estim_id import partition_estim_data
+from src.analysis.nafc.analyze_estim_by_estim_id import partition_estim_data, COHERENCE_STIM_TYPE
 from src.analysis.nafc.live.live_estim_compile import (
     REPO_DB, ensure_estimshape_trials_table, compile_new_trials, get_existing_trial_starts,
 )
@@ -229,9 +229,15 @@ def read_session_trials_as_exp_format(session_id, start_gen_id=START_GEN_ID,
     return out
 
 
-def _recent_trial_type_label(trial_type, is_texture_split):
-    """Trial-type label for the recent-trials summary, marking split-texture trials so they're
-    distinguishable from ordinary ones (e.g. 'Hypothesized Split Texture')."""
+def _recent_trial_type_label(trial_type, is_texture_split, trial_class=None, coherence=None):
+    """Trial-type label for the recent-trials summary. Coherence trials get their own label with
+    the coherence value (their compiled trial_type is 'Hypothesized Shape', so they must be keyed
+    off trial_class); split-texture trials are flagged distinctly (e.g. 'Hypothesized Split
+    Texture')."""
+    if trial_class == COHERENCE_STIM_TYPE:
+        if coherence is None or (isinstance(coherence, float) and pd.isna(coherence)):
+            return 'Coherence'
+        return f'Coherence ({float(coherence):g})'
     if not is_texture_split:
         return trial_type
     if trial_type == 'Hypothesized Shape':
@@ -244,11 +250,12 @@ def _recent_trial_type_label(trial_type, is_texture_split):
 
 def read_recent_trials(session_id, n=RECENT_TRIALS_N):
     """Return a short text summary of the n most-recent trials (newest first): trial type
-    (split-texture trials are labelled as such), estim spec id (or 'no estim'), and noise
-    level. Independent of tab/filters."""
+    (coherence trials show their coherence; split-texture trials are labelled as such), estim
+    spec id (or 'no estim'), and noise level. Independent of tab/filters."""
     conn = Connection(REPO_DB)
     conn.execute("""
-        SELECT trial_type, is_estim_on, estim_spec_id, noise_chance, is_texture_split
+        SELECT trial_type, is_estim_on, estim_spec_id, noise_chance, is_texture_split,
+               trial_class, coherence
         FROM EStimShapeTrials
         WHERE session_id = %s
         ORDER BY task_id DESC
@@ -256,8 +263,8 @@ def read_recent_trials(session_id, n=RECENT_TRIALS_N):
     """, (session_id, n))
     rows = conn.fetch_all()
     lines = []
-    for trial_type, is_estim_on, spec, noise, is_texture_split in rows:
-        label = _recent_trial_type_label(trial_type, bool(is_texture_split))
+    for trial_type, is_estim_on, spec, noise, is_texture_split, trial_class, coherence in rows:
+        label = _recent_trial_type_label(trial_type, bool(is_texture_split), trial_class, coherence)
         estim = f'spec {int(spec)}' if (is_estim_on and spec is not None) else 'no estim'
         noise_s = f'{float(noise) * 100:.0f}%' if noise is not None else 'n/a'
         lines.append(f'{label}  |  {estim}  |  noise {noise_s}')
@@ -1071,8 +1078,6 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             return '—'
         if col == 'noise_chance':
             return f'{float(value) * 100:.0f}%'
-        if col == 'coherence':
-            return f'{float(value):g}'
         if isinstance(value, (bool, np.bool_)):
             return 'yes' if value else 'no'
         if col in ('estim_spec_id', 'gen_id'):

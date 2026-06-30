@@ -42,12 +42,11 @@ _REMOVED_STIM_TYPE = 'EStimShapeVariantsDeletedNAFCStim'
 _DELTA_STIM_TYPE = 'EStimShapeVariantsDeltaNAFCStim'
 _VARIANT_STIM_TYPE = 'EStimShapeVariantsNAFCStim'
 _BEHAVIORAL_STIM_TYPE = 'EStimShapeProceduralBehavioralStim'
-_COHERENCE_STIM_TYPE = 'EStimShapeCoherenceNAFCStim'
 
 # Columns of the DataFrame returned by read_upcoming_trials(), in display order.
 UPCOMING_COLUMNS = [
     'task_id', 'stim_id', 'gen_id', 'trial_type', 'stim_type',
-    'estim_spec_id', 'is_estim_on', 'noise_chance', 'coherence',
+    'estim_spec_id', 'is_estim_on', 'noise_chance',
     'split_render_is_sample', 'inverted_shading', 'contrast_texture',
 ]
 
@@ -57,16 +56,14 @@ GROUP_DIMENSIONS = [
     ('trial_type', 'Trial type'),
     ('estim_spec_id', 'EStim spec id'),
     ('noise_chance', 'Noise'),
-    ('coherence', 'Coherence'),
     ('inverted_shading', 'Inverted shading'),
     ('split_render_is_sample', 'Split on sample'),
     ('contrast_texture', 'Contrast texture'),
     ('gen_id', 'Generation'),
 ]
 
-# Grouping dimensions checked by default in the GUI panel. Coherence is included so coherence
-# trials split by coherence value; non-coherence trials all share a single (null) coherence group.
-DEFAULT_GROUP_DIMENSIONS = ['trial_type', 'estim_spec_id', 'noise_chance', 'coherence']
+# Grouping dimensions checked by default in the GUI panel.
+DEFAULT_GROUP_DIMENSIONS = ['trial_type', 'estim_spec_id', 'noise_chance']
 
 _CHUNK = 1000  # max ids per IN (...) query
 
@@ -92,8 +89,8 @@ def get_upcoming_tasks(conn: Connection):
 
 
 def _read_stim_specs(conn: Connection, stim_ids):
-    """Return {stim_id: (stim_type, estim_spec_id_or_None, noise_chance_or_None, coherence_or_None)}
-    parsed from StimSpec.spec and StimSpec.data for the given stim_ids."""
+    """Return {stim_id: (stim_type, estim_spec_id_or_None, noise_chance_or_None)} parsed from
+    StimSpec.spec and StimSpec.data for the given stim_ids."""
     out = {}
     for chunk in _chunks(list(stim_ids)):
         placeholders = ','.join(['%s'] * len(chunk))
@@ -104,25 +101,8 @@ def _read_stim_specs(conn: Connection, stim_ids):
             stim_type = _parse_stim_type(spec_xml)
             estim_spec_id = _parse_estim_spec_id(spec_xml)
             noise_chance = _parse_noise_chance(data_xml)
-            coherence = _parse_coherence(spec_xml)
-            out[stim_id] = (stim_type, estim_spec_id, noise_chance, coherence)
+            out[stim_id] = (stim_type, estim_spec_id, noise_chance)
     return out
-
-
-def _parse_coherence(spec_xml):
-    """Signed coherence in [-1, 1] from StimSpec.spec (coherence trials only); None otherwise."""
-    if not spec_xml:
-        return None
-    try:
-        value = xmltodict.parse(spec_xml)['StimSpec'].get('coherence')
-    except Exception:
-        return None
-    if value is None:
-        return None
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def _parse_stim_type(spec_xml):
@@ -210,8 +190,6 @@ def _table_exists(conn: Connection, table):
 
 
 def _trial_type(stim_type, is_sample_delta):
-    if stim_type == _COHERENCE_STIM_TYPE:
-        return 'coherence'
     if stim_type == SPLIT_TEXTURE_STIM_TYPE:
         return 'split_texture'
     if stim_type == _REMOVED_STIM_TYPE:
@@ -244,7 +222,7 @@ def read_upcoming_trials(conn: Connection) -> pd.DataFrame:
 
     rows = []
     for task_id, stim_id, gen_id in tasks:
-        stim_type, estim_spec_id, noise_chance, coherence = specs.get(stim_id, (None, None, None, None))
+        stim_type, estim_spec_id, noise_chance = specs.get(stim_id, (None, None, None))
         split_is_sample, inverted, contrast = split.get(stim_id, (None, None, None))
         rows.append({
             'task_id': task_id,
@@ -255,7 +233,6 @@ def read_upcoming_trials(conn: Connection) -> pd.DataFrame:
             'estim_spec_id': estim_spec_id,
             'is_estim_on': estim_spec_id is not None,
             'noise_chance': noise_chance,
-            'coherence': coherence,
             'split_render_is_sample': split_is_sample,
             'inverted_shading': inverted,
             'contrast_texture': contrast,
