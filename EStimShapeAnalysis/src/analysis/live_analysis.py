@@ -80,7 +80,7 @@ class LiveAnalysis:
     # recorded in the experiment DB before Intan has finished flushing its spike file to disk,
     # so we wait for the file to settle before epoching/parsing — otherwise we'd parse a
     # partially-written file.
-    SETTLE_SECONDS = 5
+    SETTLE_SECONDS = 10
 
     def __init__(self, analysis: LiveCompilable):
         self.analysis = analysis

@@ -336,24 +336,25 @@ if __name__ == "__main__":
         exclude_sessions=exclude_sessions,
         maxiter=100000,
         start_from_file=start_from_file,
-        enable_per_session_corrections=True,
+        enable_per_session_corrections=False,
         session_corr_bounds=None,
         varimax_n_components=0,
         n_pcs=2,
         session_corr_penalty=0.5,
         chamber_dist_penalty=0.000,
         chamber_param_penalty=0.0001,
-        chamber_param_tolerances=dict(t_mm=2, r_deg=2.5, daz_deg=0.5, del_deg=0.5, ddepth_mm=1.0),
+        # chamber_param_tolerances=dict(t_mm=2, r_deg=2.5, daz_deg=0.5, del_deg=0.5, ddepth_mm=1.0),
+        chamber_param_tolerances=dict(t_mm=2, r_deg=2.5, daz_deg=0.01, del_deg=0.01, ddepth_mm=0.1),
         variance_penalty=0.0,
-        softmin_beta=0,
+        softmin_beta=20,
         optimizer='cma-es',
         use_confidence_weights=False,
         top_downweight_mm=5,
         top_downweight_factor=0.25,
         # Brain-extracted MRI: zero outside brain so the optimiser doesn't fit
         # to skull/scalp signal. Set to None to fall back to the config default.
-        # no_skull_mri_path="/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/subject_ns_rigid_aligned.nii.gz",
-        no_skull_mri_path="/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/NMT_v2.0_asym_SS_rigid_aligned.nii.gz",
+        no_skull_mri_path="/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/subject_ns_rigid_aligned.nii.gz",
+        # no_skull_mri_path="/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/NMT_v2.0_asym_SS_rigid_aligned.nii.gz",
         # Heavy penalty (λ) for any part of the chamber ring landing inside
         # brain tissue. Samples 32 points around the chamber circle (radius
         # 7 mm by default). Only meaningful with no_skull_mri_path set;

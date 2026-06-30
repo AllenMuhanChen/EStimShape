@@ -169,9 +169,21 @@ public class EStimShapeCoherenceNAFCStim extends EStimShapeVariantsDeltaNAFCStim
 
     @Override
     public RewardBehavior specifyRewardBehavior() {
-        // Reward both shapes that compose the sample: the variant (match, index 0) and the mixed
-        // delta. The mixed delta sits at the first delta choice slot, after the optional removed slot.
-        int mixedDeltaChoiceIndex = 1 + (includeRemovedChoice ? 1 : 0);
-        return RewardBehaviors.rewardChoices(0, mixedDeltaChoiceIndex);
+        if (isEStimEnabled || isAmbiguousTrial()) {
+            return RewardBehaviors.rewardReasonableChoicesOnly(this.parameters);
+        } else {
+            return RewardBehaviors.rewardMatchOnly();
+        }
     }
+
+    protected boolean isAmbiguousTrial() {
+        if (parameters.noiseChance == 1.0){
+            return true;
+        }
+        if (coherence == 0.0){
+            return true;
+        }
+        return false;
+    }
+
 }

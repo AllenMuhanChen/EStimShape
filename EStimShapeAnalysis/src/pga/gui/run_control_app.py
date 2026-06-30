@@ -11,11 +11,11 @@ from typing import Dict
 
 from src.analysis import compile_current_context, analyze_raw_data, analyze_current_context
 from src.analysis.ga import raw_channel_candidacy_analysis, ga_raster_analysis, baseline_analysis, plot_top_n, \
-    plot_variants_delta_gui, lfp_analysis
+    plot_variants_delta_gui, lfp_analysis, stimulus_pca_analysis
 from src.eyecal import plot_eyecal, apply_eyecal
 from src.pga.app import run_ga, start_new_ga, process_first_gen, run_cluster_app, calculate_spontaneous_firing_rate, \
     run_rwa, plot_rwa, transfer_eye_cal_params, abandon_generation, process_last_gen, recalculate_ga, \
-    run_tree_graph_app, run_delta_side_test
+    run_tree_graph_app, run_delta_side_test, run_cluster_app_pc_figure
 from src.startup import db_factory, setup_xper_properties_and_dirs, backup, startup_system
 
 
@@ -303,6 +303,14 @@ class ScriptRunnerApp:
                 },
                 "Variant-Delta GUI": {
                     "func": plot_variants_delta_gui.main,
+                    "params": []
+                },
+                "Cluster PC Analysis": {
+                    "func": run_cluster_app_pc_figure.main,
+                    "params": []
+                },
+                "Stimulus-PCA Analysis": {
+                    "func": stimulus_pca_analysis.main,
                     "params": []
                 }
             },

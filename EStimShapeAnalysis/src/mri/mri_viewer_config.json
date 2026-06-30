@@ -12,5 +12,5 @@
   "follower_nifti_path": "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/NMT_v2.0_asym_segmentation_rigid_aligned.nii.gz",
   "pen_view_path": "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/importants.json",
   "penetration_table": "Penetrations",
-  "session_id": "260528_0"
+  "session_id": "260630_0"
 }
