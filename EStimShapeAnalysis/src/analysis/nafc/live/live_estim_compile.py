@@ -40,7 +40,7 @@ _TABLE_COLUMNS = [
     'is_texture_split', 'split_render_is_sample', 'inverted_shading',
     'contrast_texture', 'is_3d_choice',
     'num_choices', 'num_procedural_distractors', 'num_rand_distractors',
-    'picked_base_mstick_id',
+    'picked_base_mstick_id', 'coherence',
 ]
 
 
@@ -51,6 +51,10 @@ def ensure_estimshape_trials_table():
     conn = Connection(REPO_DB)
     try:
         conn.execute("ALTER TABLE EStimShapeTrials ADD COLUMN sample_length DOUBLE")
+    except Exception:
+        pass  # column already present
+    try:
+        conn.execute("ALTER TABLE EStimShapeTrials ADD COLUMN coherence DOUBLE")
     except Exception:
         pass  # column already present
 

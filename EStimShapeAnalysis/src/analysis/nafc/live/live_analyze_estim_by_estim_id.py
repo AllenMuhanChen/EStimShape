@@ -177,7 +177,8 @@ def read_session_trials_as_exp_format(session_id, start_gen_id=START_GEN_ID,
                gen_id, trial_start, sample_length, trial_class, choice,
                is_texture_split, split_render_is_sample, inverted_shading,
                contrast_texture, is_3d_choice,
-               num_choices, num_procedural_distractors, num_rand_distractors
+               num_choices, num_procedural_distractors, num_rand_distractors,
+               coherence
         FROM EStimShapeTrials
         WHERE session_id = %s
         ORDER BY task_id
@@ -212,6 +213,8 @@ def read_session_trials_as_exp_format(session_id, start_gen_id=START_GEN_ID,
     out['NumChoices']              = db['num_choices']
     out['NumProceduralDistractors'] = db['num_procedural_distractors']
     out['NumRandDistractors']      = db['num_rand_distractors']
+    # Coherence value (signed [-1, 1]); NULL/NaN for non-coherence trials.
+    out['Coherence']               = db['coherence'] if 'coherence' in db.columns else np.nan
     # Use the compiled trial-type label directly so 'Behavioral' survives (deriving it from
     # IsDelta/IsRemovedTrial would mislabel behavioral trials as 'Hypothesized Shape').
     out['TrialType'] = db['trial_type']
@@ -304,6 +307,28 @@ def curve_points(df, kind):
     return xs, [float(v) for v in pct.values], [int(c) for c in n.values]
 
 
+def coherence_curve_points(df, kind):
+    """Aggregate a metric to (coherence, percent, n) arrays sorted by coherence level. Like
+    curve_points but the x-axis is the trial's coherence value, with all (included) noise levels
+    POOLED into each coherence point — the Coherence tab compares metrics across coherence, not
+    noise, so noise is collapsed (and excluded per-level via the tab's noise filter)."""
+    if df is None or len(df) == 0:
+        return [], [], []
+    d, vals = _metric_series(df, kind)
+    if len(d) == 0 or 'Coherence' not in d.columns:
+        return [], [], []
+    work = pd.DataFrame({'coh': pd.to_numeric(d['Coherence'], errors='coerce'),
+                         'v': np.asarray(vals, dtype=float)})
+    work = work.dropna(subset=['coh'])
+    if len(work) == 0:
+        return [], [], []
+    grp = work.groupby('coh')['v']
+    pct = grp.mean() * 100.0
+    n = grp.count()
+    xs = [float(c) for c in pct.index]
+    return xs, [float(v) for v in pct.values], [int(c) for c in n.values]
+
+
 def _rows_for(include_removed):
     return list(_BASE_ROWS) + ([_REMOVED_ROW] if include_removed else [])
 
@@ -317,10 +342,7 @@ def _columns_for(partition):
     if partition.include_removed:
         cols.append(('removed', 'Removed', partition.data_removed_on,
                      partition.data_removed_off, partition.removed_spec_ids))
-    # Coherence column appears only when coherence trials are present this session.
-    if getattr(partition, 'include_coherence', False):
-        cols.append(('coherence', 'Coherence', partition.data_coherence_on,
-                     partition.data_coherence_off, partition.coherence_spec_ids))
+    # Coherence trials are not shown here — they have their own tab (x-axis = coherence).
     return cols
 
 
@@ -602,6 +624,12 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.legends = {}                 # (row, col_key) -> LegendItem
         self.series = {}                  # (row, col_key, series_key) -> {'curve','label','base'}
 
+        # Coherence-tab grid state (same metric rows as the overview, x-axis = coherence).
+        self._coh_grid_config = None
+        self.coh_plots = {}               # (row, col_key) -> PlotItem
+        self.coh_legends = {}             # (row, col_key) -> LegendItem
+        self.coh_series = {}              # (row, col_key, series_key) -> {'curve','label','base'}
+
         # Sliding-window-tab grid state (columns = trial types).
         self._win_config = None           # tuple(trial_types) — rebuilt only on change
         self.win_plots = {}               # trial_type -> PlotItem
@@ -727,6 +755,19 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
         self.overview_filters = _FilterBar(self._rerender)
         self.overview_tab = self._wrap_with_filter_bar(self.overview_filters, self.scroll)
         self.tabs.addTab(self.overview_tab, 'Overview')
+
+        # Coherence tab — same metric rows as the Overview but x-axis = coherence, with noise
+        # levels POOLED by default (the noise filter checkboxes include/exclude levels).
+        self.coh_scroll = QtWidgets.QScrollArea()
+        self.coh_scroll.setWidgetResizable(True)
+        self.coh_scroll.setHorizontalScrollBarPolicy(_SCROLLBAR_OFF)
+        self.coh_host = QtWidgets.QWidget()
+        self.coh_grid_layout = QtWidgets.QGridLayout(self.coh_host)
+        self.coh_grid_layout.setContentsMargins(4, 4, 4, 4)
+        self.coh_scroll.setWidget(self.coh_host)
+        self.coherence_filters = _FilterBar(self._rerender)
+        self.coherence_tab = self._wrap_with_filter_bar(self.coherence_filters, self.coh_scroll)
+        self.tabs.addTab(self.coherence_tab, 'Coherence')
 
         # Sliding-window tab — its own filter bar above one effect-size panel per trial type.
         self.win_scroll = QtWidgets.QScrollArea()
@@ -921,6 +962,8 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             return self.window_filters
         if w is self.split_tab:
             return self.split_filters
+        if w is self.coherence_tab:
+            return self.coherence_filters
         return self.overview_filters
 
     def _refresh(self, force=False):
@@ -999,6 +1042,7 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             return self._render_bias()
         window_tab = self.tabs.currentWidget() is self.window_tab
         split_tab = self.tabs.currentWidget() is self.split_tab
+        coherence_tab = self.tabs.currentWidget() is self.coherence_tab
         data_exp = self._read_and_filter(include_behavioral=window_tab)
         if data_exp is None:
             return 0
@@ -1006,6 +1050,8 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             self._render_window(data_exp)
         elif split_tab:
             self._render_split(data_exp)
+        elif coherence_tab:
+            self._render_coherence(data_exp)
         else:
             self._render_overview(data_exp)
         return len(data_exp)
@@ -1383,6 +1429,95 @@ class LiveEstimWindow(QtWidgets.QMainWindow):
             t.setPos(x, y)
             try:
                 t.setAnchor((0.5, 1.0) if y <= 85 else (0.5, 0.0))
+            except Exception:
+                pass
+
+    # ---- coherence tab -------------------------------------------------
+    def _render_coherence(self, data_exp):
+        """Coherence trials only; the same metric rows as the Overview but x-axis = coherence,
+        with noise pooled (the tab's noise filter includes/excludes levels)."""
+        partition = partition_estim_data(data_exp)
+        on_df, off_df = partition.data_coherence_on, partition.data_coherence_off
+        if on_df is None or off_df is None or (len(on_df) + len(off_df)) == 0:
+            self._ensure_coh_grid([], [])  # no coherence trials after filters — clear the grid
+            return
+        rows = list(_BASE_ROWS)
+        cols = [('coherence', 'Coherence', on_df, off_df, partition.coherence_spec_ids)]
+        self._ensure_coh_grid(rows, cols)
+        for r, (_row_title, kind) in enumerate(rows):
+            for (col_key, _col_title, on_c, off_c, spec_ids) in cols:
+                self._update_coh_cell(r, col_key, kind, on_c, off_c, spec_ids)
+
+    def _ensure_coh_grid(self, rows, cols):
+        """(Re)build the coherence grid only when the row/column layout changes. Mirrors
+        _ensure_grid but labels the x-axis 'Coherence' and ranges it to the signed [-1, 1] domain."""
+        col_keys = tuple(c[0] for c in cols)
+        config = (len(rows), col_keys)
+        if config == self._coh_grid_config:
+            return
+        while self.coh_grid_layout.count():
+            item = self.coh_grid_layout.takeAt(0)
+            w = item.widget()
+            if w is not None:
+                w.setParent(None)
+                w.deleteLater()
+        self.coh_plots, self.coh_legends, self.coh_series = {}, {}, {}
+        for r, (row_title, _kind) in enumerate(rows):
+            for c, (col_key, col_title, *_rest) in enumerate(cols):
+                glw = _ScrollGraphicsLayout(self.coh_scroll)
+                glw.setFixedHeight(PLOT_HEIGHT)
+                pi = glw.addPlot(row=0, col=0)
+                legend = pg.LegendItem(offset=(10, 10))
+                glw.addItem(legend, row=0, col=1)
+                glw.ci.layout.setColumnStretchFactor(0, 1)
+                glw.ci.layout.setColumnFixedWidth(1, LEGEND_WIDTH)
+                pi.setTitle(f'{row_title}: {col_title}')
+                pi.showGrid(x=True, y=True, alpha=0.3)
+                pi.setLabel('left', '%')
+                pi.setLabel('bottom', 'Coherence')
+                vb = pi.getViewBox()
+                # Signed coherence in [-1, 1]: +1 favors variant, -1 favors delta, 0 balanced.
+                vb.setRange(xRange=(-1.1, 1.1), yRange=(0, 100), padding=0)
+                vb.setLimits(yMin=0, yMax=100)
+                vb.disableAutoRange()
+                self.coh_grid_layout.addWidget(glw, r, c)
+                self.coh_plots[(r, col_key)] = pi
+                self.coh_legends[(r, col_key)] = legend
+        self._coh_grid_config = config
+
+    def _update_coh_cell(self, row, col_key, kind, on_df, off_df, spec_ids):
+        """As _update_cell, but x = coherence (curve points aggregated by coherence, noise pooled)."""
+        plot = self.coh_plots[(row, col_key)]
+        legend = self.coh_legends[(row, col_key)]
+
+        wanted = {'OFF': (off_df, 'EStim OFF', pg.mkPen('k', width=2, style=_DASH_LINE), (0, 0, 0))}
+        for spec in sorted(spec_ids):
+            color = self._color_for_spec(spec)
+            wanted[('spec', spec)] = (on_df[on_df['EStimSpecId'] == spec],
+                                      f'Spec {int(spec)}', pg.mkPen(color, width=2), color)
+
+        for series_key, (df, base, pen, color) in wanted.items():
+            xs, ys, ns = coherence_curve_points(df, kind)
+            sid = (row, col_key, series_key)
+            if sid not in self.coh_series:
+                curve = plot.plot([], [], pen=pen, symbol='o', symbolSize=6,
+                                  symbolBrush=color, symbolPen=color)
+                legend.addItem(curve, base)
+                label = legend.items[-1][1] if legend.items else None
+                self.coh_series[sid] = {'curve': curve, 'label': label, 'base': base}
+            entry = self.coh_series[sid]
+            entry['curve'].setData(xs, ys)
+            if entry['label'] is not None:
+                entry['label'].setText(f"{entry['base']} (n={int(sum(ns))})")
+            self._sync_point_labels(plot, entry, xs, ys, ns, color)
+
+        for sid in [s for s in self.coh_series if s[0] == row and s[1] == col_key and s[2] not in wanted]:
+            entry = self.coh_series.pop(sid)
+            plot.removeItem(entry['curve'])
+            for t in entry.get('texts', []):
+                plot.removeItem(t)
+            try:
+                legend.removeItem(entry['curve'])
             except Exception:
                 pass
 
