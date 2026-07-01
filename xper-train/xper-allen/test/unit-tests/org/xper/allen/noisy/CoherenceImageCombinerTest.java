@@ -68,6 +68,57 @@ public class CoherenceImageCombinerTest {
     }
 
     @Test
+    public void proportionForCoherence_withNeutral_preservesEndpointsAndShiftsAnchor() {
+        double neutral = 0.25; // e.g. a small "first" shape balanced against a large "second"
+        assertEquals(1.0, CoherenceImageCombiner.proportionForCoherence(1.0, neutral), 1e-9);
+        assertEquals(0.0, CoherenceImageCombiner.proportionForCoherence(-1.0, neutral), 1e-9);
+        assertEquals(neutral, CoherenceImageCombiner.proportionForCoherence(0.0, neutral), 1e-9);
+        // halfway toward each endpoint interpolates linearly from the shifted anchor
+        assertEquals(0.625, CoherenceImageCombiner.proportionForCoherence(0.5, neutral), 1e-9);
+        assertEquals(0.125, CoherenceImageCombiner.proportionForCoherence(-0.5, neutral), 1e-9);
+        // out-of-range coherence is clamped to the endpoints
+        assertEquals(1.0, CoherenceImageCombiner.proportionForCoherence(5.0, neutral), 1e-9);
+        assertEquals(0.0, CoherenceImageCombiner.proportionForCoherence(-5.0, neutral), 1e-9);
+    }
+
+    @Test
+    public void neutralProportionFirst_isHalfForEqualCoverage() {
+        BufferedImage first = solid(40, 40, 0xFFFF0000);  // fully opaque -> coverage 1600
+        BufferedImage second = solid(40, 40, 0xFF0000FF);
+        assertEquals(0.5, CoherenceImageCombiner.neutralProportionFirst(first, second), 1e-9);
+    }
+
+    @Test
+    public void neutralProportionFirst_favoursTheSmallerShape() {
+        // "first" is three times the visible area of "second".
+        BufferedImage first = foregroundColumns(100, 100, 0, 60, 0xFFFF0000);   // coverage 6000
+        BufferedImage second = foregroundColumns(100, 100, 80, 100, 0xFF0000FF); // coverage 2000
+        // p0 = coverageSecond / (coverageFirst + coverageSecond) = 2000 / 8000 = 0.25
+        assertEquals(0.25, CoherenceImageCombiner.neutralProportionFirst(first, second), 1e-9);
+    }
+
+    @Test
+    public void combineAtNeutralProportion_balancesVisibleAreaForUnequalSizes() {
+        // "first" occupies 3x the foreground area of "second"; the two are disjoint so each
+        // visible source pixel is unambiguously attributable to one shape.
+        int redArgb = 0xFFFF0000, blueArgb = 0xFF0000FF;
+        BufferedImage first = foregroundColumns(100, 100, 0, 60, redArgb);    // coverage 6000
+        BufferedImage second = foregroundColumns(100, 100, 80, 100, blueArgb); // coverage 2000
+
+        double neutral = CoherenceImageCombiner.neutralProportionFirst(first, second);
+        BufferedImage out = CoherenceImageCombiner.combine(first, second, neutral, new SplittableRandom(123));
+
+        int visibleFirst = countPixels(out, redArgb);
+        int visibleSecond = countPixels(out, blueArgb);
+
+        // At the area-normalized neutral proportion the two visible areas are equal in expectation
+        // (~1500 each here). A plain 0.5 coin would instead give ~3000 vs ~1000 and fail this bound.
+        int difference = Math.abs(visibleFirst - visibleSecond);
+        assertTrue("expected balanced visible area, got first=" + visibleFirst
+                + " second=" + visibleSecond, difference < 150);
+    }
+
+    @Test
     public void combine_atProportionOne_returnsFirstImage() {
         BufferedImage first = solid(16, 16, 0xFFFF0000);  // red
         BufferedImage second = solid(16, 16, 0xFF0000FF); // blue
@@ -196,6 +247,33 @@ public class CoherenceImageCombinerTest {
             }
         }
         return img;
+    }
+
+    /**
+     * A {@code width}x{@code height} image that is transparent everywhere except columns
+     * {@code [xStart, xEnd)}, which are filled with the opaque {@code argb} (a simple foreground
+     * "shape" over a transparent background).
+     */
+    private static BufferedImage foregroundColumns(int width, int height, int xStart, int xEnd, int argb) {
+        BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                img.setRGB(x, y, (x >= xStart && x < xEnd) ? argb : 0x00000000);
+            }
+        }
+        return img;
+    }
+
+    private static int countPixels(BufferedImage img, int argb) {
+        int count = 0;
+        for (int y = 0; y < img.getHeight(); y++) {
+            for (int x = 0; x < img.getWidth(); x++) {
+                if (img.getRGB(x, y) == argb) {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
 
     private static void assertAllPixelsEqual(BufferedImage expected, BufferedImage actual) {

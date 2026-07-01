@@ -33,12 +33,81 @@ public class CoherenceImageCombiner {
     }
 
     /**
-     * Map a signed coherence in [-1, 1] to {@code proportionFirst} in [0, 1].
-     * coherence = +1 -&gt; all first, -1 -&gt; all second, 0 -&gt; balanced (the 0% coherence anchor).
+     * Map a signed coherence in [-1, 1] to {@code proportionFirst} in [0, 1], anchoring the
+     * 0% coherence point at a plain 50/50 coin.
+     *
+     * <p>coherence = +1 -&gt; all first, -1 -&gt; all second, 0 -&gt; 0.5. This is the un-normalized
+     * mapping; for shapes of unequal foreground area prefer
+     * {@link #proportionForCoherence(double, double)} with {@link #neutralProportionFirst}
+     * so that 0% coherence is balanced by <i>visible area</i> rather than by pixel probability.
      */
     public static double proportionForCoherence(double coherence) {
-        double proportion = (coherence + 1.0) / 2.0;
+        return proportionForCoherence(coherence, 0.5);
+    }
+
+    /**
+     * Map a signed coherence in [-1, 1] to {@code proportionFirst} in [0, 1], anchoring the
+     * 0% coherence point at {@code neutralProportion} instead of 0.5.
+     *
+     * <p>The endpoints are preserved (coherence = +1 -&gt; all first, -1 -&gt; all second) while the
+     * neutral point is shifted, so that pairing this with {@link #neutralProportionFirst} yields a
+     * sample whose <i>expected visible foreground area</i> is equal for the two shapes at 0%
+     * coherence, regardless of their relative sizes. The two half-ranges are interpolated linearly:
+     * <pre>
+     *   coherence &gt;= 0:  p = neutral + coherence * (1 - neutral)
+     *   coherence &lt;  0:  p = neutral * (1 + coherence)
+     * </pre>
+     *
+     * @param coherence        signed coherence, clamped to [-1, 1]
+     * @param neutralProportion the {@code proportionFirst} that corresponds to 0% coherence, in [0, 1]
+     */
+    public static double proportionForCoherence(double coherence, double neutralProportion) {
+        double c = Math.max(-1.0, Math.min(1.0, coherence));
+        double p0 = Math.max(0.0, Math.min(1.0, neutralProportion));
+        double proportion = (c >= 0.0) ? p0 + c * (1.0 - p0) : p0 * (1.0 + c);
         return Math.max(0.0, Math.min(1.0, proportion));
+    }
+
+    /**
+     * The {@code proportionFirst} that balances the two shapes by <i>visible foreground area</i>,
+     * i.e. the 0% coherence anchor for shapes of unequal size.
+     *
+     * <p>Because {@link #combine} draws each pixel whole, the expected visible foreground area of a
+     * shape is {@code proportionDrawn * itsForegroundCoverage}. Setting
+     * {@code proportionFirst = coverageSecond / (coverageFirst + coverageSecond)} makes the two
+     * expected visible areas equal, so a shape that happens to occupy many more pixels is no longer
+     * over-represented at 0% coherence.
+     *
+     * <p>"Coverage" is the summed alpha (see {@link #foregroundCoverage}), which measures visible ink
+     * once the transparent PNG is composited over the background and needs no comp map. When both
+     * shapes are fully transparent the result falls back to 0.5.
+     */
+    public static double neutralProportionFirst(BufferedImage first, BufferedImage second) {
+        double coverageFirst = foregroundCoverage(first);
+        double coverageSecond = foregroundCoverage(second);
+        double total = coverageFirst + coverageSecond;
+        if (total <= 0.0) {
+            return 0.5;
+        }
+        return coverageSecond / total;
+    }
+
+    /**
+     * Visible foreground "area" of an RGBA image, measured as summed alpha coverage
+     * ({@code sum over pixels of alpha/255}). This counts a fully opaque pixel as 1 and a fully
+     * transparent (background) pixel as 0, with anti-aliased edge pixels contributing their partial
+     * alpha, so it reflects the ink actually seen once the image is composited over the background.
+     */
+    public static double foregroundCoverage(BufferedImage img) {
+        int width = img.getWidth();
+        int height = img.getHeight();
+        long alphaSum = 0L;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                alphaSum += (img.getRGB(x, y) >>> 24) & 0xFF;
+            }
+        }
+        return alphaSum / 255.0;
     }
 
     /**

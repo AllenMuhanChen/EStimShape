@@ -31,7 +31,7 @@ import org.xper.rfplot.drawing.png.ImageDimensions;
  * loaded and drawn exactly as before):
  * <pre>
  *   trialStart: images = new CoherenceNoisyTranslatableImages(numFrames, numChoices + 1, noiseRate, numFrames);
- *   setSample:  images.loadCoherenceSample(firstPath, secondPath, proportionFirst, color, seed);
+ *   setSample:  images.loadCoherenceSample(firstPath, secondPath, coherence, color, seed);
  *               images.loadNoise(noiseMapPath, color);
  *   drawSample: images.drawCoherenceSample(true, context, sampleLocation, sampleDimensions);
  * </pre>
@@ -71,14 +71,15 @@ public class CoherenceNoisyTranslatableImages extends NoisyTranslatableResizable
      * relies on (it loads the first image into slot 0 as a side effect; that texture is harmlessly
      * overwritten each frame by {@link #drawCoherenceSample}).
      *
-     * @param proportionFirst probability in [0, 1] that each pixel is drawn from {@code firstPath};
-     *                        0.5 == 0% coherence. Use {@link CoherenceImageCombiner#proportionForCoherence}
-     *                        to convert a signed coherence.
-     * @param noiseColor      stimulus color (kept for symmetry with the noise overlay; not used here)
-     * @param seed            base RNG seed; frame i uses {@code seed + i} so frames differ yet the
-     *                        trial is reproducible
+     * @param coherence  signed coherence in [-1, 1]: +1 == all first, -1 == all second, 0 == 0%
+     *                   coherence. The 0% anchor is balanced by <i>visible foreground area</i>
+     *                   (see {@link CoherenceImageCombiner#neutralProportionFirst}) so that a shape
+     *                   with more non-background pixels is not over-represented.
+     * @param noiseColor stimulus color (kept for symmetry with the noise overlay; not used here)
+     * @param seed       base RNG seed; frame i uses {@code seed + i} so frames differ yet the
+     *                   trial is reproducible
      */
-    public void loadCoherenceSample(String firstPath, String secondPath, double proportionFirst,
+    public void loadCoherenceSample(String firstPath, String secondPath, double coherence,
                                     Color noiseColor, long seed) {
         // Establishes slot 0, the source byte length and image dimensions via the parent loader.
         loadTexture(firstPath, SAMPLE_TEXTURE_INDEX);
@@ -87,6 +88,9 @@ public class CoherenceNoisyTranslatableImages extends NoisyTranslatableResizable
             BufferedImage second = ImageIO.read(new File(secondPath));
             sampleWidth = first.getWidth();
             sampleHeight = first.getHeight();
+            // Anchor 0% coherence on equal visible area rather than a plain 50/50 pixel coin.
+            double neutralProportion = CoherenceImageCombiner.neutralProportionFirst(first, second);
+            double proportionFirst = CoherenceImageCombiner.proportionForCoherence(coherence, neutralProportion);
             sampleFrames.clear();
             currentSampleFrameIndx = 0;
             for (int i = 0; i < numSampleFrames; i++) {
