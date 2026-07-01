@@ -33,7 +33,7 @@ import math
 from clat.util.connection import Connection
 from src.analysis.nafc.estim_parameter_classifier import EStimParameterClassifier
 from src.analysis.nafc.group_analysis.analyze_estim_by_condition import (
-    METRIC_PCT_HYPOTHESIZED, METRIC_PCT_HYP_VS_DELTA, _filter_for_metric)
+    METRIC_PCT_HYPOTHESIZED, METRIC_PCT_HYP_VS_DELTA, _filter_for_metric, run_pipeline)
 from src.analysis.nafc.group_analysis.estim_groups_permutation_test import (
     create_permutation_test_table, save_permutation_results)
 
@@ -889,7 +889,7 @@ def save_cutoff(session_id, conditions_json, algorithm_label, max_trial_start):
 def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
                 min_estim_trials=10, session_id=None, force_recompute=False,
                 verbose=False, metric=METRIC_PCT_HYP_VS_DELTA, grace_steps=0,
-                x_units=X_UNITS_TOTAL):
+                x_units=X_UNITS_TOTAL, save_effects=False):
     """
     Compute and store first-sustained-drop cutoffs for all conditions.
 
@@ -915,6 +915,10 @@ def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
                            'estim_trials' bins windows by this condition's estim-on trials,
                            so window_size / step_size / grace_steps are counted in estim
                            trials. Appends '_xestim' to the algorithm_label when used.
+        save_effects     : if True, after storing the cutoffs, recompute per-condition
+                           effects with the cutoffs applied and write them to EStimEffects
+                           under this algorithm_label (via run_pipeline). run_cutoffs
+                           otherwise only writes EStimSessionCutoffs.
     """
     create_cutoffs_table()
 
@@ -997,6 +1001,18 @@ def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
             )
 
     print(f"\nDone. Cutoffs applied: {n_cutoffs}  |  No degradation / not applicable: {n_no_degradation}")
+
+    if save_effects:
+        # Recompute per-condition effects with the cutoffs applied and store them in
+        # EStimEffects under this algorithm_label (run_pipeline fetches the cutoffs we just
+        # saved and trims both estim-on and estim-off at trial_start <= max_trial_start).
+        # This is what makes the cutoff-applied on/off/effect available in EStimEffects for
+        # downstream tools; run_cutoffs on its own only writes EStimSessionCutoffs.
+        print(f"Populating EStimEffects for algorithm '{algorithm_label}' (cutoff-applied)...")
+        run_pipeline(session_ids=([session_id] if session_id else None),
+                     algorithm_label=algorithm_label,
+                     force_recompute=True, show_sliding_window=False)
+
     return algorithm_label
 
 
@@ -1317,6 +1333,7 @@ def main():
     session_id       = "260630_0"  # str = one session, list = several, None = all
     metric           = METRIC_PCT_HYP_VS_DELTA  # or METRIC_PCT_HYPOTHESIZED
     x_units          = X_UNITS_ESTIM  # X_UNITS_TOTAL (total trials) or X_UNITS_ESTIM (estim trials)
+    save_effects     = True  # also write cutoff-applied rows to EStimEffects under the label
 
     # window_size / step_size are counted in whatever x_units is. In estim mode a window
     # holds this many of the CONDITION's estim-on trials, so it must be well under the
@@ -1346,6 +1363,7 @@ def main():
             metric=metric,
             grace_steps=grace_steps,
             x_units=x_units,
+            save_effects=save_effects,
         )
 
     # Resolve which sessions to plot.

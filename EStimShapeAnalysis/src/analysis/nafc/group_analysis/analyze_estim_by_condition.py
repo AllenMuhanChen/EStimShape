@@ -94,6 +94,22 @@ def _cond_val_equal(a, b):
     return a == b
 
 
+def _cond_dicts_equal(a, b):
+    """
+    True if two condition dicts describe the same condition: identical key sets and
+    fuzzily-equal values (NaN==None, int==float when close, bool(False)==int(0)).
+
+    Use this instead of comparing _normalize_cond_key(a) == _normalize_cond_key(b): exact
+    JSON-string equality is brittle to a value being an int in one dict and a float in the
+    other (e.g. a newly added `coherence` stored as 0 vs grouped as 0.0), which silently
+    fails to match. This comparison is robust to that, so adding a condition parameter does
+    not break condition lookup.
+    """
+    if set(a.keys()) != set(b.keys()):
+        return False
+    return all(_cond_val_equal(a.get(k), b.get(k)) for k in a)
+
+
 def _find_cutoff_for_condition(all_conds, trial_start_cutoffs):
     """
     Look up max_trial_start for all_conds in trial_start_cutoffs using fuzzy comparison.
@@ -105,9 +121,7 @@ def _find_cutoff_for_condition(all_conds, trial_start_cutoffs):
             stored = _parse_conditions_json(conditions_json)
         except Exception:
             continue
-        if set(stored.keys()) != set(all_conds.keys()):
-            continue
-        if all(_cond_val_equal(all_conds.get(k), stored.get(k)) for k in stored):
+        if _cond_dicts_equal(all_conds, stored):
             return max_ts
     return None
 

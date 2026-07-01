@@ -6,7 +6,8 @@ from tqdm import tqdm
 from src.analysis.nafc.group_analysis.analyze_estim_by_condition import (
     METRIC_PCT_HYPOTHESIZED, METRIC_PCT_HYP_VS_DELTA,
     read_trial_data_from_repository, split_data_by_conditions,
-    _filter_for_metric, _normalize_cond_key, _DEFAULT_BEHAVIORAL_CONDITIONS)
+    _filter_for_metric, _cond_dicts_equal,
+    _DEFAULT_BEHAVIORAL_CONDITIONS)
 
 
 def run_permutation_tests(session_ids=None, n_permutations=1000, force_recompute=False,
@@ -175,10 +176,13 @@ def get_trial_data_for_condition(session_id, cond_dict, max_trial_start=None,
     comparisons = split_data_by_conditions(data, behavioral_keys, estim_keys,
                                             trial_start_cutoffs=cutoffs)
 
-    target_key = _normalize_cond_key(cond_dict)
+    # Match the target condition with fuzzy value comparison (int==float, NaN==None) rather
+    # than exact normalized-JSON equality: a newly added key such as `coherence` can be an
+    # int here and a float from the groupby (or vice versa), which would silently fail an
+    # exact string match and return empty on/off. _cond_dicts_equal is type-robust.
     for comp in comparisons:
         merged = {**comp['behavioral_conditions'], **comp['estim_conditions']}
-        if _normalize_cond_key(merged) == target_key:
+        if _cond_dicts_equal(merged, cond_dict):
             on_df  = _filter_for_metric(comp['estim_on_data'], metric)
             off_df = _filter_for_metric(comp['estim_off_data'], metric)
             return {
