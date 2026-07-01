@@ -12,6 +12,7 @@ public class EStimExperimentVariantsGenType extends ProceduralRandGenType<EStimE
     protected JTextField isEStimEnabledField;
     protected JTextField eStimSpecIdField;
     protected JTextField includeRemovedChoiceField;
+    protected JTextField biasShapingEnabledField;
 
     public EStimExperimentVariantsGenType() {
         super();
@@ -26,9 +27,13 @@ public class EStimExperimentVariantsGenType extends ProceduralRandGenType<EStimE
         boolean isEStimEnabled = Boolean.parseBoolean(isEStimEnabledField.getText());
         long eStimSpecId = Long.parseLong(eStimSpecIdField.getText());
         boolean includeRemovedChoice = Boolean.parseBoolean(includeRemovedChoiceField.getText());
+        boolean biasShapingEnabled = Boolean.parseBoolean(biasShapingEnabledField.getText());
         EStimExperimentGenType.EStimExperimentGenParameters params = new EStimExperimentGenType.EStimExperimentGenParameters(
                 super.readFromFields(), 0, stimId, -1, isEStimEnabled, eStimSpecId);
         params.includeRemovedChoice = includeRemovedChoice;
+        // Opt this block's variant/delta trials into live anti-bias shaping. Stored on the
+        // ProceduralStimParameters so it serializes into StimSpec.data for the runtime controller.
+        params.getProceduralStimParameters().biasShapingEnabled = biasShapingEnabled;
         return params;
     }
 
@@ -67,6 +72,7 @@ public class EStimExperimentVariantsGenType extends ProceduralRandGenType<EStimE
         isEStimEnabledField = new JTextField("true", 10);
         eStimSpecIdField = new JTextField("0", 10);
         includeRemovedChoiceField = new JTextField("false", 10);
+        biasShapingEnabledField = new JTextField("false", 10);
 
         labelsForFields.put(stimIdField, "stimId:");
         defaultsForFields.put(stimIdField, "0");
@@ -79,6 +85,9 @@ public class EStimExperimentVariantsGenType extends ProceduralRandGenType<EStimE
 
         labelsForFields.put(includeRemovedChoiceField, "includeRemovedChoice (true/false):");
         defaultsForFields.put(includeRemovedChoiceField, "false");
+
+        labelsForFields.put(biasShapingEnabledField, "biasShapingEnabled (true/false):");
+        defaultsForFields.put(biasShapingEnabledField, "false");
     }
 
     @Override
@@ -88,6 +97,7 @@ public class EStimExperimentVariantsGenType extends ProceduralRandGenType<EStimE
         isEStimEnabledField.setText(String.valueOf(((EStimExperimentGenType.EStimExperimentGenParameters) blockParams).isEStimEnabled));
         eStimSpecIdField.setText(String.valueOf(((EStimExperimentGenType.EStimExperimentGenParameters) blockParams).eStimSpecId));
         includeRemovedChoiceField.setText(String.valueOf(((EStimExperimentGenType.EStimExperimentGenParameters) blockParams).includeRemovedChoice));
+        biasShapingEnabledField.setText(String.valueOf(((EStimExperimentGenType.EStimExperimentGenParameters) blockParams).getProceduralStimParameters().biasShapingEnabled));
     }
 
     @Override
