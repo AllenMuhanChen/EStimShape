@@ -19,12 +19,15 @@ Public API
 ----------
   compute_estim_hyperparameters(a1, num_channels, n_pulses, rate_hz) -> dict
       Pure math, no DB. Returns {name: value-or-None}.
-  get_estim_hyperparameters(session_id, estim_spec_id) -> dict
+  get_estim_hyperparameters(session_id, estim_spec_id, sample_duration_ms=None) -> dict
       DB-backed: reads the base params for a spec, derives the pulse count and
-      pulse rate, and computes the hyperparameters.
+      pulse rate, and computes the hyperparameters. sample_duration_ms is only
+      needed for LEVEL-triggered specs (see num_pulses).
   get_base_params(session_id, estim_spec_id) -> dict | None
       The raw base parameters used as inputs.
-  num_pulses(pulse_repetition, num_repetitions) -> int
+  num_pulses(pulse_repetition, num_repetitions, trigger_edge_or_level=None,
+             sample_duration_ms=None, post_stim_refractory_period=None,
+             post_trigger_delay=None) -> int | None
   pulse_rate_hz(trigger_edge_or_level, pulse_train_period,
                 post_stim_refractory_period, post_trigger_delay) -> float | None
       The two derivations, exposed for reuse.
@@ -58,12 +61,49 @@ def _to_float(x):
         return None
 
 
-def num_pulses(pulse_repetition, num_repetitions):
-    """Number of pulses delivered per trigger.
+def _level_num_pulses(sample_duration_ms, post_stim_refractory_period, post_trigger_delay):
+    """Pulses fired while a LEVEL trigger is held high for one sample presentation.
 
-    SinglePulse → 1. PulseTrain → num_repetitions (the pulse count per trigger,
-    per EStimNumPulsesField). A missing or non-positive count falls back to 1.
+    Under the level (hold) paradigm the trigger line is held from sample-on to
+    sample-off, so pulses keep repeating for the whole sample window rather than a
+    fixed count — the stored num_repetitions is a meaningless default here. One
+    pulse fires per level period, which is the same quantity pulse_rate_hz uses for
+    level mode: post_stim_refractory_period + post_trigger_delay (µs). So
+
+        num_pulses = floor(sample_window_us / period_us)
+
+    with sample_window_us = sample_duration_ms * 1000 (sampleDuration is stored in
+    ms). Returns None if the sample length or the period is missing/non-positive.
     """
+    sample_ms = _to_float(sample_duration_ms)
+    if sample_ms is None or sample_ms <= 0:
+        return None
+    period_us = (_to_float(post_stim_refractory_period) or 0.0) + \
+                (_to_float(post_trigger_delay) or 0.0)
+    if period_us <= 0:
+        return None
+    sample_window_us = sample_ms * 1000.0
+    return int(sample_window_us // period_us)
+
+
+def num_pulses(pulse_repetition, num_repetitions, trigger_edge_or_level=None,
+               sample_duration_ms=None, post_stim_refractory_period=None,
+               post_trigger_delay=None):
+    """Number of pulses delivered per stimulation.
+
+    LEVEL trigger: the trigger is held high from sample-on to sample-off, so pulses
+    repeat for the entire sample presentation — far more than the stored
+    num_repetitions (a meaningless default in this mode). The count is derived from
+    the sample duration and the level-mode pulse period; see _level_num_pulses.
+    Returns None if the sample length or period is unknown.
+
+    Edge (or unspecified) trigger:
+      SinglePulse → 1. PulseTrain → num_repetitions (the pulse count per trigger,
+      per EStimNumPulsesField). A missing or non-positive count falls back to 1.
+    """
+    if str(trigger_edge_or_level).strip().lower() == 'level':
+        return _level_num_pulses(sample_duration_ms,
+                                 post_stim_refractory_period, post_trigger_delay)
     if pulse_repetition is not None and str(pulse_repetition).strip().lower() == 'singlepulse':
         return 1
     n = _to_float(num_repetitions)
@@ -131,15 +171,25 @@ def get_base_params(session_id, estim_spec_id):
     return dict(zip(_BASE_PARAM_COLUMNS, rows[0]))
 
 
-def get_estim_hyperparameters(session_id, estim_spec_id):
+def get_estim_hyperparameters(session_id, estim_spec_id, sample_duration_ms=None):
     """Read the base params for a spec and compute its derived hyperparameters.
+
+    sample_duration_ms is the trial's sample presentation length (ms). It is only
+    used for LEVEL-triggered specs, where the trigger is held for the whole sample
+    and the pulse count is derived from it rather than from num_repetitions (a
+    meaningless default in that mode). If omitted, a LEVEL spec gets a None pulse
+    count and therefore a None total_current.
 
     Returns {name: value-or-None}; all None if the spec isn't found.
     """
     raw = get_base_params(session_id, estim_spec_id)
     if raw is None:
         return {name: None for name in HYPERPARAMETER_NAMES}
-    n_pulses = num_pulses(raw.get('pulse_repetition'), raw.get('num_repetitions'))
+    n_pulses = num_pulses(raw.get('pulse_repetition'), raw.get('num_repetitions'),
+                          trigger_edge_or_level=raw.get('trigger_edge_or_level'),
+                          sample_duration_ms=sample_duration_ms,
+                          post_stim_refractory_period=raw.get('post_stim_refractory_period'),
+                          post_trigger_delay=raw.get('post_trigger_delay'))
     rate = pulse_rate_hz(raw.get('trigger_edge_or_level'),
                          raw.get('pulse_train_period'),
                          raw.get('post_stim_refractory_period'),

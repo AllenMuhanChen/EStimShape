@@ -140,7 +140,10 @@ def _expand_with_hyperparameters(session_id, cond_dict):
     params = _expand_condition(session_id, cond_dict)
     spec_id = cond_dict.get('estim_spec_id')
     if spec_id is not None:
-        params.update(get_estim_hyperparameters(session_id, spec_id))
+        # sample_length (ms) is the LEVEL trigger's hold window; needed to count
+        # pulses for level-triggered specs (num_repetitions is a default there).
+        params.update(get_estim_hyperparameters(
+            session_id, spec_id, sample_duration_ms=cond_dict.get('sample_length')))
     for key, bin_size in _PARAM_BIN_SIZES.items():
         if params.get(key) is not None:
             params[key] = _bin_value(params[key], bin_size)
