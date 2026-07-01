@@ -123,7 +123,7 @@ def _get_all_trials_ordered(session_id):
     query = f"""
         SELECT t.trial_start, t.is_estim_on, t.is_hypothesized_choice, t.choice,
                t.trial_type, t.noise_chance, t.sample_length, t.estim_spec_id,
-               t.num_choices, t.num_procedural_distractors, t.num_rand_distractors,
+               t.num_choices, t.num_procedural_distractors, t.num_rand_distractors, t.coherence,
                ep.polarity, ep.shape, ep.num_channels, ep.a1,
                ep.post_stim_refractory_period, ep.enable_charge_recovery
         FROM EStimShapeTrials t
@@ -140,7 +140,7 @@ def _get_all_trials_ordered(session_id):
     df = pd.DataFrame(rows, columns=[
         'trial_start', 'is_estim_on', 'is_hypothesized_choice', 'choice',
         'trial_type', 'noise_chance', 'sample_length', 'estim_spec_id',
-        'num_choices', 'num_procedural_distractors', 'num_rand_distractors',
+        'num_choices', 'num_procedural_distractors', 'num_rand_distractors', 'coherence',
         'polarity', 'shape', 'num_channels', 'a1',
         'post_stim_refractory_period', 'enable_charge_recovery',
     ])
@@ -162,6 +162,14 @@ def _behavioral_mask(df, cond_dict):
             mask &= df['sample_length'].isna()
         else:
             mask &= df['sample_length'] == cond_dict['sample_length']
+    # Coherence: match the exact level so the estim-off baseline is not pooled across coherence
+    # values (otherwise a coherence=0 condition's baseline would draw from every coherence level).
+    if 'coherence' in cond_dict:
+        coh = pd.to_numeric(df['coherence'], errors='coerce')
+        if cond_dict['coherence'] is None:
+            mask &= coh.isna()
+        else:
+            mask &= (coh - float(cond_dict['coherence'])).abs() < 0.001
     # Behavioral choice-set parameters (see analyze_estim_by_condition._DEFAULT_BEHAVIORAL_CONDITIONS).
     for key in ('num_choices', 'num_procedural_distractors', 'num_rand_distractors'):
         if key in cond_dict:
