@@ -1326,11 +1326,11 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
 
 def main():
     threshold        = 0
-    n_steps_below    = 2
-    grace_steps      = 0   # windows from a condition's start during which drops are ignored
+    n_steps_below    = 3
+    grace_steps      = 5   # windows from a condition's start during which drops are ignored
     min_estim_trials = 10
     n_permutations   = 1000
-    session_id       = "260630_0"  # str = one session, list = several, None = all
+    session_id       = None  # str = one session, list = several, None = all
     metric           = METRIC_PCT_HYP_VS_DELTA  # or METRIC_PCT_HYPOTHESIZED
     x_units          = X_UNITS_ESTIM  # X_UNITS_TOTAL (total trials) or X_UNITS_ESTIM (estim trials)
     save_effects     = True  # also write cutoff-applied rows to EStimEffects under the label
@@ -1339,8 +1339,8 @@ def main():
     # holds this many of the CONDITION's estim-on trials, so it must be well under the
     # per-condition estim count or the condition yields no windows (a blank subplot).
     if x_units == X_UNITS_ESTIM:
-        window_size = 20   # estim-on trials per window — tune to your per-condition counts
-        step_size   = 2
+        window_size = 5   # estim-on trials per window — tune to your per-condition counts
+        step_size   = 1
     else:
         window_size = 50   # total trials per window
         step_size   = 5
