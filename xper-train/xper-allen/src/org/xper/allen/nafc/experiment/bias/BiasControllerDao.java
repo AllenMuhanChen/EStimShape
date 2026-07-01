@@ -8,7 +8,7 @@ import java.util.List;
 import javax.sql.DataSource;
 
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
 
 /**
  * Persistence for the NAFC anti-bias controller, in the experiment database. Two tables:
@@ -71,7 +71,7 @@ public class BiasControllerDao {
         return jt.query("SELECT stim_id, variant_id, num_choices, ewma_chose, ewma_chose_when_wrong, " +
                         "ewma_hit_when_correct, n_present, n_distractor, n_correct_present, biased, bias_score " +
                         "FROM bias_controller_state",
-                new RowMapper<BiasKeyState>() {
+                new ParameterizedRowMapper<BiasKeyState>() {
                     public BiasKeyState mapRow(ResultSet rs, int rowNum) throws SQLException {
                         BiasKeyState s = new BiasKeyState(rs.getLong("stim_id"), rs.getLong("variant_id"));
                         s.numChoices = rs.getInt("num_choices");
