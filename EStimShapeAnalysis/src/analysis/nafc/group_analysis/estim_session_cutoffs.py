@@ -38,9 +38,17 @@ from src.analysis.nafc.group_analysis.estim_groups_permutation_test import (
     create_permutation_test_table, save_permutation_results)
 
 
-def _algorithm_label(window_size, step_size, threshold, n_steps_below, min_estim_trials):
-    """Cutoff identifier shared by the cutoffs table and the permutation-test rows."""
-    return f"first_drop_w{window_size}_s{step_size}_t{threshold}_n{n_steps_below}_m{min_estim_trials}"
+def _algorithm_label(window_size, step_size, threshold, n_steps_below, min_estim_trials,
+                     grace_steps=0):
+    """
+    Cutoff identifier shared by the cutoffs table and the permutation-test rows.
+    The grace-period suffix is appended only when grace_steps > 0 so existing labels
+    (and the downstream configs that reference them) keep matching when no grace is used.
+    """
+    label = f"first_drop_w{window_size}_s{step_size}_t{threshold}_n{n_steps_below}_m{min_estim_trials}"
+    if grace_steps:
+        label += f"_g{grace_steps}"
+    return label
 
 
 def _normalize_cond_key(cond_dict):
@@ -277,7 +285,8 @@ def _sliding_window_effects(df, window_size, step_size, cond_dict, metric=METRIC
 
 def compute_first_sustained_drop(session_id, cond_dict,
                                   window_size, step_size, threshold, n_steps_below,
-                                  min_estim_trials=10, metric=METRIC_PCT_HYPOTHESIZED):
+                                  min_estim_trials=10, metric=METRIC_PCT_HYPOTHESIZED,
+                                  grace_steps=0):
     """
     Slides a window over ALL session trials (ordered by trial_start) and finds the
     FIRST time the effect, having risen to/above threshold, then drops below it and
@@ -289,17 +298,21 @@ def compute_first_sustained_drop(session_id, cond_dict,
         (An early negative stretch before the effect rises above threshold does NOT
         disqualify the condition.)
       - Effect rises above threshold but never drops below it → no adaptation, skip.
+      - grace_steps: number of windows from the condition's first data window during
+        which drops are ignored (a grace period before we start looking for a cutoff).
 
     Returns: trial_start of the last trial in the last good window, or None.
     """
     df = _get_all_trials_ordered(session_id)
     return _first_sustained_drop_from_df(
-        df, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials, metric)
+        df, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials,
+        metric, grace_steps)
 
 
 def _diagnose_sustained_drop(df, cond_dict,
                              window_size, step_size, threshold, n_steps_below,
-                             min_estim_trials=10, metric=METRIC_PCT_HYPOTHESIZED):
+                             min_estim_trials=10, metric=METRIC_PCT_HYPOTHESIZED,
+                             grace_steps=0):
     """
     Full diagnosis of the first-sustained-drop procedure for a single condition.
 
@@ -331,6 +344,12 @@ def _diagnose_sustained_drop(df, cond_dict,
     threshold at some earlier window, then drops below it for n_steps_below consecutive
     windows. The effect may have been negative before rising above threshold — that early
     negative stretch does not disqualify the condition.
+
+    grace_steps: a grace period, in windows measured from the condition's first data
+    window, during which drops are ignored. Drops are only allowed to trigger a cutoff at
+    or after (first data window + grace_steps). The effect can still rise above threshold
+    during the grace period (that just makes the condition eligible); it simply cannot be
+    cut inside it.
     """
     base = {
         'windows': [], 'first_idx': None, 'first_effect': None,
@@ -357,6 +376,10 @@ def _diagnose_sustained_drop(df, cond_dict,
     first_effect = windows[first_idx][1]
     base['first_effect'] = first_effect
 
+    # Grace period: drops within grace_steps windows of the condition's first data window
+    # are ignored, so early instability right after a spec is introduced can't trigger a cutoff.
+    grace_end = first_idx + grace_steps
+
     # Only start looking for a drop once the effect has risen to/above the threshold.
     # A condition may start (or dip) negative before rising above threshold; that early
     # stretch does not disqualify it — we just don't treat the pre-rise below-threshold
@@ -371,6 +394,9 @@ def _diagnose_sustained_drop(df, cond_dict,
             continue
         # effect < threshold: a candidate drop, but only after the effect has been positive.
         if not seen_above:
+            continue
+        # Within the grace period from the condition's start: ignore drops.
+        if i < grace_end:
             continue
         # Check n_steps_below - 1 subsequent windows are also below threshold
         run = windows[i: i + n_steps_below]
@@ -410,7 +436,8 @@ def _diagnose_sustained_drop(df, cond_dict,
 
 def _first_sustained_drop_from_df(df, cond_dict,
                                   window_size, step_size, threshold, n_steps_below,
-                                  min_estim_trials=10, metric=METRIC_PCT_HYPOTHESIZED):
+                                  min_estim_trials=10, metric=METRIC_PCT_HYPOTHESIZED,
+                                  grace_steps=0):
     """
     DataFrame-based core of compute_first_sustained_drop. Kept separate so the
     permutation test can re-run the identical cutoff procedure on relabeled data
@@ -418,7 +445,7 @@ def _first_sustained_drop_from_df(df, cond_dict,
     """
     return _diagnose_sustained_drop(
         df, cond_dict, window_size, step_size, threshold, n_steps_below,
-        min_estim_trials, metric)['max_trial_start']
+        min_estim_trials, metric, grace_steps)['max_trial_start']
 
 
 # ---------------------------------------------------------------------------
@@ -432,14 +459,16 @@ def _first_sustained_drop_from_df(df, cond_dict,
 # ---------------------------------------------------------------------------
 
 def _cutoff_selected_effect(df, cond_dict, window_size, step_size, threshold,
-                            n_steps_below, min_estim_trials, metric=METRIC_PCT_HYPOTHESIZED):
+                            n_steps_below, min_estim_trials, metric=METRIC_PCT_HYPOTHESIZED,
+                            grace_steps=0):
     """
     Test statistic: the condition's effect size AFTER applying the cutoff procedure.
     If the procedure finds a cutoff, the effect is computed over the kept (<= cutoff)
     trials; otherwise over all trials. Returns effect in pp (0.0 if not computable).
     """
     max_ts = _first_sustained_drop_from_df(
-        df, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials, metric)
+        df, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials,
+        metric, grace_steps)
     kept = df if max_ts is None else df[df['trial_start'] <= max_ts]
     eff, _, _ = _effect_and_ns_for_condition(kept, cond_dict, metric)
     return 0.0 if eff is None else eff
@@ -482,7 +511,7 @@ def _simple_label_shuffle_null(on_vals, off_vals, n_permutations, rng):
 def permutation_test_for_condition(session_id, cond_dict,
                                    window_size, step_size, threshold, n_steps_below,
                                    min_estim_trials=10, n_permutations=1000, rng=None,
-                                   metric=METRIC_PCT_HYPOTHESIZED):
+                                   metric=METRIC_PCT_HYPOTHESIZED, grace_steps=0):
     """
     Option-B permutation test for a single condition. Returns a dict with the
     observed cutoff-selected effect, its cutoff, the null distribution and p-values,
@@ -494,7 +523,8 @@ def permutation_test_for_condition(session_id, cond_dict,
     df = _get_all_trials_ordered(session_id)
 
     max_ts = _first_sustained_drop_from_df(
-        df, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials, metric)
+        df, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials,
+        metric, grace_steps)
     kept = df if max_ts is None else df[df['trial_start'] <= max_ts]
     observed, n_on, n_off = _effect_and_ns_for_condition(kept, cond_dict, metric)
     # Too few estim-on trials in the tested (kept) portion → not enough data to test.
@@ -529,7 +559,7 @@ def permutation_test_for_condition(session_id, cond_dict,
             df_work.loc[pool_idx, 'is_hypothesized_choice'] = rng.permutation(pool_choices)
             null[k] = _cutoff_selected_effect(
                 df_work, cond_dict, window_size, step_size, threshold, n_steps_below,
-                min_estim_trials, metric)
+                min_estim_trials, metric, grace_steps)
 
     p_two     = float(np.mean(np.abs(null) >= abs(observed)))
     p_greater = float(np.mean(null >= observed))
@@ -548,7 +578,8 @@ def run_cutoff_permutation_tests(session_id=None, window_size=100, step_size=10,
                                  n_permutations=1000, seed=None,
                                  session_level=True, studentize=True,
                                  exceedance_thresholds=None, plot=True,
-                                 metric=METRIC_PCT_HYP_VS_DELTA, save_results=True):
+                                 metric=METRIC_PCT_HYP_VS_DELTA, save_results=True,
+                                 grace_steps=0):
     """
     Run the permutation test for every condition in one or all sessions and print a
     per-condition summary. Conditions WITH a cutoff use the Option-B null (re-run the
@@ -566,7 +597,8 @@ def run_cutoff_permutation_tests(session_id=None, window_size=100, step_size=10,
     the default threshold sweep.
     """
     rng = np.random.default_rng(seed)
-    algorithm_label = _algorithm_label(window_size, step_size, threshold, n_steps_below, min_estim_trials)
+    algorithm_label = _algorithm_label(window_size, step_size, threshold, n_steps_below,
+                                       min_estim_trials, grace_steps)
     if save_results:
         create_permutation_test_table()
     conn = Connection("allen_data_repository")
@@ -603,7 +635,8 @@ def run_cutoff_permutation_tests(session_id=None, window_size=100, step_size=10,
 
         res = permutation_test_for_condition(
             sid, cond_dict, window_size, step_size, threshold, n_steps_below,
-            min_estim_trials, n_permutations=n_permutations, rng=rng, metric=metric)
+            min_estim_trials, n_permutations=n_permutations, rng=rng, metric=metric,
+            grace_steps=grace_steps)
         if res is None:
             n_skipped += 1
             continue
@@ -803,7 +836,7 @@ def save_cutoff(session_id, conditions_json, algorithm_label, max_trial_start):
 
 def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
                 min_estim_trials=10, session_id=None, force_recompute=False,
-                verbose=False, metric=METRIC_PCT_HYP_VS_DELTA):
+                verbose=False, metric=METRIC_PCT_HYP_VS_DELTA, grace_steps=0):
     """
     Compute and store first-sustained-drop cutoffs for all conditions.
 
@@ -822,10 +855,14 @@ def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
         metric           : which EStimEffects metric to enumerate conditions from
                            (only used to list the conditions; cutoffs themselves are
                            metric-agnostic — they apply via trial_start)
+        grace_steps      : grace period, in windows from the condition's first data
+                           window, during which drops are ignored (no cutoff can be
+                           placed inside it). Included in the algorithm_label when > 0.
     """
     create_cutoffs_table()
 
-    algorithm_label = _algorithm_label(window_size, step_size, threshold, n_steps_below, min_estim_trials)
+    algorithm_label = _algorithm_label(window_size, step_size, threshold, n_steps_below,
+                                       min_estim_trials, grace_steps)
 
     conn = Connection("allen_data_repository")
     # Limit to one metric so cutoff search iterates each (session, conditions) once;
@@ -874,7 +911,8 @@ def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
                 continue
 
         max_trial_start = compute_first_sustained_drop(
-            sid, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials, metric
+            sid, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials,
+            metric, grace_steps
         )
 
         if max_trial_start is None:
@@ -959,13 +997,14 @@ _COND_ABBREVS = {'trial_type': 'type', 'noise_chance': 'noise', 'sample_length':
 
 
 def _plot_condition_diagnosis(ax, df, cond_dict, diag, window_size, threshold,
-                              n_steps_below, metric):
+                              n_steps_below, metric, grace_steps=0):
     """
     Draw one condition's sliding-window series onto `ax`, annotated with everything
     needed to see why the first-sustained-drop procedure did or did not apply a cutoff:
       - blue line/markers for the per-window effect (markers turn red when below threshold)
       - orange dashed threshold line and a gray zero line
       - a green dotted line at the condition's first data window
+      - a gray shaded band over the grace period (where drops are ignored), if grace_steps > 0
       - a shaded band over the n_steps_below run that triggered a detected drop
       - a red dashed line at the applied cutoff window (when status == 'cutoff')
       - small counters on below-threshold points showing the consecutive-below run length
@@ -1008,6 +1047,12 @@ def _plot_condition_diagnosis(ax, df, cond_dict, diag, window_size, threshold,
         fx = xs[diag['first_idx']]
         ax.axvline(x=fx, color='green', linestyle=':', linewidth=1.3, alpha=0.8,
                    label='first data window')
+
+        # Grace period: the span from the first data window over which drops are ignored.
+        if grace_steps:
+            g1 = min(diag['first_idx'] + grace_steps - 1, len(xs) - 1)
+            ax.axvspan(fx, xs[g1], color='gray', alpha=0.12,
+                       label=f'grace ({grace_steps} windows)')
 
     # Shade the run of windows that triggered the sustained-drop test.
     if diag['drop_idx'] is not None:
@@ -1058,7 +1103,7 @@ def _plot_condition_diagnosis(ax, df, cond_dict, diag, window_size, threshold,
 
 def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, threshold,
                          n_steps_below=2, min_estim_trials=10, save_path=None,
-                         metric=METRIC_PCT_HYPOTHESIZED, max_per_fig=9):
+                         metric=METRIC_PCT_HYPOTHESIZED, max_per_fig=9, grace_steps=0):
     """
     Plot the sliding-window analysis for EVERY condition in the session (not just the
     conditions that received a stored cutoff), so you can see exactly why each one meets
@@ -1070,14 +1115,15 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
       - red datapoints for windows below threshold, each labelled with its running
         consecutive-below count (the number compared against n_steps_below)
       - a green marker at the condition's first data window
+      - a gray band over the grace period (drops ignored there), when grace_steps > 0
       - a shaded band over any n_steps_below run that triggered a drop
       - a red dashed cutoff line when a cutoff was applied
       - a status/reason box explaining the outcome
 
     The diagnosis is computed by _diagnose_sustained_drop — the same logic run_cutoffs
     uses — so the plot always matches what was (or wasn't) stored. window_size, step_size,
-    threshold, n_steps_below, min_estim_trials and metric must match the values the cutoffs
-    were computed with. algorithm_label is used only for the figure title.
+    threshold, n_steps_below, min_estim_trials, grace_steps and metric must match the values
+    the cutoffs were computed with. algorithm_label is used only for the figure title.
 
     max_per_fig limits subplots per figure; conditions beyond that spill onto additional
     figures (and additional save files, suffixed _p2, _p3, …).
@@ -1096,7 +1142,7 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
     diagnosed = [
         (cond_dict, _diagnose_sustained_drop(
             df, cond_dict, window_size, step_size, threshold, n_steps_below,
-            min_estim_trials, metric))
+            min_estim_trials, metric, grace_steps))
         for cond_dict in conditions
     ]
 
@@ -1116,7 +1162,8 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
 
         for ax_idx, (cond_dict, diag) in enumerate(page_items):
             _plot_condition_diagnosis(axes_flat[ax_idx], df, cond_dict, diag,
-                                      window_size, threshold, n_steps_below, metric)
+                                      window_size, threshold, n_steps_below, metric,
+                                      grace_steps)
 
         for ax in axes_flat[n:]:
             ax.set_visible(False)
@@ -1146,6 +1193,7 @@ def main():
     step_size        = 5
     threshold        = 0
     n_steps_below    = 2
+    grace_steps      = 0   # windows from a condition's start during which drops are ignored
     min_estim_trials = 10
     n_permutations   = 1000
     session_id       = "260630_0"  # str = one session, list = several, None = all
@@ -1167,6 +1215,7 @@ def main():
             force_recompute=False,
             verbose=True,
             metric=metric,
+            grace_steps=grace_steps,
         )
 
     # Resolve which sessions to plot.
@@ -1184,7 +1233,8 @@ def main():
         plot_session_cutoffs(sid, algorithm_label,
                              window_size=window_size, step_size=step_size,
                              threshold=threshold, n_steps_below=n_steps_below,
-                             min_estim_trials=min_estim_trials, metric=metric)
+                             min_estim_trials=min_estim_trials, metric=metric,
+                             grace_steps=grace_steps)
 
     # Permutation test. Prompt only when a single session was requested;
     # for a list or all sessions, proceed automatically.
@@ -1203,7 +1253,7 @@ def main():
             session_id=sid, window_size=window_size, step_size=step_size,
             threshold=threshold, n_steps_below=n_steps_below,
             min_estim_trials=min_estim_trials, n_permutations=n_permutations,
-            studentize=True, metric=metric,
+            studentize=True, metric=metric, grace_steps=grace_steps,
         )
 
 
