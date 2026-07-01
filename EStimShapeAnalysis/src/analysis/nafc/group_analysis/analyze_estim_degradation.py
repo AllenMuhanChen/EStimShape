@@ -116,10 +116,10 @@ def _param_xlabel(param):
 # these to a sensible grid before grouping/plotting so near-identical conditions
 # collapse onto the same x value. param name -> bin width (nearest multiple).
 _PARAM_BIN_SIZES = {
-    'pulse_rate_hz': 50,        # nearest 50 Hz (±25)
+    'pulse_rate_hz': 25,        # nearest 50 Hz (±25)
     'post_trigger_delay': 1000,  # nearest 1000 µs
     'total_current': 100,
-    'current_per_second': 100
+    'current_per_second': 200
 }
 
 
