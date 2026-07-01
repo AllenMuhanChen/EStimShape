@@ -1,11 +1,14 @@
 package org.xper.allen.nafc.experiment.bias;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 
 import javax.sql.DataSource;
 
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 
 /**
  * Persistence for the NAFC anti-bias controller, in the experiment database. Two tables:
@@ -68,18 +71,20 @@ public class BiasControllerDao {
         return jt.query("SELECT stim_id, variant_id, num_choices, ewma_chose, ewma_chose_when_wrong, " +
                         "ewma_hit_when_correct, n_present, n_distractor, n_correct_present, biased, bias_score " +
                         "FROM bias_controller_state",
-                (rs, rowNum) -> {
-                    BiasKeyState s = new BiasKeyState(rs.getLong("stim_id"), rs.getLong("variant_id"));
-                    s.numChoices = rs.getInt("num_choices");
-                    s.ewmaChose = rs.getDouble("ewma_chose");
-                    s.ewmaChoseWhenWrong = rs.getDouble("ewma_chose_when_wrong");
-                    s.ewmaHitWhenCorrect = rs.getDouble("ewma_hit_when_correct");
-                    s.nPresent = rs.getInt("n_present");
-                    s.nDistractor = rs.getInt("n_distractor");
-                    s.nCorrectPresent = rs.getInt("n_correct_present");
-                    s.biased = rs.getBoolean("biased");
-                    s.biasScore = rs.getDouble("bias_score");
-                    return s;
+                new RowMapper<BiasKeyState>() {
+                    public BiasKeyState mapRow(ResultSet rs, int rowNum) throws SQLException {
+                        BiasKeyState s = new BiasKeyState(rs.getLong("stim_id"), rs.getLong("variant_id"));
+                        s.numChoices = rs.getInt("num_choices");
+                        s.ewmaChose = rs.getDouble("ewma_chose");
+                        s.ewmaChoseWhenWrong = rs.getDouble("ewma_chose_when_wrong");
+                        s.ewmaHitWhenCorrect = rs.getDouble("ewma_hit_when_correct");
+                        s.nPresent = rs.getInt("n_present");
+                        s.nDistractor = rs.getInt("n_distractor");
+                        s.nCorrectPresent = rs.getInt("n_correct_present");
+                        s.biased = rs.getBoolean("biased");
+                        s.biasScore = rs.getDouble("bias_score");
+                        return s;
+                    }
                 });
     }
 

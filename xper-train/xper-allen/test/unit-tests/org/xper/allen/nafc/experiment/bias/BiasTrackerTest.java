@@ -6,7 +6,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.BiFunction;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -21,6 +20,11 @@ public class BiasTrackerTest {
     private static final List<Long> PRESENT = Arrays.asList(V, D1, D2);
     private static final int N = 3;
 
+    /** A choice policy for the synthetic monkey (no lambdas: Java 7 source level). */
+    private interface Policy {
+        long choose(int trial, long correct);
+    }
+
     private BiasTracker tracker;
 
     @Before
@@ -34,52 +38,68 @@ public class BiasTrackerTest {
         return t % N;
     }
 
-    private void run(int count, int startT, BiFunction<Integer, Long, Long> policy) {
+    private void run(int count, int startT, Policy policy) {
         for (int t = startT; t < startT + count; t++) {
             long correct = correctForTrial(t);
-            long chosen = policy.apply(t, correct);
+            long chosen = policy.choose(t, correct);
             tracker.update(VARIANT, PRESENT, correct, chosen, N);
         }
     }
+
+    private static final Policy ALWAYS_V = new Policy() {
+        public long choose(int trial, long correct) {
+            return V;
+        }
+    };
+
+    private static final Policy DISCRIMINATE = new Policy() {
+        public long choose(int trial, long correct) {
+            return correct;
+        }
+    };
 
     @Test
     public void pureExploitGetsFlagged_butNotBeforeMinSamples() {
         // Always pick V. Over the first 9 trials V is a wrong option only ~6 times (< nMin=8),
         // so the min-sample gate must keep it un-flagged even though the wrong-pick rate is high.
-        run(9, 0, (t, correct) -> V);
+        run(9, 0, ALWAYS_V);
         assertFalse("must not flag before nMin wrong-option sightings", tracker.isBiased(V));
 
-        run(15, 9, (t, correct) -> V);
+        run(15, 9, ALWAYS_V);
         assertTrue("pure exploit should be flagged once enough evidence accrues", tracker.isBiased(V));
         assertTrue("bias score should be near 1 for a total lock-on", tracker.biasScore(V) > 0.9);
     }
 
     @Test
     public void discriminatorIsNeverFlagged() {
-        run(40, 0, (t, correct) -> correct);
+        run(40, 0, DISCRIMINATE);
         assertFalse(tracker.isBiased(V));
         assertEquals("no bias for a perfect discriminator", 0.0, tracker.biasScore(V), 1e-9);
     }
 
     @Test
     public void recoversAfterQuittingBias() {
-        run(15, 0, (t, correct) -> V);
+        run(15, 0, ALWAYS_V);
         assertTrue(tracker.isBiased(V));
 
-        run(20, 15, (t, correct) -> correct);
+        run(20, 15, DISCRIMINATE);
         assertFalse("hysteresis + memory should un-flag after discriminating again", tracker.isBiased(V));
     }
 
     @Test
     public void inversionGuardUnflagsWhenAvoidanceCollapsesHitRate() {
         // Establish the bias.
-        run(15, 0, (t, correct) -> V);
+        run(15, 0, ALWAYS_V);
         assertTrue(tracker.isBiased(V));
 
         // Now pick V only when it is WRONG (keeps B high, so sLow decay can NOT un-flag) while
         // refusing V when it is the correct answer (collapses the hit-rate H). Only the inversion
         // guard can release this state.
-        run(40, 15, (t, correct) -> (correct != V) ? V : D1);
+        run(40, 15, new Policy() {
+            public long choose(int trial, long correct) {
+                return (correct != V) ? V : D1;
+            }
+        });
 
         assertFalse("inversion guard should un-flag once avoidance collapses the hit-rate",
                 tracker.isBiased(V));
