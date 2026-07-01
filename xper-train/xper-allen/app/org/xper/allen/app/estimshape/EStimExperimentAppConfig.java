@@ -29,6 +29,14 @@ import org.xper.experiment.DatabaseSystemVariableContainer;
 import org.xper.experiment.SystemVariableContainer;
 import org.xper.util.DbUtil;
 import org.xper.utils.RGBColor;
+import org.xper.allen.nafc.message.ChoiceEventListener;
+import org.xper.classic.MarkStimTrialDrawingController;
+import org.xper.allen.nafc.experiment.bias.BiasControlNoiseController;
+import org.xper.allen.nafc.experiment.bias.BiasControllerDao;
+import org.xper.allen.nafc.experiment.bias.BiasTracker;
+import org.xper.allen.nafc.experiment.bias.BiasTrackerConfig;
+import org.xper.allen.nafc.experiment.bias.LineageResolver;
+import org.xper.allen.nafc.experiment.bias.RewardShaper;
 
 import javax.sql.DataSource;
 import java.beans.PropertyVetoException;
@@ -75,6 +83,59 @@ public class EStimExperimentAppConfig {
     @Bean
     public boolean isScaleByNumChoices() {
         return false;
+    }
+
+    // ---- Anti-bias controller (NAFC stimulus-bias shaping) ----
+    // Overrides ProceduralAppConfig.juiceController() so the estim-experiment app uses the anti-bias
+    // controller. It stays inert unless a trial's StimSpec.data flags it (biasDataEligible /
+    // biasShapingEnabled), so estim and no-estim-control trials behave normally.
+
+    @Bean
+    public ChoiceEventListener juiceController() {
+        BiasControlNoiseController controller = new BiasControlNoiseController();
+        // Base NAFCDynamicNoiseController dependencies (mirrors ProceduralAppConfig.juiceController).
+        controller.setJuice(pngConfig.classicConfig.xperDynamicJuice());
+        controller.setNoiseRewardFunction(proceduralAppConfig.noiseRewardFunction());
+        controller.setRenderer(pngConfig.config.experimentGLRenderer());
+        controller.setDrawingController((MarkStimTrialDrawingController) pngConfig.config.drawingController());
+        controller.setScaleByNumChoices(isScaleByNumChoices());
+        // Anti-bias dependencies. pngConfig.config is the shared NAFCConfig, so punisher()/dataSource()
+        // are the same instances the trial runner uses.
+        controller.setLineageResolver(lineageResolver());
+        controller.setBiasTracker(biasTracker());
+        controller.setBiasControllerDao(biasControllerDao());
+        controller.setRewardShaper(rewardShaper());
+        controller.setPunisher(pngConfig.config.punisher());
+        controller.setExperimentDataSource(pngConfig.config.dataSource());
+        return controller;
+    }
+
+    @Bean
+    public BiasTrackerConfig biasTrackerConfig() {
+        return new BiasTrackerConfig();
+    }
+
+    @Bean
+    public BiasTracker biasTracker() {
+        return new BiasTracker(biasTrackerConfig());
+    }
+
+    @Bean
+    public RewardShaper rewardShaper() {
+        RewardShaper shaper = new RewardShaper();
+        // Keep the reduced-reward interpolation starting exactly at the flag threshold.
+        shaper.setSHigh(biasTrackerConfig().getSHigh());
+        return shaper;
+    }
+
+    @Bean
+    public BiasControllerDao biasControllerDao() {
+        return new BiasControllerDao(pngConfig.config.dataSource());
+    }
+
+    @Bean
+    public LineageResolver lineageResolver() {
+        return new LineageResolver(pngConfig.config.dataSource(), gaDataSource());
     }
 
     @Bean

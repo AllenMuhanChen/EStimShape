@@ -121,20 +121,30 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
     }
 
     private void deliverReward(long timestamp) {
-        System.err.println("Reward Multiplier: " + rewardMultiplier);
+        double pulses = applyRewardShaping(rewardMultiplier);
+        System.err.println("Reward Multiplier: " + pulses);
 
-        for (int i = 0; i< Math.floor(rewardMultiplier); i++){
+        for (int i = 0; i< Math.floor(pulses); i++){
             juice.deliver();
             System.out.println("Multiplier Juice delivered @ " + new Timestamp(timestamp /1000).toString());
         }
-        //Remainder Juice if rewardMultiplier is not an integer
-        double remainder = rewardMultiplier % 1;
+        //Remainder Juice if pulses is not an integer
+        double remainder = pulses % 1;
         if (remainder != 0){
             if (Math.random() < remainder){
                 System.out.println("Multiplier Juice delivered @ " + new Timestamp(timestamp /1000).toString());
                 juice.deliver();
             }
         }
+    }
+
+    /**
+     * Hook for subclasses to scale the number of juice pulses actually delivered on a correct trial
+     * (e.g. the anti-bias controller reducing reward for a biased choice or boosting a bias-breaking
+     * one). Default returns the base pulse count unchanged, so behaviour here is identical.
+     */
+    protected double applyRewardShaping(double basePulses) {
+        return basePulses;
     }
 
     @Override
