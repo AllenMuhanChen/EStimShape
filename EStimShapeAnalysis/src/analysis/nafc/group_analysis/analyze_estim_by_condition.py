@@ -119,7 +119,7 @@ def _get_all_session_ids():
     return [row[0] for row in repo_conn.fetch_all()]
 
 
-_DEFAULT_BEHAVIORAL_CONDITIONS = ['trial_type', 'noise_chance', 'sample_length',
+_DEFAULT_BEHAVIORAL_CONDITIONS = ['trial_type', 'noise_chance', 'coherence', 'sample_length',
                                   'num_choices', 'num_procedural_distractors', 'num_rand_distractors']
 # Key estim conditions by estim_spec_id so each spec is its own condition, matching
 # analyze_estim_by_estim_id. Grouping on a parameter subset (e.g. amplitude/shape/
@@ -164,12 +164,16 @@ def run_pipeline(session_ids=None, algorithm_label='None', force_recompute=True,
         data = read_trial_data_from_repository(session_id)
         print(f"\n=== {session_id}: {len(data)} trials ===")
 
+        # Only condition on columns actually present (e.g. 'coherence' is absent on repos compiled
+        # before it was added), so a missing column never breaks the groupby.
+        session_behavioral_conditions = [c for c in behavioral_conditions if c in data.columns]
+
         trial_start_cutoffs = _fetch_trial_start_cutoffs(session_id, algorithm_label)
 
         if show_sliding_window:
             sliding_window_analysis(
                 data,
-                behavioral_conditions,
+                session_behavioral_conditions,
                 estim_conditions,
                 window_size=window_size,
                 step_size=step_size,
@@ -178,7 +182,7 @@ def run_pipeline(session_ids=None, algorithm_label='None', force_recompute=True,
             )
 
         condition_groups_data = split_data_by_conditions(
-            data, behavioral_conditions, estim_conditions,
+            data, session_behavioral_conditions, estim_conditions,
             trial_start_cutoffs=trial_start_cutoffs,
         )
         results = calculate_estim_effects(condition_groups_data)
