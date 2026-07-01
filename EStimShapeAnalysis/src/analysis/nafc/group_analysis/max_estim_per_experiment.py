@@ -127,8 +127,12 @@ def _build_max_stat_for_session(session_id, algorithm_label='none', metric=METRI
     # Best = largest positive (studentized) effect (directional: stim should increase choice)
     best_idx = int(np.argmax(obs_list))
 
-    # Element-wise max across all conditions for each permutation iteration (signed, no abs)
-    null_matrix   = np.stack(null_list, axis=0)  # (n_conds, n_perms)
+    # Element-wise max across all conditions for each permutation iteration (signed, no abs).
+    # Conditions may have been permuted with different n_permutations (rows written at
+    # different times); align them to the common minimum before stacking, matching the
+    # exceedance-count path.
+    min_perms     = min(len(nl) for nl in null_list)
+    null_matrix   = np.stack([np.asarray(nl)[:min_perms] for nl in null_list], axis=0)  # (n_conds, n_perms)
     max_stat_null = null_matrix.max(axis=0)       # (n_perms,)
 
     observed_signed = float(obs_list[best_idx])
@@ -323,7 +327,14 @@ def compute_population_stats(rows, weighting=None, value_label="%"):
     w_norm = weighting.normalized_weights(rows)                          # sums to 1
     A_obs  = float(np.dot(w_norm, observed))
 
-    null_matrix = np.stack([d['max_stat_null'] for d in rows], axis=0)  # (n_sessions, n_perms)
+    # Sessions may have been permuted with different n_permutations; align them to the
+    # common minimum before stacking (the population null combines iterations by index).
+    null_lengths = [len(d['max_stat_null']) for d in rows]
+    min_perms    = min(null_lengths)
+    if len(set(null_lengths)) > 1:
+        print(f"  NOTE: sessions have different permutation counts {sorted(set(null_lengths))}; "
+              f"truncating all to {min_perms} for the population null.")
+    null_matrix = np.stack([np.asarray(d['max_stat_null'])[:min_perms] for d in rows], axis=0)  # (n_sessions, n_perms)
     pop_null    = (null_matrix * w_norm[:, None]).sum(axis=0)            # (n_perms,)
     p_perm      = float(np.mean(pop_null >= A_obs))
     null_95     = float(np.percentile(pop_null, 95))
