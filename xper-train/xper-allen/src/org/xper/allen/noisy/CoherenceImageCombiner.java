@@ -73,41 +73,69 @@ public class CoherenceImageCombiner {
      * i.e. the 0% coherence anchor for shapes of unequal size.
      *
      * <p>Because {@link #combine} draws each pixel whole, the expected visible foreground area of a
-     * shape is {@code proportionDrawn * itsForegroundCoverage}. Setting
-     * {@code proportionFirst = coverageSecond / (coverageFirst + coverageSecond)} makes the two
-     * expected visible areas equal, so a shape that happens to occupy many more pixels is no longer
-     * over-represented at 0% coherence.
+     * shape is {@code proportionDrawn * itsForegroundPixelCount}. Setting
+     * {@code proportionFirst = areaSecond / (areaFirst + areaSecond)} makes the two expected visible
+     * areas equal, so a shape that happens to occupy many more pixels is no longer over-represented
+     * at 0% coherence.
      *
-     * <p>"Coverage" is the summed alpha (see {@link #foregroundCoverage}), which measures visible ink
-     * once the transparent PNG is composited over the background and needs no comp map. When both
-     * shapes are fully transparent the result falls back to 0.5.
+     * <p>Foreground is counted as the pixels that differ from the background color, and the
+     * background color is taken to be the image's most common pixel value (see
+     * {@link #foregroundPixelCount}) — no comp map or alpha channel is needed, and it is robust to
+     * whatever flat background the PNG was rendered on. When both images are a single flat color the
+     * result falls back to 0.5.
      */
     public static double neutralProportionFirst(BufferedImage first, BufferedImage second) {
-        double coverageFirst = foregroundCoverage(first);
-        double coverageSecond = foregroundCoverage(second);
-        double total = coverageFirst + coverageSecond;
-        if (total <= 0.0) {
+        long areaFirst = foregroundPixelCount(first);
+        long areaSecond = foregroundPixelCount(second);
+        long total = areaFirst + areaSecond;
+        if (total <= 0L) {
             return 0.5;
         }
-        return coverageSecond / total;
+        return areaSecond / (double) total;
     }
 
     /**
-     * Visible foreground "area" of an RGBA image, measured as summed alpha coverage
-     * ({@code sum over pixels of alpha/255}). This counts a fully opaque pixel as 1 and a fully
-     * transparent (background) pixel as 0, with anti-aliased edge pixels contributing their partial
-     * alpha, so it reflects the ink actually seen once the image is composited over the background.
+     * Number of foreground pixels in an image: every pixel whose value differs from the background
+     * color, where the background is taken to be the image's <i>most common</i> pixel value.
+     *
+     * <p>The shape is rendered on a flat background that fills the bulk of the image, so the modal
+     * color is the background regardless of what color it happens to be. Anti-aliased edge pixels
+     * differ from that background and so count as foreground; this slightly inflates the count at the
+     * boundary but does so symmetrically for both shapes, which is all the area ratio depends on.
      */
-    public static double foregroundCoverage(BufferedImage img) {
+    public static long foregroundPixelCount(BufferedImage img) {
+        int background = backgroundColor(img);
         int width = img.getWidth();
         int height = img.getHeight();
-        long alphaSum = 0L;
+        long foreground = 0L;
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                alphaSum += (img.getRGB(x, y) >>> 24) & 0xFF;
+                if (img.getRGB(x, y) != background) {
+                    foreground++;
+                }
             }
         }
-        return alphaSum / 255.0;
+        return foreground;
+    }
+
+    /** The most common pixel value in the image, taken to be its flat background color. */
+    public static int backgroundColor(BufferedImage img) {
+        int width = img.getWidth();
+        int height = img.getHeight();
+        java.util.Map<Integer, Integer> counts = new java.util.HashMap<>();
+        int background = img.getRGB(0, 0);
+        int bestCount = 0;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int argb = img.getRGB(x, y);
+                int count = counts.merge(argb, 1, Integer::sum);
+                if (count > bestCount) {
+                    bestCount = count;
+                    background = argb;
+                }
+            }
+        }
+        return background;
     }
 
     /**
