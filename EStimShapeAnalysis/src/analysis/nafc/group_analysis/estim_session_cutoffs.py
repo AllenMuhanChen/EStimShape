@@ -1101,6 +1101,26 @@ def _plot_condition_diagnosis(ax, df, cond_dict, diag, window_size, threshold,
     xs      = _window_x_positions(df, windows, window_size, cond_dict, metric, x_units)
     effects = [eff for _, eff in windows]
 
+    label_parts = [f"{_COND_ABBREVS.get(k, k)}={v}" for k, v in cond_dict.items() if v is not None]
+    ax.set_title(' | '.join(label_parts), fontsize=7,
+                 color=_STATUS_COLORS.get(status, 'black'))
+
+    # No plottable windows (e.g. fewer than window_size estim trials for this condition in
+    # estim mode): say so plainly instead of drawing an empty axes.
+    if not any(e is not None for e in effects):
+        n_on_total = _count_estim_on_for_condition(df, cond_dict, metric)
+        ax.text(0.5, 0.5,
+                f"{status.upper()}\n{diag['reason']}\n\n"
+                f"(this condition has {n_on_total} estim-on trials)",
+                transform=ax.transAxes, ha='center', va='center', fontsize=8,
+                color='firebrick',
+                bbox=dict(boxstyle='round', facecolor='white', alpha=0.85,
+                          edgecolor='firebrick'))
+        ax.set_xlabel('Estim trials for this condition (cumulative, window center)'
+                      if x_units == X_UNITS_ESTIM else 'Trial index (window center)')
+        ax.set_ylabel('Effect size (pp)')
+        return
+
     ax.axhline(y=threshold, color='orange', linestyle='--', linewidth=1.5,
                label=f'threshold ({threshold}pp)')
     ax.axhline(y=0, color='gray', linestyle=':', linewidth=1, alpha=0.5)
@@ -1177,9 +1197,6 @@ def _plot_condition_diagnosis(ax, df, cond_dict, diag, window_size, threshold,
                   edgecolor=_STATUS_COLORS.get(status, 'black')),
     )
 
-    label_parts = [f"{_COND_ABBREVS.get(k, k)}={v}" for k, v in cond_dict.items() if v is not None]
-    ax.set_title(' | '.join(label_parts), fontsize=7,
-                 color=_STATUS_COLORS.get(status, 'black'))
     ax.set_xlabel('Estim trials for this condition (cumulative, window center)'
                   if x_units == X_UNITS_ESTIM else 'Trial index (window center)')
     ax.set_ylabel('Effect size (pp)')
@@ -1238,9 +1255,20 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
         for cond_dict in conditions
     ]
 
-    n_cut = sum(1 for _, d in diagnosed if d['status'] == 'cutoff')
+    n_cut  = sum(1 for _, d in diagnosed if d['status'] == 'cutoff')
+    n_none = sum(1 for _, d in diagnosed if not any(e is not None for _, e in d['windows']))
     print(f"{session_id}: plotting {len(diagnosed)} conditions "
           f"({n_cut} with a cutoff, {len(diagnosed) - n_cut} without)")
+    if n_none:
+        # In estim mode a window needs window_size of THIS condition's estim-on trials;
+        # if most conditions have fewer, lower window_size (it is counted in estim trials).
+        n_on_counts = sorted(_count_estim_on_for_condition(df, c, metric) for c, _ in diagnosed)
+        print(f"  {n_none}/{len(diagnosed)} conditions have no window with data "
+              f"(fewer than window_size={window_size} "
+              f"{'estim-on' if x_units == X_UNITS_ESTIM else 'total'} trials). "
+              f"per-condition estim-on counts: min={n_on_counts[0]}, "
+              f"median={n_on_counts[len(n_on_counts) // 2]}, max={n_on_counts[-1]}. "
+              f"Lower window_size to see them.")
 
     figures = []
     n_pages = (len(diagnosed) + max_per_fig - 1) // max_per_fig
@@ -1281,8 +1309,6 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
 
 
 def main():
-    window_size      = 50
-    step_size        = 5
     threshold        = 0
     n_steps_below    = 2
     grace_steps      = 0   # windows from a condition's start during which drops are ignored
@@ -1291,6 +1317,16 @@ def main():
     session_id       = "260630_0"  # str = one session, list = several, None = all
     metric           = METRIC_PCT_HYP_VS_DELTA  # or METRIC_PCT_HYPOTHESIZED
     x_units          = X_UNITS_ESTIM  # X_UNITS_TOTAL (total trials) or X_UNITS_ESTIM (estim trials)
+
+    # window_size / step_size are counted in whatever x_units is. In estim mode a window
+    # holds this many of the CONDITION's estim-on trials, so it must be well under the
+    # per-condition estim count or the condition yields no windows (a blank subplot).
+    if x_units == X_UNITS_ESTIM:
+        window_size = 20   # estim-on trials per window — tune to your per-condition counts
+        step_size   = 2
+    else:
+        window_size = 50   # total trials per window
+        step_size   = 5
 
     # Normalize the selection to a list of run_cutoffs arguments (None means "all").
     if session_id is None or isinstance(session_id, str):
