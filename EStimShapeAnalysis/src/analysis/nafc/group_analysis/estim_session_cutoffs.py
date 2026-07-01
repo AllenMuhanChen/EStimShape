@@ -996,8 +996,39 @@ _COND_ABBREVS = {'trial_type': 'type', 'noise_chance': 'noise', 'sample_length':
                  'enable_charge_recovery': 'CR'}
 
 
+X_UNITS_TOTAL = 'total_trials'
+X_UNITS_ESTIM = 'estim_trials'
+
+
+def _window_x_positions(df, windows, window_size, cond_dict, metric, x_units):
+    """
+    X coordinate for each sliding window.
+
+    The windows always slide over the FULL trial sequence (that is what the cutoff
+    detection and effect computation require); only the axis on which we place them
+    changes:
+      'total_trials' : window-center index in the full trial sequence (default).
+      'estim_trials' : cumulative number of estim-on trials matching this condition up to
+                       the window center. This is a variable-width axis — a fixed step in
+                       total trials advances it by a variable number of estim trials (and
+                       not at all across stretches with no estim-on trials for the
+                       condition) — but it reads in units of delivered estim trials, which
+                       is often the more meaningful scale for adaptation.
+    """
+    centers = [end - window_size // 2 for end, _ in windows]
+    if x_units == X_UNITS_TOTAL:
+        return centers
+    if x_units == X_UNITS_ESTIM:
+        on_idx, _ = _condition_on_off_index(df, cond_dict, metric)
+        on_positions = np.sort(np.asarray(list(on_idx), dtype=int))
+        # Cumulative count of this condition's estim-on trials at or before each center.
+        return [int(np.searchsorted(on_positions, c, side='right')) for c in centers]
+    raise ValueError(f"unknown x_units={x_units!r} "
+                     f"(expected {X_UNITS_TOTAL!r} or {X_UNITS_ESTIM!r})")
+
+
 def _plot_condition_diagnosis(ax, df, cond_dict, diag, window_size, threshold,
-                              n_steps_below, metric, grace_steps=0):
+                              n_steps_below, metric, grace_steps=0, x_units=X_UNITS_TOTAL):
     """
     Draw one condition's sliding-window series onto `ax`, annotated with everything
     needed to see why the first-sustained-drop procedure did or did not apply a cutoff:
@@ -1009,11 +1040,15 @@ def _plot_condition_diagnosis(ax, df, cond_dict, diag, window_size, threshold,
       - a red dashed line at the applied cutoff window (when status == 'cutoff')
       - small counters on below-threshold points showing the consecutive-below run length
       - a status/reason box and full-vs-after effect sizes
+
+    x_units selects the x-axis: 'total_trials' (window-center index over all trials) or
+    'estim_trials' (cumulative estim-on trials for this condition). All markers are placed
+    by window index, so they follow whichever axis is chosen.
     """
     windows = diag['windows']
     status  = diag['status']
 
-    xs      = [end - window_size // 2 for end, _ in windows]
+    xs      = _window_x_positions(df, windows, window_size, cond_dict, metric, x_units)
     effects = [eff for _, eff in windows]
 
     ax.axhline(y=threshold, color='orange', linestyle='--', linewidth=1.5,
@@ -1095,7 +1130,8 @@ def _plot_condition_diagnosis(ax, df, cond_dict, diag, window_size, threshold,
     label_parts = [f"{_COND_ABBREVS.get(k, k)}={v}" for k, v in cond_dict.items() if v is not None]
     ax.set_title(' | '.join(label_parts), fontsize=7,
                  color=_STATUS_COLORS.get(status, 'black'))
-    ax.set_xlabel('Trial index (window center)')
+    ax.set_xlabel('Estim trials for this condition (cumulative, window center)'
+                  if x_units == X_UNITS_ESTIM else 'Trial index (window center)')
     ax.set_ylabel('Effect size (pp)')
     ax.legend(fontsize=5.5, loc='upper left')
     ax.grid(True, alpha=0.3)
@@ -1103,14 +1139,15 @@ def _plot_condition_diagnosis(ax, df, cond_dict, diag, window_size, threshold,
 
 def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, threshold,
                          n_steps_below=2, min_estim_trials=10, save_path=None,
-                         metric=METRIC_PCT_HYPOTHESIZED, max_per_fig=9, grace_steps=0):
+                         metric=METRIC_PCT_HYPOTHESIZED, max_per_fig=9, grace_steps=0,
+                         x_units=X_UNITS_TOTAL):
     """
     Plot the sliding-window analysis for EVERY condition in the session (not just the
     conditions that received a stored cutoff), so you can see exactly why each one meets
     or fails the first-sustained-drop cutoff.
 
     For each condition the subplot shows:
-      - the per-window effect series (x-axis = window-center trial index)
+      - the per-window effect series
       - the orange threshold line and gray zero line
       - red datapoints for windows below threshold, each labelled with its running
         consecutive-below count (the number compared against n_steps_below)
@@ -1124,6 +1161,11 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
     uses — so the plot always matches what was (or wasn't) stored. window_size, step_size,
     threshold, n_steps_below, min_estim_trials, grace_steps and metric must match the values
     the cutoffs were computed with. algorithm_label is used only for the figure title.
+
+    x_units selects the x-axis units: 'total_trials' (window-center index over all trials,
+    the default) or 'estim_trials' (cumulative estim-on trials for the condition, a
+    variable-width axis in units of delivered estim trials). The windowing and cutoff are
+    identical either way — only the horizontal placement changes.
 
     max_per_fig limits subplots per figure; conditions beyond that spill onto additional
     figures (and additional save files, suffixed _p2, _p3, …).
@@ -1163,7 +1205,7 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
         for ax_idx, (cond_dict, diag) in enumerate(page_items):
             _plot_condition_diagnosis(axes_flat[ax_idx], df, cond_dict, diag,
                                       window_size, threshold, n_steps_below, metric,
-                                      grace_steps)
+                                      grace_steps, x_units)
 
         for ax in axes_flat[n:]:
             ax.set_visible(False)
@@ -1198,6 +1240,7 @@ def main():
     n_permutations   = 1000
     session_id       = "260630_0"  # str = one session, list = several, None = all
     metric           = METRIC_PCT_HYP_VS_DELTA  # or METRIC_PCT_HYPOTHESIZED
+    x_units          = X_UNITS_ESTIM  # X_UNITS_TOTAL (total trials) or X_UNITS_ESTIM (estim trials)
 
     # Normalize the selection to a list of run_cutoffs arguments (None means "all").
     if session_id is None or isinstance(session_id, str):
@@ -1234,7 +1277,7 @@ def main():
                              window_size=window_size, step_size=step_size,
                              threshold=threshold, n_steps_below=n_steps_below,
                              min_estim_trials=min_estim_trials, metric=metric,
-                             grace_steps=grace_steps)
+                             grace_steps=grace_steps, x_units=x_units)
 
     # Permutation test. Prompt only when a single session was requested;
     # for a list or all sessions, proceed automatically.
