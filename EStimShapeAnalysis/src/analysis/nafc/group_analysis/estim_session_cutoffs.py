@@ -1,10 +1,13 @@
 """
 Compute and store per-condition adaptation cutoffs for EStim sessions.
 
-Conservative policy:
-  - Only apply a cutoff to conditions that were initially positive (first-window effect > 0).
-  - If a condition was always negative, do nothing — cutting it would be arbitrary.
-  - If a condition was initially positive but never degraded below the threshold, do nothing
+Policy:
+  - Apply a cutoff the first time the effect, having risen to/above the threshold at some
+    point, then drops below it for n_steps_below consecutive windows. An early negative
+    stretch before the effect rises above threshold does NOT disqualify the condition.
+  - If a condition never reached the threshold, do nothing — there is no positive period a
+    cutoff could protect.
+  - If a condition rose above the threshold but never degraded below it, do nothing
     (no evidence of adaptation).
   - Only insert a row when a real cutoff is warranted.
 
@@ -277,16 +280,15 @@ def compute_first_sustained_drop(session_id, cond_dict,
                                   min_estim_trials=10, metric=METRIC_PCT_HYPOTHESIZED):
     """
     Slides a window over ALL session trials (ordered by trial_start) and finds the
-    FIRST time the effect drops below threshold and stays there for n_steps_below
-    consecutive windows.  The cutoff is the window immediately before that drop.
+    FIRST time the effect, having risen to/above threshold, then drops below it and
+    stays there for n_steps_below consecutive windows. The cutoff is the window
+    immediately before that drop.
 
-    Conservative rules:
-      - First window WITH DATA has effect <= 0  → condition started negative, skip.
-        (Estim specs are introduced progressively, so the first window that
-        actually contains trials for this condition is rarely window 0.)
-      - Effect never drops below threshold → no adaptation, skip.
-      - First drop is the condition's first data window → no positive period to
-        keep, skip.
+    Rules:
+      - Effect never rises to/above threshold → no positive period to protect, skip.
+        (An early negative stretch before the effect rises above threshold does NOT
+        disqualify the condition.)
+      - Effect rises above threshold but never drops below it → no adaptation, skip.
 
     Returns: trial_start of the last trial in the last good window, or None.
     """
@@ -314,15 +316,21 @@ def _diagnose_sustained_drop(df, cond_dict,
       max_trial_start : trial_start of the last kept trial when a cutoff applies (or None)
       n_on_kept       : estim-on trial count in the kept portion at the detected drop (or None)
       status          : one of
-                          'too_few_trials_total'  – session has fewer than window_size trials
-                          'no_data'               – no window ever had data for this condition
-                          'started_negative'      – first data window effect <= 0
-                          'no_drop'               – never dropped below threshold for
-                                                    n_steps_below consecutive windows
-                          'drop_at_first_window'  – drop found but no good window before it
-                          'cutoff_too_few_trials' – drop found but < min_estim_trials kept
-                          'cutoff'                – a real cutoff was applied
+                          'too_few_trials_total'   – session has fewer than window_size trials
+                          'no_data'                – no window ever had data for this condition
+                          'never_above_threshold'  – effect never reached the threshold, so there
+                                                     is no positive period a cutoff could protect
+                          'no_drop'                – rose above threshold but never dropped below
+                                                     it for n_steps_below consecutive windows
+                          'drop_at_first_window'   – drop found but no good window before it
+                          'cutoff_too_few_trials'  – drop found but < min_estim_trials kept
+                          'cutoff'                 – a real cutoff was applied
       reason          : human-readable one-line explanation of `status`
+
+    Policy: a cutoff is applied the FIRST time the effect, having risen to/above the
+    threshold at some earlier window, then drops below it for n_steps_below consecutive
+    windows. The effect may have been negative before rising above threshold — that early
+    negative stretch does not disqualify the condition.
     """
     base = {
         'windows': [], 'first_idx': None, 'first_effect': None,
@@ -349,14 +357,20 @@ def _diagnose_sustained_drop(df, cond_dict,
     first_effect = windows[first_idx][1]
     base['first_effect'] = first_effect
 
-    if first_effect <= 0:
-        return {**base, 'status': 'started_negative',
-                'reason': f'first data window effect {first_effect:+.1f}pp <= 0 '
-                          f'(conservative policy: no cutoff)'}
-
+    # Only start looking for a drop once the effect has risen to/above the threshold.
+    # A condition may start (or dip) negative before rising above threshold; that early
+    # stretch does not disqualify it — we just don't treat the pre-rise below-threshold
+    # windows as a "drop".
+    seen_above = False
     for i in range(first_idx, len(windows)):
         effect = windows[i][1]
-        if effect is None or effect >= threshold:
+        if effect is None:
+            continue
+        if effect >= threshold:
+            seen_above = True
+            continue
+        # effect < threshold: a candidate drop, but only after the effect has been positive.
+        if not seen_above:
             continue
         # Check n_steps_below - 1 subsequent windows are also below threshold
         run = windows[i: i + n_steps_below]
@@ -385,8 +399,13 @@ def _diagnose_sustained_drop(df, cond_dict,
                     'reason': f'sustained drop below {threshold}pp for {n_steps_below} windows; '
                               f'cutoff @ trial_start={base["max_trial_start"]}'}
 
+    if not seen_above:
+        return {**base, 'status': 'never_above_threshold',
+                'reason': f'effect never rose to/above {threshold}pp '
+                          f'(no positive period a cutoff could protect)'}
     return {**base, 'status': 'no_drop',
-            'reason': f'never dropped below {threshold}pp for {n_steps_below} consecutive windows'}
+            'reason': f'rose above {threshold}pp but never dropped below it '
+                      f'for {n_steps_below} consecutive windows'}
 
 
 def _first_sustained_drop_from_df(df, cond_dict,
@@ -926,7 +945,7 @@ def get_session_cutoffs(session_id, algorithm_label):
 _STATUS_COLORS = {
     'cutoff': 'darkgreen',
     'no_drop': 'dimgray',
-    'started_negative': 'firebrick',
+    'never_above_threshold': 'firebrick',
     'cutoff_too_few_trials': 'darkorange',
     'drop_at_first_window': 'firebrick',
     'no_data': 'silver',
