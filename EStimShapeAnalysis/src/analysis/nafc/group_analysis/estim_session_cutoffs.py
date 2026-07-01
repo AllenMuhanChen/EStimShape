@@ -295,31 +295,64 @@ def compute_first_sustained_drop(session_id, cond_dict,
         df, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials, metric)
 
 
-def _first_sustained_drop_from_df(df, cond_dict,
-                                  window_size, step_size, threshold, n_steps_below,
-                                  min_estim_trials=10, metric=METRIC_PCT_HYPOTHESIZED):
+def _diagnose_sustained_drop(df, cond_dict,
+                             window_size, step_size, threshold, n_steps_below,
+                             min_estim_trials=10, metric=METRIC_PCT_HYPOTHESIZED):
     """
-    DataFrame-based core of compute_first_sustained_drop. Kept separate so the
-    permutation test can re-run the identical cutoff procedure on relabeled data
-    without re-querying the database.
+    Full diagnosis of the first-sustained-drop procedure for a single condition.
+
+    This is the single source of truth for the cutoff logic. `_first_sustained_drop_from_df`
+    is a thin wrapper that returns only ``max_trial_start``; the plotting code uses the rest
+    of the diagnosis to show EXACTLY why a condition does or does not receive a cutoff.
+
+    Returns a dict:
+      windows         : list of (window_end_trial_idx, effect_pct_or_None), one per window
+      first_idx       : index into `windows` of the first window WITH DATA (or None)
+      first_effect    : effect (pp) at first_idx (or None)
+      drop_idx        : index into `windows` where the sustained drop starts (or None)
+      cutoff_idx      : index into `windows` of the last good window kept before the drop (or None)
+      max_trial_start : trial_start of the last kept trial when a cutoff applies (or None)
+      n_on_kept       : estim-on trial count in the kept portion at the detected drop (or None)
+      status          : one of
+                          'too_few_trials_total'  – session has fewer than window_size trials
+                          'no_data'               – no window ever had data for this condition
+                          'started_negative'      – first data window effect <= 0
+                          'no_drop'               – never dropped below threshold for
+                                                    n_steps_below consecutive windows
+                          'drop_at_first_window'  – drop found but no good window before it
+                          'cutoff_too_few_trials' – drop found but < min_estim_trials kept
+                          'cutoff'                – a real cutoff was applied
+      reason          : human-readable one-line explanation of `status`
     """
+    base = {
+        'windows': [], 'first_idx': None, 'first_effect': None,
+        'drop_idx': None, 'cutoff_idx': None, 'max_trial_start': None, 'n_on_kept': None,
+    }
+
     if len(df) < window_size:
-        return None
+        return {**base, 'status': 'too_few_trials_total',
+                'reason': f'session has {len(df)} trials (< window_size {window_size})'}
 
     windows = _sliding_window_effects(df, window_size, step_size, cond_dict, metric)
-
+    base['windows'] = windows
     if not windows:
-        return None
+        return {**base, 'status': 'too_few_trials_total',
+                'reason': 'no sliding windows fit over the session'}
 
     # The condition's "first window" is the first one that actually has data for
     # it, not the literal window 0 (which usually predates this spec).
     first_idx = next((i for i, (_, e) in enumerate(windows) if e is not None), None)
     if first_idx is None:
-        return None  # condition never had a computable window
-
+        return {**base, 'status': 'no_data',
+                'reason': 'condition never had a computable window (no matching trials)'}
+    base['first_idx'] = first_idx
     first_effect = windows[first_idx][1]
+    base['first_effect'] = first_effect
+
     if first_effect <= 0:
-        return None
+        return {**base, 'status': 'started_negative',
+                'reason': f'first data window effect {first_effect:+.1f}pp <= 0 '
+                          f'(conservative policy: no cutoff)'}
 
     for i in range(first_idx, len(windows)):
         effect = windows[i][1]
@@ -330,18 +363,43 @@ def _first_sustained_drop_from_df(df, cond_dict,
         if len(run) < n_steps_below:
             break  # not enough windows left to confirm sustained drop
         if all(e is None or e < threshold for _, e in run):
+            base['drop_idx'] = i
             # The window to keep is the last one BEFORE the drop that had data.
             prev_idx = next((j for j in range(i - 1, first_idx - 1, -1)
                              if windows[j][1] is not None), None)
             if prev_idx is None:
-                return None  # no good window to keep before the drop
+                return {**base, 'status': 'drop_at_first_window',
+                        'reason': 'sustained drop begins at the first data window '
+                                  '(no positive period to keep)'}
+            base['cutoff_idx'] = prev_idx
             end_trial_idx = windows[prev_idx][0]
             kept_df = df.iloc[:end_trial_idx + 1]
-            if _count_estim_on_for_condition(kept_df, cond_dict, metric) < min_estim_trials:
-                return None  # too few estim trials before the cutoff
-            return int(df.iloc[end_trial_idx]['trial_start'])
+            n_on_kept = _count_estim_on_for_condition(kept_df, cond_dict, metric)
+            base['n_on_kept'] = n_on_kept
+            if n_on_kept < min_estim_trials:
+                return {**base, 'status': 'cutoff_too_few_trials',
+                        'reason': f'sustained drop found, but only {n_on_kept} estim-on trials '
+                                  f'before it (< min_estim_trials {min_estim_trials})'}
+            base['max_trial_start'] = int(df.iloc[end_trial_idx]['trial_start'])
+            return {**base, 'status': 'cutoff',
+                    'reason': f'sustained drop below {threshold}pp for {n_steps_below} windows; '
+                              f'cutoff @ trial_start={base["max_trial_start"]}'}
 
-    return None  # never had a sustained drop
+    return {**base, 'status': 'no_drop',
+            'reason': f'never dropped below {threshold}pp for {n_steps_below} consecutive windows'}
+
+
+def _first_sustained_drop_from_df(df, cond_dict,
+                                  window_size, step_size, threshold, n_steps_below,
+                                  min_estim_trials=10, metric=METRIC_PCT_HYPOTHESIZED):
+    """
+    DataFrame-based core of compute_first_sustained_drop. Kept separate so the
+    permutation test can re-run the identical cutoff procedure on relabeled data
+    without re-querying the database. Thin wrapper over `_diagnose_sustained_drop`.
+    """
+    return _diagnose_sustained_drop(
+        df, cond_dict, window_size, step_size, threshold, n_steps_below,
+        min_estim_trials, metric)['max_trial_start']
 
 
 # ---------------------------------------------------------------------------
@@ -828,6 +886,32 @@ def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
     return algorithm_label
 
 
+def get_session_conditions(session_id, metric=METRIC_PCT_HYP_VS_DELTA):
+    """
+    Return the list of every condition (as parsed cond_dict) for a session, deduplicated
+    by normalized key — the same enumeration run_cutoffs iterates over. Unlike
+    get_session_cutoffs (which only returns conditions that received a stored cutoff),
+    this returns ALL conditions so plotting can show why each one passes or fails.
+    """
+    conn = Connection("allen_data_repository")
+    conn.execute(
+        "SELECT conditions FROM EStimEffects WHERE session_id = %s AND metric = %s",
+        (session_id, metric))
+    conditions = []
+    seen_keys = set()
+    for (conditions_json,) in conn.fetch_all():
+        try:
+            cond_dict = _parse_conditions_json(conditions_json)
+        except Exception:
+            continue
+        key = _normalize_cond_key(cond_dict)
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        conditions.append(cond_dict)
+    return conditions
+
+
 def get_session_cutoffs(session_id, algorithm_label):
     """Return {conditions_json: max_trial_start} for this session+algorithm_label."""
     conn = Connection("allen_data_repository")
@@ -838,87 +922,204 @@ def get_session_cutoffs(session_id, algorithm_label):
     return {row[0]: row[1] for row in conn.fetch_all()}
 
 
-def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, threshold,
-                         save_path=None, metric=METRIC_PCT_HYPOTHESIZED):
+# Title color per diagnosis status, so a glance shows which conditions got cut and why not.
+_STATUS_COLORS = {
+    'cutoff': 'darkgreen',
+    'no_drop': 'dimgray',
+    'started_negative': 'firebrick',
+    'cutoff_too_few_trials': 'darkorange',
+    'drop_at_first_window': 'firebrick',
+    'no_data': 'silver',
+    'too_few_trials_total': 'silver',
+}
+
+_COND_ABBREVS = {'trial_type': 'type', 'noise_chance': 'noise', 'sample_length': 'smpl',
+                 'num_channels': 'ch', 'polarity': 'pol', 'shape': 'shp',
+                 'a1': 'amp', 'post_stim_refractory_period': 'refrac',
+                 'enable_charge_recovery': 'CR'}
+
+
+def _plot_condition_diagnosis(ax, df, cond_dict, diag, window_size, threshold,
+                              n_steps_below, metric):
     """
-    For each condition with a stored cutoff, show the sliding window effect series with:
-      - Orange dashed threshold line
-      - Red dashed vertical line at the cutoff window position
-    x-axis is window center trial index, identical to sliding_window_analysis.
-    The metric must match the one the cutoffs were computed with.
+    Draw one condition's sliding-window series onto `ax`, annotated with everything
+    needed to see why the first-sustained-drop procedure did or did not apply a cutoff:
+      - blue line/markers for the per-window effect (markers turn red when below threshold)
+      - orange dashed threshold line and a gray zero line
+      - a green dotted line at the condition's first data window
+      - a shaded band over the n_steps_below run that triggered a detected drop
+      - a red dashed line at the applied cutoff window (when status == 'cutoff')
+      - small counters on below-threshold points showing the consecutive-below run length
+      - a status/reason box and full-vs-after effect sizes
+    """
+    windows = diag['windows']
+    status  = diag['status']
+
+    xs      = [end - window_size // 2 for end, _ in windows]
+    effects = [eff for _, eff in windows]
+
+    ax.axhline(y=threshold, color='orange', linestyle='--', linewidth=1.5,
+               label=f'threshold ({threshold}pp)')
+    ax.axhline(y=0, color='gray', linestyle=':', linewidth=1, alpha=0.5)
+
+    # Effect series. Missing (no-data) windows leave gaps; matplotlib skips None.
+    ax.plot(xs, effects, color='steelblue', linewidth=1.3, zorder=2)
+
+    # Datapoints: below-threshold windows are red, at/above are blue, no-data are hollow.
+    below_x, below_y, above_x, above_y = [], [], [], []
+    run = 0
+    for x, eff in zip(xs, effects):
+        if eff is None:
+            continue
+        if eff < threshold:
+            below_x.append(x); below_y.append(eff)
+            run += 1
+            # Consecutive-below counter — this is the quantity compared to n_steps_below.
+            ax.annotate(str(run), (x, eff), textcoords='offset points', xytext=(0, -9),
+                        fontsize=5.5, color='firebrick', ha='center')
+        else:
+            above_x.append(x); above_y.append(eff)
+            run = 0
+    ax.scatter(above_x, above_y, s=14, color='steelblue', zorder=3)
+    ax.scatter(below_x, below_y, s=16, color='firebrick', zorder=3,
+               label='below threshold' if below_x else None)
+
+    # First window that actually has data for this condition.
+    if diag['first_idx'] is not None:
+        fx = xs[diag['first_idx']]
+        ax.axvline(x=fx, color='green', linestyle=':', linewidth=1.3, alpha=0.8,
+                   label='first data window')
+
+    # Shade the run of windows that triggered the sustained-drop test.
+    if diag['drop_idx'] is not None:
+        d0 = diag['drop_idx']
+        d1 = min(d0 + n_steps_below - 1, len(xs) - 1)
+        ax.axvspan(xs[d0], xs[d1], color='firebrick', alpha=0.10,
+                   label=f'{n_steps_below}-window drop')
+
+    # The applied cutoff (last kept window before the drop).
+    if status == 'cutoff' and diag['cutoff_idx'] is not None:
+        ax.axvline(x=xs[diag['cutoff_idx']], color='red', linestyle='--', linewidth=2,
+                   label='cutoff')
+
+    # Full-data vs after-cutoff effect sizes and trial counts.
+    eff_full, on_full, off_full = _effect_and_ns_for_condition(df, cond_dict, metric)
+    eff_full_s = f"{eff_full:+.1f}pp" if eff_full is not None else "n/a"
+    if status == 'cutoff':
+        kept = df[df['trial_start'] <= diag['max_trial_start']]
+        eff_cut, on_cut, off_cut = _effect_and_ns_for_condition(kept, cond_dict, metric)
+        eff_cut_s = f"{eff_cut:+.1f}pp" if eff_cut is not None else "n/a"
+        after_line = f"after: {eff_cut_s}  (n_on={on_cut}, n_off={off_cut})"
+    else:
+        after_line = "after: — (no cutoff, all trials kept)"
+    ax.text(
+        0.02, 0.02,
+        f"full:  {eff_full_s}  (n_on={on_full}, n_off={off_full})\n{after_line}",
+        transform=ax.transAxes, fontsize=6.5, va='bottom', ha='left',
+        bbox=dict(boxstyle='round', facecolor='white', alpha=0.75, edgecolor='gray'),
+    )
+
+    # Status/reason box at the top so it's obvious why this condition was cut or kept.
+    ax.text(
+        0.98, 0.98, f"{status.upper()}\n{diag['reason']}",
+        transform=ax.transAxes, fontsize=6, va='top', ha='right', wrap=True,
+        color=_STATUS_COLORS.get(status, 'black'),
+        bbox=dict(boxstyle='round', facecolor='white', alpha=0.75,
+                  edgecolor=_STATUS_COLORS.get(status, 'black')),
+    )
+
+    label_parts = [f"{_COND_ABBREVS.get(k, k)}={v}" for k, v in cond_dict.items() if v is not None]
+    ax.set_title(' | '.join(label_parts), fontsize=7,
+                 color=_STATUS_COLORS.get(status, 'black'))
+    ax.set_xlabel('Trial index (window center)')
+    ax.set_ylabel('Effect size (pp)')
+    ax.legend(fontsize=5.5, loc='upper left')
+    ax.grid(True, alpha=0.3)
+
+
+def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, threshold,
+                         n_steps_below=2, min_estim_trials=10, save_path=None,
+                         metric=METRIC_PCT_HYPOTHESIZED, max_per_fig=9):
+    """
+    Plot the sliding-window analysis for EVERY condition in the session (not just the
+    conditions that received a stored cutoff), so you can see exactly why each one meets
+    or fails the first-sustained-drop cutoff.
+
+    For each condition the subplot shows:
+      - the per-window effect series (x-axis = window-center trial index)
+      - the orange threshold line and gray zero line
+      - red datapoints for windows below threshold, each labelled with its running
+        consecutive-below count (the number compared against n_steps_below)
+      - a green marker at the condition's first data window
+      - a shaded band over any n_steps_below run that triggered a drop
+      - a red dashed cutoff line when a cutoff was applied
+      - a status/reason box explaining the outcome
+
+    The diagnosis is computed by _diagnose_sustained_drop — the same logic run_cutoffs
+    uses — so the plot always matches what was (or wasn't) stored. window_size, step_size,
+    threshold, n_steps_below, min_estim_trials and metric must match the values the cutoffs
+    were computed with. algorithm_label is used only for the figure title.
+
+    max_per_fig limits subplots per figure; conditions beyond that spill onto additional
+    figures (and additional save files, suffixed _p2, _p3, …).
     """
     import os
     import matplotlib.pyplot as plt
 
-    cutoffs = get_session_cutoffs(session_id, algorithm_label)
-    if not cutoffs:
-        print(f"No cutoffs found for session={session_id} algorithm={algorithm_label}")
+    conditions = get_session_conditions(session_id, metric)
+    if not conditions:
+        print(f"No conditions found for session={session_id} metric={metric}")
         return None
 
-    n     = len(cutoffs)
-    cols  = min(3, n)
-    rows  = (n + cols - 1) // cols
-    fig, axes = plt.subplots(rows, cols, figsize=(6 * cols, 4 * rows), squeeze=False)
-    axes_flat = axes.flatten()
+    df = _get_all_trials_ordered(session_id)
 
-    abbrevs = {'trial_type': 'type', 'noise_chance': 'noise', 'sample_length': 'smpl',
-               'num_channels': 'ch', 'polarity': 'pol', 'shape': 'shp',
-               'a1': 'amp', 'post_stim_refractory_period': 'refrac',
-               'enable_charge_recovery': 'CR'}
+    # Diagnose every condition up front so we know the outcome for each subplot.
+    diagnosed = [
+        (cond_dict, _diagnose_sustained_drop(
+            df, cond_dict, window_size, step_size, threshold, n_steps_below,
+            min_estim_trials, metric))
+        for cond_dict in conditions
+    ]
 
-    for ax_idx, (conditions_json, max_trial_start) in enumerate(cutoffs.items()):
-        ax        = axes_flat[ax_idx]
-        cond_dict = json.loads(conditions_json)
-        df        = _get_all_trials_ordered(session_id)
+    n_cut = sum(1 for _, d in diagnosed if d['status'] == 'cutoff')
+    print(f"{session_id}: plotting {len(diagnosed)} conditions "
+          f"({n_cut} with a cutoff, {len(diagnosed) - n_cut} without)")
 
-        windows = _sliding_window_effects(df, window_size, step_size, cond_dict, metric)
-        xs      = [end - window_size // 2 for end, _ in windows]
-        effects = [eff for _, eff in windows]
+    figures = []
+    n_pages = (len(diagnosed) + max_per_fig - 1) // max_per_fig
+    for page in range(n_pages):
+        page_items = diagnosed[page * max_per_fig:(page + 1) * max_per_fig]
+        n     = len(page_items)
+        cols  = min(3, n)
+        rows  = (n + cols - 1) // cols
+        fig, axes = plt.subplots(rows, cols, figsize=(6 * cols, 4 * rows), squeeze=False)
+        axes_flat = axes.flatten()
 
-        ax.plot(xs, effects, color='steelblue', linewidth=1.5, marker='o', markersize=3)
-        ax.axhline(y=threshold, color='orange', linestyle='--', linewidth=1.5,
-                   label=f'threshold ({threshold}%)')
-        ax.axhline(y=0, color='gray', linestyle=':', linewidth=1, alpha=0.5)
+        for ax_idx, (cond_dict, diag) in enumerate(page_items):
+            _plot_condition_diagnosis(axes_flat[ax_idx], df, cond_dict, diag,
+                                      window_size, threshold, n_steps_below, metric)
 
-        for (end_idx, _), x in zip(windows, xs):
-            if df.iloc[end_idx]['trial_start'] == max_trial_start:
-                ax.axvline(x=x, color='red', linestyle='--', linewidth=2, label='cutoff')
-                break
+        for ax in axes_flat[n:]:
+            ax.set_visible(False)
 
-        # Resulting effect size and trial counts: full data vs after-cutoff kept data
-        eff_full, on_full, off_full = _effect_and_ns_for_condition(df, cond_dict, metric)
-        kept = df[df['trial_start'] <= max_trial_start]
-        eff_cut, on_cut, off_cut = _effect_and_ns_for_condition(kept, cond_dict, metric)
-        eff_full_s = f"{eff_full:+.1f}pp" if eff_full is not None else "n/a"
-        eff_cut_s  = f"{eff_cut:+.1f}pp"  if eff_cut  is not None else "n/a"
-        ax.text(
-            0.02, 0.02,
-            f"full:  {eff_full_s}  (n_on={on_full}, n_off={off_full})\n"
-            f"after: {eff_cut_s}  (n_on={on_cut}, n_off={off_cut})",
-            transform=ax.transAxes, fontsize=6.5, va='bottom', ha='left',
-            bbox=dict(boxstyle='round', facecolor='white', alpha=0.7, edgecolor='gray'),
-        )
+        page_str = f'  (page {page + 1}/{n_pages})' if n_pages > 1 else ''
+        fig.suptitle(
+            f'{session_id}  —  all conditions: sliding-window cutoff diagnosis{page_str}\n'
+            f'{algorithm_label}', fontsize=12)
+        plt.tight_layout()
 
-        label_parts = [f"{abbrevs.get(k, k)}={v}" for k, v in cond_dict.items() if v is not None]
-        ax.set_title(' | '.join(label_parts), fontsize=7)
-        ax.set_xlabel('Trial index (window center)')
-        ax.set_ylabel('Effect size (%)')
-        ax.legend(fontsize=7)
-        ax.grid(True, alpha=0.3)
+        if save_path:
+            root, ext = os.path.splitext(save_path)
+            ext = ext or '.png'
+            page_path = save_path if n_pages == 1 else f"{root}_p{page + 1}{ext}"
+            os.makedirs(os.path.dirname(page_path), exist_ok=True)
+            fig.savefig(page_path, bbox_inches='tight', dpi=150)
+            print(f"Saved to {page_path}")
 
-    for ax in axes_flat[n:]:
-        ax.set_visible(False)
-
-    fig.suptitle(f'{session_id}  —  cutoff validation  ({algorithm_label})', fontsize=12)
-    plt.tight_layout()
-
-    if save_path:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        fig.savefig(save_path, bbox_inches='tight', dpi=150)
-        print(f"Saved to {save_path}")
+        figures.append(fig)
 
     plt.show()
-    return fig
+    return figures[0] if len(figures) == 1 else figures
 
 
 def main():
@@ -963,7 +1164,8 @@ def main():
     for sid in sessions_with_cutoffs:
         plot_session_cutoffs(sid, algorithm_label,
                              window_size=window_size, step_size=step_size,
-                             threshold=threshold, metric=metric)
+                             threshold=threshold, n_steps_below=n_steps_below,
+                             min_estim_trials=min_estim_trials, metric=metric)
 
     # Permutation test. Prompt only when a single session was requested;
     # for a list or all sessions, proceed automatically.
