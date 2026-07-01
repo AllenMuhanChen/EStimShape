@@ -38,16 +38,24 @@ from src.analysis.nafc.group_analysis.estim_groups_permutation_test import (
     create_permutation_test_table, save_permutation_results)
 
 
+# Units for both the sliding-window BINNING and the plot x-axis.
+X_UNITS_TOTAL = 'total_trials'   # each window = a fixed number of total trials (original behavior)
+X_UNITS_ESTIM = 'estim_trials'   # each window = a fixed number of this condition's estim-on trials
+
+
 def _algorithm_label(window_size, step_size, threshold, n_steps_below, min_estim_trials,
-                     grace_steps=0):
+                     grace_steps=0, x_units=X_UNITS_TOTAL):
     """
     Cutoff identifier shared by the cutoffs table and the permutation-test rows.
-    The grace-period suffix is appended only when grace_steps > 0 so existing labels
-    (and the downstream configs that reference them) keep matching when no grace is used.
+    Optional suffixes are appended only when the corresponding option is non-default, so
+    existing labels (and the downstream configs that reference them) keep matching when
+    neither a grace period nor estim-trial binning is used.
     """
     label = f"first_drop_w{window_size}_s{step_size}_t{threshold}_n{n_steps_below}_m{min_estim_trials}"
     if grace_steps:
         label += f"_g{grace_steps}"
+    if x_units == X_UNITS_ESTIM:
+        label += "_xestim"
     return label
 
 
@@ -269,12 +277,26 @@ def _format_cond_label(cond_dict):
     return ' '.join(f"{abbrevs.get(k, k)}={v}" for k, v in cond_dict.items() if v is not None)
 
 
-def _sliding_window_effects(df, window_size, step_size, cond_dict, metric=METRIC_PCT_HYPOTHESIZED):
+def _sliding_window_effects(df, window_size, step_size, cond_dict,
+                            metric=METRIC_PCT_HYPOTHESIZED, x_units=X_UNITS_TOTAL):
     """
-    Slide a window of window_size trials (step_size apart) over ALL session trials,
-    computing the per-condition effect at each position.
-    Returns list of (window_end_trial_idx, effect_pct).
+    Slide a window over the session trials and compute the per-condition effect at each
+    position. Returns list of (window_end_trial_idx, effect_pct).
+
+    x_units selects what a "window" is:
+      'total_trials' : window_size CONSECUTIVE TRIALS (any type), step_size trials apart —
+                       the original behavior (a fixed number of total trials per window).
+      'estim_trials' : window_size CONSECUTIVE ESTIM-ON TRIALS for this condition, step_size
+                       estim trials apart. Each window holds a fixed number of estim trials
+                       and spans a variable number of total trials; the estim-off baseline is
+                       the condition's estim-off trials interleaved in that same span.
+
+    window_end_trial_idx is a df position — the last trial of the window (total mode) or the
+    last estim-on trial of the window (estim mode) — so downstream code reads its trial_start
+    and counts kept estim trials identically in both modes.
     """
+    if x_units == X_UNITS_ESTIM:
+        return _sliding_window_effects_by_estim(df, window_size, step_size, cond_dict, metric)
     n       = len(df)
     results = []
     for start in range(0, n - window_size + 1, step_size):
@@ -283,10 +305,31 @@ def _sliding_window_effects(df, window_size, step_size, cond_dict, metric=METRIC
     return results
 
 
+def _sliding_window_effects_by_estim(df, window_size, step_size, cond_dict,
+                                     metric=METRIC_PCT_HYPOTHESIZED):
+    """
+    Estim-binned variant of _sliding_window_effects: each window is window_size consecutive
+    estim-on trials of the condition (step_size estim trials apart), spanning from the first
+    to the last of those estim trials. The effect uses that span's interleaved estim-off
+    baseline. Returns (window_end_trial_idx, effect_pct) with window_end_trial_idx = the df
+    position of the last estim-on trial in the window.
+    """
+    on_idx, _ = _condition_on_off_index(df, cond_dict, metric)
+    on_positions = np.sort(np.asarray(list(on_idx), dtype=int))
+    n_on = len(on_positions)
+    results = []
+    for start in range(0, n_on - window_size + 1, step_size):
+        start_pos = int(on_positions[start])
+        end_pos   = int(on_positions[start + window_size - 1])
+        effect = _window_effect_for_condition(df.iloc[start_pos: end_pos + 1], cond_dict, metric)
+        results.append((end_pos, effect))
+    return results
+
+
 def compute_first_sustained_drop(session_id, cond_dict,
                                   window_size, step_size, threshold, n_steps_below,
                                   min_estim_trials=10, metric=METRIC_PCT_HYPOTHESIZED,
-                                  grace_steps=0):
+                                  grace_steps=0, x_units=X_UNITS_TOTAL):
     """
     Slides a window over ALL session trials (ordered by trial_start) and finds the
     FIRST time the effect, having risen to/above threshold, then drops below it and
@@ -300,19 +343,21 @@ def compute_first_sustained_drop(session_id, cond_dict,
       - Effect rises above threshold but never drops below it → no adaptation, skip.
       - grace_steps: number of windows from the condition's first data window during
         which drops are ignored (a grace period before we start looking for a cutoff).
+      - x_units: 'total_trials' bins windows by total trials; 'estim_trials' bins windows
+        by this condition's estim-on trials (see _sliding_window_effects).
 
     Returns: trial_start of the last trial in the last good window, or None.
     """
     df = _get_all_trials_ordered(session_id)
     return _first_sustained_drop_from_df(
         df, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials,
-        metric, grace_steps)
+        metric, grace_steps, x_units)
 
 
 def _diagnose_sustained_drop(df, cond_dict,
                              window_size, step_size, threshold, n_steps_below,
                              min_estim_trials=10, metric=METRIC_PCT_HYPOTHESIZED,
-                             grace_steps=0):
+                             grace_steps=0, x_units=X_UNITS_TOTAL):
     """
     Full diagnosis of the first-sustained-drop procedure for a single condition.
 
@@ -350,6 +395,11 @@ def _diagnose_sustained_drop(df, cond_dict,
     or after (first data window + grace_steps). The effect can still rise above threshold
     during the grace period (that just makes the condition eligible); it simply cannot be
     cut inside it.
+
+    x_units: 'total_trials' bins windows by total trials (original behavior); 'estim_trials'
+    bins windows by this condition's estim-on trials, so window_size / step_size / grace_steps
+    are all counted in estim trials. window indices, first_idx, drop_idx, cutoff_idx and the
+    trial-count logic are identical in both modes — only what fills a window changes.
     """
     base = {
         'windows': [], 'first_idx': None, 'first_effect': None,
@@ -360,11 +410,12 @@ def _diagnose_sustained_drop(df, cond_dict,
         return {**base, 'status': 'too_few_trials_total',
                 'reason': f'session has {len(df)} trials (< window_size {window_size})'}
 
-    windows = _sliding_window_effects(df, window_size, step_size, cond_dict, metric)
+    windows = _sliding_window_effects(df, window_size, step_size, cond_dict, metric, x_units)
     base['windows'] = windows
     if not windows:
+        unit = 'estim-on' if x_units == X_UNITS_ESTIM else 'total'
         return {**base, 'status': 'too_few_trials_total',
-                'reason': 'no sliding windows fit over the session'}
+                'reason': f'fewer than window_size ({window_size}) {unit} trials for this condition'}
 
     # The condition's "first window" is the first one that actually has data for
     # it, not the literal window 0 (which usually predates this spec).
@@ -437,7 +488,7 @@ def _diagnose_sustained_drop(df, cond_dict,
 def _first_sustained_drop_from_df(df, cond_dict,
                                   window_size, step_size, threshold, n_steps_below,
                                   min_estim_trials=10, metric=METRIC_PCT_HYPOTHESIZED,
-                                  grace_steps=0):
+                                  grace_steps=0, x_units=X_UNITS_TOTAL):
     """
     DataFrame-based core of compute_first_sustained_drop. Kept separate so the
     permutation test can re-run the identical cutoff procedure on relabeled data
@@ -445,7 +496,7 @@ def _first_sustained_drop_from_df(df, cond_dict,
     """
     return _diagnose_sustained_drop(
         df, cond_dict, window_size, step_size, threshold, n_steps_below,
-        min_estim_trials, metric, grace_steps)['max_trial_start']
+        min_estim_trials, metric, grace_steps, x_units)['max_trial_start']
 
 
 # ---------------------------------------------------------------------------
@@ -460,7 +511,7 @@ def _first_sustained_drop_from_df(df, cond_dict,
 
 def _cutoff_selected_effect(df, cond_dict, window_size, step_size, threshold,
                             n_steps_below, min_estim_trials, metric=METRIC_PCT_HYPOTHESIZED,
-                            grace_steps=0):
+                            grace_steps=0, x_units=X_UNITS_TOTAL):
     """
     Test statistic: the condition's effect size AFTER applying the cutoff procedure.
     If the procedure finds a cutoff, the effect is computed over the kept (<= cutoff)
@@ -468,7 +519,7 @@ def _cutoff_selected_effect(df, cond_dict, window_size, step_size, threshold,
     """
     max_ts = _first_sustained_drop_from_df(
         df, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials,
-        metric, grace_steps)
+        metric, grace_steps, x_units)
     kept = df if max_ts is None else df[df['trial_start'] <= max_ts]
     eff, _, _ = _effect_and_ns_for_condition(kept, cond_dict, metric)
     return 0.0 if eff is None else eff
@@ -511,7 +562,8 @@ def _simple_label_shuffle_null(on_vals, off_vals, n_permutations, rng):
 def permutation_test_for_condition(session_id, cond_dict,
                                    window_size, step_size, threshold, n_steps_below,
                                    min_estim_trials=10, n_permutations=1000, rng=None,
-                                   metric=METRIC_PCT_HYPOTHESIZED, grace_steps=0):
+                                   metric=METRIC_PCT_HYPOTHESIZED, grace_steps=0,
+                                   x_units=X_UNITS_TOTAL):
     """
     Option-B permutation test for a single condition. Returns a dict with the
     observed cutoff-selected effect, its cutoff, the null distribution and p-values,
@@ -524,7 +576,7 @@ def permutation_test_for_condition(session_id, cond_dict,
 
     max_ts = _first_sustained_drop_from_df(
         df, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials,
-        metric, grace_steps)
+        metric, grace_steps, x_units)
     kept = df if max_ts is None else df[df['trial_start'] <= max_ts]
     observed, n_on, n_off = _effect_and_ns_for_condition(kept, cond_dict, metric)
     # Too few estim-on trials in the tested (kept) portion → not enough data to test.
@@ -559,7 +611,7 @@ def permutation_test_for_condition(session_id, cond_dict,
             df_work.loc[pool_idx, 'is_hypothesized_choice'] = rng.permutation(pool_choices)
             null[k] = _cutoff_selected_effect(
                 df_work, cond_dict, window_size, step_size, threshold, n_steps_below,
-                min_estim_trials, metric, grace_steps)
+                min_estim_trials, metric, grace_steps, x_units)
 
     p_two     = float(np.mean(np.abs(null) >= abs(observed)))
     p_greater = float(np.mean(null >= observed))
@@ -579,7 +631,7 @@ def run_cutoff_permutation_tests(session_id=None, window_size=100, step_size=10,
                                  session_level=True, studentize=True,
                                  exceedance_thresholds=None, plot=True,
                                  metric=METRIC_PCT_HYP_VS_DELTA, save_results=True,
-                                 grace_steps=0):
+                                 grace_steps=0, x_units=X_UNITS_TOTAL):
     """
     Run the permutation test for every condition in one or all sessions and print a
     per-condition summary. Conditions WITH a cutoff use the Option-B null (re-run the
@@ -598,7 +650,7 @@ def run_cutoff_permutation_tests(session_id=None, window_size=100, step_size=10,
     """
     rng = np.random.default_rng(seed)
     algorithm_label = _algorithm_label(window_size, step_size, threshold, n_steps_below,
-                                       min_estim_trials, grace_steps)
+                                       min_estim_trials, grace_steps, x_units)
     if save_results:
         create_permutation_test_table()
     conn = Connection("allen_data_repository")
@@ -636,7 +688,7 @@ def run_cutoff_permutation_tests(session_id=None, window_size=100, step_size=10,
         res = permutation_test_for_condition(
             sid, cond_dict, window_size, step_size, threshold, n_steps_below,
             min_estim_trials, n_permutations=n_permutations, rng=rng, metric=metric,
-            grace_steps=grace_steps)
+            grace_steps=grace_steps, x_units=x_units)
         if res is None:
             n_skipped += 1
             continue
@@ -836,7 +888,8 @@ def save_cutoff(session_id, conditions_json, algorithm_label, max_trial_start):
 
 def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
                 min_estim_trials=10, session_id=None, force_recompute=False,
-                verbose=False, metric=METRIC_PCT_HYP_VS_DELTA, grace_steps=0):
+                verbose=False, metric=METRIC_PCT_HYP_VS_DELTA, grace_steps=0,
+                x_units=X_UNITS_TOTAL):
     """
     Compute and store first-sustained-drop cutoffs for all conditions.
 
@@ -858,11 +911,15 @@ def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
         grace_steps      : grace period, in windows from the condition's first data
                            window, during which drops are ignored (no cutoff can be
                            placed inside it). Included in the algorithm_label when > 0.
+        x_units          : 'total_trials' bins windows by total trials (original behavior);
+                           'estim_trials' bins windows by this condition's estim-on trials,
+                           so window_size / step_size / grace_steps are counted in estim
+                           trials. Appends '_xestim' to the algorithm_label when used.
     """
     create_cutoffs_table()
 
     algorithm_label = _algorithm_label(window_size, step_size, threshold, n_steps_below,
-                                       min_estim_trials, grace_steps)
+                                       min_estim_trials, grace_steps, x_units)
 
     conn = Connection("allen_data_repository")
     # Limit to one metric so cutoff search iterates each (session, conditions) once;
@@ -912,7 +969,7 @@ def run_cutoffs(window_size=100, step_size=10, threshold=5.0, n_steps_below=3,
 
         max_trial_start = compute_first_sustained_drop(
             sid, cond_dict, window_size, step_size, threshold, n_steps_below, min_estim_trials,
-            metric, grace_steps
+            metric, grace_steps, x_units
         )
 
         if max_trial_start is None:
@@ -996,33 +1053,26 @@ _COND_ABBREVS = {'trial_type': 'type', 'noise_chance': 'noise', 'sample_length':
                  'enable_charge_recovery': 'CR'}
 
 
-X_UNITS_TOTAL = 'total_trials'
-X_UNITS_ESTIM = 'estim_trials'
-
-
 def _window_x_positions(df, windows, window_size, cond_dict, metric, x_units):
     """
-    X coordinate for each sliding window.
-
-    The windows always slide over the FULL trial sequence (that is what the cutoff
-    detection and effect computation require); only the axis on which we place them
-    changes:
-      'total_trials' : window-center index in the full trial sequence (default).
-      'estim_trials' : cumulative number of estim-on trials matching this condition up to
-                       the window center. This is a variable-width axis — a fixed step in
-                       total trials advances it by a variable number of estim trials (and
-                       not at all across stretches with no estim-on trials for the
-                       condition) — but it reads in units of delivered estim trials, which
-                       is often the more meaningful scale for adaptation.
+    X coordinate for each sliding window, in the same units the windows were binned in:
+      'total_trials' : window-center index in the full trial sequence.
+      'estim_trials' : the window's center estim-trial index for this condition (windows are
+                       binned per estim trial, so this is just an integer estim-trial count).
+    Both are monotonic in window order; the estim axis reads in units of delivered estim
+    trials, which is often the more meaningful scale for adaptation.
     """
-    centers = [end - window_size // 2 for end, _ in windows]
     if x_units == X_UNITS_TOTAL:
-        return centers
+        return [end - window_size // 2 for end, _ in windows]
     if x_units == X_UNITS_ESTIM:
         on_idx, _ = _condition_on_off_index(df, cond_dict, metric)
         on_positions = np.sort(np.asarray(list(on_idx), dtype=int))
-        # Cumulative count of this condition's estim-on trials at or before each center.
-        return [int(np.searchsorted(on_positions, c, side='right')) for c in centers]
+        # `end` is the df position of the window's last estim-on trial; searchsorted gives
+        # (start + window_size), the estim count at or before it. Subtract the half-window
+        # to place the point at the window's center estim-trial index.
+        half = window_size - window_size // 2
+        return [int(np.searchsorted(on_positions, end, side='right')) - half
+                for end, _ in windows]
     raise ValueError(f"unknown x_units={x_units!r} "
                      f"(expected {X_UNITS_TOTAL!r} or {X_UNITS_ESTIM!r})")
 
@@ -1162,10 +1212,10 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
     threshold, n_steps_below, min_estim_trials, grace_steps and metric must match the values
     the cutoffs were computed with. algorithm_label is used only for the figure title.
 
-    x_units selects the x-axis units: 'total_trials' (window-center index over all trials,
-    the default) or 'estim_trials' (cumulative estim-on trials for the condition, a
-    variable-width axis in units of delivered estim trials). The windowing and cutoff are
-    identical either way — only the horizontal placement changes.
+    x_units selects the binning AND the x-axis: 'total_trials' bins each window by total
+    trials (window-center index over all trials); 'estim_trials' bins each window by this
+    condition's estim-on trials and plots the estim-trial index. It must match the x_units
+    the cutoffs were computed with.
 
     max_per_fig limits subplots per figure; conditions beyond that spill onto additional
     figures (and additional save files, suffixed _p2, _p3, …).
@@ -1184,7 +1234,7 @@ def plot_session_cutoffs(session_id, algorithm_label, window_size, step_size, th
     diagnosed = [
         (cond_dict, _diagnose_sustained_drop(
             df, cond_dict, window_size, step_size, threshold, n_steps_below,
-            min_estim_trials, metric, grace_steps))
+            min_estim_trials, metric, grace_steps, x_units))
         for cond_dict in conditions
     ]
 
@@ -1259,6 +1309,7 @@ def main():
             verbose=True,
             metric=metric,
             grace_steps=grace_steps,
+            x_units=x_units,
         )
 
     # Resolve which sessions to plot.
@@ -1296,7 +1347,7 @@ def main():
             session_id=sid, window_size=window_size, step_size=step_size,
             threshold=threshold, n_steps_below=n_steps_below,
             min_estim_trials=min_estim_trials, n_permutations=n_permutations,
-            studentize=True, metric=metric, grace_steps=grace_steps,
+            studentize=True, metric=metric, grace_steps=grace_steps, x_units=x_units,
         )
 
 
