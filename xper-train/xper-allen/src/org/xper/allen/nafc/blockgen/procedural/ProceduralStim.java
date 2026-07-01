@@ -378,6 +378,17 @@ public class ProceduralStim implements NAFCStim {
         public double noiseRate = 1;
         public String textureType;
 
+        /** When true, the live anti-bias controller may reduce/boost reward and extend the ITI on this
+         *  trial to discourage stimulus bias. Set from the trial-generator GUI; defaults to off so that
+         *  existing trials and other experiments are never shaped unless explicitly opted in. */
+        public boolean biasShapingEnabled = false;
+
+        /** When true, this trial has an unambiguous correct answer and may be used to measure stimulus
+         *  bias (i.e. feed the anti-bias controller's tracker). Set internally from !isAmbiguousTrial()
+         *  (and never for estim trials); defaults to off. Independent of {@link #biasShapingEnabled}:
+         *  e.g. the no-estim control trials collect bias data but are not shaped. */
+        public boolean biasDataEligible = false;
+
         public ProceduralStimParameters() {
         }
 
@@ -415,6 +426,8 @@ public class ProceduralStim implements NAFCStim {
             this.color = other.color;
             this.noiseRate = other.noiseRate;
             this.textureType = other.textureType;
+            this.biasShapingEnabled = other.biasShapingEnabled;
+            this.biasDataEligible = other.biasDataEligible;
         }
     }
 }

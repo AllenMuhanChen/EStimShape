@@ -134,6 +134,10 @@ public class EStimShapeProceduralStim extends ProceduralStim{
 
     @Override
     public void writeStim() {
+        // Stamp bias-data eligibility onto the parameters before writeStimSpec() serializes them into
+        // StimSpec.data. Done here (rather than in writeStimSpec) so it runs once for every subclass,
+        // including those that override writeStimSpec (e.g. coherence).
+        parameters.biasDataEligible = isBiasDataEligible();
         writeStimObjDataSpecs();
         assignTaskId();
         writeEStimSpec();
@@ -369,6 +373,18 @@ public class EStimShapeProceduralStim extends ProceduralStim{
 
     protected boolean isAmbiguousTrial() {
         return parameters.noiseChance == 1.0;
+    }
+
+    /**
+     * A trial may be used to <em>measure</em> stimulus bias only when it has an unambiguous correct
+     * answer: it is neither an estim trial nor otherwise ambiguous. This is the exact complement of the
+     * condition under which {@link #specifyRewardBehavior()} rewards "reasonable choices" instead of
+     * match-only, so eligibility tracks whether ground truth exists. Subclasses that redefine ambiguity
+     * (e.g. coherence, deleted) do so via {@link #isAmbiguousTrial()} and are handled automatically.
+     * Independent of {@code biasShapingEnabled}: the no-estim control still collects bias data.
+     */
+    protected boolean isBiasDataEligible() {
+        return !(isEStimEnabled || isAmbiguousTrial());
     }
 
     /**
