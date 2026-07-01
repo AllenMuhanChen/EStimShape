@@ -62,7 +62,7 @@ from src.analysis.nafc.estim_hyperparameters import (
     HYPERPARAMETER_NAMES,
 )
 
-DEFAULT_ALGORITHM_LABEL = 'first_drop_w50_s5_t0_n2_m10'
+DEFAULT_ALGORITHM_LABEL = 'first_drop_w5_s1_t0_n3_m10_g5_xestim'
 
 # Thresholds defining a "robust" (non-degraded) condition for the degraded-vs-robust
 # comparison: a condition with NO cutoff whose full-data effect clears these bars.
@@ -118,6 +118,8 @@ def _param_xlabel(param):
 _PARAM_BIN_SIZES = {
     'pulse_rate_hz': 50,        # nearest 50 Hz (±25)
     'post_trigger_delay': 1000,  # nearest 1000 µs
+    'total_current': 100,
+    'current_per_second': 100
 }
 
 
@@ -140,7 +142,10 @@ def _expand_with_hyperparameters(session_id, cond_dict):
     params = _expand_condition(session_id, cond_dict)
     spec_id = cond_dict.get('estim_spec_id')
     if spec_id is not None:
-        params.update(get_estim_hyperparameters(session_id, spec_id))
+        # sample_length (ms) is the LEVEL trigger's hold window; needed to count
+        # pulses for level-triggered specs (num_repetitions is a default there).
+        params.update(get_estim_hyperparameters(
+            session_id, spec_id, sample_duration_ms=cond_dict.get('sample_length')))
     for key, bin_size in _PARAM_BIN_SIZES.items():
         if params.get(key) is not None:
             params[key] = _bin_value(params[key], bin_size)

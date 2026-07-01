@@ -25,7 +25,8 @@ sys.path.insert(0, str(Path(__file__).parents[3]))
 from clat.util.connection import Connection
 from src.analysis.nafc.estim_parameter_classifier import EStimParameterClassifier
 from src.analysis.nafc.estim_hyperparameters import pulse_rate_hz
-from src.analysis.nafc.group_analysis.analyze_estim_by_condition import METRIC_PCT_HYPOTHESIZED, METRIC_PCT_HYP_VS_DELTA
+from src.analysis.nafc.group_analysis.analyze_estim_by_condition import (
+    METRIC_PCT_HYPOTHESIZED, METRIC_PCT_HYP_VS_DELTA, _find_cutoff_for_condition)
 from src.analysis.nafc.group_analysis.estim_groups_permutation_test import (
     get_trial_data_for_condition, create_permutation_test_table)
 
@@ -126,8 +127,12 @@ def _build_max_stat_for_session(session_id, algorithm_label='none', metric=METRI
     # Best = largest positive (studentized) effect (directional: stim should increase choice)
     best_idx = int(np.argmax(obs_list))
 
-    # Element-wise max across all conditions for each permutation iteration (signed, no abs)
-    null_matrix   = np.stack(null_list, axis=0)  # (n_conds, n_perms)
+    # Element-wise max across all conditions for each permutation iteration (signed, no abs).
+    # Conditions may have been permuted with different n_permutations (rows written at
+    # different times); align them to the common minimum before stacking, matching the
+    # exceedance-count path.
+    min_perms     = min(len(nl) for nl in null_list)
+    null_matrix   = np.stack([np.asarray(nl)[:min_perms] for nl in null_list], axis=0)  # (n_conds, n_perms)
     max_stat_null = null_matrix.max(axis=0)       # (n_perms,)
 
     observed_signed = float(obs_list[best_idx])
@@ -147,8 +152,30 @@ def _build_max_stat_for_session(session_id, algorithm_label='none', metric=METRI
     }
 
 
-def _get_pct_on_off(session_id, cond_dict, metric=METRIC_PCT_HYPOTHESIZED):
-    trial_data = get_trial_data_for_condition(session_id, cond_dict, metric=metric)
+def _get_cutoff_for_condition(session_id, cond_dict, algorithm_label):
+    """
+    max_trial_start for this condition under algorithm_label, or None if there is no cutoff
+    (or algorithm_label is 'none'). Matches the condition with the same fuzzy comparison the
+    effect pipeline uses, so it is robust to int/float/NaN differences in the stored keys.
+    """
+    if not algorithm_label or algorithm_label == 'none':
+        return None
+    conn = Connection("allen_data_repository")
+    conn.execute(
+        "SELECT conditions, max_trial_start FROM EStimSessionCutoffs "
+        "WHERE session_id = %s AND algorithm_label = %s",
+        (session_id, algorithm_label))
+    cutoffs = {row[0]: row[1] for row in conn.fetch_all()}
+    return _find_cutoff_for_condition(cond_dict, cutoffs)
+
+
+def _get_pct_on_off(session_id, cond_dict, metric=METRIC_PCT_HYPOTHESIZED, algorithm_label='none'):
+    # Apply the SAME cutoff the stored effect/n's were computed with, so the ON/OFF dots
+    # match the effect. Without this the dots are averaged over all trials while the effect
+    # is cutoff-trimmed — the two disagree for any cutoff algorithm_label.
+    max_ts = _get_cutoff_for_condition(session_id, cond_dict, algorithm_label)
+    trial_data = get_trial_data_for_condition(session_id, cond_dict,
+                                              max_trial_start=max_ts, metric=metric)
     on  = trial_data['estim_on']
     off = trial_data['estim_off']
     if not on or not off:
@@ -300,7 +327,14 @@ def compute_population_stats(rows, weighting=None, value_label="%"):
     w_norm = weighting.normalized_weights(rows)                          # sums to 1
     A_obs  = float(np.dot(w_norm, observed))
 
-    null_matrix = np.stack([d['max_stat_null'] for d in rows], axis=0)  # (n_sessions, n_perms)
+    # Sessions may have been permuted with different n_permutations; align them to the
+    # common minimum before stacking (the population null combines iterations by index).
+    null_lengths = [len(d['max_stat_null']) for d in rows]
+    min_perms    = min(null_lengths)
+    if len(set(null_lengths)) > 1:
+        print(f"  NOTE: sessions have different permutation counts {sorted(set(null_lengths))}; "
+              f"truncating all to {min_perms} for the population null.")
+    null_matrix = np.stack([np.asarray(d['max_stat_null'])[:min_perms] for d in rows], axis=0)  # (n_sessions, n_perms)
     pop_null    = (null_matrix * w_norm[:, None]).sum(axis=0)            # (n_perms,)
     p_perm      = float(np.mean(pop_null >= A_obs))
     null_95     = float(np.percentile(pop_null, 95))
@@ -437,7 +471,8 @@ def plot_max_stat_per_experiment(exclude_session_ids=None, start_session_id=None
         if result is None:
             print(f"[{sid}] no permutation data or no conditions with n>={min_trials}, skipping")
             continue
-        pct_on, pct_off, n_on, n_off = _get_pct_on_off(sid, result['best_cond_dict'], metric=metric)
+        pct_on, pct_off, n_on, n_off = _get_pct_on_off(
+            sid, result['best_cond_dict'], metric=metric, algorithm_label=algorithm_label)
         if pct_on is None:
             print(f"[{sid}] no trial data for best condition, skipping")
             continue
@@ -770,7 +805,8 @@ def plot_studentized_winners(exclude_session_ids=None, start_session_id=None,
         if result is None:
             print(f"[{sid}] no conditions with n>={min_trials}, skipping")
             continue
-        pct_on, pct_off, n_on, n_off = _get_pct_on_off(sid, result['best_cond_dict'], metric=metric)
+        pct_on, pct_off, n_on, n_off = _get_pct_on_off(
+            sid, result['best_cond_dict'], metric=metric, algorithm_label=algorithm_label)
         rows.append({
             'session_id': sid,
             'raw':        result['observed_raw'],
@@ -1013,10 +1049,11 @@ def plot_winning_conditions(exclude_session_ids=None, start_session_id=None,
 def main():
     # ---- Test 1: max-stat per experiment (is the BEST condition > chance?) ----
     metric = METRIC_PCT_HYP_VS_DELTA
-    exclude_session_ids = ["260421_0", "260410_0", "260630_0"]
+    exclude_session_ids = ["260421_0", "260410_0"]
     start_session_id = "260402_0"
     algorithm_label = 'None'
-    # algorithm_label = 'first_drop_w50_s5_t0_n2_m10'
+    algorithm_label = 'first_drop_w5_s1_t0_n3_m10_g5_xestim'
+    # algorithm_label = 'first_drop_w50_s5_t0_n3_m10_g5'
     plot_max_stat_per_experiment(
         exclude_session_ids=exclude_session_ids,   # e.g. ["260421_0", "260410_0"] to drop sessions
         # exclusion reasons: ["Incorrect GA Response behavior", "Weird clustering, too small"]
