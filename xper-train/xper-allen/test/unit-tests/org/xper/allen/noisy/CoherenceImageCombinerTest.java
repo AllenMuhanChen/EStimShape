@@ -82,28 +82,37 @@ public class CoherenceImageCombinerTest {
     }
 
     @Test
-    public void neutralProportionFirst_isHalfForEqualCoverage() {
-        BufferedImage first = solid(40, 40, 0xFFFF0000);  // fully opaque -> coverage 1600
-        BufferedImage second = solid(40, 40, 0xFF0000FF);
+    public void backgroundColor_usesModalColorEvenWhenCornerIsForeground() {
+        // Foreground band along the top, so the corner pixel (0,0) is *foreground*; the background
+        // (the majority of the image) is black. The modal color must still resolve to the background.
+        BufferedImage img = horizontalBand(100, 100, 0, 10, 0xFFFF0000);
+        assertEquals(BACKGROUND, CoherenceImageCombiner.backgroundColor(img));
+        assertEquals(1000L, CoherenceImageCombiner.foregroundPixelCount(img)); // 10 rows * 100 cols
+    }
+
+    @Test
+    public void neutralProportionFirst_isHalfForEqualArea() {
+        BufferedImage first = horizontalBand(100, 100, 0, 20, 0xFFFF0000);   // 2000 fg on black
+        BufferedImage second = horizontalBand(100, 100, 80, 100, 0xFF0000FF); // 2000 fg on black
         assertEquals(0.5, CoherenceImageCombiner.neutralProportionFirst(first, second), 1e-9);
     }
 
     @Test
     public void neutralProportionFirst_favoursTheSmallerShape() {
-        // "first" is three times the visible area of "second".
-        BufferedImage first = foregroundColumns(100, 100, 0, 60, 0xFFFF0000);   // coverage 6000
-        BufferedImage second = foregroundColumns(100, 100, 80, 100, 0xFF0000FF); // coverage 2000
-        // p0 = coverageSecond / (coverageFirst + coverageSecond) = 2000 / 8000 = 0.25
+        // "first" is three times the foreground area of "second".
+        BufferedImage first = horizontalBand(100, 100, 0, 30, 0xFFFF0000);    // 3000 fg
+        BufferedImage second = horizontalBand(100, 100, 90, 100, 0xFF0000FF);  // 1000 fg
+        // p0 = areaSecond / (areaFirst + areaSecond) = 1000 / 4000 = 0.25
         assertEquals(0.25, CoherenceImageCombiner.neutralProportionFirst(first, second), 1e-9);
     }
 
     @Test
     public void combineAtNeutralProportion_balancesVisibleAreaForUnequalSizes() {
-        // "first" occupies 3x the foreground area of "second"; the two are disjoint so each
-        // visible source pixel is unambiguously attributable to one shape.
+        // "first" occupies 3x the foreground area of "second"; the two bands are disjoint so each
+        // visible foreground pixel is unambiguously attributable to one shape.
         int redArgb = 0xFFFF0000, blueArgb = 0xFF0000FF;
-        BufferedImage first = foregroundColumns(100, 100, 0, 60, redArgb);    // coverage 6000
-        BufferedImage second = foregroundColumns(100, 100, 80, 100, blueArgb); // coverage 2000
+        BufferedImage first = horizontalBand(100, 100, 0, 30, redArgb);    // 3000 fg
+        BufferedImage second = horizontalBand(100, 100, 90, 100, blueArgb); // 1000 fg
 
         double neutral = CoherenceImageCombiner.neutralProportionFirst(first, second);
         BufferedImage out = CoherenceImageCombiner.combine(first, second, neutral, new SplittableRandom(123));
@@ -112,10 +121,10 @@ public class CoherenceImageCombinerTest {
         int visibleSecond = countPixels(out, blueArgb);
 
         // At the area-normalized neutral proportion the two visible areas are equal in expectation
-        // (~1500 each here). A plain 0.5 coin would instead give ~3000 vs ~1000 and fail this bound.
+        // (~750 each here). A plain 0.5 coin would instead give ~1500 vs ~500 and fail this bound.
         int difference = Math.abs(visibleFirst - visibleSecond);
         assertTrue("expected balanced visible area, got first=" + visibleFirst
-                + " second=" + visibleSecond, difference < 150);
+                + " second=" + visibleSecond, difference < 120);
     }
 
     @Test
@@ -249,16 +258,19 @@ public class CoherenceImageCombinerTest {
         return img;
     }
 
+    /** Opaque black, matching the flat background the stimulus PNG maker renders shapes on. */
+    private static final int BACKGROUND = 0xFF000000;
+
     /**
-     * A {@code width}x{@code height} image that is transparent everywhere except columns
-     * {@code [xStart, xEnd)}, which are filled with the opaque {@code argb} (a simple foreground
-     * "shape" over a transparent background).
+     * A {@code width}x{@code height} image on a {@link #BACKGROUND} field with rows
+     * {@code [yStart, yEnd)} painted the opaque {@code argb} (a simple foreground "shape"). The
+     * foreground is kept a minority so the background remains the image's modal color.
      */
-    private static BufferedImage foregroundColumns(int width, int height, int xStart, int xEnd, int argb) {
+    private static BufferedImage horizontalBand(int width, int height, int yStart, int yEnd, int argb) {
         BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                img.setRGB(x, y, (x >= xStart && x < xEnd) ? argb : 0x00000000);
+                img.setRGB(x, y, (y >= yStart && y < yEnd) ? argb : BACKGROUND);
             }
         }
         return img;
