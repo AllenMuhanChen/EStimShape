@@ -61,6 +61,11 @@ def compile_latest(exp_conn, trial_tstamps=None):
     # if trial class is EStimShapeProceduralBehavioralStim then trial_type is behavioral
     data['trial_type'] = data.apply(lambda row: "Behavioral" if row['StimType'] == 'EStimShapeProceduralBehavioralStim' else row.get('trial_type', None), axis=1)
 
+    # Coherence trials are their own condition. They are variant-role, so IsDelta would otherwise
+    # label them 'Hypothesized Shape' and pool them with variant trials in the by-condition /
+    # permutation analysis (and their coherence levels would be merged).
+    data['trial_type'] = data.apply(lambda row: "Coherence" if row['StimType'] == 'EStimShapeCoherenceNAFCStim' else row.get('trial_type', None), axis=1)
+
     data = data.rename(columns={
         'StimSpecId' : 'task_id',
         'StimType': 'trial_class',

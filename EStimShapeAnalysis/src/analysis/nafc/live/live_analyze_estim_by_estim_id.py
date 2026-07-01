@@ -100,17 +100,18 @@ _WINDOW_COMBO_FMT = {
     'NumProceduralDistractors': lambda v: f'{int(float(v))}proc',
     'NumRandDistractors':       lambda v: f'{int(float(v))}rand',
 }
-_TRIAL_TYPE_ORDER = ('Hypothesized Shape', 'Delta Shape', 'Removed Trial')
+_TRIAL_TYPE_ORDER = ('Hypothesized Shape', 'Delta Shape', 'Removed Trial', 'Coherence')
 # Behavioral (catch/training) trials: kept out of the estim analysis but shown in the
 # sliding-window % correct baseline, like analyze_estim_by_condition's sliding window.
 _BEHAVIORAL_STIM_TYPE = 'EStimShapeProceduralBehavioralStim'
-_ALL_TRIAL_TYPES = ('Hypothesized Shape', 'Delta Shape', 'Removed Trial', 'Behavioral')
+_ALL_TRIAL_TYPES = ('Hypothesized Shape', 'Delta Shape', 'Removed Trial', 'Behavioral', 'Coherence')
 # Colors for the no-estim % correct baseline lines (one per trial type + Combined).
 _BASELINE_COLORS = {
     'Hypothesized Shape': (31, 119, 180),
     'Delta Shape':        (214, 39, 40),
     'Removed Trial':      (140, 86, 75),
     'Behavioral':         (44, 160, 44),
+    'Coherence':          (148, 103, 189),
     'Combined':           (0, 0, 0),
 }
 # ---------------------------------------------------------------------------
