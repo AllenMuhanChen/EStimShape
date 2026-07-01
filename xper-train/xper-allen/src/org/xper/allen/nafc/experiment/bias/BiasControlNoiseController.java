@@ -208,7 +208,7 @@ public class BiasControlNoiseController extends NAFCDynamicNoiseController {
     private ProceduralStimParameters readParams(long stimId) {
         try {
             List<String> data = paramsJdbc().queryForList(
-                    "SELECT data FROM StimSpec WHERE id = ? LIMIT 1", String.class, stimId);
+                    "SELECT data FROM StimSpec WHERE id = ? LIMIT 1", new Object[] { stimId }, String.class);
             if (data.isEmpty() || data.get(0) == null) {
                 return null;
             }
