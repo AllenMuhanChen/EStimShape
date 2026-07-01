@@ -320,7 +320,7 @@ def main():
     metrics = [METRIC_PCT_HYP_VS_DELTA]
     for metric in metrics:
         run_permutation_tests(
-            session_ids="260624_0",
+            session_ids="260630_0",
             n_permutations=10000,
             force_recompute=True,
             algorithm_label='None',
