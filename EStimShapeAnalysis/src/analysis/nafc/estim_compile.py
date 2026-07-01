@@ -1,3 +1,5 @@
+import pandas as pd
+
 from clat.util.connection import Connection
 from src.analysis.nafc.psychometric_compile_for_sessions import compile_260120_0, compile_260115_0, compile_260113_0, \
     compile_260107_0, compile_251231_0, compile_251226_0, compile_260108_0, compile_latest
@@ -17,6 +19,19 @@ def main():
 
     session_id, _ = read_session_id_and_date_from_db_name(context.nafc_database)
     compile_and_export_to_repo(exp_conn, session_id)
+
+
+def _clean(value):
+    """Convert pandas NaN/NA to None so it lands as SQL NULL rather than failing a typed insert
+    (e.g. NaN into the DOUBLE coherence column for non-coherence trials)."""
+    if value is None:
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+    return value
 
 
 def export_to_repo(session_id, data):
@@ -49,7 +64,7 @@ def export_to_repo(session_id, data):
         'noise_chance', 'base_mstick_id', 'gen_id', 'trial_start', 'trial_end',
         'sample_length', 'trial_class', 'choice',
         'num_choices', 'num_procedural_distractors', 'num_rand_distractors',
-        'picked_base_mstick_id'
+        'picked_base_mstick_id', 'coherence'
     ]
 
     # Find which columns we have in the dataframe
@@ -70,7 +85,7 @@ def export_to_repo(session_id, data):
 
     inserted_count = 0
     for _, row in data.iterrows():
-        values = tuple(row[col] if col in row.index else None for col in columns_to_insert)
+        values = tuple(_clean(row[col]) if col in row.index else None for col in columns_to_insert)
         repo_conn.execute(insert_query, values)
         inserted_count += 1
 
@@ -155,6 +170,8 @@ def create_estimshape_trials_table():
         # compile (counterpart to base_mstick_id, the SAMPLE's lineage id). NULL when the pick
         # isn't a lineage member (rand/removed) or the trial isn't a variant/delta trial.
         "ADD COLUMN picked_base_mstick_id BIGINT",
+        # Signed coherence in [-1, 1] for coherence trials (0 = balanced). NULL for other trials.
+        "ADD COLUMN coherence DOUBLE",
     ):
         try:
             conn.execute("ALTER TABLE EStimShapeTrials " + _col_ddl)
