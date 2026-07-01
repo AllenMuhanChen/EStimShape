@@ -90,7 +90,7 @@ public class LineageResolver {
     private List<Long> distractorLineageOrder(long variantId, long sampleId, boolean isDelta) {
         List<Long> included = gaDb.queryForList(
                 "SELECT delta_id FROM IncludedDeltas WHERE variant_id = ? AND included = 1",
-                Long.class, variantId);
+                new Object[] { variantId }, Long.class);
         if (!isDelta) {
             // Variant-sample trial: distractors are the variant's included deltas, in order.
             return included;
@@ -147,8 +147,8 @@ public class LineageResolver {
     private boolean hasSampleRoleTable() {
         if (sampleRoleExists == null) {
             try {
-                List<String> tables = experimentDb.query("SHOW TABLES LIKE 'NafcSampleRole'",
-                        (rs, rowNum) -> rs.getString(1));
+                List<String> tables = experimentDb.queryForList("SHOW TABLES LIKE 'NafcSampleRole'",
+                        String.class);
                 sampleRoleExists = !tables.isEmpty();
             } catch (Exception e) {
                 sampleRoleExists = Boolean.FALSE;
@@ -158,7 +158,7 @@ public class LineageResolver {
     }
 
     private static Long nullableLong(JdbcTemplate db, String sql, Object... args) {
-        List<Long> results = db.queryForList(sql, Long.class, args);
+        List<Long> results = db.queryForList(sql, args, Long.class);
         return results.isEmpty() ? null : results.get(0);
     }
 
