@@ -8,7 +8,6 @@ import org.xper.allen.nafc.NAFCTaskScene;
 import org.xper.allen.nafc.experiment.CoherenceNAFCExperimentTask;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.nafc.experiment.NAFCTrialContext;
-import org.xper.allen.noisy.CoherenceImageCombiner;
 import org.xper.allen.noisy.CoherenceNoisyTranslatableImages;
 import org.xper.allen.noisy.NoisyTranslatableResizableImages;
 import org.xper.allen.specs.NoisyPngSpec;
@@ -104,10 +103,11 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 		if (coherenceSample) {
 			CoherenceNAFCExperimentTask coherenceTask = (CoherenceNAFCExperimentTask) task;
 			NoisyPngSpec secondSpec = NoisyPngSpec.fromXml(coherenceTask.getSecondSampleSpec());
-			double proportionFirst = CoherenceImageCombiner.proportionForCoherence(coherenceTask.getCoherence());
+			// The neutral (0% coherence) proportion is derived from the two images' visible areas
+			// inside loadCoherenceSample, so pass the signed coherence through directly.
 			// Seed the per-frame dither off the taskId so a trial's exact mixture is reproducible.
 			((CoherenceNoisyTranslatableImages) images).loadCoherenceSample(
-					sampleSpec.getPath(), secondSpec.getPath(), proportionFirst, color, coherenceTask.getTaskId());
+					sampleSpec.getPath(), secondSpec.getPath(), coherenceTask.getCoherence(), color, coherenceTask.getTaskId());
 		} else {
 			images.loadTexture(sampleSpec.getPath(), 0);
 		}

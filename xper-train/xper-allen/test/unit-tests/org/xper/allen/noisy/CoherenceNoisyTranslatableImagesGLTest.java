@@ -90,17 +90,18 @@ public class CoherenceNoisyTranslatableImagesGLTest {
     }
 
     /**
-     * Present a fixed 0% coherence (proportion 0.5) stimulus on screen for {@link #presentationSeconds}
+     * Present a fixed 0% coherence stimulus on screen for {@link #presentationSeconds}
      * at {@link #frameRate}. Each frame the sample texture is a freshly drawn mixture and the noise is
-     * refreshed, so the dither visibly moves while the net evidence stays balanced. The first
-     * {@link #FRAMES_TO_SAVE} frames are also written to PNGs.
+     * refreshed, so the dither visibly moves while the net evidence stays balanced (by visible area,
+     * even if the two shapes differ in size). The first {@link #FRAMES_TO_SAVE} frames are also
+     * written to PNGs.
      */
     @Test
     public void presents_dynamic_zero_coherence_through_opengl() throws Exception {
         assumeInputsPresent();
         new File(outDir).mkdirs();
 
-        CoherenceNoisyTranslatableImages images = newImages(0.5);
+        CoherenceNoisyTranslatableImages images = newImages(0.0);
         present(images, "gl_zerocoherence_frame");
         images.cleanUpImage();
         System.out.println("Presented dynamic 0%-coherence for " + presentationSeconds + "s; first "
@@ -108,19 +109,20 @@ public class CoherenceNoisyTranslatableImagesGLTest {
     }
 
     /**
-     * Sweep the coherence: present each proportion (fraction of pixels from the first shape) on screen
-     * for an equal share of {@link #presentationSeconds}, so the whole sweep lasts the full duration.
+     * Sweep the signed coherence from all-first (+1) through the balanced 0% anchor to all-second (-1),
+     * presenting each level for an equal share of {@link #presentationSeconds} so the whole sweep lasts
+     * the full duration.
      */
     @Test
     public void presents_coherence_sweep_through_opengl() throws Exception {
         assumeInputsPresent();
         new File(outDir).mkdirs();
 
-        double[] proportions = {1.0, 0.75, 0.5, 0.25, 0.0};
-        double secondsEach = presentationSeconds / proportions.length;
-        for (double proportion : proportions) {
-            CoherenceNoisyTranslatableImages images = newImages(proportion);
-            String tag = String.format("p%02d", Math.round(proportion * 100));
+        double[] coherences = {1.0, 0.5, 0.0, -0.5, -1.0};
+        double secondsEach = presentationSeconds / coherences.length;
+        for (double coherence : coherences) {
+            CoherenceNoisyTranslatableImages images = newImages(coherence);
+            String tag = String.format("c%+04d", Math.round(coherence * 100));
             present(images, secondsEach, "gl_sweep_" + tag);
             images.cleanUpImage();
         }
@@ -128,15 +130,16 @@ public class CoherenceNoisyTranslatableImagesGLTest {
     }
 
     /**
-     * Build the images object for a given coherence, pre-generating one distinct frame per presentation
-     * frame (capped) so the dither does not visibly loop, plus matching dynamic noise frames.
+     * Build the images object for a given signed coherence, pre-generating one distinct frame per
+     * presentation frame (capped) so the dither does not visibly loop, plus matching dynamic noise
+     * frames.
      */
-    private CoherenceNoisyTranslatableImages newImages(double proportionFirst) {
+    private CoherenceNoisyTranslatableImages newImages(double coherence) {
         int distinctFrames = Math.min(120, Math.max(1, (int) Math.round(presentationSeconds * frameRate)));
         CoherenceNoisyTranslatableImages images =
                 new CoherenceNoisyTranslatableImages(distinctFrames, 1, 1.0, distinctFrames);
         images.initTextures();
-        images.loadCoherenceSample(firstPath, secondPath, proportionFirst, color, 12345L);
+        images.loadCoherenceSample(firstPath, secondPath, coherence, color, 12345L);
         images.loadNoise(noiseMapPath, color);
         return images;
     }
