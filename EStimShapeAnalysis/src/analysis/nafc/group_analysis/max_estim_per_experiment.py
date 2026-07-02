@@ -1052,7 +1052,7 @@ def main():
     exclude_session_ids = ["260421_0", "260410_0"]
     start_session_id = "260402_0"
     algorithm_label = 'None'
-    algorithm_label = 'first_drop_w5_s1_t0_n3_m10_g5_xestim'
+    # algorithm_label = 'first_drop_w5_s1_t0_n3_m10_g5_xestim'
     # algorithm_label = 'first_drop_w50_s5_t0_n3_m10_g5'
     plot_max_stat_per_experiment(
         exclude_session_ids=exclude_session_ids,   # e.g. ["260421_0", "260410_0"] to drop sessions

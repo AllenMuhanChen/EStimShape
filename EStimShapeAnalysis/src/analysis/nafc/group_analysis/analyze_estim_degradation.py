@@ -76,7 +76,9 @@ _NON_PARAM_COLUMNS = {
     'degradation_strength', 'degradation_onset',
     'effect_before', 'effect_after',
     'n_on_before', 'n_on_after', 'n_off_before', 'n_off_after',
-    'group', 'full_effect', 'n_on', 'n_off',
+    'group', 'full_effect', 'n_on', 'n_off', 'enable_charge_recovery',
+    'num_procedural_distractors', 'num_choices', 'num_rand_distractors'
+
 }
 
 # The metrics we plot, in display order: column name -> axis label.
@@ -859,7 +861,7 @@ def main():
         # None = one combined line per subplot (original behavior). Set to a parameter
         # name (e.g. 'polarity', 'shape', 'trial_type') to split each subplot into one
         # line per value of that parameter, plus a combined-total line.
-        subset_by=None,
+        subset_by='shape',
     )
 
 
