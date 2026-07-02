@@ -261,34 +261,84 @@ def _is_numeric_param(values):
     return all(_to_float(v) is not None for v in non_null)
 
 
-def _plot_numeric_param(ax, xs, ys):
-    """Scatter all (x, y) points and overlay a line connecting the per-value mean."""
-    ax.scatter(xs, ys, alpha=0.4, s=25, color='steelblue', edgecolor='none')
-    by_x = {}
-    for x, y in zip(xs, ys):
-        by_x.setdefault(x, []).append(y)
-    uniq = sorted(by_x)
-    means = [float(np.mean(by_x[x])) for x in uniq]
-    ax.plot(uniq, means, '-o', color='firebrick', markersize=5, linewidth=1.5,
-            label='mean')
+def _make_subset_colors(df, subset_by):
+    """Stable color per subset value (sorted), so the same subset is drawn in the same
+    color across every subplot. Returns {str(value): rgba} or None if subset_by is
+    missing / has no non-null values."""
+    if not subset_by or subset_by not in df.columns:
+        return None
+    vals = sorted({str(v) for v in df[subset_by].dropna().tolist()}, key=str)
+    if not vals:
+        return None
+    cmap = plt.get_cmap('tab10')
+    return {v: cmap(i % 10) for i, v in enumerate(vals)}
+
+
+def _plot_numeric_param(ax, xs, ys, subsets=None, colors=None):
+    """Scatter all (x, y) points and overlay a line connecting the per-value mean.
+
+    If ``subsets`` (a subset label per point) is given, draw one mean line per subset
+    value in its assigned color plus a bold black combined-total line; otherwise draw
+    the single firebrick mean line (original behavior)."""
+    def _mean_line(sel_xs, sel_ys, color, label, zorder=3):
+        by_x = {}
+        for x, y in zip(sel_xs, sel_ys):
+            by_x.setdefault(x, []).append(y)
+        uniq = sorted(by_x)
+        means = [float(np.mean(by_x[x])) for x in uniq]
+        ax.plot(uniq, means, '-o', color=color, markersize=5, linewidth=1.5,
+                label=label, zorder=zorder)
+
+    if subsets is None:
+        ax.scatter(xs, ys, alpha=0.4, s=25, color='steelblue', edgecolor='none')
+        _mean_line(xs, ys, 'firebrick', 'mean')
+    else:
+        colors = colors or {}
+        pt_colors = [colors.get(s, 'gray') for s in subsets]
+        ax.scatter(xs, ys, alpha=0.3, s=25, c=pt_colors, edgecolor='none')
+        for s in sorted(set(subsets), key=str):
+            sx = [x for x, ss in zip(xs, subsets) if ss == s]
+            sy = [y for y, ss in zip(ys, subsets) if ss == s]
+            _mean_line(sx, sy, colors.get(s, 'gray'), str(s))
+        _mean_line(xs, ys, 'black', 'total', zorder=4)
     ax.legend(fontsize=7)
 
 
-def _plot_categorical_param(ax, cats, ys):
-    """Strip plot of categories (with jitter) and a diamond at each category mean."""
+def _plot_categorical_param(ax, cats, ys, subsets=None, colors=None):
+    """Strip plot of categories (with jitter) and a diamond at each category mean.
+
+    If ``subsets`` is given, draw one connected diamond mean-line per subset value in
+    its color plus a bold black combined-total line; otherwise draw the single
+    firebrick per-category mean diamonds (original behavior)."""
     labels = sorted(set(cats), key=str)
     pos = {c: i for i, c in enumerate(labels)}
     rng = np.random.default_rng(0)
     jitter = rng.uniform(-0.12, 0.12, size=len(cats))
     xpos = [pos[c] + j for c, j in zip(cats, jitter)]
-    ax.scatter(xpos, ys, alpha=0.4, s=25, color='steelblue', edgecolor='none')
 
-    by_cat = {}
-    for c, y in zip(cats, ys):
-        by_cat.setdefault(c, []).append(y)
-    means = [float(np.mean(by_cat[c])) for c in labels]
-    ax.plot(range(len(labels)), means, 'D', color='firebrick', markersize=7,
-            label='mean')
+    def _mean_diamonds(sel_cats, sel_ys, color, label, connect):
+        by_cat = {}
+        for c, y in zip(sel_cats, sel_ys):
+            by_cat.setdefault(c, []).append(y)
+        present = [c for c in labels if c in by_cat]
+        px = [pos[c] for c in present]
+        means = [float(np.mean(by_cat[c])) for c in present]
+        ax.plot(px, means, '-D' if connect else 'D', color=color, markersize=7,
+                label=label)
+
+    if subsets is None:
+        ax.scatter(xpos, ys, alpha=0.4, s=25, color='steelblue', edgecolor='none')
+        _mean_diamonds(cats, ys, 'firebrick', 'mean', connect=False)
+    else:
+        colors = colors or {}
+        pt_colors = [colors.get(s, 'gray') for s in subsets]
+        ax.scatter(xpos, ys, alpha=0.3, s=25, c=pt_colors, edgecolor='none')
+        for s in sorted(set(subsets), key=str):
+            sc = [c for c, ss in zip(cats, subsets) if ss == s]
+            sy = [y for y, ss in zip(ys, subsets) if ss == s]
+            _mean_diamonds(sc, sy, colors.get(s, 'gray'), str(s), connect=True)
+        _mean_diamonds(cats, ys, 'black', 'total', connect=True)
+
     ax.set_xticks(range(len(labels)))
     ax.set_xticklabels([str(_clean_num(c)) for c in labels], rotation=30, ha='right',
                        fontsize=8)
@@ -296,11 +346,15 @@ def _plot_categorical_param(ax, cats, ys):
 
 
 def plot_degradation_metric(df, metric_key, algorithm_label=DEFAULT_ALGORITHM_LABEL,
-                            save_path=None):
+                            save_path=None, subset_by=None):
     """
     For one metric, plot it against every condition parameter (one subplot each).
     Numeric parameters are sorted ascending on a float axis; categorical parameters
     are shown as ordered categories.
+
+    If ``subset_by`` names a parameter (e.g. 'polarity'), each subplot overlays one
+    mean line per value of that parameter plus a combined-total line. The subplot for
+    the subset parameter itself is drawn un-subsetted (subsetting it would be trivial).
     """
     if df.empty:
         print(f"No data to plot for metric '{metric_key}'.")
@@ -312,6 +366,8 @@ def plot_degradation_metric(df, metric_key, algorithm_label=DEFAULT_ALGORITHM_LA
         print(f"No conditions with a defined '{metric_key}'.")
         return None
 
+    colors = _make_subset_colors(valid, subset_by)
+
     n = len(params)
     ncols = min(3, n)
     nrows = (n + ncols - 1) // ncols
@@ -320,8 +376,12 @@ def plot_degradation_metric(df, metric_key, algorithm_label=DEFAULT_ALGORITHM_LA
 
     for i, param in enumerate(params):
         ax = axes[i // ncols][i % ncols]
-        sub = valid[[param, metric_key]].copy()
+        use_subset = colors is not None and subset_by != param
+        cols = [param, metric_key] + ([subset_by] if use_subset else [])
+        sub = valid[cols].copy()
         sub = sub[sub[param].notna()]
+        if use_subset:
+            sub = sub[sub[subset_by].notna()]
         if sub.empty:
             ax.text(0.5, 0.5, 'no data', ha='center', va='center', transform=ax.transAxes)
             ax.set_title(param, fontsize=10, fontweight='bold')
@@ -329,12 +389,14 @@ def plot_degradation_metric(df, metric_key, algorithm_label=DEFAULT_ALGORITHM_LA
 
         ys = sub[metric_key].astype(float).tolist()
         raw_vals = sub[param].tolist()
+        subsets = [str(v) for v in sub[subset_by].tolist()] if use_subset else None
 
         if _is_numeric_param(raw_vals):
             xs = [_to_float(v) for v in raw_vals]
-            _plot_numeric_param(ax, xs, ys)
+            _plot_numeric_param(ax, xs, ys, subsets=subsets, colors=colors)
         else:
-            _plot_categorical_param(ax, [str(v) for v in raw_vals], ys)
+            _plot_categorical_param(ax, [str(v) for v in raw_vals], ys,
+                                    subsets=subsets, colors=colors)
 
         if metric_key == 'degradation_strength':
             ax.axhline(1.0, color='gray', linestyle=':', linewidth=1, alpha=0.6)
@@ -348,8 +410,9 @@ def plot_degradation_metric(df, metric_key, algorithm_label=DEFAULT_ALGORITHM_LA
     for j in range(n, nrows * ncols):
         axes[j // ncols][j % ncols].axis('off')
 
+    subset_note = f", by {subset_by}" if colors is not None else ""
     fig.suptitle(f"{_METRICS[metric_key].splitlines()[0]} vs condition parameters\n"
-                 f"({len(valid)} conditions, algorithm='{algorithm_label}')",
+                 f"({len(valid)} conditions, algorithm='{algorithm_label}'{subset_note})",
                  fontsize=13, fontweight='bold')
     fig.tight_layout(rect=[0, 0, 1, 0.94])
 
@@ -452,32 +515,81 @@ def build_condition_classification_table(algorithm_label=DEFAULT_ALGORITHM_LABEL
     return df
 
 
-def _plot_likelihood_numeric(ax, xs, is_degraded):
-    """Plot fraction-degraded vs a numeric parameter, annotated with counts."""
-    by_x = {}
-    for x, d in zip(xs, is_degraded):
-        by_x.setdefault(x, []).append(d)
-    uniq = sorted(by_x)
-    fracs = [float(np.mean(by_x[x])) for x in uniq]
-    ax.plot(uniq, fracs, '-o', color='purple', markersize=5, linewidth=1.5)
-    for x in uniq:
-        lst = by_x[x]
-        ax.annotate(f"{int(sum(lst))}/{len(lst)}", (x, float(np.mean(lst))),
-                    textcoords='offset points', xytext=(0, 6), fontsize=7, ha='center')
+def _plot_likelihood_numeric(ax, xs, is_degraded, subsets=None, colors=None):
+    """Plot fraction-degraded vs a numeric parameter, annotated with counts.
+
+    If ``subsets`` is given, draw one fraction line per subset value plus a bold black
+    combined-total line (only the total line is annotated with counts, to keep the
+    subplot readable)."""
+    def _frac_line(sx, sd, color, label, annotate):
+        by_x = {}
+        for x, d in zip(sx, sd):
+            by_x.setdefault(x, []).append(d)
+        uniq = sorted(by_x)
+        fracs = [float(np.mean(by_x[x])) for x in uniq]
+        ax.plot(uniq, fracs, '-o', color=color, markersize=5, linewidth=1.5, label=label)
+        if annotate:
+            for x in uniq:
+                lst = by_x[x]
+                ax.annotate(f"{int(sum(lst))}/{len(lst)}", (x, float(np.mean(lst))),
+                            textcoords='offset points', xytext=(0, 6), fontsize=7,
+                            ha='center')
+
+    if subsets is None:
+        _frac_line(xs, is_degraded, 'purple', None, True)
+    else:
+        colors = colors or {}
+        for s in sorted(set(subsets), key=str):
+            sx = [x for x, ss in zip(xs, subsets) if ss == s]
+            sd = [d for d, ss in zip(is_degraded, subsets) if ss == s]
+            _frac_line(sx, sd, colors.get(s, 'gray'), str(s), False)
+        _frac_line(xs, is_degraded, 'black', 'total', True)
+        ax.legend(fontsize=7)
 
 
-def _plot_likelihood_categorical(ax, cats, is_degraded):
-    """Bar chart of fraction-degraded per category, annotated with counts."""
+def _plot_likelihood_categorical(ax, cats, is_degraded, subsets=None, colors=None):
+    """Bar chart of fraction-degraded per category, annotated with counts.
+
+    If ``subsets`` is given, draw grouped bars — one bar per subset value per category
+    plus a combined-total bar — instead of a single bar per category."""
     labels = sorted(set(cats), key=str)
-    by_cat = {}
-    for c, d in zip(cats, is_degraded):
-        by_cat.setdefault(c, []).append(d)
-    fracs = [float(np.mean(by_cat[c])) for c in labels]
-    ax.bar(range(len(labels)), fracs, color='mediumpurple', edgecolor='black')
-    for i, c in enumerate(labels):
-        lst = by_cat[c]
-        ax.text(i, float(np.mean(lst)), f"{int(sum(lst))}/{len(lst)}",
-                ha='center', va='bottom', fontsize=7)
+
+    if subsets is None:
+        by_cat = {}
+        for c, d in zip(cats, is_degraded):
+            by_cat.setdefault(c, []).append(d)
+        fracs = [float(np.mean(by_cat[c])) for c in labels]
+        ax.bar(range(len(labels)), fracs, color='mediumpurple', edgecolor='black')
+        for i, c in enumerate(labels):
+            lst = by_cat[c]
+            ax.text(i, float(np.mean(lst)), f"{int(sum(lst))}/{len(lst)}",
+                    ha='center', va='bottom', fontsize=7)
+    else:
+        colors = colors or {}
+        subs = sorted(set(subsets), key=str)
+        by = {}
+        for c, d, s in zip(cats, is_degraded, subsets):
+            by.setdefault((c, s), []).append(d)
+        by_cat = {}
+        for c, d in zip(cats, is_degraded):
+            by_cat.setdefault(c, []).append(d)
+        # One slot per subset plus a trailing 'total' slot, centered on each category.
+        n_slots = len(subs) + 1
+        width = 0.8 / n_slots
+        for j, s in enumerate(subs):
+            fracs, positions = [], []
+            for i, c in enumerate(labels):
+                if (c, s) in by:
+                    fracs.append(float(np.mean(by[(c, s)])))
+                    positions.append(i + (j - (n_slots - 1) / 2) * width)
+            ax.bar(positions, fracs, width=width, color=colors.get(s, 'gray'),
+                   edgecolor='black', label=str(s))
+        total_fracs = [float(np.mean(by_cat[c])) for c in labels]
+        total_pos = [i + (len(subs) - (n_slots - 1) / 2) * width for i in range(len(labels))]
+        ax.bar(total_pos, total_fracs, width=width, color='black', edgecolor='black',
+               label='total')
+        ax.legend(fontsize=7)
+
     ax.set_xticks(range(len(labels)))
     ax.set_xticklabels([str(_clean_num(c)) for c in labels], rotation=30, ha='right',
                        fontsize=8)
@@ -485,18 +597,22 @@ def _plot_likelihood_categorical(ax, cats, is_degraded):
 
 def plot_degradation_likelihood(df, algorithm_label=DEFAULT_ALGORITHM_LABEL,
                                 effect_threshold=DEFAULT_EFFECT_THRESHOLD,
-                                min_n=DEFAULT_MIN_N, save_path=None):
+                                min_n=DEFAULT_MIN_N, save_path=None, subset_by=None):
     """
     For every condition parameter, plot the fraction of conditions that DEGRADED as a
     function of that parameter's value (degraded vs robust, one subplot per parameter).
     Numeric parameters are sorted ascending; categorical parameters are ordered
     categories. Each point/bar is annotated with (# degraded / # conditions).
+
+    If ``subset_by`` names a parameter (e.g. 'polarity'), each subplot draws one
+    fraction line / grouped bar per value of that parameter plus a combined-total.
     """
     if df.empty:
         print("No classified conditions to plot.")
         return None
 
     is_deg_col = (df['group'] == 'degraded').astype(int)
+    colors = _make_subset_colors(df, subset_by)
     params = _parameter_columns(df)
     n = len(params)
     ncols = min(3, n)
@@ -506,7 +622,10 @@ def plot_degradation_likelihood(df, algorithm_label=DEFAULT_ALGORITHM_LABEL,
 
     for i, param in enumerate(params):
         ax = axes[i // ncols][i % ncols]
+        use_subset = colors is not None and subset_by != param
         mask = df[param].notna()
+        if use_subset:
+            mask &= df[subset_by].notna()
         if not mask.any():
             ax.text(0.5, 0.5, 'no data', ha='center', va='center', transform=ax.transAxes)
             ax.set_title(param, fontsize=10, fontweight='bold')
@@ -514,11 +633,14 @@ def plot_degradation_likelihood(df, algorithm_label=DEFAULT_ALGORITHM_LABEL,
 
         raw_vals = df.loc[mask, param].tolist()
         is_deg = is_deg_col[mask].tolist()
+        subsets = [str(v) for v in df.loc[mask, subset_by].tolist()] if use_subset else None
 
         if _is_numeric_param(raw_vals):
-            _plot_likelihood_numeric(ax, [_to_float(v) for v in raw_vals], is_deg)
+            _plot_likelihood_numeric(ax, [_to_float(v) for v in raw_vals], is_deg,
+                                     subsets=subsets, colors=colors)
         else:
-            _plot_likelihood_categorical(ax, [str(v) for v in raw_vals], is_deg)
+            _plot_likelihood_categorical(ax, [str(v) for v in raw_vals], is_deg,
+                                         subsets=subsets, colors=colors)
 
         ax.axhline(0.5, color='gray', linestyle=':', linewidth=1, alpha=0.6)
         ax.set_ylim(-0.05, 1.1)
@@ -533,9 +655,10 @@ def plot_degradation_likelihood(df, algorithm_label=DEFAULT_ALGORITHM_LABEL,
 
     n_deg = int(is_deg_col.sum())
     n_rob = len(df) - n_deg
+    subset_note = f", by {subset_by}" if colors is not None else ""
     fig.suptitle(f"Fraction of conditions that degraded vs condition parameters\n"
                  f"({n_deg} degraded vs {n_rob} robust [effect > {effect_threshold}pp, "
-                 f"n_on > {min_n}], algorithm='{algorithm_label}')",
+                 f"n_on > {min_n}], algorithm='{algorithm_label}'{subset_note})",
                  fontsize=13, fontweight='bold')
     fig.tight_layout(rect=[0, 0, 1, 0.93])
 
@@ -607,17 +730,21 @@ def build_effect_size_table(metric=METRIC_PCT_HYP_VS_DELTA, min_n=DEFAULT_MIN_N,
 
 
 def plot_effect_size_by_parameter(df, metric=METRIC_PCT_HYP_VS_DELTA,
-                                  min_n=DEFAULT_MIN_N, save_path=None):
+                                  min_n=DEFAULT_MIN_N, save_path=None, subset_by=None):
     """
     For every condition parameter, plot each condition's estim effect size against that
     parameter's value (one subplot per parameter), overlaying the per-value mean effect.
     Numeric parameters are sorted ascending on a float axis; categorical parameters are
     shown as ordered categories.
+
+    If ``subset_by`` names a parameter (e.g. 'polarity'), each subplot overlays one
+    mean line per value of that parameter plus a combined-total line.
     """
     if df.empty:
         print("No conditions to plot effect size for.")
         return None
 
+    colors = _make_subset_colors(df, subset_by)
     params = _parameter_columns(df)
     n = len(params)
     ncols = min(3, n)
@@ -627,8 +754,12 @@ def plot_effect_size_by_parameter(df, metric=METRIC_PCT_HYP_VS_DELTA,
 
     for i, param in enumerate(params):
         ax = axes[i // ncols][i % ncols]
-        sub = df[[param, 'full_effect']].copy()
+        use_subset = colors is not None and subset_by != param
+        cols = [param, 'full_effect'] + ([subset_by] if use_subset else [])
+        sub = df[cols].copy()
         sub = sub[sub[param].notna() & sub['full_effect'].notna()]
+        if use_subset:
+            sub = sub[sub[subset_by].notna()]
         if sub.empty:
             ax.text(0.5, 0.5, 'no data', ha='center', va='center', transform=ax.transAxes)
             ax.set_title(param, fontsize=10, fontweight='bold')
@@ -636,12 +767,14 @@ def plot_effect_size_by_parameter(df, metric=METRIC_PCT_HYP_VS_DELTA,
 
         ys = sub['full_effect'].astype(float).tolist()
         raw_vals = sub[param].tolist()
+        subsets = [str(v) for v in sub[subset_by].tolist()] if use_subset else None
 
         if _is_numeric_param(raw_vals):
             xs = [_to_float(v) for v in raw_vals]
-            _plot_numeric_param(ax, xs, ys)
+            _plot_numeric_param(ax, xs, ys, subsets=subsets, colors=colors)
         else:
-            _plot_categorical_param(ax, [str(v) for v in raw_vals], ys)
+            _plot_categorical_param(ax, [str(v) for v in raw_vals], ys,
+                                    subsets=subsets, colors=colors)
 
         ax.axhline(0.0, color='gray', linestyle='--', linewidth=0.8, alpha=0.4)
         ax.set_title(param, fontsize=10, fontweight='bold')
@@ -653,8 +786,9 @@ def plot_effect_size_by_parameter(df, metric=METRIC_PCT_HYP_VS_DELTA,
     for j in range(n, nrows * ncols):
         axes[j // ncols][j % ncols].axis('off')
 
+    subset_note = f", by {subset_by}" if colors is not None else ""
     fig.suptitle(f"Estim effect size vs condition parameters\n"
-                 f"({len(df)} conditions [n_on > {min_n}], metric='{metric}')",
+                 f"({len(df)} conditions [n_on > {min_n}], metric='{metric}'{subset_note})",
                  fontsize=13, fontweight='bold')
     fig.tight_layout(rect=[0, 0, 1, 0.94])
 
@@ -670,20 +804,27 @@ def plot_effect_size_by_parameter(df, metric=METRIC_PCT_HYP_VS_DELTA,
 
 def run(algorithm_label=DEFAULT_ALGORITHM_LABEL, session_id=None, save_dir=None,
         metric=METRIC_PCT_HYP_VS_DELTA, effect_threshold=DEFAULT_EFFECT_THRESHOLD,
-        min_n=DEFAULT_MIN_N):
+        min_n=DEFAULT_MIN_N, subset_by=None):
     """
     Build the degradation table and plot every metric against every parameter, then
     build the degraded-vs-robust classification table and plot, per parameter, the
     fraction of conditions that degraded. Finally, build the effect-size table and
     plot each condition's estim effect size against every parameter.
+
+    ``subset_by`` (e.g. 'polarity') splits every subplot's overlay into one line per
+    value of that parameter plus a combined-total line. Pass any parameter column name
+    ('polarity', 'shape', 'trial_type', 'a1', ...); None (default) plots a single
+    combined line as before. When set, the parameter name is appended to each saved
+    filename so subsetted plots don't overwrite the combined ones.
     """
+    subset_tag = f"_by_{subset_by}" if subset_by else ""
     df = build_degradation_table(algorithm_label, session_id)
     if not df.empty:
         for metric_key in _METRICS:
-            save_path = (f"{save_dir}/estim_degradation_{metric_key}_{algorithm_label}.png"
+            save_path = (f"{save_dir}/estim_degradation_{metric_key}_{algorithm_label}{subset_tag}.png"
                          if save_dir else None)
             plot_degradation_metric(df, metric_key, algorithm_label=algorithm_label,
-                                    save_path=save_path)
+                                    save_path=save_path, subset_by=subset_by)
     else:
         print("No cutoffs found for this algorithm_label — skipping degradation-metric plots.")
 
@@ -691,20 +832,20 @@ def run(algorithm_label=DEFAULT_ALGORITHM_LABEL, session_id=None, save_dir=None,
         algorithm_label, metric=metric, effect_threshold=effect_threshold,
         min_n=min_n, session_id=session_id)
     if not class_df.empty:
-        save_path = (f"{save_dir}/estim_degradation_likelihood_{algorithm_label}.png"
+        save_path = (f"{save_dir}/estim_degradation_likelihood_{algorithm_label}{subset_tag}.png"
                      if save_dir else None)
         plot_degradation_likelihood(class_df, algorithm_label=algorithm_label,
                                     effect_threshold=effect_threshold, min_n=min_n,
-                                    save_path=save_path)
+                                    save_path=save_path, subset_by=subset_by)
 
     # Effect size vs parameters: same parameters and min_n gate, but no effect
     # threshold — plots the actual average estim effect at each parameter value.
     effect_df = build_effect_size_table(metric=metric, min_n=min_n, session_id=session_id)
     if not effect_df.empty:
-        save_path = (f"{save_dir}/estim_effect_size_by_parameter.png"
+        save_path = (f"{save_dir}/estim_effect_size_by_parameter{subset_tag}.png"
                      if save_dir else None)
         plot_effect_size_by_parameter(effect_df, metric=metric, min_n=min_n,
-                                      save_path=save_path)
+                                      save_path=save_path, subset_by=subset_by)
     return df, class_df, effect_df
 
 
@@ -715,6 +856,10 @@ def main():
         save_dir="/home/connorlab/Documents/plots/group_analysis/estimshape",
         effect_threshold=DEFAULT_EFFECT_THRESHOLD,
         min_n=DEFAULT_MIN_N,
+        # None = one combined line per subplot (original behavior). Set to a parameter
+        # name (e.g. 'polarity', 'shape', 'trial_type') to split each subplot into one
+        # line per value of that parameter, plus a combined-total line.
+        subset_by=None,
     )
 
 
