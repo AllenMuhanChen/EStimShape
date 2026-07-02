@@ -128,6 +128,23 @@ public class CoherenceImageCombinerTest {
     }
 
     @Test
+    public void combineAtHalfProportion_overRepresentsTheLargerShape() {
+        // The disabled/un-normalized path (neutral anchor 0.5): the same 3:1 pair as above is left
+        // biased toward the larger shape, ~1500 vs ~500. This documents what turning off area
+        // normalization (setNormalizeByArea(false)) intentionally reproduces.
+        int redArgb = 0xFFFF0000, blueArgb = 0xFF0000FF;
+        BufferedImage first = horizontalBand(100, 100, 0, 30, redArgb);    // 3000 fg
+        BufferedImage second = horizontalBand(100, 100, 90, 100, blueArgb); // 1000 fg
+
+        BufferedImage out = CoherenceImageCombiner.combine(first, second, 0.5, new SplittableRandom(123));
+
+        int visibleFirst = countPixels(out, redArgb);
+        int visibleSecond = countPixels(out, blueArgb);
+        assertTrue("expected the larger shape to dominate without normalization, got first="
+                + visibleFirst + " second=" + visibleSecond, visibleFirst > visibleSecond * 2);
+    }
+
+    @Test
     public void combine_atProportionOne_returnsFirstImage() {
         BufferedImage first = solid(16, 16, 0xFFFF0000);  // red
         BufferedImage second = solid(16, 16, 0xFF0000FF); // blue

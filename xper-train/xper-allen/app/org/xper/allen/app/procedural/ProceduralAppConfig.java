@@ -55,7 +55,18 @@ public class ProceduralAppConfig {
         scene.setDistance(pngConfig.classicConfig.xperMonkeyScreenDistance());
         scene.setBackgroundColor(pngConfig.classicConfig.xperBackgroundColor());
         scene.setFrameRate(pngConfig.mStickPngConfig.xperNoiseRate());
+        scene.setNormalizeCoherenceByArea(normalizeCoherenceByArea());
         return scene;
+    }
+
+    /**
+     * Whether coherence samples anchor 0% coherence on equal visible foreground area. Hardcoded off
+     * for now; move to the system-variable container (like the other config values) to make it
+     * settable per experiment.
+     */
+    @Bean
+    public boolean normalizeCoherenceByArea() {
+        return false;
     }
     @Bean
     public FixationPoint experimentFixationPoint() {

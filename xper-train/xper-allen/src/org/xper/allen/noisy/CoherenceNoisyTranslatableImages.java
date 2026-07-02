@@ -50,6 +50,13 @@ public class CoherenceNoisyTranslatableImages extends NoisyTranslatableResizable
     private int currentSampleFrameIndx = 0;
 
     /**
+     * When true, 0% coherence is anchored on equal <i>visible foreground area</i> so a larger shape
+     * is not over-represented; when false, 0% coherence is a plain 50/50 pixel coin. Set via
+     * {@link #setNormalizeByArea} before {@link #loadCoherenceSample}.
+     */
+    private boolean normalizeByArea = true;
+
+    /**
      * @param numNoiseFrames   number of pre-generated noise frames (as in the parent)
      * @param numImageTextures number of image texture slots (sample + choices), as in the parent
      * @param noiseRate        noise play rate (as in the parent)
@@ -88,8 +95,11 @@ public class CoherenceNoisyTranslatableImages extends NoisyTranslatableResizable
             BufferedImage second = ImageIO.read(new File(secondPath));
             sampleWidth = first.getWidth();
             sampleHeight = first.getHeight();
-            // Anchor 0% coherence on equal visible area rather than a plain 50/50 pixel coin.
-            double neutralProportion = CoherenceImageCombiner.neutralProportionFirst(first, second);
+            // Anchor 0% coherence on equal visible area rather than a plain 50/50 pixel coin,
+            // unless normalization is disabled (then 0.5 is the original behaviour).
+            double neutralProportion = normalizeByArea
+                    ? CoherenceImageCombiner.neutralProportionFirst(first, second)
+                    : 0.5;
             double proportionFirst = CoherenceImageCombiner.proportionForCoherence(coherence, neutralProportion);
             sampleFrames.clear();
             currentSampleFrameIndx = 0;
@@ -147,5 +157,13 @@ public class CoherenceNoisyTranslatableImages extends NoisyTranslatableResizable
 
     public int getNumSampleFrames() {
         return numSampleFrames;
+    }
+
+    public boolean isNormalizeByArea() {
+        return normalizeByArea;
+    }
+
+    public void setNormalizeByArea(boolean normalizeByArea) {
+        this.normalizeByArea = normalizeByArea;
     }
 }

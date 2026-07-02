@@ -30,6 +30,9 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	double screenHeight;
 	@Dependency
 	int frameRate;
+	/** When true, a coherence sample anchors 0% coherence on equal visible foreground area. */
+	@Dependency
+	boolean normalizeCoherenceByArea;
 	/**
 	 * We keep this just one images object rather than one for choices and one for sample
 	 * because OpenGL binds textures to integer IDs when we preload images. So if
@@ -87,7 +90,10 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 
 		if (coherenceSample) {
 			int numSampleFrames = Math.min(numFrames, SAMPLE_FRAME_CAP);
-			images = new CoherenceNoisyTranslatableImages(numFrames, numChoices + 1, noiseRate, numSampleFrames);
+			CoherenceNoisyTranslatableImages coherenceImages =
+					new CoherenceNoisyTranslatableImages(numFrames, numChoices + 1, noiseRate, numSampleFrames);
+			coherenceImages.setNormalizeByArea(normalizeCoherenceByArea);
+			images = coherenceImages;
 		} else {
 			images = new NoisyTranslatableResizableImages(numFrames, numChoices + 1, noiseRate);
 		}
@@ -324,6 +330,14 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 
 	public void setFrameRate(int frameRate) {
 		this.frameRate = frameRate;
+	}
+
+	public boolean isNormalizeCoherenceByArea() {
+		return normalizeCoherenceByArea;
+	}
+
+	public void setNormalizeCoherenceByArea(boolean normalizeCoherenceByArea) {
+		this.normalizeCoherenceByArea = normalizeCoherenceByArea;
 	}
 
 }
