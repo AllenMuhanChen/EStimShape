@@ -14,15 +14,10 @@ Three panels:
      shadow mode); biased picks highlighted.
   3. Current per-stimulus bias score, grouped by variant, red where currently flagged.
 
-Usage (from the EStimShapeAnalysis project root):
-    python -m src.analysis.nafc.plot_bias_controller [db_name] [--save out.png]
-        [--s-high 0.60] [--s-low 0.35]
-db_name defaults to context.nafc_database.
-
-Thresholds default to the BiasTrackerConfig defaults; pass --s-high/--s-low if you changed them.
+Usage: edit the config constants just below, then run this file (from your IDE, or
+`python -m src.analysis.nafc.plot_bias_controller`). No command-line arguments.
 """
 
-import argparse
 import sys
 
 import pandas as pd
@@ -36,7 +31,15 @@ try:
 except Exception:
     DEFAULT_DB = None
 
-# Defaults mirror BiasTrackerConfig (sHigh / sLow). Override on the command line if you changed them.
+# ---------------------------------------------------------------------------
+# Configure here -- just edit these and run the file. No command-line arguments.
+# ---------------------------------------------------------------------------
+# Experiment (nafc) database to read. None -> context.nafc_database; or set explicitly, e.g.
+# DATABASE = "allen_estimshape_exp_260630_0".
+DATABASE = None
+# None -> show the figure interactively; set a path (e.g. "bias_diag.png") to save it instead.
+SAVE_PATH = None
+# Flag / un-flag thresholds; mirror your BiasTrackerConfig if you changed them from the defaults.
 S_HIGH = 0.60
 S_LOW = 0.35
 
@@ -144,34 +147,24 @@ def plot_state(ax, state):
 
 
 def main():
-    global S_HIGH, S_LOW
-    parser = argparse.ArgumentParser(description="Plot NAFC anti-bias controller diagnostics.")
-    parser.add_argument("db", nargs="?", default=DEFAULT_DB, help="experiment (nafc) database name")
-    parser.add_argument("--save", default=None, help="save figure to this path instead of showing")
-    parser.add_argument("--s-high", type=float, default=S_HIGH, help="flag threshold")
-    parser.add_argument("--s-low", type=float, default=S_LOW, help="un-flag threshold")
-    args = parser.parse_args()
-
-    S_HIGH, S_LOW = args.s_high, args.s_low
-
-    if not args.db:
-        print("No database given and context.nafc_database is unavailable. "
-              "Pass the db name explicitly.")
+    db = DATABASE if DATABASE else DEFAULT_DB
+    if not db:
+        print("Set DATABASE at the top of this file (context.nafc_database is unavailable).")
         sys.exit(1)
 
-    events, state = load(args.db)
-    print("Loaded %d events, %d state rows from %s" % (len(events), len(state), args.db))
+    events, state = load(db)
+    print("Loaded %d events, %d state rows from %s" % (len(events), len(state), db))
 
     fig, axes = plt.subplots(3, 1, figsize=(11, 12))
     plot_bias_scores(axes[0], events)
     plot_reward(axes[1], events)
     plot_state(axes[2], state)
-    fig.suptitle("NAFC anti-bias controller diagnostics -- %s" % args.db)
+    fig.suptitle("NAFC anti-bias controller diagnostics -- %s" % db)
     fig.tight_layout(rect=[0, 0, 1, 0.98])
 
-    if args.save:
-        fig.savefig(args.save, dpi=120)
-        print("Saved", args.save)
+    if SAVE_PATH:
+        fig.savefig(SAVE_PATH, dpi=120)
+        print("Saved", SAVE_PATH)
     else:
         plt.show()
 
