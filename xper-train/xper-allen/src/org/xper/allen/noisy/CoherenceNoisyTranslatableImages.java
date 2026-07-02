@@ -50,13 +50,6 @@ public class CoherenceNoisyTranslatableImages extends NoisyTranslatableResizable
     private int currentSampleFrameIndx = 0;
 
     /**
-     * When true (default), 0% coherence is anchored on equal <i>visible foreground area</i> so a
-     * larger shape is not over-represented; when false, 0% coherence is a plain 50/50 pixel coin
-     * (the original behaviour). Toggle via {@link #setNormalizeByArea}.
-     */
-    private boolean normalizeByArea = true;
-
-    /**
      * @param numNoiseFrames   number of pre-generated noise frames (as in the parent)
      * @param numImageTextures number of image texture slots (sample + choices), as in the parent
      * @param noiseRate        noise play rate (as in the parent)
@@ -95,11 +88,8 @@ public class CoherenceNoisyTranslatableImages extends NoisyTranslatableResizable
             BufferedImage second = ImageIO.read(new File(secondPath));
             sampleWidth = first.getWidth();
             sampleHeight = first.getHeight();
-            // Anchor 0% coherence on equal visible area rather than a plain 50/50 pixel coin,
-            // unless area normalization has been disabled (then 0.5 reproduces the original behaviour).
-            double neutralProportion = normalizeByArea
-                    ? CoherenceImageCombiner.neutralProportionFirst(first, second)
-                    : 0.5;
+            // Anchor 0% coherence on equal visible area rather than a plain 50/50 pixel coin.
+            double neutralProportion = CoherenceImageCombiner.neutralProportionFirst(first, second);
             double proportionFirst = CoherenceImageCombiner.proportionForCoherence(coherence, neutralProportion);
             sampleFrames.clear();
             currentSampleFrameIndx = 0;
@@ -157,17 +147,5 @@ public class CoherenceNoisyTranslatableImages extends NoisyTranslatableResizable
 
     public int getNumSampleFrames() {
         return numSampleFrames;
-    }
-
-    public boolean isNormalizeByArea() {
-        return normalizeByArea;
-    }
-
-    /**
-     * Enable (default) or disable area-normalized 0% coherence. Must be set before
-     * {@link #loadCoherenceSample}, which reads it when pre-generating the frames.
-     */
-    public void setNormalizeByArea(boolean normalizeByArea) {
-        this.normalizeByArea = normalizeByArea;
     }
 }

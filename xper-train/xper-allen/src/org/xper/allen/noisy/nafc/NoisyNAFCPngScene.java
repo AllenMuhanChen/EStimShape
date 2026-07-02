@@ -31,13 +31,6 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	@Dependency
 	int frameRate;
 	/**
-	 * When true (default) a coherence sample anchors 0% coherence on equal visible foreground area so
-	 * a larger variant/delta is not over-represented; set false in config to fall back to a plain
-	 * 50/50 pixel mixture at 0% coherence.
-	 */
-	@Dependency
-	boolean normalizeCoherenceByArea = true;
-	/**
 	 * We keep this just one images object rather than one for choices and one for sample
 	 * because OpenGL binds textures to integer IDs when we preload images. So if
 	 * there are two separate objects, IDs would conflict.
@@ -94,10 +87,7 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 
 		if (coherenceSample) {
 			int numSampleFrames = Math.min(numFrames, SAMPLE_FRAME_CAP);
-			CoherenceNoisyTranslatableImages coherenceImages =
-					new CoherenceNoisyTranslatableImages(numFrames, numChoices + 1, noiseRate, numSampleFrames);
-			coherenceImages.setNormalizeByArea(normalizeCoherenceByArea);
-			images = coherenceImages;
+			images = new CoherenceNoisyTranslatableImages(numFrames, numChoices + 1, noiseRate, numSampleFrames);
 		} else {
 			images = new NoisyTranslatableResizableImages(numFrames, numChoices + 1, noiseRate);
 		}
@@ -334,14 +324,6 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 
 	public void setFrameRate(int frameRate) {
 		this.frameRate = frameRate;
-	}
-
-	public boolean isNormalizeCoherenceByArea() {
-		return normalizeCoherenceByArea;
-	}
-
-	public void setNormalizeCoherenceByArea(boolean normalizeCoherenceByArea) {
-		this.normalizeCoherenceByArea = normalizeCoherenceByArea;
 	}
 
 }
