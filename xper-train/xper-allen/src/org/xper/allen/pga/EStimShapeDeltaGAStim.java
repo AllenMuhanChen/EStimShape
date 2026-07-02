@@ -42,14 +42,18 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
      * Which of the parent's components this delta mutates. The hypothesized comp is the fragment
      * being tested: a variant tests it by preserving it, a delta tests it by changing it.
      *
-     *  1) Variant parent -> first drive its hypothesized (predicted-driver) comp(s). We mutate the
-     *     WHOLE hypothesized comp-set together - including both comps when it's multi-component (e.g.
-     *     the parent variant preserved a junction pair). We keep re-testing it until we've spent a
-     *     budget of FAILED attempts on that comp-set (num_deltas_per_variant): a failed attempt is a
+     *  1) Variant parent -> first drive its hypothesized (predicted-driver) comp(s). When the
+     *     hypothesized comp-set is multi-component (e.g. the parent variant preserved a junction pair),
+     *     we first drive each constituent comp INDIVIDUALLY - picking one at random among those still
+     *     under budget - and only once every individual comp has spent its budget do we test the WHOLE
+     *     hypothesized comp-set together. (A single-comp hypothesized set goes straight to the together-
+     *     test, which is just that comp.) In every case we keep re-testing a given comp-set until we've
+     *     spent a budget of FAILED attempts on it (num_deltas_per_variant): a failed attempt is a
      *     responded delta that changed exactly those comps and did NOT drop the response past
      *     delta_resp_ratio_threshold. Successes don't consume the budget, so each success effectively
-     *     buys another attempt. Once the budget is spent without driving the response down, we fall
-     *     through to the same tiered leaf/pair search non-variant parents use.
+     *     buys another attempt. Once the individual comps and the combined set have all spent their
+     *     budgets without driving the response down, we fall through to the same tiered leaf/pair search
+     *     non-variant parents use.
      *  2) Non-variant parent (delta, growing, regime_one, ...), or a variant whose hypothesized-comp
      *     budget is spent -> systematically search the parent's components, using the parent's
      *     existing delta-children as the record of what's been tried:
@@ -87,9 +91,43 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
             if (hypothesized.isEmpty()) {
                 return Collections.singletonList(parentMStick.chooseRandLeaf());
             }
+
+            // When the hypothesized comp-set is MULTI-component (e.g. the parent variant preserved a
+            // junction pair), first drive each constituent comp INDIVIDUALLY before testing the whole
+            // set together: pick one of the individual comps at random among those still under their
+            // failed-attempt budget, and only once EVERY individual comp has spent its budget (or is
+            // ungeneratable) do we fall through to the "together" test below. This isolates which single
+            // comp actually drives the response before spending attempts on the multi-comp mutation.
+            // A single-comp hypothesized set skips this and goes straight to the together-test, which
+            // is just the comp itself.
+            if (hypothesized.size() > 1) {
+                List<Integer> singlesUnderBudget = new ArrayList<>();
+                for (Integer comp : hypothesized) {
+                    Set<Integer> compSet = Collections.singleton(comp);
+                    int failedOnComp = 0;
+                    for (SiblingDelta s : siblings) {
+                        if (isFailedDelta(s, parentResponse, dropThreshold)
+                                && new HashSet<>(s.changedComps).equals(compSet)) {
+                            failedOnComp++;
+                        }
+                    }
+                    if (failedOnComp < budget
+                            && isMutable(Collections.singletonList(comp), ungeneratableFailThreshold)) {
+                        singlesUnderBudget.add(comp);
+                    }
+                }
+                if (!singlesUnderBudget.isEmpty()) {
+                    // Choose one of the individual hypothesized comps at random.
+                    Integer chosen = singlesUnderBudget.get(new Random().nextInt(singlesUnderBudget.size()));
+                    return Collections.singletonList(chosen);
+                }
+                // Every individual hypothesized comp has spent its budget (or is ungeneratable) - move
+                // on to testing the whole multi-comp set together.
+            }
+
             // Count failed attempts on the WHOLE hypothesized comp-set (a sibling that changed exactly
-            // these comps and didn't drop the response). The hypothesized comp may be multi-component
-            // (e.g. the parent variant preserved a junction pair); we test it as a unit.
+            // these comps and didn't drop the response). For a multi-component set we test it as a unit
+            // only after each of its comps has been driven individually above.
             Set<Integer> hypothesizedSet = new HashSet<>(hypothesized);
             int failedOnHypothesized = 0;
             for (SiblingDelta s : siblings) {
