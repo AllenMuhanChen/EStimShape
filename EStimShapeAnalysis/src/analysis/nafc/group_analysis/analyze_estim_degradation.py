@@ -263,6 +263,23 @@ def _is_numeric_param(values):
     return all(_to_float(v) is not None for v in non_null)
 
 
+def _sem(vals):
+    """Standard error of the mean of a list of values; 0 for a single sample."""
+    n = len(vals)
+    if n <= 1:
+        return 0.0
+    return float(np.std(vals, ddof=1) / np.sqrt(n))
+
+
+def _prop_sem(vals):
+    """Standard error of a proportion (list of 0/1 outcomes): sqrt(p*(1-p)/n)."""
+    n = len(vals)
+    if n == 0:
+        return 0.0
+    p = float(np.mean(vals))
+    return float(np.sqrt(p * (1 - p) / n))
+
+
 def _make_subset_colors(df, subset_by):
     """Stable color per subset value (sorted), so the same subset is drawn in the same
     color across every subplot. Returns {str(value): rgba} or None if subset_by is
@@ -288,8 +305,12 @@ def _plot_numeric_param(ax, xs, ys, subsets=None, colors=None):
             by_x.setdefault(x, []).append(y)
         uniq = sorted(by_x)
         means = [float(np.mean(by_x[x])) for x in uniq]
-        ax.plot(uniq, means, '-o', color=color, markersize=5, linewidth=1.5,
-                label=label, zorder=zorder)
+        sems = [_sem(by_x[x]) for x in uniq]
+        ax.errorbar(uniq, means, yerr=sems, fmt='-o', color=color, markersize=5,
+                    linewidth=1.5, capsize=3, elinewidth=1, label=label, zorder=zorder)
+        for x, m in zip(uniq, means):
+            ax.annotate(f"n={len(by_x[x])}", (x, m), textcoords='offset points',
+                        xytext=(0, 6), fontsize=6, ha='center', color=color, zorder=zorder)
 
     if subsets is None:
         ax.scatter(xs, ys, alpha=0.4, s=25, color='steelblue', edgecolor='none')
@@ -325,8 +346,12 @@ def _plot_categorical_param(ax, cats, ys, subsets=None, colors=None):
         present = [c for c in labels if c in by_cat]
         px = [pos[c] for c in present]
         means = [float(np.mean(by_cat[c])) for c in present]
-        ax.plot(px, means, '-D' if connect else 'D', color=color, markersize=7,
-                label=label)
+        sems = [_sem(by_cat[c]) for c in present]
+        ax.errorbar(px, means, yerr=sems, fmt='-D' if connect else 'D', color=color,
+                    markersize=7, capsize=3, elinewidth=1, label=label)
+        for c, m in zip(present, means):
+            ax.annotate(f"n={len(by_cat[c])}", (pos[c], m), textcoords='offset points',
+                        xytext=(0, 8), fontsize=6, ha='center', color=color)
 
     if subsets is None:
         ax.scatter(xpos, ys, alpha=0.4, s=25, color='steelblue', edgecolor='none')
@@ -523,29 +548,30 @@ def _plot_likelihood_numeric(ax, xs, is_degraded, subsets=None, colors=None):
     If ``subsets`` is given, draw one fraction line per subset value plus a bold black
     combined-total line (only the total line is annotated with counts, to keep the
     subplot readable)."""
-    def _frac_line(sx, sd, color, label, annotate):
+    def _frac_line(sx, sd, color, label):
         by_x = {}
         for x, d in zip(sx, sd):
             by_x.setdefault(x, []).append(d)
         uniq = sorted(by_x)
         fracs = [float(np.mean(by_x[x])) for x in uniq]
-        ax.plot(uniq, fracs, '-o', color=color, markersize=5, linewidth=1.5, label=label)
-        if annotate:
-            for x in uniq:
-                lst = by_x[x]
-                ax.annotate(f"{int(sum(lst))}/{len(lst)}", (x, float(np.mean(lst))),
-                            textcoords='offset points', xytext=(0, 6), fontsize=7,
-                            ha='center')
+        sems = [_prop_sem(by_x[x]) for x in uniq]
+        ax.errorbar(uniq, fracs, yerr=sems, fmt='-o', color=color, markersize=5,
+                    linewidth=1.5, capsize=3, elinewidth=1, label=label)
+        for x in uniq:
+            lst = by_x[x]
+            ax.annotate(f"{int(sum(lst))}/{len(lst)}", (x, float(np.mean(lst))),
+                        textcoords='offset points', xytext=(0, 6), fontsize=6,
+                        ha='center', color=color)
 
     if subsets is None:
-        _frac_line(xs, is_degraded, 'purple', None, True)
+        _frac_line(xs, is_degraded, 'purple', None)
     else:
         colors = colors or {}
         for s in sorted(set(subsets), key=str):
             sx = [x for x, ss in zip(xs, subsets) if ss == s]
             sd = [d for d, ss in zip(is_degraded, subsets) if ss == s]
-            _frac_line(sx, sd, colors.get(s, 'gray'), str(s), False)
-        _frac_line(xs, is_degraded, 'black', 'total', True)
+            _frac_line(sx, sd, colors.get(s, 'gray'), str(s))
+        _frac_line(xs, is_degraded, 'black', 'total')
         ax.legend(fontsize=7)
 
 
@@ -561,11 +587,13 @@ def _plot_likelihood_categorical(ax, cats, is_degraded, subsets=None, colors=Non
         for c, d in zip(cats, is_degraded):
             by_cat.setdefault(c, []).append(d)
         fracs = [float(np.mean(by_cat[c])) for c in labels]
-        ax.bar(range(len(labels)), fracs, color='mediumpurple', edgecolor='black')
+        sems = [_prop_sem(by_cat[c]) for c in labels]
+        ax.bar(range(len(labels)), fracs, yerr=sems, capsize=3, color='mediumpurple',
+               edgecolor='black')
         for i, c in enumerate(labels):
             lst = by_cat[c]
-            ax.text(i, float(np.mean(lst)), f"{int(sum(lst))}/{len(lst)}",
-                    ha='center', va='bottom', fontsize=7)
+            ax.text(i, float(np.mean(lst)) + _prop_sem(lst), f"{int(sum(lst))}/{len(lst)}",
+                    ha='center', va='bottom', fontsize=6)
     else:
         colors = colors or {}
         subs = sorted(set(subsets), key=str)
@@ -578,18 +606,32 @@ def _plot_likelihood_categorical(ax, cats, is_degraded, subsets=None, colors=Non
         # One slot per subset plus a trailing 'total' slot, centered on each category.
         n_slots = len(subs) + 1
         width = 0.8 / n_slots
+
+        def _annotate_bars(positions, groups, color):
+            for x, lst in zip(positions, groups):
+                ax.text(x, float(np.mean(lst)) + _prop_sem(lst),
+                        f"{int(sum(lst))}/{len(lst)}", ha='center', va='bottom',
+                        fontsize=5, color=color, rotation=90)
+
         for j, s in enumerate(subs):
-            fracs, positions = [], []
+            fracs, sems, positions, groups = [], [], [], []
             for i, c in enumerate(labels):
                 if (c, s) in by:
-                    fracs.append(float(np.mean(by[(c, s)])))
+                    lst = by[(c, s)]
+                    fracs.append(float(np.mean(lst)))
+                    sems.append(_prop_sem(lst))
                     positions.append(i + (j - (n_slots - 1) / 2) * width)
-            ax.bar(positions, fracs, width=width, color=colors.get(s, 'gray'),
+                    groups.append(lst)
+            color = colors.get(s, 'gray')
+            ax.bar(positions, fracs, width=width, yerr=sems, capsize=2, color=color,
                    edgecolor='black', label=str(s))
+            _annotate_bars(positions, groups, color)
         total_fracs = [float(np.mean(by_cat[c])) for c in labels]
+        total_sems = [_prop_sem(by_cat[c]) for c in labels]
         total_pos = [i + (len(subs) - (n_slots - 1) / 2) * width for i in range(len(labels))]
-        ax.bar(total_pos, total_fracs, width=width, color='black', edgecolor='black',
-               label='total')
+        ax.bar(total_pos, total_fracs, width=width, yerr=total_sems, capsize=2,
+               color='black', edgecolor='black', label='total')
+        _annotate_bars(total_pos, [by_cat[c] for c in labels], 'black')
         ax.legend(fontsize=7)
 
     ax.set_xticks(range(len(labels)))
