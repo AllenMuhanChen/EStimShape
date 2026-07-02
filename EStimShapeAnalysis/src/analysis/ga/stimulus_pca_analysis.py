@@ -217,6 +217,9 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         self._highlight_roles = None
         # [(position, stim_id, role, letter), ...] for per-point labels + legend.
         self._highlight_items = None
+        # [(delta_pos, variant_pos), ...] positions into response_matrix.index for
+        # each paired delta/variant, used to draw connecting lines on the scatters.
+        self._highlight_pairs = None
 
     # ---- main entry point ------------------------------------------------
     def analyze(self, channel, compiled_data: pd.DataFrame = None) -> StimulusPCAResult:
@@ -473,10 +476,23 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
             item.append(self._letter(k))
         self._highlight_items = items
 
+        # Positions (into response_matrix.index) of each paired delta/variant, so
+        # the scatters can draw a line between the two members of every pair.
+        pos_for_id = {sid: pos for pos, sid in enumerate(stim_ids)}
+        pairs = []
+        for delta_id, variant_id in self._resolve_highlight_pairs(compiled_data):
+            dp = pos_for_id.get(delta_id)
+            vp = pos_for_id.get(variant_id)
+            if dp is not None and vp is not None:
+                pairs.append((dp, vp))
+        self._highlight_pairs = pairs or None
+
         summary = ", ".join(f"{int(m.sum())} {r}" for r, m in masks.items())
         print(f"Highlighting {summary}:")
         for _pos, sid, role, letter in items:
             print(f"  {letter} = {sid} ({role})")
+        if pairs:
+            print(f"Connecting {len(pairs)} delta/variant pair(s) with lines.")
         return masks
 
     def _resolve_highlight_roles(self, compiled_data: pd.DataFrame) -> dict:
@@ -488,6 +504,34 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
                 return {int(k): v for k, v in override.items()}
             return {int(k): 'highlight' for k in override}
         return self._load_included_delta_variant_roles()
+
+    def _resolve_highlight_pairs(self, compiled_data: pd.DataFrame) -> list:
+        """``[(delta_id, variant_id), ...]`` for the highlighted pairs. Read from
+        ``IncludedDeltas`` by default; a set/dict ``highlighted_stim_ids`` override
+        carries no pairing information, so no lines are drawn in that case."""
+        if self.highlighted_stim_ids is not None:
+            return []
+        return self._load_included_delta_variant_pairs()
+
+    def _load_included_delta_variant_pairs(self) -> list:
+        """``[(delta_id, variant_id), ...]`` for the included REGIME_ESTIM_DELTA
+        stimuli paired with their REGIME_ESTIM_VARIANTS, from ``IncludedDeltas``.
+
+        Returns an empty list if the table is missing/empty or unreadable."""
+        try:
+            from clat.util.connection import Connection
+            conn = Connection(context.ga_database)
+            conn.execute(
+                "SELECT delta_id, variant_id FROM IncludedDeltas WHERE included = 1"
+            )
+            pairs = []
+            for delta_id, variant_id in conn.fetch_all():
+                if delta_id is not None and variant_id is not None:
+                    pairs.append((int(delta_id), int(variant_id)))
+            return pairs
+        except Exception as exc:
+            print(f"Could not read IncludedDeltas pairs (lines skipped): {exc}")
+            return []
 
     def _load_included_delta_variant_roles(self) -> dict:
         """``{stim_id -> 'delta'|'variant'}`` for included REGIME_ESTIM_DELTA
@@ -640,6 +684,13 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         roles = self._highlight_roles
         if not roles:
             return
+        # Connect each delta to its paired variant with a thin line (drawn under
+        # the rings so the rings stay legible on top).
+        for dp, vp in (self._highlight_pairs or []):
+            ax.plot([scores[dp, pc_x], scores[vp, pc_x]],
+                    [scores[dp, pc_y], scores[vp, pc_y]],
+                    color='dimgray', linestyle='-', linewidth=1.0,
+                    alpha=0.7, zorder=5)
         y = 0.01
         for role, mask in roles.items():
             color, lbl = self.HIGHLIGHT_STYLE.get(role, ('black', role))
@@ -651,6 +702,12 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
                         fontsize=8, color=color,
                         bbox=dict(boxstyle='round', fc='white', ec='gray', alpha=0.75))
                 y += 0.05
+        if annotate and self._highlight_pairs:
+            ax.text(0.01, y, f"— Δ↔variant pair (n={len(self._highlight_pairs)})",
+                    transform=ax.transAxes, ha='left', va='bottom',
+                    fontsize=8, color='dimgray',
+                    bbox=dict(boxstyle='round', fc='white', ec='gray', alpha=0.75))
+            y += 0.05
         # Letter labels next to each ringed point (on every panel).
         for pos, _sid, role, letter in (self._highlight_items or []):
             color = self.HIGHLIGHT_STYLE.get(role, ('black', role))[0]
