@@ -14,6 +14,12 @@ The figure shows, for the currently-displayed PCA-family reducer:
     channels, with cluster-colored borders whose intensity scales with each
     cluster's own min..max response range.
 
+Export then opens a single cycler window (Prev/Next, dropdown, arrow keys) whose
+first page is that PC-interpretation figure, followed by the stimuli-in-loading
+-space views: one scatter per condition (texture / lineage / GA response /
+StimType / center-of-mass / AlexNet) with the included delta/variant stimuli
+ringed, plus a per-PC example-thumbnail grid. All figures are also saved as PNGs.
+
 Only PCA and SparsePCA reducers are supported (they expose linear loadings).
 """
 
@@ -82,10 +88,19 @@ class PcInterpretationFigureExporter(DataExporter):
         self.alexnet_embedder = alexnet_embedder
 
     def export_channels_for_clusters(self, channels_for_clusters: dict[int, list[Channel]]):
-        # Three separate analyses share the Export button. Keep them clearly
-        # disjoint so callers can reuse each independently.
-        self._render_pc_interpretation_figure(channels_for_clusters)
-        self._render_loading_space_scatters()
+        # The Export button gathers every figure into one cycler window (the PC
+        # interpretation figure first, then the loading-space views) and writes
+        # the isolation scores. Each builder saves its own PNGs; here we only
+        # assemble the shared cycler.
+        figures = []  # list of (title, Figure)
+        interp = self._render_pc_interpretation_figure(channels_for_clusters)
+        if interp is not None:
+            figures.append(interp)
+        figures += [(sf.title, sf.figure)
+                    for sf in self._build_loading_space_figures()]
+
+        if figures:
+            self._show_figure_cycler(figures)
         self._compute_and_save_estim_isolation_score(channels_for_clusters)
 
     def _render_pc_interpretation_figure(self,
@@ -129,15 +144,17 @@ class PcInterpretationFigureExporter(DataExporter):
                                   explained_variance_ratio,
                                   save_path)
         print(f"Saved PC interpretation figure to {save_path}")
-        # Show on screen so clusters can be judged by their shape tuning before
-        # committing. Re-clicking Export re-renders here and re-writes the
-        # isolation scores, overriding the previous result.
-        self._show_figure_window(fig, save_path)
+        # Returned to export_channels_for_clusters, which shows it as the first
+        # page of the shared cycler so clusters can be judged by their shape
+        # tuning alongside the loading-space views.
+        title = f"PC interpretation — {self.reducer.get_name()}"
+        return (title, fig)
 
-    def _render_loading_space_scatters(self):
-        """Plot stimuli in *loading* space (PC1 loading on x, PC2 loading on y),
-        colored by each available condition, and show them in a single cycler
-        window (Prev/Next) rather than one window per condition.
+    def _build_loading_space_figures(self) -> list:
+        """Build the stimuli-in-*loading*-space figures (PC1 loading on x, PC2
+        loading on y): one scatter per available condition plus a per-PC
+        example-thumbnail grid. Returns ``[ScatterFigure, ...]`` (possibly empty)
+        for the caller to add to the cycler; PNGs are saved here.
 
         This is the loading-space counterpart to StimulusPCAAnalysis's stimulus
         scatters: there each point is a stimulus in neural PC-score space; here
@@ -147,12 +164,12 @@ class PcInterpretationFigureExporter(DataExporter):
         model = getattr(self.reducer, 'model', None)
         loadings = getattr(model, 'components_', None)
         if loadings is None:
-            print("Loading-space scatters skipped: "
+            print("Loading-space figures skipped: "
                   f"{self.reducer.get_name()} exposes no linear loadings.")
-            return
+            return []
         if loadings.shape[0] < 2:
-            print("Loading-space scatters skipped: need >=2 components.")
-            return
+            print("Loading-space figures skipped: need >=2 components.")
+            return []
 
         positions = loadings.T                      # (n_stim, n_components)
         stim_ids = self._fetch_stim_id_order()      # aligned: both order by stim_id
@@ -182,10 +199,10 @@ class PcInterpretationFigureExporter(DataExporter):
         if not figures:
             print("No loading-space figures could be built "
                   "(no condition columns / thumbnails available for these stimuli).")
-            return
+            return []
 
         self._save_scatter_figs(figures)
-        self._show_scatter_cycler(figures)
+        return figures
 
     def _fetch_stim_metadata(self, stim_ids: list) -> dict:
         """Per-stimulus coloring metadata from GAStimInfo, as
@@ -240,9 +257,14 @@ class PcInterpretationFigureExporter(DataExporter):
         print(f"Saved {len(scatter_figs)} loading-space scatter figure(s) "
               f"to {self.save_dir}")
 
-    def _show_scatter_cycler(self, scatter_figs: list):
-        """Display the loading-space scatters in one cycler window, replacing any
-        previous one so re-exporting always shows the latest."""
+    def _show_figure_cycler(self, figures: list):
+        """Display all export figures in one cycler window (Prev/Next, dropdown,
+        arrow keys), replacing any previous one so re-exporting always shows the
+        latest. ``figures`` is an ordered ``[(title, Figure), ...]``.
+
+        The cycler renders each figure at its native pixel size inside a scroll
+        area, so the large PC-interpretation figure stays readable -- the same
+        behavior the standalone window used to provide."""
         from src.cluster.figure_cycler import FigureCyclerWindow
 
         previous = getattr(self, '_cycler_window', None)
@@ -253,8 +275,8 @@ class PcInterpretationFigureExporter(DataExporter):
                 pass
 
         window = FigureCyclerWindow(
-            [(sf.title, sf.figure) for sf in scatter_figs],
-            window_title=f"Loading-space stimuli — {self.reducer.get_name()} "
+            figures,
+            window_title=f"Cluster PC export — {self.reducer.get_name()} "
                          f"(session {self.session_id})")
         window.show()
         # Hold a reference so the window isn't garbage-collected.
@@ -387,8 +409,8 @@ class PcInterpretationFigureExporter(DataExporter):
         n_rows = 1 + scatter_rowspan + max(n_clusters, 1)
 
         # Build the figure without pyplot so it doesn't touch global state /
-        # interfere with the running Qt event loop; it's displayed in its own
-        # window by _show_figure_window.
+        # interfere with the running Qt event loop; it's displayed as the first
+        # page of the shared cycler (see _show_figure_cycler).
         fig = Figure(figsize=(1.6 * n_cols + 2, 1.4 * n_rows + 2),
                      constrained_layout=True)
         gs = GridSpec(
@@ -415,63 +437,6 @@ class PcInterpretationFigureExporter(DataExporter):
                      f"(session {self.session_id})", fontsize=14)
         fig.savefig(save_path, dpi=120)
         return fig
-
-    def _show_figure_window(self, fig, save_path):
-        """Display the rendered figure in its own non-blocking Qt window with a
-        navigation toolbar (zoom/pan to inspect each cluster's shape tuning).
-
-        The canvas is rendered at the figure's full native pixel size inside a
-        scroll area, so thumbnails appear at the same scale as the saved PNG.
-        Without this, matplotlib's Qt canvas shrinks the (large) figure to fit
-        the window, squishing every thumbnail down to an unreadable size.
-
-        Keeps a single window per exporter: re-exporting closes the previous one
-        so the screen always shows the latest clustering.
-        """
-        from matplotlib.backends.backend_qt5agg import (
-            FigureCanvasQTAgg, NavigationToolbar2QT)
-        from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
-                                     QScrollArea)
-
-        previous = getattr(self, '_figure_window', None)
-        if previous is not None:
-            try:
-                previous.close()
-            except Exception:
-                pass
-
-        window = QMainWindow()
-        window.setWindowTitle(
-            f"PC interpretation — {self.reducer.get_name()} "
-            f"(session {self.session_id}) — {os.path.basename(save_path)}")
-
-        canvas = FigureCanvasQTAgg(fig)
-        # Pin the canvas to the figure's native pixel size so thumbnails render
-        # at the designed scale (same as the saved PNG) rather than being
-        # squeezed to the window. The scroll area lets the user pan around when
-        # the figure is larger than the screen; setWidgetResizable(True) still
-        # lets it grow to fill a larger window.
-        dpi = fig.get_dpi()
-        native_w = int(fig.get_figwidth() * dpi)
-        native_h = int(fig.get_figheight() * dpi)
-        canvas.setMinimumSize(native_w, native_h)
-
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(canvas)
-
-        container = QWidget()
-        layout = QVBoxLayout(container)
-        toolbar = NavigationToolbar2QT(canvas, container)
-        layout.addWidget(toolbar)
-        layout.addWidget(scroll)
-        window.setCentralWidget(container)
-        window.resize(1500, 950)
-        window.show()
-        canvas.draw()
-        # Hold a reference so the window isn't garbage-collected when this
-        # method returns.
-        self._figure_window = window
 
     @staticmethod
     def _render_scree(ax, explained_variance_ratio):
