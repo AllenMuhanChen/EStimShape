@@ -305,7 +305,7 @@ class ScriptRunnerApp:
                     "func": plot_variants_delta_gui.main,
                     "params": []
                 },
-                "Cluster PC Analysis": {
+                "Cluster PCA Analysis": {
                     "func": run_cluster_app_pc_figure.main,
                     "params": []
                 },
