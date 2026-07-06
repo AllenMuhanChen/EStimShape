@@ -174,14 +174,18 @@ class PcInterpretationFigureExporter(DataExporter):
             variance_ratio=self.reducer.get_explained_variance_ratio(),
             highlight=highlight, space="loading",
             figure_factory=Figure)
-        scatter_figs = builder.build_standard(alexnet_pcs=alexnet_pcs)
-        if not scatter_figs:
-            print("No loading-space scatter figures could be built "
-                  "(no condition columns available for these stimuli).")
+        # Condition-colored scatters, then one example-thumbnail grid per PC
+        # (stimuli binned by their loading along that PC) -- the loading-space
+        # counterpart to StimulusPCAAnalysis's per-PC example grids.
+        figures = builder.build_standard(alexnet_pcs=alexnet_pcs)
+        figures += builder.build_pc_examples(max_pcs=positions.shape[1])
+        if not figures:
+            print("No loading-space figures could be built "
+                  "(no condition columns / thumbnails available for these stimuli).")
             return
 
-        self._save_scatter_figs(scatter_figs)
-        self._show_scatter_cycler(scatter_figs)
+        self._save_scatter_figs(figures)
+        self._show_scatter_cycler(figures)
 
     def _fetch_stim_metadata(self, stim_ids: list) -> dict:
         """Per-stimulus coloring metadata from GAStimInfo, as

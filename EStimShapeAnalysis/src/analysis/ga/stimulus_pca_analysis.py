@@ -412,8 +412,8 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         for sf in scatter.build_standard(alexnet_pcs=alexnet_pcs):
             paths.append(self._save(sf.figure, f"{label}_stimulus_by_{sf.slug}"))
         # Binned example thumbnails along each of PC1..PC4.
-        for pc_idx in range(min(4, scores.shape[1])):
-            paths.append(self._plot_pc_examples(result, scores, compiled_data, pc_idx, label))
+        for sf in scatter.build_pc_examples(max_pcs=4):
+            paths.append(self._save(sf.figure, f"{label}_{sf.slug}"))
         result.figure_paths = [p for p in paths if p is not None]
 
     def _resolve_alexnet_pcs(self, value_lookup) -> Optional[dict]:
@@ -493,76 +493,6 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         fig.colorbar(im, ax=ax, label="Loading")
         fig.tight_layout()
         return self._save(fig, f"{label}_loadings_heatmap")
-
-    def _plot_pc_examples(self, result: StimulusPCAResult, scores: np.ndarray,
-                          compiled_data: pd.DataFrame, pc_idx: int, label: str,
-                          n_bins: int = 5, n_per_bin: int = 6) -> Optional[str]:
-        """Grid of example thumbnails for one PC: rows are equal-width value
-        ranges of the PC (high at top), each row showing several example stimuli
-        drawn from that range."""
-        thumbs = dataframe_value_lookup(compiled_data)('ThumbnailPath')
-        if thumbs is None:
-            print(f"Skipping PC{pc_idx + 1} examples: 'ThumbnailPath' not available.")
-            return None
-
-        stim_ids = list(result.response_matrix.index)
-        pc = scores[:, pc_idx]
-        lo, hi = float(np.min(pc)), float(np.max(pc))
-        if hi - lo < 1e-12:
-            print(f"Skipping PC{pc_idx + 1} examples: no spread along this PC.")
-            return None
-        edges = np.linspace(lo, hi, n_bins + 1)
-
-        fig, axes = plt.subplots(n_bins, n_per_bin,
-                                 figsize=(2.0 * n_per_bin, 2.3 * n_bins),
-                                 squeeze=False)
-        for row in range(n_bins):
-            bin_idx = n_bins - 1 - row  # top row = highest range
-            b_lo, b_hi = edges[bin_idx], edges[bin_idx + 1]
-            if bin_idx == n_bins - 1:  # include the right edge in the top bin
-                in_bin = np.where((pc >= b_lo) & (pc <= b_hi))[0]
-            else:
-                in_bin = np.where((pc >= b_lo) & (pc < b_hi))[0]
-            in_bin = in_bin[np.argsort(pc[in_bin])]
-            if len(in_bin) > n_per_bin:
-                sel = in_bin[np.linspace(0, len(in_bin) - 1, n_per_bin).round().astype(int)]
-            else:
-                sel = in_bin
-
-            for col in range(n_per_bin):
-                ax = axes[row][col]
-                if col < len(sel):
-                    self._show_thumb(ax, thumbs.get(stim_ids[sel[col]]))
-                else:
-                    ax.axis('off')
-            # Range label on the leftmost cell (frame off, keep the y-label).
-            left = axes[row][0]
-            left.set_xticks([])
-            left.set_yticks([])
-            for spine in left.spines.values():
-                spine.set_visible(False)
-            left.set_ylabel(f"[{b_lo:.1f}, {b_hi:.1f}]\nn={len(in_bin)}",
-                            fontsize=8, rotation=0, ha='right', va='center', labelpad=28)
-
-        evr = result.explained_variance_ratio
-        fig.suptitle(f"Example stimuli by PC{pc_idx + 1} range "
-                     f"({evr[pc_idx] * 100:.1f}% var; top = high)")
-        fig.tight_layout()
-        return self._save(fig, f"{label}_pc{pc_idx + 1}_examples")
-
-    @staticmethod
-    def _show_thumb(ax, path: Optional[str]) -> None:
-        ax.set_xticks([])
-        ax.set_yticks([])
-        if path and os.path.exists(path):
-            try:
-                ax.imshow(plt.imread(path))
-                return
-            except Exception:  # unreadable image -> placeholder, keep going
-                ax.text(0.5, 0.5, "(unreadable)", ha='center', va='center', fontsize=6)
-        else:
-            ax.text(0.5, 0.5, "(no thumb)", ha='center', va='center',
-                    fontsize=7, color='gray')
 
 
 if __name__ == "__main__":

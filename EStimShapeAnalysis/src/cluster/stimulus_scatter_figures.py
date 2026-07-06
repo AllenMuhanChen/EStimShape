@@ -27,6 +27,7 @@ figures instead.
 """
 
 import ast
+import os
 from dataclasses import dataclass, field
 from typing import Callable, Optional, Sequence
 
@@ -34,6 +35,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
+import matplotlib.image as mpimg
 from matplotlib.figure import Figure
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
@@ -281,6 +283,22 @@ def slug(column: str) -> str:
     return column.strip().lower().replace(' ', '_')
 
 
+def _show_thumb(ax, path: Optional[str]) -> None:
+    """Draw a stimulus thumbnail into `ax`, or a placeholder if it's missing /
+    unreadable. Uses ``matplotlib.image`` (not pyplot) so it is Qt-safe."""
+    ax.set_xticks([])
+    ax.set_yticks([])
+    if path and os.path.exists(path):
+        try:
+            ax.imshow(mpimg.imread(path))
+            return
+        except Exception:  # unreadable image -> placeholder, keep going
+            ax.text(0.5, 0.5, "(unreadable)", ha='center', va='center', fontsize=6)
+    else:
+        ax.text(0.5, 0.5, "(no thumb)", ha='center', va='center',
+                fontsize=7, color='gray')
+
+
 # ---- the scatter figure builder -----------------------------------------
 @dataclass
 class ScatterFigure:
@@ -339,6 +357,18 @@ class StimulusScatterFigures:
             candidates.append(lambda: self.alexnet(alexnet_pcs))
         figures = [make() for make in candidates]
         return [f for f in figures if f is not None]
+
+    def build_pc_examples(self, max_pcs: int = 4, *,
+                          n_bins: int = 5, n_per_bin: int = 6) -> list[ScatterFigure]:
+        """One example-thumbnail grid per component (up to ``max_pcs``), binned
+        by position along that PC. Components with no thumbnails / no spread are
+        skipped."""
+        figures = []
+        for pc_idx in range(min(max_pcs, self.positions.shape[1])):
+            sf = self.pc_examples(pc_idx, n_bins=n_bins, n_per_bin=n_per_bin)
+            if sf is not None:
+                figures.append(sf)
+        return figures
 
     # ---- public: individual scatters ------------------------------------
     def categorical(self, column: str, cmap: Optional[str] = 'tab20') -> Optional[ScatterFigure]:
@@ -469,6 +499,65 @@ class StimulusScatterFigures:
             f"Stimuli in {self._space_word()} (colored by AlexNet conv3 PCA: PC1→x, PC2→y)",
             draw, right_pad_in=2.0)
 
+    def pc_examples(self, pc_idx: int, *,
+                    n_bins: int = 5, n_per_bin: int = 6) -> Optional[ScatterFigure]:
+        """Grid of example thumbnails for one PC: rows are equal-width value
+        ranges of the PC (high at top), each row showing several example stimuli
+        drawn from that range. In loading space the "value" is the stimulus's
+        loading on that PC, so the grid reads as "what stimuli drive this PC."
+        """
+        thumbs = self.value_lookup('ThumbnailPath')
+        if thumbs is None:
+            print(f"Skipping PC{pc_idx + 1} examples: 'ThumbnailPath' not available.")
+            return None
+        if pc_idx >= self.positions.shape[1]:
+            return None
+
+        pc = self.positions[:, pc_idx]
+        lo, hi = float(np.min(pc)), float(np.max(pc))
+        if hi - lo < 1e-12:
+            print(f"Skipping PC{pc_idx + 1} examples: no spread along this PC.")
+            return None
+        edges = np.linspace(lo, hi, n_bins + 1)
+
+        fig = self.figure_factory(figsize=(2.0 * n_per_bin, 2.3 * n_bins))
+        axes = fig.subplots(n_bins, n_per_bin, squeeze=False)
+        for row in range(n_bins):
+            bin_idx = n_bins - 1 - row  # top row = highest range
+            b_lo, b_hi = edges[bin_idx], edges[bin_idx + 1]
+            if bin_idx == n_bins - 1:  # include the right edge in the top bin
+                in_bin = np.where((pc >= b_lo) & (pc <= b_hi))[0]
+            else:
+                in_bin = np.where((pc >= b_lo) & (pc < b_hi))[0]
+            in_bin = in_bin[np.argsort(pc[in_bin])]
+            if len(in_bin) > n_per_bin:
+                sel = in_bin[np.linspace(0, len(in_bin) - 1, n_per_bin).round().astype(int)]
+            else:
+                sel = in_bin
+
+            for col in range(n_per_bin):
+                ax = axes[row][col]
+                if col < len(sel):
+                    _show_thumb(ax, thumbs.get(self.stim_ids[sel[col]]))
+                else:
+                    ax.axis('off')
+            # Range label on the leftmost cell (frame off, keep the y-label).
+            left = axes[row][0]
+            left.set_xticks([])
+            left.set_yticks([])
+            for spine in left.spines.values():
+                spine.set_visible(False)
+            left.set_ylabel(f"[{b_lo:.1f}, {b_hi:.1f}]\nn={len(in_bin)}",
+                            fontsize=8, rotation=0, ha='right', va='center', labelpad=28)
+
+        suffix = " loading" if self.space == "loading" else ""
+        title = (f"Example stimuli by PC{pc_idx + 1}{suffix} range "
+                 f"({self._var_text(pc_idx)}top = high)")
+        fig.suptitle(title)
+        fig.tight_layout()
+        name_slug = f"pc{pc_idx + 1}{'_loading' if self.space == 'loading' else ''}_examples"
+        return ScatterFigure(title=title, slug=name_slug, figure=fig)
+
     # ---- shared multi-panel layout --------------------------------------
     def _coloring(self, column: str, name_slug: str, suptitle: str, draw_fn,
                   right_pad_in: float = 0.0) -> ScatterFigure:
@@ -519,6 +608,14 @@ class StimulusScatterFigures:
         if evr is None or pc >= len(evr):
             return ""
         return f" ({evr[pc] * 100:.1f}%)"
+
+    def _var_text(self, pc: int) -> str:
+        """'12.3% var; ' for a PC with known variance, else '' -- used inside the
+        pc-examples title, which stays legible with or without the percentage."""
+        evr = self.variance_ratio
+        if evr is None or pc >= len(evr):
+            return ""
+        return f"{evr[pc] * 100:.1f}% var; "
 
     def _pc_pair_label(self, pc_x: int, pc_y: int) -> str:
         suffix = " loading" if self.space == "loading" else ""
