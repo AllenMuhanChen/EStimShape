@@ -38,6 +38,8 @@ from src.cluster.dimensionality_reduction import (DimensionalityReducer,
                                                   PCAReducer, SparsePCAReducer)
 from src.cluster.mock_cluster_app import get_qapplication_instance
 from src.cluster.probe_mapping import DBCChannelMapper
+from src.cluster.stimulus_scatter_figures import (
+    StimulusScatterFigures, build_highlight_spec, dict_value_lookup)
 from src.pga.app.run_cluster_app import DbClusterLoader, DbDataLoader
 from src.repository.export_to_repository import \
     read_session_id_and_date_from_db_name
@@ -51,20 +53,39 @@ BORDER_WIDTH = 30       # pixels of colored border around each cluster thumb
 SCREE_MAX_COMPONENTS = 20
 LOADING_CMAP = 'coolwarm'  # diverging colormap for PC loading subtitle text
 
+# GAStimInfo columns pulled for the loading-space scatters, mapped from their
+# SQL-safe DB name (spaces -> underscores) to the df-style name the scatter
+# engine expects. Missing/empty columns are simply skipped (that scatter isn't
+# drawn), so this degrades gracefully across sessions with different fields.
+STIM_METADATA_COLUMNS = {
+    'Texture': 'Texture',
+    'MassCenter': 'MassCenter',
+    'GA_Response': 'GA Response',
+    'Lineage': 'Lineage',
+    'StimType': 'StimType',
+    'ThumbnailPath': 'ThumbnailPath',
+    'StimPath': 'StimPath',
+}
+
 
 class PcInterpretationFigureExporter(DataExporter):
     def __init__(self, data_loader: DbDataLoader, reducer: DimensionalityReducer,
-                 channel_mapper, session_id: str, save_dir: str):
+                 channel_mapper, session_id: str, save_dir: str,
+                 alexnet_embedder=None):
         self.data_loader = data_loader
         self.reducer = reducer
         self.channel_mapper = channel_mapper
         self.session_id = session_id
         self.save_dir = save_dir
+        # Optional AlexNetLayer3PCAEmbedder; when set, the loading-space scatters
+        # gain a "colored by AlexNet conv3 PCA" view. None -> that view is skipped.
+        self.alexnet_embedder = alexnet_embedder
 
     def export_channels_for_clusters(self, channels_for_clusters: dict[int, list[Channel]]):
-        # Two separate analyses share the Export button. Keep them clearly
-        # disjoint so callers can reuse either independently.
+        # Three separate analyses share the Export button. Keep them clearly
+        # disjoint so callers can reuse each independently.
         self._render_pc_interpretation_figure(channels_for_clusters)
+        self._render_loading_space_scatters()
         self._compute_and_save_estim_isolation_score(channels_for_clusters)
 
     def _render_pc_interpretation_figure(self,
@@ -112,6 +133,128 @@ class PcInterpretationFigureExporter(DataExporter):
         # committing. Re-clicking Export re-renders here and re-writes the
         # isolation scores, overriding the previous result.
         self._show_figure_window(fig, save_path)
+
+    def _render_loading_space_scatters(self):
+        """Plot stimuli in *loading* space (PC1 loading on x, PC2 loading on y),
+        colored by each available condition, and show them in a single cycler
+        window (Prev/Next) rather than one window per condition.
+
+        This is the loading-space counterpart to StimulusPCAAnalysis's stimulus
+        scatters: there each point is a stimulus in neural PC-score space; here
+        each point is a stimulus placed at its loading on the two channel PCs,
+        i.e. at what actually drives those PCs.
+        """
+        model = getattr(self.reducer, 'model', None)
+        loadings = getattr(model, 'components_', None)
+        if loadings is None:
+            print("Loading-space scatters skipped: "
+                  f"{self.reducer.get_name()} exposes no linear loadings.")
+            return
+        if loadings.shape[0] < 2:
+            print("Loading-space scatters skipped: need >=2 components.")
+            return
+
+        positions = loadings.T                      # (n_stim, n_components)
+        stim_ids = self._fetch_stim_id_order()      # aligned: both order by stim_id
+        if len(stim_ids) != positions.shape[0]:
+            print(f"WARN: stim_id count ({len(stim_ids)}) != loadings dim "
+                  f"({positions.shape[0]}); truncating to the shared prefix so "
+                  "loading-space points stay aligned with stimuli.")
+            n = min(len(stim_ids), positions.shape[0])
+            stim_ids, positions = stim_ids[:n], positions[:n]
+
+        metadata = self._fetch_stim_metadata(stim_ids)
+        highlight = build_highlight_spec(
+            stim_ids, context.ga_database,
+            stim_type_for_id=metadata.get('StimType'))
+        alexnet_pcs = self._resolve_alexnet_pcs(metadata)
+
+        builder = StimulusScatterFigures(
+            positions, stim_ids, dict_value_lookup(metadata),
+            variance_ratio=self.reducer.get_explained_variance_ratio(),
+            highlight=highlight, space="loading",
+            figure_factory=Figure)
+        scatter_figs = builder.build_standard(alexnet_pcs=alexnet_pcs)
+        if not scatter_figs:
+            print("No loading-space scatter figures could be built "
+                  "(no condition columns available for these stimuli).")
+            return
+
+        self._save_scatter_figs(scatter_figs)
+        self._show_scatter_cycler(scatter_figs)
+
+    def _fetch_stim_metadata(self, stim_ids: list) -> dict:
+        """Per-stimulus coloring metadata from GAStimInfo, as
+        ``{df_column_name: {stim_id: value}}``. Only columns that exist in the
+        table and actually carry values are returned, so unavailable conditions
+        are naturally skipped by the scatter engine."""
+        if not stim_ids:
+            return {}
+        repo_conn = Connection("allen_data_repository")
+        repo_conn.execute("DESCRIBE GAStimInfo")
+        existing = {row[0] for row in repo_conn.fetch_all()}
+        db_cols = [c for c in STIM_METADATA_COLUMNS if c in existing]
+        if not db_cols:
+            print("No coloring columns found in GAStimInfo for loading-space scatters.")
+            return {}
+
+        placeholders = ', '.join(['%s'] * len(stim_ids))
+        repo_conn.execute(
+            f"SELECT stim_id, {', '.join(db_cols)} FROM GAStimInfo "
+            f"WHERE stim_id IN ({placeholders})",
+            params=stim_ids,
+        )
+        metadata: dict[str, dict] = {STIM_METADATA_COLUMNS[c]: {} for c in db_cols}
+        for row in repo_conn.fetch_all():
+            sid = row[0]
+            for i, db_col in enumerate(db_cols, start=1):
+                value = row[i]
+                if value is not None:
+                    metadata[STIM_METADATA_COLUMNS[db_col]][sid] = value
+        # Drop columns that ended up empty so the engine skips those scatters.
+        return {name: values for name, values in metadata.items() if values}
+
+    def _resolve_alexnet_pcs(self, metadata: dict) -> dict | None:
+        """Per-stimulus AlexNet conv3-PCA coordinates via the injected embedder,
+        or None when no embedder / no image paths are available."""
+        if self.alexnet_embedder is None:
+            return None
+        paths = metadata.get('StimPath') or metadata.get('ThumbnailPath')
+        if not paths:
+            print("AlexNet coloring skipped: no StimPath/ThumbnailPath available.")
+            return None
+        return self.alexnet_embedder.embed(paths)
+
+    def _save_scatter_figs(self, scatter_figs: list):
+        os.makedirs(self.save_dir, exist_ok=True)
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        name = self.reducer.get_name()
+        for sf in scatter_figs:
+            path = os.path.join(
+                self.save_dir, f"loading_space_{name}_{sf.slug}_{ts}.png")
+            sf.figure.savefig(path, dpi=120)
+        print(f"Saved {len(scatter_figs)} loading-space scatter figure(s) "
+              f"to {self.save_dir}")
+
+    def _show_scatter_cycler(self, scatter_figs: list):
+        """Display the loading-space scatters in one cycler window, replacing any
+        previous one so re-exporting always shows the latest."""
+        from src.cluster.figure_cycler import FigureCyclerWindow
+
+        previous = getattr(self, '_cycler_window', None)
+        if previous is not None:
+            try:
+                previous.close()
+            except Exception:
+                pass
+
+        window = FigureCyclerWindow(
+            [(sf.title, sf.figure) for sf in scatter_figs],
+            window_title=f"Loading-space stimuli — {self.reducer.get_name()} "
+                         f"(session {self.session_id})")
+        window.show()
+        # Hold a reference so the window isn't garbage-collected.
+        self._cycler_window = window
 
     def _compute_and_save_estim_isolation_score(self,
                                                 channels_for_clusters: dict[int, list[Channel]]):
@@ -513,6 +656,12 @@ def _scaled_border_color(response: float, min_val: float, max_val: float,
 
 
 def main():
+    # Reuse the analysis's AlexNet embedder factory so the loading-space
+    # "colored by AlexNet conv3 PCA" view matches the stimulus-PCA one. Imported
+    # here (not at module load) to keep the heavy analysis/torch stack lazy.
+    from src.analysis.ga.stimulus_pca_analysis import (
+        make_alexnet_embedder, ALEXNET_ONNX_PATH)
+
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     save_dir = os.path.join(PLOT_BASE_DIR, session_id)
 
@@ -526,6 +675,7 @@ def main():
         channel_mapper=channel_mapper,
         session_id=session_id,
         save_dir=save_dir,
+        alexnet_embedder=make_alexnet_embedder(ALEXNET_ONNX_PATH),
     )
 
     app = get_qapplication_instance()
