@@ -42,7 +42,7 @@ from src.startup.context import ga_database
 # CONFIGURATION
 # ============================================================================
 
-ACQUISITION_SECONDS = 60
+ACQUISITION_SECONDS = 30
 
 CHANNEL_ORDER = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
                  27, 20, 4, 11, 28, 19, 1, 14, 3, 12, 29, 18, 2, 13, 30, 17]
