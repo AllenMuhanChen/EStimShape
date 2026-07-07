@@ -1,7 +1,9 @@
-import numpy as np
+import os
+import tkinter as tk
+from tkinter import ttk
+
 import pandas as pd
-from matplotlib import pyplot as plt
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageTk
 
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.analysis.ga.response_spec import ResponseSpec
@@ -97,9 +99,9 @@ class PlotVariants(PlotTopNAnalysis):
         hypo_map = self._load_hypothesized_comps(
             plot_data['StimSpecId'].dropna().unique())
 
-        # Render as a native, interactive matplotlib window rather than a giant
-        # rasterized image: pan, box-zoom (toolbar) and scroll-to-zoom all work,
-        # and because thumbnails sit in data coordinates, zooming magnifies them.
+        # Render in a scrollable native window (Tkinter canvas) rather than a
+        # giant rasterized image: scrolling just moves the viewport, so it stays
+        # responsive with thousands of stimuli.
         title = (f"{prepared.channel_label}{prepared.baseline_suffix} "
                  f"- variant history by parent")
         self._show_variant_history(plot_data, response_col, hypo_map, title)
@@ -138,150 +140,178 @@ class PlotVariants(PlotTopNAnalysis):
             print(f"Could not read hypothesized comps: {exc}")
         return result
 
-    @staticmethod
-    def _use_interactive_backend():
-        """Switch to a real GUI window backend when stuck on a non-interactive one.
-
-        PyCharm intercepts plots into SciView (``module://backend_interagg``),
-        which draws the whole figure as a single downscaled bitmap - blurry and
-        not zoomable. A native Tk/Qt window renders crisply and supports
-        pan/zoom. No-op if we're already on an interactive GUI backend (or none
-        is available). You can also just untick PyCharm's Settings > Tools >
-        Python Plots > "Show plots in tool window".
-        """
-        import matplotlib
-        current = matplotlib.get_backend().lower()
-        needs_switch = ('interagg' in current or 'inline' in current
-                        or current == 'agg')
-        if not needs_switch:
-            return
-        for backend in ("TkAgg", "QtAgg", "Qt5Agg", "MacOSX"):
-            try:
-                plt.switch_backend(backend)
-                print(f"Switched matplotlib backend to {backend} "
-                      f"for an interactive window.")
-                return
-            except Exception:
-                continue
-        print("Could not find an interactive matplotlib backend; "
-              "the plot may render in PyCharm's SciView.")
-
     def _show_variant_history(self, plot_data, response_col, hypo_map, title):
-        """Draw the per-parent variant history as an interactive matplotlib window.
+        """Show the per-parent variant history in a scrollable Tkinter window.
 
-        Each row is one parent (leftmost cell = the parent's own image at
-        ColIndex 0); the remaining cells are its variants, already ordered by
-        generation then response. Thumbnails are placed in data coordinates so
-        the toolbar/scroll zoom magnifies them, and each label sits *below* its
-        thumbnail so it never covers the shape.
+        Each row is one parent (leftmost cell = the parent's own image);
+        remaining cells are its variants, already ordered by generation then
+        response. Thumbnails are drawn as canvas image items, so scrolling just
+        moves the viewport (fast even with thousands of stimuli) rather than
+        re-rasterizing everything the way matplotlib does. Ctrl+wheel re-renders
+        at a larger/smaller thumbnail size. Labels sit *below* each thumbnail so
+        they never cover the shape, and include gen id, stim id, response and
+        hypothesized comp.
         """
-        # Get out of PyCharm's SciView (which renders one blurry static bitmap)
-        # into a real, crisp, zoomable GUI window.
-        self._use_interactive_backend()
+        resp = pd.to_numeric(plot_data[response_col], errors='coerce')
+        vmin = float(resp.min()) if resp.notna().any() else 0.0
+        vmax = float(resp.max()) if resp.notna().any() else 1.0
 
         row_values = sorted(plot_data['ParentGroup'].unique())
         row_pos = {p: i for i, p in enumerate(row_values)}
-        n_rows = len(row_values)
-        max_col = int(plot_data['ColIndex'].max())
 
-        resp = pd.to_numeric(plot_data[response_col], errors='coerce').to_numpy()
-        has_resp = np.isfinite(resp).any()
-        vmin = float(np.nanmin(resp)) if has_resp else 0.0
-        vmax = float(np.nanmax(resp)) if has_resp else 1.0
+        # Per-stimulus arrays for fast iteration during render.
+        records = list(zip(
+            plot_data['ParentGroup'].tolist(),
+            plot_data['ColIndex'].tolist(),
+            plot_data['ThumbnailPath'].tolist(),
+            resp.tolist(),
+            plot_data['GenId'].tolist(),
+            plot_data['StimSpecId'].tolist(),
+        ))
 
-        # Cell geometry (data units). Rows are pitched wider than the image so
-        # the gap underneath holds the label without touching the next row.
-        row_pitch = 1.45
-        img_w, img_h = 0.9, 1.0
-        # Render thumbnails at a high resolution so zooming in stays crisp.
-        thumb_px, border_px = 300, 30
+        root = tk.Tk()
+        root.title(title)
+        root.geometry("1500x850")
 
-        groups = plot_data['ParentGroup'].to_numpy()
-        cols = plot_data['ColIndex'].to_numpy()
-        paths = plot_data['ThumbnailPath'].to_numpy()
-        gens = plot_data['GenId'].to_numpy()
-        sids = plot_data['StimSpecId'].to_numpy()
+        status = tk.StringVar(value="scroll: wheel / shift+wheel   |   zoom: ctrl+wheel or +/-")
+        tk.Label(root, textvariable=status, anchor="w", fg="gray").pack(
+            side="bottom", fill="x", padx=8)
 
-        fig_w = min(3 + max_col * 1.1, 55)
-        fig_h = min(2 + n_rows * 1.3, 90)
-        fig, ax = plt.subplots(figsize=(fig_w, fig_h))
-        ax.set_aspect('equal')
-        ax.axis('off')
-        ax.set_title(title, fontsize=11)
+        canvas = tk.Canvas(root, background="white")
+        v_scroll = ttk.Scrollbar(root, orient="vertical", command=canvas.yview)
+        h_scroll = ttk.Scrollbar(root, orient="horizontal", command=canvas.xview)
+        canvas.configure(yscrollcommand=v_scroll.set, xscrollcommand=h_scroll.set)
+        v_scroll.pack(side="right", fill="y")
+        h_scroll.pack(side="bottom", fill="x")
+        canvas.pack(side="left", fill="both", expand=True)
 
-        def border_rgb(v):
-            if vmax > vmin and np.isfinite(v):
+        # thumb = image side incl. border, in px; the only thing zoom changes.
+        state = {"thumb": 120}
+        label_gutter = 110  # left strip for the "parent N" labels
+        src_cache: dict[str, object] = {}   # path -> full-res PIL RGB (or None)
+        photo_cache: dict[tuple, ImageTk.PhotoImage] = {}  # keep refs alive
+
+        def border_hex(v):
+            if vmax > vmin and v == v:  # v == v is False for NaN
                 t = max(0.0, min(1.0, (v - vmin) / (vmax - vmin)))
             else:
                 t = 0.5
-            return (int(255 * t), 0, 0)
+            return f"#{int(255 * t):02x}0000"
 
-        img_cache: dict[str, object] = {}
-        for k in range(len(plot_data)):
-            j = int(cols[k])
-            i = row_pos[groups[k]]
-            top = -(i * row_pitch)
-            bottom = top - img_h
-            x0 = j + (1 - img_w) / 2
-            x1 = x0 + img_w
-            v = float(resp[k])
-
-            path = paths[k]
-            if path not in img_cache:
+        def get_photo(path, v, thumb):
+            key = (path, thumb, border_hex(v))
+            cached = photo_cache.get(key)
+            if cached is not None:
+                return cached
+            src = src_cache.get(path, False)
+            if src is False:
                 try:
                     with Image.open(path) as im:
-                        img_cache[path] = im.convert('RGB').resize(
-                            (thumb_px, thumb_px), Image.LANCZOS)
+                        src = im.convert("RGB")
                 except Exception:
-                    img_cache[path] = None
-            img = img_cache[path]
-            if img is not None:
-                bordered = ImageOps.expand(img, border=border_px, fill=border_rgb(v))
-                ax.imshow(np.asarray(bordered),
-                          extent=[x0, x1, bottom, top], zorder=1)
+                    src = None
+                src_cache[path] = src
+            if src is None:
+                return None
+            bw = max(2, int(thumb * 0.08))
+            inner = max(1, thumb - 2 * bw)
+            img = ImageOps.expand(src.resize((inner, inner), Image.LANCZOS),
+                                  border=bw, fill=border_hex(v))
+            photo = ImageTk.PhotoImage(img)
+            photo_cache[key] = photo
+            return photo
 
-            # Label below the thumbnail so it never overlaps the shape.
-            sid = sids[k]
-            gen = gens[k]
-            header = []
-            if not pd.isna(gen):
-                header.append(f"g{int(gen)}")
-            if not pd.isna(sid):
-                header.append(f"#{int(sid)}")
-            lines = [" ".join(header)]
-            lines.append(f"r={v:.0f}" if np.isfinite(v) else "r=NA")
-            hc = hypo_map.get(int(sid)) if not pd.isna(sid) else None
-            if hc:
-                lines.append(f"hc={hc}")
-            ax.text((x0 + x1) / 2, bottom - 0.04, "\n".join(lines),
-                    ha='center', va='top', fontsize=5, linespacing=1.05, zorder=3)
+        def render():
+            canvas.delete("all")
+            photo_cache.clear()  # drop stale-size photos so memory doesn't grow
+            thumb = state["thumb"]
+            cell_w = thumb + 16
+            cell_h = thumb + 34  # room for the label strip under each thumbnail
+            for parent_group, col, path, v, gen, sid in records:
+                i = row_pos[parent_group]
+                x = label_gutter + int(col) * cell_w
+                y = 10 + i * cell_h
+                photo = get_photo(path, v, thumb)
+                if photo is not None:
+                    canvas.create_image(x + thumb / 2, y + thumb / 2,
+                                        image=photo, anchor="center")
+                else:
+                    canvas.create_rectangle(x, y, x + thumb, y + thumb,
+                                            outline="gray", dash=(2, 2))
+                    canvas.create_text(x + thumb / 2, y + thumb / 2,
+                                       text="(no image)", fill="gray", font=("Arial", 7))
+                header = []
+                if pd.notna(gen):
+                    header.append(f"g{int(gen)}")
+                if pd.notna(sid):
+                    header.append(f"#{int(sid)}")
+                lines = [" ".join(header),
+                         f"r={v:.0f}" if v == v else "r=NA"]
+                hc = hypo_map.get(int(sid)) if pd.notna(sid) else None
+                if hc:
+                    lines.append(f"hc={hc}")
+                canvas.create_text(x + thumb / 2, y + thumb + 1, anchor="n",
+                                   text="\n".join(lines), font=("Arial", 7),
+                                   justify="center")
+            # Parent id labels down the left gutter.
+            for parent_group, i in row_pos.items():
+                y = 10 + i * cell_h
+                canvas.create_text(label_gutter - 8, y + thumb / 2, anchor="e",
+                                   text=f"parent\n{int(parent_group)}",
+                                   font=("Arial", 9, "bold"), justify="right")
+            canvas.configure(scrollregion=canvas.bbox("all"))
+            status.set(f"{len(records)} stimuli, {len(row_pos)} parents   |   "
+                       f"thumb {thumb}px   |   scroll: wheel / shift+wheel   "
+                       f"|   zoom: ctrl+wheel or +/-")
 
-        # Parent id label at the far left of each row.
-        for parent, i in row_pos.items():
-            top = -(i * row_pitch)
-            ax.text(-0.15, top - img_h / 2, f"parent\n{int(parent)}",
-                    ha='right', va='center', fontsize=6, fontweight='bold')
+        def zoom(factor):
+            new = int(state["thumb"] * factor)
+            new = max(40, min(600, new))
+            if new != state["thumb"]:
+                state["thumb"] = new
+                status.set("rendering...")
+                root.update_idletasks()
+                render()
 
-        ax.set_xlim(-1.7, max_col + 1.2)
-        ax.set_ylim(-((n_rows - 1) * row_pitch) - img_h - 0.7, 0.7)
+        # Wheel handling (Windows/macOS send <MouseWheel>; X11 sends Button-4/5).
+        def _wheel_dir(event):
+            if getattr(event, "num", None) == 4:
+                return 1
+            if getattr(event, "num", None) == 5:
+                return -1
+            return 1 if event.delta > 0 else -1
 
-        # Scroll wheel zooms centered on the cursor, on top of the toolbar's
-        # pan and box-zoom.
-        def on_scroll(event):
-            if event.inaxes != ax or event.xdata is None:
-                return
-            base = 1.25
-            scale = (1 / base) if event.button == 'up' else base
-            x0l, x1l = ax.get_xlim()
-            y0l, y1l = ax.get_ylim()
-            xd, yd = event.xdata, event.ydata
-            ax.set_xlim(xd - (xd - x0l) * scale, xd + (x1l - xd) * scale)
-            ax.set_ylim(yd - (yd - y0l) * scale, yd + (y1l - yd) * scale)
-            fig.canvas.draw_idle()
+        def on_wheel(event):
+            canvas.yview_scroll(-_wheel_dir(event), "units")
 
-        fig.canvas.mpl_connect('scroll_event', on_scroll)
-        plt.tight_layout()
-        plt.show()
+        def on_shift_wheel(event):
+            canvas.xview_scroll(-_wheel_dir(event), "units")
+
+        def on_ctrl_wheel(event):
+            zoom(1.25 if _wheel_dir(event) > 0 else 1 / 1.25)
+
+        canvas.bind_all("<MouseWheel>", on_wheel)
+        canvas.bind_all("<Shift-MouseWheel>", on_shift_wheel)
+        canvas.bind_all("<Control-MouseWheel>", on_ctrl_wheel)
+        canvas.bind_all("<Button-4>", on_wheel)
+        canvas.bind_all("<Button-5>", on_wheel)
+        canvas.bind_all("<Shift-Button-4>", on_shift_wheel)
+        canvas.bind_all("<Shift-Button-5>", on_shift_wheel)
+        canvas.bind_all("<Control-Button-4>", on_ctrl_wheel)
+        canvas.bind_all("<Control-Button-5>", on_ctrl_wheel)
+        root.bind("<plus>", lambda _e: zoom(1.25))
+        root.bind("<KP_Add>", lambda _e: zoom(1.25))
+        root.bind("<minus>", lambda _e: zoom(1 / 1.25))
+        root.bind("<KP_Subtract>", lambda _e: zoom(1 / 1.25))
+
+        render()
+
+        # Closing a window holding thousands of PhotoImages triggers a very slow
+        # synchronous teardown (Tk destroys every item, then the interpreter GCs
+        # every cached image). This viewer's process has nothing else to do, so
+        # skip the graceful teardown and let the OS reclaim everything at once.
+        root.protocol("WM_DELETE_WINDOW", lambda: os._exit(0))
+        root.mainloop()
 
     def _save_included_variants_to_db(self, compiled_data, response_col):
         """Save included variants to the GA database."""
