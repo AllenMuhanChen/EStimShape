@@ -692,6 +692,21 @@ _METRIC_LABELS = {
 _METRIC_ORDER = list(_METRIC_LABELS)
 
 
+# Single shared config for BOTH comparison entry points (main_metric_comparison and
+# main_neighbor_sweep). Edit here once — keeping them in one place makes it impossible
+# for the leaderboard and the sweep to silently drift onto different effect
+# definitions (which makes every correlation disagree even though the code is the
+# same). GUI users: change these constants, then Run the file.
+COMPARISON_METRIC = METRIC_PCT_HYP_VS_DELTA
+COMPARISON_REQUIRED_CONDITIONS = {'trial_type': 'Hypothesized Shape'}
+COMPARISON_START_SESSION_ID = "260402_0"
+COMPARISON_EXCLUDE_SESSION_IDS = ["260421_0", "260410_0"]
+COMPARISON_MIN_ON_TRIALS = 10
+COMPARISON_MIN_OFF_TRIALS = 10
+COMPARISON_ABS_EFFECT = True          # relate metrics to |effect| (effect strength)
+COMPARISON_SAVE_DIR = "/home/connorlab/Documents/plots/across_experiments/"
+
+
 def _get_sessions_with_neighbor_scores():
     """Session ids that have any row in EStimNeighborScores."""
     conn = Connection("allen_data_repository")
@@ -1115,6 +1130,9 @@ def run_metric_comparison(start_session_id=None, exclude_session_ids=None, *,
     sign) instead of signed effect — the direct test of the isolation hypothesis.
     n_neighbors / exclude_other_estim pick which stored neighbourhood configuration
     to use (see plot_neighbor_sweep to compare across n_neighbors)."""
+    print(f"[config] LEADERBOARD  metric={metric}  required_conditions={required_conditions}  "
+          f"abs_effect={abs_effect}  min_on/off={min_on_trials}/{min_off_trials}  "
+          f"start={start_session_id}  exclude={exclude_session_ids}")
     df, metric_names = build_metric_comparison_table(
         start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
         metric=metric, required_conditions=required_conditions,
@@ -1275,6 +1293,9 @@ def run_neighbor_sweep(start_session_id=None, exclude_session_ids=None, *,
     """Build and plot the neighbourhood-size sweep for both aggregations, printing
     raw r AND the partial r controlling for `covariate` ('current_per_second' or
     'n_active_channels'). Returns {aggregation: sweep_dict}."""
+    print(f"[config] SWEEP  metric={metric}  required_conditions={required_conditions}  "
+          f"abs_effect={abs_effect}  min_on/off={min_on_trials}/{min_off_trials}  "
+          f"start={start_session_id}  exclude={exclude_session_ids}")
     suffix = (f"_{'incl' if not exclude_other_estim else 'excl'}"
               f"{'_abs' if abs_effect else ''}"
               f"{'_ctrlN' if covariate == 'n_active_channels' else ''}")
@@ -1319,47 +1340,38 @@ def run_neighbor_sweep(start_session_id=None, exclude_session_ids=None, *,
 def main_neighbor_sweep():
     """Show how each metric's correlation with the estim effect changes with
     neighbourhood size (n_neighbors). Requires compute_estim_neighbor_scores to have
-    been run with a multi-value n_neighbors_list first."""
-    metric = METRIC_PCT_HYP_VS_DELTA
-    required_conditions = {'trial_type': 'Hypothesized Shape'}
-    start_session_id = "260402_0"
-    exclude_session_ids = ["260421_0", "260410_0"]
-    save_dir = "/home/connorlab/Documents/plots/across_experiments/"
+    been run with a multi-value n_neighbors_list first.
 
+    Uses the shared COMPARISON_* config so it can never drift from
+    main_metric_comparison."""
     # Covariate to partial out: 'current_per_second' (dose) or 'n_active_channels'
     # (the direct source of the 'worst'=min selection bias). Try both — if the
     # top-20 worst signal survives BOTH, it's not just a channel-count artefact.
     covariate = 'current_per_second'
 
     run_neighbor_sweep(
-        start_session_id=start_session_id,
-        exclude_session_ids=exclude_session_ids,
-        metric=metric,
-        required_conditions=required_conditions or None,
-        abs_effect=True,               # relate to |effect| (effect strength)
+        start_session_id=COMPARISON_START_SESSION_ID,
+        exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
+        metric=COMPARISON_METRIC,
+        required_conditions=COMPARISON_REQUIRED_CONDITIONS or None,
+        abs_effect=COMPARISON_ABS_EFFECT,
         exclude_other_estim=True,      # flip to False if you also swept inclusion
         control_for_current=True,
         covariate=covariate,
-        min_on_trials=10,
-        min_off_trials=10,
-        save_dir=save_dir,
+        min_on_trials=COMPARISON_MIN_ON_TRIALS,
+        min_off_trials=COMPARISON_MIN_OFF_TRIALS,
+        save_dir=COMPARISON_SAVE_DIR,
     )
 
 
 def main_metric_comparison():
     """Compare all neighbour-similarity metrics against the estim effect and rank
     them. Requires compute_estim_neighbor_scores.run_for_sessions() to have populated
-    EStimNeighborScores first."""
-    metric = METRIC_PCT_HYP_VS_DELTA
-    required_conditions = {'trial_type': 'Hypothesized Shape'}
-    start_session_id = "260402_0"
-    exclude_session_ids = ["260421_0", "260410_0"]
-    save_dir = "/home/connorlab/Documents/plots/across_experiments/"
+    EStimNeighborScores first.
 
-    # abs_effect=True asks "does isolation predict effect STRENGTH (|effect|)?" —
-    # the direct test of the hypothesis. Flip to False for the signed-effect view.
-    abs_effect = True
-
+    Uses the shared COMPARISON_* config so it can never drift from
+    main_neighbor_sweep (which is what makes the leaderboard and sweep agree at the
+    same n_neighbors)."""
     # Optional current binning: set to a list of current_per_second edges to colour
     # points by dose bin and draw one trend line per bin (per-bin n/r in legend), so
     # you can see whether the relationship holds within a dose level. None = colour
@@ -1374,18 +1386,18 @@ def main_metric_comparison():
     exclude_other_estim = True
 
     run_metric_comparison(
-        start_session_id=start_session_id,
-        exclude_session_ids=exclude_session_ids,
-        metric=metric,
-        required_conditions=required_conditions or None,
-        min_on_trials=10,
-        min_off_trials=10,
+        start_session_id=COMPARISON_START_SESSION_ID,
+        exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
+        metric=COMPARISON_METRIC,
+        required_conditions=COMPARISON_REQUIRED_CONDITIONS or None,
+        min_on_trials=COMPARISON_MIN_ON_TRIALS,
+        min_off_trials=COMPARISON_MIN_OFF_TRIALS,
         control_for_current=True,
-        abs_effect=abs_effect,
+        abs_effect=COMPARISON_ABS_EFFECT,
         current_bins=current_bins,
         n_neighbors=n_neighbors,
         exclude_other_estim=exclude_other_estim,
-        save_dir=save_dir,
+        save_dir=COMPARISON_SAVE_DIR,
     )
 
 
