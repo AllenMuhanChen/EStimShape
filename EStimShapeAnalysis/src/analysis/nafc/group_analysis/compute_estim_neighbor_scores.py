@@ -260,11 +260,12 @@ class DeltaVariantDPrime:
     """Per-channel paired d' (Cohen's dz) between delta and variant responses,
     variant-anchored, using the channel's ga_mean_response values.
 
-    For each unique variant v (anchor), z_v = mean(responses to v's deltas) −
-    response to v. The channel's score is |mean_v(z_v) / sd_v(z_v)| over its valid
-    variants — how reliably (in SD units) the channel separates deltas from their
-    variants. per_channel metric: the neighbourhood aggregation spatially smooths
-    this scalar (n_neighbors=0 -> the estim channel's own d')."""
+    For each unique variant v (anchor), z_v = response to v − mean(responses to v's
+    deltas), so a POSITIVE difference means the variant drove the channel harder than
+    its deltas. The channel's score is |mean_v(z_v) / sd_v(z_v)| over its valid
+    variants — how reliably (in SD units) the channel separates variants from their
+    deltas. per_channel metric: the neighbourhood aggregation spatially smooths this
+    scalar (n_neighbors=0 -> the estim channel's own d')."""
 
     per_channel = True
 
@@ -288,7 +289,8 @@ class DeltaVariantDPrime:
                 dvals = [vec[d] for d in deltas if d in vec]
                 if not dvals:
                     continue  # variant with no present deltas
-                zs.append(float(np.mean(dvals)) - float(vec[variant]))
+                # variant − mean(deltas): positive = variant drove the channel harder
+                zs.append(float(vec[variant]) - float(np.mean(dvals)))
             if len(zs) >= self._min_pairs:
                 zs = np.asarray(zs, dtype=float)
                 sd = float(np.std(zs, ddof=1))
