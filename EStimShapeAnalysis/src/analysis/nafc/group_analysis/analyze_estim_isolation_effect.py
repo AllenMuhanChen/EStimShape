@@ -2012,6 +2012,181 @@ def main_channel_search():
 
 
 # ---------------------------------------------------------------------------
+# Manual-combo prediction: overlay a fixed channel combo's predicted effect on the
+# metric-effect correlation sweep, across n_neighbors, per trial type.
+# ---------------------------------------------------------------------------
+
+def _plot_combo_prediction(sweep, predicted, tt, session_id, *, select_by, abs_effect,
+                           aggregation, combo_label, save_dir=None):
+    """Twin-axis figure: solid lines (left axis) = each metric's correlation with
+    effect vs n_neighbors (the sweep, from the DATA); dashed faded lines (right axis)
+    = each metric's PREDICTED effect for the manual combo vs n_neighbors."""
+    ordered = [m for m in _METRIC_ORDER if m in sweep]
+    ordered += sorted(m for m in sweep if m not in _METRIC_ORDER)
+    key = select_by if select_by in ('pearson_r', 'partial_r') else 'pearson_r'
+    cmap = plt.get_cmap('tab10', max(len(ordered), 1))
+
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+    ax2 = ax1.twinx()
+    for i, name in enumerate(ordered):
+        color = cmap(i)
+        xs = [e['n_neighbors'] for e in sweep[name] if e.get(key) is not None]
+        ys = [e[key] for e in sweep[name] if e.get(key) is not None]
+        if xs:
+            ax1.plot(xs, ys, marker='o', color=color, label=_METRIC_LABELS.get(name, name))
+        pred = predicted.get(name, {})
+        pxs = sorted(pred)
+        if pxs:
+            ax2.plot(pxs, [pred[nb] for nb in pxs], marker='s', markersize=4,
+                     linestyle='--', alpha=0.5, color=color)
+    ax1.axhline(0, color='black', linewidth=1, linestyle='--', alpha=0.4)
+    ax1.set_xlabel('n_neighbors', fontsize=11)
+    ax1.set_ylabel(f"metric-effect correlation ({key})   [solid]", fontsize=11)
+    ax2.set_ylabel(f"predicted {'|effect|' if abs_effect else 'effect'} for combo   [dashed]",
+                   fontsize=11)
+    ax1.set_title(f"Combo prediction vs data — session {session_id}  [{tt}]  "
+                  f"({aggregation} agg)\ncombo: {combo_label}\n"
+                  f"solid = correlation with effect (left);  "
+                  f"dashed = predicted effect for combo (right)", fontsize=10)
+    ax1.legend(fontsize=8, loc='best', framealpha=0.9)
+    ax1.grid(True, alpha=0.3)
+    fig.tight_layout()
+    if save_dir:
+        os.makedirs(save_dir, exist_ok=True)
+        path = os.path.join(save_dir, f"combo_prediction_{session_id}_{_slug(tt)}.png")
+        fig.savefig(path, dpi=150, bbox_inches='tight')
+        fig.savefig(path.rsplit('.', 1)[0] + '.svg', bbox_inches='tight')
+        print(f"Saved combo prediction to {path}")
+    plt.show()
+
+
+def compare_channel_combo_prediction(session_id, combo_channels, *, trial_types=None,
+                                     neighbor_metrics=None,
+                                     effect_metric=METRIC_PCT_HYP_VS_DELTA,
+                                     base_required_conditions=None, select_by='partial_r',
+                                     aggregation='mean', abs_effect=True,
+                                     exclude_other_estim=True, start_session_id=None,
+                                     exclude_session_ids=None, min_on_trials=10,
+                                     min_off_trials=10, save_dir=None):
+    """For a MANUAL channel combo, overlay its predicted effect on the metric-effect
+    correlation sweep, across n_neighbors, per trial type.
+
+    Per (trial type, metric, n_neighbors): the combo's metric score is fed through the
+    group-level effect~metric fit at that nb to give a predicted effect. Returns
+    {trial_type: (sweep, predicted)}."""
+    from src.analysis.nafc.group_analysis.compute_estim_neighbor_scores import (
+        prepare_session_metrics, score_spec_for_metric, channel_to_str,
+        precompute_neighbor_order)
+
+    if trial_types is None:
+        trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
+    elif isinstance(trial_types, str):
+        trial_types = [trial_types]
+
+    metric_objs, channels_with_data, coords = prepare_session_metrics(session_id)
+    if metric_objs is None:
+        print(f"Could not prepare session {session_id}.")
+        return {}
+    metric_by_name = {m.name: m for m in metric_objs}
+    neighbor_order = precompute_neighbor_order(channels_with_data, coords)
+
+    wanted = set(combo_channels)
+    combo = [ch for ch in channels_with_data
+             if channel_to_str(ch) in wanted or ch in wanted]
+    combo_label = ", ".join(channel_to_str(c) for c in combo)
+    if not combo:
+        print(f"None of {combo_channels} have response data in {session_id}.")
+        return {}
+    print(f"\nCombo prediction — session {session_id}, combo = [{combo_label}]")
+
+    out = {}
+    for tt in trial_types:
+        rc = _rc_for_trial_type(base_required_conditions, tt)
+        df_effect = _effect_and_current_table(
+            start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
+            metric=effect_metric, required_conditions=rc)
+        if len(df_effect) == 0:
+            print(f"  [{tt}] no effect data; skipping")
+            continue
+        sweep, nb_values = build_neighbor_sweep(
+            aggregation=aggregation, abs_effect=abs_effect,
+            exclude_other_estim=exclude_other_estim,
+            control_for_current=(select_by == 'partial_r'),
+            min_on_trials=min_on_trials, min_off_trials=min_off_trials,
+            df_effect=df_effect)
+        if not sweep:
+            print(f"  [{tt}] no sweep data; skipping")
+            continue
+
+        metrics_present = [m for m in (neighbor_metrics or sweep.keys())
+                           if m in sweep and m in metric_by_name]
+        session_ids = sorted(df_effect['session_id'].unique().tolist())
+        predicted = {}
+        for nb in nb_values:
+            # Fit effect~metric at this nb for every metric (one fetch per nb).
+            scores, names = _fetch_neighbor_scores(
+                session_ids, n_neighbors=nb, exclude_other_estim=exclude_other_estim)
+            dff = df_effect.copy()
+            _join_neighbor_scores(dff, scores, names, aggregations=(aggregation,))
+            base = dff[dff['effect_size'].notna() & (dff['n_on'] >= min_on_trials)
+                       & (dff['n_off'] >= min_off_trials)]
+            for metric_name in metrics_present:
+                col = f"{metric_name}__{aggregation}"
+                if col not in dff.columns:
+                    continue
+                sub = base[base[col].notna()]
+                if len(sub) < 2:
+                    continue
+                x = sub[col].to_numpy(dtype=float)
+                y = (sub['effect_size'].abs() if abs_effect else sub['effect_size']).to_numpy(dtype=float)
+                good = np.isfinite(x) & np.isfinite(y)
+                if good.sum() < 2:
+                    continue
+                slope, intercept = np.polyfit(x[good], y[good], 1)
+                # combo's metric score at this nb -> predicted effect
+                sc = score_spec_for_metric(
+                    metric_by_name[metric_name], combo, channels_with_data, coords,
+                    n_neighbors=nb, exclude_other_estim=exclude_other_estim,
+                    neighbor_order=neighbor_order).get(aggregation)
+                if sc is not None and np.isfinite(sc):
+                    predicted.setdefault(metric_name, {})[nb] = float(intercept + slope * sc)
+
+        _plot_combo_prediction(sweep, predicted, tt, session_id, select_by=select_by,
+                               abs_effect=abs_effect, aggregation=aggregation,
+                               combo_label=combo_label, save_dir=save_dir)
+        out[tt] = (sweep, predicted)
+    return out
+
+
+def main_channel_combo_prediction():
+    """Compare a MANUALLY chosen channel combo's predicted effect against the
+    metric-effect correlation sweep, across n_neighbors, per trial type. Uses the
+    shared COMPARISON_* config for the group-level sweep/fit."""
+    # ======================= EDIT THESE =======================
+    session_id = "260702_0"                 # session the combo lives in
+    combo_channels = ["A-007", "A-024"]     # the manual channel combination
+    neighbor_metrics = None                 # None = all metrics; or a list of names
+    # ==========================================================
+
+    compare_channel_combo_prediction(
+        session_id, combo_channels,
+        trial_types=(COMPARISON_TRIAL_TYPES or None),
+        neighbor_metrics=neighbor_metrics,
+        effect_metric=COMPARISON_METRIC,
+        base_required_conditions=COMPARISON_REQUIRED_CONDITIONS,
+        select_by='partial_r',
+        aggregation='mean',
+        abs_effect=COMPARISON_ABS_EFFECT,
+        exclude_other_estim=True,
+        start_session_id=COMPARISON_START_SESSION_ID,
+        exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
+        min_on_trials=COMPARISON_MIN_ON_TRIALS,
+        min_off_trials=COMPARISON_MIN_OFF_TRIALS,
+        save_dir=COMPARISON_SAVE_DIR,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Neighbourhood-size sweep: how does each metric's link to effect change with
 # n_neighbors?
 # ---------------------------------------------------------------------------
@@ -2386,8 +2561,11 @@ if __name__ == '__main__':
     #                                  n_neighbors (exploratory) + the honest shared nb
     #   - main_channel_search()     -> for one session, the channel group that best
     #                                  optimises each metric per trial type
+    #   - main_channel_combo_prediction() -> overlay a manual channel combo's predicted
+    #                                  effect on the correlation sweep, across n_neighbors
     #   - main()                    -> legacy single-isolation-metric plots
     # main_metric_comparison()
     # main_neighbor_sweep()
     # main_best_nb_comparison()
+    # main_channel_combo_prediction()
     main_channel_search()
