@@ -1451,7 +1451,7 @@ def run_best_nb_comparison(start_session_id=None, exclude_session_ids=None, *,
                            min_on_trials=10, min_off_trials=10,
                            control_for_current=True, abs_effect=False,
                            exclude_other_estim=True, select_by='partial_r',
-                           save_dir=None):
+                           tag='', save_dir=None):
     """Leaderboard + grid where each metric uses its OWN best n_neighbors (chosen by
     |select_by|, 'partial_r' or 'pearson_r', from the sweep). Also reports the single
     shared-best n_neighbors as the honest alternative. Returns
@@ -1463,7 +1463,7 @@ def run_best_nb_comparison(start_session_id=None, exclude_session_ids=None, *,
         print("Nothing to compare — run compute_estim_neighbor_scores first.")
         return {}
     session_ids = sorted(df_effect['session_id'].unique().tolist())
-    suffix = f"_bestnb{'_abs' if abs_effect else ''}"
+    suffix = f"_bestnb{('_' + _slug(tag)) if tag else ''}{'_abs' if abs_effect else ''}"
 
     out = {}
     for aggregation in ('mean', 'worst'):
@@ -1491,7 +1491,8 @@ def run_best_nb_comparison(start_session_id=None, exclude_session_ids=None, *,
             abs_effect=abs_effect)
         board['best_nb'] = board['metric'].map(best)
 
-        print(f"\n=== BEST-nb-per-metric leaderboard ({aggregation} agg, "
+        print(f"\n=== BEST-nb-per-metric leaderboard{(' [' + tag + ']') if tag else ''} "
+              f"({aggregation} agg, "
               f"{'|effect|' if abs_effect else 'signed'}; selected by |{select_by}|) ===")
         print("    *** EXPLORATORY: per-metric nb selection inflates these r's "
               "(winner's curse) ***")
@@ -1513,9 +1514,54 @@ def run_best_nb_comparison(start_session_id=None, exclude_session_ids=None, *,
     return out
 
 
+def run_best_nb_comparison_by_trial_type(trial_types=None, start_session_id=None,
+                                         exclude_session_ids=None, *,
+                                         metric=METRIC_PCT_HYP_VS_DELTA,
+                                         base_required_conditions=None,
+                                         min_on_trials=10, min_off_trials=10,
+                                         control_for_current=True, abs_effect=False,
+                                         exclude_other_estim=True,
+                                         select_by='partial_r', save_dir=None):
+    """Best-n_neighbors-per-metric leaderboard/grid, run separately per trial_type.
+    (Each trial type picks its own best nb per metric — so the winner's-curse caveat
+    applies within each type.) trial_types=None auto-discovers them."""
+    if trial_types is None:
+        trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
+    print(f"Best-nb comparison split across trial types: {trial_types}")
+    out = {}
+    for tt in trial_types:
+        out[tt] = run_best_nb_comparison(
+            start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
+            metric=metric,
+            required_conditions=_rc_for_trial_type(base_required_conditions, tt),
+            min_on_trials=min_on_trials, min_off_trials=min_off_trials,
+            control_for_current=control_for_current, abs_effect=abs_effect,
+            exclude_other_estim=exclude_other_estim, select_by=select_by,
+            tag=str(tt), save_dir=save_dir)
+    return out
+
+
 def main_best_nb_comparison():
     """Leaderboard/grid using each metric's best n_neighbors (exploratory), plus the
-    honest single shared-best n_neighbors. Uses the shared COMPARISON_* config."""
+    honest single shared-best n_neighbors. Uses the shared COMPARISON_* config, and
+    splits by trial_type when COMPARISON_TRIAL_TYPES is set."""
+    if COMPARISON_TRIAL_TYPES is not None:
+        run_best_nb_comparison_by_trial_type(
+            trial_types=(COMPARISON_TRIAL_TYPES or None),  # [] -> auto-discover
+            start_session_id=COMPARISON_START_SESSION_ID,
+            exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
+            metric=COMPARISON_METRIC,
+            base_required_conditions=COMPARISON_REQUIRED_CONDITIONS,
+            min_on_trials=COMPARISON_MIN_ON_TRIALS,
+            min_off_trials=COMPARISON_MIN_OFF_TRIALS,
+            control_for_current=True,
+            abs_effect=COMPARISON_ABS_EFFECT,
+            exclude_other_estim=True,
+            select_by='partial_r',
+            save_dir=COMPARISON_SAVE_DIR,
+        )
+        return
+
     run_best_nb_comparison(
         start_session_id=COMPARISON_START_SESSION_ID,
         exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
