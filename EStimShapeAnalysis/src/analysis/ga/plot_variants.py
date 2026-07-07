@@ -1,13 +1,14 @@
-from clat.pipeline.pipeline_base_classes import create_branch, create_pipeline
+import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt
+from PIL import Image, ImageOps
+
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.analysis.ga.response_spec import ResponseSpec
-from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
-from src.pga.estim_phase import has_preservation_history
 from src.pga.stim_types import StimType
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 from clat.util.connection import Connection
-import pandas as pd
 
 
 def main():
@@ -92,29 +93,16 @@ class PlotVariants(PlotTopNAnalysis):
         print(f"Plotting {len(parents)} parents and {len(variants)} variants "
               f"across {plot_data['ParentGroup'].nunique()} rows")
 
-        visualize_params = {
-            'cell_size': (200, 200),
-            'response_rate_col': response_col,
-            'path_col': 'ThumbnailPath',
-            'row_col': 'ParentGroup',
-            'col_col': 'ColIndex',
-            'cols_in_info_box': ["Response", "GenId", "StimSpecId"],
-            # Interactive HTML instead of a PNG: the full-history grid is far
-            # too large to rasterize, but a browser can scroll and zoom it.
-            'save_path': f"{self.save_path}/{prepared.channel_label}{prepared.baseline_suffix}_variant_history_by_parent.html",
-            'save_html': True,
-            'open_in_browser': True,
-            'module_name': "Variant_History_By_Parent",
-            'publish_mode': False,
-            'border_width': 50,
-        }
-        if prepared.response_key is not None:
-            visualize_params['response_rate_key'] = prepared.response_key
+        # Hypothesized components (shown in the labels) live in their own table.
+        hypo_map = self._load_hypothesized_comps(
+            plot_data['StimSpecId'].dropna().unique())
 
-        visualize_module = create_grouped_stimuli_module(**visualize_params)
-        visualize_branch = create_branch().then(visualize_module)
-        pipeline = create_pipeline().make_branch(visualize_branch).build()
-        result = pipeline.run(plot_data)
+        # Render as a native, interactive matplotlib window rather than a giant
+        # rasterized image: pan, box-zoom (toolbar) and scroll-to-zoom all work,
+        # and because thumbnails sit in data coordinates, zooming magnifies them.
+        title = (f"{prepared.channel_label}{prepared.baseline_suffix} "
+                 f"- variant history by parent")
+        self._show_variant_history(plot_data, response_col, hypo_map, title)
 
         if self.save_included_variants:
             self._save_included_variants_to_db(compiled_data, response_col)
@@ -123,6 +111,144 @@ class PlotVariants(PlotTopNAnalysis):
         variants_data = compiled_data[
             compiled_data['StimType'].isin([StimType.REGIME_ESTIM_VARIANTS.value, StimType.REGIME_ESTIM_DELTA.value])]
         return variants_data
+
+    def _load_hypothesized_comps(self, stim_ids):
+        """Return ``{stim_id: "<hypothesized_comp text>"}`` for the given stims.
+
+        Read from the HypothesizedComp table (older DBs still call it
+        StimCompsToPreserve). Stims without a row are simply omitted.
+        """
+        result: dict[int, str] = {}
+        try:
+            conn = Connection(context.ga_database)
+            conn.execute("SHOW TABLES LIKE 'HypothesizedComp'")
+            table = "HypothesizedComp" if conn.fetch_one() else "StimCompsToPreserve"
+            for sid in stim_ids:
+                conn.execute(
+                    f"SELECT hypothesized_comp FROM {table} WHERE stim_id = %s",
+                    (int(sid),))
+                row = conn.fetch_one()
+                if row is None:
+                    continue
+                value = row[0] if isinstance(row, (list, tuple)) else row
+                text = str(value).strip() if value is not None else ""
+                if text:
+                    result[int(sid)] = text
+        except Exception as exc:
+            print(f"Could not read hypothesized comps: {exc}")
+        return result
+
+    def _show_variant_history(self, plot_data, response_col, hypo_map, title):
+        """Draw the per-parent variant history as an interactive matplotlib window.
+
+        Each row is one parent (leftmost cell = the parent's own image at
+        ColIndex 0); the remaining cells are its variants, already ordered by
+        generation then response. Thumbnails are placed in data coordinates so
+        the toolbar/scroll zoom magnifies them, and each label sits *below* its
+        thumbnail so it never covers the shape.
+        """
+        row_values = sorted(plot_data['ParentGroup'].unique())
+        row_pos = {p: i for i, p in enumerate(row_values)}
+        n_rows = len(row_values)
+        max_col = int(plot_data['ColIndex'].max())
+
+        resp = pd.to_numeric(plot_data[response_col], errors='coerce').to_numpy()
+        has_resp = np.isfinite(resp).any()
+        vmin = float(np.nanmin(resp)) if has_resp else 0.0
+        vmax = float(np.nanmax(resp)) if has_resp else 1.0
+
+        # Cell geometry (data units). Rows are pitched wider than the image so
+        # the gap underneath holds the label without touching the next row.
+        row_pitch = 1.45
+        img_w, img_h = 0.9, 1.0
+        thumb_px, border_px = 128, 14
+
+        groups = plot_data['ParentGroup'].to_numpy()
+        cols = plot_data['ColIndex'].to_numpy()
+        paths = plot_data['ThumbnailPath'].to_numpy()
+        gens = plot_data['GenId'].to_numpy()
+        sids = plot_data['StimSpecId'].to_numpy()
+
+        fig_w = min(3 + max_col * 1.1, 55)
+        fig_h = min(2 + n_rows * 1.3, 90)
+        fig, ax = plt.subplots(figsize=(fig_w, fig_h))
+        ax.set_aspect('equal')
+        ax.axis('off')
+        ax.set_title(title, fontsize=11)
+
+        def border_rgb(v):
+            if vmax > vmin and np.isfinite(v):
+                t = max(0.0, min(1.0, (v - vmin) / (vmax - vmin)))
+            else:
+                t = 0.5
+            return (int(255 * t), 0, 0)
+
+        img_cache: dict[str, object] = {}
+        for k in range(len(plot_data)):
+            j = int(cols[k])
+            i = row_pos[groups[k]]
+            top = -(i * row_pitch)
+            bottom = top - img_h
+            x0 = j + (1 - img_w) / 2
+            x1 = x0 + img_w
+            v = float(resp[k])
+
+            path = paths[k]
+            if path not in img_cache:
+                try:
+                    with Image.open(path) as im:
+                        img_cache[path] = im.convert('RGB').resize(
+                            (thumb_px, thumb_px), Image.LANCZOS)
+                except Exception:
+                    img_cache[path] = None
+            img = img_cache[path]
+            if img is not None:
+                bordered = ImageOps.expand(img, border=border_px, fill=border_rgb(v))
+                ax.imshow(np.asarray(bordered),
+                          extent=[x0, x1, bottom, top], zorder=1)
+
+            # Label below the thumbnail so it never overlaps the shape.
+            sid = sids[k]
+            gen = gens[k]
+            header = []
+            if not pd.isna(gen):
+                header.append(f"g{int(gen)}")
+            if not pd.isna(sid):
+                header.append(f"#{int(sid)}")
+            lines = [" ".join(header)]
+            lines.append(f"r={v:.0f}" if np.isfinite(v) else "r=NA")
+            hc = hypo_map.get(int(sid)) if not pd.isna(sid) else None
+            if hc:
+                lines.append(f"hc={hc}")
+            ax.text((x0 + x1) / 2, bottom - 0.04, "\n".join(lines),
+                    ha='center', va='top', fontsize=5, linespacing=1.05, zorder=3)
+
+        # Parent id label at the far left of each row.
+        for parent, i in row_pos.items():
+            top = -(i * row_pitch)
+            ax.text(-0.15, top - img_h / 2, f"parent\n{int(parent)}",
+                    ha='right', va='center', fontsize=6, fontweight='bold')
+
+        ax.set_xlim(-1.7, max_col + 1.2)
+        ax.set_ylim(-((n_rows - 1) * row_pitch) - img_h - 0.7, 0.7)
+
+        # Scroll wheel zooms centered on the cursor, on top of the toolbar's
+        # pan and box-zoom.
+        def on_scroll(event):
+            if event.inaxes != ax or event.xdata is None:
+                return
+            base = 1.25
+            scale = (1 / base) if event.button == 'up' else base
+            x0l, x1l = ax.get_xlim()
+            y0l, y1l = ax.get_ylim()
+            xd, yd = event.xdata, event.ydata
+            ax.set_xlim(xd - (xd - x0l) * scale, xd + (x1l - xd) * scale)
+            ax.set_ylim(yd - (yd - y0l) * scale, yd + (y1l - yd) * scale)
+            fig.canvas.draw_idle()
+
+        fig.canvas.mpl_connect('scroll_event', on_scroll)
+        plt.tight_layout()
+        plt.show()
 
     def _save_included_variants_to_db(self, compiled_data, response_col):
         """Save included variants to the GA database."""

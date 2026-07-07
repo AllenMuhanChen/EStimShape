@@ -42,8 +42,6 @@ def create_grouped_stimuli_module(
         cols_in_info_box=None,
         publish_mode: bool = False,
         save_pdf:bool = False,
-        save_html: bool = False,
-        open_in_browser: bool = False,
         include_labels_for=None,
         include_colorbar: bool = False,
         subplot_spacing=None,
@@ -120,8 +118,6 @@ def create_grouped_stimuli_module(
         output_handler=PlotlyFigureSaverOutput(
             save_path=save_path,
             save_pdf=save_pdf,
-            save_html=save_html,
-            open_in_browser=open_in_browser,
         ),
         name=module_name
     )
@@ -708,8 +704,7 @@ class PlotlyFigureSaverOutput(OutputHandler):
                  save_path: Optional[str] = None,
                  save_html: bool = False,
                  save_svg: bool = False,
-                 save_pdf: bool = False,
-                 open_in_browser: bool = False):
+                 save_pdf: bool = False):
         """
         Initialize the output handler.
 
@@ -718,14 +713,11 @@ class PlotlyFigureSaverOutput(OutputHandler):
             save_html: Whether to save as interactive HTML
             save_svg: Whether to save as SVG for vector editing
             save_pdf: Whether to save as PDF for vector editing/printing
-            open_in_browser: Whether to open the saved interactive HTML in a
-                browser (implies save_html)
         """
         self.save_path = save_path
-        self.save_html = save_html or open_in_browser
+        self.save_html = save_html
         self.save_svg = save_svg
         self.save_pdf = save_pdf
-        self.open_in_browser = open_in_browser
 
     def process(self, figure: go.Figure) -> go.Figure:
         """
@@ -772,16 +764,8 @@ class PlotlyFigureSaverOutput(OutputHandler):
             # Save as interactive HTML
             if self.save_html:
                 html_path = f"{base_path}.html"
-                # scrollZoom lets the wheel zoom the plot; the page itself is
-                # scrollable and browser zoom (Ctrl/Cmd +/-) works too, which is
-                # what makes a very large grid navigable without rasterizing it.
-                figure.write_html(html_path, config={'scrollZoom': True})
+                figure.write_html(html_path)
                 logger.info(f"Saved interactive HTML to {html_path}")
-
-                if self.open_in_browser:
-                    import webbrowser
-                    webbrowser.open(f"file://{os.path.abspath(html_path)}")
-                    logger.info(f"Opened {html_path} in browser")
 
         except Exception as e:
             logger.error(f"Error saving figure: {e}")
