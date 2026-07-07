@@ -398,10 +398,34 @@ def build_metrics_for_session(session_id, base_matrix, repo_conn, ga_conn, *,
 # Neighbour aggregation engine (metric-agnostic)
 # ---------------------------------------------------------------------------
 
+def precompute_neighbor_order(channels_with_data, coords):
+    """{channel: [other channels sorted nearest -> farthest]}. Precompute once so
+    repeated scoring (e.g. the channel-group search) doesn't re-sort — and doesn't
+    re-run np.linalg.norm — on every call."""
+    order = {}
+    for e in channels_with_data:
+        others = [c for c in channels_with_data if c != e]
+        others.sort(key=lambda c: float(np.linalg.norm(coords[c] - coords[e])))
+        order[e] = others
+    return order
+
+
 def _physical_neighbors(estim_channel, channels_with_data, coords, n_neighbors,
-                        exclude):
+                        exclude, neighbor_order=None):
     """The n_neighbors physically-nearest channels to estim_channel (excluding
-    itself and any channel in ``exclude``)."""
+    itself and any channel in ``exclude``). If neighbor_order is given (a precomputed
+    nearest->farthest list per channel), filter it instead of re-sorting."""
+    if n_neighbors <= 0:
+        return []
+    if neighbor_order is not None and estim_channel in neighbor_order:
+        out = []
+        for c in neighbor_order[estim_channel]:
+            if c in exclude:
+                continue
+            out.append(c)
+            if len(out) >= n_neighbors:
+                break
+        return out
     candidates = [c for c in channels_with_data
                   if c != estim_channel and c not in exclude]
     candidates.sort(key=lambda c: float(np.linalg.norm(coords[c] - coords[estim_channel])))
@@ -409,7 +433,8 @@ def _physical_neighbors(estim_channel, channels_with_data, coords, n_neighbors,
 
 
 def score_spec_for_metric(metric, estim_channels, channels_with_data, coords,
-                          *, n_neighbors=3, exclude_other_estim=True):
+                          *, n_neighbors=3, exclude_other_estim=True,
+                          neighbor_order=None):
     """Aggregate one metric over a spec's estim channels.
 
     Pairwise metric: per estim channel = mean similarity to its n_neighbors physical
@@ -417,6 +442,8 @@ def score_spec_for_metric(metric, estim_channels, channels_with_data, coords,
     Per-channel metric: per estim channel = mean of channel_score over {estim
     channel} + n_neighbors nearest (self INCLUDED; n_neighbors=0 -> just itself).
     Across the spec's estim channels: mean (average) and worst (min).
+    neighbor_order: optional precomputed nearest-order (precompute_neighbor_order) to
+    avoid re-sorting on every call — matters for the channel-group search.
     Returns {'mean': ..., 'worst': ...}, values None if nothing scorable."""
     estim_set = set(estim_channels)
     exclude = estim_set if exclude_other_estim else set()
@@ -428,7 +455,8 @@ def score_spec_for_metric(metric, estim_channels, channels_with_data, coords,
         if e not in channels_with_data:
             continue  # estim channel has no response data
         neighbors = _physical_neighbors(e, channels_with_data, coords,
-                                        n_neighbors, exclude)
+                                        n_neighbors, exclude,
+                                        neighbor_order=neighbor_order)
         if is_per_channel:
             patch = [e] + neighbors  # self included; n_neighbors=0 -> just [e]
             vals = [metric.channel_score(channel_to_str(c)) for c in patch]
