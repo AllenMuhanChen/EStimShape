@@ -782,6 +782,13 @@ def _effect_and_current_table(start_session_id=None, exclude_session_ids=None, *
     cps = _fetch_current_per_second(pairs)
     df['current_per_second'] = [
         cps.get((s, int(spec))) for s, spec in zip(df['session_id'], df['estim_spec_id'])]
+    # n_active_channels is the direct source of the "worst"=min selection bias
+    # (more estim channels -> more chances for a low minimum), so it's available as
+    # an alternative covariate to partial out.
+    power = _fetch_estim_power_and_polarity(sorted(df['session_id'].unique().tolist()))
+    df['n_active_channels'] = [
+        (power.get((s, int(spec)), {}) or {}).get('n_active')
+        for s, spec in zip(df['session_id'], df['estim_spec_id'])]
     return df
 
 
@@ -1157,11 +1164,16 @@ def build_neighbor_sweep(start_session_id=None, exclude_session_ids=None, *,
                          behavioral_conditions=BEHAVIORAL_KEYS,
                          aggregation='mean', abs_effect=False,
                          exclude_other_estim=True, control_for_current=True,
+                         covariate='current_per_second',
                          min_on_trials=10, min_off_trials=10,
                          n_neighbors_values=None):
     """For each stored n_neighbors, correlate every metric (at one aggregation) with
     the effect. The effect + current table is built ONCE and re-joined per
     n_neighbors, so this is cheap.
+
+    covariate: which column to partial out when control_for_current is True —
+    'current_per_second' (dose) or 'n_active_channels' (the direct source of the
+    'worst'=min selection bias).
 
     Returns {metric_name: [{'n_neighbors', 'n', 'pearson_r', 'partial_r'}, ...]}
     (sorted by n_neighbors) plus the sorted list of n_neighbors values used."""
@@ -1199,9 +1211,9 @@ def build_neighbor_sweep(start_session_id=None, exclude_session_ids=None, *,
                      'n': corr['n'] if corr else int(len(sub)),
                      'pearson_r': corr['pearson_r'] if corr else None,
                      'partial_r': None}
-            if control_for_current and 'current_per_second' in df.columns:
+            if control_for_current and covariate in df.columns:
                 pc = _partial_correlation(sub[col].to_numpy(), y.to_numpy(),
-                                          sub['current_per_second'].to_numpy())
+                                          pd.to_numeric(sub[covariate], errors='coerce').to_numpy())
                 if pc:
                     entry['partial_r'] = pc['r']
             sweep.setdefault(name, []).append(entry)
@@ -1213,7 +1225,7 @@ def build_neighbor_sweep(start_session_id=None, exclude_session_ids=None, *,
 
 def plot_neighbor_sweep(sweep, *, use_partial=False, aggregation='mean',
                         abs_effect=False, exclude_other_estim=True, metric='',
-                        output_path=None):
+                        covariate='current_per_second', output_path=None):
     """Line plot: x = n_neighbors, y = each metric's correlation with the effect
     (raw Pearson r, or partial r controlling for current when use_partial=True),
     one line per metric. Shows whether a metric's signal strengthens or washes out
@@ -1238,7 +1250,7 @@ def plot_neighbor_sweep(sweep, *, use_partial=False, aggregation='mean',
     ax.axhline(0, color='black', linestyle='--', linewidth=1, alpha=0.5)
     ax.set_xlabel('n_neighbors (physical neighbours averaged per estim channel)',
                   fontsize=11)
-    r_desc = 'partial r | current' if use_partial else 'Pearson r'
+    r_desc = f'partial r | {covariate}' if use_partial else 'Pearson r'
     y_desc = '|effect|' if abs_effect else 'effect'
     ax.set_ylabel(f"correlation with {y_desc}  ({r_desc})", fontsize=11)
     ax.set_title(f"Metric–{y_desc} correlation vs neighbourhood size "
@@ -1258,13 +1270,14 @@ def plot_neighbor_sweep(sweep, *, use_partial=False, aggregation='mean',
 def run_neighbor_sweep(start_session_id=None, exclude_session_ids=None, *,
                        metric=METRIC_PCT_HYP_VS_DELTA, required_conditions=None,
                        abs_effect=False, exclude_other_estim=True,
-                       control_for_current=True, min_on_trials=10, min_off_trials=10,
-                       save_dir=None):
-    """Build and plot the neighbourhood-size sweep for both aggregations, using both
-    the raw and partial (current-controlled) correlation. Returns
-    {aggregation: sweep_dict}."""
+                       control_for_current=True, covariate='current_per_second',
+                       min_on_trials=10, min_off_trials=10, save_dir=None):
+    """Build and plot the neighbourhood-size sweep for both aggregations, printing
+    raw r AND the partial r controlling for `covariate` ('current_per_second' or
+    'n_active_channels'). Returns {aggregation: sweep_dict}."""
     suffix = (f"_{'incl' if not exclude_other_estim else 'excl'}"
-              f"{'_abs' if abs_effect else ''}")
+              f"{'_abs' if abs_effect else ''}"
+              f"{'_ctrlN' if covariate == 'n_active_channels' else ''}")
     out = {}
     for aggregation in ('mean', 'worst'):
         sweep, nb_values = build_neighbor_sweep(
@@ -1272,19 +1285,22 @@ def run_neighbor_sweep(start_session_id=None, exclude_session_ids=None, *,
             metric=metric, required_conditions=required_conditions,
             aggregation=aggregation, abs_effect=abs_effect,
             exclude_other_estim=exclude_other_estim,
-            control_for_current=control_for_current,
+            control_for_current=control_for_current, covariate=covariate,
             min_on_trials=min_on_trials, min_off_trials=min_off_trials)
         out[aggregation] = sweep
         if not sweep:
             continue
         print(f"\n=== Neighbour sweep ({aggregation} aggregation, "
-              f"{'|effect|' if abs_effect else 'effect'}) over n_neighbors={nb_values} ===")
+              f"{'|effect|' if abs_effect else 'effect'}) over n_neighbors={nb_values} "
+              f"[cell = raw r / partial r | {covariate}] ===")
         for name in ([m for m in _METRIC_ORDER if m in sweep]
                      + sorted(m for m in sweep if m not in _METRIC_ORDER)):
-            cells = "  ".join(
-                f"nb{e['n_neighbors']}: r={e['pearson_r']:+.2f}" if e['pearson_r'] is not None
-                else f"nb{e['n_neighbors']}: --" for e in sweep[name])
-            print(f"  {_METRIC_LABELS.get(name, name):28s} {cells}")
+            def _cell(e):
+                raw = f"{e['pearson_r']:+.2f}" if e['pearson_r'] is not None else "  na"
+                par = f"{e['partial_r']:+.2f}" if e['partial_r'] is not None else "  na"
+                return f"nb{e['n_neighbors']}: {raw}/{par}"
+            print(f"  {_METRIC_LABELS.get(name, name):28s} "
+                  + "  ".join(_cell(e) for e in sweep[name]))
         if save_dir:
             plot_neighbor_sweep(
                 sweep, use_partial=False, aggregation=aggregation,
@@ -1295,7 +1311,7 @@ def run_neighbor_sweep(start_session_id=None, exclude_session_ids=None, *,
                 plot_neighbor_sweep(
                     sweep, use_partial=True, aggregation=aggregation,
                     abs_effect=abs_effect, exclude_other_estim=exclude_other_estim,
-                    metric=metric,
+                    metric=metric, covariate=covariate,
                     output_path=os.path.join(save_dir, f"neighbor_sweep_{aggregation}{suffix}_partial.png"))
     return out
 
@@ -1310,6 +1326,11 @@ def main_neighbor_sweep():
     exclude_session_ids = ["260421_0", "260410_0"]
     save_dir = "/home/connorlab/Documents/plots/across_experiments/"
 
+    # Covariate to partial out: 'current_per_second' (dose) or 'n_active_channels'
+    # (the direct source of the 'worst'=min selection bias). Try both — if the
+    # top-20 worst signal survives BOTH, it's not just a channel-count artefact.
+    covariate = 'current_per_second'
+
     run_neighbor_sweep(
         start_session_id=start_session_id,
         exclude_session_ids=exclude_session_ids,
@@ -1318,6 +1339,7 @@ def main_neighbor_sweep():
         abs_effect=True,               # relate to |effect| (effect strength)
         exclude_other_estim=True,      # flip to False if you also swept inclusion
         control_for_current=True,
+        covariate=covariate,
         min_on_trials=10,
         min_off_trials=10,
         save_dir=save_dir,
