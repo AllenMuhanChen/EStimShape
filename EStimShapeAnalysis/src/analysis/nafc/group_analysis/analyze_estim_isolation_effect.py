@@ -461,7 +461,7 @@ def plot_isolation_vs_effect(start_session_id=None, exclude_session_ids=None,
 
     if color_by_session:
         sessions = sorted(plot_df['session_id'].unique())
-        cmap = plt.cm.get_cmap('tab20', max(len(sessions), 1))
+        cmap = plt.get_cmap('tab20', max(len(sessions), 1))
         color_for = {s: cmap(i) for i, s in enumerate(sessions)}
         for s in sessions:
             sub = plot_df[plot_df['session_id'] == s]
@@ -959,7 +959,7 @@ def plot_metric_grid(df, metric_names, *, aggregation='mean',
         from matplotlib.lines import Line2D
         edges = sorted(float(e) for e in current_bins)
         bin_labels = [f"{edges[i]:g}–{edges[i + 1]:g}" for i in range(len(edges) - 1)]
-        bin_cmap = plt.cm.get_cmap('viridis', len(bin_labels))
+        bin_cmap = plt.get_cmap('viridis', len(bin_labels))
         bin_color = {lab: bin_cmap(i) for i, lab in enumerate(bin_labels)}
         base = base.assign(_cbin=pd.cut(base['current_per_second'], bins=edges,
                                         labels=bin_labels, include_lowest=True))
@@ -1237,7 +1237,7 @@ def plot_neighbor_sweep(sweep, *, use_partial=False, aggregation='mean',
     ordered += sorted(m for m in sweep if m not in _METRIC_ORDER)
     key = 'partial_r' if use_partial else 'pearson_r'
 
-    cmap = plt.cm.get_cmap('tab10', max(len(ordered), 1))
+    cmap = plt.get_cmap('tab10', max(len(ordered), 1))
     fig, ax = plt.subplots(figsize=(9, 6))
     for i, name in enumerate(ordered):
         entries = sweep[name]
