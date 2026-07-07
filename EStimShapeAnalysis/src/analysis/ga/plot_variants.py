@@ -227,8 +227,8 @@ class PlotVariants(PlotTopNAnalysis):
             # Fonts scale with the thumbnail so labels stay readable at any zoom.
             font_size = max(9, thumb // 10)
             line_h = font_size + 4
-            label_h = 3 * line_h + 6  # up to 3 lines under each thumbnail
-            cell_w = thumb + max(18, thumb // 6)
+            label_h = 4 * line_h + 6  # up to 4 label lines under each thumbnail
+            cell_w = thumb + max(40, thumb // 4)  # horizontal gap between columns
             cell_h = thumb + label_h
             label_font = ("Arial", font_size)
             parent_font = ("Arial", max(11, thumb // 8), "bold")
@@ -246,13 +246,12 @@ class PlotVariants(PlotTopNAnalysis):
                                             outline="gray", dash=(2, 2))
                     canvas.create_text(x + thumb / 2, y + thumb / 2,
                                        text="(no image)", fill="gray", font=label_font)
-                header = []
-                if pd.notna(gen):
-                    header.append(f"g{int(gen)}")
+                # Generation on its own line, then stim id, response, and
+                # (when present) hypothesized comp.
+                lines = [f"gen {int(gen)}" if pd.notna(gen) else "gen ?"]
                 if pd.notna(sid):
-                    header.append(f"#{int(sid)}")
-                lines = [" ".join(header),
-                         f"r={v:.0f}" if v == v else "r=NA"]
+                    lines.append(f"#{int(sid)}")
+                lines.append(f"r={v:.0f}" if v == v else "r=NA")
                 hc = hypo_map.get(int(sid)) if pd.notna(sid) else None
                 if hc:
                     lines.append(f"hc={hc}")
