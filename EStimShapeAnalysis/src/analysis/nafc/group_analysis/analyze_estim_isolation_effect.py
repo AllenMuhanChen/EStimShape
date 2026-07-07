@@ -826,7 +826,7 @@ def _partial_correlation(x, y, z):
 
 def build_metric_leaderboard(df, metric_names, *, aggregation='mean',
                              min_on_trials=15, min_off_trials=15,
-                             control_for_current=True):
+                             control_for_current=True, abs_effect=False):
     """Rank metrics by how well they explain effect_size.
 
     For each metric (at the given aggregation) computes, over the specs passing the
@@ -847,7 +847,8 @@ def build_metric_leaderboard(df, metric_names, *, aggregation='mean',
         if col not in df.columns:
             continue
         sub = base[base[col].notna()]
-        corr = _correlation(sub[col].to_numpy(), sub['effect_size'].to_numpy())
+        y = sub['effect_size'].abs() if abs_effect else sub['effect_size']
+        corr = _correlation(sub[col].to_numpy(), y.to_numpy())
         row = {
             'metric': name,
             'label': _METRIC_LABELS.get(name, name),
@@ -863,7 +864,7 @@ def build_metric_leaderboard(df, metric_names, *, aggregation='mean',
             'partial_n': None,
         }
         if control_for_current and 'current_per_second' in df.columns:
-            pc = _partial_correlation(sub[col].to_numpy(), sub['effect_size'].to_numpy(),
+            pc = _partial_correlation(sub[col].to_numpy(), y.to_numpy(),
                                       sub['current_per_second'].to_numpy())
             if pc:
                 row.update(partial_r=pc['r'], partial_p=pc['p'], partial_n=pc['n'])
@@ -880,10 +881,15 @@ def build_metric_leaderboard(df, metric_names, *, aggregation='mean',
 
 
 def plot_metric_grid(df, metric_names, *, aggregation='mean',
-                     min_on_trials=15, min_off_trials=15, output_path=None):
+                     min_on_trials=15, min_off_trials=15, abs_effect=False,
+                     output_path=None):
     """Small-multiples scatter: effect vs each metric (at one aggregation), one
     panel per metric, points coloured by current_per_second. The visual companion
-    to build_metric_leaderboard."""
+    to build_metric_leaderboard.
+
+    abs_effect=True plots |effect| — the direct test of "does isolation predict
+    effect STRENGTH" (regardless of sign), which the signed view hides as spread."""
+    y_label = '|effect| (|ON − OFF| %)' if abs_effect else 'effect (ON − OFF %)'
     name_col_pairs = [(name, f"{name}__{aggregation}") for name in metric_names
                       if f"{name}__{aggregation}" in df.columns]
     if not name_col_pairs:
@@ -918,21 +924,23 @@ def plot_metric_grid(df, metric_names, *, aggregation='mean',
             ax.axis('off')
             continue
         c = sub['current_per_second']
-        sc = ax.scatter(sub[col], sub['effect_size'], c=c, cmap='viridis',
+        yv = (sub['effect_size'].abs() if abs_effect else sub['effect_size'])
+        sc = ax.scatter(sub[col], yv, c=c, cmap='viridis',
                         vmin=vmin, vmax=vmax, s=55, alpha=0.85,
                         edgecolors='black', linewidths=0.4)
         if c.notna().any():
             scatter_ref = sc
         if len(sub) >= 2:
             xs = sub[col].to_numpy(dtype=float)
-            ys = sub['effect_size'].to_numpy(dtype=float)
+            ys = yv.to_numpy(dtype=float)
             good = np.isfinite(xs) & np.isfinite(ys)
             if good.sum() >= 2:
                 slope, intercept = np.polyfit(xs[good], ys[good], 1)
                 xl = np.array([xs[good].min(), xs[good].max()])
                 ax.plot(xl, slope * xl + intercept, color='red', linewidth=1.8, alpha=0.8)
-        ax.axhline(0, color='black', linestyle='--', linewidth=1, alpha=0.5)
-        corr = _correlation(sub[col].to_numpy(), sub['effect_size'].to_numpy())
+        if not abs_effect:
+            ax.axhline(0, color='black', linestyle='--', linewidth=1, alpha=0.5)
+        corr = _correlation(sub[col].to_numpy(), yv.to_numpy())
         sub_t = _METRIC_LABELS.get(name, name)
         if corr:
             sub_t += f"\nn={corr['n']}  r={corr['pearson_r']:.2f}"
@@ -940,7 +948,7 @@ def plot_metric_grid(df, metric_names, *, aggregation='mean',
                 sub_t += f" (p={corr['pearson_p']:.2g})"
         ax.set_title(sub_t, fontsize=10)
         ax.set_xlabel(col, fontsize=9)
-        ax.set_ylabel('effect (ON − OFF %)', fontsize=9)
+        ax.set_ylabel(y_label, fontsize=9)
         ax.grid(True, alpha=0.3)
 
     for j in range(n, nrows * ncols):
@@ -951,8 +959,9 @@ def plot_metric_grid(df, metric_names, *, aggregation='mean',
                             pad=0.02)
         cbar.set_label('current_per_second (µA·Hz)', fontsize=10)
 
-    fig.suptitle(f"Estim effect vs neighbour-similarity metrics — "
-                 f"'{aggregation}' aggregation (colour = current)", fontsize=13)
+    fig.suptitle(f"Estim {'|effect|' if abs_effect else 'effect'} vs "
+                 f"neighbour-similarity metrics — '{aggregation}' aggregation "
+                 f"(colour = current)", fontsize=13)
     if output_path:
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         fig.savefig(output_path, dpi=150, bbox_inches='tight')
@@ -998,10 +1007,13 @@ def plot_metric_leaderboard(board, *, output_path=None, title=None):
 def run_metric_comparison(start_session_id=None, exclude_session_ids=None, *,
                           metric=METRIC_PCT_HYP_VS_DELTA, required_conditions=None,
                           min_on_trials=10, min_off_trials=10,
-                          control_for_current=True, save_dir=None):
+                          control_for_current=True, abs_effect=False, save_dir=None):
     """End-to-end: build the comparison table, print + plot the leaderboard for
     both aggregations, and draw the per-metric scatter grids. Returns
-    (df, {'mean': board_mean, 'worst': board_worst})."""
+    (df, {'mean': board_mean, 'worst': board_worst}).
+
+    abs_effect=True relates each metric to |effect| (effect STRENGTH regardless of
+    sign) instead of signed effect — the direct test of the isolation hypothesis."""
     df, metric_names = build_metric_comparison_table(
         start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
         metric=metric, required_conditions=required_conditions)
@@ -1009,14 +1021,16 @@ def run_metric_comparison(start_session_id=None, exclude_session_ids=None, *,
         print("Nothing to compare — run compute_estim_neighbor_scores first.")
         return df, {}
 
+    suffix = '_abs' if abs_effect else ''
+    y_desc = '|effect|' if abs_effect else 'signed effect'
     boards = {}
     for aggregation in ('mean', 'worst'):
         board = build_metric_leaderboard(
             df, metric_names, aggregation=aggregation,
             min_on_trials=min_on_trials, min_off_trials=min_off_trials,
-            control_for_current=control_for_current)
+            control_for_current=control_for_current, abs_effect=abs_effect)
         boards[aggregation] = board
-        print(f"\n=== Leaderboard ({aggregation} aggregation) — "
+        print(f"\n=== Leaderboard ({aggregation} aggregation, {y_desc}) — "
               f"ranked by |partial r| controlling for current ===")
         cols = ['label', 'n', 'pearson_r', 'pearson_p', 'spearman_r', 'r2',
                 'partial_r', 'partial_p']
@@ -1025,13 +1039,14 @@ def run_metric_comparison(start_session_id=None, exclude_session_ids=None, *,
 
         if save_dir:
             plot_metric_leaderboard(
-                board, title=f"Which metric best explains estim effect? "
+                board, title=f"Which metric best explains estim {y_desc}? "
                              f"({aggregation}, metric={metric})",
-                output_path=os.path.join(save_dir, f"metric_leaderboard_{aggregation}.png"))
+                output_path=os.path.join(save_dir, f"metric_leaderboard_{aggregation}{suffix}.png"))
             plot_metric_grid(
                 df, metric_names, aggregation=aggregation,
                 min_on_trials=min_on_trials, min_off_trials=min_off_trials,
-                output_path=os.path.join(save_dir, f"metric_grid_{aggregation}.png"))
+                abs_effect=abs_effect,
+                output_path=os.path.join(save_dir, f"metric_grid_{aggregation}{suffix}.png"))
 
     return df, boards
 
@@ -1046,6 +1061,10 @@ def main_metric_comparison():
     exclude_session_ids = ["260421_0", "260410_0"]
     save_dir = "/home/connorlab/Documents/plots/across_experiments/"
 
+    # abs_effect=True asks "does isolation predict effect STRENGTH (|effect|)?" —
+    # the direct test of the hypothesis. Flip to False for the signed-effect view.
+    abs_effect = True
+
     run_metric_comparison(
         start_session_id=start_session_id,
         exclude_session_ids=exclude_session_ids,
@@ -1054,6 +1073,7 @@ def main_metric_comparison():
         min_on_trials=10,
         min_off_trials=10,
         control_for_current=True,
+        abs_effect=abs_effect,
         save_dir=save_dir,
     )
 
