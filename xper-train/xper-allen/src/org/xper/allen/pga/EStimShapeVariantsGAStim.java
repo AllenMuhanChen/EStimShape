@@ -189,12 +189,19 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
      *     variant_parent_response_threshold of the parent's response, preserve those same comp(s) -
      *     the highest-response sibling wins. A preserved comp that holds the response up is evidence
      *     it drives the response.
-     *   - EXPLORE: otherwise, test leaves first - sample a leaf weighted by its best preserved
-     *     response (higher response preserved = more likely; reductions least likely). Untested leaves
-     *     use the parent's response as a neutral-optimistic prior, so they're tried before reductions.
-     *     Once every leaf has been tried by a sibling, escalate to two comps sharing a junction -
-     *     also sampled probabilistically, weighted by best preserved response the same way.
-     * Unlike deltas there's no per-comp attempt budget: one sibling per leaf is enough to call it tried.
+     *   - EXPLORE: otherwise, test leaves first - sample among the leaves that still have budget,
+     *     weighted by their best preserved response (higher response preserved = more likely). Untested
+     *     leaves use the parent's response as a neutral-optimistic prior, so they're tried before ones
+     *     already seen to drop the response. Each leaf carries a budget of FAILED-to-hold attempts
+     *     (num_variants_per_comp): a failed attempt is a responded variant that preserved exactly that
+     *     leaf and did NOT keep the response at/above variant_parent_response_threshold. A hold is
+     *     caught by the EXPLOIT branch above, so it never reaches here; successes don't spend budget,
+     *     so each success effectively buys another attempt. Only once EVERY leaf has spent its
+     *     failed-attempt budget do we escalate to two comps sharing a junction (also sampled
+     *     probabilistically the same way). Counting only responded failures guarantees single-component
+     *     exploration is finished - the required reps are in hand - before any multi-component set is
+     *     attempted, and stops same-generation siblings (generated before any responses are collected)
+     *     from escalating to a pair in the very same generation.
      */
     protected List<Integer> chooseCompsToPreserve(GAMatchStick parentMStick) {
         int nComp = parentMStick.getNComponent();
@@ -217,19 +224,22 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
             if (!comps.isEmpty()) return comps;
         }
 
-        // EXPLORE: best (max) preserved response per preserved comp-set, and which comp-sets have
-        // been tried. Keyed by the sorted comp list, so both single leaves and pairs are handled.
+        // EXPLORE: best (max) preserved response per comp-set (for weighting), plus a count of
+        // FAILED-to-hold attempts per comp-set. Keyed by the sorted comp list. Only responded
+        // siblings count; a hold (>= threshold) would have been returned by EXPLOIT above, so what
+        // reaches here are failures that each spend one unit of that leaf's budget.
+        int budget = Math.max(1, (int) Math.round(readGaVarDouble("num_variants_per_comp", 1)));
         Map<List<Integer>, Double> bestPreservedResp = new HashMap<>();
-        Set<List<Integer>> triedCompSets = new HashSet<>();
+        Map<List<Integer>, Integer> failedReps = new HashMap<>();
         for (SiblingVariant s : siblings) {
+            if (s.response == null) continue; // not measured yet -> spends no budget
             List<Integer> key = inRange(s.preservedComps, nComp);
             if (key.isEmpty()) continue;
             Collections.sort(key);
-            triedCompSets.add(key);
-            if (s.response != null) {
-                Double prev = bestPreservedResp.get(key);
-                if (prev == null || s.response > prev) bestPreservedResp.put(key, s.response);
-            }
+            Double prev = bestPreservedResp.get(key);
+            if (prev == null || s.response > prev) bestPreservedResp.put(key, s.response);
+            boolean held = parentResp > 0 && s.response / parentResp >= preserveThreshold;
+            if (!held) failedReps.merge(key, 1, Integer::sum);
         }
 
         List<Integer> leaves = leavesOf(parentMStick);
@@ -237,16 +247,22 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
             for (int i = 1; i <= nComp; i++) leaves.add(i);
         }
 
-        // Candidate comp-sets to sample from: leaves first, then junction-sharing pairs once every
-        // leaf has been tried. Both tiers are sampled probabilistically (weighted by best preserved
-        // response; untried comp-sets use the parent's response as a neutral-optimistic prior).
-        boolean allLeavesTried = true;
+        // Leaves that haven't yet failed to hold `budget` times keep getting retested first; only
+        // once every leaf has spent its failed-attempt budget do we escalate to junction pairs. Both
+        // tiers are sampled probabilistically (weighted by best preserved response; comp-sets with no
+        // response yet use the parent's response as a neutral-optimistic prior).
+        List<List<Integer>> underBudgetLeaves = new ArrayList<>();
         for (Integer leaf : leaves) {
-            if (!triedCompSets.contains(Collections.singletonList(leaf))) { allLeavesTried = false; break; }
+            if (failedReps.getOrDefault(Collections.singletonList(leaf), 0) < budget) {
+                underBudgetLeaves.add(Collections.singletonList(leaf));
+            }
         }
+
         List<List<Integer>> candidates = new ArrayList<>();
-        if (allLeavesTried && nComp >= 3) {
-            candidates = junctionPairsOf(parentMStick, nComp);
+        if (!underBudgetLeaves.isEmpty()) {
+            candidates = underBudgetLeaves; // single-component exploration not finished yet
+        } else if (nComp >= 3) {
+            candidates = junctionPairsOf(parentMStick, nComp); // every leaf spent its budget -> pairs
         }
         if (candidates.isEmpty()) {
             for (Integer leaf : leaves) candidates.add(Collections.singletonList(leaf));
