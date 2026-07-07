@@ -115,19 +115,26 @@ class PlotVariants(PlotTopNAnalysis):
         return variants_data
 
     def _load_hypothesized_comps(self, stim_ids):
-        """Return ``{stim_id: "<hypothesized_comp text>"}`` for the given stims.
+        """Return ``{stim_id: "<parent hypothesized comp text>"}`` for the given stims.
 
-        Read from the HypothesizedComp table (older DBs still call it
-        StimCompsToPreserve). Stims without a row are simply omitted.
+        Reads the *parent* hypothesized comp(s) - i.e. which of the parent's
+        components this stim preserved, in the parent's numbering
+        (``parent_hypothesized_comps``) - not the stim's own comps in its own
+        numbering (``hypothesized_comp``). Read from the HypothesizedComp table
+        (older DBs call it StimCompsToPreserve, with column
+        ``parent_comps_preserved``). Stims without a row are simply omitted.
         """
         result: dict[int, str] = {}
         try:
             conn = Connection(context.ga_database)
             conn.execute("SHOW TABLES LIKE 'HypothesizedComp'")
-            table = "HypothesizedComp" if conn.fetch_one() else "StimCompsToPreserve"
+            if conn.fetch_one():
+                table, col = "HypothesizedComp", "parent_hypothesized_comps"
+            else:
+                table, col = "StimCompsToPreserve", "parent_comps_preserved"
             for sid in stim_ids:
                 conn.execute(
-                    f"SELECT hypothesized_comp FROM {table} WHERE stim_id = %s",
+                    f"SELECT {col} FROM {table} WHERE stim_id = %s",
                     (int(sid),))
                 row = conn.fetch_one()
                 if row is None:
