@@ -882,13 +882,19 @@ def build_metric_leaderboard(df, metric_names, *, aggregation='mean',
 
 def plot_metric_grid(df, metric_names, *, aggregation='mean',
                      min_on_trials=15, min_off_trials=15, abs_effect=False,
-                     output_path=None):
+                     current_bins=None, output_path=None):
     """Small-multiples scatter: effect vs each metric (at one aggregation), one
-    panel per metric, points coloured by current_per_second. The visual companion
-    to build_metric_leaderboard.
+    panel per metric. The visual companion to build_metric_leaderboard.
 
     abs_effect=True plots |effect| — the direct test of "does isolation predict
-    effect STRENGTH" (regardless of sign), which the signed view hides as spread."""
+    effect STRENGTH" (regardless of sign), which the signed view hides as spread.
+
+    current_bins: optional list of dose-bin edges (e.g. [0, 1000, 2000, 3000, 5000]).
+    When given, points are coloured by their current_per_second bin and a SEPARATE
+    trend line is drawn per bin (with per-bin n / r in the legend), so you can see
+    whether the isolation->effect relationship holds within a dose level rather than
+    being driven by dose. When None, points are coloured by raw current (viridis)
+    with one overall trend line."""
     y_label = '|effect| (|ON − OFF| %)' if abs_effect else 'effect (ON − OFF %)'
     name_col_pairs = [(name, f"{name}__{aggregation}") for name in metric_names
                       if f"{name}__{aggregation}" in df.columns]
@@ -901,6 +907,26 @@ def plot_metric_grid(df, metric_names, *, aggregation='mean',
         & (df['n_on'] >= min_on_trials)
         & (df['n_off'] >= min_off_trials)
     ]
+
+    binned = current_bins is not None and len(current_bins) >= 2
+    if binned:
+        from matplotlib.lines import Line2D
+        edges = sorted(float(e) for e in current_bins)
+        bin_labels = [f"{edges[i]:g}–{edges[i + 1]:g}" for i in range(len(edges) - 1)]
+        bin_cmap = plt.cm.get_cmap('viridis', len(bin_labels))
+        bin_color = {lab: bin_cmap(i) for i, lab in enumerate(bin_labels)}
+        base = base.assign(_cbin=pd.cut(base['current_per_second'], bins=edges,
+                                        labels=bin_labels, include_lowest=True))
+
+    def _panel_y(frame):
+        return frame['effect_size'].abs() if abs_effect else frame['effect_size']
+
+    def _draw_trend(ax, xarr, yarr, color):
+        good = np.isfinite(xarr) & np.isfinite(yarr)
+        if good.sum() >= 2:
+            slope, intercept = np.polyfit(xarr[good], yarr[good], 1)
+            xl = np.array([xarr[good].min(), xarr[good].max()])
+            ax.plot(xl, slope * xl + intercept, color=color, linewidth=1.8, alpha=0.85)
 
     n = len(name_col_pairs)
     ncols = min(3, n)
@@ -923,24 +949,48 @@ def plot_metric_grid(df, metric_names, *, aggregation='mean',
             ax.set_title(f"{_METRIC_LABELS.get(name, name)}\n(no data)")
             ax.axis('off')
             continue
-        c = sub['current_per_second']
-        yv = (sub['effect_size'].abs() if abs_effect else sub['effect_size'])
-        sc = ax.scatter(sub[col], yv, c=c, cmap='viridis',
-                        vmin=vmin, vmax=vmax, s=55, alpha=0.85,
-                        edgecolors='black', linewidths=0.4)
-        if c.notna().any():
-            scatter_ref = sc
-        if len(sub) >= 2:
-            xs = sub[col].to_numpy(dtype=float)
-            ys = yv.to_numpy(dtype=float)
-            good = np.isfinite(xs) & np.isfinite(ys)
-            if good.sum() >= 2:
-                slope, intercept = np.polyfit(xs[good], ys[good], 1)
-                xl = np.array([xs[good].min(), xs[good].max()])
-                ax.plot(xl, slope * xl + intercept, color='red', linewidth=1.8, alpha=0.8)
+
+        if binned:
+            handles = []
+            for lab in bin_labels:
+                subb = sub[sub['_cbin'] == lab]
+                if len(subb) == 0:
+                    continue
+                yv = _panel_y(subb)
+                ax.scatter(subb[col], yv, color=bin_color[lab], s=55, alpha=0.85,
+                           edgecolors='black', linewidths=0.4)
+                _draw_trend(ax, subb[col].to_numpy(dtype=float),
+                            yv.to_numpy(dtype=float), bin_color[lab])
+                bcorr = _correlation(subb[col].to_numpy(), yv.to_numpy())
+                lbl = f"{lab}: n={len(subb)}"
+                if bcorr:
+                    lbl += f", r={bcorr['pearson_r']:.2f}"
+                handles.append(Line2D([0], [0], marker='o', color=bin_color[lab],
+                                      markerfacecolor=bin_color[lab],
+                                      markeredgecolor='black', label=lbl))
+            unbinned = sub[sub['_cbin'].isna()]
+            if len(unbinned):
+                ax.scatter(unbinned[col], _panel_y(unbinned), color='lightgray',
+                           s=38, alpha=0.6, edgecolors='gray', linewidths=0.3)
+            if handles:
+                ax.legend(handles=handles, fontsize=7, loc='best', framealpha=0.85,
+                          title='current bin')
+        else:
+            c = sub['current_per_second']
+            yv = _panel_y(sub)
+            sc = ax.scatter(sub[col], yv, c=c, cmap='viridis',
+                            vmin=vmin, vmax=vmax, s=55, alpha=0.85,
+                            edgecolors='black', linewidths=0.4)
+            if c.notna().any():
+                scatter_ref = sc
+            _draw_trend(ax, sub[col].to_numpy(dtype=float), yv.to_numpy(dtype=float),
+                        'red')
+
         if not abs_effect:
             ax.axhline(0, color='black', linestyle='--', linewidth=1, alpha=0.5)
-        corr = _correlation(sub[col].to_numpy(), yv.to_numpy())
+        # Panel title carries the overall (across-bin) correlation.
+        yv_all = _panel_y(sub)
+        corr = _correlation(sub[col].to_numpy(), yv_all.to_numpy())
         sub_t = _METRIC_LABELS.get(name, name)
         if corr:
             sub_t += f"\nn={corr['n']}  r={corr['pearson_r']:.2f}"
@@ -954,14 +1004,15 @@ def plot_metric_grid(df, metric_names, *, aggregation='mean',
     for j in range(n, nrows * ncols):
         axes[j // ncols][j % ncols].axis('off')
 
-    if scatter_ref is not None:
+    if not binned and scatter_ref is not None:
         cbar = fig.colorbar(scatter_ref, ax=axes.ravel().tolist(), shrink=0.6,
                             pad=0.02)
         cbar.set_label('current_per_second (µA·Hz)', fontsize=10)
 
+    colour_desc = 'colour = current bin' if binned else 'colour = current'
     fig.suptitle(f"Estim {'|effect|' if abs_effect else 'effect'} vs "
                  f"neighbour-similarity metrics — '{aggregation}' aggregation "
-                 f"(colour = current)", fontsize=13)
+                 f"({colour_desc})", fontsize=13)
     if output_path:
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         fig.savefig(output_path, dpi=150, bbox_inches='tight')
@@ -1007,7 +1058,8 @@ def plot_metric_leaderboard(board, *, output_path=None, title=None):
 def run_metric_comparison(start_session_id=None, exclude_session_ids=None, *,
                           metric=METRIC_PCT_HYP_VS_DELTA, required_conditions=None,
                           min_on_trials=10, min_off_trials=10,
-                          control_for_current=True, abs_effect=False, save_dir=None):
+                          control_for_current=True, abs_effect=False,
+                          current_bins=None, save_dir=None):
     """End-to-end: build the comparison table, print + plot the leaderboard for
     both aggregations, and draw the per-metric scatter grids. Returns
     (df, {'mean': board_mean, 'worst': board_worst}).
@@ -1045,7 +1097,7 @@ def run_metric_comparison(start_session_id=None, exclude_session_ids=None, *,
             plot_metric_grid(
                 df, metric_names, aggregation=aggregation,
                 min_on_trials=min_on_trials, min_off_trials=min_off_trials,
-                abs_effect=abs_effect,
+                abs_effect=abs_effect, current_bins=current_bins,
                 output_path=os.path.join(save_dir, f"metric_grid_{aggregation}{suffix}.png"))
 
     return df, boards
@@ -1065,6 +1117,13 @@ def main_metric_comparison():
     # the direct test of the hypothesis. Flip to False for the signed-effect view.
     abs_effect = True
 
+    # Optional current binning: set to a list of current_per_second edges to colour
+    # points by dose bin and draw one trend line per bin (per-bin n/r in legend), so
+    # you can see whether the relationship holds within a dose level. None = colour
+    # by raw current with a single trend line.
+    #   e.g. current_bins = [0, 1000, 2000, 3000, 5000]
+    current_bins = None
+
     run_metric_comparison(
         start_session_id=start_session_id,
         exclude_session_ids=exclude_session_ids,
@@ -1074,6 +1133,7 @@ def main_metric_comparison():
         min_off_trials=10,
         control_for_current=True,
         abs_effect=abs_effect,
+        current_bins=current_bins,
         save_dir=save_dir,
     )
 
