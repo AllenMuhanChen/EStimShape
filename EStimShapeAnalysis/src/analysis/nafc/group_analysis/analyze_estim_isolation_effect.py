@@ -1027,7 +1027,8 @@ def build_metric_leaderboard(df, metric_names, *, aggregation='mean',
 
 def plot_metric_grid(df, metric_names, *, aggregation='mean',
                      min_on_trials=15, min_off_trials=15, abs_effect=False,
-                     current_bins=None, group_by=None, output_path=None):
+                     current_bins=None, group_by=None, nb_by_metric=None,
+                     output_path=None):
     """Small-multiples scatter: effect vs each metric (at one aggregation), one
     panel per metric. The visual companion to build_metric_leaderboard.
 
@@ -1145,6 +1146,8 @@ def plot_metric_grid(df, metric_names, *, aggregation='mean',
         if not abs_effect:
             ax.axhline(0, color='black', linestyle='--', linewidth=1, alpha=0.5)
         sub_t = _METRIC_LABELS.get(name, name)
+        if nb_by_metric and name in nb_by_metric:
+            sub_t += f"  (nb={nb_by_metric[name]})"
         if not grouped:
             # Pooled correlation is only meaningful when not grouping (pooling across
             # groups can hide/flip within-group trends).
@@ -1376,6 +1379,156 @@ def run_metric_comparison_by_trial_type(trial_types=None, start_session_id=None,
                 abs_effect=abs_effect, group_by='trial_type',
                 output_path=os.path.join(save_dir, f"metric_grid_by_trialtype_{aggregation}{suffix}.png"))
     return long_df, out
+
+
+# ---------------------------------------------------------------------------
+# "Best neighbourhood per metric" comparison
+#
+# WARNING: picking each metric's best n_neighbors from the same data you then report
+# is a winner's-curse — maximising over n_neighbors inflates the correlations (you'd
+# get non-zero "best" values even from noise). Treat the per-metric-best leaderboard
+# as an EXPLORATORY UPPER BOUND. The single shared-best n_neighbors (best on average
+# across metrics) is the honest, non-cherry-picked number.
+# ---------------------------------------------------------------------------
+
+def _best_nb_per_metric(sweep, select_by='partial_r'):
+    """{metric: n_neighbors that maximises |select_by|} from a sweep dict.
+    Falls back to pearson_r when the chosen key is missing for a metric."""
+    best = {}
+    for name, entries in sweep.items():
+        valid = [e for e in entries if e.get(select_by) is not None]
+        if not valid:
+            valid = [e for e in entries if e.get('pearson_r') is not None]
+            key = 'pearson_r'
+        else:
+            key = select_by
+        if not valid:
+            continue
+        best[name] = max(valid, key=lambda e: abs(e[key]))['n_neighbors']
+    return best
+
+
+def _best_shared_nb(sweep, select_by='partial_r'):
+    """The single n_neighbors maximising the mean |select_by| across all metrics —
+    the honest 'best condition' that isn't cherry-picked per metric."""
+    nbs = sorted({e['n_neighbors'] for entries in sweep.values() for e in entries})
+    best_nb, best_score = None, -1.0
+    for nb in nbs:
+        vals = []
+        for entries in sweep.values():
+            e = next((x for x in entries if x['n_neighbors'] == nb), None)
+            if e is None:
+                continue
+            v = e.get(select_by)
+            if v is None:
+                v = e.get('pearson_r')
+            if v is not None:
+                vals.append(abs(v))
+        score = float(np.mean(vals)) if vals else -1.0
+        if score > best_score:
+            best_nb, best_score = nb, score
+    return best_nb, best_score
+
+
+def _join_scores_per_metric_nb(df, metric_to_nb, aggregation, *, exclude_other_estim,
+                               session_ids):
+    """Add each metric's ``<metric>__<aggregation>`` column sourced from that metric's
+    own n_neighbors. Fetches each needed n_neighbors once."""
+    by_nb = {}
+    for nb in sorted(set(metric_to_nb.values())):
+        by_nb[nb] = _fetch_neighbor_scores(
+            session_ids, n_neighbors=nb, exclude_other_estim=exclude_other_estim)[0]
+    for name, nb in metric_to_nb.items():
+        scores = by_nb[nb]
+        col = f"{name}__{aggregation}"
+        df[col] = [
+            (scores.get((s, int(spec)), {}).get(name, {}) or {}).get(aggregation)
+            for s, spec in zip(df['session_id'], df['estim_spec_id'])]
+
+
+def run_best_nb_comparison(start_session_id=None, exclude_session_ids=None, *,
+                           metric=METRIC_PCT_HYP_VS_DELTA, required_conditions=None,
+                           min_on_trials=10, min_off_trials=10,
+                           control_for_current=True, abs_effect=False,
+                           exclude_other_estim=True, select_by='partial_r',
+                           save_dir=None):
+    """Leaderboard + grid where each metric uses its OWN best n_neighbors (chosen by
+    |select_by|, 'partial_r' or 'pearson_r', from the sweep). Also reports the single
+    shared-best n_neighbors as the honest alternative. Returns
+    {aggregation: (board, best_nb_per_metric, shared_nb)}."""
+    df_effect = _effect_and_current_table(
+        start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
+        metric=metric, required_conditions=required_conditions)
+    if len(df_effect) == 0:
+        print("Nothing to compare — run compute_estim_neighbor_scores first.")
+        return {}
+    session_ids = sorted(df_effect['session_id'].unique().tolist())
+    suffix = f"_bestnb{'_abs' if abs_effect else ''}"
+
+    out = {}
+    for aggregation in ('mean', 'worst'):
+        sweep, nb_values = build_neighbor_sweep(
+            start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
+            metric=metric, required_conditions=required_conditions,
+            aggregation=aggregation, abs_effect=abs_effect,
+            exclude_other_estim=exclude_other_estim,
+            control_for_current=control_for_current, min_on_trials=min_on_trials,
+            min_off_trials=min_off_trials)
+        if not sweep:
+            continue
+
+        best = _best_nb_per_metric(sweep, select_by=select_by)
+        shared_nb, shared_score = _best_shared_nb(sweep, select_by=select_by)
+
+        df = df_effect.copy()
+        _join_scores_per_metric_nb(df, best, aggregation,
+                                   exclude_other_estim=exclude_other_estim,
+                                   session_ids=session_ids)
+        metric_names = list(best.keys())
+        board = build_metric_leaderboard(
+            df, metric_names, aggregation=aggregation, min_on_trials=min_on_trials,
+            min_off_trials=min_off_trials, control_for_current=control_for_current,
+            abs_effect=abs_effect)
+        board['best_nb'] = board['metric'].map(best)
+
+        print(f"\n=== BEST-nb-per-metric leaderboard ({aggregation} agg, "
+              f"{'|effect|' if abs_effect else 'signed'}; selected by |{select_by}|) ===")
+        print("    *** EXPLORATORY: per-metric nb selection inflates these r's "
+              "(winner's curse) ***")
+        print(f"    Honest single shared best nb = {shared_nb} "
+              f"(mean |{select_by}| across metrics = {shared_score:.3f}) — "
+              f"use this in main_metric_comparison for an unbiased leaderboard.")
+        cols = ['label', 'best_nb', 'n', 'pearson_r', 'pearson_p', 'r2',
+                'partial_r', 'partial_p']
+        with pd.option_context('display.width', 170, 'display.max_columns', None):
+            print(board[cols].to_string(index=False))
+
+        if save_dir:
+            plot_metric_grid(
+                df, metric_names, aggregation=aggregation,
+                min_on_trials=min_on_trials, min_off_trials=min_off_trials,
+                abs_effect=abs_effect, nb_by_metric=best,
+                output_path=os.path.join(save_dir, f"metric_grid_{aggregation}{suffix}.png"))
+        out[aggregation] = (board, best, shared_nb)
+    return out
+
+
+def main_best_nb_comparison():
+    """Leaderboard/grid using each metric's best n_neighbors (exploratory), plus the
+    honest single shared-best n_neighbors. Uses the shared COMPARISON_* config."""
+    run_best_nb_comparison(
+        start_session_id=COMPARISON_START_SESSION_ID,
+        exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
+        metric=COMPARISON_METRIC,
+        required_conditions=COMPARISON_REQUIRED_CONDITIONS or None,
+        min_on_trials=COMPARISON_MIN_ON_TRIALS,
+        min_off_trials=COMPARISON_MIN_OFF_TRIALS,
+        control_for_current=True,
+        abs_effect=COMPARISON_ABS_EFFECT,
+        exclude_other_estim=True,
+        select_by='partial_r',   # or 'pearson_r'
+        save_dir=COMPARISON_SAVE_DIR,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1744,8 +1897,9 @@ def main():
 if __name__ == '__main__':
     # Running this file compares all neighbour-similarity metrics against the estim
     # effect and ranks them (needs compute_estim_neighbor_scores to have run first).
-    #   - main_neighbor_sweep()   -> how each metric's link to effect changes with
-    #                                neighbourhood size (n_neighbors)
-    #   - main()                  -> legacy single-isolation-metric plots
-    # main_neighbor_sweep()
+    #   - main_neighbor_sweep()     -> how each metric's link to effect changes with
+    #                                  neighbourhood size (n_neighbors)
+    #   - main_best_nb_comparison() -> leaderboard with each metric at its own best
+    #                                  n_neighbors (exploratory) + the honest shared nb
+    #   - main()                    -> legacy single-isolation-metric plots
     main_metric_comparison()
