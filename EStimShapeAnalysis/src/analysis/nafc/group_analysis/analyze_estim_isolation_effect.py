@@ -1125,4 +1125,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # Running this file compares all neighbour-similarity metrics against the estim
+    # effect and ranks them (needs compute_estim_neighbor_scores to have run first).
+    # For the legacy single-isolation-metric plots, call main() instead.
+    main_metric_comparison()
