@@ -555,13 +555,13 @@ def main():
         exclude_session_ids=None,     # e.g. ["260421_0", "260410_0"]
         # Neighbourhood-size sweep: every value is computed and stored, so
         # plot_neighbor_sweep can show correlation-with-effect vs n_neighbors.
-        n_neighbors_list=(1, 2, 3, 5, 8),
+        n_neighbors_list=(1, 2, 3,4, 5, 8),
         # Add False to also sweep including the spec's other estim channels as
         # neighbours, e.g. exclude_other_estim_list=(True, False).
         exclude_other_estim_list=(True,False),
         top_ns=TOP_N_DEFAULTS,        # (20, 50, 100)
         pca_components=2,             # 2 matches the cluster app
-        n_loading_pcs=10,             # PCs compared for pc_loading_sim
+        n_loading_pcs=4,             # PCs compared for pc_loading_sim
         corr_method='spearman',       # 'spearman' (preference_cluster) | 'pearson'
     )
 

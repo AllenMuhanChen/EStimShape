@@ -1365,7 +1365,7 @@ def main_metric_comparison():
     # you can see whether the relationship holds within a dose level. None = colour
     # by raw current with a single trend line.
     #   e.g. current_bins = [0, 1000, 2000, 3000, 5000]
-    current_bins = None
+    current_bins = [0,1000,1500,np.inf]
 
     # Which stored neighbourhood configuration to use for the leaderboard/grid.
     # (compute_estim_neighbor_scores stores several n_neighbors — use
@@ -1463,4 +1463,5 @@ if __name__ == '__main__':
     #   - main_neighbor_sweep()   -> how each metric's link to effect changes with
     #                                neighbourhood size (n_neighbors)
     #   - main()                  -> legacy single-isolation-metric plots
+    # main_neighbor_sweep()
     main_metric_comparison()
