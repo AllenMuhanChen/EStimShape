@@ -192,9 +192,14 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
      *   - EXPLORE: otherwise, test leaves first - sample a leaf weighted by its best preserved
      *     response (higher response preserved = more likely; reductions least likely). Untested leaves
      *     use the parent's response as a neutral-optimistic prior, so they're tried before reductions.
-     *     Once every leaf has been tried by a sibling, escalate to two comps sharing a junction -
-     *     also sampled probabilistically, weighted by best preserved response the same way.
-     * Unlike deltas there's no per-comp attempt budget: one sibling per leaf is enough to call it tried.
+     *     Once every leaf has been tried by a sibling AND that sibling's response has come back,
+     *     escalate to two comps sharing a junction - also sampled probabilistically, weighted by best
+     *     preserved response the same way. Requiring the response guarantees single-component
+     *     exploration is finished (results in hand) before any multi-component set is attempted;
+     *     otherwise same-generation siblings, generated before any responses are collected, would mark
+     *     every leaf "tried" and let a junction pair escalate in the very same generation.
+     * Unlike deltas there's no per-comp attempt budget: one measured (response-collected) sibling per
+     * leaf is enough to call it tried.
      */
     protected List<Integer> chooseCompsToPreserve(GAMatchStick parentMStick) {
         int nComp = parentMStick.getNComponent();
@@ -219,17 +224,20 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
 
         // EXPLORE: best (max) preserved response per preserved comp-set, and which comp-sets have
         // been tried. Keyed by the sorted comp list, so both single leaves and pairs are handled.
+        // A comp-set counts as "tried" only once its response has come back (non-null). Siblings in
+        // the same generation are generated before any responses are collected, so counting a
+        // not-yet-measured sibling as tried would let a junction pair escalate before the
+        // single-component results are in - the ordering bug this guards against.
         Map<List<Integer>, Double> bestPreservedResp = new HashMap<>();
         Set<List<Integer>> triedCompSets = new HashSet<>();
         for (SiblingVariant s : siblings) {
+            if (s.response == null) continue; // not measured yet -> not "tried"
             List<Integer> key = inRange(s.preservedComps, nComp);
             if (key.isEmpty()) continue;
             Collections.sort(key);
             triedCompSets.add(key);
-            if (s.response != null) {
-                Double prev = bestPreservedResp.get(key);
-                if (prev == null || s.response > prev) bestPreservedResp.put(key, s.response);
-            }
+            Double prev = bestPreservedResp.get(key);
+            if (prev == null || s.response > prev) bestPreservedResp.put(key, s.response);
         }
 
         List<Integer> leaves = leavesOf(parentMStick);
