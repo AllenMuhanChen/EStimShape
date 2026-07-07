@@ -1692,12 +1692,26 @@ def _fit_effect_on_metric(df_effect, metric_name, n_neighbors, aggregation, *,
 
 def _search_channel_group(metric_obj, candidates, channels_with_data, coords, *,
                           group_size, n_neighbors, exclude_other_estim, direction,
-                          aggregation, max_exhaustive, score_fn, neighbor_order=None):
+                          aggregation, max_exhaustive, score_fn, neighbor_order=None,
+                          min_gap_um=0.0, ypos=None):
     """Find the size-`group_size` subset of `candidates` whose metric score is most
     extreme in `direction` ('max'/'min'). Exhaustive when C(len, size) <=
-    max_exhaustive, else greedy forward-selection. Returns (group, value, method)."""
+    max_exhaustive, else greedy forward-selection. Returns (group, value, method).
+
+    min_gap_um/ypos: if given, any two chosen channels must be at least min_gap_um
+    apart on the probe (ypos = physical y per channel) — used to forbid physically
+    adjacent channels."""
     from itertools import combinations
     from math import comb
+
+    def far_enough(a, b):
+        return (min_gap_um <= 0 or ypos is None
+                or abs(ypos[a] - ypos[b]) >= min_gap_um)
+
+    def group_ok(group):
+        gg = list(group)
+        return all(far_enough(gg[i], gg[j])
+                   for i in range(len(gg)) for j in range(i + 1, len(gg)))
 
     def score(group):
         s = score_fn(metric_obj, list(group), channels_with_data, coords,
@@ -1712,6 +1726,8 @@ def _search_channel_group(metric_obj, candidates, channels_with_data, coords, *,
     if total <= max_exhaustive:
         method = f"exhaustive({total})"
         for group in combinations(candidates, group_size):
+            if not group_ok(group):
+                continue
             v = score(group)
             if v is None or not np.isfinite(v):
                 continue
@@ -1723,6 +1739,9 @@ def _search_channel_group(metric_obj, candidates, channels_with_data, coords, *,
         while len(chosen) < group_size and pool:
             pick, pick_v = None, None
             for c in pool:
+                # keep the spacing constraint satisfied as we grow the group
+                if not all(far_enough(c, ch) for ch in chosen):
+                    continue
                 v = score(chosen + [c])
                 if v is None or not np.isfinite(v):
                     continue
@@ -1746,10 +1765,14 @@ def search_best_channel_groups(session_id, *, trial_types=None, neighbor_metrics
                                exclude_other_estim=True, direction='auto',
                                start_session_id=None, exclude_session_ids=None,
                                min_on_trials=10, min_off_trials=10,
-                               max_exhaustive=200000, save_dir=None):
+                               max_exhaustive=200000, min_channel_gap=1, save_dir=None):
     """For `session_id`, find the channel group (of each size in channel_group_sizes)
     that best optimises each metric — at that metric's group-level best n_neighbors,
     per trial type — in the direction that predicts the strongest effect.
+
+    min_channel_gap: minimum spacing (in probe positions) between any two selected
+    channels. 1 = adjacent allowed; 2 = disallow physically adjacent channels
+    (avoids probe degradation); 3+ = require wider spacing.
 
     Returns a DataFrame: trial_type, metric, best_nb, direction, group_size, score,
     predicted_effect, channels, search_method."""
@@ -1777,8 +1800,20 @@ def search_best_channel_groups(session_id, *, trial_types=None, neighbor_metrics
                       if channel_to_str(ch) in wanted or ch in wanted]
     else:
         candidates = list(channels_with_data)
+
+    # Physical spacing constraint: forbid groups whose channels are within
+    # min_channel_gap probe positions of each other. pitch = probe electrode spacing
+    # (smallest gap between channels); a group is invalid if any pair is closer than
+    # (min_channel_gap - 0.5) * pitch (so gap=2 forbids exactly-adjacent, allows 2 apart).
+    ypos = {ch: float(coords[ch][1]) for ch in channels_with_data}
+    ys = sorted({ypos[ch] for ch in candidates})
+    pitch = min((ys[i + 1] - ys[i] for i in range(len(ys) - 1)), default=1.0)
+    min_gap_um = (min_channel_gap - 0.5) * pitch if (min_channel_gap and min_channel_gap > 1) else 0.0
+
     print(f"\nChannel-group search — session {session_id}: {len(candidates)} candidate "
-          f"channels, sizes {tuple(channel_group_sizes)}, trial types {trial_types}")
+          f"channels, sizes {tuple(channel_group_sizes)}, trial types {trial_types}"
+          + (f"; min_channel_gap={min_channel_gap} (>= {min_gap_um:.0f} um apart)"
+             if min_gap_um > 0 else "; adjacent channels allowed"))
 
     rows = []
     for tt in trial_types:
@@ -1825,7 +1860,11 @@ def search_best_channel_groups(session_id, *, trial_types=None, neighbor_metrics
                     metric_by_name[metric_name], candidates, channels_with_data, coords,
                     group_size=size, n_neighbors=nb, exclude_other_estim=exclude_other_estim,
                     direction=dir_, aggregation=aggregation, max_exhaustive=max_exhaustive,
-                    score_fn=score_spec_for_metric, neighbor_order=neighbor_order)
+                    score_fn=score_spec_for_metric, neighbor_order=neighbor_order,
+                    min_gap_um=min_gap_um, ypos=ypos)
+                # The spacing constraint can make a full-size group impossible.
+                if group is not None and len(group) < size:
+                    method += f"(partial:{len(group)})"
                 pred = (intercept + slope * val) if (slope is not None and val is not None) else None
                 chans = ", ".join(channel_to_str(c) for c in group) if group else ""
                 rows.append({
@@ -1864,19 +1903,41 @@ def main_channel_search():
     """For a chosen session, search its channels for the group that best optimises
     each metric (at its group-level best n_neighbors), per trial type. Uses the shared
     COMPARISON_* config for the group-level sweep/fit."""
-    # The session whose electrodes you want to pick.
-    session_id = "260702_0"
-    # Candidate group sizes to search.
-    channel_group_sizes = (2, 3, 4)
+    # ======================= EDIT THESE =======================
+    session_id = "260702_0"          # the session whose electrodes you want to pick
+    channel_group_sizes = (2, 3, 4)  # group sizes to search
+
+    # Which neighbour metric(s) to search. None = all. Or a list, e.g.
+    #   ['delta_variant_dprime']  or  ['channel_corr_top20', 'pc_loading_sim']
+    # Available names:
+    #   'channel_corr', 'channel_corr_top20', 'channel_corr_top50',
+    #   'channel_corr_top100', 'channel_corr_delta_variant',
+    #   'pc_neighbor_sim', 'pc_loading_sim', 'delta_variant_dprime'
+    neighbor_metrics = None
+
+    # Search speed knob: brute-force when C(candidates, size) <= max_exhaustive, else
+    # greedy forward-selection. Lower it to force greedy sooner (faster); raise it to
+    # brute-force larger groups (slower).
+    max_exhaustive = 200000
+
     # Restrict the candidate pool if you like, e.g. ["A-007", "A-008", ...]; None = all.
     candidate_channels = None
+
+    # Forbid physically adjacent channels in a group (adjacent stim can degrade the
+    # probe). True -> no two selected channels may be neighbours; set min_channel_gap
+    # higher for wider spacing (2 = not adjacent, 3 = >= 3 positions apart, ...).
+    disallow_adjacent = True
+    min_channel_gap = 2 if disallow_adjacent else 1
+    # ==========================================================
 
     search_best_channel_groups(
         session_id,
         trial_types=(COMPARISON_TRIAL_TYPES or None),  # None/[]=all trial types
-        neighbor_metrics=None,                          # None = every metric
+        neighbor_metrics=neighbor_metrics,
         channel_group_sizes=channel_group_sizes,
         candidate_channels=candidate_channels,
+        max_exhaustive=max_exhaustive,
+        min_channel_gap=min_channel_gap,
         effect_metric=COMPARISON_METRIC,
         base_required_conditions=COMPARISON_REQUIRED_CONDITIONS,
         select_by='partial_r',
