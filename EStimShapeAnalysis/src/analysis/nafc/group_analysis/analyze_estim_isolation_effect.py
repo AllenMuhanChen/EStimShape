@@ -1691,7 +1691,7 @@ def _fit_effect_on_metric(df_effect, metric_name, n_neighbors, aggregation, *,
 
 def _search_channel_group(metric_obj, candidates, channels_with_data, coords, *,
                           group_size, n_neighbors, exclude_other_estim, direction,
-                          aggregation, max_exhaustive, score_fn):
+                          aggregation, max_exhaustive, score_fn, neighbor_order=None):
     """Find the size-`group_size` subset of `candidates` whose metric score is most
     extreme in `direction` ('max'/'min'). Exhaustive when C(len, size) <=
     max_exhaustive, else greedy forward-selection. Returns (group, value, method)."""
@@ -1700,7 +1700,8 @@ def _search_channel_group(metric_obj, candidates, channels_with_data, coords, *,
 
     def score(group):
         s = score_fn(metric_obj, list(group), channels_with_data, coords,
-                     n_neighbors=n_neighbors, exclude_other_estim=exclude_other_estim)
+                     n_neighbors=n_neighbors, exclude_other_estim=exclude_other_estim,
+                     neighbor_order=neighbor_order)
         return s.get(aggregation)
 
     better = (lambda a, b: a > b) if direction == 'max' else (lambda a, b: a < b)
@@ -1752,7 +1753,8 @@ def search_best_channel_groups(session_id, *, trial_types=None, neighbor_metrics
     Returns a DataFrame: trial_type, metric, best_nb, direction, group_size, score,
     predicted_effect, channels, search_method."""
     from src.analysis.nafc.group_analysis.compute_estim_neighbor_scores import (
-        prepare_session_metrics, score_spec_for_metric, channel_to_str)
+        prepare_session_metrics, score_spec_for_metric, channel_to_str,
+        precompute_neighbor_order)
 
     if trial_types is None:
         trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
@@ -1764,6 +1766,9 @@ def search_best_channel_groups(session_id, *, trial_types=None, neighbor_metrics
         print(f"Could not prepare session {session_id}.")
         return pd.DataFrame()
     metric_by_name = {m.name: m for m in metric_objs}
+    # Precompute the distance-sorted neighbour order once so the search doesn't
+    # re-sort (and re-run np.linalg.norm) on every group it evaluates.
+    neighbor_order = precompute_neighbor_order(channels_with_data, coords)
 
     if candidate_channels:
         wanted = set(candidate_channels)
@@ -1777,19 +1782,24 @@ def search_best_channel_groups(session_id, *, trial_types=None, neighbor_metrics
     rows = []
     for tt in trial_types:
         rc = _rc_for_trial_type(base_required_conditions, tt)
-        sweep, nb_values = build_neighbor_sweep(
+        # Build the (expensive) effect+current table ONCE and reuse it for both the
+        # sweep (to pick best nb) and the effect~metric fit.
+        df_effect = _effect_and_current_table(
             start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
-            metric=effect_metric, required_conditions=rc, aggregation=aggregation,
-            abs_effect=abs_effect, exclude_other_estim=exclude_other_estim,
+            metric=effect_metric, required_conditions=rc)
+        if len(df_effect) == 0:
+            print(f"  [{tt}] no effect data; skipping")
+            continue
+        sweep, nb_values = build_neighbor_sweep(
+            aggregation=aggregation, abs_effect=abs_effect,
+            exclude_other_estim=exclude_other_estim,
             control_for_current=(select_by == 'partial_r'),
-            min_on_trials=min_on_trials, min_off_trials=min_off_trials)
+            min_on_trials=min_on_trials, min_off_trials=min_off_trials,
+            df_effect=df_effect)
         if not sweep:
             print(f"  [{tt}] no sweep data; skipping")
             continue
         best_nb = _best_nb_per_metric(sweep, select_by=select_by)
-        df_effect = _effect_and_current_table(
-            start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
-            metric=effect_metric, required_conditions=rc)
 
         wanted_metrics = neighbor_metrics or list(best_nb.keys())
         for metric_name in wanted_metrics:
@@ -1814,7 +1824,7 @@ def search_best_channel_groups(session_id, *, trial_types=None, neighbor_metrics
                     metric_by_name[metric_name], candidates, channels_with_data, coords,
                     group_size=size, n_neighbors=nb, exclude_other_estim=exclude_other_estim,
                     direction=dir_, aggregation=aggregation, max_exhaustive=max_exhaustive,
-                    score_fn=score_spec_for_metric)
+                    score_fn=score_spec_for_metric, neighbor_order=neighbor_order)
                 pred = (intercept + slope * val) if (slope is not None and val is not None) else None
                 chans = ", ".join(channel_to_str(c) for c in group) if group else ""
                 rows.append({
@@ -1893,7 +1903,7 @@ def build_neighbor_sweep(start_session_id=None, exclude_session_ids=None, *,
                          exclude_other_estim=True, control_for_current=True,
                          covariate='current_per_second',
                          min_on_trials=10, min_off_trials=10,
-                         n_neighbors_values=None):
+                         n_neighbors_values=None, df_effect=None):
     """For each stored n_neighbors, correlate every metric (at one aggregation) with
     the effect. The effect + current table is built ONCE and re-joined per
     n_neighbors, so this is cheap.
@@ -1901,13 +1911,16 @@ def build_neighbor_sweep(start_session_id=None, exclude_session_ids=None, *,
     covariate: which column to partial out when control_for_current is True —
     'current_per_second' (dose) or 'n_active_channels' (the direct source of the
     'worst'=min selection bias).
+    df_effect: optional precomputed effect+current table (reuse it to avoid the
+    expensive per-session trial-data reads when the caller already has one).
 
     Returns {metric_name: [{'n_neighbors', 'n', 'pearson_r', 'partial_r'}, ...]}
     (sorted by n_neighbors) plus the sorted list of n_neighbors values used."""
-    df_effect = _effect_and_current_table(
-        start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
-        metric=metric, required_conditions=required_conditions,
-        behavioral_conditions=behavioral_conditions)
+    if df_effect is None:
+        df_effect = _effect_and_current_table(
+            start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
+            metric=metric, required_conditions=required_conditions,
+            behavioral_conditions=behavioral_conditions)
     if len(df_effect) == 0:
         return {}, []
 
