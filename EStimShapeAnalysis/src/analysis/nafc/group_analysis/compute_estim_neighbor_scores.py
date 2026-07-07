@@ -444,6 +444,48 @@ def score_spec_for_metric(metric, estim_channels, channels_with_data, coords,
     return {'mean': float(arr.mean()), 'worst': float(arr.min())}
 
 
+def prepare_session_metrics(session_id, *, top_ns=TOP_N_DEFAULTS, pca_components=2,
+                            n_loading_pcs=10, corr_method='spearman',
+                            channel_mapper=None, repo_conn=None):
+    """Set up one session for scoring: switch context, load the response matrix,
+    build the metric objects, and return the probe geometry.
+
+    Returns (metrics, channels_with_data, coords) — the exact inputs
+    score_spec_for_metric needs — or (None, None, None) if the session can't be
+    prepared. Shared by compute_session_neighbor_scores and the channel-group search
+    so both build the metrics identically."""
+    apply_session_context(session_id)
+    ga_conn = context.ga_config.connection()
+    if repo_conn is None:
+        repo_conn = Connection("allen_data_repository")
+
+    base_matrix = ChannelResponseVectorLoader(session_id, repo_conn).load()
+    if not base_matrix:
+        print(f"  {session_id}: no ChannelResponseVectors; skipping")
+        return None, None, None
+
+    if channel_mapper is None:
+        channel_mapper = DBCChannelMapper("A")
+
+    # Probe channels (in DBC order) that have response data — the universe for
+    # neighbour selection and embeddings.
+    channels_with_data = [ch for ch in channel_mapper.channels_top_to_bottom
+                          if channel_to_str(ch) in base_matrix]
+    if len(channels_with_data) < 2:
+        print(f"  {session_id}: <2 probe channels with data; skipping")
+        return None, None, None
+    coords = {ch: np.asarray(channel_mapper.get_coordinates(ch), dtype=float)
+              for ch in channels_with_data}
+    channel_strs = [channel_to_str(ch) for ch in channels_with_data]
+
+    metrics = build_metrics_for_session(
+        session_id, base_matrix, repo_conn, ga_conn, channel_strs=channel_strs,
+        top_ns=top_ns, pca_components=pca_components, n_loading_pcs=n_loading_pcs,
+        corr_method=corr_method)
+    print(f"  {session_id}: {len(metrics)} metrics: {[m.name for m in metrics]}")
+    return metrics, channels_with_data, coords
+
+
 def compute_session_neighbor_scores(session_id, *, n_neighbors_list=(3,),
                                     exclude_other_estim_list=(True,),
                                     top_ns=TOP_N_DEFAULTS, pca_components=2,
@@ -457,35 +499,12 @@ def compute_session_neighbor_scores(session_id, *, n_neighbors_list=(3,),
     correlation matrices are built ONCE and reused across the sweep — only
     neighbour selection + aggregation re-run per combination, so the sweep is
     cheap."""
-    apply_session_context(session_id)
-    ga_conn = context.ga_config.connection()
-    if repo_conn is None:
-        repo_conn = Connection("allen_data_repository")
-
-    base_matrix = ChannelResponseVectorLoader(session_id, repo_conn).load()
-    if not base_matrix:
-        print(f"  {session_id}: no ChannelResponseVectors; skipping")
+    metrics, channels_with_data, coords = prepare_session_metrics(
+        session_id, top_ns=top_ns, pca_components=pca_components,
+        n_loading_pcs=n_loading_pcs, corr_method=corr_method,
+        channel_mapper=channel_mapper, repo_conn=repo_conn)
+    if metrics is None:
         return {}
-
-    if channel_mapper is None:
-        channel_mapper = DBCChannelMapper("A")
-
-    # Probe channels (in DBC order) that have response data — the universe for
-    # neighbour selection and embeddings.
-    channels_with_data = [ch for ch in channel_mapper.channels_top_to_bottom
-                          if channel_to_str(ch) in base_matrix]
-    if len(channels_with_data) < 2:
-        print(f"  {session_id}: <2 probe channels with data; skipping")
-        return {}
-    coords = {ch: np.asarray(channel_mapper.get_coordinates(ch), dtype=float)
-              for ch in channels_with_data}
-    channel_strs = [channel_to_str(ch) for ch in channels_with_data]
-
-    metrics = build_metrics_for_session(
-        session_id, base_matrix, repo_conn, ga_conn, channel_strs=channel_strs,
-        top_ns=top_ns, pca_components=pca_components, n_loading_pcs=n_loading_pcs,
-        corr_method=corr_method)
-    print(f"  {session_id}: {len(metrics)} metrics: {[m.name for m in metrics]}")
 
     estim_by_spec = fetch_active_estim_channels_by_spec(session_id)
     if not estim_by_spec:

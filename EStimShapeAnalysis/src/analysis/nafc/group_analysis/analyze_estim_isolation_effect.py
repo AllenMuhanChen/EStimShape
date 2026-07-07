@@ -1653,6 +1653,235 @@ def main_best_nb_comparison():
 
 
 # ---------------------------------------------------------------------------
+# Channel-group search: for a specific session, which group of channels best
+# optimises a metric (at its group-level best n_neighbors, per trial type)?
+#
+# This turns the group-level analysis into a per-session electrode-selection tool:
+# take each metric's best n_neighbors (from the sweep, per trial type) and the sign
+# of its correlation with effect, then search this session's channels for the group
+# whose metric score is most extreme in the effect-INCREASING direction. The fitted
+# effect~metric line gives a predicted effect for the chosen group.
+# ---------------------------------------------------------------------------
+
+def _fit_effect_on_metric(df_effect, metric_name, n_neighbors, aggregation, *,
+                          exclude_other_estim, abs_effect, min_on_trials, min_off_trials):
+    """Least-squares (slope, intercept) of effect vs a metric column at one
+    n_neighbors, over df_effect (a single trial type's effect table). Used to turn a
+    searched group's metric score into a predicted effect. (None, None) if unfittable."""
+    session_ids = sorted(df_effect['session_id'].unique().tolist())
+    scores, names = _fetch_neighbor_scores(session_ids, n_neighbors=n_neighbors,
+                                           exclude_other_estim=exclude_other_estim)
+    if metric_name not in names:
+        return None, None
+    df = df_effect.copy()
+    _join_neighbor_scores(df, scores, [metric_name], aggregations=(aggregation,))
+    col = f"{metric_name}__{aggregation}"
+    base = df[df['effect_size'].notna() & (df['n_on'] >= min_on_trials)
+              & (df['n_off'] >= min_off_trials) & df[col].notna()]
+    if len(base) < 2:
+        return None, None
+    x = base[col].to_numpy(dtype=float)
+    y = (base['effect_size'].abs() if abs_effect else base['effect_size']).to_numpy(dtype=float)
+    good = np.isfinite(x) & np.isfinite(y)
+    if good.sum() < 2:
+        return None, None
+    slope, intercept = np.polyfit(x[good], y[good], 1)
+    return float(slope), float(intercept)
+
+
+def _search_channel_group(metric_obj, candidates, channels_with_data, coords, *,
+                          group_size, n_neighbors, exclude_other_estim, direction,
+                          aggregation, max_exhaustive, score_fn):
+    """Find the size-`group_size` subset of `candidates` whose metric score is most
+    extreme in `direction` ('max'/'min'). Exhaustive when C(len, size) <=
+    max_exhaustive, else greedy forward-selection. Returns (group, value, method)."""
+    from itertools import combinations
+    from math import comb
+
+    def score(group):
+        s = score_fn(metric_obj, list(group), channels_with_data, coords,
+                     n_neighbors=n_neighbors, exclude_other_estim=exclude_other_estim)
+        return s.get(aggregation)
+
+    better = (lambda a, b: a > b) if direction == 'max' else (lambda a, b: a < b)
+    total = comb(len(candidates), group_size)
+    best_group, best_val = None, None
+
+    if total <= max_exhaustive:
+        method = f"exhaustive({total})"
+        for group in combinations(candidates, group_size):
+            v = score(group)
+            if v is None or not np.isfinite(v):
+                continue
+            if best_val is None or better(v, best_val):
+                best_val, best_group = v, group
+    else:
+        method = "greedy"
+        chosen, pool = [], list(candidates)
+        while len(chosen) < group_size and pool:
+            pick, pick_v = None, None
+            for c in pool:
+                v = score(chosen + [c])
+                if v is None or not np.isfinite(v):
+                    continue
+                if pick_v is None or better(v, pick_v):
+                    pick_v, pick = v, c
+            if pick is None:
+                break
+            chosen.append(pick)
+            pool.remove(pick)
+            best_val = pick_v
+        best_group = tuple(chosen)
+
+    return best_group, best_val, method
+
+
+def search_best_channel_groups(session_id, *, trial_types=None, neighbor_metrics=None,
+                               channel_group_sizes=(2, 3, 4), candidate_channels=None,
+                               effect_metric=METRIC_PCT_HYP_VS_DELTA,
+                               base_required_conditions=None, select_by='partial_r',
+                               aggregation='mean', abs_effect=True,
+                               exclude_other_estim=True, direction='auto',
+                               start_session_id=None, exclude_session_ids=None,
+                               min_on_trials=10, min_off_trials=10,
+                               max_exhaustive=200000, save_dir=None):
+    """For `session_id`, find the channel group (of each size in channel_group_sizes)
+    that best optimises each metric — at that metric's group-level best n_neighbors,
+    per trial type — in the direction that predicts the strongest effect.
+
+    Returns a DataFrame: trial_type, metric, best_nb, direction, group_size, score,
+    predicted_effect, channels, search_method."""
+    from src.analysis.nafc.group_analysis.compute_estim_neighbor_scores import (
+        prepare_session_metrics, score_spec_for_metric, channel_to_str)
+
+    if trial_types is None:
+        trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
+    elif isinstance(trial_types, str):
+        trial_types = [trial_types]
+
+    metric_objs, channels_with_data, coords = prepare_session_metrics(session_id)
+    if metric_objs is None:
+        print(f"Could not prepare session {session_id}.")
+        return pd.DataFrame()
+    metric_by_name = {m.name: m for m in metric_objs}
+
+    if candidate_channels:
+        wanted = set(candidate_channels)
+        candidates = [ch for ch in channels_with_data
+                      if channel_to_str(ch) in wanted or ch in wanted]
+    else:
+        candidates = list(channels_with_data)
+    print(f"\nChannel-group search — session {session_id}: {len(candidates)} candidate "
+          f"channels, sizes {tuple(channel_group_sizes)}, trial types {trial_types}")
+
+    rows = []
+    for tt in trial_types:
+        rc = _rc_for_trial_type(base_required_conditions, tt)
+        sweep, nb_values = build_neighbor_sweep(
+            start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
+            metric=effect_metric, required_conditions=rc, aggregation=aggregation,
+            abs_effect=abs_effect, exclude_other_estim=exclude_other_estim,
+            control_for_current=(select_by == 'partial_r'),
+            min_on_trials=min_on_trials, min_off_trials=min_off_trials)
+        if not sweep:
+            print(f"  [{tt}] no sweep data; skipping")
+            continue
+        best_nb = _best_nb_per_metric(sweep, select_by=select_by)
+        df_effect = _effect_and_current_table(
+            start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
+            metric=effect_metric, required_conditions=rc)
+
+        wanted_metrics = neighbor_metrics or list(best_nb.keys())
+        for metric_name in wanted_metrics:
+            if metric_name not in best_nb or metric_name not in metric_by_name:
+                continue
+            nb = best_nb[metric_name]
+            entry = next((e for e in sweep[metric_name] if e['n_neighbors'] == nb), None)
+            corr_val = (entry.get(select_by) if entry else None)
+            if corr_val is None and entry:
+                corr_val = entry.get('pearson_r')
+            dir_ = direction if direction in ('max', 'min') else \
+                ('max' if (corr_val or 0.0) >= 0 else 'min')
+            slope, intercept = _fit_effect_on_metric(
+                df_effect, metric_name, nb, aggregation,
+                exclude_other_estim=exclude_other_estim, abs_effect=abs_effect,
+                min_on_trials=min_on_trials, min_off_trials=min_off_trials)
+
+            for size in channel_group_sizes:
+                if size > len(candidates):
+                    continue
+                group, val, method = _search_channel_group(
+                    metric_by_name[metric_name], candidates, channels_with_data, coords,
+                    group_size=size, n_neighbors=nb, exclude_other_estim=exclude_other_estim,
+                    direction=dir_, aggregation=aggregation, max_exhaustive=max_exhaustive,
+                    score_fn=score_spec_for_metric)
+                pred = (intercept + slope * val) if (slope is not None and val is not None) else None
+                chans = ", ".join(channel_to_str(c) for c in group) if group else ""
+                rows.append({
+                    'trial_type': tt, 'metric': metric_name, 'best_nb': nb,
+                    'direction': dir_, 'group_size': size,
+                    'score': None if val is None else round(float(val), 4),
+                    'predicted_effect': None if pred is None else round(float(pred), 3),
+                    'channels': chans, 'search': method,
+                })
+
+    board = pd.DataFrame(rows)
+    if len(board) == 0:
+        print("No channel groups found.")
+        return board
+    # Rank within each (trial_type, metric) by predicted effect magnitude for display.
+    print("\n=== Best channel groups per trial type / metric ===")
+    with pd.option_context('display.width', 200, 'display.max_columns', None,
+                           'display.max_colwidth', 60):
+        for tt in trial_types:
+            sub = board[board['trial_type'] == tt]
+            if len(sub) == 0:
+                continue
+            print(f"\n--- trial_type = {tt} ---")
+            show = sub[['metric', 'best_nb', 'direction', 'group_size', 'score',
+                        'predicted_effect', 'channels', 'search']]
+            print(show.to_string(index=False))
+    if save_dir:
+        os.makedirs(save_dir, exist_ok=True)
+        out_csv = os.path.join(save_dir, f"channel_search_{session_id}.csv")
+        board.to_csv(out_csv, index=False)
+        print(f"\nSaved channel search to {out_csv}")
+    return board
+
+
+def main_channel_search():
+    """For a chosen session, search its channels for the group that best optimises
+    each metric (at its group-level best n_neighbors), per trial type. Uses the shared
+    COMPARISON_* config for the group-level sweep/fit."""
+    # The session whose electrodes you want to pick.
+    session_id = "260605_0"
+    # Candidate group sizes to search.
+    channel_group_sizes = (2, 3, 4)
+    # Restrict the candidate pool if you like, e.g. ["A-007", "A-008", ...]; None = all.
+    candidate_channels = None
+
+    search_best_channel_groups(
+        session_id,
+        trial_types=(COMPARISON_TRIAL_TYPES or None),  # None/[]=all trial types
+        neighbor_metrics=None,                          # None = every metric
+        channel_group_sizes=channel_group_sizes,
+        candidate_channels=candidate_channels,
+        effect_metric=COMPARISON_METRIC,
+        base_required_conditions=COMPARISON_REQUIRED_CONDITIONS,
+        select_by='partial_r',
+        aggregation='mean',
+        abs_effect=COMPARISON_ABS_EFFECT,
+        exclude_other_estim=True,
+        direction='auto',
+        start_session_id=COMPARISON_START_SESSION_ID,
+        exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
+        min_on_trials=COMPARISON_MIN_ON_TRIALS,
+        min_off_trials=COMPARISON_MIN_OFF_TRIALS,
+        save_dir=COMPARISON_SAVE_DIR,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Neighbourhood-size sweep: how does each metric's link to effect change with
 # n_neighbors?
 # ---------------------------------------------------------------------------
@@ -2022,5 +2251,7 @@ if __name__ == '__main__':
     #                                  neighbourhood size (n_neighbors)
     #   - main_best_nb_comparison() -> leaderboard with each metric at its own best
     #                                  n_neighbors (exploratory) + the honest shared nb
+    #   - main_channel_search()     -> for one session, the channel group that best
+    #                                  optimises each metric per trial type
     #   - main()                    -> legacy single-isolation-metric plots
     main_metric_comparison()
