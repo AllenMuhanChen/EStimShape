@@ -1041,7 +1041,7 @@ def main_metric_comparison():
     them. Requires compute_estim_neighbor_scores.run_for_sessions() to have populated
     EStimNeighborScores first."""
     metric = METRIC_PCT_HYP_VS_DELTA
-    required_conditions = {'trial_type': 'Hypothesized Shape'}
+    required_conditions = {}
     start_session_id = "260402_0"
     exclude_session_ids = ["260421_0", "260410_0"]
     save_dir = "/home/connorlab/Documents/plots/across_experiments/"
@@ -1069,7 +1069,7 @@ def main():
         # 'noise_chance': 0.9,
         # 'a1': 3.5,
         # 'polarity': 'PositiveFirst',
-        'trial_type': 'Hypothesized Shape',
+        # 'trial_type': 'Hypothesized Shape',
     }
 
     # Session selection (same convention as max_estim_per_experiment):

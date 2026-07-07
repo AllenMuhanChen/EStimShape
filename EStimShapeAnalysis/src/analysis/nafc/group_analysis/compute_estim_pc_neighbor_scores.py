@@ -400,14 +400,14 @@ def run_for_sessions(start_session_id=None, exclude_session_ids=None, *,
 
 def main():
     run_for_sessions(
-        start_session_id=None,        # e.g. "260402_0" to start from the first
+        start_session_id="260402_0",        # e.g. "260402_0" to start from the first
                                       # variant experiment; None = all sessions
         exclude_session_ids=None,     # e.g. ["260421_0", "260410_0"]
-        reducer='mds',               # 'pca' (matches cluster app) | 'mds' | 'none'
+        reducer='pca',               # 'pca' (matches cluster app) | 'mds' | 'none'
         n_components=5,               # 2 matches the cluster app; None = full space
         distance='euclidean',        # 'euclidean' (in embedding) | 'correlation'
         n_neighbors=5,
-        exclude_other_estim=True,
+        exclude_other_estim=False,
         within_session_norm='scale',  # 'scale' (RMS divisor, comparable across
                                       # experiments) | 'none' (raw distances)
     )

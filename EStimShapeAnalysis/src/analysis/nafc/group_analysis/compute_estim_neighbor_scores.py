@@ -500,9 +500,9 @@ def run_for_sessions(start_session_id=None, exclude_session_ids=None, *,
 
 def main():
     run_for_sessions(
-        start_session_id=None,        # e.g. "260402_0"; None = all sessions
+        start_session_id="260402_0",        # e.g. "260402_0"; None = all sessions
         exclude_session_ids=None,     # e.g. ["260421_0", "260410_0"]
-        n_neighbors=3,
+        n_neighbors=5,
         exclude_other_estim=True,
         top_ns=TOP_N_DEFAULTS,        # (20, 50, 100)
         pca_components=2,             # 2 matches the cluster app
