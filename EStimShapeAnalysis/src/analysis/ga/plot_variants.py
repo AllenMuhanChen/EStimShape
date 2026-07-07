@@ -1,5 +1,3 @@
-from matplotlib import pyplot as plt
-
 from clat.pipeline.pipeline_base_classes import create_branch, create_pipeline
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.analysis.ga.response_spec import ResponseSpec
@@ -101,7 +99,11 @@ class PlotVariants(PlotTopNAnalysis):
             'row_col': 'ParentGroup',
             'col_col': 'ColIndex',
             'cols_in_info_box': ["Response", "GenId", "StimSpecId"],
-            'save_path': f"{self.save_path}/{prepared.channel_label}{prepared.baseline_suffix}_variant_history_by_parent.png",
+            # Interactive HTML instead of a PNG: the full-history grid is far
+            # too large to rasterize, but a browser can scroll and zoom it.
+            'save_path': f"{self.save_path}/{prepared.channel_label}{prepared.baseline_suffix}_variant_history_by_parent.html",
+            'save_html': True,
+            'open_in_browser': True,
             'module_name': "Variant_History_By_Parent",
             'publish_mode': False,
             'border_width': 50,
@@ -116,8 +118,6 @@ class PlotVariants(PlotTopNAnalysis):
 
         if self.save_included_variants:
             self._save_included_variants_to_db(compiled_data, response_col)
-
-        plt.show()
 
     def filter_for_variants(self, compiled_data):
         variants_data = compiled_data[
