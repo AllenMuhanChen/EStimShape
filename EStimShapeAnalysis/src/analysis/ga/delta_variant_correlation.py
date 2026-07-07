@@ -424,8 +424,10 @@ def plot_delta_variant_correlation(
         ax_axis_term  = fig.add_subplot(gs[0, axis_start + 1], sharey=axes_left[0])
         ax_axis_junc  = fig.add_subplot(gs[0, axis_start + 2], sharey=axes_left[0])
     if has_dprime:
-        dprime_start = 2 * n_cols + 2 + (4 if has_rwa else 0) + (4 if has_axis else 0)
-        ax_dprime = fig.add_subplot(gs[0, dprime_start + 1], sharey=axes_left[0])
+        # Same convention as rwa_start/axis_start: this index is the d' COLUMN
+        # itself (its spacer is the index before it).
+        dprime_col = 2 * n_cols + 2 + (4 if has_rwa else 0) + (4 if has_axis else 0)
+        ax_dprime = fig.add_subplot(gs[0, dprime_col], sharey=axes_left[0])
 
     scatter_ref = None
     included_label = "included pairs only" if included_only else "all pairs"
