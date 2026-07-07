@@ -1028,7 +1028,7 @@ def build_metric_leaderboard(df, metric_names, *, aggregation='mean',
 def plot_metric_grid(df, metric_names, *, aggregation='mean',
                      min_on_trials=15, min_off_trials=15, abs_effect=False,
                      current_bins=None, group_by=None, nb_by_metric=None,
-                     output_path=None):
+                     tag='', output_path=None):
     """Small-multiples scatter: effect vs each metric (at one aggregation), one
     panel per metric. The visual companion to build_metric_leaderboard.
 
@@ -1171,7 +1171,8 @@ def plot_metric_grid(df, metric_names, *, aggregation='mean',
 
     colour_desc = f'colour = {group_title}' if grouped else 'colour = current'
     fig.suptitle(f"Estim {'|effect|' if abs_effect else 'effect'} vs "
-                 f"neighbour-similarity metrics — '{aggregation}' aggregation "
+                 f"neighbour-similarity metrics"
+                 f"{('  [' + tag + ']') if tag else ''} — '{aggregation}' aggregation "
                  f"({colour_desc})", fontsize=13)
     if output_path:
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -1324,6 +1325,72 @@ def plot_leaderboard_grouped(boards_by_group, *, group_title='trial_type',
     plt.show()
 
 
+def plot_metric_by_trialtype_heatmap(boards_by_group, *, group_title='trial_type',
+                                     value='partial_r', aggregation='mean',
+                                     abs_effect=False, output_path=None):
+    """Heatmap of correlation-with-effect: rows = metrics, columns = trial types,
+    cell = `value` ('partial_r' controlling for current, or 'pearson_r'). The
+    strongest |cell| in each COLUMN is boxed — that's the best metric for that trial
+    type. Reads off 'which metric wins in each trial type' at a glance.
+
+    boards_by_group maps group_label -> leaderboard DataFrame."""
+    groups = [g for g in boards_by_group if len(boards_by_group[g])]
+    if not groups:
+        print("No non-empty boards for the heatmap.")
+        return
+    present = set()
+    for g in groups:
+        present.update(boards_by_group[g]['metric'].tolist())
+    metrics = [m for m in _METRIC_ORDER if m in present]
+    metrics += sorted(m for m in present if m not in _METRIC_ORDER)
+    labels = [_METRIC_LABELS.get(m, m) for m in metrics]
+
+    mat = np.full((len(metrics), len(groups)), np.nan)
+    for j, g in enumerate(groups):
+        b = boards_by_group[g].set_index('metric')
+        for i, m in enumerate(metrics):
+            if m in b.index:
+                v = b[value].get(m)
+                mat[i, j] = v if v is not None else np.nan
+
+    finite = np.abs(mat[np.isfinite(mat)])
+    vmax = float(finite.max()) if finite.size else 1.0
+    fig, ax = plt.subplots(figsize=(1.8 * len(groups) + 3.5, 0.62 * len(metrics) + 2))
+    im = ax.imshow(mat, cmap='RdBu_r', vmin=-vmax, vmax=vmax, aspect='auto')
+    ax.set_xticks(range(len(groups)))
+    ax.set_xticklabels([str(g) for g in groups], rotation=20, ha='right', fontsize=9)
+    ax.set_yticks(range(len(metrics)))
+    ax.set_yticklabels(labels, fontsize=10)
+
+    # Box the strongest |value| in each column = the best metric for that trial type.
+    best_row = {}
+    for j in range(len(groups)):
+        col = mat[:, j]
+        if np.isfinite(col).any():
+            best_row[j] = int(np.nanargmax(np.abs(col)))
+    for i in range(len(metrics)):
+        for j in range(len(groups)):
+            if not np.isfinite(mat[i, j]):
+                continue
+            is_best = best_row.get(j) == i
+            ax.text(j, i, f"{mat[i, j]:+.2f}", ha='center', va='center', fontsize=8,
+                    fontweight='bold' if is_best else 'normal')
+            if is_best:
+                ax.add_patch(plt.Rectangle((j - 0.5, i - 0.5), 1, 1, fill=False,
+                                           edgecolor='lime', linewidth=2.5))
+    cbar = fig.colorbar(im, ax=ax)
+    cbar.set_label(f"{value} vs {'|effect|' if abs_effect else 'effect'}", fontsize=10)
+    ax.set_title(f"Best metric per {group_title} — {value} ({aggregation} aggregation)\n"
+                 f"green box = strongest |{value}| in each column", fontsize=12)
+    fig.tight_layout()
+    if output_path:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        fig.savefig(output_path, dpi=150, bbox_inches='tight')
+        fig.savefig(output_path.rsplit('.', 1)[0] + '.svg', bbox_inches='tight')
+        print(f"Saved heatmap to {output_path}")
+    plt.show()
+
+
 def run_metric_comparison_by_trial_type(trial_types=None, start_session_id=None,
                                         exclude_session_ids=None, *,
                                         metric=METRIC_PCT_HYP_VS_DELTA,
@@ -1369,6 +1436,13 @@ def run_metric_comparison_by_trial_type(trial_types=None, start_session_id=None,
                 print(board[cols].to_string(index=False))
         out[aggregation] = boards
         if save_dir:
+            # The heatmap is the direct "best metric for each trial type" answer:
+            # each column is a trial type, its boxed cell is the winning metric.
+            plot_metric_by_trialtype_heatmap(
+                boards, group_title='trial_type',
+                value='partial_r' if control_for_current else 'pearson_r',
+                aggregation=aggregation, abs_effect=abs_effect,
+                output_path=os.path.join(save_dir, f"best_metric_per_trialtype_{aggregation}{suffix}.png"))
             plot_leaderboard_grouped(
                 boards, group_title='trial_type', use_partial=control_for_current,
                 aggregation=aggregation, abs_effect=abs_effect,
@@ -1508,7 +1582,7 @@ def run_best_nb_comparison(start_session_id=None, exclude_session_ids=None, *,
             plot_metric_grid(
                 df, metric_names, aggregation=aggregation,
                 min_on_trials=min_on_trials, min_off_trials=min_off_trials,
-                abs_effect=abs_effect, nb_by_metric=best,
+                abs_effect=abs_effect, nb_by_metric=best, tag=tag,
                 output_path=os.path.join(save_dir, f"metric_grid_{aggregation}{suffix}.png"))
         out[aggregation] = (board, best, shared_nb)
     return out
