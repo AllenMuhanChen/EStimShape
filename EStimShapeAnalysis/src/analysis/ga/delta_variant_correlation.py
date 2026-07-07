@@ -44,6 +44,7 @@ from src.analysis.channel_data_loaders import (
     RWALoader,
 )
 from src.analysis.channel_metric_plot import (
+    LookupMetric,
     StimVectorCorrelation,
     build_channel_strings,
     cluster_marker_legend_handles,
@@ -362,6 +363,31 @@ def plot_delta_variant_correlation(
         for ch in cluster_channel_list
     ]
 
+    # ---- delta/variant per-channel d' (variant-anchored |dz|) ----
+    # One column: for each channel, |d'| between variant and its deltas' responses,
+    # over the same delta/variant stimuli. This is a per-channel discriminability,
+    # not a channel-vs-channel correlation, so it gets its own colormap (>= 0).
+    from src.analysis.nafc.group_analysis.compute_estim_neighbor_scores import (
+        DeltaVariantDPrime, fetch_variant_delta_pairs)
+    from matplotlib.colors import Normalize
+    dprime_metric = None
+    dprime_vmax = 1.0
+    try:
+        variant_to_deltas, _dv_counts = fetch_variant_delta_pairs(ga_conn, included_only)
+    except Exception as exc:
+        print(f"Could not load delta/variant pairs for d': {exc}")
+        variant_to_deltas = {}
+    if variant_to_deltas:
+        _dprime = DeltaVariantDPrime('dprime', dv_matrix, variant_to_deltas, min_pairs=2)
+        dprime_data = {ch: _dprime.channel_score(ch) for ch in channel_strings}
+        _finite = [v for v in dprime_data.values() if v is not None and np.isfinite(v)]
+        if _finite:
+            dprime_metric = LookupMetric(dprime_data, title="|d'|\nvariant vs delta")
+            dprime_vmax = max(_finite)
+            print(f"Delta/variant d': scored {len(_finite)}/{len(channel_strings)} "
+                  f"channels (max |d'| = {dprime_vmax:.2f})")
+    has_dprime = dprime_metric is not None
+
     # ---- figure layout ----
     cmap, norm = default_cmap_norm()
 
@@ -374,6 +400,7 @@ def plot_delta_variant_correlation(
         [col_width] * n_cols + [spacer_width] + [col_width] * n_cols
         + ([spacer_width] + [col_width] * 3 if has_rwa else [])
         + ([spacer_width] + [col_width] * 3 if has_axis else [])
+        + ([spacer_width] + [col_width] if has_dprime else [])
     )
     n_gs_cols = len(width_ratios)
     fig_width = sum(w for w in width_ratios if w == col_width) + 2
@@ -396,6 +423,9 @@ def plot_delta_variant_correlation(
         ax_axis_shaft = fig.add_subplot(gs[0, axis_start],     sharey=axes_left[0])
         ax_axis_term  = fig.add_subplot(gs[0, axis_start + 1], sharey=axes_left[0])
         ax_axis_junc  = fig.add_subplot(gs[0, axis_start + 2], sharey=axes_left[0])
+    if has_dprime:
+        dprime_start = 2 * n_cols + 2 + (4 if has_rwa else 0) + (4 if has_axis else 0)
+        ax_dprime = fig.add_subplot(gs[0, dprime_start + 1], sharey=axes_left[0])
 
     scatter_ref = None
     included_label = "included pairs only" if included_only else "all pairs"
@@ -417,6 +447,24 @@ def plot_delta_variant_correlation(
             title_fontsize=10,
         )
         scatter_ref = scatter_ref or ref
+
+    # d' column: own sequential colormap (|d'| >= 0) and its own colorbar.
+    if has_dprime:
+        from matplotlib.cm import ScalarMappable
+        dp_cmap = plt.cm.magma
+        dp_norm = Normalize(vmin=0.0, vmax=dprime_vmax)
+        render_metric(
+            ax_dprime, dprime_metric, channel_strings, cluster_channels,
+            cmap=dp_cmap, norm=dp_norm, show_yticks=False, title_fontsize=10,
+        )
+        ax_dprime.annotate(
+            "Δ/variant d'", xy=(0.5, 1.0), xycoords='axes fraction',
+            xytext=(0, 30), textcoords='offset points',
+            ha='center', fontsize=11, fontweight='bold', color='#333333',
+        )
+        cbar_dp = fig.colorbar(ScalarMappable(norm=dp_norm, cmap=dp_cmap),
+                               ax=ax_dprime, fraction=0.12, pad=0.04)
+        cbar_dp.set_label("|d'|  (0 = indistinct, higher = more separable)", fontsize=8)
 
     # Bracket label for RWA group
     if has_rwa:
