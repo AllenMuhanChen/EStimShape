@@ -1757,6 +1757,59 @@ def _search_channel_group(metric_obj, candidates, channels_with_data, coords, *,
     return best_group, best_val, method
 
 
+def _plot_channel_search(board, session_id, *, save_dir=None):
+    """One probe-column per search result (like the cluster-channel plots): channels
+    top -> bottom, the selected channels marked with a green star, the rest gray. One
+    figure per trial type; columns ordered by metric then group size."""
+    from src.analysis.channel_metric_plot import build_channel_strings, plot_metric_column
+    from matplotlib.colors import ListedColormap, Normalize
+    from matplotlib.lines import Line2D
+
+    channel_strings = build_channel_strings("A")
+    hl_cmap, hl_norm = ListedColormap(['#2e7d32']), Normalize(0, 1)
+    order_idx = {m: i for i, m in enumerate(_METRIC_ORDER)}
+    legend_handles = [
+        Line2D([0], [0], marker='*', color='w', markerfacecolor='#2e7d32',
+               markeredgecolor='black', markersize=14, label='selected', linestyle='None'),
+        Line2D([0], [0], marker='o', color='w', markerfacecolor='lightgray',
+               markeredgecolor='gray', markersize=9, label='not selected', linestyle='None'),
+    ]
+
+    for tt in list(dict.fromkeys(board['trial_type'].tolist())):
+        sub = board[board['trial_type'] == tt].copy()
+        if len(sub) == 0:
+            continue
+        sub['_ord'] = sub['metric'].map(order_idx).fillna(999).astype(float)
+        sub = sub.sort_values(['_ord', 'group_size']).reset_index(drop=True)
+        n = len(sub)
+        fig, axes = plt.subplots(1, n, figsize=(max(1.5 * n, 4), 9),
+                                 squeeze=False, sharey=True)
+        axes = axes[0]
+        for i, (ax, (_, row)) in enumerate(zip(axes, sub.iterrows())):
+            selected = {c.strip() for c in str(row['channels']).split(',') if c.strip()}
+            metric_data = {c: 1.0 for c in selected}
+            plot_metric_column(ax, metric_data, channel_strings, selected,
+                               cmap=hl_cmap, norm=hl_norm, show_yticks=(i == 0))
+            ax.set_xticks([])
+            lbl = _METRIC_LABELS.get(row['metric'], row['metric'])
+            title = f"{lbl}\nn={int(row['group_size'])}  nb={row['best_nb']}"
+            pe = row['predicted_effect']
+            if pe is not None and pd.notna(pe):
+                title += f"\npred={float(pe):+.1f}"
+            ax.set_title(title, fontsize=8)
+        fig.legend(handles=legend_handles, loc='upper right', fontsize=8, framealpha=0.9)
+        fig.suptitle(f"Channel-group selections — session {session_id}  [{tt}]",
+                     fontsize=12, fontweight='bold')
+        fig.tight_layout(rect=[0, 0, 1, 0.93])
+        if save_dir:
+            os.makedirs(save_dir, exist_ok=True)
+            path = os.path.join(save_dir, f"channel_search_map_{session_id}_{_slug(tt)}.png")
+            fig.savefig(path, dpi=150, bbox_inches='tight')
+            fig.savefig(path.rsplit('.', 1)[0] + '.svg', bbox_inches='tight')
+            print(f"Saved channel map to {path}")
+        plt.show()
+
+
 def search_best_channel_groups(session_id, *, trial_types=None, neighbor_metrics=None,
                                channel_group_sizes=(2, 3, 4), candidate_channels=None,
                                effect_metric=METRIC_PCT_HYP_VS_DELTA,
@@ -1765,10 +1818,14 @@ def search_best_channel_groups(session_id, *, trial_types=None, neighbor_metrics
                                exclude_other_estim=True, direction='auto',
                                start_session_id=None, exclude_session_ids=None,
                                min_on_trials=10, min_off_trials=10,
-                               max_exhaustive=200000, min_channel_gap=1, save_dir=None):
+                               max_exhaustive=200000, min_channel_gap=1,
+                               fixed_n_neighbors=None, save_dir=None):
     """For `session_id`, find the channel group (of each size in channel_group_sizes)
     that best optimises each metric — at that metric's group-level best n_neighbors,
     per trial type — in the direction that predicts the strongest effect.
+
+    fixed_n_neighbors: None (default) uses each metric's group-level BEST n_neighbors
+    from the sweep; set an int to force that n_neighbors for every metric instead.
 
     min_channel_gap: minimum spacing (in probe positions) between any two selected
     channels. 1 = adjacent allowed; 2 = disallow physically adjacent channels
@@ -1826,16 +1883,22 @@ def search_best_channel_groups(session_id, *, trial_types=None, neighbor_metrics
         if len(df_effect) == 0:
             print(f"  [{tt}] no effect data; skipping")
             continue
+        # Only evaluate the fixed nb when one is forced (cheaper); else the full sweep.
         sweep, nb_values = build_neighbor_sweep(
             aggregation=aggregation, abs_effect=abs_effect,
             exclude_other_estim=exclude_other_estim,
             control_for_current=(select_by == 'partial_r'),
             min_on_trials=min_on_trials, min_off_trials=min_off_trials,
+            n_neighbors_values=([int(fixed_n_neighbors)] if fixed_n_neighbors is not None
+                                else None),
             df_effect=df_effect)
         if not sweep:
             print(f"  [{tt}] no sweep data; skipping")
             continue
-        best_nb = _best_nb_per_metric(sweep, select_by=select_by)
+        if fixed_n_neighbors is not None:
+            best_nb = {m: int(fixed_n_neighbors) for m in sweep}
+        else:
+            best_nb = _best_nb_per_metric(sweep, select_by=select_by)
 
         wanted_metrics = neighbor_metrics or list(best_nb.keys())
         for metric_name in wanted_metrics:
@@ -1879,23 +1942,13 @@ def search_best_channel_groups(session_id, *, trial_types=None, neighbor_metrics
     if len(board) == 0:
         print("No channel groups found.")
         return board
-    # Rank within each (trial_type, metric) by predicted effect magnitude for display.
-    print("\n=== Best channel groups per trial type / metric ===")
-    with pd.option_context('display.width', 200, 'display.max_columns', None,
-                           'display.max_colwidth', 60):
-        for tt in trial_types:
-            sub = board[board['trial_type'] == tt]
-            if len(sub) == 0:
-                continue
-            print(f"\n--- trial_type = {tt} ---")
-            show = sub[['metric', 'best_nb', 'direction', 'group_size', 'score',
-                        'predicted_effect', 'channels', 'search']]
-            print(show.to_string(index=False))
+    # Probe-column map (one column per result) instead of a big printed table.
+    _plot_channel_search(board, session_id, save_dir=save_dir)
     if save_dir:
         os.makedirs(save_dir, exist_ok=True)
         out_csv = os.path.join(save_dir, f"channel_search_{session_id}.csv")
         board.to_csv(out_csv, index=False)
-        print(f"\nSaved channel search to {out_csv}")
+        print(f"Saved channel search table to {out_csv}")
     return board
 
 
@@ -1914,6 +1967,10 @@ def main_channel_search():
     #   'channel_corr_top100', 'channel_corr_delta_variant',
     #   'pc_neighbor_sim', 'pc_loading_sim', 'delta_variant_dprime'
     neighbor_metrics = None
+
+    # n_neighbors per metric: None = use each metric's group-level BEST nb (from the
+    # sweep); or set an int (e.g. 3) to force that nb for every metric.
+    fixed_n_neighbors = None
 
     # Search speed knob: brute-force when C(candidates, size) <= max_exhaustive, else
     # greedy forward-selection. Lower it to force greedy sooner (faster); raise it to
@@ -1938,6 +1995,7 @@ def main_channel_search():
         candidate_channels=candidate_channels,
         max_exhaustive=max_exhaustive,
         min_channel_gap=min_channel_gap,
+        fixed_n_neighbors=fixed_n_neighbors,
         effect_metric=COMPARISON_METRIC,
         base_required_conditions=COMPARISON_REQUIRED_CONDITIONS,
         select_by='partial_r',
