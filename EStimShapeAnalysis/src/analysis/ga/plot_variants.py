@@ -6,6 +6,7 @@ from PIL import Image, ImageOps
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
 from src.analysis.ga.response_spec import ResponseSpec
 from src.pga.stim_types import StimType
+from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 from clat.util.connection import Connection
@@ -16,7 +17,7 @@ def main():
     analysis = PlotVariants(save_included_variants=False)
     compiled_data = None
     # compiled_data = analysis.compile_and_export()
-    session_id = "260512_0"
+    session_id,_ = read_session_id_and_date_from_db_name(context.ga_database)
     data_type = "GA" if channel == "GA" else "raw"
     analysis.run(session_id, data_type, channel, compiled_data=compiled_data)
 
