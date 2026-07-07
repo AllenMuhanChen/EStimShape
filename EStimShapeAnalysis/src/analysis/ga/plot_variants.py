@@ -47,72 +47,62 @@ class PlotVariants(PlotTopNAnalysis):
         compiled_data = prepared.data
         response_col = prepared.response_col
 
-        # Find lineages with more than 10 stimuli
-        lineage_counts = compiled_data['Lineage'].value_counts()
-        top_lineages = lineage_counts[lineage_counts > 10].index
-        print(f"Top {len(top_lineages)} lineages: {top_lineages.tolist()}")
-
-        # Filter for variants only
-        variants_data = self.filter_for_variants(compiled_data)
-
-        # Calculate average response rate and rank for variants
-        avg_response = variants_data.groupby(['GenId', 'StimSpecId', 'Lineage'])[response_col].mean().reset_index()
-        avg_response.rename(columns={response_col: 'Avg Response Rate'}, inplace=True)
-        avg_response['Rank'] = avg_response.groupby('Lineage')['Avg Response Rate'].rank(
-            ascending=False, method='first')
-
-        # Merge ranks back
-        variants_data = variants_data.merge(
-            avg_response[['GenId', 'StimSpecId', 'Lineage', 'Rank']],
-            on=['GenId', 'StimSpecId', 'Lineage'],
-            how='left'
+        # Collapse to one row per stimulus: mean response plus the descriptive
+        # columns we need for layout and labelling. compiled_data has one row
+        # per presentation, so a stimulus can appear multiple times.
+        stim_summary = (
+            compiled_data
+            .groupby('StimSpecId', as_index=False)
+            .agg({
+                response_col: 'mean',
+                'GenId': 'first',
+                'Lineage': 'first',
+                'ParentId': 'first',
+                'StimType': 'first',
+                'ThumbnailPath': 'first',
+            })
         )
-        variants_data['RowType'] = 'Variant'
 
-        # DEBUG: Check parent IDs
-        print("\n=== DEBUG PARENT LOOKUP ===")
-        parent_ids = variants_data['ParentId'].unique()
-        print(f"Number of unique ParentIds in variants: {len(parent_ids)}")
-        print(f"Sample ParentIds: {parent_ids[:5]}")
+        # The variants whose production history we want to trace, one row each.
+        variants = self.filter_for_variants(stim_summary).copy()
+        variants = variants[variants['ParentId'].notna()]
+        if variants.empty:
+            print("No variants found to plot")
+            return
 
-        matching_parents = compiled_data[compiled_data['StimSpecId'].isin(parent_ids)]
-        print(f"Number of matching parents found in compiled_data: {len(matching_parents)}")
-        if matching_parents.empty:
-            print("\nChecking why no parents found...")
-            print(f"Sample StimSpecIds in compiled_data: {compiled_data['StimSpecId'].head(10).tolist()}")
-            print(f"StimTypes in compiled_data: {compiled_data['StimType'].unique()}")
+        # One plot row per parent that produced variants. Within a row the
+        # columns run left-to-right by generation (chronological) and, within a
+        # generation, by response (highest first, then decreasing).
+        variants = variants.sort_values(
+            ['ParentId', 'GenId', response_col],
+            ascending=[True, True, False],
+            kind='stable',
+        )
+        variants['ColIndex'] = variants.groupby('ParentId').cumcount() + 1
+        variants['ParentGroup'] = variants['ParentId']
+        variants['RowType'] = 'Variant'
 
-        # Get parent information for each variant
-        parent_rows = []
-        parents_data = compiled_data[compiled_data['StimSpecId'].isin(parent_ids)].copy()
-        for _, variant in variants_data.iterrows():
-            parent_id = variant['ParentId']
-            matching_parents = parents_data[parents_data['StimSpecId'] == parent_id]
-            if not matching_parents.empty:
-                parent_row = matching_parents.iloc[0].copy()
-                parent_row['Rank'] = variant['Rank']
-                parent_row['Lineage'] = variant['Lineage']
-                parent_row['RowType'] = 'Parent'
-                parent_rows.append(parent_row)
+        # The left-most column (ColIndex 0) of each row is the parent's own
+        # image. Only parents that actually produced variants get a row.
+        parent_ids = variants['ParentId'].unique()
+        parents = stim_summary[stim_summary['StimSpecId'].isin(parent_ids)].copy()
+        parents['ColIndex'] = 0
+        parents['ParentGroup'] = parents['StimSpecId']
+        parents['RowType'] = 'Parent'
 
-        if parent_rows:
-            parents_df = pd.DataFrame(parent_rows)
-            plot_data = pd.concat([variants_data, parents_df], ignore_index=True)
-            print(f"Successfully created plot_data with {len(variants_data)} variants and {len(parents_df)} parents")
-        else:
-            print("No parent data found - plotting variants only")
-            plot_data = variants_data
+        plot_data = pd.concat([parents, variants], ignore_index=True)
+        print(f"Plotting {len(parents)} parents and {len(variants)} variants "
+              f"across {plot_data['ParentGroup'].nunique()} rows")
 
         visualize_params = {
             'cell_size': (200, 200),
             'response_rate_col': response_col,
             'path_col': 'ThumbnailPath',
-            'row_col': 'RowType',
-            'col_col': 'Rank',
-            'subgroup_col': 'Lineage',
-            'filter_values': {"Lineage": top_lineages.tolist()},
-            'save_path': f"{self.save_path}/{prepared.channel_label}{prepared.baseline_suffix}_variants_with_parents.png",
-            'module_name': "Variants_With_Parents",
+            'row_col': 'ParentGroup',
+            'col_col': 'ColIndex',
+            'cols_in_info_box': ["Response", "GenId", "StimSpecId"],
+            'save_path': f"{self.save_path}/{prepared.channel_label}{prepared.baseline_suffix}_variant_history_by_parent.png",
+            'module_name': "Variant_History_By_Parent",
             'publish_mode': False,
             'border_width': 50,
         }
