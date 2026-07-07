@@ -699,16 +699,31 @@ def _get_sessions_with_neighbor_scores():
     return [row[0] for row in conn.fetch_all()]
 
 
-def _fetch_neighbor_scores(session_ids=None):
-    """Return {(session_id, estim_spec_id): {metric_name: {aggregation: value}}}
-    plus the sorted list of metric names present, from EStimNeighborScores."""
+def _available_n_neighbors(exclude_other_estim=True):
+    """Sorted list of n_neighbors values present in EStimNeighborScores for the
+    given exclude_other_estim setting (the neighbourhood sizes available to sweep)."""
     conn = Connection("allen_data_repository")
-    base = "SELECT session_id, estim_spec_id, metric_name, aggregation, value FROM EStimNeighborScores"
+    conn.execute(
+        "SELECT DISTINCT n_neighbors FROM EStimNeighborScores "
+        "WHERE exclude_other_estim = %s ORDER BY n_neighbors",
+        (1 if exclude_other_estim else 0,))
+    return [int(row[0]) for row in conn.fetch_all()]
+
+
+def _fetch_neighbor_scores(session_ids=None, *, n_neighbors=3,
+                           exclude_other_estim=True):
+    """Return {(session_id, estim_spec_id): {metric_name: {aggregation: value}}}
+    plus the sorted list of metric names present, from EStimNeighborScores, for one
+    (n_neighbors, exclude_other_estim) configuration."""
+    conn = Connection("allen_data_repository")
+    where = ["n_neighbors = %s", "exclude_other_estim = %s"]
+    params = [int(n_neighbors), 1 if exclude_other_estim else 0]
     if session_ids:
-        placeholders = ', '.join(['%s'] * len(session_ids))
-        conn.execute(f"{base} WHERE session_id IN ({placeholders})", tuple(session_ids))
-    else:
-        conn.execute(base)
+        where.append(f"session_id IN ({', '.join(['%s'] * len(session_ids))})")
+        params.extend(session_ids)
+    conn.execute(
+        "SELECT session_id, estim_spec_id, metric_name, aggregation, value "
+        "FROM EStimNeighborScores WHERE " + " AND ".join(where), tuple(params))
 
     scores = {}
     metric_names = set()
@@ -736,15 +751,12 @@ def _fetch_current_per_second(session_spec_pairs):
     return out
 
 
-def build_metric_comparison_table(start_session_id=None, exclude_session_ids=None,
-                                  *, metric=METRIC_PCT_HYPOTHESIZED,
-                                  required_conditions=None,
-                                  behavioral_conditions=BEHAVIORAL_KEYS):
-    """Per-(session, estim_spec) DataFrame joining the raw estim effect with every
-    neighbour-similarity metric (all aggregations) and current_per_second.
-
-    Returns (df, metric_names). Metric columns are named ``<metric>__<aggregation>``
-    (e.g. ``channel_corr__mean``, ``pc_neighbor_sim__worst``)."""
+def _effect_and_current_table(start_session_id=None, exclude_session_ids=None, *,
+                              metric=METRIC_PCT_HYPOTHESIZED, required_conditions=None,
+                              behavioral_conditions=BEHAVIORAL_KEYS):
+    """Per-(session, estim_spec) DataFrame of the raw estim effect + current_per_second,
+    over sessions that have neighbour scores. Independent of neighbourhood config, so
+    a sweep can compute it once and re-join different metric configs."""
     session_ids = _get_sessions_with_neighbor_scores()
     if start_session_id is not None:
         session_ids = [s for s in session_ids if s >= start_session_id]
@@ -763,29 +775,56 @@ def build_metric_comparison_table(start_session_id=None, exclude_session_ids=Non
 
     if not all_rows:
         print("No per-spec effects computed.")
-        return pd.DataFrame(), []
+        return pd.DataFrame()
 
     df = pd.DataFrame(all_rows)
+    pairs = sorted({(s, int(spec)) for s, spec in zip(df['session_id'], df['estim_spec_id'])})
+    cps = _fetch_current_per_second(pairs)
+    df['current_per_second'] = [
+        cps.get((s, int(spec))) for s, spec in zip(df['session_id'], df['estim_spec_id'])]
+    return df
 
-    scores, metric_names = _fetch_neighbor_scores(
-        sorted(df['session_id'].unique().tolist()))
-    agg_labels = ('mean', 'worst')
+
+def _join_neighbor_scores(df, scores, metric_names, aggregations=('mean', 'worst')):
+    """Add one ``<metric>__<aggregation>`` column per (metric, aggregation) to df
+    from a _fetch_neighbor_scores result. Returns the list of columns added."""
     metric_cols = []
     for name in metric_names:
-        for agg in agg_labels:
+        for agg in aggregations:
             col = f"{name}__{agg}"
             df[col] = [
                 (scores.get((s, int(spec)), {}).get(name, {}) or {}).get(agg)
                 for s, spec in zip(df['session_id'], df['estim_spec_id'])]
             metric_cols.append(col)
+    return metric_cols
 
-    pairs = sorted({(s, int(spec)) for s, spec in zip(df['session_id'], df['estim_spec_id'])})
-    cps = _fetch_current_per_second(pairs)
-    df['current_per_second'] = [
-        cps.get((s, int(spec))) for s, spec in zip(df['session_id'], df['estim_spec_id'])]
+
+def build_metric_comparison_table(start_session_id=None, exclude_session_ids=None,
+                                  *, metric=METRIC_PCT_HYPOTHESIZED,
+                                  required_conditions=None,
+                                  behavioral_conditions=BEHAVIORAL_KEYS,
+                                  n_neighbors=3, exclude_other_estim=True):
+    """Per-(session, estim_spec) DataFrame joining the raw estim effect with every
+    neighbour-similarity metric (all aggregations) and current_per_second, for one
+    (n_neighbors, exclude_other_estim) configuration.
+
+    Returns (df, metric_names). Metric columns are named ``<metric>__<aggregation>``
+    (e.g. ``channel_corr__mean``, ``pc_neighbor_sim__worst``)."""
+    df = _effect_and_current_table(
+        start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
+        metric=metric, required_conditions=required_conditions,
+        behavioral_conditions=behavioral_conditions)
+    if len(df) == 0:
+        return df, []
+
+    scores, metric_names = _fetch_neighbor_scores(
+        sorted(df['session_id'].unique().tolist()),
+        n_neighbors=n_neighbors, exclude_other_estim=exclude_other_estim)
+    metric_cols = _join_neighbor_scores(df, scores, metric_names)
 
     n_with = sum(df[c].notna().any() for c in metric_cols)
-    print(f"\nBuilt comparison table: {len(df)} specs across "
+    print(f"\nBuilt comparison table (n_neighbors={n_neighbors}, "
+          f"exclude_other_estim={exclude_other_estim}): {len(df)} specs across "
           f"{df['session_id'].nunique()} sessions; {len(metric_names)} metrics "
           f"({n_with} metric columns populated)")
     return df, metric_names
@@ -1059,21 +1098,26 @@ def run_metric_comparison(start_session_id=None, exclude_session_ids=None, *,
                           metric=METRIC_PCT_HYP_VS_DELTA, required_conditions=None,
                           min_on_trials=10, min_off_trials=10,
                           control_for_current=True, abs_effect=False,
-                          current_bins=None, save_dir=None):
+                          current_bins=None, n_neighbors=3, exclude_other_estim=True,
+                          save_dir=None):
     """End-to-end: build the comparison table, print + plot the leaderboard for
     both aggregations, and draw the per-metric scatter grids. Returns
     (df, {'mean': board_mean, 'worst': board_worst}).
 
     abs_effect=True relates each metric to |effect| (effect STRENGTH regardless of
-    sign) instead of signed effect — the direct test of the isolation hypothesis."""
+    sign) instead of signed effect — the direct test of the isolation hypothesis.
+    n_neighbors / exclude_other_estim pick which stored neighbourhood configuration
+    to use (see plot_neighbor_sweep to compare across n_neighbors)."""
     df, metric_names = build_metric_comparison_table(
         start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
-        metric=metric, required_conditions=required_conditions)
+        metric=metric, required_conditions=required_conditions,
+        n_neighbors=n_neighbors, exclude_other_estim=exclude_other_estim)
     if len(df) == 0:
         print("Nothing to compare — run compute_estim_neighbor_scores first.")
         return df, {}
 
-    suffix = '_abs' if abs_effect else ''
+    suffix = (f"_nb{n_neighbors}{'' if exclude_other_estim else '_incl'}"
+              f"{'_abs' if abs_effect else ''}")
     y_desc = '|effect|' if abs_effect else 'signed effect'
     boards = {}
     for aggregation in ('mean', 'worst'):
@@ -1103,6 +1147,183 @@ def run_metric_comparison(start_session_id=None, exclude_session_ids=None, *,
     return df, boards
 
 
+# ---------------------------------------------------------------------------
+# Neighbourhood-size sweep: how does each metric's link to effect change with
+# n_neighbors?
+# ---------------------------------------------------------------------------
+
+def build_neighbor_sweep(start_session_id=None, exclude_session_ids=None, *,
+                         metric=METRIC_PCT_HYP_VS_DELTA, required_conditions=None,
+                         behavioral_conditions=BEHAVIORAL_KEYS,
+                         aggregation='mean', abs_effect=False,
+                         exclude_other_estim=True, control_for_current=True,
+                         min_on_trials=10, min_off_trials=10,
+                         n_neighbors_values=None):
+    """For each stored n_neighbors, correlate every metric (at one aggregation) with
+    the effect. The effect + current table is built ONCE and re-joined per
+    n_neighbors, so this is cheap.
+
+    Returns {metric_name: [{'n_neighbors', 'n', 'pearson_r', 'partial_r'}, ...]}
+    (sorted by n_neighbors) plus the sorted list of n_neighbors values used."""
+    df_effect = _effect_and_current_table(
+        start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
+        metric=metric, required_conditions=required_conditions,
+        behavioral_conditions=behavioral_conditions)
+    if len(df_effect) == 0:
+        return {}, []
+
+    if n_neighbors_values is None:
+        n_neighbors_values = _available_n_neighbors(exclude_other_estim)
+    if not n_neighbors_values:
+        print("No n_neighbors values stored for this exclude_other_estim setting.")
+        return {}, []
+
+    session_ids = sorted(df_effect['session_id'].unique().tolist())
+    sweep = {}
+    for nb in n_neighbors_values:
+        scores, metric_names = _fetch_neighbor_scores(
+            session_ids, n_neighbors=nb, exclude_other_estim=exclude_other_estim)
+        df = df_effect.copy()
+        _join_neighbor_scores(df, scores, metric_names, aggregations=(aggregation,))
+        base = df[
+            df['effect_size'].notna()
+            & (df['n_on'] >= min_on_trials)
+            & (df['n_off'] >= min_off_trials)
+        ]
+        for name in metric_names:
+            col = f"{name}__{aggregation}"
+            sub = base[base[col].notna()]
+            y = sub['effect_size'].abs() if abs_effect else sub['effect_size']
+            corr = _correlation(sub[col].to_numpy(), y.to_numpy())
+            entry = {'n_neighbors': nb,
+                     'n': corr['n'] if corr else int(len(sub)),
+                     'pearson_r': corr['pearson_r'] if corr else None,
+                     'partial_r': None}
+            if control_for_current and 'current_per_second' in df.columns:
+                pc = _partial_correlation(sub[col].to_numpy(), y.to_numpy(),
+                                          sub['current_per_second'].to_numpy())
+                if pc:
+                    entry['partial_r'] = pc['r']
+            sweep.setdefault(name, []).append(entry)
+
+    for name in sweep:
+        sweep[name].sort(key=lambda e: e['n_neighbors'])
+    return sweep, sorted(n_neighbors_values)
+
+
+def plot_neighbor_sweep(sweep, *, use_partial=False, aggregation='mean',
+                        abs_effect=False, exclude_other_estim=True, metric='',
+                        output_path=None):
+    """Line plot: x = n_neighbors, y = each metric's correlation with the effect
+    (raw Pearson r, or partial r controlling for current when use_partial=True),
+    one line per metric. Shows whether a metric's signal strengthens or washes out
+    as the neighbourhood grows."""
+    if not sweep:
+        print("Empty sweep; nothing to plot.")
+        return
+    ordered = [m for m in _METRIC_ORDER if m in sweep]
+    ordered += sorted(m for m in sweep if m not in _METRIC_ORDER)
+    key = 'partial_r' if use_partial else 'pearson_r'
+
+    cmap = plt.cm.get_cmap('tab10', max(len(ordered), 1))
+    fig, ax = plt.subplots(figsize=(9, 6))
+    for i, name in enumerate(ordered):
+        entries = sweep[name]
+        xs = [e['n_neighbors'] for e in entries if e[key] is not None]
+        ys = [e[key] for e in entries if e[key] is not None]
+        if not xs:
+            continue
+        ax.plot(xs, ys, marker='o', color=cmap(i),
+                label=_METRIC_LABELS.get(name, name))
+    ax.axhline(0, color='black', linestyle='--', linewidth=1, alpha=0.5)
+    ax.set_xlabel('n_neighbors (physical neighbours averaged per estim channel)',
+                  fontsize=11)
+    r_desc = 'partial r | current' if use_partial else 'Pearson r'
+    y_desc = '|effect|' if abs_effect else 'effect'
+    ax.set_ylabel(f"correlation with {y_desc}  ({r_desc})", fontsize=11)
+    ax.set_title(f"Metric–{y_desc} correlation vs neighbourhood size "
+                 f"({aggregation} agg, exclude_other_estim={exclude_other_estim}"
+                 f"{', metric=' + metric if metric else ''})", fontsize=12)
+    ax.legend(fontsize=8, loc='best', framealpha=0.9)
+    ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+    if output_path:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        fig.savefig(output_path, dpi=150, bbox_inches='tight')
+        fig.savefig(output_path.rsplit('.', 1)[0] + '.svg', bbox_inches='tight')
+        print(f"Saved neighbour sweep to {output_path}")
+    plt.show()
+
+
+def run_neighbor_sweep(start_session_id=None, exclude_session_ids=None, *,
+                       metric=METRIC_PCT_HYP_VS_DELTA, required_conditions=None,
+                       abs_effect=False, exclude_other_estim=True,
+                       control_for_current=True, min_on_trials=10, min_off_trials=10,
+                       save_dir=None):
+    """Build and plot the neighbourhood-size sweep for both aggregations, using both
+    the raw and partial (current-controlled) correlation. Returns
+    {aggregation: sweep_dict}."""
+    suffix = (f"_{'incl' if not exclude_other_estim else 'excl'}"
+              f"{'_abs' if abs_effect else ''}")
+    out = {}
+    for aggregation in ('mean', 'worst'):
+        sweep, nb_values = build_neighbor_sweep(
+            start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
+            metric=metric, required_conditions=required_conditions,
+            aggregation=aggregation, abs_effect=abs_effect,
+            exclude_other_estim=exclude_other_estim,
+            control_for_current=control_for_current,
+            min_on_trials=min_on_trials, min_off_trials=min_off_trials)
+        out[aggregation] = sweep
+        if not sweep:
+            continue
+        print(f"\n=== Neighbour sweep ({aggregation} aggregation, "
+              f"{'|effect|' if abs_effect else 'effect'}) over n_neighbors={nb_values} ===")
+        for name in ([m for m in _METRIC_ORDER if m in sweep]
+                     + sorted(m for m in sweep if m not in _METRIC_ORDER)):
+            cells = "  ".join(
+                f"nb{e['n_neighbors']}: r={e['pearson_r']:+.2f}" if e['pearson_r'] is not None
+                else f"nb{e['n_neighbors']}: --" for e in sweep[name])
+            print(f"  {_METRIC_LABELS.get(name, name):28s} {cells}")
+        if save_dir:
+            plot_neighbor_sweep(
+                sweep, use_partial=False, aggregation=aggregation,
+                abs_effect=abs_effect, exclude_other_estim=exclude_other_estim,
+                metric=metric,
+                output_path=os.path.join(save_dir, f"neighbor_sweep_{aggregation}{suffix}.png"))
+            if control_for_current:
+                plot_neighbor_sweep(
+                    sweep, use_partial=True, aggregation=aggregation,
+                    abs_effect=abs_effect, exclude_other_estim=exclude_other_estim,
+                    metric=metric,
+                    output_path=os.path.join(save_dir, f"neighbor_sweep_{aggregation}{suffix}_partial.png"))
+    return out
+
+
+def main_neighbor_sweep():
+    """Show how each metric's correlation with the estim effect changes with
+    neighbourhood size (n_neighbors). Requires compute_estim_neighbor_scores to have
+    been run with a multi-value n_neighbors_list first."""
+    metric = METRIC_PCT_HYP_VS_DELTA
+    required_conditions = {'trial_type': 'Hypothesized Shape'}
+    start_session_id = "260402_0"
+    exclude_session_ids = ["260421_0", "260410_0"]
+    save_dir = "/home/connorlab/Documents/plots/across_experiments/"
+
+    run_neighbor_sweep(
+        start_session_id=start_session_id,
+        exclude_session_ids=exclude_session_ids,
+        metric=metric,
+        required_conditions=required_conditions or None,
+        abs_effect=True,               # relate to |effect| (effect strength)
+        exclude_other_estim=True,      # flip to False if you also swept inclusion
+        control_for_current=True,
+        min_on_trials=10,
+        min_off_trials=10,
+        save_dir=save_dir,
+    )
+
+
 def main_metric_comparison():
     """Compare all neighbour-similarity metrics against the estim effect and rank
     them. Requires compute_estim_neighbor_scores.run_for_sessions() to have populated
@@ -1124,6 +1345,12 @@ def main_metric_comparison():
     #   e.g. current_bins = [0, 1000, 2000, 3000, 5000]
     current_bins = None
 
+    # Which stored neighbourhood configuration to use for the leaderboard/grid.
+    # (compute_estim_neighbor_scores stores several n_neighbors — use
+    # main_neighbor_sweep / run_neighbor_sweep to compare across them.)
+    n_neighbors = 3
+    exclude_other_estim = True
+
     run_metric_comparison(
         start_session_id=start_session_id,
         exclude_session_ids=exclude_session_ids,
@@ -1134,6 +1361,8 @@ def main_metric_comparison():
         control_for_current=True,
         abs_effect=abs_effect,
         current_bins=current_bins,
+        n_neighbors=n_neighbors,
+        exclude_other_estim=exclude_other_estim,
         save_dir=save_dir,
     )
 
@@ -1209,5 +1438,7 @@ def main():
 if __name__ == '__main__':
     # Running this file compares all neighbour-similarity metrics against the estim
     # effect and ranks them (needs compute_estim_neighbor_scores to have run first).
-    # For the legacy single-isolation-metric plots, call main() instead.
+    #   - main_neighbor_sweep()   -> how each metric's link to effect changes with
+    #                                neighbourhood size (n_neighbors)
+    #   - main()                  -> legacy single-isolation-metric plots
     main_metric_comparison()
