@@ -705,6 +705,15 @@ COMPARISON_MIN_ON_TRIALS = 10
 COMPARISON_MIN_OFF_TRIALS = 10
 COMPARISON_ABS_EFFECT = True          # relate metrics to |effect| (effect strength)
 COMPARISON_SAVE_DIR = "/home/connorlab/Documents/plots/across_experiments/"
+# Split the whole analysis by trial_type. None = single pass using
+# COMPARISON_REQUIRED_CONDITIONS as-is; [] = auto-discover the trial types present;
+# or an explicit list, e.g. ['Hypothesized Shape', 'Random Shape'].
+COMPARISON_TRIAL_TYPES = None
+
+
+def _slug(text):
+    """Filesystem-safe lowercase slug for tags in filenames (e.g. a trial_type)."""
+    return ''.join(c if c.isalnum() else '_' for c in str(text)).strip('_').lower()
 
 
 def _get_sessions_with_neighbor_scores():
@@ -852,6 +861,81 @@ def build_metric_comparison_table(start_session_id=None, exclude_session_ids=Non
     return df, metric_names
 
 
+# ---------------------------------------------------------------------------
+# Splitting the whole analysis by trial_type
+#
+# trial_type is a behavioural condition, so it changes the estim EFFECT (Y) but NOT
+# the neighbour-metric scores (X, which come from GA responses). So we compute the
+# effect table once per trial_type, tag it, stack into one long table, and re-join
+# the same scores. Everything downstream (leaderboard, grid, sweep) then just filters
+# the long table by trial_type.
+# ---------------------------------------------------------------------------
+
+def _rc_for_trial_type(base_required_conditions, trial_type):
+    """required_conditions with trial_type overridden to `trial_type` (None -> keep
+    base as-is)."""
+    rc = {k: v for k, v in (base_required_conditions or {}).items() if k != 'trial_type'}
+    if trial_type is not None:
+        rc['trial_type'] = trial_type
+    return rc or None
+
+
+def _discover_trial_types(start_session_id=None, exclude_session_ids=None):
+    """Distinct trial_type values across the sessions that have neighbour scores.
+    Reads trial data once per session (same source the effect uses)."""
+    session_ids = _get_sessions_with_neighbor_scores()
+    if start_session_id is not None:
+        session_ids = [s for s in session_ids if s >= start_session_id]
+    if exclude_session_ids:
+        excluded = set(exclude_session_ids)
+        session_ids = [s for s in session_ids if s not in excluded]
+    types = set()
+    for sid in session_ids:
+        data = read_trial_data_from_repository(sid)
+        if data is not None and len(data) and 'trial_type' in data.columns:
+            types.update(t for t in data['trial_type'].dropna().unique().tolist())
+    return sorted(types)
+
+
+def build_metric_comparison_long(trial_types, start_session_id=None,
+                                 exclude_session_ids=None, *,
+                                 metric=METRIC_PCT_HYPOTHESIZED,
+                                 base_required_conditions=None,
+                                 behavioral_conditions=BEHAVIORAL_KEYS,
+                                 n_neighbors=3, exclude_other_estim=True):
+    """Long per-(session, estim_spec, trial_type) table: the effect computed
+    separately for each trial_type, tagged with a ``trial_type`` column, with the
+    (trial-type-independent) neighbour-metric scores + current joined on.
+
+    Returns (long_df, metric_names). Each spec contributes one row per trial_type
+    (same metric X, trial-type-specific effect Y)."""
+    frames = []
+    for tt in trial_types:
+        rc = _rc_for_trial_type(base_required_conditions, tt)
+        print(f"\n--- effect table for trial_type={tt!r} ---")
+        df_tt = _effect_and_current_table(
+            start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
+            metric=metric, required_conditions=rc,
+            behavioral_conditions=behavioral_conditions)
+        if len(df_tt) == 0:
+            print(f"  (no specs for trial_type={tt!r})")
+            continue
+        df_tt['trial_type'] = tt
+        frames.append(df_tt)
+
+    if not frames:
+        return pd.DataFrame(), []
+
+    long_df = pd.concat(frames, ignore_index=True)
+    scores, metric_names = _fetch_neighbor_scores(
+        sorted(long_df['session_id'].unique().tolist()),
+        n_neighbors=n_neighbors, exclude_other_estim=exclude_other_estim)
+    _join_neighbor_scores(long_df, scores, metric_names)
+    print(f"\nBuilt long comparison table: {len(long_df)} rows across "
+          f"{len(frames)} trial types (n_neighbors={n_neighbors})")
+    return long_df, metric_names
+
+
 def _partial_correlation(x, y, z):
     """Partial Pearson correlation of x and y controlling for z: correlate the
     residuals of x and y after linearly regressing each on z. Returns a dict with
@@ -943,19 +1027,19 @@ def build_metric_leaderboard(df, metric_names, *, aggregation='mean',
 
 def plot_metric_grid(df, metric_names, *, aggregation='mean',
                      min_on_trials=15, min_off_trials=15, abs_effect=False,
-                     current_bins=None, output_path=None):
+                     current_bins=None, group_by=None, output_path=None):
     """Small-multiples scatter: effect vs each metric (at one aggregation), one
     panel per metric. The visual companion to build_metric_leaderboard.
 
     abs_effect=True plots |effect| — the direct test of "does isolation predict
     effect STRENGTH" (regardless of sign), which the signed view hides as spread.
 
-    current_bins: optional list of dose-bin edges (e.g. [0, 1000, 2000, 3000, 5000]).
-    When given, points are coloured by their current_per_second bin and a SEPARATE
-    trend line is drawn per bin (with per-bin n / r in the legend), so you can see
-    whether the isolation->effect relationship holds within a dose level rather than
-    being driven by dose. When None, points are coloured by raw current (viridis)
-    with one overall trend line."""
+    Grouping (each draws one colour + one trend line + a per-group n/r legend entry
+    per group, so you can see whether the relationship holds within a subset):
+      - group_by: a categorical column, e.g. 'trial_type'. Takes precedence.
+      - current_bins: a list of current_per_second edges (e.g. [0,1000,2000,3000]).
+    With neither, points are coloured by raw current (viridis) with one trend line."""
+    from matplotlib.lines import Line2D
     y_label = '|effect| (|ON − OFF| %)' if abs_effect else 'effect (ON − OFF %)'
     name_col_pairs = [(name, f"{name}__{aggregation}") for name in metric_names
                       if f"{name}__{aggregation}" in df.columns]
@@ -969,15 +1053,26 @@ def plot_metric_grid(df, metric_names, *, aggregation='mean',
         & (df['n_off'] >= min_off_trials)
     ]
 
-    binned = current_bins is not None and len(current_bins) >= 2
-    if binned:
-        from matplotlib.lines import Line2D
+    # Decide grouping: an explicit categorical column, or current bins, or none.
+    group_col = group_labels = group_color = group_title = None
+    if group_by is not None and group_by in base.columns:
+        vals = list(pd.unique(base[group_by].dropna()))
+        try:
+            vals = sorted(vals)
+        except Exception:
+            pass
+        group_col, group_labels, group_title = group_by, vals, group_by
+        cmap = plt.get_cmap('tab10', max(len(group_labels), 1))
+        group_color = {lab: cmap(i) for i, lab in enumerate(group_labels)}
+    elif current_bins is not None and len(current_bins) >= 2:
         edges = sorted(float(e) for e in current_bins)
-        bin_labels = [f"{edges[i]:g}–{edges[i + 1]:g}" for i in range(len(edges) - 1)]
-        bin_cmap = plt.get_cmap('viridis', len(bin_labels))
-        bin_color = {lab: bin_cmap(i) for i, lab in enumerate(bin_labels)}
+        group_labels = [f"{edges[i]:g}–{edges[i + 1]:g}" for i in range(len(edges) - 1)]
         base = base.assign(_cbin=pd.cut(base['current_per_second'], bins=edges,
-                                        labels=bin_labels, include_lowest=True))
+                                        labels=group_labels, include_lowest=True))
+        group_col, group_title = '_cbin', 'current bin'
+        cmap = plt.get_cmap('viridis', len(group_labels))
+        group_color = {lab: cmap(i) for i, lab in enumerate(group_labels)}
+    grouped = group_col is not None
 
     def _panel_y(frame):
         return frame['effect_size'].abs() if abs_effect else frame['effect_size']
@@ -1011,31 +1106,31 @@ def plot_metric_grid(df, metric_names, *, aggregation='mean',
             ax.axis('off')
             continue
 
-        if binned:
+        if grouped:
             handles = []
-            for lab in bin_labels:
-                subb = sub[sub['_cbin'] == lab]
+            for lab in group_labels:
+                subb = sub[sub[group_col] == lab]
                 if len(subb) == 0:
                     continue
                 yv = _panel_y(subb)
-                ax.scatter(subb[col], yv, color=bin_color[lab], s=55, alpha=0.85,
+                ax.scatter(subb[col], yv, color=group_color[lab], s=55, alpha=0.85,
                            edgecolors='black', linewidths=0.4)
                 _draw_trend(ax, subb[col].to_numpy(dtype=float),
-                            yv.to_numpy(dtype=float), bin_color[lab])
+                            yv.to_numpy(dtype=float), group_color[lab])
                 bcorr = _correlation(subb[col].to_numpy(), yv.to_numpy())
                 lbl = f"{lab}: n={len(subb)}"
                 if bcorr:
                     lbl += f", r={bcorr['pearson_r']:.2f}"
-                handles.append(Line2D([0], [0], marker='o', color=bin_color[lab],
-                                      markerfacecolor=bin_color[lab],
+                handles.append(Line2D([0], [0], marker='o', color=group_color[lab],
+                                      markerfacecolor=group_color[lab],
                                       markeredgecolor='black', label=lbl))
-            unbinned = sub[sub['_cbin'].isna()]
-            if len(unbinned):
-                ax.scatter(unbinned[col], _panel_y(unbinned), color='lightgray',
+            unmatched = sub[sub[group_col].isna()]
+            if len(unmatched):
+                ax.scatter(unmatched[col], _panel_y(unmatched), color='lightgray',
                            s=38, alpha=0.6, edgecolors='gray', linewidths=0.3)
             if handles:
                 ax.legend(handles=handles, fontsize=7, loc='best', framealpha=0.85,
-                          title='current bin')
+                          title=group_title)
         else:
             c = sub['current_per_second']
             yv = _panel_y(sub)
@@ -1049,14 +1144,15 @@ def plot_metric_grid(df, metric_names, *, aggregation='mean',
 
         if not abs_effect:
             ax.axhline(0, color='black', linestyle='--', linewidth=1, alpha=0.5)
-        # Panel title carries the overall (across-bin) correlation.
-        yv_all = _panel_y(sub)
-        corr = _correlation(sub[col].to_numpy(), yv_all.to_numpy())
         sub_t = _METRIC_LABELS.get(name, name)
-        if corr:
-            sub_t += f"\nn={corr['n']}  r={corr['pearson_r']:.2f}"
-            if corr['pearson_p'] is not None:
-                sub_t += f" (p={corr['pearson_p']:.2g})"
+        if not grouped:
+            # Pooled correlation is only meaningful when not grouping (pooling across
+            # groups can hide/flip within-group trends).
+            corr = _correlation(sub[col].to_numpy(), _panel_y(sub).to_numpy())
+            if corr:
+                sub_t += f"\nn={corr['n']}  r={corr['pearson_r']:.2f}"
+                if corr['pearson_p'] is not None:
+                    sub_t += f" (p={corr['pearson_p']:.2g})"
         ax.set_title(sub_t, fontsize=10)
         ax.set_xlabel(col, fontsize=9)
         ax.set_ylabel(y_label, fontsize=9)
@@ -1065,12 +1161,12 @@ def plot_metric_grid(df, metric_names, *, aggregation='mean',
     for j in range(n, nrows * ncols):
         axes[j // ncols][j % ncols].axis('off')
 
-    if not binned and scatter_ref is not None:
+    if not grouped and scatter_ref is not None:
         cbar = fig.colorbar(scatter_ref, ax=axes.ravel().tolist(), shrink=0.6,
                             pad=0.02)
         cbar.set_label('current_per_second (µA·Hz)', fontsize=10)
 
-    colour_desc = 'colour = current bin' if binned else 'colour = current'
+    colour_desc = f'colour = {group_title}' if grouped else 'colour = current'
     fig.suptitle(f"Estim {'|effect|' if abs_effect else 'effect'} vs "
                  f"neighbour-similarity metrics — '{aggregation}' aggregation "
                  f"({colour_desc})", fontsize=13)
@@ -1172,6 +1268,116 @@ def run_metric_comparison(start_session_id=None, exclude_session_ids=None, *,
     return df, boards
 
 
+def plot_leaderboard_grouped(boards_by_group, *, group_title='trial_type',
+                             use_partial=True, aggregation='mean', abs_effect=False,
+                             output_path=None):
+    """Grouped horizontal bar chart: one row per metric, one bar per group (e.g.
+    trial_type), so you can read how each metric's link to effect differs across
+    groups. Bars show the partial r (controlling for current) by default, else raw
+    Pearson r. boards_by_group maps group_label -> leaderboard DataFrame."""
+    groups = [g for g in boards_by_group if len(boards_by_group[g])]
+    if not groups:
+        print("No non-empty boards to plot.")
+        return
+    key = 'partial_r' if use_partial else 'pearson_r'
+
+    # Metric order taken from the known order, restricted to what's present.
+    present = set()
+    for g in groups:
+        present.update(boards_by_group[g]['metric'].tolist())
+    metrics = [m for m in _METRIC_ORDER if m in present]
+    metrics += sorted(m for m in present if m not in _METRIC_ORDER)
+    labels = [_METRIC_LABELS.get(m, m) for m in metrics]
+
+    y = np.arange(len(metrics))
+    ng = len(groups)
+    bar_h = 0.8 / ng
+    cmap = plt.get_cmap('tab10', max(ng, 1))
+
+    fig, ax = plt.subplots(figsize=(9, max(3.5, 0.9 * len(metrics))))
+    for gi, g in enumerate(groups):
+        board = boards_by_group[g].set_index('metric')
+        vals = [board[key].get(m, np.nan) if m in board.index else np.nan for m in metrics]
+        offset = (gi - (ng - 1) / 2) * bar_h
+        ax.barh(y + offset, np.nan_to_num(vals), height=bar_h, color=cmap(gi),
+                label=str(g))
+    ax.axvline(0, color='black', linewidth=0.8)
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, fontsize=10)
+    ax.invert_yaxis()  # first metric on top
+    r_desc = 'partial r | current' if use_partial else 'Pearson r'
+    y_desc = '|effect|' if abs_effect else 'effect'
+    ax.set_xlabel(f"correlation with {y_desc}  ({r_desc})", fontsize=11)
+    ax.set_title(f"Metric–{y_desc} correlation by {group_title} "
+                 f"({aggregation} aggregation)", fontsize=13)
+    ax.legend(fontsize=9, title=group_title)
+    ax.grid(True, axis='x', alpha=0.3)
+    fig.tight_layout()
+    if output_path:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        fig.savefig(output_path, dpi=150, bbox_inches='tight')
+        fig.savefig(output_path.rsplit('.', 1)[0] + '.svg', bbox_inches='tight')
+        print(f"Saved grouped leaderboard to {output_path}")
+    plt.show()
+
+
+def run_metric_comparison_by_trial_type(trial_types=None, start_session_id=None,
+                                        exclude_session_ids=None, *,
+                                        metric=METRIC_PCT_HYP_VS_DELTA,
+                                        base_required_conditions=None,
+                                        min_on_trials=10, min_off_trials=10,
+                                        control_for_current=True, abs_effect=False,
+                                        n_neighbors=3, exclude_other_estim=True,
+                                        save_dir=None):
+    """Leaderboard + scatter grid split by trial_type. Builds one long table (effect
+    per trial_type, shared metric scores), then per aggregation: a per-trial-type
+    leaderboard (printed), a grouped-bar leaderboard, and a grid with one trend line
+    per trial_type. Returns (long_df, {aggregation: {trial_type: board}})."""
+    if trial_types is None:
+        trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
+    print(f"[config] LEADERBOARD split across trial types: {trial_types}  "
+          f"metric={metric}  abs_effect={abs_effect}  n_neighbors={n_neighbors}")
+
+    long_df, metric_names = build_metric_comparison_long(
+        trial_types, start_session_id=start_session_id,
+        exclude_session_ids=exclude_session_ids, metric=metric,
+        base_required_conditions=base_required_conditions,
+        n_neighbors=n_neighbors, exclude_other_estim=exclude_other_estim)
+    if len(long_df) == 0:
+        print("Nothing to compare — run compute_estim_neighbor_scores first.")
+        return long_df, {}
+
+    present_types = [tt for tt in trial_types if (long_df['trial_type'] == tt).any()]
+    suffix = f"_nb{n_neighbors}{'_abs' if abs_effect else ''}"
+    out = {}
+    for aggregation in ('mean', 'worst'):
+        boards = {}
+        for tt in present_types:
+            sub = long_df[long_df['trial_type'] == tt]
+            board = build_metric_leaderboard(
+                sub, metric_names, aggregation=aggregation,
+                min_on_trials=min_on_trials, min_off_trials=min_off_trials,
+                control_for_current=control_for_current, abs_effect=abs_effect)
+            boards[tt] = board
+            print(f"\n=== Leaderboard [{tt}] ({aggregation} agg, "
+                  f"{'|effect|' if abs_effect else 'signed'}) ===")
+            cols = ['label', 'n', 'pearson_r', 'pearson_p', 'r2', 'partial_r', 'partial_p']
+            with pd.option_context('display.width', 160, 'display.max_columns', None):
+                print(board[cols].to_string(index=False))
+        out[aggregation] = boards
+        if save_dir:
+            plot_leaderboard_grouped(
+                boards, group_title='trial_type', use_partial=control_for_current,
+                aggregation=aggregation, abs_effect=abs_effect,
+                output_path=os.path.join(save_dir, f"leaderboard_by_trialtype_{aggregation}{suffix}.png"))
+            plot_metric_grid(
+                long_df, metric_names, aggregation=aggregation,
+                min_on_trials=min_on_trials, min_off_trials=min_off_trials,
+                abs_effect=abs_effect, group_by='trial_type',
+                output_path=os.path.join(save_dir, f"metric_grid_by_trialtype_{aggregation}{suffix}.png"))
+    return long_df, out
+
+
 # ---------------------------------------------------------------------------
 # Neighbourhood-size sweep: how does each metric's link to effect change with
 # n_neighbors?
@@ -1243,7 +1449,7 @@ def build_neighbor_sweep(start_session_id=None, exclude_session_ids=None, *,
 
 def plot_neighbor_sweep(sweep, *, use_partial=False, aggregation='mean',
                         abs_effect=False, exclude_other_estim=True, metric='',
-                        covariate='current_per_second', output_path=None):
+                        covariate='current_per_second', tag='', output_path=None):
     """Line plot: x = n_neighbors, y = each metric's correlation with the effect
     (raw Pearson r, or partial r controlling for current when use_partial=True),
     one line per metric. Shows whether a metric's signal strengthens or washes out
@@ -1272,6 +1478,7 @@ def plot_neighbor_sweep(sweep, *, use_partial=False, aggregation='mean',
     y_desc = '|effect|' if abs_effect else 'effect'
     ax.set_ylabel(f"correlation with {y_desc}  ({r_desc})", fontsize=11)
     ax.set_title(f"Metric–{y_desc} correlation vs neighbourhood size "
+                 f"{('[' + tag + '] ') if tag else ''}"
                  f"({aggregation} agg, exclude_other_estim={exclude_other_estim}"
                  f"{', metric=' + metric if metric else ''})", fontsize=12)
     ax.legend(fontsize=8, loc='best', framealpha=0.9)
@@ -1289,14 +1496,17 @@ def run_neighbor_sweep(start_session_id=None, exclude_session_ids=None, *,
                        metric=METRIC_PCT_HYP_VS_DELTA, required_conditions=None,
                        abs_effect=False, exclude_other_estim=True,
                        control_for_current=True, covariate='current_per_second',
-                       min_on_trials=10, min_off_trials=10, save_dir=None):
+                       min_on_trials=10, min_off_trials=10, tag='', save_dir=None):
     """Build and plot the neighbourhood-size sweep for both aggregations, printing
     raw r AND the partial r controlling for `covariate` ('current_per_second' or
-    'n_active_channels'). Returns {aggregation: sweep_dict}."""
-    print(f"[config] SWEEP  metric={metric}  required_conditions={required_conditions}  "
-          f"abs_effect={abs_effect}  min_on/off={min_on_trials}/{min_off_trials}  "
-          f"start={start_session_id}  exclude={exclude_session_ids}")
-    suffix = (f"_{'incl' if not exclude_other_estim else 'excl'}"
+    'n_active_channels'). tag labels the run (e.g. a trial_type) in titles/filenames.
+    Returns {aggregation: sweep_dict}."""
+    print(f"[config] SWEEP{(' [' + tag + ']') if tag else ''}  metric={metric}  "
+          f"required_conditions={required_conditions}  abs_effect={abs_effect}  "
+          f"min_on/off={min_on_trials}/{min_off_trials}  start={start_session_id}  "
+          f"exclude={exclude_session_ids}")
+    tag_slug = ('_' + _slug(tag)) if tag else ''
+    suffix = (f"{tag_slug}_{'incl' if not exclude_other_estim else 'excl'}"
               f"{'_abs' if abs_effect else ''}"
               f"{'_ctrlN' if covariate == 'n_active_channels' else ''}")
     out = {}
@@ -1311,7 +1521,8 @@ def run_neighbor_sweep(start_session_id=None, exclude_session_ids=None, *,
         out[aggregation] = sweep
         if not sweep:
             continue
-        print(f"\n=== Neighbour sweep ({aggregation} aggregation, "
+        print(f"\n=== Neighbour sweep{(' [' + tag + ']') if tag else ''} "
+              f"({aggregation} aggregation, "
               f"{'|effect|' if abs_effect else 'effect'}) over n_neighbors={nb_values} "
               f"[cell = raw r / partial r | {covariate}] ===")
         for name in ([m for m in _METRIC_ORDER if m in sweep]
@@ -1326,14 +1537,38 @@ def run_neighbor_sweep(start_session_id=None, exclude_session_ids=None, *,
             plot_neighbor_sweep(
                 sweep, use_partial=False, aggregation=aggregation,
                 abs_effect=abs_effect, exclude_other_estim=exclude_other_estim,
-                metric=metric,
+                metric=metric, tag=tag,
                 output_path=os.path.join(save_dir, f"neighbor_sweep_{aggregation}{suffix}.png"))
             if control_for_current:
                 plot_neighbor_sweep(
                     sweep, use_partial=True, aggregation=aggregation,
                     abs_effect=abs_effect, exclude_other_estim=exclude_other_estim,
-                    metric=metric, covariate=covariate,
+                    metric=metric, covariate=covariate, tag=tag,
                     output_path=os.path.join(save_dir, f"neighbor_sweep_{aggregation}{suffix}_partial.png"))
+    return out
+
+
+def run_neighbor_sweep_by_trial_type(trial_types=None, start_session_id=None,
+                                     exclude_session_ids=None, *,
+                                     metric=METRIC_PCT_HYP_VS_DELTA,
+                                     base_required_conditions=None, abs_effect=False,
+                                     exclude_other_estim=True, control_for_current=True,
+                                     covariate='current_per_second',
+                                     min_on_trials=10, min_off_trials=10, save_dir=None):
+    """Run the neighbourhood-size sweep separately for each trial_type (one set of
+    figures/printouts per type). trial_types=None auto-discovers them."""
+    if trial_types is None:
+        trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
+    print(f"Neighbour sweep split across trial types: {trial_types}")
+    out = {}
+    for tt in trial_types:
+        out[tt] = run_neighbor_sweep(
+            start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
+            metric=metric, required_conditions=_rc_for_trial_type(base_required_conditions, tt),
+            abs_effect=abs_effect, exclude_other_estim=exclude_other_estim,
+            control_for_current=control_for_current, covariate=covariate,
+            min_on_trials=min_on_trials, min_off_trials=min_off_trials,
+            tag=str(tt), save_dir=save_dir)
     return out
 
 
@@ -1348,6 +1583,24 @@ def main_neighbor_sweep():
     # (the direct source of the 'worst'=min selection bias). Try both — if the
     # top-20 worst signal survives BOTH, it's not just a channel-count artefact.
     covariate = 'current_per_second'
+
+    if COMPARISON_TRIAL_TYPES is not None:
+        # One sweep (both aggregations) per trial type.
+        run_neighbor_sweep_by_trial_type(
+            trial_types=(COMPARISON_TRIAL_TYPES or None),  # [] -> auto-discover
+            start_session_id=COMPARISON_START_SESSION_ID,
+            exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
+            metric=COMPARISON_METRIC,
+            base_required_conditions=COMPARISON_REQUIRED_CONDITIONS,
+            abs_effect=COMPARISON_ABS_EFFECT,
+            exclude_other_estim=True,
+            control_for_current=True,
+            covariate=covariate,
+            min_on_trials=COMPARISON_MIN_ON_TRIALS,
+            min_off_trials=COMPARISON_MIN_OFF_TRIALS,
+            save_dir=COMPARISON_SAVE_DIR,
+        )
+        return
 
     run_neighbor_sweep(
         start_session_id=COMPARISON_START_SESSION_ID,
@@ -1384,6 +1637,25 @@ def main_metric_comparison():
     # main_neighbor_sweep / run_neighbor_sweep to compare across them.)
     n_neighbors = 3
     exclude_other_estim = True
+
+    if COMPARISON_TRIAL_TYPES is not None:
+        # Split the leaderboard + grid by trial_type (grouped bars + a trend line per
+        # trial type in each grid panel).
+        run_metric_comparison_by_trial_type(
+            trial_types=(COMPARISON_TRIAL_TYPES or None),  # [] -> auto-discover
+            start_session_id=COMPARISON_START_SESSION_ID,
+            exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
+            metric=COMPARISON_METRIC,
+            base_required_conditions=COMPARISON_REQUIRED_CONDITIONS,
+            min_on_trials=COMPARISON_MIN_ON_TRIALS,
+            min_off_trials=COMPARISON_MIN_OFF_TRIALS,
+            control_for_current=True,
+            abs_effect=COMPARISON_ABS_EFFECT,
+            n_neighbors=n_neighbors,
+            exclude_other_estim=exclude_other_estim,
+            save_dir=COMPARISON_SAVE_DIR,
+        )
+        return
 
     run_metric_comparison(
         start_session_id=COMPARISON_START_SESSION_ID,
