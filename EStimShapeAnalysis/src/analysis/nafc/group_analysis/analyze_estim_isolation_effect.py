@@ -62,6 +62,7 @@ from src.analysis.nafc.group_analysis.analyze_estim_by_condition import (
     _filter_for_metric,
     read_trial_data_from_repository,
 )
+from src.analysis.nafc.estim_hyperparameters import get_estim_hyperparameters
 
 # Behavioral keys apply to every trial (estim on AND off). Everything else in a
 # required_conditions dict is treated as an estim parameter and only constrains
@@ -664,6 +665,395 @@ def plot_power_over_isolation_vs_effect(start_session_id=None, exclude_session_i
         print(f"Saved plot to {output_path}")
     plt.show()
     return plot_df
+
+
+# ===========================================================================
+# Metric comparison: which neighbour-similarity metric best explains the effect?
+#
+# The metrics themselves are computed by compute_estim_neighbor_scores.py and
+# stored (higher = more isolated) in the tidy table EStimNeighborScores. Here we
+# join every metric to the per-spec raw effect and rank them by how well they
+# predict it — including a partial correlation controlling for current dose, so a
+# metric that merely tracks stimulation power is separated from one that adds real
+# isolation information.
+# ===========================================================================
+
+# Human-friendly ordering / labels for known metrics (unknown ones still appear,
+# appended in alphabetical order).
+_METRIC_LABELS = {
+    'pc_neighbor_sim': 'PC-neighbour similarity',
+    'channel_corr': 'Channel corr (all stims)',
+    'channel_corr_top20': 'Channel corr (top 20)',
+    'channel_corr_top50': 'Channel corr (top 50)',
+    'channel_corr_top100': 'Channel corr (top 100)',
+    'channel_corr_delta_variant': 'Channel corr (delta+variant)',
+    'pc_loading_sim': 'PC-loading similarity',
+}
+_METRIC_ORDER = list(_METRIC_LABELS)
+
+
+def _get_sessions_with_neighbor_scores():
+    """Session ids that have any row in EStimNeighborScores."""
+    conn = Connection("allen_data_repository")
+    conn.execute("SELECT DISTINCT session_id FROM EStimNeighborScores ORDER BY session_id")
+    return [row[0] for row in conn.fetch_all()]
+
+
+def _fetch_neighbor_scores(session_ids=None):
+    """Return {(session_id, estim_spec_id): {metric_name: {aggregation: value}}}
+    plus the sorted list of metric names present, from EStimNeighborScores."""
+    conn = Connection("allen_data_repository")
+    base = "SELECT session_id, estim_spec_id, metric_name, aggregation, value FROM EStimNeighborScores"
+    if session_ids:
+        placeholders = ', '.join(['%s'] * len(session_ids))
+        conn.execute(f"{base} WHERE session_id IN ({placeholders})", tuple(session_ids))
+    else:
+        conn.execute(base)
+
+    scores = {}
+    metric_names = set()
+    for session_id, spec_id, metric_name, aggregation, value in conn.fetch_all():
+        key = (session_id, int(spec_id))
+        metric_names.add(metric_name)
+        scores.setdefault(key, {}).setdefault(metric_name, {})[aggregation] = (
+            float(value) if value is not None else None)
+    ordered = [m for m in _METRIC_ORDER if m in metric_names]
+    ordered += sorted(m for m in metric_names if m not in _METRIC_ORDER)
+    return scores, ordered
+
+
+def _fetch_current_per_second(session_spec_pairs):
+    """Return {(session_id, estim_spec_id): current_per_second} for the given
+    pairs, via get_estim_hyperparameters (a1 * num_channels * pulse_rate_hz)."""
+    out = {}
+    for session_id, spec_id in session_spec_pairs:
+        try:
+            hp = get_estim_hyperparameters(session_id, int(spec_id))
+        except Exception as exc:
+            print(f"  WARN: current lookup failed for {session_id}/{spec_id}: {exc}")
+            hp = {}
+        out[(session_id, int(spec_id))] = hp.get('current_per_second')
+    return out
+
+
+def build_metric_comparison_table(start_session_id=None, exclude_session_ids=None,
+                                  *, metric=METRIC_PCT_HYPOTHESIZED,
+                                  required_conditions=None,
+                                  behavioral_conditions=BEHAVIORAL_KEYS):
+    """Per-(session, estim_spec) DataFrame joining the raw estim effect with every
+    neighbour-similarity metric (all aggregations) and current_per_second.
+
+    Returns (df, metric_names). Metric columns are named ``<metric>__<aggregation>``
+    (e.g. ``channel_corr__mean``, ``pc_neighbor_sim__worst``)."""
+    session_ids = _get_sessions_with_neighbor_scores()
+    if start_session_id is not None:
+        session_ids = [s for s in session_ids if s >= start_session_id]
+    if exclude_session_ids:
+        excluded = set(exclude_session_ids)
+        session_ids = [s for s in session_ids if s not in excluded]
+    print(f"Sessions with neighbour scores (after start/exclude filters): {len(session_ids)}")
+
+    all_rows = []
+    for session_id in session_ids:
+        rows = compute_effect_by_spec_for_session(
+            session_id, metric=metric, required_conditions=required_conditions,
+            behavioral_conditions=behavioral_conditions)
+        all_rows.extend(rows)
+        print(f"  {session_id}: {len(rows)} estim specs")
+
+    if not all_rows:
+        print("No per-spec effects computed.")
+        return pd.DataFrame(), []
+
+    df = pd.DataFrame(all_rows)
+
+    scores, metric_names = _fetch_neighbor_scores(
+        sorted(df['session_id'].unique().tolist()))
+    agg_labels = ('mean', 'worst')
+    metric_cols = []
+    for name in metric_names:
+        for agg in agg_labels:
+            col = f"{name}__{agg}"
+            df[col] = [
+                (scores.get((s, int(spec)), {}).get(name, {}) or {}).get(agg)
+                for s, spec in zip(df['session_id'], df['estim_spec_id'])]
+            metric_cols.append(col)
+
+    pairs = sorted({(s, int(spec)) for s, spec in zip(df['session_id'], df['estim_spec_id'])})
+    cps = _fetch_current_per_second(pairs)
+    df['current_per_second'] = [
+        cps.get((s, int(spec))) for s, spec in zip(df['session_id'], df['estim_spec_id'])]
+
+    n_with = sum(df[c].notna().any() for c in metric_cols)
+    print(f"\nBuilt comparison table: {len(df)} specs across "
+          f"{df['session_id'].nunique()} sessions; {len(metric_names)} metrics "
+          f"({n_with} metric columns populated)")
+    return df, metric_names
+
+
+def _partial_correlation(x, y, z):
+    """Partial Pearson correlation of x and y controlling for z: correlate the
+    residuals of x and y after linearly regressing each on z. Returns a dict with
+    n, r, p (p None if scipy unavailable), or None if too few finite points."""
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    z = np.asarray(z, dtype=float)
+    mask = np.isfinite(x) & np.isfinite(y) & np.isfinite(z)
+    x, y, z = x[mask], y[mask], z[mask]
+    n = len(x)
+    if n < 4 or np.std(z) < 1e-12:
+        return None
+    design = np.vstack([z, np.ones_like(z)]).T
+    bx, _, _, _ = np.linalg.lstsq(design, x, rcond=None)
+    by, _, _, _ = np.linalg.lstsq(design, y, rcond=None)
+    rx = x - design @ bx
+    ry = y - design @ by
+    if np.std(rx) < 1e-12 or np.std(ry) < 1e-12:
+        return None
+    r = float(np.corrcoef(rx, ry)[0, 1])
+    p = None
+    try:
+        from scipy import stats as sp_stats
+        # one covariate controlled -> dof = n - 3
+        dof = n - 3
+        if dof > 0 and abs(r) < 1.0:
+            t = r * np.sqrt(dof / (1.0 - r * r))
+            p = float(2.0 * sp_stats.t.sf(abs(t), dof))
+    except Exception:
+        pass
+    return {'n': n, 'r': r, 'p': p}
+
+
+def build_metric_leaderboard(df, metric_names, *, aggregation='mean',
+                             min_on_trials=15, min_off_trials=15,
+                             control_for_current=True):
+    """Rank metrics by how well they explain effect_size.
+
+    For each metric (at the given aggregation) computes, over the specs passing the
+    trial-count filters: n, Pearson r/p, Spearman ρ/p, R² (= Pearson r²), and — if
+    control_for_current — the partial correlation with effect controlling for
+    current_per_second. Sorted by |partial r| when available, else |Pearson r|.
+
+    Returns a DataFrame, one row per metric."""
+    base = df[
+        df['effect_size'].notna()
+        & (df['n_on'] >= min_on_trials)
+        & (df['n_off'] >= min_off_trials)
+    ]
+
+    rows = []
+    for name in metric_names:
+        col = f"{name}__{aggregation}"
+        if col not in df.columns:
+            continue
+        sub = base[base[col].notna()]
+        corr = _correlation(sub[col].to_numpy(), sub['effect_size'].to_numpy())
+        row = {
+            'metric': name,
+            'label': _METRIC_LABELS.get(name, name),
+            'aggregation': aggregation,
+            'n': (corr['n'] if corr else int(len(sub))),
+            'pearson_r': corr['pearson_r'] if corr else None,
+            'pearson_p': corr['pearson_p'] if corr else None,
+            'spearman_r': corr['spearman_r'] if corr else None,
+            'spearman_p': corr['spearman_p'] if corr else None,
+            'r2': (corr['pearson_r'] ** 2 if corr and corr['pearson_r'] is not None else None),
+            'partial_r': None,
+            'partial_p': None,
+            'partial_n': None,
+        }
+        if control_for_current and 'current_per_second' in df.columns:
+            pc = _partial_correlation(sub[col].to_numpy(), sub['effect_size'].to_numpy(),
+                                      sub['current_per_second'].to_numpy())
+            if pc:
+                row.update(partial_r=pc['r'], partial_p=pc['p'], partial_n=pc['n'])
+        rows.append(row)
+
+    board = pd.DataFrame(rows)
+    if len(board) == 0:
+        return board
+    rank_key = board['partial_r'].abs().where(board['partial_r'].notna(),
+                                              board['pearson_r'].abs())
+    board = board.assign(_rank=rank_key).sort_values(
+        '_rank', ascending=False, na_position='last').drop(columns='_rank')
+    return board.reset_index(drop=True)
+
+
+def plot_metric_grid(df, metric_names, *, aggregation='mean',
+                     min_on_trials=15, min_off_trials=15, output_path=None):
+    """Small-multiples scatter: effect vs each metric (at one aggregation), one
+    panel per metric, points coloured by current_per_second. The visual companion
+    to build_metric_leaderboard."""
+    name_col_pairs = [(name, f"{name}__{aggregation}") for name in metric_names
+                      if f"{name}__{aggregation}" in df.columns]
+    if not name_col_pairs:
+        print("No metric columns to plot.")
+        return
+
+    base = df[
+        df['effect_size'].notna()
+        & (df['n_on'] >= min_on_trials)
+        & (df['n_off'] >= min_off_trials)
+    ]
+
+    n = len(name_col_pairs)
+    ncols = min(3, n)
+    nrows = int(np.ceil(n / ncols))
+    fig, axes = plt.subplots(nrows, ncols, figsize=(5.5 * ncols, 4.5 * nrows),
+                             squeeze=False)
+
+    cur = base['current_per_second']
+    cur_valid = cur[cur.notna()]
+    vmin = float(cur_valid.min()) if len(cur_valid) else None
+    vmax = float(cur_valid.max()) if len(cur_valid) else None
+
+    scatter_ref = None
+    for i, (name, col) in enumerate(name_col_pairs):
+        ax = axes[i // ncols][i % ncols]
+        sub = base[base[col].notna()]
+        if len(sub) == 0:
+            ax.set_title(f"{_METRIC_LABELS.get(name, name)}\n(no data)")
+            ax.axis('off')
+            continue
+        c = sub['current_per_second']
+        sc = ax.scatter(sub[col], sub['effect_size'], c=c, cmap='viridis',
+                        vmin=vmin, vmax=vmax, s=55, alpha=0.85,
+                        edgecolors='black', linewidths=0.4)
+        if c.notna().any():
+            scatter_ref = sc
+        if len(sub) >= 2:
+            xs = sub[col].to_numpy(dtype=float)
+            ys = sub['effect_size'].to_numpy(dtype=float)
+            good = np.isfinite(xs) & np.isfinite(ys)
+            if good.sum() >= 2:
+                slope, intercept = np.polyfit(xs[good], ys[good], 1)
+                xl = np.array([xs[good].min(), xs[good].max()])
+                ax.plot(xl, slope * xl + intercept, color='red', linewidth=1.8, alpha=0.8)
+        ax.axhline(0, color='black', linestyle='--', linewidth=1, alpha=0.5)
+        corr = _correlation(sub[col].to_numpy(), sub['effect_size'].to_numpy())
+        sub_t = _METRIC_LABELS.get(name, name)
+        if corr:
+            sub_t += f"\nn={corr['n']}  r={corr['pearson_r']:.2f}"
+            if corr['pearson_p'] is not None:
+                sub_t += f" (p={corr['pearson_p']:.2g})"
+        ax.set_title(sub_t, fontsize=10)
+        ax.set_xlabel(col, fontsize=9)
+        ax.set_ylabel('effect (ON − OFF %)', fontsize=9)
+        ax.grid(True, alpha=0.3)
+
+    for j in range(n, nrows * ncols):
+        axes[j // ncols][j % ncols].axis('off')
+
+    if scatter_ref is not None:
+        cbar = fig.colorbar(scatter_ref, ax=axes.ravel().tolist(), shrink=0.6,
+                            pad=0.02)
+        cbar.set_label('current_per_second (µA·Hz)', fontsize=10)
+
+    fig.suptitle(f"Estim effect vs neighbour-similarity metrics — "
+                 f"'{aggregation}' aggregation (colour = current)", fontsize=13)
+    if output_path:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        fig.savefig(output_path, dpi=150, bbox_inches='tight')
+        fig.savefig(output_path.rsplit('.', 1)[0] + '.svg', bbox_inches='tight')
+        print(f"Saved grid to {output_path}")
+    plt.show()
+
+
+def plot_metric_leaderboard(board, *, output_path=None, title=None):
+    """Horizontal bar chart of each metric's correlation with effect: raw Pearson r
+    and (where available) the partial r controlling for current. This is the
+    'which metric wins' summary."""
+    if len(board) == 0:
+        print("Empty leaderboard; nothing to plot.")
+        return
+    board = board.iloc[::-1]  # highest-ranked at top after barh
+    labels = board['label'].tolist()
+    y = np.arange(len(board))
+    height = 0.4
+
+    fig, ax = plt.subplots(figsize=(9, max(3, 0.7 * len(board))))
+    ax.barh(y + height / 2, board['pearson_r'].fillna(0), height=height,
+            color='#5B8DEF', label='Pearson r (raw)')
+    if board['partial_r'].notna().any():
+        ax.barh(y - height / 2, board['partial_r'].fillna(0), height=height,
+                color='#E8734A', label='partial r | current')
+    ax.axvline(0, color='black', linewidth=0.8)
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, fontsize=10)
+    ax.set_xlabel('correlation with estim effect', fontsize=11)
+    ax.set_title(title or "Which metric best explains estim effect?", fontsize=13)
+    ax.legend(fontsize=9)
+    ax.grid(True, axis='x', alpha=0.3)
+    fig.tight_layout()
+    if output_path:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        fig.savefig(output_path, dpi=150, bbox_inches='tight')
+        fig.savefig(output_path.rsplit('.', 1)[0] + '.svg', bbox_inches='tight')
+        print(f"Saved leaderboard to {output_path}")
+    plt.show()
+
+
+def run_metric_comparison(start_session_id=None, exclude_session_ids=None, *,
+                          metric=METRIC_PCT_HYP_VS_DELTA, required_conditions=None,
+                          min_on_trials=10, min_off_trials=10,
+                          control_for_current=True, save_dir=None):
+    """End-to-end: build the comparison table, print + plot the leaderboard for
+    both aggregations, and draw the per-metric scatter grids. Returns
+    (df, {'mean': board_mean, 'worst': board_worst})."""
+    df, metric_names = build_metric_comparison_table(
+        start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
+        metric=metric, required_conditions=required_conditions)
+    if len(df) == 0:
+        print("Nothing to compare — run compute_estim_neighbor_scores first.")
+        return df, {}
+
+    boards = {}
+    for aggregation in ('mean', 'worst'):
+        board = build_metric_leaderboard(
+            df, metric_names, aggregation=aggregation,
+            min_on_trials=min_on_trials, min_off_trials=min_off_trials,
+            control_for_current=control_for_current)
+        boards[aggregation] = board
+        print(f"\n=== Leaderboard ({aggregation} aggregation) — "
+              f"ranked by |partial r| controlling for current ===")
+        cols = ['label', 'n', 'pearson_r', 'pearson_p', 'spearman_r', 'r2',
+                'partial_r', 'partial_p']
+        with pd.option_context('display.width', 160, 'display.max_columns', None):
+            print(board[cols].to_string(index=False))
+
+        if save_dir:
+            plot_metric_leaderboard(
+                board, title=f"Which metric best explains estim effect? "
+                             f"({aggregation}, metric={metric})",
+                output_path=os.path.join(save_dir, f"metric_leaderboard_{aggregation}.png"))
+            plot_metric_grid(
+                df, metric_names, aggregation=aggregation,
+                min_on_trials=min_on_trials, min_off_trials=min_off_trials,
+                output_path=os.path.join(save_dir, f"metric_grid_{aggregation}.png"))
+
+    return df, boards
+
+
+def main_metric_comparison():
+    """Compare all neighbour-similarity metrics against the estim effect and rank
+    them. Requires compute_estim_neighbor_scores.run_for_sessions() to have populated
+    EStimNeighborScores first."""
+    metric = METRIC_PCT_HYP_VS_DELTA
+    required_conditions = {'trial_type': 'Hypothesized Shape'}
+    start_session_id = "260402_0"
+    exclude_session_ids = ["260421_0", "260410_0"]
+    save_dir = "/home/connorlab/Documents/plots/across_experiments/"
+
+    run_metric_comparison(
+        start_session_id=start_session_id,
+        exclude_session_ids=exclude_session_ids,
+        metric=metric,
+        required_conditions=required_conditions or None,
+        min_on_trials=10,
+        min_off_trials=10,
+        control_for_current=True,
+        save_dir=save_dir,
+    )
 
 
 def main():
