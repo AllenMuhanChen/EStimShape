@@ -139,6 +139,34 @@ class PlotVariants(PlotTopNAnalysis):
             print(f"Could not read hypothesized comps: {exc}")
         return result
 
+    @staticmethod
+    def _use_interactive_backend():
+        """Switch to a real GUI window backend when stuck on a non-interactive one.
+
+        PyCharm intercepts plots into SciView (``module://backend_interagg``),
+        which draws the whole figure as a single downscaled bitmap - blurry and
+        not zoomable. A native Tk/Qt window renders crisply and supports
+        pan/zoom. No-op if we're already on an interactive GUI backend (or none
+        is available). You can also just untick PyCharm's Settings > Tools >
+        Python Plots > "Show plots in tool window".
+        """
+        import matplotlib
+        current = matplotlib.get_backend().lower()
+        needs_switch = ('interagg' in current or 'inline' in current
+                        or current == 'agg')
+        if not needs_switch:
+            return
+        for backend in ("TkAgg", "QtAgg", "Qt5Agg", "MacOSX"):
+            try:
+                plt.switch_backend(backend)
+                print(f"Switched matplotlib backend to {backend} "
+                      f"for an interactive window.")
+                return
+            except Exception:
+                continue
+        print("Could not find an interactive matplotlib backend; "
+              "the plot may render in PyCharm's SciView.")
+
     def _show_variant_history(self, plot_data, response_col, hypo_map, title):
         """Draw the per-parent variant history as an interactive matplotlib window.
 
@@ -148,6 +176,10 @@ class PlotVariants(PlotTopNAnalysis):
         the toolbar/scroll zoom magnifies them, and each label sits *below* its
         thumbnail so it never covers the shape.
         """
+        # Get out of PyCharm's SciView (which renders one blurry static bitmap)
+        # into a real, crisp, zoomable GUI window.
+        self._use_interactive_backend()
+
         row_values = sorted(plot_data['ParentGroup'].unique())
         row_pos = {p: i for i, p in enumerate(row_values)}
         n_rows = len(row_values)
@@ -162,7 +194,8 @@ class PlotVariants(PlotTopNAnalysis):
         # the gap underneath holds the label without touching the next row.
         row_pitch = 1.45
         img_w, img_h = 0.9, 1.0
-        thumb_px, border_px = 128, 14
+        # Render thumbnails at a high resolution so zooming in stays crisp.
+        thumb_px, border_px = 300, 30
 
         groups = plot_data['ParentGroup'].to_numpy()
         cols = plot_data['ColIndex'].to_numpy()
