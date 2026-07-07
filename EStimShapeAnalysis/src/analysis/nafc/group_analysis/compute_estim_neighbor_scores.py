@@ -101,7 +101,14 @@ def channel_to_str(channel: Channel) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Similarity metrics — each exposes pair_similarity(a_str, b_str); higher = better
+# Metrics come in two families:
+#   - PAIRWISE (per_channel=False): expose pair_similarity(a_str, b_str); scored as
+#     the mean similarity of an estim channel to its physical neighbours (self
+#     excluded, needs n_neighbors >= 1).
+#   - PER-CHANNEL (per_channel=True): expose channel_score(c_str) -> scalar; scored
+#     as the mean of that scalar over {estim channel} + n_neighbors (self INCLUDED,
+#     so n_neighbors=0 gives just the estim channel).
+# Either way higher = "better" and the spec aggregates to mean / worst(=min).
 # ---------------------------------------------------------------------------
 
 def _restrict_matrix(matrix, stim_ids):
@@ -117,6 +124,8 @@ class ResponseCorrelationSimilarity:
     min_common / NaN rules as preference_cluster & delta_variant_correlation).
 
     Correlation is already a "higher = more similar" quantity, so no sign flip."""
+
+    per_channel = False
 
     def __init__(self, name, matrix, *, method='spearman', zscore=False,
                  min_common=MIN_COMMON_STIMS):
@@ -145,6 +154,8 @@ class PcNeighborSimilarity:
 
     Reuses the original engine's PCA embedding + within-session RMS scaling, just
     fed from the shared ga_mean_response matrix instead of ChannelResponses."""
+
+    per_channel = False
 
     def __init__(self, name, channel_strs, dist_fn, scale):
         self.name = name
@@ -182,6 +193,8 @@ class PcLoadingSimilarity:
     Two channels whose response profiles load onto the PCs the same way are
     functionally similar (correlation near 1); this mirrors the correlation-space
     channel comparison ``stimulus_pca_analysis._cluster_channels`` uses."""
+
+    per_channel = False
 
     def __init__(self, name, loadings):
         self.name = name
@@ -221,6 +234,68 @@ class PcLoadingSimilarity:
         if np.std(va) < 1e-12 or np.std(vb) < 1e-12:
             return np.nan
         return float(np.corrcoef(va, vb)[0, 1])
+
+
+def fetch_variant_delta_pairs(ga_conn: Connection, included_only=True):
+    """Read IncludedDeltas as a variant-anchored paired map for the paired d'.
+
+    Returns (variant_to_deltas, deltas_by_variant_count) where variant_to_deltas is
+    {variant_id: [delta_id, ...]} and deltas_by_variant_count is {delta_id: n_variants}
+    (for logging how tangled the pairing is)."""
+    if included_only:
+        ga_conn.execute("SELECT delta_id, variant_id FROM IncludedDeltas WHERE included = TRUE")
+    else:
+        ga_conn.execute("SELECT delta_id, variant_id FROM IncludedDeltas")
+    variant_to_deltas = {}
+    delta_variants = {}
+    for delta_id, variant_id in ga_conn.fetch_all():
+        d, v = int(delta_id), int(variant_id)
+        variant_to_deltas.setdefault(v, []).append(d)
+        delta_variants.setdefault(d, set()).add(v)
+    delta_variant_counts = {d: len(vs) for d, vs in delta_variants.items()}
+    return variant_to_deltas, delta_variant_counts
+
+
+class DeltaVariantDPrime:
+    """Per-channel paired d' (Cohen's dz) between delta and variant responses,
+    variant-anchored, using the channel's ga_mean_response values.
+
+    For each unique variant v (anchor), z_v = mean(responses to v's deltas) −
+    response to v. The channel's score is |mean_v(z_v) / sd_v(z_v)| over its valid
+    variants — how reliably (in SD units) the channel separates deltas from their
+    variants. per_channel metric: the neighbourhood aggregation spatially smooths
+    this scalar (n_neighbors=0 -> the estim channel's own d')."""
+
+    per_channel = True
+
+    def __init__(self, name, base_matrix, variant_to_deltas, *, min_pairs=2):
+        self.name = name
+        self._matrix = base_matrix
+        self._v2d = variant_to_deltas
+        self._min_pairs = min_pairs
+        self._cache = {}
+
+    def channel_score(self, ch_str):
+        if ch_str in self._cache:
+            return self._cache[ch_str]
+        vec = self._matrix.get(ch_str)
+        val = np.nan
+        if vec:
+            zs = []
+            for variant, deltas in self._v2d.items():
+                if variant not in vec:
+                    continue  # need the variant's own response as the anchor
+                dvals = [vec[d] for d in deltas if d in vec]
+                if not dvals:
+                    continue  # variant with no present deltas
+                zs.append(float(np.mean(dvals)) - float(vec[variant]))
+            if len(zs) >= self._min_pairs:
+                zs = np.asarray(zs, dtype=float)
+                sd = float(np.std(zs, ddof=1))
+                if sd > 1e-12:
+                    val = abs(float(np.mean(zs)) / sd)
+        self._cache[ch_str] = float(val) if np.isfinite(val) else np.nan
+        return self._cache[ch_str]
 
 
 # ---------------------------------------------------------------------------
@@ -281,6 +356,23 @@ def build_metrics_for_session(session_id, base_matrix, repo_conn, ga_conn, *,
             'channel_corr_delta_variant', _restrict_matrix(base_matrix, dv_ids),
             method=corr_method))
 
+    # 6. Per-channel paired d' between deltas and variants (variant-anchored).
+    try:
+        variant_to_deltas, delta_variant_counts = fetch_variant_delta_pairs(
+            ga_conn, included_only=True)
+    except Exception as exc:
+        print(f"  {session_id}: IncludedDeltas pairs load failed ({exc}); skipping d' metric")
+        variant_to_deltas = {}
+        delta_variant_counts = {}
+    if variant_to_deltas:
+        multi_delta = sum(1 for ds in variant_to_deltas.values() if len(ds) > 1)
+        shared_deltas = sum(1 for n in delta_variant_counts.values() if n > 1)
+        note = "  [many-to-many: anchored diffs mildly non-independent]" if shared_deltas else ""
+        print(f"  {session_id}: delta/variant pairing — {len(variant_to_deltas)} variants "
+              f"({multi_delta} with >1 delta), {shared_deltas} deltas shared across variants{note}")
+        metrics.append(DeltaVariantDPrime(
+            'delta_variant_dprime', base_matrix, variant_to_deltas, min_pairs=2))
+
     # 1 & 5. PC-based metrics need a stim-aligned matrix over the probe channels.
     aligned_channels, aligned_values = _aligned_response_arrays(base_matrix, channel_strs)
     if aligned_channels:
@@ -318,11 +410,15 @@ def score_spec_for_metric(metric, estim_channels, channels_with_data, coords,
                           *, n_neighbors=3, exclude_other_estim=True):
     """Aggregate one metric over a spec's estim channels.
 
-    Per estim channel: mean similarity to its physical neighbours. Across the
-    spec's estim channels: mean (average) and worst (min, least isolated).
+    Pairwise metric: per estim channel = mean similarity to its n_neighbors physical
+    neighbours (self excluded; n_neighbors=0 -> nothing to average -> skipped).
+    Per-channel metric: per estim channel = mean of channel_score over {estim
+    channel} + n_neighbors nearest (self INCLUDED; n_neighbors=0 -> just itself).
+    Across the spec's estim channels: mean (average) and worst (min).
     Returns {'mean': ..., 'worst': ...}, values None if nothing scorable."""
     estim_set = set(estim_channels)
     exclude = estim_set if exclude_other_estim else set()
+    is_per_channel = getattr(metric, 'per_channel', False)
 
     per_channel = []
     for e in estim_channels:
@@ -331,10 +427,14 @@ def score_spec_for_metric(metric, estim_channels, channels_with_data, coords,
             continue  # estim channel has no response data
         neighbors = _physical_neighbors(e, channels_with_data, coords,
                                         n_neighbors, exclude)
-        sims = [metric.pair_similarity(e_str, channel_to_str(nb)) for nb in neighbors]
-        sims = [s for s in sims if s is not None and np.isfinite(s)]
-        if sims:
-            per_channel.append(float(np.mean(sims)))
+        if is_per_channel:
+            patch = [e] + neighbors  # self included; n_neighbors=0 -> just [e]
+            vals = [metric.channel_score(channel_to_str(c)) for c in patch]
+        else:
+            vals = [metric.pair_similarity(e_str, channel_to_str(nb)) for nb in neighbors]
+        vals = [v for v in vals if v is not None and np.isfinite(v)]
+        if vals:
+            per_channel.append(float(np.mean(vals)))
 
     if not per_channel:
         return {'mean': None, 'worst': None}
@@ -555,7 +655,9 @@ def main():
         exclude_session_ids=None,     # e.g. ["260421_0", "260410_0"]
         # Neighbourhood-size sweep: every value is computed and stored, so
         # plot_neighbor_sweep can show correlation-with-effect vs n_neighbors.
-        n_neighbors_list=(1, 2, 3, 5, 8),
+        # n_neighbors=0 = estim channel(s) only — meaningful for per-channel metrics
+        # (delta_variant_dprime); pairwise metrics are NULL at 0 (no neighbours).
+        n_neighbors_list=(0, 1, 2, 3, 4, 5, 8, 12, 16, 20),
         # Add False to also sweep including the spec's other estim channels as
         # neighbours, e.g. exclude_other_estim_list=(True, False).
         exclude_other_estim_list=(True,),
