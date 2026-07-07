@@ -899,8 +899,10 @@ def plot_metric_grid(df, metric_names, *, aggregation='mean',
     n = len(name_col_pairs)
     ncols = min(3, n)
     nrows = int(np.ceil(n / ncols))
-    fig, axes = plt.subplots(nrows, ncols, figsize=(5.5 * ncols, 4.5 * nrows),
-                             squeeze=False)
+    # constrained_layout auto-spaces the multi-line subplot titles, the suptitle,
+    # and the colorbar so nothing collides (tight_layout can't handle all three).
+    fig, axes = plt.subplots(nrows, ncols, figsize=(5.5 * ncols, 4.8 * nrows),
+                             squeeze=False, constrained_layout=True)
 
     cur = base['current_per_second']
     cur_valid = cur[cur.notna()]
