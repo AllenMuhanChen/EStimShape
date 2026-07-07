@@ -704,7 +704,7 @@ def main():
         exclude_session_ids=None,     # e.g. ["260421_0", "260410_0"]
         # Neighbourhood-size sweep: every value is computed and stored, so
         # plot_neighbor_sweep can show correlation-with-effect vs n_neighbors.
-        n_neighbors_list=(1, 2, 3, 5, 8),
+        n_neighbors_list=(0,1, 2, 3,4, 5, 8, 10, 12, 16, 20, 26, 32),
         # Add False to also sweep including the spec's other estim channels as
         # neighbours, e.g. exclude_other_estim_list=(True, False).
         exclude_other_estim_list=(True,False),

@@ -903,7 +903,7 @@ def main():
         # None = one combined line per subplot (original behavior). Set to a parameter
         # name (e.g. 'polarity', 'shape', 'trial_type') to split each subplot into one
         # line per value of that parameter, plus a combined-total line.
-        subset_by='polarity',
+        subset_by='trial_type',
     )
 
 

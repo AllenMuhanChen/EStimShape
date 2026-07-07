@@ -699,17 +699,18 @@ _METRIC_ORDER = list(_METRIC_LABELS)
 # definitions (which makes every correlation disagree even though the code is the
 # same). GUI users: change these constants, then Run the file.
 COMPARISON_METRIC = METRIC_PCT_HYP_VS_DELTA
-COMPARISON_REQUIRED_CONDITIONS = {'trial_type': 'Hypothesized Shape'}
+# COMPARISON_REQUIRED_CONDITIONS = {'trial_type': 'Hypothesized Shape'}
+COMPARISON_REQUIRED_CONDITIONS = {}
 COMPARISON_START_SESSION_ID = "260402_0"
 COMPARISON_EXCLUDE_SESSION_IDS = ["260421_0", "260410_0"]
 COMPARISON_MIN_ON_TRIALS = 10
 COMPARISON_MIN_OFF_TRIALS = 10
-COMPARISON_ABS_EFFECT = True          # relate metrics to |effect| (effect strength)
+COMPARISON_ABS_EFFECT = False          # relate metrics to |effect| (effect strength)
 COMPARISON_SAVE_DIR = "/home/connorlab/Documents/plots/across_experiments/"
 # Split the whole analysis by trial_type. None = single pass using
 # COMPARISON_REQUIRED_CONDITIONS as-is; [] = auto-discover the trial types present;
 # or an explicit list, e.g. ['Hypothesized Shape', 'Random Shape'].
-COMPARISON_TRIAL_TYPES = None
+COMPARISON_TRIAL_TYPES = ['Hypothesized Shape', "Delta Shape", 'Removed Trial', 'Coherence']
 
 
 def _slug(text):
@@ -1864,7 +1865,7 @@ def main_channel_search():
     each metric (at its group-level best n_neighbors), per trial type. Uses the shared
     COMPARISON_* config for the group-level sweep/fit."""
     # The session whose electrodes you want to pick.
-    session_id = "260605_0"
+    session_id = "260702_0"
     # Candidate group sizes to search.
     channel_group_sizes = (2, 3, 4)
     # Restrict the candidate pool if you like, e.g. ["A-007", "A-008", ...]; None = all.
@@ -2267,4 +2268,7 @@ if __name__ == '__main__':
     #   - main_channel_search()     -> for one session, the channel group that best
     #                                  optimises each metric per trial type
     #   - main()                    -> legacy single-isolation-metric plots
-    main_metric_comparison()
+    # main_metric_comparison()
+    # main_neighbor_sweep()
+    # main_best_nb_comparison()
+    main_channel_search()
