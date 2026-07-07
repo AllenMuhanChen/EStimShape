@@ -186,8 +186,7 @@ class PlotVariants(PlotTopNAnalysis):
         canvas.pack(side="left", fill="both", expand=True)
 
         # thumb = image side incl. border, in px; the only thing zoom changes.
-        state = {"thumb": 120}
-        label_gutter = 110  # left strip for the "parent N" labels
+        state = {"thumb": 150}
         src_cache: dict[str, object] = {}   # path -> full-res PIL RGB (or None)
         photo_cache: dict[tuple, ImageTk.PhotoImage] = {}  # keep refs alive
 
@@ -225,11 +224,18 @@ class PlotVariants(PlotTopNAnalysis):
             canvas.delete("all")
             photo_cache.clear()  # drop stale-size photos so memory doesn't grow
             thumb = state["thumb"]
-            cell_w = thumb + 16
-            cell_h = thumb + 34  # room for the label strip under each thumbnail
+            # Fonts scale with the thumbnail so labels stay readable at any zoom.
+            font_size = max(9, thumb // 10)
+            line_h = font_size + 4
+            label_h = 3 * line_h + 6  # up to 3 lines under each thumbnail
+            cell_w = thumb + max(18, thumb // 6)
+            cell_h = thumb + label_h
+            label_font = ("Arial", font_size)
+            parent_font = ("Arial", max(11, thumb // 8), "bold")
+            gutter = max(120, thumb)  # left strip for the "parent N" labels
             for parent_group, col, path, v, gen, sid in records:
                 i = row_pos[parent_group]
-                x = label_gutter + int(col) * cell_w
+                x = gutter + int(col) * cell_w
                 y = 10 + i * cell_h
                 photo = get_photo(path, v, thumb)
                 if photo is not None:
@@ -239,7 +245,7 @@ class PlotVariants(PlotTopNAnalysis):
                     canvas.create_rectangle(x, y, x + thumb, y + thumb,
                                             outline="gray", dash=(2, 2))
                     canvas.create_text(x + thumb / 2, y + thumb / 2,
-                                       text="(no image)", fill="gray", font=("Arial", 7))
+                                       text="(no image)", fill="gray", font=label_font)
                 header = []
                 if pd.notna(gen):
                     header.append(f"g{int(gen)}")
@@ -250,15 +256,15 @@ class PlotVariants(PlotTopNAnalysis):
                 hc = hypo_map.get(int(sid)) if pd.notna(sid) else None
                 if hc:
                     lines.append(f"hc={hc}")
-                canvas.create_text(x + thumb / 2, y + thumb + 1, anchor="n",
-                                   text="\n".join(lines), font=("Arial", 7),
+                canvas.create_text(x + thumb / 2, y + thumb + 2, anchor="n",
+                                   text="\n".join(lines), font=label_font,
                                    justify="center")
             # Parent id labels down the left gutter.
             for parent_group, i in row_pos.items():
                 y = 10 + i * cell_h
-                canvas.create_text(label_gutter - 8, y + thumb / 2, anchor="e",
+                canvas.create_text(gutter - 10, y + thumb / 2, anchor="e",
                                    text=f"parent\n{int(parent_group)}",
-                                   font=("Arial", 9, "bold"), justify="right")
+                                   font=parent_font, justify="right")
             canvas.configure(scrollregion=canvas.bbox("all"))
             status.set(f"{len(records)} stimuli, {len(row_pos)} parents   |   "
                        f"thumb {thumb}px   |   scroll: wheel / shift+wheel   "
