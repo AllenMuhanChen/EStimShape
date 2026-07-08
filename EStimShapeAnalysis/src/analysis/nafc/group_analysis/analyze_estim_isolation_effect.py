@@ -52,6 +52,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from src.repository.export_to_repository import read_session_id_and_date_from_db_name
+from src.startup import context
+
 sys.path.insert(0, str(Path(__file__).parents[3]))
 
 from clat.util.connection import Connection
@@ -1957,7 +1960,7 @@ def main_channel_search():
     each metric (at its group-level best n_neighbors), per trial type. Uses the shared
     COMPARISON_* config for the group-level sweep/fit."""
     # ======================= EDIT THESE =======================
-    session_id = "260702_0"          # the session whose electrodes you want to pick
+    session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)          # the session whose electrodes you want to pick
     channel_group_sizes = (2, 3, 4)  # group sizes to search
 
     # Which neighbour metric(s) to search. None = all. Or a list, e.g.
