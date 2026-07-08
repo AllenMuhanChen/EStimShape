@@ -10,6 +10,7 @@ import org.xper.allen.shuffle.ShuffleTypePropertyManager;
 
 import javax.vecmath.Point3d;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -101,8 +102,10 @@ public class ShuffleGAStim extends GAStim<GAMatchStick, AllenMStickData> {
         }
         PythonImageProcessor processor = PythonImageProcessor.withVirtualEnv(
                 scriptPath, "/home/connorlab/miniconda3/envs/EStimShapeAnalysis");
+        List<String> extraArgs = ShuffleStim.extraScriptArgsForShuffleTypes.getOrDefault(
+                shuffleType, Collections.<String>emptyList());
         try {
-            return processor.processImage(originalPngPath, shuffleType.toString()).getAbsolutePath();
+            return processor.processImage(originalPngPath, shuffleType.toString(), extraArgs).getAbsolutePath();
         } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (InterruptedException e) {

@@ -192,7 +192,8 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
         String stimTypeString = stimInfo.getStimType();
 
         // Check for "SHUFFLE_<TYPE>" pattern written by the Python ShuffleSideTest.
-        Pattern pattern = Pattern.compile("SHUFFLE_(PIXEL|PHASE|MAGNITUDE)");
+        // WHOLE_CONTOUR_PIXEL is listed before PIXEL so the longer token wins the alternation.
+        Pattern pattern = Pattern.compile("SHUFFLE_(WHOLE_CONTOUR_PIXEL|PIXEL|PHASE|MAGNITUDE)");
         Matcher matcher = pattern.matcher(stimTypeString);
         if (matcher.matches()) {
             ShuffleType shuffleType = ShuffleType.valueOf(matcher.group(1));

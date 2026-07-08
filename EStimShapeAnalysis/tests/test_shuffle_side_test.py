@@ -27,7 +27,7 @@ class TestShuffleSideTest(unittest.TestCase):
     GEN_ID = 5
     PREV_GEN = GEN_ID - 1
 
-    EXPECTED_SHUFFLES = ["SHUFFLE_PIXEL", "SHUFFLE_PHASE", "SHUFFLE_MAGNITUDE"]
+    EXPECTED_SHUFFLES = ["SHUFFLE_PIXEL", "SHUFFLE_WHOLE_CONTOUR_PIXEL", "SHUFFLE_PHASE", "SHUFFLE_MAGNITUDE"]
 
     def _side_test(self, n, textures=None) -> ShuffleSideTest:
         return ShuffleSideTest(conn=FakeTextureConn(textures), n_top_responders=n)
@@ -39,7 +39,7 @@ class TestShuffleSideTest(unittest.TestCase):
         founder = lineage.tree.data
         return [s for s in lineage.stimuli if s is not founder and "SHUFFLE" in s.mutation_type]
 
-    def test_makes_three_shuffles_for_top_responder(self):
+    def test_makes_a_shuffle_of_each_type_for_top_responder(self):
         side_test = self._side_test(1)
         parent = self._single_stim_lineage(
             Stimulus(1, "REGIME_ONE", response_rate=50, gen_id=self.PREV_GEN))
@@ -116,6 +116,7 @@ class TestShuffleSideTest(unittest.TestCase):
 
     def test_shuffle_type_values(self):
         self.assertEqual(ShuffleType.PIXEL.value, "SHUFFLE_PIXEL")
+        self.assertEqual(ShuffleType.WHOLE_CONTOUR_PIXEL.value, "SHUFFLE_WHOLE_CONTOUR_PIXEL")
         self.assertEqual(ShuffleType.PHASE.value, "SHUFFLE_PHASE")
         self.assertEqual(ShuffleType.MAGNITUDE.value, "SHUFFLE_MAGNITUDE")
 

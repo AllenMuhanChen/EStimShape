@@ -12,6 +12,7 @@ import org.xper.util.ThreadUtil;
 
 import javax.vecmath.Point3d;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -22,8 +23,21 @@ public class ShuffleStim extends TwoDVsThreeDStim {
     public static Map<ShuffleType, String> scriptPathsForShuffleTypes = new HashMap<ShuffleType, String>(){
         {
             put(ShuffleType.PIXEL, "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/imageshuffle/pixel_shuffle.py");
+            // Whole-contour pixel shuffle reuses pixel_shuffle.py; the --whole-contour flag (see
+            // extraScriptArgsForShuffleTypes) tells it to shuffle the boundary too.
+            put(ShuffleType.WHOLE_CONTOUR_PIXEL, "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/imageshuffle/pixel_shuffle.py");
             put(ShuffleType.PHASE, "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/imageshuffle/phase_shuffle.py");
             put(ShuffleType.MAGNITUDE, "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/imageshuffle/magnitude_shuffle.py");
+        }
+    };
+    /**
+     * Extra command-line arguments forwarded to the shuffle script for a given shuffle type.
+     * Whole-contour pixel shuffle shares pixel_shuffle.py with the interior-only PIXEL shuffle and
+     * is distinguished by the --whole-contour flag. Types absent from this map get no extra args.
+     */
+    public static Map<ShuffleType, List<String>> extraScriptArgsForShuffleTypes = new HashMap<ShuffleType, List<String>>(){
+        {
+            put(ShuffleType.WHOLE_CONTOUR_PIXEL, Collections.singletonList("--whole-contour"));
         }
     };
     ShuffleTypePropertyManager shuffleTypeManager;
@@ -64,8 +78,9 @@ public class ShuffleStim extends TwoDVsThreeDStim {
                 throw new IllegalArgumentException("No script path found for shuffle type: " + shuffleType);
             }
             PythonImageProcessor processor = PythonImageProcessor.withVirtualEnv(scriptPath, "/home/connorlab/miniconda3/envs/EStimShapeAnalysis");
+            List<String> extraArgs = extraScriptArgsForShuffleTypes.getOrDefault(shuffleType, Collections.<String>emptyList());
             try {
-                shuffledPngPath = processor.processImage(originalPngPath, shuffleType.toString()).getAbsolutePath();
+                shuffledPngPath = processor.processImage(originalPngPath, shuffleType.toString(), extraArgs).getAbsolutePath();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             } catch (InterruptedException e) {

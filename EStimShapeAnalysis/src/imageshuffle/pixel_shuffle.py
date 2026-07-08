@@ -19,20 +19,28 @@ from shuffle_util import create_analysis_plot
 matplotlib.use('Agg')  # Use non-interactive backend for server environments
 
 
-def pixel_randomize_preserve_contrast(image, mask=None, erosion_iterations=5):
+def pixel_randomize_preserve_contrast(image, mask=None, erosion_iterations=5, shuffle_boundary=False):
     """
-    Shuffles pixels randomly within the interior region while preserving boundaries and background.
+    Shuffles pixels randomly within the shape region while preserving the background.
 
-    Uses erosion to define interior region, ensuring boundary pixels remain untouched
-    for consistent analysis with frequency domain methods.
+    By default the shape's boundary contour is preserved: erosion defines an interior region
+    and only interior pixels are shuffled, so the outline stays intact (consistent with the
+    frequency domain methods). When ``shuffle_boundary`` is True the whole shape - interior
+    *and* boundary contour - is shuffled together, so the outline is not preserved.
+
+    In every case the background (pixels outside the mask) is left untouched.
 
     Args:
         image: Input image (can be color with alpha channel)
         mask: Binary mask (1 inside region to randomize, 0 outside)
-        erosion_iterations: Number of erosion iterations to define interior
+        erosion_iterations: Number of erosion iterations to define the interior (ignored when
+            ``shuffle_boundary`` is True)
+        shuffle_boundary: If True, shuffle the whole shape including its boundary contour
+            instead of only the eroded interior
 
     Returns:
-        Pixel-shuffled image with boundaries and background preserved
+        Pixel-shuffled image with the background preserved (and, unless ``shuffle_boundary``,
+        the boundary contour preserved too)
     """
     # Create a copy of the original image
     result = image.copy().astype(np.float32)
@@ -68,31 +76,35 @@ def pixel_randomize_preserve_contrast(image, mask=None, erosion_iterations=5):
         else:  # RGB image
             mask = np.logical_not(np.all(image == background_pixel, axis=-1))
 
-    # Create interior mask (well away from boundaries) - same as frequency methods
-    interior_mask = ndimage.binary_erosion(mask, iterations=erosion_iterations)
+    if shuffle_boundary:
+        # Whole-contour shuffle: shuffle every masked pixel, boundary contour included.
+        region_mask = mask
+    else:
+        # Create interior mask (well away from boundaries) - same as frequency methods.
+        region_mask = ndimage.binary_erosion(mask, iterations=erosion_iterations)
 
-    # Get the coordinates of all interior pixels only
-    interior_coords = np.where(interior_mask)
-    num_interior_pixels = len(interior_coords[0])
+    # Get the coordinates of all pixels in the region to shuffle
+    region_coords = np.where(region_mask)
+    num_region_pixels = len(region_coords[0])
 
-    if num_interior_pixels == 0:
-        # No interior pixels to shuffle
-        print("Warning: No interior pixels found for shuffling", file=sys.stderr)
+    if num_region_pixels == 0:
+        # No pixels to shuffle
+        print("Warning: No pixels found for shuffling", file=sys.stderr)
         return result.astype(image.dtype)
 
-    # Extract all interior pixel values (RGB)
-    interior_pixels = rgb[interior_coords]  # Shape: (num_pixels, 3)
+    # Extract all region pixel values (RGB)
+    region_pixels = rgb[region_coords]  # Shape: (num_pixels, 3)
 
-    # Shuffle the pixel values within interior region only
-    shuffled_indices = np.random.permutation(num_interior_pixels)
-    shuffled_pixels = interior_pixels[shuffled_indices]
+    # Shuffle the pixel values within the region only
+    shuffled_indices = np.random.permutation(num_region_pixels)
+    shuffled_pixels = region_pixels[shuffled_indices]
 
     # Create the result image by copying the original
     rgb_shuffled = rgb.copy()
 
-    # Replace ONLY the interior pixels with shuffled values
-    # Boundary pixels remain exactly as original
-    rgb_shuffled[interior_coords] = shuffled_pixels
+    # Replace ONLY the region pixels with shuffled values. For the default (interior) mode the
+    # boundary contour remains exactly as original; for whole-contour mode it is shuffled too.
+    rgb_shuffled[region_coords] = shuffled_pixels
 
     # Reattach alpha channel if needed
     if alpha is not None:
@@ -107,14 +119,16 @@ def pixel_randomize_preserve_contrast(image, mask=None, erosion_iterations=5):
     return result
 
 
-def process_image(input_path, output_path, keep_intermediates=False):
+def process_image(input_path, output_path, keep_intermediates=False, shuffle_boundary=False):
     """
-    Process image with interior pixel shuffling.
+    Process image with pixel shuffling.
 
     Args:
         input_path: Path to input image
         output_path: Path for final output image
         keep_intermediates: Whether to save analysis plot showing histograms and power spectrum
+        shuffle_boundary: If True, shuffle the whole shape including its boundary contour
+            instead of only the interior (see pixel_randomize_preserve_contrast)
 
     Returns:
         tuple: (analysis_plot_path, final_path) if keep_intermediates,
@@ -138,12 +152,14 @@ def process_image(input_path, output_path, keep_intermediates=False):
         img = Image.open(input_path).convert('RGBA')
         img_array = np.array(img)
 
-        # Apply interior pixel shuffling
-        processed_array = pixel_randomize_preserve_contrast(img_array, erosion_iterations=1)
+        # Apply pixel shuffling (interior-only by default, whole-contour when requested)
+        processed_array = pixel_randomize_preserve_contrast(
+            img_array, erosion_iterations=1, shuffle_boundary=shuffle_boundary)
 
         # Create analysis plot if requested
         if keep_intermediates:
-            create_analysis_plot(img_array, processed_array, analysis_plot_path, "Interior Pixel Shuffled")
+            plot_title = "Whole-Contour Pixel Shuffled" if shuffle_boundary else "Interior Pixel Shuffled"
+            create_analysis_plot(img_array, processed_array, analysis_plot_path, plot_title)
 
         # Save final shuffled image
         final_img = Image.fromarray(processed_array.astype(np.uint8))
@@ -163,7 +179,8 @@ def process_image(input_path, output_path, keep_intermediates=False):
 def main():
     """Main function for command-line execution."""
     parser = argparse.ArgumentParser(
-        description='Process images with interior pixel shuffling while preserving boundaries and background',
+        description='Process images with pixel shuffling while preserving the background '
+                    '(and, by default, the shape boundary contour)',
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
@@ -171,6 +188,9 @@ def main():
     parser.add_argument('output_path', help='Path for output image')
     parser.add_argument('--keep-intermediates', '-k', action='store_true',
                         help='Save analysis plot showing histograms and power spectrum')
+    parser.add_argument('--whole-contour', '-w', action='store_true',
+                        help='Shuffle the whole shape including its boundary contour, '
+                             'instead of preserving the outline and shuffling only the interior')
     parser.add_argument('--quiet', '-q', action='store_true',
                         help='Suppress output messages')
 
@@ -181,7 +201,8 @@ def main():
         analysis_path, final_path = process_image(
             args.input_path,
             args.output_path,
-            args.keep_intermediates
+            args.keep_intermediates,
+            args.whole_contour
         )
 
         if not args.quiet:

@@ -66,7 +66,7 @@ VARIANCE_THRESHOLDS = (0.80, 0.90, 0.95)
 # StimTypes always dropped from the analysis (and therefore every plot), on top
 # of these defaults. Shuffle side-test stimuli are control conditions, not part
 # of the encoding population we want to characterize.
-DEFAULT_EXCLUDED_STIM_TYPES = ("SHUFFLE_PIXEL", "SHUFFLE_PHASE", "SHUFFLE_MAGNITUDE")
+DEFAULT_EXCLUDED_STIM_TYPES = ("SHUFFLE_PIXEL", "SHUFFLE_WHOLE_CONTOUR_PIXEL", "SHUFFLE_PHASE", "SHUFFLE_MAGNITUDE")
 
 # Non-stimulus rows that are always dropped regardless of the exclusion list.
 ALWAYS_EXCLUDED_STIM_TYPES = ("BASELINE", "CATCH")

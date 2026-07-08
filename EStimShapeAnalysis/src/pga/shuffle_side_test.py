@@ -12,8 +12,12 @@ from src.pga.stim_types import is_mutatable, is_3d
 
 class ShuffleType(Enum):
     """The shuffle mutation types. The string values are read on the Java side
-    (FromDbGABlockGenerator -> ShuffleGAStim) to pick which shuffle script to run."""
+    (FromDbGABlockGenerator -> ShuffleGAStim) to pick which shuffle script to run.
+
+    PIXEL preserves the shape's boundary contour and shuffles only the interior; WHOLE_CONTOUR_PIXEL
+    shuffles the whole shape including the boundary (same pixel_shuffle.py script, --whole-contour)."""
     PIXEL = "SHUFFLE_PIXEL"
+    WHOLE_CONTOUR_PIXEL = "SHUFFLE_WHOLE_CONTOUR_PIXEL"
     PHASE = "SHUFFLE_PHASE"
     MAGNITUDE = "SHUFFLE_MAGNITUDE"
 
@@ -21,8 +25,8 @@ class ShuffleType(Enum):
 class ShuffleSideTest(SideTest):
     """
     Side test that takes the top-N responders from the previous generation and, for each,
-    makes a pixel shuffle, phase shuffle, and magnitude shuffle of the parent (preserving the
-    parent's texture and color).
+    makes one shuffle of every ShuffleType (interior pixel, whole-contour pixel, phase, and
+    magnitude) of the parent (preserving the parent's texture and color).
 
     This replaces the old post-hoc ShuffleTrialGenerator: instead of binning across the whole
     experiment after the fact, every generation we shuffle the current top responder(s) so we

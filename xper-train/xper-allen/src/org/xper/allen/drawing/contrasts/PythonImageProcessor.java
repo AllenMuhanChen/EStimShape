@@ -4,6 +4,9 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.UUID;
 
@@ -84,9 +87,27 @@ public class PythonImageProcessor {
      * @throws ImageProcessingException If Python script fails
      */
     public File processImage(String inputImagePath, String label) throws IOException, InterruptedException, ImageProcessingException {
+        return processImage(inputImagePath, label, Collections.<String>emptyList());
+    }
+
+    /**
+     * Process an image with a custom label and extra command-line arguments forwarded to the
+     * Python script (e.g. "--whole-contour"). Used by shuffle variants that share a script but
+     * toggle behaviour with a flag.
+     *
+     * @param inputImagePath Path to input image
+     * @param label Label to include in output filename
+     * @param extraArgs Additional command-line arguments appended after the output path
+     * @return File object pointing to the processed image
+     * @throws IOException If file operations fail
+     * @throws InterruptedException If process is interrupted
+     * @throws ImageProcessingException If Python script fails
+     */
+    public File processImage(String inputImagePath, String label, List<String> extraArgs)
+            throws IOException, InterruptedException, ImageProcessingException {
         // Generate unique output filename with label
         String outputPath = generateOutputPath(inputImagePath, label);
-        return processImage(inputImagePath, outputPath, false);
+        return processImage(inputImagePath, outputPath, false, extraArgs);
     }
 
     /**
@@ -120,6 +141,24 @@ public class PythonImageProcessor {
      */
     public File processImage(String inputImagePath, String outputImagePath, boolean keepIntermediates)
             throws IOException, InterruptedException, ImageProcessingException {
+        return processImage(inputImagePath, outputImagePath, keepIntermediates, Collections.<String>emptyList());
+    }
+
+    /**
+     * Process an image with specified output path and extra command-line arguments forwarded to
+     * the Python script.
+     *
+     * @param inputImagePath Path to input image
+     * @param outputImagePath Path for output image
+     * @param keepIntermediates Whether to save intermediate processing files
+     * @param extraArgs Additional command-line arguments appended after the output path
+     * @return File object pointing to the processed image
+     * @throws IOException If file operations fail
+     * @throws InterruptedException If process is interrupted
+     * @throws ImageProcessingException If Python script fails
+     */
+    public File processImage(String inputImagePath, String outputImagePath, boolean keepIntermediates, List<String> extraArgs)
+            throws IOException, InterruptedException, ImageProcessingException {
 
         // Validate input file exists
         Path inputPath = Paths.get(inputImagePath);
@@ -135,12 +174,20 @@ public class PythonImageProcessor {
         }
 
         // Build command
-        ProcessBuilder pb = new ProcessBuilder();
+        List<String> command = new ArrayList<>();
+        command.add(pythonExecutable);
+        command.add(pythonScriptPath);
+        command.add(inputImagePath);
+        command.add(outputImagePath);
         if (keepIntermediates) {
-            pb.command(pythonExecutable, pythonScriptPath, inputImagePath, outputImagePath, "--keep-intermediates");
-        } else {
-            pb.command(pythonExecutable, pythonScriptPath, inputImagePath, outputImagePath);
+            command.add("--keep-intermediates");
         }
+        if (extraArgs != null) {
+            command.addAll(extraArgs);
+        }
+
+        ProcessBuilder pb = new ProcessBuilder();
+        pb.command(command);
 
         pb.redirectErrorStream(true);
 
