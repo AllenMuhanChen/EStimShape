@@ -187,11 +187,28 @@ class BlockDetectionStrategy:
     def cache_key(self) -> str:
         return self.name
 
+    @property
+    def multiplier(self) -> float:
+        """The scalar swept by run_threshold_multiplier_sweep (the N in -N x RMS,
+        or C in C x mean(NEO))."""
+        raise NotImplementedError
+
     def transform_channel(self, filtered: np.ndarray) -> np.ndarray:
         return filtered
 
-    def block_threshold(self, detection_block: np.ndarray) -> float:
+    def block_noise(self, detection_block: np.ndarray) -> float:
+        """The per-block noise/scale estimate, independent of the multiplier
+        (RMS, MAD sigma, or mean(NEO)). Factored out so a multiplier sweep can
+        compute it once and reuse it for every candidate multiplier."""
         raise NotImplementedError
+
+    def scaled_threshold(self, noise: float, multiplier: float) -> float:
+        """Combine a noise estimate with a multiplier into a threshold (sign
+        and scaling are strategy-specific)."""
+        raise NotImplementedError
+
+    def block_threshold(self, detection_block: np.ndarray) -> float:
+        return self.scaled_threshold(self.block_noise(detection_block), self.multiplier)
 
     def detect_segment(self, detection_segment: np.ndarray, threshold: float,
                        refractory_samples: int) -> np.ndarray:
@@ -207,12 +224,18 @@ class NegativeRmsStrategy(BlockDetectionStrategy):
     def __init__(self, threshold_rms: float = 4.0):
         self.threshold_rms = threshold_rms
 
+    @property
+    def multiplier(self) -> float:
+        return self.threshold_rms
+
     def cache_key(self) -> str:
         return f"neg_rms_{self.threshold_rms}"
 
-    def block_threshold(self, detection_block: np.ndarray) -> float:
-        rms = float(np.sqrt(np.mean(detection_block ** 2)))
-        return -self.threshold_rms * rms
+    def block_noise(self, detection_block: np.ndarray) -> float:
+        return float(np.sqrt(np.mean(detection_block ** 2)))
+
+    def scaled_threshold(self, noise: float, multiplier: float) -> float:
+        return -multiplier * noise
 
     def detect_segment(self, detection_segment, threshold, refractory_samples):
         return _detect_negative_crossings(detection_segment, threshold, refractory_samples)
@@ -234,12 +257,15 @@ class MadStrategy(NegativeRmsStrategy):
     def __init__(self, threshold_mad: float = 4.0):
         self.threshold_mad = threshold_mad
 
+    @property
+    def multiplier(self) -> float:
+        return self.threshold_mad
+
     def cache_key(self) -> str:
         return f"neg_mad_{self.threshold_mad}"
 
-    def block_threshold(self, detection_block: np.ndarray) -> float:
-        sigma = float(np.median(np.abs(detection_block))) / 0.6745
-        return -self.threshold_mad * sigma
+    def block_noise(self, detection_block: np.ndarray) -> float:
+        return float(np.median(np.abs(detection_block))) / 0.6745
 
 
 class NeoStrategy(BlockDetectionStrategy):
@@ -256,6 +282,10 @@ class NeoStrategy(BlockDetectionStrategy):
         # smoothing window is set from the true sample rate at parse time
         self._window_samples = max(2, int(smooth_ms * sample_rate_hint / 1000.0))
 
+    @property
+    def multiplier(self) -> float:
+        return self.coefficient
+
     def cache_key(self) -> str:
         return f"neo_c{self.coefficient}_sm{self.smooth_ms}"
 
@@ -265,8 +295,11 @@ class NeoStrategy(BlockDetectionStrategy):
     def transform_channel(self, filtered: np.ndarray) -> np.ndarray:
         return _smooth_neo(_neo(filtered), self._window_samples)
 
-    def block_threshold(self, detection_block: np.ndarray) -> float:
-        return self.coefficient * float(np.mean(detection_block))
+    def block_noise(self, detection_block: np.ndarray) -> float:
+        return float(np.mean(detection_block))
+
+    def scaled_threshold(self, noise: float, multiplier: float) -> float:
+        return multiplier * noise
 
     def detect_segment(self, detection_segment, threshold, refractory_samples):
         return _detect_positive_peaks(detection_segment, threshold, refractory_samples)
@@ -465,6 +498,146 @@ class PeriodicBlockMUAParser:
 
         return (spikes_by_channel_by_task_id, epochs_by_task_id,
                 amps_by_channel_by_task_id, sample_rate)
+
+    # ------------------------------------------------------------------
+    # Fast threshold-MULTIPLIER sweep (filter + noise estimate computed once)
+    # ------------------------------------------------------------------
+    def sweep_multipliers(self, task_ids: list[int], intan_files_dir: str,
+                          multipliers, channel_filter=None) -> dict:
+        """Sweep the detection MULTIPLIER at the parser's fixed block_size,
+        filtering each channel and computing the per-block noise estimate ONCE
+        and reusing them for every candidate multiplier.
+
+        The multiplier (the N in -N x RMS / MAD, or C in C x mean(NEO)) changes
+        only the threshold, never the filtering or the noise estimate — the two
+        expensive steps — so this is dramatically cheaper than re-detecting per
+        multiplier. `channel_filter` (iterable of channel names) restricts work
+        to just those channels for a further speedup.
+
+        Returns {multiplier: {task_id: {channel_value: rate_hz}}}.
+        """
+        multipliers = [float(m) for m in multipliers]
+        task_ids = [int(t) for t in task_ids]
+        task_id_set = set(task_ids)
+        norm_filter = (None if channel_filter is None
+                       else {_normalize_channel(c) for c in channel_filter})
+
+        cached = self._load_sweep_cache(task_ids, multipliers, norm_filter)
+        if cached is not None:
+            return cached
+
+        matching_dirs = find_files_containing_task_ids(task_id_set, intan_files_dir)
+        if not matching_dirs:
+            raise ValueError(f"No Intan files found containing task IDs {task_ids}")
+
+        rates_by_mult: dict = {m: {} for m in multipliers}
+        for dir_path in sorted(matching_dirs):
+            self._sweep_one_dir(dir_path, task_id_set, multipliers,
+                                norm_filter, rates_by_mult)
+
+        self._save_sweep_cache(task_ids, multipliers, norm_filter, rates_by_mult)
+        return rates_by_mult
+
+    def _sweep_one_dir(self, dir_path, task_id_set, multipliers,
+                       norm_filter, rates_by_mult) -> None:
+        from clat.intan.amplifiers import read_amplifier_data_with_memmap
+        from clat.intan.livenotes import map_task_id_to_epochs_with_livenotes
+        from clat.intan.marker_channels import epoch_using_combined_marker_channels
+
+        sample_rate, amplifier_channels = self._read_header(dir_path)
+        if hasattr(self.strategy, 'configure'):
+            self.strategy.configure(sample_rate)
+
+        amplifier_path = os.path.join(dir_path, "amplifier.dat")
+        digital_in_path = os.path.join(dir_path, "digitalin.dat")
+        notes_path = os.path.join(dir_path, "notes.txt")
+
+        stim_epochs = epoch_using_combined_marker_channels(
+            digital_in_path, false_negative_correction_duration=2)
+        epochs_for_task_ids = map_task_id_to_epochs_with_livenotes(
+            notes_path, stim_epochs,
+            require_trial_complete=False, is_output_first_instance=False)
+
+        trials = []
+        for task_id, epoch_indices in epochs_for_task_ids.items():
+            if epoch_indices is None or task_id not in task_id_set:
+                continue
+            trials.append((task_id, int(epoch_indices[0]), int(epoch_indices[1])))
+        trials.sort(key=lambda t: t[1])
+        if not trials:
+            return
+
+        for m in multipliers:
+            for tid, _, _ in trials:
+                rates_by_mult[m].setdefault(tid, {})
+
+        blocks = [trials[i:i + self.block_size]
+                  for i in range(0, len(trials), self.block_size)]
+        refractory_samples = max(1, int(self.refractory_sec * sample_rate))
+        channel_to_raw = read_amplifier_data_with_memmap(amplifier_path, amplifier_channels)
+
+        for channel, raw in channel_to_raw.items():
+            cval = _normalize_channel(getattr(channel, 'value', channel))
+            if norm_filter is not None and cval not in norm_filter:
+                continue  # skip filtering channels we don't need -> big speedup
+
+            filtered = highpass_filter(np.asarray(raw, dtype=np.float64),
+                                       sample_rate, self.highpass_hz)
+            detection_signal = self.strategy.transform_channel(filtered)
+            n = len(detection_signal)
+
+            for block in blocks:
+                b_start = max(0, block[0][1])
+                b_end = min(n, block[-1][2])
+                if b_end <= b_start:
+                    continue
+                noise = self.strategy.block_noise(detection_signal[b_start:b_end])
+                thr = {m: self.strategy.scaled_threshold(noise, m) for m in multipliers}
+
+                for task_id, s_idx, e_idx in block:
+                    duration = (e_idx - s_idx) / sample_rate
+                    s = max(0, s_idx)
+                    e = min(n, e_idx)
+                    if e <= s or duration <= 0:
+                        for m in multipliers:
+                            rates_by_mult[m][task_id][cval] = 0.0
+                        continue
+                    segment = detection_signal[s:e]
+                    for m in multipliers:
+                        local = self.strategy.detect_segment(
+                            segment, thr[m], refractory_samples)
+                        rates_by_mult[m][task_id][cval] = len(local) / duration
+
+    def _sweep_key(self, task_ids, multipliers, norm_filter) -> str:
+        chans = 'all' if norm_filter is None else ','.join(sorted(norm_filter))
+        payload = (
+            f"strategy={self.strategy.name}|block={self.block_size}|"
+            f"hp={self.highpass_hz}|refrac={self.refractory_sec}|"
+            f"mults={sorted(multipliers)}|chans={chans}|"
+            f"tasks={sorted(int(t) for t in task_ids)}"
+        )
+        return hashlib.md5(payload.encode()).hexdigest()[:16]
+
+    def _load_sweep_cache(self, task_ids, multipliers, norm_filter):
+        if not (self.to_cache and self.cache_dir is not None):
+            return None
+        path = os.path.join(self.cache_dir, f"sweep_{self._sweep_key(task_ids, multipliers, norm_filter)}.pkl")
+        if not os.path.exists(path):
+            return None
+        try:
+            with open(path, 'rb') as f:
+                return pickle.load(f)
+        except Exception as exc:
+            print(f"Failed to load multiplier-sweep cache {path}: {exc}")
+            return None
+
+    def _save_sweep_cache(self, task_ids, multipliers, norm_filter, rates_by_mult):
+        if not (self.to_cache and self.cache_dir is not None):
+            return
+        os.makedirs(self.cache_dir, exist_ok=True)
+        path = os.path.join(self.cache_dir, f"sweep_{self._sweep_key(task_ids, multipliers, norm_filter)}.pkl")
+        with open(path, 'wb') as f:
+            pickle.dump(rates_by_mult, f)
 
     @staticmethod
     def _read_header(dir_path: str) -> tuple[float, list]:
@@ -981,6 +1154,92 @@ def run_block_size_sweep(session_id: Optional[str] = None,
         save_path = f"{save_dir}/{channel_str}_block_size_sweep.png"
     fig.savefig(save_path, dpi=150, bbox_inches='tight')
     print(f"Saved block-size sweep plot to {save_path}")
+
+    plt.show()
+    return fig
+
+
+# ===========================================================================
+# Threshold-multiplier sweep (fast: filter + noise estimate computed once)
+# ===========================================================================
+
+def run_threshold_multiplier_sweep(session_id: Optional[str] = None,
+                                   channel: Optional[ChannelSpec] = None,
+                                   block_size: int = 50,
+                                   strategy: Optional[BlockDetectionStrategy] = None,
+                                   multipliers: tuple = (2.0, 2.5, 3.0, 3.5, 4.0,
+                                                         4.5, 5.0, 5.5, 6.0),
+                                   highpass_hz: float = 300.0,
+                                   save_path: Optional[str] = None):
+    """Sweep the detection multiplier (default: the N in -N x RMS) at a fixed
+    block size, plotting the correction score vs multiplier.
+
+    Fast: each channel is filtered and its per-block noise estimated only once;
+    only the (cheap) thresholding + crossing detection is repeated per
+    multiplier, and work is restricted to the requested channels. Pass a
+    different `strategy` (MadStrategy(), NeoStrategy()) to sweep MAD's or NEO's
+    multiplier instead; its own multiplier value is ignored during the sweep.
+    """
+    if session_id is None:
+        session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
+    if channel is None:
+        channel = read_cluster_channels(session_id)
+    if strategy is None:
+        strategy = NegativeRmsStrategy()
+    channels = channel if isinstance(channel, list) else [channel]
+    multipliers = [float(m) for m in multipliers]
+
+    print(f"Loading repository trial data for session {session_id} ...")
+    base_df = import_from_repository(session_id, "ga", "GAStimInfo", "RawSpikeResponses")
+    channel_label = ', '.join(channels)
+    channel_str = '_'.join(channels)
+
+    task_ids = [int(t) for t in base_df['TaskId'].tolist()]
+    cache_dir = os.path.join(context.ga_parsed_spikes_path, "periodic_block_mua")
+    parser = PeriodicBlockMUAParser(
+        strategy=strategy, block_size=block_size, highpass_hz=highpass_hz,
+        to_cache=True, cache_dir=cache_dir)
+    print(f"Sweeping {strategy.name} multipliers {multipliers} at block={block_size} "
+          f"over {len(channels)} channel(s) ...")
+    rates_by_mult = parser.sweep_multipliers(
+        task_ids, context.ga_intan_path, multipliers, channel_filter=channels)
+
+    # Raw-Intan reference (no re-thresholding)
+    raw_ab, _g, _c = compute_baseline_profile(_method_raw_intan(session_id, base_df, channel))
+    raw_score = compute_correction_score(raw_ab)
+
+    scores = []
+    for m in multipliers:
+        df = base_df.copy()
+        df['Spike Rate by channel'] = df['TaskId'].map(
+            lambda tid, mm=m: rates_by_mult[mm].get(int(tid), {}))
+        ab, _gg, _cc = compute_baseline_profile(add_response_column(df, channel))
+        scores.append(compute_correction_score(ab))
+
+    best_i = int(np.nanargmin(scores))
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    ax.plot(multipliers, scores, '-o', linewidth=1.6, markersize=5,
+            color='steelblue', label=strategy.name)
+    ax.scatter([multipliers[best_i]], [scores[best_i]], s=140, facecolors='none',
+               edgecolors='red', linewidths=2, zorder=5,
+               label=f'best = {multipliers[best_i]:g}  ({scores[best_i]:.3f})')
+    ax.axhline(raw_score, linestyle='--', color='gray', linewidth=1.2,
+               label=f'Raw Intan (no re-thresh) = {raw_score:.2f}')
+    ax.set_xlabel(f'Threshold multiplier  (block size = {block_size} trials/file)')
+    ax.set_ylabel('Correction needed:  mean |median factor − 1|\n(lower = less correction)')
+    ax.set_title(f'{strategy.name} threshold-multiplier sweep  |  '
+                 f'Session: {session_id}  |  Channel(s): {channel_label}')
+    ax.grid(True, alpha=0.3)
+    ax.legend(fontsize=8)
+    fig.tight_layout()
+
+    if save_path is None:
+        save_dir = f"/home/connorlab/Documents/plots/{session_id}"
+        os.makedirs(save_dir, exist_ok=True)
+        save_path = f"{save_dir}/{channel_str}_{strategy.name}_multiplier_sweep.png"
+    fig.savefig(save_path, dpi=150, bbox_inches='tight')
+    print(f"Saved multiplier-sweep plot to {save_path}")
 
     plt.show()
     return fig
