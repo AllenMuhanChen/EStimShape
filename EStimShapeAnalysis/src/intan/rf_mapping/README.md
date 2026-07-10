@@ -41,14 +41,28 @@ double-click it) — a window opens. Fill in host / channels / marker bit, click
 
 The window shows:
 - a live per-channel spike-rate readout and rolling plot,
+- an **Aux fields** row (the enabled digital/analog channels) that flags which
+  field is *changing* — flash the stimulus and the marker field lights up,
 - a MARKER ON/OFF indicator,
 - an event log with each epoch's duration and the spike count inside it,
 - a **Dump one frame** button for inspecting the raw stream layout.
 
-### Things Phase 0 exists to confirm on the rig (all editable fields in the window)
-- Exact digital-in enable command (default `set digitalin.tcpdataoutputenabled true`).
-- The digital-in **frame byte layout** — the probe auto-detects block size and
-  reports a loud mismatch in the log rather than showing garbage; use **Dump one
-  frame**.
-- Which digital bit is the marker (default bit 1 = DIGITAL-IN-2).
-- Response-latency window offsets (latency left/right ms).
+### Discovering the marker (the point of Phase 0)
+The probe does **not** assume the frame layout. It measures the true frame size
+from the stream (distance between magic numbers), derives how many extra 2-byte
+"aux" fields are present (your enabled digital-in / analog-in channels), and
+parses them. Spikes stream regardless.
+
+To find the marker:
+1. In the **Extra channel enable** box, add the command(s) that enable your
+   photodiode line for TCP output (one per line). The digital-in native name
+   varies by RHX build — check RHX's *Data Output* tab. Try `DIGITAL-IN-01`,
+   `DIGITAL-IN-1`, or `ANALOG-IN-1` if the photodiode is on an ADC. On the
+   observed rig (`ControllerStimRecord`, RHS), `set digitalin.tcpdataoutputenabled
+   true` added nothing — this box is how you iterate to the right name.
+2. Start, then flash the stimulus. The **Aux fields** row marks the changing
+   field `*changing*`. Set **Marker aux index** to that field's index.
+3. **Marker bit** = `-1` treats any nonzero value as ON (per-line digital, the
+   usual case). If a field carries the full 16-bit digital word instead, set the
+   bit number.
+4. Tune **latency left/right ms** for the response window used to count spikes.
