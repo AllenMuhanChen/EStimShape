@@ -25,7 +25,11 @@ controlled stimulus presentations.
 - **Phase 1** — "controlled presentation" mode + per-presentation trial capture to
   the DB (stim snapshot, position, depth, epoch, per-channel spike count/rate).
   Wire the RF experiment to start RHX recording (`set runmode record`) like the
-  other experiments.
+  other experiments. **Data model in place:** `RFMappingResponse` (one row per
+  presentation x neural channel) — DDL in
+  `sql_queries/create_rf_mapping_response_table.sql`; create it from the IDE by
+  running `create_rf_mapping_table.py` (targets the current session's ga
+  database; edit `TARGET_DB` to also create it in the template).
 - **Phase 2** — orientation tuning view (mean rate ± SEM vs. orientation).
 - **Phase 3** — response-weighted RF heatmap (stimulus shadow × rate, accumulated).
 - **Phase 4** — matchstick color tuning; polish.
