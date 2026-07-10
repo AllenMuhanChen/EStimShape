@@ -92,8 +92,8 @@ public class EStimShapeVariantsGAStim extends GAStim<PruningMatchStick, AllenMSt
         // Generate child. Owner mode: place the noise circle with the smallest-shift search that hides
         // the whole preserved limb. Restore the shared mapper afterward (used by NAFC/other paths too).
         Random random = new Random();
-        boolean r = random.nextBoolean();
-
+        boolean r = random.nextBoolean(); //AC 260708_0 disabling pruning and just do gen from noise.
+//        boolean r = false;
         NoiseOptState prevNoiseOpt = beginOwnerCircleOptimization();
         try {
             if (r) {

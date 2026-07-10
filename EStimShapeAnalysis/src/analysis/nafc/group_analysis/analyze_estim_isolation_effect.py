@@ -2391,6 +2391,6 @@ if __name__ == '__main__':
     #                                  optimises each metric per trial type
     #   - main()                    -> legacy single-isolation-metric plots
     # main_metric_comparison()
-    # main_neighbor_sweep()
+    main_neighbor_sweep()
     # main_best_nb_comparison()
-    main_channel_search()
+    # main_channel_search()

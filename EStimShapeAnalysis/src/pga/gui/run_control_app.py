@@ -11,7 +11,7 @@ from typing import Dict
 
 from src.analysis import compile_current_context, analyze_raw_data, analyze_current_context
 from src.analysis.ga import raw_channel_candidacy_analysis, ga_raster_analysis, baseline_analysis, plot_top_n, \
-    plot_variants_delta_gui, lfp_analysis, stimulus_pca_analysis
+    plot_variants_delta_gui, lfp_analysis, stimulus_pca_analysis, plot_variants
 from src.eyecal import plot_eyecal, apply_eyecal
 from src.pga.app import run_ga, start_new_ga, process_first_gen, run_cluster_app, calculate_spontaneous_firing_rate, \
     run_rwa, plot_rwa, transfer_eye_cal_params, abandon_generation, process_last_gen, recalculate_ga, \
@@ -299,6 +299,10 @@ class ScriptRunnerApp:
                 },
                 "Plot Top N": {
                     "func": plot_top_n.main,
+                    "params": []
+                },
+                "Plot Variants": {
+                  "func": plot_variants.main,
                     "params": []
                 },
                 "Variant-Delta GUI": {

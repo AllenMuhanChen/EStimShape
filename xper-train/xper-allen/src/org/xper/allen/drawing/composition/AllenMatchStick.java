@@ -4058,7 +4058,8 @@ public class AllenMatchStick extends MatchStick {
         double screenDist = 500;
         double maxDiameterDegrees = boxSizeDegrees;
 //        double radiusMm = degToMm(maxDiameterDegrees, screenDist) / 2;
-        double radiusMm = maxDiameterDegrees * Math.tan(Math.toRadians(boxSizeDegrees) / 2);
+//        double radiusMm = maxDiameterDegrees * Math.tan(Math.toRadians(boxSizeDegrees) / 2);
+        double radiusMm = degToMm(maxDiameterDegrees, screenDist) / 2;
         int i, j;
 
         Point3d ori = new Point3d(0,0,0);

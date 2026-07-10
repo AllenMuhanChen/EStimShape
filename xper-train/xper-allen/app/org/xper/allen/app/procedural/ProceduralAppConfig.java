@@ -66,7 +66,7 @@ public class ProceduralAppConfig {
      */
     @Bean
     public boolean normalizeCoherenceByArea() {
-        return false;
+        return true;
     }
     @Bean
     public FixationPoint experimentFixationPoint() {

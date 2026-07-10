@@ -268,7 +268,11 @@ public class ProceduralMatchStick extends GAMatchStick {
             nAttempts++;
             try {
                 genMatchStickFromComponent(baseMatchStick, fromCompIds, nComp, this.maxAttempts);
-            } catch (MorphException e){
+            }
+            catch (MorphRepetitionException mre){
+              throw mre;
+            }
+            catch (MorphException e){
                 System.out.println("Error with morph, retrying");
                 System.out.println(e.getMessage());
                 continue;

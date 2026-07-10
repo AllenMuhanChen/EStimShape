@@ -112,7 +112,7 @@ class PlotVariants(PlotTopNAnalysis):
 
     def filter_for_variants(self, compiled_data):
         variants_data = compiled_data[
-            compiled_data['StimType'].isin([StimType.REGIME_ESTIM_VARIANTS.value, StimType.REGIME_ESTIM_DELTA.value])]
+            compiled_data['StimType'].isin([StimType.REGIME_ESTIM_VARIANTS.value])]
         return variants_data
 
     def _load_hypothesized_comps(self, stim_ids):

@@ -3,6 +3,7 @@ package org.xper.allen.pga;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.xper.allen.drawing.composition.experiment.PositioningStrategy;
+import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
@@ -367,7 +368,7 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
     }
 
     /** How many fresh morphs to try fitting the fixed parent circle before giving up on this delta. */
-    private static final int DELTA_CIRCLE_FIT_ATTEMPTS = 20;
+    private static final int DELTA_CIRCLE_FIT_ATTEMPTS = 10;
     /** Fraction of the rest of the shape that must stay outside the circle (matches generation's gate). */
     private static final double DELTA_REQUIRED_OUTSIDE = 0.25;
 
@@ -429,7 +430,9 @@ public class EStimShapeDeltaGAStim extends EStimShapeVariantsGAStim{
             double discreteness = random.nextDouble();
             try {
                 child.genNewComponentsMatchStick(parentMStick, compsToMutateInParent, magnitude, discreteness,
-                        true, 15, compsToMutateInParent);
+                        true, 5, compsToMutateInParent);
+//            } catch (ProceduralMatchStick.MorphRepetitionException mre) {
+//                throw mre;
             } catch (MorphedMatchStick.MorphException e) {
                 // Covers MorphRepetitionException too (a subclass): this morph attempt failed, try another.
                 continue;
