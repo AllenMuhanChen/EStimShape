@@ -16,14 +16,17 @@ x = each baseline parent's Gen-1 response, y = that baseline's response in
 Gen-N) side by side for several spike-detection methods, so the drift can be
 compared across detectors.
 
-Step 1 methods
---------------
+Methods
+-------
   Column A - "Raw Intan spikes": the per-trial per-channel spike rates already
              stored in the repository (RawSpikeResponses), i.e. Intan's spike.dat.
   Column B - "-4x RMS / N trials": re-detected from the raw wideband
              (amplifier.dat), recomputing the negative -threshold_rms x RMS
              threshold once per block of `block_size` consecutive trials WITHIN
              each recording file.
+  Column C - "NEO / N trials": re-detected from the same wideband using the
+             nonlinear (Teager) energy operator, threshold = C x mean(NEO)
+             refreshed on the same per-block cadence.
 
 Both columns share the exact same trials and metadata (StimType, GenId,
 ParentId, StimSpecId) pulled from the repository; only the per-trial response
@@ -91,6 +94,61 @@ def _detect_negative_crossings(segment: np.ndarray, threshold: float,
     return np.asarray(kept, dtype=int)
 
 
+def _detect_positive_peaks(signal: np.ndarray, threshold: float,
+                           refractory_samples: int) -> np.ndarray:
+    """Detect upward crossings of `threshold` (threshold > 0) in a one-sided
+    signal (e.g. the NEO energy trace).
+
+    Snaps each crossing to the local peak within the refractory window and
+    enforces the refractory period. Returns sample indices into `signal`.
+    """
+    if signal.size < 2:
+        return np.empty(0, dtype=int)
+
+    above = signal > threshold
+    crossings = np.where(np.diff(above.astype(np.int8)) == 1)[0] + 1
+    if len(crossings) == 0:
+        return np.empty(0, dtype=int)
+
+    n = len(signal)
+    peaks = []
+    for c in crossings:
+        window_end = min(c + refractory_samples, n)
+        peaks.append(c + int(np.argmax(signal[c:window_end])))
+    peaks = np.asarray(peaks, dtype=int)
+
+    kept = [peaks[0]]
+    for s in peaks[1:]:
+        if s - kept[-1] >= refractory_samples:
+            kept.append(s)
+    return np.asarray(kept, dtype=int)
+
+
+def _neo(x: np.ndarray) -> np.ndarray:
+    """Nonlinear (Teager) energy operator: psi[n] = x[n]^2 - x[n-1]*x[n+1].
+
+    Large where the signal has simultaneously high amplitude AND high
+    instantaneous frequency, which is what a spike is; low for slow, low-
+    amplitude background even when the raw amplitude drifts. Endpoints set to 0.
+    """
+    psi = np.zeros_like(x)
+    psi[1:-1] = x[1:-1] ** 2 - x[:-2] * x[2:]
+    return psi
+
+
+def _smooth_neo(psi: np.ndarray, window_samples: int) -> np.ndarray:
+    """Smooth the NEO trace with a normalized Bartlett (triangular) window.
+
+    Mukhopadhyay & Ray (1998) smooth the raw NEO output over roughly a spike
+    width so a single spike produces one energy bump rather than a jagged burst.
+    """
+    if window_samples < 2:
+        return psi
+    win = np.bartlett(window_samples)
+    win = win / win.sum()
+    return np.convolve(psi, win, mode='same')
+
+
 def _normalize_channel(ch) -> str:
     """Normalize a channel name to the repository/cluster 'A-0XX' form.
 
@@ -100,32 +158,114 @@ def _normalize_channel(ch) -> str:
     return str(ch).replace('_', '-').upper()
 
 
-class PeriodicRmsMUAParser:
+class BlockDetectionStrategy:
+    """How to turn a high-pass-filtered channel into spikes, given a per-block
+    threshold refresh.
+
+    Three hooks, all operating on the (per-channel) filtered signal:
+      - transform_channel: map filtered wideband -> a 'detection signal' the
+        threshold and detector run on (identity for amplitude methods; the NEO
+        energy trace for NEO).
+      - block_threshold: compute the scalar threshold for one block's slice of
+        the detection signal (refreshed every `block_size` trials).
+      - detect_segment: find spike sample-indices within one trial's slice.
     """
-    Re-detect MUA spikes from raw wideband (amplifier.dat), recomputing the
-    negative -threshold_rms x RMS threshold once per block of `block_size`
-    consecutive trials *within each recording file*.
+
+    name = "block"
+
+    def cache_key(self) -> str:
+        return self.name
+
+    def transform_channel(self, filtered: np.ndarray) -> np.ndarray:
+        return filtered
+
+    def block_threshold(self, detection_block: np.ndarray) -> float:
+        raise NotImplementedError
+
+    def detect_segment(self, detection_segment: np.ndarray, threshold: float,
+                       refractory_samples: int) -> np.ndarray:
+        raise NotImplementedError
+
+
+class NegativeRmsStrategy(BlockDetectionStrategy):
+    """Classic -N x RMS on the filtered amplitude, negative crossings only
+    (matches how Intan's spike.dat is usually configured)."""
+
+    name = "neg_rms"
+
+    def __init__(self, threshold_rms: float = 4.0):
+        self.threshold_rms = threshold_rms
+
+    def cache_key(self) -> str:
+        return f"neg_rms_{self.threshold_rms}"
+
+    def block_threshold(self, detection_block: np.ndarray) -> float:
+        rms = float(np.sqrt(np.mean(detection_block ** 2)))
+        return -self.threshold_rms * rms
+
+    def detect_segment(self, detection_segment, threshold, refractory_samples):
+        return _detect_negative_crossings(detection_segment, threshold, refractory_samples)
+
+
+class NeoStrategy(BlockDetectionStrategy):
+    """Nonlinear energy operator (Teager). Detection runs on the smoothed NEO
+    trace; threshold = coefficient x mean(NEO) over the block (Mukhopadhyay &
+    Ray 1998). Energy is one-sided, so detection uses positive peaks."""
+
+    name = "neo"
+
+    def __init__(self, coefficient: float = 8.0, smooth_ms: float = 0.3,
+                 sample_rate_hint: float = 30000.0):
+        self.coefficient = coefficient
+        self.smooth_ms = smooth_ms
+        # smoothing window is set from the true sample rate at parse time
+        self._window_samples = max(2, int(smooth_ms * sample_rate_hint / 1000.0))
+
+    def cache_key(self) -> str:
+        return f"neo_c{self.coefficient}_sm{self.smooth_ms}"
+
+    def configure(self, sample_rate: float) -> None:
+        self._window_samples = max(2, int(self.smooth_ms * sample_rate / 1000.0))
+
+    def transform_channel(self, filtered: np.ndarray) -> np.ndarray:
+        return _smooth_neo(_neo(filtered), self._window_samples)
+
+    def block_threshold(self, detection_block: np.ndarray) -> float:
+        return self.coefficient * float(np.mean(detection_block))
+
+    def detect_segment(self, detection_segment, threshold, refractory_samples):
+        return _detect_positive_peaks(detection_segment, threshold, refractory_samples)
+
+
+class PeriodicBlockMUAParser:
+    """
+    Re-detect MUA spikes from raw wideband (amplifier.dat), refreshing the
+    detection threshold once per block of `block_size` consecutive trials
+    *within each recording file*. The detection statistic itself is supplied by
+    a `BlockDetectionStrategy` (e.g. -N x RMS amplitude, or NEO energy), so the
+    only thing that changes between methods is the statistic — the trial set,
+    filtering, blocking and epoching are identical.
 
     Produces the same shape as `MultiFileParser.parse`:
         spikes_by_channel_by_task_id : {task_id: {Channel: [abs spike times, s]}}
         epochs_by_task_id            : {task_id: (start_s, end_s)}
         sample_rate                  : float
 
-    RMS is computed on the high-pass-filtered wideband spanning each block
-    (first trial start -> last trial end), mimicking how Intan estimates the
-    noise floor over a stretch of streaming data, but refreshed every
-    `block_size` trials instead of once per session.
+    The threshold for each block is computed on the high-pass-filtered wideband
+    (transformed by the strategy) spanning that block (first trial start -> last
+    trial end), mimicking how Intan estimates its noise floor over a stretch of
+    streaming data, but refreshed every `block_size` trials instead of once.
     """
 
     def __init__(self,
+                 strategy: BlockDetectionStrategy,
                  block_size: int = 100,
-                 threshold_rms: float = 4.0,
                  highpass_hz: float = 300.0,
                  refractory_sec: float = 0.001,
                  to_cache: bool = True,
                  cache_dir: Optional[str] = None):
+        self.strategy = strategy
         self.block_size = block_size
-        self.threshold_rms = threshold_rms
         self.highpass_hz = highpass_hz
         self.refractory_sec = refractory_sec
         self.to_cache = to_cache
@@ -135,7 +275,7 @@ class PeriodicRmsMUAParser:
     # ---- parameter signature so caches from different settings never collide --
     def _param_key(self, task_ids: list[int]) -> str:
         payload = (
-            f"block={self.block_size}|rms={self.threshold_rms}|"
+            f"strategy={self.strategy.cache_key()}|block={self.block_size}|"
             f"hp={self.highpass_hz}|refrac={self.refractory_sec}|"
             f"tasks={sorted(int(t) for t in task_ids)}"
         )
@@ -184,6 +324,9 @@ class PeriodicRmsMUAParser:
         from clat.intan.marker_channels import epoch_using_combined_marker_channels
 
         sample_rate, amplifier_channels = self._read_header(dir_path)
+        # Let strategies that depend on sample rate (e.g. NEO smoothing) adjust.
+        if hasattr(self.strategy, 'configure'):
+            self.strategy.configure(sample_rate)
 
         amplifier_path = os.path.join(dir_path, "amplifier.dat")
         digital_in_path = os.path.join(dir_path, "digitalin.dat")
@@ -223,15 +366,15 @@ class PeriodicRmsMUAParser:
         for channel, raw in channel_to_raw.items():
             filtered = highpass_filter(np.asarray(raw, dtype=np.float64),
                                        sample_rate, self.highpass_hz)
-            n = len(filtered)
+            detection_signal = self.strategy.transform_channel(filtered)
+            n = len(detection_signal)
 
             for block in blocks:
                 b_start = max(0, block[0][1])
                 b_end = min(n, block[-1][2])
                 if b_end <= b_start:
                     continue
-                rms = float(np.sqrt(np.mean(filtered[b_start:b_end] ** 2)))
-                threshold = -self.threshold_rms * rms
+                threshold = self.strategy.block_threshold(detection_signal[b_start:b_end])
 
                 for task_id, s_idx, e_idx in block:
                     s = max(0, s_idx)
@@ -239,8 +382,8 @@ class PeriodicRmsMUAParser:
                     if e <= s:
                         spikes_by_channel_by_task_id[task_id][channel] = []
                         continue
-                    segment = filtered[s:e]
-                    local = _detect_negative_crossings(
+                    segment = detection_signal[s:e]
+                    local = self.strategy.detect_segment(
                         segment, threshold, refractory_samples)
                     abs_times = (s + local) / sample_rate
                     spikes_by_channel_by_task_id[task_id][channel] = list(abs_times)
@@ -269,7 +412,7 @@ class PeriodicRmsMUAParser:
     # ---- caching -----------------------------------------------------------
     def _cache_path(self, task_ids: list[int]) -> str:
         return os.path.join(self.cache_dir,
-                            f"periodic_rms_{self._param_key(task_ids)}.pkl")
+                            f"periodic_{self._param_key(task_ids)}.pkl")
 
     def _load_cache(self, task_ids: list[int]):
         path = self._cache_path(task_ids)
@@ -279,7 +422,7 @@ class PeriodicRmsMUAParser:
             with open(path, 'rb') as f:
                 return pickle.load(f)
         except Exception as exc:
-            print(f"Failed to load periodic-RMS cache {path}: {exc}")
+            print(f"Failed to load periodic-detection cache {path}: {exc}")
             return None
 
     def _save_cache(self, task_ids, spikes_by_channel_by_task_id, epochs_by_task_id):
@@ -455,18 +598,19 @@ def _method_raw_intan(session_id: str, base_df: pd.DataFrame,
     return add_response_column(base_df, channel)
 
 
-def make_periodic_rms_method(block_size: int = 100,
-                             threshold_rms: float = 4.0,
-                             highpass_hz: float = 300.0) -> DetectionMethod:
-    """Column B: re-detect from wideband with -N x RMS recomputed per trial-block."""
+def _make_wideband_method(name: str,
+                          strategy: BlockDetectionStrategy,
+                          block_size: int,
+                          highpass_hz: float) -> DetectionMethod:
+    """Build a DetectionMethod that re-detects from wideband with `strategy`."""
 
     def build(session_id: str, base_df: pd.DataFrame,
               channel: ChannelSpec) -> pd.DataFrame:
         task_ids = [int(t) for t in base_df['TaskId'].tolist()]
-        cache_dir = os.path.join(context.ga_parsed_spikes_path, "periodic_rms_mua")
-        parser = PeriodicRmsMUAParser(
+        cache_dir = os.path.join(context.ga_parsed_spikes_path, "periodic_block_mua")
+        parser = PeriodicBlockMUAParser(
+            strategy=strategy,
             block_size=block_size,
-            threshold_rms=threshold_rms,
             highpass_hz=highpass_hz,
             to_cache=True,
             cache_dir=cache_dir,
@@ -480,9 +624,32 @@ def make_periodic_rms_method(block_size: int = 100,
             lambda tid: rates_by_task.get(int(tid), {}))
         return add_response_column(df, channel)
 
-    return DetectionMethod(
-        name=f"-4x RMS (negative)\nrecomputed / {block_size} trials",
-        build=build,
+    return DetectionMethod(name=name, build=build)
+
+
+def make_periodic_rms_method(block_size: int = 100,
+                             threshold_rms: float = 4.0,
+                             highpass_hz: float = 300.0) -> DetectionMethod:
+    """Column B: re-detect from wideband with -N x RMS recomputed per trial-block."""
+    return _make_wideband_method(
+        name=f"-{threshold_rms:g}x RMS (negative)\nrecomputed / {block_size} trials",
+        strategy=NegativeRmsStrategy(threshold_rms=threshold_rms),
+        block_size=block_size,
+        highpass_hz=highpass_hz,
+    )
+
+
+def make_neo_method(block_size: int = 100,
+                    coefficient: float = 8.0,
+                    smooth_ms: float = 0.3,
+                    highpass_hz: float = 300.0) -> DetectionMethod:
+    """Column C: NEO (Teager energy) detection, threshold = C x mean(NEO)
+    recomputed per trial-block."""
+    return _make_wideband_method(
+        name=f"NEO energy\n(C={coefficient:g} x mean, / {block_size} trials)",
+        strategy=NeoStrategy(coefficient=coefficient, smooth_ms=smooth_ms),
+        block_size=block_size,
+        highpass_hz=highpass_hz,
     )
 
 
@@ -494,8 +661,8 @@ def run_comparison(session_id: Optional[str] = None,
     """Render baseline profiles for each detection method, one column per method.
 
     Defaults: current session (from context.ga_database), cluster channels
-    summed, and the two step-1 methods (raw Intan vs -4x RMS per `block_size`
-    trials).
+    summed, and three methods (raw Intan; -4x RMS per `block_size` trials; NEO
+    per `block_size` trials).
     """
     if session_id is None:
         session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
@@ -506,6 +673,7 @@ def run_comparison(session_id: Optional[str] = None,
             DetectionMethod("Raw Intan spikes\n(spike.dat, -4x RMS seldom updated)",
                             _method_raw_intan),
             make_periodic_rms_method(block_size=block_size),
+            make_neo_method(block_size=block_size),
         ]
 
     print(f"Loading repository trial data for session {session_id} ...")
