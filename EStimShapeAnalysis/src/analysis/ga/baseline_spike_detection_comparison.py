@@ -1004,8 +1004,14 @@ def collect_baseline_spike_amplitudes(base_df: pd.DataFrame,
                                       *,
                                       block_size: int = 100,
                                       highpass_hz: float = 300.0) -> dict:
-    """Pool per-spike peak-to-peak amplitudes of BASELINE-stim spikes by
+    """Pool per-spike peak-to-peak amplitudes of the baseline reference set by
     generation, for the selected channel(s). Returns {GenId: [amplitudes_uV]}.
+
+    Generations 2..N come from BASELINE-typed trials. Generation 1 has no
+    BASELINE trials (the stimuli exist there as their original regime-zero
+    stims), so it is included via the gen-1 trials whose StimSpecId matches a
+    baseline's ParentId — the same physical stimuli — giving the reference
+    anchor the later generations are compared against.
     """
     channels = channel if isinstance(channel, list) else [channel]
     norm_channels = {_normalize_channel(c) for c in channels}
@@ -1019,15 +1025,27 @@ def collect_baseline_spike_amplitudes(base_df: pd.DataFrame,
         task_ids, context.ga_intan_path)
 
     task_to_gen = dict(zip(base_df['TaskId'].astype(int), base_df['GenId']))
-    baseline_tasks = set(
-        base_df.loc[base_df['StimType'] == 'BASELINE', 'TaskId'].astype(int))
+    baseline_mask = base_df['StimType'] == 'BASELINE'
+    baseline_tasks = set(base_df.loc[baseline_mask, 'TaskId'].astype(int))
+
+    # Gen 1 has no BASELINE-typed trials: those same physical stimuli appear in
+    # gen 1 as their original regime-zero stims. Include them (labelled gen 1)
+    # as the reference anchor by matching the baselines' ParentId (== the gen-1
+    # StimSpecId) among gen-1 trials.
+    baseline_parent_ids = set(base_df.loc[baseline_mask, 'ParentId'].dropna())
+    gen1_ref_mask = ((base_df['GenId'] == 1)
+                     & (base_df['StimSpecId'].isin(baseline_parent_ids)))
+    gen1_ref_tasks = set(base_df.loc[gen1_ref_mask, 'TaskId'].astype(int))
 
     amps_by_gen: dict = defaultdict(list)
     for task_id, ch_amps in amps_by_task.items():
         tid = int(task_id)
-        if tid not in baseline_tasks:
+        if tid in gen1_ref_tasks:
+            gen = 1
+        elif tid in baseline_tasks:
+            gen = task_to_gen.get(tid)
+        else:
             continue
-        gen = task_to_gen.get(tid)
         if gen is None:
             continue
         for ch, alist in ch_amps.items():
