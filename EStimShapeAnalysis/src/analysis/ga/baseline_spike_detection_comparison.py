@@ -639,6 +639,148 @@ class PeriodicBlockMUAParser:
         with open(path, 'wb') as f:
             pickle.dump(rates_by_mult, f)
 
+    # ------------------------------------------------------------------
+    # Fast BLOCK-SIZE sweep (filter + NEO transform computed once, reused
+    # across every block size AND every strategy)
+    # ------------------------------------------------------------------
+    def sweep_block_sizes(self, task_ids: list[int], intan_files_dir: str,
+                          strategies: list, block_sizes, channel_filter=None) -> dict:
+        """Sweep block size across several strategies at once, filtering (and, for
+        NEO, energy-transforming) each channel ONLY ONCE and reusing it for every
+        block size and strategy. Block size changes only how trials are grouped
+        for the noise estimate — not the filtering — so nothing expensive repeats.
+
+        Returns {(strategy.name, block_size_entry): {task_id: {channel: rate_hz}}}
+        keyed by the original block_size entries (ints or 'file').
+        """
+        task_ids = [int(t) for t in task_ids]
+        task_id_set = set(task_ids)
+        block_sizes = list(block_sizes)
+        norm_filter = (None if channel_filter is None
+                       else {_normalize_channel(c) for c in channel_filter})
+
+        cached = self._load_blocksweep_cache(task_ids, strategies, block_sizes, norm_filter)
+        if cached is not None:
+            return cached
+
+        matching_dirs = find_files_containing_task_ids(task_id_set, intan_files_dir)
+        if not matching_dirs:
+            raise ValueError(f"No Intan files found containing task IDs {task_ids}")
+
+        results: dict = {(s.name, b): {} for s in strategies for b in block_sizes}
+        for dir_path in sorted(matching_dirs):
+            self._sweep_blocks_one_dir(dir_path, task_id_set, strategies,
+                                       block_sizes, norm_filter, results)
+
+        self._save_blocksweep_cache(task_ids, strategies, block_sizes, norm_filter, results)
+        return results
+
+    def _sweep_blocks_one_dir(self, dir_path, task_id_set, strategies,
+                              block_sizes, norm_filter, results) -> None:
+        from clat.intan.amplifiers import read_amplifier_data_with_memmap
+        from clat.intan.livenotes import map_task_id_to_epochs_with_livenotes
+        from clat.intan.marker_channels import epoch_using_combined_marker_channels
+
+        sample_rate, amplifier_channels = self._read_header(dir_path)
+        for s in strategies:
+            if hasattr(s, 'configure'):
+                s.configure(sample_rate)
+
+        amplifier_path = os.path.join(dir_path, "amplifier.dat")
+        digital_in_path = os.path.join(dir_path, "digitalin.dat")
+        notes_path = os.path.join(dir_path, "notes.txt")
+
+        stim_epochs = epoch_using_combined_marker_channels(
+            digital_in_path, false_negative_correction_duration=2)
+        epochs_for_task_ids = map_task_id_to_epochs_with_livenotes(
+            notes_path, stim_epochs,
+            require_trial_complete=False, is_output_first_instance=False)
+
+        trials = []
+        for task_id, epoch_indices in epochs_for_task_ids.items():
+            if epoch_indices is None or task_id not in task_id_set:
+                continue
+            trials.append((task_id, int(epoch_indices[0]), int(epoch_indices[1])))
+        trials.sort(key=lambda t: t[1])
+        if not trials:
+            return
+
+        for s in strategies:
+            for b in block_sizes:
+                for tid, _, _ in trials:
+                    results[(s.name, b)].setdefault(tid, {})
+
+        # Pre-chunk trials for each block-size entry once (indices into `trials`).
+        blocks_by_size = {b: [trials[i:i + _resolve_block_size(b)]
+                              for i in range(0, len(trials), _resolve_block_size(b))]
+                          for b in block_sizes}
+
+        refractory_samples = max(1, int(self.refractory_sec * sample_rate))
+        channel_to_raw = read_amplifier_data_with_memmap(amplifier_path, amplifier_channels)
+
+        for channel, raw in channel_to_raw.items():
+            cval = _normalize_channel(getattr(channel, 'value', channel))
+            if norm_filter is not None and cval not in norm_filter:
+                continue
+
+            filtered = highpass_filter(np.asarray(raw, dtype=np.float64),
+                                       sample_rate, self.highpass_hz)
+
+            for s in strategies:
+                detection_signal = s.transform_channel(filtered)  # NEO: computed once
+                n = len(detection_signal)
+                for b in block_sizes:
+                    for block in blocks_by_size[b]:
+                        b_start = max(0, block[0][1])
+                        b_end = min(n, block[-1][2])
+                        if b_end <= b_start:
+                            continue
+                        noise = s.block_noise(detection_signal[b_start:b_end])
+                        thr = s.scaled_threshold(noise, s.multiplier)
+                        for task_id, s_idx, e_idx in block:
+                            duration = (e_idx - s_idx) / sample_rate
+                            ss = max(0, s_idx)
+                            ee = min(n, e_idx)
+                            if ee <= ss or duration <= 0:
+                                results[(s.name, b)][task_id][cval] = 0.0
+                                continue
+                            local = s.detect_segment(
+                                detection_signal[ss:ee], thr, refractory_samples)
+                            results[(s.name, b)][task_id][cval] = len(local) / duration
+
+    def _blocksweep_key(self, task_ids, strategies, block_sizes, norm_filter) -> str:
+        chans = 'all' if norm_filter is None else ','.join(sorted(norm_filter))
+        strat_sig = ';'.join(f'{s.name}:{s.multiplier}' for s in strategies)
+        payload = (
+            f"strategies={strat_sig}|blocks={list(block_sizes)}|"
+            f"hp={self.highpass_hz}|refrac={self.refractory_sec}|chans={chans}|"
+            f"tasks={sorted(int(t) for t in task_ids)}"
+        )
+        return hashlib.md5(payload.encode()).hexdigest()[:16]
+
+    def _load_blocksweep_cache(self, task_ids, strategies, block_sizes, norm_filter):
+        if not (self.to_cache and self.cache_dir is not None):
+            return None
+        path = os.path.join(self.cache_dir,
+                            f"blocksweep_{self._blocksweep_key(task_ids, strategies, block_sizes, norm_filter)}.pkl")
+        if not os.path.exists(path):
+            return None
+        try:
+            with open(path, 'rb') as f:
+                return pickle.load(f)
+        except Exception as exc:
+            print(f"Failed to load block-size-sweep cache {path}: {exc}")
+            return None
+
+    def _save_blocksweep_cache(self, task_ids, strategies, block_sizes, norm_filter, results):
+        if not (self.to_cache and self.cache_dir is not None):
+            return
+        os.makedirs(self.cache_dir, exist_ok=True)
+        path = os.path.join(self.cache_dir,
+                            f"blocksweep_{self._blocksweep_key(task_ids, strategies, block_sizes, norm_filter)}.pkl")
+        with open(path, 'wb') as f:
+            pickle.dump(results, f)
+
     @staticmethod
     def _read_header(dir_path: str) -> tuple[float, list]:
         """Read amplifier sample rate + channel metadata from info.rhd (or .rhs)."""
@@ -1085,6 +1227,17 @@ def _resolve_block_size(bs) -> int:
     return _WHOLE_FILE_BLOCK if bs == 'file' else int(bs)
 
 
+def _strategy_label(s: BlockDetectionStrategy) -> str:
+    """Human-readable legend label for a strategy instance."""
+    if s.name == 'neg_rms':
+        return f'-{s.multiplier:g}x RMS (negative)'
+    if s.name == 'neg_mad':
+        return f'-{s.multiplier:g}x MAD (median noise)'
+    if s.name == 'neo':
+        return f'NEO energy (C={s.multiplier:g})'
+    return s.name
+
+
 def run_block_size_sweep(session_id: Optional[str] = None,
                          channel: Optional[ChannelSpec] = None,
                          block_sizes: tuple = (25, 50, 100, 200, 'file'),
@@ -1103,20 +1256,25 @@ def run_block_size_sweep(session_id: Optional[str] = None,
         session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     if channel is None:
         channel = read_cluster_channels(session_id)
+    channels = channel if isinstance(channel, list) else [channel]
 
-    strat_factories = [
-        ('-4x RMS (negative)',
-         lambda bs: make_periodic_rms_method(block_size=bs, highpass_hz=highpass_hz)),
-        ('-4x MAD (median noise)',
-         lambda bs: make_periodic_mad_method(block_size=bs, highpass_hz=highpass_hz)),
-        ('NEO energy (C=8)',
-         lambda bs: make_neo_method(block_size=bs, highpass_hz=highpass_hz)),
-    ]
+    strategies = [NegativeRmsStrategy(4.0), MadStrategy(4.0), NeoStrategy(8.0)]
 
     print(f"Loading repository trial data for session {session_id} ...")
     base_df = import_from_repository(session_id, "ga", "GAStimInfo", "RawSpikeResponses")
-    channel_label = ', '.join(channel) if isinstance(channel, list) else channel
-    channel_str = '_'.join(channel) if isinstance(channel, list) else channel
+    channel_label = ', '.join(channels)
+    channel_str = '_'.join(channels)
+
+    task_ids = [int(t) for t in base_df['TaskId'].tolist()]
+    cache_dir = os.path.join(context.ga_parsed_spikes_path, "periodic_block_mua")
+    parser = PeriodicBlockMUAParser(
+        strategy=strategies[0], block_size=100, highpass_hz=highpass_hz,
+        to_cache=True, cache_dir=cache_dir)
+    print(f"Sweeping block sizes {list(block_sizes)} x {len(strategies)} detectors "
+          f"over {len(channels)} channel(s) (single filter pass) ...")
+    rates = parser.sweep_block_sizes(
+        task_ids, context.ga_intan_path, strategies, block_sizes,
+        channel_filter=channels)
 
     # Raw-Intan reference (no per-block re-thresholding)
     raw_ab, _g, _c = compute_baseline_profile(_method_raw_intan(session_id, base_df, channel))
@@ -1126,15 +1284,15 @@ def run_block_size_sweep(session_id: Optional[str] = None,
     labels = [str(b) for b in block_sizes]
 
     fig, ax = plt.subplots(figsize=(9, 6))
-    for name, factory in strat_factories:
+    for s in strategies:
         scores = []
-        for bs in block_sizes:
-            method = factory(_resolve_block_size(bs))
-            print(f"  {name}  block={bs} ...")
-            ab, _gg, _cc = compute_baseline_profile(
-                method.build(session_id, base_df, channel))
+        for b in block_sizes:
+            df = base_df.copy()
+            df['Spike Rate by channel'] = df['TaskId'].map(
+                lambda tid, key=(s.name, b): rates[key].get(int(tid), {}))
+            ab, _gg, _cc = compute_baseline_profile(add_response_column(df, channel))
             scores.append(compute_correction_score(ab))
-        ax.plot(x, scores, '-o', linewidth=1.6, markersize=5, label=name)
+        ax.plot(x, scores, '-o', linewidth=1.6, markersize=5, label=_strategy_label(s))
 
     ax.axhline(raw_score, linestyle='--', color='gray', linewidth=1.2,
                label=f'Raw Intan (no re-thresh) = {raw_score:.2f}')
