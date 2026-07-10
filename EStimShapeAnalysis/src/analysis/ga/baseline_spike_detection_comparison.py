@@ -1277,7 +1277,7 @@ def run_comparison(session_id: Optional[str] = None,
             DetectionMethod("Raw Intan spikes\n(spike.dat, -4x RMS seldom updated)",
                             _method_raw_intan),
             make_periodic_rms_method(block_size=block_size, threshold_rms=5.0),
-            make_periodic_mad_method(block_size=block_size),
+            make_periodic_mad_method(block_size=block_size, threshold_mad=3.0),
             make_neo_method(block_size=block_size),
         ]
 
@@ -1826,7 +1826,8 @@ def main():
     # run_comparison(block_size=50)
     # run_amplitude_diagnostic(block_size=50)
     # run_block_size_sweep()
-    run_threshold_multiplier_sweep(block_size=100, strategy=NegativeRmsStrategy(), multipliers=(4.5, 4.75, 5.0))
+    # run_threshold_multiplier_sweep(block_size=100, strategy=MadStrategy(), multipliers=(3.0, 3.5, 4.0, 4.5, 5))
+    run_noise_floor_diagnostic()
 
 
 if __name__ == "__main__":
