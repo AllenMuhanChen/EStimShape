@@ -781,6 +781,138 @@ class PeriodicBlockMUAParser:
         with open(path, 'wb') as f:
             pickle.dump(results, f)
 
+    # ------------------------------------------------------------------
+    # Per-generation noise floor (RMS sigma vs MAD sigma)
+    # ------------------------------------------------------------------
+    def noise_by_generation(self, task_ids: list[int], intan_files_dir: str,
+                            task_to_gen: dict, channel_filter=None,
+                            mad_sample_cap: int = 200_000) -> dict:
+        """Estimate the per-generation noise floor two ways from the same
+        high-pass-filtered wideband: RMS (spike-contaminated) and MAD
+        (spike-robust). Uses each trial's epoch samples, pooled per generation.
+
+        Returns {generation: {channel_value: {'rms': sigma, 'mad': sigma,
+        'n': n_samples}}}. RMS is accumulated exactly; MAD uses up to
+        `mad_sample_cap` samples per (generation, channel) (the noise floor is
+        stationary enough within a generation that a cap is ample).
+        """
+        task_ids = [int(t) for t in task_ids]
+        task_id_set = set(task_ids)
+        task_to_gen = {int(k): v for k, v in task_to_gen.items()}
+        norm_filter = (None if channel_filter is None
+                       else {_normalize_channel(c) for c in channel_filter})
+
+        cached = self._load_noise_cache(task_ids, task_to_gen, norm_filter)
+        if cached is not None:
+            return cached
+
+        matching_dirs = find_files_containing_task_ids(task_id_set, intan_files_dir)
+        if not matching_dirs:
+            raise ValueError(f"No Intan files found containing task IDs {task_ids}")
+
+        acc = {'sumsq': defaultdict(float), 'count': defaultdict(int),
+               'mad': defaultdict(list), 'mad_n': defaultdict(int)}
+        for dir_path in sorted(matching_dirs):
+            self._noise_one_dir(dir_path, task_id_set, task_to_gen, norm_filter,
+                                acc, mad_sample_cap)
+
+        result: dict = defaultdict(dict)
+        for (gen, cval), count in acc['count'].items():
+            if count <= 0:
+                continue
+            rms = float(np.sqrt(acc['sumsq'][(gen, cval)] / count))
+            mad_samples = (np.concatenate(acc['mad'][(gen, cval)])
+                           if acc['mad'][(gen, cval)] else np.array([0.0]))
+            mad = float(np.median(mad_samples)) / 0.6745
+            result[gen][cval] = {'rms': rms, 'mad': mad, 'n': count}
+        result = {g: dict(chans) for g, chans in result.items()}
+
+        self._save_noise_cache(task_ids, task_to_gen, norm_filter, result)
+        return result
+
+    def _noise_one_dir(self, dir_path, task_id_set, task_to_gen, norm_filter,
+                       acc, mad_sample_cap) -> None:
+        from clat.intan.amplifiers import read_amplifier_data_with_memmap
+        from clat.intan.livenotes import map_task_id_to_epochs_with_livenotes
+        from clat.intan.marker_channels import epoch_using_combined_marker_channels
+
+        sample_rate, amplifier_channels = self._read_header(dir_path)
+        amplifier_path = os.path.join(dir_path, "amplifier.dat")
+        digital_in_path = os.path.join(dir_path, "digitalin.dat")
+        notes_path = os.path.join(dir_path, "notes.txt")
+
+        stim_epochs = epoch_using_combined_marker_channels(
+            digital_in_path, false_negative_correction_duration=2)
+        epochs_for_task_ids = map_task_id_to_epochs_with_livenotes(
+            notes_path, stim_epochs,
+            require_trial_complete=False, is_output_first_instance=False)
+
+        trials = []
+        for task_id, epoch_indices in epochs_for_task_ids.items():
+            if epoch_indices is None or task_id not in task_id_set:
+                continue
+            gen = task_to_gen.get(int(task_id))
+            if gen is None:
+                continue
+            trials.append((gen, int(epoch_indices[0]), int(epoch_indices[1])))
+        if not trials:
+            return
+
+        channel_to_raw = read_amplifier_data_with_memmap(amplifier_path, amplifier_channels)
+        for channel, raw in channel_to_raw.items():
+            cval = _normalize_channel(getattr(channel, 'value', channel))
+            if norm_filter is not None and cval not in norm_filter:
+                continue
+            filtered = highpass_filter(np.asarray(raw, dtype=np.float64),
+                                       sample_rate, self.highpass_hz)
+            n = len(filtered)
+            for gen, s_idx, e_idx in trials:
+                s = max(0, s_idx)
+                e = min(n, e_idx)
+                if e <= s:
+                    continue
+                seg = filtered[s:e]
+                key = (gen, cval)
+                acc['sumsq'][key] += float(np.sum(seg ** 2))
+                acc['count'][key] += (e - s)
+                remaining = mad_sample_cap - acc['mad_n'][key]
+                if remaining > 0:
+                    take = np.abs(seg[:remaining])
+                    acc['mad'][key].append(take)
+                    acc['mad_n'][key] += len(take)
+
+    def _noise_key(self, task_ids, task_to_gen, norm_filter) -> str:
+        chans = 'all' if norm_filter is None else ','.join(sorted(norm_filter))
+        gens = sorted((int(t), task_to_gen[t]) for t in task_to_gen)
+        payload = (
+            f"noise|hp={self.highpass_hz}|chans={chans}|"
+            f"tasks={sorted(int(t) for t in task_ids)}|gens={gens}"
+        )
+        return hashlib.md5(payload.encode()).hexdigest()[:16]
+
+    def _load_noise_cache(self, task_ids, task_to_gen, norm_filter):
+        if not (self.to_cache and self.cache_dir is not None):
+            return None
+        path = os.path.join(self.cache_dir,
+                            f"noise_{self._noise_key(task_ids, task_to_gen, norm_filter)}.pkl")
+        if not os.path.exists(path):
+            return None
+        try:
+            with open(path, 'rb') as f:
+                return pickle.load(f)
+        except Exception as exc:
+            print(f"Failed to load noise cache {path}: {exc}")
+            return None
+
+    def _save_noise_cache(self, task_ids, task_to_gen, norm_filter, result):
+        if not (self.to_cache and self.cache_dir is not None):
+            return
+        os.makedirs(self.cache_dir, exist_ok=True)
+        path = os.path.join(self.cache_dir,
+                            f"noise_{self._noise_key(task_ids, task_to_gen, norm_filter)}.pkl")
+        with open(path, 'wb') as f:
+            pickle.dump(result, f)
+
     @staticmethod
     def _read_header(dir_path: str) -> tuple[float, list]:
         """Read amplifier sample rate + channel metadata from info.rhd (or .rhs)."""
@@ -1398,6 +1530,121 @@ def run_threshold_multiplier_sweep(session_id: Optional[str] = None,
         save_path = f"{save_dir}/{channel_str}_{strategy.name}_multiplier_sweep.png"
     fig.savefig(save_path, dpi=150, bbox_inches='tight')
     print(f"Saved multiplier-sweep plot to {save_path}")
+
+    plt.show()
+    return fig
+
+
+# ===========================================================================
+# Noise-floor-per-generation diagnostic (RMS sigma vs MAD sigma)
+# ===========================================================================
+# Reconciles "RMS won here, MAD won there". RMS and MAD are the same detector
+# with different noise estimates: RMS is inflated by the spikes, MAD is not.
+#   - RMS-sigma / MAD-sigma ~ 1 and flat  => low spike contamination; the two
+#     detectors must agree, so the choice barely matters that session.
+#   - ratio > 1 and drifting across gens   => RMS's bar is pushed around by
+#     spikes; MAD is the trustworthy noise estimate that session.
+#   - RMS-sigma drifts but MAD-sigma flat  => the "noise" change is really spikes
+#     (firing), not the noise floor;  both drift together => real noise-floor drift.
+
+def run_noise_floor_diagnostic(session_id: Optional[str] = None,
+                               channel: Optional[ChannelSpec] = None,
+                               highpass_hz: float = 300.0,
+                               save_path: Optional[str] = None):
+    """Plot the per-generation noise floor estimated two ways — RMS (spike-
+    contaminated) and MAD (spike-robust) — plus their ratio, to localize what is
+    drifting in a session and reconcile which detector to trust.
+
+    Left panel: noise floor relative to gen 1 (each channel normalized to its own
+    gen-1 sigma, then averaged), one line for RMS and one for MAD. Right panel:
+    the RMS/MAD contamination ratio per generation (1 = no contamination).
+    Reuses the detectors' own noise estimates — no spike detection is run.
+    """
+    if session_id is None:
+        session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
+    if channel is None:
+        channel = read_cluster_channels(session_id)
+    channels = channel if isinstance(channel, list) else [channel]
+
+    print(f"Loading repository trial data for session {session_id} ...")
+    base_df = import_from_repository(session_id, "ga", "GAStimInfo", "RawSpikeResponses")
+    channel_label = ', '.join(channels)
+    channel_str = '_'.join(channels)
+
+    # Every trial contributes to the noise floor (it is a property of the
+    # recording, not the stimulus), so map all trials with a GenId.
+    task_to_gen = {int(t): g for t, g in zip(base_df['TaskId'], base_df['GenId'])
+                   if g is not None and not pd.isna(g)}
+    task_ids = list(task_to_gen.keys())
+
+    cache_dir = os.path.join(context.ga_parsed_spikes_path, "periodic_block_mua")
+    parser = PeriodicBlockMUAParser(
+        strategy=NegativeRmsStrategy(), block_size=100, highpass_hz=highpass_hz,
+        to_cache=True, cache_dir=cache_dir)
+    print(f"Estimating per-generation noise floor over {len(channels)} channel(s) ...")
+    noise = parser.noise_by_generation(
+        task_ids, context.ga_intan_path, task_to_gen, channel_filter=channels)
+
+    gens = sorted(noise.keys())
+    norm_channels = [_normalize_channel(c) for c in channels]
+
+    # Per-channel gen-1 reference for relative noise-floor drift
+    gen1 = noise.get(1, {})
+
+    rel_rms, rel_mad, ratio = [], [], []
+    for g in gens:
+        chans = noise[g]
+        rr, rm, ra = [], [], []
+        for cval in norm_channels:
+            if cval not in chans:
+                continue
+            rms_g, mad_g = chans[cval]['rms'], chans[cval]['mad']
+            if mad_g > 0:
+                ra.append(rms_g / mad_g)
+            base = gen1.get(cval)
+            if base:
+                if base['rms'] > 0:
+                    rr.append(rms_g / base['rms'])
+                if base['mad'] > 0:
+                    rm.append(mad_g / base['mad'])
+        rel_rms.append(np.mean(rr) if rr else np.nan)
+        rel_mad.append(np.mean(rm) if rm else np.nan)
+        ratio.append(np.mean(ra) if ra else np.nan)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5))
+    fig.suptitle(f'Per-generation noise floor  |  Session: {session_id}  |  '
+                 f'Channel(s): {channel_label}', fontsize=12)
+
+    ax1.axhline(1.0, color='gray', linestyle=':', linewidth=1, alpha=0.7)
+    ax1.plot(gens, rel_rms, '-o', color='tab:blue', label='RMS σ (spike-contaminated)')
+    ax1.plot(gens, rel_mad, '-o', color='tab:orange', label='MAD σ (spike-robust)')
+    ax1.set_xlabel('Generation')
+    ax1.set_ylabel('Noise floor relative to gen 1')
+    ax1.set_title('Relative noise floor per generation\n'
+                  '(RMS drifts but MAD flat => "drift" is spikes, not noise)')
+    ax1.set_xticks(gens)
+    ax1.grid(True, alpha=0.3)
+    ax1.legend(fontsize=8)
+
+    ax2.axhline(1.0, color='gray', linestyle=':', linewidth=1, alpha=0.7,
+                label='1 = no contamination')
+    ax2.plot(gens, ratio, '-o', color='tab:red')
+    ax2.set_xlabel('Generation')
+    ax2.set_ylabel('RMS σ / MAD σ')
+    ax2.set_title('Spike-contamination ratio per generation\n'
+                  '(~1 & flat => RMS≈MAD;  >1 & drifting => trust MAD)')
+    ax2.set_xticks(gens)
+    ax2.grid(True, alpha=0.3)
+    ax2.legend(fontsize=8)
+
+    fig.tight_layout()
+
+    if save_path is None:
+        save_dir = f"/home/connorlab/Documents/plots/{session_id}"
+        os.makedirs(save_dir, exist_ok=True)
+        save_path = f"{save_dir}/{channel_str}_noise_floor_by_generation.png"
+    fig.savefig(save_path, dpi=150, bbox_inches='tight')
+    print(f"Saved noise-floor diagnostic to {save_path}")
 
     plt.show()
     return fig
