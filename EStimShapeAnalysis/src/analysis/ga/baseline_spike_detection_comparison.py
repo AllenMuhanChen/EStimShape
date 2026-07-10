@@ -661,6 +661,20 @@ def _unify_ylim(axes_row: list) -> None:
         ax.set_ylim(lo, hi)
 
 
+def compute_correction_score(avg_baseline: pd.DataFrame) -> float:
+    """Single 'how much correction is needed' score for a detector: the mean
+    over generations of |median(gen-1 / gen-N) - 1|. 0 = baselines perfectly
+    stable across generations (no correction needed); larger = more rescaling.
+    """
+    df = avg_baseline.copy()
+    df = df[(df['Response'] > 0) & df['Gen1Response'].notna()]
+    if df.empty:
+        return float('nan')
+    df['Factor'] = df['Gen1Response'] / df['Response']
+    med = df.groupby('GenId')['Factor'].median()
+    return float(np.mean(np.abs(med.values - 1.0)))
+
+
 def plot_correction_factors_onto(ax: plt.Axes, avg_baseline: pd.DataFrame,
                                  gen_color: dict) -> list:
     """Per-generation baseline correction factor (gen-1 / gen-N), paired by
@@ -693,7 +707,7 @@ def plot_correction_factors_onto(ax: plt.Axes, avg_baseline: pd.DataFrame,
     ax.plot(gens, med_values, '-o', color='black', linewidth=1.4,
             markersize=4, zorder=4, label='median factor')
 
-    dev = float(np.mean([abs(m - 1.0) for m in med_values]))
+    dev = compute_correction_score(avg_baseline)
     ax.annotate(f'mean |median − 1| = {dev:.2f}', (0.03, 0.97),
                 xycoords='axes fraction', ha='left', va='top', fontsize=8,
                 bbox=dict(boxstyle='round', fc='white', ec='gray', alpha=0.75))
@@ -881,6 +895,92 @@ def run_comparison(session_id: Optional[str] = None,
         save_path = f"{save_dir}/{channel_str}_baseline_detection_comparison.png"
     fig.savefig(save_path, dpi=150, bbox_inches='tight')
     print(f"Saved detection-comparison plot to {save_path}")
+
+    plt.show()
+    return fig
+
+
+# ===========================================================================
+# Threshold-refresh block-size sweep
+# ===========================================================================
+
+_WHOLE_FILE_BLOCK = 10 ** 9  # block larger than any file -> one threshold per file
+
+
+def _resolve_block_size(bs) -> int:
+    """Map a sweep entry to an integer block size ('file' -> whole-file)."""
+    return _WHOLE_FILE_BLOCK if bs == 'file' else int(bs)
+
+
+def run_block_size_sweep(session_id: Optional[str] = None,
+                         channel: Optional[ChannelSpec] = None,
+                         block_sizes: tuple = (25, 50, 100, 200, 'file'),
+                         highpass_hz: float = 300.0,
+                         save_path: Optional[str] = None):
+    """Sweep the threshold-refresh block size for each wideband detector and plot
+    the correction score (mean |median factor - 1|; lower = less correction) vs
+    block size, one line per detector, with the raw-Intan (no re-thresholding)
+    score as a dashed reference to beat.
+
+    Reveals both the best refresh cadence (the knee) and which detector is least
+    sensitive to it. Each (detector, block size) re-detects from wideband, so the
+    first run is slow; results are cached per (strategy, block size).
+    """
+    if session_id is None:
+        session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
+    if channel is None:
+        channel = read_cluster_channels(session_id)
+
+    strat_factories = [
+        ('-4x RMS (negative)',
+         lambda bs: make_periodic_rms_method(block_size=bs, highpass_hz=highpass_hz)),
+        ('-4x MAD (median noise)',
+         lambda bs: make_periodic_mad_method(block_size=bs, highpass_hz=highpass_hz)),
+        ('NEO energy (C=8)',
+         lambda bs: make_neo_method(block_size=bs, highpass_hz=highpass_hz)),
+    ]
+
+    print(f"Loading repository trial data for session {session_id} ...")
+    base_df = import_from_repository(session_id, "ga", "GAStimInfo", "RawSpikeResponses")
+    channel_label = ', '.join(channel) if isinstance(channel, list) else channel
+    channel_str = '_'.join(channel) if isinstance(channel, list) else channel
+
+    # Raw-Intan reference (no per-block re-thresholding)
+    raw_ab, _g, _c = compute_baseline_profile(_method_raw_intan(session_id, base_df, channel))
+    raw_score = compute_correction_score(raw_ab)
+
+    x = list(range(len(block_sizes)))
+    labels = [str(b) for b in block_sizes]
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    for name, factory in strat_factories:
+        scores = []
+        for bs in block_sizes:
+            method = factory(_resolve_block_size(bs))
+            print(f"  {name}  block={bs} ...")
+            ab, _gg, _cc = compute_baseline_profile(
+                method.build(session_id, base_df, channel))
+            scores.append(compute_correction_score(ab))
+        ax.plot(x, scores, '-o', linewidth=1.6, markersize=5, label=name)
+
+    ax.axhline(raw_score, linestyle='--', color='gray', linewidth=1.2,
+               label=f'Raw Intan (no re-thresh) = {raw_score:.2f}')
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.set_xlabel('Threshold-refresh block size (trials per file;  "file" = whole file)')
+    ax.set_ylabel('Correction needed:  mean |median factor − 1|\n(lower = less correction)')
+    ax.set_title(f'Threshold-refresh block-size sweep  |  Session: {session_id}  |  '
+                 f'Channel(s): {channel_label}')
+    ax.grid(True, alpha=0.3)
+    ax.legend(fontsize=8)
+    fig.tight_layout()
+
+    if save_path is None:
+        save_dir = f"/home/connorlab/Documents/plots/{session_id}"
+        os.makedirs(save_dir, exist_ok=True)
+        save_path = f"{save_dir}/{channel_str}_block_size_sweep.png"
+    fig.savefig(save_path, dpi=150, bbox_inches='tight')
+    print(f"Saved block-size sweep plot to {save_path}")
 
     plt.show()
     return fig
