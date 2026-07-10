@@ -166,6 +166,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     private void save(){
         AbstractRenderer renderer = consoleRenderer.getRenderer();
+        final int depth = getEnteredDepth();
         plotter.getRfsForChannels().forEach(new BiConsumer<String, CircleRF>() {
             @Override
             public void accept(String channel, CircleRF circleRF) {
@@ -178,7 +179,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
                 double radiusDeg = renderer.mm2deg(circleRF.getCircleRadius());
                 List<Coordinates2D> circlePoints = circleRF.getCirclePoints();
                 RFInfo rfInfo = new RFInfo(circleCenterDeg, radiusDeg, circlePoints);
-                dbUtil.writeRFInfo(timeUtil.currentTimeMicros(), channel, rfInfo.toXml());
+                dbUtil.writeRFInfo(timeUtil.currentTimeMicros(), channel, rfInfo.toXml(), depth);
             }
         });
 
@@ -186,64 +187,53 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             @Override
             public void accept(String objectName, RFPlotDrawable rfPlotDrawable) {
                 String data = rfPlotDrawable.getOutputData();
-                writeRFObjectData(currentChannel, objectName, data, timeUtil.currentTimeMicros());
+                writeRFObjectData(currentChannel, objectName, data, timeUtil.currentTimeMicros(), depth);
             }
         });
     }
 
+    /**
+     * Load the latest saved RF for every channel at the currently entered depth.
+     * <p>
+     * For each channel with RF data at this depth, the entry with the highest
+     * tstamp (the latest) is restored: the channel is selected in the plotter
+     * (which assigns it a legend color) and its control points are re-added so
+     * the enclosing circle is recomputed. The legend is refreshed at the end.
+     */
     private void load(){
-        long tstamp = getTstampToLoad();
-        if (tstamp == 0){
+        int depth = getEnteredDepth();
+        List<RFInfoEntry> latestPerChannel = dbUtil.readLatestRFInfoPerChannel(depth);
+        if (latestPerChannel.isEmpty()) {
+            System.out.println("No saved RFs found at depth " + depth + " µm.");
             return;
         }
-        RFInfoEntry rfInfoEntry = dbUtil.readRFInfo(tstamp, tstamp).get(0);
-        RFInfo rfInfo = RFInfo.fromXml(rfInfoEntry.getInfo());
 
-        CircleRF circleRF = new CircleRF(rfInfo.getCenter(), rfInfo.getRadius(), rfInfo.getControlPoints());
-        for (Coordinates2D point : circleRF.getCirclePoints()) {
-            plotter.addCirclePoint(point);
-        }
-    }
+        for (RFInfoEntry rfInfoEntry : latestPerChannel) {
+            String channel = rfInfoEntry.getChannel();
+            RFInfo rfInfo = RFInfo.fromXml(rfInfoEntry.getInfo());
 
-    private long getTstampToLoad() {
-        // Default value to return if user cancels or enters invalid input
-
-        try {
-            // Show an input dialog to get the timestamp from the user
-            String userInput = JOptionPane.showInputDialog(
-                    null,
-                    "Enter timestamp to load RF data:",
-                    "Load RF Data",
-                    JOptionPane.QUESTION_MESSAGE
-            );
-
-            // Check if user cancelled the dialog or entered empty input
-            if (userInput == null || userInput.trim().isEmpty()) {
-                System.out.println("User cancelled or entered empty input. Using default timestamp.");
-                return 0;
+            // Select the channel so points are added to it and it gets a color.
+            plotter.changeChannel(channel);
+            CircleRF circleRF = new CircleRF(rfInfo.getCenter(), rfInfo.getRadius(), rfInfo.getControlPoints());
+            for (Coordinates2D point : circleRF.getCirclePoints()) {
+                plotter.addCirclePoint(point);
             }
-
-            // Parse the input as a long
-            long tstamp = Long.parseLong(userInput.trim());
-            System.out.println("Loading RF data from timestamp: " + tstamp);
-            return tstamp;
-        } catch (NumberFormatException e) {
-            // Handle invalid number format
-            JOptionPane.showMessageDialog(
-                    null,
-                    "Invalid timestamp format. Using default timestamp.",
-                    "Input Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
-            return 0;
+            System.out.println("Loaded RF for channel " + channel + " (tstamp " + rfInfoEntry.getTstamp()
+                    + ", depth " + rfInfoEntry.getDepth() + " µm).");
         }
+
+        // Restore the channel selection the user had before loading.
+        if (!currentChannel.equals("None")) {
+            plotter.changeChannel(currentChannel);
+        }
+        updateLegend(plotter.getColorsForChannels());
     }
 
-    private void writeRFObjectData(String channel, String object, String data, long timestamp) {
+    private void writeRFObjectData(String channel, String object, String data, long timestamp, int depth) {
         JdbcTemplate jt = new JdbcTemplate(dbUtil.getDataSource());
         jt.update(
-                "INSERT INTO RFObjectData (tstamp, channel, object, data) VALUES (?, ?, ?, ?)",
-                new Object[] {timestamp, channel, object, data});
+                "INSERT INTO RFObjectData (tstamp, channel, object, data, depth) VALUES (?, ?, ?, ?, ?)",
+                new Object[] {timestamp, channel, object, data, depth});
 
     }
 
@@ -299,9 +289,10 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         rfDiameterLabel(jpanel);
         scrollerModeLabel(jpanel);
         scrollerValueLabel(jpanel);
+        depthField(jpanel); // Optional depth (microns driven) for save/load
         channelSelectors(jpanel); // Initialize and add the channel selectors
+        removeButton(jpanel); // Placed above the legend so it is always reachable
         legend(jpanel);
-        removeButton(jpanel);
         return jpanel;
     }
 
@@ -309,7 +300,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         setupRemoveChannelButton(); // Initialize the button
         GridBagConstraints buttonConstraints = new GridBagConstraints();
         buttonConstraints.gridx = 0; // Adjust these constraints as needed
-        buttonConstraints.gridy = 6; // Place it below the last component
+        buttonConstraints.gridy = 6; // Sits directly above the (scrollable) legend
         buttonConstraints.gridwidth = 2; // Span across two columns
         buttonConstraints.fill = GridBagConstraints.HORIZONTAL;
         jpanel.add(removeChannelButton, buttonConstraints);
@@ -317,13 +308,64 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     private void legend(JPanel jpanel) {
         initLegendPanel(); // Initialize the legend panel
+        // Wrap the legend in a bounded-height scroll pane. As channels are added
+        // the legend overflows into columns and/or scrolls, so it can never push
+        // the Remove Channel button off-screen.
+        legendScrollPane = new JScrollPane(legendPanel);
+        legendScrollPane.setBorder(BorderFactory.createTitledBorder("Channel Legend"));
+        legendScrollPane.setPreferredSize(new Dimension(340, 160));
+        legendScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        legendScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+
         GridBagConstraints legendConstraints = new GridBagConstraints();
         legendConstraints.gridx = 0;
-        legendConstraints.gridy = 5; // Adjust as necessary
+        legendConstraints.gridy = 7; // Below the Remove Channel button
         legendConstraints.gridwidth = 2; // Span across two columns if needed
-        legendConstraints.fill = GridBagConstraints.HORIZONTAL;
+        legendConstraints.fill = GridBagConstraints.BOTH;
+        legendConstraints.weightx = 1.0;
+        legendConstraints.weighty = 1.0;
 
-        jpanel.add(legendPanel, legendConstraints);
+        jpanel.add(legendScrollPane, legendConstraints);
+    }
+
+    private void depthField(JPanel jpanel) {
+        GridBagConstraints depthLabelConstraints = new GridBagConstraints();
+        depthLabelConstraints.gridx = 0;
+        depthLabelConstraints.gridy = 4;
+        depthLabelConstraints.gridwidth = 1;
+        depthLabelConstraints.ipadx = 5;
+        jpanel.add(new JLabel("Depth (µm driven)"), depthLabelConstraints);
+
+        depthTextField = new JTextField(Integer.toString(currentDepth));
+        depthTextField.setToolTipText("Microns driven. 0 = final recording location. " +
+                "Ctrl+S saves at this depth; Ctrl+L loads the latest RF per channel at this depth.");
+        GridBagConstraints depthFieldConstraints = new GridBagConstraints();
+        depthFieldConstraints.gridx = 1;
+        depthFieldConstraints.gridy = 4;
+        depthFieldConstraints.gridwidth = 1;
+        depthFieldConstraints.ipadx = 5;
+        depthFieldConstraints.fill = GridBagConstraints.HORIZONTAL;
+        jpanel.add(depthTextField, depthFieldConstraints);
+    }
+
+    /**
+     * Parse the depth (microns driven) currently entered in the panel. Falls back
+     * to 0 (final recording location) if the field is empty or not a valid integer.
+     */
+    private int getEnteredDepth() {
+        if (depthTextField == null) {
+            return currentDepth;
+        }
+        String text = depthTextField.getText().trim();
+        if (text.isEmpty()) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(text);
+        } catch (NumberFormatException e) {
+            System.err.println("Invalid depth '" + text + "', using 0 (final recording location).");
+            return 0;
+        }
     }
 
     private void rfCenterLabel(JPanel jpanel) {
@@ -373,7 +415,6 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         scrollerValueLabel = new JLabel("Value");
         jpanel.add(scrollerValueLabel, scrollerValueConstraints);
     }
-    private JTextField channelTextField;
     private String currentChannel = "None"; // Default value or retrieve from a saved state
     private JComboBox<String> letterComboBox;
     private JComboBox<String> numberComboBox;
@@ -407,7 +448,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         // Layout constraints for the letter combobox
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
-        gbc.gridy = 4;
+        gbc.gridy = 5;
         gbc.gridwidth = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         panel.add(letterComboBox, gbc);
@@ -418,6 +459,9 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     }
 
     private JPanel legendPanel;
+    private JScrollPane legendScrollPane;
+    private JTextField depthTextField;
+    private int currentDepth = 0; // Microns driven; 0 = final recording location
 
     private List<JPanel> columns = new ArrayList<>();
     private int maxPerColumn = 5; // Maximum elements per column
@@ -425,7 +469,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     private void initLegendPanel() {
         legendPanel = new JPanel();
         legendPanel.setLayout(new BoxLayout(legendPanel, BoxLayout.X_AXIS));
-        legendPanel.setBorder(BorderFactory.createTitledBorder("Channel Legend"));
+        // Title border lives on the enclosing scroll pane (see legend()).
 
         addNewColumn(); // Initialize with one column
     }
@@ -473,6 +517,10 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         // Refresh layout
         legendPanel.revalidate();
         legendPanel.repaint();
+        if (legendScrollPane != null) {
+            legendScrollPane.revalidate();
+            legendScrollPane.repaint();
+        }
     }
 
 
@@ -561,9 +609,8 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
                 if (!currentChannel.equals("None")) {
                     plotter.removeChannel(currentChannel); // Assuming such a method exists in plotter
                     updateLegend(plotter.getColorsForChannels()); // Refresh the legend to reflect the removal
-                    // Optionally reset currentChannel if needed
+                    // Reset current selection (channel is chosen via the comboboxes).
                     currentChannel = "None";
-                    channelTextField.setText(currentChannel);
                 }
             }
         });

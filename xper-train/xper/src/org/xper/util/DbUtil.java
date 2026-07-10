@@ -547,7 +547,7 @@ public class DbUtil {
 
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
 		jt.query(
-				" select tstamp, info " +
+				" select tstamp, info, channel, depth " +
 				" from RFInfo " +
 				" where tstamp >= ? and tstamp <= ? " +
 				" order by tstamp ",
@@ -557,6 +557,45 @@ public class DbUtil {
 						RFInfoEntry ent = new RFInfoEntry();
 						ent.setTstamp(rs.getLong("tstamp"));
 						ent.setInfo(rs.getString("info"));
+						ent.setChannel(rs.getString("channel"));
+						ent.setDepth(rs.getInt("depth"));
+						result.add(ent);
+					}
+				});
+		return result;
+	}
+
+	/**
+	 * Read the most recent RFInfo entry for every channel at the given depth.
+	 *
+	 * For each channel that has any RFInfo saved at <code>depth</code>, the entry
+	 * with the largest tstamp (the latest) is returned. Channels with no RF saved
+	 * at that depth are omitted.
+	 *
+	 * @param depth microns driven; 0 denotes the final/reference recording location
+	 * @return one {@link RFInfoEntry} per channel, latest at the given depth
+	 */
+	public List<RFInfoEntry> readLatestRFInfoPerChannel(int depth) {
+		final ArrayList<RFInfoEntry> result = new ArrayList<RFInfoEntry>();
+
+		JdbcTemplate jt = new JdbcTemplate(dataSource);
+		jt.query(
+				" select r.tstamp, r.info, r.channel, r.depth " +
+				" from RFInfo r " +
+				" inner join ( " +
+				"     select channel, max(tstamp) as maxTstamp " +
+				"     from RFInfo " +
+				"     where depth = ? " +
+				"     group by channel " +
+				" ) latest on r.channel = latest.channel and r.tstamp = latest.maxTstamp ",
+				new Object[] { depth },
+				new RowCallbackHandler() {
+					public void processRow(ResultSet rs) throws SQLException {
+						RFInfoEntry ent = new RFInfoEntry();
+						ent.setTstamp(rs.getLong("tstamp"));
+						ent.setInfo(rs.getString("info"));
+						ent.setChannel(rs.getString("channel"));
+						ent.setDepth(rs.getInt("depth"));
 						result.add(ent);
 					}
 				});
@@ -1211,10 +1250,10 @@ public class DbUtil {
 	 * @param info
 	 */
 
-	public void writeRFInfo(long tstamp, String channel, String info) {
+	public void writeRFInfo(long tstamp, String channel, String info, int depth) {
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
-		jt.update("insert into RFInfo (tstamp, channel, info) values (?, ?, ?)",
-				new Object[] { tstamp, channel, info });
+		jt.update("insert into RFInfo (tstamp, channel, info, depth) values (?, ?, ?, ?)",
+				new Object[] { tstamp, channel, info, depth });
 	}
 
 	/**

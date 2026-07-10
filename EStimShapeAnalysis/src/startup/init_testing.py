@@ -25,18 +25,20 @@ def insert_rfinfo_data(conn: Connection):
   </outline>
 </RFInfo>"""
     channel = "SUPRA-000"
+    depth = 0
 
     insert_sql = """
-    INSERT INTO RFInfo (tstamp, info, channel) 
-    VALUES (%s, %s, %s)
+    INSERT INTO RFInfo (tstamp, info, channel, depth)
+    VALUES (%s, %s, %s, %s)
     """
 
-    conn.execute(insert_sql, params=(tstamp, info, channel))
+    conn.execute(insert_sql, params=(tstamp, info, channel, depth))
 
 
 def insert_rfobjectdata(conn: Connection):
     """Insert the RFObjectData entries into the table."""
 
+    depth = 0
     rfobject_data = [
         (None, 1748445844558730, "SUPRA-000", "org.xper.rfplot.drawing.RFPlotBlankObject"),
         ("1.0,0.0,0.0", 1748445844582381, "SUPRA-000", "org.xper.allen.rfplot.RFPlotMatchStick"),
@@ -58,12 +60,12 @@ def insert_rfobjectdata(conn: Connection):
     ]
 
     insert_sql = """
-    INSERT INTO RFObjectData (data, tstamp, channel, object) 
-    VALUES (%s, %s, %s, %s)
+    INSERT INTO RFObjectData (data, tstamp, channel, object, depth)
+    VALUES (%s, %s, %s, %s, %s)
     """
 
     for data, tstamp, channel, obj in rfobject_data:
-        conn.execute(insert_sql, params=(data, tstamp, channel, obj))
+        conn.execute(insert_sql, params=(data, tstamp, channel, obj, depth))
 
 
 def main():
