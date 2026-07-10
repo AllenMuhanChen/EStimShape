@@ -531,7 +531,7 @@ def run_comparison(session_id: Optional[str] = None,
     gen_color = {g: colors[i] for i, g in enumerate(gens_sorted)}
 
     n = len(method_results)
-    fig, axes = plt.subplots(1, n, figsize=(7 * n, 6), squeeze=False)
+    fig, axes = plt.subplots(1, n, figsize=(7 * n, 6), squeeze=False, sharey=True)
     fig.suptitle(
         f'Baseline response-per-generation profiles by spike-detection method\n'
         f'Session: {session_id}  |  Channel(s): {channel_label}',
