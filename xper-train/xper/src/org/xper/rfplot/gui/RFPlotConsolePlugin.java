@@ -180,13 +180,21 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             }
         });
 
-        namesForDrawables.forEach(new BiConsumer<String, RFPlotDrawable>() {
-            @Override
-            public void accept(String objectName, RFPlotDrawable rfPlotDrawable) {
-                String data = rfPlotDrawable.getOutputData();
-                writeRFObjectData(currentChannel, objectName, data, timeUtil.currentTimeMicros(), depth);
+        // Capture the active channel's latest tuning before writing.
+        if (!currentChannel.equals("None")) {
+            snapshotDrawablesTo(currentChannel);
+        }
+
+        // Write each channel's own stimulus specs (preferred orientation etc.), not just
+        // the currently selected one. Specs are stored as round-trippable XML so they can
+        // be reloaded later.
+        for (Map.Entry<String, Map<String, String>> channelEntry : drawableSpecsForChannels.entrySet()) {
+            String channel = channelEntry.getKey();
+            for (Map.Entry<String, String> objectEntry : channelEntry.getValue().entrySet()) {
+                writeRFObjectData(channel, objectEntry.getKey(), objectEntry.getValue(),
+                        timeUtil.currentTimeMicros(), depth);
             }
-        });
+        }
     }
 
     /**
@@ -227,6 +235,13 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
                 for (Coordinates2D point : circleRF.getCirclePoints()) {
                     plotter.addCirclePoint(point);
                 }
+
+                // Also remember this channel's stimulus tuning so it auto-restores on switch.
+                Map<String, String> specs = dbUtil.readLatestRFObjectData(channel, depth);
+                if (!specs.isEmpty()) {
+                    drawableSpecsForChannels.put(channel, specs);
+                }
+
                 loaded++;
                 System.out.println("Loaded RF for channel " + channel + " (tstamp " + rfInfoEntry.getTstamp()
                         + ", depth " + rfInfoEntry.getDepth() + " µm).");
@@ -237,9 +252,13 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             }
         }
 
-        // Restore the channel selection the user had before loading.
+        // Restore the channel selection the user had before loading, and apply its
+        // freshly loaded stimulus tuning to the display.
         if (!currentChannel.equals("None")) {
             plotter.changeChannel(currentChannel);
+            if (restoreDrawablesFor(currentChannel)) {
+                applyCurrentStimToClient();
+            }
         }
         updateLegend(plotter.getColorsForChannels());
         System.out.println("Loaded " + loaded + " RF(s) at depth " + depth + " µm.");
@@ -492,12 +511,11 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             public void actionPerformed(ActionEvent e) {
                 String selectedLetter = (String) letterComboBox.getSelectedItem();
                 String selectedNumber = (String) numberComboBox.getSelectedItem();
-                currentChannel = selectedLetter + "-" + selectedNumber;
-                plotter.changeChannel(currentChannel);
-                RFPlotConsolePlugin.this.updateLegend(plotter.getColorsForChannels());
+                selectChannel(selectedLetter + "-" + selectedNumber);
             }
         };
 
+        letterComboBox.addActionListener(comboboxListener);
         numberComboBox.addActionListener(comboboxListener);
 
         // Layout constraints for the letter combobox
@@ -511,6 +529,116 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         // Layout constraints for the number combobox
         gbc.gridx = 1;
         panel.add(numberComboBox, gbc);
+    }
+
+    /**
+     * Per-channel stimulus state: channel -> (object class name -> drawable spec XML).
+     * Each drawable (Gabor, MatchStick, Bar, ...) is a shared singleton, so its tuning
+     * (e.g. a gabor's preferred orientation) is remembered per channel here and swapped
+     * in/out as the selected channel changes.
+     */
+    private final Map<String, Map<String, String>> drawableSpecsForChannels = new LinkedHashMap<>();
+
+    /**
+     * Switch to a channel, remembering the outgoing channel's stimulus tuning and
+     * restoring the incoming channel's.
+     * <ul>
+     *   <li>Known channel (tuned earlier this session or loaded via Ctrl+L): auto-restore
+     *       its saved drawable specs.</li>
+     *   <li>Channel with data persisted in the DB but not yet seen this session: restore
+     *       from the DB at the current depth.</li>
+     *   <li>Brand-new channel: keep the current stimulus state as its starting point.</li>
+     * </ul>
+     */
+    private void selectChannel(String newChannel) {
+        String previousChannel = currentChannel;
+        // Remember the channel we are leaving so its latest tuning isn't lost.
+        if (previousChannel != null && !previousChannel.equals("None")) {
+            snapshotDrawablesTo(previousChannel);
+        }
+
+        currentChannel = newChannel;
+        plotter.changeChannel(newChannel);
+
+        boolean restored = restoreDrawablesFor(newChannel);
+        if (!restored) {
+            restored = seedDrawablesFromDb(newChannel, getEnteredDepth());
+        }
+        if (restored) {
+            applyCurrentStimToClient();
+        } else {
+            // Brand-new channel: maintain the current stimulus state as its baseline.
+            snapshotDrawablesTo(newChannel);
+        }
+
+        updateLegend(plotter.getColorsForChannels());
+    }
+
+    /** Capture the current spec of every drawable as the given channel's remembered tuning. */
+    private void snapshotDrawablesTo(String channel) {
+        Map<String, String> specs = new LinkedHashMap<>();
+        for (Map.Entry<String, RFPlotDrawable> entry : namesForDrawables.entrySet()) {
+            try {
+                specs.put(entry.getKey(), entry.getValue().getSpec());
+            } catch (Exception e) {
+                // A drawable with no spec yet; nothing to remember for it.
+            }
+        }
+        drawableSpecsForChannels.put(channel, specs);
+    }
+
+    /** Restore a channel's remembered tuning into the drawables. Returns false if unknown. */
+    private boolean restoreDrawablesFor(String channel) {
+        Map<String, String> specs = drawableSpecsForChannels.get(channel);
+        if (specs == null || specs.isEmpty()) {
+            return false;
+        }
+        applySpecsToDrawables(specs);
+        return true;
+    }
+
+    /** Pull a channel's latest saved stimulus specs from the DB and restore them. */
+    private boolean seedDrawablesFromDb(String channel, int depth) {
+        Map<String, String> specs;
+        try {
+            specs = dbUtil.readLatestRFObjectData(channel, depth);
+        } catch (Exception e) {
+            System.err.println("Could not read stored stimuli for channel " + channel + ": " + e.getMessage());
+            return false;
+        }
+        if (specs.isEmpty()) {
+            return false;
+        }
+        applySpecsToDrawables(specs);
+        drawableSpecsForChannels.put(channel, specs);
+        return true;
+    }
+
+    private void applySpecsToDrawables(Map<String, String> specs) {
+        for (Map.Entry<String, String> entry : specs.entrySet()) {
+            RFPlotDrawable drawable = namesForDrawables.get(entry.getKey());
+            if (drawable != null && entry.getValue() != null) {
+                try {
+                    drawable.setSpec(entry.getValue());
+                } catch (Exception e) {
+                    // Legacy/summary data that isn't a round-trippable spec; leave as-is.
+                    System.err.println("Could not restore " + entry.getKey() + ": " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    /** Push the currently selected stim type (with its restored spec) to the display. */
+    private void applyCurrentStimToClient() {
+        RFPlotDrawable current = namesForDrawables.get(stimType);
+        if (current == null) {
+            return;
+        }
+        stimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(current);
+        if (isStimToggleOn) {
+            client.changeRFPlotStim(stimSpec);
+            client.changeRFPlotXfm(xfmSpec);
+        }
     }
 
     private JPanel legendPanel;
@@ -663,6 +791,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             public void actionPerformed(ActionEvent e) {
                 if (!currentChannel.equals("None")) {
                     plotter.removeChannel(currentChannel); // Assuming such a method exists in plotter
+                    drawableSpecsForChannels.remove(currentChannel); // Forget its stimulus tuning too
                     updateLegend(plotter.getColorsForChannels()); // Refresh the legend to reflect the removal
                     // Reset current selection (channel is chosen via the comboboxes).
                     currentChannel = "None";

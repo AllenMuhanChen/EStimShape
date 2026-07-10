@@ -665,6 +665,71 @@ public class DbUtil {
 	}
 
 	/**
+	 * Read the latest saved stimulus data for one channel at the given depth: the most
+	 * recent {@code data} for each {@code object} type in RFObjectData.
+	 * <p>
+	 * Robust to the absence of depth information: a NULL depth is treated as 0, and if the
+	 * RFObjectData table predates the depth column, this falls back to ignoring depth.
+	 *
+	 * @return object class name -&gt; stored spec/data (empty if the channel has none)
+	 */
+	public Map<String, String> readLatestRFObjectData(String channel, int depth) {
+		try {
+			return readLatestRFObjectDataAtDepth(channel, depth);
+		} catch (DataAccessException e) {
+			System.err.println("Could not read RFObjectData by depth (" + e.getMessage()
+					+ "). Falling back to latest per object ignoring depth.");
+			return readLatestRFObjectDataIgnoringDepth(channel);
+		}
+	}
+
+	private Map<String, String> readLatestRFObjectDataAtDepth(String channel, int depth) {
+		final HashMap<String, String> result = new HashMap<String, String>();
+
+		JdbcTemplate jt = new JdbcTemplate(dataSource);
+		jt.query(
+				" select r.object, r.data " +
+				" from RFObjectData r " +
+				" inner join ( " +
+				"     select object, max(tstamp) as maxTstamp " +
+				"     from RFObjectData " +
+				"     where channel = ? and coalesce(depth, 0) = ? " +
+				"     group by object " +
+				" ) latest on r.object = latest.object and r.tstamp = latest.maxTstamp " +
+				" where r.channel = ? ",
+				new Object[] { channel, depth, channel },
+				new RowCallbackHandler() {
+					public void processRow(ResultSet rs) throws SQLException {
+						result.put(rs.getString("object"), rs.getString("data"));
+					}
+				});
+		return result;
+	}
+
+	private Map<String, String> readLatestRFObjectDataIgnoringDepth(String channel) {
+		final HashMap<String, String> result = new HashMap<String, String>();
+
+		JdbcTemplate jt = new JdbcTemplate(dataSource);
+		jt.query(
+				" select r.object, r.data " +
+				" from RFObjectData r " +
+				" inner join ( " +
+				"     select object, max(tstamp) as maxTstamp " +
+				"     from RFObjectData " +
+				"     where channel = ? " +
+				"     group by object " +
+				" ) latest on r.object = latest.object and r.tstamp = latest.maxTstamp " +
+				" where r.channel = ? ",
+				new Object[] { channel, channel },
+				new RowCallbackHandler() {
+					public void processRow(ResultSet rs) throws SQLException {
+						result.put(rs.getString("object"), rs.getString("data"));
+					}
+				});
+		return result;
+	}
+
+	/**
 	 * Read RFStimSpec table.
 	 *
 	 * @param num
