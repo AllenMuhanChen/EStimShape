@@ -1143,6 +1143,7 @@ def run_amplitude_diagnostic(session_id: Optional[str] = None,
 def main():
     run_comparison(block_size=100)
     run_amplitude_diagnostic(block_size=100)
+    run_block_size_sweep()
 
 
 if __name__ == "__main__":
