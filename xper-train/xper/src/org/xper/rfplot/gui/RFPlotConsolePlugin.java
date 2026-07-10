@@ -25,9 +25,6 @@ import java.util.*;
 import java.util.List;
 import java.util.function.BiConsumer;
 
-import static java.awt.GridBagConstraints.PAGE_END;
-import static java.awt.GridBagConstraints.PAGE_START;
-
 /**
  * @author Allen Chen
  */
@@ -285,14 +282,39 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         jpanel.setLayout(new GridBagLayout());
         jpanel.setBorder(BorderFactory.createTitledBorder("RFPlot"));
 
-        rfCenterLabel(jpanel);
-        rfDiameterLabel(jpanel);
-        scrollerModeLabel(jpanel);
-        scrollerValueLabel(jpanel);
-        depthField(jpanel); // Optional depth (microns driven) for save/load
-        channelSelectors(jpanel); // Initialize and add the channel selectors
-        removeButton(jpanel); // Placed above the legend so it is always reachable
-        legend(jpanel);
+        // Left column: read-only RF information text.
+        JPanel infoPanel = new JPanel(new GridBagLayout());
+        rfCenterLabel(infoPanel);
+        rfDiameterLabel(infoPanel);
+        scrollerModeLabel(infoPanel);
+        scrollerValueLabel(infoPanel);
+
+        // Right column: channel controls (depth, selectors, remove button, legend).
+        JPanel controlPanel = new JPanel(new GridBagLayout());
+        depthField(controlPanel); // Optional depth (microns driven) for save/load
+        channelSelectors(controlPanel); // Initialize and add the channel selectors
+        removeButton(controlPanel); // Placed above the legend so it is always reachable
+        legend(controlPanel);
+
+        GridBagConstraints infoConstraints = new GridBagConstraints();
+        infoConstraints.gridx = 0;
+        infoConstraints.gridy = 0;
+        infoConstraints.anchor = GridBagConstraints.NORTHWEST;
+        infoConstraints.fill = GridBagConstraints.BOTH;
+        infoConstraints.weightx = 0.5;
+        infoConstraints.weighty = 1.0;
+        infoConstraints.insets = new Insets(0, 0, 0, 10);
+        jpanel.add(infoPanel, infoConstraints);
+
+        GridBagConstraints controlConstraints = new GridBagConstraints();
+        controlConstraints.gridx = 1;
+        controlConstraints.gridy = 0;
+        controlConstraints.anchor = GridBagConstraints.NORTHWEST;
+        controlConstraints.fill = GridBagConstraints.BOTH;
+        controlConstraints.weightx = 0.5;
+        controlConstraints.weighty = 1.0;
+        jpanel.add(controlPanel, controlConstraints);
+
         return jpanel;
     }
 
@@ -300,7 +322,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         setupRemoveChannelButton(); // Initialize the button
         GridBagConstraints buttonConstraints = new GridBagConstraints();
         buttonConstraints.gridx = 0; // Adjust these constraints as needed
-        buttonConstraints.gridy = 6; // Sits directly above the (scrollable) legend
+        buttonConstraints.gridy = 2; // Sits directly above the (scrollable) legend
         buttonConstraints.gridwidth = 2; // Span across two columns
         buttonConstraints.fill = GridBagConstraints.HORIZONTAL;
         jpanel.add(removeChannelButton, buttonConstraints);
@@ -319,7 +341,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
         GridBagConstraints legendConstraints = new GridBagConstraints();
         legendConstraints.gridx = 0;
-        legendConstraints.gridy = 7; // Below the Remove Channel button
+        legendConstraints.gridy = 3; // Below the Remove Channel button
         legendConstraints.gridwidth = 2; // Span across two columns if needed
         legendConstraints.fill = GridBagConstraints.BOTH;
         legendConstraints.weightx = 1.0;
@@ -331,7 +353,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     private void depthField(JPanel jpanel) {
         GridBagConstraints depthLabelConstraints = new GridBagConstraints();
         depthLabelConstraints.gridx = 0;
-        depthLabelConstraints.gridy = 4;
+        depthLabelConstraints.gridy = 0;
         depthLabelConstraints.gridwidth = 1;
         depthLabelConstraints.ipadx = 5;
         jpanel.add(new JLabel("Depth (µm driven)"), depthLabelConstraints);
@@ -341,7 +363,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
                 "Ctrl+S saves at this depth; Ctrl+L loads the latest RF per channel at this depth.");
         GridBagConstraints depthFieldConstraints = new GridBagConstraints();
         depthFieldConstraints.gridx = 1;
-        depthFieldConstraints.gridy = 4;
+        depthFieldConstraints.gridy = 0;
         depthFieldConstraints.gridwidth = 1;
         depthFieldConstraints.ipadx = 5;
         depthFieldConstraints.fill = GridBagConstraints.HORIZONTAL;
@@ -370,16 +392,20 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     private void rfCenterLabel(JPanel jpanel) {
         GridBagConstraints centerLabelConstraints = new GridBagConstraints();
+        centerLabelConstraints.gridx = 0;
+        centerLabelConstraints.gridy = 0;
         centerLabelConstraints.gridwidth = 1;
         centerLabelConstraints.ipadx=5;
-        centerLabelConstraints.anchor=PAGE_START;
+        centerLabelConstraints.anchor=GridBagConstraints.WEST;
         jpanel.add(new JLabel("Center"), centerLabelConstraints);
 
         rfCenterLabel = new JLabel(new Coordinates2D(0,0).toString());
         GridBagConstraints centerValueConstraints = new GridBagConstraints();
+        centerValueConstraints.gridx = 1;
+        centerValueConstraints.gridy = 0;
         centerValueConstraints.gridwidth = 1;
         centerValueConstraints.ipadx=5;
-        centerValueConstraints.anchor=PAGE_END;
+        centerValueConstraints.anchor=GridBagConstraints.WEST;
         jpanel.add(rfCenterLabel, centerValueConstraints);
         rfCenterLabel.setHorizontalAlignment(SwingConstants.LEFT);
         rfCenterLabel.setPreferredSize(new Dimension(320,20));
@@ -387,16 +413,20 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     private void rfDiameterLabel(JPanel jpanel) {
         GridBagConstraints diameterLabelConstraints = new GridBagConstraints();
+        diameterLabelConstraints.gridx = 0;
+        diameterLabelConstraints.gridy = 1;
         diameterLabelConstraints.gridwidth = 1;
         diameterLabelConstraints.ipadx = 5;
-        diameterLabelConstraints.anchor = PAGE_START;
+        diameterLabelConstraints.anchor = GridBagConstraints.WEST;
         jpanel.add(new JLabel("Diameter"), diameterLabelConstraints);
 
         rfDiameterLabel = new JLabel("None");
         GridBagConstraints diameterValueConstraints = new GridBagConstraints();
+        diameterValueConstraints.gridx = 1;
+        diameterValueConstraints.gridy = 1;
         diameterValueConstraints.gridwidth = 1;
         diameterValueConstraints.ipadx = 5;
-        diameterValueConstraints.anchor = PAGE_END;
+        diameterValueConstraints.anchor = GridBagConstraints.WEST;
         jpanel.add(rfDiameterLabel, diameterValueConstraints);
         rfDiameterLabel.setHorizontalAlignment(SwingConstants.LEFT);
         rfDiameterLabel.setPreferredSize(new Dimension(320, 20));
@@ -404,14 +434,20 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     private void scrollerModeLabel(JPanel jpanel){
         GridBagConstraints scrollerModeConstraints = new GridBagConstraints();
+        scrollerModeConstraints.gridx = 0;
         scrollerModeConstraints.gridy = 2;
+        scrollerModeConstraints.gridwidth = 2;
+        scrollerModeConstraints.anchor = GridBagConstraints.WEST;
         scrollerModeLabel = new JLabel("Mode");
         jpanel.add(scrollerModeLabel, scrollerModeConstraints);
     }
 
     private void scrollerValueLabel(JPanel jpanel){
         GridBagConstraints scrollerValueConstraints = new GridBagConstraints();
+        scrollerValueConstraints.gridx = 0;
         scrollerValueConstraints.gridy = 3;
+        scrollerValueConstraints.gridwidth = 2;
+        scrollerValueConstraints.anchor = GridBagConstraints.WEST;
         scrollerValueLabel = new JLabel("Value");
         jpanel.add(scrollerValueLabel, scrollerValueConstraints);
     }
@@ -448,7 +484,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         // Layout constraints for the letter combobox
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
-        gbc.gridy = 5;
+        gbc.gridy = 1;
         gbc.gridwidth = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         panel.add(letterComboBox, gbc);
