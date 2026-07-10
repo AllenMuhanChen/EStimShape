@@ -176,6 +176,72 @@ class MultiGaDbUtil:
         self.conn.mydb.commit()
         cursor.close()
 
+    # ------------------------------------------------------------------
+    # MUAChannelResponses: like ChannelResponses but keyed additionally by
+    # mua_metric, so several detection methods (e.g. 'mad_k4_block100') can
+    # coexist in the same table.
+    # ------------------------------------------------------------------
+    def create_mua_channel_responses_table_if_not_exists(self):
+        self.conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS MUAChannelResponses (
+                stim_id BIGINT NOT NULL,
+                task_id BIGINT NOT NULL,
+                channel VARCHAR(64) NOT NULL,
+                mua_metric VARCHAR(64) NOT NULL,
+                spikes_per_second DOUBLE,
+                PRIMARY KEY (task_id, channel, mua_metric),
+                INDEX idx_stim_metric (stim_id, channel, mua_metric)
+            ) ENGINE=InnoDB DEFAULT CHARSET=latin1
+            """
+        )
+
+    def add_mua_channel_responses_in_batch(self, insert_data):
+        """insert_data: iterable of (stim_id, task_id, channel, mua_metric, spikes_per_second).
+
+        Uses INSERT ... ON DUPLICATE KEY UPDATE so re-parsing a generation
+        overwrites rather than erroring on the (task_id, channel, mua_metric) key.
+        """
+        cursor = self.conn.mydb.cursor()
+        query = """
+            INSERT INTO MUAChannelResponses
+                (stim_id, task_id, channel, mua_metric, spikes_per_second)
+            VALUES (%s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE spikes_per_second = VALUES(spikes_per_second),
+                                    stim_id = VALUES(stim_id)
+        """
+        cursor.executemany(query, list(insert_data))
+        self.conn.mydb.commit()
+        cursor.close()
+
+    def read_mua_responses_for(self, stim_id, channel: str, mua_metric: str):
+        self.conn.execute(
+            "SELECT spikes_per_second FROM MUAChannelResponses "
+            "WHERE stim_id = %s AND channel = %s AND mua_metric = %s",
+            (stim_id, channel, mua_metric))
+        rows = self.conn.fetch_all()
+        return [float(row[0]) for row in rows]
+
+    def read_stims_with_no_mua_responses(self, ga_name: str, mua_metric: str):
+        """Stims (in the current experiment's lineages) that have no
+        MUAChannelResponses row yet for `mua_metric`. Mirrors
+        read_stims_with_no_responses but scoped to the MUA table + metric."""
+        current_experiment_id = self.read_current_experiment_id(ga_name)
+        lineages_for_experiment_id = self.read_lineage_ids_for_experiment_id(current_experiment_id)
+        self.add_catch_lineage(lineages_for_experiment_id)
+
+        placeholders = ','.join(['%s'] * len(lineages_for_experiment_id))
+        query = f"""
+                SELECT s.stim_id
+                FROM StimGaInfo s
+                LEFT JOIN MUAChannelResponses r
+                       ON s.stim_id = r.stim_id AND r.mua_metric = %s
+                WHERE r.stim_id IS NULL AND lineage_id IN ({placeholders})
+            """
+        self.conn.execute(query, [mua_metric] + list(lineages_for_experiment_id))
+        rows = self.conn.fetch_all()
+        return [row[0] for row in rows]
+
     def read_stims_with_no_driving_response(self):
         self.conn.execute(
             "SELECT stim_id "

@@ -13,8 +13,13 @@ class GAResponseProcessor:
     db_util: MultiGaDbUtil
     repetition_combination_strategy: Callable[[list[float]], float]
     cluster_combination_strategy: Callable[[list[float]], int]  # TODO: this currently isn't being
-
     # used, but it should be used to combine the responses from the different channels into a single
+
+    # When set, per-channel response vectors are read from MUAChannelResponses
+    # (filtered by this metric) instead of ChannelResponses. Leaves every other
+    # step — repetition/cluster combination, baseline normalization — unchanged,
+    # so the MUA source composes with the baseline-normalizing subclasses.
+    mua_metric: str | None = None
 
     def process_to_db(self, ga_name: str) -> None:
         # For each stim, combine their cluster responses for each repetition
@@ -38,7 +43,11 @@ class GAResponseProcessor:
         # Get the vector(responses to all the repetitions of stim_id) for each cluster channel
         vector_per_channel = {}
         for channel in cluster_channels:
-            responses_per_repetition = self.db_util.read_responses_for(stim_id, channel=channel.value)
+            if self.mua_metric is not None:
+                responses_per_repetition = self.db_util.read_mua_responses_for(
+                    stim_id, channel.value, self.mua_metric)
+            else:
+                responses_per_repetition = self.db_util.read_responses_for(stim_id, channel=channel.value)
             vector_per_channel[channel] = responses_per_repetition
 
         # Combine the vectors for each channel into a single response vector

@@ -7,6 +7,7 @@ from src.pga.estim_phase import EStimPhaseParentSelector, EStimPhaseMutationAssi
 from src.pga.ga_classes import Phase, Lineage, RegimeTransitioner
 from src.pga.response_processing import GAResponseProcessor, BaselineNormalizeResponseProcessor, \
     RankBaselineNormalizeResponseProcessor
+from src.pga.spike_parsing import MuaIntanResponseParser
 from src.pga.shuffle_side_test import ShuffleSideTest
 from src.pga.lighting_side_test import LightingSideTest
 
@@ -105,17 +106,58 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
         return n if n is not None else 25
 
     def make_response_processor(self) -> GAResponseProcessor:
+        # When MUA is enabled the response vectors are read from
+        # MUAChannelResponses (by metric) instead of ChannelResponses; baseline
+        # normalization still composes on top via the same subclass.
+        mua_metric = self.mua_metric() if self.is_use_mua_response_processor() else None
         if self.is_use_normalized_ga_response_processor():
             return RankBaselineNormalizeResponseProcessor(
                 db_util=self.db_util,
                 repetition_combination_strategy=mean,
-                cluster_combination_strategy=sum
+                cluster_combination_strategy=sum,
+                mua_metric=mua_metric,
+            )
+        elif mua_metric is not None:
+            return GAResponseProcessor(
+                db_util=self.db_util,
+                repetition_combination_strategy=mean,
+                cluster_combination_strategy=sum,
+                mua_metric=mua_metric,
             )
         else:
             return super().make_response_processor()
 
+    def make_response_parser(self):
+        # MUA parser runs the standard spike.dat parse AND the wideband MAD parse
+        # (both tables populated); the plain parser only when MUA is disabled.
+        if self.is_use_mua_response_processor():
+            return MuaIntanResponseParser(
+                self.base_intan_path, self.db_util,
+                mua_metric=self.mua_metric(),
+                threshold_k=self.mua_threshold_k(),
+                block_size=self.mua_block_size(),
+            )
+        return super().make_response_parser()
+
     def is_use_normalized_ga_response_processor(self):
         return self.var_fetcher.get("use_normalized_ga_response_processor", dtype=bool)
+
+    def is_use_mua_response_processor(self):
+        val = self.var_fetcher.get("use_mua_response_processor", dtype=bool)
+        return bool(val) if val is not None else False
+
+    def mua_threshold_k(self):
+        val = self.var_fetcher.get("mua_threshold_k", dtype=float)
+        return val if val is not None else 4.0
+
+    def mua_block_size(self):
+        val = self.var_fetcher.get("mua_block_size", dtype=int)
+        return val if val is not None else 100
+
+    def mua_metric(self):
+        """Detection-method tag written by the parser and read by the processor;
+        derived from the params so the two never drift."""
+        return f"mad_k{self.mua_threshold_k():g}_block{self.mua_block_size()}"
 
 
 class MockGrowingPhaseTransitioner(RegimeTransitioner):
