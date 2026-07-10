@@ -42,6 +42,7 @@ from __future__ import annotations
 import hashlib
 import os
 import pickle
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import Callable, Optional
 
@@ -122,6 +123,16 @@ def _detect_positive_peaks(signal: np.ndarray, threshold: float,
         if s - kept[-1] >= refractory_samples:
             kept.append(s)
     return np.asarray(kept, dtype=int)
+
+
+def _peak_to_peak(signal: np.ndarray, index: int, half_window: int) -> float:
+    """Peak-to-peak amplitude of `signal` in a window centered on `index`."""
+    lo = max(0, index - half_window)
+    hi = min(len(signal), index + half_window + 1)
+    if hi <= lo:
+        return 0.0
+    window = signal[lo:hi]
+    return float(window.max() - window.min())
 
 
 def _neo(x: np.ndarray) -> np.ndarray:
@@ -207,6 +218,30 @@ class NegativeRmsStrategy(BlockDetectionStrategy):
         return _detect_negative_crossings(detection_segment, threshold, refractory_samples)
 
 
+class MadStrategy(NegativeRmsStrategy):
+    """Negative amplitude threshold, but with the noise level estimated by the
+    median absolute deviation, sigma = median(|x|) / 0.6745 (Quiroga et al. 2004),
+    instead of RMS.
+
+    Same detector as -N x RMS (negative crossings); only the noise estimate
+    differs. MAD is far less inflated by the spikes themselves than RMS, so the
+    bar doesn't rise during high-firing stretches — it removes the 'a big unit
+    censors itself / heavy firing raises the threshold' bias that RMS suffers.
+    """
+
+    name = "neg_mad"
+
+    def __init__(self, threshold_mad: float = 4.0):
+        self.threshold_mad = threshold_mad
+
+    def cache_key(self) -> str:
+        return f"neg_mad_{self.threshold_mad}"
+
+    def block_threshold(self, detection_block: np.ndarray) -> float:
+        sigma = float(np.median(np.abs(detection_block))) / 0.6745
+        return -self.threshold_mad * sigma
+
+
 class NeoStrategy(BlockDetectionStrategy):
     """Nonlinear energy operator (Teager). Detection runs on the smoothed NEO
     trace; threshold = coefficient x mean(NEO) over the block (Mukhopadhyay &
@@ -282,6 +317,22 @@ class PeriodicBlockMUAParser:
         return hashlib.md5(payload.encode()).hexdigest()[:16]
 
     def parse(self, task_ids: list[int], intan_files_dir: str):
+        """Return (spikes_by_channel_by_task_id, epochs_by_task_id, sample_rate)."""
+        spikes, epochs, _amps, sr = self._parse_all(task_ids, intan_files_dir)
+        return spikes, epochs, sr
+
+    def parse_with_amplitudes(self, task_ids: list[int], intan_files_dir: str):
+        """Like `parse`, but also returns per-spike peak-to-peak amplitudes:
+        (spikes_by_channel_by_task_id, epochs_by_task_id,
+         amplitudes_by_channel_by_task_id, sample_rate).
+
+        `amplitudes_by_channel_by_task_id[task_id][channel]` is a list parallel
+        to the spike-time list, giving each spike's peak-to-peak amplitude (uV)
+        measured on the high-pass-filtered trace.
+        """
+        return self._parse_all(task_ids, intan_files_dir)
+
+    def _parse_all(self, task_ids: list[int], intan_files_dir: str):
         task_ids = [int(t) for t in task_ids]
         task_id_set = set(task_ids)
 
@@ -291,6 +342,7 @@ class PeriodicBlockMUAParser:
                 self.sample_rate = cached['sample_rate']
                 return (cached['spikes_by_channel_by_task_id'],
                         cached['epochs_by_task_id'],
+                        cached.get('amplitudes_by_channel_by_task_id', {}),
                         cached['sample_rate'])
 
         matching_dirs = find_files_containing_task_ids(task_id_set, intan_files_dir)
@@ -299,9 +351,11 @@ class PeriodicBlockMUAParser:
 
         spikes_by_channel_by_task_id: dict[int, dict] = {}
         epochs_by_task_id: dict[int, tuple] = {}
+        amplitudes_by_channel_by_task_id: dict[int, dict] = {}
 
         for dir_path in sorted(matching_dirs):
-            file_spikes, file_epochs, file_sr = self._parse_one_dir(dir_path, task_id_set)
+            file_spikes, file_epochs, file_amps, file_sr = self._parse_one_dir(
+                dir_path, task_id_set)
             if self.sample_rate is None:
                 self.sample_rate = file_sr
             elif file_sr != self.sample_rate:
@@ -311,11 +365,14 @@ class PeriodicBlockMUAParser:
             for task_id, channel_spikes in file_spikes.items():
                 spikes_by_channel_by_task_id[task_id] = channel_spikes
                 epochs_by_task_id[task_id] = file_epochs[task_id]
+                amplitudes_by_channel_by_task_id[task_id] = file_amps[task_id]
 
         if self.to_cache and self.cache_dir is not None and spikes_by_channel_by_task_id:
-            self._save_cache(task_ids, spikes_by_channel_by_task_id, epochs_by_task_id)
+            self._save_cache(task_ids, spikes_by_channel_by_task_id,
+                             epochs_by_task_id, amplitudes_by_channel_by_task_id)
 
-        return spikes_by_channel_by_task_id, epochs_by_task_id, self.sample_rate
+        return (spikes_by_channel_by_task_id, epochs_by_task_id,
+                amplitudes_by_channel_by_task_id, self.sample_rate)
 
     def _parse_one_dir(self, dir_path: str, task_id_set: set[int]):
         # Lazy clat imports: the module should import even where clat is absent.
@@ -350,17 +407,22 @@ class PeriodicBlockMUAParser:
 
         spikes_by_channel_by_task_id: dict[int, dict] = {
             t[0]: {} for t in trials}
+        amps_by_channel_by_task_id: dict[int, dict] = {
+            t[0]: {} for t in trials}
         epochs_by_task_id: dict[int, tuple] = {
             t[0]: (t[1] / sample_rate, t[2] / sample_rate) for t in trials}
 
         if not trials:
-            return spikes_by_channel_by_task_id, epochs_by_task_id, sample_rate
+            return (spikes_by_channel_by_task_id, epochs_by_task_id,
+                    amps_by_channel_by_task_id, sample_rate)
 
         # Contiguous blocks of `block_size` trials (within this file)
         blocks = [trials[i:i + self.block_size]
                   for i in range(0, len(trials), self.block_size)]
 
         refractory_samples = max(1, int(self.refractory_sec * sample_rate))
+        # Half-window (samples) for measuring each spike's peak-to-peak amplitude
+        amp_half_w = max(1, int(0.0005 * sample_rate))  # 0.5 ms
         channel_to_raw = read_amplifier_data_with_memmap(amplifier_path, amplifier_channels)
 
         for channel, raw in channel_to_raw.items():
@@ -381,14 +443,20 @@ class PeriodicBlockMUAParser:
                     e = min(n, e_idx)
                     if e <= s:
                         spikes_by_channel_by_task_id[task_id][channel] = []
+                        amps_by_channel_by_task_id[task_id][channel] = []
                         continue
                     segment = detection_signal[s:e]
                     local = self.strategy.detect_segment(
                         segment, threshold, refractory_samples)
-                    abs_times = (s + local) / sample_rate
-                    spikes_by_channel_by_task_id[task_id][channel] = list(abs_times)
+                    abs_idx = s + local
+                    spikes_by_channel_by_task_id[task_id][channel] = list(abs_idx / sample_rate)
+                    # Amplitude is measured on the filtered trace (not the
+                    # detection signal, so it is comparable across strategies).
+                    amps_by_channel_by_task_id[task_id][channel] = [
+                        _peak_to_peak(filtered, ai, amp_half_w) for ai in abs_idx]
 
-        return spikes_by_channel_by_task_id, epochs_by_task_id, sample_rate
+        return (spikes_by_channel_by_task_id, epochs_by_task_id,
+                amps_by_channel_by_task_id, sample_rate)
 
     @staticmethod
     def _read_header(dir_path: str) -> tuple[float, list]:
@@ -425,13 +493,15 @@ class PeriodicBlockMUAParser:
             print(f"Failed to load periodic-detection cache {path}: {exc}")
             return None
 
-    def _save_cache(self, task_ids, spikes_by_channel_by_task_id, epochs_by_task_id):
+    def _save_cache(self, task_ids, spikes_by_channel_by_task_id, epochs_by_task_id,
+                    amplitudes_by_channel_by_task_id):
         os.makedirs(self.cache_dir, exist_ok=True)
         path = self._cache_path(task_ids)
         with open(path, 'wb') as f:
             pickle.dump({
                 'spikes_by_channel_by_task_id': spikes_by_channel_by_task_id,
                 'epochs_by_task_id': epochs_by_task_id,
+                'amplitudes_by_channel_by_task_id': amplitudes_by_channel_by_task_id,
                 'sample_rate': self.sample_rate,
             }, f)
 
@@ -639,6 +709,19 @@ def make_periodic_rms_method(block_size: int = 100,
     )
 
 
+def make_periodic_mad_method(block_size: int = 100,
+                             threshold_mad: float = 4.0,
+                             highpass_hz: float = 300.0) -> DetectionMethod:
+    """-N x MAD (median noise estimate) recomputed per trial-block. Same
+    detector as the RMS method; only the noise estimate is more spike-robust."""
+    return _make_wideband_method(
+        name=f"-{threshold_mad:g}x MAD (median noise)\nrecomputed / {block_size} trials",
+        strategy=MadStrategy(threshold_mad=threshold_mad),
+        block_size=block_size,
+        highpass_hz=highpass_hz,
+    )
+
+
 def make_neo_method(block_size: int = 100,
                     coefficient: float = 8.0,
                     smooth_ms: float = 0.3,
@@ -673,6 +756,7 @@ def run_comparison(session_id: Optional[str] = None,
             DetectionMethod("Raw Intan spikes\n(spike.dat, -4x RMS seldom updated)",
                             _method_raw_intan),
             make_periodic_rms_method(block_size=block_size),
+            make_periodic_mad_method(block_size=block_size),
             make_neo_method(block_size=block_size),
         ]
 
@@ -726,8 +810,163 @@ def run_comparison(session_id: Optional[str] = None,
     return fig
 
 
+# ===========================================================================
+# Waveform-amplitude-per-generation diagnostic
+# ===========================================================================
+# This is the tiebreaker between "threshold artifact" and "true excitability".
+# Baseline stimuli are the same set every generation, so if a detector's spike
+# COUNT rises across generations we ask WHAT the spikes look like:
+#   - a growing pile of small, near-threshold events (low-amplitude tail grows,
+#     median amplitude drops) => the threshold is admitting more noise/small
+#     units => artifact.
+#   - the whole amplitude distribution shifts up coherently => the unit(s) are
+#     genuinely firing/appearing larger => real gain.
+
+def collect_baseline_spike_amplitudes(base_df: pd.DataFrame,
+                                      strategy: BlockDetectionStrategy,
+                                      channel: ChannelSpec,
+                                      *,
+                                      block_size: int = 100,
+                                      highpass_hz: float = 300.0) -> dict:
+    """Pool per-spike peak-to-peak amplitudes of BASELINE-stim spikes by
+    generation, for the selected channel(s). Returns {GenId: [amplitudes_uV]}.
+    """
+    channels = channel if isinstance(channel, list) else [channel]
+    norm_channels = {_normalize_channel(c) for c in channels}
+
+    task_ids = [int(t) for t in base_df['TaskId'].tolist()]
+    cache_dir = os.path.join(context.ga_parsed_spikes_path, "periodic_block_mua")
+    parser = PeriodicBlockMUAParser(
+        strategy=strategy, block_size=block_size, highpass_hz=highpass_hz,
+        to_cache=True, cache_dir=cache_dir)
+    _spikes, _epochs, amps_by_task, _sr = parser.parse_with_amplitudes(
+        task_ids, context.ga_intan_path)
+
+    task_to_gen = dict(zip(base_df['TaskId'].astype(int), base_df['GenId']))
+    baseline_tasks = set(
+        base_df.loc[base_df['StimType'] == 'BASELINE', 'TaskId'].astype(int))
+
+    amps_by_gen: dict = defaultdict(list)
+    for task_id, ch_amps in amps_by_task.items():
+        tid = int(task_id)
+        if tid not in baseline_tasks:
+            continue
+        gen = task_to_gen.get(tid)
+        if gen is None:
+            continue
+        for ch, alist in ch_amps.items():
+            if _normalize_channel(getattr(ch, 'value', ch)) in norm_channels:
+                amps_by_gen[gen].extend(alist)
+    return dict(amps_by_gen)
+
+
+def plot_amplitude_distributions_onto(ax: plt.Axes, amps_by_gen: dict,
+                                      gen_color: dict, title: str) -> None:
+    """Violin of baseline spike amplitudes per generation, with the median
+    amplitude trend and per-generation spike counts overlaid."""
+    gens = sorted(amps_by_gen)
+    data = [np.asarray(amps_by_gen[g], dtype=float) for g in gens]
+    positions = list(range(1, len(gens) + 1))
+
+    nonempty = [(p, g, d) for p, g, d in zip(positions, gens, data) if d.size > 1]
+    if nonempty:
+        parts = ax.violinplot([d for _, _, d in nonempty],
+                              positions=[p for p, _, _ in nonempty],
+                              showextrema=False, widths=0.85)
+        for body, (_, g, _) in zip(parts['bodies'], nonempty):
+            body.set_facecolor(gen_color.get(g, 'gray'))
+            body.set_alpha(0.6)
+            body.set_edgecolor('gray')
+
+    medians = [float(np.median(d)) if d.size else np.nan for d in data]
+    ax.plot(positions, medians, '-o', color='black', linewidth=1.5,
+            markersize=4, label='median amplitude', zorder=5)
+
+    # Per-generation spike counts along the top
+    for p, d in zip(positions, data):
+        ax.annotate(f'{d.size}', (p, 0.99), xycoords=ax.get_xaxis_transform(),
+                    ha='center', va='top', fontsize=6, color='dimgray')
+
+    ax.set_xticks(positions)
+    ax.set_xticklabels([f'{g}' for g in gens])
+    ax.set_xlabel('Generation  (top row = spike count)')
+    ax.set_ylabel('Spike peak-to-peak amplitude (uV)')
+    ax.set_title(title)
+    ax.grid(True, alpha=0.3)
+    ax.legend(fontsize=7, loc='upper right')
+
+
+def run_amplitude_diagnostic(session_id: Optional[str] = None,
+                             channel: Optional[ChannelSpec] = None,
+                             block_size: int = 100,
+                             strategies: Optional[list] = None,
+                             save_path: Optional[str] = None):
+    """Render, per detector, the baseline-stim spike-amplitude distribution for
+    each generation. One column per detection strategy.
+
+    `strategies` is a list of (label, BlockDetectionStrategy); defaults to
+    -4x RMS, -4x MAD, and NEO so it lines up with the profile comparison. The
+    raw-Intan method is omitted here because spike.dat carries no per-spike
+    waveforms to measure.
+    """
+    if session_id is None:
+        session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
+    if channel is None:
+        channel = read_cluster_channels(session_id)
+    if strategies is None:
+        strategies = [
+            ("-4x RMS (negative)", NegativeRmsStrategy(threshold_rms=4.0)),
+            ("-4x MAD (median noise)", MadStrategy(threshold_mad=4.0)),
+            ("NEO energy (C=8)", NeoStrategy(coefficient=8.0)),
+        ]
+
+    print(f"Loading repository trial data for session {session_id} ...")
+    base_df = import_from_repository(session_id, "ga", "GAStimInfo", "RawSpikeResponses")
+
+    channel_label = ', '.join(channel) if isinstance(channel, list) else channel
+    channel_str = '_'.join(channel) if isinstance(channel, list) else channel
+
+    results = []
+    all_gens: set = set()
+    for name, strat in strategies:
+        print(f"Collecting baseline spike amplitudes for: {name!r}")
+        amps_by_gen = collect_baseline_spike_amplitudes(
+            base_df, strat, channel, block_size=block_size)
+        all_gens |= set(amps_by_gen)
+        results.append((name, amps_by_gen))
+
+    gens_sorted = sorted(all_gens)
+    colors = cm.viridis(np.linspace(0, 1, max(len(gens_sorted), 1)))
+    gen_color = {g: colors[i] for i, g in enumerate(gens_sorted)}
+
+    n = len(results)
+    fig, axes = plt.subplots(1, n, figsize=(7 * n, 6), squeeze=False, sharey=True)
+    fig.suptitle(
+        f'Baseline-stim spike-amplitude distribution per generation  |  '
+        f'Session: {session_id}  |  Channel(s): {channel_label}\n'
+        'Growing low-amplitude tail / falling median => threshold admitting '
+        'smaller events (artifact);  whole distribution rising => true gain',
+        fontsize=11)
+
+    for ax, (name, amps_by_gen) in zip(axes[0], results):
+        plot_amplitude_distributions_onto(ax, amps_by_gen, gen_color, name)
+
+    fig.tight_layout()
+
+    if save_path is None:
+        save_dir = f"/home/connorlab/Documents/plots/{session_id}"
+        os.makedirs(save_dir, exist_ok=True)
+        save_path = f"{save_dir}/{channel_str}_baseline_amplitude_diagnostic.png"
+    fig.savefig(save_path, dpi=150, bbox_inches='tight')
+    print(f"Saved amplitude-diagnostic plot to {save_path}")
+
+    plt.show()
+    return fig
+
+
 def main():
     run_comparison(block_size=100)
+    run_amplitude_diagnostic(block_size=100)
 
 
 if __name__ == "__main__":
