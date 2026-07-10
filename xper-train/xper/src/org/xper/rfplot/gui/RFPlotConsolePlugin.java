@@ -199,24 +199,42 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
      */
     private void load(){
         int depth = getEnteredDepth();
-        List<RFInfoEntry> latestPerChannel = dbUtil.readLatestRFInfoPerChannel(depth);
+        List<RFInfoEntry> latestPerChannel;
+        try {
+            latestPerChannel = dbUtil.readLatestRFInfoPerChannel(depth);
+        } catch (Exception e) {
+            System.err.println("Failed to read RFs from database: " + e.getMessage());
+            return;
+        }
         if (latestPerChannel.isEmpty()) {
             System.out.println("No saved RFs found at depth " + depth + " µm.");
             return;
         }
 
+        int loaded = 0;
         for (RFInfoEntry rfInfoEntry : latestPerChannel) {
             String channel = rfInfoEntry.getChannel();
-            RFInfo rfInfo = RFInfo.fromXml(rfInfoEntry.getInfo());
-
-            // Select the channel so points are added to it and it gets a color.
-            plotter.changeChannel(channel);
-            CircleRF circleRF = new CircleRF(rfInfo.getCenter(), rfInfo.getRadius(), rfInfo.getControlPoints());
-            for (Coordinates2D point : circleRF.getCirclePoints()) {
-                plotter.addCirclePoint(point);
+            if (channel == null || channel.trim().isEmpty()) {
+                System.err.println("Skipping RF with no channel (tstamp " + rfInfoEntry.getTstamp() + ").");
+                continue;
             }
-            System.out.println("Loaded RF for channel " + channel + " (tstamp " + rfInfoEntry.getTstamp()
-                    + ", depth " + rfInfoEntry.getDepth() + " µm).");
+            try {
+                RFInfo rfInfo = RFInfo.fromXml(rfInfoEntry.getInfo());
+
+                // Select the channel so points are added to it and it gets a color.
+                plotter.changeChannel(channel);
+                CircleRF circleRF = new CircleRF(rfInfo.getCenter(), rfInfo.getRadius(), rfInfo.getControlPoints());
+                for (Coordinates2D point : circleRF.getCirclePoints()) {
+                    plotter.addCirclePoint(point);
+                }
+                loaded++;
+                System.out.println("Loaded RF for channel " + channel + " (tstamp " + rfInfoEntry.getTstamp()
+                        + ", depth " + rfInfoEntry.getDepth() + " µm).");
+            } catch (Exception e) {
+                // One malformed entry shouldn't abort loading the other channels.
+                System.err.println("Skipping RF for channel " + channel + " (tstamp "
+                        + rfInfoEntry.getTstamp() + "): " + e.getMessage());
+            }
         }
 
         // Restore the channel selection the user had before loading.
@@ -224,6 +242,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             plotter.changeChannel(currentChannel);
         }
         updateLegend(plotter.getColorsForChannels());
+        System.out.println("Loaded " + loaded + " RF(s) at depth " + depth + " µm.");
     }
 
     private void writeRFObjectData(String channel, String object, String data, long timestamp, int depth) {
