@@ -1579,7 +1579,7 @@ def main():
     # run_comparison(block_size=50)
     # run_amplitude_diagnostic(block_size=50)
     # run_block_size_sweep()
-    run_threshold_multiplier_sweep(block_size=100, strategy=NegativeRmsStrategy(), multipliers=(2, 3, 4, 5, 6))
+    run_threshold_multiplier_sweep(block_size=100, strategy=NegativeRmsStrategy(), multipliers=(4.5, 4.75, 5.0))
 
 
 if __name__ == "__main__":
