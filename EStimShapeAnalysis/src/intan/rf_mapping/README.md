@@ -17,9 +17,10 @@ controlled stimulus presentations.
 
 ## Phases
 
-- **Phase 0 (this folder): `live_spike_marker_probe.py`** — standalone probe that
-  proves live spikes + marker timing against the real rig. No dependency on the
-  (abandoned) `intan/companion` app; only numpy/scipy. Validates the RHX TCP frame
+- **Phase 0 (this folder): `live_spike_marker_probe.py`** — a small **GUI** probe
+  (Tkinter, no command line) that proves live spikes + marker timing against the
+  real rig. No dependency on the (abandoned) `intan/companion` app; GUI is stdlib
+  Tkinter, only numpy/scipy needed for detection. Validates the RHX TCP frame
   layout empirically.
 - **Phase 1** — "controlled presentation" mode + per-presentation trial capture to
   the DB (stim snapshot, position, depth, epoch, per-channel spike count/rate).
@@ -29,23 +30,25 @@ controlled stimulus presentations.
 - **Phase 3** — response-weighted RF heatmap (stimulus shadow × rate, accumulated).
 - **Phase 4** — matchstick color tuning; polish.
 
-## Running Phase 0
+## Running Phase 0 (GUI — no command line)
 
 In Intan RHX: `Network -> Remote TCP Control`, open Command (5000) and Waveform
 (5001) outputs and click Listen (status "Pending").
 
-```
-python live_spike_marker_probe.py --channels A-000 --marker-bit 1
-```
+Then just open `live_spike_marker_probe.py` in your IDE and click **Run** (or
+double-click it) — a window opens. Fill in host / channels / marker bit, click
+**Start**, and flash the stimulus (or wave something past the photodiode).
 
-Then flash the stimulus (or wave something past the photodiode). Expect `MARKER
-ON/OFF` lines with epoch durations and the spike count inside each epoch, plus a
-periodic live spike-rate readout.
+The window shows:
+- a live per-channel spike-rate readout and rolling plot,
+- a MARKER ON/OFF indicator,
+- an event log with each epoch's duration and the spike count inside it,
+- a **Dump one frame** button for inspecting the raw stream layout.
 
-### Things Phase 0 exists to confirm on the rig
-- Exact digital-in enable command (`--digital-enable-cmd`, default
-  `set digitalin.tcpdataoutputenabled true`).
+### Things Phase 0 exists to confirm on the rig (all editable fields in the window)
+- Exact digital-in enable command (default `set digitalin.tcpdataoutputenabled true`).
 - The digital-in **frame byte layout** — the probe auto-detects block size and
-  aborts loudly on mismatch rather than reporting garbage. Use `--dump-frame`.
-- Which digital bit is the marker (`--marker-bit`, default 1 = DIGITAL-IN-2).
-- Response-latency window offsets (`--left-ms`, `--right-ms`).
+  reports a loud mismatch in the log rather than showing garbage; use **Dump one
+  frame**.
+- Which digital bit is the marker (default bit 1 = DIGITAL-IN-2).
+- Response-latency window offsets (latency left/right ms).
