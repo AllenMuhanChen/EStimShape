@@ -653,6 +653,58 @@ def plot_baseline_profile_onto(ax: plt.Axes,
     ax.grid(True, alpha=0.3)
 
 
+def _unify_ylim(axes_row: list) -> None:
+    """Set a common y-limit across a row of axes (the union of their limits)."""
+    lo = min(ax.get_ylim()[0] for ax in axes_row)
+    hi = max(ax.get_ylim()[1] for ax in axes_row)
+    for ax in axes_row:
+        ax.set_ylim(lo, hi)
+
+
+def plot_correction_factors_onto(ax: plt.Axes, avg_baseline: pd.DataFrame,
+                                 gen_color: dict) -> list:
+    """Per-generation baseline correction factor (gen-1 / gen-N), paired by
+    baseline-stim identity (ParentId).
+
+    A factor of 1 means gen-N baselines already match gen 1 -> no correction
+    needed; the farther from 1, the more the normalizer has to rescale that
+    generation. Draws faint per-baseline factors, the per-generation median
+    trend, and annotates the mean |median - 1| as a single 'how much correction'
+    score (lower = a more stable detector). Returns the median factors so the
+    caller can put all methods on a common y-axis.
+    """
+    df = avg_baseline.copy()
+    df = df[(df['Response'] > 0) & df['Gen1Response'].notna()].copy()
+    if df.empty:
+        ax.set_title('no data')
+        return []
+    df['Factor'] = df['Gen1Response'] / df['Response']
+    gens = sorted(df['GenId'].unique())
+
+    ax.axhline(1.0, color='black', linestyle='--', linewidth=1.0, alpha=0.7,
+               label='factor = 1 (no correction)')
+    for g in gens:
+        fs = df.loc[df['GenId'] == g, 'Factor']
+        ax.scatter([g] * len(fs), fs, color=gen_color.get(g, 'gray'),
+                   s=12, alpha=0.35, zorder=2)
+
+    medians = df.groupby('GenId')['Factor'].median()
+    med_values = [float(medians[g]) for g in gens]
+    ax.plot(gens, med_values, '-o', color='black', linewidth=1.4,
+            markersize=4, zorder=4, label='median factor')
+
+    dev = float(np.mean([abs(m - 1.0) for m in med_values]))
+    ax.annotate(f'mean |median − 1| = {dev:.2f}', (0.03, 0.97),
+                xycoords='axes fraction', ha='left', va='top', fontsize=8,
+                bbox=dict(boxstyle='round', fc='white', ec='gray', alpha=0.75))
+
+    ax.set_xticks(gens)
+    ax.set_xlabel('Generation')
+    ax.set_ylabel('Correction factor\n(gen-1 / gen-N)')
+    ax.grid(True, alpha=0.3)
+    return med_values
+
+
 # ===========================================================================
 # Detection-method definitions + comparison runner
 # ===========================================================================
@@ -791,15 +843,31 @@ def run_comparison(session_id: Optional[str] = None,
     gen_color = {g: colors[i] for i, g in enumerate(gens_sorted)}
 
     n = len(method_results)
-    fig, axes = plt.subplots(1, n, figsize=(7 * n, 6), squeeze=False, sharey=True)
+    # Row 0: baseline profiles.  Row 1: per-generation correction factor.
+    fig, axes = plt.subplots(2, n, figsize=(7 * n, 9), squeeze=False,
+                             gridspec_kw={'height_ratios': [3, 2]})
     fig.suptitle(
         f'Baseline response-per-generation profiles by spike-detection method\n'
         f'Session: {session_id}  |  Channel(s): {channel_label}',
         fontsize=13)
 
+    bottom_medians: list = []
     for i, (name, avg_baseline, avg_catch) in enumerate(method_results):
         plot_baseline_profile_onto(axes[0][i], avg_baseline, avg_catch,
                                    gen_color, title=name)
+        meds = plot_correction_factors_onto(axes[1][i], avg_baseline, gen_color)
+        bottom_medians.extend(meds)
+
+    # Row 0 shares a y-axis (Hz); apply a common limit across the profiles.
+    _unify_ylim(list(axes[0]))
+    # Row 1 shares a y-axis (correction factor); scale from the median trends
+    # (plus the reference at 1) so a single tiny-response outlier can't blow it up.
+    if bottom_medians:
+        lo = min(bottom_medians + [1.0])
+        hi = max(bottom_medians + [1.0])
+        pad = 0.15 * (hi - lo) if hi > lo else 0.2
+        for ax in axes[1]:
+            ax.set_ylim(lo - pad, hi + pad)
 
     # One shared legend (generations) to the right
     handles, labels = axes[0][0].get_legend_handles_labels()
