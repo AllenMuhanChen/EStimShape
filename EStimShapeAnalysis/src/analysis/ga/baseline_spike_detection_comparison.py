@@ -318,7 +318,8 @@ class PeriodicBlockMUAParser:
 
     def parse(self, task_ids: list[int], intan_files_dir: str):
         """Return (spikes_by_channel_by_task_id, epochs_by_task_id, sample_rate)."""
-        spikes, epochs, _amps, sr = self._parse_all(task_ids, intan_files_dir)
+        spikes, epochs, _amps, sr = self._parse_all(
+            task_ids, intan_files_dir, need_amplitudes=False)
         return spikes, epochs, sr
 
     def parse_with_amplitudes(self, task_ids: list[int], intan_files_dir: str):
@@ -330,20 +331,27 @@ class PeriodicBlockMUAParser:
         to the spike-time list, giving each spike's peak-to-peak amplitude (uV)
         measured on the high-pass-filtered trace.
         """
-        return self._parse_all(task_ids, intan_files_dir)
+        return self._parse_all(task_ids, intan_files_dir, need_amplitudes=True)
 
-    def _parse_all(self, task_ids: list[int], intan_files_dir: str):
+    def _parse_all(self, task_ids: list[int], intan_files_dir: str,
+                   *, need_amplitudes: bool = False):
         task_ids = [int(t) for t in task_ids]
         task_id_set = set(task_ids)
 
         if self.to_cache and self.cache_dir is not None:
             cached = self._load_cache(task_ids)
+            # A cache written before per-spike amplitudes existed lacks the
+            # 'amplitudes_by_channel_by_task_id' key entirely (-> None). Treat
+            # that as a miss only when amplitudes are actually needed, so the
+            # profile path still uses the existing spike cache untouched.
             if cached is not None:
-                self.sample_rate = cached['sample_rate']
-                return (cached['spikes_by_channel_by_task_id'],
-                        cached['epochs_by_task_id'],
-                        cached.get('amplitudes_by_channel_by_task_id', {}),
-                        cached['sample_rate'])
+                cached_amps = cached.get('amplitudes_by_channel_by_task_id')
+                if not (need_amplitudes and cached_amps is None):
+                    self.sample_rate = cached['sample_rate']
+                    return (cached['spikes_by_channel_by_task_id'],
+                            cached['epochs_by_task_id'],
+                            cached_amps if cached_amps is not None else {},
+                            cached['sample_rate'])
 
         matching_dirs = find_files_containing_task_ids(task_id_set, intan_files_dir)
         if not matching_dirs:
