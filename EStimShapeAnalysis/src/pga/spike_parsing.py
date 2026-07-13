@@ -281,8 +281,35 @@ class MuaIntanResponseParser(IntanResponseParser):
         # 2) Wideband MUA parse -> MUAChannelResponses
         self._parse_mua_to_db(ga_name)
 
-    def _parse_mua_to_db(self, ga_name: str) -> None:
-        folders = self.find_matching_folders(ga_name)
+    def parse_all_generations_to_mua(self, ga_name: str) -> None:
+        """Offline backfill: detect MUA for EVERY recording folder of the current
+        experiment (all generations, any date subfolder) and populate
+        MUAChannelResponses. Pairs with recalculate_mua_ga."""
+        folders = self.find_all_folders_for_experiment(ga_name)
+        print(f"MUA backfill: found {len(folders)} recording folder(s) for the experiment.")
+        self._parse_mua_to_db(ga_name, folders=folders)
+
+    def find_all_folders_for_experiment(self, ga_name: str):
+        """All recording folders of the current experiment across generations and
+        date subfolders. Like find_matching_folders but without the gen_id filter
+        and rooted at base_intan_path so every date subfolder is searched."""
+        current_experiment_id = self.db_util.read_current_experiment_id(ga_name)
+        matching_folders = []
+        for root, dirs, files in os.walk(self.base_intan_path):
+            for dir_name in dirs:
+                parts = dir_name.split('_')
+                if len(parts) >= 5:
+                    try:
+                        experiment_id = int(parts[0])
+                    except ValueError:
+                        continue
+                    if experiment_id == current_experiment_id:
+                        matching_folders.append(os.path.join(root, dir_name))
+        return matching_folders
+
+    def _parse_mua_to_db(self, ga_name: str, folders=None) -> None:
+        if folders is None:
+            folders = self.find_matching_folders(ga_name)
         if not folders:
             print("MUA parse: no matching Intan folders found.")
             return
