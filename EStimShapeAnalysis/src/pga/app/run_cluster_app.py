@@ -13,6 +13,11 @@ from src.pga.multi_ga_db_util import MultiGaDbUtil
 from src.startup import context
 
 
+# Detection method the cluster app reads from MUAChannelResponses. Matches the
+# GA MUA pipeline default (-4x MAD, threshold refreshed every 100 task_ids).
+DEFAULT_MUA_METRIC = "mad_k4_block100"
+
+
 def channels_for_prefix(prefix: str):
     '''
     Returns a list of channels with names starting with the given prefix
@@ -21,8 +26,12 @@ def channels_for_prefix(prefix: str):
 
 
 class DbDataLoader(DataLoader):
-    def __init__(self, conn: Connection):
+    """Loads per-channel response vectors from MUAChannelResponses (the wideband
+    -kxMAD detector's output) rather than the spike.dat ChannelResponses table."""
+
+    def __init__(self, conn: Connection, mua_metric: str = DEFAULT_MUA_METRIC):
         self.conn = conn
+        self.mua_metric = mua_metric
 
     def load_data_for_channels(self, max_gen: int | None = None):
         # The data will be dictionary between channels and their data
@@ -43,9 +52,10 @@ class DbDataLoader(DataLoader):
         query = """
             SELECT MAX(sgi.gen_id)
             FROM StimGaInfo sgi
-            JOIN ChannelResponses cr ON cr.stim_id = sgi.stim_id
+            JOIN MUAChannelResponses cr ON cr.stim_id = sgi.stim_id
+            WHERE cr.mua_metric = %s
         """
-        self.conn.execute(query)
+        self.conn.execute(query, (self.mua_metric,))
         max_gen = self.conn.fetch_one()
         if max_gen is None:
             return 1
@@ -68,22 +78,22 @@ class DbDataLoader(DataLoader):
         if max_gen is None:
             query = """
                 SELECT stim_id, AVG(spikes_per_second) as avg_spikes_per_second
-                FROM ChannelResponses
-                WHERE channel = %s
+                FROM MUAChannelResponses
+                WHERE channel = %s AND mua_metric = %s
                 GROUP BY stim_id
                 ORDER BY stim_id
             """
-            params = (str(channel_name),)
+            params = (str(channel_name), self.mua_metric)
         else:
             query = """
                 SELECT cr.stim_id, AVG(cr.spikes_per_second) as avg_spikes_per_second
-                FROM ChannelResponses cr
+                FROM MUAChannelResponses cr
                 JOIN StimGaInfo sgi ON cr.stim_id = sgi.stim_id
-                WHERE cr.channel = %s AND sgi.gen_id <= %s
+                WHERE cr.channel = %s AND cr.mua_metric = %s AND sgi.gen_id <= %s
                 GROUP BY cr.stim_id
                 ORDER BY cr.stim_id
             """
-            params = (str(channel_name), max_gen)
+            params = (str(channel_name), self.mua_metric, max_gen)
         self.conn.execute(query, params)  # Execute the query with the parameter
         data = self.conn.fetch_all()  # Fetch all results
 
