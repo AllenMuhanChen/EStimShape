@@ -18,9 +18,9 @@ def main():
                      27, 20, 4, 11, 28, 19, 1, 14, 3, 12, 29, 18, 2, 13, 30, 17]
     # BARE MINIMUM FOR PREFERENCE CLUSTER
     bare_minimum_for_preference_cluster = [
-        # IsochromaticIndexAnalysis(),
-        GAResponseVectorAnalysis(),
-        SolidPreferenceIndexAnalysis(),
+        IsochromaticIndexAnalysis(data_type="mua"),
+        GAResponseVectorAnalysis(data_type="mua"),
+        SolidPreferenceIndexAnalysis(data_type="mua"),
     ]
     analyses = bare_minimum_for_preference_cluster
 
@@ -38,7 +38,6 @@ def main():
         try:
             compiled_data = analysis.compile_and_export()
             analysis.run_on_channels(session_id=session_id,
-                                     data_type="raw",
                                      channels=channels,
                                      compiled_data=compiled_data)
         except Exception as e:

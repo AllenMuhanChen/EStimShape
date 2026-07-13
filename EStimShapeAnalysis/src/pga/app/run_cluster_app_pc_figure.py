@@ -319,9 +319,17 @@ class PcInterpretationFigureExporter(DataExporter):
 
     def _fetch_stim_id_order(self) -> list:
         conn = self.data_loader.conn
-        conn.execute(
-            "SELECT DISTINCT stim_id FROM ChannelResponses ORDER BY stim_id"
-        )
+        mua_metric = getattr(self.data_loader, "mua_metric", None)
+        if mua_metric is not None:
+            conn.execute(
+                "SELECT DISTINCT stim_id FROM MUAChannelResponses "
+                "WHERE mua_metric = %s ORDER BY stim_id",
+                (mua_metric,),
+            )
+        else:
+            conn.execute(
+                "SELECT DISTINCT stim_id FROM MUAChannelResponses ORDER BY stim_id"
+            )
         return [row[0] for row in conn.fetch_all()]
 
     def _fetch_thumbnails(self, stim_ids: list) -> dict:

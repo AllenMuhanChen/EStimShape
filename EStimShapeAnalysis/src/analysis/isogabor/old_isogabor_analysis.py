@@ -287,6 +287,153 @@ class IntanSpikeRateByChannelField(_IntanParserField):
         return "Spike Rate by channel"
 
 
+# ---------------------------------------------------------------------------
+# MUA field adapters: reuse the Intan field logic above, but source spikes from
+# the wideband MAD detector (PeriodicBlockMUAParser) whose parse() returns a
+# third value (sample_rate). Distinct field names keep their TaskFieldCache rows
+# separate from the spike.dat fields; callers rename the columns back to the
+# standard names after compile. Shared by the GA (plot_top_n) and isogabor
+# pipelines.
+# ---------------------------------------------------------------------------
+class _MuaParsedMixin:
+    """Drop the sample_rate from PeriodicBlockMUAParser.parse's 3-tuple so the
+    Intan field logic (which expects (_all_spikes, _all_epochs)) works."""
+
+    def _get_parsed(self):
+        if self._all_spikes is None:
+            self._all_spikes, self._all_epochs, _sr = self.parser.parse(
+                self.all_task_ids, self.intan_files_dir)
+        return self._all_spikes, self._all_epochs
+
+
+class MuaSpikesByChannelField(_MuaParsedMixin, IntanSpikesByChannelField):
+    def get_name(self):
+        return "MUA Spikes by channel"
+
+
+class MuaSpikeRateByChannelField(_MuaParsedMixin, IntanSpikeRateByChannelField):
+    def get_name(self):
+        return "MUA Spike Rate by channel"
+
+
+class MuaEpochStartStopTimesField(_MuaParsedMixin, EpochStartStopTimesField):
+    def get_name(self):
+        return "MUA Epoch"
+
+
+class _StrChannel:
+    """Minimal channel holder exposing `.value`, matching what the Intan fields
+    read. Lets the DB-backed parser return channels without a clat Channel enum."""
+    __slots__ = ("value",)
+
+    def __init__(self, value):
+        self.value = value
+
+
+class MuaDbCachedParser:
+    """Parser adapter that first serves MUA spikes/epochs from a database's
+    MUAChannelResponses table (populated by the live GA MUA parser) and only
+    re-detects the missing task_ids from wideband via `fallback_parser`.
+
+    parse() returns the same shape as PeriodicBlockMUAParser:
+      (spikes_by_channel_by_task_id, epochs_by_task_id, sample_rate)
+    with absolute spike times, so the Intan/MUA field logic works unchanged.
+    Robust to a missing table/columns — it just falls back to detection.
+    """
+
+    def __init__(self, db_name: str, mua_metric: str, fallback_parser):
+        self.db_name = db_name
+        self.mua_metric = mua_metric
+        self.fallback = fallback_parser
+        self.sample_rate = None
+
+    def parse(self, task_ids, intan_files_dir):
+        task_ids = [int(t) for t in task_ids]
+        spikes, epochs = self._read_from_db(task_ids)
+        missing = [t for t in task_ids if t not in epochs]
+        if missing:
+            print(f"MUA DB cache: served {len(task_ids) - len(missing)}/{len(task_ids)} "
+                  f"tasks from MUAChannelResponses; detecting {len(missing)} from wideband.")
+            m_spikes, m_epochs, sr = self.fallback.parse(missing, intan_files_dir)
+            spikes.update(m_spikes)
+            epochs.update(m_epochs)
+            self.sample_rate = sr
+        else:
+            print(f"MUA DB cache: served all {len(task_ids)} tasks from "
+                  f"MUAChannelResponses (no wideband detection needed).")
+        return spikes, epochs, self.sample_rate
+
+    def _read_from_db(self, task_ids):
+        import ast
+        from clat.util.connection import Connection
+
+        spikes: dict = {}
+        epochs: dict = {}
+        if not task_ids:
+            return spikes, epochs
+        try:
+            conn = Connection(self.db_name)
+            conn.execute("SHOW TABLES LIKE 'MUAChannelResponses'")
+            if not conn.fetch_all():
+                return spikes, epochs
+            placeholders = ','.join(['%s'] * len(task_ids))
+            conn.execute(
+                f"""SELECT task_id, channel, tstamps, epoch_start, epoch_end
+                    FROM MUAChannelResponses
+                    WHERE mua_metric = %s AND task_id IN ({placeholders})
+                      AND tstamps IS NOT NULL AND epoch_start IS NOT NULL""",
+                [self.mua_metric] + list(task_ids),
+            )
+            for task_id, channel, tstamps_str, epoch_start, epoch_end in conn.fetch_all():
+                if epoch_start is None or epoch_end is None:
+                    continue
+                try:
+                    times = ast.literal_eval(tstamps_str) if tstamps_str else []
+                except (SyntaxError, ValueError):
+                    times = []
+                spikes.setdefault(int(task_id), {})[_StrChannel(channel)] = times
+                epochs[int(task_id)] = (float(epoch_start), float(epoch_end))
+        except Exception as e:
+            print(f"MUA DB cache read failed ({e}); falling back to wideband detection.")
+            return {}, {}
+        return spikes, epochs
+
+
+def append_response_fields(fields, conn, task_ids, intan_files_dir, *,
+                           is_mua: bool, parsed_spikes_path: str, db_name: str,
+                           mua_metric: str = "mad_k4_block100",
+                           mua_k: float = 4.0, mua_block: int = 100):
+    """Append the three spike/rate/epoch fields to `fields`, sourcing them either
+    from MUA (wideband -kxMAD, reusing MUAChannelResponses) or spike.dat.
+
+    Returns the column-rename map to apply after compile (the MUA fields use
+    distinct cache names; empty dict for spike.dat).
+    """
+    if is_mua:
+        import os
+        from src.analysis.ga.baseline_spike_detection_comparison import (
+            PeriodicBlockMUAParser, MadStrategy)
+        wideband = PeriodicBlockMUAParser(
+            strategy=MadStrategy(threshold_mad=mua_k), block_size=mua_block,
+            to_cache=True, cache_dir=os.path.join(parsed_spikes_path, "mua_block_mad"))
+        parser = MuaDbCachedParser(db_name=db_name, mua_metric=mua_metric,
+                                   fallback_parser=wideband)
+        fields.append(MuaSpikesByChannelField(conn, parser, task_ids, intan_files_dir))
+        fields.append(MuaSpikeRateByChannelField(conn, parser, task_ids, intan_files_dir))
+        fields.append(MuaEpochStartStopTimesField(conn, parser, task_ids, intan_files_dir))
+        return {
+            "MUA Spikes by channel": "Spikes by channel",
+            "MUA Spike Rate by channel": "Spike Rate by channel",
+            "MUA Epoch": "Epoch",
+        }
+    from src.intan.MultiFileParser import MultiFileParser
+    parser = MultiFileParser(to_cache=True, cache_dir=parsed_spikes_path)
+    fields.append(IntanSpikesByChannelField(conn, parser, task_ids, intan_files_dir))
+    fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, intan_files_dir))
+    fields.append(EpochStartStopTimesField(conn, parser, task_ids, intan_files_dir))
+    return {}
+
+
 class TypeField(StimSpecField):
     def get(self, task_id) -> str:
         stim_spec = self.get_cached_super(task_id, StimSpecField)

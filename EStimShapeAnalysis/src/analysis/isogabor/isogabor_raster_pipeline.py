@@ -1,3 +1,5 @@
+import os
+
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -18,7 +20,8 @@ from src.intan.MultiFileParser import MultiFileParser
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 from src.analysis.isogabor.old_isogabor_analysis import TypeField, FrequencyField, IntanSpikesByChannelField, \
-    EpochStartStopTimesField, IsoTypeField, IntanSpikeRateByChannelField, OrientationField
+    EpochStartStopTimesField, IsoTypeField, IntanSpikeRateByChannelField, OrientationField, \
+    MuaSpikesByChannelField, MuaSpikeRateByChannelField, MuaEpochStartStopTimesField, MuaDbCachedParser
 
 # Import our pipeline framework
 from clat.pipeline.pipeline_base_classes import (
@@ -47,6 +50,7 @@ class IsogaborAnalysis(Analysis):
                 'isogabor',
                 'IsoGaborStimInfo',
                 self.response_table,
+                mua_method=self.mua_method if self.response_table == "MUASpikeResponses" else None,
             )
 
         # CALCULATE INDEX
@@ -164,11 +168,20 @@ class IsogaborAnalysis(Analysis):
         plt.show()
         return result
 
+    def _is_mua(self):
+        return self.response_table == "MUASpikeResponses"
+
     def compile_and_export(self):
-        compile_and_export()
+        return compile_and_export(
+            data_type='mua' if self._is_mua() else 'raw',
+            mua_method=self.mua_method if self._is_mua() else None,
+            mua_k=self.mua_k or 4.0, mua_block=self.mua_block or 100)
 
     def compile(self):
-        compile()
+        return compile(
+            data_type='mua' if self._is_mua() else 'raw',
+            mua_method=self.mua_method if self._is_mua() else None,
+            mua_k=self.mua_k or 4.0, mua_block=self.mua_block or 100)
 
 
 class IsochromaticIndexAnalysis(IsogaborAnalysis):
@@ -180,6 +193,7 @@ class IsochromaticIndexAnalysis(IsogaborAnalysis):
                 'isogabor',
                 'IsoGaborStimInfo',
                 self.response_table,
+                mua_method=self.mua_method if self.response_table == "MUASpikeResponses" else None,
             )
 
         # CALCULATE INDEX
@@ -229,19 +243,26 @@ class IsochromaticIndexAnalysis(IsogaborAnalysis):
 
 
 
-def compile_and_export():
-    compiled_data = compile()
+def compile_and_export(data_type: str = 'raw', mua_method: str = None,
+                       mua_k: float = 4.0, mua_block: int = 100):
+    is_mua = data_type == 'mua' or mua_method is not None
+    method = mua_method or (f"mad_k{mua_k:g}_block{mua_block}" if is_mua else None)
+    compiled_data = compile(data_type=data_type, mua_method=method,
+                            mua_k=mua_k, mua_block=mua_block)
 
     export_to_repository(compiled_data, context.isogabor_database, "isogabor",
                          stim_info_table="IsoGaborStimInfo",
-                         stim_info_columns=['Type', 'Frequency', 'IsoType', 'Orientation'])
+                         stim_info_columns=['Type', 'Frequency', 'IsoType', 'Orientation'],
+                         response_table='MUASpikeResponses' if is_mua else 'RawSpikeResponses',
+                         mua_method=method)
+    return compiled_data
 
 
-def compile():
+def compile(data_type: str = 'raw', mua_method: str = None,
+            mua_k: float = 4.0, mua_block: int = 100):
     conn = Connection(context.isogabor_database)
     # Set up parser
     task_ids = TaskIdCollector(conn).collect_task_ids()
-    parser = MultiFileParser(to_cache=True, cache_dir=context.isogabor_parsed_spikes_path)
 
     # Create fields list
     fields = CachedTaskFieldList()
@@ -250,12 +271,38 @@ def compile():
     fields.append(FrequencyField(conn))
     fields.append(IsoTypeField(conn))
     fields.append(OrientationField(conn))
-    fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.isogabor_intan_path))
-    fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.isogabor_intan_path))
-    fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.isogabor_intan_path))
-    # fields.append(WindowSortSpikesByUnitField(conn, parser, task_ids, context.isogabor_intan_path, "/home/r2_allen/Documents/EStimShape/allen_sort_250421_0/sorted_spikes.pkl"))
+
+    # Spike source: MUA (wideband, -k x MAD, block-of-N) vs spike.dat.
+    is_mua = data_type == 'mua' or mua_method is not None
+    if is_mua:
+        from src.analysis.ga.baseline_spike_detection_comparison import (
+            PeriodicBlockMUAParser, MadStrategy)
+        wideband_parser = PeriodicBlockMUAParser(
+            strategy=MadStrategy(threshold_mad=mua_k), block_size=mua_block,
+            to_cache=True,
+            cache_dir=os.path.join(context.isogabor_parsed_spikes_path, "mua_block_mad"))
+        # Reuse any spikes already stored in MUAChannelResponses; detect the rest.
+        parser = MuaDbCachedParser(
+            db_name=context.isogabor_database,
+            mua_metric=mua_method or f"mad_k{mua_k:g}_block{mua_block}",
+            fallback_parser=wideband_parser)
+        fields.append(MuaSpikesByChannelField(conn, parser, task_ids, context.isogabor_intan_path))
+        fields.append(MuaSpikeRateByChannelField(conn, parser, task_ids, context.isogabor_intan_path))
+        fields.append(MuaEpochStartStopTimesField(conn, parser, task_ids, context.isogabor_intan_path))
+    else:
+        parser = MultiFileParser(to_cache=True, cache_dir=context.isogabor_parsed_spikes_path)
+        fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.isogabor_intan_path))
+        fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.isogabor_intan_path))
+        fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.isogabor_intan_path))
+
     # Compile data
     data = fields.to_data(task_ids)
+    if is_mua:
+        data = data.rename(columns={
+            "MUA Spikes by channel": "Spikes by channel",
+            "MUA Spike Rate by channel": "Spike Rate by channel",
+            "MUA Epoch": "Epoch",
+        })
 
     # filter out trials where Spikes by Channel is empty
     data = data[data['Spikes by channel'].notnull()]

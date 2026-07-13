@@ -12,12 +12,58 @@ from clat.intan.marker_channels import epoch_using_marker_channels
 from clat.intan.one_file_spike_parsing import OneFileParser
 from clat.intan.spike_file import fetch_spike_tstamps_from_file
 from clat.util.connection import Connection
+from src.lfp.spike_waveform_features import highpass_filter
 from src.pga.multi_ga_db_util import MultiGaDbUtil
 
 
 class ResponseParser(Protocol):
     def parse_to_db(self, ga_name: str) -> None:
         pass
+
+
+def _detect_mad_negative_spikes(segment: np.ndarray, threshold: float,
+                                refractory_samples: int) -> np.ndarray:
+    """Negative-going crossings of `threshold` (< 0) in `segment`, snapped to the
+    local trough with a refractory period enforced. Returns sample indices into
+    `segment`. Mirrors the offline analysis detector (negative crossings only)."""
+    if segment.size < 2:
+        return np.empty(0, dtype=int)
+    below = segment < threshold
+    crossings = np.where(np.diff(below.astype(np.int8)) == 1)[0] + 1
+    if len(crossings) == 0:
+        return np.empty(0, dtype=int)
+    n = len(segment)
+    troughs = []
+    for c in crossings:
+        window_end = min(c + refractory_samples, n)
+        troughs.append(c + int(np.argmin(segment[c:window_end])))
+    kept = [troughs[0]]
+    for s in troughs[1:]:
+        if s - kept[-1] >= refractory_samples:
+            kept.append(s)
+    return np.asarray(kept, dtype=int)
+
+
+def _count_mad_negative_spikes(segment: np.ndarray, threshold: float,
+                               refractory_samples: int) -> int:
+    """Count of negative MAD spikes in `segment` (see _detect_mad_negative_spikes)."""
+    return len(_detect_mad_negative_spikes(segment, threshold, refractory_samples))
+
+
+def _read_amplifier_header(intan_dir: str):
+    """Return (sample_rate, amplifier_channels) from info.rhd (or .rhs)."""
+    rhd_path = os.path.join(intan_dir, "info.rhd")
+    rhs_path = os.path.join(intan_dir, "info.rhs")
+    if os.path.exists(rhd_path):
+        from clat.intan.rhd.load_intan_rhd_format import read_data
+        header = read_data(rhd_path)
+    elif os.path.exists(rhs_path):
+        from clat.intan.rhs.load_intan_rhs_format import read_data
+        header = read_data(rhs_path)
+    else:
+        raise FileNotFoundError(f"No info.rhd/info.rhs header in {intan_dir}")
+    return (header['frequency_parameters']['amplifier_sample_rate'],
+            header['amplifier_channels'])
 
 
 class IntanResponseParser(ResponseParser):
@@ -206,6 +252,151 @@ class IntanResponseParser(ResponseParser):
         for channel, spikes in spikes_for_channels.items():
             spike_count_for_channels[channel] = len(spikes)
         return spike_count_for_channels
+
+
+class MuaIntanResponseParser(IntanResponseParser):
+    """
+    Runs the standard spike.dat parse (writing ChannelResponses, unchanged) AND a
+    second pass that re-detects MUA from the raw wideband (amplifier.dat) using a
+    -k x MAD negative threshold refreshed every `block_size` task_ids, writing the
+    per-trial per-channel rates to MUAChannelResponses under `mua_metric`.
+
+    Epochs and task alignment are taken from OneFileParser (the same source the
+    spike.dat parse uses), so MUA responses map to task_ids identically.
+    """
+
+    def __init__(self, base_intan_path, db_util: MultiGaDbUtil = None,
+                 date_YYYY_MM_DD: str = None, *,
+                 mua_metric: str = "mad_k4_block100",
+                 threshold_k: float = 4.0,
+                 block_size: int = 100,
+                 highpass_hz: float = 300.0,
+                 refractory_sec: float = 0.001):
+        super().__init__(base_intan_path, db_util, date_YYYY_MM_DD)
+        # IntanResponseParser only keeps intan_spike_path (base joined with date);
+        # keep the un-dated base so the full-session backfill can search every
+        # date subfolder, not just today's.
+        self.base_intan_path = base_intan_path
+        self.mua_metric = mua_metric
+        self.threshold_k = threshold_k
+        self.block_size = block_size
+        self.highpass_hz = highpass_hz
+        self.refractory_sec = refractory_sec
+        if self.db_util is not None:
+            self.db_util.create_mua_channel_responses_table_if_not_exists()
+
+    def parse_to_db(self, ga_name: str) -> None:
+        # 1) Unchanged spike.dat parse -> ChannelResponses
+        super().parse_to_db(ga_name)
+        # 2) Wideband MUA parse -> MUAChannelResponses
+        self._parse_mua_to_db(ga_name)
+
+    def parse_all_generations_to_mua(self, ga_name: str) -> None:
+        """Offline backfill: detect MUA for EVERY recording folder of the current
+        experiment (all generations, any date subfolder) and populate
+        MUAChannelResponses. Pairs with recalculate_mua_ga."""
+        folders = self.find_all_folders_for_experiment(ga_name)
+        print(f"MUA backfill: found {len(folders)} recording folder(s) for the experiment.")
+        self._parse_mua_to_db(ga_name, folders=folders)
+
+    def find_all_folders_for_experiment(self, ga_name: str):
+        """All recording folders of the current experiment across generations and
+        date subfolders. Like find_matching_folders but without the gen_id filter
+        and rooted at base_intan_path so every date subfolder is searched."""
+        current_experiment_id = self.db_util.read_current_experiment_id(ga_name)
+        matching_folders = []
+        for root, dirs, files in os.walk(self.base_intan_path):
+            for dir_name in dirs:
+                parts = dir_name.split('_')
+                if len(parts) >= 5:
+                    try:
+                        experiment_id = int(parts[0])
+                    except ValueError:
+                        continue
+                    if experiment_id == current_experiment_id:
+                        matching_folders.append(os.path.join(root, dir_name))
+        return matching_folders
+
+    def _parse_mua_to_db(self, ga_name: str, folders=None) -> None:
+        if folders is None:
+            folders = self.find_matching_folders(ga_name)
+        if not folders:
+            print("MUA parse: no matching Intan folders found.")
+            return
+
+        stims_to_parse = self.db_util.read_stims_with_no_mua_responses(ga_name, self.mua_metric)
+        if not stims_to_parse:
+            print("MUA parse: no stims left to parse for metric", self.mua_metric)
+            return
+        task_to_stim = {}
+        for stim_id in stims_to_parse:
+            for task_id in self.db_util.read_task_done_ids_by_stim_id(ga_name, stim_id):
+                task_to_stim[task_id] = stim_id
+
+        rows = []
+        for folder in folders:
+            _, epochs_by_task, sample_rate = OneFileParser().parse(folder)
+            rows.extend(self._detect_mua_rows_for_folder(
+                folder, epochs_by_task, sample_rate, task_to_stim))
+
+        rows = [r for r in rows if r[4] == r[4]]  # drop NaN rates
+        if rows:
+            self.db_util.add_mua_channel_responses_in_batch(rows)
+        print(f"MUA parse: wrote {len(rows)} MUAChannelResponses rows "
+              f"(metric={self.mua_metric}).")
+
+    def _detect_mua_rows_for_folder(self, intan_dir, epochs_by_task, sample_rate,
+                                    task_to_stim) -> list:
+        from clat.intan.amplifiers import read_amplifier_data_with_memmap
+
+        _sr_header, amplifier_channels = _read_amplifier_header(intan_dir)
+        amplifier_path = os.path.join(intan_dir, "amplifier.dat")
+        channel_to_raw = read_amplifier_data_with_memmap(amplifier_path, amplifier_channels)
+
+        # Order this file's trials by epoch start (epochs are in seconds), block by
+        # `block_size` task_ids. All trials contribute to the threshold estimate;
+        # only trials mapping to a stim we're parsing get written.
+        trials = sorted(
+            ((task_id, epoch[0], epoch[1]) for task_id, epoch in epochs_by_task.items()
+             if epoch is not None),
+            key=lambda t: t[1])
+        if not trials:
+            return []
+        blocks = [trials[i:i + self.block_size]
+                  for i in range(0, len(trials), self.block_size)]
+        refractory_samples = max(1, int(self.refractory_sec * sample_rate))
+
+        rows = []
+        for channel, raw in channel_to_raw.items():
+            cval = channel.value
+            filtered = highpass_filter(np.asarray(raw, dtype=np.float64),
+                                       sample_rate, self.highpass_hz)
+            n = len(filtered)
+            for block in blocks:
+                b_start = max(0, int(block[0][1] * sample_rate))
+                b_end = min(n, int(block[-1][2] * sample_rate))
+                if b_end <= b_start:
+                    continue
+                sigma = float(np.median(np.abs(filtered[b_start:b_end]))) / 0.6745
+                threshold = -self.threshold_k * sigma
+                for task_id, start_s, end_s in block:
+                    stim_id = task_to_stim.get(task_id)
+                    if stim_id is None:
+                        continue
+                    s = max(0, int(start_s * sample_rate))
+                    e = min(n, int(end_s * sample_rate))
+                    duration = end_s - start_s
+                    if e <= s or duration <= 0:
+                        continue
+                    local = _detect_mad_negative_spikes(
+                        filtered[s:e], threshold, refractory_samples)
+                    # Absolute spike times (seconds) so the analysis fields can
+                    # reconstruct them without re-detecting from wideband.
+                    abs_times = [float(t) for t in (s + local) / sample_rate]
+                    rows.append((stim_id, task_id, cval, self.mua_metric,
+                                 len(local) / duration, repr(abs_times),
+                                 float(start_s), float(end_s)))
+        return rows
 
 
 def get_current_date_as_YYYY_MM_DD() -> str:

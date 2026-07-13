@@ -723,7 +723,7 @@ def launch(default_channel: str = "GA", *, delta_threshold: float = 0.6,
     analysis.session_id = session_id
     # Always load raw per-channel responses so the channel can be switched in
     # the GUI without re-importing; 'GA Response' rides along on the stim info.
-    analysis.parse_data_type("raw", session_id=session_id)
+    analysis.parse_data_type("mua", session_id=session_id)
     compiled_data = analysis.import_data(None)
 
     root = tk.Tk()

@@ -18,10 +18,8 @@ from src.analysis import Analysis
 from src.analysis.fields.cached_task_fields import StimTypeField, StimPathField, ThumbnailField, HypothesizedCompField
 from src.analysis.ga.cached_ga_fields import ParentIdField, LineageField, GenIdField, RegimeScoreField
 from src.analysis.ga.plot_top_n import PlotTopNAnalysis
-from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, IntanSpikeRateByChannelField, \
-    EpochStartStopTimesField
+from src.analysis.isogabor.old_isogabor_analysis import append_response_fields
 from src.analysis.modules.figure_output import FigureSaverOutput
-from src.intan.MultiFileParser import MultiFileParser
 from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
@@ -31,10 +29,10 @@ CHANNEL_ORDER = [7, 8, 25, 22, 0, 15, 24, 23, 6, 9, 26, 21, 5, 10, 31, 16,
 
 
 def main():
-    analysis = GARasterAnalysis(top_n=10, gen_id=None)
+    analysis = GARasterAnalysis(top_n=10, gen_id=None, data_type="mua")
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     compiled_data = analysis.compile()
-    analysis.run(session_id, "raw", "ALL", compiled_data)
+    analysis.run(session_id, "mua", "ALL", compiled_data)
 
 
 class GARasterAnalysis(Analysis):
@@ -48,8 +46,9 @@ class GARasterAnalysis(Analysis):
     """
     logging_path = context.logging_path
 
-    def __init__(self, top_n: int = 10, gen_id: Optional[Union[int, List[int]]] = None):
-        super().__init__()
+    def __init__(self, top_n: int = 10, gen_id: Optional[Union[int, List[int]]] = None,
+                 data_type: str = None):
+        super().__init__(data_type=data_type)
         self.top_n = top_n
         if gen_id is None or isinstance(gen_id, list):
             self.gen_ids = gen_id          # None = all, list = filter to these
@@ -69,10 +68,6 @@ class GARasterAnalysis(Analysis):
         conn = Connection(context.ga_database)
         collector = TaskIdCollector(conn)
         task_ids = collector.collect_task_ids()
-        response_processor = context.ga_config.make_response_processor()
-        cluster_combination_strategy = response_processor.cluster_combination_strategy
-        parser = MultiFileParser(to_cache=True, cache_dir=context.ga_parsed_spikes_path)
-        mstick_spec_data_source = StimSpecDataField(conn)
 
         fields = CachedTaskFieldList()
         fields.append(TaskIdField(conn))
@@ -84,17 +79,19 @@ class GARasterAnalysis(Analysis):
         fields.append(StimTypeField(conn))
         fields.append(StimPathField(conn))
         fields.append(ThumbnailField(conn))
-        # fields.append(GAResponseField(conn))
         fields.append(HypothesizedCompField(conn))
-        # fields.append(ClusterResponseField(conn, cluster_combination_strategy))
-        fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
-        fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))
-        fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))
-        # fields.append(ShaftField(conn, mstick_spec_data_source))
-        # fields.append(TerminationField(conn, mstick_spec_data_source))
-        # fields.append(JunctionField(conn, mstick_spec_data_source))
+        # Spike source: MUA (wideband -kxMAD, reusing MUAChannelResponses) or spike.dat.
+        rename_map = append_response_fields(
+            fields, conn, task_ids, context.ga_intan_path,
+            is_mua=self.response_table == "MUASpikeResponses",
+            parsed_spikes_path=context.ga_parsed_spikes_path,
+            db_name=context.ga_database,
+            mua_metric=self.mua_method or "mad_k4_block100",
+            mua_k=self.mua_k or 4.0, mua_block=self.mua_block or 100)
 
         data = fields.to_data(task_ids)
+        if rename_map:
+            data = data.rename(columns=rename_map)
 
         data = self.clean_ga_data(data)
         return data
@@ -108,6 +105,7 @@ class GARasterAnalysis(Analysis):
                 "ga",
                 "GAStimInfo",
                 self.response_table,
+                mua_method=self.mua_method if self.response_table == "MUASpikeResponses" else None,
             )
         return compiled_data
 

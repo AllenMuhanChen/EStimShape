@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Optional
 
@@ -21,7 +22,8 @@ from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, 
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField, GenIdField, ParentIdField
 from src.analysis.ga.response_spec import ResponseSpec
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
-    IntanSpikeRateByChannelField
+    IntanSpikeRateByChannelField, MuaSpikesByChannelField, MuaSpikeRateByChannelField, \
+    MuaEpochStartStopTimesField, MuaDbCachedParser
 from src.analysis.lightness.lightness_analysis import TextureField, ColorField, AverageRGBField
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.intan.MultiFileParser import MultiFileParser
@@ -35,17 +37,15 @@ from src.startup import context
 def main():
 
 
-    # compiled_data = compile_and_export()
+
     compiled_data = None
-    analysis = PlotTopNAnalysis(use_baseline_correction=False)
+    analysis = PlotTopNAnalysis(use_baseline_correction=False, data_type="mua")
     # compiled_data = analysis.compile_and_export()
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
-    # session_id = "260327_0"
-    # channel = ["A-009", "A-000", "A-006", "A-009", "A-015", "A-022", "A-024"]
-    channel = "GA"
+    channel = "Cluster"
     # channel = read_cluster_channels(session_id)
     # channel = "A-013"
-    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    analysis.run(session_id, "mua", channel, compiled_data=compiled_data)
 
     
 
@@ -55,8 +55,8 @@ class PlotTopNAnalysis(Analysis, LiveCompilable):
     # Repository experiment name this analysis exports under (experiment_id = f"{session_id}_{EXP_NAME}").
     EXP_NAME = "ga"
 
-    def __init__(self, use_baseline_correction: bool = False):
-        super().__init__()
+    def __init__(self, use_baseline_correction: bool = False, data_type: str = None):
+        super().__init__(data_type=data_type)
         # Apply rank-based baseline correction to per-channel spike rates.
         # Silently a no-op in GA mode (the precomputed GA Response already
         # reflects whichever baseline policy the response processor used).
@@ -87,7 +87,8 @@ class PlotTopNAnalysis(Analysis, LiveCompilable):
                 self.session_id,
                 "ga",
                 "GAStimInfo",
-                self.response_table
+                self.response_table,
+                mua_method=self.mua_method if self.response_table == "MUASpikeResponses" else None,
             )
 
         return compiled_data
@@ -120,8 +121,11 @@ class PlotTopNAnalysis(Analysis, LiveCompilable):
         return data
 
     def export(self, data: pd.DataFrame) -> None:
+        is_mua = self.response_table == "MUASpikeResponses"
         export_to_repository(data, context.ga_database, self.EXP_NAME,
                              stim_info_table="GAStimInfo",
+                             response_table=self.response_table or "RawSpikeResponses",
+                             mua_method=self.mua_method if is_mua else None,
                              stim_info_columns=[
                                  "Lineage",
                                  "RegimeScore",
@@ -177,7 +181,6 @@ class PlotTopNAnalysis(Analysis, LiveCompilable):
             task_ids = self.collect_task_ids(conn)
         response_processor = context.ga_config.make_response_processor()
         cluster_combination_strategy = response_processor.cluster_combination_strategy
-        parser = MultiFileParser(to_cache=True, cache_dir=context.ga_parsed_spikes_path)
         mstick_spec_data_source = StimSpecDataField(conn)
 
         fields = CachedTaskFieldList()
@@ -195,15 +198,48 @@ class PlotTopNAnalysis(Analysis, LiveCompilable):
         fields.append(TextureField(conn))
         fields.append(AverageRGBField(conn))
         fields.append(ClusterResponseField(conn, cluster_combination_strategy))
-        fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
-        fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))
-        fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))
+
+        # Spike source: MUA (wideband, -k x MAD, block-of-N) vs spike.dat.
+        is_mua = self.response_table == "MUASpikeResponses"
+        if is_mua:
+            from src.analysis.ga.baseline_spike_detection_comparison import (
+                PeriodicBlockMUAParser, MadStrategy)
+            wideband_parser = PeriodicBlockMUAParser(
+                strategy=MadStrategy(threshold_mad=self.mua_k or 4.0),
+                block_size=self.mua_block or 100,
+                to_cache=True,
+                cache_dir=os.path.join(context.ga_parsed_spikes_path, "mua_block_mad"),
+            )
+            # Reuse spikes the live GA parser already wrote to MUAChannelResponses;
+            # only detect missing task_ids from wideband.
+            mua_parser = MuaDbCachedParser(
+                db_name=context.ga_database,
+                mua_metric=self.mua_method or "mad_k4_block100",
+                fallback_parser=wideband_parser,
+            )
+            fields.append(MuaSpikesByChannelField(conn, mua_parser, task_ids, context.ga_intan_path))
+            fields.append(MuaSpikeRateByChannelField(conn, mua_parser, task_ids, context.ga_intan_path))
+            fields.append(MuaEpochStartStopTimesField(conn, mua_parser, task_ids, context.ga_intan_path))
+        else:
+            parser = MultiFileParser(to_cache=True, cache_dir=context.ga_parsed_spikes_path)
+            fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
+            fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))
+            fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))
+
         fields.append(ShaftField(conn, mstick_spec_data_source))
         fields.append(TerminationField(conn, mstick_spec_data_source))
         fields.append(JunctionField(conn, mstick_spec_data_source))
         fields.append(MassCenterField(conn, mstick_spec_data_source))
 
         data = fields.to_data(task_ids)
+        if is_mua:
+            # Rename the distinct MUA cache columns back to the standard names so
+            # every downstream consumer (export, ResponseSpec, import) is uniform.
+            data = data.rename(columns={
+                "MUA Spikes by channel": "Spikes by channel",
+                "MUA Spike Rate by channel": "Spike Rate by channel",
+                "MUA Epoch": "Epoch",
+            })
         return data
     @staticmethod
     def clean_ga_data(data_for_all_tasks):

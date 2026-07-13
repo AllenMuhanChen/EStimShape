@@ -13,7 +13,7 @@ from src.startup import context
 
 
 def main():
-    analysis = RankBaselineAnalysis()
+    analysis = RankBaselineAnalysis(data_type="mua")
     compiled_data = None
     # compiled_data = analysis.compile_and_export()
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
@@ -21,10 +21,28 @@ def main():
     channel = read_cluster_channels(session_id)
     # channel = "A-002"
     # channel = ["A-021"]
-    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    analysis.run(session_id, channel=channel, compiled_data=compiled_data)
 
 
 class BaselineAnalysis(PlotTopNAnalysis):
+
+    def _check_responses_present(self, compiled_data):
+        """Fail with an actionable message (instead of a later KeyError) when the
+        import returned nothing usable."""
+        n = 0 if compiled_data is None else len(compiled_data)
+        if self.spike_rates_col == 'GA Response':
+            col_ok = compiled_data is not None and 'GA Response' in compiled_data.columns
+        else:
+            col_ok = compiled_data is not None and self.spike_rates_col in compiled_data.columns
+        if not col_ok:
+            method = (f", mua_method={self.mua_method!r}"
+                      if self.response_table == "MUASpikeResponses" else "")
+            raise ValueError(
+                f"No '{self.spike_rates_col}' column in imported data ({n} rows). "
+                f"response_table={self.response_table!r}{method}. This usually means that "
+                f"table has no rows for session {self.session_id!r}'s task_ids "
+                f"(see the import diagnostics printed above). Compile+export this session "
+                f"first (e.g. analysis.compile_and_export()), or check the mua_method.")
 
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
         if compiled_data is None:
@@ -32,8 +50,11 @@ class BaselineAnalysis(PlotTopNAnalysis):
                 self.session_id,
                 "ga",
                 "GAStimInfo",
-                self.response_table
+                self.response_table,
+                mua_method=self.mua_method if self.response_table == "MUASpikeResponses" else None,
             )
+
+        self._check_responses_present(compiled_data)
 
         # Attach a scalar 'Response' column for the requested channel
         compiled_data = compiled_data.copy()
@@ -345,8 +366,10 @@ class RankBaselineAnalysis(BaselineAnalysis):
     def analyze(self, channel, compiled_data=None):
         if compiled_data is None:
             compiled_data = import_from_repository(
-                self.session_id, "ga", "GAStimInfo", self.response_table
+                self.session_id, "ga", "GAStimInfo", self.response_table,
+                mua_method=self.mua_method if self.response_table == "MUASpikeResponses" else None,
             )
+        self._check_responses_present(compiled_data)
         compiled_data = compiled_data.copy()
         if self.spike_rates_col == 'GA Response':
             compiled_data['Response'] = compiled_data['GA Response']

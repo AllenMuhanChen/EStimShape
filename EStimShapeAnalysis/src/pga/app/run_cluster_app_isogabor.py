@@ -44,14 +44,19 @@ class IsogaborDataLoader(DataLoader):
     accepted for protocol compatibility but ignored.
     """
 
-    def __init__(self, session_id: str, *, data_type: str = "raw"):
+    def __init__(self, session_id: str, *, data_type: str = "mua"):
         self.session_id = session_id
+        self.mua_method = None
         if data_type == "raw":
             self.response_table = "RawSpikeResponses"
             self.spike_rate_col = "Spike Rate by channel"
         elif data_type == "sorted":
             self.response_table = "WindowSortedResponses"
             self.spike_rate_col = "Spike Rate by unit"
+        elif data_type == "mua":
+            self.response_table = "MUASpikeResponses"
+            self.spike_rate_col = "Spike Rate by channel"
+            self.mua_method = "mad_k4_block100"
         else:
             raise ValueError(f"Unknown data type: {data_type}")
         self._compiled_data: pd.DataFrame | None = None
@@ -64,6 +69,7 @@ class IsogaborDataLoader(DataLoader):
                 "isogabor",
                 "IsoGaborStimInfo",
                 self.response_table,
+                mua_method=self.mua_method,
             )
         return self._compiled_data
 

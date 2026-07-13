@@ -16,19 +16,20 @@ from clat.util.connection import Connection
 
 def main():
     channel = "GA"  # "GA", "Cluster", a single channel name, or a list of channel names
-    analysis = PlotVariants(save_included_variants=False)
+    data_type = "GA" if channel == "GA" else "mua"
+    analysis = PlotVariants(save_included_variants=False, data_type=data_type)
     compiled_data = None
     # compiled_data = analysis.compile_and_export()
     session_id,_ = read_session_id_and_date_from_db_name(context.ga_database)
-    data_type = "GA" if channel == "GA" else "raw"
-    analysis.run(session_id, data_type, channel, compiled_data=compiled_data)
+
+    analysis.run(session_id, channel=channel, compiled_data=compiled_data)
 
 
 class PlotVariants(PlotTopNAnalysis):
     threshold = 0.75
 
-    def __init__(self, save_included_variants=False, use_baseline_correction=False):
-        super().__init__(use_baseline_correction=use_baseline_correction)
+    def __init__(self, save_included_variants=False, **kwargs):
+        super().__init__(**kwargs)
         self.save_included_variants = save_included_variants
 
     def analyze(self, channel, compiled_data=None):
