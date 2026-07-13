@@ -1823,11 +1823,11 @@ def run_amplitude_diagnostic(session_id: Optional[str] = None,
 
 
 def main():
-    # run_comparison(block_size=50)
+    # run_comparison(block_size=100)
     # run_amplitude_diagnostic(block_size=50)
     # run_block_size_sweep()
-    # run_threshold_multiplier_sweep(block_size=100, strategy=MadStrategy(), multipliers=(3.0, 3.5, 4.0, 4.5, 5))
-    run_noise_floor_diagnostic()
+    run_threshold_multiplier_sweep(block_size=100, strategy=MadStrategy(), multipliers=(1.0, 1.5, 1.75,))
+    # run_noise_floor_diagnostic()
 
 
 if __name__ == "__main__":
