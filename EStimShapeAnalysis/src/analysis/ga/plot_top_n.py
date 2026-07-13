@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Optional
 
@@ -30,6 +31,38 @@ from src.repository.export_to_repository import export_to_repository, read_sessi
 from src.repository.good_channels import read_cluster_channels
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
+
+
+# ---------------------------------------------------------------------------
+# MUA fields: reuse the Intan field logic but source spikes from the wideband
+# MAD detector instead of spike.dat. Distinct field names keep their
+# TaskFieldCache rows separate from the spike.dat fields; compile_data renames
+# the resulting columns back to the standard names.
+# ---------------------------------------------------------------------------
+class _MuaParsedMixin:
+    """Adapt PeriodicBlockMUAParser.parse (returns 3 values incl. sample_rate) to
+    the 2-value (_all_spikes, _all_epochs) contract the Intan fields expect."""
+
+    def _get_parsed(self):
+        if self._all_spikes is None:
+            self._all_spikes, self._all_epochs, _sr = self.parser.parse(
+                self.all_task_ids, self.intan_files_dir)
+        return self._all_spikes, self._all_epochs
+
+
+class MuaSpikesByChannelField(_MuaParsedMixin, IntanSpikesByChannelField):
+    def get_name(self):
+        return "MUA Spikes by channel"
+
+
+class MuaSpikeRateByChannelField(_MuaParsedMixin, IntanSpikeRateByChannelField):
+    def get_name(self):
+        return "MUA Spike Rate by channel"
+
+
+class MuaEpochStartStopTimesField(_MuaParsedMixin, EpochStartStopTimesField):
+    def get_name(self):
+        return "MUA Epoch"
 
 
 def main():
@@ -87,7 +120,8 @@ class PlotTopNAnalysis(Analysis, LiveCompilable):
                 self.session_id,
                 "ga",
                 "GAStimInfo",
-                self.response_table
+                self.response_table,
+                mua_method=self.mua_method if self.response_table == "MUASpikeResponses" else None,
             )
 
         return compiled_data
@@ -120,8 +154,11 @@ class PlotTopNAnalysis(Analysis, LiveCompilable):
         return data
 
     def export(self, data: pd.DataFrame) -> None:
+        is_mua = self.response_table == "MUASpikeResponses"
         export_to_repository(data, context.ga_database, self.EXP_NAME,
                              stim_info_table="GAStimInfo",
+                             response_table=self.response_table or "RawSpikeResponses",
+                             mua_method=self.mua_method if is_mua else None,
                              stim_info_columns=[
                                  "Lineage",
                                  "RegimeScore",
@@ -177,7 +214,6 @@ class PlotTopNAnalysis(Analysis, LiveCompilable):
             task_ids = self.collect_task_ids(conn)
         response_processor = context.ga_config.make_response_processor()
         cluster_combination_strategy = response_processor.cluster_combination_strategy
-        parser = MultiFileParser(to_cache=True, cache_dir=context.ga_parsed_spikes_path)
         mstick_spec_data_source = StimSpecDataField(conn)
 
         fields = CachedTaskFieldList()
@@ -195,15 +231,41 @@ class PlotTopNAnalysis(Analysis, LiveCompilable):
         fields.append(TextureField(conn))
         fields.append(AverageRGBField(conn))
         fields.append(ClusterResponseField(conn, cluster_combination_strategy))
-        fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
-        fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))
-        fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))
+
+        # Spike source: MUA (wideband, -k x MAD, block-of-N) vs spike.dat.
+        is_mua = self.response_table == "MUASpikeResponses"
+        if is_mua:
+            from src.analysis.ga.baseline_spike_detection_comparison import (
+                PeriodicBlockMUAParser, MadStrategy)
+            mua_parser = PeriodicBlockMUAParser(
+                strategy=MadStrategy(threshold_mad=self.mua_k or 4.0),
+                block_size=self.mua_block or 100,
+                to_cache=True,
+                cache_dir=os.path.join(context.ga_parsed_spikes_path, "mua_block_mad"),
+            )
+            fields.append(MuaSpikesByChannelField(conn, mua_parser, task_ids, context.ga_intan_path))
+            fields.append(MuaSpikeRateByChannelField(conn, mua_parser, task_ids, context.ga_intan_path))
+            fields.append(MuaEpochStartStopTimesField(conn, mua_parser, task_ids, context.ga_intan_path))
+        else:
+            parser = MultiFileParser(to_cache=True, cache_dir=context.ga_parsed_spikes_path)
+            fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
+            fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))
+            fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))
+
         fields.append(ShaftField(conn, mstick_spec_data_source))
         fields.append(TerminationField(conn, mstick_spec_data_source))
         fields.append(JunctionField(conn, mstick_spec_data_source))
         fields.append(MassCenterField(conn, mstick_spec_data_source))
 
         data = fields.to_data(task_ids)
+        if is_mua:
+            # Rename the distinct MUA cache columns back to the standard names so
+            # every downstream consumer (export, ResponseSpec, import) is uniform.
+            data = data.rename(columns={
+                "MUA Spikes by channel": "Spikes by channel",
+                "MUA Spike Rate by channel": "Spike Rate by channel",
+                "MUA Epoch": "Epoch",
+            })
         return data
     @staticmethod
     def clean_ga_data(data_for_all_tasks):

@@ -6,7 +6,8 @@ from clat.util.connection import Connection
 
 
 def import_from_repository(session_id: str, experiment_name: str,
-                           stim_info_table: str, response_table: str = None) -> pd.DataFrame:
+                           stim_info_table: str, response_table: str = None,
+                           mua_method: str = None) -> pd.DataFrame:
     """
     Import data from the repository database based on session_id and experiment_name.
 
@@ -86,9 +87,14 @@ def import_from_repository(session_id: str, experiment_name: str,
         placeholders = ', '.join(['%s'] * len(task_ids))
         statement = f"SELECT task_id, {id_column}, tstamps, response_rate FROM {response_table} " \
                     f"WHERE task_id IN ({placeholders})"
+        params = list(task_ids)
+        # MUASpikeResponses stores several detection methods; filter to the one asked for.
+        if mua_method is not None:
+            statement += " AND mua_method = %s"
+            params = params + [mua_method]
         repo_conn.execute(
             statement,
-            params=task_ids
+            params=params
         )
 
         # Process response data

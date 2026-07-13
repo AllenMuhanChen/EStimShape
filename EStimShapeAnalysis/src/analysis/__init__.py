@@ -18,6 +18,11 @@ class Analysis(ABC):
         self.spike_tstamps_col = None
         self.save_path = None
         self.response_table = None
+        # Set for MUA data types (see parse_data_type). Selects the detection
+        # method row in MUASpikeResponses and drives which fields compile builds.
+        self.mua_method = None
+        self.mua_k = None
+        self.mua_block = None
 
 
     def parse_data_type(self, data_type, session_id, save_dir=None):
@@ -37,6 +42,15 @@ class Analysis(ABC):
         elif data_type == 'GA':
             self.response_table = None
             self.spike_rates_col = None
+        elif data_type == 'mua' or data_type == 'mua_mad_k4_block100':
+            # Multi-unit activity re-detected from wideband with -4x MAD, threshold
+            # refreshed every 100 task_ids (matches the GA MUA pipeline).
+            self.response_table = 'MUASpikeResponses'
+            self.spike_tstamps_col = 'Spikes by channel'
+            self.spike_rates_col = 'Spike Rate by channel'
+            self.mua_k = 4.0
+            self.mua_block = 100
+            self.mua_method = f"mad_k{self.mua_k:g}_block{self.mua_block}"
 
         else:
             raise ValueError(f"Unknown data type: {data_type}")

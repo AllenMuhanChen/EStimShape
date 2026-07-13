@@ -6,7 +6,17 @@ from typing import Tuple, Dict, List, Any, Hashable
 
 
 def export_to_repository(df: pd.DataFrame, db_name: str, exp_name: str,
-                         stim_info_table: str = "None", stim_info_columns: List[str] = None):
+                         stim_info_table: str = "None", stim_info_columns: List[str] = None,
+                         response_table: str = "RawSpikeResponses", mua_method: str = None,
+                         spikes_col: str = "Spikes by channel",
+                         spike_rate_col: str = "Spike Rate by channel"):
+    """Export a compiled DataFrame to the repository.
+
+    By default spike responses go to RawSpikeResponses. Pass ``mua_method`` (e.g.
+    ``"mad_k4_block100"``) to instead write to MUASpikeResponses, tagging each
+    row with that detection method (the table is RawSpikeResponses' schema plus a
+    ``mua_method`` key column, so several methods coexist).
+    """
     repo_conn = Connection("allen_data_repository")
     to_export_conn = Connection(db_name)
 
@@ -35,9 +45,12 @@ def export_to_repository(df: pd.DataFrame, db_name: str, exp_name: str,
     epochs = read_epochs(df)
     write_epochs_to_db(repo_conn, epochs)
 
-    # Raw Spike Responses
-    raw_spike_responses = read_raw_spike_responses(df)
-    write_raw_spike_responses(repo_conn, raw_spike_responses)
+    # Spike Responses (RawSpikeResponses, or MUASpikeResponses when mua_method set)
+    spike_responses = read_raw_spike_responses(df, spikes_col, spike_rate_col)
+    if mua_method is not None:
+        write_mua_spike_responses(repo_conn, spike_responses, mua_method)
+    else:
+        write_raw_spike_responses(repo_conn, spike_responses)
 
     # Stim Info
     stim_info = read_stim_info(df, stim_info_columns)
@@ -428,13 +441,18 @@ def write_epochs_to_db(conn: Connection, epochs_data: Dict[int, Tuple[float, flo
     print(f"Successfully exported {len(epochs_data)} epoch records")
 
 
-def read_raw_spike_responses(df: pd.DataFrame) -> List[Tuple[int, str, str, float]]:
+def read_raw_spike_responses(df: pd.DataFrame,
+                             spikes_col: str = "Spikes by channel",
+                             spike_rate_col: str = "Spike Rate by channel"
+                             ) -> List[Tuple[int, str, str, float]]:
     """
     Read raw spike responses from the DataFrame and calculate accurate spike rates using epoch data.
     Spike timestamps are already relative to epochs, so we just need the epoch duration.
 
     Args:
         df: DataFrame containing TaskId, Spikes by Channel, and Epochs By Channel columns
+        spikes_col: column holding the per-channel spike-timestamp dict
+        spike_rate_col: column holding the per-channel spike-rate dict
 
     Returns:
         List of tuples containing (task_id, channel_id, tstamps, response_rate)
@@ -442,22 +460,22 @@ def read_raw_spike_responses(df: pd.DataFrame) -> List[Tuple[int, str, str, floa
     responses = []
 
     # Check if the DataFrame has the required columns
-    if 'Spikes by channel' not in df.columns:
-        print("Warning: 'Spikes by Channel' column not found in DataFrame")
-        raise ValueError("Spikes by Channel column is missing from df. Please ensure the DataFrame contains the 'Spikes by Channel' column with spike data. ")
+    if spikes_col not in df.columns:
+        print(f"Warning: '{spikes_col}' column not found in DataFrame")
+        raise ValueError(f"{spikes_col} column is missing from df. Please ensure the DataFrame contains the '{spikes_col}' column with spike data. ")
 
-    if 'Spike Rate by channel' not in df.columns:
-        print("Warning: 'Spike Rate by Channel' column not found in DataFrame")
-        raise ValueError("Spike Rate by channel column is missing from df. Please ensure the DataFrame contains the 'Spike Rate by Channel' column with spike rate data. ")
+    if spike_rate_col not in df.columns:
+        print(f"Warning: '{spike_rate_col}' column not found in DataFrame")
+        raise ValueError(f"{spike_rate_col} column is missing from df. Please ensure the DataFrame contains the '{spike_rate_col}' column with spike rate data. ")
     # if 'Epoch' not in df.columns:
     #     raise ValueError("Epoch column is missing from df. Please ensure the DataFrame contains the 'Epoch' column with epoch data. ")
 
     # Extract spike data for each task
     for _, row in df.iterrows():
         task_id = row['TaskId']
-        spikes_by_channel = row.get('Spikes by channel')
+        spikes_by_channel = row.get(spikes_col)
         # epochs_by_channel = row.get('Epoch')
-        spike_rate_by_channel = row.get('Spike Rate by channel')
+        spike_rate_by_channel = row.get(spike_rate_col)
 
         # Skip if no spike data
         if not spikes_by_channel or spikes_by_channel == "None":
@@ -506,6 +524,51 @@ def write_raw_spike_responses(conn: Connection, raw_responses: List[Tuple[int, s
             print(f"Error storing response for task {task_id}, channel {channel_id}: {e}")
 
     print(f"Successfully exported {success_count} of {len(raw_responses)} raw spike responses")
+
+
+def write_mua_spike_responses(conn: Connection, responses: List[Tuple[int, str, str, float]],
+                              mua_method: str):
+    """
+    Write MUA spike responses to MUASpikeResponses — RawSpikeResponses' schema
+    plus a mua_method key column, so multiple detection methods coexist.
+
+    Args:
+        conn: Repository database connection
+        responses: List of (task_id, channel_id, tstamps, response_rate)
+        mua_method: detection-method tag stored on every row (e.g. 'mad_k4_block100')
+    """
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS MUASpikeResponses (
+            task_id BIGINT NOT NULL,
+            channel_id VARCHAR(64) NOT NULL,
+            mua_method VARCHAR(64) NOT NULL,
+            tstamps LONGTEXT,
+            response_rate DOUBLE,
+            PRIMARY KEY (task_id, channel_id, mua_method)
+        ) ENGINE=InnoDB DEFAULT CHARSET=latin1
+        """
+    )
+
+    success_count = 0
+    for task_id, channel_id, tstamps, response_rate in responses:
+        try:
+            conn.execute(
+                """
+                INSERT INTO MUASpikeResponses (task_id, channel_id, mua_method, tstamps, response_rate)
+                VALUES (%s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    tstamps = VALUES(tstamps),
+                    response_rate = VALUES(response_rate)
+                """,
+                (int(task_id), channel_id, mua_method, tstamps, float(response_rate)),
+            )
+            success_count += 1
+        except Exception as e:
+            print(f"Error storing MUA response for task {task_id}, channel {channel_id}: {e}")
+
+    print(f"Successfully exported {success_count} of {len(responses)} MUA spike responses "
+          f"(method={mua_method})")
 
 
 def read_stim_info(df: pd.DataFrame, stim_info_columns: List[str]) -> dict[Hashable, dict[str, Any]]:
