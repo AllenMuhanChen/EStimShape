@@ -267,6 +267,10 @@ class MuaIntanResponseParser(IntanResponseParser):
                  highpass_hz: float = 300.0,
                  refractory_sec: float = 0.001):
         super().__init__(base_intan_path, db_util, date_YYYY_MM_DD)
+        # IntanResponseParser only keeps intan_spike_path (base joined with date);
+        # keep the un-dated base so the full-session backfill can search every
+        # date subfolder, not just today's.
+        self.base_intan_path = base_intan_path
         self.mua_metric = mua_metric
         self.threshold_k = threshold_k
         self.block_size = block_size
