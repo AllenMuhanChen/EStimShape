@@ -13,15 +13,19 @@ from src.startup import context
 
 
 def main():
-    analysis = RankBaselineAnalysis()
-    compiled_data = None
-    # compiled_data = analysis.compile_and_export()
+    # data_type MUST be set at construction (as a keyword — use_baseline_correction
+    # is the first positional arg) so compile_and_export(), which runs before run(),
+    # knows to compile MUA and export to MUASpikeResponses. Use "raw" for spike.dat.
+    analysis = RankBaselineAnalysis(data_type="mua")
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     # session_id = "260426_0"
     channel = read_cluster_channels(session_id)
     # channel = "A-002"
     # channel = ["A-021"]
-    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    # Compile MUA (reads MUAChannelResponses / wideband) + export to
+    # MUASpikeResponses, then analyze the freshly-compiled data.
+    compiled_data = analysis.compile_and_export()
+    analysis.run(session_id, channel=channel, compiled_data=compiled_data)
 
 
 class BaselineAnalysis(PlotTopNAnalysis):
