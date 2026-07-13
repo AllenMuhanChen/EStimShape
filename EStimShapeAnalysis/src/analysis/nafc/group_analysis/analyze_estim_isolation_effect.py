@@ -2212,6 +2212,322 @@ def run_neighbor_sweep_by_trial_type(trial_types=None, start_session_id=None,
     return out
 
 
+# ---------------------------------------------------------------------------
+# Per-metric current x n_neighbors correlation heatmaps
+#
+# For each metric, a 2D heatmap of its correlation with the estim effect:
+#   x-axis = n_neighbors (the stored neighbourhood-size sweep)
+#   y-axis = bins of a current column (current_per_second by default; set
+#            current_col to any numeric column in the effect table)
+#   colour = Pearson r  (RdBu_r: blue = negative, white = 0, red = positive)
+# This is the neighbour sweep (one pooled line per metric) split out by dose bin,
+# so you can read "at what dose level and neighbourhood size does this metric track
+# the effect, and with which sign?".
+# ---------------------------------------------------------------------------
+
+def _current_bin_labels(edges):
+    """Labels for consecutive bin edges, e.g. [0, 1000, inf] -> ['0–1000', '1000–inf']."""
+    def fmt(x):
+        return 'inf' if not np.isfinite(x) else f"{x:g}"
+    return [f"{fmt(edges[i])}–{fmt(edges[i + 1])}" for i in range(len(edges) - 1)]
+
+
+def build_current_nb_corr_cube(df_effect, metric_names=None, *, aggregation='mean',
+                               exclude_other_estim=True,
+                               current_col='current_per_second', current_bins=None,
+                               n_neighbors_values=None, abs_effect=False,
+                               value='pearson_r', covariate='current_per_second',
+                               min_on_trials=10, min_off_trials=10):
+    """For each metric, a (n_current_bins x n_nb) matrix of its correlation with the
+    effect, and a matching matrix of per-cell sample sizes.
+
+    The effect/current table is joined once per n_neighbors (like build_neighbor_sweep),
+    then within each n_neighbors the specs are split into ``current_col`` bins and the
+    metric is correlated with the effect inside each bin.
+
+    value: 'pearson_r' (default; plain correlation) or 'partial_r' (controlling for
+    ``covariate`` within the bin — usually redundant once binned by current). Cells
+    with < 3 specs are left NaN (blank). Returns (cubes, counts, bin_labels, nb_values):
+    cubes/counts map metric_name -> np.ndarray with rows = current bins (low -> high)
+    and cols = n_neighbors (ascending)."""
+    if current_bins is None or len(current_bins) < 2:
+        raise ValueError("current_bins must be a list of >= 2 increasing edges, "
+                         "e.g. [0, 1000, 1500, np.inf]")
+    if current_col not in df_effect.columns:
+        numeric_cols = [c for c in ('current_per_second', 'n_active_channels')
+                        if c in df_effect.columns]
+        raise ValueError(f"current_col {current_col!r} not in the effect table; "
+                         f"available numeric columns: {numeric_cols}")
+    edges = [float(e) for e in current_bins]
+    bin_labels = _current_bin_labels(edges)
+
+    if n_neighbors_values is None:
+        n_neighbors_values = _available_n_neighbors(exclude_other_estim)
+    nb_values = sorted(n_neighbors_values)
+    if not nb_values:
+        print("No n_neighbors values stored for this exclude_other_estim setting.")
+        return {}, {}, bin_labels, []
+
+    session_ids = sorted(df_effect['session_id'].unique().tolist())
+    if metric_names is None:
+        _, metric_names = _fetch_neighbor_scores(
+            session_ids, n_neighbors=nb_values[0], exclude_other_estim=exclude_other_estim)
+
+    n_bins, n_nb = len(bin_labels), len(nb_values)
+    cubes = {name: np.full((n_bins, n_nb), np.nan) for name in metric_names}
+    counts = {name: np.zeros((n_bins, n_nb), dtype=int) for name in metric_names}
+
+    for j, nb in enumerate(nb_values):
+        scores, present = _fetch_neighbor_scores(
+            session_ids, n_neighbors=nb, exclude_other_estim=exclude_other_estim)
+        df = df_effect.copy()
+        _join_neighbor_scores(df, scores, present, aggregations=(aggregation,))
+        cur = pd.to_numeric(df[current_col], errors='coerce')
+        df['_cbin'] = pd.cut(cur, bins=edges, labels=bin_labels, include_lowest=True)
+        base = df[
+            df['effect_size'].notna()
+            & (df['n_on'] >= min_on_trials)
+            & (df['n_off'] >= min_off_trials)
+        ]
+        for name in metric_names:
+            col = f"{name}__{aggregation}"
+            if col not in base.columns:
+                continue
+            for i, lab in enumerate(bin_labels):
+                sub = base[(base['_cbin'] == lab) & base[col].notna()]
+                counts[name][i, j] = int(len(sub))
+                if len(sub) < 3:
+                    continue
+                y = sub['effect_size'].abs() if abs_effect else sub['effect_size']
+                if value == 'partial_r':
+                    pc = _partial_correlation(
+                        sub[col].to_numpy(), y.to_numpy(),
+                        pd.to_numeric(sub[covariate], errors='coerce').to_numpy())
+                    if pc:
+                        cubes[name][i, j] = pc['r']
+                        counts[name][i, j] = pc['n']
+                else:
+                    corr = _correlation(sub[col].to_numpy(), y.to_numpy())
+                    if corr:
+                        cubes[name][i, j] = corr['pearson_r']
+                        counts[name][i, j] = corr['n']
+    return cubes, counts, bin_labels, nb_values
+
+
+def plot_metric_current_nb_heatmaps(cubes, counts, bin_labels, nb_values, *,
+                                    aggregation='mean', abs_effect=False,
+                                    current_col='current_per_second', value='pearson_r',
+                                    metric='', tag='', vmax=None, annotate=True,
+                                    output_path=None):
+    """Grid of per-metric heatmaps — x = n_neighbors, y = current bins, colour = r
+    (RdBu_r: blue negative, white 0, red positive). One panel per metric, sharing a
+    symmetric colour scale so panels are comparable.
+
+    vmax: colour-scale limit (colours span [-vmax, +vmax]). None = auto (the largest
+    |r| across all cells, floored at 0.1). annotate: write r and n in each cell."""
+    names = [m for m in _METRIC_ORDER if m in cubes]
+    names += sorted(m for m in cubes if m not in _METRIC_ORDER)
+    names = [n for n in names if np.isfinite(cubes[n]).any()]
+    if not names:
+        print("No finite correlation cells to plot.")
+        return
+
+    if vmax is None:
+        finite = [cubes[n][np.isfinite(cubes[n])] for n in names]
+        allv = np.concatenate(finite) if finite else np.array([])
+        vmax = max(float(np.abs(allv).max()) if allv.size else 1.0, 0.1)
+
+    n = len(names)
+    ncols = min(3, n)
+    nrows = int(np.ceil(n / ncols))
+    fig, axes = plt.subplots(nrows, ncols, figsize=(0.45 * len(nb_values) * ncols + 2.5,
+                                                     0.6 * len(bin_labels) * nrows + 2.5),
+                             squeeze=False, constrained_layout=True)
+    cmap = plt.get_cmap('RdBu_r').copy()
+    cmap.set_bad('#dddddd')  # blank (NaN / too-few-specs) cells
+
+    im = None
+    for idx, name in enumerate(names):
+        ax = axes[idx // ncols][idx % ncols]
+        mat = np.ma.masked_invalid(cubes[name])
+        im = ax.imshow(mat, cmap=cmap, vmin=-vmax, vmax=vmax, aspect='auto',
+                       origin='lower')  # origin='lower' -> lowest current bin at bottom
+        ax.set_xticks(range(len(nb_values)))
+        ax.set_xticklabels(nb_values, fontsize=8)
+        ax.set_yticks(range(len(bin_labels)))
+        ax.set_yticklabels(bin_labels, fontsize=8)
+        ax.set_xlabel('n_neighbors', fontsize=9)
+        ax.set_ylabel(f'{current_col} bin', fontsize=9)
+        ax.set_title(_METRIC_LABELS.get(name, name), fontsize=10)
+        if annotate:
+            for i in range(len(bin_labels)):
+                for j in range(len(nb_values)):
+                    r = cubes[name][i, j]
+                    if np.isfinite(r):
+                        ax.text(j, i, f"{r:+.2f}\nn{counts[name][i, j]}", ha='center',
+                                va='center', fontsize=5.5,
+                                color='black' if abs(r) < 0.6 * vmax else 'white')
+
+    for k in range(n, nrows * ncols):
+        axes[k // ncols][k % ncols].axis('off')
+
+    cbar = fig.colorbar(im, ax=axes.ravel().tolist(), shrink=0.6, pad=0.02)
+    cbar.set_label(f"{value} vs {'|effect|' if abs_effect else 'effect'}  "
+                   f"(blue = negative, red = positive)", fontsize=10)
+    fig.suptitle(f"Metric–{'|effect|' if abs_effect else 'effect'} correlation: "
+                 f"{current_col} bin × n_neighbors"
+                 f"{('  [' + tag + ']') if tag else ''} — '{aggregation}' aggregation"
+                 f"{('  metric=' + metric) if metric else ''}", fontsize=12)
+    if output_path:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        fig.savefig(output_path, dpi=150, bbox_inches='tight')
+        fig.savefig(output_path.rsplit('.', 1)[0] + '.svg', bbox_inches='tight')
+        print(f"Saved current×n_neighbors heatmaps to {output_path}")
+    plt.show()
+
+
+def run_metric_current_nb_heatmap(start_session_id=None, exclude_session_ids=None, *,
+                                  metric=METRIC_PCT_HYP_VS_DELTA, required_conditions=None,
+                                  behavioral_conditions=BEHAVIORAL_KEYS,
+                                  current_col='current_per_second', current_bins=None,
+                                  abs_effect=False, exclude_other_estim=True,
+                                  value='pearson_r', aggregations=('mean', 'worst'),
+                                  min_on_trials=10, min_off_trials=10,
+                                  tag='', save_dir=None, df_effect=None):
+    """End-to-end: build the effect/current table once, then for each aggregation
+    compute + plot the per-metric current×n_neighbors correlation heatmaps.
+
+    current_col picks the y-axis quantity (default 'current_per_second'; the effect
+    table also carries 'n_active_channels'). current_bins are its bin edges, e.g.
+    [0, 1000, 1500, np.inf]. Returns {aggregation: (cubes, counts)}."""
+    print(f"[config] CURRENT×NB HEATMAP{(' [' + tag + ']') if tag else ''}  "
+          f"metric={metric}  current_col={current_col}  current_bins={current_bins}  "
+          f"abs_effect={abs_effect}  value={value}  min_on/off={min_on_trials}/{min_off_trials}")
+    if df_effect is None:
+        df_effect = _effect_and_current_table(
+            start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
+            metric=metric, required_conditions=required_conditions,
+            behavioral_conditions=behavioral_conditions)
+    if len(df_effect) == 0:
+        print("Nothing to plot — run compute_estim_neighbor_scores first.")
+        return {}
+
+    tag_slug = ('_' + _slug(tag)) if tag else ''
+    suffix = (f"{tag_slug}_{current_col}"
+              f"_{'incl' if not exclude_other_estim else 'excl'}"
+              f"{'_abs' if abs_effect else ''}"
+              f"{'_partial' if value == 'partial_r' else ''}")
+
+    out = {}
+    for aggregation in aggregations:
+        cubes, counts, bin_labels, nb_values = build_current_nb_corr_cube(
+            df_effect, aggregation=aggregation, exclude_other_estim=exclude_other_estim,
+            current_col=current_col, current_bins=current_bins, abs_effect=abs_effect,
+            value=value, min_on_trials=min_on_trials, min_off_trials=min_off_trials)
+        out[aggregation] = (cubes, counts)
+        if not cubes:
+            continue
+        print(f"\n=== current×n_neighbors correlation{(' [' + tag + ']') if tag else ''} "
+              f"({aggregation} agg, {'|effect|' if abs_effect else 'effect'}) — "
+              f"rows = {current_col} bins {bin_labels}, cols = n_neighbors {nb_values} ===")
+        ordered = [m for m in _METRIC_ORDER if m in cubes]
+        ordered += sorted(m for m in cubes if m not in _METRIC_ORDER)
+        for name in ordered:
+            if not np.isfinite(cubes[name]).any():
+                continue
+            print(f"  {_METRIC_LABELS.get(name, name)}")
+            for i, lab in enumerate(bin_labels):
+                cells = "  ".join(
+                    (f"nb{nb}:{cubes[name][i, j]:+.2f}" if np.isfinite(cubes[name][i, j])
+                     else f"nb{nb}:  na")
+                    for j, nb in enumerate(nb_values))
+                print(f"    {lab:>14s}  {cells}")
+        if save_dir:
+            plot_metric_current_nb_heatmaps(
+                cubes, counts, bin_labels, nb_values, aggregation=aggregation,
+                abs_effect=abs_effect, current_col=current_col, value=value,
+                metric=metric, tag=tag,
+                output_path=os.path.join(save_dir, f"current_nb_heatmap_{aggregation}{suffix}.png"))
+    return out
+
+
+def run_metric_current_nb_heatmap_by_trial_type(trial_types=None, start_session_id=None,
+                                                exclude_session_ids=None, *,
+                                                metric=METRIC_PCT_HYP_VS_DELTA,
+                                                base_required_conditions=None,
+                                                current_col='current_per_second',
+                                                current_bins=None, abs_effect=False,
+                                                exclude_other_estim=True, value='pearson_r',
+                                                aggregations=('mean', 'worst'),
+                                                min_on_trials=10, min_off_trials=10,
+                                                save_dir=None):
+    """Run the current×n_neighbors heatmaps separately for each trial_type (one set of
+    figures per type). trial_types=None auto-discovers them."""
+    if trial_types is None:
+        trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
+    print(f"Current×n_neighbors heatmap split across trial types: {trial_types}")
+    out = {}
+    for tt in trial_types:
+        out[tt] = run_metric_current_nb_heatmap(
+            start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
+            metric=metric, required_conditions=_rc_for_trial_type(base_required_conditions, tt),
+            current_col=current_col, current_bins=current_bins, abs_effect=abs_effect,
+            exclude_other_estim=exclude_other_estim, value=value, aggregations=aggregations,
+            min_on_trials=min_on_trials, min_off_trials=min_off_trials,
+            tag=str(tt), save_dir=save_dir)
+    return out
+
+
+def main_current_nb_heatmap():
+    """For each metric, plot a 2D heatmap of its correlation with the estim effect:
+    x = n_neighbors, y = bins of a current column, colour = r (blue negative, red
+    positive). Requires compute_estim_neighbor_scores to have populated
+    EStimNeighborScores over a multi-value n_neighbors_list.
+
+    Uses the shared COMPARISON_* config; edit the two knobs below to change the
+    binned current quantity and its bin edges."""
+    # --- the two knobs to edit ---
+    # Which current quantity goes on the y-axis (any numeric column in the effect
+    # table: 'current_per_second' — a1 × num_channels × pulse_rate_hz — or
+    # 'n_active_channels'). This is "the current parameter": change it freely.
+    current_col = 'current_per_second'
+    # Bin edges for that quantity (use np.inf for an open top bin).
+    current_bins = [0, 1000, 1500, np.inf]
+
+    if COMPARISON_TRIAL_TYPES is not None:
+        run_metric_current_nb_heatmap_by_trial_type(
+            trial_types=(COMPARISON_TRIAL_TYPES or None),  # [] -> auto-discover
+            start_session_id=COMPARISON_START_SESSION_ID,
+            exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
+            metric=COMPARISON_METRIC,
+            base_required_conditions=COMPARISON_REQUIRED_CONDITIONS,
+            current_col=current_col,
+            current_bins=current_bins,
+            abs_effect=COMPARISON_ABS_EFFECT,
+            exclude_other_estim=True,
+            value='pearson_r',
+            min_on_trials=COMPARISON_MIN_ON_TRIALS,
+            min_off_trials=COMPARISON_MIN_OFF_TRIALS,
+            save_dir=COMPARISON_SAVE_DIR,
+        )
+        return
+
+    run_metric_current_nb_heatmap(
+        start_session_id=COMPARISON_START_SESSION_ID,
+        exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
+        metric=COMPARISON_METRIC,
+        required_conditions=COMPARISON_REQUIRED_CONDITIONS or None,
+        current_col=current_col,
+        current_bins=current_bins,
+        abs_effect=COMPARISON_ABS_EFFECT,
+        exclude_other_estim=True,
+        value='pearson_r',
+        min_on_trials=COMPARISON_MIN_ON_TRIALS,
+        min_off_trials=COMPARISON_MIN_OFF_TRIALS,
+        save_dir=COMPARISON_SAVE_DIR,
+    )
+
+
 def main_neighbor_sweep():
     """Show how each metric's correlation with the estim effect changes with
     neighbourhood size (n_neighbors). Requires compute_estim_neighbor_scores to have
@@ -2386,6 +2702,8 @@ if __name__ == '__main__':
     # effect and ranks them (needs compute_estim_neighbor_scores to have run first).
     #   - main_neighbor_sweep()     -> how each metric's link to effect changes with
     #                                  neighbourhood size (n_neighbors)
+    #   - main_current_nb_heatmap() -> per-metric heatmap of correlation-with-effect,
+    #                                  x = n_neighbors, y = current bins (blue -/red +)
     #   - main_best_nb_comparison() -> leaderboard with each metric at its own best
     #                                  n_neighbors (exploratory) + the honest shared nb
     #   - main_channel_search()     -> for one session, the channel group that best
@@ -2393,5 +2711,6 @@ if __name__ == '__main__':
     #   - main()                    -> legacy single-isolation-metric plots
     # main_metric_comparison()
     main_neighbor_sweep()
+    # main_current_nb_heatmap()
     # main_best_nb_comparison()
     # main_channel_search()
