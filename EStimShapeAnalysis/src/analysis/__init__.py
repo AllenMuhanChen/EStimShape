@@ -12,17 +12,24 @@ def get_all_channels() -> List[str]:
 class Analysis(ABC):
     """Meant to streamline the process of fetching data from either manually compilation"""
     " the data repository for analyzing it."
-    def __init__(self):
+    def __init__(self, data_type: str = None):
         self.session_id = None
         self.spike_rates_col = None
         self.spike_tstamps_col = None
         self.save_path = None
         self.response_table = None
-        # Set for MUA data types (see parse_data_type). Selects the detection
-        # method row in MUASpikeResponses and drives which fields compile builds.
+        # Set for MUA data types (see _configure_data_type). Selects the
+        # detection-method row in MUASpikeResponses and drives which fields
+        # compile builds.
         self.mua_method = None
         self.mua_k = None
         self.mua_block = None
+        # Persisted so compile_and_export()/compile() (which take no args) know
+        # the data type before run() is ever called. Configures the response
+        # table + spike columns immediately.
+        self.data_type = data_type
+        if data_type is not None:
+            self._configure_data_type(data_type)
 
 
     def parse_data_type(self, data_type, session_id, save_dir=None):
@@ -31,6 +38,13 @@ class Analysis(ABC):
         self.save_path = f"{save_dir}/{session_id}"
         if not os.path.exists(self.save_path):
             os.makedirs(self.save_path)
+        self._configure_data_type(data_type)
+
+    def _configure_data_type(self, data_type):
+        """Set response table + spike columns (+ MUA params) for a data type.
+        Split out of parse_data_type so the constructor can configure these
+        without needing a session_id/save_path yet."""
+        self.data_type = data_type
         if data_type == 'raw':
             self.response_table = 'RawSpikeResponses'
             self.spike_tstamps_col = 'Spikes by channel'
@@ -55,13 +69,16 @@ class Analysis(ABC):
         else:
             raise ValueError(f"Unknown data type: {data_type}")
 
-    def run(self, session_id, data_type: str, channel: str, compiled_data: pd.DataFrame = None):
+    def run(self, session_id, data_type: str = None, channel: str = None, compiled_data: pd.DataFrame = None):
+        data_type = self._resolve_data_type(data_type)
         self.session_id = session_id
         self.parse_data_type(data_type, session_id=session_id)
         compiled_data = self.import_data(compiled_data)
         return self.analyze(channel, compiled_data=compiled_data)
 
-    def run_on_channels(self, session_id, data_type: str, channels: list[str], compiled_data: pd.DataFrame = None):
+    def run_on_channels(self, session_id, data_type: str = None, channels: list[str] = None,
+                        compiled_data: pd.DataFrame = None):
+        data_type = self._resolve_data_type(data_type)
         self.session_id = session_id
         self.parse_data_type(data_type, session_id=session_id)
         compiled_data = self.import_data(compiled_data)
@@ -71,6 +88,14 @@ class Analysis(ABC):
              results[channel] = result
 
         return results
+
+    def _resolve_data_type(self, data_type):
+        """Prefer an explicit data_type; otherwise fall back to the one set in
+        the constructor."""
+        data_type = data_type if data_type is not None else self.data_type
+        if data_type is None:
+            raise ValueError("data_type must be provided via the constructor or run()/run_on_channels()")
+        return data_type
 
     def import_data(self, compiled_data: pd.DataFrame) -> pd.DataFrame:
         return compiled_data

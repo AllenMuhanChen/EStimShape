@@ -56,8 +56,8 @@ class PlotTopNAnalysis(Analysis, LiveCompilable):
     # Repository experiment name this analysis exports under (experiment_id = f"{session_id}_{EXP_NAME}").
     EXP_NAME = "ga"
 
-    def __init__(self, use_baseline_correction: bool = False):
-        super().__init__()
+    def __init__(self, use_baseline_correction: bool = False, data_type: str = None):
+        super().__init__(data_type=data_type)
         # Apply rank-based baseline correction to per-channel spike rates.
         # Silently a no-op in GA mode (the precomputed GA Response already
         # reflects whichever baseline policy the response processor used).
