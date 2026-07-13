@@ -25,9 +25,6 @@ import java.util.*;
 import java.util.List;
 import java.util.function.BiConsumer;
 
-import static java.awt.GridBagConstraints.PAGE_END;
-import static java.awt.GridBagConstraints.PAGE_START;
-
 /**
  * @author Allen Chen
  */
@@ -166,6 +163,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     private void save(){
         AbstractRenderer renderer = consoleRenderer.getRenderer();
+        final int depth = getEnteredDepth();
         plotter.getRfsForChannels().forEach(new BiConsumer<String, CircleRF>() {
             @Override
             public void accept(String channel, CircleRF circleRF) {
@@ -178,72 +176,99 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
                 double radiusDeg = renderer.mm2deg(circleRF.getCircleRadius());
                 List<Coordinates2D> circlePoints = circleRF.getCirclePoints();
                 RFInfo rfInfo = new RFInfo(circleCenterDeg, radiusDeg, circlePoints);
-                dbUtil.writeRFInfo(timeUtil.currentTimeMicros(), channel, rfInfo.toXml());
+                dbUtil.writeRFInfo(timeUtil.currentTimeMicros(), channel, rfInfo.toXml(), depth);
             }
         });
 
-        namesForDrawables.forEach(new BiConsumer<String, RFPlotDrawable>() {
-            @Override
-            public void accept(String objectName, RFPlotDrawable rfPlotDrawable) {
-                String data = rfPlotDrawable.getOutputData();
-                writeRFObjectData(currentChannel, objectName, data, timeUtil.currentTimeMicros());
+        // Capture the active channel's latest tuning before writing.
+        if (!currentChannel.equals("None")) {
+            snapshotDrawablesTo(currentChannel);
+        }
+
+        // Write each channel's own stimulus specs (preferred orientation etc.), not just
+        // the currently selected one. Specs are stored as round-trippable XML so they can
+        // be reloaded later.
+        for (Map.Entry<String, Map<String, String>> channelEntry : drawableSpecsForChannels.entrySet()) {
+            String channel = channelEntry.getKey();
+            for (Map.Entry<String, String> objectEntry : channelEntry.getValue().entrySet()) {
+                writeRFObjectData(channel, objectEntry.getKey(), objectEntry.getValue(),
+                        timeUtil.currentTimeMicros(), depth);
             }
-        });
+        }
     }
 
+    /**
+     * Load the latest saved RF for every channel at the currently entered depth.
+     * <p>
+     * For each channel with RF data at this depth, the entry with the highest
+     * tstamp (the latest) is restored: the channel is selected in the plotter
+     * (which assigns it a legend color) and its control points are re-added so
+     * the enclosing circle is recomputed. The legend is refreshed at the end.
+     */
     private void load(){
-        long tstamp = getTstampToLoad();
-        if (tstamp == 0){
+        int depth = getEnteredDepth();
+        List<RFInfoEntry> latestPerChannel;
+        try {
+            latestPerChannel = dbUtil.readLatestRFInfoPerChannel(depth);
+        } catch (Exception e) {
+            System.err.println("Failed to read RFs from database: " + e.getMessage());
             return;
         }
-        RFInfoEntry rfInfoEntry = dbUtil.readRFInfo(tstamp, tstamp).get(0);
-        RFInfo rfInfo = RFInfo.fromXml(rfInfoEntry.getInfo());
-
-        CircleRF circleRF = new CircleRF(rfInfo.getCenter(), rfInfo.getRadius(), rfInfo.getControlPoints());
-        for (Coordinates2D point : circleRF.getCirclePoints()) {
-            plotter.addCirclePoint(point);
+        if (latestPerChannel.isEmpty()) {
+            System.out.println("No saved RFs found at depth " + depth + " µm.");
+            return;
         }
-    }
 
-    private long getTstampToLoad() {
-        // Default value to return if user cancels or enters invalid input
-
-        try {
-            // Show an input dialog to get the timestamp from the user
-            String userInput = JOptionPane.showInputDialog(
-                    null,
-                    "Enter timestamp to load RF data:",
-                    "Load RF Data",
-                    JOptionPane.QUESTION_MESSAGE
-            );
-
-            // Check if user cancelled the dialog or entered empty input
-            if (userInput == null || userInput.trim().isEmpty()) {
-                System.out.println("User cancelled or entered empty input. Using default timestamp.");
-                return 0;
+        int loaded = 0;
+        for (RFInfoEntry rfInfoEntry : latestPerChannel) {
+            String channel = rfInfoEntry.getChannel();
+            if (channel == null || channel.trim().isEmpty()) {
+                System.err.println("Skipping RF with no channel (tstamp " + rfInfoEntry.getTstamp() + ").");
+                continue;
             }
+            try {
+                RFInfo rfInfo = RFInfo.fromXml(rfInfoEntry.getInfo());
 
-            // Parse the input as a long
-            long tstamp = Long.parseLong(userInput.trim());
-            System.out.println("Loading RF data from timestamp: " + tstamp);
-            return tstamp;
-        } catch (NumberFormatException e) {
-            // Handle invalid number format
-            JOptionPane.showMessageDialog(
-                    null,
-                    "Invalid timestamp format. Using default timestamp.",
-                    "Input Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
-            return 0;
+                // Select the channel so points are added to it and it gets a color.
+                plotter.changeChannel(channel);
+                CircleRF circleRF = new CircleRF(rfInfo.getCenter(), rfInfo.getRadius(), rfInfo.getControlPoints());
+                for (Coordinates2D point : circleRF.getCirclePoints()) {
+                    plotter.addCirclePoint(point);
+                }
+
+                // Also remember this channel's stimulus tuning so it auto-restores on switch.
+                Map<String, String> specs = dbUtil.readLatestRFObjectData(channel, depth);
+                if (!specs.isEmpty()) {
+                    drawableSpecsForChannels.put(channel, specs);
+                }
+
+                loaded++;
+                System.out.println("Loaded RF for channel " + channel + " (tstamp " + rfInfoEntry.getTstamp()
+                        + ", depth " + rfInfoEntry.getDepth() + " µm).");
+            } catch (Exception e) {
+                // One malformed entry shouldn't abort loading the other channels.
+                System.err.println("Skipping RF for channel " + channel + " (tstamp "
+                        + rfInfoEntry.getTstamp() + "): " + e.getMessage());
+            }
         }
+
+        // Restore the channel selection the user had before loading, and apply its
+        // freshly loaded stimulus tuning to the display.
+        if (!currentChannel.equals("None")) {
+            plotter.changeChannel(currentChannel);
+            if (restoreDrawablesFor(currentChannel)) {
+                applyCurrentStimToClient();
+            }
+        }
+        updateLegend(plotter.getColorsForChannels());
+        System.out.println("Loaded " + loaded + " RF(s) at depth " + depth + " µm.");
     }
 
-    private void writeRFObjectData(String channel, String object, String data, long timestamp) {
+    private void writeRFObjectData(String channel, String object, String data, long timestamp, int depth) {
         JdbcTemplate jt = new JdbcTemplate(dbUtil.getDataSource());
         jt.update(
-                "INSERT INTO RFObjectData (tstamp, channel, object, data) VALUES (?, ?, ?, ?)",
-                new Object[] {timestamp, channel, object, data});
+                "INSERT INTO RFObjectData (tstamp, channel, object, data, depth) VALUES (?, ?, ?, ?, ?)",
+                new Object[] {timestamp, channel, object, data, depth});
 
     }
 
@@ -295,13 +320,39 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         jpanel.setLayout(new GridBagLayout());
         jpanel.setBorder(BorderFactory.createTitledBorder("RFPlot"));
 
-        rfCenterLabel(jpanel);
-        rfDiameterLabel(jpanel);
-        scrollerModeLabel(jpanel);
-        scrollerValueLabel(jpanel);
-        channelSelectors(jpanel); // Initialize and add the channel selectors
-        legend(jpanel);
-        removeButton(jpanel);
+        // Left column: read-only RF information text.
+        JPanel infoPanel = new JPanel(new GridBagLayout());
+        rfCenterLabel(infoPanel);
+        rfDiameterLabel(infoPanel);
+        scrollerModeLabel(infoPanel);
+        scrollerValueLabel(infoPanel);
+
+        // Right column: channel controls (depth, selectors, remove button, legend).
+        JPanel controlPanel = new JPanel(new GridBagLayout());
+        depthField(controlPanel); // Optional depth (microns driven) for save/load
+        channelSelectors(controlPanel); // Initialize and add the channel selectors
+        removeButton(controlPanel); // Placed above the legend so it is always reachable
+        legend(controlPanel);
+
+        GridBagConstraints infoConstraints = new GridBagConstraints();
+        infoConstraints.gridx = 0;
+        infoConstraints.gridy = 0;
+        infoConstraints.anchor = GridBagConstraints.NORTHWEST;
+        infoConstraints.fill = GridBagConstraints.BOTH;
+        infoConstraints.weightx = 0.5;
+        infoConstraints.weighty = 1.0;
+        infoConstraints.insets = new Insets(0, 0, 0, 10);
+        jpanel.add(infoPanel, infoConstraints);
+
+        GridBagConstraints controlConstraints = new GridBagConstraints();
+        controlConstraints.gridx = 1;
+        controlConstraints.gridy = 0;
+        controlConstraints.anchor = GridBagConstraints.NORTHWEST;
+        controlConstraints.fill = GridBagConstraints.BOTH;
+        controlConstraints.weightx = 0.5;
+        controlConstraints.weighty = 1.0;
+        jpanel.add(controlPanel, controlConstraints);
+
         return jpanel;
     }
 
@@ -309,7 +360,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         setupRemoveChannelButton(); // Initialize the button
         GridBagConstraints buttonConstraints = new GridBagConstraints();
         buttonConstraints.gridx = 0; // Adjust these constraints as needed
-        buttonConstraints.gridy = 6; // Place it below the last component
+        buttonConstraints.gridy = 2; // Sits directly above the (scrollable) legend
         buttonConstraints.gridwidth = 2; // Span across two columns
         buttonConstraints.fill = GridBagConstraints.HORIZONTAL;
         jpanel.add(removeChannelButton, buttonConstraints);
@@ -317,27 +368,82 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     private void legend(JPanel jpanel) {
         initLegendPanel(); // Initialize the legend panel
+        // Wrap the legend in a bounded-height scroll pane. As channels are added
+        // the legend overflows into columns and/or scrolls, so it can never push
+        // the Remove Channel button off-screen.
+        legendScrollPane = new JScrollPane(legendPanel);
+        legendScrollPane.setBorder(BorderFactory.createTitledBorder("Channel Legend"));
+        legendScrollPane.setPreferredSize(new Dimension(340, 160));
+        legendScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        legendScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+
         GridBagConstraints legendConstraints = new GridBagConstraints();
         legendConstraints.gridx = 0;
-        legendConstraints.gridy = 5; // Adjust as necessary
+        legendConstraints.gridy = 3; // Below the Remove Channel button
         legendConstraints.gridwidth = 2; // Span across two columns if needed
-        legendConstraints.fill = GridBagConstraints.HORIZONTAL;
+        legendConstraints.fill = GridBagConstraints.BOTH;
+        legendConstraints.weightx = 1.0;
+        legendConstraints.weighty = 1.0;
 
-        jpanel.add(legendPanel, legendConstraints);
+        jpanel.add(legendScrollPane, legendConstraints);
+    }
+
+    private void depthField(JPanel jpanel) {
+        GridBagConstraints depthLabelConstraints = new GridBagConstraints();
+        depthLabelConstraints.gridx = 0;
+        depthLabelConstraints.gridy = 0;
+        depthLabelConstraints.gridwidth = 1;
+        depthLabelConstraints.ipadx = 5;
+        jpanel.add(new JLabel("Depth (µm driven)"), depthLabelConstraints);
+
+        depthTextField = new JTextField(Integer.toString(currentDepth));
+        depthTextField.setToolTipText("Microns driven. 0 = final recording location. " +
+                "Ctrl+S saves at this depth; Ctrl+L loads the latest RF per channel at this depth.");
+        GridBagConstraints depthFieldConstraints = new GridBagConstraints();
+        depthFieldConstraints.gridx = 1;
+        depthFieldConstraints.gridy = 0;
+        depthFieldConstraints.gridwidth = 1;
+        depthFieldConstraints.ipadx = 5;
+        depthFieldConstraints.fill = GridBagConstraints.HORIZONTAL;
+        jpanel.add(depthTextField, depthFieldConstraints);
+    }
+
+    /**
+     * Parse the depth (microns driven) currently entered in the panel. Falls back
+     * to 0 (final recording location) if the field is empty or not a valid integer.
+     */
+    private int getEnteredDepth() {
+        if (depthTextField == null) {
+            return currentDepth;
+        }
+        String text = depthTextField.getText().trim();
+        if (text.isEmpty()) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(text);
+        } catch (NumberFormatException e) {
+            System.err.println("Invalid depth '" + text + "', using 0 (final recording location).");
+            return 0;
+        }
     }
 
     private void rfCenterLabel(JPanel jpanel) {
         GridBagConstraints centerLabelConstraints = new GridBagConstraints();
+        centerLabelConstraints.gridx = 0;
+        centerLabelConstraints.gridy = 0;
         centerLabelConstraints.gridwidth = 1;
         centerLabelConstraints.ipadx=5;
-        centerLabelConstraints.anchor=PAGE_START;
+        centerLabelConstraints.anchor=GridBagConstraints.WEST;
         jpanel.add(new JLabel("Center"), centerLabelConstraints);
 
         rfCenterLabel = new JLabel(new Coordinates2D(0,0).toString());
         GridBagConstraints centerValueConstraints = new GridBagConstraints();
+        centerValueConstraints.gridx = 1;
+        centerValueConstraints.gridy = 0;
         centerValueConstraints.gridwidth = 1;
         centerValueConstraints.ipadx=5;
-        centerValueConstraints.anchor=PAGE_END;
+        centerValueConstraints.anchor=GridBagConstraints.WEST;
         jpanel.add(rfCenterLabel, centerValueConstraints);
         rfCenterLabel.setHorizontalAlignment(SwingConstants.LEFT);
         rfCenterLabel.setPreferredSize(new Dimension(320,20));
@@ -345,16 +451,20 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     private void rfDiameterLabel(JPanel jpanel) {
         GridBagConstraints diameterLabelConstraints = new GridBagConstraints();
+        diameterLabelConstraints.gridx = 0;
+        diameterLabelConstraints.gridy = 1;
         diameterLabelConstraints.gridwidth = 1;
         diameterLabelConstraints.ipadx = 5;
-        diameterLabelConstraints.anchor = PAGE_START;
+        diameterLabelConstraints.anchor = GridBagConstraints.WEST;
         jpanel.add(new JLabel("Diameter"), diameterLabelConstraints);
 
         rfDiameterLabel = new JLabel("None");
         GridBagConstraints diameterValueConstraints = new GridBagConstraints();
+        diameterValueConstraints.gridx = 1;
+        diameterValueConstraints.gridy = 1;
         diameterValueConstraints.gridwidth = 1;
         diameterValueConstraints.ipadx = 5;
-        diameterValueConstraints.anchor = PAGE_END;
+        diameterValueConstraints.anchor = GridBagConstraints.WEST;
         jpanel.add(rfDiameterLabel, diameterValueConstraints);
         rfDiameterLabel.setHorizontalAlignment(SwingConstants.LEFT);
         rfDiameterLabel.setPreferredSize(new Dimension(320, 20));
@@ -362,18 +472,23 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     private void scrollerModeLabel(JPanel jpanel){
         GridBagConstraints scrollerModeConstraints = new GridBagConstraints();
+        scrollerModeConstraints.gridx = 0;
         scrollerModeConstraints.gridy = 2;
+        scrollerModeConstraints.gridwidth = 2;
+        scrollerModeConstraints.anchor = GridBagConstraints.WEST;
         scrollerModeLabel = new JLabel("Mode");
         jpanel.add(scrollerModeLabel, scrollerModeConstraints);
     }
 
     private void scrollerValueLabel(JPanel jpanel){
         GridBagConstraints scrollerValueConstraints = new GridBagConstraints();
+        scrollerValueConstraints.gridx = 0;
         scrollerValueConstraints.gridy = 3;
+        scrollerValueConstraints.gridwidth = 2;
+        scrollerValueConstraints.anchor = GridBagConstraints.WEST;
         scrollerValueLabel = new JLabel("Value");
         jpanel.add(scrollerValueLabel, scrollerValueConstraints);
     }
-    private JTextField channelTextField;
     private String currentChannel = "None"; // Default value or retrieve from a saved state
     private JComboBox<String> letterComboBox;
     private JComboBox<String> numberComboBox;
@@ -396,18 +511,17 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             public void actionPerformed(ActionEvent e) {
                 String selectedLetter = (String) letterComboBox.getSelectedItem();
                 String selectedNumber = (String) numberComboBox.getSelectedItem();
-                currentChannel = selectedLetter + "-" + selectedNumber;
-                plotter.changeChannel(currentChannel);
-                RFPlotConsolePlugin.this.updateLegend(plotter.getColorsForChannels());
+                selectChannel(selectedLetter + "-" + selectedNumber);
             }
         };
 
+        letterComboBox.addActionListener(comboboxListener);
         numberComboBox.addActionListener(comboboxListener);
 
         // Layout constraints for the letter combobox
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
-        gbc.gridy = 4;
+        gbc.gridy = 1;
         gbc.gridwidth = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         panel.add(letterComboBox, gbc);
@@ -417,7 +531,120 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         panel.add(numberComboBox, gbc);
     }
 
+    /**
+     * Per-channel stimulus state: channel -> (object class name -> drawable spec XML).
+     * Each drawable (Gabor, MatchStick, Bar, ...) is a shared singleton, so its tuning
+     * (e.g. a gabor's preferred orientation) is remembered per channel here and swapped
+     * in/out as the selected channel changes.
+     */
+    private final Map<String, Map<String, String>> drawableSpecsForChannels = new LinkedHashMap<>();
+
+    /**
+     * Switch to a channel, remembering the outgoing channel's stimulus tuning and
+     * restoring the incoming channel's.
+     * <ul>
+     *   <li>Known channel (tuned earlier this session or loaded via Ctrl+L): auto-restore
+     *       its saved drawable specs.</li>
+     *   <li>Channel with data persisted in the DB but not yet seen this session: restore
+     *       from the DB at the current depth.</li>
+     *   <li>Brand-new channel: keep the current stimulus state as its starting point.</li>
+     * </ul>
+     */
+    private void selectChannel(String newChannel) {
+        String previousChannel = currentChannel;
+        // Remember the channel we are leaving so its latest tuning isn't lost.
+        if (previousChannel != null && !previousChannel.equals("None")) {
+            snapshotDrawablesTo(previousChannel);
+        }
+
+        currentChannel = newChannel;
+        plotter.changeChannel(newChannel);
+
+        boolean restored = restoreDrawablesFor(newChannel);
+        if (!restored) {
+            restored = seedDrawablesFromDb(newChannel, getEnteredDepth());
+        }
+        if (restored) {
+            applyCurrentStimToClient();
+        } else {
+            // Brand-new channel: maintain the current stimulus state as its baseline.
+            snapshotDrawablesTo(newChannel);
+        }
+
+        updateLegend(plotter.getColorsForChannels());
+    }
+
+    /** Capture the current spec of every drawable as the given channel's remembered tuning. */
+    private void snapshotDrawablesTo(String channel) {
+        Map<String, String> specs = new LinkedHashMap<>();
+        for (Map.Entry<String, RFPlotDrawable> entry : namesForDrawables.entrySet()) {
+            try {
+                specs.put(entry.getKey(), entry.getValue().getSpec());
+            } catch (Exception e) {
+                // A drawable with no spec yet; nothing to remember for it.
+            }
+        }
+        drawableSpecsForChannels.put(channel, specs);
+    }
+
+    /** Restore a channel's remembered tuning into the drawables. Returns false if unknown. */
+    private boolean restoreDrawablesFor(String channel) {
+        Map<String, String> specs = drawableSpecsForChannels.get(channel);
+        if (specs == null || specs.isEmpty()) {
+            return false;
+        }
+        applySpecsToDrawables(specs);
+        return true;
+    }
+
+    /** Pull a channel's latest saved stimulus specs from the DB and restore them. */
+    private boolean seedDrawablesFromDb(String channel, int depth) {
+        Map<String, String> specs;
+        try {
+            specs = dbUtil.readLatestRFObjectData(channel, depth);
+        } catch (Exception e) {
+            System.err.println("Could not read stored stimuli for channel " + channel + ": " + e.getMessage());
+            return false;
+        }
+        if (specs.isEmpty()) {
+            return false;
+        }
+        applySpecsToDrawables(specs);
+        drawableSpecsForChannels.put(channel, specs);
+        return true;
+    }
+
+    private void applySpecsToDrawables(Map<String, String> specs) {
+        for (Map.Entry<String, String> entry : specs.entrySet()) {
+            RFPlotDrawable drawable = namesForDrawables.get(entry.getKey());
+            if (drawable != null && entry.getValue() != null) {
+                try {
+                    drawable.setSpec(entry.getValue());
+                } catch (Exception e) {
+                    // Legacy/summary data that isn't a round-trippable spec; leave as-is.
+                    System.err.println("Could not restore " + entry.getKey() + ": " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    /** Push the currently selected stim type (with its restored spec) to the display. */
+    private void applyCurrentStimToClient() {
+        RFPlotDrawable current = namesForDrawables.get(stimType);
+        if (current == null) {
+            return;
+        }
+        stimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(current);
+        if (isStimToggleOn) {
+            client.changeRFPlotStim(stimSpec);
+            client.changeRFPlotXfm(xfmSpec);
+        }
+    }
+
     private JPanel legendPanel;
+    private JScrollPane legendScrollPane;
+    private JTextField depthTextField;
+    private int currentDepth = 0; // Microns driven; 0 = final recording location
 
     private List<JPanel> columns = new ArrayList<>();
     private int maxPerColumn = 5; // Maximum elements per column
@@ -425,7 +652,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     private void initLegendPanel() {
         legendPanel = new JPanel();
         legendPanel.setLayout(new BoxLayout(legendPanel, BoxLayout.X_AXIS));
-        legendPanel.setBorder(BorderFactory.createTitledBorder("Channel Legend"));
+        // Title border lives on the enclosing scroll pane (see legend()).
 
         addNewColumn(); // Initialize with one column
     }
@@ -473,6 +700,10 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         // Refresh layout
         legendPanel.revalidate();
         legendPanel.repaint();
+        if (legendScrollPane != null) {
+            legendScrollPane.revalidate();
+            legendScrollPane.repaint();
+        }
     }
 
 
@@ -560,10 +791,10 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             public void actionPerformed(ActionEvent e) {
                 if (!currentChannel.equals("None")) {
                     plotter.removeChannel(currentChannel); // Assuming such a method exists in plotter
+                    drawableSpecsForChannels.remove(currentChannel); // Forget its stimulus tuning too
                     updateLegend(plotter.getColorsForChannels()); // Refresh the legend to reflect the removal
-                    // Optionally reset currentChannel if needed
+                    // Reset current selection (channel is chosen via the comboboxes).
                     currentChannel = "None";
-                    channelTextField.setText(currentChannel);
                 }
             }
         });

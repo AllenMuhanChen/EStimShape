@@ -546,18 +546,184 @@ public class DbUtil {
 		final ArrayList<RFInfoEntry> result = new ArrayList<RFInfoEntry>();
 
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
+		try {
+			jt.query(
+					" select tstamp, info, channel, coalesce(depth, 0) as depth " +
+					" from RFInfo " +
+					" where tstamp >= ? and tstamp <= ? " +
+					" order by tstamp ",
+					new Object[] {startTime, stopTime },
+					new RowCallbackHandler() {
+						public void processRow(ResultSet rs) throws SQLException {
+							RFInfoEntry ent = new RFInfoEntry();
+							ent.setTstamp(rs.getLong("tstamp"));
+							ent.setInfo(rs.getString("info"));
+							ent.setChannel(rs.getString("channel"));
+							ent.setDepth(rs.getInt("depth"));
+							result.add(ent);
+						}
+					});
+		} catch (DataAccessException e) {
+			// RFInfo table may predate the depth column (un-migrated database).
+			result.clear();
+			jt.query(
+					" select tstamp, info, channel " +
+					" from RFInfo " +
+					" where tstamp >= ? and tstamp <= ? " +
+					" order by tstamp ",
+					new Object[] {startTime, stopTime },
+					new RowCallbackHandler() {
+						public void processRow(ResultSet rs) throws SQLException {
+							RFInfoEntry ent = new RFInfoEntry();
+							ent.setTstamp(rs.getLong("tstamp"));
+							ent.setInfo(rs.getString("info"));
+							ent.setChannel(rs.getString("channel"));
+							ent.setDepth(0);
+							result.add(ent);
+						}
+					});
+		}
+		return result;
+	}
+
+	/**
+	 * Read the most recent RFInfo entry for every channel at the given depth.
+	 *
+	 * For each channel that has any RFInfo saved at <code>depth</code>, the entry
+	 * with the largest tstamp (the latest) is returned. Channels with no RF saved
+	 * at that depth are omitted.
+	 * <p>
+	 * Robust to the absence of depth information: rows with a NULL depth are
+	 * treated as depth 0, and if the RFInfo table predates the depth column
+	 * entirely, this falls back to the latest RF per channel ignoring depth.
+	 *
+	 * @param depth microns driven; 0 denotes the final/reference recording location
+	 * @return one {@link RFInfoEntry} per channel, latest at the given depth
+	 */
+	public List<RFInfoEntry> readLatestRFInfoPerChannel(int depth) {
+		try {
+			return readLatestRFInfoPerChannelAtDepth(depth);
+		} catch (DataAccessException e) {
+			// Most likely the RFInfo table has no depth column yet (un-migrated
+			// database). Fall back to the latest RF per channel across all rows.
+			System.err.println("Could not read RFInfo by depth (" + e.getMessage()
+					+ "). Falling back to latest RF per channel ignoring depth.");
+			return readLatestRFInfoPerChannelIgnoringDepth();
+		}
+	}
+
+	private List<RFInfoEntry> readLatestRFInfoPerChannelAtDepth(int depth) {
+		final ArrayList<RFInfoEntry> result = new ArrayList<RFInfoEntry>();
+
+		JdbcTemplate jt = new JdbcTemplate(dataSource);
 		jt.query(
-				" select tstamp, info " +
-				" from RFInfo " +
-				" where tstamp >= ? and tstamp <= ? " +
-				" order by tstamp ",
-				new Object[] {startTime, stopTime },
+				" select r.tstamp, r.info, r.channel, coalesce(r.depth, 0) as depth " +
+				" from RFInfo r " +
+				" inner join ( " +
+				"     select channel, max(tstamp) as maxTstamp " +
+				"     from RFInfo " +
+				"     where coalesce(depth, 0) = ? " +
+				"     group by channel " +
+				" ) latest on r.channel = latest.channel and r.tstamp = latest.maxTstamp ",
+				new Object[] { depth },
 				new RowCallbackHandler() {
 					public void processRow(ResultSet rs) throws SQLException {
 						RFInfoEntry ent = new RFInfoEntry();
 						ent.setTstamp(rs.getLong("tstamp"));
 						ent.setInfo(rs.getString("info"));
+						ent.setChannel(rs.getString("channel"));
+						ent.setDepth(rs.getInt("depth"));
 						result.add(ent);
+					}
+				});
+		return result;
+	}
+
+	private List<RFInfoEntry> readLatestRFInfoPerChannelIgnoringDepth() {
+		final ArrayList<RFInfoEntry> result = new ArrayList<RFInfoEntry>();
+
+		JdbcTemplate jt = new JdbcTemplate(dataSource);
+		jt.query(
+				" select r.tstamp, r.info, r.channel " +
+				" from RFInfo r " +
+				" inner join ( " +
+				"     select channel, max(tstamp) as maxTstamp " +
+				"     from RFInfo " +
+				"     group by channel " +
+				" ) latest on r.channel = latest.channel and r.tstamp = latest.maxTstamp ",
+				new RowCallbackHandler() {
+					public void processRow(ResultSet rs) throws SQLException {
+						RFInfoEntry ent = new RFInfoEntry();
+						ent.setTstamp(rs.getLong("tstamp"));
+						ent.setInfo(rs.getString("info"));
+						ent.setChannel(rs.getString("channel"));
+						ent.setDepth(0);
+						result.add(ent);
+					}
+				});
+		return result;
+	}
+
+	/**
+	 * Read the latest saved stimulus data for one channel at the given depth: the most
+	 * recent {@code data} for each {@code object} type in RFObjectData.
+	 * <p>
+	 * Robust to the absence of depth information: a NULL depth is treated as 0, and if the
+	 * RFObjectData table predates the depth column, this falls back to ignoring depth.
+	 *
+	 * @return object class name -&gt; stored spec/data (empty if the channel has none)
+	 */
+	public Map<String, String> readLatestRFObjectData(String channel, int depth) {
+		try {
+			return readLatestRFObjectDataAtDepth(channel, depth);
+		} catch (DataAccessException e) {
+			System.err.println("Could not read RFObjectData by depth (" + e.getMessage()
+					+ "). Falling back to latest per object ignoring depth.");
+			return readLatestRFObjectDataIgnoringDepth(channel);
+		}
+	}
+
+	private Map<String, String> readLatestRFObjectDataAtDepth(String channel, int depth) {
+		final HashMap<String, String> result = new HashMap<String, String>();
+
+		JdbcTemplate jt = new JdbcTemplate(dataSource);
+		jt.query(
+				" select r.object, r.data " +
+				" from RFObjectData r " +
+				" inner join ( " +
+				"     select object, max(tstamp) as maxTstamp " +
+				"     from RFObjectData " +
+				"     where channel = ? and coalesce(depth, 0) = ? " +
+				"     group by object " +
+				" ) latest on r.object = latest.object and r.tstamp = latest.maxTstamp " +
+				" where r.channel = ? ",
+				new Object[] { channel, depth, channel },
+				new RowCallbackHandler() {
+					public void processRow(ResultSet rs) throws SQLException {
+						result.put(rs.getString("object"), rs.getString("data"));
+					}
+				});
+		return result;
+	}
+
+	private Map<String, String> readLatestRFObjectDataIgnoringDepth(String channel) {
+		final HashMap<String, String> result = new HashMap<String, String>();
+
+		JdbcTemplate jt = new JdbcTemplate(dataSource);
+		jt.query(
+				" select r.object, r.data " +
+				" from RFObjectData r " +
+				" inner join ( " +
+				"     select object, max(tstamp) as maxTstamp " +
+				"     from RFObjectData " +
+				"     where channel = ? " +
+				"     group by object " +
+				" ) latest on r.object = latest.object and r.tstamp = latest.maxTstamp " +
+				" where r.channel = ? ",
+				new Object[] { channel, channel },
+				new RowCallbackHandler() {
+					public void processRow(ResultSet rs) throws SQLException {
+						result.put(rs.getString("object"), rs.getString("data"));
 					}
 				});
 		return result;
@@ -1211,10 +1377,10 @@ public class DbUtil {
 	 * @param info
 	 */
 
-	public void writeRFInfo(long tstamp, String channel, String info) {
+	public void writeRFInfo(long tstamp, String channel, String info, int depth) {
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
-		jt.update("insert into RFInfo (tstamp, channel, info) values (?, ?, ?)",
-				new Object[] { tstamp, channel, info });
+		jt.update("insert into RFInfo (tstamp, channel, info, depth) values (?, ?, ?, ?)",
+				new Object[] { tstamp, channel, info, depth });
 	}
 
 	/**
