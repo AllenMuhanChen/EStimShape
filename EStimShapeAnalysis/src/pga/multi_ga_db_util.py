@@ -247,11 +247,15 @@ class MultiGaDbUtil:
         self.add_catch_lineage(lineages_for_experiment_id)
 
         placeholders = ','.join(['%s'] * len(lineages_for_experiment_id))
+        # A stim needs (re-)parsing if it has no row for this metric WITH spike
+        # timestamps. Requiring tstamps IS NOT NULL means rows written before the
+        # tstamps/epoch columns existed (rate only) get re-detected and backfilled
+        # rather than skipped.
         query = f"""
                 SELECT s.stim_id
                 FROM StimGaInfo s
                 LEFT JOIN MUAChannelResponses r
-                       ON s.stim_id = r.stim_id AND r.mua_metric = %s
+                       ON s.stim_id = r.stim_id AND r.mua_metric = %s AND r.tstamps IS NOT NULL
                 WHERE r.stim_id IS NULL AND lineage_id IN ({placeholders})
             """
         self.conn.execute(query, [mua_metric] + list(lineages_for_experiment_id))
