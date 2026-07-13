@@ -190,25 +190,41 @@ class MultiGaDbUtil:
                 channel VARCHAR(64) NOT NULL,
                 mua_metric VARCHAR(64) NOT NULL,
                 spikes_per_second DOUBLE,
+                tstamps LONGTEXT,
+                epoch_start DOUBLE,
+                epoch_end DOUBLE,
                 PRIMARY KEY (task_id, channel, mua_metric),
                 INDEX idx_stim_metric (stim_id, channel, mua_metric)
             ) ENGINE=InnoDB DEFAULT CHARSET=latin1
             """
         )
+        # Migrate tables created before the spike-timestamp/epoch columns existed.
+        self.conn.execute("SHOW COLUMNS FROM MUAChannelResponses")
+        existing = {row[0] for row in self.conn.fetch_all()}
+        for col, col_type in (("tstamps", "LONGTEXT"),
+                              ("epoch_start", "DOUBLE"),
+                              ("epoch_end", "DOUBLE")):
+            if col not in existing:
+                self.conn.execute(f"ALTER TABLE MUAChannelResponses ADD COLUMN {col} {col_type}")
 
     def add_mua_channel_responses_in_batch(self, insert_data):
-        """insert_data: iterable of (stim_id, task_id, channel, mua_metric, spikes_per_second).
+        """insert_data: iterable of (stim_id, task_id, channel, mua_metric,
+        spikes_per_second, tstamps, epoch_start, epoch_end).
 
-        Uses INSERT ... ON DUPLICATE KEY UPDATE so re-parsing a generation
-        overwrites rather than erroring on the (task_id, channel, mua_metric) key.
+        tstamps is a repr'd list of absolute spike times (seconds); epoch_start/
+        epoch_end are the trial window (seconds). Uses ON DUPLICATE KEY UPDATE so
+        re-parsing overwrites on the (task_id, channel, mua_metric) key.
         """
         cursor = self.conn.mydb.cursor()
         query = """
             INSERT INTO MUAChannelResponses
-                (stim_id, task_id, channel, mua_metric, spikes_per_second)
-            VALUES (%s, %s, %s, %s, %s)
+                (stim_id, task_id, channel, mua_metric, spikes_per_second, tstamps, epoch_start, epoch_end)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE spikes_per_second = VALUES(spikes_per_second),
-                                    stim_id = VALUES(stim_id)
+                                    stim_id = VALUES(stim_id),
+                                    tstamps = VALUES(tstamps),
+                                    epoch_start = VALUES(epoch_start),
+                                    epoch_end = VALUES(epoch_end)
         """
         cursor.executemany(query, list(insert_data))
         self.conn.mydb.commit()

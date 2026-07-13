@@ -21,7 +21,7 @@ from src.repository.import_from_repository import import_from_repository
 from src.startup import context
 from src.analysis.isogabor.old_isogabor_analysis import TypeField, FrequencyField, IntanSpikesByChannelField, \
     EpochStartStopTimesField, IsoTypeField, IntanSpikeRateByChannelField, OrientationField, \
-    MuaSpikesByChannelField, MuaSpikeRateByChannelField, MuaEpochStartStopTimesField
+    MuaSpikesByChannelField, MuaSpikeRateByChannelField, MuaEpochStartStopTimesField, MuaDbCachedParser
 
 # Import our pipeline framework
 from clat.pipeline.pipeline_base_classes import (
@@ -277,10 +277,15 @@ def compile(data_type: str = 'raw', mua_method: str = None,
     if is_mua:
         from src.analysis.ga.baseline_spike_detection_comparison import (
             PeriodicBlockMUAParser, MadStrategy)
-        parser = PeriodicBlockMUAParser(
+        wideband_parser = PeriodicBlockMUAParser(
             strategy=MadStrategy(threshold_mad=mua_k), block_size=mua_block,
             to_cache=True,
             cache_dir=os.path.join(context.isogabor_parsed_spikes_path, "mua_block_mad"))
+        # Reuse any spikes already stored in MUAChannelResponses; detect the rest.
+        parser = MuaDbCachedParser(
+            db_name=context.isogabor_database,
+            mua_metric=mua_method or f"mad_k{mua_k:g}_block{mua_block}",
+            fallback_parser=wideband_parser)
         fields.append(MuaSpikesByChannelField(conn, parser, task_ids, context.isogabor_intan_path))
         fields.append(MuaSpikeRateByChannelField(conn, parser, task_ids, context.isogabor_intan_path))
         fields.append(MuaEpochStartStopTimesField(conn, parser, task_ids, context.isogabor_intan_path))

@@ -321,6 +321,84 @@ class MuaEpochStartStopTimesField(_MuaParsedMixin, EpochStartStopTimesField):
         return "MUA Epoch"
 
 
+class _StrChannel:
+    """Minimal channel holder exposing `.value`, matching what the Intan fields
+    read. Lets the DB-backed parser return channels without a clat Channel enum."""
+    __slots__ = ("value",)
+
+    def __init__(self, value):
+        self.value = value
+
+
+class MuaDbCachedParser:
+    """Parser adapter that first serves MUA spikes/epochs from a database's
+    MUAChannelResponses table (populated by the live GA MUA parser) and only
+    re-detects the missing task_ids from wideband via `fallback_parser`.
+
+    parse() returns the same shape as PeriodicBlockMUAParser:
+      (spikes_by_channel_by_task_id, epochs_by_task_id, sample_rate)
+    with absolute spike times, so the Intan/MUA field logic works unchanged.
+    Robust to a missing table/columns — it just falls back to detection.
+    """
+
+    def __init__(self, db_name: str, mua_metric: str, fallback_parser):
+        self.db_name = db_name
+        self.mua_metric = mua_metric
+        self.fallback = fallback_parser
+        self.sample_rate = None
+
+    def parse(self, task_ids, intan_files_dir):
+        task_ids = [int(t) for t in task_ids]
+        spikes, epochs = self._read_from_db(task_ids)
+        missing = [t for t in task_ids if t not in epochs]
+        if missing:
+            print(f"MUA DB cache: served {len(task_ids) - len(missing)}/{len(task_ids)} "
+                  f"tasks from MUAChannelResponses; detecting {len(missing)} from wideband.")
+            m_spikes, m_epochs, sr = self.fallback.parse(missing, intan_files_dir)
+            spikes.update(m_spikes)
+            epochs.update(m_epochs)
+            self.sample_rate = sr
+        else:
+            print(f"MUA DB cache: served all {len(task_ids)} tasks from "
+                  f"MUAChannelResponses (no wideband detection needed).")
+        return spikes, epochs, self.sample_rate
+
+    def _read_from_db(self, task_ids):
+        import ast
+        from clat.util.connection import Connection
+
+        spikes: dict = {}
+        epochs: dict = {}
+        if not task_ids:
+            return spikes, epochs
+        try:
+            conn = Connection(self.db_name)
+            conn.execute("SHOW TABLES LIKE 'MUAChannelResponses'")
+            if not conn.fetch_all():
+                return spikes, epochs
+            placeholders = ','.join(['%s'] * len(task_ids))
+            conn.execute(
+                f"""SELECT task_id, channel, tstamps, epoch_start, epoch_end
+                    FROM MUAChannelResponses
+                    WHERE mua_metric = %s AND task_id IN ({placeholders})
+                      AND tstamps IS NOT NULL AND epoch_start IS NOT NULL""",
+                [self.mua_metric] + list(task_ids),
+            )
+            for task_id, channel, tstamps_str, epoch_start, epoch_end in conn.fetch_all():
+                if epoch_start is None or epoch_end is None:
+                    continue
+                try:
+                    times = ast.literal_eval(tstamps_str) if tstamps_str else []
+                except (SyntaxError, ValueError):
+                    times = []
+                spikes.setdefault(int(task_id), {})[_StrChannel(channel)] = times
+                epochs[int(task_id)] = (float(epoch_start), float(epoch_end))
+        except Exception as e:
+            print(f"MUA DB cache read failed ({e}); falling back to wideband detection.")
+            return {}, {}
+        return spikes, epochs
+
+
 class TypeField(StimSpecField):
     def get(self, task_id) -> str:
         stim_spec = self.get_cached_super(task_id, StimSpecField)

@@ -22,7 +22,8 @@ from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, 
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField, GenIdField, ParentIdField
 from src.analysis.ga.response_spec import ResponseSpec
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
-    IntanSpikeRateByChannelField, MuaSpikesByChannelField, MuaSpikeRateByChannelField, MuaEpochStartStopTimesField
+    IntanSpikeRateByChannelField, MuaSpikesByChannelField, MuaSpikeRateByChannelField, \
+    MuaEpochStartStopTimesField, MuaDbCachedParser
 from src.analysis.lightness.lightness_analysis import TextureField, ColorField, AverageRGBField
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.intan.MultiFileParser import MultiFileParser
@@ -203,11 +204,18 @@ class PlotTopNAnalysis(Analysis, LiveCompilable):
         if is_mua:
             from src.analysis.ga.baseline_spike_detection_comparison import (
                 PeriodicBlockMUAParser, MadStrategy)
-            mua_parser = PeriodicBlockMUAParser(
+            wideband_parser = PeriodicBlockMUAParser(
                 strategy=MadStrategy(threshold_mad=self.mua_k or 4.0),
                 block_size=self.mua_block or 100,
                 to_cache=True,
                 cache_dir=os.path.join(context.ga_parsed_spikes_path, "mua_block_mad"),
+            )
+            # Reuse spikes the live GA parser already wrote to MUAChannelResponses;
+            # only detect missing task_ids from wideband.
+            mua_parser = MuaDbCachedParser(
+                db_name=context.ga_database,
+                mua_metric=self.mua_method or "mad_k4_block100",
+                fallback_parser=wideband_parser,
             )
             fields.append(MuaSpikesByChannelField(conn, mua_parser, task_ids, context.ga_intan_path))
             fields.append(MuaSpikeRateByChannelField(conn, mua_parser, task_ids, context.ga_intan_path))

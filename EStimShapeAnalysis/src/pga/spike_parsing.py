@@ -21,17 +21,17 @@ class ResponseParser(Protocol):
         pass
 
 
-def _count_mad_negative_spikes(segment: np.ndarray, threshold: float,
-                               refractory_samples: int) -> int:
-    """Count negative-going crossings of `threshold` (< 0) in `segment`, snapping
-    to the local trough and enforcing a refractory period. Mirrors the MAD/RMS
-    detector used in the offline analysis (negative crossings only)."""
+def _detect_mad_negative_spikes(segment: np.ndarray, threshold: float,
+                                refractory_samples: int) -> np.ndarray:
+    """Negative-going crossings of `threshold` (< 0) in `segment`, snapped to the
+    local trough with a refractory period enforced. Returns sample indices into
+    `segment`. Mirrors the offline analysis detector (negative crossings only)."""
     if segment.size < 2:
-        return 0
+        return np.empty(0, dtype=int)
     below = segment < threshold
     crossings = np.where(np.diff(below.astype(np.int8)) == 1)[0] + 1
     if len(crossings) == 0:
-        return 0
+        return np.empty(0, dtype=int)
     n = len(segment)
     troughs = []
     for c in crossings:
@@ -41,7 +41,13 @@ def _count_mad_negative_spikes(segment: np.ndarray, threshold: float,
     for s in troughs[1:]:
         if s - kept[-1] >= refractory_samples:
             kept.append(s)
-    return len(kept)
+    return np.asarray(kept, dtype=int)
+
+
+def _count_mad_negative_spikes(segment: np.ndarray, threshold: float,
+                               refractory_samples: int) -> int:
+    """Count of negative MAD spikes in `segment` (see _detect_mad_negative_spikes)."""
+    return len(_detect_mad_negative_spikes(segment, threshold, refractory_samples))
 
 
 def _read_amplifier_header(intan_dir: str):
@@ -382,10 +388,14 @@ class MuaIntanResponseParser(IntanResponseParser):
                     duration = end_s - start_s
                     if e <= s or duration <= 0:
                         continue
-                    count = _count_mad_negative_spikes(
+                    local = _detect_mad_negative_spikes(
                         filtered[s:e], threshold, refractory_samples)
+                    # Absolute spike times (seconds) so the analysis fields can
+                    # reconstruct them without re-detecting from wideband.
+                    abs_times = [float(t) for t in (s + local) / sample_rate]
                     rows.append((stim_id, task_id, cval, self.mua_metric,
-                                 count / duration))
+                                 len(local) / duration, repr(abs_times),
+                                 float(start_s), float(end_s)))
         return rows
 
 
