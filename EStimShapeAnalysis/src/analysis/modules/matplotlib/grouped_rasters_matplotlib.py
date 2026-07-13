@@ -295,10 +295,13 @@ class GroupedRasterPlotter(ComputationModule):
                     y_pos = trial_positions[secondary_value][i]
                     spikes_by_channel = trial[spike_data_col]
 
+
                     # Handle cases where spike_data_col_key is a list of channels or a single channel
                     if isinstance(spike_data_col_key, list):
                         new_spikes_by_channel = {}
                         for channel in spike_data_col_key:
+                            # if channel not in spikes_by_channel, set to empty list
+                            spikes_by_channel[channel] = spikes_by_channel.get(channel, [])
                             new_spikes_by_channel[channel] = spikes_by_channel[channel]
                         spikes_by_channel = new_spikes_by_channel
                     else:

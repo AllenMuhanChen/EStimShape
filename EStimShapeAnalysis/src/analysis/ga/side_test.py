@@ -33,9 +33,9 @@ from src.startup import context
 
 def main():
     # channel = None
-    analysis = SideTestAnalysis()
+    analysis = SideTestAnalysis(data_type="mua")
     compiled_data = None
-    compiled_data = compile()
+    # compiled_data = compile()
     # session_id, _ = read_session_id_from_db_name(context.ga_database)
     # if channel is None:
         # channel = read_cluster_channels(session_id)[0]
@@ -44,10 +44,13 @@ def main():
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     # channel = ["A-009", "A-000", "A-006", "A-009", "A-015", "A-022", "A-024"]
     channel = read_cluster_channels(session_id)
-    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    analysis.run(session_id, channel=channel, compiled_data=compiled_data)
 
 
 class SideTestAnalysis(Analysis):
+
+    def __init__(self, data_type: str = None):
+        super().__init__(data_type)
 
     def analyze(self, channel, compiled_data: pd.DataFrame = None):
         if compiled_data is None:
