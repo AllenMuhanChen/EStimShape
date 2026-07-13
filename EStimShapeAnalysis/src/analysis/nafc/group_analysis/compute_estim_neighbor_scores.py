@@ -43,6 +43,11 @@ Metrics computed (all higher = better):
   - ``pc_loading_sim``            Pearson correlation between the two channels'
                                    PC-*loading* vectors (PCA on stimuli x
                                    channels, loadings per ``stimulus_pca_analysis``).
+  - ``delta_variant_pc_dprime``   ``delta_variant_dprime`` carried into stimulus-PC
+                                   space, explained-variance weighted: population
+                                   per-PC variant/delta d' combined per channel as a
+                                   weighted RMS with weight evr[c] * loading[ch,c]^2,
+                                   so lower (higher-variance) PCs count more.
 
 Data source: every metric reads one shared response matrix,
 ``ChannelResponseVectors`` (``vector_type='ga_mean_response'``) via
@@ -300,30 +305,153 @@ class DeltaVariantDPrime:
         return self._cache[ch_str]
 
 
+class DeltaVariantPcDPrime:
+    """Per-channel variant/delta d' measured in PC space, explained-variance weighted.
+
+    This is the ``delta_variant_dprime`` construct — how reliably (in SD units) a
+    channel's tissue separates variants from their deltas — but carried out in the
+    population's stimulus-PC space rather than on the channel's raw scalar response,
+    with lower PCs (which explain more variance) weighted more heavily.
+
+    Why not just difference stimuli in shared PC space? The stimulus-PCA scores are
+    the SAME for every channel, so a d' built purely from them would be one number
+    per session (identical for every estim spec) — useless for a per-spec metric.
+    To stay per-channel we combine a *population* per-PC d' with each channel's own
+    PC participation (its squared loading), so the score answers: "does THIS channel
+    load onto the high-variance PCs along which variants reliably separate from
+    their deltas?"
+
+    Construction (mirrors ``PcLoadingSimilarity``'s stimulus PCA):
+      1. PCA on the stimuli x channels z-scored matrix -> per-stimulus scores
+         T[s, c], explained_variance_ratio evr[c], and per-channel loadings
+         L[ch, c] = components_.T * sqrt(explained_variance_) (per
+         ``stimulus_pca_analysis._compute_loadings``).
+      2. Population paired d' ALONG each PC c, variant-anchored exactly like
+         ``DeltaVariantDPrime``: for each variant v, Delta_{v,c} = T[v,c] -
+         mean_d T[d,c]; dprime_pop[c] = mean_v(Delta_{v,c}) / sd_v(Delta_{v,c}).
+         (PC sign is arbitrary, so only |dprime_pop[c]| matters downstream.)
+
+    Per-channel score = weighted RMS of the per-PC d', weights
+    w[ch,c] = evr[c] * L[ch,c]**2:
+
+        score(ch) = sqrt( sum_c w[ch,c] * dprime_pop[c]**2 / sum_c w[ch,c] )
+
+    Higher = the channel participates in high-variance PCs that reliably separate
+    variants from deltas (a well-tuned patch) — same "higher = better" direction as
+    the raw-response d'. per_channel metric: the neighbourhood aggregation spatially
+    smooths this scalar (n_neighbors=0 -> the estim channel's own value)."""
+
+    per_channel = True
+
+    def __init__(self, name, loadings, evr, dprime_pop):
+        self.name = name
+        self._loadings = loadings          # {channel_str: np.ndarray over the used PCs}
+        self._evr = np.asarray(evr, dtype=float)          # (k_used,)
+        self._dprime_pop = np.asarray(dprime_pop, dtype=float)  # (k_used,), NaN where unscorable
+        self._cache = {}
+
+    @classmethod
+    def from_aligned(cls, name, channel_strs, aligned_values, common_stim_ids,
+                     variant_to_deltas, *, n_pcs=None, min_pairs=2):
+        """Fit the stimulus PCA, compute the population per-PC variant/delta d', and
+        keep each channel's loading vector. ``common_stim_ids`` are the stimulus ids
+        aligning the columns of ``aligned_values`` (row i of the stimuli x channels
+        matrix). ``n_pcs`` caps how many leading PCs to use (None = all; with the evr
+        weighting the tiny-variance tail contributes negligibly anyway). Returns None
+        if the matrix is too small or no PC yields a scorable d'."""
+        from sklearn.decomposition import PCA
+        from sklearn.preprocessing import StandardScaler
+        from src.analysis.ga.stimulus_pca_analysis import StimulusPCAAnalysis
+
+        if len(channel_strs) < 2:
+            return None
+        channel_major = np.vstack(aligned_values)          # (n_channels, n_stim)
+        X = channel_major.T                                # (n_stim, n_channels)
+        if X.shape[0] < 2 or X.shape[1] < 2:
+            return None
+        Xstd = StandardScaler().fit_transform(X)
+        n_components = min(Xstd.shape)
+        pca = PCA(n_components=n_components)
+        scores = pca.fit_transform(Xstd)                   # (n_stim, k)
+        evr = pca.explained_variance_ratio_
+        loadings_df = StimulusPCAAnalysis._compute_loadings(pca, channel_strs)
+
+        k = scores.shape[1]
+        if n_pcs is not None:
+            k = min(k, int(n_pcs))
+        if k < 1:
+            return None
+
+        stim_index = {s: i for i, s in enumerate(common_stim_ids)}
+
+        # Population paired d' along each PC (variant-anchored, same rule as the
+        # raw-response DeltaVariantDPrime).
+        dprime_pop = np.full(k, np.nan, dtype=float)
+        for c in range(k):
+            zs = []
+            for variant, deltas in variant_to_deltas.items():
+                vi = stim_index.get(variant)
+                if vi is None:
+                    continue  # variant not among the common stimuli
+                dvals = [scores[stim_index[d], c] for d in deltas if d in stim_index]
+                if not dvals:
+                    continue
+                zs.append(float(scores[vi, c]) - float(np.mean(dvals)))
+            if len(zs) >= min_pairs:
+                zs = np.asarray(zs, dtype=float)
+                sd = float(np.std(zs, ddof=1))
+                if sd > 1e-12:
+                    dprime_pop[c] = float(np.mean(zs)) / sd
+
+        if not np.any(np.isfinite(dprime_pop)):
+            return None
+        loadings = {ch: loadings_df.loc[ch].to_numpy(dtype=float)[:k]
+                    for ch in channel_strs}
+        return cls(name, loadings, evr[:k], dprime_pop)
+
+    def channel_score(self, ch_str):
+        if ch_str in self._cache:
+            return self._cache[ch_str]
+        L = self._loadings.get(ch_str)
+        val = np.nan
+        if L is not None:
+            valid = np.isfinite(self._dprime_pop) & np.isfinite(L)
+            if np.any(valid):
+                w = self._evr[valid] * (L[valid] ** 2)
+                wsum = float(np.sum(w))
+                if wsum > 1e-12:
+                    d2 = self._dprime_pop[valid] ** 2
+                    val = float(np.sqrt(float(np.sum(w * d2)) / wsum))
+        self._cache[ch_str] = float(val) if np.isfinite(val) else np.nan
+        return self._cache[ch_str]
+
+
 # ---------------------------------------------------------------------------
 # Per-session metric construction
 # ---------------------------------------------------------------------------
 
 def _aligned_response_arrays(base_matrix, channel_strs):
-    """Return (kept_channel_strs, [vector, ...]) aligned over the stimuli common
-    to every kept channel. Channels contributing no data are dropped; if the
-    common stimulus set is too small, returns ([], [])."""
+    """Return (kept_channel_strs, [vector, ...], common_stim_ids) aligned over the
+    stimuli common to every kept channel. ``common_stim_ids`` are the (sorted)
+    stimulus ids indexing each vector, so a caller can map stimulus ids back to
+    columns. Channels contributing no data are dropped; if the common stimulus set
+    is too small, returns ([], [], [])."""
     present = [ch for ch in channel_strs if base_matrix.get(ch)]
     if len(present) < 2:
-        return [], []
+        return [], [], []
     common = set.intersection(*(set(base_matrix[ch]) for ch in present))
     common = sorted(common)
     if len(common) < MIN_COMMON_STIMS:
-        return [], []
+        return [], [], []
     values = [np.array([base_matrix[ch][s] for s in common], dtype=float)
               for ch in present]
-    return present, values
+    return present, values, common
 
 
 def build_metrics_for_session(session_id, base_matrix, repo_conn, ga_conn, *,
                               channel_strs, top_ns=TOP_N_DEFAULTS,
                               pca_components=2, n_loading_pcs=10,
-                              corr_method='spearman'):
+                              n_dprime_pcs=None, corr_method='spearman'):
     """Construct the metric objects for one session. ``channel_strs`` is the list
     of probe channels that have response data (the universe over which neighbours
     and embeddings are computed)."""
@@ -375,8 +503,9 @@ def build_metrics_for_session(session_id, base_matrix, repo_conn, ga_conn, *,
         metrics.append(DeltaVariantDPrime(
             'delta_variant_dprime', base_matrix, variant_to_deltas, min_pairs=2))
 
-    # 1 & 5. PC-based metrics need a stim-aligned matrix over the probe channels.
-    aligned_channels, aligned_values = _aligned_response_arrays(base_matrix, channel_strs)
+    # 1, 5 & 7. PC-based metrics need a stim-aligned matrix over the probe channels.
+    aligned_channels, aligned_values, aligned_stim_ids = _aligned_response_arrays(
+        base_matrix, channel_strs)
     if aligned_channels:
         pc = PcNeighborSimilarity.from_aligned(
             'pc_neighbor_sim', aligned_channels, aligned_values,
@@ -388,6 +517,13 @@ def build_metrics_for_session(session_id, base_matrix, repo_conn, ga_conn, *,
             n_loading_pcs=n_loading_pcs)
         if loading is not None:
             metrics.append(loading)
+        # 7. Variant/delta d' in stimulus-PC space, explained-variance weighted.
+        if variant_to_deltas:
+            pc_dprime = DeltaVariantPcDPrime.from_aligned(
+                'delta_variant_pc_dprime', aligned_channels, aligned_values,
+                aligned_stim_ids, variant_to_deltas, n_pcs=n_dprime_pcs)
+            if pc_dprime is not None:
+                metrics.append(pc_dprime)
     else:
         print(f"  {session_id}: too few common stimuli for PC metrics; skipping them")
 
@@ -473,7 +609,8 @@ def score_spec_for_metric(metric, estim_channels, channels_with_data, coords,
 
 
 def prepare_session_metrics(session_id, *, top_ns=TOP_N_DEFAULTS, pca_components=2,
-                            n_loading_pcs=10, corr_method='spearman',
+                            n_loading_pcs=10, n_dprime_pcs=None,
+                            corr_method='spearman',
                             channel_mapper=None, repo_conn=None):
     """Set up one session for scoring: switch context, load the response matrix,
     build the metric objects, and return the probe geometry.
@@ -509,7 +646,7 @@ def prepare_session_metrics(session_id, *, top_ns=TOP_N_DEFAULTS, pca_components
     metrics = build_metrics_for_session(
         session_id, base_matrix, repo_conn, ga_conn, channel_strs=channel_strs,
         top_ns=top_ns, pca_components=pca_components, n_loading_pcs=n_loading_pcs,
-        corr_method=corr_method)
+        n_dprime_pcs=n_dprime_pcs, corr_method=corr_method)
     print(f"  {session_id}: {len(metrics)} metrics: {[m.name for m in metrics]}")
     return metrics, channels_with_data, coords
 
@@ -517,7 +654,8 @@ def prepare_session_metrics(session_id, *, top_ns=TOP_N_DEFAULTS, pca_components
 def compute_session_neighbor_scores(session_id, *, n_neighbors_list=(3,),
                                     exclude_other_estim_list=(True,),
                                     top_ns=TOP_N_DEFAULTS, pca_components=2,
-                                    n_loading_pcs=10, corr_method='spearman',
+                                    n_loading_pcs=10, n_dprime_pcs=None,
+                                    corr_method='spearman',
                                     channel_mapper=None, repo_conn=None):
     """Compute scores for one session across all metrics and every
     (n_neighbors, exclude_other_estim) combination.
@@ -529,7 +667,8 @@ def compute_session_neighbor_scores(session_id, *, n_neighbors_list=(3,),
     cheap."""
     metrics, channels_with_data, coords = prepare_session_metrics(
         session_id, top_ns=top_ns, pca_components=pca_components,
-        n_loading_pcs=n_loading_pcs, corr_method=corr_method,
+        n_loading_pcs=n_loading_pcs, n_dprime_pcs=n_dprime_pcs,
+        corr_method=corr_method,
         channel_mapper=channel_mapper, repo_conn=repo_conn)
     if metrics is None:
         return {}
@@ -649,7 +788,7 @@ def _sessions_with_estim():
 def run_for_sessions(start_session_id=None, exclude_session_ids=None, *,
                      n_neighbors_list=(3,), exclude_other_estim_list=(True,),
                      top_ns=TOP_N_DEFAULTS, pca_components=2, n_loading_pcs=10,
-                     corr_method='spearman'):
+                     n_dprime_pcs=None, corr_method='spearman'):
     """Compute and persist all neighbour-similarity metrics across sessions, for
     every (n_neighbors, exclude_other_estim) combination in the given lists.
 
@@ -673,7 +812,8 @@ def run_for_sessions(start_session_id=None, exclude_session_ids=None, *,
           f"n_neighbors_list={tuple(n_neighbors_list)}, "
           f"exclude_other_estim_list={tuple(exclude_other_estim_list)}, "
           f"top_ns={top_ns}, pca_components={pca_components}, "
-          f"n_loading_pcs={n_loading_pcs}, corr_method={corr_method})")
+          f"n_loading_pcs={n_loading_pcs}, n_dprime_pcs={n_dprime_pcs}, "
+          f"corr_method={corr_method})")
 
     failed = []
     for sid in session_ids:
@@ -683,8 +823,8 @@ def run_for_sessions(start_session_id=None, exclude_session_ids=None, *,
                 sid, n_neighbors_list=n_neighbors_list,
                 exclude_other_estim_list=exclude_other_estim_list,
                 top_ns=top_ns, pca_components=pca_components,
-                n_loading_pcs=n_loading_pcs, corr_method=corr_method,
-                repo_conn=repo_conn)
+                n_loading_pcs=n_loading_pcs, n_dprime_pcs=n_dprime_pcs,
+                corr_method=corr_method, repo_conn=repo_conn)
         except Exception:
             traceback.print_exc()
             failed.append(sid)
@@ -711,6 +851,8 @@ def main():
         top_ns=TOP_N_DEFAULTS,        # (20, 50, 100)
         pca_components=2,             # 2 matches the cluster app
         n_loading_pcs=4,             # PCs compared for pc_loading_sim
+        n_dprime_pcs=None,           # PCs for delta_variant_pc_dprime (None = all;
+                                      # explained-variance weighting down-weights the tail)
         corr_method='spearman',       # 'spearman' (preference_cluster) | 'pearson'
     )
 

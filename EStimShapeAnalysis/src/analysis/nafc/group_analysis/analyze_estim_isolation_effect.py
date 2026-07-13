@@ -692,6 +692,7 @@ _METRIC_LABELS = {
     'channel_corr_delta_variant': 'Channel corr (delta+variant)',
     'pc_loading_sim': 'PC-loading similarity',
     'delta_variant_dprime': "Δ/variant d' (per-channel)",
+    'delta_variant_pc_dprime': "Δ/variant d' (PC-space, var-weighted)",
 }
 _METRIC_ORDER = list(_METRIC_LABELS)
 
