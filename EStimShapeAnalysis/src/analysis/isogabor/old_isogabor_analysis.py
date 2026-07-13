@@ -399,6 +399,41 @@ class MuaDbCachedParser:
         return spikes, epochs
 
 
+def append_response_fields(fields, conn, task_ids, intan_files_dir, *,
+                           is_mua: bool, parsed_spikes_path: str, db_name: str,
+                           mua_metric: str = "mad_k4_block100",
+                           mua_k: float = 4.0, mua_block: int = 100):
+    """Append the three spike/rate/epoch fields to `fields`, sourcing them either
+    from MUA (wideband -kxMAD, reusing MUAChannelResponses) or spike.dat.
+
+    Returns the column-rename map to apply after compile (the MUA fields use
+    distinct cache names; empty dict for spike.dat).
+    """
+    if is_mua:
+        import os
+        from src.analysis.ga.baseline_spike_detection_comparison import (
+            PeriodicBlockMUAParser, MadStrategy)
+        wideband = PeriodicBlockMUAParser(
+            strategy=MadStrategy(threshold_mad=mua_k), block_size=mua_block,
+            to_cache=True, cache_dir=os.path.join(parsed_spikes_path, "mua_block_mad"))
+        parser = MuaDbCachedParser(db_name=db_name, mua_metric=mua_metric,
+                                   fallback_parser=wideband)
+        fields.append(MuaSpikesByChannelField(conn, parser, task_ids, intan_files_dir))
+        fields.append(MuaSpikeRateByChannelField(conn, parser, task_ids, intan_files_dir))
+        fields.append(MuaEpochStartStopTimesField(conn, parser, task_ids, intan_files_dir))
+        return {
+            "MUA Spikes by channel": "Spikes by channel",
+            "MUA Spike Rate by channel": "Spike Rate by channel",
+            "MUA Epoch": "Epoch",
+        }
+    from src.intan.MultiFileParser import MultiFileParser
+    parser = MultiFileParser(to_cache=True, cache_dir=parsed_spikes_path)
+    fields.append(IntanSpikesByChannelField(conn, parser, task_ids, intan_files_dir))
+    fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, intan_files_dir))
+    fields.append(EpochStartStopTimesField(conn, parser, task_ids, intan_files_dir))
+    return {}
+
+
 class TypeField(StimSpecField):
     def get(self, task_id) -> str:
         stim_spec = self.get_cached_super(task_id, StimSpecField)
