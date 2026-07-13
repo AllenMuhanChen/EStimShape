@@ -123,6 +123,42 @@ def import_from_repository(session_id: str, experiment_name: str,
 
         print(f"Retrieved response data from {response_table}")
 
+        # Diagnose the common "0 rows" case: the table may be populated, but not
+        # for THIS experiment's task_ids (or not for the requested mua_method).
+        if not responses_data:
+            repo_conn.execute(f"SELECT COUNT(*) FROM {response_table}")
+            total = repo_conn.fetch_all()[0][0]
+            method_note = ""
+            if mua_method is not None:
+                repo_conn.execute(
+                    f"SELECT COUNT(*) FROM {response_table} WHERE task_id IN ({placeholders}) "
+                    f"AND mua_method = %s", list(task_ids) + [mua_method])
+                for_method = repo_conn.fetch_all()[0][0]
+                repo_conn.execute(
+                    f"SELECT COUNT(*) FROM {response_table} WHERE task_id IN ({placeholders})",
+                    list(task_ids))
+                for_tasks_any_method = repo_conn.fetch_all()[0][0]
+                repo_conn.execute(f"SELECT DISTINCT mua_method FROM {response_table}")
+                methods = [r[0] for r in repo_conn.fetch_all()]
+                method_note = (
+                    f"\n  rows for these tasks under mua_method={mua_method!r}: {for_method}"
+                    f"\n  rows for these tasks under ANY method: {for_tasks_any_method}"
+                    f"\n  mua_methods present in table: {methods}")
+            else:
+                repo_conn.execute(
+                    f"SELECT COUNT(*) FROM {response_table} WHERE task_id IN ({placeholders})",
+                    list(task_ids))
+                for_tasks_any_method = repo_conn.fetch_all()[0][0]
+                method_note = f"\n  rows for these tasks: {for_tasks_any_method}"
+            print(
+                f"WARNING: no {response_table} rows matched. Diagnostics:"
+                f"\n  total rows in {response_table}: {total}"
+                f"\n  this experiment has {len(task_ids)} task_ids (sample: {list(task_ids)[:5]})"
+                f"{method_note}"
+                f"\n  => the table is not populated for THIS experiment's tasks"
+                f"{' / this mua_method' if mua_method else ''}. "
+                f"Run the MUA compile+export for this session (or check the mua_method).")
+
     # 6. Compile all data into a DataFrame
     compiled_data = []
     for task_id, stim_id in task_stim_pairs:
