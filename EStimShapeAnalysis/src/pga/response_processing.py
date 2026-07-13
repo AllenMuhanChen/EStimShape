@@ -21,6 +21,15 @@ class GAResponseProcessor:
     # so the MUA source composes with the baseline-normalizing subclasses.
     mua_metric: str | None = None
 
+    def __post_init__(self):
+        # Ensure the MUA table exists before any read, so consumers that only run
+        # the processor (e.g. recalculate_ga, which never invokes the parser)
+        # don't crash on a missing table. The table will simply be empty until a
+        # MUA parser run populates it.
+        if self.mua_metric is not None and hasattr(
+                self.db_util, "create_mua_channel_responses_table_if_not_exists"):
+            self.db_util.create_mua_channel_responses_table_if_not_exists()
+
     def process_to_db(self, ga_name: str) -> None:
         # For each stim, combine their cluster responses for each repetition
         responses_for_each_stim_id = self._process_clusters(ga_name)
