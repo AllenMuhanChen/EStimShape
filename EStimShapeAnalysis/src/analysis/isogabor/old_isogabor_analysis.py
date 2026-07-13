@@ -287,6 +287,40 @@ class IntanSpikeRateByChannelField(_IntanParserField):
         return "Spike Rate by channel"
 
 
+# ---------------------------------------------------------------------------
+# MUA field adapters: reuse the Intan field logic above, but source spikes from
+# the wideband MAD detector (PeriodicBlockMUAParser) whose parse() returns a
+# third value (sample_rate). Distinct field names keep their TaskFieldCache rows
+# separate from the spike.dat fields; callers rename the columns back to the
+# standard names after compile. Shared by the GA (plot_top_n) and isogabor
+# pipelines.
+# ---------------------------------------------------------------------------
+class _MuaParsedMixin:
+    """Drop the sample_rate from PeriodicBlockMUAParser.parse's 3-tuple so the
+    Intan field logic (which expects (_all_spikes, _all_epochs)) works."""
+
+    def _get_parsed(self):
+        if self._all_spikes is None:
+            self._all_spikes, self._all_epochs, _sr = self.parser.parse(
+                self.all_task_ids, self.intan_files_dir)
+        return self._all_spikes, self._all_epochs
+
+
+class MuaSpikesByChannelField(_MuaParsedMixin, IntanSpikesByChannelField):
+    def get_name(self):
+        return "MUA Spikes by channel"
+
+
+class MuaSpikeRateByChannelField(_MuaParsedMixin, IntanSpikeRateByChannelField):
+    def get_name(self):
+        return "MUA Spike Rate by channel"
+
+
+class MuaEpochStartStopTimesField(_MuaParsedMixin, EpochStartStopTimesField):
+    def get_name(self):
+        return "MUA Epoch"
+
+
 class TypeField(StimSpecField):
     def get(self, task_id) -> str:
         stim_spec = self.get_cached_super(task_id, StimSpecField)

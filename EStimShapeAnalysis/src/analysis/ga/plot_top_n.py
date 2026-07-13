@@ -22,7 +22,7 @@ from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, 
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField, GenIdField, ParentIdField
 from src.analysis.ga.response_spec import ResponseSpec
 from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
-    IntanSpikeRateByChannelField
+    IntanSpikeRateByChannelField, MuaSpikesByChannelField, MuaSpikeRateByChannelField, MuaEpochStartStopTimesField
 from src.analysis.lightness.lightness_analysis import TextureField, ColorField, AverageRGBField
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.intan.MultiFileParser import MultiFileParser
@@ -31,38 +31,6 @@ from src.repository.export_to_repository import export_to_repository, read_sessi
 from src.repository.good_channels import read_cluster_channels
 from src.repository.import_from_repository import import_from_repository
 from src.startup import context
-
-
-# ---------------------------------------------------------------------------
-# MUA fields: reuse the Intan field logic but source spikes from the wideband
-# MAD detector instead of spike.dat. Distinct field names keep their
-# TaskFieldCache rows separate from the spike.dat fields; compile_data renames
-# the resulting columns back to the standard names.
-# ---------------------------------------------------------------------------
-class _MuaParsedMixin:
-    """Adapt PeriodicBlockMUAParser.parse (returns 3 values incl. sample_rate) to
-    the 2-value (_all_spikes, _all_epochs) contract the Intan fields expect."""
-
-    def _get_parsed(self):
-        if self._all_spikes is None:
-            self._all_spikes, self._all_epochs, _sr = self.parser.parse(
-                self.all_task_ids, self.intan_files_dir)
-        return self._all_spikes, self._all_epochs
-
-
-class MuaSpikesByChannelField(_MuaParsedMixin, IntanSpikesByChannelField):
-    def get_name(self):
-        return "MUA Spikes by channel"
-
-
-class MuaSpikeRateByChannelField(_MuaParsedMixin, IntanSpikeRateByChannelField):
-    def get_name(self):
-        return "MUA Spike Rate by channel"
-
-
-class MuaEpochStartStopTimesField(_MuaParsedMixin, EpochStartStopTimesField):
-    def get_name(self):
-        return "MUA Epoch"
 
 
 def main():
