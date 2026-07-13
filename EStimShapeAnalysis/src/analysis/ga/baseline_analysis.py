@@ -13,7 +13,7 @@ from src.startup import context
 
 
 def main():
-    analysis = RankBaselineAnalysis()
+    analysis = RankBaselineAnalysis(data_type="mua")
     compiled_data = None
     # compiled_data = analysis.compile_and_export()
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
@@ -21,7 +21,7 @@ def main():
     channel = read_cluster_channels(session_id)
     # channel = "A-002"
     # channel = ["A-021"]
-    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    analysis.run(session_id, channel=channel, compiled_data=compiled_data)
 
 
 class BaselineAnalysis(PlotTopNAnalysis):

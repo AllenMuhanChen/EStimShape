@@ -39,13 +39,13 @@ def main():
 
 
     compiled_data = None
-    analysis = PlotTopNAnalysis(use_baseline_correction=False)
-    compiled_data = analysis.compile_and_export()
+    analysis = PlotTopNAnalysis(use_baseline_correction=False, data_type="mua")
+    # compiled_data = analysis.compile_and_export()
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     channel = "Cluster"
     # channel = read_cluster_channels(session_id)
     # channel = "A-013"
-    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    analysis.run(session_id, "mua", channel, compiled_data=compiled_data)
 
     
 
