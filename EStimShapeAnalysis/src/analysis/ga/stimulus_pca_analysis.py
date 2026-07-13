@@ -138,6 +138,7 @@ def make_alexnet_embedder(onnx_path: Optional[str]):
 
 def main():
     analysis = StimulusPCAAnalysis(
+        data_type = "mua",
         standardize=True,
         n_loading_pcs=None,          # None -> use the elbow estimate
         n_channel_clusters=4,        # None -> cut the dendrogram by distance
@@ -149,7 +150,7 @@ def main():
     # session_id = "260626_0"
     compiled_data = None
     # compiled_data = analysis.compile_and_export()
-    analysis.run(session_id, "raw", "ALL", compiled_data=compiled_data)
+    analysis.run(session_id, channel= "ALL", compiled_data=compiled_data)
 
 
 class StimulusPCAAnalysis(PlotTopNAnalysis):
@@ -195,6 +196,7 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
     def __init__(
         self,
         *,
+        data_type: str = "raw",
         standardize: bool = True,
         n_loading_pcs: Optional[int] = None,
         n_channel_clusters: Optional[int] = 4,
@@ -206,7 +208,7 @@ class StimulusPCAAnalysis(PlotTopNAnalysis):
         excluded_stim_types: Optional[Sequence[str]] = None,
         use_baseline_correction: bool = False,
     ):
-        super().__init__(use_baseline_correction=use_baseline_correction)
+        super().__init__(use_baseline_correction=use_baseline_correction, data_type=data_type)
         self.standardize = standardize
         self.n_loading_pcs = n_loading_pcs
         self.n_channel_clusters = n_channel_clusters
