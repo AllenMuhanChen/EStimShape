@@ -90,6 +90,14 @@ BAND_COLORS = {
 USE_FOOOF_BAND_POWERS = False   # False: use legacy compute_relative_power normalization
 USE_ABSOLUTE_PHASE    = False   # False: use legacy compute_relative_phase normalization
 
+# Local depth-wise LFP spectral-dissimilarity metric (narrow-sulcus / CSF detector).
+# In a thin sulcus the electrode passes through CSF, an excellent conductor, so the
+# relative-power spectrum barely changes over depth (the "blur" bands in the
+# relative-power heat-map). This metric is low there and high in real tissue whose
+# spectrum shifts bin-to-bin, giving the PCA a feature to separate sulcus from tissue.
+SPECTRAL_DISSIM_WINDOW_MM = 0.25   # ± depth window over which neighbouring spectra are compared
+SPECTRAL_DISSIM_METRIC    = "l1"   # 'l1' | 'l2' | 'corr'
+
 
 # ============================================================================
 # RECORDING DISCOVERY
@@ -579,6 +587,78 @@ def compute_relative_power(
     return {i: (freqs, normalized[i]) for i in range(n_bins)}
 
 
+def compute_spectral_dissimilarity(
+    normalized: Dict[int, Tuple],
+    bin_depths: np.ndarray,
+    n_bins: int,
+    neighbor_window_mm: float = SPECTRAL_DISSIM_WINDOW_MM,
+    freq_range: Tuple[float, float] = FREQ_RANGE,
+    metric: str = SPECTRAL_DISSIM_METRIC,
+) -> Dict[int, float]:
+    """
+    Per-depth-bin measure of how much the *relative* LFP power spectrum changes
+    between a bin and its depth neighbours — a narrow-sulcus / CSF detector.
+
+    Motivation
+    ----------
+    In a thin sulcus the electrode travels through CSF, an excellent conductor,
+    so the local field potential is spatially smeared: the relative-power
+    spectrum barely changes over ~1 mm of depth (the "blur" bands visible in the
+    relative-power heat-map). Grey/white matter, by contrast, has locally
+    varying LFP, so its spectrum shifts from bin to bin. Because a thin sulcus is
+    still close to neural tissue, spikes persist there, so spike metrics alone
+    mislabel it as tissue. This feature is *low* in sulcus and *high* in genuine
+    tissue, giving the decomposition a signal it can use to separate the two.
+
+    Definition
+    ----------
+    For each bin i, average the spectral distance between S_i (its relative-power
+    spectrum, restricted to ``freq_range``) and each neighbour S_j within
+    ±``neighbor_window_mm`` along depth (i itself excluded):
+
+        metric='l1'   : mean_j  mean_f |S_i(f) - S_j(f)|            (default)
+        metric='l2'   : mean_j  sqrt(mean_f (S_i(f) - S_j(f))^2)
+        metric='corr' : mean_j  (1 - pearson_corr(S_i, S_j))
+
+    Low value  -> spectrum is locally flat vs depth (sulcus / CSF blur).
+    High value -> spectrum changes with depth (grey/white-matter structure).
+
+    The mm window is converted to a bin half-width using the median bin spacing.
+    Edge bins use whatever neighbours fall inside the window (clamped, never
+    wrapped); a bin with no valid neighbour gets NaN.
+    """
+    freqs = normalized[0][0]
+    mask  = (freqs >= freq_range[0]) & (freqs <= freq_range[1])
+    S = np.array([normalized[i][1][mask] for i in range(n_bins)])  # (n_bins, n_freqs)
+
+    spacing_mm = float(np.median(np.diff(bin_depths))) if n_bins > 1 else 1.0
+    half = max(1, int(round(neighbor_window_mm / max(spacing_mm, 1e-9))))
+
+    out: Dict[int, float] = {}
+    for i in range(n_bins):
+        lo = max(0, i - half)
+        hi = min(n_bins, i + half + 1)
+        dists: List[float] = []
+        for j in range(lo, hi):
+            if j == i:
+                continue
+            diff = S[i] - S[j]
+            if metric == "l1":
+                dists.append(float(np.mean(np.abs(diff))))
+            elif metric == "l2":
+                dists.append(float(np.sqrt(np.mean(diff ** 2))))
+            elif metric == "corr":
+                if S[i].std() < 1e-12 or S[j].std() < 1e-12:
+                    dists.append(1.0)
+                else:
+                    dists.append(1.0 - float(np.corrcoef(S[i], S[j])[0, 1]))
+            else:
+                raise ValueError(
+                    f"Unknown metric {metric!r}; use 'l1', 'l2', or 'corr'.")
+        out[i] = float(np.mean(dists)) if dists else np.nan
+    return out
+
+
 def compute_relative_impedance(
     binned_imp_raw: Dict[Tuple[int, str], float],
 ) -> Dict[int, float]:
@@ -876,6 +956,20 @@ def plot_relative_impedance(
     _setup_depth_axis(ax, bin_depths)
 
 
+def plot_spectral_dissimilarity(
+    binned_dissim: Dict[int, float],
+    bin_depths: np.ndarray,
+    ax: plt.Axes,
+) -> None:
+    n_bins = len(bin_depths)
+    y      = np.arange(n_bins)
+    vals   = [binned_dissim.get(i, np.nan) for i in range(n_bins)]
+    ax.plot(vals, y, 'o-', markersize=3, color='tab:olive')
+    ax.set_xlabel("Spectral change\nvs neighbours")
+    ax.set_title("LFP Spectral\nDissimilarity")
+    _setup_depth_axis(ax, bin_depths)
+
+
 def plot_relative_phase(
     binned_rel_phase: Dict[int, float],
     bin_depths: np.ndarray,
@@ -1004,6 +1098,7 @@ CREATE TABLE IF NOT EXISTS {_PENETRATION_METRICS_TABLE} (
     mean_spike_amplitude        DOUBLE          DEFAULT NULL,
     relative_impedance          DOUBLE          DEFAULT NULL,
     relative_phase              DOUBLE          DEFAULT NULL,
+    lfp_spectral_dissimilarity  DOUBLE          DEFAULT NULL,
     PRIMARY KEY (session_id, depth_under_chamber_mm)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 """
@@ -1013,8 +1108,9 @@ INSERT INTO {_PENETRATION_METRICS_TABLE}
     (session_id, depth_under_chamber_mm,
      band_power_delta_theta, band_power_alpha_beta, band_power_gamma,
      exponent, amplitude, r_squared,
-     spike_rate_hz, polarity_ratio, mean_peak_count, trough_to_peak_ms, mean_spike_amplitude, relative_impedance, relative_phase)
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+     spike_rate_hz, polarity_ratio, mean_peak_count, trough_to_peak_ms, mean_spike_amplitude, relative_impedance, relative_phase,
+     lfp_spectral_dissimilarity)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 ON DUPLICATE KEY UPDATE
     band_power_delta_theta  = VALUES(band_power_delta_theta),
     band_power_alpha_beta   = VALUES(band_power_alpha_beta),
@@ -1028,7 +1124,8 @@ ON DUPLICATE KEY UPDATE
     trough_to_peak_ms       = VALUES(trough_to_peak_ms),
     mean_spike_amplitude    = VALUES(mean_spike_amplitude),
     relative_impedance      = VALUES(relative_impedance),
-    relative_phase          = VALUES(relative_phase)
+    relative_phase          = VALUES(relative_phase),
+    lfp_spectral_dissimilarity = VALUES(lfp_spectral_dissimilarity)
 """
 
 
@@ -1090,6 +1187,7 @@ def save_to_repository(
     binned_rel_imp: Dict[int, float],
     binned_phase: Dict[int, float],
     binned_spectra: Optional[Dict[int, Tuple]] = None,
+    binned_spectral_dissim: Optional[Dict[int, float]] = None,
 ) -> None:
     """
     Upsert all per-depth-bin penetration metrics into allen_data_repository.
@@ -1103,6 +1201,7 @@ def save_to_repository(
     _ensure_column(conn, 'mean_peak_count')
     _ensure_column(conn, 'trough_to_peak_ms')
     _ensure_column(conn, 'mean_spike_amplitude')
+    _ensure_column(conn, 'lfp_spectral_dissimilarity')
     print(f"Table '{_PENETRATION_METRICS_TABLE}' ready.")
 
     n_inserted = 0
@@ -1134,6 +1233,7 @@ def save_to_repository(
             binned_spike_amplitudes.get(idx),
             binned_rel_imp.get(idx),
             binned_phase.get(idx),
+            binned_spectral_dissim.get(idx) if binned_spectral_dissim else None,
         )
         conn.execute(_UPSERT_PENETRATION_METRICS_SQL, row)
         n_inserted += 1
@@ -1219,6 +1319,11 @@ class PenetrationLFPAnalysis:
         print("Computing penetration-wide relative power ...")
         normalized = compute_relative_power(b_spec, n_bins)
 
+        print("Computing LFP spectral dissimilarity (sulcus detector) ...")
+        b_spectral_dissim = compute_spectral_dissimilarity(normalized, bin_depths, n_bins)
+        if sigma > 0 and b_spectral_dissim:
+            b_spectral_dissim = smooth_scalars(b_spectral_dissim, n_bins, sigma)
+
         print("Computing relative impedance and phase ...")
         b_rel_imp   = compute_relative_impedance(b_imp_raw)
         b_rel_phase = compute_relative_phase(b_phase_raw)
@@ -1239,6 +1344,7 @@ class PenetrationLFPAnalysis:
         self._plot(
             bin_depths, normalized, b_spec, b_fits, b_spike, b_polarity,
             b_peak_count, b_ttp, b_amp, b_rel_imp, b_phase_save,
+            b_spectral_dissim=b_spectral_dissim,
             b_driven=b_driven,
             driven_ums_found=sorted(driven_analyzed),
             driven_ums_used=sorted(driven_ums),
@@ -1251,12 +1357,14 @@ class PenetrationLFPAnalysis:
                 self.session_id, bin_depths, normalized,
                 b_fits, b_spike, b_polarity, b_peak_count, b_ttp, b_amp,
                 b_rel_imp, b_phase_save, binned_spectra=b_spec,
+                binned_spectral_dissim=b_spectral_dissim,
             )
         except Exception as exc:
             print(f"  Warning: could not save to repository: {exc}")
 
     def _plot(self, bin_depths, normalized, b_spec, b_fits, b_spike, b_polarity,
               b_peak_count, b_ttp, b_amp, b_rel_imp, b_phase,
+              b_spectral_dissim=None,
               b_driven=None, driven_ums_found=None, driven_ums_used=None):
         from intan_lfp import (
             extract_lfp, CHANNEL_ORDER, POWER_LAW_PANELS,
@@ -1274,9 +1382,9 @@ class PenetrationLFPAnalysis:
         ])
         n_bins = len(bin_depths)
 
-        # Layout: heatmap | band power | [power-law] | spike rate | polarity | peak count | T-P duration | amplitude | impedance | phase | driven
-        n_total      = 1 + 1 + n_pl + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1
-        width_ratios = [3, 1] + [1] * n_pl + [1, 1, 1, 1, 1, 1, 1, 1]
+        # Layout: heatmap | band power | [power-law] | spike rate | polarity | peak count | T-P duration | amplitude | impedance | phase | driven | spectral dissimilarity
+        n_total      = 1 + 1 + n_pl + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1
+        width_ratios = [3, 1] + [1] * n_pl + [1, 1, 1, 1, 1, 1, 1, 1, 1]
 
         fig_h = max(8, min(20, n_bins * 0.15))
         fig, axes = plt.subplots(
@@ -1303,6 +1411,7 @@ class PenetrationLFPAnalysis:
         else:
             plot_relative_phase(b_phase, bin_depths, axes[2 + n_pl + 6])
         plot_driven_depth(b_driven or {}, bin_depths, axes[2 + n_pl + 7])
+        plot_spectral_dissimilarity(b_spectral_dissim or {}, bin_depths, axes[2 + n_pl + 8])
 
         # Lock y limits to the heatmap's extent so all panels align exactly
         axes[0].set_ylim(n_bins - 0.5, -0.5)
