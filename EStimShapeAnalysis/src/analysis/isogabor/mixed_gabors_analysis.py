@@ -49,10 +49,14 @@ class MixedGaborsAnalysis(Analysis):
             )
 
         # CALCULATE INDEX: Alignment Suppression Index, one per luminance frequency.
+        # misaligned_agg='max' compares aligned against the best-driving misaligned
+        # frequency (matches the IsochromaticPreferenceIndex convention); use 'mean'
+        # to average across misaligned frequencies instead.
         index_module = create_alignment_suppression_index_module(
             channel=channel,
             session_id=self.session_id,
             spike_data_col=self.spike_rates_col,
+            misaligned_agg='max',
         )
 
         grouped_raster_module_frequency = create_grouped_raster_module(

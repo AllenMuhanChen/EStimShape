@@ -10,17 +10,26 @@ from clat.util.connection import Connection
 MIXED_TYPES = ['RedGreenMixed', 'CyanOrangeMixed']
 
 
-def create_alignment_suppression_index_module(channel=None, session_id=None, spike_data_col=None):
+def create_alignment_suppression_index_module(channel=None, session_id=None, spike_data_col=None,
+                                              misaligned_agg='max'):
     """Factory for the Alignment Suppression Index module.
 
     Computes, per luminance frequency, whether a color grating aligned in
     frequency with the luminance grating suppresses the response relative to a
     color grating at a mismatched frequency. Positive index => aligned color
     obscures the luminance response (the 3D/luminance-preferring hypothesis).
+
+    misaligned_agg: how to summarize the misaligned (mismatched-frequency) trials
+        into the reference the aligned trial is compared against:
+          - 'max'  : best-driving misaligned frequency (matches the max-based
+                     IsochromaticPreferenceIndex convention; less negatively
+                     biased). Default.
+          - 'mean' : average across misaligned frequencies (lower variance, but
+                     dragged down by weak-driving color frequencies).
     """
     index_module = AnalysisModuleFactory.create(
         computation=AlignmentSuppressionIndexCalculator(
-            response_key=channel, spike_data_col=spike_data_col),
+            response_key=channel, spike_data_col=spike_data_col, misaligned_agg=misaligned_agg),
         output_handler=AlignmentSuppressionIndexDBSaver(session_id, channel)
     )
     return index_module
@@ -55,18 +64,28 @@ class AlignmentSuppressionIndexCalculator(ComputationModule):
     For each luminance frequency f_L we compare, within the cell's best color
     pair:
         aligned    = R(f_L, f_C = f_L)                  (color matches luminance)
-        misaligned = mean over f_C != f_L of R(f_L, f_C) (color mismatched)
+        misaligned = agg over f_C != f_L of R(f_L, f_C)  (color mismatched)
         ASI(f_L)   = (misaligned - aligned) / (misaligned + aligned)
 
-    Holding f_L fixed controls for luminance-frequency tuning, so the only thing
-    varying within a row is whether the color grating is aligned. A positive ASI
-    means the aligned color grating suppresses the response (supports the
-    hypothesis that aligned color contrast obscures luminance contrast).
+    where `agg` is max (default) or mean (see misaligned_agg). Holding f_L fixed
+    controls for luminance-frequency tuning, so the only thing varying within a
+    row is whether the color grating is aligned. A positive ASI means the aligned
+    color grating suppresses the response (supports the hypothesis that aligned
+    color contrast obscures luminance contrast).
+
+    misaligned_agg ('max' | 'mean'): how to summarize the misaligned trials into
+    the reference. 'max' takes the best-driving misaligned frequency (matches the
+    IsochromaticPreferenceIndex convention and is less negatively biased); 'mean'
+    averages them (lower variance but dragged down by weak color frequencies).
     """
 
-    def __init__(self, *, response_key: str = None, spike_data_col: str = None):
+    def __init__(self, *, response_key: str = None, spike_data_col: str = None,
+                 misaligned_agg: str = 'max'):
         self.response_key = response_key
         self.spike_data_col = spike_data_col
+        if misaligned_agg not in ('max', 'mean'):
+            raise ValueError(f"misaligned_agg must be 'max' or 'mean', got {misaligned_agg!r}")
+        self.misaligned_agg = misaligned_agg
 
     def _rate(self, row):
         """Pull this channel's rate out of the spike-rate dict for a trial."""
@@ -168,7 +187,10 @@ class AlignmentSuppressionIndexCalculator(ComputationModule):
                       f"trials, skipping.")
                 continue
 
-            misaligned = float(np.mean(misaligned_rates))
+            if self.misaligned_agg == 'max':
+                misaligned = float(np.max(misaligned_rates))
+            else:
+                misaligned = float(np.mean(misaligned_rates))
             denom = misaligned + aligned
             if denom == 0:
                 asi = 0.0
@@ -183,7 +205,7 @@ class AlignmentSuppressionIndexCalculator(ComputationModule):
             }
 
             print(f"  Luminance {luminance_freq}: aligned={aligned:.2f}, "
-                  f"misaligned={misaligned:.2f}, ASI={asi:.3f}")
+                  f"misaligned({self.misaligned_agg})={misaligned:.2f}, ASI={asi:.3f}")
 
         print(f"\nFinal ASI by luminance frequency for {self.response_key}: "
               f"{ {f: v['alignment_suppression_index'] for f, v in frequency_indices.items()} }")
