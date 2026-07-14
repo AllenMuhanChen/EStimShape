@@ -321,8 +321,8 @@ if __name__ == "__main__":
         pc_smooth_sigma=2.0,
         exclude_features=[],
     )
-    PIPELINE = PIPE_PCA_V2
-    # PIPELINE = PIPE_PCA_new
+    # PIPELINE = PIPE_PCA_V2
+    PIPELINE = PIPE_PCA_new
 
     # PIPELINE = PIPE_PCA_exclude_rel_lfp
 
@@ -339,12 +339,12 @@ if __name__ == "__main__":
         enable_per_session_corrections=True,
         session_corr_bounds=None,
         varimax_n_components=0,
-        n_pcs=2,
+        n_pcs=4,
         session_corr_penalty=1.0,
         chamber_dist_penalty=0.000,
         chamber_param_penalty=0.0001,
         # chamber_param_tolerances=dict(t_mm=2, r_deg=2.5, daz_deg=0.5, del_deg=0.5, ddepth_mm=1.0),
-        chamber_param_tolerances=dict(t_mm=2, r_deg=2.5, daz_deg=0.01, del_deg=0.01, ddepth_mm=0.1),
+        chamber_param_tolerances=dict(t_mm=2, r_deg=5.0, daz_deg=0.01, del_deg=0.01, ddepth_mm=0.1),
         variance_penalty=0.0,
         softmin_beta=20,
         optimizer='cma-es',

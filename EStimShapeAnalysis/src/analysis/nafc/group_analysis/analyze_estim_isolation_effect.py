@@ -707,8 +707,8 @@ COMPARISON_METRIC = METRIC_PCT_HYP_VS_DELTA
 COMPARISON_REQUIRED_CONDITIONS = {}
 COMPARISON_START_SESSION_ID = "260402_0"
 COMPARISON_EXCLUDE_SESSION_IDS = ["260421_0", "260410_0"]
-COMPARISON_MIN_ON_TRIALS = 10
-COMPARISON_MIN_OFF_TRIALS = 10
+COMPARISON_MIN_ON_TRIALS = 8
+COMPARISON_MIN_OFF_TRIALS = 8
 COMPARISON_ABS_EFFECT = False          # relate metrics to |effect| (effect strength)
 COMPARISON_SAVE_DIR = "/home/connorlab/Documents/plots/across_experiments/"
 # Split the whole analysis by trial_type. None = single pass using
@@ -2492,7 +2492,7 @@ def main_current_nb_heatmap():
     # 'n_active_channels'). This is "the current parameter": change it freely.
     current_col = 'current_per_second'
     # Bin edges for that quantity (use np.inf for an open top bin).
-    current_bins = [0, 1000, 1500, np.inf]
+    current_bins = [0, 1000, 1500, 2500, np.inf]
 
     if COMPARISON_TRIAL_TYPES is not None:
         run_metric_current_nb_heatmap_by_trial_type(
@@ -2710,7 +2710,8 @@ if __name__ == '__main__':
     #                                  optimises each metric per trial type
     #   - main()                    -> legacy single-isolation-metric plots
     # main_metric_comparison()
-    main_neighbor_sweep()
+    main_current_nb_heatmap()
+    # main_neighbor_sweep()
     # main_current_nb_heatmap()
     # main_best_nb_comparison()
     # main_channel_search()
