@@ -1445,31 +1445,16 @@ class PenetrationLFPAnalysis:
         savepath = f"/home/connorlab/Documents/penetration_plots/{self.session_id}.png"
         fig.savefig(savepath, dpi=300)
 
-
+def all_existing_session_ids():
+    """Every session_id already present in EStimShapeTrials, in DB order."""
+    conn = Connection("allen_data_repository")
+    conn.execute("SELECT DISTINCT session_id FROM Penetrations ORDER BY session_id")
+    return [row[0] for row in conn.fetch_all()]
 if __name__ == '__main__':
     # Tip start for each session is read from the PenetrationTipStart table in
     # allen_data_repository inside run() — never hardcoded here. Sessions without
     # a tip start entry are skipped.
-    session_ids = [
-        "260421_0",
-        "260423_0",
-        "260426_0",
-        "260512_0",
-        "260514_0",
-        "260518_0",
-        "260520_0",
-        "260526_0",
-        "260528_0",
-        "260601_0",
-        "260603_0",
-        "260605_0",
-        "260609_0",
-        "260611_0",
-        "260615_0",
-        "260617_0",
-        "260619_0",
-        "260622_0",
-    ]
+    session_ids = all_existing_session_ids()
 
     for session_id in session_ids:
         db_name    = f"allen_ga_exp_{session_id}"

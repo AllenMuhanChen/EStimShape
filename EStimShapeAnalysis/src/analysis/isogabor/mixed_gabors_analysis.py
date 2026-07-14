@@ -24,10 +24,10 @@ from src.repository.export_to_repository import export_to_repository, read_sessi
 def main():
     channel = "A-031"
     compiled_data = compile_and_export()
-    analysis = MixedGaborsAnalysis()
+    analysis = MixedGaborsAnalysis(data_type="mua")
     # session_id, _ = read_session_id_from_db_name(context.isogabor_database)
-    session_id = "251024_0"
-    analysis.run(session_id, "raw", channel, compiled_data=compiled_data)
+    session_id = "260624_0"
+    analysis.run(session_id, channel=channel, compiled_data=compiled_data)
 
 
 class MixedGaborsAnalysis(Analysis):
