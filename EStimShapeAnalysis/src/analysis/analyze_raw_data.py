@@ -127,7 +127,7 @@ def run_analyses(channels_map: Dict[str, List[str]], analyses: List[type(Analysi
             for channel in channels:
                 print(f"\nRunning {analysis.__class__.__name__} for session {session_id}, channel {channel}")
                 try:
-                    analysis.run(session_id=session_id, data_type="raw", channel=channel)
+                    analysis.run(session_id=session_id, channel=channel)
                 except Exception as e:
                     print(f"Error running {analysis.__class__.__name__}: {e}")
                     import traceback
@@ -136,7 +136,7 @@ def run_analyses(channels_map: Dict[str, List[str]], analyses: List[type(Analysi
 
 def main():
     analyses = [
-        IsochromaticIndexAnalysis(),
+        # IsochromaticIndexAnalysis(),
         # GAResponseVectorAnalysis(),
         # SolidPreferenceIndexAnalysis(),
         # IsoChromaticLuminantScoreAnalysis(),
@@ -146,7 +146,7 @@ def main():
         # PlotTopNAnalysis(),
         # StimulusSelectivityAnalysis(),
         # LightnessAnalysis(),
-        # MixedGaborsAnalysis(),
+        MixedGaborsAnalysis(data_type="mua"),
         # ShuffleAnalysis(),
         # PlotGenerationsAnalysis(),
     ]

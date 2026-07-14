@@ -26,14 +26,14 @@ from src.repository.export_to_repository import export_to_repository, read_sessi
 
 
 def main():
-    channel = "A-031"
+    channel = "A-027"
     # data_type "mua" -> MUASpikeResponses (see Analysis._configure_data_type).
     # Use "raw" for the old spike.dat behaviour.
     data_type = "mua"
     analysis = MixedGaborsAnalysis(data_type=data_type)
     compiled_data = analysis.compile_and_export()
     # session_id, _ = read_session_id_from_db_name(context.isogabor_database)
-    session_id = "251024_0"
+    session_id = "260624_0"
     analysis.run(session_id, data_type, channel, compiled_data=compiled_data)
 
 

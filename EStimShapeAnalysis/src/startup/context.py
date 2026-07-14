@@ -39,11 +39,11 @@ _INTAN_ROOT = "/run/user/1000/gvfs/sftp:host=172.30.9.78/mnt/data/EStimShape"
 # ---------------------------------------------------------------------------
 
 ga_name = "New3D"
-ga_database = "allen_ga_exp_260708_0"
-nafc_database = "allen_estimshape_exp_260708_0"
-isogabor_database = "allen_isogabor_exp_260708_0"
-lightness_database = "allen_lightness_exp_260708_0"
-shuffle_database = "allen_shuffle_exp_260708_0"
+ga_database = "allen_ga_exp_260624_0"
+nafc_database = "allen_estimshape_exp_260624_0"
+isogabor_database = "allen_isogabor_exp_260624_0"
+lightness_database = "allen_lightness_exp_260624_0"
+shuffle_database = "allen_shuffle_exp_260624_0"
 
 
 # ---------------------------------------------------------------------------
