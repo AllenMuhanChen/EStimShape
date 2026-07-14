@@ -98,6 +98,41 @@ USE_ABSOLUTE_PHASE    = False   # False: use legacy compute_relative_phase norma
 SPECTRAL_DISSIM_WINDOW_MM = 0.25   # ± depth window over which neighbouring spectra are compared
 SPECTRAL_DISSIM_METRIC    = "l1"   # 'l1' | 'l2' | 'corr'
 
+# ---------------------------------------------------------------------------
+# Per-metric spatial (depth) smoothing.
+# ---------------------------------------------------------------------------
+# Smoothing exists only to absorb depth jitter from slightly inconsistent probe
+# positions across drives — it should be the *minimum* that keeps a metric
+# well-behaved. Anything beyond that erases real structure (e.g. a thin sulcus
+# gets smeared into its neighbours). Different metrics have different natural
+# smoothness, so each gets its own σ (in depth bins; 1 bin ≈ CHANNEL_SPACING_UM).
+#
+#   * LFP-family metrics (band power, 1/f fit, spike rate, impedance, phase) are
+#     already spatially smooth, so a small σ suffices.
+#   * Spike-*waveform* metrics are per-spike estimates and much noisier, so they
+#     need a larger σ to be stable.
+#   * spectral_dissimilarity is a *difference* operator whose whole job is to
+#     resolve narrow (~1 mm) sulci — it must stay sharp, so it gets the least
+#     smoothing. Its σ is applied to the spectra the metric is computed from
+#     (not an output smoothing), since that is what sets its depth resolution;
+#     the ±window average already provides jitter robustness on top of that.
+LFP_SMOOTH_SIGMA_BINS      = 1.5   # LFP-family metrics (naturally smooth)
+WAVEFORM_SMOOTH_SIGMA_BINS = 3.0   # spike-waveform metrics (noisy per-spike estimates)
+DISSIM_SMOOTH_SIGMA_BINS   = 0.5   # spectral dissimilarity — keep sharp so small sulci survive
+
+DEFAULT_SMOOTH_SIGMA_BINS = {
+    'lfp_spectra':            LFP_SMOOTH_SIGMA_BINS,   # heatmap + band powers (via relative power)
+    'power_law':              LFP_SMOOTH_SIGMA_BINS,   # exponent, amplitude
+    'spike_rate':             LFP_SMOOTH_SIGMA_BINS,
+    'relative_impedance':     LFP_SMOOTH_SIGMA_BINS,
+    'relative_phase':         LFP_SMOOTH_SIGMA_BINS,
+    'polarity_ratio':         WAVEFORM_SMOOTH_SIGMA_BINS,
+    'mean_peak_count':        WAVEFORM_SMOOTH_SIGMA_BINS,
+    'trough_to_peak_ms':      WAVEFORM_SMOOTH_SIGMA_BINS,
+    'mean_spike_amplitude':   WAVEFORM_SMOOTH_SIGMA_BINS,
+    'spectral_dissimilarity': DISSIM_SMOOTH_SIGMA_BINS,
+}
+
 
 # ============================================================================
 # RECORDING DISCOVERY
@@ -1248,8 +1283,9 @@ def save_to_repository(
 
 class PenetrationLFPAnalysis:
     def __init__(self, session_id: str, intan_path: str,
-                 spatial_smooth_sigma: float = 1.5,
-                 waveform_smooth_sigma: float = 3.0):
+                 spatial_smooth_sigma: float = LFP_SMOOTH_SIGMA_BINS,
+                 waveform_smooth_sigma: float = WAVEFORM_SMOOTH_SIGMA_BINS,
+                 smooth_sigma_bins: Optional[dict] = None):
         self.session_id            = session_id
         self.intan_path            = intan_path
         # tip_start_mm is never defaulted: it is read from the
@@ -1257,6 +1293,31 @@ class PenetrationLFPAnalysis:
         self.tip_start_mm          = None
         self.spatial_smooth_sigma  = spatial_smooth_sigma
         self.waveform_smooth_sigma = waveform_smooth_sigma  # larger sigma for noisy spike metrics
+
+        # Per-metric smoothing σ (depth bins). Start from the module defaults,
+        # let the two legacy sigmas re-seed their families (so old call sites and
+        # tuning by family still work), then apply any explicit per-metric
+        # overrides passed in via smooth_sigma_bins.
+        self.smooth_sigma_bins = dict(DEFAULT_SMOOTH_SIGMA_BINS)
+        for k in ('lfp_spectra', 'power_law', 'spike_rate',
+                  'relative_impedance', 'relative_phase'):
+            self.smooth_sigma_bins[k] = spatial_smooth_sigma
+        for k in ('polarity_ratio', 'mean_peak_count',
+                  'trough_to_peak_ms', 'mean_spike_amplitude'):
+            self.smooth_sigma_bins[k] = waveform_smooth_sigma
+        if smooth_sigma_bins:
+            unknown = [k for k in smooth_sigma_bins if k not in self.smooth_sigma_bins]
+            if unknown:
+                print(f"  WARNING: smooth_sigma_bins has unknown metric keys "
+                      f"(ignored): {unknown}. Valid keys: "
+                      f"{sorted(self.smooth_sigma_bins)}")
+            self.smooth_sigma_bins.update(
+                {k: v for k, v in smooth_sigma_bins.items()
+                 if k in self.smooth_sigma_bins})
+
+    def _sigma(self, metric_key: str) -> float:
+        """Smoothing σ (depth bins) for a metric; falls back to the LFP default."""
+        return self.smooth_sigma_bins.get(metric_key, self.spatial_smooth_sigma)
 
     def run(self) -> None:
 
@@ -1302,39 +1363,48 @@ class PenetrationLFPAnalysis:
         n_bins = len(bin_depths)
         print(f"  {n_bins} depth bins  [{bin_depths[0]:.2f} – {bin_depths[-1]:.2f} mm]")
 
-        sigma   = self.spatial_smooth_sigma
-        sigma_w = self.waveform_smooth_sigma
-        if sigma > 0:
-            print(f"Applying spatial smoothing: LFP σ={sigma} bins ({sigma * CHANNEL_SPACING_UM:.0f} µm), "
-                  f"waveform σ={sigma_w} bins ({sigma_w * CHANNEL_SPACING_UM:.0f} µm) ...")
-            b_spec  = smooth_spectra(b_spec,  n_bins, sigma)
-            b_fits  = smooth_fits(b_fits,     n_bins, sigma)
-            b_spike = smooth_scalars(b_spike, n_bins, sigma)
-            # Spike waveform metrics are estimated from individual spikes → noisier → larger sigma
-            b_polarity   = smooth_scalars(b_polarity,   n_bins, sigma_w)
-            b_peak_count = smooth_scalars(b_peak_count, n_bins, sigma_w)
-            b_ttp        = smooth_scalars(b_ttp,        n_bins, sigma_w)
-            b_amp        = smooth_scalars(b_amp,        n_bins, sigma_w)
+        # Per-metric smoothing (σ in depth bins). smooth_* treat σ<=0 as no-op.
+        # b_spec_raw is kept unsmoothed so metrics that want a different σ than
+        # the display spectra (e.g. spectral dissimilarity) can re-smooth it.
+        b_spec_raw = b_spec
+        sig = self.smooth_sigma_bins
+        print("Applying per-metric spatial smoothing (σ, depth bins): "
+              + ", ".join(f"{k}={sig[k]}" for k in sorted(sig)))
+        b_spec  = smooth_spectra(b_spec_raw, n_bins, self._sigma('lfp_spectra'))
+        b_fits  = smooth_fits(b_fits,        n_bins, self._sigma('power_law'))
+        b_spike = smooth_scalars(b_spike,    n_bins, self._sigma('spike_rate'))
+        # Spike waveform metrics are estimated from individual spikes → noisier → larger σ
+        b_polarity   = smooth_scalars(b_polarity,   n_bins, self._sigma('polarity_ratio'))
+        b_peak_count = smooth_scalars(b_peak_count, n_bins, self._sigma('mean_peak_count'))
+        b_ttp        = smooth_scalars(b_ttp,        n_bins, self._sigma('trough_to_peak_ms'))
+        b_amp        = smooth_scalars(b_amp,        n_bins, self._sigma('mean_spike_amplitude'))
 
         print("Computing penetration-wide relative power ...")
         normalized = compute_relative_power(b_spec, n_bins)
 
         print("Computing LFP spectral dissimilarity (sulcus detector) ...")
-        b_spectral_dissim = compute_spectral_dissimilarity(normalized, bin_depths, n_bins)
-        if sigma > 0 and b_spectral_dissim:
-            b_spectral_dissim = smooth_scalars(b_spectral_dissim, n_bins, sigma)
+        # Compute the dissimilarity from spectra smoothed at its *own* (lighter)
+        # σ so aggressive display smoothing doesn't wipe out narrow sulci. Reuse
+        # the display relative power when the σ happens to match.
+        dissim_sigma = self._sigma('spectral_dissimilarity')
+        if dissim_sigma == self._sigma('lfp_spectra'):
+            normalized_dissim = normalized
+        else:
+            normalized_dissim = compute_relative_power(
+                smooth_spectra(b_spec_raw, n_bins, dissim_sigma), n_bins)
+        b_spectral_dissim = compute_spectral_dissimilarity(
+            normalized_dissim, bin_depths, n_bins)
 
         print("Computing relative impedance and phase ...")
         b_rel_imp   = compute_relative_impedance(b_imp_raw)
         b_rel_phase = compute_relative_phase(b_phase_raw)
         b_phase_save = compute_mean_phase(b_phase_raw) if USE_ABSOLUTE_PHASE else b_rel_phase
-        if sigma > 0:
-            if b_rel_imp:
-                b_rel_imp    = smooth_scalars(b_rel_imp,    n_bins, sigma)
-            if b_rel_phase:
-                b_rel_phase  = smooth_scalars(b_rel_phase,  n_bins, sigma)
-            if USE_ABSOLUTE_PHASE and b_phase_save:
-                b_phase_save = smooth_scalars(b_phase_save, n_bins, sigma)
+        if b_rel_imp:
+            b_rel_imp    = smooth_scalars(b_rel_imp,    n_bins, self._sigma('relative_impedance'))
+        if b_rel_phase:
+            b_rel_phase  = smooth_scalars(b_rel_phase,  n_bins, self._sigma('relative_phase'))
+        if USE_ABSOLUTE_PHASE and b_phase_save:
+            b_phase_save = smooth_scalars(b_phase_save, n_bins, self._sigma('relative_phase'))
 
         driven_ums      = [d for d, *_ in recordings_data]
         driven_analyzed = [d for d, *_ in recordings]
@@ -1416,8 +1486,9 @@ class PenetrationLFPAnalysis:
         # Lock y limits to the heatmap's extent so all panels align exactly
         axes[0].set_ylim(n_bins - 0.5, -0.5)
 
-        sigma     = self.spatial_smooth_sigma
-        smooth_str = f"  |  smooth σ={sigma}×65µm" if sigma > 0 else "  |  no smoothing"
+        smooth_str = (f"  |  smooth σ (bins): lfp={self._sigma('lfp_spectra')}, "
+                      f"wave={self._sigma('mean_spike_amplitude')}, "
+                      f"dissim={self._sigma('spectral_dissimilarity')}")
         has_imp   = bool(b_rel_imp)
 
         driven_found = driven_ums_found or []
