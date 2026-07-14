@@ -29,13 +29,23 @@ def create_alignment_suppression_index_module(channel=None, session_id=None, spi
 def _parse_mixed_frequency(value):
     """'Mixed Frequency' is stored as "<chromatic>, <luminance>" (see
     MixedFrequencyField). Returns (chromatic_frequency, luminance_frequency) as
-    floats, or None if it can't be parsed."""
+    floats, or None if it can't be parsed.
+
+    Robust to stray brackets/quotes/whitespace and to values that arrive as an
+    actual list/tuple (e.g. after a round-trip through the repository)."""
     if value is None:
         return None
     try:
-        chromatic_str, luminance_str = str(value).split(",")
-        return float(chromatic_str), float(luminance_str)
-    except (ValueError, AttributeError):
+        if isinstance(value, (list, tuple)):
+            parts = list(value)
+        else:
+            # Strip brackets/quotes so "[2.0, 4.0]" or "'2.0, 4.0'" also parse.
+            cleaned = str(value).strip().strip("[]()'\"")
+            parts = cleaned.split(",")
+        if len(parts) != 2:
+            return None
+        return float(parts[0]), float(parts[1])
+    except (ValueError, AttributeError, TypeError):
         return None
 
 
@@ -68,14 +78,24 @@ class AlignmentSuppressionIndexCalculator(ComputationModule):
     def _response_matrix(self, data, type_name):
         """Mean rate keyed by (luminance_frequency, chromatic_frequency) for one
         color pair, plus the pair's overall mean response (used to pick the best
-        pair)."""
+        pair) and a diagnostics dict explaining any dropped rows."""
         matrix = {}
         all_rates = []
+        n_bad_freq = 0
+        n_bad_rate = 0
+        sample_freqs = []
         type_data = data[data['Type'] == type_name]
         for _, row in type_data.iterrows():
-            freqs = _parse_mixed_frequency(row.get('Mixed Frequency'))
+            raw_freq = row.get('Mixed Frequency')
+            if len(sample_freqs) < 3:
+                sample_freqs.append(repr(raw_freq))
+            freqs = _parse_mixed_frequency(raw_freq)
             rate = self._rate(row)
-            if freqs is None or rate is None:
+            if freqs is None:
+                n_bad_freq += 1
+                continue
+            if rate is None:
+                n_bad_rate += 1
                 continue
             chromatic_freq, luminance_freq = freqs
             matrix.setdefault((luminance_freq, chromatic_freq), []).append(rate)
@@ -83,7 +103,13 @@ class AlignmentSuppressionIndexCalculator(ComputationModule):
 
         mean_matrix = {key: float(np.mean(vals)) for key, vals in matrix.items()}
         overall_mean = float(np.mean(all_rates)) if all_rates else 0.0
-        return mean_matrix, overall_mean
+        diagnostics = {
+            'n_rows': len(type_data),
+            'n_bad_freq': n_bad_freq,
+            'n_bad_rate': n_bad_rate,
+            'sample_freqs': sample_freqs,
+        }
+        return mean_matrix, overall_mean, diagnostics
 
     def compute(self, prepared_data: InputT) -> OutputT:
         # Pick the best color pair for this cell: the one with the larger overall
@@ -91,8 +117,10 @@ class AlignmentSuppressionIndexCalculator(ComputationModule):
         best_pair = None
         best_mean = -np.inf
         best_matrix = {}
+        diagnostics_by_type = {}
         for type_name in MIXED_TYPES:
-            matrix, overall_mean = self._response_matrix(prepared_data, type_name)
+            matrix, overall_mean, diagnostics = self._response_matrix(prepared_data, type_name)
+            diagnostics_by_type[type_name] = diagnostics
             if not matrix:
                 continue
             print(f"  {type_name}: overall mean response = {overall_mean:.2f} "
@@ -103,7 +131,23 @@ class AlignmentSuppressionIndexCalculator(ComputationModule):
                 best_matrix = matrix
 
         if best_pair is None:
+            # Explain WHY nothing matched rather than failing silently.
+            available_types = sorted(str(t) for t in prepared_data['Type'].dropna().unique())
             print(f"  Warning: no mixed gabor data for {self.response_key}, skipping.")
+            print(f"    Types present in data: {available_types}")
+            print(f"    (looking for {MIXED_TYPES})")
+            for type_name, d in diagnostics_by_type.items():
+                print(f"    {type_name}: {d['n_rows']} rows, "
+                      f"{d['n_bad_freq']} failed 'Mixed Frequency' parse, "
+                      f"{d['n_bad_rate']} missing rate for channel {self.response_key!r}. "
+                      f"Sample 'Mixed Frequency' values: {d['sample_freqs']}")
+                if d['n_rows'] > 0 and d['n_bad_rate'] == d['n_rows']:
+                    # Every row had the type but no rate for this channel: show what
+                    # channel keys the rate dict actually contains.
+                    first = prepared_data[prepared_data['Type'] == type_name].iloc[0]
+                    rates = first.get(self.spike_data_col)
+                    keys = sorted(rates.keys()) if isinstance(rates, dict) else rates
+                    print(f"      Rate column {self.spike_data_col!r} keys available: {keys}")
             return {}
 
         print(f"\nBest color pair for {self.response_key}: {best_pair} "
