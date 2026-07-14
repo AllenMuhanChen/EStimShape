@@ -95,6 +95,102 @@ _FactorAnalysisAdapter = _DecompositionAdapter
 
 
 # ---------------------------------------------------------------------------
+# Archetypal analysis (self-contained — no external dependency)
+# ---------------------------------------------------------------------------
+
+class _ArchetypeModel:
+    """Minimal shim exposing `.components_` (the archetypes) so an AA fit can be
+    wrapped by `_DecompositionAdapter` and flow through the loadings/scree code
+    exactly like a PCA/NMF result."""
+    def __init__(self, archetypes: np.ndarray):
+        self.components_ = archetypes
+
+
+def _simplex_project(V: np.ndarray) -> np.ndarray:
+    """Project each ROW of V onto the probability simplex {x >= 0, sum = 1}.
+
+    Vectorised Duchi et al. (2008) algorithm. Used to keep the archetypal-
+    analysis weight matrices convex after each gradient step.
+    """
+    V = np.asarray(V, dtype=float)
+    n, d = V.shape
+    U = np.sort(V, axis=1)[:, ::-1]
+    cssv = np.cumsum(U, axis=1) - 1.0
+    ind = np.arange(1, d + 1)
+    cond = (U - cssv / ind) > 0
+    rho = cond.sum(axis=1)
+    theta = cssv[np.arange(n), rho - 1] / rho
+    return np.maximum(V - theta[:, None], 0.0)
+
+
+def _archetypal_analysis(
+        X: np.ndarray,
+        n_archetypes: int,
+        n_iter: int = 400,
+        tol: float = 1e-7,
+        seed: int = 42,
+) -> tuple:
+    """Archetypal analysis:  X ≈ A @ Z,  Z = B @ X, with the rows of both A and
+    B constrained to the probability simplex (non-negative, sum to 1).
+
+    Each archetype (row of Z) is a convex combination of real data points — an
+    "extreme" prototype — and each sample (row of A) is a convex mixture of
+    archetypes. Unlike PCA there is no negative end: a component is present
+    (weight up to 1) or absent (0), so with k archetypes you get one axis per
+    prototype (e.g. sulcus / WM / GM) and A reads as a soft membership.
+
+    Projected-gradient with an adaptive step size and backtracking, so the
+    reconstruction error decreases monotonically (Mørup & Hansen PCHA style).
+
+    Returns
+    -------
+    (A, Z) : A is (n_samples, k) convex scores; Z is (k, n_features) archetypes.
+    """
+    rng = np.random.default_rng(seed)
+    n, m = X.shape
+    k = int(n_archetypes)
+
+    # Initialise archetypes at k distinct data rows; weights roughly uniform.
+    idx = rng.choice(n, size=k, replace=False)
+    B = np.zeros((k, n)); B[np.arange(k), idx] = 1.0
+    Z = B @ X
+    A = _simplex_project(rng.random((n, k)))
+
+    def rss(A_, Z_):
+        R = X - A_ @ Z_
+        return float(np.sum(R * R))
+
+    prev = rss(A, Z)
+    muA = muB = 1.0
+    for _ in range(n_iter):
+        # --- update A with Z fixed:  grad = 2 (A Z - X) Zᵀ ---
+        G = 2.0 * (A @ Z - X) @ Z.T
+        step = muA / (np.linalg.norm(G) / np.sqrt(n) + 1e-12)
+        A_new = _simplex_project(A - step * G)
+        r = rss(A_new, Z)
+        if r <= prev:
+            A, prev, muA = A_new, r, muA * 1.2
+        else:
+            muA *= 0.5
+
+        # --- update B (hence Z = B X) with A fixed:
+        #     L = ||X - A B X||²;  grad_Z = 2 Aᵀ (A Z - X);  grad_B = grad_Z Xᵀ ---
+        gB = (2.0 * A.T @ (A @ Z - X)) @ X.T
+        step = muB / (np.linalg.norm(gB) / np.sqrt(k) + 1e-12)
+        B_new = _simplex_project(B - step * gB)
+        Z_new = B_new @ X
+        r = rss(A, Z_new)
+        if r <= prev:
+            B, Z, prev, muB = B_new, Z_new, r, muB * 1.2
+        else:
+            muB *= 0.5
+
+        if muA < 1e-10 and muB < 1e-10:
+            break
+    return A, Z
+
+
+# ---------------------------------------------------------------------------
 # Pooled decomposition over all sessions
 # ---------------------------------------------------------------------------
 
@@ -114,11 +210,22 @@ def load_and_perform_pca(
 
     Parameters
     ----------
-    decomp_method : {'pca', 'fa', 'ica'}
+    decomp_method : {'pca', 'fa', 'ica', 'nmf', 'aa'}
         - 'pca'  : sklearn PCA (linear, orthogonal, ranked by variance).
         - 'fa'   : sklearn FactorAnalysis (latent-variable model).
         - 'ica'  : sklearn FastICA (independent components — already
                    sparse-like; varimax is ignored when use_varimax=True).
+        - 'nmf'  : sklearn NMF — non-negative, parts-based. Each component is
+                   an additive feature signature and scores are >= 0, so a
+                   component is "present" (high) or "absent" (~0) rather than a
+                   two-ended axis. Features are MinMax-scaled to [0, 1] instead
+                   of StandardScaler'd (NMF requires X >= 0). Varimax ignored.
+        - 'aa'   : Archetypal analysis (self-contained) — X ≈ A·Z with A and the
+                   archetype weights convex. Each archetype is an extreme
+                   prototype (e.g. pure sulcus / WM / GM) and each row of A is a
+                   soft membership summing to 1. Also MinMax-scaled; varimax
+                   ignored. explained_variance_ratio_ is a score-variance
+                   heuristic for NMF/AA, not true explained variance.
     n_components : total number of components to extract. None means:
         all features for PCA; varimax_n_components (or all features) for
         FA / ICA. Set this explicitly to decouple "how many components"
@@ -184,7 +291,16 @@ def load_and_perform_pca(
         X = _within_session_zscore(X, df_valid['session_id'])
         print(f"  Grand mean after normalization: {X.mean().mean():+.4f}  (should be ≈ 0)")
 
-    scaler = StandardScaler()
+    if decomp_method in ('nmf', 'aa'):
+        # NMF needs X >= 0, and both NMF and AA want features on comparable
+        # scales. MinMaxScaler maps each feature to [0, 1]; combined with the
+        # optional within-session z-score above this keeps session harmonisation
+        # while satisfying the non-negativity constraint. (StandardScaler would
+        # produce negatives and break NMF.)
+        from sklearn.preprocessing import MinMaxScaler
+        scaler = MinMaxScaler()
+    else:
+        scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
     # Resolve n_components.
@@ -216,10 +332,30 @@ def load_and_perform_pca(
         if use_varimax:
             print("  (ignoring use_varimax=True — ICA components are already rotated)")
             use_varimax = False
+    elif decomp_method == 'nmf':
+        from sklearn.decomposition import NMF
+        print(f"\nUsing NMF (n_components={n_components_eff}) ...")
+        nmf = NMF(n_components=n_components_eff, init='nndsvda',
+                  random_state=42, max_iter=2000)
+        X_pca = nmf.fit_transform(X_scaled)          # scores W >= 0
+        pca = _DecompositionAdapter(nmf, X_pca)      # components_ = H (parts)
+        if use_varimax:
+            print("  (ignoring use_varimax=True — NMF gives non-negative parts; "
+                  "rotation would reintroduce signed/cancelling components)")
+            use_varimax = False
+    elif decomp_method == 'aa':
+        print(f"\nUsing Archetypal Analysis (n_components={n_components_eff}) ...")
+        A, Z = _archetypal_analysis(X_scaled, n_components_eff)
+        X_pca = A                                    # convex mixture weights >= 0
+        pca = _DecompositionAdapter(_ArchetypeModel(Z), X_pca)  # components_ = archetypes
+        if use_varimax:
+            print("  (ignoring use_varimax=True — AA components are archetypes; "
+                  "rotation is not applicable)")
+            use_varimax = False
     else:
         raise ValueError(
             f"Unknown decomp_method {decomp_method!r}. "
-            f"Choose 'pca', 'fa', or 'ica'.")
+            f"Choose 'pca', 'fa', 'ica', 'nmf', or 'aa'.")
 
     if use_varimax and varimax_n_components and varimax_n_components > 1:
         n_rot = min(varimax_n_components, X_pca.shape[1])
