@@ -222,28 +222,56 @@ def compute_mri_comparison(
 
 def _weighted_pearson_r(ts: np.ndarray, mri_vals: np.ndarray,
                         confidence: np.ndarray = None) -> float:
-    """Weighted Pearson r between tissue_score and MRI raw values."""
+    """Weighted Pearson r between tissue_score and MRI raw values.
+
+    Robust to degenerate confidence weights: if the weighted computation is
+    undefined (all-zero / non-finite weights, or the weight concentrates on
+    bins with constant tissue_score so the weighted variance collapses), fall
+    back to the UNWEIGHTED r rather than returning NaN and silently dropping the
+    session from the fit report / optimiser loss. Compositional tissue models
+    make this common — their confidence can be exactly 0 (nuisance-only bins)
+    and is bimodal, which the smoother PCA-softmax confidence never was.
+    """
+    ts = np.asarray(ts, dtype=float)
+    mri_vals = np.asarray(mri_vals, dtype=float)
+
     pos = mri_vals[mri_vals > 0]
     if len(pos) < 3:
         return np.nan
     mri_ref = float(np.percentile(pos, 99))
-    ts_max = float(ts.max())
+    finite_ts = ts[np.isfinite(ts)]
+    ts_max = float(finite_ts.max()) if finite_ts.size else 0.0
     if mri_ref <= 0 or ts_max <= 0:
         return np.nan
 
     mri_norm = np.clip(mri_vals, 0.0, mri_ref) / mri_ref * ts_max
-    w = confidence if confidence is not None else np.ones(len(ts))
-    w_sum = w.sum()
-    if w_sum == 0:
-        return np.nan
+    valid = np.isfinite(ts) & np.isfinite(mri_norm)
 
-    ts_wm = (w * ts).sum() / w_sum
-    mri_wm = (w * mri_norm).sum() / w_sum
-    ts_c = ts - ts_wm
-    mri_c = mri_norm - mri_wm
-    num = (w * ts_c * mri_c).sum()
-    denom = np.sqrt((w * ts_c ** 2).sum() * (w * mri_c ** 2).sum())
-    return float(num / denom) if denom > 0 else np.nan
+    def _wr(w: np.ndarray) -> float:
+        ww = w[valid]
+        t = ts[valid]
+        m = mri_norm[valid]
+        w_sum = ww.sum()
+        if not np.isfinite(w_sum) or w_sum <= 0:
+            return np.nan
+        t_wm = (ww * t).sum() / w_sum
+        m_wm = (ww * m).sum() / w_sum
+        tc = t - t_wm
+        mc = m - m_wm
+        denom = np.sqrt((ww * tc ** 2).sum() * (ww * mc ** 2).sum())
+        return float((ww * tc * mc).sum() / denom) if denom > 0 else np.nan
+
+    if confidence is None:
+        return _wr(np.ones(len(ts)))
+
+    w = np.asarray(confidence, dtype=float)
+    w = np.clip(np.where(np.isfinite(w), w, 0.0), 0.0, None)   # NaN weight -> 0
+    r = _wr(w)
+    if not np.isfinite(r):
+        # Weighted r undefined (degenerate weights) -> use unweighted so the
+        # session still contributes instead of being dropped.
+        r = _wr(np.ones(len(ts)))
+    return r
 
 
 def compute_trajectory_fit_scores(df: pd.DataFrame) -> pd.DataFrame:
